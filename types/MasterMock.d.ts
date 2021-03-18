@@ -201,6 +201,29 @@ export interface MasterMockInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  upgradeCapitalPool: {
+    (
+      currentPoolAddress: string,
+      newPoolAddress: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      currentPoolAddress: string,
+      newPoolAddress: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      currentPoolAddress: string,
+      newPoolAddress: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      currentPoolAddress: string,
+      newPoolAddress: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   methods: {
     checkIsAuthToGoverned(
       caller: string,
@@ -389,6 +412,29 @@ export interface MasterMockInstance extends Truffle.ContractInstance {
       ): Promise<string>;
       estimateGas(
         arg0: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
+    upgradeCapitalPool: {
+      (
+        currentPoolAddress: string,
+        newPoolAddress: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        currentPoolAddress: string,
+        newPoolAddress: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        currentPoolAddress: string,
+        newPoolAddress: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        currentPoolAddress: string,
+        newPoolAddress: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };

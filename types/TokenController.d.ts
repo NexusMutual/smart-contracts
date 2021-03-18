@@ -164,24 +164,29 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  extendLock: {
+  claimSubmissionGracePeriod(
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BN>;
+
+  coverInfo(
+    arg0: number | BN | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<[BN, boolean, boolean]>;
+
+  extendClaimAssessmentLock: {
     (
-      _reason: string,
       _time: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      _reason: string,
       _time: number | BN | string,
       txDetails?: Truffle.TransactionDetails
-    ): Promise<boolean>;
+    ): Promise<void>;
     sendTransaction(
-      _reason: string,
       _time: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      _reason: string,
       _time: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
@@ -213,6 +218,11 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
+
+  getLockReasons(
+    _of: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<string[]>;
 
   getLockedTokensValidity(
     _of: string,
@@ -248,27 +258,32 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  lock: {
+  initialize: {
+    (txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+  };
+
+  lockClaimAssessmentTokens: {
     (
-      _reason: string,
       _amount: number | BN | string,
       _time: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      _reason: string,
       _amount: number | BN | string,
       _time: number | BN | string,
       txDetails?: Truffle.TransactionDetails
-    ): Promise<boolean>;
+    ): Promise<void>;
     sendTransaction(
-      _reason: string,
       _amount: number | BN | string,
       _time: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      _reason: string,
       _amount: number | BN | string,
       _time: number | BN | string,
       txDetails?: Truffle.TransactionDetails
@@ -340,6 +355,48 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
     arg1: string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<[BN, BN, boolean]>;
+
+  markCoverClaimClosed: {
+    (
+      coverId: number | BN | string,
+      isAccepted: boolean,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      coverId: number | BN | string,
+      isAccepted: boolean,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      coverId: number | BN | string,
+      isAccepted: boolean,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      coverId: number | BN | string,
+      isAccepted: boolean,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
+  markCoverClaimOpen: {
+    (
+      coverId: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      coverId: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      coverId: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      coverId: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
 
   minCALockTime(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
@@ -453,6 +510,33 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  removeEmptyReason: {
+    (
+      _of: string,
+      _reason: string,
+      _index: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      _of: string,
+      _reason: string,
+      _index: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      _of: string,
+      _reason: string,
+      _index: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      _of: string,
+      _reason: string,
+      _index: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   removeFromWhitelist: {
     (_member: string, txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
@@ -471,6 +555,33 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  removeMultipleEmptyReasons: {
+    (
+      _members: string[],
+      _reasons: string[],
+      _indexes: (number | BN | string)[],
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      _members: string[],
+      _reasons: string[],
+      _indexes: (number | BN | string)[],
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      _members: string[],
+      _reasons: string[],
+      _indexes: (number | BN | string)[],
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      _members: string[],
+      _reasons: string[],
+      _indexes: (number | BN | string)[],
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   token(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   tokensLocked(
@@ -485,6 +596,12 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
     _time: number | BN | string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
+
+  tokensLockedWithValidity(
+    _of: string,
+    _reason: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<[BN, BN]>;
 
   tokensUnlockable(
     _of: string,
@@ -523,22 +640,49 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
   updateUintParameters: {
     (
       code: string,
-      val: number | BN | string,
+      value: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
       code: string,
-      val: number | BN | string,
+      value: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
       code: string,
-      val: number | BN | string,
+      value: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
       code: string,
-      val: number | BN | string,
+      value: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
+  withdrawCoverNote: {
+    (
+      _of: string,
+      _coverIds: (number | BN | string)[],
+      _indexes: (number | BN | string)[],
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      _of: string,
+      _coverIds: (number | BN | string)[],
+      _indexes: (number | BN | string)[],
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      _of: string,
+      _coverIds: (number | BN | string)[],
+      _indexes: (number | BN | string)[],
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      _of: string,
+      _coverIds: (number | BN | string)[],
+      _indexes: (number | BN | string)[],
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -657,24 +801,29 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    extendLock: {
+    claimSubmissionGracePeriod(
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<BN>;
+
+    coverInfo(
+      arg0: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<[BN, boolean, boolean]>;
+
+    extendClaimAssessmentLock: {
       (
-        _reason: string,
         _time: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        _reason: string,
         _time: number | BN | string,
         txDetails?: Truffle.TransactionDetails
-      ): Promise<boolean>;
+      ): Promise<void>;
       sendTransaction(
-        _reason: string,
         _time: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        _reason: string,
         _time: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
@@ -706,6 +855,11 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
+
+    getLockReasons(
+      _of: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string[]>;
 
     getLockedTokensValidity(
       _of: string,
@@ -741,27 +895,32 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    lock: {
+    initialize: {
+      (txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+    };
+
+    lockClaimAssessmentTokens: {
       (
-        _reason: string,
         _amount: number | BN | string,
         _time: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        _reason: string,
         _amount: number | BN | string,
         _time: number | BN | string,
         txDetails?: Truffle.TransactionDetails
-      ): Promise<boolean>;
+      ): Promise<void>;
       sendTransaction(
-        _reason: string,
         _amount: number | BN | string,
         _time: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        _reason: string,
         _amount: number | BN | string,
         _time: number | BN | string,
         txDetails?: Truffle.TransactionDetails
@@ -833,6 +992,48 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
       arg1: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<[BN, BN, boolean]>;
+
+    markCoverClaimClosed: {
+      (
+        coverId: number | BN | string,
+        isAccepted: boolean,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        coverId: number | BN | string,
+        isAccepted: boolean,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        coverId: number | BN | string,
+        isAccepted: boolean,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        coverId: number | BN | string,
+        isAccepted: boolean,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
+    markCoverClaimOpen: {
+      (
+        coverId: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        coverId: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        coverId: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        coverId: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
 
     minCALockTime(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
@@ -946,6 +1147,33 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
+    removeEmptyReason: {
+      (
+        _of: string,
+        _reason: string,
+        _index: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        _of: string,
+        _reason: string,
+        _index: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        _of: string,
+        _reason: string,
+        _index: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        _of: string,
+        _reason: string,
+        _index: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
     removeFromWhitelist: {
       (_member: string, txDetails?: Truffle.TransactionDetails): Promise<
         Truffle.TransactionResponse<AllEvents>
@@ -964,6 +1192,33 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
+    removeMultipleEmptyReasons: {
+      (
+        _members: string[],
+        _reasons: string[],
+        _indexes: (number | BN | string)[],
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        _members: string[],
+        _reasons: string[],
+        _indexes: (number | BN | string)[],
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        _members: string[],
+        _reasons: string[],
+        _indexes: (number | BN | string)[],
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        _members: string[],
+        _reasons: string[],
+        _indexes: (number | BN | string)[],
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
     token(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     tokensLocked(
@@ -978,6 +1233,12 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
       _time: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
+
+    tokensLockedWithValidity(
+      _of: string,
+      _reason: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<[BN, BN]>;
 
     tokensUnlockable(
       _of: string,
@@ -1016,22 +1277,49 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
     updateUintParameters: {
       (
         code: string,
-        val: number | BN | string,
+        value: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
         code: string,
-        val: number | BN | string,
+        value: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
         code: string,
-        val: number | BN | string,
+        value: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
         code: string,
-        val: number | BN | string,
+        value: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
+    withdrawCoverNote: {
+      (
+        _of: string,
+        _coverIds: (number | BN | string)[],
+        _indexes: (number | BN | string)[],
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        _of: string,
+        _coverIds: (number | BN | string)[],
+        _indexes: (number | BN | string)[],
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        _of: string,
+        _coverIds: (number | BN | string)[],
+        _indexes: (number | BN | string)[],
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        _of: string,
+        _coverIds: (number | BN | string)[],
+        _indexes: (number | BN | string)[],
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };

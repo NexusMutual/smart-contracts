@@ -23,4 +23,6 @@ describe('INTEGRATION TESTS', function () {
   require('./MemberRoles');
   require('./Claims');
   require('./Cover');
+  require('./TokenController');
+
 });

@@ -83,16 +83,6 @@ contract TokenFunctions is Iupgradable {
   }
 
   /**
-   * @dev Set the flag to check if cover note is deposited against the cover id
-   * @param coverId Cover Id.
-   */
-  function depositCN(uint coverId) public onlyInternal returns (bool success) {
-    require(_getLockedCNAgainstCover(coverId) > 0, "No cover note available");
-    td.setDepositCN(coverId, true);
-    success = true;
-  }
-
-  /**
    * @param _of address of Member
    * @param _coverId Cover Id
    * @param _lockTime Pending Time + Cover Period 7*1 days
@@ -112,13 +102,22 @@ contract TokenFunctions is Iupgradable {
    * @return the status of the successful burning
    */
   function burnDepositCN(uint coverId) public onlyInternal returns (bool success) {
+
     address _of = qd.getCoverMemberAddress(coverId);
-    uint amount;
-    (amount,) = td.depositedCN(coverId);
-    amount = (amount.mul(50)).div(100);
     bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
-    tc.burnLockedTokens(_of, reason, amount);
-    success = true;
+    uint lockedAmount = tc.tokensLocked(_of, reason);
+
+    (uint amount,) = td.depositedCN(coverId);
+    amount = amount.div(2);
+
+    // limit burn amount to actual amount locked
+    uint burnAmount = lockedAmount < amount ? lockedAmount : amount;
+
+    if (burnAmount > 0) {
+      tc.burnLockedTokens(_of, reason, amount);
+    }
+
+    return true;
   }
 
   /**
@@ -126,12 +125,10 @@ contract TokenFunctions is Iupgradable {
    * @param coverId id of cover
    */
   function unlockCN(uint coverId) public onlyInternal {
-    (, bool isDeposited) = td.depositedCN(coverId);
-    require(!isDeposited, "Cover note is deposited and can not be released");
-    uint lockedCN = _getLockedCNAgainstCover(coverId);
+    address coverHolder = qd.getCoverMemberAddress(coverId);
+    bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, coverId));
+    uint lockedCN = tc.tokensLockedAtTime(coverHolder, reason, now);
     if (lockedCN != 0) {
-      address coverHolder = qd.getCoverMemberAddress(coverId);
-      bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, coverId));
       tc.releaseLockedTokens(coverHolder, reason, lockedCN);
     }
   }
@@ -165,7 +162,8 @@ contract TokenFunctions is Iupgradable {
   public
   onlyInternal
   {
-    uint validity = (coverPeriod * 1 days).add(td.lockTokenTimeAfterCoverExp());
+    uint gracePeriod = tc.claimSubmissionGracePeriod();
+    uint validity = (coverPeriod * 1 days).add(gracePeriod);
     bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
     td.setDepositCNAmount(coverId, coverNoteAmount);
     tc.lockOf(_of, reason, coverNoteAmount, validity);

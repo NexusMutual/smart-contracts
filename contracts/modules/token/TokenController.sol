@@ -19,17 +19,55 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/Iupgradable.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "./NXMToken.sol";
-import "./external/IERC1132.sol";
 
-contract TokenController is IERC1132, Iupgradable {
+contract TokenController is Iupgradable {
   using SafeMath for uint256;
 
-  event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
+  struct LockToken {
+    uint256 amount;
+    uint256 validity;
+    bool claimed;
+  }
+
+  struct CoverInfo {
+    uint16 claimCount;
+    bool hasOpenClaim;
+    bool hasAcceptedClaim;
+    // note: still 224 bits available here, can be used later
+  }
+
+  // _of => reason
+  mapping(address => bytes32[]) public lockReason;
+
+  // _of => reason => LockToken
+  mapping(address => mapping(bytes32 => LockToken)) public locked;
 
   NXMToken public token;
   IPooledStaking public pooledStaking;
-  uint public minCALockTime = uint(30).mul(1 days);
+
+  uint public minCALockTime;
+  uint public claimSubmissionGracePeriod;
+
+  // coverId => CoverInfo
+  mapping(uint => CoverInfo) public coverInfo;
+
   bytes32 private constant CLA = bytes32("CLA");
+
+  event Locked(address indexed _of, bytes32 indexed _reason, uint256 _amount, uint256 _validity);
+
+  event Unlocked(address indexed _of, bytes32 indexed _reason, uint256 _amount);
+
+  event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
+
+  modifier onlyGovernance {
+    require(msg.sender == ms.getLatestAddress("GV"), 'TokenController: Caller is not governance');
+    _;
+  }
+
+  function initialize() external {
+    require(claimSubmissionGracePeriod == 0, "TokenController: Already initialized");
+    claimSubmissionGracePeriod = 120 days;
+  }
 
   /**
   * @dev Just for interface
@@ -37,6 +75,42 @@ contract TokenController is IERC1132, Iupgradable {
   function changeDependentContractAddress() public {
     token = NXMToken(ms.tokenAddress());
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
+  }
+
+  function markCoverClaimOpen(uint coverId) external onlyInternal {
+
+    CoverInfo storage info = coverInfo[coverId];
+
+    uint16 claimCount;
+    bool hasOpenClaim;
+    bool hasAcceptedClaim;
+
+    // reads all of them using a single SLOAD
+    (claimCount, hasOpenClaim, hasAcceptedClaim) = (info.claimCount, info.hasOpenClaim, info.hasAcceptedClaim);
+
+    // no safemath for uint16 but should be safe from
+    // overflows as there're max 2 claims per cover
+    claimCount = claimCount + 1;
+
+    require(claimCount <= 2, "TokenController: Max claim count exceeded");
+    require(hasOpenClaim == false, "TokenController: Cover already has an open claim");
+    require(hasAcceptedClaim == false, "TokenController: Cover already has accepted claims");
+
+    // should use a single SSTORE for both
+    (info.claimCount, info.hasOpenClaim) = (claimCount, true);
+  }
+
+  /**
+   * @param coverId cover id (careful, not claim id!)
+   * @param isAccepted claim verdict
+   */
+  function markCoverClaimClosed(uint coverId, bool isAccepted) external onlyInternal {
+
+    CoverInfo storage info = coverInfo[coverId];
+    require(info.hasOpenClaim == true, "TokenController: Cover claim is not marked as open");
+
+    // should use a single SSTORE for both
+    (info.hasOpenClaim, info.hasAcceptedClaim) = (false, isAccepted);
   }
 
   /**
@@ -54,27 +128,24 @@ contract TokenController is IERC1132, Iupgradable {
    * @param _value  Amount to transfer
    */
   function operatorTransfer(address _from, address _to, uint _value) onlyInternal external returns (bool) {
-    require(msg.sender == address(pooledStaking), "Call is only allowed from PooledStaking address");
-    require(token.operatorTransfer(_from, _value), "Operator transfer failed");
-    require(token.transfer(_to, _value), "Internal transfer failed");
+    require(msg.sender == address(pooledStaking), "TokenController: Call is only allowed from PooledStaking address");
+    require(token.operatorTransfer(_from, _value), "TokenController: Operator transfer failed");
+    require(token.transfer(_to, _value), "TokenController: Internal transfer failed");
     return true;
   }
 
   /**
   * @dev Locks a specified amount of tokens,
   *    for CLA reason and for a specified time
-  * @param _reason The reason to lock tokens, currently restricted to CLA
   * @param _amount Number of tokens to be locked
   * @param _time Lock time in seconds
   */
-  function lock(bytes32 _reason, uint256 _amount, uint256 _time) public checkPause returns (bool)
-  {
-    require(_reason == CLA, "Restricted to reason CLA");
-    require(minCALockTime <= _time, "Should lock for minimum time");
+  function lockClaimAssessmentTokens(uint256 _amount, uint256 _time) external checkPause {
+    require(minCALockTime <= _time, "TokenController: Must lock for minimum time");
+    require(_time <= 180 days, "TokenController: Tokens can be locked for 180 days maximum");
     // If tokens are already locked, then functions extendLock or
     // increaseLockAmount should be used to make any changes
-    _lock(msg.sender, _reason, _amount, _time);
-    return true;
+    _lock(msg.sender, CLA, _amount, _time);
   }
 
   /**
@@ -98,17 +169,12 @@ contract TokenController is IERC1132, Iupgradable {
 
   /**
   * @dev Extends lock for reason CLA for a specified time
-  * @param _reason The reason to lock tokens, currently restricted to CLA
   * @param _time Lock extension time in seconds
   */
-  function extendLock(bytes32 _reason, uint256 _time)
-  public
-  checkPause
-  returns (bool)
-  {
-    require(_reason == CLA, "Restricted to reason CLA");
-    _extendLock(msg.sender, _reason, _time);
-    return true;
+  function extendClaimAssessmentLock(uint256 _time) external checkPause {
+    uint256 validity = getLockedTokensValidity(msg.sender, CLA);
+    require(validity.add(_time).sub(block.timestamp) <= 180 days, "TokenController: Tokens can be locked for 180 days maximum");
+    _extendLock(msg.sender, CLA, _time);
   }
 
   /**
@@ -135,8 +201,8 @@ contract TokenController is IERC1132, Iupgradable {
   checkPause
   returns (bool)
   {
-    require(_reason == CLA, "Restricted to reason CLA");
-    require(_tokensLocked(msg.sender, _reason) > 0);
+    require(_reason == CLA, "TokenController: Restricted to reason CLA");
+    require(_tokensLocked(msg.sender, _reason) > 0, "TokenController: No tokens locked");
     token.operatorTransfer(msg.sender, _amount);
 
     locked[msg.sender][_reason].amount = locked[msg.sender][_reason].amount.add(_amount);
@@ -233,22 +299,32 @@ contract TokenController is IERC1132, Iupgradable {
     if (unlockableTokens > 0) {
       locked[_of][CLA].claimed = true;
       emit Unlocked(_of, CLA, unlockableTokens);
-      require(token.transfer(_of, unlockableTokens));
+      require(token.transfer(_of, unlockableTokens), "TokenController: Transfer failed");
     }
   }
 
   /**
    * @dev Updates Uint Parameters of a code
    * @param code whose details we want to update
-   * @param val value to set
+   * @param value value to set
    */
-  function updateUintParameters(bytes8 code, uint val) public {
-    require(ms.checkIsAuthToGoverned(msg.sender));
+  function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
+
     if (code == "MNCLT") {
-      minCALockTime = val.mul(1 days);
-    } else {
-      revert("Invalid param code");
+      minCALockTime = value;
+      return;
     }
+
+    if (code == "GRACEPER") {
+      claimSubmissionGracePeriod = value;
+      return;
+    }
+
+    revert("TokenController: invalid param code");
+  }
+
+  function getLockReasons(address _of) external view returns (bytes32[] memory reasons) {
+    return lockReason[_of];
   }
 
   /**
@@ -256,11 +332,7 @@ contract TokenController is IERC1132, Iupgradable {
   * @param _of The address to query the validity
   * @param reason reason for which tokens were locked
   */
-  function getLockedTokensValidity(address _of, bytes32 reason)
-  public
-  view
-  returns (uint256 validity)
-  {
+  function getLockedTokensValidity(address _of, bytes32 reason) public view returns (uint256 validity) {
     validity = locked[_of][reason].validity;
   }
 
@@ -291,6 +363,26 @@ contract TokenController is IERC1132, Iupgradable {
   returns (uint256 amount)
   {
     return _tokensLocked(_of, _reason);
+  }
+
+  /**
+  * @dev Returns tokens locked and validity for a specified address and reason
+  * @param _of The address whose tokens are locked
+  * @param _reason The reason to query the lock tokens for
+  */
+  function tokensLockedWithValidity(address _of, bytes32 _reason)
+  public
+  view
+  returns (uint256 amount, uint256 validity)
+  {
+
+    bool claimed = locked[_of][_reason].claimed;
+    amount = locked[_of][_reason].amount;
+    validity = locked[_of][_reason].validity;
+
+    if (claimed) {
+      amount = 0;
+    }
   }
 
   /**
@@ -376,14 +468,14 @@ contract TokenController is IERC1132, Iupgradable {
   * @param _time Lock time in seconds
   */
   function _lock(address _of, bytes32 _reason, uint256 _amount, uint256 _time) internal {
-    require(_tokensLocked(_of, _reason) == 0);
-    require(_amount != 0);
+    require(_tokensLocked(_of, _reason) == 0, "TokenController: An amount of tokens is already locked");
+    require(_amount != 0, "TokenController: Amount shouldn't be zero");
 
     if (locked[_of][_reason].amount == 0) {
       lockReason[_of].push(_reason);
     }
 
-    require(token.operatorTransfer(_of, _amount));
+    require(token.operatorTransfer(_of, _amount), "TokenController: Operator transfer failed");
 
     uint256 validUntil = now.add(_time); // solhint-disable-line
     locked[_of][_reason] = LockToken(_amount, validUntil, false);
@@ -432,7 +524,7 @@ contract TokenController is IERC1132, Iupgradable {
   * @param _time Lock extension time in seconds
   */
   function _extendLock(address _of, bytes32 _reason, uint256 _time) internal {
-    require(_tokensLocked(_of, _reason) > 0);
+    require(_tokensLocked(_of, _reason) > 0, "TokenController: No tokens locked");
     emit Unlocked(_of, _reason, locked[_of][_reason].amount);
     locked[_of][_reason].validity = locked[_of][_reason].validity.add(_time);
     emit Locked(_of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
@@ -445,7 +537,7 @@ contract TokenController is IERC1132, Iupgradable {
   * @param _time Lock reduction time in seconds
   */
   function _reduceLock(address _of, bytes32 _reason, uint256 _time) internal {
-    require(_tokensLocked(_of, _reason) > 0);
+    require(_tokensLocked(_of, _reason) > 0, "TokenController: No tokens locked");
     emit Unlocked(_of, _reason, locked[_of][_reason].amount);
     locked[_of][_reason].validity = locked[_of][_reason].validity.sub(_time);
     emit Locked(_of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
@@ -471,16 +563,16 @@ contract TokenController is IERC1132, Iupgradable {
   */
   function _burnLockedTokens(address _of, bytes32 _reason, uint256 _amount) internal {
     uint256 amount = _tokensLocked(_of, _reason);
-    require(amount >= _amount);
+    require(amount >= _amount, "TokenController: Amount exceedes locked tokens amount");
 
     if (amount == _amount) {
       locked[_of][_reason].claimed = true;
     }
 
     locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
-    if (locked[_of][_reason].amount == 0) {
-      _removeReason(_of, _reason);
-    }
+
+    // lock reason removal is skipped here: needs to be done from offchain
+
     token.burn(_amount);
     emit Burned(_of, _reason, _amount);
   }
@@ -494,28 +586,97 @@ contract TokenController is IERC1132, Iupgradable {
   function _releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount) internal
   {
     uint256 amount = _tokensLocked(_of, _reason);
-    require(amount >= _amount);
+    require(amount >= _amount, "TokenController: Amount exceedes locked tokens amount");
 
     if (amount == _amount) {
       locked[_of][_reason].claimed = true;
     }
 
     locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
-    if (locked[_of][_reason].amount == 0) {
-      _removeReason(_of, _reason);
-    }
-    require(token.transfer(_of, _amount));
+
+    // lock reason removal is skipped here: needs to be done from offchain
+
+    require(token.transfer(_of, _amount), "TokenController: Transfer failed");
     emit Unlocked(_of, _reason, _amount);
   }
 
-  function _removeReason(address _of, bytes32 _reason) internal {
-    uint len = lockReason[_of].length;
-    for (uint i = 0; i < len; i++) {
-      if (lockReason[_of][i] == _reason) {
-        lockReason[_of][i] = lockReason[_of][len.sub(1)];
-        lockReason[_of].pop();
-        break;
+  function withdrawCoverNote(
+    address _of,
+    uint[] calldata _coverIds,
+    uint[] calldata _indexes
+  ) external onlyInternal {
+
+    uint reasonCount = lockReason[_of].length;
+    uint lastReasonIndex = reasonCount.sub(1, "TokenController: No locked cover notes found");
+    uint totalAmount = 0;
+
+    // The iteration is done from the last to first to prevent reason indexes from
+    // changing due to the way we delete the items (copy last to current and pop last).
+    // The provided indexes array must be ordered, otherwise reason index checks will fail.
+
+    for (uint i = _coverIds.length; i > 0; i--) {
+
+      bool hasOpenClaim = coverInfo[_coverIds[i - 1]].hasOpenClaim;
+      require(hasOpenClaim == false, "TokenController: Cannot withdraw for cover with an open claim");
+
+      // note: cover owner is implicitly checked using the reason hash
+      bytes32 _reason = keccak256(abi.encodePacked("CN", _of, _coverIds[i - 1]));
+      uint _reasonIndex = _indexes[i - 1];
+      require(lockReason[_of][_reasonIndex] == _reason, "TokenController: Bad reason index");
+
+      uint amount = locked[_of][_reason].amount;
+      require(amount != 0, "TokenController: Locked amount is zero");
+
+      totalAmount = totalAmount.add(amount);
+      delete locked[_of][_reason];
+
+      if (lastReasonIndex != _reasonIndex) {
+        lockReason[_of][_reasonIndex] = lockReason[_of][lastReasonIndex];
+      }
+
+      lockReason[_of].pop();
+      emit Unlocked(_of, _reason, amount);
+
+      if (i > 1) {
+        // if i > 1 then the input has more entries but there are none left in the lockReason array
+        lastReasonIndex = lastReasonIndex.sub(1, "TokenController: Reason count mismatch");
       }
     }
+
+    token.transfer(_of, totalAmount);
   }
+
+  function removeEmptyReason(address _of, bytes32 _reason, uint _index) external {
+    _removeEmptyReason(_of, _reason, _index);
+  }
+
+  function removeMultipleEmptyReasons(
+    address[] calldata _members,
+    bytes32[] calldata _reasons,
+    uint[] calldata _indexes
+  ) external {
+
+    require(_members.length == _reasons.length, "TokenController: members and reasons array lengths differ");
+    require(_reasons.length == _indexes.length, "TokenController: reasons and indexes array lengths differ");
+
+    for (uint i = _members.length; i > 0; i--) {
+      uint idx = i - 1;
+      _removeEmptyReason(_members[idx], _reasons[idx], _indexes[idx]);
+    }
+  }
+
+  function _removeEmptyReason(address _of, bytes32 _reason, uint _index) internal {
+
+    uint lastReasonIndex = lockReason[_of].length.sub(1, "TokenController: lockReason is empty");
+
+    require(lockReason[_of][_index] == _reason, "TokenController: bad reason index");
+    require(locked[_of][_reason].amount == 0, "TokenController: reason amount is not zero");
+
+    if (lastReasonIndex != _index) {
+      lockReason[_of][_index] = lockReason[_of][lastReasonIndex];
+    }
+
+    lockReason[_of].pop();
+  }
+
 }

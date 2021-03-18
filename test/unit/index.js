@@ -7,4 +7,6 @@ describe('UNIT TESTS', function () {
   require('./TwapOracle');
   require('./MCR');
   require('./Cover');
+  require('./TokenController');
+
 });

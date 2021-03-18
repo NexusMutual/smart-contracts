@@ -11,6 +11,7 @@
     "assert": true,
     "contract": true
   },
+  "ignorePatterns": ["node_modules/", "artifacts"],
   "parserOptions": {
     "ecmaVersion": 2018
   },

@@ -83,6 +83,65 @@ export interface DisposableProposalCategoryInstance
     ): Promise<number>;
   };
 
+  addInitialCategory: {
+    (
+      name: string,
+      memberRoleToVote: number | BN | string,
+      majorityVotePerc: number | BN | string,
+      quorumPerc: number | BN | string,
+      allowedToCreateProposal: (number | BN | string)[],
+      closingTime: number | BN | string,
+      actionIpfsHash: string,
+      contractAddress: string,
+      contractName: string,
+      stakeIncentive: (number | BN | string)[],
+      functionHash: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      name: string,
+      memberRoleToVote: number | BN | string,
+      majorityVotePerc: number | BN | string,
+      quorumPerc: number | BN | string,
+      allowedToCreateProposal: (number | BN | string)[],
+      closingTime: number | BN | string,
+      actionIpfsHash: string,
+      contractAddress: string,
+      contractName: string,
+      stakeIncentive: (number | BN | string)[],
+      functionHash: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      name: string,
+      memberRoleToVote: number | BN | string,
+      majorityVotePerc: number | BN | string,
+      quorumPerc: number | BN | string,
+      allowedToCreateProposal: (number | BN | string)[],
+      closingTime: number | BN | string,
+      actionIpfsHash: string,
+      contractAddress: string,
+      contractName: string,
+      stakeIncentive: (number | BN | string)[],
+      functionHash: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      name: string,
+      memberRoleToVote: number | BN | string,
+      majorityVotePerc: number | BN | string,
+      quorumPerc: number | BN | string,
+      allowedToCreateProposal: (number | BN | string)[],
+      closingTime: number | BN | string,
+      actionIpfsHash: string,
+      contractAddress: string,
+      contractName: string,
+      stakeIncentive: (number | BN | string)[],
+      functionHash: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   category(
     _categoryId: number | BN | string,
     txDetails?: Truffle.TransactionDetails
@@ -434,6 +493,65 @@ export interface DisposableProposalCategoryInstance
         _contractAddress: string,
         _contractName: string,
         _incentives: (number | BN | string)[],
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
+    addInitialCategory: {
+      (
+        name: string,
+        memberRoleToVote: number | BN | string,
+        majorityVotePerc: number | BN | string,
+        quorumPerc: number | BN | string,
+        allowedToCreateProposal: (number | BN | string)[],
+        closingTime: number | BN | string,
+        actionIpfsHash: string,
+        contractAddress: string,
+        contractName: string,
+        stakeIncentive: (number | BN | string)[],
+        functionHash: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        name: string,
+        memberRoleToVote: number | BN | string,
+        majorityVotePerc: number | BN | string,
+        quorumPerc: number | BN | string,
+        allowedToCreateProposal: (number | BN | string)[],
+        closingTime: number | BN | string,
+        actionIpfsHash: string,
+        contractAddress: string,
+        contractName: string,
+        stakeIncentive: (number | BN | string)[],
+        functionHash: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        name: string,
+        memberRoleToVote: number | BN | string,
+        majorityVotePerc: number | BN | string,
+        quorumPerc: number | BN | string,
+        allowedToCreateProposal: (number | BN | string)[],
+        closingTime: number | BN | string,
+        actionIpfsHash: string,
+        contractAddress: string,
+        contractName: string,
+        stakeIncentive: (number | BN | string)[],
+        functionHash: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        name: string,
+        memberRoleToVote: number | BN | string,
+        majorityVotePerc: number | BN | string,
+        quorumPerc: number | BN | string,
+        allowedToCreateProposal: (number | BN | string)[],
+        closingTime: number | BN | string,
+        actionIpfsHash: string,
+        contractAddress: string,
+        contractName: string,
+        stakeIncentive: (number | BN | string)[],
+        functionHash: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };

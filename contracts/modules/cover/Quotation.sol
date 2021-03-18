@@ -69,44 +69,73 @@ contract Quotation is Iupgradable {
   }
 
   /**
-   * @dev Expires a cover after a set period of time.
-   * Changes the status of the Cover and reduces the current
-   * sum assured of all areas in which the quotation lies
-   * Unlocks the CN tokens of the cover. Updates the Total Sum Assured value.
-   * @param _cid Cover Id.
+   * @dev Expires a cover after a set period of time and changes the status of the cover
+   * @dev Reduces the total and contract sum assured
+   * @param coverId Cover Id.
    */
-  function expireCover(uint _cid) public {
-    require(checkCoverExpired(_cid) && qd.getCoverStatusNo(_cid) != uint(QuotationData.CoverStatus.CoverExpired));
+  function expireCover(uint coverId) external {
 
-    tf.unlockCN(_cid);
-    bytes4 curr;
-    address scAddress;
-    uint sumAssured;
-    (,, scAddress, curr, sumAssured,) = qd.getCoverDetailsByCoverID1(_cid);
-    if (qd.getCoverStatusNo(_cid) != uint(QuotationData.CoverStatus.ClaimAccepted))
-      _removeSAFromCSA(_cid, sumAssured);
-    qd.changeCoverStatusNo(_cid, uint8(QuotationData.CoverStatus.CoverExpired));
+    uint expirationDate = qd.getValidityOfCover(coverId);
+    require(expirationDate < now, "Quotation: cover is not due to expire");
+
+    uint coverStatus = qd.getCoverStatusNo(coverId);
+    require(coverStatus != uint(QuotationData.CoverStatus.CoverExpired), "Quotation: cover already expired");
+
+    (/* claim count */, bool hasOpenClaim, /* accepted */) = tc.coverInfo(coverId);
+    require(!hasOpenClaim, "Quotation: cover has an open claim");
+
+    if (coverStatus != uint(QuotationData.CoverStatus.ClaimAccepted)) {
+      (,, address contractAddress, bytes4 currency, uint amount,) = qd.getCoverDetailsByCoverID1(coverId);
+      qd.subFromTotalSumAssured(currency, amount);
+      qd.subFromTotalSumAssuredSC(contractAddress, currency, amount);
+    }
+
+    qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.CoverExpired));
   }
 
-  /**
-   * @dev Checks if a cover should get expired/closed or not.
-   * @param _cid Cover Index.
-   * @return expire true if the Cover's time has expired, false otherwise.
-   */
-  function checkCoverExpired(uint _cid) public view returns (bool expire) {
+  function withdrawCoverNote(address coverOwner, uint[] calldata coverIds, uint[] calldata reasonIndexes) external {
 
-    expire = qd.getValidityOfCover(_cid) < uint64(now);
+    uint gracePeriod = tc.claimSubmissionGracePeriod();
 
+    for (uint i = 0; i < coverIds.length; i++) {
+      uint expirationDate = qd.getValidityOfCover(coverIds[i]);
+      require(expirationDate.add(gracePeriod) < now, "Quotation: cannot withdraw before grace period expiration");
+    }
+
+    tc.withdrawCoverNote(coverOwner, coverIds, reasonIndexes);
   }
 
-  /**
-   * @dev Updates the Sum Assured Amount of all the quotation.
-   * @param _cid Cover id
-   * @param _amount that will get subtracted Current Sum Assured
-   * amount that comes under a quotation.
-   */
-  function removeSAFromCSA(uint _cid, uint _amount) public onlyInternal {
-    _removeSAFromCSA(_cid, _amount);
+  function getWithdrawableCoverNoteCoverIds(
+    address coverOwner
+  ) external view returns (
+    uint[] memory expiredCoverIds,
+    bytes32[] memory lockReasons
+  ) {
+
+    uint[] memory coverIds = qd.getAllCoversOfUser(coverOwner);
+    uint[] memory expiredIdsQueue = new uint[](coverIds.length);
+    uint gracePeriod = tc.claimSubmissionGracePeriod();
+    uint expiredQueueLength = 0;
+
+    for (uint i = 0; i < coverIds.length; i++) {
+
+      uint coverExpirationDate = qd.getValidityOfCover(coverIds[i]);
+      uint gracePeriodExpirationDate = coverExpirationDate.add(gracePeriod);
+      (/* claimCount */, bool hasOpenClaim, /* hasAcceptedClaim */) = tc.coverInfo(coverIds[i]);
+
+      if (!hasOpenClaim && gracePeriodExpirationDate < now) {
+        expiredIdsQueue[expiredQueueLength] = coverIds[i];
+        expiredQueueLength++;
+      }
+    }
+
+    expiredCoverIds = new uint[](expiredQueueLength);
+    lockReasons = new bytes32[](expiredQueueLength);
+
+    for (uint i = 0; i < expiredQueueLength; i++) {
+      expiredCoverIds[i] = expiredIdsQueue[i];
+      lockReasons[i] = keccak256(abi.encodePacked("CN", coverOwner, expiredIdsQueue[i]));
+    }
   }
 
   /**
@@ -234,22 +263,6 @@ contract Quotation is Iupgradable {
   }
 
   /**
-   * @dev to get the status of recently holded coverID
-   * @param userAdd is the user address in concern
-   * @return the status of the concerned coverId
-   */
-  function getRecentHoldedCoverIdStatus(address userAdd) public view returns (int) {
-
-    uint holdedCoverLen = qd.getUserHoldedCoverLength(userAdd);
-    if (holdedCoverLen == 0) {
-      return - 1;
-    } else {
-      uint holdedCoverID = qd.getUserHoldedCoverByIndex(userAdd, holdedCoverLen.sub(1));
-      return int(qd.holdedCoverIDStatus(holdedCoverID));
-    }
-  }
-
-  /**
    * @dev to get the verdict of kyc process
    * @param status is the kyc status
    * @param _add is the address of member
@@ -365,20 +378,6 @@ contract Quotation is Iupgradable {
 
     require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s), "Quotation: signature mismatch");
     _makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);
-  }
-
-  /**
-   * @dev Updates the Sum Assured Amount of all the quotation.
-   * @param _cid Cover id
-   * @param _amount that will get subtracted Current Sum Assured
-   * amount that comes under a quotation.
-   */
-  function _removeSAFromCSA(uint _cid, uint _amount) internal checkPause {
-    address _add;
-    bytes4 coverCurr;
-    (,, _add, coverCurr,,) = qd.getCoverDetailsByCoverID1(_cid);
-    qd.subFromTotalSumAssured(coverCurr, _amount);
-    qd.subFromTotalSumAssuredSC(_add, coverCurr, _amount);
   }
 
   /**

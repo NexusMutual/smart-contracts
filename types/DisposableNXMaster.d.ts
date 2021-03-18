@@ -82,15 +82,6 @@ export interface DisposableNXMasterInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  changeAllAddress: {
-    (txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-  };
-
   checkIsAuthToGoverned(
     _add: string,
     txDetails?: Truffle.TransactionDetails
@@ -410,15 +401,6 @@ export interface DisposableNXMasterInstance extends Truffle.ContractInstance {
         _contractAddresses: string[],
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
-    };
-
-    changeAllAddress: {
-      (txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
     };
 
     checkIsAuthToGoverned(

@@ -78,14 +78,9 @@ export interface ClaimsInstance extends Truffle.ContractInstance {
 
   nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-  pauseAllPendingClaimsVoting: {
-    (txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-  };
+  pauseAllPendingClaimsVoting(
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<void>;
 
   setClaimStatus: {
     (
@@ -110,14 +105,9 @@ export interface ClaimsInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  startAllPendingClaimsVoting: {
-    (txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-  };
+  startAllPendingClaimsVoting(
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<void>;
 
   submitCAVote: {
     (
@@ -161,14 +151,7 @@ export interface ClaimsInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  submitClaimAfterEPOff: {
-    (txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-  };
+  submitClaimAfterEPOff(txDetails?: Truffle.TransactionDetails): Promise<void>;
 
   submitMemberVote: {
     (
@@ -260,14 +243,9 @@ export interface ClaimsInstance extends Truffle.ContractInstance {
 
     nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-    pauseAllPendingClaimsVoting: {
-      (txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-    };
+    pauseAllPendingClaimsVoting(
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
 
     setClaimStatus: {
       (
@@ -292,14 +270,9 @@ export interface ClaimsInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    startAllPendingClaimsVoting: {
-      (txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-    };
+    startAllPendingClaimsVoting(
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
 
     submitCAVote: {
       (
@@ -343,14 +316,9 @@ export interface ClaimsInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    submitClaimAfterEPOff: {
-      (txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-    };
+    submitClaimAfterEPOff(
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
 
     submitMemberVote: {
       (

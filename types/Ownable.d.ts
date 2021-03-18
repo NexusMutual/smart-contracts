@@ -5,18 +5,28 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface Pool2Contract extends Truffle.Contract<Pool2Instance> {
-  "new"(
-    masterAddress: string,
-    _dai: string,
-    meta?: Truffle.TransactionDetails
-  ): Promise<Pool2Instance>;
+export interface OwnableContract extends Truffle.Contract<OwnableInstance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<OwnableInstance>;
 }
 
-type AllEvents = never;
+export interface OwnershipTransferred {
+  name: "OwnershipTransferred";
+  args: {
+    previousOwner: string;
+    newOwner: string;
+    0: string;
+    1: string;
+  };
+}
 
-export interface Pool2Instance extends Truffle.ContractInstance {
-  changeDependentContractAddress: {
+type AllEvents = OwnershipTransferred;
+
+export interface OwnableInstance extends Truffle.ContractInstance {
+  isOwner(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
+
+  owner(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  renounceOwnership: {
     (txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
     >;
@@ -25,39 +35,30 @@ export interface Pool2Instance extends Truffle.ContractInstance {
     estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
   };
 
-  changeMasterAddress: {
-    (masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
+  transferOwnership: {
+    (newOwner: string, txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
     >;
     call(
-      masterAddress: string,
+      newOwner: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      masterAddress: string,
+      newOwner: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      masterAddress: string,
+      newOwner: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
 
-  dai(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  master(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  sendEther: {
-    (txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-  };
-
   methods: {
-    changeDependentContractAddress: {
+    isOwner(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
+
+    owner(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    renounceOwnership: {
       (txDetails?: Truffle.TransactionDetails): Promise<
         Truffle.TransactionResponse<AllEvents>
       >;
@@ -66,35 +67,22 @@ export interface Pool2Instance extends Truffle.ContractInstance {
       estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
     };
 
-    changeMasterAddress: {
-      (masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
+    transferOwnership: {
+      (newOwner: string, txDetails?: Truffle.TransactionDetails): Promise<
         Truffle.TransactionResponse<AllEvents>
       >;
       call(
-        masterAddress: string,
+        newOwner: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
-        masterAddress: string,
+        newOwner: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        masterAddress: string,
+        newOwner: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
-    };
-
-    dai(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    master(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    sendEther: {
-      (txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
     };
   };
 

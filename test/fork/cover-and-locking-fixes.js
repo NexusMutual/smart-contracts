@@ -68,7 +68,7 @@ const getAddressByCodeFactory = abis => code => abis.find(abi => abi.code === co
 const fund = async to => web3.eth.sendTransaction({ from: accounts[0], to, value: ether('1000000') });
 const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAccount', params: [member] });
 
-describe('creates distributor and approves KYC', function () {
+describe('deploy cover interface and locking fixes', function () {
 
   this.timeout(0);
 

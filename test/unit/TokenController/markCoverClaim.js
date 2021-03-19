@@ -39,7 +39,7 @@ describe('markCoverClaimOpen/Close', function () {
 
     await expectRevert(
       tokenController.markCoverClaimOpen('1', { from: internal }),
-      'TokenController: cover already has an open claim',
+      'TokenController: Cover already has an open claim',
     );
   });
 
@@ -53,7 +53,7 @@ describe('markCoverClaimOpen/Close', function () {
 
     await expectRevert(
       tokenController.markCoverClaimOpen('1', { from: internal }),
-      'TokenController: max claim count exceeded',
+      'TokenController: Max claim count exceeded',
     );
   });
 
@@ -65,7 +65,7 @@ describe('markCoverClaimOpen/Close', function () {
 
     await expectRevert(
       tokenController.markCoverClaimOpen('1', { from: internal }),
-      'TokenController: cover already has accepted claims',
+      'TokenController: Cover already has accepted claims',
     );
   });
 
@@ -75,7 +75,7 @@ describe('markCoverClaimOpen/Close', function () {
 
     await expectRevert(
       tokenController.markCoverClaimClosed('1', false, { from: internal }),
-      'TokenController: cover claim is not marked as open',
+      'TokenController: Cover claim is not marked as open',
     );
   });
 

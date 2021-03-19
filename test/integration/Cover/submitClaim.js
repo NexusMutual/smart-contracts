@@ -37,17 +37,18 @@ describe('submitClaim', function () {
       cover.submitClaim(1, EMPTY_DATA, {
         from: member2,
       }),
-      'Claims: caller is not cover owner',
+      'Claims: Not cover owner',
     );
   });
 
   it('reverts for expired cover', async function () {
-    const { qt, cover } = this.contracts;
+    const { qt, cover, tc } = this.contracts;
     const coverData = { ...ethCoverTemplate };
 
     await buyCover({ ...this.contracts, coverData, coverHolder: member1 });
     const expectedCoverId = 1;
-    await time.increase((coverData.period + 1) * 24 * 3600);
+    const claimSubmissionGracePeriod = await tc.claimSubmissionGracePeriod();
+    await time.increase((coverData.period + claimSubmissionGracePeriod.toNumber() + 1) * 24 * 3600);
 
     await qt.expireCover(expectedCoverId);
 
@@ -55,7 +56,7 @@ describe('submitClaim', function () {
       cover.submitClaim(expectedCoverId, EMPTY_DATA, {
         from: member1,
       }),
-      'Claims: Cover already expired',
+      'Claims: Grace period has expired',
     );
   });
 
@@ -95,7 +96,7 @@ describe('submitClaim', function () {
 
     await expectRevert(
       cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 }),
-      'Claims: Claim already submitted',
+      'TokenController: Cover already has an open claim',
     );
   });
 });

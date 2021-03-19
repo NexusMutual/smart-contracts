@@ -138,7 +138,7 @@ describe('submitClaim', function () {
 
     await expectRevert(
       cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder }),
-      'VM Exception while processing transaction: revert No cover note available'
+      'TokenController: Max claim count exceeded'
     );
   });
 });

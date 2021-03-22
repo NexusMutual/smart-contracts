@@ -170,8 +170,8 @@ describe('deploy cover interface and locking fixes', function () {
 
     assert.equal(storedCLAddress, newCL.address);
     assert.equal(storedQTAddress, newQuotation.address);
-    assert.equal(storedTFAddress, storedTFAddress.address);
-    assert.equal(storedCRAddress, storedCRAddress.address);
+    assert.equal(storedTFAddress, newTokenFunctions.address);
+    assert.equal(storedCRAddress, newClaimsReward.address);
 
     console.log('Non-proxy upgrade successful.');
 

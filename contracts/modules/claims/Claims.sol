@@ -201,7 +201,6 @@ contract Claims is Iupgradable {
   }
 
   function submitClaimAfterEPOff() external pure {
-    revert("Deprecated");
   }
 
   /**
@@ -260,11 +259,9 @@ contract Claims is Iupgradable {
   }
 
   function pauseAllPendingClaimsVoting() external pure {
-    revert("Deprecated");
   }
 
   function startAllPendingClaimsVoting() external pure {
-    revert("Deprecated");
   }
 
   /**

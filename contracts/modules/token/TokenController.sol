@@ -461,18 +461,16 @@ contract TokenController is LockHandler, Iupgradable {
   }
 
   /**
-  * @dev Returns the total locked tokens at time
-  *   Returns the total amount of locked and staked tokens at a given time. Used by MemberRoles to check eligibility
-  *   for withdraw / switch membership. Includes tokens locked for Claim Assessment and staked for Risk Assessment.
-  *   Does not take into account pending burns.
-  *
+  * @dev Returns the total amount of locked and staked tokens.
+  *      Used by MemberRoles to check eligibility for withdraw / switch membership.
+  *      Includes tokens locked for claim assessment, tokens staked for risk assessment, and locked cover notes
+  *      Does not take into account pending burns.
   * @param _of member whose locked tokens are to be calculate
-  * @param _time timestamp when the tokens should be locked
   */
-  function totalLockedBalance(address _of, uint256 _time) public view returns (uint256 amount) {
+  function totalLockedBalance(address _of) public view returns (uint256 amount) {
 
     for (uint256 i = 0; i < lockReason[_of].length; i++) {
-      amount = amount.add(_tokensLockedAtTime(_of, lockReason[_of][i], _time));
+      amount = amount.add(_tokensLocked(_of, lockReason[_of][i]));
     }
 
     amount = amount.add(pooledStaking.stakerDeposit(_of));

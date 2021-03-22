@@ -263,10 +263,9 @@ contract MemberRoles is Governed, Iupgradable {
   function withdrawMembership() public {
 
     require(!ms.isPause() && ms.isMember(msg.sender));
-    require(dAppToken.totalLockedBalance(msg.sender, now) == 0); // solhint-disable-line
+    require(dAppToken.totalLockedBalance(msg.sender) == 0); // solhint-disable-line
     require(!tf.isLockedForMemberVote(msg.sender)); // No locked tokens for Member/Governance voting
     require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
-    require(dAppToken.tokensUnlockable(msg.sender, "CLA") == 0, "Member should have no CLA unlockable tokens");
 
     gv.removeDelegation(msg.sender);
     dAppToken.burnFrom(msg.sender, tk.balanceOf(msg.sender));
@@ -299,10 +298,9 @@ contract MemberRoles is Governed, Iupgradable {
   function _switchMembership(address member, address newAddress) internal {
 
     require(!ms.isPause() && ms.isMember(member) && !ms.isMember(newAddress));
-    require(dAppToken.totalLockedBalance(member, now) == 0); // solhint-disable-line
+    require(dAppToken.totalLockedBalance(member) == 0); // solhint-disable-line
     require(!tf.isLockedForMemberVote(member)); // No locked tokens for Member/Governance voting
     require(cr.getAllPendingRewardOfUser(member) == 0); // No pending reward to be claimed(claim assesment).
-    require(dAppToken.tokensUnlockable(member, "CLA") == 0, "Member should have no CLA unlockable tokens");
 
     gv.removeDelegation(member);
     dAppToken.addToWhitelist(newAddress);

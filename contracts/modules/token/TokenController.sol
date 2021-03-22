@@ -40,8 +40,6 @@ contract TokenController is LockHandler, Iupgradable {
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public coverInfo;
 
-  bytes32 private constant CLA = bytes32("CLA");
-
   event Locked(address indexed _of, bytes32 indexed _reason, uint256 _amount, uint256 _validity);
 
   event Unlocked(address indexed _of, bytes32 indexed _reason, uint256 _amount);
@@ -133,8 +131,8 @@ contract TokenController is LockHandler, Iupgradable {
     require(minCALockTime <= _time, "TokenController: Must lock for minimum time");
     require(_time <= 180 days, "TokenController: Tokens can be locked for 180 days maximum");
     // If tokens are already locked, then functions extendLock or
-    // increaseLockAmount should be used to make any changes
-    _lock(msg.sender, CLA, _amount, _time);
+    // increaseClaimAssessmentLock should be used to make any changes
+    _lock(msg.sender, "CLA", _amount, _time);
   }
 
   /**
@@ -191,9 +189,9 @@ contract TokenController is LockHandler, Iupgradable {
   * @param _time Lock extension time in seconds
   */
   function extendClaimAssessmentLock(uint256 _time) external checkPause {
-    uint256 validity = getLockedTokensValidity(msg.sender, CLA);
+    uint256 validity = getLockedTokensValidity(msg.sender, "CLA");
     require(validity.add(_time).sub(block.timestamp) <= 180 days, "TokenController: Tokens can be locked for 180 days maximum");
-    _extendLock(msg.sender, CLA, _time);
+    _extendLock(msg.sender, "CLA", _time);
   }
 
   /**
@@ -212,20 +210,15 @@ contract TokenController is LockHandler, Iupgradable {
 
   /**
   * @dev Increase number of tokens locked for a CLA reason
-  * @param _reason The reason to lock tokens, currently restricted to CLA
   * @param _amount Number of tokens to be increased
   */
-  function increaseLockAmount(bytes32 _reason, uint256 _amount)
-  public
-  checkPause
-  returns (bool)
+  function increaseClaimAssessmentLock(uint256 _amount) external checkPause returns (bool)
   {
-    require(_reason == CLA, "TokenController: Restricted to reason CLA");
-    require(_tokensLocked(msg.sender, _reason) > 0, "TokenController: No tokens locked");
+    require(_tokensLocked(msg.sender, "CLA") > 0, "TokenController: No tokens locked");
     token.operatorTransfer(msg.sender, _amount);
 
-    locked[msg.sender][_reason].amount = locked[msg.sender][_reason].amount.add(_amount);
-    emit Locked(msg.sender, _reason, _amount, locked[msg.sender][_reason].validity);
+    locked[msg.sender]["CLA"].amount = locked[msg.sender]["CLA"].amount.add(_amount);
+    emit Locked(msg.sender, "CLA", _amount, locked[msg.sender]["CLA"].validity);
     return true;
   }
 
@@ -309,15 +302,15 @@ contract TokenController is LockHandler, Iupgradable {
   * @dev Unlocks the unlockable tokens against CLA of a specified address
   * @param _of Address of user, claiming back unlockable tokens against CLA
   */
-  function unlock(address _of)
-  public
+  function unlockClaimAssessmentTokens(address _of)
+  external
   checkPause
   returns (uint256 unlockableTokens)
   {
-    unlockableTokens = _tokensUnlockable(_of, CLA);
+    unlockableTokens = _tokensUnlockable(_of, "CLA");
     if (unlockableTokens > 0) {
-      locked[_of][CLA].claimed = true;
-      emit Unlocked(_of, CLA, unlockableTokens);
+      locked[_of]["CLA"].claimed = true;
+      emit Unlocked(_of, "CLA", unlockableTokens);
       require(token.transfer(_of, unlockableTokens), "TokenController: Transfer failed");
     }
   }

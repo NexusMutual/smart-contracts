@@ -19,15 +19,10 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/Iupgradable.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "./NXMToken.sol";
+import "./external/LockHandler.sol";
 
-contract TokenController is Iupgradable {
+contract TokenController is LockHandler, Iupgradable {
   using SafeMath for uint256;
-
-  struct LockToken {
-    uint256 amount;
-    uint256 validity;
-    bool claimed;
-  }
 
   struct CoverInfo {
     uint16 claimCount;
@@ -35,12 +30,6 @@ contract TokenController is Iupgradable {
     bool hasAcceptedClaim;
     // note: still 224 bits available here, can be used later
   }
-
-  // _of => reason
-  mapping(address => bytes32[]) public lockReason;
-
-  // _of => reason => LockToken
-  mapping(address => mapping(bytes32 => LockToken)) public locked;
 
   NXMToken public token;
   IPooledStaking public pooledStaking;

@@ -415,16 +415,42 @@ export interface DisposableMemberRolesInstance
   };
 
   switchMembership: {
-    (_add: string, txDetails?: Truffle.TransactionDetails): Promise<
+    (newAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
     >;
-    call(_add: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
+    call(
+      newAddress: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
     sendTransaction(
-      _add: string,
+      newAddress: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      _add: string,
+      newAddress: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
+  switchMembershipForMember: {
+    (
+      member: string,
+      newAddress: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      member: string,
+      newAddress: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      member: string,
+      newAddress: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      member: string,
+      newAddress: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -836,16 +862,42 @@ export interface DisposableMemberRolesInstance
     };
 
     switchMembership: {
-      (_add: string, txDetails?: Truffle.TransactionDetails): Promise<
+      (newAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
         Truffle.TransactionResponse<AllEvents>
       >;
-      call(_add: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
+      call(
+        newAddress: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
       sendTransaction(
-        _add: string,
+        newAddress: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        _add: string,
+        newAddress: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
+    switchMembershipForMember: {
+      (
+        member: string,
+        newAddress: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        member: string,
+        newAddress: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        member: string,
+        newAddress: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        member: string,
+        newAddress: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };

@@ -33,6 +33,7 @@ import { WETH9Contract } from "./WETH9";
 import { ExchangeContract } from "./Exchange";
 import { FactoryContract } from "./Factory";
 import { IClaimsRewardContract } from "./IClaimsReward";
+import { IERC20DetailedContract } from "./IERC20Detailed";
 import { IMasterAwareContract } from "./IMasterAware";
 import { IMemberRolesContract } from "./IMemberRoles";
 import { IPooledStakingContract } from "./IPooledStaking";
@@ -47,6 +48,7 @@ import { DisposablePooledStakingContract } from "./DisposablePooledStaking";
 import { DisposableProposalCategoryContract } from "./DisposableProposalCategory";
 import { DisposableTokenControllerContract } from "./DisposableTokenController";
 import { ERC20BlacklistableMockContract } from "./ERC20BlacklistableMock";
+import { ERC20DetailedMockContract } from "./ERC20DetailedMock";
 import { ERC20MockContract } from "./ERC20Mock";
 import { MasterMockContract } from "./MasterMock";
 import { MemberRolesMockContract } from "./MemberRolesMock";
@@ -58,6 +60,7 @@ import { Pool1InterfaceContract } from "./Pool1Interface";
 import { P1MockOldMCRContract } from "./P1MockOldMCR";
 import { P1MockOldPool1Contract } from "./P1MockOldPool1";
 import { P1MockPoolDataContract } from "./P1MockPoolData";
+import { TestnetNXMasterContract } from "./TestnetNXMaster";
 import { TokenControllerMockContract } from "./TokenControllerMock";
 import { TOMockUniswapPairContract } from "./TOMockUniswapPair";
 import { LegacyMCRContract } from "./LegacyMCR";
@@ -73,6 +76,7 @@ import { ClaimProofsContract } from "./ClaimProofs";
 import { ClaimsContract } from "./Claims";
 import { ClaimsDataContract } from "./ClaimsData";
 import { ClaimsRewardContract } from "./ClaimsReward";
+import { CoverContract } from "./Cover";
 import { QuotationContract } from "./Quotation";
 import { QuotationDataContract } from "./QuotationData";
 import { GovernedContract } from "./Governed";
@@ -93,6 +97,7 @@ import { PriceFeedOracleContract } from "./PriceFeedOracle";
 import { TwapOracleContract } from "./TwapOracle";
 import { PooledStakingContract } from "./PooledStaking";
 import { IERC1132Contract } from "./IERC1132";
+import { LockHandlerContract } from "./LockHandler";
 import { OZIERC20Contract } from "./OZIERC20";
 import { NXMTokenContract } from "./NXMToken";
 import { TokenControllerContract } from "./TokenController";
@@ -133,6 +138,7 @@ declare global {
       require(name: "Exchange"): ExchangeContract;
       require(name: "Factory"): FactoryContract;
       require(name: "IClaimsReward"): IClaimsRewardContract;
+      require(name: "IERC20Detailed"): IERC20DetailedContract;
       require(name: "IMasterAware"): IMasterAwareContract;
       require(name: "IMemberRoles"): IMemberRolesContract;
       require(name: "IPooledStaking"): IPooledStakingContract;
@@ -151,6 +157,7 @@ declare global {
         name: "DisposableTokenController"
       ): DisposableTokenControllerContract;
       require(name: "ERC20BlacklistableMock"): ERC20BlacklistableMockContract;
+      require(name: "ERC20DetailedMock"): ERC20DetailedMockContract;
       require(name: "ERC20Mock"): ERC20MockContract;
       require(name: "MasterMock"): MasterMockContract;
       require(name: "MemberRolesMock"): MemberRolesMockContract;
@@ -164,6 +171,7 @@ declare global {
       require(name: "P1MockOldMCR"): P1MockOldMCRContract;
       require(name: "P1MockOldPool1"): P1MockOldPool1Contract;
       require(name: "P1MockPoolData"): P1MockPoolDataContract;
+      require(name: "TestnetNXMaster"): TestnetNXMasterContract;
       require(name: "TokenControllerMock"): TokenControllerMockContract;
       require(name: "TOMockUniswapPair"): TOMockUniswapPairContract;
       require(name: "LegacyMCR"): LegacyMCRContract;
@@ -179,6 +187,7 @@ declare global {
       require(name: "Claims"): ClaimsContract;
       require(name: "ClaimsData"): ClaimsDataContract;
       require(name: "ClaimsReward"): ClaimsRewardContract;
+      require(name: "Cover"): CoverContract;
       require(name: "Quotation"): QuotationContract;
       require(name: "QuotationData"): QuotationDataContract;
       require(name: "Governed"): GovernedContract;
@@ -201,6 +210,7 @@ declare global {
       require(name: "TwapOracle"): TwapOracleContract;
       require(name: "PooledStaking"): PooledStakingContract;
       require(name: "IERC1132"): IERC1132Contract;
+      require(name: "LockHandler"): LockHandlerContract;
       require(name: "OZIERC20"): OZIERC20Contract;
       require(name: "NXMToken"): NXMTokenContract;
       require(name: "TokenController"): TokenControllerContract;
@@ -280,6 +290,10 @@ export { WETH9Contract, WETH9Instance } from "./WETH9";
 export { ExchangeContract, ExchangeInstance } from "./Exchange";
 export { FactoryContract, FactoryInstance } from "./Factory";
 export { IClaimsRewardContract, IClaimsRewardInstance } from "./IClaimsReward";
+export {
+  IERC20DetailedContract,
+  IERC20DetailedInstance,
+} from "./IERC20Detailed";
 export { IMasterAwareContract, IMasterAwareInstance } from "./IMasterAware";
 export { IMemberRolesContract, IMemberRolesInstance } from "./IMemberRoles";
 export {
@@ -324,6 +338,10 @@ export {
   ERC20BlacklistableMockContract,
   ERC20BlacklistableMockInstance,
 } from "./ERC20BlacklistableMock";
+export {
+  ERC20DetailedMockContract,
+  ERC20DetailedMockInstance,
+} from "./ERC20DetailedMock";
 export { ERC20MockContract, ERC20MockInstance } from "./ERC20Mock";
 export { MasterMockContract, MasterMockInstance } from "./MasterMock";
 export {
@@ -351,6 +369,10 @@ export {
   P1MockPoolDataInstance,
 } from "./P1MockPoolData";
 export {
+  TestnetNXMasterContract,
+  TestnetNXMasterInstance,
+} from "./TestnetNXMaster";
+export {
   TokenControllerMockContract,
   TokenControllerMockInstance,
 } from "./TokenControllerMock";
@@ -371,6 +393,7 @@ export { ClaimProofsContract, ClaimProofsInstance } from "./ClaimProofs";
 export { ClaimsContract, ClaimsInstance } from "./Claims";
 export { ClaimsDataContract, ClaimsDataInstance } from "./ClaimsData";
 export { ClaimsRewardContract, ClaimsRewardInstance } from "./ClaimsReward";
+export { CoverContract, CoverInstance } from "./Cover";
 export { QuotationContract, QuotationInstance } from "./Quotation";
 export { QuotationDataContract, QuotationDataInstance } from "./QuotationData";
 export { GovernedContract, GovernedInstance } from "./Governed";
@@ -409,6 +432,7 @@ export {
 export { TwapOracleContract, TwapOracleInstance } from "./TwapOracle";
 export { PooledStakingContract, PooledStakingInstance } from "./PooledStaking";
 export { IERC1132Contract, IERC1132Instance } from "./IERC1132";
+export { LockHandlerContract, LockHandlerInstance } from "./LockHandler";
 export { OZIERC20Contract, OZIERC20Instance } from "./OZIERC20";
 export { NXMTokenContract, NXMTokenInstance } from "./NXMToken";
 export {

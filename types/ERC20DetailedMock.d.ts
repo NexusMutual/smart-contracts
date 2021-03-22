@@ -5,11 +5,9 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface ERC20BlacklistableMockContract
-  extends Truffle.Contract<ERC20BlacklistableMockInstance> {
-  "new"(
-    meta?: Truffle.TransactionDetails
-  ): Promise<ERC20BlacklistableMockInstance>;
+export interface ERC20DetailedMockContract
+  extends Truffle.Contract<ERC20DetailedMockInstance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<ERC20DetailedMockInstance>;
 }
 
 export interface Approval {
@@ -38,8 +36,7 @@ export interface Transfer {
 
 type AllEvents = Approval | Transfer;
 
-export interface ERC20BlacklistableMockInstance
-  extends Truffle.ContractInstance {
+export interface ERC20DetailedMockInstance extends Truffle.ContractInstance {
   allowance(
     owner: string,
     spender: string,
@@ -73,24 +70,6 @@ export interface ERC20BlacklistableMockInstance
     account: string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
-
-  blacklist: {
-    (recipient: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(
-      recipient: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      recipient: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      recipient: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
 
   decimals(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
@@ -192,24 +171,6 @@ export interface ERC20BlacklistableMockInstance
     ): Promise<number>;
   };
 
-  whitelist: {
-    (recipient: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(
-      recipient: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      recipient: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      recipient: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
   methods: {
     allowance(
       owner: string,
@@ -244,24 +205,6 @@ export interface ERC20BlacklistableMockInstance
       account: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
-
-    blacklist: {
-      (recipient: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(
-        recipient: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        recipient: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        recipient: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
 
     decimals(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
@@ -359,24 +302,6 @@ export interface ERC20BlacklistableMockInstance
         sender: string,
         recipient: string,
         amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    whitelist: {
-      (recipient: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(
-        recipient: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        recipient: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        recipient: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };

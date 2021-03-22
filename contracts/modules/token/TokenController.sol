@@ -42,6 +42,10 @@ contract TokenController is LockHandler, Iupgradable {
 
   bytes32 private constant CLA = bytes32("CLA");
 
+  event Locked(address indexed _of, bytes32 indexed _reason, uint256 _amount, uint256 _validity);
+
+  event Unlocked(address indexed _of, bytes32 indexed _reason, uint256 _amount);
+
   event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
 
   modifier onlyGovernance {

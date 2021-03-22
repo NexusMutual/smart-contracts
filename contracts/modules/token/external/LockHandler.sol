@@ -25,23 +25,4 @@ contract LockHandler {
    *      a specified address
    */
   mapping(address => mapping(bytes32 => LockToken)) public locked;
-
-  /**
-   * @dev Records data of all the tokens Locked
-   */
-  event Locked(
-    address indexed _of,
-    bytes32 indexed _reason,
-    uint256 _amount,
-    uint256 _validity
-  );
-
-  /**
-   * @dev Records data of all the tokens unlocked
-   */
-  event Unlocked(
-    address indexed _of,
-    bytes32 indexed _reason,
-    uint256 _amount
-  );
 }

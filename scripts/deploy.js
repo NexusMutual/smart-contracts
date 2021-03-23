@@ -236,7 +236,8 @@ async function main () {
     master.address,
     tk.address,
     ps.address,
-    600, // minCALockTime
+    600, // _claimsAssessmentLockTime
+    300, // _claimSubmissionGracePeriod
   );
 
   await mr.initialize(
@@ -322,7 +323,7 @@ async function main () {
   await transferProxyOwnership(co.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
 
-  const deployDataFile = `${__dirname}/../build/${network}-deploy-data.json`;
+  const deployDataFile = `${__dirname}/../artifacts/${network}-deploy-data.json`;
   verifier.dump(deployDataFile);
 
   console.log('Minting DAI to pool');

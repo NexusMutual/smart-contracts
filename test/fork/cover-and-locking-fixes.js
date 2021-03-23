@@ -1,11 +1,12 @@
 const fetch = require('node-fetch');
 const { artifacts, web3, accounts, network } = require('hardhat');
-const { ether, expectRevert } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
+const { keccak256 } = require('ethereumjs-util');
 
 const { submitGovernanceProposal } = require('./utils');
 const { hex } = require('../utils').helpers;
-const { ProposalCategory, Role } = require('../utils').constants;
+const { ProposalCategory, Role, CoverStatus } = require('../utils').constants;
 
 const {
   toDecimal,
@@ -201,6 +202,9 @@ describe('deploy cover interface and locking fixes', function () {
     assert.equal(newTokenController.address, tcImplementation);
 
     console.log('Proxy Upgrade successful.');
+
+    this.quotation = await Quotation.at(await master.getLatestAddress(hex('QT')));
+    this.tokenController = await TokenController.at(await master.getLatestAddress(hex('TC')));
   });
 
   it('adds new Cover.sol contract', async function () {
@@ -240,5 +244,92 @@ describe('deploy cover interface and locking fixes', function () {
     assert.equal(cover10.contractAddress, '0x448a5065aeBB8E423F0896E6c5D525C040f59af3');
 
     this.cover = cover;
+  });
+
+  it('expires cover and withdraws cover note', async function () {
+    const { master, voters, governance, cover, quotation, tokenController } = this;
+
+    // const coverId = 2269;
+    const coverId = 2270;
+    const cover3000 = await cover.getCover(coverId);
+    const coverOwner = cover3000.memberAddress;
+    assert.equal(cover3000.coverAsset, '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
+
+    const latestTime = await time.latest();
+
+    assert(latestTime.lt(cover3000.validUntil), `Validity ${cover3000.validUntil.toString()} not in the future.`);
+
+    await time.increaseTo(cover3000.validUntil.addn(1000));
+    await quotation.expireCover(coverId);
+
+    const newCoverState = await cover.getCover(coverId);
+
+    assert.equal(newCoverState.status.toString(), CoverStatus.CoverExpired);
+    const gracePeriod = await tokenController.claimSubmissionGracePeriod();
+    await time.increase(gracePeriod);
+
+    const { expiredCoverIds, lockReasons } = await quotation.getWithdrawableCoverNoteCoverIds(coverOwner);
+    const coverIdsWithCoverNotes = expiredCoverIds.map((coverId, index) => {
+      return { coverId, lockReason: lockReasons[index] };
+    });
+    const lockReason = coverIdsWithCoverNotes.filter(e => e.coverId.toString() === coverId.toString())[0].lockReason;
+
+    console.log({
+      coverId,
+      lockReason,
+    })
+
+    await quotation.withdrawCoverNote(coverOwner,[coverId], [lockReason]);
+  });
+
+  it.skip('performs hypothetical future proxy upgrade', async function () {
+
+    const { voters, governance, master } = this;
+
+    const coverImplementation = await Cover.new();
+    const upgradesActionDataProxy = web3.eth.abi.encodeParameters(
+      ['bytes2[]', 'address[]'],
+      [
+        ['CO'].map(hex),
+        [coverImplementation].map(c => c.address),
+      ],
+    );
+
+    await submitGovernanceProposal(
+      ProposalCategory.upgradeProxy,
+      upgradesActionDataProxy,
+      voters,
+      governance,
+    );
+
+    const coProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('CO')));
+    const coImplementation = await coProxy.implementation();
+
+    assert.equal(coImplementation, coverImplementation.address);
+  });
+
+  it.skip('performs hypothetical future non-proxy upgrade', async function () {
+
+    const { voters, governance, master } = this;
+
+    const tokenFunctionsImplementation = await TokenFunctions.new();
+    const upgradesActionDataNonProxy = web3.eth.abi.encodeParameters(
+      ['bytes2[]', 'address[]'],
+      [
+        ['TF'].map(hex),
+        [tokenFunctionsImplementation].map(c => c.address),
+      ],
+    );
+
+    await submitGovernanceProposal(
+      ProposalCategory.upgradeNonProxy,
+      upgradesActionDataNonProxy,
+      voters,
+      governance,
+    );
+
+    const tfStoredAddress = await master.getLatestAddress(hex('TF'));
+
+    assert.equal(tfStoredAddress, tokenFunctionsImplementation.address);
   });
 });

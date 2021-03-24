@@ -246,20 +246,20 @@ describe('deploy cover interface and locking fixes', function () {
     this.cover = cover;
   });
 
-  it('expires cover and withdraws cover note', async function () {
-    const { master, voters, governance, cover, quotation, tokenController } = this;
+  it('expires cover and withdraws cover note after grace period is finished', async function () {
+    const { master, voters, governance, cover, quotation, tokenController, token } = this;
 
     // const coverId = 2269;
     const coverId = 2270;
-    const cover3000 = await cover.getCover(coverId);
-    const coverOwner = cover3000.memberAddress;
-    assert.equal(cover3000.coverAsset, '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
+    const coverData = await cover.getCover(coverId);
+    const coverOwner = coverData.memberAddress;
+    assert.equal(coverData.coverAsset, '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
 
     const latestTime = await time.latest();
 
-    assert(latestTime.lt(cover3000.validUntil), `Validity ${cover3000.validUntil.toString()} not in the future.`);
+    assert(latestTime.lt(coverData.validUntil), `Validity ${coverData.validUntil.toString()} not in the future.`);
 
-    await time.increaseTo(cover3000.validUntil.addn(1000));
+    await time.increaseTo(coverData.validUntil.addn(1000));
     await quotation.expireCover(coverId);
 
     const newCoverState = await cover.getCover(coverId);
@@ -274,12 +274,18 @@ describe('deploy cover interface and locking fixes', function () {
     });
     const lockReason = coverIdsWithCoverNotes.filter(e => e.coverId.toString() === coverId.toString())[0].lockReason;
 
-    console.log({
-      coverId,
-      lockReason,
-    })
+    const reasons = await tokenController.getLockReasons(coverOwner);
+    const reasonIndex = reasons.indexOf(lockReason);
 
-    await quotation.withdrawCoverNote(coverOwner,[coverId], [lockReason]);
+    const { amount: lockedAmount } = await tokenController.locked(coverOwner, lockReason);
+
+    const nxmBalanceBefore = await token.balanceOf(coverOwner);
+    await quotation.withdrawCoverNote(coverOwner,[coverId], [reasonIndex]);
+    const nxmBalanceAfter = await token.balanceOf(coverOwner);
+
+    const returnedAmount = nxmBalanceAfter.sub(nxmBalanceBefore);
+
+    assert.equal(returnedAmount.toString(), lockedAmount.toString());
   });
 
   it.skip('performs hypothetical future proxy upgrade', async function () {

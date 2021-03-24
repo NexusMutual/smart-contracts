@@ -153,6 +153,29 @@ export interface ClaimsInstance extends Truffle.ContractInstance {
 
   submitClaimAfterEPOff(txDetails?: Truffle.TransactionDetails): Promise<void>;
 
+  submitClaimForMember: {
+    (
+      coverId: number | BN | string,
+      member: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      coverId: number | BN | string,
+      member: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      coverId: number | BN | string,
+      member: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      coverId: number | BN | string,
+      member: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   submitMemberVote: {
     (
       claimId: number | BN | string,
@@ -319,6 +342,29 @@ export interface ClaimsInstance extends Truffle.ContractInstance {
     submitClaimAfterEPOff(
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
+
+    submitClaimForMember: {
+      (
+        coverId: number | BN | string,
+        member: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        coverId: number | BN | string,
+        member: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        coverId: number | BN | string,
+        member: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        coverId: number | BN | string,
+        member: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
 
     submitMemberVote: {
       (

@@ -417,6 +417,37 @@ export interface DisposableTokenControllerInstance
     ): Promise<number>;
   };
 
+  mintCoverNote: {
+    (
+      _of: string,
+      _reason: string,
+      _amount: number | BN | string,
+      _time: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      _of: string,
+      _reason: string,
+      _amount: number | BN | string,
+      _time: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      _of: string,
+      _reason: string,
+      _amount: number | BN | string,
+      _time: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      _of: string,
+      _reason: string,
+      _amount: number | BN | string,
+      _time: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
@@ -610,7 +641,6 @@ export interface DisposableTokenControllerInstance
 
   totalLockedBalance(
     _of: string,
-    _time: number | BN | string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
 
@@ -1045,6 +1075,37 @@ export interface DisposableTokenControllerInstance
       ): Promise<number>;
     };
 
+    mintCoverNote: {
+      (
+        _of: string,
+        _reason: string,
+        _amount: number | BN | string,
+        _time: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        _of: string,
+        _reason: string,
+        _amount: number | BN | string,
+        _time: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        _of: string,
+        _reason: string,
+        _amount: number | BN | string,
+        _time: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        _of: string,
+        _reason: string,
+        _amount: number | BN | string,
+        _time: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
     ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
@@ -1238,7 +1299,6 @@ export interface DisposableTokenControllerInstance
 
     totalLockedBalance(
       _of: string,
-      _time: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
 

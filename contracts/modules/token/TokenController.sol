@@ -299,19 +299,19 @@ contract TokenController is LockHandler, Iupgradable {
   }
 
   /**
-  * @dev Unlocks the unlockable tokens against CLA of a specified address
-  * @param _of Address of user, claiming back unlockable tokens against CLA
+  * @dev Unlocks the withdrawable tokens against CLA of a specified address
+  * @param _of Address of user, claiming back withdrawable tokens against CLA
   */
-  function unlockClaimAssessmentTokens(address _of)
+  function withdrawClaimAssessmentTokens(address _of)
   external
   checkPause
-  returns (uint256 unlockableTokens)
+  returns (uint256 withdrawableTokens)
   {
-    unlockableTokens = _tokensUnlockable(_of, "CLA");
-    if (unlockableTokens > 0) {
+    withdrawableTokens = _tokensUnlockable(_of, "CLA");
+    if (withdrawableTokens > 0) {
       locked[_of]["CLA"].claimed = true;
-      emit Unlocked(_of, "CLA", unlockableTokens);
-      require(token.transfer(_of, unlockableTokens), "TokenController: Transfer failed");
+      emit Unlocked(_of, "CLA", withdrawableTokens);
+      require(token.transfer(_of, withdrawableTokens), "TokenController: Transfer failed");
     }
   }
 

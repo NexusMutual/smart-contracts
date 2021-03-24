@@ -149,6 +149,33 @@ describe('deploy cover interface and locking fixes', function () {
     const newTokenFunctions = await TokenFunctions.new();
     const newClaimsReward = await ClaimsReward.new(master.address, Address.DAI);
 
+    console.log('Upgrading proxy contracts');
+
+    const upgradesActionDataProxy = web3.eth.abi.encodeParameters(
+      ['bytes2[]', 'address[]'],
+      [
+        ['MR', 'TC'].map(hex),
+        [newMR, newTokenController].map(c => c.address),
+      ],
+    );
+
+    await submitGovernanceProposal(
+      ProposalCategory.upgradeProxy,
+      upgradesActionDataProxy,
+      voters,
+      governance,
+    );
+
+    const mrProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('MR')));
+    const tcProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('TC')));
+    const mrImplementation = await mrProxy.implementation();
+    const tcImplementation = await tcProxy.implementation();
+
+    assert.equal(newMR.address, mrImplementation);
+    assert.equal(newTokenController.address, tcImplementation);
+
+    console.log('Proxy Upgrade successful.');
+
     console.log('Upgrading non-proxy contracts');
 
     const upgradesActionDataNonProxy = web3.eth.abi.encodeParameters(
@@ -177,33 +204,6 @@ describe('deploy cover interface and locking fixes', function () {
     assert.equal(storedCRAddress, newClaimsReward.address);
 
     console.log('Non-proxy upgrade successful.');
-
-    console.log('Upgrading proxy contracts');
-
-    const upgradesActionDataProxy = web3.eth.abi.encodeParameters(
-      ['bytes2[]', 'address[]'],
-      [
-        ['MR', 'TC'].map(hex),
-        [newMR, newTokenController].map(c => c.address),
-      ],
-    );
-
-    await submitGovernanceProposal(
-      ProposalCategory.upgradeProxy,
-      upgradesActionDataProxy,
-      voters,
-      governance,
-    );
-
-    const mrProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('MR')));
-    const tcProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('TC')));
-    const mrImplementation = await mrProxy.implementation();
-    const tcImplementation = await tcProxy.implementation();
-
-    assert.equal(newMR.address, mrImplementation);
-    assert.equal(newTokenController.address, tcImplementation);
-
-    console.log('Proxy Upgrade successful.');
 
     const tokenController = await TokenController.at(await master.getLatestAddress(hex('TC')));
 

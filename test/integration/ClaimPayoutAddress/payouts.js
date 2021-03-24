@@ -5,6 +5,7 @@ const { toBN } = web3.utils;
 
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
+const { CoverStatus } = require('../utils').constants;
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 
 const EtherRejecter = artifacts.require('EtherRejecter');
@@ -85,7 +86,7 @@ describe('send claim payout to the payout address', function () {
 
     assert(actualPayout.eq(expectedPayout), 'should have transfered the cover amount');
   });
-  
+
   it('[A1, status: 0, 7, 14] CA accept, closed on the last vote', async function () {
 
     const { cd, cl, qd, mr } = this.contracts;
@@ -315,6 +316,9 @@ describe('send claim payout to the payout address', function () {
 
     const { statno: claimStatus } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(claimStatus.toNumber(), 12, 'claim status should be 12 (Claim Accepted Payout Pending)');
+
+    const coverStatus = await qd.getCoverStatusNo(coverId);
+    assert.equal(coverStatus.toString(), CoverStatus.ClaimAccepted);
 
     const payoutRetryTime = await cd.payoutRetryTime();
     for (let i = 0; i <= 60; i++) {

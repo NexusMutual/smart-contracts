@@ -5,6 +5,7 @@ const { toBN } = web3.utils;
 
 const { buyCoverWithDai, buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
+const { CoverStatus } = require('../utils').constants;
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 
 const [, member1, member2, member3, coverHolder, payoutAddress] = accounts;
@@ -261,6 +262,9 @@ describe('DAI cover claim payouts', function () {
 
     const { statno: claimStatus } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(claimStatus.toNumber(), 12, 'claim status should be 12 (Claim Accepted Payout Pending)');
+
+    const coverStatus = await qd.getCoverStatusNo(coverId);
+    assert.equal(coverStatus.toString(), CoverStatus.ClaimAccepted);
 
     const payoutRetryTime = await cd.payoutRetryTime();
     for (let i = 0; i <= 60; i++) {

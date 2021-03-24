@@ -208,11 +208,13 @@ describe('deploy cover interface and locking fixes', function () {
     const tokenController = await TokenController.at(await master.getLatestAddress(hex('TC')));
 
     console.log('Initialize TokenController');
-    await tokenController.initialize();
+    const migrateTx = await tokenController.initialize();
     await expectRevert(
       tokenController.initialize(),
-      'TokenController: Already initialized'
+      'TokenController: Already initialized',
     );
+
+    console.log(`Migration gas used: ${migrateTx.receipt.gasUsed}`);
 
     const claimSubmissionGracePeriod = await tokenController.claimSubmissionGracePeriod();
     assert.equal(claimSubmissionGracePeriod.toString(), (120 * 24 * 60 * 60).toString());
@@ -236,7 +238,7 @@ describe('deploy cover interface and locking fixes', function () {
       ProposalCategory.newContract,
       addNewInternalContractActionData,
       voters,
-      governance
+      governance,
     );
 
     const coverProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('CO')));
@@ -275,7 +277,7 @@ describe('deploy cover interface and locking fixes', function () {
     await fund(coverOwner);
 
     await cover.submitClaim(coverId, EMPTY_DATA, {
-      from: coverOwner
+      from: coverOwner,
     });
 
     const coverInfo = await tokenController.coverInfo(coverId);
@@ -317,7 +319,7 @@ describe('deploy cover interface and locking fixes', function () {
     const { amount: lockedAmount } = await tokenController.locked(coverOwner, lockReason);
 
     const nxmBalanceBefore = await token.balanceOf(coverOwner);
-    await quotation.withdrawCoverNote(coverOwner,[coverId], [reasonIndex]);
+    await quotation.withdrawCoverNote(coverOwner, [coverId], [reasonIndex]);
     const nxmBalanceAfter = await token.balanceOf(coverOwner);
 
     const returnedAmount = nxmBalanceAfter.sub(nxmBalanceBefore);

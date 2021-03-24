@@ -18,6 +18,7 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/Iupgradable.sol";
 import "../../interfaces/IPooledStaking.sol";
+import "../claims/ClaimsData.sol";
 import "./NXMToken.sol";
 import "./external/LockHandler.sol";
 
@@ -49,11 +50,6 @@ contract TokenController is LockHandler, Iupgradable {
   modifier onlyGovernance {
     require(msg.sender == ms.getLatestAddress("GV"), "TokenController: Caller is not governance");
     _;
-  }
-
-  function initialize() external {
-    require(claimSubmissionGracePeriod == 0, "TokenController: Already initialized");
-    claimSubmissionGracePeriod = 120 days;
   }
 
   /**
@@ -682,6 +678,41 @@ contract TokenController is LockHandler, Iupgradable {
     }
 
     lockReason[_of].pop();
+  }
+
+  function initialize() external {
+    require(claimSubmissionGracePeriod == 0, "TokenController: Already initialized");
+    claimSubmissionGracePeriod = 120 days;
+    migrate();
+  }
+
+  function migrate() internal {
+
+    ClaimsData cd = ClaimsData(ms.getLatestAddress('CD'));
+    uint totalClaims = cd.actualClaimLength() - 1;
+
+    // fix stuck claims 21 & 22
+    cd.changeFinalVerdict(20, -1);
+    cd.setClaimStatus(20, 6);
+    cd.changeFinalVerdict(21, -1);
+    cd.setClaimStatus(21, 6);
+
+    for (uint i = 1; i <= totalClaims; i++) {
+
+      (/*id*/, uint status) = cd.getClaimStatusNumber(i);
+      (/*id*/, uint coverId) = cd.getClaimCoverId(i);
+      int8 verdict = cd.getFinalVerdict(i);
+
+      // SLOAD
+      CoverInfo memory info = coverInfo[coverId];
+
+      info.claimCount = info.claimCount + 1;
+      info.hasAcceptedClaim = (status == 14);
+      info.hasOpenClaim = (verdict == 0);
+
+      // SSTORE
+      coverInfo[coverId] = info;
+    }
   }
 
 }

@@ -50,6 +50,8 @@ const Address = {
   NXMHOLDER: '0xd7cba5b9a0240770cfd9671961dae064136fa240',
 };
 
+const EMPTY_DATA = web3.eth.abi.encodeParameters([], []);
+
 let isHardhat;
 const hardhatRequest = async (...params) => {
 
@@ -203,8 +205,20 @@ describe('deploy cover interface and locking fixes', function () {
 
     console.log('Proxy Upgrade successful.');
 
+    const tokenController = await TokenController.at(await master.getLatestAddress(hex('TC')));
+
+    console.log('Initialize TokenController');
+    await tokenController.initialize();
+    await expectRevert(
+      tokenController.initialize(),
+      'TokenController: Already initialized'
+    );
+
+    const claimSubmissionGracePeriod = await tokenController.claimSubmissionGracePeriod();
+    assert.equal(claimSubmissionGracePeriod.toString(), (120 * 24 * 60 * 60).toString());
+
     this.quotation = await Quotation.at(await master.getLatestAddress(hex('QT')));
-    this.tokenController = await TokenController.at(await master.getLatestAddress(hex('TC')));
+    this.tokenController = tokenController;
   });
 
   it('adds new Cover.sol contract', async function () {
@@ -246,8 +260,32 @@ describe('deploy cover interface and locking fixes', function () {
     this.cover = cover;
   });
 
+  it('submits claim for cover', async function () {
+    const { cover, tokenController } = this;
+
+    const coverId = 2271;
+    const coverData = await cover.getCover(coverId);
+    const coverOwner = coverData.memberAddress;
+    assert.equal(coverData.coverAsset, '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
+
+    const latestTime = await time.latest();
+    assert(latestTime.lt(coverData.validUntil), `Validity ${coverData.validUntil.toString()} not in the future.`);
+
+    await unlock(coverOwner);
+    await fund(coverOwner);
+
+    await cover.submitClaim(coverId, EMPTY_DATA, {
+      from: coverOwner
+    });
+
+    const coverInfo = await tokenController.coverInfo(coverId);
+    assert.equal(coverInfo.claimCount.toString(), '1');
+    assert(coverInfo.hasOpenClaim);
+    assert(!coverInfo.hasAcceptedClaim);
+  });
+
   it('expires cover and withdraws cover note after grace period is finished', async function () {
-    const { master, voters, governance, cover, quotation, tokenController, token } = this;
+    const { cover, quotation, tokenController, token } = this;
 
     // const coverId = 2269;
     const coverId = 2270;
@@ -256,7 +294,6 @@ describe('deploy cover interface and locking fixes', function () {
     assert.equal(coverData.coverAsset, '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
 
     const latestTime = await time.latest();
-
     assert(latestTime.lt(coverData.validUntil), `Validity ${coverData.validUntil.toString()} not in the future.`);
 
     await time.increaseTo(coverData.validUntil.addn(1000));
@@ -288,7 +325,7 @@ describe('deploy cover interface and locking fixes', function () {
     assert.equal(returnedAmount.toString(), lockedAmount.toString());
   });
 
-  it.skip('performs hypothetical future proxy upgrade', async function () {
+  it('performs hypothetical future proxy upgrade', async function () {
 
     const { voters, governance, master } = this;
 
@@ -314,7 +351,7 @@ describe('deploy cover interface and locking fixes', function () {
     assert.equal(coImplementation, coverImplementation.address);
   });
 
-  it.skip('performs hypothetical future non-proxy upgrade', async function () {
+  it('performs hypothetical future non-proxy upgrade', async function () {
 
     const { voters, governance, master } = this;
 
@@ -337,5 +374,23 @@ describe('deploy cover interface and locking fixes', function () {
     const tfStoredAddress = await master.getLatestAddress(hex('TF'));
 
     assert.equal(tfStoredAddress, tokenFunctionsImplementation.address);
+  });
+
+  it('performs hypothetical future master upgrade', async function () {
+
+    const { voters, governance, master } = this;
+
+    const masterProxy = await OwnedUpgradeabilityProxy.at(master.address);
+
+    // upgrade to new master
+    const masterImplementation = await NXMaster.new();
+
+    // vote and upgrade
+    const upgradeMaster = web3.eth.abi.encodeParameters(['address'], [masterImplementation.address]);
+    await submitGovernanceProposal(ProposalCategory.upgradeMaster, upgradeMaster, voters, governance);
+
+    // check implementation
+    const actualMasterImplementation = await masterProxy.implementation();
+    assert.strictEqual(actualMasterImplementation, masterImplementation.address);
   });
 });

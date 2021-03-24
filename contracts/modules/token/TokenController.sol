@@ -212,14 +212,13 @@ contract TokenController is LockHandler, Iupgradable {
   * @dev Increase number of tokens locked for a CLA reason
   * @param _amount Number of tokens to be increased
   */
-  function increaseClaimAssessmentLock(uint256 _amount) external checkPause returns (bool)
+  function increaseClaimAssessmentLock(uint256 _amount) external checkPause
   {
     require(_tokensLocked(msg.sender, "CLA") > 0, "TokenController: No tokens locked");
     token.operatorTransfer(msg.sender, _amount);
 
     locked[msg.sender]["CLA"].amount = locked[msg.sender]["CLA"].amount.add(_amount);
     emit Locked(msg.sender, "CLA", _amount, locked[msg.sender]["CLA"].validity);
-    return true;
   }
 
   /**
@@ -302,12 +301,8 @@ contract TokenController is LockHandler, Iupgradable {
   * @dev Unlocks the withdrawable tokens against CLA of a specified address
   * @param _of Address of user, claiming back withdrawable tokens against CLA
   */
-  function withdrawClaimAssessmentTokens(address _of)
-  external
-  checkPause
-  returns (uint256 withdrawableTokens)
-  {
-    withdrawableTokens = _tokensUnlockable(_of, "CLA");
+  function withdrawClaimAssessmentTokens(address _of) external checkPause {
+    uint256 withdrawableTokens = _tokensUnlockable(_of, "CLA");
     if (withdrawableTokens > 0) {
       locked[_of]["CLA"].claimed = true;
       emit Unlocked(_of, "CLA", withdrawableTokens);

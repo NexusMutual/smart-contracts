@@ -638,8 +638,7 @@ contract TokenController is LockHandler, Iupgradable {
       lockReason[_of].pop();
       emit Unlocked(_of, _reason, amount);
 
-      if (i > 1) {
-        // if i > 1 then the input has more entries but there are none left in the lockReason array
+      if (lastReasonIndex > 0) {
         lastReasonIndex = lastReasonIndex.sub(1, "TokenController: Reason count mismatch");
       }
     }

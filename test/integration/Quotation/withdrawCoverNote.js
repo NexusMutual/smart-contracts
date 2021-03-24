@@ -16,7 +16,7 @@ const coverTemplate = {
   expireTime: '8000000000',
   generationTime: '1600000000000',
   currency: hex('ETH'),
-  period: 30,
+  period: 60,
   contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
 };
 
@@ -246,4 +246,53 @@ describe('withdrawCoverNote', function () {
     );
   });
 
+  it('correctly removes the reasons when withdrawing multiple CNs', async function () {
+
+    const { qd, qt, tk } = this.contracts;
+
+    const cover = { ...coverTemplate };
+    const secondCover = { ...coverTemplate, generationTime: cover.generationTime + 1 };
+
+    await buyCover({ ...this.contracts, cover, coverHolder: member1 });
+    await buyCover({ ...this.contracts, cover: secondCover, coverHolder: member1 });
+
+    const balanceBefore = await tk.balanceOf(member1);
+    const expectedCoverNoteTotal = toBN(cover.priceNXM).muln(20).divn(100);
+
+    const coverExpirationDate = await qd.getValidityOfCover('2');
+    await setNextBlockTime(coverExpirationDate.addn(1).toNumber());
+    await qt.expireCover('1');
+    await qt.expireCover('2');
+
+    const gracePeriod = await qd.getValidityOfCover('2');
+    const gracePeriodExpirationDate = coverExpirationDate.add(gracePeriod);
+
+    await setNextBlockTime(gracePeriodExpirationDate.addn(1).toNumber());
+    await qt.withdrawCoverNote(member1, ['1', '2'], ['0', '1']);
+    const balanceAfter = await tk.balanceOf(member1);
+
+    // check that half of the initial CN deposit was returned
+    assert(
+      balanceBefore.add(expectedCoverNoteTotal).eq(balanceAfter),
+      'balanceBefore + coverNote != balanceAfter',
+    );
+  });
+
+  it('should not allow withdrawal of other members\' CNs', async function () {
+
+    const { qd, qt } = this.contracts;
+
+    const cover = { ...coverTemplate };
+    await buyCover({ ...this.contracts, cover, coverHolder: member1 });
+
+    const coverExpirationDate = await qd.getValidityOfCover('1');
+    await setNextBlockTime(coverExpirationDate.addn(1).toNumber());
+    await qt.expireCover('1');
+
+    const gracePeriod = await qd.getValidityOfCover('1');
+    const gracePeriodExpirationDate = coverExpirationDate.add(gracePeriod);
+
+    await setNextBlockTime(gracePeriodExpirationDate.addn(1).toNumber());
+    await expectRevert.unspecified(qt.withdrawCoverNote(member2, ['1'], ['0']));
+  });
 });

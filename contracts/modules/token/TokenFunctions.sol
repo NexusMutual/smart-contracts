@@ -99,7 +99,7 @@ contract TokenFunctions is Iupgradable {
     // limit burn amount to actual amount locked
     uint burnAmount = lockedAmount < amount ? lockedAmount : amount;
 
-    if (burnAmount > 0) {
+    if (burnAmount != 0) {
       tc.burnLockedTokens(_of, reason, amount);
     }
 

@@ -89,8 +89,6 @@ contract ClaimsReward is Iupgradable {
         c1.setClaimStatus(claimid, 12);
       }
     }
-
-    c1.changePendingClaimStart();
   }
 
   function getCurrencyAssetAddress(bytes4 currency) public view returns (address) {

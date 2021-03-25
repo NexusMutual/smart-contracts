@@ -4,7 +4,7 @@ const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { buyCover } = require('../utils/buyCover');
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
-const { hex } = require('../utils').helpers;
+const { bnEqual, hex } = require('../utils').helpers;
 const { CoverStatus } = require('../utils').constants;
 
 const { toBN } = web3.utils;
@@ -81,32 +81,62 @@ describe('expireCover', function () {
     assert.strictEqual(actualCoverStatus.toNumber(), expectedCoverStatus);
   });
 
-  it('allows cover expiration after cover period end', async function () {
+  it('decreases the total sum assured upon expiration', async function () {
 
-    const { qt, tk } = this.contracts;
+    const { qt, qd } = this.contracts;
 
     const cover = { ...coverTemplate };
     await buyCover({ ...this.contracts, cover, coverHolder: member1 });
     const coverId = '1';
-    const balanceBefore = await tk.balanceOf(member1);
 
-    await claimAndVote(this.contracts, coverId, member1, claimAssessor, false);
+    const { currency, contractAddress } = cover;
+    const assuredBefore = await qd.getTotalSumAssured(currency);
+    const assuredSCBefore = await qd.getTotalSumAssuredSC(contractAddress, currency);
+
+    const coverExpirationDate = await qd.getValidityOfCover(coverId);
+    await setNextBlockTime(coverExpirationDate.addn(1).toNumber());
+    await qt.expireCover(coverId);
+
+    const assuredAfter = await qd.getTotalSumAssured(currency);
+    const assuredSCAfter = await qd.getTotalSumAssuredSC(contractAddress, currency);
+
+    bnEqual(assuredBefore.subn(cover.amount), assuredAfter);
+    bnEqual(assuredSCBefore.subn(cover.amount), assuredSCAfter);
+
+    const actualCoverStatus = await qd.getCoverStatusNo(coverId);
+    const expectedCoverStatus = CoverStatus.CoverExpired;
+    assert.strictEqual(actualCoverStatus.toNumber(), expectedCoverStatus);
+  });
+
+  it('does not decrease total sum assured if a claim was accepted', async function () {
+
+    const { qt, qd } = this.contracts;
+
+    const cover = { ...coverTemplate };
+    await buyCover({ ...this.contracts, cover, coverHolder: member1 });
+    const coverId = '1';
+
+    const { currency, contractAddress } = cover;
+    const assuredBefore = await qd.getTotalSumAssured(currency);
+    const assuredSCBefore = await qd.getTotalSumAssuredSC(contractAddress, currency);
+
     await claimAndVote(this.contracts, coverId, member1, claimAssessor, true);
 
-    await expectRevert(
-      qt.withdrawCoverNote(member1, [coverId], ['0']),
-      'Quotation: cannot withdraw before grace period expiration',
-    );
+    const assuredMid = await qd.getTotalSumAssured(currency);
+    const assuredSCMid = await qd.getTotalSumAssuredSC(contractAddress, currency);
 
-    // should work after the claim was closed
-    const balanceAfter = await tk.balanceOf(member1);
-    const expectedCoverNoteAmount = toBN(cover.priceNXM).muln(5).divn(100);
+    bnEqual(assuredBefore.subn(cover.amount), assuredMid);
+    bnEqual(assuredSCBefore.subn(cover.amount), assuredSCMid);
 
-    // check that half of the initial CN deposit was returned
-    assert(
-      balanceBefore.add(expectedCoverNoteAmount).eq(balanceAfter),
-      'balanceBefore + coverNote != balanceAfter',
-    );
+    const coverExpirationDate = await qd.getValidityOfCover(coverId);
+    await setNextBlockTime(coverExpirationDate.addn(1).toNumber());
+    await qt.expireCover(coverId);
+
+    const assuredAfter = await qd.getTotalSumAssured(currency);
+    const assuredSCAfter = await qd.getTotalSumAssuredSC(contractAddress, currency);
+
+    bnEqual(assuredAfter, assuredMid);
+    bnEqual(assuredSCAfter, assuredSCMid);
   });
 
 });

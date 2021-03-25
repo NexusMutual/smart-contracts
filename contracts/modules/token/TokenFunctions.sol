@@ -127,7 +127,7 @@ contract TokenFunctions is Iupgradable {
   function unlockCN(uint coverId) public onlyInternal {
     address coverHolder = qd.getCoverMemberAddress(coverId);
     bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, coverId));
-    uint lockedCN = tc.tokensLockedAtTime(coverHolder, reason, now);
+    uint lockedCN = tc.tokensLocked(coverHolder, reason);
     if (lockedCN != 0) {
       tc.releaseLockedTokens(coverHolder, reason, lockedCN);
     }

@@ -148,27 +148,6 @@ contract Claims is Iupgradable {
   }
 
   /**
-   * @dev Updates the pending claim start variable,
-   * the lowest claim id with a pending decision/payout.
-   */
-  function changePendingClaimStart() public onlyInternal {
-
-    uint origstat;
-    uint state12Count;
-    uint pendingClaimStart = cd.pendingClaimStart();
-    uint actualClaimLength = cd.actualClaimLength();
-    for (uint i = pendingClaimStart; i < actualClaimLength; i++) {
-      (, , , origstat, , state12Count) = cd.getClaim(i);
-
-      if (origstat > 5 && ((origstat != 12) || (origstat == 12 && state12Count >= 60))) {
-        cd.setpendingClaimStart(i);
-      } else {
-        break;
-      }
-    }
-  }
-
-  /**
    * @dev Submits a claim for a given cover note.
    * Adds claim to queue incase of emergency pause else directly submits the claim.
    * @param coverId Cover Id.

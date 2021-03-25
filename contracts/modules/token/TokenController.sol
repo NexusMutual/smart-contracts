@@ -18,6 +18,7 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/Iupgradable.sol";
 import "../../interfaces/IPooledStaking.sol";
+import "../claims/ClaimsData.sol";
 import "./NXMToken.sol";
 import "./external/LockHandler.sol";
 
@@ -49,11 +50,6 @@ contract TokenController is LockHandler, Iupgradable {
   modifier onlyGovernance {
     require(msg.sender == ms.getLatestAddress("GV"), "TokenController: Caller is not governance");
     _;
-  }
-
-  function initialize() external {
-    require(claimSubmissionGracePeriod == 0, "TokenController: Already initialized");
-    claimSubmissionGracePeriod = 120 days;
   }
 
   /**
@@ -642,8 +638,7 @@ contract TokenController is LockHandler, Iupgradable {
       lockReason[_of].pop();
       emit Unlocked(_of, _reason, amount);
 
-      if (i > 1) {
-        // if i > 1 then the input has more entries but there are none left in the lockReason array
+      if (lastReasonIndex > 0) {
         lastReasonIndex = lastReasonIndex.sub(1, "TokenController: Reason count mismatch");
       }
     }
@@ -682,6 +677,55 @@ contract TokenController is LockHandler, Iupgradable {
     }
 
     lockReason[_of].pop();
+  }
+
+  function initialize() external {
+    require(claimSubmissionGracePeriod == 0, "TokenController: Already initialized");
+    claimSubmissionGracePeriod = 120 days;
+    migrate();
+  }
+
+  function migrate() internal {
+
+    ClaimsData cd = ClaimsData(ms.getLatestAddress('CD'));
+    uint totalClaims = cd.actualClaimLength() - 1;
+
+    // fix stuck claims 21 & 22
+    cd.changeFinalVerdict(20, -1);
+    cd.setClaimStatus(20, 6);
+    cd.changeFinalVerdict(21, -1);
+    cd.setClaimStatus(21, 6);
+
+    // reduce claim assessment lock period for members locked for more than 180 days
+    address payable[4] memory members = [
+      0x87B2a7559d85f4653f13E6546A14189cd5455d45,
+      0x4a9fA34da6d2378c8f3B9F6b83532B169beaEDFc,
+      0x6b5DCDA27b5c3d88e71867D6b10b35372208361F,
+      0x8B6D1e5b4db5B6f9aCcc659e2b9619B0Cd90D617
+    ];
+
+    for (uint i = 0; i < members.length; i++) {
+      if (locked[members[i]]["CLA"].validity > now + 180 days) {
+        locked[members[i]]["CLA"].validity = now + 180 days;
+      }
+    }
+
+    for (uint i = 1; i <= totalClaims; i++) {
+
+      (/*id*/, uint status) = cd.getClaimStatusNumber(i);
+      (/*id*/, uint coverId) = cd.getClaimCoverId(i);
+      int8 verdict = cd.getFinalVerdict(i);
+
+      // SLOAD
+      CoverInfo memory info = coverInfo[coverId];
+
+      info.claimCount = info.claimCount + 1;
+      info.hasAcceptedClaim = (status == 14);
+      info.hasOpenClaim = (verdict == 0);
+
+      // SSTORE
+      coverInfo[coverId] = info;
+    }
   }
 
 }

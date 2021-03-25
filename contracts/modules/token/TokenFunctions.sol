@@ -83,20 +83,6 @@ contract TokenFunctions is Iupgradable {
   }
 
   /**
-   * @param _of address of Member
-   * @param _coverId Cover Id
-   * @param _lockTime Pending Time + Cover Period 7*1 days
-   */
-  function extendCNEPOff(address _of, uint _coverId, uint _lockTime) public onlyInternal {
-    uint timeStamp = now.add(_lockTime);
-    uint coverValidUntil = qd.getValidityOfCover(_coverId);
-    if (timeStamp >= coverValidUntil) {
-      bytes32 reason = keccak256(abi.encodePacked("CN", _of, _coverId));
-      tc.extendLockOf(_of, reason, timeStamp);
-    }
-  }
-
-  /**
    * @dev to burn the deposited cover tokens
    * @param coverId is id of cover whose tokens have to be burned
    * @return the status of the successful burning
@@ -113,7 +99,7 @@ contract TokenFunctions is Iupgradable {
     // limit burn amount to actual amount locked
     uint burnAmount = lockedAmount < amount ? lockedAmount : amount;
 
-    if (burnAmount > 0) {
+    if (burnAmount != 0) {
       tc.burnLockedTokens(_of, reason, amount);
     }
 

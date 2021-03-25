@@ -208,7 +208,7 @@ contract Cover is MasterAware {
   }
 
   function switchMembership(address newAddress) external {
-    memberRoles.switchMembershipForMember(msg.sender, newAddress);
+    memberRoles.switchMembershipOf(msg.sender, newAddress);
     nxmToken.transferFrom(msg.sender, newAddress, nxmToken.balanceOf(msg.sender));
   }
 

@@ -287,7 +287,7 @@ contract MemberRoles is Governed, Iupgradable {
     tk.transferFrom(msg.sender, newAddress, tk.balanceOf(msg.sender));
   }
 
-  function switchMembershipForMember(address member, address newAddress) public onlyInternal {
+  function switchMembershipOf(address member, address newAddress) external onlyInternal {
     _switchMembership(member, newAddress);
   }
 

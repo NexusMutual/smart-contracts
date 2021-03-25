@@ -107,7 +107,7 @@ contract Quotation is Iupgradable {
 
   function getWithdrawableCoverNoteCoverIds(
     address coverOwner
-  ) external view returns (
+  ) public view returns (
     uint[] memory expiredCoverIds,
     bytes32[] memory lockReasons
   ) {

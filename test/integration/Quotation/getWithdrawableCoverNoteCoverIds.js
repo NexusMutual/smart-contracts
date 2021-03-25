@@ -40,7 +40,7 @@ const claimAndVote = async (contracts, coverId, member, assessor, accept) => {
   assert(status.eqn(expectedStatus), `expected claim status ${expectedStatus}, got ${status}`);
 };
 
-describe.only('getWithdrawableCoverNoteCoverIds', function () {
+describe('getWithdrawableCoverNoteCoverIds', function () {
 
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, claimAssessor]);
@@ -83,14 +83,9 @@ describe.only('getWithdrawableCoverNoteCoverIds', function () {
       assert.equal(expiredCoverIds[i].toString(), coverIds[i]);
     }
 
-    console.log({
-      lockReasons
-    });
-
     for (let i = 0; i < lockReasons.length; i++) {
-      const encoded = web3.eth.abi.encodeParameters(['bytes4', 'address', 'uint256'], [hex('CN'), member1, expiredCoverIds[i]]);
-      const reason = web3.utils.keccak256(encoded);
-      // assert.equal(lockReasons[i], reason.toString());
+      const reason = web3.utils.soliditySha3(hex('CN'), member1, expiredCoverIds[i]);
+      assert.equal(lockReasons[i], reason.toString());
     }
   });
 });

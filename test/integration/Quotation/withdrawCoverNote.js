@@ -16,7 +16,7 @@ const coverTemplate = {
   expireTime: '8000000000',
   generationTime: '1600000000000',
   currency: hex('ETH'),
-  period: 60,
+  period: 35,
   contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
 };
 

@@ -290,7 +290,7 @@ describe('deploy cover interface and locking fixes', function () {
     const { cover, quotation, tokenController, token } = this;
 
     // const coverId = 2269;
-    const coverId = 2270;
+    const coverId = 2272;
     const coverData = await cover.getCover(coverId);
     const coverOwner = coverData.memberAddress;
     assert.equal(coverData.coverAsset, '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');

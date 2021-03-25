@@ -17,11 +17,10 @@
 
 pragma solidity ^0.5.0;
 
-import "../interfaces/ITokenController.sol";
 import "../abstract/MasterAware.sol";
 import "../modules/token/NXMToken.sol";
 
-contract TokenControllerMock is ITokenController, MasterAware {
+contract TokenControllerMock is MasterAware {
 
   NXMToken token;
 

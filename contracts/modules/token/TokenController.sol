@@ -21,7 +21,6 @@ import "../../interfaces/IPooledStaking.sol";
 import "../claims/ClaimsData.sol";
 import "./NXMToken.sol";
 import "./external/LockHandler.sol";
-import "hardhat/console.sol";
 
 contract TokenController is LockHandler, Iupgradable {
   using SafeMath for uint256;
@@ -697,7 +696,7 @@ contract TokenController is LockHandler, Iupgradable {
     cd.changeFinalVerdict(21, -1);
     cd.setClaimStatus(21, 6);
 
-    // reduce lock validity for members locked for Claim Assessment for 180 days
+    // reduce claim assessment lock period for members locked for more than 180 days
     address payable[4] memory members = [
       0x87B2a7559d85f4653f13E6546A14189cd5455d45,
       0x4a9fA34da6d2378c8f3B9F6b83532B169beaEDFc,

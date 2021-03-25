@@ -1,5 +1,5 @@
 const { artifacts, web3 } = require('hardhat');
-const { to, hex } = require('../lib/helpers');
+const { hex } = require('../lib/helpers');
 const { BN } = web3.utils;
 
 async function main () {
@@ -13,7 +13,7 @@ async function main () {
 
   const ROLE_MEMBER = 2;
   const memberCount = await mr.membersLength(ROLE_MEMBER);
-  const elidgibleForReset = {};
+  const eligibleForReset = {};
   const lockCap = new BN(Date.now() / 1000 + 180 * 24 * 60 * 60);
   const zero = new BN('0');
 
@@ -43,11 +43,11 @@ async function main () {
       amount: amount.toString(),
       validity: (new Date(validity.toNumber() * 1000)).toDateString(),
     });
-    elidgibleForReset[member] = { amount: amount.toString(), validity: validity.toString() };
+    eligibleForReset[member] = { amount: amount.toString(), validity: validity.toString() };
   }
 
-  require('fs').writeFileSync('elidgibleForReset.json', JSON.stringify(elidgibleForReset, null, 2));
-  console.log(JSON.stringify(elidgibleForReset, null, 2));
+  require('fs').writeFileSync('eligibleForReset.json', JSON.stringify(eligibleForReset, null, 2));
+  console.log(JSON.stringify(eligibleForReset, null, 2));
 }
 
 main().catch(e => {

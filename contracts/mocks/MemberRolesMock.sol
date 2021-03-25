@@ -17,13 +17,13 @@ pragma solidity ^0.5.0;
 
 contract MemberRolesMock {
 
-  enum Role {UnAssigned, AdvisoryBoard, Member, Owner}
+  enum Role { UnAssigned, AdvisoryBoard, Member, Owner }
 
-  function memberAtIndex(uint, uint) external returns (address, bool) {
+  function memberAtIndex(uint, uint) external pure returns (address, bool) {
     revert("Unexpected MemberRolesMock call");
   }
 
-  function membersLength(uint) external returns (uint) {
+  function membersLength(uint) external pure returns (uint) {
     return 0;
   }
 

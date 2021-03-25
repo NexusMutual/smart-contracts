@@ -32,7 +32,7 @@ contract TokenControllerMock is MasterAware {
     return token.burnFrom(_of, amount);
   }
 
-  function addToWhitelist(address _member) public onlyInternal {
+  function addToWhitelist(address _member) public view onlyInternal {
     // noop
     _member;
   }

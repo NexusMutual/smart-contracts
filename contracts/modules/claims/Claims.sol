@@ -21,7 +21,6 @@ import "../token/NXMToken.sol";
 import "../token/TokenController.sol";
 import "../token/TokenFunctions.sol";
 import "./ClaimsData.sol";
-import "../capital/PoolData.sol";
 
 contract Claims is Iupgradable {
   using SafeMath for uint;

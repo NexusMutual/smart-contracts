@@ -107,7 +107,7 @@ contract Quotation is Iupgradable {
 
   function getWithdrawableCoverNoteCoverIds(
     address coverOwner
-  ) external view returns (
+  ) public view returns (
     uint[] memory expiredCoverIds,
     bytes32[] memory lockReasons
   ) {
@@ -136,6 +136,20 @@ contract Quotation is Iupgradable {
       expiredCoverIds[i] = expiredIdsQueue[i];
       lockReasons[i] = keccak256(abi.encodePacked("CN", coverOwner, expiredIdsQueue[i]));
     }
+  }
+
+  function getWithdrawableCoverNotesAmount(address coverOwner) external view returns (uint) {
+
+    uint withdrawableAmount;
+    bytes32[] memory lockReasons;
+    (/*expiredCoverIds*/, lockReasons) = getWithdrawableCoverNoteCoverIds(coverOwner);
+
+    for (uint i = 0; i < lockReasons.length; i++) {
+      uint coverNoteAmount = tc.tokensLocked(coverOwner, lockReasons[i]);
+      withdrawableAmount = withdrawableAmount.add(coverNoteAmount);
+    }
+
+    return withdrawableAmount;
   }
 
   /**

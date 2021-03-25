@@ -20,6 +20,7 @@ contract UpgradeabilityProxy is Proxy {
   /**
   * @dev Constructor function
   */
+  // solhint-disable-next-line no-empty-blocks
   constructor() public {}
 
   /**

@@ -132,7 +132,7 @@ contract Cover is MasterAware {
         uint premiumAmount = coverDetails[1];
         if (coverAsset == ETH) {
           require(msg.value == premiumAmount, "Cover: ETH amount does not match premium");
-          // solhint-disable-next-line avoid-low-level-calls
+          // solhint-disable-next-line avoid-low-level-calls, avoid-call-value
           (bool ok, /* data */) = address(pool).call.value(premiumAmount)("");
           require(ok, "Cover: Transfer to Pool failed");
         } else {

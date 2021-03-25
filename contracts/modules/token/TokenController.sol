@@ -687,7 +687,7 @@ contract TokenController is LockHandler, Iupgradable {
 
   function migrate() internal {
 
-    ClaimsData cd = ClaimsData(ms.getLatestAddress('CD'));
+    ClaimsData cd = ClaimsData(ms.getLatestAddress("CD"));
     uint totalClaims = cd.actualClaimLength() - 1;
 
     // fix stuck claims 21 & 22

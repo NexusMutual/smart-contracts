@@ -164,11 +164,11 @@ contract Claims is Iupgradable {
     require(!ms.isPause(), "Claims: System is paused");
 
     address coverOwner = qd.getCoverMemberAddress(coverId);
-    require(coverOwner == member, 'Claims: Not cover owner');
+    require(coverOwner == member, "Claims: Not cover owner");
 
     uint expirationDate = qd.getValidityOfCover(coverId);
     uint gracePeriod = tc.claimSubmissionGracePeriod();
-    require(expirationDate.add(gracePeriod) > now, 'Claims: Grace period has expired');
+    require(expirationDate.add(gracePeriod) > now, "Claims: Grace period has expired");
 
     tc.markCoverClaimOpen(coverId);
     qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimSubmitted));
@@ -178,8 +178,8 @@ contract Claims is Iupgradable {
     cd.callClaimEvent(coverId, coverOwner, claimId, now);
   }
 
-  function submitClaimAfterEPOff() external pure {
-  }
+  // solhint-disable-next-line no-empty-blocks
+  function submitClaimAfterEPOff() external pure {}
 
   /**
    * @dev Castes vote for members who have tokens locked under Claims Assessment
@@ -236,11 +236,11 @@ contract Claims is Iupgradable {
     }
   }
 
-  function pauseAllPendingClaimsVoting() external pure {
-  }
+  // solhint-disable-next-line no-empty-blocks
+  function pauseAllPendingClaimsVoting() external pure {}
 
-  function startAllPendingClaimsVoting() external pure {
-  }
+  // solhint-disable-next-line no-empty-blocks
+  function startAllPendingClaimsVoting() external pure {}
 
   /**
    * @dev Checks if voting of a claim should be closed or not.

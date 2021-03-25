@@ -64,9 +64,8 @@ contract Quotation is Iupgradable {
     pool = Pool(ms.getLatestAddress("P1"));
   }
 
-  function sendEther() public payable {
-
-  }
+  // solhint-disable-next-line no-empty-blocks
+  function sendEther() public payable {}
 
   /**
    * @dev Expires a cover after a set period of time and changes the status of the cover
@@ -426,6 +425,7 @@ contract Quotation is Iupgradable {
       if (coverDetails[3] > now) {
         qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPass));
         if (coverCurr == "ETH") {
+          // solhint-disable-next-line avoid-low-level-calls, avoid-call-value
           (bool ok,) = address(pool).call.value(coverDetails[1])("");
           require(ok, "Quotation: ether transfer to pool failed");
         } else {

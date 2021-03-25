@@ -37,4 +37,5 @@ describe('Pool unit tests', function () {
 
   // payout
   require('./sendClaimPayout');
+
 });

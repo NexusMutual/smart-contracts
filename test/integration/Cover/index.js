@@ -4,4 +4,5 @@ describe('Cover integration tests', function () {
   require('./submitClaim');
   require('./getters');
   require('./executeCoverAction');
+
 });

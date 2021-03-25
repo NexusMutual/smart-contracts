@@ -85,13 +85,17 @@ contract Cover is MasterAware {
   }
 
   function getCoverPrice (
-    address contractAddress,
-    address coverAsset,
-    uint sumAssured,
-    uint16 coverPeriod,
-    CoverType coverType,
+    address /* contractAddress */,
+    address /* coverAsset */,
+    uint /* sumAssured */,
+    uint16 /* coverPeriod */,
+    CoverType /* coverType */,
     bytes calldata data
   ) external view returns (uint coverPrice) {
+
+    // mark function as view instead of pure for future compatibility
+    this;
+
     (
     coverPrice,
     /* coverPriceNXM */,
@@ -212,7 +216,7 @@ contract Cover is MasterAware {
     nxmToken.transferFrom(msg.sender, newAddress, nxmToken.balanceOf(msg.sender));
   }
 
-  function executeCoverAction(uint tokenId, uint8 action, bytes calldata data)
+  function executeCoverAction(uint /* tokenId */, uint8 /* action */, bytes calldata /* data */)
   external
   payable
   returns (bytes memory, uint)

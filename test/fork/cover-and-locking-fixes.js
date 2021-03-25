@@ -128,6 +128,10 @@ describe('deploy cover interface and locking fixes', function () {
       ],
     );
 
+    console.log({
+      preCategoryUpgradeTime: new Date((await time.latest()) * 1000).toDateString()
+    });
+
     await submitGovernanceProposal(
       ProposalCategory.editCategory,
       upgradesActionDataNonProxy,

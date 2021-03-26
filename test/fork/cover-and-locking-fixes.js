@@ -19,24 +19,13 @@ const { BN, toBN } = web3.utils;
 
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const MemberRoles = artifacts.require('MemberRoles');
-const Pool = artifacts.require('Pool');
 const NXMaster = artifacts.require('NXMaster');
-const TemporaryNXMaster = artifacts.require('TemporaryNXMaster');
 const NXMToken = artifacts.require('NXMToken');
 const Governance = artifacts.require('Governance');
-const PoolData = artifacts.require('PoolData');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const Claims = artifacts.require('Claims');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const Quotation = artifacts.require('Quotation');
-const MCR = artifacts.require('MCR');
-const Pool2 = artifacts.require('Pool2');
-const LegacyPool1 = artifacts.require('LegacyPool1');
-const LegacyMCR = artifacts.require('LegacyMCR');
-const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-const ERC20 = artifacts.require('ERC20');
-const SwapAgent = artifacts.require('SwapAgent');
-const TwapOracle = artifacts.require('TwapOracle');
 const TokenController = artifacts.require('TokenController');
 const Cover = artifacts.require('Cover');
 

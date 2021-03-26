@@ -17,11 +17,10 @@
 
 pragma solidity ^0.5.0;
 
-import "../interfaces/ITokenController.sol";
 import "../abstract/MasterAware.sol";
 import "../modules/token/NXMToken.sol";
 
-contract TokenControllerMock is ITokenController, MasterAware {
+contract TokenControllerMock is MasterAware {
 
   NXMToken token;
 
@@ -33,7 +32,7 @@ contract TokenControllerMock is ITokenController, MasterAware {
     return token.burnFrom(_of, amount);
   }
 
-  function addToWhitelist(address _member) public onlyInternal {
+  function addToWhitelist(address _member) public view onlyInternal {
     // noop
     _member;
   }

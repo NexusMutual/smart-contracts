@@ -4,4 +4,5 @@ describe('Quotation integration tests', function () {
   require('./withdrawCoverNote');
   require('./expireCover');
   require('./getWithdrawableCoverNoteCoverIds');
+
 });

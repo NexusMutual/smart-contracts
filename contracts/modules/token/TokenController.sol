@@ -112,8 +112,8 @@ contract TokenController is LockHandler, Iupgradable {
    */
   function operatorTransfer(address _from, address _to, uint _value) external onlyInternal returns (bool) {
     require(msg.sender == address(pooledStaking), "TokenController: Call is only allowed from PooledStaking address");
-    require(token.operatorTransfer(_from, _value), "TokenController: Operator transfer failed");
-    require(token.transfer(_to, _value), "TokenController: Internal transfer failed");
+    token.operatorTransfer(_from, _value);
+    token.transfer(_to, _value);
     return true;
   }
 
@@ -302,7 +302,7 @@ contract TokenController is LockHandler, Iupgradable {
     if (withdrawableTokens > 0) {
       locked[_of]["CLA"].claimed = true;
       emit Unlocked(_of, "CLA", withdrawableTokens);
-      require(token.transfer(_of, withdrawableTokens), "TokenController: Transfer failed");
+      token.transfer(_of, withdrawableTokens);
     }
   }
 
@@ -476,7 +476,7 @@ contract TokenController is LockHandler, Iupgradable {
       lockReason[_of].push(_reason);
     }
 
-    require(token.operatorTransfer(_of, _amount), "TokenController: Operator transfer failed");
+    token.operatorTransfer(_of, _amount);
 
     uint256 validUntil = now.add(_time);
     locked[_of][_reason] = LockToken(_amount, validUntil, false);
@@ -597,7 +597,7 @@ contract TokenController is LockHandler, Iupgradable {
 
     // lock reason removal is skipped here: needs to be done from offchain
 
-    require(token.transfer(_of, _amount), "TokenController: Transfer failed");
+    token.transfer(_of, _amount);
     emit Unlocked(_of, _reason, _amount);
   }
 
@@ -687,7 +687,7 @@ contract TokenController is LockHandler, Iupgradable {
 
   function migrate() internal {
 
-    ClaimsData cd = ClaimsData(ms.getLatestAddress('CD'));
+    ClaimsData cd = ClaimsData(ms.getLatestAddress("CD"));
     uint totalClaims = cd.actualClaimLength() - 1;
 
     // fix stuck claims 21 & 22
@@ -697,6 +697,7 @@ contract TokenController is LockHandler, Iupgradable {
     cd.setClaimStatus(21, 6);
 
     // reduce claim assessment lock period for members locked for more than 180 days
+    // extracted using scripts/extract-lock-reasons.js
     address payable[4] memory members = [
       0x87B2a7559d85f4653f13E6546A14189cd5455d45,
       0x4a9fA34da6d2378c8f3B9F6b83532B169beaEDFc,

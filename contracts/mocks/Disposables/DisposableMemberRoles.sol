@@ -24,15 +24,15 @@ contract DisposableMemberRoles is MemberRoles {
       "initial members and member tokens arrays should have the same length"
     );
 
-    dAppToken = TokenController(_tokenControllerAddress);
+    tc = TokenController(_tokenControllerAddress);
     changeMasterAddress(_masterAddress);
 
     _addInitialMemberRoles(_owner, _owner);
 
     for (uint i = 0; i < _initialMembers.length; i++) {
       _updateRole(_initialMembers[i], uint(Role.Member), true);
-      dAppToken.addToWhitelist(_initialMembers[i]);
-      dAppToken.mint(_initialMembers[i], _initialMemberTokens[i]);
+      tc.addToWhitelist(_initialMembers[i]);
+      tc.mint(_initialMembers[i], _initialMemberTokens[i]);
     }
 
     require(_initialABMembers.length <= maxABCount);

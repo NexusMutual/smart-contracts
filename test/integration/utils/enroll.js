@@ -1,5 +1,6 @@
 const { web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
+const { MAX_UINT256 } = require('@openzeppelin/test-helpers').constants;
 const { toBN } = web3.utils;
 
 async function enrollMember ({ mr, tk, tc }, members, options = {}) {
@@ -9,7 +10,7 @@ async function enrollMember ({ mr, tk, tc }, members, options = {}) {
   for (const member of members) {
     await mr.payJoiningFee(member, { from: member, value: ether('0.002') });
     await mr.kycVerdict(member, true);
-    await tk.approve(tc.address, -1, { from: member });
+    await tk.approve(tc.address, MAX_UINT256, { from: member });
     await tk.transfer(member, toBN(initialTokens));
   }
 }

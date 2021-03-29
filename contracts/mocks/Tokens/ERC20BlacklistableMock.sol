@@ -21,7 +21,4 @@ contract ERC20BlacklistableMock is ERC20Mock {
     isBlacklisted[recipient] = true;
   }
 
-  function decimals() external pure returns (uint8) {
-    return 18;
-  }
 }

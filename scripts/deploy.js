@@ -8,7 +8,7 @@ const proposalCategories = require('../lib/proposal-categories');
 const { toBN } = web3.utils;
 
 // external
-const OwnedERC20 = artifacts.require('OwnedERC20');
+const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const UniswapV2Factory = artifacts.require('UniswapV2Factory');
 
@@ -109,8 +109,8 @@ async function main () {
 
   // deploy external contracts
   console.log('Deploying DAI');
-  const dai = await OwnedERC20.new();
-  verifier.add(dai);
+  const dai = await ERC20MintableDetailed.new('DAI Mock', 'DAI', 18);
+  verifier.add(dai, { constructorArgs: ['DAI Mock', 'DAI', 18] });
 
   console.log('Deploying uniswap pair');
   const uniswapV2Factory = await UniswapV2Factory.at(UNISWAP_FACTORY);

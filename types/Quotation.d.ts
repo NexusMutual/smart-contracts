@@ -134,6 +134,11 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<[BN[], string[]]>;
 
+  getWithdrawableCoverNotesAmount(
+    coverOwner: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BN>;
+
   isValidSignature(
     hash: string,
     v: number | BN | string,
@@ -445,6 +450,11 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       coverOwner: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<[BN[], string[]]>;
+
+    getWithdrawableCoverNotesAmount(
+      coverOwner: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<BN>;
 
     isValidSignature(
       hash: string,

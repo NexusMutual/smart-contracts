@@ -5,8 +5,14 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface ERC20MockContract extends Truffle.Contract<ERC20MockInstance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<ERC20MockInstance>;
+export interface ERC20MintableDetailedContract
+  extends Truffle.Contract<ERC20MintableDetailedInstance> {
+  "new"(
+    name: string,
+    symbol: string,
+    decimals: number | BN | string,
+    meta?: Truffle.TransactionDetails
+  ): Promise<ERC20MintableDetailedInstance>;
 }
 
 export interface Approval {
@@ -51,7 +57,8 @@ export interface Transfer {
 
 type AllEvents = Approval | MinterAdded | MinterRemoved | Transfer;
 
-export interface ERC20MockInstance extends Truffle.ContractInstance {
+export interface ERC20MintableDetailedInstance
+  extends Truffle.ContractInstance {
   addMinter: {
     (account: string, txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>

@@ -129,27 +129,27 @@ export interface CoverInstance extends Truffle.ContractInstance {
 
   executeCoverAction: {
     (
-      tokenId: number | BN | string,
-      action: number | BN | string,
-      data: string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
+      arg2: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      tokenId: number | BN | string,
-      action: number | BN | string,
-      data: string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
+      arg2: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<[string, BN]>;
     sendTransaction(
-      tokenId: number | BN | string,
-      action: number | BN | string,
-      data: string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
+      arg2: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      tokenId: number | BN | string,
-      action: number | BN | string,
-      data: string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
+      arg2: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -165,11 +165,11 @@ export interface CoverInstance extends Truffle.ContractInstance {
   ): Promise<[BN, BN, BN, BN, string, string, BN, string]>;
 
   getCoverPrice(
-    contractAddress: string,
-    coverAsset: string,
-    sumAssured: number | BN | string,
-    coverPeriod: number | BN | string,
-    coverType: number | BN | string,
+    arg0: string,
+    arg1: string,
+    arg2: number | BN | string,
+    arg3: number | BN | string,
+    arg4: number | BN | string,
     data: string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
@@ -326,27 +326,27 @@ export interface CoverInstance extends Truffle.ContractInstance {
 
     executeCoverAction: {
       (
-        tokenId: number | BN | string,
-        action: number | BN | string,
-        data: string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
+        arg2: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        tokenId: number | BN | string,
-        action: number | BN | string,
-        data: string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
+        arg2: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<[string, BN]>;
       sendTransaction(
-        tokenId: number | BN | string,
-        action: number | BN | string,
-        data: string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
+        arg2: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        tokenId: number | BN | string,
-        action: number | BN | string,
-        data: string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
+        arg2: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
@@ -362,11 +362,11 @@ export interface CoverInstance extends Truffle.ContractInstance {
     ): Promise<[BN, BN, BN, BN, string, string, BN, string]>;
 
     getCoverPrice(
-      contractAddress: string,
-      coverAsset: string,
-      sumAssured: number | BN | string,
-      coverPeriod: number | BN | string,
-      coverType: number | BN | string,
+      arg0: string,
+      arg1: string,
+      arg2: number | BN | string,
+      arg3: number | BN | string,
+      arg4: number | BN | string,
       data: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;

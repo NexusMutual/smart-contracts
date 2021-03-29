@@ -13,90 +13,28 @@ export interface MemberRolesMockContract
 type AllEvents = never;
 
 export interface MemberRolesMockInstance extends Truffle.ContractInstance {
-  memberAtIndex: {
-    (
-      arg0: number | BN | string,
-      arg1: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
+  memberAtIndex(
+    arg0: number | BN | string,
+    arg1: number | BN | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<[string, boolean]>;
+
+  membersLength(
+    arg0: number | BN | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BN>;
+
+  methods: {
+    memberAtIndex(
       arg0: number | BN | string,
       arg1: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<[string, boolean]>;
-    sendTransaction(
-      arg0: number | BN | string,
-      arg1: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      arg0: number | BN | string,
-      arg1: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
 
-  membersLength: {
-    (
-      arg0: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
+    membersLength(
       arg0: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
-    sendTransaction(
-      arg0: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      arg0: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
-  methods: {
-    memberAtIndex: {
-      (
-        arg0: number | BN | string,
-        arg1: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        arg0: number | BN | string,
-        arg1: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<[string, boolean]>;
-      sendTransaction(
-        arg0: number | BN | string,
-        arg1: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        arg0: number | BN | string,
-        arg1: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    membersLength: {
-      (
-        arg0: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        arg0: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<BN>;
-      sendTransaction(
-        arg0: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        arg0: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
   };
 
   getPastEvents(event: string): Promise<EventData[]>;

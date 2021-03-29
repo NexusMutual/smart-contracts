@@ -39,15 +39,6 @@ export interface ClaimsInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  changePendingClaimStart: {
-    (txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-  };
-
   checkVoteClosing(
     claimId: number | BN | string,
     txDetails?: Truffle.TransactionDetails
@@ -225,15 +216,6 @@ export interface ClaimsInstance extends Truffle.ContractInstance {
         _masterAddress: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
-    };
-
-    changePendingClaimStart: {
-      (txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
     };
 
     checkVoteClosing(

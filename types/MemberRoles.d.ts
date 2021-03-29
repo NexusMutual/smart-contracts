@@ -195,8 +195,6 @@ export interface MemberRolesInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<boolean>;
 
-  dAppToken(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
   getClaimPayoutAddress(
     _member: string,
     txDetails?: Truffle.TransactionDetails
@@ -390,7 +388,7 @@ export interface MemberRolesInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  switchMembershipForMember: {
+  switchMembershipOf: {
     (
       member: string,
       newAddress: string,
@@ -412,6 +410,8 @@ export interface MemberRolesInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
+
+  tc(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   tk(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
@@ -601,8 +601,6 @@ export interface MemberRolesInstance extends Truffle.ContractInstance {
       _roleId: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<boolean>;
-
-    dAppToken(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     getClaimPayoutAddress(
       _member: string,
@@ -798,7 +796,7 @@ export interface MemberRolesInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    switchMembershipForMember: {
+    switchMembershipOf: {
       (
         member: string,
         newAddress: string,
@@ -820,6 +818,8 @@ export interface MemberRolesInstance extends Truffle.ContractInstance {
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
+
+    tc(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     tk(txDetails?: Truffle.TransactionDetails): Promise<string>;
 

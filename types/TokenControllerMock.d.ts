@@ -15,23 +15,10 @@ export interface TokenControllerMockContract
 type AllEvents = never;
 
 export interface TokenControllerMockInstance extends Truffle.ContractInstance {
-  addToWhitelist: {
-    (_member: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(
-      _member: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      _member: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _member: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
+  addToWhitelist(
+    _member: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<void>;
 
   burnFrom: {
     (
@@ -196,23 +183,10 @@ export interface TokenControllerMockInstance extends Truffle.ContractInstance {
   ): Promise<BN>;
 
   methods: {
-    addToWhitelist: {
-      (_member: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(
-        _member: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        _member: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        _member: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
+    addToWhitelist(
+      _member: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
 
     burnFrom: {
       (

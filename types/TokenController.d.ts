@@ -235,24 +235,20 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
 
-  increaseLockAmount: {
+  increaseClaimAssessmentLock: {
     (
-      _reason: string,
       _amount: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      _reason: string,
       _amount: number | BN | string,
       txDetails?: Truffle.TransactionDetails
-    ): Promise<boolean>;
+    ): Promise<void>;
     sendTransaction(
-      _reason: string,
       _amount: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      _reason: string,
       _amount: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
@@ -652,21 +648,6 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
 
   totalSupply(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
-  unlock: {
-    (_of: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(_of: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
-    sendTransaction(
-      _of: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _of: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
   updateUintParameters: {
     (
       code: string,
@@ -686,6 +667,21 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
     estimateGas(
       code: string,
       value: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
+  withdrawClaimAssessmentTokens: {
+    (_of: string, txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(_of: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
+    sendTransaction(
+      _of: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      _of: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -902,24 +898,20 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
 
-    increaseLockAmount: {
+    increaseClaimAssessmentLock: {
       (
-        _reason: string,
         _amount: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        _reason: string,
         _amount: number | BN | string,
         txDetails?: Truffle.TransactionDetails
-      ): Promise<boolean>;
+      ): Promise<void>;
       sendTransaction(
-        _reason: string,
         _amount: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        _reason: string,
         _amount: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
@@ -1319,21 +1311,6 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
 
     totalSupply(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
-    unlock: {
-      (_of: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(_of: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
-      sendTransaction(
-        _of: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        _of: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
     updateUintParameters: {
       (
         code: string,
@@ -1353,6 +1330,21 @@ export interface TokenControllerInstance extends Truffle.ContractInstance {
       estimateGas(
         code: string,
         value: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
+    withdrawClaimAssessmentTokens: {
+      (_of: string, txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(_of: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
+      sendTransaction(
+        _of: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        _of: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };

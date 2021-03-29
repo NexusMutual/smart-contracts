@@ -98,33 +98,6 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  extendCNEPOff: {
-    (
-      _of: string,
-      _coverId: number | BN | string,
-      _lockTime: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      _of: string,
-      _coverId: number | BN | string,
-      _lockTime: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      _of: string,
-      _coverId: number | BN | string,
-      _lockTime: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _of: string,
-      _coverId: number | BN | string,
-      _lockTime: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
   getLockedCNAgainstCover(
     _coverId: number | BN | string,
     txDetails?: Truffle.TransactionDetails
@@ -303,33 +276,6 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
       ): Promise<string>;
       estimateGas(
         _masterAddress: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    extendCNEPOff: {
-      (
-        _of: string,
-        _coverId: number | BN | string,
-        _lockTime: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        _of: string,
-        _coverId: number | BN | string,
-        _lockTime: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        _of: string,
-        _coverId: number | BN | string,
-        _lockTime: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        _of: string,
-        _coverId: number | BN | string,
-        _lockTime: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };

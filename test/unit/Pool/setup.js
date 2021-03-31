@@ -15,7 +15,7 @@ async function setup () {
   const TokenController = artifacts.require('TokenControllerMock');
   const TokenMock = artifacts.require('NXMTokenMock');
   const Pool = artifacts.require('Pool');
-  const MCR = artifacts.require('MCR');
+  const MCR = artifacts.require('P1MockMCR');
   const ERC20Mock = artifacts.require('ERC20Mock');
   const TokenFunctions = artifacts.require('TokenFunctions');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
@@ -49,7 +49,7 @@ async function setup () {
   );
 
   const token = await TokenMock.new();
-  const mcr = await MCR.new(ZERO_ADDRESS);
+  const mcr = await MCR.new();
   const tokenController = await TokenController.new();
   const tokenFunctions = await TokenFunctions.new();
   await token.mint(accounts.defaultSender, ether('10000'));

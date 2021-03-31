@@ -268,8 +268,9 @@ contract Quotation is Iupgradable {
     require(ok, "Pool: transfer failed");
 
     // transfer assets - TODO: add length function to array to be able to read asset count
-    for (uint i = 0; i < 2; i++) {
-      IERC20 token = IERC20(pool.assets(i));
+    address[] memory assets = pool.getAssets();
+    for (uint i = 0; i < assets.length; i++) {
+      IERC20 token = IERC20(assets[i]);
       uint tokenBalance = token.balanceOf(address(this));
       token.safeTransfer(newAddress, tokenBalance);
     }

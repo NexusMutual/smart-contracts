@@ -159,7 +159,7 @@ describe.only('Token price functions', function () {
     );
   });
 
-  it('buyNXM token price reflects the latest MCR posting (lower MCReth -> higher price)', async function () {
+  it.only('buyNXM token price reflects the latest MCR posting (lower MCReth -> higher price)', async function () {
     const { p1: pool, mcr, pd } = this.contracts;
 
     const ETH = await pool.ETH();
@@ -181,7 +181,11 @@ describe.only('Token price functions', function () {
     });
 
     const latestMCReth = await mcr.getMCR();
-    const latestMCRRatio = calculateMCRRatio(currentPoolValue, latestMCReth);
+
+    console.log({
+      lastMCREther: lastMCREther.toString(),
+      latestMCReth: latestMCReth.toString(),
+    });
 
     const spotTokenPricePostMCRPosting = await pool.getTokenPrice(ETH);
     const expectedNXMOutPostMCRPosting = await pool.getNXMForEth(buyValue);

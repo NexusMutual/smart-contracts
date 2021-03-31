@@ -24,6 +24,7 @@ import "../token/NXMToken.sol";
 import "../token/TokenData.sol";
 import "hardhat/console.sol";
 import "./LegacyMCR.sol";
+import "hardhat/console.sol";
 
 contract MCR is Iupgradable {
   using SafeMath for uint;
@@ -48,6 +49,7 @@ contract MCR is Iupgradable {
   event MCRUpdated(
     uint mcr,
     uint mcrFloor,
+    uint desiredMCR,
     uint mcrETHWithGear,
     uint totalSumAssured,
     uint timestamp
@@ -69,6 +71,7 @@ contract MCR is Iupgradable {
     // fetch MCR parameters from previous contract
     mcrFloor = uint112(previousMCR.variableMincap());
     mcr = uint112(previousMCR.getLastMCREther());
+    desiredMCR = mcr;
     mcrFloorIncrementThreshold = uint24(previousMCR.dynamicMincapThresholdx100());
     maxMCRFloorIncrement = uint24(previousMCR.dynamicMincapIncrementx100());
 
@@ -150,14 +153,14 @@ contract MCR is Iupgradable {
     uint24 gearingFactor,
     uint24 minUpdateTime,
     uint112 mcrFloor ) = (mcrFloorIncrementThreshold, maxMCRFloorIncrement, maxMCRIncrement, gearingFactor, minUpdateTime, minUpdateTime);
-    (uint112 mcr,
-    uint112 desiredMCR,
+    (uint112 currentMCR,
+    /* uint112 desiredMCR */,
     uint32 lastUpdateTime
     ) = (mcr, desiredMCR, lastUpdateTime);
     if (lastUpdateTime + minUpdateTime > now) {
       return;
     }
-    if (pool.calculateMCRRatio(poolValueInEth, mcr) > mcrFloorIncrementThreshold) {
+    if (pool.calculateMCRRatio(poolValueInEth, currentMCR) > mcrFloorIncrementThreshold) {
       uint percentageAdjustment = (now - lastUpdateTime).mul(10000).div(1 days).mul(maxMCRFloorIncrement).div(10000);
       mcrFloor = uint112(uint(mcrFloor).mul(percentageAdjustment.add(10000)).div(10000));
     }
@@ -165,23 +168,30 @@ contract MCR is Iupgradable {
     uint totalSumAssured = getAllSumAssurance();
 
     uint mcrETHWithGear = totalSumAssured.mul(10000).div(gearingFactor);
+    console.log("old MCR", mcr);
+    console.log("old desiredMCR", desiredMCR);
+    mcr = uint112(getMCR());
+    desiredMCR = uint112(max(mcrETHWithGear, mcrFloor));
+    console.log("new MCR", mcr);
+    console.log("new desiredMCR", desiredMCR);
 
-    uint desiredMCREth = max(mcrETHWithGear, mcrFloor);
-    uint maxPercentageAdjustment = (now - lastUpdateTime).mul(10000).div(1 days).mul(maxMCRIncrement).div(10000);
-    maxPercentageAdjustment = min(maxPercentageAdjustment, 100);
-
-    if (desiredMCREth > mcr) {
-      mcr = uint112(min(uint(mcr).mul(maxPercentageAdjustment.add(10000)).div(10000), desiredMCREth));
-    }
-    if (desiredMCREth < mcr) {
-      mcr = uint112(max(uint(mcr).mul(10000 - maxPercentageAdjustment).div(10000), desiredMCREth));
-    }
     lastUpdateTime = uint32(now);
-    emit MCRUpdated(mcr, mcrFloor, mcrETHWithGear, totalSumAssured, lastUpdateTime);
+    emit MCRUpdated(mcr, mcrFloor, desiredMCR, mcrETHWithGear, totalSumAssured, lastUpdateTime);
   }
 
   function getMCR() public view returns (uint) {
-    return mcr;
+    (uint112 mcr,
+    uint112 desiredMCR,
+    uint32 lastUpdateTime
+    ) = (mcr, desiredMCR, lastUpdateTime);
+
+    uint percentageAdjustment = (now - lastUpdateTime).mul(10000).div(1 days).mul(maxMCRIncrement).div(10000);
+    percentageAdjustment = min(percentageAdjustment, 100);
+
+    if (desiredMCR > mcr) {
+      return min(uint(mcr).mul(percentageAdjustment.add(10000)).div(10000), desiredMCR);
+    }
+    return max(uint(mcr).mul(10000 - percentageAdjustment).div(10000), desiredMCR);
   }
 
   function min(uint x, uint y) pure internal returns (uint) {

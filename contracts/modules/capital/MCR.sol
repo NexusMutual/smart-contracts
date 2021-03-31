@@ -31,9 +31,8 @@ contract MCR is Iupgradable {
 
   Pool public pool;
   QuotationData public qd;
+  // sizeof(qd) + 96 = 160 + 96 = 256 (occupies entire slot)
   uint96 _unused;
-
-  uint256 constant UINT24_MAX = ~uint24(0);
 
   uint24 public mcrFloorIncrementThreshold = 13000;
   uint24 public maxMCRFloorIncrement = 100;
@@ -54,6 +53,8 @@ contract MCR is Iupgradable {
     uint totalSumAssured,
     uint timestamp
   );
+
+  uint256 constant UINT24_MAX = ~uint24(0);
 
   constructor (address masterAddress) public {
 

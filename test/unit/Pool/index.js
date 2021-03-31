@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot, reset } = require('../utils').evm;
 const setup = require('./setup');
 
-describe.only('Pool unit tests', function () {
+describe('Pool unit tests', function () {
 
   before(reset);
   before(setup);

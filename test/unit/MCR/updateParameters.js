@@ -13,7 +13,7 @@ const {
   generalPurpose: [generalPurpose],
 } = accounts;
 
-describe('updateUintParameters', function () {
+describe.skip('updateUintParameters', function () {
 
   it('should revert when called by non governance addresses', async function () {
     const { pool } = this;

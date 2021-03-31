@@ -150,6 +150,10 @@ contract MCR is Iupgradable {
     uint24 gearingFactor,
     uint24 minUpdateTime,
     uint112 mcrFloor ) = (mcrFloorIncrementThreshold, maxMCRFloorIncrement, maxMCRIncrement, gearingFactor, minUpdateTime, minUpdateTime);
+    (uint112 mcr,
+    uint112 desiredMCR,
+    uint32 lastUpdateTime
+    ) = (mcr, desiredMCR, lastUpdateTime);
     if (lastUpdateTime + minUpdateTime > now) {
       return;
     }

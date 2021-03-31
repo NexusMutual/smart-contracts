@@ -7,14 +7,13 @@ describe('getters', function () {
 
   describe('getEthForNXM', function () {
     it('returns value as calculated by calculateEthForNXM', async function () {
-      const { pool, poolData } = this;
+      const { pool, mcr } = this;
 
       const mcrEth = ether('160000');
       const totalAssetValue = percentageBN(mcrEth, 150);
       const tokenValue = ether('1');
 
-      const mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
-      await poolData.setLastMCR(mcrRatio, mcrEth, totalAssetValue, Date.now());
+      await mcr.setMCR(mcrEth);
       await pool.sendTransaction({ value: totalAssetValue });
 
       const expectedEthOut = await pool.calculateEthForNXM(tokenValue, totalAssetValue, mcrEth);
@@ -25,14 +24,13 @@ describe('getters', function () {
 
   describe('getNXMForEth', function () {
     it('returns value as calculated by calculateNXMForEth', async function () {
-      const { pool, poolData } = this;
+      const { pool, mcr } = this;
 
       const mcrEth = ether('160000');
       const totalAssetValue = percentageBN(mcrEth, 150);
       const buyValue = ether('10');
 
-      const mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
-      await poolData.setLastMCR(mcrRatio, mcrEth, totalAssetValue, Date.now());
+      await mcr.setMCR(mcrEth);
       await pool.sendTransaction({ value: totalAssetValue });
 
       const expectedTokenValue = await pool.calculateNXMForEth(
@@ -45,14 +43,13 @@ describe('getters', function () {
 
   describe('getWei', function () {
     it('returns value as calculated by calculateEthForNXM', async function () {
-      const { pool, poolData } = this;
+      const { pool, mcr } = this;
 
       const mcrEth = ether('160000');
       const totalAssetValue = percentageBN(mcrEth, 150);
       const tokenValue = ether('1');
 
-      const mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
-      await poolData.setLastMCR(mcrRatio, mcrEth, totalAssetValue, Date.now());
+      await mcr.setMCR(mcrEth);
       await pool.sendTransaction({ value: totalAssetValue });
 
       const expectedEthOut = await pool.calculateEthForNXM(tokenValue, totalAssetValue, mcrEth);

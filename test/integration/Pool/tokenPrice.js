@@ -108,7 +108,10 @@ describe.only('Token price functions', function () {
 
     const member = member1;
     const preBuyBalance = await token.balanceOf(member);
-    await pool.buyNXM(expectedTokensReceived, { from: member, value: buyValue });
+    const tx = await pool.buyNXM(expectedTokensReceived, { from: member, value: buyValue });
+    console.log({
+      gasUsed: tx.receipt.gasUsed,
+    });
 
     const postBuyBalance = await token.balanceOf(member);
     const tokensReceived = postBuyBalance.sub(preBuyBalance);
@@ -172,7 +175,10 @@ describe.only('Token price functions', function () {
     await time.increase(minUpdateTime.addn(1));
 
     // perform a buy with a negligible amount of ETH
-    await pool.buyNXM('0', { from: member1, value: '1' });
+    const tx = await pool.buyNXM('0', { from: member1, value: '1' });
+    console.log({
+      gasUsed: tx.receipt.gasUsed,
+    });
 
     const latestMCReth = await mcr.getMCR();
     const latestMCRRatio = calculateMCRRatio(currentPoolValue, latestMCReth);

@@ -31,11 +31,11 @@ describe('submitClaim', function () {
   });
 
   it('reverts for non-existant cover id', async function () {
-    const { cover } = this.contracts;
+    const { gateway } = this.contracts;
     const member = member1;
 
     await expectRevert(
-      cover.submitClaim(1, EMPTY_DATA, {
+      gateway.submitClaim(1, EMPTY_DATA, {
         from: member,
       }),
       'VM Exception while processing transaction: invalid opcode',
@@ -43,13 +43,13 @@ describe('submitClaim', function () {
   });
 
   it('reverts for member that does not own the cover', async function () {
-    const { cover } = this.contracts;
+    const { gateway } = this.contracts;
     const coverData = { ...ethCoverTemplate };
 
     await buyCover({ ...this.contracts, coverData, coverHolder: member1 });
 
     await expectRevert(
-      cover.submitClaim(1, EMPTY_DATA, {
+      gateway.submitClaim(1, EMPTY_DATA, {
         from: member2,
       }),
       'Claims: Not cover owner',
@@ -57,7 +57,7 @@ describe('submitClaim', function () {
   });
 
   it('reverts for expired cover', async function () {
-    const { qt, cover, tc } = this.contracts;
+    const { qt, gateway, tc } = this.contracts;
     const coverData = { ...ethCoverTemplate };
 
     await buyCover({ ...this.contracts, coverData, coverHolder: member1 });
@@ -68,7 +68,7 @@ describe('submitClaim', function () {
     await qt.expireCover(expectedCoverId);
 
     await expectRevert(
-      cover.submitClaim(expectedCoverId, EMPTY_DATA, {
+      gateway.submitClaim(expectedCoverId, EMPTY_DATA, {
         from: member1,
       }),
       'Claims: Grace period has expired',
@@ -76,12 +76,12 @@ describe('submitClaim', function () {
   });
 
   it('creates a valid claim for a cover', async function () {
-    const { cover, cd: claimsData } = this.contracts;
+    const { gateway, cd: claimsData } = this.contracts;
     const coverData = { ...ethCoverTemplate };
 
     await buyCover({ ...this.contracts, coverData, coverHolder: member1 });
     const expectedCoverId = 1;
-    const submitTx = await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
+    const submitTx = await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
 
     const expectedClaimId = 1;
     await expectEvent(submitTx, 'ClaimSubmitted', {
@@ -102,21 +102,21 @@ describe('submitClaim', function () {
   });
 
   it('reverts when another claim is in-progress', async function () {
-    const { cover } = this.contracts;
+    const { gateway } = this.contracts;
     const coverData = { ...ethCoverTemplate };
 
     await buyCover({ ...this.contracts, coverData, coverHolder: member1 });
     const expectedCoverId = 1;
-    await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
+    await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
 
     await expectRevert(
-      cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 }),
+      gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 }),
       'TokenController: Cover already has an open claim',
     );
   });
 
   it('creates 2 claims for cover and reverts on the 3rd attempt', async function () {
-    const { cover, cd: claimsData, cl } = this.contracts;
+    const { gateway } = this.contracts;
 
     await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
 
@@ -125,19 +125,19 @@ describe('submitClaim', function () {
     await buyCover({ ...this.contracts, coverData, coverHolder: coverHolder });
     const expectedCoverId = 1;
     {
-      await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder });
+      await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder });
       const claimId = 1;
       await voteOnClaim({...this.contracts, claimId, verdict: '-1' });
     }
 
     {
-      await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder });
+      await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder });
       const claimId = 2;
       await voteOnClaim({...this.contracts, claimId, verdict: '-1' });
     }
 
     await expectRevert(
-      cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder }),
+      gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder }),
       'TokenController: Max claim count exceeded'
     );
   });

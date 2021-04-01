@@ -50,7 +50,7 @@ async function setup () {
   const ProposalCategory = artifacts.require('ProposalCategory');
   const Governance = artifacts.require('Governance');
   const PooledStaking = artifacts.require('PooledStaking');
-  const Cover = artifacts.require('Cover');
+  const Gateway = artifacts.require('Gateway');
 
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
@@ -134,7 +134,7 @@ async function setup () {
   const ps = await deployProxy(DisposablePooledStaking);
   const pc = await deployProxy(DisposableProposalCategory);
   const gv = await deployProxy(DisposableGovernance);
-  const cover = await deployProxy(Cover);
+  const gateway = await deployProxy(Gateway);
 
   // non-proxy contracts and libraries
   const cp = await ClaimProofs.new(master.address);
@@ -171,7 +171,7 @@ async function setup () {
   const contractType = code => {
 
     const upgradable = ['CL', 'CR', 'MC', 'P1', 'QT', 'TF'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'CO'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW'];
 
     if (upgradable.includes(code)) {
       return 1;
@@ -184,8 +184,8 @@ async function setup () {
     return 0;
   };
 
-  const codes = ['QD', 'TD', 'CD', 'PD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'CO'];
-  const addresses = [qd, td, cd, pd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps, cover].map(c => c.address);
+  const codes = ['QD', 'TD', 'CD', 'PD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW'];
+  const addresses = [qd, td, cd, pd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps, gateway].map(c => c.address);
 
   await master.initialize(
     owner,
@@ -268,7 +268,7 @@ async function setup () {
   await transferProxyOwnership(ps.address, master.address);
   await transferProxyOwnership(pc.address, master.address);
   await transferProxyOwnership(gv.address, master.address);
-  await transferProxyOwnership(cover.address, master.address);
+  await transferProxyOwnership(gateway.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
 
   const POOL_ETHER = ether('90000');
@@ -309,7 +309,7 @@ async function setup () {
     pc: await ProposalCategory.at(pc.address),
     mr: await MemberRoles.at(mr.address),
     ps: await PooledStaking.at(ps.address),
-    cover,
+    gateway,
   };
 
   this.contracts = {

@@ -1,20 +1,17 @@
 const { accounts, web3, artifacts } = require('hardhat');
-const { assert } = require('chai');
-const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
-const { hex } = require('../utils').helpers;
-const { buyCover, ethCoverTemplate, daiCoverTemplate, getBuyCoverDataParameter, voteOnClaim } = require('./utils');
 const { ether, time, expectRevert } = require('@openzeppelin/test-helpers');
-const { Assets: { ETH } } = require('../utils').constants;
-const { toBN } = web3.utils;
 
-const Cover = artifacts.require('Cover');
+const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
+const { buyCover, ethCoverTemplate, daiCoverTemplate, getBuyCoverDataParameter, voteOnClaim } = require('./utils');
+const { Assets: { ETH } } = require('../utils').constants;
+
 const EtherRejecter = artifacts.require('EtherRejecter');
 
 const ClaimStatus = {
   IN_PROGRESS: '0',
   ACCEPTED: '1',
-  REJECTED: '2'
-}
+  REJECTED: '2',
+};
 
 const [, member1, member2] = accounts;
 
@@ -29,9 +26,9 @@ describe('getters', function () {
 
   describe('DAI', function () {
     it('stores DAI address correctly', async function () {
-      const { cover, dai } = this.contracts;
+      const { gateway, dai } = this.contracts;
 
-      const storedDaiAddress = await cover.DAI();
+      const storedDaiAddress = await gateway.DAI();
       assert.equal(storedDaiAddress, dai.address);
     });
   });
@@ -39,13 +36,13 @@ describe('getters', function () {
   describe('getCoverPrice', function () {
 
     it('retrieves the signed quote price', async function () {
-      const { cover } = this.contracts;
+      const { gateway } = this.contracts;
       const coverData = { ...ethCoverTemplate };
 
       // encoded data and signature uses unit price.
       const data = await getBuyCoverDataParameter({ ...this.contracts, coverData });
 
-      const retrievedPrice = await cover.getCoverPrice(
+      const retrievedPrice = await gateway.getCoverPrice(
         coverData.contractAddress,
         coverData.asset,
         coverData.amount,
@@ -61,67 +58,67 @@ describe('getters', function () {
   describe('getPayoutOutcome', function () {
 
     it('returns the payout outcome for a cover with a newly opened claim', async function () {
-      const { cover } = this.contracts;
+      const { gateway } = this.contracts;
       const member = member1;
       const coverData = { ...ethCoverTemplate };
 
       await buyCover({ ...this.contracts, coverData, coverHolder: member });
       const expectedCoverId = 1;
-      await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
+      await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
       const expectedClaimId = 1;
 
-      const { status, amountPaid, coverAsset } = await cover.getPayoutOutcome(expectedClaimId);
+      const { status, amountPaid, coverAsset } = await gateway.getPayoutOutcome(expectedClaimId);
       assert.equal(status.toString(), ClaimStatus.IN_PROGRESS);
       assert.equal(amountPaid.toString(), '0');
       assert.equal(coverAsset, ETH);
     });
 
     it('returns the payout outcome for an expired claim', async function () {
-      const { cover } = this.contracts;
+      const { gateway } = this.contracts;
       const member = member1;
       const coverData = { ...ethCoverTemplate };
 
       await buyCover({ ...this.contracts, coverData, coverHolder: member });
       const expectedCoverId = 1;
-      await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
+      await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
       const expectedClaimId = 1;
 
-      const { status, amountPaid, coverAsset } = await cover.getPayoutOutcome(expectedClaimId);
+      const { status, amountPaid, coverAsset } = await gateway.getPayoutOutcome(expectedClaimId);
       assert.equal(status.toString(), ClaimStatus.IN_PROGRESS);
       assert.equal(amountPaid.toString(), '0');
       assert.equal(coverAsset, ETH);
     });
 
     it('returns the payout outcome for an accepted ETH claim', async function () {
-      const { cover } = this.contracts;
+      const { gateway } = this.contracts;
       const member = member1;
       const coverData = { ...ethCoverTemplate };
 
       await buyCover({ ...this.contracts, coverData, coverHolder: member });
       const expectedCoverId = 1;
-      await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
+      await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
       const expectedClaimId = 1;
       await voteOnClaim({ ...this.contracts, claimId: expectedClaimId, verdict: '1', voter: member2 });
 
-      const { status, amountPaid, coverAsset } = await cover.getPayoutOutcome(expectedClaimId);
+      const { status, amountPaid, coverAsset } = await gateway.getPayoutOutcome(expectedClaimId);
       assert.equal(status.toString(), ClaimStatus.ACCEPTED);
       assert.equal(amountPaid.toString(), coverData.amount.toString());
       assert.equal(coverAsset, ETH);
     });
 
     it('returns the payout outcome for an accepted ETH claim and an accepted DAI claim', async function () {
-      const { cover, dai, ps } = this.contracts;
+      const { gateway, dai, ps } = this.contracts;
       const member = member1;
       const coverData = { ...ethCoverTemplate };
 
       {
         await buyCover({ ...this.contracts, coverData, coverHolder: member });
         const expectedCoverId = 1;
-        await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
+        await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
         const expectedClaimId = 1;
         await voteOnClaim({ ...this.contracts, claimId: expectedClaimId, verdict: '1', voter: member2 });
 
-        const {status, amountPaid, coverAsset} = await cover.getPayoutOutcome(expectedClaimId);
+        const { status, amountPaid, coverAsset } = await gateway.getPayoutOutcome(expectedClaimId);
         assert.equal(status.toString(), ClaimStatus.ACCEPTED);
         assert.equal(amountPaid.toString(), coverData.amount.toString());
         assert.equal(coverAsset, ETH);
@@ -134,11 +131,11 @@ describe('getters', function () {
         const coverData = { ...daiCoverTemplate, asset: dai.address };
         await buyCover({ ...this.contracts, coverData, coverHolder: member });
         const expectedCoverId = 2;
-        await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
+        await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
         const expectedClaimId = 2;
         await voteOnClaim({ ...this.contracts, claimId: expectedClaimId, verdict: '1', voter: member2 });
 
-        const { status, amountPaid, coverAsset } = await cover.getPayoutOutcome(expectedClaimId);
+        const { status, amountPaid, coverAsset } = await gateway.getPayoutOutcome(expectedClaimId);
         assert.equal(status.toString(), ClaimStatus.ACCEPTED);
         assert.equal(amountPaid.toString(), coverData.amount.toString());
         assert.equal(coverAsset, dai.address);
@@ -146,30 +143,30 @@ describe('getters', function () {
     });
 
     it('returns the payout outcome for a rejected claim', async function () {
-      const { cover } = this.contracts;
+      const { gateway } = this.contracts;
       const member = member1;
       const coverData = { ...ethCoverTemplate };
 
       await buyCover({ ...this.contracts, coverData, coverHolder: member });
       const expectedCoverId = 1;
-      await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
+      await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
       const expectedClaimId = 1;
       await voteOnClaim({ ...this.contracts, claimId: expectedClaimId, verdict: '-1', voter: member2 });
 
-      const { status, amountPaid, coverAsset } = await cover.getPayoutOutcome(expectedClaimId);
+      const { status, amountPaid, coverAsset } = await gateway.getPayoutOutcome(expectedClaimId);
       assert.equal(status, ClaimStatus.REJECTED);
       assert.equal(amountPaid.toString(), '0');
       assert.equal(coverAsset, ETH);
     });
 
     it('returns claim status IN_PROGRESS if voting has been accepted but claim has not been closed', async function () {
-      const { cover, cl, cd } = this.contracts;
+      const { gateway, cl, cd } = this.contracts;
       const member = member1;
       const coverData = { ...ethCoverTemplate };
 
       await buyCover({ ...this.contracts, coverData, coverHolder: member });
       const expectedCoverId = 1;
-      await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
+      await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
       const claimId = 1;
 
       const verdict = '1';
@@ -180,31 +177,31 @@ describe('getters', function () {
       const voteStatusBefore = await cl.checkVoteClosing(claimId);
       assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
 
-      const { status, amountPaid, coverAsset } = await cover.getPayoutOutcome(claimId);
+      const { status, amountPaid, coverAsset } = await gateway.getPayoutOutcome(claimId);
       assert.equal(status, ClaimStatus.IN_PROGRESS);
       assert.equal(amountPaid.toString(), '0');
       assert.equal(coverAsset, ETH);
     });
 
     it('reverts if cover does not exist', async function () {
-      const { cover } = this.contracts;
-      const coverId = 1;
+      const { gateway } = this.contracts;
       const claimId = 1;
-      await expectRevert(cover.getPayoutOutcome(claimId), 'VM Exception while processing transaction: invalid opcode');
+      await expectRevert(gateway.getPayoutOutcome(claimId), 'VM Exception while processing transaction: invalid opcode');
     });
 
     it('reverts if claim does not exist', async function () {
-      const { cover, cl, cd } = this.contracts;
+      const { gateway } = this.contracts;
       const member = member1;
       const coverData = { ...ethCoverTemplate };
       await buyCover({ ...this.contracts, coverData, coverHolder: member });
-      const coverId = 1;
       const claimId = 1;
-      await expectRevert(cover.getPayoutOutcome(claimId), 'VM Exception while processing transaction: invalid opcode');
+      await expectRevert(gateway.getPayoutOutcome(claimId), 'VM Exception while processing transaction: invalid opcode');
+
+      await expectRevert.unspecified(gateway.getPayoutOutcome(claimId));
     });
 
     it('returns claim status ACCEPTED with no payout if all payout attempts failed', async function () {
-      const { cd, cl, qd, mr, master, dai, cover } = this.contracts;
+      const { cd, cl, qd, mr, master, gateway } = this.contracts;
       const coverData = { ...ethCoverTemplate };
       const coverHolder = member1;
 
@@ -232,7 +229,7 @@ describe('getters', function () {
       const { statno: finalClaimStatus } = await cd.getClaimStatusNumber(claimId);
       assert.strictEqual(finalClaimStatus.toNumber(), 13, 'claim status should be 13 (Claim Accepted No Payout)');
 
-      const { status, amountPaid, coverAsset } = await cover.getPayoutOutcome(claimId);
+      const { status, amountPaid, coverAsset } = await gateway.getPayoutOutcome(claimId);
       assert.equal(status, ClaimStatus.ACCEPTED);
       assert.equal(amountPaid.toString(), '0');
       assert.equal(coverAsset, ETH);
@@ -241,14 +238,14 @@ describe('getters', function () {
 
   describe('getCover', async function () {
     it('returns cover data', async function () {
-      const { cover } = this.contracts;
+      const { gateway } = this.contracts;
       const member = member1;
       const coverData = { ...ethCoverTemplate };
 
       await buyCover({ ...this.contracts, coverData, coverHolder: member });
       const expectedCoverId = 1;
 
-      const stored = await cover.getCover(expectedCoverId);
+      const stored = await gateway.getCover(expectedCoverId);
       assert.equal(stored.sumAssured.toString(), coverData.amount.toString());
       assert.equal(stored.coverPeriod.toString(), coverData.period);
       assert.equal(stored.contractAddress, coverData.contractAddress);
@@ -263,21 +260,21 @@ describe('getters', function () {
 
     it('returns cover data', async function () {
 
-      const { cover, cl } = this.contracts;
+      const { gateway, cl } = this.contracts;
       const member = member1;
-      const coverData = {...ethCoverTemplate};
+      const coverData = { ...ethCoverTemplate };
 
-      await buyCover({...this.contracts, coverData, coverHolder: member});
+      await buyCover({ ...this.contracts, coverData, coverHolder: member });
       await buyCover({
         ...this.contracts,
-        coverData: {...coverData, generationTime: ethCoverTemplate.generationTime + 1},
-        coverHolder: member
+        coverData: { ...coverData, generationTime: ethCoverTemplate.generationTime + 1 },
+        coverHolder: member,
       });
 
       const expectedCoverId = 2;
       await cl.submitClaim(expectedCoverId, { from: member });
       const expectedClaimId = 1;
-      const coverId = await cover.getClaimCoverId(expectedClaimId);
+      const coverId = await gateway.getClaimCoverId(expectedClaimId);
       assert.equal(coverId.toString(), expectedCoverId.toString());
     });
 

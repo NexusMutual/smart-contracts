@@ -22,7 +22,7 @@ describe('INTEGRATION TESTS', function () {
   require('./MCR');
   require('./MemberRoles');
   require('./Claims');
-  require('./Cover');
+  require('./Gateway');
   require('./TokenController');
 
 });

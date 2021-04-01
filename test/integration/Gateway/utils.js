@@ -48,14 +48,14 @@ async function getBuyCoverDataParameter ({ qt, coverData }) {
   );
 }
 
-async function buyCover ({ coverData, cover, coverHolder, qt, dai }) {
+async function buyCover ({ coverData, gateway, coverHolder, qt, dai }) {
 
   const price = toBN(coverData.price);
   // encoded data and signature uses unit price.
   const data = await getBuyCoverDataParameter({ qt, coverData });
 
   if (coverData.asset === ETH) {
-    return cover.buyCover(
+    return gateway.buyCover(
       coverData.contractAddress,
       coverData.asset,
       coverData.amount,
@@ -66,10 +66,10 @@ async function buyCover ({ coverData, cover, coverHolder, qt, dai }) {
         value: price,
       });
   } else if (coverData.asset === dai.address) {
-    await dai.approve(cover.address, price, {
+    await dai.approve(gateway.address, price, {
       from: coverHolder,
     });
-    return cover.buyCover(
+    return gateway.buyCover(
       coverData.contractAddress,
       coverData.asset,
       coverData.amount,

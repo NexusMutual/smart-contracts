@@ -1,14 +1,9 @@
 const { accounts, web3 } = require('hardhat');
-const { expectRevert, ether, time, expectEvent } = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
-const { toBN } = web3.utils;
-const { coverToCoverDetailsArray } = require('../utils/buyCover');
-const { getQuoteSignature } = require('../utils/getQuote');
+const { expectRevert, ether } = require('@openzeppelin/test-helpers');
 const { enrollMember } = require('../utils/enroll');
-const { hex } = require('../utils').helpers;
-const { buyCover, ethCoverTemplate, daiCoverTemplate, getBuyCoverDataParameter } = require('./utils');
+const { buyCover, ethCoverTemplate } = require('./utils');
 
-const [, member1, nonMember1] = accounts;
+const [, member1] = accounts;
 
 describe('executeCoverAction', function () {
 
@@ -17,7 +12,7 @@ describe('executeCoverAction', function () {
   });
 
   it('reverts on executeCoverAction - no action supported at this time', async function () {
-    const { cover } = this.contracts;
+    const { gateway } = this.contracts;
 
     const coverData = { ...ethCoverTemplate };
     await buyCover({ ...this.contracts, coverData, coverHolder: member1 });
@@ -27,10 +22,10 @@ describe('executeCoverAction', function () {
     const action = 0;
     const executeData = web3.eth.abi.encodeParameters(['uint'], [ethAmount.toString()]);
     await expectRevert(
-      cover.executeCoverAction(coverId, action, executeData, {
+      gateway.executeCoverAction(coverId, action, executeData, {
         value: ethAmount,
       }),
-      'Unsupported action'
+      'Unsupported action',
     );
   });
 });

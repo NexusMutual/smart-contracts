@@ -159,7 +159,7 @@ describe('buyCover', function () {
   });
 
   it('reverts if msg.value does not match cover premium', async function () {
-    const { cover, qt } = this.contracts;
+    const { gateway, qt } = this.contracts;
 
     const coverHolder = member1;
     const coverData = { ...ethCoverTemplate, amount: ether('10') };
@@ -167,7 +167,7 @@ describe('buyCover', function () {
 
     const data = await getBuyCoverDataParameter({ qt, coverData });
     await expectRevert(
-      cover.buyCover(
+      gateway.buyCover(
         coverData.contractAddress,
         coverData.asset,
         coverData.amount,
@@ -182,33 +182,31 @@ describe('buyCover', function () {
   });
 
   it('reverts if approved DAI amount is not sufficient for premium', async function () {
-    const { cover, qt, dai } = this.contracts;
+    const { gateway, qt, dai } = this.contracts;
 
     const coverHolder = member1;
     const coverData = { ...daiCoverTemplate };
     const price = toBN(coverData.price);
 
-    await dai.approve(cover.address, price.subn(1), {
+    await dai.approve(gateway.address, price.subn(1), {
       from: coverHolder,
     });
 
     const data = await getBuyCoverDataParameter({ qt, coverData });
     await expectRevert(
-      cover.buyCover(
+      gateway.buyCover(
         coverData.contractAddress,
         dai.address,
         coverData.amount,
         coverData.period,
         coverData.type,
-        data, {
-          from: coverHolder
-        }),
+        data, { from: coverHolder }),
       'VM Exception while processing transaction: revert SafeERC20: low-level call failed',
     );
   });
 
   it('revers if ETH amount is not whole unit', async function () {
-    const { cover, qt } = this.contracts;
+    const { gateway, qt } = this.contracts;
 
     const coverHolder = member1;
     const coverData = { ...ethCoverTemplate, amount: ether('10').addn(1) };
@@ -216,7 +214,7 @@ describe('buyCover', function () {
 
     const data = await getBuyCoverDataParameter({ qt, coverData });
     await expectRevert(
-      cover.buyCover(
+      gateway.buyCover(
         coverData.contractAddress,
         coverData.asset,
         coverData.amount,
@@ -229,7 +227,6 @@ describe('buyCover', function () {
       'Cover: Only whole unit sumAssured supported',
     );
   });
-
 
   it('reverts if smart contract address is the 0 address', async function () {
     const cover = { ...ethCoverTemplate, contractAddress: '0x0000000000000000000000000000000000000000' };
@@ -262,7 +259,7 @@ describe('buyCover', function () {
   });
 
   it('reverts if signed quote does not match quote parameters', async function () {
-    const { qt, cover } = this.contracts;
+    const { qt, gateway } = this.contracts;
     const coverData = { ...ethCoverTemplate };
     const member = member1;
 
@@ -281,7 +278,7 @@ describe('buyCover', function () {
       [price, coverData.priceNXM, coverData.expireTime, coverData.generationTime, v, r, s],
     );
 
-    await expectRevert.unspecified(cover.buyCover(
+    await expectRevert.unspecified(gateway.buyCover(
       coverData.contractAddress,
       coverData.asset,
       coverData.amount,

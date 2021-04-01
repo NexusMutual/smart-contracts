@@ -8,6 +8,8 @@ const { hex } = require('../utils').helpers;
 const { BN } = web3.utils;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
+const MAX_PERCENTAGE_ADJUSTMENT = new BN(100);
+
 async function initMCR ({
   mcrValue,
   mcrFloor,
@@ -44,4 +46,5 @@ async function initMCR ({
 
 module.exports = {
   initMCR,
+  MAX_PERCENTAGE_ADJUSTMENT,
 };

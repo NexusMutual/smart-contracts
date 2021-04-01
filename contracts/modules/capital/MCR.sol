@@ -55,6 +55,7 @@ contract MCR is Iupgradable {
   );
 
   uint256 constant UINT24_MAX = ~uint24(0);
+  uint256 constant MAX_PERCENTAGE_ADJUSTMENT = 100;
 
   constructor (address masterAddress) public {
 
@@ -187,7 +188,7 @@ contract MCR is Iupgradable {
     ) = (mcr, desiredMCR, lastUpdateTime);
 
     uint percentageAdjustment = (now - lastUpdateTime).mul(10000).div(1 days).mul(maxMCRIncrement).div(10000);
-    percentageAdjustment = min(percentageAdjustment, 100);
+    percentageAdjustment = min(percentageAdjustment, MAX_PERCENTAGE_ADJUSTMENT);
 
     if (desiredMCR > mcr) {
       return min(uint(mcr).mul(percentageAdjustment.add(10000)).div(10000), desiredMCR);

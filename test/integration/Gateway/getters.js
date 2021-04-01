@@ -195,9 +195,7 @@ describe('getters', function () {
       const coverData = { ...ethCoverTemplate };
       await buyCover({ ...this.contracts, coverData, coverHolder: member });
       const claimId = 1;
-      await expectRevert(gateway.getPayoutOutcome(claimId), 'VM Exception while processing transaction: invalid opcode');
-
-      await expectRevert.unspecified(gateway.getPayoutOutcome(claimId));
+      await expectRevert.assertion(gateway.getPayoutOutcome(claimId));
     });
 
     it('returns claim status ACCEPTED with no payout if all payout attempts failed', async function () {

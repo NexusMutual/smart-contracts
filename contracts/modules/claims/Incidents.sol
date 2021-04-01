@@ -18,7 +18,10 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../abstract/MasterAware.sol";
+import "../../interfaces/IPooledStaking.sol";
 import "../capital/Pool.sol";
+import "../claims/ClaimsData.sol";
+import "../claims/ClaimsReward.sol";
 import "../cover/QuotationData.sol";
 import "../governance/MemberRoles.sol";
 import "../token/TokenController.sol";
@@ -34,26 +37,19 @@ contract Incidents is MasterAware {
     address coveredToken;
   }
 
-  uint public incidentCount;
-
-  // incident id => incident details
-  mapping(uint => Incident) public incidents;
+  Incident[] public incidents;
 
   // covered token => peg token
   mapping(address => address) public underlyingTokens;
 
   // claim id => payout
-  mapping(address => uint) public claimPayouts;
+  mapping(uint => uint) public claimPayouts;
 
-  QuotationData public qd;
-  TokenController public tc;
-  Pool public po;
-  MemberRoles public mr;
+  enum ID {CD, CR, QD, TC, MR, PO, PS}
+  mapping(uint => address payable) contracts;
 
-  modifier onlyQuoteEngine {
-    address quoteEngine = qd.getAuthQuoteEngine();
-    require(msg.sender == quoteEngine);
-    _;
+  function instance(ID id) internal view returns (address payable) {
+    return contracts[uint(id)];
   }
 
   function setCoveredToken(
@@ -72,18 +68,16 @@ contract Incidents is MasterAware {
 
     require(priceBefore > priceAfter, 'No depeg');
 
-    address peggedTo = underlyingTokens[coveredToken];
-    require(peggedTo != address(0), 'Unsupported token');
+    address underlying = underlyingTokens[coveredToken];
+    require(underlying != address(0), 'Unsupported token');
 
-    uint count = incidentCount;
-    incidentCount = count.add(1);
-
-    incidents[count] = Incident(
-      incidentDate,
-      priceBefore,
-      priceAfter,
+    Incident memory incident = Incident(
+      uint32(incidentDate),
+      uint112(priceBefore),
+      uint112(priceAfter),
       coveredToken
     );
+    incidents.push(incident);
 
     // TODO: emit event
   }
@@ -94,55 +88,91 @@ contract Incidents is MasterAware {
     uint tokenAmount
   ) external returns (uint claimId, uint payout) {
 
-    (
-    /* id */, address coverOwner, address coveredToken,
-    /* currency */, uint sumAssured, /* premiumNXM */
-    ) = qd.getCoverDetailsByCoverID1(coverId);
-
-    uint coverPeriod = qd.getCoverPeriod(coverId).mul(1 days);
-    uint coverExpirationDate = qd.getValidityOfCover(coverId);
-    uint coverStartDate = coverExpirationDate.sub(coverPeriod);
-
-    // assumes 18 decimals
-    uint coverAmount = sumAssured.mul(1e18);
-
-    address payoutAddress = mr.getClaimPayoutAddress(coverOwner);
-
-    // check ownership
-    require(msg.sender = coverOwner, 'Not cover owner');
-
-    // check validity
     Incident memory incident = incidents[incidentId];
-    require(coverStartDate >= incident.date, 'Cover start date before the incident');
-    require(coverExpirationDate <= incident.date, 'Cover end date after the incident');
+    address coverOwner;
+    address coveredToken;
+    uint sumAssured;
 
-    // TODO: add the opposite check in Claims.sol
-    // check covered protocol
-    require(coveredToken == incident.coveredToken, 'Covered token does not match incident token');
+    {
+      QuotationData quotationData = QuotationData(instance(ID.QD));
+      bytes4 currency;
 
-    uint maxAmount = coverAmount.div(incident.priceBefore);
-    require(tokenAmount <= maxAmount, 'Amount exceeds sum assured');
+      (
+      /* id */, coverOwner, coveredToken,
+      currency, sumAssured, /* premiumNXM */
+      ) = quotationData.getCoverDetailsByCoverID1(coverId);
 
-    // min payout = 20%
-    uint minAmount = maxAmount.mul(20).div(100);
-    require(tokenAmount >= minAmount, 'Amount is less than 20% of sum assured');
+      // check ownership
+      require(msg.sender == coverOwner, 'Not cover owner');
 
-    // mark cover as having a successful claim
-    tc.markCoverClaimOpen(coverId);
-    tc.markCoverClaimClosed(coverId, true);
+      {
+        // check validity
+        uint coverPeriod = uint(quotationData.getCoverPeriod(coverId)).mul(1 days);
+        uint coverExpirationDate = quotationData.getValidityOfCover(coverId);
+        uint coverStartDate = coverExpirationDate.sub(coverPeriod);
+        require(coverStartDate >= incident.date, 'Cover start date before the incident');
+        require(coverExpirationDate <= incident.date, 'Cover end date after the incident');
+      }
 
-    // tokenAmount / maxAmount * coverAmount
-    payout = tokenAmount.mul(coverAmount).div(maxAmount);
-    address peggedTo = underlyingTokens[coveredToken];
+      {
+        // TODO: add the opposite check in Claims.sol
+        // check covered protocol and cover currency
+        ClaimsReward claimsReward = ClaimsReward(instance(ID.CR));
+        address currencyAssetAddress = claimsReward.getCurrencyAssetAddress(currency);
+        require(coveredToken == currencyAssetAddress, 'Cover asset does not match covered token underlying asset');
+        require(coveredToken == incident.coveredToken, 'Covered token does not match incident token');
+      }
 
-    // TODO: create claim in CD?
-    claimId = 1;
-    claimPayouts[claimId] = payout;
+      // decrese total sum assured
+      quotationData.subFromTotalSumAssured(currency, sumAssured);
+      quotationData.subFromTotalSumAssuredSC(coveredToken, currency, sumAssured);
+    }
 
-    IERC20(coveredToken).safeTransferFrom(msg.sender, address(this), amount);
-    po.sendClaimPayout(peggedTo, payoutAddress, payout);
+    {
+      // min/max checks. sumAssured assumes 18 decimals
+      uint coverAmount = sumAssured.mul(1e18);
+      uint maxAmount = coverAmount.div(incident.priceBefore);
+      uint minAmount = maxAmount.mul(20).div(100);
 
-    // TODO: emit event
+      require(tokenAmount <= maxAmount, 'Amount exceeds sum assured');
+      require(tokenAmount >= minAmount, 'Amount is less than 20% of sum assured');
+
+      // tokenAmount / maxAmount * coverAmount
+      payout = tokenAmount.mul(coverAmount).div(maxAmount);
+    }
+
+    {
+      // mark cover as having a successful claim
+      TokenController tokenController = TokenController(instance(ID.TC));
+      tokenController.markCoverClaimOpen(coverId);
+      tokenController.markCoverClaimClosed(coverId, true);
+
+      // create the claim
+      ClaimsData claimsData = ClaimsData(instance(ID.CD));
+      claimId = claimsData.actualClaimLength();
+      claimsData.addClaim(claimId, coverId, coverOwner, now);
+      claimsData.callClaimEvent(coverId, coverOwner, claimId, now);
+      claimPayouts[claimId] = payout;
+    }
+
+    {
+      Pool pool = Pool(instance(ID.PO));
+      IPooledStaking pooledStaking = IPooledStaking(instance(ID.PS));
+      MemberRoles memberRoles = MemberRoles(instance(ID.MR));
+
+      address underlying = underlyingTokens[coveredToken];
+
+      // send the payout
+      address payable coverOwnerPayable = address(uint160(coverOwner));
+      address payable payoutAddress = memberRoles.getClaimPayoutAddress(coverOwnerPayable);
+      IERC20(coveredToken).safeTransferFrom(msg.sender, address(this), tokenAmount);
+      bool success = pool.sendClaimPayout(underlying, payoutAddress, payout);
+      require(success, 'Incidents: Payout failed');
+
+      // burn
+      uint burnAmount = pool.getTokenPrice(underlying).mul(payout);
+      pooledStaking.pushBurn(coveredToken, burnAmount);
+    }
   }
 
   function withdrawAsset(
@@ -156,10 +186,13 @@ contract Incidents is MasterAware {
 
   function changeDependentContractAddress() external {
     INXMMaster master = INXMMaster(master);
-    qd = QuotationData(master.getLatestAddress('QD'));
-    tc = TokenController(master.getLatestAddress('TC'));
-    po = Pool(master.getLatestAddress('P1'));
-    mr = MemberRoles(master.getLatestAddress('MR'));
+    contracts[uint(ID.CD)] = master.getLatestAddress('CD');
+    contracts[uint(ID.CR)] = master.getLatestAddress('CR');
+    contracts[uint(ID.QD)] = master.getLatestAddress('QD');
+    contracts[uint(ID.TC)] = master.getLatestAddress('TC');
+    contracts[uint(ID.MR)] = master.getLatestAddress('MR');
+    contracts[uint(ID.PO)] = master.getLatestAddress('PO');
+    contracts[uint(ID.PS)] = master.getLatestAddress('PS');
   }
 
 }

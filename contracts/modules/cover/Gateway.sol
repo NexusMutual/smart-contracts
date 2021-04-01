@@ -28,7 +28,7 @@ import "../token/TokenFunctions.sol";
 import "./QuotationData.sol";
 import "../claims/ClaimsReward.sol";
 
-contract Cover is MasterAware {
+contract Gateway is MasterAware {
   using SafeMath for uint;
   using SafeERC20 for IERC20;
 

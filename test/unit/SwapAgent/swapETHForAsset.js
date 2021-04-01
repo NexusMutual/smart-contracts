@@ -235,7 +235,7 @@ describe('swapETHForAsset', function () {
     const windowStart = await nextWindowStartTime();
 
     const assetMinAmount = ether('100');
-    await tokenA.mint(assetMinAmount);
+    await tokenA.mint(owner, assetMinAmount);
     await tokenA.transfer(pool.address, assetMinAmount);
 
     await pool.setAssetDetails(

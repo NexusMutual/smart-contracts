@@ -78,7 +78,7 @@ contract MCR is Iupgradable {
 
   function initialize() internal {
 
-    if (lastUpdateTime > 0 || address(previousMCR) == address(0)) {
+    if (address(previousMCR) == address(0)) {
       // already initialized or no previousMCR available
       return;
     }
@@ -92,6 +92,7 @@ contract MCR is Iupgradable {
 
     // set last updated time to now
     lastUpdateTime = uint32(now);
+    previousMCR = LegacyMCR(address(0));
   }
 
   /**
@@ -149,6 +150,11 @@ contract MCR is Iupgradable {
     }
   }
 
+  /*
+  * @dev trigger an MCR update. Current virtual MCR value is synced to storage, mcrFloor is potentially updated
+  * and a new desiredMCR value to move towards is set.
+  *
+  */
   function updateMCR() public {
     _updateMCR(pool.getPoolValueInEth(), false);
   }
@@ -173,6 +179,8 @@ contract MCR is Iupgradable {
       return;
     }
     if (pool.calculateMCRRatio(poolValueInEth, currentMCR) >= mcrFloorIncrementThreshold) {
+        // MCR floor updates by up to maxMCRFloorIncrement percentage per day whenever the MCR ratio exceeds 1.3
+        // MCR floor is monotonically increasing.
       uint percentageAdjustment = (now - lastUpdateTime).mul(10000).div(1 days).mul(maxMCRFloorIncrement).div(10000);
       mcrFloor = uint112(uint(currentMCRFloor).mul(percentageAdjustment.add(10000)).div(10000));
     }
@@ -180,12 +188,28 @@ contract MCR is Iupgradable {
     uint totalSumAssured = getAllSumAssurance();
 
     uint mcrWithGear = totalSumAssured.mul(10000).div(gearingFactor);
+    // sync the current virtual MCR value to storage
     mcr = uint112(getMCR());
+
+    // the desiredMCR cannot fall below the mcrFloor but may have a higher or lower target value based
+    // on the changes in the totalSumAssured in the system.
     desiredMCR = uint112(max(mcrWithGear, mcrFloor));
     lastUpdateTime = uint32(now);
+
     emit MCRUpdated(mcr, mcrFloor, desiredMCR, mcrWithGear, totalSumAssured, lastUpdateTime);
   }
 
+  /**
+   * @dev Calculates the current virtual MCR value. The virtual MCR value moves towards the desiredMCR value away
+   * from the stored mcr value at constant velocity based on how much time passed from the lastUpdateTime.
+   * The total change in virtual MCR cannot exceed 1% of stored mcr.
+   *
+   * This approach allows for the MCR to change smoothly across time without sudden jumps between values, while
+   * always progressing towards the desiredMCR goal. The desiredMCR can change subject to the call of _updateMCR
+   * so the virtual MCR value may change direction and start decreasing instead of increasing or vice-versa.
+   *
+   * @return mcr
+   */
   function getMCR() public view returns (uint) {
     (uint112 mcr,
     uint112 desiredMCR,
@@ -198,6 +222,8 @@ contract MCR is Iupgradable {
     if (desiredMCR > mcr) {
       return min(uint(mcr).mul(percentageAdjustment.add(10000)).div(10000), desiredMCR);
     }
+
+    // in case desiredMCR <= mcr
     return max(uint(mcr).mul(10000 - percentageAdjustment).div(10000), desiredMCR);
   }
 

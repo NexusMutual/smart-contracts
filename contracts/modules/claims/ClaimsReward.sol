@@ -26,6 +26,7 @@ import "../token/TokenData.sol";
 import "../token/TokenFunctions.sol";
 import "./Claims.sol";
 import "./ClaimsData.sol";
+import "../capital/MCR.sol";
 
 contract ClaimsReward is Iupgradable {
   using SafeMath for uint;
@@ -41,6 +42,7 @@ contract ClaimsReward is Iupgradable {
   Governance internal gv;
   IPooledStaking internal pooledStaking;
   MemberRoles internal memberRoles;
+  MCR public mcr;
 
   // assigned in constructor
   address public DAI;
@@ -135,6 +137,9 @@ contract ClaimsReward is Iupgradable {
       (, address coverContract) = qd.getscAddressOfCover(coverId);
       qd.subFromTotalSumAssured(coverCurrency, sumAssured);
       qd.subFromTotalSumAssuredSC(coverContract, coverCurrency, sumAssured);
+
+      // MCR needs to be updated since value of the pool decreases
+      mcr.updateMCRInternal(pool.getPoolValueInEth(), true);
 
       return true;
     }

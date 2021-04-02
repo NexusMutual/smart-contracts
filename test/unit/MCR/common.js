@@ -41,6 +41,9 @@ async function initMCR ({
   await mcr.initialize(...mcrParams);
 
   await master.setLatestAddress(hex('MC'), mcr.address);
+
+  await mcr.changeMasterAddress(master.address);
+  await mcr.changeDependentContractAddress();
   return mcr;
 }
 

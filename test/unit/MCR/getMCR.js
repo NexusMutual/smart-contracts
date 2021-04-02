@@ -15,7 +15,7 @@ const DEFAULT_MCR_PARAMS = {
   minUpdateTime: '3600',
 };
 
-describe.only('getMCR', function () {
+describe('getMCR', function () {
 
   it('should return the initial MCR value if MCR == desiredMCR and no update happened', async function () {
     const { master } = this;
@@ -55,7 +55,7 @@ describe.only('getMCR', function () {
     assert.equal(newestMCR.toString(), expectedMCR.toString());
   });
 
-  it.only('should increase MCR by 1% towards higher desired MCR if 1 hour passes', async function () {
+  it('should increase MCR by 1% towards higher desired MCR if 1 hour passes', async function () {
     const { master } = this;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: ether('160000'), master });

@@ -23,7 +23,7 @@ async function setup () {
   const master = await MasterMock.new();
   const dai = await ERC20Mock.new();
 
-  const ethToDaiRate = new BN((394.59 * 1e18).toString());
+  const ethToDaiRate = ether('2000');
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
 
   const chainlinkDAI = await P1MockChainlinkAggregator.new();
@@ -33,14 +33,8 @@ async function setup () {
   const pool = await Pool.new(priceFeedOracle.address);
   const quotationData = await QuotationData.new();
 
-  await quotationData.setTotalSumAssured(hex('DAI'), ether(1e8.toString()));
-  await quotationData.setTotalSumAssured(hex('ETH'), ether('100000'));
-
-  const latest = await time.latest();
-
-  const mcrParams = [
-
-  ];
+  await quotationData.setTotalSumAssured(hex('DAI'), '0');
+  await quotationData.setTotalSumAssured(hex('ETH'), '100000');
 
   const mcr = await initMCR({
     mcrValue: ether('150000'),
@@ -56,13 +50,6 @@ async function setup () {
   // set contract addresses
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('QD'), quotationData.address);
-
-  const contractsToUpdate = [mcr];
-
-  for (const contract of contractsToUpdate) {
-    await contract.changeMasterAddress(master.address);
-    await contract.changeDependentContractAddress();
-  }
 
   for (const member of accounts.members) {
     await master.enrollMember(member, Role.Member);
@@ -86,6 +73,7 @@ async function setup () {
   this.dai = dai;
   this.chainlinkDAI = chainlinkDAI;
   this.mcr = mcr;
+  this.quotationData = quotationData;
 }
 
 module.exports = setup;

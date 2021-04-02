@@ -58,15 +58,24 @@ contract MCR is Iupgradable {
   uint256 constant MAX_PERCENTAGE_ADJUSTMENT = 100;
 
   constructor (address masterAddress) public {
-
     changeMasterAddress(masterAddress);
+  }
 
-    // we'll pass the zero address on the first deploy
-    // due to missing previous MCR contract
-    if (masterAddress == address(0)) {
+  /**
+   * @dev Iupgradable Interface to update dependent contract address
+   */
+  function changeDependentContractAddress() public {
+    qd = QuotationData(ms.getLatestAddress("QD"));
+    pool = Pool(ms.getLatestAddress("P1"));
+    initialize();
+  }
+
+  function initialize() internal {
+
+    if (lastUpdateTime > 0) {
+      // already initialized
       return;
     }
-
     address mcrAddress = ms.getLatestAddress("MC");
     LegacyMCR previousMCR = LegacyMCR(mcrAddress);
 
@@ -79,14 +88,6 @@ contract MCR is Iupgradable {
 
     // set last updated time to now
     lastUpdateTime = uint32(now);
-  }
-
-  /**
-   * @dev Iupgradable Interface to update dependent contract address
-   */
-  function changeDependentContractAddress() public {
-    qd = QuotationData(ms.getLatestAddress("QD"));
-    pool = Pool(ms.getLatestAddress("P1"));
   }
 
   /**
@@ -144,41 +145,44 @@ contract MCR is Iupgradable {
     else {
       revert("Invalid param code");
     }
-
   }
 
-  function updateMCR(uint poolValueInEth) external onlyInternal {
+
+  function updateMCR() public {
+    _updateMCR(pool.getPoolValueInEth(), false);
+  }
+
+  function updateMCRInternal(uint poolValueInEth, bool forceUpdate) public onlyInternal {
+    _updateMCR(poolValueInEth, forceUpdate);
+  }
+
+  function _updateMCR(uint poolValueInEth, bool forceUpdate) internal {
 
     (uint24 mcrFloorIncrementThreshold,
     uint24 maxMCRFloorIncrement,
     uint24 maxMCRIncrement,
     uint24 gearingFactor,
     uint24 minUpdateTime,
-    uint112 mcrFloor ) = (mcrFloorIncrementThreshold, maxMCRFloorIncrement, maxMCRIncrement, gearingFactor, minUpdateTime, minUpdateTime);
+    uint112 currentMCRFloor ) = (mcrFloorIncrementThreshold, maxMCRFloorIncrement, maxMCRIncrement, gearingFactor, minUpdateTime, mcrFloor);
     (uint112 currentMCR,
     /* uint112 desiredMCR */,
     uint32 lastUpdateTime
     ) = (mcr, desiredMCR, lastUpdateTime);
-    if (lastUpdateTime + minUpdateTime > now) {
+    if (!forceUpdate && lastUpdateTime + minUpdateTime > now) {
       return;
     }
-    if (pool.calculateMCRRatio(poolValueInEth, currentMCR) > mcrFloorIncrementThreshold) {
+    if (pool.calculateMCRRatio(poolValueInEth, currentMCR) >= mcrFloorIncrementThreshold) {
       uint percentageAdjustment = (now - lastUpdateTime).mul(10000).div(1 days).mul(maxMCRFloorIncrement).div(10000);
-      mcrFloor = uint112(uint(mcrFloor).mul(percentageAdjustment.add(10000)).div(10000));
+      mcrFloor = uint112(uint(currentMCRFloor).mul(percentageAdjustment.add(10000)).div(10000));
     }
 
     uint totalSumAssured = getAllSumAssurance();
 
-    uint mcrETHWithGear = totalSumAssured.mul(10000).div(gearingFactor);
-    console.log("old MCR", mcr);
-    console.log("old desiredMCR", desiredMCR);
+    uint mcrWithGear = totalSumAssured.mul(10000).div(gearingFactor);
     mcr = uint112(getMCR());
-    desiredMCR = uint112(max(mcrETHWithGear, mcrFloor));
-    console.log("new MCR", mcr);
-    console.log("new desiredMCR", desiredMCR);
-
+    desiredMCR = uint112(max(mcrWithGear, mcrFloor));
     lastUpdateTime = uint32(now);
-    emit MCRUpdated(mcr, mcrFloor, desiredMCR, mcrETHWithGear, totalSumAssured, lastUpdateTime);
+    emit MCRUpdated(mcr, mcrFloor, desiredMCR, mcrWithGear, totalSumAssured, lastUpdateTime);
   }
 
   function getMCR() public view returns (uint) {

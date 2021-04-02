@@ -468,7 +468,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     require(tokensOut >= minTokensOut, "Pool: tokensOut is less than minTokensOut");
     tokenController.mint(msg.sender, tokensOut);
 
-    mcr.updateMCR(totalAssetValue.add(ethIn));
+    mcr.updateMCRInternal(totalAssetValue.add(ethIn), false);
     emit NXMBought(msg.sender, ethIn, tokensOut);
   }
 
@@ -493,7 +493,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     (bool ok, /* data */) = msg.sender.call.value(ethOut)("");
     require(ok, "Pool: Sell transfer failed");
 
-    mcr.updateMCR(currentTotalAssetValue.sub(ethOut));
+    mcr.updateMCRInternal(currentTotalAssetValue.sub(ethOut), false);
     emit NXMSold(msg.sender, tokenAmount, ethOut);
   }
 

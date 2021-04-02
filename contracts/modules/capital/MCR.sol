@@ -45,6 +45,8 @@ contract MCR is Iupgradable {
   uint112 public desiredMCR;
   uint32 public lastUpdateTime = 0;
 
+  LegacyMCR public previousMCR;
+
   event MCRUpdated(
     uint mcr,
     uint mcrFloor,
@@ -61,7 +63,7 @@ contract MCR is Iupgradable {
     changeMasterAddress(masterAddress);
 
     if (masterAddress != address(0)) {
-      initialize();
+      previousMCR = LegacyMCR(ms.getLatestAddress("MC"));
     }
   }
 
@@ -71,16 +73,15 @@ contract MCR is Iupgradable {
   function changeDependentContractAddress() public {
     qd = QuotationData(ms.getLatestAddress("QD"));
     pool = Pool(ms.getLatestAddress("P1"));
+    initialize();
   }
 
   function initialize() internal {
 
-    if (lastUpdateTime > 0) {
-      // already initialized
+    if (lastUpdateTime > 0 || address(previousMCR) == address(0)) {
+      // already initialized or no previousMCR available
       return;
     }
-    address mcrAddress = ms.getLatestAddress("MC");
-    LegacyMCR previousMCR = LegacyMCR(mcrAddress);
 
     // fetch MCR parameters from previous contract
     mcrFloor = uint112(previousMCR.variableMincap());
@@ -112,22 +113,6 @@ contract MCR is Iupgradable {
   }
 
   /**
-   * @dev Gets Uint Parameters of a code
-   * @param code whose details we want
-   * @return string value of the code
-   * @return associated amount (time or perc or value) to the code
-   */
-  function getUintParameters(bytes8 code) external view returns (bytes8 codeVal, uint val) {
-    codeVal = code;
-    if (code == "DMCT") {
-      val = uint(mcrFloorIncrementThreshold);
-
-    } else if (code == "DMCI") {
-      val = uint(maxMCRFloorIncrement);
-    }
-  }
-
-  /**
    * @dev Updates Uint Parameters of a code
    * @param code whose details we want to update
    * @param val value to set
@@ -136,16 +121,30 @@ contract MCR is Iupgradable {
     require(ms.checkIsAuthToGoverned(msg.sender));
     if (code == "DMCT") {
 
-      require(val <= UINT24_MAX, "MCR: DMCT value too large");
+      require(val <= UINT24_MAX, "MCR: value too large");
       mcrFloorIncrementThreshold = uint24(val);
 
     } else if (code == "DMCI") {
 
-      require(val <= UINT24_MAX, "MCR: DMCI value too large");
+      require(val <= UINT24_MAX, "MCR: value too large");
       maxMCRFloorIncrement = uint24(val);
 
-    }
-    else {
+    } else if (code == "MMIC") {
+
+      require(val <= UINT24_MAX, "MCR: value too large");
+      maxMCRIncrement = uint24(val);
+
+    } else if (code == "GEAR") {
+
+      require(val <= UINT24_MAX, "MCR: value too large");
+      gearingFactor = uint24(val);
+
+    } else if (code == "MUTI") {
+
+      require(val <= UINT24_MAX, "MCR: value too large");
+      minUpdateTime = uint24(val);
+
+    } else {
       revert("Invalid param code");
     }
   }

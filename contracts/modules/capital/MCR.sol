@@ -59,6 +59,10 @@ contract MCR is Iupgradable {
 
   constructor (address masterAddress) public {
     changeMasterAddress(masterAddress);
+
+    if (masterAddress != address(0)) {
+      initialize();
+    }
   }
 
   /**
@@ -67,7 +71,6 @@ contract MCR is Iupgradable {
   function changeDependentContractAddress() public {
     qd = QuotationData(ms.getLatestAddress("QD"));
     pool = Pool(ms.getLatestAddress("P1"));
-    initialize();
   }
 
   function initialize() internal {
@@ -146,7 +149,6 @@ contract MCR is Iupgradable {
       revert("Invalid param code");
     }
   }
-
 
   function updateMCR() public {
     _updateMCR(pool.getPoolValueInEth(), false);

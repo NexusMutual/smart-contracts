@@ -78,7 +78,9 @@ contract MCR is Iupgradable {
 
   function initialize() internal {
 
-    if (address(previousMCR) == address(0)) {
+    address currentMCR = ms.getLatestAddress("P1");
+
+    if (address(previousMCR) == address(0) || currentMCR == previousMCR) {
       // already initialized or no previousMCR available
       return;
     }

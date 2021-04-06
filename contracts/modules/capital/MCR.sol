@@ -198,10 +198,6 @@ contract MCR is Iupgradable {
     desiredMCR = uint112(max(mcrWithGear, mcrFloor));
     lastUpdateTime = uint32(now);
 
-    console.log("mcr", mcr);
-    console.log("desiredMCR", desiredMCR);
-    console.log("mcrFloor", mcrFloor);
-
     emit MCRUpdated(mcr, desiredMCR, mcrFloor, mcrWithGear, totalSumAssured);
   }
 

@@ -72,7 +72,7 @@ describe('getMCR', function () {
     assert.equal(newestMCR.toString(), expectedMCR.toString());
   });
 
-  it.only('should increase MCR by 0.4% towards lower desired MCR if 2 hours pass', async function () {
+  it('should increase MCR by 0.4% towards lower desired MCR if 2 hours pass', async function () {
     const { master } = this;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: ether('140000'), master });

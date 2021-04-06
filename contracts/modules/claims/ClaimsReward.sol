@@ -139,9 +139,8 @@ contract ClaimsReward is Iupgradable {
       qd.subFromTotalSumAssured(coverCurrency, sumAssured);
       qd.subFromTotalSumAssuredSC(coverContract, coverCurrency, sumAssured);
 
-      // MCR needs to be updated since value of the pool decreases
+      // update MCR since total sum assured and MCR% change
       mcr.updateMCRInternal(pool.getPoolValueInEth(), true);
-
       return true;
     }
 

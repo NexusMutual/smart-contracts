@@ -68,6 +68,7 @@ contract ClaimsReward is Iupgradable {
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
     memberRoles = MemberRoles(ms.getLatestAddress("MR"));
     pool = Pool(ms.getLatestAddress("P1"));
+    mcr = MCR(ms.getLatestAddress("MC"));
   }
 
   /// @dev Decides the next course of action for a given claim.

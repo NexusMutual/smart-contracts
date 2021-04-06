@@ -284,15 +284,19 @@ async function setup () {
   const maxMCRFloorIncrement = 100;
   const maxMCRIncrement = 500;
   const gearingFactor = 48000;
+  const minUpdateTime = 3600;
+  const desiredMCR = mcrEth;
 
   await mc.initialize(
     mcrEth,
     mcrFloor,
+    desiredMCR,
     lastUpdateTime,
     mcrFloorIncrementThreshold,
     maxMCRFloorIncrement,
     maxMCRIncrement,
     gearingFactor,
+    minUpdateTime,
   );
 
   const external = { chainlinkDAI, dai, factory, router, weth };

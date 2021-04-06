@@ -43,17 +43,16 @@ contract MCR is Iupgradable {
 
   uint112 public mcr;
   uint112 public desiredMCR;
-  uint32 public lastUpdateTime = 0;
+  uint32 public lastUpdateTime;
 
   LegacyMCR public previousMCR;
 
   event MCRUpdated(
     uint mcr,
-    uint mcrFloor,
     uint desiredMCR,
+    uint mcrFloor,
     uint mcrETHWithGear,
-    uint totalSumAssured,
-    uint timestamp
+    uint totalSumAssured
   );
 
   uint256 constant UINT24_MAX = ~uint24(0);
@@ -167,29 +166,30 @@ contract MCR is Iupgradable {
 
   function _updateMCR(uint poolValueInEth, bool forceUpdate) internal {
 
-    (uint24 mcrFloorIncrementThreshold,
-    uint24 maxMCRFloorIncrement,
-    uint24 maxMCRIncrement,
-    uint24 gearingFactor,
-    uint24 minUpdateTime,
-    uint112 currentMCRFloor ) = (mcrFloorIncrementThreshold, maxMCRFloorIncrement, maxMCRIncrement, gearingFactor, minUpdateTime, mcrFloor);
+    (uint24 _mcrFloorIncrementThreshold,
+    uint24 _maxMCRFloorIncrement,
+    /* uint24 _maxMCRIncrement */,
+    uint24 _gearingFactor,
+    uint24 _minUpdateTime,
+    uint112 _mcrFloor) = (mcrFloorIncrementThreshold, maxMCRFloorIncrement, maxMCRIncrement, gearingFactor, minUpdateTime, mcrFloor);
     (uint112 currentMCR,
     /* uint112 desiredMCR */,
-    uint32 lastUpdateTime
+    uint32 _lastUpdateTime
     ) = (mcr, desiredMCR, lastUpdateTime);
-    if (!forceUpdate && lastUpdateTime + minUpdateTime > now) {
+    if (!forceUpdate && _lastUpdateTime + _minUpdateTime > now) {
       return;
     }
-    if (pool.calculateMCRRatio(poolValueInEth, currentMCR) >= mcrFloorIncrementThreshold) {
+    if (now > _lastUpdateTime && pool.calculateMCRRatio(poolValueInEth, currentMCR) >= _mcrFloorIncrementThreshold) {
         // MCR floor updates by up to maxMCRFloorIncrement percentage per day whenever the MCR ratio exceeds 1.3
         // MCR floor is monotonically increasing.
-      uint percentageAdjustment = (now - lastUpdateTime).mul(10000).div(1 days).mul(maxMCRFloorIncrement).div(10000);
-      mcrFloor = uint112(uint(currentMCRFloor).mul(percentageAdjustment.add(10000)).div(10000));
+      uint percentageAdjustment = uint(_maxMCRFloorIncrement).mul(now - _lastUpdateTime).div(1 days);
+
+      mcrFloor = uint112(uint(_mcrFloor).mul(percentageAdjustment.add(10000)).div(10000));
     }
 
     uint totalSumAssured = getAllSumAssurance();
 
-    uint mcrWithGear = totalSumAssured.mul(10000).div(gearingFactor);
+    uint mcrWithGear = totalSumAssured.mul(10000).div(_gearingFactor);
     // sync the current virtual MCR value to storage
     mcr = uint112(getMCR());
 
@@ -198,7 +198,11 @@ contract MCR is Iupgradable {
     desiredMCR = uint112(max(mcrWithGear, mcrFloor));
     lastUpdateTime = uint32(now);
 
-    emit MCRUpdated(mcr, mcrFloor, desiredMCR, mcrWithGear, totalSumAssured, lastUpdateTime);
+    console.log("mcr", mcr);
+    console.log("desiredMCR", desiredMCR);
+    console.log("mcrFloor", mcrFloor);
+
+    emit MCRUpdated(mcr, desiredMCR, mcrFloor, mcrWithGear, totalSumAssured);
   }
 
   /**
@@ -218,7 +222,7 @@ contract MCR is Iupgradable {
     uint32 lastUpdateTime
     ) = (mcr, desiredMCR, lastUpdateTime);
 
-    uint percentageAdjustment = (now - lastUpdateTime).mul(10000).div(1 days).mul(maxMCRIncrement).div(10000);
+    uint percentageAdjustment = uint(maxMCRIncrement).mul(now - lastUpdateTime).div(1 days);
     percentageAdjustment = min(percentageAdjustment, MAX_PERCENTAGE_ADJUSTMENT);
 
     if (desiredMCR > mcr) {

@@ -28,7 +28,7 @@ const DEFAULT_MCR_PARAMS = {
   minUpdateTime: '3600',
 };
 
-describe.only('updateMCR', function () {
+describe('updateMCR', function () {
 
   it('does not update if minUpdateTime has not passed', async function () {
 

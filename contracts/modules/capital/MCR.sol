@@ -166,25 +166,28 @@ contract MCR is Iupgradable {
 
   function _updateMCR(uint poolValueInEth, bool forceUpdate) internal {
 
-    (uint24 _mcrFloorIncrementThreshold,
-    uint24 _maxMCRFloorIncrement,
-    /* uint24 _maxMCRIncrement */,
-    uint24 _gearingFactor,
-    uint24 _minUpdateTime,
-    uint112 _mcrFloor) = (mcrFloorIncrementThreshold, maxMCRFloorIncrement, maxMCRIncrement, gearingFactor, minUpdateTime, mcrFloor);
-    (uint112 currentMCR,
-    /* uint112 desiredMCR */,
-    uint32 _lastUpdateTime
-    ) = (mcr, desiredMCR, lastUpdateTime);
+    // read with 1 SLOAD
+    uint24 _mcrFloorIncrementThreshold = mcrFloorIncrementThreshold;
+    uint24 _maxMCRFloorIncrement = maxMCRFloorIncrement;
+    uint24 _gearingFactor = gearingFactor;
+    uint24 _minUpdateTime = minUpdateTime;
+    uint112 _mcrFloor =  mcrFloor;
+
+    // read with 1 SLOAD
+    uint112 _mcr = mcr;
+    uint32 _lastUpdateTime = lastUpdateTime;
+
     if (!forceUpdate && _lastUpdateTime + _minUpdateTime > now) {
       return;
     }
-    if (now > _lastUpdateTime && pool.calculateMCRRatio(poolValueInEth, currentMCR) >= _mcrFloorIncrementThreshold) {
+    if (now > _lastUpdateTime && pool.calculateMCRRatio(poolValueInEth, _mcr) >= _mcrFloorIncrementThreshold) {
         // MCR floor updates by up to maxMCRFloorIncrement percentage per day whenever the MCR ratio exceeds 1.3
         // MCR floor is monotonically increasing.
       uint percentageAdjustment = uint(_maxMCRFloorIncrement).mul(now - _lastUpdateTime).div(1 days);
+      uint newMCRFloor = uint(_mcrFloor).mul(percentageAdjustment.add(10000)).div(10000);
+      require(newMCRFloor <= uint112(~0), 'MCR: newMCRFloor overflow');
 
-      mcrFloor = uint112(uint(_mcrFloor).mul(percentageAdjustment.add(10000)).div(10000));
+      mcrFloor = uint112(newMCRFloor);
     }
 
     uint totalSumAssured = getAllSumAssurance();
@@ -213,20 +216,23 @@ contract MCR is Iupgradable {
    * @return mcr
    */
   function getMCR() public view returns (uint) {
-    (uint112 mcr,
-    uint112 desiredMCR,
-    uint32 lastUpdateTime
-    ) = (mcr, desiredMCR, lastUpdateTime);
 
-    uint percentageAdjustment = uint(maxMCRIncrement).mul(now - lastUpdateTime).div(1 days);
+    // read with 1 SLOAD
+    uint _mcr = mcr;
+    uint _desiredMCR = desiredMCR;
+    uint _lastUpdateTime = lastUpdateTime;
+
+    uint _maxMCRIncrement = maxMCRIncrement;
+
+    uint percentageAdjustment = _maxMCRIncrement.mul(now - _lastUpdateTime).div(1 days);
     percentageAdjustment = min(percentageAdjustment, MAX_PERCENTAGE_ADJUSTMENT);
 
-    if (desiredMCR > mcr) {
-      return min(uint(mcr).mul(percentageAdjustment.add(10000)).div(10000), desiredMCR);
+    if (_desiredMCR > _mcr) {
+      return min(_mcr.mul(percentageAdjustment.add(10000)).div(10000), _desiredMCR);
     }
 
     // in case desiredMCR <= mcr
-    return max(uint(mcr).mul(10000 - percentageAdjustment).div(10000), desiredMCR);
+    return max(_mcr.mul(10000 - percentageAdjustment).div(10000), _desiredMCR);
   }
 
   function min(uint x, uint y) pure internal returns (uint) {

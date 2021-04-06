@@ -80,7 +80,7 @@ contract MCR is Iupgradable {
 
     address currentMCR = ms.getLatestAddress("MC");
 
-    if (address(previousMCR) == address(0) || currentMCR == previousMCR) {
+    if (address(previousMCR) == address(0) || currentMCR != address(this)) {
       // already initialized or not ready for initialization
       return;
     }

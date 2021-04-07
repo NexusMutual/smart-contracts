@@ -21,6 +21,7 @@ import "../token/NXMToken.sol";
 import "../token/TokenController.sol";
 import "../token/TokenFunctions.sol";
 import "./ClaimsData.sol";
+import "./Incidents.sol";
 
 contract Claims is Iupgradable {
   using SafeMath for uint;
@@ -33,6 +34,7 @@ contract Claims is Iupgradable {
   ClaimsData internal cd;
   TokenData internal td;
   QuotationData internal qd;
+  Incidents internal ic;
 
   uint private constant DECIMAL1E18 = uint(10) ** 18;
 
@@ -144,6 +146,7 @@ contract Claims is Iupgradable {
     cr = ClaimsReward(ms.getLatestAddress("CR"));
     cd = ClaimsData(ms.getLatestAddress("CD"));
     qd = QuotationData(ms.getLatestAddress("QD"));
+    ic = Incidents(ms.getLatestAddress("IC"));
   }
 
   /**
@@ -162,6 +165,11 @@ contract Claims is Iupgradable {
   function _submitClaim(uint coverId, address member) internal {
 
     require(!ms.isPause(), "Claims: System is paused");
+
+    address contractAddress;
+    (/* id */, contractAddress) = qd.getscAddressOfCover(coverId);
+    address token = ic.coveredToken(contractAddress);
+    require(token == address(0), "Claims: Product type does not allow claims");
 
     address coverOwner = qd.getCoverMemberAddress(coverId);
     require(coverOwner == member, "Claims: Not cover owner");

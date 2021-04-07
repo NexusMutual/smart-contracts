@@ -65,7 +65,7 @@ async function closeClaim ({ cl, cd, master, now, expectedClaimStatusNumber }) {
   assert.equal(actualVoteClosingAfter.toString(), '-1');
 }
 
-describe.only('burns', function () {
+describe('burns', function () {
 
   beforeEach(async function () {
     const members = [member1, member2, member3, ...stakers, coverHolder];
@@ -123,30 +123,14 @@ describe.only('burns', function () {
     const now = await time.latest();
     await submitMemberVotes({ ...this.contracts, voteValue: 1 });
 
-    const tokenPrice = await p1.getTokenPrice(ETH);
-    let mcrValue;
-    mcrValue = await mcr.getMCR();
-    console.log({
-      mcrValue: mcrValue.toString(),
-    });
-
     const balanceBefore = await tk.balanceOf(ps.address);
     await closeClaim({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
 
-    mcrValue = await mcr.getMCR();
-    console.log({
-      mcrValue: mcrValue.toString(),
-    });
-
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
+
     const balanceAfter = await tk.balanceOf(ps.address);
-
-    mcrValue = await mcr.getMCR();
-    console.log({
-      mcrValue: mcrValue.toString(),
-    });
-
+    const tokenPrice = await p1.getTokenPrice(ETH);
     const totalBurn = balanceBefore.sub(balanceAfter);
     const sumAssured = ether(cover.amount.toString());
     const sumAssuredInNxm = sumAssured.mul(ether('1')).div(new BN(tokenPrice));

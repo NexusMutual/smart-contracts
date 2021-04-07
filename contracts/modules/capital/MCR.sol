@@ -114,43 +114,6 @@ contract MCR is Iupgradable {
     return ethAmount.add(daiAmountInEth);
   }
 
-  /**
-   * @dev Updates Uint Parameters of a code
-   * @param code whose details we want to update
-   * @param val value to set
-   */
-  function updateUintParameters(bytes8 code, uint val) public {
-    require(ms.checkIsAuthToGoverned(msg.sender));
-    if (code == "DMCT") {
-
-      require(val <= UINT24_MAX, "MCR: value too large");
-      mcrFloorIncrementThreshold = uint24(val);
-
-    } else if (code == "DMCI") {
-
-      require(val <= UINT24_MAX, "MCR: value too large");
-      maxMCRFloorIncrement = uint24(val);
-
-    } else if (code == "MMIC") {
-
-      require(val <= UINT24_MAX, "MCR: value too large");
-      maxMCRIncrement = uint24(val);
-
-    } else if (code == "GEAR") {
-
-      require(val <= UINT24_MAX, "MCR: value too large");
-      gearingFactor = uint24(val);
-
-    } else if (code == "MUTI") {
-
-      require(val <= UINT24_MAX, "MCR: value too large");
-      minUpdateTime = uint24(val);
-
-    } else {
-      revert("Invalid param code");
-    }
-  }
-
   /*
   * @dev trigger an MCR update. Current virtual MCR value is synced to storage, mcrFloor is potentially updated
   * and a new desiredMCR value to move towards is set.
@@ -175,6 +138,7 @@ contract MCR is Iupgradable {
 
     // read with 1 SLOAD
     uint112 _mcr = mcr;
+    uint112 _desiredMCR = desiredMCR;
     uint32 _lastUpdateTime = lastUpdateTime;
 
     if (!forceUpdate && _lastUpdateTime + _minUpdateTime > now) {
@@ -190,15 +154,21 @@ contract MCR is Iupgradable {
       mcrFloor = uint112(newMCRFloor);
     }
 
-    uint totalSumAssured = getAllSumAssurance();
-
-    uint mcrWithGear = totalSumAssured.mul(10000).div(_gearingFactor);
     // sync the current virtual MCR value to storage
-    mcr = uint112(getMCR());
+    uint112 newMCR = uint112(getMCR());
+    if (_mcr != newMCR) {
+      mcr = newMCR;
+    }
 
     // the desiredMCR cannot fall below the mcrFloor but may have a higher or lower target value based
     // on the changes in the totalSumAssured in the system.
-    desiredMCR = uint112(max(mcrWithGear, mcrFloor));
+    uint totalSumAssured = getAllSumAssurance();
+    uint mcrWithGear = totalSumAssured.mul(10000).div(_gearingFactor);
+    uint112 newDesiredMCR = uint112(max(mcrWithGear, mcrFloor));
+    if (newDesiredMCR != _desiredMCR) {
+      desiredMCR = newDesiredMCR;
+    }
+
     lastUpdateTime = uint32(now);
 
     emit MCRUpdated(mcr, desiredMCR, mcrFloor, mcrWithGear, totalSumAssured);
@@ -241,5 +211,42 @@ contract MCR is Iupgradable {
 
   function max(uint x, uint y) pure internal returns (uint) {
     return x > y ? x : y;
+  }
+
+  /**
+   * @dev Updates Uint Parameters
+   * @param code parameter code
+   * @param val new value
+   */
+  function updateUintParameters(bytes8 code, uint val) public {
+    require(ms.checkIsAuthToGoverned(msg.sender));
+    if (code == "DMCT") {
+
+      require(val <= UINT24_MAX, "MCR: value too large");
+      mcrFloorIncrementThreshold = uint24(val);
+
+    } else if (code == "DMCI") {
+
+      require(val <= UINT24_MAX, "MCR: value too large");
+      maxMCRFloorIncrement = uint24(val);
+
+    } else if (code == "MMIC") {
+
+      require(val <= UINT24_MAX, "MCR: value too large");
+      maxMCRIncrement = uint24(val);
+
+    } else if (code == "GEAR") {
+
+      require(val <= UINT24_MAX, "MCR: value too large");
+      gearingFactor = uint24(val);
+
+    } else if (code == "MUTI") {
+
+      require(val <= UINT24_MAX, "MCR: value too large");
+      minUpdateTime = uint24(val);
+
+    } else {
+      revert("Invalid param code");
+    }
   }
 }

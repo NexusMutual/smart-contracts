@@ -31,35 +31,71 @@ contract Incidents is MasterAware {
   using SafeMath for uint;
 
   struct Incident {
+    address productId;
     uint32 date;
     uint112 priceBefore;
     uint112 priceAfter;
-    address coveredToken;
   }
 
   // contract identifiers
   enum ID {CD, CR, QD, TC, MR, P1, PS}
 
-  mapping(uint => address payable) contracts;
+  mapping(uint => address payable) public contracts;
 
   Incident[] public incidents;
 
-  // covered token => peg token
-  mapping(address => address) public underlyingTokens;
+  // protocol identifier/address => underlying token (ex. yDAI -> DAI)
+  mapping(address => address) public underlyingToken;
+
+  // protocol identifier/address => covered token
+  mapping(address => address) public coveredToken;
 
   // claim id => payout amount
-  mapping(uint => uint) public claimPayouts;
+  mapping(uint => uint) public claimPayout;
 
-  function addUnderlyingToken(
-    address coveredToken,
-    address underlyingToken
+  event TokenSet(
+    address indexed productId,
+    address indexed coveredToken,
+    address indexed underlyingToken
+  );
+
+  event IncidentAdded(
+    address indexed productId,
+    uint incidentDate,
+    uint priceBefore,
+    uint priceAfter
+  );
+
+  function setTokens(
+    address[] calldata _productIds,
+    address[] calldata _coveredTokens,
+    address[] calldata _underlyingTokens
   ) external onlyGovernance {
-    require(underlyingTokens[coveredToken] == address(0), "Incidents: Underlying token already set");
-    underlyingTokens[coveredToken] = underlyingToken;
+
+    require(
+      _productIds.length == _coveredTokens.length,
+      "Incidents: protocols and covered tokens lengths differ"
+    );
+
+    require(
+      _productIds.length == _underlyingTokens.length,
+      "Incidents: protocols and underyling tokens lengths differ"
+    );
+
+    for (uint i = 0; i < _productIds.length; i++) {
+      address id = _productIds[i];
+
+      require(coveredToken[id] == address(0), "");
+      require(underlyingToken[id] == address(0), "");
+
+      coveredToken[id] = _coveredTokens[i];
+      underlyingToken[id] = _underlyingTokens[i];
+      emit TokenSet(id, _coveredTokens[i], _underlyingTokens[i]);
+    }
   }
 
   function addIncident(
-    address coveredToken,
+    address productId,
     uint incidentDate,
     uint priceBefore,
     uint priceAfter
@@ -67,35 +103,19 @@ contract Incidents is MasterAware {
 
     require(priceBefore > priceAfter, "Incidents: No depeg");
 
-    address underlying = underlyingTokens[coveredToken];
-    require(underlying != address(0), "Incidents: Unsupported token");
+    address underlying = underlyingToken[productId];
+    require(underlying != address(0), "Incidents: Unsupported product");
 
     Incident memory incident = Incident(
+      productId,
       uint32(incidentDate),
       uint112(priceBefore),
-      uint112(priceAfter),
-      coveredToken
+      uint112(priceAfter)
     );
+
     incidents.push(incident);
-  }
 
-  function getCoverDetails(QuotationData qd, uint coverId) internal view returns (
-    address coveredToken,
-    address coverOwner,
-    uint coverStartDate,
-    uint coverExpirationDate,
-    uint sumAssured,
-    bytes4 currency
-  ) {
-
-    (
-    /* id */, coverOwner, coveredToken,
-    currency, sumAssured, /* premiumNXM */
-    ) = qd.getCoverDetailsByCoverID1(coverId);
-
-    uint coverPeriod = uint(qd.getCoverPeriod(coverId)).mul(1 days);
-    coverExpirationDate = qd.getValidityOfCover(coverId);
-    coverStartDate = coverExpirationDate.sub(coverPeriod);
+    emit IncidentAdded(productId, incidentDate, priceBefore, priceAfter);
   }
 
   function redeemPayout(
@@ -104,41 +124,27 @@ contract Incidents is MasterAware {
     uint coveredTokenAmount
   ) external returns (uint claimId, uint payoutAmount) {
 
+    QuotationData qd = quotationData();
     Incident memory incident = incidents[incidentId];
     address coverOwner;
-    address coveredToken;
-    address underlyingToken;
     uint sumAssured;
+    bytes4 currency;
 
     {
-      QuotationData qd = quotationData();
-      uint coverExpirationDate;
+      address productId;
       uint coverStartDate;
-      bytes4 currency;
+      uint coverExpirationDate;
 
       (
-      coveredToken, coverOwner, coverStartDate,
+      productId, coverOwner, coverStartDate,
       coverExpirationDate, sumAssured, currency
-      ) = getCoverDetails(qd, coverId);
+      ) = _getCoverDetails(qd, coverId);
 
-      // check ownership & validity
+      // check ownership, validity and covered protocol
       require(msg.sender == coverOwner, "Incidents: Not cover owner");
+      require(productId == incident.productId, "Incidents: Bad incident id");
       require(coverStartDate >= incident.date, "Incidents: Cover start date before the incident");
       require(coverExpirationDate <= incident.date, "Incidents: Cover end date after the incident");
-
-      {
-        // check covered protocol
-        require(coveredToken == incident.coveredToken, "Incidents: Covered token != incident token");
-
-        // note: technically this check should have happened at cover purchase time
-        underlyingToken = underlyingTokens[coveredToken];
-        address coverCurrencyAddress = claimsReward().getCurrencyAssetAddress(currency);
-        require(coverCurrencyAddress == underlyingToken, "Incidents: Cover asset != underlying asset");
-      }
-
-      // decrese total sum assured
-      qd.subFromTotalSumAssured(currency, sumAssured);
-      qd.subFromTotalSumAssuredSC(coveredToken, currency, sumAssured);
     }
 
     {
@@ -165,23 +171,63 @@ contract Incidents is MasterAware {
       claimId = cd.actualClaimLength();
       cd.addClaim(claimId, coverId, coverOwner, now);
       cd.callClaimEvent(coverId, coverOwner, claimId, now);
-      claimPayouts[claimId] = payoutAmount;
+      claimPayout[claimId] = payoutAmount;
     }
 
-    {
-      Pool p1 = pool();
-      address payable coverOwnerPayable = address(uint160(coverOwner));
-      address payable payoutAddress = memberRoles().getClaimPayoutAddress(coverOwnerPayable);
+    _sendPayoutAndPushBurn(incident.productId, coverOwner, coveredTokenAmount, payoutAmount);
 
-      // pull depeged tokens and send the payoutAmount
-      IERC20(coveredToken).safeTransferFrom(msg.sender, address(this), coveredTokenAmount);
-      bool success = p1.sendClaimPayout(underlyingToken, payoutAddress, payoutAmount);
-      require(success, "Incidents: Payout failed");
+    qd.subFromTotalSumAssured(currency, sumAssured);
+    qd.subFromTotalSumAssuredSC(incident.productId, currency, sumAssured);
+  }
 
-      // burn
-      uint burnAmount = p1.getTokenPrice(underlyingToken).mul(payoutAmount);
-      pooledStaking().pushBurn(coveredToken, burnAmount);
-    }
+  function _getCoverDetails(QuotationData qd, uint coverId) internal view returns (
+    address productId,
+    address coverOwner,
+    uint coverStartDate,
+    uint coverExpirationDate,
+    uint sumAssured,
+    bytes4 currency
+  ) {
+
+    (
+    /* id */, coverOwner, productId,
+    currency, sumAssured, /* premiumNXM */
+    ) = qd.getCoverDetailsByCoverID1(coverId);
+
+    uint coverPeriod = uint(qd.getCoverPeriod(coverId)).mul(1 days);
+    coverExpirationDate = qd.getValidityOfCover(coverId);
+    coverStartDate = coverExpirationDate.sub(coverPeriod);
+  }
+
+  function _sendPayoutAndPushBurn(
+    address productId,
+    address coverOwner,
+    uint coveredTokenAmount,
+    uint payoutAmount
+  ) internal {
+
+    address _underlyingToken = underlyingToken[productId];
+    address _coveredToken = coveredToken[productId];
+
+    address payable coverOwnerPayable = address(uint160(coverOwner));
+    address payable payoutAddress = memberRoles().getClaimPayoutAddress(coverOwnerPayable);
+
+    // // note: technically this check should have happened at cover purchase time
+    // address coverCurrencyAddress = claimsReward().getCurrencyAssetAddress(currency);
+    // require(coverCurrencyAddress == _underlyingToken, "Incidents: Cover asset != underlying asset");
+
+    // pull depeged tokens
+    IERC20(_coveredToken).safeTransferFrom(msg.sender, address(this), coveredTokenAmount);
+
+    Pool p1 = pool();
+
+    // send the payoutAmount
+    bool success = p1.sendClaimPayout(_underlyingToken, payoutAddress, payoutAmount);
+    require(success, "Incidents: Payout failed");
+
+    // burn
+    uint burnAmount = p1.getTokenPrice(_underlyingToken).mul(payoutAmount);
+    pooledStaking().pushBurn(productId, burnAmount);
   }
 
   function withdrawAsset(

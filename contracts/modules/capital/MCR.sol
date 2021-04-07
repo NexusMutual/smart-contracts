@@ -167,11 +167,11 @@ contract MCR is Iupgradable {
   function _updateMCR(uint poolValueInEth, bool forceUpdate) internal {
 
     // read with 1 SLOAD
-    uint24 _mcrFloorIncrementThreshold = mcrFloorIncrementThreshold;
-    uint24 _maxMCRFloorIncrement = maxMCRFloorIncrement;
-    uint24 _gearingFactor = gearingFactor;
-    uint24 _minUpdateTime = minUpdateTime;
-    uint112 _mcrFloor =  mcrFloor;
+    uint _mcrFloorIncrementThreshold = mcrFloorIncrementThreshold;
+    uint _maxMCRFloorIncrement = maxMCRFloorIncrement;
+    uint _gearingFactor = gearingFactor;
+    uint _minUpdateTime = minUpdateTime;
+    uint _mcrFloor =  mcrFloor;
 
     // read with 1 SLOAD
     uint112 _mcr = mcr;
@@ -183,8 +183,8 @@ contract MCR is Iupgradable {
     if (now > _lastUpdateTime && pool.calculateMCRRatio(poolValueInEth, _mcr) >= _mcrFloorIncrementThreshold) {
         // MCR floor updates by up to maxMCRFloorIncrement percentage per day whenever the MCR ratio exceeds 1.3
         // MCR floor is monotonically increasing.
-      uint percentageAdjustment = uint(_maxMCRFloorIncrement).mul(now - _lastUpdateTime).div(1 days);
-      uint newMCRFloor = uint(_mcrFloor).mul(percentageAdjustment.add(10000)).div(10000);
+      uint percentageAdjustment = _maxMCRFloorIncrement.mul(now - _lastUpdateTime).div(1 days);
+      uint newMCRFloor = _mcrFloor.mul(percentageAdjustment.add(10000)).div(10000);
       require(newMCRFloor <= uint112(~0), 'MCR: newMCRFloor overflow');
 
       mcrFloor = uint112(newMCRFloor);

@@ -168,19 +168,14 @@ describe('Token price functions', function () {
     const spotTokenPricePreMCRPosting = await pool.getTokenPrice(ETH);
     const currentPoolValue = await pool.getPoolValueInEth();
 
-    const lastMCREther = await mcr.getMCR();
-
     // trigger an MCR update and post a lower MCR since lowering the price (higher MCR percentage)
     const minUpdateTime = await mcr.minUpdateTime();
     await time.increase(minUpdateTime.addn(1));
 
     // perform a buy with a negligible amount of ETH
     const tx = await pool.buyNXM('0', { from: member1, value: '1' });
-    console.log({
-      gasUsed: tx.receipt.gasUsed,
-    });
-
-    const latestMCReth = await mcr.getMCR();
+    // let time pass so that mcr decreases towards desired MCR
+    await time.increase(time.duration.hours(6));
 
     const spotTokenPricePostMCRPosting = await pool.getTokenPrice(ETH);
     const expectedNXMOutPostMCRPosting = await pool.getNXMForEth(buyValue);

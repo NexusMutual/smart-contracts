@@ -156,7 +156,7 @@ contract MCR is Iupgradable {
 
     // sync the current virtual MCR value to storage
     uint112 newMCR = uint112(getMCR());
-    if (_mcr != newMCR) {
+    if (newMCR != _mcr) {
       mcr = newMCR;
     }
 
@@ -193,6 +193,10 @@ contract MCR is Iupgradable {
     uint _lastUpdateTime = lastUpdateTime;
 
     uint _maxMCRIncrement = maxMCRIncrement;
+
+    if (now == _lastUpdateTime) {
+      return _mcr;
+    }
 
     uint percentageAdjustment = _maxMCRIncrement.mul(now - _lastUpdateTime).div(1 days);
     percentageAdjustment = min(percentageAdjustment, MAX_PERCENTAGE_ADJUSTMENT);

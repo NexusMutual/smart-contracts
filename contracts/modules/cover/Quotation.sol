@@ -274,29 +274,10 @@ contract Quotation is Iupgradable {
   }
 
   /**
-   * @dev to get the verdict of kyc process
-   * @param status is the kyc status
-   * @param _add is the address of member
-   */
-  function kycVerdict(address _add, bool status) public checkPause noReentrancy {
-    require(msg.sender == qd.kycAuthAddress());
-    _kycTrigger(status, _add);
-  }
-
-  /**
-   * @dev transfering Ethers to newly created quotation contract.
-   */
-  function transferAssetsToNewContract(address newAddress) public onlyInternal noReentrancy {
-    // no-op. TODO: moving of funds handled by feature/stacked-risk branch
-  }
-
-
-  /**
    * @dev Creates cover of the quotation, changes the status of the quotation ,
    * updates the total sum assured and locks the tokens of the cover against a quote.
    * @param from Quote member Ethereum address.
    */
-
   function _makeCover(//solhint-disable-line
     address payable from,
     address scAddress,
@@ -381,65 +362,42 @@ contract Quotation is Iupgradable {
     _makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);
   }
 
-  /**
-   * @dev to trigger the kyc process
-   * @param status is the kyc status
-   * @param _add is the address of member
-   */
-  function _kycTrigger(bool status, address _add) internal {
+  // referenced in master, keeping for now
+  // solhint-disable-next-line no-empty-blocks
+  function transferAssetsToNewContract(address) external {}
 
-    uint holdedCoverLen = qd.getUserHoldedCoverLength(_add).sub(1);
-    uint holdedCoverID = qd.getUserHoldedCoverByIndex(_add, holdedCoverLen);
-    address payable userAdd;
-    address scAddress;
-    bytes4 coverCurr;
-    uint16 coverPeriod;
-    uint[]  memory coverDetails = new uint[](4);
-    IERC20 erc20;
+  function freeUpHeldCovers() external noReentrancy {
 
-    (, userAdd, coverDetails) = qd.getHoldedCoverDetailsByID2(holdedCoverID);
-    (, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
-    require(qd.refundEligible(userAdd));
-    qd.setRefundEligible(userAdd, false);
-    require(qd.holdedCoverIDStatus(holdedCoverID) == uint(QuotationData.HCIDStatus.kycPending));
-    uint joinFee = td.joiningFee();
-    if (status) {
-      mr.payJoiningFee.value(joinFee)(userAdd);
-      if (coverDetails[3] > now) {
-        qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPass));
-        if (coverCurr == "ETH") {
-          // solhint-disable-next-line avoid-low-level-calls, avoid-call-value
-          (bool ok,) = address(pool).call.value(coverDetails[1])("");
-          require(ok, "Quotation: ether transfer to pool failed");
-        } else {
-          erc20 = IERC20(cr.getCurrencyAssetAddress(coverCurr)); // solhint-disable-line
-          require(erc20.transfer(address(pool), coverDetails[1]));
-        }
-        emit RefundEvent(userAdd, status, holdedCoverID, "KYC Passed");
-        _makeCover(userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
+    IERC20 dai = IERC20(cr.getCurrencyAssetAddress("DAI"));
+    uint membershipFee = td.joiningFee();
+    uint lastCoverId = 106;
 
-      } else {
-        qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPassNoCover));
-        if (coverCurr == "ETH") {
-          userAdd.transfer(coverDetails[1]);
-        } else {
-          erc20 = IERC20(cr.getCurrencyAssetAddress(coverCurr)); // solhint-disable-line
-          require(erc20.transfer(userAdd, coverDetails[1]));
-        }
-        emit RefundEvent(userAdd, status, holdedCoverID, "Cover Failed");
+    for (uint id = 1; id <= lastCoverId; id++) {
+
+      if (qd.holdedCoverIDStatus(id) != uint(QuotationData.HCIDStatus.kycPending)) {
+        continue;
       }
-    } else {
-      qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycFailedOrRefunded));
-      uint totalRefund = joinFee;
-      if (coverCurr == "ETH") {
-        totalRefund = coverDetails[1].add(joinFee);
-      } else {
-        erc20 = IERC20(cr.getCurrencyAssetAddress(coverCurr)); // solhint-disable-line
-        require(erc20.transfer(userAdd, coverDetails[1]));
+
+      (/*id*/, /*sc*/, bytes4 currency, /*period*/) = qd.getHoldedCoverDetailsByID1(id);
+      (/*id*/, address payable userAddress, uint[] memory coverDetails) = qd.getHoldedCoverDetailsByID2(id);
+
+      uint refundedETH;
+      uint coverPremium = coverDetails[1];
+
+      if (qd.refundEligible(userAddress)) {
+        qd.setRefundEligible(userAddress, false);
+        refundedETH = refundedETH.add(membershipFee);
       }
-      userAdd.transfer(totalRefund);
-      emit RefundEvent(userAdd, status, holdedCoverID, "KYC Failed");
+
+      qd.setHoldedCoverIDStatus(id, uint(QuotationData.HCIDStatus.kycFailedOrRefunded));
+
+      if (currency == "ETH") {
+        refundedETH = refundedETH.add(coverPremium);
+      } else {
+        require(dai.transfer(userAddress, coverPremium), "Quotation: DAI refund transfer failed");
+      }
+
+      userAddress.transfer(refundedETH);
     }
-
   }
 }

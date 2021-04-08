@@ -16,16 +16,16 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../abstract/MasterAware.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../cover/QuotationData.sol";
 import "./NXMToken.sol";
 import "./TokenController.sol";
 import "./TokenData.sol";
 
-contract TokenFunctions is Iupgradable {
+contract TokenFunctions is MasterAware {
   using SafeMath for uint;
 
-  NXMToken public tk;
   TokenController public tc;
   TokenData public td;
   QuotationData public qd;
@@ -44,42 +44,32 @@ contract TokenFunctions is Iupgradable {
   }
 
   /**
-   * @dev Returns amount of NXM Tokens locked as Cover Note for given coverId.
-   * @param _of address of the coverHolder.
-   * @param _coverId coverId of the cover.
-   */
-  function getUserLockedCNTokens(address _of, uint _coverId) external view returns (uint) {
-    return _getUserLockedCNTokens(_of, _coverId);
-  }
-
-  /**
    * @dev to get the all the cover locked tokens of a user
    * @param _of is the user address in concern
    * @return amount locked
    */
-  function getUserAllLockedCNTokens(address _of) external view returns (uint amount) {
-    for (uint i = 0; i < qd.getUserCoverLength(_of); i++) {
-      amount = amount.add(_getUserLockedCNTokens(_of, qd.getAllCoversOfUser(_of)[i]));
-    }
-  }
+  function getUserAllLockedCNTokens(address _of) external view returns (uint) {
 
-  /**
-   * @dev Returns amount of NXM Tokens locked as Cover Note against given coverId.
-   * @param _coverId coverId of the cover.
-   */
-  function getLockedCNAgainstCover(uint _coverId) external view returns (uint) {
-    return _getLockedCNAgainstCover(_coverId);
+    uint[] memory coverIds = qd.getAllCoversOfUser(_of);
+    uint total;
+
+    for (uint i = 0; i < coverIds.length; i++) {
+      bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverIds[i]));
+      uint coverNote = tc.tokensLocked(_of, reason);
+      total = total.add(coverNote);
+    }
+
+    return total;
   }
 
   /**
    * @dev Change Dependent Contract Address
    */
   function changeDependentContractAddress() public {
-    tk = NXMToken(ms.tokenAddress());
-    td = TokenData(ms.getLatestAddress("TD"));
-    tc = TokenController(ms.getLatestAddress("TC"));
-    qd = QuotationData(ms.getLatestAddress("QD"));
-    pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
+    td = TokenData(master.getLatestAddress("TD"));
+    tc = TokenController(master.getLatestAddress("TC"));
+    qd = QuotationData(master.getLatestAddress("QD"));
+    pooledStaking = IPooledStaking(master.getLatestAddress("PS"));
   }
 
   /**
@@ -87,7 +77,7 @@ contract TokenFunctions is Iupgradable {
    * @param coverId is id of cover whose tokens have to be burned
    * @return the status of the successful burning
    */
-  function burnDepositCN(uint coverId) public onlyInternal returns (bool success) {
+  function burnDepositCN(uint coverId) external onlyInternal returns (bool success) {
 
     address _of = qd.getCoverMemberAddress(coverId);
     bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
@@ -110,7 +100,7 @@ contract TokenFunctions is Iupgradable {
    * @dev Unlocks covernote locked against a given cover
    * @param coverId id of cover
    */
-  function unlockCN(uint coverId) public onlyInternal {
+  function unlockCN(uint coverId) external onlyInternal {
     address coverHolder = qd.getCoverMemberAddress(coverId);
     bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, coverId));
     uint lockedCN = tc.tokensLocked(coverHolder, reason);
@@ -125,35 +115,11 @@ contract TokenFunctions is Iupgradable {
    * @param _value number of tokens to be burned
    * @param _of Claim Assessor's address.
    */
-  function burnCAToken(uint claimid, uint _value, address _of) public {
-
-    require(ms.checkIsAuthToGoverned(msg.sender));
+  function burnCAToken(uint claimid, uint _value, address _of) external onlyGovernance {
     tc.burnLockedTokens(_of, "CLA", _value);
     emit BurnCATokens(claimid, _of, _value);
   }
 
-  /**
-   * @dev to lock cover note tokens
-   * @param coverNoteAmount is number of tokens to be locked
-   * @param coverPeriod is cover period in concern
-   * @param coverId is the cover id of cover in concern
-   * @param _of address whose tokens are to be locked
-   */
-  function lockCN(
-    uint coverNoteAmount,
-    uint coverPeriod,
-    uint coverId,
-    address _of
-  )
-  public
-  onlyInternal
-  {
-    uint gracePeriod = tc.claimSubmissionGracePeriod();
-    uint validity = (coverPeriod * 1 days).add(gracePeriod);
-    bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
-    td.setDepositCNAmount(coverId, coverNoteAmount);
-    tc.lockOf(_of, reason, coverNoteAmount, validity);
-  }
 
   /**
    * @dev to check if a  member is locked for member vote
@@ -164,23 +130,4 @@ contract TokenFunctions is Iupgradable {
     return now < tk.isLockedForMV(_of);
   }
 
-  /**
-   * @dev Returns amount of NXM Tokens locked as Cover Note for given coverId.
-   * @param _coverId coverId of the cover.
-   */
-  function _getLockedCNAgainstCover(uint _coverId) internal view returns (uint) {
-    address coverHolder = qd.getCoverMemberAddress(_coverId);
-    bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, _coverId));
-    return tc.tokensLockedAtTime(coverHolder, reason, now);
-  }
-
-  /**
-   * @dev Returns amount of NXM Tokens locked as Cover Note for given coverId.
-   * @param _of address of the coverHolder.
-   * @param _coverId coverId of the cover.
-   */
-  function _getUserLockedCNTokens(address _of, uint _coverId) internal view returns (uint) {
-    bytes32 reason = keccak256(abi.encodePacked("CN", _of, _coverId));
-    return tc.tokensLockedAtTime(_of, reason, now);
-  }
 }

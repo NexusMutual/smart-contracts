@@ -44,6 +44,7 @@ contract Incidents is MasterAware {
 
   Incident[] public incidents;
 
+  // TODO: forward support for multiple cover assets
   // protocol identifier/address => underlying token (ex. yDAI -> DAI)
   mapping(address => address) public underlyingToken;
 
@@ -171,6 +172,9 @@ contract Incidents is MasterAware {
       claimId = cd.actualClaimLength();
       cd.addClaim(claimId, coverId, coverOwner, now);
       cd.callClaimEvent(coverId, coverOwner, claimId, now);
+      cd.setClaimStatus(claimId, 14);
+      qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimAccepted));
+
       claimPayout[claimId] = payoutAmount;
     }
 
@@ -227,6 +231,7 @@ contract Incidents is MasterAware {
 
     // burn
     uint burnAmount = p1.getTokenPrice(_underlyingToken).mul(payoutAmount);
+    // TODO: acummulate burns
     pooledStaking().pushBurn(productId, burnAmount);
   }
 

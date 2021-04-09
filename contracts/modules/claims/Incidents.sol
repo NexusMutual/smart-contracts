@@ -238,7 +238,10 @@ contract Incidents is MasterAware {
     require(success, "Incidents: Payout failed");
 
     // burn
-    uint burnAmount = p1.getTokenPrice(_underlyingToken).mul(payoutAmount);
+    uint decimalPrecision = 1e18;
+    uint assetPerNxm = p1.getTokenPrice(_underlyingToken);
+    uint burnAmount = payoutAmount.mul(decimalPrecision).div(assetPerNxm);
+
     // TODO: acummulate burns
     pooledStaking().pushBurn(productId, burnAmount);
   }

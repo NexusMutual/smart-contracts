@@ -198,6 +198,7 @@ contract Incidents is MasterAware {
   function pushBurns(address productId, uint iterations) external {
 
     uint burnAmount = accumulatedBurn[productId];
+    delete accumulatedBurn[productId];
 
     require(burnAmount > 0, "Incidents: No burns to push");
     require(iterations >= 30, "Incidents: Pass at least 30 iterations");

@@ -28,6 +28,7 @@ contract TokenFunctions is MasterAware {
 
   TokenController public tc;
   TokenData public td;
+  NXMToken public tk;
   QuotationData public qd;
   IPooledStaking public pooledStaking;
 
@@ -68,6 +69,7 @@ contract TokenFunctions is MasterAware {
   function changeDependentContractAddress() public {
     td = TokenData(master.getLatestAddress("TD"));
     tc = TokenController(master.getLatestAddress("TC"));
+    tk = NXMToken(master.dAppToken());
     qd = QuotationData(master.getLatestAddress("QD"));
     pooledStaking = IPooledStaking(master.getLatestAddress("PS"));
   }

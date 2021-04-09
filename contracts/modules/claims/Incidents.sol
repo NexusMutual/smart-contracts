@@ -147,8 +147,8 @@ contract Incidents is MasterAware {
       // check ownership, validity and covered protocol
       require(msg.sender == coverOwner, "Incidents: Not cover owner");
       require(productId == incident.productId, "Incidents: Bad incident id");
-      require(coverStartDate >= incident.date, "Incidents: Cover start date before the incident");
-      require(coverExpirationDate <= incident.date, "Incidents: Cover end date after the incident");
+      require(coverStartDate <= incident.date, "Incidents: Cover start date is before the incident");
+      require(coverExpirationDate >= incident.date, "Incidents: Cover end date is after the incident");
     }
 
     {

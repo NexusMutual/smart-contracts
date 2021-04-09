@@ -54,6 +54,9 @@ contract Incidents is MasterAware {
   // claim id => payout amount
   mapping(uint => uint) public claimPayout;
 
+  // must redeem at least 20% of the cover amount
+  uint public constant MIN_REDEEM_PERCENTAGE = 20;
+
   event TokenSet(
     address indexed productId,
     address indexed coveredToken,
@@ -149,10 +152,15 @@ contract Incidents is MasterAware {
     }
 
     {
-      // min/max checks. sumAssured assumes 18 decimals
-      uint coverAmount = sumAssured.mul(1e18);
-      uint maxAmount = coverAmount.div(incident.priceBefore);
-      uint minAmount = maxAmount.mul(20).div(100);
+      // assumes 18 decimals (eth & dai)
+      uint decimalPrecision = 1e18;
+
+      // sumAssured is currently stored without decimals
+      uint coverAmount = sumAssured.mul(decimalPrecision);
+
+      // min/max checks
+      uint maxAmount = coverAmount.mul(decimalPrecision).div(incident.priceBefore);
+      uint minAmount = maxAmount.mul(MIN_REDEEM_PERCENTAGE).div(100);
 
       require(coveredTokenAmount <= maxAmount, "Incidents: Amount exceeds sum assured");
       require(coveredTokenAmount >= minAmount, "Incidents: Amount is less than 20% of sum assured");

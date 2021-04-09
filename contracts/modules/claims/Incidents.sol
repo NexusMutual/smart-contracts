@@ -54,6 +54,9 @@ contract Incidents is MasterAware {
   // claim id => payout amount
   mapping(uint => uint) public claimPayout;
 
+  // product id => acumulated burn amount
+  mapping(address => uint) public accumulatedBurn;
+
   // must redeem at least 20% of the cover amount
   uint public constant MIN_REDEEM_PERCENTAGE = 20;
 
@@ -186,10 +189,30 @@ contract Incidents is MasterAware {
       claimPayout[claimId] = payoutAmount;
     }
 
-    _sendPayoutAndPushBurn(incident.productId, coverOwner, coveredTokenAmount, payoutAmount);
+    _sendPayoutAndPushBurn(incident.productId, address(uint160(coverOwner)), coveredTokenAmount, payoutAmount);
 
     qd.subFromTotalSumAssured(currency, sumAssured);
     qd.subFromTotalSumAssuredSC(incident.productId, currency, sumAssured);
+  }
+
+  function pushBurns(address productId, uint iterations) external {
+
+    uint burnAmount = accumulatedBurn[productId];
+
+    require(burnAmount > 0, "Incidents: No burns to push");
+    require(iterations >= 30, "Incidents: Pass at least 30 iterations");
+
+    IPooledStaking ps = pooledStaking();
+    ps.pushBurn(productId, burnAmount);
+    ps.processPendingActions(iterations);
+  }
+
+  function withdrawAsset(
+    address asset,
+    address destination,
+    uint amount
+  ) external onlyGovernance {
+    IERC20(asset).safeTransfer(destination, amount);
   }
 
   function _getCoverDetails(QuotationData qd, uint coverId) internal view returns (
@@ -213,16 +236,14 @@ contract Incidents is MasterAware {
 
   function _sendPayoutAndPushBurn(
     address productId,
-    address coverOwner,
+    address payable coverOwner,
     uint coveredTokenAmount,
     uint payoutAmount
   ) internal {
 
     address _underlyingToken = underlyingToken[productId];
     address _coveredToken = coveredToken[productId];
-
-    address payable coverOwnerPayable = address(uint160(coverOwner));
-    address payable payoutAddress = memberRoles().getClaimPayoutAddress(coverOwnerPayable);
+    address payable payoutAddress = memberRoles().getClaimPayoutAddress(coverOwner);
 
     // // note: technically this check should have happened at cover purchase time
     // address coverCurrencyAddress = claimsReward().getCurrencyAssetAddress(currency);
@@ -242,16 +263,7 @@ contract Incidents is MasterAware {
     uint assetPerNxm = p1.getTokenPrice(_underlyingToken);
     uint burnAmount = payoutAmount.mul(decimalPrecision).div(assetPerNxm);
 
-    // TODO: acummulate burns
-    pooledStaking().pushBurn(productId, burnAmount);
-  }
-
-  function withdrawAsset(
-    address asset,
-    address destination,
-    uint amount
-  ) external onlyGovernance {
-    IERC20(asset).safeTransfer(destination, amount);
+    accumulatedBurn[productId] = accumulatedBurn[productId].add(burnAmount);
   }
 
   function claimsData() internal view returns (ClaimsData) {

@@ -163,15 +163,15 @@ contract MCR is Iupgradable {
     // the desiredMCR cannot fall below the mcrFloor but may have a higher or lower target value based
     // on the changes in the totalSumAssured in the system.
     uint totalSumAssured = getAllSumAssurance();
-    uint mcrWithGear = totalSumAssured.mul(10000).div(_gearingFactor);
-    uint112 newDesiredMCR = uint112(max(mcrWithGear, mcrFloor));
+    uint gearedMCR = totalSumAssured.mul(10000).div(_gearingFactor);
+    uint112 newDesiredMCR = uint112(max(gearedMCR, mcrFloor));
     if (newDesiredMCR != _desiredMCR) {
       desiredMCR = newDesiredMCR;
     }
 
     lastUpdateTime = uint32(now);
 
-    emit MCRUpdated(mcr, desiredMCR, mcrFloor, mcrWithGear, totalSumAssured);
+    emit MCRUpdated(mcr, desiredMCR, mcrFloor, gearedMCR, totalSumAssured);
   }
 
   /**
@@ -207,6 +207,10 @@ contract MCR is Iupgradable {
 
     // in case desiredMCR <= mcr
     return max(_mcr.mul(10000 - percentageAdjustment).div(10000), _desiredMCR);
+  }
+
+  function getGearedMCR() external view returns (uint) {
+    return getAllSumAssurance().mul(10000).div(gearingFactor);
   }
 
   function min(uint x, uint y) pure internal returns (uint) {

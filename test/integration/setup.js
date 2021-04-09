@@ -277,9 +277,7 @@ async function setup () {
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ether((ethToDaiRate / 100).toString()));
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
-  const poolValueInEth = await p1.getPoolValueInEth();
   const mcrEth = ether('50000');
-  const mcrRatio = calculateMCRRatio(poolValueInEth, mcrEth);
   const mcrFloor = mcrEth.sub(ether('10000'));
 
   const latestBlock = await web3.eth.getBlock('latest');

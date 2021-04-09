@@ -198,7 +198,7 @@ describe('updateMCR', function () {
     }
   });
 
-  it('increases desiredMCR when mcrWithGear increases and then decreases it to MCR floor when mcrWithGear subsequently decreases excessively', async function () {
+  it('increases desiredMCR when mcrWithGear increases and then decreases it to mcrFloor when mcrWithGear later decreases excessively', async function () {
 
     const { master, quotationData, pool } = this;
 

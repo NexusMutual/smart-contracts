@@ -17,7 +17,6 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/MasterAware.sol";
-import "../../interfaces/IPooledStaking.sol";
 import "../cover/QuotationData.sol";
 import "./NXMToken.sol";
 import "./TokenController.sol";
@@ -27,22 +26,10 @@ contract TokenFunctions is MasterAware {
   using SafeMath for uint;
 
   TokenController public tc;
-  TokenData public td;
   NXMToken public tk;
   QuotationData public qd;
-  IPooledStaking public pooledStaking;
 
   event BurnCATokens(uint claimId, address addr, uint amount);
-
-  /**
-   * @dev Rewards stakers on purchase of cover on smart contract.
-   * @param _contractAddress smart contract address.
-   * @param _coverPriceNXM cover price in NXM.
-   */
-  function pushStakerRewards(address _contractAddress, uint _coverPriceNXM) external onlyInternal {
-    uint rewardValue = _coverPriceNXM.mul(td.stakerCommissionPer()).div(100);
-    pooledStaking.accumulateReward(_contractAddress, rewardValue);
-  }
 
   /**
    * @dev to get the all the cover locked tokens of a user
@@ -67,48 +54,9 @@ contract TokenFunctions is MasterAware {
    * @dev Change Dependent Contract Address
    */
   function changeDependentContractAddress() public {
-    td = TokenData(master.getLatestAddress("TD"));
     tc = TokenController(master.getLatestAddress("TC"));
     tk = NXMToken(master.dAppToken());
     qd = QuotationData(master.getLatestAddress("QD"));
-    pooledStaking = IPooledStaking(master.getLatestAddress("PS"));
-  }
-
-  /**
-   * @dev to burn the deposited cover tokens
-   * @param coverId is id of cover whose tokens have to be burned
-   * @return the status of the successful burning
-   */
-  function burnDepositCN(uint coverId) external onlyInternal returns (bool success) {
-
-    address _of = qd.getCoverMemberAddress(coverId);
-    bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
-    uint lockedAmount = tc.tokensLocked(_of, reason);
-
-    (uint amount,) = td.depositedCN(coverId);
-    amount = amount.div(2);
-
-    // limit burn amount to actual amount locked
-    uint burnAmount = lockedAmount < amount ? lockedAmount : amount;
-
-    if (burnAmount != 0) {
-      tc.burnLockedTokens(_of, reason, amount);
-    }
-
-    return true;
-  }
-
-  /**
-   * @dev Unlocks covernote locked against a given cover
-   * @param coverId id of cover
-   */
-  function unlockCN(uint coverId) external onlyInternal {
-    address coverHolder = qd.getCoverMemberAddress(coverId);
-    bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, coverId));
-    uint lockedCN = tc.tokensLocked(coverHolder, reason);
-    if (lockedCN != 0) {
-      tc.releaseLockedTokens(coverHolder, reason, lockedCN);
-    }
   }
 
   /**
@@ -121,7 +69,6 @@ contract TokenFunctions is MasterAware {
     tc.burnLockedTokens(_of, "CLA", _value);
     emit BurnCATokens(claimid, _of, _value);
   }
-
 
   /**
    * @dev to check if a  member is locked for member vote

@@ -33,7 +33,6 @@ contract ClaimsReward is Iupgradable {
 
   NXMToken internal tk;
   TokenController internal tc;
-  TokenFunctions internal tf;
   TokenData internal td;
   QuotationData internal qd;
   Claims internal c1;
@@ -62,7 +61,6 @@ contract ClaimsReward is Iupgradable {
     tk = NXMToken(ms.tokenAddress());
     tc = TokenController(ms.getLatestAddress("TC"));
     td = TokenData(ms.getLatestAddress("TD"));
-    tf = TokenFunctions(ms.getLatestAddress("TF"));
     qd = QuotationData(ms.getLatestAddress("QD"));
     gv = Governance(ms.getLatestAddress("GV"));
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
@@ -321,20 +319,48 @@ contract ClaimsReward is Iupgradable {
 
       cd.changeFinalVerdict(claimid, -1);
       tc.markCoverClaimClosed(coverid, false);
-      tf.burnDepositCN(coverid); // burn Deposited CN
+      _burnCoverNoteDeposit(coverid);
 
     // accepted
     } else if (status == 7 || status == 8 || status == 10) {
 
       cd.changeFinalVerdict(claimid, 1);
       tc.markCoverClaimClosed(coverid, true);
-      tf.unlockCN(coverid);
+      _unlockCoverNote(coverid);
 
       bool payoutSucceeded = attemptClaimPayout(coverid);
 
       // 12 = payout pending, 14 = payout succeeded
       uint nextStatus = payoutSucceeded ? 14 : 12;
       c1.setClaimStatus(claimid, nextStatus);
+    }
+  }
+
+  function _burnCoverNoteDeposit(uint coverId) internal {
+
+    address _of = qd.getCoverMemberAddress(coverId);
+    bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
+    uint lockedAmount = tc.tokensLocked(_of, reason);
+
+    (uint amount,) = td.depositedCN(coverId);
+    amount = amount.div(2);
+
+    // limit burn amount to actual amount locked
+    uint burnAmount = lockedAmount < amount ? lockedAmount : amount;
+
+    if (burnAmount != 0) {
+      tc.burnLockedTokens(_of, reason, amount);
+    }
+  }
+
+  function _unlockCoverNote(uint coverId) internal {
+
+    address coverHolder = qd.getCoverMemberAddress(coverId);
+    bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, coverId));
+    uint lockedCN = tc.tokensLocked(coverHolder, reason);
+
+    if (lockedCN != 0) {
+      tc.releaseLockedTokens(coverHolder, reason, lockedCN);
     }
   }
 

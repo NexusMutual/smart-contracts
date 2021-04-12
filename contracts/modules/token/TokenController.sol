@@ -626,8 +626,6 @@ contract TokenController is LockHandler, Iupgradable {
       require(lockReason[_of][_reasonIndex] == _reason, "TokenController: Bad reason index");
 
       uint amount = locked[_of][_reason].amount;
-      require(amount != 0, "TokenController: Locked amount is zero");
-
       totalAmount = totalAmount.add(amount);
       delete locked[_of][_reason];
 

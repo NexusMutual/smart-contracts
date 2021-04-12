@@ -129,6 +129,8 @@ contract Incidents is MasterAware {
   ) external returns (uint claimId, uint payoutAmount) {
 
     QuotationData qd = quotationData();
+    TokenController tc = tokenController();
+
     Incident memory incident = incidents[incidentId];
     address coverOwner;
     uint sumAssured;
@@ -144,11 +146,17 @@ contract Incidents is MasterAware {
       coverExpirationDate, sumAssured, currency
       ) = _getCoverDetails(qd, coverId);
 
-      // check ownership, validity and covered protocol
+      // check ownership and covered protocol
       require(msg.sender == coverOwner, "Incidents: Not cover owner");
       require(productId == incident.productId, "Incidents: Bad incident id");
+
+      // check cover validity
       require(coverStartDate <= incident.date, "Incidents: Cover start date is before the incident");
       require(coverExpirationDate >= incident.date, "Incidents: Cover end date is after the incident");
+
+      // check grace period
+      uint gracePeriod = tc.claimSubmissionGracePeriod();
+      require(coverExpirationDate.add(gracePeriod) >= block.timestamp, "Incidents: Grace period has expired");
     }
 
     {
@@ -168,7 +176,6 @@ contract Incidents is MasterAware {
 
     {
       // mark cover as having a successful claim
-      TokenController tc = tokenController();
       tc.markCoverClaimOpen(coverId);
       tc.markCoverClaimClosed(coverId, true);
 

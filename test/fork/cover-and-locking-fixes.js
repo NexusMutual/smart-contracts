@@ -1,21 +1,10 @@
 const fetch = require('node-fetch');
 const { artifacts, web3, accounts, network } = require('hardhat');
 const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
-const Decimal = require('decimal.js');
-const { keccak256 } = require('ethereumjs-util');
 
 const { submitGovernanceProposal } = require('./utils');
 const { hex } = require('../utils').helpers;
-const { ProposalCategory, Role, CoverStatus } = require('../utils').constants;
-
-const {
-  toDecimal,
-  calculateRelativeError,
-  percentageBN,
-  calculateEthForNXMRelativeError,
-} = require('../utils').tokenPrice;
-
-const { BN, toBN } = web3.utils;
+const { ProposalCategory, CoverStatus } = require('../utils').constants;
 
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const MemberRoles = artifacts.require('MemberRoles');
@@ -27,38 +16,17 @@ const Claims = artifacts.require('Claims');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const Quotation = artifacts.require('Quotation');
 const TokenController = artifacts.require('TokenController');
-const Cover = artifacts.require('Cover');
+const Gateway = artifacts.require('Gateway');
 
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
   DAI: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
-  SAI: '0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359',
-  WNXM: '0x0d438F3b5175Bebc262bF23753C1E53d03432bDE',
-  DAIFEED: '0x773616E4d11A78F511299002da57A0a94577F1f4',
-  UNIFACTORY: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
   NXMHOLDER: '0xd7cba5b9a0240770cfd9671961dae064136fa240',
 };
 
-const EMPTY_DATA = web3.eth.abi.encodeParameters([], []);
-
-let isHardhat;
-const hardhatRequest = async (...params) => {
-
-  if (isHardhat === undefined) {
-    const nodeInfo = await web3.eth.getNodeInfo();
-    isHardhat = !!nodeInfo.match(/Hardhat/);
-  }
-
-  if (isHardhat) {
-    return network.provider.request(...params);
-  }
-};
-
-const owner = '0xeadaceccc5b32e0f2151a94ae5c3cfb11e349754';
-
 const getAddressByCodeFactory = abis => code => abis.find(abi => abi.code === code).address;
 const fund = async to => web3.eth.sendTransaction({ from: accounts[0], to, value: ether('1000000') });
-const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAccount', params: [member] });
+const unlock = async member => network.provider.request({ method: 'hardhat_impersonateAccount', params: [member] });
 
 describe('deploy cover interface and locking fixes', function () {
 
@@ -86,7 +54,7 @@ describe('deploy cover interface and locking fixes', function () {
     const { memberArray: boardMembers } = await this.memberRoles.members('1');
     const voters = boardMembers.slice(1, 4);
 
-    for (const member of [...voters, Address.NXMHOLDER, owner]) {
+    for (const member of [...voters, Address.NXMHOLDER]) {
       await fund(member);
       await unlock(member);
     }
@@ -95,7 +63,7 @@ describe('deploy cover interface and locking fixes', function () {
   });
 
   it('updating category 5 (Upgrade Proxy) to use AB voting', async function () {
-    const { master, governance, voters } = this;
+    const { governance, voters } = this;
 
     const functionSignature = 'upgradeMultipleImplementations(bytes2[],address[])';
 
@@ -118,7 +86,7 @@ describe('deploy cover interface and locking fixes', function () {
     );
 
     console.log({
-      preCategoryUpgradeTime: new Date((await time.latest()) * 1000).toDateString()
+      preCategoryUpgradeTime: new Date((await time.latest()) * 1000).toDateString(),
     });
 
     await submitGovernanceProposal(
@@ -216,15 +184,15 @@ describe('deploy cover interface and locking fixes', function () {
     this.tokenController = tokenController;
   });
 
-  it('adds new Cover.sol contract', async function () {
+  it('adds new Gateway.sol contract', async function () {
     const { master, voters, governance } = this;
-    console.log('Adding new cover contract..');
-    const coverImplementation = await Cover.new();
+    console.log('Adding new gateway contract..');
+    const gatewayImplementation = await Gateway.new();
 
     // Creating proposal for adding new internal contract
     const addNewInternalContractActionData = web3.eth.abi.encodeParameters(
       ['bytes2', 'address', 'uint'],
-      [hex('CO'), coverImplementation.address, 2],
+      [hex('GW'), gatewayImplementation.address, 2],
     );
 
     await submitGovernanceProposal(
@@ -234,32 +202,32 @@ describe('deploy cover interface and locking fixes', function () {
       governance,
     );
 
-    const coverProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('CO')));
-    const storedImplementation = await coverProxy.implementation();
+    const gatewayProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('GW')));
+    const storedImplementation = await gatewayProxy.implementation();
 
-    assert.equal(storedImplementation, coverImplementation.address);
+    assert.equal(storedImplementation, gatewayImplementation.address);
 
-    const cover = await Cover.at(await master.getLatestAddress(hex('CO')));
+    const gateway = await Gateway.at(await master.getLatestAddress(hex('GW')));
 
-    const storedDAI = await cover.DAI();
+    const storedDAI = await gateway.DAI();
     assert.equal(storedDAI, Address.DAI);
 
-    const masterAddress = await cover.master();
+    const masterAddress = await gateway.master();
     assert.equal(masterAddress, master.address);
 
     // sanity check an arbitrary cover
-    const cover10 = await cover.getCover(10);
+    const cover10 = await gateway.getCover(10);
     assert.equal(cover10.coverAsset, '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
     assert.equal(cover10.contractAddress, '0x448a5065aeBB8E423F0896E6c5D525C040f59af3');
 
-    this.cover = cover;
+    this.gateway = gateway;
   });
 
   it('submits claim for cover', async function () {
-    const { cover, tokenController } = this;
+    const { gateway, tokenController } = this;
 
     const coverId = 2271;
-    const coverData = await cover.getCover(coverId);
+    const coverData = await gateway.getCover(coverId);
     const coverOwner = coverData.memberAddress;
     assert.equal(coverData.coverAsset, '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
 
@@ -269,9 +237,7 @@ describe('deploy cover interface and locking fixes', function () {
     await unlock(coverOwner);
     await fund(coverOwner);
 
-    await cover.submitClaim(coverId, EMPTY_DATA, {
-      from: coverOwner,
-    });
+    await gateway.submitClaim(coverId, '0x', { from: coverOwner });
 
     const coverInfo = await tokenController.coverInfo(coverId);
     assert.equal(coverInfo.claimCount.toString(), '1');
@@ -280,11 +246,11 @@ describe('deploy cover interface and locking fixes', function () {
   });
 
   it('expires cover and withdraws cover note after grace period is finished', async function () {
-    const { cover, quotation, tokenController, token } = this;
+    const { gateway, quotation, tokenController, token } = this;
 
     // const coverId = 2269;
     const coverId = 2272;
-    const coverData = await cover.getCover(coverId);
+    const coverData = await gateway.getCover(coverId);
     const coverOwner = coverData.memberAddress;
     assert.equal(coverData.coverAsset, '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
 
@@ -294,7 +260,7 @@ describe('deploy cover interface and locking fixes', function () {
     await time.increaseTo(coverData.validUntil.addn(1000));
     await quotation.expireCover(coverId);
 
-    const newCoverState = await cover.getCover(coverId);
+    const newCoverState = await gateway.getCover(coverId);
 
     assert.equal(newCoverState.status.toString(), CoverStatus.CoverExpired);
     const gracePeriod = await tokenController.claimSubmissionGracePeriod();
@@ -324,12 +290,12 @@ describe('deploy cover interface and locking fixes', function () {
 
     const { voters, governance, master } = this;
 
-    const coverImplementation = await Cover.new();
+    const gatewayImplementation = await Gateway.new();
     const upgradesActionDataProxy = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
       [
-        ['CO'].map(hex),
-        [coverImplementation].map(c => c.address),
+        ['GW'].map(hex),
+        [gatewayImplementation].map(c => c.address),
       ],
     );
 
@@ -340,10 +306,10 @@ describe('deploy cover interface and locking fixes', function () {
       governance,
     );
 
-    const coProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('CO')));
-    const coImplementation = await coProxy.implementation();
+    const gwProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('GW')));
+    const gwImplementation = await gwProxy.implementation();
 
-    assert.equal(coImplementation, coverImplementation.address);
+    assert.equal(gwImplementation, gatewayImplementation.address);
   });
 
   it('performs hypothetical future non-proxy upgrade', async function () {

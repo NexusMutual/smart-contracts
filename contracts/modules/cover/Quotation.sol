@@ -20,6 +20,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../../abstract/MasterAware.sol";
 import "../capital/Pool.sol";
 import "../claims/ClaimsReward.sol";
+import "../claims/Incidents.sol";
 import "../token/TokenController.sol";
 import "../token/TokenData.sol";
 import "./QuotationData.sol";
@@ -33,6 +34,7 @@ contract Quotation is MasterAware, ReentrancyGuard {
   QuotationData public qd;
   TokenController public tc;
   TokenData public td;
+  Incidents public incidents;
 
   /**
    * @dev Iupgradable Interface to update dependent contract address
@@ -44,6 +46,7 @@ contract Quotation is MasterAware, ReentrancyGuard {
     qd = QuotationData(master.getLatestAddress("QD"));
     tc = TokenController(master.getLatestAddress("TC"));
     td = TokenData(master.getLatestAddress("TD"));
+    incidents = Incidents(master.getLatestAddress("IC"));
   }
 
   // solhint-disable-next-line no-empty-blocks
@@ -146,7 +149,7 @@ contract Quotation is MasterAware, ReentrancyGuard {
     bytes32 _r,
     bytes32 _s
   ) external onlyMember whenNotPaused {
-    tc.burnFrom(msg.sender, coverDetails[2]); // need burn allowance
+    tc.burnFrom(msg.sender, coverDetails[2]); // needs allowance
     _verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s, true);
   }
 
@@ -255,6 +258,13 @@ contract Quotation is MasterAware, ReentrancyGuard {
     uint16 coverPeriod
   ) internal {
 
+    address underlyingToken = incidents.underlyingToken(contractAddress);
+
+    if (underlyingToken != address(0)) {
+      address coverAsset = cr.getCurrencyAssetAddress(coverCurrency);
+      require(coverAsset == underlyingToken, "Quotation: Unsupported cover asset for this product");
+    }
+
     uint cid = qd.getCoverLength();
 
     qd.addCover(
@@ -267,13 +277,16 @@ contract Quotation is MasterAware, ReentrancyGuard {
       coverDetails[2]
     );
 
-    uint coverNoteAmount = coverDetails[2].mul(qd.tokensRetained()).div(100);
-    uint gracePeriod = tc.claimSubmissionGracePeriod();
-    uint claimSubmissionPeriod = uint(coverPeriod).mul(1 days).add(gracePeriod);
-    bytes32 reason = keccak256(abi.encodePacked("CN", from, cid));
+    // cover note is not needed for covered token product
+    if (underlyingToken == address(0)) {
+      uint coverNoteAmount = coverDetails[2].mul(qd.tokensRetained()).div(100);
+      uint gracePeriod = tc.claimSubmissionGracePeriod();
+      uint claimSubmissionPeriod = uint(coverPeriod).mul(1 days).add(gracePeriod);
+      bytes32 reason = keccak256(abi.encodePacked("CN", from, cid));
 
-    td.setDepositCNAmount(cid, coverNoteAmount);
-    tc.mintCoverNote(from, reason, coverNoteAmount, claimSubmissionPeriod);
+      td.setDepositCNAmount(cid, coverNoteAmount);
+      tc.mintCoverNote(from, reason, coverNoteAmount, claimSubmissionPeriod);
+    }
 
     qd.addInTotalSumAssured(coverCurrency, coverDetails[0]);
     qd.addInTotalSumAssuredSC(contractAddress, coverCurrency, coverDetails[0]);

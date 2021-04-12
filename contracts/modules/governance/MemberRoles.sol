@@ -129,15 +129,6 @@ contract MemberRoles is Governed, Iupgradable {
     tf = TokenFunctions(ms.getLatestAddress("TF"));
     tk = NXMToken(ms.tokenAddress());
     tc = TokenController(ms.getLatestAddress("TC"));
-
-    // rescue future yNFT claim payouts as per gov proposal #113
-    address payable yNFT = 0x181Aea6936B407514ebFC0754A37704eB8d98F91;
-    address payable arNFT = 0x1337DEF1e9c7645352D93baf0b789D04562b4185;
-
-    if (claimPayoutAddress[yNFT] == address(0)) {
-      claimPayoutAddress[yNFT] = arNFT;
-      emit ClaimPayoutAddressSet(yNFT, arNFT);
-    }
   }
 
   /**

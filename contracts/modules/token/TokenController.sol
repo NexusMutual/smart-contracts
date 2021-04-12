@@ -697,9 +697,8 @@ contract TokenController is LockHandler, Iupgradable {
     cd.setClaimStatus(21, 6);
 
     // reduce claim assessment lock period for members locked for more than 180 days
-    // extracted using scripts/extract-lock-reasons.js
-    address payable[4] memory members = [
-      0x87B2a7559d85f4653f13E6546A14189cd5455d45,
+    // extracted using scripts/extract-ca-locked-more-than-180.js
+    address payable[3] memory members = [
       0x4a9fA34da6d2378c8f3B9F6b83532B169beaEDFc,
       0x6b5DCDA27b5c3d88e71867D6b10b35372208361F,
       0x8B6D1e5b4db5B6f9aCcc659e2b9619B0Cd90D617

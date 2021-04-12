@@ -32,7 +32,7 @@ contract Claims is Iupgradable {
   ClaimsData internal cd;
   TokenData internal td;
   QuotationData internal qd;
-  Incidents internal ic;
+  Incidents internal incidents;
 
   uint private constant DECIMAL1E18 = uint(10) ** 18;
 
@@ -81,7 +81,7 @@ contract Claims is Iupgradable {
     cr = ClaimsReward(ms.getLatestAddress("CR"));
     cd = ClaimsData(ms.getLatestAddress("CD"));
     qd = QuotationData(ms.getLatestAddress("QD"));
-    ic = Incidents(ms.getLatestAddress("IC"));
+    incidents = Incidents(ms.getLatestAddress("IC"));
   }
 
   /**
@@ -102,7 +102,7 @@ contract Claims is Iupgradable {
     require(!ms.isPause(), "Claims: System is paused");
 
     (/* id */, address contractAddress) = qd.getscAddressOfCover(coverId);
-    address token = ic.coveredToken(contractAddress);
+    address token = incidents.coveredToken(contractAddress);
     require(token == address(0), "Claims: Product type does not allow claims");
 
     address coverOwner = qd.getCoverMemberAddress(coverId);

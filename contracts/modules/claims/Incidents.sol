@@ -55,9 +55,6 @@ contract Incidents is MasterAware {
   // product id => acumulated burn amount
   mapping(address => uint) public accumulatedBurn;
 
-  // address to send the depegged tokens
-  address public TREASURY;
-
   // burn percentage, ex 20 for 20%
   uint public BURN_RATE;
 
@@ -82,9 +79,8 @@ contract Incidents is MasterAware {
     _;
   }
 
-  function initialize(address treasury, uint burnRate) external {
-    require(TREASURY == address(0), "Already initialized");
-    TREASURY = treasury;
+  function initialize(uint burnRate) external {
+    require(BURN_RATE == 0, "Already initialized");
     BURN_RATE = burnRate;
   }
 
@@ -226,11 +222,11 @@ contract Incidents is MasterAware {
     ps.processPendingActions(iterations);
   }
 
-  function withdrawAsset(address asset, uint amount) external onlyGovernance {
+  function withdrawAsset(address asset, address destination, uint amount) external onlyGovernance {
     IERC20 token = IERC20(asset);
     uint balance = token.balanceOf(address(this));
     uint transferAmount = amount > balance ? balance : amount;
-    token.safeTransfer(TREASURY, transferAmount);
+    token.safeTransfer(destination, transferAmount);
   }
 
   function _getCoverDetails(QuotationData qd, uint coverId) internal view returns (
@@ -316,16 +312,6 @@ contract Incidents is MasterAware {
     if (code == "BURNRATE") {
       require(value <= 100, "Incidents: Burn rate cannot exceed 100");
       BURN_RATE = value;
-      return;
-    }
-
-    revert("Incidents: Invalid parameter");
-  }
-
-  function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
-
-    if (code == "TREASURY") {
-      TREASURY = value;
       return;
     }
 

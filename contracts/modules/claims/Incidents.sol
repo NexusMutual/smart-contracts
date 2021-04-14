@@ -58,7 +58,7 @@ contract Incidents is MasterAware {
   // burn percentage, ex 20 for 20%
   uint public BURN_RATE;
 
-  event TokenSet(
+  event ProductAdded(
     address indexed productId,
     address indexed coveredToken,
     address indexed underlyingToken
@@ -108,7 +108,7 @@ contract Incidents is MasterAware {
 
       coveredToken[id] = _coveredTokens[i];
       underlyingToken[id] = _underlyingTokens[i];
-      emit TokenSet(id, _coveredTokens[i], _underlyingTokens[i]);
+      emit ProductAdded(id, _coveredTokens[i], _underlyingTokens[i]);
     }
   }
 

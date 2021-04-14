@@ -24,7 +24,7 @@ const coverTemplate = {
   expireTime: '8000000000',
   generationTime: '1600000000000',
   currency: hex('ETH'),
-  period: 60,
+  period: 30,
   contractAddress: '0xc0ffeec0ffeec0ffeec0ffeec0ffeec0ffee0000',
 };
 
@@ -158,9 +158,11 @@ describe.only('updateMCR', function () {
   it.only('updateMCR increases desiredMCR if totalSumAssured is high enough', async function () {
     const { p1: pool, mcr } = this.contracts;
 
+    const ratioScale = toBN(10000);
+
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
-    const coverAmount = gearingFactor.mul(currentMCR).add(ether('10')).div(ether('1'));
+    const coverAmount = gearingFactor.mul(currentMCR).add(ether('10')).div(ether('1')).div(ratioScale);
     const cover = { ...coverTemplate, amount: coverAmount };
 
     await buyCover({ ...this.contracts, cover, coverHolder });
@@ -175,6 +177,38 @@ describe.only('updateMCR', function () {
     const lastUpdateTimeAfter = await mcr.lastUpdateTime();
     const mcrFloorAfter = await mcr.mcrFloor();
     const desireMCRAfter = await mcr.desiredMCR();
+    const expectedDesiredMCR = ether(coverAmount.toString()).div(gearingFactor).mul(ratioScale);
+
+    assert(lastUpdateTimeBefore.lt(lastUpdateTimeAfter));
+    assert.equal(lastUpdateTimeAfter.toString(), block.timestamp.toString());
+    assert(
+      mcrFloorAfter.gt(mcrFloorBefore),
+      `MCR floor post update ${mcrFloorAfter.toString()} is not greater than before ${mcrFloorBefore.toString()}`,
+    );
+    assert.equal(desireMCRAfter.toString(), expectedDesiredMCR.toString());
+  });
+
+  it('updateMCR increases desiredMCR if totalSumAssured is high enough and subseqeuntly decreases it when totalSumAssured decreases', async function () {
+    const { p1: pool, mcr, qt: quotation, qd: quotationData } = this.contracts;
+
+    const gearingFactor = await mcr.gearingFactor();
+    const currentMCR = await mcr.getMCR();
+    const coverAmount = gearingFactor.mul(currentMCR).add(ether('10')).div(ether('1'));
+    const cover = { ...coverTemplate, amount: coverAmount };
+
+    await buyCover({ ...this.contracts, cover, coverHolder });
+    const expectedCoverId = 1;
+
+    const lastUpdateTimeBefore = await mcr.lastUpdateTime();
+    await time.increase(await mcr.minUpdateTime());
+
+    const mcrFloorBefore = await mcr.mcrFloor();
+
+    const tx = await mcr.updateMCR();
+    const block = await web3.eth.getBlock(tx.receipt.blockNumber);
+    const lastUpdateTimeAfter = await mcr.lastUpdateTime();
+    const mcrFloorAfter = await mcr.mcrFloor();
+    const desireMCRAfterCoverPurchase = await mcr.desiredMCR();
     const expectedDesiredMCR = coverAmount.div(gearingFactor);
 
     assert(lastUpdateTimeBefore.lt(lastUpdateTimeAfter));
@@ -183,6 +217,18 @@ describe.only('updateMCR', function () {
       mcrFloorAfter.gt(mcrFloorBefore),
       `MCR floor post update ${mcrFloorAfter.toString()} is not greater than before ${mcrFloorBefore.toString()}`,
     );
-    assert(desireMCRAfter.toString(), expectedDesiredMCR.toString());
+    assert.equal(desireMCRAfterCoverPurchase.toString(), expectedDesiredMCR.toString());
+
+    await time.increase(time.duration.days(cover.period));
+
+    await quotation.expireCover(expectedCoverId);
+
+    const ethSumAssured = await quotationData.getTotalSumAssured(hex('ETH'));
+    assert.equal(ethSumAssured.toString(), '0');
+
+    await mcr.updateMCR();
+
+    const desireMCRAfterCoverExpiry = await mcr.desiredMCR();
+    assert.equal(desireMCRAfterCoverExpiry.toString(), mcrFloorAfter.toString());
   });
 });

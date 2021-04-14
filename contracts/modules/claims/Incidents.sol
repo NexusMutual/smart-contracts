@@ -33,8 +33,7 @@ contract Incidents is MasterAware {
   struct Incident {
     address productId;
     uint32 date;
-    uint112 priceBefore;
-    uint112 priceAfter;
+    uint priceBefore;
   }
 
   // contract identifiers
@@ -71,8 +70,7 @@ contract Incidents is MasterAware {
   event IncidentAdded(
     address indexed productId,
     uint incidentDate,
-    uint priceBefore,
-    uint priceAfter
+    uint priceBefore
   );
 
   modifier onlyAdvisoryBoard {
@@ -109,8 +107,8 @@ contract Incidents is MasterAware {
     for (uint i = 0; i < _productIds.length; i++) {
       address id = _productIds[i];
 
-      require(coveredToken[id] == address(0), "");
-      require(underlyingToken[id] == address(0), "");
+      require(coveredToken[id] == address(0), "Incidents: covered token is already set");
+      require(underlyingToken[id] == address(0), "Incidents: underlying token is already set");
 
       coveredToken[id] = _coveredTokens[i];
       underlyingToken[id] = _underlyingTokens[i];
@@ -121,25 +119,16 @@ contract Incidents is MasterAware {
   function addIncident(
     address productId,
     uint incidentDate,
-    uint priceBefore,
-    uint priceAfter
-  ) external onlyGovernance {
-
-    require(priceBefore > priceAfter, "Incidents: No depeg");
+    uint priceBefore
+  ) external onlyAdvisoryBoard {
 
     address underlying = underlyingToken[productId];
     require(underlying != address(0), "Incidents: Unsupported product");
 
-    Incident memory incident = Incident(
-      productId,
-      uint32(incidentDate),
-      uint112(priceBefore),
-      uint112(priceAfter)
-    );
-
+    Incident memory incident = Incident(productId, uint32(incidentDate), priceBefore);
     incidents.push(incident);
 
-    emit IncidentAdded(productId, incidentDate, priceBefore, priceAfter);
+    emit IncidentAdded(productId, incidentDate, priceBefore);
   }
 
   function redeemPayout(
@@ -210,7 +199,15 @@ contract Incidents is MasterAware {
       claimPayout[claimId] = payoutAmount;
     }
 
-    _sendPayoutAndPushBurn(incident.productId, address(uint160(coverOwner)), coveredTokenAmount, payoutAmount);
+    address coverAsset = claimsReward().getCurrencyAssetAddress(currency);
+
+    _sendPayoutAndPushBurn(
+      incident.productId,
+      address(uint160(coverOwner)),
+      coveredTokenAmount,
+      coverAsset,
+      payoutAmount
+    );
 
     qd.subFromTotalSumAssured(currency, sumAssured);
     qd.subFromTotalSumAssuredSC(incident.productId, currency, sumAssured);
@@ -259,16 +256,12 @@ contract Incidents is MasterAware {
     address productId,
     address payable coverOwner,
     uint coveredTokenAmount,
+    address coverAsset,
     uint payoutAmount
   ) internal {
 
-    address _underlyingToken = underlyingToken[productId];
     address _coveredToken = coveredToken[productId];
     address payable payoutAddress = memberRoles().getClaimPayoutAddress(coverOwner);
-
-    // // note: technically this check should have happened at cover purchase time
-    // address coverCurrencyAddress = claimsReward().getCurrencyAssetAddress(currency);
-    // require(coverCurrencyAddress == _underlyingToken, "Incidents: Cover asset != underlying asset");
 
     // pull depeged tokens
     IERC20(_coveredToken).safeTransferFrom(msg.sender, address(this), coveredTokenAmount);
@@ -276,13 +269,16 @@ contract Incidents is MasterAware {
     Pool p1 = pool();
 
     // send the payoutAmount
-    bool success = p1.sendClaimPayout(_underlyingToken, payoutAddress, payoutAmount);
-    require(success, "Incidents: Payout failed");
+    {
+      bool success = p1.sendClaimPayout(coverAsset, payoutAddress, payoutAmount);
+      require(success, "Incidents: Payout failed");
+    }
 
     // burn
     uint decimalPrecision = 1e18;
-    uint assetPerNxm = p1.getTokenPrice(_underlyingToken);
-    uint burnAmount = payoutAmount.mul(decimalPrecision).div(assetPerNxm);
+    uint assetPerNxm = p1.getTokenPrice(coverAsset);
+    uint maxBurnAmount = payoutAmount.mul(decimalPrecision).div(assetPerNxm);
+    uint burnAmount = maxBurnAmount.mul(BURN_RATE).div(100);
 
     accumulatedBurn[productId] = accumulatedBurn[productId].add(burnAmount);
   }

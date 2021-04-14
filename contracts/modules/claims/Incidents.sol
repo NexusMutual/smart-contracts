@@ -229,12 +229,11 @@ contract Incidents is MasterAware {
     ps.processPendingActions(iterations);
   }
 
-  function withdrawAsset(
-    address asset,
-    address destination,
-    uint amount
-  ) external onlyGovernance {
-    IERC20(asset).safeTransfer(destination, amount);
+  function withdrawAsset(address asset, uint amount) external onlyGovernance {
+    IERC20 token = IERC20(asset);
+    uint balance = token.balanceOf(address(this));
+    uint transferAmount = amount > balance ? balance : amount;
+    token.safeTransfer(TREASURY, transferAmount);
   }
 
   function _getCoverDetails(QuotationData qd, uint coverId) internal view returns (

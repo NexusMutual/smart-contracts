@@ -44,11 +44,10 @@ contract Incidents is MasterAware {
 
   Incident[] public incidents;
 
-  // TODO: forward support for multiple cover assets
-  // protocol identifier/address => underlying token (ex. yDAI -> DAI)
+  // product id => underlying token (ex. yDAI -> DAI)
   mapping(address => address) public underlyingToken;
 
-  // protocol identifier/address => covered token
+  // product id => covered token (ex. 0xc7ed.....1 -> yDAI)
   mapping(address => address) public coveredToken;
 
   // claim id => payout amount
@@ -56,6 +55,12 @@ contract Incidents is MasterAware {
 
   // product id => acumulated burn amount
   mapping(address => uint) public accumulatedBurn;
+
+  // address to send the depegged tokens
+  address public TREASURY;
+
+  // burn percentage, ex 20 for 20%
+  uint public BURN_RATE;
 
   event TokenSet(
     address indexed productId,
@@ -70,20 +75,35 @@ contract Incidents is MasterAware {
     uint priceAfter
   );
 
-  function setTokens(
+  modifier onlyAdvisoryBoard {
+    uint abRole = uint(MemberRoles.Role.AdvisoryBoard);
+    require(
+      memberRoles().checkRole(msg.sender, abRole),
+      "Incidents: Caller is not an advisory board member"
+    );
+    _;
+  }
+
+  function initialize(address treasury, uint burnRate) external {
+    require(TREASURY == address(0), "Already initialized");
+    TREASURY = treasury;
+    BURN_RATE = burnRate;
+  }
+
+  function addProducts(
     address[] calldata _productIds,
     address[] calldata _coveredTokens,
     address[] calldata _underlyingTokens
-  ) external onlyGovernance {
+  ) external onlyAdvisoryBoard {
 
     require(
       _productIds.length == _coveredTokens.length,
-      "Incidents: protocols and covered tokens lengths differ"
+      "Incidents: Protocols and covered tokens lengths differ"
     );
 
     require(
       _productIds.length == _underlyingTokens.length,
-      "Incidents: protocols and underyling tokens lengths differ"
+      "Incidents: Protocols and underyling tokens lengths differ"
     );
 
     for (uint i = 0; i < _productIds.length; i++) {
@@ -293,7 +313,28 @@ contract Incidents is MasterAware {
   }
 
   function pooledStaking() internal view returns (IPooledStaking) {
-    return IPooledStaking(contracts[uint(ID.PS)]);
+    return IPooledStaking(internalContracts[uint(ID.PS)]);
+  }
+
+  function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
+
+    if (code == "BURNRATE") {
+      require(value <= 100, "Incidents: Burn rate cannot exceed 100");
+      BURN_RATE = value;
+      return;
+    }
+
+    revert("Incidents: Invalid parameter");
+  }
+
+  function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
+
+    if (code == "TREASURY") {
+      TREASURY = value;
+      return;
+    }
+
+    revert("Incidents: Invalid parameter");
   }
 
   function changeDependentContractAddress() external {

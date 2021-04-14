@@ -29,6 +29,7 @@ const coverTemplate = {
 };
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+const ratioScale = toBN(10000);
 
 describe.only('updateMCR', function () {
 
@@ -155,10 +156,8 @@ describe.only('updateMCR', function () {
     );
   });
 
-  it.only('updateMCR increases desiredMCR if totalSumAssured is high enough', async function () {
+  it('updateMCR increases desiredMCR if totalSumAssured is high enough', async function () {
     const { p1: pool, mcr } = this.contracts;
-
-    const ratioScale = toBN(10000);
 
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
@@ -188,36 +187,20 @@ describe.only('updateMCR', function () {
     assert.equal(desireMCRAfter.toString(), expectedDesiredMCR.toString());
   });
 
-  it('updateMCR increases desiredMCR if totalSumAssured is high enough and subseqeuntly decreases it when totalSumAssured decreases', async function () {
+  it('updateMCR increases desiredMCR if totalSumAssured is high enough and subsequently decreases to mcrFloor it when totalSumAssured falls to 0', async function () {
     const { p1: pool, mcr, qt: quotation, qd: quotationData } = this.contracts;
 
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
-    const coverAmount = gearingFactor.mul(currentMCR).add(ether('10')).div(ether('1'));
+    const coverAmount = gearingFactor.mul(currentMCR).add(ether('10')).div(ether('1')).div(ratioScale);
     const cover = { ...coverTemplate, amount: coverAmount };
 
     await buyCover({ ...this.contracts, cover, coverHolder });
     const expectedCoverId = 1;
 
-    const lastUpdateTimeBefore = await mcr.lastUpdateTime();
     await time.increase(await mcr.minUpdateTime());
 
-    const mcrFloorBefore = await mcr.mcrFloor();
-
-    const tx = await mcr.updateMCR();
-    const block = await web3.eth.getBlock(tx.receipt.blockNumber);
-    const lastUpdateTimeAfter = await mcr.lastUpdateTime();
-    const mcrFloorAfter = await mcr.mcrFloor();
-    const desireMCRAfterCoverPurchase = await mcr.desiredMCR();
-    const expectedDesiredMCR = coverAmount.div(gearingFactor);
-
-    assert(lastUpdateTimeBefore.lt(lastUpdateTimeAfter));
-    assert.equal(lastUpdateTimeAfter.toString(), block.timestamp.toString());
-    assert(
-      mcrFloorAfter.gt(mcrFloorBefore),
-      `MCR floor post update ${mcrFloorAfter.toString()} is not greater than before ${mcrFloorBefore.toString()}`,
-    );
-    assert.equal(desireMCRAfterCoverPurchase.toString(), expectedDesiredMCR.toString());
+    await mcr.updateMCR();
 
     await time.increase(time.duration.days(cover.period));
 
@@ -227,8 +210,13 @@ describe.only('updateMCR', function () {
     assert.equal(ethSumAssured.toString(), '0');
 
     await mcr.updateMCR();
+    const mcrFloorAfter = await mcr.mcrFloor();
 
-    const desireMCRAfterCoverExpiry = await mcr.desiredMCR();
-    assert.equal(desireMCRAfterCoverExpiry.toString(), mcrFloorAfter.toString());
+    const mcrAfterCoverExpiry = await mcr.desiredMCR();
+    assert.equal(mcrAfterCoverExpiry.toString(), mcrFloorAfter.toString());
+  });
+
+  it('updateMCR does not change mcrFloor by more than 1% after 1+ days pass', async function () {
+
   });
 });

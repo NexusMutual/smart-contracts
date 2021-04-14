@@ -144,10 +144,14 @@ contract MCR is Iupgradable {
     if (!forceUpdate && _lastUpdateTime + _minUpdateTime > now) {
       return;
     }
+
     if (now > _lastUpdateTime && pool.calculateMCRRatio(poolValueInEth, _mcr) >= _mcrFloorIncrementThreshold) {
         // MCR floor updates by up to maxMCRFloorIncrement percentage per day whenever the MCR ratio exceeds 1.3
         // MCR floor is monotonically increasing.
-      uint percentageAdjustment = _maxMCRFloorIncrement.mul(now - _lastUpdateTime).div(1 days);
+      uint percentageAdjustment = min(
+        _maxMCRFloorIncrement.mul(now - _lastUpdateTime).div(1 days),
+        _maxMCRFloorIncrement
+      );
       uint newMCRFloor = _mcrFloor.mul(percentageAdjustment.add(10000)).div(10000);
       require(newMCRFloor <= uint112(~0), 'MCR: newMCRFloor overflow');
 

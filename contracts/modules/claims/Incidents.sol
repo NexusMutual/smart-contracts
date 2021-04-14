@@ -40,7 +40,7 @@ contract Incidents is MasterAware {
   // contract identifiers
   enum ID {CD, CR, QD, TC, MR, P1, PS}
 
-  mapping(uint => address payable) public contracts;
+  mapping(uint => address payable) public internalContracts;
 
   Incident[] public incidents;
 
@@ -269,27 +269,27 @@ contract Incidents is MasterAware {
   }
 
   function claimsData() internal view returns (ClaimsData) {
-    return ClaimsData(contracts[uint(ID.CD)]);
+    return ClaimsData(internalContracts[uint(ID.CD)]);
   }
 
   function claimsReward() internal view returns (ClaimsReward) {
-    return ClaimsReward(contracts[uint(ID.CR)]);
+    return ClaimsReward(internalContracts[uint(ID.CR)]);
   }
 
   function quotationData() internal view returns (QuotationData) {
-    return QuotationData(contracts[uint(ID.QD)]);
+    return QuotationData(internalContracts[uint(ID.QD)]);
   }
 
   function tokenController() internal view returns (TokenController) {
-    return TokenController(contracts[uint(ID.TC)]);
+    return TokenController(internalContracts[uint(ID.TC)]);
   }
 
   function memberRoles() internal view returns (MemberRoles) {
-    return MemberRoles(contracts[uint(ID.MR)]);
+    return MemberRoles(internalContracts[uint(ID.MR)]);
   }
 
   function pool() internal view returns (Pool) {
-    return Pool(contracts[uint(ID.P1)]);
+    return Pool(internalContracts[uint(ID.P1)]);
   }
 
   function pooledStaking() internal view returns (IPooledStaking) {
@@ -298,13 +298,13 @@ contract Incidents is MasterAware {
 
   function changeDependentContractAddress() external {
     INXMMaster master = INXMMaster(master);
-    contracts[uint(ID.CD)] = master.getLatestAddress("CD");
-    contracts[uint(ID.CR)] = master.getLatestAddress("CR");
-    contracts[uint(ID.QD)] = master.getLatestAddress("QD");
-    contracts[uint(ID.TC)] = master.getLatestAddress("TC");
-    contracts[uint(ID.MR)] = master.getLatestAddress("MR");
-    contracts[uint(ID.P1)] = master.getLatestAddress("P1");
-    contracts[uint(ID.PS)] = master.getLatestAddress("PS");
+    internalContracts[uint(ID.CD)] = master.getLatestAddress("CD");
+    internalContracts[uint(ID.CR)] = master.getLatestAddress("CR");
+    internalContracts[uint(ID.QD)] = master.getLatestAddress("QD");
+    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
+    internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
+    internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
   }
 
 }

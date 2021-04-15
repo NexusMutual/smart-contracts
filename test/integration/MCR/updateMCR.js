@@ -152,7 +152,7 @@ describe('updateMCR', function () {
 
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
-    const coverAmount = gearingFactor.mul(currentMCR).add(ether('10')).div(ether('1')).div(ratioScale);
+    const coverAmount = gearingFactor.mul(currentMCR.add(ether('300'))).div(ether('1')).div(ratioScale);
     const cover = { ...coverTemplate, amount: coverAmount };
 
     await buyCover({ ...this.contracts, cover, coverHolder });
@@ -183,7 +183,7 @@ describe('updateMCR', function () {
 
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
-    const coverAmount = gearingFactor.mul(currentMCR).add(ether('10')).div(ether('1')).div(ratioScale);
+    const coverAmount = gearingFactor.mul(currentMCR.add(ether('300'))).div(ether('1')).div(ratioScale);
     const cover = { ...coverTemplate, amount: coverAmount };
 
     await buyCover({ ...this.contracts, cover, coverHolder });

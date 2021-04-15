@@ -31,7 +31,7 @@ const coverTemplate = {
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 const ratioScale = toBN(10000);
 
-describe.only('updateMCR', function () {
+describe('updateMCR', function () {
 
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
@@ -128,7 +128,7 @@ describe.only('updateMCR', function () {
     );
   });
 
-  it('updateMCR increases mcrFloor and decreases desiredMCR if minUpdateTime has passed', async function () {
+  it('increases mcrFloor and decreases desiredMCR (0 sumAssured) if minUpdateTime has passed', async function () {
     const { p1: pool, mcr } = this.contracts;
 
     const lastUpdateTimeBefore = await mcr.lastUpdateTime();
@@ -156,7 +156,7 @@ describe.only('updateMCR', function () {
     );
   });
 
-  it('updateMCR increases desiredMCR if totalSumAssured is high enough', async function () {
+  it('increases desiredMCR if totalSumAssured is high enough', async function () {
     const { p1: pool, mcr } = this.contracts;
 
     const gearingFactor = await mcr.gearingFactor();
@@ -187,7 +187,7 @@ describe.only('updateMCR', function () {
     assert.equal(desireMCRAfter.toString(), expectedDesiredMCR.toString());
   });
 
-  it('updateMCR increases desiredMCR if totalSumAssured is high enough and subsequently decreases to mcrFloor it when totalSumAssured falls to 0', async function () {
+  it('increases desiredMCR if totalSumAssured is high enough and subsequently decreases to mcrFloor it when totalSumAssured falls to 0', async function () {
     const { p1: pool, mcr, qt: quotation, qd: quotationData } = this.contracts;
 
     const gearingFactor = await mcr.gearingFactor();
@@ -216,7 +216,18 @@ describe.only('updateMCR', function () {
     assert.equal(mcrAfterCoverExpiry.toString(), mcrFloorAfter.toString());
   });
 
-  it('updateMCR does not change mcrFloor by more than 1% after 1+ days pass', async function () {
+  it('increases mcrFloor by 1% after 2 days pass', async function () {
+    const { mcr } = this.contracts;
 
+    const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
+
+    const previousMCRFloor = await mcr.mcrFloor();
+    await time.increase(time.duration.days(2));
+    await mcr.updateMCR();
+
+    const currentMCRFloor = await mcr.mcrFloor();
+
+    const expectedMCRFloor = previousMCRFloor.mul(ratioScale.add(maxMCRFloorIncrement)).divn(ratioScale);
+    assert.equal(currentMCRFloor.toString(), expectedMCRFloor.toString());
   });
 });

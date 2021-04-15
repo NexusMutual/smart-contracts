@@ -1,21 +1,13 @@
 const { accounts, web3 } = require('hardhat');
-const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
+const { ether, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const Decimal = require('decimal.js');
 const { toBN } = web3.utils;
 
-const {
-  calculateEthForNXMRelativeError,
-  calculateNXMForEthRelativeError,
-  calculateMCRRatio,
-  getTokenSpotPrice,
-} = require('../utils').tokenPrice;
-
-const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
+const { enrollMember } = require('../utils/enroll');
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
 
-const [, member1, member2, member3, member4, member5, coverHolder, nonMember1, payoutAddress] = accounts;
+const [, member1, member2, member3, member4, member5, coverHolder] = accounts;
 
 const coverTemplate = {
   amount: 1, // 1 eth
@@ -28,10 +20,9 @@ const coverTemplate = {
   contractAddress: '0xc0ffeec0ffeec0ffeec0ffeec0ffeec0ffee0000',
 };
 
-const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 const ratioScale = toBN(10000);
 
-describe.only('getMCR', function () {
+describe('getMCR', function () {
 
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
@@ -54,8 +45,8 @@ describe.only('getMCR', function () {
     assert.equal(currentMCR.toString(), storageMCR.toString());
   });
 
-  it.only('increases mcr towards by 0.4% after 2 hours', async function () {
-    const { p1: pool, mcr } = this.contracts;
+  it('increases mcr towards by 0.4% in 2 hours and then decreases by 0.4% in 2 hours it after cover expiry', async function () {
+    const { mcr, qt: quotation } = this.contracts;
 
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
@@ -63,25 +54,42 @@ describe.only('getMCR', function () {
     const cover = { ...coverTemplate, amount: coverAmount };
 
     await buyCover({ ...this.contracts, cover, coverHolder });
+    const expectedCoverId = 1;
 
     await time.increase(await mcr.minUpdateTime());
     await mcr.updateMCR();
 
-    const desireMCR = await mcr.desiredMCR();
-    console.log({
-      desireMCR: desireMCR.toString(),
-    });
+    {
+      const passedTime = time.duration.hours(2);
+      await time.increase(passedTime);
 
-    const passedTime = time.duration.hours(2);
-    await time.increase(passedTime);
+      const storedMCR = await mcr.mcr();
+      const latestMCR = await mcr.getMCR();
 
-    const storedMCR = await mcr.mcr();
-    const latestMCR = await mcr.getMCR();
+      const maxMCRIncrement = await mcr.maxMCRIncrement();
+      const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(time.duration.days(1));
 
-    const maxMCRIncrement = await mcr.maxMCRIncrement();
-    const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(time.duration.days(1));
+      const expectedMCR = storedMCR.mul(expectedPercentageIncrease).divn(10000).add(storedMCR);
+      assert.equal(latestMCR.toString(), expectedMCR.toString());
+    }
 
-    const expectedMCR = storedMCR.mul(expectedPercentageIncrease).divn(10000).add(storedMCR);
-    assert.equal(latestMCR.toString(), expectedMCR.toString());
+    await time.increase(time.duration.days(cover.period));
+
+    await quotation.expireCover(expectedCoverId);
+    await mcr.updateMCR();
+
+    {
+      const passedTime = time.duration.hours(2);
+      await time.increase(passedTime);
+
+      const storedMCR = await mcr.mcr();
+      const latestMCR = await mcr.getMCR();
+
+      const maxMCRIncrement = await mcr.maxMCRIncrement();
+      const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(time.duration.days(1));
+
+      const expectedMCR = storedMCR.sub(storedMCR.mul(expectedPercentageIncrease).divn(10000));
+      assert.equal(latestMCR.toString(), expectedMCR.toString());
+    }
   });
 });

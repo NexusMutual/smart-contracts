@@ -15,7 +15,7 @@ const DEFAULT_MCR_PARAMS = {
   minUpdateTime: '3600',
 };
 
-describe.only('getMCR', function () {
+describe('getMCR', function () {
 
   it('should return the stored MCR value if MCR == desiredMCR', async function () {
     const { master } = this;
@@ -29,7 +29,7 @@ describe.only('getMCR', function () {
     assert.equal(newestMCR.toString(), storedMCR.toString());
   });
 
-  it('should increase MCR by MAX_PERCENTAGE_ADJUSTMENT towards the higher desired MCR if 12 hours pass', async function () {
+  it('increases MCR by MAX_PERCENTAGE_ADJUSTMENT towards the higher desired MCR if 12 hours pass', async function () {
     const { master } = this;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: ether('160000'), master });
@@ -43,7 +43,7 @@ describe.only('getMCR', function () {
     assert.equal(newestMCR.toString(), expectedMCR.toString());
   });
 
-  it('should decrease MCR by MAX_PERCENTAGE_ADJUSTMENT towards the lower desired MCR if 12 hours pass', async function () {
+  it('decreases MCR by MAX_PERCENTAGE_ADJUSTMENT towards the lower desired MCR if 12 hours pass', async function () {
     const { master } = this;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: ether('140000'), master });
@@ -57,7 +57,7 @@ describe.only('getMCR', function () {
     assert.equal(newestMCR.toString(), expectedMCR.toString());
   });
 
-  it('should increase MCR by 0.4% towards higher desired MCR if 2 hour pass', async function () {
+  it('increases MCR by 0.4% towards higher desired MCR if 2 hour pass', async function () {
     const { master } = this;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: ether('160000'), master });
@@ -74,7 +74,7 @@ describe.only('getMCR', function () {
     assert.equal(newestMCR.toString(), expectedMCR.toString());
   });
 
-  it('should increase MCR by 0.8% towards higher desired MCR if 4 hour pass', async function () {
+  it('increases MCR by 0.8% towards higher desired MCR if 4 hour pass', async function () {
     const { master } = this;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: ether('160000'), master });
@@ -88,6 +88,50 @@ describe.only('getMCR', function () {
     const maxMCRIncrement = await mcr.maxMCRIncrement();
     const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(time.duration.days(1));
     const expectedMCR = storedMCR.mul(expectedPercentageIncrease).divn(10000).add(storedMCR);
+    assert.equal(newestMCR.toString(), expectedMCR.toString());
+  });
+
+  it('decreases MCR by 0.4% towards lower desired MCR if 2 hours pass', async function () {
+    const { master } = this;
+
+    const mcr = await initMCR({
+      ...DEFAULT_MCR_PARAMS,
+      mcrFloor: ether('130000'),
+      desiredMCR: ether('130000'),
+      master,
+    });
+
+    const passedTime = time.duration.hours(2);
+    await time.increase(passedTime);
+
+    const storedMCR = await mcr.mcr();
+    const newestMCR = await mcr.getMCR();
+
+    const maxMCRIncrement = await mcr.maxMCRIncrement();
+    const expectedPercentageDecrease = maxMCRIncrement.mul(passedTime).div(time.duration.days(1));
+    const expectedMCR = storedMCR.sub(storedMCR.mul(expectedPercentageDecrease).divn(10000));
+    assert.equal(newestMCR.toString(), expectedMCR.toString());
+  });
+
+  it('decreases MCR by 0.8% towards lower desired MCR if 4 hours pass', async function () {
+    const { master } = this;
+
+    const mcr = await initMCR({
+      ...DEFAULT_MCR_PARAMS,
+      mcrFloor: ether('130000'),
+      desiredMCR: ether('130000'),
+      master,
+    });
+
+    const passedTime = time.duration.hours(4);
+    await time.increase(passedTime);
+
+    const storedMCR = await mcr.mcr();
+    const newestMCR = await mcr.getMCR();
+
+    const maxMCRIncrement = await mcr.maxMCRIncrement();
+    const expectedPercentageDecrease = maxMCRIncrement.mul(passedTime).div(time.duration.days(1));
+    const expectedMCR = storedMCR.sub(storedMCR.mul(expectedPercentageDecrease).divn(10000));
     assert.equal(newestMCR.toString(), expectedMCR.toString());
   });
 });

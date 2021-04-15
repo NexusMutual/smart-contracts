@@ -30,6 +30,8 @@ const coverTemplate = {
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
+const ratioScale = toBN(10000);
+
 describe('Token price functions', function () {
 
   beforeEach(async function () {
@@ -108,10 +110,7 @@ describe('Token price functions', function () {
 
     const member = member1;
     const preBuyBalance = await token.balanceOf(member);
-    const tx = await pool.buyNXM(expectedTokensReceived, { from: member, value: buyValue });
-    console.log({
-      gasUsed: tx.receipt.gasUsed,
-    });
+    await pool.buyNXM(expectedTokensReceived, { from: member, value: buyValue });
 
     const postBuyBalance = await token.balanceOf(member);
     const tokensReceived = postBuyBalance.sub(preBuyBalance);
@@ -159,14 +158,14 @@ describe('Token price functions', function () {
     );
   });
 
-  it('buyNXM token price reflects the latest MCR posting (lower MCReth -> higher price)', async function () {
+  it('buyNXM token price reflects the latest lower MCR value (lower MCReth -> higher price)', async function () {
     const { p1: pool, mcr, pd } = this.contracts;
 
     const ETH = await pool.ETH();
     const buyValue = ether('1000');
     const expectedNXMOutPreMCRPosting = await pool.getNXMForEth(buyValue);
     const spotTokenPricePreMCRPosting = await pool.getTokenPrice(ETH);
-    const currentPoolValue = await pool.getPoolValueInEth();
+    await pool.getPoolValueInEth();
 
     // trigger an MCR update and post a lower MCR since lowering the price (higher MCR percentage)
     const minUpdateTime = await mcr.minUpdateTime();
@@ -188,6 +187,47 @@ describe('Token price functions', function () {
     assert(
       expectedNXMOutPostMCRPosting.lt(expectedNXMOutPreMCRPosting),
       `Expected to receive less tokens than ${expectedNXMOutPreMCRPosting.toString()} at a lower mcrEth.
+       Receiving: ${expectedNXMOutPostMCRPosting.toString()}`,
+    );
+  });
+
+  it('buyNXM token price reflects the latest higher MCR value (higher MCReth -> lower price)', async function () {
+    const { p1: pool, mcr, pd } = this.contracts;
+
+    const ETH = await pool.ETH();
+    const buyValue = ether('1000');
+    const expectedNXMOutPreMCRPosting = await pool.getNXMForEth(buyValue);
+    const spotTokenPricePreMCRPosting = await pool.getTokenPrice(ETH);
+    await pool.getPoolValueInEth();
+
+    const gearingFactor = await mcr.gearingFactor();
+    const currentMCR = await mcr.getMCR();
+    const coverAmount = gearingFactor.mul(currentMCR.add(ether('300'))).div(ether('1')).div(ratioScale);
+    const cover = { ...coverTemplate, amount: coverAmount };
+
+    // increase totalSumAssured to trigger MCR increase
+    await buyCover({ ...this.contracts, cover, coverHolder });
+
+    // trigger an MCR update and post a lower MCR since lowering the price (higher MCR percentage)
+    const minUpdateTime = await mcr.minUpdateTime();
+    await time.increase(minUpdateTime.addn(1));
+
+    // perform a buy with a negligible amount of ETH
+    await pool.buyNXM('0', { from: member1, value: '1' });
+    // let time pass so that mcr increases towards desired MCR
+    await time.increase(time.duration.hours(6));
+
+    const spotTokenPricePostMCRPosting = await pool.getTokenPrice(ETH);
+    const expectedNXMOutPostMCRPosting = await pool.getNXMForEth(buyValue);
+
+    assert(
+      spotTokenPricePostMCRPosting.lt(spotTokenPricePreMCRPosting),
+      `Expected token price to be lower than ${spotTokenPricePreMCRPosting.toString()} at a higher mcrEth.
+       Price: ${spotTokenPricePostMCRPosting.toString()}`,
+    );
+    assert(
+      expectedNXMOutPostMCRPosting.gt(expectedNXMOutPreMCRPosting),
+      `Expected to receive more tokens than ${expectedNXMOutPreMCRPosting.toString()} at a higher mcrEth.
        Receiving: ${expectedNXMOutPostMCRPosting.toString()}`,
     );
   });

@@ -1,4 +1,4 @@
-describe.only('MCR integration tests', function () {
+describe('MCR integration tests', function () {
 
   require('./getAllSumAssurance');
   require('./getters');

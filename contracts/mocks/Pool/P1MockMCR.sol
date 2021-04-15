@@ -22,7 +22,7 @@ contract P1MockMCR {
         return mcr;
     }
 
-    function changeMasterAddress(address _masterAddress) external {
+    function changeMasterAddress(address) external {
         // no-op
     }
 
@@ -34,7 +34,11 @@ contract P1MockMCR {
         mcr = _mcr;
     }
 
-    function updateMCR(uint poolValueInEth) external {
+    function updateMCR(uint) external {
+        // no-op
+    }
+
+    function updateMCRInternal(uint, bool) public {
         // no-op
     }
 }

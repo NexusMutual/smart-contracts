@@ -1,21 +1,13 @@
 const { accounts, web3 } = require('hardhat');
-const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
+const { ether, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const Decimal = require('decimal.js');
 const { toBN } = web3.utils;
 
-const {
-  calculateEthForNXMRelativeError,
-  calculateNXMForEthRelativeError,
-  calculateMCRRatio,
-  getTokenSpotPrice,
-} = require('../utils').tokenPrice;
-
-const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
+const { enrollMember } = require('../utils/enroll');
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
 
-const [, member1, member2, member3, member4, member5, coverHolder, nonMember1, payoutAddress] = accounts;
+const [, member1, member2, member3, member4, member5, coverHolder] = accounts;
 
 const coverTemplate = {
   amount: 1, // 1 eth
@@ -28,7 +20,6 @@ const coverTemplate = {
   contractAddress: '0xc0ffeec0ffeec0ffeec0ffeec0ffeec0ffee0000',
 };
 
-const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 const ratioScale = toBN(10000);
 
 describe('updateMCR', function () {
@@ -129,7 +120,7 @@ describe('updateMCR', function () {
   });
 
   it('increases mcrFloor and decreases desiredMCR (0 sumAssured) if minUpdateTime has passed', async function () {
-    const { p1: pool, mcr } = this.contracts;
+    const { mcr } = this.contracts;
 
     const lastUpdateTimeBefore = await mcr.lastUpdateTime();
 
@@ -157,7 +148,7 @@ describe('updateMCR', function () {
   });
 
   it('increases desiredMCR if totalSumAssured is high enough', async function () {
-    const { p1: pool, mcr } = this.contracts;
+    const { mcr } = this.contracts;
 
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
@@ -188,7 +179,7 @@ describe('updateMCR', function () {
   });
 
   it('increases desiredMCR if totalSumAssured is high enough and subsequently decreases to mcrFloor it when totalSumAssured falls to 0', async function () {
-    const { p1: pool, mcr, qt: quotation, qd: quotationData } = this.contracts;
+    const { mcr, qt: quotation } = this.contracts;
 
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
@@ -205,9 +196,6 @@ describe('updateMCR', function () {
     await time.increase(time.duration.days(cover.period));
 
     await quotation.expireCover(expectedCoverId);
-
-    const ethSumAssured = await quotationData.getTotalSumAssured(hex('ETH'));
-    assert.equal(ethSumAssured.toString(), '0');
 
     await mcr.updateMCR();
     const mcrFloorAfter = await mcr.mcrFloor();

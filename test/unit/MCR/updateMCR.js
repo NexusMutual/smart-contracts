@@ -28,6 +28,8 @@ const DEFAULT_MCR_PARAMS = {
   minUpdateTime: '3600',
 };
 
+const ratioScale = toBN(10000);
+
 describe('updateMCR', function () {
 
   it('does not update if minUpdateTime has not passed', async function () {
@@ -230,6 +232,56 @@ describe('updateMCR', function () {
       await mcr.updateMCR();
       const desiredMCR = await mcr.desiredMCR();
       assert.equal(desiredMCR.toString(), DEFAULT_MCR_PARAMS.mcrFloor.toString());
+    }
+  });
+
+  it('increases mcrFloor by 1% after 2 days pass', async function () {
+    const { master, quotationData, pool } = this;
+
+    const poolValueInEth = ether('200000');
+    await pool.setPoolValueInEth(poolValueInEth);
+    const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
+
+    const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
+
+    const previousMCRFloor = await mcr.mcrFloor();
+    await time.increase(time.duration.days(2));
+    await mcr.updateMCR();
+
+    const currentMCRFloor = await mcr.mcrFloor();
+
+    const expectedMCRFloor = previousMCRFloor.mul(ratioScale.add(maxMCRFloorIncrement)).divn(ratioScale);
+    assert.equal(currentMCRFloor.toString(), expectedMCRFloor.toString());
+  });
+
+  it('increases mcrFloor by 1% on multiple updates that are 2 days apart', async function () {
+    const { master, quotationData, pool } = this;
+
+    const poolValueInEth = ether('200000');
+    await pool.setPoolValueInEth(poolValueInEth);
+    const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
+
+    const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
+    {
+      const previousMCRFloor = await mcr.mcrFloor();
+      await time.increase(time.duration.days(2));
+      await mcr.updateMCR();
+
+      const currentMCRFloor = await mcr.mcrFloor();
+
+      const expectedMCRFloor = previousMCRFloor.mul(ratioScale.add(maxMCRFloorIncrement)).divn(ratioScale);
+      assert.equal(currentMCRFloor.toString(), expectedMCRFloor.toString());
+    }
+
+    {
+      const previousMCRFloor = await mcr.mcrFloor();
+      await time.increase(time.duration.days(2));
+      await mcr.updateMCR();
+
+      const currentMCRFloor = await mcr.mcrFloor();
+
+      const expectedMCRFloor = previousMCRFloor.mul(ratioScale.add(maxMCRFloorIncrement)).divn(ratioScale);
+      assert.equal(currentMCRFloor.toString(), expectedMCRFloor.toString());
     }
   });
 });

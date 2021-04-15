@@ -73,4 +73,21 @@ describe.only('getMCR', function () {
     const expectedMCR = storedMCR.mul(expectedPercentageIncrease).divn(10000).add(storedMCR);
     assert.equal(newestMCR.toString(), expectedMCR.toString());
   });
+
+  it('should increase MCR by 0.8% towards higher desired MCR if 4 hour pass', async function () {
+    const { master } = this;
+
+    const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: ether('160000'), master });
+
+    const passedTime = time.duration.hours(4);
+    await time.increase(passedTime);
+
+    const storedMCR = await mcr.mcr();
+    const newestMCR = await mcr.getMCR();
+
+    const maxMCRIncrement = await mcr.maxMCRIncrement();
+    const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(time.duration.days(1));
+    const expectedMCR = storedMCR.mul(expectedPercentageIncrease).divn(10000).add(storedMCR);
+    assert.equal(newestMCR.toString(), expectedMCR.toString());
+  });
 });

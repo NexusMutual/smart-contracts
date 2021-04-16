@@ -6,16 +6,6 @@ const { hex } = require('../utils').helpers;
 const { toBN } = web3.utils;
 
 const accounts = require('../utils').accounts;
-const { MCRUintParamType } = require('../utils').constants;
-
-const {
-  nonMembers: [nonMember],
-  members: [member],
-  advisoryBoardMembers: [advisoryBoardMember],
-  internalContracts: [internalContract],
-  governanceContracts: [governanceContract],
-  generalPurpose: [generalPurpose],
-} = accounts;
 
 const DEFAULT_MCR_PARAMS = {
   mcrValue: ether('150000'),
@@ -42,7 +32,7 @@ describe('updateMCR', function () {
 
     const previousLastUpdateTime = await mcr.lastUpdateTime();
 
-    const tx = await mcr.updateMCR();
+    await mcr.updateMCR();
 
     const storedMCR = await mcr.mcr();
     const desiredMCR = await mcr.desiredMCR();
@@ -75,7 +65,6 @@ describe('updateMCR', function () {
 
     assert.equal(storedMCR.toString(), DEFAULT_MCR_PARAMS.mcrValue.toString());
     assert.equal(desiredMCR.toString(), DEFAULT_MCR_PARAMS.desiredMCR.toString());
-
     assert.equal(lastUpdateTime.toString(), block.timestamp.toString());
   });
 
@@ -236,7 +225,7 @@ describe('updateMCR', function () {
   });
 
   it('increases mcrFloor by 1% after 2 days pass', async function () {
-    const { master, quotationData, pool } = this;
+    const { master, pool } = this;
 
     const poolValueInEth = ether('200000');
     await pool.setPoolValueInEth(poolValueInEth);
@@ -255,7 +244,7 @@ describe('updateMCR', function () {
   });
 
   it('increases mcrFloor by 1% on multiple updates that are 2 days apart', async function () {
-    const { master, quotationData, pool } = this;
+    const { master, pool } = this;
 
     const poolValueInEth = ether('200000');
     await pool.setPoolValueInEth(poolValueInEth);
@@ -283,5 +272,43 @@ describe('updateMCR', function () {
       const expectedMCRFloor = previousMCRFloor.mul(ratioScale.add(maxMCRFloorIncrement)).divn(ratioScale);
       assert.equal(currentMCRFloor.toString(), expectedMCRFloor.toString());
     }
+  });
+
+  it('increases desiredMCR when mcrWithGear exceeds current MCR if MCR% < 100%', async function () {
+    const { master, quotationData, pool } = this;
+
+    const poolValueInEth = ether('120000');
+    await pool.setPoolValueInEth(poolValueInEth);
+    await quotationData.setTotalSumAssured(hex('ETH'), '800000');
+    const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
+
+    const minUpdateTime = await mcr.minUpdateTime();
+    await time.increase(minUpdateTime.addn(1));
+
+    await mcr.updateMCR();
+
+    const desiredMCR = await mcr.desiredMCR();
+
+    const totalSumAssured = await mcr.getAllSumAssurance();
+    const gearingFactor = await mcr.gearingFactor();
+    const expectedDesiredMCR = totalSumAssured.muln(10000).div(gearingFactor);
+    assert.equal(desiredMCR.toString(), expectedDesiredMCR.toString());
+  });
+
+  it('decreases desiredMCR towards mcrFloor when poolValueInEth = 0 and totalSumAssured = 0', async function () {
+    const { master, pool } = this;
+
+    const poolValueInEth = ether('120000');
+    await pool.setPoolValueInEth(poolValueInEth);
+    const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: ether('160000'), master });
+
+    const minUpdateTime = await mcr.minUpdateTime();
+    await time.increase(minUpdateTime.addn(1));
+
+    await mcr.updateMCR();
+
+    const desiredMCR = await mcr.desiredMCR();
+
+    assert.equal(desiredMCR.toString(), DEFAULT_MCR_PARAMS.mcrFloor.toString());
   });
 });

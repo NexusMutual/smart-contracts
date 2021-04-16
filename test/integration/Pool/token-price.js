@@ -159,7 +159,7 @@ describe('Token price functions', function () {
   });
 
   it('buyNXM token price reflects the latest lower MCR value (lower MCReth -> higher price)', async function () {
-    const { p1: pool, mcr, pd } = this.contracts;
+    const { p1: pool, mcr } = this.contracts;
 
     const ETH = await pool.ETH();
     const buyValue = ether('1000');
@@ -192,7 +192,7 @@ describe('Token price functions', function () {
   });
 
   it('buyNXM token price reflects the latest higher MCR value (higher MCReth -> lower price)', async function () {
-    const { p1: pool, mcr, pd } = this.contracts;
+    const { p1: pool, mcr } = this.contracts;
 
     const ETH = await pool.ETH();
     const buyValue = ether('1000');

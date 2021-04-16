@@ -29,12 +29,12 @@ describe('getMCR', function () {
     assert.equal(newestMCR.toString(), storedMCR.toString());
   });
 
-  it('increases MCR by MAX_PERCENTAGE_ADJUSTMENT towards the higher desired MCR if 12 hours pass', async function () {
+  it('increases MCR by MAX_PERCENTAGE_ADJUSTMENT towards the higher desired MCR if 24 hours pass', async function () {
     const { master } = this;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: ether('160000'), master });
 
-    await time.increase(time.duration.hours(12));
+    await time.increase(time.duration.hours(24));
 
     const storedMCR = await mcr.mcr();
     const newestMCR = await mcr.getMCR();
@@ -43,12 +43,12 @@ describe('getMCR', function () {
     assert.equal(newestMCR.toString(), expectedMCR.toString());
   });
 
-  it('decreases MCR by MAX_PERCENTAGE_ADJUSTMENT towards the lower desired MCR if 12 hours pass', async function () {
+  it('decreases MCR by MAX_PERCENTAGE_ADJUSTMENT towards the lower desired MCR if 24 hours pass', async function () {
     const { master } = this;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: ether('140000'), master });
 
-    await time.increase(time.duration.hours(12));
+    await time.increase(time.duration.hours(24));
 
     const storedMCR = await mcr.mcr();
     const newestMCR = await mcr.getMCR();
@@ -133,5 +133,31 @@ describe('getMCR', function () {
     const expectedPercentageDecrease = maxMCRIncrement.mul(passedTime).div(time.duration.days(1));
     const expectedMCR = storedMCR.sub(storedMCR.mul(expectedPercentageDecrease).divn(10000));
     assert.equal(newestMCR.toString(), expectedMCR.toString());
+  });
+
+  it('increases MCR to desiredMCR value if it is within 1% of stored mcr after 24 hours', async function () {
+    const { master } = this;
+
+    const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.muln(1008).divn(1000);
+    const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR, master });
+
+    await time.increase(time.duration.hours(24));
+
+    const newestMCR = await mcr.getMCR();
+
+    assert.equal(newestMCR.toString(), desiredMCR.toString());
+  });
+
+  it('decreases MCR to desiredMCR value if it is within 1% of stored mcr after 24 hours', async function () {
+    const { master } = this;
+
+    const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.muln(992).divn(1000);
+    const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR, master });
+
+    await time.increase(time.duration.hours(24));
+
+    const newestMCR = await mcr.getMCR();
+
+    assert.equal(newestMCR.toString(), desiredMCR.toString());
   });
 });

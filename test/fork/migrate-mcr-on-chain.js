@@ -20,10 +20,8 @@ const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const MemberRoles = artifacts.require('MemberRoles');
 const Pool = artifacts.require('Pool');
 const NXMaster = artifacts.require('NXMaster');
-const TemporaryNXMaster = artifacts.require('TemporaryNXMaster');
 const NXMToken = artifacts.require('NXMToken');
 const Governance = artifacts.require('Governance');
-const PoolData = artifacts.require('PoolData');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const Claims = artifacts.require('Claims');
 const ClaimsReward = artifacts.require('ClaimsReward');
@@ -78,7 +76,6 @@ describe.only('MCR on-chain migration', function () {
     const memberRoles = await MemberRoles.at(getAddressByCode('MR'));
     const governance = await Governance.at(getAddressByCode('GV'));
     const pool1 = await Pool.at(getAddressByCode('P1'));
-    const poolData = await PoolData.at(getAddressByCode('PD'));
     const oldMCR = await LegacyMCR.at(getAddressByCode('MC'));
 
     this.masterAddress = masterAddress;
@@ -86,9 +83,9 @@ describe.only('MCR on-chain migration', function () {
     this.memberRoles = memberRoles;
     this.governance = governance;
     this.oldPool = pool1;
-    this.poolData = poolData;
     this.oldMCR = oldMCR;
     this.getAddressByCode = getAddressByCode;
+    this.master = await NXMaster.at(masterAddress);
   });
 
   it('fetches board members and funds accounts', async function () {
@@ -106,19 +103,17 @@ describe.only('MCR on-chain migration', function () {
 
   it('upgrade contracts', async function () {
 
-    const { master, governance, voters, poolData, oldMCR, getAddressByCode, oldPool } = this;
+    const { governance, voters, oldMCR, getAddressByCode, oldPool, master } = this;
 
-    const oldPool1Address = getAddressByCode('P1');
-    const oldPool2Address = getAddressByCode('P2');
     const dai = await ERC20.at(Address.DAI);
 
-    const { vtp: poolValueBefore } = await oldMCR.calVtpAndMCRtp();
+    const poolValueBefore = await oldPool.getPoolValueInEth();
 
-    const p1EthBefore = await web3.eth.getBalance(oldPool1Address);
-    const p1DaiBefore = await dai.balanceOf(oldPool1Address);
+    const p1EthBefore = await web3.eth.getBalance(oldPool.address);
+    const p1DaiBefore = await dai.balanceOf(oldPool.address);
 
-    const tokenSpotPriceEthBefore = await oldPool.calculateTokenPrice(hex('ETH'));
-    const tokenSpotPriceDaiBefore = await oldPool.calculateTokenPrice(hex('DAI'));
+    const tokenSpotPriceEthBefore = await oldPool.getTokenPrice(Address.ETH);
+    const tokenSpotPriceDaiBefore = await oldPool.getTokenPrice(Address.DAI);
 
     /* MCR data */
     const previousVariableMincap = await oldMCR.variableMincap();
@@ -136,14 +131,12 @@ describe.only('MCR on-chain migration', function () {
     contracts/modules/cover/Quotation.sol
     */
 
-    const newTF = await TokenFunctions.new();
-    const newCL = await Claims.new();
     const newMCR = await MCR.new(master.address);
     const newClaimsReward = await ClaimsReward.new(master.address, Address.DAI);
     const newQuotation = await Quotation.new();
 
     console.log('Fetc price feed oracle');
-    const priceFeedOracle = { address: await oldPool.priceFeedOracle() };
+    const priceFeedOracle = await PriceFeedOracle.at(await oldPool.priceFeedOracle());
 
     console.log('Fetch twap oracle');
     const twapOracle = { address: await oldPool.twapOracle() };
@@ -178,15 +171,11 @@ describe.only('MCR on-chain migration', function () {
       governance,
     );
 
-    const storedTFAddress = await master.getLatestAddress(hex('TF'));
-    const storedCLAddress = await master.getLatestAddress(hex('CL'));
     const storedMCRAddress = await master.getLatestAddress(hex('MC'));
     const storedCRAddress = await master.getLatestAddress(hex('CR'));
     const storedQTAddress = await master.getLatestAddress(hex('QT'));
     const storedP1Address = await master.getLatestAddress(hex('P1'));
 
-    assert.equal(storedTFAddress, newTF.address);
-    assert.equal(storedCLAddress, newCL.address);
     assert.equal(storedCRAddress, newClaimsReward.address);
     assert.equal(storedQTAddress, newQuotation.address);
     assert.equal(storedMCRAddress, newMCR.address);
@@ -207,15 +196,10 @@ describe.only('MCR on-chain migration', function () {
     assert.equal(allSumAssurance.toString(), previousAllSumAssurance.toString());
 
     /* Check old pools' balances */
-    const oldPool1EthBalanceAfter = await web3.eth.getBalance(oldPool1Address);
-    const oldPool1DaiBalanceAfter = await dai.balanceOf(oldPool1Address);
+    const oldPool1EthBalanceAfter = await web3.eth.getBalance(oldPool.address);
+    const oldPool1DaiBalanceAfter = await dai.balanceOf(oldPool.address);
     assert.equal(oldPool1EthBalanceAfter.toString(), '0');
     assert.equal(oldPool1DaiBalanceAfter.toString(), '0');
-
-    const oldPool2EthBalanceAfter = await web3.eth.getBalance(oldPool2Address);
-    const oldPool2DaiBalanceAfter = await dai.balanceOf(oldPool2Address);
-    assert.equal(oldPool2EthBalanceAfter.toString(), '0');
-    assert.equal(oldPool2DaiBalanceAfter.toString(), '0');
 
     const poolEthAfter = await web3.eth.getBalance(pool.address);
     const poolDaiAfter = await dai.balanceOf(pool.address);
@@ -230,13 +214,10 @@ describe.only('MCR on-chain migration', function () {
     const tokenSpotPriceEthAfter = await pool.getTokenPrice(Address.ETH);
     const tokenSpotPriceDaiAfter = await pool.getTokenPrice(Address.DAI);
 
-    const { rate } = await poolData.getTokenPriceDetails(hex('DAI'));
-
     const priceFeedRate = await priceFeedOracle.getAssetToEthRate(Address.DAI);
     const poolValueAfter = await pool.getPoolValueInEth();
 
     console.log({
-      getCAAvgRate: rate.toString(),
       priceFeedRate: priceFeedRate.toString(),
       poolValueBefore: poolValueBefore.toString(),
       poolValueAfter: poolValueAfter.toString(),

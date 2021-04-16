@@ -52,7 +52,7 @@ async function setup () {
 
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
-  const INITIAL_SUPPLY = ether('1500000');
+  const INITIAL_SUPPLY = ether('15000000000');
 
   const deployProxy = async contract => {
     const implementation = await contract.new();

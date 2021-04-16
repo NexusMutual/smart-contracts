@@ -3,11 +3,12 @@ const { ether, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { toBN } = web3.utils;
 
-const { enrollMember } = require('../utils/enroll');
-const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
+const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
+const { buyCover } = require('../utils/buyCover');
+const { voteClaim } = require('../utils/voteClaim');
 
-const [, member1, member2, member3, member4, member5, coverHolder] = accounts;
+const [owner, member1, member2, member3, member4, member5, coverHolder] = accounts;
 
 const coverTemplate = {
   amount: 1, // 1 eth
@@ -26,14 +27,6 @@ describe('updateMCR', function () {
 
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
-
-    await enrollMember(this.contracts, [member4], {
-      initialTokens: ether('1000'),
-    });
-
-    await enrollMember(this.contracts, [member5], {
-      initialTokens: ether('500'),
-    });
   });
 
   it('buyNXM does not trigger updateMCR if minUpdateTime has not passed', async function () {
@@ -217,5 +210,44 @@ describe('updateMCR', function () {
 
     const expectedMCRFloor = previousMCRFloor.mul(ratioScale.add(maxMCRFloorIncrement)).divn(ratioScale);
     assert.equal(currentMCRFloor.toString(), expectedMCRFloor.toString());
+  });
+
+  it('claim payout triggers updateMCR and sets desiredMCR to mcrFloor (sumAssured = 0)', async function () {
+    const { mcr, cl: claims, tk: token, p1: pool } = this.contracts;
+
+    const gearingFactor = await mcr.gearingFactor();
+    const currentMCR = await mcr.getMCR();
+    const coverAmount = gearingFactor.mul(currentMCR.add(ether('300'))).div(ether('1')).div(ratioScale);
+
+    // fund pool to pay for cover
+    await pool.sendEther({ from: owner, value: coverAmount.mul(ether('1')) });
+
+    const cover = { ...coverTemplate, amount: coverAmount };
+    await buyCover({ ...this.contracts, cover, coverHolder });
+    const expectedCoverId = 1;
+    const expectedClaimId = 1;
+
+    await time.increase(await mcr.minUpdateTime());
+
+    await mcr.updateMCR();
+
+    await claims.submitClaim(expectedCoverId, {
+      from: coverHolder,
+    });
+
+    const lockTokens = ether('1000000000');
+    await token.transfer(member1, lockTokens, {
+      from: owner,
+    });
+    await enrollClaimAssessor(this.contracts, [member1], { lockTokens });
+    await voteClaim({ ...this.contracts, claimId: expectedClaimId, verdict: '1', voter: member1 });
+    const block = await web3.eth.getBlock('latest');
+    const expectedUpdateTime = block.timestamp;
+
+    const lastUpdateTime = await mcr.lastUpdateTime();
+    const mcrFloor = await mcr.mcrFloor();
+    const desiredMCR = await mcr.desiredMCR();
+    assert.equal(lastUpdateTime.toString(), expectedUpdateTime.toString());
+    assert.equal(desiredMCR.toString(), mcrFloor.toString());
   });
 });

@@ -8,7 +8,7 @@ const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { buyCover } = require('../utils/buyCover');
 const { voteClaim } = require('../utils/voteClaim');
 
-const [owner, member1, member2, member3, member4, member5, coverHolder] = accounts;
+const [owner, member1, member2, member3, coverHolder] = accounts;
 
 const coverTemplate = {
   amount: 1, // 1 eth

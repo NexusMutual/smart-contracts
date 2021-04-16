@@ -1,6 +1,6 @@
 const fetch = require('node-fetch');
 const { artifacts, web3, accounts, network } = require('hardhat');
-const { ether, expectRevert } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
 
 const { submitGovernanceProposal } = require('./utils');
@@ -44,6 +44,8 @@ const Address = {
   UNIFACTORY: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
   NXMHOLDER: '0xd7cba5b9a0240770cfd9671961dae064136fa240',
 };
+
+const ratioScale = toBN('10000');
 
 let isHardhat;
 const hardhatRequest = async (...params) => {
@@ -186,12 +188,12 @@ describe.only('MCR on-chain migration', function () {
     /* MCR parameters */
 
     const mcrFloor = await newMCR.mcrFloor();
-    const dynamicMincapThresholdx100 = await newMCR.mcrFloorIncrementThreshold();
+    const mcrFloorIncrementThreshold = await newMCR.mcrFloorIncrementThreshold();
     const maxMCRFloorIncrement = await newMCR.maxMCRFloorIncrement();
     const allSumAssurance = await newMCR.getAllSumAssurance();
 
     assert.equal(mcrFloor.toString(), previousVariableMincap.toString());
-    assert.equal(dynamicMincapThresholdx100.toString(), previousDynamicMincapThresholdx100.toString());
+    assert.equal(mcrFloorIncrementThreshold.toString(), previousDynamicMincapThresholdx100.toString());
     assert.equal(maxMCRFloorIncrement.toString(), previousDynamicMincapIncrementx100.toString());
     assert.equal(allSumAssurance.toString(), previousAllSumAssurance.toString());
 
@@ -252,9 +254,89 @@ describe.only('MCR on-chain migration', function () {
       relative error: ${relativeErrorDaiSpotPrice.toString()}`,
     );
 
+    const mcr = newMCR;
+    const lastUpdateTime = await mcr.lastUpdateTime();
+    const desiredMCR = await mcr.desiredMCR();
+    const storedMCR = await mcr.mcr();
+    const currentMCR = await mcr.getMCR();
+
+    console.log({
+      lastUpdateTime: lastUpdateTime.toString(),
+      desiredMCR: desiredMCR.toString(),
+      storedMCR: storedMCR.toString(),
+      currentMCR: currentMCR.toString(),
+      mcrFloor: mcrFloor.toString(),
+    });
+
     this.priceFeedOracle = priceFeedOracle;
     this.pool = pool;
     this.twapOracle = twapOracle;
     this.dai = dai;
+    this.mcr = mcr;
+  });
+
+  it('triggers MCR update (no-effect at floor level)', async function () {
+    const { mcr } = this;
+
+    const minUpdateTime = await mcr.minUpdateTime();
+    await time.increase(minUpdateTime.addn(1));
+
+    const mcrFloorBefore = await mcr.mcrFloor();
+    const desiredMCRBefore = await mcr.desiredMCR();
+    const storedMCRBefore = await mcr.mcr();
+    const currentMCRBefore = await mcr.getMCR();
+    await mcr.updateMCR();
+
+    const block = await web3.eth.getBlock('latest');
+
+    const lastUpdateTime = await mcr.lastUpdateTime();
+    const mcrFloor = await mcr.mcrFloor();
+    const desiredMCR = await mcr.desiredMCR();
+    const storedMCR = await mcr.mcr();
+    const currentMCR = await mcr.getMCR();
+
+    console.log({
+      desiredMCR: desiredMCR.toString(),
+    });
+
+    assert.equal(lastUpdateTime.toString(), block.timestamp.toString());
+    assert.equal(mcrFloor.toString(), mcrFloorBefore.toString());
+    assert.equal(desiredMCR.toString(), mcrFloor.toString());
+
+    this.lastUpdateTime = lastUpdateTime;
+  });
+
+  it('triggers MCR update after ETH injection to the pool to MCR% > 130%', async function () {
+    const { mcr, lastUpdateTime: prevUpdateTime, pool } = this;
+
+    const minUpdateTime = await mcr.minUpdateTime();
+
+    const currentMCR = await mcr.getMCR();
+
+    const extraEth = currentMCR.muln(140).divn(100);
+    console.log(`Funding Pool at ${pool.address} with ${extraEth.div(ether('1'))} ETH.`);
+    await web3.eth.sendTransaction({ from: accounts[0], to: pool.address, value: extraEth });
+
+    const mcrFloorBefore = await mcr.mcrFloor();
+    const currentMCRBefore = await mcr.getMCR();
+
+    await time.increase(time.duration.hours(24));
+    await mcr.updateMCR();
+
+    const block = await web3.eth.getBlock('latest');
+
+    const lastUpdateTime = await mcr.lastUpdateTime();
+    const mcrFloor = await mcr.mcrFloor();
+    const desiredMCR = await mcr.desiredMCR();
+    const storedMCR = await mcr.mcr();
+    const latestMCR = await mcr.getMCR();
+    const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
+
+    const expectedMCRFloor = mcrFloorBefore.mul(ratioScale.add(maxMCRFloorIncrement)).divn(ratioScale);
+
+    assert.equal(lastUpdateTime.toString(), block.timestamp.toString());
+    assert.equal(mcrFloor.toString(), expectedMCRFloor.toString());
+    assert.equal(desiredMCR.toString(), mcrFloor.toString());
+    assert.equal(currentMCRBefore.toString(), latestMCR.toString());
   });
 });

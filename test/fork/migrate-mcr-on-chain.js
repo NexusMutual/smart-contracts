@@ -3,7 +3,7 @@ const { artifacts, web3, accounts, network } = require('hardhat');
 const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
 
-const { submitGovernanceProposal } = require('./utils');
+const { submitGovernanceProposal, submitMemberVoteGovernanceProposal } = require('./utils');
 const { hex } = require('../utils').helpers;
 const { ProposalCategory, Role } = require('../utils').constants;
 
@@ -43,6 +43,11 @@ const Address = {
   DAIFEED: '0x773616E4d11A78F511299002da57A0a94577F1f4',
   UNIFACTORY: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
   NXMHOLDER: '0xd7cba5b9a0240770cfd9671961dae064136fa240',
+};
+
+const UserAddress = {
+  NXM_WHALE_1: '0x25783b67b5e29c48449163db19842b8531fdde43',
+  NXM_WHALE_2: '0x598dbe6738e0aca4eabc22fed2ac737dbd13fb8f',
 };
 
 const ratioScale = toBN('10000');
@@ -95,12 +100,15 @@ describe.only('MCR on-chain migration', function () {
     const { memberArray: boardMembers } = await this.memberRoles.members('1');
     const voters = boardMembers.slice(0, 3);
 
-    for (const member of [...voters, Address.NXMHOLDER]) {
+    const whales = [UserAddress.NXM_WHALE_1, UserAddress.NXM_WHALE_2];
+
+    for (const member of [...voters, Address.NXMHOLDER, ...whales]) {
       await fund(member);
       await unlock(member);
     }
 
     this.voters = voters;
+    this.whales = whales;
   });
 
   it('upgrade contracts', async function () {
@@ -266,6 +274,8 @@ describe.only('MCR on-chain migration', function () {
       storedMCR: storedMCR.toString(),
       currentMCR: currentMCR.toString(),
       mcrFloor: mcrFloor.toString(),
+      mcrFloorIncrementThreshold: mcrFloorIncrementThreshold.toString(),
+      maxMCRFloorIncrement: maxMCRFloorIncrement.toString(),
     });
 
     this.priceFeedOracle = priceFeedOracle;
@@ -306,6 +316,29 @@ describe.only('MCR on-chain migration', function () {
     this.lastUpdateTime = lastUpdateTime;
   });
 
+  it('sets DMCI to greater to 1% to allow floor increase', async function () {
+    const { voters, governance, mcr, whales } = this;
+
+    const newMaxMCRFloorIncrement = toBN(100);
+    const parameters = [
+      ['bytes8', hex('DMCI')],
+      ['uint', newMaxMCRFloorIncrement],
+    ];
+
+    const updateParams = web3.eth.abi.encodeParameters(
+      parameters.map(p => p[0]),
+      parameters.map(p => p[1]),
+    );
+
+    await submitMemberVoteGovernanceProposal(
+      ProposalCategory.upgradeMCRParameters, updateParams, [...voters, ...whales], governance,
+    );
+
+    const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
+
+    assert.equal(maxMCRFloorIncrement.toString(), newMaxMCRFloorIncrement.toString());
+  });
+
   it('triggers MCR update after ETH injection to the pool to MCR% > 130%', async function () {
     const { mcr, lastUpdateTime: prevUpdateTime, pool } = this;
 
@@ -333,6 +366,12 @@ describe.only('MCR on-chain migration', function () {
     const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
 
     const expectedMCRFloor = mcrFloorBefore.mul(ratioScale.add(maxMCRFloorIncrement)).divn(ratioScale);
+
+    console.log({
+      mcrFloor: mcrFloor.toString(),
+      desiredMCR: desiredMCR.toString(),
+      latestMCR: latestMCR.toString(),
+    });
 
     assert.equal(lastUpdateTime.toString(), block.timestamp.toString());
     assert.equal(mcrFloor.toString(), expectedMCRFloor.toString());

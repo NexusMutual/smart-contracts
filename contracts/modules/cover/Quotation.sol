@@ -261,19 +261,7 @@ contract Quotation is Iupgradable {
    * @dev transfering Ethers to newly created quotation contract.
    */
   function transferAssetsToNewContract(address newAddress) public onlyInternal noReentrancy {
-
-    // transfer ether
-    uint ethBalance = address(this).balance;
-    (bool ok, /* data */) = newAddress.call.value(ethBalance)("");
-    require(ok, "Pool: transfer failed");
-
-    // transfer assets - TODO: add length function to array to be able to read asset count
-    address[] memory assets = pool.getAssets();
-    for (uint i = 0; i < assets.length; i++) {
-      IERC20 token = IERC20(assets[i]);
-      uint tokenBalance = token.balanceOf(address(this));
-      token.safeTransfer(newAddress, tokenBalance);
-    }
+    // no-op. TODO: moving of funds handled by feature/stacked-risk branch
   }
 
 

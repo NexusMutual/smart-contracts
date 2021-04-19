@@ -55,7 +55,7 @@ contract TokenFunctions is MasterAware {
    */
   function changeDependentContractAddress() public {
     tc = TokenController(master.getLatestAddress("TC"));
-    tk = NXMToken(master.dAppToken());
+    tk = NXMToken(master.tokenAddress());
     qd = QuotationData(master.getLatestAddress("QD"));
   }
 

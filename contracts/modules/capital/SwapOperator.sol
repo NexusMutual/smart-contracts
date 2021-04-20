@@ -30,7 +30,6 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using SafeMath for uint;
 
-    mapping(address => AssetData) public assetData;
     // parameters
     address public twapOracle;
     address public swapController;
@@ -38,7 +37,6 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
     PriceFeedOracle public priceFeedOracle;
     Pool public pool;
 
-    address public STETH = 0x20dC62D5904633cC6a5E34bEc87A048E80C92e97;
     /* events */
     event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
 
@@ -50,6 +48,7 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
 
     /* constants */
     address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address constant public STETH = 0x20dC62D5904633cC6a5E34bEc87A048E80C92e97;
     IUniswapV2Router02 constant public router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
     uint constant public MAX_LIQUIDITY_RATIO = 3 * 1e15;
 
@@ -67,9 +66,18 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
         uint amountOutMin
     ) external whenNotPaused onlySwapController nonReentrant {
 
-        AssetData storage assetDetails = assetData[toTokenAddress];
+        (
+        /* uint balance */,
+        uint112 min,
+        uint112 max,
+        uint32 lastAssetSwapTime,
+        uint maxSlippageRatio
+        ) = pool.getAssetDetails(toTokenAddress);
+
+        AssetData memory assetDetails = AssetData(min, max, lastAssetSwapTime, maxSlippageRatio);
 
         pool.transferAssetTo(ETH, address(this), amountIn);
+        pool.setAssetDataLatestLastSwapTime(toTokenAddress, uint32(block.timestamp));
         uint amountOut = swapETHForAsset(
             twapOracle,
             assetDetails,
@@ -89,10 +97,21 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
         uint amountOutMin
     ) external whenNotPaused onlySwapController nonReentrant {
 
+        (
+        /* uint balance */,
+        uint112 min,
+        uint112 max,
+        uint32 lastAssetSwapTime,
+        uint maxSlippageRatio
+        ) = pool.getAssetDetails(fromTokenAddress);
+
+        AssetData memory assetDetails = AssetData(min, max, lastAssetSwapTime, maxSlippageRatio);
+
         pool.transferAssetTo(fromTokenAddress, address(this), amountIn);
+        pool.setAssetDataLatestLastSwapTime(fromTokenAddress, uint32(block.timestamp));
         uint amountOut = swapAssetForETH(
             twapOracle,
-            assetData[fromTokenAddress],
+            assetDetails,
             fromTokenAddress,
             amountIn,
             amountOutMin
@@ -117,7 +136,7 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
 
     function swapETHForAsset(
         address _oracle,
-        AssetData storage assetData,
+        AssetData memory assetData,
         address toTokenAddress,
         uint amountIn,
         uint amountOutMin,
@@ -171,8 +190,6 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
         path[1] = toTokenAddress;
         router.swapExactETHForTokens.value(amountIn)(amountOutMin, path, address(this), block.timestamp);
 
-        assetData.lastSwapTime = uint32(block.timestamp);
-
         uint balanceAfter = IERC20(toTokenAddress).balanceOf(address(this));
         uint amountOut = balanceAfter.sub(balanceBefore);
 
@@ -181,7 +198,7 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
 
     function swapAssetForETH(
         address _oracle,
-        AssetData storage assetData,
+        AssetData memory assetData,
         address fromTokenAddress,
         uint amountIn,
         uint amountOutMin
@@ -229,8 +246,6 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
         IERC20(fromTokenAddress).approve(address(router), amountIn);
         router.swapExactTokensForETH(amountIn, amountOutMin, path, address(this), block.timestamp);
 
-        assetData.lastSwapTime = uint32(block.timestamp);
-
         uint balanceAfter = address(this).balance;
         uint amountOut = balanceAfter.sub(balanceBefore);
 
@@ -252,20 +267,28 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
     function swapETHforStETH(uint amountIn, uint amountOutMin) external whenNotPaused onlySwapController nonReentrant {
 
         address toTokenAddress = STETH;
-        AssetData storage assetData = assetData[toTokenAddress];
+        (
+        /* uint balance */,
+        uint112 minAmount,
+        uint112 maxAmount,
+        /* uint32 lastAssetSwapTime */,
+        /* uint maxSlippageRatio */
+        ) = pool.getAssetDetails(toTokenAddress);
 
         uint balanceBefore = IERC20(toTokenAddress).balanceOf(address(this));
 
         (bool ok, /* data */) = toTokenAddress.call.value(amountIn)("");
         require(ok, "SwapOperator: stEth transfer failed");
 
-        assetData.lastSwapTime = uint32(block.timestamp);
+        pool.setAssetDataLatestLastSwapTime(toTokenAddress, uint32(block.timestamp));
 
         uint balanceAfter = IERC20(toTokenAddress).balanceOf(address(this));
         uint amountOut = balanceAfter.sub(balanceBefore);
 
+        require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
+
         // gas optimisation: reads both values using a single SLOAD
-        (uint minAssetAmount, uint maxAssetAmount) = (assetData.minAmount, assetData.maxAmount);
+        (uint minAssetAmount, uint maxAssetAmount) = (minAmount, maxAmount);
 
         require(balanceBefore < minAssetAmount, "SwapAgent: balanceBefore >= min");
         require(balanceBefore.add(amountOutMin) <= maxAssetAmount, "SwapAgent: balanceAfter > max");

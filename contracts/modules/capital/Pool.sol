@@ -393,6 +393,10 @@ contract Pool is MasterAware, ReentrancyGuard {
     token.safeTransfer(to, amount);
   }
 
+  function setAssetDataLatestLastSwapTime(address asset, uint32 lastSwapTime) public onlyInternal whenNotPaused {
+    assetData[asset].lastSwapTime = lastSwapTime;
+  }
+
   /* token sale functions */
 
   /**

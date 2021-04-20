@@ -27,7 +27,6 @@ import "../oracles/PriceFeedOracle.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenController.sol";
 import "./MCR.sol";
-import "./SwapAgent.sol";
 
 contract Pool is MasterAware, ReentrancyGuard {
   using Address for address;
@@ -36,7 +35,7 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   /* storage */
   address[] public assets;
-  mapping(address => SwapAgent.AssetData) public assetData;
+  mapping(address => AssetData) public assetData;
 
   // contracts
   Quotation public quotation;
@@ -71,6 +70,14 @@ contract Pool is MasterAware, ReentrancyGuard {
   modifier onlySwapController {
     require(msg.sender == swapController, "Pool: not swapController");
     _;
+  }
+
+  struct AssetData {
+    uint112 minAmount;
+    uint112 maxAmount;
+    uint32 lastSwapTime;
+    // 18 decimals of precision. 0.01% -> 0.0001 -> 1e14
+    uint maxSlippageRatio;
   }
 
   constructor (
@@ -153,7 +160,7 @@ contract Pool is MasterAware, ReentrancyGuard {
 
     IERC20 token = IERC20(_asset);
     balance = token.balanceOf(address(this));
-    SwapAgent.AssetData memory data = assetData[_asset];
+    AssetData memory data = assetData[_asset];
 
     return (balance, data.minAmount, data.maxAmount, data.lastSwapTime, data.maxSlippageRatio);
   }
@@ -174,7 +181,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     }
 
     assets.push(_asset);
-    assetData[_asset] = SwapAgent.AssetData(_min, _max, 0, _maxSlippageRatio);
+    assetData[_asset] = AssetData(_min, _max, 0, _maxSlippageRatio);
   }
 
   function removeAsset(address _asset) external onlyGovernance {

@@ -221,58 +221,6 @@ contract Pool is MasterAware, ReentrancyGuard {
     revert("Pool: asset not found");
   }
 
-  /* swap functions */
-
-  function getSwapQuote(
-    uint tokenAmountIn,
-    IERC20 fromToken,
-    IERC20 toToken
-  ) public view returns (uint tokenAmountOut) {
-
-    return SwapAgent.getSwapQuote(
-      tokenAmountIn,
-      fromToken,
-      toToken
-    );
-  }
-
-  function swapETHForAsset(
-    address toTokenAddress,
-    uint amountIn,
-    uint amountOutMin
-  ) external whenNotPaused onlySwapController nonReentrant {
-
-    SwapAgent.AssetData storage assetDetails = assetData[toTokenAddress];
-
-    uint amountOut = SwapAgent.swapETHForAsset(
-      twapOracle,
-      assetDetails,
-      toTokenAddress,
-      amountIn,
-      amountOutMin,
-      minPoolEth
-    );
-
-    emit Swapped(ETH, toTokenAddress, amountIn, amountOut);
-  }
-
-  function swapAssetForETH(
-    address fromTokenAddress,
-    uint amountIn,
-    uint amountOutMin
-  ) external whenNotPaused onlySwapController nonReentrant {
-
-    uint amountOut = SwapAgent.swapAssetForETH(
-      twapOracle,
-      assetData[fromTokenAddress],
-      fromTokenAddress,
-      amountIn,
-      amountOutMin
-    );
-
-    emit Swapped(fromTokenAddress, ETH, amountIn, amountOut);
-  }
-
   /* claim related functions */
 
   /**
@@ -424,6 +372,18 @@ contract Pool is MasterAware, ReentrancyGuard {
   function transferAssetFrom (address asset, address from, uint amount) public onlyInternal whenNotPaused {
     IERC20 token = IERC20(asset);
     token.safeTransferFrom(from, address(this), amount);
+  }
+
+  function transferAssetTo (address asset, address to, uint amount) public onlyInternal whenNotPaused {
+
+    if (asset == ETH) {
+      (bool ok, /* data */) = to.call.value(amount)("");
+      require(ok, "Pool: Eth transfer failed");
+      return;
+    }
+
+    IERC20 token = IERC20(asset);
+    token.safeTransfer(to, amount);
   }
 
   /* token sale functions */

@@ -44,10 +44,10 @@ contract Pool is MasterAware, ReentrancyGuard {
   MCR public mcr;
 
   // parameters
-  address public twapOracle;
   address public swapController;
   uint public minPoolEth;
   PriceFeedOracle public priceFeedOracle;
+  address swapOperator;
 
   /* constants */
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -67,8 +67,8 @@ contract Pool is MasterAware, ReentrancyGuard {
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
 
   /* logic */
-  modifier onlySwapController {
-    require(msg.sender == swapController, "Pool: not swapController");
+  modifier onlySwapOperator {
+    require(msg.sender == swapOperator, "Pool: not swapController");
     _;
   }
 
@@ -87,8 +87,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     uint[] memory _maxSlippageRatios,
     address _master,
     address _priceOracle,
-    address _twapOracle,
-    address _swapController
+    address _swapOperator
   ) public {
 
     require(_assets.length == _minAmounts.length, "Pool: length mismatch");
@@ -110,8 +109,7 @@ contract Pool is MasterAware, ReentrancyGuard {
 
     master = INXMMaster(_master);
     priceFeedOracle = PriceFeedOracle(_priceOracle);
-    twapOracle = _twapOracle;
-    swapController = _swapController;
+    swapOperator = _swapOperator;
   }
 
   // fallback function
@@ -381,7 +379,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     token.safeTransferFrom(from, address(this), amount);
   }
 
-  function transferAssetTo (address asset, address to, uint amount) public onlyInternal whenNotPaused {
+  function transferAssetTo (address asset, address to, uint amount) public onlySwapOperator whenNotPaused {
 
     if (asset == ETH) {
       (bool ok, /* data */) = to.call.value(amount)("");
@@ -393,7 +391,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     token.safeTransfer(to, amount);
   }
 
-  function setAssetDataLatestLastSwapTime(address asset, uint32 lastSwapTime) public onlyInternal whenNotPaused {
+  function setAssetDataLatestLastSwapTime(address asset, uint32 lastSwapTime) public onlySwapOperator whenNotPaused {
     assetData[asset].lastSwapTime = lastSwapTime;
   }
 
@@ -662,13 +660,8 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
 
-    if (code == "TWAP") {
-      twapOracle = value;
-      return;
-    }
-
-    if (code == "SWAP") {
-      swapController = value;
+    if (code == "SWP_OP") {
+      swapOperator = value;
       return;
     }
 

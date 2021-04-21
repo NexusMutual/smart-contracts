@@ -31,8 +31,8 @@ async function setup () {
   const QuotationData = artifacts.require('QuotationData');
   const ClaimProofs = artifacts.require('ClaimProofs');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-  const SwapAgent = artifacts.require('SwapAgent');
   const TwapOracle = artifacts.require('TwapOracle');
+  const SwapOperator = artifacts.require('SwapOperator');
 
   // temporary contracts used for initialization
   const DisposableNXMaster = artifacts.require('DisposableNXMaster');
@@ -138,10 +138,6 @@ async function setup () {
   // non-proxy contracts and libraries
   const cp = await ClaimProofs.new(master.address);
   const twapOracle = await TwapOracle.new(factory.address);
-  const swapAgent = await SwapAgent.new();
-
-  // link pool to swap agent library
-  Pool.link(swapAgent);
 
   // regular contracts
   const cl = await Claims.new();
@@ -149,6 +145,7 @@ async function setup () {
   const cr = await ClaimsReward.new(master.address, dai.address);
 
   const mc = await MCR.new(ZERO_ADDRESS);
+
   const p1 = await Pool.new(
     [dai.address], // assets
     [0], // min amounts
@@ -156,9 +153,10 @@ async function setup () {
     [ether('0.01')], // max slippage 1%
     master.address,
     priceFeedOracle.address,
-    twapOracle.address,
-    owner,
+    ZERO_ADDRESS,
   );
+
+  const swapOperator = await SwapOperator.new(p1.address, twapOracle.address);
 
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
   const td = await TokenData.new(owner);
@@ -245,6 +243,8 @@ async function setup () {
   await td.updateUintParameters(hex('CABOOKT'), 6); // "book time" 6h
   await td.updateUintParameters(hex('CALOCKT'), 7); // ca lock 7 days
   await td.updateUintParameters(hex('MVLOCKT'), 2); // ca lock mv 2 days
+
+  await p1.updateAddressParameters(hex('SWP_OP'), swapOperator.address);
 
   await gv.changeMasterAddress(master.address);
   await master.switchGovernanceAddress(gv.address);

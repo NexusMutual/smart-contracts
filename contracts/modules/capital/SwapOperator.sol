@@ -19,22 +19,19 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../external/uniswap/IUniswapV2Router02.sol";
 import "../oracles/TwapOracle.sol";
-import "../../abstract/MasterAware.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../oracles/PriceFeedOracle.sol";
 import "./Pool.sol";
 
 
-contract SwapOperator is MasterAware, ReentrancyGuard {
+contract SwapOperator is ReentrancyGuard {
 
     using SafeERC20 for IERC20;
     using SafeMath for uint;
 
-    // parameters
-    address public twapOracle;
+    TwapOracle public twapOracle;
     address public swapController;
     uint public minPoolEth;
-    PriceFeedOracle public priceFeedOracle;
     Pool public pool;
 
     /* events */
@@ -42,7 +39,12 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
 
     /* logic */
     modifier onlySwapController {
-        require(msg.sender == swapController, "Pool: not swapController");
+        require(msg.sender == swapController, "SwapOperator: not swapController");
+        _;
+    }
+
+    modifier whenNotPaused {
+        require(!pool.master().isPause(), "System is paused");
         _;
     }
 
@@ -58,6 +60,11 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
         uint32 lastSwapTime;
         // 18 decimals of precision. 0.01% -> 0.0001 -> 1e14
         uint maxSlippageRatio;
+    }
+
+    constructor(address payable _pool, address _twapOracle) public {
+        pool = Pool(_pool);
+        twapOracle = TwapOracle(_twapOracle);
     }
 
     function swapETHForAsset(
@@ -79,7 +86,6 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
         pool.transferAssetTo(ETH, address(this), amountIn);
         pool.setAssetDataLatestLastSwapTime(toTokenAddress, uint32(block.timestamp));
         uint amountOut = swapETHForAsset(
-            twapOracle,
             assetDetails,
             toTokenAddress,
             amountIn,
@@ -110,7 +116,6 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
         pool.transferAssetTo(fromTokenAddress, address(this), amountIn);
         pool.setAssetDataLatestLastSwapTime(fromTokenAddress, uint32(block.timestamp));
         uint amountOut = swapAssetForETH(
-            twapOracle,
             assetDetails,
             fromTokenAddress,
             amountIn,
@@ -135,7 +140,6 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
     }
 
     function swapETHForAsset(
-        address _oracle,
         AssetData memory assetData,
         address toTokenAddress,
         uint amountIn,
@@ -149,12 +153,12 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
         {
             // scope for swap frequency check
             uint timeSinceLastTrade = block.timestamp.sub(uint(assetData.lastSwapTime));
-            require(timeSinceLastTrade > TwapOracle(_oracle).periodSize(), "SwapAgent: too fast");
+            require(timeSinceLastTrade > twapOracle.periodSize(), "SwapAgent: too fast");
         }
 
         {
             // scope for liquidity check
-            address pairAddress = TwapOracle(_oracle).pairFor(WETH, toTokenAddress);
+            address pairAddress = twapOracle.pairFor(WETH, toTokenAddress);
             IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
             (uint112 reserve0, uint112 reserve1, /* time */) = pair.getReserves();
 
@@ -173,7 +177,7 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
 
         {
             // scope for token checks
-            uint avgAmountOut = TwapOracle(_oracle).consult(WETH, amountIn, toTokenAddress);
+            uint avgAmountOut = twapOracle.consult(WETH, amountIn, toTokenAddress);
             uint maxSlippageAmount = avgAmountOut.mul(assetData.maxSlippageRatio).div(1e18);
             uint minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
 
@@ -197,7 +201,6 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
     }
 
     function swapAssetForETH(
-        address _oracle,
         AssetData memory assetData,
         address fromTokenAddress,
         uint amountIn,
@@ -211,12 +214,12 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
         {
             // scope for swap frequency check
             uint timeSinceLastTrade = block.timestamp.sub(uint(assetData.lastSwapTime));
-            require(timeSinceLastTrade > TwapOracle(_oracle).periodSize(), "SwapAgent: too fast");
+            require(timeSinceLastTrade > twapOracle.periodSize(), "SwapAgent: too fast");
         }
 
         {
             // scope for liquidity check
-            address pairAddress = TwapOracle(_oracle).pairFor(fromTokenAddress, WETH);
+            address pairAddress = twapOracle.pairFor(fromTokenAddress, WETH);
             IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
             (uint112 reserve0, uint112 reserve1, /* time */) = pair.getReserves();
 
@@ -228,7 +231,7 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
 
         {
             // scope for token checks
-            uint avgAmountOut = TwapOracle(_oracle).consult(fromTokenAddress, amountIn, WETH);
+            uint avgAmountOut = twapOracle.consult(fromTokenAddress, amountIn, WETH);
             uint maxSlippageAmount = avgAmountOut.mul(assetData.maxSlippageRatio).div(1e18);
             uint minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
 
@@ -256,7 +259,7 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
 
         if (asset == ETH) {
             (bool ok, /* data */) = to.call.value(amount)("");
-            require(ok, "Pool: Eth transfer failed");
+            require(ok, "SwapOperator: Eth transfer failed");
             return;
         }
 
@@ -290,7 +293,7 @@ contract SwapOperator is MasterAware, ReentrancyGuard {
         // gas optimisation: reads both values using a single SLOAD
         (uint minAssetAmount, uint maxAssetAmount) = (minAmount, maxAmount);
 
-        require(balanceBefore < minAssetAmount, "SwapAgent: balanceBefore >= min");
-        require(balanceBefore.add(amountOutMin) <= maxAssetAmount, "SwapAgent: balanceAfter > max");
+        require(balanceBefore < minAssetAmount, "SwapOperator: balanceBefore >= min");
+        require(balanceBefore.add(amountOutMin) <= maxAssetAmount, "SwapOperator: balanceAfter > max");
     }
 }

@@ -1,5 +1,6 @@
 const { artifacts } = require('hardhat');
 const {
+  defaultSender,
   members,
   internalContracts: [internal],
   governanceContracts: [governance],
@@ -11,7 +12,7 @@ async function setup () {
   const NXMToken = artifacts.require('NXMToken');
   const MasterMock = artifacts.require('MasterMock');
 
-  const token = await NXMToken.new(accounts[0], '0');
+  const token = await NXMToken.new(defaultSender, '0');
 
   const master = await MasterMock.new();
   await master.enrollInternal(internal);

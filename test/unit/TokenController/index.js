@@ -14,7 +14,10 @@ describe('TokenController', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
+  require('./lockClaimAssessmentTokens');
+  require('./extendClaimAssessmentLock');
   require('./removeEmptyReason');
   require('./removeMultipleEmptyReasons');
+  require('./markCoverClaim');
 
 });

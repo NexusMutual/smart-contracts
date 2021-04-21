@@ -8,7 +8,7 @@ const proposalCategories = require('../lib/proposal-categories');
 const { toBN } = web3.utils;
 
 // external
-const OwnedERC20 = artifacts.require('OwnedERC20');
+const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const UniswapV2Factory = artifacts.require('UniswapV2Factory');
 
@@ -28,6 +28,7 @@ const ClaimProofs = artifacts.require('ClaimProofs');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const SwapAgent = artifacts.require('SwapAgent');
 const TwapOracle = artifacts.require('TwapOracle');
+const Cover = artifacts.require('Cover');
 
 // temporary contracts used for initialization
 const DisposableNXMaster = artifacts.require('DisposableNXMaster');
@@ -38,7 +39,7 @@ const DisposableGovernance = artifacts.require('DisposableGovernance');
 const DisposablePooledStaking = artifacts.require('DisposablePooledStaking');
 
 // target contracts
-const NXMaster = artifacts.require('NXMaster');
+const TestnetNXMaster = artifacts.require('TestnetNXMaster');
 const MemberRoles = artifacts.require('MemberRoles');
 const TokenController = artifacts.require('TokenController');
 const ProposalCategory = artifacts.require('ProposalCategory');
@@ -51,14 +52,14 @@ const etherscanApiKey = getEnv('ETHERSCAN_API_KEY');
 const contractType = code => {
 
   const upgradable = ['CL', 'CR', 'MC', 'P1', 'QT', 'TF'];
-  const proxies = ['GV', 'MR', 'PC', 'PS', 'TC'];
+  const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'CO'];
 
   if (upgradable.includes(code)) {
-    return 2;
+    return 1;
   }
 
   if (proxies.includes(code)) {
-    return 1;
+    return 2;
   }
 
   return 0;
@@ -108,8 +109,8 @@ async function main () {
 
   // deploy external contracts
   console.log('Deploying DAI');
-  const dai = await OwnedERC20.new();
-  verifier.add(dai);
+  const dai = await ERC20MintableDetailed.new('DAI Mock', 'DAI', 18);
+  verifier.add(dai, { constructorArgs: ['DAI Mock', 'DAI', 18] });
 
   console.log('Deploying uniswap pair');
   const uniswapV2Factory = await UniswapV2Factory.at(UNISWAP_FACTORY);
@@ -166,6 +167,7 @@ async function main () {
   const { instance: ps, implementation: psImpl } = await deployProxy(DisposablePooledStaking);
   const { instance: pc, implementation: pcImpl } = await deployProxy(DisposableProposalCategory);
   const { instance: gv, implementation: gvImpl } = await deployProxy(DisposableGovernance, { gas: 12e6 });
+  const { instance: co, implementation: coImpl } = await deployProxy(Cover);
 
   const proxiesAndImplementations = [
     { proxy: master, implementation: masterImpl, contract: 'DisposableNXMaster' },
@@ -174,6 +176,7 @@ async function main () {
     { proxy: ps, implementation: psImpl, contract: 'DisposablePooledStaking' },
     { proxy: pc, implementation: pcImpl, contract: 'DisposableProposalCategory' },
     { proxy: gv, implementation: gvImpl, contract: 'DisposableGovernance' },
+    { proxy: co, implementation: coImpl, contract: 'Cover' },
   ];
 
   for (const addresses of proxiesAndImplementations) {
@@ -216,8 +219,8 @@ async function main () {
   verifier.add(p1, { constructorArgs: poolParameters });
   verifier.add(pd, { constructorArgs: [owner, ZERO_ADDRESS, dai.address] });
 
-  const codes = ['QD', 'TD', 'CD', 'PD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS'];
-  const addresses = [qd, td, cd, pd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps].map(c => c.address);
+  const codes = ['QD', 'TD', 'CD', 'PD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'CO'];
+  const addresses = [qd, td, cd, pd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps, co].map(c => c.address);
 
   console.log('Running initializations');
   await master.initialize(
@@ -233,7 +236,8 @@ async function main () {
     master.address,
     tk.address,
     ps.address,
-    600, // minCALockTime
+    600, // _claimsAssessmentLockTime
+    300, // _claimSubmissionGracePeriod
   );
 
   await mr.initialize(
@@ -296,7 +300,7 @@ async function main () {
   await master.switchGovernanceAddress(gv.address);
 
   console.log('Upgrading to non-disposable contracts');
-  const { implementation: newMasterImpl } = await upgradeProxy(master.address, NXMaster);
+  const { implementation: newMasterImpl } = await upgradeProxy(master.address, TestnetNXMaster);
   const { implementation: newMrImpl } = await upgradeProxy(mr.address, MemberRoles);
   const { implementation: newTcImpl } = await upgradeProxy(tc.address, TokenController);
   const { implementation: newPsImpl } = await upgradeProxy(ps.address, PooledStaking);
@@ -316,9 +320,10 @@ async function main () {
   await transferProxyOwnership(ps.address, master.address);
   await transferProxyOwnership(pc.address, master.address);
   await transferProxyOwnership(gv.address, master.address);
+  await transferProxyOwnership(co.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
 
-  const deployDataFile = `${__dirname}/../build/${network}-deploy-data.json`;
+  const deployDataFile = `${__dirname}/../artifacts/${network}-deploy-data.json`;
   verifier.dump(deployDataFile);
 
   console.log('Minting DAI to pool');
@@ -336,6 +341,10 @@ async function main () {
 
   console.log('Performing verifications');
   await verifier.submit();
+
+  console.log('Set governanceOwner to allow for execution of onlyGovernance actions.');
+  const testnetMaster = await TestnetNXMaster.at(master.address);
+  await testnetMaster.initializeGovernanceOwner();
 
   console.log('Done!');
 }

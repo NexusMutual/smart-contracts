@@ -31,28 +31,6 @@ describe('removeMultipleEmptyReasons', function () {
     );
   });
 
-  it('reverts when members array contains duplicates', async function () {
-
-    const { token, tokenController } = this;
-    const lockPeriod = toBN(days(60));
-
-    for (const member of [firstMember, secondMember, thirdMember]) {
-      await tokenController.mint(member, ether('100'), { from: internal });
-      await token.approve(tokenController.address, ether('100'), { from: member });
-      await tokenController.lockOf(member, R0, ether('100'), lockPeriod, { from: internal });
-      await tokenController.burnLockedTokens(member, R0, ether('100'), { from: internal });
-    }
-
-    await expectRevert(
-      tokenController.removeMultipleEmptyReasons(
-        [firstMember, secondMember, firstMember],
-        [R0, R0, R0],
-        ['0', '0', '0'],
-      ),
-      'TokenController: members array should not contain duplicates',
-    );
-  });
-
   it('clears up all reasons if parameters are supplied correctly', async function () {
 
     const { token, tokenController } = this;

@@ -1,4 +1,7 @@
 describe('MemberRoles integration tests', function () {
 
-  require('./membership');
+  require('./join');
+  require('./withdrawMembership');
+  require('./switchMembership');
+
 });

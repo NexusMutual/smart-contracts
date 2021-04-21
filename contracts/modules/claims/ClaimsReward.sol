@@ -89,8 +89,6 @@ contract ClaimsReward is Iupgradable {
         c1.setClaimStatus(claimid, 12);
       }
     }
-
-    c1.changePendingClaimStart();
   }
 
   function getCurrencyAssetAddress(bytes4 currency) public view returns (address) {
@@ -316,15 +314,15 @@ contract ClaimsReward is Iupgradable {
     // denied
     if (status == 6 || status == 9 || status == 11) {
 
-      cd.changeFinalVerdict(claimid, - 1);
-      td.setDepositCN(coverid, false); // Unset flag
+      cd.changeFinalVerdict(claimid, -1);
+      tc.markCoverClaimClosed(coverid, false);
       tf.burnDepositCN(coverid); // burn Deposited CN
 
     // accepted
     } else if (status == 7 || status == 8 || status == 10) {
 
       cd.changeFinalVerdict(claimid, 1);
-      td.setDepositCN(coverid, false); // Unset flag
+      tc.markCoverClaimClosed(coverid, true);
       tf.unlockCN(coverid);
 
       bool payoutSucceeded = attemptClaimPayout(coverid);

@@ -64,7 +64,7 @@ const getAddressByCodeFactory = abis => code => abis.find(abi => abi.code === co
 const fund = async to => web3.eth.sendTransaction({ from: accounts[0], to, value: ether('1000000') });
 const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAccount', params: [member] });
 
-describe.only('NXM sells and buys', function () {
+describe('NXM sells and buys', function () {
 
   this.timeout(0);
 

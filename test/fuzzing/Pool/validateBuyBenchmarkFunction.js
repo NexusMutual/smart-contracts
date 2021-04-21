@@ -7,7 +7,7 @@ const {
   calculateMCRRatio,
   percentageBN,
   sellSpread,
-  toDecimal
+  toDecimal,
 } = require('../utils').tokenPrice;
 
 const Pool = artifacts.require('Pool');
@@ -119,7 +119,7 @@ describe('calculatePurchasedTokensWithFullIntegral', function () {
             initialAssetValue,
             ethIn,
             mcrEth,
-            stepSize
+            stepSize,
           ).mul(1e18);
           const { tokens: nxmOut } = calculatePurchasedTokensWithFullIntegral(initialAssetValue, ethIn, mcrEth);
 

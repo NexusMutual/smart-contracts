@@ -94,7 +94,7 @@ describe('processFirstReward', function () {
 
     await expectRevert(
       fundApproveDepositStake(token, tokenController, staking, ether('100'), firstContract, memberOne),
-      `Unable to execute request with unprocessed actions`,
+      'Unable to execute request with unprocessed actions',
     );
 
     await time.advanceBlock();
@@ -320,13 +320,13 @@ describe('processFirstReward', function () {
     await staking.pushRewards([firstContract]);
 
     let hasPendingRewards = await staking.hasPendingRewards();
-    assert.isTrue(hasPendingRewards, `Expect hasPendingRewards to be true`);
+    assert.isTrue(hasPendingRewards, 'Expect hasPendingRewards to be true');
 
     const tx = await staking.processPendingActions('100');
     expectEvent(tx, 'PendingActionsProcessed', { finished: true });
 
     hasPendingRewards = await staking.hasPendingRewards();
-    assert.isFalse(hasPendingRewards, `Expect hasPendingRewards to be false`);
+    assert.isFalse(hasPendingRewards, 'Expect hasPendingRewards to be false');
   });
 
   it('should do up to maxIterations and finish in stakers.length * 2 cycles', async function () {

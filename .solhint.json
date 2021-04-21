@@ -7,7 +7,7 @@
     "compiler-version": ["warn", "^0.5.0"],
     "const-name-snakecase": "off",
     "mark-callable-contracts": "off",
-    "max-states-count": ["warn", 20],
+    "max-states-count": "off",
     "not-rely-on-time": "off",
     "reason-string": "off",
     "var-name-mixedcase": "off"

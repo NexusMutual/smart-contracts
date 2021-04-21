@@ -53,28 +53,70 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  checkCoverExpired(
-    _cid: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<boolean>;
-
   cr(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-  expireCover: {
+  createCover: {
     (
-      _cid: number | BN | string,
+      from: string,
+      scAddress: string,
+      coverCurr: string,
+      coverDetails: (number | BN | string)[],
+      coverPeriod: number | BN | string,
+      _v: number | BN | string,
+      _r: string,
+      _s: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      _cid: number | BN | string,
+      from: string,
+      scAddress: string,
+      coverCurr: string,
+      coverDetails: (number | BN | string)[],
+      coverPeriod: number | BN | string,
+      _v: number | BN | string,
+      _r: string,
+      _s: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      _cid: number | BN | string,
+      from: string,
+      scAddress: string,
+      coverCurr: string,
+      coverDetails: (number | BN | string)[],
+      coverPeriod: number | BN | string,
+      _v: number | BN | string,
+      _r: string,
+      _s: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      _cid: number | BN | string,
+      from: string,
+      scAddress: string,
+      coverCurr: string,
+      coverDetails: (number | BN | string)[],
+      coverPeriod: number | BN | string,
+      _v: number | BN | string,
+      _r: string,
+      _s: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
+  expireCover: {
+    (
+      coverId: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      coverId: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      coverId: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      coverId: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -87,8 +129,13 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<string>;
 
-  getRecentHoldedCoverIdStatus(
-    userAdd: string,
+  getWithdrawableCoverNoteCoverIds(
+    coverOwner: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<[BN[], string[]]>;
+
+  getWithdrawableCoverNotesAmount(
+    coverOwner: string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
 
@@ -180,29 +227,6 @@ export interface QuotationInstance extends Truffle.ContractInstance {
 
   qd(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-  removeSAFromCSA: {
-    (
-      _cid: number | BN | string,
-      _amount: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      _cid: number | BN | string,
-      _amount: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      _cid: number | BN | string,
-      _amount: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _cid: number | BN | string,
-      _amount: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
   sendEther: {
     (txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
@@ -291,6 +315,33 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<boolean>;
 
+  withdrawCoverNote: {
+    (
+      coverOwner: string,
+      coverIds: (number | BN | string)[],
+      reasonIndexes: (number | BN | string)[],
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      coverOwner: string,
+      coverIds: (number | BN | string)[],
+      reasonIndexes: (number | BN | string)[],
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      coverOwner: string,
+      coverIds: (number | BN | string)[],
+      reasonIndexes: (number | BN | string)[],
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      coverOwner: string,
+      coverIds: (number | BN | string)[],
+      reasonIndexes: (number | BN | string)[],
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   methods: {
     changeDependentContractAddress: {
       (txDetails?: Truffle.TransactionDetails): Promise<
@@ -319,28 +370,70 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    checkCoverExpired(
-      _cid: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<boolean>;
-
     cr(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-    expireCover: {
+    createCover: {
       (
-        _cid: number | BN | string,
+        from: string,
+        scAddress: string,
+        coverCurr: string,
+        coverDetails: (number | BN | string)[],
+        coverPeriod: number | BN | string,
+        _v: number | BN | string,
+        _r: string,
+        _s: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        _cid: number | BN | string,
+        from: string,
+        scAddress: string,
+        coverCurr: string,
+        coverDetails: (number | BN | string)[],
+        coverPeriod: number | BN | string,
+        _v: number | BN | string,
+        _r: string,
+        _s: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
-        _cid: number | BN | string,
+        from: string,
+        scAddress: string,
+        coverCurr: string,
+        coverDetails: (number | BN | string)[],
+        coverPeriod: number | BN | string,
+        _v: number | BN | string,
+        _r: string,
+        _s: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        _cid: number | BN | string,
+        from: string,
+        scAddress: string,
+        coverCurr: string,
+        coverDetails: (number | BN | string)[],
+        coverPeriod: number | BN | string,
+        _v: number | BN | string,
+        _r: string,
+        _s: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
+    expireCover: {
+      (
+        coverId: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        coverId: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        coverId: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        coverId: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
@@ -353,8 +446,13 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
 
-    getRecentHoldedCoverIdStatus(
-      userAdd: string,
+    getWithdrawableCoverNoteCoverIds(
+      coverOwner: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<[BN[], string[]]>;
+
+    getWithdrawableCoverNotesAmount(
+      coverOwner: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
 
@@ -446,29 +544,6 @@ export interface QuotationInstance extends Truffle.ContractInstance {
 
     qd(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-    removeSAFromCSA: {
-      (
-        _cid: number | BN | string,
-        _amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        _cid: number | BN | string,
-        _amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        _cid: number | BN | string,
-        _amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        _cid: number | BN | string,
-        _amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
     sendEther: {
       (txDetails?: Truffle.TransactionDetails): Promise<
         Truffle.TransactionResponse<AllEvents>
@@ -559,6 +634,33 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       _s: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<boolean>;
+
+    withdrawCoverNote: {
+      (
+        coverOwner: string,
+        coverIds: (number | BN | string)[],
+        reasonIndexes: (number | BN | string)[],
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        coverOwner: string,
+        coverIds: (number | BN | string)[],
+        reasonIndexes: (number | BN | string)[],
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        coverOwner: string,
+        coverIds: (number | BN | string)[],
+        reasonIndexes: (number | BN | string)[],
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        coverOwner: string,
+        coverIds: (number | BN | string)[],
+        reasonIndexes: (number | BN | string)[],
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
   };
 
   getPastEvents(event: string): Promise<EventData[]>;

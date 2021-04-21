@@ -98,7 +98,7 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
   console.log(`Advancing time by ${increase} seconds to allow proposal closing..`);
   await time.increase(increase);
 
-  console.log(`Closing proposal..`);
+  console.log('Closing proposal..');
   logEvents(await gv.closeProposal(proposalId, { from: submitter }));
 
   const proposal = await gv.proposal(proposalId);
@@ -124,11 +124,11 @@ describe.skip('migration', function () {
       nameToAddressMap[web3.utils.toAscii(contractsName[i])] = contractsAddress[i];
     }
 
-    const mr = await MemberRoles.at(nameToAddressMap['MR']);
-    const tk = await NXMToken.at(nameToAddressMap['NXMTOKEN']);
-    const gv = await Governance.at(nameToAddressMap['GV']);
-    const pc = await ProposalCategory.at(nameToAddressMap['PC']);
-    const td = await TokenData.at(nameToAddressMap['TD']);
+    const mr = await MemberRoles.at(nameToAddressMap.MR);
+    const tk = await NXMToken.at(nameToAddressMap.NXMTOKEN);
+    const gv = await Governance.at(nameToAddressMap.GV);
+    const pc = await ProposalCategory.at(nameToAddressMap.PC);
+    const td = await TokenData.at(nameToAddressMap.TD);
 
     const directMR = getWeb3Contract('MR', versionData, directWeb3);
     const directTD = getWeb3Contract('TD', versionData, directWeb3);
@@ -152,13 +152,13 @@ describe.skip('migration', function () {
       await web3.eth.sendTransaction({ from: funder, to: member, value: ether('100') });
     }
 
-    console.log(`Deploying new TokenFunctions..`);
+    console.log('Deploying new TokenFunctions..');
     const newTF = await TokenFunctions.new({ from: firstBoardMember });
 
-    console.log(`Deploying new ClaimsReward..`);
+    console.log('Deploying new ClaimsReward..');
     const newCR = await ClaimsReward.new({ from: firstBoardMember });
 
-    console.log(`Deploying new Quotation..`);
+    console.log('Deploying new Quotation..');
     const newQT = await Quotation.new({ from: firstBoardMember });
 
     const upgradeMultipleContractsActionHash = encode1(
@@ -178,7 +178,7 @@ describe.skip('migration', function () {
     assert.equal(storedCRAddress, newCR.address);
     assert.equal(storedQTAddress, newQT.address);
 
-    console.log(`Successfully submitted proposal for ClaimsReward and TokenFunctions upgrade and passed.`);
+    console.log('Successfully submitted proposal for ClaimsReward and TokenFunctions upgrade and passed.');
 
     const newMR = await MemberRoles.new({ from: firstBoardMember });
 
@@ -202,7 +202,7 @@ describe.skip('migration', function () {
     const storedNewTCAddress = await tcProxy.implementation();
     assert.equal(storedNewTCAddress, newTC.address);
 
-    console.log(`Successfully deployed new MR.`);
+    console.log('Successfully deployed new MR.');
 
     this.master = master;
     this.cr = newCR;
@@ -227,7 +227,7 @@ describe.skip('migration', function () {
     const { gv, master, directMR, directTF, directTD, directTK, tf, td, tk, tc, cr } = this;
     const { boardMembers, firstBoardMember } = this;
 
-    console.log(`Deploying pooled staking..`);
+    console.log('Deploying pooled staking..');
     const psImpl = await PooledStaking.new({
       from: firstBoardMember,
     });
@@ -264,7 +264,7 @@ describe.skip('migration', function () {
     const lockedBeforeMigration = {};
     const memberStakes = {};
 
-    console.log(`Fetching getStakerAllLockedTokens and member stakes for each member for assertions.`);
+    console.log('Fetching getStakerAllLockedTokens and member stakes for each member for assertions.');
 
     let totalMemberBalancesPreMigration = new BN('0');
 
@@ -280,7 +280,7 @@ describe.skip('migration', function () {
       totalMemberBalancesPreMigration = totalMemberBalancesPreMigration.add(new BN(balance));
     }
 
-    console.log(`Finished fetching.`);
+    console.log('Finished fetching.');
 
     const STAKER_MIGRATION_COMPLETED_EVENT = 'StakersMigrationCompleted';
     const MIGRATED_MEMBER_EVENT = 'MigratedMember';
@@ -418,7 +418,7 @@ describe.skip('migration', function () {
     console.log(`totalMemberBalancesPreMigration ${totalMemberBalancesPreMigration.toString()}`);
     console.log(`totalMemberBalancesPostMigration ${totalMemberBalancesPostMigration.toString()}`);
 
-    console.log(`Checking total migrated Tokens to new PS.`);
+    console.log('Checking total migrated Tokens to new PS.');
     const totalStakedTokens = await tk.balanceOf(ps.address);
     console.log(`totalStakedTokens on new PooledStaking ${totalStakedTokens.toString()}`);
 
@@ -448,7 +448,7 @@ describe.skip('migration', function () {
 
     assert.equal(totalStakedTokens.toString(), totalDepositsSum.toString());
 
-    console.log(`Asserting all initial members have been migrated..`);
+    console.log('Asserting all initial members have been migrated..');
     for (const member of memberSet) {
       assert(migratedMembersSet.has(member), `${member} not found in migratedMemberSet`);
     }

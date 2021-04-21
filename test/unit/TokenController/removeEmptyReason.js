@@ -36,9 +36,8 @@ describe('removeEmptyReason', function () {
     await token.approve(tokenController.address, ether('100'), { from: member });
     await tokenController.lockOf(member, R0, ether('100'), lockPeriod, { from: internal });
 
-    await expectRevert(
+    await expectRevert.assertion(
       tokenController.removeEmptyReason(member, '0x', '1'),
-      'TokenController: index out of array bounds',
     );
   });
 

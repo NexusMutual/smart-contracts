@@ -196,11 +196,12 @@ contract MCR is Iupgradable {
     uint _desiredMCR = desiredMCR;
     uint _lastUpdateTime = lastUpdateTime;
 
-    uint _maxMCRIncrement = maxMCRIncrement;
 
     if (now == _lastUpdateTime) {
       return _mcr;
     }
+
+    uint _maxMCRIncrement = maxMCRIncrement;
 
     uint percentageAdjustment = _maxMCRIncrement.mul(now - _lastUpdateTime).div(1 days);
     percentageAdjustment = min(percentageAdjustment, MAX_PERCENTAGE_ADJUSTMENT);

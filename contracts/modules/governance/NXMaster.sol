@@ -20,6 +20,7 @@ import "../cover/Quotation.sol";
 import "../claims/Claims.sol";
 import "./external/Governed.sol";
 import "./external/OwnedUpgradeabilityProxy.sol";
+import "../capital/LegacyPoolData.sol";
 
 contract NXMaster is Governed {
   using SafeMath for uint;
@@ -109,10 +110,16 @@ contract NXMaster is Governed {
   function getOwnerParameters(bytes8 code) external view returns (bytes8 codeVal, address val) {
     codeVal = code;
     QuotationData qd;
+    LegacyPoolData pd;
     if (code == "MSWALLET") {
       TokenData td;
       td = TokenData(getLatestAddress("TD"));
       val = td.walletAddress();
+
+    } else if (code == "MCRNOTA") {
+
+      pd = LegacyPoolData(getLatestAddress("PD"));
+      val = pd.notariseMCR();
 
     } else if (code == "OWNER") {
 
@@ -324,10 +331,16 @@ contract NXMaster is Governed {
    */
   function updateOwnerParameters(bytes8 code, address payable val) public onlyAuthorizedToGovern {
     QuotationData qd;
+    LegacyPoolData pd;
     if (code == "MSWALLET") {
       TokenData td;
       td = TokenData(getLatestAddress("TD"));
       td.changeWalletAddress(val);
+
+    } else if (code == "MCRNOTA") {
+
+      pd = LegacyPoolData(getLatestAddress("PD"));
+      pd.changeNotariseAddress(val);
 
     } else if (code == "OWNER") {
 

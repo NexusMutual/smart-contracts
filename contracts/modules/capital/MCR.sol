@@ -22,9 +22,7 @@ import "../cover/QuotationData.sol";
 import "../oracles/PriceFeedOracle.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenData.sol";
-import "hardhat/console.sol";
 import "./LegacyMCR.sol";
-import "hardhat/console.sol";
 
 contract MCR is Iupgradable {
   using SafeMath for uint;

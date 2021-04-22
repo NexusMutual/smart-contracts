@@ -16,24 +16,19 @@ const {
 
 const { BN, toBN } = web3.utils;
 
-const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const MemberRoles = artifacts.require('MemberRoles');
 const Pool = artifacts.require('Pool');
 const NXMaster = artifacts.require('NXMaster');
 const NXMToken = artifacts.require('NXMToken');
 const Governance = artifacts.require('Governance');
-const TokenFunctions = artifacts.require('TokenFunctions');
-const Claims = artifacts.require('Claims');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const Quotation = artifacts.require('Quotation');
 const MCR = artifacts.require('MCR');
-const Pool2 = artifacts.require('Pool2');
-const LegacyPool1 = artifacts.require('LegacyPool1');
 const LegacyMCR = artifacts.require('LegacyMCR');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const ERC20 = artifacts.require('ERC20');
 const SwapAgent = artifacts.require('SwapAgent');
-const TwapOracle = artifacts.require('TwapOracle');
+const LegacyPoolData = artifacts.require('LegacyPoolData');
 
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -84,6 +79,7 @@ describe.only('MCR on-chain migration', function () {
     const governance = await Governance.at(getAddressByCode('GV'));
     const pool1 = await Pool.at(getAddressByCode('P1'));
     const oldMCR = await LegacyMCR.at(getAddressByCode('MC'));
+    const oldPoolData = await LegacyPoolData.at(getAddressByCode('PD'));
 
     this.masterAddress = masterAddress;
     this.token = token;
@@ -93,6 +89,7 @@ describe.only('MCR on-chain migration', function () {
     this.oldMCR = oldMCR;
     this.getAddressByCode = getAddressByCode;
     this.master = await NXMaster.at(masterAddress);
+    this.poolData = oldPoolData;
   });
 
   it('fetches board members and funds accounts', async function () {
@@ -113,7 +110,7 @@ describe.only('MCR on-chain migration', function () {
 
   it('upgrade contracts', async function () {
 
-    const { governance, voters, oldMCR, getAddressByCode, oldPool, master } = this;
+    const { governance, voters, oldMCR, getAddressByCode, oldPool, master, poolData } = this;
 
     const dai = await ERC20.at(Address.DAI);
 
@@ -130,6 +127,9 @@ describe.only('MCR on-chain migration', function () {
     const previousDynamicMincapThresholdx100 = await oldMCR.dynamicMincapThresholdx100();
     const previousDynamicMincapIncrementx100 = await oldMCR.dynamicMincapIncrementx100();
     const previousAllSumAssurance = await oldMCR.getAllSumAssurance();
+
+    /* PoolData data */
+    const minCap = await poolData.minCap();
 
     console.log('Deploying contracts');
 
@@ -200,7 +200,9 @@ describe.only('MCR on-chain migration', function () {
     const maxMCRFloorIncrement = await newMCR.maxMCRFloorIncrement();
     const allSumAssurance = await newMCR.getAllSumAssurance();
 
-    assert.equal(mcrFloor.toString(), previousVariableMincap.toString());
+    const minCapFactor = ether('1000');
+    const expectedMCRFloor = minCap.mul(minCapFactor).add(previousVariableMincap);
+    assert.equal(mcrFloor.toString(), expectedMCRFloor.toString());
     assert.equal(mcrFloorIncrementThreshold.toString(), previousDynamicMincapThresholdx100.toString());
     assert.equal(maxMCRFloorIncrement.toString(), previousDynamicMincapIncrementx100.toString());
     assert.equal(allSumAssurance.toString(), previousAllSumAssurance.toString());
@@ -307,11 +309,16 @@ describe.only('MCR on-chain migration', function () {
 
     console.log({
       desiredMCR: desiredMCR.toString(),
+      currentMCR: currentMCR.toString(),
+      storedMCR: storedMCR.toString(),
     });
 
     assert.equal(lastUpdateTime.toString(), block.timestamp.toString());
     assert.equal(mcrFloor.toString(), mcrFloorBefore.toString());
     assert.equal(desiredMCR.toString(), mcrFloor.toString());
+
+    // desiredMCR falls slightly since the current MCR is slightly above the floor.
+    assert(desiredMCR.lt(desiredMCRBefore), 'desiredMCR did not decrease');
 
     this.lastUpdateTime = lastUpdateTime;
   });

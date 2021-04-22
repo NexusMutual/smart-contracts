@@ -85,7 +85,8 @@ contract MCR is Iupgradable {
     }
 
     // fetch MCR parameters from previous contract
-    mcrFloor = uint112(previousMCR.variableMincap());
+    uint112 minCap = 7000 * 1e18;
+    mcrFloor = uint112(previousMCR.variableMincap()) + minCap;
     mcr = uint112(previousMCR.getLastMCREther());
     desiredMCR = mcr;
     mcrFloorIncrementThreshold = uint24(previousMCR.dynamicMincapThresholdx100());

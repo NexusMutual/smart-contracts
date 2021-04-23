@@ -85,7 +85,7 @@ describe('burns', function () {
       expireTime: '7972408607',
       generationTime: '7972408607001',
       currency,
-      period: 61,
+      period: 63,
       contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf',
     };
 
@@ -154,7 +154,7 @@ describe('burns', function () {
       expireTime: '7972408607',
       generationTime: '7972408607001',
       currency,
-      period: 61,
+      period: 63,
       contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf',
     };
 
@@ -231,7 +231,7 @@ describe('burns', function () {
       expireTime: '7972408607',
       generationTime: '7972408607001',
       currency,
-      period: 61,
+      period: 63,
       contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf',
     };
 
@@ -281,7 +281,7 @@ describe('burns', function () {
       expireTime: '7972408607',
       generationTime: '7972408607001',
       currency,
-      period: 61,
+      period: 63,
       contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf',
     };
 

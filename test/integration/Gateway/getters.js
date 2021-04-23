@@ -186,7 +186,7 @@ describe('getters', function () {
     it('reverts if cover does not exist', async function () {
       const { gateway } = this.contracts;
       const claimId = 1;
-      await expectRevert(gateway.getPayoutOutcome(claimId), 'VM Exception while processing transaction: invalid opcode');
+      await expectRevert.assertion(gateway.getPayoutOutcome(claimId));
     });
 
     it('reverts if claim does not exist', async function () {

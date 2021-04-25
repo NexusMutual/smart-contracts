@@ -6,7 +6,7 @@ const { assert } = require('chai');
 const { defaultSender, governanceContracts: [governance] } = require('../utils').accounts;
 
 const Pool = artifacts.require('Pool');
-const SwapAgent = artifacts.require('SwapAgent');
+const SwapAgent = artifacts.require('SwapOperator');
 const ERC20Mock = artifacts.require('ERC20Mock');
 
 describe('upgradeCapitalPool', function () {
@@ -21,7 +21,7 @@ describe('upgradeCapitalPool', function () {
     const otherToken = await ERC20Mock.new();
 
     await pool.addAsset(otherToken.address, '0', '0', ether('0.01'), {
-      from: governance
+      from: governance,
     });
     const tokens = [dai, otherToken];
     for (const token of tokens) {

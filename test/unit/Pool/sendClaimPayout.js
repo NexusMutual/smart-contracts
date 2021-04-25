@@ -8,7 +8,7 @@ const { assert } = require('chai');
 const { defaultSender, internalContracts: [internal], generalPurpose: [destination, arbitraryCaller] } = require('../utils').accounts;
 
 const Pool = artifacts.require('Pool');
-const SwapAgent = artifacts.require('SwapAgent');
+const SwapAgent = artifacts.require('SwapOperator');
 const ERC20Mock = artifacts.require('ERC20Mock');
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
@@ -25,7 +25,7 @@ describe('sendClaimPayout', function () {
 
     await pool.sendClaimPayout(
       dai.address, destination, amountToTransfer,
-      { from: internal }
+      { from: internal },
     );
     const destinationBalance = await dai.balanceOf(destination);
     assert.equal(destinationBalance.toString(), amountToTransfer.toString());
@@ -45,7 +45,7 @@ describe('sendClaimPayout', function () {
     const destinationBalancePrePayout = toBN(await web3.eth.getBalance(destination));
     await pool.sendClaimPayout(
       ETH, destination, amountToTransfer,
-      { from: internal }
+      { from: internal },
     );
     const destinationBalance = toBN(await web3.eth.getBalance(destination));
     assert.equal(destinationBalance.sub(destinationBalancePrePayout).toString(), amountToTransfer.toString());

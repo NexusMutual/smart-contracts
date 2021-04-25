@@ -2,6 +2,7 @@ const { accounts, artifacts, web3 } = require('hardhat');
 
 const { impersonateAccount } = require('../utils').evm;
 const { ether } = require('@openzeppelin/test-helpers');
+const { hex } = require('../utils').helpers;
 
 // actual uniswap addresses on all chains
 const UNISWAP_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
@@ -29,7 +30,7 @@ async function setup () {
 
   /** @var { PoolContract} Pool */
   const Pool = artifacts.require('Pool');
-  const SwapAgent = artifacts.require('SwapAgent');
+  const SwapOperator = artifacts.require('SwapOperator');
   const MasterMock = artifacts.require('MasterMock');
 
   const ERC20Mock = artifacts.require('ERC20Mock');
@@ -79,13 +80,13 @@ async function setup () {
   /** @var {UniswapV2FactoryInstance} factory */
   const factory = await UniswapV2Factory.at(_factory.address);
   const router = await UniswapV2Router02.at(_router.address);
-  const oracle = await TwapOracle.new(factory.address);
+  const twapOracle = await TwapOracle.new(factory.address);
 
   await factory.createPair(weth.address, tokenA.address);
   await factory.createPair(weth.address, tokenB.address);
 
-  const wethAPairAddress = await oracle.pairFor(weth.address, tokenA.address);
-  const wethBPairAddress = await oracle.pairFor(weth.address, tokenB.address);
+  const wethAPairAddress = await twapOracle.pairFor(weth.address, tokenA.address);
+  const wethBPairAddress = await twapOracle.pairFor(weth.address, tokenB.address);
 
   const wethAPair = await UniswapV2Pair.at(wethAPairAddress);
   const wethBPair = await UniswapV2Pair.at(wethBPairAddress);
@@ -94,8 +95,6 @@ async function setup () {
 
   /** @var {MasterMockInstance} master */
   const master = await MasterMock.new();
-  const swapAgent = await SwapAgent.new();
-  await Pool.link(swapAgent);
 
   const pool = await Pool.new(
     [tokenA.address, tokenB.address], // assets
@@ -104,11 +103,16 @@ async function setup () {
     [ether('0.05'), ether('0.05')], // max slippage ratio [1%, 1%]
     master.address,
     ZERO_ADDRESS, // price feed oracle not used
-    oracle.address,
-    owner, // swap controller
+    ZERO_ADDRESS, // swap operator
   );
 
   await master.enrollGovernance(governance);
+
+  const swapOperator = await SwapOperator.new(pool.address, twapOracle.address, owner);
+
+  await pool.updateAddressParameters(hex('SWP_OP'), swapOperator.address, {
+    from: governance,
+  });
 
   // add ether to pool
   await web3.eth.sendTransaction({
@@ -117,7 +121,7 @@ async function setup () {
     value: ether('10000'),
   });
 
-  const main = { master, pool, factory, router, oracle };
+  const main = { master, pool, factory, router, oracle: twapOracle, swapOperator };
   const tokens = { weth, tokenA, tokenB };
   const pairs = { wethAPair, wethBPair };
 

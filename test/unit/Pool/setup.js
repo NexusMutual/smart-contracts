@@ -19,7 +19,7 @@ async function setup () {
   const ERC20Mock = artifacts.require('ERC20Mock');
   const TokenFunctions = artifacts.require('TokenFunctions');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-  const SwapAgent = artifacts.require('SwapAgent');
+  const SwapAgent = artifacts.require('SwapOperator');
   const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
 
   const master = await MasterMock.new();

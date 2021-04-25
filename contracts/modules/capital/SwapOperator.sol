@@ -22,6 +22,7 @@ import "../oracles/TwapOracle.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../oracles/PriceFeedOracle.sol";
 import "./Pool.sol";
+import "hardhat/console.sol";
 
 
 contract SwapOperator is ReentrancyGuard {
@@ -31,7 +32,6 @@ contract SwapOperator is ReentrancyGuard {
 
     TwapOracle public twapOracle;
     address public swapController;
-    uint public minPoolEth;
     Pool public pool;
 
     /* events */
@@ -62,9 +62,10 @@ contract SwapOperator is ReentrancyGuard {
         uint maxSlippageRatio;
     }
 
-    constructor(address payable _pool, address _twapOracle) public {
+    constructor(address payable _pool, address _twapOracle, address _swapController) public {
         pool = Pool(_pool);
         twapOracle = TwapOracle(_twapOracle);
+        swapController = _swapController;
     }
 
     function swapETHForAsset(
@@ -90,7 +91,7 @@ contract SwapOperator is ReentrancyGuard {
             toTokenAddress,
             amountIn,
             amountOutMin,
-            minPoolEth
+            pool.minPoolEth()
         );
         transferAssetTo(toTokenAddress, address(pool), amountOut);
 
@@ -147,7 +148,7 @@ contract SwapOperator is ReentrancyGuard {
         uint minLeftETH
     ) internal returns (uint) {
 
-        uint balanceBefore = IERC20(toTokenAddress).balanceOf(address(this));
+        uint balanceBefore = IERC20(toTokenAddress).balanceOf(address(pool));
         address WETH = router.WETH();
 
         {
@@ -170,8 +171,9 @@ contract SwapOperator is ReentrancyGuard {
 
         {
             // scope for ether checks
-            uint ethBalanceBefore = address(this).balance;
-            uint ethBalanceAfter = ethBalanceBefore.sub(amountIn);
+            uint ethBalanceBefore = address(pool).balance.add(amountIn);
+            uint ethBalanceAfter = address(pool).balance;
+
             require(ethBalanceAfter >= minLeftETH, "SwapAgent: insufficient ether left");
         }
 
@@ -183,7 +185,7 @@ contract SwapOperator is ReentrancyGuard {
 
             // gas optimisation: reads both values using a single SLOAD
             (uint minAssetAmount, uint maxAssetAmount) = (assetData.minAmount, assetData.maxAmount);
-
+          
             require(amountOutMin >= minOutOnMaxSlippage, "SwapAgent: amountOutMin < minOutOnMaxSlippage");
             require(balanceBefore < minAssetAmount, "SwapAgent: balanceBefore >= min");
             require(balanceBefore.add(amountOutMin) <= maxAssetAmount, "SwapAgent: balanceAfter > max");
@@ -194,8 +196,7 @@ contract SwapOperator is ReentrancyGuard {
         path[1] = toTokenAddress;
         router.swapExactETHForTokens.value(amountIn)(amountOutMin, path, address(this), block.timestamp);
 
-        uint balanceAfter = IERC20(toTokenAddress).balanceOf(address(this));
-        uint amountOut = balanceAfter.sub(balanceBefore);
+        uint amountOut = IERC20(toTokenAddress).balanceOf(address(this));
 
         return amountOut;
     }
@@ -207,8 +208,8 @@ contract SwapOperator is ReentrancyGuard {
         uint amountOutMin
     ) internal returns (uint) {
 
-        uint tokenBalanceBefore = IERC20(fromTokenAddress).balanceOf(address(this));
-        uint balanceBefore = address(this).balance;
+        uint tokenBalanceBefore = IERC20(fromTokenAddress).balanceOf(address(pool)).add(amountIn);
+        uint balanceBefore = address(pool).balance;
         address WETH = router.WETH();
 
         {
@@ -249,8 +250,7 @@ contract SwapOperator is ReentrancyGuard {
         IERC20(fromTokenAddress).approve(address(router), amountIn);
         router.swapExactTokensForETH(amountIn, amountOutMin, path, address(this), block.timestamp);
 
-        uint balanceAfter = address(this).balance;
-        uint amountOut = balanceAfter.sub(balanceBefore);
+        uint amountOut = address(this).balance;
 
         return amountOut;
     }
@@ -296,4 +296,7 @@ contract SwapOperator is ReentrancyGuard {
         require(balanceBefore < minAssetAmount, "SwapOperator: balanceBefore >= min");
         require(balanceBefore.add(amountOutMin) <= maxAssetAmount, "SwapOperator: balanceAfter > max");
     }
+
+    // fallback function
+    function() external payable {}
 }

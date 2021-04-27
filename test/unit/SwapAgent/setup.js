@@ -25,6 +25,7 @@ async function setup () {
   const [owner, governance] = accounts;
   const uniswapDeployer = '0x9c33eacc2f50e39940d3afaf2c7b8246b681a374';
   const uniswapOwner = '0xc0a4272bb5df52134178df25d77561cfb17ce407';
+  const lidoDeployer = '0x55Bc991b2edF3DDb4c520B222bE4F378418ff0fA';
 
   /* load artifacts */
 

@@ -16,5 +16,5 @@ describe.only('SwapAgent unit tests', function () {
 
   require('./swapETHForAsset');
   require('./swapAssetForETH');
-
+  require('./swapETHforStETH');
 });

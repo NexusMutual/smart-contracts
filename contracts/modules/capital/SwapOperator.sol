@@ -43,11 +43,6 @@ contract SwapOperator is ReentrancyGuard {
         _;
     }
 
-    modifier whenNotPaused {
-        require(!pool.master().isPause(), "System is paused");
-        _;
-    }
-
     /* constants */
     address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address constant public STETH = 0x20dC62D5904633cC6a5E34bEc87A048E80C92e97;
@@ -72,7 +67,7 @@ contract SwapOperator is ReentrancyGuard {
         address toTokenAddress,
         uint amountIn,
         uint amountOutMin
-    ) external whenNotPaused onlySwapController nonReentrant {
+    ) external onlySwapController nonReentrant {
 
         (
         /* uint balance */,
@@ -102,7 +97,7 @@ contract SwapOperator is ReentrancyGuard {
         address fromTokenAddress,
         uint amountIn,
         uint amountOutMin
-    ) external whenNotPaused onlySwapController nonReentrant {
+    ) external onlySwapController nonReentrant {
 
         (
         /* uint balance */,
@@ -185,7 +180,7 @@ contract SwapOperator is ReentrancyGuard {
 
             // gas optimisation: reads both values using a single SLOAD
             (uint minAssetAmount, uint maxAssetAmount) = (assetData.minAmount, assetData.maxAmount);
-          
+
             require(amountOutMin >= minOutOnMaxSlippage, "SwapAgent: amountOutMin < minOutOnMaxSlippage");
             require(balanceBefore < minAssetAmount, "SwapAgent: balanceBefore >= min");
             require(balanceBefore.add(amountOutMin) <= maxAssetAmount, "SwapAgent: balanceAfter > max");
@@ -267,7 +262,7 @@ contract SwapOperator is ReentrancyGuard {
         token.safeTransfer(to, amount);
     }
 
-    function swapETHforStETH(uint amountIn, uint amountOutMin) external whenNotPaused onlySwapController nonReentrant {
+    function swapETHforStETH(uint amountIn, uint amountOutMin) external onlySwapController nonReentrant {
 
         address toTokenAddress = STETH;
         (
@@ -278,7 +273,7 @@ contract SwapOperator is ReentrancyGuard {
         /* uint maxSlippageRatio */
         ) = pool.getAssetDetails(toTokenAddress);
 
-        uint balanceBefore = IERC20(toTokenAddress).balanceOf(address(this));
+        uint balanceBefore = IERC20(toTokenAddress).balanceOf(address(pool));
 
         (bool ok, /* data */) = toTokenAddress.call.value(amountIn)("");
         require(ok, "SwapOperator: stEth transfer failed");
@@ -290,11 +285,9 @@ contract SwapOperator is ReentrancyGuard {
 
         require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
 
-        // gas optimisation: reads both values using a single SLOAD
-        (uint minAssetAmount, uint maxAssetAmount) = (minAmount, maxAmount);
 
-        require(balanceBefore < minAssetAmount, "SwapOperator: balanceBefore >= min");
-        require(balanceBefore.add(amountOutMin) <= maxAssetAmount, "SwapOperator: balanceAfter > max");
+        require(balanceBefore < minAmount, "SwapOperator: balanceBefore >= min");
+        require(balanceBefore.add(amountOutMin) <= maxAmount, "SwapOperator: balanceAfter > max");
     }
 
     // fallback function

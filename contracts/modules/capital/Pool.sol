@@ -33,6 +33,14 @@ contract Pool is MasterAware, ReentrancyGuard {
   using SafeMath for uint;
   using SafeERC20 for IERC20;
 
+  struct AssetData {
+    uint112 minAmount;
+    uint112 maxAmount;
+    uint32 lastSwapTime;
+    // 18 decimals of precision. 0.01% -> 0.0001 -> 1e14
+    uint maxSlippageRatio;
+  }
+
   /* storage */
   address[] public assets;
   mapping(address => AssetData) public assetData;
@@ -70,14 +78,6 @@ contract Pool is MasterAware, ReentrancyGuard {
   modifier onlySwapOperator {
     require(msg.sender == swapOperator, "Pool: not swapController");
     _;
-  }
-
-  struct AssetData {
-    uint112 minAmount;
-    uint112 maxAmount;
-    uint32 lastSwapTime;
-    // 18 decimals of precision. 0.01% -> 0.0001 -> 1e14
-    uint maxSlippageRatio;
   }
 
   constructor (
@@ -391,7 +391,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     token.safeTransfer(to, amount);
   }
 
-  function setAssetDataLatestLastSwapTime(address asset, uint32 lastSwapTime) public onlySwapOperator whenNotPaused {
+  function setAssetDataLastSwapTime(address asset, uint32 lastSwapTime) public onlySwapOperator whenNotPaused {
     assetData[asset].lastSwapTime = lastSwapTime;
   }
 

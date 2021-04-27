@@ -112,6 +112,10 @@ contract Incidents is MasterAware {
     }
   }
 
+  function incidentCount() external view returns (uint) {
+    return incidents.length;
+  }
+
   function addIncident(
     address productId,
     uint incidentDate,

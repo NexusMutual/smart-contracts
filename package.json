@@ -29,7 +29,8 @@
     "bn.js": "^5.1.2",
     "dotenv": "^8.2.0",
     "ethereumjs-util": "^7.0.7",
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^2.6.1",
+    "@openzeppelin/contracts-v4": "npm:@openzeppelin/contracts@^4.0.0"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-etherscan": "^2.1.0",

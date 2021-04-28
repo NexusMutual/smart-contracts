@@ -13,21 +13,21 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "../../external/uniswap/IUniswapV2Router02.sol";
-import "../oracles/TwapOracle.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "../oracles/PriceFeedOracle.sol";
-import "./Pool.sol";
+import "../../external/uniswap/IUniswapV2Pair.sol";
+import "../../interfaces/ITwapOracle.sol";
+import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
+import "../../interfaces/IPool.sol";
 import "hardhat/console.sol";
 
 
 contract SwapOperator is ReentrancyGuard {
   using SafeERC20 for IERC20;
-  using SafeMath for uint;
+//  using SafeMath for uint;
 
   struct AssetData {
     uint112 minAmount;
@@ -37,9 +37,9 @@ contract SwapOperator is ReentrancyGuard {
     uint maxSlippageRatio;
   }
 
-  TwapOracle public twapOracle;
+  ITwapOracle public twapOracle;
   address public swapController;
-  Pool public pool;
+  IPool public pool;
   address public stETH;
 
   /* events */
@@ -57,8 +57,8 @@ contract SwapOperator is ReentrancyGuard {
   uint constant public MAX_LIQUIDITY_RATIO = 3 * 1e15;
 
   constructor(address payable _pool, address _twapOracle, address _swapController, address _stETH) public {
-    pool = Pool(_pool);
-    twapOracle = TwapOracle(_twapOracle);
+    pool = IPool(_pool);
+    twapOracle = ITwapOracle(_twapOracle);
     swapController = _swapController;
     stETH = _stETH;
   }
@@ -148,7 +148,7 @@ contract SwapOperator is ReentrancyGuard {
 
     {
       // scope for swap frequency check
-      uint timeSinceLastTrade = block.timestamp.sub(uint(assetData.lastSwapTime));
+      uint timeSinceLastTrade = block.timestamp - uint(assetData.lastSwapTime);
       require(timeSinceLastTrade > twapOracle.periodSize(), "SwapAgent: too fast");
     }
 
@@ -159,14 +159,14 @@ contract SwapOperator is ReentrancyGuard {
       (uint112 reserve0, uint112 reserve1, /* time */) = pair.getReserves();
 
       uint ethReserve = WETH < toTokenAddress ? reserve0 : reserve1;
-      uint maxTradable = ethReserve.mul(MAX_LIQUIDITY_RATIO).div(1e18);
+      uint maxTradable = ethReserve * MAX_LIQUIDITY_RATIO / 1e18;
 
       require(amountIn <= maxTradable, "SwapAgent: exceeds max tradable amount");
     }
 
     {
       // scope for ether checks
-      uint ethBalanceBefore = address(pool).balance.add(amountIn);
+      uint ethBalanceBefore = address(pool).balance + amountIn;
       uint ethBalanceAfter = address(pool).balance;
 
       require(ethBalanceAfter >= minLeftETH, "SwapAgent: insufficient ether left");
@@ -175,21 +175,21 @@ contract SwapOperator is ReentrancyGuard {
     {
       // scope for token checks
       uint avgAmountOut = twapOracle.consult(WETH, amountIn, toTokenAddress);
-      uint maxSlippageAmount = avgAmountOut.mul(assetData.maxSlippageRatio).div(1e18);
-      uint minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
+      uint maxSlippageAmount = avgAmountOut * assetData.maxSlippageRatio / 1e18;
+      uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
       // gas optimisation: reads both values using a single SLOAD
       (uint minAssetAmount, uint maxAssetAmount) = (assetData.minAmount, assetData.maxAmount);
 
       require(amountOutMin >= minOutOnMaxSlippage, "SwapAgent: amountOutMin < minOutOnMaxSlippage");
       require(balanceBefore < minAssetAmount, "SwapAgent: balanceBefore >= min");
-      require(balanceBefore.add(amountOutMin) <= maxAssetAmount, "SwapAgent: balanceAfter > max");
+      require(balanceBefore + amountOutMin <= maxAssetAmount, "SwapAgent: balanceAfter > max");
     }
 
     address[] memory path = new address[](2);
     path[0] = WETH;
     path[1] = toTokenAddress;
-    router.swapExactETHForTokens.value(amountIn)(amountOutMin, path, address(this), block.timestamp);
+    router.swapExactETHForTokens{ value: amountIn }(amountOutMin, path, address(this), block.timestamp);
 
     uint amountOut = IERC20(toTokenAddress).balanceOf(address(this));
 
@@ -203,13 +203,13 @@ contract SwapOperator is ReentrancyGuard {
     uint amountOutMin
   ) internal returns (uint) {
 
-    uint tokenBalanceBefore = IERC20(fromTokenAddress).balanceOf(address(pool)).add(amountIn);
+    uint tokenBalanceBefore = IERC20(fromTokenAddress).balanceOf(address(pool)) + amountIn;
     uint balanceBefore = address(pool).balance;
     address WETH = router.WETH();
 
     {
       // scope for swap frequency check
-      uint timeSinceLastTrade = block.timestamp.sub(uint(assetData.lastSwapTime));
+      uint timeSinceLastTrade = block.timestamp - uint(assetData.lastSwapTime);
       require(timeSinceLastTrade > twapOracle.periodSize(), "SwapAgent: too fast");
     }
 
@@ -220,7 +220,7 @@ contract SwapOperator is ReentrancyGuard {
       (uint112 reserve0, uint112 reserve1, /* time */) = pair.getReserves();
 
       uint tokenReserve = fromTokenAddress < WETH ? reserve0 : reserve1;
-      uint maxTradable = tokenReserve.mul(MAX_LIQUIDITY_RATIO).div(1e18);
+      uint maxTradable = tokenReserve * MAX_LIQUIDITY_RATIO / 1e18;
 
       require(amountIn <= maxTradable, "SwapAgent: exceeds max tradable amount");
     }
@@ -228,15 +228,15 @@ contract SwapOperator is ReentrancyGuard {
     {
       // scope for token checks
       uint avgAmountOut = twapOracle.consult(fromTokenAddress, amountIn, WETH);
-      uint maxSlippageAmount = avgAmountOut.mul(assetData.maxSlippageRatio).div(1e18);
-      uint minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
+      uint maxSlippageAmount = avgAmountOut * assetData.maxSlippageRatio / 1e18;
+      uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
       // gas optimisation: reads both values using a single SLOAD
       (uint minAssetAmount, uint maxAssetAmount) = (assetData.minAmount, assetData.maxAmount);
 
       require(amountOutMin >= minOutOnMaxSlippage, "SwapAgent: amountOutMin < minOutOnMaxSlippage");
       require(tokenBalanceBefore > maxAssetAmount, "SwapAgent: tokenBalanceBefore <= max");
-      require(tokenBalanceBefore.sub(amountIn) >= minAssetAmount, "SwapAgent: tokenBalanceAfter < min");
+      require(tokenBalanceBefore - amountIn >= minAssetAmount, "SwapAgent: tokenBalanceAfter < min");
     }
 
     address[] memory path = new address[](2);
@@ -253,7 +253,7 @@ contract SwapOperator is ReentrancyGuard {
   function transferAssetTo (address asset, address to, uint amount) internal {
 
     if (asset == ETH) {
-      (bool ok, /* data */) = to.call.value(amount)("");
+      (bool ok, /* data */) = to.call{ value: amount }("");
       require(ok, "SwapOperator: Eth transfer failed");
       return;
     }
@@ -262,7 +262,7 @@ contract SwapOperator is ReentrancyGuard {
     token.safeTransfer(to, amount);
   }
 
-  function swapETHForStETH(uint amountIn, uint amountOutMin) external onlySwapController {
+  function swapETHForStETH(uint amountIn) external onlySwapController {
 
     address toTokenAddress = stETH;
     (
@@ -273,25 +273,35 @@ contract SwapOperator is ReentrancyGuard {
     /* uint maxSlippageRatio */
     ) = pool.getAssetDetails(toTokenAddress);
 
+    uint amountOutMin;
+    if (amountIn > 10000) {
+      amountOutMin = amountIn - 10000; // allow for precision error
+    }
+
     uint balanceBefore = IERC20(toTokenAddress).balanceOf(address(pool));
 
     pool.transferAssetTo(ETH, address(this), amountIn);
-    
-    (bool ok, /* data */) = toTokenAddress.call.value(amountIn)("");
+
+    (bool ok, /* data */) = toTokenAddress.call{ value: amountIn }("");
     require(ok, "SwapOperator: stEth transfer failed");
 
     pool.setAssetDataLastSwapTime(toTokenAddress, uint32(block.timestamp));
 
     uint balanceAfter = IERC20(toTokenAddress).balanceOf(address(this));
-    uint amountOut = balanceAfter.sub(balanceBefore);
+    uint amountOut = balanceAfter - balanceBefore;
 
     require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
     require(balanceBefore < minAmount, "SwapOperator: balanceBefore >= min");
-    require(balanceBefore.add(amountOutMin) <= maxAmount, "SwapOperator: balanceAfter > max");
+    require(balanceBefore + amountOutMin <= maxAmount, "SwapOperator: balanceAfter > max");
+    {
+      uint ethBalanceAfter = address(pool).balance;
+      require(ethBalanceAfter >= pool.minPoolEth(), "SwapOperator: insufficient ether left");
+    }
 
     transferAssetTo(stETH, address(pool), amountOut);
+
+    emit Swapped(ETH, stETH, amountIn, amountOut);
   }
 
-  // fallback function
-  function() external payable {}
+  receive() external payable {}
 }

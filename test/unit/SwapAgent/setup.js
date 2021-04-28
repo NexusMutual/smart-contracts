@@ -25,7 +25,6 @@ async function setup () {
   const [owner, governance] = accounts;
   const uniswapDeployer = '0x9c33eacc2f50e39940d3afaf2c7b8246b681a374';
   const uniswapOwner = '0xc0a4272bb5df52134178df25d77561cfb17ce407';
-  const lidoDeployer = '0x55Bc991b2edF3DDb4c520B222bE4F378418ff0fA';
 
   /* load artifacts */
 
@@ -36,6 +35,7 @@ async function setup () {
 
   const ERC20Mock = artifacts.require('ERC20Mock');
   const WETH9 = artifacts.require('WETH9');
+  const P1MockLido = artifacts.require('P1MockLido');
   const TwapOracle = artifacts.require('TwapOracle');
   const UniswapV2Factory = artifacts.require('UniswapV2Factory');
   const UniswapV2Pair = artifacts.require('UniswapV2Pair');
@@ -46,6 +46,7 @@ async function setup () {
   const tokenA = await ERC20Mock.new();
   const tokenB = await ERC20Mock.new();
   const weth = await WETH9.new();
+  const lido = await P1MockLido.new();
 
   /* deploy uniswap */
 
@@ -98,10 +99,10 @@ async function setup () {
   const master = await MasterMock.new();
 
   const pool = await Pool.new(
-    [tokenA.address, tokenB.address], // assets
-    [0, 0], // min
-    [ether('1000'), ether('1000')], // max
-    [ether('0.05'), ether('0.05')], // max slippage ratio [1%, 1%]
+    [tokenA.address, tokenB.address, lido.address], // assets
+    [0, 0, 0], // min
+    [ether('1000'), ether('1000'), ether('1000')], // max
+    [ether('0.05'), ether('0.05'), ether('0.05')], // max slippage ratio [1%, 1%]
     master.address,
     ZERO_ADDRESS, // price feed oracle not used
     ZERO_ADDRESS, // swap operator
@@ -109,7 +110,7 @@ async function setup () {
 
   await master.enrollGovernance(governance);
 
-  const swapOperator = await SwapOperator.new(pool.address, twapOracle.address, owner);
+  const swapOperator = await SwapOperator.new(pool.address, twapOracle.address, owner, lido.address);
 
   await pool.updateAddressParameters(hex('SWP_OP'), swapOperator.address, {
     from: governance,
@@ -123,7 +124,7 @@ async function setup () {
   });
 
   const main = { master, pool, factory, router, oracle: twapOracle, swapOperator };
-  const tokens = { weth, tokenA, tokenB };
+  const tokens = { weth, tokenA, tokenB, lido };
   const pairs = { wethAPair, wethBPair };
 
   Object.assign(instances, { ...main, ...tokens, ...pairs });

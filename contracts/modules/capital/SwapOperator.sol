@@ -22,6 +22,7 @@ import "../../external/uniswap/IUniswapV2Pair.sol";
 import "../../interfaces/ITwapOracle.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/INXMaster.sol";
 import "hardhat/console.sol";
 
 
@@ -39,7 +40,7 @@ contract SwapOperator is ReentrancyGuard {
 
   ITwapOracle public twapOracle;
   address public swapController;
-  IPool public pool;
+  INXMMaster master;
   address public stETH;
 
   /* events */
@@ -56,8 +57,8 @@ contract SwapOperator is ReentrancyGuard {
   IUniswapV2Router02 constant public router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
   uint constant public MAX_LIQUIDITY_RATIO = 3 * 1e15;
 
-  constructor(address payable _pool, address _twapOracle, address _swapController, address _stETH) public {
-    pool = IPool(_pool);
+  constructor(address payable _master, address _twapOracle, address _swapController, address _stETH) public {
+    master = INXMMaster(_master);
     twapOracle = ITwapOracle(_twapOracle);
     swapController = _swapController;
     stETH = _stETH;
@@ -69,6 +70,7 @@ contract SwapOperator is ReentrancyGuard {
     uint amountOutMin
   ) external onlySwapController {
 
+    IPool pool = _pool();
     (
     /* uint balance */,
     uint112 min,
@@ -99,6 +101,7 @@ contract SwapOperator is ReentrancyGuard {
     uint amountOutMin
   ) external onlySwapController {
 
+    IPool pool = _pool();
     (
     /* uint balance */,
     uint112 min,
@@ -143,6 +146,7 @@ contract SwapOperator is ReentrancyGuard {
     uint minLeftETH
   ) internal returns (uint) {
 
+    IPool pool = _pool();
     uint balanceBefore = IERC20(toTokenAddress).balanceOf(address(pool));
     address WETH = router.WETH();
 
@@ -166,9 +170,7 @@ contract SwapOperator is ReentrancyGuard {
 
     {
       // scope for ether checks
-      uint ethBalanceBefore = address(pool).balance + amountIn;
       uint ethBalanceAfter = address(pool).balance;
-
       require(ethBalanceAfter >= minLeftETH, "SwapAgent: insufficient ether left");
     }
 
@@ -203,8 +205,8 @@ contract SwapOperator is ReentrancyGuard {
     uint amountOutMin
   ) internal returns (uint) {
 
+    IPool pool = _pool();
     uint tokenBalanceBefore = IERC20(fromTokenAddress).balanceOf(address(pool)) + amountIn;
-    uint balanceBefore = address(pool).balance;
     address WETH = router.WETH();
 
     {
@@ -264,6 +266,7 @@ contract SwapOperator is ReentrancyGuard {
 
   function swapETHForStETH(uint amountIn) external onlySwapController {
 
+    IPool pool = _pool();
     address toTokenAddress = stETH;
     (
     /* uint balance */,
@@ -301,6 +304,10 @@ contract SwapOperator is ReentrancyGuard {
     transferAssetTo(stETH, address(pool), amountOut);
 
     emit Swapped(ETH, stETH, amountIn, amountOut);
+  }
+
+  function _pool() internal view returns (IPool) {
+    return IPool(master.getLatestAddress('P1'));
   }
 
   receive() external payable {}

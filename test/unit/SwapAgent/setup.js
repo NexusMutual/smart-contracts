@@ -108,9 +108,10 @@ async function setup () {
     ZERO_ADDRESS, // swap operator
   );
 
+  await master.setLatestAddress(hex('P1'), pool.address);
   await master.enrollGovernance(governance);
 
-  const swapOperator = await SwapOperator.new(pool.address, twapOracle.address, owner, lido.address);
+  const swapOperator = await SwapOperator.new(master.address, twapOracle.address, owner, lido.address);
 
   await pool.updateAddressParameters(hex('SWP_OP'), swapOperator.address, {
     from: governance,

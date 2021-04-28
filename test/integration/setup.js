@@ -17,6 +17,7 @@ async function setup () {
   const WETH9 = artifacts.require('WETH9');
   const UniswapV2Factory = artifacts.require('UniswapV2Factory');
   const UniswapV2Router02 = artifacts.require('UniswapV2Router02');
+  const Lido = artifacts.require('P1MockLido');
 
   // nexusmutual
   const NXMToken = artifacts.require('NXMToken');
@@ -125,6 +126,7 @@ async function setup () {
   await dai.mint(owner, ether('10000000'));
   const chainlinkDAI = await P1MockChainlinkAggregator.new();
   const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
+  const lido = await Lido.new();
 
   // proxy contracts
   const master = await deployProxy(DisposableNXMaster);
@@ -155,8 +157,7 @@ async function setup () {
     priceFeedOracle.address,
     ZERO_ADDRESS,
   );
-
-  const swapOperator = await SwapOperator.new(p1.address, twapOracle.address);
+  const swapOperator = await SwapOperator.new(master.address, twapOracle.address, owner, lido.address);
 
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
   const td = await TokenData.new(owner);

@@ -1,7 +1,7 @@
 const { accounts, web3 } = require('hardhat');
 const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const { toBN } = web3.utils;
+const { toBN, soliditySha3 } = web3.utils;
 const { coverToCoverDetailsArray, buyCoverWithDai } = require('../utils/buyCover');
 const { getQuoteSignature } = require('../utils/getQuote');
 const { enrollMember } = require('../utils/enroll');
@@ -33,7 +33,7 @@ describe('makeCoverUsingCA', function () {
   });
 
   it('buys DAI cover for member, DAI is added to pool, NXM is locked and cover fields stored', async function () {
-    const { qd, p1: pool, tk: token, tf: tokenFunctions, qd: quotationData, dai } = this.contracts;
+    const { qd, p1: pool, tk: token, tc: tokenController, dai } = this.contracts;
     const cover = { ...coverTemplate };
     const member = member1;
 
@@ -60,7 +60,8 @@ describe('makeCoverUsingCA', function () {
     // assert.equal(storedCover.validUntil.toString(), cover.expireTime);
 
     const expectedCoverNoteLockedNXM = toBN(cover.priceNXM).divn(10);
-    const memberCoverNoteLockedNXM = await tokenFunctions.getUserLockedCNTokens(member, 1);
+    const lockReason = soliditySha3(hex('CN'), member, 1);
+    const memberCoverNoteLockedNXM = await tokenController.tokensLocked(member, lockReason);
     assert.equal(memberCoverNoteLockedNXM.toString(), expectedCoverNoteLockedNXM.toString());
 
     const poolBalanceAfter = await dai.balanceOf(pool.address);

@@ -1,7 +1,6 @@
 const { accounts, web3 } = require('hardhat');
 const { expectRevert, ether, time, expectEvent } = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
-const { toBN } = web3.utils;
+const { toBN, soliditySha3 } = web3.utils;
 const { coverToCoverDetailsArray } = require('../utils/buyCover');
 const { getQuoteSignature } = require('../utils/getQuote');
 const { enrollMember } = require('../utils/enroll');
@@ -17,7 +16,7 @@ describe('buyCover', function () {
   });
 
   it('buys cover for member, ETH is added to pool, NXM is locked and cover fields stored', async function () {
-    const { qd, p1: pool, tk: token, tf: tokenFunctions } = this.contracts;
+    const { qd, p1: pool, tk: token, tc: tokenController } = this.contracts;
     const coverData = { ...ethCoverTemplate };
     const member = member1;
 
@@ -57,8 +56,9 @@ describe('buyCover', function () {
     //  TODO: assert validUntil to be uint expiryDate = now.add(uint(_coverPeriod).mul(1 days));
     // assert.equal(storedCover.validUntil.toString(), cover.expireTime);
 
+    const lockReason = soliditySha3(hex('CN'), member, coverId);
     const expectedCoverNoteLockedNXM = toBN(coverData.priceNXM).divn(10);
-    const memberCoverNoteLockedNXM = await tokenFunctions.getUserLockedCNTokens(member, 1);
+    const memberCoverNoteLockedNXM = await tokenController.tokensLocked(member, lockReason);
     assert.equal(memberCoverNoteLockedNXM.toString(), expectedCoverNoteLockedNXM.toString());
 
     const poolBalanceAfter = toBN(await web3.eth.getBalance(pool.address));

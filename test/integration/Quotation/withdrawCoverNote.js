@@ -6,7 +6,7 @@ const { buyCover } = require('../utils/buyCover');
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 
-const { toBN } = web3.utils;
+const { toBN, soliditySha3 } = web3.utils;
 const [, member1, member2, claimAssessor] = accounts;
 
 const coverTemplate = {
@@ -48,7 +48,7 @@ describe('withdrawCoverNote', function () {
 
   it('allows to withdrawCoverNote after grace period expiration', async function () {
 
-    const { qd, qt, tc, tk, tf } = this.contracts;
+    const { qd, qt, tc, tk } = this.contracts;
 
     const cover = { ...coverTemplate };
     const balanceBefore = await tk.balanceOf(member1);
@@ -66,11 +66,12 @@ describe('withdrawCoverNote', function () {
     await buyCover({ ...this.contracts, cover, coverHolder: member1 });
 
     const coverId = '1';
+    const lockReason = soliditySha3(hex('CN'), member1, coverId);
+
     const expectedCoverNoteAmount = toBN(cover.priceNXM).divn(10);
-    const actualCoverNoteAmount = await tf.getUserLockedCNTokens(member1, coverId);
+    const actualCoverNoteAmount = await tc.tokensLocked(member1, lockReason);
     assert(actualCoverNoteAmount.eq(expectedCoverNoteAmount), 'unexpected cover note amount');
 
-    const lockReason = await tc.lockReason(member1, '0');
     const gracePeriodExpirationDate = await tc.getLockedTokensValidity(member1, lockReason);
     assert(
       gracePeriodExpirationDate.eq(expectedGracePeriodExpirationDate),
@@ -251,7 +252,8 @@ describe('withdrawCoverNote', function () {
     const { qd, qt, tk } = this.contracts;
 
     const cover = { ...coverTemplate };
-    const secondCover = { ...coverTemplate, generationTime: cover.generationTime + 1 };
+    const generationTime = `${Number(cover.generationTime) + 1}`;
+    const secondCover = { ...coverTemplate, generationTime };
 
     await buyCover({ ...this.contracts, cover, coverHolder: member1 });
     await buyCover({ ...this.contracts, cover: secondCover, coverHolder: member1 });

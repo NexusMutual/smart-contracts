@@ -97,7 +97,7 @@ describe('swapETHForAsset', function () {
 
     await expectRevert(
       swapOperator.swapETHForAsset(tokenA.address, etherIn, minTokenOut),
-      'SwapAgent: too fast',
+      'SwapOperator: too fast',
     );
   });
 
@@ -136,7 +136,7 @@ describe('swapETHForAsset', function () {
     // should fail with max + 1
     await expectRevert(
       swapOperator.swapETHForAsset(tokenA.address, maxTradableAmount.addn(1), estimateOut),
-      'SwapAgent: exceeds max tradable amount',
+      'SwapOperator: exceeds max tradable amount',
     );
 
     // should work with max
@@ -177,7 +177,7 @@ describe('swapETHForAsset', function () {
     // should fail with max + 1
     await expectRevert(
       swapOperator.swapETHForAsset(tokenA.address, maxPoolTradableEther.addn(1), estimateOut),
-      'SwapAgent: insufficient ether left',
+      'SwapOperator: insufficient ether left',
     );
 
     // should work with max
@@ -222,7 +222,7 @@ describe('swapETHForAsset', function () {
     // should fail with minOut - 1
     await expectRevert(
       swapOperator.swapETHForAsset(tokenA.address, ethIn, minOutOnMaxSlippage.subn(1)),
-      'SwapAgent: amountOutMin < minOutOnMaxSlippage',
+      'SwapOperator: amountOutMin < minOutOnMaxSlippage',
     );
 
     // should work with minOut
@@ -258,7 +258,7 @@ describe('swapETHForAsset', function () {
 
     await expectRevert(
       swapOperator.swapETHForAsset(tokenA.address, ethIn, estimateTokenOut),
-      'SwapAgent: balanceBefore >= min',
+      'SwapOperator: balanceBefore >= min',
     );
   });
 
@@ -287,7 +287,7 @@ describe('swapETHForAsset', function () {
 
     await expectRevert(
       swapOperator.swapETHForAsset(tokenA.address, ethIn, estimateTokenOut),
-      'SwapAgent: balanceAfter > max',
+      'SwapOperator: balanceAfter > max',
     );
   });
 

@@ -98,7 +98,7 @@ describe('swapAssetForETH', function () {
 
     await expectRevert(
       swapOperator.swapAssetForETH(tokenA.address, tokenIn, minEtherOut),
-      'SwapAgent: too fast',
+      'SwapOperator: too fast',
     );
   });
 
@@ -139,7 +139,7 @@ describe('swapAssetForETH', function () {
     // should fail with max + 1
     await expectRevert(
       swapOperator.swapAssetForETH(tokenA.address, maxTradableAmount.addn(1), estimateOut),
-      'SwapAgent: exceeds max tradable amount',
+      'SwapOperator: exceeds max tradable amount',
     );
 
     // should work with max
@@ -186,7 +186,7 @@ describe('swapAssetForETH', function () {
     // should fail with minOut - 1
     await expectRevert(
       swapOperator.swapAssetForETH(tokenA.address, tokenIn, minOutOnMaxSlippage.subn(1)),
-      'SwapAgent: amountOutMin < minOutOnMaxSlippage',
+      'SwapOperator: amountOutMin < minOutOnMaxSlippage',
     );
 
     // should work with minOut
@@ -220,7 +220,7 @@ describe('swapAssetForETH', function () {
 
     await expectRevert(
       swapOperator.swapAssetForETH(tokenA.address, tokenIn, estimateEthOut),
-      'SwapAgent: tokenBalanceBefore <= max',
+      'SwapOperator: tokenBalanceBefore <= max',
     );
 
     // mint 1 wei
@@ -257,7 +257,7 @@ describe('swapAssetForETH', function () {
 
     await expectRevert(
       swapOperator.swapAssetForETH(tokenA.address, tokenIn, estimateEthOut),
-      'SwapAgent: tokenBalanceAfter < min',
+      'SwapOperator: tokenBalanceAfter < min',
     );
   });
 

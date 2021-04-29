@@ -19,7 +19,7 @@ async function setup () {
   const ERC20Mock = artifacts.require('ERC20Mock');
   const TokenFunctions = artifacts.require('TokenFunctions');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-  const SwapAgent = artifacts.require('SwapOperator');
+  const SwapOperator = artifacts.require('SwapOperator');
   const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
 
   const master = await MasterMock.new();
@@ -33,9 +33,6 @@ async function setup () {
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
   const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
 
-  const swapAgent = await SwapAgent.new();
-  Pool.link(swapAgent);
-
   const tokenData = await TokenData.new(accounts.notariseAddress);
   const pool = await Pool.new(
     [dai.address], // assets
@@ -45,8 +42,9 @@ async function setup () {
     accounts.defaultSender, // master: it is changed a few lines below
     priceFeedOracle.address,
     ZERO_ADDRESS, // we do not test swaps here
-    ZERO_ADDRESS, // swap controller, not used here
   );
+
+  await master.setLatestAddress(hex('P1'), pool.address);
 
   const token = await TokenMock.new();
   const mcr = await MCR.new();

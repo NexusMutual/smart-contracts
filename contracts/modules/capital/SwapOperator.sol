@@ -153,7 +153,7 @@ contract SwapOperator is ReentrancyGuard {
     {
       // scope for swap frequency check
       uint timeSinceLastTrade = block.timestamp - uint(assetData.lastSwapTime);
-      require(timeSinceLastTrade > twapOracle.periodSize(), "SwapAgent: too fast");
+      require(timeSinceLastTrade > twapOracle.periodSize(), "SwapOperator: too fast");
     }
 
     {
@@ -165,13 +165,13 @@ contract SwapOperator is ReentrancyGuard {
       uint ethReserve = WETH < toTokenAddress ? reserve0 : reserve1;
       uint maxTradable = ethReserve * MAX_LIQUIDITY_RATIO / 1e18;
 
-      require(amountIn <= maxTradable, "SwapAgent: exceeds max tradable amount");
+      require(amountIn <= maxTradable, "SwapOperator: exceeds max tradable amount");
     }
 
     {
       // scope for ether checks
       uint ethBalanceAfter = address(pool).balance;
-      require(ethBalanceAfter >= minLeftETH, "SwapAgent: insufficient ether left");
+      require(ethBalanceAfter >= minLeftETH, "SwapOperator: insufficient ether left");
     }
 
     {
@@ -183,9 +183,9 @@ contract SwapOperator is ReentrancyGuard {
       // gas optimisation: reads both values using a single SLOAD
       (uint minAssetAmount, uint maxAssetAmount) = (assetData.minAmount, assetData.maxAmount);
 
-      require(amountOutMin >= minOutOnMaxSlippage, "SwapAgent: amountOutMin < minOutOnMaxSlippage");
-      require(balanceBefore < minAssetAmount, "SwapAgent: balanceBefore >= min");
-      require(balanceBefore + amountOutMin <= maxAssetAmount, "SwapAgent: balanceAfter > max");
+      require(amountOutMin >= minOutOnMaxSlippage, "SwapOperator: amountOutMin < minOutOnMaxSlippage");
+      require(balanceBefore < minAssetAmount, "SwapOperator: balanceBefore >= min");
+      require(balanceBefore + amountOutMin <= maxAssetAmount, "SwapOperator: balanceAfter > max");
     }
 
     address[] memory path = new address[](2);
@@ -212,7 +212,7 @@ contract SwapOperator is ReentrancyGuard {
     {
       // scope for swap frequency check
       uint timeSinceLastTrade = block.timestamp - uint(assetData.lastSwapTime);
-      require(timeSinceLastTrade > twapOracle.periodSize(), "SwapAgent: too fast");
+      require(timeSinceLastTrade > twapOracle.periodSize(), "SwapOperator: too fast");
     }
 
     {
@@ -224,7 +224,7 @@ contract SwapOperator is ReentrancyGuard {
       uint tokenReserve = fromTokenAddress < WETH ? reserve0 : reserve1;
       uint maxTradable = tokenReserve * MAX_LIQUIDITY_RATIO / 1e18;
 
-      require(amountIn <= maxTradable, "SwapAgent: exceeds max tradable amount");
+      require(amountIn <= maxTradable, "SwapOperator: exceeds max tradable amount");
     }
 
     {
@@ -236,9 +236,9 @@ contract SwapOperator is ReentrancyGuard {
       // gas optimisation: reads both values using a single SLOAD
       (uint minAssetAmount, uint maxAssetAmount) = (assetData.minAmount, assetData.maxAmount);
 
-      require(amountOutMin >= minOutOnMaxSlippage, "SwapAgent: amountOutMin < minOutOnMaxSlippage");
-      require(tokenBalanceBefore > maxAssetAmount, "SwapAgent: tokenBalanceBefore <= max");
-      require(tokenBalanceBefore - amountIn >= minAssetAmount, "SwapAgent: tokenBalanceAfter < min");
+      require(amountOutMin >= minOutOnMaxSlippage, "SwapOperator: amountOutMin < minOutOnMaxSlippage");
+      require(tokenBalanceBefore > maxAssetAmount, "SwapOperator: tokenBalanceBefore <= max");
+      require(tokenBalanceBefore - amountIn >= minAssetAmount, "SwapOperator: tokenBalanceAfter < min");
     }
 
     address[] memory path = new address[](2);

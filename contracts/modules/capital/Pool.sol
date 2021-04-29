@@ -55,7 +55,7 @@ contract Pool is MasterAware, ReentrancyGuard {
   address public swapController;
   uint public minPoolEth;
   PriceFeedOracle public priceFeedOracle;
-  address swapOperator;
+  address public swapOperator;
 
   /* constants */
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;

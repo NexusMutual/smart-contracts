@@ -20,7 +20,7 @@ const nextWindowStartTime = async () => {
   return (currentWindow + 1) * windowSize;
 };
 
-describe.only('swapEthForStETH', function () {
+describe('swapEthForStETH', function () {
 
   it('should revert when called while the system is paused', async function () {
 

@@ -34,7 +34,7 @@ describe('submitClaim', function () {
     const { gateway } = this.contracts;
     const member = member1;
 
-    await expectRevert.assertion(
+    await expectRevert.unspecified(
       gateway.submitClaim(1, EMPTY_DATA, {
         from: member,
       }),

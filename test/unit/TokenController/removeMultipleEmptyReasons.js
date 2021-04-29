@@ -62,7 +62,7 @@ describe('removeMultipleEmptyReasons', function () {
 
     // the reason should have been removed
     // the getter should revert due to array out of bounds read (invalid opcode)
-    await expectRevert.assertion(
+    await expectRevert.unspecified(
       tokenController.lockReason(firstMember, '0'),
     );
   });

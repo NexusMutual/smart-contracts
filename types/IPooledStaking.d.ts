@@ -43,6 +43,25 @@ export interface IPooledStakingInstance extends Truffle.ContractInstance {
 
   hasPendingActions(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
 
+  processPendingActions: {
+    (
+      maxIterations: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      maxIterations: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<boolean>;
+    sendTransaction(
+      maxIterations: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      maxIterations: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   pushBurn: {
     (
       contractAddress: string,
@@ -154,6 +173,25 @@ export interface IPooledStakingInstance extends Truffle.ContractInstance {
     ): Promise<BN>;
 
     hasPendingActions(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
+
+    processPendingActions: {
+      (
+        maxIterations: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        maxIterations: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<boolean>;
+      sendTransaction(
+        maxIterations: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        maxIterations: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
 
     pushBurn: {
       (

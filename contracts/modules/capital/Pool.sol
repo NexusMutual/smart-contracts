@@ -379,7 +379,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     token.safeTransferFrom(from, address(this), amount);
   }
 
-  function transferAssetTo (address asset, address to, uint amount) public onlySwapOperator whenNotPaused {
+  function transferAssetTo (address asset, address to, uint amount) public onlySwapOperator nonReentrant whenNotPaused {
 
     if (asset == ETH) {
       (bool ok, /* data */) = to.call.value(amount)("");

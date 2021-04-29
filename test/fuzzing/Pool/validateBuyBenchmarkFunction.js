@@ -12,7 +12,6 @@ const {
 
 const Pool = artifacts.require('Pool');
 const MCR = artifacts.require('MCR');
-const SwapAgent = artifacts.require('SwapAgent');
 
 /**
  *

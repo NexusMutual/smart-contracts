@@ -1,15 +1,9 @@
 const { ether } = require('@openzeppelin/test-helpers');
-const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
-const { expectRevert } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { toBN } = web3.utils;
 const { assert } = require('chai');
 
-const { defaultSender, internalContracts: [internal], generalPurpose: [destination, arbitraryCaller] } = require('../utils').accounts;
-
-const Pool = artifacts.require('Pool');
-const SwapAgent = artifacts.require('SwapOperator');
-const ERC20Mock = artifacts.require('ERC20Mock');
+const { internalContracts: [internal], generalPurpose: [destination] } = require('../utils').accounts;
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 

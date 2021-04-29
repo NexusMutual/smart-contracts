@@ -1,14 +1,11 @@
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { ether } = require('@openzeppelin/test-helpers');
-const { calculateMCRRatio } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
 const { hex } = require('../utils').helpers;
 
-const { defaultSender, governanceContracts: [governance], nonMembers: [fundSource] } = require('../utils').accounts;
+const { governanceContracts: [governance], nonMembers: [fundSource] } = require('../utils').accounts;
 
-const Pool = artifacts.require('Pool');
-const SwapAgent = artifacts.require('SwapOperator');
 const ERC20Mock = artifacts.require('ERC20Mock');
 const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');

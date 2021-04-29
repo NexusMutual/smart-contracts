@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot, reset } = require('../utils').evm;
 const setup = require('./setup');
 
-describe.only('TokenController', function () {
+describe('TokenController', function () {
 
   before(reset);
   before(setup);

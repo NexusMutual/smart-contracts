@@ -32,8 +32,7 @@ async function setup ({ MCR, Pool }) {
     [0], // max slippage
     accounts.defaultSender, // master: it is changed a few lines below
     priceFeedOracle.address,
-    ZERO_ADDRESS, // twap
-    ZERO_ADDRESS, // swap controller
+    ZERO_ADDRESS, // swap operator
   );
 
   const token = await TokenMock.new();

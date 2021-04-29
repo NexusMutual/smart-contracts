@@ -132,7 +132,7 @@ async function setup () {
 }
 
 /**
- * @typedef {object} SwapAgentContracts
+ * @typedef {object} SwapOperatorContracts
  * @property {MasterMockInstance} master
  * @property {PoolInstance} pool
  * @property {UniswapV2FactoryInstance} factory
@@ -147,5 +147,5 @@ async function setup () {
 
 module.exports = setup;
 
-/** @returns {SwapAgentContracts} */
+/** @returns {SwapOperatorContracts} */
 module.exports.contracts = () => instances;

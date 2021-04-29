@@ -27,7 +27,6 @@ import "../../interfaces/INXMaster.sol";
 
 contract SwapOperator is ReentrancyGuard {
   using SafeERC20 for IERC20;
-//  using SafeMath for uint;
 
   struct AssetData {
     uint112 minAmount;

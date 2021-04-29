@@ -51,6 +51,7 @@ async function setup () {
   const Governance = artifacts.require('Governance');
   const PooledStaking = artifacts.require('PooledStaking');
   const Gateway = artifacts.require('Gateway');
+  const Incidents = artifacts.require('Incidents');
 
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
@@ -136,6 +137,7 @@ async function setup () {
   const pc = await deployProxy(DisposableProposalCategory);
   const gv = await deployProxy(DisposableGovernance);
   const gateway = await deployProxy(Gateway);
+  const incidents = await deployProxy(Incidents);
 
   // non-proxy contracts and libraries
   const cp = await ClaimProofs.new(master.address);
@@ -181,8 +183,8 @@ async function setup () {
     return 0;
   };
 
-  const codes = ['QD', 'TD', 'CD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW'];
-  const addresses = [qd, td, cd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps, gateway].map(c => c.address);
+  const codes = ['QD', 'TD', 'CD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC'];
+  const addresses = [qd, td, cd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps, gateway, incidents].map(c => c.address);
 
   await master.initialize(
     owner,
@@ -233,6 +235,10 @@ async function setup () {
     90 * 24 * 3600, // unstake lock time
   );
 
+  await incidents.initialize(
+    20, // burn rate
+  );
+
   await cd.changeMasterAddress(master.address);
   await cd.updateUintParameters(hex('CAMINVT'), 36); // min voting time 36h
   await cd.updateUintParameters(hex('CAMAXVT'), 72); // max voting time 72h
@@ -263,6 +269,7 @@ async function setup () {
   await transferProxyOwnership(pc.address, master.address);
   await transferProxyOwnership(gv.address, master.address);
   await transferProxyOwnership(gateway.address, master.address);
+  await transferProxyOwnership(incidents.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
 
   const POOL_ETHER = ether('90000');
@@ -315,6 +322,7 @@ async function setup () {
     mr: await MemberRoles.at(mr.address),
     ps: await PooledStaking.at(ps.address),
     gateway,
+    incidents,
   };
 
   this.contracts = {

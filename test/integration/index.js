@@ -14,7 +14,6 @@ describe('INTEGRATION TESTS', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
-  require('./ClaimPayoutAddress');
   require('./Master');
   require('./PooledStaking');
   require('./Pool');

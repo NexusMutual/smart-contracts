@@ -25,7 +25,7 @@ describe('sellNXM', function () {
 
     await expectRevert(
       pool.sellNXM(tokenAmountToSell, '0', { from: memberOne }),
-      `MCR% cannot fall below 100%`,
+      'MCR% cannot fall below 100%',
     );
   });
 
@@ -46,7 +46,7 @@ describe('sellNXM', function () {
     const entireBalance = await token.balanceOf(memberOne);
     await expectRevert(
       pool.sellNXM(entireBalance, '0', { from: memberOne }),
-      `Sales worth more than 5% of MCReth are not allowed`,
+      'Sales worth more than 5% of MCReth are not allowed',
     );
   });
 
@@ -66,7 +66,7 @@ describe('sellNXM', function () {
     const entireBalance = await token.balanceOf(memberOne);
     await expectRevert(
       pool.sellNXM(entireBalance.addn(1), '0', { from: memberOne }),
-      `Not enough balance`,
+      'Not enough balance',
     );
   });
 

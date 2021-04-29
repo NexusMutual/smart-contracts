@@ -63,7 +63,7 @@ describe('getTokenPrice', function () {
 
     await expectRevert(
       pool.getTokenPrice(UNKNOWN_ASSET),
-      'PriceFeedOracle: Unknown asset'
+      'PriceFeedOracle: Unknown asset',
     );
   });
 });

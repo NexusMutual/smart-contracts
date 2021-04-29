@@ -21,6 +21,22 @@ export interface Approval {
   };
 }
 
+export interface MinterAdded {
+  name: "MinterAdded";
+  args: {
+    account: string;
+    0: string;
+  };
+}
+
+export interface MinterRemoved {
+  name: "MinterRemoved";
+  args: {
+    account: string;
+    0: string;
+  };
+}
+
 export interface Transfer {
   name: "Transfer";
   args: {
@@ -33,9 +49,27 @@ export interface Transfer {
   };
 }
 
-type AllEvents = Approval | Transfer;
+type AllEvents = Approval | MinterAdded | MinterRemoved | Transfer;
 
 export interface ERC20MockInstance extends Truffle.ContractInstance {
+  addMinter: {
+    (account: string, txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(
+      account: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      account: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      account: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   allowance(
     owner: string,
     spender: string,
@@ -69,6 +103,8 @@ export interface ERC20MockInstance extends Truffle.ContractInstance {
     account: string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
+
+  decimals(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
   decreaseAllowance: {
     (
@@ -115,6 +151,47 @@ export interface ERC20MockInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
+
+  isMinter(
+    account: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<boolean>;
+
+  mint: {
+    (
+      account: string,
+      amount: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      account: string,
+      amount: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<boolean>;
+    sendTransaction(
+      account: string,
+      amount: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      account: string,
+      amount: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
+  name(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  renounceMinter: {
+    (txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+  };
+
+  symbol(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   totalSupply(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
@@ -169,6 +246,24 @@ export interface ERC20MockInstance extends Truffle.ContractInstance {
   };
 
   methods: {
+    addMinter: {
+      (account: string, txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(
+        account: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        account: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        account: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
     allowance(
       owner: string,
       spender: string,
@@ -202,6 +297,8 @@ export interface ERC20MockInstance extends Truffle.ContractInstance {
       account: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
+
+    decimals(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
     decreaseAllowance: {
       (
@@ -248,6 +345,47 @@ export interface ERC20MockInstance extends Truffle.ContractInstance {
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
+
+    isMinter(
+      account: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<boolean>;
+
+    mint: {
+      (
+        account: string,
+        amount: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        account: string,
+        amount: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<boolean>;
+      sendTransaction(
+        account: string,
+        amount: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        account: string,
+        amount: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
+    name(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    renounceMinter: {
+      (txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+    };
+
+    symbol(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     totalSupply(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
@@ -296,48 +434,6 @@ export interface ERC20MockInstance extends Truffle.ContractInstance {
       estimateGas(
         sender: string,
         recipient: string,
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    "mint(address,uint256)": {
-      (
-        account: string,
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        account: string,
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        account: string,
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        account: string,
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    "mint(uint256)": {
-      (
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
         amount: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;

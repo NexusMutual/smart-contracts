@@ -38,7 +38,7 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
     await gv.submitVote(proposalId, 1, { from: members[i] });
   }
 
-  console.log(`Closing proposal`);
+  console.log('Closing proposal');
   await time.increase(604800);
   logEvents(await gv.closeProposal(proposalId, { from: submitter }));
 
@@ -64,9 +64,9 @@ describe('rewards migration', function () {
       nameToAddressMap[web3.utils.toAscii(contractsName[i])] = contractsAddress[i];
     }
 
-    const mr = await MemberRoles.at(nameToAddressMap['MR']);
-    const tk = await NXMToken.at(nameToAddressMap['NXMTOKEN']);
-    const gv = await Governance.at(nameToAddressMap['GV']);
+    const mr = await MemberRoles.at(nameToAddressMap.MR);
+    const tk = await NXMToken.at(nameToAddressMap.NXMTOKEN);
+    const gv = await Governance.at(nameToAddressMap.GV);
 
     const owners = await mr.members('3');
     const firstBoardMember = owners.memberArray[0];
@@ -85,7 +85,7 @@ describe('rewards migration', function () {
       await web3.eth.sendTransaction({ from: funder, to: member, value: ether('100') });
     }
 
-    console.log(`Deploying new contracts`);
+    console.log('Deploying new contracts');
     // const newPS = await PooledStaking.new();
 
     const newPSAddress = '0x4D1328BaBaeA16f9A8F43237a8270a73619F11fA';
@@ -120,7 +120,7 @@ describe('rewards migration', function () {
 
     assert.equal(storedTFAddress, newTFAddress);
 
-    console.log(`Successfully deployed new contracts`);
+    console.log('Successfully deployed new contracts');
 
     this.firstBoardMember = firstBoardMember;
     this.secondBoardMember = secondBoardMember;
@@ -251,12 +251,12 @@ describe('rewards migration', function () {
       'Nothing to migrate',
     );
 
-    console.log(`Asserting reward accumulation..`);
+    console.log('Asserting reward accumulation..');
     const { expectedAggregated, totalRewardsMigrated } = await assertAccumulatedRewards(ps, existingRewards);
     const contracts = Object.keys(expectedAggregated);
     console.log(`Done for ${contracts.length} contracts`);
 
-    console.log(`Moving on to the next round..`);
+    console.log('Moving on to the next round..');
     await time.increase(oneWeek);
 
     console.log(`Pushing rewards for ${JSON.stringify(contracts)}`);
@@ -277,17 +277,17 @@ describe('rewards migration', function () {
       'Exceeded last migration id',
     );
 
-    console.log(`Processing pending actions..`);
+    console.log('Processing pending actions..');
 
     let processPendingActionsTotalGasUsed = 0;
     let totalCalls = 0;
     let i = 0;
     while (true) {
-      console.log(`ps.processPendingActions('100');`);
+      console.log('ps.processPendingActions(\'100\');');
 
       const hasActions = await ps.hasPendingActions();
       if (!hasActions) {
-        console.log(`Done processing.`);
+        console.log('Done processing.');
         break;
       }
 

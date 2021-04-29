@@ -16,4 +16,5 @@ describe('Pool unit tests', function () {
 
   // parameters
   require('./updateParameters');
+
 });

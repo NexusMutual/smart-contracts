@@ -28,21 +28,15 @@ export interface ActionRejected {
   };
 }
 
-export interface ActionSuccess {
-  name: "ActionSuccess";
+export interface ProposalCategorized {
+  name: "ProposalCategorized";
   args: {
     proposalId: BN;
+    categorizedBy: string;
+    categoryId: BN;
     0: BN;
-  };
-}
-
-export interface CloseProposalOnTime {
-  name: "CloseProposalOnTime";
-  args: {
-    proposalId: BN;
-    time: BN;
-    0: BN;
-    1: BN;
+    1: string;
+    2: BN;
   };
 }
 
@@ -61,36 +55,6 @@ export interface Proposal {
     3: string;
     4: string;
     5: string;
-  };
-}
-
-export interface ProposalAccepted {
-  name: "ProposalAccepted";
-  args: {
-    proposalId: BN;
-    0: BN;
-  };
-}
-
-export interface ProposalCategorized {
-  name: "ProposalCategorized";
-  args: {
-    proposalId: BN;
-    categorizedBy: string;
-    categoryId: BN;
-    0: BN;
-    1: string;
-    2: BN;
-  };
-}
-
-export interface RewardClaimed {
-  name: "RewardClaimed";
-  args: {
-    member: string;
-    gbtReward: BN;
-    0: string;
-    1: BN;
   };
 }
 
@@ -126,8 +90,44 @@ export interface Vote {
   };
 }
 
+export interface RewardClaimed {
+  name: "RewardClaimed";
+  args: {
+    member: string;
+    gbtReward: BN;
+    0: string;
+    1: BN;
+  };
+}
+
 export interface VoteCast {
   name: "VoteCast";
+  args: {
+    proposalId: BN;
+    0: BN;
+  };
+}
+
+export interface ProposalAccepted {
+  name: "ProposalAccepted";
+  args: {
+    proposalId: BN;
+    0: BN;
+  };
+}
+
+export interface CloseProposalOnTime {
+  name: "CloseProposalOnTime";
+  args: {
+    proposalId: BN;
+    time: BN;
+    0: BN;
+    1: BN;
+  };
+}
+
+export interface ActionSuccess {
+  name: "ActionSuccess";
   args: {
     proposalId: BN;
     0: BN;
@@ -137,116 +137,17 @@ export interface VoteCast {
 type AllEvents =
   | ActionFailed
   | ActionRejected
-  | ActionSuccess
-  | CloseProposalOnTime
-  | Proposal
-  | ProposalAccepted
   | ProposalCategorized
-  | RewardClaimed
+  | Proposal
   | Solution
   | Vote
-  | VoteCast;
+  | RewardClaimed
+  | VoteCast
+  | ProposalAccepted
+  | CloseProposalOnTime
+  | ActionSuccess;
 
 export interface GovernanceInstance extends Truffle.ContractInstance {
-  allDelegation(
-    arg0: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<[string, string, BN]>;
-
-  allowedToCatgorize(txDetails?: Truffle.TransactionDetails): Promise<BN>;
-
-  allowedToCreateProposal(
-    category: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<boolean>;
-
-  alreadyDelegated(
-    _add: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<boolean>;
-
-  canCloseProposal(
-    _proposalId: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  categorizeProposal: {
-    (
-      _proposalId: number | BN | string,
-      _categoryId: number | BN | string,
-      _incentive: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      _proposalId: number | BN | string,
-      _categoryId: number | BN | string,
-      _incentive: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      _proposalId: number | BN | string,
-      _categoryId: number | BN | string,
-      _incentive: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _proposalId: number | BN | string,
-      _categoryId: number | BN | string,
-      _incentive: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
-  changeDependentContractAddress: {
-    (txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-  };
-
-  changeMasterAddress: {
-    (_masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(
-      _masterAddress: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      _masterAddress: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _masterAddress: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
-  claimReward: {
-    (
-      _memberAddress: string,
-      _maxRecords: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      _memberAddress: string,
-      _maxRecords: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-    sendTransaction(
-      _memberAddress: string,
-      _maxRecords: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _memberAddress: string,
-      _maxRecords: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
   closeProposal: {
     (
       _proposalId: number | BN | string,
@@ -266,36 +167,37 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  createProposal: {
-    (
-      _proposalTitle: string,
-      _proposalSD: string,
-      _proposalDescHash: string,
-      _categoryId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      _proposalTitle: string,
-      _proposalSD: string,
-      _proposalDescHash: string,
-      _categoryId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      _proposalTitle: string,
-      _proposalSD: string,
-      _proposalDescHash: string,
-      _categoryId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _proposalTitle: string,
-      _proposalSD: string,
-      _proposalDescHash: string,
-      _categoryId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
+  memberProposalVote(
+    arg0: string,
+    arg1: number | BN | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BN>;
+
+  proposalRejectedByAB(
+    arg0: number | BN | string,
+    arg1: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<boolean>;
+
+  changeDependentContractAddress: {
+    (txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
   };
+
+  voteTallyData(
+    _proposalId: number | BN | string,
+    _solution: number | BN | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<[BN, BN, BN]>;
+
+  proposalDetails(
+    _proposalId: number | BN | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<[BN, BN, BN]>;
 
   createProposalwithSolution: {
     (
@@ -336,94 +238,60 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  delegateVote: {
-    (_add: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(_add: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
+  claimReward: {
+    (
+      _memberAddress: string,
+      _maxRecords: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      _memberAddress: string,
+      _maxRecords: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<BN>;
     sendTransaction(
-      _add: string,
+      _memberAddress: string,
+      _maxRecords: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      _add: string,
+      _memberAddress: string,
+      _maxRecords: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
-
-  followerDelegation(
-    arg0: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  getFollowers(
-    _add: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN[]>;
-
-  getPendingReward(
-    _memberAddress: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  getProposalLength(txDetails?: Truffle.TransactionDetails): Promise<BN>;
-
-  getSolutionAction(
-    _proposalId: number | BN | string,
-    _solution: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<[BN, string]>;
-
-  getUintParameters(
-    code: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<[string, BN]>;
-
-  isOpenForDelegation(
-    arg0: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<boolean>;
-
-  lastRewardClaimed(
-    arg0: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  memberProposalVote(
-    arg0: string,
-    arg1: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  proposal(
-    _proposalId: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<[BN, BN, BN, BN, BN]>;
 
   proposalActionStatus(
     arg0: number | BN | string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
 
-  proposalDetails(
-    _proposalId: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<[BN, BN, BN]>;
+  unDelegate: {
+    (txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+  };
 
-  proposalRejectedByAB(
-    arg0: number | BN | string,
-    arg1: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<boolean>;
-
-  proposalVoteTally(
-    arg0: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
+  setDelegationStatus: {
+    (_status: boolean, txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(
+      _status: boolean,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      _status: boolean,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      _status: boolean,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
 
   rejectAction: {
     (
@@ -444,20 +312,54 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  removeDelegation: {
-    (_add: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(_add: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
+  getSolutionAction(
+    _proposalId: number | BN | string,
+    _solution: number | BN | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<[BN, string]>;
+
+  proposal(
+    _proposalId: number | BN | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<[BN, BN, BN, BN, BN]>;
+
+  tokenHoldingTime(txDetails?: Truffle.TransactionDetails): Promise<BN>;
+
+  createProposal: {
+    (
+      _proposalTitle: string,
+      _proposalSD: string,
+      _proposalDescHash: string,
+      _categoryId: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      _proposalTitle: string,
+      _proposalSD: string,
+      _proposalDescHash: string,
+      _categoryId: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
     sendTransaction(
-      _add: string,
+      _proposalTitle: string,
+      _proposalSD: string,
+      _proposalDescHash: string,
+      _categoryId: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      _add: string,
+      _proposalTitle: string,
+      _proposalSD: string,
+      _proposalDescHash: string,
+      _categoryId: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
+
+  getPendingReward(
+    _memberAddress: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BN>;
 
   rewardClaimed(
     arg0: number | BN | string,
@@ -465,31 +367,59 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<boolean>;
 
-  setDelegationStatus: {
-    (_status: boolean, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
+  getUintParameters(
+    code: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<[string, BN]>;
+
+  categorizeProposal: {
+    (
+      _proposalId: number | BN | string,
+      _categoryId: number | BN | string,
+      _incentive: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      _status: boolean,
+      _proposalId: number | BN | string,
+      _categoryId: number | BN | string,
+      _incentive: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      _status: boolean,
+      _proposalId: number | BN | string,
+      _categoryId: number | BN | string,
+      _incentive: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      _status: boolean,
+      _proposalId: number | BN | string,
+      _categoryId: number | BN | string,
+      _incentive: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
 
-  setInitialActionParameters: {
-    (txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+  submitVote: {
+    (
+      _proposalId: number | BN | string,
+      _solutionChosen: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      _proposalId: number | BN | string,
+      _solutionChosen: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      _proposalId: number | BN | string,
+      _solutionChosen: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      _proposalId: number | BN | string,
+      _solutionChosen: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
   };
 
   submitProposalWithSolution: {
@@ -519,30 +449,74 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  submitVote: {
+  followerDelegation(
+    arg0: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BN>;
+
+  getProposalLength(txDetails?: Truffle.TransactionDetails): Promise<BN>;
+
+  updateUintParameters: {
     (
-      _proposalId: number | BN | string,
-      _solutionChosen: number | BN | string,
+      code: string,
+      val: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      _proposalId: number | BN | string,
-      _solutionChosen: number | BN | string,
+      code: string,
+      val: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      _proposalId: number | BN | string,
-      _solutionChosen: number | BN | string,
+      code: string,
+      val: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      _proposalId: number | BN | string,
-      _solutionChosen: number | BN | string,
+      code: string,
+      val: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
 
-  tokenHoldingTime(txDetails?: Truffle.TransactionDetails): Promise<BN>;
+  allowedToCreateProposal(
+    category: number | BN | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<boolean>;
+
+  ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  allowedToCatgorize(txDetails?: Truffle.TransactionDetails): Promise<BN>;
+
+  delegateVote: {
+    (_add: string, txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(_add: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
+    sendTransaction(
+      _add: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      _add: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
+  allDelegation(
+    arg0: number | BN | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<[string, string, BN]>;
+
+  canCloseProposal(
+    _proposalId: number | BN | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BN>;
+
+  getFollowers(
+    _add: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BN[]>;
 
   triggerAction: {
     (
@@ -563,7 +537,7 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  unDelegate: {
+  setInitialActionParameters: {
     (txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
     >;
@@ -571,6 +545,34 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
     sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
     estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
   };
+
+  changeMasterAddress: {
+    (_masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(
+      _masterAddress: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      _masterAddress: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      _masterAddress: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
+  isOpenForDelegation(
+    arg0: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<boolean>;
+
+  lastRewardClaimed(
+    arg0: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BN>;
 
   updateProposal: {
     (
@@ -603,135 +605,34 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  updateUintParameters: {
-    (
-      code: string,
-      val: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      code: string,
-      val: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
+  proposalVoteTally(
+    arg0: number | BN | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BN>;
+
+  removeDelegation: {
+    (_add: string, txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(_add: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
     sendTransaction(
-      code: string,
-      val: number | BN | string,
+      _add: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      code: string,
-      val: number | BN | string,
+      _add: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
 
-  voteTallyData(
-    _proposalId: number | BN | string,
-    _solution: number | BN | string,
+  nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  alreadyDelegated(
+    _add: string,
     txDetails?: Truffle.TransactionDetails
-  ): Promise<[BN, BN, BN]>;
+  ): Promise<boolean>;
 
   methods: {
-    allDelegation(
-      arg0: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<[string, string, BN]>;
-
-    allowedToCatgorize(txDetails?: Truffle.TransactionDetails): Promise<BN>;
-
-    allowedToCreateProposal(
-      category: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<boolean>;
-
-    alreadyDelegated(
-      _add: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<boolean>;
-
-    canCloseProposal(
-      _proposalId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    categorizeProposal: {
-      (
-        _proposalId: number | BN | string,
-        _categoryId: number | BN | string,
-        _incentive: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        _proposalId: number | BN | string,
-        _categoryId: number | BN | string,
-        _incentive: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        _proposalId: number | BN | string,
-        _categoryId: number | BN | string,
-        _incentive: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        _proposalId: number | BN | string,
-        _categoryId: number | BN | string,
-        _incentive: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    changeDependentContractAddress: {
-      (txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-    };
-
-    changeMasterAddress: {
-      (_masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(
-        _masterAddress: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        _masterAddress: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        _masterAddress: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    claimReward: {
-      (
-        _memberAddress: string,
-        _maxRecords: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        _memberAddress: string,
-        _maxRecords: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<BN>;
-      sendTransaction(
-        _memberAddress: string,
-        _maxRecords: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        _memberAddress: string,
-        _maxRecords: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
     closeProposal: {
       (
         _proposalId: number | BN | string,
@@ -751,36 +652,37 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    createProposal: {
-      (
-        _proposalTitle: string,
-        _proposalSD: string,
-        _proposalDescHash: string,
-        _categoryId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        _proposalTitle: string,
-        _proposalSD: string,
-        _proposalDescHash: string,
-        _categoryId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        _proposalTitle: string,
-        _proposalSD: string,
-        _proposalDescHash: string,
-        _categoryId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        _proposalTitle: string,
-        _proposalSD: string,
-        _proposalDescHash: string,
-        _categoryId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
+    memberProposalVote(
+      arg0: string,
+      arg1: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<BN>;
+
+    proposalRejectedByAB(
+      arg0: number | BN | string,
+      arg1: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<boolean>;
+
+    changeDependentContractAddress: {
+      (txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
     };
+
+    voteTallyData(
+      _proposalId: number | BN | string,
+      _solution: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<[BN, BN, BN]>;
+
+    proposalDetails(
+      _proposalId: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<[BN, BN, BN]>;
 
     createProposalwithSolution: {
       (
@@ -821,94 +723,60 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    delegateVote: {
-      (_add: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(_add: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
+    claimReward: {
+      (
+        _memberAddress: string,
+        _maxRecords: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        _memberAddress: string,
+        _maxRecords: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<BN>;
       sendTransaction(
-        _add: string,
+        _memberAddress: string,
+        _maxRecords: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        _add: string,
+        _memberAddress: string,
+        _maxRecords: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
-
-    followerDelegation(
-      arg0: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    getFollowers(
-      _add: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN[]>;
-
-    getPendingReward(
-      _memberAddress: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    getProposalLength(txDetails?: Truffle.TransactionDetails): Promise<BN>;
-
-    getSolutionAction(
-      _proposalId: number | BN | string,
-      _solution: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<[BN, string]>;
-
-    getUintParameters(
-      code: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<[string, BN]>;
-
-    isOpenForDelegation(
-      arg0: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<boolean>;
-
-    lastRewardClaimed(
-      arg0: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    memberProposalVote(
-      arg0: string,
-      arg1: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    proposal(
-      _proposalId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<[BN, BN, BN, BN, BN]>;
 
     proposalActionStatus(
       arg0: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
 
-    proposalDetails(
-      _proposalId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<[BN, BN, BN]>;
+    unDelegate: {
+      (txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+    };
 
-    proposalRejectedByAB(
-      arg0: number | BN | string,
-      arg1: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<boolean>;
-
-    proposalVoteTally(
-      arg0: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
+    setDelegationStatus: {
+      (_status: boolean, txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(
+        _status: boolean,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        _status: boolean,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        _status: boolean,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
 
     rejectAction: {
       (
@@ -929,20 +797,54 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    removeDelegation: {
-      (_add: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(_add: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
+    getSolutionAction(
+      _proposalId: number | BN | string,
+      _solution: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<[BN, string]>;
+
+    proposal(
+      _proposalId: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<[BN, BN, BN, BN, BN]>;
+
+    tokenHoldingTime(txDetails?: Truffle.TransactionDetails): Promise<BN>;
+
+    createProposal: {
+      (
+        _proposalTitle: string,
+        _proposalSD: string,
+        _proposalDescHash: string,
+        _categoryId: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        _proposalTitle: string,
+        _proposalSD: string,
+        _proposalDescHash: string,
+        _categoryId: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
       sendTransaction(
-        _add: string,
+        _proposalTitle: string,
+        _proposalSD: string,
+        _proposalDescHash: string,
+        _categoryId: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        _add: string,
+        _proposalTitle: string,
+        _proposalSD: string,
+        _proposalDescHash: string,
+        _categoryId: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
+
+    getPendingReward(
+      _memberAddress: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<BN>;
 
     rewardClaimed(
       arg0: number | BN | string,
@@ -950,31 +852,59 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<boolean>;
 
-    setDelegationStatus: {
-      (_status: boolean, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
+    getUintParameters(
+      code: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<[string, BN]>;
+
+    categorizeProposal: {
+      (
+        _proposalId: number | BN | string,
+        _categoryId: number | BN | string,
+        _incentive: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        _status: boolean,
+        _proposalId: number | BN | string,
+        _categoryId: number | BN | string,
+        _incentive: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
-        _status: boolean,
+        _proposalId: number | BN | string,
+        _categoryId: number | BN | string,
+        _incentive: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        _status: boolean,
+        _proposalId: number | BN | string,
+        _categoryId: number | BN | string,
+        _incentive: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
 
-    setInitialActionParameters: {
-      (txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+    submitVote: {
+      (
+        _proposalId: number | BN | string,
+        _solutionChosen: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        _proposalId: number | BN | string,
+        _solutionChosen: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        _proposalId: number | BN | string,
+        _solutionChosen: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        _proposalId: number | BN | string,
+        _solutionChosen: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
     };
 
     submitProposalWithSolution: {
@@ -1004,30 +934,74 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    submitVote: {
+    followerDelegation(
+      arg0: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<BN>;
+
+    getProposalLength(txDetails?: Truffle.TransactionDetails): Promise<BN>;
+
+    updateUintParameters: {
       (
-        _proposalId: number | BN | string,
-        _solutionChosen: number | BN | string,
+        code: string,
+        val: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        _proposalId: number | BN | string,
-        _solutionChosen: number | BN | string,
+        code: string,
+        val: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
-        _proposalId: number | BN | string,
-        _solutionChosen: number | BN | string,
+        code: string,
+        val: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        _proposalId: number | BN | string,
-        _solutionChosen: number | BN | string,
+        code: string,
+        val: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
 
-    tokenHoldingTime(txDetails?: Truffle.TransactionDetails): Promise<BN>;
+    allowedToCreateProposal(
+      category: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<boolean>;
+
+    ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    allowedToCatgorize(txDetails?: Truffle.TransactionDetails): Promise<BN>;
+
+    delegateVote: {
+      (_add: string, txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(_add: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
+      sendTransaction(
+        _add: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        _add: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
+    allDelegation(
+      arg0: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<[string, string, BN]>;
+
+    canCloseProposal(
+      _proposalId: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<BN>;
+
+    getFollowers(
+      _add: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<BN[]>;
 
     triggerAction: {
       (
@@ -1048,7 +1022,7 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    unDelegate: {
+    setInitialActionParameters: {
       (txDetails?: Truffle.TransactionDetails): Promise<
         Truffle.TransactionResponse<AllEvents>
       >;
@@ -1056,6 +1030,34 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
       sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
       estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
     };
+
+    changeMasterAddress: {
+      (_masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(
+        _masterAddress: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        _masterAddress: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        _masterAddress: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
+    isOpenForDelegation(
+      arg0: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<boolean>;
+
+    lastRewardClaimed(
+      arg0: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<BN>;
 
     updateProposal: {
       (
@@ -1088,34 +1090,32 @@ export interface GovernanceInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    updateUintParameters: {
-      (
-        code: string,
-        val: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        code: string,
-        val: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
+    proposalVoteTally(
+      arg0: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<BN>;
+
+    removeDelegation: {
+      (_add: string, txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(_add: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
       sendTransaction(
-        code: string,
-        val: number | BN | string,
+        _add: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        code: string,
-        val: number | BN | string,
+        _add: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
 
-    voteTallyData(
-      _proposalId: number | BN | string,
-      _solution: number | BN | string,
+    nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    alreadyDelegated(
+      _add: string,
       txDetails?: Truffle.TransactionDetails
-    ): Promise<[BN, BN, BN]>;
+    ): Promise<boolean>;
   };
 
   getPastEvents(event: string): Promise<EventData[]>;

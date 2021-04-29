@@ -67,36 +67,6 @@ export interface IUniswapV2FactoryInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<string>;
 
-  setFeeTo: {
-    (arg0: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(
-      arg0: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      arg0: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
-  setFeeToSetter: {
-    (arg0: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(
-      arg0: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      arg0: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
   methods: {
     allPairs(
       arg0: number | BN | string,
@@ -137,36 +107,6 @@ export interface IUniswapV2FactoryInstance extends Truffle.ContractInstance {
       tokenB: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
-
-    setFeeTo: {
-      (arg0: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
-      sendTransaction(
-        arg0: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        arg0: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    setFeeToSetter: {
-      (arg0: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
-      sendTransaction(
-        arg0: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        arg0: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
   };
 
   getPastEvents(event: string): Promise<EventData[]>;

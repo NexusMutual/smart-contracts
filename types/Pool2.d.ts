@@ -56,21 +56,6 @@ export interface Pool2Instance extends Truffle.ContractInstance {
     estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
   };
 
-  upgradeInvestmentPool: {
-    (arg0: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(
-      arg0: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      arg0: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
   methods: {
     changeDependentContractAddress: {
       (txDetails?: Truffle.TransactionDetails): Promise<
@@ -110,21 +95,6 @@ export interface Pool2Instance extends Truffle.ContractInstance {
       call(txDetails?: Truffle.TransactionDetails): Promise<void>;
       sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
       estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-    };
-
-    upgradeInvestmentPool: {
-      (arg0: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
-      sendTransaction(
-        arg0: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        arg0: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
     };
   };
 

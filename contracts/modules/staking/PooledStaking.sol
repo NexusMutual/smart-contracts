@@ -996,7 +996,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
     uint migrationStatus;
     bytes32 migrationStatusSlot = keccak256("nexusmutual.pooledstaking.LOCK_TIME_MIGRATION_STAGE");
     assembly { migrationStatus := sload(migrationStatusSlot) }
-    require(migrationStatus == 0, 'PooledStaking: Migration finished');
+    require(migrationStatus == 0, "PooledStaking: Migration finished");
 
     uint migrationRequestId;
     bytes32 migrationRequestIdSlot = keccak256("nexusmutual.pooledstaking.LOCK_TIME_MIGRATION_FIRST_ID_POINTER");

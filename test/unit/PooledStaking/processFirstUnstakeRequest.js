@@ -54,7 +54,7 @@ describe('processUnstakeRequest', function () {
     expectEvent(processPendingActions, 'PendingActionsProcessed', { finished: true });
 
     hasPendingActions = await staking.hasPendingActions();
-    assert.isFalse(hasPendingActions, `Expected no more pending actions`);
+    assert.isFalse(hasPendingActions, 'Expected no more pending actions');
 
     // Request multiple unstake requests in a row
     for (let i = 0; i < 30; i++) {
@@ -73,7 +73,7 @@ describe('processUnstakeRequest', function () {
     });
 
     hasPendingActions = await staking.hasPendingActions();
-    assert.isFalse(hasPendingActions, `Expected no more pending actions`);
+    assert.isFalse(hasPendingActions, 'Expected no more pending actions');
   });
 
   it('should update staker.stakerContractPendingUnstakeTotal correctly', async function () {

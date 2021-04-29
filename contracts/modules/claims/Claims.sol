@@ -147,65 +147,39 @@ contract Claims is Iupgradable {
   }
 
   /**
-   * @dev Updates the pending claim start variable,
-   * the lowest claim id with a pending decision/payout.
-   */
-  function changePendingClaimStart() public onlyInternal {
-
-    uint origstat;
-    uint state12Count;
-    uint pendingClaimStart = cd.pendingClaimStart();
-    uint actualClaimLength = cd.actualClaimLength();
-    for (uint i = pendingClaimStart; i < actualClaimLength; i++) {
-      (, , , origstat, , state12Count) = cd.getClaim(i);
-
-      if (origstat > 5 && ((origstat != 12) || (origstat == 12 && state12Count >= 60))) {
-        cd.setpendingClaimStart(i);
-      } else {
-        break;
-      }
-    }
-  }
-
-  /**
    * @dev Submits a claim for a given cover note.
    * Adds claim to queue incase of emergency pause else directly submits the claim.
    * @param coverId Cover Id.
    */
-  function submitClaim(uint coverId) public {
-    address qadd = qd.getCoverMemberAddress(coverId);
-    require(qadd == msg.sender);
-    uint8 cStatus;
-    (, cStatus,,,) = qd.getCoverDetailsByCoverID2(coverId);
-    require(cStatus != uint8(QuotationData.CoverStatus.ClaimSubmitted), "Claim already submitted");
-    require(cStatus != uint8(QuotationData.CoverStatus.CoverExpired), "Cover already expired");
-    if (ms.isPause() == false) {
-      _addClaim(coverId, now, qadd);
-    } else {
-      cd.setClaimAtEmergencyPause(coverId, now, false);
-      qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.Requested));
-    }
+  function submitClaim(uint coverId) external {
+    _submitClaim(coverId, msg.sender);
   }
 
-  /**
-   * @dev Submits the Claims queued once the emergency pause is switched off.
-   */
-  function submitClaimAfterEPOff() public onlyInternal {
-    uint lengthOfClaimSubmittedAtEP = cd.getLengthOfClaimSubmittedAtEP();
-    uint firstClaimIndexToSubmitAfterEP = cd.getFirstClaimIndexToSubmitAfterEP();
-    uint coverId;
-    uint dateUpd;
-    bool submit;
-    address qadd;
-    for (uint i = firstClaimIndexToSubmitAfterEP; i < lengthOfClaimSubmittedAtEP; i++) {
-      (coverId, dateUpd, submit) = cd.getClaimOfEmergencyPauseByIndex(i);
-      require(submit == false);
-      qadd = qd.getCoverMemberAddress(coverId);
-      _addClaim(coverId, dateUpd, qadd);
-      cd.setClaimSubmittedAtEPTrue(i, true);
-    }
-    cd.setFirstClaimIndexToSubmitAfterEP(lengthOfClaimSubmittedAtEP);
+  function submitClaimForMember(uint coverId, address member) external onlyInternal {
+    _submitClaim(coverId, member);
   }
+
+  function _submitClaim(uint coverId, address member) internal {
+
+    require(!ms.isPause(), "Claims: System is paused");
+
+    address coverOwner = qd.getCoverMemberAddress(coverId);
+    require(coverOwner == member, "Claims: Not cover owner");
+
+    uint expirationDate = qd.getValidityOfCover(coverId);
+    uint gracePeriod = tc.claimSubmissionGracePeriod();
+    require(expirationDate.add(gracePeriod) > now, "Claims: Grace period has expired");
+
+    tc.markCoverClaimOpen(coverId);
+    qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimSubmitted));
+
+    uint claimId = cd.actualClaimLength();
+    cd.addClaim(claimId, coverId, coverOwner, now);
+    cd.callClaimEvent(coverId, coverOwner, claimId, now);
+  }
+
+  // solhint-disable-next-line no-empty-blocks
+  function submitClaimAfterEPOff() external pure {}
 
   /**
    * @dev Castes vote for members who have tokens locked under Claims Assessment
@@ -262,41 +236,11 @@ contract Claims is Iupgradable {
     }
   }
 
-  /**
-  * @dev Pause Voting of All Pending Claims when Emergency Pause Start.
-  */
-  function pauseAllPendingClaimsVoting() public onlyInternal {
-    uint firstIndex = cd.pendingClaimStart();
-    uint actualClaimLength = cd.actualClaimLength();
-    for (uint i = firstIndex; i < actualClaimLength; i++) {
-      if (checkVoteClosing(i) == 0) {
-        uint dateUpd = cd.getClaimDateUpd(i);
-        cd.setPendingClaimDetails(i, (dateUpd.add(cd.maxVotingTime())).sub(now), false);
-      }
-    }
-  }
+  // solhint-disable-next-line no-empty-blocks
+  function pauseAllPendingClaimsVoting() external pure {}
 
-  /**
-   * @dev Resume the voting phase of all Claims paused due to an emergency pause.
-   */
-  function startAllPendingClaimsVoting() public onlyInternal {
-    uint firstIndx = cd.getFirstClaimIndexToStartVotingAfterEP();
-    uint i;
-    uint lengthOfClaimVotingPause = cd.getLengthOfClaimVotingPause();
-    for (i = firstIndx; i < lengthOfClaimVotingPause; i++) {
-      uint pendingTime;
-      uint claimID;
-      (claimID, pendingTime,) = cd.getPendingClaimDetailsByIndex(i);
-      uint pTime = (now.sub(cd.maxVotingTime())).add(pendingTime);
-      cd.setClaimdateUpd(claimID, pTime);
-      cd.setPendingClaimVoteStatus(i, true);
-      uint coverid;
-      (, coverid) = cd.getClaimCoverId(claimID);
-      address qadd = qd.getCoverMemberAddress(coverid);
-      tf.extendCNEPOff(qadd, coverid, pendingTime.add(cd.claimDepositTime()));
-    }
-    cd.setFirstClaimIndexToStartVotingAfterEP(i);
-  }
+  // solhint-disable-next-line no-empty-blocks
+  function startAllPendingClaimsVoting() external pure {}
 
   /**
    * @dev Checks if voting of a claim should be closed or not.
@@ -386,15 +330,4 @@ contract Claims is Iupgradable {
     cd.setClaimdateUpd(claimId, now);
   }
 
-  /**
-   * @dev Submits a claim for a given cover note.
-   * Set deposits flag against cover.
-   */
-  function _addClaim(uint coverId, uint time, address add) internal {
-    tf.depositCN(coverId);
-    uint len = cd.actualClaimLength();
-    cd.addClaim(len, coverId, add, now);
-    cd.callClaimEvent(coverId, add, len, time);
-    qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimSubmitted));
-  }
 }

@@ -13,7 +13,7 @@ contract DisposableNXMaster is NXMaster {
     address payable[] calldata _contractAddresses
   ) external {
 
-    require(!masterInitialized, "Already initialized");
+    require(!masterInitialized, "!init");
     masterInitialized = true;
 
     owner = _owner;
@@ -25,7 +25,7 @@ contract DisposableNXMaster is NXMaster {
 
     require(
       _contractNames.length == _contractTypes.length,
-      "contract names and types arrays should have the same length"
+      "check names & types arrays length"
     );
 
     for (uint i = 0; i < _contractNames.length; i++) {
@@ -42,21 +42,21 @@ contract DisposableNXMaster is NXMaster {
       } else if (_contractTypes[i] == 2) {
         isProxy[name] = true;
       }
-
     }
   }
 
   function switchGovernanceAddress(address payable newGV) external {
-    address currentGV = allContractVersions["GV"];
-    allContractVersions["GV"] = newGV;
-    contractsActive[currentGV] = false;
-    contractsActive[newGV] = true;
-  }
 
-  function changeAllAddress() external {
+    {// change governance address
+      address currentGV = allContractVersions["GV"];
+      allContractVersions["GV"] = newGV;
+      contractsActive[currentGV] = false;
+      contractsActive[newGV] = true;
+    }
+
+    // notify all contracts about address change
     for (uint i = 0; i < allContractNames.length; i++) {
-      bytes2 name = allContractNames[i];
-      address _address = allContractVersions[name];
+      address _address = allContractVersions[allContractNames[i]];
       Iupgradable up = Iupgradable(_address);
       up.changeMasterAddress(address(this));
       up.changeDependentContractAddress();

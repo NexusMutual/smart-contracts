@@ -1,4 +1,4 @@
-describe('Cover integration tests', function () {
+describe('Gateway integration tests', function () {
 
   require('./buyCover');
   require('./submitClaim');

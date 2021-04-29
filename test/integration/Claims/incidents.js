@@ -342,9 +342,9 @@ describe('incidents', function () {
     );
   });
 
-  it('sends the payout to the payout address', async function () {
+  it('sends the payout to the payout address and sets accumulated burn', async function () {
 
-    const { dai, incidents, qd, mr } = this.contracts;
+    const { dai, incidents, qd, mr, p1 } = this.contracts;
 
     const cover = { ...coverTemplate };
     await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
@@ -375,10 +375,61 @@ describe('incidents', function () {
 
     const daiBalanceBefore = await dai.balanceOf(payoutAddress);
     await incidents.redeemPayout(coverId, incidentId, tokenAmount, { from: coverHolder });
-    const daiBalanceAfter = await dai.balanceOf(payoutAddress);
 
+    const daiBalanceAfter = await dai.balanceOf(payoutAddress);
     const daiDiff = daiBalanceAfter.sub(daiBalanceBefore);
     bnEqual(daiDiff, sumAssured);
+
+    const daiPerNXM = await p1.getTokenPrice(dai.address);
+    const burnRate = await incidents.BURN_RATE();
+    const fullBurnAmount = ether('1').mul(sumAssured).div(daiPerNXM);
+
+    const expectedBurnAmount = fullBurnAmount.mul(burnRate).divn(100);
+    const actualAccumulatedBurn = await incidents.accumulatedBurn(cover.contractAddress);
+    bnEqual(actualAccumulatedBurn, expectedBurnAmount);
+  });
+
+  it('increments accumulated burn on second payout', async function () {
+
+    const { dai, incidents, qd, p1 } = this.contracts;
+
+    const cover0 = { ...coverTemplate, period: 61 };
+    const generationTime = `${Number(cover0.generationTime) + 1}`;
+    const cover1 = { ...cover0, period: 61, generationTime };
+
+    await buyCoverWithDai({ ...this.contracts, cover: cover0, coverHolder });
+    await buyCoverWithDai({ ...this.contracts, cover: cover1, coverHolder });
+
+    const coverStartDate = await time.latest();
+    const priceBefore = ether('2'); // DAI per ybDAI
+    const sumAssured = ether('1').muln(cover0.amount);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+
+    await incidents.addIncident(
+      cover0.contractAddress,
+      coverStartDate.addn(1),
+      priceBefore,
+      { from: owner },
+    );
+
+    const [coverId0, coverId1] = await qd.getAllCoversOfUser(coverHolder);
+
+    const totalTokenAmount = tokenAmount.muln(2);
+    await ybDAI.mint(coverHolder, totalTokenAmount);
+    await ybDAI.approve(incidents.address, totalTokenAmount, { from: coverHolder });
+
+    const incidentId = '0';
+    await incidents.redeemPayout(coverId0, incidentId, tokenAmount, { from: coverHolder });
+    await incidents.redeemPayout(coverId1, incidentId, tokenAmount, { from: coverHolder });
+
+    const daiPerNXM = await p1.getTokenPrice(dai.address);
+    const burnRate = await incidents.BURN_RATE();
+    const fullBurnAmount = ether('1').mul(sumAssured).div(daiPerNXM);
+    const expectedBurnAmountPerCover = fullBurnAmount.mul(burnRate).divn(100);
+
+    const expectedBurnAmountTotal = expectedBurnAmountPerCover.muln(2);
+    const actualAccumulatedBurn = await incidents.accumulatedBurn(cover0.contractAddress);
+    bnEqual(actualAccumulatedBurn, expectedBurnAmountTotal);
   });
 
 });

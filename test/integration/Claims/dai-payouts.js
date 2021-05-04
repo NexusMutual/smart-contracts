@@ -7,6 +7,7 @@ const { buyCoverWithDai, buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
 const { CoverStatus } = require('../utils').constants;
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
+const { MAX_UINT256 } = require('@openzeppelin/test-helpers').constants;
 
 const [, member1, member2, member3, coverHolder, payoutAddress] = accounts;
 
@@ -109,7 +110,7 @@ describe('DAI cover claim payouts', function () {
 
     // create a consensus not reached situation, 66% accept vs 33% deny
     await cl.submitCAVote(claimId, '1', { from: member1 });
-    await cl.submitCAVote(claimId, '-1', { from: member2 });
+    await cl.submitCAVote(claimId, toBN('-1'), { from: member2 });
     await cl.submitCAVote(claimId, '1', { from: member3 });
 
     const maxVotingTime = await cd.maxVotingTime();
@@ -156,7 +157,7 @@ describe('DAI cover claim payouts', function () {
 
     // create a consensus not reached situation, 66% accept vs 33% deny
     await cl.submitCAVote(claimId, '1', { from: member1 });
-    await cl.submitCAVote(claimId, '-1', { from: member2 });
+    await cl.submitCAVote(claimId, toBN('-1'), { from: member2 });
     await cl.submitCAVote(claimId, '1', { from: member3 });
 
     const maxVotingTime = await cd.maxVotingTime();
@@ -203,7 +204,7 @@ describe('DAI cover claim payouts', function () {
 
     // create a consensus not reached situation, 66% accept vs 33% deny
     await cl.submitCAVote(claimId, '1', { from: member1 });
-    await cl.submitCAVote(claimId, '-1', { from: member2 });
+    await cl.submitCAVote(claimId, toBN('-1'), { from: member2 });
     await cl.submitCAVote(claimId, '1', { from: member3 });
 
     const maxVotingTime = await cd.maxVotingTime();

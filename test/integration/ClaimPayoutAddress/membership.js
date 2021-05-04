@@ -2,6 +2,7 @@ const { accounts } = require('hardhat');
 const { expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { enrollMember } = require('../utils/enroll');
+const { MAX_UINT256 } = require('@openzeppelin/test-helpers').constants;
 
 const [/* owner */, member1, payoutAddress, switchable1, switchable2] = accounts;
 const zeroAddress = '0x0000000000000000000000000000000000000000';
@@ -46,7 +47,7 @@ describe('set claim payout address', function () {
     const { mr, tk } = this.contracts;
 
     await mr.setClaimPayoutAddress(payoutAddress, { from: member1 });
-    await tk.approve(mr.address, -1, { from: member1 });
+    await tk.approve(mr.address, MAX_UINT256, { from: member1 });
     const receipt = await mr.switchMembership(switchable1, { from: member1 });
 
     expectEvent(receipt, 'ClaimPayoutAddressSet', {
@@ -87,7 +88,7 @@ describe('set claim payout address', function () {
     const { mr, tk } = this.contracts;
 
     await mr.setClaimPayoutAddress(switchable1, { from: member1 });
-    await tk.approve(mr.address, -1, { from: member1 });
+    await tk.approve(mr.address, MAX_UINT256, { from: member1 });
     const firstSwitchReceipt = await mr.switchMembership(switchable1, { from: member1 });
 
     expectEvent(firstSwitchReceipt, 'ClaimPayoutAddressSet', {
@@ -111,7 +112,7 @@ describe('set claim payout address', function () {
       'cpa should be the new membership address',
     );
 
-    await tk.approve(mr.address, -1, { from: switchable1 });
+    await tk.approve(mr.address, MAX_UINT256, { from: switchable1 });
     const secondSwitchReceipt = await mr.switchMembership(switchable2, { from: switchable1 });
 
     notEmitted(secondSwitchReceipt, 'ClaimPayoutAddressSet', {
@@ -171,7 +172,7 @@ describe('set claim payout address', function () {
     const { mr, tk } = this.contracts;
 
     await mr.setClaimPayoutAddress(payoutAddress, { from: member1 });
-    await tk.approve(mr.address, -1, { from: member1 });
+    await tk.approve(mr.address, MAX_UINT256, { from: member1 });
     const receipt = await mr.withdrawMembership({ from: member1 });
 
     expectEvent(receipt, 'ClaimPayoutAddressSet', {

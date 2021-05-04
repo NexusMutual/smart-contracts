@@ -2,6 +2,7 @@ const { accounts, web3 } = require('hardhat');
 const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { setNextBlockTime } = require('../utils').evm;
 const { assert } = require('chai');
+const { MAX_UINT256 } = require('@openzeppelin/test-helpers').constants;
 
 const [owner, governance, nobody] = accounts;
 const contracts = require('./setup').contracts;
@@ -26,7 +27,7 @@ const addLiquidity = async (router, weth, token, ethAmount, tokenAmount) => {
     ether('0'), // amountAMin
     ether('0'), // amountBMin
     owner, // send lp tokens to
-    -1, // deadline infinity
+    MAX_UINT256, // deadline infinity
   );
 };
 

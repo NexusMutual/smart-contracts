@@ -4,6 +4,7 @@ const { ether, time, expectRevert } = require('@openzeppelin/test-helpers');
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { buyCover, ethCoverTemplate, daiCoverTemplate, getBuyCoverDataParameter, voteOnClaim } = require('./utils');
 const { Assets: { ETH } } = require('../utils').constants;
+const { toBN } = Web3.utils;
 
 const EtherRejecter = artifacts.require('EtherRejecter');
 
@@ -151,7 +152,7 @@ describe('getters', function () {
       const expectedCoverId = 1;
       await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
       const expectedClaimId = 1;
-      await voteOnClaim({ ...this.contracts, claimId: expectedClaimId, verdict: '-1', voter: member2 });
+      await voteOnClaim({ ...this.contracts, claimId: expectedClaimId, verdict: toBN('-1'), voter: member2 });
 
       const { status, amountPaid, coverAsset } = await gateway.getPayoutOutcome(expectedClaimId);
       assert.equal(status, ClaimStatus.REJECTED);
@@ -186,7 +187,7 @@ describe('getters', function () {
     it('reverts if cover does not exist', async function () {
       const { gateway } = this.contracts;
       const claimId = 1;
-      await expectRevert.unspecified(gateway.getPayoutOutcome(claimId));
+      await expectRevert.assertion(gateway.getPayoutOutcome(claimId));
     });
 
     it('reverts if claim does not exist', async function () {
@@ -195,7 +196,7 @@ describe('getters', function () {
       const coverData = { ...ethCoverTemplate };
       await buyCover({ ...this.contracts, coverData, coverHolder: member });
       const claimId = 1;
-      await expectRevert.unspecified(gateway.getPayoutOutcome(claimId));
+      await expectRevert.assertion(gateway.getPayoutOutcome(claimId));
     });
 
     it('returns claim status ACCEPTED with no payout if all payout attempts failed', async function () {

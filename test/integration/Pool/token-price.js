@@ -266,7 +266,7 @@ describe('Token price functions', function () {
 
     // create a consensus not reached situation, 66% accept vs 33% deny
     await claims.submitCAVote(claimId, '1', { from: member1 });
-    await claims.submitCAVote(claimId, '-1', { from: member2 });
+    await claims.submitCAVote(claimId, toBN('-1'), { from: member2 });
     await claims.submitCAVote(claimId, '1', { from: member3 });
 
     const maxVotingTime = await claimsData.maxVotingTime();
@@ -328,7 +328,7 @@ describe('Token price functions', function () {
     await cl.submitCAVote(claimId, '1', { from: member2 });
 
     const voteStatusAfter = await cl.checkVoteClosing(claimId);
-    assert.equal(voteStatusAfter.toString(), '-1', 'voting should be closed');
+    assert.equal(voteStatusAfter.toString(), toBN('-1'), 'voting should be closed');
 
     await master.closeClaim(claimId); // trigger changeClaimStatus
     const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
@@ -446,7 +446,7 @@ describe('Token price functions', function () {
 
     // create a consensus not reached situation, 66% accept vs 33% deny
     await cl.submitCAVote(claimId, '1', { from: member1 });
-    await cl.submitCAVote(claimId, '-1', { from: member2 });
+    await cl.submitCAVote(claimId, toBN('-1'), { from: member2 });
     await cl.submitCAVote(claimId, '1', { from: member3 });
 
     const maxVotingTime = await cd.maxVotingTime();
@@ -465,7 +465,7 @@ describe('Token price functions', function () {
       1 member vote from member 4 ( balance 1000 NXM) is sufficient to exceed sumAssured * 5
       and reject the claim
      */
-    await cl.submitMemberVote(claimId, '-1', { from: member4 });
+    await cl.submitMemberVote(claimId, toBN('-1'), { from: member4 });
     await time.increase(maxVotingTime.addn(1));
     await master.closeClaim(claimId);
 
@@ -500,7 +500,7 @@ describe('Token price functions', function () {
 
     // create a consensus not reached situation, 66% accept vs 33% deny
     await cl.submitCAVote(claimId, '1', { from: member1 });
-    await cl.submitCAVote(claimId, '-1', { from: member2 });
+    await cl.submitCAVote(claimId, toBN('-1'), { from: member2 });
     await cl.submitCAVote(claimId, '1', { from: member3 });
 
     const maxVotingTime = await cd.maxVotingTime();
@@ -519,7 +519,7 @@ describe('Token price functions', function () {
       1 member vote from member 4 ( balance 500 NXM) is insufficient to exceed sumAssured * 5
       and will not be able to reject the claim
      */
-    await cl.submitMemberVote(claimId, '-1', { from: member5 });
+    await cl.submitMemberVote(claimId, toBN('-1'), { from: member5 });
     await time.increase(maxVotingTime.addn(1));
     await master.closeClaim(claimId);
 

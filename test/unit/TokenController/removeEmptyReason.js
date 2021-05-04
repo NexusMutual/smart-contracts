@@ -36,7 +36,7 @@ describe('removeEmptyReason', function () {
     await token.approve(tokenController.address, ether('100'), { from: member });
     await tokenController.lockOf(member, R0, ether('100'), lockPeriod, { from: internal });
 
-    await expectRevert.unspecified(
+    await expectRevert.assertion(
       tokenController.removeEmptyReason(member, '0x', '1'),
     );
   });
@@ -93,7 +93,7 @@ describe('removeEmptyReason', function () {
 
     // the reason should have been removed
     // the getter should revert due to array out of bounds read (invalid opcode)
-    await expectRevert.unspecified(
+    await expectRevert.assertion(
       tokenController.lockReason(member, '0'),
     );
   });
@@ -125,7 +125,7 @@ describe('removeEmptyReason', function () {
     await tokenController.removeEmptyReason(member, R0, '0');
 
     // must have only 3 reasons, index 3 (fourth element) should revert on read
-    await expectRevert.unspecified(
+    await expectRevert.assertion(
       tokenController.lockReason(member, '3'),
     );
 
@@ -163,7 +163,7 @@ describe('removeEmptyReason', function () {
     await tokenController.removeEmptyReason(member, R1, '1');
 
     // must have only 3 reasons, index 3 (fourth element) should revert on read
-    await expectRevert.unspecified(
+    await expectRevert.assertion(
       tokenController.lockReason(member, '3'),
     );
 
@@ -201,7 +201,7 @@ describe('removeEmptyReason', function () {
     await tokenController.removeEmptyReason(member, R3, '3');
 
     // must have only 3 reasons, index 3 (fourth element) should revert on read
-    await expectRevert.unspecified(
+    await expectRevert.assertion(
       tokenController.lockReason(member, '3'),
     );
 
@@ -233,7 +233,7 @@ describe('removeEmptyReason', function () {
 
     // the reason should have been removed
     // the getter should revert due to array out of bounds read (invalid opcode)
-    await expectRevert.unspecified(
+    await expectRevert.assertion(
       tokenController.lockReason(member, '0'),
     );
   });

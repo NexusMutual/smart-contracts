@@ -27,7 +27,7 @@ const claimAndVote = async (contracts, coverId, member, assessor, accept) => {
   await cl.submitClaim(coverId, { from: member });
   const claimId = (await cd.actualClaimLength()).subn(1);
   const submittedAt = await cd.getClaimDateUpd(claimId);
-  const verdict = accept ? '1' : '-1';
+  const verdict = accept ? '1' : toBN('-1');
   await cl.submitCAVote(claimId, verdict, { from: assessor });
 
   const maxVotingTime = await cd.maxVotingTime();
@@ -143,7 +143,7 @@ describe('withdrawCoverNote', function () {
 
     const claimId = '1';
     const submittedAt = await cd.getClaimDateUpd(claimId);
-    await cl.submitCAVote(claimId, '-1', { from: claimAssessor });
+    await cl.submitCAVote(claimId, toBN('-1'), { from: claimAssessor });
 
     const maxVotingTime = await cd.maxVotingTime();
     await setNextBlockTime(submittedAt.add(maxVotingTime).toNumber());

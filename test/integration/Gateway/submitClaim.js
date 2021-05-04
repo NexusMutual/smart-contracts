@@ -4,6 +4,7 @@ const { assert } = require('chai');
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 const { buyCover, ethCoverTemplate, daiCoverTemplate } = require('./utils');
+const { toBN } = Web3.utils;
 
 const [, member1, member2, member3, coverHolder, nonMember1] = accounts;
 
@@ -34,7 +35,7 @@ describe('submitClaim', function () {
     const { gateway } = this.contracts;
     const member = member1;
 
-    await expectRevert.unspecified(
+    await expectRevert.assertion(
       gateway.submitClaim(1, EMPTY_DATA, {
         from: member,
       }),
@@ -126,13 +127,13 @@ describe('submitClaim', function () {
     {
       await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder });
       const claimId = 1;
-      await voteOnClaim({ ...this.contracts, claimId, verdict: '-1' });
+      await voteOnClaim({ ...this.contracts, claimId, verdict: toBN('-1') });
     }
 
     {
       await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder });
       const claimId = 2;
-      await voteOnClaim({ ...this.contracts, claimId, verdict: '-1' });
+      await voteOnClaim({ ...this.contracts, claimId, verdict: toBN('-1') });
     }
 
     await expectRevert(

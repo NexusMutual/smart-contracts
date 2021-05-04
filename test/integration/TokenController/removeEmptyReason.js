@@ -1,6 +1,7 @@
-const { accounts } = require('hardhat');
+const { accounts, web3 } = require('hardhat');
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
+const { toBN } = web3.utils;
 
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
@@ -54,7 +55,7 @@ describe('removeEmptyReason', async function () {
     await tc.removeEmptyReason(coverHolder, reason, '0');
 
     // should have no reason at this index, reverts with out of bounds array read
-    await expectRevert.unspecified(
+    await expectRevert.assertion(
       tc.lockReason(coverHolder, '0'),
     );
   });
@@ -73,7 +74,7 @@ describe('removeEmptyReason', async function () {
 
       await cl.submitClaim(coverId, { from: coverHolder });
       const claimId = (await cd.actualClaimLength()).subn(1);
-      await cl.submitCAVote(claimId, '-1', { from: member1 });
+      await cl.submitCAVote(claimId, toBN('-1'), { from: member1 });
 
       const minVotingTime = await cd.minVotingTime();
       await time.increase(minVotingTime.addn(1));
@@ -86,7 +87,7 @@ describe('removeEmptyReason', async function () {
     await tc.removeEmptyReason(coverHolder, reason, '0');
 
     // should have no reason at this index, reverts with out of bounds array read
-    await expectRevert.unspecified(
+    await expectRevert.assertion(
       tc.lockReason(coverHolder, '0'),
     );
   });

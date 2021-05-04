@@ -16,7 +16,7 @@
 pragma solidity ^0.8.0;
 
 interface IPool {
-  function transferAssetTo (address asset, address to, uint amount) external;
+  function transferAssetToSwapOperator (address asset, uint amount) external;
   function setAssetDataLatestLastSwapTime(address asset, uint32 lastSwapTime) external;
 
   function getAssetDetails(address _asset) external view returns (

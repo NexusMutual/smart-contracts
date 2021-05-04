@@ -379,16 +379,16 @@ contract Pool is MasterAware, ReentrancyGuard {
     token.safeTransferFrom(from, address(this), amount);
   }
 
-  function transferAssetTo (address asset, address to, uint amount) public onlySwapOperator nonReentrant whenNotPaused {
+  function transferAssetToSwapOperator (address asset, uint amount) public onlySwapOperator nonReentrant whenNotPaused {
 
     if (asset == ETH) {
-      (bool ok, /* data */) = to.call.value(amount)("");
+      (bool ok, /* data */) = swapOperator.call.value(amount)("");
       require(ok, "Pool: Eth transfer failed");
       return;
     }
 
     IERC20 token = IERC20(asset);
-    token.safeTransfer(to, amount);
+    token.safeTransfer(swapOperator, amount);
   }
 
   function setAssetDataLastSwapTime(address asset, uint32 lastSwapTime) public onlySwapOperator whenNotPaused {

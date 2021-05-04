@@ -79,7 +79,7 @@ contract SwapOperator is ReentrancyGuard {
 
     AssetData memory assetDetails = AssetData(min, max, lastAssetSwapTime, maxSlippageRatio);
 
-    pool.transferAssetTo(ETH, address(this), amountIn);
+    pool.transferAssetToSwapOperator(ETH, amountIn);
     pool.setAssetDataLastSwapTime(toTokenAddress, uint32(block.timestamp));
     uint amountOut = swapETHForAsset(
       assetDetails,
@@ -110,7 +110,7 @@ contract SwapOperator is ReentrancyGuard {
 
     AssetData memory assetDetails = AssetData(min, max, lastAssetSwapTime, maxSlippageRatio);
 
-    pool.transferAssetTo(fromTokenAddress, address(this), amountIn);
+    pool.transferAssetToSwapOperator(fromTokenAddress, amountIn);
     pool.setAssetDataLastSwapTime(fromTokenAddress, uint32(block.timestamp));
     uint amountOut = swapAssetForETH(
       assetDetails,
@@ -281,7 +281,7 @@ contract SwapOperator is ReentrancyGuard {
 
     uint balanceBefore = IERC20(toTokenAddress).balanceOf(address(pool));
 
-    pool.transferAssetTo(ETH, address(this), amountIn);
+    pool.transferAssetToSwapOperator(ETH, amountIn);
 
     (bool ok, /* data */) = toTokenAddress.call{ value: amountIn }("");
     require(ok, "SwapOperator: stEth transfer failed");

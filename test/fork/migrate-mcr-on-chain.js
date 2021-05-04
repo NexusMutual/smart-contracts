@@ -18,6 +18,7 @@ const { BN, toBN } = web3.utils;
 
 const MemberRoles = artifacts.require('MemberRoles');
 const Pool = artifacts.require('Pool');
+const OldPool = artifacts.require('P1MockOldPool');
 const NXMaster = artifacts.require('NXMaster');
 const NXMToken = artifacts.require('NXMToken');
 const Governance = artifacts.require('Governance');
@@ -26,8 +27,8 @@ const Quotation = artifacts.require('Quotation');
 const MCR = artifacts.require('MCR');
 const LegacyMCR = artifacts.require('LegacyMCR');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-const ERC20 = artifacts.require('ERC20');
-const SwapAgent = artifacts.require('SwapAgent');
+const ERC20 = artifacts.require('@openzeppelin/contracts-v4/token/ERC20/ERC20.sol:ERC20');
+const SwapOperator = artifacts.require('SwapOperator');
 const LegacyPoolData = artifacts.require('LegacyPoolData');
 
 const Address = {
@@ -38,6 +39,7 @@ const Address = {
   DAIFEED: '0x773616E4d11A78F511299002da57A0a94577F1f4',
   UNIFACTORY: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
   NXMHOLDER: '0xd7cba5b9a0240770cfd9671961dae064136fa240',
+  stETH: '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
 };
 
 const UserAddress = {
@@ -77,7 +79,7 @@ describe.only('MCR on-chain migration', function () {
     const token = await NXMToken.at(getAddressByCode('NXMTOKEN'));
     const memberRoles = await MemberRoles.at(getAddressByCode('MR'));
     const governance = await Governance.at(getAddressByCode('GV'));
-    const pool1 = await Pool.at(getAddressByCode('P1'));
+    const pool1 = await OldPool.at(getAddressByCode('P1'));
     const oldMCR = await LegacyMCR.at(getAddressByCode('MC'));
     const oldPoolData = await LegacyPoolData.at(getAddressByCode('PD'));
 
@@ -139,20 +141,26 @@ describe.only('MCR on-chain migration', function () {
     contracts/modules/capital/Pool.sol
     contracts/modules/claims/ClaimsReward.sol
     contracts/modules/cover/Quotation.sol
+
+    New contract:
+    SwapOperator
     */
 
     const newMCR = await MCR.new(master.address);
     const newClaimsReward = await ClaimsReward.new(master.address, Address.DAI);
     const newQuotation = await Quotation.new();
 
-    console.log('Fetc price feed oracle');
+    console.log('Fetch price feed oracle');
     const priceFeedOracle = await PriceFeedOracle.at(await oldPool.priceFeedOracle());
 
     console.log('Fetch twap oracle');
     const twapOracle = { address: await oldPool.twapOracle() };
 
-    console.log('Link pool to swap agent');
-    Pool.link(await SwapAgent.new());
+    const stETHToken = await ERC20.at(Address.stETH);
+
+    const swapController = UserAddress.NXM_WHALE_2;
+
+    const swapOperator = await SwapOperator.new(master.address, twapOracle.address, swapController, stETHToken.address);
 
     console.log('Deploy pool');
     const pool = await Pool.new(
@@ -162,8 +170,7 @@ describe.only('MCR on-chain migration', function () {
       [ether('0.01')],
       master.address,
       priceFeedOracle.address,
-      twapOracle.address,
-      voters[0],
+      swapOperator.address,
     );
 
     const actionData = web3.eth.abi.encodeParameters(

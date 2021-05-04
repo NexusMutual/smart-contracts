@@ -54,7 +54,7 @@ describe('removeEmptyReason', async function () {
     await tc.removeEmptyReason(coverHolder, reason, '0');
 
     // should have no reason at this index, reverts with out of bounds array read
-    await expectRevert.assertion(
+    await expectRevert.unspecified(
       tc.lockReason(coverHolder, '0'),
     );
   });
@@ -86,7 +86,7 @@ describe('removeEmptyReason', async function () {
     await tc.removeEmptyReason(coverHolder, reason, '0');
 
     // should have no reason at this index, reverts with out of bounds array read
-    await expectRevert.assertion(
+    await expectRevert.unspecified(
       tc.lockReason(coverHolder, '0'),
     );
   });

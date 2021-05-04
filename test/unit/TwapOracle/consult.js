@@ -1,6 +1,7 @@
 const { accounts, web3 } = require('hardhat');
 const { assert } = require('chai');
 const { ether, expectRevert } = require('@openzeppelin/test-helpers');
+const { MAX_UINT256 } = require('@openzeppelin/test-helpers').constants;
 
 const { contracts } = require('./setup');
 const { setNextBlockTime, mineNextBlock } = require('../utils').evm;
@@ -33,10 +34,10 @@ describe('consult', function () {
     const { oracle, router, tokenA, weth, wethAPair } = contracts();
 
     await tokenA.mint(owner, ether('100'));
-    await tokenA.approve(router.address, -1);
+    await tokenA.approve(router.address, MAX_UINT256);
 
     await weth.deposit({ value: ether('100') });
-    await weth.approve(router.address, -1);
+    await weth.approve(router.address, MAX_UINT256);
 
     await router.addLiquidity(
       tokenA.address, // tokenA
@@ -46,7 +47,7 @@ describe('consult', function () {
       ether('0'), // amountAMin
       ether('0'), // amountBMin
       owner, // send lp tokens to
-      -1, // deadline infinity
+      MAX_UINT256, // deadline infinity
     );
 
     // window 0, period 0
@@ -77,10 +78,10 @@ describe('consult', function () {
     const { oracle, router, tokenA, weth, wethAPair } = contracts();
 
     await tokenA.mint(owner, ether('100'));
-    await tokenA.approve(router.address, -1);
+    await tokenA.approve(router.address, MAX_UINT256);
 
     await weth.deposit({ value: ether('100') });
-    await weth.approve(router.address, -1);
+    await weth.approve(router.address, MAX_UINT256);
 
     await router.addLiquidity(
       tokenA.address, // tokenA
@@ -90,7 +91,7 @@ describe('consult', function () {
       ether('0'), // amountAMin
       ether('0'), // amountBMin
       owner, // send lp tokens to
-      -1, // deadline infinity
+      MAX_UINT256, // deadline infinity
     );
 
     // [period 3, period 2] window
@@ -124,10 +125,10 @@ describe('consult', function () {
     const { oracle, router, tokenA, weth, wethAPair } = contracts();
 
     await tokenA.mint(owner, ether('100'));
-    await tokenA.approve(router.address, -1);
+    await tokenA.approve(router.address, MAX_UINT256);
 
     await weth.deposit({ value: ether('100') });
-    await weth.approve(router.address, -1);
+    await weth.approve(router.address, MAX_UINT256);
 
     await router.addLiquidity(
       tokenA.address, // tokenA
@@ -137,7 +138,7 @@ describe('consult', function () {
       ether('0'), // amountAMin
       ether('0'), // amountBMin
       owner, // send lp tokens to
-      -1, // deadline infinity
+      MAX_UINT256, // deadline infinity
     );
 
     // [period 2, period 1] window
@@ -171,10 +172,10 @@ describe('consult', function () {
     const { oracle, router, tokenA, weth, wethAPair } = contracts();
 
     await tokenA.mint(owner, ether('100'));
-    await tokenA.approve(router.address, -1);
+    await tokenA.approve(router.address, MAX_UINT256);
 
     await weth.deposit({ value: ether('100') });
-    await weth.approve(router.address, -1);
+    await weth.approve(router.address, MAX_UINT256);
 
     // 100 tokenA == 50 weth
     await router.addLiquidity(
@@ -185,7 +186,7 @@ describe('consult', function () {
       ether('0'), // amountAMin
       ether('0'), // amountBMin
       owner, // send lp tokens to
-      -1, // deadline infinity
+      MAX_UINT256, // deadline infinity
     );
 
     // [period 3, period 2] window
@@ -237,10 +238,10 @@ describe('consult', function () {
     const { oracle, router, tokenA, weth, wethAPair } = contracts();
 
     await tokenA.mint(owner, ether('100'));
-    await tokenA.approve(router.address, -1);
+    await tokenA.approve(router.address, MAX_UINT256);
 
     await weth.deposit({ value: ether('100') });
-    await weth.approve(router.address, -1);
+    await weth.approve(router.address, MAX_UINT256);
 
     // 100 tokenA == 50 weth
     await router.addLiquidity(
@@ -251,7 +252,7 @@ describe('consult', function () {
       ether('0'), // amountAMin
       ether('0'), // amountBMin
       owner, // send lp tokens to
-      -1, // deadline infinity
+      MAX_UINT256, // deadline infinity
     );
 
     // [period 3, period 2] window
@@ -297,7 +298,7 @@ describe('consult', function () {
       '0', // amountOutMin
       [weth.address, tokenA.address], // route
       owner, // to
-      -1, // deadline
+      MAX_UINT256, // deadline
       { value: ether('1') },
     );
 

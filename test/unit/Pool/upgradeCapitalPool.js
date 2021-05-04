@@ -6,7 +6,6 @@ const { assert } = require('chai');
 const { defaultSender, governanceContracts: [governance] } = require('../utils').accounts;
 
 const Pool = artifacts.require('Pool');
-const SwapAgent = artifacts.require('SwapAgent');
 const ERC20Mock = artifacts.require('ERC20Mock');
 
 describe('upgradeCapitalPool', function () {
@@ -21,15 +20,13 @@ describe('upgradeCapitalPool', function () {
     const otherToken = await ERC20Mock.new();
 
     await pool.addAsset(otherToken.address, '0', '0', ether('0.01'), {
-      from: governance
+      from: governance,
     });
     const tokens = [dai, otherToken];
     for (const token of tokens) {
       await token.mint(pool.address, tokenAmount);
     }
 
-    const swapAgent = await SwapAgent.new();
-    Pool.link(swapAgent);
     const newPool = await Pool.new(
       tokens.map(a => a.address), // assets
       tokens.map(a => 0), // min
@@ -38,7 +35,6 @@ describe('upgradeCapitalPool', function () {
       defaultSender,
       ZERO_ADDRESS,
       ZERO_ADDRESS, // we do not test swaps here
-      ZERO_ADDRESS, // swap controller, not used here
     );
 
     await master.upgradeCapitalPool(pool.address, newPool.address);

@@ -27,16 +27,23 @@ import "../oracles/PriceFeedOracle.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenController.sol";
 import "./MCR.sol";
-import "./SwapAgent.sol";
 
 contract Pool is MasterAware, ReentrancyGuard {
   using Address for address;
   using SafeMath for uint;
   using SafeERC20 for IERC20;
 
+  struct AssetData {
+    uint112 minAmount;
+    uint112 maxAmount;
+    uint32 lastSwapTime;
+    // 18 decimals of precision. 0.01% -> 0.0001 -> 1e14
+    uint maxSlippageRatio;
+  }
+
   /* storage */
   address[] public assets;
-  mapping(address => SwapAgent.AssetData) public assetData;
+  mapping(address => AssetData) public assetData;
 
   // contracts
   Quotation public quotation;
@@ -45,10 +52,10 @@ contract Pool is MasterAware, ReentrancyGuard {
   MCR public mcr;
 
   // parameters
-  address public twapOracle;
   address public swapController;
   uint public minPoolEth;
   PriceFeedOracle public priceFeedOracle;
+  address public swapOperator;
 
   /* constants */
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -68,8 +75,8 @@ contract Pool is MasterAware, ReentrancyGuard {
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
 
   /* logic */
-  modifier onlySwapController {
-    require(msg.sender == swapController, "Pool: not swapController");
+  modifier onlySwapOperator {
+    require(msg.sender == swapOperator, "Pool: not swapController");
     _;
   }
 
@@ -80,8 +87,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     uint[] memory _maxSlippageRatios,
     address _master,
     address _priceOracle,
-    address _twapOracle,
-    address _swapController
+    address _swapOperator
   ) public {
 
     require(_assets.length == _minAmounts.length, "Pool: length mismatch");
@@ -103,8 +109,7 @@ contract Pool is MasterAware, ReentrancyGuard {
 
     master = INXMMaster(_master);
     priceFeedOracle = PriceFeedOracle(_priceOracle);
-    twapOracle = _twapOracle;
-    swapController = _swapController;
+    swapOperator = _swapOperator;
   }
 
   // fallback function
@@ -153,7 +158,7 @@ contract Pool is MasterAware, ReentrancyGuard {
 
     IERC20 token = IERC20(_asset);
     balance = token.balanceOf(address(this));
-    SwapAgent.AssetData memory data = assetData[_asset];
+    AssetData memory data = assetData[_asset];
 
     return (balance, data.minAmount, data.maxAmount, data.lastSwapTime, data.maxSlippageRatio);
   }
@@ -174,7 +179,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     }
 
     assets.push(_asset);
-    assetData[_asset] = SwapAgent.AssetData(_min, _max, 0, _maxSlippageRatio);
+    assetData[_asset] = AssetData(_min, _max, 0, _maxSlippageRatio);
   }
 
   function removeAsset(address _asset) external onlyGovernance {
@@ -219,58 +224,6 @@ contract Pool is MasterAware, ReentrancyGuard {
     }
 
     revert("Pool: asset not found");
-  }
-
-  /* swap functions */
-
-  function getSwapQuote(
-    uint tokenAmountIn,
-    IERC20 fromToken,
-    IERC20 toToken
-  ) public view returns (uint tokenAmountOut) {
-
-    return SwapAgent.getSwapQuote(
-      tokenAmountIn,
-      fromToken,
-      toToken
-    );
-  }
-
-  function swapETHForAsset(
-    address toTokenAddress,
-    uint amountIn,
-    uint amountOutMin
-  ) external whenNotPaused onlySwapController nonReentrant {
-
-    SwapAgent.AssetData storage assetDetails = assetData[toTokenAddress];
-
-    uint amountOut = SwapAgent.swapETHForAsset(
-      twapOracle,
-      assetDetails,
-      toTokenAddress,
-      amountIn,
-      amountOutMin,
-      minPoolEth
-    );
-
-    emit Swapped(ETH, toTokenAddress, amountIn, amountOut);
-  }
-
-  function swapAssetForETH(
-    address fromTokenAddress,
-    uint amountIn,
-    uint amountOutMin
-  ) external whenNotPaused onlySwapController nonReentrant {
-
-    uint amountOut = SwapAgent.swapAssetForETH(
-      twapOracle,
-      assetData[fromTokenAddress],
-      fromTokenAddress,
-      amountIn,
-      amountOutMin
-    );
-
-    emit Swapped(fromTokenAddress, ETH, amountIn, amountOut);
   }
 
   /* claim related functions */
@@ -424,6 +377,22 @@ contract Pool is MasterAware, ReentrancyGuard {
   function transferAssetFrom (address asset, address from, uint amount) public onlyInternal whenNotPaused {
     IERC20 token = IERC20(asset);
     token.safeTransferFrom(from, address(this), amount);
+  }
+
+  function transferAssetToSwapOperator (address asset, uint amount) public onlySwapOperator nonReentrant whenNotPaused {
+
+    if (asset == ETH) {
+      (bool ok, /* data */) = swapOperator.call.value(amount)("");
+      require(ok, "Pool: Eth transfer failed");
+      return;
+    }
+
+    IERC20 token = IERC20(asset);
+    token.safeTransfer(swapOperator, amount);
+  }
+
+  function setAssetDataLastSwapTime(address asset, uint32 lastSwapTime) public onlySwapOperator whenNotPaused {
+    assetData[asset].lastSwapTime = lastSwapTime;
   }
 
   /* token sale functions */
@@ -691,13 +660,8 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
 
-    if (code == "TWAP") {
-      twapOracle = value;
-      return;
-    }
-
-    if (code == "SWAP") {
-      swapController = value;
+    if (code == "SWP_OP") {
+      swapOperator = value;
       return;
     }
 

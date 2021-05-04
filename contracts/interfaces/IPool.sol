@@ -1,4 +1,3 @@
-
 /* Copyright (C) 2020 NexusMutual.io
 
   This program is free software: you can redistribute it and/or modify
@@ -14,10 +13,21 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.5.17;
+pragma solidity ^0.8.0;
 
-contract EtherRejecter {
-  function() payable external {
-    revert('I secretly hate ether');
-  }
+interface IPool {
+  function transferAssetToSwapOperator (address asset, uint amount) external;
+  function setAssetDataLatestLastSwapTime(address asset, uint32 lastSwapTime) external;
+
+  function getAssetDetails(address _asset) external view returns (
+    uint balance,
+    uint112 min,
+    uint112 max,
+    uint32 lastAssetSwapTime,
+    uint maxSlippageRatio
+  );
+
+  function setAssetDataLastSwapTime(address asset, uint32 lastSwapTime) external;
+
+  function minPoolEth() external returns (uint);
 }

@@ -186,7 +186,7 @@ describe('getters', function () {
     it('reverts if cover does not exist', async function () {
       const { gateway } = this.contracts;
       const claimId = 1;
-      await expectRevert.assertion(gateway.getPayoutOutcome(claimId));
+      await expectRevert.unspecified(gateway.getPayoutOutcome(claimId));
     });
 
     it('reverts if claim does not exist', async function () {
@@ -195,7 +195,7 @@ describe('getters', function () {
       const coverData = { ...ethCoverTemplate };
       await buyCover({ ...this.contracts, coverData, coverHolder: member });
       const claimId = 1;
-      await expectRevert.assertion(gateway.getPayoutOutcome(claimId));
+      await expectRevert.unspecified(gateway.getPayoutOutcome(claimId));
     });
 
     it('returns claim status ACCEPTED with no payout if all payout attempts failed', async function () {

@@ -305,13 +305,23 @@ describe.only('MCR on-chain migration', function () {
   it('triggers StEth investment', async function () {
     const { swapOperator, swapController, stETHToken, pool } = this;
 
+    const poolValueInEthBefore = await pool.getPoolValueInEth();
+
     const amountIn = ether('100');
     await swapOperator.swapETHForStETH(amountIn, {
       from: swapController,
     });
 
     const balanceAfter = await stETHToken.balanceOf(pool.address);
-    assert.equal(amountIn.subn(2).toString(), balanceAfter.toString());
+
+    const dustDifference = 2;
+    assert.equal(balanceAfter.toString(), amountIn.subn(dustDifference).toString());
+
+    const poolValueInEthAfter = await pool.getPoolValueInEth();
+
+    const poolValueDelta = poolValueInEthBefore.sub(poolValueInEthAfter);
+
+    assert(poolValueDelta.ltn(20), 'poolValueDelta exceeds 20 wei');
   });
 
   it('triggers MCR update (no-effect at floor level)', async function () {

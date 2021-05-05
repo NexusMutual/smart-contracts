@@ -76,7 +76,7 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   /* logic */
   modifier onlySwapOperator {
-    require(msg.sender == swapOperator, "Pool: not swapController");
+    require(msg.sender == swapOperator, "Pool: not swapOperator");
     _;
   }
 

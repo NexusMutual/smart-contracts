@@ -19,7 +19,6 @@ async function setup () {
   const ERC20Mock = artifacts.require('ERC20Mock');
   const TokenFunctions = artifacts.require('TokenFunctions');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-  const SwapOperator = artifacts.require('SwapOperator');
   const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
 
   const master = await MasterMock.new();
@@ -33,6 +32,8 @@ async function setup () {
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
   const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
 
+  const swapOperator = accounts.generalPurpose[10];
+
   const tokenData = await TokenData.new(accounts.notariseAddress);
   const pool = await Pool.new(
     [dai.address], // assets
@@ -41,7 +42,7 @@ async function setup () {
     [ether('0.01')], // maxSlippage 1%
     accounts.defaultSender, // master: it is changed a few lines below
     priceFeedOracle.address,
-    ZERO_ADDRESS, // we do not test swaps here
+    swapOperator, // we do not test swaps here
   );
 
   await master.setLatestAddress(hex('P1'), pool.address);
@@ -99,6 +100,7 @@ async function setup () {
   this.tokenController = tokenController;
   this.dai = dai;
   this.chainlinkDAI = chainlinkDAI;
+  this.swapOperator = swapOperator;
 }
 
 module.exports = setup;

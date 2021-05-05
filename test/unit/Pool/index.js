@@ -38,4 +38,7 @@ describe('Pool unit tests', function () {
   // payout
   require('./sendClaimPayout');
 
+  // swapping
+  require('./transferAssetToSwapOperator');
+  require('./setAssetDataLastSwapTime');
 });

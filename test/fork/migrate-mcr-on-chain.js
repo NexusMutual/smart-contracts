@@ -151,7 +151,9 @@ describe.only('MCR on-chain migration', function () {
     const newQuotation = await Quotation.new();
 
     console.log('Fetch price feed oracle');
-    const priceFeedOracle = await PriceFeedOracle.at(await oldPool.priceFeedOracle());
+    const oldPriceFeedOracle = await PriceFeedOracle.at(await oldPool.priceFeedOracle());
+    const daiAggregator = await oldPriceFeedOracle.aggregators(dai.address);
+    const priceFeedOracle = await PriceFeedOracle.new([dai.address], [daiAggregator], dai.address);
 
     console.log('Fetch twap oracle');
     const twapOracle = { address: await oldPool.twapOracle() };
@@ -164,10 +166,10 @@ describe.only('MCR on-chain migration', function () {
 
     console.log('Deploy pool');
     const pool = await Pool.new(
-      [Address.DAI],
-      [0],
-      [ether('10000000')],
-      [ether('0.01')],
+      [Address.DAI, Address.stETH],
+      [0, ether('1')],
+      [ether('10000000'), ether('10000000')],
+      [ether('0.01'), ether('0.01')],
       master.address,
       priceFeedOracle.address,
       swapOperator.address,
@@ -236,8 +238,11 @@ describe.only('MCR on-chain migration', function () {
     const priceFeedRate = await priceFeedOracle.getAssetToEthRate(Address.DAI);
     const poolValueAfter = await pool.getPoolValueInEth();
 
+    const priceFeedRateStEth = await priceFeedOracle.getAssetToEthRate(Address.stETH);
+
     console.log({
       priceFeedRate: priceFeedRate.toString(),
+      priceFeedRateStEth: priceFeedRateStEth.toString(),
       poolValueBefore: poolValueBefore.toString(),
       poolValueAfter: poolValueAfter.toString(),
       poolEthBalanceBefore: expectedEth.toString(),
@@ -292,6 +297,21 @@ describe.only('MCR on-chain migration', function () {
     this.twapOracle = twapOracle;
     this.dai = dai;
     this.mcr = mcr;
+    this.swapController = swapController;
+    this.swapOperator = swapOperator;
+    this.stETHToken = stETHToken;
+  });
+
+  it('triggers StEth investment', async function () {
+    const { swapOperator, swapController, stETHToken, pool } = this;
+
+    const amountIn = ether('100');
+    await swapOperator.swapETHForStETH(amountIn, {
+      from: swapController,
+    });
+
+    const balanceAfter = await stETHToken.balanceOf(pool.address);
+    assert.equal(amountIn.subn(2).toString(), balanceAfter.toString());
   });
 
   it('triggers MCR update (no-effect at floor level)', async function () {

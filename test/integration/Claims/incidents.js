@@ -1,17 +1,16 @@
 const { accounts, web3 } = require('hardhat');
-const { constants, ether, expectRevert, time } = require('@openzeppelin/test-helpers');
+const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { toBN } = web3.utils;
 
 const { enrollMember } = require('../utils/enroll');
 const { buyCover, buyCoverWithDai } = require('../utils/buyCover');
 const {
-  constants: { CoverStatus },
+  constants: { CoverStatus, ProposalCategory },
   evm: { setNextBlockTime },
   helpers: { bnEqual, hex },
 } = require('../utils');
 
 const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
-const EtherRejecter = artifacts.require('EtherRejecter');
 
 const [owner, coverHolder, stranger] = accounts;
 const productId = '0x0000000000000000000000000000000000000003';
@@ -26,6 +25,33 @@ const coverTemplate = {
   currency: hex('DAI'),
   period: 60,
   contractAddress: productId,
+};
+
+const addIncident = async (contracts, members, protocolId, incidentDate, priceBefore) => {
+
+  const { gv } = contracts;
+  const proposalId = await gv.getProposalLength();
+  await gv.createProposal('', '', '', ProposalCategory.addIncident);
+  await gv.categorizeProposal(proposalId, ProposalCategory.addIncident, 0);
+
+  await gv.submitProposalWithSolution(
+    proposalId,
+    'ipfshash',
+    web3.eth.abi.encodeParameters(
+      ['address', 'uint', 'uint'],
+      [protocolId, incidentDate, priceBefore],
+    ),
+  );
+
+  for (const member of members) {
+    await gv.submitVote(proposalId, 1, { from: member });
+  }
+
+  const closeTx = await gv.closeProposal(proposalId);
+  expectEvent(closeTx, 'ActionSuccess', { proposalId });
+
+  const proposal = await gv.proposal(proposalId);
+  assert.equal(proposal[2].toNumber(), 3, 'proposal status != accepted');
 };
 
 describe('incidents', function () {
@@ -96,20 +122,24 @@ describe('incidents', function () {
     );
   });
 
+  it('reverts when adding an incident from a non-governance address', async function () {
+    const { incidents } = this.contracts;
+    await expectRevert(
+      incidents.addIncident(productId, '0', '0', { from: owner }),
+      'Caller is not authorized to govern',
+    );
+  });
+
   it('reverts when raising claim if msg.sender != cover owner', async function () {
 
     const { incidents, qd } = this.contracts;
 
     const cover = { ...coverTemplate };
     await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
-    const coverStartDate = await time.latest();
 
-    await incidents.addIncident(
-      cover.contractAddress,
-      coverStartDate.addn(1),
-      ether('1'),
-      { from: owner },
-    );
+    const incidentDate = (await time.latest()).addn(1);
+    const priceBefore = ether('1');
+    await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
 
     const [coverId] = await qd.getAllCoversOfUser(coverHolder);
     const incidentId = '0';
@@ -132,21 +162,12 @@ describe('incidents', function () {
     const coverPeriod = toBN(cover.period * 24 * 3600);
     const coverExpiration = coverStartDate.add(coverPeriod).addn(1);
 
-    // 0
-    await incidents.addIncident(
-      cover.contractAddress,
-      coverStartDate.subn(1),
-      ether('1'),
-      { from: owner },
-    );
+    const incident0Date = coverStartDate.subn(1);
+    const incident1Date = coverExpiration.addn(1);
+    const priceBefore = ether('1');
 
-    // 1
-    await incidents.addIncident(
-      cover.contractAddress,
-      coverExpiration.addn(1),
-      ether('1'),
-      { from: owner },
-    );
+    await addIncident(this.contracts, [owner], cover.contractAddress, incident0Date, priceBefore);
+    await addIncident(this.contracts, [owner], cover.contractAddress, incident1Date, priceBefore);
 
     const incidentBeforeCover = '0';
     const incidentAfterCover = '1';
@@ -180,12 +201,9 @@ describe('incidents', function () {
     const gracePeriodExpiration = coverExpiration.add(gracePeriod);
     await setNextBlockTime(Number(gracePeriodExpiration.addn(1).toString()));
 
-    await incidents.addIncident(
-      cover.contractAddress,
-      coverStartDate.addn(1),
-      ether('1'),
-      { from: owner },
-    );
+    const incidentDate = coverStartDate.addn(1);
+    const priceBefore = ether('1');
+    await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
 
     const [coverId] = await qd.getAllCoversOfUser(coverHolder);
     const incidentId = '0';
@@ -213,12 +231,8 @@ describe('incidents', function () {
     const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
     const tokenAmountExcess = tokenAmount.addn(1);
 
-    await incidents.addIncident(
-      cover.contractAddress,
-      coverStartDate.addn(1),
-      priceBefore,
-      { from: owner },
-    );
+    const incidentDate = coverStartDate.addn(1);
+    await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
 
     await ybDAI.mint(coverHolder, ether('100'));
 
@@ -246,12 +260,8 @@ describe('incidents', function () {
     // 500 DAI  /  2 DAI/ybDAI  =  1000 ybDAI
     const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
 
-    await incidents.addIncident(
-      cover.contractAddress,
-      coverStartDate.addn(1),
-      priceBefore,
-      { from: owner },
-    );
+    const incidentDate = coverStartDate.addn(1);
+    await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
 
     await ybDAI.mint(coverHolder, ether('100'));
 
@@ -279,12 +289,8 @@ describe('incidents', function () {
     // 500 DAI  /  2 DAI/ybDAI  =  1000 ybDAI
     const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
 
-    await incidents.addIncident(
-      cover.contractAddress,
-      coverStartDate.addn(1),
-      priceBefore,
-      { from: owner },
-    );
+    const incidentDate = coverStartDate.addn(1);
+    await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
 
     await ybDAI.mint(coverHolder, tokenAmount);
     await ybDAI.approve(incidents.address, tokenAmount, { from: coverHolder });
@@ -323,12 +329,8 @@ describe('incidents', function () {
     // 500 DAI  /  2 DAI/ybDAI  =  1000 ybDAI
     const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
 
-    await incidents.addIncident(
-      cover.contractAddress,
-      coverStartDate.addn(1),
-      priceBefore,
-      { from: owner },
-    );
+    const incidentDate = coverStartDate.addn(1);
+    await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
 
     await ybDAI.mint(coverHolder, tokenAmount);
     await ybDAI.approve(incidents.address, tokenAmount, { from: coverHolder });
@@ -342,7 +344,7 @@ describe('incidents', function () {
     );
   });
 
-  it('sends the payout to the payout address and sets accumulated burn', async function () {
+  it('sends token payout to the payout address and sets accumulated burn', async function () {
 
     const { dai, incidents, qd, mr, p1 } = this.contracts;
 
@@ -357,12 +359,8 @@ describe('incidents', function () {
     // 500 DAI  /  2 DAI/ybDAI  =  1000 ybDAI
     const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
 
-    await incidents.addIncident(
-      cover.contractAddress,
-      coverStartDate.addn(1),
-      priceBefore,
-      { from: owner },
-    );
+    const incidentDate = coverStartDate.addn(1);
+    await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
 
     await ybDAI.mint(coverHolder, tokenAmount);
     await ybDAI.approve(incidents.address, tokenAmount, { from: coverHolder });
@@ -387,6 +385,101 @@ describe('incidents', function () {
     const expectedBurnAmount = fullBurnAmount.mul(burnRate).divn(100);
     const actualAccumulatedBurn = await incidents.accumulatedBurn(cover.contractAddress);
     bnEqual(actualAccumulatedBurn, expectedBurnAmount);
+
+    const expectedCoverStatus = toBN(CoverStatus.ClaimAccepted);
+    const actualCoverStatus = await qd.getCoverStatusNo(coverId);
+    bnEqual(actualCoverStatus, expectedCoverStatus);
+  });
+
+  it('properly sets the cover and claim statuses', async function () {
+
+    const { incidents, cd, qd } = this.contracts;
+    const cover = { ...coverTemplate };
+    await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
+
+    const coverStartDate = await time.latest();
+    const priceBefore = ether('2'); // DAI per ybDAI
+    const sumAssured = ether('1').muln(cover.amount);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+
+    const incidentDate = coverStartDate.addn(1);
+    await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
+
+    await ybDAI.mint(coverHolder, tokenAmount);
+    await ybDAI.approve(incidents.address, tokenAmount, { from: coverHolder });
+
+    const claimCountBefore = await cd.actualClaimLength();
+    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
+    const incidentId = '0';
+    await incidents.redeemPayout(coverId, incidentId, tokenAmount, { from: coverHolder });
+
+    const expectedClaimCountAfter = claimCountBefore.addn(1);
+    const actualClaimCountAfter = await cd.actualClaimLength();
+    bnEqual(actualClaimCountAfter, expectedClaimCountAfter);
+
+    const expectedCoverStatus = toBN(CoverStatus.ClaimAccepted);
+    const actualCoverStatus = await qd.getCoverStatusNo(coverId);
+    bnEqual(actualCoverStatus, expectedCoverStatus);
+
+    const claimId = claimCountBefore;
+    const expectedClaimStatus = toBN('14');
+    const { statno: actualClaimStatus } = await cd.getClaimStatusNumber(claimId);
+    bnEqual(actualClaimStatus, expectedClaimStatus);
+  });
+
+  it('sends ETH payout and sets accumulated burn', async function () {
+
+    const { incidents, qd, p1 } = this.contracts;
+
+    const ETH = await p1.ETH();
+    const productId = '0x000000000000000000000000000000000000000e';
+    const ybETH = await ERC20MintableDetailed.new('yield bearing ETH', 'ybETH', 18);
+    await incidents.addProducts([productId], [ybETH.address], [ETH], { from: owner });
+
+    const cover = { ...coverTemplate, currency: hex('ETH'), contractAddress: productId };
+    await buyCover({ ...this.contracts, cover, coverHolder });
+
+    const coverStartDate = await time.latest();
+    const priceBefore = ether('2.5'); // ETH per ybETH
+    const sumAssured = ether('1').muln(cover.amount);
+
+    // sumAssured DAI = tokenAmount ybETH @ priceBefore
+    // 500 ETH  /  2 ETH/ybETH  =  1000 ybETH
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+
+    const incidentDate = coverStartDate.addn(1);
+    await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
+
+    await ybETH.mint(coverHolder, tokenAmount);
+    await ybETH.approve(incidents.address, tokenAmount, { from: coverHolder });
+
+    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
+    const incidentId = '0';
+
+    const ethBalanceBefore = toBN(await web3.eth.getBalance(coverHolder));
+    await incidents.redeemPayout(
+      coverId,
+      incidentId,
+      tokenAmount,
+      // gas price set to 0 so we can know the payout exactly
+      { from: coverHolder, gasPrice: 0 },
+    );
+
+    const ethBalanceAfter = toBN(await web3.eth.getBalance(coverHolder));
+    const ethDiff = ethBalanceAfter.sub(ethBalanceBefore);
+    bnEqual(ethDiff, sumAssured);
+
+    const ethPerNXM = await p1.getTokenPrice(ETH);
+    const burnRate = await incidents.BURN_RATE();
+    const fullBurnAmount = ether('1').mul(sumAssured).div(ethPerNXM);
+
+    const expectedBurnAmount = fullBurnAmount.mul(burnRate).divn(100);
+    const actualAccumulatedBurn = await incidents.accumulatedBurn(cover.contractAddress);
+    bnEqual(actualAccumulatedBurn, expectedBurnAmount);
+
+    const expectedCoverStatus = toBN(CoverStatus.ClaimAccepted);
+    const actualCoverStatus = await qd.getCoverStatusNo(coverId);
+    bnEqual(actualCoverStatus, expectedCoverStatus);
   });
 
   it('increments accumulated burn on second payout', async function () {
@@ -405,12 +498,8 @@ describe('incidents', function () {
     const sumAssured = ether('1').muln(cover0.amount);
     const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
 
-    await incidents.addIncident(
-      cover0.contractAddress,
-      coverStartDate.addn(1),
-      priceBefore,
-      { from: owner },
-    );
+    const incidentDate = coverStartDate.addn(1);
+    await addIncident(this.contracts, [owner], cover0.contractAddress, incidentDate, priceBefore);
 
     const [coverId0, coverId1] = await qd.getAllCoversOfUser(coverHolder);
 
@@ -430,6 +519,66 @@ describe('incidents', function () {
     const expectedBurnAmountTotal = expectedBurnAmountPerCover.muln(2);
     const actualAccumulatedBurn = await incidents.accumulatedBurn(cover0.contractAddress);
     bnEqual(actualAccumulatedBurn, expectedBurnAmountTotal);
+  });
+
+  it('pushes burns', async function () {
+
+    const { dai, incidents, qd, p1, ps } = this.contracts;
+
+    const cover = { ...coverTemplate };
+    await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
+
+    const coverStartDate = await time.latest();
+    const priceBefore = ether('2'); // DAI per ybDAI
+    const sumAssured = ether('1').muln(cover.amount);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+
+    const incidentDate = coverStartDate.addn(1);
+    await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
+
+    await ybDAI.mint(coverHolder, tokenAmount);
+    await ybDAI.approve(incidents.address, tokenAmount, { from: coverHolder });
+
+    await expectRevert(
+      incidents.pushBurns(cover.contractAddress, 30),
+      'Incidents: No burns to push',
+    );
+
+    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
+    const incidentId = '0';
+    await incidents.redeemPayout(coverId, incidentId, tokenAmount, { from: coverHolder });
+
+    const daiPerNXM = await p1.getTokenPrice(dai.address);
+    const burnRate = await incidents.BURN_RATE();
+    const fullBurnAmount = ether('1').mul(sumAssured).div(daiPerNXM);
+    const expectedBurnAmount = fullBurnAmount.mul(burnRate).divn(100);
+
+    const actualAccumulatedBurn = await incidents.accumulatedBurn(cover.contractAddress);
+    bnEqual(actualAccumulatedBurn, expectedBurnAmount);
+
+    await expectRevert(
+      incidents.pushBurns(cover.contractAddress, 29),
+      'Incidents: Pass at least 30 iterations',
+    );
+
+    // not using expectEvent because the event is emitted from ps
+    // and therefore only present in rawLogs
+    const pushTx = await incidents.pushBurns(cover.contractAddress, 30);
+    const burnRequestedTopic0 = web3.utils.keccak256('BurnRequested(address,uint256)');
+
+    const burnRequestedEvents = pushTx.receipt.rawLogs.filter(log => {
+      return log.topics && log.topics[0] === burnRequestedTopic0;
+    });
+
+    assert.strictEqual(burnRequestedEvents.length, 1);
+    const event = burnRequestedEvents[0];
+
+    // get the latest 20 bytes (40 chars)
+    const eventProtocol = '0x' + event.topics[1].slice(-40);
+    assert.strictEqual(eventProtocol, cover.contractAddress);
+
+    const burnEventAmount = toBN(web3.utils.hexToNumberString(event.data));
+    bnEqual(burnEventAmount, expectedBurnAmount);
   });
 
 });

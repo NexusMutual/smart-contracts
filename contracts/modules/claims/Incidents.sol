@@ -52,7 +52,7 @@ contract Incidents is MasterAware {
   // claim id => payout amount
   mapping(uint => uint) public claimPayout;
 
-  // product id => acumulated burn amount
+  // product id => accumulated burn amount
   mapping(address => uint) public accumulatedBurn;
 
   // burn percentage, ex 20 for 20%
@@ -120,7 +120,7 @@ contract Incidents is MasterAware {
     address productId,
     uint incidentDate,
     uint priceBefore
-  ) external onlyAdvisoryBoard {
+  ) external onlyGovernance {
 
     address underlying = underlyingToken[productId];
     require(underlying != address(0), "Incidents: Unsupported product");

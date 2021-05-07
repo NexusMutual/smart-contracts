@@ -160,4 +160,34 @@ describe('getMCR', function () {
 
     assert.equal(newestMCR.toString(), desiredMCR.toString());
   });
+
+  it('increases MCR by 1% if desiredMCR is 1% higher than current MCR', async function () {
+    const { master } = this;
+
+    const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.muln(101).divn(100);
+    const mcrFloor = desiredMCR;
+    const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR, mcrFloor, master });
+
+    await time.increase(time.duration.hours(24));
+
+    const newestMCR = await mcr.getMCR();
+
+    assert.equal(newestMCR.toString(), desiredMCR.toString());
+
+  });
+
+  it('increases MCR by 1% if desiredMCR is 2% higher than current MCR', async function () {
+    const { master } = this;
+
+    const desiredMCR = DEFAULT_MCR_PARAMS.mcrValue.muln(102).divn(100);
+    const mcrFloor = desiredMCR;
+    const expectedMCR = DEFAULT_MCR_PARAMS.mcrValue.muln(101).divn(100);
+    const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR, mcrFloor, master });
+
+    await time.increase(time.duration.hours(24));
+
+    const newestMCR = await mcr.getMCR();
+
+    assert.equal(newestMCR.toString(), expectedMCR.toString());
+  });
 });

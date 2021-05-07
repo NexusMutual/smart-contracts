@@ -1,17 +1,15 @@
 const fetch = require('node-fetch');
 const { artifacts, web3, accounts, network } = require('hardhat');
-const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
+const { ether, time } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
 
 const { submitGovernanceProposal, submitMemberVoteGovernanceProposal } = require('./utils');
 const { hex } = require('../utils').helpers;
-const { ProposalCategory, Role } = require('../utils').constants;
+const { ProposalCategory } = require('../utils').constants;
+const { setNextBlockTime, mineNextBlock } = require('../utils').evm;
 
 const {
-  toDecimal,
   calculateRelativeError,
-  percentageBN,
-  calculateEthForNXMRelativeError,
 } = require('../utils').tokenPrice;
 
 const { BN, toBN } = web3.utils;
@@ -30,6 +28,7 @@ const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const ERC20 = artifacts.require('@openzeppelin/contracts-v4/token/ERC20/ERC20.sol:ERC20');
 const SwapOperator = artifacts.require('SwapOperator');
 const LegacyPoolData = artifacts.require('LegacyPoolData');
+const TwapOracle = artifacts.require('TwapOracle');
 
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -40,6 +39,7 @@ const Address = {
   UNIFACTORY: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
   NXMHOLDER: '0xd7cba5b9a0240770cfd9671961dae064136fa240',
   stETH: '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
+  WETH: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
 };
 
 const UserAddress = {
@@ -65,6 +65,8 @@ const hardhatRequest = async (...params) => {
 const getAddressByCodeFactory = abis => code => abis.find(abi => abi.code === code).address;
 const fund = async to => web3.eth.sendTransaction({ from: accounts[0], to, value: ether('1000000') });
 const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAccount', params: [member] });
+
+const bnToNumber = bn => parseInt(bn.toString(), 10);
 
 describe.only('MCR on-chain migration', function () {
 
@@ -156,7 +158,7 @@ describe.only('MCR on-chain migration', function () {
     const priceFeedOracle = await PriceFeedOracle.new([dai.address], [daiAggregator], dai.address);
 
     console.log('Fetch twap oracle');
-    const twapOracle = { address: await oldPool.twapOracle() };
+    const twapOracle = await TwapOracle.at(await oldPool.twapOracle());
 
     const stETHToken = await ERC20.at(Address.stETH);
 
@@ -168,8 +170,8 @@ describe.only('MCR on-chain migration', function () {
     const pool = await Pool.new(
       [Address.DAI, Address.stETH],
       [0, ether('1')],
-      [ether('10000000'), ether('10000000')],
-      [ether('0.01'), ether('0.01')],
+      [ether('2000000'), ether('10000000')],
+      [ether('0.025'), ether('0.025')],
       master.address,
       priceFeedOracle.address,
       swapOperator.address,
@@ -300,6 +302,7 @@ describe.only('MCR on-chain migration', function () {
     this.swapController = swapController;
     this.swapOperator = swapOperator;
     this.stETHToken = stETHToken;
+    this.twapOracle = twapOracle;
   });
 
   it('triggers StEth investment', async function () {
@@ -322,6 +325,51 @@ describe.only('MCR on-chain migration', function () {
     const poolValueDelta = poolValueInEthBefore.sub(poolValueInEthAfter);
 
     assert(poolValueDelta.ltn(20), 'poolValueDelta exceeds 20 wei');
+  });
+
+  it('trigger ETH -> DAI swap', async function () {
+    const { swapOperator, swapController, twapOracle, pool, dai } = this;
+
+    const amountIn = ether('40');
+
+    const wethDAIPairAddress = await twapOracle.pairFor(Address.WETH, Address.DAI);
+
+    const periodSize = 1800;
+    const windowSize = 14400; // = 8 * 1800 = 4 hours
+    const nextWindowStartTime = async () => {
+      const now = bnToNumber(await time.latest());
+      const currentWindow = Math.floor(now / windowSize);
+      return (currentWindow + 1) * windowSize;
+    };
+
+    const windowStart = await nextWindowStartTime();
+    console.log({
+      wethDAIPairAddress,
+    });
+    await setNextBlockTime(windowStart);
+    await twapOracle.update([wethDAIPairAddress]);
+
+    // should be able to swap only during the last period within the window
+    const period8Start = windowStart + periodSize * 7;
+    const period8End = windowStart + windowSize - 1;
+    await setNextBlockTime(period8Start);
+
+    const daiBalanceBefore = await dai.balanceOf(pool.address);
+    await swapOperator.swapETHForAsset(Address.DAI, amountIn, '0', {
+      from: swapController,
+    });
+
+    const daiBalanceAfter = await dai.balanceOf(pool.address);
+
+    const balanceIncrease = daiBalanceAfter.sub(daiBalanceBefore);
+
+    console.log({
+      balanceIncrease: balanceIncrease.toString(),
+    });
+
+    // const { minAmount } = await pool.assetData(dai.address);
+    //
+    // assert(daiBalanceAfter.gt(minAmount.toString()), 'not sufficient DAI');
   });
 
   it('triggers MCR update (no-effect at floor level)', async function () {

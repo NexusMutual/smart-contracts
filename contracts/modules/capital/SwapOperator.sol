@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 /* Copyright (C) 2020 NexusMutual.io
 
   This program is free software: you can redistribute it and/or modify
@@ -55,7 +57,7 @@ contract SwapOperator is ReentrancyGuard {
   IUniswapV2Router02 constant public router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
   uint constant public MAX_LIQUIDITY_RATIO = 3 * 1e15;
 
-  constructor(address payable _master, address _twapOracle, address _swapController, address _stETH) public {
+  constructor(address payable _master, address _twapOracle, address _swapController, address _stETH) {
     master = INXMMaster(_master);
     twapOracle = ITwapOracle(_twapOracle);
     swapController = _swapController;

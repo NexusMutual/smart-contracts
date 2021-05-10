@@ -22,15 +22,15 @@
   "dependencies": {
     "@openzeppelin/contract-loader": "^0.6.1",
     "@openzeppelin/contracts": "^2.5.1",
-    "@openzeppelin/test-helpers": "^0.5.9",
+    "@openzeppelin/contracts-v4": "npm:@openzeppelin/contracts@^4.0.0",
+    "@openzeppelin/test-helpers": "^0.5.11",
     "@truffle/hdwallet-provider": "^1.0.42",
     "@uniswap/v2-core": "^1.0.1",
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
     "bn.js": "^5.1.2",
     "dotenv": "^8.2.0",
     "ethereumjs-util": "^7.0.7",
-    "node-fetch": "^2.6.1",
-    "@openzeppelin/contracts-v4": "npm:@openzeppelin/contracts@^4.0.0"
+    "node-fetch": "^2.6.1"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-etherscan": "^2.1.0",
@@ -48,7 +48,7 @@
     "eslint-plugin-standard": "^4.0.1",
     "ethlint": "^1.2.5",
     "glob": "^7.1.6",
-    "hardhat": "^2.0.7",
+    "hardhat": "^2.2.1",
     "hardhat-contract-sizer": "^2.0.2",
     "mocha": "^7.1.2",
     "nodemon": "^2.0.2",

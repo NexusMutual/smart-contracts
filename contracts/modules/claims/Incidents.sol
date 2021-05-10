@@ -131,32 +131,47 @@ contract Incidents is MasterAware {
     emit IncidentAdded(productId, incidentDate, priceBefore);
   }
 
+  function redeemPayoutForMember(
+    uint coverId,
+    uint incidentId,
+    uint coveredTokenAmount,
+    address member
+  ) external onlyInternal returns (uint claimId, uint payoutAmount) {
+    (claimId, payoutAmount) = _redeemPayout(coverId, incidentId, coveredTokenAmount, member);
+  }
+
   function redeemPayout(
     uint coverId,
     uint incidentId,
     uint coveredTokenAmount
   ) external returns (uint claimId, uint payoutAmount) {
+    (claimId, payoutAmount) = _redeemPayout(coverId, incidentId, coveredTokenAmount, msg.sender);
+  }
 
+  function _redeemPayout(
+    uint coverId,
+    uint incidentId,
+    uint coveredTokenAmount,
+    address owner
+  ) internal returns (uint claimId, uint payoutAmount) {
     QuotationData qd = quotationData();
-    TokenController tc = tokenController();
-
     Incident memory incident = incidents[incidentId];
-    address coverOwner;
     uint sumAssured;
     bytes4 currency;
 
     {
+      uint coverExpirationDate;
       address productId;
       uint coverStartDate;
-      uint coverExpirationDate;
+      address coverOwner;
 
       (
-      productId, coverOwner, coverStartDate,
-      coverExpirationDate, sumAssured, currency
+        productId, coverOwner, coverStartDate,
+        coverExpirationDate, sumAssured, currency
       ) = _getCoverDetails(qd, coverId);
 
       // check ownership and covered protocol
-      require(msg.sender == coverOwner, "Incidents: Not cover owner");
+      require(owner == coverOwner, "Incidents: Not cover owner");
       require(productId == incident.productId, "Incidents: Bad incident id");
 
       // check cover validity
@@ -164,7 +179,12 @@ contract Incidents is MasterAware {
       require(coverExpirationDate >= incident.date, "Incidents: Cover end date is after the incident");
 
       // check grace period
-      uint gracePeriod = tc.claimSubmissionGracePeriod();
+      uint gracePeriod;
+      {
+        // definind tc in isolated block to avoid stack too deep
+        TokenController tc = tokenController();
+        gracePeriod = tc.claimSubmissionGracePeriod();
+      }
       require(coverExpirationDate.add(gracePeriod) >= block.timestamp, "Incidents: Grace period has expired");
     }
 
@@ -183,6 +203,8 @@ contract Incidents is MasterAware {
       payoutAmount = coveredTokenAmount.mul(coverAmount).div(maxAmount);
     }
 
+    // definind tc here again in main scope to avoid stack too deep
+    TokenController tc = tokenController();
     {
       // mark cover as having a successful claim
       tc.markCoverClaimOpen(coverId);
@@ -191,8 +213,8 @@ contract Incidents is MasterAware {
       // create the claim
       ClaimsData cd = claimsData();
       claimId = cd.actualClaimLength();
-      cd.addClaim(claimId, coverId, coverOwner, now);
-      cd.callClaimEvent(coverId, coverOwner, claimId, now);
+      cd.addClaim(claimId, coverId, owner, now);
+      cd.callClaimEvent(coverId, owner, claimId, now);
       cd.setClaimStatus(claimId, 14);
       qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimAccepted));
 
@@ -203,10 +225,11 @@ contract Incidents is MasterAware {
 
     _sendPayoutAndPushBurn(
       incident.productId,
-      address(uint160(coverOwner)),
+      address(uint160(owner)),
       coveredTokenAmount,
       coverAsset,
-      payoutAmount
+      payoutAmount,
+      owner
     );
 
     qd.subFromTotalSumAssured(currency, sumAssured);
@@ -257,30 +280,33 @@ contract Incidents is MasterAware {
     address payable coverOwner,
     uint coveredTokenAmount,
     address coverAsset,
-    uint payoutAmount
+    uint payoutAmount,
+    address payee
   ) internal {
 
     address _coveredToken = coveredToken[productId];
-    address payable payoutAddress = memberRoles().getClaimPayoutAddress(coverOwner);
 
     // pull depeged tokens
-    IERC20(_coveredToken).safeTransferFrom(msg.sender, address(this), coveredTokenAmount);
+    IERC20(_coveredToken).safeTransferFrom(payee, address(this), coveredTokenAmount);
 
     Pool p1 = pool();
 
     // send the payoutAmount
     {
+      address payable payoutAddress = memberRoles().getClaimPayoutAddress(coverOwner);
       bool success = p1.sendClaimPayout(coverAsset, payoutAddress, payoutAmount);
       require(success, "Incidents: Payout failed");
     }
 
-    // burn
-    uint decimalPrecision = 1e18;
-    uint assetPerNxm = p1.getTokenPrice(coverAsset);
-    uint maxBurnAmount = payoutAmount.mul(decimalPrecision).div(assetPerNxm);
-    uint burnAmount = maxBurnAmount.mul(BURN_RATE).div(100);
+    {
+      // burn
+      uint decimalPrecision = 1e18;
+      uint assetPerNxm = p1.getTokenPrice(coverAsset);
+      uint maxBurnAmount = payoutAmount.mul(decimalPrecision).div(assetPerNxm);
+      uint burnAmount = maxBurnAmount.mul(BURN_RATE).div(100);
 
-    accumulatedBurn[productId] = accumulatedBurn[productId].add(burnAmount);
+      accumulatedBurn[productId] = accumulatedBurn[productId].add(burnAmount);
+    }
   }
 
   function claimsData() internal view returns (ClaimsData) {

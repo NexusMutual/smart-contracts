@@ -25,6 +25,7 @@ import "../token/TokenData.sol";
 import "../token/TokenFunctions.sol";
 import "./QuotationData.sol";
 import "../claims/ClaimsReward.sol";
+import "../claims/Incidents.sol";
 
 contract Gateway is MasterAware {
   using SafeMath for uint;
@@ -37,6 +38,7 @@ contract Gateway is MasterAware {
   QuotationData public quotationData;
   ClaimsData public claimsData;
   Claims public claims;
+  Incidents public incidents;
   Pool public pool;
   MemberRoles public memberRoles;
 
@@ -74,6 +76,7 @@ contract Gateway is MasterAware {
     quotationData = QuotationData(master.getLatestAddress("QD"));
     claimsData = ClaimsData(master.getLatestAddress("CD"));
     claims = Claims(master.getLatestAddress("CL"));
+    incidents = Incidents(master.getLatestAddress("IC"));
     pool = Pool(master.getLatestAddress("P1"));
     memberRoles = MemberRoles(master.getLatestAddress("MR"));
     if (DAI == address(0)) {
@@ -161,6 +164,12 @@ contract Gateway is MasterAware {
     return claimId;
   }
 
+  function claimTokens(uint coverId, uint incidentId, uint coveredTokenAmount)
+    external
+    returns (uint claimId, uint payoutAmount) {
+    (claimId, payoutAmount) = incidents.redeemPayoutForMember(coverId, incidentId, coveredTokenAmount, msg.sender);
+  }
+
   function getClaimCoverId(uint claimId) public view returns (uint) {
     (, uint coverId) = claimsData.getClaimCoverId(claimId);
     return coverId;
@@ -173,10 +182,19 @@ contract Gateway is MasterAware {
   {
     (, uint coverId) = claimsData.getClaimCoverId(claimId);
     (, uint internalClaimStatus) = claimsData.getClaimStatusNumber(claimId);
+    (,address productId) = quotationData.getscAddressOfCover(coverId);
+    address coveredTokenAddress = incidents.coveredToken(productId);
 
     coverAsset = getCurrencyAssetAddress(quotationData.getCurrencyOfCover(coverId));
-    uint sumAssured = quotationData.getCoverSumAssured(coverId).mul(10 ** assetDecimals(coverAsset));
-    amountPaid = internalClaimStatus == 14 ? sumAssured : 0;
+    if (internalClaimStatus == 14) {
+      if (coveredTokenAddress != address(0)) {
+        amountPaid = incidents.claimPayout(claimId);
+      } else {
+        amountPaid = quotationData.getCoverSumAssured(coverId).mul(10 ** assetDecimals(coverAsset));
+      }
+    } else {
+      amountPaid = 0;
+    }
 
     if (internalClaimStatus == 6 || internalClaimStatus == 9 || internalClaimStatus == 11) {
       status = ClaimStatus.REJECTED;

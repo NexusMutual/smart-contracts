@@ -169,7 +169,7 @@ describe.only('MCR on-chain migration', function () {
     console.log('Deploy pool');
     const pool = await Pool.new(
       [Address.DAI, Address.stETH],
-      [0, ether('1')],
+      [ether('1000000'), ether('1')],
       [ether('2000000'), ether('10000000')],
       [ether('0.025'), ether('0.025')],
       master.address,
@@ -346,16 +346,44 @@ describe.only('MCR on-chain migration', function () {
     console.log({
       wethDAIPairAddress,
     });
+    const now = bnToNumber(await time.latest());
+    console.log({
+      now,
+    });
     await setNextBlockTime(windowStart);
+
     await twapOracle.update([wethDAIPairAddress]);
+    const now2 = bnToNumber(await time.latest());
+    console.log({
+      windowStart,
+      now2,
+    });
 
     // should be able to swap only during the last period within the window
     const period8Start = windowStart + periodSize * 7;
     const period8End = windowStart + windowSize - 1;
     await setNextBlockTime(period8Start);
+    const now3 = bnToNumber(await time.latest());
+    console.log({
+      period8Start,
+      now3,
+    });
+
+    // mine block
+    await web3.eth.sendTransaction({ from: accounts[0], to: pool.address, value: '1' });
 
     const daiBalanceBefore = await dai.balanceOf(pool.address);
-    await swapOperator.swapETHForAsset(Address.DAI, amountIn, '0', {
+
+    const assetData = await pool.assetData(Address.DAI);
+
+    const avgAmountOut = await twapOracle.consult(Address.WETH, amountIn, Address.DAI);
+    const maxSlippageAmount = avgAmountOut.mul(assetData.maxSlippageRatio).div(ether('1'));
+    const minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
+
+    console.log({
+      minOutOnMaxSlippage: minOutOnMaxSlippage.toString(),
+    });
+    await swapOperator.swapETHForAsset(Address.DAI, amountIn, minOutOnMaxSlippage, {
       from: swapController,
     });
 
@@ -366,10 +394,6 @@ describe.only('MCR on-chain migration', function () {
     console.log({
       balanceIncrease: balanceIncrease.toString(),
     });
-
-    // const { minAmount } = await pool.assetData(dai.address);
-    //
-    // assert(daiBalanceAfter.gt(minAmount.toString()), 'not sufficient DAI');
   });
 
   it('triggers MCR update (no-effect at floor level)', async function () {

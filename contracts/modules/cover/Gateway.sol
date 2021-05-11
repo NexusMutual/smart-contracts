@@ -16,7 +16,6 @@
 pragma solidity ^0.5.0;
 
 import "../../interfaces/IERC20Detailed.sol";
-import "../capital/MCR.sol";
 import "../capital/Pool.sol";
 import "../governance/MemberRoles.sol";
 import "../token/TokenController.sol";
@@ -24,7 +23,6 @@ import "../token/TokenData.sol";
 import "../token/TokenData.sol";
 import "../token/TokenFunctions.sol";
 import "./QuotationData.sol";
-import "../claims/ClaimsReward.sol";
 import "../claims/Incidents.sol";
 
 contract Gateway is MasterAware {
@@ -79,10 +77,6 @@ contract Gateway is MasterAware {
     incidents = Incidents(master.getLatestAddress("IC"));
     pool = Pool(master.getLatestAddress("P1"));
     memberRoles = MemberRoles(master.getLatestAddress("MR"));
-    if (DAI == address(0)) {
-      ClaimsReward claimsReward = ClaimsReward(master.getLatestAddress("CR"));
-      DAI = claimsReward.DAI();
-    }
   }
 
   function getCoverPrice (
@@ -182,11 +176,11 @@ contract Gateway is MasterAware {
   {
     (, uint coverId) = claimsData.getClaimCoverId(claimId);
     (, uint internalClaimStatus) = claimsData.getClaimStatusNumber(claimId);
-    (,address productId) = quotationData.getscAddressOfCover(coverId);
-    address coveredTokenAddress = incidents.coveredToken(productId);
 
     coverAsset = getCurrencyAssetAddress(quotationData.getCurrencyOfCover(coverId));
     if (internalClaimStatus == 14) {
+      (,address productId) = quotationData.getscAddressOfCover(coverId);
+      address coveredTokenAddress = incidents.coveredToken(productId);
       if (coveredTokenAddress != address(0)) {
         amountPaid = incidents.claimPayout(claimId);
       } else {

@@ -179,12 +179,7 @@ contract Incidents is MasterAware {
       require(coverExpirationDate >= incident.date, "Incidents: Cover end date is after the incident");
 
       // check grace period
-      uint gracePeriod;
-      {
-        // definind tc in isolated block to avoid stack too deep
-        TokenController tc = tokenController();
-        gracePeriod = tc.claimSubmissionGracePeriod();
-      }
+      uint gracePeriod = tokenController().claimSubmissionGracePeriod();
       require(coverExpirationDate.add(gracePeriod) >= block.timestamp, "Incidents: Grace period has expired");
     }
 

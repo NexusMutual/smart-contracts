@@ -92,7 +92,6 @@ describe('getPayoutOutcome', function () {
     });
 
     const { amountPaid } = await gateway.getPayoutOutcome(1);
-    console.log({ amountPaid });
     bnEqual(amountPaid, ether('198'));
   });
 });

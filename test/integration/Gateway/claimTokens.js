@@ -12,14 +12,14 @@ let cover;
 const productId = daiCoverTemplate.contractAddress;
 let ybDAI;
 
-describe('claimTokens', function () {
+describe.only('claimTokens', function () {
   beforeEach(async function () {
-    const { dai, incidents } = this.contracts;
+    const { dai, incidents, gateway } = this.contracts;
     ybDAI = await ERC20MintableDetailed.new('yield bearing DAI', 'ybDAI', 18);
     await enrollMember(this.contracts, [coverHolder, stranger]);
     await dai.mint(coverHolder, ether('10000000'));
     await ybDAI.mint(coverHolder, ether('10000000'));
-    await ybDAI.approve(incidents.address, ether('10000000'), {
+    await ybDAI.approve(gateway.address, ether('10000000'), {
       from: coverHolder,
     });
     await incidents.addProducts([productId], [ybDAI.address], [dai.address], {
@@ -46,9 +46,15 @@ describe('claimTokens', function () {
     const incidentId = 0;
 
     await expectRevert.assertion(
-      gateway.claimTokens(nonExistentCoverId, incidentId, cover.amount, {
-        from: coverHolder,
-      }),
+      gateway.claimTokens(
+        nonExistentCoverId,
+        incidentId,
+        cover.amount,
+        ybDAI.address,
+        {
+          from: coverHolder,
+        },
+      ),
     );
   });
 
@@ -67,7 +73,7 @@ describe('claimTokens', function () {
     );
 
     await expectRevert(
-      gateway.claimTokens(1, 0, cover.amount, {
+      gateway.claimTokens(1, 0, cover.amount, ybDAI.address, {
         from: stranger,
       }),
       'VM Exception while processing transaction: revert Incidents: Not cover owner',
@@ -100,7 +106,7 @@ describe('claimTokens', function () {
     await qt.expireCover(expectedCoverId);
 
     await expectRevert(
-      gateway.claimTokens(1, 0, cover.amount, {
+      gateway.claimTokens(1, 0, cover.amount, ybDAI.address, {
         from: coverHolder,
       }),
       'Incidents: Grace period has expired',
@@ -114,7 +120,7 @@ describe('claimTokens', function () {
 
     // accessing inexistent array index reverts with invalid opcode
     await expectRevert.assertion(
-      gateway.claimTokens(1, 0, cover.amount, {
+      gateway.claimTokens(1, 0, cover.amount, ybDAI.address, {
         from: coverHolder,
       }),
     );
@@ -144,6 +150,7 @@ describe('claimTokens', function () {
       expectedCoverId,
       0,
       ether('500'),
+      ybDAI.address,
       {
         from: coverHolder,
       },
@@ -185,7 +192,7 @@ describe('claimTokens', function () {
 
     const expectedCoverId = 1;
     await expectRevert(
-      gateway.claimTokens(expectedCoverId, 0, invalidAmount, {
+      gateway.claimTokens(expectedCoverId, 0, invalidAmount, ybDAI.address, {
         from: coverHolder,
       }),
       'Incidents: Amount exceeds sum assured',

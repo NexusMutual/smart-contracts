@@ -17,6 +17,7 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../capital/Pool.sol";
@@ -26,7 +27,7 @@ import "../cover/QuotationData.sol";
 import "../governance/MemberRoles.sol";
 import "../token/TokenController.sol";
 
-contract Incidents is MasterAware {
+contract Incidents is MasterAware, ReentrancyGuard {
   using SafeERC20 for IERC20;
   using SafeMath for uint;
 
@@ -153,7 +154,7 @@ contract Incidents is MasterAware {
     uint incidentId,
     uint coveredTokenAmount,
     address owner
-  ) internal returns (uint claimId, uint payoutAmount) {
+  ) internal nonReentrant returns (uint claimId, uint payoutAmount) {
     QuotationData qd = quotationData();
     Incident memory incident = incidents[incidentId];
     uint sumAssured;
@@ -223,8 +224,7 @@ contract Incidents is MasterAware {
       address(uint160(owner)),
       coveredTokenAmount,
       coverAsset,
-      payoutAmount,
-      owner
+      payoutAmount
     );
 
     qd.subFromTotalSumAssured(currency, sumAssured);
@@ -275,14 +275,13 @@ contract Incidents is MasterAware {
     address payable coverOwner,
     uint coveredTokenAmount,
     address coverAsset,
-    uint payoutAmount,
-    address payee
+    uint payoutAmount
   ) internal {
 
     address _coveredToken = coveredToken[productId];
 
     // pull depeged tokens
-    IERC20(_coveredToken).safeTransferFrom(payee, address(this), coveredTokenAmount);
+    IERC20(_coveredToken).safeTransferFrom(msg.sender, address(this), coveredTokenAmount);
 
     Pool p1 = pool();
 

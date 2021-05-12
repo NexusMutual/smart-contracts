@@ -15,6 +15,7 @@
 
 pragma solidity ^0.5.0;
 
+import "hardhat/console.sol";
 import "../../interfaces/IERC20Detailed.sol";
 import "../capital/Pool.sol";
 import "../governance/MemberRoles.sol";
@@ -158,9 +159,14 @@ contract Gateway is MasterAware {
     return claimId;
   }
 
-  function claimTokens(uint coverId, uint incidentId, uint coveredTokenAmount)
+  function claimTokens(uint coverId, uint incidentId, uint coveredTokenAmount, address coverAsset)
     external
     returns (uint claimId, uint payoutAmount) {
+    IERC20 token = IERC20(coverAsset);
+    console.log("sender %s coveredTokenAmounts %d", address(msg.sender), coveredTokenAmount);
+    token.safeTransferFrom(msg.sender, address(this), coveredTokenAmount);
+    console.log("token %s incidents %s", address(token), address(incidents));
+    token.approve(address(incidents), coveredTokenAmount);
     (claimId, payoutAmount) = incidents.redeemPayoutForMember(coverId, incidentId, coveredTokenAmount, msg.sender);
   }
 

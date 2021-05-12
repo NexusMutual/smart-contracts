@@ -212,6 +212,8 @@ contract Incidents is MasterAware {
 
     qd.subFromTotalSumAssured(currency, sumAssured);
     qd.subFromTotalSumAssuredSC(incident.productId, currency, sumAssured);
+
+    mcr().updateMCRInternal(pool().getPoolValueInEth(), true);
   }
 
   function pushBurns(address productId, uint iterations) external {
@@ -313,7 +315,7 @@ contract Incidents is MasterAware {
   }
 
   function mcr() internal view returns (MCR) {
-    return IPooledStaking(internalContracts[uint(ID.PS)]);
+    return MCR(internalContracts[uint(ID.MC)]);
   }
 
   function updateUintParameters(bytes8 code, uint value) external onlyGovernance {

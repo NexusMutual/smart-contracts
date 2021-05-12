@@ -344,7 +344,7 @@ describe('incidents', function () {
     );
   });
 
-  it.only('sends token payout to the payout address and sets accumulated burn', async function () {
+  it('sends token payout to the payout address and sets accumulated burn', async function () {
 
     const { dai, incidents, qd, mr, p1 } = this.contracts;
 

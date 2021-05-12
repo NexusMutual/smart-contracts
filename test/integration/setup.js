@@ -42,6 +42,7 @@ async function setup () {
   const DisposableProposalCategory = artifacts.require('DisposableProposalCategory');
   const DisposableGovernance = artifacts.require('DisposableGovernance');
   const DisposablePooledStaking = artifacts.require('DisposablePooledStaking');
+  const DisposableGateway = artifacts.require('DisposableGateway');
 
   // target contracts
   const NXMaster = artifacts.require('NXMaster');
@@ -136,7 +137,7 @@ async function setup () {
   const ps = await deployProxy(DisposablePooledStaking);
   const pc = await deployProxy(DisposableProposalCategory);
   const gv = await deployProxy(DisposableGovernance);
-  const gateway = await deployProxy(Gateway);
+  const gateway = await deployProxy(DisposableGateway);
   const incidents = await deployProxy(Incidents);
 
   // non-proxy contracts and libraries
@@ -256,12 +257,15 @@ async function setup () {
   await gv.changeMasterAddress(master.address);
   await master.switchGovernanceAddress(gv.address);
 
+  await gateway.initialize(master.address, dai.address);
+
   await upgradeProxy(mr.address, MemberRoles);
   await upgradeProxy(tc.address, TokenController);
   await upgradeProxy(ps.address, PooledStaking);
   await upgradeProxy(pc.address, ProposalCategory);
   await upgradeProxy(master.address, NXMaster);
   await upgradeProxy(gv.address, Governance);
+  await upgradeProxy(gateway.address, Gateway);
 
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);

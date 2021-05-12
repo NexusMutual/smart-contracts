@@ -112,8 +112,8 @@ contract Gateway is MasterAware {
   ) external payable onlyMember whenNotPaused returns (uint) {
 
     // only 1 cover type supported at this time
-    require(coverType == CoverType.SIGNED_QUOTE_CONTRACT_COVER, "Cover: Unsupported cover type");
-    require(sumAssured % 10 ** assetDecimals(coverAsset) == 0, "Cover: Only whole unit sumAssured supported");
+    require(coverType == CoverType.SIGNED_QUOTE_CONTRACT_COVER, "Gateway: Unsupported cover type");
+    require(sumAssured % 10 ** assetDecimals(coverAsset) == 0, "Gateway: Only whole unit sumAssured supported");
 
     {
       (
@@ -126,10 +126,10 @@ contract Gateway is MasterAware {
       {
         uint premiumAmount = coverDetails[1];
         if (coverAsset == ETH) {
-          require(msg.value == premiumAmount, "Cover: ETH amount does not match premium");
+          require(msg.value == premiumAmount, "Gateway: ETH amount does not match premium");
           // solhint-disable-next-line avoid-low-level-calls, avoid-call-value
           (bool ok, /* data */) = address(pool).call.value(premiumAmount)("");
-          require(ok, "Cover: Transfer to Pool failed");
+          require(ok, "Gateway: Transfer to Pool failed");
         } else {
           IERC20 token = IERC20(coverAsset);
           token.safeTransferFrom(msg.sender, address(pool), premiumAmount);
@@ -231,7 +231,7 @@ contract Gateway is MasterAware {
   payable
   returns (bytes memory, uint)
   {
-    revert("Cover: Unsupported action");
+    revert("Gateway: Unsupported action");
   }
 
   function convertToLegacyQuote(uint sumAssured, bytes memory data, address asset)
@@ -269,7 +269,7 @@ contract Gateway is MasterAware {
       return "DAI";
     }
 
-    revert("Cover: unknown asset");
+    revert("Gateway: unknown asset");
   }
 
   function getCurrencyAssetAddress(bytes4 currency) public view returns (address) {
@@ -282,6 +282,6 @@ contract Gateway is MasterAware {
       return DAI;
     }
 
-    revert("Cover: unknown currency");
+    revert("Gateway: unknown currency");
   }
 }

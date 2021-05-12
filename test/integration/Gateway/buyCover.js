@@ -177,7 +177,7 @@ describe('buyCover', function () {
           from: coverHolder,
           value: price.subn(1),
         }),
-      'Cover: ETH amount does not match premium',
+      'Gateway: ETH amount does not match premium',
     );
   });
 
@@ -224,7 +224,7 @@ describe('buyCover', function () {
           from: coverHolder,
           value: price,
         }),
-      'Cover: Only whole unit sumAssured supported',
+      'Gateway: Only whole unit sumAssured supported',
     );
   });
 

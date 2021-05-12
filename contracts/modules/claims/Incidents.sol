@@ -25,6 +25,7 @@ import "../claims/ClaimsReward.sol";
 import "../cover/QuotationData.sol";
 import "../governance/MemberRoles.sol";
 import "../token/TokenController.sol";
+import "../capital/MCR.sol";
 
 contract Incidents is MasterAware {
   using SafeERC20 for IERC20;
@@ -37,7 +38,7 @@ contract Incidents is MasterAware {
   }
 
   // contract identifiers
-  enum ID {CD, CR, QD, TC, MR, P1, PS}
+  enum ID {CD, CR, QD, TC, MR, P1, PS, MC}
 
   mapping(uint => address payable) public internalContracts;
 
@@ -311,6 +312,10 @@ contract Incidents is MasterAware {
     return IPooledStaking(internalContracts[uint(ID.PS)]);
   }
 
+  function mcr() internal view returns (MCR) {
+    return IPooledStaking(internalContracts[uint(ID.PS)]);
+  }
+
   function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
 
     if (code == "BURNRATE") {
@@ -331,6 +336,7 @@ contract Incidents is MasterAware {
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
+    internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
   }
 
 }

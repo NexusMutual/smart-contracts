@@ -344,7 +344,7 @@ describe('incidents', function () {
     );
   });
 
-  it('sends token payout to the payout address and sets accumulated burn', async function () {
+  it.only('sends token payout to the payout address and sets accumulated burn', async function () {
 
     const { dai, incidents, qd, mr, p1 } = this.contracts;
 
@@ -372,7 +372,10 @@ describe('incidents', function () {
     await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
 
     const daiBalanceBefore = await dai.balanceOf(payoutAddress);
-    await incidents.redeemPayout(coverId, incidentId, tokenAmount, { from: coverHolder });
+    const tx = await incidents.redeemPayout(coverId, incidentId, tokenAmount, { from: coverHolder });
+    console.log({
+      gasUsed: tx.receipt.gasUsed,
+    });
 
     const daiBalanceAfter = await dai.balanceOf(payoutAddress);
     const daiDiff = daiBalanceAfter.sub(daiBalanceBefore);

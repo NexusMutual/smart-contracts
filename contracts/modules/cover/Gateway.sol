@@ -161,11 +161,11 @@ contract Gateway is MasterAware {
 
   function claimTokens(uint coverId, uint incidentId, uint coveredTokenAmount, address coverAsset)
     external
-    returns (uint claimId, uint payoutAmount) {
+    returns (uint claimId, uint payoutAmount, address coverAsset) {
     IERC20 token = IERC20(coverAsset);
     token.safeTransferFrom(msg.sender, address(this), coveredTokenAmount);
     token.approve(address(incidents), coveredTokenAmount);
-    (claimId, payoutAmount) = incidents.redeemPayoutForMember(coverId, incidentId, coveredTokenAmount, msg.sender);
+    (claimId, payoutAmount, coverAsset) = incidents.redeemPayoutForMember(coverId, incidentId, coveredTokenAmount, msg.sender);
   }
 
   function getClaimCoverId(uint claimId) public view returns (uint) {

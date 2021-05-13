@@ -135,8 +135,8 @@ contract Incidents is MasterAware {
     uint incidentId,
     uint coveredTokenAmount,
     address member
-  ) external onlyInternal returns (uint claimId, uint payoutAmount) {
-    (claimId, payoutAmount) = _redeemPayout(coverId, incidentId, coveredTokenAmount, member);
+  ) external onlyInternal returns (uint claimId, uint payoutAmount, address coverAsset) {
+    (claimId, payoutAmount, coverAsset) = _redeemPayout(coverId, incidentId, coveredTokenAmount, member);
   }
 
   function redeemPayout(
@@ -152,7 +152,7 @@ contract Incidents is MasterAware {
     uint incidentId,
     uint coveredTokenAmount,
     address owner
-  ) internal returns (uint claimId, uint payoutAmount) {
+  ) internal returns (uint claimId, uint payoutAmount, address coverAsset) {
     QuotationData qd = quotationData();
     Incident memory incident = incidents[incidentId];
     uint sumAssured;
@@ -215,7 +215,7 @@ contract Incidents is MasterAware {
       claimPayout[claimId] = payoutAmount;
     }
 
-    address coverAsset = claimsReward().getCurrencyAssetAddress(currency);
+    coverAsset = claimsReward().getCurrencyAssetAddress(currency);
 
     _sendPayoutAndPushBurn(
       incident.productId,

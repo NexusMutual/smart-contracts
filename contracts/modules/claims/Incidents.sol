@@ -17,7 +17,6 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../capital/Pool.sol";
@@ -27,7 +26,7 @@ import "../cover/QuotationData.sol";
 import "../governance/MemberRoles.sol";
 import "../token/TokenController.sol";
 
-contract Incidents is MasterAware, ReentrancyGuard {
+contract Incidents is MasterAware {
   using SafeERC20 for IERC20;
   using SafeMath for uint;
 
@@ -122,7 +121,6 @@ contract Incidents is MasterAware, ReentrancyGuard {
     uint incidentDate,
     uint priceBefore
   ) external onlyGovernance {
-
     address underlying = underlyingToken[productId];
     require(underlying != address(0), "Incidents: Unsupported product");
 
@@ -154,7 +152,7 @@ contract Incidents is MasterAware, ReentrancyGuard {
     uint incidentId,
     uint coveredTokenAmount,
     address owner
-  ) internal nonReentrant returns (uint claimId, uint payoutAmount) {
+  ) internal returns (uint claimId, uint payoutAmount) {
     QuotationData qd = quotationData();
     Incident memory incident = incidents[incidentId];
     uint sumAssured;

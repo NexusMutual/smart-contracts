@@ -61,7 +61,7 @@ describe('getPayoutOutcome', function () {
     ybDAI = await ERC20MintableDetailed.new('yield bearing DAI', 'ybDAI', 18);
     await dai.mint(coverHolder, ether('10000000'));
     await ybDAI.mint(coverHolder, ether('10000000'));
-    await ybDAI.approve(incidents.address, ether('10000000'), {
+    await ybDAI.approve(gateway.address, ether('10000000'), {
       from: coverHolder,
     });
     await incidents.addProducts([productId], [ybDAI.address], [dai.address], {
@@ -87,7 +87,7 @@ describe('getPayoutOutcome', function () {
     const coverAmount = ether(
       '99',
     ); /* partial amount of 99 ybDAI out of 500 ybDAI claimable */
-    await gateway.claimTokens(expectedCoverId, 0, coverAmount, {
+    await gateway.claimTokens(expectedCoverId, 0, coverAmount, ybDAI.address, {
       from: coverHolder,
     });
 

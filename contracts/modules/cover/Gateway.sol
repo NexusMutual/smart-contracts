@@ -163,9 +163,7 @@ contract Gateway is MasterAware {
     external
     returns (uint claimId, uint payoutAmount) {
     IERC20 token = IERC20(coverAsset);
-    console.log("sender %s coveredTokenAmounts %d", address(msg.sender), coveredTokenAmount);
     token.safeTransferFrom(msg.sender, address(this), coveredTokenAmount);
-    console.log("token %s incidents %s", address(token), address(incidents));
     token.approve(address(incidents), coveredTokenAmount);
     (claimId, payoutAmount) = incidents.redeemPayoutForMember(coverId, incidentId, coveredTokenAmount, msg.sender);
   }

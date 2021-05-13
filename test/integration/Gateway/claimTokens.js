@@ -12,7 +12,7 @@ let cover;
 const productId = daiCoverTemplate.contractAddress;
 let ybDAI;
 
-describe.only('claimTokens', function () {
+describe('claimTokens', function () {
   beforeEach(async function () {
     const { dai, incidents, gateway } = this.contracts;
     ybDAI = await ERC20MintableDetailed.new('yield bearing DAI', 'ybDAI', 18);
@@ -71,6 +71,11 @@ describe.only('claimTokens', function () {
       incidentDate,
       priceBefore,
     );
+
+    await ybDAI.mint(stranger, ether('10000000'));
+    await ybDAI.approve(gateway.address, ether('10000000'), {
+      from: stranger,
+    });
 
     await expectRevert(
       gateway.claimTokens(1, 0, cover.amount, ybDAI.address, {
@@ -169,7 +174,7 @@ describe.only('claimTokens', function () {
   });
 
   it('reverts if more tokens are requested than the covered amount', async function () {
-    const { dai, gateway } = this.contracts;
+    const { gateway } = this.contracts;
 
     await buyCover({
       ...this.contracts,

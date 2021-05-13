@@ -2,13 +2,17 @@ const { accounts, web3 } = require('hardhat');
 const { ether, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { toBN } = web3.utils;
-
-const { hex } = require('../utils').helpers;
+const {
+  helpers: { hex },
+} = require('../utils');
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { buyCover } = require('../utils/buyCover');
+const { addIncident } = require('../utils/incidents');
 const { voteClaim } = require('../utils/voteClaim');
 
 const [owner, member1, member2, member3, coverHolder] = accounts;
+
+const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 
 const coverTemplate = {
   amount: 1, // 1 eth
@@ -249,5 +253,46 @@ describe('updateMCR', function () {
     const desiredMCR = await mcr.desiredMCR();
     assert.equal(lastUpdateTime.toString(), expectedUpdateTime.toString());
     assert.equal(desiredMCR.toString(), mcrFloor.toString());
+  });
+
+  it('incidents.redeemPayout triggers updateMCR', async function () {
+    const { incidents, qd, p1, mcr } = this.contracts;
+
+    const ETH = await p1.ETH();
+    const productId = '0x000000000000000000000000000000000000000e';
+    const ybETH = await ERC20MintableDetailed.new('yield bearing ETH', 'ybETH', 18);
+    await incidents.addProducts([productId], [ybETH.address], [ETH], { from: owner });
+
+    const cover = { ...coverTemplate, amount: 20, currency: hex('ETH'), contractAddress: productId };
+    await buyCover({ ...this.contracts, cover, coverHolder });
+
+    const coverStartDate = await time.latest();
+    const priceBefore = ether('2.5'); // ETH per ybETH
+    const sumAssured = ether('1').muln(cover.amount);
+
+    // sumAssured DAI = tokenAmount ybETH @ priceBefore
+    // 500 ETH  /  2 ETH/ybETH  =  1000 ybETH
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+
+    const incidentDate = coverStartDate.addn(1);
+    await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
+
+    await ybETH.mint(coverHolder, tokenAmount);
+    await ybETH.approve(incidents.address, tokenAmount, { from: coverHolder });
+
+    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
+    const incidentId = '0';
+
+    await incidents.redeemPayout(
+      coverId,
+      incidentId,
+      tokenAmount,
+      // gas price set to 0 so we can know the payout exactly
+      { from: coverHolder, gasPrice: 0 },
+    );
+    const block = await web3.eth.getBlock('latest');
+    const expectedUpdateTime = block.timestamp;
+    const lastUpdateTime = await mcr.lastUpdateTime();
+    assert.equal(lastUpdateTime.toString(), expectedUpdateTime.toString());
   });
 });

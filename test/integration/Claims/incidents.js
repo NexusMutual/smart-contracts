@@ -1,11 +1,12 @@
 const { accounts, web3 } = require('hardhat');
-const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { toBN } = web3.utils;
 
 const { enrollMember } = require('../utils/enroll');
 const { buyCover, buyCoverWithDai } = require('../utils/buyCover');
+const { addIncident } = require('../utils/incidents');
 const {
-  constants: { CoverStatus, ProposalCategory },
+  constants: { CoverStatus },
   evm: { setNextBlockTime },
   helpers: { bnEqual, hex },
 } = require('../utils');
@@ -25,33 +26,6 @@ const coverTemplate = {
   currency: hex('DAI'),
   period: 60,
   contractAddress: productId,
-};
-
-const addIncident = async (contracts, members, protocolId, incidentDate, priceBefore) => {
-
-  const { gv } = contracts;
-  const proposalId = await gv.getProposalLength();
-  await gv.createProposal('', '', '', ProposalCategory.addIncident);
-  await gv.categorizeProposal(proposalId, ProposalCategory.addIncident, 0);
-
-  await gv.submitProposalWithSolution(
-    proposalId,
-    'ipfshash',
-    web3.eth.abi.encodeParameters(
-      ['address', 'uint', 'uint'],
-      [protocolId, incidentDate, priceBefore],
-    ),
-  );
-
-  for (const member of members) {
-    await gv.submitVote(proposalId, 1, { from: member });
-  }
-
-  const closeTx = await gv.closeProposal(proposalId);
-  expectEvent(closeTx, 'ActionSuccess', { proposalId });
-
-  const proposal = await gv.proposal(proposalId);
-  assert.equal(proposal[2].toNumber(), 3, 'proposal status != accepted');
 };
 
 describe('incidents', function () {
@@ -372,11 +346,7 @@ describe('incidents', function () {
     await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
 
     const daiBalanceBefore = await dai.balanceOf(payoutAddress);
-    const tx = await incidents.redeemPayout(coverId, incidentId, tokenAmount, { from: coverHolder });
-    console.log({
-      gasUsed: tx.receipt.gasUsed,
-    });
-
+    await incidents.redeemPayout(coverId, incidentId, tokenAmount, { from: coverHolder });
     const daiBalanceAfter = await dai.balanceOf(payoutAddress);
     const daiDiff = daiBalanceAfter.sub(daiBalanceBefore);
     bnEqual(daiDiff, sumAssured);

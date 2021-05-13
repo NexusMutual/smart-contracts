@@ -213,7 +213,10 @@ contract Incidents is MasterAware {
     qd.subFromTotalSumAssured(currency, sumAssured);
     qd.subFromTotalSumAssuredSC(incident.productId, currency, sumAssured);
 
-    mcr().updateMCRInternal(pool().getPoolValueInEth(), true);
+    // update only if payout is "substantial" to not add the extra gas cost to the redeem
+    if (!((currency == "ETH" && sumAssured < 10) || (currency == "DAI" && sumAssured < 50000))) {
+      mcr().updateMCRInternal(pool().getPoolValueInEth(), true);
+    }
   }
 
   function pushBurns(address productId, uint iterations) external {

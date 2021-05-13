@@ -1,9 +1,11 @@
 const { accounts, web3 } = require('hardhat');
 const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
+const { coverToCoverDetailsArray } = require('../utils/buyCover');
 const { toBN } = web3.utils;
 
 const { enrollMember } = require('../utils/enroll');
 const { buyCover, buyCoverWithDai } = require('../utils/buyCover');
+const { getQuoteSignature } = require('../utils/getQuote');
 const { addIncident } = require('../utils/incidents');
 const {
   constants: { CoverStatus, ProposalCategory },
@@ -12,6 +14,7 @@ const {
 } = require('../utils');
 
 const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
+const EvilContract = artifacts.require('EvilContract');
 
 const [owner, coverHolder, stranger] = accounts;
 const productId = '0x0000000000000000000000000000000000000003';
@@ -28,7 +31,7 @@ const coverTemplate = {
   contractAddress: productId,
 };
 
-describe('incidents', function () {
+describe.only('incidents', function () {
 
   beforeEach(async function () {
     const { dai, incidents } = this.contracts;
@@ -555,4 +558,58 @@ describe('incidents', function () {
     bnEqual(burnEventAmount, expectedBurnAmount);
   });
 
+  it.only('reverts on reentrant calls', async function () {
+    const { dai, incidents, qt, p1, ps, mr, tk } = this.contracts;
+
+    const cover = { ...coverTemplate };
+    const evilContract = await EvilContract.new(incidents.address);
+
+    await mr.payJoiningFee(evilContract.address, { from: owner, value: ether('0.002') });
+    await mr.kycVerdict(evilContract.address, true);
+    //await tk.approve(tc.address, MAX_UINT256, { from: member });
+    await tk.transfer(evilContract.address, toBN(ether('2500')));
+
+    const vrsData = await getQuoteSignature(
+      coverToCoverDetailsArray(cover),
+      cover.currency,
+      cover.period,
+      cover.contractAddress,
+      qt.address,
+    );
+
+    const coverPrice = toBN(cover.price);
+
+    const approveDAITx = await dai.approve.request(p1.address, coverPrice);
+    console.log({approveDAITx});
+    await evilContract.execute([dai.address], [ether('0')], [approveDAITx.data]);
+    const allowance = await tk.allowance(evilContract.address, p1.address);
+    console.log({allowance});
+
+    const makeCoverUsingCATx = await p1.makeCoverUsingCA.request(
+      cover.contractAddress,
+      cover.currency,
+      coverToCoverDetailsArray(cover),
+      cover.period,
+      vrsData[0],
+      vrsData[1],
+      vrsData[2],
+    );
+    await evilContract.execute([p1.address], [ether('0')], [makeCoverUsingCATx.data]);
+
+    const coverStartDate = await time.latest();
+    const priceBefore = ether('2'); // DAI per ybDAI
+    const sumAssured = ether('1').muln(cover.amount);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+
+    const incidentDate = coverStartDate.addn(1);
+    await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
+
+    await ybDAI.mint(evilContract.address, tokenAmount);
+    const approveYbDAITx = await ybDAI.approve.request(incidents.address, tokenAmount);
+    await evilContract.execute([ybDAI.address], [ether('0')], [approveYbDAITx.data]);
+
+    const redeemPayoutTx = await incidents.redeemPayout.request(1, 0, tokenAmount);
+    await evilContract.execute([incidents.address], [ether('0')], [redeemPayoutTx.data]);
+
+  });
 });

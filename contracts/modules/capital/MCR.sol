@@ -23,8 +23,9 @@ import "../oracles/PriceFeedOracle.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenData.sol";
 import "./LegacyMCR.sol";
+import "../../abstract/MasterAware.sol";
 
-contract MCR is Iupgradable {
+contract MCR is MasterAware {
   using SafeMath for uint;
 
   Pool public pool;
@@ -63,7 +64,7 @@ contract MCR is Iupgradable {
     changeMasterAddress(masterAddress);
 
     if (masterAddress != address(0)) {
-      previousMCR = LegacyMCR(ms.getLatestAddress("MC"));
+      previousMCR = LegacyMCR(master.getLatestAddress("MC"));
     }
   }
 
@@ -71,14 +72,14 @@ contract MCR is Iupgradable {
    * @dev Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public {
-    qd = QuotationData(ms.getLatestAddress("QD"));
-    pool = Pool(ms.getLatestAddress("P1"));
+    qd = QuotationData(master.getLatestAddress("QD"));
+    pool = Pool(master.getLatestAddress("P1"));
     initialize();
   }
 
   function initialize() internal {
 
-    address currentMCR = ms.getLatestAddress("MC");
+    address currentMCR = master.getLatestAddress("MC");
 
     if (address(previousMCR) == address(0) || currentMCR != address(this)) {
       // already initialized or not ready for initialization
@@ -234,7 +235,7 @@ contract MCR is Iupgradable {
    * @param val new value
    */
   function updateUintParameters(bytes8 code, uint val) public {
-    require(ms.checkIsAuthToGoverned(msg.sender));
+    require(master.checkIsAuthToGoverned(msg.sender));
     if (code == "DMCT") {
 
       require(val <= UINT24_MAX, "MCR: value too large");

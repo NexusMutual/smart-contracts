@@ -57,7 +57,7 @@ contract MCR is Iupgradable {
 
   uint256 constant UINT24_MAX = ~uint24(0);
   uint256 constant MAX_BP_ADJUSTMENT = 100;
-  uint256 constant BP_DENOMINATOR = 10000;
+  uint256 constant BP_PRECISION = 10000;
 
   constructor (address masterAddress) public {
     changeMasterAddress(masterAddress);
@@ -154,7 +154,7 @@ contract MCR is Iupgradable {
         _maxMCRFloorIncrement.mul(block.timestamp - _lastUpdateTime).div(1 days),
         _maxMCRFloorIncrement
       );
-      uint newMCRFloor = _mcrFloor.mul(basisPointsAdjustment.add(BP_DENOMINATOR)).div(BP_DENOMINATOR);
+      uint newMCRFloor = _mcrFloor.mul(basisPointsAdjustment.add(BP_PRECISION)).div(BP_PRECISION);
       require(newMCRFloor <= uint112(~0), 'MCR: newMCRFloor overflow');
 
       mcrFloor = uint112(newMCRFloor);
@@ -169,7 +169,7 @@ contract MCR is Iupgradable {
     // the desiredMCR cannot fall below the mcrFloor but may have a higher or lower target value based
     // on the changes in the totalSumAssured in the system.
     uint totalSumAssured = getAllSumAssurance();
-    uint gearedMCR = totalSumAssured.mul(BP_DENOMINATOR).div(_gearingFactor);
+    uint gearedMCR = totalSumAssured.mul(BP_PRECISION).div(_gearingFactor);
     uint112 newDesiredMCR = uint112(max(gearedMCR, mcrFloor));
     if (newDesiredMCR != _desiredMCR) {
       desiredMCR = newDesiredMCR;
@@ -209,15 +209,15 @@ contract MCR is Iupgradable {
     basisPointsAdjustment = min(basisPointsAdjustment, MAX_BP_ADJUSTMENT);
 
     if (_desiredMCR > _mcr) {
-      return min(_mcr.mul(basisPointsAdjustment.add(BP_DENOMINATOR)).div(BP_DENOMINATOR), _desiredMCR);
+      return min(_mcr.mul(basisPointsAdjustment.add(BP_PRECISION)).div(BP_PRECISION), _desiredMCR);
     }
 
     // in case desiredMCR <= mcr
-    return max(_mcr.mul(BP_DENOMINATOR - basisPointsAdjustment).div(BP_DENOMINATOR), _desiredMCR);
+    return max(_mcr.mul(BP_PRECISION - basisPointsAdjustment).div(BP_PRECISION), _desiredMCR);
   }
 
   function getGearedMCR() external view returns (uint) {
-    return getAllSumAssurance().mul(BP_DENOMINATOR).div(gearingFactor);
+    return getAllSumAssurance().mul(BP_PRECISION).div(gearingFactor);
   }
 
   function min(uint x, uint y) pure internal returns (uint) {

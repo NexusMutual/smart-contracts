@@ -84,7 +84,7 @@ contract SwapOperator is ReentrancyGuard {
 
     pool.transferAssetToSwapOperator(ETH, amountIn);
     pool.setAssetDataLastSwapTime(toTokenAddress, uint32(block.timestamp));
-    uint amountOut = swapETHForAsset(
+    uint amountOut = _swapETHForAsset(
       assetDetails,
       toTokenAddress,
       amountIn,
@@ -116,7 +116,7 @@ contract SwapOperator is ReentrancyGuard {
 
     pool.transferAssetToSwapOperator(fromTokenAddress, amountIn);
     pool.setAssetDataLastSwapTime(fromTokenAddress, uint32(block.timestamp));
-    uint amountOut = swapAssetForETH(
+    uint amountOut = _swapAssetForETH(
       assetDetails,
       fromTokenAddress,
       amountIn,
@@ -140,7 +140,7 @@ contract SwapOperator is ReentrancyGuard {
     return amountsOut[1];
   }
 
-  function swapETHForAsset(
+  function _swapETHForAsset(
     AssetData memory assetData,
     address toTokenAddress,
     uint amountIn,
@@ -200,7 +200,7 @@ contract SwapOperator is ReentrancyGuard {
     return amountOut;
   }
 
-  function swapAssetForETH(
+  function _swapAssetForETH(
     AssetData memory assetData,
     address fromTokenAddress,
     uint amountIn,

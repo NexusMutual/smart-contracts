@@ -32,10 +32,12 @@ contract MCR is Iupgradable {
   // sizeof(qd) + 96 = 160 + 96 = 256 (occupies entire slot)
   uint96 _unused;
 
+  // the following values are expressed in basis points
   uint24 public mcrFloorIncrementThreshold = 13000;
   uint24 public maxMCRFloorIncrement = 100;
   uint24 public maxMCRIncrement = 500;
   uint24 public gearingFactor = 48000;
+  // min update between MCR updates in seconds
   uint24 public minUpdateTime = 3600;
   uint112 public mcrFloor;
 
@@ -54,7 +56,8 @@ contract MCR is Iupgradable {
   );
 
   uint256 constant UINT24_MAX = ~uint24(0);
-  uint256 constant MAX_PERCENTAGE_ADJUSTMENT = 100;
+  uint256 constant MAX_BP_ADJUSTMENT = 100;
+  uint256 constant BP_DENOMINATOR = 10000;
 
   constructor (address masterAddress) public {
     changeMasterAddress(masterAddress);
@@ -91,7 +94,7 @@ contract MCR is Iupgradable {
     maxMCRFloorIncrement = uint24(previousMCR.dynamicMincapIncrementx100());
 
     // set last updated time to now
-    lastUpdateTime = uint32(now);
+    lastUpdateTime = uint32(block.timestamp);
     previousMCR = LegacyMCR(address(0));
   }
 
@@ -140,18 +143,18 @@ contract MCR is Iupgradable {
     uint112 _desiredMCR = desiredMCR;
     uint32 _lastUpdateTime = lastUpdateTime;
 
-    if (!forceUpdate && _lastUpdateTime + _minUpdateTime > now) {
+    if (!forceUpdate && _lastUpdateTime + _minUpdateTime > block.timestamp) {
       return;
     }
 
-    if (now > _lastUpdateTime && pool.calculateMCRRatio(poolValueInEth, _mcr) >= _mcrFloorIncrementThreshold) {
+    if (block.timestamp > _lastUpdateTime && pool.calculateMCRRatio(poolValueInEth, _mcr) >= _mcrFloorIncrementThreshold) {
         // MCR floor updates by up to maxMCRFloorIncrement percentage per day whenever the MCR ratio exceeds 1.3
         // MCR floor is monotonically increasing.
-      uint percentageAdjustment = min(
-        _maxMCRFloorIncrement.mul(now - _lastUpdateTime).div(1 days),
+      uint basisPointsAdjustment = min(
+        _maxMCRFloorIncrement.mul(block.timestamp - _lastUpdateTime).div(1 days),
         _maxMCRFloorIncrement
       );
-      uint newMCRFloor = _mcrFloor.mul(percentageAdjustment.add(10000)).div(10000);
+      uint newMCRFloor = _mcrFloor.mul(basisPointsAdjustment.add(BP_DENOMINATOR)).div(BP_DENOMINATOR);
       require(newMCRFloor <= uint112(~0), 'MCR: newMCRFloor overflow');
 
       mcrFloor = uint112(newMCRFloor);
@@ -166,13 +169,13 @@ contract MCR is Iupgradable {
     // the desiredMCR cannot fall below the mcrFloor but may have a higher or lower target value based
     // on the changes in the totalSumAssured in the system.
     uint totalSumAssured = getAllSumAssurance();
-    uint gearedMCR = totalSumAssured.mul(10000).div(_gearingFactor);
+    uint gearedMCR = totalSumAssured.mul(BP_DENOMINATOR).div(_gearingFactor);
     uint112 newDesiredMCR = uint112(max(gearedMCR, mcrFloor));
     if (newDesiredMCR != _desiredMCR) {
       desiredMCR = newDesiredMCR;
     }
 
-    lastUpdateTime = uint32(now);
+    lastUpdateTime = uint32(block.timestamp);
 
     emit MCRUpdated(mcr, desiredMCR, mcrFloor, gearedMCR, totalSumAssured);
   }
@@ -196,25 +199,25 @@ contract MCR is Iupgradable {
     uint _lastUpdateTime = lastUpdateTime;
 
 
-    if (now == _lastUpdateTime) {
+    if (block.timestamp == _lastUpdateTime) {
       return _mcr;
     }
 
     uint _maxMCRIncrement = maxMCRIncrement;
 
-    uint percentageAdjustment = _maxMCRIncrement.mul(now - _lastUpdateTime).div(1 days);
-    percentageAdjustment = min(percentageAdjustment, MAX_PERCENTAGE_ADJUSTMENT);
+    uint basisPointsAdjustment = _maxMCRIncrement.mul(block.timestamp - _lastUpdateTime).div(1 days);
+    basisPointsAdjustment = min(basisPointsAdjustment, MAX_BP_ADJUSTMENT);
 
     if (_desiredMCR > _mcr) {
-      return min(_mcr.mul(percentageAdjustment.add(10000)).div(10000), _desiredMCR);
+      return min(_mcr.mul(basisPointsAdjustment.add(BP_DENOMINATOR)).div(BP_DENOMINATOR), _desiredMCR);
     }
 
     // in case desiredMCR <= mcr
-    return max(_mcr.mul(10000 - percentageAdjustment).div(10000), _desiredMCR);
+    return max(_mcr.mul(BP_DENOMINATOR - basisPointsAdjustment).div(BP_DENOMINATOR), _desiredMCR);
   }
 
   function getGearedMCR() external view returns (uint) {
-    return getAllSumAssurance().mul(10000).div(gearingFactor);
+    return getAllSumAssurance().mul(BP_DENOMINATOR).div(gearingFactor);
   }
 
   function min(uint x, uint y) pure internal returns (uint) {

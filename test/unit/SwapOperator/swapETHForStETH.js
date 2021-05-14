@@ -43,6 +43,24 @@ describe('swapEthForStETH', function () {
     );
   });
 
+  it('should revert when asset is not enabled', async function () {
+    const { pool, lido, swapOperator } = contracts();
+
+    await pool.setAssetDetails(
+      lido.address,
+      ether('0'), // asset minimum
+      ether('0'), // asset maximum
+      ether('0.01'), // max slippage
+      { from: governance },
+    );
+    const etherIn = ether('1');
+
+    await expectRevert(
+      swapOperator.swapETHForStETH(etherIn),
+      'SwapOperator: asset is not enabled',
+    );
+  });
+
   it('should revert if ether left in pool is less than minPoolEth', async function () {
 
     const { pool, lido, swapOperator } = contracts();

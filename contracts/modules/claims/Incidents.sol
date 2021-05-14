@@ -135,16 +135,16 @@ contract Incidents is MasterAware {
     uint incidentId,
     uint coveredTokenAmount,
     address member
-  ) external onlyInternal returns (uint claimId, uint payoutAmount, address coverAsset) {
-    (claimId, payoutAmount, coverAsset) = _redeemPayout(coverId, incidentId, coveredTokenAmount, member);
+  ) external onlyInternal returns (uint claimId, uint payoutAmount, address payoutToken) {
+    (claimId, payoutAmount, payoutToken) = _redeemPayout(coverId, incidentId, coveredTokenAmount, member);
   }
 
   function redeemPayout(
     uint coverId,
     uint incidentId,
     uint coveredTokenAmount
-  ) external returns (uint claimId, uint payoutAmount) {
-    (claimId, payoutAmount) = _redeemPayout(coverId, incidentId, coveredTokenAmount, msg.sender);
+  ) external returns (uint claimId, uint payoutAmount, address payoutToken) {
+    (claimId, payoutAmount, payoutToken) = _redeemPayout(coverId, incidentId, coveredTokenAmount, msg.sender);
   }
 
   function _redeemPayout(
@@ -159,20 +159,22 @@ contract Incidents is MasterAware {
     bytes4 currency;
 
     {
-      uint coverExpirationDate;
       address productId;
-      uint coverStartDate;
       address coverOwner;
 
-      (
-        productId, coverOwner, coverStartDate,
-        coverExpirationDate, sumAssured, currency
-      ) = _getCoverDetails(qd, coverId);
+      (/* id */, coverOwner, productId,
+       currency, sumAssured, /* premiumNXM */
+      ) = qd.getCoverDetailsByCoverID1(coverId);
 
       // check ownership and covered protocol
       require(owner == coverOwner, "Incidents: Not cover owner");
       require(productId == incident.productId, "Incidents: Bad incident id");
+    }
 
+    {
+      uint coverPeriod = uint(qd.getCoverPeriod(coverId)).mul(1 days);
+      uint coverExpirationDate = qd.getValidityOfCover(coverId);
+      uint coverStartDate = coverExpirationDate.sub(coverPeriod);
       // check cover validity
       require(coverStartDate <= incident.date, "Incidents: Cover start date is before the incident");
       require(coverExpirationDate >= incident.date, "Incidents: Cover end date is after the incident");
@@ -197,9 +199,8 @@ contract Incidents is MasterAware {
       payoutAmount = coveredTokenAmount.mul(coverAmount).div(maxAmount);
     }
 
-    // definind tc here again in main scope to avoid stack too deep
-    TokenController tc = tokenController();
     {
+      TokenController tc = tokenController();
       // mark cover as having a successful claim
       tc.markCoverClaimOpen(coverId);
       tc.markCoverClaimClosed(coverId, true);
@@ -215,8 +216,8 @@ contract Incidents is MasterAware {
       claimPayout[claimId] = payoutAmount;
     }
 
-    coverAsset = claimsReward().getCurrencyAssetAddress(currency);
 
+    coverAsset = claimsReward().getCurrencyAssetAddress(currency);
     _sendPayoutAndPushBurn(
       incident.productId,
       address(uint160(owner)),
@@ -247,25 +248,6 @@ contract Incidents is MasterAware {
     uint balance = token.balanceOf(address(this));
     uint transferAmount = amount > balance ? balance : amount;
     token.safeTransfer(destination, transferAmount);
-  }
-
-  function _getCoverDetails(QuotationData qd, uint coverId) internal view returns (
-    address productId,
-    address coverOwner,
-    uint coverStartDate,
-    uint coverExpirationDate,
-    uint sumAssured,
-    bytes4 currency
-  ) {
-
-    (
-    /* id */, coverOwner, productId,
-    currency, sumAssured, /* premiumNXM */
-    ) = qd.getCoverDetailsByCoverID1(coverId);
-
-    uint coverPeriod = uint(qd.getCoverPeriod(coverId)).mul(1 days);
-    coverExpirationDate = qd.getValidityOfCover(coverId);
-    coverStartDate = coverExpirationDate.sub(coverPeriod);
   }
 
   function _sendPayoutAndPushBurn(

@@ -80,6 +80,7 @@ contract SwapOperator is ReentrancyGuard {
     ) = pool.getAssetDetails(toTokenAddress);
 
     AssetData memory assetDetails = AssetData(min, max, lastAssetSwapTime, maxSlippageRatio);
+    require(assetIsEnabled(assetDetails), "SwapOperator: asset is not enabled");
 
     pool.transferAssetToSwapOperator(ETH, amountIn);
     pool.setAssetDataLastSwapTime(toTokenAddress, uint32(block.timestamp));
@@ -111,6 +112,7 @@ contract SwapOperator is ReentrancyGuard {
     ) = pool.getAssetDetails(fromTokenAddress);
 
     AssetData memory assetDetails = AssetData(min, max, lastAssetSwapTime, maxSlippageRatio);
+    require(assetIsEnabled(assetDetails), "SwapOperator: asset is not enabled");
 
     pool.transferAssetToSwapOperator(fromTokenAddress, amountIn);
     pool.setAssetDataLastSwapTime(fromTokenAddress, uint32(block.timestamp));
@@ -276,6 +278,8 @@ contract SwapOperator is ReentrancyGuard {
     /* uint maxSlippageRatio */
     ) = pool.getAssetDetails(toTokenAddress);
 
+    require(!(minAmount == 0 && maxAmount == 0), "SwapOperator: asset is not enabled");
+
     uint amountOutMin;
     if (amountIn > 10000) {
       amountOutMin = amountIn - 10000; // allow for precision error
@@ -304,6 +308,10 @@ contract SwapOperator is ReentrancyGuard {
     transferAssetTo(stETH, address(pool), amountOut);
 
     emit Swapped(ETH, stETH, amountIn, amountOut);
+  }
+
+  function assetIsEnabled(AssetData memory assetData) internal returns (bool) {
+    return !(assetData.minAmount == 0 && assetData.maxAmount == 0);
   }
 
   function _pool() internal view returns (IPool) {

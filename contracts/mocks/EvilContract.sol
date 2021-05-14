@@ -27,14 +27,20 @@ contract EvilContract {
     uint maxStorageIndex = minLength > 0 ? minLength - 1 : 0;
 
     for (uint i = 0; i < maxLength; i++) {
-      if (i >= maxStorageIndex) {
+      if (i > maxStorageIndex) {
         delete _fallbackTargets[i];
         delete _fallbackValues[i];
         delete _fallbackData[i];
       } else {
-        _fallbackTargets[i] = fallbackTargets[i];
-        _fallbackValues[i] = fallbackValues[i];
-        _fallbackData[i] = fallbackData[i];
+        if (i >= fallbackTargets.length) {
+          _fallbackTargets[i] = fallbackTargets[i];
+          _fallbackValues[i] = fallbackValues[i];
+          _fallbackData[i] = fallbackData[i];
+        } else {
+          _fallbackTargets.push(fallbackTargets[i]);
+          _fallbackValues.push(fallbackValues[i]);
+          _fallbackData.push(fallbackData[i]);
+        }
       }
     }
   }

@@ -151,7 +151,7 @@ contract Incidents is MasterAware {
     uint coverId,
     uint incidentId,
     uint coveredTokenAmount,
-    address owner
+    address coverOwner
   ) internal returns (uint claimId, uint payoutAmount, address coverAsset) {
     QuotationData qd = quotationData();
     Incident memory incident = incidents[incidentId];
@@ -160,14 +160,14 @@ contract Incidents is MasterAware {
 
     {
       address productId;
-      address coverOwner;
+      address _coverOwner;
 
-      (/* id */, coverOwner, productId,
+      (/* id */, _coverOwner, productId,
        currency, sumAssured, /* premiumNXM */
       ) = qd.getCoverDetailsByCoverID1(coverId);
 
       // check ownership and covered protocol
-      require(owner == coverOwner, "Incidents: Not cover owner");
+      require(coverOwner == _coverOwner, "Incidents: Not cover owner");
       require(productId == incident.productId, "Incidents: Bad incident id");
     }
 
@@ -208,8 +208,8 @@ contract Incidents is MasterAware {
       // create the claim
       ClaimsData cd = claimsData();
       claimId = cd.actualClaimLength();
-      cd.addClaim(claimId, coverId, owner, now);
-      cd.callClaimEvent(coverId, owner, claimId, now);
+      cd.addClaim(claimId, coverId, coverOwner, now);
+      cd.callClaimEvent(coverId, coverOwner, claimId, now);
       cd.setClaimStatus(claimId, 14);
       qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimAccepted));
 
@@ -220,7 +220,7 @@ contract Incidents is MasterAware {
     coverAsset = claimsReward().getCurrencyAssetAddress(currency);
     _sendPayoutAndPushBurn(
       incident.productId,
-      address(uint160(owner)),
+      address(uint160(coverOwner)),
       coveredTokenAmount,
       coverAsset,
       payoutAmount

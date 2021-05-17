@@ -1,17 +1,23 @@
 const { accounts, web3 } = require('hardhat');
 const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
+const { coverToCoverDetailsArray } = require('../utils/buyCover');
 const { toBN } = web3.utils;
 
 const { enrollMember } = require('../utils/enroll');
 const { buyCover, buyCoverWithDai } = require('../utils/buyCover');
+const { getQuoteSignature } = require('../utils/getQuote');
 const { addIncident } = require('../utils/incidents');
 const {
-  constants: { CoverStatus },
+  constants: {
+    CoverStatus,
+    Assets: { ETH },
+  },
   evm: { setNextBlockTime },
   helpers: { bnEqual, hex },
 } = require('../utils');
 
 const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
+const EvilContract = artifacts.require('EvilContract');
 
 const [owner, coverHolder, stranger] = accounts;
 const productId = '0x0000000000000000000000000000000000000003';
@@ -29,7 +35,6 @@ const coverTemplate = {
 };
 
 describe('incidents', function () {
-
   beforeEach(async function () {
     const { dai, incidents } = this.contracts;
     ybDAI = await ERC20MintableDetailed.new('yield bearing DAI', 'ybDAI', 18);
@@ -554,4 +559,132 @@ describe('incidents', function () {
     bnEqual(burnEventAmount, expectedBurnAmount);
   });
 
+  it('reverts on reentrant calls', async function () {
+    const { incidents, qt, p1, mr, tk } = this.contracts;
+
+    const productId = '0x0000000000000000000000000000000000000004';
+    const cover = {
+      amount: 10, // 10  eth
+      price: '3000000000000000', // 0.003 dai or eth
+      priceNXM: '1000000000000000000', // 1 nxm
+      expireTime: '2000000000', // year 2033
+      generationTime: '1600000000000',
+      currency: hex('ETH'),
+      period: 60,
+      contractAddress: productId,
+    };
+
+    const ybETH = await ERC20MintableDetailed.new(
+      'yield bearing ETH',
+      'ybETH',
+      18,
+    );
+
+    await incidents.addProducts([productId], [ybETH.address], [ETH], {
+      from: owner,
+    });
+
+    const evilContract = await EvilContract.new(incidents.address);
+    await mr.payJoiningFee(evilContract.address, {
+      from: owner,
+      value: ether('0.002'),
+    });
+
+    await mr.kycVerdict(evilContract.address, true);
+    // await tk.approve(tc.address, MAX_UINT256, { from: member });
+    await tk.transfer(evilContract.address, toBN(ether('2500')));
+
+    const vrsData = await getQuoteSignature(
+      coverToCoverDetailsArray(cover),
+      cover.currency,
+      cover.period,
+      cover.contractAddress,
+      qt.address,
+    );
+
+    const coverPrice = toBN(cover.price);
+
+    // Add eth to evil contract
+    await web3.eth.sendTransaction({
+      from: owner,
+      to: evilContract.address,
+      value: ether('1000'),
+    });
+
+    const makeCoverBeginTx = await p1.makeCoverBegin.request(
+      cover.contractAddress,
+      cover.currency,
+      coverToCoverDetailsArray(cover),
+      cover.period,
+      vrsData[0],
+      vrsData[1],
+      vrsData[2],
+    );
+    await evilContract.execute(
+      [p1.address],
+      [coverPrice],
+      [makeCoverBeginTx.data],
+    );
+
+    const ethBalanceBefore = toBN(
+      await web3.eth.getBalance(evilContract.address),
+    );
+    const coverStartDate = await time.latest();
+    const priceBefore = ether('2'); // ETH per ybETH
+    const sumAssured = ether('1').muln(cover.amount);
+    const tokenAmount = ether('1')
+      .mul(sumAssured)
+      .div(priceBefore);
+    const incidentDate = coverStartDate.addn(1);
+
+    await addIncident(
+      this.contracts,
+      [owner],
+      cover.contractAddress,
+      incidentDate,
+      priceBefore,
+    );
+
+    await ybETH.mint(evilContract.address, tokenAmount);
+    const approveYbETHTx = await ybETH.approve.request(
+      incidents.address,
+      tokenAmount,
+    );
+    await evilContract.execute(
+      [ybETH.address],
+      [ether('0')],
+      [approveYbETHTx.data],
+    );
+
+    const redeemPayoutTx = await incidents.redeemPayout.request(
+      1,
+      0,
+      tokenAmount,
+    );
+
+    // Set fallback function of evil contract to call redeemPayout again
+    await evilContract.setFallbackParams(
+      [incidents.address],
+      [ether('0')],
+      [redeemPayoutTx.data],
+    );
+
+    // Calling redeemPayout from evil contract should revert
+    await expectRevert(
+      evilContract.execute(
+        [incidents.address],
+        [ether('0')],
+        [redeemPayoutTx.data],
+      ),
+      'Incidents: Payout failed',
+    );
+
+    const ethBalanceAfter = toBN(
+      await web3.eth.getBalance(evilContract.address),
+    );
+
+    // Since there shouln't be any payouts made, the balance should remain
+    // unchanged.
+    bnEqual(ethBalanceBefore, ethBalanceAfter);
+  });
 });

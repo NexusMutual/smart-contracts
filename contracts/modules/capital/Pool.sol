@@ -21,13 +21,14 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "../../abstract/MasterAware.sol";
+import "../../interfaces/IPool.sol";
 import "../cover/Quotation.sol";
 import "../oracles/PriceFeedOracle.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenController.sol";
 import "./MCR.sol";
 
-contract Pool is MasterAware, ReentrancyGuard {
+contract Pool is IPool, MasterAware, ReentrancyGuard {
   using Address for address;
   using SafeMath for uint;
   using SafeERC20 for IERC20;
@@ -148,18 +149,15 @@ contract Pool is MasterAware, ReentrancyGuard {
   }
 
   function getAssetDetails(address _asset) external view returns (
-    uint balance,
     uint112 min,
     uint112 max,
     uint32 lastAssetSwapTime,
     uint maxSlippageRatio
   ) {
 
-    IERC20 token = IERC20(_asset);
-    balance = token.balanceOf(address(this));
     AssetData memory data = assetData[_asset];
 
-    return (balance, data.minAmount, data.maxAmount, data.lastSwapTime, data.maxSlippageRatio);
+    return (data.minAmount, data.maxAmount, data.lastSwapTime, data.maxSlippageRatio);
   }
 
   function addAsset(

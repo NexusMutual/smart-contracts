@@ -68,7 +68,7 @@ const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAcco
 
 const bnToNumber = bn => parseInt(bn.toString(), 10);
 
-describe.only('MCR on-chain migration', function () {
+describe('MCR on-chain migration', function () {
 
   this.timeout(0);
 

@@ -1,31 +1,14 @@
-// SPDX-License-Identifier: AGPL-3.0-only
-
-/* Copyright (C) 2020 NexusMutual.io
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see http://www.gnu.org/licenses/ */
-
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "../../external/uniswap/IUniswapV2Router02.sol";
 import "../../external/uniswap/IUniswapV2Pair.sol";
 import "../../interfaces/ITwapOracle.sol";
-import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/INXMaster.sol";
-
 
 contract SwapOperator is ReentrancyGuard {
   using SafeERC20 for IERC20;
@@ -72,7 +55,6 @@ contract SwapOperator is ReentrancyGuard {
 
     IPool pool = _pool();
     (
-    /* uint balance */,
     uint112 min,
     uint112 max,
     uint32 lastAssetSwapTime,
@@ -80,10 +62,11 @@ contract SwapOperator is ReentrancyGuard {
     ) = pool.getAssetDetails(toTokenAddress);
 
     AssetData memory assetDetails = AssetData(min, max, lastAssetSwapTime, maxSlippageRatio);
+    require(assetIsEnabled(assetDetails), "SwapOperator: asset is not enabled");
 
     pool.transferAssetToSwapOperator(ETH, amountIn);
     pool.setAssetDataLastSwapTime(toTokenAddress, uint32(block.timestamp));
-    uint amountOut = swapETHForAsset(
+    uint amountOut = _swapETHForAsset(
       assetDetails,
       toTokenAddress,
       amountIn,
@@ -103,7 +86,6 @@ contract SwapOperator is ReentrancyGuard {
 
     IPool pool = _pool();
     (
-    /* uint balance */,
     uint112 min,
     uint112 max,
     uint32 lastAssetSwapTime,
@@ -111,10 +93,11 @@ contract SwapOperator is ReentrancyGuard {
     ) = pool.getAssetDetails(fromTokenAddress);
 
     AssetData memory assetDetails = AssetData(min, max, lastAssetSwapTime, maxSlippageRatio);
+    require(assetIsEnabled(assetDetails), "SwapOperator: asset is not enabled");
 
     pool.transferAssetToSwapOperator(fromTokenAddress, amountIn);
     pool.setAssetDataLastSwapTime(fromTokenAddress, uint32(block.timestamp));
-    uint amountOut = swapAssetForETH(
+    uint amountOut = _swapAssetForETH(
       assetDetails,
       fromTokenAddress,
       amountIn,
@@ -138,7 +121,7 @@ contract SwapOperator is ReentrancyGuard {
     return amountsOut[1];
   }
 
-  function swapETHForAsset(
+  function _swapETHForAsset(
     AssetData memory assetData,
     address toTokenAddress,
     uint amountIn,
@@ -198,7 +181,7 @@ contract SwapOperator is ReentrancyGuard {
     return amountOut;
   }
 
-  function swapAssetForETH(
+  function _swapAssetForETH(
     AssetData memory assetData,
     address fromTokenAddress,
     uint amountIn,
@@ -269,12 +252,13 @@ contract SwapOperator is ReentrancyGuard {
     IPool pool = _pool();
     address toTokenAddress = stETH;
     (
-    /* uint balance */,
     uint112 minAmount,
     uint112 maxAmount,
     /* uint32 lastAssetSwapTime */,
     /* uint maxSlippageRatio */
     ) = pool.getAssetDetails(toTokenAddress);
+
+    require(!(minAmount == 0 && maxAmount == 0), "SwapOperator: asset is not enabled");
 
     uint amountOutMin;
     if (amountIn > 10000) {
@@ -304,6 +288,10 @@ contract SwapOperator is ReentrancyGuard {
     transferAssetTo(stETH, address(pool), amountOut);
 
     emit Swapped(ETH, stETH, amountIn, amountOut);
+  }
+
+  function assetIsEnabled(AssetData memory assetData) internal pure returns (bool) {
+    return !(assetData.minAmount == 0 && assetData.maxAmount == 0);
   }
 
   function _pool() internal view returns (IPool) {

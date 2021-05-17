@@ -17,6 +17,7 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../../abstract/MasterAware.sol";
 import "../capital/Pool.sol";
 import "../cover/QuotationData.sol";
 import "../oracles/PriceFeedOracle.sol";
@@ -24,7 +25,7 @@ import "../token/NXMToken.sol";
 import "../token/TokenData.sol";
 import "./LegacyMCR.sol";
 
-contract MCR is Iupgradable {
+contract MCR is MasterAware {
   using SafeMath for uint;
 
   Pool public pool;
@@ -32,10 +33,12 @@ contract MCR is Iupgradable {
   // sizeof(qd) + 96 = 160 + 96 = 256 (occupies entire slot)
   uint96 _unused;
 
+  // the following values are expressed in basis points
   uint24 public mcrFloorIncrementThreshold = 13000;
   uint24 public maxMCRFloorIncrement = 100;
   uint24 public maxMCRIncrement = 500;
   uint24 public gearingFactor = 48000;
+  // min update between MCR updates in seconds
   uint24 public minUpdateTime = 3600;
   uint112 public mcrFloor;
 
@@ -53,14 +56,15 @@ contract MCR is Iupgradable {
     uint totalSumAssured
   );
 
-  uint256 constant UINT24_MAX = ~uint24(0);
-  uint256 constant MAX_PERCENTAGE_ADJUSTMENT = 100;
+  uint constant UINT24_MAX = ~uint24(0);
+  uint constant MAX_MCR_ADJUSTMENT = 100;
+  uint constant BASIS_PRECISION = 10000;
 
   constructor (address masterAddress) public {
     changeMasterAddress(masterAddress);
 
     if (masterAddress != address(0)) {
-      previousMCR = LegacyMCR(ms.getLatestAddress("MC"));
+      previousMCR = LegacyMCR(master.getLatestAddress("MC"));
     }
   }
 
@@ -68,14 +72,14 @@ contract MCR is Iupgradable {
    * @dev Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public {
-    qd = QuotationData(ms.getLatestAddress("QD"));
-    pool = Pool(ms.getLatestAddress("P1"));
+    qd = QuotationData(master.getLatestAddress("QD"));
+    pool = Pool(master.getLatestAddress("P1"));
     initialize();
   }
 
   function initialize() internal {
 
-    address currentMCR = ms.getLatestAddress("MC");
+    address currentMCR = master.getLatestAddress("MC");
 
     if (address(previousMCR) == address(0) || currentMCR != address(this)) {
       // already initialized or not ready for initialization
@@ -91,7 +95,7 @@ contract MCR is Iupgradable {
     maxMCRFloorIncrement = uint24(previousMCR.dynamicMincapIncrementx100());
 
     // set last updated time to now
-    lastUpdateTime = uint32(now);
+    lastUpdateTime = uint32(block.timestamp);
     previousMCR = LegacyMCR(address(0));
   }
 
@@ -140,18 +144,18 @@ contract MCR is Iupgradable {
     uint112 _desiredMCR = desiredMCR;
     uint32 _lastUpdateTime = lastUpdateTime;
 
-    if (!forceUpdate && _lastUpdateTime + _minUpdateTime > now) {
+    if (!forceUpdate && _lastUpdateTime + _minUpdateTime > block.timestamp) {
       return;
     }
 
-    if (now > _lastUpdateTime && pool.calculateMCRRatio(poolValueInEth, _mcr) >= _mcrFloorIncrementThreshold) {
+    if (block.timestamp > _lastUpdateTime && pool.calculateMCRRatio(poolValueInEth, _mcr) >= _mcrFloorIncrementThreshold) {
         // MCR floor updates by up to maxMCRFloorIncrement percentage per day whenever the MCR ratio exceeds 1.3
         // MCR floor is monotonically increasing.
-      uint percentageAdjustment = min(
-        _maxMCRFloorIncrement.mul(now - _lastUpdateTime).div(1 days),
+      uint basisPointsAdjustment = min(
+        _maxMCRFloorIncrement.mul(block.timestamp - _lastUpdateTime).div(1 days),
         _maxMCRFloorIncrement
       );
-      uint newMCRFloor = _mcrFloor.mul(percentageAdjustment.add(10000)).div(10000);
+      uint newMCRFloor = _mcrFloor.mul(basisPointsAdjustment.add(BASIS_PRECISION)).div(BASIS_PRECISION);
       require(newMCRFloor <= uint112(~0), 'MCR: newMCRFloor overflow');
 
       mcrFloor = uint112(newMCRFloor);
@@ -166,13 +170,13 @@ contract MCR is Iupgradable {
     // the desiredMCR cannot fall below the mcrFloor but may have a higher or lower target value based
     // on the changes in the totalSumAssured in the system.
     uint totalSumAssured = getAllSumAssurance();
-    uint gearedMCR = totalSumAssured.mul(10000).div(_gearingFactor);
+    uint gearedMCR = totalSumAssured.mul(BASIS_PRECISION).div(_gearingFactor);
     uint112 newDesiredMCR = uint112(max(gearedMCR, mcrFloor));
     if (newDesiredMCR != _desiredMCR) {
       desiredMCR = newDesiredMCR;
     }
 
-    lastUpdateTime = uint32(now);
+    lastUpdateTime = uint32(block.timestamp);
 
     emit MCRUpdated(mcr, desiredMCR, mcrFloor, gearedMCR, totalSumAssured);
   }
@@ -196,25 +200,25 @@ contract MCR is Iupgradable {
     uint _lastUpdateTime = lastUpdateTime;
 
 
-    if (now == _lastUpdateTime) {
+    if (block.timestamp == _lastUpdateTime) {
       return _mcr;
     }
 
     uint _maxMCRIncrement = maxMCRIncrement;
 
-    uint percentageAdjustment = _maxMCRIncrement.mul(now - _lastUpdateTime).div(1 days);
-    percentageAdjustment = min(percentageAdjustment, MAX_PERCENTAGE_ADJUSTMENT);
+    uint basisPointsAdjustment = _maxMCRIncrement.mul(block.timestamp - _lastUpdateTime).div(1 days);
+    basisPointsAdjustment = min(basisPointsAdjustment, MAX_MCR_ADJUSTMENT);
 
     if (_desiredMCR > _mcr) {
-      return min(_mcr.mul(percentageAdjustment.add(10000)).div(10000), _desiredMCR);
+      return min(_mcr.mul(basisPointsAdjustment.add(BASIS_PRECISION)).div(BASIS_PRECISION), _desiredMCR);
     }
 
     // in case desiredMCR <= mcr
-    return max(_mcr.mul(10000 - percentageAdjustment).div(10000), _desiredMCR);
+    return max(_mcr.mul(BASIS_PRECISION - basisPointsAdjustment).div(BASIS_PRECISION), _desiredMCR);
   }
 
   function getGearedMCR() external view returns (uint) {
-    return getAllSumAssurance().mul(10000).div(gearingFactor);
+    return getAllSumAssurance().mul(BASIS_PRECISION).div(gearingFactor);
   }
 
   function min(uint x, uint y) pure internal returns (uint) {
@@ -231,7 +235,7 @@ contract MCR is Iupgradable {
    * @param val new value
    */
   function updateUintParameters(bytes8 code, uint val) public {
-    require(ms.checkIsAuthToGoverned(msg.sender));
+    require(master.checkIsAuthToGoverned(msg.sender));
     if (code == "DMCT") {
 
       require(val <= UINT24_MAX, "MCR: value too large");

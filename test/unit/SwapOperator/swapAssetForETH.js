@@ -63,6 +63,26 @@ describe('swapAssetForETH', function () {
     );
   });
 
+  it('should revert when asset is not enabled', async function () {
+    const { pool, tokenA, swapOperator } = contracts();
+
+    await pool.setAssetDetails(
+      tokenA.address,
+      ether('0'), // asset minimum
+      ether('0'), // asset maximum
+      ether('0.01'), // max slippage
+      { from: governance },
+    );
+
+    const etherIn = ether('1');
+    const minTokenOut = ether('198');
+
+    await expectRevert(
+      swapOperator.swapAssetForETH(tokenA.address, etherIn, minTokenOut),
+      'SwapOperator: asset is not enabled',
+    );
+  });
+
   it('should revert when swapAssetForETH is called more than once per period', async function () {
 
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();

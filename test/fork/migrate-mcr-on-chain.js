@@ -315,6 +315,60 @@ describe('MCR on-chain migration', function () {
     this.twapOracle = twapOracle;
   });
 
+  it('add proposal categories for incidents contract', async function () {
+    const { governance, voters } = this;
+
+    // add incident proposal category
+    {
+      const parameters = [
+        ['string', 'Add incident'], // name
+        ['uint256', Role.AdvisoryBoard], // member role that votes
+        ['uint256', 60], // majority vote percentage
+        ['uint256', 15], // quorum percentage
+        ['uint256[]', [Role.AdvisoryBoard]], // allowed to create proposal
+        ['uint256', 3 * 24 * 3600], // closing time 3 days
+        ['string', ''], // action hash - probably ipfs hash
+        ['address', '0x0000000000000000000000000000000000000000'], // contract address: used only if next is "EX"
+        ['bytes2', hex('IC')], // contract name
+        // "incentives" is [min stake, incentive, ab voting req, special resolution]
+        ['uint256[]', [0, 0, 1, 0]],
+        ['string', 'addIncident(address,uint256,uint256)'], // function signature
+      ];
+
+      const actionData = web3.eth.abi.encodeParameters(
+        parameters.map(p => p[0]),
+        parameters.map(p => p[1]),
+      );
+
+      await submitGovernanceProposal(ProposalCategory.addCategory, actionData, voters, governance);
+    }
+
+    // withdraw assets proposal category
+    {
+      const parameters = [
+        ['string', 'Withdraw depegged asset'], // name
+        ['uint256', Role.AdvisoryBoard], // member role that votes
+        ['uint256', 60], // majority vote percentage
+        ['uint256', 15], // quorum percentage
+        ['uint256[]', [Role.AdvisoryBoard]], // allowed to create proposal
+        ['uint256', 3 * 24 * 3600], // closing time 3 days
+        ['string', ''], // action hash - probably ipfs hash
+        ['address', '0x0000000000000000000000000000000000000000'], // contract address: used only if next is "EX"
+        ['bytes2', hex('IC')], // contract name
+        // "incentives" is [min stake, incentive, ab voting req, special resolution]
+        ['uint256[]', [0, 0, 1, 0]],
+        ['string', 'addIncident(address,uint256,uint256)'], // function signature
+      ];
+
+      const actionData = web3.eth.abi.encodeParameters(
+        parameters.map(p => p[0]),
+        parameters.map(p => p[1]),
+      );
+
+      await submitGovernanceProposal(ProposalCategory.addCategory, actionData, voters, governance);
+    }
+  });
+
   it('triggers StEth investment', async function () {
     const { swapOperator, swapController, stETHToken, pool } = this;
 

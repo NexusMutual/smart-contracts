@@ -17,13 +17,13 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../../abstract/MasterAware.sol";
 import "../capital/Pool.sol";
 import "../cover/QuotationData.sol";
 import "../oracles/PriceFeedOracle.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenData.sol";
 import "./LegacyMCR.sol";
-import "../../abstract/MasterAware.sol";
 
 contract MCR is MasterAware {
   using SafeMath for uint;

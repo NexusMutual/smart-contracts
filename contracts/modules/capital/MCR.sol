@@ -57,7 +57,7 @@ contract MCR is MasterAware {
   );
 
   uint256 constant UINT24_MAX = ~uint24(0);
-  uint256 constant MAX_BP_ADJUSTMENT = 100;
+  uint256 constant MAX_MCR_ADJUSTMENT = 100;
   uint256 constant BASIS_PRECISION = 10000;
 
   constructor (address masterAddress) public {
@@ -207,7 +207,7 @@ contract MCR is MasterAware {
     uint _maxMCRIncrement = maxMCRIncrement;
 
     uint basisPointsAdjustment = _maxMCRIncrement.mul(block.timestamp - _lastUpdateTime).div(1 days);
-    basisPointsAdjustment = min(basisPointsAdjustment, MAX_BP_ADJUSTMENT);
+    basisPointsAdjustment = min(basisPointsAdjustment, MAX_MCR_ADJUSTMENT);
 
     if (_desiredMCR > _mcr) {
       return min(_mcr.mul(basisPointsAdjustment.add(BASIS_PRECISION)).div(BASIS_PRECISION), _desiredMCR);

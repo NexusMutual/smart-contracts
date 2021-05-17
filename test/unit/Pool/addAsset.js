@@ -65,10 +65,7 @@ describe('addAsset', function () {
     await token.mint(pool.address, ether('100'));
 
     const assetDetails = await pool.getAssetDetails(token.address);
-    const { balance, min, max, maxSlippageRatio } = assetDetails;
-
-    const expectedBalance = await token.balanceOf(pool.address);
-    assert.strictEqual(balance.toString(), expectedBalance.toString());
+    const { min, max, maxSlippageRatio } = assetDetails;
 
     assert.strictEqual(min.toString(), '1');
     assert.strictEqual(max.toString(), '2');

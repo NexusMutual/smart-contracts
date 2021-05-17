@@ -80,7 +80,7 @@ const hardhatRequest = async (...params) => {
 
 const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAccount', params: [member] });
 
-describe.only('lock time migration', function () {
+describe('lock time migration', function () {
 
   this.timeout(0);
 

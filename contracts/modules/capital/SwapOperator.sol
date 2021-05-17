@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "../../external/uniswap/IUniswapV2Router02.sol";
 import "../../external/uniswap/IUniswapV2Pair.sol";
 import "../../interfaces/ITwapOracle.sol";
-import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/INXMaster.sol";
-
 
 contract SwapOperator is ReentrancyGuard {
   using SafeERC20 for IERC20;
@@ -56,7 +55,6 @@ contract SwapOperator is ReentrancyGuard {
 
     IPool pool = _pool();
     (
-    /* uint balance */,
     uint112 min,
     uint112 max,
     uint32 lastAssetSwapTime,
@@ -88,7 +86,6 @@ contract SwapOperator is ReentrancyGuard {
 
     IPool pool = _pool();
     (
-    /* uint balance */,
     uint112 min,
     uint112 max,
     uint32 lastAssetSwapTime,
@@ -255,7 +252,6 @@ contract SwapOperator is ReentrancyGuard {
     IPool pool = _pool();
     address toTokenAddress = stETH;
     (
-    /* uint balance */,
     uint112 minAmount,
     uint112 maxAmount,
     /* uint32 lastAssetSwapTime */,
@@ -294,7 +290,7 @@ contract SwapOperator is ReentrancyGuard {
     emit Swapped(ETH, stETH, amountIn, amountOut);
   }
 
-  function assetIsEnabled(AssetData memory assetData) internal returns (bool) {
+  function assetIsEnabled(AssetData memory assetData) internal pure returns (bool) {
     return !(assetData.minAmount == 0 && assetData.maxAmount == 0);
   }
 

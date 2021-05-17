@@ -80,9 +80,9 @@ contract Incidents is MasterAware {
     _;
   }
 
-  function initialize(uint burnRate) external {
+  function initialize() external {
     require(BURN_RATE == 0, "Already initialized");
-    BURN_RATE = burnRate;
+    BURN_RATE = 20;
   }
 
   function addProducts(

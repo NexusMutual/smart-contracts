@@ -25,6 +25,7 @@ import "../claims/ClaimsReward.sol";
 import "../cover/QuotationData.sol";
 import "../governance/MemberRoles.sol";
 import "../token/TokenController.sol";
+import "../capital/MCR.sol";
 
 contract Incidents is MasterAware {
   using SafeERC20 for IERC20;
@@ -37,7 +38,7 @@ contract Incidents is MasterAware {
   }
 
   // contract identifiers
-  enum ID {CD, CR, QD, TC, MR, P1, PS}
+  enum ID {CD, CR, QD, TC, MR, P1, PS, MC}
 
   mapping(uint => address payable) public internalContracts;
 
@@ -79,9 +80,9 @@ contract Incidents is MasterAware {
     _;
   }
 
-  function initialize(uint burnRate) external {
+  function initialize() external {
     require(BURN_RATE == 0, "Already initialized");
-    BURN_RATE = burnRate;
+    BURN_RATE = 20;
   }
 
   function addProducts(
@@ -228,19 +229,24 @@ contract Incidents is MasterAware {
 
     qd.subFromTotalSumAssured(currency, sumAssured);
     qd.subFromTotalSumAssuredSC(incident.productId, currency, sumAssured);
+
+    // update only if payout is "substantial" to not add the extra gas cost to the redeem
+    if (!((currency == "ETH" && sumAssured < 10) || (currency == "DAI" && sumAssured < 50000))) {
+      mcr().updateMCRInternal(pool().getPoolValueInEth(), true);
+    }
   }
 
-  function pushBurns(address productId, uint iterations) external {
+  function pushBurns(address productId, uint maxIterations) external {
 
     uint burnAmount = accumulatedBurn[productId];
     delete accumulatedBurn[productId];
 
     require(burnAmount > 0, "Incidents: No burns to push");
-    require(iterations >= 30, "Incidents: Pass at least 30 iterations");
+    require(maxIterations >= 30, "Incidents: Pass at least 30 iterations");
 
     IPooledStaking ps = pooledStaking();
     ps.pushBurn(productId, burnAmount);
-    ps.processPendingActions(iterations);
+    ps.processPendingActions(maxIterations);
   }
 
   function withdrawAsset(address asset, address destination, uint amount) external onlyGovernance {
@@ -311,6 +317,10 @@ contract Incidents is MasterAware {
     return IPooledStaking(internalContracts[uint(ID.PS)]);
   }
 
+  function mcr() internal view returns (MCR) {
+    return MCR(internalContracts[uint(ID.MC)]);
+  }
+
   function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
 
     if (code == "BURNRATE") {
@@ -331,6 +341,7 @@ contract Incidents is MasterAware {
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
+    internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
   }
 
 }

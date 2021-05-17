@@ -352,7 +352,6 @@ describe('incidents', function () {
 
     const daiBalanceBefore = await dai.balanceOf(payoutAddress);
     await incidents.redeemPayout(coverId, incidentId, tokenAmount, { from: coverHolder });
-
     const daiBalanceAfter = await dai.balanceOf(payoutAddress);
     const daiDiff = daiBalanceAfter.sub(daiBalanceBefore);
     bnEqual(daiDiff, sumAssured);

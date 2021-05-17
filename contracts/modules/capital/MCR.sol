@@ -56,9 +56,9 @@ contract MCR is MasterAware {
     uint totalSumAssured
   );
 
-  uint256 constant UINT24_MAX = ~uint24(0);
-  uint256 constant MAX_MCR_ADJUSTMENT = 100;
-  uint256 constant BASIS_PRECISION = 10000;
+  uint constant UINT24_MAX = ~uint24(0);
+  uint constant MAX_MCR_ADJUSTMENT = 100;
+  uint constant BASIS_PRECISION = 10000;
 
   constructor (address masterAddress) public {
     changeMasterAddress(masterAddress);

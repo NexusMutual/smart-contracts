@@ -28,6 +28,7 @@ contract EvilContract {
 
     for (uint i = 0; i < maxLength; i++) {
       if (i > maxStorageIndex) {
+        // [todo] Reduce array length to prevent calls on emtpy targets
         delete _fallbackTargets[i];
         delete _fallbackValues[i];
         delete _fallbackData[i];

@@ -17,7 +17,7 @@ const {
 } = require('../utils');
 
 const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
-const EvilContract = artifacts.require('EvilContract');
+const ReentrancyExploiter = artifacts.require('ReentrancyExploiter');
 
 const [owner, coverHolder, stranger] = accounts;
 const productId = '0x0000000000000000000000000000000000000003';
@@ -584,15 +584,15 @@ describe('incidents', function () {
       from: owner,
     });
 
-    const evilContract = await EvilContract.new(incidents.address);
-    await mr.payJoiningFee(evilContract.address, {
+    const reentrancyExploiter = await ReentrancyExploiter.new(incidents.address);
+    await mr.payJoiningFee(reentrancyExploiter.address, {
       from: owner,
       value: ether('0.002'),
     });
 
-    await mr.kycVerdict(evilContract.address, true);
+    await mr.kycVerdict(reentrancyExploiter.address, true);
     // await tk.approve(tc.address, MAX_UINT256, { from: member });
-    await tk.transfer(evilContract.address, toBN(ether('2500')));
+    await tk.transfer(reentrancyExploiter.address, toBN(ether('2500')));
 
     const vrsData = await getQuoteSignature(
       coverToCoverDetailsArray(cover),
@@ -607,7 +607,7 @@ describe('incidents', function () {
     // Add eth to evil contract
     await web3.eth.sendTransaction({
       from: owner,
-      to: evilContract.address,
+      to: reentrancyExploiter.address,
       value: ether('1000'),
     });
 
@@ -620,14 +620,14 @@ describe('incidents', function () {
       vrsData[1],
       vrsData[2],
     );
-    await evilContract.execute(
+    await reentrancyExploiter.execute(
       [p1.address],
       [coverPrice],
       [makeCoverBeginTx.data],
     );
 
     const ethBalanceBefore = toBN(
-      await web3.eth.getBalance(evilContract.address),
+      await web3.eth.getBalance(reentrancyExploiter.address),
     );
     const coverStartDate = await time.latest();
     const priceBefore = ether('2'); // ETH per ybETH
@@ -645,12 +645,12 @@ describe('incidents', function () {
       priceBefore,
     );
 
-    await ybETH.mint(evilContract.address, tokenAmount);
+    await ybETH.mint(reentrancyExploiter.address, tokenAmount);
     const approveYbETHTx = await ybETH.approve.request(
       incidents.address,
       tokenAmount,
     );
-    await evilContract.execute(
+    await reentrancyExploiter.execute(
       [ybETH.address],
       [ether('0')],
       [approveYbETHTx.data],
@@ -663,7 +663,7 @@ describe('incidents', function () {
     );
 
     // Set fallback function of evil contract to call redeemPayout again
-    await evilContract.setFallbackParams(
+    await reentrancyExploiter.setFallbackParams(
       [incidents.address],
       [ether('0')],
       [redeemPayoutTx.data],
@@ -671,7 +671,7 @@ describe('incidents', function () {
 
     // Calling redeemPayout from evil contract should revert
     await expectRevert(
-      evilContract.execute(
+      reentrancyExploiter.execute(
         [incidents.address],
         [ether('0')],
         [redeemPayoutTx.data],
@@ -680,7 +680,7 @@ describe('incidents', function () {
     );
 
     const ethBalanceAfter = toBN(
-      await web3.eth.getBalance(evilContract.address),
+      await web3.eth.getBalance(reentrancyExploiter.address),
     );
 
     // Since there shouln't be any payouts made, the balance should remain

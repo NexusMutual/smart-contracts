@@ -5,8 +5,8 @@ const Decimal = require('decimal.js');
 
 const { submitGovernanceProposal, submitMemberVoteGovernanceProposal } = require('./utils');
 const { hex } = require('../utils').helpers;
-const { ProposalCategory } = require('../utils').constants;
-const { setNextBlockTime, mineNextBlock } = require('../utils').evm;
+const { ProposalCategory, Role } = require('../utils').constants;
+const { setNextBlockTime } = require('../utils').evm;
 
 const {
   calculateRelativeError,
@@ -26,6 +26,7 @@ const MCR = artifacts.require('MCR');
 const LegacyMCR = artifacts.require('LegacyMCR');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const ERC20 = artifacts.require('@openzeppelin/contracts-v4/token/ERC20/ERC20.sol:ERC20');
+const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 const SwapOperator = artifacts.require('SwapOperator');
 const LegacyPoolData = artifacts.require('LegacyPoolData');
 const TwapOracle = artifacts.require('TwapOracle');
@@ -202,7 +203,16 @@ describe('MCR on-chain migration', function () {
     assert.equal(storedMCRAddress, newMCR.address);
     assert.equal(storedP1Address, pool.address);
 
-    console.log('Successfully upgraded');
+    console.log('Freeing up held covers');
+    await newQuotation.freeUpHeldCovers();
+
+    const quotationEthBalance = await web3.eth.getBalance(newQuotation.address);
+    const quotationDaiBalance = await dai.balanceOf(newQuotation.address);
+
+    assert.strictEqual(quotationEthBalance.toString(), '0');
+    assert.strictEqual(quotationDaiBalance.toString(), '0');
+
+    console.log('Held covers freed up');
 
     /* MCR parameters */
 
@@ -343,31 +353,12 @@ describe('MCR on-chain migration', function () {
     };
 
     const windowStart = await nextWindowStartTime();
-    console.log({
-      wethDAIPairAddress,
-    });
-    const now = bnToNumber(await time.latest());
-    console.log({
-      now,
-    });
     await setNextBlockTime(windowStart);
-
     await twapOracle.update([wethDAIPairAddress]);
-    const now2 = bnToNumber(await time.latest());
-    console.log({
-      windowStart,
-      now2,
-    });
 
     // should be able to swap only during the last period within the window
     const period8Start = windowStart + periodSize * 7;
-    const period8End = windowStart + windowSize - 1;
     await setNextBlockTime(period8Start);
-    const now3 = bnToNumber(await time.latest());
-    console.log({
-      period8Start,
-      now3,
-    });
 
     // mine block
     await web3.eth.sendTransaction({ from: accounts[0], to: pool.address, value: '1' });

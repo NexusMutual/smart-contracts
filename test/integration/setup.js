@@ -235,9 +235,7 @@ async function setup () {
     90 * 24 * 3600, // unstake lock time
   );
 
-  await incidents.initialize(
-    20, // burn rate
-  );
+  await incidents.initialize();
 
   await cd.changeMasterAddress(master.address);
   await cd.updateUintParameters(hex('CAMINVT'), 36); // min voting time 36h

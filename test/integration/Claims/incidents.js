@@ -156,12 +156,12 @@ describe('incidents', function () {
 
     await expectRevert(
       incidents.redeemPayout(coverId, incidentAfterCover, tokenAmount, { from: coverHolder }),
-      'Incidents: Cover end date is after the incident',
+      'Incidents: Cover end date is before the incident',
     );
 
     await expectRevert(
       incidents.redeemPayout(coverId, incidentBeforeCover, tokenAmount, { from: coverHolder }),
-      'Incidents: Cover start date is before the incident',
+      'Incidents: Cover start date is after the incident',
     );
   });
 

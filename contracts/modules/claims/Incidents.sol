@@ -176,9 +176,10 @@ contract Incidents is MasterAware {
       uint coverPeriod = uint(qd.getCoverPeriod(coverId)).mul(1 days);
       uint coverExpirationDate = qd.getValidityOfCover(coverId);
       uint coverStartDate = coverExpirationDate.sub(coverPeriod);
+
       // check cover validity
-      require(coverStartDate <= incident.date, "Incidents: Cover start date is before the incident");
-      require(coverExpirationDate >= incident.date, "Incidents: Cover end date is after the incident");
+      require(coverStartDate <= incident.date, "Incidents: Cover start date is after the incident");
+      require(coverExpirationDate >= incident.date, "Incidents: Cover end date is before the incident");
 
       // check grace period
       uint gracePeriod = tokenController().claimSubmissionGracePeriod();
@@ -196,7 +197,8 @@ contract Incidents is MasterAware {
       uint maxAmount = coverAmount.mul(decimalPrecision).div(incident.priceBefore);
       require(coveredTokenAmount <= maxAmount, "Incidents: Amount exceeds sum assured");
 
-      // coveredTokenAmount / maxAmount * coverAmount
+      // payoutAmount = coveredTokenAmount / maxAmount * coverAmount
+      //              = coveredTokenAmount * coverAmount / maxAmount
       payoutAmount = coveredTokenAmount.mul(coverAmount).div(maxAmount);
     }
 
@@ -217,8 +219,8 @@ contract Incidents is MasterAware {
       claimPayout[claimId] = payoutAmount;
     }
 
-
     coverAsset = claimsReward().getCurrencyAssetAddress(currency);
+
     _sendPayoutAndPushBurn(
       incident.productId,
       address(uint160(coverOwner)),
@@ -266,7 +268,7 @@ contract Incidents is MasterAware {
 
     address _coveredToken = coveredToken[productId];
 
-    // pull depeged tokens
+    // pull depegged tokens
     IERC20(_coveredToken).safeTransferFrom(msg.sender, address(this), coveredTokenAmount);
 
     Pool p1 = pool();

@@ -367,12 +367,11 @@ contract Quotation is MasterAware, ReentrancyGuard {
       (/*id*/, /*sc*/, bytes4 currency, /*period*/) = qd.getHoldedCoverDetailsByID1(id);
       (/*id*/, address payable userAddress, uint[] memory coverDetails) = qd.getHoldedCoverDetailsByID2(id);
 
-      uint refundedETH;
+      uint refundedETH = membershipFee;
       uint coverPremium = coverDetails[1];
 
       if (qd.refundEligible(userAddress)) {
         qd.setRefundEligible(userAddress, false);
-        refundedETH = refundedETH.add(membershipFee);
       }
 
       qd.setHoldedCoverIDStatus(id, uint(QuotationData.HCIDStatus.kycFailedOrRefunded));

@@ -219,17 +219,17 @@ contract Incidents is MasterAware {
     }
   }
 
-  function pushBurns(address productId, uint iterations) external {
+  function pushBurns(address productId, uint maxIterations) external {
 
     uint burnAmount = accumulatedBurn[productId];
     delete accumulatedBurn[productId];
 
     require(burnAmount > 0, "Incidents: No burns to push");
-    require(iterations >= 30, "Incidents: Pass at least 30 iterations");
+    require(maxIterations >= 30, "Incidents: Pass at least 30 iterations");
 
     IPooledStaking ps = pooledStaking();
     ps.pushBurn(productId, burnAmount);
-    ps.processPendingActions(iterations);
+    ps.processPendingActions(maxIterations);
   }
 
   function withdrawAsset(address asset, address destination, uint amount) external onlyGovernance {

@@ -109,10 +109,6 @@ async function setup () {
   const wethAPair = await UniswapV2Pair.at(wethAPairAddress);
   const wethBPair = await UniswapV2Pair.at(wethBPairAddress);
 
-  /* deploy our contracts */
-
-  /** @var {MasterMockInstance} master */
-
   const main = {
     factory,
     router,
@@ -125,12 +121,9 @@ async function setup () {
 }
 
 /**
- * @typedef {object} SwapOperatorContracts
- * @property {MasterMockInstance} master
- * @property {PoolInstance} pool
+ * @typedef {object} UniswapContracts
  * @property {UniswapV2FactoryInstance} factory
  * @property {UniswapV2Router02Instance} router
- * @property {TwapOracleInstance} oracle
  * @property {ERC20MockInstance} tokenA
  * @property {ERC20MockInstance} tokenB
  * @property {WETH9Instance} weth
@@ -140,5 +133,5 @@ async function setup () {
 
 module.exports = setup;
 
-/** @returns {SwapOperatorContracts} */
+/** @returns {UniswapContracts} */
 module.exports.contracts = () => instances;

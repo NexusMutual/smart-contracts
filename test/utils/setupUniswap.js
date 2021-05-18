@@ -25,7 +25,6 @@ async function setup () {
     // Already deployed
     return instances;
   }
-  console.log({uniswapFactoryCode});
   const [owner] = accounts;
   const uniswapDeployer = '0x9c33eacc2f50e39940d3afaf2c7b8246b681a374';
   const uniswapOwner = '0xc0a4272bb5df52134178df25d77561cfb17ce407';
@@ -122,8 +121,7 @@ async function setup () {
   const tokens = { weth, tokenA, tokenB };
   const pairs = { wethAPair, wethBPair };
 
-  Object.assign(instances, { ...main, ...tokens, ...pairs });
-  return instances;
+  return Object.assign(instances, { ...main, ...tokens, ...pairs });
 }
 
 /**

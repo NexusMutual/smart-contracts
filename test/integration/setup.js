@@ -3,7 +3,6 @@ const { ether } = require('@openzeppelin/test-helpers');
 
 const { setupUniswap } = require('../utils');
 const { hex } = require('../utils').helpers;
-const { calculateMCRRatio } = require('../utils').tokenPrice;
 const { proposalCategories } = require('../utils');
 
 const { BN } = web3.utils;
@@ -14,9 +13,6 @@ async function setup () {
   const ERC20BlacklistableMock = artifacts.require('ERC20BlacklistableMock');
   const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
   const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
-  const WETH9 = artifacts.require('WETH9');
-  const UniswapV2Factory = artifacts.require('UniswapV2Factory');
-  const UniswapV2Router02 = artifacts.require('UniswapV2Router02');
   const Lido = artifacts.require('P1MockLido');
 
   // nexusmutual
@@ -75,19 +71,10 @@ async function setup () {
     await proxy.transferProxyOwnership(newOwner);
   };
 
-  const uniswapTruffleContract = (contractName, repo = 'core') => {
-    const TruffleContract = require('@truffle/contract');
-    const jsonPath = `@uniswap/v2-${repo}/build/${contractName}.json`;
-    const contract = TruffleContract(require(jsonPath));
-    contract.setProvider(web3.currentProvider);
-    return contract;
-  };
-
   const [owner] = accounts;
 
   // deploy external contracts
-  const { router, factory, weth } = await setupUniswap()
-  console.log({ router, factory, weth });
+  const { router, factory, weth } = await setupUniswap();
 
   const dai = await ERC20BlacklistableMock.new();
   await dai.mint(owner, ether('10000000'));

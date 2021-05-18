@@ -4,3 +4,5 @@ artifacts/
 cache/
 build/
 node_modules/
+coverage/
+coverage.json

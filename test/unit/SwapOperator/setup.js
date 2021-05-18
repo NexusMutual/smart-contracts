@@ -28,15 +28,16 @@ async function setup () {
 
   /* load artifacts */
 
+  const ERC20Mock = artifacts.require('ERC20Mock');
+  const WETH9 = artifacts.require('WETH9');
+  const P1MockLido = artifacts.require('P1MockLido');
+  const TwapOracle = artifacts.require('TwapOracle');
+
   /** @var { PoolContract} Pool */
   const Pool = artifacts.require('Pool');
   const SwapOperator = artifacts.require('SwapOperator');
   const MasterMock = artifacts.require('MasterMock');
 
-  const ERC20Mock = artifacts.require('ERC20Mock');
-  const WETH9 = artifacts.require('WETH9');
-  const P1MockLido = artifacts.require('P1MockLido');
-  const TwapOracle = artifacts.require('TwapOracle');
   const UniswapV2Factory = artifacts.require('UniswapV2Factory');
   const UniswapV2Pair = artifacts.require('UniswapV2Pair');
   const UniswapV2Router02 = artifacts.require('UniswapV2Router02');
@@ -65,8 +66,8 @@ async function setup () {
   const _factory = await TruffleUniswapV2Factory.new(uniswapOwner, { from: uniswapDeployer });
 
   // 2. consume 2 nonces
-  await web3.eth.sendTransaction({ from: uniswapDeployer, to: ZERO_ADDRESS });
-  await web3.eth.sendTransaction({ from: uniswapDeployer, to: ZERO_ADDRESS });
+  await web3.eth.sendTransaction({ from: uniswapDeployer, to: ZERO_ADDRESS, gas: 21000});
+  await web3.eth.sendTransaction({ from: uniswapDeployer, to: ZERO_ADDRESS, gas: 21000});
 
   // 3. deploy router
   const _router = await TruffleUniswapV2Router.new(

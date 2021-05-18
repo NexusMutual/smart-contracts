@@ -4,7 +4,6 @@ describe('UNIT TESTS', function () {
   require('./PooledStaking');
   require('./Pool');
   require('./SwapOperator');
-  require('./TwapOracle');
   require('./MCR');
   require('./TokenController');
 

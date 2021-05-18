@@ -1,7 +1,7 @@
 const { accounts, artifacts, web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 
-const { impersonateAccount } = require('../utils').evm;
+const { setupUniswap } = require('../utils');
 const { hex } = require('../utils').helpers;
 const { calculateMCRRatio } = require('../utils').tokenPrice;
 const { proposalCategories } = require('../utils');
@@ -83,46 +83,11 @@ async function setup () {
     return contract;
   };
 
-  const deployUniswap = async () => {
-
-    const UNISWAP_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
-    const UNISWAP_ROUTER = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
-    const UNISWAP_DEPLOYER = '0x9c33eacc2f50e39940d3afaf2c7b8246b681a374';
-    const UNISWAP_OWNER = '0xc0a4272bb5df52134178df25d77561cfb17ce407';
-
-    const weth = await WETH9.new();
-
-    await impersonateAccount(UNISWAP_DEPLOYER);
-    await web3.eth.sendTransaction({ from: owner, to: UNISWAP_DEPLOYER, value: ether('1') });
-
-    // Deploying using truffle contract to have the correct addresses:
-    const TruffleUniswapV2Factory = uniswapTruffleContract('UniswapV2Factory');
-    const TruffleUniswapV2Router = uniswapTruffleContract('UniswapV2Router02', 'periphery');
-
-    // 1. deploy factory
-    const _factory = await TruffleUniswapV2Factory.new(UNISWAP_OWNER, { from: UNISWAP_DEPLOYER });
-
-    // 2. consume 2 nonces
-    await web3.eth.sendTransaction({ from: UNISWAP_DEPLOYER, to: ZERO_ADDRESS });
-    await web3.eth.sendTransaction({ from: UNISWAP_DEPLOYER, to: ZERO_ADDRESS });
-
-    // 3. deploy router
-    const _router = await TruffleUniswapV2Router.new(_factory.address, weth.address, { from: UNISWAP_DEPLOYER });
-
-    // check that we landed at the correct address
-    assert.strictEqual(_factory.address, UNISWAP_FACTORY);
-    assert.strictEqual(_router.address, UNISWAP_ROUTER);
-
-    const factory = await UniswapV2Factory.at(_factory.address);
-    const router = await UniswapV2Router02.at(_router.address);
-
-    return { router, factory, weth };
-  };
-
   const [owner] = accounts;
 
   // deploy external contracts
-  const { router, factory, weth } = await deployUniswap();
+  const { router, factory, weth } = await setupUniswap()
+  console.log({ router, factory, weth });
 
   const dai = await ERC20BlacklistableMock.new();
   await dai.mint(owner, ether('10000000'));

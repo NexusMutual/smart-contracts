@@ -2,6 +2,7 @@ require('dotenv').config();
 require('@nomiclabs/hardhat-web3');
 require('@nomiclabs/hardhat-truffle5');
 require('@nomiclabs/hardhat-etherscan');
+require('solidity-coverage');
 require('hardhat-contract-sizer');
 
 const { task } = require('hardhat/config');
@@ -14,7 +15,6 @@ task('test', async (_, hre, runSuper) => {
 });
 
 task('typechain', async (_, { config }) => {
-
   const { tsGenerator } = require('ts-generator');
   const { TypeChain } = require('typechain/dist/TypeChain');
 
@@ -56,9 +56,18 @@ const getenv = (network, key, fallback, parser = i => i) => {
 for (const network of ['MAINNET', 'KOVAN']) {
   const url = getenv(network, 'PROVIDER_URL', false);
   if (!url) continue;
-  const accounts = getenv(network, 'ACCOUNT_KEY', undefined, v => v.split(/[^0-9a-fx]+/i));
-  const gasPrice = getenv(network, 'GAS_PRICE', undefined, v => parseInt(v, 10) * 1e9);
-  const gasLimit = getenv(network, 'GAS_LIMIT', undefined, v => parseInt(v, 10));
+  const accounts = getenv(network, 'ACCOUNT_KEY', undefined, v =>
+    v.split(/[^0-9a-fx]+/i),
+  );
+  const gasPrice = getenv(
+    network,
+    'GAS_PRICE',
+    undefined,
+    v => parseInt(v, 10) * 1e9,
+  );
+  const gasLimit = getenv(network, 'GAS_LIMIT', undefined, v =>
+    parseInt(v, 10),
+  );
   networks[network.toLowerCase()] = { accounts, gasPrice, gasLimit, url };
 }
 
@@ -67,7 +76,6 @@ const compilerSettings = process.env.ENABLE_OPTIMIZER
   : {};
 
 module.exports = {
-
   contractSizer: {
     alphaSort: true,
     runOnCompile: false,
@@ -94,7 +102,10 @@ module.exports = {
       { settings: compilerSettings, version: '0.8.4' }, // swap operator
     ],
     overrides: {
-      'contracts/modules/governance/Governance.sol': { settings: compilerSettings, version: '0.5.7' },
+      'contracts/modules/governance/Governance.sol': {
+        settings: compilerSettings,
+        version: '0.5.7',
+      },
     },
   },
 };

@@ -1,8 +1,7 @@
 const { takeSnapshot, revertToSnapshot, reset } = require('./utils').evm;
 const setup = require('./setup');
 
-describe.only('INTEGRATION TESTS', function () {
-
+describe('INTEGRATION TESTS', function () {
   before(setup);
 
   beforeEach(async function () {
@@ -22,5 +21,4 @@ describe.only('INTEGRATION TESTS', function () {
   require('./Claims');
   require('./Gateway');
   require('./TokenController');
-
 });

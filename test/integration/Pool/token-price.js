@@ -30,6 +30,8 @@ const coverTemplate = {
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
+const ratioScale = toBN(10000);
+
 describe('Token price functions', function () {
 
   beforeEach(async function () {
@@ -45,14 +47,14 @@ describe('Token price functions', function () {
   });
 
   it('getTokenPrice returns spot price for all assets', async function () {
-    const { p1: pool, dai, pd: poolData } = this.contracts;
+    const { p1: pool, dai, pd: poolData, mcr } = this.contracts;
     const { ethToDaiRate } = this.rates;
 
     const ethTokenPrice = await pool.getTokenPrice(ETH);
     const daiTokenPrice = await pool.getTokenPrice(dai.address);
 
     const totalAssetValue = await pool.getPoolValueInEth();
-    const mcrEth = await poolData.getLastMCREther();
+    const mcrEth = await mcr.getMCR();
     const expectedEthTokenPrice = toBN(getTokenSpotPrice(totalAssetValue, mcrEth).toString());
 
     const ethPriceDiff = ethTokenPrice.sub(expectedEthTokenPrice).abs();
@@ -99,16 +101,17 @@ describe('Token price functions', function () {
   });
 
   it('buyNXM mints tokens for member in exchange of ETH', async function () {
-    const { tk: token, p1: pool, pd: poolData } = this.contracts;
+    const { tk: token, p1: pool, pd: poolData, mcr } = this.contracts;
 
     const buyValue = ether('1000');
     const expectedTokensReceived = await pool.getNXMForEth(buyValue);
     const totalAssetValue = await pool.getPoolValueInEth();
-    const mcrEth = await poolData.getLastMCREther();
+    const mcrEth = await mcr.getMCR();
 
     const member = member1;
     const preBuyBalance = await token.balanceOf(member);
     await pool.buyNXM(expectedTokensReceived, { from: member, value: buyValue });
+
     const postBuyBalance = await token.balanceOf(member);
     const tokensReceived = postBuyBalance.sub(preBuyBalance);
 
@@ -155,30 +158,64 @@ describe('Token price functions', function () {
     );
   });
 
-  it('buyNXM token price reflects the latest MCR posting (higher MCReth -> lower price)', async function () {
-    const { p1: pool, mcr, pd } = this.contracts;
-    const { ethEthRate, ethToDaiRate } = this.rates;
+  it('buyNXM token price reflects the latest lower MCR value (lower MCReth -> higher price)', async function () {
+    const { p1: pool, mcr } = this.contracts;
 
     const ETH = await pool.ETH();
     const buyValue = ether('1000');
     const expectedNXMOutPreMCRPosting = await pool.getNXMForEth(buyValue);
     const spotTokenPricePreMCRPosting = await pool.getTokenPrice(ETH);
-    const currentPoolValue = await pool.getPoolValueInEth();
+    await pool.getPoolValueInEth();
 
-    // post a higher MCR raising the price
-    const lastMCREther = await pd.getLastMCREther();
-    const latestMCReth = lastMCREther.add(ether('2'));
-    const latestMCRRatio = calculateMCRRatio(currentPoolValue, latestMCReth);
+    // trigger an MCR update and post a lower MCR since lowering the price (higher MCR percentage)
+    const minUpdateTime = await mcr.minUpdateTime();
+    await time.increase(minUpdateTime.addn(1));
 
-    // add new mcr
-    await mcr.addMCRData(
-      latestMCRRatio,
-      latestMCReth,
-      currentPoolValue,
-      [hex('ETH'), hex('DAI')],
-      [ethEthRate, ethToDaiRate],
-      20200103,
+    // perform a buy with a negligible amount of ETH
+    const tx = await pool.buyNXM('0', { from: member1, value: '1' });
+    // let time pass so that mcr decreases towards desired MCR
+    await time.increase(time.duration.hours(6));
+
+    const spotTokenPricePostMCRPosting = await pool.getTokenPrice(ETH);
+    const expectedNXMOutPostMCRPosting = await pool.getNXMForEth(buyValue);
+
+    assert(
+      spotTokenPricePostMCRPosting.gt(spotTokenPricePreMCRPosting),
+      `Expected token price to be higher than ${spotTokenPricePreMCRPosting.toString()} at a lower mcrEth.
+       Price: ${spotTokenPricePostMCRPosting.toString()}`,
     );
+    assert(
+      expectedNXMOutPostMCRPosting.lt(expectedNXMOutPreMCRPosting),
+      `Expected to receive less tokens than ${expectedNXMOutPreMCRPosting.toString()} at a lower mcrEth.
+       Receiving: ${expectedNXMOutPostMCRPosting.toString()}`,
+    );
+  });
+
+  it('buyNXM token price reflects the latest higher MCR value (higher MCReth -> lower price)', async function () {
+    const { p1: pool, mcr } = this.contracts;
+
+    const ETH = await pool.ETH();
+    const buyValue = ether('1000');
+    const expectedNXMOutPreMCRPosting = await pool.getNXMForEth(buyValue);
+    const spotTokenPricePreMCRPosting = await pool.getTokenPrice(ETH);
+    await pool.getPoolValueInEth();
+
+    const gearingFactor = await mcr.gearingFactor();
+    const currentMCR = await mcr.getMCR();
+    const coverAmount = gearingFactor.mul(currentMCR.add(ether('300'))).div(ether('1')).div(ratioScale);
+    const cover = { ...coverTemplate, amount: coverAmount };
+
+    // increase totalSumAssured to trigger MCR increase
+    await buyCover({ ...this.contracts, cover, coverHolder });
+
+    // trigger an MCR update and post a lower MCR since lowering the price (higher MCR percentage)
+    const minUpdateTime = await mcr.minUpdateTime();
+    await time.increase(minUpdateTime.addn(1));
+
+    // perform a buy with a negligible amount of ETH
+    await pool.buyNXM('0', { from: member1, value: '1' });
+    // let time pass so that mcr increases towards desired MCR
+    await time.increase(time.duration.hours(6));
 
     const spotTokenPricePostMCRPosting = await pool.getTokenPrice(ETH);
     const expectedNXMOutPostMCRPosting = await pool.getNXMForEth(buyValue);
@@ -229,7 +266,7 @@ describe('Token price functions', function () {
 
     // create a consensus not reached situation, 66% accept vs 33% deny
     await claims.submitCAVote(claimId, '1', { from: member1 });
-    await claims.submitCAVote(claimId, '-1', { from: member2 });
+    await claims.submitCAVote(claimId, toBN('-1'), { from: member2 });
     await claims.submitCAVote(claimId, '1', { from: member3 });
 
     const maxVotingTime = await claimsData.maxVotingTime();
@@ -291,7 +328,7 @@ describe('Token price functions', function () {
     await cl.submitCAVote(claimId, '1', { from: member2 });
 
     const voteStatusAfter = await cl.checkVoteClosing(claimId);
-    assert.equal(voteStatusAfter.toString(), '-1', 'voting should be closed');
+    assert.equal(voteStatusAfter.toString(), toBN('-1'), 'voting should be closed');
 
     await master.closeClaim(claimId); // trigger changeClaimStatus
     const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
@@ -314,11 +351,11 @@ describe('Token price functions', function () {
     const tokenPrice = await p1.getTokenPrice(ETH);
     assert(
       tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).gt(coverAmount.muln(5)),
-      'CA lockedTokens < 5 * sumAssured'
+      'CA lockedTokens < 5 * sumAssured',
     );
     assert(
       tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(10)),
-      'CA lockedTokens < 10 * sumAssured'
+      'CA lockedTokens < 10 * sumAssured',
     );
 
     await buyCover({ ...this.contracts, cover, coverHolder });
@@ -358,7 +395,7 @@ describe('Token price functions', function () {
     const tokenPrice = await p1.getTokenPrice(ETH);
     assert(
       tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(5)),
-      'CA lockedTokens > 5 * sumAssured'
+      'CA lockedTokens > 5 * sumAssured',
     );
 
     await buyCover({ ...this.contracts, cover, coverHolder });
@@ -399,7 +436,7 @@ describe('Token price functions', function () {
     const memberBalance = await tk.balanceOf(member4);
     assert(
       tokenPrice.mul(memberBalance).div(toBN(1e18.toString())).gt(coverAmount.muln(5)),
-      'Balance of member < 5 * sumAssured'
+      'Balance of member < 5 * sumAssured',
     );
 
     await buyCover({ ...this.contracts, cover, coverHolder });
@@ -409,7 +446,7 @@ describe('Token price functions', function () {
 
     // create a consensus not reached situation, 66% accept vs 33% deny
     await cl.submitCAVote(claimId, '1', { from: member1 });
-    await cl.submitCAVote(claimId, '-1', { from: member2 });
+    await cl.submitCAVote(claimId, toBN('-1'), { from: member2 });
     await cl.submitCAVote(claimId, '1', { from: member3 });
 
     const maxVotingTime = await cd.maxVotingTime();
@@ -428,7 +465,7 @@ describe('Token price functions', function () {
       1 member vote from member 4 ( balance 1000 NXM) is sufficient to exceed sumAssured * 5
       and reject the claim
      */
-    await cl.submitMemberVote(claimId, '-1', { from: member4 });
+    await cl.submitMemberVote(claimId, toBN('-1'), { from: member4 });
     await time.increase(maxVotingTime.addn(1));
     await master.closeClaim(claimId);
 
@@ -453,7 +490,7 @@ describe('Token price functions', function () {
     const memberBalance = await tk.balanceOf(member5);
     assert(
       tokenPrice.mul(memberBalance).div(toBN(1e18.toString())).lt(coverAmount.muln(5)),
-      'Balance of member > 5 * sumAssured'
+      'Balance of member > 5 * sumAssured',
     );
 
     await buyCover({ ...this.contracts, cover, coverHolder });
@@ -463,7 +500,7 @@ describe('Token price functions', function () {
 
     // create a consensus not reached situation, 66% accept vs 33% deny
     await cl.submitCAVote(claimId, '1', { from: member1 });
-    await cl.submitCAVote(claimId, '-1', { from: member2 });
+    await cl.submitCAVote(claimId, toBN('-1'), { from: member2 });
     await cl.submitCAVote(claimId, '1', { from: member3 });
 
     const maxVotingTime = await cd.maxVotingTime();
@@ -482,7 +519,7 @@ describe('Token price functions', function () {
       1 member vote from member 4 ( balance 500 NXM) is insufficient to exceed sumAssured * 5
       and will not be able to reject the claim
      */
-    await cl.submitMemberVote(claimId, '-1', { from: member5 });
+    await cl.submitMemberVote(claimId, toBN('-1'), { from: member5 });
     await time.increase(maxVotingTime.addn(1));
     await master.closeClaim(claimId);
 

@@ -9,13 +9,12 @@ const { members: [memberOne] } = require('../utils').accounts;
 describe('sellNXMTokens', function () {
 
   it('burns tokens from member in exchange for ETH worth 1% of mcrEth', async function () {
-    const { pool, poolData, token, tokenController } = this;
+    const { pool, mcr, token, tokenController } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
 
-    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await mcr.setMCR(mcrEth);
     await pool.sendTransaction({ value: initialAssetValue });
 
     const member = memberOne;

@@ -17,106 +17,86 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../../abstract/MasterAware.sol";
 import "../capital/Pool.sol";
 import "../cover/QuotationData.sol";
-import "../governance/MemberRoles.sol";
-import "../governance/ProposalCategory.sol";
 import "../oracles/PriceFeedOracle.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenData.sol";
-import "./PoolData.sol";
+import "./LegacyMCR.sol";
 
-contract MCR is Iupgradable {
+contract MCR is MasterAware {
   using SafeMath for uint;
 
   Pool public pool;
-  PoolData public pd;
-  NXMToken public tk;
   QuotationData public qd;
-  MemberRoles public mr;
-  TokenData public td;
-  ProposalCategory public proposalCategory;
+  // sizeof(qd) + 96 = 160 + 96 = 256 (occupies entire slot)
+  uint96 _unused;
 
-  uint private constant minCapFactor = uint(10) ** 21;
+  // the following values are expressed in basis points
+  uint24 public mcrFloorIncrementThreshold = 13000;
+  uint24 public maxMCRFloorIncrement = 100;
+  uint24 public maxMCRIncrement = 500;
+  uint24 public gearingFactor = 48000;
+  // min update between MCR updates in seconds
+  uint24 public minUpdateTime = 3600;
+  uint112 public mcrFloor;
 
-  uint public variableMincap;
-  uint public dynamicMincapThresholdx100 = 13000;
-  uint public dynamicMincapIncrementx100 = 100;
+  uint112 public mcr;
+  uint112 public desiredMCR;
+  uint32 public lastUpdateTime;
 
-  event MCREvent(
-    uint indexed date,
-    uint blockNumber,
-    bytes4[] allCurr,
-    uint[] allCurrRates,
-    uint mcrEtherx100,
-    uint mcrPercx100,
-    uint vFull
+  LegacyMCR public previousMCR;
+
+  event MCRUpdated(
+    uint mcr,
+    uint desiredMCR,
+    uint mcrFloor,
+    uint mcrETHWithGear,
+    uint totalSumAssured
   );
 
-  constructor (address masterAddress) public {
+  uint constant UINT24_MAX = ~uint24(0);
+  uint constant MAX_MCR_ADJUSTMENT = 100;
+  uint constant BASIS_PRECISION = 10000;
 
+  constructor (address masterAddress) public {
     changeMasterAddress(masterAddress);
 
-    // we'll pass the zero address on the first deploy
-    // due to missing previous MCR contract
-    if (masterAddress == address(0)) {
-      return;
+    if (masterAddress != address(0)) {
+      previousMCR = LegacyMCR(master.getLatestAddress("MC"));
     }
-
-    address mcrAddress = ms.getLatestAddress("MC");
-    MCR previousMCR = MCR(mcrAddress);
-
-    // fetch MCR parameters from previous contract
-    variableMincap = previousMCR.variableMincap();
-    dynamicMincapThresholdx100 = previousMCR.dynamicMincapThresholdx100();
-    dynamicMincapIncrementx100 = previousMCR.dynamicMincapIncrementx100();
-  }
-
-  /**
-   * @dev Adds new MCR data.
-   * @param mcrP  Minimum Capital Requirement in percentage.
-   * @param vF Pool fund value in Ether used in the last full daily calculation of the Capital model.
-   * @param onlyDate  Date(yyyymmdd) at which MCR details are getting added.
-   */
-  function addMCRData(
-    uint mcrP,
-    uint mcrE,
-    uint vF,
-    bytes4[] calldata curr,
-    uint[] calldata _threeDayAvg,
-    uint64 onlyDate
-  )
-  external
-  checkPause
-  {
-    require(proposalCategory.constructorCheck());
-    require(pd.isnotarise(msg.sender));
-    if (mr.launched() && pd.capReached() != 1) {
-
-      if (mcrP >= 10000)
-        pd.setCapReached(1);
-
-    }
-    uint len = pd.getMCRDataLength();
-    _addMCRData(len, onlyDate, curr, mcrE, mcrP, vF, _threeDayAvg);
-  }
-
-  // proxying this call through mcr contract to get rid of pd from pool
-  function getLastMCREther() external view returns (uint) {
-    return pd.getLastMCREther();
   }
 
   /**
    * @dev Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public {
-    qd = QuotationData(ms.getLatestAddress("QD"));
-    pool = Pool(ms.getLatestAddress("P1"));
-    pd = PoolData(ms.getLatestAddress("PD"));
-    tk = NXMToken(ms.tokenAddress());
-    mr = MemberRoles(ms.getLatestAddress("MR"));
-    td = TokenData(ms.getLatestAddress("TD"));
-    proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));
+    qd = QuotationData(master.getLatestAddress("QD"));
+    pool = Pool(master.getLatestAddress("P1"));
+    initialize();
+  }
+
+  function initialize() internal {
+
+    address currentMCR = master.getLatestAddress("MC");
+
+    if (address(previousMCR) == address(0) || currentMCR != address(this)) {
+      // already initialized or not ready for initialization
+      return;
+    }
+
+    // fetch MCR parameters from previous contract
+    uint112 minCap = 7000 * 1e18;
+    mcrFloor = uint112(previousMCR.variableMincap()) + minCap;
+    mcr = uint112(previousMCR.getLastMCREther());
+    desiredMCR = mcr;
+    mcrFloorIncrementThreshold = uint24(previousMCR.dynamicMincapThresholdx100());
+    maxMCRFloorIncrement = uint24(previousMCR.dynamicMincapIncrementx100());
+
+    // set last updated time to now
+    lastUpdateTime = uint32(block.timestamp);
+    previousMCR = LegacyMCR(address(0));
   }
 
   /**
@@ -137,115 +117,152 @@ contract MCR is Iupgradable {
     return ethAmount.add(daiAmountInEth);
   }
 
-  function getThresholdValues(uint vtp, uint vF, uint totalSA, uint minCap) public view returns (uint lowerThreshold, uint upperThreshold)
-  {
-    minCap = (minCap.mul(minCapFactor)).add(variableMincap);
-    uint lower = 0;
-    if (vtp >= vF) {
-      // Max Threshold = [MAX(Vtp, Vfull) x 120] / mcrMinCap
-      upperThreshold = vtp.mul(120).mul(100).div((minCap));
-    } else {
-      upperThreshold = vF.mul(120).mul(100).div((minCap));
-    }
-
-    if (vtp > 0) {
-      lower = totalSA.mul(pd.shockParameter()).div(100);
-      if (lower < minCap.mul(11).div(10))
-        lower = minCap.mul(11).div(10);
-    }
-    if (lower > 0) {
-      // Min Threshold = [Vtp / MAX(TotalActiveSA x ShockParameter, mcrMinCap x 1.1)] x 100
-      lowerThreshold = vtp.mul(100).mul(100).div(lower);
-    }
+  /*
+  * @dev trigger an MCR update. Current virtual MCR value is synced to storage, mcrFloor is potentially updated
+  * and a new desiredMCR value to move towards is set.
+  *
+  */
+  function updateMCR() public {
+    _updateMCR(pool.getPoolValueInEth(), false);
   }
 
-  /**
-   * @dev Gets Uint Parameters of a code
-   * @param code whose details we want
-   * @return string value of the code
-   * @return associated amount (time or perc or value) to the code
-   */
-  function getUintParameters(bytes8 code) external view returns (bytes8 codeVal, uint val) {
-    codeVal = code;
-    if (code == "DMCT") {
-      val = dynamicMincapThresholdx100;
-
-    } else if (code == "DMCI") {
-
-      val = dynamicMincapIncrementx100;
-
-    }
-
+  function updateMCRInternal(uint poolValueInEth, bool forceUpdate) public onlyInternal {
+    _updateMCR(poolValueInEth, forceUpdate);
   }
 
-  /**
-   * @dev Updates Uint Parameters of a code
-   * @param code whose details we want to update
-   * @param val value to set
-   */
-  function updateUintParameters(bytes8 code, uint val) public {
-    require(ms.checkIsAuthToGoverned(msg.sender));
-    if (code == "DMCT") {
-      dynamicMincapThresholdx100 = val;
+  function _updateMCR(uint poolValueInEth, bool forceUpdate) internal {
 
-    } else if (code == "DMCI") {
+    // read with 1 SLOAD
+    uint _mcrFloorIncrementThreshold = mcrFloorIncrementThreshold;
+    uint _maxMCRFloorIncrement = maxMCRFloorIncrement;
+    uint _gearingFactor = gearingFactor;
+    uint _minUpdateTime = minUpdateTime;
+    uint _mcrFloor =  mcrFloor;
 
-      dynamicMincapIncrementx100 = val;
+    // read with 1 SLOAD
+    uint112 _mcr = mcr;
+    uint112 _desiredMCR = desiredMCR;
+    uint32 _lastUpdateTime = lastUpdateTime;
 
-    }
-    else {
-      revert("Invalid param code");
-    }
-
-  }
-
-  /**
-   * @dev Adds MCR Data. Checks if MCR is within valid
-   * thresholds in order to rule out any incorrect calculations
-   */
-  function _addMCRData(
-    uint len,
-    uint64 newMCRDate,
-    bytes4[] memory curr,
-    uint mcrE,
-    uint mcrP,
-    uint vF,
-    uint[] memory _threeDayAvg
-  )
-  internal
-  {
-    uint lowerThreshold = 0;
-    uint upperThreshold = 0;
-
-    if (len > 1) {
-      uint vtp = pool.getPoolValueInEth();
-      (lowerThreshold, upperThreshold) = getThresholdValues(vtp, vF, getAllSumAssurance(), pd.minCap());
-    }
-
-    if (mcrP > dynamicMincapThresholdx100) {
-      variableMincap = (variableMincap.mul(dynamicMincapIncrementx100.add(10000)).add(minCapFactor.mul(pd.minCap().mul(dynamicMincapIncrementx100)))).div(10000);
-    }
-
-    // Explanation for above formula :-
-    // actual formula -> variableMinCap =  variableMinCap + (variableMinCap+minCap)*dynamicMincapIncrement/100
-    // Implemented formula is simplified form of actual formula.
-    // Let consider above formula as b = b + (a+b)*c/100
-    // here, dynamicMincapIncrement is in x100 format.
-    // so b+(a+b)*cx100/10000 can be written as => (10000.b + b.cx100 + a.cx100)/10000.
-    // It can further simplify to (b.(10000+cx100) + a.cx100)/10000.
-    if (len == 1 || (mcrP) >= lowerThreshold && (mcrP) <= upperThreshold) {
-
-      pd.pushMCRData(mcrP, mcrE, vF, newMCRDate);
-
-      for (uint i = 0; i < curr.length; i++) {
-        pd.updateCAAvgRate(curr[i], _threeDayAvg[i]);
-      }
-
-      emit MCREvent(newMCRDate, block.number, curr, _threeDayAvg, mcrE, mcrP, vF);
+    if (!forceUpdate && _lastUpdateTime + _minUpdateTime > block.timestamp) {
       return;
     }
 
-    revert("MCR: Failed");
+    if (block.timestamp > _lastUpdateTime && pool.calculateMCRRatio(poolValueInEth, _mcr) >= _mcrFloorIncrementThreshold) {
+        // MCR floor updates by up to maxMCRFloorIncrement percentage per day whenever the MCR ratio exceeds 1.3
+        // MCR floor is monotonically increasing.
+      uint basisPointsAdjustment = min(
+        _maxMCRFloorIncrement.mul(block.timestamp - _lastUpdateTime).div(1 days),
+        _maxMCRFloorIncrement
+      );
+      uint newMCRFloor = _mcrFloor.mul(basisPointsAdjustment.add(BASIS_PRECISION)).div(BASIS_PRECISION);
+      require(newMCRFloor <= uint112(~0), 'MCR: newMCRFloor overflow');
+
+      mcrFloor = uint112(newMCRFloor);
+    }
+
+    // sync the current virtual MCR value to storage
+    uint112 newMCR = uint112(getMCR());
+    if (newMCR != _mcr) {
+      mcr = newMCR;
+    }
+
+    // the desiredMCR cannot fall below the mcrFloor but may have a higher or lower target value based
+    // on the changes in the totalSumAssured in the system.
+    uint totalSumAssured = getAllSumAssurance();
+    uint gearedMCR = totalSumAssured.mul(BASIS_PRECISION).div(_gearingFactor);
+    uint112 newDesiredMCR = uint112(max(gearedMCR, mcrFloor));
+    if (newDesiredMCR != _desiredMCR) {
+      desiredMCR = newDesiredMCR;
+    }
+
+    lastUpdateTime = uint32(block.timestamp);
+
+    emit MCRUpdated(mcr, desiredMCR, mcrFloor, gearedMCR, totalSumAssured);
   }
 
+  /**
+   * @dev Calculates the current virtual MCR value. The virtual MCR value moves towards the desiredMCR value away
+   * from the stored mcr value at constant velocity based on how much time passed from the lastUpdateTime.
+   * The total change in virtual MCR cannot exceed 1% of stored mcr.
+   *
+   * This approach allows for the MCR to change smoothly across time without sudden jumps between values, while
+   * always progressing towards the desiredMCR goal. The desiredMCR can change subject to the call of _updateMCR
+   * so the virtual MCR value may change direction and start decreasing instead of increasing or vice-versa.
+   *
+   * @return mcr
+   */
+  function getMCR() public view returns (uint) {
+
+    // read with 1 SLOAD
+    uint _mcr = mcr;
+    uint _desiredMCR = desiredMCR;
+    uint _lastUpdateTime = lastUpdateTime;
+
+
+    if (block.timestamp == _lastUpdateTime) {
+      return _mcr;
+    }
+
+    uint _maxMCRIncrement = maxMCRIncrement;
+
+    uint basisPointsAdjustment = _maxMCRIncrement.mul(block.timestamp - _lastUpdateTime).div(1 days);
+    basisPointsAdjustment = min(basisPointsAdjustment, MAX_MCR_ADJUSTMENT);
+
+    if (_desiredMCR > _mcr) {
+      return min(_mcr.mul(basisPointsAdjustment.add(BASIS_PRECISION)).div(BASIS_PRECISION), _desiredMCR);
+    }
+
+    // in case desiredMCR <= mcr
+    return max(_mcr.mul(BASIS_PRECISION - basisPointsAdjustment).div(BASIS_PRECISION), _desiredMCR);
+  }
+
+  function getGearedMCR() external view returns (uint) {
+    return getAllSumAssurance().mul(BASIS_PRECISION).div(gearingFactor);
+  }
+
+  function min(uint x, uint y) pure internal returns (uint) {
+    return x < y ? x : y;
+  }
+
+  function max(uint x, uint y) pure internal returns (uint) {
+    return x > y ? x : y;
+  }
+
+  /**
+   * @dev Updates Uint Parameters
+   * @param code parameter code
+   * @param val new value
+   */
+  function updateUintParameters(bytes8 code, uint val) public {
+    require(master.checkIsAuthToGoverned(msg.sender));
+    if (code == "DMCT") {
+
+      require(val <= UINT24_MAX, "MCR: value too large");
+      mcrFloorIncrementThreshold = uint24(val);
+
+    } else if (code == "DMCI") {
+
+      require(val <= UINT24_MAX, "MCR: value too large");
+      maxMCRFloorIncrement = uint24(val);
+
+    } else if (code == "MMIC") {
+
+      require(val <= UINT24_MAX, "MCR: value too large");
+      maxMCRIncrement = uint24(val);
+
+    } else if (code == "GEAR") {
+
+      require(val <= UINT24_MAX, "MCR: value too large");
+      gearingFactor = uint24(val);
+
+    } else if (code == "MUTI") {
+
+      require(val <= UINT24_MAX, "MCR: value too large");
+      minUpdateTime = uint24(val);
+
+    } else {
+      revert("Invalid param code");
+    }
+  }
 }

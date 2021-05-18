@@ -50,21 +50,6 @@ export interface ClaimsInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
 
-  getClaimFromNewStart(
-    index: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<[BN, BN, BN, BN, BN]>;
-
-  getClaimbyIndex(
-    _claimId: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<[BN, BN, BN, string, BN]>;
-
-  getUserClaimByIndex(
-    index: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<[BN, BN, BN]>;
-
   ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
@@ -228,21 +213,6 @@ export interface ClaimsInstance extends Truffle.ContractInstance {
       member: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
-
-    getClaimFromNewStart(
-      index: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<[BN, BN, BN, BN, BN]>;
-
-    getClaimbyIndex(
-      _claimId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<[BN, BN, BN, string, BN]>;
-
-    getUserClaimByIndex(
-      index: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<[BN, BN, BN]>;
 
     ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
 

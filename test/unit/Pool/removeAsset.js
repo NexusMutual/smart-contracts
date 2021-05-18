@@ -47,10 +47,7 @@ describe('removeAsset', function () {
       await pool.removeAsset(dai.address, { from: governance });
 
       const assetDetails = await pool.getAssetDetails(dai.address);
-      const { balance, min, max, maxSlippageRatio, lastAssetSwapTime } = assetDetails;
-
-      const expectedBalance = await dai.balanceOf(pool.address);
-      assert.strictEqual(balance.toString(), expectedBalance.toString());
+      const { min, max, maxSlippageRatio, lastAssetSwapTime } = assetDetails;
 
       assert.strictEqual(min.toString(), '0');
       assert.strictEqual(max.toString(), '0');
@@ -65,10 +62,7 @@ describe('removeAsset', function () {
     {
       // check that token was unaffected by dai removal
       const assetDetails = await pool.getAssetDetails(token.address);
-      const { balance, min, max, maxSlippageRatio, lastAssetSwapTime } = assetDetails;
-
-      const expectedBalance = await token.balanceOf(pool.address);
-      assert.strictEqual(balance.toString(), expectedBalance.toString());
+      const { min, max, maxSlippageRatio, lastAssetSwapTime } = assetDetails;
 
       assert.strictEqual(min.toString(), '1');
       assert.strictEqual(max.toString(), '2');
@@ -85,10 +79,7 @@ describe('removeAsset', function () {
       await pool.removeAsset(token.address, { from: governance });
 
       const assetDetails = await pool.getAssetDetails(token.address);
-      const { balance, min, max, maxSlippageRatio, lastAssetSwapTime } = assetDetails;
-
-      const expectedBalance = await token.balanceOf(pool.address);
-      assert.strictEqual(balance.toString(), expectedBalance.toString());
+      const { min, max, maxSlippageRatio, lastAssetSwapTime } = assetDetails;
 
       assert.strictEqual(min.toString(), '0');
       assert.strictEqual(max.toString(), '0');

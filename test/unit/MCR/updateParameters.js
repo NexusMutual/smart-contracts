@@ -16,14 +16,13 @@ const {
 describe('updateUintParameters', function () {
 
   it('should revert when called by non governance addresses', async function () {
-    const { pool } = this;
-    const param = MCRUintParamType.dynamicMincapThresholdx100;
+    const { mcr } = this;
+    const param = MCRUintParamType.mcrFloorIncrementThreshold;
     const nonGov = [nonMember, member, advisoryBoardMember, internalContract];
 
     for (const address of nonGov) {
-      await expectRevert(
-        pool.updateUintParameters(param, 0, { from: address }),
-        'Caller is not authorized to govern',
+      await expectRevert.unspecified(
+        mcr.updateUintParameters(param, 0, { from: address }),
       );
     }
   });

@@ -143,7 +143,7 @@ describe('send claim payout to the payout address', function () {
 
     // create a consensus not reached situation, 66% accept vs 33% deny
     await cl.submitCAVote(claimId, '1', { from: member1 });
-    await cl.submitCAVote(claimId, '-1', { from: member2 });
+    await cl.submitCAVote(claimId, toBN('-1'), { from: member2 });
     await cl.submitCAVote(claimId, '1', { from: member3 });
 
     const maxVotingTime = await cd.maxVotingTime();
@@ -196,7 +196,7 @@ describe('send claim payout to the payout address', function () {
 
     // create a consensus not reached situation, 66% accept vs 33% deny
     await cl.submitCAVote(claimId, '1', { from: member1 });
-    await cl.submitCAVote(claimId, '-1', { from: member2 });
+    await cl.submitCAVote(claimId, toBN('-1'), { from: member2 });
     await cl.submitCAVote(claimId, '1', { from: member3 });
 
     const maxVotingTime = await cd.maxVotingTime();
@@ -249,7 +249,7 @@ describe('send claim payout to the payout address', function () {
 
     // create a consensus not reached situation, 66% accept vs 33% deny
     await cl.submitCAVote(claimId, '1', { from: member1 });
-    await cl.submitCAVote(claimId, '-1', { from: member2 });
+    await cl.submitCAVote(claimId, toBN('-1'), { from: member2 });
     await cl.submitCAVote(claimId, '1', { from: member3 });
 
     const maxVotingTime = await cd.maxVotingTime();

@@ -21,18 +21,18 @@ import "../token/NXMToken.sol";
 import "../token/TokenController.sol";
 import "../token/TokenFunctions.sol";
 import "./ClaimsData.sol";
+import "./Incidents.sol";
 
 contract Claims is Iupgradable {
   using SafeMath for uint;
 
-  TokenFunctions internal tf;
-  NXMToken internal tk;
   TokenController internal tc;
   ClaimsReward internal cr;
   Pool internal p1;
   ClaimsData internal cd;
   TokenData internal td;
   QuotationData internal qd;
+  Incidents internal incidents;
 
   uint private constant DECIMAL1E18 = uint(10) ** 18;
 
@@ -43,67 +43,6 @@ contract Claims is Iupgradable {
    */
   function setClaimStatus(uint claimId, uint stat) external onlyInternal {
     _setClaimStatus(claimId, stat);
-  }
-
-  /**
-   * @dev Gets claim details of claim id = pending claim start + given index
-   */
-  function getClaimFromNewStart(
-    uint index
-  )
-  external
-  view
-  returns (
-    uint coverId,
-    uint claimId,
-    int8 voteCA,
-    int8 voteMV,
-    uint statusnumber
-  )
-  {
-    (coverId, claimId, voteCA, voteMV, statusnumber) = cd.getClaimFromNewStart(index, msg.sender);
-  }
-
-  /**
-   * @dev Gets details of a claim submitted by the calling user, at a given index
-   */
-  function getUserClaimByIndex(
-    uint index
-  )
-  external
-  view
-  returns (
-    uint status,
-    uint coverId,
-    uint claimId
-  )
-  {
-    uint statusno;
-    (statusno, coverId, claimId) = cd.getUserClaimByIndex(index, msg.sender);
-    status = statusno;
-  }
-
-  /**
-   * @dev Gets details of a given claim id.
-   * @param _claimId Claim Id.
-   * @return status Current status of claim id
-   * @return finalVerdict Decision made on the claim, 1 -> acceptance, -1 -> denial
-   * @return claimOwner Address through which claim is submitted
-   * @return coverId Coverid associated with the claim id
-   */
-  function getClaimbyIndex(uint _claimId) external view returns (
-    uint claimId,
-    uint status,
-    int8 finalVerdict,
-    address claimOwner,
-    uint coverId
-  )
-  {
-    uint stat;
-    claimId = _claimId;
-    (, coverId, finalVerdict, stat,,) = cd.getClaim(_claimId);
-    claimOwner = qd.getCoverMemberAddress(coverId);
-    status = stat;
   }
 
   /**
@@ -136,14 +75,13 @@ contract Claims is Iupgradable {
    * Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public onlyInternal {
-    tk = NXMToken(ms.tokenAddress());
     td = TokenData(ms.getLatestAddress("TD"));
-    tf = TokenFunctions(ms.getLatestAddress("TF"));
     tc = TokenController(ms.getLatestAddress("TC"));
     p1 = Pool(ms.getLatestAddress("P1"));
     cr = ClaimsReward(ms.getLatestAddress("CR"));
     cd = ClaimsData(ms.getLatestAddress("CD"));
     qd = QuotationData(ms.getLatestAddress("QD"));
+    incidents = Incidents(ms.getLatestAddress("IC"));
   }
 
   /**
@@ -162,6 +100,10 @@ contract Claims is Iupgradable {
   function _submitClaim(uint coverId, address member) internal {
 
     require(!ms.isPause(), "Claims: System is paused");
+
+    (/* id */, address contractAddress) = qd.getscAddressOfCover(coverId);
+    address token = incidents.coveredToken(contractAddress);
+    require(token == address(0), "Claims: Product type does not allow claims");
 
     address coverOwner = qd.getCoverMemberAddress(coverId);
     require(coverOwner == member, "Claims: Not cover owner");

@@ -26,13 +26,13 @@ import "../token/TokenData.sol";
 import "../token/TokenFunctions.sol";
 import "./Claims.sol";
 import "./ClaimsData.sol";
+import "../capital/MCR.sol";
 
 contract ClaimsReward is Iupgradable {
   using SafeMath for uint;
 
   NXMToken internal tk;
   TokenController internal tc;
-  TokenFunctions internal tf;
   TokenData internal td;
   QuotationData internal qd;
   Claims internal c1;
@@ -41,6 +41,7 @@ contract ClaimsReward is Iupgradable {
   Governance internal gv;
   IPooledStaking internal pooledStaking;
   MemberRoles internal memberRoles;
+  MCR public mcr;
 
   // assigned in constructor
   address public DAI;
@@ -60,12 +61,12 @@ contract ClaimsReward is Iupgradable {
     tk = NXMToken(ms.tokenAddress());
     tc = TokenController(ms.getLatestAddress("TC"));
     td = TokenData(ms.getLatestAddress("TD"));
-    tf = TokenFunctions(ms.getLatestAddress("TF"));
     qd = QuotationData(ms.getLatestAddress("QD"));
     gv = Governance(ms.getLatestAddress("GV"));
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
     memberRoles = MemberRoles(ms.getLatestAddress("MR"));
     pool = Pool(ms.getLatestAddress("P1"));
+    mcr = MCR(ms.getLatestAddress("MC"));
   }
 
   /// @dev Decides the next course of action for a given claim.
@@ -136,6 +137,8 @@ contract ClaimsReward is Iupgradable {
       qd.subFromTotalSumAssured(coverCurrency, sumAssured);
       qd.subFromTotalSumAssuredSC(coverContract, coverCurrency, sumAssured);
 
+      // update MCR since total sum assured and MCR% change
+      mcr.updateMCRInternal(pool.getPoolValueInEth(), true);
       return true;
     }
 
@@ -316,20 +319,48 @@ contract ClaimsReward is Iupgradable {
 
       cd.changeFinalVerdict(claimid, -1);
       tc.markCoverClaimClosed(coverid, false);
-      tf.burnDepositCN(coverid); // burn Deposited CN
+      _burnCoverNoteDeposit(coverid);
 
     // accepted
     } else if (status == 7 || status == 8 || status == 10) {
 
       cd.changeFinalVerdict(claimid, 1);
       tc.markCoverClaimClosed(coverid, true);
-      tf.unlockCN(coverid);
+      _unlockCoverNote(coverid);
 
       bool payoutSucceeded = attemptClaimPayout(coverid);
 
       // 12 = payout pending, 14 = payout succeeded
       uint nextStatus = payoutSucceeded ? 14 : 12;
       c1.setClaimStatus(claimid, nextStatus);
+    }
+  }
+
+  function _burnCoverNoteDeposit(uint coverId) internal {
+
+    address _of = qd.getCoverMemberAddress(coverId);
+    bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
+    uint lockedAmount = tc.tokensLocked(_of, reason);
+
+    (uint amount,) = td.depositedCN(coverId);
+    amount = amount.div(2);
+
+    // limit burn amount to actual amount locked
+    uint burnAmount = lockedAmount < amount ? lockedAmount : amount;
+
+    if (burnAmount != 0) {
+      tc.burnLockedTokens(_of, reason, amount);
+    }
+  }
+
+  function _unlockCoverNote(uint coverId) internal {
+
+    address coverHolder = qd.getCoverMemberAddress(coverId);
+    bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, coverId));
+    uint lockedCN = tc.tokensLocked(coverHolder, reason);
+
+    if (lockedCN != 0) {
+      tc.releaseLockedTokens(coverHolder, reason, lockedCN);
     }
   }
 

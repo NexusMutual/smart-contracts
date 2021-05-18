@@ -16,52 +16,37 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../capital/MCR.sol";
-import "../capital/PoolData.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "../../abstract/MasterAware.sol";
+import "../capital/Pool.sol";
 import "../claims/ClaimsReward.sol";
-import "../governance/MemberRoles.sol";
+import "../claims/Incidents.sol";
 import "../token/TokenController.sol";
 import "../token/TokenData.sol";
-import "../token/TokenFunctions.sol";
 import "./QuotationData.sol";
 
-contract Quotation is Iupgradable {
+contract Quotation is MasterAware, ReentrancyGuard {
   using SafeMath for uint;
 
-  TokenFunctions public tf;
+  ClaimsReward public cr;
+  Pool public pool;
+  IPooledStaking public pooledStaking;
+  QuotationData public qd;
   TokenController public tc;
   TokenData public td;
-  Pool public pool;
-  PoolData public pd;
-  QuotationData public qd;
-  MCR public m1;
-  MemberRoles public mr;
-  ClaimsReward public cr;
-
-  bool internal locked;
-
-  event RefundEvent(address indexed user, bool indexed status, uint holdedCoverID, bytes32 reason);
-
-  modifier noReentrancy() {
-    require(!locked, "Reentrant call.");
-    locked = true;
-    _;
-    locked = false;
-  }
+  Incidents public incidents;
 
   /**
    * @dev Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public onlyInternal {
-    m1 = MCR(ms.getLatestAddress("MC"));
-    tf = TokenFunctions(ms.getLatestAddress("TF"));
-    tc = TokenController(ms.getLatestAddress("TC"));
-    td = TokenData(ms.getLatestAddress("TD"));
-    qd = QuotationData(ms.getLatestAddress("QD"));
-    pd = PoolData(ms.getLatestAddress("PD"));
-    mr = MemberRoles(ms.getLatestAddress("MR"));
-    cr = ClaimsReward(ms.getLatestAddress("CR"));
-    pool = Pool(ms.getLatestAddress("P1"));
+    cr = ClaimsReward(master.getLatestAddress("CR"));
+    pool = Pool(master.getLatestAddress("P1"));
+    pooledStaking = IPooledStaking(master.getLatestAddress("PS"));
+    qd = QuotationData(master.getLatestAddress("QD"));
+    tc = TokenController(master.getLatestAddress("TC"));
+    td = TokenData(master.getLatestAddress("TD"));
+    incidents = Incidents(master.getLatestAddress("IC"));
   }
 
   // solhint-disable-next-line no-empty-blocks
@@ -156,19 +141,15 @@ contract Quotation is Iupgradable {
    * @param smartCAdd Smart Contract Address
    */
   function makeCoverUsingNXMTokens(
-    uint[] memory coverDetails,
+    uint[] calldata coverDetails,
     uint16 coverPeriod,
     bytes4 coverCurr,
     address smartCAdd,
     uint8 _v,
     bytes32 _r,
     bytes32 _s
-  )
-  public
-  isMemberAndcheckPause
-  {
-
-    tc.burnFrom(msg.sender, coverDetails[2]); // need burn allowance
+  ) external onlyMember whenNotPaused {
+    tc.burnFrom(msg.sender, coverDetails[2]); // needs allowance
     _verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s, true);
   }
 
@@ -186,10 +167,7 @@ contract Quotation is Iupgradable {
     uint8 _v,
     bytes32 _r,
     bytes32 _s
-  )
-  public
-  onlyInternal
-  {
+  ) public onlyInternal {
     _verifyCoverDetails(
       from,
       scAddress,
@@ -207,27 +185,22 @@ contract Quotation is Iupgradable {
    * @dev Verifies signature.
    * @param coverDetails details related to cover.
    * @param coverPeriod validity of cover.
-   * @param smaratCA smarat contract address.
+   * @param contractAddress smart contract address.
    * @param _v argument from vrs hash.
    * @param _r argument from vrs hash.
    * @param _s argument from vrs hash.
    */
-  function verifySign(
+  function verifySignature(
     uint[] memory coverDetails,
     uint16 coverPeriod,
-    bytes4 curr,
-    address smaratCA,
+    bytes4 currency,
+    address contractAddress,
     uint8 _v,
     bytes32 _r,
     bytes32 _s
-  )
-  public
-  view
-  returns (bool)
-  {
-    require(smaratCA != address(0));
-    require(pd.capReached() == 1, "Can not buy cover until cap reached for 1st time");
-    bytes32 hash = getOrderHash(coverDetails, coverPeriod, curr, smaratCA);
+  ) public view returns (bool) {
+    require(contractAddress != address(0));
+    bytes32 hash = getOrderHash(coverDetails, coverPeriod, currency, contractAddress);
     return isValidSignature(hash, _v, _r, _s);
   }
 
@@ -235,23 +208,20 @@ contract Quotation is Iupgradable {
    * @dev Gets order hash for given cover details.
    * @param coverDetails details realted to cover.
    * @param coverPeriod validity of cover.
-   * @param smaratCA smarat contract address.
+   * @param contractAddress smart contract address.
    */
   function getOrderHash(
     uint[] memory coverDetails,
     uint16 coverPeriod,
-    bytes4 curr,
-    address smaratCA
-  )
-  public
-  view
-  returns (bytes32)
-  {
+    bytes4 currency,
+    address contractAddress
+  ) public view returns (bytes32) {
     return keccak256(
       abi.encodePacked(
         coverDetails[0],
-        curr, coverPeriod,
-        smaratCA,
+        currency,
+        coverPeriod,
+        contractAddress,
         coverDetails[1],
         coverDetails[2],
         coverDetails[3],
@@ -276,77 +246,59 @@ contract Quotation is Iupgradable {
   }
 
   /**
-   * @dev to get the verdict of kyc process
-   * @param status is the kyc status
-   * @param _add is the address of member
-   */
-  function kycVerdict(address _add, bool status) public checkPause noReentrancy {
-    require(msg.sender == qd.kycAuthAddress());
-    _kycTrigger(status, _add);
-  }
-
-  /**
-   * @dev transfering Ethers to newly created quotation contract.
-   */
-  function transferAssetsToNewContract(address newAdd) public onlyInternal noReentrancy {
-    uint amount = address(this).balance;
-    IERC20 erc20;
-    if (amount > 0) {
-      // newAdd.transfer(amount);
-      Quotation newQT = Quotation(newAdd);
-      newQT.sendEther.value(amount)();
-    }
-    uint currAssetLen = pd.getAllCurrenciesLen();
-    for (uint64 i = 1; i < currAssetLen; i++) {
-      bytes4 currName = pd.getCurrenciesByIndex(i);
-      address currAddr = pd.getCurrencyAssetAddress(currName);
-      erc20 = IERC20(currAddr); // solhint-disable-line
-      if (erc20.balanceOf(address(this)) > 0) {
-        require(erc20.transfer(newAdd, erc20.balanceOf(address(this))));
-      }
-    }
-  }
-
-
-  /**
    * @dev Creates cover of the quotation, changes the status of the quotation ,
    * updates the total sum assured and locks the tokens of the cover against a quote.
    * @param from Quote member Ethereum address.
    */
-
   function _makeCover(//solhint-disable-line
     address payable from,
-    address scAddress,
-    bytes4 coverCurr,
+    address contractAddress,
+    bytes4 coverCurrency,
     uint[] memory coverDetails,
     uint16 coverPeriod
-  )
-  internal
-  {
+  ) internal {
+
+    address underlyingToken = incidents.underlyingToken(contractAddress);
+
+    if (underlyingToken != address(0)) {
+      address coverAsset = cr.getCurrencyAssetAddress(coverCurrency);
+      require(coverAsset == underlyingToken, "Quotation: Unsupported cover asset for this product");
+    }
+
     uint cid = qd.getCoverLength();
 
     qd.addCover(
       coverPeriod,
       coverDetails[0],
       from,
-      coverCurr,
-      scAddress,
+      coverCurrency,
+      contractAddress,
       coverDetails[1],
       coverDetails[2]
     );
 
     uint coverNoteAmount = coverDetails[2].mul(qd.tokensRetained()).div(100);
-    uint gracePeriod = tc.claimSubmissionGracePeriod();
-    uint claimSubmissionPeriod = uint(coverPeriod).mul(1 days).add(gracePeriod);
-    bytes32 reason = keccak256(abi.encodePacked("CN", from, cid));
 
-    td.setDepositCNAmount(cid, coverNoteAmount);
-    tc.mintCoverNote(from, reason, coverNoteAmount, claimSubmissionPeriod);
+    if (underlyingToken == address(0)) {
+      uint gracePeriod = tc.claimSubmissionGracePeriod();
+      uint claimSubmissionPeriod = uint(coverPeriod).mul(1 days).add(gracePeriod);
+      bytes32 reason = keccak256(abi.encodePacked("CN", from, cid));
 
-    qd.addInTotalSumAssured(coverCurr, coverDetails[0]);
-    qd.addInTotalSumAssuredSC(scAddress, coverCurr, coverDetails[0]);
+      // mint and lock cover note
+      td.setDepositCNAmount(cid, coverNoteAmount);
+      tc.mintCoverNote(from, reason, coverNoteAmount, claimSubmissionPeriod);
+    } else {
+      // minted directly to member's wallet
+      tc.mint(from, coverNoteAmount);
+    }
 
-    tf.pushStakerRewards(scAddress, coverDetails[2]);
+    qd.addInTotalSumAssured(coverCurrency, coverDetails[0]);
+    qd.addInTotalSumAssuredSC(contractAddress, coverCurrency, coverDetails[0]);
+
+    uint coverPremiumInNXM = coverDetails[2];
+    uint stakersRewardPercentage = td.stakerCommissionPer();
+    uint rewardValue = coverPremiumInNXM.mul(stakersRewardPercentage).div(100);
+    pooledStaking.accumulateReward(contractAddress, rewardValue);
   }
 
   /**
@@ -365,98 +317,76 @@ contract Quotation is Iupgradable {
     bytes32 _s,
     bool isNXM
   ) internal {
-    require(coverDetails[3] > now);
-    require(!qd.timestampRepeated(coverDetails[4]));
-    qd.setTimestampRepeated(coverDetails[4]);
+
+    require(coverDetails[3] > now, "Quotation: Quote has expired");
     require(coverPeriod >= 30 && coverPeriod <= 365, "Quotation: Cover period out of bounds");
+    require(!qd.timestampRepeated(coverDetails[4]), "Quotation: Quote already used");
+    qd.setTimestampRepeated(coverDetails[4]);
 
     address asset = cr.getCurrencyAssetAddress(coverCurr);
     if (coverCurr != "ETH" && !isNXM) {
       pool.transferAssetFrom(asset, from, coverDetails[1]);
     }
 
-    require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s));
+    require(verifySignature(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s), "Quotation: signature mismatch");
     _makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);
   }
 
   function createCover(
     address payable from,
     address scAddress,
-    bytes4 coverCurr,
-    uint[] memory coverDetails,
+    bytes4 currency,
+    uint[] calldata coverDetails,
     uint16 coverPeriod,
     uint8 _v,
     bytes32 _r,
     bytes32 _s
-  ) public onlyInternal {
-    require(coverDetails[3] > now, "Quotation: quote is expired");
-    require(!qd.timestampRepeated(coverDetails[4]), "Quotation: quote already used");
-    qd.setTimestampRepeated(coverDetails[4]);
-    require(coverPeriod >= 30 && coverPeriod <= 365, "Quotation: Cover period out of bounds");
+  ) external onlyInternal {
 
-    require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s), "Quotation: signature mismatch");
-    _makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);
+    require(coverDetails[3] > now, "Quotation: Quote has expired");
+    require(coverPeriod >= 30 && coverPeriod <= 365, "Quotation: Cover period out of bounds");
+    require(!qd.timestampRepeated(coverDetails[4]), "Quotation: Quote already used");
+    qd.setTimestampRepeated(coverDetails[4]);
+
+    require(verifySignature(coverDetails, coverPeriod, currency, scAddress, _v, _r, _s), "Quotation: signature mismatch");
+    _makeCover(from, scAddress, currency, coverDetails, coverPeriod);
   }
 
-  /**
-   * @dev to trigger the kyc process
-   * @param status is the kyc status
-   * @param _add is the address of member
-   */
-  function _kycTrigger(bool status, address _add) internal {
+  // referenced in master, keeping for now
+  // solhint-disable-next-line no-empty-blocks
+  function transferAssetsToNewContract(address) external pure {}
 
-    uint holdedCoverLen = qd.getUserHoldedCoverLength(_add).sub(1);
-    uint holdedCoverID = qd.getUserHoldedCoverByIndex(_add, holdedCoverLen);
-    address payable userAdd;
-    address scAddress;
-    bytes4 coverCurr;
-    uint16 coverPeriod;
-    uint[]  memory coverDetails = new uint[](4);
-    IERC20 erc20;
+  function freeUpHeldCovers() external nonReentrant {
 
-    (, userAdd, coverDetails) = qd.getHoldedCoverDetailsByID2(holdedCoverID);
-    (, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
-    require(qd.refundEligible(userAdd));
-    qd.setRefundEligible(userAdd, false);
-    require(qd.holdedCoverIDStatus(holdedCoverID) == uint(QuotationData.HCIDStatus.kycPending));
-    uint joinFee = td.joiningFee();
-    if (status) {
-      mr.payJoiningFee.value(joinFee)(userAdd);
-      if (coverDetails[3] > now) {
-        qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPass));
-        if (coverCurr == "ETH") {
-          // solhint-disable-next-line avoid-low-level-calls, avoid-call-value
-          (bool ok,) = address(pool).call.value(coverDetails[1])("");
-          require(ok, "Quotation: ether transfer to pool failed");
-        } else {
-          erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr)); // solhint-disable-line
-          require(erc20.transfer(address(pool), coverDetails[1]));
-        }
-        emit RefundEvent(userAdd, status, holdedCoverID, "KYC Passed");
-        _makeCover(userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
+    IERC20 dai = IERC20(cr.getCurrencyAssetAddress("DAI"));
+    uint membershipFee = td.joiningFee();
+    uint lastCoverId = 106;
 
-      } else {
-        qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPassNoCover));
-        if (coverCurr == "ETH") {
-          userAdd.transfer(coverDetails[1]);
-        } else {
-          erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr)); // solhint-disable-line
-          require(erc20.transfer(userAdd, coverDetails[1]));
-        }
-        emit RefundEvent(userAdd, status, holdedCoverID, "Cover Failed");
+    for (uint id = 1; id <= lastCoverId; id++) {
+
+      if (qd.holdedCoverIDStatus(id) != uint(QuotationData.HCIDStatus.kycPending)) {
+        continue;
       }
-    } else {
-      qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycFailedOrRefunded));
-      uint totalRefund = joinFee;
-      if (coverCurr == "ETH") {
-        totalRefund = coverDetails[1].add(joinFee);
-      } else {
-        erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr)); // solhint-disable-line
-        require(erc20.transfer(userAdd, coverDetails[1]));
+
+      (/*id*/, /*sc*/, bytes4 currency, /*period*/) = qd.getHoldedCoverDetailsByID1(id);
+      (/*id*/, address payable userAddress, uint[] memory coverDetails) = qd.getHoldedCoverDetailsByID2(id);
+
+      uint refundedETH = membershipFee;
+      uint coverPremium = coverDetails[1];
+
+      if (qd.refundEligible(userAddress)) {
+        qd.setRefundEligible(userAddress, false);
       }
-      userAdd.transfer(totalRefund);
-      emit RefundEvent(userAdd, status, holdedCoverID, "KYC Failed");
+
+      qd.setHoldedCoverIDStatus(id, uint(QuotationData.HCIDStatus.kycFailedOrRefunded));
+
+      if (currency == "ETH") {
+        refundedETH = refundedETH.add(coverPremium);
+      } else {
+        require(dai.transfer(userAddress, coverPremium), "Quotation: DAI refund transfer failed");
+      }
+
+      userAddress.transfer(refundedETH);
     }
-
   }
 }

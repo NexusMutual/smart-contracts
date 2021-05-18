@@ -4,6 +4,7 @@ const { buyCover } = require('../utils/buyCover');
 const { enrollMember } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 const { Role } = require('../utils').constants;
+const { MAX_UINT256 } = require('@openzeppelin/test-helpers').constants;
 
 const [, member1, member2, nonMember1, nonMember2] = accounts;
 const coverTemplate = {
@@ -29,7 +30,7 @@ describe('switchMembership', function () {
 
     const newMemberAddress = nonMember1;
 
-    await token.approve(memberRoles.address, -1, { from: member1 });
+    await token.approve(memberRoles.address, MAX_UINT256, { from: member1 });
     await memberRoles.switchMembership(newMemberAddress, { from: member1 });
     const oldAddressHasRole = await memberRoles.checkRole(member1, Role.Member);
     assert(!oldAddressHasRole);

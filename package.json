@@ -65,6 +65,7 @@
     "dev": "nodemon --ext js,sol -x 'hardhat test test/index.js --show-stack-traces'",
     "dev-integration": "nodemon --ext js,sol -x 'hardhat test test/integration/index.js --show-stack-traces'",
     "dev-unit": "nodemon --ext js,sol -x 'hardhat test test/unit/index.js --show-stack-traces'",
+    "coverage": "NODE_OPTIONS='--max-old-space-size=8192' hardhat coverage",
     "test": "hardhat test test/index.js",
     "test-integration": "hardhat test test/integration/index.js",
     "test-unit": "hardhat test test/unit/index.js",

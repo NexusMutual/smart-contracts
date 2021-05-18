@@ -15,7 +15,6 @@
 
 pragma solidity ^0.5.0;
 
-import "hardhat/console.sol";
 import "@uniswap/lib/contracts/libraries/FixedPoint.sol";
 import "@uniswap/v2-periphery/contracts/libraries/UniswapV2OracleLibrary.sol";
 
@@ -83,11 +82,8 @@ contract TwapOracle {
 
       // note: not reusing canUpdate() because we need the bucket variable
       address pair = pairs[i];
-      console.log("pair %s", pair);
       uint index = timestampToIndex(block.timestamp);
       Bucket storage bucket = buckets[pair][index];
-      console.log("price0Cumulative %s", bucket.price0Cumulative);
-      console.log("price1Cumulative %s", bucket.price1Cumulative);
 
       if (block.timestamp - bucket.timestamp < periodSize) {
         continue;

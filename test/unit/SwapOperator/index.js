@@ -17,10 +17,9 @@ describe('SwapOperator unit tests', function () {
   require('./swapAssetForETH');
   require('./swapETHForStETH');
 
-  describe('TwapOracle', function () {
-    require('./consult');
-    require('./currentBucketIndex');
-    require('./pairFor');
-    require('./update');
-  });
+  // TwapOracle
+  require('./consult');
+  require('./currentBucketIndex');
+  require('./pairFor');
+  require('./update');
 });

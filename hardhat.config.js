@@ -54,20 +54,9 @@ const getenv = (network, key, fallback, parser = i => i) => {
 };
 
 for (const network of ['MAINNET', 'KOVAN']) {
-  const url = getenv(network, 'PROVIDER_URL', false);
-  if (!url) continue;
-  const accounts = getenv(network, 'ACCOUNT_KEY', undefined, v =>
-    v.split(/[^0-9a-fx]+/i),
-  );
-  const gasPrice = getenv(
-    network,
-    'GAS_PRICE',
-    undefined,
-    v => parseInt(v, 10) * 1e9,
-  );
-  const gasLimit = getenv(network, 'GAS_LIMIT', undefined, v =>
-    parseInt(v, 10),
-  );
+  const accounts = getenv(network, 'ACCOUNT_KEY', undefined, v => v.split(/[^0-9a-fx]+/i));
+  const gasPrice = getenv(network, 'GAS_PRICE', undefined, v => parseInt(v, 10) * 1e9);
+  const gasLimit = getenv(network, 'GAS_LIMIT', undefined, v => parseInt(v, 10));
   networks[network.toLowerCase()] = { accounts, gasPrice, gasLimit, url };
 }
 

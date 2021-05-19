@@ -22,6 +22,7 @@ const NXMToken = artifacts.require('NXMToken');
 const Governance = artifacts.require('Governance');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const Quotation = artifacts.require('Quotation');
+const Claims = artifacts.require('Claims');
 const MCR = artifacts.require('MCR');
 const LegacyMCR = artifacts.require('LegacyMCR');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
@@ -137,8 +138,6 @@ describe('MCR on-chain migration', function () {
     /* PoolData data */
     const minCap = await poolData.minCap();
 
-    console.log('Deploying contracts');
-
     /*
       Upgraded non-proxy contracts:  MCR, Pool, ClaimsReward, Quotation
       Upgraded proxy contracts:      Gateway
@@ -148,9 +147,10 @@ describe('MCR on-chain migration', function () {
 
     console.log('Deploying contracts');
 
-    const newMCR = await MCR.new(master.address);
-    const newClaimsReward = await ClaimsReward.new(master.address, Address.DAI);
-    const newQuotation = await Quotation.new();
+    const mcr = await MCR.new(master.address);
+    const claimsReward = await ClaimsReward.new(master.address, Address.DAI);
+    const quotation = await Quotation.new();
+    const claims = await Claims.new();
 
     const oldPriceFeedOracle = await PriceFeedOracle.at(await oldPool.priceFeedOracle());
     const daiAggregator = await oldPriceFeedOracle.aggregators(dai.address);
@@ -207,8 +207,8 @@ describe('MCR on-chain migration', function () {
     const upgradeNonProxyData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
       [
-        ['MC', 'QT', 'CR', 'P1'].map(hex),
-        [newMCR, newQuotation, newClaimsReward, pool].map(c => c.address),
+        ['MC', 'QT', 'CR', 'P1', 'CL'].map(hex),
+        [mcr, quotation, claimsReward, pool, claims].map(c => c.address),
       ],
     );
 
@@ -239,18 +239,20 @@ describe('MCR on-chain migration', function () {
     const storedMCRAddress = await master.getLatestAddress(hex('MC'));
     const storedCRAddress = await master.getLatestAddress(hex('CR'));
     const storedQTAddress = await master.getLatestAddress(hex('QT'));
+    const storedCLAddress = await master.getLatestAddress(hex('CL'));
     const storedP1Address = await master.getLatestAddress(hex('P1'));
 
-    assert.equal(storedCRAddress, newClaimsReward.address);
-    assert.equal(storedQTAddress, newQuotation.address);
-    assert.equal(storedMCRAddress, newMCR.address);
+    assert.equal(storedCRAddress, claimsReward.address);
+    assert.equal(storedQTAddress, quotation.address);
+    assert.equal(storedCLAddress, claims.address);
+    assert.equal(storedMCRAddress, mcr.address);
     assert.equal(storedP1Address, pool.address);
 
     console.log('Freeing up held covers');
-    await newQuotation.freeUpHeldCovers();
+    await quotation.freeUpHeldCovers();
 
-    const quotationEthBalance = await web3.eth.getBalance(newQuotation.address);
-    const quotationDaiBalance = await dai.balanceOf(newQuotation.address);
+    const quotationEthBalance = await web3.eth.getBalance(quotation.address);
+    const quotationDaiBalance = await dai.balanceOf(quotation.address);
 
     assert.strictEqual(quotationEthBalance.toString(), '0');
     assert.strictEqual(quotationDaiBalance.toString(), '0');
@@ -259,10 +261,10 @@ describe('MCR on-chain migration', function () {
 
     /* MCR parameters */
 
-    const mcrFloor = await newMCR.mcrFloor();
-    const mcrFloorIncrementThreshold = await newMCR.mcrFloorIncrementThreshold();
-    const maxMCRFloorIncrement = await newMCR.maxMCRFloorIncrement();
-    const allSumAssurance = await newMCR.getAllSumAssurance();
+    const mcrFloor = await mcr.mcrFloor();
+    const mcrFloorIncrementThreshold = await mcr.mcrFloorIncrementThreshold();
+    const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
+    const allSumAssurance = await mcr.getAllSumAssurance();
 
     const minCapFactor = ether('1000');
     const expectedMCRFloor = minCap.mul(minCapFactor).add(previousVariableMincap);
@@ -334,7 +336,6 @@ describe('MCR on-chain migration', function () {
       ` ${tokenSpotPriceDaiAfter.toString()} relative error: ${relativeErrorDaiSpotPrice.toString()}`,
     );
 
-    const mcr = newMCR;
     const lastUpdateTime = await mcr.lastUpdateTime();
     const desiredMCR = await mcr.desiredMCR();
     const storedMCR = await mcr.mcr();
@@ -546,7 +547,7 @@ describe('MCR on-chain migration', function () {
   });
 
   it('triggers MCR update after ETH injection to the pool to MCR% > 130%', async function () {
-    const { mcr, lastUpdateTime: pool } = this;
+    const { mcr, pool } = this;
 
     const currentMCR = await mcr.getMCR();
 

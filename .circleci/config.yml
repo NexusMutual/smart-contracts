@@ -7,7 +7,7 @@ jobs:
   test:
     resource_class: medium+
     docker:
-      - image: cimg/node:12.19.0
+      - image: cimg/node:14.17.0
     steps:
       - checkout
       - node/install-packages

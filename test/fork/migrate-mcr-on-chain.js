@@ -1,6 +1,6 @@
 const fetch = require('node-fetch');
 const { artifacts, web3, accounts, network } = require('hardhat');
-const { ether, time } = require('@openzeppelin/test-helpers');
+const { constants: { ZERO_ADDRESS }, ether, time } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
 
 const { submitGovernanceProposal, submitMemberVoteGovernanceProposal } = require('./utils');
@@ -12,7 +12,7 @@ const {
   calculateRelativeError,
 } = require('../utils').tokenPrice;
 
-const { BN, toBN } = web3.utils;
+const { toBN } = web3.utils;
 
 const MemberRoles = artifacts.require('MemberRoles');
 const Pool = artifacts.require('Pool');
@@ -26,10 +26,12 @@ const MCR = artifacts.require('MCR');
 const LegacyMCR = artifacts.require('LegacyMCR');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const ERC20 = artifacts.require('@openzeppelin/contracts-v4/token/ERC20/ERC20.sol:ERC20');
-const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 const SwapOperator = artifacts.require('SwapOperator');
 const LegacyPoolData = artifacts.require('LegacyPoolData');
 const TwapOracle = artifacts.require('TwapOracle');
+const Incidents = artifacts.require('Incidents');
+const Gateway = artifacts.require('Gateway');
+const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -66,7 +68,6 @@ const hardhatRequest = async (...params) => {
 const getAddressByCodeFactory = abis => code => abis.find(abi => abi.code === code).address;
 const fund = async to => web3.eth.sendTransaction({ from: accounts[0], to, value: ether('1000000') });
 const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAccount', params: [member] });
-
 const bnToNumber = bn => parseInt(bn.toString(), 10);
 
 describe('MCR on-chain migration', function () {
@@ -75,7 +76,8 @@ describe('MCR on-chain migration', function () {
 
   it('initializes contracts', async function () {
 
-    const { mainnet: { abis } } = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
+    const versionDataURL = 'https://api.nexusmutual.io/version-data/data.json';
+    const { mainnet: { abis } } = await fetch(versionDataURL).then(r => r.json());
     const getAddressByCode = getAddressByCodeFactory(abis);
 
     const masterAddress = getAddressByCode('NXMASTER');
@@ -92,7 +94,6 @@ describe('MCR on-chain migration', function () {
     this.governance = governance;
     this.oldPool = pool1;
     this.oldMCR = oldMCR;
-    this.getAddressByCode = getAddressByCode;
     this.master = await NXMaster.at(masterAddress);
     this.poolData = oldPoolData;
   });
@@ -115,7 +116,7 @@ describe('MCR on-chain migration', function () {
 
   it('upgrade contracts', async function () {
 
-    const { governance, voters, oldMCR, getAddressByCode, oldPool, master, poolData } = this;
+    const { governance, voters, oldMCR, oldPool, master, poolData } = this;
 
     const dai = await ERC20.at(Address.DAI);
 
@@ -139,35 +140,29 @@ describe('MCR on-chain migration', function () {
     console.log('Deploying contracts');
 
     /*
-    Upgrade list:
-    contracts/modules/capital/MCR.sol
-    contracts/modules/capital/Pool.sol
-    contracts/modules/claims/ClaimsReward.sol
-    contracts/modules/cover/Quotation.sol
-
-    New contract:
-    SwapOperator
+      Upgraded non-proxy contracts:  MCR, Pool, ClaimsReward, Quotation
+      Upgraded proxy contracts:      Gateway
+      New internal contract:         Incidents
+      New contract:                  SwapOperator
     */
+
+    console.log('Deploying contracts');
 
     const newMCR = await MCR.new(master.address);
     const newClaimsReward = await ClaimsReward.new(master.address, Address.DAI);
     const newQuotation = await Quotation.new();
 
-    console.log('Fetch price feed oracle');
     const oldPriceFeedOracle = await PriceFeedOracle.at(await oldPool.priceFeedOracle());
     const daiAggregator = await oldPriceFeedOracle.aggregators(dai.address);
     const priceFeedOracle = await PriceFeedOracle.new([dai.address], [daiAggregator], dai.address);
 
-    console.log('Fetch twap oracle');
     const twapOracle = await TwapOracle.at(await oldPool.twapOracle());
-
     const stETHToken = await ERC20.at(Address.stETH);
-
     const swapController = UserAddress.NXM_WHALE_2;
+    const swapOperator = await SwapOperator.new(
+      master.address, twapOracle.address, swapController, stETHToken.address,
+    );
 
-    const swapOperator = await SwapOperator.new(master.address, twapOracle.address, swapController, stETHToken.address);
-
-    console.log('Deploy pool');
     const pool = await Pool.new(
       [Address.DAI, Address.stETH],
       [ether('1000000'), ether('1')],
@@ -178,7 +173,38 @@ describe('MCR on-chain migration', function () {
       swapOperator.address,
     );
 
-    const actionData = web3.eth.abi.encodeParameters(
+    const incidentsImplementation = await Incidents.new();
+    const gateway = await Gateway.new();
+
+    console.log('Adding new internal contract');
+
+    const addInternalContractData = web3.eth.abi.encodeParameters(
+      // contract name, address and type
+      // type = 1 if contract is upgradable, 2 if contract is proxy, any other uint if none
+      ['bytes2', 'address', 'uint'],
+      [hex('IC'), incidentsImplementation.address, 2],
+    );
+
+    await submitGovernanceProposal(
+      ProposalCategory.newContract,
+      addInternalContractData,
+      voters,
+      governance,
+    );
+
+    const incidentProxyAddress = await master.getLatestAddress(hex('IC'));
+    assert.notStrictEqual(incidentProxyAddress, ZERO_ADDRESS);
+    assert.notStrictEqual(incidentProxyAddress, incidentsImplementation.address);
+
+    const incidentsProxy = await OwnedUpgradeabilityProxy.at(incidentProxyAddress);
+    const implementationAddress = await incidentsProxy.implementation();
+    assert.strictEqual(implementationAddress, incidentsImplementation.address);
+
+    const incidents = await Incidents.at(incidentProxyAddress);
+
+    console.log('Upgrading non-proxy contracts');
+
+    const upgradeNonProxyData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
       [
         ['MC', 'QT', 'CR', 'P1'].map(hex),
@@ -188,7 +214,24 @@ describe('MCR on-chain migration', function () {
 
     await submitGovernanceProposal(
       ProposalCategory.upgradeNonProxy,
-      actionData,
+      upgradeNonProxyData,
+      voters,
+      governance,
+    );
+
+    console.log('Upgrading non-proxy contracts');
+
+    const upgradeProxyData = web3.eth.abi.encodeParameters(
+      ['bytes2[]', 'address[]'],
+      [
+        ['GW'].map(hex),
+        [gateway].map(c => c.address),
+      ],
+    );
+
+    await submitGovernanceProposal(
+      ProposalCategory.upgradeProxy,
+      upgradeProxyData,
       voters,
       governance,
     );
@@ -277,15 +320,18 @@ describe('MCR on-chain migration', function () {
     const relativeErrorEthSpotPrice = calculateRelativeError(tokenSpotPriceEthAfter, tokenSpotPriceEthBefore);
     assert(
       relativeErrorEthSpotPrice.lt(new Decimal(0.0005)),
-      `old token ETH spot price ${tokenSpotPriceEthBefore.toString()} differs too much from ${tokenSpotPriceEthAfter.toString()}
-      relative error; ${relativeErrorEthSpotPrice}`,
+      `old token ETH spot price ${tokenSpotPriceEthBefore.toString()} differs too much from ` +
+      `${tokenSpotPriceEthAfter.toString()} relative error; ${relativeErrorEthSpotPrice}`,
     );
 
-    const relativeErrorDaiSpotPrice = calculateRelativeError(tokenSpotPriceDaiAfter, tokenSpotPriceDaiBefore);
+    const relativeErrorDaiSpotPrice = calculateRelativeError(
+      tokenSpotPriceDaiAfter,
+      tokenSpotPriceDaiBefore,
+    );
     assert(
       relativeErrorDaiSpotPrice.lt(new Decimal(0.0005)),
-      `old token DAI spot price ${tokenSpotPriceDaiBefore.toString()} differs too much from ${tokenSpotPriceDaiAfter.toString()}
-      relative error: ${relativeErrorDaiSpotPrice.toString()}`,
+      `old token DAI spot price ${tokenSpotPriceDaiBefore.toString()} differs too much from ` +
+      ` ${tokenSpotPriceDaiAfter.toString()} relative error: ${relativeErrorDaiSpotPrice.toString()}`,
     );
 
     const mcr = newMCR;
@@ -309,6 +355,7 @@ describe('MCR on-chain migration', function () {
     this.twapOracle = twapOracle;
     this.dai = dai;
     this.mcr = mcr;
+    this.incidents = incidents;
     this.swapController = swapController;
     this.swapOperator = swapOperator;
     this.stETHToken = stETHToken;
@@ -449,8 +496,6 @@ describe('MCR on-chain migration', function () {
 
     const mcrFloorBefore = await mcr.mcrFloor();
     const desiredMCRBefore = await mcr.desiredMCR();
-    const storedMCRBefore = await mcr.mcr();
-    const currentMCRBefore = await mcr.getMCR();
     await mcr.updateMCR();
 
     const block = await web3.eth.getBlock('latest');
@@ -501,9 +546,7 @@ describe('MCR on-chain migration', function () {
   });
 
   it('triggers MCR update after ETH injection to the pool to MCR% > 130%', async function () {
-    const { mcr, lastUpdateTime: prevUpdateTime, pool } = this;
-
-    const minUpdateTime = await mcr.minUpdateTime();
+    const { mcr, lastUpdateTime: pool } = this;
 
     const currentMCR = await mcr.getMCR();
 
@@ -522,7 +565,6 @@ describe('MCR on-chain migration', function () {
     const lastUpdateTime = await mcr.lastUpdateTime();
     const mcrFloor = await mcr.mcrFloor();
     const desiredMCR = await mcr.desiredMCR();
-    const storedMCR = await mcr.mcr();
     const latestMCR = await mcr.getMCR();
     const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
 

@@ -333,8 +333,14 @@ contract Incidents is MasterAware {
   function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
 
     if (code == "BURNRATE") {
-      require(value <= 100, "Incidents: Burn rate cannot exceed 100");
+      require(value <= BASIS_PRECISION, "Incidents: Burn ratio cannot exceed 10000");
       BURN_RATIO = value;
+      return;
+    }
+
+    if (code == "DEDUCTIB") {
+      require(value <= BASIS_PRECISION, "Incidents: Deductible ratio cannot exceed 10000");
+      DEDUCTIBLE_RATIO = value;
       return;
     }
 

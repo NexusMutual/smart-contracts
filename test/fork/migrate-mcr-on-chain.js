@@ -215,6 +215,7 @@ describe('MCR on-chain migration', function () {
     assert.strictEqual(implementationAddress, incidentsImplementation.address);
 
     const incidents = await Incidents.at(incidentProxyAddress);
+    await incidents.initialize();
 
     console.log('Upgrading non-proxy contracts');
 

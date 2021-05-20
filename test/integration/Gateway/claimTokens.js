@@ -185,8 +185,10 @@ describe('claimTokens', function () {
     const incidentDate = await time.latest();
     const priceBefore = ether('2'); // 2 DAI per ybDAI
     // Given a 2 DAI per ybDAI rate and a 1000 DAI cover
-    // we can send a maximum of 500 ybDAI an receive a maxium of 1000 DAI.
-    const invalidAmount = ether('500').addn(1); // ybDAI
+    // with deductableRatio = 9000 / 10000
+    // maxTokenAmount = 1000 / 2 * 10000 / 9000
+    // we can send a maximum of 555.(5) ybDAI an receive a maxium of 1000 DAI.
+    const invalidAmount = ether('556'); // ybDAI
     await addIncident(
       this.contracts,
       [owner],

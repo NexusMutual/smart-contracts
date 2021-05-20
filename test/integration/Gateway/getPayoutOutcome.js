@@ -36,20 +36,12 @@ describe('getPayoutOutcome', function () {
     await enrollClaimAssessor(this.contracts, [member]);
 
     const coverData = { ...ethCoverTemplate };
-
-    await buyCover({
-      ...this.contracts,
-      coverData,
-      coverHolder: coverHolder,
-    });
+    await buyCover({ ...this.contracts, coverData, coverHolder: coverHolder });
     const expectedCoverId = 1;
-    {
-      await gateway.submitClaim(expectedCoverId, EMPTY_DATA, {
-        from: coverHolder,
-      });
-      const claimId = 1;
-      await voteOnClaim({ ...this.contracts, claimId, verdict: toBN('1') });
-    }
+
+    await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder });
+    const claimId = 1;
+    await voteOnClaim({ ...this.contracts, claimId, verdict: toBN('1') });
 
     const { amountPaid } = await gateway.getPayoutOutcome(1);
     bnEqual(amountPaid, ethCoverTemplate.amount);
@@ -61,12 +53,8 @@ describe('getPayoutOutcome', function () {
     ybDAI = await ERC20MintableDetailed.new('yield bearing DAI', 'ybDAI', 18);
     await dai.mint(coverHolder, ether('10000000'));
     await ybDAI.mint(coverHolder, ether('10000000'));
-    await ybDAI.approve(gateway.address, ether('10000000'), {
-      from: coverHolder,
-    });
-    await incidents.addProducts([productId], [ybDAI.address], [dai.address], {
-      from: owner,
-    });
+    await ybDAI.approve(gateway.address, ether('10000000'), { from: coverHolder });
+    await incidents.addProducts([productId], [ybDAI.address], [dai.address], { from: owner });
     await buyCover({
       ...this.contracts,
       coverData: { ...daiCoverTemplate, asset: dai.address },
@@ -83,15 +71,25 @@ describe('getPayoutOutcome', function () {
       priceBefore,
     );
 
+    // partial amount of 99 ybDAI out of 500 ybDAI claimable
+    const coverAmount = ether('99');
     const expectedCoverId = 1;
-    const coverAmount = ether(
-      '99',
-    ); /* partial amount of 99 ybDAI out of 500 ybDAI claimable */
-    await gateway.claimTokens(expectedCoverId, 0, coverAmount, ybDAI.address, {
-      from: coverHolder,
-    });
+
+    await gateway.claimTokens(
+      expectedCoverId,
+      0,
+      coverAmount,
+      ybDAI.address,
+      { from: coverHolder },
+    );
 
     const { amountPaid } = await gateway.getPayoutOutcome(1);
-    bnEqual(amountPaid, ether('198'));
+
+    const basisPrecision = toBN('10000');
+    const deductibleRatio = await incidents.DEDUCTIBLE_RATIO();
+    const fullAmount = coverAmount.mul(priceBefore).div(ether('1'));
+    const expectedDeductible = fullAmount.mul(deductibleRatio).div(basisPrecision);
+
+    bnEqual(amountPaid, expectedDeductible);
   });
 });

@@ -21,6 +21,8 @@ const ReentrancyExploiter = artifacts.require('ReentrancyExploiter');
 
 const [owner, coverHolder, stranger] = accounts;
 const productId = '0x0000000000000000000000000000000000000003';
+const basisPrecision = toBN(10000);
+let deductibleRatio;
 let ybDAI;
 
 const coverTemplate = {
@@ -35,12 +37,14 @@ const coverTemplate = {
 };
 
 describe('incidents', function () {
+
   beforeEach(async function () {
     const { dai, incidents } = this.contracts;
     ybDAI = await ERC20MintableDetailed.new('yield bearing DAI', 'ybDAI', 18);
     await enrollMember(this.contracts, [coverHolder]);
     await dai.mint(coverHolder, ether('10000000'));
     await incidents.addProducts([productId], [ybDAI.address], [dai.address], { from: owner });
+    deductibleRatio = await incidents.DEDUCTIBLE_RATIO();
   });
 
   it('reverts when adding the same covered/underlying token twice', async function () {
@@ -207,7 +211,8 @@ describe('incidents', function () {
 
     // sumAssured DAI = tokenAmount ybDAI @ priceBefore
     // 500 DAI  /  2 DAI/ybDAI  =  1000 ybDAI
-    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+    const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
     const tokenAmountExcess = tokenAmount.addn(1);
 
     const incidentDate = coverStartDate.addn(1);
@@ -237,7 +242,8 @@ describe('incidents', function () {
 
     // sumAssured DAI = tokenAmount ybDAI @ priceBefore
     // 500 DAI  /  2 DAI/ybDAI  =  1000 ybDAI
-    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+    const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
@@ -266,7 +272,8 @@ describe('incidents', function () {
 
     // sumAssured DAI = tokenAmount ybDAI @ priceBefore
     // 500 DAI  /  2 DAI/ybDAI  =  1000 ybDAI
-    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+    const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
@@ -306,7 +313,8 @@ describe('incidents', function () {
 
     // sumAssured DAI = tokenAmount ybDAI @ priceBefore
     // 500 DAI  /  2 DAI/ybDAI  =  1000 ybDAI
-    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+    const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
@@ -336,7 +344,8 @@ describe('incidents', function () {
 
     // sumAssured DAI = tokenAmount ybDAI @ priceBefore
     // 500 DAI  /  2 DAI/ybDAI  =  1000 ybDAI
-    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+    const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
@@ -357,10 +366,10 @@ describe('incidents', function () {
     bnEqual(daiDiff, sumAssured);
 
     const daiPerNXM = await p1.getTokenPrice(dai.address);
-    const burnRate = await incidents.BURN_RATE();
+    const burnRate = await incidents.BURN_RATIO();
     const fullBurnAmount = ether('1').mul(sumAssured).div(daiPerNXM);
 
-    const expectedBurnAmount = fullBurnAmount.mul(burnRate).divn(100);
+    const expectedBurnAmount = fullBurnAmount.mul(burnRate).divn(basisPrecision);
     const actualAccumulatedBurn = await incidents.accumulatedBurn(cover.contractAddress);
     bnEqual(actualAccumulatedBurn, expectedBurnAmount);
 
@@ -378,7 +387,8 @@ describe('incidents', function () {
     const coverStartDate = await time.latest();
     const priceBefore = ether('2'); // DAI per ybDAI
     const sumAssured = ether('1').muln(cover.amount);
-    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+    const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
@@ -423,7 +433,8 @@ describe('incidents', function () {
 
     // sumAssured DAI = tokenAmount ybETH @ priceBefore
     // 500 ETH  /  2 ETH/ybETH  =  1000 ybETH
-    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+    const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
@@ -448,10 +459,10 @@ describe('incidents', function () {
     bnEqual(ethDiff, sumAssured);
 
     const ethPerNXM = await p1.getTokenPrice(ETH);
-    const burnRate = await incidents.BURN_RATE();
+    const burnRate = await incidents.BURN_RATIO();
     const fullBurnAmount = ether('1').mul(sumAssured).div(ethPerNXM);
 
-    const expectedBurnAmount = fullBurnAmount.mul(burnRate).divn(100);
+    const expectedBurnAmount = fullBurnAmount.mul(burnRate).divn(basisPrecision);
     const actualAccumulatedBurn = await incidents.accumulatedBurn(cover.contractAddress);
     bnEqual(actualAccumulatedBurn, expectedBurnAmount);
 
@@ -474,7 +485,8 @@ describe('incidents', function () {
     const coverStartDate = await time.latest();
     const priceBefore = ether('2'); // DAI per ybDAI
     const sumAssured = ether('1').muln(cover0.amount);
-    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+    const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover0.contractAddress, incidentDate, priceBefore);
@@ -490,9 +502,9 @@ describe('incidents', function () {
     await incidents.redeemPayout(coverId1, incidentId, tokenAmount, { from: coverHolder });
 
     const daiPerNXM = await p1.getTokenPrice(dai.address);
-    const burnRate = await incidents.BURN_RATE();
+    const burnRate = await incidents.BURN_RATIO();
     const fullBurnAmount = ether('1').mul(sumAssured).div(daiPerNXM);
-    const expectedBurnAmountPerCover = fullBurnAmount.mul(burnRate).divn(100);
+    const expectedBurnAmountPerCover = fullBurnAmount.mul(burnRate).divn(basisPrecision);
 
     const expectedBurnAmountTotal = expectedBurnAmountPerCover.muln(2);
     const actualAccumulatedBurn = await incidents.accumulatedBurn(cover0.contractAddress);
@@ -509,7 +521,8 @@ describe('incidents', function () {
     const coverStartDate = await time.latest();
     const priceBefore = ether('2'); // DAI per ybDAI
     const sumAssured = ether('1').muln(cover.amount);
-    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+    const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
@@ -527,9 +540,9 @@ describe('incidents', function () {
     await incidents.redeemPayout(coverId, incidentId, tokenAmount, { from: coverHolder });
 
     const daiPerNXM = await p1.getTokenPrice(dai.address);
-    const burnRate = await incidents.BURN_RATE();
+    const burnRate = await incidents.BURN_RATIO();
     const fullBurnAmount = ether('1').mul(sumAssured).div(daiPerNXM);
-    const expectedBurnAmount = fullBurnAmount.mul(burnRate).divn(100);
+    const expectedBurnAmount = fullBurnAmount.mul(burnRate).divn(basisPrecision);
 
     const actualAccumulatedBurn = await incidents.accumulatedBurn(cover.contractAddress);
     bnEqual(actualAccumulatedBurn, expectedBurnAmount);
@@ -580,18 +593,15 @@ describe('incidents', function () {
       18,
     );
 
-    await incidents.addProducts([productId], [ybETH.address], [ETH], {
-      from: owner,
-    });
+    await incidents.addProducts([productId], [ybETH.address], [ETH], { from: owner });
 
     const reentrancyExploiter = await ReentrancyExploiter.new(incidents.address);
-    await mr.payJoiningFee(reentrancyExploiter.address, {
-      from: owner,
-      value: ether('0.002'),
-    });
+    await mr.payJoiningFee(
+      reentrancyExploiter.address,
+      { from: owner, value: ether('0.002') },
+    );
 
     await mr.kycVerdict(reentrancyExploiter.address, true);
-    // await tk.approve(tc.address, MAX_UINT256, { from: member });
     await tk.transfer(reentrancyExploiter.address, toBN(ether('2500')));
 
     const vrsData = await getQuoteSignature(
@@ -632,9 +642,8 @@ describe('incidents', function () {
     const coverStartDate = await time.latest();
     const priceBefore = ether('2'); // ETH per ybETH
     const sumAssured = ether('1').muln(cover.amount);
-    const tokenAmount = ether('1')
-      .mul(sumAssured)
-      .div(priceBefore);
+    const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
     const incidentDate = coverStartDate.addn(1);
 
     await addIncident(
@@ -646,21 +655,9 @@ describe('incidents', function () {
     );
 
     await ybETH.mint(reentrancyExploiter.address, tokenAmount);
-    const approveYbETHTx = await ybETH.approve.request(
-      incidents.address,
-      tokenAmount,
-    );
-    await reentrancyExploiter.execute(
-      [ybETH.address],
-      [ether('0')],
-      [approveYbETHTx.data],
-    );
-
-    const redeemPayoutTx = await incidents.redeemPayout.request(
-      1,
-      0,
-      tokenAmount,
-    );
+    const approveYbETHTx = await ybETH.approve.request(incidents.address, tokenAmount);
+    await reentrancyExploiter.execute([ybETH.address], [ether('0')], [approveYbETHTx.data]);
+    const redeemPayoutTx = await incidents.redeemPayout.request(1, 0, tokenAmount);
 
     // Set fallback function of evil contract to call redeemPayout again
     await reentrancyExploiter.setFallbackParams(
@@ -683,8 +680,7 @@ describe('incidents', function () {
       await web3.eth.getBalance(reentrancyExploiter.address),
     );
 
-    // Since there shouln't be any payouts made, the balance should remain
-    // unchanged.
+    // Since there shouln't be any payouts made, the balance should remain unchanged
     bnEqual(ethBalanceBefore, ethBalanceAfter);
   });
 });

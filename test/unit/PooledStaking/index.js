@@ -4,7 +4,6 @@ const setup = require('./setup');
 describe('PooledStaking unit tests', function () {
 
   this.timeout(0);
-  before(reset);
   before(setup);
 
   beforeEach(async function () {

@@ -711,11 +711,15 @@ describe('MCR on-chain migration', function () {
     const coverHolder = UserAddress.NXM_WHALE_1;
     const coverLength = await quotationData.getCoverLength();
 
+    const basisPrecision = toBN('10000');
+    const deductibleRatio = await incidents.DEDUCTIBLE_RATIO();
+
     const ybDAICoverId = coverLength - 2;
     const ybDAIIncidentId = '0';
+    const ybDAISumAssured = ether('30000');
     const ybDAIPriceBefore = ether('1.1'); // DAI per ybDAI
-    const ybDAISumAssured = ether('1').muln(30000);
-    const ybDAITokenAmount = ether('1').mul(ether('30000')).div(ybDAIPriceBefore);
+    const ybDAIDeductiblePrice = ybDAIPriceBefore.mul(deductibleRatio).div(basisPrecision);
+    const ybDAITokenAmount = ether('1').mul(ybDAISumAssured).div(ybDAIDeductiblePrice);
 
     await ybDAI.mint(coverHolder, ybDAITokenAmount);
     await ybDAI.approve(incidents.address, ybDAITokenAmount, { from: coverHolder });
@@ -734,9 +738,10 @@ describe('MCR on-chain migration', function () {
 
     const ybETHCoverId = coverLength - 1;
     const ybETHIncidentId = '1';
+    const ybETHSumAssured = ether('1000');
     const ybETHPriceBefore = ether('1.2'); // ETH per ybETH
-    const ybETHSumAssured = ether('1').muln(1000);
-    const ybETHTokenAmount = ether('1').mul(ether('1000')).div(ybETHPriceBefore);
+    const ybETHDeductiblePrice = ybETHPriceBefore.mul(deductibleRatio).div(basisPrecision);
+    const ybETHTokenAmount = ether('1').mul(ybETHSumAssured).div(ybETHDeductiblePrice);
 
     await ybETH.mint(coverHolder, ybETHTokenAmount);
     await ybETH.approve(incidents.address, ybETHTokenAmount, { from: coverHolder });

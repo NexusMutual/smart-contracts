@@ -2,7 +2,7 @@ const { accounts, web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { toBN } = web3.utils;
-const { buyCover, buyCoverWithDai } = require('../utils/buyCover');
+const { buyCover, buyCoverWithDai } = require('../utils').buyCover;
 const { enrollMember } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 

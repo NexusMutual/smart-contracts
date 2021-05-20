@@ -16,8 +16,9 @@
     "ecmaVersion": 2018
   },
   "rules": {
-    "padded-blocks": "off",
     "comma-dangle": ["warn", "always-multiline"],
-    "no-unused-vars": ["warn", { "varsIgnorePattern": "^_unused" }]
+    "max-len": ["error", { "code": 120 }],
+    "no-unused-vars": ["warn", { "varsIgnorePattern": "^_unused" }],
+    "padded-blocks": "off"
   }
 }

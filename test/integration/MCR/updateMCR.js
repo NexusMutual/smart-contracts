@@ -6,7 +6,7 @@ const {
   helpers: { hex },
 } = require('../utils');
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
-const { buyCover } = require('../utils/buyCover');
+const { buyCover } = require('../utils').buyCover;
 const { addIncident } = require('../utils/incidents');
 const { voteClaim } = require('../utils/voteClaim');
 

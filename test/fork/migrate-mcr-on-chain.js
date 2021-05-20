@@ -1,18 +1,21 @@
 const fetch = require('node-fetch');
 const { artifacts, web3, accounts, network } = require('hardhat');
-const { ether, time } = require('@openzeppelin/test-helpers');
+const { expectRevert, constants: { ZERO_ADDRESS }, ether, time } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
 
 const { submitGovernanceProposal, submitMemberVoteGovernanceProposal } = require('./utils');
 const { hex } = require('../utils').helpers;
 const { ProposalCategory, Role } = require('../utils').constants;
 const { setNextBlockTime } = require('../utils').evm;
+const { bnEqual } = require('../utils').helpers;
 
 const {
   calculateRelativeError,
 } = require('../utils').tokenPrice;
+const { quoteAuthAddress } = require('../utils').getQuote;
+const { buyCover, buyCoverWithDai } = require('../utils').buyCover;
 
-const { BN, toBN } = web3.utils;
+const { toBN } = web3.utils;
 
 const MemberRoles = artifacts.require('MemberRoles');
 const Pool = artifacts.require('Pool');
@@ -22,14 +25,19 @@ const NXMToken = artifacts.require('NXMToken');
 const Governance = artifacts.require('Governance');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const Quotation = artifacts.require('Quotation');
+const QuotationData = artifacts.require('QuotationData');
+const Claims = artifacts.require('Claims');
 const MCR = artifacts.require('MCR');
 const LegacyMCR = artifacts.require('LegacyMCR');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const ERC20 = artifacts.require('@openzeppelin/contracts-v4/token/ERC20/ERC20.sol:ERC20');
-const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 const SwapOperator = artifacts.require('SwapOperator');
 const LegacyPoolData = artifacts.require('LegacyPoolData');
 const TwapOracle = artifacts.require('TwapOracle');
+const Incidents = artifacts.require('Incidents');
+const Gateway = artifacts.require('Gateway');
+const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
+const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -46,7 +54,13 @@ const Address = {
 const UserAddress = {
   NXM_WHALE_1: '0x25783b67b5e29c48449163db19842b8531fdde43',
   NXM_WHALE_2: '0x598dbe6738e0aca4eabc22fed2ac737dbd13fb8f',
+  NXM_AB_MEMBER: '0x87B2a7559d85f4653f13E6546A14189cd5455d45',
 };
+
+const DAI_HOLDER = '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503';
+
+const ybDAIProductId = '0x000000000000000000000000000000000000000d';
+const ybETHProductId = '0x000000000000000000000000000000000000000e';
 
 const ratioScale = toBN('10000');
 
@@ -63,10 +77,10 @@ const hardhatRequest = async (...params) => {
   }
 };
 
+let ybDAI, ybETH;
 const getAddressByCodeFactory = abis => code => abis.find(abi => abi.code === code).address;
 const fund = async to => web3.eth.sendTransaction({ from: accounts[0], to, value: ether('1000000') });
 const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAccount', params: [member] });
-
 const bnToNumber = bn => parseInt(bn.toString(), 10);
 
 describe('MCR on-chain migration', function () {
@@ -75,7 +89,8 @@ describe('MCR on-chain migration', function () {
 
   it('initializes contracts', async function () {
 
-    const { mainnet: { abis } } = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
+    const versionDataURL = 'https://api.nexusmutual.io/version-data/data.json';
+    const { mainnet: { abis } } = await fetch(versionDataURL).then(r => r.json());
     const getAddressByCode = getAddressByCodeFactory(abis);
 
     const masterAddress = getAddressByCode('NXMASTER');
@@ -85,6 +100,7 @@ describe('MCR on-chain migration', function () {
     const pool1 = await OldPool.at(getAddressByCode('P1'));
     const oldMCR = await LegacyMCR.at(getAddressByCode('MC'));
     const oldPoolData = await LegacyPoolData.at(getAddressByCode('PD'));
+    const quotationData = await QuotationData.at(getAddressByCode('QD'));
 
     this.masterAddress = masterAddress;
     this.token = token;
@@ -92,9 +108,9 @@ describe('MCR on-chain migration', function () {
     this.governance = governance;
     this.oldPool = pool1;
     this.oldMCR = oldMCR;
-    this.getAddressByCode = getAddressByCode;
     this.master = await NXMaster.at(masterAddress);
     this.poolData = oldPoolData;
+    this.quotationData = quotationData;
   });
 
   it('fetches board members and funds accounts', async function () {
@@ -115,9 +131,9 @@ describe('MCR on-chain migration', function () {
 
   it('upgrade contracts', async function () {
 
-    const { governance, voters, oldMCR, getAddressByCode, oldPool, master, poolData } = this;
+    const { governance, voters, oldMCR, oldPool, master, poolData } = this;
 
-    const dai = await ERC20.at(Address.DAI);
+    const dai = await ERC20MintableDetailed.at(Address.DAI);
 
     const poolValueBefore = await oldPool.getPoolValueInEth();
 
@@ -136,38 +152,31 @@ describe('MCR on-chain migration', function () {
     /* PoolData data */
     const minCap = await poolData.minCap();
 
-    console.log('Deploying contracts');
-
     /*
-    Upgrade list:
-    contracts/modules/capital/MCR.sol
-    contracts/modules/capital/Pool.sol
-    contracts/modules/claims/ClaimsReward.sol
-    contracts/modules/cover/Quotation.sol
-
-    New contract:
-    SwapOperator
+      Upgraded non-proxy contracts:  MCR, Pool, ClaimsReward, Quotation
+      Upgraded proxy contracts:      Gateway
+      New internal contract:         Incidents
+      New contract:                  SwapOperator
     */
 
-    const newMCR = await MCR.new(master.address);
-    const newClaimsReward = await ClaimsReward.new(master.address, Address.DAI);
-    const newQuotation = await Quotation.new();
+    console.log('Deploying contracts');
 
-    console.log('Fetch price feed oracle');
+    const mcr = await MCR.new(master.address);
+    const claimsReward = await ClaimsReward.new(master.address, Address.DAI);
+    const quotation = await Quotation.new();
+    const claims = await Claims.new();
+
     const oldPriceFeedOracle = await PriceFeedOracle.at(await oldPool.priceFeedOracle());
     const daiAggregator = await oldPriceFeedOracle.aggregators(dai.address);
     const priceFeedOracle = await PriceFeedOracle.new([dai.address], [daiAggregator], dai.address);
 
-    console.log('Fetch twap oracle');
     const twapOracle = await TwapOracle.at(await oldPool.twapOracle());
-
     const stETHToken = await ERC20.at(Address.stETH);
-
     const swapController = UserAddress.NXM_WHALE_2;
+    const swapOperator = await SwapOperator.new(
+      master.address, twapOracle.address, swapController, stETHToken.address,
+    );
 
-    const swapOperator = await SwapOperator.new(master.address, twapOracle.address, swapController, stETHToken.address);
-
-    console.log('Deploy pool');
     const pool = await Pool.new(
       [Address.DAI, Address.stETH],
       [ether('1000000'), ether('1')],
@@ -178,17 +187,65 @@ describe('MCR on-chain migration', function () {
       swapOperator.address,
     );
 
-    const actionData = web3.eth.abi.encodeParameters(
+    const incidentsImplementation = await Incidents.new();
+    const gateway = await Gateway.new();
+
+    console.log('Adding new internal contract');
+
+    const addInternalContractData = web3.eth.abi.encodeParameters(
+      // contract name, address and type
+      // type = 1 if contract is upgradable, 2 if contract is proxy, any other uint if none
+      ['bytes2', 'address', 'uint'],
+      [hex('IC'), incidentsImplementation.address, 2],
+    );
+
+    await submitGovernanceProposal(
+      ProposalCategory.newContract,
+      addInternalContractData,
+      voters,
+      governance,
+    );
+
+    const incidentProxyAddress = await master.getLatestAddress(hex('IC'));
+    assert.notStrictEqual(incidentProxyAddress, ZERO_ADDRESS);
+    assert.notStrictEqual(incidentProxyAddress, incidentsImplementation.address);
+
+    const incidentsProxy = await OwnedUpgradeabilityProxy.at(incidentProxyAddress);
+    const implementationAddress = await incidentsProxy.implementation();
+    assert.strictEqual(implementationAddress, incidentsImplementation.address);
+
+    const incidents = await Incidents.at(incidentProxyAddress);
+
+    console.log('Upgrading non-proxy contracts');
+
+    const upgradeNonProxyData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
       [
-        ['MC', 'QT', 'CR', 'P1'].map(hex),
-        [newMCR, newQuotation, newClaimsReward, pool].map(c => c.address),
+        ['MC', 'QT', 'CR', 'P1', 'CL'].map(hex),
+        [mcr, quotation, claimsReward, pool, claims].map(c => c.address),
       ],
     );
 
     await submitGovernanceProposal(
       ProposalCategory.upgradeNonProxy,
-      actionData,
+      upgradeNonProxyData,
+      voters,
+      governance,
+    );
+
+    console.log('Upgrading non-proxy contracts');
+
+    const upgradeProxyData = web3.eth.abi.encodeParameters(
+      ['bytes2[]', 'address[]'],
+      [
+        ['GW'].map(hex),
+        [gateway].map(c => c.address),
+      ],
+    );
+
+    await submitGovernanceProposal(
+      ProposalCategory.upgradeProxy,
+      upgradeProxyData,
       voters,
       governance,
     );
@@ -196,18 +253,20 @@ describe('MCR on-chain migration', function () {
     const storedMCRAddress = await master.getLatestAddress(hex('MC'));
     const storedCRAddress = await master.getLatestAddress(hex('CR'));
     const storedQTAddress = await master.getLatestAddress(hex('QT'));
+    const storedCLAddress = await master.getLatestAddress(hex('CL'));
     const storedP1Address = await master.getLatestAddress(hex('P1'));
 
-    assert.equal(storedCRAddress, newClaimsReward.address);
-    assert.equal(storedQTAddress, newQuotation.address);
-    assert.equal(storedMCRAddress, newMCR.address);
+    assert.equal(storedCRAddress, claimsReward.address);
+    assert.equal(storedQTAddress, quotation.address);
+    assert.equal(storedCLAddress, claims.address);
+    assert.equal(storedMCRAddress, mcr.address);
     assert.equal(storedP1Address, pool.address);
 
     console.log('Freeing up held covers');
-    await newQuotation.freeUpHeldCovers();
+    await quotation.freeUpHeldCovers();
 
-    const quotationEthBalance = await web3.eth.getBalance(newQuotation.address);
-    const quotationDaiBalance = await dai.balanceOf(newQuotation.address);
+    const quotationEthBalance = await web3.eth.getBalance(quotation.address);
+    const quotationDaiBalance = await dai.balanceOf(quotation.address);
 
     assert.strictEqual(quotationEthBalance.toString(), '0');
     assert.strictEqual(quotationDaiBalance.toString(), '0');
@@ -216,10 +275,10 @@ describe('MCR on-chain migration', function () {
 
     /* MCR parameters */
 
-    const mcrFloor = await newMCR.mcrFloor();
-    const mcrFloorIncrementThreshold = await newMCR.mcrFloorIncrementThreshold();
-    const maxMCRFloorIncrement = await newMCR.maxMCRFloorIncrement();
-    const allSumAssurance = await newMCR.getAllSumAssurance();
+    const mcrFloor = await mcr.mcrFloor();
+    const mcrFloorIncrementThreshold = await mcr.mcrFloorIncrementThreshold();
+    const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
+    const allSumAssurance = await mcr.getAllSumAssurance();
 
     const minCapFactor = ether('1000');
     const expectedMCRFloor = minCap.mul(minCapFactor).add(previousVariableMincap);
@@ -277,18 +336,20 @@ describe('MCR on-chain migration', function () {
     const relativeErrorEthSpotPrice = calculateRelativeError(tokenSpotPriceEthAfter, tokenSpotPriceEthBefore);
     assert(
       relativeErrorEthSpotPrice.lt(new Decimal(0.0005)),
-      `old token ETH spot price ${tokenSpotPriceEthBefore.toString()} differs too much from ${tokenSpotPriceEthAfter.toString()}
-      relative error; ${relativeErrorEthSpotPrice}`,
+      `old token ETH spot price ${tokenSpotPriceEthBefore.toString()} differs too much from ` +
+      `${tokenSpotPriceEthAfter.toString()} relative error; ${relativeErrorEthSpotPrice}`,
     );
 
-    const relativeErrorDaiSpotPrice = calculateRelativeError(tokenSpotPriceDaiAfter, tokenSpotPriceDaiBefore);
+    const relativeErrorDaiSpotPrice = calculateRelativeError(
+      tokenSpotPriceDaiAfter,
+      tokenSpotPriceDaiBefore,
+    );
     assert(
       relativeErrorDaiSpotPrice.lt(new Decimal(0.0005)),
-      `old token DAI spot price ${tokenSpotPriceDaiBefore.toString()} differs too much from ${tokenSpotPriceDaiAfter.toString()}
-      relative error: ${relativeErrorDaiSpotPrice.toString()}`,
+      `old token DAI spot price ${tokenSpotPriceDaiBefore.toString()} differs too much from ` +
+      ` ${tokenSpotPriceDaiAfter.toString()} relative error: ${relativeErrorDaiSpotPrice.toString()}`,
     );
 
-    const mcr = newMCR;
     const lastUpdateTime = await mcr.lastUpdateTime();
     const desiredMCR = await mcr.desiredMCR();
     const storedMCR = await mcr.mcr();
@@ -309,10 +370,12 @@ describe('MCR on-chain migration', function () {
     this.twapOracle = twapOracle;
     this.dai = dai;
     this.mcr = mcr;
+    this.incidents = incidents;
     this.swapController = swapController;
     this.swapOperator = swapOperator;
     this.stETHToken = stETHToken;
     this.twapOracle = twapOracle;
+    this.quotation = quotation;
   });
 
   it('add proposal categories for incidents contract', async function () {
@@ -357,7 +420,7 @@ describe('MCR on-chain migration', function () {
         ['bytes2', hex('IC')], // contract name
         // "incentives" is [min stake, incentive, ab voting req, special resolution]
         ['uint256[]', [0, 0, 1, 0]],
-        ['string', 'addIncident(address,uint256,uint256)'], // function signature
+        ['string', 'withdrawAsset(address,address,uint256)'], // function signature
       ];
 
       const actionData = web3.eth.abi.encodeParameters(
@@ -449,8 +512,6 @@ describe('MCR on-chain migration', function () {
 
     const mcrFloorBefore = await mcr.mcrFloor();
     const desiredMCRBefore = await mcr.desiredMCR();
-    const storedMCRBefore = await mcr.mcr();
-    const currentMCRBefore = await mcr.getMCR();
     await mcr.updateMCR();
 
     const block = await web3.eth.getBlock('latest');
@@ -463,6 +524,9 @@ describe('MCR on-chain migration', function () {
 
     console.log({
       desiredMCR: desiredMCR.toString(),
+      desiredMCRBefore: desiredMCRBefore.toString(),
+      mcrFloorBefore: mcrFloorBefore.toString(),
+      mcrFloor: mcrFloor.toString(),
       currentMCR: currentMCR.toString(),
       storedMCR: storedMCR.toString(),
     });
@@ -501,9 +565,7 @@ describe('MCR on-chain migration', function () {
   });
 
   it('triggers MCR update after ETH injection to the pool to MCR% > 130%', async function () {
-    const { mcr, lastUpdateTime: prevUpdateTime, pool } = this;
-
-    const minUpdateTime = await mcr.minUpdateTime();
+    const { mcr, pool } = this;
 
     const currentMCR = await mcr.getMCR();
 
@@ -522,7 +584,6 @@ describe('MCR on-chain migration', function () {
     const lastUpdateTime = await mcr.lastUpdateTime();
     const mcrFloor = await mcr.mcrFloor();
     const desiredMCR = await mcr.desiredMCR();
-    const storedMCR = await mcr.mcr();
     const latestMCR = await mcr.getMCR();
     const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
 
@@ -538,5 +599,157 @@ describe('MCR on-chain migration', function () {
     assert.equal(mcrFloor.toString(), expectedMCRFloor.toString());
     assert.equal(desiredMCR.toString(), mcrFloor.toString());
     assert.equal(currentMCRBefore.toString(), latestMCR.toString());
+  });
+
+  it('change quotation engine address to sign quotes', async function () {
+    const { governance, voters } = this;
+
+    const parameters = [
+      ['bytes8', hex('QUOAUTH')], // changeAuthQuoteEngine code
+      ['address', quoteAuthAddress], // authQuoteEngine
+    ];
+    const actionData = web3.eth.abi.encodeParameters(
+      parameters.map(p => p[0]),
+      parameters.map(p => p[1]),
+    );
+
+    await submitGovernanceProposal(ProposalCategory.updateOwnerParameters, actionData, voters, governance);
+  });
+
+  it('add ybDAI yield token cover', async function () {
+    const { incidents, dai } = this;
+    ybDAI = await ERC20MintableDetailed.new('yield bearing DAI', 'ybDAI', 18);
+    await incidents.addProducts([ybDAIProductId], [ybDAI.address], [dai.address], { from: UserAddress.NXM_AB_MEMBER });
+  });
+
+  it('buy ybDAI yield token cover', async function () {
+    const { dai } = this;
+    const generationTime = await time.latest();
+    await time.increase(toBN('1'));
+    const ybDAICover = {
+      amount: 30000, // 1 dai or eth
+      price: '3000000000000000', // 0.003
+      priceNXM: '1000000000000000000', // 1 nxm
+      expireTime: '2000000000', // year 2033
+      generationTime: generationTime.toString(),
+      currency: hex('DAI'),
+      period: 60,
+      contractAddress: ybDAIProductId,
+    };
+    const coverHolder = UserAddress.NXM_WHALE_1;
+    await unlock(DAI_HOLDER);
+    await unlock(coverHolder);
+    await dai.transfer(coverHolder, '3000000000000000', { from: DAI_HOLDER, gasPrice: 0 });
+    await buyCoverWithDai({ ...this, qt: this.quotation, p1: this.pool, cover: ybDAICover, coverHolder });
+  });
+
+  it('add ETH yield bearing token', async function () {
+    const { incidents, pool } = this;
+    const ETH = await pool.ETH();
+    ybETH = await ERC20MintableDetailed.new('yield bearing ETH', 'ybETH', 18);
+    await incidents.addProducts([ybETHProductId], [ybETH.address], [ETH], { from: UserAddress.NXM_AB_MEMBER });
+  });
+
+  it('buy ybETH yield token cover', async function () {
+    const generationTime = await time.latest();
+    await time.increase(toBN('1'));
+    const ybETHCover = {
+      amount: 1000, // 1 dai or eth
+      price: '3000000000000000', // 0.003
+      priceNXM: '1000000000000000000', // 1 nxm
+      expireTime: '2000000000', // year 2033
+      generationTime: generationTime.toString(),
+      currency: hex('ETH'),
+      period: 60,
+      contractAddress: ybETHProductId,
+    };
+    const coverHolder = UserAddress.NXM_WHALE_1;
+    await unlock(coverHolder);
+    await buyCover({ ...this, qt: this.quotation, p1: this.pool, cover: ybETHCover, coverHolder });
+  });
+
+  it('open incidents for ybETH and ybDAI', async function () {
+    const { governance, voters } = this;
+
+    const incidentTime = await time.latest();
+    // add incidents
+    {
+      const parameters = [
+        ['address', ybDAIProductId], // productId
+        ['uint256', incidentTime], // incidentDate
+        ['uint256', ether('1.1')], // priceBefore
+      ];
+
+      const actionData = web3.eth.abi.encodeParameters(
+        parameters.map(p => p[0]),
+        parameters.map(p => p[1]),
+      );
+
+      await submitGovernanceProposal(ProposalCategory.addIncident, actionData, voters, governance);
+    }
+
+    {
+      const parameters = [
+        ['address', ybETHProductId], // productId
+        ['uint256', incidentTime], // incidentDate
+        ['uint256', ether('1.2')], // priceBefore
+      ];
+
+      const actionData = web3.eth.abi.encodeParameters(
+        parameters.map(p => p[0]),
+        parameters.map(p => p[1]),
+      );
+
+      await submitGovernanceProposal(ProposalCategory.addIncident, actionData, voters, governance);
+    }
+  });
+
+  it('pays the correct amount and reverts on duplicate claim', async function () {
+
+    const { dai, incidents, quotationData } = this;
+    const coverHolder = UserAddress.NXM_WHALE_1;
+    const coverLength = await quotationData.getCoverLength();
+
+    const ybDAICoverId = coverLength - 2;
+    const ybDAIIncidentId = '0';
+    const ybDAIPriceBefore = ether('1.1'); // DAI per ybDAI
+    const ybDAISumAssured = ether('1').muln(30000);
+    const ybDAITokenAmount = ether('1').mul(ether('30000')).div(ybDAIPriceBefore);
+
+    await ybDAI.mint(coverHolder, ybDAITokenAmount);
+    await ybDAI.approve(incidents.address, ybDAITokenAmount, { from: coverHolder });
+
+    const daiBalanceBefore = await dai.balanceOf(coverHolder);
+    await incidents.redeemPayout(ybDAICoverId, ybDAIIncidentId, ybDAITokenAmount, { from: coverHolder });
+    const daiBalanceAfter = await dai.balanceOf(coverHolder);
+
+    const daiDiff = daiBalanceAfter.sub(daiBalanceBefore);
+    bnEqual(daiDiff, ybDAISumAssured);
+
+    await expectRevert(
+      incidents.redeemPayout(ybDAICoverId, ybDAIIncidentId, ybDAITokenAmount, { from: coverHolder }),
+      'TokenController: Cover already has accepted claims',
+    );
+
+    const ybETHCoverId = coverLength - 1;
+    const ybETHIncidentId = '1';
+    const ybETHPriceBefore = ether('1.2'); // ETH per ybETH
+    const ybETHSumAssured = ether('1').muln(1000);
+    const ybETHTokenAmount = ether('1').mul(ether('1000')).div(ybETHPriceBefore);
+
+    await ybETH.mint(coverHolder, ybETHTokenAmount);
+    await ybETH.approve(incidents.address, ybETHTokenAmount, { from: coverHolder });
+
+    const ethBalanceBefore = await web3.eth.getBalance(coverHolder);
+    await incidents.redeemPayout(ybETHCoverId, ybETHIncidentId, ybETHTokenAmount, { from: coverHolder, gasPrice: 0 });
+    const ethBalanceAfter = await web3.eth.getBalance(coverHolder);
+
+    const ethDiff = toBN(ethBalanceAfter).sub(toBN(ethBalanceBefore));
+    bnEqual(ethDiff, ybETHSumAssured);
+
+    await expectRevert(
+      incidents.redeemPayout(ybETHCoverId, ybETHIncidentId, ybETHTokenAmount, { from: coverHolder }),
+      'TokenController: Cover already has accepted claims',
+    );
   });
 });

@@ -1,6 +1,6 @@
 const { accounts } = require('hardhat');
 const { ether, time } = require('@openzeppelin/test-helpers');
-const { buyCover } = require('../utils/buyCover');
+const { buyCover } = require('../utils').buyCover;
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { bnEqual, hex } = require('../utils').helpers;
 

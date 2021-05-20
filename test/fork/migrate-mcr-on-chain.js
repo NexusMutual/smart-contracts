@@ -12,8 +12,8 @@ const { bnEqual } = require('../utils').helpers;
 const {
   calculateRelativeError,
 } = require('../utils').tokenPrice;
-const { quoteAuthAddress } = require('../utils/getQuote');
-const { buyCover, buyCoverWithDai } = require('../utils/buyCover');
+const { quoteAuthAddress } = require('../utils').getQuote;
+const { buyCover, buyCoverWithDai } = require('../utils').buyCover;
 
 const { toBN } = web3.utils;
 

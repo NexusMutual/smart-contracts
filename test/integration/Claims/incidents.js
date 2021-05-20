@@ -1,11 +1,11 @@
 const { accounts, web3 } = require('hardhat');
 const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
-const { coverToCoverDetailsArray } = require('../utils/buyCover');
+const { coverToCoverDetailsArray } = require('../utils').buyCover;
 const { toBN } = web3.utils;
 
 const { enrollMember } = require('../utils/enroll');
-const { buyCover, buyCoverWithDai } = require('../utils/buyCover');
-const { getQuoteSignature } = require('../utils/getQuote');
+const { buyCover, buyCoverWithDai } = require('../utils').buyCover;
+const { getQuoteSignature } = require('../utils').getQuote;
 const { addIncident } = require('../utils/incidents');
 const {
   constants: {

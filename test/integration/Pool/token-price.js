@@ -12,7 +12,7 @@ const {
 } = require('../utils').tokenPrice;
 
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
-const { buyCover } = require('../utils/buyCover');
+const { buyCover } = require('../utils').buyCover;
 const { hex } = require('../utils').helpers;
 
 const [, member1, member2, member3, member4, member5, coverHolder, nonMember1, payoutAddress] = accounts;

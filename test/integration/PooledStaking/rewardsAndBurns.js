@@ -4,7 +4,7 @@ const { assert } = require('chai');
 const { BN, toBN } = web3.utils;
 
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
-const { buyCover } = require('../utils/buyCover');
+const { buyCover } = require('../utils').buyCover;
 const { hex } = require('../utils').helpers;
 
 const [

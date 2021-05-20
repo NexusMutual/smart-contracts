@@ -579,9 +579,8 @@ describe('MCR on-chain migration', function () {
     console.log('2nd payout');
     const ethBalanceAfter = await web3.eth.getBalance(coverHolder);
 
-    console.log({ethBalanceBefore, ethBalanceAfter});
-    const ethDiff = ethBalanceAfter.sub(ethBalanceBefore); // web3 bn returns a string on sub
-    bnEqual(toBN(ethDiff), ybETHSumAssured);
+    const ethDiff = toBN(ethBalanceAfter).sub(toBN(ethBalanceBefore));
+    bnEqual(ethDiff, ybETHSumAssured);
     console.log('Balance diff ok');
 
     await expectRevert(

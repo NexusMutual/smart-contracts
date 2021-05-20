@@ -551,14 +551,11 @@ describe('MCR on-chain migration', function () {
     await ybDAI.approve(incidents.address, ybDAITokenAmount, { from: coverHolder });
 
     const daiBalanceBefore = await dai.balanceOf(coverHolder);
-    console.log('First payout ok');
     await incidents.redeemPayout(ybDAICoverId, ybDAIIncidentId, ybDAITokenAmount, { from: coverHolder });
-    console.log('First payout ok');
     const daiBalanceAfter = await dai.balanceOf(coverHolder);
 
     const daiDiff = daiBalanceAfter.sub(daiBalanceBefore);
     bnEqual(daiDiff, ybDAISumAssured);
-    console.log('Balance diff ok');
 
     await expectRevert(
       incidents.redeemPayout(ybDAICoverId, ybDAIIncidentId, ybDAITokenAmount, { from: coverHolder }),
@@ -576,12 +573,10 @@ describe('MCR on-chain migration', function () {
 
     const ethBalanceBefore = await web3.eth.getBalance(coverHolder);
     await incidents.redeemPayout(ybETHCoverId, ybETHIncidentId, ybETHTokenAmount, { from: coverHolder, gasPrice: 0 });
-    console.log('2nd payout');
     const ethBalanceAfter = await web3.eth.getBalance(coverHolder);
 
     const ethDiff = toBN(ethBalanceAfter).sub(toBN(ethBalanceBefore));
     bnEqual(ethDiff, ybETHSumAssured);
-    console.log('Balance diff ok');
 
     await expectRevert(
       incidents.redeemPayout(ybETHCoverId, ybETHIncidentId, ybETHTokenAmount, { from: coverHolder }),

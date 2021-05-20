@@ -432,6 +432,175 @@ describe('MCR on-chain migration', function () {
     }
   });
 
+  it('triggers StEth investment', async function () {
+    const { swapOperator, swapController, stETHToken, pool } = this;
+
+    const poolValueInEthBefore = await pool.getPoolValueInEth();
+
+    const amountIn = ether('100');
+    await swapOperator.swapETHForStETH(amountIn, {
+      from: swapController,
+    });
+
+    const balanceAfter = await stETHToken.balanceOf(pool.address);
+
+    const dustDifference = 2;
+    assert.equal(balanceAfter.toString(), amountIn.subn(dustDifference).toString());
+
+    const poolValueInEthAfter = await pool.getPoolValueInEth();
+
+    const poolValueDelta = poolValueInEthBefore.sub(poolValueInEthAfter);
+
+    assert(poolValueDelta.ltn(20), 'poolValueDelta exceeds 20 wei');
+  });
+
+  it('trigger ETH -> DAI swap', async function () {
+    const { swapOperator, swapController, twapOracle, pool, dai } = this;
+
+    const amountIn = ether('40');
+
+    const wethDAIPairAddress = await twapOracle.pairFor(Address.WETH, Address.DAI);
+
+    const periodSize = 1800;
+    const windowSize = 14400; // = 8 * 1800 = 4 hours
+    const nextWindowStartTime = async () => {
+      const now = bnToNumber(await time.latest());
+      const currentWindow = Math.floor(now / windowSize);
+      return (currentWindow + 1) * windowSize;
+    };
+
+    const windowStart = await nextWindowStartTime();
+    await setNextBlockTime(windowStart);
+    await twapOracle.update([wethDAIPairAddress]);
+
+    // should be able to swap only during the last period within the window
+    const period8Start = windowStart + periodSize * 7;
+    await setNextBlockTime(period8Start);
+
+    // mine block
+    await web3.eth.sendTransaction({ from: accounts[0], to: pool.address, value: '1' });
+
+    const daiBalanceBefore = await dai.balanceOf(pool.address);
+
+    const assetData = await pool.assetData(Address.DAI);
+
+    const avgAmountOut = await twapOracle.consult(Address.WETH, amountIn, Address.DAI);
+    const maxSlippageAmount = avgAmountOut.mul(assetData.maxSlippageRatio).div(ether('1'));
+    const minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
+
+    console.log({
+      minOutOnMaxSlippage: minOutOnMaxSlippage.toString(),
+    });
+    await swapOperator.swapETHForAsset(Address.DAI, amountIn, minOutOnMaxSlippage, {
+      from: swapController,
+    });
+
+    const daiBalanceAfter = await dai.balanceOf(pool.address);
+
+    const balanceIncrease = daiBalanceAfter.sub(daiBalanceBefore);
+
+    console.log({
+      balanceIncrease: balanceIncrease.toString(),
+    });
+  });
+
+  it('triggers MCR update (no-effect at floor level)', async function () {
+    const { mcr } = this;
+
+    const minUpdateTime = await mcr.minUpdateTime();
+    await time.increase(minUpdateTime.addn(1));
+
+    const mcrFloorBefore = await mcr.mcrFloor();
+    const desiredMCRBefore = await mcr.desiredMCR();
+    await mcr.updateMCR();
+
+    const block = await web3.eth.getBlock('latest');
+
+    const lastUpdateTime = await mcr.lastUpdateTime();
+    const mcrFloor = await mcr.mcrFloor();
+    const desiredMCR = await mcr.desiredMCR();
+    const storedMCR = await mcr.mcr();
+    const currentMCR = await mcr.getMCR();
+
+    console.log({
+      desiredMCR: desiredMCR.toString(),
+      desiredMCRBefore: desiredMCRBefore.toString(),
+      mcrFloorBefore: mcrFloorBefore.toString(),
+      mcrFloor: mcrFloor.toString(),
+      currentMCR: currentMCR.toString(),
+      storedMCR: storedMCR.toString(),
+    });
+
+    assert.equal(lastUpdateTime.toString(), block.timestamp.toString());
+    assert.equal(mcrFloor.toString(), mcrFloorBefore.toString());
+    assert.equal(desiredMCR.toString(), mcrFloor.toString());
+
+    // desiredMCR falls slightly since the current MCR is slightly above the floor.
+    assert(desiredMCR.lt(desiredMCRBefore), 'desiredMCR did not decrease');
+
+    this.lastUpdateTime = lastUpdateTime;
+  });
+
+  it('sets DMCI to greater to 1% to allow floor increase', async function () {
+    const { voters, governance, mcr, whales } = this;
+
+    const newMaxMCRFloorIncrement = toBN(100);
+    const parameters = [
+      ['bytes8', hex('DMCI')],
+      ['uint', newMaxMCRFloorIncrement],
+    ];
+
+    const updateParams = web3.eth.abi.encodeParameters(
+      parameters.map(p => p[0]),
+      parameters.map(p => p[1]),
+    );
+
+    await submitMemberVoteGovernanceProposal(
+      ProposalCategory.upgradeMCRParameters, updateParams, [...voters, ...whales], governance,
+    );
+
+    const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
+
+    assert.equal(maxMCRFloorIncrement.toString(), newMaxMCRFloorIncrement.toString());
+  });
+
+  it('triggers MCR update after ETH injection to the pool to MCR% > 130%', async function () {
+    const { mcr, pool } = this;
+
+    const currentMCR = await mcr.getMCR();
+
+    const extraEth = currentMCR.muln(140).divn(100);
+    console.log(`Funding Pool at ${pool.address} with ${extraEth.div(ether('1'))} ETH.`);
+    await web3.eth.sendTransaction({ from: accounts[0], to: pool.address, value: extraEth });
+
+    const mcrFloorBefore = await mcr.mcrFloor();
+    const currentMCRBefore = await mcr.getMCR();
+
+    await time.increase(time.duration.hours(24));
+    await mcr.updateMCR();
+
+    const block = await web3.eth.getBlock('latest');
+
+    const lastUpdateTime = await mcr.lastUpdateTime();
+    const mcrFloor = await mcr.mcrFloor();
+    const desiredMCR = await mcr.desiredMCR();
+    const latestMCR = await mcr.getMCR();
+    const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
+
+    const expectedMCRFloor = mcrFloorBefore.mul(ratioScale.add(maxMCRFloorIncrement)).divn(ratioScale);
+
+    console.log({
+      mcrFloor: mcrFloor.toString(),
+      desiredMCR: desiredMCR.toString(),
+      latestMCR: latestMCR.toString(),
+    });
+
+    assert.equal(lastUpdateTime.toString(), block.timestamp.toString());
+    assert.equal(mcrFloor.toString(), expectedMCRFloor.toString());
+    assert.equal(desiredMCR.toString(), mcrFloor.toString());
+    assert.equal(currentMCRBefore.toString(), latestMCR.toString());
+  });
+
   it('change quotation engine address to sign quotes', async function () {
     const { governance, voters } = this;
 
@@ -582,171 +751,5 @@ describe('MCR on-chain migration', function () {
       incidents.redeemPayout(ybETHCoverId, ybETHIncidentId, ybETHTokenAmount, { from: coverHolder }),
       'TokenController: Cover already has accepted claims',
     );
-  });
-
-  it('triggers StEth investment', async function () {
-    const { swapOperator, swapController, stETHToken, pool } = this;
-
-    const poolValueInEthBefore = await pool.getPoolValueInEth();
-
-    const amountIn = ether('100');
-    await swapOperator.swapETHForStETH(amountIn, {
-      from: swapController,
-    });
-
-    const balanceAfter = await stETHToken.balanceOf(pool.address);
-
-    const dustDifference = 2;
-    assert.equal(balanceAfter.toString(), amountIn.subn(dustDifference).toString());
-
-    const poolValueInEthAfter = await pool.getPoolValueInEth();
-
-    const poolValueDelta = poolValueInEthBefore.sub(poolValueInEthAfter);
-
-    assert(poolValueDelta.ltn(20), 'poolValueDelta exceeds 20 wei');
-  });
-
-  it('trigger ETH -> DAI swap', async function () {
-    const { swapOperator, swapController, twapOracle, pool, dai } = this;
-
-    const amountIn = ether('40');
-
-    const wethDAIPairAddress = await twapOracle.pairFor(Address.WETH, Address.DAI);
-
-    const periodSize = 1800;
-    const windowSize = 14400; // = 8 * 1800 = 4 hours
-    const nextWindowStartTime = async () => {
-      const now = bnToNumber(await time.latest());
-      const currentWindow = Math.floor(now / windowSize);
-      return (currentWindow + 1) * windowSize;
-    };
-
-    const windowStart = await nextWindowStartTime();
-    await setNextBlockTime(windowStart);
-    await twapOracle.update([wethDAIPairAddress]);
-
-    // should be able to swap only during the last period within the window
-    const period8Start = windowStart + periodSize * 7;
-    await setNextBlockTime(period8Start);
-
-    // mine block
-    await web3.eth.sendTransaction({ from: accounts[0], to: pool.address, value: '1' });
-
-    const daiBalanceBefore = await dai.balanceOf(pool.address);
-
-    const assetData = await pool.assetData(Address.DAI);
-
-    const avgAmountOut = await twapOracle.consult(Address.WETH, amountIn, Address.DAI);
-    const maxSlippageAmount = avgAmountOut.mul(assetData.maxSlippageRatio).div(ether('1'));
-    const minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
-
-    console.log({
-      minOutOnMaxSlippage: minOutOnMaxSlippage.toString(),
-    });
-    await swapOperator.swapETHForAsset(Address.DAI, amountIn, minOutOnMaxSlippage, {
-      from: swapController,
-    });
-
-    const daiBalanceAfter = await dai.balanceOf(pool.address);
-
-    const balanceIncrease = daiBalanceAfter.sub(daiBalanceBefore);
-
-    console.log({
-      balanceIncrease: balanceIncrease.toString(),
-    });
-  });
-
-  it('triggers MCR update (no-effect at floor level)', async function () {
-    const { mcr } = this;
-
-    const minUpdateTime = await mcr.minUpdateTime();
-    await time.increase(minUpdateTime.addn(1));
-
-    const mcrFloorBefore = await mcr.mcrFloor();
-    const desiredMCRBefore = await mcr.desiredMCR();
-    await mcr.updateMCR();
-
-    const block = await web3.eth.getBlock('latest');
-
-    const lastUpdateTime = await mcr.lastUpdateTime();
-    const mcrFloor = await mcr.mcrFloor();
-    const desiredMCR = await mcr.desiredMCR();
-    const storedMCR = await mcr.mcr();
-    const currentMCR = await mcr.getMCR();
-
-    console.log({
-      desiredMCR: desiredMCR.toString(),
-      currentMCR: currentMCR.toString(),
-      storedMCR: storedMCR.toString(),
-    });
-
-    assert.equal(lastUpdateTime.toString(), block.timestamp.toString());
-    assert.equal(mcrFloor.toString(), mcrFloorBefore.toString());
-    assert.equal(desiredMCR.toString(), mcrFloor.toString());
-
-    // desiredMCR falls slightly since the current MCR is slightly above the floor.
-    assert(desiredMCR.lt(desiredMCRBefore), 'desiredMCR did not decrease');
-
-    this.lastUpdateTime = lastUpdateTime;
-  });
-
-  it('sets DMCI to greater to 1% to allow floor increase', async function () {
-    const { voters, governance, mcr, whales } = this;
-
-    const newMaxMCRFloorIncrement = toBN(100);
-    const parameters = [
-      ['bytes8', hex('DMCI')],
-      ['uint', newMaxMCRFloorIncrement],
-    ];
-
-    const updateParams = web3.eth.abi.encodeParameters(
-      parameters.map(p => p[0]),
-      parameters.map(p => p[1]),
-    );
-
-    await submitMemberVoteGovernanceProposal(
-      ProposalCategory.upgradeMCRParameters, updateParams, [...voters, ...whales], governance,
-    );
-
-    const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
-
-    assert.equal(maxMCRFloorIncrement.toString(), newMaxMCRFloorIncrement.toString());
-  });
-
-  it('triggers MCR update after ETH injection to the pool to MCR% > 130%', async function () {
-    const { mcr, pool } = this;
-
-    const currentMCR = await mcr.getMCR();
-
-    const extraEth = currentMCR.muln(140).divn(100);
-    console.log(`Funding Pool at ${pool.address} with ${extraEth.div(ether('1'))} ETH.`);
-    await web3.eth.sendTransaction({ from: accounts[0], to: pool.address, value: extraEth });
-
-    const mcrFloorBefore = await mcr.mcrFloor();
-    const currentMCRBefore = await mcr.getMCR();
-
-    await time.increase(time.duration.hours(24));
-    await mcr.updateMCR();
-
-    const block = await web3.eth.getBlock('latest');
-
-    const lastUpdateTime = await mcr.lastUpdateTime();
-    const mcrFloor = await mcr.mcrFloor();
-    const desiredMCR = await mcr.desiredMCR();
-    const latestMCR = await mcr.getMCR();
-    const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
-
-    const expectedMCRFloor = mcrFloorBefore.mul(ratioScale.add(maxMCRFloorIncrement)).divn(ratioScale);
-
-    console.log({
-      mcrFloor: mcrFloor.toString(),
-      desiredMCR: desiredMCR.toString(),
-      latestMCR: latestMCR.toString(),
-    });
-
-    assert.equal(lastUpdateTime.toString(), block.timestamp.toString());
-    assert.equal(mcrFloor.toString(), expectedMCRFloor.toString());
-    assert.equal(desiredMCR.toString(), mcrFloor.toString());
-    assert.equal(currentMCRBefore.toString(), latestMCR.toString());
   });
 });

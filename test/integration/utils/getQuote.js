@@ -2,8 +2,11 @@ const ethABI = require('ethereumjs-abi');
 const util = require('ethereumjs-util');
 const { toBN } = require('hardhat').web3.utils;
 
-async function getQuoteSignature (...args) {
+const quoteAuthPrivateKey = Buffer.from('45571723d6f6fa704623beb284eda724459d76cc68e82b754015d6e7af794cc8', 'hex');
 
+const quoteAuthAddress = util.privateToAddress(quoteAuthPrivateKey);
+
+async function getQuoteSignature (...args) {
   const order = {
     amount: args[0][0],
     curr: args[1],
@@ -34,8 +37,7 @@ async function getQuoteSignature (...args) {
   const message = ethABI.soliditySHA3(types, values);
   const msgHash = util.hashPersonalMessage(message);
 
-  const privateKey = Buffer.from('45571723d6f6fa704623beb284eda724459d76cc68e82b754015d6e7af794cc8', 'hex');
-  const sig = util.ecsign(msgHash, privateKey);
+  const sig = util.ecsign(msgHash, quoteAuthPrivateKey);
 
   return [
     sig.v,
@@ -44,4 +46,4 @@ async function getQuoteSignature (...args) {
   ];
 }
 
-module.exports = { getQuoteSignature };
+module.exports = { getQuoteSignature, quoteAuthPrivateKey, quoteAuthAddress };

@@ -11,6 +11,8 @@ const { setNextBlockTime } = require('../utils').evm;
 const {
   calculateRelativeError,
 } = require('../utils').tokenPrice;
+const { quoteAuthAddress } = require('../utils/getQuote');
+const { buyCover, buyCoverWithDai } = require('../utils/buyCover');
 
 const { toBN } = web3.utils;
 
@@ -33,6 +35,7 @@ const TwapOracle = artifacts.require('TwapOracle');
 const Incidents = artifacts.require('Incidents');
 const Gateway = artifacts.require('Gateway');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
+const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -50,6 +53,9 @@ const UserAddress = {
   NXM_WHALE_1: '0x25783b67b5e29c48449163db19842b8531fdde43',
   NXM_WHALE_2: '0x598dbe6738e0aca4eabc22fed2ac737dbd13fb8f',
 };
+
+const ybDAIProductId = '0x000000000000000000000000000000000000000d';
+const ybETHProductId = '0x000000000000000000000000000000000000000e';
 
 const ratioScale = toBN('10000');
 
@@ -411,10 +417,69 @@ describe('MCR on-chain migration', function () {
       const actionData = web3.eth.abi.encodeParameters(
         parameters.map(p => p[0]),
         parameters.map(p => p[1]),
-      );
+      )e
 
       await submitGovernanceProposal(ProposalCategory.addCategory, actionData, voters, governance);
     }
+  });
+
+  it('change quotation engine address to sign quotes', async function () {
+    const { governance, voters } = this;
+
+    const parameters = [
+      ['bytes8', 'QUOAUTH'], // changeAuthQuoteEngine code
+      ['address', quoteAuthAddress], // authQuoteEngine
+    ];
+
+    const actionData = web3.eth.abi.encodeParameters(
+      parameters.map(p => p[0]),
+      parameters.map(p => p[1]),
+    );
+
+    await submitGovernanceProposal(ProposalCategory.updateOwnerParameters, actionData, voters, governance);
+  });
+
+  it('add ybDAI yield token cover', async function () {
+    const { incidents, dai } = this;
+    ybDAI = await ERC20MintableDetailed.new('yield bearing DAI', 'ybDAI', 18);
+    await incidents.addProducts([ybDAIProductId], [ybDAI.address], [dai.address], { from: accounts[0] });
+  });
+
+  it('buy ybDAI yield token cover', async function () {
+    const { incidents, dai } = this;
+    const ybDAICover = {
+      amount: 30000, // 1 dai or eth
+      price: '3000000000000000', // 0.003
+      priceNXM: '1000000000000000000', // 1 nxm
+      expireTime: '2000000000', // year 2033
+      generationTime: '1600000000000',
+      currency: hex('DAI'),
+      period: 60,
+      contractAddress: ybDAIProductId,
+   };
+    await buyCoverWithDai({ ...this, cover: ybDAICover, coverHolder: accounts[0] });
+  });
+
+  it('add ETH yield bearing token', async function () {
+    const { incidents } = this;
+    const ETH = await p1.ETH();
+    const ybETH = await ERC20MintableDetailed.new('yield bearing ETH', 'ybETH', 18);
+    await incidents.addProducts([ybETHProductId], [ybETH.address], [ETH], { from: accounts[0] });
+  });
+
+  it('buy ybETH yield token cover', async function () {
+    const { incidents, dai } = this;
+    const ybETHCover = {
+      amount: 1000, // 1 dai or eth
+      price: '3000000000000000', // 0.003
+      priceNXM: '1000000000000000000', // 1 nxm
+      expireTime: '2000000000', // year 2033
+      generationTime: '1600000000000',
+      currency: hex('ETH'),
+      period: 60,
+      contractAddress: ybDAIProductId,
+   };
+    await buyCover({ ...this, cover: ybETHCover, coverHolder: accounts[0] });
   });
 
   it('triggers StEth investment', async function () {

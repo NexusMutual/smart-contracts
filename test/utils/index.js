@@ -6,6 +6,7 @@ const evm = require('./evm');
 const tokenPrice = require('./token-price');
 const buyCover = require('./buyCover');
 const getQuote = require('./getQuote');
+const setupUniswap = require('./setupUniswap');
 
 module.exports = {
   accounts,
@@ -16,4 +17,5 @@ module.exports = {
   tokenPrice,
   buyCover,
   getQuote,
+  setupUniswap,
 };

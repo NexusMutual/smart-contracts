@@ -3,7 +3,6 @@ const setup = require('./setup');
 
 describe('MCR unit tests', function () {
 
-  before(reset);
   before(setup);
 
   beforeEach(async function () {

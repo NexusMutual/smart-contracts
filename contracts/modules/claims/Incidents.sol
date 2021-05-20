@@ -56,8 +56,13 @@ contract Incidents is MasterAware {
   // product id => accumulated burn amount
   mapping(address => uint) public accumulatedBurn;
 
-  // burn percentage, ex 20 for 20%
-  uint public BURN_RATE;
+  // burn ratio in bps, ex 2000 for 20%
+  uint public BURN_RATIO;
+
+  // burn ratio in bps
+  uint public DEDUCTIBLE_RATIO;
+
+  uint constant BASIS_PRECISION = 10000;
 
   event ProductAdded(
     address indexed productId,
@@ -81,8 +86,9 @@ contract Incidents is MasterAware {
   }
 
   function initialize() external {
-    require(BURN_RATE == 0, "Already initialized");
-    BURN_RATE = 20;
+    require(BURN_RATIO == 0, "Already initialized");
+    BURN_RATIO = 2000;
+    DEDUCTIBLE_RATIO = 9000;
   }
 
   function addProducts(
@@ -189,13 +195,17 @@ contract Incidents is MasterAware {
     {
       // assumes 18 decimals (eth & dai)
       uint decimalPrecision = 1e18;
+      uint maxAmount;
 
       // sumAssured is currently stored without decimals
       uint coverAmount = sumAssured.mul(decimalPrecision);
 
-      // max amount check
-      uint maxAmount = coverAmount.mul(decimalPrecision).div(incident.priceBefore);
-      require(coveredTokenAmount <= maxAmount, "Incidents: Amount exceeds sum assured");
+      {
+        // max amount check
+        uint deductiblePriceBefore = incident.priceBefore.mul(DEDUCTIBLE_RATIO).div(BASIS_PRECISION);
+        maxAmount = coverAmount.mul(decimalPrecision).div(deductiblePriceBefore);
+        require(coveredTokenAmount <= maxAmount, "Incidents: Amount exceeds sum assured");
+      }
 
       // payoutAmount = coveredTokenAmount / maxAmount * coverAmount
       //              = coveredTokenAmount * coverAmount / maxAmount
@@ -282,7 +292,7 @@ contract Incidents is MasterAware {
       uint decimalPrecision = 1e18;
       uint assetPerNxm = p1.getTokenPrice(coverAsset);
       uint maxBurnAmount = payoutAmount.mul(decimalPrecision).div(assetPerNxm);
-      uint burnAmount = maxBurnAmount.mul(BURN_RATE).div(100);
+      uint burnAmount = maxBurnAmount.mul(BURN_RATIO).div(BASIS_PRECISION);
 
       accumulatedBurn[productId] = accumulatedBurn[productId].add(burnAmount);
     }
@@ -324,7 +334,7 @@ contract Incidents is MasterAware {
 
     if (code == "BURNRATE") {
       require(value <= 100, "Incidents: Burn rate cannot exceed 100");
-      BURN_RATE = value;
+      BURN_RATIO = value;
       return;
     }
 

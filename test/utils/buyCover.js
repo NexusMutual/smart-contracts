@@ -39,7 +39,9 @@ async function buyCoverWithDai ({ cover, coverHolder, qt, p1, dai }) {
   );
 
   const coverPrice = toBN(cover.price);
+  console.log("approving");
   await dai.approve(p1.address, coverPrice, { from: coverHolder });
+  console.log("approved");
 
   return p1.makeCoverUsingCA(
     cover.contractAddress,

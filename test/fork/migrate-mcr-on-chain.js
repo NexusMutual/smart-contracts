@@ -1,12 +1,13 @@
 const fetch = require('node-fetch');
 const { artifacts, web3, accounts, network } = require('hardhat');
-const { constants: { ZERO_ADDRESS }, ether, time } = require('@openzeppelin/test-helpers');
+const { expectRevert, constants: { ZERO_ADDRESS }, ether, time } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
 
 const { submitGovernanceProposal, submitMemberVoteGovernanceProposal } = require('./utils');
 const { hex } = require('../utils').helpers;
 const { ProposalCategory, Role } = require('../utils').constants;
 const { setNextBlockTime } = require('../utils').evm;
+const { bnEqual } = require('../utils').helpers;
 
 const {
   calculateRelativeError,
@@ -24,6 +25,7 @@ const NXMToken = artifacts.require('NXMToken');
 const Governance = artifacts.require('Governance');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const Quotation = artifacts.require('Quotation');
+const QuotationData = artifacts.require('QuotationData');
 const Claims = artifacts.require('Claims');
 const MCR = artifacts.require('MCR');
 const LegacyMCR = artifacts.require('LegacyMCR');
@@ -52,7 +54,10 @@ const Address = {
 const UserAddress = {
   NXM_WHALE_1: '0x25783b67b5e29c48449163db19842b8531fdde43',
   NXM_WHALE_2: '0x598dbe6738e0aca4eabc22fed2ac737dbd13fb8f',
+  NXM_AB_MEMBER: '0x87B2a7559d85f4653f13E6546A14189cd5455d45',
 };
+
+const DAI_HOLDER = '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503';
 
 const ybDAIProductId = '0x000000000000000000000000000000000000000d';
 const ybETHProductId = '0x000000000000000000000000000000000000000e';
@@ -72,6 +77,7 @@ const hardhatRequest = async (...params) => {
   }
 };
 
+let ybDAI, ybETH;
 const getAddressByCodeFactory = abis => code => abis.find(abi => abi.code === code).address;
 const fund = async to => web3.eth.sendTransaction({ from: accounts[0], to, value: ether('1000000') });
 const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAccount', params: [member] });
@@ -94,6 +100,7 @@ describe('MCR on-chain migration', function () {
     const pool1 = await OldPool.at(getAddressByCode('P1'));
     const oldMCR = await LegacyMCR.at(getAddressByCode('MC'));
     const oldPoolData = await LegacyPoolData.at(getAddressByCode('PD'));
+    const quotationData = await QuotationData.at(getAddressByCode('QD'));
 
     this.masterAddress = masterAddress;
     this.token = token;
@@ -103,6 +110,7 @@ describe('MCR on-chain migration', function () {
     this.oldMCR = oldMCR;
     this.master = await NXMaster.at(masterAddress);
     this.poolData = oldPoolData;
+    this.quotationData = quotationData;
   });
 
   it('fetches board members and funds accounts', async function () {
@@ -125,7 +133,7 @@ describe('MCR on-chain migration', function () {
 
     const { governance, voters, oldMCR, oldPool, master, poolData } = this;
 
-    const dai = await ERC20.at(Address.DAI);
+    const dai = await ERC20MintableDetailed.at(Address.DAI);
 
     const poolValueBefore = await oldPool.getPoolValueInEth();
 
@@ -367,6 +375,7 @@ describe('MCR on-chain migration', function () {
     this.swapOperator = swapOperator;
     this.stETHToken = stETHToken;
     this.twapOracle = twapOracle;
+    this.quotation = quotation;
   });
 
   it('add proposal categories for incidents contract', async function () {
@@ -411,13 +420,13 @@ describe('MCR on-chain migration', function () {
         ['bytes2', hex('IC')], // contract name
         // "incentives" is [min stake, incentive, ab voting req, special resolution]
         ['uint256[]', [0, 0, 1, 0]],
-        ['string', 'addIncident(address,uint256,uint256)'], // function signature
+        ['string', 'withdrawAsset(address,address,uint256)'], // function signature
       ];
 
       const actionData = web3.eth.abi.encodeParameters(
         parameters.map(p => p[0]),
         parameters.map(p => p[1]),
-      )e
+      );
 
       await submitGovernanceProposal(ProposalCategory.addCategory, actionData, voters, governance);
     }
@@ -427,10 +436,9 @@ describe('MCR on-chain migration', function () {
     const { governance, voters } = this;
 
     const parameters = [
-      ['bytes8', 'QUOAUTH'], // changeAuthQuoteEngine code
+      ['bytes8', hex('QUOAUTH')], // changeAuthQuoteEngine code
       ['address', quoteAuthAddress], // authQuoteEngine
     ];
-
     const actionData = web3.eth.abi.encodeParameters(
       parameters.map(p => p[0]),
       parameters.map(p => p[1]),
@@ -442,44 +450,144 @@ describe('MCR on-chain migration', function () {
   it('add ybDAI yield token cover', async function () {
     const { incidents, dai } = this;
     ybDAI = await ERC20MintableDetailed.new('yield bearing DAI', 'ybDAI', 18);
-    await incidents.addProducts([ybDAIProductId], [ybDAI.address], [dai.address], { from: accounts[0] });
+    await incidents.addProducts([ybDAIProductId], [ybDAI.address], [dai.address], { from: UserAddress.NXM_AB_MEMBER });
   });
 
   it('buy ybDAI yield token cover', async function () {
-    const { incidents, dai } = this;
+    const { dai } = this;
+    const generationTime = await time.latest();
+    await time.increase(toBN('1'));
     const ybDAICover = {
       amount: 30000, // 1 dai or eth
       price: '3000000000000000', // 0.003
       priceNXM: '1000000000000000000', // 1 nxm
       expireTime: '2000000000', // year 2033
-      generationTime: '1600000000000',
+      generationTime: generationTime.toString(),
       currency: hex('DAI'),
       period: 60,
       contractAddress: ybDAIProductId,
-   };
-    await buyCoverWithDai({ ...this, cover: ybDAICover, coverHolder: accounts[0] });
+    };
+    const coverHolder = UserAddress.NXM_WHALE_1;
+    await unlock(DAI_HOLDER);
+    await unlock(coverHolder);
+    await dai.transfer(coverHolder, '3000000000000000', { from: DAI_HOLDER, gasPrice: 0 });
+    await buyCoverWithDai({ ...this, qt: this.quotation, p1: this.pool, cover: ybDAICover, coverHolder });
   });
 
   it('add ETH yield bearing token', async function () {
-    const { incidents } = this;
-    const ETH = await p1.ETH();
-    const ybETH = await ERC20MintableDetailed.new('yield bearing ETH', 'ybETH', 18);
-    await incidents.addProducts([ybETHProductId], [ybETH.address], [ETH], { from: accounts[0] });
+    const { incidents, pool } = this;
+    const ETH = await pool.ETH();
+    ybETH = await ERC20MintableDetailed.new('yield bearing ETH', 'ybETH', 18);
+    await incidents.addProducts([ybETHProductId], [ybETH.address], [ETH], { from: UserAddress.NXM_AB_MEMBER });
   });
 
   it('buy ybETH yield token cover', async function () {
-    const { incidents, dai } = this;
+    const generationTime = await time.latest();
+    await time.increase(toBN('1'));
     const ybETHCover = {
       amount: 1000, // 1 dai or eth
       price: '3000000000000000', // 0.003
       priceNXM: '1000000000000000000', // 1 nxm
       expireTime: '2000000000', // year 2033
-      generationTime: '1600000000000',
+      generationTime: generationTime.toString(),
       currency: hex('ETH'),
       period: 60,
-      contractAddress: ybDAIProductId,
-   };
-    await buyCover({ ...this, cover: ybETHCover, coverHolder: accounts[0] });
+      contractAddress: ybETHProductId,
+    };
+    const coverHolder = UserAddress.NXM_WHALE_1;
+    await unlock(coverHolder);
+    await buyCover({ ...this, qt: this.quotation, p1: this.pool, cover: ybETHCover, coverHolder });
+  });
+
+  it('open incidents for ybETH and ybDAI', async function () {
+    const { governance, voters } = this;
+
+    const incidentTime = await time.latest();
+    // add incidents
+    {
+      const parameters = [
+        ['address', ybDAIProductId], // productId
+        ['uint256', incidentTime], // incidentDate
+        ['uint256', ether('1.1')], // priceBefore
+      ];
+
+      const actionData = web3.eth.abi.encodeParameters(
+        parameters.map(p => p[0]),
+        parameters.map(p => p[1]),
+      );
+
+      await submitGovernanceProposal(ProposalCategory.addIncident, actionData, voters, governance);
+    }
+
+    {
+      const parameters = [
+        ['address', ybETHProductId], // productId
+        ['uint256', incidentTime], // incidentDate
+        ['uint256', ether('1.2')], // priceBefore
+      ];
+
+      const actionData = web3.eth.abi.encodeParameters(
+        parameters.map(p => p[0]),
+        parameters.map(p => p[1]),
+      );
+
+      await submitGovernanceProposal(ProposalCategory.addIncident, actionData, voters, governance);
+    }
+  });
+
+  it('pays the correct amount and reverts on duplicate claim', async function () {
+
+    const { dai, incidents, quotationData } = this;
+    const coverHolder = UserAddress.NXM_WHALE_1;
+    const coverLength = await quotationData.getCoverLength();
+
+    const ybDAICoverId = coverLength - 2;
+    const ybDAIIncidentId = '0';
+    const ybDAIPriceBefore = ether('1.1'); // DAI per ybDAI
+    const ybDAISumAssured = ether('1').muln(30000);
+    const ybDAITokenAmount = ether('1').mul(ether('30000')).div(ybDAIPriceBefore);
+
+    await ybDAI.mint(coverHolder, ybDAITokenAmount);
+    await ybDAI.approve(incidents.address, ybDAITokenAmount, { from: coverHolder });
+
+    const daiBalanceBefore = await dai.balanceOf(coverHolder);
+    console.log('First payout ok');
+    await incidents.redeemPayout(ybDAICoverId, ybDAIIncidentId, ybDAITokenAmount, { from: coverHolder });
+    console.log('First payout ok');
+    const daiBalanceAfter = await dai.balanceOf(coverHolder);
+
+    const daiDiff = daiBalanceAfter.sub(daiBalanceBefore);
+    bnEqual(daiDiff, ybDAISumAssured);
+    console.log('Balance diff ok');
+
+    await expectRevert(
+      incidents.redeemPayout(ybDAICoverId, ybDAIIncidentId, ybDAITokenAmount, { from: coverHolder }),
+      'TokenController: Cover already has accepted claims',
+    );
+
+    const ybETHCoverId = coverLength - 1;
+    const ybETHIncidentId = '1';
+    const ybETHPriceBefore = ether('1.2'); // ETH per ybETH
+    const ybETHSumAssured = ether('1').muln(1000);
+    const ybETHTokenAmount = ether('1').mul(ether('1000')).div(ybETHPriceBefore);
+
+    await ybETH.mint(coverHolder, ybETHTokenAmount);
+    await ybETH.approve(incidents.address, ybETHTokenAmount, { from: coverHolder });
+
+    const ethBalanceBefore = await web3.eth.getBalance(coverHolder);
+    await incidents.redeemPayout(ybETHCoverId, ybETHIncidentId, ybETHTokenAmount, { from: coverHolder, gasPrice: 0 });
+    console.log('2nd payout');
+    const ethBalanceAfter = await web3.eth.getBalance(coverHolder);
+
+    console.log({ethBalanceBefore, ethBalanceAfter});
+    const ethDiff = ethBalanceAfter.sub(ethBalanceBefore); // web3 bn returns a string on sub
+    bnEqual(toBN(ethDiff), ybETHSumAssured);
+    console.log('Balance diff ok');
+
+    await expectRevert(
+      incidents.redeemPayout(ybETHCoverId, ybETHIncidentId, ybETHTokenAmount, { from: coverHolder }),
+      'TokenController: Cover already has accepted claims',
+    );
   });
 
   it('triggers StEth investment', async function () {

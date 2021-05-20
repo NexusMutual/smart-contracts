@@ -4,7 +4,7 @@ const { toBN } = require('hardhat').web3.utils;
 
 const quoteAuthPrivateKey = Buffer.from('45571723d6f6fa704623beb284eda724459d76cc68e82b754015d6e7af794cc8', 'hex');
 
-const quoteAuthAddress = util.privateToAddress(quoteAuthPrivateKey);
+const quoteAuthAddress = '0x' + util.privateToAddress(quoteAuthPrivateKey).toString('hex');
 
 async function getQuoteSignature (...args) {
   const order = {

@@ -27,7 +27,7 @@ describe('removeEmptyReason', function () {
     );
   });
 
-  it.skip('reverts when index is out of bounds', async function () {
+  it('reverts when index is out of bounds', async function () {
 
     const { token, tokenController } = this;
     const lockPeriod = toBN(days(60));

@@ -1,11 +1,8 @@
-const { artifacts, run, web3 } = require('hardhat');
-const {
-  ether,
-  constants: { ZERO_ADDRESS },
-} = require('@openzeppelin/test-helpers');
+const { artifacts, config, network, run, web3 } = require('hardhat');
+const { ether, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 
 const Verifier = require('../lib/verifier');
-const { getEnv, getNetwork, hex } = require('../lib/helpers');
+const { getEnv, hex } = require('../lib/helpers');
 const proposalCategories = require('../lib/proposal-categories');
 
 const { toBN } = web3.utils;
@@ -29,8 +26,7 @@ const ClaimProofs = artifacts.require('ClaimProofs');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const SwapOperator = artifacts.require('SwapOperator');
 const TwapOracle = artifacts.require('TwapOracle');
-// This is not disposable but an MCR with an overriden initialize method instead
-const MCR = artifacts.require('DisposableMCR');
+const DisposableMCR = artifacts.require('DisposableMCR');
 
 // temporary contracts used for initialization
 const DisposableNXMaster = artifacts.require('DisposableNXMaster');
@@ -77,17 +73,19 @@ const CHAINLINK_DAI_ETH_AGGREGATORS = {
   mainnet: '0x773616E4d11A78F511299002da57A0a94577F1f4',
   rinkeby: '0x2bA49Aaa16E6afD2a993473cfB70Fa8559B523cF',
   kovan: '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541',
+  // used when running hh node to fork a network, change me if needed
+  localhost: '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541',
 };
 
 async function main () {
   // make sure the contracts are compiled and we're not deploying an outdated artifact
   await run('compile');
 
-  const [owner] = await web3.eth.getAccounts();
-  const network = await getNetwork();
-  console.log(`Using ${network} network`);
+  console.log(`Using network: ${network.name}`);
+  console.log('Network config:', config.networks[network.name]);
 
-  const verifier = new Verifier(web3, etherscanApiKey, network.toLowerCase());
+  const [owner] = await web3.eth.getAccounts();
+  const verifier = new Verifier(web3, etherscanApiKey, network.name);
 
   const deployProxy = async (contract, txParams = {}) => {
     console.log(`Deploying proxy ${contract.contractName}`);
@@ -153,7 +151,6 @@ async function main () {
   const { instance: pc, implementation: pcImpl } = await deployProxy(DisposableProposalCategory);
   const { instance: gv, implementation: gvImpl } = await deployProxy(DisposableGovernance, { gas: 12e6 });
   const { instance: gateway, implementation: gatewayImpl } = await deployProxy(DisposableGateway);
-
   const { instance: incidents, implementation: incidentsImpl } = await deployProxy(Incidents);
 
   const proxiesAndImplementations = [
@@ -186,12 +183,12 @@ async function main () {
 
   const priceFeedOracle = await PriceFeedOracle.new(
     [dai.address],
-    [CHAINLINK_DAI_ETH_AGGREGATORS[network]],
+    [CHAINLINK_DAI_ETH_AGGREGATORS[network.name]],
     dai.address,
   );
 
   verifier.add(priceFeedOracle, {
-    constructorArgs: [[dai.address], [CHAINLINK_DAI_ETH_AGGREGATORS[network]], dai.address],
+    constructorArgs: [[dai.address], [CHAINLINK_DAI_ETH_AGGREGATORS[network.name]], dai.address],
   });
 
   console.log('Deploying claims contracts');
@@ -204,31 +201,29 @@ async function main () {
   verifier.add(cr, { constructorArgs: [master.address, dai.address] });
 
   console.log('Deploying capital contracts');
-  const mc = await MCR.new(ZERO_ADDRESS);
+  const mc = await DisposableMCR.new(ZERO_ADDRESS);
 
   const mcrEth = ether('50000');
   const mcrFloor = mcrEth.sub(ether('10000'));
 
   const latestBlock = await web3.eth.getBlock('latest');
-  const lastUpdateTime = latestBlock.timestamp;
+  const lastUpdateTime = latestBlock.timestamp - 60;
   const mcrFloorIncrementThreshold = 13000;
   const maxMCRFloorIncrement = 100;
   const maxMCRIncrement = 500;
   const gearingFactor = 48000;
   const minUpdateTime = 3600;
-  const desiredMCR = mcrEth;
 
   await mc.initialize(
     mcrEth,
     mcrFloor,
-    desiredMCR,
+    mcrEth, // desiredMCR
     lastUpdateTime,
     mcrFloorIncrementThreshold,
     maxMCRFloorIncrement,
     maxMCRIncrement,
     gearingFactor,
     minUpdateTime,
-    { gasPrice: 2 },
   );
 
   const poolParameters = [
@@ -279,14 +274,6 @@ async function main () {
     [owner], // advisory board members
   );
 
-  await pc.initialize(mr.address);
-
-  console.log({ proposalCategories });
-  for (const category of proposalCategories) {
-    console.log({ category });
-    await pc.addInitialCategory(...category);
-  }
-
   await gv.initialize(
     toBN(600), // 10 minutes
     toBN(600), // 10 minutes
@@ -307,6 +294,14 @@ async function main () {
   await incidents.initialize();
 
   await gateway.initialize(master.address, dai.address);
+
+  console.log('Adding proposal categories');
+
+  await pc.initialize(mr.address);
+
+  for (const category of proposalCategories) {
+    await pc.addInitialCategory(...category);
+  }
 
   console.log('Setting parameters');
 
@@ -344,7 +339,7 @@ async function main () {
   verifier.add(newGvImpl);
   verifier.add(newGatewayImpl);
 
-  console.log("Transfering contracts' ownership");
+  console.log('Transfering ownership of proxy contracts');
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
   await transferProxyOwnership(ps.address, master.address);
@@ -353,7 +348,7 @@ async function main () {
   await transferProxyOwnership(gateway.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
 
-  const deployDataFile = `${__dirname}/../artifacts/${network}-deploy-data.json`;
+  const deployDataFile = `${__dirname}/../artifacts/${network.name}-deploy-data.json`;
   verifier.dump(deployDataFile);
 
   console.log('Minting DAI to pool');

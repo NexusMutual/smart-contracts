@@ -14,24 +14,26 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-contract Aggregator {
-  function latestAnswer() public view returns (int);
+interface Aggregator {
+  function latestAnswer() external view returns (int);
 }
 
 contract PriceFeedOracle {
   using SafeMath for uint;
 
-  mapping (address => address) public aggregators;
+  mapping(address => address) public aggregators;
   address public daiAddress;
+  address public stETH;
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-  address constant public StETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
 
-  constructor (address[] memory assets, address[] memory _aggregators, address _daiAddress) public {
-    require(assets.length == _aggregators.length, "PriceFeedOracle: assets and _aggregators need to have same length");
-    for (uint i = 0; i < assets.length; i++) {
-      aggregators[assets[i]] = _aggregators[i];
-    }
+  constructor (
+    address _daiAggregator,
+    address _daiAddress,
+    address _stEthAddress
+  ) public {
+    aggregators[_daiAddress] = _daiAggregator;
     daiAddress = _daiAddress;
+    stETH = _stEthAddress;
   }
 
   /**
@@ -41,7 +43,7 @@ contract PriceFeedOracle {
    */
   function getAssetToEthRate(address asset) public view returns (uint) {
 
-    if (asset == ETH || asset == StETH) {
+    if (asset == ETH || asset == stETH) {
       return 1 ether;
     }
 
@@ -69,7 +71,7 @@ contract PriceFeedOracle {
       return ethIn.mul(1e18).div(getAssetToEthRate(daiAddress));
     }
 
-    if (asset == ETH || asset == StETH) {
+    if (asset == ETH || asset == stETH) {
       return ethIn;
     }
 

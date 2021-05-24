@@ -1,14 +1,12 @@
 const { artifacts, web3 } = require('hardhat');
-const { ether, time } = require('@openzeppelin/test-helpers');
+const { ether } = require('@openzeppelin/test-helpers');
 
 const { Role } = require('../utils').constants;
 const accounts = require('../utils').accounts;
 const { hex } = require('../utils').helpers;
-
 const { initMCR } = require('./common');
 
 const { BN } = web3.utils;
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 async function setup () {
 
@@ -16,19 +14,24 @@ async function setup () {
   const Pool = artifacts.require('MCRMockPool');
   const ERC20Mock = artifacts.require('ERC20Mock');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-  const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
+  const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
   const QuotationData = artifacts.require('MCRMockQuotationData');
-  const MCR = artifacts.require('DisposableMCR');
 
   const master = await MasterMock.new();
   const dai = await ERC20Mock.new();
+  const stETH = await ERC20Mock.new();
 
   const ethToDaiRate = ether('2000');
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
 
-  const chainlinkDAI = await P1MockChainlinkAggregator.new();
+  const chainlinkDAI = await ChainlinkAggregatorMock.new();
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
-  const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
+
+  const priceFeedOracle = await PriceFeedOracle.new(
+    chainlinkDAI.address,
+    dai.address,
+    stETH.address,
+  );
 
   const pool = await Pool.new(priceFeedOracle.address);
   const quotationData = await QuotationData.new();

@@ -168,7 +168,12 @@ describe('MCR on-chain migration', function () {
 
     const oldPriceFeedOracle = await PriceFeedOracle.at(await oldPool.priceFeedOracle());
     const daiAggregator = await oldPriceFeedOracle.aggregators(dai.address);
-    const priceFeedOracle = await PriceFeedOracle.new([dai.address], [daiAggregator], dai.address);
+
+    const priceFeedOracle = await PriceFeedOracle.new(
+      daiAggregator,
+      dai.address,
+      Address.stETH,
+    );
 
     const twapOracle = await TwapOracle.at(await oldPool.twapOracle());
     const stETHToken = await ERC20.at(Address.stETH);
@@ -178,10 +183,10 @@ describe('MCR on-chain migration', function () {
     );
 
     const pool = await Pool.new(
-      [Address.DAI, Address.stETH],
-      [ether('1000000'), ether('1')],
-      [ether('2000000'), ether('10000000')],
-      [ether('0.025'), ether('0.025')],
+      [Address.DAI, Address.stETH], // assets
+      [ether('1100000'), ether('15000')], // min amounts
+      [ether('2000000'), ether('20000')], // max amounts
+      [ether('0.025'), ether('0')], // max slippage
       master.address,
       priceFeedOracle.address,
       swapOperator.address,

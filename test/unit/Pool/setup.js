@@ -6,7 +6,6 @@ const accounts = require('../utils').accounts;
 const { hex } = require('../utils').helpers;
 
 const { BN } = web3.utils;
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 async function setup () {
 
@@ -19,18 +18,24 @@ async function setup () {
   const ERC20Mock = artifacts.require('ERC20Mock');
   const TokenFunctions = artifacts.require('TokenFunctions');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-  const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
+  const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
   const master = await MasterMock.new();
   const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
+  const stETH = await ERC20Mock.new();
 
   const ethToDaiRate = new BN((394.59 * 1e18).toString());
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
 
-  const chainlinkDAI = await P1MockChainlinkAggregator.new();
+  const chainlinkDAI = await ChainlinkAggregatorMock.new();
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
-  const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
+
+  const priceFeedOracle = await PriceFeedOracle.new(
+    chainlinkDAI.address,
+    dai.address,
+    stETH.address,
+  );
 
   const swapOperator = accounts.generalPurpose[10];
 

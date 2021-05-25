@@ -79,7 +79,7 @@ module.exports = {
 
   mocha: {
     exit: true,
-    bail: true,
+    bail: false,
     recursive: false,
   },
 

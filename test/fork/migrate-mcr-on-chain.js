@@ -154,7 +154,7 @@ describe('MCR on-chain migration', function () {
 
     /*
       Upgraded non-proxy contracts:  MCR, Pool, ClaimsReward, Quotation
-      Upgraded proxy contracts:      Gateway
+      Upgraded proxy contracts:      Gateway, Governance
       New internal contract:         Incidents
       New contract:                  SwapOperator
     */

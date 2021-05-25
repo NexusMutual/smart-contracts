@@ -52,7 +52,7 @@ const etherscanApiKey = getEnv('ETHERSCAN_API_KEY');
 
 const contractType = code => {
   const upgradable = ['CL', 'CR', 'MC', 'P1', 'QT', 'TF'];
-  const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW'];
+  const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC'];
 
   if (upgradable.includes(code)) {
     return 1;
@@ -182,13 +182,17 @@ async function main () {
   // skipping swap operator - library verification not currently implemented
 
   const priceFeedOracle = await PriceFeedOracle.new(
-    [dai.address],
-    [CHAINLINK_DAI_ETH_AGGREGATORS[network.name]],
+    CHAINLINK_DAI_ETH_AGGREGATORS[network.name],
     dai.address,
+    stETH.address,
   );
 
   verifier.add(priceFeedOracle, {
-    constructorArgs: [[dai.address], [CHAINLINK_DAI_ETH_AGGREGATORS[network.name]], dai.address],
+    constructorArgs: [
+      CHAINLINK_DAI_ETH_AGGREGATORS[network.name],
+      dai.address,
+      stETH.address,
+    ],
   });
 
   console.log('Deploying claims contracts');

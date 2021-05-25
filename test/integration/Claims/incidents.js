@@ -468,7 +468,7 @@ describe('incidents', function () {
     bnEqual(actualCoverStatus, expectedCoverStatus);
   });
 
-  it.only('allows withdrawing deppegged assets from Incidents', async function () {
+  it('allows withdrawing deppegged assets from Incidents', async function () {
 
     const { incidents, qd, p1 } = this.contracts;
 

@@ -165,6 +165,7 @@ describe('MCR on-chain migration', function () {
     const claimsReward = await ClaimsReward.new(master.address, Address.DAI);
     const quotation = await Quotation.new();
     const claims = await Claims.new();
+    const newGovernance = await Governance.new();
 
     const oldPriceFeedOracle = await PriceFeedOracle.at(await oldPool.priceFeedOracle());
     const daiAggregator = await oldPriceFeedOracle.aggregators(dai.address);
@@ -244,8 +245,8 @@ describe('MCR on-chain migration', function () {
     const upgradeProxyData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
       [
-        ['GW'].map(hex),
-        [gateway].map(c => c.address),
+        ['GW', 'GV'].map(hex),
+        [gateway, newGovernance].map(c => c.address),
       ],
     );
 
@@ -267,6 +268,14 @@ describe('MCR on-chain migration', function () {
     assert.equal(storedCLAddress, claims.address);
     assert.equal(storedMCRAddress, mcr.address);
     assert.equal(storedP1Address, pool.address);
+
+    const governanceProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('GV')));
+    const gatewayProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('GW')));
+    const governanceImplementation = await governanceProxy.implementation();
+    const gatewayImplementation = await gatewayProxy.implementation();
+
+    assert.equal(governanceImplementation, newGovernance.address);
+    assert.equal(gatewayImplementation, gateway.address);
 
     console.log('Freeing up held covers');
     await quotation.freeUpHeldCovers();
@@ -382,6 +391,19 @@ describe('MCR on-chain migration', function () {
     this.stETHToken = stETHToken;
     this.twapOracle = twapOracle;
     this.quotation = quotation;
+  });
+
+  it('allows switch membership for follower', async function () {
+    const { memberRoles } = this;
+    const user = '0x6E8fb0A6E06295EbC9b25b78f40eba5214cE1beb';
+    const newUserAddress = '0x23c1c851692446C6d306a6400B917dC98F373DDa';
+
+    await unlock(user);
+    await memberRoles.switchMembership(newUserAddress, {
+      from: user,
+    });
+
+    console.log(`Switched membership for ${user}`);
   });
 
   it('add proposal categories for incidents contract', async function () {

@@ -11,13 +11,12 @@ const P1MockMember = artifacts.require('P1MockMember');
 describe('sellNXM', function () {
 
   it('reverts on sell that decreases the MCR% below 100%', async function () {
-    const { pool, poolData, token } = this;
+    const { pool, mcr, token } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
 
-    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await mcr.setMCR(mcrEth);
     await pool.sendTransaction({ value: initialAssetValue });
 
     const tokenAmountToSell = ether('1000');
@@ -30,13 +29,12 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sell worth more than 5% of MCReth', async function () {
-    const { pool, poolData, token } = this;
+    const { pool, mcr, token } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
 
-    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await mcr.setMCR(mcrEth);
     await pool.sendTransaction({ value: initialAssetValue });
 
     const buyValue = percentageBN(mcrEth, 5);
@@ -51,13 +49,12 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sell that exceeds member balance', async function () {
-    const { pool, poolData, token } = this;
+    const { pool, mcr, token } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
 
-    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await mcr.setMCR(mcrEth);
     await pool.sendTransaction({ value: initialAssetValue });
 
     const buyValue = percentageBN(mcrEth, 5);
@@ -71,13 +68,12 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sell from member that is a contract whose fallback function reverts', async function () {
-    const { pool, poolData, token, master, tokenController } = this;
+    const { pool, mcr, token, master, tokenController } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = percentageBN(mcrEth, 150);
 
-    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await mcr.setMCR(mcrEth);
     await pool.sendTransaction({ value: initialAssetValue });
 
     const contractMember = await P1MockMember.new(pool.address, token.address, tokenController.address);
@@ -93,13 +89,12 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sell from member when ethOut < minEthOut', async function () {
-    const { pool, poolData, token, tokenController } = this;
+    const { pool, mcr, token, tokenController } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = percentageBN(mcrEth, 150);
 
-    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await mcr.setMCR(mcrEth);
     await pool.sendTransaction({ value: initialAssetValue });
 
     const member = memberOne;
@@ -119,13 +114,12 @@ describe('sellNXM', function () {
   });
 
   it('burns tokens from member in exchange for ETH worth 1% of mcrEth', async function () {
-    const { pool, poolData, token, tokenController } = this;
+    const { pool, mcr, token, tokenController } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
 
-    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await mcr.setMCR(mcrEth);
     await pool.sendTransaction({ value: initialAssetValue });
 
     const member = memberOne;

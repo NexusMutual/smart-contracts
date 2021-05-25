@@ -1,9 +1,8 @@
 const { takeSnapshot, revertToSnapshot, reset } = require('../utils').evm;
 const setup = require('./setup');
 
-describe('Pool unit tests', function () {
+describe('MCR unit tests', function () {
 
-  before(reset);
   before(setup);
 
   beforeEach(async function () {
@@ -15,6 +14,8 @@ describe('Pool unit tests', function () {
   });
 
   // parameters
+  require('./getMCR');
+  require('./updateMCR');
   require('./updateParameters');
 
 });

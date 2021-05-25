@@ -52,25 +52,6 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  burnDepositCN: {
-    (
-      coverId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      coverId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<boolean>;
-    sendTransaction(
-      coverId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      coverId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
   changeDependentContractAddress: {
     (txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
@@ -81,36 +62,25 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
   };
 
   changeMasterAddress: {
-    (_masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
+    (masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
     >;
     call(
-      _masterAddress: string,
+      masterAddress: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      _masterAddress: string,
+      masterAddress: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      _masterAddress: string,
+      masterAddress: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
 
-  getLockedCNAgainstCover(
-    _coverId: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
   getUserAllLockedCNTokens(
     _of: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  getUserLockedCNTokens(
-    _of: string,
-    _coverId: number | BN | string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
 
@@ -119,92 +89,13 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<boolean>;
 
-  lockCN: {
-    (
-      coverNoteAmount: number | BN | string,
-      coverPeriod: number | BN | string,
-      coverId: number | BN | string,
-      _of: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      coverNoteAmount: number | BN | string,
-      coverPeriod: number | BN | string,
-      coverId: number | BN | string,
-      _of: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      coverNoteAmount: number | BN | string,
-      coverPeriod: number | BN | string,
-      coverId: number | BN | string,
-      _of: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      coverNoteAmount: number | BN | string,
-      coverPeriod: number | BN | string,
-      coverId: number | BN | string,
-      _of: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
-  ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  pooledStaking(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  pushStakerRewards: {
-    (
-      _contractAddress: string,
-      _coverPriceNXM: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      _contractAddress: string,
-      _coverPriceNXM: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      _contractAddress: string,
-      _coverPriceNXM: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _contractAddress: string,
-      _coverPriceNXM: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
+  master(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   qd(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   tc(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-  td(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
   tk(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  unlockCN: {
-    (
-      coverId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      coverId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      coverId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      coverId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
 
   methods: {
     burnCAToken: {
@@ -234,25 +125,6 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    burnDepositCN: {
-      (
-        coverId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        coverId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<boolean>;
-      sendTransaction(
-        coverId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        coverId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
     changeDependentContractAddress: {
       (txDetails?: Truffle.TransactionDetails): Promise<
         Truffle.TransactionResponse<AllEvents>
@@ -263,36 +135,25 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
     };
 
     changeMasterAddress: {
-      (_masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
+      (masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
         Truffle.TransactionResponse<AllEvents>
       >;
       call(
-        _masterAddress: string,
+        masterAddress: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
-        _masterAddress: string,
+        masterAddress: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        _masterAddress: string,
+        masterAddress: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
 
-    getLockedCNAgainstCover(
-      _coverId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
     getUserAllLockedCNTokens(
       _of: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    getUserLockedCNTokens(
-      _of: string,
-      _coverId: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
 
@@ -301,92 +162,13 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<boolean>;
 
-    lockCN: {
-      (
-        coverNoteAmount: number | BN | string,
-        coverPeriod: number | BN | string,
-        coverId: number | BN | string,
-        _of: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        coverNoteAmount: number | BN | string,
-        coverPeriod: number | BN | string,
-        coverId: number | BN | string,
-        _of: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        coverNoteAmount: number | BN | string,
-        coverPeriod: number | BN | string,
-        coverId: number | BN | string,
-        _of: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        coverNoteAmount: number | BN | string,
-        coverPeriod: number | BN | string,
-        coverId: number | BN | string,
-        _of: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    pooledStaking(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    pushStakerRewards: {
-      (
-        _contractAddress: string,
-        _coverPriceNXM: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        _contractAddress: string,
-        _coverPriceNXM: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        _contractAddress: string,
-        _coverPriceNXM: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        _contractAddress: string,
-        _coverPriceNXM: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
+    master(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     qd(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     tc(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-    td(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
     tk(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    unlockCN: {
-      (
-        coverId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        coverId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        coverId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        coverId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
   };
 
   getPastEvents(event: string): Promise<EventData[]>;

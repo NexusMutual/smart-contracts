@@ -4,7 +4,6 @@
 
 import { MinterRoleContract } from "./MinterRole";
 import { ContextContract } from "./Context";
-import { OwnableContract } from "./Ownable";
 import { ERC20Contract } from "./ERC20";
 import { ERC20DetailedContract } from "./ERC20Detailed";
 import { ERC20MintableContract } from "./ERC20Mintable";
@@ -66,7 +65,8 @@ import { ClaimProofsContract } from "./ClaimProofs";
 import { ClaimsContract } from "./Claims";
 import { ClaimsDataContract } from "./ClaimsData";
 import { ClaimsRewardContract } from "./ClaimsReward";
-import { CoverContract } from "./Cover";
+import { IncidentsContract } from "./Incidents";
+import { GatewayContract } from "./Gateway";
 import { QuotationContract } from "./Quotation";
 import { QuotationDataContract } from "./QuotationData";
 import { GovernedContract } from "./Governed";
@@ -96,7 +96,6 @@ declare global {
     interface Artifacts {
       require(name: "MinterRole"): MinterRoleContract;
       require(name: "Context"): ContextContract;
-      require(name: "Ownable"): OwnableContract;
       require(name: "ERC20"): ERC20Contract;
       require(name: "ERC20Detailed"): ERC20DetailedContract;
       require(name: "ERC20Mintable"): ERC20MintableContract;
@@ -164,7 +163,8 @@ declare global {
       require(name: "Claims"): ClaimsContract;
       require(name: "ClaimsData"): ClaimsDataContract;
       require(name: "ClaimsReward"): ClaimsRewardContract;
-      require(name: "Cover"): CoverContract;
+      require(name: "Incidents"): IncidentsContract;
+      require(name: "Gateway"): GatewayContract;
       require(name: "Quotation"): QuotationContract;
       require(name: "QuotationData"): QuotationDataContract;
       require(name: "Governed"): GovernedContract;
@@ -196,7 +196,6 @@ declare global {
 
 export { MinterRoleContract, MinterRoleInstance } from "./MinterRole";
 export { ContextContract, ContextInstance } from "./Context";
-export { OwnableContract, OwnableInstance } from "./Ownable";
 export { ERC20Contract, ERC20Instance } from "./ERC20";
 export { ERC20DetailedContract, ERC20DetailedInstance } from "./ERC20Detailed";
 export { ERC20MintableContract, ERC20MintableInstance } from "./ERC20Mintable";
@@ -351,7 +350,8 @@ export { ClaimProofsContract, ClaimProofsInstance } from "./ClaimProofs";
 export { ClaimsContract, ClaimsInstance } from "./Claims";
 export { ClaimsDataContract, ClaimsDataInstance } from "./ClaimsData";
 export { ClaimsRewardContract, ClaimsRewardInstance } from "./ClaimsReward";
-export { CoverContract, CoverInstance } from "./Cover";
+export { IncidentsContract, IncidentsInstance } from "./Incidents";
+export { GatewayContract, GatewayInstance } from "./Gateway";
 export { QuotationContract, QuotationInstance } from "./Quotation";
 export { QuotationDataContract, QuotationDataInstance } from "./QuotationData";
 export { GovernedContract, GovernedInstance } from "./Governed";

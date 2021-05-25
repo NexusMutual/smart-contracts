@@ -1,11 +1,9 @@
 const { accounts, web3 } = require('hardhat');
-const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
+const { ether } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const Decimal = require('decimal.js');
 const { toBN } = web3.utils;
-const { coverToCoverDetailsArray, buyCover, buyCoverWithDai } = require('../utils/buyCover');
-const { getQuoteSignature } = require('../utils/getQuote');
-const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
+const { buyCover, buyCoverWithDai } = require('../utils').buyCover;
+const { enrollMember } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 
 const [, member1, nonMember1] = accounts;
@@ -31,8 +29,6 @@ const daiCoverTemplate = {
   period: 60,
   contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
 };
-
-const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 describe('getAllSumAssurance', function () {
 
@@ -62,7 +58,7 @@ describe('getAllSumAssurance', function () {
   });
 
   it('returns total value of DAI purchased cover', async function () {
-    const { mcr, dai } = this.contracts;
+    const { mcr } = this.contracts;
     const { daiToEthRate } = this.rates;
     const cover = { ...daiCoverTemplate };
     const member = member1;
@@ -74,7 +70,7 @@ describe('getAllSumAssurance', function () {
   });
 
   it('returns total value of multiple ETH and DAI covers', async function () {
-    const { mcr, dai } = this.contracts;
+    const { mcr } = this.contracts;
     const { daiToEthRate } = this.rates;
     const cover = { ...daiCoverTemplate };
     const member = member1;

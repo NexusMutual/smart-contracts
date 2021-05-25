@@ -2,7 +2,7 @@ const { accounts, web3 } = require('hardhat');
 const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
-const { buyCover } = require('../utils/buyCover');
+const { buyCover } = require('../utils').buyCover;
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { bnEqual, hex } = require('../utils').helpers;
 const { CoverStatus } = require('../utils').constants;

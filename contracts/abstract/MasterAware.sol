@@ -58,6 +58,8 @@ contract MasterAware {
     _;
   }
 
+  function changeDependentContractAddress() external;
+
   function changeMasterAddress(address masterAddress) public onlyMaster {
     master = INXMMaster(masterAddress);
   }

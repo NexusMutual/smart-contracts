@@ -9,21 +9,7 @@ export interface QuotationContract extends Truffle.Contract<QuotationInstance> {
   "new"(meta?: Truffle.TransactionDetails): Promise<QuotationInstance>;
 }
 
-export interface RefundEvent {
-  name: "RefundEvent";
-  args: {
-    user: string;
-    status: boolean;
-    holdedCoverID: BN;
-    reason: string;
-    0: string;
-    1: boolean;
-    2: BN;
-    3: string;
-  };
-}
-
-type AllEvents = RefundEvent;
+type AllEvents = never;
 
 export interface QuotationInstance extends Truffle.ContractInstance {
   changeDependentContractAddress: {
@@ -36,19 +22,19 @@ export interface QuotationInstance extends Truffle.ContractInstance {
   };
 
   changeMasterAddress: {
-    (_masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
+    (masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
     >;
     call(
-      _masterAddress: string,
+      masterAddress: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      _masterAddress: string,
+      masterAddress: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      _masterAddress: string,
+      masterAddress: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -59,7 +45,7 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     (
       from: string,
       scAddress: string,
-      coverCurr: string,
+      currency: string,
       coverDetails: (number | BN | string)[],
       coverPeriod: number | BN | string,
       _v: number | BN | string,
@@ -70,7 +56,7 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     call(
       from: string,
       scAddress: string,
-      coverCurr: string,
+      currency: string,
       coverDetails: (number | BN | string)[],
       coverPeriod: number | BN | string,
       _v: number | BN | string,
@@ -81,7 +67,7 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     sendTransaction(
       from: string,
       scAddress: string,
-      coverCurr: string,
+      currency: string,
       coverDetails: (number | BN | string)[],
       coverPeriod: number | BN | string,
       _v: number | BN | string,
@@ -92,7 +78,7 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     estimateGas(
       from: string,
       scAddress: string,
-      coverCurr: string,
+      currency: string,
       coverDetails: (number | BN | string)[],
       coverPeriod: number | BN | string,
       _v: number | BN | string,
@@ -121,11 +107,20 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  freeUpHeldCovers: {
+    (txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+  };
+
   getOrderHash(
     coverDetails: (number | BN | string)[],
     coverPeriod: number | BN | string,
-    curr: string,
-    smaratCA: string,
+    currency: string,
+    contractAddress: string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<string>;
 
@@ -139,6 +134,8 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
 
+  incidents(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
   isValidSignature(
     hash: string,
     v: number | BN | string,
@@ -146,31 +143,6 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     s: string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<boolean>;
-
-  kycVerdict: {
-    (
-      _add: string,
-      status: boolean,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      _add: string,
-      status: boolean,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      _add: string,
-      status: boolean,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _add: string,
-      status: boolean,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
-  m1(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   makeCoverUsingNXMTokens: {
     (
@@ -215,15 +187,11 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  mr(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  pd(txDetails?: Truffle.TransactionDetails): Promise<string>;
+  master(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   pool(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  pooledStaking(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   qd(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
@@ -240,22 +208,10 @@ export interface QuotationInstance extends Truffle.ContractInstance {
 
   td(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-  tf(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  transferAssetsToNewContract: {
-    (newAdd: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(newAdd: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(
-      newAdd: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      newAdd: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
+  transferAssetsToNewContract(
+    arg0: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<void>;
 
   verifyCoverDetails: {
     (
@@ -304,11 +260,11 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  verifySign(
+  verifySignature(
     coverDetails: (number | BN | string)[],
     coverPeriod: number | BN | string,
-    curr: string,
-    smaratCA: string,
+    currency: string,
+    contractAddress: string,
     _v: number | BN | string,
     _r: string,
     _s: string,
@@ -353,19 +309,19 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     };
 
     changeMasterAddress: {
-      (_masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
+      (masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
         Truffle.TransactionResponse<AllEvents>
       >;
       call(
-        _masterAddress: string,
+        masterAddress: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
-        _masterAddress: string,
+        masterAddress: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        _masterAddress: string,
+        masterAddress: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
@@ -376,7 +332,7 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       (
         from: string,
         scAddress: string,
-        coverCurr: string,
+        currency: string,
         coverDetails: (number | BN | string)[],
         coverPeriod: number | BN | string,
         _v: number | BN | string,
@@ -387,7 +343,7 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       call(
         from: string,
         scAddress: string,
-        coverCurr: string,
+        currency: string,
         coverDetails: (number | BN | string)[],
         coverPeriod: number | BN | string,
         _v: number | BN | string,
@@ -398,7 +354,7 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       sendTransaction(
         from: string,
         scAddress: string,
-        coverCurr: string,
+        currency: string,
         coverDetails: (number | BN | string)[],
         coverPeriod: number | BN | string,
         _v: number | BN | string,
@@ -409,7 +365,7 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       estimateGas(
         from: string,
         scAddress: string,
-        coverCurr: string,
+        currency: string,
         coverDetails: (number | BN | string)[],
         coverPeriod: number | BN | string,
         _v: number | BN | string,
@@ -438,11 +394,20 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
+    freeUpHeldCovers: {
+      (txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+    };
+
     getOrderHash(
       coverDetails: (number | BN | string)[],
       coverPeriod: number | BN | string,
-      curr: string,
-      smaratCA: string,
+      currency: string,
+      contractAddress: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
 
@@ -456,6 +421,8 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
 
+    incidents(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
     isValidSignature(
       hash: string,
       v: number | BN | string,
@@ -463,31 +430,6 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       s: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<boolean>;
-
-    kycVerdict: {
-      (
-        _add: string,
-        status: boolean,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        _add: string,
-        status: boolean,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        _add: string,
-        status: boolean,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        _add: string,
-        status: boolean,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    m1(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     makeCoverUsingNXMTokens: {
       (
@@ -532,15 +474,11 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    mr(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    pd(txDetails?: Truffle.TransactionDetails): Promise<string>;
+    master(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     pool(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    pooledStaking(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     qd(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
@@ -557,25 +495,10 @@ export interface QuotationInstance extends Truffle.ContractInstance {
 
     td(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-    tf(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    transferAssetsToNewContract: {
-      (newAdd: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(
-        newAdd: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        newAdd: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        newAdd: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
+    transferAssetsToNewContract(
+      arg0: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
 
     verifyCoverDetails: {
       (
@@ -624,11 +547,11 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    verifySign(
+    verifySignature(
       coverDetails: (number | BN | string)[],
       coverPeriod: number | BN | string,
-      curr: string,
-      smaratCA: string,
+      currency: string,
+      contractAddress: string,
       _v: number | BN | string,
       _r: string,
       _s: string,

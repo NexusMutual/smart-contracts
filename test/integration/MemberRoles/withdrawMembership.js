@@ -1,6 +1,6 @@
 const { accounts } = require('hardhat');
 const { expectRevert } = require('@openzeppelin/test-helpers');
-const { buyCover } = require('../utils/buyCover');
+const { buyCover } = require('../utils').buyCover;
 const { enrollMember } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 const { Role } = require('../utils').constants;

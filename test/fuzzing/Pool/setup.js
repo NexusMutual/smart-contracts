@@ -7,14 +7,13 @@ const { Role } = require('../../unit/utils').constants;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 const MasterMock = artifacts.require('MasterMock');
-const PoolData = artifacts.require('P1MockPoolData');
 const TokenData = artifacts.require('TokenData');
 const TokenController = artifacts.require('TokenControllerMock');
 const TokenMock = artifacts.require('NXMTokenMock');
 const ERC20Mock = artifacts.require('ERC20Mock');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
+const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
 async function setup ({ MCR, Pool }) {
 
@@ -22,10 +21,9 @@ async function setup ({ MCR, Pool }) {
   const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
 
-  const chainlinkDAI = await P1MockChainlinkAggregator.new();
+  const chainlinkDAI = await ChainlinkAggregatorMock.new();
   const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
 
-  const poolData = await PoolData.new();
   const tokenData = await TokenData.new(accounts.notariseAddress);
   const pool = await Pool.new(
     [dai.address],
@@ -34,8 +32,7 @@ async function setup ({ MCR, Pool }) {
     [0], // max slippage
     accounts.defaultSender, // master: it is changed a few lines below
     priceFeedOracle.address,
-    ZERO_ADDRESS, // twap
-    ZERO_ADDRESS, // swap controller
+    ZERO_ADDRESS, // swap operator
   );
 
   const token = await TokenMock.new();
@@ -47,7 +44,6 @@ async function setup ({ MCR, Pool }) {
   // set contract addresses
   await master.setTokenAddress(token.address);
   await master.setLatestAddress(hex('P1'), pool.address);
-  await master.setLatestAddress(hex('PD'), poolData.address);
   await master.setLatestAddress(hex('TD'), tokenData.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
@@ -88,7 +84,6 @@ async function setup ({ MCR, Pool }) {
     token,
     pool,
     mcr,
-    poolData,
     tokenData,
     tokenController,
     chainlinkDAI,

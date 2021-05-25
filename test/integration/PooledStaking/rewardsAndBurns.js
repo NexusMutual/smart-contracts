@@ -4,7 +4,7 @@ const { assert } = require('chai');
 const { BN, toBN } = web3.utils;
 
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
-const { buyCover } = require('../utils/buyCover');
+const { buyCover } = require('../utils').buyCover;
 const { hex } = require('../utils').helpers;
 
 const [
@@ -75,7 +75,7 @@ describe('burns', function () {
 
   it('claim is accepted for contract whose staker that staked on multiple contracts', async function () {
 
-    const { ps, tk, td, qd, cl, tc, p1 } = this.contracts;
+    const { ps, tk, td, qd, cl, tc, p1, mcr } = this.contracts;
 
     const currency = hex('ETH');
     const cover = {
@@ -85,7 +85,7 @@ describe('burns', function () {
       expireTime: '7972408607',
       generationTime: '7972408607001',
       currency,
-      period: 61,
+      period: 63,
       contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf',
     };
 
@@ -128,10 +128,10 @@ describe('burns', function () {
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
-    const balanceAfter = await tk.balanceOf(ps.address);
 
-    const totalBurn = balanceBefore.sub(balanceAfter);
+    const balanceAfter = await tk.balanceOf(ps.address);
     const tokenPrice = await p1.getTokenPrice(ETH);
+    const totalBurn = balanceBefore.sub(balanceAfter);
     const sumAssured = ether(cover.amount.toString());
     const sumAssuredInNxm = sumAssured.mul(ether('1')).div(new BN(tokenPrice));
     const expectedBurnedNXMAmount = staked.lt(sumAssuredInNxm) ? staked : sumAssuredInNxm;
@@ -154,7 +154,7 @@ describe('burns', function () {
       expireTime: '7972408607',
       generationTime: '7972408607001',
       currency,
-      period: 61,
+      period: 63,
       contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf',
     };
 
@@ -231,7 +231,7 @@ describe('burns', function () {
       expireTime: '7972408607',
       generationTime: '7972408607001',
       currency,
-      period: 61,
+      period: 63,
       contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf',
     };
 
@@ -281,7 +281,7 @@ describe('burns', function () {
       expireTime: '7972408607',
       generationTime: '7972408607001',
       currency,
-      period: 61,
+      period: 63,
       contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf',
     };
 

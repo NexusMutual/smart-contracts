@@ -2,6 +2,7 @@ require('dotenv').config();
 require('@nomiclabs/hardhat-web3');
 require('@nomiclabs/hardhat-truffle5');
 require('@nomiclabs/hardhat-etherscan');
+require('solidity-coverage');
 require('hardhat-contract-sizer');
 
 const { task } = require('hardhat/config');
@@ -14,7 +15,6 @@ task('test', async (_, hre, runSuper) => {
 });
 
 task('typechain', async (_, { config }) => {
-
   const { tsGenerator } = require('ts-generator');
   const { TypeChain } = require('typechain/dist/TypeChain');
 
@@ -67,7 +67,6 @@ const compilerSettings = process.env.ENABLE_OPTIMIZER
   : {};
 
 module.exports = {
-
   contractSizer: {
     alphaSort: true,
     runOnCompile: false,
@@ -80,7 +79,7 @@ module.exports = {
 
   mocha: {
     exit: true,
-    bail: true,
+    bail: false,
     recursive: false,
   },
 
@@ -90,10 +89,14 @@ module.exports = {
     compilers: [
       { settings: compilerSettings, version: '0.5.17' }, // nexus mutual
       { settings: compilerSettings, version: '0.5.16' }, // uniswap v2 core
-      { settings: compilerSettings, version: '0.6.6' }, // uniswap v2 peripherals
+      { settings: compilerSettings, version: '0.6.6' }, // uniswap v2 peripherals,
+      { settings: compilerSettings, version: '0.8.4' }, // swap operator
     ],
     overrides: {
-      'contracts/modules/governance/Governance.sol': { settings: compilerSettings, version: '0.5.7' },
+      'contracts/modules/governance/Governance.sol': {
+        settings: compilerSettings,
+        version: '0.5.7',
+      },
     },
   },
 };

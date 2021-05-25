@@ -2,11 +2,11 @@ const { accounts, web3 } = require('hardhat');
 const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
-const { buyCover } = require('../utils/buyCover');
+const { buyCover } = require('../utils').buyCover;
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 
-const { toBN } = web3.utils;
+const { toBN, soliditySha3 } = web3.utils;
 const [, member1, member2, claimAssessor] = accounts;
 
 const coverTemplate = {
@@ -27,7 +27,7 @@ const claimAndVote = async (contracts, coverId, member, assessor, accept) => {
   await cl.submitClaim(coverId, { from: member });
   const claimId = (await cd.actualClaimLength()).subn(1);
   const submittedAt = await cd.getClaimDateUpd(claimId);
-  const verdict = accept ? '1' : '-1';
+  const verdict = accept ? '1' : toBN('-1');
   await cl.submitCAVote(claimId, verdict, { from: assessor });
 
   const maxVotingTime = await cd.maxVotingTime();
@@ -48,7 +48,7 @@ describe('withdrawCoverNote', function () {
 
   it('allows to withdrawCoverNote after grace period expiration', async function () {
 
-    const { qd, qt, tc, tk, tf } = this.contracts;
+    const { qd, qt, tc, tk } = this.contracts;
 
     const cover = { ...coverTemplate };
     const balanceBefore = await tk.balanceOf(member1);
@@ -66,11 +66,12 @@ describe('withdrawCoverNote', function () {
     await buyCover({ ...this.contracts, cover, coverHolder: member1 });
 
     const coverId = '1';
+    const lockReason = soliditySha3(hex('CN'), member1, coverId);
+
     const expectedCoverNoteAmount = toBN(cover.priceNXM).divn(10);
-    const actualCoverNoteAmount = await tf.getUserLockedCNTokens(member1, coverId);
+    const actualCoverNoteAmount = await tc.tokensLocked(member1, lockReason);
     assert(actualCoverNoteAmount.eq(expectedCoverNoteAmount), 'unexpected cover note amount');
 
-    const lockReason = await tc.lockReason(member1, '0');
     const gracePeriodExpirationDate = await tc.getLockedTokensValidity(member1, lockReason);
     assert(
       gracePeriodExpirationDate.eq(expectedGracePeriodExpirationDate),
@@ -143,7 +144,7 @@ describe('withdrawCoverNote', function () {
 
     const claimId = '1';
     const submittedAt = await cd.getClaimDateUpd(claimId);
-    await cl.submitCAVote(claimId, '-1', { from: claimAssessor });
+    await cl.submitCAVote(claimId, toBN('-1'), { from: claimAssessor });
 
     const maxVotingTime = await cd.maxVotingTime();
     await setNextBlockTime(submittedAt.add(maxVotingTime).toNumber());
@@ -251,7 +252,8 @@ describe('withdrawCoverNote', function () {
     const { qd, qt, tk } = this.contracts;
 
     const cover = { ...coverTemplate };
-    const secondCover = { ...coverTemplate, generationTime: cover.generationTime + 1 };
+    const generationTime = `${Number(cover.generationTime) + 1}`;
+    const secondCover = { ...coverTemplate, generationTime };
 
     await buyCover({ ...this.contracts, cover, coverHolder: member1 });
     await buyCover({ ...this.contracts, cover: secondCover, coverHolder: member1 });

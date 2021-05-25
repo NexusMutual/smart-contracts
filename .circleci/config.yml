@@ -12,8 +12,17 @@ jobs:
       - checkout
       - node/install-packages
       - run: npm run compile && npm run test
+  coverage:
+    docker:
+      - image: cimg/node:14.17.0
+    working_directory: ~/balancer
+    steps:
+      - run:
+          name: Coverage
+          command: npm run coverage && cat coverage/lcov.info | ./node_modules/.bin/coveralls
 
 workflows:
   sc-tests:
     jobs:
       - test
+      - coverage

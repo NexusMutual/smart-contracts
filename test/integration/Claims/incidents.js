@@ -6,7 +6,7 @@ const { toBN } = web3.utils;
 const { enrollMember } = require('../utils/enroll');
 const { buyCover, buyCoverWithDai } = require('../utils').buyCover;
 const { getQuoteSignature } = require('../utils').getQuote;
-const { addIncident } = require('../utils/incidents');
+const { addIncident, withdrawAssets } = require('../utils/incidents');
 const {
   constants: { CoverStatus },
   evm: { setNextBlockTime },
@@ -466,6 +466,55 @@ describe('incidents', function () {
     const expectedCoverStatus = toBN(CoverStatus.ClaimAccepted);
     const actualCoverStatus = await qd.getCoverStatusNo(coverId);
     bnEqual(actualCoverStatus, expectedCoverStatus);
+  });
+
+  it.only('allows withdrawing deppegged assets from Incidents', async function () {
+
+    const { incidents, qd, p1 } = this.contracts;
+
+    const ETH = await p1.ETH();
+    const productId = '0x000000000000000000000000000000000000000e';
+    const ybETH = await ERC20MintableDetailed.new('yield bearing ETH', 'ybETH', 18);
+    await incidents.addProducts([productId], [ybETH.address], [ETH], { from: owner });
+
+    const cover = { ...coverTemplate, currency: hex('ETH'), contractAddress: productId };
+    await buyCover({ ...this.contracts, cover, coverHolder });
+
+    const coverStartDate = await time.latest();
+    const priceBefore = ether('2.5'); // ETH per ybETH
+    const sumAssured = ether('1').muln(cover.amount);
+
+    // sumAssured DAI = tokenAmount ybETH @ priceBefore
+    // 500 ETH  /  2 ETH/ybETH  =  1000 ybETH
+    const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
+
+    const incidentDate = coverStartDate.addn(1);
+    await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
+
+    await ybETH.mint(coverHolder, tokenAmount);
+    await ybETH.approve(incidents.address, tokenAmount, { from: coverHolder });
+
+    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
+    const incidentId = '0';
+
+    await incidents.redeemPayout(
+      coverId,
+      incidentId,
+      tokenAmount,
+      // gas price set to 0 so we can know the payout exactly
+      { from: coverHolder, gasPrice: 0 },
+    );
+
+    await withdrawAssets(this.contracts, [owner], ybETH.address, owner, tokenAmount);
+
+    // should have withdrawn entire amount
+    const incidentsBalance = await ybETH.balanceOf(incidents.address);
+    bnEqual(incidentsBalance, toBN(0));
+
+    // owner should have the entire amount
+    const ybETHOwnerBalance = await ybETH.balanceOf(owner);
+    bnEqual(ybETHOwnerBalance, tokenAmount);
   });
 
   it('increments accumulated burn on second payout', async function () {

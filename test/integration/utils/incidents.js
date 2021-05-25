@@ -39,4 +39,30 @@ const addIncident = async (contracts, members, protocolId, incidentDate, priceBe
   assert.equal(proposal[2].toNumber(), 3, 'proposal status != accepted');
 };
 
-module.exports = { addIncident };
+const withdrawAssets = async (contracts, members, asset, destination, amount) => {
+  const { gv } = contracts;
+  const proposalId = await gv.getProposalLength();
+  await gv.createProposal('', '', '', 0);
+  await gv.categorizeProposal(proposalId, ProposalCategory.withdrawAsset, 0);
+
+  await gv.submitProposalWithSolution(
+    proposalId,
+    'ipfshash',
+    web3.eth.abi.encodeParameters(
+      ['address', 'address', 'uint'],
+      [asset, destination, amount],
+    ),
+  );
+
+  for (const member of members) {
+    await gv.submitVote(proposalId, 1, { from: member });
+  }
+
+  const closeTx = await gv.closeProposal(proposalId, { from: members[0] });
+  expectEvent(closeTx, 'ActionSuccess', { proposalId });
+
+  const proposal = await gv.proposal(proposalId);
+  assert.equal(proposal[2].toNumber(), 3, 'proposal status != accepted');
+};
+
+module.exports = { addIncident, withdrawAssets };

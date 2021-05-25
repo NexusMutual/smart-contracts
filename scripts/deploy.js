@@ -232,9 +232,9 @@ async function main () {
 
   const poolParameters = [
     [dai.address, stETH.address],
-    [ether('1000000'), ether('1')],
-    [ether('2000000'), ether('10000000')],
-    [ether('0.025'), ether('0.025')],
+    [ether('1000000'), ether('15000')],
+    [ether('2000000'), ether('20000')],
+    [ether('0.025'), ether('0')],
     master.address,
     priceFeedOracle.address,
     swapOperator.address,

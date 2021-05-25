@@ -183,10 +183,10 @@ describe('MCR on-chain migration', function () {
     );
 
     const pool = await Pool.new(
-      [Address.DAI, Address.stETH],
-      [ether('1100000'), ether('1')],
-      [ether('2000000'), ether('10000000')],
-      [ether('0.025'), ether('0.025')],
+      [Address.DAI, Address.stETH], // assets
+      [ether('1100000'), ether('15000')], // min amounts
+      [ether('2000000'), ether('20000')], // max amounts
+      [ether('0.025'), ether('0')], // max slippage
       master.address,
       priceFeedOracle.address,
       swapOperator.address,

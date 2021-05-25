@@ -12,7 +12,7 @@ async function setup () {
   // external
   const ERC20BlacklistableMock = artifacts.require('ERC20BlacklistableMock');
   const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
-  const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
+  const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
   const Lido = artifacts.require('P1MockLido');
 
   // nexusmutual
@@ -78,8 +78,17 @@ async function setup () {
 
   const dai = await ERC20BlacklistableMock.new();
   await dai.mint(owner, ether('10000000'));
-  const chainlinkDAI = await P1MockChainlinkAggregator.new();
-  const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
+
+  const stETH = await ERC20BlacklistableMock.new();
+  await stETH.mint(owner, ether('10000000'));
+
+  const chainlinkDAI = await ChainlinkAggregatorMock.new();
+  const priceFeedOracle = await PriceFeedOracle.new(
+    chainlinkDAI.address,
+    dai.address,
+    stETH.address,
+  );
+
   const lido = await Lido.new();
 
   // proxy contracts

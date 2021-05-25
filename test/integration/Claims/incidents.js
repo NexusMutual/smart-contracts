@@ -8,10 +8,7 @@ const { buyCover, buyCoverWithDai } = require('../utils').buyCover;
 const { getQuoteSignature } = require('../utils').getQuote;
 const { addIncident } = require('../utils/incidents');
 const {
-  constants: {
-    CoverStatus,
-    Assets: { ETH },
-  },
+  constants: { CoverStatus },
   evm: { setNextBlockTime },
   helpers: { bnEqual, hex },
 } = require('../utils');
@@ -593,6 +590,7 @@ describe('incidents', function () {
       18,
     );
 
+    const ETH = await p1.ETH();
     await incidents.addProducts([productId], [ybETH.address], [ETH], { from: owner });
 
     const reentrancyExploiter = await ReentrancyExploiter.new(incidents.address);

@@ -15,7 +15,6 @@ jobs:
   coverage:
     docker:
       - image: cimg/node:14.17.0
-    working_directory: ~/balancer
     steps:
       - run:
           name: Coverage
@@ -25,4 +24,6 @@ workflows:
   sc-tests:
     jobs:
       - test
-      - coverage
+      - coverage:
+          requires:
+            - test

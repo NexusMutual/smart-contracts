@@ -394,16 +394,54 @@ describe('MCR on-chain migration', function () {
   });
 
   it('allows switch membership for follower', async function () {
-    const { memberRoles } = this;
-    const user = '0x6E8fb0A6E06295EbC9b25b78f40eba5214cE1beb';
-    const newUserAddress = '0x23c1c851692446C6d306a6400B917dC98F373DDa';
+    const { memberRoles, voters, quotationData, governance } = this;
 
-    await unlock(user);
-    await memberRoles.switchMembership(newUserAddress, {
-      from: user,
+    const newMember = '0x975c9777f3388dDCC8CF00404FD58100FE640BAd';
+    await fund(newMember);
+    await unlock(newMember);
+
+    await memberRoles.payJoiningFee(newMember, {
+      from: voters[0],
+      value: ether('0.002'),
     });
 
-    console.log(`Switched membership for ${user}`);
+    const kycAuthAddress = await quotationData.kycAuthAddress();
+    await unlock(kycAuthAddress);
+
+    await memberRoles.kycVerdict(newMember, true, {
+      from: kycAuthAddress,
+    });
+
+    const hugh = '0x87b2a7559d85f4653f13e6546a14189cd5455d45';
+    await governance.delegateVote(hugh, {
+      from: newMember,
+    });
+    console.log('Added new member and delegated');
+
+    const users = [
+      '0x6E8fb0A6E06295EbC9b25b78f40eba5214cE1beb',
+      newMember,
+    ];
+    const newUserAddresses = [
+      '0x23c1c851692446C6d306a6400B917dC98F373DDa',
+      '0xAeee85Ce1de8059a422b91bCb67F1C51Cab35cE7',
+    ];
+
+    for (let i = 0; i < users.length; i++) {
+      const user = users[i];
+      const newUserAddress = newUserAddresses[i];
+      console.log({
+        user,
+        newUserAddress,
+      });
+      await unlock(user);
+      await memberRoles.switchMembership(newUserAddress, {
+        from: user,
+      });
+
+      console.log(`Switched membership for ${user}`);
+    }
+
   });
 
   it('add proposal categories for incidents contract', async function () {

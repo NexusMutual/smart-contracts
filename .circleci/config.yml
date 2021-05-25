@@ -40,6 +40,8 @@ jobs:
       - image: cimg/node:14.17.0
     working_directory: ~/nexus-mutual-contracts
     steps:
+      - restore_cache:
+          key: nexus-mutual-contracts-{{ .Environment.CIRCLE_SHA1 }}
       - run:
           name: Coverage
           command: npm run coverage && cat coverage/lcov.info | ./node_modules/.bin/coveralls

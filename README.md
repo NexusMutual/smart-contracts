@@ -12,7 +12,7 @@
 
 ## Smart Contracts Details 
 
-- [Mainnet Addresses](https://nxm.surge.sh/)
+- [Mainnet Addresses](https://api.nexusmutual.io/version-data/)
 
 ## Audits
 

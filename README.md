@@ -1,6 +1,6 @@
-[![Coverage Status](https://coveralls.io/repos/github/NexusMutual/smart-contracts/badge.svg)](https://coveralls.io/github/NexusMutual/smart-contracts)
-
 # [Nexus Mutual](https://app.nexusmutual.io/)
+
+[![Coverage Status](https://coveralls.io/repos/github/NexusMutual/smart-contracts/badge.svg)](https://coveralls.io/github/NexusMutual/smart-contracts)
 
 ## Getting Started
 

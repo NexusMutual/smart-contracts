@@ -1071,13 +1071,20 @@ contract Governance is IGovernance, Iupgradable {
    * @param _follower is address of follower to undelegate
    */
   function _unDelegate(address _follower) internal {
-    uint followerId = followerDelegation[_follower];
-    if (followerId > 0) {
 
-      followerCount[allDelegation[followerId].leader] = followerCount[allDelegation[followerId].leader].sub(1);
-      allDelegation[followerId].leader = address(0);
-      allDelegation[followerId].lastUpd = now;
+    uint delegationId = followerDelegation[_follower];
+    DelegateVote memory delegation = allDelegation[delegationId];
 
+    if (delegation.leader != address(0)) {
+
+      uint currentFollowerCount = followerCount[delegation.leader];
+
+      if (currentFollowerCount > 0) {
+        followerCount[delegation.leader] = currentFollowerCount.sub(1);
+      }
+
+      allDelegation[delegationId].leader = address(0);
+      allDelegation[delegationId].lastUpd = now;
       lastRewardClaimed[_follower] = allVotesByMember[_follower].length;
     }
   }

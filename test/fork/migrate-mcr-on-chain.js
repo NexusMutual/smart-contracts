@@ -154,7 +154,7 @@ describe('MCR on-chain migration', function () {
 
     /*
       Upgraded non-proxy contracts:  MCR, Pool, ClaimsReward, Quotation
-      Upgraded proxy contracts:      Gateway
+      Upgraded proxy contracts:      Gateway, Governance
       New internal contract:         Incidents
       New contract:                  SwapOperator
     */
@@ -165,6 +165,7 @@ describe('MCR on-chain migration', function () {
     const claimsReward = await ClaimsReward.new(master.address, Address.DAI);
     const quotation = await Quotation.new();
     const claims = await Claims.new();
+    const newGovernance = await Governance.new();
 
     const oldPriceFeedOracle = await PriceFeedOracle.at(await oldPool.priceFeedOracle());
     const daiAggregator = await oldPriceFeedOracle.aggregators(dai.address);
@@ -244,8 +245,8 @@ describe('MCR on-chain migration', function () {
     const upgradeProxyData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
       [
-        ['GW'].map(hex),
-        [gateway].map(c => c.address),
+        ['GW', 'GV'].map(hex),
+        [gateway, newGovernance].map(c => c.address),
       ],
     );
 
@@ -267,6 +268,14 @@ describe('MCR on-chain migration', function () {
     assert.equal(storedCLAddress, claims.address);
     assert.equal(storedMCRAddress, mcr.address);
     assert.equal(storedP1Address, pool.address);
+
+    const governanceProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('GV')));
+    const gatewayProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('GW')));
+    const governanceImplementation = await governanceProxy.implementation();
+    const gatewayImplementation = await gatewayProxy.implementation();
+
+    assert.equal(governanceImplementation, newGovernance.address);
+    assert.equal(gatewayImplementation, gateway.address);
 
     console.log('Freeing up held covers');
     await quotation.freeUpHeldCovers();
@@ -382,6 +391,57 @@ describe('MCR on-chain migration', function () {
     this.stETHToken = stETHToken;
     this.twapOracle = twapOracle;
     this.quotation = quotation;
+  });
+
+  it('allows switch membership for follower', async function () {
+    const { memberRoles, voters, quotationData, governance } = this;
+
+    const newMember = '0x975c9777f3388dDCC8CF00404FD58100FE640BAd';
+    await fund(newMember);
+    await unlock(newMember);
+
+    await memberRoles.payJoiningFee(newMember, {
+      from: voters[0],
+      value: ether('0.002'),
+    });
+
+    const kycAuthAddress = await quotationData.kycAuthAddress();
+    await unlock(kycAuthAddress);
+
+    await memberRoles.kycVerdict(newMember, true, {
+      from: kycAuthAddress,
+    });
+
+    const hugh = '0x87b2a7559d85f4653f13e6546a14189cd5455d45';
+    await governance.delegateVote(hugh, {
+      from: newMember,
+    });
+    console.log('Added new member and delegated');
+
+    const users = [
+      '0x6E8fb0A6E06295EbC9b25b78f40eba5214cE1beb',
+      newMember,
+    ];
+    const newUserAddresses = [
+      '0x23c1c851692446C6d306a6400B917dC98F373DDa',
+      '0xAeee85Ce1de8059a422b91bCb67F1C51Cab35cE7',
+    ];
+
+    for (let i = 0; i < users.length; i++) {
+      const user = users[i];
+      const newUserAddress = newUserAddresses[i];
+      console.log({
+        user,
+        newUserAddress,
+      });
+      await unlock(user);
+      await memberRoles.switchMembership(newUserAddress, {
+        from: user,
+      });
+
+      console.log(`Switched membership for ${user}`);
+    }
+
   });
 
   it('add proposal categories for incidents contract', async function () {

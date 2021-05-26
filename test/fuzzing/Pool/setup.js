@@ -13,7 +13,7 @@ const TokenMock = artifacts.require('NXMTokenMock');
 const ERC20Mock = artifacts.require('ERC20Mock');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
+const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
 async function setup ({ MCR, Pool }) {
 
@@ -21,7 +21,7 @@ async function setup ({ MCR, Pool }) {
   const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
 
-  const chainlinkDAI = await P1MockChainlinkAggregator.new();
+  const chainlinkDAI = await ChainlinkAggregatorMock.new();
   const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
 
   const tokenData = await TokenData.new(accounts.notariseAddress);

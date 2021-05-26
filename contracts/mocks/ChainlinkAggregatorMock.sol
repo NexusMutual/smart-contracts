@@ -13,11 +13,12 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.5.17;
+pragma solidity ^0.5.0;
 
-contract P1MockChainlinkAggregator {
+contract ChainlinkAggregatorMock {
 
   uint latestAnswerRate;
+
   function setLatestAnswer(uint rate) public {
     latestAnswerRate = rate;
   }

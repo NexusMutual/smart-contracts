@@ -3,8 +3,8 @@ const { web3 } = require('hardhat');
 const { toBN } = web3.utils;
 const { hex } = require('../utils').helpers;
 const { Assets: { ETH } } = require('../utils').constants;
-const { coverToCoverDetailsArray } = require('../utils/buyCover');
-const { getQuoteSignature } = require('../utils/getQuote');
+const { coverToCoverDetailsArray } = require('../utils').buyCover;
+const { getQuoteSignature } = require('../utils').getQuote;
 
 const ethCoverTemplate = {
   amount: ether('1'), // 1 eth

@@ -12,11 +12,8 @@ const {
 
 const Pool = artifacts.require('Pool');
 const MCR = artifacts.require('MCR');
-const SwapAgent = artifacts.require('SwapAgent');
 
 async function setupAll () {
-  const swapAgent = await SwapAgent.new();
-  Pool.link(swapAgent);
   this.contracts = await setup({ MCR, Pool });
 }
 

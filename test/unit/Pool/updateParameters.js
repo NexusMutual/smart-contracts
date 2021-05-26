@@ -52,7 +52,7 @@ describe('updateAddressParameters', function () {
 
   it('should revert when called by non governance addresses', async function () {
     const { pool } = this;
-    const param = PoolAddressParamType.twapOracle;
+    const param = PoolAddressParamType.priceFeedOracle;
     const nonGov = [nonMember, member, advisoryBoardMember, internalContract];
 
     for (const address of nonGov) {

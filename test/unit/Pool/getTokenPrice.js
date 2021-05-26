@@ -12,14 +12,13 @@ const UNKNOWN_ASSET = '0x0000000000000000000000000000000000000001';
 describe('getTokenPrice', function () {
 
   it('calculates token price correctly in ETH', async function () {
-    const { pool, poolData } = this;
+    const { pool, mcr } = this;
     const ETH = await pool.ETH();
 
     const initialAssetValue = new BN('210959924071154460525457');
     const mcrEth = new BN('162424730681679380000000');
 
-    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await mcr.setMCR(mcrEth);
     await pool.sendTransaction({ from: fundSource, value: initialAssetValue });
 
     const expectedPrice = getTokenSpotPrice(initialAssetValue, mcrEth);
@@ -28,15 +27,14 @@ describe('getTokenPrice', function () {
   });
 
   it('calculates token price correctly in DAI', async function () {
-    const { pool, poolData, chainlinkDAI, dai } = this;
+    const { pool, chainlinkDAI, dai, mcr } = this;
 
     const initialAssetValue = new BN('210959924071154460525457');
     const mcrEth = new BN('162424730681679380000000');
     const ethToDaiRate = new BN((394.59 * 1e18).toString());
     const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
 
-    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await mcr.setMCR(mcrEth);
     await pool.sendTransaction({ from: fundSource, value: initialAssetValue });
 
     await chainlinkDAI.setLatestAnswer(daiToEthRate);
@@ -48,15 +46,14 @@ describe('getTokenPrice', function () {
   });
 
   it('reverts if asset is unknown', async function () {
-    const { pool, poolData, chainlinkDAI, dai } = this;
+    const { pool, mcr, chainlinkDAI, dai } = this;
 
     const initialAssetValue = new BN('210959924071154460525457');
     const mcrEth = new BN('162424730681679380000000');
     const ethToDaiRate = new BN((394.59 * 1e18).toString());
     const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
 
-    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await mcr.setMCR(mcrEth);
     await pool.sendTransaction({ from: fundSource, value: initialAssetValue });
 
     await chainlinkDAI.setLatestAnswer(daiToEthRate);

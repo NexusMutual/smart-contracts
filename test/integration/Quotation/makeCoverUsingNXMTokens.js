@@ -1,11 +1,10 @@
 const { accounts, web3 } = require('hardhat');
 const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const Decimal = require('decimal.js');
-const { toBN } = web3.utils;
-const { coverToCoverDetailsArray } = require('../utils/buyCover');
-const { getQuoteSignature } = require('../utils/getQuote');
-const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
+const { toBN, soliditySha3 } = web3.utils;
+const { coverToCoverDetailsArray } = require('../utils').buyCover;
+const { getQuoteSignature } = require('../utils').getQuote;
+const { enrollMember } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 
 const [, member1, nonMember1] = accounts;
@@ -54,7 +53,7 @@ describe('makeCoverUsingNXMTokens', function () {
   });
 
   it('buys DAI cover with NXM for member, premium NXM is burned, NXM is locked and cover fields stored', async function () {
-    const { qd, p1: pool, tk: token, tf: tokenFunctions, qd: quotationData, dai } = this.contracts;
+    const { qd, p1: pool, tk: token, tc: tokenController, dai } = this.contracts;
     const cover = { ...coverTemplate };
     const member = member1;
 
@@ -80,8 +79,9 @@ describe('makeCoverUsingNXMTokens', function () {
     //  TODO: assert validUntil to be uint expiryDate = now.add(uint(_coverPeriod).mul(1 days));
     // assert.equal(storedCover.validUntil.toString(), cover.expireTime);
 
+    const lockReason = soliditySha3(hex('CN'), member, coverId);
     const expectedCoverNoteLockedNXM = toBN(cover.priceNXM).divn(10);
-    const memberCoverNoteLockedNXM = await tokenFunctions.getUserLockedCNTokens(member, 1);
+    const memberCoverNoteLockedNXM = await tokenController.tokensLocked(member, lockReason);
     assert.equal(memberCoverNoteLockedNXM.toString(), expectedCoverNoteLockedNXM.toString());
 
     // no DAI is added to the pool

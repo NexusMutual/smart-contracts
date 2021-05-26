@@ -9,6 +9,8 @@ interface IPooledStaking {
 
   function hasPendingActions() external view returns (bool);
 
+  function processPendingActions(uint maxIterations) external returns (bool finished);
+
   function contractStake(address contractAddress) external view returns (uint);
 
   function stakerReward(address staker) external view returns (uint);

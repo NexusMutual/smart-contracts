@@ -1,8 +1,8 @@
-const { artifacts, run, web3 } = require('hardhat');
+const { artifacts, config, network, run, web3 } = require('hardhat');
 const { ether, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 
 const Verifier = require('../lib/verifier');
-const { getEnv, getNetwork, hex } = require('../lib/helpers');
+const { getEnv, hex } = require('../lib/helpers');
 const proposalCategories = require('../lib/proposal-categories');
 
 const { toBN } = web3.utils;
@@ -17,18 +17,16 @@ const NXMToken = artifacts.require('NXMToken');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
-const MCR = artifacts.require('MCR');
 const TokenData = artifacts.require('TokenData');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const Pool = artifacts.require('Pool');
-const PoolData = artifacts.require('PoolData');
 const Quotation = artifacts.require('Quotation');
 const QuotationData = artifacts.require('QuotationData');
 const ClaimProofs = artifacts.require('ClaimProofs');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-const SwapAgent = artifacts.require('SwapAgent');
+const SwapOperator = artifacts.require('SwapOperator');
 const TwapOracle = artifacts.require('TwapOracle');
-const Cover = artifacts.require('Cover');
+const DisposableMCR = artifacts.require('DisposableMCR');
 
 // temporary contracts used for initialization
 const DisposableNXMaster = artifacts.require('DisposableNXMaster');
@@ -37,6 +35,7 @@ const DisposableTokenController = artifacts.require('DisposableTokenController')
 const DisposableProposalCategory = artifacts.require('DisposableProposalCategory');
 const DisposableGovernance = artifacts.require('DisposableGovernance');
 const DisposablePooledStaking = artifacts.require('DisposablePooledStaking');
+const DisposableGateway = artifacts.require('DisposableGateway');
 
 // target contracts
 const TestnetNXMaster = artifacts.require('TestnetNXMaster');
@@ -45,14 +44,15 @@ const TokenController = artifacts.require('TokenController');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const Governance = artifacts.require('Governance');
 const PooledStaking = artifacts.require('PooledStaking');
+const Gateway = artifacts.require('Gateway');
+const Incidents = artifacts.require('Incidents');
 
 const INITIAL_SUPPLY = ether('1500000');
 const etherscanApiKey = getEnv('ETHERSCAN_API_KEY');
 
 const contractType = code => {
-
   const upgradable = ['CL', 'CR', 'MC', 'P1', 'QT', 'TF'];
-  const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'CO'];
+  const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC'];
 
   if (upgradable.includes(code)) {
     return 1;
@@ -73,18 +73,19 @@ const CHAINLINK_DAI_ETH_AGGREGATORS = {
   mainnet: '0x773616E4d11A78F511299002da57A0a94577F1f4',
   rinkeby: '0x2bA49Aaa16E6afD2a993473cfB70Fa8559B523cF',
   kovan: '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541',
+  // used when running hh node to fork a network, change me if needed
+  localhost: '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541',
 };
 
 async function main () {
-
   // make sure the contracts are compiled and we're not deploying an outdated artifact
   await run('compile');
 
-  const [owner] = await web3.eth.getAccounts();
-  const network = await getNetwork();
-  console.log(`Using ${network} network`);
+  console.log(`Using network: ${network.name}`);
+  console.log('Network config:', config.networks[network.name]);
 
-  const verifier = new Verifier(web3, etherscanApiKey, network.toLowerCase());
+  const [owner] = await web3.eth.getAccounts();
+  const verifier = new Verifier(web3, etherscanApiKey, network.name);
 
   const deployProxy = async (contract, txParams = {}) => {
     console.log(`Deploying proxy ${contract.contractName}`);
@@ -112,31 +113,13 @@ async function main () {
   const dai = await ERC20MintableDetailed.new('DAI Mock', 'DAI', 18);
   verifier.add(dai, { constructorArgs: ['DAI Mock', 'DAI', 18] });
 
+  console.log('Deploying stETH');
+  const stETH = await ERC20MintableDetailed.new('stETH Mock', 'stETH', 18);
+  verifier.add(stETH, { constructorArgs: ['stETH Mock', 'stETH', 18] });
+
   console.log('Deploying uniswap pair');
   const uniswapV2Factory = await UniswapV2Factory.at(UNISWAP_FACTORY);
   await uniswapV2Factory.createPair(WETH_ADDRESS, dai.address);
-
-  // non-proxy contracts and libraries
-  console.log('Deploying TwapOracle, SwapAgent, PriceFeedOracle');
-  const twapOracle = await TwapOracle.new(uniswapV2Factory.address);
-  const swapAgent = await SwapAgent.new();
-
-  verifier.add(twapOracle, { constructorArgs: [uniswapV2Factory.address] });
-  // skipping swap agent - library verification not currently implemented
-
-  const priceFeedOracle = await PriceFeedOracle.new(
-    [dai.address],
-    [CHAINLINK_DAI_ETH_AGGREGATORS[network]],
-    dai.address,
-  );
-
-  verifier.add(priceFeedOracle, {
-    constructorArgs: [
-      [dai.address],
-      [CHAINLINK_DAI_ETH_AGGREGATORS[network]],
-      dai.address,
-    ],
-  });
 
   console.log('Deploying token contracts');
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
@@ -167,7 +150,8 @@ async function main () {
   const { instance: ps, implementation: psImpl } = await deployProxy(DisposablePooledStaking);
   const { instance: pc, implementation: pcImpl } = await deployProxy(DisposableProposalCategory);
   const { instance: gv, implementation: gvImpl } = await deployProxy(DisposableGovernance, { gas: 12e6 });
-  const { instance: co, implementation: coImpl } = await deployProxy(Cover);
+  const { instance: gateway, implementation: gatewayImpl } = await deployProxy(DisposableGateway);
+  const { instance: incidents, implementation: incidentsImpl } = await deployProxy(Incidents);
 
   const proxiesAndImplementations = [
     { proxy: master, implementation: masterImpl, contract: 'DisposableNXMaster' },
@@ -176,17 +160,40 @@ async function main () {
     { proxy: ps, implementation: psImpl, contract: 'DisposablePooledStaking' },
     { proxy: pc, implementation: pcImpl, contract: 'DisposableProposalCategory' },
     { proxy: gv, implementation: gvImpl, contract: 'DisposableGovernance' },
-    { proxy: co, implementation: coImpl, contract: 'Cover' },
+    { proxy: gateway, implementation: gatewayImpl, contract: 'DisposableGateway' },
+    { proxy: incidents, implementation: incidentsImpl, contract: 'Incidents' },
   ];
 
   for (const addresses of proxiesAndImplementations) {
     const { contract, proxy, implementation } = addresses;
-    verifier.add(
-      await OwnedUpgradeabilityProxy.at(proxy.address),
-      { alias: contract, constructorArgs: [implementation.address] },
-    );
+    verifier.add(await OwnedUpgradeabilityProxy.at(proxy.address), {
+      alias: contract,
+      constructorArgs: [implementation.address],
+    });
     verifier.add(implementation);
   }
+
+  // non-proxy contracts and libraries
+  console.log('Deploying TwapOracle, SwapOperator, PriceFeedOracle');
+  const twapOracle = await TwapOracle.new(uniswapV2Factory.address);
+  const swapOperator = await SwapOperator.new(master.address, twapOracle.address, owner, stETH.address);
+
+  verifier.add(twapOracle, { constructorArgs: [uniswapV2Factory.address] });
+  // skipping swap operator - library verification not currently implemented
+
+  const priceFeedOracle = await PriceFeedOracle.new(
+    CHAINLINK_DAI_ETH_AGGREGATORS[network.name],
+    dai.address,
+    stETH.address,
+  );
+
+  verifier.add(priceFeedOracle, {
+    constructorArgs: [
+      CHAINLINK_DAI_ETH_AGGREGATORS[network.name],
+      dai.address,
+      stETH.address,
+    ],
+  });
 
   console.log('Deploying claims contracts');
   const cl = await Claims.new();
@@ -198,29 +205,51 @@ async function main () {
   verifier.add(cr, { constructorArgs: [master.address, dai.address] });
 
   console.log('Deploying capital contracts');
-  const mc = await MCR.new(ZERO_ADDRESS);
+  const mc = await DisposableMCR.new(ZERO_ADDRESS);
+
+  const mcrEth = ether('50000');
+  const mcrFloor = mcrEth.sub(ether('10000'));
+
+  const latestBlock = await web3.eth.getBlock('latest');
+  const lastUpdateTime = latestBlock.timestamp - 60;
+  const mcrFloorIncrementThreshold = 13000;
+  const maxMCRFloorIncrement = 100;
+  const maxMCRIncrement = 500;
+  const gearingFactor = 48000;
+  const minUpdateTime = 3600;
+
+  await mc.initialize(
+    mcrEth,
+    mcrFloor,
+    mcrEth, // desiredMCR
+    lastUpdateTime,
+    mcrFloorIncrementThreshold,
+    maxMCRFloorIncrement,
+    maxMCRIncrement,
+    gearingFactor,
+    minUpdateTime,
+  );
 
   const poolParameters = [
-    [dai.address], // assets
-    [0], // min amounts
-    [ether('100000000')], // max amounts
-    [ether('0.01')], // max slippage 1%
+    [dai.address, stETH.address],
+    [ether('1000000'), ether('15000')],
+    [ether('2000000'), ether('20000')],
+    [ether('0.025'), ether('0')],
     master.address,
     priceFeedOracle.address,
-    twapOracle.address,
-    owner,
+    swapOperator.address,
   ];
 
-  Pool.link(swapAgent);
   const p1 = await Pool.new(...poolParameters);
-  const pd = await PoolData.new(owner, ZERO_ADDRESS, dai.address);
 
   verifier.add(mc, { constructorArgs: [ZERO_ADDRESS] });
   verifier.add(p1, { constructorArgs: poolParameters });
-  verifier.add(pd, { constructorArgs: [owner, ZERO_ADDRESS, dai.address] });
+  verifier.add(incidents, { constructorArgs: [] });
 
-  const codes = ['QD', 'TD', 'CD', 'PD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'CO'];
-  const addresses = [qd, td, cd, pd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps, co].map(c => c.address);
+  const codes = ['QD', 'TD', 'CD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC'];
+  const addresses = [qd, td, cd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps, gateway, incidents].map(
+    c => c.address,
+  );
 
   console.log('Running initializations');
   await master.initialize(
@@ -249,12 +278,6 @@ async function main () {
     [owner], // advisory board members
   );
 
-  await pc.initialize(mr.address);
-
-  for (const category of proposalCategories) {
-    await pc.addInitialCategory(...category);
-  }
-
   await gv.initialize(
     toBN(600), // 10 minutes
     toBN(600), // 10 minutes
@@ -272,16 +295,19 @@ async function main () {
     600, // unstake lock time
   );
 
+  await incidents.initialize();
+
+  await gateway.initialize(master.address, dai.address);
+
+  console.log('Adding proposal categories');
+
+  await pc.initialize(mr.address);
+
+  for (const category of proposalCategories) {
+    await pc.addInitialCategory(...category);
+  }
+
   console.log('Setting parameters');
-
-  console.log('Setting PoolData parameters');
-  await pd.changeMasterAddress(master.address);
-  await pd.changeCurrencyAssetBaseMin(hex('DAI'), '0');
-  await pd.changeCurrencyAssetBaseMin(hex('ETH'), '0');
-
-  await pd.updateUintParameters(hex('MCRMIN'), ether('12000')); // minimum capital in eth
-  await pd.updateUintParameters(hex('MCRSHOCK'), 50); // mcr shock parameter
-  await pd.updateUintParameters(hex('MCRCAPL'), 20); // capacity limit per contract 20%
 
   console.log('Setting ClaimsData parameters');
   await cd.changeMasterAddress(master.address);
@@ -306,6 +332,8 @@ async function main () {
   const { implementation: newPsImpl } = await upgradeProxy(ps.address, PooledStaking);
   const { implementation: newPcImpl } = await upgradeProxy(pc.address, ProposalCategory);
   const { implementation: newGvImpl } = await upgradeProxy(gv.address, Governance);
+  const { implementation: newGatewayImpl } = await upgradeProxy(gateway.address, Gateway);
+  await gateway.changeDependentContractAddress();
 
   verifier.add(newMasterImpl);
   verifier.add(newMrImpl);
@@ -313,31 +341,22 @@ async function main () {
   verifier.add(newPsImpl);
   verifier.add(newPcImpl);
   verifier.add(newGvImpl);
+  verifier.add(newGatewayImpl);
 
-  console.log('Transfering contracts\' ownership');
+  console.log('Transfering ownership of proxy contracts');
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
   await transferProxyOwnership(ps.address, master.address);
   await transferProxyOwnership(pc.address, master.address);
   await transferProxyOwnership(gv.address, master.address);
-  await transferProxyOwnership(co.address, master.address);
+  await transferProxyOwnership(gateway.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
 
-  const deployDataFile = `${__dirname}/../artifacts/${network}-deploy-data.json`;
+  const deployDataFile = `${__dirname}/../artifacts/${network.name}-deploy-data.json`;
   verifier.dump(deployDataFile);
 
   console.log('Minting DAI to pool');
   await dai.mint(p1.address, ether('6500000'));
-
-  console.log('Posting MCR');
-  await mc.addMCRData(
-    13000,
-    ether('20000'),
-    ether('26000'),
-    [hex('ETH'), hex('DAI')],
-    [100, 25000],
-    20200801,
-  );
 
   console.log('Performing verifications');
   await verifier.submit();

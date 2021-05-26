@@ -1,8 +1,9 @@
-const { accounts } = require('hardhat');
+const { accounts, web3 } = require('hardhat');
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
+const { toBN } = web3.utils;
 
-const { buyCover } = require('../utils/buyCover');
+const { buyCover } = require('../utils').buyCover;
 const { hex } = require('../utils').helpers;
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 
@@ -73,7 +74,7 @@ describe('removeEmptyReason', async function () {
 
       await cl.submitClaim(coverId, { from: coverHolder });
       const claimId = (await cd.actualClaimLength()).subn(1);
-      await cl.submitCAVote(claimId, '-1', { from: member1 });
+      await cl.submitCAVote(claimId, toBN('-1'), { from: member1 });
 
       const minVotingTime = await cd.minVotingTime();
       await time.increase(minVotingTime.addn(1));

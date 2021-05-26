@@ -6,8 +6,6 @@ const { assert } = require('chai');
 
 const { defaultSender, governanceContracts: [governance], generalPurpose: [destination, arbitraryCaller] } = require('../utils').accounts;
 
-const Pool = artifacts.require('Pool');
-const SwapAgent = artifacts.require('SwapAgent');
 const ERC20Mock = artifacts.require('ERC20Mock');
 
 describe('transferAsset', function () {
@@ -18,7 +16,7 @@ describe('transferAsset', function () {
     const tokenAmount = ether('100000');
     const otherToken = await ERC20Mock.new();
     await pool.addAsset(otherToken.address, '0', '0', ether('0.01'), {
-      from: governance
+      from: governance,
     });
     await otherToken.mint(pool.address, tokenAmount);
 
@@ -26,7 +24,7 @@ describe('transferAsset', function () {
 
     await pool.transferAsset(
       otherToken.address, destination, amountToTransfer,
-      { from: governance }
+      { from: governance },
     );
     const destinationBalance = await otherToken.balanceOf(destination);
     assert.equal(destinationBalance.toString(), amountToTransfer.toString());
@@ -46,7 +44,7 @@ describe('transferAsset', function () {
 
     await pool.transferAsset(
       otherToken.address, destination, amountToTransfer,
-      { from: governance }
+      { from: governance },
     );
     const destinationBalance = await otherToken.balanceOf(destination);
     assert.equal(destinationBalance.toString(), amountToTransfer.toString());
@@ -66,7 +64,7 @@ describe('transferAsset', function () {
 
     await pool.transferAsset(
       otherToken.address, destination, amountToTransfer,
-      { from: governance }
+      { from: governance },
     );
 
     const destinationBalance = await otherToken.balanceOf(destination);
@@ -82,15 +80,15 @@ describe('transferAsset', function () {
     const tokenAmount = ether('100000');
     const otherToken = await ERC20Mock.new();
     await pool.addAsset(otherToken.address, '0', '1', ether('0.01'), {
-      from: governance
+      from: governance,
     });
     await otherToken.mint(pool.address, tokenAmount);
     await expectRevert(
       pool.transferAsset(
         otherToken.address, destination, tokenAmount,
-        { from: governance }
+        { from: governance },
       ),
-      'Pool: max not zero'
+      'Pool: max not zero',
     );
   });
 
@@ -103,9 +101,9 @@ describe('transferAsset', function () {
     await expectRevert(
       pool.transferAsset(
         otherToken.address, destination, tokenAmount,
-        { from: arbitraryCaller }
+        { from: arbitraryCaller },
       ),
-      'Caller is not authorized to govern'
+      'Caller is not authorized to govern',
     );
   });
 });

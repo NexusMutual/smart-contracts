@@ -4,12 +4,13 @@ const { assert } = require('chai');
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 const { buyCover, ethCoverTemplate, daiCoverTemplate } = require('./utils');
+const { toBN } = Web3.utils;
 
 const [, member1, member2, member3, coverHolder, nonMember1] = accounts;
 
 const EMPTY_DATA = web3.eth.abi.encodeParameters([], []);
 
-async function voteOnClaim({ verdict, claimId, master, cd, cl }) {
+async function voteOnClaim ({ verdict, claimId, master, cd, cl }) {
 
   await cl.submitCAVote(claimId, verdict, { from: member1 });
 
@@ -34,11 +35,10 @@ describe('submitClaim', function () {
     const { gateway } = this.contracts;
     const member = member1;
 
-    await expectRevert(
+    await expectRevert.assertion(
       gateway.submitClaim(1, EMPTY_DATA, {
         from: member,
       }),
-      'VM Exception while processing transaction: invalid opcode',
     );
   });
 
@@ -127,18 +127,18 @@ describe('submitClaim', function () {
     {
       await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder });
       const claimId = 1;
-      await voteOnClaim({...this.contracts, claimId, verdict: '-1' });
+      await voteOnClaim({ ...this.contracts, claimId, verdict: toBN('-1') });
     }
 
     {
       await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder });
       const claimId = 2;
-      await voteOnClaim({...this.contracts, claimId, verdict: '-1' });
+      await voteOnClaim({ ...this.contracts, claimId, verdict: toBN('-1') });
     }
 
     await expectRevert(
       gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder }),
-      'TokenController: Max claim count exceeded'
+      'TokenController: Max claim count exceeded',
     );
   });
 });

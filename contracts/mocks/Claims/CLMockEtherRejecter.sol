@@ -1,3 +1,4 @@
+
 /* Copyright (C) 2020 NexusMutual.io
 
   This program is free software: you can redistribute it and/or modify
@@ -14,8 +15,6 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity ^0.5.17;
-
-import "../../modules/token/NXMToken.sol";
 
 contract EtherRejecter {
   function() payable external {

@@ -1,5 +1,6 @@
 const { assert } = require('chai');
 const { expectRevert } = require('@openzeppelin/test-helpers');
+const { hex } = require('../utils').helpers;
 
 const accounts = require('../utils').accounts;
 const { MCRUintParamType } = require('../utils').constants;
@@ -45,4 +46,11 @@ describe('updateUintParameters', function () {
     }
   });
 
+  it('should revert on unknown parameter code', async function () {
+    const { mcr } = this;
+    await expectRevert(
+      mcr.updateUintParameters(hex('RAND'), '123', { from: governanceContract }),
+      'Invalid param code',
+    );
+  });
 });

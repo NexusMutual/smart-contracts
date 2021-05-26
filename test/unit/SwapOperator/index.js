@@ -16,6 +16,7 @@ describe('SwapOperator unit tests', function () {
   require('./swapETHForAsset');
   require('./swapAssetForETH');
   require('./swapETHForStETH');
+  require('./getSwapQuote');
 
   // TwapOracle
   require('./consult');

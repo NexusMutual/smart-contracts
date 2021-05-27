@@ -227,6 +227,11 @@ describe('fix steth investment', function () {
     const poolValueDelta = poolValueInEthBefore.sub(poolValueInEthAfter);
 
     assert(poolValueDelta.ltn(20), 'poolValueDelta exceeds 20 wei');
+
+    console.log({
+      balanceBefore: balanceBefore.toString(),
+      balanceAfter: balanceAfter.toString(),
+    });
   });
 
   it('triggers large StEth investment', async function () {
@@ -247,6 +252,10 @@ describe('fix steth investment', function () {
     const poolValueInEthAfter = await pool.getPoolValueInEth();
 
     const poolValueDelta = poolValueInEthBefore.sub(poolValueInEthAfter);
+
+    console.log({
+      balanceAfter: balanceAfter.toString(),
+    });
 
     assert(poolValueDelta.ltn(20), 'poolValueDelta exceeds 20 wei');
   });

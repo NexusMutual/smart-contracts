@@ -204,8 +204,7 @@ describe('swapEthForStETH', function () {
   });
 
   it('should swap asset for eth in 3 sequential calls', async function () {
-    const { pool, tokenA, swapOperator, lido, twapOracle } = contracts();
-    const windowStart = await nextWindowStartTime();
+    const { pool, tokenA, swapOperator, lido } = contracts();
 
     const minStEthAmount = ether('100');
 
@@ -224,7 +223,7 @@ describe('swapEthForStETH', function () {
       // amounts in/out of the trade
       const etherIn = minStEthAmount.divn(3);
       const minTokenOut = etherIn.subn(1);
-      const swapTx = await swapOperator.swapETHForStETH(etherIn);
+      await swapOperator.swapETHForStETH(etherIn);
 
       const etherAfter = toBN(await web3.eth.getBalance(pool.address));
       const tokensAfter = await lido.balanceOf(pool.address);

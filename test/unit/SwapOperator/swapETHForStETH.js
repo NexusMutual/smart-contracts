@@ -187,9 +187,6 @@ describe('swapEthForStETH', function () {
       { from: governance },
     );
 
-    // should be able to swap only during the last period within the window
-    await setNextBlockTime(windowStart + periodSize * 7);
-
     const etherBefore = toBN(await web3.eth.getBalance(pool.address));
     const tokensBefore = await tokenA.balanceOf(pool.address);
 
@@ -220,9 +217,6 @@ describe('swapEthForStETH', function () {
       { from: governance },
     );
 
-    // should be able to swap only during the last period within the window
-    await setNextBlockTime(windowStart + periodSize * 7);
-
     {
       const etherBefore = toBN(await web3.eth.getBalance(pool.address));
       const tokensBefore = await tokenA.balanceOf(pool.address);
@@ -241,8 +235,6 @@ describe('swapEthForStETH', function () {
       assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
     }
 
-    await time.increase(periodSize);
-
     {
       const etherBefore = toBN(await web3.eth.getBalance(pool.address));
       const tokensBefore = await tokenA.balanceOf(pool.address);
@@ -260,8 +252,6 @@ describe('swapEthForStETH', function () {
       assert.strictEqual(etherSent.toString(), etherIn.toString());
       assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
     }
-
-    await time.increase(periodSize);
 
     {
       const etherBefore = toBN(await web3.eth.getBalance(pool.address));

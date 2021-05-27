@@ -4,16 +4,55 @@ orbs:
   node: circleci/node@4.1.0
 
 jobs:
+  checkout_and_install:
+    docker:
+      - image: cimg/node:14.17.0
+    working_directory: ~/nexus-mutual-contracts
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - dependency-cache-{{ checksum "package.json" }}
+      - run:
+          name: Install Dependencies
+          command: npm i
+      - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - node_modules
+      - save_cache:
+          key: nexus-mutual-contracts-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - ~/nexus-mutual-contracts
+
   test:
     resource_class: medium+
     docker:
       - image: cimg/node:14.17.0
+    working_directory: ~/nexus-mutual-contracts
     steps:
-      - checkout
-      - node/install-packages
+      - restore_cache:
+          key: nexus-mutual-contracts-{{ .Environment.CIRCLE_SHA1 }}
       - run: npm run compile && npm run test
+
+  coverage:
+    docker:
+      - image: cimg/node:14.17.0
+    working_directory: ~/nexus-mutual-contracts
+    steps:
+      - restore_cache:
+          key: nexus-mutual-contracts-{{ .Environment.CIRCLE_SHA1 }}
+      - run:
+          name: Coverage
+          command: npm run coverage && cat coverage/lcov.info | ./node_modules/.bin/coveralls
 
 workflows:
   sc-tests:
     jobs:
-      - test
+      - checkout_and_install
+      - test:
+          requires:
+            - checkout_and_install
+      - coverage:
+          requires:
+            - test

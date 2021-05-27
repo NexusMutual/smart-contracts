@@ -38,6 +38,7 @@
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@typechain/truffle-v5": "^3.0.0",
     "chai": "^4.2.0",
+    "coveralls": "^3.1.0",
     "decimal.js": "^10.2.1",
     "eslint": "^6.8.0",
     "eslint-config-semistandard": "^15.0.0",

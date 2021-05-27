@@ -157,13 +157,13 @@ describe('fix steth investment', function () {
     );
 
     const totalCategories = await proposalCategory.totalCategories();
-    assert.equal(totalCategories.toString(), ProposalCategory.setPoolAddressParameters.toString());
+    this.setPoolAddressParameters = totalCategories;
 
     await submitGovernanceProposal(ProposalCategory.addCategory, addCategory, voters, governance);
   });
 
   it('upgrade contracts', async function () {
-    const { master, oldSwapOperator, pool, voters, governance } = this;
+    const { master, oldSwapOperator, pool, voters, governance, setPoolAddressParameters } = this;
 
     console.log('Deploying contracts');
 
@@ -184,14 +184,14 @@ describe('fix steth investment', function () {
       ['address', swapOperator.address],
     ];
 
-    const addPriceFeedOracle = web3.eth.abi.encodeParameters(
+    const addSwapOperator = web3.eth.abi.encodeParameters(
       parameters.map(p => p[0]),
       parameters.map(p => p[1]),
     );
     const poolValueInEthBefore = pool.getPoolValueInEth();
 
     // add new category for sendClaimPayout call
-    await submitGovernanceProposal(ProposalCategory.setPoolAddressParameters, addPriceFeedOracle, voters, governance);
+    await submitGovernanceProposal(setPoolAddressParameters, addSwapOperator, voters, governance);
 
     const storedSwapOperatorAddress = await pool.swapOperator();
     assert.equal(storedSwapOperatorAddress, swapOperator.address);

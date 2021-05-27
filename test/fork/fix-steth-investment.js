@@ -38,6 +38,7 @@ const Incidents = artifacts.require('Incidents');
 const Gateway = artifacts.require('Gateway');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
+const ProposalCategoryContract = artifacts.require('ProposalCategory');
 
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -82,7 +83,7 @@ const fund = async to => web3.eth.sendTransaction({ from: accounts[0], to, value
 const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAccount', params: [member] });
 const bnToNumber = bn => parseInt(bn.toString(), 10);
 
-describe('MCR on-chain migration', function () {
+describe('fix steth investment', function () {
 
   this.timeout(0);
 
@@ -96,22 +97,24 @@ describe('MCR on-chain migration', function () {
     const token = await NXMToken.at(getAddressByCode('NXMTOKEN'));
     const memberRoles = await MemberRoles.at(getAddressByCode('MR'));
     const governance = await Governance.at(getAddressByCode('GV'));
-    const pool1 = await OldPool.at(getAddressByCode('P1'));
+    const pool1 = await Pool.at(getAddressByCode('P1'));
     const oldMCR = await LegacyMCR.at(getAddressByCode('MC'));
     const oldPoolData = await LegacyPoolData.at(getAddressByCode('PD'));
     const quotationData = await QuotationData.at(getAddressByCode('QD'));
     const oldSwapOperator = await SwapOperator.at('0xcafea7191d1B8538076feB019B092a53Dc4dCdFe');
+    const proposalCategory = await ProposalCategoryContract.at(getAddressByCode('PC'));
 
     this.masterAddress = masterAddress;
     this.token = token;
     this.memberRoles = memberRoles;
     this.governance = governance;
-    this.oldPool = pool1;
+    this.pool = pool1;
     this.oldMCR = oldMCR;
     this.master = await NXMaster.at(masterAddress);
     this.poolData = oldPoolData;
     this.quotationData = quotationData;
     this.oldSwapOperator = oldSwapOperator;
+    this.proposalCategory = proposalCategory;
   });
 
   it('fetches board members and funds accounts', async function () {
@@ -154,31 +157,60 @@ describe('MCR on-chain migration', function () {
     );
 
     const totalCategories = await proposalCategory.totalCategories();
-    assert.equal(totalCategories.toString(), ProposalCategories.setPoolAddressParameters.toString());
+    assert.equal(totalCategories.toString(), ProposalCategory.setPoolAddressParameters.toString());
 
-    // add new category for sendClaimPayout call
-    await submitGovernanceProposal(ProposalCategories.addCategory, addCategory, voters, governance);
+    await submitGovernanceProposal(ProposalCategory.addCategory, addCategory, voters, governance);
   });
 
   it('upgrade contracts', async function () {
-    const { master, oldSwapOperator } = this;
+    const { master, oldSwapOperator, pool, voters, governance } = this;
 
     console.log('Deploying contracts');
 
     const twapOracle = await TwapOracle.at(await oldSwapOperator.twapOracle());
-    const swapController = oldSwapOperator.swapController();
+    const swapController = await oldSwapOperator.swapController();
+
+    await fund(swapController);
+    await unlock(swapController);
+    await (swapController);
+
     const stETHToken = await ERC20.at(Address.stETH);
     const swapOperator = await SwapOperator.new(
       master.address, twapOracle.address, swapController, stETHToken.address,
     );
 
+    const parameters = [
+      ['bytes8', hex('SWP_OP')],
+      ['address', swapOperator.address],
+    ];
+
+    const addPriceFeedOracle = web3.eth.abi.encodeParameters(
+      parameters.map(p => p[0]),
+      parameters.map(p => p[1]),
+    );
+    const poolValueInEthBefore = pool.getPoolValueInEth();
+
+    // add new category for sendClaimPayout call
+    await submitGovernanceProposal(ProposalCategory.setPoolAddressParameters, addPriceFeedOracle, voters, governance);
+
+    const storedSwapOperatorAddress = await pool.swapOperator();
+    assert.equal(storedSwapOperatorAddress, swapOperator.address);
+
+    const poolValueInEthAfter = pool.getPoolValueInEth();
+
+    assert.equal(poolValueInEthAfter.toString(), poolValueInEthBefore.toString());
+
     this.swapOperator = swapOperator;
+    this.swapController = swapController;
+    this.stETHToken = stETHToken;
   });
 
   it('triggers small StEth investment', async function () {
     const { swapOperator, swapController, stETHToken, pool } = this;
 
     const poolValueInEthBefore = await pool.getPoolValueInEth();
+
+    const balanceBefore = await stETHToken.balanceOf(pool.address);
 
     const amountIn = ether('100');
     await swapOperator.swapETHForStETH(amountIn, {
@@ -187,8 +219,8 @@ describe('MCR on-chain migration', function () {
 
     const balanceAfter = await stETHToken.balanceOf(pool.address);
 
-    const dustDifference = 2;
-    assert.equal(balanceAfter.toString(), amountIn.subn(dustDifference).toString());
+    const dustDifference = 1;
+    assert.equal(balanceAfter.sub(balanceBefore).toString(), amountIn.subn(dustDifference).toString());
 
     const poolValueInEthAfter = await pool.getPoolValueInEth();
 
@@ -200,6 +232,7 @@ describe('MCR on-chain migration', function () {
   it('triggers large StEth investment', async function () {
     const { swapOperator, swapController, stETHToken, pool } = this;
 
+    const balanceBefore = await stETHToken.balanceOf(pool.address);
     const poolValueInEthBefore = await pool.getPoolValueInEth();
 
     const amountIn = ether('15000');
@@ -209,8 +242,7 @@ describe('MCR on-chain migration', function () {
 
     const balanceAfter = await stETHToken.balanceOf(pool.address);
 
-    const dustDifference = 2;
-    assert.equal(balanceAfter.toString(), amountIn.subn(dustDifference).toString());
+    assert.equal(balanceAfter.sub(balanceBefore).toString(), amountIn.toString());
 
     const poolValueInEthAfter = await pool.getPoolValueInEth();
 

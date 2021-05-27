@@ -5,4 +5,5 @@ describe('Gateway integration tests', function () {
   require('./getPayoutOutcome');
   require('./getters');
   require('./executeCoverAction');
+  require('./membership');
 });

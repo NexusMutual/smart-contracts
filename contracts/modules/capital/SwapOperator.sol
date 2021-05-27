@@ -274,8 +274,7 @@ contract SwapOperator is ReentrancyGuard {
 
     pool.setAssetDataLastSwapTime(toTokenAddress, uint32(block.timestamp));
 
-    uint balanceAfter = IERC20(toTokenAddress).balanceOf(address(this));
-    uint amountOut = balanceAfter - balanceBefore;
+    uint amountOut = IERC20(toTokenAddress).balanceOf(address(this));
 
     require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
     require(balanceBefore < minAmount, "SwapOperator: balanceBefore >= min");

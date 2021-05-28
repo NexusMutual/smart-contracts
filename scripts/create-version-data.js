@@ -1,5 +1,5 @@
 const fs = require('fs');
-const getVersionDataBase = require('./version-data-base');
+const getVersionDataTemplate = require('./version-data-template');
 
 const network = process.argv[2];
 
@@ -97,9 +97,9 @@ const getCotractAbi = code => {
   return JSON.stringify(artifact.abi);
 };
 
-const versionDataBase = getVersionDataBase(network);
+const versionDataTemplate = getVersionDataTemplate(network);
 const versionData = [];
-for (const contract of versionDataBase) {
+for (const contract of versionDataTemplate) {
   if (!contract.contractAbi) {
     const contractAbi = getCotractAbi(contract.code);
     const address = addresses[addressKeyOfContractCode[contract.code]].toLowerCase();

@@ -1,4 +1,4 @@
-const getVersionDataBase = network => [
+const getVersionDataTemplate = network => [
   {
     code: 'CD',
     smartContractCode: 'CD',
@@ -137,4 +137,4 @@ const getVersionDataBase = network => [
   },
 ];
 
-module.exports = getVersionDataBase;
+module.exports = getVersionDataTemplate;

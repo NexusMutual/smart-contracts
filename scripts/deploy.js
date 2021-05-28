@@ -351,7 +351,7 @@ async function main () {
   await transferProxyOwnership(gateway.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
 
-  const deployDataFile = `${__dirname}/../artifacts/${network.name}-deploy-data.json`;
+  const deployDataFile = `${__dirname}/../deploy/${network.name}-deploy-data.json`;
   verifier.dump(deployDataFile);
 
   console.log('Minting DAI to pool');

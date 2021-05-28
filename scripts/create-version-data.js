@@ -3,7 +3,7 @@ const getVersionDataTemplate = require('./version-data-template');
 
 const network = process.argv[2];
 
-const deployData = JSON.parse(fs.readFileSync('./artifacts/' + network + '-deploy-data.json', 'utf8'));
+const deployData = JSON.parse(fs.readFileSync(__dirname + '/../deploy/' + network + '-deploy-data.json', 'utf8'));
 
 const nonProxies = Object.keys(deployData)
   .filter(
@@ -40,9 +40,9 @@ const addresses = {
   ...proxies,
 };
 
-fs.writeFileSync('./artifacts/' + network + '-addresses.json', JSON.stringify(addresses, null, 2));
+fs.writeFileSync(__dirname + '/../deploy/' + network + '-addresses.json', JSON.stringify(addresses, null, 2));
 
-const baseModulesPath = './artifacts/contracts/modules/';
+const baseModulesPath = __dirname + '/../artifacts/contracts/modules/';
 
 const artifactPathOfContractCode = {
   CD: 'claims/ClaimsData.sol/ClaimsData.json',
@@ -107,6 +107,6 @@ for (const contract of versionDataTemplate) {
   }
 }
 fs.writeFileSync(
-  './artifacts/' + network + '-data.json',
+  __dirname + '/../deploy/' + network + '-data.json',
   JSON.stringify({ [network]: { abis: versionData } }, null, 2),
 );

@@ -24,6 +24,9 @@ jobs:
           key: nexus-mutual-contracts-{{ .Environment.CIRCLE_SHA1 }}
           paths:
             - ~/nexus-mutual-contracts
+      - run:
+          name: Compile contracts
+          command: npm run compile
 
   test:
     resource_class: medium+
@@ -55,4 +58,4 @@ workflows:
             - checkout_and_install
       - coverage:
           requires:
-            - test
+            - checkout_and_install

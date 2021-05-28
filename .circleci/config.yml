@@ -36,7 +36,7 @@ jobs:
     steps:
       - restore_cache:
           key: nexus-mutual-contracts-{{ .Environment.CIRCLE_SHA1 }}
-      - run: npm run compile && npm run test
+      - run: npm run test
 
   coverage:
     docker:

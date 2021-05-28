@@ -20,13 +20,13 @@ jobs:
           key: dependency-cache-{{ checksum "package.json" }}
           paths:
             - node_modules
+      - run:
+          name: Compile contracts
+          command: npm run compile
       - save_cache:
           key: nexus-mutual-contracts-{{ .Environment.CIRCLE_SHA1 }}
           paths:
             - ~/nexus-mutual-contracts
-      - run:
-          name: Compile contracts
-          command: npm run compile
 
   test:
     resource_class: medium+

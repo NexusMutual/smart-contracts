@@ -1,7 +1,7 @@
 const { accounts, web3, artifacts } = require('hardhat');
 const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const { getBuyCoverDataParameter } = require('../Gateway/utils');
+const { getBuyCoverDataParameter, voteOnClaim } = require('../Gateway/utils');
 const { toBN } = web3.utils;
 const { helpers: { bnEqual, hex } } = require('../utils');
 const { enrollClaimAssessor, enrollMember } = require('../utils/enroll');
@@ -90,21 +90,7 @@ async function buyCover ({ coverData, coverHolder, distributor, qt, dai, feePerc
   throw new Error(`Unknown asset: ${coverData.asset}`);
 }
 
-async function voteOnClaim ({ claimId, verdict, cl, cd, master, voter }) {
-  await cl.submitCAVote(claimId, toBN(verdict), { from: voter });
-
-  const minVotingTime = await cd.minVotingTime();
-  await time.increase(minVotingTime.addn(1));
-
-  const voteStatusBefore = await cl.checkVoteClosing(claimId);
-  assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
-
-  await master.closeClaim(claimId);
-  const voteStatusAfter = await cl.checkVoteClosing(claimId);
-  assert(voteStatusAfter.eqn(-1), 'voting should be closed');
-}
-
-describe.only('Distributor', function () {
+describe('Distributor', function () {
 
   beforeEach(async function () {
     const { master, mr, tk, tc } = this.contracts;
@@ -557,7 +543,7 @@ describe.only('Distributor', function () {
       from: coverHolder,
     });
 
-    await voteOnClaim({ ...this.contracts, claimId: expectedClaimId, verdict: '-1', voter: member1 });
+    await voteOnClaim({ ...this.contracts, claimId: expectedClaimId, verdict: toBN('-1'), voter: member1 });
 
     await expectRevert(
       distributor.redeemClaim(expectedCoverId, expectedClaimId, {

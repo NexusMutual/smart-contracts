@@ -20,9 +20,9 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/access/Ownable.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
-import "../../interfaces/v0.8/IGateway.sol";
-import "../../interfaces/v0.8/IPool.sol";
-import "../../interfaces/v0.8/INXMaster.sol";
+import "../../interfaces/IGateway.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/INXMaster.sol";
 
 contract Distributor is ERC721, Ownable, ReentrancyGuard {
   using SafeERC20 for IERC20;

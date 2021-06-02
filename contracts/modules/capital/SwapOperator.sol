@@ -23,7 +23,7 @@ contract SwapOperator is ReentrancyGuard {
 
   ITwapOracle public twapOracle;
   address public swapController;
-  INXMMaster master;
+  INXMaster master;
   address public stETH;
 
   /* events */
@@ -41,7 +41,7 @@ contract SwapOperator is ReentrancyGuard {
   uint constant public MAX_LIQUIDITY_RATIO = 3 * 1e15;
 
   constructor(address payable _master, address _twapOracle, address _swapController, address _stETH) {
-    master = INXMMaster(_master);
+    master = INXMaster(_master);
     twapOracle = ITwapOracle(_twapOracle);
     swapController = _swapController;
     stETH = _stETH;

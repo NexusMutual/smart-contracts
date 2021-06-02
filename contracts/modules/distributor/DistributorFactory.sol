@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 
 import "./Distributor.sol";
-import "../../interfaces/v0.8/INXMaster.sol";
-import "../../interfaces/v0.8/IMemberRoles.sol";
+import "../../interfaces/INXMaster.sol";
+import "../../interfaces/IMemberRoles.sol";
 
 contract DistributorFactory {
     INXMaster immutable public master;

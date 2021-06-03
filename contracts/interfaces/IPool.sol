@@ -15,17 +15,29 @@
 
 pragma solidity >=0.5.0;
 
+import "./IPriceFeedOracle.sol";
+
 interface IPool {
   function sellNXM(uint tokenAmount, uint minEthOut) external;
+
   function sellNXMTokens(uint tokenAmount) external returns (bool);
+
   function minPoolEth() external returns (uint);
 
   function transferAssetToSwapOperator(address asset, uint amount) external;
+
   function setAssetDataLastSwapTime(address asset, uint32 lastSwapTime) external;
+
   function getAssetDetails(address _asset) external view returns (
     uint112 min,
     uint112 max,
     uint32 lastAssetSwapTime,
     uint maxSlippageRatio
   );
+
+  function priceFeedOracle() external view returns (IPriceFeedOracle);
+
+  function getPoolValueInEth() external view returns (uint);
+
+  function calculateMCRRatio(uint totalAssetValue, uint mcrEth) external pure returns (uint);
 }

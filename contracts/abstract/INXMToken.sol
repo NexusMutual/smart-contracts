@@ -11,4 +11,6 @@ contract INXMToken is IERC20 {
   function operatorTransfer(address from, uint256 value) public returns (bool);
 
   function mint(address account, uint256 amount) public;
+
+  function isLockedForMV(address member) external returns (uint);
 }

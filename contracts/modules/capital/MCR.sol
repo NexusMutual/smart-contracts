@@ -18,17 +18,17 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../abstract/MasterAware.sol";
-import "../capital/Pool.sol";
 import "../cover/QuotationData.sol";
-import "../oracles/PriceFeedOracle.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenData.sol";
 import "./LegacyMCR.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/IPriceFeedOracle.sol";
 
 contract MCR is MasterAware {
   using SafeMath for uint;
 
-  Pool public pool;
+  IPool public pool;
   QuotationData public qd;
   // sizeof(qd) + 96 = 160 + 96 = 256 (occupies entire slot)
   uint96 _unused;
@@ -73,7 +73,7 @@ contract MCR is MasterAware {
    */
   function changeDependentContractAddress() public {
     qd = QuotationData(master.getLatestAddress("QD"));
-    pool = Pool(master.getLatestAddress("P1"));
+    pool = IPool(master.getLatestAddress("P1"));
     initialize();
   }
 
@@ -105,7 +105,7 @@ contract MCR is MasterAware {
    */
   function getAllSumAssurance() public view returns (uint) {
 
-    PriceFeedOracle priceFeed = pool.priceFeedOracle();
+    IPriceFeedOracle priceFeed = pool.priceFeedOracle();
     address daiAddress = priceFeed.daiAddress();
 
     uint ethAmount = qd.getTotalSumAssured("ETH").mul(1e18);

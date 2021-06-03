@@ -1,7 +1,7 @@
 const { artifacts, web3, network } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const prompts = require('prompts');
-const { hex } = require('../test/utils/helpers');
+const { hex } = require('../../lib/helpers');
 const { FACTORY } = require('./addresses');
 
 const DistributorFactory = artifacts.require('DistributorFactory');
@@ -33,7 +33,7 @@ async function run () {
       type: 'text',
       name: 'treasury',
       message: 'Input your treasury address (all your fee profits and sellNXM ETH returns will be sent here!)',
-      validate: value => web3.utils.isAddress(value) ? true : `Not a valid Ethereum address`
+      validate: value => web3.utils.isAddress(value) ? true : 'Not a valid Ethereum address',
     },
   ]);
   const factoryAddress = FACTORY[network.name];
@@ -48,7 +48,7 @@ async function run () {
     treasury,
     tokenName,
     tokenSymbol,
-    { value: ether('0.002') }
+    { value: ether('0.002') },
   );
   const distributorAddress = tx.logs[0].args.contractAddress;
   console.log(`Successfully deployed at ${distributorAddress}`);

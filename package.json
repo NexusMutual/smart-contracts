@@ -55,6 +55,7 @@
     "nodemon": "^2.0.2",
     "prettier": "^1.19.1",
     "prettier-eslint": "^9.0.1",
+    "prompts": "^2.4.1",
     "solidity-coverage": "^0.7.16",
     "truffle-flattener": "github:shark0der/truffle-flattener",
     "ts-generator": "^0.1.1",
@@ -73,6 +74,8 @@
     "test-fuzzing": "hardhat test test/fuzzing/index.js",
     "deploy": "hardhat run scripts/deploy.js",
     "test-fork": "TEST_ENV_FORK=https://parity.nexusmutual.io/ hardhat test test/fork/index.js",
-    "typechain": "hardhat typechain"
+    "typechain": "hardhat typechain",
+    "distributor-deploy-kovan": "hardhat run --network kovan deploy/distributor/deploy-distributor.js",
+    "self-kyc-kovan": "hardhat run --network kovan deploy/distributor/self-kyc.js"
   }
 }

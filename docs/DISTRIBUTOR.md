@@ -6,6 +6,10 @@ Earn revenue on each sale through an optional fee and the NXM deposit return!
 
 Issue NFTs for each NexusMutual cover that users own and can freely trade. 
 
+### Code
+
+https://github.com/NexusMutual/smart-contracts/tree/feature/distributor-relocation/contracts/modules/distributor
+
 ### Addresses
 
 #### mainnet
@@ -38,10 +42,12 @@ cp .env.sample .env
 # fill in the blanks in .env
 
 # run deploy
-npm run deploy-kovan
+npm run distributor-deploy-kovan
 ```
 
 #### KYC
+
+Once the script has generated a mainnet deployment take the resulting contract and follow the steps at this link to KYC the address. https://app.nexusmutual.io/home/distributor
 
 ##### Mainnet
 
@@ -49,11 +55,11 @@ npm run deploy-kovan
 
 ##### Kovan
 
-Distributors deployed with `npm run deploy-kovan` are already KYCed.
+Distributors deployed with `npm run distributor-deploy-kovan` are already KYCed.
 
 If you want to KYC an EOA or another contract, use:
 
-`npm run kovan-self-kyc`
+`npm run distributor-kovan-self-kyc`
 
 This command assumes your `.env` has a `KOVAN_ACCOUNT` address
 with at least `0.002` KETH to pay for the joining fee. 
@@ -117,6 +123,17 @@ See the following example node.js code for submitting a claim for a particular c
 Example:
 
 https://github.com/NexusMutual/smart-contracts/blob/feature/distributor-relocation/examples/example-distributor-submit-claim.js
+
+#### Proof of loss submission
+Every claim submission needs to be accompanied by a proof of loss submission.
+
+This can be done on the NexusMutual app with the following link that needs to include the cover id and owner address as shown:
+
+https://app.nexusmutual.io/home/proof-of-loss/add-affected-addresses?coverId=<cover_id>&owner=<nft_owner_address>
+
+Redirect the user to the page above the proof of loss sumbission with the signature before the claim is submitted.
+
+Once the proof of loss is submitted, allow the user to submit the claim.
 
 #### redeemClaim
 

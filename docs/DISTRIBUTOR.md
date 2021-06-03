@@ -10,13 +10,13 @@ Issue NFTs for each NexusMutual cover that users own and can freely trade.
 
 #### mainnet
 
-DistributorFactory: `0x63613a6201C03e53913cA1D29Ea0789750dA5238`
+DistributorFactory: TBD
 
 NXMaster: `0x01bfd82675dbcc7762c84019ca518e701c0cd07e`
 
 #### kovan
 
-DistributorFactory: `0x1F5DEBdDeEaE0572bF01110E7f0F2c6C904e1422`
+DistributorFactory: TBD
 
 NXMaster: `0xf3b1018c6f1d5c2beCA1ebB4C7Bcf472D6721501`
 
@@ -94,7 +94,7 @@ should be easily translatable to frontend code that does the equivalent with the
 
 Example:
 
-https://github.com/NexusMutual/distributor-contract/blob/distributor-contract-v1/examples/example-buy-cover.js
+https://github.com/NexusMutual/smart-contracts/blob/feature/distributor-relocation/examples/example-distributor-buy-cover.js
 
 
 #### submitClaim
@@ -116,7 +116,7 @@ The `data` field is currently unused.
 See the following example node.js code for submitting a claim for a particular cover (cover id matches the NFT token id).
 Example:
 
-https://github.com/NexusMutual/distributor-contract/blob/distributor-contract-v1/examples/example-submit-claim.js
+https://github.com/NexusMutual/smart-contracts/blob/feature/distributor-relocation/examples/example-distributor-submit-claim.js
 
 #### redeemClaim
 

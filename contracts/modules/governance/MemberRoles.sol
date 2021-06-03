@@ -15,15 +15,16 @@ pragma solidity ^0.5.0;
 import "../claims/ClaimsReward.sol";
 import "../cover/QuotationData.sol";
 import "../token/TokenController.sol";
-import "../token/TokenData.sol";
 import "../token/TokenFunctions.sol";
 import "./Governance.sol";
 import "./external/Governed.sol";
+import "../../interfaces/ITokenData.sol";
+import "../../interfaces/ITokenController.sol";
 
 contract MemberRoles is Governed, Iupgradable {
 
-  TokenController public tc;
-  TokenData internal td;
+  ITokenController public tc;
+  ITokenData internal td;
   QuotationData internal qd;
   ClaimsReward internal cr;
   Governance internal gv;
@@ -122,13 +123,13 @@ contract MemberRoles is Governed, Iupgradable {
    * @dev Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public {
-    td = TokenData(ms.getLatestAddress("TD"));
+    td = ITokenData(ms.getLatestAddress("TD"));
     cr = ClaimsReward(ms.getLatestAddress("CR"));
     qd = QuotationData(ms.getLatestAddress("QD"));
     gv = Governance(ms.getLatestAddress("GV"));
     tf = TokenFunctions(ms.getLatestAddress("TF"));
     tk = NXMToken(ms.tokenAddress());
-    tc = TokenController(ms.getLatestAddress("TC"));
+    tc = ITokenController(ms.getLatestAddress("TC"));
   }
 
   /**

@@ -40,4 +40,6 @@ interface IPool {
   function getPoolValueInEth() external view returns (uint);
 
   function calculateMCRRatio(uint totalAssetValue, uint mcrEth) external pure returns (uint);
+
+  function transferAssetFrom(address asset, address from, uint amount) external;
 }

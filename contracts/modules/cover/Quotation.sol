@@ -18,21 +18,20 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../../abstract/MasterAware.sol";
-import "../capital/Pool.sol";
-import "../claims/ClaimsReward.sol";
 import "../claims/Incidents.sol";
-import "../token/TokenController.sol";
-import "../token/TokenData.sol";
 import "./QuotationData.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IClaimsReward.sol";
+import "../../interfaces/IPool.sol";
 
 contract Quotation is MasterAware, ReentrancyGuard {
   using SafeMath for uint;
 
-  ClaimsReward public cr;
-  Pool public pool;
+  IClaimsReward public cr;
+  IPool public pool;
   IPooledStaking public pooledStaking;
   QuotationData public qd;
-  TokenController public tc;
+  ITokenController public tc;
   TokenData public td;
   Incidents public incidents;
 
@@ -40,11 +39,11 @@ contract Quotation is MasterAware, ReentrancyGuard {
    * @dev Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public onlyInternal {
-    cr = ClaimsReward(master.getLatestAddress("CR"));
-    pool = Pool(master.getLatestAddress("P1"));
+    cr = IClaimsReward(master.getLatestAddress("CR"));
+    pool = IPool(master.getLatestAddress("P1"));
     pooledStaking = IPooledStaking(master.getLatestAddress("PS"));
     qd = QuotationData(master.getLatestAddress("QD"));
-    tc = TokenController(master.getLatestAddress("TC"));
+    tc = ITokenController(master.getLatestAddress("TC"));
     td = TokenData(master.getLatestAddress("TD"));
     incidents = Incidents(master.getLatestAddress("IC"));
   }

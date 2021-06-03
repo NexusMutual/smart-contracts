@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
 import "../../modules/governance/MemberRoles.sol";
-import "../../modules/token/TokenController.sol";
+import "../../interfaces/ITokenController.sol";
 
 contract DisposableMemberRoles is MemberRoles {
 
@@ -24,7 +24,7 @@ contract DisposableMemberRoles is MemberRoles {
       "initial members and member tokens arrays should have the same length"
     );
 
-    tc = TokenController(_tokenControllerAddress);
+    tc = ITokenController(_tokenControllerAddress);
     changeMasterAddress(_masterAddress);
 
     _addInitialMemberRoles(_owner, _owner);

@@ -12,6 +12,7 @@ import "../../modules/governance/ProposalCategory.sol";
 import "../../modules/governance/external/IGovernance.sol";
 import "../../modules/token/TokenController.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../interfaces/ITokenController.sol";
 
 contract DisposableGovernance is IGovernance, Iupgradable {
 
@@ -100,7 +101,7 @@ contract DisposableGovernance is IGovernance, Iupgradable {
 
   MemberRoles internal memberRole;
   ProposalCategory internal proposalCategory;
-  TokenController internal tokenInstance;
+  ITokenController internal tokenInstance;
 
   mapping(uint => uint) public proposalActionStatus;
   mapping(uint => uint) internal proposalExecutionTime;
@@ -111,7 +112,7 @@ contract DisposableGovernance is IGovernance, Iupgradable {
   uint internal actionWaitingTime;
 
   function changeDependentContractAddress() public {
-    tokenInstance = TokenController(ms.dAppLocker());
+    tokenInstance = ITokenController(ms.dAppLocker());
     memberRole = MemberRoles(ms.getLatestAddress("MR"));
     proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));
   }

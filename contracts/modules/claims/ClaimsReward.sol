@@ -27,8 +27,9 @@ import "../token/TokenFunctions.sol";
 import "./Claims.sol";
 import "./ClaimsData.sol";
 import "../capital/MCR.sol";
+import "../../interfaces/IClaimsReward.sol";
 
-contract ClaimsReward is Iupgradable {
+contract ClaimsReward is Iupgradable, IClaimsReward {
   using SafeMath for uint;
 
   NXMToken internal tk;

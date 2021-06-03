@@ -8,7 +8,7 @@ import "../../external/uniswap/IUniswapV2Router02.sol";
 import "../../external/uniswap/IUniswapV2Pair.sol";
 import "../../interfaces/ITwapOracle.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/INXMaster.sol";
+import "../../interfaces/INXMMaster.sol";
 
 contract SwapOperator is ReentrancyGuard {
   using SafeERC20 for IERC20;
@@ -23,7 +23,7 @@ contract SwapOperator is ReentrancyGuard {
 
   ITwapOracle public twapOracle;
   address public swapController;
-  INXMaster master;
+  INXMMaster master;
   address public stETH;
 
   /* events */
@@ -41,7 +41,7 @@ contract SwapOperator is ReentrancyGuard {
   uint constant public MAX_LIQUIDITY_RATIO = 3 * 1e15;
 
   constructor(address payable _master, address _twapOracle, address _swapController, address _stETH) {
-    master = INXMaster(_master);
+    master = INXMMaster(_master);
     twapOracle = ITwapOracle(_twapOracle);
     swapController = _swapController;
     stETH = _stETH;

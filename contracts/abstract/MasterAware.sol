@@ -17,7 +17,8 @@
 
 pragma solidity ^0.5.0;
 
-import "./INXMMaster.sol";
+import "../interfaces/INXMMaster.sol";
+
 
 contract MasterAware {
 

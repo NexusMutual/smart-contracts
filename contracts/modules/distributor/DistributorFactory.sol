@@ -1,11 +1,11 @@
 pragma solidity ^0.8.0;
 
 import "./Distributor.sol";
-import "../../interfaces/INXMaster.sol";
+import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IMemberRoles.sol";
 
 contract DistributorFactory {
-    INXMaster immutable public master;
+    INXMMaster immutable public master;
 
     event DistributorCreated(
         address contractAddress,
@@ -15,7 +15,7 @@ contract DistributorFactory {
     );
 
     constructor (address masterAddress) {
-        master = INXMaster(masterAddress);
+        master = INXMMaster(masterAddress);
     }
 
     function newDistributor(

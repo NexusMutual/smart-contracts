@@ -22,7 +22,7 @@ import "@openzeppelin/contracts-v4/access/Ownable.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "../../interfaces/IGateway.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/INXMaster.sol";
+import "../../interfaces/INXMMaster.sol";
 
 contract Distributor is ERC721, Ownable, ReentrancyGuard {
   using SafeERC20 for IERC20;
@@ -66,7 +66,7 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
   */
   IGateway immutable public gateway;
   IERC20 immutable public nxmToken;
-  INXMaster immutable public master;
+  INXMMaster immutable public master;
 
   modifier onlyTokenApprovedOrOwner(uint256 tokenId) {
     require(_isApprovedOrOwner(msg.sender, tokenId), "Distributor: Not approved or owner");
@@ -89,7 +89,7 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
     treasury = _treasury;
     gateway = IGateway(gatewayAddress);
     nxmToken = IERC20(nxmTokenAddress);
-    master = INXMaster(masterAddress);
+    master = INXMMaster(masterAddress);
   }
 
   /**

@@ -17,7 +17,7 @@
 
 pragma solidity ^0.5.0;
 
-import "../abstract/INXMMaster.sol";
+import "../interfaces/INXMMaster.sol";
 import "../modules/capital/Pool.sol";
 
 contract MasterMock {

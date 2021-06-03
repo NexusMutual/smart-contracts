@@ -24,13 +24,14 @@ import "../token/TokenData.sol";
 import "../token/TokenFunctions.sol";
 import "./QuotationData.sol";
 import "../claims/Incidents.sol";
+import "../../interfaces/IQuotation.sol";
 
 contract Gateway is MasterAware {
   using SafeMath for uint;
   using SafeERC20 for IERC20;
 
   // contracts
-  Quotation public quotation;
+  IQuotation public quotation;
   NXMToken public nxmToken;
   TokenController public tokenController;
   QuotationData public quotationData;
@@ -68,7 +69,7 @@ contract Gateway is MasterAware {
   enum ClaimStatus { IN_PROGRESS, ACCEPTED, REJECTED }
 
   function changeDependentContractAddress() public {
-    quotation = Quotation(master.getLatestAddress("QT"));
+    quotation = IQuotation(master.getLatestAddress("QT"));
     nxmToken = NXMToken(master.tokenAddress());
     tokenController = TokenController(master.getLatestAddress("TC"));
     quotationData = QuotationData(master.getLatestAddress("QD"));

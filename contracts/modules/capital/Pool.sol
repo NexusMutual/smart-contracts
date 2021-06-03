@@ -22,11 +22,11 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IPool.sol";
-import "../cover/Quotation.sol";
 import "../oracles/PriceFeedOracle.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenController.sol";
-import "./MCR.sol";
+import "../../interfaces/IMCR.sol";
+import "../../interfaces/IQuotation.sol";
 
 contract Pool is IPool, MasterAware, ReentrancyGuard {
   using Address for address;
@@ -46,10 +46,10 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   mapping(address => AssetData) public assetData;
 
   // contracts
-  Quotation public quotation;
+  IQuotation public quotation;
   NXMToken public nxmToken;
   TokenController public tokenController;
-  MCR public mcr;
+  IMCR public mcr;
 
   // parameters
   address public swapController;
@@ -331,8 +331,8 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   function changeDependentContractAddress() public {
     nxmToken = NXMToken(master.tokenAddress());
     tokenController = TokenController(master.getLatestAddress("TC"));
-    quotation = Quotation(master.getLatestAddress("QT"));
-    mcr = MCR(master.getLatestAddress("MC"));
+    quotation = IQuotation(master.getLatestAddress("QT"));
+    mcr = IMCR(master.getLatestAddress("MC"));
   }
 
   /* cover purchase functions */

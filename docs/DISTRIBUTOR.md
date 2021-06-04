@@ -14,13 +14,13 @@ https://github.com/NexusMutual/smart-contracts/tree/feature/distributor-relocati
 
 #### mainnet
 
-DistributorFactory: TBD
+DistributorFactory: `TBD`
 
 NXMaster: `0x01bfd82675dbcc7762c84019ca518e701c0cd07e`
 
 #### kovan
 
-DistributorFactory: TBD
+DistributorFactory: `0x138Ff97841919415dEb95eD8492eeeF1B01bDaEF`
 
 NXMaster: `0xf3b1018c6f1d5c2beCA1ebB4C7Bcf472D6721501`
 

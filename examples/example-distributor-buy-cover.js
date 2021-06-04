@@ -1,7 +1,7 @@
 const fetch = require('node-fetch');
 const { artifacts, web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
-const { hex } = require('../test/utils/helpers');
+const { hex } = require('../lib/helpers');
 const BN = web3.utils.BN;
 
 const Distributor = artifacts.require('Distributor');
@@ -20,7 +20,7 @@ async function run () {
   });
 
   const headers = {
-    Origin: API_REQUEST_ORIGIN
+    Origin: API_REQUEST_ORIGIN,
   };
 
   // Setup your cover data.
@@ -29,12 +29,12 @@ async function run () {
     currency: 'ETH',
     asset: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', // stands for ETH
     period: '111', // days
-    contractAddress: '0xC57D000000000000000000000000000000000002' // the contract you will be buying cover for
-  }
+    contractAddress: '0xC57D000000000000000000000000000000000002', // the contract you will be buying cover for
+  };
 
   // URL to request a quote for.
-  const quoteURL = `https://api.staging.nexusmutual.io/legacy/v1/quote?`
-    + `coverAmount=${coverData.coverAmount}&currency=${coverData.currency}&period=${coverData.period}&contractAddress=${coverData.contractAddress}`;
+  const quoteURL = 'https://api.staging.nexusmutual.io/legacy/v1/quote?' +
+    `coverAmount=${coverData.coverAmount}&currency=${coverData.currency}&period=${coverData.period}&contractAddress=${coverData.contractAddress}`;
 
   console.log(quoteURL);
 
@@ -70,7 +70,7 @@ async function run () {
     feePercentage: feePercentage.toString(),
     priceWithFee: priceWithFee.toString(),
     amountInWei: amountInWei.toString(),
-    COVER_TYPE
+    COVER_TYPE,
   });
 
   // price is deterministic right now. can set the max price to be equal with the actual price.

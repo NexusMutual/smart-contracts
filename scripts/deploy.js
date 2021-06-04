@@ -1,5 +1,8 @@
 const { artifacts, config, network, run, web3 } = require('hardhat');
-const { ether, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
+const {
+  ether,
+  constants: { ZERO_ADDRESS },
+} = require('@openzeppelin/test-helpers');
 
 const Verifier = require('../lib/verifier');
 const { getEnv, hex } = require('../lib/helpers');
@@ -179,7 +182,7 @@ async function main () {
   const swapOperator = await SwapOperator.new(master.address, twapOracle.address, owner, stETH.address);
 
   verifier.add(twapOracle, { constructorArgs: [uniswapV2Factory.address] });
-  // skipping swap operator - library verification not currently implemented
+  verifier.add(swapOperator, { constructorArgs: [master.address, twapOracle.address, owner, stETH.address] });
 
   const priceFeedOracle = await PriceFeedOracle.new(
     CHAINLINK_DAI_ETH_AGGREGATORS[network.name],
@@ -188,11 +191,7 @@ async function main () {
   );
 
   verifier.add(priceFeedOracle, {
-    constructorArgs: [
-      CHAINLINK_DAI_ETH_AGGREGATORS[network.name],
-      dai.address,
-      stETH.address,
-    ],
+    constructorArgs: [CHAINLINK_DAI_ETH_AGGREGATORS[network.name], dai.address, stETH.address],
   });
 
   console.log('Deploying claims contracts');
@@ -352,7 +351,7 @@ async function main () {
   await transferProxyOwnership(gateway.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
 
-  const deployDataFile = `${__dirname}/../artifacts/${network.name}-deploy-data.json`;
+  const deployDataFile = `${__dirname}/../deploy/${network.name}-deploy-data.json`;
   verifier.dump(deployDataFile);
 
   console.log('Minting DAI to pool');

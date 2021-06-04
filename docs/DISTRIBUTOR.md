@@ -8,6 +8,10 @@ Issue NFTs for each NexusMutual cover that users own and can freely trade.
 
 ### Code
 
+The Distributor has a standard implementation `Distributor.sol` which is deployed using the `DistributorFactory.sol`
+
+Code is here:
+
 https://github.com/NexusMutual/smart-contracts/tree/feature/distributor-relocation/contracts/modules/distributor
 
 ### Addresses
@@ -40,6 +44,9 @@ npm i
 # create a .env with your configuration
 cp .env.sample .env
 # fill in the blanks in .env
+# MAINNET_ACCOUNT_KEY=set your mnemonic here
+# MAINNET_ACCOUNT=0xadd
+# MAINNET_PROVIDER_URL=https://mainnet.infura.io/v3/apikey
 
 # run deploy
 npm run distributor-deploy-kovan
@@ -51,7 +58,9 @@ Once the script has generated a mainnet deployment take the resulting contract a
 
 ##### Mainnet
 
-`Work in progress`
+Once the script has generated a mainnet deployment take the resulting contract and follow the steps
+at this link to KYC the address.
+https://app.nexusmutual.io/home/distributor
 
 ##### Kovan
 

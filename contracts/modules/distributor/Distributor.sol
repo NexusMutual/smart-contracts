@@ -264,10 +264,11 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
     if (assetAmount == 0) {
       return gateway.executeCoverAction(tokenId, action, data);
     }
+    uint remainder;
     if (asset == ETH) {
       require(msg.value >= assetAmount, "Distributor: Insufficient ETH sent");
       (response, withheldAmount) = gateway.executeCoverAction{ value: msg.value }(tokenId, action, data);
-      uint remainder = assetAmount - withheldAmount;
+      remainder = assetAmount - withheldAmount;
       (bool ok, /* data */) = address(msg.sender).call{value: remainder}("");
       require(ok, "Distributor: Returning ETH remainder to sender failed.");
       return (response, withheldAmount);
@@ -277,7 +278,7 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
     token.safeTransferFrom(msg.sender, address(this), assetAmount);
     token.approve(address(gateway), assetAmount);
     (response, withheldAmount) = gateway.executeCoverAction(tokenId, action, data);
-    uint remainder = assetAmount - withheldAmount;
+    remainder = assetAmount - withheldAmount;
     token.safeTransfer(msg.sender, remainder);
     return (response, withheldAmount);
   }

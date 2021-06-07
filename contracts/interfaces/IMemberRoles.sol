@@ -25,7 +25,7 @@ interface IMemberRoles {
 
   function payJoiningFee(address _userAddress) external payable;
 
-  function switchMembership(address _newAddress) external payable;
+  function switchMembership(address _newAddress) external;
 
   function swapOwner(address _newOwnerAddress) external;
 
@@ -34,4 +34,6 @@ interface IMemberRoles {
   function getClaimPayoutAddress(address payable _member) external view returns (address payable);
 
   function checkRole(address _memberAddress, uint _roleId) external view returns (bool);
+
+  function totalRoles() external view returns (uint256);
 }

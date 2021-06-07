@@ -21,7 +21,9 @@ import "./external/Governed.sol";
 import "../../interfaces/ITokenData.sol";
 import "../../interfaces/ITokenController.sol";
 
-contract MemberRoles is Governed, Iupgradable {
+import "../../interfaces/IMemberRoles.sol";
+
+contract MemberRoles is Governed, Iupgradable, IMemberRoles {
 
   ITokenController public tc;
   ITokenData internal td;
@@ -37,8 +39,6 @@ contract MemberRoles is Governed, Iupgradable {
     address[] memberAddress;
     address authorized;
   }
-
-  enum Role {UnAssigned, AdvisoryBoard, Member, Owner}
 
   event MemberRole(uint256 indexed roleId, bytes32 roleName, string roleDescription);
 
@@ -106,7 +106,7 @@ contract MemberRoles is Governed, Iupgradable {
     );
     //AB count can't exceed maxABCount
     for (uint i = 0; i < abArray.length; i++) {
-      require(checkRole(abArray[i], uint(MemberRoles.Role.Member)));
+      require(checkRole(abArray[i], uint(Role.Member)));
       _updateRole(abArray[i], uint(Role.AdvisoryBoard), true);
     }
   }

@@ -16,10 +16,12 @@ import "./MemberRoles.sol";
 import "./external/Governed.sol";
 import "./external/IProposalCategory.sol";
 
+import "../../interfaces/IMemberRoles.sol";
+
 contract ProposalCategory is Governed, IProposalCategory, Iupgradable {
 
   bool public constructorCheck;
-  MemberRoles internal mr;
+  IMemberRoles internal mr;
 
   struct CategoryStruct {
     uint memberRoleToVote;
@@ -233,7 +235,7 @@ contract ProposalCategory is Governed, IProposalCategory, Iupgradable {
 
     //If category is special resolution role authorized should be member
     if (_incentives[3] == 1) {
-      require(_memberRoleToVote == uint(MemberRoles.Role.Member));
+      require(_memberRoleToVote == uint(IMemberRoles.Role.Member));
       _majorityVotePerc = 0;
       _quorumPerc = 0;
     }
@@ -340,7 +342,7 @@ contract ProposalCategory is Governed, IProposalCategory, Iupgradable {
 
     //If category is special resolution role authorized should be member
     if (_incentives[3] == 1) {
-      require(_memberRoleToVote == uint(MemberRoles.Role.Member));
+      require(_memberRoleToVote == uint(IMemberRoles.Role.Member));
       _majorityVotePerc = 0;
       _quorumPerc = 0;
     }

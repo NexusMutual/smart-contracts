@@ -17,9 +17,10 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../token/TokenController.sol";
-import "./MemberRoles.sol";
 import "./ProposalCategory.sol";
 import "./external/IGovernance.sol";
+
+import "../../interfaces/IMemberRoles.sol";
 
 contract Governance is IGovernance, Iupgradable {
 
@@ -322,7 +323,7 @@ contract Governance is IGovernance, Iupgradable {
     } else {
       require(canCloseProposal(_proposalId) == 1);
       (, _memberRole,,,,,) = proposalCategory.category(allProposalData[_proposalId].category);
-      if (_memberRole == uint(MemberRoles.Role.AdvisoryBoard)) {
+      if (_memberRole == uint(IMemberRoles.Role.AdvisoryBoard)) {
         _closeAdvisoryBoardVote(_proposalId, category);
       } else {
         _closeMemberVote(_proposalId, category);
@@ -421,8 +422,8 @@ contract Governance is IGovernance, Iupgradable {
     }
 
     require(!alreadyDelegated(msg.sender));
-    require(!memberRole.checkRole(msg.sender, uint(MemberRoles.Role.Owner)));
-    require(!memberRole.checkRole(msg.sender, uint(MemberRoles.Role.AdvisoryBoard)));
+    require(!memberRole.checkRole(msg.sender, uint(IMemberRoles.Role.Owner)));
+    require(!memberRole.checkRole(msg.sender, uint(IMemberRoles.Role.AdvisoryBoard)));
 
 
     require(followerCount[_add] < maxFollowers);
@@ -462,7 +463,7 @@ contract Governance is IGovernance, Iupgradable {
    * @dev Provides option to Advisory board member to reject proposal action execution within actionWaitingTime, if found suspicious
    */
   function rejectAction(uint _proposalId) external {
-    require(memberRole.checkRole(msg.sender, uint(MemberRoles.Role.AdvisoryBoard)) && proposalExecutionTime[_proposalId] > now);
+    require(memberRole.checkRole(msg.sender, uint(IMemberRoles.Role.AdvisoryBoard)) && proposalExecutionTime[_proposalId] > now);
 
     require(proposalActionStatus[_proposalId] == uint(ActionStatus.Accepted));
 
@@ -728,7 +729,7 @@ contract Governance is IGovernance, Iupgradable {
       pStatus == uint(ProposalStatus.VotingStarted)
     ) {
       uint numberOfMembers = memberRole.numberOfMembers(_roleId);
-      if (_roleId == uint(MemberRoles.Role.AdvisoryBoard)) {
+      if (_roleId == uint(IMemberRoles.Role.AdvisoryBoard)) {
         if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(numberOfMembers) >= majority
         || proposalVoteTally[_proposalId].abVoteValue[1].add(proposalVoteTally[_proposalId].abVoteValue[0]) == numberOfMembers
           || dateUpdate.add(_closingTime) <= now) {
@@ -897,9 +898,9 @@ contract Governance is IGovernance, Iupgradable {
     allVotes.push(ProposalVote(msg.sender, _proposalId, now));
 
     emit Vote(msg.sender, _proposalId, totalVotes, now, _solution);
-    if (mrSequence == uint(MemberRoles.Role.Owner)) {
+    if (mrSequence == uint(IMemberRoles.Role.Owner)) {
       if (_solution == 1)
-        _callIfMajReached(_proposalId, uint(ProposalStatus.Accepted), allProposalData[_proposalId].category, 1, MemberRoles.Role.Owner);
+        _callIfMajReached(_proposalId, uint(ProposalStatus.Accepted), allProposalData[_proposalId].category, 1, IMemberRoles.Role.Owner);
       else
         _updateProposalStatus(_proposalId, uint(ProposalStatus.Rejected));
 
@@ -907,7 +908,7 @@ contract Governance is IGovernance, Iupgradable {
       uint numberOfMembers = memberRole.numberOfMembers(mrSequence);
       _setVoteTally(_proposalId, _solution, mrSequence);
 
-      if (mrSequence == uint(MemberRoles.Role.AdvisoryBoard)) {
+      if (mrSequence == uint(IMemberRoles.Role.AdvisoryBoard)) {
         if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(numberOfMembers)
         >= majority
           || (proposalVoteTally[_proposalId].abVoteValue[1].add(proposalVoteTally[_proposalId].abVoteValue[0])) == numberOfMembers) {
@@ -932,12 +933,12 @@ contract Governance is IGovernance, Iupgradable {
     uint categoryABReq;
     uint isSpecialResolution;
     (, categoryABReq, isSpecialResolution) = proposalCategory.categoryExtendedData(allProposalData[_proposalId].category);
-    if (memberRole.checkRole(msg.sender, uint(MemberRoles.Role.AdvisoryBoard)) && (categoryABReq > 0) ||
-      mrSequence == uint(MemberRoles.Role.AdvisoryBoard)) {
+    if (memberRole.checkRole(msg.sender, uint(IMemberRoles.Role.AdvisoryBoard)) && (categoryABReq > 0) ||
+      mrSequence == uint(IMemberRoles.Role.AdvisoryBoard)) {
       proposalVoteTally[_proposalId].abVoteValue[_solution]++;
     }
     tokenInstance.lockForMemberVote(msg.sender, tokenHoldingTime);
-    if (mrSequence != uint(MemberRoles.Role.AdvisoryBoard)) {
+    if (mrSequence != uint(IMemberRoles.Role.AdvisoryBoard)) {
       uint voteWeight;
       uint voters = 1;
       uint tokenBalance = tokenInstance.totalBalanceOf(msg.sender);
@@ -1014,13 +1015,13 @@ contract Governance is IGovernance, Iupgradable {
    * @param category of proposal in concern
    * @param max vote value of proposal in concern
    */
-  function _callIfMajReached(uint _proposalId, uint _status, uint category, uint max, MemberRoles.Role role) internal {
+  function _callIfMajReached(uint _proposalId, uint _status, uint category, uint max, IMemberRoles.Role role) internal {
 
     allProposalData[_proposalId].finalVerdict = max;
     _updateProposalStatus(_proposalId, _status);
     emit ProposalAccepted(_proposalId);
     if (proposalActionStatus[_proposalId] != uint(ActionStatus.NoAction)) {
-      if (role == MemberRoles.Role.AdvisoryBoard) {
+      if (role == IMemberRoles.Role.AdvisoryBoard) {
         _triggerAction(_proposalId, category);
       } else {
         proposalActionStatus[_proposalId] = uint(ActionStatus.Accepted);
@@ -1102,10 +1103,10 @@ contract Governance is IGovernance, Iupgradable {
       uint acceptedVotePerc = proposalVoteTally[_proposalId].memberVoteValue[1].mul(100)
       .div(
         tokenInstance.totalSupply().add(
-          memberRole.numberOfMembers(uint(MemberRoles.Role.Member)).mul(10 ** 18)
+          memberRole.numberOfMembers(uint(IMemberRoles.Role.Member)).mul(10 ** 18)
         ));
       if (acceptedVotePerc >= specialResolutionMajPerc) {
-        _callIfMajReached(_proposalId, uint(ProposalStatus.Accepted), category, 1, MemberRoles.Role.Member);
+        _callIfMajReached(_proposalId, uint(ProposalStatus.Accepted), category, 1, IMemberRoles.Role.Member);
       } else {
         _updateProposalStatus(_proposalId, uint(ProposalStatus.Denied));
       }
@@ -1120,14 +1121,14 @@ contract Governance is IGovernance, Iupgradable {
           ))
           >= majorityVote
         ) {
-          _callIfMajReached(_proposalId, uint(ProposalStatus.Accepted), category, 1, MemberRoles.Role.Member);
+          _callIfMajReached(_proposalId, uint(ProposalStatus.Accepted), category, 1, IMemberRoles.Role.Member);
         } else {
           _updateProposalStatus(_proposalId, uint(ProposalStatus.Rejected));
         }
       } else {
         if (abMaj > 0 && proposalVoteTally[_proposalId].abVoteValue[1].mul(100)
-        .div(memberRole.numberOfMembers(uint(MemberRoles.Role.AdvisoryBoard))) >= abMaj) {
-          _callIfMajReached(_proposalId, uint(ProposalStatus.Accepted), category, 1, MemberRoles.Role.Member);
+        .div(memberRole.numberOfMembers(uint(IMemberRoles.Role.AdvisoryBoard))) >= abMaj) {
+          _callIfMajReached(_proposalId, uint(ProposalStatus.Accepted), category, 1, IMemberRoles.Role.Member);
         } else {
           _updateProposalStatus(_proposalId, uint(ProposalStatus.Denied));
         }
@@ -1146,7 +1147,7 @@ contract Governance is IGovernance, Iupgradable {
    */
   function _closeAdvisoryBoardVote(uint _proposalId, uint category) internal {
     uint _majorityVote;
-    MemberRoles.Role _roleId = MemberRoles.Role.AdvisoryBoard;
+    IMemberRoles.Role _roleId = IMemberRoles.Role.AdvisoryBoard;
     (,, _majorityVote,,,,) = proposalCategory.category(category);
     if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100)
     .div(memberRole.numberOfMembers(uint(_roleId))) >= _majorityVote) {

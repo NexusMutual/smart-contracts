@@ -13,6 +13,7 @@ import "../../modules/governance/external/IGovernance.sol";
 import "../../modules/token/TokenController.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IMemberRoles.sol";
 
 contract DisposableGovernance is IGovernance, Iupgradable {
 
@@ -34,7 +35,7 @@ contract DisposableGovernance is IGovernance, Iupgradable {
     totalProposals = 1;
     allVotes.push(ProposalVote(address(0), 0, 0));
     allDelegation.push(DelegateVote(address(0), address(0), now));
-    roleIdAllowedToCatgorize = uint(MemberRoles.Role.AdvisoryBoard);
+    roleIdAllowedToCatgorize = uint(IMemberRoles.Role.AdvisoryBoard);
 
     tokenHoldingTime = _tokenHoldingTime;
     maxDraftTime = _maxDraftTime;
@@ -99,7 +100,7 @@ contract DisposableGovernance is IGovernance, Iupgradable {
   uint internal totalProposals;
   uint internal maxDraftTime;
 
-  MemberRoles internal memberRole;
+  IMemberRoles internal memberRole;
   ProposalCategory internal proposalCategory;
   ITokenController internal tokenInstance;
 
@@ -113,7 +114,7 @@ contract DisposableGovernance is IGovernance, Iupgradable {
 
   function changeDependentContractAddress() public {
     tokenInstance = ITokenController(ms.dAppLocker());
-    memberRole = MemberRoles(ms.getLatestAddress("MR"));
+    memberRole = IMemberRoles(ms.getLatestAddress("MR"));
     proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));
   }
 

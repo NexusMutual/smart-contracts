@@ -29,7 +29,7 @@
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
     "bn.js": "^5.1.2",
     "dotenv": "^8.2.0",
-    "ethereumjs-util": "^7.0.7",
+    "ethereumjs-util": "7.0.1",
     "node-fetch": "^2.6.1"
   },
   "devDependencies": {

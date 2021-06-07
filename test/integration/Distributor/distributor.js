@@ -590,7 +590,7 @@ describe('Distributor', function () {
     );
   });
 
-  it('allows claim reedeem for accepted DAI cover', async function () {
+  it.only('allows claim reedeem for accepted DAI cover', async function () {
     const { distributor, dai } = this.contracts;
 
     const coverData = {
@@ -612,7 +612,7 @@ describe('Distributor', function () {
     // pre-existing cover purchase
     await buyCover({ ...this.contracts, coverData, coverHolder });
     await buyCover(
-      { ...this.contracts, coverData: { ...coverData, generationTime: coverData.generationTime + 1 }, coverHolder },
+      { ...this.contracts, coverData: { ...coverData, generationTime: coverData.generationTime + 2 }, coverHolder },
     );
     const expectedCoverId = 2;
     const expectedClaimId = 1;

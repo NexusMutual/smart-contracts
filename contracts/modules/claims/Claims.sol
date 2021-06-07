@@ -22,8 +22,9 @@ import "../token/TokenController.sol";
 import "../token/TokenFunctions.sol";
 import "./Incidents.sol";
 import "../../interfaces/IClaimsData.sol";
+import "../../interfaces/IClaims.sol";
 
-contract Claims is Iupgradable {
+contract Claims is Iupgradable, IClaims {
   using SafeMath for uint;
 
   TokenController internal tc;

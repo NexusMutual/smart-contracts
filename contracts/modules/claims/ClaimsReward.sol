@@ -24,10 +24,11 @@ import "../cover/QuotationData.sol";
 import "../governance/Governance.sol";
 import "../token/TokenData.sol";
 import "../token/TokenFunctions.sol";
-import "./Claims.sol";
-import "../capital/MCR.sol";
+
+import "../../interfaces/IMCR.sol";
 import "../../interfaces/IClaimsReward.sol";
 import "../../interfaces/IClaimsData.sol";
+import "../../interfaces/IClaims.sol";
 
 
 contract ClaimsReward is Iupgradable, IClaimsReward {
@@ -37,13 +38,13 @@ contract ClaimsReward is Iupgradable, IClaimsReward {
   TokenController internal tc;
   TokenData internal td;
   QuotationData internal qd;
-  Claims internal c1;
+  IClaims internal c1;
   IClaimsData internal cd;
   Pool internal pool;
   Governance internal gv;
   IPooledStaking internal pooledStaking;
   MemberRoles internal memberRoles;
-  MCR public mcr;
+  IMCR public mcr;
 
   // assigned in constructor
   address public DAI;
@@ -58,7 +59,7 @@ contract ClaimsReward is Iupgradable, IClaimsReward {
   }
 
   function changeDependentContractAddress() public onlyInternal {
-    c1 = Claims(ms.getLatestAddress("CL"));
+    c1 = IClaims(ms.getLatestAddress("CL"));
     cd = IClaimsData(ms.getLatestAddress("CD"));
     tk = NXMToken(ms.tokenAddress());
     tc = TokenController(ms.getLatestAddress("TC"));
@@ -68,7 +69,7 @@ contract ClaimsReward is Iupgradable, IClaimsReward {
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
     memberRoles = MemberRoles(ms.getLatestAddress("MR"));
     pool = Pool(ms.getLatestAddress("P1"));
-    mcr = MCR(ms.getLatestAddress("MC"));
+    mcr = IMCR(ms.getLatestAddress("MC"));
   }
 
   /// @dev Decides the next course of action for a given claim.

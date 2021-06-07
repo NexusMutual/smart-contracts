@@ -590,7 +590,7 @@ describe('Distributor', function () {
     );
   });
 
-  it.only('allows claim reedeem for accepted DAI cover', async function () {
+  it('allows claim reedeem for accepted DAI cover', async function () {
     const { distributor, dai } = this.contracts;
 
     const coverData = {

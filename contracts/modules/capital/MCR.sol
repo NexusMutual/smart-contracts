@@ -19,7 +19,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../abstract/MasterAware.sol";
 
-import "../token/NXMToken.sol";
+import "../../abstract/INXMToken.sol";
 import "./LegacyMCR.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";

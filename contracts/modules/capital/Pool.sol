@@ -22,7 +22,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IPool.sol";
-import "../oracles/PriceFeedOracle.sol";
+import "../../interfaces/IPriceFeedOracle.sol";
 import "../../abstract/INXMToken.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/IQuotation.sol";
@@ -54,7 +54,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   // parameters
   address public swapController;
   uint public minPoolEth;
-  PriceFeedOracle public priceFeedOracle;
+  IPriceFeedOracle public priceFeedOracle;
   address public swapOperator;
 
   /* constants */
@@ -108,7 +108,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     }
 
     master = INXMMaster(_master);
-    priceFeedOracle = PriceFeedOracle(_priceOracle);
+    priceFeedOracle = IPriceFeedOracle(_priceOracle);
     swapOperator = _swapOperator;
   }
 
@@ -663,7 +663,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     }
 
     if (code == "PRC_FEED") {
-      priceFeedOracle = PriceFeedOracle(value);
+      priceFeedOracle = IPriceFeedOracle(value);
       return;
     }
 

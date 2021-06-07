@@ -22,6 +22,8 @@ import "./external/Governed.sol";
 import "./external/OwnedUpgradeabilityProxy.sol";
 import "../capital/LegacyPoolData.sol";
 
+import "../../interfaces/IMemberRoles.sol";
+
 contract NXMaster is Governed {
   using SafeMath for uint;
 
@@ -218,8 +220,8 @@ contract NXMaster is Governed {
 
   /// @dev checks whether the address is a member of the mutual or not.
   function isMember(address _add) public view returns (bool) {
-    MemberRoles mr = MemberRoles(getLatestAddress("MR"));
-    return mr.checkRole(_add, uint(MemberRoles.Role.Member));
+    IMemberRoles mr = IMemberRoles(getLatestAddress("MR"));
+    return mr.checkRole(_add, uint(IMemberRoles.Role.Member));
   }
 
   ///@dev Gets the number of emergency pause has been toggled.
@@ -292,7 +294,7 @@ contract NXMaster is Governed {
     require(_contractAddresses.length == allContractNames.length, "array length not same");
     masterInitialized = true;
 
-    MemberRoles mr = MemberRoles(_contractAddresses[14]);
+    IMemberRoles mr = IMemberRoles(_contractAddresses[14]);
     // shoud send proxy address for proxy contracts (if not 1st time deploying)
     // bool isMasterUpgrade = mr.nxMasterAddress() != address(0);
 
@@ -304,7 +306,7 @@ contract NXMaster is Governed {
     }
 
     // Need to override owner as owner in MR to avoid inconsistency as owner in MR is some other address.
-    (, address[] memory mrOwner) = mr.members(uint(MemberRoles.Role.Owner));
+    (, address[] memory mrOwner) = mr.members(uint(IMemberRoles.Role.Owner));
     owner = mrOwner[0];
   }
 
@@ -344,7 +346,7 @@ contract NXMaster is Governed {
 
     } else if (code == "OWNER") {
 
-      MemberRoles mr = MemberRoles(getLatestAddress("MR"));
+      IMemberRoles mr = IMemberRoles(getLatestAddress("MR"));
       mr.swapOwner(val);
       owner = val;
 

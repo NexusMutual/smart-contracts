@@ -17,8 +17,9 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/Iupgradable.sol";
+import "../../interfaces/IClaimsData.sol";
 
-contract ClaimsData is Iupgradable {
+contract ClaimsData is Iupgradable, IClaimsData {
   using SafeMath for uint;
 
   struct Claim {

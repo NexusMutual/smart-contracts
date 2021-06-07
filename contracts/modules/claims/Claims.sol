@@ -20,8 +20,8 @@ import "../claims/ClaimsReward.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenController.sol";
 import "../token/TokenFunctions.sol";
-import "./ClaimsData.sol";
 import "./Incidents.sol";
+import "../../interfaces/IClaimsData.sol";
 
 contract Claims is Iupgradable {
   using SafeMath for uint;
@@ -29,7 +29,7 @@ contract Claims is Iupgradable {
   TokenController internal tc;
   ClaimsReward internal cr;
   Pool internal p1;
-  ClaimsData internal cd;
+  IClaimsData internal cd;
   TokenData internal td;
   QuotationData internal qd;
   Incidents internal incidents;
@@ -79,7 +79,7 @@ contract Claims is Iupgradable {
     tc = TokenController(ms.getLatestAddress("TC"));
     p1 = Pool(ms.getLatestAddress("P1"));
     cr = ClaimsReward(ms.getLatestAddress("CR"));
-    cd = ClaimsData(ms.getLatestAddress("CD"));
+    cd = IClaimsData(ms.getLatestAddress("CD"));
     qd = QuotationData(ms.getLatestAddress("QD"));
     incidents = Incidents(ms.getLatestAddress("IC"));
   }

@@ -18,7 +18,20 @@
 pragma solidity >=0.5.0;
 
 interface IMemberRoles {
-    function payJoiningFee(address _userAddress) external payable;
-    function switchMembership(address _newAddress) external payable;
-    function kycVerdict(address payable _userAddress, bool verdict) external;
+
+  enum Role {UnAssigned, AdvisoryBoard, Member, Owner}
+
+  function members(uint _memberRoleId) external view returns (uint, address[] memory memberArray);
+
+  function payJoiningFee(address _userAddress) external payable;
+
+  function switchMembership(address _newAddress) external payable;
+
+  function swapOwner(address _newOwnerAddress) external;
+
+  function kycVerdict(address payable _userAddress, bool verdict) external;
+
+  function getClaimPayoutAddress(address payable _member) external view returns (address payable);
+
+  function checkRole(address _memberAddress, uint _roleId) external view returns (bool);
 }

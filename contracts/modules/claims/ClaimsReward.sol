@@ -25,9 +25,10 @@ import "../governance/Governance.sol";
 import "../token/TokenData.sol";
 import "../token/TokenFunctions.sol";
 import "./Claims.sol";
-import "./ClaimsData.sol";
 import "../capital/MCR.sol";
 import "../../interfaces/IClaimsReward.sol";
+import "../../interfaces/IClaimsData.sol";
+
 
 contract ClaimsReward is Iupgradable, IClaimsReward {
   using SafeMath for uint;
@@ -37,7 +38,7 @@ contract ClaimsReward is Iupgradable, IClaimsReward {
   TokenData internal td;
   QuotationData internal qd;
   Claims internal c1;
-  ClaimsData internal cd;
+  IClaimsData internal cd;
   Pool internal pool;
   Governance internal gv;
   IPooledStaking internal pooledStaking;
@@ -58,7 +59,7 @@ contract ClaimsReward is Iupgradable, IClaimsReward {
 
   function changeDependentContractAddress() public onlyInternal {
     c1 = Claims(ms.getLatestAddress("CL"));
-    cd = ClaimsData(ms.getLatestAddress("CD"));
+    cd = IClaimsData(ms.getLatestAddress("CD"));
     tk = NXMToken(ms.tokenAddress());
     tc = TokenController(ms.getLatestAddress("TC"));
     td = TokenData(ms.getLatestAddress("TD"));

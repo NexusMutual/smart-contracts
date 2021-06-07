@@ -37,11 +37,32 @@ interface IPool {
     uint maxSlippageRatio
   );
 
+  function sendClaimPayout (
+    address asset,
+    address payable payoutAddress,
+    uint amount
+  ) external returns (bool success);
+
   function priceFeedOracle() external view returns (IPriceFeedOracle);
 
   function getPoolValueInEth() external view returns (uint);
 
-  function calculateMCRRatio(uint totalAssetValue, uint mcrEth) external pure returns (uint);
 
   function transferAssetFrom(address asset, address from, uint amount) external;
+
+  function getEthForNXM(uint nxmAmount) external view returns (uint ethAmount);
+
+  function calculateEthForNXM(
+    uint nxmAmount,
+    uint currentTotalAssetValue,
+    uint mcrEth
+  ) external pure returns (uint);
+
+  function calculateMCRRatio(uint totalAssetValue, uint mcrEth) external pure returns (uint);
+
+  function calculateTokenSpotPrice(uint totalAssetValue, uint mcrEth) external pure returns (uint tokenPrice);
+
+  function getTokenPrice(address asset) external view returns (uint tokenPrice);
+
+  function getMCRRatio() external view returns (uint);
 }

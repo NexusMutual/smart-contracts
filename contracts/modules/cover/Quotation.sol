@@ -23,6 +23,7 @@ import "./QuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IClaimsReward.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/ITokenData.sol";
 
 contract Quotation is MasterAware, ReentrancyGuard {
   using SafeMath for uint;
@@ -32,7 +33,7 @@ contract Quotation is MasterAware, ReentrancyGuard {
   IPooledStaking public pooledStaking;
   QuotationData public qd;
   ITokenController public tc;
-  TokenData public td;
+  ITokenData public td;
   Incidents public incidents;
 
   /**
@@ -44,7 +45,7 @@ contract Quotation is MasterAware, ReentrancyGuard {
     pooledStaking = IPooledStaking(master.getLatestAddress("PS"));
     qd = QuotationData(master.getLatestAddress("QD"));
     tc = ITokenController(master.getLatestAddress("TC"));
-    td = TokenData(master.getLatestAddress("TD"));
+    td = ITokenData(master.getLatestAddress("TD"));
     incidents = Incidents(master.getLatestAddress("IC"));
   }
 

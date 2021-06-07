@@ -18,18 +18,18 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../abstract/MasterAware.sol";
-import "../cover/QuotationData.sol";
+
 import "../token/NXMToken.sol";
-import "../token/TokenData.sol";
 import "./LegacyMCR.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
+import "../../interfaces/IQuotationData.sol";
 
 contract MCR is MasterAware {
   using SafeMath for uint;
 
   IPool public pool;
-  QuotationData public qd;
+  IQuotationData public qd;
   // sizeof(qd) + 96 = 160 + 96 = 256 (occupies entire slot)
   uint96 _unused;
 
@@ -72,7 +72,7 @@ contract MCR is MasterAware {
    * @dev Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public {
-    qd = QuotationData(master.getLatestAddress("QD"));
+    qd = IQuotationData(master.getLatestAddress("QD"));
     pool = IPool(master.getLatestAddress("P1"));
     initialize();
   }

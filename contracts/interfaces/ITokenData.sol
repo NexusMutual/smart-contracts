@@ -21,4 +21,8 @@ interface ITokenData {
   function walletAddress() external view returns (address payable);
 
   function joiningFee() external view returns (uint);
+
+  function setDepositCNAmount(uint coverId, uint amount) external;
+
+  function stakerCommissionPer() external view returns (uint);
 }

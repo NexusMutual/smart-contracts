@@ -468,7 +468,9 @@ describe('Distributor', function () {
     // pre-existing cover purchase
     await buyCover({ ...this.contracts, coverData, coverHolder });
 
-    await buyCover({ ...this.contracts, coverData: { ...coverData, generationTime: coverData.generationTime + 1 }, coverHolder });
+    await buyCover(
+      { ...this.contracts, coverData: { ...coverData, generationTime: coverData.generationTime + 1 }, coverHolder },
+    );
     const expectedCoverId = 2;
     const expectedClaimId = 1;
 
@@ -609,7 +611,9 @@ describe('Distributor', function () {
 
     // pre-existing cover purchase
     await buyCover({ ...this.contracts, coverData, coverHolder });
-    await buyCover({ ...this.contracts, coverData: { ...coverData, generationTime: coverData.generationTime + 1 }, coverHolder });
+    await buyCover(
+      { ...this.contracts, coverData: { ...coverData, generationTime: coverData.generationTime + 1 }, coverHolder },
+    );
     const expectedCoverId = 2;
     const expectedClaimId = 1;
 
@@ -668,7 +672,8 @@ describe('Distributor', function () {
       await buyCover({ ...this.contracts, coverData, coverHolder, distributor, qt });
     }
 
-    const expectedFeeProfits = toBN(ethCoverTemplate.price).muln(DEFAULT_FEE_PERCENTAGE).divn(10000).muln(ethCoversCount);
+    const expectedFeeProfits = toBN(ethCoverTemplate.price)
+      .muln(DEFAULT_FEE_PERCENTAGE).divn(10000).muln(ethCoversCount);
     const treasuryEthBalanceAfter = toBN(await web3.eth.getBalance(treasury));
     assert.equal(treasuryEthBalanceAfter.sub(treasuryEthBalanceBefore).toString(), expectedFeeProfits.toString());
   });

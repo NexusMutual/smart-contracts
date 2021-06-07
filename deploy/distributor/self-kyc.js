@@ -21,15 +21,15 @@ async function run () {
       type: 'text',
       name: 'addressToKYC',
       message: 'Input address to pay fee for and KYC. (eg.: 0xeE218a2Fd4FCFF052EbC495c12D5736c09Fc7833)',
-      validate: value => web3.utils.isAddress(value) ? true : `Not a valid Ethereum address`
+      validate: value => web3.utils.isAddress(value) ? true : 'Not a valid Ethereum address',
     },
   ]);
 
   const masterAddress = MASTER[network.name];
   console.log({
     masterAddress,
-    network: network.name
-  })
+    network: network.name,
+  });
   const master = await NXMaster.at(masterAddress);
 
   const { val: selfKycAddress } = await master.getOwnerParameters(hex('KYCAUTH'));
@@ -37,9 +37,9 @@ async function run () {
   const selfKyc = await SelfKyc.at(selfKycAddress);
 
   console.log('Approving kyc..');
-  const addressToKYC =  params.addressToKYC;
+  const addressToKYC = params.addressToKYC;
   await selfKyc.joinMutual(addressToKYC, {
-    value: ether('0.002')
+    value: ether('0.002'),
   });
   console.log('Done');
 }

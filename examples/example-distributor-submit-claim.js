@@ -15,7 +15,7 @@ async function run () {
   });
   const distributor = await Distributor.at(DISTRIBUTOR_ADDRESS);
 
-  console.log(`Submitting claim..`);
+  console.log('Submitting claim..');
 
   // no extra metdata added to claim submission
   const emptyData = web3.eth.abi.encodeParameters([], []);
@@ -29,8 +29,8 @@ async function run () {
   console.log({
     payoutCompleted,
     amountPaid: amountPaid.toString(),
-    coverAsset
-  })
+    coverAsset,
+  });
 }
 
 run()

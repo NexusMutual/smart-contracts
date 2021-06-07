@@ -21,7 +21,7 @@ contract CoverBuyer {
 
   Distributor distributor;
 
-  constructor(address payable distributorAddress) public {
+  constructor(address payable distributorAddress) {
     distributor = Distributor(distributorAddress);
   }
 

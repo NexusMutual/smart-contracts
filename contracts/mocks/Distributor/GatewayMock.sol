@@ -60,49 +60,49 @@ contract GatewayMock is IGateway {
   }
 
   function getCoverPrice (
-    address contractAddress,
-    address coverAsset,
-    uint sumAssured,
-    uint16 coverPeriod,
-    uint8 coverType,
+    address,
+    address,
+    uint,
+    uint16,
+    uint8,
     bytes calldata data
-  ) external view override returns (uint coverPrice) {
+  ) external pure override returns (uint coverPrice) {
     (
     coverPrice
     ) = abi.decode(data, (uint));
     coverPrice = coverPrice - 1; // substracts a small amount to be sent back
   }
 
-  function submitClaim(uint coverId, bytes calldata data) external override returns (uint) {
+  function submitClaim(uint, bytes calldata) external pure override returns (uint) {
     revert("Unsupported");
   }
 
-  function claimTokens(uint coverId, uint incidentId, uint coveredTokenAmount, address coverAsset)
-  external override returns (uint claimId, uint payoutAmount, address payoutToken) {
+  function claimTokens(uint, uint, uint, address)
+  external pure override returns (uint, uint, address) {
     revert("Unsupported");
   }
 
-  function getClaimCoverId(uint claimId) external view override returns (uint) {
+  function getClaimCoverId(uint) external pure override returns (uint) {
     revert("Unsupported");
   }
 
-  function getPayoutOutcome(uint claimId) external view override returns (ClaimStatus, uint, address) {
+  function getPayoutOutcome(uint) external pure override returns (ClaimStatus, uint, address) {
     revert("Unsupported");
   }
 
-  function getCover(uint coverId)
+  function getCover(uint)
   external
-  view
+  pure
   override
   returns (
-    uint8 status,
-    uint sumAssured,
-    uint16 coverPeriod,
-    uint validUntil,
-    address contractAddress,
-    address coverAsset,
-    uint premiumInNXM,
-    address memberAddress
+    uint8,
+    uint,
+    uint16,
+    uint,
+    address,
+    address,
+    uint,
+    address
   ) {
     revert("Unsupported");
   }
@@ -134,7 +134,7 @@ contract GatewayMock is IGateway {
     revert("CoverMock: Unknown action");
   }
 
-  function switchMembership(address _newAddress) external payable override {
+  function switchMembership(address) external payable override {
     revert("Unsupported");
   }
 }

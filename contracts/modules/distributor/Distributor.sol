@@ -83,7 +83,6 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
     string memory tokenSymbol
   )
   ERC721(tokenName, tokenSymbol)
-  public
   {
     feePercentage = _feePercentage;
     treasury = _treasury;

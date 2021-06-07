@@ -13,6 +13,8 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
+pragma solidity ^0.5.0;
+
 interface IClaimsReward {
 
   /// @dev Decides the next course of action for a given claim.

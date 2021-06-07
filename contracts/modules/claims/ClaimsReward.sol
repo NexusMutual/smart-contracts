@@ -18,32 +18,35 @@
 
 pragma solidity ^0.5.0;
 
-import "../../interfaces/IPooledStaking.sol";
-import "../capital/Pool.sol";
-import "../cover/QuotationData.sol";
 import "../governance/Governance.sol";
-import "../token/TokenData.sol";
 import "../token/TokenFunctions.sol";
 
+import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/IClaimsReward.sol";
 import "../../interfaces/IClaimsData.sol";
 import "../../interfaces/IClaims.sol";
+import "../../interfaces/ITokenData.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../abstract/INXMToken.sol";
 
 
 contract ClaimsReward is Iupgradable, IClaimsReward {
   using SafeMath for uint;
 
-  NXMToken internal tk;
-  TokenController internal tc;
-  TokenData internal td;
-  QuotationData internal qd;
+  INXMToken internal tk;
+  ITokenController internal tc;
+  ITokenData internal td;
+  IQuotationData internal qd;
   IClaims internal c1;
   IClaimsData internal cd;
-  Pool internal pool;
+  IPool internal pool;
   Governance internal gv;
   IPooledStaking internal pooledStaking;
-  MemberRoles internal memberRoles;
+  IMemberRoles internal memberRoles;
   IMCR public mcr;
 
   // assigned in constructor
@@ -61,14 +64,14 @@ contract ClaimsReward is Iupgradable, IClaimsReward {
   function changeDependentContractAddress() public onlyInternal {
     c1 = IClaims(ms.getLatestAddress("CL"));
     cd = IClaimsData(ms.getLatestAddress("CD"));
-    tk = NXMToken(ms.tokenAddress());
-    tc = TokenController(ms.getLatestAddress("TC"));
-    td = TokenData(ms.getLatestAddress("TD"));
-    qd = QuotationData(ms.getLatestAddress("QD"));
+    tk = INXMToken(ms.tokenAddress());
+    tc = ITokenController(ms.getLatestAddress("TC"));
+    td = ITokenData(ms.getLatestAddress("TD"));
+    qd = IQuotationData(ms.getLatestAddress("QD"));
     gv = Governance(ms.getLatestAddress("GV"));
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
-    memberRoles = MemberRoles(ms.getLatestAddress("MR"));
-    pool = Pool(ms.getLatestAddress("P1"));
+    memberRoles = IMemberRoles(ms.getLatestAddress("MR"));
+    pool = IPool(ms.getLatestAddress("P1"));
     mcr = IMCR(ms.getLatestAddress("MC"));
   }
 

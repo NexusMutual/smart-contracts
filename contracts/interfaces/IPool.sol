@@ -43,6 +43,14 @@ interface IPool {
     uint amount
   ) external returns (bool success);
 
+  function transferAsset(
+    address asset,
+    address payable destination,
+    uint amount
+  ) external;
+
+  function upgradeCapitalPool(address payable newPoolAddress) external;
+
   function priceFeedOracle() external view returns (IPriceFeedOracle);
 
   function getPoolValueInEth() external view returns (uint);

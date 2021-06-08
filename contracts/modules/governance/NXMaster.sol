@@ -15,14 +15,22 @@
 
 pragma solidity ^0.5.0;
 
-import "../capital/Pool.sol";
-import "../cover/Quotation.sol";
-import "../claims/Claims.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+
+import "../../abstract/Iupgradable.sol";
 import "./external/Governed.sol";
 import "./external/OwnedUpgradeabilityProxy.sol";
 import "../capital/LegacyPoolData.sol";
 
 import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/IQuotation.sol";
+import "../../interfaces/IClaims.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ITokenData.sol";
+import "../../interfaces/IClaimsReward.sol";
+import "../../interfaces/IClaimsData.sol";
 
 contract NXMaster is Governed {
   using SafeMath for uint;
@@ -105,17 +113,17 @@ contract NXMaster is Governed {
   function closeClaim(uint _claimId) external {
 
     require(canCall(_claimId), "Payout retry time not reached.");
-    ClaimsReward cr = ClaimsReward(getLatestAddress("CR"));
+    IClaimsReward cr = IClaimsReward(getLatestAddress("CR"));
     cr.changeClaimStatus(_claimId);
   }
 
   function getOwnerParameters(bytes8 code) external view returns (bytes8 codeVal, address val) {
     codeVal = code;
-    QuotationData qd;
+    IQuotationData qd;
     LegacyPoolData pd;
     if (code == "MSWALLET") {
-      TokenData td;
-      td = TokenData(getLatestAddress("TD"));
+      ITokenData td;
+      td = ITokenData(getLatestAddress("TD"));
       val = td.walletAddress();
 
     } else if (code == "MCRNOTA") {
@@ -129,11 +137,11 @@ contract NXMaster is Governed {
 
     } else if (code == "QUOAUTH") {
 
-      qd = QuotationData(getLatestAddress("QD"));
+      qd = IQuotationData(getLatestAddress("QD"));
       val = qd.authQuoteEngine();
 
     } else if (code == "KYCAUTH") {
-      qd = QuotationData(getLatestAddress("QD"));
+      qd = IQuotationData(getLatestAddress("QD"));
       val = qd.kycAuthAddress();
 
     }
@@ -146,7 +154,7 @@ contract NXMaster is Governed {
   function addEmergencyPause(bool _pause, bytes4 _by) public onlyAuthorizedToGovern {
     emergencyPaused.push(EmergencyPause(_pause, now, _by));
     if (_pause == false) {
-      Claims c1 = Claims(allContractVersions["CL"]);
+      IClaims c1 = IClaims(allContractVersions["CL"]);
       c1.submitClaimAfterEPOff(); // Process claims submitted while EP was on
       c1.startAllPendingClaimsVoting(); // Resume voting on all pending claims
     }
@@ -175,18 +183,18 @@ contract NXMaster is Governed {
       require(isUpgradable[_contractsName[i]], "Contract should be upgradable.");
 
       if (_contractsName[i] == "QT") {
-        Quotation qt = Quotation(allContractVersions["QT"]);
+        IQuotation qt = IQuotation(allContractVersions["QT"]);
         qt.transferAssetsToNewContract(newAddress);
 
       } else if (_contractsName[i] == "CR") {
-        TokenController tc = TokenController(getLatestAddress("TC"));
+        ITokenController tc = ITokenController(getLatestAddress("TC"));
         tc.addToWhitelist(newAddress);
         tc.removeFromWhitelist(allContractVersions["CR"]);
-        ClaimsReward cr = ClaimsReward(allContractVersions["CR"]);
+        IClaimsReward cr = IClaimsReward(allContractVersions["CR"]);
         cr.upgrade(newAddress);
 
       } else if (_contractsName[i] == "P1") {
-        Pool p1 = Pool(allContractVersions["P1"]);
+        IPool p1 = IPool(allContractVersions["P1"]);
         p1.upgradeCapitalPool(newAddress);
       }
 
@@ -322,7 +330,7 @@ contract NXMaster is Governed {
   /// @dev Allow AB Members to Start Emergency Pause
   function startEmergencyPause() public onlyAuthorizedToGovern {
     addEmergencyPause(true, "AB"); // Start Emergency Pause
-    Claims c1 = Claims(allContractVersions["CL"]);
+    IClaims c1 = IClaims(allContractVersions["CL"]);
     c1.pauseAllPendingClaimsVoting(); // Pause Voting of all pending Claims
   }
 
@@ -332,11 +340,11 @@ contract NXMaster is Governed {
    * @param val is value to be set
    */
   function updateOwnerParameters(bytes8 code, address payable val) public onlyAuthorizedToGovern {
-    QuotationData qd;
+    IQuotationData qd;
     LegacyPoolData pd;
     if (code == "MSWALLET") {
-      TokenData td;
-      td = TokenData(getLatestAddress("TD"));
+      ITokenData td;
+      td = ITokenData(getLatestAddress("TD"));
       td.changeWalletAddress(val);
 
     } else if (code == "MCRNOTA") {
@@ -352,11 +360,11 @@ contract NXMaster is Governed {
 
     } else if (code == "QUOAUTH") {
 
-      qd = QuotationData(getLatestAddress("QD"));
+      qd = IQuotationData(getLatestAddress("QD"));
       qd.changeAuthQuoteEngine(val);
 
     } else if (code == "KYCAUTH") {
-      qd = QuotationData(getLatestAddress("QD"));
+      qd = IQuotationData(getLatestAddress("QD"));
       qd.setKycAuthAddress(val);
 
     } else {
@@ -384,7 +392,7 @@ contract NXMaster is Governed {
 
   function canCall(uint _claimId) internal view returns (bool)
   {
-    ClaimsData cd = ClaimsData(getLatestAddress("CD"));
+    IClaimsData cd = IClaimsData(getLatestAddress("CD"));
     (, , , uint status, uint dateUpd,) = cd.getClaim(_claimId);
     if (status == 12) {
       if (dateUpd.add(cd.payoutRetryTime()) > now) {

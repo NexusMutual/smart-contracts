@@ -17,6 +17,7 @@ pragma solidity >=0.5.0;
 
 interface IQuotationData {
 
+  function authQuoteEngine() external view returns (address);
   function stlp() external view returns (uint);
   function stl() external view returns (uint);
   function pm() external view returns (uint);

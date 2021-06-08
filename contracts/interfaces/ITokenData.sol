@@ -35,6 +35,8 @@ interface ITokenData {
 
   function lastCompletedStakeCommission(address) external view returns (uint);
 
+  function changeWalletAddress(address payable _address) external;
+
   function getStakerStakedContractByIndex(
     address _stakerAddress,
     uint _stakerIndex

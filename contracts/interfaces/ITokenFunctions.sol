@@ -17,28 +17,14 @@
 
 pragma solidity >=0.5.0;
 
-interface IQuotation {
-  function verifyCoverDetails(
-    address payable from,
-    address scAddress,
-    bytes4 coverCurr,
-    uint[] calldata coverDetails,
-    uint16 coverPeriod,
-    uint8 _v,
-    bytes32 _r,
-    bytes32 _s
-  ) external;
 
-  function createCover(
-    address payable from,
-    address scAddress,
-    bytes4 currency,
-    uint[] calldata coverDetails,
-    uint16 coverPeriod,
-    uint8 _v,
-    bytes32 _r,
-    bytes32 _s
-  ) external;
+interface ITokenFunctions {
 
-  function transferAssetsToNewContract(address) external pure;
+  function getUserAllLockedCNTokens(address _of) external view returns (uint);
+
+  function changeDependentContractAddress() external;
+
+  function burnCAToken(uint claimid, uint _value, address _of) external;
+
+  function isLockedForMemberVote(address _of) external view returns (bool);
 }

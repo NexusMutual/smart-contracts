@@ -24,8 +24,9 @@ import "./LegacyMCR.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/IMCR.sol";
 
-contract MCR is MasterAware {
+contract MCR is IMCR, MasterAware {
   using SafeMath for uint;
 
   IPool public pool;

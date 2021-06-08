@@ -19,6 +19,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../../abstract/MasterAware.sol";
+
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IClaimsReward.sol";
 import "../../interfaces/IPool.sol";

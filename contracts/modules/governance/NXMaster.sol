@@ -32,7 +32,7 @@ import "../../interfaces/ITokenData.sol";
 import "../../interfaces/IClaimsReward.sol";
 import "../../interfaces/IClaimsData.sol";
 
-contract NXMaster is Governed {
+contract NXMaster is Governed, INXMMaster {
   using SafeMath for uint;
 
   struct EmergencyPause {

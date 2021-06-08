@@ -19,13 +19,10 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/MasterAware.sol";
+
 import "../../interfaces/IPooledStaking.sol";
-import "../claims/ClaimsReward.sol";
-import "../governance/MemberRoles.sol";
-import "../token/NXMToken.sol";
-import "../token/TokenController.sol";
-import "../token/TokenData.sol";
-import "../token/TokenFunctions.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../abstract/INXMToken.sol";
 
 contract PooledStaking is MasterAware, IPooledStaking {
   using SafeMath for uint;
@@ -100,8 +97,8 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
   bool public initialized;
 
-  NXMToken public token;
-  TokenController public tokenController;
+  INXMToken public token;
+  ITokenController public tokenController;
 
   uint public MIN_STAKE;         // Minimum allowed stake per contract
   uint public MAX_EXPOSURE;      // Stakes sum must be less than the deposit amount times this
@@ -976,8 +973,8 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
   function changeDependentContractAddress() public {
 
-    token = NXMToken(master.tokenAddress());
-    tokenController = TokenController(master.getLatestAddress("TC"));
+    token = INXMToken(master.tokenAddress());
+    tokenController = ITokenController(master.getLatestAddress("TC"));
 
     if (!initialized) {
       initialize();

@@ -12,10 +12,8 @@
 pragma solidity ^0.5.0;
 
 import "../../abstract/Iupgradable.sol";
-import "./MemberRoles.sol";
 import "./external/Governed.sol";
 import "./external/IProposalCategory.sol";
-
 import "../../interfaces/IMemberRoles.sol";
 
 contract ProposalCategory is Governed, IProposalCategory, Iupgradable {
@@ -193,7 +191,7 @@ contract ProposalCategory is Governed, IProposalCategory, Iupgradable {
   * @dev Updates dependant contract addresses
   */
   function changeDependentContractAddress() public {
-    mr = MemberRoles(ms.getLatestAddress("MR"));
+    mr = IMemberRoles(ms.getLatestAddress("MR"));
   }
 
   /**

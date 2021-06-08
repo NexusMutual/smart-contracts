@@ -5,7 +5,7 @@ const { getBuyCoverDataParameter, voteOnClaim } = require('../Gateway/utils');
 const { helpers: { bnEqual, hex } } = require('../utils');
 const { enrollClaimAssessor, enrollMember } = require('../utils/enroll');
 const { addIncident } = require('../utils/incidents');
-const { toBN } = web3.utils;
+const { toBN, BN } = web3.utils;
 
 const ClaimStatus = {
   IN_PROGRESS: '0',

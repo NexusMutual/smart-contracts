@@ -17,17 +17,19 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/MasterAware.sol";
-import "../cover/QuotationData.sol";
-import "./NXMToken.sol";
-import "./TokenController.sol";
-import "./TokenData.sol";
+import "../../abstract/INXMToken.sol";
+
+import "../../interfaces/ITokenData.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IQuotationData.sol";
+
 
 contract TokenFunctions is MasterAware {
   using SafeMath for uint;
 
-  TokenController public tc;
-  NXMToken public tk;
-  QuotationData public qd;
+  ITokenController public tc;
+  INXMToken public tk;
+  IQuotationData public qd;
 
   event BurnCATokens(uint claimId, address addr, uint amount);
 
@@ -54,9 +56,9 @@ contract TokenFunctions is MasterAware {
    * @dev Change Dependent Contract Address
    */
   function changeDependentContractAddress() public {
-    tc = TokenController(master.getLatestAddress("TC"));
-    tk = NXMToken(master.tokenAddress());
-    qd = QuotationData(master.getLatestAddress("QD"));
+    tc = ITokenController(master.getLatestAddress("TC"));
+    tk = INXMToken(master.tokenAddress());
+    qd = IQuotationData(master.getLatestAddress("QD"));
   }
 
   /**

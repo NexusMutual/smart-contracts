@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
 import "../../modules/token/TokenController.sol";
-import "../../modules/token/NXMToken.sol";
+import "../../abstract/INXMToken.sol";
 
 contract DisposableTokenController is TokenController {
 
@@ -13,7 +13,7 @@ contract DisposableTokenController is TokenController {
     uint _claimSubmissionGracePeriod
   ) external {
 
-    token = NXMToken(_tokenAddress);
+    token = INXMToken(_tokenAddress);
     token.changeOperator(address(this));
 
     changeMasterAddress(_masterAddress);

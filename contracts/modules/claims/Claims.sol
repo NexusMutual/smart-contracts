@@ -15,24 +15,28 @@
 
 pragma solidity ^0.5.0;
 
-import "../capital/Pool.sol";
-import "../claims/ClaimsReward.sol";
-import "../token/NXMToken.sol";
-import "../token/TokenController.sol";
-import "../token/TokenFunctions.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../abstract/Iupgradable.sol";
+
 import "../../interfaces/IClaimsData.sol";
 import "../../interfaces/IClaims.sol";
 import "../../interfaces/IIncidents.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IClaimsReward.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/ITokenData.sol";
+import "../../interfaces/IQuotationData.sol";
+
 
 contract Claims is Iupgradable, IClaims {
   using SafeMath for uint;
 
-  TokenController internal tc;
-  ClaimsReward internal cr;
-  Pool internal p1;
+  ITokenController internal tc;
+  IClaimsReward internal cr;
+  IPool internal p1;
   IClaimsData internal cd;
-  TokenData internal td;
-  QuotationData internal qd;
+  ITokenData internal td;
+  IQuotationData internal qd;
   IIncidents internal incidents;
 
   uint private constant DECIMAL1E18 = uint(10) ** 18;
@@ -76,12 +80,12 @@ contract Claims is Iupgradable, IClaims {
    * Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public onlyInternal {
-    td = TokenData(ms.getLatestAddress("TD"));
-    tc = TokenController(ms.getLatestAddress("TC"));
-    p1 = Pool(ms.getLatestAddress("P1"));
-    cr = ClaimsReward(ms.getLatestAddress("CR"));
+    td = ITokenData(ms.getLatestAddress("TD"));
+    tc = ITokenController(ms.getLatestAddress("TC"));
+    p1 = IPool(ms.getLatestAddress("P1"));
+    cr = IClaimsReward(ms.getLatestAddress("CR"));
     cd = IClaimsData(ms.getLatestAddress("CD"));
-    qd = QuotationData(ms.getLatestAddress("QD"));
+    qd = IQuotationData(ms.getLatestAddress("QD"));
     incidents = IIncidents(ms.getLatestAddress("IC"));
   }
 
@@ -114,7 +118,7 @@ contract Claims is Iupgradable, IClaims {
     require(expirationDate.add(gracePeriod) > now, "Claims: Grace period has expired");
 
     tc.markCoverClaimOpen(coverId);
-    qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimSubmitted));
+    qd.changeCoverStatusNo(coverId, uint8(IQuotationData.CoverStatus.ClaimSubmitted));
 
     uint claimId = cd.actualClaimLength();
     cd.addClaim(claimId, coverId, coverOwner, now);
@@ -267,7 +271,7 @@ contract Claims is Iupgradable, IClaims {
 
     if (state12Count >= 60 && stat == 12) {
       cd.setClaimStatus(claimId, 13);
-      qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimDenied));
+      qd.changeCoverStatusNo(coverId, uint8(IQuotationData.CoverStatus.ClaimDenied));
     }
 
     cd.setClaimdateUpd(claimId, now);

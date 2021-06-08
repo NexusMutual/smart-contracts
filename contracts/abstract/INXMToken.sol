@@ -12,5 +12,13 @@ contract INXMToken is IERC20 {
 
   function mint(address account, uint256 amount) public;
 
-  function isLockedForMV(address member) external returns (uint);
+  function isLockedForMV(address member) external view returns (uint);
+
+  function addToWhiteList(address _member) external returns (bool);
+
+  function removeFromWhiteList(address _member) external returns (bool);
+
+  function changeOperator(address _newOperator) external returns (bool);
+
+  function lockForMemberVote(address _of, uint _days) external;
 }

@@ -16,11 +16,12 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../../abstract/Iupgradable.sol";
-import "../../interfaces/IPooledStaking.sol";
-import "../claims/ClaimsData.sol";
-import "./NXMToken.sol";
 import "./external/LockHandler.sol";
+import "../../abstract/Iupgradable.sol";
+import "../../abstract/INXMToken.sol";
+import "../../interfaces/IPooledStaking.sol";
+import "../../interfaces/IClaimsData.sol";
+
 
 contract TokenController is LockHandler, Iupgradable {
   using SafeMath for uint256;
@@ -32,7 +33,7 @@ contract TokenController is LockHandler, Iupgradable {
     // note: still 224 bits available here, can be used later
   }
 
-  NXMToken public token;
+  INXMToken public token;
   IPooledStaking public pooledStaking;
 
   uint public minCALockTime;
@@ -56,7 +57,7 @@ contract TokenController is LockHandler, Iupgradable {
   * @dev Just for interface
   */
   function changeDependentContractAddress() public {
-    token = NXMToken(ms.tokenAddress());
+    token = INXMToken(ms.tokenAddress());
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
   }
 
@@ -685,7 +686,7 @@ contract TokenController is LockHandler, Iupgradable {
 
   function migrate() internal {
 
-    ClaimsData cd = ClaimsData(ms.getLatestAddress("CD"));
+    IClaimsData cd = IClaimsData(ms.getLatestAddress("CD"));
     uint totalClaims = cd.actualClaimLength() - 1;
 
     // fix stuck claims 21 & 22

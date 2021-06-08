@@ -13,25 +13,24 @@
 pragma solidity ^0.5.0;
 
 import "../claims/ClaimsReward.sol";
-import "../cover/QuotationData.sol";
-import "../token/TokenController.sol";
-import "../token/TokenFunctions.sol";
-import "./Governance.sol";
 import "./external/Governed.sol";
+import "./external/IGovernance.sol";
+import "../../interfaces/IClaimsReward.sol";
 import "../../interfaces/ITokenData.sol";
 import "../../interfaces/ITokenController.sol";
-
 import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/ITokenFunctions.sol";
+import "../../interfaces/IQuotationData.sol";
 
 contract MemberRoles is Governed, Iupgradable, IMemberRoles {
 
   ITokenController public tc;
   ITokenData internal td;
-  QuotationData internal qd;
-  ClaimsReward internal cr;
-  Governance internal gv;
-  TokenFunctions internal tf;
-  NXMToken public tk;
+  IQuotationData internal qd;
+  IClaimsReward internal cr;
+  IGovernance internal gv;
+  ITokenFunctions internal tf;
+  INXMToken public tk;
 
   struct MemberRoleDetails {
     uint memberCounter;
@@ -124,11 +123,11 @@ contract MemberRoles is Governed, Iupgradable, IMemberRoles {
    */
   function changeDependentContractAddress() public {
     td = ITokenData(ms.getLatestAddress("TD"));
-    cr = ClaimsReward(ms.getLatestAddress("CR"));
-    qd = QuotationData(ms.getLatestAddress("QD"));
-    gv = Governance(ms.getLatestAddress("GV"));
-    tf = TokenFunctions(ms.getLatestAddress("TF"));
-    tk = NXMToken(ms.tokenAddress());
+    cr = IClaimsReward(ms.getLatestAddress("CR"));
+    qd = IQuotationData(ms.getLatestAddress("QD"));
+    gv = IGovernance(ms.getLatestAddress("GV"));
+    tf = ITokenFunctions(ms.getLatestAddress("TF"));
+    tk = INXMToken(ms.tokenAddress());
     tc = ITokenController(ms.getLatestAddress("TC"));
   }
 

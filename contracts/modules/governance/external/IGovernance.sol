@@ -143,4 +143,6 @@ contract IGovernance {
 
   function allowedToCatgorize() public view returns (uint roleId);
 
+  function removeDelegation(address _add) external;
+
 }

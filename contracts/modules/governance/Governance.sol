@@ -16,11 +16,12 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../token/TokenController.sol";
-import "./ProposalCategory.sol";
 import "./external/IGovernance.sol";
+import "./external/IProposalCategory.sol";
+import "../../abstract/Iupgradable.sol";
 
 import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/ITokenController.sol";
 
 contract Governance is IGovernance, Iupgradable {
 
@@ -87,9 +88,9 @@ contract Governance is IGovernance, Iupgradable {
   uint internal totalProposals;
   uint internal maxDraftTime;
 
-  MemberRoles internal memberRole;
-  ProposalCategory internal proposalCategory;
-  TokenController internal tokenInstance;
+  IMemberRoles internal memberRole;
+  IProposalCategory internal proposalCategory;
+  ITokenController internal tokenInstance;
 
   mapping(uint => uint) public proposalActionStatus;
   mapping(uint => uint) internal proposalExecutionTime;
@@ -675,9 +676,9 @@ contract Governance is IGovernance, Iupgradable {
   * @dev Updates all dependency addresses to latest ones from Master
   */
   function changeDependentContractAddress() public {
-    tokenInstance = TokenController(ms.dAppLocker());
-    memberRole = MemberRoles(ms.getLatestAddress("MR"));
-    proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));
+    tokenInstance = ITokenController(ms.dAppLocker());
+    memberRole = IMemberRoles(ms.getLatestAddress("MR"));
+    proposalCategory = IProposalCategory(ms.getLatestAddress("PC"));
   }
 
   /**

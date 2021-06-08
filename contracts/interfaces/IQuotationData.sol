@@ -17,6 +17,17 @@ pragma solidity >=0.5.0;
 
 interface IQuotationData {
 
+  function stlp() external view returns (uint);
+  function stl() external view returns (uint);
+  function pm() external view returns (uint);
+  function minDays() external view returns (uint);
+  function tokensRetained() external view returns (uint);
+  function kycAuthAddress() external view returns (address);
+
+  function refundEligible(address) external view returns (bool);
+  function holdedCoverIDStatus(uint) external view returns (uint);
+  function timestampRepeated(uint) external view returns (bool);
+
   enum HCIDStatus {NA, kycPending, kycPass, kycFailedOrRefunded, kycPassNoCover}
   enum CoverStatus {Active, ClaimAccepted, ClaimDenied, CoverExpired, ClaimSubmitted, Requested}
 

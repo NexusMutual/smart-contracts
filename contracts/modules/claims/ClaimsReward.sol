@@ -18,7 +18,9 @@
 
 pragma solidity ^0.5.0;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../governance/Governance.sol";
+import "../../abstract/Iupgradable.sol";
 
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IMCR.sol";

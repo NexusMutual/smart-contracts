@@ -12,13 +12,20 @@
 
 pragma solidity ^0.5.0;
 
-contract IProposalCategory {
+interface IProposalCategory {
 
   event Category(
     uint indexed categoryId,
     string categoryName,
     string actionHash
   );
+
+  function categoryActionData(uint) external view returns (uint, address, bytes2);
+  function categoryABReq(uint) external view returns (uint);
+  function isSpecialResolution(uint) external view returns (uint);
+  function categoryActionHashes(uint) external view returns (bytes memory);
+
+  function categoryExtendedData(uint _categoryId) external view returns (uint, uint, uint);
 
   /// @dev Adds new category
   /// @param _name Category name
@@ -70,6 +77,8 @@ contract IProposalCategory {
     uint defaultIncentive
   );
 
+  function categoryActionDetails(uint _categoryId) external view returns (uint, address, bytes2, uint, bytes memory);
+
   /// @dev Gets Total number of categories added till now
   function totalCategories() external view returns (uint numberOfCategories);
 
@@ -87,17 +96,16 @@ contract IProposalCategory {
   /// @param _incentives rewards to distributed after proposal is accepted
   function updateCategory(
     uint _categoryId,
-    string memory _name,
+    string calldata _name,
     uint _memberRoleToVote,
     uint _majorityVotePerc,
     uint _quorumPerc,
-    uint[] memory _allowedToCreateProposal,
+    uint[] calldata _allowedToCreateProposal,
     uint _closingTime,
-    string memory _actionHash,
+    string calldata _actionHash,
     address _contractAddress,
     bytes2 _contractName,
-    uint[] memory _incentives
-  )
-  public;
+    uint[] calldata _incentives
+  ) external;
 
 }

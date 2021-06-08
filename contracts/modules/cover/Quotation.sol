@@ -16,15 +16,16 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../../abstract/MasterAware.sol";
-import "./QuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IClaimsReward.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/ITokenData.sol";
 import "../../interfaces/IIncidents.sol";
 import "../../interfaces/IPooledStaking.sol";
+import "../../interfaces/IQuotationData.sol";
 
 contract Quotation is MasterAware, ReentrancyGuard {
   using SafeMath for uint;
@@ -32,7 +33,7 @@ contract Quotation is MasterAware, ReentrancyGuard {
   IClaimsReward public cr;
   IPool public pool;
   IPooledStaking public pooledStaking;
-  QuotationData public qd;
+  IQuotationData public qd;
   ITokenController public tc;
   ITokenData public td;
   IIncidents public incidents;
@@ -44,7 +45,7 @@ contract Quotation is MasterAware, ReentrancyGuard {
     cr = IClaimsReward(master.getLatestAddress("CR"));
     pool = IPool(master.getLatestAddress("P1"));
     pooledStaking = IPooledStaking(master.getLatestAddress("PS"));
-    qd = QuotationData(master.getLatestAddress("QD"));
+    qd = IQuotationData(master.getLatestAddress("QD"));
     tc = ITokenController(master.getLatestAddress("TC"));
     td = ITokenData(master.getLatestAddress("TD"));
     incidents = IIncidents(master.getLatestAddress("IC"));
@@ -64,18 +65,18 @@ contract Quotation is MasterAware, ReentrancyGuard {
     require(expirationDate < now, "Quotation: cover is not due to expire");
 
     uint coverStatus = qd.getCoverStatusNo(coverId);
-    require(coverStatus != uint(QuotationData.CoverStatus.CoverExpired), "Quotation: cover already expired");
+    require(coverStatus != uint(IQuotationData.CoverStatus.CoverExpired), "Quotation: cover already expired");
 
     (/* claim count */, bool hasOpenClaim, /* accepted */) = tc.coverInfo(coverId);
     require(!hasOpenClaim, "Quotation: cover has an open claim");
 
-    if (coverStatus != uint(QuotationData.CoverStatus.ClaimAccepted)) {
+    if (coverStatus != uint(IQuotationData.CoverStatus.ClaimAccepted)) {
       (,, address contractAddress, bytes4 currency, uint amount,) = qd.getCoverDetailsByCoverID1(coverId);
       qd.subFromTotalSumAssured(currency, amount);
       qd.subFromTotalSumAssuredSC(contractAddress, currency, amount);
     }
 
-    qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.CoverExpired));
+    qd.changeCoverStatusNo(coverId, uint8(IQuotationData.CoverStatus.CoverExpired));
   }
 
   function withdrawCoverNote(address coverOwner, uint[] calldata coverIds, uint[] calldata reasonIndexes) external {
@@ -365,7 +366,7 @@ contract Quotation is MasterAware, ReentrancyGuard {
 
     for (uint id = 1; id <= lastCoverId; id++) {
 
-      if (qd.holdedCoverIDStatus(id) != uint(QuotationData.HCIDStatus.kycPending)) {
+      if (qd.holdedCoverIDStatus(id) != uint(IQuotationData.HCIDStatus.kycPending)) {
         continue;
       }
 
@@ -379,7 +380,7 @@ contract Quotation is MasterAware, ReentrancyGuard {
         qd.setRefundEligible(userAddress, false);
       }
 
-      qd.setHoldedCoverIDStatus(id, uint(QuotationData.HCIDStatus.kycFailedOrRefunded));
+      qd.setHoldedCoverIDStatus(id, uint(IQuotationData.HCIDStatus.kycFailedOrRefunded));
 
       if (currency == "ETH") {
         refundedETH = refundedETH.add(coverPremium);

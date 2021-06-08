@@ -16,16 +16,20 @@
 pragma solidity ^0.5.0;
 
 import "../../interfaces/IERC20Detailed.sol";
-import "../capital/Pool.sol";
-import "../governance/MemberRoles.sol";
-import "../token/TokenController.sol";
-import "../token/TokenData.sol";
-import "../token/TokenData.sol";
-import "../token/TokenFunctions.sol";
-import "./QuotationData.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+
+import "../../abstract/MasterAware.sol";
+import "../../abstract/INXMToken.sol";
+
 import "../../interfaces/IQuotation.sol";
 import "../../interfaces/IClaims.sol";
 import "../../interfaces/IIncidents.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/IClaimsData.sol";
+
 
 contract Gateway is MasterAware {
   using SafeMath for uint;
@@ -33,14 +37,14 @@ contract Gateway is MasterAware {
 
   // contracts
   IQuotation public quotation;
-  NXMToken public nxmToken;
-  TokenController public tokenController;
-  QuotationData public quotationData;
-  ClaimsData public claimsData;
+  INXMToken public nxmToken;
+  ITokenController public tokenController;
+  IQuotationData public quotationData;
+  IClaimsData public claimsData;
   IClaims public claims;
   IIncidents public incidents;
-  Pool public pool;
-  MemberRoles public memberRoles;
+  IPool public pool;
+  IMemberRoles public memberRoles;
 
   event CoverBought(
     uint coverId,
@@ -71,14 +75,14 @@ contract Gateway is MasterAware {
 
   function changeDependentContractAddress() public {
     quotation = IQuotation(master.getLatestAddress("QT"));
-    nxmToken = NXMToken(master.tokenAddress());
-    tokenController = TokenController(master.getLatestAddress("TC"));
-    quotationData = QuotationData(master.getLatestAddress("QD"));
-    claimsData = ClaimsData(master.getLatestAddress("CD"));
+    nxmToken = INXMToken(master.tokenAddress());
+    tokenController = ITokenController(master.getLatestAddress("TC"));
+    quotationData = IQuotationData(master.getLatestAddress("QD"));
+    claimsData = IClaimsData(master.getLatestAddress("CD"));
     claims = IClaims(master.getLatestAddress("CL"));
     incidents = IIncidents(master.getLatestAddress("IC"));
-    pool = Pool(master.getLatestAddress("P1"));
-    memberRoles = MemberRoles(master.getLatestAddress("MR"));
+    pool = IPool(master.getLatestAddress("P1"));
+    memberRoles = IMemberRoles(master.getLatestAddress("MR"));
   }
 
   function getCoverPrice (

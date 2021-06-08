@@ -21,11 +21,11 @@ interface IMemberRoles {
 
   enum Role {UnAssigned, AdvisoryBoard, Member, Owner}
 
-  function members(uint _memberRoleId) external view returns (uint, address[] memory memberArray);
-
   function payJoiningFee(address _userAddress) external payable;
 
   function switchMembership(address _newAddress) external;
+
+  function switchMembershipOf(address member, address _newAddress) external;
 
   function swapOwner(address _newOwnerAddress) external;
 
@@ -33,7 +33,25 @@ interface IMemberRoles {
 
   function getClaimPayoutAddress(address payable _member) external view returns (address payable);
 
-  function checkRole(address _memberAddress, uint _roleId) external view returns (bool);
+  function setClaimPayoutAddress(address payable _address) external;
 
   function totalRoles() external view returns (uint256);
+
+  function changeAuthorized(uint _roleId, address _newAuthorized) external;
+
+  function members(uint _memberRoleId) external view returns (uint, address[] memory memberArray);
+
+  function numberOfMembers(uint _memberRoleId) external view returns (uint);
+
+  function authorized(uint _memberRoleId) external view returns (address);
+
+  function roles(address _memberAddress) external view returns (uint[] memory);
+
+  function checkRole(address _memberAddress, uint _roleId) external view returns (bool);
+
+  function getMemberLengthForAllRoles() external view returns (uint[] memory totalMembers);
+
+  function memberAtIndex(uint _memberRoleId, uint index) external view returns (address, bool);
+
+  function membersLength(uint _memberRoleId) external view returns (uint);
 }

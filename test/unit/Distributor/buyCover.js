@@ -1,10 +1,10 @@
 const { web3, artifacts, accounts } = require('hardhat');
 const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const { toBN } = web3.utils;
 const { hex } = require('../utils').helpers;
 const { DEFAULT_FEE_PERCENTAGE } = require('./helpers');
 const { Assets: { ETH } } = require('../utils').constants;
+const { toBN } = web3.utils;
 
 const CoverBuyer = artifacts.require('CoverBuyer');
 

@@ -2,11 +2,10 @@ const { accounts, web3, artifacts } = require('hardhat');
 const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { getBuyCoverDataParameter, voteOnClaim } = require('../Gateway/utils');
-const { toBN } = web3.utils;
 const { helpers: { bnEqual, hex } } = require('../utils');
 const { enrollClaimAssessor, enrollMember } = require('../utils/enroll');
 const { addIncident } = require('../utils/incidents');
-const BN = web3.utils.BN;
+const { toBN } = web3.utils;
 
 const ClaimStatus = {
   IN_PROGRESS: '0',

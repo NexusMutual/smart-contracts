@@ -1,12 +1,11 @@
-const { accounts, web3, artifacts } = require('hardhat');
-const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
+const { accounts, web3 } = require('hardhat');
+const { ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const { toBN } = web3.utils;
 const { hex } = require('../utils').helpers;
 const { DEFAULT_FEE_PERCENTAGE } = require('./helpers');
-const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
 const { Assets: { ETH } } = require('../utils').constants;
-const BN = web3.utils.BN;
+
+const { toBN } = web3.utils;
 
 const [, coverHolder] = accounts;
 

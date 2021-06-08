@@ -141,4 +141,6 @@ contract DisposableGovernance is IGovernance, Iupgradable {
   function canCloseProposal(uint) public view returns (uint) {return 0;}
 
   function allowedToCatgorize() public view returns (uint) {return 0;}
+  
+  function removeDelegation(address _add) external {}
 }

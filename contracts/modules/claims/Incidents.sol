@@ -27,8 +27,9 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/IIncidents.sol";
 
-contract Incidents is MasterAware {
+contract Incidents is MasterAware, IIncidents {
   using SafeERC20 for IERC20;
   using SafeMath for uint;
 

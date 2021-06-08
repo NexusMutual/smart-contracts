@@ -19,7 +19,6 @@
 pragma solidity ^0.5.0;
 
 import "../governance/Governance.sol";
-import "../token/TokenFunctions.sol";
 
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IMCR.sol";
@@ -395,11 +394,11 @@ contract ClaimsReward is Iupgradable, IClaimsReward {
 
           if (accept.div(acceptAndDeny) > 70) {
             status = 7;
-            qd.changeCoverStatusNo(coverid, uint8(QuotationData.CoverStatus.ClaimAccepted));
+            qd.changeCoverStatusNo(coverid, uint8(IQuotationData.CoverStatus.ClaimAccepted));
             rewardOrPunish = true;
           } else if (deny.div(acceptAndDeny) > 70) {
             status = 6;
-            qd.changeCoverStatusNo(coverid, uint8(QuotationData.CoverStatus.ClaimDenied));
+            qd.changeCoverStatusNo(coverid, uint8(IQuotationData.CoverStatus.ClaimDenied));
             rewardOrPunish = true;
           } else if (accept.div(acceptAndDeny) > deny.div(acceptAndDeny)) {
             status = 4;
@@ -452,20 +451,20 @@ contract ClaimsReward is Iupgradable, IClaimsReward {
         if (accept.mul(100).div(accept.add(deny)) >= 50 && statusOrig > 1 &&
         statusOrig <= 5 && thresholdUnreached == 0) {
           status = 8;
-          coverStatus = uint8(QuotationData.CoverStatus.ClaimAccepted);
+          coverStatus = uint8(IQuotationData.CoverStatus.ClaimAccepted);
         } else if (deny.mul(100).div(accept.add(deny)) >= 50 && statusOrig > 1 &&
         statusOrig <= 5 && thresholdUnreached == 0) {
           status = 9;
-          coverStatus = uint8(QuotationData.CoverStatus.ClaimDenied);
+          coverStatus = uint8(IQuotationData.CoverStatus.ClaimDenied);
         }
       }
 
       if (thresholdUnreached == 1 && (statusOrig == 2 || statusOrig == 4)) {
         status = 10;
-        coverStatus = uint8(QuotationData.CoverStatus.ClaimAccepted);
+        coverStatus = uint8(IQuotationData.CoverStatus.ClaimAccepted);
       } else if (thresholdUnreached == 1 && (statusOrig == 5 || statusOrig == 3 || statusOrig == 1)) {
         status = 11;
-        coverStatus = uint8(QuotationData.CoverStatus.ClaimDenied);
+        coverStatus = uint8(IQuotationData.CoverStatus.ClaimDenied);
       }
 
       c1.setClaimStatus(claimid, status);

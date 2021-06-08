@@ -18,12 +18,13 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../../abstract/MasterAware.sol";
-import "../claims/Incidents.sol";
 import "./QuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IClaimsReward.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/ITokenData.sol";
+import "../../interfaces/IIncidents.sol";
+import "../../interfaces/IPooledStaking.sol";
 
 contract Quotation is MasterAware, ReentrancyGuard {
   using SafeMath for uint;
@@ -34,7 +35,7 @@ contract Quotation is MasterAware, ReentrancyGuard {
   QuotationData public qd;
   ITokenController public tc;
   ITokenData public td;
-  Incidents public incidents;
+  IIncidents public incidents;
 
   /**
    * @dev Iupgradable Interface to update dependent contract address
@@ -46,7 +47,7 @@ contract Quotation is MasterAware, ReentrancyGuard {
     qd = QuotationData(master.getLatestAddress("QD"));
     tc = ITokenController(master.getLatestAddress("TC"));
     td = ITokenData(master.getLatestAddress("TD"));
-    incidents = Incidents(master.getLatestAddress("IC"));
+    incidents = IIncidents(master.getLatestAddress("IC"));
   }
 
   // solhint-disable-next-line no-empty-blocks

@@ -20,9 +20,9 @@ import "../claims/ClaimsReward.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenController.sol";
 import "../token/TokenFunctions.sol";
-import "./Incidents.sol";
 import "../../interfaces/IClaimsData.sol";
 import "../../interfaces/IClaims.sol";
+import "../../interfaces/IIncidents.sol";
 
 contract Claims is Iupgradable, IClaims {
   using SafeMath for uint;
@@ -33,7 +33,7 @@ contract Claims is Iupgradable, IClaims {
   IClaimsData internal cd;
   TokenData internal td;
   QuotationData internal qd;
-  Incidents internal incidents;
+  IIncidents internal incidents;
 
   uint private constant DECIMAL1E18 = uint(10) ** 18;
 
@@ -82,7 +82,7 @@ contract Claims is Iupgradable, IClaims {
     cr = ClaimsReward(ms.getLatestAddress("CR"));
     cd = IClaimsData(ms.getLatestAddress("CD"));
     qd = QuotationData(ms.getLatestAddress("QD"));
-    incidents = Incidents(ms.getLatestAddress("IC"));
+    incidents = IIncidents(ms.getLatestAddress("IC"));
   }
 
   /**

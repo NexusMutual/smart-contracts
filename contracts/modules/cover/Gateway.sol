@@ -23,9 +23,9 @@ import "../token/TokenData.sol";
 import "../token/TokenData.sol";
 import "../token/TokenFunctions.sol";
 import "./QuotationData.sol";
-import "../claims/Incidents.sol";
 import "../../interfaces/IQuotation.sol";
 import "../../interfaces/IClaims.sol";
+import "../../interfaces/IIncidents.sol";
 
 contract Gateway is MasterAware {
   using SafeMath for uint;
@@ -38,7 +38,7 @@ contract Gateway is MasterAware {
   QuotationData public quotationData;
   ClaimsData public claimsData;
   IClaims public claims;
-  Incidents public incidents;
+  IIncidents public incidents;
   Pool public pool;
   MemberRoles public memberRoles;
 
@@ -76,7 +76,7 @@ contract Gateway is MasterAware {
     quotationData = QuotationData(master.getLatestAddress("QD"));
     claimsData = ClaimsData(master.getLatestAddress("CD"));
     claims = IClaims(master.getLatestAddress("CL"));
-    incidents = Incidents(master.getLatestAddress("IC"));
+    incidents = IIncidents(master.getLatestAddress("IC"));
     pool = Pool(master.getLatestAddress("P1"));
     memberRoles = MemberRoles(master.getLatestAddress("MR"));
   }

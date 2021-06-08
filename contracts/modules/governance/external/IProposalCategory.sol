@@ -20,7 +20,6 @@ interface IProposalCategory {
     string actionHash
   );
 
-  function categoryActionData(uint) external view returns (uint, address, bytes2);
   function categoryABReq(uint) external view returns (uint);
   function isSpecialResolution(uint) external view returns (uint);
   function categoryActionHashes(uint) external view returns (bytes memory);

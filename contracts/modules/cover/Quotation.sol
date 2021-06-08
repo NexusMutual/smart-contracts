@@ -27,8 +27,9 @@ import "../../interfaces/ITokenData.sol";
 import "../../interfaces/IIncidents.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/IQuotation.sol";
 
-contract Quotation is MasterAware, ReentrancyGuard {
+contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
   using SafeMath for uint;
 
   IClaimsReward public cr;

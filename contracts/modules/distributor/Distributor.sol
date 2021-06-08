@@ -119,7 +119,7 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
   {
     require(buysAllowed, "Distributor: buys not allowed");
 
-    uint coverPrice = gateway.getCoverPrice(contractAddress, coverAsset, sumAssured, coverPeriod, coverType, data);
+    uint coverPrice = gateway.getCoverPrice(contractAddress, coverAsset, sumAssured, coverPeriod, IGateway.CoverType(coverType), data);
     uint coverPriceWithFee = feePercentage * coverPrice / 10000 + coverPrice;
     require(coverPriceWithFee <= maxPriceWithFee, "Distributor: cover price with fee exceeds max");
 
@@ -146,7 +146,7 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
       coverAsset,
       sumAssured,
       coverPeriod,
-      coverType,
+      IGateway.CoverType(coverType),
       data
     );
 

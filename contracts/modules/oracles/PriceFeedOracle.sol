@@ -13,12 +13,13 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../interfaces/IPriceFeedOracle.sol";
 
 interface Aggregator {
   function latestAnswer() external view returns (int);
 }
 
-contract PriceFeedOracle {
+contract PriceFeedOracle is IPriceFeedOracle {
   using SafeMath for uint;
 
   mapping(address => address) public aggregators;

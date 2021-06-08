@@ -21,6 +21,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import "../../interfaces/IGateway.sol";
+import "./CoverBuyer.sol";
 
 contract GatewayMock is IGateway {
   using SafeERC20 for IERC20;
@@ -35,7 +36,7 @@ contract GatewayMock is IGateway {
     address coverAsset;
     uint sumAssured;
     uint16 coverPeriod;
-    uint8 coverType;
+    CoverType coverType;
     bytes data;
     uint topUp;
   }
@@ -47,7 +48,7 @@ contract GatewayMock is IGateway {
     address coverAsset,
     uint sumAssured,
     uint16 coverPeriod,
-    uint8 coverType,
+    CoverType coverType,
     bytes calldata data
   ) external payable override returns (uint) {
     uint coverId = ++lastCoverId;
@@ -66,7 +67,7 @@ contract GatewayMock is IGateway {
     address,
     uint,
     uint16,
-    uint8,
+    CoverType,
     bytes calldata data
   ) external pure override returns (uint coverPrice) {
     (
@@ -136,7 +137,7 @@ contract GatewayMock is IGateway {
     revert("CoverMock: Unknown action");
   }
 
-  function switchMembership(address) external payable override {
+  function switchMembership(address) external override {
     revert("Unsupported");
   }
 }

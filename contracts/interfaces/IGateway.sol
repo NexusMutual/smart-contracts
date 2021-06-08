@@ -21,12 +21,14 @@ interface IGateway {
 
   enum ClaimStatus { IN_PROGRESS, ACCEPTED, REJECTED }
 
+  enum CoverType { SIGNED_QUOTE_CONTRACT_COVER }
+
   function buyCover (
     address contractAddress,
     address coverAsset,
     uint sumAssured,
     uint16 coverPeriod,
-    uint8 coverType,
+    CoverType coverType,
     bytes calldata data
   ) external payable returns (uint);
 
@@ -35,7 +37,7 @@ interface IGateway {
     address coverAsset,
     uint sumAssured,
     uint16 coverPeriod,
-    uint8 coverType,
+    CoverType coverType,
     bytes calldata data
   ) external view returns (uint coverPrice);
 
@@ -68,5 +70,5 @@ interface IGateway {
 
   function executeCoverAction(uint tokenId, uint8 action, bytes calldata data) external payable returns (bytes memory, uint);
 
-  function switchMembership(address _newAddress) external payable;
+  function switchMembership(address _newAddress) external;
 }

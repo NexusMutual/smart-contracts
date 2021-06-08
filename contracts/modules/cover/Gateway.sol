@@ -29,9 +29,10 @@ import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IClaimsData.sol";
+import "../../interfaces/IGateway.sol";
 
 
-contract Gateway is MasterAware {
+contract Gateway is IGateway, MasterAware {
   using SafeMath for uint;
   using SafeERC20 for IERC20;
 
@@ -68,10 +69,6 @@ contract Gateway is MasterAware {
   address public DAI;
   // constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
-  enum CoverType { SIGNED_QUOTE_CONTRACT_COVER }
-
-  enum ClaimStatus { IN_PROGRESS, ACCEPTED, REJECTED }
 
   function changeDependentContractAddress() public {
     quotation = IQuotation(master.getLatestAddress("QT"));

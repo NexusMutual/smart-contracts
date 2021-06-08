@@ -54,7 +54,7 @@ interface ITokenController {
 
   function increaseClaimAssessmentLock(uint256 _amount) external;
 
-  function burnFrom(address _of, uint amount) external;
+  function burnFrom(address _of, uint amount) external returns (bool);
 
   function burnLockedTokens(address _of, bytes32 _reason, uint256 _amount) external;
 

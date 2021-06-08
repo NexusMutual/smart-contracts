@@ -22,9 +22,10 @@ import "../../abstract/INXMToken.sol";
 import "../../interfaces/ITokenData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ITokenFunctions.sol";
 
 
-contract TokenFunctions is MasterAware {
+contract TokenFunctions is ITokenFunctions, MasterAware {
   using SafeMath for uint;
 
   ITokenController public tc;

@@ -17,8 +17,9 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/Iupgradable.sol";
+import "../../interfaces/ITokenData.sol";
 
-contract TokenData is Iupgradable {
+contract TokenData is ITokenData, Iupgradable {
   using SafeMath for uint;
 
   address payable public walletAddress;

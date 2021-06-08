@@ -21,9 +21,10 @@ import "../../abstract/Iupgradable.sol";
 import "../../abstract/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IClaimsData.sol";
+import "../../interfaces/ITokenController.sol";
 
 
-contract TokenController is LockHandler, Iupgradable {
+contract TokenController is ITokenController, LockHandler, Iupgradable {
   using SafeMath for uint256;
 
   struct CoverInfo {

@@ -25,8 +25,6 @@ interface INXMMaster {
 
   function pauseTime() external view returns (uint);
 
-  function delegateCallBack(bytes32 myid) external;
-
   function masterInitialized() external view returns (bool);
 
   function isInternal(address _add) external view returns (bool);

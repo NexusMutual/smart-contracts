@@ -8,7 +8,6 @@ const stopImpersonatingAccount = async address => provider.send('hardhat_stopImp
 
 const takeSnapshot = async () => provider.send('evm_snapshot');
 const revertToSnapshot = async id => provider.send('evm_revert', [id]);
-const reset = async () => provider.send('hardhat_reset');
 
 module.exports = {
   setNextBlockTime,
@@ -17,5 +16,4 @@ module.exports = {
   stopImpersonatingAccount,
   takeSnapshot,
   revertToSnapshot,
-  reset,
 };

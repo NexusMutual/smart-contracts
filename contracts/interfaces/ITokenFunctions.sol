@@ -17,7 +17,6 @@
 
 pragma solidity >=0.5.0;
 
-
 interface ITokenFunctions {
 
   function getUserAllLockedCNTokens(address _of) external view returns (uint);

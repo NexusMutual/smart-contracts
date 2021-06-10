@@ -17,7 +17,6 @@
 
 pragma solidity >=0.5.0;
 
-
 interface IIncidents {
 
   function underlyingToken(address) external view returns (address);

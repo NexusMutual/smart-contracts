@@ -17,7 +17,6 @@
 
 pragma solidity >=0.5.0;
 
-
 interface IPooledStaking {
 
   function accumulateReward(address contractAddress, uint amount) external;

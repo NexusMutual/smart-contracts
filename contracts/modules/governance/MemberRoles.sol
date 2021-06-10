@@ -14,13 +14,13 @@ pragma solidity ^0.5.0;
 
 import "../claims/ClaimsReward.sol";
 import "./external/Governed.sol";
-import "./external/IGovernance.sol";
 import "../../interfaces/IClaimsReward.sol";
 import "../../interfaces/ITokenData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/ITokenFunctions.sol";
 import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/IGovernance.sol";
 
 contract MemberRoles is Governed, Iupgradable, IMemberRoles {
 

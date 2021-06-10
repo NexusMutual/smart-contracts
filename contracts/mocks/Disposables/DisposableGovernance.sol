@@ -6,14 +6,12 @@ pragma solidity ^0.5.0;
  * to allow a safe upgrade from the disposable to the normal contract
  */
 
-import "../../modules/governance/Governance.sol";
-import "../../modules/governance/MemberRoles.sol";
-import "../../modules/governance/ProposalCategory.sol";
-import "../../modules/governance/external/IGovernance.sol";
-import "../../modules/token/TokenController.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../abstract/Iupgradable.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/IGovernance.sol";
+import "../../interfaces/IProposalCategory.sol";
 
 contract DisposableGovernance is IGovernance, Iupgradable {
 
@@ -101,7 +99,7 @@ contract DisposableGovernance is IGovernance, Iupgradable {
   uint internal maxDraftTime;
 
   IMemberRoles internal memberRole;
-  ProposalCategory internal proposalCategory;
+  IProposalCategory internal proposalCategory;
   ITokenController internal tokenInstance;
 
   mapping(uint => uint) public proposalActionStatus;
@@ -115,7 +113,7 @@ contract DisposableGovernance is IGovernance, Iupgradable {
   function changeDependentContractAddress() public {
     tokenInstance = ITokenController(ms.dAppLocker());
     memberRole = IMemberRoles(ms.getLatestAddress("MR"));
-    proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));
+    proposalCategory = IProposalCategory(ms.getLatestAddress("PC"));
   }
 
   /* function required for Iupgradable and IGovernance implementation */
@@ -141,6 +139,6 @@ contract DisposableGovernance is IGovernance, Iupgradable {
   function canCloseProposal(uint) public view returns (uint) {return 0;}
 
   function allowedToCatgorize() public view returns (uint) {return 0;}
-  
+
   function removeDelegation(address _add) external {}
 }

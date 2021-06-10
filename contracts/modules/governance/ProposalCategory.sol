@@ -13,8 +13,8 @@ pragma solidity ^0.5.0;
 
 import "../../abstract/Iupgradable.sol";
 import "./external/Governed.sol";
-import "./external/IProposalCategory.sol";
 import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/IProposalCategory.sol";
 
 contract ProposalCategory is Governed, IProposalCategory, Iupgradable {
 

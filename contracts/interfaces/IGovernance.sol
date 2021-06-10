@@ -13,9 +13,9 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.5.0;
+pragma solidity >=0.5.0;
 
-contract IGovernance {
+interface IGovernance {
 
   event Proposal(
     address indexed proposalOwner,
@@ -139,9 +139,9 @@ contract IGovernance {
     uint totalReward
   );
 
-  function canCloseProposal(uint _proposalId) public view returns (uint closeValue);
+  function canCloseProposal(uint _proposalId) external view returns (uint closeValue);
 
-  function allowedToCatgorize() public view returns (uint roleId);
+  function allowedToCatgorize() external view returns (uint roleId);
 
   function removeDelegation(address _add) external;
 

@@ -50,6 +50,10 @@ const PooledStaking = artifacts.require('PooledStaking');
 const Gateway = artifacts.require('Gateway');
 const Incidents = artifacts.require('Incidents');
 
+// external contracts
+const DistributorFactory = artifacts.require('DistributorFactory');
+const SelfKyc = artifacts.require('SelfKyc');
+
 const INITIAL_SUPPLY = ether('1500000');
 const etherscanApiKey = getEnv('ETHERSCAN_API_KEY');
 
@@ -114,11 +118,22 @@ async function main () {
   // deploy external contracts
   console.log('Deploying DAI');
   const dai = await ERC20MintableDetailed.new('DAI Mock', 'DAI', 18);
-  verifier.add(dai, { constructorArgs: ['DAI Mock', 'DAI', 18] });
+
+  verifier.add(dai,
+    {
+      constructorArgs: ['DAI Mock', 'DAI', 18],
+      fullPath: 'contracts/mocks/Tokens/ERC20MintableDetailed.sol:ERC20MintableDetailed',
+    },
+  );
 
   console.log('Deploying stETH');
   const stETH = await ERC20MintableDetailed.new('stETH Mock', 'stETH', 18);
-  verifier.add(stETH, { constructorArgs: ['stETH Mock', 'stETH', 18] });
+  verifier.add(stETH,
+    {
+      constructorArgs: ['stETH Mock', 'stETH', 18],
+      fullPath: 'contracts/mocks/Tokens/ERC20MintableDetailed.sol:ERC20MintableDetailed',
+    },
+  );
 
   console.log('Deploying uniswap pair');
   const uniswapV2Factory = await UniswapV2Factory.at(UNISWAP_FACTORY);
@@ -129,7 +144,7 @@ async function main () {
   const td = await TokenData.new(owner);
   const tf = await TokenFunctions.new();
 
-  verifier.add(tk, { constructorArgs: [owner, INITIAL_SUPPLY] });
+  verifier.add(tk, { constructorArgs: [owner, INITIAL_SUPPLY.toString()] });
   verifier.add(td, { constructorArgs: [owner] });
   verifier.add(tf);
 
@@ -193,6 +208,9 @@ async function main () {
   verifier.add(priceFeedOracle, {
     constructorArgs: [CHAINLINK_DAI_ETH_AGGREGATORS[network.name], dai.address, stETH.address],
   });
+
+  console.log('Deploying SelfKyc');
+  const selfKyc = await SelfKyc.new(mr.address);
 
   console.log('Deploying claims contracts');
   const cl = await Claims.new();
@@ -322,6 +340,9 @@ async function main () {
   await td.updateUintParameters(hex('CALOCKT'), 1); // ca lock 1 day
   await td.updateUintParameters(hex('MVLOCKT'), 1); // ca lock mv 1 day
 
+  console.log('Setting QuotationData parameters');
+  await qd.setKycAuthAddress(selfKyc.address);
+
   await master.switchGovernanceAddress(gv.address);
 
   console.log('Upgrading to non-disposable contracts');
@@ -357,12 +378,18 @@ async function main () {
   console.log('Minting DAI to pool');
   await dai.mint(p1.address, ether('6500000'));
 
-  console.log('Performing verifications');
-  await verifier.submit();
-
   console.log('Set governanceOwner to allow for execution of onlyGovernance actions.');
   const testnetMaster = await TestnetNXMaster.at(master.address);
   await testnetMaster.initializeGovernanceOwner();
+
+  console.log('Deploying external contracts');
+
+  console.log('Deploying DistributorFactory');
+
+  await DistributorFactory.new(master.address);
+
+  console.log('Performing verifications');
+  await verifier.submit();
 
   console.log('Done!');
 }

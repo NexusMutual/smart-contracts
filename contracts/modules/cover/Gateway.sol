@@ -29,6 +29,10 @@ contract Gateway is MasterAware {
   using SafeMath for uint;
   using SafeERC20 for IERC20;
 
+  enum CoverType {SIGNED_QUOTE_CONTRACT_COVER}
+
+  enum ClaimStatus {IN_PROGRESS, ACCEPTED, REJECTED}
+
   // contracts
   Quotation public quotation;
   NXMToken public nxmToken;
@@ -36,9 +40,16 @@ contract Gateway is MasterAware {
   QuotationData public quotationData;
   ClaimsData public claimsData;
   Claims public claims;
-  Incidents public incidents;
   Pool public pool;
   MemberRoles public memberRoles;
+
+  // assigned in initialize
+  address public DAI;
+
+  Incidents public incidents;
+
+  // constants
+  address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   event CoverBought(
     uint coverId,
@@ -58,15 +69,6 @@ contract Gateway is MasterAware {
     bytes data
   );
 
-  // assigned in initialize
-  address public DAI;
-  // constants
-  address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
-  enum CoverType { SIGNED_QUOTE_CONTRACT_COVER }
-
-  enum ClaimStatus { IN_PROGRESS, ACCEPTED, REJECTED }
-
   function changeDependentContractAddress() public {
     quotation = Quotation(master.getLatestAddress("QT"));
     nxmToken = NXMToken(master.tokenAddress());
@@ -77,6 +79,10 @@ contract Gateway is MasterAware {
     incidents = Incidents(master.getLatestAddress("IC"));
     pool = Pool(master.getLatestAddress("P1"));
     memberRoles = MemberRoles(master.getLatestAddress("MR"));
+  }
+
+  function initializeDAI() external {
+    DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
   }
 
   function getCoverPrice (

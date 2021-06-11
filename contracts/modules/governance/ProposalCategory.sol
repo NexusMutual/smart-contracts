@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.5.0;
 
-import "../../abstract/Iupgradable.sol";
+import "../../abstract/LegacyMasterAware.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IProposalCategory.sol";
 import "./external/Governed.sol";
 
-contract ProposalCategory is IProposalCategory, Governed, Iupgradable {
+contract ProposalCategory is IProposalCategory, Governed, LegacyMasterAware {
 
   bool public constructorCheck;
   IMemberRoles internal mr;

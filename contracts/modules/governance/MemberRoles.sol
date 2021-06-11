@@ -12,7 +12,7 @@ import "../../interfaces/ITokenFunctions.sol";
 import "../claims/ClaimsReward.sol";
 import "./external/Governed.sol";
 
-contract MemberRoles is IMemberRoles, Governed, Iupgradable {
+contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
 
   ITokenController public tc;
   ITokenData internal td;

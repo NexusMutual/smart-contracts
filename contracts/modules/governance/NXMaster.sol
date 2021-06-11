@@ -3,7 +3,7 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../../abstract/Iupgradable.sol";
+import "../../abstract/LegacyMasterAware.sol";
 import "../../interfaces/IClaims.sol";
 import "../../interfaces/IClaimsData.sol";
 import "../../interfaces/IClaimsReward.sol";
@@ -86,7 +86,7 @@ contract NXMaster is INXMMaster, Governed {
     }
     allContractVersions[_contractName] = address(uint160(newInternalContract));
     contractsActive[newInternalContract] = true;
-    Iupgradable up = Iupgradable(allContractVersions[_contractName]);
+    LegacyMasterAware up = LegacyMasterAware(allContractVersions[_contractName]);
     up.changeMasterAddress(address(this));
     up.changeDependentContractAddress();
   }
@@ -188,7 +188,7 @@ contract NXMaster is INXMMaster, Governed {
       allContractVersions[_contractsName[i]] = newAddress;
       contractsActive[newAddress] = true;
 
-      Iupgradable up = Iupgradable(allContractVersions[_contractsName[i]]);
+      LegacyMasterAware up = LegacyMasterAware(allContractVersions[_contractsName[i]]);
       up.changeMasterAddress(address(this));
     }
 
@@ -370,7 +370,7 @@ contract NXMaster is INXMMaster, Governed {
   function _changeAllAddress() internal {
     for (uint i = 0; i < allContractNames.length; i++) {
       contractsActive[allContractVersions[allContractNames[i]]] = true;
-      Iupgradable up = Iupgradable(allContractVersions[allContractNames[i]]);
+      LegacyMasterAware up = LegacyMasterAware(allContractVersions[allContractNames[i]]);
       up.changeDependentContractAddress();
     }
   }

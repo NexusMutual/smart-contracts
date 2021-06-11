@@ -3,7 +3,7 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../../abstract/Iupgradable.sol";
+import "../../abstract/LegacyMasterAware.sol";
 import "../../interfaces/IClaims.sol";
 import "../../interfaces/IClaimsData.sol";
 import "../../interfaces/IClaimsReward.sol";
@@ -14,7 +14,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
 
 
-contract Claims is IClaims, Iupgradable {
+contract Claims is IClaims, LegacyMasterAware {
   using SafeMath for uint;
 
   ITokenController internal tc;

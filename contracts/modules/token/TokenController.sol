@@ -4,13 +4,13 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../interfaces/INXMToken.sol";
-import "../../abstract/Iupgradable.sol";
+import "../../abstract/LegacyMasterAware.sol";
 import "../../interfaces/IClaimsData.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/ITokenController.sol";
 import "./external/LockHandler.sol";
 
-contract TokenController is ITokenController, LockHandler, Iupgradable {
+contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   using SafeMath for uint256;
 
   struct CoverInfo {

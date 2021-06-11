@@ -63,7 +63,7 @@ contract TestnetNXMaster is NXMaster {
             allContractVersions[_contractsName[i]] = newAddress;
             contractsActive[newAddress] = true;
 
-            Iupgradable up = Iupgradable(allContractVersions[_contractsName[i]]);
+            LegacyMasterAware up = LegacyMasterAware(allContractVersions[_contractsName[i]]);
             up.changeMasterAddress(address(this));
         }
 

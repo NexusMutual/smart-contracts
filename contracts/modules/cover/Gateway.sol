@@ -3,7 +3,7 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "../../abstract/INXMToken.sol";
+import "../../interfaces/INXMToken.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IClaims.sol";
 import "../../interfaces/IClaimsData.sol";

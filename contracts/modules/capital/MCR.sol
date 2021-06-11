@@ -4,7 +4,7 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../../abstract/INXMToken.sol";
+import "../../interfaces/INXMToken.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/IPool.sol";

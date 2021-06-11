@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "../../abstract/INXMToken.sol";
+import "../../interfaces/INXMToken.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/IPool.sol";

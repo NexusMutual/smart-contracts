@@ -148,13 +148,6 @@ async function main () {
   verifier.add(td, { constructorArgs: [owner] });
   verifier.add(tf);
 
-  console.log('Deploying quotation contracts');
-  const qt = await Quotation.new();
-  const qd = await QuotationData.new(owner, owner);
-
-  verifier.add(qt);
-  verifier.add(qd, { constructorArgs: [owner, owner] });
-
   // Non-upgradable contracts
   console.log('Deploying non-upgradable contracts');
   const cp = await ClaimProofs.new();
@@ -211,6 +204,13 @@ async function main () {
 
   console.log('Deploying SelfKyc');
   const selfKyc = await SelfKyc.new(mr.address);
+
+  console.log('Deploying quotation contracts');
+  const qt = await Quotation.new();
+  const qd = await QuotationData.new(owner, selfKyc.address);
+
+  verifier.add(qt);
+  verifier.add(qd, { constructorArgs: [owner, selfKyc.address] });
 
   console.log('Deploying claims contracts');
   const cl = await Claims.new();
@@ -339,9 +339,6 @@ async function main () {
   await td.updateUintParameters(hex('CABOOKT'), 1); // "book time" 1h
   await td.updateUintParameters(hex('CALOCKT'), 1); // ca lock 1 day
   await td.updateUintParameters(hex('MVLOCKT'), 1); // ca lock mv 1 day
-
-  console.log('Setting QuotationData parameters');
-  await qd.setKycAuthAddress(selfKyc.address);
 
   await master.switchGovernanceAddress(gv.address);
 

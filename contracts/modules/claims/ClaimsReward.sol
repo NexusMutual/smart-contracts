@@ -21,7 +21,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
 
 
-contract ClaimsReward is Iupgradable, IClaimsReward {
+contract ClaimsReward is IClaimsReward, Iupgradable {
   using SafeMath for uint;
 
   INXMToken internal tk;

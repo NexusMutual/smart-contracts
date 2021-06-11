@@ -8,7 +8,7 @@ import "../../abstract/MasterAware.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/ITokenController.sol";
 
-contract PooledStaking is MasterAware, IPooledStaking {
+contract PooledStaking is IPooledStaking, MasterAware {
   using SafeMath for uint;
 
   /* Data types */

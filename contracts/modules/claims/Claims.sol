@@ -14,7 +14,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
 
 
-contract Claims is Iupgradable, IClaims {
+contract Claims is IClaims, Iupgradable {
   using SafeMath for uint;
 
   ITokenController internal tc;

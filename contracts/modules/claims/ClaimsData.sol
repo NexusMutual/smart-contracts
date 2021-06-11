@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/Iupgradable.sol";
 import "../../interfaces/IClaimsData.sol";
 
-contract ClaimsData is Iupgradable, IClaimsData {
+contract ClaimsData is IClaimsData, Iupgradable {
   using SafeMath for uint;
 
   struct Claim {

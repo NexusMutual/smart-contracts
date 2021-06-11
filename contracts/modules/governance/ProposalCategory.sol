@@ -6,7 +6,7 @@ import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IProposalCategory.sol";
 import "./external/Governed.sol";
 
-contract ProposalCategory is Governed, IProposalCategory, Iupgradable {
+contract ProposalCategory is IProposalCategory, Governed, Iupgradable {
 
   bool public constructorCheck;
   IMemberRoles internal mr;

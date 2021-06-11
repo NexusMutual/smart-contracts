@@ -15,7 +15,7 @@ import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 
-contract Incidents is MasterAware, IIncidents {
+contract Incidents is IIncidents, MasterAware {
   using SafeERC20 for IERC20;
   using SafeMath for uint;
 

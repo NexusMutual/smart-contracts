@@ -143,4 +143,6 @@ contract DisposableGovernance is IGovernance, Iupgradable {
   function allowedToCatgorize() public view returns (uint) {return 0;}
 
   function removeDelegation(address _add) external {}
+
+  function getPendingReward(address _memberAddress) external view returns (uint pendingDAppReward) {return 0;}
 }

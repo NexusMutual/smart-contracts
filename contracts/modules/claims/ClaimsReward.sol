@@ -555,40 +555,4 @@ contract ClaimsReward is Iupgradable, IClaimsReward {
       cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
     }
   }
-
-  /**
-   * @dev Function used to claim the commission earned by the staker.
-   */
-  function _claimStakeCommission(uint _records, address _user) external onlyInternal {
-    uint total = 0;
-    uint len = td.getStakerStakedContractLength(_user);
-    uint lastCompletedStakeCommission = td.lastCompletedStakeCommission(_user);
-    uint commissionEarned;
-    uint commissionRedeemed;
-    uint maxCommission;
-    uint lastCommisionRedeemed = len;
-    uint counter;
-    uint i;
-
-    for (i = lastCompletedStakeCommission; i < len && counter < _records; i++) {
-      commissionRedeemed = td.getStakerRedeemedStakeCommission(_user, i);
-      commissionEarned = td.getStakerEarnedStakeCommission(_user, i);
-      maxCommission = td.getStakerInitialStakedAmountOnContract(
-        _user, i).mul(td.stakerMaxCommissionPer()).div(100);
-      if (lastCommisionRedeemed == len && maxCommission != commissionEarned)
-        lastCommisionRedeemed = i;
-      td.pushRedeemedStakeCommissions(_user, i, commissionEarned.sub(commissionRedeemed));
-      total = total.add(commissionEarned.sub(commissionRedeemed));
-      counter++;
-    }
-    if (lastCommisionRedeemed == len) {
-      td.setLastCompletedStakeCommissionIndex(_user, i);
-    } else {
-      td.setLastCompletedStakeCommissionIndex(_user, lastCommisionRedeemed);
-    }
-
-    if (total > 0)
-      require(tk.transfer(_user, total)); // solhint-disable-line
-  }
-
 }

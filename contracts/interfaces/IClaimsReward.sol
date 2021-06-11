@@ -46,6 +46,4 @@ interface IClaimsReward {
   function claimAllPendingReward(uint records) external;
 
   function getAllPendingRewardOfUser(address _add) external view returns (uint);
-
-  function _claimStakeCommission(uint _records, address _user) external;
 }

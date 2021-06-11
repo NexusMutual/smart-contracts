@@ -10,10 +10,10 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/Iupgradable.sol";
-import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IGovernance.sol";
+import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IProposalCategory.sol";
+import "../../interfaces/ITokenController.sol";
 
 contract DisposableGovernance is IGovernance, Iupgradable {
 

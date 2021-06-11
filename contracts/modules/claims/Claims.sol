@@ -4,15 +4,14 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/Iupgradable.sol";
-
-import "../../interfaces/IClaimsData.sol";
 import "../../interfaces/IClaims.sol";
-import "../../interfaces/IIncidents.sol";
-import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IClaimsData.sol";
 import "../../interfaces/IClaimsReward.sol";
+import "../../interfaces/IIncidents.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/ITokenData.sol";
 import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/ITokenData.sol";
 
 
 contract Claims is Iupgradable, IClaims {

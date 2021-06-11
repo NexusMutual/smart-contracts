@@ -4,14 +4,13 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../../abstract/MasterAware.sol";
-
 import "../../abstract/INXMToken.sol";
-import "./LegacyMCR.sol";
+import "../../abstract/MasterAware.sol";
+import "../../interfaces/IMCR.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/IQuotationData.sol";
-import "../../interfaces/IMCR.sol";
+import "./LegacyMCR.sol";
 
 contract MCR is IMCR, MasterAware {
   using SafeMath for uint;

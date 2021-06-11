@@ -2,19 +2,18 @@
 
 pragma solidity ^0.5.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../../abstract/MasterAware.sol";
-
-import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IClaimsReward.sol";
-import "../../interfaces/IPool.sol";
-import "../../interfaces/ITokenData.sol";
 import "../../interfaces/IIncidents.sol";
+import "../../interfaces/IPool.sol";
 import "../../interfaces/IPooledStaking.sol";
-import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/IQuotation.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/ITokenData.sol";
 
 contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
   using SafeMath for uint;

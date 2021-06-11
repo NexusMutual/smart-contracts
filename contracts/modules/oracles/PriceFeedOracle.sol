@@ -2,8 +2,8 @@
 
 pragma solidity ^0.5.0;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 interface Aggregator {
   function latestAnswer() external view returns (int);

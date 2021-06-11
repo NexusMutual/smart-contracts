@@ -5,16 +5,15 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../abstract/MasterAware.sol";
-
-import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IClaimsData.sol";
 import "../../interfaces/IClaimsReward.sol";
+import "../../interfaces/IIncidents.sol";
+import "../../interfaces/IMCR.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IMCR.sol";
-import "../../interfaces/IPool.sol";
-import "../../interfaces/IMemberRoles.sol";
-import "../../interfaces/IIncidents.sol";
 
 contract Incidents is MasterAware, IIncidents {
   using SafeERC20 for IERC20;

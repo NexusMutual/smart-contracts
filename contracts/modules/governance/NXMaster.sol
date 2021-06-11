@@ -3,21 +3,19 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-
 import "../../abstract/Iupgradable.sol";
-import "./external/Governed.sol";
-import "./external/OwnedUpgradeabilityProxy.sol";
-import "../capital/LegacyPoolData.sol";
-
+import "../../interfaces/IClaims.sol";
+import "../../interfaces/IClaimsData.sol";
+import "../../interfaces/IClaimsReward.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IQuotation.sol";
-import "../../interfaces/IClaims.sol";
-import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
-import "../../interfaces/IClaimsReward.sol";
-import "../../interfaces/IClaimsData.sol";
+import "../capital/LegacyPoolData.sol";
+import "./external/Governed.sol";
+import "./external/OwnedUpgradeabilityProxy.sol";
 
 contract NXMaster is INXMMaster, Governed {
   using SafeMath for uint;

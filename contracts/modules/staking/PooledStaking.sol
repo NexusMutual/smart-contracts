@@ -3,11 +3,10 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../abstract/INXMToken.sol";
 import "../../abstract/MasterAware.sol";
-
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/ITokenController.sol";
-import "../../abstract/INXMToken.sol";
 
 contract PooledStaking is MasterAware, IPooledStaking {
   using SafeMath for uint;

@@ -2,8 +2,8 @@
 
 pragma solidity ^0.5.0;
 
-import "../../modules/governance/MemberRoles.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../modules/governance/MemberRoles.sol";
 
 contract DisposableMemberRoles is MemberRoles {
 

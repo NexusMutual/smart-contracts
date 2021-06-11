@@ -6,20 +6,19 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../abstract/INXMToken.sol";
 import "../../abstract/Iupgradable.sol";
-
-import "../../interfaces/IPooledStaking.sol";
-import "../../interfaces/IMCR.sol";
-import "../../interfaces/IClaimsReward.sol";
-import "../../interfaces/IClaimsData.sol";
 import "../../interfaces/IClaims.sol";
-import "../../interfaces/ITokenData.sol";
+import "../../interfaces/IClaimsData.sol";
+import "../../interfaces/IClaimsReward.sol";
+import "../../interfaces/IGovernance.sol";
+import "../../interfaces/IMCR.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IPool.sol";
-import "../../interfaces/IMemberRoles.sol";
-import "../../abstract/INXMToken.sol";
-import "../../interfaces/IGovernance.sol";
+import "../../interfaces/ITokenData.sol";
 
 
 contract ClaimsReward is Iupgradable, IClaimsReward {

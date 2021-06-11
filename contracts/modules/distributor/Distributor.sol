@@ -2,14 +2,14 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/access/Ownable.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "../../interfaces/IGateway.sol";
-import "../../interfaces/IPool.sol";
 import "../../interfaces/INXMMaster.sol";
+import "../../interfaces/IPool.sol";
 
 contract Distributor is ERC721, Ownable, ReentrancyGuard {
   using SafeERC20 for IERC20;

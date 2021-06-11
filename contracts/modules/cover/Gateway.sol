@@ -2,21 +2,19 @@
 
 pragma solidity ^0.5.0;
 
-import "../../interfaces/IERC20Detailed.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-
-import "../../abstract/MasterAware.sol";
 import "../../abstract/INXMToken.sol";
-
-import "../../interfaces/IQuotation.sol";
+import "../../abstract/MasterAware.sol";
 import "../../interfaces/IClaims.sol";
+import "../../interfaces/IClaimsData.sol";
+import "../../interfaces/IERC20Detailed.sol";
+import "../../interfaces/IGateway.sol";
 import "../../interfaces/IIncidents.sol";
-import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IClaimsData.sol";
-import "../../interfaces/IGateway.sol";
+import "../../interfaces/IQuotation.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ITokenController.sol";
 
 
 contract Gateway is IGateway, MasterAware {

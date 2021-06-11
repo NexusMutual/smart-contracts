@@ -19,7 +19,6 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../governance/Governance.sol";
 import "../../abstract/Iupgradable.sol";
 
 import "../../interfaces/IPooledStaking.sol";
@@ -33,6 +32,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../abstract/INXMToken.sol";
+import "../../interfaces/IGovernance.sol";
 
 
 contract ClaimsReward is Iupgradable, IClaimsReward {
@@ -45,7 +45,7 @@ contract ClaimsReward is Iupgradable, IClaimsReward {
   IClaims internal c1;
   IClaimsData internal cd;
   IPool internal pool;
-  Governance internal gv;
+  IGovernance internal gv;
   IPooledStaking internal pooledStaking;
   IMemberRoles internal memberRoles;
   IMCR public mcr;
@@ -69,7 +69,7 @@ contract ClaimsReward is Iupgradable, IClaimsReward {
     tc = ITokenController(ms.getLatestAddress("TC"));
     td = ITokenData(ms.getLatestAddress("TD"));
     qd = IQuotationData(ms.getLatestAddress("QD"));
-    gv = Governance(ms.getLatestAddress("GV"));
+    gv = IGovernance(ms.getLatestAddress("GV"));
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
     memberRoles = IMemberRoles(ms.getLatestAddress("MR"));
     pool = IPool(ms.getLatestAddress("P1"));

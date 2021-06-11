@@ -205,6 +205,8 @@ async function main () {
   console.log('Deploying SelfKyc');
   const selfKyc = await SelfKyc.new(mr.address);
 
+  verifier.add(selfKyc, { constructorArgs: [owner, selfKyc.address] });
+
   console.log('Deploying quotation contracts');
   const qt = await Quotation.new();
   const qd = await QuotationData.new(owner, selfKyc.address);

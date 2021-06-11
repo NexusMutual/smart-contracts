@@ -145,4 +145,5 @@ interface IGovernance {
 
   function removeDelegation(address _add) external;
 
+  function getPendingReward(address _memberAddress) external view returns (uint pendingDAppReward);
 }

@@ -16,7 +16,6 @@ import "../../interfaces/IQuotation.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 
-
 contract Gateway is IGateway, MasterAware {
   using SafeMath for uint;
   using SafeERC20 for IERC20;

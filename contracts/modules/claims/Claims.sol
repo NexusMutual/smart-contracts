@@ -13,7 +13,6 @@ import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
 
-
 contract Claims is IClaims, LegacyMasterAware {
   using SafeMath for uint;
 

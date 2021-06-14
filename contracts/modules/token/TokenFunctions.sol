@@ -10,7 +10,6 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
 import "../../interfaces/ITokenFunctions.sol";
 
-
 contract TokenFunctions is ITokenFunctions, MasterAware {
   using SafeMath for uint;
 

@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-//Claims Reward Contract contains the functions for calculating number of tokens
-// that will get rewarded, unlocked or burned depending upon the status of claim.
-
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -20,6 +17,8 @@ import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
 
+//Claims Reward Contract contains the functions for calculating number of tokens
+// that will get rewarded, unlocked or burned depending upon the status of claim.
 
 contract ClaimsReward is IClaimsReward, LegacyMasterAware {
   using SafeMath for uint;

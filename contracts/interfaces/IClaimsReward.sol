@@ -29,7 +29,6 @@ interface IClaimsReward {
 
   function getRewardAndClaimedStatus(uint check, uint claimId) external view returns (uint reward, bool claimed);
 
-
   function claimAllPendingReward(uint records) external;
 
   function getAllPendingRewardOfUser(address _add) external view returns (uint);

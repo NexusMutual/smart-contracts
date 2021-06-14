@@ -4,7 +4,6 @@ pragma solidity ^0.5.0;
 
 import "../interfaces/INXMMaster.sol";
 
-
 contract MasterAware {
 
   INXMMaster public master;

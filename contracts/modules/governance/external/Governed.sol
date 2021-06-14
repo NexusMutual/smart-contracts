@@ -2,7 +2,6 @@
 
 pragma solidity ^0.5.0;
 
-
 interface IMaster {
   function getLatestAddress(bytes2 _module) external view returns (address);
 }

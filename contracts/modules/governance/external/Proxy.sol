@@ -2,7 +2,6 @@
 
 pragma solidity ^0.5.0;
 
-
 /**
  * @title Proxy
  * @dev Gives the possibility to delegate any call to a foreign implementation.

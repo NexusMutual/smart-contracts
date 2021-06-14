@@ -10,7 +10,6 @@ import "../../interfaces/IProposalCategory.sol";
 import "../../interfaces/ITokenController.sol";
 
 contract Governance is IGovernance, LegacyMasterAware {
-
   using SafeMath for uint;
 
   enum ProposalStatus {

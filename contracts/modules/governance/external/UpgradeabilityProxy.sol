@@ -4,7 +4,6 @@ pragma solidity ^0.5.0;
 
 import "./Proxy.sol";
 
-
 /**
  * @title UpgradeabilityProxy
  * @dev This contract represents a proxy where the implementation address to which it will delegate can be upgraded

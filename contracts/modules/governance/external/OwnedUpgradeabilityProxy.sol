@@ -4,7 +4,6 @@ pragma solidity ^0.5.0;
 
 import "./UpgradeabilityProxy.sol";
 
-
 /**
  * @title OwnedUpgradeabilityProxy
  * @dev This contract combines an upgradeability proxy with basic authorization control functionalities

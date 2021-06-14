@@ -371,6 +371,14 @@ async function main () {
   await transferProxyOwnership(gateway.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
 
+  console.log('Deploying external contracts');
+
+  console.log('Deploying DistributorFactory');
+
+  const distributorFactory = await DistributorFactory.new(master.address);
+
+  verifier.add(distributorFactory, { constructorArgs: [master.address] });
+
   const deployDataFile = `${__dirname}/../deploy/${network.name}-deploy-data.json`;
   verifier.dump(deployDataFile);
 
@@ -380,12 +388,6 @@ async function main () {
   console.log('Set governanceOwner to allow for execution of onlyGovernance actions.');
   const testnetMaster = await TestnetNXMaster.at(master.address);
   await testnetMaster.initializeGovernanceOwner();
-
-  console.log('Deploying external contracts');
-
-  console.log('Deploying DistributorFactory');
-
-  await DistributorFactory.new(master.address);
 
   console.log('Performing verifications');
   await verifier.submit();

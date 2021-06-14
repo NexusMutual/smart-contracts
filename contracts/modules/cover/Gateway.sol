@@ -27,9 +27,16 @@ contract Gateway is IGateway, MasterAware {
   IQuotationData public quotationData;
   IClaimsData public claimsData;
   IClaims public claims;
-  IIncidents public incidents;
   IPool public pool;
   IMemberRoles public memberRoles;
+
+  // assigned in initialize
+  address public DAI;
+
+  IIncidents public incidents;
+
+  // constants
+  address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   event CoverBought(
     uint coverId,
@@ -49,11 +56,6 @@ contract Gateway is IGateway, MasterAware {
     bytes data
   );
 
-  // assigned in initialize
-  address public DAI;
-  // constants
-  address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
   function changeDependentContractAddress() public {
     quotation = IQuotation(master.getLatestAddress("QT"));
     nxmToken = INXMToken(master.tokenAddress());
@@ -64,6 +66,10 @@ contract Gateway is IGateway, MasterAware {
     incidents = IIncidents(master.getLatestAddress("IC"));
     pool = IPool(master.getLatestAddress("P1"));
     memberRoles = IMemberRoles(master.getLatestAddress("MR"));
+  }
+
+  function initializeDAI() external {
+    DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
   }
 
   function getCoverPrice (

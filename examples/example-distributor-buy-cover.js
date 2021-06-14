@@ -29,7 +29,7 @@ async function run () {
     currency: 'ETH',
     asset: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', // stands for ETH
     period: '111', // days
-    contractAddress: '0xC57D000000000000000000000000000000000002', // the contract you will be buying cover for
+    contractAddress: '0x0000000000000000000000000000000000000006', // the contract you will be buying cover for
   };
 
   // URL to request a quote for.

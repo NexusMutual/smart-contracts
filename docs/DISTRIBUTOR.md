@@ -24,9 +24,9 @@ NXMaster: `0x01bfd82675dbcc7762c84019ca518e701c0cd07e`
 
 #### kovan
 
-DistributorFactory: `0x138Ff97841919415dEb95eD8492eeeF1B01bDaEF`
+DistributorFactory: `0x2920bad71C8C7cf53f857710345f4cA65F288Ad5`
 
-NXMaster: `0xf3b1018c6f1d5c2beCA1ebB4C7Bcf472D6721501`
+NXMaster: `0x2561D7f2436C121281388ecd54c702e55Aa24043`
 
 ### Integration
 

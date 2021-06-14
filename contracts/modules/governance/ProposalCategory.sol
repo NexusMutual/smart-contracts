@@ -1,25 +1,16 @@
-/* Copyright (C) 2017 GovBlocks.io
-  This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-  This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-  You should have received a copy of the GNU General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/ */
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.5.0;
 
-import "../../abstract/Iupgradable.sol";
-import "./MemberRoles.sol";
+import "../../abstract/LegacyMasterAware.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/IProposalCategory.sol";
 import "./external/Governed.sol";
-import "./external/IProposalCategory.sol";
 
-contract ProposalCategory is Governed, IProposalCategory, Iupgradable {
+contract ProposalCategory is IProposalCategory, Governed, LegacyMasterAware {
 
   bool public constructorCheck;
-  MemberRoles internal mr;
+  IMemberRoles internal mr;
 
   struct CategoryStruct {
     uint memberRoleToVote;
@@ -191,7 +182,7 @@ contract ProposalCategory is Governed, IProposalCategory, Iupgradable {
   * @dev Updates dependant contract addresses
   */
   function changeDependentContractAddress() public {
-    mr = MemberRoles(ms.getLatestAddress("MR"));
+    mr = IMemberRoles(ms.getLatestAddress("MR"));
   }
 
   /**
@@ -233,7 +224,7 @@ contract ProposalCategory is Governed, IProposalCategory, Iupgradable {
 
     //If category is special resolution role authorized should be member
     if (_incentives[3] == 1) {
-      require(_memberRoleToVote == uint(MemberRoles.Role.Member));
+      require(_memberRoleToVote == uint(IMemberRoles.Role.Member));
       _majorityVotePerc = 0;
       _quorumPerc = 0;
     }
@@ -340,7 +331,7 @@ contract ProposalCategory is Governed, IProposalCategory, Iupgradable {
 
     //If category is special resolution role authorized should be member
     if (_incentives[3] == 1) {
-      require(_memberRoleToVote == uint(MemberRoles.Role.Member));
+      require(_memberRoleToVote == uint(IMemberRoles.Role.Member));
       _majorityVotePerc = 0;
       _quorumPerc = 0;
     }

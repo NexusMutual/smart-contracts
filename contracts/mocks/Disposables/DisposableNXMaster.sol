@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.5.0;
 
 import "../../modules/governance/NXMaster.sol";
@@ -57,7 +59,7 @@ contract DisposableNXMaster is NXMaster {
     // notify all contracts about address change
     for (uint i = 0; i < allContractNames.length; i++) {
       address _address = allContractVersions[allContractNames[i]];
-      Iupgradable up = Iupgradable(_address);
+      LegacyMasterAware up = LegacyMasterAware(_address);
       up.changeMasterAddress(address(this));
       up.changeDependentContractAddress();
     }

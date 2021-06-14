@@ -1,48 +1,39 @@
-/* Copyright (C) 2020 NexusMutual.io
+// SPDX-License-Identifier: GPL-3.0-only
 
-  This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+pragma solidity ^0.5.0;
 
-  This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/ */
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../abstract/LegacyMasterAware.sol";
+import "../../interfaces/IClaims.sol";
+import "../../interfaces/IClaimsData.sol";
+import "../../interfaces/IClaimsReward.sol";
+import "../../interfaces/IGovernance.sol";
+import "../../interfaces/IMCR.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/IPooledStaking.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/ITokenData.sol";
 
 //Claims Reward Contract contains the functions for calculating number of tokens
 // that will get rewarded, unlocked or burned depending upon the status of claim.
 
-pragma solidity ^0.5.0;
-
-import "../../interfaces/IPooledStaking.sol";
-import "../capital/Pool.sol";
-import "../cover/QuotationData.sol";
-import "../governance/Governance.sol";
-import "../token/TokenData.sol";
-import "../token/TokenFunctions.sol";
-import "./Claims.sol";
-import "./ClaimsData.sol";
-import "../capital/MCR.sol";
-import "../../interfaces/IClaimsReward.sol";
-
-contract ClaimsReward is Iupgradable, IClaimsReward {
+contract ClaimsReward is IClaimsReward, LegacyMasterAware {
   using SafeMath for uint;
 
-  NXMToken internal tk;
-  TokenController internal tc;
-  TokenData internal td;
-  QuotationData internal qd;
-  Claims internal c1;
-  ClaimsData internal cd;
-  Pool internal pool;
-  Governance internal gv;
+  INXMToken internal tk;
+  ITokenController internal tc;
+  ITokenData internal td;
+  IQuotationData internal qd;
+  IClaims internal c1;
+  IClaimsData internal cd;
+  IPool internal pool;
+  IGovernance internal gv;
   IPooledStaking internal pooledStaking;
-  MemberRoles internal memberRoles;
-  MCR public mcr;
+  IMemberRoles internal memberRoles;
+  IMCR public mcr;
 
   // assigned in constructor
   address public DAI;
@@ -57,17 +48,17 @@ contract ClaimsReward is Iupgradable, IClaimsReward {
   }
 
   function changeDependentContractAddress() public onlyInternal {
-    c1 = Claims(ms.getLatestAddress("CL"));
-    cd = ClaimsData(ms.getLatestAddress("CD"));
-    tk = NXMToken(ms.tokenAddress());
-    tc = TokenController(ms.getLatestAddress("TC"));
-    td = TokenData(ms.getLatestAddress("TD"));
-    qd = QuotationData(ms.getLatestAddress("QD"));
-    gv = Governance(ms.getLatestAddress("GV"));
+    c1 = IClaims(ms.getLatestAddress("CL"));
+    cd = IClaimsData(ms.getLatestAddress("CD"));
+    tk = INXMToken(ms.tokenAddress());
+    tc = ITokenController(ms.getLatestAddress("TC"));
+    td = ITokenData(ms.getLatestAddress("TD"));
+    qd = IQuotationData(ms.getLatestAddress("QD"));
+    gv = IGovernance(ms.getLatestAddress("GV"));
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
-    memberRoles = MemberRoles(ms.getLatestAddress("MR"));
-    pool = Pool(ms.getLatestAddress("P1"));
-    mcr = MCR(ms.getLatestAddress("MC"));
+    memberRoles = IMemberRoles(ms.getLatestAddress("MR"));
+    pool = IPool(ms.getLatestAddress("P1"));
+    mcr = IMCR(ms.getLatestAddress("MC"));
   }
 
   /// @dev Decides the next course of action for a given claim.
@@ -390,11 +381,11 @@ contract ClaimsReward is Iupgradable, IClaimsReward {
 
           if (accept.div(acceptAndDeny) > 70) {
             status = 7;
-            qd.changeCoverStatusNo(coverid, uint8(QuotationData.CoverStatus.ClaimAccepted));
+            qd.changeCoverStatusNo(coverid, uint8(IQuotationData.CoverStatus.ClaimAccepted));
             rewardOrPunish = true;
           } else if (deny.div(acceptAndDeny) > 70) {
             status = 6;
-            qd.changeCoverStatusNo(coverid, uint8(QuotationData.CoverStatus.ClaimDenied));
+            qd.changeCoverStatusNo(coverid, uint8(IQuotationData.CoverStatus.ClaimDenied));
             rewardOrPunish = true;
           } else if (accept.div(acceptAndDeny) > deny.div(acceptAndDeny)) {
             status = 4;
@@ -447,20 +438,20 @@ contract ClaimsReward is Iupgradable, IClaimsReward {
         if (accept.mul(100).div(accept.add(deny)) >= 50 && statusOrig > 1 &&
         statusOrig <= 5 && thresholdUnreached == 0) {
           status = 8;
-          coverStatus = uint8(QuotationData.CoverStatus.ClaimAccepted);
+          coverStatus = uint8(IQuotationData.CoverStatus.ClaimAccepted);
         } else if (deny.mul(100).div(accept.add(deny)) >= 50 && statusOrig > 1 &&
         statusOrig <= 5 && thresholdUnreached == 0) {
           status = 9;
-          coverStatus = uint8(QuotationData.CoverStatus.ClaimDenied);
+          coverStatus = uint8(IQuotationData.CoverStatus.ClaimDenied);
         }
       }
 
       if (thresholdUnreached == 1 && (statusOrig == 2 || statusOrig == 4)) {
         status = 10;
-        coverStatus = uint8(QuotationData.CoverStatus.ClaimAccepted);
+        coverStatus = uint8(IQuotationData.CoverStatus.ClaimAccepted);
       } else if (thresholdUnreached == 1 && (statusOrig == 5 || statusOrig == 3 || statusOrig == 1)) {
         status = 11;
-        coverStatus = uint8(QuotationData.CoverStatus.ClaimDenied);
+        coverStatus = uint8(IQuotationData.CoverStatus.ClaimDenied);
       }
 
       c1.setClaimStatus(claimid, status);
@@ -549,40 +540,4 @@ contract ClaimsReward is Iupgradable, IClaimsReward {
       cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
     }
   }
-
-  /**
-   * @dev Function used to claim the commission earned by the staker.
-   */
-  function _claimStakeCommission(uint _records, address _user) external onlyInternal {
-    uint total = 0;
-    uint len = td.getStakerStakedContractLength(_user);
-    uint lastCompletedStakeCommission = td.lastCompletedStakeCommission(_user);
-    uint commissionEarned;
-    uint commissionRedeemed;
-    uint maxCommission;
-    uint lastCommisionRedeemed = len;
-    uint counter;
-    uint i;
-
-    for (i = lastCompletedStakeCommission; i < len && counter < _records; i++) {
-      commissionRedeemed = td.getStakerRedeemedStakeCommission(_user, i);
-      commissionEarned = td.getStakerEarnedStakeCommission(_user, i);
-      maxCommission = td.getStakerInitialStakedAmountOnContract(
-        _user, i).mul(td.stakerMaxCommissionPer()).div(100);
-      if (lastCommisionRedeemed == len && maxCommission != commissionEarned)
-        lastCommisionRedeemed = i;
-      td.pushRedeemedStakeCommissions(_user, i, commissionEarned.sub(commissionRedeemed));
-      total = total.add(commissionEarned.sub(commissionRedeemed));
-      counter++;
-    }
-    if (lastCommisionRedeemed == len) {
-      td.setLastCompletedStakeCommissionIndex(_user, i);
-    } else {
-      td.setLastCompletedStakeCommissionIndex(_user, lastCommisionRedeemed);
-    }
-
-    if (total > 0)
-      require(tk.transfer(_user, total)); // solhint-disable-line
-  }
-
 }

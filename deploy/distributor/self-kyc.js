@@ -1,11 +1,9 @@
 const { artifacts, web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
-const { hex } = require('../test/utils/helpers');
+const { hex } = require('../../lib/helpers');
 const { MASTER } = require('./addresses');
 const prompts = require('prompts');
 
-const Distributor = artifacts.require('Distributor');
-const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const SelfKyc = artifacts.require('SelfKyc');
 

@@ -1,8 +1,10 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.5.0;
 
 import "../interfaces/INXMMaster.sol";
 
-contract Iupgradable {
+contract LegacyMasterAware {
 
   INXMMaster public ms;
   address public nxMasterAddress;

@@ -1,24 +1,20 @@
-/* Copyright (C) 2017 GovBlocks.io
-  This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-  This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-  You should have received a copy of the GNU General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/ */
+// SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity >=0.5.0;
 
-contract IProposalCategory {
+interface IProposalCategory {
 
   event Category(
     uint indexed categoryId,
     string categoryName,
     string actionHash
   );
+
+  function categoryABReq(uint) external view returns (uint);
+  function isSpecialResolution(uint) external view returns (uint);
+  function categoryActionHashes(uint) external view returns (bytes memory);
+
+  function categoryExtendedData(uint _categoryId) external view returns (uint, uint, uint);
 
   /// @dev Adds new category
   /// @param _name Category name
@@ -70,6 +66,8 @@ contract IProposalCategory {
     uint defaultIncentive
   );
 
+  function categoryActionDetails(uint _categoryId) external view returns (uint, address, bytes2, uint, bytes memory);
+
   /// @dev Gets Total number of categories added till now
   function totalCategories() external view returns (uint numberOfCategories);
 
@@ -87,17 +85,16 @@ contract IProposalCategory {
   /// @param _incentives rewards to distributed after proposal is accepted
   function updateCategory(
     uint _categoryId,
-    string memory _name,
+    string calldata _name,
     uint _memberRoleToVote,
     uint _majorityVotePerc,
     uint _quorumPerc,
-    uint[] memory _allowedToCreateProposal,
+    uint[] calldata _allowedToCreateProposal,
     uint _closingTime,
-    string memory _actionHash,
+    string calldata _actionHash,
     address _contractAddress,
     bytes2 _contractName,
-    uint[] memory _incentives
-  )
-  public;
+    uint[] calldata _incentives
+  ) external;
 
 }

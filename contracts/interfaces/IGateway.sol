@@ -1,19 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0
-
-/* Copyright (C) 2021 NexusMutual.io
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see http://www.gnu.org/licenses/ */
+// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity >=0.5.0;
 
@@ -21,12 +6,14 @@ interface IGateway {
 
   enum ClaimStatus { IN_PROGRESS, ACCEPTED, REJECTED }
 
+  enum CoverType { SIGNED_QUOTE_CONTRACT_COVER }
+
   function buyCover (
     address contractAddress,
     address coverAsset,
     uint sumAssured,
     uint16 coverPeriod,
-    uint8 coverType,
+    CoverType coverType,
     bytes calldata data
   ) external payable returns (uint);
 
@@ -35,7 +22,7 @@ interface IGateway {
     address coverAsset,
     uint sumAssured,
     uint16 coverPeriod,
-    uint8 coverType,
+    CoverType coverType,
     bytes calldata data
   ) external view returns (uint coverPrice);
 
@@ -68,5 +55,5 @@ interface IGateway {
 
   function executeCoverAction(uint tokenId, uint8 action, bytes calldata data) external payable returns (bytes memory, uint);
 
-  function switchMembership(address _newAddress) external payable;
+  function switchMembership(address _newAddress) external;
 }

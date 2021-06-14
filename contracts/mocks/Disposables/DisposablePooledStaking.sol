@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.5.0;
 
+import "../../interfaces/ITokenController.sol";
 import "../../modules/staking/PooledStaking.sol";
-import "../../modules/token/TokenController.sol";
 
 contract DisposablePooledStaking is PooledStaking {
 
@@ -13,7 +15,7 @@ contract DisposablePooledStaking is PooledStaking {
     uint unstakeLockTime
   ) external {
 
-    tokenController = TokenController(_tokenControllerAddress);
+    tokenController = ITokenController(_tokenControllerAddress);
     tokenController.addToWhitelist(address(this));
     initialized = true;
 

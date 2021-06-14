@@ -1,30 +1,15 @@
-// SPDX-License-Identifier: GPL-3.0
-
-/* Copyright (C) 2021 NexusMutual.io
-
-  This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/ */
+// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/access/Ownable.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "../../interfaces/IGateway.sol";
-import "../../interfaces/IPool.sol";
 import "../../interfaces/INXMMaster.sol";
+import "../../interfaces/IPool.sol";
 
 contract Distributor is ERC721, Ownable, ReentrancyGuard {
   using SafeERC20 for IERC20;
@@ -119,7 +104,7 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
   {
     require(buysAllowed, "Distributor: buys not allowed");
 
-    uint coverPrice = gateway.getCoverPrice(contractAddress, coverAsset, sumAssured, coverPeriod, coverType, data);
+    uint coverPrice = gateway.getCoverPrice(contractAddress, coverAsset, sumAssured, coverPeriod, IGateway.CoverType(coverType), data);
     uint coverPriceWithFee = feePercentage * coverPrice / 10000 + coverPrice;
     require(coverPriceWithFee <= maxPriceWithFee, "Distributor: cover price with fee exceeds max");
 
@@ -146,7 +131,7 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
       coverAsset,
       sumAssured,
       coverPeriod,
-      coverType,
+      IGateway.CoverType(coverType),
       data
     );
 

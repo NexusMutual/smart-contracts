@@ -1,14 +1,15 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
-import "../../external/uniswap/IUniswapV2Router02.sol";
 import "../../external/uniswap/IUniswapV2Pair.sol";
-import "../../interfaces/ITwapOracle.sol";
-import "../../interfaces/IPool.sol";
+import "../../external/uniswap/IUniswapV2Router02.sol";
 import "../../interfaces/INXMMaster.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/ITwapOracle.sol";
 
 contract SwapOperator is ReentrancyGuard {
   using SafeERC20 for IERC20;

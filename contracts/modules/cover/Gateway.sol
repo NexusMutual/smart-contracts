@@ -1,45 +1,35 @@
-/* Copyright (C) 2020 NexusMutual.io
-
-  This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/ */
+// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.5.0;
 
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "../../abstract/MasterAware.sol";
+import "../../interfaces/IClaims.sol";
+import "../../interfaces/IClaimsData.sol";
 import "../../interfaces/IERC20Detailed.sol";
-import "../capital/Pool.sol";
-import "../governance/MemberRoles.sol";
-import "../token/TokenController.sol";
-import "../token/TokenData.sol";
-import "../token/TokenData.sol";
-import "../token/TokenFunctions.sol";
-import "./QuotationData.sol";
-import "../claims/Incidents.sol";
+import "../../interfaces/IGateway.sol";
+import "../../interfaces/IIncidents.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IPool.sol";
 import "../../interfaces/IQuotation.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ITokenController.sol";
 
-contract Gateway is MasterAware {
+contract Gateway is IGateway, MasterAware {
   using SafeMath for uint;
   using SafeERC20 for IERC20;
 
   // contracts
   IQuotation public quotation;
-  NXMToken public nxmToken;
-  TokenController public tokenController;
-  QuotationData public quotationData;
-  ClaimsData public claimsData;
-  Claims public claims;
-  Incidents public incidents;
-  Pool public pool;
-  MemberRoles public memberRoles;
+  INXMToken public nxmToken;
+  ITokenController public tokenController;
+  IQuotationData public quotationData;
+  IClaimsData public claimsData;
+  IClaims public claims;
+  IIncidents public incidents;
+  IPool public pool;
+  IMemberRoles public memberRoles;
 
   event CoverBought(
     uint coverId,
@@ -64,20 +54,16 @@ contract Gateway is MasterAware {
   // constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-  enum CoverType { SIGNED_QUOTE_CONTRACT_COVER }
-
-  enum ClaimStatus { IN_PROGRESS, ACCEPTED, REJECTED }
-
   function changeDependentContractAddress() public {
     quotation = IQuotation(master.getLatestAddress("QT"));
-    nxmToken = NXMToken(master.tokenAddress());
-    tokenController = TokenController(master.getLatestAddress("TC"));
-    quotationData = QuotationData(master.getLatestAddress("QD"));
-    claimsData = ClaimsData(master.getLatestAddress("CD"));
-    claims = Claims(master.getLatestAddress("CL"));
-    incidents = Incidents(master.getLatestAddress("IC"));
-    pool = Pool(master.getLatestAddress("P1"));
-    memberRoles = MemberRoles(master.getLatestAddress("MR"));
+    nxmToken = INXMToken(master.tokenAddress());
+    tokenController = ITokenController(master.getLatestAddress("TC"));
+    quotationData = IQuotationData(master.getLatestAddress("QD"));
+    claimsData = IClaimsData(master.getLatestAddress("CD"));
+    claims = IClaims(master.getLatestAddress("CL"));
+    incidents = IIncidents(master.getLatestAddress("IC"));
+    pool = IPool(master.getLatestAddress("P1"));
+    memberRoles = IMemberRoles(master.getLatestAddress("MR"));
   }
 
   function getCoverPrice (

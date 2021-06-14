@@ -1,28 +1,16 @@
-/* Copyright (C) 2020 NexusMutual.io
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see http://www.gnu.org/licenses/ */
+// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../../abstract/Iupgradable.sol";
+import "../../abstract/LegacyMasterAware.sol";
+import "../../interfaces/IClaimsData.sol";
+import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
-import "../claims/ClaimsData.sol";
-import "./NXMToken.sol";
+import "../../interfaces/ITokenController.sol";
 import "./external/LockHandler.sol";
 
-contract TokenController is LockHandler, Iupgradable {
+contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   using SafeMath for uint256;
 
   struct CoverInfo {
@@ -32,7 +20,7 @@ contract TokenController is LockHandler, Iupgradable {
     // note: still 224 bits available here, can be used later
   }
 
-  NXMToken public token;
+  INXMToken public token;
   IPooledStaking public pooledStaking;
 
   uint public minCALockTime;
@@ -56,7 +44,7 @@ contract TokenController is LockHandler, Iupgradable {
   * @dev Just for interface
   */
   function changeDependentContractAddress() public {
-    token = NXMToken(ms.tokenAddress());
+    token = INXMToken(ms.tokenAddress());
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
   }
 
@@ -685,7 +673,7 @@ contract TokenController is LockHandler, Iupgradable {
 
   function migrate() internal {
 
-    ClaimsData cd = ClaimsData(ms.getLatestAddress("CD"));
+    IClaimsData cd = IClaimsData(ms.getLatestAddress("CD"));
     uint totalClaims = cd.actualClaimLength() - 1;
 
     // fix stuck claims 21 & 22

@@ -3,7 +3,6 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "../../interfaces/INXMToken.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IClaims.sol";
 import "../../interfaces/IClaimsData.sol";
@@ -11,6 +10,7 @@ import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/IGateway.sol";
 import "../../interfaces/IIncidents.sol";
 import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IQuotation.sol";
 import "../../interfaces/IQuotationData.sol";

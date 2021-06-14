@@ -3,8 +3,8 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../../interfaces/INXMToken.sol";
 import "../../abstract/MasterAware.sol";
+import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/ITokenController.sol";
 

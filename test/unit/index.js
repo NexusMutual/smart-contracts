@@ -6,5 +6,5 @@ describe('UNIT TESTS', function () {
   require('./Pool');
   require('./SwapOperator');
   require('./MCR');
-
+  require('./Distributor');
 });

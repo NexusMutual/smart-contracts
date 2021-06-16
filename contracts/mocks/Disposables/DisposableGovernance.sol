@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.5.0;
 
 /*
@@ -6,14 +8,14 @@ pragma solidity ^0.5.0;
  * to allow a safe upgrade from the disposable to the normal contract
  */
 
-import "../../modules/governance/Governance.sol";
-import "../../modules/governance/MemberRoles.sol";
-import "../../modules/governance/ProposalCategory.sol";
-import "../../modules/governance/external/IGovernance.sol";
-import "../../modules/token/TokenController.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../abstract/LegacyMasterAware.sol";
+import "../../interfaces/IGovernance.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/IProposalCategory.sol";
+import "../../interfaces/ITokenController.sol";
 
-contract DisposableGovernance is IGovernance, Iupgradable {
+contract DisposableGovernance is IGovernance, LegacyMasterAware {
 
   /* disposable initialization function */
 
@@ -33,7 +35,7 @@ contract DisposableGovernance is IGovernance, Iupgradable {
     totalProposals = 1;
     allVotes.push(ProposalVote(address(0), 0, 0));
     allDelegation.push(DelegateVote(address(0), address(0), now));
-    roleIdAllowedToCatgorize = uint(MemberRoles.Role.AdvisoryBoard);
+    roleIdAllowedToCatgorize = uint(IMemberRoles.Role.AdvisoryBoard);
 
     tokenHoldingTime = _tokenHoldingTime;
     maxDraftTime = _maxDraftTime;
@@ -98,9 +100,9 @@ contract DisposableGovernance is IGovernance, Iupgradable {
   uint internal totalProposals;
   uint internal maxDraftTime;
 
-  MemberRoles internal memberRole;
-  ProposalCategory internal proposalCategory;
-  TokenController internal tokenInstance;
+  IMemberRoles internal memberRole;
+  IProposalCategory internal proposalCategory;
+  ITokenController internal tokenInstance;
 
   mapping(uint => uint) public proposalActionStatus;
   mapping(uint => uint) internal proposalExecutionTime;
@@ -111,9 +113,9 @@ contract DisposableGovernance is IGovernance, Iupgradable {
   uint internal actionWaitingTime;
 
   function changeDependentContractAddress() public {
-    tokenInstance = TokenController(ms.dAppLocker());
-    memberRole = MemberRoles(ms.getLatestAddress("MR"));
-    proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));
+    tokenInstance = ITokenController(ms.dAppLocker());
+    memberRole = IMemberRoles(ms.getLatestAddress("MR"));
+    proposalCategory = IProposalCategory(ms.getLatestAddress("PC"));
   }
 
   /* function required for Iupgradable and IGovernance implementation */
@@ -139,4 +141,8 @@ contract DisposableGovernance is IGovernance, Iupgradable {
   function canCloseProposal(uint) public view returns (uint) {return 0;}
 
   function allowedToCatgorize() public view returns (uint) {return 0;}
+
+  function removeDelegation(address _add) external {}
+
+  function getPendingReward(address _memberAddress) external view returns (uint pendingDAppReward) {return 0;}
 }

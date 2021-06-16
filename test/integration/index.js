@@ -21,4 +21,5 @@ describe('INTEGRATION TESTS', function () {
   require('./Claims');
   require('./Gateway');
   require('./TokenController');
+  require('./Distributor');
 });

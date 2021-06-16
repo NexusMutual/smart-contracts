@@ -1,52 +1,42 @@
-/* Copyright (C) 2020 NexusMutual.io
-
-  This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/ */
+// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.5.0;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../../abstract/MasterAware.sol";
-import "../capital/Pool.sol";
-import "../claims/ClaimsReward.sol";
-import "../claims/Incidents.sol";
-import "../token/TokenController.sol";
-import "../token/TokenData.sol";
-import "./QuotationData.sol";
+import "../../interfaces/IClaimsReward.sol";
+import "../../interfaces/IIncidents.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/IPooledStaking.sol";
+import "../../interfaces/IQuotation.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/ITokenData.sol";
 
-contract Quotation is MasterAware, ReentrancyGuard {
+contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
   using SafeMath for uint;
 
-  ClaimsReward public cr;
-  Pool public pool;
+  IClaimsReward public cr;
+  IPool public pool;
   IPooledStaking public pooledStaking;
-  QuotationData public qd;
-  TokenController public tc;
-  TokenData public td;
-  Incidents public incidents;
+  IQuotationData public qd;
+  ITokenController public tc;
+  ITokenData public td;
+  IIncidents public incidents;
 
   /**
    * @dev Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public onlyInternal {
-    cr = ClaimsReward(master.getLatestAddress("CR"));
-    pool = Pool(master.getLatestAddress("P1"));
+    cr = IClaimsReward(master.getLatestAddress("CR"));
+    pool = IPool(master.getLatestAddress("P1"));
     pooledStaking = IPooledStaking(master.getLatestAddress("PS"));
-    qd = QuotationData(master.getLatestAddress("QD"));
-    tc = TokenController(master.getLatestAddress("TC"));
-    td = TokenData(master.getLatestAddress("TD"));
-    incidents = Incidents(master.getLatestAddress("IC"));
+    qd = IQuotationData(master.getLatestAddress("QD"));
+    tc = ITokenController(master.getLatestAddress("TC"));
+    td = ITokenData(master.getLatestAddress("TD"));
+    incidents = IIncidents(master.getLatestAddress("IC"));
   }
 
   // solhint-disable-next-line no-empty-blocks
@@ -63,18 +53,18 @@ contract Quotation is MasterAware, ReentrancyGuard {
     require(expirationDate < now, "Quotation: cover is not due to expire");
 
     uint coverStatus = qd.getCoverStatusNo(coverId);
-    require(coverStatus != uint(QuotationData.CoverStatus.CoverExpired), "Quotation: cover already expired");
+    require(coverStatus != uint(IQuotationData.CoverStatus.CoverExpired), "Quotation: cover already expired");
 
     (/* claim count */, bool hasOpenClaim, /* accepted */) = tc.coverInfo(coverId);
     require(!hasOpenClaim, "Quotation: cover has an open claim");
 
-    if (coverStatus != uint(QuotationData.CoverStatus.ClaimAccepted)) {
+    if (coverStatus != uint(IQuotationData.CoverStatus.ClaimAccepted)) {
       (,, address contractAddress, bytes4 currency, uint amount,) = qd.getCoverDetailsByCoverID1(coverId);
       qd.subFromTotalSumAssured(currency, amount);
       qd.subFromTotalSumAssuredSC(contractAddress, currency, amount);
     }
 
-    qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.CoverExpired));
+    qd.changeCoverStatusNo(coverId, uint8(IQuotationData.CoverStatus.CoverExpired));
   }
 
   function withdrawCoverNote(address coverOwner, uint[] calldata coverIds, uint[] calldata reasonIndexes) external {
@@ -364,7 +354,7 @@ contract Quotation is MasterAware, ReentrancyGuard {
 
     for (uint id = 1; id <= lastCoverId; id++) {
 
-      if (qd.holdedCoverIDStatus(id) != uint(QuotationData.HCIDStatus.kycPending)) {
+      if (qd.holdedCoverIDStatus(id) != uint(IQuotationData.HCIDStatus.kycPending)) {
         continue;
       }
 
@@ -378,7 +368,7 @@ contract Quotation is MasterAware, ReentrancyGuard {
         qd.setRefundEligible(userAddress, false);
       }
 
-      qd.setHoldedCoverIDStatus(id, uint(QuotationData.HCIDStatus.kycFailedOrRefunded));
+      qd.setHoldedCoverIDStatus(id, uint(IQuotationData.HCIDStatus.kycFailedOrRefunded));
 
       if (currency == "ETH") {
         refundedETH = refundedETH.add(coverPremium);

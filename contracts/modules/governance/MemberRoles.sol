@@ -1,34 +1,26 @@
-/* Copyright (C) 2017 GovBlocks.io
-  This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-  This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-  You should have received a copy of the GNU General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/ */
+// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.5.0;
 
+import "../../interfaces/IClaimsReward.sol";
+import "../../interfaces/IGovernance.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/ITokenData.sol";
+import "../../interfaces/ITokenFunctions.sol";
 import "../claims/ClaimsReward.sol";
-import "../cover/QuotationData.sol";
-import "../token/TokenController.sol";
-import "../token/TokenData.sol";
-import "../token/TokenFunctions.sol";
-import "./Governance.sol";
 import "./external/Governed.sol";
 
-contract MemberRoles is Governed, Iupgradable {
+contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
 
-  TokenController public tc;
-  TokenData internal td;
-  QuotationData internal qd;
-  ClaimsReward internal cr;
-  Governance internal gv;
-  TokenFunctions internal tf;
-  NXMToken public tk;
+  ITokenController public tc;
+  ITokenData internal td;
+  IQuotationData internal qd;
+  IClaimsReward internal cr;
+  IGovernance internal gv;
+  ITokenFunctions internal tf;
+  INXMToken public tk;
 
   struct MemberRoleDetails {
     uint memberCounter;
@@ -36,8 +28,6 @@ contract MemberRoles is Governed, Iupgradable {
     address[] memberAddress;
     address authorized;
   }
-
-  enum Role {UnAssigned, AdvisoryBoard, Member, Owner}
 
   event MemberRole(uint256 indexed roleId, bytes32 roleName, string roleDescription);
 
@@ -105,7 +95,7 @@ contract MemberRoles is Governed, Iupgradable {
     );
     //AB count can't exceed maxABCount
     for (uint i = 0; i < abArray.length; i++) {
-      require(checkRole(abArray[i], uint(MemberRoles.Role.Member)));
+      require(checkRole(abArray[i], uint(Role.Member)));
       _updateRole(abArray[i], uint(Role.AdvisoryBoard), true);
     }
   }
@@ -122,13 +112,13 @@ contract MemberRoles is Governed, Iupgradable {
    * @dev Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public {
-    td = TokenData(ms.getLatestAddress("TD"));
-    cr = ClaimsReward(ms.getLatestAddress("CR"));
-    qd = QuotationData(ms.getLatestAddress("QD"));
-    gv = Governance(ms.getLatestAddress("GV"));
-    tf = TokenFunctions(ms.getLatestAddress("TF"));
-    tk = NXMToken(ms.tokenAddress());
-    tc = TokenController(ms.getLatestAddress("TC"));
+    td = ITokenData(ms.getLatestAddress("TD"));
+    cr = IClaimsReward(ms.getLatestAddress("CR"));
+    qd = IQuotationData(ms.getLatestAddress("QD"));
+    gv = IGovernance(ms.getLatestAddress("GV"));
+    tf = ITokenFunctions(ms.getLatestAddress("TF"));
+    tk = INXMToken(ms.tokenAddress());
+    tc = ITokenController(ms.getLatestAddress("TC"));
   }
 
   /**

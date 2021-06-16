@@ -36,13 +36,12 @@ async function getQuoteSignature (...args) {
 
   const message = ethABI.soliditySHA3(types, values);
   const msgHash = util.hashPersonalMessage(message);
-
   const sig = util.ecsign(msgHash, quoteAuthPrivateKey);
 
   return [
     sig.v,
-    '0x' + util.toUnsigned(util.fromSigned(sig.r)).toString('hex'),
-    '0x' + util.toUnsigned(util.fromSigned(sig.s)).toString('hex'),
+    '0x' + sig.r.toString('hex'),
+    '0x' + sig.s.toString('hex'),
   ];
 }
 

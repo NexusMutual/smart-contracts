@@ -1,10 +1,11 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.5.0;
 
 /**
  * @title ERC1132 interface
  * @dev see https://github.com/ethereum/EIPs/issues/1132
  */
-
 contract LockHandler {
   /**
    * @dev Reasons why a user's tokens have been locked

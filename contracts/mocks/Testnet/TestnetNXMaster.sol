@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.5.0;
 
 import "../../modules/governance/NXMaster.sol";
@@ -41,18 +43,18 @@ contract TestnetNXMaster is NXMaster {
             require(isUpgradable[_contractsName[i]], "Contract should be upgradable.");
 
             if (_contractsName[i] == "QT") {
-                Quotation qt = Quotation(allContractVersions["QT"]);
+                IQuotation qt = IQuotation(allContractVersions["QT"]);
                 qt.transferAssetsToNewContract(newAddress);
 
             } else if (_contractsName[i] == "CR") {
-                TokenController tc = TokenController(getLatestAddress("TC"));
+                ITokenController tc = ITokenController(getLatestAddress("TC"));
                 tc.addToWhitelist(newAddress);
                 tc.removeFromWhitelist(allContractVersions["CR"]);
-                ClaimsReward cr = ClaimsReward(allContractVersions["CR"]);
+                IClaimsReward cr = IClaimsReward(allContractVersions["CR"]);
                 cr.upgrade(newAddress);
 
             } else if (_contractsName[i] == "P1") {
-                Pool p1 = Pool(allContractVersions["P1"]);
+                IPool p1 = IPool(allContractVersions["P1"]);
                 p1.upgradeCapitalPool(newAddress);
             }
 
@@ -61,7 +63,7 @@ contract TestnetNXMaster is NXMaster {
             allContractVersions[_contractsName[i]] = newAddress;
             contractsActive[newAddress] = true;
 
-            Iupgradable up = Iupgradable(allContractVersions[_contractsName[i]]);
+            LegacyMasterAware up = LegacyMasterAware(allContractVersions[_contractsName[i]]);
             up.changeMasterAddress(address(this));
         }
 

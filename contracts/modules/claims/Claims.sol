@@ -1,38 +1,28 @@
-/* Copyright (C) 2020 NexusMutual.io
-
-  This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/ */
+// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.5.0;
 
-import "../capital/Pool.sol";
-import "../claims/ClaimsReward.sol";
-import "../token/NXMToken.sol";
-import "../token/TokenController.sol";
-import "../token/TokenFunctions.sol";
-import "./ClaimsData.sol";
-import "./Incidents.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../abstract/LegacyMasterAware.sol";
+import "../../interfaces/IClaims.sol";
+import "../../interfaces/IClaimsData.sol";
+import "../../interfaces/IClaimsReward.sol";
+import "../../interfaces/IIncidents.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/ITokenData.sol";
 
-contract Claims is Iupgradable {
+contract Claims is IClaims, LegacyMasterAware {
   using SafeMath for uint;
 
-  TokenController internal tc;
-  ClaimsReward internal cr;
-  Pool internal p1;
-  ClaimsData internal cd;
-  TokenData internal td;
-  QuotationData internal qd;
-  Incidents internal incidents;
+  ITokenController internal tc;
+  IClaimsReward internal cr;
+  IPool internal p1;
+  IClaimsData internal cd;
+  ITokenData internal td;
+  IQuotationData internal qd;
+  IIncidents internal incidents;
 
   uint private constant DECIMAL1E18 = uint(10) ** 18;
 
@@ -75,13 +65,13 @@ contract Claims is Iupgradable {
    * Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public onlyInternal {
-    td = TokenData(ms.getLatestAddress("TD"));
-    tc = TokenController(ms.getLatestAddress("TC"));
-    p1 = Pool(ms.getLatestAddress("P1"));
-    cr = ClaimsReward(ms.getLatestAddress("CR"));
-    cd = ClaimsData(ms.getLatestAddress("CD"));
-    qd = QuotationData(ms.getLatestAddress("QD"));
-    incidents = Incidents(ms.getLatestAddress("IC"));
+    td = ITokenData(ms.getLatestAddress("TD"));
+    tc = ITokenController(ms.getLatestAddress("TC"));
+    p1 = IPool(ms.getLatestAddress("P1"));
+    cr = IClaimsReward(ms.getLatestAddress("CR"));
+    cd = IClaimsData(ms.getLatestAddress("CD"));
+    qd = IQuotationData(ms.getLatestAddress("QD"));
+    incidents = IIncidents(ms.getLatestAddress("IC"));
   }
 
   /**
@@ -113,7 +103,7 @@ contract Claims is Iupgradable {
     require(expirationDate.add(gracePeriod) > now, "Claims: Grace period has expired");
 
     tc.markCoverClaimOpen(coverId);
-    qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimSubmitted));
+    qd.changeCoverStatusNo(coverId, uint8(IQuotationData.CoverStatus.ClaimSubmitted));
 
     uint claimId = cd.actualClaimLength();
     cd.addClaim(claimId, coverId, coverOwner, now);
@@ -266,7 +256,7 @@ contract Claims is Iupgradable {
 
     if (state12Count >= 60 && stat == 12) {
       cd.setClaimStatus(claimId, 13);
-      qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimDenied));
+      qd.changeCoverStatusNo(coverId, uint8(IQuotationData.CoverStatus.ClaimDenied));
     }
 
     cd.setClaimdateUpd(claimId, now);

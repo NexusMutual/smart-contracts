@@ -262,13 +262,13 @@ Get a signed price quote to use as part
 Example mainnet call:
 
 ```
-curl -X GET -H "Origin: https://yourcustomorigin.com" 'https://api.nexusmutual.io/legacy/v1/quote?coverAmount=1&currency=ETH&period=111&contractAddress=0xC57D000000000000000000000000000000000002'
+curl -X GET -H "Origin: https://yourcustomorigin.com" 'https://api.nexusmutual.io/v1/quote?coverAmount=1&currency=ETH&period=111&contractAddress=0xC57D000000000000000000000000000000000002'
 ```
 
 Example kovan call:
 
 ```
-curl -X GET -H "Origin: https://yourcustomorigin.com" 'https://api.staging.nexusmutual.io/legacy/v1/quote?coverAmount=1&currency=ETH&period=111&contractAddress=0xC57D000000000000000000000000000000000002'
+curl -X GET 'https://api.staging.nexusmutual.io/v1/quote?coverAmount=1&currency=ETH&period=111&contractAddress=0xC57D000000000000000000000000000000000002'
 ```
 
 
@@ -301,12 +301,12 @@ Based on available capacity you can decide whether a cover can be offered or not
 
 Example Kovan call:
 ```
-curl  -X GET  -H "Origin: http://yourcustomorigin.com" 'https://api.staging.nexusmutual.io/legacy/v1/contracts/0xC57D000000000000000000000000000000000002/capacity'
+curl  -X GET 'https://api.staging.nexusmutual.io/v1/contracts/0xC57D000000000000000000000000000000000002/capacity'
 ```
 
 Example Mainnet call:
 ```
-curl  -X GET  -H "Origin: http://yourcustomorigin.com" 'https://api.nexusmutual.io/legacy/v1/contracts/0xC57D000000000000000000000000000000000002/capacity'
+curl  -X GET  -H "Origin: http://yourcustomorigin.com" 'https://api.nexusmutual.io/v1/contracts/0xC57D000000000000000000000000000000000002/capacity'
 ``` 
 
 Example response:

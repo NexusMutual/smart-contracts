@@ -13,7 +13,8 @@ const {
 const { ProposalCategory, CoverStatus } = require('../utils').constants;
 const { quoteAuthAddress } = require('../utils').getQuote;
 const { toBN } = web3.utils;
-const { buyCover, buyCoverWithDai } = require('../utils').buyCover;
+const { buyCover, buyCoverWithDai, coverToCoverDetailsArray, buyCoverThroughGateway } = require('../utils').buyCover;
+const { getQuoteSignature } = require('../utils/getQuote');
 
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const MemberRoles = artifacts.require('MemberRoles');
@@ -48,7 +49,8 @@ describe('basic functionality tests', async function () {
     this.quotation = await Quotation.at(getAddressByCode('QT'));
     this.incidents = await Incidents.at(getAddressByCode('IC'));
     this.pool = await Pool.at(getAddressByCode('P1'));
-    this.qd = await QuotationData.at(getAddressByCode('QD'));
+    this.quotationData = await QuotationData.at(getAddressByCode('QD'));
+    this.gateway = await Gateway.at(getAddressByCode('GW'));
     this.dai = await ERC20MintableDetailed.at(Address.DAI);
   });
 
@@ -137,7 +139,7 @@ describe('basic functionality tests', async function () {
   });
 
   it('change quotation engine address to sign quotes', async function () {
-    const { governance, voters, qd } = this;
+    const { governance, voters, quotationData } = this;
 
     const parameters = [
       ['bytes8', hex('QUOAUTH')], // changeAuthQuoteEngine code
@@ -150,7 +152,7 @@ describe('basic functionality tests', async function () {
 
     await submitGovernanceProposal(ProposalCategory.updateOwnerParameters, actionData, voters, governance);
 
-    const authQuoteEngine = await qd.authQuoteEngine();
+    const authQuoteEngine = await quotationData.authQuoteEngine();
 
     assert.equal(authQuoteEngine.toLowerCase(), quoteAuthAddress.toLowerCase());
   });
@@ -208,5 +210,27 @@ describe('basic functionality tests', async function () {
     await dai.transfer(coverHolder, '3000000000000000', { from: UserAddress.DAI_HOLDER, gasPrice: 0 });
 
     await buyCoverWithDai({ ...this, qt: this.quotation, p1: this.pool, cover: ybDAICover, coverHolder, dai });
+  });
+
+  it('buy UniswapV2 cover with gateway', async function () {
+    const { pool, quotation, gateway, dai } = this;
+
+    const coverHolder = UserAddress.NXM_WHALE_1;
+    const generationTime = await time.latest();
+    await time.increase(toBN('1'));
+    const coverData = {
+      amount: ether('1'), // 1 dai or eth
+      price: '3000000000000000', // 0.003
+      priceNXM: '1000000000000000000', // 1 nxm
+      expireTime: '2000000000', // year 2033
+      generationTime: generationTime.toString(),
+      currency: hex('ETH'),
+      asset: Address.ETH,
+      period: 60,
+      type: 0,
+      contractAddress: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+    };
+
+    await buyCoverThroughGateway({ coverData, gateway, coverHolder, qt: quotation, dai });
   });
 });

@@ -227,7 +227,7 @@ describe('basic functionality tests', async function () {
     await buyCoverWithDai({ ...this, qt: this.quotation, p1: this.pool, cover: ybDAICover, coverHolder, dai });
   });
 
-  it('buy UniswapV2 cover with gateway', async function () {
+  it('buy UniswapV2 ETH cover through gateway', async function () {
     const { pool, quotation, gateway, dai } = this;
 
     const coverHolder = UserAddress.NXM_WHALE_1;
@@ -245,6 +245,30 @@ describe('basic functionality tests', async function () {
       type: 0,
       contractAddress: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
     };
+
+    await buyCoverThroughGateway({ coverData, gateway, coverHolder, qt: quotation, dai });
+  });
+
+  it('buy UniswapV2 DAI cover with gateway', async function () {
+    const { pool, quotation, gateway, dai } = this;
+
+    const coverHolder = UserAddress.NXM_WHALE_1;
+    const generationTime = await time.latest();
+    await time.increase(toBN('1'));
+    const coverData = {
+      amount: ether('1'), // 1 dai or eth
+      price: '3000000000000000', // 0.003
+      priceNXM: '1000000000000000000', // 1 nxm
+      expireTime: '2000000000', // year 2033
+      generationTime: generationTime.toString(),
+      currency: hex('DAI'),
+      asset: Address.DAI,
+      period: 60,
+      type: 0,
+      contractAddress: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+    };
+
+    await dai.transfer(coverHolder, '3000000000000000', { from: UserAddress.DAI_HOLDER, gasPrice: 0 });
 
     await buyCoverThroughGateway({ coverData, gateway, coverHolder, qt: quotation, dai });
   });

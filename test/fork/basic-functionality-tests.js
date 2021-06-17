@@ -9,6 +9,8 @@ const {
   fund,
   unlock,
   submitGovernanceProposal,
+  submitMemberVoteGovernanceProposal,
+  ratioScale,
 } = require('./utils');
 const { ProposalCategory, CoverStatus } = require('../utils').constants;
 const { quoteAuthAddress } = require('../utils').getQuote;
@@ -28,7 +30,9 @@ const Gateway = artifacts.require('Gateway');
 const Incidents = artifacts.require('Incidents');
 const QuotationData = artifacts.require('QuotationData');
 const Pool = artifacts.require('Pool');
+const SwapOperator = artifacts.require('SwapOperator');
 const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
+const MCR = artifacts.require('MCR');
 
 const ybDAIProductId = '0x000000000000000000000000000000000000000d';
 const ybETHProductId = '0x000000000000000000000000000000000000000e';
@@ -51,6 +55,8 @@ describe('basic functionality tests', async function () {
     this.pool = await Pool.at(getAddressByCode('P1'));
     this.quotationData = await QuotationData.at(getAddressByCode('QD'));
     this.gateway = await Gateway.at(getAddressByCode('GW'));
+    this.swapOperator = await SwapOperator.at(getAddressByCode('SO'));
+    this.mcr = await MCR.at(getAddressByCode('MC'));
     this.dai = await ERC20MintableDetailed.at(Address.DAI);
   });
 
@@ -61,12 +67,15 @@ describe('basic functionality tests', async function () {
     const { memberArray: boardMembers } = await this.memberRoles.members('1');
     const voters = boardMembers.slice(1, 4);
 
-    for (const member of [...voters, Address.NXMHOLDER]) {
+    const whales = [UserAddress.NXM_WHALE_1, UserAddress.NXM_WHALE_2];
+
+    for (const member of [...voters, Address.NXMHOLDER, ...whales]) {
       await fund(member);
       await unlock(member);
     }
 
     this.voters = voters;
+    this.whales = whales;
   });
 
   it('performs hypothetical future proxy upgrade', async function () {
@@ -232,5 +241,65 @@ describe('basic functionality tests', async function () {
     };
 
     await buyCoverThroughGateway({ coverData, gateway, coverHolder, qt: quotation, dai });
+  });
+
+  it('sets DMCI to greater to 1% to allow floor increase', async function () {
+    const { voters, governance, mcr, whales } = this;
+
+    const newMaxMCRFloorIncrement = toBN(100);
+    const parameters = [
+      ['bytes8', hex('DMCI')],
+      ['uint', newMaxMCRFloorIncrement],
+    ];
+
+    const updateParams = web3.eth.abi.encodeParameters(
+      parameters.map(p => p[0]),
+      parameters.map(p => p[1]),
+    );
+
+    await submitMemberVoteGovernanceProposal(
+      ProposalCategory.upgradeMCRParameters, updateParams, [...voters, ...whales], governance,
+    );
+
+    const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
+
+    assert.equal(maxMCRFloorIncrement.toString(), newMaxMCRFloorIncrement.toString());
+  });
+
+  it('triggers MCR update after ETH injection to the pool to MCR% > 130%', async function () {
+    const { mcr, pool } = this;
+
+    const currentMCR = await mcr.getMCR();
+
+    const extraEth = currentMCR.muln(140).divn(100);
+    console.log(`Funding Pool at ${pool.address} with ${extraEth.div(ether('1'))} ETH.`);
+    await web3.eth.sendTransaction({ from: accounts[0], to: pool.address, value: extraEth });
+
+    const mcrFloorBefore = await mcr.mcrFloor();
+    const currentMCRBefore = await mcr.getMCR();
+
+    await time.increase(time.duration.hours(24));
+    await mcr.updateMCR();
+
+    const block = await web3.eth.getBlock('latest');
+
+    const lastUpdateTime = await mcr.lastUpdateTime();
+    const mcrFloor = await mcr.mcrFloor();
+    const desiredMCR = await mcr.desiredMCR();
+    const latestMCR = await mcr.getMCR();
+    const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
+
+    const expectedMCRFloor = mcrFloorBefore.mul(ratioScale.add(maxMCRFloorIncrement)).divn(ratioScale);
+
+    console.log({
+      mcrFloor: mcrFloor.toString(),
+      desiredMCR: desiredMCR.toString(),
+      latestMCR: latestMCR.toString(),
+    });
+
+    assert.equal(lastUpdateTime.toString(), block.timestamp.toString());
+    assert.equal(mcrFloor.toString(), expectedMCRFloor.toString());
+    assert.equal(desiredMCR.toString(), mcrFloor.toString());
+    assert.equal(currentMCRBefore.toString(), latestMCR.toString());
   });
 });

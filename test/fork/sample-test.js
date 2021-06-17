@@ -29,38 +29,5 @@ const QuotationData = artifacts.require('QuotationData');
 describe('sample test', function () {
 
   this.timeout(0);
-
-  it('initializes contracts', async function () {
-
-    const { mainnet: { abis } } = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
-    const getAddressByCode = getAddressByCodeFactory(abis);
-
-    this.token = await NXMToken.at(getAddressByCode('NXMTOKEN'));
-    this.memberRoles = await MemberRoles.at(getAddressByCode('MR'));
-    this.master = await NXMaster.at(getAddressByCode(('NXMASTER')));
-    this.governance = await Governance.at(getAddressByCode('GV'));
-    this.tokenController = await TokenController.at(getAddressByCode('TC'));
-    this.quotation = await Quotation.at(getAddressByCode('QT'));
-    this.incidents = await Incidents.at(getAddressByCode('IC'));
-    this.pool = await Pool.at(getAddressByCode('P1'));
-    this.qd = await QuotationData.at(getAddressByCode('QD'));
-    this.dai = await ERC20MintableDetailed.at(Address.DAI);
-  });
-
-  it('funds accounts', async function () {
-
-    console.log('Funding accounts');
-
-    const { memberArray: boardMembers } = await this.memberRoles.members('1');
-    const voters = boardMembers.slice(1, 4);
-
-    for (const member of [...voters, Address.NXMHOLDER]) {
-      await fund(member);
-      await unlock(member);
-    }
-
-    this.voters = voters;
-  });
-
   require('./basic-functionality-tests');
 });

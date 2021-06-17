@@ -3,6 +3,7 @@ const { artifacts, web3, accounts, network } = require('hardhat');
 
 const { hex } = require('../utils').helpers;
 const { ProposalCategory, CoverStatus } = require('../utils').constants;
+const { toBN } = web3.utils;
 
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -16,6 +17,8 @@ const UserAddress = {
   NXM_AB_MEMBER: '0x87B2a7559d85f4653f13E6546A14189cd5455d45',
   DAI_HOLDER: '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503',
 };
+
+const ratioScale = toBN('10000');
 
 async function submitGovernanceProposal (categoryId, actionData, members, gv) {
 
@@ -77,4 +80,5 @@ module.exports = {
   getAddressByCodeFactory,
   fund,
   unlock,
+  ratioScale,
 };

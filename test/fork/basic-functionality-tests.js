@@ -100,7 +100,7 @@ describe('basic functionality tests', async function () {
   });
 
   it('change quotation engine address to sign quotes', async function () {
-    const { governance, voters } = this;
+    const { governance, voters, qd } = this;
 
     const parameters = [
       ['bytes8', hex('QUOAUTH')], // changeAuthQuoteEngine code
@@ -112,6 +112,10 @@ describe('basic functionality tests', async function () {
     );
 
     await submitGovernanceProposal(ProposalCategory.updateOwnerParameters, actionData, voters, governance);
+
+    const authQuoteEngine = await qd.authQuoteEngine();
+
+    assert.equal(authQuoteEngine.toLowerCase(), quoteAuthAddress.toLowerCase());
   });
 
   it('add ybDAI yield token cover', async function () {
@@ -120,6 +124,31 @@ describe('basic functionality tests', async function () {
 
     await unlock(UserAddress.NXM_AB_MEMBER);
     await incidents.addProducts([ybDAIProductId], [ybDAI.address], [dai.address], { from: UserAddress.NXM_AB_MEMBER });
+  });
+
+  it('add ETH yield bearing token', async function () {
+    const { incidents, pool } = this;
+    const ETH = await pool.ETH();
+    ybETH = await ERC20MintableDetailed.new('yield bearing ETH', 'ybETH', 18);
+    await incidents.addProducts([ybETHProductId], [ybETH.address], [ETH], { from: UserAddress.NXM_AB_MEMBER });
+  });
+
+  it('buy ybETH yield token cover', async function () {
+    const generationTime = await time.latest();
+    await time.increase(toBN('1'));
+    const ybETHCover = {
+      amount: 1000, // 1 dai or eth
+      price: '3000000000000000', // 0.003
+      priceNXM: '1000000000000000000', // 1 nxm
+      expireTime: '2000000000', // year 2033
+      generationTime: generationTime.toString(),
+      currency: hex('ETH'),
+      period: 60,
+      contractAddress: ybETHProductId,
+    };
+    const coverHolder = UserAddress.NXM_WHALE_1;
+    await unlock(coverHolder);
+    await buyCover({ ...this, qt: this.quotation, p1: this.pool, cover: ybETHCover, coverHolder });
   });
 
   it('buy ybDAI yield token cover', async function () {

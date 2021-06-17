@@ -24,6 +24,7 @@ const Gateway = artifacts.require('Gateway');
 const Incidents = artifacts.require('Incidents');
 const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 const Pool = artifacts.require('Pool');
+const QuotationData = artifacts.require('QuotationData');
 
 describe('sample test', function () {
 
@@ -42,6 +43,7 @@ describe('sample test', function () {
     this.quotation = await Quotation.at(getAddressByCode('QT'));
     this.incidents = await Incidents.at(getAddressByCode('IC'));
     this.pool = await Pool.at(getAddressByCode('IC'));
+    this.qd = await QuotationData.at(getAddressByCode('QD'));
     this.dai = await ERC20MintableDetailed.at(Address.DAI);
   });
 

@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 const { artifacts, web3, accounts, network } = require('hardhat');
 const { ether, time } = require('@openzeppelin/test-helpers');
+const Decimal = require('decimal.js');
 const { hex } = require('../utils').helpers;
 const {
   Address,
@@ -12,11 +13,16 @@ const {
   submitMemberVoteGovernanceProposal,
   ratioScale,
 } = require('./utils');
+const {
+  toDecimal,
+  calculateRelativeError,
+  percentageBN,
+  calculateEthForNXMRelativeError,
+} = require('../utils').tokenPrice;
 const { ProposalCategory, CoverStatus } = require('../utils').constants;
 const { quoteAuthAddress } = require('../utils').getQuote;
 const { toBN } = web3.utils;
-const { buyCover, buyCoverWithDai, coverToCoverDetailsArray, buyCoverThroughGateway } = require('../utils').buyCover;
-const { getQuoteSignature } = require('../utils/getQuote');
+const { buyCover, buyCoverWithDai, buyCoverThroughGateway } = require('../utils').buyCover;
 
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const MemberRoles = artifacts.require('MemberRoles');
@@ -241,6 +247,35 @@ describe('basic functionality tests', async function () {
     };
 
     await buyCoverThroughGateway({ coverData, gateway, coverHolder, qt: quotation, dai });
+  });
+
+  it('performs max buy (5% mcrEth) and sells the NXM back (high sell spread expected)', async function () {
+
+    const { mcr, pool, token } = this;
+
+    const mcrEth = await mcr.getMCR();
+    const maxBuy = percentageBN(mcrEth, 4.95);
+
+    const balancePre = await token.balanceOf(Address.NXMHOLDER);
+    await pool.buyNXM('0', { value: maxBuy, from: Address.NXMHOLDER });
+    const balancePost = await token.balanceOf(Address.NXMHOLDER);
+    const nxmOut = balancePost.sub(balancePre);
+
+    const balancePreSell = await web3.eth.getBalance(Address.NXMHOLDER);
+    const sellTx = await pool.sellNXM(nxmOut, '0', { from: Address.NXMHOLDER });
+
+    const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
+    const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
+    const balancePostSell = await web3.eth.getBalance(Address.NXMHOLDER);
+    const ethOut = toDecimal(balancePostSell).sub(toDecimal(balancePreSell)).add(ethSpentOnGas);
+    const ethInDecimal = toDecimal(maxBuy);
+
+    assert(ethOut.lt(ethInDecimal), 'ethOut > ethIn');
+
+    console.log({
+      ethOut: toDecimal(ethOut).div(1e18).toString(),
+      ethIn: ethInDecimal.div(1e18).toString(),
+    });
   });
 
   it('sets DMCI to greater to 1% to allow floor increase', async function () {

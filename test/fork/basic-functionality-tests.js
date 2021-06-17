@@ -1,3 +1,4 @@
+const fetch = require('node-fetch');
 const { artifacts, web3, accounts, network } = require('hardhat');
 const { ether, time } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
@@ -23,6 +24,9 @@ const TokenFunctions = artifacts.require('TokenFunctions');
 const Quotation = artifacts.require('Quotation');
 const TokenController = artifacts.require('TokenController');
 const Gateway = artifacts.require('Gateway');
+const Incidents = artifacts.require('Incidents');
+const QuotationData = artifacts.require('QuotationData');
+const Pool = artifacts.require('Pool');
 const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 
 const ybDAIProductId = '0x000000000000000000000000000000000000000d';
@@ -30,6 +34,39 @@ const ybETHProductId = '0x000000000000000000000000000000000000000e';
 let ybDAI, ybETH;
 
 describe('basic functionality tests', async function () {
+
+  it('initializes contracts', async function () {
+
+    const { mainnet: { abis } } = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
+    const getAddressByCode = getAddressByCodeFactory(abis);
+
+    this.token = await NXMToken.at(getAddressByCode('NXMTOKEN'));
+    this.memberRoles = await MemberRoles.at(getAddressByCode('MR'));
+    this.master = await NXMaster.at(getAddressByCode(('NXMASTER')));
+    this.governance = await Governance.at(getAddressByCode('GV'));
+    this.tokenController = await TokenController.at(getAddressByCode('TC'));
+    this.quotation = await Quotation.at(getAddressByCode('QT'));
+    this.incidents = await Incidents.at(getAddressByCode('IC'));
+    this.pool = await Pool.at(getAddressByCode('P1'));
+    this.qd = await QuotationData.at(getAddressByCode('QD'));
+    this.dai = await ERC20MintableDetailed.at(Address.DAI);
+  });
+
+  it('funds accounts', async function () {
+
+    console.log('Funding accounts');
+
+    const { memberArray: boardMembers } = await this.memberRoles.members('1');
+    const voters = boardMembers.slice(1, 4);
+
+    for (const member of [...voters, Address.NXMHOLDER]) {
+      await fund(member);
+      await unlock(member);
+    }
+
+    this.voters = voters;
+  });
+
   it('performs hypothetical future proxy upgrade', async function () {
 
     const { voters, governance, master } = this;

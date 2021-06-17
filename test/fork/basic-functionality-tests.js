@@ -140,6 +140,7 @@ describe('basic functionality tests', async function () {
     await unlock(UserAddress.DAI_HOLDER);
     await unlock(coverHolder);
     await dai.transfer(coverHolder, '3000000000000000', { from: UserAddress.DAI_HOLDER, gasPrice: 0 });
-    await buyCoverWithDai({ ...this, qt: this.quotation, p1: this.pool, cover: ybDAICover, coverHolder });
+
+    await buyCoverWithDai({ ...this, qt: this.quotation, p1: this.pool, cover: ybDAICover, coverHolder, dai });
   });
 });

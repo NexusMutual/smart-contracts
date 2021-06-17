@@ -42,7 +42,7 @@ describe('sample test', function () {
     this.tokenController = await TokenController.at(getAddressByCode('TC'));
     this.quotation = await Quotation.at(getAddressByCode('QT'));
     this.incidents = await Incidents.at(getAddressByCode('IC'));
-    this.pool = await Pool.at(getAddressByCode('IC'));
+    this.pool = await Pool.at(getAddressByCode('P1'));
     this.qd = await QuotationData.at(getAddressByCode('QD'));
     this.dai = await ERC20MintableDetailed.at(Address.DAI);
   });

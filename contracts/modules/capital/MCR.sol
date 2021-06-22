@@ -1,35 +1,22 @@
-/* Copyright (C) 2020 NexusMutual.io
-
-  This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/ */
+// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../abstract/MasterAware.sol";
-import "../capital/Pool.sol";
-import "../cover/QuotationData.sol";
-import "../oracles/PriceFeedOracle.sol";
-import "../token/NXMToken.sol";
-import "../token/TokenData.sol";
+import "../../interfaces/IMCR.sol";
+import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/IPriceFeedOracle.sol";
+import "../../interfaces/IQuotationData.sol";
 import "./LegacyMCR.sol";
 
-contract MCR is MasterAware {
+contract MCR is IMCR, MasterAware {
   using SafeMath for uint;
 
-  Pool public pool;
-  QuotationData public qd;
+  IPool public pool;
+  IQuotationData public qd;
   // sizeof(qd) + 96 = 160 + 96 = 256 (occupies entire slot)
   uint96 _unused;
 
@@ -72,8 +59,8 @@ contract MCR is MasterAware {
    * @dev Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public {
-    qd = QuotationData(master.getLatestAddress("QD"));
-    pool = Pool(master.getLatestAddress("P1"));
+    qd = IQuotationData(master.getLatestAddress("QD"));
+    pool = IPool(master.getLatestAddress("P1"));
     initialize();
   }
 
@@ -105,7 +92,7 @@ contract MCR is MasterAware {
    */
   function getAllSumAssurance() public view returns (uint) {
 
-    PriceFeedOracle priceFeed = pool.priceFeedOracle();
+    IPriceFeedOracle priceFeed = pool.priceFeedOracle();
     address daiAddress = priceFeed.daiAddress();
 
     uint ethAmount = qd.getTotalSumAssured("ETH").mul(1e18);

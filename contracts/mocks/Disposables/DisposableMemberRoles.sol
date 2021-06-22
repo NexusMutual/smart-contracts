@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.5.0;
 
+import "../../interfaces/ITokenController.sol";
 import "../../modules/governance/MemberRoles.sol";
-import "../../modules/token/TokenController.sol";
 
 contract DisposableMemberRoles is MemberRoles {
 
@@ -24,7 +26,7 @@ contract DisposableMemberRoles is MemberRoles {
       "initial members and member tokens arrays should have the same length"
     );
 
-    tc = TokenController(_tokenControllerAddress);
+    tc = ITokenController(_tokenControllerAddress);
     changeMasterAddress(_masterAddress);
 
     _addInitialMemberRoles(_owner, _owner);

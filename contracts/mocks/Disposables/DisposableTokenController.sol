@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.5.0;
 
+import "../../interfaces/INXMToken.sol";
 import "../../modules/token/TokenController.sol";
-import "../../modules/token/NXMToken.sol";
 
 contract DisposableTokenController is TokenController {
 
@@ -13,7 +15,7 @@ contract DisposableTokenController is TokenController {
     uint _claimSubmissionGracePeriod
   ) external {
 
-    token = NXMToken(_tokenAddress);
+    token = INXMToken(_tokenAddress);
     token.changeOperator(address(this));
 
     changeMasterAddress(_masterAddress);

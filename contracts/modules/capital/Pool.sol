@@ -1,17 +1,4 @@
-/* Copyright (C) 2020 NexusMutual.io
-
-  This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/ */
+// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.5.0;
 
@@ -21,12 +8,12 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "../../abstract/MasterAware.sol";
+import "../../interfaces/IMCR.sol";
+import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
-import "../cover/Quotation.sol";
-import "../oracles/PriceFeedOracle.sol";
-import "../token/NXMToken.sol";
-import "../token/TokenController.sol";
-import "./MCR.sol";
+import "../../interfaces/IPriceFeedOracle.sol";
+import "../../interfaces/IQuotation.sol";
+import "../../interfaces/ITokenController.sol";
 
 contract Pool is IPool, MasterAware, ReentrancyGuard {
   using Address for address;
@@ -46,15 +33,15 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   mapping(address => AssetData) public assetData;
 
   // contracts
-  Quotation public quotation;
-  NXMToken public nxmToken;
-  TokenController public tokenController;
-  MCR public mcr;
+  IQuotation public quotation;
+  INXMToken public nxmToken;
+  ITokenController public tokenController;
+  IMCR public mcr;
 
   // parameters
   address public swapController;
   uint public minPoolEth;
-  PriceFeedOracle public priceFeedOracle;
+  IPriceFeedOracle public priceFeedOracle;
   address public swapOperator;
 
   /* constants */
@@ -108,7 +95,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     }
 
     master = INXMMaster(_master);
-    priceFeedOracle = PriceFeedOracle(_priceOracle);
+    priceFeedOracle = IPriceFeedOracle(_priceOracle);
     swapOperator = _swapOperator;
   }
 
@@ -329,10 +316,10 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
    * @dev Implements MasterAware interface function
    */
   function changeDependentContractAddress() public {
-    nxmToken = NXMToken(master.tokenAddress());
-    tokenController = TokenController(master.getLatestAddress("TC"));
-    quotation = Quotation(master.getLatestAddress("QT"));
-    mcr = MCR(master.getLatestAddress("MC"));
+    nxmToken = INXMToken(master.tokenAddress());
+    tokenController = ITokenController(master.getLatestAddress("TC"));
+    quotation = IQuotation(master.getLatestAddress("QT"));
+    mcr = IMCR(master.getLatestAddress("MC"));
   }
 
   /* cover purchase functions */
@@ -663,7 +650,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     }
 
     if (code == "PRC_FEED") {
-      priceFeedOracle = PriceFeedOracle(value);
+      priceFeedOracle = IPriceFeedOracle(value);
       return;
     }
 

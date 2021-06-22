@@ -1,33 +1,14 @@
-/*
-    Copyright (C) 2020 NexusMutual.io
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/
-*/
+// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/MasterAware.sol";
+import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
-import "../claims/ClaimsReward.sol";
-import "../governance/MemberRoles.sol";
-import "../token/NXMToken.sol";
-import "../token/TokenController.sol";
-import "../token/TokenData.sol";
-import "../token/TokenFunctions.sol";
+import "../../interfaces/ITokenController.sol";
 
-contract PooledStaking is MasterAware, IPooledStaking {
+contract PooledStaking is IPooledStaking, MasterAware {
   using SafeMath for uint;
 
   /* Data types */
@@ -100,8 +81,8 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
   bool public initialized;
 
-  NXMToken public token;
-  TokenController public tokenController;
+  INXMToken public token;
+  ITokenController public tokenController;
 
   uint public MIN_STAKE;         // Minimum allowed stake per contract
   uint public MAX_EXPOSURE;      // Stakes sum must be less than the deposit amount times this
@@ -976,8 +957,8 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
   function changeDependentContractAddress() public {
 
-    token = NXMToken(master.tokenAddress());
-    tokenController = TokenController(master.getLatestAddress("TC"));
+    token = INXMToken(master.tokenAddress());
+    tokenController = ITokenController(master.getLatestAddress("TC"));
 
     if (!initialized) {
       initialize();

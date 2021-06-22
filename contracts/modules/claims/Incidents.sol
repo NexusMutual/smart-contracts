@@ -1,33 +1,21 @@
-/* Copyright (C) 2021 NexusMutual.io
-
-  This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/ */
+// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../abstract/MasterAware.sol";
+import "../../interfaces/IClaimsData.sol";
+import "../../interfaces/IClaimsReward.sol";
+import "../../interfaces/IIncidents.sol";
+import "../../interfaces/IMCR.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/IPool.sol";
 import "../../interfaces/IPooledStaking.sol";
-import "../capital/Pool.sol";
-import "../claims/ClaimsData.sol";
-import "../claims/ClaimsReward.sol";
-import "../cover/QuotationData.sol";
-import "../governance/MemberRoles.sol";
-import "../token/TokenController.sol";
-import "../capital/MCR.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ITokenController.sol";
 
-contract Incidents is MasterAware {
+contract Incidents is IIncidents, MasterAware {
   using SafeERC20 for IERC20;
   using SafeMath for uint;
 
@@ -77,7 +65,7 @@ contract Incidents is MasterAware {
   );
 
   modifier onlyAdvisoryBoard {
-    uint abRole = uint(MemberRoles.Role.AdvisoryBoard);
+    uint abRole = uint(IMemberRoles.Role.AdvisoryBoard);
     require(
       memberRoles().checkRole(msg.sender, abRole),
       "Incidents: Caller is not an advisory board member"
@@ -160,7 +148,7 @@ contract Incidents is MasterAware {
     uint coveredTokenAmount,
     address coverOwner
   ) internal returns (uint claimId, uint payoutAmount, address coverAsset) {
-    QuotationData qd = quotationData();
+    IQuotationData qd = quotationData();
     Incident memory incident = incidents[incidentId];
     uint sumAssured;
     bytes4 currency;
@@ -213,18 +201,18 @@ contract Incidents is MasterAware {
     }
 
     {
-      TokenController tc = tokenController();
+      ITokenController tc = tokenController();
       // mark cover as having a successful claim
       tc.markCoverClaimOpen(coverId);
       tc.markCoverClaimClosed(coverId, true);
 
       // create the claim
-      ClaimsData cd = claimsData();
+      IClaimsData cd = claimsData();
       claimId = cd.actualClaimLength();
       cd.addClaim(claimId, coverId, coverOwner, now);
       cd.callClaimEvent(coverId, coverOwner, claimId, now);
       cd.setClaimStatus(claimId, 14);
-      qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimAccepted));
+      qd.changeCoverStatusNo(coverId, uint8(IQuotationData.CoverStatus.ClaimAccepted));
 
       claimPayout[claimId] = payoutAmount;
     }
@@ -278,7 +266,7 @@ contract Incidents is MasterAware {
     // pull depegged tokens
     IERC20(_coveredToken).safeTransferFrom(msg.sender, address(this), coveredTokenAmount);
 
-    Pool p1 = pool();
+    IPool p1 = pool();
 
     // send the payoutAmount
     {
@@ -298,36 +286,36 @@ contract Incidents is MasterAware {
     }
   }
 
-  function claimsData() internal view returns (ClaimsData) {
-    return ClaimsData(internalContracts[uint(ID.CD)]);
+  function claimsData() internal view returns (IClaimsData) {
+    return IClaimsData(internalContracts[uint(ID.CD)]);
   }
 
-  function claimsReward() internal view returns (ClaimsReward) {
-    return ClaimsReward(internalContracts[uint(ID.CR)]);
+  function claimsReward() internal view returns (IClaimsReward) {
+    return IClaimsReward(internalContracts[uint(ID.CR)]);
   }
 
-  function quotationData() internal view returns (QuotationData) {
-    return QuotationData(internalContracts[uint(ID.QD)]);
+  function quotationData() internal view returns (IQuotationData) {
+    return IQuotationData(internalContracts[uint(ID.QD)]);
   }
 
-  function tokenController() internal view returns (TokenController) {
-    return TokenController(internalContracts[uint(ID.TC)]);
+  function tokenController() internal view returns (ITokenController) {
+    return ITokenController(internalContracts[uint(ID.TC)]);
   }
 
-  function memberRoles() internal view returns (MemberRoles) {
-    return MemberRoles(internalContracts[uint(ID.MR)]);
+  function memberRoles() internal view returns (IMemberRoles) {
+    return IMemberRoles(internalContracts[uint(ID.MR)]);
   }
 
-  function pool() internal view returns (Pool) {
-    return Pool(internalContracts[uint(ID.P1)]);
+  function pool() internal view returns (IPool) {
+    return IPool(internalContracts[uint(ID.P1)]);
   }
 
   function pooledStaking() internal view returns (IPooledStaking) {
     return IPooledStaking(internalContracts[uint(ID.PS)]);
   }
 
-  function mcr() internal view returns (MCR) {
-    return MCR(internalContracts[uint(ID.MC)]);
+  function mcr() internal view returns (IMCR) {
+    return IMCR(internalContracts[uint(ID.MC)]);
   }
 
   function updateUintParameters(bytes8 code, uint value) external onlyGovernance {

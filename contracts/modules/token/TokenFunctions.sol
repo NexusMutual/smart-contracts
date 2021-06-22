@@ -1,33 +1,21 @@
-/* Copyright (C) 2020 NexusMutual.io
-
-  This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/ */
+// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/MasterAware.sol";
-import "../cover/QuotationData.sol";
-import "./NXMToken.sol";
-import "./TokenController.sol";
-import "./TokenData.sol";
+import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/ITokenData.sol";
+import "../../interfaces/ITokenFunctions.sol";
 
-contract TokenFunctions is MasterAware {
+contract TokenFunctions is ITokenFunctions, MasterAware {
   using SafeMath for uint;
 
-  TokenController public tc;
-  NXMToken public tk;
-  QuotationData public qd;
+  ITokenController public tc;
+  INXMToken public tk;
+  IQuotationData public qd;
 
   event BurnCATokens(uint claimId, address addr, uint amount);
 
@@ -54,9 +42,9 @@ contract TokenFunctions is MasterAware {
    * @dev Change Dependent Contract Address
    */
   function changeDependentContractAddress() public {
-    tc = TokenController(master.getLatestAddress("TC"));
-    tk = NXMToken(master.tokenAddress());
-    qd = QuotationData(master.getLatestAddress("QD"));
+    tc = ITokenController(master.getLatestAddress("TC"));
+    tk = INXMToken(master.tokenAddress());
+    qd = IQuotationData(master.getLatestAddress("QD"));
   }
 
   /**

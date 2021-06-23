@@ -38,6 +38,18 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
     uint coverPrice
   );
 
+  event FeePercentageChanged (
+    uint feePercentage
+  );
+
+  event BuysAllowedChanged (
+    bool buysAllowed
+  );
+
+  event TreasuryChanged (
+    address treasury
+  );
+
   /*
    feePercentage applied to every cover premium. has 2 decimals. eg.: 10.00% stored as 1000
   */
@@ -354,6 +366,7 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
   */
   function setBuysAllowed(bool _buysAllowed) external onlyOwner {
     buysAllowed = _buysAllowed;
+    emit BuysAllowedChanged(_buysAllowed);
   }
 
   /**
@@ -363,6 +376,7 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
   function setTreasury(address payable _treasury) external onlyOwner {
     require(_treasury != address(0), "Distributor: treasury address is 0");
     treasury = _treasury;
+    emit TreasuryChanged(_treasury);
   }
 
   /**
@@ -387,6 +401,7 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
   */
   function setFeePercentage(uint _feePercentage) external onlyOwner {
     feePercentage = _feePercentage;
+    emit FeePercentageChanged(_feePercentage);
   }
 
   /**

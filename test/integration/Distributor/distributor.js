@@ -122,7 +122,7 @@ describe('Distributor', function () {
   });
 
   it('claimTokens sends DAI tokens in exchange of ybDAI to NFT owner', async function () {
-    const { dai, incidents, gateway, distributor, cd: claimsData } = this.contracts;
+    const { dai, incidents, distributor, cd: claimsData } = this.contracts;
 
     await dai.mint(coverHolder, ether('10000000'));
     const ybDAI = await ERC20MintableDetailed.new('yield bearing DAI', 'ybDAI', 18);
@@ -183,7 +183,7 @@ describe('Distributor', function () {
   });
 
   it('claimTokens sends ETH tokens in exchange of ybETH to NFT owner', async function () {
-    const { dai, incidents, gateway, distributor, cd: claimsData } = this.contracts;
+    const { incidents, distributor, cd: claimsData } = this.contracts;
 
     const ybETH = await ERC20MintableDetailed.new('yield bearing ETH', 'ybETH', 18);
     await ybETH.mint(coverHolder, ether('10000000'));
@@ -247,7 +247,7 @@ describe('Distributor', function () {
   });
 
   it('claimTokens reverts when given a token which does not belong to a listed product', async function () {
-    const { dai, incidents, gateway, distributor, cd: claimsData } = this.contracts;
+    const { dai, incidents, distributor } = this.contracts;
 
     await dai.mint(coverHolder, ether('10000000'));
     const ybDAI = await ERC20MintableDetailed.new('yield bearing DAI', 'ybDAI', 18);
@@ -275,7 +275,6 @@ describe('Distributor', function () {
     );
 
     const expectedCoverId = 1;
-    const daiBalanceBefore = await dai.balanceOf(coverHolder);
     const requestedAmount = ether('500');
     await expectRevert(distributor.claimTokens(
       expectedCoverId,

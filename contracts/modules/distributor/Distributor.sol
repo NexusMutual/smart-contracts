@@ -38,8 +38,6 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
     uint coverPrice
   );
 
-  uint public constant MAX_FEE_PERCENTAGE = 10000;
-
   /*
    feePercentage applied to every cover premium. has 2 decimals. eg.: 10.00% stored as 1000
   */
@@ -75,7 +73,6 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
   {
 
     require(_treasury != address(0), "Distributor: treasury address is 0");
-    require(feePercentage <= MAX_FEE_PERCENTAGE, "Distributor: fee percentage too high");
     feePercentage = _feePercentage;
     treasury = _treasury;
     gateway = IGateway(gatewayAddress);
@@ -389,7 +386,6 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
   * @param _feePercentage fee percentage to be set
   */
   function setFeePercentage(uint _feePercentage) external onlyOwner {
-    require(feePercentage <= MAX_FEE_PERCENTAGE, "Distributor: fee percentage too high");
     feePercentage = _feePercentage;
   }
 

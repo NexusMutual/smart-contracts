@@ -51,12 +51,12 @@ const daiCoverTemplate = {
   contractAddress: '0xd0a6E6C54DbC68Db5db3A091B171A77407Ff7ccf',
 };
 
-async function buyCover ({ coverData, coverHolder, distributor, qt, dai, feePercentage }) {
+async function buyCover ({ coverData, coverHolder, distributor, qt, dai, feePercentage = DEFAULT_FEE_PERCENTAGE }) {
 
   const basePrice = new BN(coverData.price);
 
   const data = await getBuyCoverDataParameter({ qt, coverData });
-  const priceWithFee = basePrice.muln(parseInt(feePercentage) || DEFAULT_FEE_PERCENTAGE).divn(10000).add(basePrice);
+  const priceWithFee = basePrice.muln(parseInt(feePercentage)).divn(10000).add(basePrice);
 
   if (coverData.asset === ETH) {
     return await distributor.buyCover(

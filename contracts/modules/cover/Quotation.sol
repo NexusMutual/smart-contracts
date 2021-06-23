@@ -269,18 +269,13 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
 
     uint coverNoteAmount = coverDetails[2].mul(qd.tokensRetained()).div(100);
 
-    if (underlyingToken == address(0)) {
-      uint gracePeriod = tc.claimSubmissionGracePeriod();
-      uint claimSubmissionPeriod = uint(coverPeriod).mul(1 days).add(gracePeriod);
-      bytes32 reason = keccak256(abi.encodePacked("CN", from, cid));
+    uint gracePeriod = tc.claimSubmissionGracePeriod();
+    uint claimSubmissionPeriod = uint(coverPeriod).mul(1 days).add(gracePeriod);
+    bytes32 reason = keccak256(abi.encodePacked("CN", from, cid));
 
-      // mint and lock cover note
-      td.setDepositCNAmount(cid, coverNoteAmount);
-      tc.mintCoverNote(from, reason, coverNoteAmount, claimSubmissionPeriod);
-    } else {
-      // minted directly to member's wallet
-      tc.mint(from, coverNoteAmount);
-    }
+    // mint and lock cover note
+    td.setDepositCNAmount(cid, coverNoteAmount);
+    tc.mintCoverNote(from, reason, coverNoteAmount, claimSubmissionPeriod);
 
     qd.addInTotalSumAssured(coverCurrency, coverDetails[0]);
     qd.addInTotalSumAssuredSC(contractAddress, coverCurrency, coverDetails[0]);

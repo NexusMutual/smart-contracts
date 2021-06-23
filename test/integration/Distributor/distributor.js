@@ -56,7 +56,7 @@ async function buyCover ({ coverData, coverHolder, distributor, qt, dai, feePerc
   const basePrice = new BN(coverData.price);
 
   const data = await getBuyCoverDataParameter({ qt, coverData });
-  const priceWithFee = basePrice.muln(DEFAULT_FEE_PERCENTAGE || feePercentage).divn(10000).add(basePrice);
+  const priceWithFee = basePrice.muln(parseInt(feePercentage) || DEFAULT_FEE_PERCENTAGE).divn(10000).add(basePrice);
 
   if (coverData.asset === ETH) {
     return await distributor.buyCover(

@@ -14,4 +14,5 @@ describe('Distributor unit tests', function () {
 
   require('./executeCoverAction');
   require('./buyCover');
+  require('./setters');
 });

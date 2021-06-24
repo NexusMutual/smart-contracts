@@ -19,7 +19,7 @@ const ERC20BlacklistableMock = artifacts.require('ERC20BlacklistableMock');
 const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 
 const [
-  owner, member1, member2, member3, coverHolder, distributorOwner, nonOwner, treasury, newMemberAddress,
+  owner, member1, member2, member3, coverHolder, distributorOwner, nonOwner, treasury, newMemberAddress, newTreasury,
 ] = accounts;
 
 const DEFAULT_FEE_PERCENTAGE = 500; // 5%
@@ -826,19 +826,6 @@ describe('Distributor', function () {
     assert.equal(newAddressBalance.toString(), oldAddressBalance.toString());
   });
 
-  it('allows setting the fee percentage by owner', async function () {
-    const { distributor } = this.contracts;
-
-    const newFeePercentage = '20000';
-
-    await distributor.setFeePercentage(newFeePercentage, {
-      from: distributorOwner,
-    });
-
-    const storedFeePercentage = await distributor.feePercentage();
-    assert(storedFeePercentage.toString(), newFeePercentage);
-  });
-
   it('allows purchases with 0% fee percentage', async function () {
     const { distributor } = this.contracts;
 
@@ -853,19 +840,6 @@ describe('Distributor', function () {
     const coverData = { ...ethCoverTemplate };
 
     await buyCover({ ...this.contracts, coverData, coverHolder, feePercentage: newFeePercentage });
-  });
-
-  it('disallows setting the fee percentage by non-owner', async function () {
-    const { distributor } = this.contracts;
-
-    const newFeePercentage = '20000';
-
-    await expectRevert(
-      distributor.setFeePercentage(newFeePercentage, {
-        from: nonOwner,
-      }),
-      'Ownable: caller is not the owner',
-    );
   });
 
   it('reverts on executeCoverAction - no action supported at this time', async function () {

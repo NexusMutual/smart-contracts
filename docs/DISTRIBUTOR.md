@@ -38,23 +38,33 @@ This contract becomes a NexusMutual member once the KYC for its address is appro
 
 #### Deployment
 
+
+##### Mainnet
+
+Coming soon.
+
+##### Kovan 
+
 ```
 # install all dependencies
 npm i
 # create a .env with your configuration
 cp .env.sample .env
-# fill in the blanks in .env
-# MAINNET_ACCOUNT_KEY=set your mnemonic here
-# MAINNET_ACCOUNT=0xadd
-# MAINNET_PROVIDER_URL=https://mainnet.infura.io/v3/apikey
+
+# fill in the blanks in .env with the following vars as shown in the template
+# KOVAN_ACCOUNT_KEY=set your private key here
+# KOVAN_PROVIDER_URL=https://mainnet.infura.io/v3/apikey
+# KOVAN_GAS_PRICE=1
+# KOVAN_GAS_LIMIT=12000000
 
 # run deploy
 npm run distributor-deploy-kovan
+
+# If succesful your contract address will be prinded as such:
+# Successfully deployed at 0x...
 ```
 
 #### KYC
-
-Once the script has generated a mainnet deployment take the resulting contract and follow the steps at this link to KYC the address. https://app.nexusmutual.io/home/distributor
 
 ##### Mainnet
 

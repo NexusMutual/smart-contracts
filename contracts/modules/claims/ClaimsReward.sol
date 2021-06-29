@@ -345,6 +345,10 @@ contract ClaimsReward is IClaimsReward, LegacyMasterAware {
     }
   }
 
+  function unlockCoverNote(uint coverId) external onlyInternal {
+    _unlockCoverNote(coverId);
+  }
+
   function _unlockCoverNote(uint coverId) internal {
 
     address coverHolder = qd.getCoverMemberAddress(coverId);

@@ -32,4 +32,6 @@ interface IClaimsReward {
   function claimAllPendingReward(uint records) external;
 
   function getAllPendingRewardOfUser(address _add) external view returns (uint);
+
+  function unlockCoverNote(uint coverId) external;
 }

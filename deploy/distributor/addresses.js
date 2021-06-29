@@ -5,7 +5,7 @@ const FACTORY = {
 
 const MASTER = {
   kovan: '0x2561D7f2436C121281388ecd54c702e55Aa24043',
-  mainnet: '0x01bfd82675dbcc7762c84019ca518e701c0cd07e',
+  mainnet: 'TBD',
 };
 
 module.exports = {

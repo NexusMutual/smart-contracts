@@ -231,7 +231,7 @@ contract Incidents is IIncidents, MasterAware {
     qd.subFromTotalSumAssuredSC(incident.productId, currency, sumAssured);
 
     mcr().updateMCRInternal(pool().getPoolValueInEth(), true);
-    
+
     claimsReward().unlockCoverNote(coverId);
   }
 

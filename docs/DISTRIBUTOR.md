@@ -121,8 +121,29 @@ Example:
 
 https://github.com/NexusMutual/smart-contracts/blob/feature/distributor-relocation/examples/example-distributor-buy-cover.js
 
+#### Protocol Cover Claims
 
-#### submitClaim
+Protocol cover claims require 3 steps.
+
+* submit proof of loss on the nexus page - must be done *BEFORE* submitClaim.
+    If not available the claim submission will be considered invalid
+* submitClaim - submit the actual claim once the proof of loss is provided.
+* redeemClaim - to redeem the payout once the claim has been voted on.
+
+
+##### Proof of loss submission
+Every claim submission needs to be accompanied by a proof of loss submission.
+
+This can be done on the NexusMutual app with the following link that needs to include the cover id and owner address as shown:
+
+https://app.nexusmutual.io/home/proof-of-loss/add-affected-addresses?coverId=<cover_id>&owner=<nft_owner_address>
+
+Redirect the user to the page above the proof of loss submission with the signature before the claim is submitted.
+
+Once the proof of loss is submitted, allow the user to submit the claim.
+
+
+##### submitClaim 
 
 Submit claim for the cover. Only one claim at a time can be active.
 
@@ -143,18 +164,7 @@ Example:
 
 https://github.com/NexusMutual/smart-contracts/blob/feature/distributor-relocation/examples/example-distributor-submit-claim.js
 
-#### Proof of loss submission
-Every claim submission needs to be accompanied by a proof of loss submission.
-
-This can be done on the NexusMutual app with the following link that needs to include the cover id and owner address as shown:
-
-https://app.nexusmutual.io/home/proof-of-loss/add-affected-addresses?coverId=<cover_id>&owner=<nft_owner_address>
-
-Redirect the user to the page above the proof of loss sumbission with the signature before the claim is submitted.
-
-Once the proof of loss is submitted, allow the user to submit the claim.
-
-#### redeemClaim
+##### redeemClaim
 
 Owner of the cover token reedems its claim payout. The Claim must have been approved and paid out,
 to the distributor contract for this to succeed. 
@@ -171,6 +181,28 @@ To redeem a claim both the tokenId of the cover needs to be supplied and the cla
     public
     onlyTokenApprovedOrOwner(tokenId)
     nonReentrant
+```
+
+
+#### Yield Token Cover Claims
+
+
+Claim the payout tokens by supplying an `incidentId`, the `coveredTokenAmount` of
+covered tokens with address `coverAsset` to send in exchange for the payout.
+
+Pre-condition The caller must first call `IERC20(coverAsset).approve(distributorAddress, coveredTokenAmount)`
+for the on the Distributor address so the distributor can transfer the tokens over.
+
+```
+  function claimTokens(
+    uint tokenId,
+    uint incidentId,
+    uint coveredTokenAmount,
+    address coverAsset
+  )
+    external
+    onlyTokenApprovedOrOwner(tokenId)
+    returns (uint claimId, uint payoutAmount, address payoutToken)
 ```
 
 #### getPayoutOutcome

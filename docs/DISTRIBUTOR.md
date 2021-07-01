@@ -18,7 +18,7 @@ https://github.com/NexusMutual/smart-contracts/tree/feature/distributor-relocati
 
 #### mainnet
 
-DistributorFactory: `TBD`
+DistributorFactory: `0x6752c6FbDDc24ac88f3749D8921E00c77Bffef8c`
 
 NXMaster: `0x01bfd82675dbcc7762c84019ca518e701c0cd07e`
 
@@ -38,50 +38,65 @@ This contract becomes a NexusMutual member once the KYC for its address is appro
 
 #### Deployment
 
+Easiest way to deploy a new distributor is to use Etherscan.
 
 ##### Mainnet
 
-Coming soon.
+Go to https://etherscan.io/address/0x6752c6FbDDc24ac88f3749D8921E00c77Bffef8c#writeContract
 
 ##### Kovan 
 
-```
-# install all dependencies
-npm i
-# create a .env with your configuration
-cp .env.sample .env
+Go to https://kovan.etherscan.io/address/0x2920bad71C8C7cf53f857710345f4cA65F288Ad5#writeContract
 
-# fill in the blanks in .env with the following vars as shown in the template
-# KOVAN_ACCOUNT_KEY=set your private key here
-# KOVAN_PROVIDER_URL=https://mainnet.infura.io/v3/apikey
-# KOVAN_GAS_PRICE=1
-# KOVAN_GAS_LIMIT=12000000
+##### Parameters
 
-# run deploy
-npm run distributor-deploy-kovan
+Use the `newDistributor` tx call with the following parameters:
 
-# If succesful your contract address will be prinded as such:
-# Successfully deployed at 0x...
-```
+* **payableAmount** - 0.002 (exact ETH fee paid to register the Distributor as a NexusMutual member)
+
+
+* **_feePercentage** = fee percentage of choice added on top of each cover sale as number 2 decimals points.
+                 (eg. 725 for 7.25%, 1000 for 10%). Can be changed later with `setFeePercentage`
+                 
+                 
+* **treasury** = Address to which all your profits from fees and sellNXM ETH returns will be automatically sent to. Can be changed later with `setTreasury`
+
+
+* **tokenName** = your NFT token name of choice (eg. "Supercycle Gains Distributor")
+
+
+* **tokenSymbol** = your NFT token symbol of choice (eg. "SGD")
+
+
+Once the transaction is executed, go to the `eventLog` section for your transaction at https://etherscan.io/tx/<yourtxhash>#eventlog (
+or https://kovan.etherscan.io/tx/<yourtxhash>#eventlog for kovan)
+
+And see the address of your new distributor contract in the `DistributorCreated` event as the `contractAddress` field. 
 
 #### KYC
 
+KYC must to be performed before any cover purchases can go through. 
+
 ##### Mainnet
 
-Once the script has generated a mainnet deployment take the resulting contract and follow the steps
+Once you have your distributor contract address mainnet deployment take the resulting contract and follow the steps
 at this link to KYC the address.
 https://app.nexusmutual.io/home/distributor
 
+This will take some time until its processed.
+
 ##### Kovan
 
-Distributors deployed with `npm run distributor-deploy-kovan` are already KYCed.
+Use the SelfKyc contract to approve the KYC for your distributor address.
 
-If you want to KYC an EOA or another contract, use:
+https://kovan.etherscan.io/address/0x74e0be134744ca896196796a58203d090bc791fe#writeContract
 
-`npm run distributor-kovan-self-kyc`
+call `approveKyc` with 
 
-This command assumes your `.env` has a `KOVAN_ACCOUNT` address
-with at least `0.002` KETH to pay for the joining fee. 
+* payableAmount = 0
+* member = *your distributor address*
+
+This will automatically KYC the contract on the Kovan deployment.
 
 ### Contract functionality
 

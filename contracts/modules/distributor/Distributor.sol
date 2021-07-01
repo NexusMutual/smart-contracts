@@ -38,6 +38,18 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
     uint coverPrice
   );
 
+  event FeePercentageChanged (
+    uint feePercentage
+  );
+
+  event BuysAllowedChanged (
+    bool buysAllowed
+  );
+
+  event TreasuryChanged (
+    address treasury
+  );
+
   /*
    feePercentage applied to every cover premium. has 2 decimals. eg.: 10.00% stored as 1000
   */
@@ -71,6 +83,8 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
   )
   ERC721(tokenName, tokenSymbol)
   {
+
+    require(_treasury != address(0), "Distributor: treasury address is 0");
     feePercentage = _feePercentage;
     treasury = _treasury;
     gateway = IGateway(gatewayAddress);
@@ -83,7 +97,7 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
   * @param contractAddress contract address of coverable
   * @param coverAsset asset of the premium and of the sum assured.
   * @param sumAssured amount payable if claim is submitted and considered valid
-  * @param coverType cover type dermining how the data parameter is decoded
+  * @param coverType cover type determining how the data parameter is decoded
   * @param maxPriceWithFee max price (including fee) to be spent on the cover.
   * @param data abi-encoded field with additional cover data fields
   * @return token id
@@ -201,7 +215,7 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
   }
 
   /**
-  * @notice Redeem the claim to the cover. Requires that that the payout is completed.
+  * @notice Redeem the claim to the cover. Requires that the payout is completed.
   * @param tokenId cover token id
   */
   function redeemClaim(
@@ -230,7 +244,7 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
   }
 
   /**
-  * @notice Execute an action on specific cover token. The action is identified by an `action` id.
+  * @notice Execute an action on a specific cover token. The action is identified by an `action` id.
       Allows for an ETH transfer or an ERC20 transfer.
       If less than the supplied assetAmount is needed, it is returned to `msg.sender`.
   * @dev The purpose of this function is future-proofing for updates to the cover buy->claim cycle.
@@ -352,6 +366,7 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
   */
   function setBuysAllowed(bool _buysAllowed) external onlyOwner {
     buysAllowed = _buysAllowed;
+    emit BuysAllowedChanged(_buysAllowed);
   }
 
   /**
@@ -359,7 +374,9 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
   * @param _treasury new treasury address
   */
   function setTreasury(address payable _treasury) external onlyOwner {
+    require(_treasury != address(0), "Distributor: treasury address is 0");
     treasury = _treasury;
+    emit TreasuryChanged(_treasury);
   }
 
   /**
@@ -384,6 +401,7 @@ contract Distributor is ERC721, Ownable, ReentrancyGuard {
   */
   function setFeePercentage(uint _feePercentage) external onlyOwner {
     feePercentage = _feePercentage;
+    emit FeePercentageChanged(_feePercentage);
   }
 
   /**

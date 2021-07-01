@@ -19,7 +19,7 @@ const ERC20BlacklistableMock = artifacts.require('ERC20BlacklistableMock');
 const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 
 const [
-  owner, member1, member2, member3, coverHolder, distributorOwner, nonOwner, treasury, newMemberAddress,
+  owner, member1, member2, member3, coverHolder, distributorOwner, nonOwner, treasury, newMemberAddress, newTreasury,
 ] = accounts;
 
 const DEFAULT_FEE_PERCENTAGE = 500; // 5%
@@ -51,12 +51,12 @@ const daiCoverTemplate = {
   contractAddress: '0xd0a6E6C54DbC68Db5db3A091B171A77407Ff7ccf',
 };
 
-async function buyCover ({ coverData, coverHolder, distributor, qt, dai, feePercentage }) {
+async function buyCover ({ coverData, coverHolder, distributor, qt, dai, feePercentage = DEFAULT_FEE_PERCENTAGE }) {
 
   const basePrice = new BN(coverData.price);
 
   const data = await getBuyCoverDataParameter({ qt, coverData });
-  const priceWithFee = basePrice.muln(DEFAULT_FEE_PERCENTAGE || feePercentage).divn(10000).add(basePrice);
+  const priceWithFee = basePrice.muln(parseInt(feePercentage)).divn(10000).add(basePrice);
 
   if (coverData.asset === ETH) {
     return await distributor.buyCover(
@@ -122,7 +122,7 @@ describe('Distributor', function () {
   });
 
   it('claimTokens sends DAI tokens in exchange of ybDAI to NFT owner', async function () {
-    const { dai, incidents, gateway, distributor, cd: claimsData } = this.contracts;
+    const { dai, incidents, distributor, cd: claimsData } = this.contracts;
 
     await dai.mint(coverHolder, ether('10000000'));
     const ybDAI = await ERC20MintableDetailed.new('yield bearing DAI', 'ybDAI', 18);
@@ -183,7 +183,7 @@ describe('Distributor', function () {
   });
 
   it('claimTokens sends ETH tokens in exchange of ybETH to NFT owner', async function () {
-    const { dai, incidents, gateway, distributor, cd: claimsData } = this.contracts;
+    const { incidents, distributor, cd: claimsData } = this.contracts;
 
     const ybETH = await ERC20MintableDetailed.new('yield bearing ETH', 'ybETH', 18);
     await ybETH.mint(coverHolder, ether('10000000'));
@@ -247,7 +247,7 @@ describe('Distributor', function () {
   });
 
   it('claimTokens reverts when given a token which does not belong to a listed product', async function () {
-    const { dai, incidents, gateway, distributor, cd: claimsData } = this.contracts;
+    const { dai, incidents, distributor } = this.contracts;
 
     await dai.mint(coverHolder, ether('10000000'));
     const ybDAI = await ERC20MintableDetailed.new('yield bearing DAI', 'ybDAI', 18);
@@ -275,7 +275,6 @@ describe('Distributor', function () {
     );
 
     const expectedCoverId = 1;
-    const daiBalanceBefore = await dai.balanceOf(coverHolder);
     const requestedAmount = ether('500');
     await expectRevert(distributor.claimTokens(
       expectedCoverId,
@@ -827,19 +826,6 @@ describe('Distributor', function () {
     assert.equal(newAddressBalance.toString(), oldAddressBalance.toString());
   });
 
-  it('allows setting the fee percentage by owner', async function () {
-    const { distributor } = this.contracts;
-
-    const newFeePercentage = '20000';
-
-    await distributor.setFeePercentage(newFeePercentage, {
-      from: distributorOwner,
-    });
-
-    const storedFeePercentage = await distributor.feePercentage();
-    assert(storedFeePercentage.toString(), newFeePercentage);
-  });
-
   it('allows purchases with 0% fee percentage', async function () {
     const { distributor } = this.contracts;
 
@@ -854,19 +840,6 @@ describe('Distributor', function () {
     const coverData = { ...ethCoverTemplate };
 
     await buyCover({ ...this.contracts, coverData, coverHolder, feePercentage: newFeePercentage });
-  });
-
-  it('disallows setting the fee percentage by non-owner', async function () {
-    const { distributor } = this.contracts;
-
-    const newFeePercentage = '20000';
-
-    await expectRevert(
-      distributor.setFeePercentage(newFeePercentage, {
-        from: nonOwner,
-      }),
-      'Ownable: caller is not the owner',
-    );
   });
 
   it('reverts on executeCoverAction - no action supported at this time', async function () {

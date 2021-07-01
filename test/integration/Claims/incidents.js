@@ -256,9 +256,9 @@ describe('incidents', function () {
     );
   });
 
-  it('pays the correct amount and reverts on duplicate claim', async function () {
+  it('pays the correct amount, returns cover note deposit and reverts on duplicate claim', async function () {
 
-    const { dai, incidents, qd } = this.contracts;
+    const { dai, incidents, qd, tk } = this.contracts;
 
     const cover = { ...coverTemplate };
     await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
@@ -281,12 +281,18 @@ describe('incidents', function () {
     const [coverId] = await qd.getAllCoversOfUser(coverHolder);
     const incidentId = '0';
 
+    const nxmBalanceBefore = await tk.balanceOf(coverHolder);
     const daiBalanceBefore = await dai.balanceOf(coverHolder);
     await incidents.redeemPayout(coverId, incidentId, tokenAmount, { from: coverHolder });
     const daiBalanceAfter = await dai.balanceOf(coverHolder);
+    const nxmBalanceAfter = await tk.balanceOf(coverHolder);
 
     const daiDiff = daiBalanceAfter.sub(daiBalanceBefore);
     bnEqual(daiDiff, sumAssured);
+
+    // check for cover note unlock
+    const nxmBalanceDiff = nxmBalanceAfter.sub(nxmBalanceBefore);
+    bnEqual(nxmBalanceDiff, toBN(cover.priceNXM).divn(10));
 
     await expectRevert(
       incidents.redeemPayout(coverId, incidentId, tokenAmount, { from: coverHolder }),

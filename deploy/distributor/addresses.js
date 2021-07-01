@@ -1,6 +1,6 @@
 const FACTORY = {
   kovan: '0x2920bad71C8C7cf53f857710345f4cA65F288Ad5',
-  mainnet: '0x63613a6201C03e53913cA1D29Ea0789750dA5238',
+  mainnet: '0x6752c6FbDDc24ac88f3749D8921E00c77Bffef8c',
 };
 
 const MASTER = {

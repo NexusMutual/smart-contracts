@@ -71,8 +71,7 @@ Use the `newDistributor` tx call with the following parameters:
 Once the transaction is executed, go to the `eventLog` section for your transaction at https://etherscan.io/tx/<yourtxhash>#eventlog (
 or https://kovan.etherscan.io/tx/<yourtxhash>#eventlog for kovan)
 
-
-And see the address of your new distributor contract in the `DistributorCreated` event as `contractAddress` field. 
+And see the address of your new distributor contract in the `DistributorCreated` event as the `contractAddress` field. 
 
 #### KYC
 

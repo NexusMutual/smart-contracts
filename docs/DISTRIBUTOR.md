@@ -26,13 +26,12 @@ This contract becomes a Nexus Mutual member once its KYC has been approved. The 
 
 The easiest way to deploy a new distributor is to use Etherscan, on either [mainnet](https://etherscan.io/address/0x6752c6FbDDc24ac88f3749D8921E00c77Bffef8c#writeContract) or [kovan](https://kovan.etherscan.io/address/0x2920bad71C8C7cf53f857710345f4cA65F288Ad5#writeContract).
 
-
 Call `newDistributor` with the following parameters:
 * **payableAmount** - 0.002 (exact ETH fee paid to register the Distributor as a NexusMutual member)
 
 * **_feePercentage** = fee percentage of choice added on top of each cover sale as number 2 decimals points.
                  (eg. 725 for 7.25%, 1000 for 10%). Can be changed later with `setFeePercentage`
-                     
+
 * **treasury** = Address to which all your profits from fees and sellNXM ETH returns will be automatically sent to. Can be changed later with `setTreasury`
 
 * **tokenName** = your NFT token name of choice (eg. "Supercycle Gains Distributor")
@@ -90,6 +89,7 @@ the NexusMutual quote api, which is then abi-encoded as part of the `data` param
 See this node.js [example code](https://github.com/NexusMutual/smart-contracts/blob/master/examples/example-distributor-buy-cover.js) for buying cover. Equivalent code will have to be implemented on the UI side. The example code uses the hardhat `run` command to run and TruffleContract; however it should be easily translatable to frontend code that does the equivalent with the library of your choice
 (web3, ethers etc). 
 
+
 ## 2. Claim Flow: Protocol Cover & Custody Cover Types
 
 Claims for Protocol and Custody cover types require 3 steps:
@@ -141,7 +141,6 @@ To redeem a claim, both the `tokenId` of the cover and the `claimId` to be redee
     onlyTokenApprovedOrOwner(tokenId)
     nonReentrant
 ```
-
 
 ## 3. Claim Flow: Yield Token Cover
 
@@ -278,6 +277,7 @@ function setTreasury(address payable _treasury) external onlyOwner
 ## API endpoints
 
 To enable users to `buyCover` a signed price quote is currently necessary.
+
 
 * #### GET v1/quote
 

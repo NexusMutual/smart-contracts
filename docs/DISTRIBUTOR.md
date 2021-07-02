@@ -217,6 +217,9 @@ The cover NFT identifier used by the distributor contract.
 The incident index that matches the properties of a yield token cover.
 
 Incidents are stored in `Incidents.sol` and can be retrieved by loading all `IncidentAdded` events chronologically. The first event will have index 0.
+`Incidents.sol` is deployed at the following addresses:
+- Kovan: `0x322f9a880189E3FFFf59b74644e13e5763C5AdB9`
+- Mainnet: `0x8CEBa69a8e96a4ce71Aa65859DBdb180B489a719`
 
 A UI should search through all submitted incidents and find the matching one using the following criteria:
 - The incident's `productId` must match the cover's `contractAddress`.

@@ -12,7 +12,7 @@ The Distributor has a standard implementation `Distributor.sol` which is deploye
 
 Code is here:
 
-https://github.com/NexusMutual/smart-contracts/tree/feature/distributor-relocation/contracts/modules/distributor
+https://github.com/NexusMutual/smart-contracts/tree/master/contracts/modules/distributor
 
 ### Addresses
 
@@ -134,7 +134,7 @@ should be easily translatable to frontend code that does the equivalent with the
 
 Example:
 
-https://github.com/NexusMutual/smart-contracts/blob/feature/distributor-relocation/examples/example-distributor-buy-cover.js
+https://github.com/NexusMutual/smart-contracts/blob/master/examples/example-distributor-buy-cover.js
 
 #### Protocol Cover Claims
 
@@ -177,7 +177,7 @@ The `data` field is currently unused.
 See the following example node.js code for submitting a claim for a particular cover (cover id matches the NFT token id).
 Example:
 
-https://github.com/NexusMutual/smart-contracts/blob/feature/distributor-relocation/examples/example-distributor-submit-claim.js
+https://github.com/NexusMutual/smart-contracts/blob/master/examples/example-distributor-submit-claim.js
 
 ##### redeemClaim
 

@@ -4,7 +4,7 @@ Sell NexusMutual cover to users without KYC.
 
 Earn revenue on each sale through an optional fee and the NXM deposit return!
 
-Issue NFTs for each NexusMutual cover that users own and can freely trade. 
+Issue NFTs for each NexusMutual cover that users own and can freely trade.
 
 ### Code
 
@@ -44,7 +44,7 @@ Easiest way to deploy a new distributor is to use Etherscan.
 
 Go to https://etherscan.io/address/0x6752c6FbDDc24ac88f3749D8921E00c77Bffef8c#writeContract
 
-##### Kovan 
+##### Kovan
 
 Go to https://kovan.etherscan.io/address/0x2920bad71C8C7cf53f857710345f4cA65F288Ad5#writeContract
 
@@ -57,8 +57,8 @@ Use the `newDistributor` tx call with the following parameters:
 
 * **_feePercentage** = fee percentage of choice added on top of each cover sale as number 2 decimals points.
                  (eg. 725 for 7.25%, 1000 for 10%). Can be changed later with `setFeePercentage`
-                 
-                 
+
+
 * **treasury** = Address to which all your profits from fees and sellNXM ETH returns will be automatically sent to. Can be changed later with `setTreasury`
 
 
@@ -71,11 +71,11 @@ Use the `newDistributor` tx call with the following parameters:
 Once the transaction is executed, go to the `eventLog` section for your transaction at https://etherscan.io/tx/<yourtxhash>#eventlog (
 or https://kovan.etherscan.io/tx/<yourtxhash>#eventlog for kovan)
 
-And see the address of your new distributor contract in the `DistributorCreated` event as the `contractAddress` field. 
+And see the address of your new distributor contract in the `DistributorCreated` event as the `contractAddress` field.
 
 #### KYC
 
-KYC must to be performed before any cover purchases can go through. 
+KYC must to be performed before any cover purchases can go through.
 
 ##### Mainnet
 
@@ -91,7 +91,7 @@ Use the SelfKyc contract to approve the KYC for your distributor address.
 
 https://kovan.etherscan.io/address/0x74e0be134744ca896196796a58203d090bc791fe#writeContract
 
-call `approveKyc` with 
+call `approveKyc` with
 
 * payableAmount = 0
 * member = *your distributor address*
@@ -128,9 +128,9 @@ the NexusMutual quote engine, which is then abi-encoded as part of the `data` pa
 ```
 
 See the following example node.js code for buying cover. Equivalent code will have to be implemented
-on the UI side. Example code uses the hardhat `run` command to run and TruffleContract however it 
+on the UI side. Example code uses the hardhat `run` command to run and TruffleContract however it
 should be easily translatable to frontend code that does the equivalent with the library of choice
-(web3, ethers etc.). 
+(web3, ethers etc.).
 
 Example:
 
@@ -158,7 +158,7 @@ Redirect the user to the page above the proof of loss submission with the signat
 Once the proof of loss is submitted, allow the user to submit the claim.
 
 
-##### submitClaim 
+##### submitClaim
 
 Submit claim for the cover. Only one claim at a time can be active.
 
@@ -182,11 +182,11 @@ https://github.com/NexusMutual/smart-contracts/blob/master/examples/example-dist
 ##### redeemClaim
 
 Owner of the cover token reedems its claim payout. The Claim must have been approved and paid out,
-to the distributor contract for this to succeed. 
+to the distributor contract for this to succeed.
 
 Once redeemed the NFT token is burned.
 
-To redeem a claim both the tokenId of the cover needs to be supplied and the claim id being redeemed. 
+To redeem a claim both the tokenId of the cover needs to be supplied and the claim id being redeemed.
 
 ```
   function redeemClaim(
@@ -202,11 +202,43 @@ To redeem a claim both the tokenId of the cover needs to be supplied and the cla
 #### Yield Token Cover Claims
 
 
-Claim the payout tokens by supplying an `incidentId`, the `coveredTokenAmount` of
-covered tokens with address `coverAsset` to send in exchange for the payout.
+##### claimTokens
+Claims the underlying tokens in exchange for depegged yield tokens at a price of 90% the price before the depeg incident.
 
 Pre-condition The caller must first call `IERC20(coverAsset).approve(distributorAddress, coveredTokenAmount)`
-for the on the Distributor address so the distributor can transfer the tokens over.
+on the Distributor address so the distributor can transfer the tokens over.
+
+The function requires 4 arguments:
+
+`tokenId`
+The cover NFT identifier used by the distributor contract.
+
+`incidentId`
+The incident index that matches the properties of a yield token cover.
+
+Incidents are stored in `Incidents.sol` and can be retrieved by loading all `IncidentAdded` events chronologically. The first event will have index 0.
+`Incidents.sol` is deployed at the following addresses:
+- Kovan: `0x322f9a880189E3FFFf59b74644e13e5763C5AdB9`
+- Mainnet: `0x8CEBa69a8e96a4ce71Aa65859DBdb180B489a719`
+
+A UI should search through all submitted incidents and find the matching one using the following criteria:
+- The incident's `productId` must match the cover's `contractAddress`.
+- The incident's `date` must be after the cover's `purchaseDate`.
+- The incident's `date` must be before the cover's `validUntil`.
+
+When multiple incidents match the criteria, the UI should use the one with the highest `priceBefore` which is what a user would naturally choose.
+
+If an invalid `incidentId` is provided, the call will revert.
+
+`coveredTokenAmount`
+The amount of depegged yield tokens that should be swapped back to their underlying asset.
+
+One thing to keep in mind here is that the user will be reimbursed at a price of 90% the price before the incident.
+
+Example: Given the price of 1 yDAI before the incident at 1 DAI and a yield token cover of 100 DAI, the reimbursement price is 0.9 DAI for each 1 yDAI.  If the user sends 111.(1) yDAI he gets the full amount of 100 DAI.  If the user instead sends 100 yDAI, only 90 DAI will be reimbursed.
+
+`coverAsset`
+The address of the depegged yield token's ERC20 contract.
 
 ```
   function claimTokens(
@@ -244,7 +276,7 @@ All claims start with `IN_PROGRESS` and end up being `ACCEPTED` or `REJECTED`.
 
 #### Owner admin
 
-The contract accrues NXM over time as covers expire or are claimed. 
+The contract accrues NXM over time as covers expire or are claimed.
 The owner controls the NXM tokens stored in the contract.
 The owner can withdraw, sell, or provide sell allowance for NXM.
 
@@ -257,13 +289,13 @@ for storing its fees at any time.
 #### approveNXM
 
 ```
-  function approveNXM(address spender, uint256 amount) public onlyOwner 
+  function approveNXM(address spender, uint256 amount) public onlyOwner
 ```
 
 #### withdrawNXM
 
 ```
-function withdrawNXM(address recipient, uint256 amount) public onlyOwner 
+function withdrawNXM(address recipient, uint256 amount) public onlyOwner
 ```
 
 #### sellNXM
@@ -271,16 +303,16 @@ function withdrawNXM(address recipient, uint256 amount) public onlyOwner
 Sell NXM stored in the distributor contract. The resulting ETH is sent to the `treasury` address.
 
 ```
-function sellNXM(uint nxmIn, uint minEthOut) external onlyOwner 
+function sellNXM(uint nxmIn, uint minEthOut) external onlyOwner
 ```
 
 #### switchMembership
 
 Switch membership to another address of your choice. Currently requires that all covers tied
-to the distributor are expired or claimed. 
+to the distributor are expired or claimed.
 
 ```
-function switchMembership(address newAddress) external onlyOwner 
+function switchMembership(address newAddress) external onlyOwner
 ```
 
 #### setFeePercentage
@@ -288,7 +320,7 @@ function switchMembership(address newAddress) external onlyOwner
 Change the added fee on top of cover purchases at any time.
 
 ```
-function setFeePercentage(uint _feePercentage) external onlyOwner 
+function setFeePercentage(uint _feePercentage) external onlyOwner
 ```
 
 #### setBuysAllowed
@@ -296,7 +328,7 @@ function setFeePercentage(uint _feePercentage) external onlyOwner
 Pause/unpause cover purchases at any time.
 
 ```
-function setBuysAllowed(bool _buysAllowed) external onlyOwner 
+function setBuysAllowed(bool _buysAllowed) external onlyOwner
 ```
 
 #### setTreasury
@@ -313,7 +345,7 @@ To enable users to `buyCover` a signed price quote is currently necessary.
 
 #### GET v1/quote
 
-Get a signed price quote to use as part 
+Get a signed price quote to use as part
 
 
 Example mainnet call:
@@ -364,7 +396,7 @@ curl  -X GET 'https://api.staging.nexusmutual.io/v1/contracts/0xC57D000000000000
 Example Mainnet call:
 ```
 curl  -X GET  -H "Origin: http://yourcustomorigin.com" 'https://api.nexusmutual.io/v1/contracts/0xC57D000000000000000000000000000000000002/capacity'
-``` 
+```
 
 Example response:
 
@@ -408,7 +440,4 @@ Example response:
 }
 ```
 
-Important: If an entry has `"deprecated": true` skip it. no more covers can be bought on it. 
-
-
-
+Important: If an entry has `"deprecated": true` skip it. no more covers can be bought on it.

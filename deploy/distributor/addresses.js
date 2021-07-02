@@ -1,5 +1,5 @@
 const FACTORY = {
-  kovan: '0x2920bad71C8C7cf53f857710345f4cA65F288Ad5',
+  kovan: '0xaF6fb7f0248B89cf8AAdda3C0373874a358E98CC',
   mainnet: '0x6752c6FbDDc24ac88f3749D8921E00c77Bffef8c',
 };
 

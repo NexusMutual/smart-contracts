@@ -19,12 +19,12 @@ This contract becomes a Nexus Mutual member once its KYC has been approved. The 
 
 #### Kovan
 
-- DistributorFactory: `0x2920bad71C8C7cf53f857710345f4cA65F288Ad5`
+- DistributorFactory: `0xaF6fb7f0248B89cf8AAdda3C0373874a358E98CC`
 - NXMaster: `0x2561D7f2436C121281388ecd54c702e55Aa24043`
 
 ## Deployment
 
-The easiest way to deploy a new distributor is to use Etherscan, on either [mainnet](https://etherscan.io/address/0x6752c6FbDDc24ac88f3749D8921E00c77Bffef8c#writeContract) or [kovan](https://kovan.etherscan.io/address/0x2920bad71C8C7cf53f857710345f4cA65F288Ad5#writeContract).
+The easiest way to deploy a new distributor is to use Etherscan, on either [mainnet](https://etherscan.io/address/0x6752c6FbDDc24ac88f3749D8921E00c77Bffef8c#writeContract) or [kovan](https://kovan.etherscan.io/address/0xaF6fb7f0248B89cf8AAdda3C0373874a358E98CC#writeContract).
 
 Call `newDistributor` with the following parameters:
 * **payableAmount** - 0.002 (exact ETH fee paid to register the Distributor as a NexusMutual member)

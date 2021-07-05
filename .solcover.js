@@ -4,6 +4,7 @@ module.exports = {
     'abstract/',
     'interfaces/',
     'external/',
+    'utils/',
     'modules/token/external',
     'modules/governance/external',
   ],

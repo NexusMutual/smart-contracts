@@ -20,13 +20,13 @@ import "./external/OwnedUpgradeabilityProxy.sol";
 contract NXMaster is INXMMaster, Governed {
   using SafeMath for uint;
 
-  struct EmergencyPause {
+  struct UnusedStruct0 {
     bool pause;
     uint time;
     bytes4 by;
   }
 
-  EmergencyPause[] public emergencyPaused;
+  UnusedStruct0[] public _unused0;
 
   bytes2[] internal allContractNames;
   mapping(address => bool) public contractsActive;
@@ -38,13 +38,21 @@ contract NXMaster is INXMMaster, Governed {
   bool internal reentrancyLock;
   bool public masterInitialized;
   address public owner;
-  uint public pauseTime;
+  uint public _unused1;
+
+  address public emergencyAdmin;
+  bool public paused;
 
   modifier noReentrancy() {
     require(!reentrancyLock, "Reentrant call.");
     reentrancyLock = true;
     _;
     reentrancyLock = false;
+  }
+
+  modifier onlyEmergencyAdmin() {
+    require(msg.sender == emergencyAdmin, "NXMaster: Not emergencyAdmin");
+    _;
   }
 
   function upgradeMultipleImplementations(
@@ -133,22 +141,10 @@ contract NXMaster is INXMMaster, Governed {
 
   }
 
-  /// @dev Add Emergency pause
-  /// @param _pause to set Emergency Pause ON/OFF
-  /// @param _by to set who Start/Stop EP
-  function addEmergencyPause(bool _pause, bytes4 _by) public onlyAuthorizedToGovern {
-    emergencyPaused.push(EmergencyPause(_pause, now, _by));
-    if (_pause == false) {
-      IClaims c1 = IClaims(allContractVersions["CL"]);
-      c1.submitClaimAfterEPOff(); // Process claims submitted while EP was on
-      c1.startAllPendingClaimsVoting(); // Resume voting on all pending claims
-    }
-  }
-
-  ///@dev update time in seconds for which emergency pause is applied.
-  function updatePauseTime(uint _time) public {
-    require(isInternal(msg.sender), "Not internal call.");
-    pauseTime = _time;
+  /// @dev set Emergency pause
+  /// @param _paused to toggle emergency pause ON/OFF
+  function setEmergencyPause(bool _paused) public onlyEmergencyAdmin {
+    paused = _paused;
   }
 
   /// @dev upgrades multiple contracts at a time
@@ -207,33 +203,13 @@ contract NXMaster is INXMMaster, Governed {
 
   /// @dev Checks whether emergency pause id on/not.
   function isPause() public view returns (bool) {
-    uint length = emergencyPaused.length;
-    return length > 0 && emergencyPaused[length - 1].pause;
+    return paused;
   }
 
   /// @dev checks whether the address is a member of the mutual or not.
   function isMember(address _add) public view returns (bool) {
     IMemberRoles mr = IMemberRoles(getLatestAddress("MR"));
     return mr.checkRole(_add, uint(IMemberRoles.Role.Member));
-  }
-
-  ///@dev Gets the number of emergency pause has been toggled.
-  function getEmergencyPausedLength() public view returns (uint len) {
-    len = emergencyPaused.length;
-  }
-
-  ///@dev Gets last emergency pause details.
-  function getLastEmergencyPause() public view returns (bool _pause, uint _time, bytes4 _by) {
-    _pause = false;
-    _time = 0;
-    _by = "";
-    uint len = getEmergencyPausedLength();
-    if (len > 0) {
-      len = len.sub(1);
-      _pause = emergencyPaused[len].pause;
-      _time = emergencyPaused[len].time;
-      _by = emergencyPaused[len].by;
-    }
   }
 
   /// @dev Gets latest version name and address
@@ -312,13 +288,6 @@ contract NXMaster is INXMMaster, Governed {
     return isAuthorizedToGovern(_add);
   }
 
-  /// @dev Allow AB Members to Start Emergency Pause
-  function startEmergencyPause() public onlyAuthorizedToGovern {
-    addEmergencyPause(true, "AB"); // Start Emergency Pause
-    IClaims c1 = IClaims(allContractVersions["CL"]);
-    c1.pauseAllPendingClaimsVoting(); // Pause Voting of all pending Claims
-  }
-
   /**
    * @dev to update the owner parameters
    * @param code is the associated code
@@ -352,6 +321,8 @@ contract NXMaster is INXMMaster, Governed {
       qd = IQuotationData(getLatestAddress("QD"));
       qd.setKycAuthAddress(val);
 
+    } else if (code == "EMADMIN") {
+      emergencyAdmin = val;
     } else {
       revert("Invalid param code");
     }

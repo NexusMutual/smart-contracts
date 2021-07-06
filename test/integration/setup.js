@@ -71,7 +71,7 @@ async function setup () {
     await proxy.transferProxyOwnership(newOwner);
   };
 
-  const [owner] = accounts;
+  const [owner, emergencyAdmin] = accounts;
 
   // deploy external contracts
   const { router, factory, weth } = await setupUniswap();
@@ -151,7 +151,7 @@ async function setup () {
   await master.initialize(
     owner,
     tk.address,
-    28 * 24 * 3600, // emergency pause time 28 days
+    emergencyAdmin,
     codes.map(hex), // codes
     codes.map(contractType), // types
     addresses, // addresses

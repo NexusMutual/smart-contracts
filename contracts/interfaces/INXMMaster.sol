@@ -8,8 +8,6 @@ interface INXMMaster {
 
   function owner() external view returns (address);
 
-  function pauseTime() external view returns (uint);
-
   function masterInitialized() external view returns (bool);
 
   function isInternal(address _add) external view returns (bool);
@@ -21,8 +19,6 @@ interface INXMMaster {
   function isMember(address _add) external view returns (bool);
 
   function checkIsAuthToGoverned(address _add) external view returns (bool);
-
-  function updatePauseTime(uint _time) external;
 
   function dAppLocker() external view returns (address _add);
 

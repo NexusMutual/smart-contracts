@@ -9,7 +9,6 @@ contract DisposableNXMaster is NXMaster {
   function initialize(
     address _owner,
     address _tokenAddress,
-    uint _pauseTime,
     bytes2[] calldata _contractNames,
     uint8[] calldata _contractTypes, // 0 - eternal storage, 1 - "upgradable", 2 - proxy
     address payable[] calldata _contractAddresses
@@ -20,7 +19,6 @@ contract DisposableNXMaster is NXMaster {
 
     owner = _owner;
     tokenAddress = _tokenAddress;
-    pauseTime = _pauseTime;
 
     masterAddress = address(this);
     contractsActive[address(this)] = true;

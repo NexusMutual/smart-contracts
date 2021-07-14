@@ -20,13 +20,7 @@ import "./external/OwnedUpgradeabilityProxy.sol";
 contract NXMaster is INXMMaster, Governed {
   using SafeMath for uint;
 
-  struct UnusedStruct0 {
-    bool pause;
-    uint time;
-    bytes4 by;
-  }
-
-  UnusedStruct0[] public _unused0;
+  uint public _unused0;
 
   bytes2[] internal allContractNames;
   mapping(address => bool) public contractsActive;

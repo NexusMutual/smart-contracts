@@ -1,5 +1,5 @@
 describe('Master integration tests', function () {
 
-  require('./emergencyPause');
+  require('./emergency-pause');
 
 });

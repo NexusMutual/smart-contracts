@@ -191,14 +191,6 @@ contract NXMaster is INXMMaster, Governed {
     return getLatestAddress("TC");
   }
 
-  /**
-   * @dev returns the address of nxm token
-   * @return address is returned
-   */
-  function dAppToken() public view returns (address) {
-    return tokenAddress;
-  }
-
   /// @dev Gets latest contract address
   /// @param _contractName Contract name to fetch
   function getLatestAddress(bytes2 _contractName) public view returns (address payable contractAddress) {

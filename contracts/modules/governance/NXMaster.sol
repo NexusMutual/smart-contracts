@@ -22,9 +22,9 @@ contract NXMaster is INXMMaster, Governed {
 
   uint public _unused0;
 
-  bytes2[] internal allContractNames;
+  bytes2[] public contractCodes;
   mapping(address => bool) public contractsActive;
-  mapping(bytes2 => address payable) internal allContractVersions;
+  mapping(bytes2 => address payable) internal contractAddresses;
   mapping(bytes2 => bool) public isProxy;
   mapping(bytes2 => bool) public isUpgradable;
 
@@ -60,7 +60,7 @@ contract NXMaster is INXMMaster, Governed {
     for (uint i = 0; i < _contractNames.length; i++) {
       require(_contractAddresses[i] != address(0), "null address is not allowed.");
       require(isProxy[_contractNames[i]], "Contract should be proxy.");
-      OwnedUpgradeabilityProxy proxy = OwnedUpgradeabilityProxy(allContractVersions[_contractNames[i]]);
+      OwnedUpgradeabilityProxy proxy = OwnedUpgradeabilityProxy(contractAddresses[_contractNames[i]]);
       proxy.upgradeTo(_contractAddresses[i]);
     }
   }
@@ -76,9 +76,9 @@ contract NXMaster is INXMMaster, Governed {
   )
   external
   onlyAuthorizedToGovern {
-    require(allContractVersions[_contractName] == address(0), "Contract code is already available.");
+    require(contractAddresses[_contractName] == address(0), "Contract code is already available.");
     require(_contractAddress != address(0), "NULL address is not allowed.");
-    allContractNames.push(_contractName);
+    contractCodes.push(_contractName);
     address newInternalContract = _contractAddress;
     if (_type == 1) {
       isUpgradable[_contractName] = true;
@@ -86,9 +86,9 @@ contract NXMaster is INXMMaster, Governed {
       newInternalContract = _generateProxy(_contractAddress);
       isProxy[_contractName] = true;
     }
-    allContractVersions[_contractName] = address(uint160(newInternalContract));
+    contractAddresses[_contractName] = address(uint160(newInternalContract));
     contractsActive[newInternalContract] = true;
-    LegacyMasterAware up = LegacyMasterAware(allContractVersions[_contractName]);
+    LegacyMasterAware up = LegacyMasterAware(contractAddresses[_contractName]);
     up.changeMasterAddress(address(this));
     up.changeDependentContractAddress();
   }
@@ -127,27 +127,27 @@ contract NXMaster is INXMMaster, Governed {
       require(isUpgradable[_contractsName[i]], "Contract should be upgradable.");
 
       if (_contractsName[i] == "QT") {
-        IQuotation qt = IQuotation(allContractVersions["QT"]);
+        IQuotation qt = IQuotation(contractAddresses["QT"]);
         qt.transferAssetsToNewContract(newAddress);
 
       } else if (_contractsName[i] == "CR") {
         ITokenController tc = ITokenController(getLatestAddress("TC"));
         tc.addToWhitelist(newAddress);
-        tc.removeFromWhitelist(allContractVersions["CR"]);
-        IClaimsReward cr = IClaimsReward(allContractVersions["CR"]);
+        tc.removeFromWhitelist(contractAddresses["CR"]);
+        IClaimsReward cr = IClaimsReward(contractAddresses["CR"]);
         cr.upgrade(newAddress);
 
       } else if (_contractsName[i] == "P1") {
-        IPool p1 = IPool(allContractVersions["P1"]);
+        IPool p1 = IPool(contractAddresses["P1"]);
         p1.upgradeCapitalPool(newAddress);
       }
 
-      address payable oldAddress = allContractVersions[_contractsName[i]];
+      address payable oldAddress = contractAddresses[_contractsName[i]];
       contractsActive[oldAddress] = false;
-      allContractVersions[_contractsName[i]] = newAddress;
+      contractAddresses[_contractsName[i]] = newAddress;
       contractsActive[newAddress] = true;
 
-      LegacyMasterAware up = LegacyMasterAware(allContractVersions[_contractsName[i]]);
+      LegacyMasterAware up = LegacyMasterAware(contractAddresses[_contractsName[i]]);
       up.changeMasterAddress(address(this));
     }
 
@@ -186,11 +186,11 @@ contract NXMaster is INXMMaster, Governed {
     address[] memory contractsAddress
   )
   {
-    contractsName = allContractNames;
-    contractsAddress = new address[](allContractNames.length);
+    contractsName = contractCodes;
+    contractsAddress = new address[](contractCodes.length);
 
-    for (uint i = 0; i < allContractNames.length; i++) {
-      contractsAddress[i] = allContractVersions[allContractNames[i]];
+    for (uint i = 0; i < contractCodes.length; i++) {
+      contractsAddress[i] = contractAddresses[contractCodes[i]];
     }
   }
 
@@ -215,7 +215,7 @@ contract NXMaster is INXMMaster, Governed {
   /// @dev Gets latest contract address
   /// @param _contractName Contract name to fetch
   function getLatestAddress(bytes2 _contractName) public view returns (address payable contractAddress) {
-    contractAddress = allContractVersions[_contractName];
+    contractAddress = contractAddresses[_contractName];
   }
 
   /// @dev Creates a new version of contract addresses
@@ -223,16 +223,16 @@ contract NXMaster is INXMMaster, Governed {
   function addNewVersion(address payable[] memory _contractAddresses) public {
 
     require(msg.sender == owner && !masterInitialized, "Caller should be owner and should only be called once.");
-    require(_contractAddresses.length == allContractNames.length, "array length not same");
+    require(_contractAddresses.length == contractCodes.length, "array length not same");
     masterInitialized = true;
 
     IMemberRoles mr = IMemberRoles(_contractAddresses[14]);
     // shoud send proxy address for proxy contracts (if not 1st time deploying)
     // bool isMasterUpgrade = mr.nxMasterAddress() != address(0);
 
-    for (uint i = 0; i < allContractNames.length; i++) {
+    for (uint i = 0; i < contractCodes.length; i++) {
       require(_contractAddresses[i] != address(0), "NULL address is not allowed.");
-      allContractVersions[allContractNames[i]] = _contractAddresses[i];
+      contractAddresses[contractCodes[i]] = _contractAddresses[i];
       contractsActive[_contractAddresses[i]] = true;
 
     }
@@ -302,9 +302,9 @@ contract NXMaster is INXMMaster, Governed {
 
   /// @dev Sets the older versions of contract addresses as inactive and the latest one as active.
   function _changeAllAddress() internal {
-    for (uint i = 0; i < allContractNames.length; i++) {
-      contractsActive[allContractVersions[allContractNames[i]]] = true;
-      LegacyMasterAware up = LegacyMasterAware(allContractVersions[allContractNames[i]]);
+    for (uint i = 0; i < contractCodes.length; i++) {
+      contractsActive[contractAddresses[contractCodes[i]]] = true;
+      LegacyMasterAware up = LegacyMasterAware(contractAddresses[contractCodes[i]]);
       up.changeDependentContractAddress();
     }
   }

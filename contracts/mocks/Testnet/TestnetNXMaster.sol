@@ -67,6 +67,10 @@ contract TestnetNXMaster is NXMaster {
             up.changeMasterAddress(address(this));
         }
 
-        _changeAllAddress();
+        for (uint i = 0; i < contractCodes.length; i++) {
+          contractsActive[contractAddresses[contractCodes[i]]] = true;
+          MasterAware up = MasterAware(contractAddresses[contractCodes[i]]);
+          up.changeDependentContractAddress();
+        }
     }
 }

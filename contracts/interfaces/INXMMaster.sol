@@ -22,7 +22,5 @@ interface INXMMaster {
 
   function dAppLocker() external view returns (address _add);
 
-  function dAppToken() external view returns (address _add);
-
   function getLatestAddress(bytes2 _contractName) external view returns (address payable contractAddress);
 }

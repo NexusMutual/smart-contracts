@@ -6,7 +6,7 @@ const { hex } = require('../utils').helpers;
 
 const [owner, emergencyAdmin, unknown] = accounts;
 
-describe('emergency pause', function () {
+describe.only('emergency pause', function () {
 
   it('should revert when not called by emergency admin', async function () {
 

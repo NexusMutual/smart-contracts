@@ -9,7 +9,7 @@ const [owner, emergencyAdmin, unknown] = accounts;
 
 const MMockNewContract = artifacts.require('MMockNewContract');
 
-describe.only('master', function () {
+describe.skip('master', function () {
 
   it('adds new contract', async function () {
     const { master, gv, pc, tk } = this.contracts;

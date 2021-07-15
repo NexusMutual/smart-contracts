@@ -3,7 +3,7 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../../abstract/LegacyMasterAware.sol";
+import "../../abstract/MasterAware.sol";
 import "../../interfaces/IClaims.sol";
 import "../../interfaces/IClaimsData.sol";
 import "../../interfaces/IClaimsReward.sol";
@@ -88,7 +88,7 @@ contract NXMaster is INXMMaster, Governed {
     }
     contractAddresses[_contractName] = address(uint160(newInternalContract));
     contractsActive[newInternalContract] = true;
-    LegacyMasterAware up = LegacyMasterAware(contractAddresses[_contractName]);
+    MasterAware up = MasterAware(contractAddresses[_contractName]);
     up.changeMasterAddress(address(this));
     up.changeDependentContractAddress();
   }
@@ -147,7 +147,7 @@ contract NXMaster is INXMMaster, Governed {
       contractAddresses[_contractsName[i]] = newAddress;
       contractsActive[newAddress] = true;
 
-      LegacyMasterAware up = LegacyMasterAware(contractAddresses[_contractsName[i]]);
+      MasterAware up = MasterAware(contractAddresses[_contractsName[i]]);
       up.changeMasterAddress(address(this));
     }
 
@@ -302,7 +302,7 @@ contract NXMaster is INXMMaster, Governed {
   function _changeAllAddress() internal {
     for (uint i = 0; i < contractCodes.length; i++) {
       contractsActive[contractAddresses[contractCodes[i]]] = true;
-      LegacyMasterAware up = LegacyMasterAware(contractAddresses[contractCodes[i]]);
+      MasterAware up = MasterAware(contractAddresses[contractCodes[i]]);
       up.changeDependentContractAddress();
     }
   }

@@ -104,37 +104,6 @@ contract NXMaster is INXMMaster, Governed {
     cr.changeClaimStatus(_claimId);
   }
 
-  function getOwnerParameters(bytes8 code) external view returns (bytes8 codeVal, address val) {
-    codeVal = code;
-    IQuotationData qd;
-    LegacyPoolData pd;
-    if (code == "MSWALLET") {
-      ITokenData td;
-      td = ITokenData(getLatestAddress("TD"));
-      val = td.walletAddress();
-
-    } else if (code == "MCRNOTA") {
-
-      pd = LegacyPoolData(getLatestAddress("PD"));
-      val = pd.notariseMCR();
-
-    } else if (code == "OWNER") {
-
-      val = owner;
-
-    } else if (code == "QUOAUTH") {
-
-      qd = IQuotationData(getLatestAddress("QD"));
-      val = qd.authQuoteEngine();
-
-    } else if (code == "KYCAUTH") {
-      qd = IQuotationData(getLatestAddress("QD"));
-      val = qd.kycAuthAddress();
-
-    }
-
-  }
-
   /// @dev set Emergency pause
   /// @param _paused to toggle emergency pause ON/OFF
   function setEmergencyPause(bool _paused) public onlyEmergencyAdmin {

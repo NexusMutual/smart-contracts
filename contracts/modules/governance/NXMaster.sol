@@ -198,18 +198,16 @@ contract NXMaster is INXMMaster, Governed {
    * @dev returns the address of token controller
    * @return address is returned
    */
-  function dAppLocker() public view returns (address _add) {
-
-    _add = getLatestAddress("TC");
-
+  function dAppLocker() public view returns (address) {
+    return getLatestAddress("TC");
   }
 
   /**
    * @dev returns the address of nxm token
    * @return address is returned
    */
-  function dAppToken() public view returns (address _add) {
-    _add = tokenAddress;
+  function dAppToken() public view returns (address) {
+    return tokenAddress;
   }
 
   /// @dev Gets latest contract address

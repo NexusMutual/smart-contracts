@@ -68,7 +68,7 @@ contract ClaimsReward is IClaimsReward, LegacyMasterAware {
   function closeClaim(uint _claimId) external {
 
     (, , , uint status, uint dateUpd,) = cd.getClaim(_claimId);
-    require(!(status == 12 && dateUpd.add(cd.payoutRetryTime()) > now), "Payout retry time not reached.");
+    require(!(status == 12 && dateUpd.add(cd.payoutRetryTime()) > now), "ClaimsReward: Payout retry time not reached.");
 
     changeClaimStatus(_claimId);
   }

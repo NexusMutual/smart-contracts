@@ -61,6 +61,18 @@ contract ClaimsReward is IClaimsReward, LegacyMasterAware {
     mcr = IMCR(ms.getLatestAddress("MC"));
   }
 
+  /**
+   * @dev Claims are closable by anyone
+   * @param _claimId id of claim to be closed.
+   */
+  function closeClaim(uint _claimId) external {
+
+    (, , , uint status, uint dateUpd,) = cd.getClaim(_claimId);
+    require(!(status == 12 && dateUpd.add(cd.payoutRetryTime()) > now), "Payout retry time not reached.");
+
+    changeClaimStatus(_claimId);
+  }
+
   /// @dev Decides the next course of action for a given claim.
   function changeClaimStatus(uint claimid) public checkPause onlyInternal {
 

@@ -21,8 +21,8 @@ contract TestnetNXMaster is NXMaster {
     }
 
     function switchGovernanceAddress(address payable newGV) external onlyGovernanceOwner {
-        address currentGV = allContractVersions["GV"];
-        allContractVersions["GV"] = newGV;
+        address currentGV = contractAddresses["GV"];
+        contractAddresses["GV"] = newGV;
         contractsActive[currentGV] = false;
         contractsActive[newGV] = true;
     }
@@ -43,27 +43,27 @@ contract TestnetNXMaster is NXMaster {
             require(isUpgradable[_contractsName[i]], "Contract should be upgradable.");
 
             if (_contractsName[i] == "QT") {
-                IQuotation qt = IQuotation(allContractVersions["QT"]);
+                IQuotation qt = IQuotation(contractAddresses["QT"]);
                 qt.transferAssetsToNewContract(newAddress);
 
             } else if (_contractsName[i] == "CR") {
                 ITokenController tc = ITokenController(getLatestAddress("TC"));
                 tc.addToWhitelist(newAddress);
-                tc.removeFromWhitelist(allContractVersions["CR"]);
-                IClaimsReward cr = IClaimsReward(allContractVersions["CR"]);
+                tc.removeFromWhitelist(contractAddresses["CR"]);
+                IClaimsReward cr = IClaimsReward(contractAddresses["CR"]);
                 cr.upgrade(newAddress);
 
             } else if (_contractsName[i] == "P1") {
-                IPool p1 = IPool(allContractVersions["P1"]);
+                IPool p1 = IPool(contractAddresses["P1"]);
                 p1.upgradeCapitalPool(newAddress);
             }
 
-            address payable oldAddress = allContractVersions[_contractsName[i]];
+            address payable oldAddress = contractAddresses[_contractsName[i]];
             contractsActive[oldAddress] = false;
-            allContractVersions[_contractsName[i]] = newAddress;
+            contractAddresses[_contractsName[i]] = newAddress;
             contractsActive[newAddress] = true;
 
-            LegacyMasterAware up = LegacyMasterAware(allContractVersions[_contractsName[i]]);
+            LegacyMasterAware up = LegacyMasterAware(contractAddresses[_contractsName[i]]);
             up.changeMasterAddress(address(this));
         }
 

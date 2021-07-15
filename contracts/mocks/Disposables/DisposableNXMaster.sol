@@ -35,8 +35,8 @@ contract DisposableNXMaster is NXMaster {
       bytes2 name = _contractNames[i];
       address payable contractAddress = _contractAddresses[i];
 
-      allContractNames.push(name);
-      allContractVersions[name] = contractAddress;
+      contractCodes.push(name);
+      contractAddresses[name] = contractAddress;
       contractsActive[contractAddress] = true;
 
       if (_contractTypes[i] == 1) {
@@ -50,15 +50,15 @@ contract DisposableNXMaster is NXMaster {
   function switchGovernanceAddress(address payable newGV) external {
 
     {// change governance address
-      address currentGV = allContractVersions["GV"];
-      allContractVersions["GV"] = newGV;
+      address currentGV = contractAddresses["GV"];
+      contractAddresses["GV"] = newGV;
       contractsActive[currentGV] = false;
       contractsActive[newGV] = true;
     }
 
     // notify all contracts about address change
-    for (uint i = 0; i < allContractNames.length; i++) {
-      address _address = allContractVersions[allContractNames[i]];
+    for (uint i = 0; i < contractCodes.length; i++) {
+      address _address = contractAddresses[contractCodes[i]];
       LegacyMasterAware up = LegacyMasterAware(_address);
       up.changeMasterAddress(address(this));
       up.changeDependentContractAddress();

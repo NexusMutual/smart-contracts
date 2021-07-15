@@ -93,17 +93,6 @@ contract NXMaster is INXMMaster, Governed {
     up.changeDependentContractAddress();
   }
 
-  /**
-   * @dev Anyone can close a claim if oraclize fails to close it.
-   * @param _claimId id of claim to be closed.
-   */
-  function closeClaim(uint _claimId) external {
-
-    require(canCall(_claimId), "Payout retry time not reached.");
-    IClaimsReward cr = IClaimsReward(getLatestAddress("CR"));
-    cr.changeClaimStatus(_claimId);
-  }
-
   /// @dev set Emergency pause
   /// @param _paused to toggle emergency pause ON/OFF
   function setEmergencyPause(bool _paused) public onlyEmergencyAdmin {
@@ -305,17 +294,5 @@ contract NXMaster is INXMMaster, Governed {
       MasterAware up = MasterAware(contractAddresses[contractCodes[i]]);
       up.changeDependentContractAddress();
     }
-  }
-
-  function canCall(uint _claimId) internal view returns (bool)
-  {
-    IClaimsData cd = IClaimsData(getLatestAddress("CD"));
-    (, , , uint status, uint dateUpd,) = cd.getClaim(_claimId);
-    if (status == 12) {
-      if (dateUpd.add(cd.payoutRetryTime()) > now) {
-        return false;
-      }
-    }
-    return true;
   }
 }

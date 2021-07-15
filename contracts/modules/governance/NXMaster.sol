@@ -66,29 +66,39 @@ contract NXMaster is INXMMaster, Governed {
   }
 
   /// @dev Adds new internal contract
-  /// @param _contractName contract code for new contract
-  /// @param _contractAddress contract address for new contract
+  /// @param contractCode contract code for new contract
+  /// @param contractAddress contract address for new contract
   /// @param _type pass 1 if contract is upgradable, 2 if contract is proxy, any other uint if none.
   function addNewInternalContract(
-    bytes2 _contractName,
-    address payable _contractAddress,
+    bytes2 contractCode,
+    address payable contractAddress,
     uint _type
   )
   external
   onlyAuthorizedToGovern {
-    require(contractAddresses[_contractName] == address(0), "Contract code is already available.");
-    require(_contractAddress != address(0), "NULL address is not allowed.");
-    contractCodes.push(_contractName);
-    address newInternalContract = _contractAddress;
+
+    require(contractAddresses[contractCode] == address(0), "NXMaster: code already in use");
+    require(contractAddress != address(0), "NXMaster: contract address is 0");
+
+    contractCodes.push(contractCode);
+
+    address newInternalContract;
     if (_type == 1) {
-      isUpgradable[_contractName] = true;
+
+      newInternalContract = contractAddress;
+      isUpgradable[contractCode] = true;
     } else if (_type == 2) {
-      newInternalContract = _generateProxy(_contractAddress);
-      isProxy[_contractName] = true;
+
+      newInternalContract = address(new OwnedUpgradeabilityProxy(contractAddress));
+      isProxy[contractCode] = true;
+    } else {
+      revert("NXMaster: Unsupported contract type");
     }
-    contractAddresses[_contractName] = address(uint160(newInternalContract));
+
+    contractAddresses[contractCode] = address(uint160(newInternalContract));
     contractsActive[newInternalContract] = true;
-    MasterAware up = MasterAware(contractAddresses[_contractName]);
+
+    MasterAware up = MasterAware(contractAddresses[contractCode]);
     up.changeMasterAddress(address(this));
     up.changeDependentContractAddress();
   }
@@ -268,15 +278,6 @@ contract NXMaster is INXMMaster, Governed {
     } else {
       revert("Invalid param code");
     }
-  }
-
-  /**
-   * @dev to generater proxy
-   * @param _implementationAddress of the proxy
-   */
-  function _generateProxy(address _implementationAddress) internal returns (address) {
-    OwnedUpgradeabilityProxy proxy = new OwnedUpgradeabilityProxy(_implementationAddress);
-    return address(proxy);
   }
 
   /// @dev Sets the older versions of contract addresses as inactive and the latest one as active.

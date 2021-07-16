@@ -8,8 +8,9 @@ const { hex } = require('../utils').helpers;
 const [owner, emergencyAdmin, unknown] = accounts;
 
 const MMockNewContract = artifacts.require('MMockNewContract');
+const Quotation = artifacts.require('Quotation');
 
-describe.skip('master', function () {
+describe.only('master', function () {
 
   it('adds new contract', async function () {
     const { master, gv, pc, tk } = this.contracts;
@@ -21,5 +22,27 @@ describe.skip('master', function () {
 
     const address = await master.getLatestAddress(code);
     assert.equal(address, newContract.address);
+  });
+
+  it.only('upgrades contracts', async function () {
+    const { master, gv, pc, tk } = this.contracts;
+
+    const code = hex('XX');
+    const quotation = await Quotation.new();
+
+    const contractCodes = [hex('QT')];
+    const newAddresses = [quotation.address];
+
+    const upgradeContractsData = web3.eth.abi.encodeParameters(
+      ['bytes2[]', 'address[]'],
+      [
+        contractCodes,
+        newAddresses,
+      ],
+    );
+    await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
+
+    const address = await master.getLatestAddress(code);
+    assert.equal(address, quotation.address);
   });
 });

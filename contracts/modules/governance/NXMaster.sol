@@ -230,14 +230,10 @@ contract NXMaster is INXMMaster, Governed {
     IQuotationData qd;
     LegacyPoolData pd;
     if (code == "MSWALLET") {
+
       ITokenData td;
       td = ITokenData(getLatestAddress("TD"));
       td.changeWalletAddress(val);
-
-    } else if (code == "MCRNOTA") {
-
-      pd = LegacyPoolData(getLatestAddress("PD"));
-      pd.changeNotariseAddress(val);
 
     } else if (code == "OWNER") {
 
@@ -251,11 +247,14 @@ contract NXMaster is INXMMaster, Governed {
       qd.changeAuthQuoteEngine(val);
 
     } else if (code == "KYCAUTH") {
+
       qd = IQuotationData(getLatestAddress("QD"));
       qd.setKycAuthAddress(val);
 
     } else if (code == "EMADMIN") {
+
       emergencyAdmin = val;
+
     } else {
       revert("Invalid param code");
     }

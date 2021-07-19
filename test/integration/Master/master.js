@@ -26,7 +26,7 @@ describe('master', function () {
     assert.equal(address, newContract.address);
   });
 
-  it.only('replace contract', async function () {
+  it('replace contract', async function () {
     const { master, gv, pc, tk } = this.contracts;
 
     const code = hex('QT');
@@ -49,7 +49,7 @@ describe('master', function () {
     assert.equal(address, quotation.address);
   });
 
-  it.only('upgrade proxy contract', async function () {
+  it('upgrade proxy contract', async function () {
     const { master, gv, pc, tk } = this.contracts;
 
     const code = hex('PS');
@@ -66,18 +66,41 @@ describe('master', function () {
       ],
     );
 
-    // await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
-
-    const isProxy = await master.isProxy(code);
-    console.log({
-      isProxy,
-    });
-
-    await master.upgradeMultipleContracts(contractCodes, newAddresses);
+    await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
 
     const address = await master.getLatestAddress(code);
 
     const implementation = await (await OwnedUpgradeabilityProxy.at(address)).implementation();
     assert.equal(implementation, pooledStaking.address);
+  });
+
+  it.only('upgrade proxies and replaceables', async function () {
+    const { master, gv, pc, tk } = this.contracts;
+
+    const psCode = hex('PS');
+    const qtCode = hex('QT');
+    const pooledStaking = await PooledStaking.new();
+    const quotation = await Quotation.new();
+
+    const contractCodes = [psCode, qtCode];
+    const newAddresses = [pooledStaking.address, quotation.address];
+
+    const upgradeContractsData = web3.eth.abi.encodeParameters(
+      ['bytes2[]', 'address[]'],
+      [
+        contractCodes,
+        newAddresses,
+      ],
+    );
+
+    await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
+
+    const psAddress = await master.getLatestAddress(psCode);
+
+    const implementation = await (await OwnedUpgradeabilityProxy.at(psAddress)).implementation();
+    assert.equal(implementation, pooledStaking.address);
+
+    const address = await master.getLatestAddress(qtCode);
+    assert.equal(address, quotation.address);
   });
 });

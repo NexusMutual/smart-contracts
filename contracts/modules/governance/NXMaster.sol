@@ -94,7 +94,7 @@ contract NXMaster is INXMMaster, Governed {
     address payable[] memory newAddresses
   )
   public
-  // onlyAuthorizedToGovern
+  onlyAuthorizedToGovern
   {
     require(_contractCodes.length == newAddresses.length, "NXMaster: Array length should be equal.");
 

@@ -289,12 +289,16 @@ async function setup () {
     incidents,
   };
 
+  const nonInternal = { priceFeedOracle, swapOperator };
+
   this.contracts = {
     ...external,
     ...nonUpgradable,
     ...instances,
     ...proxies,
+    ...nonInternal,
   };
+
   this.rates = {
     daiToEthRate,
     ethEthRate,

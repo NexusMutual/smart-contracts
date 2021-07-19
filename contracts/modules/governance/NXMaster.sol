@@ -16,6 +16,7 @@ import "../../interfaces/ITokenData.sol";
 import "../capital/LegacyPoolData.sol";
 import "./external/Governed.sol";
 import "./external/OwnedUpgradeabilityProxy.sol";
+import "hardhat/console.sol";
 
 contract NXMaster is INXMMaster, Governed {
   using SafeMath for uint;
@@ -93,7 +94,7 @@ contract NXMaster is INXMMaster, Governed {
     address payable[] memory newAddresses
   )
   public
-  onlyAuthorizedToGovern
+  // onlyAuthorizedToGovern
   {
     require(_contractCodes.length == newAddresses.length, "NXMaster: Array length should be equal.");
 
@@ -101,6 +102,7 @@ contract NXMaster is INXMMaster, Governed {
       address payable newAddress = newAddresses[i];
       bytes2 code = _contractCodes[i];
       require(newAddress != address(0), "NXMaster: contract address is 0");
+
       if (isProxy[code]) {
         OwnedUpgradeabilityProxy proxy = OwnedUpgradeabilityProxy(contractAddresses[code]);
         proxy.upgradeTo(newAddress);

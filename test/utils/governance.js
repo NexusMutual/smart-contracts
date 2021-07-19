@@ -14,16 +14,11 @@ const submitProposal = async (gv, category, actionData, members) => {
   await time.increase(time.duration.days(7));
 
   const closeTx = await gv.closeProposal(proposalId);
-  //  expectEvent(closeTx, 'ActionSuccess', { proposalId });
+  expectEvent(closeTx, 'ActionSuccess', { proposalId });
 
   const proposal = await gv.proposal(proposalId);
 
-  console.log({
-    proposal2: proposal[2].toString(),
-  });
   assert.equal(proposal[2].toNumber(), 3, 'proposal status != accepted');
-
-  //   await gv.triggerAction(proposalId);
 
   return proposalId;
 };

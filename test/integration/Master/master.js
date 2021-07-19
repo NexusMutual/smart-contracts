@@ -9,8 +9,10 @@ const [owner, emergencyAdmin, unknown] = accounts;
 
 const MMockNewContract = artifacts.require('MMockNewContract');
 const Quotation = artifacts.require('Quotation');
+const Incidents = artifacts.require('Incidents');
+const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 
-describe.only('master', function () {
+describe('master', function () {
 
   it('adds new contract', async function () {
     const { master, gv, pc, tk } = this.contracts;
@@ -24,13 +26,13 @@ describe.only('master', function () {
     assert.equal(address, newContract.address);
   });
 
-  it.only('upgrades contracts', async function () {
+  it('replace contract', async function () {
     const { master, gv, pc, tk } = this.contracts;
 
-    const code = hex('XX');
+    const code = hex('QT');
     const quotation = await Quotation.new();
 
-    const contractCodes = [hex('QT')];
+    const contractCodes = [code];
     const newAddresses = [quotation.address];
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
@@ -44,5 +46,29 @@ describe.only('master', function () {
 
     const address = await master.getLatestAddress(code);
     assert.equal(address, quotation.address);
+  });
+
+  it('upgrade proxy contract', async function () {
+    const { master, gv, pc, tk } = this.contracts;
+
+    const code = hex('IC');
+    const incidents = await Incidents.new();
+
+    const contractCodes = [code];
+    const newAddresses = [incidents.address];
+
+    const upgradeContractsData = web3.eth.abi.encodeParameters(
+      ['bytes2[]', 'address[]'],
+      [
+        contractCodes,
+        newAddresses,
+      ],
+    );
+    await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
+
+    const address = await master.getLatestAddress(code);
+
+    const implementation = (await OwnedUpgradeabilityProxy.at(address)).implementation();
+    assert.equal(address, incidents.address);
   });
 });

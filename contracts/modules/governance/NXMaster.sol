@@ -98,7 +98,6 @@ contract NXMaster is INXMMaster, Governed {
     require(_contractCodes.length == newAddresses.length, "NXMaster: Array length should be equal.");
 
     for (uint i = 0; i < _contractCodes.length; i++) {
-
       address payable newAddress = newAddresses[i];
       bytes2 code = _contractCodes[i];
       require(newAddress != address(0), "NXMaster: contract address is 0");

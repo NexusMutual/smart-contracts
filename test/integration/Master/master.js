@@ -9,7 +9,7 @@ const [owner, emergencyAdmin, unknown] = accounts;
 
 const MMockNewContract = artifacts.require('MMockNewContract');
 const Quotation = artifacts.require('Quotation');
-const Incidents = artifacts.require('Incidents');
+const PooledStaking = artifacts.require('PooledStaking');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 
 describe('master', function () {
@@ -26,7 +26,7 @@ describe('master', function () {
     assert.equal(address, newContract.address);
   });
 
-  it('replace contract', async function () {
+  it.only('replace contract', async function () {
     const { master, gv, pc, tk } = this.contracts;
 
     const code = hex('QT');
@@ -42,17 +42,18 @@ describe('master', function () {
         newAddresses,
       ],
     );
+
     await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
 
     const address = await master.getLatestAddress(code);
     assert.equal(address, quotation.address);
   });
 
-  it('upgrade proxy contract', async function () {
+  it.only('upgrade proxy contract', async function () {
     const { master, gv, pc, tk } = this.contracts;
 
-    const code = hex('IC');
-    const incidents = await Incidents.new();
+    const code = hex('PS');
+    const incidents = await PooledStaking.new();
 
     const contractCodes = [code];
     const newAddresses = [incidents.address];
@@ -64,7 +65,15 @@ describe('master', function () {
         newAddresses,
       ],
     );
+
     await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
+
+    const isProxy = await master.isProxy(code);
+    console.log({
+      isProxy,
+    });
+
+    await master.upgradeMultipleContracts(contractCodes, newAddresses);
 
     const address = await master.getLatestAddress(code);
 

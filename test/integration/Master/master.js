@@ -53,10 +53,10 @@ describe('master', function () {
     const { master, gv, pc, tk } = this.contracts;
 
     const code = hex('PS');
-    const incidents = await PooledStaking.new();
+    const pooledStaking = await PooledStaking.new();
 
     const contractCodes = [code];
-    const newAddresses = [incidents.address];
+    const newAddresses = [pooledStaking.address];
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
@@ -66,7 +66,7 @@ describe('master', function () {
       ],
     );
 
-    await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
+    // await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
 
     const isProxy = await master.isProxy(code);
     console.log({
@@ -77,7 +77,7 @@ describe('master', function () {
 
     const address = await master.getLatestAddress(code);
 
-    const implementation = (await OwnedUpgradeabilityProxy.at(address)).implementation();
-    assert.equal(address, incidents.address);
+    const implementation = await (await OwnedUpgradeabilityProxy.at(address)).implementation();
+    assert.equal(implementation, pooledStaking.address);
   });
 });

@@ -118,24 +118,25 @@ describe('master', function () {
     assert.equal(address, quotation.address);
   });
 
-  it('upgrades master', async function () {
+  it.only('upgrades master', async function () {
     const { master, gv, pc, tk } = this.contracts;
 
     const code = hex('MS');
     const newMaster = await NXMaster.new();
 
-    const contractCodes = [code];
-    const newAddresses = [newMaster.address];
-
     const upgradeContractsData = web3.eth.abi.encodeParameters(
-      ['bytes2[]', 'address[]'],
+      ['address'],
       [
-        contractCodes,
-        newAddresses,
+        newMaster.address,
       ],
     );
 
-    await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
+    await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [owner]);
+
+    const isProxy = await master.isProxy(hex('MS'));
+    console.log({
+      isProxy,
+    });
 
     const msAddress = await master.getLatestAddress(code);
     const implementation = await (await OwnedUpgradeabilityProxy.at(msAddress)).implementation();
@@ -145,7 +146,7 @@ describe('master', function () {
   it('upgrades all contracts', async function () {
     const { master, gv, dai, priceFeedOracle } = this.contracts;
 
-    const contractCodes = ['QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW']; // 'IC'];
+    const contractCodes = ['QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC'];
     const newAddresses = [
       await Quotation.new(),
       await TokenFunctions.new(),
@@ -167,7 +168,7 @@ describe('master', function () {
       await MemberRoles.new(),
       await PooledStaking.new(),
       await Gateway.new(),
-      // await Incidents.new()
+      await Incidents.new(),
     ].map(c => c.address);
 
     const upgradable = ['CL', 'CR', 'MC', 'P1', 'QT', 'TF'];

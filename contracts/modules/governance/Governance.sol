@@ -499,15 +499,8 @@ contract Governance is IGovernance, LegacyMasterAware {
     } else if (code == "MAXDRFT") {
 
       val = maxDraftTime / (1 days);
-
-    } else if (code == "EPTIME") {
-
-      val = ms.pauseTime() / (1 days);
-
     } else if (code == "ACWT") {
-
       val = actionWaitingTime / (1 hours);
-
     }
   }
 
@@ -641,10 +634,6 @@ contract Governance is IGovernance, LegacyMasterAware {
     } else if (code == "MAXDRFT") {
 
       maxDraftTime = val * 1 days;
-
-    } else if (code == "EPTIME") {
-
-      ms.updatePauseTime(val * 1 days);
 
     } else if (code == "ACWT") {
 

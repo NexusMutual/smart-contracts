@@ -7,6 +7,7 @@ const tokenPrice = require('./token-price');
 const buyCover = require('./buyCover');
 const getQuote = require('./getQuote');
 const setupUniswap = require('./setupUniswap');
+const governance = require('./governance');
 
 module.exports = {
   accounts,
@@ -18,4 +19,5 @@ module.exports = {
   buyCover,
   getQuote,
   setupUniswap,
+  governance,
 };

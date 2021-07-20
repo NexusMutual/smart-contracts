@@ -132,7 +132,7 @@ async function setup () {
   const contractType = code => {
 
     const upgradable = ['CL', 'CR', 'MC', 'P1', 'QT', 'TF'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC'];
 
     if (upgradable.includes(code)) {
       return 1;

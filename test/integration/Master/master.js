@@ -1,11 +1,11 @@
 const { accounts, web3 } = require('hardhat');
 const { expectEvent, expectRevert, time, ether } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const { ProposalCategory } = require('../utils').constants;
+const { ProposalCategory, ContractTypes } = require('../utils').constants;
 const { submitProposal } = require('../utils').governance;
-const { hex } = require('../utils').helpers;
+const { hex, bnEqual } = require('../utils').helpers;
 
-const [owner, emergencyAdmin, unknown] = accounts;
+const [owner] = accounts;
 
 const Claims = artifacts.require('Claims');
 const ClaimsReward = artifacts.require('ClaimsReward');
@@ -25,6 +25,25 @@ const MMockNewContract = artifacts.require('MMockNewContract');
 const ProposalCategoryContract = artifacts.require('ProposalCategory');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+async function assertNewAddresses (master, contractCodes, newAddresses, contractType) {
+  for (let i = 0; i < contractCodes.length; i++) {
+    const code = contractCodes[i];
+    const expectedAddress = newAddresses[i];
+    if (contractType(code) === ContractTypes.Replaceable) {
+      const address = await master.getLatestAddress(hex(code));
+      assert.equal(address, expectedAddress);
+    } else {
+      const proxyAddress = await master.getLatestAddress(hex(code));
+      const implementation = await (await OwnedUpgradeabilityProxy.at(proxyAddress)).implementation();
+      assert.equal(
+        implementation,
+        expectedAddress,
+        `Expected address ${expectedAddress} for ${code} does not match ${implementation}`,
+      );
+    }
+  }
+}
 
 describe('master', function () {
 
@@ -88,7 +107,7 @@ describe('master', function () {
     assert.equal(implementation, pooledStaking.address);
   });
 
-  it.only('upgrade proxies and replaceables', async function () {
+  it('upgrade proxies and replaceables', async function () {
     const { master, gv, pc, tk } = this.contracts;
 
     const psCode = hex('PS');
@@ -118,8 +137,8 @@ describe('master', function () {
     assert.equal(address, quotation.address);
   });
 
-  it.only('upgrades master', async function () {
-    const { master, gv, pc, tk } = this.contracts;
+  it('upgrades master', async function () {
+    const { master, gv } = this.contracts;
 
     const code = hex('MS');
     const newMaster = await NXMaster.new();
@@ -133,18 +152,12 @@ describe('master', function () {
 
     await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [owner]);
 
-    const isProxy = await master.isProxy(hex('MS'));
-    console.log({
-      isProxy,
-    });
-
-    const msAddress = await master.getLatestAddress(code);
-    const implementation = await (await OwnedUpgradeabilityProxy.at(msAddress)).implementation();
+    const implementation = await (await OwnedUpgradeabilityProxy.at(master.address)).implementation();
     assert.equal(implementation, newMaster.address);
   });
 
   it('upgrades all contracts', async function () {
-    const { master, gv, dai, priceFeedOracle } = this.contracts;
+    const { master, gv, dai, priceFeedOracle, p1, cr, tk: token } = this.contracts;
 
     const contractCodes = ['QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC'];
     const newAddresses = [
@@ -171,8 +184,6 @@ describe('master', function () {
       await Incidents.new(),
     ].map(c => c.address);
 
-    const upgradable = ['CL', 'CR', 'MC', 'P1', 'QT', 'TF'];
-
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
       [
@@ -181,19 +192,72 @@ describe('master', function () {
       ],
     );
 
+    const poolEthBalanceBefore = await web3.eth.getBalance(p1.address);
+    const poolDaiBalanceBefore = await web3.eth.getBalance(p1.address);
+
+    // store tokens in ClaimsReward
+    await token.transfer(cr.address, ether('10'), {
+      from: owner,
+    });
+
+    const claimsRewardNXMBalanceBefore = await token.balanceOf(cr.address);
+
     await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
 
-    for (let i = 0; i < contractCodes.length; i++) {
-      const code = contractCodes[i];
-      const expectedAddress = newAddresses[i];
-      if (upgradable.includes(code)) {
-        const address = await master.getLatestAddress(hex(code));
-        assert.equal(address, expectedAddress);
-      } else {
-        const proxyAddress = await master.getLatestAddress(hex(code));
-        const implementation = await (await OwnedUpgradeabilityProxy.at(proxyAddress)).implementation();
-        assert.equal(implementation, expectedAddress);
-      }
+    await assertNewAddresses(master, contractCodes, newAddresses, this.contractType);
+
+    const newPool = await master.getLatestAddress(hex('P1'));
+
+    const poolEthBalanceAfter = await web3.eth.getBalance(newPool);
+    const poolDaiBalanceAfter = await web3.eth.getBalance(newPool);
+
+    bnEqual(poolEthBalanceBefore, poolEthBalanceAfter);
+    bnEqual(poolDaiBalanceBefore, poolDaiBalanceAfter);
+
+    const claimsRewardNXMBalanceAfter = await token.balanceOf(await master.getLatestAddress(hex('CR')));
+    bnEqual(claimsRewardNXMBalanceAfter, claimsRewardNXMBalanceBefore);
+  });
+
+  it('upgrades Governance, TokenController and MemberRoles 2 times in a row', async function () {
+    const { master, gv } = this.contracts;
+    {
+      const contractCodes = ['TC', 'GV', 'MR'];
+      const newAddresses = [
+        await TokenController.new(),
+        await Governance.new(),
+        await MemberRoles.new(),
+      ].map(c => c.address);
+
+      const upgradeContractsData = web3.eth.abi.encodeParameters(
+        ['bytes2[]', 'address[]'],
+        [
+          contractCodes.map(code => hex(code)),
+          newAddresses,
+        ],
+      );
+
+      await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
+      await assertNewAddresses(master, contractCodes, newAddresses, this.contractType);
+    }
+
+    {
+      const contractCodes = ['TC', 'GV', 'MR'];
+      const newAddresses = [
+        await TokenController.new(),
+        await Governance.new(),
+        await MemberRoles.new(),
+      ].map(c => c.address);
+
+      const upgradeContractsData = web3.eth.abi.encodeParameters(
+        ['bytes2[]', 'address[]'],
+        [
+          contractCodes.map(code => hex(code)),
+          newAddresses,
+        ],
+      );
+
+      await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
+      await assertNewAddresses(master, contractCodes, newAddresses, this.contractType);
     }
   });
 });

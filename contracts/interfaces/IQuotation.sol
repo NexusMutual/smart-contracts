@@ -24,6 +24,4 @@ interface IQuotation {
     bytes32 _r,
     bytes32 _s
   ) external;
-
-  function transferAssetsToNewContract(address) external pure;
 }

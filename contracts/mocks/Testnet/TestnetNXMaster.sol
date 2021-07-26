@@ -41,12 +41,7 @@ contract TestnetNXMaster is NXMaster {
             address payable newAddress = _contractsAddress[i];
             require(newAddress != address(0), "NULL address is not allowed.");
             require(isUpgradable[_contractsName[i]], "Contract should be upgradable.");
-
-            if (_contractsName[i] == "QT") {
-                IQuotation qt = IQuotation(contractAddresses["QT"]);
-                qt.transferAssetsToNewContract(newAddress);
-
-            } else if (_contractsName[i] == "CR") {
+            if (_contractsName[i] == "CR") {
                 ITokenController tc = ITokenController(getLatestAddress("TC"));
                 tc.addToWhitelist(newAddress);
                 tc.removeFromWhitelist(contractAddresses["CR"]);

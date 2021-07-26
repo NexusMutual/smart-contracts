@@ -2,6 +2,7 @@ const { accounts, artifacts, web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 
 const { setupUniswap } = require('../utils');
+const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
 
@@ -135,11 +136,11 @@ async function setup () {
     const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC'];
 
     if (upgradable.includes(code)) {
-      return 1;
+      return ContractTypes.Replaceable;
     }
 
     if (proxies.includes(code)) {
-      return 2;
+      return ContractTypes.Proxy;
     }
 
     return 0;
@@ -164,6 +165,8 @@ async function setup () {
     30 * 24 * 3600, // minCALockTime
     120 * 24 * 3600, // claimSubmissionGracePeriod
   );
+
+  await tc.addToWhitelist(cr.address);
 
   await mr.initialize(
     owner,
@@ -304,6 +307,8 @@ async function setup () {
     ethEthRate,
     ethToDaiRate,
   };
+
+  this.contractType = contractType;
 }
 
 module.exports = setup;

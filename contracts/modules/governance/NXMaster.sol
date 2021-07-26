@@ -13,7 +13,6 @@ import "../../interfaces/IQuotation.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
-import "../capital/LegacyPoolData.sol";
 import "./external/Governed.sol";
 import "./external/OwnedUpgradeabilityProxy.sol";
 import "hardhat/console.sol";
@@ -83,7 +82,7 @@ contract NXMaster is INXMMaster, Governed {
     contractAddresses[contractCode] = address(uint160(newInternalContract));
     contractsActive[newInternalContract] = true;
 
-    MasterAware up = MasterAware(contractAddresses[contractCode]);
+    MasterAware up = MasterAware(newInternalContract);
     up.changeMasterAddress(address(this));
     up.changeDependentContractAddress();
   }
@@ -94,9 +93,9 @@ contract NXMaster is INXMMaster, Governed {
     address payable[] memory newAddresses
   )
   public
-  // onlyAuthorizedToGovern
+  onlyAuthorizedToGovern
   {
-    require(_contractCodes.length == newAddresses.length, "NXMaster: Array length should be equal.");
+    require(_contractCodes.length == newAddresses.length, "NXMaster: Array lengths should be equal.");
 
     for (uint i = 0; i < _contractCodes.length; i++) {
       address payable newAddress = newAddresses[i];
@@ -114,7 +113,7 @@ contract NXMaster is INXMMaster, Governed {
         continue;
       }
 
-      revert("NXMaster: non-existant contract code");
+      revert("NXMaster: non-existant or non-upgradeable contract code");
     }
 
     for (uint i = 0; i < contractCodes.length; i++) {
@@ -125,16 +124,11 @@ contract NXMaster is INXMMaster, Governed {
   }
 
   function replaceContract(bytes2 code, address payable newAddress) internal {
-
-    if (code == "QT") {
-      IQuotation qt = IQuotation(contractAddresses["QT"]);
-      qt.transferAssetsToNewContract(newAddress);
-
-    } else if (code == "CR") {
+    if (code == "CR") {
       ITokenController tc = ITokenController(getLatestAddress("TC"));
       tc.addToWhitelist(newAddress);
       tc.removeFromWhitelist(contractAddresses["CR"]);
-      IClaimsReward cr = IClaimsReward(contractAddresses["CR"]);
+        IClaimsReward cr = IClaimsReward(contractAddresses["CR"]);
       cr.upgrade(newAddress);
 
     } else if (code == "P1") {
@@ -229,7 +223,6 @@ contract NXMaster is INXMMaster, Governed {
    */
   function updateOwnerParameters(bytes8 code, address payable val) public onlyAuthorizedToGovern {
     IQuotationData qd;
-    LegacyPoolData pd;
     if (code == "MSWALLET") {
 
       ITokenData td;

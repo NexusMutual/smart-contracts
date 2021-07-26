@@ -45,18 +45,55 @@ async function assertNewAddresses (master, contractCodes, newAddresses, contract
   }
 }
 
-describe('master', function () {
+describe.only('master', function () {
 
-  it('adds new contract', async function () {
-    const { master, gv, pc, tk } = this.contracts;
+  it('adds new replaceable contract', async function () {
+    const { master, gv, pc, tk, tc } = this.contracts;
 
     const code = hex('XX');
     const newContract = await MMockNewContract.new();
-    const actionData = web3.eth.abi.encodeParameters(['bytes2', 'address', 'uint'], [code, newContract.address, '1']);
+    const actionData = web3.eth.abi.encodeParameters(
+      ['bytes2', 'address', 'uint'],
+      [code, newContract.address, ContractTypes.Replaceable],
+    );
     await submitProposal(gv, ProposalCategory.newContract, actionData, [owner]);
 
     const address = await master.getLatestAddress(code);
     assert.equal(address, newContract.address);
+    const isInternal = await master.isInternal(newContract.address);
+    assert(isInternal, 'Not internal');
+
+    const isActive = await master.contractsActive(newContract.address);
+    assert(isActive, 'Not active');
+
+    // can perform onlyInternal action
+    await newContract.mint(owner, ether('1'));
+  });
+
+  it('adds new proxy contract', async function () {
+    const { master, gv, pc, tk, tc } = this.contracts;
+
+    const code = hex('XX');
+    const newContract = await MMockNewContract.new();
+    const actionData = web3.eth.abi.encodeParameters(
+      ['bytes2', 'address', 'uint'],
+      [code, newContract.address, ContractTypes.Proxy],
+    );
+    await submitProposal(gv, ProposalCategory.newContract, actionData, [owner]);
+
+    const address = await master.getLatestAddress(code);
+    const isInternal = await master.isInternal(address);
+    assert(isInternal, 'Not internal');
+
+    const isActive = await master.contractsActive(address);
+    assert(isActive, 'Not active');
+
+    const implementation = await (await OwnedUpgradeabilityProxy.at(address)).implementation();
+    assert.equal(implementation, newContract.address);
+
+    const newContractInstance = await MMockNewContract.at(address);
+    // can perform onlyInternal action
+    await newContractInstance.mint(owner, ether('1'));
   });
 
   it('replace contract', async function () {
@@ -259,5 +296,25 @@ describe('master', function () {
       await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
       await assertNewAddresses(master, contractCodes, newAddresses, this.contractType);
     }
+  });
+
+  it('removes newly added contract', async function () {
+    const { master, gv, pc, tk } = this.contracts;
+
+    const code = hex('XX');
+    const newContract = await MMockNewContract.new();
+    const actionData = web3.eth.abi.encodeParameters(['bytes2', 'address', 'uint'], [code, newContract.address, '1']);
+    await submitProposal(gv, ProposalCategory.newContract, actionData, [owner]);
+
+    const address = await master.getLatestAddress(code);
+    assert.equal(address, newContract.address);
+
+    const actionDataRemove = web3.eth.abi.encodeParameters(['bytes2[]'], [[code]]);
+    await submitProposal(gv, ProposalCategory.removeContracts, actionDataRemove, [owner]);
+
+    const addressAfterDeletion = await master.getLatestAddress(code);
+    assert.equal(addressAfterDeletion, ZERO_ADDRESS);
+    const isInternal = await master.isInternal(code);
+    assert.equal(isInternal, false);
   });
 });

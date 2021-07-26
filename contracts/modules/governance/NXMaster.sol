@@ -116,11 +116,7 @@ contract NXMaster is INXMMaster, Governed {
       revert("NXMaster: non-existant or non-upgradeable contract code");
     }
 
-    for (uint i = 0; i < contractCodes.length; i++) {
-      contractsActive[contractAddresses[contractCodes[i]]] = true;
-      MasterAware up = MasterAware(contractAddresses[contractCodes[i]]);
-      up.changeDependentContractAddress();
-    }
+    updateAllDependencies();
   }
 
   function replaceContract(bytes2 code, address payable newAddress) internal {
@@ -128,7 +124,7 @@ contract NXMaster is INXMMaster, Governed {
       ITokenController tc = ITokenController(getLatestAddress("TC"));
       tc.addToWhitelist(newAddress);
       tc.removeFromWhitelist(contractAddresses["CR"]);
-        IClaimsReward cr = IClaimsReward(contractAddresses["CR"]);
+      IClaimsReward cr = IClaimsReward(contractAddresses["CR"]);
       cr.upgrade(newAddress);
 
     } else if (code == "P1") {
@@ -143,6 +139,47 @@ contract NXMaster is INXMMaster, Governed {
 
     MasterAware up = MasterAware(contractAddresses[code]);
     up.changeMasterAddress(address(this));
+  }
+
+  function removeContracts(bytes2[] memory contractCodesToRemove) public onlyAuthorizedToGovern {
+
+    for (uint i = 0; i < contractCodesToRemove.length; i++) {
+      bytes2 code = contractCodesToRemove[i];
+      address contractAddress = contractAddresses[contractCodes[i]];
+      require(contractAddress != address(0), "NXMaster: Address is 0");
+      require(isInternal(contractAddress), "NXMaster: Contract not internal");
+      contractsActive[contractAddress] = false;
+      contractAddresses[code] = address(0);
+
+      if (isProxy[code]) {
+        isProxy[code] = false;
+      }
+
+      if (isUpgradable[code]) {
+        isUpgradable[code] = false;
+      }
+    }
+
+    // delete elements from contractCodes
+    for (uint i = 0; i < contractCodes.length; i++) {
+      for (uint j = 0; j < contractCodesToRemove.length; j++) {
+        if (contractCodes[i] == contractCodesToRemove[j]) {
+          contractCodes[i] = contractCodes[contractCodes.length - 1];
+          contractCodes.pop();
+          i = i == 0 ? 0 : i - 1;
+        }
+      }
+    }
+
+    updateAllDependencies();
+  }
+
+  function updateAllDependencies() internal {
+    for (uint i = 0; i < contractCodes.length; i++) {
+      contractsActive[contractAddresses[contractCodes[i]]] = true;
+      MasterAware up = MasterAware(contractAddresses[contractCodes[i]]);
+      up.changeDependentContractAddress();
+    }
   }
 
   /**

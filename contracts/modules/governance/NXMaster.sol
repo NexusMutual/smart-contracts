@@ -48,6 +48,21 @@ contract NXMaster is INXMMaster, Governed {
     _;
   }
 
+  function addNewInternalContracts(
+    bytes2[] memory _contractCodes,
+    address payable[] memory newAddresses,
+    uint[] memory _types
+  )
+  public
+  onlyAuthorizedToGovern
+  {
+    require(_contractCodes.length == newAddresses.length, "NXMaster: Array lengths should be equal.");
+    require(_types.length == newAddresses.length, "NXMaster: Array lengths should be equal.");
+    for (uint i = 0; i < _contractCodes.length; i++) {
+      addNewInternalContract(_contractCodes[i], newAddresses[i], _types[i]);
+    }
+  }
+
   /// @dev Adds new internal contract
   /// @param contractCode contract code for new contract
   /// @param contractAddress contract address for new contract
@@ -56,9 +71,7 @@ contract NXMaster is INXMMaster, Governed {
     bytes2 contractCode,
     address payable contractAddress,
     uint _type
-  )
-  external
-  onlyAuthorizedToGovern {
+  ) internal {
 
     require(contractAddresses[contractCode] == address(0), "NXMaster: code already in use");
     require(contractAddress != address(0), "NXMaster: contract address is 0");

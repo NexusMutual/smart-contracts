@@ -53,10 +53,10 @@ describe('master', function () {
     const code = hex('XX');
     const newContract = await MMockNewContract.new();
     const actionData = web3.eth.abi.encodeParameters(
-      ['bytes2', 'address', 'uint'],
-      [code, newContract.address, ContractTypes.Replaceable],
+      ['bytes2[]', 'address[]', 'uint[]'],
+      [[code], [newContract.address], [ContractTypes.Replaceable]],
     );
-    await submitProposal(gv, ProposalCategory.newContract, actionData, [owner]);
+    await submitProposal(gv, ProposalCategory.newContracts, actionData, [owner]);
 
     const address = await master.getLatestAddress(code);
     assert.equal(address, newContract.address);
@@ -76,10 +76,10 @@ describe('master', function () {
     const code = hex('XX');
     const newContract = await MMockNewContract.new();
     const actionData = web3.eth.abi.encodeParameters(
-      ['bytes2', 'address', 'uint'],
-      [code, newContract.address, ContractTypes.Proxy],
+      ['bytes2[]', 'address[]', 'uint[]'],
+      [[code], [newContract.address], [ContractTypes.Proxy]],
     );
-    await submitProposal(gv, ProposalCategory.newContract, actionData, [owner]);
+    await submitProposal(gv, ProposalCategory.newContracts, actionData, [owner]);
 
     const address = await master.getLatestAddress(code);
     const isInternal = await master.isInternal(address);
@@ -298,14 +298,17 @@ describe('master', function () {
     }
   });
 
-  it.only('removes newly added replaceable contract and existing contract', async function () {
+  it('removes newly added replaceable contract and existing contract', async function () {
     const { master, gv, pc, tk } = this.contracts;
 
     const code = hex('RE');
     const existingCode = hex('GW');
     const newContract = await MMockNewContract.new();
-    const actionData = web3.eth.abi.encodeParameters(['bytes2', 'address', 'uint'], [code, newContract.address, '1']);
-    await submitProposal(gv, ProposalCategory.newContract, actionData, [owner]);
+    const actionData = web3.eth.abi.encodeParameters(
+      ['bytes2[]', 'address[]', 'uint[]'],
+      [[code], [newContract.address], [ContractTypes.Replaceable]],
+    );
+    await submitProposal(gv, ProposalCategory.newContracts, actionData, [owner]);
 
     const address = await master.getLatestAddress(code);
     assert.equal(address, newContract.address);

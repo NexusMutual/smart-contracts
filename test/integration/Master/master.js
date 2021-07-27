@@ -298,10 +298,11 @@ describe('master', function () {
     }
   });
 
-  it('removes newly added replaceable contract', async function () {
+  it.only('removes newly added replaceable contract and existing contract', async function () {
     const { master, gv, pc, tk } = this.contracts;
 
     const code = hex('RE');
+    const existingCode = hex('GW');
     const newContract = await MMockNewContract.new();
     const actionData = web3.eth.abi.encodeParameters(['bytes2', 'address', 'uint'], [code, newContract.address, '1']);
     await submitProposal(gv, ProposalCategory.newContract, actionData, [owner]);
@@ -309,29 +310,21 @@ describe('master', function () {
     const address = await master.getLatestAddress(code);
     assert.equal(address, newContract.address);
 
-    const actionDataRemove = web3.eth.abi.encodeParameters(['bytes2[]'], [[code]]);
+    const actionDataRemove = web3.eth.abi.encodeParameters(['bytes2[]'], [[code, existingCode]]);
     await submitProposal(gv, ProposalCategory.removeContracts, actionDataRemove, [owner]);
 
-    const addressAfterDeletion = await master.getLatestAddress(code);
-    assert.equal(addressAfterDeletion, ZERO_ADDRESS);
-    const isInternal = await master.isInternal(newContract.address);
-    assert.equal(isInternal, false);
-  });
+    {
+      const addressAfterDeletion = await master.getLatestAddress(code);
+      assert.equal(addressAfterDeletion, ZERO_ADDRESS);
+      const isInternal = await master.isInternal(newContract.address);
+      assert.equal(isInternal, false);
+    }
 
-  it('removes existing contract', async function () {
-    const { master, gv, pc, tk } = this.contracts;
-
-    const code = hex('GW');
-
-    const address = await master.getLatestAddress(code);
-
-    const actionDataRemove = web3.eth.abi.encodeParameters(['bytes2[]'], [[code]]);
-    await submitProposal(gv, ProposalCategory.removeContracts, actionDataRemove, [owner]);
-
-    const addressAfterDeletion = await master.getLatestAddress(code);
-    assert.equal(addressAfterDeletion, ZERO_ADDRESS);
-
-    const isInternal = await master.isInternal(address);
-    assert.equal(isInternal, false);
+    {
+      const addressAfterDeletion = await master.getLatestAddress(existingCode);
+      assert.equal(addressAfterDeletion, ZERO_ADDRESS);
+      const isInternal = await master.isInternal(newContract.address);
+      assert.equal(isInternal, false);
+    }
   });
 });

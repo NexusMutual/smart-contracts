@@ -40,7 +40,7 @@ contract DisposableNXMaster is NXMaster {
       contractsActive[contractAddress] = true;
 
       if (_contractTypes[i] == 1) {
-        isUpgradable[name] = true;
+        isReplaceable[name] = true;
       } else if (_contractTypes[i] == 2) {
         isProxy[name] = true;
       }

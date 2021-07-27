@@ -45,7 +45,7 @@ async function assertNewAddresses (master, contractCodes, newAddresses, contract
   }
 }
 
-describe.only('master', function () {
+describe('master', function () {
 
   it('adds new replaceable contract', async function () {
     const { master, gv, pc, tk, tc } = this.contracts;
@@ -298,10 +298,10 @@ describe.only('master', function () {
     }
   });
 
-  it('removes newly added contract', async function () {
+  it('removes newly added replaceable contract', async function () {
     const { master, gv, pc, tk } = this.contracts;
 
-    const code = hex('XX');
+    const code = hex('RE');
     const newContract = await MMockNewContract.new();
     const actionData = web3.eth.abi.encodeParameters(['bytes2', 'address', 'uint'], [code, newContract.address, '1']);
     await submitProposal(gv, ProposalCategory.newContract, actionData, [owner]);
@@ -314,7 +314,24 @@ describe.only('master', function () {
 
     const addressAfterDeletion = await master.getLatestAddress(code);
     assert.equal(addressAfterDeletion, ZERO_ADDRESS);
-    const isInternal = await master.isInternal(code);
+    const isInternal = await master.isInternal(newContract.address);
+    assert.equal(isInternal, false);
+  });
+
+  it('removes existing contract', async function () {
+    const { master, gv, pc, tk } = this.contracts;
+
+    const code = hex('GW');
+
+    const address = await master.getLatestAddress(code);
+
+    const actionDataRemove = web3.eth.abi.encodeParameters(['bytes2[]'], [[code]]);
+    await submitProposal(gv, ProposalCategory.removeContracts, actionDataRemove, [owner]);
+
+    const addressAfterDeletion = await master.getLatestAddress(code);
+    assert.equal(addressAfterDeletion, ZERO_ADDRESS);
+
+    const isInternal = await master.isInternal(address);
     assert.equal(isInternal, false);
   });
 });

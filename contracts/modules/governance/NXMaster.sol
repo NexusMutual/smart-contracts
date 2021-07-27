@@ -15,7 +15,6 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
 import "./external/Governed.sol";
 import "./external/OwnedUpgradeabilityProxy.sol";
-import "hardhat/console.sol";
 
 contract NXMaster is INXMMaster, Governed {
   using SafeMath for uint;
@@ -26,7 +25,7 @@ contract NXMaster is INXMMaster, Governed {
   mapping(address => bool) public contractsActive;
   mapping(bytes2 => address payable) internal contractAddresses;
   mapping(bytes2 => bool) public isProxy;
-  mapping(bytes2 => bool) public isUpgradable;
+  mapping(bytes2 => bool) public isReplaceable;
 
   address public tokenAddress;
   bool internal reentrancyLock;
@@ -70,7 +69,7 @@ contract NXMaster is INXMMaster, Governed {
     if (_type == 1) {
 
       newInternalContract = contractAddress;
-      isUpgradable[contractCode] = true;
+      isReplaceable[contractCode] = true;
     } else if (_type == 2) {
 
       newInternalContract = address(new OwnedUpgradeabilityProxy(contractAddress));
@@ -108,7 +107,7 @@ contract NXMaster is INXMMaster, Governed {
         continue;
       }
 
-      if (isUpgradable[code]) {
+      if (isReplaceable[code]) {
         replaceContract(code, newAddress);
         continue;
       }
@@ -141,11 +140,11 @@ contract NXMaster is INXMMaster, Governed {
     up.changeMasterAddress(address(this));
   }
 
-  function removeContracts(bytes2[] memory contractCodesToRemove) public onlyAuthorizedToGovern {
+  function removeContracts(bytes2[] memory contractCodesToRemove) public {
 
     for (uint i = 0; i < contractCodesToRemove.length; i++) {
       bytes2 code = contractCodesToRemove[i];
-      address contractAddress = contractAddresses[contractCodes[i]];
+      address contractAddress = contractAddresses[code];
       require(contractAddress != address(0), "NXMaster: Address is 0");
       require(isInternal(contractAddress), "NXMaster: Contract not internal");
       contractsActive[contractAddress] = false;
@@ -155,8 +154,8 @@ contract NXMaster is INXMMaster, Governed {
         isProxy[code] = false;
       }
 
-      if (isUpgradable[code]) {
-        isUpgradable[code] = false;
+      if (isReplaceable[code]) {
+        isReplaceable[code] = false;
       }
     }
 
@@ -176,7 +175,6 @@ contract NXMaster is INXMMaster, Governed {
 
   function updateAllDependencies() internal {
     for (uint i = 0; i < contractCodes.length; i++) {
-      contractsActive[contractAddresses[contractCodes[i]]] = true;
       MasterAware up = MasterAware(contractAddresses[contractCodes[i]]);
       up.changeDependentContractAddress();
     }

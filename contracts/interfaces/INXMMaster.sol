@@ -36,4 +36,6 @@ interface INXMMaster {
     address payable[] calldata newAddresses,
     uint[] calldata _types
   ) external;
+
+  function updateOwnerParameters(bytes8 code, address payable val) external;
 }

@@ -22,4 +22,18 @@ contract MSMockGovernance is MasterAware {
   function removeContracts(bytes2[] memory contractCodesToRemove) public {
     master.removeContracts(contractCodesToRemove);
   }
+
+  function updateOwnerParameters(bytes8 code, address payable val) public {
+    master.updateOwnerParameters(code, val);
+  }
+
+  function addNewInternalContracts(
+    bytes2[] memory _contractCodes,
+    address payable[] memory newAddresses,
+    uint[] memory _types
+  )
+  public
+  {
+    master.addNewInternalContracts(_contractCodes, newAddresses, _types);
+  }
 }

@@ -23,7 +23,7 @@ contract NXMaster is INXMMaster, Governed {
 
   bytes2[] public contractCodes;
   mapping(address => bool) public contractsActive;
-  mapping(bytes2 => address payable) internal contractAddresses;
+  mapping(bytes2 => address payable) public contractAddresses;
   mapping(bytes2 => bool) public isProxy;
   mapping(bytes2 => bool) public isReplaceable;
 
@@ -35,6 +35,12 @@ contract NXMaster is INXMMaster, Governed {
 
   address public emergencyAdmin;
   bool public paused;
+
+  enum ContractType { Undefined, Replaceable, Proxy }
+
+  event InternalContractAdded(bytes2 indexed code, address contractAddress, ContractType indexed contractType);
+  event ContractUpgraded(bytes2 indexed code, address newAddress, ContractType indexed contractType);
+  event ContractRemoved(bytes2 indexed code, address newAddress, ContractType indexed contractType);
 
   modifier noReentrancy() {
     require(!reentrancyLock, "Reentrant call.");
@@ -49,17 +55,17 @@ contract NXMaster is INXMMaster, Governed {
   }
 
   function addNewInternalContracts(
-    bytes2[] memory _contractCodes,
+    bytes2[] memory newContractCodes,
     address payable[] memory newAddresses,
     uint[] memory _types
   )
   public
   onlyAuthorizedToGovern
   {
-    require(_contractCodes.length == newAddresses.length, "NXMaster: Array lengths should be equal.");
+    require(newContractCodes.length == newAddresses.length, "NXMaster: Array lengths should be equal.");
     require(_types.length == newAddresses.length, "NXMaster: Array lengths should be equal.");
-    for (uint i = 0; i < _contractCodes.length; i++) {
-      addNewInternalContract(_contractCodes[i], newAddresses[i], _types[i]);
+    for (uint i = 0; i < newContractCodes.length; i++) {
+      addNewInternalContract(newContractCodes[i], newAddresses[i], _types[i]);
     }
   }
 
@@ -79,11 +85,11 @@ contract NXMaster is INXMMaster, Governed {
     contractCodes.push(contractCode);
 
     address newInternalContract;
-    if (_type == 1) {
+    if (_type ==uint(ContractType.Replaceable)) {
 
       newInternalContract = contractAddress;
       isReplaceable[contractCode] = true;
-    } else if (_type == 2) {
+    } else if (_type == uint(ContractType.Proxy)) {
 
       newInternalContract = address(new OwnedUpgradeabilityProxy(contractAddress));
       isProxy[contractCode] = true;
@@ -97,6 +103,8 @@ contract NXMaster is INXMMaster, Governed {
     MasterAware up = MasterAware(newInternalContract);
     up.changeMasterAddress(address(this));
     up.changeDependentContractAddress();
+
+    emit InternalContractAdded(contractCode, contractAddress, ContractType(_type));
   }
 
   /// @dev upgrades multiple contracts at a time
@@ -117,11 +125,13 @@ contract NXMaster is INXMMaster, Governed {
       if (isProxy[code]) {
         OwnedUpgradeabilityProxy proxy = OwnedUpgradeabilityProxy(contractAddresses[code]);
         proxy.upgradeTo(newAddress);
+        emit ContractUpgraded(code, newAddress, ContractType.Proxy);
         continue;
       }
 
       if (isReplaceable[code]) {
         replaceContract(code, newAddress);
+        emit ContractUpgraded(code, newAddress, ContractType.Replaceable);
         continue;
       }
 
@@ -153,7 +163,10 @@ contract NXMaster is INXMMaster, Governed {
     up.changeMasterAddress(address(this));
   }
 
-  function removeContracts(bytes2[] memory contractCodesToRemove) public {
+  function removeContracts(bytes2[] memory contractCodesToRemove)
+  public
+  onlyAuthorizedToGovern
+  {
 
     for (uint i = 0; i < contractCodesToRemove.length; i++) {
       bytes2 code = contractCodesToRemove[i];
@@ -222,22 +235,22 @@ contract NXMaster is INXMMaster, Governed {
     return mr.checkRole(_add, uint(IMemberRoles.Role.Member));
   }
 
-  /// @dev Gets latest version name and address
-  /// @return contractsName Latest version's contract names
-  /// @return contractsAddress Latest version's contract addresses
-  function getVersionData()
+  /// @dev Gets current contract codes and their addresses
+  /// @return contractCodes
+  /// @return contractAddresses
+  function getInternalContracts()
   public
   view
   returns (
-    bytes2[] memory contractsName,
-    address[] memory contractsAddress
+    bytes2[] memory _contractCodes,
+    address[] memory _contractAddresses
   )
   {
-    contractsName = contractCodes;
-    contractsAddress = new address[](contractCodes.length);
+    _contractCodes = contractCodes;
+    _contractAddresses = new address[](contractCodes.length);
 
-    for (uint i = 0; i < contractCodes.length; i++) {
-      contractsAddress[i] = contractAddresses[contractCodes[i]];
+    for (uint i = 0; i < _contractCodes.length; i++) {
+      _contractAddresses[i] = contractAddresses[contractCodes[i]];
     }
   }
 

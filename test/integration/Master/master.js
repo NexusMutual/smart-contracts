@@ -47,8 +47,8 @@ async function assertNewAddresses (master, contractCodes, newAddresses, contract
 
 describe('master', function () {
 
-  it('adds new replaceable contract', async function () {
-    const { master, gv, pc, tk, tc } = this.contracts;
+  it('adds new replaceable contract which can execute internal functions', async function () {
+    const { master, gv } = this.contracts;
 
     const code = hex('XX');
     const newContract = await MMockNewContract.new();
@@ -60,18 +60,13 @@ describe('master', function () {
 
     const address = await master.getLatestAddress(code);
     assert.equal(address, newContract.address);
-    const isInternal = await master.isInternal(newContract.address);
-    assert(isInternal, 'Not internal');
-
-    const isActive = await master.contractsActive(newContract.address);
-    assert(isActive, 'Not active');
 
     // can perform onlyInternal action
     await newContract.mint(owner, ether('1'));
   });
 
-  it('adds new proxy contract', async function () {
-    const { master, gv, pc, tk, tc } = this.contracts;
+  it('adds new proxy contract which can execute internal functions', async function () {
+    const { master, gv } = this.contracts;
 
     const code = hex('XX');
     const newContract = await MMockNewContract.new();
@@ -82,12 +77,6 @@ describe('master', function () {
     await submitProposal(gv, ProposalCategory.newContracts, actionData, [owner]);
 
     const address = await master.getLatestAddress(code);
-    const isInternal = await master.isInternal(address);
-    assert(isInternal, 'Not internal');
-
-    const isActive = await master.contractsActive(address);
-    assert(isActive, 'Not active');
-
     const implementation = await (await OwnedUpgradeabilityProxy.at(address)).implementation();
     assert.equal(implementation, newContract.address);
 
@@ -97,7 +86,7 @@ describe('master', function () {
   });
 
   it('replace contract', async function () {
-    const { master, gv, pc, tk } = this.contracts;
+    const { master, gv } = this.contracts;
 
     const code = hex('QT');
     const quotation = await Quotation.new();
@@ -299,7 +288,7 @@ describe('master', function () {
   });
 
   it('removes newly added replaceable contract and existing contract', async function () {
-    const { master, gv, pc, tk } = this.contracts;
+    const { master, gv } = this.contracts;
 
     const code = hex('RE');
     const existingCode = hex('GW');

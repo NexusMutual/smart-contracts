@@ -1,6 +1,7 @@
 const { artifacts } = require('hardhat');
 const { constants: { ZERO_ADDRESS }, ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
+const { hex } = require('../utils').helpers;
 
 describe('upgradeMultipleContracts', function () {
 
@@ -10,6 +11,24 @@ describe('upgradeMultipleContracts', function () {
     await expectRevert(
       master.upgradeMultipleContracts([], []),
       'Not authorized',
+    );
+  });
+
+  it('reverts when contract code does not exist', async function () {
+    const { governance } = this;
+
+    await expectRevert(
+      governance.upgradeMultipleContracts([hex('XX')], ['0x0000000000000000000000000000000000000001']),
+      'NXMaster: non-existant or non-upgradeable contract code',
+    );
+  });
+
+  it('reverts when contract address is 0t', async function () {
+    const { governance } = this;
+
+    await expectRevert(
+      governance.upgradeMultipleContracts([hex('GV')], [ZERO_ADDRESS]),
+      'NXMaster: contract address is 0',
     );
   });
 });

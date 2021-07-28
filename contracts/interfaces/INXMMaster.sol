@@ -23,4 +23,17 @@ interface INXMMaster {
   function dAppLocker() external view returns (address _add);
 
   function getLatestAddress(bytes2 _contractName) external view returns (address payable contractAddress);
+
+  function upgradeMultipleContracts(
+    bytes2[] calldata _contractCodes,
+    address payable[] calldata newAddresses
+  ) external;
+
+  function removeContracts(bytes2[] calldata contractCodesToRemove) external;
+
+  function addNewInternalContracts(
+    bytes2[] calldata _contractCodes,
+    address payable[] calldata newAddresses,
+    uint[] calldata _types
+  ) external;
 }

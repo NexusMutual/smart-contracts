@@ -68,30 +68,35 @@ contract ClaimsReward is IClaimsReward, LegacyMasterAware {
   function closeClaim(uint _claimId) external {
 
     (, , , uint status, uint dateUpd,) = cd.getClaim(_claimId);
-    require(!(status == 12 && dateUpd.add(cd.payoutRetryTime()) > now), "ClaimsReward: Payout retry time not reached.");
+    bool canRetryPayout = status != 12 || dateUpd.add(cd.payoutRetryTime()) < now;
+    require(canRetryPayout, "ClaimsReward: Payout retry time not reached.");
 
-    changeClaimStatus(_claimId);
+    _changeClaimStatus(_claimId);
+  }
+
+  function changeClaimStatus(uint claimId) public checkPause onlyInternal {
+    _changeClaimStatus(claimId);
   }
 
   /// @dev Decides the next course of action for a given claim.
-  function changeClaimStatus(uint claimid) public checkPause onlyInternal {
+  function _changeClaimStatus(uint claimId) internal {
 
-    (, uint coverid) = cd.getClaimCoverId(claimid);
-    (, uint status) = cd.getClaimStatusNumber(claimid);
+    (, uint coverid) = cd.getClaimCoverId(claimId);
+    (, uint status) = cd.getClaimStatusNumber(claimId);
 
     // when current status is "Pending-Claim Assessor Vote"
     if (status == 0) {
-      _changeClaimStatusCA(claimid, coverid, status);
+      _changeClaimStatusCA(claimId, coverid, status);
     } else if (status >= 1 && status <= 5) {
-      _changeClaimStatusMV(claimid, coverid, status);
+      _changeClaimStatusMV(claimId, coverid, status);
     } else if (status == 12) {// when current status is "Claim Accepted Payout Pending"
 
       bool payoutSucceeded = attemptClaimPayout(coverid);
 
       if (payoutSucceeded) {
-        c1.setClaimStatus(claimid, 14);
+        c1.setClaimStatus(claimId, 14);
       } else {
-        c1.setClaimStatus(claimid, 12);
+        c1.setClaimStatus(claimId, 12);
       }
     }
   }

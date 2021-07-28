@@ -42,7 +42,7 @@ async function submitMemberVotes ({ cd, td, cl, voteValue, maxVotingMembers }) {
   assert.isTrue(isBooked);
 }
 
-async function closeClaim ({ cl, cd, master, now, expectedClaimStatusNumber }) {
+async function closeClaim ({ cl, cd, cr, now, expectedClaimStatusNumber }) {
 
   const claimId = (await cd.actualClaimLength()) - 1;
   const minVotingTime = await cd.minVotingTime();
@@ -57,7 +57,7 @@ async function closeClaim ({ cl, cd, master, now, expectedClaimStatusNumber }) {
   const actualVoteClosingBefore = await cl.checkVoteClosing(claimId);
   assert.equal(actualVoteClosingBefore.toString(), '1');
 
-  await master.closeClaim(claimId); // trigger changeClaimStatus
+  await cr.closeClaim(claimId); // trigger changeClaimStatus
   const newCStatus = await cd.getClaimStatusNumber(claimId);
   assert.equal(newCStatus[1].toString(), expectedClaimStatusNumber);
 

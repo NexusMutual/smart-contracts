@@ -40,7 +40,8 @@ contract NXMaster is INXMMaster, Governed {
 
   event InternalContractAdded(bytes2 indexed code, address contractAddress, ContractType indexed contractType);
   event ContractUpgraded(bytes2 indexed code, address newAddress, ContractType indexed contractType);
-  event ContractRemoved(bytes2 indexed code, address newAddress, ContractType indexed contractType);
+  event ContractRemoved(bytes2 indexed code, address contractAddress);
+  event PauseConfigured(bool paused);
 
   modifier noReentrancy() {
     require(!reentrancyLock, "Reentrant call.");
@@ -183,6 +184,7 @@ contract NXMaster is INXMMaster, Governed {
       if (isReplaceable[code]) {
         isReplaceable[code] = false;
       }
+      emit ContractRemoved(code, contractAddress);
     }
 
     // delete elements from contractCodes
@@ -212,6 +214,7 @@ contract NXMaster is INXMMaster, Governed {
    */
   function setEmergencyPause(bool _paused) public onlyEmergencyAdmin {
     paused = _paused;
+    emit PauseConfigured(_paused);
   }
 
   /// @dev checks whether the address is an internal contract address.

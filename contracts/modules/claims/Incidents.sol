@@ -138,7 +138,7 @@ contract Incidents is IIncidents, MasterAware {
     uint coverId,
     uint incidentId,
     uint coveredTokenAmount
-  ) external returns (uint claimId, uint payoutAmount, address payoutToken) {
+  ) external whenNotPaused returns (uint claimId, uint payoutAmount, address payoutToken) {
     (claimId, payoutAmount, payoutToken) = _redeemPayout(coverId, incidentId, coveredTokenAmount, msg.sender);
   }
 

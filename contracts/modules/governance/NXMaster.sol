@@ -63,8 +63,8 @@ contract NXMaster is INXMMaster, Governed {
   public
   onlyAuthorizedToGovern
   {
-    require(newContractCodes.length == newAddresses.length, "NXMaster: Array lengths should be equal.");
-    require(newContractCodes.length == _types.length, "NXMaster: Array lengths should be equal.");
+    require(newContractCodes.length == newAddresses.length, "NXMaster: newContractCodes.length != newAddresses.length.");
+    require(newContractCodes.length == _types.length, "NXMaster: newContractCodes.length != _types.length");
     for (uint i = 0; i < newContractCodes.length; i++) {
       addNewInternalContract(newContractCodes[i], newAddresses[i], _types[i]);
     }
@@ -116,7 +116,7 @@ contract NXMaster is INXMMaster, Governed {
   public
   onlyAuthorizedToGovern
   {
-    require(_contractCodes.length == newAddresses.length, "NXMaster: Array lengths should be equal.");
+    require(_contractCodes.length == newAddresses.length, "NXMaster: _contractCodes.length != newAddresses.length");
 
     for (uint i = 0; i < _contractCodes.length; i++) {
       address payable newAddress = newAddresses[i];

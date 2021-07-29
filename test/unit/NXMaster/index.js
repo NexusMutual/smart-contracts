@@ -17,4 +17,5 @@ describe('Pool unit tests', function () {
   require('./removeContracts');
   require('./updateOwnerParameters');
   require('./addNewInternalContracts');
+  require('./getters');
 });

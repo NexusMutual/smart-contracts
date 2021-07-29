@@ -39,7 +39,7 @@ contract NXMaster is INXMMaster, Governed {
   enum ContractType { Undefined, Replaceable, Proxy }
 
   event InternalContractAdded(bytes2 indexed code, address contractAddress, ContractType indexed contractType);
-  event ContractUpgraded(bytes2 indexed code, address newAddress, ContractType indexed contractType);
+  event ContractUpgraded(bytes2 indexed code, address newAddress, address previousAddress, ContractType indexed contractType);
   event ContractRemoved(bytes2 indexed code, address contractAddress);
   event PauseConfigured(bool paused);
 
@@ -64,7 +64,7 @@ contract NXMaster is INXMMaster, Governed {
   onlyAuthorizedToGovern
   {
     require(newContractCodes.length == newAddresses.length, "NXMaster: Array lengths should be equal.");
-    require(_types.length == newAddresses.length, "NXMaster: Array lengths should be equal.");
+    require(newContractCodes.length == _types.length, "NXMaster: Array lengths should be equal.");
     for (uint i = 0; i < newContractCodes.length; i++) {
       addNewInternalContract(newContractCodes[i], newAddresses[i], _types[i]);
     }
@@ -86,7 +86,7 @@ contract NXMaster is INXMMaster, Governed {
     contractCodes.push(contractCode);
 
     address newInternalContract;
-    if (_type ==uint(ContractType.Replaceable)) {
+    if (_type == uint(ContractType.Replaceable)) {
 
       newInternalContract = contractAddress;
       isReplaceable[contractCode] = true;
@@ -125,14 +125,16 @@ contract NXMaster is INXMMaster, Governed {
 
       if (isProxy[code]) {
         OwnedUpgradeabilityProxy proxy = OwnedUpgradeabilityProxy(contractAddresses[code]);
+        address previousAddress = proxy.implementation();
         proxy.upgradeTo(newAddress);
-        emit ContractUpgraded(code, newAddress, ContractType.Proxy);
+        emit ContractUpgraded(code, newAddress, previousAddress, ContractType.Proxy);
         continue;
       }
 
       if (isReplaceable[code]) {
+        address previousAddress = getLatestAddress(code);
         replaceContract(code, newAddress);
-        emit ContractUpgraded(code, newAddress, ContractType.Replaceable);
+        emit ContractUpgraded(code, newAddress, previousAddress, ContractType.Replaceable);
         continue;
       }
 

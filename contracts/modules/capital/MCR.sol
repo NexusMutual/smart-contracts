@@ -109,7 +109,7 @@ contract MCR is IMCR, MasterAware {
   * and a new desiredMCR value to move towards is set.
   *
   */
-  function updateMCR() public {
+  function updateMCR() whenNotPaused public {
     _updateMCR(pool.getPoolValueInEth(), false);
   }
 

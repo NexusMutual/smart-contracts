@@ -337,6 +337,10 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     _makeCover(from, scAddress, currency, coverDetails, coverPeriod);
   }
 
+  // referenced in master, keeping for now
+  // solhint-disable-next-line no-empty-blocks
+  function transferAssetsToNewContract(address) external pure {}
+
   function freeUpHeldCovers() external nonReentrant {
 
     IERC20 dai = IERC20(cr.getCurrencyAssetAddress("DAI"));

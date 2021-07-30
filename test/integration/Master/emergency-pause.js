@@ -193,8 +193,8 @@ describe('emergency pause', function () {
     );
   });
 
-  it('stops claim payouts', async function () {
-    const { cd, cl, qd, mr, master, cr } = this.contracts;
+  it('stops claim payouts on closeClaim', async function () {
+    const { cd, cl, qd, master, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
     const coverHolder = member1;
@@ -215,5 +215,37 @@ describe('emergency pause', function () {
       from: emergencyAdmin,
     });
     await expectRevert(cr.closeClaim(claimId), 'System is paused');
+
+    await master.setEmergencyPause(false, {
+      from: emergencyAdmin,
+    });
+
+    // succeeds when unpaused
+    await cr.closeClaim(claimId);
+  });
+
+  it('stops claim payouts on last vote', async function () {
+    const { cd, cl, qd, master, cr } = this.contracts;
+    const cover = { ...coverTemplate };
+
+    await buyCover({ ...this.contracts, cover, coverHolder });
+    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
+    await cl.submitClaim(coverId, { from: coverHolder });
+    const claimId = (await cd.actualClaimLength()).subn(1);
+
+    const minVotingTime = await cd.minVotingTime();
+    await time.increase(minVotingTime.addn(1));
+
+    await master.setEmergencyPause(true, {
+      from: emergencyAdmin,
+    });
+
+    await expectRevert.unspecified(cl.submitCAVote(claimId, '1', { from: member1 }));
+
+    await master.setEmergencyPause(false, {
+      from: emergencyAdmin,
+    });
+
+    await cl.submitCAVote(claimId, '1', { from: member1 });
   });
 });

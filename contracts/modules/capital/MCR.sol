@@ -33,7 +33,7 @@ contract MCR is IMCR, MasterAware {
   uint112 public desiredMCR;
   uint32 public lastUpdateTime;
 
-  LegacyMCR public previousMCR;
+  IMCR public previousMCR;
 
   event MCRUpdated(
     uint mcr,
@@ -51,7 +51,7 @@ contract MCR is IMCR, MasterAware {
     changeMasterAddress(masterAddress);
 
     if (masterAddress != address(0)) {
-      previousMCR = LegacyMCR(master.getLatestAddress("MC"));
+      previousMCR = IMCR(master.getLatestAddress("MC"));
     }
   }
 
@@ -73,17 +73,14 @@ contract MCR is IMCR, MasterAware {
       return;
     }
 
-    // fetch MCR parameters from previous contract
-    uint112 minCap = 7000 * 1e18;
-    mcrFloor = uint112(previousMCR.variableMincap()) + minCap;
-    mcr = uint112(previousMCR.getLastMCREther());
-    desiredMCR = mcr;
-    mcrFloorIncrementThreshold = uint24(previousMCR.dynamicMincapThresholdx100());
-    maxMCRFloorIncrement = uint24(previousMCR.dynamicMincapIncrementx100());
+    mcrFloor = previousMCR.mcrFloor();
 
-    // set last updated time to now
-    lastUpdateTime = uint32(block.timestamp);
-    previousMCR = LegacyMCR(address(0));
+    mcr = previousMCR.mcr();
+    desiredMCR = previousMCR.desiredMCR();
+    lastUpdateTime = previousMCR.lastUpdateTime();
+    maxMCRFloorIncrement = previousMCR.maxMCRFloorIncrement();
+
+    previousMCR = IMCR(address(0));
   }
 
   /**

@@ -98,6 +98,7 @@ describe('sample test', function () {
     const implementation = await proxy.implementation();
 
     assert.equal(implementation, newMaster.address);
+
   });
 
   it('upgrade contracts', async function () {
@@ -106,10 +107,10 @@ describe('sample test', function () {
     const newMaster = await NXMaster.new();
 
     const newIncidents = await Incidents.new();
-    const newClaimsReward = await ClaimsReward.new();
-    const newMCR = await MCR.new();
+    const newClaimsReward = await ClaimsReward.new(master.address, Address.DAI);
+    const newMCR = await MCR.new(master.address);
 
-    const contractCodes = [hex('IC'), hex('CR'), hex('MC')];
+    const contractCodes = ['IC', 'CR', 'MC'];
     const newAddresses = [newIncidents.address, newClaimsReward.address, newMCR.address];
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
@@ -130,9 +131,9 @@ describe('sample test', function () {
     const incidentsImplementation = await proxy.implementation();
     assert.equal(incidentsImplementation, newIncidents.address);
 
-    assert.equal(newMCR.address, await master.getLatestAddress('MC'));
-    assert.equal(newClaimsReward.address, await master.getLatestAddress('CR'));
+    assert.equal(newMCR.address, await master.getLatestAddress(hex('MC')));
+    assert.equal(newClaimsReward.address, await master.getLatestAddress(hex('CR')));
   });
 
-  require('./basic-functionality-tests');
+  // require('./basic-functionality-tests');
 });

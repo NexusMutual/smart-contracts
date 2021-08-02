@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/NexusMutual/smart-contracts",
   "dependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@openzeppelin/contract-loader": "^0.6.1",
     "@openzeppelin/contracts": "^2.5.1",
     "@openzeppelin/contracts-v4": "npm:@openzeppelin/contracts@^4.0.0",
@@ -30,6 +31,9 @@
     "bn.js": "^5.1.2",
     "dotenv": "^8.2.0",
     "ethereumjs-util": "7.0.1",
+    "ethers": "^5.4.3",
+    "keccak256": "^1.0.3",
+    "merkletreejs": "^0.2.24",
     "node-fetch": "^2.6.1"
   },
   "devDependencies": {

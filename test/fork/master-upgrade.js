@@ -28,6 +28,7 @@ const Pool = artifacts.require('Pool');
 const MCR = artifacts.require('MCR');
 const QuotationData = artifacts.require('QuotationData');
 const ClaimsReward = artifacts.require('ClaimsReward');
+const LegacyNXMaster = artifacts.require('ILegacyNXMaster');
 
 describe('sample test', function () {
 
@@ -57,6 +58,7 @@ describe('sample test', function () {
     this.master = await NXMaster.at(masterAddress);
     this.quotationData = quotationData;
     this.incidents = incidents;
+    this.getAddressByCode = getAddressByCode;
   });
 
   it('fetches board members and funds accounts', async function () {
@@ -76,7 +78,9 @@ describe('sample test', function () {
   });
 
   it('upgrade master', async function () {
-    const { master, voters, governance } = this;
+    const { master, voters, governance, getAddressByCode } = this;
+
+    const legacyMaster = await LegacyNXMaster.at(master.address);
 
     const newMaster = await NXMaster.new();
 
@@ -86,6 +90,13 @@ describe('sample test', function () {
         newMaster.address,
       ],
     );
+
+    const {
+      contractsName,
+      contractsAddress,
+    } = await legacyMaster.getVersionData();
+
+    const prevTokenAddress = await legacyMaster.tokenAddress();
 
     await submitGovernanceProposal(
       ProposalCategory.upgradeMaster,
@@ -99,6 +110,23 @@ describe('sample test', function () {
 
     assert.equal(implementation, newMaster.address);
 
+    const { _contractCodes, _contractAddresses } = await master.getInternalContracts();
+
+    assert.equal(contractsName.length, _contractCodes.length);
+    assert.equal(contractsAddress.length, _contractAddresses.length);
+
+    console.log({
+      _contractCodes,
+      _contractAddresses,
+    });
+
+    for (let i = 0; i < contractsName.length; i++) {
+      assert.equal(contractsName[i], _contractCodes[i]);
+      assert.equal(contractsAddress[i], _contractAddresses[i]);
+    }
+
+    const tokenAddress = await master.tokenAddress();
+    assert.equal(tokenAddress, prevTokenAddress);
   });
 
   it('upgrade contracts', async function () {

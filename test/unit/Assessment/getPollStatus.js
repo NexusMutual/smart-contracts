@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
-const { submitFraud, burnFraud } = require('./helpers');
+const { submitClaim, submitFraud, burnFraud } = require('./helpers');
 
 const { parseEther } = ethers.utils;
 
@@ -28,10 +28,11 @@ const expectStatus = assessment => async expected => {
 // Converts days to seconds
 const days = numberOfDays => numberOfDays * 24 * 60 * 60;
 
-describe.only('getPollStatus', function () {
+describe('getPollStatus', function () {
   it('should return PENDING when the poll is still open', async function () {
     const { assessment } = this.contracts;
     const expect = expectStatus(assessment);
+    await submitClaim(assessment)(0);
 
     await expect(STATUS.PENDING);
 
@@ -58,6 +59,7 @@ describe.only('getPollStatus', function () {
   it('should return DENIED when the poll ends with no votes', async function () {
     const { assessment } = this.contracts;
     const expect = expectStatus(assessment);
+    await submitClaim(assessment)(0);
 
     await time.increase(days(3) + 1);
     await expect(STATUS.DENIED);
@@ -66,6 +68,7 @@ describe.only('getPollStatus', function () {
   it('should return DENIED when the poll result is to deny', async function () {
     const { assessment } = this.contracts;
     const expect = expectStatus(assessment);
+    await submitClaim(assessment)(0);
 
     await assessment.connect(this.accounts[1]).depositStake(parseEther('10'));
     await assessment.connect(this.accounts[1]).castVote(EVENT_TYPE.CLAIM, 0, true);
@@ -81,6 +84,7 @@ describe.only('getPollStatus', function () {
   it('should return DENIED when a claim fraud resolution with denying majority exists', async function () {
     const { assessment } = this.contracts;
     const expect = expectStatus(assessment);
+    await submitClaim(assessment)(0);
 
     const fraudulentAssessor = this.accounts[2];
     await assessment.connect(fraudulentAssessor).depositStake(parseEther('100'));
@@ -103,6 +107,7 @@ describe.only('getPollStatus', function () {
   it('should return ACCEPTED when the poll result is to accept', async function () {
     const { assessment } = this.contracts;
     const expect = expectStatus(assessment);
+    await submitClaim(assessment)(0);
 
     await assessment.connect(this.accounts[1]).depositStake(parseEther('100'));
     await assessment.connect(this.accounts[1]).castVote(EVENT_TYPE.CLAIM, 0, true);
@@ -118,6 +123,7 @@ describe.only('getPollStatus', function () {
   it('should return ACCEPTED when a claim fraud resolution with accepting majority exists', async function () {
     const { assessment } = this.contracts;
     const expect = expectStatus(assessment);
+    await submitClaim(assessment)(0);
 
     const honestAssessor = this.accounts[1];
     await assessment.connect(honestAssessor).depositStake(parseEther('10'));

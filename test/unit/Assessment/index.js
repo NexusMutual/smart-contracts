@@ -13,4 +13,5 @@ describe('Assessment', function () {
   });
 
   require('./getPollStatus');
+  require('./withdrawReward');
 });

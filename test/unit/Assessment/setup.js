@@ -31,13 +31,6 @@ async function setup () {
     await nxm.connect(account).approve(assessment.address, ethers.utils.parseEther('100'));
   }
 
-  const COVER_AMOUNT = parseEther('1');
-  const FLAT_ETH_FEE_PERC = await assessment.FLAT_ETH_FEE_PERC();
-  const submissionFee = parseEther('1')
-    .mul(FLAT_ETH_FEE_PERC)
-    .div('10000');
-  await assessment.submitClaimForAssessment(0, COVER_AMOUNT, false, '', { value: submissionFee });
-
   this.accounts = accounts;
   this.contracts = {
     nxm,

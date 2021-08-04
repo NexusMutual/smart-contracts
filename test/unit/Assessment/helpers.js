@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const keccak256 = require('keccak256');
 const { MerkleTree } = require('merkletreejs');
-const { arrayify, hexZeroPad, hexValue } = ethers.utils;
+const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
 
 const getVoteCountOfAddresses = assessment => async addresses =>
   await Promise.all(addresses.map(address => assessment.getVoteCountOfAssessor(address)));
@@ -61,7 +61,17 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
   return gasUsed;
 };
 
+const submitClaim = assessment => async (id, amount) => {
+  const DEFAULT_COVER_AMOUNT = parseEther('1');
+  const FLAT_ETH_FEE_PERC = await assessment.FLAT_ETH_FEE_PERC();
+  const submissionFee = parseEther('1')
+    .mul(FLAT_ETH_FEE_PERC)
+    .div('10000');
+  await assessment.submitClaimForAssessment(id, amount || DEFAULT_COVER_AMOUNT, false, '', { value: submissionFee });
+};
+
 module.exports = {
   submitFraud,
+  submitClaim,
   burnFraud,
 };

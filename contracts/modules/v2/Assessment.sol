@@ -498,38 +498,48 @@ contract Assessment is MasterAwareV2 {
     nxm.transferFrom(msg.sender, address(this), amount);
   }
 
-  function withdrawReward (uint112 amount, uint104 untilIndex) external {
-    Stake storage stake = stakeOf[msg.sender];
-    uint voteCount = votesOf[msg.sender].length;
-    require(untilIndex <= voteCount, "Assessment: Vote count is smaller that the provided untilIndex");
+  function withdrawReward (address user, uint104 untilIndex) external {
+    Stake storage stake = stakeOf[user];
+    uint voteCount = votesOf[user].length;
+    require(
+      untilIndex <= voteCount,
+      "Assessment: Vote count is smaller that the provided untilIndex"
+    );
     require(stake.voteRewardCursor < voteCount, "Assessment: No withdrawable rewards");
 
     uint rewardToWithdraw = 0;
     uint totalReward = 0;
     for (uint i = stake.voteRewardCursor; i < (untilIndex > 0 ? untilIndex : voteCount); i++) {
-      Vote memory vote = votesOf[msg.sender][i];
+      Vote memory vote = votesOf[user][i];
       require(_blockTimestamp() > vote.timestamp + VOTING_PERIOD_DAYS_MAX + PAYOUT_COOLDOWN_DAYS);
       if (vote.eventType == EventType.CLAIM) {
         Claim memory claim = claims[vote.eventId];
         uint coverPeriod = _getClaimCoverPeriod(claim.details);
         totalReward = claim.details.amount * REWARD_PERC * coverPeriod / 365 / PERC_BASIS_POINTS;
-        rewardToWithdraw += totalReward * vote.tokenWeight / (claim.poll.accepted + claim.poll.denied);
+        rewardToWithdraw += totalReward * vote.tokenWeight /
+          (claim.poll.accepted + claim.poll.denied);
       } else {
         Incident memory incident = incidents[vote.eventId];
         totalReward = incident.details.activeCoverAmount * REWARD_PERC / PERC_BASIS_POINTS;
-        rewardToWithdraw += totalReward * vote.tokenWeight / (incident.poll.accepted + incident.poll.denied);
+        rewardToWithdraw += totalReward * vote.tokenWeight /
+          (incident.poll.accepted + incident.poll.denied);
       }
     }
 
     stake.voteRewardCursor = untilIndex > 0 ? untilIndex : uint104(voteCount);
-    nxm.mint(msg.sender, rewardToWithdraw);
+    nxm.mint(user, rewardToWithdraw);
   }
 
   function withdrawStake (uint112 amount) external onlyMember {
     Stake storage stake = stakeOf[msg.sender];
     uint voteCount = votesOf[msg.sender].length;
-    require(stake.amount == 0, "Assessment: No withdrawable stake");
-    require(_blockTimestamp() > votesOf[msg.sender][voteCount - 1].timestamp + VOTING_PERIOD_DAYS_MAX + PAYOUT_COOLDOWN_DAYS);
+    require(stake.amount != 0, "Assessment: No tokens staked");
+    uint withdrawableAtTimestamp = votesOf[msg.sender][voteCount - 1].timestamp +
+      VOTING_PERIOD_DAYS_MAX + PAYOUT_COOLDOWN_DAYS;
+    require(
+      _blockTimestamp() > withdrawableAtTimestamp,
+      "Assessment: Stake is not withdrawable at the moment"
+     );
 
     nxm.transferFrom(address(this), msg.sender, stake.amount);
     stake.amount = 0;

@@ -1,8 +1,7 @@
-const {takeSnapshot, revertToSnapshot} = require('../utils').evm;
-const setup = require('./setup');
+const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
+const { setup } = require('./setup');
 
 describe('Assessment', function () {
-
   before(setup);
 
   beforeEach(async function () {
@@ -14,5 +13,4 @@ describe('Assessment', function () {
   });
 
   require('./getPollStatus');
-
 });

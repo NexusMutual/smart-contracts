@@ -3,8 +3,8 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/utils/cryptography/MerkleProof.sol";
-import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-import "../../abstract/MasterAware.sol";
+import "../../interfaces/INXMToken.sol";
+import "../../abstract/MasterAwareV2.sol";
 import "hardhat/console.sol";
 
 /**
@@ -12,7 +12,7 @@ import "hardhat/console.sol";
  *  assessment processes where members decide the outcome of the events that lead to potential
  *  payouts.
  */
-contract Assessment is MasterAware {
+contract Assessment is MasterAwareV2 {
 
   /* ========== DATA STRUCTURES ========== */
 
@@ -117,8 +117,8 @@ contract Assessment is MasterAware {
    *  Claim but in a human-friendly format.
    *
    *  @dev Contains aggregated values that give an overall view about the claim and other relevant
-   *  pieces of information such as cover period, asset symbol. This structure is not used for
-   *  storage variables.
+   *  pieces of information such as cover period, asset symbol etc. This structure is not used in
+   *  any storage variables.
    */
   struct ClaimDisplay {
     uint id;
@@ -160,7 +160,7 @@ contract Assessment is MasterAware {
 
   /* ========== STATE VARIABLES ========== */
 
-  IERC20 public nxm;
+  INXMToken public nxm;
   address public DAI_ADDRESS;
   uint16 public REWARD_PERC;
   uint16 public FLAT_ETH_FEE_PERC;
@@ -184,7 +184,7 @@ contract Assessment is MasterAware {
 
   constructor (address _nxm) {
 
-    nxm = IERC20(_nxm);
+    nxm = INXMToken(_nxm);
 
     // The minimum cover premium is 2.6%
     // 20% of the cover premium is:
@@ -409,9 +409,12 @@ contract Assessment is MasterAware {
     return claimDisplays;
   }
 
-  function getSubmissionFee()
-  internal view returns (uint) {
+  function getSubmissionFee() internal view returns (uint) {
     return 1 ether * uint(FLAT_ETH_FEE_PERC) / uint(PERC_BASIS_POINTS);
+  }
+
+  function getVoteCountOfAssessor(address assessor) external view returns (uint) {
+    return votesOf[assessor].length;
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -495,42 +498,41 @@ contract Assessment is MasterAware {
     nxm.transferFrom(msg.sender, address(this), amount);
   }
 
-  // Allows withdrawing the stake and reward. When rewardOnly is true, the reward is withdrawn
-  // and the stake is left intact.
-  // [todo] This method must be nonReentrant
-  function withdraw (uint112 amount, uint104 untilIndex, bool rewardOnly) external onlyMember {
+  function withdrawReward (uint112 amount, uint104 untilIndex) external {
     Stake storage stake = stakeOf[msg.sender];
     uint voteCount = votesOf[msg.sender].length;
-    require(stake.amount == 0, "Assessment: No withdrawable stake");
-    require(untilIndex <= voteCount, "Assessment: Votes length is smaller that the provided untilIndex");
+    require(untilIndex <= voteCount, "Assessment: Vote count is smaller that the provided untilIndex");
+    require(stake.voteRewardCursor < voteCount, "Assessment: No withdrawable rewards");
 
     uint rewardToWithdraw = 0;
     uint totalReward = 0;
-    if (stake.voteRewardCursor < voteCount) {
-      for (uint i = stake.voteRewardCursor; i < (untilIndex > 0 ? untilIndex : voteCount); i++) {
-        Vote memory vote = votesOf[msg.sender][i];
-        require(_blockTimestamp() > vote.timestamp + VOTING_PERIOD_DAYS_MAX + PAYOUT_COOLDOWN_DAYS);
-        if (vote.eventType == EventType.CLAIM) {
-          Claim memory claim = claims[vote.eventId];
-          uint coverPeriod = _getClaimCoverPeriod(claim.details);
-          totalReward = claim.details.amount * REWARD_PERC * coverPeriod / 365 / PERC_BASIS_POINTS;
-          rewardToWithdraw += totalReward * vote.tokenWeight / (claim.poll.accepted + claim.poll.denied);
-        } else {
-          Incident memory incident = incidents[vote.eventId];
-          totalReward = incident.details.activeCoverAmount * REWARD_PERC / PERC_BASIS_POINTS;
-          rewardToWithdraw += totalReward * vote.tokenWeight / (incident.poll.accepted + incident.poll.denied);
-        }
+    for (uint i = stake.voteRewardCursor; i < (untilIndex > 0 ? untilIndex : voteCount); i++) {
+      Vote memory vote = votesOf[msg.sender][i];
+      require(_blockTimestamp() > vote.timestamp + VOTING_PERIOD_DAYS_MAX + PAYOUT_COOLDOWN_DAYS);
+      if (vote.eventType == EventType.CLAIM) {
+        Claim memory claim = claims[vote.eventId];
+        uint coverPeriod = _getClaimCoverPeriod(claim.details);
+        totalReward = claim.details.amount * REWARD_PERC * coverPeriod / 365 / PERC_BASIS_POINTS;
+        rewardToWithdraw += totalReward * vote.tokenWeight / (claim.poll.accepted + claim.poll.denied);
+      } else {
+        Incident memory incident = incidents[vote.eventId];
+        totalReward = incident.details.activeCoverAmount * REWARD_PERC / PERC_BASIS_POINTS;
+        rewardToWithdraw += totalReward * vote.tokenWeight / (incident.poll.accepted + incident.poll.denied);
       }
-
-      stake.voteRewardCursor = uint104(untilIndex > 0 ? untilIndex : voteCount) - 1;
-      //nxm.mint(msg.sender, rewardToWithdraw);
     }
 
-    if (!rewardOnly) {
-      require(_blockTimestamp() > votesOf[msg.sender][voteCount - 1].timestamp + VOTING_PERIOD_DAYS_MAX + PAYOUT_COOLDOWN_DAYS);
-      nxm.transferFrom(address(this), msg.sender, stake.amount);
-      stake.amount = 0;
-    }
+    stake.voteRewardCursor = untilIndex > 0 ? untilIndex : uint104(voteCount);
+    nxm.mint(msg.sender, rewardToWithdraw);
+  }
+
+  function withdrawStake (uint112 amount) external onlyMember {
+    Stake storage stake = stakeOf[msg.sender];
+    uint voteCount = votesOf[msg.sender].length;
+    require(stake.amount == 0, "Assessment: No withdrawable stake");
+    require(_blockTimestamp() > votesOf[msg.sender][voteCount - 1].timestamp + VOTING_PERIOD_DAYS_MAX + PAYOUT_COOLDOWN_DAYS);
+
+    nxm.transferFrom(address(this), msg.sender, stake.amount);
+    stake.amount = 0;
   }
 
   function triggerClaimPayout (uint104 claimId) external {
@@ -585,8 +587,7 @@ contract Assessment is MasterAware {
     ));
   }
 
-  function submitFraud (bytes32 root) public {
-    // [todo] AB only
+  function submitFraud (bytes32 root) external onlyGovernance {
     fraudMerkleRoots.push(root);
   }
 
@@ -615,8 +616,9 @@ contract Assessment is MasterAware {
     ), "Assessment: Invalid merkle proof");
 
     uint processUntil;
-    if (voteBatchSize == 0 || stake.voteRewardCursor + voteBatchSize >= voteCount) {
-      processUntil = voteCount;
+    // [todo] Check this
+    if (voteBatchSize == 0 || stake.voteRewardCursor + voteBatchSize >= lastFraudulentVoteIndex) {
+      processUntil = lastFraudulentVoteIndex + 1;
     } else {
       processUntil = stake.voteRewardCursor + voteBatchSize;
     }
@@ -719,7 +721,7 @@ contract Assessment is MasterAware {
     }
   }
 
-  function changeDependentContractAddress() external {
+  function changeDependentContractAddress() external override {
     // [todo] Since this function is called every time contracts change,
     // all internal contracts could be stored here to avoid calls to master when
     // using onlyInternal or simply making a call to another contract.

@@ -32,7 +32,7 @@ const networks = {
   hardhat: {
     accounts: {
       count: 100,
-      accountsBalance: ether(10000000),
+      accountsBalance: ether(1000000000),
     },
     allowUnlimitedContractSize: true,
     blockGasLimit: 12e6,

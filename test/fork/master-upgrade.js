@@ -1,6 +1,6 @@
 const fetch = require('node-fetch');
 const { artifacts, web3, accounts, network } = require('hardhat');
-const { ether, time } = require('@openzeppelin/test-helpers');
+const { expectRevert, constants: { ZERO_ADDRESS }, ether, time } = require('@openzeppelin/test-helpers');
 
 const {
   submitGovernanceProposal,
@@ -11,7 +11,7 @@ const {
   UserAddress,
 } = require('./utils');
 const { hex } = require('../utils').helpers;
-const { ProposalCategory, CoverStatus } = require('../utils').constants;
+const { ProposalCategory, Role, ContractTypes } = require('../utils').constants;
 
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const MemberRoles = artifacts.require('MemberRoles');
@@ -28,7 +28,9 @@ const Pool = artifacts.require('Pool');
 const MCR = artifacts.require('MCR');
 const QuotationData = artifacts.require('QuotationData');
 const ClaimsReward = artifacts.require('ClaimsReward');
+const ProposalCategoryContract = artifacts.require('ProposalCategory');
 const LegacyNXMaster = artifacts.require('ILegacyNXMaster');
+const MMockNewContract = artifacts.require('MMockNewContract');
 
 describe('sample test', function () {
 
@@ -48,17 +50,19 @@ describe('sample test', function () {
     const mcr = await MCR.at(getAddressByCode('MC'));
     const incidents = await Incidents.at(getAddressByCode('IC'));
     const quotationData = await QuotationData.at(getAddressByCode('QD'));
+    const proposalCategory = await ProposalCategoryContract.at(getAddressByCode('PC'));
 
     this.masterAddress = masterAddress;
     this.token = token;
     this.memberRoles = memberRoles;
     this.governance = governance;
     this.oldPool = pool1;
-    this.oldMCR = mcr;
+    this.mcr = mcr;
     this.master = await NXMaster.at(masterAddress);
     this.quotationData = quotationData;
     this.incidents = incidents;
     this.getAddressByCode = getAddressByCode;
+    this.proposalCategory = proposalCategory;
   });
 
   it('fetches board members and funds accounts', async function () {
@@ -130,13 +134,19 @@ describe('sample test', function () {
   });
 
   it('upgrade contracts', async function () {
-    const { master, voters, governance, incidents } = this;
+    const { master, voters, governance, incidents, mcr } = this;
 
     const newMaster = await NXMaster.new();
 
     const newIncidents = await Incidents.new();
     const newClaimsReward = await ClaimsReward.new(master.address, Address.DAI);
     const newMCR = await MCR.new(master.address);
+
+    const previousMaxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
+    const previousStoredMCR = await mcr.mcr();
+    const previousDesiredMCR = await mcr.desiredMCR();
+    const previousLastUpdateTime = await mcr.lastUpdateTime();
+    const previousMcrFloor = await mcr.mcrFloor();
 
     const contractCodes = ['IC', 'CR', 'MC'];
     const newAddresses = [newIncidents.address, newClaimsReward.address, newMCR.address];
@@ -148,6 +158,7 @@ describe('sample test', function () {
         newAddresses,
       ],
     );
+
     await submitGovernanceProposal(
       ProposalCategory.upgradeNonProxy,
       upgradeContractsData,
@@ -161,7 +172,112 @@ describe('sample test', function () {
 
     assert.equal(newMCR.address, await master.getLatestAddress(hex('MC')));
     assert.equal(newClaimsReward.address, await master.getLatestAddress(hex('CR')));
+
+    const maxMCRFloorIncrement = await newMCR.maxMCRFloorIncrement();
+    const storedMCR = await newMCR.mcr();
+    const desiredMCR = await newMCR.desiredMCR();
+    const lastUpdateTime = await newMCR.lastUpdateTime();
+    const mcrFloor = await mcr.mcrFloor();
+
+    assert.equal(maxMCRFloorIncrement.toString(), previousMaxMCRFloorIncrement.toString());
+    assert.equal(storedMCR.toString(), previousStoredMCR.toString());
+    assert.equal(desiredMCR.toString(), previousDesiredMCR.toString());
+    assert.equal(lastUpdateTime.toString(), previousLastUpdateTime.toString());
+    assert.equal(mcrFloor.toString(), previousMcrFloor.toString());
+
+    this.mcr = newMCR;
   });
 
-  // require('./basic-functionality-tests');
+  it('adds category for adding new contracts', async function () {
+    const { governance, voters, proposalCategory } = this;
+
+    // withdraw assets proposal category
+    const parameters = [
+      ['string', 'Add new internal contracts'], // name
+      ['uint256', Role.AdvisoryBoard], // member role that votes
+      ['uint256', 60], // majority vote percentage
+      ['uint256', 15], // quorum percentage
+      ['uint256[]', [Role.AdvisoryBoard]], // allowed to create proposal
+      ['uint256', 3 * 24 * 3600], // closing time 3 days
+      ['string', ''], // action hash - probably ipfs hash
+      ['address', '0x0000000000000000000000000000000000000000'], // contract address: used only if next is "EX"
+      ['bytes2', hex('MS')], // contract name
+      // "incentives" is [min stake, incentive, ab voting req, special resolution]
+      ['uint256[]', [0, 0, 1, 0]],
+      ['string', 'addNewInternalContracts(bytes2[],address[],uint256[])'], // function signature
+    ];
+
+    const actionData = web3.eth.abi.encodeParameters(
+      parameters.map(p => p[0]),
+      parameters.map(p => p[1]),
+    );
+
+    const categoryIndex = await proposalCategory.totalCategories();
+
+    await submitGovernanceProposal(ProposalCategory.addCategory, actionData, voters, governance);
+
+    this.newContractCategory = categoryIndex;
+  });
+
+  it('adds category for removing contracts', async function () {
+    const { governance, voters, proposalCategory } = this;
+
+    // withdraw assets proposal category
+    const parameters = [
+      ['string', 'Remove contracts'], // name
+      ['uint256', Role.AdvisoryBoard], // member role that votes
+      ['uint256', 60], // majority vote percentage
+      ['uint256', 15], // quorum percentage
+      ['uint256[]', [Role.AdvisoryBoard]], // allowed to create proposal
+      ['uint256', 3 * 24 * 3600], // closing time 3 days
+      ['string', ''], // action hash - probably ipfs hash
+      ['address', '0x0000000000000000000000000000000000000000'], // contract address: used only if next is "EX"
+      ['bytes2', hex('MS')], // contract name
+      // "incentives" is [min stake, incentive, ab voting req, special resolution]
+      ['uint256[]', [0, 0, 1, 0]],
+      ['string', 'removeContracts(bytes2[])'], // function signature
+    ];
+
+    const actionData = web3.eth.abi.encodeParameters(
+      parameters.map(p => p[0]),
+      parameters.map(p => p[1]),
+    );
+
+    const categoryIndex = await proposalCategory.totalCategories();
+
+    await submitGovernanceProposal(ProposalCategory.addCategory, actionData, voters, governance);
+
+    this.removeContractsCategory = categoryIndex;
+  });
+
+  it('adds new test internal contract', async function () {
+    const { governance, voters, master } = this;
+
+    const code = hex('XX');
+    const newContract = await MMockNewContract.new();
+    const actionData = web3.eth.abi.encodeParameters(
+      ['bytes2[]', 'address[]', 'uint[]'],
+      [[code], [newContract.address], [ContractTypes.Replaceable]],
+    );
+
+    await submitGovernanceProposal(this.newContractCategory, actionData, voters, governance);
+
+    const address = await master.getLatestAddress(code);
+    assert.equal(address, newContract.address);
+  });
+
+  it('removes previously added internal contract', async function () {
+    const { governance, voters, master } = this;
+
+    const code = hex('XX');
+    const newContract = await MMockNewContract.new();
+    const actionData = web3.eth.abi.encodeParameters(['bytes2[]'], [[code]]);
+    await submitGovernanceProposal(this.removeContractsCategory, actionData, voters, governance);
+
+    const address = await master.getLatestAddress(code);
+    assert.equal(address, ZERO_ADDRESS);
+    assert.equal(false, await master.isInternal(newContract.address));
+  });
+
+  require('./basic-functionality-tests');
 });

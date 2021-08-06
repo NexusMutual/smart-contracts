@@ -13,7 +13,7 @@ const EVENT_TYPE = {
 // Converts days to seconds
 const days = numberOfDays => numberOfDays * 24 * 60 * 60;
 
-describe.only('withdrawReward', function () {
+describe('withdrawReward', function () {
   it('test', async function () {
     const { assessment } = this.contracts;
 

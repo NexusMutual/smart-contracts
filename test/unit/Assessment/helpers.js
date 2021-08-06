@@ -67,7 +67,7 @@ const submitClaim = assessment => async (id, amount) => {
   const submissionFee = parseEther('1')
     .mul(FLAT_ETH_FEE_PERC)
     .div('10000');
-  await assessment.submitClaimForAssessment(id, amount || DEFAULT_COVER_AMOUNT, false, '', { value: submissionFee });
+  await assessment.submitClaim(id, amount || DEFAULT_COVER_AMOUNT, false, '', { value: submissionFee });
 };
 
 module.exports = {

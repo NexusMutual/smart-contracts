@@ -2,7 +2,7 @@ require('dotenv').config();
 require('@nomiclabs/hardhat-web3');
 require('@nomiclabs/hardhat-truffle5');
 require('@nomiclabs/hardhat-etherscan');
-require("@nomiclabs/hardhat-ethers");
+require('@nomiclabs/hardhat-ethers');
 require('solidity-coverage');
 require('hardhat-contract-sizer');
 
@@ -65,9 +65,7 @@ for (const network of ['MAINNET', 'KOVAN']) {
   networks[network.toLowerCase()] = { accounts, gasPrice, gasLimit, url };
 }
 
-const compilerSettings = process.env.ENABLE_OPTIMIZER
-  ? { optimizer: { enabled: true, runs: 200 } }
-  : {};
+const compilerSettings = process.env.ENABLE_OPTIMIZER ? { optimizer: { enabled: true, runs: 200 } } : {};
 
 module.exports = {
   contractSizer: {
@@ -84,6 +82,7 @@ module.exports = {
     exit: true,
     bail: false,
     recursive: false,
+    timeout: 60 * 60 * 60, // 1 hour
   },
 
   networks,

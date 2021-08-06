@@ -75,37 +75,21 @@ contract Assessment is MasterAwareV2 {
    *
    *  @param amount            Amount requested as part of this claim up to the total cover amount
    *  @param coverId           The identifier of the cover on which this claim is submitted
+   *  @param coverPeriod       Cover period represented as days, used to calculate rewards
    *  @param asset             The asset which is expected at payout. E.g ETH, DAI (See Asset enum)
    *  @param nxmPriceSnapshot  The price (TWAP) of 1 NXM in the given asset at claim-time
    *  @param flatEthFeePerc    A snapshot of FLAT_ETH_FEE_PERC if it is changed before the payout
-   *  @param misc              Contains miscellanious information that fits in 2 bytes
+   *  @param pyaoutComplete    True if the payout is complete, prevents further payouts on the claim
    *
-   *  The first 11 right-most bits represent the cover period in days. Thus the maximum is 2047
-   *  days (2**11-1) or ~5 years which is more than enough.
-   *
-   *  E.g. A representation of a cover period of 365 days:
-   *    0000000101101101
-   *         ^^^^^^^^^^^
-   *
-   *  The first left-most bit is set to 1 when a payout is complete, marking the claim as being in
-   *  a finalized state (accepted and paid).
-   *
-   *  E.g. Continuing from the example given above with a 365 days cover period, the marked bit means
-   *  that the payout is complete and the claim status can no longer be changed.
-   *    1000000101101101
-   *    ^
-   *
-   *  The remaining 4 bits on the marked positions are currently unused:
-   *    1000000101101101
-   *     ^^^^
    */
   struct ClaimDetails {
-    uint104 amount;
+    uint96 amount;
     uint32 coverId;
+    uint16 coverPeriod;
     Asset asset;
     uint80 nxmPriceSnapshot;
     uint16 flatEthFeePerc;
-    uint16 misc;
+    bool payoutComplete;
   }
 
   struct Claim {
@@ -135,7 +119,7 @@ contract Assessment is MasterAwareV2 {
   }
 
   struct IncidentDetails {
-    uint104 activeCoverAmount; // ETH or DAI
+    uint96 activeCoverAmount; // ETH or DAI
     uint24 productId;
     Asset asset;
     uint80 nxmPriceSnapshot; // NXM price in ETH or DAI
@@ -216,25 +200,6 @@ contract Assessment is MasterAwareV2 {
   /// @dev Returns block timestamp truncated to 32 bits
   function _blockTimestamp() internal view returns (uint32) {
       return uint32(block.timestamp);
-  }
-
-  function _getClaimCoverPeriod(ClaimDetails memory details) public pure returns (uint) {
-    uint16 mask = 2**11-1;
-    return uint(details.misc & mask);
-  }
-
-  function getClaimCoverPeriod(uint104 id) external view returns (uint) {
-    Claim memory claim = claims[id];
-    return _getClaimCoverPeriod(claim.details);
-  }
-
-  function _isClaimPayoutComplete(ClaimDetails memory details) public pure returns (bool) {
-    return details.misc >> 15 == uint16(1);
-  }
-
-  function isClaimPayoutComplete(uint104 id) external view returns (bool) {
-    Claim memory claim = claims[id];
-    return _isClaimPayoutComplete(claim.details);
   }
 
   function _getVotingPeriodEnd (
@@ -368,11 +333,9 @@ contract Assessment is MasterAwareV2 {
           claimStatusDisplay = "Pending";
         }
 
-        bool payoutComplete = _isClaimPayoutComplete(claim.details);
-
         if (claimStatus == PollStatus.DENIED) {
           payoutStatusDisplay = "Denied";
-        } else if (claimStatus == PollStatus.ACCEPTED && payoutComplete) {
+        } else if (claimStatus == PollStatus.ACCEPTED && claim.details.payoutComplete) {
           payoutStatusDisplay = "Complete";
         } else {
           payoutStatusDisplay = "Pending";
@@ -419,12 +382,6 @@ contract Assessment is MasterAwareV2 {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function _setClaimPayoutComplete (ClaimDetails storage details) internal {
-    // One way operation.
-    uint16 flipPosition = 1 << 15;
-    details.misc = details.misc | flipPosition;
-  }
-
   /**
    *  Submits a claim for assessment
    *
@@ -438,9 +395,9 @@ contract Assessment is MasterAwareV2 {
    *  @param ipfsProofHash    The IPFS hash required for proof of loss. It is ignored if withProof
    *                          is false
    */
-  function submitClaimForAssessment(
+  function submitClaim(
     uint24 coverId,
-    uint104 requestedAmount,
+    uint96 requestedAmount,
     bool withProof,
     string calldata ipfsProofHash
   ) external payable onlyMember {
@@ -450,11 +407,10 @@ contract Assessment is MasterAwareV2 {
      );
     // [todo] Cover premium and total amount need to be obtained from the cover
     // itself. The premium needs to be converted to NXM using a TWAP at claim time.
-    uint104 coverAmount = 1000 ether;
+    uint96 coverAmount = 1000 ether;
     uint16 coverPeriod = 365;
     Asset asset = Asset.ETH; // take this form cover asset
     uint80 nxmPriceSnapshot = uint80(1 ether);
-    require(coverPeriod <= 2**11-1, "Assessment: Cover period cannot exceed 2047 days");
 
     // a snapshot of FLAT_ETH_FEE_PERC at submission if it ever changes before redeeming
     if (withProof) {
@@ -465,19 +421,17 @@ contract Assessment is MasterAwareV2 {
       ClaimDetails(
         requestedAmount,
         coverId,
+        coverPeriod,
         asset,
         nxmPriceSnapshot,
         FLAT_ETH_FEE_PERC,
-        coverPeriod
+        false
       )
     ));
   }
 
-  function submitIncidentForAssessment(
-    uint24 productId,
-    uint112 priceBefore
-  ) external payable onlyMember {
-    uint104 activeCoverAmount = 20000 ether;
+  function submitIncident(uint24 productId, uint112 priceBefore) external payable onlyMember {
+    uint96 activeCoverAmount = 20000 ether;
     Asset asset = Asset.ETH; // take this form product underlying asset
     uint80 nxmPriceSnapshot = uint80(1 ether);
 
@@ -509,13 +463,13 @@ contract Assessment is MasterAwareV2 {
 
     uint rewardToWithdraw = 0;
     uint totalReward = 0;
-    for (uint i = stake.voteRewardCursor; i < (untilIndex > 0 ? untilIndex : voteCount); i++) {
+    uint withdrawUntilIndex = untilIndex > 0 ? untilIndex : voteCount;
+    for (uint i = stake.voteRewardCursor; i < withdrawUntilIndex; i++) {
       Vote memory vote = votesOf[user][i];
       require(_blockTimestamp() > vote.timestamp + VOTING_PERIOD_DAYS_MAX + PAYOUT_COOLDOWN_DAYS);
       if (vote.eventType == EventType.CLAIM) {
         Claim memory claim = claims[vote.eventId];
-        uint coverPeriod = _getClaimCoverPeriod(claim.details);
-        totalReward = claim.details.amount * REWARD_PERC * coverPeriod / 365 / PERC_BASIS_POINTS;
+        totalReward = claim.details.amount * REWARD_PERC * claim.details.coverPeriod / 365 / PERC_BASIS_POINTS;
         rewardToWithdraw += totalReward * vote.tokenWeight /
           (claim.poll.accepted + claim.poll.denied);
       } else {
@@ -555,8 +509,8 @@ contract Assessment is MasterAwareV2 {
       !isInCooldownPeriod(EventType.CLAIM, claimId),
       "Assessment: The claim is in cooldown period"
     );
-    require(!_isClaimPayoutComplete(claim.details), "Assessment: Payout was already redeemed");
-    _setClaimPayoutComplete(claim.details);
+    require(!claim.details.payoutComplete, "Assessment: Payout was already redeemed");
+    claim.details.payoutComplete = true;
     nxm.transferFrom(msg.sender, address(this), claim.details.amount);
   }
 
@@ -658,7 +612,7 @@ contract Assessment is MasterAwareV2 {
         uint payoutImpact;
         if (vote.eventType == EventType.CLAIM) {
           Claim memory claim = claims[vote.eventId];
-          if (_isClaimPayoutComplete(claim.details)) {
+          if (claim.details.payoutComplete) {
             // Once the payout is withdrawn the poll result is final
             continue;
           }

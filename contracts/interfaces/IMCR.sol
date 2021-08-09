@@ -8,10 +8,10 @@ interface IMCR {
   function getMCR() external view returns (uint);
 
 
-  function maxMCRFloorIncrement() external returns (uint24);
+  function maxMCRFloorIncrement() external view returns (uint24);
 
-  function mcrFloor() external returns (uint112);
-  function mcr() external returns (uint112);
-  function desiredMCR() external returns (uint112);
-  function lastUpdateTime() external returns (uint32);
+  function mcrFloor() external view returns (uint112);
+  function mcr() external view returns (uint112);
+  function desiredMCR() external view returns (uint112);
+  function lastUpdateTime() external view returns (uint32);
 }

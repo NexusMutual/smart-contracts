@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/utils/cryptography/MerkleProof.sol";
 import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IAssessment.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "hardhat/console.sol";
 
@@ -12,131 +13,7 @@ import "hardhat/console.sol";
  *  assessment processes where members decide the outcome of the events that lead to potential
  *  payouts.
  */
-contract Assessment is MasterAwareV2 {
-
-  /* ========== DATA STRUCTURES ========== */
-
-  enum PollStatus { PENDING, ACCEPTED, DENIED }
-
-  enum EventType { CLAIM, INCIDENT }
-
-  enum Asset { ETH, DAI }
-
-  enum UintParams {
-    REWARD_PERC,
-    FLAT_ETH_FEE_PERC,
-    INCIDENT_TOKEN_WEIGHT_PERC,
-    VOTING_PERIOD_DAYS_MIN,
-    VOTING_PERIOD_DAYS_MAX,
-    PAYOUT_COOLDOWN_DAYS
-  }
-
-  struct Stake {
-    uint104 amount;
-    uint104 voteRewardCursor;
-    uint16 fraudCount;
-    /*uint32 unused,*/
-  }
-
-  /**
-   *  Holds data for a vote belonging to an assessor.
-   *
-   *  @dev This structure is used to keep track of user's votes. Each vote is used to determine
-   *  a user's share of rewards or to create a fraud resolution which excludes fraudulent votes
-   * from the initial poll.
-   *
-   *  @param eventId      Can be either a claimId or an IncidentId
-   *  @param accepted     If the assessor voted to accept the event it's true otherwise it's false
-   *  @param timestamp    Date and time when the vote was cast
-   *  @param tokenWeight  How many tokens were staked when the vote was cast
-   *  @param eventType    Can be a claim or an incident (See EventType enum)
-   */
-  struct Vote {
-    uint104 eventId;
-    bool accepted;
-    uint32 timestamp;
-    uint104 tokenWeight;
-    EventType eventType;
-  }
-
-  struct Poll {
-    uint112 accepted;
-    uint112 denied;
-    uint32 voteStart;
-  }
-
-  /**
-   *  Holds the requested amount, NXM price, submission fee and other relevant details
-   *  such as parts of the corresponding cover details and the payout status.
-   *
-   *  @dev This structure has snapshots of claim-time states that are considered moving targets
-   *  but also parts of cover details that reduce the need of external calls. Everything is fitted
-   *  in a single word that contains:
-   *
-   *  @param amount            Amount requested as part of this claim up to the total cover amount
-   *  @param coverId           The identifier of the cover on which this claim is submitted
-   *  @param coverPeriod       Cover period represented as days, used to calculate rewards
-   *  @param asset             The asset which is expected at payout. E.g ETH, DAI (See Asset enum)
-   *  @param nxmPriceSnapshot  The price (TWAP) of 1 NXM in the given asset at claim-time
-   *  @param flatEthFeePerc    A snapshot of FLAT_ETH_FEE_PERC if it is changed before the payout
-   *  @param pyaoutComplete    True if the payout is complete, prevents further payouts on the claim
-   *
-   */
-  struct ClaimDetails {
-    uint96 amount;
-    uint32 coverId;
-    uint16 coverPeriod;
-    Asset asset;
-    uint80 nxmPriceSnapshot;
-    uint16 flatEthFeePerc;
-    bool payoutComplete;
-  }
-
-  struct Claim {
-    Poll poll;
-    ClaimDetails details;
-  }
-
-  /**
-   *  Claim but in a human-friendly format.
-   *
-   *  @dev Contains aggregated values that give an overall view about the claim and other relevant
-   *  pieces of information such as cover period, asset symbol etc. This structure is not used in
-   *  any storage variables.
-   */
-  struct ClaimDisplay {
-    uint id;
-    uint productId;
-    uint coverId;
-    uint amount;
-    string assetSymbol;
-    uint coverStart;
-    uint coverEnd;
-    uint voteStart;
-    uint voteEnd;
-    string claimStatus;
-    string payoutStatus;
-  }
-
-  struct IncidentDetails {
-    uint96 activeCoverAmount; // ETH or DAI
-    uint24 productId;
-    Asset asset;
-    uint80 nxmPriceSnapshot; // NXM price in ETH or DAI
-  }
-
-  struct Incident {
-    Poll poll;
-    IncidentDetails details;
-  }
-
-  struct FraudResolution {
-    uint112 accepted;
-    uint112 denied;
-    bool exists;
-    /*uint24 unused,*/
-  }
-
+contract Assessment is IAssessment, MasterAwareV2 {
   /* ============= CONSTANTS ============= */
 
   uint public constant PRECISION = 10 ** 18;
@@ -206,7 +83,8 @@ contract Assessment is MasterAwareV2 {
     uint accepted,
     uint denied,
     uint voteStart,
-    uint payoutImpact
+    uint payoutImpact,
+    FraudResolution fraudResolution
   ) internal view returns (uint32) {
     if (accepted == 0 && denied == 0) {
       return uint32(voteStart + VOTING_PERIOD_DAYS_MIN * 1 days);
@@ -272,11 +150,24 @@ contract Assessment is MasterAwareV2 {
     return _blockTimestamp() > getVotingPeriodEnd(eventType, id);
   }
 
+  /**
+   *  Returns true if a fraud resolution exists
+   *
+   *  @dev Timestamp is implicitly 0. When fraudResolution is stored, the block timestamp is
+   *  guaranteed to be greater than 0. Thus it is safe to use it as a way to determine whether
+   *  a fraud resolution exists or not.
+   */
+  function fraudResolutionExists (
+    FraudResolution memory fraudResolution
+  ) internal pure returns (bool) {
+    return fraudResolution.timestamp > 0;
+  }
+
   function getPollStatus(EventType eventType, uint104 id) public view returns (PollStatus) {
     FraudResolution memory fraudResolution = eventType == EventType.CLAIM
         ? fraudResolutionOfClaim[id]
         : fraudResolutionOfIncident[id];
-    if (fraudResolution.exists) {
+    if (fraudResolutionExists(fraudResolution)) {
       return fraudResolution.accepted > fraudResolution.denied
         ? PollStatus.ACCEPTED
         : PollStatus.DENIED;
@@ -333,6 +224,7 @@ contract Assessment is MasterAwareV2 {
           claimStatusDisplay = "Pending";
         }
 
+
         if (claimStatus == PollStatus.DENIED) {
           payoutStatusDisplay = "Denied";
         } else if (claimStatus == PollStatus.ACCEPTED && claim.details.payoutComplete) {
@@ -349,9 +241,9 @@ contract Assessment is MasterAwareV2 {
       uint voteEnd = getVotingPeriodEnd(EventType.CLAIM, claimId);
       string memory assetSymbol;
       {
-        if (claim.details.asset == Asset.ETH) {
+        if (claim.details.payoutAsset == Asset.ETH) {
           assetSymbol = "ETH";
-        } else if (claim.details.asset == Asset.DAI) {
+        } else if (claim.details.payoutAsset == Asset.DAI) {
           assetSymbol = "DAI";
         }
       }
@@ -409,7 +301,7 @@ contract Assessment is MasterAwareV2 {
     // itself. The premium needs to be converted to NXM using a TWAP at claim time.
     uint96 coverAmount = 1000 ether;
     uint16 coverPeriod = 365;
-    Asset asset = Asset.ETH; // take this form cover asset
+    Asset payoutAsset = Asset.ETH; // take this form cover asset
     uint80 nxmPriceSnapshot = uint80(1 ether);
 
     // a snapshot of FLAT_ETH_FEE_PERC at submission if it ever changes before redeeming
@@ -422,7 +314,7 @@ contract Assessment is MasterAwareV2 {
         requestedAmount,
         coverId,
         coverPeriod,
-        asset,
+        payoutAsset,
         nxmPriceSnapshot,
         FLAT_ETH_FEE_PERC,
         false
@@ -432,7 +324,7 @@ contract Assessment is MasterAwareV2 {
 
   function submitIncident(uint24 productId, uint112 priceBefore) external payable onlyMember {
     uint96 activeCoverAmount = 20000 ether;
-    Asset asset = Asset.ETH; // take this form product underlying asset
+    Asset payoutAsset = Asset.ETH; // take this form product
     uint80 nxmPriceSnapshot = uint80(1 ether);
 
     incidents.push(Incident(
@@ -440,7 +332,7 @@ contract Assessment is MasterAwareV2 {
       IncidentDetails (
         activeCoverAmount, // ETH or DAI
         productId,
-        asset,
+        payoutAsset,
         nxmPriceSnapshot // NXM price in ETH or DAI
       )
     ));
@@ -466,7 +358,10 @@ contract Assessment is MasterAwareV2 {
     uint withdrawUntilIndex = untilIndex > 0 ? untilIndex : voteCount;
     for (uint i = stake.voteRewardCursor; i < withdrawUntilIndex; i++) {
       Vote memory vote = votesOf[user][i];
-      require(_blockTimestamp() > vote.timestamp + VOTING_PERIOD_DAYS_MAX + PAYOUT_COOLDOWN_DAYS);
+      require(
+        _blockTimestamp() > vote.timestamp + VOTING_PERIOD_DAYS_MAX + PAYOUT_COOLDOWN_DAYS,
+        "Assessment: Cannot withdraw rewards from votes which are not in a final state"
+      );
       if (vote.eventType == EventType.CLAIM) {
         Claim memory claim = claims[vote.eventId];
         totalReward = claim.details.amount * REWARD_PERC * claim.details.coverPeriod / 365 / PERC_BASIS_POINTS;
@@ -495,8 +390,8 @@ contract Assessment is MasterAwareV2 {
       "Assessment: Stake is not withdrawable at the moment"
      );
 
-    nxm.transferFrom(address(this), msg.sender, stake.amount);
-    stake.amount = 0;
+    nxm.transferFrom(address(this), msg.sender, amount);
+    stake.amount -= amount;
   }
 
   function triggerClaimPayout (uint104 claimId) external {
@@ -525,7 +420,7 @@ contract Assessment is MasterAwareV2 {
 
     require(stake.amount > 0, "Assessment: A stake is required to cast votes");
     require(
-      !fraudResolution.exists && !hasVotingPeriodEnded(eventType, id),
+      !fraudResolutionExists(fraudResolution) && !hasVotingPeriodEnded(eventType, id),
       "Assessment: Voting is closed"
     );
     require(
@@ -533,9 +428,10 @@ contract Assessment is MasterAwareV2 {
       "Assessment: At least one accept vote is required to vote deny"
     );
 
+    uint32 blockTimestamp = _blockTimestamp();
     if (accepted) {
       if (poll.accepted == 0) {
-        poll.voteStart = _blockTimestamp();
+        poll.voteStart = blockTimestamp;
       }
       poll.accepted += stake.amount;
     } else {
@@ -545,7 +441,7 @@ contract Assessment is MasterAwareV2 {
     votesOf[msg.sender].push(Vote(
       id,
       accepted,
-      _blockTimestamp(),
+      blockTimestamp,
       stake.amount,
       eventType
     ));
@@ -598,7 +494,7 @@ contract Assessment is MasterAwareV2 {
       FraudResolution storage fraudResolution = vote.eventType == EventType.CLAIM
         ? fraudResolutionOfClaim[vote.eventId]
         : fraudResolutionOfIncident[vote.eventId];
-      if (fraudResolution.exists) {
+      if (fraudResolutionExists(fraudResolution)) {
         //console.log("Editing fraudResolution");
         if (vote.accepted == true) {
           fraudResolution.accepted -= vote.tokenWeight;
@@ -635,9 +531,9 @@ contract Assessment is MasterAwareV2 {
         }
         //console.log("Creating fraudResolution");
         if (vote.eventType == EventType.CLAIM) {
-          fraudResolutionOfClaim[vote.eventId] = FraudResolution( accepted, denied, true);
+          fraudResolutionOfClaim[vote.eventId] = FraudResolution(accepted, denied, true);
         } else {
-          fraudResolutionOfIncident[vote.eventId] = FraudResolution( accepted, denied, true);
+          fraudResolutionOfIncident[vote.eventId] = FraudResolution(accepted, denied, true);
         }
       }
     }
@@ -693,16 +589,5 @@ contract Assessment is MasterAwareV2 {
     // be wiped out and replaced with what is passed as calldata by master. This function
     // should only be callable by master.
   }
-
-  /* ========== EVENTS ========== */
-
-  event StakeDeposited(address user, uint256 amount);
-  event ClaimSubmitted(address user, uint32 coverId, uint24 productId);
-  event IncidentSubmitted(address user, uint24 productId);
-  event ProofSubmitted(uint indexed coverId, address indexed owner, string ipfsHash);
-  event VoteCast(address indexed user, uint256 tokenWeight, bool accepted);
-  event RewardWithdrawn(address user, uint256 amount);
-  event StakeWithdrawn(address indexed user, uint256 amount);
-  event PayoutWithdrawn(address indexed user, uint256 amount);
 
 }

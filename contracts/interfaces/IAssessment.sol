@@ -6,6 +6,8 @@ interface IAssessment {
 
   /* ========== DATA STRUCTURES ========== */
 
+  enum ID {TC, MR, P1, TK}
+
   enum PollStatus { PENDING, ACCEPTED, DENIED }
 
   enum EventType { CLAIM, INCIDENT }
@@ -14,11 +16,12 @@ interface IAssessment {
 
   enum UintParams {
     REWARD_PERC,
-    FLAT_ETH_FEE_PERC,
     INCIDENT_TOKEN_WEIGHT_PERC,
     VOTING_PERIOD_DAYS_MIN,
     VOTING_PERIOD_DAYS_MAX,
-    PAYOUT_COOLDOWN_DAYS
+    PAYOUT_COOLDOWN_DAYS,
+    CLAIM_FEE_PERC,
+    INCIDENT_FEE_PERC
   }
 
   struct Stake {
@@ -70,7 +73,7 @@ interface IAssessment {
    // Cover period represented as days, used to calculate rewards
     uint16 coverPeriod;
    // The asset which is expected at payout. E.g ETH, DAI (See Asset enum)
-    Asset payoutAsset;
+    uint8 payoutAsset;
    // The price (TWAP) of 1 NXM in the covered asset, at claim-time
     uint80 nxmPriceSnapshot;
    // A snapshot of FLAT_ETH_FEE_PERC if it is changed before the payout
@@ -119,7 +122,7 @@ interface IAssessment {
     // according to their cover period
     uint32 date;
     // The asset which is expected at payout. E.g ETH, DAI (See Asset enum)
-    Asset payoutAsset;
+    uint8 payoutAsset;
     uint96 activeCoverAmount;
    // The price (TWAP) of 1 NXM in the covered asset, at claim-time
     uint80 nxmPriceSnapshot;
@@ -137,8 +140,8 @@ interface IAssessment {
   }
 
   struct FraudResolution {
-    uint104 accepted;
-    uint104 denied;
+    uint112 accepted;
+    uint112 denied;
     uint32 timestamp;
   }
 

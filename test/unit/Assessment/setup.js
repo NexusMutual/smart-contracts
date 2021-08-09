@@ -1,4 +1,5 @@
 const { ethers } = require('hardhat');
+const { hex } = require('../../../lib/helpers');
 const { parseEther } = ethers.utils;
 
 async function setup () {
@@ -6,19 +7,42 @@ async function setup () {
   const nxm = await NXM.deploy();
   await nxm.deployed();
 
+  const MemberRoles = await ethers.getContractFactory('MemberRolesMock');
+  const memberRoles = await MemberRoles.deploy();
+  await memberRoles.deployed();
+
+  const AssessmentMockPool = await ethers.getContractFactory('AssessmentMockPool');
+  const pool = await AssessmentMockPool.deploy();
+  await pool.deployed();
+
+  const AssessmentMockTokenController = await ethers.getContractFactory('AssessmentMockTokenController');
+  const tokenController = await AssessmentMockTokenController.deploy();
+  await tokenController.deployed();
+
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();
   await master.deployed();
+  const masterInitTxs = await Promise.all([
+    master.setLatestAddress(hex('TK'), nxm.address),
+    master.setLatestAddress(hex('TC'), tokenController.address),
+    master.setLatestAddress(hex('MR'), memberRoles.address),
+    master.setLatestAddress(hex('P1'), pool.address),
+  ]);
+  await Promise.all(masterInitTxs.map(x => x.wait()));
 
   const DAI = await ethers.getContractFactory('ERC20BlacklistableMock');
   const dai = await DAI.deploy();
   await dai.deployed();
 
   const Assessment = await ethers.getContractFactory('Assessment');
-  const assessment = await Assessment.deploy(nxm.address);
+  const assessment = await Assessment.deploy();
   await assessment.deployed();
   {
     const tx = await assessment.changeMasterAddress(master.address);
+    await tx.wait();
+  }
+  {
+    const tx = await assessment.changeDependentContractAddress();
     await tx.wait();
   }
 

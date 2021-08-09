@@ -63,9 +63,9 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
 
 const submitClaim = assessment => async (id, amount) => {
   const DEFAULT_COVER_AMOUNT = parseEther('1');
-  const FLAT_ETH_FEE_PERC = await assessment.FLAT_ETH_FEE_PERC();
+  const CLAIM_FEE_PERC = await assessment.CLAIM_FEE_PERC();
   const submissionFee = parseEther('1')
-    .mul(FLAT_ETH_FEE_PERC)
+    .mul(CLAIM_FEE_PERC)
     .div('10000');
   await assessment.submitClaim(id, amount || DEFAULT_COVER_AMOUNT, false, '', { value: submissionFee });
 };

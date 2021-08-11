@@ -13,5 +13,6 @@ describe.only('Assessment', function () {
   });
 
   require('./getPollStatus');
+  require('./getVotingPeriodEnd');
   require('./withdrawReward');
 });

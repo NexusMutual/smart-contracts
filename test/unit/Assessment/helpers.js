@@ -63,15 +63,25 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
 
 const submitClaim = assessment => async (id, amount) => {
   const DEFAULT_COVER_AMOUNT = parseEther('1');
-  const CLAIM_FEE_PERC = await assessment.CLAIM_FEE_PERC();
-  const submissionFee = parseEther('1')
-    .mul(CLAIM_FEE_PERC)
+  const CLAIM_ASSESSMENT_DEPOSIT_PERC = await assessment.CLAIM_ASSESSMENT_DEPOSIT_PERC();
+  const claimAssessmentDeposit = parseEther('1')
+    .mul(CLAIM_ASSESSMENT_DEPOSIT_PERC)
     .div('10000');
-  await assessment.submitClaim(id, amount || DEFAULT_COVER_AMOUNT, false, '', { value: submissionFee });
+  await assessment.submitClaim(id, amount || DEFAULT_COVER_AMOUNT, false, '', { value: claimAssessmentDeposit });
+};
+
+const submitIncident = assessment => async (id, priceBefore, date) => {
+  const INCIDENT_ASSESSMENT_DEPOSIT_PERC = await assessment.INCIDENT_ASSESSMENT_DEPOSIT_PERC();
+  // [todo] Change this to an estimate when incidents can be submitted by all members
+  const payoutImpact = Zero;
+  // [todo] Use this to approve amount of nxm to dpeosit contract
+  // const incidentAssessmentDeposit = payoutImpact.mul(INCIDENT_ASSESSMENT_DEPOSIT_PERC).div('10000');
+  await assessment.submitClaim(id, priceBefore, date);
 };
 
 module.exports = {
   submitFraud,
   submitClaim,
+  submitIncident,
   burnFraud,
 };

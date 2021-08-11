@@ -16,13 +16,14 @@ interface IAssessment {
 
   enum UintParams {
     REWARD_PERC,
-    INCIDENT_TOKEN_WEIGHT_PERC,
-    VOTING_PERIOD_DAYS_MIN,
-    VOTING_PERIOD_DAYS_MAX,
+    INCIDENT_IMPACT_ESTIMATE_PERC,
+    MIN_VOTING_PERIOD_DAYS,
+    MAX_VOTING_PERIOD_DAYS,
     PAYOUT_COOLDOWN_DAYS,
-    CLAIM_FEE_PERC,
-    INCIDENT_FEE_PERC
+    CLAIM_ASSESSMENT_DEPOSIT_PERC,
+    INCIDENT_ASSESSMENT_DEPOSIT_PERC
   }
+
 
   struct Stake {
     uint104 amount;
@@ -39,16 +40,16 @@ interface IAssessment {
    *  from the initial poll.
    */
   struct Vote {
-   // Can be either a claimId or an IncidentId
+   // Identifier of the claim or incident
     uint104 eventId;
-   // If the assessor voted to accept the event it's true otherwise it's false
+   // If the assessor votes to accept the event it's true otherwise it's false
     bool accepted;
    // Date and time when the vote was cast
     uint32 timestamp;
    // How many tokens were staked when the vote was cast
     uint104 tokenWeight;
    // Can be a claim or an incident (See EventType enum)
-    EventType eventType;
+    uint8 eventType;
   }
 
   struct Poll {
@@ -61,7 +62,7 @@ interface IAssessment {
    *  Holds the requested amount, NXM price, submission fee and other relevant details
    *  such as parts of the corresponding cover details and the payout status.
    *
-   *  dev This structure has snapshots of claim-time states that are considered moving targets
+   *  This structure has snapshots of claim-time states that are considered moving targets
    *  but also parts of cover details that reduce the need of external calls. Everything is fitted
    *  in a single word that contains:
    */
@@ -76,10 +77,10 @@ interface IAssessment {
     uint8 payoutAsset;
    // The price (TWAP) of 1 NXM in the covered asset, at claim-time
     uint80 nxmPriceSnapshot;
-   // A snapshot of FLAT_ETH_FEE_PERC if it is changed before the payout
-    uint16 flatEthFeePerc;
-   // True when the payout is complete. Prevents further payouts on the claim.
-    bool payoutComplete;
+   // A snapshot of CLAIM_ASSESSMENT_DEPOSIT_PERC if it is changed before the payout
+    uint16 assessmentDepositPerc;
+   // True when the payout is redeemed. Prevents further payouts on the claim.
+    bool payoutRedeemed;
   }
 
   struct Claim {
@@ -108,27 +109,28 @@ interface IAssessment {
     string payoutStatus;
   }
 
-  /**
+  /*
    *  Keeps details related to incidents.
-   *
-   *  Contains aggregated values that give an overall view about the claim and other relevant
-   *  pieces of information such as cover period, asset symbol etc. This structure is not used in
-   *  any storage variables.
    */
   struct IncidentDetails {
     // Product identifier
     uint24 productId;
     // Timestamp marking the date of the incident used to verify the user's eligibility for a claim
-    // according to their cover period
+    // according to their cover period.
     uint32 date;
-    // The asset which is expected at payout. E.g ETH, DAI (See Asset enum)
+    // The asset which is expected at payout. E.g ETH, DAI (See Asset enum).
     uint8 payoutAsset;
+    // A snapshot of INCIDENT_IMPACT_ESTIMATE_PERC if it changes while voting is still open.
     uint96 activeCoverAmount;
-   // The price (TWAP) of 1 NXM in the covered asset, at claim-time
-    uint80 nxmPriceSnapshot;
+    // A copy of INCIDENT_IMPACT_ESTIMATE_PERC if it changes while voting is still open.
+    uint16 impactEstimatePerc;
+    // A copy of INCIDENT_ASSESSMENT_DEPOSIT_PERC if it changes while voting is still open.
+    uint16 assessmentDepositPerc;
+    // True when the assessment deposit has already been redeemed and false otherwise.
+    bool depositRedeemed;
   }
 
-  struct TokenSnapshot {
+  struct AffectedToken {
     uint96 priceBefore;
     address contractAddress;
   }
@@ -136,7 +138,6 @@ interface IAssessment {
   struct Incident {
     Poll poll;
     IncidentDetails details;
-    TokenSnapshot tokenSnapshot;
   }
 
   struct FraudResolution {

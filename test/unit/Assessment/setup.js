@@ -51,9 +51,12 @@ async function setup () {
   await master.enrollGovernance(accounts[0].address);
   for (const account of accounts) {
     await master.enrollMember(account.address, 1);
-    await nxm.mint(account.address, ethers.utils.parseEther('100'));
-    await nxm.connect(account).approve(assessment.address, ethers.utils.parseEther('100'));
+    await nxm.mint(account.address, ethers.utils.parseEther('10000'));
+    await nxm.connect(account).approve(assessment.address, ethers.utils.parseEther('10000'));
   }
+
+  this.MIN_VOTING_PERIOD_DAYS = await assessment.MIN_VOTING_PERIOD_DAYS();
+  this.MAX_VOTING_PERIOD_DAYS = await assessment.MAX_VOTING_PERIOD_DAYS();
 
   this.accounts = accounts;
   this.contracts = {

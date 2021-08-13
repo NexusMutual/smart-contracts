@@ -647,6 +647,9 @@ contract Assessment is IAssessment, MasterAwareV2 {
     } else {
       poll.denied += stake.amount;
     }
+    // [todo] Add condition when vote shifts poll end in the past and write extensionEnd with the
+    // current blcok timestamp. Could also consider logic where the consensus is shifted at the
+    // very end of the voting period.
 
     votesOf[msg.sender].push(Vote(
       id,

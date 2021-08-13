@@ -13,6 +13,25 @@ describe.only('Assessment', function () {
   });
 
   require('./getPollStatus');
+  // require('./getPayoutImpactOfClaim');
+  // require('./getPayoutImpactOfIncident');
   require('./getVotingPeriodEnd');
-  require('./withdrawReward');
+  // require('./getEndOfCooldownPeriod');
+  // require('./getVoteLockupPeriodEnd');
+  // require('./hasVotingPeriodEnded');
+  // require('./getPollStatus');
+  // require('./getClaimToDisplay');
+  // require('./getClaimsToDisplay');
+  // require('./submitClaim');
+  // require('./submitIncident');
+  // require('./releaseIncidentAssessmentDeposit');
+  require('./depositStake');
+  // require('./withdrawReward');
+  // require('./withdrawStake');
+  // require('./redeemClaimPayout');
+  // require('./redeemIncidentPayout');
+  // require('./castVote');
+  // require('./submitFraud');
+  // require('./burnFraud');
+  // require('./updateUintParameters');
 });

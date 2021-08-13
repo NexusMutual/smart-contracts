@@ -3,6 +3,20 @@ const keccak256 = require('keccak256');
 const { MerkleTree } = require('merkletreejs');
 const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
 
+const EVENT_TYPE = {
+  CLAIM: 0,
+  INCIDENT: 1,
+};
+
+const STATUS = {
+  PENDING: 0,
+  ACCEPTED: 1,
+  DENIED: 2,
+};
+
+// Converts days to seconds
+const daysToSeconds = numberOfDays => numberOfDays * 24 * 60 * 60;
+
 const getVoteCountOfAddresses = assessment => async addresses =>
   await Promise.all(addresses.map(address => assessment.getVoteCountOfAssessor(address)));
 
@@ -15,7 +29,7 @@ const getLeafInput = (address, lastFraudulentVoteIndex, burnAmount, fraudCount) 
   return [
     ...arrayify(address),
     ...arrayify(hexZeroPad(hexValue(lastFraudulentVoteIndex), 32)),
-    ...arrayify(hexZeroPad(hexValue(burnAmount), 13)),
+    ...arrayify(hexZeroPad(hexValue(burnAmount), 12)),
     ...arrayify(hexZeroPad(hexValue(fraudCount), 2)),
   ];
 };
@@ -80,6 +94,9 @@ const submitIncident = assessment => async (id, priceBefore, date) => {
 };
 
 module.exports = {
+  STATUS,
+  EVENT_TYPE,
+  daysToSeconds,
   submitFraud,
   submitClaim,
   submitIncident,

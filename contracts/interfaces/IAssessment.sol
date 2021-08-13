@@ -26,7 +26,7 @@ interface IAssessment {
 
 
   struct Stake {
-    uint104 amount;
+    uint96 amount;
     uint104 voteRewardCursor;
     uint16 fraudCount;
     /*uint32 unused,*/
@@ -47,15 +47,16 @@ interface IAssessment {
    // Date and time when the vote was cast
     uint32 timestamp;
    // How many tokens were staked when the vote was cast
-    uint104 tokenWeight;
+    uint96 tokenWeight;
    // Can be a claim or an incident (See EventType enum)
     uint8 eventType;
   }
 
   struct Poll {
-    uint112 accepted;
-    uint112 denied;
-    uint32 voteStart;
+    uint96 accepted;
+    uint96 denied;
+    uint32 start;
+    uint32 extensionEnd;
   }
 
   /*
@@ -103,7 +104,7 @@ interface IAssessment {
     string assetSymbol;
     uint coverStart;
     uint coverEnd;
-    uint voteStart;
+    uint start;
     uint voteEnd;
     string claimStatus;
     string payoutStatus;
@@ -141,8 +142,8 @@ interface IAssessment {
   }
 
   struct FraudResolution {
-    uint112 accepted;
-    uint112 denied;
+    uint96 accepted;
+    uint96 denied;
     uint32 timestamp;
   }
 
@@ -156,9 +157,9 @@ interface IAssessment {
   event ClaimSubmitted(address user, uint104 claimId, uint32 coverId, uint24 productId);
   event IncidentSubmitted(address user, uint104 incidentId, uint24 productId);
   event ProofSubmitted(uint indexed coverId, address indexed owner, string ipfsHash);
-  event VoteCast(address indexed user, uint256 tokenWeight, bool accepted);
+  event VoteCast(address indexed user, uint96 tokenWeight, bool accepted);
   event RewardWithdrawn(address user, uint256 amount);
-  event StakeWithdrawn(address indexed user, uint112 amount);
+  event StakeWithdrawn(address indexed user, uint96 amount);
   event ClaimPayoutRedeemed(address indexed user, uint256 amount, uint104 claimId);
   event IncidentPayoutRedeemed(address indexed user, uint256 amount, uint104 incidentId, uint24 productId);
 

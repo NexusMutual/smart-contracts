@@ -63,6 +63,9 @@ contract Assessment is IAssessment, MasterAwareV2 {
   // Votes of users. (See Vote struct)
   mapping(address => Vote[]) public votesOf;
 
+  // Mapping used to determine if a user has already voted, using a vote hash as a key
+  mapping(bytes32 => bool) public hasAlreadyVotedOn;
+
   // An array of merkle tree roots used to indicate fraudulent assessors. Each root represents a
   // fraud attempt by one or multiple addresses. Once the root is submitted by adivsory board
   // members through governance, burnFraud uses this root to burn the fraudulent assessors' stakes
@@ -70,12 +73,10 @@ contract Assessment is IAssessment, MasterAwareV2 {
   bytes32[] fraudMerkleRoots;
 
   Claim[] public claims;
-  mapping(uint104 => FraudResolution) public fraudResolutionOfClaim;
 
   Incident[] public incidents;
   mapping(uint104 => address) public incidentProponent;
   mapping(uint104 => AffectedToken) public tokenAffectedByIncident;
-  mapping(uint104 => FraudResolution) public fraudResolutionOfIncident;
 
 
   /* ========== CONSTRUCTOR ========== */
@@ -130,31 +131,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
     return IPool(internalContracts[uint(ID.P1)]);
   }
 
-  function _calculateVotingPeriodEnd (
-    uint accepted,
-    uint denied,
-    uint voteStart,
-    uint payoutImpact
-  ) internal view returns (uint32) {
-    if (accepted == 0 && denied == 0) {
-      return uint32(voteStart + MIN_VOTING_PERIOD_DAYS * 1 days);
-    }
-
-    uint consensusStrength = uint(
-      abs(int(2 * accepted * PRECISION / (accepted + denied)) - int(PRECISION))
-    );
-    uint tokenWeightStrength = min((accepted + denied) * PRECISION / payoutImpact, 10 * PRECISION) / 10;
-
-    return uint32(voteStart + MIN_VOTING_PERIOD_DAYS * 1 days +
-      (1 * PRECISION - min(consensusStrength,  tokenWeightStrength)) *
-      (MAX_VOTING_PERIOD_DAYS * 1 days - MIN_VOTING_PERIOD_DAYS * 1 days) / PRECISION);
-  }
-
   function _getPollState (Poll memory poll)
-  internal pure returns ( uint112 accepted, uint112 denied, uint32 voteStart) {
+  internal pure returns (uint96 accepted, uint96 denied, uint32 start, uint32 extensionEnd) {
     accepted = poll.accepted;
     denied = poll.denied;
-    voteStart = poll.voteStart;
+    start = poll.start;
+    extensionEnd = poll.extensionEnd;
   }
 
   function _getPayoutImpactOfClaim (Claim memory claim) internal pure returns (uint) {
@@ -166,15 +148,10 @@ contract Assessment is IAssessment, MasterAwareV2 {
     return _getPayoutImpactOfClaim(claim);
   }
 
-  function _calculatePayoutImpactOfIncident (
-    Incident memory incident,
-    uint impactEstimatePerc
-  ) internal pure returns (uint) {
-    return incident.details.activeCoverAmount * impactEstimatePerc / PERC_BASIS_POINTS;
-  }
-
-  function _getPayoutImpactOfIncident (Incident memory incident) internal view returns (uint) {
-    return _calculatePayoutImpactOfIncident(incident, incident.details.impactEstimatePerc);
+  function _getPayoutImpactOfIncident (Incident memory incident) internal pure returns (uint) {
+    uint96 activeCoverAmount = incident.details.activeCoverAmount;
+    uint16 impactEstimatePerc = incident.details.impactEstimatePerc;
+    return activeCoverAmount * impactEstimatePerc / PERC_BASIS_POINTS;
   }
 
   function getPayoutImpactOfIncident (uint104 id) external view returns (uint) {
@@ -183,37 +160,38 @@ contract Assessment is IAssessment, MasterAwareV2 {
   }
 
   function _getPollPeriodEnd (Poll memory poll, uint payoutImpact) internal view returns (uint32) {
-    (uint112 accepted, uint112 denied, uint32 voteStart) = _getPollState(poll);
-    return _calculateVotingPeriodEnd(accepted, denied, voteStart, payoutImpact);
-  }
+    (uint96 accepted, uint96 denied, uint32 start, uint32 extensionEnd) = _getPollState(poll);
 
-  function _getClaimVotingPeriodEnd (uint104 id) internal view returns (uint32) {
-    Claim memory claim = claims[id];
-    uint payoutImpact = _getPayoutImpactOfClaim(claim);
-    return _getPollPeriodEnd(claim.poll, payoutImpact);
-  }
+    if (extensionEnd > 0) {
+      return extensionEnd;
+    }
 
-  function _getIncidentVotingPeriodEnd (uint104 id) internal view returns (uint32) {
-    Incident memory incident = incidents[id];
-    uint payoutImpact = _getPayoutImpactOfIncident(incident);
-    return _getPollPeriodEnd(incident.poll, payoutImpact);
+    if (accepted == 0 && denied == 0) {
+      return uint32(start + MIN_VOTING_PERIOD_DAYS * 1 days);
+    }
+
+    uint consensusDrivenStrength = uint(
+      abs(int(2 * accepted * PRECISION / (accepted + denied)) - int(PRECISION))
+    );
+    uint tokenDrivenStrength = min((accepted + denied) * PRECISION / payoutImpact, 10 * PRECISION) / 10;
+
+    return uint32(start + MIN_VOTING_PERIOD_DAYS * 1 days +
+      (1 * PRECISION - min(consensusDrivenStrength,  tokenDrivenStrength)) *
+      (MAX_VOTING_PERIOD_DAYS * 1 days - MIN_VOTING_PERIOD_DAYS * 1 days) / PRECISION);
   }
 
   function _getVotingPeriodEnd (uint eventType, uint104 id) internal view returns (uint32) {
-    FraudResolution memory fraudResolution = EventType(eventType) == EventType.CLAIM
-      ? fraudResolutionOfClaim[id]
-      : fraudResolutionOfIncident[id];
-
-    if (fraudResolutionExists(fraudResolution)) {
-      return fraudResolution.timestamp;
-    }
-
     if (EventType(eventType) == EventType.CLAIM) {
-      return _getClaimVotingPeriodEnd(id);
+      Claim memory claim = claims[id];
+      uint payoutImpact = _getPayoutImpactOfClaim(claim);
+      return _getPollPeriodEnd(claim.poll, payoutImpact);
     }
     if (EventType(eventType) == EventType.INCIDENT) {
-      return _getIncidentVotingPeriodEnd(id);
+      Incident memory incident = incidents[id];
+      uint payoutImpact = _getPayoutImpactOfIncident(incident);
+      return _getPollPeriodEnd(incident.poll, payoutImpact);
     }
+    revert("Assessment: Unsupported eventType");
   }
 
   function getVotingPeriodEnd (uint eventType, uint104 id) external view returns (uint32) {
@@ -231,13 +209,13 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function _isClaimInCooldownPeriod (Claim memory claim) internal view returns (bool) {
     uint payoutImpact = _getPayoutImpactOfClaim(claim);
     uint32 votingPeriodEnd = _getPollPeriodEnd(claim.poll, payoutImpact);
-    return _blockTimestamp() <= _getEndOfCooldownPeriod(votingPeriodEnd);
+    return _blockTimestamp() < _getEndOfCooldownPeriod(votingPeriodEnd);
   }
 
   function _isIncidentInCooldownPeriod (Incident memory incident) internal view returns (bool) {
     uint payoutImpact = _getPayoutImpactOfIncident(incident);
     uint32 votingPeriodEnd = _getPollPeriodEnd(incident.poll, payoutImpact);
-    return _blockTimestamp() <= _getEndOfCooldownPeriod(votingPeriodEnd);
+    return _blockTimestamp() < _getEndOfCooldownPeriod(votingPeriodEnd);
   }
 
   function _getVoteLockupPeriodEnd (Vote memory vote) internal view returns (uint) {
@@ -251,56 +229,28 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   function _hasClaimVotingPeriodEnded (Claim memory claim) internal view returns (bool) {
     uint payoutImpact = _getPayoutImpactOfClaim(claim);
-    return _blockTimestamp() > _getPollPeriodEnd(claim.poll, payoutImpact);
+    return _blockTimestamp() >= _getPollPeriodEnd(claim.poll, payoutImpact);
   }
 
   function _hasIncidentVotingPeriodEnded (Incident memory incident) internal view returns (bool) {
     uint payoutImpact = _getPayoutImpactOfIncident(incident);
-    return _blockTimestamp() > _getPollPeriodEnd(incident.poll, payoutImpact);
-  }
-
-  function hasVotingPeriodEnded (uint eventType, uint104 id) external view returns (bool) {
-    if (EventType(eventType) == EventType.CLAIM) {
-      return _blockTimestamp() > _getClaimVotingPeriodEnd(id);
-    }
-    if (EventType(eventType) == EventType.INCIDENT) {
-      return _blockTimestamp() > _getIncidentVotingPeriodEnd(id);
-    }
-  }
-
-  /**
-   *  Returns true if a fraud resolution exists
-   *
-   *  @dev Timestamp is implicitly 0. When fraudResolution is stored, the block timestamp is
-   *  guaranteed to be greater than 0. Thus it is safe to use it as a way to determine whether
-   *  a fraud resolution exists or not.
-   */
-  function fraudResolutionExists (
-    FraudResolution memory fraudResolution
-  ) internal pure returns (bool) {
-    return fraudResolution.timestamp > 0;
+    return _blockTimestamp() >= _getPollPeriodEnd(incident.poll, payoutImpact);
   }
 
   function getPollStatus(uint eventType, uint104 id) external view returns (PollStatus) {
     if (EventType(eventType) == EventType.CLAIM) {
       Claim memory claim = claims[id];
-      return _getClaimPollStatus(claim, id);
+      return _getClaimPollStatus(claim);
     }
 
     if (EventType(eventType) == EventType.INCIDENT) {
       Incident memory incident = incidents[id];
-      return _getIncidentPollStatus(incident, id);
+      return _getIncidentPollStatus(incident);
     }
+    revert("Assessment: Unsupported eventType");
   }
 
-  function _getClaimPollStatus(Claim memory claim, uint104 id) internal view returns (PollStatus) {
-    FraudResolution memory fraudResolution = fraudResolutionOfClaim[id];
-    if (fraudResolutionExists(fraudResolution)) {
-      return fraudResolution.accepted > fraudResolution.denied
-        ? PollStatus.ACCEPTED
-        : PollStatus.DENIED;
-    }
-
+  function _getClaimPollStatus(Claim memory claim) internal view returns (PollStatus) {
     if (!_hasClaimVotingPeriodEnded(claim)) {
       return PollStatus.PENDING;
     }
@@ -312,15 +262,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
   }
 
-  function _getIncidentPollStatus(Incident memory incident, uint104 id)
+  function _getIncidentPollStatus(Incident memory incident)
   internal view returns (PollStatus) {
-    FraudResolution memory fraudResolution = fraudResolutionOfIncident[id];
-    if (fraudResolutionExists(fraudResolution)) {
-      return fraudResolution.accepted > fraudResolution.denied
-        ? PollStatus.ACCEPTED
-        : PollStatus.DENIED;
-    }
-
     if (!_hasIncidentVotingPeriodEnded(incident)) {
       return PollStatus.PENDING;
     }
@@ -335,7 +278,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function getFraudulentAssessorLeaf (
     address account,
     uint256 lastFraudulentVoteIndex,
-    uint104 burnAmount,
+    uint96 burnAmount,
     uint16 fraudCount
   ) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(account, lastFraudulentVoteIndex, burnAmount, fraudCount));
@@ -355,7 +298,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     string memory claimStatusDisplay;
     string memory payoutStatusDisplay;
     {
-      PollStatus claimStatus = _getClaimPollStatus(claim, id);
+      PollStatus claimStatus = _getClaimPollStatus(claim);
       if (claimStatus == PollStatus.ACCEPTED) {
         claimStatusDisplay = "Accepted";
       } else if (claimStatus == PollStatus.DENIED) {
@@ -398,7 +341,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       assetSymbol,
       coverStart,
       coverEnd,
-      claim.poll.voteStart,
+      claim.poll.start,
       votingPeriodEnd,
       claimStatusDisplay,
       payoutStatusDisplay
@@ -464,6 +407,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint8 payoutAsset = uint8(Asset.ETH); // take this form cover asset
     //uint80 nxmPriceSnapshot = 147573952589676412928; // 1 NXM ~ 147 DAI
     uint80 nxmPriceSnapshot = uint80(38200000000000000); // 1 NXM ~ 0.0382 ETH
+    require(requestedAmount <= coverAmount, "Assessment: Cannot claim more than the covered amount");
 
 
     // a snapshot of CLAIM_ASSESSMENT_DEPOSIT_PERC at submission if it ever changes before redeeming
@@ -471,7 +415,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       emit ProofSubmitted(coverId, msg.sender, ipfsProofHash);
     }
     claims.push(Claim(
-      Poll(0,0,_blockTimestamp()),
+      Poll(0,0,_blockTimestamp(), 0),
       ClaimDetails(
         requestedAmount,
         coverId,
@@ -502,8 +446,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
     address tokenAddress = 0x0000000000000000000000000000000000000000;
 
     Incident memory incident = Incident(
-      Poll(0,0,_blockTimestamp()),
-      IncidentDetails (
+      Poll(0,0,_blockTimestamp(), 0),
+      IncidentDetails(
         productId,
         date,
         payoutAsset,
@@ -517,7 +461,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint104 nextId = uint104(incidents.length);
 
     if (INCIDENT_ASSESSMENT_DEPOSIT_PERC > 0) {
-      uint payoutImpact = _calculatePayoutImpactOfIncident(incident, nextId);
+      uint payoutImpact = _getPayoutImpactOfIncident(incident);
       uint deposit = payoutImpact * INCIDENT_ASSESSMENT_DEPOSIT_PERC / PERC_BASIS_POINTS;
       nxm().transferFrom(msg.sender, address(this), deposit);
     }
@@ -541,7 +485,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint16 assessmentDepositPerc = incident.details.assessmentDepositPerc;
     require(assessmentDepositPerc > 0, "Assessment: Incident did not require an assessment deposit");
 
-    PollStatus status = _getIncidentPollStatus(incident, id);
+    PollStatus status = _getIncidentPollStatus(incident);
     uint payoutImpact = _getPayoutImpactOfIncident(incident);
     uint deposit = payoutImpact * assessmentDepositPerc / PERC_BASIS_POINTS;
 
@@ -555,7 +499,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
   }
 
-  function depositStake (uint104 amount) external onlyMember {
+  function depositStake (uint96 amount) external onlyMember {
     Stake storage stake = stakeOf[msg.sender];
     stake.amount += amount;
     nxm().transferFrom(msg.sender, address(this), amount);
@@ -602,7 +546,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     nxm().mint(user, rewardToWithdraw);
   }
 
-  function withdrawStake (uint104 amount) external onlyMember {
+  function withdrawStake (uint96 amount) external onlyMember {
     Stake storage stake = stakeOf[msg.sender];
     uint voteCount = votesOf[msg.sender].length;
     require(stake.amount != 0, "Assessment: No tokens staked");
@@ -618,7 +562,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function redeemClaimPayout (uint104 id, address payable coverOwner) external {
     Claim memory claim = claims[id];
     require(
-      _getClaimPollStatus(claim, id) == PollStatus.ACCEPTED,
+      _getClaimPollStatus(claim) == PollStatus.ACCEPTED,
       "Assessment: The claim must be accepted"
     );
     require(
@@ -647,7 +591,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     Incident memory incident = incidents[incidentId];
     // [todo] Read and verify details from cover
     require(
-      _getIncidentPollStatus(incident, incidentId) == PollStatus.ACCEPTED,
+      _getIncidentPollStatus(incident) == PollStatus.ACCEPTED,
       "Assessment: The incident must be accepted"
     );
     require(
@@ -668,16 +612,17 @@ contract Assessment is IAssessment, MasterAwareV2 {
     _redeemIncidentPayout(incidentId, coverId, payable(msg.sender), payoutAmount);
   }
 
+  // [todo] Check how many times poll is loaded from storage
   function castVote (uint8 eventType, uint104 id, bool accepted) external onlyMember {
     Stake memory stake = stakeOf[msg.sender];
-    FraudResolution memory fraudResolution = EventType(eventType) == EventType.CLAIM
-      ? fraudResolutionOfClaim[id]
-      : fraudResolutionOfIncident[id];
-
     Poll storage poll;
 
+    bytes32 voteHash = keccak256(abi.encodePacked(id, msg.sender, eventType));
+    require(!hasAlreadyVotedOn[voteHash], "Assessment: Already voted");
+    hasAlreadyVotedOn[voteHash] = true;
+
     require(stake.amount > 0, "Assessment: A stake is required to cast votes");
-    require(!fraudResolutionExists(fraudResolution), "Assessment: Voting is closed");
+
     if (eventType == uint8(EventType.CLAIM)) {
       Claim memory claim = claims[id];
       poll = claims[id].poll;
@@ -687,6 +632,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       poll = incidents[id].poll;
       require(!_hasIncidentVotingPeriodEnded(incident), "Assessment: Voting is closed");
     }
+
     require(
       poll.accepted > 0 || accepted == true,
       "Assessment: At least one accept vote is required to vote deny"
@@ -695,7 +641,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint32 blockTimestamp = _blockTimestamp();
     if (accepted) {
       if (poll.accepted == 0) {
-        poll.voteStart = blockTimestamp;
+        poll.start = blockTimestamp;
       }
       poll.accepted += stake.amount;
     } else {
@@ -720,12 +666,11 @@ contract Assessment is IAssessment, MasterAwareV2 {
     bytes32[] calldata proof,
     address fraudulentAssessor,
     uint256 lastFraudulentVoteIndex,
-    uint104 burnAmount,
+    uint96 burnAmount,
     uint16 fraudCount,
     uint256 voteBatchSize
   ) external {
     uint32 blockTimestamp = _blockTimestamp();
-    uint voteCount = votesOf[fraudulentAssessor].length;
     Stake storage stake = stakeOf[fraudulentAssessor];
 
     require(MerkleProof.verify(
@@ -747,59 +692,43 @@ contract Assessment is IAssessment, MasterAwareV2 {
       processUntil = stake.voteRewardCursor + voteBatchSize;
     }
 
-    //console.log("votes %d", voteCount);
-    //console.log("voteBatchSize %d", voteBatchSize);
     for (uint j = stake.voteRewardCursor; j < processUntil; j++) {
       Vote memory vote = votesOf[fraudulentAssessor][j];
 
-      //console.log("Index %d", j);
-      //console.log("processUntil %d", processUntil);
-      //console.log("voteRewardCursor %d", stake.voteRewardCursor);
-      FraudResolution storage fraudResolution = EventType(vote.eventType) == EventType.CLAIM
-        ? fraudResolutionOfClaim[vote.eventId]
-        : fraudResolutionOfIncident[vote.eventId];
-      if (fraudResolutionExists(fraudResolution)) {
-        //console.log("Editing fraudResolution");
-        if (vote.accepted == true) {
-          fraudResolution.accepted -= vote.tokenWeight;
-        } else {
-          fraudResolution.denied -= vote.tokenWeight;
-        }
-      } else {
-        uint112 accepted;
-        uint112 denied;
-        uint32 voteStart;
-        uint payoutImpact;
-        if (EventType(vote.eventType) == EventType.CLAIM) {
-          Claim memory claim = claims[vote.eventId];
-          if (claim.details.payoutRedeemed) {
-            // Once the payout is redeemed the poll result is final
-            continue;
-          }
-          (accepted, denied, voteStart) = _getPollState(claim.poll);
-          payoutImpact = _getPayoutImpactOfClaim(claim);
-        } else {
-          Incident memory incident = incidents[vote.eventId];
-          (accepted, denied, voteStart) = _getPollState(incident.poll);
-          payoutImpact = _getPayoutImpactOfIncident(incident);
-        }
-        uint32 votingPeriodEnd = _calculateVotingPeriodEnd(accepted, denied, voteStart, payoutImpact);
-        if (_getEndOfCooldownPeriod(votingPeriodEnd) < blockTimestamp) {
-          // Once the cooldown period ends the poll result is final
+      uint32 pollEnd;
+      if (EventType(vote.eventType) == EventType.CLAIM) {
+        Claim memory claim = claims[vote.eventId];
+        if (claim.details.payoutRedeemed) {
+          // Once the payout is redeemed the poll result is final
           continue;
         }
-        if (vote.accepted) {
-          accepted -= vote.tokenWeight;
-        } else {
-          denied -= vote.tokenWeight;
-        }
-        //console.log("Creating fraudResolution");
-        if (EventType(vote.eventType) == EventType.CLAIM) {
-          fraudResolutionOfClaim[vote.eventId] = FraudResolution(accepted, denied, blockTimestamp);
-        } else {
-          fraudResolutionOfIncident[vote.eventId] =
-            FraudResolution(accepted, denied, blockTimestamp);
-        }
+        uint payoutImpact = _getPayoutImpactOfClaim(claim);
+        pollEnd = _getPollPeriodEnd(claim.poll, payoutImpact);
+      } else {
+        Incident memory incident = incidents[vote.eventId];
+        uint payoutImpact = _getPayoutImpactOfIncident(incident);
+        pollEnd = _getPollPeriodEnd(incident.poll, payoutImpact);
+      }
+      if (blockTimestamp >= _getEndOfCooldownPeriod(pollEnd)) {
+        // Once the cooldown period ends the poll result is final
+        continue;
+      }
+
+      // [todo] Check if only one sstore is made
+      Poll storage poll;
+      if (EventType(vote.eventType) == EventType.CLAIM) {
+        poll = claims[vote.eventId].poll;
+      } else {
+        poll = incidents[vote.eventId].poll;
+      }
+      if (vote.accepted) {
+        poll.accepted -= vote.tokenWeight;
+      } else {
+        poll.denied -= vote.tokenWeight;
+      }
+
+      if (blockTimestamp < pollEnd) {
+        poll.extensionEnd = blockTimestamp;
       }
     }
 

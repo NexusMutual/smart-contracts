@@ -26,7 +26,6 @@ const submitProposal = async (gv, category, actionData, members) => {
 const submitMemberVoteProposal = async (gv, pc, categoryId, actionData, members) => {
 
   const proposalId = await gv.getProposalLength();
-  console.log(`Creating proposal ${proposalId}`);
 
   const from = members[0];
   await gv.createProposal('', '', '', 0, { from });

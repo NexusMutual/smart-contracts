@@ -37,7 +37,6 @@ contract TestnetNXMaster is NXMaster {
   {
 
     require(getLatestAddress("GV") == msg.sender || governanceOwner == msg.sender, "Not authorized");
-    require(_contractsName.length == _contractsAddress.length, "Array length should be equal.");
 
     require(_contractCodes.length == newAddresses.length, "NXMaster: _contractCodes.length != newAddresses.length");
 

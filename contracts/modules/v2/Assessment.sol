@@ -73,8 +73,10 @@ contract Assessment is IAssessment, MasterAwareV2 {
   bytes32[] fraudMerkleRoots;
 
   Claim[] public claims;
+  mapping(uint104 => Poll) public pollFraudOfClaim;
 
   Incident[] public incidents;
+  mapping(uint104 => Poll) public pollFraudOfIncident;
   mapping(uint104 => address) public incidentProponent;
   mapping(uint104 => AffectedToken) public tokenAffectedByIncident;
 
@@ -110,6 +112,10 @@ contract Assessment is IAssessment, MasterAwareV2 {
     return a <= b ? a : b;
   }
 
+  function pollFraudExists(Poll memory poll) internal pure returns (bool) {
+    return poll.started > 0;
+  }
+
   /// @dev Returns block timestamp truncated to 32 bits
   function _blockTimestamp() internal view returns (uint32) {
     return uint32(block.timestamp);
@@ -132,11 +138,11 @@ contract Assessment is IAssessment, MasterAwareV2 {
   }
 
   function _getPollState (Poll memory poll)
-  internal pure returns (uint96 accepted, uint96 denied, uint32 start, uint32 extensionEnd) {
+  internal pure returns (uint96 accepted, uint96 denied, uint32 started, uint32 ended) {
     accepted = poll.accepted;
     denied = poll.denied;
-    start = poll.start;
-    extensionEnd = poll.extensionEnd;
+    started = poll.started;
+    ended = poll.ended;
   }
 
   function _getPayoutImpactOfClaim (Claim memory claim) internal pure returns (uint) {
@@ -160,14 +166,14 @@ contract Assessment is IAssessment, MasterAwareV2 {
   }
 
   function _getPollPeriodEnd (Poll memory poll, uint payoutImpact) internal view returns (uint32) {
-    (uint96 accepted, uint96 denied, uint32 start, uint32 extensionEnd) = _getPollState(poll);
+    (uint96 accepted, uint96 denied, uint32 started, uint32 ended) = _getPollState(poll);
 
-    if (extensionEnd > 0) {
-      return extensionEnd;
+    if (ended > 0) {
+      return ended;
     }
 
     if (accepted == 0 && denied == 0) {
-      return uint32(start + MIN_VOTING_PERIOD_DAYS * 1 days);
+      return uint32(started + MIN_VOTING_PERIOD_DAYS * 1 days);
     }
 
     uint consensusDrivenStrength = uint(
@@ -175,7 +181,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     );
     uint tokenDrivenStrength = min((accepted + denied) * PRECISION / payoutImpact, 10 * PRECISION) / 10;
 
-    return uint32(start + MIN_VOTING_PERIOD_DAYS * 1 days +
+    return uint32(started + MIN_VOTING_PERIOD_DAYS * 1 days +
       (1 * PRECISION - min(consensusDrivenStrength,  tokenDrivenStrength)) *
       (MAX_VOTING_PERIOD_DAYS * 1 days - MIN_VOTING_PERIOD_DAYS * 1 days) / PRECISION);
   }
@@ -341,7 +347,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       assetSymbol,
       coverStart,
       coverEnd,
-      claim.poll.start,
+      claim.poll.started,
       votingPeriodEnd,
       claimStatusDisplay,
       payoutStatusDisplay
@@ -522,13 +528,13 @@ contract Assessment is IAssessment, MasterAwareV2 {
       untilIndex <= voteCount,
       "Assessment: Vote count is smaller that the provided untilIndex"
     );
-    require(stake.voteRewardCursor < voteCount, "Assessment: No withdrawable rewards");
+    require(stake.rewardsWithdrawnUntilIndex < voteCount, "Assessment: No withdrawable rewards");
 
     uint rewardToWithdraw = 0;
     uint totalReward = 0;
-    uint withdrawUntilIndex = untilIndex > 0 ? untilIndex : voteCount;
+    uint104 withdrawUntilIndex = untilIndex > 0 ? untilIndex : uint104(voteCount);
     uint32 blockTimestamp = _blockTimestamp();
-    for (uint i = stake.voteRewardCursor; i < withdrawUntilIndex; i++) {
+    for (uint i = stake.rewardsWithdrawnUntilIndex; i < withdrawUntilIndex; i++) {
       Vote memory vote = votesOf[user][i];
       require(
         blockTimestamp > _getVoteLockupPeriodEnd(vote),
@@ -542,7 +548,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       rewardToWithdraw += totalReward * vote.tokenWeight / (poll.accepted + poll.denied);
     }
 
-    stake.voteRewardCursor = untilIndex > 0 ? untilIndex : uint104(voteCount);
+    stake.rewardsWithdrawnUntilIndex = withdrawUntilIndex;
     nxm().mint(user, rewardToWithdraw);
   }
 
@@ -641,13 +647,13 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint32 blockTimestamp = _blockTimestamp();
     if (accepted) {
       if (poll.accepted == 0) {
-        poll.start = blockTimestamp;
+        poll.started = blockTimestamp;
       }
       poll.accepted += stake.amount;
     } else {
       poll.denied += stake.amount;
     }
-    // [todo] Add condition when vote shifts poll end in the past and write extensionEnd with the
+    // [todo] Add condition when vote shifts poll end in the past and write ended with the
     // current blcok timestamp. Could also consider logic where the consensus is shifted at the
     // very end of the voting period.
 
@@ -689,29 +695,48 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
     uint processUntil;
     // [todo] Check this
-    if (voteBatchSize == 0 || stake.voteRewardCursor + voteBatchSize >= lastFraudulentVoteIndex) {
+    if (
+      voteBatchSize == 0 ||
+      stake.rewardsWithdrawnUntilIndex + voteBatchSize >= lastFraudulentVoteIndex
+    ) {
       processUntil = lastFraudulentVoteIndex + 1;
     } else {
-      processUntil = stake.voteRewardCursor + voteBatchSize;
+      processUntil = stake.rewardsWithdrawnUntilIndex + voteBatchSize;
     }
 
-    for (uint j = stake.voteRewardCursor; j < processUntil; j++) {
+    for (uint j = stake.rewardsWithdrawnUntilIndex; j < processUntil; j++) {
       Vote memory vote = votesOf[fraudulentAssessor][j];
 
       uint32 pollEnd;
       if (EventType(vote.eventType) == EventType.CLAIM) {
         Claim memory claim = claims[vote.eventId];
+
         if (claim.details.payoutRedeemed) {
           // Once the payout is redeemed the poll result is final
           continue;
         }
+
         uint payoutImpact = _getPayoutImpactOfClaim(claim);
         pollEnd = _getPollPeriodEnd(claim.poll, payoutImpact);
+
+        Poll memory pollFraud = pollFraudOfClaim[vote.eventId];
+        // Copy the current poll results before correction starts
+        if (!pollFraudExists(pollFraud)) {
+          pollFraudOfClaim[vote.eventId] = claim.poll;
+        }
       } else {
         Incident memory incident = incidents[vote.eventId];
+
         uint payoutImpact = _getPayoutImpactOfIncident(incident);
         pollEnd = _getPollPeriodEnd(incident.poll, payoutImpact);
+
+        Poll memory pollFraud = pollFraudOfIncident[vote.eventId];
+        // Copy the current poll results before correction starts
+        if (!pollFraudExists(pollFraud)) {
+          pollFraudOfIncident[vote.eventId] = incident.poll;
+        }
       }
+
       if (blockTimestamp >= _getEndOfCooldownPeriod(pollEnd)) {
         // Once the cooldown period ends the poll result is final
         continue;
@@ -731,7 +756,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       }
 
       if (blockTimestamp < pollEnd) {
-        poll.extensionEnd = blockTimestamp;
+        poll.ended = blockTimestamp;
       }
     }
 
@@ -745,7 +770,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       stake.amount -= burnAmount;
       stake.fraudCount++;
     }
-    stake.voteRewardCursor = uint104(processUntil);
+    stake.rewardsWithdrawnUntilIndex = uint104(processUntil);
   }
 
   function updateUintParameters (UintParams[] calldata paramNames, uint[] calldata values) external

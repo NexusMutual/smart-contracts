@@ -27,7 +27,7 @@ interface IAssessment {
 
   struct Stake {
     uint96 amount;
-    uint104 voteRewardCursor;
+    uint104 rewardsWithdrawnUntilIndex;
     uint16 fraudCount;
     /*uint32 unused,*/
   }
@@ -55,8 +55,8 @@ interface IAssessment {
   struct Poll {
     uint96 accepted;
     uint96 denied;
-    uint32 start;
-    uint32 extensionEnd;
+    uint32 started;
+    uint32 ended;
   }
 
   /*
@@ -105,7 +105,7 @@ interface IAssessment {
     uint coverStart;
     uint coverEnd;
     uint start;
-    uint voteEnd;
+    uint end;
     string claimStatus;
     string payoutStatus;
   }
@@ -139,12 +139,6 @@ interface IAssessment {
   struct Incident {
     Poll poll;
     IncidentDetails details;
-  }
-
-  struct FraudResolution {
-    uint96 accepted;
-    uint96 denied;
-    uint32 timestamp;
   }
 
   /* ========== VIEWS ========== */

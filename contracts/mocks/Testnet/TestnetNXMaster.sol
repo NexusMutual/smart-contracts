@@ -6,66 +6,64 @@ import "../../modules/governance/NXMaster.sol";
 
 contract TestnetNXMaster is NXMaster {
 
-    address public governanceOwner;
+  address public governanceOwner;
 
-    modifier onlyGovernanceOwner() {
-        require(msg.sender == governanceOwner, "Ownable: caller is not the owner");
-        _;
+  modifier onlyGovernanceOwner() {
+    require(msg.sender == governanceOwner, "Ownable: caller is not the owner");
+    _;
+  }
+
+  function initializeGovernanceOwner() public {
+    if (governanceOwner != address(0)) {
+      revert("Already initialized");
+    }
+    governanceOwner = msg.sender;
+  }
+
+  function switchGovernanceAddress(address payable newGV) external onlyGovernanceOwner {
+    address currentGV = contractAddresses["GV"];
+    contractAddresses["GV"] = newGV;
+    contractsActive[currentGV] = false;
+    contractsActive[newGV] = true;
+  }
+
+  /// @dev upgrades multiple contracts at a time
+  function upgradeMultipleContracts(
+    bytes2[] memory _contractCodes,
+    address payable[] memory newAddresses
+  )
+  public
+  onlyAuthorizedToGovern
+  {
+
+    require(getLatestAddress("GV") == msg.sender || governanceOwner == msg.sender, "Not authorized");
+    require(_contractsName.length == _contractsAddress.length, "Array length should be equal.");
+
+    require(_contractCodes.length == newAddresses.length, "NXMaster: _contractCodes.length != newAddresses.length");
+
+    for (uint i = 0; i < _contractCodes.length; i++) {
+      address payable newAddress = newAddresses[i];
+      bytes2 code = _contractCodes[i];
+      require(newAddress != address(0), "NXMaster: contract address is 0");
+
+      if (isProxy[code]) {
+        OwnedUpgradeabilityProxy proxy = OwnedUpgradeabilityProxy(contractAddresses[code]);
+        address previousAddress = proxy.implementation();
+        proxy.upgradeTo(newAddress);
+        emit ContractUpgraded(code, newAddress, previousAddress, ContractType.Proxy);
+        continue;
+      }
+
+      if (isReplaceable[code]) {
+        address previousAddress = getLatestAddress(code);
+        replaceContract(code, newAddress);
+        emit ContractUpgraded(code, newAddress, previousAddress, ContractType.Replaceable);
+        continue;
+      }
+
+      revert("NXMaster: non-existant or non-upgradeable contract code");
     }
 
-    function initializeGovernanceOwner() public {
-        if (governanceOwner != address(0)) {
-            revert("Already initialized");
-        }
-        governanceOwner = msg.sender;
-    }
-
-    function switchGovernanceAddress(address payable newGV) external onlyGovernanceOwner {
-        address currentGV = contractAddresses["GV"];
-        contractAddresses["GV"] = newGV;
-        contractsActive[currentGV] = false;
-        contractsActive[newGV] = true;
-    }
-
-    function upgradeMultipleContracts(
-        bytes2[] memory _contractsName,
-        address payable[] memory _contractsAddress
-    )
-    public
-    {
-        require(getLatestAddress("GV") == msg.sender || governanceOwner == msg.sender, "Not authorized");
-        require(_contractsName.length == _contractsAddress.length, "Array length should be equal.");
-
-        for (uint i = 0; i < _contractsName.length; i++) {
-
-            address payable newAddress = _contractsAddress[i];
-            require(newAddress != address(0), "NULL address is not allowed.");
-            require(isReplaceable[_contractsName[i]], "Contract should be upgradable.");
-            if (_contractsName[i] == "CR") {
-                ITokenController tc = ITokenController(getLatestAddress("TC"));
-                tc.addToWhitelist(newAddress);
-                tc.removeFromWhitelist(contractAddresses["CR"]);
-                IClaimsReward cr = IClaimsReward(contractAddresses["CR"]);
-                cr.upgrade(newAddress);
-
-            } else if (_contractsName[i] == "P1") {
-                IPool p1 = IPool(contractAddresses["P1"]);
-                p1.upgradeCapitalPool(newAddress);
-            }
-
-            address payable oldAddress = contractAddresses[_contractsName[i]];
-            contractsActive[oldAddress] = false;
-            contractAddresses[_contractsName[i]] = newAddress;
-            contractsActive[newAddress] = true;
-
-            MasterAware up = MasterAware(contractAddresses[_contractsName[i]]);
-            up.changeMasterAddress(address(this));
-        }
-
-        for (uint i = 0; i < contractCodes.length; i++) {
-          contractsActive[contractAddresses[contractCodes[i]]] = true;
-          MasterAware up = MasterAware(contractAddresses[contractCodes[i]]);
-          up.changeDependentContractAddress();
-        }
-    }
+    updateAllDependencies();
+  }
 }

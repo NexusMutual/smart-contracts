@@ -73,7 +73,7 @@ contract NXMaster is INXMMaster, Governed {
   /// @dev Adds new internal contract
   /// @param contractCode contract code for new contract
   /// @param contractAddress contract address for new contract
-  /// @param _type pass 1 if contract is upgradable, 2 if contract is proxy
+  /// @param _type pass 1 if contract is replaceable, 2 if contract is proxy
   function addNewInternalContract(
     bytes2 contractCode,
     address payable contractAddress,
@@ -229,7 +229,7 @@ contract NXMaster is INXMMaster, Governed {
     return owner == _address;
   }
 
-  /// @dev Checks whether emergency pause id on/not.
+  /// @dev Checks whether emergency pause is on/not.
   function isPause() public view returns (bool) {
     return paused;
   }

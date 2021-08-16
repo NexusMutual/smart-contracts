@@ -200,7 +200,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     revert("Assessment: Unsupported eventType");
   }
 
-  function getVotingPeriodEnd (uint eventType, uint104 id) external view returns (uint32) {
+  function getPollEndDate (uint eventType, uint104 id) external view returns (uint32) {
     return _getPollEndDate(eventType, id);
   }
 

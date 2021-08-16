@@ -55,8 +55,8 @@ interface IAssessment {
   struct Poll {
     uint96 accepted;
     uint96 denied;
-    uint32 started;
-    uint32 ended;
+    uint32 start;
+    uint32 end;
   }
 
   /*

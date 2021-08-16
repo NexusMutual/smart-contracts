@@ -77,10 +77,6 @@ describe('getVotingPeriodEnd', function () {
     await expectVotingPeriodEndOf(0, started + daysToSeconds(this.MIN_VOTING_PERIOD_DAYS));
   });
 
-  it('should return ended if it is >= 0', async function () {
-    assert(false, '[todo]');
-  });
-
   it('should return the maximum between consensus-driven duration and token-driven duration', async function () {
     const { assessment } = this.contracts;
     const expectVotingPeriodEndOf = expectVotingPeriodEndOfClaim(assessment);

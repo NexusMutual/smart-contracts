@@ -165,13 +165,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
     return _getPayoutImpactOfIncident(incident);
   }
 
-  function _getPollPeriodEnd (Poll memory poll, uint payoutImpact) internal view returns (uint32) {
-    (uint96 accepted, uint96 denied, uint32 started, uint32 ended) = _getPollState(poll);
-
-    if (ended > 0) {
-      return ended;
-    }
-
+  function _calculatePollEndDate (
+    uint96 accepted,
+    uint96 denied,
+    uint32 started,
+    uint payoutImpact
+  ) internal view returns (uint32) {
     if (accepted == 0 && denied == 0) {
       return uint32(started + MIN_VOTING_PERIOD_DAYS * 1 days);
     }
@@ -186,42 +185,35 @@ contract Assessment is IAssessment, MasterAwareV2 {
       (MAX_VOTING_PERIOD_DAYS * 1 days - MIN_VOTING_PERIOD_DAYS * 1 days) / PRECISION);
   }
 
-  function _getVotingPeriodEnd (uint eventType, uint104 id) internal view returns (uint32) {
+  function _calculatePollEndDate (Poll memory poll, uint payoutImpact) internal view returns (uint32) {
+    (uint96 accepted, uint96 denied, uint32 started,) = _getPollState(poll);
+    return _calculatePollEndDate(accepted, denied, started, payoutImpact);
+  }
+
+  function _getPollEndDate (uint eventType, uint104 id) internal view returns (uint32) {
     if (EventType(eventType) == EventType.CLAIM) {
-      Claim memory claim = claims[id];
-      uint payoutImpact = _getPayoutImpactOfClaim(claim);
-      return _getPollPeriodEnd(claim.poll, payoutImpact);
+      return claims[id].poll.ended;
     }
     if (EventType(eventType) == EventType.INCIDENT) {
-      Incident memory incident = incidents[id];
-      uint payoutImpact = _getPayoutImpactOfIncident(incident);
-      return _getPollPeriodEnd(incident.poll, payoutImpact);
+      return incidents[id].poll.ended;
     }
     revert("Assessment: Unsupported eventType");
   }
 
   function getVotingPeriodEnd (uint eventType, uint104 id) external view returns (uint32) {
-    return _getVotingPeriodEnd(eventType, id);
+    return _getPollEndDate(eventType, id);
   }
 
-  function _getEndOfCooldownPeriod (uint32 votingPeriodEnd) internal view returns (uint32) {
-    return votingPeriodEnd + PAYOUT_COOLDOWN_DAYS * 1 days;
+  function _getCooldownEndDate (uint32 pollEnd) internal view returns (uint32) {
+    return pollEnd + PAYOUT_COOLDOWN_DAYS * 1 days;
   }
 
   function getEndOfCooldownPeriod (uint eventType, uint104 id) external view returns (uint32) {
-    return _getEndOfCooldownPeriod(_getVotingPeriodEnd(eventType, id));
+    return _getCooldownEndDate(_getPollEndDate(eventType, id));
   }
 
   function _isClaimInCooldownPeriod (Claim memory claim) internal view returns (bool) {
-    uint payoutImpact = _getPayoutImpactOfClaim(claim);
-    uint32 votingPeriodEnd = _getPollPeriodEnd(claim.poll, payoutImpact);
-    return _blockTimestamp() < _getEndOfCooldownPeriod(votingPeriodEnd);
-  }
-
-  function _isIncidentInCooldownPeriod (Incident memory incident) internal view returns (bool) {
-    uint payoutImpact = _getPayoutImpactOfIncident(incident);
-    uint32 votingPeriodEnd = _getPollPeriodEnd(incident.poll, payoutImpact);
-    return _blockTimestamp() < _getEndOfCooldownPeriod(votingPeriodEnd);
+    return _blockTimestamp() < _getCooldownEndDate(claim.poll.ended);
   }
 
   function _getVoteLockupPeriodEnd (Vote memory vote) internal view returns (uint) {
@@ -233,52 +225,29 @@ contract Assessment is IAssessment, MasterAwareV2 {
     return _getVoteLockupPeriodEnd(vote);
   }
 
-  function _hasClaimVotingPeriodEnded (Claim memory claim) internal view returns (bool) {
-    uint payoutImpact = _getPayoutImpactOfClaim(claim);
-    return _blockTimestamp() >= _getPollPeriodEnd(claim.poll, payoutImpact);
-  }
+  function _getPollStatus(Poll memory poll) internal view returns (PollStatus) {
+    if (_blockTimestamp() < poll.ended) {
+      return PollStatus.PENDING;
+    }
 
-  function _hasIncidentVotingPeriodEnded (Incident memory incident) internal view returns (bool) {
-    uint payoutImpact = _getPayoutImpactOfIncident(incident);
-    return _blockTimestamp() >= _getPollPeriodEnd(incident.poll, payoutImpact);
+    if (poll.accepted > poll.denied) {
+      return PollStatus.ACCEPTED;
+    } else {
+      return PollStatus.DENIED;
+    }
   }
 
   function getPollStatus(uint eventType, uint104 id) external view returns (PollStatus) {
     if (EventType(eventType) == EventType.CLAIM) {
       Claim memory claim = claims[id];
-      return _getClaimPollStatus(claim);
+      return _getPollStatus(claim.poll);
     }
 
     if (EventType(eventType) == EventType.INCIDENT) {
       Incident memory incident = incidents[id];
-      return _getIncidentPollStatus(incident);
+      return _getPollStatus(incident.poll);
     }
     revert("Assessment: Unsupported eventType");
-  }
-
-  function _getClaimPollStatus(Claim memory claim) internal view returns (PollStatus) {
-    if (!_hasClaimVotingPeriodEnded(claim)) {
-      return PollStatus.PENDING;
-    }
-
-    if (claim.poll.accepted > claim.poll.denied ) {
-      return PollStatus.ACCEPTED;
-    } else {
-      return PollStatus.DENIED;
-    }
-  }
-
-  function _getIncidentPollStatus(Incident memory incident)
-  internal view returns (PollStatus) {
-    if (!_hasIncidentVotingPeriodEnded(incident)) {
-      return PollStatus.PENDING;
-    }
-
-    if (incident.poll.accepted > incident.poll.denied) {
-      return PollStatus.ACCEPTED;
-    } else {
-      return PollStatus.DENIED;
-    }
   }
 
   function getFraudulentAssessorLeaf (
@@ -304,7 +273,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     string memory claimStatusDisplay;
     string memory payoutStatusDisplay;
     {
-      PollStatus claimStatus = _getClaimPollStatus(claim);
+      PollStatus claimStatus = _getPollStatus(claim.poll);
       if (claimStatus == PollStatus.ACCEPTED) {
         claimStatusDisplay = "Accepted";
       } else if (claimStatus == PollStatus.DENIED) {
@@ -328,8 +297,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint coverEnd = coverStart + coverPeriod * 1 days;
     uint productId = 1;
 
-    uint votingPeriodEnd = _getVotingPeriodEnd(uint(EventType.CLAIM), id);
-
     string memory assetSymbol;
     {
       if (Asset(claim.details.payoutAsset) == Asset.ETH) {
@@ -348,7 +315,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       coverStart,
       coverEnd,
       claim.poll.started,
-      votingPeriodEnd,
+      claim.poll.ended,
       claimStatusDisplay,
       payoutStatusDisplay
     );
@@ -420,8 +387,9 @@ contract Assessment is IAssessment, MasterAwareV2 {
     if (withProof) {
       emit ProofSubmitted(coverId, msg.sender, ipfsProofHash);
     }
-    claims.push(Claim(
-      Poll(0,0,_blockTimestamp(), 0),
+
+    Claim memory claim = Claim(
+      Poll(0, 0, _blockTimestamp(), 0),
       ClaimDetails(
         requestedAmount,
         coverId,
@@ -431,7 +399,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
         CLAIM_ASSESSMENT_DEPOSIT_PERC,
         false
       )
-    ));
+    );
+
+    uint payoutImpact = _getPayoutImpactOfClaim(claim);
+    claim.poll.ended = _calculatePollEndDate(claim.poll, payoutImpact);
+
+    claims.push(claim);
   }
 
   modifier onlyAdvisoryBoard {
@@ -464,10 +437,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
       )
     );
 
+    uint payoutImpact = _getPayoutImpactOfIncident(incident);
+    incident.poll.ended = _calculatePollEndDate(incident.poll, payoutImpact);
+
     uint104 nextId = uint104(incidents.length);
 
     if (INCIDENT_ASSESSMENT_DEPOSIT_PERC > 0) {
-      uint payoutImpact = _getPayoutImpactOfIncident(incident);
       uint deposit = payoutImpact * INCIDENT_ASSESSMENT_DEPOSIT_PERC / PERC_BASIS_POINTS;
       nxm().transferFrom(msg.sender, address(this), deposit);
     }
@@ -486,12 +461,13 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   function releaseIncidentAssessmentDeposit (uint104 id) external {
     Incident memory incident = incidents[id];
-    require(!_isIncidentInCooldownPeriod(incident), "Assessment: Incident is still in cooldown period");
+
+    require(_blockTimestamp() >= incident.poll.ended, "Assessment: The incident is in cooldown period");
 
     uint16 assessmentDepositPerc = incident.details.assessmentDepositPerc;
     require(assessmentDepositPerc > 0, "Assessment: Incident did not require an assessment deposit");
 
-    PollStatus status = _getIncidentPollStatus(incident);
+    PollStatus status = _getPollStatus(incident.poll);
     uint payoutImpact = _getPayoutImpactOfIncident(incident);
     uint deposit = payoutImpact * assessmentDepositPerc / PERC_BASIS_POINTS;
 
@@ -533,11 +509,10 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint rewardToWithdraw = 0;
     uint totalReward = 0;
     uint104 withdrawUntilIndex = untilIndex > 0 ? untilIndex : uint104(voteCount);
-    uint32 blockTimestamp = _blockTimestamp();
     for (uint i = stake.rewardsWithdrawnUntilIndex; i < withdrawUntilIndex; i++) {
       Vote memory vote = votesOf[user][i];
       require(
-        blockTimestamp > _getVoteLockupPeriodEnd(vote),
+        _blockTimestamp() > _getVoteLockupPeriodEnd(vote),
         "Assessment: Cannot withdraw rewards from votes which are in lockup period"
       );
       Poll memory poll = EventType(vote.eventType) == EventType.CLAIM
@@ -568,11 +543,11 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function redeemClaimPayout (uint104 id, address payable coverOwner) external {
     Claim memory claim = claims[id];
     require(
-      _getClaimPollStatus(claim) == PollStatus.ACCEPTED,
+      _getPollStatus(claim.poll) == PollStatus.ACCEPTED,
       "Assessment: The claim must be accepted"
     );
     require(
-      !_isClaimInCooldownPeriod(claim),
+      _blockTimestamp() >= _getCooldownEndDate(claim.poll.ended),
       "Assessment: The claim is in cooldown period"
     );
     require(!claim.details.payoutRedeemed, "Assessment: Payout was already redeemed");
@@ -597,11 +572,11 @@ contract Assessment is IAssessment, MasterAwareV2 {
     Incident memory incident = incidents[incidentId];
     // [todo] Read and verify details from cover
     require(
-      _getIncidentPollStatus(incident) == PollStatus.ACCEPTED,
+      _getPollStatus(incident.poll) == PollStatus.ACCEPTED,
       "Assessment: The incident must be accepted"
     );
     require(
-      !_isIncidentInCooldownPeriod(incident),
+      _blockTimestamp() >= incident.poll.ended,
       "Assessment: The incident is in cooldown period"
     );
     // [todo] Destroy and create a new cover nft
@@ -621,22 +596,26 @@ contract Assessment is IAssessment, MasterAwareV2 {
   // [todo] Check how many times poll is loaded from storage
   function castVote (uint8 eventType, uint104 id, bool accepted) external onlyMember {
     Stake memory stake = stakeOf[msg.sender];
-    Poll storage poll;
+    Poll memory poll;
 
+    uint32 blockTimestamp = _blockTimestamp();
     bytes32 voteHash = keccak256(abi.encodePacked(id, msg.sender, eventType));
     require(!hasAlreadyVotedOn[voteHash], "Assessment: Already voted");
     hasAlreadyVotedOn[voteHash] = true;
 
     require(stake.amount > 0, "Assessment: A stake is required to cast votes");
 
-    if (eventType == uint8(EventType.CLAIM)) {
+    uint payoutImpact;
+    if (EventType(eventType) == EventType.CLAIM) {
       Claim memory claim = claims[id];
       poll = claims[id].poll;
-      require(!_hasClaimVotingPeriodEnded(claim), "Assessment: Voting is closed");
+      payoutImpact = _getPayoutImpactOfClaim(claim);
+      require(blockTimestamp < poll.ended, "Assessment: Voting is closed");
     } else {
       Incident memory incident = incidents[id];
       poll = incidents[id].poll;
-      require(!_hasIncidentVotingPeriodEnded(incident), "Assessment: Voting is closed");
+      payoutImpact = _getPayoutImpactOfIncident(incident);
+      require(blockTimestamp < poll.ended, "Assessment: Voting is closed");
     }
 
     require(
@@ -644,7 +623,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
       "Assessment: At least one accept vote is required to vote deny"
     );
 
-    uint32 blockTimestamp = _blockTimestamp();
     if (accepted) {
       if (poll.accepted == 0) {
         poll.started = blockTimestamp;
@@ -652,10 +630,25 @@ contract Assessment is IAssessment, MasterAwareV2 {
       poll.accepted += stake.amount;
     } else {
       poll.denied += stake.amount;
+
     }
+
+    poll.ended = _calculatePollEndDate(poll, payoutImpact);
+
+    if (poll.ended < blockTimestamp) {
+      // When poll end date falls in the past, replace it with the current block timestamp
+      poll.ended = blockTimestamp;
+    }
+
     // [todo] Add condition when vote shifts poll end in the past and write ended with the
     // current blcok timestamp. Could also consider logic where the consensus is shifted at the
     // very end of the voting period.
+
+    if (EventType(eventType) == EventType.CLAIM) {
+      claims[id].poll = poll;
+    } else {
+      incidents[id].poll = poll;
+    }
 
     votesOf[msg.sender].push(Vote(
       id,
@@ -710,14 +703,11 @@ contract Assessment is IAssessment, MasterAwareV2 {
       uint32 pollEnd;
       if (EventType(vote.eventType) == EventType.CLAIM) {
         Claim memory claim = claims[vote.eventId];
-
         if (claim.details.payoutRedeemed) {
           // Once the payout is redeemed the poll result is final
           continue;
         }
-
-        uint payoutImpact = _getPayoutImpactOfClaim(claim);
-        pollEnd = _getPollPeriodEnd(claim.poll, payoutImpact);
+        pollEnd = claim.poll.ended;
 
         Poll memory pollFraud = pollFraudOfClaim[vote.eventId];
         // Copy the current poll results before correction starts
@@ -726,9 +716,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
         }
       } else {
         Incident memory incident = incidents[vote.eventId];
-
-        uint payoutImpact = _getPayoutImpactOfIncident(incident);
-        pollEnd = _getPollPeriodEnd(incident.poll, payoutImpact);
+        pollEnd = incident.poll.ended;
 
         Poll memory pollFraud = pollFraudOfIncident[vote.eventId];
         // Copy the current poll results before correction starts
@@ -737,7 +725,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
         }
       }
 
-      if (blockTimestamp >= _getEndOfCooldownPeriod(pollEnd)) {
+      if (blockTimestamp >= _getCooldownEndDate(pollEnd)) {
         // Once the cooldown period ends the poll result is final
         continue;
       }

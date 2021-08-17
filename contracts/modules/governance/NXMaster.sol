@@ -56,11 +56,11 @@ contract NXMaster is INXMMaster, Governed {
   }
 
   function addNewInternalContracts(
-    bytes2[] memory newContractCodes,
-    address payable[] memory newAddresses,
-    uint[] memory _types
+    bytes2[] calldata newContractCodes,
+    address payable[] calldata newAddresses,
+    uint[] calldata _types
   )
-  public
+  external
   onlyAuthorizedToGovern
   {
     require(newContractCodes.length == newAddresses.length, "NXMaster: newContractCodes.length != newAddresses.length.");
@@ -110,10 +110,10 @@ contract NXMaster is INXMMaster, Governed {
 
   /// @dev upgrades multiple contracts at a time
   function upgradeMultipleContracts(
-    bytes2[] memory _contractCodes,
-    address payable[] memory newAddresses
+    bytes2[] calldata _contractCodes,
+    address payable[] calldata newAddresses
   )
-  public
+  external
   onlyAuthorizedToGovern
   {
     require(_contractCodes.length == newAddresses.length, "NXMaster: _contractCodes.length != newAddresses.length");
@@ -166,8 +166,8 @@ contract NXMaster is INXMMaster, Governed {
     up.changeMasterAddress(address(this));
   }
 
-  function removeContracts(bytes2[] memory contractCodesToRemove)
-  public
+  function removeContracts(bytes2[] calldata contractCodesToRemove)
+  external
   onlyAuthorizedToGovern
   {
 

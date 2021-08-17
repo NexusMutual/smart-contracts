@@ -80,8 +80,8 @@ contract NXMaster is INXMMaster, Governed {
     uint _type
   ) internal {
 
-    require(contractAddresses[contractCode] == address(0), "NXMaster: code already in use");
-    require(contractAddress != address(0), "NXMaster: contract address is 0");
+    require(contractAddresses[contractCode] == address(0), "NXMaster: Code already in use");
+    require(contractAddress != address(0), "NXMaster: Contract address is 0");
 
     contractCodes.push(contractCode);
 
@@ -121,7 +121,7 @@ contract NXMaster is INXMMaster, Governed {
     for (uint i = 0; i < _contractCodes.length; i++) {
       address payable newAddress = newAddresses[i];
       bytes2 code = _contractCodes[i];
-      require(newAddress != address(0), "NXMaster: contract address is 0");
+      require(newAddress != address(0), "NXMaster: Contract address is 0");
 
       if (isProxy[code]) {
         OwnedUpgradeabilityProxy proxy = OwnedUpgradeabilityProxy(contractAddresses[code]);
@@ -138,7 +138,7 @@ contract NXMaster is INXMMaster, Governed {
         continue;
       }
 
-      revert("NXMaster: non-existant or non-upgradeable contract code");
+      revert("NXMaster: Non-existant or non-upgradeable contract code");
     }
 
     updateAllDependencies();

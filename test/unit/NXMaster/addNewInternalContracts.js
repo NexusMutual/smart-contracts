@@ -23,7 +23,7 @@ describe('addNewInternalContracts', function () {
 
     await expectRevert(
       governance.addNewInternalContracts([hex('GV')], ['0x0000000000000000000000000000000000000001'], [ContractTypes.Replaceable]),
-      'NXMaster: code already in use',
+      'NXMaster: Code already in use',
     );
   });
 
@@ -32,7 +32,7 @@ describe('addNewInternalContracts', function () {
 
     await expectRevert(
       governance.addNewInternalContracts([hex('XX')], [ZERO_ADDRESS], [ContractTypes.Replaceable]),
-      'NXMaster: contract address is 0',
+      'NXMaster: Contract address is 0',
     );
   });
 

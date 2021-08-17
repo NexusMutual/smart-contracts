@@ -19,7 +19,7 @@ describe('upgradeMultipleContracts', function () {
 
     await expectRevert(
       governance.upgradeMultipleContracts([hex('XX')], ['0x0000000000000000000000000000000000000001']),
-      'NXMaster: non-existant or non-upgradeable contract code',
+      'NXMaster: Non-existant or non-upgradeable contract code',
     );
   });
 
@@ -28,7 +28,7 @@ describe('upgradeMultipleContracts', function () {
 
     await expectRevert(
       governance.upgradeMultipleContracts([hex('GV')], [ZERO_ADDRESS]),
-      'NXMaster: contract address is 0',
+      'NXMaster: Contract address is 0',
     );
   });
 });

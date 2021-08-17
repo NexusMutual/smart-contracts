@@ -224,7 +224,7 @@ describe('emergency pause', function () {
     await cr.closeClaim(claimId);
   });
 
-  it('stops claim payouts on last vote', async function () {
+  it('stops claim voting', async function () {
     const { cd, cl, qd, master, cr } = this.contracts;
     const cover = { ...coverTemplate };
 

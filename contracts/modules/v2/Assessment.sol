@@ -123,12 +123,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
     string calldata ipfsProofHash
   ) external payable onlyMember {
     AssessmentClaimsLib.submitClaim(
+      CONFIG,
       coverId,
       requestedAmount,
       withProof,
       ipfsProofHash,
-      claims,
-      CONFIG
+      claims
     );
 
   }
@@ -142,12 +142,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
       AffectedToken memory affectedToken,
       Incident memory incident
     ) = AssessmentIncidentsLib.getIncidentToSubmit(
+      CONFIG,
       productId,
       priceBefore,
       date,
       memberRoles(),
-      nxm(),
-      CONFIG
+      nxm()
     );
 
     AssessmentIncidentsLib.saveIncident (
@@ -167,9 +167,9 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   function withdrawReward (address user, uint104 untilIndex) external {
     AssessmentStakeLib.withdrawReward(
+      CONFIG,
       user,
       untilIndex,
-      CONFIG,
       nxm(),
       stakeOf,
       votesOf,
@@ -184,13 +184,13 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   function redeemClaimPayout (uint104 id, address payable coverOwner) external {
     AssessmentClaimsLib.redeemClaimPayout(
+      CONFIG,
       id,
       coverOwner,
       claims,
       addressOfAsset,
       memberRoles(),
-      pool(),
-      CONFIG
+      pool()
     );
   }
 
@@ -207,10 +207,10 @@ contract Assessment is IAssessment, MasterAwareV2 {
   // [todo] Check how many times poll is loaded from storage
   function castVote (uint8 eventType, uint104 id, bool accepted) external onlyMember {
     AssessmentStakeLib.castVote(
+    CONFIG,
     eventType,
     id,
     accepted,
-    CONFIG,
     stakeOf,
     votesOf,
     hasAlreadyVotedOn,
@@ -241,25 +241,24 @@ contract Assessment is IAssessment, MasterAwareV2 {
       fraudCount
     ), "Invalid merkle proof");
 
-    Stake memory updatedStake = AssessmentGovernanceActionsLib.processFraudResolution(
+    AssessmentGovernanceActionsLib.processFraudResolution(
+      CONFIG,
       lastFraudulentVoteIndex,
       burnAmount,
       fraudCount,
       voteBatchSize,
-      stakeOf[fraudulentAssessor],
-      votesOf[fraudulentAssessor],
+      fraudulentAssessor,
+      stakeOf,
+      votesOf,
       pollFraudOfEvent,
       claims,
-      incidents,
-      CONFIG
+      incidents
     );
-
-    stakeOf[fraudulentAssessor] = updatedStake;
   }
 
   function updateUintParameters (UintParams[] calldata paramNames, uint[] calldata values)
   external onlyGovernance {
-    CONFIG = AssessmentGovernanceActionsLib.updateUintParameters(paramNames, values, CONFIG);
+    CONFIG = AssessmentGovernanceActionsLib.updateUintParameters(CONFIG, paramNames, values);
   }
 
   // [todo] Since this function is called every time contracts change,
@@ -314,25 +313,25 @@ library AssessmentUtilsLib {
   }
 
   function _getVoteLockupEndDate (
-    IAssessment.Vote memory vote,
-    IAssessment.Configuration memory CONFIG
+    IAssessment.Configuration memory CONFIG,
+    IAssessment.Vote memory vote
    ) internal pure returns (uint) {
     return vote.timestamp + CONFIG.MAX_VOTING_PERIOD_DAYS + CONFIG.PAYOUT_COOLDOWN_DAYS;
   }
 
   function _getCooldownEndDate (
-    uint32 pollEnd,
-    IAssessment.Configuration memory CONFIG
+    IAssessment.Configuration memory CONFIG,
+    uint32 pollEnd
   ) internal pure returns (uint32) {
     return pollEnd + CONFIG.PAYOUT_COOLDOWN_DAYS * 1 days;
   }
 
   function _calculatePollEndDate (
+    IAssessment.Configuration memory CONFIG,
     uint96 accepted,
     uint96 denied,
     uint32 start,
-    uint payoutImpact,
-    IAssessment.Configuration memory CONFIG
+    uint payoutImpact
   ) internal pure returns (uint32) {
     if (accepted == 0 && denied == 0) {
       return uint32(start + CONFIG.MIN_VOTING_PERIOD_DAYS * 1 days);
@@ -349,11 +348,11 @@ library AssessmentUtilsLib {
   }
 
   function _calculatePollEndDate (
+    IAssessment.Configuration memory CONFIG,
     IAssessment.Poll memory poll,
-    uint payoutImpact,
-    IAssessment.Configuration memory CONFIG
+    uint payoutImpact
   ) internal pure returns (uint32) {
-    return _calculatePollEndDate(poll.accepted, poll.denied, poll.start, payoutImpact, CONFIG);
+    return _calculatePollEndDate(CONFIG, poll.accepted, poll.denied, poll.start, payoutImpact);
   }
 
 }
@@ -361,41 +360,41 @@ library AssessmentUtilsLib {
 library AssessmentGovernanceActionsLib {
 
   function updateUintParameters (
+    IAssessment.Configuration memory CONFIG,
     IAssessment.UintParams[] calldata paramNames,
-    uint[] calldata values,
-    IAssessment.Configuration memory configuration
+    uint[] calldata values
   ) external pure returns (IAssessment.Configuration memory) {
     for (uint i = 0; i < paramNames.length; i++) {
       if (paramNames[i] == IAssessment.UintParams.REWARD_PERC) {
-        configuration.REWARD_PERC = uint16(values[i]);
+        CONFIG.REWARD_PERC = uint16(values[i]);
         continue;
       }
       if (paramNames[i] == IAssessment.UintParams.INCIDENT_IMPACT_ESTIMATE_PERC) {
-        configuration.INCIDENT_IMPACT_ESTIMATE_PERC = uint16(values[i]);
+        CONFIG.INCIDENT_IMPACT_ESTIMATE_PERC = uint16(values[i]);
         continue;
       }
       if (paramNames[i] == IAssessment.UintParams.MIN_VOTING_PERIOD_DAYS) {
-        configuration.MIN_VOTING_PERIOD_DAYS = uint8(values[i]);
+        CONFIG.MIN_VOTING_PERIOD_DAYS = uint8(values[i]);
         continue;
       }
       if (paramNames[i] == IAssessment.UintParams.MAX_VOTING_PERIOD_DAYS) {
-        configuration.MAX_VOTING_PERIOD_DAYS = uint8(values[i]);
+        CONFIG.MAX_VOTING_PERIOD_DAYS = uint8(values[i]);
         continue;
       }
       if (paramNames[i] == IAssessment.UintParams.PAYOUT_COOLDOWN_DAYS) {
-        configuration.PAYOUT_COOLDOWN_DAYS = uint8(values[i]);
+        CONFIG.PAYOUT_COOLDOWN_DAYS = uint8(values[i]);
         continue;
       }
       if (paramNames[i] == IAssessment.UintParams.CLAIM_ASSESSMENT_DEPOSIT_PERC) {
-        configuration.CLAIM_ASSESSMENT_DEPOSIT_PERC = uint16(values[i]);
+        CONFIG.CLAIM_ASSESSMENT_DEPOSIT_PERC = uint16(values[i]);
         continue;
       }
       if (paramNames[i] == IAssessment.UintParams.INCIDENT_ASSESSMENT_DEPOSIT_PERC) {
-        configuration.INCIDENT_ASSESSMENT_DEPOSIT_PERC = uint16(values[i]);
+        CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC = uint16(values[i]);
         continue;
       }
     }
-    return configuration;
+    return CONFIG;
   }
 
   function getFraudulentAssessorLeaf (
@@ -425,20 +424,76 @@ library AssessmentGovernanceActionsLib {
     );
   }
 
+  function processFraudulentVote (
+    IAssessment.Configuration calldata CONFIG,
+    IAssessment.Vote memory vote,
+    IAssessment.Claim[] storage claims,
+    IAssessment.Incident[] storage incidents,
+    mapping(uint8 => mapping(uint104 => IAssessment.Poll)) storage pollFraudOfEvent
+  ) internal {
+
+    IAssessment.Poll memory poll;
+    if (IAssessment.EventType(vote.eventType) == IAssessment.EventType.CLAIM) {
+      IAssessment.Claim memory claim = claims[vote.eventId];
+      if (claim.details.payoutRedeemed) {
+        // Once the payout is redeemed the poll result is final
+        return;
+      }
+      poll = claim.poll;
+    } else {
+      poll = incidents[vote.eventId].poll;
+    }
+
+    {
+      IAssessment.Poll memory pollFraud = pollFraudOfEvent[vote.eventType][vote.eventId];
+
+      // Copy the current poll results before correction starts
+      if (!AssessmentUtilsLib.pollFraudExists(pollFraud)) {
+        pollFraudOfEvent[vote.eventType][vote.eventId] = poll;
+      }
+    }
+
+    {
+      uint32 blockTimestamp = uint32(block.timestamp);
+      if (blockTimestamp >= AssessmentUtilsLib._getCooldownEndDate(CONFIG, poll.end)) {
+        // Once the cooldown period ends the poll result is final
+        return;
+      }
+
+      if (vote.accepted) {
+        poll.accepted -= vote.tokenWeight;
+      } else {
+        poll.denied -= vote.tokenWeight;
+      }
+
+      if (blockTimestamp < poll.end) {
+        poll.end = blockTimestamp;
+      }
+    }
+
+    if (IAssessment.EventType(vote.eventType) == IAssessment.EventType.CLAIM) {
+      claims[vote.eventId].poll = poll;
+    } else {
+      incidents[vote.eventId].poll = poll;
+    }
+  }
+
   function processFraudResolution (
+    IAssessment.Configuration calldata CONFIG,
     uint256 lastFraudulentVoteIndex,
     uint96 burnAmount,
     uint16 fraudCount,
     uint256 voteBatchSize,
-    IAssessment.Stake memory stake,
-    IAssessment.Vote[] storage votes,
+    address fraudulentAssessor,
+    mapping(address => IAssessment.Stake) storage stakeOf,
+    mapping(address => IAssessment.Vote[]) storage votesOf,
     mapping(uint8 => mapping(uint104 => IAssessment.Poll)) storage pollFraudOfEvent,
     IAssessment.Claim[] storage claims,
-    IAssessment.Incident[] storage incidents,
-    IAssessment.Configuration memory CONFIG
-  ) external returns (IAssessment.Stake memory) {
-
+    IAssessment.Incident[] storage incidents
+  ) external {
     uint processUntil;
+    IAssessment.Stake memory stake = stakeOf[fraudulentAssessor];
+
     // [todo] Check this
     if (
       voteBatchSize == 0 ||
@@ -450,52 +505,7 @@ library AssessmentGovernanceActionsLib {
     }
 
     for (uint j = stake.rewardsWithdrawnUntilIndex; j < processUntil; j++) {
-      IAssessment.Vote memory vote = votes[j];
-
-      IAssessment.Poll memory poll;
-      if (IAssessment.EventType(vote.eventType) == IAssessment.EventType.CLAIM) {
-        IAssessment.Claim memory claim = claims[vote.eventId];
-        if (claim.details.payoutRedeemed) {
-          // Once the payout is redeemed the poll result is final
-          continue;
-        }
-        poll = claim.poll;
-      } else {
-        poll = incidents[vote.eventId].poll;
-      }
-
-      {
-        IAssessment.Poll memory pollFraud = pollFraudOfEvent[vote.eventType][vote.eventId];
-
-        // Copy the current poll results before correction starts
-        if (!AssessmentUtilsLib.pollFraudExists(pollFraud)) {
-          pollFraudOfEvent[vote.eventType][vote.eventId] = poll;
-        }
-      }
-
-      {
-        uint32 blockTimestamp = uint32(block.timestamp);
-        if (blockTimestamp >= AssessmentUtilsLib._getCooldownEndDate(poll.end, CONFIG)) {
-          // Once the cooldown period ends the poll result is final
-          continue;
-        }
-
-        if (vote.accepted) {
-          poll.accepted -= vote.tokenWeight;
-        } else {
-          poll.denied -= vote.tokenWeight;
-        }
-
-        if (blockTimestamp < poll.end) {
-          poll.end = blockTimestamp;
-        }
-      }
-
-      if (IAssessment.EventType(vote.eventType) == IAssessment.EventType.CLAIM) {
-        claims[vote.eventId].poll = poll;
-      } else {
-        incidents[vote.eventId].poll = poll;
-      }
+      processFraudulentVote(CONFIG, votesOf[fraudulentAssessor][j], claims, incidents, pollFraudOfEvent);
     }
 
     if (fraudCount == stake.fraudCount) {
@@ -508,8 +518,10 @@ library AssessmentGovernanceActionsLib {
       stake.amount -= burnAmount;
       stake.fraudCount++;
     }
+
     stake.rewardsWithdrawnUntilIndex = uint104(processUntil);
-    return stake;
+    stakeOf[fraudulentAssessor] = stake;
+
   }
 }
 
@@ -534,12 +546,12 @@ library AssessmentClaimsLib {
    *                          is false
    */
   function submitClaim(
+    IAssessment.Configuration memory CONFIG,
     uint24 coverId,
     uint96 requestedAmount,
     bool withProof,
     string calldata ipfsProofHash,
-    IAssessment.Claim[] storage claims,
-    IAssessment.Configuration memory CONFIG
+    IAssessment.Claim[] storage claims
   ) external {
     {
       uint submissionDeposit = 1 ether * uint(CONFIG.CLAIM_ASSESSMENT_DEPOSIT_PERC) / uint(PERC_BASIS_POINTS);
@@ -576,19 +588,19 @@ library AssessmentClaimsLib {
     );
 
     uint payoutImpact = AssessmentUtilsLib._getPayoutImpactOfClaim(claim);
-    claim.poll.end = AssessmentUtilsLib._calculatePollEndDate(claim.poll, payoutImpact, CONFIG);
+    claim.poll.end = AssessmentUtilsLib._calculatePollEndDate(CONFIG, claim.poll, payoutImpact);
 
     claims.push(claim);
   }
 
   function redeemClaimPayout (
+    IAssessment.Configuration memory CONFIG,
     uint104 id,
     address payable coverOwner,
     IAssessment.Claim[] storage claims,
     mapping(uint => address) storage addressOfAsset,
     IMemberRoles memberRoles,
-    IPool pool,
-    IAssessment.Configuration memory CONFIG
+    IPool pool
   ) external {
     IAssessment.Claim memory claim = claims[id];
     require(
@@ -596,7 +608,7 @@ library AssessmentClaimsLib {
       "The claim must be accepted"
     );
     require(
-      block.timestamp >= AssessmentUtilsLib._getCooldownEndDate(claim.poll.end, CONFIG),
+      block.timestamp >= AssessmentUtilsLib._getCooldownEndDate(CONFIG, claim.poll.end),
       "The claim is in cooldown period"
     );
     require(!claim.details.payoutRedeemed, "Payout was already redeemed");
@@ -619,9 +631,9 @@ library AssessmentStakeLib {
   uint16 internal constant PERC_BASIS_POINTS = 10000;
 
   function _getTotalRewardForEvent (
+    IAssessment.Configuration memory CONFIG,
     IAssessment.EventType eventType,
     uint104 id,
-    IAssessment.Configuration memory CONFIG,
     IAssessment.Claim[] storage claims,
     IAssessment.Incident[] storage incidents
   ) internal view returns (uint) {
@@ -637,9 +649,9 @@ library AssessmentStakeLib {
   // [todo] Expose a view to find out the last index until withdrawals can be made and also
   //  views for total rewards and withdrawable rewards
   function withdrawReward (
+    IAssessment.Configuration memory CONFIG,
     address user,
     uint104 untilIndex,
-    IAssessment.Configuration memory CONFIG,
     INXMToken nxm,
     mapping(address => IAssessment.Stake) storage stakeOf,
     mapping(address => IAssessment.Vote[]) storage votesOf,
@@ -661,7 +673,7 @@ library AssessmentStakeLib {
     for (uint i = stake.rewardsWithdrawnUntilIndex; i < withdrawUntilIndex; i++) {
       IAssessment.Vote memory vote = votesOf[user][i];
       require(
-        block.timestamp > AssessmentUtilsLib._getVoteLockupEndDate(vote, CONFIG),
+        block.timestamp > AssessmentUtilsLib._getVoteLockupEndDate(CONFIG, vote),
         "Cannot withdraw rewards from votes which are in lockup period"
       );
       IAssessment.Poll memory poll =
@@ -670,9 +682,9 @@ library AssessmentStakeLib {
         : incidents[vote.eventId].poll;
 
       totalReward = _getTotalRewardForEvent(
+        CONFIG,
         IAssessment.EventType(vote.eventType),
         vote.eventId,
-        CONFIG,
         claims,
         incidents
       );
@@ -684,10 +696,10 @@ library AssessmentStakeLib {
   }
 
   function castVote (
+    IAssessment.Configuration memory CONFIG,
     uint8 eventType,
     uint104 id,
     bool accepted,
-    IAssessment.Configuration memory CONFIG,
     mapping(address => IAssessment.Stake) storage stakeOf,
     mapping(address => IAssessment.Vote[]) storage votesOf,
     mapping(bytes32 => bool) storage hasAlreadyVotedOn,
@@ -733,7 +745,7 @@ library AssessmentStakeLib {
       poll.denied += stake.amount;
     }
 
-    poll.end = AssessmentUtilsLib._calculatePollEndDate(poll, payoutImpact, CONFIG);
+    poll.end = AssessmentUtilsLib._calculatePollEndDate(CONFIG, poll, payoutImpact);
 
     if (poll.end < blockTimestamp) {
       // When poll end date falls in the past, replace it with the current block timestamp
@@ -770,7 +782,7 @@ library AssessmentStakeLib {
     require(stake.amount != 0, "No tokens staked");
     uint voteCount = votesOf[msg.sender].length;
     require(
-      block.timestamp > AssessmentUtilsLib._getVoteLockupEndDate(votesOf[msg.sender][voteCount - 1], CONFIG),
+      block.timestamp > AssessmentUtilsLib._getVoteLockupEndDate(CONFIG, votesOf[msg.sender][voteCount - 1]),
       "Cannot withdraw stake while in lockup period"
      );
 
@@ -946,12 +958,12 @@ library AssessmentIncidentsLib {
   }
 
   function getIncidentToSubmit(
+    IAssessment.Configuration calldata CONFIG,
     uint24 productId,
     uint96 priceBefore,
     uint32 date,
     IMemberRoles memberRoles,
-    INXMToken nxm,
-    IAssessment.Configuration calldata CONFIG
+    INXMToken nxm
   ) external returns (IAssessment.AffectedToken memory, IAssessment.Incident memory) {
     require(
       memberRoles.checkRole(msg.sender, uint(IMemberRoles.Role.AdvisoryBoard)),
@@ -975,7 +987,7 @@ library AssessmentIncidentsLib {
     );
 
     uint payoutImpact = _getPayoutImpactOfIncident(incident);
-    incident.poll.end = AssessmentUtilsLib._calculatePollEndDate(incident.poll, payoutImpact, CONFIG);
+    incident.poll.end = AssessmentUtilsLib._calculatePollEndDate(CONFIG, incident.poll, payoutImpact);
 
 
     if (CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC > 0) {

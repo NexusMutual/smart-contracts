@@ -17,9 +17,6 @@ import "hardhat/console.sol";
  *  payouts.
  */
 contract Assessment is IAssessment, MasterAwareV2 {
-
-  enum ID {TC, MR, P1, TK}
-
   /* ========== CONSTRUCTOR ========== */
 
   constructor (address dai, address eth) {
@@ -36,9 +33,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
     addressOfAsset[uint(Asset.ETH)] = eth;
     addressOfAsset[uint(Asset.DAI)] = dai; // [todo]
 
+    nxm = INXMToken(master.tokenAddress());
   }
 
   /* ========== STATE VARIABLES ========== */
+
+  INXMToken internal nxm;
 
   Configuration public CONFIG;
 
@@ -68,14 +68,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
   mapping(uint104 => AffectedToken) internal tokenAffectedByIncident;
 
   /* ========== VIEWS ========== */
-
-  function getInternalContractAddress(ID id) internal view returns (address payable) {
-    return internalContracts[uint(id)];
-  }
-
-  function nxm() internal view returns (INXMToken) {
-    return INXMToken(getInternalContractAddress(ID.TK));
-  }
 
   function tokenController() internal view returns (ITokenController) {
     return ITokenController(getInternalContractAddress(ID.TC));
@@ -143,11 +135,11 @@ contract Assessment is IAssessment, MasterAwareV2 {
       Incident memory incident
     ) = AssessmentIncidentsLib.getIncidentToSubmit(
       CONFIG,
+      nxm,
+      memberRoles(),
       productId,
       priceBefore,
-      date,
-      memberRoles(),
-      nxm()
+      date
     );
 
     AssessmentIncidentsLib.saveIncident (
@@ -162,15 +154,15 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function depositStake (uint96 amount) external onlyMember {
     Stake storage stake = stakeOf[msg.sender];
     stake.amount += amount;
-    nxm().transferFrom(msg.sender, address(this), amount);
+    nxm.transferFrom(msg.sender, address(this), amount);
   }
 
   function withdrawReward (address user, uint104 untilIndex) external {
-    AssessmentStakeLib.withdrawReward(
+    AssessmentVoteLib.withdrawReward(
       CONFIG,
+      nxm,
       user,
       untilIndex,
-      nxm(),
       stakeOf,
       votesOf,
       claims,
@@ -179,34 +171,35 @@ contract Assessment is IAssessment, MasterAwareV2 {
   }
 
   function withdrawStake (uint96 amount) external onlyMember {
-    AssessmentStakeLib.withdrawStake(CONFIG, nxm(), stakeOf, votesOf, amount);
+    AssessmentVoteLib.withdrawStake(CONFIG, nxm, stakeOf, votesOf, amount);
   }
 
   function redeemClaimPayout (uint104 id, address payable coverOwner) external {
     AssessmentClaimsLib.redeemClaimPayout(
       CONFIG,
+      pool(),
+      memberRoles(),
       id,
       coverOwner,
       claims,
-      addressOfAsset,
-      memberRoles(),
-      pool()
+      addressOfAsset
     );
   }
 
   function redeemIncidentPayout (uint104 incidentId, uint32 coverId, uint payoutAmount) external {
     AssessmentIncidentsLib.redeemIncidentPayout(
+      pool(),
+      memberRoles(),
       incidents[incidentId],
       coverId,
       payoutAmount,
-      addressOfAsset,
-      pool(), memberRoles()
+      addressOfAsset
     );
   }
 
   // [todo] Check how many times poll is loaded from storage
   function castVote (uint8 eventType, uint104 id, bool accepted) external onlyMember {
-    AssessmentStakeLib.castVote(
+    AssessmentVoteLib.castVote(
     CONFIG,
     eventType,
     id,
@@ -269,7 +262,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
   // should only be callable by master.
   function changeDependentContractAddress() external override {
     INXMMaster master = INXMMaster(master);
-    internalContracts[uint(ID.TK)] = master.getLatestAddress("TK");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
@@ -313,21 +305,21 @@ library AssessmentUtilsLib {
   }
 
   function _getVoteLockupEndDate (
-    IAssessment.Configuration memory CONFIG,
+    IAssessment.Configuration calldata CONFIG,
     IAssessment.Vote memory vote
    ) internal pure returns (uint) {
     return vote.timestamp + CONFIG.MAX_VOTING_PERIOD_DAYS + CONFIG.PAYOUT_COOLDOWN_DAYS;
   }
 
   function _getCooldownEndDate (
-    IAssessment.Configuration memory CONFIG,
+    IAssessment.Configuration calldata CONFIG,
     uint32 pollEnd
   ) internal pure returns (uint32) {
     return pollEnd + CONFIG.PAYOUT_COOLDOWN_DAYS * 1 days;
   }
 
   function _calculatePollEndDate (
-    IAssessment.Configuration memory CONFIG,
+    IAssessment.Configuration calldata CONFIG,
     uint96 accepted,
     uint96 denied,
     uint32 start,
@@ -348,7 +340,7 @@ library AssessmentUtilsLib {
   }
 
   function _calculatePollEndDate (
-    IAssessment.Configuration memory CONFIG,
+    IAssessment.Configuration calldata CONFIG,
     IAssessment.Poll memory poll,
     uint payoutImpact
   ) internal pure returns (uint32) {
@@ -546,7 +538,7 @@ library AssessmentClaimsLib {
    *                          is false
    */
   function submitClaim(
-    IAssessment.Configuration memory CONFIG,
+    IAssessment.Configuration calldata CONFIG,
     uint24 coverId,
     uint96 requestedAmount,
     bool withProof,
@@ -594,13 +586,13 @@ library AssessmentClaimsLib {
   }
 
   function redeemClaimPayout (
-    IAssessment.Configuration memory CONFIG,
+    IAssessment.Configuration calldata CONFIG,
+    IPool pool,
+    IMemberRoles memberRoles,
     uint104 id,
     address payable coverOwner,
     IAssessment.Claim[] storage claims,
-    mapping(uint => address) storage addressOfAsset,
-    IMemberRoles memberRoles,
-    IPool pool
+    mapping(uint => address) storage addressOfAsset
   ) external {
     IAssessment.Claim memory claim = claims[id];
     require(
@@ -625,13 +617,13 @@ library AssessmentClaimsLib {
   }
 }
 
-library AssessmentStakeLib {
+library AssessmentVoteLib {
 
   // Percentages are defined between 0-10000 i.e. double decimal precision
   uint16 internal constant PERC_BASIS_POINTS = 10000;
 
   function _getTotalRewardForEvent (
-    IAssessment.Configuration memory CONFIG,
+    IAssessment.Configuration calldata CONFIG,
     IAssessment.EventType eventType,
     uint104 id,
     IAssessment.Claim[] storage claims,
@@ -649,10 +641,10 @@ library AssessmentStakeLib {
   // [todo] Expose a view to find out the last index until withdrawals can be made and also
   //  views for total rewards and withdrawable rewards
   function withdrawReward (
-    IAssessment.Configuration memory CONFIG,
+    IAssessment.Configuration calldata CONFIG,
+    INXMToken nxm,
     address user,
     uint104 untilIndex,
-    INXMToken nxm,
     mapping(address => IAssessment.Stake) storage stakeOf,
     mapping(address => IAssessment.Vote[]) storage votesOf,
     IAssessment.Claim[] storage claims,
@@ -696,7 +688,7 @@ library AssessmentStakeLib {
   }
 
   function castVote (
-    IAssessment.Configuration memory CONFIG,
+    IAssessment.Configuration calldata CONFIG,
     uint8 eventType,
     uint104 id,
     bool accepted,
@@ -772,7 +764,7 @@ library AssessmentStakeLib {
   }
 
   function withdrawStake (
-    IAssessment.Configuration memory CONFIG,
+    IAssessment.Configuration calldata CONFIG,
     INXMToken nxm,
     mapping(address => IAssessment.Stake) storage stakeOf,
     mapping(address => IAssessment.Vote[]) storage votesOf,
@@ -812,19 +804,17 @@ contract AssessmentViewer is MasterAwareV2 {
     string claimStatus;
     string payoutStatus;
   }
-  enum ID {TC, MR, P1, TK, AS}
 
   constructor(address _master) {
     master = INXMMaster(_master);
   }
 
   function assessment() internal view returns (IAssessment) {
-    return IAssessment(internalContracts[uint(ID.AS)]);
+    return IAssessment(getInternalContractAddress(ID.AS));
   }
 
   function changeDependentContractAddress() external override {
     INXMMaster master = INXMMaster(master);
-    internalContracts[uint(ID.TK)] = master.getLatestAddress("TK");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
@@ -959,11 +949,11 @@ library AssessmentIncidentsLib {
 
   function getIncidentToSubmit(
     IAssessment.Configuration calldata CONFIG,
+    INXMToken nxm,
+    IMemberRoles memberRoles,
     uint24 productId,
     uint96 priceBefore,
-    uint32 date,
-    IMemberRoles memberRoles,
-    INXMToken nxm
+    uint32 date
   ) external returns (IAssessment.AffectedToken memory, IAssessment.Incident memory) {
     require(
       memberRoles.checkRole(msg.sender, uint(IMemberRoles.Role.AdvisoryBoard)),
@@ -1001,9 +991,9 @@ library AssessmentIncidentsLib {
   }
 
   function saveIncident (
-    IAssessment.Incident memory incident,
+    IAssessment.Incident calldata incident,
     IAssessment.Incident[] storage incidents,
-    IAssessment.AffectedToken memory affectedToken,
+    IAssessment.AffectedToken calldata affectedToken,
     mapping(uint104 => IAssessment.AffectedToken) storage tokenAffectedByIncident,
     mapping(uint104 => address) storage incidentProponent
   ) external {
@@ -1014,12 +1004,12 @@ library AssessmentIncidentsLib {
   }
 
   function redeemIncidentPayout (
+    IPool pool,
+    IMemberRoles memberRoles,
     IAssessment.Incident calldata incident,
     uint32 coverId,
     uint payoutAmount,
-    mapping(uint => address) storage addressOfAsset,
-    IPool pool,
-    IMemberRoles memberRoles
+    mapping(uint => address) storage addressOfAsset
   ) external {
     // [todo] Read the owner from the cover
     address payable coverOwner = payable(0x0000000000000000000000000000000000000000);

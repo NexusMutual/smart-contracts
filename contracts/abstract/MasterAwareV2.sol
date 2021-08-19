@@ -10,6 +10,9 @@ abstract contract MasterAwareV2 {
 
   INXMMaster public master;
 
+  // [todo] Are there any missing contracts here?
+  enum ID {TK, GW, GV, MR, CL, CR, MC, P1, QT, TF, PC, PS, TC, IC, AS}
+
   modifier onlyMember {
     require(master.isMember(msg.sender), "Caller is not a member");
     _;
@@ -45,9 +48,15 @@ abstract contract MasterAwareV2 {
     _;
   }
 
+
+  function getInternalContractAddress(ID id) internal view returns (address payable) {
+    return internalContracts[uint(id)];
+  }
+
   function changeDependentContractAddress() external virtual;
 
   function changeMasterAddress(address masterAddress) public onlyMaster {
     master = INXMMaster(masterAddress);
   }
+
 }

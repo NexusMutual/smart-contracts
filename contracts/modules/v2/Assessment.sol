@@ -255,7 +255,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   function updateUintParameters (UintParams[] calldata paramNames, uint[] calldata values)
   external onlyGovernance {
-    CONFIG = AssessmentGovernanceActionsLib.updateUintParameters(CONFIG, paramNames, values);
+    CONFIG = AssessmentGovernanceActionsLib.getUpdatedUintParameters(CONFIG, paramNames, values);
   }
 
   // [todo] Since this function is called every time contracts change,
@@ -272,9 +272,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
   }
 
 }
-
-
-
 
 contract AssessmentViewer is MasterAwareV2 {
   /*

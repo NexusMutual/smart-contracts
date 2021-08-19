@@ -73,7 +73,7 @@ library AssessmentIncidentsLib {
       )
     );
 
-    uint payoutImpact = AssessmentUtilsLib._getPayoutImpactOfIncident(incident);
+    uint payoutImpact = AssessmentUtilsLib._getPayoutImpactOfIncident(incident.details);
     incident.poll.end = AssessmentUtilsLib._calculatePollEndDate(CONFIG, incident.poll, payoutImpact);
 
 

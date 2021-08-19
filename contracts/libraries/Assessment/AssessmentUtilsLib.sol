@@ -28,22 +28,20 @@ library AssessmentUtilsLib {
     if (block.timestamp < poll.end) {
       return IAssessment.PollStatus.PENDING;
     }
-
     if (poll.accepted > poll.denied) {
       return IAssessment.PollStatus.ACCEPTED;
-    } else {
-      return IAssessment.PollStatus.DENIED;
     }
+    return IAssessment.PollStatus.DENIED;
   }
 
-  function _getPayoutImpactOfClaim (IAssessment.Claim memory claim) internal pure returns (uint) {
-    return claim.details.amount * PRECISION / claim.details.nxmPriceSnapshot;
+  function _getPayoutImpactOfClaim (IAssessment.ClaimDetails memory details)
+  internal pure returns (uint) {
+    return details.amount * PRECISION / details.nxmPriceSnapshot;
   }
 
-  function _getPayoutImpactOfIncident (IAssessment.Incident memory incident) internal pure returns (uint) {
-    uint96 activeCoverAmount = incident.details.activeCoverAmount;
-    uint16 impactEstimatePerc = incident.details.impactEstimatePerc;
-    return activeCoverAmount * impactEstimatePerc / PERC_BASIS_POINTS;
+  function _getPayoutImpactOfIncident (IAssessment.IncidentDetails memory details)
+  internal pure returns (uint) {
+    return details.activeCoverAmount * details.impactEstimatePerc / PERC_BASIS_POINTS;
   }
 
   function _getVoteLockupEndDate (

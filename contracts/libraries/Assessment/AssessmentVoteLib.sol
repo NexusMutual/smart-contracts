@@ -24,10 +24,10 @@ library AssessmentVoteLib {
     if (eventType == IAssessment.EventType.CLAIM) {
       IAssessment.ClaimDetails memory claimDetails = claims[id].details;
       return claimDetails.amount * CONFIG.REWARD_PERC * claimDetails.coverPeriod / 365 / PERC_BASIS_POINTS;
-    } else {
-      IAssessment.IncidentDetails memory incidentDetails = incidents[id].details;
-      return incidentDetails.activeCoverAmount * CONFIG.REWARD_PERC / PERC_BASIS_POINTS;
     }
+    IAssessment.IncidentDetails memory incidentDetails = incidents[id].details;
+    uint payoutImpact = AssessmentUtilsLib._getPayoutImpactOfIncident(incidentDetails);
+    return payoutImpact * CONFIG.REWARD_PERC / PERC_BASIS_POINTS;
   }
 
   // [todo] Expose a view to find out the last index until withdrawals can be made and also
@@ -106,12 +106,12 @@ library AssessmentVoteLib {
     if (IAssessment.EventType(eventType) == IAssessment.EventType.CLAIM) {
       IAssessment.Claim memory claim = claims[id];
       poll = claims[id].poll;
-      payoutImpact = AssessmentUtilsLib._getPayoutImpactOfClaim(claim);
+      payoutImpact = AssessmentUtilsLib._getPayoutImpactOfClaim(claim.details);
       require(blockTimestamp < poll.end, "Voting is closed");
     } else {
       IAssessment.Incident memory incident = incidents[id];
       poll = incidents[id].poll;
-      payoutImpact = AssessmentUtilsLib._getPayoutImpactOfIncident(incident);
+      payoutImpact = AssessmentUtilsLib._getPayoutImpactOfIncident(incident.details);
       require(blockTimestamp < poll.end, "Voting is closed");
     }
 

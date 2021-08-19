@@ -8,7 +8,7 @@ import "./AssessmentUtilsLib.sol";
 
 library AssessmentGovernanceActionsLib {
 
-  function updateUintParameters (
+  function getUpdatedUintParameters (
     IAssessment.Configuration memory CONFIG,
     IAssessment.UintParams[] calldata paramNames,
     uint[] calldata values

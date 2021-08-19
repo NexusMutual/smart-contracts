@@ -69,7 +69,7 @@ library AssessmentClaimsLib {
       )
     );
 
-    uint payoutImpact = AssessmentUtilsLib._getPayoutImpactOfClaim(claim);
+    uint payoutImpact = AssessmentUtilsLib._getPayoutImpactOfClaim(claim.details);
     claim.poll.end = AssessmentUtilsLib._calculatePollEndDate(CONFIG, claim.poll, payoutImpact);
 
     claims.push(claim);

@@ -11,7 +11,7 @@ abstract contract MasterAwareV2 {
   INXMMaster public master;
 
   // [todo] Are there any missing contracts here?
-  enum ID {TK, GW, GV, MR, CL, CR, MC, P1, QT, TF, PC, PS, TC, IC, AS}
+  enum ID {GW, GV, MR, CL, CR, MC, P1, QT, TF, PC, PS, TC, IC, AS}
 
   modifier onlyMember {
     require(master.isMember(msg.sender), "Caller is not a member");

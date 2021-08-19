@@ -6,8 +6,6 @@ interface IAssessment {
 
   /* ========== DATA STRUCTURES ========== */
 
-  enum ID {TC, MR, P1, TK}
-
   enum PollStatus { PENDING, ACCEPTED, DENIED }
 
   enum EventType { CLAIM, INCIDENT }
@@ -15,15 +13,34 @@ interface IAssessment {
   enum Asset { ETH, DAI }
 
   enum UintParams {
-    REWARD_PERC,
-    INCIDENT_IMPACT_ESTIMATE_PERC,
     MIN_VOTING_PERIOD_DAYS,
     MAX_VOTING_PERIOD_DAYS,
     PAYOUT_COOLDOWN_DAYS,
+    REWARD_PERC,
+    INCIDENT_IMPACT_ESTIMATE_PERC,
     CLAIM_ASSESSMENT_DEPOSIT_PERC,
     INCIDENT_ASSESSMENT_DEPOSIT_PERC
   }
 
+  struct Configuration {
+    // The minimum number of days the users can vote on polls
+    uint8 MIN_VOTING_PERIOD_DAYS;
+    // The maximum number of days the users can vote on polls
+    uint8 MAX_VOTING_PERIOD_DAYS;
+    // Number of days the users must wait after a poll closes, to redeem payouts.
+    uint8 PAYOUT_COOLDOWN_DAYS;
+    // Percentage used to calculate assessment rewards (0-10000 i.e. double decimal precision)
+    uint16 REWARD_PERC;
+    // Percentage used to calculate potential impact of an incident
+    uint16 INCIDENT_IMPACT_ESTIMATE_PERC;
+    // Percentage out of 1 ETH, used to calculate a flat ETH deposit required for claim submission.
+    // If the claim is accepted, the user will receive the deposit back when the payout is redeemed.
+    uint16 CLAIM_ASSESSMENT_DEPOSIT_PERC;
+    // Percentage used to calculate the NXM deposit required for incident submission.
+    uint16 INCIDENT_ASSESSMENT_DEPOSIT_PERC;
+
+    uint168 _unused;
+  }
 
   struct Stake {
     uint96 amount;
@@ -90,27 +107,6 @@ interface IAssessment {
   }
 
   /*
-   *  Claim structure but in a human-friendly format.
-   *
-   *  Contains aggregated values that give an overall view about the claim and other relevant
-   *  pieces of information such as cover period, asset symbol etc. This structure is not used in
-   *  any storage variables.
-   */
-  struct ClaimDisplay {
-    uint id;
-    uint productId;
-    uint coverId;
-    uint amount;
-    string assetSymbol;
-    uint coverStart;
-    uint coverEnd;
-    uint start;
-    uint end;
-    string claimStatus;
-    string payoutStatus;
-  }
-
-  /*
    *  Keeps details related to incidents.
    */
   struct IncidentDetails {
@@ -142,6 +138,25 @@ interface IAssessment {
   }
 
   /* ========== VIEWS ========== */
+
+  function claims(uint id) external view returns (Poll memory poll, ClaimDetails memory details);
+
+  function incidents(uint id) external view
+  returns (Poll memory poll, IncidentDetails memory details);
+
+  function votesOf(address user, uint id) external view
+  returns (uint104 eventId, bool accepted, uint32 timestamp, uint96 tokenWeight, uint8 eventType);
+
+  function stakeOf(address user) external view
+  returns (uint96 amount, uint104 rewardsWithdrawnUntilIndex, uint16 fraudCount);
+
+  function hasAlreadyVotedOn(bytes32 voteHash) external view returns (bool);
+
+  function getVoteCountOfAssessor(address assessor) external view returns (uint);
+
+  function getClaimsCount() external view returns (uint);
+
+  function getIncidentsCount() external view returns (uint);
 
   /* === MUTATIVE FUNCTIONS ==== */
 

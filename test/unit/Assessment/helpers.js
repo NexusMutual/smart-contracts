@@ -77,7 +77,8 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
 
 const submitClaim = assessment => async (id, amount) => {
   const DEFAULT_COVER_AMOUNT = parseEther('1');
-  const CLAIM_ASSESSMENT_DEPOSIT_PERC = await assessment.CLAIM_ASSESSMENT_DEPOSIT_PERC();
+  const config = await assessment.CONFIG();
+  const { CLAIM_ASSESSMENT_DEPOSIT_PERC } = config;
   const claimAssessmentDeposit = parseEther('1')
     .mul(CLAIM_ASSESSMENT_DEPOSIT_PERC)
     .div('10000');
@@ -85,7 +86,8 @@ const submitClaim = assessment => async (id, amount) => {
 };
 
 const submitIncident = assessment => async (id, priceBefore, date) => {
-  const INCIDENT_ASSESSMENT_DEPOSIT_PERC = await assessment.INCIDENT_ASSESSMENT_DEPOSIT_PERC();
+  const config = await assessment.CONFIG();
+  const { INCIDENT_ASSESSMENT_DEPOSIT_PERC } = config;
   // [todo] Change this to an estimate when incidents can be submitted by all members
   const payoutImpact = Zero;
   // [todo] Use this to approve amount of nxm to dpeosit contract

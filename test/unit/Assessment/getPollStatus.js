@@ -67,7 +67,7 @@ describe('getPollStatus', function () {
     await expect(STATUS.DENIED);
   });
 
-  it('should return DENIED after a claim fraud resolution with deny outcome', async function () {
+  it('should return DENIED after a claim fraud resolution leading to an denied claim', async function () {
     const { assessment } = this.contracts;
     const expect = expectStatus(assessment);
     await submitClaim(assessment)(0);
@@ -105,7 +105,7 @@ describe('getPollStatus', function () {
     await expect(STATUS.ACCEPTED);
   });
 
-  it('should return ACCEPTED after a claim fraud resolution with accept outcome', async function () {
+  it('should return ACCEPTED after a claim fraud resolution leading to an accepted claim', async function () {
     const { assessment } = this.contracts;
     const expect = expectStatus(assessment);
     await submitClaim(assessment)(0);

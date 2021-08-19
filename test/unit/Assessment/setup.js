@@ -22,21 +22,54 @@ async function setup () {
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();
   await master.deployed();
-  const masterInitTxs = await Promise.all([
-    master.setLatestAddress(hex('TK'), nxm.address),
-    master.setLatestAddress(hex('TC'), tokenController.address),
-    master.setLatestAddress(hex('MR'), memberRoles.address),
-    master.setLatestAddress(hex('P1'), pool.address),
-  ]);
-  await Promise.all(masterInitTxs.map(x => x.wait()));
 
   const DAI = await ethers.getContractFactory('ERC20BlacklistableMock');
   const dai = await DAI.deploy();
   await dai.deployed();
 
-  const Assessment = await ethers.getContractFactory('Assessment');
-  const assessment = await Assessment.deploy();
+  // const AssessmentClaimsDisplayLib = await ethers.getContractFactory('AssessmentClaimsDisplayLib');
+  // const assessmentClaimsDisplayLib = await AssessmentClaimsDisplayLib.deploy();
+  // await assessmentClaimsDisplayLib.deployed();
+
+  const AssessmentClaimsLib = await ethers.getContractFactory('AssessmentClaimsLib');
+  const assessmentClaimsLib = await AssessmentClaimsLib.deploy();
+  await assessmentClaimsLib.deployed();
+
+  const AssessmentIncidentsLib = await ethers.getContractFactory('AssessmentIncidentsLib');
+  const assessmentIncidentsLib = await AssessmentIncidentsLib.deploy();
+  await assessmentIncidentsLib.deployed();
+
+  const AssessmentStakeLib = await ethers.getContractFactory('AssessmentStakeLib');
+  const assessmentStakeLib = await AssessmentStakeLib.deploy();
+  await assessmentStakeLib.deployed();
+
+  const AssessmentGovernanceActionsLib = await ethers.getContractFactory('AssessmentGovernanceActionsLib');
+  const assessmentGovernanceActionsLib = await AssessmentGovernanceActionsLib.deploy();
+  await assessmentGovernanceActionsLib.deployed();
+
+  const Assessment = await ethers.getContractFactory('Assessment', {
+    libraries: {
+      AssessmentClaimsLib: assessmentClaimsLib.address,
+      AssessmentIncidentsLib: assessmentIncidentsLib.address,
+      AssessmentStakeLib: assessmentStakeLib.address,
+      AssessmentGovernanceActionsLib: assessmentGovernanceActionsLib.address,
+    },
+  });
+  const assessment = await Assessment.deploy(
+    '0x0000000000000000000000000000000000000000',
+    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+  );
   await assessment.deployed();
+
+  const masterInitTxs = await Promise.all([
+    master.setLatestAddress(hex('TK'), nxm.address),
+    master.setLatestAddress(hex('TC'), tokenController.address),
+    master.setLatestAddress(hex('MR'), memberRoles.address),
+    master.setLatestAddress(hex('P1'), pool.address),
+    master.setLatestAddress(hex('AS'), assessment.address),
+  ]);
+  await Promise.all(masterInitTxs.map(x => x.wait()));
+
   {
     const tx = await assessment.changeMasterAddress(master.address);
     await tx.wait();
@@ -55,8 +88,10 @@ async function setup () {
     await nxm.connect(account).approve(assessment.address, ethers.utils.parseEther('10000'));
   }
 
-  this.MIN_VOTING_PERIOD_DAYS = await assessment.MIN_VOTING_PERIOD_DAYS();
-  this.MAX_VOTING_PERIOD_DAYS = await assessment.MAX_VOTING_PERIOD_DAYS();
+  const config = await assessment.CONFIG();
+  this.MIN_VOTING_PERIOD_DAYS = config.MIN_VOTING_PERIOD_DAYS;
+  this.MAX_VOTING_PERIOD_DAYS = config.MAX_VOTING_PERIOD_DAYS;
+  this.CLAIM_ASSESSMENT_DEPOSIT_PERC = config.CLAIM_ASSESSMENT_DEPOSIT_PERC;
 
   this.accounts = accounts;
   this.contracts = {

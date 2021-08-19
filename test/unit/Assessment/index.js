@@ -16,9 +16,7 @@ describe.only('Assessment', function () {
   // require('./getPayoutImpactOfClaim');
   // require('./getPayoutImpactOfIncident');
   require('./getPollEndDate');
-  // require('./getEndOfCooldownPeriod');
-  // require('./getVoteLockupPeriodEnd');
-  // require('./hasVotingPeriodEnded');
+  // require('./getCooldownEndDate');
   // require('./getPollStatus');
   // require('./getClaimToDisplay');
   // require('./getClaimsToDisplay');

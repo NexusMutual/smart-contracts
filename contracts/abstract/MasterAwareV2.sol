@@ -6,6 +6,8 @@ import "../interfaces/INXMMaster.sol";
 
 abstract contract MasterAwareV2 {
 
+  mapping(uint => address payable) internal internalContracts;
+
   INXMMaster public master;
 
   modifier onlyMember {

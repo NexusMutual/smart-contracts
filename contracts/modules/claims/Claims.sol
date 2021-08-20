@@ -262,4 +262,24 @@ contract Claims is IClaims, LegacyMasterAware {
     cd.setClaimdateUpd(claimId, now);
   }
 
+  /**
+   * @dev Gets details of a given claim id.
+   * @param _claimId Claim Id.
+   * @return status Current status of claim id
+   * @return finalVerdict Decision made on the claim, 1 -> acceptance, -1 -> denial
+   * @return claimOwner Address through which claim is submitted
+   * @return coverId Coverid associated with the claim id
+  */
+  function getClaimbyIndex(uint _claimId) external view returns (
+    uint claimId,
+    uint status,
+    int8 finalVerdict,
+    address claimOwner,
+    uint coverId
+  ) {
+    (, coverId, finalVerdict, status,,) = cd.getClaim(_claimId);
+    claimId = _claimId;
+    claimOwner = qd.getCoverMemberAddress(coverId);
+  }
+
 }

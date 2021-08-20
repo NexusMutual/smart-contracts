@@ -13,37 +13,6 @@ library AssessmentIncidentsLib {
   // Percentages are defined between 0-10000 i.e. double decimal precision
   uint internal constant PERC_BASIS_POINTS = 10000;
 
-  // [todo] In case of duplicate incidents, allow an incident to be marked as duplicate by the
-  // proponent. They will need to provide an id which will compare productId, date, and priceBefore
-  // within certain tolerated ranges and if the two match, it allows the proponent to withdraw
-  // their deposit and transition the incident to a final state.
-
-  function releaseIncidentAssessmentDeposit (
-    uint104 id,
-    IAssessment.Incident[] storage incidents,
-    INXMToken nxm
-  ) external {
-    //IAssessment.Incident memory incident = incidents[id];
-
-    //require(block.timestamp >= incident.poll.end, "The incident is in cooldown period");
-
-    //uint16 assessmentDepositPerc = incident.details.assessmentDepositPerc;
-    //require(assessmentDepositPerc > 0, "Incident did not require an assessment deposit");
-
-    //IAssessment.PollStatus status = IAssessment._getPollStatus(incident.poll);
-    //uint payoutImpact = IAssessment._getPayoutImpactOfIncident(incident);
-    //uint deposit = payoutImpact * assessmentDepositPerc / PERC_BASIS_POINTS;
-
-    //require(incident.details.depositRedeemed, "Assessment deposit was already redeemed");
-    //incidents[id].details.depositRedeemed = true;
-    //if (status == IAssessment.PollStatus.ACCEPTED) {
-      //nxm.transferFrom(address(this), incidentProponent[id], deposit);
-    //}
-    //if (status == IAssessment.PollStatus.DENIED) {
-      //nxm.burn(deposit);
-    //}
-  }
-
   function getIncidentToSubmit(
     IAssessment.Configuration calldata CONFIG,
     IMemberRoles memberRoles,
@@ -95,12 +64,10 @@ library AssessmentIncidentsLib {
     IAssessment.Incident calldata incident,
     IAssessment.Incident[] storage incidents,
     IAssessment.AffectedToken calldata affectedToken,
-    mapping(uint104 => IAssessment.AffectedToken) storage tokenAffectedByIncident,
-    mapping(uint104 => address) storage incidentProponent
+    mapping(uint104 => IAssessment.AffectedToken) storage tokenAffectedByIncident
   ) external {
     uint104 nextId = uint104(incidents.length);
     tokenAffectedByIncident[nextId] = affectedToken;
-    incidentProponent[nextId] = msg.sender;
     incidents.push(incident);
   }
 

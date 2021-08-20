@@ -10,8 +10,6 @@ interface IAssessment {
 
   enum EventType { CLAIM, INCIDENT }
 
-  enum Asset { ETH, DAI }
-
   enum UintParams {
     MIN_VOTING_PERIOD_DAYS,
     MAX_VOTING_PERIOD_DAYS,
@@ -36,7 +34,11 @@ interface IAssessment {
     // Percentage out of 1 ETH, used to calculate a flat ETH deposit required for claim submission.
     // If the claim is accepted, the user will receive the deposit back when the payout is redeemed.
     uint16 CLAIM_ASSESSMENT_DEPOSIT_PERC;
-    // Percentage used to calculate the NXM deposit required for incident submission.
+    // Percentage used to calculate an NXM deposit required for incident submission. It is only
+    // reserved in the eventuality where incidents can be submitted by regular members. This would
+    // require them to make a significant NXM deposit to prevent minting unbacked assessment
+    // rewards by submitting incidents and denying. Check out git logs on AssessmentIncidentsLib
+    // and Assessment.sol for a draft.
     uint16 INCIDENT_ASSESSMENT_DEPOSIT_PERC;
 
     uint168 _unused;
@@ -91,7 +93,7 @@ interface IAssessment {
     uint32 coverId;
    // Cover period represented as days, used to calculate rewards
     uint16 coverPeriod;
-   // The asset which is expected at payout. E.g ETH, DAI (See Asset enum)
+   // The index of of the asset address stored at addressOfAsset which is expected at payout.
     uint8 payoutAsset;
    // The price (TWAP) of 1 NXM in the covered asset, at claim-time
     uint80 nxmPriceSnapshot;
@@ -115,7 +117,7 @@ interface IAssessment {
     // Timestamp marking the date of the incident used to verify the user's eligibility for a claim
     // according to their cover period.
     uint32 date;
-    // The asset which is expected at payout. E.g ETH, DAI (See Asset enum).
+    // The index of of the asset address stored at addressOfAsset which is expected at payout.
     uint8 payoutAsset;
     // A snapshot of INCIDENT_IMPACT_ESTIMATE_PERC if it changes while voting is still open.
     uint96 activeCoverAmount;

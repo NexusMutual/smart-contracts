@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts-v4/token/ERC721/IERC721Receiver.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IMemberRoles.sol";
@@ -19,7 +20,7 @@ import "../../libraries/Assessment/AssessmentVoteLib.sol";
  *  assessment processes where members decide the outcome of the events that lead to potential
  *  payouts.
  */
-contract Assessment is IAssessment, MasterAwareV2 {
+contract Assessment is IAssessment, IERC721Receiver, MasterAwareV2 {
 
   /* ========== STATE VARIABLES ========== */
 
@@ -49,7 +50,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
   Claim[] public override claims;
 
   Incident[] public override incidents;
-  mapping(uint104 => address) internal incidentProponent;
   mapping(uint104 => AffectedToken) internal tokenAffectedByIncident;
 
   /* ========== CONSTRUCTOR ========== */
@@ -149,8 +149,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       incident,
       incidents,
       affectedToken,
-      tokenAffectedByIncident,
-      incidentProponent
+      tokenAffectedByIncident
     );
   }
 
@@ -267,6 +266,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
+  }
+
+  // Required to receive NFTS
+  function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
+  external pure override returns (bytes4) {
+    return IERC721Receiver.onERC721Received.selector;
   }
 
 }

@@ -10,7 +10,7 @@ import "./AssessmentUtilsLib.sol";
 library AssessmentClaimsLib {
 
   // Percentages are defined between 0-10000 i.e. double decimal precision
-  uint16 internal constant PERC_BASIS_POINTS = 10000;
+  uint internal constant PERC_BASIS_POINTS = 10000;
 
   event ProofSubmitted(uint indexed coverId, address indexed owner, string ipfsHash);
 
@@ -36,7 +36,7 @@ library AssessmentClaimsLib {
     IAssessment.Claim[] storage claims
   ) external {
     {
-      uint submissionDeposit = 1 ether * uint(CONFIG.CLAIM_ASSESSMENT_DEPOSIT_PERC) / uint(PERC_BASIS_POINTS);
+      uint submissionDeposit = 1 ether * uint(CONFIG.CLAIM_ASSESSMENT_DEPOSIT_PERC) / PERC_BASIS_POINTS;
       require(msg.value == submissionDeposit, "Submission deposit different that the expected value");
     }
     // [todo] Cover premium and total amount need to be obtained from the cover
@@ -69,8 +69,7 @@ library AssessmentClaimsLib {
       )
     );
 
-    uint payoutImpact = AssessmentUtilsLib._getPayoutImpactOfClaim(claim.details);
-    claim.poll.end = AssessmentUtilsLib._calculatePollEndDate(CONFIG, claim.poll, payoutImpact);
+    claim.poll.end = claim.poll.start + CONFIG.MIN_VOTING_PERIOD_DAYS * 1 days;
 
     claims.push(claim);
   }
@@ -80,7 +79,6 @@ library AssessmentClaimsLib {
     IPool pool,
     IMemberRoles memberRoles,
     uint104 id,
-    address payable coverOwner,
     IAssessment.Claim[] storage claims,
     mapping(uint => address) storage addressOfAsset
   ) external {
@@ -90,9 +88,10 @@ library AssessmentClaimsLib {
       "The claim must be accepted"
     );
     require(
-      block.timestamp >= AssessmentUtilsLib._getCooldownEndDate(CONFIG, claim.poll.end),
+      block.timestamp >= claim.poll.end + CONFIG.PAYOUT_COOLDOWN_DAYS * 1 days,
       "The claim is in cooldown period"
     );
+    address payable coverOwner = payable(0x0000000000000000000000000000000000000000); // [todo]
     require(!claim.details.payoutRedeemed, "Payout was already redeemed");
     claims[id].details.payoutRedeemed = true;
     // [todo] Destroy and create a new cover nft
@@ -100,8 +99,7 @@ library AssessmentClaimsLib {
     address coverAsset = addressOfAsset[uint(IAssessment.Asset.ETH)]; // [todo]
     bool succeeded = pool.sendClaimPayout(coverAsset, payoutAddress, claim.details.amount);
     require(succeeded, "Claim payout failed");
-    uint assessmentDepositToRefund = 1 ether * uint(claim.details.assessmentDepositPerc) /
-      uint(PERC_BASIS_POINTS);
+    uint assessmentDepositToRefund = 1 ether * uint(claim.details.assessmentDepositPerc) / PERC_BASIS_POINTS;
     (bool refunded, /* bytes data */) = payoutAddress.call{value: assessmentDepositToRefund}("");
     require(refunded, "Assessment fee refund failed");
   }

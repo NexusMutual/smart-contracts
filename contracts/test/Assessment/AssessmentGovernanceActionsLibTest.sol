@@ -13,6 +13,6 @@ contract AssessmentGovernanceActionsLibTest {
     IAssessment.UintParams[] calldata paramNames,
     uint[] calldata values
   ) external pure returns (IAssessment.Configuration memory) {
-    AssessmentGovernanceActionsLib.getUpdatedUintParameters( CONFIG, paramNames, values);
+    return AssessmentGovernanceActionsLib.getUpdatedUintParameters(CONFIG, paramNames, values);
   }
 }

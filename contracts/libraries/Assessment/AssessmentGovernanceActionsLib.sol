@@ -96,15 +96,16 @@ library AssessmentGovernanceActionsLib {
     {
       IAssessment.Poll memory pollFraud = pollFraudOfEvent[vote.eventType][vote.eventId];
 
-      // Copy the current poll results before correction starts
-      if (!AssessmentUtilsLib.pollFraudExists(pollFraud)) {
+      // Check if pollFraud exists. The start date is guaranteed to be > 0 in any poll.
+      if (pollFraud.start == 0) {
+        // Copy the current poll results before correction starts
         pollFraudOfEvent[vote.eventType][vote.eventId] = poll;
       }
     }
 
     {
       uint32 blockTimestamp = uint32(block.timestamp);
-      if (blockTimestamp >= AssessmentUtilsLib._getCooldownEndDate(CONFIG, poll.end)) {
+      if (blockTimestamp >= poll.end + CONFIG.PAYOUT_COOLDOWN_DAYS * 1 days) {
         // Once the cooldown period ends the poll result is final
         return;
       }

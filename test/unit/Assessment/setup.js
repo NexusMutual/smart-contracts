@@ -27,10 +27,6 @@ async function setup () {
   const dai = await DAI.deploy();
   await dai.deployed();
 
-  // const AssessmentClaimsDisplayLib = await ethers.getContractFactory('AssessmentClaimsDisplayLib');
-  // const assessmentClaimsDisplayLib = await AssessmentClaimsDisplayLib.deploy();
-  // await assessmentClaimsDisplayLib.deployed();
-
   const AssessmentClaimsLib = await ethers.getContractFactory('AssessmentClaimsLib');
   const assessmentClaimsLib = await AssessmentClaimsLib.deploy();
   await assessmentClaimsLib.deployed();
@@ -39,9 +35,9 @@ async function setup () {
   const assessmentIncidentsLib = await AssessmentIncidentsLib.deploy();
   await assessmentIncidentsLib.deployed();
 
-  const AssessmentStakeLib = await ethers.getContractFactory('AssessmentStakeLib');
-  const assessmentStakeLib = await AssessmentStakeLib.deploy();
-  await assessmentStakeLib.deployed();
+  const AssessmentVoteLib = await ethers.getContractFactory('AssessmentVoteLib');
+  const assessmentVoteLib = await AssessmentVoteLib.deploy();
+  await assessmentVoteLib.deployed();
 
   const AssessmentGovernanceActionsLib = await ethers.getContractFactory('AssessmentGovernanceActionsLib');
   const assessmentGovernanceActionsLib = await AssessmentGovernanceActionsLib.deploy();
@@ -51,11 +47,12 @@ async function setup () {
     libraries: {
       AssessmentClaimsLib: assessmentClaimsLib.address,
       AssessmentIncidentsLib: assessmentIncidentsLib.address,
-      AssessmentStakeLib: assessmentStakeLib.address,
+      AssessmentVoteLib: assessmentVoteLib.address,
       AssessmentGovernanceActionsLib: assessmentGovernanceActionsLib.address,
     },
   });
   const assessment = await Assessment.deploy(
+    master.address,
     '0x0000000000000000000000000000000000000000',
     '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
   );
@@ -71,10 +68,6 @@ async function setup () {
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
   {
-    const tx = await assessment.changeMasterAddress(master.address);
-    await tx.wait();
-  }
-  {
     const tx = await assessment.changeDependentContractAddress();
     await tx.wait();
   }
@@ -88,6 +81,24 @@ async function setup () {
     await nxm.connect(account).approve(assessment.address, ethers.utils.parseEther('10000'));
   }
 
+  // Lastly deploy test helper contracts for library internal functions
+
+  const AssessmentUtilsLibTest = await ethers.getContractFactory('AssessmentUtilsLibTest');
+  const assessmentUtilsLibTest = await AssessmentUtilsLibTest.deploy();
+  await assessmentUtilsLibTest.deployed();
+
+  const AssessmentVoteLibTest = await ethers.getContractFactory('AssessmentVoteLibTest');
+  const assessmentVoteLibTest = await AssessmentVoteLibTest.deploy();
+  await assessmentVoteLibTest.deployed();
+
+  const AssessmentGovernanceActionsLibTest = await ethers.getContractFactory('AssessmentGovernanceActionsLibTest', {
+    libraries: {
+      AssessmentGovernanceActionsLib: assessmentGovernanceActionsLib.address,
+    },
+  });
+  const assessmentGovernanceActionsLibTest = await AssessmentGovernanceActionsLibTest.deploy();
+  await assessmentGovernanceActionsLibTest.deployed();
+
   const config = await assessment.CONFIG();
   this.MIN_VOTING_PERIOD_DAYS = config.MIN_VOTING_PERIOD_DAYS;
   this.MAX_VOTING_PERIOD_DAYS = config.MAX_VOTING_PERIOD_DAYS;
@@ -99,6 +110,9 @@ async function setup () {
     dai,
     assessment,
     master,
+    assessmentUtilsLibTest,
+    assessmentVoteLibTest,
+    assessmentGovernanceActionsLibTest,
   };
 }
 

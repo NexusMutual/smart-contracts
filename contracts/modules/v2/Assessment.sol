@@ -23,7 +23,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   /* ========== STATE VARIABLES ========== */
 
-  INXMToken internal nxm;
+  INXMToken internal immutable nxm;
 
   Configuration public CONFIG;
 
@@ -54,7 +54,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor (address dai, address eth) {
+  constructor (address masterAddress, address dai, address eth) {
     // [todo] Move to intiialize function
     // The minimum cover premium is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
     CONFIG.REWARD_PERC = 52;
@@ -67,7 +67,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC = 0;
     addressOfAsset[uint(Asset.ETH)] = eth;
     addressOfAsset[uint(Asset.DAI)] = dai;
-
+    master = INXMMaster(masterAddress);
     nxm = INXMToken(master.tokenAddress());
   }
 
@@ -139,7 +139,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
       Incident memory incident
     ) = AssessmentIncidentsLib.getIncidentToSubmit(
       CONFIG,
-      nxm,
       memberRoles(),
       productId,
       priceBefore,
@@ -178,13 +177,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
     AssessmentVoteLib.withdrawStake(CONFIG, nxm, stakeOf, votesOf, amount);
   }
 
-  function redeemClaimPayout (uint104 id, address payable coverOwner) external {
+  function redeemClaimPayout (uint104 id) external {
     AssessmentClaimsLib.redeemClaimPayout(
       CONFIG,
       pool(),
       memberRoles(),
       id,
-      coverOwner,
       claims,
       addressOfAsset
     );
@@ -265,7 +263,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   // be wiped out and replaced with what is passed as calldata by master. This function
   // should only be callable by master.
   function changeDependentContractAddress() external override {
-    INXMMaster master = INXMMaster(master);
+    master = INXMMaster(master);
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");

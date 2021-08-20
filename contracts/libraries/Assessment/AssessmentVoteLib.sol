@@ -12,7 +12,18 @@ import "./AssessmentUtilsLib.sol";
 library AssessmentVoteLib {
 
   // Percentages are defined between 0-10000 i.e. double decimal precision
-  uint16 internal constant PERC_BASIS_POINTS = 10000;
+  uint internal constant PERC_BASIS_POINTS = 10000;
+
+  // Used in operations involving NXM tokens and divisions
+  uint internal constant PRECISION = 10 ** 18;
+
+  function abs(int x) internal pure returns (int) {
+    return x >= 0 ? x : -x;
+  }
+
+  function min(uint a, uint b) internal pure returns (uint) {
+    return a <= b ? a : b;
+  }
 
   function _getTotalRewardForEvent (
     IAssessment.Configuration calldata CONFIG,
@@ -28,6 +39,36 @@ library AssessmentVoteLib {
     IAssessment.IncidentDetails memory incidentDetails = incidents[id].details;
     uint payoutImpact = AssessmentUtilsLib._getPayoutImpactOfIncident(incidentDetails);
     return payoutImpact * CONFIG.REWARD_PERC / PERC_BASIS_POINTS;
+  }
+
+  function _calculatePollEndDate (
+    IAssessment.Configuration calldata CONFIG,
+    IAssessment.Poll memory poll,
+    uint payoutImpact
+  ) internal pure returns (uint32) {
+    if (poll.accepted == 0 && poll.denied == 0) {
+      return uint32(poll.start + CONFIG.MIN_VOTING_PERIOD_DAYS * 1 days);
+    }
+
+    uint consensusDriven= uint(
+      abs(int(2 * poll.accepted * PRECISION / (poll.accepted + poll.denied)) - int(PRECISION))
+    );
+    uint tokenDriven= min(
+      (poll.accepted + poll.denied) * PRECISION / payoutImpact,
+      10 * PRECISION
+    ) / 10;
+
+    uint extensionRatio = (1 * PRECISION - min(consensusDriven,  tokenDriven));
+
+    return uint32(poll.start + CONFIG.MIN_VOTING_PERIOD_DAYS * 1 days + extensionRatio *
+      (CONFIG.MAX_VOTING_PERIOD_DAYS * 1 days - CONFIG.MIN_VOTING_PERIOD_DAYS * 1 days) / PRECISION);
+  }
+
+  function _getVoteLockupEndDate (
+    IAssessment.Configuration calldata CONFIG,
+    IAssessment.Vote memory vote
+   ) internal pure returns (uint) {
+    return vote.timestamp + CONFIG.MAX_VOTING_PERIOD_DAYS + CONFIG.PAYOUT_COOLDOWN_DAYS;
   }
 
   // [todo] Expose a view to find out the last index until withdrawals can be made and also
@@ -57,7 +98,7 @@ library AssessmentVoteLib {
     for (uint i = stake.rewardsWithdrawnUntilIndex; i < withdrawUntilIndex; i++) {
       IAssessment.Vote memory vote = votesOf[user][i];
       require(
-        block.timestamp > AssessmentUtilsLib._getVoteLockupEndDate(CONFIG, vote),
+        block.timestamp > _getVoteLockupEndDate(CONFIG, vote),
         "Cannot withdraw rewards from votes which are in lockup period"
       );
       IAssessment.Poll memory poll =
@@ -129,7 +170,7 @@ library AssessmentVoteLib {
       poll.denied += stake.amount;
     }
 
-    poll.end = AssessmentUtilsLib._calculatePollEndDate(CONFIG, poll, payoutImpact);
+    poll.end = _calculatePollEndDate(CONFIG, poll, payoutImpact);
 
     if (poll.end < blockTimestamp) {
       // When poll end date falls in the past, replace it with the current block timestamp
@@ -166,7 +207,7 @@ library AssessmentVoteLib {
     require(stake.amount != 0, "No tokens staked");
     uint voteCount = votesOf[msg.sender].length;
     require(
-      block.timestamp > AssessmentUtilsLib._getVoteLockupEndDate(CONFIG, votesOf[msg.sender][voteCount - 1]),
+      block.timestamp > _getVoteLockupEndDate(CONFIG, votesOf[msg.sender][voteCount - 1]),
       "Cannot withdraw stake while in lockup period"
      );
 

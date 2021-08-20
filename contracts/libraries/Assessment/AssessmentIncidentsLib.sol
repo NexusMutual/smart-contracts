@@ -11,7 +11,7 @@ import "./AssessmentUtilsLib.sol";
 
 library AssessmentIncidentsLib {
   // Percentages are defined between 0-10000 i.e. double decimal precision
-  uint16 internal constant PERC_BASIS_POINTS = 10000;
+  uint internal constant PERC_BASIS_POINTS = 10000;
 
   // [todo] In case of duplicate incidents, allow an incident to be marked as duplicate by the
   // proponent. They will need to provide an id which will compare productId, date, and priceBefore
@@ -46,12 +46,11 @@ library AssessmentIncidentsLib {
 
   function getIncidentToSubmit(
     IAssessment.Configuration calldata CONFIG,
-    INXMToken nxm,
     IMemberRoles memberRoles,
     uint24 productId,
     uint96 priceBefore,
     uint32 date
-  ) external returns (IAssessment.AffectedToken memory, IAssessment.Incident memory) {
+  ) external view returns (IAssessment.AffectedToken memory, IAssessment.Incident memory) {
     require(
       memberRoles.checkRole(msg.sender, uint(IMemberRoles.Role.AdvisoryBoard)),
       "Caller must be an advisory board member"
@@ -73,18 +72,23 @@ library AssessmentIncidentsLib {
       )
     );
 
-    uint payoutImpact = AssessmentUtilsLib._getPayoutImpactOfIncident(incident.details);
-    incident.poll.end = AssessmentUtilsLib._calculatePollEndDate(CONFIG, incident.poll, payoutImpact);
-
-
-    if (CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC > 0) {
-      uint deposit = payoutImpact * CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC / PERC_BASIS_POINTS;
-      nxm.transferFrom(msg.sender, address(this), deposit);
-    }
+    incident.poll.end = incident.poll.start + CONFIG.MIN_VOTING_PERIOD_DAYS * 1 days;
 
     IAssessment.AffectedToken memory affectedToken = IAssessment.AffectedToken(priceBefore, tokenAddress);
 
     return (affectedToken, incident);
+  }
+
+  function returnIncidentDeposit(
+    IAssessment.Configuration calldata CONFIG,
+    INXMToken nxm,
+    IAssessment.Incident calldata incident
+  ) external {
+    if (CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC > 0) {
+      uint payoutImpact = AssessmentUtilsLib._getPayoutImpactOfIncident(incident.details);
+      uint deposit = payoutImpact * CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC / PERC_BASIS_POINTS;
+      nxm.transferFrom(msg.sender, address(this), deposit);
+    }
   }
 
   function saveIncident (

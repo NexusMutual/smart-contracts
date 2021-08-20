@@ -2,128 +2,126 @@ const { ethers } = require('hardhat');
 const { time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
-const { submitClaim, submitFraud, burnFraud, daysToSeconds, EVENT_TYPE, STATUS } = require('./helpers');
+const { daysToSeconds, getPollStruct, STATUS } = require('./helpers');
 
 const { parseEther } = ethers.utils;
 
 const formatStatus = x =>
   (x === STATUS.PENDING && 'PENDING') || (x === STATUS.ACCEPTED && 'ACCEPTED') || (x === STATUS.DENIED && 'DENIED');
 
-const expectStatus = assessment => async expected => {
-  const status = await assessment.getPollStatus(EVENT_TYPE.CLAIM, 0);
+const expectStatus = assessmentUtilsLibTest => async (poll, expected) => {
+  const status = await assessmentUtilsLibTest._getPollStatus(getPollStruct(poll));
   assert(status === expected, `Expected status to be ${formatStatus(expected)} but got ${formatStatus(status)}`);
 };
 
-describe('getPollStatus', function () {
+describe.only('_getPollStatus', function () {
   it('should return PENDING when the poll is still open', async function () {
-    const { assessment } = this.contracts;
-    const expect = expectStatus(assessment);
-    await submitClaim(assessment)(0);
+    const { assessmentUtilsLibTest } = this.contracts;
+    const expect = expectStatus(assessmentUtilsLibTest);
 
-    await expect(STATUS.PENDING);
-
-    await time.increase(daysToSeconds(1));
-    await expect(STATUS.PENDING);
-
-    await time.increase(daysToSeconds(1));
-    await assessment.connect(this.accounts[1]).depositStake(parseEther('10'));
-    await assessment.connect(this.accounts[1]).castVote(EVENT_TYPE.CLAIM, 0, true);
-    await expect(STATUS.PENDING);
+    const timestamp = await time.latest();
+    const poll = {
+      accepted: 0,
+      denied: 0,
+      start: timestamp.toNumber(),
+      end: timestamp.toNumber() + daysToSeconds(3),
+    };
+    await expect(poll, STATUS.PENDING);
 
     await time.increase(daysToSeconds(1));
-    await assessment.connect(this.accounts[2]).depositStake(parseEther('100'));
-    await assessment.connect(this.accounts[2]).castVote(EVENT_TYPE.CLAIM, 0, false);
-    await expect(STATUS.PENDING);
+    await expect(poll, STATUS.PENDING);
 
     await time.increase(daysToSeconds(1));
-    await expect(STATUS.PENDING);
+    await expect(poll, STATUS.PENDING);
+
+    await time.increase(daysToSeconds(1) - 1);
+    await expect(poll, STATUS.PENDING);
+
+    poll.accepted = parseEther('10');
+    poll.start = timestamp.toNumber();
+    poll.end = timestamp.toNumber() + daysToSeconds(7);
 
     await time.increase(daysToSeconds(1));
-    await expect(STATUS.PENDING);
+    await expect(poll, STATUS.PENDING);
+
+    await time.increase(daysToSeconds(1));
+    await expect(poll, STATUS.PENDING);
+
+    poll.denied = parseEther('10');
+    poll.start = timestamp.toNumber();
+    poll.end = timestamp.toNumber() + daysToSeconds(7);
+
+    await time.increase(daysToSeconds(1));
+    await expect(poll, STATUS.PENDING);
+
+    await time.increase(daysToSeconds(1));
+    await expect(poll, STATUS.PENDING);
   });
 
   it('should return DENIED when the poll ends with no votes', async function () {
-    const { assessment } = this.contracts;
-    const expect = expectStatus(assessment);
-    await submitClaim(assessment)(0);
+    const { assessmentUtilsLibTest } = this.contracts;
+    const expect = expectStatus(assessmentUtilsLibTest);
 
-    await time.increase(daysToSeconds(3) + 1);
-    await expect(STATUS.DENIED);
+    const timestamp = await time.latest();
+    const poll = {
+      accepted: 0,
+      denied: 0,
+      start: timestamp.toNumber(),
+      end: timestamp.toNumber() + daysToSeconds(3),
+    };
+    await expect(poll, STATUS.PENDING);
+
+    await time.increase(daysToSeconds(3));
+    await expect(poll, STATUS.DENIED);
   });
 
-  it('should return DENIED when the poll result is to deny', async function () {
-    const { assessment } = this.contracts;
-    const expect = expectStatus(assessment);
-    await submitClaim(assessment)(0);
+  it('should return DENIED when the poll ends with denied >= accepted', async function () {
+    const { assessmentUtilsLibTest } = this.contracts;
+    const expect = expectStatus(assessmentUtilsLibTest);
 
-    await assessment.connect(this.accounts[1]).depositStake(parseEther('10'));
-    await assessment.connect(this.accounts[1]).castVote(EVENT_TYPE.CLAIM, 0, true);
+    {
+      const timestamp = await time.latest();
+      const poll = {
+        accepted: parseEther('10'),
+        denied: parseEther('100'),
+        start: timestamp.toNumber(),
+        end: timestamp.toNumber() + daysToSeconds(3),
+      };
+      await expect(poll, STATUS.PENDING);
 
-    await assessment.connect(this.accounts[2]).depositStake(parseEther('100'));
-    await assessment.connect(this.accounts[2]).castVote(EVENT_TYPE.CLAIM, 0, false);
+      await time.increase(daysToSeconds(3));
+      await expect(poll, STATUS.DENIED);
+    }
 
-    await time.increase(daysToSeconds(30));
+    {
+      const timestamp = await time.latest();
+      const poll = {
+        accepted: parseEther('50'),
+        denied: parseEther('50'),
+        start: timestamp.toNumber(),
+        end: timestamp.toNumber() + daysToSeconds(3),
+      };
+      await expect(poll, STATUS.PENDING);
 
-    await expect(STATUS.DENIED);
+      await time.increase(daysToSeconds(3));
+      await expect(poll, STATUS.DENIED);
+    }
   });
 
-  it('should return DENIED after a claim fraud resolution leading to an denied claim', async function () {
-    const { assessment } = this.contracts;
-    const expect = expectStatus(assessment);
-    await submitClaim(assessment)(0);
+  it('should return ACCEPTED when the poll ends with accepted > denied', async function () {
+    const { assessmentUtilsLibTest } = this.contracts;
+    const expect = expectStatus(assessmentUtilsLibTest);
 
-    const fraudulentAssessor = this.accounts[2];
-    await assessment.connect(fraudulentAssessor).depositStake(parseEther('100'));
-    await assessment.connect(fraudulentAssessor).castVote(EVENT_TYPE.CLAIM, 0, true);
+    const timestamp = await time.latest();
+    const poll = {
+      accepted: parseEther('100'),
+      denied: parseEther('10'),
+      start: timestamp.toNumber(),
+      end: timestamp.toNumber() + daysToSeconds(3),
+    };
+    await expect(poll, STATUS.PENDING);
 
-    const honestAssessor = this.accounts[1];
-    await assessment.connect(honestAssessor).depositStake(parseEther('10'));
-    await assessment.connect(honestAssessor).castVote(EVENT_TYPE.CLAIM, 0, false);
-
-    const governance = this.accounts[0];
-    const fraudulentAssessors = [fraudulentAssessor.address];
-    const burnAmounts = [parseEther('100')];
-    const merkleTree = await submitFraud(assessment)(governance, fraudulentAssessors, burnAmounts);
-    await burnFraud(assessment)(0, fraudulentAssessors, burnAmounts, 1, merkleTree);
-
-    await expect(STATUS.DENIED);
-  });
-
-  it('should return ACCEPTED when the poll result is to accept', async function () {
-    const { assessment } = this.contracts;
-    const expect = expectStatus(assessment);
-    await submitClaim(assessment)(0);
-
-    await assessment.connect(this.accounts[1]).depositStake(parseEther('100'));
-    await assessment.connect(this.accounts[1]).castVote(EVENT_TYPE.CLAIM, 0, true);
-
-    await assessment.connect(this.accounts[2]).depositStake(parseEther('10'));
-    await assessment.connect(this.accounts[2]).castVote(EVENT_TYPE.CLAIM, 0, false);
-
-    await time.increase(daysToSeconds(30));
-
-    await expect(STATUS.ACCEPTED);
-  });
-
-  it('should return ACCEPTED after a claim fraud resolution leading to an accepted claim', async function () {
-    const { assessment } = this.contracts;
-    const expect = expectStatus(assessment);
-    await submitClaim(assessment)(0);
-
-    const honestAssessor = this.accounts[1];
-    await assessment.connect(honestAssessor).depositStake(parseEther('10'));
-    await assessment.connect(honestAssessor).castVote(EVENT_TYPE.CLAIM, 0, true);
-
-    const fraudulentAssessor = this.accounts[2];
-    await assessment.connect(fraudulentAssessor).depositStake(parseEther('100'));
-    await assessment.connect(fraudulentAssessor).castVote(EVENT_TYPE.CLAIM, 0, false);
-
-    const governance = this.accounts[0];
-    const fraudulentAssessors = [fraudulentAssessor.address];
-    const burnAmounts = [parseEther('100')];
-    const merkleTree = await submitFraud(assessment)(governance, fraudulentAssessors, burnAmounts);
-    await burnFraud(assessment)(0, fraudulentAssessors, burnAmounts, 1, merkleTree);
-
-    await expect(STATUS.ACCEPTED);
+    await time.increase(daysToSeconds(3));
+    await expect(poll, STATUS.ACCEPTED);
   });
 });

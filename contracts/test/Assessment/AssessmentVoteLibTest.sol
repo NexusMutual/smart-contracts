@@ -7,25 +7,36 @@ import "../../libraries/Assessment/AssessmentVoteLib.sol";
 import "../../libraries/Assessment/AssessmentGovernanceActionsLib.sol";
 
 /// Used as a helper to test internal view functions of AssessmentVoteLib
-contract AssessmentVoteLibTest is IAssessment{
+contract AssessmentVoteLibTest {
 
-  Claim[] public override claims;
+  IAssessment.Claim[] public claims;
 
-  Incident[] public override incidents;
+  IAssessment.Incident[] public incidents;
 
-  function addClaim (UintParams[] calldata paramNames, uint[] calldata values)
+  function addClaim (IAssessment.UintParams[] calldata paramNames, uint[] calldata values)
   external {
     // [todo]
   }
 
-  function addIncident (UintParams[] calldata paramNames, uint[] calldata values)
+  function addIncident (IAssessment.UintParams[] calldata paramNames, uint[] calldata values)
   external {
     // [todo]
   }
 
-  function _getTotalRewardForEvent (Configuration CONFIG, EventType eventType, uint104 id)
-  external view returns (uint) {
+  function _getTotalRewardForEvent (
+    IAssessment.Configuration calldata CONFIG,
+    IAssessment.EventType eventType,
+    uint104 id
+  ) external view returns (uint) {
     return AssessmentVoteLib._getTotalRewardForEvent(CONFIG, eventType, id, claims, incidents);
+  }
+
+  function _calculatePollEndDate (
+    IAssessment.Configuration calldata CONFIG,
+    IAssessment.Poll memory poll,
+    uint payoutImpact
+  ) external pure returns (uint32) {
+    return AssessmentVoteLib._calculatePollEndDate(CONFIG, poll, payoutImpact);
   }
 
 }

@@ -103,23 +103,20 @@ const getConfigurationStruct = ({
   INCIDENT_IMPACT_ESTIMATE_PERC,
   CLAIM_ASSESSMENT_DEPOSIT_PERC,
   INCIDENT_ASSESSMENT_DEPOSIT_PERC,
-}) =>
-  ethers.utils.AbiCoder.prototype.encode(
-    ['uint8', 'uint8', 'uint8', 'uint16', 'uint16', 'uint16', 'uint16', 'uint168'],
-    [
-      MIN_VOTING_PERIOD_DAYS,
-      MAX_VOTING_PERIOD_DAYS,
-      PAYOUT_COOLDOWN_DAYS,
-      REWARD_PERC,
-      INCIDENT_IMPACT_ESTIMATE_PERC,
-      CLAIM_ASSESSMENT_DEPOSIT_PERC,
-      INCIDENT_ASSESSMENT_DEPOSIT_PERC,
-      0, // unused
-    ],
-  );
+}) => [
+  MIN_VOTING_PERIOD_DAYS,
+  MAX_VOTING_PERIOD_DAYS,
+  PAYOUT_COOLDOWN_DAYS,
+  REWARD_PERC,
+  INCIDENT_IMPACT_ESTIMATE_PERC,
+  CLAIM_ASSESSMENT_DEPOSIT_PERC,
+  INCIDENT_ASSESSMENT_DEPOSIT_PERC,
+  0, // unused
+];
 
-const getPollStruct = ({ accepted, denied, start, end }) =>
-  ethers.utils.AbiCoder.prototype.encode(['uint96', 'uint96', 'uint32', 'uint32'], [accepted, denied, start, end]);
+const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
+
+const getVoteStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
 
 const getClaimDetailsStruct = ({
   amount,
@@ -129,11 +126,7 @@ const getClaimDetailsStruct = ({
   nxmPriceSnapshot,
   assessmentDepositPerc,
   payoutRedeemed,
-}) =>
-  ethers.utils.AbiCoder.prototype.encode(
-    ['uint96', 'uint32', 'uint16', 'uint8', 'uint80', 'uint16', 'bool'],
-    [amount, coverId, coverPeriod, payoutAsset, nxmPriceSnapshot, assessmentDepositPerc, payoutRedeemed],
-  );
+}) => [amount, coverId, coverPeriod, payoutAsset, nxmPriceSnapshot, assessmentDepositPerc, payoutRedeemed];
 
 const getIncidentDetailsStruct = ({
   productId,
@@ -143,14 +136,7 @@ const getIncidentDetailsStruct = ({
   impactEstimatePerc,
   assessmentDepositPerc,
   depositRedeemed,
-}) =>
-  ethers.utils.AbiCoder.prototype.encode(
-    ['uint24', 'uint32', 'uint8', 'uint96', 'uint16', 'uint16', 'bool'],
-    [productId, date, payoutAsset, activeCoverAmount, impactEstimatePerc, assessmentDepositPerc, depositRedeemed],
-  );
-
-const getVoteStruct = ({ accepted, denied, start, end }) =>
-  ethers.utils.AbiCoder.prototype.encode(['uint96', 'uint96', 'uint32', 'uint32'], [accepted, denied, start, end]);
+}) => [productId, date, payoutAsset, activeCoverAmount, impactEstimatePerc, assessmentDepositPerc, depositRedeemed];
 
 module.exports = {
   STATUS,

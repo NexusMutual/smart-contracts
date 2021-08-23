@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { time } = require('@openzeppelin/test-helpers');
+const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
 const { assert } = require('chai');
 
 const { daysToSeconds, getPollStruct, STATUS } = require('./helpers');
@@ -12,6 +13,11 @@ const formatStatus = x =>
 const expectStatus = assessmentVoteLibTest => async (poll, expected) => {
   const status = await assessmentVoteLibTest._getPollStatus(getPollStruct(poll));
   assert(status === expected, `Expected status to be ${formatStatus(expected)} but got ${formatStatus(status)}`);
+};
+
+const setTime = async timestamp => {
+  await setNextBlockTime(timestamp);
+  await mineNextBlock();
 };
 
 describe('_getPollStatus', function () {
@@ -28,33 +34,31 @@ describe('_getPollStatus', function () {
     };
     await expect(poll, STATUS.PENDING);
 
-    await time.increase(daysToSeconds(1));
+    await setTime(poll.start + daysToSeconds(1));
     await expect(poll, STATUS.PENDING);
 
-    await time.increase(daysToSeconds(1));
+    await setTime(poll.start + daysToSeconds(2));
     await expect(poll, STATUS.PENDING);
 
-    await time.increase(daysToSeconds(1) - 1);
+    await setTime(poll.start + daysToSeconds(3) - 1);
     await expect(poll, STATUS.PENDING);
 
     poll.accepted = parseEther('10');
     poll.start = timestamp.toNumber();
     poll.end = timestamp.toNumber() + daysToSeconds(7);
 
-    await time.increase(daysToSeconds(1));
+    await setTime(poll.start + daysToSeconds(4));
     await expect(poll, STATUS.PENDING);
 
-    await time.increase(daysToSeconds(1));
+    await setTime(poll.start + daysToSeconds(5));
     await expect(poll, STATUS.PENDING);
 
     poll.denied = parseEther('10');
-    poll.start = timestamp.toNumber();
-    poll.end = timestamp.toNumber() + daysToSeconds(7);
 
-    await time.increase(daysToSeconds(1));
+    await setTime(poll.start + daysToSeconds(6));
     await expect(poll, STATUS.PENDING);
 
-    await time.increase(daysToSeconds(1));
+    await setTime(poll.start + daysToSeconds(7) - 1);
     await expect(poll, STATUS.PENDING);
   });
 
@@ -71,7 +75,7 @@ describe('_getPollStatus', function () {
     };
     await expect(poll, STATUS.PENDING);
 
-    await time.increase(daysToSeconds(3));
+    await setTime(poll.start + daysToSeconds(3));
     await expect(poll, STATUS.DENIED);
   });
 
@@ -89,7 +93,7 @@ describe('_getPollStatus', function () {
       };
       await expect(poll, STATUS.PENDING);
 
-      await time.increase(daysToSeconds(3));
+      await setTime(poll.start + daysToSeconds(3));
       await expect(poll, STATUS.DENIED);
     }
 
@@ -103,7 +107,7 @@ describe('_getPollStatus', function () {
       };
       await expect(poll, STATUS.PENDING);
 
-      await time.increase(daysToSeconds(3));
+      await setTime(poll.start + daysToSeconds(3));
       await expect(poll, STATUS.DENIED);
     }
   });
@@ -121,7 +125,7 @@ describe('_getPollStatus', function () {
     };
     await expect(poll, STATUS.PENDING);
 
-    await time.increase(daysToSeconds(3));
+    await setTime(poll.start + daysToSeconds(3));
     await expect(poll, STATUS.ACCEPTED);
   });
 });

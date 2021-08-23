@@ -2,6 +2,7 @@ const { ethers } = require('hardhat');
 const keccak256 = require('keccak256');
 const { MerkleTree } = require('merkletreejs');
 const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
+const { BigNumber } = ethers;
 
 const EVENT_TYPE = {
   CLAIM: 0,
@@ -95,6 +96,53 @@ const submitIncident = assessment => async (id, priceBefore, date) => {
   await assessment.submitClaim(id, priceBefore, date);
 };
 
+const getDurationByTokenWeight = (MIN_VOTING_PERIOD_DAYS, MAX_VOTING_PERIOD_DAYS) => (tokens, payoutImpact) => {
+  const MULTIPLIER = '10'; // 10x the cover amount
+  let tokenDrivenStrength = tokens.mul(parseEther('1')).div(payoutImpact.mul(MULTIPLIER));
+  // tokenDrivenStrength is capped at 1 i.e. 100%
+  tokenDrivenStrength = tokenDrivenStrength.gt(parseEther('1')) ? parseEther('1') : tokenDrivenStrength;
+  return BigNumber.from(daysToSeconds(MIN_VOTING_PERIOD_DAYS).toString())
+    .add(
+      BigNumber.from(daysToSeconds(MAX_VOTING_PERIOD_DAYS - MIN_VOTING_PERIOD_DAYS).toString())
+        .mul(parseEther('1').sub(tokenDrivenStrength))
+        .div(parseEther('1')),
+    )
+    .toNumber();
+};
+
+const getDurationByConsensus = (MIN_VOTING_PERIOD_DAYS, MAX_VOTING_PERIOD_DAYS) => ({ accepted, denied }) => {
+  if (accepted.isZero()) return daysToSeconds(MAX_VOTING_PERIOD_DAYS);
+  const consensusStrength = accepted
+    .mul(parseEther('2'))
+    .div(accepted.add(denied))
+    .sub(parseEther('1'))
+    .abs();
+  return parseEther(daysToSeconds(MIN_VOTING_PERIOD_DAYS).toString())
+    .add(
+      parseEther(daysToSeconds(MAX_VOTING_PERIOD_DAYS - MIN_VOTING_PERIOD_DAYS).toString())
+        .mul(parseEther('1').sub(consensusStrength))
+        .div(parseEther('1')),
+    )
+    .div(parseEther('1'))
+    .toNumber();
+};
+
+const stakeAndVoteOnEventType = (eventType, assessment, accounts) => async (userIndex, amount, id, accepted) => {
+  const assessor = accounts[userIndex];
+  await assessment.connect(assessor).depositStake(amount);
+  await assessment.connect(assessor).castVote(eventType, id, accepted);
+  if (eventType === EVENT_TYPE.CLAIM) {
+    const claim = await assessment.claims(id);
+    const { accepted, denied } = claim.poll;
+    return { accepted, denied, totalTokens: accepted.add(denied) };
+  }
+  if (eventType === EVENT_TYPE.INCIDENT) {
+    const incident = await assessment.incidents(id);
+    const { accepted, denied } = incident.poll;
+    return { accepted, denied, totalTokens: accepted.add(denied) };
+  }
+};
+
 const getConfigurationStruct = ({
   MIN_VOTING_PERIOD_DAYS,
   MAX_VOTING_PERIOD_DAYS,
@@ -151,4 +199,7 @@ module.exports = {
   getClaimDetailsStruct,
   getIncidentDetailsStruct,
   getVoteStruct,
+  getDurationByTokenWeight,
+  getDurationByConsensus,
+  stakeAndVoteOnEventType,
 };

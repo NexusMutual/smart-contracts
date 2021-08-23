@@ -9,15 +9,15 @@ const { parseEther } = ethers.utils;
 const formatStatus = x =>
   (x === STATUS.PENDING && 'PENDING') || (x === STATUS.ACCEPTED && 'ACCEPTED') || (x === STATUS.DENIED && 'DENIED');
 
-const expectStatus = assessmentUtilsLibTest => async (poll, expected) => {
-  const status = await assessmentUtilsLibTest._getPollStatus(getPollStruct(poll));
+const expectStatus = assessmentVoteLibTest => async (poll, expected) => {
+  const status = await assessmentVoteLibTest._getPollStatus(getPollStruct(poll));
   assert(status === expected, `Expected status to be ${formatStatus(expected)} but got ${formatStatus(status)}`);
 };
 
-describe.only('_getPollStatus', function () {
+describe('_getPollStatus', function () {
   it('should return PENDING when the poll is still open', async function () {
-    const { assessmentUtilsLibTest } = this.contracts;
-    const expect = expectStatus(assessmentUtilsLibTest);
+    const { assessmentVoteLibTest } = this.contracts;
+    const expect = expectStatus(assessmentVoteLibTest);
 
     const timestamp = await time.latest();
     const poll = {
@@ -59,8 +59,8 @@ describe.only('_getPollStatus', function () {
   });
 
   it('should return DENIED when the poll ends with no votes', async function () {
-    const { assessmentUtilsLibTest } = this.contracts;
-    const expect = expectStatus(assessmentUtilsLibTest);
+    const { assessmentVoteLibTest } = this.contracts;
+    const expect = expectStatus(assessmentVoteLibTest);
 
     const timestamp = await time.latest();
     const poll = {
@@ -76,8 +76,8 @@ describe.only('_getPollStatus', function () {
   });
 
   it('should return DENIED when the poll ends with denied >= accepted', async function () {
-    const { assessmentUtilsLibTest } = this.contracts;
-    const expect = expectStatus(assessmentUtilsLibTest);
+    const { assessmentVoteLibTest } = this.contracts;
+    const expect = expectStatus(assessmentVoteLibTest);
 
     {
       const timestamp = await time.latest();
@@ -109,8 +109,8 @@ describe.only('_getPollStatus', function () {
   });
 
   it('should return ACCEPTED when the poll ends with accepted > denied', async function () {
-    const { assessmentUtilsLibTest } = this.contracts;
-    const expect = expectStatus(assessmentUtilsLibTest);
+    const { assessmentVoteLibTest } = this.contracts;
+    const expect = expectStatus(assessmentVoteLibTest);
 
     const timestamp = await time.latest();
     const poll = {

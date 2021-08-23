@@ -5,14 +5,20 @@ pragma solidity ^0.8.0;
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IAssessment.sol";
-import "./AssessmentUtilsLib.sol";
+import "../../libraries/Assessment/AssessmentVoteLib.sol";
 
 library AssessmentClaimsLib {
 
   // Percentages are defined between 0-10000 i.e. double decimal precision
   uint internal constant PERC_BASIS_POINTS = 10000;
 
-  event ProofSubmitted(uint indexed coverId, address indexed owner, string ipfsHash);
+  // Used in operations involving NXM tokens and divisions
+  uint internal constant PRECISION = 10 ** 18;
+
+  function _getPayoutImpactOfClaim (IAssessment.ClaimDetails memory details)
+  internal pure returns (uint) {
+    return details.amount * PRECISION / details.nxmPriceSnapshot;
+  }
 
   /**
    *  Submits a claim for assessment
@@ -46,7 +52,7 @@ library AssessmentClaimsLib {
       require(requestedAmount <= coverAmount, "Cannot claim more than the covered amount");
     }
     uint16 coverPeriod = 365;
-    uint8 payoutAsset = uint8(IAssessment.Asset.ETH); // take this form cover asset
+    uint8 payoutAsset = 0; // take this form cover asset
     //uint80 nxmPriceSnapshot = 147573952589676412928; // 1 NXM ~ 147 DAI
     uint80 nxmPriceSnapshot = uint80(38200000000000000); // 1 NXM ~ 0.0382 ETH
 
@@ -84,7 +90,7 @@ library AssessmentClaimsLib {
   ) external {
     IAssessment.Claim memory claim = claims[id];
     require(
-      AssessmentUtilsLib._getPollStatus(claim.poll) == IAssessment.PollStatus.ACCEPTED,
+      AssessmentVoteLib._getPollStatus(claim.poll) == IAssessment.PollStatus.ACCEPTED,
       "The claim must be accepted"
     );
     require(
@@ -96,11 +102,13 @@ library AssessmentClaimsLib {
     claims[id].details.payoutRedeemed = true;
     // [todo] Destroy and create a new cover nft
     address payable payoutAddress = memberRoles.getClaimPayoutAddress(coverOwner);
-    address coverAsset = addressOfAsset[uint(IAssessment.Asset.ETH)]; // [todo]
+    address coverAsset = addressOfAsset[0]; // [todo]
     bool succeeded = pool.sendClaimPayout(coverAsset, payoutAddress, claim.details.amount);
     require(succeeded, "Claim payout failed");
     uint assessmentDepositToRefund = 1 ether * uint(claim.details.assessmentDepositPerc) / PERC_BASIS_POINTS;
     (bool refunded, /* bytes data */) = payoutAddress.call{value: assessmentDepositToRefund}("");
     require(refunded, "Assessment fee refund failed");
   }
+
+  event ProofSubmitted(uint indexed coverId, address indexed owner, string ipfsHash);
 }

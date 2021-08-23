@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/utils/cryptography/MerkleProof.sol";
 import "../../interfaces/IAssessment.sol";
-import "./AssessmentUtilsLib.sol";
 
 library AssessmentGovernanceActionsLib {
 

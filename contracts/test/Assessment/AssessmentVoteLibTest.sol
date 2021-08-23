@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 import "../../interfaces/IAssessment.sol";
 import "../../libraries/Assessment/AssessmentVoteLib.sol";
-import "../../libraries/Assessment/AssessmentGovernanceActionsLib.sol";
 
 /// Used as a helper to test internal view functions of AssessmentVoteLib
 contract AssessmentVoteLibTest {
@@ -22,6 +21,12 @@ contract AssessmentVoteLibTest {
   external {
     // [todo]
   }
+
+  function _getPollStatus(IAssessment.Poll memory poll)
+  external view returns (IAssessment.PollStatus) {
+    return AssessmentVoteLib._getPollStatus(poll);
+  }
+
 
   function _getTotalRewardForEvent (
     IAssessment.Configuration calldata CONFIG,

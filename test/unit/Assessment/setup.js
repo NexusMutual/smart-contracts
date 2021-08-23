@@ -81,15 +81,17 @@ async function setup () {
     await nxm.connect(account).approve(assessment.address, ethers.utils.parseEther('10000'));
   }
 
-  // Lastly deploy test helper contracts for library internal functions
-
-  const AssessmentUtilsLibTest = await ethers.getContractFactory('AssessmentUtilsLibTest');
-  const assessmentUtilsLibTest = await AssessmentUtilsLibTest.deploy();
-  await assessmentUtilsLibTest.deployed();
-
   const AssessmentVoteLibTest = await ethers.getContractFactory('AssessmentVoteLibTest');
   const assessmentVoteLibTest = await AssessmentVoteLibTest.deploy();
   await assessmentVoteLibTest.deployed();
+
+  const AssessmentClaimsLibTest = await ethers.getContractFactory('AssessmentClaimsLibTest');
+  const assessmentClaimsLibTest = await AssessmentClaimsLibTest.deploy();
+  await assessmentClaimsLibTest.deployed();
+
+  const AssessmentIncidentsLibTest = await ethers.getContractFactory('AssessmentIncidentsLibTest');
+  const assessmentIncidentsLibTest = await AssessmentIncidentsLibTest.deploy();
+  await assessmentIncidentsLibTest.deployed();
 
   const AssessmentGovernanceActionsLibTest = await ethers.getContractFactory('AssessmentGovernanceActionsLibTest', {
     libraries: {
@@ -110,7 +112,6 @@ async function setup () {
     dai,
     assessment,
     master,
-    assessmentUtilsLibTest,
     assessmentVoteLibTest,
     assessmentGovernanceActionsLibTest,
   };

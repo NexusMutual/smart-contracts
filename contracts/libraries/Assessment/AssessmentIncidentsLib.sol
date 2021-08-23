@@ -6,12 +6,16 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IAssessment.sol";
-import "./AssessmentUtilsLib.sol";
-
+import "../../libraries/Assessment/AssessmentVoteLib.sol";
 
 library AssessmentIncidentsLib {
   // Percentages are defined between 0-10000 i.e. double decimal precision
   uint internal constant PERC_BASIS_POINTS = 10000;
+
+  function _getPayoutImpactOfIncident (IAssessment.IncidentDetails memory details)
+  internal pure returns (uint) {
+    return details.activeCoverAmount * details.impactEstimatePerc / PERC_BASIS_POINTS;
+  }
 
   function getIncidentToSubmit(
     IAssessment.Configuration calldata CONFIG,
@@ -25,7 +29,7 @@ library AssessmentIncidentsLib {
       "Caller must be an advisory board member"
     );
     uint96 activeCoverAmount = 20000 ether; // NXM, since this will be driven by capacity
-    uint8 payoutAsset = uint8(IAssessment.Asset.ETH); // take this form product
+    uint8 payoutAsset = 0; // take this form product
     address tokenAddress = 0x0000000000000000000000000000000000000000;
 
     IAssessment.Incident memory incident = IAssessment.Incident(
@@ -54,7 +58,7 @@ library AssessmentIncidentsLib {
     IAssessment.Incident calldata incident
   ) external {
     if (CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC > 0) {
-      uint payoutImpact = AssessmentUtilsLib._getPayoutImpactOfIncident(incident.details);
+      uint payoutImpact = _getPayoutImpactOfIncident(incident.details);
       uint deposit = payoutImpact * CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC / PERC_BASIS_POINTS;
       nxm.transferFrom(msg.sender, address(this), deposit);
     }
@@ -84,7 +88,7 @@ library AssessmentIncidentsLib {
     require (coverOwner == msg.sender, "Payout can only be redeemed by cover owner");
     // [todo] Read and verify details from cover
     require(
-      AssessmentUtilsLib._getPollStatus(incident.poll) == IAssessment.PollStatus.ACCEPTED,
+      AssessmentVoteLib._getPollStatus(incident.poll) == IAssessment.PollStatus.ACCEPTED,
       "The incident must be accepted"
     );
     require(
@@ -93,7 +97,7 @@ library AssessmentIncidentsLib {
     );
     // [todo] Destroy and create a new cover nft
     address payable payoutAddress = memberRoles.getClaimPayoutAddress(coverOwner);
-    address coverAsset = addressOfAsset[uint(IAssessment.Asset.ETH)]; // [todo]
+    address coverAsset = addressOfAsset[incident.details.payoutAsset]; // [todo]
     bool succeeded = pool.sendClaimPayout(coverAsset, payoutAddress, payoutAmount);
     require(succeeded, "Incident payout failed");
   }

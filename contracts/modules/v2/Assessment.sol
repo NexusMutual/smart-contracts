@@ -12,7 +12,6 @@ import "../../abstract/MasterAwareV2.sol";
 import "../../libraries/Assessment/AssessmentClaimsLib.sol";
 import "../../libraries/Assessment/AssessmentGovernanceActionsLib.sol";
 import "../../libraries/Assessment/AssessmentIncidentsLib.sol";
-import "../../libraries/Assessment/AssessmentUtilsLib.sol";
 import "../../libraries/Assessment/AssessmentVoteLib.sol";
 
 /**
@@ -65,8 +64,8 @@ contract Assessment is IAssessment, IERC721Receiver, MasterAwareV2 {
     CONFIG.PAYOUT_COOLDOWN_DAYS = 1; //days
     CONFIG.CLAIM_ASSESSMENT_DEPOSIT_PERC = 500; // 5% i.e. 0.05 ETH submission flat fee
     CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC = 0;
-    addressOfAsset[uint(Asset.ETH)] = eth;
-    addressOfAsset[uint(Asset.DAI)] = dai;
+    addressOfAsset[0] = eth;
+    addressOfAsset[1] = dai;
     master = INXMMaster(masterAddress);
     nxm = INXMToken(master.tokenAddress());
   }

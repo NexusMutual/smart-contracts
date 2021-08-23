@@ -7,7 +7,8 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IAssessment.sol";
-import "./AssessmentUtilsLib.sol";
+import "../../libraries/Assessment/AssessmentClaimsLib.sol";
+import "../../libraries/Assessment/AssessmentIncidentsLib.sol";
 
 library AssessmentVoteLib {
 
@@ -25,6 +26,17 @@ library AssessmentVoteLib {
     return a <= b ? a : b;
   }
 
+  function _getPollStatus(IAssessment.Poll memory poll)
+  internal view returns (IAssessment.PollStatus) {
+    if (block.timestamp < poll.end) {
+      return IAssessment.PollStatus.PENDING;
+    }
+    if (poll.accepted > poll.denied) {
+      return IAssessment.PollStatus.ACCEPTED;
+    }
+    return IAssessment.PollStatus.DENIED;
+  }
+
   function _getTotalRewardForEvent (
     IAssessment.Configuration calldata CONFIG,
     IAssessment.EventType eventType,
@@ -37,7 +49,7 @@ library AssessmentVoteLib {
       return claimDetails.amount * CONFIG.REWARD_PERC * claimDetails.coverPeriod / 365 / PERC_BASIS_POINTS;
     }
     IAssessment.IncidentDetails memory incidentDetails = incidents[id].details;
-    uint payoutImpact = AssessmentUtilsLib._getPayoutImpactOfIncident(incidentDetails);
+    uint payoutImpact = AssessmentIncidentsLib._getPayoutImpactOfIncident(incidentDetails);
     return payoutImpact * CONFIG.REWARD_PERC / PERC_BASIS_POINTS;
   }
 
@@ -46,18 +58,15 @@ library AssessmentVoteLib {
     IAssessment.Poll memory poll,
     uint payoutImpact
   ) internal pure returns (uint32) {
-    if (poll.accepted == 0 && poll.denied == 0) {
-      return uint32(poll.start + CONFIG.MIN_VOTING_PERIOD_DAYS * 1 days);
-    }
+    require(poll.accepted > 0 || poll.denied > 0);
 
-    uint consensusDriven= uint(
+    uint consensusDriven = uint(
       abs(int(2 * poll.accepted * PRECISION / (poll.accepted + poll.denied)) - int(PRECISION))
     );
-    uint tokenDriven= min(
+    uint tokenDriven = min(
       (poll.accepted + poll.denied) * PRECISION / payoutImpact,
       10 * PRECISION
     ) / 10;
-
     uint extensionRatio = (1 * PRECISION - min(consensusDriven,  tokenDriven));
 
     return uint32(poll.start + CONFIG.MIN_VOTING_PERIOD_DAYS * 1 days + extensionRatio *
@@ -147,12 +156,12 @@ library AssessmentVoteLib {
     if (IAssessment.EventType(eventType) == IAssessment.EventType.CLAIM) {
       IAssessment.Claim memory claim = claims[id];
       poll = claims[id].poll;
-      payoutImpact = AssessmentUtilsLib._getPayoutImpactOfClaim(claim.details);
+      payoutImpact = AssessmentClaimsLib._getPayoutImpactOfClaim(claim.details);
       require(blockTimestamp < poll.end, "Voting is closed");
     } else {
       IAssessment.Incident memory incident = incidents[id];
       poll = incidents[id].poll;
-      payoutImpact = AssessmentUtilsLib._getPayoutImpactOfIncident(incident.details);
+      payoutImpact = AssessmentIncidentsLib._getPayoutImpactOfIncident(incident.details);
       require(blockTimestamp < poll.end, "Voting is closed");
     }
 

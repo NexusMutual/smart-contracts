@@ -38,7 +38,7 @@ interface IAssessment {
     // reserved in the eventuality where incidents can be submitted by regular members. This would
     // require them to make a significant NXM deposit to prevent minting unbacked assessment
     // rewards by submitting incidents and denying. Check out git logs on AssessmentIncidentsLib
-    // and Assessment.sol for a draft.
+    // and Assessment.sol for a draft: a45232c2638270c375b445ac301d92cf22bd87e2
     uint16 INCIDENT_ASSESSMENT_DEPOSIT_PERC;
 
     uint168 _unused;

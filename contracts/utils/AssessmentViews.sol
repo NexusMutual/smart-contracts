@@ -4,9 +4,12 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/IAssessment.sol";
 import "../abstract/MasterAwareV2.sol";
-import "../libraries/Assessment/AssessmentUtilsLib.sol";
+import "../libraries/Assessment/AssessmentVoteLib.sol";
 
 contract AssessmentViews is MasterAwareV2 {
+
+  enum Asset { ETH, DAI }
+
   /*
    *  Claim structure but in a human-friendly format.
    *
@@ -58,7 +61,7 @@ contract AssessmentViews is MasterAwareV2 {
     string memory claimStatusDisplay;
     string memory payoutStatusDisplay;
     {
-      IAssessment.PollStatus claimStatus = AssessmentUtilsLib._getPollStatus(poll);
+      IAssessment.PollStatus claimStatus = AssessmentVoteLib._getPollStatus(poll);
       if (claimStatus == IAssessment.PollStatus.ACCEPTED) {
         claimStatusDisplay = "Accepted";
       } else if (claimStatus == IAssessment.PollStatus.DENIED) {
@@ -84,10 +87,13 @@ contract AssessmentViews is MasterAwareV2 {
 
     string memory assetSymbol;
     {
-      if (IAssessment.Asset(details.payoutAsset) == IAssessment.Asset.ETH) {
+      if (details.payoutAsset == uint8(Asset.ETH)) {
         assetSymbol = "ETH";
-      } else if (IAssessment.Asset(details.payoutAsset) == IAssessment.Asset.DAI) {
+      } else if (details.payoutAsset == uint8(Asset.DAI)) {
+        // [todo] Assuming it's an ERC20, get this by calling the ERC contract direcly
         assetSymbol = "DAI";
+      } else {
+        assetSymbol = "???";
       }
     }
 

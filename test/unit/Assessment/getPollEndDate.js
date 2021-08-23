@@ -35,7 +35,7 @@ const getDurationByTokenWeight = (MIN_VOTING_PERIOD_DAYS, MAX_VOTING_PERIOD_DAYS
     .toNumber();
 };
 
-const getDurationByConsensus = (MIN_VOTING_PERIOD_DAYS, MAX_VOTING_PERIOD_DAYS) => (accepted, denied) => {
+const getDurationByConsensus = (MIN_VOTING_PERIOD_DAYS, MAX_VOTING_PERIOD_DAYS) => ({ accepted, denied }) => {
   if (accepted.isZero()) return daysToSeconds(MAX_VOTING_PERIOD_DAYS);
   const consensusStrength = accepted
     .mul(parseEther('2'))
@@ -103,8 +103,7 @@ describe('_calculatePollEndDate', function () {
       await expectPollEnd(
         poll,
         payoutImpact,
-        poll.start +
-          Math.max(durationByConsensus(poll.accepted, poll.denied), durationByTokenWeight(totalTokens, payoutImpact)),
+        poll.start + Math.max(durationByConsensus(poll), durationByTokenWeight(totalTokens, payoutImpact)),
       );
     }
 
@@ -130,8 +129,7 @@ describe('_calculatePollEndDate', function () {
       await expectPollEnd(
         poll,
         payoutImpact,
-        poll.start +
-          Math.max(durationByConsensus(poll.accepted, poll.denied), durationByTokenWeight(totalTokens, payoutImpact)),
+        poll.start + Math.max(durationByConsensus(poll), durationByTokenWeight(totalTokens, payoutImpact)),
       );
     }
   });
@@ -261,7 +259,7 @@ describe('_calculatePollEndDate', function () {
         const payoutImpact = parseEther('100');
         const poll = {
           accepted: Zero,
-          denied: payoutImpact.mul('10'),
+          denied: Zero,
           start: 0,
           end: 0,
         };
@@ -284,7 +282,7 @@ describe('_calculatePollEndDate', function () {
           } else {
             poll.denied = poll.denied.add(tokenWeight);
           }
-          const curr = durationByConsensus(poll.accepted, poll.denied);
+          const curr = durationByConsensus(poll);
           await expectPollEnd(poll, payoutImpact, poll.start + curr);
           expectIncrease(prev, curr);
           prev = curr;
@@ -319,7 +317,7 @@ describe('_calculatePollEndDate', function () {
           } else {
             poll.denied = poll.denied.add(tokenWeight);
           }
-          const curr = durationByConsensus(poll.accepted, poll.denied);
+          const curr = durationByConsensus(poll);
           await expectPollEnd(poll, payoutImpact, poll.start + curr);
           expectIncrease(prev, curr);
           prev = curr;

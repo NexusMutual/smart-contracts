@@ -34,6 +34,8 @@ const networks = {
       count: 100,
       accountsBalance: ether(10000000),
     },
+    // TODO: fix tests with gasPrice = 0 and remove the hardfork param
+    hardfork: 'berlin',
     allowUnlimitedContractSize: true,
     blockGasLimit: 12e6,
     gas: 12e6,

@@ -49,7 +49,7 @@
     "eslint-plugin-standard": "^4.0.1",
     "ethlint": "^1.2.5",
     "glob": "^7.1.6",
-    "hardhat": "^2.2.1",
+    "hardhat": "^2.6.1",
     "hardhat-contract-sizer": "^2.0.2",
     "mocha": "^7.1.2",
     "nodemon": "^2.0.2",

@@ -169,7 +169,7 @@ describe('buyCover', function () {
         data, {
           from: coverHolder,
         }),
-      'VM Exception while processing transaction: revert ERC20: transfer amount exceeds allowance',
+      'ERC20: transfer amount exceeds allowance',
     );
   });
 

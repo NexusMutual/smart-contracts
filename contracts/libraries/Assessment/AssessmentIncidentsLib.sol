@@ -12,13 +12,13 @@ library AssessmentIncidentsLib {
   // Percentages are defined between 0-10000 i.e. double decimal precision
   uint internal constant PERC_BASIS_POINTS = 10000;
 
-  function _getPayoutImpactOfIncident (IAssessment.IncidentDetails memory details)
+  function _getExpectedIncidentPayoutNXM (IAssessment.IncidentDetails memory details)
   internal pure returns (uint) {
     return details.activeCoverAmount * details.impactEstimatePerc / PERC_BASIS_POINTS;
   }
 
   function getIncidentToSubmit(
-    IAssessment.Configuration calldata CONFIG,
+    IAssessment.Configuration calldata config,
     IMemberRoles memberRoles,
     uint24 productId,
     uint96 priceBefore,
@@ -39,13 +39,13 @@ library AssessmentIncidentsLib {
         date,
         payoutAsset,
         activeCoverAmount, // NXM
-        CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC,
-        CONFIG.INCIDENT_IMPACT_ESTIMATE_PERC,
+        config.incidentAssessmentDepositPercentage,
+        config.incidentExpectedPayoutPercentage,
         false
       )
     );
 
-    incident.poll.end = incident.poll.start + CONFIG.MIN_VOTING_PERIOD_DAYS * 1 days;
+    incident.poll.end = incident.poll.start + config.minVotingPeriodDays * 1 days;
 
     IAssessment.AffectedToken memory affectedToken = IAssessment.AffectedToken(priceBefore, tokenAddress);
 
@@ -53,13 +53,13 @@ library AssessmentIncidentsLib {
   }
 
   function returnIncidentDeposit(
-    IAssessment.Configuration calldata CONFIG,
+    IAssessment.Configuration calldata config,
     INXMToken nxm,
     IAssessment.Incident calldata incident
   ) external {
-    if (CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC > 0) {
-      uint payoutImpact = _getPayoutImpactOfIncident(incident.details);
-      uint deposit = payoutImpact * CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC / PERC_BASIS_POINTS;
+    if (config.incidentAssessmentDepositPercentage > 0) {
+      uint expectedPayoutNXM = _getExpectedIncidentPayoutNXM(incident.details);
+      uint deposit = expectedPayoutNXM * config.incidentAssessmentDepositPercentage / PERC_BASIS_POINTS;
       nxm.transferFrom(msg.sender, address(this), deposit);
     }
   }

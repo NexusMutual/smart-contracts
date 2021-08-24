@@ -26,7 +26,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   INXMToken internal immutable nxm;
 
-  Configuration public CONFIG;
+  Configuration public config;
 
   // Stake states of users. (See Stake struct)
   mapping(address => Stake) public override stakeOf;
@@ -55,14 +55,14 @@ contract Assessment is IAssessment, MasterAwareV2 {
   constructor (address masterAddress) {
     // [todo] Move to intiialize function
     // The minimum cover premium is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
-    CONFIG.REWARD_PERC = 52;
+    config.rewardPercentage = 52;
 
-    CONFIG.INCIDENT_IMPACT_ESTIMATE_PERC = 30; // 30%
-    CONFIG.MIN_VOTING_PERIOD_DAYS = 3; // days
-    CONFIG.MAX_VOTING_PERIOD_DAYS = 30; // days
-    CONFIG.PAYOUT_COOLDOWN_DAYS = 1; //days
-    CONFIG.CLAIM_ASSESSMENT_DEPOSIT_PERC = 500; // 5% i.e. 0.05 ETH submission flat fee
-    CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC = 0;
+    config.incidentExpectedPayoutPercentage = 30; // 30%
+    config.minVotingPeriodDays = 3; // days
+    config.maxVotingPeriodDays = 30; // days
+    config.payoutCooldownDays = 1; //days
+    config.claimAssessmentDepositPercentage = 500; // 5% i.e. 0.05 ETH submission flat fee
+    config.incidentAssessmentDepositPercentage = 0;
     master = INXMMaster(masterAddress);
     nxm = INXMToken(master.tokenAddress());
   }
@@ -119,7 +119,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     string calldata ipfsProofHash
   ) external payable override onlyMember {
     AssessmentClaimsLib.submitClaim(
-      CONFIG,
+      config,
       internalContracts,
       claims,
       claimants,
@@ -140,7 +140,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       AffectedToken memory affectedToken,
       Incident memory incident
     ) = AssessmentIncidentsLib.getIncidentToSubmit(
-      CONFIG,
+      config,
       memberRoles(),
       productId,
       priceBefore,
@@ -163,7 +163,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   function withdrawReward (address user, uint104 untilIndex) external override {
     AssessmentVoteLib.withdrawReward(
-      CONFIG,
+      config,
       nxm,
       user,
       untilIndex,
@@ -175,12 +175,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
   }
 
   function withdrawStake (uint96 amount) external override onlyMember {
-    AssessmentVoteLib.withdrawStake(CONFIG, nxm, stakeOf, votesOf, amount);
+    AssessmentVoteLib.withdrawStake(config, nxm, stakeOf, votesOf, amount);
   }
 
   function redeemClaimPayout (uint104 id) external override {
     AssessmentClaimsLib.redeemClaimPayout(
-      CONFIG,
+      config,
       internalContracts,
       claims,
       claimants,
@@ -202,7 +202,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   // [todo] Check how many times poll is loaded from storage
   function castVote (uint8 eventType, uint104 id, bool accepted) external override onlyMember {
     AssessmentVoteLib.castVote(
-    CONFIG,
+    config,
     eventType,
     id,
     accepted,
@@ -237,7 +237,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     ), "Invalid merkle proof");
 
     AssessmentGovernanceActionsLib.processFraudResolution(
-      CONFIG,
+      config,
       lastFraudulentVoteIndex,
       burnAmount,
       fraudCount,
@@ -253,7 +253,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   function updateUintParameters (UintParams[] calldata paramNames, uint[] calldata values)
   external override onlyGovernance {
-    CONFIG = AssessmentGovernanceActionsLib.getUpdatedUintParameters(CONFIG, paramNames, values);
+    config = AssessmentGovernanceActionsLib.getUpdatedUintParameters(config, paramNames, values);
   }
 
   // [todo] Since this function is called every time contracts change,

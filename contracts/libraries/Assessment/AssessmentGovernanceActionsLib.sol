@@ -8,41 +8,41 @@ import "../../interfaces/IAssessment.sol";
 library AssessmentGovernanceActionsLib {
 
   function getUpdatedUintParameters (
-    IAssessment.Configuration memory CONFIG,
+    IAssessment.Configuration memory config,
     IAssessment.UintParams[] calldata paramNames,
     uint[] calldata values
   ) external pure returns (IAssessment.Configuration memory) {
     for (uint i = 0; i < paramNames.length; i++) {
-      if (paramNames[i] == IAssessment.UintParams.REWARD_PERC) {
-        CONFIG.REWARD_PERC = uint16(values[i]);
+      if (paramNames[i] == IAssessment.UintParams.rewardPercentage) {
+        config.rewardPercentage = uint16(values[i]);
         continue;
       }
-      if (paramNames[i] == IAssessment.UintParams.INCIDENT_IMPACT_ESTIMATE_PERC) {
-        CONFIG.INCIDENT_IMPACT_ESTIMATE_PERC = uint16(values[i]);
+      if (paramNames[i] == IAssessment.UintParams.incidentExpectedPayoutPercentage) {
+        config.incidentExpectedPayoutPercentage = uint16(values[i]);
         continue;
       }
-      if (paramNames[i] == IAssessment.UintParams.MIN_VOTING_PERIOD_DAYS) {
-        CONFIG.MIN_VOTING_PERIOD_DAYS = uint8(values[i]);
+      if (paramNames[i] == IAssessment.UintParams.minVotingPeriodDays) {
+        config.minVotingPeriodDays = uint8(values[i]);
         continue;
       }
-      if (paramNames[i] == IAssessment.UintParams.MAX_VOTING_PERIOD_DAYS) {
-        CONFIG.MAX_VOTING_PERIOD_DAYS = uint8(values[i]);
+      if (paramNames[i] == IAssessment.UintParams.maxVotingPeriodDays) {
+        config.maxVotingPeriodDays = uint8(values[i]);
         continue;
       }
-      if (paramNames[i] == IAssessment.UintParams.PAYOUT_COOLDOWN_DAYS) {
-        CONFIG.PAYOUT_COOLDOWN_DAYS = uint8(values[i]);
+      if (paramNames[i] == IAssessment.UintParams.payoutCooldownDays) {
+        config.payoutCooldownDays = uint8(values[i]);
         continue;
       }
-      if (paramNames[i] == IAssessment.UintParams.CLAIM_ASSESSMENT_DEPOSIT_PERC) {
-        CONFIG.CLAIM_ASSESSMENT_DEPOSIT_PERC = uint16(values[i]);
+      if (paramNames[i] == IAssessment.UintParams.claimAssessmentDepositPercentage) {
+        config.claimAssessmentDepositPercentage = uint16(values[i]);
         continue;
       }
-      if (paramNames[i] == IAssessment.UintParams.INCIDENT_ASSESSMENT_DEPOSIT_PERC) {
-        CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC = uint16(values[i]);
+      if (paramNames[i] == IAssessment.UintParams.incidentAssessmentDepositPercentage) {
+        config.incidentAssessmentDepositPercentage = uint16(values[i]);
         continue;
       }
     }
-    return CONFIG;
+    return config;
   }
 
   function getFraudulentAssessorLeaf (
@@ -73,7 +73,7 @@ library AssessmentGovernanceActionsLib {
   }
 
   function processFraudulentVote (
-    IAssessment.Configuration calldata CONFIG,
+    IAssessment.Configuration calldata config,
     IAssessment.Vote memory vote,
     IAssessment.Claim[] storage claims,
     IAssessment.Incident[] storage incidents,
@@ -104,7 +104,7 @@ library AssessmentGovernanceActionsLib {
 
     {
       uint32 blockTimestamp = uint32(block.timestamp);
-      if (blockTimestamp >= poll.end + CONFIG.PAYOUT_COOLDOWN_DAYS * 1 days) {
+      if (blockTimestamp >= poll.end + config.payoutCooldownDays * 1 days) {
         // Once the cooldown period ends the poll result is final
         return;
       }
@@ -128,7 +128,7 @@ library AssessmentGovernanceActionsLib {
   }
 
   function processFraudResolution (
-    IAssessment.Configuration calldata CONFIG,
+    IAssessment.Configuration calldata config,
     uint256 lastFraudulentVoteIndex,
     uint96 burnAmount,
     uint16 fraudCount,
@@ -154,7 +154,7 @@ library AssessmentGovernanceActionsLib {
     }
 
     for (uint j = stake.rewardsWithdrawnUntilIndex; j < processUntil; j++) {
-      processFraudulentVote(CONFIG, votesOf[fraudulentAssessor][j], claims, incidents, pollFraudOfEvent);
+      processFraudulentVote(config, votesOf[fraudulentAssessor][j], claims, incidents, pollFraudOfEvent);
     }
 
     if (fraudCount == stake.fraudCount) {

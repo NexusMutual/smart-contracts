@@ -8,8 +8,8 @@ import "../../interfaces/IAssessment.sol";
 import "../../libraries/Assessment/AssessmentIncidentsLib.sol";
 
 contract AssessmentIncidentsLibTest {
-  function _getPayoutImpactOfIncident (IAssessment.IncidentDetails memory details)
+  function _getExpectedIncidentPayoutNXM (IAssessment.IncidentDetails memory details)
   external pure returns (uint) {
-    return AssessmentIncidentsLib._getPayoutImpactOfIncident(details);
+    return AssessmentIncidentsLib._getExpectedIncidentPayoutNXM(details);
   }
 }

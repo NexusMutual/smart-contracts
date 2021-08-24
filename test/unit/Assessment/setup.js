@@ -104,10 +104,10 @@ async function setup () {
   const assessmentGovernanceActionsLibTest = await AssessmentGovernanceActionsLibTest.deploy();
   await assessmentGovernanceActionsLibTest.deployed();
 
-  const config = await assessment.CONFIG();
-  this.MIN_VOTING_PERIOD_DAYS = config.MIN_VOTING_PERIOD_DAYS;
-  this.MAX_VOTING_PERIOD_DAYS = config.MAX_VOTING_PERIOD_DAYS;
-  this.CLAIM_ASSESSMENT_DEPOSIT_PERC = config.CLAIM_ASSESSMENT_DEPOSIT_PERC;
+  const config = await assessment.config();
+  this.MIN_VOTING_PERIOD_DAYS = config.minVotingPeriodDays;
+  this.MAX_VOTING_PERIOD_DAYS = config.maxVotingPeriodDays;
+  this.CLAIM_ASSESSMENT_DEPOSIT_PERC = config.claimAssessmentDepositPercentage;
 
   this.accounts = accounts;
   this.contracts = {

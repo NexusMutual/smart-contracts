@@ -17,7 +17,7 @@ library AssessmentClaimsLib {
   // Used in operations involving NXM tokens and divisions
   uint internal constant PRECISION = 10 ** 18;
 
-  function _getPayoutImpactOfClaim (IAssessment.ClaimDetails memory details)
+  function _getExpectedClaimPayoutNXM (IAssessment.ClaimDetails memory details)
   internal pure returns (uint) {
     return details.amount * PRECISION / details.nxmPriceSnapshot;
   }
@@ -36,7 +36,7 @@ library AssessmentClaimsLib {
    *                          is false
    */
   function submitClaim(
-    IAssessment.Configuration calldata CONFIG,
+    IAssessment.Configuration calldata config,
     mapping(uint => address payable) storage internalContracts,
     IAssessment.Claim[] storage claims,
     address[] storage claimants,
@@ -46,7 +46,7 @@ library AssessmentClaimsLib {
     string calldata ipfsProofHash
   ) external {
     {
-      uint submissionDeposit = 1 ether * uint(CONFIG.CLAIM_ASSESSMENT_DEPOSIT_PERC) / PERC_BASIS_POINTS;
+      uint submissionDeposit = 1 ether * uint(config.claimAssessmentDepositPercentage) / PERC_BASIS_POINTS;
       require(msg.value == submissionDeposit, "Submission deposit different that the expected value");
     }
     // [todo] Cover premium and total amount need to be obtained from the cover
@@ -63,7 +63,7 @@ library AssessmentClaimsLib {
       coverContract.transferFrom(owner, address(this), coverId);
     }
 
-    // a snapshot of CONFIG.CLAIM_ASSESSMENT_DEPOSIT_PERC at submission if it ever changes before redeeming
+    // a snapshot of config.claimAssessmentDepositPercentage at submission if it ever changes before redeeming
     if (withProof) {
       emit ProofSubmitted(coverId, msg.sender, ipfsProofHash);
     }
@@ -78,7 +78,7 @@ library AssessmentClaimsLib {
       coverPeriod,
       payoutAsset,
       nxmPriceSnapshot,
-      CONFIG.CLAIM_ASSESSMENT_DEPOSIT_PERC,
+      config.claimAssessmentDepositPercentage,
       false
     );
 
@@ -87,14 +87,14 @@ library AssessmentClaimsLib {
         IAssessment.Poll(0, 0, uint32(block.timestamp), 0),
         claimDetails
       );
-      claim.poll.end = claim.poll.start + CONFIG.MIN_VOTING_PERIOD_DAYS * 1 days;
+      claim.poll.end = claim.poll.start + config.minVotingPeriodDays * 1 days;
       claims.push(claim);
     }
   }
 
   // [warn] This function has a critical bug if more than two claims are allowed
   function returnCoverToClaimant(
-    IAssessment.Configuration calldata CONFIG,
+    IAssessment.Configuration calldata config,
     mapping(uint => address payable) storage internalContracts,
     IAssessment.Claim[] storage claims,
     address[] storage claimants,
@@ -119,7 +119,7 @@ library AssessmentClaimsLib {
   }
 
   function redeemClaimPayout (
-    IAssessment.Configuration calldata CONFIG,
+    IAssessment.Configuration calldata config,
     mapping(uint => address payable) storage internalContracts,
     IAssessment.Claim[] storage claims,
     address[] storage claimants,
@@ -132,7 +132,7 @@ library AssessmentClaimsLib {
     );
 
     require(
-      block.timestamp >= claim.poll.end + CONFIG.PAYOUT_COOLDOWN_DAYS * 1 days,
+      block.timestamp >= claim.poll.end + config.payoutCooldownDays * 1 days,
       "The claim is in cooldown period"
     );
 

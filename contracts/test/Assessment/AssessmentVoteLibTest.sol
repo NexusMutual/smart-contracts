@@ -39,9 +39,9 @@ contract AssessmentVoteLibTest {
   function _calculatePollEndDate (
     IAssessment.Configuration calldata CONFIG,
     IAssessment.Poll memory poll,
-    uint payoutImpact
+    uint expectedPayoutNXM
   ) external pure returns (uint32) {
-    return AssessmentVoteLib._calculatePollEndDate(CONFIG, poll, payoutImpact);
+    return AssessmentVoteLib._calculatePollEndDate(CONFIG, poll, expectedPayoutNXM);
   }
 
 }

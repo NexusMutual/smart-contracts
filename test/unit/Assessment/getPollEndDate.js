@@ -8,7 +8,7 @@ const { parseEther } = ethers.utils;
 const { Zero, One } = ethers.constants;
 
 const expectPollEndDate = ({ assessment, assessmentVoteLibTest }) => async (poll, payoutImpact, expected) => {
-  const CONFIG = await assessment.CONFIG();
+  const CONFIG = await assessment.config();
   const pollEnd = await assessmentVoteLibTest._calculatePollEndDate(CONFIG, poll, payoutImpact);
   assert(
     pollEnd === expected,
@@ -21,7 +21,7 @@ const expectPollEndDate = ({ assessment, assessmentVoteLibTest }) => async (poll
 describe('_calculatePollEndDate', function () {
   it('should revert when given a poll with no votes', async function () {
     const { assessment, assessmentVoteLibTest } = this.contracts;
-    const CONFIG = await assessment.CONFIG();
+    const CONFIG = await assessment.config();
     const payoutImpact = parseEther('100');
     const poll = {
       accepted: 0,

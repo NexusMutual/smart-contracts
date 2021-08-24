@@ -2,7 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-interface IAssessment {
+import "@openzeppelin/contracts-v4/token/ERC721/IERC721Receiver.sol";
+
+interface IAssessment is IERC721Receiver {
 
   /* ========== DATA STRUCTURES ========== */
 
@@ -143,6 +145,8 @@ interface IAssessment {
 
   function claims(uint id) external view returns (Poll memory poll, ClaimDetails memory details);
 
+  function claimants(uint id) external view returns (address);
+
   function incidents(uint id) external view
   returns (Poll memory poll, IncidentDetails memory details);
 
@@ -161,6 +165,45 @@ interface IAssessment {
   function getIncidentsCount() external view returns (uint);
 
   /* === MUTATIVE FUNCTIONS ==== */
+
+  function submitClaim(
+    uint24 coverId,
+    uint96 requestedAmount,
+    bool withProof,
+    string calldata ipfsProofHash
+  ) external payable;
+
+  function submitIncident(
+    uint24 productId,
+    uint96 priceBefore,
+    uint32 date
+  ) external;
+
+  function depositStake (uint96 amount) external;
+
+  function withdrawReward (address user, uint104 untilIndex) external;
+
+  function withdrawStake (uint96 amount) external;
+
+  function redeemClaimPayout (uint104 id) external;
+
+  function redeemIncidentPayout (uint104 incidentId, uint32 coverId, uint payoutAmount) external;
+
+  function castVote (uint8 eventType, uint104 id, bool accepted) external;
+
+  function submitFraud (bytes32 root) external;
+
+  function burnFraud (
+    uint256 rootIndex,
+    bytes32[] calldata proof,
+    address fraudulentAssessor,
+    uint256 lastFraudulentVoteIndex,
+    uint96 burnAmount,
+    uint16 fraudCount,
+    uint256 voteBatchSize
+  ) external;
+
+  function updateUintParameters (UintParams[] calldata paramNames, uint[] calldata values) external;
 
   /* ========== EVENTS ========== */
 

@@ -4,7 +4,9 @@ pragma solidity ^0.8.0;
 
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/ICover.sol";
 import "../../interfaces/IAssessment.sol";
+import "../../interfaces/IMasterAwareV2.sol";
 import "../../libraries/Assessment/AssessmentVoteLib.sol";
 
 library AssessmentClaimsLib {
@@ -35,11 +37,13 @@ library AssessmentClaimsLib {
    */
   function submitClaim(
     IAssessment.Configuration calldata CONFIG,
+    mapping(uint => address payable) storage internalContracts,
+    IAssessment.Claim[] storage claims,
+    address[] storage claimants,
     uint24 coverId,
     uint96 requestedAmount,
     bool withProof,
-    string calldata ipfsProofHash,
-    IAssessment.Claim[] storage claims
+    string calldata ipfsProofHash
   ) external {
     {
       uint submissionDeposit = 1 ether * uint(CONFIG.CLAIM_ASSESSMENT_DEPOSIT_PERC) / PERC_BASIS_POINTS;
@@ -51,63 +55,114 @@ library AssessmentClaimsLib {
       uint96 coverAmount = 1000 ether;
       require(requestedAmount <= coverAmount, "Cannot claim more than the covered amount");
     }
-    uint16 coverPeriod = 365;
-    uint8 payoutAsset = 0; // take this form cover asset
-    //uint80 nxmPriceSnapshot = 147573952589676412928; // 1 NXM ~ 147 DAI
-    uint80 nxmPriceSnapshot = uint80(38200000000000000); // 1 NXM ~ 0.0382 ETH
 
+    {
+      ICover coverContract = ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
+      address owner = coverContract.ownerOf(coverId);
+      claimants.push(owner);
+      coverContract.transferFrom(owner, address(this), coverId);
+    }
 
     // a snapshot of CONFIG.CLAIM_ASSESSMENT_DEPOSIT_PERC at submission if it ever changes before redeeming
     if (withProof) {
       emit ProofSubmitted(coverId, msg.sender, ipfsProofHash);
     }
 
-    IAssessment.Claim memory claim = IAssessment.Claim(
-      IAssessment.Poll(0, 0, uint32(block.timestamp), 0),
-      IAssessment.ClaimDetails(
-        requestedAmount,
-        coverId,
-        coverPeriod,
-        payoutAsset,
-        nxmPriceSnapshot,
-        CONFIG.CLAIM_ASSESSMENT_DEPOSIT_PERC,
-        false
-      )
+    uint16 coverPeriod = 365;
+    uint8 payoutAsset = 0; // take this form cover asset
+    //uint80 nxmPriceSnapshot = 147573952589676412928; // 1 NXM ~ 147 DAI
+    uint80 nxmPriceSnapshot = uint80(38200000000000000); // 1 NXM ~ 0.0382 ETH
+    IAssessment.ClaimDetails memory claimDetails = IAssessment.ClaimDetails(
+      requestedAmount,
+      coverId,
+      coverPeriod,
+      payoutAsset,
+      nxmPriceSnapshot,
+      CONFIG.CLAIM_ASSESSMENT_DEPOSIT_PERC,
+      false
     );
 
-    claim.poll.end = claim.poll.start + CONFIG.MIN_VOTING_PERIOD_DAYS * 1 days;
+    {
+      IAssessment.Claim memory claim = IAssessment.Claim(
+        IAssessment.Poll(0, 0, uint32(block.timestamp), 0),
+        claimDetails
+      );
+      claim.poll.end = claim.poll.start + CONFIG.MIN_VOTING_PERIOD_DAYS * 1 days;
+      claims.push(claim);
+    }
+  }
 
-    claims.push(claim);
+  // [warn] This function has a critical bug if more than two claims are allowed
+  function returnCoverToClaimant(
+    IAssessment.Configuration calldata CONFIG,
+    mapping(uint => address payable) storage internalContracts,
+    IAssessment.Claim[] storage claims,
+    address[] storage claimants,
+    uint coverId,
+    uint claimId
+  ) external {
+    IAssessment.Poll memory poll = claims[claimId].poll;
+    require(
+      AssessmentVoteLib._getPollStatus(poll) == IAssessment.PollStatus.DENIED,
+      "Cover can be returned only if the claim is denied"
+    );
+
+    ICover coverContract = ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
+
+    {
+      (,, uint8 deniedClaims,,,) = coverContract.covers(coverId);
+      require(deniedClaims == 0, "Cover already has two denied claims");
+    }
+
+    coverContract.incrementDeniedClaims(coverId);
+    coverContract.transferFrom(address(this), claimants[claimId], coverId);
   }
 
   function redeemClaimPayout (
     IAssessment.Configuration calldata CONFIG,
-    IPool pool,
-    IMemberRoles memberRoles,
-    uint104 id,
+    mapping(uint => address payable) storage internalContracts,
     IAssessment.Claim[] storage claims,
-    mapping(uint => address) storage addressOfAsset
+    address[] storage claimants,
+    uint104 id
   ) external {
     IAssessment.Claim memory claim = claims[id];
     require(
       AssessmentVoteLib._getPollStatus(claim.poll) == IAssessment.PollStatus.ACCEPTED,
       "The claim must be accepted"
     );
+
     require(
       block.timestamp >= claim.poll.end + CONFIG.PAYOUT_COOLDOWN_DAYS * 1 days,
       "The claim is in cooldown period"
     );
-    address payable coverOwner = payable(0x0000000000000000000000000000000000000000); // [todo]
-    require(!claim.details.payoutRedeemed, "Payout was already redeemed");
+
+    require(!claim.details.payoutRedeemed, "Payout has already been redeemed");
     claims[id].details.payoutRedeemed = true;
-    // [todo] Destroy and create a new cover nft
-    address payable payoutAddress = memberRoles.getClaimPayoutAddress(coverOwner);
-    address coverAsset = addressOfAsset[0]; // [todo]
-    bool succeeded = pool.sendClaimPayout(coverAsset, payoutAddress, claim.details.amount);
+
+    ICover coverContract = ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
+    address payable coverOwner = payable(claimants[claim.details.coverId]); // [todo]
+    coverContract.performCoverBurn(
+      claim.details.coverId,
+      coverOwner,
+      claim.details.amount
+    );
+
+    // [todo] Replace asset with payoutAsset
+    IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
+    address asset = poolContract.assets(claim.details.payoutAsset);
+
+    // [todo] Replace payoutAddress with the member's address using the member id
+    IMemberRoles memberRolesContract = IMemberRoles(internalContracts[uint(IMasterAwareV2.ID.MR)]);
+    address payable payoutAddress = memberRolesContract.getClaimPayoutAddress(coverOwner);
+
+    bool succeeded = poolContract.sendClaimPayout(asset, payoutAddress, claim.details.amount);
     require(succeeded, "Claim payout failed");
-    uint assessmentDepositToRefund = 1 ether * uint(claim.details.assessmentDepositPerc) / PERC_BASIS_POINTS;
-    (bool refunded, /* bytes data */) = payoutAddress.call{value: assessmentDepositToRefund}("");
-    require(refunded, "Assessment fee refund failed");
+
+    {
+      uint assessmentDepositToRefund = 1 ether * uint(claim.details.assessmentDepositPerc) / PERC_BASIS_POINTS;
+      (bool refunded, /* bytes data */) = payoutAddress.call{value: assessmentDepositToRefund}("");
+      require(refunded, "Assessment fee refund failed");
+    }
   }
 
   event ProofSubmitted(uint indexed coverId, address indexed owner, string ipfsHash);

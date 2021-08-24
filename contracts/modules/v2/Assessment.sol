@@ -7,6 +7,7 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/ICover.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../libraries/Assessment/AssessmentClaimsLib.sol";
@@ -19,16 +20,13 @@ import "../../libraries/Assessment/AssessmentVoteLib.sol";
  *  assessment processes where members decide the outcome of the events that lead to potential
  *  payouts.
  */
-contract Assessment is IAssessment, IERC721Receiver, MasterAwareV2 {
+contract Assessment is IAssessment, MasterAwareV2 {
 
   /* ========== STATE VARIABLES ========== */
 
   INXMToken internal immutable nxm;
 
   Configuration public CONFIG;
-
-  // ERC20 addresses of supported payout assetss (See Asset enum)
-  mapping(uint => address) internal addressOfAsset;
 
   // Stake states of users. (See Stake struct)
   mapping(address => Stake) public override stakeOf;
@@ -47,13 +45,14 @@ contract Assessment is IAssessment, IERC721Receiver, MasterAwareV2 {
   mapping(uint8 => mapping(uint104 => Poll)) internal pollFraudOfEvent;
 
   Claim[] public override claims;
+  address[] public override claimants;
 
   Incident[] public override incidents;
   mapping(uint104 => AffectedToken) internal tokenAffectedByIncident;
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor (address masterAddress, address dai, address eth) {
+  constructor (address masterAddress) {
     // [todo] Move to intiialize function
     // The minimum cover premium is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
     CONFIG.REWARD_PERC = 52;
@@ -64,8 +63,6 @@ contract Assessment is IAssessment, IERC721Receiver, MasterAwareV2 {
     CONFIG.PAYOUT_COOLDOWN_DAYS = 1; //days
     CONFIG.CLAIM_ASSESSMENT_DEPOSIT_PERC = 500; // 5% i.e. 0.05 ETH submission flat fee
     CONFIG.INCIDENT_ASSESSMENT_DEPOSIT_PERC = 0;
-    addressOfAsset[0] = eth;
-    addressOfAsset[1] = dai;
     master = INXMMaster(masterAddress);
     nxm = INXMToken(master.tokenAddress());
   }
@@ -82,6 +79,10 @@ contract Assessment is IAssessment, IERC721Receiver, MasterAwareV2 {
 
   function pool() internal view returns (IPool) {
     return IPool(getInternalContractAddress(ID.P1));
+  }
+
+  function cover() internal view returns (ICover) {
+    return ICover(getInternalContractAddress(ID.CO));
   }
 
   function getVoteCountOfAssessor(address assessor) external override view returns (uint) {
@@ -116,14 +117,16 @@ contract Assessment is IAssessment, IERC721Receiver, MasterAwareV2 {
     uint96 requestedAmount,
     bool withProof,
     string calldata ipfsProofHash
-  ) external payable onlyMember {
+  ) external payable override onlyMember {
     AssessmentClaimsLib.submitClaim(
       CONFIG,
+      internalContracts,
+      claims,
+      claimants,
       coverId,
       requestedAmount,
       withProof,
-      ipfsProofHash,
-      claims
+      ipfsProofHash
     );
 
   }
@@ -132,7 +135,7 @@ contract Assessment is IAssessment, IERC721Receiver, MasterAwareV2 {
     uint24 productId,
     uint96 priceBefore,
     uint32 date
-  ) external {
+  ) external override {
     (
       AffectedToken memory affectedToken,
       Incident memory incident
@@ -152,13 +155,13 @@ contract Assessment is IAssessment, IERC721Receiver, MasterAwareV2 {
     );
   }
 
-  function depositStake (uint96 amount) external onlyMember {
+  function depositStake (uint96 amount) external override onlyMember {
     Stake storage stake = stakeOf[msg.sender];
     stake.amount += amount;
     nxm.transferFrom(msg.sender, address(this), amount);
   }
 
-  function withdrawReward (address user, uint104 untilIndex) external {
+  function withdrawReward (address user, uint104 untilIndex) external override {
     AssessmentVoteLib.withdrawReward(
       CONFIG,
       nxm,
@@ -171,34 +174,33 @@ contract Assessment is IAssessment, IERC721Receiver, MasterAwareV2 {
     );
   }
 
-  function withdrawStake (uint96 amount) external onlyMember {
+  function withdrawStake (uint96 amount) external override onlyMember {
     AssessmentVoteLib.withdrawStake(CONFIG, nxm, stakeOf, votesOf, amount);
   }
 
-  function redeemClaimPayout (uint104 id) external {
+  function redeemClaimPayout (uint104 id) external override {
     AssessmentClaimsLib.redeemClaimPayout(
       CONFIG,
-      pool(),
-      memberRoles(),
-      id,
+      internalContracts,
       claims,
-      addressOfAsset
+      claimants,
+      id
     );
   }
 
-  function redeemIncidentPayout (uint104 incidentId, uint32 coverId, uint payoutAmount) external {
+  function redeemIncidentPayout (uint104 incidentId, uint32 coverId, uint payoutAmount)
+  external override {
     AssessmentIncidentsLib.redeemIncidentPayout(
       pool(),
       memberRoles(),
       incidents[incidentId],
       coverId,
-      payoutAmount,
-      addressOfAsset
+      payoutAmount
     );
   }
 
   // [todo] Check how many times poll is loaded from storage
-  function castVote (uint8 eventType, uint104 id, bool accepted) external onlyMember {
+  function castVote (uint8 eventType, uint104 id, bool accepted) external override onlyMember {
     AssessmentVoteLib.castVote(
     CONFIG,
     eventType,
@@ -212,7 +214,7 @@ contract Assessment is IAssessment, IERC721Receiver, MasterAwareV2 {
     );
   }
 
-  function submitFraud (bytes32 root) external onlyGovernance {
+  function submitFraud (bytes32 root) external override onlyGovernance {
     fraudMerkleRoots.push(root);
   }
 
@@ -224,7 +226,7 @@ contract Assessment is IAssessment, IERC721Receiver, MasterAwareV2 {
     uint96 burnAmount,
     uint16 fraudCount,
     uint256 voteBatchSize
-  ) external {
+  ) external override {
     require(AssessmentGovernanceActionsLib.isFraudProofValid(
       fraudMerkleRoots[rootIndex],
       proof,
@@ -250,7 +252,7 @@ contract Assessment is IAssessment, IERC721Receiver, MasterAwareV2 {
   }
 
   function updateUintParameters (UintParams[] calldata paramNames, uint[] calldata values)
-  external onlyGovernance {
+  external override onlyGovernance {
     CONFIG = AssessmentGovernanceActionsLib.getUpdatedUintParameters(CONFIG, paramNames, values);
   }
 
@@ -265,6 +267,7 @@ contract Assessment is IAssessment, IERC721Receiver, MasterAwareV2 {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
+    internalContracts[uint(ID.P1)] = master.getLatestAddress("CO");
   }
 
   // Required to receive NFTS

@@ -80,8 +80,7 @@ library AssessmentIncidentsLib {
     IMemberRoles memberRoles,
     IAssessment.Incident calldata incident,
     uint32 coverId,
-    uint payoutAmount,
-    mapping(uint => address) storage addressOfAsset
+    uint payoutAmount
   ) external {
     // [todo] Read the owner from the cover
     address payable coverOwner = payable(0x0000000000000000000000000000000000000000);
@@ -97,8 +96,8 @@ library AssessmentIncidentsLib {
     );
     // [todo] Destroy and create a new cover nft
     address payable payoutAddress = memberRoles.getClaimPayoutAddress(coverOwner);
-    address coverAsset = addressOfAsset[incident.details.payoutAsset]; // [todo]
-    bool succeeded = pool.sendClaimPayout(coverAsset, payoutAddress, payoutAmount);
+    address asset = pool.assets(incident.details.payoutAsset); // [todo]
+    bool succeeded = pool.sendClaimPayout(asset, payoutAddress, payoutAmount);
     require(succeeded, "Incident payout failed");
   }
 }

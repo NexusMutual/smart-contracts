@@ -5,6 +5,8 @@ pragma solidity >=0.5.0;
 import "./IPriceFeedOracle.sol";
 
 interface IPool {
+  function assets(uint index) external view returns (address);
+
   function sellNXM(uint tokenAmount, uint minEthOut) external;
 
   function sellNXMTokens(uint tokenAmount) external returns (bool);

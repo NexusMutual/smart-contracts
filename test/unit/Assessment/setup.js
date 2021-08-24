@@ -11,10 +11,6 @@ async function setup () {
   const memberRoles = await MemberRoles.deploy();
   await memberRoles.deployed();
 
-  const AssessmentMockPool = await ethers.getContractFactory('AssessmentMockPool');
-  const pool = await AssessmentMockPool.deploy();
-  await pool.deployed();
-
   const AssessmentMockTokenController = await ethers.getContractFactory('AssessmentMockTokenController');
   const tokenController = await AssessmentMockTokenController.deploy();
   await tokenController.deployed();
@@ -26,6 +22,12 @@ async function setup () {
   const DAI = await ethers.getContractFactory('ERC20BlacklistableMock');
   const dai = await DAI.deploy();
   await dai.deployed();
+
+  const AssessmentMockPool = await ethers.getContractFactory('AssessmentMockPool');
+  const pool = await AssessmentMockPool.deploy();
+  await pool.deployed();
+  await pool.addAsset('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
+  await pool.addAsset(dai.address);
 
   const AssessmentClaimsLib = await ethers.getContractFactory('AssessmentClaimsLib');
   const assessmentClaimsLib = await AssessmentClaimsLib.deploy();
@@ -51,12 +53,12 @@ async function setup () {
       AssessmentGovernanceActionsLib: assessmentGovernanceActionsLib.address,
     },
   });
-  const assessment = await Assessment.deploy(
-    master.address,
-    '0x0000000000000000000000000000000000000000',
-    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-  );
+  const assessment = await Assessment.deploy(master.address);
   await assessment.deployed();
+
+  const Cover = await ethers.getContractFactory('AssessmentMockCover');
+  const cover = await Cover.deploy('Nexus Mutual Cover', 'NXC');
+  await cover.deployed();
 
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TK'), nxm.address),
@@ -64,6 +66,7 @@ async function setup () {
     master.setLatestAddress(hex('MR'), memberRoles.address),
     master.setLatestAddress(hex('P1'), pool.address),
     master.setLatestAddress(hex('AS'), assessment.address),
+    master.setLatestAddress(hex('CO'), cover.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 

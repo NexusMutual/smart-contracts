@@ -3,15 +3,13 @@
 pragma solidity ^0.8.0;
 
 import "../interfaces/INXMMaster.sol";
+import "../interfaces/IMasterAwareV2.sol";
 
-abstract contract MasterAwareV2 {
+abstract contract MasterAwareV2 is IMasterAwareV2 {
 
   mapping(uint => address payable) internal internalContracts;
 
   INXMMaster public master;
-
-  // [todo] Are there any missing contracts here?
-  enum ID {GW, GV, MR, CL, CR, MC, P1, QT, TF, PC, PS, TC, IC, AS}
 
   modifier onlyMember {
     require(master.isMember(msg.sender), "Caller is not a member");

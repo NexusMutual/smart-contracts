@@ -3,6 +3,7 @@
 pragma solidity ^0.5.17;
 
 contract AssessmentMockPool {
+  address[] public assets;
 
   function sendClaimPayout(
     address asset,
@@ -10,5 +11,9 @@ contract AssessmentMockPool {
     uint amount
   ) public returns (bool) {
     return true;
+  }
+
+  function addAsset(address asset) external {
+    assets.push(asset);
   }
 }

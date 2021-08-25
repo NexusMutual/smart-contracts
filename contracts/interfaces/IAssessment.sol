@@ -25,17 +25,26 @@ interface IAssessment is IERC721Receiver {
   struct Configuration {
     // The minimum number of days the users can vote on polls
     uint8 minVotingPeriodDays;
+
     // The maximum number of days the users can vote on polls
     uint8 maxVotingPeriodDays;
+
     // Number of days the users must wait after a poll closes, to redeem payouts.
     uint8 payoutCooldownDays;
+
     // Percentage used to calculate assessment rewards (0-10000 i.e. double decimal precision)
     uint16 rewardPercentage;
-    // Percentage used to calculate potential impact of an incident
-    uint16 incidentExpectedPayoutPercentage;
+
     // Percentage out of 1 ETH, used to calculate a flat ETH deposit required for claim submission.
     // If the claim is accepted, the user will receive the deposit back when the payout is redeemed.
     uint16 claimAssessmentDepositPercentage;
+
+    // Percentage used to calculate potential impact of an incident
+    uint16 incidentExpectedPayoutPercentage;
+
+    // Percentage used to determine the deductible payout (0-10000 i.e. double decimal precision)
+    uint16 incidentPayoutDeductibleRatio;
+
     // Percentage used to calculate an NXM deposit required for incident submission. It is only
     // reserved in the eventuality where incidents can be submitted by regular members. This would
     // require them to make a significant NXM deposit to prevent minting unbacked assessment
@@ -187,7 +196,7 @@ interface IAssessment is IERC721Receiver {
 
   function redeemClaimPayout (uint104 id) external;
 
-  function redeemIncidentPayout (uint104 incidentId, uint32 coverId, uint payoutAmount) external;
+  function redeemIncidentPayout (uint104 incidentId, uint32 coverId, uint depeggedTokens) external;
 
   function castVote (uint8 eventType, uint104 id, bool accepted) external;
 

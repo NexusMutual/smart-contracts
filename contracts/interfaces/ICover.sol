@@ -22,6 +22,11 @@ interface ICover is IERC721 {
     uint32 period;  // seconds
   }
 
+  struct Product {
+    uint8 payoutAsset;
+    address productAddress;
+  }
+
   /* ========== VIEWS ========== */
 
   function covers(uint id) external returns (uint24, uint8, uint8, uint96, uint32, uint32);
@@ -51,7 +56,7 @@ interface ICover is IERC721 {
 
   function incrementDeniedClaims(uint coverId) external;
 
-  function performCoverBurn(uint coverId, address owner, uint96 amount) external;
+  function performCoverBurn(uint coverId, address owner, uint amount) external;
 
   /* ========== EVENTS ========== */
 

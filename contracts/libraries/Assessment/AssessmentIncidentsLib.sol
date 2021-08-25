@@ -5,7 +5,9 @@ pragma solidity ^0.8.0;
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/ICover.sol";
 import "../../interfaces/IAssessment.sol";
+import "../../interfaces/IMasterAwareV2.sol";
 import "../../libraries/Assessment/AssessmentVoteLib.sol";
 
 library AssessmentIncidentsLib {
@@ -76,28 +78,58 @@ library AssessmentIncidentsLib {
   }
 
   function redeemIncidentPayout (
-    IPool pool,
-    IMemberRoles memberRoles,
+    mapping(uint => address payable) storage internalContracts,
     IAssessment.Incident calldata incident,
     uint32 coverId,
-    uint payoutAmount
+    uint depeggedTokens
   ) external {
-    // [todo] Read the owner from the cover
-    address payable coverOwner = payable(0x0000000000000000000000000000000000000000);
-    require (coverOwner == msg.sender, "Payout can only be redeemed by cover owner");
-    // [todo] Read and verify details from cover
+
     require(
       AssessmentVoteLib._getPollStatus(incident.poll) == IAssessment.PollStatus.ACCEPTED,
       "The incident must be accepted"
     );
-    require(
-      block.timestamp >= incident.poll.end,
-      "The incident is in cooldown period"
-    );
-    // [todo] Destroy and create a new cover nft
-    address payable payoutAddress = memberRoles.getClaimPayoutAddress(coverOwner);
-    address asset = pool.assets(incident.details.payoutAsset); // [todo]
-    bool succeeded = pool.sendClaimPayout(asset, payoutAddress, payoutAmount);
-    require(succeeded, "Incident payout failed");
+
+    require(block.timestamp >= incident.poll.end, "The incident is in cooldown period");
+
+    address payable coverOwner;
+    uint payoutAmount;
+    {
+      ICover coverContract = ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
+      coverOwner = payable(coverContract.ownerOf(coverId));
+      (
+        uint24 productId,
+        /*uint8 payoutAsset*/,
+        /*uint8 deniedClaims*/,
+        uint96 amount,
+        uint32 start,
+        uint32 period
+      ) = coverContract.covers(coverId);
+
+      require (coverOwner == msg.sender, "Payout can only be redeemed by cover owner");
+      require(productId == incident.details.productId, "Incident id mismatch");
+      require(start <= incident.details.date, "Cover start date is after the incident");
+      require(start + period >= incident.details.date, "Cover end date is before the incident");
+      uint gracePeriod = 0; // [todo] Get from product
+      require(start + period + gracePeriod >= block.timestamp, "Grace period has expired");
+      // Should BURN_RATIO & DEDUCTIBLE_RATIO be stored in product details?
+      payoutAmount = depeggedTokens; // [todo] Calculate payout amount
+      require(payoutAmount <= amount, "Payout exceeds covered amount");
+      coverContract.performCoverBurn(coverId, coverOwner, payoutAmount);
+    }
+
+
+    // [todo] Replace payoutAddress with the member's address using the member id
+    address payable payoutAddress;
+    {
+      IMemberRoles memberRolesContract = IMemberRoles(internalContracts[uint(IMasterAwareV2.ID.MR)]);
+      payoutAddress = memberRolesContract.getClaimPayoutAddress(coverOwner);
+    }
+
+    {
+      IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
+      address asset = poolContract.assets(incident.details.payoutAsset); // [todo]
+      bool succeeded = poolContract.sendClaimPayout(asset, payoutAddress, payoutAmount);
+      require(succeeded, "Incident payout failed");
+    }
   }
 }

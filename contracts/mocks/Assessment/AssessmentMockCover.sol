@@ -59,8 +59,8 @@ contract AssessmentMockCover is ICover, ERC721 {
     uint24 productId,
     uint8 payoutAsset,
     uint8 deniedClaims,
-    uint96 amount,
-    uint32 period,
+    uint amount,
+    uint period,
     StakingPool[] memory stakingPools
   ) internal returns (uint) {
     uint coverId = covers.length;
@@ -69,9 +69,9 @@ contract AssessmentMockCover is ICover, ERC721 {
       productId,
       payoutAsset,
       deniedClaims,
-      amount,
+      uint96(amount),
       uint32(block.timestamp + 1),
-      period
+      uint32(period)
     ));
     for (uint i=0; i < stakingPools.length; i++) {
       stakingPoolsOfCover[coverId][i] = stakingPools[i];
@@ -103,7 +103,7 @@ contract AssessmentMockCover is ICover, ERC721 {
     covers[coverId].deniedClaims += 1;
   }
 
-  function performCoverBurn(uint coverId, address owner, uint96 amount) external override {
+  function performCoverBurn(uint coverId, address owner, uint amount) external override {
     Cover memory cover = covers[coverId];
     StakingPool[] memory stakingPools = stakingPoolsOfCover[coverId];
     // Perform staking burns here

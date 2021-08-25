@@ -140,7 +140,7 @@ library AssessmentClaimsLib {
     claims[id].details.payoutRedeemed = true;
 
     ICover coverContract = ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
-    address payable coverOwner = payable(claimants[claim.details.coverId]); // [todo]
+    address payable coverOwner = payable(claimants[claim.details.coverId]);
     coverContract.performCoverBurn(
       claim.details.coverId,
       coverOwner,

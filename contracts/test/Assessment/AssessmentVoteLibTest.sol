@@ -29,19 +29,19 @@ contract AssessmentVoteLibTest {
 
 
   function _getTotalRewardForEvent (
-    IAssessment.Configuration calldata CONFIG,
+    IAssessment.Configuration calldata config,
     IAssessment.EventType eventType,
     uint104 id
   ) external view returns (uint) {
-    return AssessmentVoteLib._getTotalRewardForEvent(CONFIG, eventType, id, claims, incidents);
+    return AssessmentVoteLib._getTotalRewardForEvent(config, eventType, id, claims, incidents);
   }
 
   function _calculatePollEndDate (
-    IAssessment.Configuration calldata CONFIG,
+    IAssessment.Configuration calldata config,
     IAssessment.Poll memory poll,
     uint expectedPayoutNXM
   ) external pure returns (uint32) {
-    return AssessmentVoteLib._calculatePollEndDate(CONFIG, poll, expectedPayoutNXM);
+    return AssessmentVoteLib._calculatePollEndDate(config, poll, expectedPayoutNXM);
   }
 
 }

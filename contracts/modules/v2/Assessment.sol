@@ -55,14 +55,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
   constructor (address masterAddress) {
     // [todo] Move to intiialize function
     // The minimum cover premium is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
-    config.rewardPercentage = 52;
-
-    config.incidentExpectedPayoutPercentage = 30; // 30%
+    config.rewardPercentage = 52; // 0.52%
+    config.incidentExpectedPayoutPercentage = 3000; // 30%
+    config.claimAssessmentDepositPercentage = 500; // 5% i.e. 0.05 ETH submission flat fee
     config.minVotingPeriodDays = 3; // days
     config.maxVotingPeriodDays = 30; // days
     config.payoutCooldownDays = 1; //days
-    config.claimAssessmentDepositPercentage = 500; // 5% i.e. 0.05 ETH submission flat fee
-    config.incidentAssessmentDepositPercentage = 0;
     master = INXMMaster(masterAddress);
     nxm = INXMToken(master.tokenAddress());
   }
@@ -188,14 +186,13 @@ contract Assessment is IAssessment, MasterAwareV2 {
     );
   }
 
-  function redeemIncidentPayout (uint104 incidentId, uint32 coverId, uint payoutAmount)
+  function redeemIncidentPayout (uint104 incidentId, uint32 coverId, uint depeggedTokens)
   external override {
     AssessmentIncidentsLib.redeemIncidentPayout(
-      pool(),
-      memberRoles(),
+      internalContracts,
       incidents[incidentId],
       coverId,
-      payoutAmount
+      depeggedTokens
     );
   }
 

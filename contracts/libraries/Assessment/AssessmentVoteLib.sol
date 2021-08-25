@@ -45,34 +45,87 @@ library AssessmentVoteLib {
     IAssessment.Incident[] storage incidents
   ) internal view returns (uint) {
     if (eventType == IAssessment.EventType.CLAIM) {
-      IAssessment.ClaimDetails memory claimDetails = claims[id].details;
-      return claimDetails.amount * config.rewardPercentage * claimDetails.coverPeriod / 365 / PERC_BASIS_POINTS;
+      IAssessment.ClaimDetails memory details = claims[id].details;
+      return details.amount * config.rewardPercentage * details.coverPeriod / 365
+      / PERC_BASIS_POINTS;
     }
-    IAssessment.IncidentDetails memory incidentDetails = incidents[id].details;
-    uint expectedPayoutNXM = AssessmentIncidentsLib._getExpectedIncidentPayoutNXM(incidentDetails);
-    return expectedPayoutNXM * config.rewardPercentage / PERC_BASIS_POINTS;
+    if (eventType == IAssessment.EventType.CLAIM) {
+      IAssessment.IncidentDetails memory details = incidents[id].details;
+      uint expectedPayoutNXM = AssessmentIncidentsLib._getExpectedIncidentPayoutNXM(details);
+      return expectedPayoutNXM * config.rewardPercentage / PERC_BASIS_POINTS;
+    }
+    revert("Unsupported eventType");
   }
 
+  /**
+   *  Calculates when a poll ends
+   *
+   *  @dev The end date timestamp is dynamically determined by the expected payout amount, how
+   *  strong the consensus is and the amount of tokens used for voting.
+   *
+   *  @param config             Configuration of the calling contract.
+   *  @param poll               Poll for which the end date is calculated.
+   *  @param expectedPayoutNXM  Amount of NXM that is expected to be paid out if the result of the
+   *                            turns out as accepted. It is required to calculate the
+   *                            paritcipation driven extension ratio.
+   */
   function _calculatePollEndDate (
     IAssessment.Configuration calldata config,
     IAssessment.Poll memory poll,
     uint expectedPayoutNXM
   ) internal pure returns (uint32) {
+    /* Revert if the poll has no votes. This view only makes sense if there is at least one accept
+     * vote.
+     */
     require(poll.accepted > 0 || poll.denied > 0);
 
-    uint consensusDriven = uint(
+    /* The formula returns 0 when the ratio between accepted and denied is 1:1. It linearly
+     * increases to 1 as it approaches either 100% accepted or 100% denied.
+     */
+    uint consensus = uint(
       abs(int(2 * poll.accepted * PRECISION / (poll.accepted + poll.denied)) - int(PRECISION))
     );
-    uint tokenDriven = min(
+
+    /*  The formula returns 1 when 10 x expectedPayoutNXM tokens are used for voting
+     *  (accepted + denied, meaning high participation) and it linearly decreases to 0 as the
+     *  amount of tokens approaches 0 (meaning low participation). The amount is capped at 10x
+     *  expectedPayoutNXM, meaning that if more tokens are used the maximm value is still 1.
+     *  This is done by taking the minimum between the maximum cap and the ratio between voting NXM
+     *  and expected payout in NXM.
+     */
+    uint participation = min(
       (poll.accepted + poll.denied) * PRECISION / expectedPayoutNXM,
       10 * PRECISION
     ) / 10;
-    uint extensionRatio = (1 * PRECISION - min(consensusDriven,  tokenDriven));
 
-    return uint32(poll.start + config.minVotingPeriodDays * 1 days + extensionRatio *
-      (config.maxVotingPeriodDays * 1 days - config.minVotingPeriodDays * 1 days) / PRECISION);
+    /*  The extension ratio is 1 when consensus and participation are 0. It decreases as both
+     *  consensus and participation increase. The minimum of the two is subtracted such as a poll
+     *  that only has strong consensus but low participation will still return a ratio of 1 and
+     *  vice-versa.
+     */
+    uint extensionRatio = (1 * PRECISION - min(consensus,  participation));
+
+    /* Duration has a lower bound of minVotingPeriodDays and an upper bound of maxVotingPeriodDays.
+     * The extensionRatio [0,1] determines by how much the duration is extended towards
+     * maxVotingPeriodDays.
+     */
+    uint duration = config.minVotingPeriodDays * 1 days + extensionRatio *
+      (config.maxVotingPeriodDays  - config.minVotingPeriodDays ) * 1 days / PRECISION;
+
+    // Finally add the duration to the start date of the poll
+    return uint32(poll.start + duration);
   }
 
+  /**
+   *  Calculates when the lockup period ends for a given vote of a staker
+   *
+   *  @dev The returned value is calculated as the sum between the vote date and the maximum period
+   *  a poll is not considered final. A poll that is still pending or that can be subject to fraud
+   *  resolution is not considered final.
+   *
+   *  @param config  Assessment configuration variables.
+   *  @param vote    The vote of a staker for which the lockup period is calculated.
+   */
   function _getVoteLockupEndDate (
     IAssessment.Configuration calldata config,
     IAssessment.Vote memory vote
@@ -91,7 +144,7 @@ library AssessmentVoteLib {
     mapping(address => IAssessment.Vote[]) storage votesOf,
     IAssessment.Claim[] storage claims,
     IAssessment.Incident[] storage incidents
-  ) external returns (uint rewardToWithdraw, uint104 withdrawUntilIndex) {
+  ) external returns (uint withdrawn, uint104 withdrawUntilIndex) {
     IAssessment.Stake memory stake = stakeOf[user];
     {
       uint voteCount = votesOf[user].length;
@@ -103,15 +156,17 @@ library AssessmentVoteLib {
       require(stake.rewardsWithdrawnUntilIndex < voteCount, "No withdrawable rewards");
     }
 
+    require(
+      block.timestamp > _getVoteLockupEndDate(config, votesOf[user][withdrawUntilIndex - 1]),
+      "Cannot withdraw rewards from votes which are in lockup period"
+    );
+
     uint totalReward;
+    IAssessment.Vote memory vote;
+    IAssessment.Poll memory poll;
     for (uint i = stake.rewardsWithdrawnUntilIndex; i < withdrawUntilIndex; i++) {
-      IAssessment.Vote memory vote = votesOf[user][i];
-      require(
-        block.timestamp > _getVoteLockupEndDate(config, vote),
-        "Cannot withdraw rewards from votes which are in lockup period"
-      );
-      IAssessment.Poll memory poll =
-        IAssessment.EventType(vote.eventType) == IAssessment.EventType.CLAIM
+      vote = votesOf[user][i];
+      poll = IAssessment.EventType(vote.eventType) == IAssessment.EventType.CLAIM
         ? claims[vote.eventId].poll
         : incidents[vote.eventId].poll;
 
@@ -122,11 +177,12 @@ library AssessmentVoteLib {
         claims,
         incidents
       );
-      rewardToWithdraw += totalReward * vote.tokenWeight / (poll.accepted + poll.denied);
+
+      withdrawn += totalReward * vote.tokenWeight / (poll.accepted + poll.denied);
     }
 
     stakeOf[user].rewardsWithdrawnUntilIndex = withdrawUntilIndex;
-    nxm.mint(user, rewardToWithdraw);
+    nxm.mint(user, withdrawn);
   }
 
   function castVote (

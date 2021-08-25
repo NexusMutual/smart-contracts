@@ -31,6 +31,7 @@ const ClaimsReward = artifacts.require('ClaimsReward');
 const ProposalCategoryContract = artifacts.require('ProposalCategory');
 const LegacyNXMaster = artifacts.require('ILegacyNXMaster');
 const MMockNewContract = artifacts.require('MMockNewContract');
+const Claims = artifacts.require('Claims');
 
 describe('sample test', function () {
 
@@ -141,6 +142,8 @@ describe('sample test', function () {
     const newIncidents = await Incidents.new();
     const newClaimsReward = await ClaimsReward.new(master.address, Address.DAI);
     const newMCR = await MCR.new(master.address);
+    const quotation = await Quotation.new();
+    const claims = await Claims.new();
 
     const previousMaxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
     const previousStoredMCR = await mcr.mcr();
@@ -148,8 +151,8 @@ describe('sample test', function () {
     const previousLastUpdateTime = await mcr.lastUpdateTime();
     const previousMcrFloor = await mcr.mcrFloor();
 
-    const contractCodes = ['IC', 'CR', 'MC'];
-    const newAddresses = [newIncidents.address, newClaimsReward.address, newMCR.address];
+    const contractCodes = ['IC', 'CR', 'MC', 'QT', 'CL'];
+    const newAddresses = [newIncidents.address, newClaimsReward.address, newMCR.address, quotation.address, claims.address];
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
@@ -186,6 +189,11 @@ describe('sample test', function () {
     assert.equal(mcrFloor.toString(), previousMcrFloor.toString());
 
     this.mcr = newMCR;
+  });
+
+  it('check getClaimByIndex', async function () {
+    const { claims } = this;
+    await claims.getClaimbyIndex(0);
   });
 
   it('adds category for adding new contracts', async function () {

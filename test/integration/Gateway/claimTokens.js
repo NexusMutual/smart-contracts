@@ -81,7 +81,7 @@ describe('claimTokens', function () {
       gateway.claimTokens(1, 0, cover.amount, ybDAI.address, {
         from: stranger,
       }),
-      'VM Exception while processing transaction: revert Incidents: Not cover owner',
+      'Incidents: Not cover owner',
     );
   });
 

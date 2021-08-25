@@ -454,7 +454,7 @@ describe('Distributor', function () {
       distributor.submitClaim(expectedCoverId, emptyData, {
         from: coverHolder,
       }),
-      'VM Exception while processing transaction: revert TokenController: Cover already has an open claim',
+      'TokenController: Cover already has an open claim',
     );
   });
 
@@ -584,7 +584,7 @@ describe('Distributor', function () {
       distributor.redeemClaim(expectedCoverId, expectedClaimId, {
         from: coverHolder,
       }),
-      'VM Exception while processing transaction: revert ERC721: operator query for nonexistent token',
+      'ERC721: operator query for nonexistent token',
     );
   });
 
@@ -752,7 +752,7 @@ describe('Distributor', function () {
       distributor.submitClaim(expectedCoverId, emptyData, {
         from: coverHolder,
       }),
-      'VM Exception while processing transaction: revert Claims: Grace period has expired',
+      'Claims: Grace period has expired',
     );
   });
 

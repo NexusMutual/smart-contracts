@@ -33,7 +33,7 @@ const LegacyNXMaster = artifacts.require('ILegacyNXMaster');
 const MMockNewContract = artifacts.require('MMockNewContract');
 const Claims = artifacts.require('Claims');
 
-describe('sample test', function () {
+describe('Master upgrade', function () {
 
   this.timeout(0);
 

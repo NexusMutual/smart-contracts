@@ -192,6 +192,7 @@ describe('sample test', function () {
 
     this.mcr = newMCR;
     this.claims = claims;
+    this.quotation = quotation;
   });
 
   it('check getClaimByIndex', async function () {

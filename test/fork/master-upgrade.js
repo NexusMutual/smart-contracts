@@ -52,6 +52,7 @@ describe('sample test', function () {
     const incidents = await Incidents.at(getAddressByCode('IC'));
     const quotationData = await QuotationData.at(getAddressByCode('QD'));
     const proposalCategory = await ProposalCategoryContract.at(getAddressByCode('PC'));
+    const claims = await ProposalCategoryContract.at(getAddressByCode('CL'));
 
     this.masterAddress = masterAddress;
     this.token = token;
@@ -64,6 +65,7 @@ describe('sample test', function () {
     this.incidents = incidents;
     this.getAddressByCode = getAddressByCode;
     this.proposalCategory = proposalCategory;
+    this.claims = claims;
   });
 
   it('fetches board members and funds accounts', async function () {
@@ -189,6 +191,7 @@ describe('sample test', function () {
     assert.equal(mcrFloor.toString(), previousMcrFloor.toString());
 
     this.mcr = newMCR;
+    this.claims = claims;
   });
 
   it('check getClaimByIndex', async function () {

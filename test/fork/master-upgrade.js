@@ -58,7 +58,7 @@ describe('sample test', function () {
     this.token = token;
     this.memberRoles = memberRoles;
     this.governance = governance;
-    this.oldPool = pool1;
+    this.pool = pool1;
     this.mcr = mcr;
     this.master = await NXMaster.at(masterAddress);
     this.quotationData = quotationData;
@@ -289,6 +289,59 @@ describe('sample test', function () {
     const address = await master.getLatestAddress(code);
     assert.equal(address, ZERO_ADDRESS);
     assert.equal(false, await master.isInternal(newContract.address));
+  });
+
+  it('sets emergency admin', async function () {
+    const { governance, voters, master } = this;
+
+    const emergencyAdmin = UserAddress.HUGH;
+
+    const parameters = [
+      ['bytes8', hex('EMADMIN')],
+      ['address', emergencyAdmin],
+    ];
+    const actionData = web3.eth.abi.encodeParameters(
+      parameters.map(p => p[0]),
+      parameters.map(p => p[1]),
+    );
+
+    await submitGovernanceProposal(ProposalCategory.updateOwnerParameters, actionData, voters, governance);
+
+    const storedEmergencyAdmin = await master.emergencyAdmin();
+
+    console.log({
+      storedEmergencyAdmin,
+    });
+
+    assert.equal(storedEmergencyAdmin.toLowerCase(), emergencyAdmin.toLowerCase());
+
+    this.emergencyAdmin = emergencyAdmin;
+  });
+
+  it('pauses system', async function () {
+    const { master, emergencyAdmin, pool } = this;
+
+    await master.setEmergencyPause(true, {
+      from: emergencyAdmin,
+    });
+
+    assert.equal(await master.paused(), true);
+
+    await expectRevert(
+      pool.buyNXM('0', { value: '0', from: Address.NXMHOLDER }),
+      'System is paused',
+    );
+
+  });
+
+  it('unpauses system', async function () {
+    const { master, emergencyAdmin } = this;
+
+    await master.setEmergencyPause(false, {
+      from: emergencyAdmin,
+    });
+
+    assert.equal(await master.paused(), false);
   });
 
   require('./basic-functionality-tests');

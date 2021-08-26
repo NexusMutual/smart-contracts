@@ -125,9 +125,9 @@ library AssessmentClaimsLib {
     mapping(uint => address payable) storage internalContracts,
     IAssessment.Claim[] storage claims,
     address[] storage claimants,
-    uint104 id
+    uint104 claimId
   ) external {
-    IAssessment.Claim memory claim = claims[id];
+    IAssessment.Claim memory claim = claims[claimId];
     require(
       AssessmentVoteLib._getPollStatus(claim.poll) == IAssessment.PollStatus.ACCEPTED,
       "The claim must be accepted"
@@ -139,7 +139,7 @@ library AssessmentClaimsLib {
     );
 
     require(!claim.details.payoutRedeemed, "Payout has already been redeemed");
-    claims[id].details.payoutRedeemed = true;
+    claims[claimId].details.payoutRedeemed = true;
 
     ICover coverContract = ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
     address payable coverOwner = payable(claimants[claim.details.coverId]);
@@ -168,5 +168,4 @@ library AssessmentClaimsLib {
   }
 
   event ProofSubmitted(uint indexed coverId, address indexed owner, string ipfsHash);
-  event ProofSubmitted2(uint indexed coverId, address indexed owner, string ipfsHash);
 }

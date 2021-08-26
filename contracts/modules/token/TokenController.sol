@@ -99,7 +99,6 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
    * @param _value  Amount to transfer
    */
   function operatorTransfer(address _from, address _to, uint _value) external onlyInternal returns (bool) {
-    require(msg.sender == address(pooledStaking), "TokenController: Call is only allowed from PooledStaking address");
     token.operatorTransfer(_from, _value);
     token.transfer(_to, _value);
     return true;

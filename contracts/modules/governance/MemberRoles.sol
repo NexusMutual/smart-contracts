@@ -386,6 +386,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   /// @dev Returns true if the given role id is assigned to a member.
   /// @param _memberAddress Address of member
   /// @param _roleId Checks member's authenticity with the roleId.
+  /// i.e. Returns true if this roleId is assigned to member
   function checkRole(address _memberAddress, uint _roleId) public view returns (bool) {//solhint-disable-line
     if (_roleId == uint(Role.UnAssigned))
       return true;

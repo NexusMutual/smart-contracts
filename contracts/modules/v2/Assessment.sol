@@ -52,7 +52,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor (address masterAddress) {
+  constructor(address masterAddress) {
     // [todo] Move to intiialize function
     // The minimum cover premium is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
     config.rewardRatio = 52; // 0.52%
@@ -129,7 +129,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       date
     );
 
-    AssessmentIncidentsLib.saveIncident (
+    AssessmentIncidentsLib.saveIncident(
       incident,
       incidents,
       affectedToken,
@@ -137,13 +137,13 @@ contract Assessment is IAssessment, MasterAwareV2 {
     );
   }
 
-  function depositStake (uint96 amount) external override onlyMember {
+  function depositStake(uint96 amount) external override onlyMember {
     stakeOf[msg.sender].amount += amount;
     ITokenController(getInternalContractAddress(ID.TC))
       .operatorTransfer(msg.sender, address(this), amount);
   }
 
-  function withdrawReward (address user, uint104 untilIndex) external override {
+  function withdrawReward(address user, uint104 untilIndex) external override {
     AssessmentVoteLib.withdrawReward(
       config,
       nxm,
@@ -156,11 +156,11 @@ contract Assessment is IAssessment, MasterAwareV2 {
     );
   }
 
-  function withdrawStake (uint96 amount) external override onlyMember {
+  function withdrawStake(uint96 amount) external override onlyMember {
     AssessmentVoteLib.withdrawStake(config, nxm, stakeOf, votesOf, amount);
   }
 
-  function redeemClaimPayout (uint104 id) external override {
+  function redeemClaimPayout(uint104 id) external override {
     AssessmentClaimsLib.redeemClaimPayout(
       config,
       internalContracts,
@@ -170,7 +170,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     );
   }
 
-  function redeemIncidentPayout (uint104 incidentId, uint32 coverId, uint depeggedTokens)
+  function redeemIncidentPayout(uint104 incidentId, uint32 coverId, uint depeggedTokens)
   external override onlyMember {
     AssessmentIncidentsLib.redeemIncidentPayout(
       internalContracts,
@@ -180,8 +180,20 @@ contract Assessment is IAssessment, MasterAwareV2 {
     );
   }
 
+  function redeemCoverForDeniedClaim(uint coverId, uint claimId)
+  external override {
+    AssessmentClaimsLib.redeemCoverForDeniedClaim(
+    config,
+    internalContracts,
+    claims,
+    claimants,
+    coverId,
+    claimId
+    );
+  }
+
   // [todo] Check how many times poll is loaded from storage
-  function castVote (uint8 eventType, uint104 id, bool accepted) external override onlyMember {
+  function castVote(uint8 eventType, uint104 id, bool accepted) external override onlyMember {
     AssessmentVoteLib.castVote(
     config,
     eventType,
@@ -195,11 +207,11 @@ contract Assessment is IAssessment, MasterAwareV2 {
     );
   }
 
-  function submitFraud (bytes32 root) external override onlyGovernance {
+  function submitFraud(bytes32 root) external override onlyGovernance {
     fraudMerkleRoots.push(root);
   }
 
-  function burnFraud (
+  function burnFraud(
     uint256 rootIndex,
     bytes32[] calldata proof,
     address fraudulentAssessor,
@@ -232,7 +244,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     );
   }
 
-  function updateUintParameters (UintParams[] calldata paramNames, uint[] calldata values)
+  function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)
   external override onlyGovernance {
     config = AssessmentGovernanceActionsLib.getUpdatedUintParameters(config, paramNames, values);
   }

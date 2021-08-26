@@ -174,21 +174,23 @@ interface IAssessment is IERC721Receiver {
     uint32 date
   ) external;
 
-  function depositStake (uint96 amount) external;
+  function depositStake(uint96 amount) external;
 
-  function withdrawReward (address user, uint104 untilIndex) external;
+  function withdrawReward(address user, uint104 untilIndex) external;
 
-  function withdrawStake (uint96 amount) external;
+  function withdrawStake(uint96 amount) external;
 
-  function redeemClaimPayout (uint104 id) external;
+  function redeemClaimPayout(uint104 id) external;
 
-  function redeemIncidentPayout (uint104 incidentId, uint32 coverId, uint depeggedTokens) external;
+  function redeemCoverForDeniedClaim(uint coverId, uint claimId) external;
 
-  function castVote (uint8 eventType, uint104 id, bool accepted) external;
+  function redeemIncidentPayout(uint104 incidentId, uint32 coverId, uint depeggedTokens) external;
 
-  function submitFraud (bytes32 root) external;
+  function castVote(uint8 eventType, uint104 id, bool accepted) external;
 
-  function burnFraud (
+  function submitFraud(bytes32 root) external;
+
+  function burnFraud(
     uint256 rootIndex,
     bytes32[] calldata proof,
     address fraudulentAssessor,
@@ -198,7 +200,7 @@ interface IAssessment is IERC721Receiver {
     uint256 voteBatchSize
   ) external;
 
-  function updateUintParameters (UintParams[] calldata paramNames, uint[] calldata values) external;
+  function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values) external;
 
   /* ========== EVENTS ========== */
 

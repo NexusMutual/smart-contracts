@@ -67,7 +67,6 @@ library AssessmentClaimsLib {
 
     if (hasProof) {
       emit ProofSubmitted(coverId, msg.sender, ipfsProofHash);
-      emit ProofSubmitted2(coverId, msg.sender, ipfsProofHash);
     }
 
     uint16 coverPeriod = 365;
@@ -95,7 +94,7 @@ library AssessmentClaimsLib {
   }
 
   // [warn] This function has a critical bug if more than two claims are allowed
-  function returnCoverToClaimant(
+  function redeemCoverForDeniedClaim(
     IAssessment.Configuration calldata config,
     mapping(uint => address payable) storage internalContracts,
     IAssessment.Claim[] storage claims,
@@ -106,7 +105,7 @@ library AssessmentClaimsLib {
     IAssessment.Poll memory poll = claims[claimId].poll;
     require(
       AssessmentVoteLib._getPollStatus(poll) == IAssessment.PollStatus.DENIED,
-      "Cover can be returned only if the claim is denied"
+      "Cover can be redeemed only if the claim is denied"
     );
 
     ICover coverContract = ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);

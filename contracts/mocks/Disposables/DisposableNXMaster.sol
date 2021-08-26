@@ -9,7 +9,7 @@ contract DisposableNXMaster is NXMaster {
   function initialize(
     address _owner,
     address _tokenAddress,
-    uint _pauseTime,
+    address _emergencyAdmin,
     bytes2[] calldata _contractNames,
     uint8[] calldata _contractTypes, // 0 - eternal storage, 1 - "upgradable", 2 - proxy
     address payable[] calldata _contractAddresses
@@ -20,7 +20,7 @@ contract DisposableNXMaster is NXMaster {
 
     owner = _owner;
     tokenAddress = _tokenAddress;
-    pauseTime = _pauseTime;
+    emergencyAdmin = _emergencyAdmin;
 
     masterAddress = address(this);
     contractsActive[address(this)] = true;
@@ -35,12 +35,12 @@ contract DisposableNXMaster is NXMaster {
       bytes2 name = _contractNames[i];
       address payable contractAddress = _contractAddresses[i];
 
-      allContractNames.push(name);
-      allContractVersions[name] = contractAddress;
+      contractCodes.push(name);
+      contractAddresses[name] = contractAddress;
       contractsActive[contractAddress] = true;
 
       if (_contractTypes[i] == 1) {
-        isUpgradable[name] = true;
+        isReplaceable[name] = true;
       } else if (_contractTypes[i] == 2) {
         isProxy[name] = true;
       }
@@ -50,16 +50,16 @@ contract DisposableNXMaster is NXMaster {
   function switchGovernanceAddress(address payable newGV) external {
 
     {// change governance address
-      address currentGV = allContractVersions["GV"];
-      allContractVersions["GV"] = newGV;
+      address currentGV = contractAddresses["GV"];
+      contractAddresses["GV"] = newGV;
       contractsActive[currentGV] = false;
       contractsActive[newGV] = true;
     }
 
     // notify all contracts about address change
-    for (uint i = 0; i < allContractNames.length; i++) {
-      address _address = allContractVersions[allContractNames[i]];
-      LegacyMasterAware up = LegacyMasterAware(_address);
+    for (uint i = 0; i < contractCodes.length; i++) {
+      address _address = contractAddresses[contractCodes[i]];
+      MasterAware up = MasterAware(_address);
       up.changeMasterAddress(address(this));
       up.changeDependentContractAddress();
     }

@@ -25,4 +25,7 @@ contract DisposableTokenController is TokenController {
 
   }
 
+  function addToWhitelist(address _member) public {
+    token.addToWhiteList(_member);
+  }
 }

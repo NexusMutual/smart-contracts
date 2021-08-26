@@ -147,7 +147,7 @@ contract Incidents is IIncidents, MasterAware {
     uint incidentId,
     uint coveredTokenAmount,
     address coverOwner
-  ) internal returns (uint claimId, uint payoutAmount, address coverAsset) {
+  ) internal whenNotPaused returns (uint claimId, uint payoutAmount, address coverAsset) {
     IQuotationData qd = quotationData();
     Incident memory incident = incidents[incidentId];
     uint sumAssured;

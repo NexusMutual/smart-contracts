@@ -61,25 +61,42 @@ contract ClaimsReward is IClaimsReward, LegacyMasterAware {
     mcr = IMCR(ms.getLatestAddress("MC"));
   }
 
-  /// @dev Decides the next course of action for a given claim.
-  function changeClaimStatus(uint claimid) public checkPause onlyInternal {
+  /**
+   * @dev Claims are closable by anyone
+   * @param _claimId id of claim to be closed.
+   */
+  function closeClaim(uint _claimId) external {
 
-    (, uint coverid) = cd.getClaimCoverId(claimid);
-    (, uint status) = cd.getClaimStatusNumber(claimid);
+    (, , , uint status, uint dateUpd,) = cd.getClaim(_claimId);
+    bool canRetryPayout = status != 12 || dateUpd.add(cd.payoutRetryTime()) < block.timestamp;
+    require(canRetryPayout, "ClaimsReward: Payout retry time not reached.");
+
+    _changeClaimStatus(_claimId);
+  }
+
+  function changeClaimStatus(uint claimId) public checkPause onlyInternal {
+    _changeClaimStatus(claimId);
+  }
+
+  /// @dev Decides the next course of action for a given claim.
+  function _changeClaimStatus(uint claimId) internal {
+
+    (, uint coverid) = cd.getClaimCoverId(claimId);
+    (, uint status) = cd.getClaimStatusNumber(claimId);
 
     // when current status is "Pending-Claim Assessor Vote"
     if (status == 0) {
-      _changeClaimStatusCA(claimid, coverid, status);
+      _changeClaimStatusCA(claimId, coverid, status);
     } else if (status >= 1 && status <= 5) {
-      _changeClaimStatusMV(claimid, coverid, status);
+      _changeClaimStatusMV(claimId, coverid, status);
     } else if (status == 12) {// when current status is "Claim Accepted Payout Pending"
 
       bool payoutSucceeded = attemptClaimPayout(coverid);
 
       if (payoutSucceeded) {
-        c1.setClaimStatus(claimid, 14);
+        c1.setClaimStatus(claimId, 14);
       } else {
-        c1.setClaimStatus(claimid, 12);
+        c1.setClaimStatus(claimId, 12);
       }
     }
   }

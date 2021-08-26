@@ -22,7 +22,7 @@ const coverTemplate = {
 
 const claimAndVote = async (contracts, coverId, member, assessor, accept) => {
 
-  const { cl, cd, master } = contracts;
+  const { cl, cd, cr } = contracts;
 
   await cl.submitClaim(coverId, { from: member });
   const claimId = (await cd.actualClaimLength()).subn(1);
@@ -32,7 +32,7 @@ const claimAndVote = async (contracts, coverId, member, assessor, accept) => {
 
   const maxVotingTime = await cd.maxVotingTime();
   await setNextBlockTime(submittedAt.add(maxVotingTime).toNumber());
-  await master.closeClaim(claimId);
+  await cr.closeClaim(claimId);
 
   const { statno: status } = await cd.getClaimStatusNumber(claimId);
   const expectedStatus = accept ? 14 : 6;
@@ -119,7 +119,7 @@ describe('withdrawCoverNote', function () {
 
   it('does not allow to withdrawCoverNote with an open claim', async function () {
 
-    const { master, cd, cl, qt, tc, tk } = this.contracts;
+    const { cr, cd, cl, qt, tc, tk } = this.contracts;
 
     const cover = { ...coverTemplate };
     await buyCover({ ...this.contracts, cover, coverHolder: member1 });
@@ -148,7 +148,7 @@ describe('withdrawCoverNote', function () {
 
     const maxVotingTime = await cd.maxVotingTime();
     await setNextBlockTime(submittedAt.add(maxVotingTime).toNumber());
-    await master.closeClaim(claimId);
+    await cr.closeClaim(claimId);
 
     const { statno: status } = await cd.getClaimStatusNumber(claimId);
     assert.equal(status.toString(), '6'); // CA vote denied

@@ -14,7 +14,7 @@ const productId = daiCoverTemplate.contractAddress;
 let ybDAI;
 const EMPTY_DATA = web3.eth.abi.encodeParameters([], []);
 
-async function voteOnClaim ({ verdict, claimId, master, cd, cl }) {
+async function voteOnClaim ({ verdict, claimId, cd, cl, cr }) {
   await cl.submitCAVote(claimId, verdict, { from: member });
 
   const minVotingTime = await cd.minVotingTime();
@@ -23,7 +23,7 @@ async function voteOnClaim ({ verdict, claimId, master, cd, cl }) {
   const voteStatusBefore = await cl.checkVoteClosing(claimId);
   assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
 
-  await master.closeClaim(claimId);
+  await cr.closeClaim(claimId);
   const voteStatusAfter = await cl.checkVoteClosing(claimId);
   assert(voteStatusAfter.eqn(-1), 'voting should be closed');
 }

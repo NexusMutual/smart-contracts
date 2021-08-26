@@ -251,7 +251,7 @@ describe('Token price functions', function () {
   });
 
   it('sellNXM reverts for member if tokens are locked for member vote', async function () {
-    const { cd: claimsData, cl: claims, qd: quotationData, p1: pool, tk: token, master } = this.contracts;
+    const { cd: claimsData, cl: claims, qd: quotationData, p1: pool, tk: token, master, cr } = this.contracts;
     const cover = { ...coverTemplate };
     await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
 
@@ -272,7 +272,7 @@ describe('Token price functions', function () {
     const maxVotingTime = await claimsData.maxVotingTime();
     await time.increase(maxVotingTime.addn(1));
 
-    await master.closeClaim(claimId); // trigger changeClaimStatus
+    await cr.closeClaim(claimId); // trigger changeClaimStatus
     const voteStatusAfter = await claims.checkVoteClosing(claimId);
     assert(voteStatusAfter.eqn(0), 'voting should not be closed');
 
@@ -288,11 +288,11 @@ describe('Token price functions', function () {
       'Pool: NXM tokens are locked for voting',
     );
     await time.increase(maxVotingTime.addn(1));
-    await master.closeClaim(claimId);
+    await cr.closeClaim(claimId);
   });
 
   it('computes token price correctly to decide sum of locked tokens value > 10 * sumAssured and close vote immediately', async function () {
-    const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
+    const { cd, cl, qd, mr, master, p1, dai, cr } = this.contracts;
 
     const coverUnitAmount = 28;
     const coverAmount = ether(coverUnitAmount.toString());
@@ -330,7 +330,7 @@ describe('Token price functions', function () {
     const voteStatusAfter = await cl.checkVoteClosing(claimId);
     assert.equal(voteStatusAfter.toString(), toBN('-1'), 'voting should be closed');
 
-    await master.closeClaim(claimId); // trigger changeClaimStatus
+    await cr.closeClaim(claimId); // trigger changeClaimStatus
     const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(
       claimStatusCA.toNumber(), 14,
@@ -339,7 +339,7 @@ describe('Token price functions', function () {
   });
 
   it('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured and value < 10 * sumAssured for CA vote and allow closing after maxVotingTime', async function () {
-    const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
+    const { cd, cl, qd, mr, master, p1, dai, cr } = this.contracts;
 
     const coverUnitAmount = 28;
     const coverAmount = ether(coverUnitAmount.toString());
@@ -373,7 +373,7 @@ describe('Token price functions', function () {
 
     const voteStatusAfter = await cl.checkVoteClosing(claimId);
     assert.equal(voteStatusAfter.toString(), '1', 'voting should be closing');
-    await master.closeClaim(claimId); // trigger changeClaimStatus
+    await cr.closeClaim(claimId); // trigger changeClaimStatus
 
     const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(
@@ -383,7 +383,7 @@ describe('Token price functions', function () {
   });
 
   it('computes token price correctly to decide sum of locked tokens value < 5 * sumAssured for CA vote and go to member vote', async function () {
-    const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
+    const { cd, cl, qd, mr, master, p1, dai, cr } = this.contracts;
 
     const coverUnitAmount = 28;
     const coverAmount = ether(coverUnitAmount.toString());
@@ -413,7 +413,7 @@ describe('Token price functions', function () {
 
     const voteStatusAfter = await cl.checkVoteClosing(claimId);
     assert.equal(voteStatusAfter.toString(), '1', 'voting should be closing');
-    await master.closeClaim(claimId); // trigger changeClaimStatus
+    await cr.closeClaim(claimId); // trigger changeClaimStatus
 
     const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(
@@ -424,7 +424,7 @@ describe('Token price functions', function () {
 
   it('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured for MV vote', async function () {
 
-    const { cd, cl, qd, mr, master, p1, tk } = this.contracts;
+    const { cd, cl, qd, mr, master, p1, tk, cr } = this.contracts;
     const coverUnitAmount = 28;
     const coverAmount = ether(coverUnitAmount.toString());
     const cover = { ...coverTemplate, amount: coverUnitAmount };
@@ -452,7 +452,7 @@ describe('Token price functions', function () {
     const maxVotingTime = await cd.maxVotingTime();
     await time.increase(maxVotingTime.addn(1));
 
-    await master.closeClaim(claimId); // trigger changeClaimStatus
+    await cr.closeClaim(claimId); // trigger changeClaimStatus
     const voteStatusAfter = await cl.checkVoteClosing(claimId);
     assert(voteStatusAfter.eqn(0), 'voting should not be closed');
 
@@ -467,7 +467,7 @@ describe('Token price functions', function () {
      */
     await cl.submitMemberVote(claimId, toBN('-1'), { from: member4 });
     await time.increase(maxVotingTime.addn(1));
-    await master.closeClaim(claimId);
+    await cr.closeClaim(claimId);
 
     const { statno: claimStatusMV } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(
@@ -478,7 +478,7 @@ describe('Token price functions', function () {
 
   it('computes token price correctly to decide sum of locked tokens value < 5 * sumAssured for MV vote', async function () {
 
-    const { cd, cl, qd, mr, master, p1, tk } = this.contracts;
+    const { cd, cl, qd, mr, master, p1, tk, cr } = this.contracts;
     const coverUnitAmount = 28;
     const coverAmount = ether(coverUnitAmount.toString());
     const cover = { ...coverTemplate, amount: coverUnitAmount };
@@ -506,7 +506,7 @@ describe('Token price functions', function () {
     const maxVotingTime = await cd.maxVotingTime();
     await time.increase(maxVotingTime.addn(1));
 
-    await master.closeClaim(claimId); // trigger changeClaimStatus
+    await cr.closeClaim(claimId); // trigger changeClaimStatus
     const voteStatusAfter = await cl.checkVoteClosing(claimId);
     assert(voteStatusAfter.eqn(0), 'voting should not be closed');
 
@@ -521,7 +521,7 @@ describe('Token price functions', function () {
      */
     await cl.submitMemberVote(claimId, toBN('-1'), { from: member5 });
     await time.increase(maxVotingTime.addn(1));
-    await master.closeClaim(claimId);
+    await cr.closeClaim(claimId);
 
     const { statno: claimStatusMV } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(

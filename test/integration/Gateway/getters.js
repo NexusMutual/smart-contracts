@@ -200,7 +200,7 @@ describe('getters', function () {
     });
 
     it('returns claim status ACCEPTED with no payout if all payout attempts failed', async function () {
-      const { cd, cl, qd, mr, master, gateway } = this.contracts;
+      const { cd, cl, qd, mr, cr, gateway } = this.contracts;
       const coverData = { ...ethCoverTemplate };
       const coverHolder = member1;
 
@@ -217,12 +217,12 @@ describe('getters', function () {
       const minVotingTime = await cd.minVotingTime();
       await time.increase(minVotingTime.addn(1));
 
-      await master.closeClaim(claimId);
+      await cr.closeClaim(claimId);
 
       const payoutRetryTime = await cd.payoutRetryTime();
       for (let i = 0; i <= 60; i++) {
         await time.increase(payoutRetryTime.addn(1));
-        await master.closeClaim(claimId);
+        await cr.closeClaim(claimId);
       }
 
       const { statno: finalClaimStatus } = await cd.getClaimStatusNumber(claimId);

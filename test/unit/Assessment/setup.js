@@ -114,6 +114,7 @@ async function setup () {
     nxm,
     dai,
     assessment,
+    cover,
     master,
     assessmentVoteLibTest,
     assessmentGovernanceActionsLibTest,

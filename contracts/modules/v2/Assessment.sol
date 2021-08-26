@@ -248,7 +248,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
-    internalContracts[uint(ID.P1)] = master.getLatestAddress("CO");
+    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
   }
 
   // Required to receive NFTS

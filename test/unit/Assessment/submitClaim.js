@@ -6,7 +6,7 @@ const { submitClaim, daysToSeconds, ASSET } = require('./helpers');
 
 const { parseEther } = ethers.utils;
 
-describe.only('submitClaim', function () {
+describe('submitClaim', function () {
   it('reverts if the submission deposit is not sent', async function () {
     assert(false, '[todo]');
   });

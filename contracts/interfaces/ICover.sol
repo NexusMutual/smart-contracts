@@ -37,7 +37,6 @@ interface ICover is IERC721 {
     address owner,
     uint24 productId,
     uint8 payoutAsset,
-    uint8 deniedClaims,
     uint96 amount,
     uint32 period,
     uint maxPrice,
@@ -56,7 +55,7 @@ interface ICover is IERC721 {
 
   function incrementDeniedClaims(uint coverId) external;
 
-  function performCoverBurn(uint coverId, address owner, uint amount) external;
+  function performPayoutBurn(uint coverId, address owner, uint amount) external;
 
   /* ========== EVENTS ========== */
 

@@ -164,7 +164,7 @@ interface IAssessment is IERC721Receiver {
   function submitClaim(
     uint24 coverId,
     uint96 requestedAmount,
-    bool withProof,
+    bool hasProof,
     string calldata ipfsProofHash
   ) external payable;
 

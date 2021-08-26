@@ -13,14 +13,9 @@ describe.only('Assessment', function () {
   });
 
   require('./getPollStatus');
-  // require('./getPayoutImpactOfClaim');
-  // require('./getPayoutImpactOfIncident');
   require('./getPollEndDate');
-  // require('./getCooldownEndDate');
-  // require('./getPollStatus');
-  // require('./submitClaim');
+  require('./submitClaim');
   // require('./submitIncident');
-  // require('./releaseIncidentAssessmentDeposit');
   require('./depositStake');
   // require('./withdrawReward');
   // require('./withdrawStake');

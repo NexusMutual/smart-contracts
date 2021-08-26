@@ -15,6 +15,11 @@ const STATUS = {
   DENIED: 2,
 };
 
+const ASSET = {
+  ETH: 0,
+  DAI: 1,
+};
+
 // Converts days to seconds
 const daysToSeconds = numberOfDays => numberOfDays * 24 * 60 * 60;
 
@@ -76,15 +81,22 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
   return gasUsed;
 };
 
-const submitClaim = ({ contracts, config }) => async (id, amount) => {
-  const DEFAULT_COVER_AMOUNT = parseEther('1');
+const submitClaim = ({ accounts, contracts, config }) => async ({
+  coverId = 0,
+  amount = parseEther('1'),
+  hasProof = false,
+  ipfsProofHash = '',
+  sender,
+}) => {
   const { claimAssessmentDepositRatio } = config;
   const claimAssessmentDeposit = parseEther('1')
     .mul(claimAssessmentDepositRatio)
     .div('10000');
-  await contracts.assessment.submitClaim(id, amount || DEFAULT_COVER_AMOUNT, false, '', {
-    value: claimAssessmentDeposit,
-  });
+  return await contracts.assessment
+    .connect(sender || accounts[0])
+    .submitClaim(coverId, amount, hasProof, ipfsProofHash, {
+      value: claimAssessmentDeposit,
+    });
 };
 
 const getDurationByTokenWeight = ({ config }) => (tokens, payoutImpact) => {
@@ -176,6 +188,7 @@ const getIncidentDetailsStruct = ({
 }) => [productId, date, payoutAsset, activeCoverAmount, expectedPayoutRatio, assessmentDepositRatio];
 
 module.exports = {
+  ASSET,
   STATUS,
   EVENT_TYPE,
   daysToSeconds,

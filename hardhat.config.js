@@ -2,7 +2,7 @@ require('dotenv').config();
 require('@nomiclabs/hardhat-web3');
 require('@nomiclabs/hardhat-truffle5');
 require('@nomiclabs/hardhat-etherscan');
-require('@nomiclabs/hardhat-ethers');
+require('@nomiclabs/hardhat-waffle');
 require('solidity-coverage');
 require('hardhat-contract-sizer');
 

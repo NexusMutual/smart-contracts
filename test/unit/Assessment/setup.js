@@ -80,7 +80,8 @@ async function setup () {
   const accounts = await ethers.getSigners();
   // Use address 0 as governance
   await master.enrollGovernance(accounts[0].address);
-  for (const account of accounts) {
+  for (let i = 0; i < 10; i++) {
+    const account = accounts[i];
     await master.enrollMember(account.address, 1);
     await nxm.mint(account.address, ethers.utils.parseEther('10000'));
     await nxm.connect(account).approve(tokenController.address, ethers.utils.parseEther('10000'));

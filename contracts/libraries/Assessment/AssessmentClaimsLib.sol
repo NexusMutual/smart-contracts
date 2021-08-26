@@ -67,6 +67,7 @@ library AssessmentClaimsLib {
 
     if (hasProof) {
       emit ProofSubmitted(coverId, msg.sender, ipfsProofHash);
+      emit ProofSubmitted2(coverId, msg.sender, ipfsProofHash);
     }
 
     uint16 coverPeriod = 365;
@@ -167,4 +168,5 @@ library AssessmentClaimsLib {
   }
 
   event ProofSubmitted(uint indexed coverId, address indexed owner, string ipfsHash);
+  event ProofSubmitted2(uint indexed coverId, address indexed owner, string ipfsHash);
 }

@@ -11,8 +11,8 @@ import "../../libraries/Assessment/AssessmentVoteLib.sol";
 
 library AssessmentClaimsLib {
 
-  // Percentages are defined between 0-10000 i.e. double decimal precision
-  uint internal constant PERC_BASIS_POINTS = 10000;
+  // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
+  uint internal constant RATIO_BPS = 10000;
 
   // Used in operations involving NXM tokens and divisions
   uint internal constant PRECISION = 10 ** 18;
@@ -29,10 +29,10 @@ library AssessmentClaimsLib {
    *
    *  @param coverId          Cover identifier
    *  @param requestedAmount  The amount expected to be received at payout
-   *  @param withProof        When true, a ProofSubmitted event is emitted with ipfsProofHash.
+   *  @param hasProof         When true, a ProofSubmitted event is emitted with ipfsProofHash.
    *                          When false, no ProofSubmitted event is emitted to save gas if the
    *                          cover wording doesn't enforce a proof of loss.
-   *  @param ipfsProofHash    The IPFS hash required for proof of loss. It is ignored if withProof
+   *  @param ipfsProofHash    The IPFS hash required for proof of loss. It is ignored if hasProof
    *                          is false
    */
   function submitClaim(
@@ -42,12 +42,14 @@ library AssessmentClaimsLib {
     address[] storage claimants,
     uint24 coverId,
     uint96 requestedAmount,
-    bool withProof,
+    bool hasProof,
     string calldata ipfsProofHash
   ) external {
     {
-      uint submissionDeposit = 1 ether * uint(config.claimAssessmentDepositPercentage) / PERC_BASIS_POINTS;
-      require(msg.value == submissionDeposit, "Submission deposit different that the expected value");
+      require(
+        msg.value == 1 ether * uint(config.claimAssessmentDepositRatio) / RATIO_BPS,
+        "Submission deposit different than the expected value"
+      );
     }
     // [todo] Cover premium and total amount need to be obtained from the cover
     // itself. The premium needs to be converted to NXM using a TWAP at claim time.
@@ -63,8 +65,7 @@ library AssessmentClaimsLib {
       coverContract.transferFrom(owner, address(this), coverId);
     }
 
-    // a snapshot of config.claimAssessmentDepositPercentage at submission if it ever changes before redeeming
-    if (withProof) {
+    if (hasProof) {
       emit ProofSubmitted(coverId, msg.sender, ipfsProofHash);
     }
 
@@ -78,7 +79,7 @@ library AssessmentClaimsLib {
       coverPeriod,
       payoutAsset,
       nxmPriceSnapshot,
-      config.claimAssessmentDepositPercentage,
+      config.claimAssessmentDepositRatio,
       false
     );
 
@@ -141,7 +142,7 @@ library AssessmentClaimsLib {
 
     ICover coverContract = ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
     address payable coverOwner = payable(claimants[claim.details.coverId]);
-    coverContract.performCoverBurn(
+    coverContract.performPayoutBurn(
       claim.details.coverId,
       coverOwner,
       claim.details.amount
@@ -159,9 +160,9 @@ library AssessmentClaimsLib {
     require(succeeded, "Claim payout failed");
 
     {
-      uint assessmentDepositToRefund = 1 ether * uint(claim.details.assessmentDepositPerc) / PERC_BASIS_POINTS;
+      uint assessmentDepositToRefund = 1 ether * uint(claim.details.assessmentDepositPerc) / RATIO_BPS;
       (bool refunded, /* bytes data */) = payoutAddress.call{value: assessmentDepositToRefund}("");
-      require(refunded, "Assessment fee refund failed");
+      require(refunded, "Submission deposit refund failed");
     }
   }
 

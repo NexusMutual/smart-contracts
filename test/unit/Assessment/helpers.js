@@ -76,50 +76,43 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
   return gasUsed;
 };
 
-const submitClaim = assessment => async (id, amount) => {
+const submitClaim = ({ contracts, config }) => async (id, amount) => {
   const DEFAULT_COVER_AMOUNT = parseEther('1');
-  const config = await assessment.CONFIG();
-  const { CLAIM_ASSESSMENT_DEPOSIT_PERC } = config;
+  const { claimAssessmentDepositRatio } = config;
   const claimAssessmentDeposit = parseEther('1')
-    .mul(CLAIM_ASSESSMENT_DEPOSIT_PERC)
+    .mul(claimAssessmentDepositRatio)
     .div('10000');
-  await assessment.submitClaim(id, amount || DEFAULT_COVER_AMOUNT, false, '', { value: claimAssessmentDeposit });
+  await contracts.assessment.submitClaim(id, amount || DEFAULT_COVER_AMOUNT, false, '', {
+    value: claimAssessmentDeposit,
+  });
 };
 
-const submitIncident = assessment => async (id, priceBefore, date) => {
-  const config = await assessment.CONFIG();
-  const { INCIDENT_ASSESSMENT_DEPOSIT_PERC } = config;
-  // [todo] Change this to an estimate when incidents can be submitted by all members
-  const payoutImpact = Zero;
-  // [todo] Use this to approve amount of nxm to dpeosit contract
-  // const incidentAssessmentDeposit = payoutImpact.mul(INCIDENT_ASSESSMENT_DEPOSIT_PERC).div('10000');
-  await assessment.submitClaim(id, priceBefore, date);
-};
-
-const getDurationByTokenWeight = (MIN_VOTING_PERIOD_DAYS, MAX_VOTING_PERIOD_DAYS) => (tokens, payoutImpact) => {
+const getDurationByTokenWeight = ({ config }) => (tokens, payoutImpact) => {
+  const { minVotingPeriodDays, maxVotingPeriodDays } = config;
   const MULTIPLIER = '10'; // 10x the cover amount
   let tokenDrivenStrength = tokens.mul(parseEther('1')).div(payoutImpact.mul(MULTIPLIER));
   // tokenDrivenStrength is capped at 1 i.e. 100%
   tokenDrivenStrength = tokenDrivenStrength.gt(parseEther('1')) ? parseEther('1') : tokenDrivenStrength;
-  return BigNumber.from(daysToSeconds(MIN_VOTING_PERIOD_DAYS).toString())
+  return BigNumber.from(daysToSeconds(minVotingPeriodDays).toString())
     .add(
-      BigNumber.from(daysToSeconds(MAX_VOTING_PERIOD_DAYS - MIN_VOTING_PERIOD_DAYS).toString())
+      BigNumber.from(daysToSeconds(maxVotingPeriodDays - minVotingPeriodDays).toString())
         .mul(parseEther('1').sub(tokenDrivenStrength))
         .div(parseEther('1')),
     )
     .toNumber();
 };
 
-const getDurationByConsensus = (MIN_VOTING_PERIOD_DAYS, MAX_VOTING_PERIOD_DAYS) => ({ accepted, denied }) => {
-  if (accepted.isZero()) return daysToSeconds(MAX_VOTING_PERIOD_DAYS);
+const getDurationByConsensus = ({ config }) => ({ accepted, denied }) => {
+  const { minVotingPeriodDays, maxVotingPeriodDays } = config;
+  if (accepted.isZero()) return daysToSeconds(maxVotingPeriodDays);
   const consensusStrength = accepted
     .mul(parseEther('2'))
     .div(accepted.add(denied))
     .sub(parseEther('1'))
     .abs();
-  return parseEther(daysToSeconds(MIN_VOTING_PERIOD_DAYS).toString())
+  return parseEther(daysToSeconds(minVotingPeriodDays).toString())
     .add(
-      parseEther(daysToSeconds(MAX_VOTING_PERIOD_DAYS - MIN_VOTING_PERIOD_DAYS).toString())
+      parseEther(daysToSeconds(maxVotingPeriodDays - minVotingPeriodDays).toString())
         .mul(parseEther('1').sub(consensusStrength))
         .div(parseEther('1')),
     )
@@ -144,22 +137,19 @@ const stakeAndVoteOnEventType = (eventType, assessment, accounts) => async (user
 };
 
 const getConfigurationStruct = ({
-  MIN_VOTING_PERIOD_DAYS,
-  MAX_VOTING_PERIOD_DAYS,
-  PAYOUT_COOLDOWN_DAYS,
-  REWARD_PERC,
-  INCIDENT_IMPACT_ESTIMATE_PERC,
-  CLAIM_ASSESSMENT_DEPOSIT_PERC,
-  INCIDENT_ASSESSMENT_DEPOSIT_PERC,
+  minVotingPeriodDays,
+  maxVotingPeriodDays,
+  payoutCooldownDays,
+  rewardRatio,
+  incidentExpectedPayoutRatio,
+  claimAssessmentDepositRatio,
 }) => [
-  MIN_VOTING_PERIOD_DAYS,
-  MAX_VOTING_PERIOD_DAYS,
-  PAYOUT_COOLDOWN_DAYS,
-  REWARD_PERC,
-  INCIDENT_IMPACT_ESTIMATE_PERC,
-  CLAIM_ASSESSMENT_DEPOSIT_PERC,
-  INCIDENT_ASSESSMENT_DEPOSIT_PERC,
-  0, // unused
+  minVotingPeriodDays,
+  maxVotingPeriodDays,
+  payoutCooldownDays,
+  rewardRatio,
+  incidentExpectedPayoutRatio,
+  claimAssessmentDepositRatio,
 ];
 
 const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
@@ -172,19 +162,18 @@ const getClaimDetailsStruct = ({
   coverPeriod,
   payoutAsset,
   nxmPriceSnapshot,
-  assessmentDepositPerc,
+  assessmentDepositRatio,
   payoutRedeemed,
-}) => [amount, coverId, coverPeriod, payoutAsset, nxmPriceSnapshot, assessmentDepositPerc, payoutRedeemed];
+}) => [amount, coverId, coverPeriod, payoutAsset, nxmPriceSnapshot, assessmentDepositRatio, payoutRedeemed];
 
 const getIncidentDetailsStruct = ({
   productId,
   date,
   payoutAsset,
   activeCoverAmount,
-  impactEstimatePerc,
-  assessmentDepositPerc,
-  depositRedeemed,
-}) => [productId, date, payoutAsset, activeCoverAmount, impactEstimatePerc, assessmentDepositPerc, depositRedeemed];
+  expectedPayoutRatio,
+  assessmentDepositRatio,
+}) => [productId, date, payoutAsset, activeCoverAmount, expectedPayoutRatio, assessmentDepositRatio];
 
 module.exports = {
   STATUS,
@@ -192,7 +181,6 @@ module.exports = {
   daysToSeconds,
   submitFraud,
   submitClaim,
-  submitIncident,
   burnFraud,
   getPollStruct,
   getConfigurationStruct,

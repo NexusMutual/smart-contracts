@@ -13,12 +13,12 @@ library AssessmentGovernanceActionsLib {
     uint[] calldata values
   ) external pure returns (IAssessment.Configuration memory) {
     for (uint i = 0; i < paramNames.length; i++) {
-      if (paramNames[i] == IAssessment.UintParams.rewardPercentage) {
-        config.rewardPercentage = uint16(values[i]);
+      if (paramNames[i] == IAssessment.UintParams.rewardRatio) {
+        config.rewardRatio = uint16(values[i]);
         continue;
       }
-      if (paramNames[i] == IAssessment.UintParams.incidentExpectedPayoutPercentage) {
-        config.incidentExpectedPayoutPercentage = uint16(values[i]);
+      if (paramNames[i] == IAssessment.UintParams.incidentExpectedPayoutRatio) {
+        config.incidentExpectedPayoutRatio = uint16(values[i]);
         continue;
       }
       if (paramNames[i] == IAssessment.UintParams.minVotingPeriodDays) {
@@ -33,12 +33,8 @@ library AssessmentGovernanceActionsLib {
         config.payoutCooldownDays = uint8(values[i]);
         continue;
       }
-      if (paramNames[i] == IAssessment.UintParams.claimAssessmentDepositPercentage) {
-        config.claimAssessmentDepositPercentage = uint16(values[i]);
-        continue;
-      }
-      if (paramNames[i] == IAssessment.UintParams.incidentAssessmentDepositPercentage) {
-        config.incidentAssessmentDepositPercentage = uint16(values[i]);
+      if (paramNames[i] == IAssessment.UintParams.claimAssessmentDepositRatio) {
+        config.claimAssessmentDepositRatio = uint16(values[i]);
         continue;
       }
     }

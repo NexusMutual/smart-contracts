@@ -12,8 +12,10 @@ async function setup () {
   await memberRoles.deployed();
 
   const AssessmentMockTokenController = await ethers.getContractFactory('AssessmentMockTokenController');
-  const tokenController = await AssessmentMockTokenController.deploy();
+  const tokenController = await AssessmentMockTokenController.deploy(nxm.address);
   await tokenController.deployed();
+
+  nxm.setOperator(tokenController.address);
 
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();
@@ -61,12 +63,12 @@ async function setup () {
   await cover.deployed();
 
   const masterInitTxs = await Promise.all([
-    master.setLatestAddress(hex('TK'), nxm.address),
     master.setLatestAddress(hex('TC'), tokenController.address),
     master.setLatestAddress(hex('MR'), memberRoles.address),
     master.setLatestAddress(hex('P1'), pool.address),
     master.setLatestAddress(hex('AS'), assessment.address),
     master.setLatestAddress(hex('CO'), cover.address),
+    master.setTokenAddress(nxm.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
@@ -81,7 +83,7 @@ async function setup () {
   for (const account of accounts) {
     await master.enrollMember(account.address, 1);
     await nxm.mint(account.address, ethers.utils.parseEther('10000'));
-    await nxm.connect(account).approve(assessment.address, ethers.utils.parseEther('10000'));
+    await nxm.connect(account).approve(tokenController.address, ethers.utils.parseEther('10000'));
   }
 
   const AssessmentVoteLibTest = await ethers.getContractFactory('AssessmentVoteLibTest');
@@ -105,10 +107,8 @@ async function setup () {
   await assessmentGovernanceActionsLibTest.deployed();
 
   const config = await assessment.config();
-  this.MIN_VOTING_PERIOD_DAYS = config.minVotingPeriodDays;
-  this.MAX_VOTING_PERIOD_DAYS = config.maxVotingPeriodDays;
-  this.CLAIM_ASSESSMENT_DEPOSIT_PERC = config.claimAssessmentDepositPercentage;
 
+  this.config = config;
   this.accounts = accounts;
   this.contracts = {
     nxm,

@@ -18,8 +18,6 @@ describe.only('Assessment', function () {
   require('./getPollEndDate');
   // require('./getCooldownEndDate');
   // require('./getPollStatus');
-  // require('./getClaimToDisplay');
-  // require('./getClaimsToDisplay');
   // require('./submitClaim');
   // require('./submitIncident');
   // require('./releaseIncidentAssessmentDeposit');

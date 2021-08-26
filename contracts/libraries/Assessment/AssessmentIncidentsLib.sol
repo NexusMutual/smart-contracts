@@ -11,12 +11,12 @@ import "../../interfaces/IMasterAwareV2.sol";
 import "../../libraries/Assessment/AssessmentVoteLib.sol";
 
 library AssessmentIncidentsLib {
-  // Percentages are defined between 0-10000 i.e. double decimal precision
-  uint internal constant PERC_BASIS_POINTS = 10000;
+  // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
+  uint internal constant RATIO_BPS = 10000;
 
   function _getExpectedIncidentPayoutNXM (IAssessment.IncidentDetails memory details)
   internal pure returns (uint) {
-    return details.activeCoverAmount * details.impactEstimatePerc / PERC_BASIS_POINTS;
+    return details.activeCoverAmount * details.expectedPayoutRatio / RATIO_BPS;
   }
 
   function getIncidentToSubmit(
@@ -41,9 +41,7 @@ library AssessmentIncidentsLib {
         date,
         payoutAsset,
         activeCoverAmount, // NXM
-        config.incidentAssessmentDepositPercentage,
-        config.incidentExpectedPayoutPercentage,
-        false
+        config.incidentExpectedPayoutRatio
       )
     );
 
@@ -52,18 +50,6 @@ library AssessmentIncidentsLib {
     IAssessment.AffectedToken memory affectedToken = IAssessment.AffectedToken(priceBefore, tokenAddress);
 
     return (affectedToken, incident);
-  }
-
-  function returnIncidentDeposit(
-    IAssessment.Configuration calldata config,
-    INXMToken nxm,
-    IAssessment.Incident calldata incident
-  ) external {
-    if (config.incidentAssessmentDepositPercentage > 0) {
-      uint expectedPayoutNXM = _getExpectedIncidentPayoutNXM(incident.details);
-      uint deposit = expectedPayoutNXM * config.incidentAssessmentDepositPercentage / PERC_BASIS_POINTS;
-      nxm.transferFrom(msg.sender, address(this), deposit);
-    }
   }
 
   function saveIncident (
@@ -106,7 +92,7 @@ library AssessmentIncidentsLib {
       ) = coverContract.covers(coverId);
 
       require (coverOwner == msg.sender, "Payout can only be redeemed by cover owner");
-      require(productId == incident.details.productId, "Incident id mismatch");
+      require(productId == incident.details.productId, "Product id mismatch");
       require(start <= incident.details.date, "Cover start date is after the incident");
       require(start + period >= incident.details.date, "Cover end date is before the incident");
       uint gracePeriod = 0; // [todo] Get from product
@@ -114,7 +100,7 @@ library AssessmentIncidentsLib {
       // Should BURN_RATIO & DEDUCTIBLE_RATIO be stored in product details?
       payoutAmount = depeggedTokens; // [todo] Calculate payout amount
       require(payoutAmount <= amount, "Payout exceeds covered amount");
-      coverContract.performCoverBurn(coverId, coverOwner, payoutAmount);
+      coverContract.performPayoutBurn(coverId, coverOwner, payoutAmount);
     }
 
 

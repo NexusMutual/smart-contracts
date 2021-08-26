@@ -7,9 +7,9 @@ const { getDurationByTokenWeight, getDurationByConsensus, daysToSeconds } = requ
 const { parseEther } = ethers.utils;
 const { Zero, One } = ethers.constants;
 
-const expectPollEndDate = ({ assessment, assessmentVoteLibTest }) => async (poll, payoutImpact, expected) => {
-  const CONFIG = await assessment.config();
-  const pollEnd = await assessmentVoteLibTest._calculatePollEndDate(CONFIG, poll, payoutImpact);
+const expectPollEndDate = ({ contracts, config }) => async (poll, expectedPayout, expected) => {
+  const { assessmentVoteLibTest } = contracts;
+  const pollEnd = await assessmentVoteLibTest._calculatePollEndDate(config, poll, expectedPayout);
   assert(
     pollEnd === expected,
     `Expected pollEnd to be ${expected} (${new Date(expected * 1000).toUTCString()}) but got ${pollEnd} (${new Date(
@@ -19,10 +19,9 @@ const expectPollEndDate = ({ assessment, assessmentVoteLibTest }) => async (poll
 };
 
 describe('_calculatePollEndDate', function () {
-  it('should revert when given a poll with no votes', async function () {
-    const { assessment, assessmentVoteLibTest } = this.contracts;
-    const CONFIG = await assessment.config();
-    const payoutImpact = parseEther('100');
+  it('reverts when given a poll with no votes', async function () {
+    const { assessmentVoteLibTest } = this.contracts;
+    const expectedPayout = parseEther('100');
     const poll = {
       accepted: 0,
       denied: 0,
@@ -30,18 +29,18 @@ describe('_calculatePollEndDate', function () {
       end: 0,
     };
 
-    await expectRevert.unspecified(assessmentVoteLibTest._calculatePollEndDate(CONFIG, poll, payoutImpact));
+    await expectRevert.unspecified(assessmentVoteLibTest._calculatePollEndDate(this.config, poll, expectedPayout));
   });
 
-  it('should return the maximum between consensus-driven end and token-driven end', async function () {
-    const expectPollEnd = expectPollEndDate(this.contracts);
-    const durationByTokenWeight = getDurationByTokenWeight(this.MIN_VOTING_PERIOD_DAYS, this.MAX_VOTING_PERIOD_DAYS);
-    const durationByConsensus = getDurationByConsensus(this.MIN_VOTING_PERIOD_DAYS, this.MAX_VOTING_PERIOD_DAYS);
+  it('returns the maximum between consensus-driven end and token-driven end', async function () {
+    const expectPollEnd = expectPollEndDate(this);
+    const durationByTokenWeight = getDurationByTokenWeight(this);
+    const durationByConsensus = getDurationByConsensus(this);
 
-    const payoutImpact = parseEther('100');
+    const expectedPayout = parseEther('100');
 
     const poll = {
-      accepted: payoutImpact,
+      accepted: expectedPayout,
       denied: Zero,
       start: 0,
       end: 0,
@@ -51,20 +50,20 @@ describe('_calculatePollEndDate', function () {
       const totalTokens = poll.accepted.add(poll.denied);
       await expectPollEnd(
         poll,
-        payoutImpact,
-        poll.start + Math.max(durationByConsensus(poll), durationByTokenWeight(totalTokens, payoutImpact)),
+        expectedPayout,
+        poll.start + Math.max(durationByConsensus(poll), durationByTokenWeight(totalTokens, expectedPayout)),
       );
     }
 
     const voters = [
-      ['DENIED', payoutImpact],
-      ['DENIED', payoutImpact.mul(2)],
-      ['DENIED', payoutImpact],
-      ['DENIED', payoutImpact.mul(3)],
-      ['ACCEPTED', payoutImpact.mul(3)],
-      ['ACCEPTED', payoutImpact.mul(10)],
-      ['DENIED', payoutImpact.mul(10)],
-      ['ACCEPTED', payoutImpact.mul(10)],
+      ['DENIED', expectedPayout],
+      ['DENIED', expectedPayout.mul(2)],
+      ['DENIED', expectedPayout],
+      ['DENIED', expectedPayout.mul(3)],
+      ['ACCEPTED', expectedPayout.mul(3)],
+      ['ACCEPTED', expectedPayout.mul(10)],
+      ['DENIED', expectedPayout.mul(10)],
+      ['ACCEPTED', expectedPayout.mul(10)],
     ];
 
     for (const voter of voters) {
@@ -77,42 +76,42 @@ describe('_calculatePollEndDate', function () {
       const totalTokens = poll.accepted.add(poll.denied);
       await expectPollEnd(
         poll,
-        payoutImpact,
-        poll.start + Math.max(durationByConsensus(poll), durationByTokenWeight(totalTokens, payoutImpact)),
+        expectedPayout,
+        poll.start + Math.max(durationByConsensus(poll), durationByTokenWeight(totalTokens, expectedPayout)),
       );
     }
   });
 
   describe('if poll result is either 100% accept or 100% deny', () => {
-    it('should decrease from MAX_VOTING_PERIOD_DAYS to MIN_VOTING_PERIOD_DAYS as more tokens are used to vote', async function () {
-      const expectPollEnd = expectPollEndDate(this.contracts);
-      const durationByTokenWeight = getDurationByTokenWeight(this.MIN_VOTING_PERIOD_DAYS, this.MAX_VOTING_PERIOD_DAYS);
+    it('decreases from maxVotingPeriodDays to minVotingPeriodDays as more tokens are used to vote', async function () {
+      const expectPollEnd = expectPollEndDate(this);
+      const durationByTokenWeight = getDurationByTokenWeight(this);
       const expectDecrease = (prev, curr) => {
         assert(prev > curr, `Expected current duration ${curr} to be less than the previous one ${prev}`);
       };
 
-      const payoutImpact = parseEther('100');
+      const expectedPayout = parseEther('100');
 
       const poll = {
-        accepted: payoutImpact,
+        accepted: expectedPayout,
         denied: Zero,
         start: 0,
         end: 0,
       };
       const totalTokens = poll.accepted.add(poll.denied);
-      await expectPollEnd(poll, payoutImpact, poll.start + durationByTokenWeight(totalTokens, payoutImpact));
-      let prev = durationByTokenWeight(totalTokens, payoutImpact);
+      await expectPollEnd(poll, expectedPayout, poll.start + durationByTokenWeight(totalTokens, expectedPayout));
+      let prev = durationByTokenWeight(totalTokens, expectedPayout);
 
       const voters = [
-        ['ACCEPTED', payoutImpact.div(4)],
-        ['ACCEPTED', payoutImpact.div(4)],
-        ['ACCEPTED', payoutImpact.div(2)],
-        ['ACCEPTED', payoutImpact],
-        ['ACCEPTED', payoutImpact],
-        ['ACCEPTED', payoutImpact],
-        ['ACCEPTED', payoutImpact.mul(15).div(10)],
-        ['ACCEPTED', payoutImpact.mul(15).div(10)],
-        ['ACCEPTED', payoutImpact.mul(3)],
+        ['ACCEPTED', expectedPayout.div(4)], // 1.25x
+        ['ACCEPTED', expectedPayout.div(4)], // 1.50x
+        ['ACCEPTED', expectedPayout.div(2)], // 2.00x
+        ['ACCEPTED', expectedPayout], // 3.00x
+        ['ACCEPTED', expectedPayout], // 4.00x
+        ['ACCEPTED', expectedPayout], // 5.00x
+        ['ACCEPTED', expectedPayout.mul(15).div(10)], // 6.50x
+        ['ACCEPTED', expectedPayout.mul(15).div(10)], // 8.00x
+        ['ACCEPTED', expectedPayout.mul(2)], // 10.00x
       ];
 
       for (const voter of voters) {
@@ -123,83 +122,83 @@ describe('_calculatePollEndDate', function () {
           poll.denied = poll.denied.add(tokenWeight);
         }
         const totalTokens = poll.accepted.add(poll.denied);
-        const curr = durationByTokenWeight(totalTokens, payoutImpact);
-        await expectPollEnd(poll, payoutImpact, poll.start + durationByTokenWeight(totalTokens, payoutImpact));
+        const curr = durationByTokenWeight(totalTokens, expectedPayout);
+        await expectPollEnd(poll, expectedPayout, poll.start + durationByTokenWeight(totalTokens, expectedPayout));
         expectDecrease(prev, curr);
         prev = curr;
       }
     });
 
-    it('should not end in less than MIN_VOTING_PERIOD_DAYS when the amount of tokens used to vote >= 10x payout impact', async function () {
-      const expectPollEnd = expectPollEndDate(this.contracts);
+    it('ends after minVotingPeriodDays no matter how many more tokens beyond 10x expected payout have been used to vote', async function () {
+      const expectPollEnd = expectPollEndDate(this);
 
-      const payoutImpact = parseEther('100');
+      const expectedPayout = parseEther('100');
       const poll = {
-        accepted: payoutImpact.mul('20'),
+        accepted: expectedPayout.mul('20'),
         denied: Zero,
         start: 0,
         end: 0,
       };
 
-      await expectPollEnd(poll, payoutImpact, poll.start + daysToSeconds(this.MIN_VOTING_PERIOD_DAYS));
+      await expectPollEnd(poll, expectedPayout, poll.start + daysToSeconds(this.config.minVotingPeriodDays));
     });
   });
 
-  describe('if tokens used for voting >= 10x payout impact', () => {
-    it('should end after MIN_VOTING_PERIOD_DAYS when poll result is 100% accept', async function () {
-      const expectPollEnd = expectPollEndDate(this.contracts);
+  describe('if tokens used for voting >= 10x expected payout', () => {
+    it('ends after minVotingPeriodDays when poll result is 100% accept', async function () {
+      const expectPollEnd = expectPollEndDate(this);
 
-      const payoutImpact = parseEther('100');
+      const expectedPayout = parseEther('100');
       const poll = {
-        accepted: payoutImpact.mul('10'),
+        accepted: expectedPayout.mul('10'),
         denied: Zero,
         start: 0,
         end: 0,
       };
 
-      await expectPollEnd(poll, payoutImpact, poll.start + daysToSeconds(this.MIN_VOTING_PERIOD_DAYS));
+      await expectPollEnd(poll, expectedPayout, poll.start + daysToSeconds(this.config.minVotingPeriodDays));
 
-      poll.accepted = poll.accepted.add(payoutImpact.mul('10'));
-      await expectPollEnd(poll, payoutImpact, poll.start + daysToSeconds(this.MIN_VOTING_PERIOD_DAYS));
+      poll.accepted = poll.accepted.add(expectedPayout.mul('10'));
+      await expectPollEnd(poll, expectedPayout, poll.start + daysToSeconds(this.config.minVotingPeriodDays));
     });
 
-    it('should end after MIN_VOTING_PERIOD_DAYS when poll result is 100% deny', async function () {
-      const expectPollEnd = expectPollEndDate(this.contracts);
+    it('ends after minVotingPeriodDays when poll result is 100% deny', async function () {
+      const expectPollEnd = expectPollEndDate(this);
 
       // 1 wei accept, 10 x payout amount deny
-      const payoutImpact = parseEther('100');
+      const expectedPayout = parseEther('100');
       const poll = {
         accepted: One,
-        denied: payoutImpact.mul('10'),
+        denied: expectedPayout.mul('10'),
         start: 0,
         end: 0,
       };
-      await expectPollEnd(poll, payoutImpact, poll.start + daysToSeconds(this.MIN_VOTING_PERIOD_DAYS));
+      await expectPollEnd(poll, expectedPayout, poll.start + daysToSeconds(this.config.minVotingPeriodDays));
     });
 
-    it('should end after MAX_VOTING_PERIOD_DAYS when poll result is 50% deny, 50% accept', async function () {
-      const expectPollEnd = expectPollEndDate(this.contracts);
+    it('ends after maxVotingPeriodDays when poll result is 50% deny, 50% accept', async function () {
+      const expectPollEnd = expectPollEndDate(this);
 
-      const payoutImpact = parseEther('100');
+      const expectedPayout = parseEther('100');
       const poll = {
-        accepted: payoutImpact.mul('10'),
-        denied: payoutImpact.mul('10'),
+        accepted: expectedPayout.mul('10'),
+        denied: expectedPayout.mul('10'),
         start: 0,
         end: 0,
       };
-      await expectPollEnd(poll, payoutImpact, poll.start + daysToSeconds(this.MAX_VOTING_PERIOD_DAYS));
+      await expectPollEnd(poll, expectedPayout, poll.start + daysToSeconds(this.config.maxVotingPeriodDays));
     });
 
-    it('should increase from MIN_VOTING_PERIOD_DAYS to MAX_VOTING_PERIOD_DAYS as the poll result gets closer to 50%-50%', async function () {
-      const expectPollEnd = expectPollEndDate(this.contracts);
-      const durationByConsensus = getDurationByConsensus(this.MIN_VOTING_PERIOD_DAYS, this.MAX_VOTING_PERIOD_DAYS);
+    it('increases from minVotingPeriodDays to maxVotingPeriodDays as the poll result gets closer to 50%-50%', async function () {
+      const expectPollEnd = expectPollEndDate(this);
+      const durationByConsensus = getDurationByConsensus(this);
       const expectIncrease = (prev, curr) => {
         assert(prev < curr, `Expected current duration ${curr} to be grater than the previous one ${prev}`);
       };
 
       {
         // From 100% accept to 50%-50%
-        const payoutImpact = parseEther('100');
+        const expectedPayout = parseEther('100');
         const poll = {
           accepted: Zero,
           denied: Zero,
@@ -208,13 +207,13 @@ describe('_calculatePollEndDate', function () {
         };
 
         const voters = [
-          ['ACCEPTED', payoutImpact.mul(10)], // 100 - 0
-          ['DENIED', payoutImpact], // 90.90 - 9.09
-          ['DENIED', payoutImpact], // 83.33 - 16.66
-          ['DENIED', payoutImpact], // 76.92 - 23.08
-          ['DENIED', payoutImpact], // 71.42 - 28.75
-          ['DENIED', payoutImpact], // 66.66 - 33.33
-          ['DENIED', payoutImpact.mul(5)], // 50 - 50
+          ['ACCEPTED', expectedPayout.mul(10)], // 100 - 0
+          ['DENIED', expectedPayout], // 90.90 - 9.09
+          ['DENIED', expectedPayout], // 83.33 - 16.66
+          ['DENIED', expectedPayout], // 76.92 - 23.08
+          ['DENIED', expectedPayout], // 71.42 - 28.75
+          ['DENIED', expectedPayout], // 66.66 - 33.33
+          ['DENIED', expectedPayout.mul(5)], // 50 - 50
         ];
 
         let prev = poll.end;
@@ -226,7 +225,7 @@ describe('_calculatePollEndDate', function () {
             poll.denied = poll.denied.add(tokenWeight);
           }
           const curr = durationByConsensus(poll);
-          await expectPollEnd(poll, payoutImpact, poll.start + curr);
+          await expectPollEnd(poll, expectedPayout, poll.start + curr);
           expectIncrease(prev, curr);
           prev = curr;
         }
@@ -234,7 +233,7 @@ describe('_calculatePollEndDate', function () {
 
       {
         // From 100% accept to 50%-50%
-        const payoutImpact = parseEther('100');
+        const expectedPayout = parseEther('100');
         const poll = {
           accepted: One,
           denied: Zero,
@@ -243,13 +242,13 @@ describe('_calculatePollEndDate', function () {
         };
 
         const voters = [
-          ['DENIED', payoutImpact.mul(10)], // 100 - 0
-          ['ACCEPTED', payoutImpact], // 90.90 - 9.09
-          ['ACCEPTED', payoutImpact], // 83.33 - 16.66
-          ['ACCEPTED', payoutImpact], // 76.92 - 23.08
-          ['ACCEPTED', payoutImpact], // 71.42 - 28.75
-          ['ACCEPTED', payoutImpact], // 66.66 - 33.33
-          ['ACCEPTED', payoutImpact.mul(5)], // 50 - 50
+          ['DENIED', expectedPayout.mul(10)], // 100 - 0
+          ['ACCEPTED', expectedPayout], // 90.90 - 9.09
+          ['ACCEPTED', expectedPayout], // 83.33 - 16.66
+          ['ACCEPTED', expectedPayout], // 76.92 - 23.08
+          ['ACCEPTED', expectedPayout], // 71.42 - 28.75
+          ['ACCEPTED', expectedPayout], // 66.66 - 33.33
+          ['ACCEPTED', expectedPayout.mul(5)], // 50 - 50
         ];
 
         let prev = poll.end;
@@ -261,7 +260,7 @@ describe('_calculatePollEndDate', function () {
             poll.denied = poll.denied.add(tokenWeight);
           }
           const curr = durationByConsensus(poll);
-          await expectPollEnd(poll, payoutImpact, poll.start + curr);
+          await expectPollEnd(poll, expectedPayout, poll.start + curr);
           expectIncrease(prev, curr);
           prev = curr;
         }

@@ -16,10 +16,9 @@ interface IAssessment is IERC721Receiver {
     minVotingPeriodDays,
     maxVotingPeriodDays,
     payoutCooldownDays,
-    rewardPercentage,
-    incidentExpectedPayoutPercentage,
-    claimAssessmentDepositPercentage,
-    incidentAssessmentDepositPercentage
+    rewardRatio,
+    incidentExpectedPayoutRatio,
+    claimAssessmentDepositRatio
   }
 
   struct Configuration {
@@ -32,27 +31,18 @@ interface IAssessment is IERC721Receiver {
     // Number of days the users must wait after a poll closes, to redeem payouts.
     uint8 payoutCooldownDays;
 
-    // Percentage used to calculate assessment rewards (0-10000 i.e. double decimal precision)
-    uint16 rewardPercentage;
+    // Ratio used to calculate assessment rewards (0-10000 i.e. double decimal precision)
+    uint16 rewardRatio;
 
-    // Percentage out of 1 ETH, used to calculate a flat ETH deposit required for claim submission.
+    // Ratio out of 1 ETH, used to calculate a flat ETH deposit required for claim submission.
     // If the claim is accepted, the user will receive the deposit back when the payout is redeemed.
-    uint16 claimAssessmentDepositPercentage;
+    uint16 claimAssessmentDepositRatio;
 
-    // Percentage used to calculate potential impact of an incident
-    uint16 incidentExpectedPayoutPercentage;
+    // Ratio used to calculate potential payout of an incident
+    uint16 incidentExpectedPayoutRatio;
 
-    // Percentage used to determine the deductible payout (0-10000 i.e. double decimal precision)
+    // Ratio used to determine the deductible payout (0-10000 i.e. double decimal precision)
     uint16 incidentPayoutDeductibleRatio;
-
-    // Percentage used to calculate an NXM deposit required for incident submission. It is only
-    // reserved in the eventuality where incidents can be submitted by regular members. This would
-    // require them to make a significant NXM deposit to prevent minting unbacked assessment
-    // rewards by submitting incidents and denying. Check out git logs on AssessmentIncidentsLib
-    // and Assessment.sol for a draft: a45232c2638270c375b445ac301d92cf22bd87e2
-    uint16 incidentAssessmentDepositPercentage;
-
-    uint168 _unused;
   }
 
   struct Stake {
@@ -108,7 +98,7 @@ interface IAssessment is IERC721Receiver {
     uint8 payoutAsset;
    // The price (TWAP) of 1 NXM in the covered asset, at claim-time
     uint80 nxmPriceSnapshot;
-   // A snapshot of claimAssessmentDepositPercentage if it is changed before the payout
+   // A snapshot of claimAssessmentDepositRatio if it is changed before the payout
     uint16 assessmentDepositPerc;
    // True when the payout is redeemed. Prevents further payouts on the claim.
     bool payoutRedeemed;
@@ -130,14 +120,10 @@ interface IAssessment is IERC721Receiver {
     uint32 date;
     // The index of of the asset address stored at addressOfAsset which is expected at payout.
     uint8 payoutAsset;
-    // A snapshot of incidentExpectedPayoutPercentage if it changes while voting is still open.
+    // A snapshot of incidentExpectedPayoutRatio if it changes while voting is still open.
     uint96 activeCoverAmount;
-    // A copy of incidentExpectedPayoutPercentage if it changes while voting is still open.
-    uint16 impactEstimatePerc;
-    // A copy of incidentAssessmentDepositPercentage if it changes while voting is still open.
-    uint16 assessmentDepositPerc;
-    // True when the assessment deposit has already been redeemed and false otherwise.
-    bool depositRedeemed;
+    // A copy of incidentExpectedPayoutRatio if it changes while voting is still open.
+    uint16 expectedPayoutRatio;
   }
 
   struct AffectedToken {

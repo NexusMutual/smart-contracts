@@ -55,9 +55,9 @@ contract Assessment is IAssessment, MasterAwareV2 {
   constructor (address masterAddress) {
     // [todo] Move to intiialize function
     // The minimum cover premium is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
-    config.rewardPercentage = 52; // 0.52%
-    config.incidentExpectedPayoutPercentage = 3000; // 30%
-    config.claimAssessmentDepositPercentage = 500; // 5% i.e. 0.05 ETH submission flat fee
+    config.rewardRatio = 52; // 0.52%
+    config.incidentExpectedPayoutRatio = 3000; // 30%
+    config.claimAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH submission flat fee
     config.minVotingPeriodDays = 3; // days
     config.maxVotingPeriodDays = 30; // days
     config.payoutCooldownDays = 1; //days
@@ -66,22 +66,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
   }
 
   /* ========== VIEWS ========== */
-
-  function tokenController() internal view returns (ITokenController) {
-    return ITokenController(getInternalContractAddress(ID.TC));
-  }
-
-  function memberRoles() internal view returns (IMemberRoles) {
-    return IMemberRoles(getInternalContractAddress(ID.MR));
-  }
-
-  function pool() internal view returns (IPool) {
-    return IPool(getInternalContractAddress(ID.P1));
-  }
-
-  function cover() internal view returns (ICover) {
-    return ICover(getInternalContractAddress(ID.CO));
-  }
 
   function getVoteCountOfAssessor(address assessor) external override view returns (uint) {
     return votesOf[assessor].length;
@@ -104,16 +88,16 @@ contract Assessment is IAssessment, MasterAwareV2 {
    *
    *  @param coverId          Cover identifier
    *  @param requestedAmount  The amount expected to be received at payout
-   *  @param withProof        When true, a ProofSubmitted event is emitted with ipfsProofHash.
+   *  @param hasProof         When true, a ProofSubmitted event is emitted with ipfsProofHash.
    *                          When false, no ProofSubmitted event is emitted to save gas if the
    *                          cover wording doesn't enforce a proof of loss.
-   *  @param ipfsProofHash    The IPFS hash required for proof of loss. It is ignored if withProof
+   *  @param ipfsProofHash    The IPFS hash required for proof of loss. It is ignored if hasProof
    *                          is false
    */
   function submitClaim(
     uint24 coverId,
     uint96 requestedAmount,
-    bool withProof,
+    bool hasProof ,
     string calldata ipfsProofHash
   ) external payable override onlyMember {
     AssessmentClaimsLib.submitClaim(
@@ -123,7 +107,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       claimants,
       coverId,
       requestedAmount,
-      withProof,
+      hasProof ,
       ipfsProofHash
     );
 
@@ -139,7 +123,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       Incident memory incident
     ) = AssessmentIncidentsLib.getIncidentToSubmit(
       config,
-      memberRoles(),
+      IMemberRoles(getInternalContractAddress(ID.MR)),
       productId,
       priceBefore,
       date
@@ -154,9 +138,9 @@ contract Assessment is IAssessment, MasterAwareV2 {
   }
 
   function depositStake (uint96 amount) external override onlyMember {
-    Stake storage stake = stakeOf[msg.sender];
-    stake.amount += amount;
-    nxm.transferFrom(msg.sender, address(this), amount);
+    stakeOf[msg.sender].amount += amount;
+    ITokenController(getInternalContractAddress(ID.TC))
+      .operatorTransfer(msg.sender, address(this), amount);
   }
 
   function withdrawReward (address user, uint104 untilIndex) external override {
@@ -187,7 +171,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   }
 
   function redeemIncidentPayout (uint104 incidentId, uint32 coverId, uint depeggedTokens)
-  external override {
+  external override onlyMember {
     AssessmentIncidentsLib.redeemIncidentPayout(
       internalContracts,
       incidents[incidentId],

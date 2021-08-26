@@ -12,8 +12,8 @@ import "../../libraries/Assessment/AssessmentIncidentsLib.sol";
 
 library AssessmentVoteLib {
 
-  // Percentages are defined between 0-10000 i.e. double decimal precision
-  uint internal constant PERC_BASIS_POINTS = 10000;
+  // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
+  uint internal constant RATIO_BPS = 10000;
 
   // Used in operations involving NXM tokens and divisions
   uint internal constant PRECISION = 10 ** 18;
@@ -46,13 +46,13 @@ library AssessmentVoteLib {
   ) internal view returns (uint) {
     if (eventType == IAssessment.EventType.CLAIM) {
       IAssessment.ClaimDetails memory details = claims[id].details;
-      return details.amount * config.rewardPercentage * details.coverPeriod / 365
-      / PERC_BASIS_POINTS;
+      return details.amount * config.rewardRatio * details.coverPeriod / 365
+      / RATIO_BPS;
     }
     if (eventType == IAssessment.EventType.CLAIM) {
       IAssessment.IncidentDetails memory details = incidents[id].details;
       uint expectedPayoutNXM = AssessmentIncidentsLib._getExpectedIncidentPayoutNXM(details);
-      return expectedPayoutNXM * config.rewardPercentage / PERC_BASIS_POINTS;
+      return expectedPayoutNXM * config.rewardRatio / RATIO_BPS;
     }
     revert("Unsupported eventType");
   }

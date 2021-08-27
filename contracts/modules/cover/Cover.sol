@@ -100,4 +100,25 @@ contract Cover is ICover, ERC721 {
   function performPayoutBurn(uint coverId, address owner, uint amount) external override {
 
   }
+
+  uint constant EXPONENT = 7;
+
+  function calculatePrice(
+    uint amount,
+    uint period,
+    uint lastPrice,
+    uint targetPrice,
+    uint activeCover,
+    uint capacity
+  ) public pure returns (uint) {
+
+    uint basePrice = (lastPrice + targetPrice) / 2; // TODO: interpolate
+    uint actualPrice = basePrice * activeCover;
+    for (uint i = 0; i < EXPONENT; i++) {
+      actualPrice = actualPrice * activeCover / capacity;
+    }
+    actualPrice = actualPrice / 8 + basePrice * activeCover;
+
+    return actualPrice;
+  }
 }

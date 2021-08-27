@@ -16,6 +16,7 @@
 
 ## Audits
 
+- [Iosiro Audit Report, June 2021: Emergency Pause & Upgradeability Improvements](https://iosiro.com/audits/nexus-mutual-emergency-response-smart-contract-audit)
 - [Iosiro Audit Report, June 2021: Distributor Contract - native support for Yield Token Cover](https://iosiro.com/audits/nexus-mutual-distributor-smart-contract-audit)
 - [Iosiro Audit Report, May 2021: Yield Token Cover, Onchain MCR, stETH Investment](https://iosiro.com/audits/nexus-mutual-stacked-risk-on-chain-mcr-and-swap-operator-smart-contract-audit)
 - [G0 Group Audit Report, March 2021: Distributor Contract](https://nexusmutual.io/pages/G0Group-NexusMutualDistributor.pdf)

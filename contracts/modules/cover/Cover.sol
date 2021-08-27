@@ -1,11 +1,15 @@
 
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "../../interfaces/ICover.sol";
+import "../../interfaces/IStakingPool.sol";
 
 
 contract Cover is ICover, ERC721 {
 
   Cover[] public override covers;
+
+  mapping(uint => uint) capacityFactors;
+  mapping(uint => StakingPool[]) usedPools;
 
   constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_) {
   }
@@ -19,8 +23,52 @@ contract Cover is ICover, ERC721 {
     uint96 amount,
     uint32 period,
     uint maxPrice,
-    StakingPool[] calldata stakingPools
+    StakingPool[] memory stakingPools
   ) external override returns (uint /*coverId*/) {
+
+    uint amountToCover = amount;
+    for (uint i = 0; i < stakingPools.length; i++) {
+      if (amountToCover == 0) {
+        break;
+      }
+
+      IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
+
+      uint availableCapacity = stakingPool.getAvailableCapacity(productId, capacityFactors[i]);
+
+      uint coveredAmount;
+      if (amountToCover > availableCapacity) {
+        amountToCover -= availableCapacity;
+        coveredAmount = availableCapacity;
+      } else {
+        coveredAmount = amountToCover;
+        amountToCover = 0;
+      }
+
+      stakingPools[i].bookedAmount = uint96(coveredAmount);
+
+      stakingPool.buyCover(
+        productId,
+        coveredAmount,
+        0, //rewardAmount,
+        period,
+        0 //capacityFactors[productId]
+      );
+
+      usedPools[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
+    }
+
+    covers.push(Cover(
+      productId,
+      payoutAsset,
+      0,
+      uint96(amount),
+      uint32(block.timestamp + 1),
+      uint32(period)
+    ));
+
+    _safeMint(msg.sender, covers.length - 1);
+
     return 0;
   }
 

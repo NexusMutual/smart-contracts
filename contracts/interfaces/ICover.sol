@@ -9,7 +9,7 @@ interface ICover is IERC721 {
   /* ========== DATA STRUCTURES ========== */
 
   struct StakingPool {
-    uint160 id;
+    address poolAddress;
     uint96 bookedAmount;
   }
 

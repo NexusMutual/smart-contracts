@@ -76,16 +76,12 @@ library AssessmentGovernanceActionsLib {
     mapping(uint8 => mapping(uint104 => IAssessment.Poll)) storage pollFraudOfEvent
   ) internal {
 
-    IAssessment.Poll memory poll;
-    if (IAssessment.EventType(vote.eventType) == IAssessment.EventType.CLAIM) {
-      IAssessment.Claim memory claim = claims[vote.eventId];
-      if (claim.details.payoutRedeemed) {
-        // Once the payout is redeemed the poll result is final
+    IAssessment.Poll memory poll = assessments[vote.pollId].poll;
+    {
+      if (uint32(block.timestamp) >= poll.end + config.payoutCooldownDays * 1 days) {
+        // Once the cooldown period ends the poll result is final
         return;
       }
-      poll = claim.poll;
-    } else {
-      poll = incidents[vote.eventId].poll;
     }
 
     {
@@ -99,28 +95,18 @@ library AssessmentGovernanceActionsLib {
     }
 
     {
-      uint32 blockTimestamp = uint32(block.timestamp);
-      if (blockTimestamp >= poll.end + config.payoutCooldownDays * 1 days) {
-        // Once the cooldown period ends the poll result is final
-        return;
-      }
-
       if (vote.accepted) {
         poll.accepted -= vote.tokenWeight;
       } else {
         poll.denied -= vote.tokenWeight;
       }
 
-      if (blockTimestamp < poll.end) {
-        poll.end = blockTimestamp;
+      if (poll.end < uint32(block.timestamp) + 1 days) {
+        poll.end = uint32(block.timestamp) + 1 days;
       }
     }
 
-    if (IAssessment.EventType(vote.eventType) == IAssessment.EventType.CLAIM) {
-      claims[vote.eventId].poll = poll;
-    } else {
-      incidents[vote.eventId].poll = poll;
-    }
+    assessments[vote.pollId].poll = poll;
   }
 
   function processFraudResolution (
@@ -136,17 +122,12 @@ library AssessmentGovernanceActionsLib {
     IAssessment.Claim[] storage claims,
     IAssessment.Incident[] storage incidents
   ) external {
-    uint processUntil;
     IAssessment.Stake memory stake = stakeOf[fraudulentAssessor];
 
-    // [todo] Check this
-    if (
-      voteBatchSize == 0 ||
-      stake.rewardsWithdrawnUntilIndex + voteBatchSize >= lastFraudulentVoteIndex
-    ) {
+    // Make sure we don't burn beyong lastFraudulentVoteIndex
+    uint processUntil = stake.rewardsWithdrawnUntilIndex + voteBatchSize;
+    if ( processUntil >= lastFraudulentVoteIndex){
       processUntil = lastFraudulentVoteIndex + 1;
-    } else {
-      processUntil = stake.rewardsWithdrawnUntilIndex + voteBatchSize;
     }
 
     for (uint j = stake.rewardsWithdrawnUntilIndex; j < processUntil; j++) {
@@ -160,6 +141,7 @@ library AssessmentGovernanceActionsLib {
       // is incremented. If another merkle root is submitted that contains the same addres, the leaf
       // should use the updated fraudCount stored in the Stake struct as input.
       //nxm.burn(uint(stake.amount));
+      // [todo] Burn the maximum between burnAmount and stake.amount
       stake.amount -= burnAmount;
       stake.fraudCount++;
     }

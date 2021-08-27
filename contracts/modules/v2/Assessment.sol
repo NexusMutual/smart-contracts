@@ -2,29 +2,20 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-v4/token/ERC721/IERC721Receiver.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IMemberRoles.sol";
-import "../../interfaces/IPool.sol";
-import "../../interfaces/ICover.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../abstract/MasterAwareV2.sol";
-import "../../libraries/Assessment/AssessmentClaimsLib.sol";
 import "../../libraries/Assessment/AssessmentGovernanceActionsLib.sol";
-import "../../libraries/Assessment/AssessmentIncidentsLib.sol";
-import "../../libraries/Assessment/AssessmentVoteLib.sol";
 
-/**
- *  Provides a way for cover owners to submit claims and redeem the payouts and facilitates
- *  assessment processes where members decide the outcome of the events that lead to potential
- *  payouts.
- */
+/// Provides a way for cover owners to submit claims and redeem the payouts and facilitates
+/// assessment processes where members decide the outcome of the events that lead to potential
+/// payouts.
 contract Assessment is IAssessment, MasterAwareV2 {
 
-  /* ========== STATE VARIABLES ========== */
-
   INXMToken internal immutable nxm;
+
+  /* ========== STATE VARIABLES ========== */
 
   Configuration public config;
 
@@ -35,31 +26,25 @@ contract Assessment is IAssessment, MasterAwareV2 {
   mapping(address => Vote[]) public override votesOf;
 
   // Mapping used to determine if a user has already voted, using a vote hash as a key
-  mapping(bytes32 => bool) public override hasAlreadyVotedOn;
+  mapping(address => mapping(uint => bool)) public override hasAlreadyVotedOn;
 
   // An array of merkle tree roots used to indicate fraudulent assessors. Each root represents a
   // fraud attempt by one or multiple addresses. Once the root is submitted by adivsory board
   // members through governance, burnFraud uses this root to burn the fraudulent assessors' stakes
   // and correct the outcome of the poll.
   bytes32[] internal fraudMerkleRoots;
-  mapping(uint8 => mapping(uint104 => Poll)) internal pollFraudOfEvent;
 
-  Claim[] public override claims;
-  address[] public override claimants;
+  // [todo] add comments
+  mapping(uint => Poll) internal fraudSnapshot;
 
-  Incident[] public override incidents;
-  mapping(uint104 => AffectedToken) internal tokenAffectedByIncident;
+  Assessment[] public override assessments;
 
   /* ========== CONSTRUCTOR ========== */
 
   constructor(address masterAddress) {
     // [todo] Move to intiialize function
     // The minimum cover premium is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
-    config.rewardRatio = 52; // 0.52%
-    config.incidentExpectedPayoutRatio = 3000; // 30%
-    config.claimAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH submission flat fee
     config.minVotingPeriodDays = 3; // days
-    config.maxVotingPeriodDays = 30; // days
     config.payoutCooldownDays = 1; //days
     master = INXMMaster(masterAddress);
     nxm = INXMToken(master.tokenAddress());
@@ -67,75 +52,30 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   /* ========== VIEWS ========== */
 
+  function min(uint a, uint b) internal pure returns (uint) {
+    return a <= b ? a : b;
+  }
+
   function getVoteCountOfAssessor(address assessor) external override view returns (uint) {
     return votesOf[assessor].length;
   }
 
-  function getClaimsCount() external override view returns (uint) {
-    return claims.length;
+  function getAssessmentsCount() external override view returns (uint) {
+    return assessments.length;
   }
 
-  function getIncidentsCount() external override view returns (uint) {
-    return incidents.length;
+  function _getPollStatus(Poll memory poll) internal view returns (PollStatus) {
+    if (block.timestamp < poll.end) {
+      return PollStatus.PENDING;
+    }
+    if (poll.accepted > poll.denied) {
+      // [todo] Could be worth checking if it's in cooldown period and return a new status
+      return PollStatus.ACCEPTED;
+    }
+    return PollStatus.DENIED;
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
-
-  /**
-   *  Submits a claim for assessment
-   *
-   *  @dev This function requires an ETH submission fee. See: _getSubmissionFee()
-   *
-   *  @param coverId          Cover identifier
-   *  @param requestedAmount  The amount expected to be received at payout
-   *  @param hasProof         When true, a ProofSubmitted event is emitted with ipfsProofHash.
-   *                          When false, no ProofSubmitted event is emitted to save gas if the
-   *                          cover wording doesn't enforce a proof of loss.
-   *  @param ipfsProofHash    The IPFS hash required for proof of loss. It is ignored if hasProof
-   *                          is false
-   */
-  function submitClaim(
-    uint24 coverId,
-    uint96 requestedAmount,
-    bool hasProof ,
-    string calldata ipfsProofHash
-  ) external payable override onlyMember {
-    AssessmentClaimsLib.submitClaim(
-      config,
-      internalContracts,
-      claims,
-      claimants,
-      coverId,
-      requestedAmount,
-      hasProof ,
-      ipfsProofHash
-    );
-
-  }
-
-  function submitIncident(
-    uint24 productId,
-    uint96 priceBefore,
-    uint32 date
-  ) external override {
-    (
-      AffectedToken memory affectedToken,
-      Incident memory incident
-    ) = AssessmentIncidentsLib.getIncidentToSubmit(
-      config,
-      IMemberRoles(getInternalContractAddress(ID.MR)),
-      productId,
-      priceBefore,
-      date
-    );
-
-    AssessmentIncidentsLib.saveIncident(
-      incident,
-      incidents,
-      affectedToken,
-      tokenAffectedByIncident
-    );
-  }
 
   function depositStake(uint96 amount) external override onlyMember {
     stakeOf[msg.sender].amount += amount;
@@ -143,68 +83,124 @@ contract Assessment is IAssessment, MasterAwareV2 {
       .operatorTransfer(msg.sender, address(this), amount);
   }
 
-  function withdrawReward(address user, uint104 untilIndex) external override {
-    AssessmentVoteLib.withdrawReward(
-      config,
-      nxm,
-      user,
-      untilIndex,
-      stakeOf,
-      votesOf,
-      claims,
-      incidents
-    );
+  // [todo] Expose a view to find out the last index until withdrawals can be made and also
+  //  views for total rewards and withdrawable rewards
+  function withdrawReward(address user, uint104 untilIndex) external override
+  returns (uint withdrawn, uint104 withdrawUntilIndex) {
+    Stake memory stake = stakeOf[user];
+    {
+      uint voteCount = votesOf[user].length;
+      withdrawUntilIndex = untilIndex > 0 ? untilIndex : uint104(voteCount);
+      require(
+        untilIndex <= voteCount,
+        "Vote count is smaller that the provided untilIndex"
+      );
+      require(stake.rewardsWithdrawnUntilIndex < voteCount, "No withdrawable rewards");
+    }
+
+    uint totalReward;
+    Vote memory vote;
+    Poll memory poll;
+    for (uint i = stake.rewardsWithdrawnUntilIndex; i < withdrawUntilIndex; i++) {
+      vote = votesOf[user][i];
+      poll = assessments[vote.pollId];
+      if (poll.end + config.payoutCooldownDays * 1 days >= blockTimestamp) {
+        // Poll is not final
+        break;
+      }
+
+      // [todo] Replace with storage read
+      totalReward = _getTotalRewardForEvent(
+        config,
+        EventType(vote.eventType),
+        vote.eventId,
+        claims,
+        incidents
+      );
+
+      withdrawn += totalReward * vote.tokenWeight / (poll.accepted + poll.denied);
+    }
+
+    // [todo] withdrawUntilIndex should be replaced with the last processed index from the loop above
+    stakeOf[user].rewardsWithdrawnUntilIndex = withdrawUntilIndex;
+    // [todo] Replace with TC
+    nxm.mint(user, withdrawn);
   }
 
   function withdrawStake(uint96 amount) external override onlyMember {
-    AssessmentVoteLib.withdrawStake(config, nxm, stakeOf, votesOf, amount);
+    Stake storage stake = stakeOf[msg.sender];
+    require(stake.amount != 0, "No tokens staked");
+    uint voteCount = votesOf[msg.sender].length;
+    Vote vote = votesOf[msg.sender][voteCount - 1];
+    // [todo] Add stake lockup period from config
+    require(
+      block.timestamp > vote.timestamp + config.maxVotingPeriodDays + config.payoutCooldownDays,
+      "Stake is in lockup period"
+     );
+
+    nxm.transferFrom(address(this), msg.sender, amount);
+    stake.amount -= amount;
   }
 
-  function redeemClaimPayout(uint104 id) external override {
-    AssessmentClaimsLib.redeemClaimPayout(
-      config,
-      internalContracts,
-      claims,
-      claimants,
-      id
-    );
-  }
-
-  function redeemIncidentPayout(uint104 incidentId, uint32 coverId, uint depeggedTokens)
-  external override onlyMember {
-    AssessmentIncidentsLib.redeemIncidentPayout(
-      internalContracts,
-      incidents[incidentId],
-      coverId,
-      depeggedTokens
-    );
-  }
-
-  function redeemCoverForDeniedClaim(uint coverId, uint claimId)
-  external override {
-    AssessmentClaimsLib.redeemCoverForDeniedClaim(
-    config,
-    internalContracts,
-    claims,
-    claimants,
-    coverId,
-    claimId
-    );
+  function startAssessment(uint totalAssessmentReward) external
+  override onlyInternal returns (uint) {
+    assessments.push(Assessment(
+      Poll(
+        0, // accepted
+        0, // denied
+        uint32(block.timestamp), // start
+        uint32(block.timestamp + config.minVotingPeriodDays * 1 days) // end
+      ),
+      AssessmentDetails(
+        uint128(totalAssessmentReward)
+      )
+    ));
+    return assessments.length - 1;
   }
 
   // [todo] Check how many times poll is loaded from storage
-  function castVote(uint8 eventType, uint104 id, bool accepted) external override onlyMember {
-    AssessmentVoteLib.castVote(
-    config,
-    eventType,
-    id,
-    accepted,
-    stakeOf,
-    votesOf,
-    hasAlreadyVotedOn,
-    claims,
-    incidents
+  function castVote(uint pollId, bool isAccepted) external override onlyMember {
+    {
+      require(!hasAlreadyVotedOn[msg.sender][pollId], "Already voted");
+      hasAlreadyVotedOn[msg.sender][pollId] = true;
+    }
+
+    Stake memory stake = stakeOf[msg.sender];
+    require(stake.amount > 0, "A stake is required to cast votes");
+
+    Poll memory poll = assessments[pollId].poll;
+    require(block.timestamp < poll.end, "Voting is closed");
+    require(
+      poll.accepted > 0 || isAccepted,
+      "At least one accept vote is required to vote deny"
     );
+
+    if (isAccepted && poll.accepted == 0) {
+      // Reset the poll end when the first accepted vote
+      poll.end = block.timestamp + config.minVotingPeriodDays * 1 days;
+    }
+
+    // Check if poll ends in less than 24 hours
+    if (poll.end - block.timestamp < 1 days) {
+      // Extend proportionally to the user's stake but up to 1 day maximum
+      poll.end += min(1 days, 1 days * stake.amount / (poll.accepted + poll.denied));
+    }
+
+    if (isAccepted) {
+      poll.accepted += stake.amount;
+    } else {
+      poll.denied += stake.amount;
+    }
+
+    assessments[pollId].poll = poll;
+
+    votesOf[msg.sender].push(Vote(
+      pollId,
+      isAccepted,
+      blockTimestamp,
+      stake.amount,
+      eventType
+    ));
   }
 
   function submitFraud(bytes32 root) external override onlyGovernance {
@@ -220,28 +216,79 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint16 fraudCount,
     uint256 voteBatchSize
   ) external override {
-    require(AssessmentGovernanceActionsLib.isFraudProofValid(
-      fraudMerkleRoots[rootIndex],
-      proof,
-      fraudulentAssessor,
-      lastFraudulentVoteIndex,
-      burnAmount,
-      fraudCount
-    ), "Invalid merkle proof");
-
-    AssessmentGovernanceActionsLib.processFraudResolution(
-      config,
-      lastFraudulentVoteIndex,
-      burnAmount,
-      fraudCount,
-      voteBatchSize,
-      fraudulentAssessor,
-      stakeOf,
-      votesOf,
-      pollFraudOfEvent,
-      claims,
-      incidents
+    require(
+      MerkleProof.verify(
+        proof,
+        fraudMerkleRoots[rootIndex],
+        getFraudulentAssessorLeaf(
+          fraudulentAssessor,
+          lastFraudulentVoteIndex,
+          burnAmount,
+          fraudCount
+        )
+      ),
+      "Invalid merkle proof"
     );
+
+    Stake memory stake = stakeOf[fraudulentAssessor];
+
+    // Make sure we don't burn beyong lastFraudulentVoteIndex
+    uint processUntil = stake.rewardsWithdrawnUntilIndex + voteBatchSize;
+    if ( processUntil >= lastFraudulentVoteIndex){
+      processUntil = lastFraudulentVoteIndex + 1;
+    }
+
+    for (uint j = stake.rewardsWithdrawnUntilIndex; j < processUntil; j++) {
+      IAssessment.Vote memory vote = votesOf[fraudulentAssessor][j];
+      IAssessment.Poll memory poll = assessments[vote.assessmentId].poll;
+
+      {
+        if (uint32(block.timestamp) >= poll.end + config.payoutCooldownDays * 1 days) {
+          // Once the cooldown period ends the poll result is final
+          return;
+        }
+      }
+
+      {
+        IAssessment.Poll memory pollFraud = pollFraudOfEvent[vote.eventType][vote.eventId];
+
+        // Check if pollFraud exists. The start date is guaranteed to be > 0 in any poll.
+        if (pollFraud.start == 0) {
+          // Copy the current poll results before correction starts
+          pollFraudOfEvent[vote.eventType][vote.eventId] = poll;
+        }
+      }
+
+      {
+        if (vote.accepted) {
+          poll.accepted -= vote.tokenWeight;
+        } else {
+          poll.denied -= vote.tokenWeight;
+        }
+
+        if (poll.end < uint32(block.timestamp) + 1 days) {
+          poll.end = uint32(block.timestamp) + 1 days;
+        }
+      }
+
+      assessments[vote.pollId].poll = poll;
+    }
+
+    if (fraudCount == stake.fraudCount) {
+      // Burns an assessor only once for each merkle root, no matter how many times this function
+      // runs on the same account. When a transaction is too big to fit in one block, it is batched
+      // in multiple transactions according to voteBatchSize. After burning the tokens, fraudCount
+      // is incremented. If another merkle root is submitted that contains the same addres, the leaf
+      // should use the updated fraudCount stored in the Stake struct as input.
+      //nxm.burn(uint(stake.amount));
+      // [todo] Burn the maximum between burnAmount and stake.amount
+      stake.amount -= burnAmount;
+      stake.fraudCount++;
+    }
+
+    stake.rewardsWithdrawnUntilIndex = uint104(processUntil);
+    stakeOf[fraudulentAssessor] = stake;
+
   }
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)
@@ -258,15 +305,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function changeDependentContractAddress() external override {
     master = INXMMaster(master);
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
-    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
-    internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
-    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
-  }
-
-  // Required to receive NFTS
-  function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
-  external pure override returns (bytes4) {
-    return IERC721Receiver.onERC721Received.selector;
   }
 
 }

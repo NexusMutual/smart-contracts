@@ -6,7 +6,6 @@ import "../../interfaces/IAssessment.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IAssessment.sol";
 import "../../libraries/Assessment/AssessmentClaimsLib.sol";
 import "../../libraries/Assessment/AssessmentIncidentsLib.sol";
 
@@ -46,7 +45,8 @@ library AssessmentVoteLib {
   ) internal view returns (uint) {
     if (eventType == IAssessment.EventType.CLAIM) {
       IAssessment.ClaimDetails memory details = claims[id].details;
-      return details.amount * config.rewardRatio * details.coverPeriod / 365
+      uint expectedPayoutNXM = AssessmentClaimsLib._getExpectedClaimPayoutNXM(details);
+      return expectedPayoutNXM * config.rewardRatio * details.coverPeriod / 365
       / RATIO_BPS;
     }
     if (eventType == IAssessment.EventType.CLAIM) {
@@ -156,20 +156,18 @@ library AssessmentVoteLib {
       require(stake.rewardsWithdrawnUntilIndex < voteCount, "No withdrawable rewards");
     }
 
-    require(
-      block.timestamp > _getVoteLockupEndDate(config, votesOf[user][withdrawUntilIndex - 1]),
-      "Cannot withdraw rewards from votes which are in lockup period"
-    );
-
     uint totalReward;
     IAssessment.Vote memory vote;
     IAssessment.Poll memory poll;
     for (uint i = stake.rewardsWithdrawnUntilIndex; i < withdrawUntilIndex; i++) {
       vote = votesOf[user][i];
-      poll = IAssessment.EventType(vote.eventType) == IAssessment.EventType.CLAIM
-        ? claims[vote.eventId].poll
-        : incidents[vote.eventId].poll;
+      poll = assessments[vote.pollId];
+      if (poll.end + config.payoutCooldownDays * 1 days >= blockTimestamp) {
+        // Poll is not final
+        break;
+      }
 
+      // [todo] Replace with storage read
       totalReward = _getTotalRewardForEvent(
         config,
         IAssessment.EventType(vote.eventType),
@@ -181,7 +179,9 @@ library AssessmentVoteLib {
       withdrawn += totalReward * vote.tokenWeight / (poll.accepted + poll.denied);
     }
 
+    // [todo] withdrawUntilIndex should be replaced with the last processed index from the loop above
     stakeOf[user].rewardsWithdrawnUntilIndex = withdrawUntilIndex;
+    // [todo] Replace with TC
     nxm.mint(user, withdrawn);
   }
 
@@ -271,8 +271,11 @@ library AssessmentVoteLib {
     IAssessment.Stake storage stake = stakeOf[msg.sender];
     require(stake.amount != 0, "No tokens staked");
     uint voteCount = votesOf[msg.sender].length;
+    IAssessment.Vote vote = votesOf[msg.sender][voteCount - 1];
+    // [todo] Add stake lockup period from config
     require(
-      block.timestamp > _getVoteLockupEndDate(config, votesOf[msg.sender][voteCount - 1]),
+      block.timestamp > vote.timestamp +
+      config.maxVotingPeriodDays + config.payoutCooldownDays,
       "Cannot withdraw stake while in lockup period"
      );
 

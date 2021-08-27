@@ -14,6 +14,26 @@ library AssessmentIncidentsLib {
   // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
   uint internal constant RATIO_BPS = 10000;
 
+  function _getTotalRewardForEvent (
+    IAssessment.Configuration calldata config,
+    IAssessment.EventType eventType,
+    uint104 id
+  ) internal view returns (uint) {
+    if (eventType == IAssessment.EventType.CLAIM) {
+      IAssessment.ClaimDetails memory details = claims[id].details;
+      uint expectedPayoutNXM = AssessmentClaimsLib._getExpectedClaimPayoutNXM(details);
+      return expectedPayoutNXM * config.rewardRatio * details.coverPeriod / 365
+      / RATIO_BPS;
+    }
+    if (eventType == IAssessment.EventType.CLAIM) {
+      IAssessment.IncidentDetails memory details = incidents[id].details;
+      uint expectedPayoutNXM = AssessmentIncidentsLib._getExpectedIncidentPayoutNXM(details);
+      return expectedPayoutNXM * config.rewardRatio / RATIO_BPS;
+    }
+    revert("Unsupported eventType");
+  }
+
+
   function _getExpectedIncidentPayoutNXM (IAssessment.IncidentDetails memory details)
   internal pure returns (uint) {
     return details.activeCoverAmount * details.expectedPayoutRatio / RATIO_BPS;

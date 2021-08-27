@@ -12,6 +12,7 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
   INXMMaster public master;
 
   modifier onlyMember {
+    // [todo] This can directly call MemberRoles.sol
     require(master.isMember(msg.sender), "Caller is not a member");
     _;
   }

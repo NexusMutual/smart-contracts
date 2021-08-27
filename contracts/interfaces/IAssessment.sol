@@ -10,8 +10,6 @@ interface IAssessment is IERC721Receiver {
 
   enum PollStatus { PENDING, ACCEPTED, DENIED }
 
-  enum EventType { CLAIM, INCIDENT }
-
   enum UintParams {
     minVotingPeriodDays,
     maxVotingPeriodDays,
@@ -25,9 +23,6 @@ interface IAssessment is IERC721Receiver {
     // The minimum number of days the users can vote on polls
     uint8 minVotingPeriodDays;
 
-    // The maximum number of days the users can vote on polls
-    uint8 maxVotingPeriodDays;
-
     // Number of days the users must wait after a poll closes, to redeem payouts.
     uint8 payoutCooldownDays;
 
@@ -36,12 +31,14 @@ interface IAssessment is IERC721Receiver {
 
     // Ratio out of 1 ETH, used to calculate a flat ETH deposit required for claim submission.
     // If the claim is accepted, the user will receive the deposit back when the payout is redeemed.
+    // (0-10000 bps i.e. double decimal precision)
     uint16 claimAssessmentDepositRatio;
 
     // Ratio used to calculate potential payout of an incident
+    // (0-10000 bps i.e. double decimal precision)
     uint16 incidentExpectedPayoutRatio;
 
-    // Ratio used to determine the deductible payout (0-10000 i.e. double decimal precision)
+    // Ratio used to determine the deductible payout (0-10000 bps i.e. double decimal precision)
     uint16 incidentPayoutDeductibleRatio;
   }
 
@@ -79,6 +76,16 @@ interface IAssessment is IERC721Receiver {
     uint32 end;
   }
 
+  struct AssessmentDetails {
+    uint128 expectedPayout; // used to determine poll end
+    uint128 totalReward; // used to reward voters
+  }
+
+  struct Assessment {
+    Poll poll;
+    uint128 totalReward;
+  }
+
   /*
    *  Holds the requested amount, NXM price, submission fee and other relevant details
    *  such as parts of the corresponding cover details and the payout status.
@@ -87,32 +94,28 @@ interface IAssessment is IERC721Receiver {
    *  but also parts of cover details that reduce the need of external calls. Everything is fitted
    *  in a single word that contains:
    */
-  struct ClaimDetails {
+
+
+  struct Claim {
    // Amount requested as part of this claim up to the total cover amount
     uint96 amount;
    // The identifier of the cover on which this claim is submitted
     uint32 coverId;
-   // Cover period represented as days, used to calculate rewards
-    uint16 coverPeriod;
    // The index of of the asset address stored at addressOfAsset which is expected at payout.
     uint8 payoutAsset;
-   // The price (TWAP) of 1 NXM in the covered asset, at claim-time
-    uint80 nxmPriceSnapshot;
    // A snapshot of claimAssessmentDepositRatio if it is changed before the payout
     uint16 assessmentDepositPerc;
    // True when the payout is redeemed. Prevents further payouts on the claim.
     bool payoutRedeemed;
+    uint80 assessmentId;
   }
 
-  struct Claim {
-    Poll poll;
-    ClaimDetails details;
+  struct AffectedToken {
+    uint96 priceBefore;
+    address contractAddress;
   }
 
-  /*
-   *  Keeps details related to incidents.
-   */
-  struct IncidentDetails {
+  struct Incident {
     // Product identifier
     uint24 productId;
     // Timestamp marking the date of the incident used to verify the user's eligibility for a claim
@@ -122,18 +125,7 @@ interface IAssessment is IERC721Receiver {
     uint8 payoutAsset;
     // A snapshot of incidentExpectedPayoutRatio if it changes while voting is still open.
     uint96 activeCoverAmount;
-    // A copy of incidentExpectedPayoutRatio if it changes while voting is still open.
-    uint16 expectedPayoutRatio;
-  }
-
-  struct AffectedToken {
-    uint96 priceBefore;
-    address contractAddress;
-  }
-
-  struct Incident {
-    Poll poll;
-    IncidentDetails details;
+    uint80 assessmentId;
   }
 
   /* ========== VIEWS ========== */
@@ -151,7 +143,7 @@ interface IAssessment is IERC721Receiver {
   function stakeOf(address user) external view
   returns (uint96 amount, uint104 rewardsWithdrawnUntilIndex, uint16 fraudCount);
 
-  function hasAlreadyVotedOn(bytes32 voteHash) external view returns (bool);
+  function hasAlreadyVotedOn(address voter, uint pollId) external view returns (bool);
 
   function getVoteCountOfAssessor(address assessor) external view returns (uint);
 

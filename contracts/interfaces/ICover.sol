@@ -15,11 +15,13 @@ interface ICover is IERC721 {
 
   struct Cover {
     uint24 productId;
-    uint8 payoutAsset;
-    uint8 deniedClaims;
     uint96 amount;
     uint32 start;
     uint32 period;  // seconds
+    uint8 redeemingMethod; // CLAIM, INCIDENT etc.
+    uint8 payoutAsset;
+    uint8 deniedClaims;
+    uint80 nxmPrice; // 1 NXM in payoutAsset
   }
 
   struct Product {

@@ -98,27 +98,18 @@ contract Assessment is IAssessment, MasterAwareV2 {
       require(stake.rewardsWithdrawnUntilIndex < voteCount, "No withdrawable rewards");
     }
 
-    uint totalReward;
     Vote memory vote;
-    Poll memory poll;
+    Assessment memory assessment;
     for (uint i = stake.rewardsWithdrawnUntilIndex; i < withdrawUntilIndex; i++) {
       vote = votesOf[user][i];
-      poll = assessments[vote.pollId];
-      if (poll.end + config.payoutCooldownDays * 1 days >= blockTimestamp) {
+      assessment = assessments[vote.pollId];
+      if (assessment.poll.end + config.payoutCooldownDays * 1 days >= blockTimestamp) {
         // Poll is not final
         break;
       }
 
-      // [todo] Replace with storage read
-      totalReward = _getTotalRewardForEvent(
-        config,
-        EventType(vote.eventType),
-        vote.eventId,
-        claims,
-        incidents
-      );
-
-      withdrawn += totalReward * vote.tokenWeight / (poll.accepted + poll.denied);
+      withdrawn += assessment.totalReward * vote.tokenWeight /
+        (assessment.poll.accepted + assessment.poll.denied);
     }
 
     // [todo] withdrawUntilIndex should be replaced with the last processed index from the loop above
@@ -151,9 +142,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
         uint32(block.timestamp), // start
         uint32(block.timestamp + config.minVotingPeriodDays * 1 days) // end
       ),
-      AssessmentDetails(
-        uint128(totalAssessmentReward)
-      )
+      uint128(totalAssessmentReward)
     ));
     return assessments.length - 1;
   }

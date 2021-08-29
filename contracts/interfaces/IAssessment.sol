@@ -76,11 +76,6 @@ interface IAssessment is IERC721Receiver {
     uint32 end;
   }
 
-  struct AssessmentDetails {
-    uint128 expectedPayout; // used to determine poll end
-    uint128 totalReward; // used to reward voters
-  }
-
   struct Assessment {
     Poll poll;
     uint128 totalReward;
@@ -118,14 +113,12 @@ interface IAssessment is IERC721Receiver {
   struct Incident {
     // Product identifier
     uint24 productId;
+    uint80 assessmentId;
     // Timestamp marking the date of the incident used to verify the user's eligibility for a claim
     // according to their cover period.
     uint32 date;
-    // The index of of the asset address stored at addressOfAsset which is expected at payout.
+    // The index of of the asset expected at payout from Pool.sol
     uint8 payoutAsset;
-    // A snapshot of incidentExpectedPayoutRatio if it changes while voting is still open.
-    uint96 activeCoverAmount;
-    uint80 assessmentId;
   }
 
   /* ========== VIEWS ========== */

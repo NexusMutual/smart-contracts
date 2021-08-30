@@ -10,6 +10,7 @@ import "../../abstract/MasterAwareV2.sol";
 contract Cover is ICover, ERC721, MasterAwareV2 {
 
   Cover[] public override covers;
+  Product[] public products;
 
   mapping(uint => uint) capacityFactors;
   mapping(uint => StakingPool[]) stakingPoolsForCover;
@@ -32,6 +33,32 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint maxPrice,
     StakingPool[] memory stakingPools
   ) external payable override returns (uint /*coverId*/) {
+    return _createCover(owner, productId, payoutAsset, 0, amount, period, maxPrice, stakingPools);
+  }
+
+  function createCover(
+    address owner,
+    uint24 productId,
+    uint8 payoutAsset,
+    uint8 deniedClaims,
+    uint96 amount,
+    uint32 period,
+    StakingPool[] calldata stakingPools
+  ) external override returns (uint /*coverId*/) {
+    return 0; // TODO: implement
+  }
+
+  function _createCover(
+    address owner,
+    uint24 productId,
+    uint8 payoutAsset,
+    uint8 deniedClaims,
+    uint96 amount,
+    uint32 period,
+    uint maxPrice,
+    StakingPool[] memory stakingPools
+  ) internal returns (uint /*coverId*/) {
+
 
     uint amountToCover = amount;
     uint totalPrice = 0;
@@ -53,7 +80,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         amountToCover = 0;
       }
 
-      totalPrice += getPrice(coveredAmount, period, productId, stakingPool);
+      totalPrice += 0;// getPrice(coveredAmount, period, productId, stakingPool);
 
       stakingPools[i].bookedAmount = uint96(coveredAmount);
 
@@ -72,51 +99,54 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     retrievePayment(totalPrice, payoutAsset);
 
     covers.push(Cover(
-      productId,
-      payoutAsset,
-      0, // denied claims
-      uint96(amount),
-      uint32(block.timestamp + 1),
-      uint32(period)
-    ));
+        productId,
+        payoutAsset,
+        deniedClaims,
+        uint96(amount),
+        uint32(block.timestamp + 1),
+        uint32(period)
+      ));
 
     _safeMint(msg.sender, covers.length - 1);
 
-    return 0;
-  }
-
-  function createCover(
-    address owner,
-    uint24 productId,
-    uint8 payoutAsset,
-    uint8 deniedClaims,
-    uint96 amount,
-    uint32 period,
-    StakingPool[] calldata stakingPools
-  ) external override returns (uint /*coverId*/) {
-
-    return 0;
+    return covers.length - 1;
   }
 
   function extendCover(
     uint coverId,
-    uint duration,
-    uint amount,
+    uint32 period,
+    uint96 amount,
     uint maxPrice,
     StakingPool[] memory stakingPools
   ) external returns (uint) {
-    return 0;
+    require(_isApprovedOrOwner(_msgSender(), coverId), "Cover: caller is not owner nor approved");
+    
+    Cover memory cover = covers[coverId];
+    uint newCoverId = _createCover(
+      ERC721.ownerOf(coverId),
+      cover.productId,
+      cover.payoutAsset,
+      0, // deniedClaims
+      amount,
+      period,
+      maxPrice,
+      stakingPools
+    );
+
+    // make the cover expire at current block
+    covers[coverId].period = uint32(block.timestamp) - cover.start;
+
+    return newCoverId;
   }
 
   function incrementDeniedClaims(uint coverId) external override {
   }
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external override {
-
+    Cover memory cover = covers[coverId];
   }
 
   uint constant EXPONENT = 7;
-
 
   function getPrice(uint amount, uint period, uint productId, IStakingPool pool) public view returns (uint) {
     return calculatePrice(

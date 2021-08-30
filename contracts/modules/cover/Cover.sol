@@ -200,6 +200,24 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   ) public pure returns (uint) {
 
     uint basePrice = (lastPrice + targetPrice) / 2; // TODO: interpolate
+    uint pricePercentage = calculatePriceIntegralAtPoint(
+      basePrice,
+      activeCover + amount,
+      capacity
+    ) -
+    calculatePriceIntegralAtPoint(
+      basePrice,
+      activeCover + amount,
+      capacity
+    );
+    return pricePercentage * amount / period * 365;
+  }
+
+  function calculatePriceIntegralAtPoint(
+    uint basePrice,
+    uint activeCover,
+    uint capacity
+  ) public pure returns (uint) {
     uint actualPrice = basePrice * activeCover;
     for (uint i = 0; i < EXPONENT; i++) {
       actualPrice = actualPrice * activeCover / capacity;

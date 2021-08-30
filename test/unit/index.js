@@ -8,4 +8,5 @@ describe('UNIT TESTS', function () {
   require('./MCR');
   require('./Distributor');
   require('./Assessment');
+  require('./Cover');
 });

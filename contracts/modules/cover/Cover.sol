@@ -12,7 +12,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   Cover[] public override covers;
 
   mapping(uint => uint) capacityFactors;
-  mapping(uint => StakingPool[]) usedPools;
+  mapping(uint => StakingPool[]) stakingPoolsForCover;
 
   mapping(uint => uint) lastPrices;
 
@@ -65,7 +65,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         0 //capacityFactors[productId] // TODO: solve stack too deep
       );
 
-      usedPools[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
+      stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
     }
 
     require(totalPrice <= maxPrice, "Cover: Price exceeds maxPrice");
@@ -102,7 +102,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint coverId,
     uint duration,
     uint amount,
-    uint maxPrice
+    uint maxPrice,
+    StakingPool[] memory stakingPools
   ) external returns (uint) {
     return 0;
   }

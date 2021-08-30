@@ -19,6 +19,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
   address constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
+  uint public REWARD_BPS = 5000;
+
   constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_) {
   }
 
@@ -69,7 +71,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
       uint coveredAmount;
       uint price;
-      (amountToCover, coveredAmount, price) = buyCoverFromPool(stakingPool, productId, amountToCover, period);
+      (coveredAmount, price) = buyCoverFromPool(stakingPool, productId, amountToCover, period);
+      amountToCover -= coveredAmount;
       totalPrice += price;
       stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
     }
@@ -96,30 +99,31 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint24 productId,
     uint amountToCover,
     uint32 period
-  ) internal returns (uint, uint, uint) {
+  ) internal returns (uint, uint) {
 
     uint availableCapacity = stakingPool.getAvailableCapacity(productId, capacityFactors[productId]);
 
     uint coveredAmount;
     if (amountToCover > availableCapacity) {
-      amountToCover -= availableCapacity;
       coveredAmount = availableCapacity;
     } else {
       coveredAmount = amountToCover;
-      amountToCover = 0;
     }
+
+    uint capacityFactor = capacityFactors[productId];
+    uint price = getPrice(coveredAmount, period, productId, stakingPool);
 
     stakingPool.buyCover(
       productId,
       coveredAmount,
-      0, //rewardAmount, TODO: fill in
+      REWARD_BPS * price / 10000, //rewardAmount, TODO: fill in
       period,
-      capacityFactors[productId] // TODO: solve stack too deep
+      capacityFactor // TODO: solve stack too deep
     );
 
     stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
 
-    return (amountToCover, coveredAmount, getPrice(coveredAmount, period, productId, stakingPool));
+    return (coveredAmount, price);
   }
 
   function extendCover(

@@ -41,7 +41,7 @@ interface ICover is IERC721 {
     uint32 period,
     uint maxPrice,
     StakingPool[] calldata stakingPools
-  ) external returns (uint /*coverId*/);
+  ) external payable returns (uint /*coverId*/);
 
   function createCover(
     address owner,

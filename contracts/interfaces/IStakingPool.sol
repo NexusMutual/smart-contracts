@@ -13,5 +13,7 @@ interface IStakingPool {
     uint capacityFactor
   ) external;
 
-  function getAvailableCapacity(uint productId, uint capacityFactor) external returns (uint);
+  function getAvailableCapacity(uint productId, uint capacityFactor) external view returns (uint);
+  function getUsedCapacity(uint productId) external view returns (uint);
+  function getTargetPrice(uint productId, uint amount, uint period) external view returns (uint);
 }

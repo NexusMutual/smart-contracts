@@ -21,7 +21,7 @@ contract AssessmentMockCover is ICover, ERC721 {
     uint32 period,
     uint maxPrice,
     StakingPool[] calldata stakingPools
-  ) external override returns (uint) {
+  ) external payable override returns (uint) {
     return _createCover(
       owner,
       productId,

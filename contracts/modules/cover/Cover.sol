@@ -60,9 +60,9 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       stakingPool.buyCover(
         productId,
         coveredAmount,
-        0, //rewardAmount,
+        0, //rewardAmount, TODO: fill in
         period,
-        0 //capacityFactors[productId]
+        0 //capacityFactors[productId] // TODO: solve stack too deep
       );
 
       usedPools[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
@@ -74,7 +74,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     covers.push(Cover(
       productId,
       payoutAsset,
-      0,
+      0, // denied claims
       uint96(amount),
       uint32(block.timestamp + 1),
       uint32(period)

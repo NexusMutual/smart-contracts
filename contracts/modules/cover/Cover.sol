@@ -59,7 +59,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     StakingPool[] memory stakingPools
   ) internal returns (uint /*coverId*/) {
 
-
     uint amountToCover = amount;
     uint totalPrice = 0;
     for (uint i = 0; i < stakingPools.length; i++) {
@@ -68,30 +67,10 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       }
 
       IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
-
-      uint availableCapacity = stakingPool.getAvailableCapacity(productId, capacityFactors[i]);
-
       uint coveredAmount;
-      if (amountToCover > availableCapacity) {
-        amountToCover -= availableCapacity;
-        coveredAmount = availableCapacity;
-      } else {
-        coveredAmount = amountToCover;
-        amountToCover = 0;
-      }
-
-      totalPrice += 0;// getPrice(coveredAmount, period, productId, stakingPool);
-
-      stakingPools[i].bookedAmount = uint96(coveredAmount);
-
-      stakingPool.buyCover(
-        productId,
-        coveredAmount,
-        0, //rewardAmount, TODO: fill in
-        period,
-        0 //capacityFactors[productId] // TODO: solve stack too deep
-      );
-
+      uint price;
+      (amountToCover, coveredAmount, price) = buyCoverFromPool(stakingPool, productId, amountToCover, period);
+      totalPrice += price;
       stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
     }
 
@@ -112,6 +91,37 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     return covers.length - 1;
   }
 
+  function buyCoverFromPool(
+    IStakingPool stakingPool,
+    uint24 productId,
+    uint amountToCover,
+    uint32 period
+  ) internal returns (uint, uint, uint) {
+
+    uint availableCapacity = stakingPool.getAvailableCapacity(productId, capacityFactors[productId]);
+
+    uint coveredAmount;
+    if (amountToCover > availableCapacity) {
+      amountToCover -= availableCapacity;
+      coveredAmount = availableCapacity;
+    } else {
+      coveredAmount = amountToCover;
+      amountToCover = 0;
+    }
+
+    stakingPool.buyCover(
+      productId,
+      coveredAmount,
+      0, //rewardAmount, TODO: fill in
+      period,
+      capacityFactors[productId] // TODO: solve stack too deep
+    );
+
+    stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
+
+    return (amountToCover, coveredAmount, getPrice(coveredAmount, period, productId, stakingPool));
+  }
+
   function extendCover(
     uint coverId,
     uint32 period,
@@ -120,7 +130,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     StakingPool[] memory stakingPools
   ) external returns (uint) {
     require(_isApprovedOrOwner(_msgSender(), coverId), "Cover: caller is not owner nor approved");
-    
+
     Cover memory cover = covers[coverId];
     uint newCoverId = _createCover(
       ERC721.ownerOf(coverId),

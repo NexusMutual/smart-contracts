@@ -43,6 +43,13 @@ contract NXMaster is INXMMaster, Governed {
   event ContractRemoved(bytes2 indexed code, address contractAddress);
   event PauseConfigured(bool paused);
 
+
+  function initialize() external {
+    if (emergencyAdmin == address(0)) {
+      emergencyAdmin = 0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D;
+    }
+  }
+
   modifier noReentrancy() {
     require(!reentrancyLock, "Reentrant call.");
     reentrancyLock = true;

@@ -116,13 +116,14 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint capacityFactor = capacityFactors[productId];
     (uint pricePercentage, uint price) = getPrice(coveredAmount, period, productId, stakingPool);
     lastPrices[productId] = pricePercentage;
+    lastPriceUpdate[productId] = block.timestamp;
 
     stakingPool.buyCover(
       productId,
       coveredAmount,
       REWARD_BPS * price / 10000, //rewardAmount, TODO: fill in
       period,
-      capacityFactor // TODO: solve stack too deep
+      capacityFactor
     );
 
     stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));

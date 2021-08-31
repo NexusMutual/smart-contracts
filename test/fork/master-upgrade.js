@@ -141,8 +141,8 @@ describe('Master upgrade', function () {
 
     const newMaster = await NXMaster.new();
 
-    const newIncidents = await Incidents.new();
-    const newClaimsReward = await ClaimsReward.new(master.address, Address.DAI);
+    const newIncidents = await Incidents.at('0xb197503361E4618078C467EDb618E38548Cdb256');
+    const newClaimsReward = await ClaimsReward.at('0x15671e5710e6e8f087939f8dbb6707bc4b5c64a9');
     const newMCR = await MCR.new(master.address);
     const quotation = await Quotation.new();
     const claims = await Claims.new();

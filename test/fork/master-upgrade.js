@@ -143,9 +143,9 @@ describe('Master upgrade', function () {
 
     const newIncidents = await Incidents.at('0xb197503361E4618078C467EDb618E38548Cdb256');
     const newClaimsReward = await ClaimsReward.at('0x15671e5710e6e8f087939f8dbb6707bc4b5c64a9');
-    const newMCR = await MCR.new(master.address);
-    const quotation = await Quotation.new();
-    const claims = await Claims.new();
+    const newMCR = await MCR.at('0x406511caf30043f92625414E0B951a5d9c5aBF66');
+    const quotation = await Quotation.new('0xB365FA523d853fbfA5608E3e4c8457166287D958');
+    const claims = await Claims.new('0x813174d3eC6f7C11f4364a637cEf0f1CD6176139');
 
     const previousMaxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
     const previousStoredMCR = await mcr.mcr();
@@ -189,6 +189,12 @@ describe('Master upgrade', function () {
     assert.equal(desiredMCR.toString(), previousDesiredMCR.toString());
     assert.equal(lastUpdateTime.toString(), previousLastUpdateTime.toString());
     assert.equal(mcrFloor.toString(), previousMcrFloor.toString());
+
+    console.log('initialize master');
+    await master.initialize();
+
+    const initializedEmergencyAdmin = await master.emergencyAdmin();
+    assert.equal(initializedEmergencyAdmin, '0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D');
 
     this.mcr = newMCR;
     this.claims = claims;

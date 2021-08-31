@@ -114,7 +114,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     }
 
     uint capacityFactor = capacityFactors[productId];
-    uint price = getPrice(coveredAmount, period, productId, stakingPool);
+    (uint pricePercentage, uint price) = getPrice(coveredAmount, period, productId, stakingPool);
+    lastPrices[productId] = pricePercentage;
 
     stakingPool.buyCover(
       productId,
@@ -165,21 +166,24 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
   uint constant EXPONENT = 7;
 
-  function getPrice(uint amount, uint period, uint productId, IStakingPool pool) public view returns (uint) {
+  function getPrice(uint amount, uint period, uint productId, IStakingPool pool) public view returns (uint, uint) {
     uint basePrice = interpolatePrice(
       pool.getStake(productId),
-        lastPrices[productId],
-        pool.getTargetPrice(productId, amount, period),
-        lastPriceUpdate(productId)
+      lastPrices[productId],
+      pool.getTargetPrice(productId),
+      lastPriceUpdate[productId],
+      block.timestamp
     );
-    return calculatePrice(
+    uint pricePercentage = calculatePrice(
       amount,
       period,
-      lastPrices[productId],
-      pool.getTargetPrice(productId, amount, period),
+      basePrice,
       pool.getUsedCapacity(productId),
       pool.getAvailableCapacity(productId, capacityFactors[productId])
     );
+
+    uint price = pricePercentage * amount * period / 365 days;
+    return (pricePercentage, price);
   }
 
   function interpolatePrice(
@@ -212,14 +216,11 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   function calculatePrice(
     uint amount,
     uint period,
-    uint lastPrice,
-    uint targetPrice,
+    uint basePrice,
     uint activeCover,
     uint capacity
   ) public pure returns (uint) {
-
-    uint basePrice = (lastPrice + targetPrice) / 2; // TODO: interpolate
-    uint pricePercentage = calculatePriceIntegralAtPoint(
+    return calculatePriceIntegralAtPoint(
       basePrice,
       activeCover + amount,
       capacity
@@ -229,7 +230,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       activeCover + amount,
       capacity
     );
-    return pricePercentage * amount * period / 365 days;
   }
 
   function calculatePriceIntegralAtPoint(

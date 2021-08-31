@@ -166,6 +166,12 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   uint constant EXPONENT = 7;
 
   function getPrice(uint amount, uint period, uint productId, IStakingPool pool) public view returns (uint) {
+    uint basePrice = interpolatePrice(
+      pool.getStake(productId),
+        lastPrices[productId],
+        pool.getTargetPrice(productId, amount, period),
+        lastPriceUpdate(productId)
+    );
     return calculatePrice(
       amount,
       period,

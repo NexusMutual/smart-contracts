@@ -31,7 +31,8 @@ interface ICover is IERC721 {
 
   /* ========== VIEWS ========== */
 
-  function covers(uint id) external returns (uint24, uint8, uint8, uint96, uint32, uint32);
+  function covers(uint id) external
+  returns (uint24 , uint96 , uint32 , uint32 , uint8, uint8, uint8, uint80);
 
   /* === MUTATIVE FUNCTIONS ==== */
 

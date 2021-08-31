@@ -4,9 +4,9 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/MasterAware.sol";
-import "../../interfaces/IClaims.sol";
-import "../../interfaces/IClaimsData.sol";
-import "../../interfaces/IClaimsReward.sol";
+import "../../interfaces/ILegacyClaims.sol";
+import "../../interfaces/ILegacyClaimsData.sol";
+import "../../interfaces/ILegacyClaimsReward.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IQuotation.sol";
@@ -149,7 +149,7 @@ contract NXMaster is INXMMaster, Governed {
       ITokenController tc = ITokenController(getLatestAddress("TC"));
       tc.addToWhitelist(newAddress);
       tc.removeFromWhitelist(contractAddresses["CR"]);
-      IClaimsReward cr = IClaimsReward(contractAddresses["CR"]);
+      ILegacyClaimsReward cr = ILegacyClaimsReward(contractAddresses["CR"]);
       cr.upgrade(newAddress);
 
     } else if (code == "P1") {

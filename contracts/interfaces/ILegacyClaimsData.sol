@@ -2,7 +2,7 @@
 
 pragma solidity >=0.5.0;
 
-interface IClaimsData {
+interface ILegacyClaimsData {
 
   function pendingClaimStart() external view returns (uint);
   function claimDepositTime() external view returns (uint);

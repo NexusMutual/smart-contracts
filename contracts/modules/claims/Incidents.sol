@@ -5,9 +5,9 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../abstract/MasterAware.sol";
-import "../../interfaces/IClaimsData.sol";
-import "../../interfaces/IClaimsReward.sol";
-import "../../interfaces/IIncidents.sol";
+import "../../interfaces/ILegacyClaimsData.sol";
+import "../../interfaces/ILegacyClaimsReward.sol";
+import "../../interfaces/ILegacyIncidents.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
@@ -15,7 +15,7 @@ import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 
-contract Incidents is IIncidents, MasterAware {
+contract Incidents is ILegacyIncidents, MasterAware {
   using SafeERC20 for IERC20;
   using SafeMath for uint;
 
@@ -207,7 +207,7 @@ contract Incidents is IIncidents, MasterAware {
       tc.markCoverClaimClosed(coverId, true);
 
       // create the claim
-      IClaimsData cd = claimsData();
+      ILegacyClaimsData cd = claimsData();
       claimId = cd.actualClaimLength();
       cd.addClaim(claimId, coverId, coverOwner, now);
       cd.callClaimEvent(coverId, coverOwner, claimId, now);
@@ -288,12 +288,12 @@ contract Incidents is IIncidents, MasterAware {
     }
   }
 
-  function claimsData() internal view returns (IClaimsData) {
-    return IClaimsData(internalContracts[uint(ID.CD)]);
+  function claimsData() internal view returns (ILegacyClaimsData) {
+    return ILegacyClaimsData(internalContracts[uint(ID.CD)]);
   }
 
-  function claimsReward() internal view returns (IClaimsReward) {
-    return IClaimsReward(internalContracts[uint(ID.CR)]);
+  function claimsReward() internal view returns (ILegacyClaimsReward) {
+    return ILegacyClaimsReward(internalContracts[uint(ID.CR)]);
   }
 
   function quotationData() internal view returns (IQuotationData) {

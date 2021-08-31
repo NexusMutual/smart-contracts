@@ -4,7 +4,7 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/LegacyMasterAware.sol";
-import "../../interfaces/IClaimsData.sol";
+import "../../interfaces/ILegacyClaimsData.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/ITokenController.sol";
@@ -672,7 +672,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
   function migrate() internal {
 
-    IClaimsData cd = IClaimsData(ms.getLatestAddress("CD"));
+    ILegacyClaimsData cd = ILegacyClaimsData(ms.getLatestAddress("CD"));
     uint totalClaims = cd.actualClaimLength() - 1;
 
     // fix stuck claims 21 & 22

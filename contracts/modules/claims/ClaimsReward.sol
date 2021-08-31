@@ -4,9 +4,9 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/LegacyMasterAware.sol";
-import "../../interfaces/IClaims.sol";
-import "../../interfaces/IClaimsData.sol";
-import "../../interfaces/IClaimsReward.sol";
+import "../../interfaces/ILegacyClaims.sol";
+import "../../interfaces/ILegacyClaimsData.sol";
+import "../../interfaces/ILegacyClaimsReward.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/IMemberRoles.sol";
@@ -20,15 +20,15 @@ import "../../interfaces/ITokenData.sol";
 //Claims Reward Contract contains the functions for calculating number of tokens
 // that will get rewarded, unlocked or burned depending upon the status of claim.
 
-contract ClaimsReward is IClaimsReward, LegacyMasterAware {
+contract ClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
   using SafeMath for uint;
 
   INXMToken internal tk;
   ITokenController internal tc;
   ITokenData internal td;
   IQuotationData internal qd;
-  IClaims internal c1;
-  IClaimsData internal cd;
+  ILegacyClaims internal c1;
+  ILegacyClaimsData internal cd;
   IPool internal pool;
   IGovernance internal gv;
   IPooledStaking internal pooledStaking;
@@ -48,8 +48,8 @@ contract ClaimsReward is IClaimsReward, LegacyMasterAware {
   }
 
   function changeDependentContractAddress() public onlyInternal {
-    c1 = IClaims(ms.getLatestAddress("CL"));
-    cd = IClaimsData(ms.getLatestAddress("CD"));
+    c1 = ILegacyClaims(ms.getLatestAddress("CL"));
+    cd = ILegacyClaimsData(ms.getLatestAddress("CD"));
     tk = INXMToken(ms.tokenAddress());
     tc = ITokenController(ms.getLatestAddress("TC"));
     td = ITokenData(ms.getLatestAddress("TD"));

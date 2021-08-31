@@ -4,25 +4,25 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/LegacyMasterAware.sol";
-import "../../interfaces/IClaims.sol";
-import "../../interfaces/IClaimsData.sol";
-import "../../interfaces/IClaimsReward.sol";
-import "../../interfaces/IIncidents.sol";
+import "../../interfaces/ILegacyClaims.sol";
+import "../../interfaces/ILegacyClaimsData.sol";
+import "../../interfaces/ILegacyClaimsReward.sol";
+import "../../interfaces/ILegacyIncidents.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
 
-contract Claims is IClaims, LegacyMasterAware {
+contract LegacyClaims is ILegacyClaims, LegacyMasterAware {
   using SafeMath for uint;
 
   ITokenController internal tc;
-  IClaimsReward internal cr;
+  ILegacyClaimsReward internal cr;
   IPool internal p1;
-  IClaimsData internal cd;
+  ILegacyClaimsData internal cd;
   ITokenData internal td;
   IQuotationData internal qd;
-  IIncidents internal incidents;
+  ILegacyIncidents internal incidents;
 
   uint private constant DECIMAL1E18 = uint(10) ** 18;
 
@@ -68,10 +68,10 @@ contract Claims is IClaims, LegacyMasterAware {
     td = ITokenData(ms.getLatestAddress("TD"));
     tc = ITokenController(ms.getLatestAddress("TC"));
     p1 = IPool(ms.getLatestAddress("P1"));
-    cr = IClaimsReward(ms.getLatestAddress("CR"));
-    cd = IClaimsData(ms.getLatestAddress("CD"));
+    cr = ILegacyClaimsReward(ms.getLatestAddress("CR"));
+    cd = ILegacyClaimsData(ms.getLatestAddress("CD"));
     qd = IQuotationData(ms.getLatestAddress("QD"));
-    incidents = IIncidents(ms.getLatestAddress("IC"));
+    incidents = ILegacyIncidents(ms.getLatestAddress("IC"));
   }
 
   /**

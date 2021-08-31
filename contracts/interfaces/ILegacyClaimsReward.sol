@@ -2,7 +2,7 @@
 
 pragma solidity >=0.5.0;
 
-interface IClaimsReward {
+interface ILegacyClaimsReward {
 
   /// @dev Decides the next course of action for a given claim.
   function changeClaimStatus(uint claimid) external;

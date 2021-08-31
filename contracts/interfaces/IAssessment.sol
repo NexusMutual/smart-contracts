@@ -12,34 +12,17 @@ interface IAssessment is IERC721Receiver {
 
   enum UintParams {
     minVotingPeriodDays,
-    maxVotingPeriodDays,
-    payoutCooldownDays,
-    rewardRatio,
-    incidentExpectedPayoutRatio,
-    claimAssessmentDepositRatio
+    stakeLockupPeriodDays,
+    payoutCooldownDays
   }
 
   struct Configuration {
     // The minimum number of days the users can vote on polls
     uint8 minVotingPeriodDays;
-
+    // Number of days the users must wait from their last vote, to withdraw their stake.
+    uint8 stakeLockupPeriodDays;
     // Number of days the users must wait after a poll closes, to redeem payouts.
     uint8 payoutCooldownDays;
-
-    // Ratio used to calculate assessment rewards (0-10000 i.e. double decimal precision)
-    uint16 rewardRatio;
-
-    // Ratio out of 1 ETH, used to calculate a flat ETH deposit required for claim submission.
-    // If the claim is accepted, the user will receive the deposit back when the payout is redeemed.
-    // (0-10000 bps i.e. double decimal precision)
-    uint16 claimAssessmentDepositRatio;
-
-    // Ratio used to calculate potential payout of an incident
-    // (0-10000 bps i.e. double decimal precision)
-    uint16 incidentExpectedPayoutRatio;
-
-    // Ratio used to determine the deductible payout (0-10000 bps i.e. double decimal precision)
-    uint16 incidentPayoutDeductibleRatio;
   }
 
   struct Stake {
@@ -65,8 +48,6 @@ interface IAssessment is IERC721Receiver {
     uint32 timestamp;
    // How many tokens were staked when the vote was cast
     uint96 tokenWeight;
-   // Can be a claim or an incident (See EventType enum)
-    uint8 eventType;
   }
 
   struct Poll {
@@ -81,54 +62,11 @@ interface IAssessment is IERC721Receiver {
     uint128 totalReward;
   }
 
-  /*
-   *  Holds the requested amount, NXM price, submission fee and other relevant details
-   *  such as parts of the corresponding cover details and the payout status.
-   *
-   *  This structure has snapshots of claim-time states that are considered moving targets
-   *  but also parts of cover details that reduce the need of external calls. Everything is fitted
-   *  in a single word that contains:
-   */
-
-
-  struct Claim {
-   // Amount requested as part of this claim up to the total cover amount
-    uint96 amount;
-   // The identifier of the cover on which this claim is submitted
-    uint32 coverId;
-   // The index of of the asset address stored at addressOfAsset which is expected at payout.
-    uint8 payoutAsset;
-   // A snapshot of claimAssessmentDepositRatio if it is changed before the payout
-    uint16 assessmentDepositPerc;
-   // True when the payout is redeemed. Prevents further payouts on the claim.
-    bool payoutRedeemed;
-    uint80 assessmentId;
-  }
-
-  struct AffectedToken {
-    uint96 priceBefore;
-    address contractAddress;
-  }
-
-  struct Incident {
-    // Product identifier
-    uint24 productId;
-    uint80 assessmentId;
-    // Timestamp marking the date of the incident used to verify the user's eligibility for a claim
-    // according to their cover period.
-    uint32 date;
-    // The index of of the asset expected at payout from Pool.sol
-    uint8 payoutAsset;
-  }
-
   /* ========== VIEWS ========== */
 
-  function claims(uint id) external view returns (Poll memory poll, ClaimDetails memory details);
+  function getAssessmentsCount() external view returns (uint);
 
-  function claimants(uint id) external view returns (address);
-
-  function incidents(uint id) external view
-  returns (Poll memory poll, IncidentDetails memory details);
+  function getVoteCountOfAssessor(address assessor) external view returns (uint);
 
   function votesOf(address user, uint id) external view
   returns (uint104 eventId, bool accepted, uint32 timestamp, uint96 tokenWeight, uint8 eventType);
@@ -136,13 +74,11 @@ interface IAssessment is IERC721Receiver {
   function stakeOf(address user) external view
   returns (uint96 amount, uint104 rewardsWithdrawnUntilIndex, uint16 fraudCount);
 
+  function config() external view
+  returns (uint8 minVotingPeriodDays, uint8 stakeLockupPeriodDays, uint8 payoutCooldownDays);
+
   function hasAlreadyVotedOn(address voter, uint pollId) external view returns (bool);
 
-  function getVoteCountOfAssessor(address assessor) external view returns (uint);
-
-  function getClaimsCount() external view returns (uint);
-
-  function getIncidentsCount() external view returns (uint);
 
   /* === MUTATIVE FUNCTIONS ==== */
 
@@ -161,9 +97,12 @@ interface IAssessment is IERC721Receiver {
 
   function depositStake(uint96 amount) external;
 
-  function withdrawReward(address user, uint104 untilIndex) external;
+  function withdrawReward(address user, uint104 untilIndex) external
+  returns (uint withdrawn, uint104 withdrawUntilIndex);
 
   function withdrawStake(uint96 amount) external;
+
+  function startAssessment(uint totalAssessmentReward) external returns (uint);
 
   function redeemClaimPayout(uint104 id) external;
 

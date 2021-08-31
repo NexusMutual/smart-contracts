@@ -6,7 +6,8 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../abstract/MasterAwareV2.sol";
-import "../../libraries/Assessment/AssessmentGovernanceActionsLib.sol";
+
+import "@openzeppelin/contracts-v4/utils/cryptography/MerkleProof.sol";
 
 /// Provides a way for cover owners to submit claims and redeem the payouts and facilitates
 /// assessment processes where members decide the outcome of the events that lead to potential
@@ -64,17 +65,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
     return assessments.length;
   }
 
-  function _getPollStatus(Poll memory poll) internal view returns (PollStatus) {
-    if (block.timestamp < poll.end) {
-      return PollStatus.PENDING;
-    }
-    if (poll.accepted > poll.denied) {
-      // [todo] Could be worth checking if it's in cooldown period and return a new status
-      return PollStatus.ACCEPTED;
-    }
-    return PollStatus.DENIED;
-  }
-
   /* === MUTATIVE FUNCTIONS ==== */
 
   function depositStake(uint96 amount) external override onlyMember {
@@ -102,8 +92,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
     Assessment memory assessment;
     for (uint i = stake.rewardsWithdrawnUntilIndex; i < withdrawUntilIndex; i++) {
       vote = votesOf[user][i];
-      assessment = assessments[vote.pollId];
-      if (assessment.poll.end + config.payoutCooldownDays * 1 days >= blockTimestamp) {
+      assessment = assessments[vote.assessmentId];
+      if (assessment.poll.end + config.payoutCooldownDays * 1 days >= block.timestamp) {
         // Poll is not final
         break;
       }
@@ -114,18 +104,17 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
     // [todo] withdrawUntilIndex should be replaced with the last processed index from the loop above
     stakeOf[user].rewardsWithdrawnUntilIndex = withdrawUntilIndex;
-    // [todo] Replace with TC
-    nxm.mint(user, withdrawn);
+    ITokenController(getInternalContractAddress(ID.TC)).mint(user, withdrawn);
   }
 
   function withdrawStake(uint96 amount) external override onlyMember {
     Stake storage stake = stakeOf[msg.sender];
     require(stake.amount != 0, "No tokens staked");
     uint voteCount = votesOf[msg.sender].length;
-    Vote vote = votesOf[msg.sender][voteCount - 1];
+    Vote memory vote = votesOf[msg.sender][voteCount - 1];
     // [todo] Add stake lockup period from config
     require(
-      block.timestamp > vote.timestamp + config.maxVotingPeriodDays + config.payoutCooldownDays,
+      block.timestamp > vote.timestamp + config.stakeLockupPeriodDays,
       "Stake is in lockup period"
      );
 
@@ -148,16 +137,16 @@ contract Assessment is IAssessment, MasterAwareV2 {
   }
 
   // [todo] Check how many times poll is loaded from storage
-  function castVote(uint pollId, bool isAccepted) external override onlyMember {
+  function castVote(uint assessmentId, bool isAccepted) external override onlyMember {
     {
-      require(!hasAlreadyVotedOn[msg.sender][pollId], "Already voted");
-      hasAlreadyVotedOn[msg.sender][pollId] = true;
+      require(!hasAlreadyVotedOn[msg.sender][assessmentId], "Already voted");
+      hasAlreadyVotedOn[msg.sender][assessmentId] = true;
     }
 
     Stake memory stake = stakeOf[msg.sender];
     require(stake.amount > 0, "A stake is required to cast votes");
 
-    Poll memory poll = assessments[pollId].poll;
+    Poll memory poll = assessments[assessmentId].poll;
     require(block.timestamp < poll.end, "Voting is closed");
     require(
       poll.accepted > 0 || isAccepted,
@@ -181,20 +170,29 @@ contract Assessment is IAssessment, MasterAwareV2 {
       poll.denied += stake.amount;
     }
 
-    assessments[pollId].poll = poll;
+    assessments[assessmentId].poll = poll;
 
     votesOf[msg.sender].push(Vote(
-      pollId,
+      assessmentId,
       isAccepted,
-      blockTimestamp,
-      stake.amount,
-      eventType
+      block.timestamp,
+      stake.amount
     ));
   }
 
   function submitFraud(bytes32 root) external override onlyGovernance {
     fraudMerkleRoots.push(root);
   }
+
+  function getFraudulentAssessorLeaf (
+    address account,
+    uint256 lastFraudulentVoteIndex,
+    uint96 burnAmount,
+    uint16 fraudCount
+  ) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(account, lastFraudulentVoteIndex, burnAmount, fraudCount));
+  }
+
 
   function burnFraud(
     uint256 rootIndex,
@@ -239,12 +237,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
       }
 
       {
-        IAssessment.Poll memory pollFraud = pollFraudOfEvent[vote.eventType][vote.eventId];
+        IAssessment.Poll memory snapshot = fraudSnapshot[vote.assessmentId];
 
-        // Check if pollFraud exists. The start date is guaranteed to be > 0 in any poll.
-        if (pollFraud.start == 0) {
+        // Check if fraudSnapshot exists. The start date is guaranteed to be > 0 in any poll.
+        if (snapshot.start == 0) {
           // Copy the current poll results before correction starts
-          pollFraudOfEvent[vote.eventType][vote.eventId] = poll;
+          fraudSnapshot[vote.assessmentId] = poll;
         }
       }
 
@@ -260,7 +258,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
         }
       }
 
-      assessments[vote.pollId].poll = poll;
+      assessments[vote.assessmentId].poll = poll;
     }
 
     if (fraudCount == stake.fraudCount) {
@@ -282,7 +280,22 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)
   external override onlyGovernance {
-    config = AssessmentGovernanceActionsLib.getUpdatedUintParameters(config, paramNames, values);
+    Configuration memory newConfig = config;
+    for (uint i = 0; i < paramNames.length; i++) {
+      if (paramNames[i] == IAssessment.UintParams.minVotingPeriodDays) {
+        newConfig.minVotingPeriodDays = uint8(values[i]);
+        continue;
+      }
+      if (paramNames[i] == IAssessment.UintParams.stakeLockupPeriodDays) {
+        newConfig.stakeLockupPeriodDays = uint8(values[i]);
+        continue;
+      }
+      if (paramNames[i] == IAssessment.UintParams.payoutCooldownDays) {
+        newConfig.payoutCooldownDays = uint8(values[i]);
+        continue;
+      }
+    }
+    config = newConfig;
   }
 
   // [todo] Since this function is called every time contracts change,

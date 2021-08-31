@@ -222,7 +222,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint activeCover,
     uint capacity
   ) public pure returns (uint) {
-    return calculatePriceIntegralAtPoint(
+    return (calculatePriceIntegralAtPoint(
       basePrice,
       activeCover + amount,
       capacity
@@ -231,7 +231,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       basePrice,
       activeCover,
       capacity
-    );
+    )) / amount;
   }
 
   function calculatePriceIntegralAtPoint(

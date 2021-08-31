@@ -15,8 +15,10 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   mapping(uint => uint) capacityFactors;
   mapping(uint => StakingPool[]) stakingPoolsForCover;
 
-  mapping(uint => uint) lastPrices;
-  mapping(uint => uint) lastPriceUpdate;
+  mapping(uint => uint) initialPrices;
+
+  mapping(uint => mapping(address => uint)) lastPrices;
+  mapping(uint => mapping(address => uint)) lastPriceUpdate;
 
   address constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
@@ -115,8 +117,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     uint capacityFactor = capacityFactors[productId];
     (uint pricePercentage, uint price) = getPrice(coveredAmount, period, productId, stakingPool);
-    lastPrices[productId] = pricePercentage;
-    lastPriceUpdate[productId] = block.timestamp;
+    lastPrices[productId][address(stakingPool)] = pricePercentage;
+    lastPriceUpdate[productId][address(stakingPool)] = block.timestamp;
 
     stakingPool.buyCover(
       productId,
@@ -168,11 +170,12 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   uint constant EXPONENT = 7;
 
   function getPrice(uint amount, uint period, uint productId, IStakingPool pool) public view returns (uint, uint) {
+    
     uint basePrice = interpolatePrice(
       pool.getStake(productId),
-      lastPrices[productId],
+      lastPrices[productId][address(pool)] != 0 ? lastPrices[productId][address(pool)] : initialPrices[productId],
       pool.getTargetPrice(productId),
-      lastPriceUpdate[productId],
+      lastPriceUpdate[productId][address(pool)],
       block.timestamp
     );
     uint pricePercentage = calculatePrice(

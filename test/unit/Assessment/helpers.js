@@ -120,20 +120,10 @@ const stakeAndVoteOnEventType = (eventType, assessment, accounts) => async (user
   }
 };
 
-const getConfigurationStruct = ({
+const getConfigurationStruct = ({ minVotingPeriodDays, stakeLockupPeriodDays, payoutCooldownDays }) => [
   minVotingPeriodDays,
-  maxVotingPeriodDays,
+  stakeLockupPeriodDays,
   payoutCooldownDays,
-  rewardRatio,
-  incidentExpectedPayoutRatio,
-  claimAssessmentDepositRatio,
-}) => [
-  minVotingPeriodDays,
-  maxVotingPeriodDays,
-  payoutCooldownDays,
-  rewardRatio,
-  incidentExpectedPayoutRatio,
-  claimAssessmentDepositRatio,
 ];
 
 const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];

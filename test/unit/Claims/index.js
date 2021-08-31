@@ -13,5 +13,4 @@ describe.only('Claims', function () {
   });
 
   require('./submitClaim');
-  require('./depositStake');
 });

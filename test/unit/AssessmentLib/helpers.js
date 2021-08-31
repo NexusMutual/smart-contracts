@@ -78,9 +78,9 @@ const submitClaim = ({ accounts, contracts, config }) => async ({
   ipfsProofHash = '',
   sender,
 }) => {
-  const { claimAssessmentDepositRatio } = config;
+  const { assessmentDepositRatio } = config;
   const claimAssessmentDeposit = parseEther('1')
-    .mul(claimAssessmentDepositRatio)
+    .mul(assessmentDepositRatio)
     .div('10000');
   return await contracts.assessment
     .connect(sender || accounts[0])
@@ -144,14 +144,14 @@ const getConfigurationStruct = ({
   payoutCooldownDays,
   rewardRatio,
   incidentExpectedPayoutRatio,
-  claimAssessmentDepositRatio,
+  assessmentDepositRatio,
 }) => [
   minVotingPeriodDays,
   maxVotingPeriodDays,
   payoutCooldownDays,
   rewardRatio,
   incidentExpectedPayoutRatio,
-  claimAssessmentDepositRatio,
+  assessmentDepositRatio,
 ];
 
 const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];

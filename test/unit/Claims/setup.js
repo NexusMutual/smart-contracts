@@ -31,20 +31,8 @@ async function setup () {
   await pool.addAsset('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
   await pool.addAsset(dai.address);
 
-  const AssessmentClaimsLib = await ethers.getContractFactory('AssessmentClaimsLib');
-  const assessmentClaimsLib = await AssessmentClaimsLib.deploy();
-  await assessmentClaimsLib.deployed();
-
-  const AssessmentVoteLib = await ethers.getContractFactory('AssessmentVoteLib');
-  const assessmentVoteLib = await AssessmentVoteLib.deploy();
-  await assessmentVoteLib.deployed();
-
-  const AssessmentGovernanceActionsLib = await ethers.getContractFactory('AssessmentGovernanceActionsLib');
-  const assessmentGovernanceActionsLib = await AssessmentGovernanceActionsLib.deploy();
-  await assessmentGovernanceActionsLib.deployed();
-
-  const Assessment = await ethers.getContractFactory('Assessment');
-  const assessment = await Assessment.deploy(master.address);
+  const Assessment = await ethers.getContractFactory('CLMockAssessment');
+  const assessment = await Assessment.deploy();
   await assessment.deployed();
 
   const Claims = await ethers.getContractFactory('Claims');
@@ -66,15 +54,7 @@ async function setup () {
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
   {
-    const tx = await assessment.changeDependentContractAddress();
-    await tx.wait();
-  }
-  {
     const tx = await claims.changeDependentContractAddress();
-    await tx.wait();
-  }
-  {
-    const tx = await incidents.changeDependentContractAddress();
     await tx.wait();
   }
 
@@ -92,17 +72,17 @@ async function setup () {
   const assessmentLibTest = await AssessmentLibTest.deploy();
   await assessmentLibTest.deployed();
 
-  const config = await assessment.config();
+  const config = await claims.config();
 
   this.config = config;
   this.accounts = accounts;
   this.contracts = {
     nxm,
     dai,
+    claims,
     assessment,
     cover,
     master,
-    assessmentLibTest,
   };
 }
 

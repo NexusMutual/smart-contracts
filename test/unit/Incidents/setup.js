@@ -32,12 +32,8 @@ async function setup () {
   await pool.addAsset(dai.address);
 
   const Assessment = await ethers.getContractFactory('ICMockAssessment');
-  const assessment = await Assessment.deploy(master.address);
+  const assessment = await Assessment.deploy();
   await assessment.deployed();
-
-  const Claims = await ethers.getContractFactory('Claims');
-  const claims = await Claims.deploy(master.address);
-  await claims.deployed();
 
   const Incidents = await ethers.getContractFactory('Incidents');
   const incidents = await Incidents.deploy(master.address);
@@ -92,6 +88,7 @@ async function setup () {
     nxm,
     dai,
     assessment,
+    incidents,
     cover,
     master,
     assessmentLibTest,

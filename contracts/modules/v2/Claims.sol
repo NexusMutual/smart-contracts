@@ -44,7 +44,7 @@ contract Claims is IClaims, MasterAwareV2 {
     // [todo] Move to intiialize function
     // The minimum cover premium is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
     config.rewardRatio = 52; // 0.52%
-    config.claimAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH submission flat fee
+    config.assessmentDepositRatio = 500; // 5% i.e. 0.05 ETH submission flat fee
     master = INXMMaster(masterAddress);
     nxm = INXMToken(master.tokenAddress());
   }
@@ -163,7 +163,7 @@ contract Claims is IClaims, MasterAwareV2 {
   ) external payable override onlyMember {
     {
       require(
-        msg.value == 1 ether * uint(config.claimAssessmentDepositRatio) / RATIO_BPS,
+        msg.value == 1 ether * uint(config.assessmentDepositRatio) / RATIO_BPS,
         "Submission deposit different than the expected value"
       );
     }
@@ -192,7 +192,7 @@ contract Claims is IClaims, MasterAwareV2 {
       coverId,
       requestedAmount,
       payoutAsset,
-      config.claimAssessmentDepositRatio,
+      config.assessmentDepositRatio,
       false
     );
 
@@ -286,8 +286,8 @@ contract Claims is IClaims, MasterAwareV2 {
         newConfig.rewardRatio = uint16(values[i]);
         continue;
       }
-      if (paramNames[i] == UintParams.claimAssessmentDepositRatio) {
-        newConfig.claimAssessmentDepositRatio = uint16(values[i]);
+      if (paramNames[i] == UintParams.assessmentDepositRatio) {
+        newConfig.assessmentDepositRatio = uint16(values[i]);
         continue;
       }
     }

@@ -11,18 +11,4 @@ describe.only('Incidents', function () {
   afterEach(async function () {
     await revertToSnapshot(this.snapshotId);
   });
-
-  require('./getPollStatus');
-  require('./getPollEndDate');
-  require('./submitClaim');
-  // require('./submitIncident');
-  require('./depositStake');
-  // require('./withdrawReward');
-  // require('./withdrawStake');
-  // require('./redeemClaimPayout');
-  // require('./redeemIncidentPayout');
-  // require('./castVote');
-  // require('./submitFraud');
-  // require('./burnFraud');
-  // require('./updateUintParameters');
 });

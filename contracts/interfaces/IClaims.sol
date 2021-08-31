@@ -9,7 +9,7 @@ interface IClaims is IERC721Receiver {
   /* ========== DATA STRUCTURES ========== */
 
   enum UintParams {
-    claimAssessmentDepositRatio,
+    assessmentDepositRatio,
     rewardRatio
   }
 
@@ -17,7 +17,7 @@ interface IClaims is IERC721Receiver {
     // Ratio out of 1 ETH, used to calculate a flat ETH deposit required for claim submission.
     // If the claim is accepted, the user will receive the deposit back when the payout is redeemed.
     // (0-10000 bps i.e. double decimal precision)
-    uint16 claimAssessmentDepositRatio;
+    uint16 assessmentDepositRatio;
 
     // Ratio used to calculate assessment rewards (0-10000 i.e. double decimal precision)
     uint16 rewardRatio;
@@ -40,7 +40,7 @@ interface IClaims is IERC721Receiver {
     uint96 amount;
    // The index of of the asset address stored at addressOfAsset which is expected at payout.
     uint8 payoutAsset;
-   // A snapshot of claimAssessmentDepositRatio if it is changed before the payout
+   // A snapshot of assessmentDepositRatio if it is changed before the payout
     uint16 assessmentDepositRatio;
    // True when the payout is redeemed. Prevents further payouts on the claim.
     bool payoutRedeemed;
@@ -80,7 +80,7 @@ interface IClaims is IERC721Receiver {
 
   /* ========== VIEWS ========== */
 
-  function config() external view returns (uint16 claimAssessmentDepositRatio, uint16 rewardRatio);
+  function config() external view returns (uint16 assessmentDepositRatio, uint16 rewardRatio);
 
   function claimants(uint id) external view returns (address);
 

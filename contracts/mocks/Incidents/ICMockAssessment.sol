@@ -7,7 +7,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../abstract/MasterAwareV2.sol";
 
-contract CLMockAssessment {
+contract ICMockAssessment {
 
   /* ========== STATE VARIABLES ========== */
 

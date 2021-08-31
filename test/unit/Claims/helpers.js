@@ -88,48 +88,13 @@ const submitClaim = ({ accounts, contracts, config }) => async ({
   ipfsProofHash = '',
   sender,
 }) => {
-  const { claimAssessmentDepositRatio } = config;
+  const { assessmentDepositRatio } = config;
   const claimAssessmentDeposit = parseEther('1')
-    .mul(claimAssessmentDepositRatio)
+    .mul(assessmentDepositRatio)
     .div('10000');
-  return await contracts.assessment
-    .connect(sender || accounts[0])
-    .submitClaim(coverId, amount, hasProof, ipfsProofHash, {
-      value: claimAssessmentDeposit,
-    });
-};
-
-const getDurationByTokenWeight = ({ config }) => (tokens, payoutImpact) => {
-  const { minVotingPeriodDays, maxVotingPeriodDays } = config;
-  const MULTIPLIER = '10'; // 10x the cover amount
-  let tokenDrivenStrength = tokens.mul(parseEther('1')).div(payoutImpact.mul(MULTIPLIER));
-  // tokenDrivenStrength is capped at 1 i.e. 100%
-  tokenDrivenStrength = tokenDrivenStrength.gt(parseEther('1')) ? parseEther('1') : tokenDrivenStrength;
-  return BigNumber.from(daysToSeconds(minVotingPeriodDays).toString())
-    .add(
-      BigNumber.from(daysToSeconds(maxVotingPeriodDays - minVotingPeriodDays).toString())
-        .mul(parseEther('1').sub(tokenDrivenStrength))
-        .div(parseEther('1')),
-    )
-    .toNumber();
-};
-
-const getDurationByConsensus = ({ config }) => ({ accepted, denied }) => {
-  const { minVotingPeriodDays, maxVotingPeriodDays } = config;
-  if (accepted.isZero()) return daysToSeconds(maxVotingPeriodDays);
-  const consensusStrength = accepted
-    .mul(parseEther('2'))
-    .div(accepted.add(denied))
-    .sub(parseEther('1'))
-    .abs();
-  return parseEther(daysToSeconds(minVotingPeriodDays).toString())
-    .add(
-      parseEther(daysToSeconds(maxVotingPeriodDays - minVotingPeriodDays).toString())
-        .mul(parseEther('1').sub(consensusStrength))
-        .div(parseEther('1')),
-    )
-    .div(parseEther('1'))
-    .toNumber();
+  return await contracts.claims.connect(sender || accounts[0]).submitClaim(coverId, amount, hasProof, ipfsProofHash, {
+    value: claimAssessmentDeposit,
+  });
 };
 
 const stakeAndVoteOnEventType = (eventType, assessment, accounts) => async (userIndex, amount, id, accepted) => {
@@ -148,21 +113,7 @@ const stakeAndVoteOnEventType = (eventType, assessment, accounts) => async (user
   }
 };
 
-const getConfigurationStruct = ({
-  minVotingPeriodDays,
-  maxVotingPeriodDays,
-  payoutCooldownDays,
-  rewardRatio,
-  incidentExpectedPayoutRatio,
-  claimAssessmentDepositRatio,
-}) => [
-  minVotingPeriodDays,
-  maxVotingPeriodDays,
-  payoutCooldownDays,
-  rewardRatio,
-  incidentExpectedPayoutRatio,
-  claimAssessmentDepositRatio,
-];
+const getConfigurationStruct = ({ rewardRatio, assessmentDepositRatio }) => [rewardRatio, assessmentDepositRatio];
 
 const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
 
@@ -200,7 +151,5 @@ module.exports = {
   getClaimDetailsStruct,
   getIncidentDetailsStruct,
   getVoteStruct,
-  getDurationByTokenWeight,
-  getDurationByConsensus,
   stakeAndVoteOnEventType,
 };

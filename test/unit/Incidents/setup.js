@@ -11,8 +11,8 @@ async function setup () {
   const memberRoles = await MemberRoles.deploy();
   await memberRoles.deployed();
 
-  const ASMockTokenController = await ethers.getContractFactory('ASMockTokenController');
-  const tokenController = await ASMockTokenController.deploy(nxm.address);
+  const ICMockTokenController = await ethers.getContractFactory('ICMockTokenController');
+  const tokenController = await ICMockTokenController.deploy(nxm.address);
   await tokenController.deployed();
 
   nxm.setOperator(tokenController.address);
@@ -25,18 +25,48 @@ async function setup () {
   const dai = await DAI.deploy();
   await dai.deployed();
 
-  const Assessment = await ethers.getContractFactory('Assessment');
+  const ICMockPool = await ethers.getContractFactory('ICMockPool');
+  const pool = await ICMockPool.deploy();
+  await pool.deployed();
+  await pool.addAsset('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
+  await pool.addAsset(dai.address);
+
+  const Assessment = await ethers.getContractFactory('ICMockAssessment');
   const assessment = await Assessment.deploy(master.address);
   await assessment.deployed();
 
+  const Claims = await ethers.getContractFactory('Claims');
+  const claims = await Claims.deploy(master.address);
+  await claims.deployed();
+
+  const Incidents = await ethers.getContractFactory('Incidents');
+  const incidents = await Incidents.deploy(master.address);
+  await incidents.deployed();
+
+  const Cover = await ethers.getContractFactory('ICMockCover');
+  const cover = await Cover.deploy('Nexus Mutual Cover', 'NXC');
+  await cover.deployed();
+
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
+    master.setLatestAddress(hex('MR'), memberRoles.address),
+    master.setLatestAddress(hex('P1'), pool.address),
+    master.setLatestAddress(hex('AS'), assessment.address),
+    master.setLatestAddress(hex('CO'), cover.address),
     master.setTokenAddress(nxm.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
   {
     const tx = await assessment.changeDependentContractAddress();
+    await tx.wait();
+  }
+  {
+    const tx = await claims.changeDependentContractAddress();
+    await tx.wait();
+  }
+  {
+    const tx = await incidents.changeDependentContractAddress();
     await tx.wait();
   }
 
@@ -62,6 +92,7 @@ async function setup () {
     nxm,
     dai,
     assessment,
+    cover,
     master,
     assessmentLibTest,
   };

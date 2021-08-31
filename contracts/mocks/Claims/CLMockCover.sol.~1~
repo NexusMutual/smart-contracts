@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 
 import "../../interfaces/ICover.sol";
 
-contract AssessmentMockCover is ICover, ERC721 {
+contract CLMockCover is ICover, ERC721 {
   Cover[] public override covers;
   mapping(uint => StakingPool[]) public stakingPoolsOfCover;
 

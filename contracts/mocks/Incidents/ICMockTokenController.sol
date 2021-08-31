@@ -4,7 +4,7 @@ pragma solidity ^0.5.17;
 
 import "../../interfaces/INXMToken.sol";
 
-contract AssessmentMockTokenController {
+contract ICMockTokenController {
 
   INXMToken public token;
 

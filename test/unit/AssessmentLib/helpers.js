@@ -71,6 +71,24 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
   return gasUsed;
 };
 
+const submitClaim = ({ accounts, contracts, config }) => async ({
+  coverId = 0,
+  amount = parseEther('1'),
+  hasProof = false,
+  ipfsProofHash = '',
+  sender,
+}) => {
+  const { claimAssessmentDepositRatio } = config;
+  const claimAssessmentDeposit = parseEther('1')
+    .mul(claimAssessmentDepositRatio)
+    .div('10000');
+  return await contracts.assessment
+    .connect(sender || accounts[0])
+    .submitClaim(coverId, amount, hasProof, ipfsProofHash, {
+      value: claimAssessmentDeposit,
+    });
+};
+
 const getDurationByTokenWeight = ({ config }) => (tokens, payoutImpact) => {
   const { minVotingPeriodDays, maxVotingPeriodDays } = config;
   const MULTIPLIER = '10'; // 10x the cover amount
@@ -140,7 +158,7 @@ const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, s
 
 const getVoteStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
 
-const getClaimStruct = ({
+const getClaimDetailsStruct = ({
   amount,
   coverId,
   coverPeriod,
@@ -150,7 +168,7 @@ const getClaimStruct = ({
   payoutRedeemed,
 }) => [amount, coverId, coverPeriod, payoutAsset, nxmPriceSnapshot, assessmentDepositRatio, payoutRedeemed];
 
-const getIncidentStruct = ({
+const getIncidentDetailsStruct = ({
   productId,
   date,
   payoutAsset,
@@ -163,11 +181,12 @@ module.exports = {
   STATUS,
   daysToSeconds,
   submitFraud,
+  submitClaim,
   burnFraud,
   getPollStruct,
   getConfigurationStruct,
-  getClaimStruct,
-  getIncidentStruct,
+  getClaimDetailsStruct,
+  getIncidentDetailsStruct,
   getVoteStruct,
   getDurationByTokenWeight,
   getDurationByConsensus,

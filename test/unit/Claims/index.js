@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const { setup } = require('./setup');
 
-describe.only('Assessment', function () {
+describe.only('Claims', function () {
   before(setup);
 
   beforeEach(async function () {
@@ -12,6 +12,6 @@ describe.only('Assessment', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
+  require('./submitClaim');
   require('./depositStake');
-  require('./withdrawReward');
 });

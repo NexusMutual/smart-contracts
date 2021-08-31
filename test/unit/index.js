@@ -1,5 +1,4 @@
 describe('UNIT TESTS', function () {
-
   require('./TokenController');
   require('./ClaimProofs');
   require('./PooledStaking');
@@ -7,5 +6,8 @@ describe('UNIT TESTS', function () {
   require('./SwapOperator');
   require('./MCR');
   require('./Distributor');
+  require('./AssessmentLib');
   require('./Assessment');
+  require('./Claims');
+  require('./Incidents');
 });

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.5.17;
 
-contract AssessmentMockPool {
+contract CLMockPool {
   address[] public assets;
 
   function sendClaimPayout(

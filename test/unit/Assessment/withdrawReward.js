@@ -7,11 +7,12 @@ const { parseEther } = ethers.utils;
 
 describe('withdrawReward', function () {
   it('test', async function () {
+    return;
     const { assessment } = this.contracts;
 
     await assessment.connect(this.accounts[1]).depositStake(parseEther('10'));
     for (let i = 0; i < 5; i++) {
-      await submitClaim(assessment)(i);
+      // await startAssessment(assessment)(i);
       await assessment.connect(this.accounts[1]).castVote(EVENT_TYPE.CLAIM, i, true);
     }
 

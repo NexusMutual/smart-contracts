@@ -4,10 +4,20 @@ const { MerkleTree } = require('merkletreejs');
 const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
 const { BigNumber } = ethers;
 
+const EVENT_TYPE = {
+  CLAIM: 0,
+  INCIDENT: 1,
+};
+
 const STATUS = {
   PENDING: 0,
   ACCEPTED: 1,
   DENIED: 2,
+};
+
+const ASSET = {
+  ETH: 0,
+  DAI: 1,
 };
 
 // Converts days to seconds
@@ -69,6 +79,24 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
     }
   }
   return gasUsed;
+};
+
+const submitClaim = ({ accounts, contracts, config }) => async ({
+  coverId = 0,
+  amount = parseEther('1'),
+  hasProof = false,
+  ipfsProofHash = '',
+  sender,
+}) => {
+  const { claimAssessmentDepositRatio } = config;
+  const claimAssessmentDeposit = parseEther('1')
+    .mul(claimAssessmentDepositRatio)
+    .div('10000');
+  return await contracts.assessment
+    .connect(sender || accounts[0])
+    .submitClaim(coverId, amount, hasProof, ipfsProofHash, {
+      value: claimAssessmentDeposit,
+    });
 };
 
 const getDurationByTokenWeight = ({ config }) => (tokens, payoutImpact) => {
@@ -140,7 +168,7 @@ const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, s
 
 const getVoteStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
 
-const getClaimStruct = ({
+const getClaimDetailsStruct = ({
   amount,
   coverId,
   coverPeriod,
@@ -150,7 +178,7 @@ const getClaimStruct = ({
   payoutRedeemed,
 }) => [amount, coverId, coverPeriod, payoutAsset, nxmPriceSnapshot, assessmentDepositRatio, payoutRedeemed];
 
-const getIncidentStruct = ({
+const getIncidentDetailsStruct = ({
   productId,
   date,
   payoutAsset,
@@ -160,14 +188,17 @@ const getIncidentStruct = ({
 }) => [productId, date, payoutAsset, activeCoverAmount, expectedPayoutRatio, assessmentDepositRatio];
 
 module.exports = {
+  ASSET,
   STATUS,
+  EVENT_TYPE,
   daysToSeconds,
   submitFraud,
+  submitClaim,
   burnFraud,
   getPollStruct,
   getConfigurationStruct,
-  getClaimStruct,
-  getIncidentStruct,
+  getClaimDetailsStruct,
+  getIncidentDetailsStruct,
   getVoteStruct,
   getDurationByTokenWeight,
   getDurationByConsensus,

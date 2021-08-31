@@ -180,7 +180,6 @@ contract Incidents is IIncidents, MasterAwareV2 {
   // be wiped out and replaced with what is passed as calldata by master. This function
   // should only be callable by master.
   function changeDependentContractAddress() external override {
-    master = INXMMaster(master);
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");

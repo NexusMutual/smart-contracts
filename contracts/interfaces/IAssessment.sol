@@ -95,10 +95,10 @@ interface IAssessment {
 
   function submitFraud(bytes32 root) external;
 
-  function burnFraud(
+  function processFraud(
     uint256 rootIndex,
     bytes32[] calldata proof,
-    address fraudulentAssessor,
+    address assessor,
     uint256 lastFraudulentVoteIndex,
     uint96 burnAmount,
     uint16 fraudCount,

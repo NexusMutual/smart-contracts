@@ -33,7 +33,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   // fraud attempt by one or multiple addresses. Once the root is submitted by adivsory board
   // members through governance, burnFraud uses this root to burn the fraudulent assessors' stakes
   // and correct the outcome of the poll.
-  bytes32[] internal fraudMerkleRoots;
+  bytes32[] internal fraudResolution;
 
   // [todo] add comments
   mapping(uint => Poll) internal fraudSnapshot;
@@ -181,23 +181,13 @@ contract Assessment is IAssessment, MasterAwareV2 {
   }
 
   function submitFraud(bytes32 root) external override onlyGovernance {
-    fraudMerkleRoots.push(root);
+    fraudResolution.push(root);
   }
 
-  function getFraudulentAssessorLeaf (
-    address account,
-    uint256 lastFraudulentVoteIndex,
-    uint96 burnAmount,
-    uint16 fraudCount
-  ) internal pure returns (bytes32) {
-    return keccak256(abi.encodePacked(account, lastFraudulentVoteIndex, burnAmount, fraudCount));
-  }
-
-
-  function burnFraud(
+  function processFraud(
     uint256 rootIndex,
     bytes32[] calldata proof,
-    address fraudulentAssessor,
+    address assessor,
     uint256 lastFraudulentVoteIndex,
     uint96 burnAmount,
     uint16 fraudCount,
@@ -206,18 +196,13 @@ contract Assessment is IAssessment, MasterAwareV2 {
     require(
       MerkleProof.verify(
         proof,
-        fraudMerkleRoots[rootIndex],
-        getFraudulentAssessorLeaf(
-          fraudulentAssessor,
-          lastFraudulentVoteIndex,
-          burnAmount,
-          fraudCount
-        )
+        fraudResolution[rootIndex],
+        keccak256(abi.encodePacked(assessor, lastFraudulentVoteIndex, burnAmount, fraudCount))
       ),
       "Invalid merkle proof"
     );
 
-    Stake memory stake = stakeOf[fraudulentAssessor];
+    Stake memory stake = stakeOf[assessor];
 
     // Make sure we don't burn beyong lastFraudulentVoteIndex
     uint processUntil = stake.rewardsWithdrawnUntilIndex + voteBatchSize;
@@ -226,7 +211,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
 
     for (uint j = stake.rewardsWithdrawnUntilIndex; j < processUntil; j++) {
-      IAssessment.Vote memory vote = votesOf[fraudulentAssessor][j];
+      IAssessment.Vote memory vote = votesOf[assessor][j];
       IAssessment.Poll memory poll = assessments[vote.assessmentId].poll;
 
       {
@@ -274,7 +259,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
 
     stake.rewardsWithdrawnUntilIndex = uint104(processUntil);
-    stakeOf[fraudulentAssessor] = stake;
+    stakeOf[assessor] = stake;
 
   }
 
@@ -305,7 +290,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
   // be wiped out and replaced with what is passed as calldata by master. This function
   // should only be callable by master.
   function changeDependentContractAddress() external override {
-    master = INXMMaster(master);
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
   }
 

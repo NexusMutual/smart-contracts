@@ -4,13 +4,14 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/token/ERC721/IERC721Receiver.sol";
 
-interface IIncidents {
+interface IIncidents is IERC721Receiver {
 
   /* ========== DATA STRUCTURES ========== */
 
   enum UintParams {
     incidentExpectedPayoutRatio,
-    incidentPayoutDeductibleRatio
+    incidentPayoutDeductibleRatio,
+    rewardRatio
   }
 
   struct Configuration {
@@ -20,6 +21,9 @@ interface IIncidents {
 
     // Ratio used to determine the deductible payout (0-10000 bps i.e. double decimal precision)
     uint16 incidentPayoutDeductibleRatio;
+
+    // Ratio used to calculate assessment rewards (0-10000 i.e. double decimal precision)
+    uint16 rewardRatio;
   }
 
   struct Incident {
@@ -34,7 +38,11 @@ interface IIncidents {
 
   /* ========== VIEWS ========== */
 
-  function incidents(uint id) external view returns (Incident memory incident);
+  function config() external view
+  returns (uint16 incidentExpectedPayoutRatio, uint16 incidentPayoutDeductibleRatio, uint16 rewardRatio);
+
+  function incidents(uint id) external view
+  returns (uint80 assessmentId, uint24 productId, uint32 date, uint96 priceBefore);
 
   function getIncidentsCount() external view returns (uint);
 

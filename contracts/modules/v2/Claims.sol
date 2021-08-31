@@ -33,7 +33,7 @@ contract Claims is IClaims, MasterAwareV2 {
 
   INXMToken internal immutable nxm;
 
-  Configuration public config;
+  Configuration public override config;
 
   Claim[] public override claims;
   address[] public override claimants;
@@ -69,7 +69,7 @@ contract Claims is IClaims, MasterAwareV2 {
    */
   function getClaimToDisplay (uint id) public view returns (ClaimDisplay memory) {
     Claim memory claim = claims[id];
-    IAssessment.Poll memory poll = assessment().assessments(claim.assessmentId);
+    (IAssessment.Poll memory poll,) = assessment().assessments(claim.assessmentId);
 
     string memory claimStatusDisplay;
     string memory payoutStatusDisplay;
@@ -189,8 +189,8 @@ contract Claims is IClaims, MasterAwareV2 {
     uint8 payoutAsset = 0; // take this form cover asset
     Claim memory claim = Claim(
       0,
-      requestedAmount,
       coverId,
+      requestedAmount,
       payoutAsset,
       config.claimAssessmentDepositRatio,
       false
@@ -214,7 +214,7 @@ contract Claims is IClaims, MasterAwareV2 {
 
   function redeemClaimPayout(uint104 claimId) external override {
     Claim memory claim = claims[claimId];
-    IAssessment.Poll memory poll = assessment().assessments(claim.assessmentId);
+    (IAssessment.Poll memory poll,) = assessment().assessments(claim.assessmentId);
 
     require(
       AssessmentLib._getPollStatus(poll) == IAssessment.PollStatus.ACCEPTED,
@@ -258,9 +258,9 @@ contract Claims is IClaims, MasterAwareV2 {
 
   // [warn] This function has a critical bug if more than two claims are allowed
   function redeemCoverForDeniedClaim(uint coverId, uint claimId) external override {
-    Claim memory claim = claims[claimId].assessmentId;
+    Claim memory claim = claims[claimId];
 
-    IAssessment.Poll memory poll = assessment().assessments(claim.assessmentId);
+    (IAssessment.Poll memory poll,) = assessment().assessments(claim.assessmentId);
 
     require(
       AssessmentLib._getPollStatus(poll) == IAssessment.PollStatus.DENIED,
@@ -270,7 +270,7 @@ contract Claims is IClaims, MasterAwareV2 {
     ICover coverContract = ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
 
     {
-      (,, uint8 deniedClaims,,,) = coverContract.covers(coverId);
+      (,,,,, uint8 deniedClaims,) = coverContract.covers(coverId);
       require(deniedClaims == 0, "Cover was already denied twice");
     }
 
@@ -282,11 +282,11 @@ contract Claims is IClaims, MasterAwareV2 {
   external override onlyGovernance {
     Configuration memory newConfig = config;
     for (uint i = 0; i < paramNames.length; i++) {
-      if (paramNames[i] == IAssessment.UintParams.rewardRatio) {
+      if (paramNames[i] == UintParams.rewardRatio) {
         newConfig.rewardRatio = uint16(values[i]);
         continue;
       }
-      if (paramNames[i] == IAssessment.UintParams.claimAssessmentDepositRatio) {
+      if (paramNames[i] == UintParams.claimAssessmentDepositRatio) {
         newConfig.claimAssessmentDepositRatio = uint16(values[i]);
         continue;
       }

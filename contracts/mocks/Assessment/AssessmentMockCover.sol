@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.8.0;
 
@@ -66,36 +66,17 @@ contract AssessmentMockCover is ICover, ERC721 {
     _safeMint(owner, coverId);
     covers.push(Cover(
       productId,
-      payoutAsset,
-      deniedClaims,
       uint96(amount),
       uint32(block.timestamp + 1),
-      uint32(period)
+      uint32(period),
+      payoutAsset,
+      deniedClaims,
+      uint80(38200000000000000) // 1 NXM ~ 0.0382 ETH
     ));
     for (uint i=0; i < stakingPools.length; i++) {
       stakingPoolsOfCover[coverId][i] = stakingPools[i];
     }
     return coverId;
-  }
-
-  function editCover(
-    uint coverId,
-    uint24 productId,
-    uint8 payoutAsset,
-    uint8 deniedClaims,
-    uint96 amount,
-    uint start,
-    uint period,
-    StakingPool[] calldata stakingPools
-  ) public {
-    covers[coverId] = Cover(
-      productId,
-      payoutAsset,
-      deniedClaims,
-      amount,
-      uint32(start),
-      uint32(period)
-    );
   }
 
   function incrementDeniedClaims(uint coverId) external override {

@@ -2,9 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-v4/token/ERC721/IERC721Receiver.sol";
-
-interface IAssessment is IERC721Receiver {
+interface IAssessment {
 
   /* ========== DATA STRUCTURES ========== */
 
@@ -41,7 +39,7 @@ interface IAssessment is IERC721Receiver {
    */
   struct Vote {
    // Identifier of the claim or incident
-    uint104 eventId;
+    uint80 assessmentId;
    // If the assessor votes to accept the event it's true otherwise it's false
     bool accepted;
    // Date and time when the vote was cast
@@ -66,10 +64,12 @@ interface IAssessment is IERC721Receiver {
 
   function getAssessmentsCount() external view returns (uint);
 
+  function assessments(uint id) external view returns (Poll memory poll, uint128 totalReward);
+
   function getVoteCountOfAssessor(address assessor) external view returns (uint);
 
   function votesOf(address user, uint id) external view
-  returns (uint104 eventId, bool accepted, uint32 timestamp, uint96 tokenWeight, uint8 eventType);
+  returns (uint80 assessmentId, bool accepted, uint32 timestamp, uint96 tokenWeight);
 
   function stakeOf(address user) external view
   returns (uint96 amount, uint104 rewardsWithdrawnUntilIndex, uint16 fraudCount);
@@ -82,19 +82,6 @@ interface IAssessment is IERC721Receiver {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function submitClaim(
-    uint24 coverId,
-    uint96 requestedAmount,
-    bool hasProof,
-    string calldata ipfsProofHash
-  ) external payable;
-
-  function submitIncident(
-    uint24 productId,
-    uint96 priceBefore,
-    uint32 date
-  ) external;
-
   function depositStake(uint96 amount) external;
 
   function withdrawReward(address user, uint104 untilIndex) external
@@ -104,13 +91,7 @@ interface IAssessment is IERC721Receiver {
 
   function startAssessment(uint totalAssessmentReward) external returns (uint);
 
-  function redeemClaimPayout(uint104 id) external;
-
-  function redeemCoverForDeniedClaim(uint coverId, uint claimId) external;
-
-  function redeemIncidentPayout(uint104 incidentId, uint32 coverId, uint depeggedTokens) external;
-
-  function castVote(uint8 eventType, uint104 id, bool accepted) external;
+  function castVote(uint assessmentId, bool isAccepted) external;
 
   function submitFraud(bytes32 root) external;
 
@@ -129,13 +110,9 @@ interface IAssessment is IERC721Receiver {
   /* ========== EVENTS ========== */
 
   event StakeDeposited(address user, uint104 amount);
-  event ClaimSubmitted(address user, uint104 claimId, uint32 coverId, uint24 productId);
-  event IncidentSubmitted(address user, uint104 incidentId, uint24 productId);
+  event StakeWithdrawn(address indexed user, uint96 amount);
   event ProofSubmitted(uint indexed coverId, address indexed owner, string ipfsHash);
   event VoteCast(address indexed user, uint96 tokenWeight, bool accepted);
   event RewardWithdrawn(address user, uint256 amount);
-  event StakeWithdrawn(address indexed user, uint96 amount);
-  event ClaimPayoutRedeemed(address indexed user, uint256 amount, uint104 claimId);
-  event IncidentPayoutRedeemed(address indexed user, uint256 amount, uint104 incidentId, uint24 productId);
 
 }

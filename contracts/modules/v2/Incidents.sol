@@ -32,7 +32,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
 
   INXMToken internal immutable nxm;
 
-  Configuration public config;
+  Configuration public override config;
 
   Incident[] public override incidents;
 
@@ -100,7 +100,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
   function redeemIncidentPayout(uint104 incidentId, uint32 coverId, uint depeggedTokens)
   external override onlyMember {
     Incident memory incident =  incidents[incidentId];
-    IAssessment.Poll memory poll = assessment().assessments(incident.assessmentId);
+    (IAssessment.Poll memory poll,) = assessment().assessments(incident.assessmentId);
 
     require(
       AssessmentLib._getPollStatus(poll) == IAssessment.PollStatus.ACCEPTED,
@@ -119,28 +119,30 @@ contract Incidents is IIncidents, MasterAwareV2 {
     {
       ICover coverContract = ICover(getInternalContractAddress(ID.CO));
       coverOwner = payable(coverContract.ownerOf(coverId));
+
+      uint24 productId;
+      uint96 amount;
+      uint32 start;
+      uint32 period;
       (
-        uint24 productId,
-        uint96 amount,
-        uint32 start,
-        uint32 period,
-        uint8 redeemingMethod,
-        uint8 _payoutAsset,
-        ,
+        productId,
+        amount,
+        start,
+        period,
+        payoutAsset,
         ,
       ) = coverContract.covers(coverId);
-      payoutAsset = _payoutAsset;
-
-      require (coverOwner == msg.sender, "Payout can only be redeemed by cover owner");
-      require(productId == incident.details.productId, "Product id mismatch");
-      require(start <= incident.details.date, "Cover start date is after the incident");
-      require(start + period >= incident.details.date, "Cover end date is before the incident");
-      uint gracePeriod = 0; // [todo] Get from product
-      require(start + period + gracePeriod >= block.timestamp, "Grace period has expired");
-      // Should BURN_RATIO & DEDUCTIBLE_RATIO be stored in product details?
       payoutAmount = depeggedTokens; // [todo] Calculate payout amount
       require(payoutAmount <= amount, "Payout exceeds covered amount");
       coverContract.performPayoutBurn(coverId, coverOwner, payoutAmount);
+
+      require (coverOwner == msg.sender, "Payout can only be redeemed by cover owner");
+      require(productId == incident.productId, "Product id mismatch");
+      require(start <= incident.date, "Cover start date is after the incident");
+      require(start + period >= incident.date, "Cover end date is before the incident");
+      uint gracePeriod = 0; // [todo] Get from product
+      require(start + period + gracePeriod >= block.timestamp, "Grace period has expired");
+      // Should BURN_RATIO & DEDUCTIBLE_RATIO be stored in product details?
     }
 
 
@@ -159,11 +161,11 @@ contract Incidents is IIncidents, MasterAwareV2 {
   external override onlyGovernance {
     Configuration memory newConfig = config;
     for (uint i = 0; i < paramNames.length; i++) {
-      if (paramNames[i] == IAssessment.UintParams.rewardRatio) {
+      if (paramNames[i] == UintParams.rewardRatio) {
         newConfig.rewardRatio = uint16(values[i]);
         continue;
       }
-      if (paramNames[i] == IAssessment.UintParams.incidentExpectedPayoutRatio) {
+      if (paramNames[i] == UintParams.incidentExpectedPayoutRatio) {
         newConfig.incidentExpectedPayoutRatio = uint16(values[i]);
         continue;
       }

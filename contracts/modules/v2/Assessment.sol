@@ -18,7 +18,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   /* ========== STATE VARIABLES ========== */
 
-  Configuration public config;
+  Configuration public override config;
 
   // Stake states of users. (See Stake struct)
   mapping(address => Stake) public override stakeOf;
@@ -155,13 +155,13 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
     if (isAccepted && poll.accepted == 0) {
       // Reset the poll end when the first accepted vote
-      poll.end = block.timestamp + config.minVotingPeriodDays * 1 days;
+      poll.end = uint32(block.timestamp + config.minVotingPeriodDays * 1 days);
     }
 
     // Check if poll ends in less than 24 hours
     if (poll.end - block.timestamp < 1 days) {
       // Extend proportionally to the user's stake but up to 1 day maximum
-      poll.end += min(1 days, 1 days * stake.amount / (poll.accepted + poll.denied));
+      poll.end += uint32(min(1 days, 1 days * stake.amount / (poll.accepted + poll.denied)));
     }
 
     if (isAccepted) {
@@ -173,9 +173,9 @@ contract Assessment is IAssessment, MasterAwareV2 {
     assessments[assessmentId].poll = poll;
 
     votesOf[msg.sender].push(Vote(
-      assessmentId,
+      uint80(assessmentId),
       isAccepted,
-      block.timestamp,
+      uint32(block.timestamp),
       stake.amount
     ));
   }

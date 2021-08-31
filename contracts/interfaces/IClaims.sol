@@ -9,7 +9,8 @@ interface IClaims is IERC721Receiver {
   /* ========== DATA STRUCTURES ========== */
 
   enum UintParams {
-    claimAssessmentDepositRatio
+    claimAssessmentDepositRatio,
+    rewardRatio
   }
 
   struct Configuration {
@@ -17,6 +18,9 @@ interface IClaims is IERC721Receiver {
     // If the claim is accepted, the user will receive the deposit back when the payout is redeemed.
     // (0-10000 bps i.e. double decimal precision)
     uint16 claimAssessmentDepositRatio;
+
+    // Ratio used to calculate assessment rewards (0-10000 i.e. double decimal precision)
+    uint16 rewardRatio;
   }
 
   /*
@@ -74,6 +78,9 @@ interface IClaims is IERC721Receiver {
     string payoutStatus;
   }
 
+  /* ========== VIEWS ========== */
+
+  function config() external view returns (uint16 claimAssessmentDepositRatio, uint16 rewardRatio);
 
   function claimants(uint id) external view returns (address);
 

@@ -18,7 +18,6 @@ interface ICover is IERC721 {
     uint96 amount;
     uint32 start;
     uint32 period;  // seconds
-    uint8 redeemingMethod; // CLAIM, INCIDENT etc.
     uint8 payoutAsset;
     uint8 deniedClaims;
     uint80 nxmPrice; // 1 NXM in payoutAsset
@@ -31,8 +30,15 @@ interface ICover is IERC721 {
 
   /* ========== VIEWS ========== */
 
-  function covers(uint id) external
-  returns (uint24 , uint96 , uint32 , uint32 , uint8, uint8, uint8, uint80);
+  function covers(uint id) external returns (
+    uint24 productId,
+    uint96 amount,
+    uint32 start,
+    uint32 period,
+    uint8 payoutAsset,
+    uint8 deniedClaims,
+    uint80 nxmPrice
+  );
 
   /* === MUTATIVE FUNCTIONS ==== */
 

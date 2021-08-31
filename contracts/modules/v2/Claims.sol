@@ -267,6 +267,12 @@ contract Claims is IClaims, MasterAwareV2 {
       "Cover can be redeemed only if the claim is denied"
     );
 
+    (,,uint8 payoutCooldownDays) = assessment().config();
+    require(
+      block.timestamp >= poll.end + payoutCooldownDays * 1 days,
+      "The claim is in cooldown period"
+    );
+
     ICover coverContract = ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
 
     {

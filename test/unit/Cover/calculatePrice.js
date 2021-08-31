@@ -22,6 +22,7 @@ describe('calculatePrice', function () {
       capacity,
     );
 
+    assert.equal();
     console.log({
       price: price.toString(),
     });

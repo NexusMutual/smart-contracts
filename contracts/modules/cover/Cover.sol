@@ -170,7 +170,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   uint constant EXPONENT = 7;
 
   function getPrice(uint amount, uint period, uint productId, IStakingPool pool) public view returns (uint, uint) {
-    
+
     uint basePrice = interpolatePrice(
       pool.getStake(productId),
       lastPrices[productId][address(pool)] != 0 ? lastPrices[productId][address(pool)] : initialPrices[productId],
@@ -180,7 +180,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     );
     uint pricePercentage = calculatePrice(
       amount,
-      period,
       basePrice,
       pool.getUsedCapacity(productId),
       pool.getAvailableCapacity(productId, capacityFactors[productId])
@@ -219,7 +218,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
   function calculatePrice(
     uint amount,
-    uint period,
     uint basePrice,
     uint activeCover,
     uint capacity
@@ -231,7 +229,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     ) -
     calculatePriceIntegralAtPoint(
       basePrice,
-      activeCover + amount,
+      activeCover,
       capacity
     );
   }

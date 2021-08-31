@@ -16,10 +16,13 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   mapping(uint => StakingPool[]) stakingPoolsForCover;
 
   mapping(uint => uint) lastPrices;
+  mapping(uint => uint) lastPriceUpdate;
 
   address constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   uint public REWARD_BPS = 5000;
+
+  uint constant STAKE_SPEED_UNIT = 100000e18;
 
   constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_) {
   }
@@ -173,6 +176,16 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     );
   }
 
+  function interpolatePrice(
+    uint stakedNXM,
+    uint lastPrice,
+    uint targetPrice,
+    uint lastPriceUpdate,
+    uint now
+  ) public pure returns (uint) {
+    return (now - lastPriceUpdate) / 1 days * 1 / 100  * (stakedNXM / STAKE_SPEED_UNIT);
+  }
+
   function retrievePayment(uint totalPrice, uint8 payoutAssetIndex) internal {
     address payoutAsset = pool().assets(payoutAssetIndex);
     if (payoutAsset == ETH) {
@@ -210,7 +223,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       activeCover + amount,
       capacity
     );
-    return pricePercentage * amount / period * 365;
+    return pricePercentage * amount * period / 365 days;
   }
 
   function calculatePriceIntegralAtPoint(

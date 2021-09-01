@@ -70,7 +70,8 @@ contract AssessmentMockCover is ICover, ERC721 {
       deniedClaims,
       uint96(amount),
       uint32(block.timestamp + 1),
-      uint32(period)
+      uint32(period),
+      0 // mock price
     ));
     for (uint i=0; i < stakingPools.length; i++) {
       stakingPoolsOfCover[coverId][i] = stakingPools[i];
@@ -94,7 +95,8 @@ contract AssessmentMockCover is ICover, ERC721 {
       deniedClaims,
       amount,
       uint32(start),
-      uint32(period)
+      uint32(period),
+      0 // mock price
     );
   }
 

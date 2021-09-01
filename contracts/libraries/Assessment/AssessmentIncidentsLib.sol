@@ -88,7 +88,7 @@ library AssessmentIncidentsLib {
         /*uint8 deniedClaims*/,
         uint96 amount,
         uint32 start,
-        uint32 period
+        uint32 period,
       ) = coverContract.covers(coverId);
 
       require (coverOwner == msg.sender, "Payout can only be redeemed by cover owner");

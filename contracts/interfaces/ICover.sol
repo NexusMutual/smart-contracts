@@ -20,6 +20,7 @@ interface ICover is IERC721 {
     uint96 amount;
     uint32 start;
     uint32 period;  // seconds
+    uint96 price;
   }
 
   struct Product {
@@ -29,7 +30,7 @@ interface ICover is IERC721 {
 
   /* ========== VIEWS ========== */
 
-  function covers(uint id) external returns (uint24, uint8, uint8, uint96, uint32, uint32);
+  function covers(uint id) external returns (uint24, uint8, uint8, uint96, uint32, uint32, uint96);
 
   /* === MUTATIVE FUNCTIONS ==== */
 

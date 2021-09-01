@@ -36,7 +36,7 @@ async function setup () {
   await assessment.deployed();
 
   const Claims = await ethers.getContractFactory('Claims');
-  const claims = await Claims.deploy(master.address);
+  const claims = await Claims.deploy(nxm.address);
   await claims.deployed();
 
   const Cover = await ethers.getContractFactory('CLMockCover');
@@ -53,6 +53,10 @@ async function setup () {
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
+  {
+    const tx = await claims.initialize(master.address);
+    await tx.wait();
+  }
   {
     const tx = await claims.changeDependentContractAddress();
     await tx.wait();

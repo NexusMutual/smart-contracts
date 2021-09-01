@@ -26,7 +26,7 @@ async function setup () {
   await dai.deployed();
 
   const Assessment = await ethers.getContractFactory('Assessment');
-  const assessment = await Assessment.deploy(master.address);
+  const assessment = await Assessment.deploy(nxm.address);
   await assessment.deployed();
 
   const masterInitTxs = await Promise.all([
@@ -35,6 +35,10 @@ async function setup () {
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
+  {
+    const tx = await assessment.initialize(master.address);
+    await tx.wait();
+  }
   {
     const tx = await assessment.changeDependentContractAddress();
     await tx.wait();

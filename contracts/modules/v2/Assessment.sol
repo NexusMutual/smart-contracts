@@ -138,9 +138,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
     require(stake.amount != 0, "No tokens staked");
     uint voteCount = votesOf[msg.sender].length;
     Vote memory vote = votesOf[msg.sender][voteCount - 1];
-    // [todo] Add stake lockup period from config
     require(
-      block.timestamp > vote.timestamp + config.stakeLockupPeriodDays,
+      block.timestamp > vote.timestamp + config.stakeLockupPeriodDays * 1 days,
       "Stake is in lockup period"
      );
 

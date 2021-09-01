@@ -68,7 +68,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     StakingPool[] memory stakingPools
   ) internal returns (uint /*coverId*/) {
 
-    uint amountToCover = amount;
+    uint amountToCover = amount * 1e18 / pool().getTokenPrice(pool().assets(payoutAsset));
     uint totalPrice = 0;
     for (uint i = 0; i < stakingPools.length; i++) {
       if (amountToCover == 0) {

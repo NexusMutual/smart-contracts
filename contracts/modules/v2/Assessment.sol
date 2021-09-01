@@ -35,21 +35,20 @@ contract Assessment is IAssessment, MasterAwareV2 {
   // and correct the outcome of the poll.
   bytes32[] internal fraudResolution;
 
-  // [todo] add comments
-  mapping(uint => Poll) internal fraudSnapshot;
-
   Assessment[] public override assessments;
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(address masterAddress) {
-    // [todo] Move to intiialize function
-    // The minimum cover premium is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
+  constructor(address nxmAddress) {
+    nxm = INXMToken(nxmAddress);
+  }
+
+  function initialize (address masterAddress) external {
     config.minVotingPeriodDays = 3; // days
     config.payoutCooldownDays = 1; //days
     master = INXMMaster(masterAddress);
-    nxm = INXMToken(master.tokenAddress());
   }
+
 
   /* ========== VIEWS ========== */
 
@@ -136,7 +135,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
     return assessments.length - 1;
   }
 
-  // [todo] Check how many times poll is loaded from storage
   function castVote(uint assessmentId, bool isAccepted) external override onlyMember {
     {
       require(!hasAlreadyVotedOn[msg.sender][assessmentId], "Already voted");
@@ -204,7 +202,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
     Stake memory stake = stakeOf[assessor];
 
-    // Make sure we don't burn beyong lastFraudulentVoteIndex
+    // Make sure we don't burn beyond lastFraudulentVoteIndex
     uint processUntil = stake.rewardsWithdrawnUntilIndex + voteBatchSize;
     if ( processUntil >= lastFraudulentVoteIndex){
       processUntil = lastFraudulentVoteIndex + 1;
@@ -221,40 +219,37 @@ contract Assessment is IAssessment, MasterAwareV2 {
         }
       }
 
-      {
-        IAssessment.Poll memory snapshot = fraudSnapshot[vote.assessmentId];
 
-        // Check if fraudSnapshot exists. The start date is guaranteed to be > 0 in any poll.
-        if (snapshot.start == 0) {
-          // Copy the current poll results before correction starts
-          fraudSnapshot[vote.assessmentId] = poll;
-        }
+      if (vote.accepted) {
+        poll.accepted -= vote.tokenWeight;
+      } else {
+        poll.denied -= vote.tokenWeight;
       }
 
-      {
-        if (vote.accepted) {
-          poll.accepted -= vote.tokenWeight;
-        } else {
-          poll.denied -= vote.tokenWeight;
-        }
-
-        if (poll.end < uint32(block.timestamp) + 1 days) {
-          poll.end = uint32(block.timestamp) + 1 days;
-        }
+      // If the poll ends in less than 24h, extend it to 24h
+      if (poll.end < uint32(block.timestamp) + 1 days) {
+        poll.end = uint32(block.timestamp) + 1 days;
       }
 
+      emit FraudResolution(vote.assessmentId, assessor, poll);
       assessments[vote.assessmentId].poll = poll;
     }
 
+    // Burns an assessor only once for each merkle tree root, no matter how many times this function
+    // runs on the same account. When a transaction is too big to fit in one block, it is batched
+    // in multiple transactions according to voteBatchSize. After burning the tokens, fraudCount
+    // is incremented. If another merkle root is submitted that contains the same addres, the leaf
+    // should use the updated fraudCount stored in the Stake struct as input.
     if (fraudCount == stake.fraudCount) {
-      // Burns an assessor only once for each merkle root, no matter how many times this function
-      // runs on the same account. When a transaction is too big to fit in one block, it is batched
-      // in multiple transactions according to voteBatchSize. After burning the tokens, fraudCount
-      // is incremented. If another merkle root is submitted that contains the same addres, the leaf
-      // should use the updated fraudCount stored in the Stake struct as input.
-      //nxm.burn(uint(stake.amount));
-      // [todo] Burn the maximum between burnAmount and stake.amount
-      stake.amount -= burnAmount;
+      // Make sure this doesn't revert if the stake amount is already subtracted due to a previous
+      // burn from a different merkle tree.
+      if (stake.amount >= burnAmount) {
+        stake.amount -= burnAmount;
+        nxm.burn(burnAmount);
+      } else {
+        stake.amount = 0;
+        nxm.burn(burnAmount - stake.amount);
+      }
       stake.fraudCount++;
     }
 

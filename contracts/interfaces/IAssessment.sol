@@ -114,5 +114,6 @@ interface IAssessment {
   event ProofSubmitted(uint indexed coverId, address indexed owner, string ipfsHash);
   event VoteCast(address indexed user, uint96 tokenWeight, bool accepted);
   event RewardWithdrawn(address user, uint256 amount);
+  event FraudResolution(uint assessmentId, address assessor, Poll poll);
 
 }

@@ -30,7 +30,7 @@ interface ICover is IERC721 {
 
   /* ========== VIEWS ========== */
 
-  function covers(uint id) external returns (
+  function covers(uint id) external view returns (
     uint24 productId,
     uint96 amount,
     uint32 start,

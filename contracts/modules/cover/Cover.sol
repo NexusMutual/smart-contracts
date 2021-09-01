@@ -5,6 +5,7 @@ import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IPool.sol";
 import "../../abstract/MasterAwareV2.sol";
+import "../../interfaces/IMemberRoles.sol";
 
 
 contract Cover is ICover, ERC721, MasterAwareV2 {
@@ -28,6 +29,17 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
   uint constant STAKE_SPEED_UNIT = 100000e18;
 
+
+  modifier onlyAdvisoryBoard {
+    uint abRole = uint(IMemberRoles.Role.AdvisoryBoard);
+    require(
+      memberRoles().checkRole(msg.sender, abRole),
+      "Incidents: Caller is not an advisory board member"
+    );
+    _;
+  }
+
+
   constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_) {
   }
 
@@ -42,6 +54,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint maxPrice,
     StakingPool[] memory stakingPools
   ) external payable override returns (uint /*coverId*/) {
+    require(initialPrices[productId] != 0, "Cover: product not initialized");
+
     (uint coverId, uint priceInAsset) = _createCover(owner, productId, payoutAsset, 0, amount, period, stakingPools);
     require(priceInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
     retrievePayment(priceInAsset, payoutAsset);
@@ -270,10 +284,20 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     return actualPrice;
   }
 
-  function capacityFactors
+  function setCapacityFactor(uint productId, uint capacityFactor) external onlyAdvisoryBoard {
+    capacityFactors[productId] = capacityFactor;
+  }
+
+  function setInitialPrice(uint productId, uint initialPrice) external onlyAdvisoryBoard {
+    initialPrices[productId] = initialPrice;
+  }
 
   function pool() internal view returns (IPool) {
     return IPool(internalContracts[uint(ID.P1)]);
+  }
+
+  function memberRoles() internal view returns (IMemberRoles) {
+    return IMemberRoles(internalContracts[uint(ID.MR)]);
   }
 
   function changeDependentContractAddress() external override {

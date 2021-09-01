@@ -173,10 +173,10 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     return newCoverId;
   }
 
-  function incrementDeniedClaims(uint coverId) external override {
+  function incrementDeniedClaims(uint coverId) external onlyInternal override {
   }
 
-  function performPayoutBurn(uint coverId, address owner, uint amount) external override {
+  function performPayoutBurn(uint coverId, address owner, uint amount) external onlyInternal override {
     Cover memory cover = covers[coverId];
   }
 
@@ -202,6 +202,9 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     return (pricePercentage, price);
   }
 
+  /**
+    Price changes towards targetPrice from lastPrice by maximum of 1% a day per every 100k NXM staked
+  */
   function interpolatePrice(
     uint stakedNXM,
     uint lastPrice,
@@ -209,6 +212,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint lastPriceUpdate,
     uint now
   ) public pure returns (uint) {
+
     uint percentageChange = (now - lastPriceUpdate) / 1 days  * (stakedNXM / STAKE_SPEED_UNIT) * PERCENTAGE_CHANGE_PER_DAY_BPS;
     if (targetPrice > lastPrice) {
       return lastPrice + (targetPrice - lastPrice) * percentageChange / BASIS_PRECISION;
@@ -265,6 +269,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     return actualPrice;
   }
+
+  function capacityFactors
 
   function pool() internal view returns (IPool) {
     return IPool(internalContracts[uint(ID.P1)]);

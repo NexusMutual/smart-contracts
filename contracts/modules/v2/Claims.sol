@@ -10,6 +10,7 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IClaims.sol";
 import "../../interfaces/IAssessment.sol";
+import "../../interfaces/IERC20Detailed.sol";
 
 import "../../libraries/AssessmentLib.sol";
 
@@ -40,23 +41,33 @@ contract Claims is IClaims, MasterAwareV2 {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(address masterAddress) {
-    // [todo] Move to intiialize function
-    // The minimum cover premium is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
+  constructor(address nxmAddress) {
+    nxm = INXMToken(nxmAddress);
+  }
+
+  function initialize(address masterAddress) external {
+    // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
     config.rewardRatio = 52; // 0.52%
     config.assessmentDepositRatio = 500; // 5% i.e. 0.05 ETH submission flat fee
     master = INXMMaster(masterAddress);
-    nxm = INXMToken(master.tokenAddress());
   }
 
   /* ========== VIEWS ========== */
 
-  function getClaimsCount() external override view returns (uint) {
-    return claims.length;
+  function cover() internal view returns (ICover) {
+    return ICover(getInternalContractAddress(ID.CO));
   }
 
   function assessment() internal view returns (IAssessment) {
     return IAssessment(getInternalContractAddress(ID.AS));
+  }
+
+  function pool() internal view returns (IPool) {
+    return IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
+  }
+
+  function getClaimsCount() external override view returns (uint) {
+    return claims.length;
   }
 
   /**
@@ -67,7 +78,7 @@ contract Claims is IClaims, MasterAwareV2 {
    *
    *  @param id    Claim identifier for which the ClaimDisplay is returned
    */
-  function getClaimToDisplay (uint id) public view returns (ClaimDisplay memory) {
+  function getClaimDisplay (uint id) public view returns (ClaimDisplay memory) {
     Claim memory claim = claims[id];
     (IAssessment.Poll memory poll,) = assessment().assessments(claim.assessmentId);
 
@@ -77,33 +88,39 @@ contract Claims is IClaims, MasterAwareV2 {
       IAssessment.PollStatus claimStatus = AssessmentLib._getPollStatus(poll);
       if (claimStatus == IAssessment.PollStatus.ACCEPTED) {
         claimStatusDisplay = "Accepted";
+        if (claimStatus == IAssessment.PollStatus.ACCEPTED && claim.payoutRedeemed) {
+          payoutStatusDisplay = "Complete";
+        } else {
+          payoutStatusDisplay = "Pending";
+        }
       } else if (claimStatus == IAssessment.PollStatus.DENIED) {
         claimStatusDisplay = "Denied";
       } else if (claimStatus == IAssessment.PollStatus.PENDING) {
         claimStatusDisplay = "Pending";
       }
-
-      if (claimStatus == IAssessment.PollStatus.DENIED) {
-        payoutStatusDisplay = "Denied";
-      } else if (claimStatus == IAssessment.PollStatus.ACCEPTED && claim.payoutRedeemed) {
-        payoutStatusDisplay = "Complete";
-      } else {
-        payoutStatusDisplay = "Pending";
-      }
     }
 
-    // [todo] Get from covers contract
-    uint coverStart = block.timestamp;
-    uint coverPeriod = 365;
-    uint coverEnd = coverStart + coverPeriod * 1 days;
-    uint productId = 1;
+    (
+      uint24 productId,
+      /*uint96 amount*/,
+      uint32 coverStart,
+      uint32 coverPeriod,
+      uint8 payoutAsset,
+      uint8 deniedClaims,
+      uint80 nxmPrice
+    ) = cover().covers(claim.coverId);
+
+    uint coverEnd = coverStart + coverPeriod;
 
     string memory assetSymbol;
     if (claim.payoutAsset == 0) {
       assetSymbol = "ETH";
     } else {
-      // [todo] Assuming it's an ERC20, get this by calling the ERC contract direcly
-      assetSymbol = "DAI";
+      try IERC20Detailed(pool().assets(claim.payoutAsset)).symbol() returns (string memory v) {
+        assetSymbol = v;
+      } catch {
+        // return assetSymbol as an empty string and use claim.payoutAsset instead in the UI
+      }
     }
 
     return ClaimDisplay(
@@ -112,6 +129,7 @@ contract Claims is IClaims, MasterAwareV2 {
       claim.coverId,
       claim.amount,
       assetSymbol,
+      claim.payoutAsset,
       coverStart,
       coverEnd,
       poll.start,
@@ -128,14 +146,14 @@ contract Claims is IClaims, MasterAwareV2 {
    *  displaying all relevant information in as few calls as possible. It can be used to paginate
    *  claims by providing the following paramterers:
    *
-   *  @param from  First claim identifier from the requested range
-   *  @param to    Last claim identifier from the requested range
+   *  @param ids   Array of Claim ids which are returned as ClaimDisplay
    */
-  function getClaimsToDisplay (uint104 from, uint104 to)
+  function getClaimsToDisplay (uint104[] calldata ids)
   external view returns (ClaimDisplay[] memory) {
-    ClaimDisplay[] memory claimDisplays = new ClaimDisplay[](to-from+1);
-    for (uint104 id = from; id <= to; id++) {
-      claimDisplays[id - from] = getClaimToDisplay(id);
+    ClaimDisplay[] memory claimDisplays = new ClaimDisplay[](ids.length);
+    for (uint i = 0; i < ids.length; i++) {
+      uint104 id = ids[i];
+      claimDisplays[i] = getClaimDisplay(id);
     }
     return claimDisplays;
   }
@@ -167,26 +185,30 @@ contract Claims is IClaims, MasterAwareV2 {
         "Submission deposit different than the expected value"
       );
     }
-    // [todo] Cover premium and total amount need to be obtained from the cover
-    // itself. The premium needs to be converted to NXM using a TWAP at claim time.
+    (
+      /*uint24 productId*/,
+      /*uint96 amount*/,
+      uint32 coverStart,
+      uint32 coverPeriod,
+      uint8 payoutAsset,
+      /*uint8 deniedClaims*/,
+      uint80 nxmPrice
+    ) = cover().covers(coverId);
     {
       uint96 coverAmount = 1000 ether;
       require(requestedAmount <= coverAmount, "Cannot claim more than the covered amount");
     }
 
     {
-      ICover coverContract = ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
-      address owner = coverContract.ownerOf(coverId);
+      address owner = cover().ownerOf(coverId);
       claimants.push(owner);
-      coverContract.transferFrom(owner, address(this), coverId);
+      cover().transferFrom(owner, address(this), coverId);
     }
 
     if (hasProof) {
       emit ProofSubmitted(coverId, msg.sender, ipfsProofHash);
     }
 
-    uint16 coverPeriod = 365;
-    uint8 payoutAsset = 0; // take this form cover asset
     Claim memory claim = Claim(
       0,
       coverId,
@@ -197,14 +219,11 @@ contract Claims is IClaims, MasterAwareV2 {
     );
 
     {
-      // [todo] Get nxmPrice at cover purchase time
-      uint80 nxmPrice = uint80(38200000000000000); // 1 NXM ~ 0.0382 ETH
-
       // Calculate the expected in NXM using the NXM price at cover purchase time
       uint expectedPayoutNXM = claim.amount * PRECISION / nxmPrice;
 
       // Determine the total rewards that should be minted for the assessors based on cover period
-      uint totalReward = expectedPayoutNXM * config.rewardRatio * coverPeriod / 365
+      uint totalReward = expectedPayoutNXM * config.rewardRatio * coverPeriod / 365 days
       / RATIO_BPS;
       uint assessmentId = assessment().startAssessment(totalReward);
       claim.assessmentId = uint80(assessmentId);
@@ -230,16 +249,15 @@ contract Claims is IClaims, MasterAwareV2 {
     require(!claim.payoutRedeemed, "Payout has already been redeemed");
     claims[claimId].payoutRedeemed = true;
 
-    ICover coverContract = ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
     address payable coverOwner = payable(claimants[claim.coverId]);
-    coverContract.performPayoutBurn(
+    cover().performPayoutBurn(
       claim.coverId,
       coverOwner,
       claim.amount
     );
 
     // [todo] Replace asset with payoutAsset
-    IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
+    IPool poolContract = pool();
     address asset = poolContract.assets(claim.payoutAsset);
 
     // [todo] Replace payoutAddress with the member's address using the member id
@@ -273,15 +291,13 @@ contract Claims is IClaims, MasterAwareV2 {
       "The claim is in cooldown period"
     );
 
-    ICover coverContract = ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
-
     {
-      (,,,,, uint8 deniedClaims,) = coverContract.covers(coverId);
+      (,,,,, uint8 deniedClaims,) = cover().covers(coverId);
       require(deniedClaims == 0, "Cover was already denied twice");
     }
 
-    coverContract.incrementDeniedClaims(coverId);
-    coverContract.transferFrom(address(this), claimants[claimId], coverId);
+    cover().incrementDeniedClaims(coverId);
+    cover().transferFrom(address(this), claimants[claimId], coverId);
   }
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)
@@ -300,12 +316,6 @@ contract Claims is IClaims, MasterAwareV2 {
     config = newConfig;
   }
 
-  // [todo] Since this function is called every time contracts change,
-  // all internal contracts could be stored here to avoid calls to master when
-  // using onlyInternal or simply making a call to another contract.
-  // What I have in mind is that every time this function is called, everything should
-  // be wiped out and replaced with what is passed as calldata by master. This function
-  // should only be callable by master.
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");

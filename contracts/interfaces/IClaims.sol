@@ -70,6 +70,7 @@ interface IClaims is IERC721Receiver {
     uint coverId;
     uint amount;
     string assetSymbol;
+    uint assetIndex;
     uint coverStart;
     uint coverEnd;
     uint start;

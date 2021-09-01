@@ -14,4 +14,9 @@ describe.only('Assessment', function () {
 
   require('./depositStake');
   require('./withdrawReward');
+  require('./withdrawStake');
+  require('./castVote');
+  require('./submitFraud');
+  require('./processFraud');
+  require('./updateUintParameters');
 });

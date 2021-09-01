@@ -6,6 +6,26 @@ const { submitClaim, EVENT_TYPE, daysToSeconds } = require('./helpers');
 const { parseEther } = ethers.utils;
 
 describe('withdrawReward', function () {
+  it("reverts if untilIndex is grater than the users' number of votes", async function () {
+    assert(false, '[todo]');
+  });
+
+  it('reverts if there are no withdrawable rewards', async function () {
+    assert(false, '[todo]');
+  });
+
+  it('reverts if there are no withdrawable rewards', async function () {
+    assert(false, '[todo]');
+  });
+
+  it('withdraws rewards only until the last finalized assessment if an unfinalized assessment follows', async function () {
+    assert(false, '[todo]');
+  });
+
+  it("mints rewards pro-rated by the user's stake at vote time to the total staked on that assessment", async function () {
+    assert(false, '[todo]');
+  });
+
   it('test', async function () {
     return;
     const { assessment } = this.contracts;

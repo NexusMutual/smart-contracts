@@ -185,17 +185,22 @@ contract Claims is IClaims, MasterAwareV2 {
         "Submission deposit different than the expected value"
       );
     }
-    (
-      /*uint24 productId*/,
-      /*uint96 amount*/,
-      uint32 coverStart,
-      uint32 coverPeriod,
-      uint8 payoutAsset,
-      /*uint8 deniedClaims*/,
-      uint80 nxmPrice
-    ) = cover().covers(coverId);
+
+    uint32 coverStart;
+    uint32 coverPeriod;
+    uint8 payoutAsset;
+    uint80 nxmPrice;
     {
-      uint96 coverAmount = 1000 ether;
+      uint96 coverAmount;
+      (
+        /*uint24 productId*/,
+        coverAmount,
+        coverStart,
+        coverPeriod,
+        payoutAsset,
+        /*uint8 deniedClaims*/,
+        nxmPrice
+      ) = cover().covers(coverId);
       require(requestedAmount <= coverAmount, "Cannot claim more than the covered amount");
     }
 

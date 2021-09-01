@@ -72,8 +72,34 @@ contract Assessment is IAssessment, MasterAwareV2 {
       .operatorTransfer(msg.sender, address(this), amount);
   }
 
-  // [todo] Expose a view to find out the last index until withdrawals can be made and also
-  //  views for total rewards and withdrawable rewards
+  function getRewards(address user) external view
+  returns (uint total, uint withdrawable, uint withdrawableUntilIndex) {
+    Stake memory stake = stakeOf[user];
+    Vote memory vote;
+    Assessment memory assessment;
+    for (uint i = stake.rewardsWithdrawnUntilIndex; i < votesOf[user].length; i++) {
+      vote = votesOf[user][i];
+      assessment = assessments[vote.assessmentId];
+      if (
+        withdrawableUntilIndex == 0 &&
+        assessment.poll.end + config.payoutCooldownDays * 1 days >= block.timestamp
+      ) {
+        withdrawableUntilIndex = i;
+        withdrawable = total;
+      }
+
+      total += assessment.totalReward * vote.tokenWeight /
+        (assessment.poll.accepted + assessment.poll.denied);
+    }
+  }
+
+  /// Withdraws a staker's accumulated rewards
+  /// @dev
+  ///
+  /// @param user        The address of the staker for which the rewards are withdrawn
+  /// @param untilIndex  The index until which the rewards should be withdrawn. Used if a large
+  ///                    number of assessments accumulates and the function doesn't fir in one
+  ///                    block, thus requiring multiple batched transactions.
   function withdrawReward(address user, uint104 untilIndex) external override
   returns (uint withdrawn, uint104 withdrawUntilIndex) {
     Stake memory stake = stakeOf[user];
@@ -94,6 +120,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       assessment = assessments[vote.assessmentId];
       if (assessment.poll.end + config.payoutCooldownDays * 1 days >= block.timestamp) {
         // Poll is not final
+        withdrawUntilIndex = i;
         break;
       }
 
@@ -101,7 +128,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
         (assessment.poll.accepted + assessment.poll.denied);
     }
 
-    // [todo] withdrawUntilIndex should be replaced with the last processed index from the loop above
+    // This is the index where the next withdrawReward call will start iterating from
     stakeOf[user].rewardsWithdrawnUntilIndex = withdrawUntilIndex;
     ITokenController(getInternalContractAddress(ID.TC)).mint(user, withdrawn);
   }
@@ -278,12 +305,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
     config = newConfig;
   }
 
-  // [todo] Since this function is called every time contracts change,
-  // all internal contracts could be stored here to avoid calls to master when
-  // using onlyInternal or simply making a call to another contract.
-  // What I have in mind is that every time this function is called, everything should
-  // be wiped out and replaced with what is passed as calldata by master. This function
-  // should only be callable by master.
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
   }

@@ -38,13 +38,16 @@ contract Incidents is IIncidents, MasterAwareV2 {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(address masterAddress) {
-    // [todo] Move to intiialize function
-    // The minimum cover premium is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
+  constructor(address nxmAddress) {
+    nxm = INXMToken(nxmAddress);
+  }
+
+  function initialize(address masterAddress) external {
+    // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
     config.rewardRatio = 52; // 0.52%
     config.incidentExpectedPayoutRatio = 3000; // 30%
+    config.incidentPayoutDeductibleRatio = 9000; // 90%
     master = INXMMaster(masterAddress);
-    nxm = INXMToken(master.tokenAddress());
   }
 
   /* ========== VIEWS ========== */
@@ -72,11 +75,11 @@ contract Incidents is IIncidents, MasterAwareV2 {
       memberRoles().checkRole(msg.sender, uint(IMemberRoles.Role.AdvisoryBoard)),
       "Caller must be an advisory board member"
     );
+    // [todo] Should this be read from Cover.sol?
     uint96 activeCoverAmount = 20000 ether; // NXM, since this will be driven by capacity
-    uint coverPeriod = 30; // days
     address tokenAddress = 0x0000000000000000000000000000000000000000;
 
-    // [todo] Get nxmPrice at cover purchase time
+    // [todo] Not sure which nxm price to use here
     uint80 nxmPrice = uint80(38200000000000000); // 1 NXM ~ 0.0382 ETH
 
     Incident memory incident = Incident(
@@ -173,12 +176,6 @@ contract Incidents is IIncidents, MasterAwareV2 {
     config = newConfig;
   }
 
-  // [todo] Since this function is called every time contracts change,
-  // all internal contracts could be stored here to avoid calls to master when
-  // using onlyInternal or simply making a call to another contract.
-  // What I have in mind is that every time this function is called, everything should
-  // be wiped out and replaced with what is passed as calldata by master. This function
-  // should only be callable by master.
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");

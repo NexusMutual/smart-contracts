@@ -201,7 +201,7 @@ describe('buyCover', function () {
         coverData.period,
         coverData.type,
         data, { from: coverHolder }),
-      'VM Exception while processing transaction: revert SafeERC20: low-level call failed',
+      'SafeERC20: low-level call failed',
     );
   });
 

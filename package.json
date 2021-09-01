@@ -49,7 +49,7 @@
     "eslint-plugin-standard": "^4.0.1",
     "ethlint": "^1.2.5",
     "glob": "^7.1.6",
-    "hardhat": "^2.2.1",
+    "hardhat": "^2.6.1",
     "hardhat-contract-sizer": "^2.0.2",
     "mocha": "^7.1.2",
     "nodemon": "^2.0.2",
@@ -72,7 +72,7 @@
     "test-unit": "hardhat test test/unit/index.js",
     "test-fuzzing": "hardhat test test/fuzzing/index.js",
     "deploy": "hardhat run scripts/deploy.js",
-    "test-fork": "TEST_ENV_FORK=https://parity.nexusmutual.io/ hardhat test test/fork/index.js",
+    "test-fork": "TEST_ENV_FORK=http://erigon.nexusmutual.io  hardhat test test/fork/index.js",
     "typechain": "hardhat typechain",
     "distributor-deploy-kovan": "hardhat run --network kovan deploy/distributor/deploy-distributor.js",
     "self-kyc-kovan": "hardhat run --network kovan deploy/distributor/self-kyc.js"

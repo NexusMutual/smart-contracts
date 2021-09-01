@@ -23,7 +23,7 @@ const coverTemplate = {
 
 const claimAndVote = async (contracts, coverId, member, assessor, accept) => {
 
-  const { cl, cd, master } = contracts;
+  const { cl, cd, cr } = contracts;
 
   await cl.submitClaim(coverId, { from: member });
   const claimId = (await cd.actualClaimLength()).subn(1);
@@ -33,7 +33,7 @@ const claimAndVote = async (contracts, coverId, member, assessor, accept) => {
 
   const maxVotingTime = await cd.maxVotingTime();
   await setNextBlockTime(submittedAt.add(maxVotingTime).toNumber());
-  await master.closeClaim(claimId);
+  await cr.closeClaim(claimId);
 
   const { statno: status } = await cd.getClaimStatusNumber(claimId);
   const expectedStatus = accept ? 14 : 6;

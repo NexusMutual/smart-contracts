@@ -51,19 +51,19 @@ describe('basic functionality tests', async function () {
     const { mainnet: { abis } } = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
     const getAddressByCode = getAddressByCodeFactory(abis);
 
-    this.token = await NXMToken.at(getAddressByCode('NXMTOKEN'));
-    this.memberRoles = await MemberRoles.at(getAddressByCode('MR'));
-    this.master = await NXMaster.at(getAddressByCode(('NXMASTER')));
-    this.governance = await Governance.at(getAddressByCode('GV'));
-    this.tokenController = await TokenController.at(getAddressByCode('TC'));
-    this.quotation = await Quotation.at(getAddressByCode('QT'));
-    this.incidents = await Incidents.at(getAddressByCode('IC'));
-    this.pool = await Pool.at(getAddressByCode('P1'));
-    this.quotationData = await QuotationData.at(getAddressByCode('QD'));
-    this.gateway = await Gateway.at(getAddressByCode('GW'));
-    this.swapOperator = await SwapOperator.at(getAddressByCode('SO'));
-    this.mcr = await MCR.at(getAddressByCode('MC'));
-    this.dai = await ERC20MintableDetailed.at(Address.DAI);
+    this.token = this.token || await NXMToken.at(getAddressByCode('NXMTOKEN'));
+    this.memberRoles = this.memberRoles || await MemberRoles.at(getAddressByCode('MR'));
+    this.master = this.master || await NXMaster.at(getAddressByCode(('NXMASTER')));
+    this.governance = this.governance || await Governance.at(getAddressByCode('GV'));
+    this.tokenController = this.tokenController || await TokenController.at(getAddressByCode('TC'));
+    this.quotation = this.quotation || await Quotation.at(getAddressByCode('QT'));
+    this.incidents = this.incidents || await Incidents.at(getAddressByCode('IC'));
+    this.pool = this.pool || await Pool.at(getAddressByCode('P1'));
+    this.quotationData = this.quotationData || await QuotationData.at(getAddressByCode('QD'));
+    this.gateway = this.gateway || await Gateway.at(getAddressByCode('GW'));
+    this.swapOperator = this.swapOperator || await SwapOperator.at(getAddressByCode('SO'));
+    this.mcr = this.mcr || await MCR.at(getAddressByCode('MC'));
+    this.dai = this.dai || await ERC20MintableDetailed.at(Address.DAI);
   });
 
   it('funds accounts', async function () {
@@ -84,42 +84,17 @@ describe('basic functionality tests', async function () {
     this.whales = whales;
   });
 
-  it('performs hypothetical future proxy upgrade', async function () {
-
-    const { voters, governance, master } = this;
-
-    const gatewayImplementation = await Gateway.new();
-    const upgradesActionDataProxy = web3.eth.abi.encodeParameters(
-      ['bytes2[]', 'address[]'],
-      [
-        ['GW'].map(hex),
-        [gatewayImplementation].map(c => c.address),
-      ],
-    );
-
-    await submitGovernanceProposal(
-      ProposalCategory.upgradeProxy,
-      upgradesActionDataProxy,
-      voters,
-      governance,
-    );
-
-    const gwProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('GW')));
-    const gwImplementation = await gwProxy.implementation();
-
-    assert.equal(gwImplementation, gatewayImplementation.address);
-  });
-
-  it('performs hypothetical future non-proxy upgrade', async function () {
+  it('performs hypothetical future upgrade of proxy and non-proxy', async function () {
 
     const { voters, governance, master } = this;
 
     const tokenFunctionsImplementation = await TokenFunctions.new();
+    const gatewayImplementation = await Gateway.new();
     const upgradesActionDataNonProxy = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
       [
-        ['TF'].map(hex),
-        [tokenFunctionsImplementation].map(c => c.address),
+        ['GW', 'TF'].map(hex),
+        [gatewayImplementation, tokenFunctionsImplementation].map(c => c.address),
       ],
     );
 
@@ -131,8 +106,12 @@ describe('basic functionality tests', async function () {
     );
 
     const tfStoredAddress = await master.getLatestAddress(hex('TF'));
-
     assert.equal(tfStoredAddress, tokenFunctionsImplementation.address);
+
+    const gwProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('GW')));
+    const gwImplementation = await gwProxy.implementation();
+
+    assert.equal(gwImplementation, gatewayImplementation.address);
   });
 
   it('performs hypothetical future master upgrade', async function () {

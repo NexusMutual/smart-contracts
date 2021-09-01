@@ -2,6 +2,7 @@ const { accounts, artifacts, web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 
 const { setupUniswap } = require('../utils');
+const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
 
@@ -71,7 +72,7 @@ async function setup () {
     await proxy.transferProxyOwnership(newOwner);
   };
 
-  const [owner] = accounts;
+  const [owner, emergencyAdmin] = accounts;
 
   // deploy external contracts
   const { router, factory, weth } = await setupUniswap();
@@ -132,14 +133,14 @@ async function setup () {
   const contractType = code => {
 
     const upgradable = ['CL', 'CR', 'MC', 'P1', 'QT', 'TF'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC'];
 
     if (upgradable.includes(code)) {
-      return 1;
+      return ContractTypes.Replaceable;
     }
 
     if (proxies.includes(code)) {
-      return 2;
+      return ContractTypes.Proxy;
     }
 
     return 0;
@@ -151,7 +152,7 @@ async function setup () {
   await master.initialize(
     owner,
     tk.address,
-    28 * 24 * 3600, // emergency pause time 28 days
+    emergencyAdmin,
     codes.map(hex), // codes
     codes.map(contractType), // types
     addresses, // addresses
@@ -164,6 +165,8 @@ async function setup () {
     30 * 24 * 3600, // minCALockTime
     120 * 24 * 3600, // claimSubmissionGracePeriod
   );
+
+  await tc.addToWhitelist(cr.address);
 
   await mr.initialize(
     owner,
@@ -289,17 +292,23 @@ async function setup () {
     incidents,
   };
 
+  const nonInternal = { priceFeedOracle, swapOperator };
+
   this.contracts = {
     ...external,
     ...nonUpgradable,
     ...instances,
     ...proxies,
+    ...nonInternal,
   };
+
   this.rates = {
     daiToEthRate,
     ethEthRate,
     ethToDaiRate,
   };
+
+  this.contractType = contractType;
 }
 
 module.exports = setup;

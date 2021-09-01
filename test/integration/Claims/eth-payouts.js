@@ -49,7 +49,7 @@ describe('send claim payout to the payout address', function () {
 
   it('[A1, status: 0, 7, 14] CA accept, closed with closeClaim()', async function () {
 
-    const { cd, cl, qd, mr, master } = this.contracts;
+    const { cd, cl, qd, mr, master, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
     const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
@@ -73,7 +73,7 @@ describe('send claim payout to the payout address', function () {
     const voteStatusBefore = await cl.checkVoteClosing(claimId);
     assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
 
-    await master.closeClaim(claimId);
+    await cr.closeClaim(claimId);
     const voteStatusAfter = await cl.checkVoteClosing(claimId);
     assert(voteStatusAfter.eqn(-1), 'voting should be closed');
 
@@ -89,7 +89,7 @@ describe('send claim payout to the payout address', function () {
 
   it('[A1, status: 0, 7, 14] CA accept, closed on the last vote', async function () {
 
-    const { cd, cl, qd, mr } = this.contracts;
+    const { cd, cl, qd, mr, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
     const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
@@ -125,7 +125,7 @@ describe('send claim payout to the payout address', function () {
 
   it('[A2, status: 0, 4, 8, 14] CA no consensus, MV accept, closed with closeClaim()', async function () {
 
-    const { cd, cl, qd, mr, master } = this.contracts;
+    const { cd, cl, qd, mr, master, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
     const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
@@ -149,7 +149,7 @@ describe('send claim payout to the payout address', function () {
     const maxVotingTime = await cd.maxVotingTime();
     await time.increase(maxVotingTime.addn(1));
 
-    await master.closeClaim(claimId); // trigger changeClaimStatus
+    await cr.closeClaim(claimId); // trigger changeClaimStatus
     const voteStatusAfter = await cl.checkVoteClosing(claimId);
     assert(voteStatusAfter.eqn(0), 'voting should not be closed');
 
@@ -161,7 +161,7 @@ describe('send claim payout to the payout address', function () {
 
     await cl.submitMemberVote(claimId, '1', { from: member1 });
     await time.increase(maxVotingTime.addn(1));
-    await master.closeClaim(claimId);
+    await cr.closeClaim(claimId);
 
     const { statno: claimStatusMV } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(
@@ -178,7 +178,7 @@ describe('send claim payout to the payout address', function () {
 
   it('[A2, status: 0, 4, 8, 14] CA no consensus, MV accept, on the last vote', async function () {
 
-    const { cd, cl, qd, mr, master } = this.contracts;
+    const { cd, cl, qd, mr, master, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
     const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
@@ -202,7 +202,7 @@ describe('send claim payout to the payout address', function () {
     const maxVotingTime = await cd.maxVotingTime();
     await time.increase(maxVotingTime.addn(1));
 
-    await master.closeClaim(claimId); // trigger changeClaimStatus
+    await cr.closeClaim(claimId); // trigger changeClaimStatus
     const voteStatusAfter = await cl.checkVoteClosing(claimId);
     assert(voteStatusAfter.eqn(0), 'voting should not be closed');
 
@@ -231,7 +231,7 @@ describe('send claim payout to the payout address', function () {
 
   it('[A3, status: 0, 4, 10, 14] CA no consensus (accept), MV min not reached, use CA result', async function () {
 
-    const { cd, cl, qd, mr, master } = this.contracts;
+    const { cd, cl, qd, mr, master, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
     const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
@@ -255,7 +255,7 @@ describe('send claim payout to the payout address', function () {
     const maxVotingTime = await cd.maxVotingTime();
     await time.increase(maxVotingTime.addn(1));
 
-    await master.closeClaim(claimId); // trigger changeClaimStatus
+    await cr.closeClaim(claimId); // trigger changeClaimStatus
     const voteStatusAfter = await cl.checkVoteClosing(claimId);
     assert(voteStatusAfter.eqn(0), 'voting should not be closed');
 
@@ -266,7 +266,7 @@ describe('send claim payout to the payout address', function () {
     );
 
     await time.increase(maxVotingTime.addn(1));
-    await master.closeClaim(claimId); // trigger changeClaimStatus
+    await cr.closeClaim(claimId); // trigger changeClaimStatus
 
     const { statno: claimStatusMV } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(
@@ -283,7 +283,7 @@ describe('send claim payout to the payout address', function () {
 
   it('[A1, status: 0, 7, 12, 13] CA accept, closed with closeClaim(), claim payout fails with status 12 and goes to status 13 after 60 retries', async function () {
 
-    const { cd, cl, qd, mr, master, dai } = this.contracts;
+    const { cd, cl, qd, mr, master, dai, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
     const rejecter = await EtherRejecter.new();
@@ -310,7 +310,7 @@ describe('send claim payout to the payout address', function () {
     const voteStatusBefore = await cl.checkVoteClosing(claimId);
     assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
 
-    await master.closeClaim(claimId);
+    await cr.closeClaim(claimId);
     const voteStatusAfter = await cl.checkVoteClosing(claimId);
     assert.equal(voteStatusAfter.toString(), '0', 'voting should not be closed');
 
@@ -323,7 +323,7 @@ describe('send claim payout to the payout address', function () {
     const payoutRetryTime = await cd.payoutRetryTime();
     for (let i = 0; i <= 60; i++) {
       await time.increase(payoutRetryTime.addn(1));
-      await master.closeClaim(claimId);
+      await cr.closeClaim(claimId);
     }
 
     const { statno: finalClaimStatus } = await cd.getClaimStatusNumber(claimId);

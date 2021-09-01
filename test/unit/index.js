@@ -7,4 +7,5 @@ describe('UNIT TESTS', function () {
   require('./SwapOperator');
   require('./MCR');
   require('./Distributor');
+  require('./NXMaster');
 });

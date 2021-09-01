@@ -83,7 +83,7 @@ async function buyCover ({ coverData, gateway, coverHolder, qt, dai }) {
   throw new Error(`Unknown asset ${coverData.asset}`);
 }
 
-async function voteOnClaim ({ claimId, verdict, cl, cd, master, voter }) {
+async function voteOnClaim ({ claimId, verdict, cl, cd, cr, voter }) {
   await cl.submitCAVote(claimId, verdict, { from: voter });
 
   const minVotingTime = await cd.minVotingTime();
@@ -92,7 +92,7 @@ async function voteOnClaim ({ claimId, verdict, cl, cd, master, voter }) {
   const voteStatusBefore = await cl.checkVoteClosing(claimId);
   assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
 
-  await master.closeClaim(claimId);
+  await cr.closeClaim(claimId);
   const voteStatusAfter = await cl.checkVoteClosing(claimId);
   assert(voteStatusAfter.eqn(-1), 'voting should be closed');
 }

@@ -34,7 +34,7 @@ describe('removeEmptyReason', async function () {
 
   it('removes the reason after a successful claim', async function () {
 
-    const { cd, cl, qd, tc, master } = this.contracts;
+    const { cd, cl, qd, tc, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
     await buyCover({ ...this.contracts, cover, coverHolder });
@@ -47,7 +47,7 @@ describe('removeEmptyReason', async function () {
 
     const minVotingTime = await cd.minVotingTime();
     await time.increase(minVotingTime.addn(1));
-    await master.closeClaim(claimId);
+    await cr.closeClaim(claimId);
 
     const { statno: claimStatus } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(claimStatus.toNumber(), 14, 'claim status should be 14 (accepted, payout done)');
@@ -62,7 +62,7 @@ describe('removeEmptyReason', async function () {
 
   it('removes the reason after two denied claims', async function () {
 
-    const { cd, cl, qd, tc, master } = this.contracts;
+    const { cd, cl, qd, tc, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
     await buyCover({ ...this.contracts, cover, coverHolder });
@@ -78,7 +78,7 @@ describe('removeEmptyReason', async function () {
 
       const minVotingTime = await cd.minVotingTime();
       await time.increase(minVotingTime.addn(1));
-      await master.closeClaim(claimId);
+      await cr.closeClaim(claimId);
 
       const { statno: claimStatus } = await cd.getClaimStatusNumber(claimId);
       assert.strictEqual(claimStatus.toNumber(), 6, `claim status should be 6 (denied) on claim #${claimId}`);

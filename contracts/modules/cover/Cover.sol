@@ -68,6 +68,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     StakingPool[] memory stakingPools
   ) internal returns (uint /*coverId*/) {
 
+    // convert to NXM amount
     uint amountToCover = amount * 1e18 / pool().getTokenPrice(pool().assets(payoutAsset));
     uint totalPrice = 0;
     for (uint i = 0; i < stakingPools.length; i++) {
@@ -155,6 +156,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       maxPrice,
       stakingPools
     );
+
+    // TODO: calculate difference between initially paid price and new price being charged so you only charge what's extra if any
 
     // make the cover expire at current block
     covers[coverId].period = uint32(block.timestamp) - cover.start;

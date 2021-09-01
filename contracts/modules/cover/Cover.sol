@@ -23,6 +23,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   address constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   uint public REWARD_BPS = 5000;
+  uint constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
+  uint constant BASIS_PRECISION = 10000;
 
   uint constant STAKE_SPEED_UNIT = 100000e18;
 
@@ -196,7 +198,12 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint lastPriceUpdate,
     uint now
   ) public pure returns (uint) {
-    return (now - lastPriceUpdate) / 1 days * 1 / 100  * (stakedNXM / STAKE_SPEED_UNIT);
+    uint percentageChange = (now - lastPriceUpdate) / 1 days  * (stakedNXM / STAKE_SPEED_UNIT) * PERCENTAGE_CHANGE_PER_DAY_BPS;
+    if (targetPrice > lastPrice) {
+      return lastPrice + (targetPrice - lastPrice) * percentageChange / BASIS_PRECISION;
+    } else {
+      return lastPrice - (lastPrice - targetPrice) * percentageChange / BASIS_PRECISION;
+    }
   }
 
   function retrievePayment(uint totalPrice, uint8 payoutAssetIndex) internal {

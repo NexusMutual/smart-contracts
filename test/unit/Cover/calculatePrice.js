@@ -8,7 +8,7 @@ const { calculatePrice } = require('./helpers');
 
 const { toBN } = web3.utils;
 
-describe.only('calculatePrice', function () {
+describe('calculatePrice', function () {
 
   it('should calculate price correctly for high active cover', async function () {
     const { cover } = this;

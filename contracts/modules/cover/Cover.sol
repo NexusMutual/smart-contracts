@@ -11,24 +11,26 @@ import "../../interfaces/IMemberRoles.sol";
 contract Cover is ICover, ERC721, MasterAwareV2 {
 
   Cover[] public override covers;
-  Product[] public products;
-
-  mapping(uint => uint) capacityFactors;
   mapping(uint => StakingPool[]) stakingPoolsForCover;
 
-  mapping(uint => uint) initialPrices;
+  Product[] public products;
+  mapping(uint => uint) capacityFactors;
 
+  mapping(uint => uint) initialPrices;
   mapping(uint => mapping(address => uint)) lastPrices;
   mapping(uint => mapping(address => uint)) lastPriceUpdate;
 
+
+  /* === CONSTANTS ==== */
+
   address constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
   uint public REWARD_BPS = 5000;
-  uint constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
-  uint constant BASIS_PRECISION = 10000;
+  uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
+  uint public constant BASIS_PRECISION = 10000;
+  uint public constant STAKE_SPEED_UNIT = 100000e18;
+  uint public constant PRICE_CURVE_EXPONENT = 7;
 
-  uint constant STAKE_SPEED_UNIT = 100000e18;
-
+  /* === MODIFIERS ==== */
 
   modifier onlyAdvisoryBoard {
     uint abRole = uint(IMemberRoles.Role.AdvisoryBoard);
@@ -38,8 +40,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     );
     _;
   }
-
-
+  
   constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_) {
   }
 
@@ -169,8 +170,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       stakingPools
     );
 
-    // TODO: calculate difference between initially paid price and new price being charged so you only charge what's extra if any
-
     // make the cover expire at current block
     uint32 newPeriod = uint32(block.timestamp) - cover.start;
     uint32 previousPeriod = covers[coverId].period;
@@ -194,7 +193,25 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     Cover memory cover = covers[coverId];
   }
 
-  uint constant EXPONENT = 7;
+
+  function retrievePayment(uint totalPrice, uint8 payoutAssetIndex) internal {
+    address payoutAsset = pool().assets(payoutAssetIndex);
+    if (payoutAsset == ETH) {
+      require(msg.value >= totalPrice, "Cover: Insufficient ETH sent");
+      uint remainder = msg.value - totalPrice;
+
+      if (remainder > 0) {
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool ok, /* data */) = address(msg.sender).call{value: remainder}("");
+        require(ok, "Cover: Returning ETH remainder to sender failed.");
+      }
+    } else {
+      IERC20 token = IERC20(payoutAsset);
+      token.transferFrom(msg.sender, address(this), totalPrice);
+    }
+  }
+
+  /* ========== PRICE CALCULATION ========== */
 
   function getPrice(uint amount, uint period, uint productId, IStakingPool pool) public view returns (uint, uint) {
 
@@ -235,23 +252,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     }
   }
 
-  function retrievePayment(uint totalPrice, uint8 payoutAssetIndex) internal {
-    address payoutAsset = pool().assets(payoutAssetIndex);
-    if (payoutAsset == ETH) {
-      require(msg.value >= totalPrice, "Cover: Insufficient ETH sent");
-      uint remainder = msg.value - totalPrice;
-
-      if (remainder > 0) {
-        // solhint-disable-next-line avoid-low-level-calls
-        (bool ok, /* data */) = address(msg.sender).call{value: remainder}("");
-        require(ok, "Cover: Returning ETH remainder to sender failed.");
-      }
-    } else {
-      IERC20 token = IERC20(payoutAsset);
-      token.transferFrom(msg.sender, address(this), totalPrice);
-    }
-  }
-
   function calculatePrice(
     uint amount,
     uint basePrice,
@@ -276,13 +276,15 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint capacity
   ) public pure returns (uint) {
     uint actualPrice = basePrice * activeCover;
-    for (uint i = 0; i < EXPONENT; i++) {
+    for (uint i = 0; i < PRICE_CURVE_EXPONENT; i++) {
       actualPrice = actualPrice * activeCover / capacity;
     }
     actualPrice = actualPrice / 8 + basePrice * activeCover;
 
     return actualPrice;
   }
+
+  /* ========== PRODUCT CONFIGURATION ========== */
 
   function setCapacityFactor(uint productId, uint capacityFactor) external onlyAdvisoryBoard {
     capacityFactors[productId] = capacityFactor;
@@ -291,6 +293,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   function setInitialPrice(uint productId, uint initialPrice) external onlyAdvisoryBoard {
     initialPrices[productId] = initialPrice;
   }
+
+  /* ========== DEPENDENCIES ========== */
 
   function pool() internal view returns (IPool) {
     return IPool(internalContracts[uint(ID.P1)]);

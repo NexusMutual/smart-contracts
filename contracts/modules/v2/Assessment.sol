@@ -101,11 +101,11 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///                    number of assessments accumulates and the function doesn't fir in one
   ///                    block, thus requiring multiple batched transactions.
   function withdrawReward(address user, uint104 untilIndex) external override
-  returns (uint withdrawn, uint104 withdrawUntilIndex) {
+  returns (uint withdrawn, uint withdrawUntilIndex) {
     Stake memory stake = stakeOf[user];
     {
       uint voteCount = votesOf[user].length;
-      withdrawUntilIndex = untilIndex > 0 ? untilIndex : uint104(voteCount);
+      withdrawUntilIndex = untilIndex > 0 ? untilIndex : voteCount;
       require(
         untilIndex <= voteCount,
         "Vote count is smaller that the provided untilIndex"
@@ -129,7 +129,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
 
     // This is the index where the next withdrawReward call will start iterating from
-    stakeOf[user].rewardsWithdrawnUntilIndex = withdrawUntilIndex;
+    stakeOf[user].rewardsWithdrawnUntilIndex = uint104(withdrawUntilIndex);
     ITokenController(getInternalContractAddress(ID.TC)).mint(user, withdrawn);
   }
 
@@ -147,7 +147,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     stake.amount -= amount;
   }
 
-  function startAssessment(uint totalAssessmentReward) external
+  function startAssessment(uint totalAssessmentReward, uint assessmentDeposit) external
   override onlyInternal returns (uint) {
     assessments.push(Assessment(
       Poll(
@@ -156,7 +156,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
         uint32(block.timestamp), // start
         uint32(block.timestamp + config.minVotingPeriodDays * 1 days) // end
       ),
-      uint128(totalAssessmentReward)
+      uint128(totalAssessmentReward),
+      uint128(assessmentDeposit)
     ));
     return assessments.length - 1;
   }

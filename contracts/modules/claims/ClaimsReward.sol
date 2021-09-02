@@ -115,43 +115,7 @@ contract ClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
   }
 
   function attemptClaimPayout(uint coverId) internal returns (bool success) {
-
-    uint sumAssured = qd.getCoverSumAssured(coverId);
-    // TODO: when adding new cover currencies, fetch the correct decimals for this multiplication
-    uint sumAssuredWei = sumAssured.mul(1e18);
-
-    // get asset address
-    bytes4 coverCurrency = qd.getCurrencyOfCover(coverId);
-    address asset = getCurrencyAssetAddress(coverCurrency);
-
-    // get payout address
-    address payable coverHolder = qd.getCoverMemberAddress(coverId);
-    address payable payoutAddress = memberRoles.getClaimPayoutAddress(coverHolder);
-
-    // execute the payout
-    bool payoutSucceeded = pool.sendClaimPayout(asset, payoutAddress, sumAssuredWei);
-
-    if (payoutSucceeded) {
-
-      // burn staked tokens
-      (, address scAddress) = qd.getscAddressOfCover(coverId);
-      uint tokenPrice = pool.getTokenPrice(asset);
-
-      // note: for new assets "18" needs to be replaced with target asset decimals
-      uint burnNXMAmount = sumAssuredWei.mul(1e18).div(tokenPrice);
-      pooledStaking.pushBurn(scAddress, burnNXMAmount);
-
-      // adjust total sum assured
-      (, address coverContract) = qd.getscAddressOfCover(coverId);
-      qd.subFromTotalSumAssured(coverCurrency, sumAssured);
-      qd.subFromTotalSumAssuredSC(coverContract, coverCurrency, sumAssured);
-
-      // update MCR since total sum assured and MCR% change
-      mcr.updateMCRInternal(pool.getPoolValueInEth(), true);
-      return true;
-    }
-
-    return false;
+    revert("Migrate to v2");
   }
 
   /// @dev Amount of tokens to be rewarded to a user for a particular vote id.

@@ -77,10 +77,6 @@ contract Incidents is IIncidents, MasterAwareV2 {
     );
     // [todo] Should this be read from Cover.sol?
     uint96 activeCoverAmount = 20000 ether; // NXM, since this will be driven by capacity
-    address tokenAddress = 0x0000000000000000000000000000000000000000;
-
-    // [todo] Not sure which nxm price to use here
-    uint80 nxmPrice = uint80(38200000000000000); // 1 NXM ~ 0.0382 ETH
 
     Incident memory incident = Incident(
       0, // assessmentId
@@ -91,11 +87,11 @@ contract Incidents is IIncidents, MasterAwareV2 {
 
     // Calculate the expected in NXM using the NXM price at cover purchase time
     uint expectedPayoutNXM = activeCoverAmount * config.incidentExpectedPayoutRatio *
-      PRECISION / nxmPrice / RATIO_BPS;
+      PRECISION / RATIO_BPS;
 
     // Determine the total rewards that should be minted for the assessors based on cover period
     uint totalReward = expectedPayoutNXM * config.rewardRatio * RATIO_BPS;
-    uint assessmentId = assessment().startAssessment(totalReward);
+    uint assessmentId = assessment().startAssessment(totalReward, 0);
     incident.assessmentId = uint80(assessmentId);
     incidents.push(incident);
   }
@@ -103,7 +99,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
   function redeemIncidentPayout(uint104 incidentId, uint32 coverId, uint depeggedTokens)
   external override onlyMember {
     Incident memory incident =  incidents[incidentId];
-    (IAssessment.Poll memory poll,) = assessment().assessments(incident.assessmentId);
+    (IAssessment.Poll memory poll,,) = assessment().assessments(incident.assessmentId);
 
     require(
       AssessmentLib._getPollStatus(poll) == IAssessment.PollStatus.ACCEPTED,
@@ -154,8 +150,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
 
     {
       IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
-      address asset = poolContract.assets(payoutAsset); // [todo]
-      bool succeeded = poolContract.sendClaimPayout(asset, payoutAddress, payoutAmount);
+      bool succeeded = poolContract.sendClaimPayout(payoutAsset, payoutAddress, payoutAmount);
       require(succeeded, "Incident payout failed");
     }
   }

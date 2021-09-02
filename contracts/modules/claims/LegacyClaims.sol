@@ -44,21 +44,7 @@ contract LegacyClaims is ILegacyClaims, LegacyMasterAware {
    * @return tokens Total Amount used in Claims assessment.
    */
   function getCATokens(uint claimId, uint member) external view returns (uint tokens) {
-    uint coverId;
-    (, coverId) = cd.getClaimCoverId(claimId);
-
-    bytes4 currency = qd.getCurrencyOfCover(coverId);
-    address asset = cr.getCurrencyAssetAddress(currency);
-    uint tokenx1e18 = p1.getTokenPrice(asset);
-
-    uint accept;
-    uint deny;
-    if (member == 0) {
-      (, accept, deny) = cd.getClaimsTokenCA(claimId);
-    } else {
-      (, accept, deny) = cd.getClaimsTokenMV(claimId);
-    }
-    tokens = ((accept.add(deny)).mul(tokenx1e18)).div(DECIMAL1E18); // amount (not in tokens)
+    revert("Migrate to v2");
   }
 
   /**
@@ -212,26 +198,7 @@ contract LegacyClaims is ILegacyClaims, LegacyMasterAware {
    * -1 if voting has already been closed.
    */
   function _checkVoteClosingFinal(uint claimId, uint status) internal view returns (int8 close) {
-    close = 0;
-    uint coverId;
-    (, coverId) = cd.getClaimCoverId(claimId);
-
-    bytes4 currency = qd.getCurrencyOfCover(coverId);
-    address asset = cr.getCurrencyAssetAddress(currency);
-    uint tokenx1e18 = p1.getTokenPrice(asset);
-
-    uint accept;
-    uint deny;
-    (, accept, deny) = cd.getClaimsTokenCA(claimId);
-    uint caTokens = ((accept.add(deny)).mul(tokenx1e18)).div(DECIMAL1E18);
-    (, accept, deny) = cd.getClaimsTokenMV(claimId);
-    uint mvTokens = ((accept.add(deny)).mul(tokenx1e18)).div(DECIMAL1E18);
-    uint sumassured = qd.getCoverSumAssured(coverId).mul(DECIMAL1E18);
-    if (status == 0 && caTokens >= sumassured.mul(10)) {
-      close = 1;
-    } else if (status >= 1 && status <= 5 && mvTokens >= sumassured.mul(10)) {
-      close = 1;
-    }
+    revert("Migrate to v2");
   }
 
   /**

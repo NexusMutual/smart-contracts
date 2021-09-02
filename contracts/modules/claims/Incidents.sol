@@ -15,7 +15,7 @@ import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 
-contract Incidents is ILegacyIncidents, MasterAware {
+contract LegacyIncidents is ILegacyIncidents, MasterAware {
   using SafeERC20 for IERC20;
   using SafeMath for uint;
 
@@ -262,30 +262,7 @@ contract Incidents is ILegacyIncidents, MasterAware {
     address coverAsset,
     uint payoutAmount
   ) internal {
-
-    address _coveredToken = coveredToken[productId];
-
-    // pull depegged tokens
-    IERC20(_coveredToken).safeTransferFrom(msg.sender, address(this), coveredTokenAmount);
-
-    IPool p1 = pool();
-
-    // send the payoutAmount
-    {
-      address payable payoutAddress = memberRoles().getClaimPayoutAddress(coverOwner);
-      bool success = p1.sendClaimPayout(coverAsset, payoutAddress, payoutAmount);
-      require(success, "Incidents: Payout failed");
-    }
-
-    {
-      // burn
-      uint decimalPrecision = 1e18;
-      uint assetPerNxm = p1.getTokenPrice(coverAsset);
-      uint maxBurnAmount = payoutAmount.mul(decimalPrecision).div(assetPerNxm);
-      uint burnAmount = maxBurnAmount.mul(BURN_RATIO).div(BASIS_PRECISION);
-
-      accumulatedBurn[productId] = accumulatedBurn[productId].add(burnAmount);
-    }
+    revert("Migrate to v2");
   }
 
   function claimsData() internal view returns (ILegacyClaimsData) {

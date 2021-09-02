@@ -56,7 +56,8 @@ contract CLMockAssessment {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function startAssessment(uint totalAssessmentReward) external returns (uint) {
+  function startAssessment(uint totalAssessmentReward, uint assessmentDeposit) external
+  returns (uint) {
     assessments.push(IAssessment.Assessment(
       IAssessment.Poll(
         0, // accepted
@@ -64,7 +65,8 @@ contract CLMockAssessment {
         uint32(block.timestamp), // start
         uint32(block.timestamp + config.minVotingPeriodDays * 1 days) // end
       ),
-      uint128(totalAssessmentReward)
+      uint128(totalAssessmentReward),
+      uint128(assessmentDeposit)
     ));
     return assessments.length - 1;
   }

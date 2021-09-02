@@ -48,7 +48,7 @@ contract Claims is IClaims, MasterAwareV2 {
   function initialize(address masterAddress) external {
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
     config.rewardRatio = 52; // 0.52%
-    config.assessmentDepositRatio = 500; // 5% i.e. 0.05 ETH submission flat fee
+    config.assessmentBaseDepositRatio = 500; // 5% i.e. 0.05 ETH submission flat fee
     master = INXMMaster(masterAddress);
   }
 
@@ -63,7 +63,7 @@ contract Claims is IClaims, MasterAwareV2 {
   }
 
   function pool() internal view returns (IPool) {
-    return IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
+    return IPool(getInternalContractAddress(ID.P1));
   }
 
   function getClaimsCount() external override view returns (uint) {
@@ -80,7 +80,7 @@ contract Claims is IClaims, MasterAwareV2 {
    */
   function getClaimDisplay (uint id) public view returns (ClaimDisplay memory) {
     Claim memory claim = claims[id];
-    (IAssessment.Poll memory poll,) = assessment().assessments(claim.assessmentId);
+    (IAssessment.Poll memory poll,,) = assessment().assessments(claim.assessmentId);
 
     string memory claimStatusDisplay;
     string memory payoutStatusDisplay;
@@ -88,7 +88,7 @@ contract Claims is IClaims, MasterAwareV2 {
       IAssessment.PollStatus claimStatus = AssessmentLib._getPollStatus(poll);
       if (claimStatus == IAssessment.PollStatus.ACCEPTED) {
         claimStatusDisplay = "Accepted";
-        if (claimStatus == IAssessment.PollStatus.ACCEPTED && claim.payoutRedeemed) {
+        if (claimStatus == IAssessment.PollStatus.ACCEPTED && claim.redeemed) {
           payoutStatusDisplay = "Complete";
         } else {
           payoutStatusDisplay = "Pending";
@@ -176,16 +176,9 @@ contract Claims is IClaims, MasterAwareV2 {
   function submitClaim(
     uint24 coverId,
     uint96 requestedAmount,
-    bool hasProof ,
+    bool hasProof,
     string calldata ipfsProofHash
   ) external payable override onlyMember {
-    {
-      require(
-        msg.value == 1 ether * uint(config.assessmentDepositRatio) / RATIO_BPS,
-        "Submission deposit different than the expected value"
-      );
-    }
-
     uint32 coverStart;
     uint32 coverPeriod;
     uint8 payoutAsset;
@@ -219,26 +212,48 @@ contract Claims is IClaims, MasterAwareV2 {
       coverId,
       requestedAmount,
       payoutAsset,
-      config.assessmentDepositRatio,
+      config.assessmentBaseDepositRatio,
       false
     );
 
-    {
-      // Calculate the expected in NXM using the NXM price at cover purchase time
-      uint expectedPayoutNXM = claim.amount * PRECISION / nxmPrice;
+    // Calculate the expected in NXM using the NXM price at cover purchase time
+    uint expectedPayoutNXM = claim.amount * PRECISION / nxmPrice;
 
-      // Determine the total rewards that should be minted for the assessors based on cover period
-      uint totalReward = expectedPayoutNXM * config.rewardRatio * coverPeriod / 365 days
-      / RATIO_BPS;
-      uint assessmentId = assessment().startAssessment(totalReward);
-      claim.assessmentId = uint80(assessmentId);
-      claims.push(claim);
+    // Determine the total rewards that should be minted for the assessors based on cover period
+    uint totalReward = expectedPayoutNXM * config.rewardRatio * coverPeriod / 365 days
+    / RATIO_BPS;
+
+    // [todo] Find out which price to use
+    uint dynamicDeposit;
+    if (payoutAsset > 0) {
+      // If the payout asset is an ERC20 use the currentNxmPrice in that asset
+      uint currentNxmPrice = pool().getTokenPrice(payoutAsset);
+      dynamicDeposit = totalReward * currentNxmPrice / PRECISION;
+    } else {
+      // If the payout asset is ETH use the nxmPrice at the time of cover purchase
+      dynamicDeposit = totalReward * nxmPrice / PRECISION;
     }
+
+    uint baseDeposit = 1 ether * config.assessmentBaseDepositRatio / RATIO_BPS;
+    uint deposit = baseDeposit + dynamicDeposit;
+
+    require(
+      msg.value == deposit,
+      "Assessment deposit different than the expected value"
+    );
+
+    uint assessmentId = assessment().startAssessment(totalReward, deposit);
+    claim.assessmentId = uint80(assessmentId);
+    claims.push(claim);
   }
 
   function redeemClaimPayout(uint104 claimId) external override {
     Claim memory claim = claims[claimId];
-    (IAssessment.Poll memory poll,) = assessment().assessments(claim.assessmentId);
+    (
+      IAssessment.Poll memory poll,
+      /*uint128 totalAssessmentReward*/,
+      uint assessmentDeposit
+    ) = assessment().assessments(claim.assessmentId);
 
     require(
       AssessmentLib._getPollStatus(poll) == IAssessment.PollStatus.ACCEPTED,
@@ -251,8 +266,8 @@ contract Claims is IClaims, MasterAwareV2 {
       "The claim is in cooldown period"
     );
 
-    require(!claim.payoutRedeemed, "Payout has already been redeemed");
-    claims[claimId].payoutRedeemed = true;
+    require(!claim.redeemed, "Payout has already been redeemed");
+    claims[claimId].redeemed = true;
 
     address payable coverOwner = payable(claimants[claim.coverId]);
     cover().performPayoutBurn(
@@ -261,34 +276,35 @@ contract Claims is IClaims, MasterAwareV2 {
       claim.amount
     );
 
-    // [todo] Replace asset with payoutAsset
-    IPool poolContract = pool();
-    address asset = poolContract.assets(claim.payoutAsset);
-
     // [todo] Replace payoutAddress with the member's address using the member id
     IMemberRoles memberRolesContract = IMemberRoles(internalContracts[uint(IMasterAwareV2.ID.MR)]);
     address payable payoutAddress = memberRolesContract.getClaimPayoutAddress(coverOwner);
 
-    bool succeeded = poolContract.sendClaimPayout(asset, payoutAddress, claim.amount);
+    bool succeeded = pool().sendClaimPayout(claim.payoutAsset, payoutAddress, claim.amount);
     require(succeeded, "Claim payout failed");
 
     {
-      uint assessmentDepositToRefund = 1 ether * uint(claim.assessmentDepositRatio) / RATIO_BPS;
+      uint assessmentDepositToRefund = 1 ether * uint(claim.assessmentBaseDepositRatio) / RATIO_BPS;
       (bool refunded, /* bytes data */) = payoutAddress.call{value: assessmentDepositToRefund}("");
       require(refunded, "Submission deposit refund failed");
     }
   }
 
-  // [warn] This function has a critical bug if more than two claims are allowed
-  function redeemCoverForDeniedClaim(uint coverId, uint claimId) external override {
+  function redeemCoverForDeniedClaim(uint claimId) external override {
     Claim memory claim = claims[claimId];
 
-    (IAssessment.Poll memory poll,) = assessment().assessments(claim.assessmentId);
+    (
+      IAssessment.Poll memory poll,
+      /*uint128 totalReward*/,
+      uint128 assessmentDeposit
+    ) = assessment().assessments(claim.assessmentId);
 
     require(
       AssessmentLib._getPollStatus(poll) == IAssessment.PollStatus.DENIED,
       "Cover can be redeemed only if the claim is denied"
     );
+
+    require(!claim.redeeemed, "Cover was already redeemed");
 
     (,,uint8 payoutCooldownDays) = assessment().config();
     require(
@@ -296,13 +312,9 @@ contract Claims is IClaims, MasterAwareV2 {
       "The claim is in cooldown period"
     );
 
-    {
-      (,,,,, uint8 deniedClaims,) = cover().covers(coverId);
-      require(deniedClaims == 0, "Cover was already denied twice");
-    }
-
-    cover().incrementDeniedClaims(coverId);
-    cover().transferFrom(address(this), claimants[claimId], coverId);
+    cover().transferFrom(address(this), claimants[claimId], claim.coverId);
+    claims[claimId].redeemed = true;
+    getInternalContractAddress(ID.P1).call{value: assessmentDeposit}("");
   }
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)
@@ -313,8 +325,8 @@ contract Claims is IClaims, MasterAwareV2 {
         newConfig.rewardRatio = uint16(values[i]);
         continue;
       }
-      if (paramNames[i] == UintParams.assessmentDepositRatio) {
-        newConfig.assessmentDepositRatio = uint16(values[i]);
+      if (paramNames[i] == UintParams.assessmentBaseDepositRatio) {
+        newConfig.assessmentBaseDepositRatio = uint16(values[i]);
         continue;
       }
     }

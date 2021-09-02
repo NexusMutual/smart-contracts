@@ -89,11 +89,14 @@ const submitClaim = ({ accounts, contracts, config }) => async ({
   sender,
 }) => {
   const { assessmentDepositRatio } = config;
-  const claimAssessmentDeposit = parseEther('1')
+  const baseAssessmentDeposit = parseEther('1')
     .mul(assessmentDepositRatio)
     .div('10000');
+  // [todo] Fix the deposit formula and move it in a different helper function
+  const dynamicAssessmentDeposit = 0;
+  const assessmentDeposit = baseAssessmentDeposit + dynamicAssessmentDeposit;
   return await contracts.claims.connect(sender || accounts[0]).submitClaim(coverId, amount, hasProof, ipfsProofHash, {
-    value: claimAssessmentDeposit,
+    value: assessmentDeposit,
   });
 };
 

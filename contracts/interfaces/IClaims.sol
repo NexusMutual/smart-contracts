@@ -9,7 +9,7 @@ interface IClaims is IERC721Receiver {
   /* ========== DATA STRUCTURES ========== */
 
   enum UintParams {
-    assessmentDepositRatio,
+    assessmentBaseDepositRatio,
     rewardRatio
   }
 
@@ -17,7 +17,7 @@ interface IClaims is IERC721Receiver {
     // Ratio out of 1 ETH, used to calculate a flat ETH deposit required for claim submission.
     // If the claim is accepted, the user will receive the deposit back when the payout is redeemed.
     // (0-10000 bps i.e. double decimal precision)
-    uint16 assessmentDepositRatio;
+    uint16 assessmentBaseDepositRatio;
 
     // Ratio used to calculate assessment rewards (0-10000 i.e. double decimal precision)
     uint16 rewardRatio;
@@ -34,16 +34,20 @@ interface IClaims is IERC721Receiver {
   struct Claim {
     // The index of the assessment, stored in Assessment.sol
     uint80 assessmentId;
-   // The identifier of the cover on which this claim is submitted
+    // The identifier of the cover on which this claim is submitted
     uint32 coverId;
-   // Amount requested as part of this claim up to the total cover amount
+    // Amount requested as part of this claim up to the total cover amount
     uint96 amount;
-   // The index of of the asset address stored at addressOfAsset which is expected at payout.
+    // The index of of the asset address stored at addressOfAsset which is expected at payout.
     uint8 payoutAsset;
-   // A snapshot of assessmentDepositRatio if it is changed before the payout
-    uint16 assessmentDepositRatio;
-   // True when the payout is redeemed. Prevents further payouts on the claim.
-    bool payoutRedeemed;
+    // A snapshot of assessmentBaseDepositRatio if it is changed before the payout
+    uint16 assessmentBaseDepositRatio;
+    // True when either the payout or the cover NFT are redeemed. Prevents further payouts on the
+    // claim if it is accepted or further attempts to redeem the cover NFT if the claim is deneid.
+    // If a malicious user sends the NFT back after a redemption, he will not be able to recover
+    // the NFT or transfering all the ETH from assessment deposits to the pool which would result
+    // in a denial of service for users who need to redeem payouts.
+    bool redeemed;
   }
 
   /* ========== VIEWS ========== */
@@ -53,8 +57,8 @@ interface IClaims is IERC721Receiver {
     uint32 coverId,
     uint96 amount,
     uint8 payoutAsset,
-    uint16 assessmentDepositRatio,
-    bool payoutRedeemed
+    uint16 assessmentBaseDepositRatio,
+    bool redeemed
   );
 
   /*
@@ -81,7 +85,7 @@ interface IClaims is IERC721Receiver {
 
   /* ========== VIEWS ========== */
 
-  function config() external view returns (uint16 assessmentDepositRatio, uint16 rewardRatio);
+  function config() external view returns (uint16 assessmentBaseDepositRatio, uint16 rewardRatio);
 
   function claimants(uint id) external view returns (address);
 
@@ -98,7 +102,7 @@ interface IClaims is IERC721Receiver {
 
   function redeemClaimPayout(uint104 id) external;
 
-  function redeemCoverForDeniedClaim(uint coverId, uint claimId) external;
+  function redeemCoverForDeniedClaim(uint claimId) external;
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values) external;
 

@@ -55,8 +55,8 @@ const contractCodeByName = {
   Gateway: 'GW',
   Incidents: 'IC',
   SwapOperator: 'SO',
-  PriceFeedOracle: 'TWAP',
-  TwapOracle: 'PRICEORACLE',
+  PriceFeedOracle: 'PRICEORACLE',
+  TwapOracle: 'TWAP',
   CommunityStakingIncentives: 'CSI',
   DistributorFactory: 'DF',
   // external

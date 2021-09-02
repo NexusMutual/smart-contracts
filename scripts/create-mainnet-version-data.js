@@ -68,21 +68,23 @@ const rootPath = path.normalize(`${__dirname}/../`);
 const addresses = require(`${rootPath}/deploy/mainnet-input.json`);
 
 const getContractAbi = code => {
-  console.log(`getContractAbi(${code})`);
   const artifactPath = `${rootPath}/artifacts/${artifactByCode[code]}`;
   const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
   return JSON.stringify(artifact.abi);
 };
 
 const versionData = Object.keys(addresses).map(name => ({
-  debug: console.log(name),
   code: contractCodeByName[name],
   address: addresses[name],
   contractName: name,
   contractAbi: getContractAbi(contractCodeByName[name]),
 }));
 
+const outfile = `${rootPath}/deploy/mainnet-data.json`;
+
 fs.writeFileSync(
-  `${rootPath}/deploy/mainnet-data.json`,
+  outfile,
   JSON.stringify({ mainnet: { abis: versionData } }, null, 2),
 );
+
+console.log(`${path.basename(outfile)} generated succesfully`);

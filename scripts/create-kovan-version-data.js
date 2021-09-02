@@ -68,7 +68,7 @@ const artifactPathOfContractCode = {
   SO: 'capital/SwapOperator.sol/SwapOperator.json',
 };
 
-const addressKeyOfContractCode = {
+const contractNameByCode = {
   CD: 'ClaimsData',
   CL: 'Claims',
   CR: 'ClaimsReward',
@@ -92,20 +92,22 @@ const addressKeyOfContractCode = {
   SO: 'SwapOperator',
 };
 
-const getCotractAbi = code => {
+const getContractAbi = code => {
   const artifact = JSON.parse(fs.readFileSync(baseModulesPath + artifactPathOfContractCode[code], 'utf8'));
   return JSON.stringify(artifact.abi);
 };
 
 const versionDataTemplate = getVersionDataTemplate(network);
 const versionData = [];
+
 for (const contract of versionDataTemplate) {
   if (!contract.contractAbi) {
-    const contractAbi = getCotractAbi(contract.code);
-    const address = addresses[addressKeyOfContractCode[contract.code]].toLowerCase();
+    const contractAbi = getContractAbi(contract.code);
+    const address = addresses[contractNameByCode[contract.code]].toLowerCase();
     versionData.push({ ...contract, address, contractAbi });
   }
 }
+
 fs.writeFileSync(
   __dirname + '/../deploy/' + network + '-data.json',
   JSON.stringify({ [network]: { abis: versionData } }, null, 2),

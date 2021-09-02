@@ -1,6 +1,6 @@
 {
   "name": "nexusmutual",
-  "version": "1.0.0",
+  "version": "1.5.0",
   "description": "NexusMutual smart contracts",
   "repository": {
     "type": "git",
@@ -74,7 +74,7 @@
     "deploy": "hardhat run scripts/deploy.js",
     "test-fork": "TEST_ENV_FORK=http://erigon.nexusmutual.io  hardhat test test/fork/index.js",
     "typechain": "hardhat typechain",
-    "distributor-deploy-kovan": "hardhat run --network kovan deploy/distributor/deploy-distributor.js",
-    "self-kyc-kovan": "hardhat run --network kovan deploy/distributor/self-kyc.js"
+    "distributor-deploy-kovan": "hardhat run --network kovan scripts/distributor/deploy-distributor.js",
+    "self-kyc-kovan": "hardhat run --network kovan scripts/distributor/self-kyc.js"
   }
 }

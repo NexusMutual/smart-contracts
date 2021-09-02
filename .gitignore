@@ -2,9 +2,9 @@
 .idea/
 .DS_Store
 artifacts/
-deploy/
 cache/
 build/
 node_modules/
 coverage/
 coverage.json
+types

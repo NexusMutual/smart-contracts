@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const assert = require('assert');
+const ethers = require('ethers');
 
 const artifactByCode = {
   CD: 'contracts/modules/claims/ClaimsData.sol/ClaimsData.json',
@@ -73,12 +75,22 @@ const getContractAbi = code => {
   return JSON.stringify(artifact.abi);
 };
 
-const versionData = Object.keys(addresses).map(name => ({
-  code: contractCodeByName[name],
-  address: addresses[name],
-  contractName: name,
-  contractAbi: getContractAbi(contractCodeByName[name]),
-}));
+const versionData = Object.keys(addresses).map(name => {
+
+  const address = addresses[name];
+
+  if (ethers.utils.getAddress(address) !== address) {
+    console.log(`Invalid address checksum for ${name}: ${address}`);
+    process.exit(1);
+  }
+
+  return {
+    code: contractCodeByName[name],
+    address,
+    contractName: name,
+    contractAbi: getContractAbi(contractCodeByName[name]),
+  };
+});
 
 const outfile = `${rootPath}/deploy/mainnet-data.json`;
 

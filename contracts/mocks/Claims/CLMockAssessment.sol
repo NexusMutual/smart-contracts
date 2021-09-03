@@ -13,22 +13,14 @@ contract CLMockAssessment {
 
   IAssessment.Configuration public config;
 
-  // Stake states of users. (See Stake struct)
   mapping(address => IAssessment.Stake) public stakeOf;
 
-  // Votes of users. (See Vote struct)
   mapping(address => IAssessment.Vote[]) public votesOf;
 
-  // Mapping used to determine if a user has already voted, using a vote hash as a key
   mapping(address => mapping(uint => bool)) public hasAlreadyVotedOn;
 
-  // An array of merkle tree roots used to indicate fraudulent assessors. Each root represents a
-  // fraud attempt by one or multiple addresses. Once the root is submitted by adivsory board
-  // members through governance, burnFraud uses this root to burn the fraudulent assessors' stakes
-  // and correct the outcome of the poll.
   bytes32[] internal fraudMerkleRoots;
 
-  // [todo] add comments
   mapping(uint => IAssessment.Poll) internal fraudSnapshot;
 
   IAssessment.Assessment[] public assessments;

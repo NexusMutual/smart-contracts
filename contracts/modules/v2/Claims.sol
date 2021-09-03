@@ -304,7 +304,7 @@ contract Claims is IClaims, MasterAwareV2 {
       "Cover can be redeemed only if the claim is denied"
     );
 
-    require(!claim.redeeemed, "Cover was already redeemed");
+    require(!claim.redeemed, "Cover was already redeemed");
 
     (,,uint8 payoutCooldownDays) = assessment().config();
     require(

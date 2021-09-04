@@ -13,7 +13,7 @@ const { toBN } = web3.utils;
 
 describe('buyCover', function () {
 
-  it.only('should purchase new cover', async function () {
+  it('should purchase new cover', async function () {
     const { cover } = this;
 
     const productId = 1;
@@ -61,6 +61,5 @@ describe('buyCover', function () {
         value: expectedPrice,
       },
     );
-
   });
 });

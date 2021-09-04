@@ -7,10 +7,12 @@ const { hex } = require('../utils').helpers;
 
 const { BN } = web3.utils;
 
+const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+
 async function setup () {
 
   const MasterMock = artifacts.require('MasterMock');
-  const Pool = artifacts.require('MCRMockPool');
+  const Pool = artifacts.require('CoverMockPool');
   const ERC20Mock = artifacts.require('ERC20Mock');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
@@ -36,7 +38,12 @@ async function setup () {
     stETH.address,
   );
 
-  const pool = await Pool.new(priceFeedOracle.address);
+  const pool = await Pool.new();
+
+  await pool.setAssets([ETH, dai.address]);
+
+  await pool.setTokenPrice(ETH, ether('1'));
+
   const quotationData = await QuotationData.new();
 
   await quotationData.setTotalSumAssured(hex('DAI'), '0');

@@ -22,7 +22,8 @@ describe('buyCover', function () {
 
     const amount = ether('1000');
 
-    const initialPrice = ether('10');
+    const initialPrice = ether('2.6');
+    const targetPrice = ether('2.6');
     const activeCover = ether('8000');
     const capacity = ether('10000');
 
@@ -36,6 +37,10 @@ describe('buyCover', function () {
       from: ab1,
     });
 
+    await stakingPool.setStake(productId, capacity);
+    await stakingPool.setTargetPrice(productId, targetPrice);
+    await stakingPool.setUsedCapacity(productId, activeCover);
+
     await cover.buyCover(
       coverBuyer1,
       productId,
@@ -43,9 +48,10 @@ describe('buyCover', function () {
       amount,
       period,
       ether('100000'),
-      [{ poolAddress: stakingPool.address, bookedAmount: 0 }],
+      [{ poolAddress: stakingPool.address, bookedAmount: 0 }], {
+        value: ether('10'),
+      },
     );
 
-    await master.setLatestAddress(hex('MR'), memberRoles.address);
   });
 });

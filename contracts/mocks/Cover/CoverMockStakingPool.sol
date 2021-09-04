@@ -23,6 +23,11 @@ contract CoverMockStakingPool is IStakingPool {
   function getAvailableCapacity(uint productId, uint capacityFactor) external override view returns (uint) {
     return stake[productId] * capacityFactor - usedCapacity[productId];
   }
+
+  function getCapacity(uint productId, uint capacityFactor) external override view returns (uint) {
+    return stake[productId] * capacityFactor;
+  }
+
   function getUsedCapacity(uint productId) external override view returns (uint) {
     return usedCapacity[productId];
   }
@@ -37,7 +42,7 @@ contract CoverMockStakingPool is IStakingPool {
     usedCapacity[productId] = amount;
   }
   function setTargetPrice(uint productId, uint amount) external {
-    targetPrices[productId]= amount;
+    targetPrices[productId] = amount;
   }
   function setStake(uint productId, uint amount) external {
     stake[productId] = amount;

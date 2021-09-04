@@ -30,12 +30,12 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   uint public constant BASIS_PRECISION = 10000;
   uint public constant STAKE_SPEED_UNIT = 100000e18;
   uint public constant PRICE_CURVE_EXPONENT = 7;
+  uint public constant MAX_PRICE_PERCENTAGE = 1e20;
 
   /* === MODIFIERS ==== */
 
   modifier onlyAdvisoryBoard {
     uint abRole = uint(IMemberRoles.Role.AdvisoryBoard);
-    console.log("memberRoles", address(memberRoles()));
     require(
       memberRoles().checkRole(msg.sender, abRole),
       "Cover: Caller is not an advisory board member"
@@ -88,8 +88,9 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   ) internal returns (uint coverId, uint priceInAsset) {
 
     // convert to NXM amount
-    uint amountToCover = amount * 1e18 / pool().getTokenPrice(pool().assets(payoutAsset));
+    uint amountToCover = uint(amount) * 1e18 / pool().getTokenPrice(pool().assets(payoutAsset));
     uint totalPrice = 0;
+
     for (uint i = 0; i < stakingPools.length; i++) {
       if (amountToCover == 0) {
         break;
@@ -101,8 +102,9 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       totalPrice += price;
       stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
     }
+    require(amountToCover == 0, "Not enough available capacity");
 
-    priceInAsset = totalPrice * pool().getTokenPrice(pool().assets(payoutAsset));
+    priceInAsset = totalPrice * pool().getTokenPrice(pool().assets(payoutAsset)) / 1e18;
 
     covers.push(Cover(
         productId,
@@ -216,7 +218,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   /* ========== PRICE CALCULATION ========== */
 
   function getPrice(uint amount, uint period, uint productId, IStakingPool pool) public view returns (uint, uint) {
-
     uint basePrice = interpolatePrice(
       pool.getStake(productId),
       lastPrices[productId][address(pool)] != 0 ? lastPrices[productId][address(pool)] : initialPrices[productId],
@@ -228,10 +229,10 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       amount,
       basePrice,
       pool.getUsedCapacity(productId),
-      pool.getAvailableCapacity(productId, capacityFactors[productId])
+      pool.getCapacity(productId, capacityFactors[productId])
     );
 
-    uint price = pricePercentage * amount * period / 365 days;
+    uint price = pricePercentage * amount * period / 365 days / MAX_PRICE_PERCENTAGE;
     return (pricePercentage, price);
   }
 
@@ -289,7 +290,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   /* ========== PRODUCT CONFIGURATION ========== */
 
   function setCapacityFactor(uint productId, uint capacityFactor) external onlyAdvisoryBoard {
-    console.log("setCapacityFactor");
     capacityFactors[productId] = capacityFactor;
   }
 

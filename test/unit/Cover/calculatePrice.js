@@ -10,7 +10,7 @@ const { toBN } = web3.utils;
 
 describe('calculatePrice', function () {
 
-  it('should calculate price correctly for high active cover', async function () {
+  it.only('should calculate price correctly for high active cover', async function () {
     const { cover } = this;
 
     const amount = ether('1000');
@@ -29,6 +29,10 @@ describe('calculatePrice', function () {
     const expectedPrice = calculatePrice(
       amount, basePrice, activeCover, capacity,
     );
+
+    console.log({
+      expectedPrice: expectedPrice.toString(),
+    });
 
     assert.equal(price.toString(), expectedPrice.toString());
   });

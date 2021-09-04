@@ -16,10 +16,12 @@ async function setup () {
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
   const QuotationData = artifacts.require('MCRMockQuotationData');
   const Cover = artifacts.require('Cover');
+  const MemberRolesMock = artifacts.require('MemberRolesMock');
 
   const master = await MasterMock.new();
   const dai = await ERC20Mock.new();
   const stETH = await ERC20Mock.new();
+  const memberRoles = await MemberRolesMock.new();
   const cover = await Cover.new('NexusMutual Cover', 'NXMC');
 
   const ethToDaiRate = ether('2000');
@@ -43,13 +45,17 @@ async function setup () {
   // set contract addresses
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('QD'), quotationData.address);
+  await master.setLatestAddress(hex('MR'), memberRoles.address);
+  await master.setLatestAddress(hex('CO'), cover.address);
 
   for (const member of accounts.members) {
     await master.enrollMember(member, Role.Member);
+    await memberRoles.setRole(member, Role.Member);
   }
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
     await master.enrollMember(advisoryBoardMember, Role.AdvisoryBoard);
+    await memberRoles.setRole(advisoryBoardMember, Role.AdvisoryBoard);
   }
 
   for (const internalContract of accounts.internalContracts) {
@@ -60,6 +66,9 @@ async function setup () {
   for (const governanceContract of accounts.governanceContracts) {
     await master.enrollGovernance(governanceContract);
   }
+
+  await cover.changeMasterAddress(master.address);
+  await cover.changeDependentContractAddress();
 
   this.master = master;
   this.pool = pool;

@@ -6,6 +6,7 @@ import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IPool.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IMemberRoles.sol";
+import "hardhat/console.sol";
 
 
 contract Cover is ICover, ERC721, MasterAwareV2 {
@@ -34,13 +35,14 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
   modifier onlyAdvisoryBoard {
     uint abRole = uint(IMemberRoles.Role.AdvisoryBoard);
+    console.log("memberRoles", address(memberRoles()));
     require(
       memberRoles().checkRole(msg.sender, abRole),
-      "Incidents: Caller is not an advisory board member"
+      "Cover: Caller is not an advisory board member"
     );
     _;
   }
-  
+
   constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_) {
   }
 
@@ -287,6 +289,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   /* ========== PRODUCT CONFIGURATION ========== */
 
   function setCapacityFactor(uint productId, uint capacityFactor) external onlyAdvisoryBoard {
+    console.log("setCapacityFactor");
     capacityFactors[productId] = capacityFactor;
   }
 
@@ -308,5 +311,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     master = INXMMaster(master);
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
   }
 }

@@ -8,7 +8,7 @@ const { calculatePrice } = require('./helpers');
 
 const { toBN } = web3.utils;
 
-describe.only('interpolatePrice', function () {
+describe('interpolatePrice', function () {
 
   it('should interpolate price correctly based on time elapsed', async function () {
     const { cover } = this;

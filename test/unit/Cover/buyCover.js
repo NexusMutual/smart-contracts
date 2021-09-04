@@ -18,7 +18,7 @@ describe('buyCover', function () {
 
     const productId = 1;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 30; // 30 days
+    const period = 3600 * 365; // 30 days
 
     const amount = ether('1000');
 
@@ -26,6 +26,7 @@ describe('buyCover', function () {
     const targetPrice = ether('2.6');
     const activeCover = ether('8000');
     const capacity = ether('10000');
+    const resultingBasePrice = ether('2.6');
 
     const stakingPool = await CoverMockStakingPool.new();
     const capacityFactor = '1';
@@ -41,15 +42,23 @@ describe('buyCover', function () {
     await stakingPool.setTargetPrice(productId, targetPrice);
     await stakingPool.setUsedCapacity(productId, activeCover);
 
+    const expectedPricePercentage = await cover.calculatePrice(
+      amount,
+      resultingBasePrice,
+      activeCover,
+      capacity,
+    );
+    const expectedPrice = expectedPricePercentage.mul(amount).div(ether('100'));
+
     await cover.buyCover(
       coverBuyer1,
       productId,
       payoutAsset,
       amount,
       period,
-      ether('100000'),
+      expectedPrice,
       [{ poolAddress: stakingPool.address, bookedAmount: 0 }], {
-        value: ether('10'),
+        value: expectedPrice,
       },
     );
 

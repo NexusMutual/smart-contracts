@@ -30,10 +30,6 @@ describe('calculatePrice', function () {
       amount, basePrice, activeCover, capacity,
     );
 
-    console.log({
-      expectedPrice: expectedPrice.toString(),
-    });
-
     assert.equal(price.toString(), expectedPrice.toString());
   });
 

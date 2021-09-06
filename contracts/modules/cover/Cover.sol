@@ -144,7 +144,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     stakingPool.buyCover(
       productId,
       coveredAmount,
-      REWARD_BPS * price / 10000,
+      REWARD_BPS * price / BASIS_PRECISION,
       period,
       capacityFactor
     );

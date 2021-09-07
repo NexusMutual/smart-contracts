@@ -63,7 +63,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   /* logic */
   modifier onlySwapOperator {
-    require(msg.sender == swapOperator, "Pool: not swapOperator");
+    require(msg.sender == swapOperator, "Pool: Not swapOperator");
     _;
   }
 
@@ -77,7 +77,9 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     address _swapOperator
   ) public {
 
-    require(_assets[0] == ETH, "Pool: First asset must be ETH");
+    // First asset is ETH
+    assets.push(ETH);
+
     require(_assets.length == _minAmounts.length, "Pool: Length mismatch");
     require(_assets.length == _maxAmounts.length, "Pool: Length mismatch");
     require(_assets.length == _maxSlippageRatios.length, "Pool: Length mismatch");
@@ -113,7 +115,8 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
     uint total = address(this).balance;
 
-    for (uint i = 0; i < assets.length; i++) {
+    // Skip ETH (index 0)
+    for (uint i = 1; i < assets.length; i++) {
 
       address assetAddress = assets[i];
       IERC20 token = IERC20(assetAddress);
@@ -157,7 +160,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
     require(_asset != address(0), "Pool: Asset is zero address");
     require(_max >= _min, "Pool: max < min");
-    require(_maxSlippageRatio <= 1 ether, "Pool: max slippage ratio > 1");
+    require(_maxSlippageRatio <= 1 ether, "Pool: Max slippage ratio > 1");
 
     for (uint i = 0; i < assets.length; i++) {
       require(_asset != assets[i], "Pool: Asset exists");
@@ -208,7 +211,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       return;
     }
 
-    revert("Pool: asset not found");
+    revert("Pool: Asset not found");
   }
 
   /* claim related functions */
@@ -231,7 +234,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       // solhint-disable-next-line avoid-low-level-calls
       (ok, /* data */) = payoutAddress.call.value(amount)("");
     } else {
-      ok =  _safeTokenTransfer(asset, payoutAddress, amount);
+      ok =  _safeTokenTransfer(assets[assetId], payoutAddress, amount);
     }
 
     if (ok) {
@@ -301,10 +304,10 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     // transfer ether
     uint ethBalance = address(this).balance;
     (bool ok, /* data */) = newPoolAddress.call.value(ethBalance)("");
-    require(ok, "Pool: transfer failed");
+    require(ok, "Pool: Transfer failed");
 
-    // transfer assets
-    for (uint i = 0; i < assets.length; i++) {
+    // transfer assets. start from 1 (0 is ETH)
+    for (uint i = 1; i < assets.length; i++) {
       IERC20 token = IERC20(assets[i]);
       uint tokenBalance = token.balanceOf(address(this));
       token.safeTransfer(newPoolAddress, tokenBalance);
@@ -620,6 +623,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
    */
   function getTokenPrice(uint assetId) public view returns (uint tokenPrice) {
 
+    require(assetId < assets.length, "Pool: Unknown asset");
     address assetAddress = assets[assetId];
     uint totalAssetValue = getPoolValueInEth();
     uint mcrEth = mcr.getMCR();

@@ -9,7 +9,6 @@ const { proposalCategories } = require('../utils');
 const { BN } = web3.utils;
 
 async function setup () {
-
   // external
   const ERC20BlacklistableMock = artifacts.require('ERC20BlacklistableMock');
   const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
@@ -18,9 +17,10 @@ async function setup () {
 
   // nexusmutual
   const NXMToken = artifacts.require('NXMToken');
-  const Claims = artifacts.require('Claims');
-  const ClaimsData = artifacts.require('ClaimsData');
-  const ClaimsReward = artifacts.require('ClaimsReward');
+  const LegacyClaims = artifacts.require('LegacyClaims');
+  const LegacyIncidents = artifacts.require('LegacyIncidents');
+  const LegacyClaimsData = artifacts.require('LegacyClaimsData');
+  const LegacyClaimsReward = artifacts.require('LegacyClaimsReward');
   const MCR = artifacts.require('DisposableMCR');
   const TokenData = artifacts.require('TokenData');
   const TokenFunctions = artifacts.require('TokenFunctions');
@@ -40,6 +40,9 @@ async function setup () {
   const DisposableGovernance = artifacts.require('DisposableGovernance');
   const DisposablePooledStaking = artifacts.require('DisposablePooledStaking');
   const DisposableGateway = artifacts.require('DisposableGateway');
+  const DisposableAssessment = artifacts.require('DisposableAssessment');
+  const DisposableClaims = artifacts.require('DisposableClaims');
+  const DisposableIncidents = artifacts.require('DisposableIncidents');
 
   // target contracts
   const NXMaster = artifacts.require('NXMaster');
@@ -50,19 +53,21 @@ async function setup () {
   const PooledStaking = artifacts.require('PooledStaking');
   const Gateway = artifacts.require('Gateway');
   const Incidents = artifacts.require('Incidents');
+  const Claims = artifacts.require('Claims');
+  const Assessment = artifacts.require('Assessment');
 
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
   const INITIAL_SUPPLY = ether('15000000000');
 
-  const deployProxy = async contract => {
-    const implementation = await contract.new();
+  const deployProxy = async (contract, deployParams = []) => {
+    const implementation = await contract.new(...deployParams);
     const proxy = await OwnedUpgradeabilityProxy.new(implementation.address);
     return contract.at(proxy.address);
   };
 
-  const upgradeProxy = async (proxyAddress, contract) => {
-    const implementation = await contract.new();
+  const upgradeProxy = async (proxyAddress, contract, params = []) => {
+    const implementation = await contract.new(...params);
     const proxy = await OwnedUpgradeabilityProxy.at(proxyAddress);
     await proxy.upgradeTo(implementation.address);
   };
@@ -84,11 +89,7 @@ async function setup () {
   await stETH.mint(owner, ether('10000000'));
 
   const chainlinkDAI = await ChainlinkAggregatorMock.new();
-  const priceFeedOracle = await PriceFeedOracle.new(
-    chainlinkDAI.address,
-    dai.address,
-    stETH.address,
-  );
+  const priceFeedOracle = await PriceFeedOracle.new(chainlinkDAI.address, dai.address, stETH.address);
 
   const lido = await Lido.new();
 
@@ -100,16 +101,16 @@ async function setup () {
   const pc = await deployProxy(DisposableProposalCategory);
   const gv = await deployProxy(DisposableGovernance);
   const gateway = await deployProxy(DisposableGateway);
-  const incidents = await deployProxy(Incidents);
 
   // non-proxy contracts and libraries
   const cp = await ClaimProofs.new(master.address);
   const twapOracle = await TwapOracle.new(factory.address);
 
   // regular contracts
-  const cl = await Claims.new();
-  const cd = await ClaimsData.new();
-  const cr = await ClaimsReward.new(master.address, dai.address);
+  const lcl = await LegacyClaims.new();
+  const lic = await LegacyIncidents.new();
+  const lcd = await LegacyClaimsData.new();
+  const lcr = await LegacyClaimsReward.new(master.address, dai.address);
 
   const mc = await MCR.new(ZERO_ADDRESS);
 
@@ -130,10 +131,13 @@ async function setup () {
   const qt = await Quotation.new();
   const qd = await QuotationData.new(QE, owner);
 
-  const contractType = code => {
+  const ic = await deployProxy(DisposableIncidents, [tk.address]);
+  const as = await deployProxy(DisposableAssessment, [tk.address]);
+  const cl = await deployProxy(DisposableClaims, [tk.address]);
 
-    const upgradable = ['CL', 'CR', 'MC', 'P1', 'QT', 'TF'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC'];
+  const contractType = code => {
+    const upgradable = ['MC', 'P1', 'QT', 'TF'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC', 'CL', 'AS'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -146,8 +150,10 @@ async function setup () {
     return 0;
   };
 
-  const codes = ['QD', 'TD', 'CD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC'];
-  const addresses = [qd, td, cd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps, gateway, incidents].map(c => c.address);
+  const codes = ['QD', 'TD', 'QT', 'TF', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'AS'];
+  const addresses = [qd, td, qt, tf, tc, p1, mc, { address: owner }, pc, mr, ps, gateway, ic, cl, as].map(
+    c => c.address,
+  );
 
   await master.initialize(
     owner,
@@ -166,7 +172,7 @@ async function setup () {
     120 * 24 * 3600, // claimSubmissionGracePeriod
   );
 
-  await tc.addToWhitelist(cr.address);
+  await tc.addToWhitelist(lcr.address);
 
   await mr.initialize(
     owner,
@@ -200,13 +206,15 @@ async function setup () {
     90 * 24 * 3600, // unstake lock time
   );
 
-  await incidents.initialize();
+  await as.initialize(master.address);
+  await ic.initialize(master.address);
+  await cl.initialize(master.address);
 
-  await cd.changeMasterAddress(master.address);
-  await cd.updateUintParameters(hex('CAMINVT'), 36); // min voting time 36h
-  await cd.updateUintParameters(hex('CAMAXVT'), 72); // max voting time 72h
-  await cd.updateUintParameters(hex('CADEPT'), 7); // claim deposit time 7 days
-  await cd.updateUintParameters(hex('CAPAUSET'), 3); // claim assessment pause time 3 days
+  await lcd.changeMasterAddress(master.address);
+  await lcd.updateUintParameters(hex('CAMINVT'), 36); // min voting time 36h
+  await lcd.updateUintParameters(hex('CAMAXVT'), 72); // max voting time 72h
+  await lcd.updateUintParameters(hex('CADEPT'), 7); // claim deposit time 7 days
+  await lcd.updateUintParameters(hex('CAPAUSET'), 3); // claim assessment pause time 3 days
 
   await td.changeMasterAddress(master.address);
   await td.updateUintParameters(hex('RACOMM'), 50); // staker commission percentage 50%
@@ -228,6 +236,9 @@ async function setup () {
   await upgradeProxy(master.address, NXMaster);
   await upgradeProxy(gv.address, Governance);
   await upgradeProxy(gateway.address, Gateway);
+  await upgradeProxy(ic.address, Incidents, [master.address]);
+  await upgradeProxy(cl.address, Claims, [master.address]);
+  await upgradeProxy(as.address, Assessment, [master.address]);
   await gateway.changeDependentContractAddress();
 
   await transferProxyOwnership(mr.address, master.address);
@@ -236,7 +247,9 @@ async function setup () {
   await transferProxyOwnership(pc.address, master.address);
   await transferProxyOwnership(gv.address, master.address);
   await transferProxyOwnership(gateway.address, master.address);
-  await transferProxyOwnership(incidents.address, master.address);
+  await transferProxyOwnership(ic.address, master.address);
+  await transferProxyOwnership(cl.address, master.address);
+  await transferProxyOwnership(as.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
 
   const POOL_ETHER = ether('90000');
@@ -277,8 +290,8 @@ async function setup () {
   );
 
   const external = { chainlinkDAI, dai, factory, router, weth };
-  const nonUpgradable = { cp, qd, td, cd };
-  const instances = { tk, qt, tf, cl, cr, p1, mcr: mc };
+  const nonUpgradable = { cp, qd, td };
+  const instances = { tk, qt, tf, cl, p1, mcr: mc };
 
   // we upgraded them, get non-disposable instances because
   const proxies = {
@@ -289,7 +302,9 @@ async function setup () {
     mr: await MemberRoles.at(mr.address),
     ps: await PooledStaking.at(ps.address),
     gateway,
-    incidents,
+    ic,
+    cl,
+    as,
   };
 
   const nonInternal = { priceFeedOracle, swapOperator };

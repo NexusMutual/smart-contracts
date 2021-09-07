@@ -25,8 +25,8 @@ const NXMToken = artifacts.require('NXMToken');
 const Governance = artifacts.require('Governance');
 const PoolData = artifacts.require('PoolData');
 const TokenFunctions = artifacts.require('TokenFunctions');
-const Claims = artifacts.require('Claims');
-const ClaimsReward = artifacts.require('ClaimsReward');
+const Claims = artifacts.require('LegacyClaims');
+const ClaimsReward = artifacts.require('LegacyClaimsReward');
 const Quotation = artifacts.require('Quotation');
 const MCR = artifacts.require('MCR');
 const Pool2 = artifacts.require('Pool2');
@@ -49,7 +49,6 @@ const Address = {
 
 let isHardhat;
 const hardhatRequest = async (...params) => {
-
   if (isHardhat === undefined) {
     const nodeInfo = await web3.eth.getNodeInfo();
     isHardhat = !!nodeInfo.match(/Hardhat/);
@@ -65,12 +64,12 @@ const fund = async to => web3.eth.sendTransaction({ from: accounts[0], to, value
 const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAccount', params: [member] });
 
 describe('NXM sells and buys', function () {
-
   this.timeout(0);
 
   it('initializes contracts', async function () {
-
-    const { mainnet: { abis } } = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
+    const {
+      mainnet: { abis },
+    } = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
     const getAddressByCode = getAddressByCodeFactory(abis);
 
     const masterAddress = getAddressByCode('NXMASTER');
@@ -92,7 +91,6 @@ describe('NXM sells and buys', function () {
   });
 
   it('fetches board members and funds accounts', async function () {
-
     const { memberArray: boardMembers } = await this.memberRoles.members('1');
     const voters = boardMembers.slice(0, 3);
 
@@ -105,7 +103,6 @@ describe('NXM sells and buys', function () {
   });
 
   it('upgrade master and rescue sai', async function () {
-
     const { masterAddress, governance, pool1, voters, getAddressByCode } = this;
     const masterProxy = await OwnedUpgradeabilityProxy.at(masterAddress);
 
@@ -159,10 +156,7 @@ describe('NXM sells and buys', function () {
 
     // perform the rescue operation
     await temporaryMaster.rescueTokens();
-    await expectRevert(
-      temporaryMaster.rescueTokens(),
-      'Rescue already called',
-    );
+    await expectRevert(temporaryMaster.rescueTokens(), 'Rescue already called');
 
     // make sure TC implementation was succesfully restored
     const postRescueTCImpl = await tcProxy.implementation();
@@ -193,7 +187,6 @@ describe('NXM sells and buys', function () {
   });
 
   it('performs contract upgrades', async function () {
-
     const { master, governance, voters, poolData, oldMCR, getAddressByCode } = this;
 
     const oldPool1Address = getAddressByCode('P1');
@@ -259,12 +252,7 @@ describe('NXM sells and buys', function () {
       ],
     );
 
-    await submitGovernanceProposal(
-      ProposalCategory.upgradeNonProxy,
-      actionData,
-      voters,
-      governance,
-    );
+    await submitGovernanceProposal(ProposalCategory.upgradeNonProxy, actionData, voters, governance);
 
     const storedTFAddress = await master.getLatestAddress(hex('TF'));
     const storedCLAddress = await master.getLatestAddress(hex('CL'));
@@ -295,7 +283,7 @@ describe('NXM sells and buys', function () {
     assert.equal(dynamicMincapThresholdx100.toString(), previousDynamicMincapThresholdx100.toString());
     assert.equal(dynamicMincapIncrementx100.toString(), previousDynamicMincapIncrementx100.toString());
     // new getTotalSumAssurance returns wei instead of units
-    assert.equal(allSumAssurance.div(toBN(1e18.toString())).toString(), previousAllSumAssurance.toString());
+    assert.equal(allSumAssurance.div(toBN((1e18).toString())).toString(), previousAllSumAssurance.toString());
 
     /* Check old pools' balances */
     const oldPool1EthBalanceAfter = await web3.eth.getBalance(oldPool1Address);
@@ -369,7 +357,6 @@ describe('NXM sells and buys', function () {
   });
 
   it('upgrade temporary master ', async function () {
-
     const { governance, voters, masterAddress } = this;
     const masterProxy = await OwnedUpgradeabilityProxy.at(masterAddress);
 
@@ -389,16 +376,15 @@ describe('NXM sells and buys', function () {
     const { poolData, pool, token } = this;
 
     const mcrEth = await poolData.getLastMCREther();
-    const ethIn = percentageBN(mcrEth, 5.10);
+    const ethIn = percentageBN(mcrEth, 5.1);
 
     await expectRevert(
       pool.buyNXM('0', { value: ethIn, from: Address.NXMHOLDER }),
-      'Pool: Purchases worth higher than 5% of MCReth are not allowed'
+      'Pool: Purchases worth higher than 5% of MCReth are not allowed',
     );
   });
 
   it('performs max buy (5% mcrEth) and sells the NXM back (high sell spread expected)', async function () {
-
     const { poolData, pool, token } = this;
 
     const mcrEth = await poolData.getLastMCREther();
@@ -415,13 +401,17 @@ describe('NXM sells and buys', function () {
     const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
     const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
     const balancePostSell = await web3.eth.getBalance(Address.NXMHOLDER);
-    const ethOut = toDecimal(balancePostSell).sub(toDecimal(balancePreSell)).add(ethSpentOnGas);
+    const ethOut = toDecimal(balancePostSell)
+      .sub(toDecimal(balancePreSell))
+      .add(ethSpentOnGas);
     const ethInDecimal = toDecimal(maxBuy);
 
     assert(ethOut.lt(ethInDecimal), 'ethOut > ethIn');
 
     console.log({
-      ethOut: toDecimal(ethOut).div(1e18).toString(),
+      ethOut: toDecimal(ethOut)
+        .div(1e18)
+        .toString(),
       ethIn: ethInDecimal.div(1e18).toString(),
     });
 
@@ -434,7 +424,6 @@ describe('NXM sells and buys', function () {
   });
 
   it('performs 1% mcrEth buy and sells the NXM back (~2.5% sell spread expected)', async function () {
-
     const { poolData, pool, token } = this;
 
     const mcrEth = await poolData.getLastMCREther();
@@ -451,13 +440,17 @@ describe('NXM sells and buys', function () {
     const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
     const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
     const balancePostSell = await web3.eth.getBalance(Address.NXMHOLDER);
-    const ethOut = toDecimal(balancePostSell).sub(toDecimal(balancePreSell)).add(ethSpentOnGas);
+    const ethOut = toDecimal(balancePostSell)
+      .sub(toDecimal(balancePreSell))
+      .add(ethSpentOnGas);
     const ethInDecimal = toDecimal(maxBuy);
 
     assert(ethOut.lt(ethInDecimal), 'ethOut > ethIn');
 
     console.log({
-      ethOut: toDecimal(ethOut).div(1e18).toString(),
+      ethOut: toDecimal(ethOut)
+        .div(1e18)
+        .toString(),
       ethIn: ethInDecimal.div(1e18).toString(),
     });
 
@@ -470,14 +463,12 @@ describe('NXM sells and buys', function () {
   });
 
   it('sells down to 100% MCR%', async function () {
-
     const { pool } = this;
     const tokensToSell = ether('10000');
 
     let mcrRatio = await pool.getMCRRatio();
 
     while (mcrRatio.gt('100')) {
-
       const expectedEthOut = await pool.getEthForNXM(tokensToSell);
 
       try {
@@ -492,26 +483,23 @@ describe('NXM sells and buys', function () {
       mcrRatio = await pool.getMCRRatio();
       console.log({
         tokensToSell: tokensToSell.toString(),
-        expectedEthOut: toDecimal(expectedEthOut).div(1e18).toString(),
+        expectedEthOut: toDecimal(expectedEthOut)
+          .div(1e18)
+          .toString(),
         mcrRatio: mcrRatio.toString(),
       });
     }
 
-    await expectRevert(
-      pool.sellNXM(tokensToSell, '0', { from: Address.NXMHOLDER }),
-      'MCR% cannot fall below 100%',
-    );
+    await expectRevert(pool.sellNXM(tokensToSell, '0', { from: Address.NXMHOLDER }), 'MCR% cannot fall below 100%');
   });
 
   it('buys up to 400% MCR%', async function () {
-
     const { pool, poolData, priceFeedOracle } = this;
 
     let mcrRatio = await pool.getMCRRatio();
     let totalBuyValue = new BN('0');
 
     while (mcrRatio.lt(new BN('40000'))) {
-
       const mcrEth = await poolData.getLastMCREther();
       const maxBuy = percentageBN(mcrEth, 4.95);
 
@@ -557,7 +545,6 @@ describe('NXM sells and buys', function () {
   });
 
   it('performs hypothetical future Pool upgrade', async function () {
-
     const { pool, priceFeedOracle, voters, governance, master, twapOracle, dai } = this;
 
     const newPool = await Pool.new(
@@ -573,21 +560,13 @@ describe('NXM sells and buys', function () {
 
     const actionData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
-      [
-        ['P1'].map(hex),
-        [newPool].map(c => c.address),
-      ],
+      [['P1'].map(hex), [newPool].map(c => c.address)],
     );
 
     const poolEthBefore = await web3.eth.getBalance(pool.address);
     const poolDaiBefore = await dai.balanceOf(pool.address);
 
-    await submitGovernanceProposal(
-      ProposalCategory.upgradeNonProxy,
-      actionData,
-      voters,
-      governance,
-    );
+    await submitGovernanceProposal(ProposalCategory.upgradeNonProxy, actionData, voters, governance);
 
     const storedP1Address = await master.getLatestAddress(hex('P1'));
     assert.equal(storedP1Address, newPool.address);

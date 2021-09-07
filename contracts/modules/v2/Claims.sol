@@ -21,7 +21,7 @@ import "../../abstract/MasterAwareV2.sol";
  *  assessment processes where members decide the outcome of the events that lead to potential
  *  payouts.
  */
-contract Claims is IClaims, MasterAwareV2 {
+contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
 
   // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
   uint internal constant RATIO_BPS = 10000;
@@ -343,7 +343,8 @@ contract Claims is IClaims, MasterAwareV2 {
 
   // Required to receive NFTS
   function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
-  external pure override returns (bytes4) {
+  external view override returns (bytes4) {
+    require(msg.sender == internalContracts[uint(ID.CO)], "Unexpected NFT");
     return IERC721Receiver.onERC721Received.selector;
   }
 

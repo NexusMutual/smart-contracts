@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.5.0;
 
-import "@openzeppelin/contracts-v4/token/ERC721/IERC721Receiver.sol";
-
-interface IIncidents is IERC721Receiver {
+interface IIncidents {
 
   /* ========== DATA STRUCTURES ========== */
 
@@ -54,7 +52,8 @@ interface IIncidents is IERC721Receiver {
     uint32 date
   ) external;
 
-  function redeemIncidentPayout(uint104 incidentId, uint32 coverId, uint depeggedTokens) external;
+  function redeemIncidentPayout(uint104 incidentId, uint32 coverId, uint depeggedTokens) external
+  returns (uint payoutAmount, address payoutAsset);
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values) external;
 

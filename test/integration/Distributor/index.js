@@ -1,4 +1,3 @@
-describe('Distributor integration tests', function () {
-
+describe.skip('Distributor integration tests', function () {
   require('./distributor');
 });

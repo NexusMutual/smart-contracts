@@ -57,6 +57,6 @@ describe('getTokenPrice', function () {
 
     await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
-    await expectRevert(pool.getTokenPrice(PoolAsset.unknown), 'PriceFeedOracle: Unknown asset');
+    await expectRevert(pool.getTokenPrice(PoolAsset.unknown), 'Pool: Unknown asset');
   });
 });

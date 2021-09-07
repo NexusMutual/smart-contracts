@@ -20,7 +20,7 @@ import "../../interfaces/ITokenData.sol";
 //Claims Reward Contract contains the functions for calculating number of tokens
 // that will get rewarded, unlocked or burned depending upon the status of claim.
 
-contract ClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
+contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
   using SafeMath for uint;
 
   INXMToken internal tk;

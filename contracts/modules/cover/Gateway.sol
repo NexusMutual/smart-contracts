@@ -157,7 +157,7 @@ contract Gateway is IGateway, MasterAware {
     IERC20 token = IERC20(coveredToken);
     token.safeTransferFrom(msg.sender, address(this), coveredTokenAmount);
     token.approve(address(incidents), coveredTokenAmount);
-    (claimId, payoutAmount, payoutToken) = incidents.redeemPayoutForMember(coverId, incidentId, coveredTokenAmount, msg.sender);
+    (claimId, payoutAmount, payoutToken) = incidents.redeemPayoutForMember(coverId, coverId, coveredTokenAmount, msg.sender);
   }
 
   function getClaimCoverId(uint claimId) public view returns (uint) {

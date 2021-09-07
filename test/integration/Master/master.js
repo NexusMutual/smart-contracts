@@ -7,8 +7,8 @@ const { hex, bnEqual } = require('../utils').helpers;
 
 const [owner] = accounts;
 
-const Claims = artifacts.require('Claims');
-const ClaimsReward = artifacts.require('ClaimsReward');
+const Claims = artifacts.require('LegacyClaims');
+const ClaimsReward = artifacts.require('LegacyClaimsReward');
 const MCR = artifacts.require('DisposableMCR');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const Pool = artifacts.require('Pool');
@@ -46,7 +46,6 @@ async function assertNewAddresses (master, contractCodes, newAddresses, contract
 }
 
 describe('master', function () {
-
   it('adds new replaceable contract which can execute internal functions', async function () {
     const { master, gv } = this.contracts;
 
@@ -96,10 +95,7 @@ describe('master', function () {
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
-      [
-        contractCodes,
-        newAddresses,
-      ],
+      [contractCodes, newAddresses],
     );
 
     await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
@@ -119,10 +115,7 @@ describe('master', function () {
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
-      [
-        contractCodes,
-        newAddresses,
-      ],
+      [contractCodes, newAddresses],
     );
 
     await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
@@ -146,10 +139,7 @@ describe('master', function () {
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
-      [
-        contractCodes,
-        newAddresses,
-      ],
+      [contractCodes, newAddresses],
     );
 
     await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
@@ -169,12 +159,7 @@ describe('master', function () {
     const code = hex('MS');
     const newMaster = await NXMaster.new();
 
-    const upgradeContractsData = web3.eth.abi.encodeParameters(
-      ['address'],
-      [
-        newMaster.address,
-      ],
-    );
+    const upgradeContractsData = web3.eth.abi.encodeParameters(['address'], [newMaster.address]);
 
     await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [owner]);
 
@@ -212,10 +197,7 @@ describe('master', function () {
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
-      [
-        contractCodes.map(code => hex(code)),
-        newAddresses,
-      ],
+      [contractCodes.map(code => hex(code)), newAddresses],
     );
 
     const poolEthBalanceBefore = await web3.eth.getBalance(p1.address);
@@ -248,18 +230,13 @@ describe('master', function () {
     const { master, gv } = this.contracts;
     {
       const contractCodes = ['TC', 'GV', 'MR'];
-      const newAddresses = [
-        await TokenController.new(),
-        await Governance.new(),
-        await MemberRoles.new(),
-      ].map(c => c.address);
+      const newAddresses = [await TokenController.new(), await Governance.new(), await MemberRoles.new()].map(
+        c => c.address,
+      );
 
       const upgradeContractsData = web3.eth.abi.encodeParameters(
         ['bytes2[]', 'address[]'],
-        [
-          contractCodes.map(code => hex(code)),
-          newAddresses,
-        ],
+        [contractCodes.map(code => hex(code)), newAddresses],
       );
 
       await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
@@ -268,18 +245,13 @@ describe('master', function () {
 
     {
       const contractCodes = ['TC', 'GV', 'MR'];
-      const newAddresses = [
-        await TokenController.new(),
-        await Governance.new(),
-        await MemberRoles.new(),
-      ].map(c => c.address);
+      const newAddresses = [await TokenController.new(), await Governance.new(), await MemberRoles.new()].map(
+        c => c.address,
+      );
 
       const upgradeContractsData = web3.eth.abi.encodeParameters(
         ['bytes2[]', 'address[]'],
-        [
-          contractCodes.map(code => hex(code)),
-          newAddresses,
-        ],
+        [contractCodes.map(code => hex(code)), newAddresses],
       );
 
       await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);

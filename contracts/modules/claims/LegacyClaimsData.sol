@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/LegacyMasterAware.sol";
 import "../../interfaces/ILegacyClaimsData.sol";
 
-contract ClaimsData is ILegacyClaimsData, LegacyMasterAware {
+contract LegacyClaimsData is ILegacyClaimsData, LegacyMasterAware {
   using SafeMath for uint;
 
   struct Claim {

@@ -3,12 +3,14 @@ const { expectRevert } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
 
-const { governanceContracts: [governance], generalPurpose: [arbitraryCaller] } = require('../utils').accounts;
+const {
+  governanceContracts: [governance],
+  generalPurpose: [arbitraryCaller],
+} = require('../utils').accounts;
 
 const ERC20Mock = artifacts.require('ERC20Mock');
 
 describe('transferAssetToSwapOperator', function () {
-
   it('transfers added ERC20 asset to swap operator', async function () {
     const { pool, swapOperator } = this;
 
@@ -21,10 +23,7 @@ describe('transferAssetToSwapOperator', function () {
 
     const amountToTransfer = tokenAmount.divn(2);
 
-    await pool.transferAssetToSwapOperator(
-      otherToken.address, amountToTransfer,
-      { from: swapOperator },
-    );
+    await pool.transferAssetToSwapOperator(otherToken.address, amountToTransfer, { from: swapOperator });
     const destinationBalance = await otherToken.balanceOf(swapOperator);
     assert.equal(destinationBalance.toString(), amountToTransfer.toString());
 
@@ -45,11 +44,8 @@ describe('transferAssetToSwapOperator', function () {
     const amountToTransfer = tokenAmount.divn(2);
 
     await expectRevert(
-      pool.transferAssetToSwapOperator(
-        otherToken.address, amountToTransfer,
-        { from: arbitraryCaller },
-      ),
-      'Pool: not swapOperator',
+      pool.transferAssetToSwapOperator(otherToken.address, amountToTransfer, { from: arbitraryCaller }),
+      'Pool: Not swapOperator',
     );
   });
 });

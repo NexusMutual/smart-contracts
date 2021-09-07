@@ -1,15 +1,13 @@
 const fetch = require('node-fetch');
 const { artifacts, web3, accounts, network } = require('hardhat');
-const { expectRevert, constants: { ZERO_ADDRESS }, ether, time } = require('@openzeppelin/test-helpers');
-
 const {
-  submitGovernanceProposal,
-  getAddressByCodeFactory,
-  Address,
-  fund,
-  unlock,
-  UserAddress,
-} = require('./utils');
+  expectRevert,
+  constants: { ZERO_ADDRESS },
+  ether,
+  time,
+} = require('@openzeppelin/test-helpers');
+
+const { submitGovernanceProposal, getAddressByCodeFactory, Address, fund, unlock, UserAddress } = require('./utils');
 const { hex } = require('../utils').helpers;
 const { ProposalCategory, Role, ContractTypes } = require('../utils').constants;
 
@@ -27,20 +25,20 @@ const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 const Pool = artifacts.require('Pool');
 const MCR = artifacts.require('MCR');
 const QuotationData = artifacts.require('QuotationData');
-const ClaimsReward = artifacts.require('ClaimsReward');
+const ClaimsReward = artifacts.require('LegacyClaimsReward');
 const ProposalCategoryContract = artifacts.require('ProposalCategory');
 const LegacyNXMaster = artifacts.require('ILegacyNXMaster');
 const MMockNewContract = artifacts.require('MMockNewContract');
-const Claims = artifacts.require('Claims');
+const Claims = artifacts.require('LegacyClaims');
 
 describe('Master upgrade', function () {
-
   this.timeout(0);
 
   it('initializes contracts', async function () {
-
     const versionDataURL = 'https://api.nexusmutual.io/version-data/data.json';
-    const { mainnet: { abis } } = await fetch(versionDataURL).then(r => r.json());
+    const {
+      mainnet: { abis },
+    } = await fetch(versionDataURL).then(r => r.json());
     const getAddressByCode = getAddressByCodeFactory(abis);
 
     const masterAddress = getAddressByCode('NXMASTER');
@@ -69,7 +67,6 @@ describe('Master upgrade', function () {
   });
 
   it('fetches board members and funds accounts', async function () {
-
     const { memberArray: boardMembers } = await this.memberRoles.members('1');
     const voters = boardMembers.slice(0, 3);
 
@@ -91,26 +88,13 @@ describe('Master upgrade', function () {
 
     const newMaster = await NXMaster.new();
 
-    const upgradeMaster = web3.eth.abi.encodeParameters(
-      ['address'],
-      [
-        newMaster.address,
-      ],
-    );
+    const upgradeMaster = web3.eth.abi.encodeParameters(['address'], [newMaster.address]);
 
-    const {
-      contractsName,
-      contractsAddress,
-    } = await legacyMaster.getVersionData();
+    const { contractsName, contractsAddress } = await legacyMaster.getVersionData();
 
     const prevTokenAddress = await legacyMaster.tokenAddress();
 
-    await submitGovernanceProposal(
-      ProposalCategory.upgradeMaster,
-      upgradeMaster,
-      voters,
-      governance,
-    );
+    await submitGovernanceProposal(ProposalCategory.upgradeMaster, upgradeMaster, voters, governance);
 
     const proxy = await OwnedUpgradeabilityProxy.at(master.address);
     const implementation = await proxy.implementation();
@@ -154,22 +138,20 @@ describe('Master upgrade', function () {
     const previousMcrFloor = await mcr.mcrFloor();
 
     const contractCodes = ['IC', 'CR', 'MC', 'QT', 'CL'];
-    const newAddresses = [newIncidents.address, newClaimsReward.address, newMCR.address, quotation.address, claims.address];
+    const newAddresses = [
+      newIncidents.address,
+      newClaimsReward.address,
+      newMCR.address,
+      quotation.address,
+      claims.address,
+    ];
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
-      [
-        contractCodes.map(code => hex(code)),
-        newAddresses,
-      ],
+      [contractCodes.map(code => hex(code)), newAddresses],
     );
 
-    await submitGovernanceProposal(
-      ProposalCategory.upgradeNonProxy,
-      upgradeContractsData,
-      voters,
-      governance,
-    );
+    await submitGovernanceProposal(ProposalCategory.upgradeNonProxy, upgradeContractsData, voters, governance);
 
     const proxy = await OwnedUpgradeabilityProxy.at(incidents.address);
     const incidentsImplementation = await proxy.implementation();
@@ -327,11 +309,7 @@ describe('Master upgrade', function () {
 
     assert.equal(await master.paused(), true);
 
-    await expectRevert(
-      pool.buyNXM('0', { value: '0', from: Address.NXMHOLDER }),
-      'System is paused',
-    );
-
+    await expectRevert(pool.buyNXM('0', { value: '0', from: Address.NXMHOLDER }), 'System is paused');
   });
 
   it('unpauses system', async function () {

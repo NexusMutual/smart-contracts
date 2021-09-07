@@ -20,7 +20,7 @@ import "../../abstract/MasterAwareV2.sol";
  *  assessment processes where members decide the outcome of the events that lead to potential
  *  payouts.
  */
-contract Incidents is IIncidents, MasterAwareV2 {
+contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
 
   // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
   uint internal constant RATIO_BPS = 10000;
@@ -97,62 +97,65 @@ contract Incidents is IIncidents, MasterAwareV2 {
   }
 
   function redeemIncidentPayout(uint104 incidentId, uint32 coverId, uint depeggedTokens)
-  external override onlyMember {
+  external override returns (uint, address) {
     Incident memory incident =  incidents[incidentId];
-    (IAssessment.Poll memory poll,,) = assessment().assessments(incident.assessmentId);
-
-    require(
-      AssessmentLib._getPollStatus(poll) == IAssessment.PollStatus.ACCEPTED,
-      "The incident must be accepted"
-    );
-
-    (,,uint8 payoutCooldownDays) = assessment().config();
-    require(
-      block.timestamp >= poll.end + payoutCooldownDays * 1 days,
-     "The incident is in cooldown period"
-    );
-
-    address payable coverOwner;
-    uint payoutAmount;
-    uint8 payoutAsset;
     {
-      ICover coverContract = ICover(getInternalContractAddress(ID.CO));
-      coverOwner = payable(coverContract.ownerOf(coverId));
+      (IAssessment.Poll memory poll,,) = assessment().assessments(incident.assessmentId);
 
-      uint24 productId;
-      uint96 amount;
-      uint32 start;
-      uint32 period;
-      (
-        productId,
-        amount,
-        start,
-        period,
-        payoutAsset,
-        ,
-      ) = coverContract.covers(coverId);
-      payoutAmount = depeggedTokens; // [todo] Calculate payout amount
-      require(payoutAmount <= amount, "Payout exceeds covered amount");
-      coverContract.performPayoutBurn(coverId, coverOwner, payoutAmount);
+      require(
+        AssessmentLib._getPollStatus(poll) == IAssessment.PollStatus.ACCEPTED,
+        "The incident must be accepted"
+      );
 
-      require (coverOwner == msg.sender, "Payout can only be redeemed by cover owner");
-      require(productId == incident.productId, "Product id mismatch");
-      require(start <= incident.date, "Cover start date is after the incident");
-      require(start + period >= incident.date, "Cover end date is before the incident");
-      uint gracePeriod = 0; // [todo] Get from product
-      require(start + period + gracePeriod >= block.timestamp, "Grace period has expired");
-      // Should BURN_RATIO & DEDUCTIBLE_RATIO be stored in product details?
+      (,,uint8 payoutCooldownDays) = assessment().config();
+      require(
+        block.timestamp >= poll.end + payoutCooldownDays * 1 days,
+        "The incident is in cooldown period"
+      );
     }
 
 
-    // [todo] Replace payoutAddress with the member's address using the member id
-    address payable payoutAddress = memberRoles().getClaimPayoutAddress(coverOwner);
+      uint payoutAmount;
+      uint8 payoutAsset;
+      address payable coverOwner;
+      {
+        ICover coverContract = ICover(getInternalContractAddress(ID.CO));
+        coverOwner = payable(coverContract.ownerOf(coverId));
 
-    {
+        uint24 productId;
+        uint32 start;
+        uint32 period;
+        uint96 coverAmount;
+        (
+          productId,
+          coverAmount,
+          start,
+          period,
+          payoutAsset,
+          ,
+        ) = coverContract.covers(coverId);
+        payoutAmount = depeggedTokens; // [todo] Calculate payout amount
+        require(payoutAmount <= coverAmount, "Payout exceeds covered amount");
+        coverContract.performPayoutBurn(coverId, coverOwner, payoutAmount);
+        require(start + period >= incident.date, "Cover end date is before the incident");
+        uint gracePeriod = 0; // [todo] Get from product
+        require(start + period + gracePeriod >= block.timestamp, "Grace period has expired");
+
+        require(productId == incident.productId, "Product id mismatch");
+        require(start <= incident.date, "Cover start date is after the incident");
+        // Should BURN_RATIO & DEDUCTIBLE_RATIO be stored in product details?
+      }
+
+
+      // [todo] Replace payoutAddress with the member's address using the member id
+      address payable payoutAddress = memberRoles().getClaimPayoutAddress(coverOwner);
       IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
-      bool succeeded = poolContract.sendClaimPayout(payoutAsset, payoutAddress, payoutAmount);
-      require(succeeded, "Incident payout failed");
-    }
+
+      {
+        bool succeeded = poolContract.sendClaimPayout(payoutAsset, payoutAddress, payoutAmount);
+        require(succeeded, "Incident payout failed");
+      }
+
   }
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)
@@ -181,7 +184,8 @@ contract Incidents is IIncidents, MasterAwareV2 {
 
   // Required to receive NFTS
   function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
-  external pure override returns (bytes4) {
+  external view override returns (bytes4) {
+    require(msg.sender == internalContracts[uint(ID.CO)], "Unexpected NFT");
     return IERC721Receiver.onERC721Received.selector;
   }
 

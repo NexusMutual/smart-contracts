@@ -9,7 +9,7 @@ import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
 import "../../interfaces/ITokenFunctions.sol";
-import "../claims/ClaimsReward.sol";
+import "../claims/LegacyClaimsReward.sol";
 import "./external/Governed.sol";
 
 contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {

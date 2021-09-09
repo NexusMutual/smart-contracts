@@ -85,11 +85,11 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint96 amount,
     uint32 period,
     StakingPool[] memory stakingPools
-  ) internal returns (uint coverId, uint priceInAsset) {
+  ) internal returns (uint coverId, uint premiumInAsset) {
 
     // convert to NXM amount
     uint amountToCover = uint(amount) * 1e18 / pool().getTokenPrice(pool().assets(payoutAsset));
-    uint totalPrice = 0;
+    uint totalPremiumInNXM = 0;
 
     for (uint i = 0; i < stakingPools.length; i++) {
       if (amountToCover == 0) {
@@ -99,12 +99,12 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
       (uint coveredAmount, uint price) = buyCoverFromPool(stakingPool, productId, amountToCover, period);
       amountToCover -= coveredAmount;
-      totalPrice += price;
+      totalPremiumInNXM += price;
       stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
     }
     require(amountToCover == 0, "Not enough available capacity");
 
-    priceInAsset = totalPrice * pool().getTokenPrice(pool().assets(payoutAsset)) / 1e18;
+    premiumInAsset = totalPremiumInNXM * pool().getTokenPrice(pool().assets(payoutAsset)) / 1e18;
 
     covers.push(Cover(
         productId,
@@ -113,7 +113,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         uint96(amount),
         uint32(block.timestamp + 1),
         uint32(period),
-        uint96(priceInAsset)
+        uint96(premiumInAsset)
       ));
 
     coverId = covers.length - 1;
@@ -137,8 +137,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     }
 
     uint capacityFactor = capacityFactors[productId];
-    (uint pricePercentage, uint price) = getPrice(coveredAmount, period, productId, stakingPool);
-    lastPrices[productId][address(stakingPool)] = pricePercentage;
+    (uint basePrice, uint price) = getPrice(coveredAmount, period, productId, stakingPool);
+    lastPrices[productId][address(stakingPool)] = basePrice;
     lastPriceUpdate[productId][address(stakingPool)] = block.timestamp;
 
     stakingPool.buyCover(
@@ -190,6 +190,28 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     return newCoverId;
   }
 
+  function addPeriodByDecreasingAmount(
+    uint coverId,
+    uint96 newAmount,
+    uint maxPrice
+  ) external {
+
+    Cover memory cover = covers[coverId];
+    require(cover.amount > newAmount, "Cover: Amount is higher");
+
+    // make the previous cover expire at current block
+    uint32 newPeriod = uint32(block.timestamp) - cover.start;
+    uint32 previousPeriod = covers[coverId].period;
+    uint priceAlreadyPaid = (previousPeriod - newPeriod) / previousPeriod * cover.price;
+    covers[coverId].period = newPeriod;
+
+
+  }
+
+  function addAmountByDecreasingPeriod(uint coverId) external {
+    Cover memory cover = covers[coverId];
+  }
+
   function incrementDeniedClaims(uint coverId) external onlyInternal override {
   }
 
@@ -233,7 +255,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     );
 
     uint price = pricePercentage * amount * period / 365 days / MAX_PRICE_PERCENTAGE;
-    return (pricePercentage, price);
+    return (basePrice, price);
   }
 
   /**
@@ -247,7 +269,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint now
   ) public pure returns (uint) {
 
-    uint percentageChange = (now - lastPriceUpdate) / 1 days  * (stakedNXM / STAKE_SPEED_UNIT) * PERCENTAGE_CHANGE_PER_DAY_BPS;
+    uint percentageChange = (now - lastPriceUpdate) / 1 days * (stakedNXM / STAKE_SPEED_UNIT) * PERCENTAGE_CHANGE_PER_DAY_BPS;
     if (targetPrice > lastPrice) {
       return lastPrice + (targetPrice - lastPrice) * percentageChange / BASIS_PRECISION;
     } else {

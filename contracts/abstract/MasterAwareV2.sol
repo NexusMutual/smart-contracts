@@ -14,7 +14,10 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
 
   modifier onlyMember {
     require(
-      IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(msg.sender, uint(Role.Member)),
+      IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(
+        msg.sender,
+        uint(IMemberRoles.Role.Member)
+      ),
       "Caller is not a member"
     );
     _;
@@ -22,7 +25,10 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
 
   modifier onlyAdvisoryBoard {
     require(
-      IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(msg.sender, uint(Role.AdvisoryBoard)),
+      IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(
+        msg.sender,
+        uint(IMemberRoles.Role.AdvisoryBoard)
+      ),
       "Caller is not an advisory board member"
     );
     _;

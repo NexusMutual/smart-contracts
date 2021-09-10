@@ -10,7 +10,7 @@ interface ICover is IERC721 {
 
   struct StakingPool {
     address poolAddress;
-    uint96 bookedAmount;
+    uint96 coverAmount;
   }
 
   struct Cover {
@@ -52,15 +52,6 @@ interface ICover is IERC721 {
     uint maxPrice,
     StakingPool[] calldata stakingPools
   ) external payable returns (uint /*coverId*/);
-
-  function createCover(
-    address owner,
-    uint24 productId,
-    uint8 payoutAsset,
-    uint96 amount,
-    uint32 period,
-    StakingPool[] calldata stakingPools
-  ) external returns (uint /*coverId*/);
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external;
 

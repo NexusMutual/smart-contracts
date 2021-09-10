@@ -20,7 +20,17 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   ProductType[] public productTypes;
 
   mapping(uint => uint) initialPrices;
+
+  /*
+   (productId, poolAddress) => lastPrice
+   Last base prices at which a cover was sold by a pool for a particular product.
+  */
   mapping(uint => mapping(address => uint)) lastPrices;
+
+  /*
+   (productId, poolAddress) => lastPriceUpdate
+   Last base price update time.
+  */
   mapping(uint => mapping(address => uint)) lastPriceUpdate;
 
 
@@ -64,17 +74,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     require(priceInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
     retrievePayment(priceInAsset, payoutAsset);
     return coverId;
-  }
-
-  function createCover(
-    address owner,
-    uint24 productId,
-    uint8 payoutAsset,
-    uint96 amount,
-    uint32 period,
-    StakingPool[] calldata stakingPools
-  ) external override returns (uint /*coverId*/) {
-    return 0; // TODO: implement
   }
 
   function _createCover(
@@ -228,7 +227,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint totalPremiumInNXM = 0;
     for (uint i = 0; i < stakingPools.length; i++) {
       IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
-      (uint coveredAmount, uint price) = buyCoverFromPool(stakingPool, cover.productId, stakingPools[i].bookedAmount, extraPeriod);
+      (uint coveredAmount, uint price) = buyCoverFromPool(stakingPool, cover.productId, stakingPools[i].coverAmount, extraPeriod);
       totalPremiumInNXM += price;
       stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
     }

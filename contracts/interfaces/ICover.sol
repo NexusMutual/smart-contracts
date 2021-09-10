@@ -23,8 +23,18 @@ interface ICover is IERC721 {
   }
 
   struct Product {
-    mapping(uint8 => bool) payoutAssets;
+    uint16 productType;
     address productAddress;
+    uint16 capacityFactor;
+    /* supported payout assets bitmap TODO: explain */
+    uint payoutAssets;
+  }
+
+  struct ProductType {
+    string descriptionIpfsHash;
+    uint8 redeemMethod;
+    uint16 gracePeriodInDays;
+    uint16 burnRatio;
   }
 
   /* ========== VIEWS ========== */

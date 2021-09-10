@@ -17,6 +17,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   Product[] public products;
   mapping(uint => uint) capacityFactors;
 
+  ProductType[] public productTypes;
+
   mapping(uint => uint) initialPrices;
   mapping(uint => mapping(address => uint)) lastPrices;
   mapping(uint => mapping(address => uint)) lastPriceUpdate;

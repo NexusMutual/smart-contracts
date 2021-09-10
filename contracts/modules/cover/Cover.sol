@@ -26,7 +26,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
   /* === CONSTANTS ==== */
 
-  address constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   uint public REWARD_BPS = 5000;
   uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
   uint public constant BASIS_PRECISION = 10000;
@@ -247,8 +246,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
 
   function retrievePayment(uint totalPrice, uint8 payoutAssetIndex) internal {
-    address payoutAsset = pool().assets(payoutAssetIndex);
-    if (payoutAsset == ETH) {
+
+    if (payoutAssetIndex == 0) {
       require(msg.value >= totalPrice, "Cover: Insufficient ETH sent");
       uint remainder = msg.value - totalPrice;
 
@@ -258,6 +257,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         require(ok, "Cover: Returning ETH remainder to sender failed.");
       }
     } else {
+      address payoutAsset = pool().assets(payoutAssetIndex);
       IERC20 token = IERC20(payoutAsset);
       token.transferFrom(msg.sender, address(this), totalPrice);
     }

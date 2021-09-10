@@ -190,26 +190,38 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     return newCoverId;
   }
 
-  function addPeriodByDecreasingAmount(
+  function addAmount(
     uint coverId,
-    uint96 newAmount,
-    uint maxPrice
+    uint96 amount,
+    uint maxPrice,
+    StakingPool[] memory stakingPools
   ) external {
-
     Cover memory cover = covers[coverId];
-    require(cover.amount > newAmount, "Cover: Amount is higher");
 
-    // make the previous cover expire at current block
-    uint32 newPeriod = uint32(block.timestamp) - cover.start;
-    uint32 previousPeriod = covers[coverId].period;
-    uint priceAlreadyPaid = (previousPeriod - newPeriod) / previousPeriod * cover.price;
-    covers[coverId].period = newPeriod;
+    uint32 period = uint32(block.timestamp) - cover.start;
+    // convert to NXM amount
+    uint amountToCover = uint(amount) * 1e18 / pool().getTokenPrice(pool().assets(cover.payoutAsset));
+    uint totalPremiumInNXM = 0;
+    for (uint i = 0; i < stakingPools.length; i++) {
+      if (amountToCover == 0) {
+        break;
+      }
 
+      IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
+      (uint coveredAmount, uint price) = buyCoverFromPool(stakingPool, cover.productId, amountToCover, period);
+      amountToCover -= coveredAmount;
+      totalPremiumInNXM += price;
+      stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
+    }
+    require(amountToCover == 0, "Not enough available capacity");
 
-  }
+    uint premiumInAsset = totalPremiumInNXM * pool().getTokenPrice(pool().assets(cover.payoutAsset)) / 1e18;
 
-  function addAmountByDecreasingPeriod(uint coverId) external {
-    Cover memory cover = covers[coverId];
+    require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
+    retrievePayment(premiumInAsset, cover.payoutAsset);
+
+    cover.amount += amount;
+    cover.price += uint96(premiumInAsset);
   }
 
   function incrementDeniedClaims(uint coverId) external onlyInternal override {

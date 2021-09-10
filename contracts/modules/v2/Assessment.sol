@@ -76,12 +76,14 @@ contract Assessment is IAssessment, MasterAwareV2 {
       vote = votesOf[user][i];
       assessment = assessments[vote.assessmentId];
 
+      // If withdrawableUntilIndex has been assigned before, continue calculating the total accrued
+      // rewards.
       if (
         withdrawableUntilIndex == 0 &&
         assessment.poll.end + config.payoutCooldownDays * 1 days >= block.timestamp
       ) {
-        // If withdrawableUntilIndex has not been set before and the poll is in a final state,
-        // store the index of the vote until which rewards can be withdrawn.
+        // If withdrawableUntilIndex has not been assigned before and the poll is not in a final
+        // state, store the index of the vote until which rewards can be withdrawn.
         withdrawableUntilIndex = i;
         // Then, also store the total value that can be withdrawn until this index.
         withdrawable = total;

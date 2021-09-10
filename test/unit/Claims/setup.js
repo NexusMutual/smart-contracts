@@ -72,10 +72,6 @@ async function setup () {
     await nxm.connect(account).approve(tokenController.address, ethers.utils.parseEther('10000'));
   }
 
-  const AssessmentLibTest = await ethers.getContractFactory('AssessmentLibTest');
-  const assessmentLibTest = await AssessmentLibTest.deploy();
-  await assessmentLibTest.deployed();
-
   const config = await claims.config();
 
   this.config = config;

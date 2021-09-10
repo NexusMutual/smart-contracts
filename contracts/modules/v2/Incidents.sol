@@ -12,8 +12,6 @@ import "../../interfaces/ICover.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IIncidents.sol";
 
-import "../../libraries/AssessmentLib.sol";
-
 import "../../abstract/MasterAwareV2.sol";
 
 /**
@@ -100,7 +98,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
       (IAssessment.Poll memory poll,,) = assessment().assessments(incident.assessmentId);
 
       require(
-        AssessmentLib._getPollStatus(poll) == IAssessment.PollStatus.ACCEPTED,
+        poll.accepted > poll.denied,
         "The incident must be accepted"
       );
 
@@ -108,6 +106,13 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
       require(
         block.timestamp >= poll.end + payoutCooldownDays * 1 days,
         "The incident is in cooldown period"
+      );
+
+      require(
+        block.timestamp < poll.end +
+        payoutCooldownDays * 1 days +
+        config.payoutRedemptionPeriodDays * 1 days,
+        "The redemption period has expired"
       );
     }
 

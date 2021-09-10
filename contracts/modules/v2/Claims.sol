@@ -12,8 +12,6 @@ import "../../interfaces/IClaims.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IERC20Detailed.sol";
 
-import "../../libraries/AssessmentLib.sol";
-
 import "../../abstract/MasterAwareV2.sol";
 
 /**

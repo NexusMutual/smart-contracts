@@ -86,21 +86,21 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   ) internal returns (uint coverId, uint premiumInAsset) {
 
     // convert to NXM amount
-    uint amountToCover = uint(amount) * 1e18 / pool().getTokenPrice(pool().assets(payoutAsset));
+    uint amountLeftToCoverInNXM = uint(amount) * 1e18 / pool().getTokenPrice(pool().assets(payoutAsset));
     uint totalPremiumInNXM = 0;
 
     for (uint i = 0; i < stakingPools.length; i++) {
-      if (amountToCover == 0) {
+      if (amountLeftToCoverInNXM == 0) {
         break;
       }
 
       IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
-      (uint coveredAmount, uint price) = buyCoverFromPool(stakingPool, productId, amountToCover, period);
-      amountToCover -= coveredAmount;
+      (uint coveredAmount, uint price) = buyCoverFromPool(stakingPool, productId, amountLeftToCoverInNXM, period);
+      amountLeftToCoverInNXM -= coveredAmount;
       totalPremiumInNXM += price;
       stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
     }
-    require(amountToCover == 0, "Not enough available capacity");
+    require(amountLeftToCoverInNXM == 0, "Not enough available capacity");
 
     premiumInAsset = totalPremiumInNXM * pool().getTokenPrice(pool().assets(payoutAsset)) / 1e18;
 
@@ -126,12 +126,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     uint availableCapacity = stakingPool.getAvailableCapacity(productId, capacityFactors[productId]);
 
-    uint coveredAmount;
-    if (amountToCover > availableCapacity) {
-      coveredAmount = availableCapacity;
-    } else {
-      coveredAmount = amountToCover;
-    }
+    uint coveredAmount = amountToCover > availableCapacity ? availableCapacity : amountToCover;
 
     uint capacityFactor = capacityFactors[productId];
     (uint basePrice, uint price) = getPrice(coveredAmount, period, productId, stakingPool);

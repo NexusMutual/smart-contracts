@@ -16,7 +16,6 @@ interface ICover is IERC721 {
   struct Cover {
     uint24 productId;
     uint8 payoutAsset;
-    uint8 deniedClaims;
     uint96 amount;
     uint32 start;
     uint32 period;  // seconds
@@ -30,7 +29,7 @@ interface ICover is IERC721 {
 
   /* ========== VIEWS ========== */
 
-  function covers(uint id) external returns (uint24, uint8, uint8, uint96, uint32, uint32, uint96);
+  function covers(uint id) external returns (uint24, uint8, uint96, uint32, uint32, uint96);
 
   /* === MUTATIVE FUNCTIONS ==== */
 
@@ -48,13 +47,10 @@ interface ICover is IERC721 {
     address owner,
     uint24 productId,
     uint8 payoutAsset,
-    uint8 deniedClaims,
     uint96 amount,
     uint32 period,
     StakingPool[] calldata stakingPools
   ) external returns (uint /*coverId*/);
-
-  function incrementDeniedClaims(uint coverId) external;
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external;
 

@@ -85,7 +85,6 @@ library AssessmentIncidentsLib {
       (
         uint24 productId,
         /*uint8 payoutAsset*/,
-        /*uint8 deniedClaims*/,
         uint96 amount,
         uint32 start,
         uint32 period,

@@ -26,7 +26,6 @@ contract AssessmentMockCover is ICover, ERC721 {
       owner,
       productId,
       payoutAsset,
-      0,
       amount,
       period,
       stakingPools
@@ -37,7 +36,6 @@ contract AssessmentMockCover is ICover, ERC721 {
     address owner,
     uint24 productId,
     uint8 payoutAsset,
-    uint8 deniedClaims,
     uint96 amount,
     uint32 period,
     StakingPool[] calldata stakingPools
@@ -46,7 +44,6 @@ contract AssessmentMockCover is ICover, ERC721 {
       owner,
       productId,
       payoutAsset,
-      deniedClaims,
       amount,
       period,
       stakingPools
@@ -57,7 +54,6 @@ contract AssessmentMockCover is ICover, ERC721 {
     address owner,
     uint24 productId,
     uint8 payoutAsset,
-    uint8 deniedClaims,
     uint amount,
     uint period,
     StakingPool[] memory stakingPools
@@ -67,7 +63,6 @@ contract AssessmentMockCover is ICover, ERC721 {
     covers.push(Cover(
       productId,
       payoutAsset,
-      deniedClaims,
       uint96(amount),
       uint32(block.timestamp + 1),
       uint32(period),
@@ -83,7 +78,6 @@ contract AssessmentMockCover is ICover, ERC721 {
     uint coverId,
     uint24 productId,
     uint8 payoutAsset,
-    uint8 deniedClaims,
     uint96 amount,
     uint start,
     uint period,
@@ -92,16 +86,11 @@ contract AssessmentMockCover is ICover, ERC721 {
     covers[coverId] = Cover(
       productId,
       payoutAsset,
-      deniedClaims,
       amount,
       uint32(start),
       uint32(period),
       0 // mock price
     );
-  }
-
-  function incrementDeniedClaims(uint coverId) external override {
-    covers[coverId].deniedClaims += 1;
   }
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external override {
@@ -112,7 +101,6 @@ contract AssessmentMockCover is ICover, ERC721 {
       owner,
       cover.productId,
       cover.payoutAsset,
-      cover.deniedClaims,
       cover.amount - amount,
       cover.period - (uint32(block.timestamp) - cover.start),
       stakingPools

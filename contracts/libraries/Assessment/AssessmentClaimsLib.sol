@@ -109,13 +109,6 @@ library AssessmentClaimsLib {
     );
 
     ICover coverContract = ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
-
-    {
-      (,, uint8 deniedClaims,,,,) = coverContract.covers(coverId);
-      require(deniedClaims == 0, "Cover already has two denied claims");
-    }
-
-    coverContract.incrementDeniedClaims(coverId);
     coverContract.transferFrom(address(this), claimants[claimId], coverId);
   }
 

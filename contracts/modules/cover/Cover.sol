@@ -59,7 +59,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   ) external payable override returns (uint /*coverId*/) {
     require(initialPrices[productId] != 0, "Cover: product not initialized");
 
-    (uint coverId, uint priceInAsset) = _createCover(owner, productId, payoutAsset, 0, amount, period, stakingPools);
+    (uint coverId, uint priceInAsset) = _createCover(owner, productId, payoutAsset, amount, period, stakingPools);
     require(priceInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
     retrievePayment(priceInAsset, payoutAsset);
     return coverId;
@@ -69,7 +69,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     address owner,
     uint24 productId,
     uint8 payoutAsset,
-    uint8 deniedClaims,
     uint96 amount,
     uint32 period,
     StakingPool[] calldata stakingPools
@@ -81,7 +80,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     address owner,
     uint24 productId,
     uint8 payoutAsset,
-    uint8 deniedClaims,
     uint96 amount,
     uint32 period,
     StakingPool[] memory stakingPools
@@ -109,7 +107,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     covers.push(Cover(
         productId,
         payoutAsset,
-        deniedClaims,
         uint96(amount),
         uint32(block.timestamp + 1),
         uint32(period),
@@ -168,7 +165,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       ERC721.ownerOf(coverId),
       cover.productId,
       cover.payoutAsset,
-      0, // deniedClaims
       amount,
       period,
       stakingPools
@@ -241,9 +237,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
     retrievePayment(premiumInAsset, cover.payoutAsset);
     cover.period += extraPeriod;
-  }
-
-  function incrementDeniedClaims(uint coverId) external onlyInternal override {
   }
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external onlyInternal override {

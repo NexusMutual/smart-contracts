@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/INXMMaster.sol";
 import "../interfaces/IMasterAwareV2.sol";
+import "../interfaces/IMemberRoles.sol";
 
 abstract contract MasterAwareV2 is IMasterAwareV2 {
 
@@ -12,8 +13,18 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
   INXMMaster public master;
 
   modifier onlyMember {
-    // [todo] This can directly call MemberRoles.sol
-    require(master.isMember(msg.sender), "Caller is not a member");
+    require(
+      IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(msg.sender, uint(Role.Member)),
+      "Caller is not a member"
+    );
+    _;
+  }
+
+  modifier onlyAdvisoryBoard {
+    require(
+      IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(msg.sender, uint(Role.AdvisoryBoard)),
+      "Caller is not an advisory board member"
+    );
     _;
   }
 

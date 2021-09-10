@@ -7,12 +7,16 @@ interface IIncidents {
   /* ========== DATA STRUCTURES ========== */
 
   enum UintParams {
+    payoutRedemptionPeriodDays,
     incidentExpectedPayoutRatio,
     incidentPayoutDeductibleRatio,
     rewardRatio
   }
 
   struct Configuration {
+    // Number of days in which payouts can be redeemed
+    uint8 payoutRedemptionPeriodDays;
+
     // Ratio used to calculate potential payout of an incident
     // (0-10000 bps i.e. double decimal precision)
     uint16 incidentExpectedPayoutRatio;
@@ -36,8 +40,12 @@ interface IIncidents {
 
   /* ========== VIEWS ========== */
 
-  function config() external view
-  returns (uint16 incidentExpectedPayoutRatio, uint16 incidentPayoutDeductibleRatio, uint16 rewardRatio);
+  function config() external view returns (
+    uint8 payoutRedemptionPeriodDays,
+    uint16 incidentExpectedPayoutRatio,
+    uint16 incidentPayoutDeductibleRatio,
+    uint16 rewardRatio
+  );
 
   function incidents(uint id) external view
   returns (uint80 assessmentId, uint24 productId, uint32 date, uint96 priceBefore);
@@ -53,7 +61,7 @@ interface IIncidents {
   ) external;
 
   function redeemIncidentPayout(uint104 incidentId, uint32 coverId, uint depeggedTokens) external
-  returns (uint payoutAmount, address payoutAsset);
+  returns (uint payoutAmount, uint8 payoutAsset);
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values) external;
 

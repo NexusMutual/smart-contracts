@@ -47,12 +47,16 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
 
   function initialize(address masterAddress) external {
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
-    config.rewardRatio = 52; // 0.52%
-    config.assessmentBaseDepositRatio = 500; // 5% i.e. 0.05 ETH submission flat fee
+    config.rewardRatio = 130; // 0.52%
+    config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH submission flat fee
     master = INXMMaster(masterAddress);
   }
 
   /* ========== VIEWS ========== */
+
+  function max(uint a, uint b) internal pure returns (uint) {
+    return a > b ? a : b;
+  }
 
   function cover() internal view returns (ICover) {
     return ICover(getInternalContractAddress(ID.CO));
@@ -78,25 +82,42 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
    *
    *  @param id    Claim identifier for which the ClaimDisplay is returned
    */
-  function getClaimDisplay (uint id) public view returns (ClaimDisplay memory) {
+  function getClaimDisplay(uint id) internal view returns (ClaimDisplay memory) {
     Claim memory claim = claims[id];
     (IAssessment.Poll memory poll,,) = assessment().assessments(claim.assessmentId);
 
-    string memory claimStatusDisplay;
-    string memory payoutStatusDisplay;
+    ClaimStatus claimStatus;
+    PayoutStatus payoutStatus;
     {
-      IAssessment.PollStatus claimStatus = AssessmentLib._getPollStatus(poll);
-      if (claimStatus == IAssessment.PollStatus.ACCEPTED) {
-        claimStatusDisplay = "Accepted";
-        if (claimStatus == IAssessment.PollStatus.ACCEPTED && claim.redeemed) {
-          payoutStatusDisplay = "Complete";
+      // Determine the claims status
+      if (block.timestamp < poll.end) {
+        claimStatus = ClaimStatus.PENDING;
+      } else if (poll.accepted > poll.denied) {
+        claimStatus = ClaimStatus.ACCEPTED;
+      } else {
+        claimStatus = ClaimStatus.DENIED;
+      }
+
+      // Determine the payout status
+      if (claimStatus == ClaimStatus.ACCEPTED) {
+        if (claim.payoutRedeemed) {
+          payoutStatus = PayoutStatus.COMPLETE;
         } else {
-          payoutStatusDisplay = "Pending";
+          (,,uint8 payoutCooldownDays) = assessment().config();
+          if (
+            block.timestamp >= poll.end +
+            payoutCooldownDays * 1 days +
+            config.payoutRedemptionPeriodDays * 1 days
+          ) {
+            payoutStatus = PayoutStatus.UNCLAIMED;
+          } else {
+            payoutStatus = PayoutStatus.PENDING;
+          }
         }
-      } else if (claimStatus == IAssessment.PollStatus.DENIED) {
-        claimStatusDisplay = "Denied";
-      } else if (claimStatus == IAssessment.PollStatus.PENDING) {
-        claimStatusDisplay = "Pending";
+      } else if (claimStatus == ClaimStatus.DENIED) {
+        payoutStatus = PayoutStatus.DENIED;
+      } else {
+        payoutStatus = PayoutStatus.PENDING;
       }
     }
 
@@ -107,7 +128,7 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       uint32 coverPeriod,
       uint8 payoutAsset,
       uint8 deniedClaims,
-      uint80 nxmPrice
+      /*uint80 nxmPrice*/
     ) = cover().covers(claim.coverId);
 
     uint coverEnd = coverStart + coverPeriod;
@@ -134,8 +155,8 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       coverEnd,
       poll.start,
       poll.end,
-      claimStatusDisplay,
-      payoutStatusDisplay
+      uint(claimStatus),
+      uint(payoutStatus)
     );
   }
 
@@ -182,7 +203,6 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
     uint32 coverStart;
     uint32 coverPeriod;
     uint8 payoutAsset;
-    uint80 nxmPrice;
     {
       uint96 coverAmount;
       (
@@ -192,7 +212,7 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
         coverPeriod,
         payoutAsset,
         /*uint8 deniedClaims*/,
-        nxmPrice
+        /*uint80 nxmPrice*/
       ) = cover().covers(coverId);
       require(requestedAmount <= coverAmount, "Cannot claim more than the covered amount");
     }
@@ -212,30 +232,24 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       coverId,
       requestedAmount,
       payoutAsset,
-      config.assessmentBaseDepositRatio,
-      false
+      false, // payoutRedeemed
+      false // coverRedeemed
     );
 
+    uint nxmPrice = pool().getTokenPrice(payoutAsset);
+
     // Calculate the expected in NXM using the NXM price at cover purchase time
-    uint expectedPayoutNXM = claim.amount * PRECISION / nxmPrice;
+    uint expectedPayoutNXM = requestedAmount * PRECISION / nxmPrice;
 
     // Determine the total rewards that should be minted for the assessors based on cover period
     uint totalReward = expectedPayoutNXM * config.rewardRatio * coverPeriod / 365 days
     / RATIO_BPS;
 
-    // [todo] Find out which price to use
-    uint dynamicDeposit;
-    if (payoutAsset > 0) {
-      // If the payout asset is an ERC20 use the currentNxmPrice in that asset
-      uint currentNxmPrice = pool().getTokenPrice(payoutAsset);
-      dynamicDeposit = totalReward * currentNxmPrice / PRECISION;
-    } else {
-      // If the payout asset is ETH use the nxmPrice at the time of cover purchase
-      dynamicDeposit = totalReward * nxmPrice / PRECISION;
-    }
+    uint dynamicDeposit = max(config.maxRewardNXM ** PRECISION, totalReward * nxmPrice / PRECISION);
+    uint minDeposit = 1 ether * uint(config.minAssessmentDepositRatio) / RATIO_BPS;
 
-    uint baseDeposit = 1 ether * config.assessmentBaseDepositRatio / RATIO_BPS;
-    uint deposit = baseDeposit + dynamicDeposit;
+    // If dynamicDeposit falls below minDeposit use minDeposit instead
+    uint deposit = minDeposit > dynamicDeposit ? minDeposit : dynamicDeposit;
 
     require(
       msg.value == deposit,
@@ -255,10 +269,7 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       uint assessmentDeposit
     ) = assessment().assessments(claim.assessmentId);
 
-    require(
-      AssessmentLib._getPollStatus(poll) == IAssessment.PollStatus.ACCEPTED,
-      "The claim must be accepted"
-    );
+    require(poll.accepted > poll.denied, "The claim needs to be accepted");
 
     (,,uint8 payoutCooldownDays) = assessment().config();
     require(
@@ -266,8 +277,15 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       "The claim is in cooldown period"
     );
 
-    require(!claim.redeemed, "Payout has already been redeemed");
-    claims[claimId].redeemed = true;
+    require(
+      block.timestamp < poll.end +
+      payoutCooldownDays * 1 days +
+      config.payoutRedemptionPeriodDays * 1 days,
+      "The redemption period has expired"
+    );
+
+    require(!claim.payoutRedeemed, "Payout has already been redeemed");
+    claims[claimId].payoutRedeemed = true;
 
     address payable coverOwner = payable(claimants[claim.coverId]);
     cover().performPayoutBurn(
@@ -284,8 +302,7 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
     require(succeeded, "Claim payout failed");
 
     {
-      uint assessmentDepositToRefund = 1 ether * uint(claim.assessmentBaseDepositRatio) / RATIO_BPS;
-      (bool refunded, /* bytes data */) = payoutAddress.call{value: assessmentDepositToRefund}("");
+      (bool refunded, /* bytes data */) = payoutAddress.call{value: assessmentDeposit}("");
       require(refunded, "Submission deposit refund failed");
     }
   }
@@ -299,34 +316,47 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       uint128 assessmentDeposit
     ) = assessment().assessments(claim.assessmentId);
 
-    require(
-      AssessmentLib._getPollStatus(poll) == IAssessment.PollStatus.DENIED,
-      "Cover can be redeemed only if the claim is denied"
-    );
+    require(!claim.coverRedeemed, "Cover was already redeemed");
 
-    require(!claim.redeemed, "Cover was already redeemed");
-
+    // A cover can be redeemed if the claim is either denied or the payout is not claimed before
+    // the payout redemption period.
     (,,uint8 payoutCooldownDays) = assessment().config();
-    require(
-      block.timestamp >= poll.end + payoutCooldownDays * 1 days,
-      "The claim is in cooldown period"
-    );
+    if (poll.accepted > poll.denied) {
+      if (
+        block.timestamp < poll.end +
+        payoutCooldownDays * 1 days +
+        config.payoutRedemptionPeriodDays * 1 days
+      ) {
+        revert("A payout can still be claimed");
+      }
+      revert("A cover can be redeemed only if the claim was denied");
+    } else if (block.timestamp < poll.end + payoutCooldownDays * 1 days) {
+      // Sometimes the resolution of a fraudulent assessmnt could potentially change the outcome of
+      // the assessment, thus it is necessary to keep the cover NFT in this contract to be able to
+      // redeem the payout afterwards.
+      revert("The claim is in cooldown period");
+    }
 
     cover().transferFrom(address(this), claimants[claimId], claim.coverId);
-    claims[claimId].redeemed = true;
-    getInternalContractAddress(ID.P1).call{value: assessmentDeposit}("");
+    claims[claimId].coverRedeemed = true;
+    (bool succeeded, /* bytes data */) = getInternalContractAddress(ID.P1).call{value: assessmentDeposit}("");
+    require(succeeded, "Deposit transfer to pool failed");
   }
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)
   external override onlyGovernance {
     Configuration memory newConfig = config;
     for (uint i = 0; i < paramNames.length; i++) {
+      if (paramNames[i] == UintParams.payoutRedemptionPeriodDays) {
+        newConfig.payoutRedemptionPeriodDays = uint8(values[i]);
+        continue;
+      }
       if (paramNames[i] == UintParams.rewardRatio) {
         newConfig.rewardRatio = uint16(values[i]);
         continue;
       }
-      if (paramNames[i] == UintParams.assessmentBaseDepositRatio) {
-        newConfig.assessmentBaseDepositRatio = uint16(values[i]);
+      if (paramNames[i] == UintParams.minAssessmentDepositRatio) {
+        newConfig.minAssessmentDepositRatio = uint16(values[i]);
         continue;
       }
     }
@@ -342,8 +372,12 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
   }
 
   // Required to receive NFTS
-  function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
-  external view override returns (bytes4) {
+  function onERC721Received(
+    address operator,
+    address from,
+    uint256 tokenId,
+    bytes calldata data
+  ) external view override returns (bytes4) {
     require(msg.sender == internalContracts[uint(ID.CO)], "Unexpected NFT");
     return IERC721Receiver.onERC721Received.selector;
   }

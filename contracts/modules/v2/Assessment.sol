@@ -64,33 +64,55 @@ contract Assessment is IAssessment, MasterAwareV2 {
     return assessments.length;
   }
 
-  /* === MUTATIVE FUNCTIONS ==== */
-
-  function depositStake(uint96 amount) external override onlyMember {
-    stakeOf[msg.sender].amount += amount;
-    ITokenController(getInternalContractAddress(ID.TC))
-      .operatorTransfer(msg.sender, address(this), amount);
-  }
-
-  function getRewards(address user) external view
-  returns (uint total, uint withdrawable, uint withdrawableUntilIndex) {
+  function getRewards(address user) external view returns (
+    uint total,
+    uint withdrawable,
+    uint withdrawableUntilIndex
+  ) {
     Stake memory stake = stakeOf[user];
     Vote memory vote;
     Assessment memory assessment;
     for (uint i = stake.rewardsWithdrawnUntilIndex; i < votesOf[user].length; i++) {
       vote = votesOf[user][i];
       assessment = assessments[vote.assessmentId];
+
       if (
         withdrawableUntilIndex == 0 &&
         assessment.poll.end + config.payoutCooldownDays * 1 days >= block.timestamp
       ) {
+        // If withdrawableUntilIndex has not been set before and the poll is in a final state,
+        // store the index of the vote until which rewards can be withdrawn.
         withdrawableUntilIndex = i;
+        // Then, also store the total value that can be withdrawn until this index.
         withdrawable = total;
       }
 
-      total += assessment.totalReward * vote.tokenWeight /
+      total += assessment.totalReward * vote.stakedAmount /
         (assessment.poll.accepted + assessment.poll.denied);
     }
+  }
+
+
+  /* === MUTATIVE FUNCTIONS ==== */
+
+  function stake(uint96 amount) external override {
+    stakeOf[msg.sender].amount += amount;
+    ITokenController(getInternalContractAddress(ID.TC))
+      .operatorTransfer(msg.sender, address(this), amount);
+  }
+
+  function unstake(uint96 amount) external override {
+    Stake storage stake = stakeOf[msg.sender];
+    require(stake.amount != 0, "No tokens staked");
+    uint voteCount = votesOf[msg.sender].length;
+    Vote memory vote = votesOf[msg.sender][voteCount - 1];
+    require(
+      block.timestamp > vote.timestamp + config.stakeLockupPeriodDays * 1 days,
+      "Stake is in lockup period"
+     );
+
+    nxm.transferFrom(address(this), msg.sender, amount);
+    stake.amount -= amount;
   }
 
   /// Withdraws a staker's accumulated rewards
@@ -100,7 +122,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param untilIndex  The index until which the rewards should be withdrawn. Used if a large
   ///                    number of assessments accumulates and the function doesn't fir in one
   ///                    block, thus requiring multiple batched transactions.
-  function withdrawReward(address user, uint104 untilIndex) external override
+  function withdrawRewards(address user, uint104 untilIndex) external override
   returns (uint withdrawn, uint withdrawUntilIndex) {
     Stake memory stake = stakeOf[user];
     {
@@ -124,7 +146,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
         break;
       }
 
-      withdrawn += assessment.totalReward * vote.tokenWeight /
+      withdrawn += assessment.totalReward * vote.stakedAmount /
         (assessment.poll.accepted + assessment.poll.denied);
     }
 
@@ -133,19 +155,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
     ITokenController(getInternalContractAddress(ID.TC)).mint(user, withdrawn);
   }
 
-  function withdrawStake(uint96 amount) external override onlyMember {
-    Stake storage stake = stakeOf[msg.sender];
-    require(stake.amount != 0, "No tokens staked");
-    uint voteCount = votesOf[msg.sender].length;
-    Vote memory vote = votesOf[msg.sender][voteCount - 1];
-    require(
-      block.timestamp > vote.timestamp + config.stakeLockupPeriodDays * 1 days,
-      "Stake is in lockup period"
-     );
-
-    nxm.transferFrom(address(this), msg.sender, amount);
-    stake.amount -= amount;
-  }
 
   function startAssessment(uint totalAssessmentReward, uint assessmentDeposit) external
   override onlyInternal returns (uint) {
@@ -162,7 +171,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     return assessments.length - 1;
   }
 
-  function castVote(uint assessmentId, bool isAccepted) external override onlyMember {
+  function castVote(uint assessmentId, bool isAccepted) external override {
     {
       require(!hasAlreadyVotedOn[msg.sender][assessmentId], "Already voted");
       hasAlreadyVotedOn[msg.sender][assessmentId] = true;
@@ -231,7 +240,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
     // Make sure we don't burn beyond lastFraudulentVoteIndex
     uint processUntil = stake.rewardsWithdrawnUntilIndex + voteBatchSize;
-    if ( processUntil >= lastFraudulentVoteIndex){
+    if (processUntil >= lastFraudulentVoteIndex) {
       processUntil = lastFraudulentVoteIndex + 1;
     }
 
@@ -248,9 +257,9 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
 
       if (vote.accepted) {
-        poll.accepted -= vote.tokenWeight;
+        poll.accepted -= vote.stakedAmount;
       } else {
-        poll.denied -= vote.tokenWeight;
+        poll.denied -= vote.stakedAmount;
       }
 
       // If the poll ends in less than 24h, extend it to 24h
@@ -270,13 +279,9 @@ contract Assessment is IAssessment, MasterAwareV2 {
     if (fraudCount == stake.fraudCount) {
       // Make sure this doesn't revert if the stake amount is already subtracted due to a previous
       // burn from a different merkle tree.
-      if (stake.amount >= burnAmount) {
-        stake.amount -= burnAmount;
-        nxm.burn(burnAmount);
-      } else {
-        stake.amount = 0;
-        nxm.burn(burnAmount - stake.amount);
-      }
+      burnAmount = burnAmount > stake.amount ? stake.amount : burnAmount;
+      stake.amount -= burnAmount;
+      nxm.burn(burnAmount);
       stake.fraudCount++;
     }
 

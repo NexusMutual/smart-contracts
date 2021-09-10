@@ -45,7 +45,7 @@ interface IAssessment {
    // Date and time when the vote was cast
     uint32 timestamp;
    // How many tokens were staked when the vote was cast
-    uint96 tokenWeight;
+    uint96 stakedAmount;
   }
 
   struct Poll {
@@ -71,7 +71,7 @@ interface IAssessment {
   function getVoteCountOfAssessor(address assessor) external view returns (uint);
 
   function votesOf(address user, uint id) external view
-  returns (uint80 assessmentId, bool accepted, uint32 timestamp, uint96 tokenWeight);
+  returns (uint80 assessmentId, bool accepted, uint32 timestamp, uint96 stakedAmount);
 
   function stakeOf(address user) external view
   returns (uint96 amount, uint104 rewardsWithdrawnUntilIndex, uint16 fraudCount);
@@ -84,12 +84,12 @@ interface IAssessment {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function depositStake(uint96 amount) external;
+  function stake(uint96 amount) external;
 
-  function withdrawReward(address user, uint104 untilIndex) external
+  function unstake(uint96 amount) external;
+
+  function withdrawRewards(address user, uint104 untilIndex) external
   returns (uint withdrawn, uint withdrawUntilIndex);
-
-  function withdrawStake(uint96 amount) external;
 
   function startAssessment(uint totalAssessmentReward, uint assessmentDeposit) external
   returns (uint);
@@ -115,7 +115,7 @@ interface IAssessment {
   event StakeDeposited(address user, uint104 amount);
   event StakeWithdrawn(address indexed user, uint96 amount);
   event ProofSubmitted(uint indexed coverId, address indexed owner, string ipfsHash);
-  event VoteCast(address indexed user, uint96 tokenWeight, bool accepted);
+  event VoteCast(address indexed user, uint96 stakedAmount, bool accepted);
   event RewardWithdrawn(address user, uint256 amount);
   event FraudResolution(uint assessmentId, address assessor, Poll poll);
 

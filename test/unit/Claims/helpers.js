@@ -3,6 +3,7 @@ const keccak256 = require('keccak256');
 const { MerkleTree } = require('merkletreejs');
 const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
 const { BigNumber } = ethers;
+const { Zero } = ethers.constants;
 
 const EVENT_TYPE = {
   CLAIM: 0,
@@ -88,13 +89,13 @@ const submitClaim = ({ accounts, contracts, config }) => async ({
   ipfsProofHash = '',
   sender,
 }) => {
-  const { assessmentDepositRatio } = config;
+  const { minAssessmentDepositRatio } = config;
   const baseAssessmentDeposit = parseEther('1')
-    .mul(assessmentDepositRatio)
+    .mul(minAssessmentDepositRatio)
     .div('10000');
   // [todo] Fix the deposit formula and move it in a different helper function
-  const dynamicAssessmentDeposit = 0;
-  const assessmentDeposit = baseAssessmentDeposit + dynamicAssessmentDeposit;
+  const dynamicAssessmentDeposit = Zero;
+  const assessmentDeposit = baseAssessmentDeposit.add(dynamicAssessmentDeposit);
   return await contracts.claims.connect(sender || accounts[0]).submitClaim(coverId, amount, hasProof, ipfsProofHash, {
     value: assessmentDeposit,
   });
@@ -116,7 +117,7 @@ const stakeAndVoteOnEventType = (eventType, assessment, accounts) => async (user
   }
 };
 
-const getConfigurationStruct = ({ rewardRatio, assessmentDepositRatio }) => [rewardRatio, assessmentDepositRatio];
+const getConfigurationStruct = ({ rewardRatio, minAssessmentDepositRatio }) => [rewardRatio, minAssessmentDepositRatio];
 
 const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
 
@@ -128,9 +129,9 @@ const getClaimDetailsStruct = ({
   coverPeriod,
   payoutAsset,
   nxmPriceSnapshot,
-  assessmentDepositRatio,
+  minAssessmentDepositRatio,
   payoutRedeemed,
-}) => [amount, coverId, coverPeriod, payoutAsset, nxmPriceSnapshot, assessmentDepositRatio, payoutRedeemed];
+}) => [amount, coverId, coverPeriod, payoutAsset, nxmPriceSnapshot, minAssessmentDepositRatio, payoutRedeemed];
 
 const getIncidentDetailsStruct = ({
   productId,
@@ -138,8 +139,8 @@ const getIncidentDetailsStruct = ({
   payoutAsset,
   activeCoverAmount,
   expectedPayoutRatio,
-  assessmentDepositRatio,
-}) => [productId, date, payoutAsset, activeCoverAmount, expectedPayoutRatio, assessmentDepositRatio];
+  minAssessmentDepositRatio,
+}) => [productId, date, payoutAsset, activeCoverAmount, expectedPayoutRatio, minAssessmentDepositRatio];
 
 module.exports = {
   ASSET,

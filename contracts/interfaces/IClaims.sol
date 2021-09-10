@@ -8,18 +8,30 @@ interface IClaims {
 
   /* ========== DATA STRUCTURES ========== */
 
+  enum ClaimStatus { PENDING, ACCEPTED, DENIED }
+
+  enum PayoutStatus { PENDING, COMPLETE, UNCLAIMED, DENIED }
+
   enum UintParams {
-    assessmentBaseDepositRatio,
+    payoutRedemptionPeriodDays,
+    minAssessmentDepositRatio,
+    maxRewardNXM,
     rewardRatio
   }
 
   struct Configuration {
+    // Number of days in which payouts can be redeemed
+    uint8 payoutRedemptionPeriodDays;
+
     // Ratio out of 1 ETH, used to calculate a flat ETH deposit required for claim submission.
     // If the claim is accepted, the user will receive the deposit back when the payout is redeemed.
     // (0-10000 bps i.e. double decimal precision)
-    uint16 assessmentBaseDepositRatio;
+    uint16 minAssessmentDepositRatio;
 
-    // Ratio used to calculate assessment rewards (0-10000 i.e. double decimal precision)
+    // An amount of NXM representing the maximum reward amount given for any claim assessment.
+    uint16 maxRewardNXM;
+
+    // Ratio used to calculate assessment rewards. (0-10000 i.e. double decimal precision).
     uint16 rewardRatio;
   }
 
@@ -40,14 +52,15 @@ interface IClaims {
     uint96 amount;
     // The index of of the asset address stored at addressOfAsset which is expected at payout.
     uint8 payoutAsset;
-    // A snapshot of assessmentBaseDepositRatio if it is changed before the payout
-    uint16 assessmentBaseDepositRatio;
-    // True when either the payout or the cover NFT are redeemed. Prevents further payouts on the
-    // claim if it is accepted or further attempts to redeem the cover NFT if the claim is deneid.
+    // True if the payout is already redeemed. Prevents further payouts on the claim if it is
+    // accepted.
+    bool payoutRedeemed;
+    // True if cover NFT is already redeemed when a claim is either denied or the payout status is
+    // unclaimed. Prevents further attempts to redeemd the cover NFT if the claim is denied.
     // If a malicious user sends the NFT back after a redemption, he will not be able to recover
-    // the NFT or transfering all the ETH from assessment deposits to the pool which would result
-    // in a denial of service for users who need to redeem payouts.
-    bool redeemed;
+    // the NFT and transfer all the ETH accrued from assessment deposits to the pool which would
+    // result in a denial of service for users who need to redeem payouts.
+    bool coverRedeemed;
   }
 
   /* ========== VIEWS ========== */
@@ -57,8 +70,8 @@ interface IClaims {
     uint32 coverId,
     uint96 amount,
     uint8 payoutAsset,
-    uint16 assessmentBaseDepositRatio,
-    bool redeemed
+    bool payoutRedeemed,
+    bool coverRedeemed
   );
 
   /*
@@ -79,13 +92,18 @@ interface IClaims {
     uint coverEnd;
     uint start;
     uint end;
-    string claimStatus;
-    string payoutStatus;
+    uint claimStatus;
+    uint payoutStatus;
   }
 
   /* ========== VIEWS ========== */
 
-  function config() external view returns (uint16 assessmentBaseDepositRatio, uint16 rewardRatio);
+  function config() external view returns (
+    uint8 payoutRedemptionPeriodDays,
+    uint16 minAssessmentDepositRatio,
+    uint16 maxRewardRatio,
+    uint16 rewardRatio
+  );
 
   function claimants(uint id) external view returns (address);
 

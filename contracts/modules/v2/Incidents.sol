@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IMemberRoles.sol";
@@ -70,11 +71,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
     uint24 productId,
     uint96 priceBefore,
     uint32 date
-  ) external override {
-    require(
-      memberRoles().checkRole(msg.sender, uint(IMemberRoles.Role.AdvisoryBoard)),
-      "Caller must be an advisory board member"
-    );
+  ) external onlyAdvisoryBoard override {
     // [todo] Should this be read from Cover.sol?
     uint96 activeCoverAmount = 20000 ether; // NXM, since this will be driven by capacity
 
@@ -97,7 +94,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
   }
 
   function redeemIncidentPayout(uint104 incidentId, uint32 coverId, uint depeggedTokens)
-  external override returns (uint, address) {
+  external onlyMember override returns (uint, uint8) {
     Incident memory incident =  incidents[incidentId];
     {
       (IAssessment.Poll memory poll,,) = assessment().assessments(incident.assessmentId);
@@ -114,60 +111,87 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
       );
     }
 
+    uint payoutAmount;
+    uint8 payoutAsset;
+    address payable coverOwner;
+    // [todo] Get from product
+    address coveredToken = 0x0000000000000000000000000000000000000000;
+    {
+      ICover coverContract = ICover(getInternalContractAddress(ID.CO));
+      coverOwner = payable(coverContract.ownerOf(coverId));
 
-      uint payoutAmount;
-      uint8 payoutAsset;
-      address payable coverOwner;
-      {
-        ICover coverContract = ICover(getInternalContractAddress(ID.CO));
-        coverOwner = payable(coverContract.ownerOf(coverId));
-
-        uint24 productId;
-        uint32 start;
-        uint32 period;
-        uint96 coverAmount;
-        (
-          productId,
-          coverAmount,
-          start,
-          period,
-          payoutAsset,
-          ,
-        ) = coverContract.covers(coverId);
-        payoutAmount = depeggedTokens; // [todo] Calculate payout amount
-        require(payoutAmount <= coverAmount, "Payout exceeds covered amount");
-        coverContract.performPayoutBurn(coverId, coverOwner, payoutAmount);
-        require(start + period >= incident.date, "Cover end date is before the incident");
-        uint gracePeriod = 0; // [todo] Get from product
-        require(start + period + gracePeriod >= block.timestamp, "Grace period has expired");
-
-        require(productId == incident.productId, "Product id mismatch");
-        require(start <= incident.date, "Cover start date is after the incident");
-        // Should BURN_RATIO & DEDUCTIBLE_RATIO be stored in product details?
-      }
-
-
-      // [todo] Replace payoutAddress with the member's address using the member id
-      address payable payoutAddress = memberRoles().getClaimPayoutAddress(coverOwner);
-      IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
+      uint24 productId;
+      uint32 start;
+      uint32 period;
+      uint96 coverAmount;
+      (
+        productId,
+        coverAmount,
+        start,
+        period,
+        payoutAsset,
+        ,
+      ) = coverContract.covers(coverId);
 
       {
-        bool succeeded = poolContract.sendClaimPayout(payoutAsset, payoutAddress, payoutAmount);
-        require(succeeded, "Incident payout failed");
-      }
+        uint maxAmount;
+        {
+          uint deductiblePriceBefore = incident.priceBefore * config.incidentPayoutDeductibleRatio /
+            PRECISION;
+          maxAmount = coverAmount * PRECISION / deductiblePriceBefore;
+          require(depeggedTokens <= maxAmount, "Amount exceeds sum assured");
+        }
 
+        payoutAmount = depeggedTokens * coverAmount / maxAmount;
+      }
+      require(payoutAmount <= coverAmount, "Payout exceeds covered amount");
+      coverContract.performPayoutBurn(coverId, coverOwner, payoutAmount);
+      require(start + period >= incident.date, "Cover end date is before the incident");
+      // [todo] Get from product
+      uint gracePeriod = 0;
+      require(start + period + gracePeriod >= block.timestamp, "Grace period has expired");
+
+      require(productId == incident.productId, "Product id mismatch");
+      require(start <= incident.date, "Cover start date is after the incident");
+    }
+
+
+    // [todo] Replace payoutAddress with the member's address using the member id
+    address payable payoutAddress = memberRoles().getClaimPayoutAddress(coverOwner);
+    IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
+    IERC20(coveredToken).transferFrom(msg.sender, address(this), depeggedTokens);
+    bool succeeded = poolContract.sendClaimPayout(payoutAsset, payoutAddress, payoutAmount);
+    require(succeeded, "Incident payout failed");
+
+    return (payoutAmount, payoutAsset);
+
+  }
+
+  function withdrawAsset(address asset, address destination, uint amount) external onlyGovernance {
+    IERC20 token = IERC20(asset);
+    uint balance = token.balanceOf(address(this));
+    uint transferAmount = amount > balance ? balance : amount;
+    token.transfer(destination, transferAmount);
   }
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)
   external override onlyGovernance {
     Configuration memory newConfig = config;
     for (uint i = 0; i < paramNames.length; i++) {
-      if (paramNames[i] == UintParams.rewardRatio) {
-        newConfig.rewardRatio = uint16(values[i]);
+      if (paramNames[i] == UintParams.payoutRedemptionPeriodDays) {
+        newConfig.payoutRedemptionPeriodDays = uint8(values[i]);
         continue;
       }
       if (paramNames[i] == UintParams.incidentExpectedPayoutRatio) {
         newConfig.incidentExpectedPayoutRatio = uint16(values[i]);
+        continue;
+      }
+      if (paramNames[i] == UintParams.incidentExpectedPayoutRatio) {
+        newConfig.incidentExpectedPayoutRatio = uint16(values[i]);
+        continue;
+      }
+      if (paramNames[i] == UintParams.rewardRatio) {
+        newConfig.rewardRatio = uint16(values[i]);
         continue;
       }
     }
@@ -183,8 +207,12 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
   }
 
   // Required to receive NFTS
-  function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
-  external view override returns (bytes4) {
+  function onERC721Received(
+    address operator,
+    address from,
+    uint256 tokenId,
+    bytes calldata data
+  ) external view override returns (bytes4) {
     require(msg.sender == internalContracts[uint(ID.CO)], "Unexpected NFT");
     return IERC721Receiver.onERC721Received.selector;
   }

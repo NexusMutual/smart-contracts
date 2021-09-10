@@ -224,6 +224,25 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     cover.price += uint96(premiumInAsset);
   }
 
+  function addPeriod(uint coverId, uint32 extraPeriod, uint maxPrice) external {
+    Cover memory cover = covers[coverId];
+    StakingPool[] memory stakingPools = stakingPoolsForCover[covers.length];
+
+    uint totalPremiumInNXM = 0;
+    for (uint i = 0; i < stakingPools.length; i++) {
+      IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
+      (uint coveredAmount, uint price) = buyCoverFromPool(stakingPool, cover.productId, stakingPools[i].bookedAmount, extraPeriod);
+      totalPremiumInNXM += price;
+      stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
+    }
+
+    uint premiumInAsset = totalPremiumInNXM * pool().getTokenPrice(pool().assets(cover.payoutAsset)) / 1e18;
+
+    require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
+    retrievePayment(premiumInAsset, cover.payoutAsset);
+    cover.period += extraPeriod;
+  }
+
   function incrementDeniedClaims(uint coverId) external onlyInternal override {
   }
 

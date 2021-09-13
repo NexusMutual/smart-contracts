@@ -106,4 +106,16 @@ contract AssessmentMockCover is ICover, ERC721 {
       stakingPools
     );
   }
+
+  function activeCoverAmountInNXM(uint id) external override view returns (uint96) {
+    revert("Unsupported");
+  }
+
+  function productTypes(uint id) external override view returns (string memory, uint8, uint16, uint16) {
+    revert("Unsupported");
+  }
+
+  function products(uint id) external override view returns (uint16, address, uint16, uint) {
+    revert("Unsupported");
+  }
 }

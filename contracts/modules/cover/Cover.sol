@@ -14,12 +14,14 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   Cover[] public override covers;
   mapping(uint => StakingPool[]) stakingPoolsForCover;
 
-  Product[] public products;
+  Product[] public override products;
   mapping(uint => uint) capacityFactors;
 
-  ProductType[] public productTypes;
+  ProductType[] public override productTypes;
 
   mapping(uint => uint) initialPrices;
+
+  mapping(uint => uint96) public override activeCoverAmountInNXM;
 
   /*
    (productId, poolAddress) => lastPrice
@@ -87,6 +89,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     // convert to NXM amount
     uint amountLeftToCoverInNXM = uint(amount) * 1e18 / pool().getTokenPrice(pool().assets(payoutAsset));
+    activeCoverAmountInNXM[productId] += uint96(amountLeftToCoverInNXM);
+
     uint totalPremiumInNXM = 0;
 
     for (uint i = 0; i < stakingPools.length; i++) {

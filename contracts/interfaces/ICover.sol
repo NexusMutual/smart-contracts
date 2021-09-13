@@ -39,7 +39,13 @@ interface ICover is IERC721 {
 
   /* ========== VIEWS ========== */
 
-  function covers(uint id) external returns (uint24, uint8, uint96, uint32, uint32, uint96);
+  function covers(uint id) external view returns (uint24, uint8, uint96, uint32, uint32, uint96);
+
+  function products(uint id) external view returns (uint16, address, uint16, uint);
+
+  function productTypes(uint id) external view returns (string memory, uint8, uint16, uint16);
+
+  function activeCoverAmountInNXM(uint id) external view returns (uint96);
 
   /* === MUTATIVE FUNCTIONS ==== */
 

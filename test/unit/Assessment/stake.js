@@ -7,7 +7,7 @@ const { Zero } = ethers.constants;
 describe('stake', function () {
   it("increases the sender's stake", async function () {
     const { assessment } = this.contracts;
-    const user = this.accounts[1];
+    const user = this.accounts.members[0];
     let stake = { amount: Zero };
     await assessment.connect(user).stake(parseEther('100'));
     prevStake = stake;
@@ -22,7 +22,7 @@ describe('stake', function () {
 
   it('transfers the staked NXM to the assessment contract', async function () {
     const { assessment, nxm } = this.contracts;
-    const user = this.accounts[1];
+    const user = this.accounts.members[0];
     {
       await assessment.connect(user).stake(parseEther('100'));
       const balance = await nxm.balanceOf(assessment.address);

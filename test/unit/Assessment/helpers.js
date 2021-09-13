@@ -105,7 +105,7 @@ const getDurationByConsensus = ({ config }) => ({ accepted, denied }) => {
 };
 
 const stakeAndVoteOnEventType = (eventType, assessment, accounts) => async (userIndex, amount, id, accepted) => {
-  const assessor = accounts[userIndex];
+  const assessor = accounts.members[userIndex];
   await assessment.connect(assessor).depositStake(amount);
   await assessment.connect(assessor).castVote(eventType, id, accepted);
   if (eventType === EVENT_TYPE.CLAIM) {

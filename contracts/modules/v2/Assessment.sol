@@ -105,7 +105,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   function unstake(uint96 amount) external override {
     Stake storage stake = stakeOf[msg.sender];
-    require(stake.amount != 0, "No tokens staked");
     uint voteCount = votesOf[msg.sender].length;
     Vote memory vote = votesOf[msg.sender][voteCount - 1];
     require(
@@ -252,8 +251,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
       {
         if (uint32(block.timestamp) >= poll.end + config.payoutCooldownDays * 1 days) {
-          // Once the cooldown period ends the poll result is final
-          return;
+          // Once the cooldown period ends the poll result is final, thus skip
+          continue;
         }
       }
 

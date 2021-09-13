@@ -59,6 +59,10 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
     return IAssessment(getInternalContractAddress(ID.AS));
   }
 
+  function cover() internal view returns (ICover) {
+    return ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
+  }
+
   function getIncidentsCount() external override view returns (uint) {
     return incidents.length;
   }
@@ -70,8 +74,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
     uint96 priceBefore,
     uint32 date
   ) external onlyAdvisoryBoard override {
-    // [todo] Should this be read from Cover.sol?
-    uint96 activeCoverAmount = 20000 ether; // NXM, since this will be driven by capacity
+    uint96 activeCoverAmountInNXM = cover().activeCoverAmountInNXM(productId);
 
     Incident memory incident = Incident(
       0, // assessmentId
@@ -80,7 +83,6 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
       priceBefore
     );
 
-    // Calculate the expected in NXM using the NXM price at cover purchase time
     uint expectedPayoutNXM = activeCoverAmount * config.incidentExpectedPayoutRatio *
       PRECISION / RATIO_BPS;
 
@@ -119,8 +121,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
     uint payoutAmount;
     uint8 payoutAsset;
     address payable coverOwner;
-    // [todo] Get from product
-    address coveredToken = 0x0000000000000000000000000000000000000000;
+    address coveredToken = cover().products(productId).productAddress;
     {
       ICover coverContract = ICover(getInternalContractAddress(ID.CO));
       coverOwner = payable(coverContract.ownerOf(coverId));
@@ -152,8 +153,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
       require(payoutAmount <= coverAmount, "Payout exceeds covered amount");
       coverContract.performPayoutBurn(coverId, coverOwner, payoutAmount);
       require(start + period >= incident.date, "Cover end date is before the incident");
-      // [todo] Get from product
-      uint gracePeriod = 0;
+      uint gracePeriod = cover().productTypes(productId).gracePeriodInDays * 1 days;
       require(start + period + gracePeriod >= block.timestamp, "Grace period has expired");
 
       require(productId == incident.productId, "Product id mismatch");

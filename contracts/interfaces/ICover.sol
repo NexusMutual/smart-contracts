@@ -11,6 +11,7 @@ interface ICover is IERC721 {
   struct StakingPool {
     address poolAddress;
     uint96 coverAmount;
+    uint96 premiumInNXM;
   }
 
   struct Cover {
@@ -19,7 +20,7 @@ interface ICover is IERC721 {
     uint96 amount;
     uint32 start;
     uint32 period;  // seconds
-    uint96 price;
+    uint96 premium;
   }
 
   struct Product {

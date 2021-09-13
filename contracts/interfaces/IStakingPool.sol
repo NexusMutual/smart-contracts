@@ -13,6 +13,16 @@ interface IStakingPool {
     uint capacityFactor
   ) external;
 
+  function extendPeriod(
+    uint productId,
+    uint previousPeriod,
+    uint previousStartTime,
+    uint previousRewardAmount,
+    uint newPeriod,
+    uint newRewardAmount,
+    uint coveredAmount
+  ) external;
+
   function getAvailableCapacity(uint productId, uint capacityFactor) external view returns (uint);
   function getCapacity(uint productId, uint capacityFactor) external view returns (uint);
   function getUsedCapacity(uint productId) external view returns (uint);

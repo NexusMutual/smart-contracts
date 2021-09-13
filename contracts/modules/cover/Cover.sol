@@ -99,10 +99,12 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       }
 
       IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
-      (uint coveredAmount, uint price) = buyCoverFromPool(stakingPool, productId, amountLeftToCoverInNXM, period);
+      (uint coveredAmount, uint premiumInNXM) = buyCoverFromPool(stakingPool, productId, amountLeftToCoverInNXM, period);
       amountLeftToCoverInNXM -= coveredAmount;
-      totalPremiumInNXM += price;
-      stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
+      totalPremiumInNXM += premiumInNXM;
+      stakingPoolsForCover[covers.length].push(
+        StakingPool(address(stakingPool), uint96(coveredAmount), uint96(premiumInNXM))
+      );
     }
     require(amountLeftToCoverInNXM == 0, "Not enough available capacity");
 
@@ -133,21 +135,23 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint coveredAmount = amountToCover > availableCapacity ? availableCapacity : amountToCover;
 
     uint capacityFactor = capacityFactors[productId];
-    (uint basePrice, uint price) = getPrice(coveredAmount, period, productId, stakingPool);
+    (uint basePrice, uint premiumInNXM) = getPrice(coveredAmount, period, productId, stakingPool);
     lastPrices[productId][address(stakingPool)] = basePrice;
     lastPriceUpdate[productId][address(stakingPool)] = block.timestamp;
 
     stakingPool.buyCover(
       productId,
       coveredAmount,
-      REWARD_BPS * price / BASIS_PRECISION,
+      REWARD_BPS * premiumInNXM / BASIS_PRECISION,
       period,
       capacityFactor
     );
 
-    stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
+    stakingPoolsForCover[covers.length].push(
+      StakingPool(address(stakingPool), uint96(coveredAmount), uint96(premiumInNXM))
+    );
 
-    return (coveredAmount, price);
+    return (coveredAmount, premiumInNXM);
   }
 
   function extendCover(
@@ -172,7 +176,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     // make the cover expire at current block
     uint32 newPeriod = uint32(block.timestamp) - cover.start;
     uint32 previousPeriod = covers[coverId].period;
-    uint priceAlreadyPaid = (previousPeriod - newPeriod) / previousPeriod * cover.price;
+    uint priceAlreadyPaid = (previousPeriod - newPeriod) / previousPeriod * cover.premium;
     covers[coverId].period = newPeriod;
 
     if (priceInAsset > priceAlreadyPaid) {
@@ -203,10 +207,15 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       }
 
       IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
-      (uint coveredAmount, uint price) = buyCoverFromPool(stakingPool, cover.productId, amountToCover, period);
+      (uint coveredAmount, uint premiumInINXM) = buyCoverFromPool(stakingPool, cover.productId, amountToCover, period);
       amountToCover -= coveredAmount;
-      totalPremiumInNXM += price;
-      stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
+      totalPremiumInNXM += premiumInINXM;
+      stakingPoolsForCover[covers.length].push(
+        StakingPool(
+          address(stakingPool),
+          uint96(coveredAmount),
+          uint96(premiumInINXM)
+      ));
     }
     require(amountToCover == 0, "Not enough available capacity");
 
@@ -216,19 +225,34 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     retrievePayment(premiumInAsset, cover.payoutAsset);
 
     cover.amount += amount;
-    cover.price += uint96(premiumInAsset);
+    cover.premium += uint96(premiumInAsset);
   }
 
   function addPeriod(uint coverId, uint32 extraPeriod, uint maxPrice) external {
     Cover memory cover = covers[coverId];
-    StakingPool[] memory stakingPools = stakingPoolsForCover[covers.length];
+    StakingPool[] storage stakingPools = stakingPoolsForCover[covers.length];
 
     uint totalPremiumInNXM = 0;
     for (uint i = 0; i < stakingPools.length; i++) {
       IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
-      (uint coveredAmount, uint price) = buyCoverFromPool(stakingPool, cover.productId, stakingPools[i].coverAmount, extraPeriod);
-      totalPremiumInNXM += price;
-      stakingPoolsForCover[covers.length].push(StakingPool(address(stakingPool), uint96(coveredAmount)));
+
+      uint capacityFactor = capacityFactors[cover.productId];
+      (uint basePrice, uint premiumInNXM) = getPrice(cover.productId, extraPeriod, cover.productId, stakingPool);
+      lastPrices[cover.productId][address(stakingPool)] = basePrice;
+      lastPriceUpdate[cover.productId][address(stakingPool)] = block.timestamp;
+
+      stakingPool.extendPeriod(
+        cover.productId,
+        cover.period,
+        cover.start,
+        REWARD_BPS * stakingPools[i].premiumInNXM / BASIS_PRECISION,
+        extraPeriod,
+        REWARD_BPS * (stakingPools[i].premiumInNXM + premiumInNXM) / BASIS_PRECISION,
+        cover.amount
+      );
+
+      totalPremiumInNXM += premiumInNXM;
+      stakingPools[i].premiumInNXM += uint96(premiumInNXM);
     }
 
     uint premiumInAsset = totalPremiumInNXM * pool().getTokenPrice(pool().assets(cover.payoutAsset)) / 1e18;

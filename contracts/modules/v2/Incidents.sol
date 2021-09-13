@@ -83,11 +83,11 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
       priceBefore
     );
 
-    uint expectedPayoutNXM = activeCoverAmount * config.incidentExpectedPayoutRatio *
+    uint expectedPayoutInNXM = activeCoverAmountInNXM * config.incidentExpectedPayoutRatio *
       PRECISION / RATIO_BPS;
 
     // Determine the total rewards that should be minted for the assessors based on cover period
-    uint totalReward = expectedPayoutNXM * config.rewardRatio * RATIO_BPS;
+    uint totalReward = expectedPayoutInNXM * config.rewardRatio * RATIO_BPS;
     uint assessmentId = assessment().startAssessment(totalReward, 0);
     incident.assessmentId = uint80(assessmentId);
     incidents.push(incident);

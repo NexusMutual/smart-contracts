@@ -237,10 +237,10 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
     uint nxmPrice = pool().getTokenPrice(payoutAsset);
 
     // Calculate the expected in NXM using the NXM price at cover purchase time
-    uint expectedPayoutNXM = requestedAmount * PRECISION / nxmPrice;
+    uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPrice;
 
     // Determine the total rewards that should be minted for the assessors based on cover period
-    uint totalReward = expectedPayoutNXM * config.rewardRatio * coverPeriod / 365 days
+    uint totalReward = expectedPayoutInNXM * config.rewardRatio * coverPeriod / 365 days
     / RATIO_BPS;
 
     uint dynamicDeposit = max(config.maxRewardNXM ** PRECISION, totalReward * nxmPrice / PRECISION);

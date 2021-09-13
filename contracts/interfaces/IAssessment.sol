@@ -30,21 +30,19 @@ interface IAssessment {
     /*uint32 unused,*/
   }
 
-  /*
-   *  Holds data for a vote belonging to an assessor.
-   *
-   *  The structure is used to keep track of user's votes. Each vote is used to determine
-   *  a user's share of rewards or to create a fraud resolution which excludes fraudulent votes
-   *  from the initial poll.
-   */
+  //  Holds data for a vote belonging to an assessor.
+  //
+  //  The structure is used to keep track of user's votes. Each vote is used to determine
+  //  a user's share of rewards or to create a fraud resolution which excludes fraudulent votes
+  //  from the initial poll.
   struct Vote {
-   // Identifier of the claim or incident
+    // Identifier of the claim or incident
     uint80 assessmentId;
-   // If the assessor votes to accept the event it's true otherwise it's false
+    // If the assessor votes to accept the event it's true otherwise it's false
     bool accepted;
-   // Date and time when the vote was cast
+    // Date and time when the vote was cast
     uint32 timestamp;
-   // How many tokens were staked when the vote was cast
+    // How many tokens were staked when the vote was cast
     uint96 stakedAmount;
   }
 

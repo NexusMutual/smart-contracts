@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IMemberRoles.sol";
@@ -121,7 +122,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
     uint payoutAmount;
     uint8 payoutAsset;
     address payable coverOwner;
-    address coveredToken = cover().products(productId).productAddress;
+    address coveredToken;
     {
       ICover coverContract = ICover(getInternalContractAddress(ID.CO));
       coverOwner = payable(coverContract.ownerOf(coverId));
@@ -132,11 +133,10 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
       uint96 coverAmount;
       (
         productId,
+        payoutAsset,
         coverAmount,
         start,
         period,
-        payoutAsset,
-        ,
       ) = coverContract.covers(coverId);
 
       {
@@ -149,12 +149,23 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
         }
 
         payoutAmount = depeggedTokens * coverAmount / maxAmount;
+        (
+          /*productType*/,
+          coveredToken,
+          /*capacityFactor*/,
+          /*payoutAddress*/
+        ) = cover().products(productId);
       }
       require(payoutAmount <= coverAmount, "Payout exceeds covered amount");
       coverContract.performPayoutBurn(coverId, coverOwner, payoutAmount);
       require(start + period >= incident.date, "Cover end date is before the incident");
-      uint gracePeriod = cover().productTypes(productId).gracePeriodInDays * 1 days;
-      require(start + period + gracePeriod >= block.timestamp, "Grace period has expired");
+      (
+        /*string descriptionIpfsHash*/,
+        /*uint8 redeemMethod*/,
+        uint gracePeriod,
+        /*uint16 burnRatio*/
+      ) = cover().productTypes(productId);
+      require(start + period + gracePeriod * 1 days>= block.timestamp, "Grace period has expired");
 
       require(productId == incident.productId, "Product id mismatch");
       require(start <= incident.date, "Cover start date is after the incident");

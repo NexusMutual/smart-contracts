@@ -1,4 +1,4 @@
-// SDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity ^0.8.0;
 
@@ -6,12 +6,46 @@ import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 
 import "../../interfaces/ICover.sol";
 
-contract ICMockCover is ICover, ERC721 {
-  Cover[] public override covers;
-  mapping(uint => StakingPool[]) public stakingPoolsOfCover;
 
-  constructor (string memory name_, string memory symbol_) ERC721(name_, symbol_) {
+contract Cover is ICover, ERC721 {
+
+  Cover[] public override covers;
+  mapping(uint => StakingPool[]) stakingPoolsForCover;
+  mapping(uint => uint96) public override activeCoverAmountInNXM;
+
+  Product[] public override products;
+  mapping(uint => uint) capacityFactors;
+
+  ProductType[] public override productTypes;
+
+  mapping(uint => uint) initialPrices;
+
+  /*
+   (productId, poolAddress) => lastPrice
+   Last base prices at which a cover was sold by a pool for a particular product.
+  */
+  mapping(uint => mapping(address => uint)) lastPrices;
+
+  /*
+   (productId, poolAddress) => lastPriceUpdate
+   Last base price update time.
+  */
+  mapping(uint => mapping(address => uint)) lastPriceUpdate;
+
+
+  /* === CONSTANTS ==== */
+
+  uint public REWARD_BPS = 5000;
+  uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
+  uint public constant BASIS_PRECISION = 10000;
+  uint public constant STAKE_SPEED_UNIT = 100000e18;
+  uint public constant PRICE_CURVE_EXPONENT = 7;
+  uint public constant MAX_PRICE_PERCENTAGE = 1e20;
+
+  constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_) {
   }
+
+  /* === MUTATIVE FUNCTIONS ==== */
 
   function buyCover(
     address owner,
@@ -20,81 +54,22 @@ contract ICMockCover is ICover, ERC721 {
     uint96 amount,
     uint32 period,
     uint maxPrice,
-    StakingPool[] calldata stakingPools
-  ) external override returns (uint) {
-    return _createCover(
-      owner,
-      productId,
-      payoutAsset,
-      0,
-      amount,
-      period,
-      stakingPools
-    );
-  }
-
-  function createCover(
-    address owner,
-    uint24 productId,
-    uint8 payoutAsset,
-    uint8 deniedClaims,
-    uint96 amount,
-    uint32 period,
-    StakingPool[] calldata stakingPools
-  ) external override returns (uint) {
-    return _createCover(
-      owner,
-      productId,
-      payoutAsset,
-      deniedClaims,
-      amount,
-      period,
-      stakingPools
-    );
-  }
-
-  function _createCover(
-    address owner,
-    uint24 productId,
-    uint8 payoutAsset,
-    uint8 deniedClaims,
-    uint amount,
-    uint period,
     StakingPool[] memory stakingPools
-  ) internal returns (uint) {
-    uint coverId = covers.length;
-    _safeMint(owner, coverId);
+  ) external payable override returns (uint coverId) {
     covers.push(Cover(
-      productId,
-      uint96(amount),
-      uint32(block.timestamp + 1),
-      uint32(period),
-      payoutAsset,
-      deniedClaims,
-      uint80(38200000000000000) // 1 NXM ~ 0.0382 ETH
-    ));
-    for (uint i=0; i < stakingPools.length; i++) {
-      stakingPoolsOfCover[coverId][i] = stakingPools[i];
-    }
-    return coverId;
-  }
+        productId,
+        payoutAsset,
+        uint96(amount),
+        uint32(block.timestamp + 1),
+        uint32(period),
+        uint96(0)
+      ));
 
-  function incrementDeniedClaims(uint coverId) external override {
-    covers[coverId].deniedClaims += 1;
+    coverId = covers.length - 1;
+    _safeMint(msg.sender, coverId);
   }
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external override {
-    Cover memory cover = covers[coverId];
-    StakingPool[] memory stakingPools = stakingPoolsOfCover[coverId];
-    // Perform staking burns here
-    _createCover(
-      owner,
-      cover.productId,
-      cover.payoutAsset,
-      cover.deniedClaims,
-      cover.amount - amount,
-      cover.period - (uint32(block.timestamp) - cover.start),
-      stakingPools
-    );
+
   }
 }

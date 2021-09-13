@@ -121,11 +121,10 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
 
     (
       uint24 productId,
+      uint8 payoutAsset,
       /*uint96 amount*/,
       uint32 coverStart,
       uint32 coverPeriod,
-      uint8 payoutAsset,
-      uint8 deniedClaims,
       /*uint80 nxmPrice*/
     ) = cover().covers(claim.coverId);
 
@@ -205,11 +204,10 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       uint96 coverAmount;
       (
         /*uint24 productId*/,
+        payoutAsset,
         coverAmount,
         coverStart,
         coverPeriod,
-        payoutAsset,
-        /*uint8 deniedClaims*/,
         /*uint80 nxmPrice*/
       ) = cover().covers(coverId);
       require(requestedAmount <= coverAmount, "Cannot claim more than the covered amount");

@@ -69,10 +69,11 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint withdrawable,
     uint withdrawableUntilIndex
   ) {
-    Stake memory stake = stakeOf[user];
+    uint104 rewardsWithdrawnUntilIndex = stakeOf[user].rewardsWithdrawnUntilIndex;
     Vote memory vote;
     Assessment memory assessment;
-    for (uint i = stake.rewardsWithdrawnUntilIndex; i < votesOf[user].length; i++) {
+    uint voteCount = votesOf[user].length;
+    for (uint i = rewardsWithdrawnUntilIndex; i < voteCount; i++) {
       vote = votesOf[user][i];
       assessment = assessments[vote.assessmentId];
 
@@ -104,7 +105,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
   }
 
   function unstake(uint96 amount) external override {
-    Stake storage stake = stakeOf[msg.sender];
     uint voteCount = votesOf[msg.sender].length;
     Vote memory vote = votesOf[msg.sender][voteCount - 1];
     require(
@@ -113,7 +113,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
      );
 
     nxm.transferFrom(address(this), msg.sender, amount);
-    stake.amount -= amount;
+    stakeOf[msg.sender].amount -= amount;
   }
 
   /// Withdraws a staker's accumulated rewards
@@ -125,7 +125,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///                    block, thus requiring multiple batched transactions.
   function withdrawRewards(address user, uint104 untilIndex) external override
   returns (uint withdrawn, uint withdrawUntilIndex) {
-    Stake memory stake = stakeOf[user];
+    uint104 rewardsWithdrawnUntilIndex = stakeOf[user].rewardsWithdrawnUntilIndex;
     {
       uint voteCount = votesOf[user].length;
       withdrawUntilIndex = untilIndex > 0 ? untilIndex : voteCount;
@@ -133,12 +133,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
         untilIndex <= voteCount,
         "Vote count is smaller that the provided untilIndex"
       );
-      require(stake.rewardsWithdrawnUntilIndex < voteCount, "No withdrawable rewards");
+      require(rewardsWithdrawnUntilIndex < voteCount, "No withdrawable rewards");
     }
 
     Vote memory vote;
     Assessment memory assessment;
-    for (uint i = stake.rewardsWithdrawnUntilIndex; i < withdrawUntilIndex; i++) {
+    for (uint i = rewardsWithdrawnUntilIndex; i < withdrawUntilIndex; i++) {
       vote = votesOf[user][i];
       assessment = assessments[vote.assessmentId];
       if (assessment.poll.end + config.payoutCooldownDays * 1 days >= block.timestamp) {
@@ -178,8 +178,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
       hasAlreadyVotedOn[msg.sender][assessmentId] = true;
     }
 
-    Stake memory stake = stakeOf[msg.sender];
-    require(stake.amount > 0, "A stake is required to cast votes");
+    uint96 stakeAmount = stakeOf[msg.sender].amount;
+    require(stakeAmount > 0, "A stake is required to cast votes");
 
     Poll memory poll = assessments[assessmentId].poll;
     require(block.timestamp < poll.end, "Voting is closed");
@@ -196,13 +196,13 @@ contract Assessment is IAssessment, MasterAwareV2 {
     // Check if poll ends in less than 24 hours
     if (poll.end - block.timestamp < 1 days) {
       // Extend proportionally to the user's stake but up to 1 day maximum
-      poll.end += uint32(min(1 days, 1 days * stake.amount / (poll.accepted + poll.denied)));
+      poll.end += uint32(min(1 days, 1 days * stakeAmount / (poll.accepted + poll.denied)));
     }
 
     if (isAccepted) {
-      poll.accepted += stake.amount;
+      poll.accepted += stakeAmount;
     } else {
-      poll.denied += stake.amount;
+      poll.denied += stakeAmount;
     }
 
     assessments[assessmentId].poll = poll;
@@ -211,7 +211,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       uint80(assessmentId),
       isAccepted,
       uint32(block.timestamp),
-      stake.amount
+      stakeAmount
     ));
   }
 
@@ -237,15 +237,15 @@ contract Assessment is IAssessment, MasterAwareV2 {
       "Invalid merkle proof"
     );
 
-    Stake memory stake = stakeOf[assessor];
+    Stake memory _stake = stakeOf[assessor];
 
     // Make sure we don't burn beyond lastFraudulentVoteIndex
-    uint processUntil = stake.rewardsWithdrawnUntilIndex + voteBatchSize;
+    uint processUntil = _stake.rewardsWithdrawnUntilIndex + voteBatchSize;
     if (processUntil >= lastFraudulentVoteIndex) {
       processUntil = lastFraudulentVoteIndex + 1;
     }
 
-    for (uint j = stake.rewardsWithdrawnUntilIndex; j < processUntil; j++) {
+    for (uint j = _stake.rewardsWithdrawnUntilIndex; j < processUntil; j++) {
       IAssessment.Vote memory vote = votesOf[assessor][j];
       IAssessment.Poll memory poll = assessments[vote.assessmentId].poll;
 
@@ -277,17 +277,17 @@ contract Assessment is IAssessment, MasterAwareV2 {
     // in multiple transactions according to voteBatchSize. After burning the tokens, fraudCount
     // is incremented. If another merkle root is submitted that contains the same addres, the leaf
     // should use the updated fraudCount stored in the Stake struct as input.
-    if (fraudCount == stake.fraudCount) {
+    if (fraudCount == _stake.fraudCount) {
       // Make sure this doesn't revert if the stake amount is already subtracted due to a previous
       // burn from a different merkle tree.
-      burnAmount = burnAmount > stake.amount ? stake.amount : burnAmount;
-      stake.amount -= burnAmount;
+      burnAmount = burnAmount > _stake.amount ? _stake.amount : burnAmount;
+      _stake.amount -= burnAmount;
       nxm.burn(burnAmount);
-      stake.fraudCount++;
+      _stake.fraudCount++;
     }
 
-    stake.rewardsWithdrawnUntilIndex = uint104(processUntil);
-    stakeOf[assessor] = stake;
+    _stake.rewardsWithdrawnUntilIndex = uint104(processUntil);
+    stakeOf[assessor] = _stake;
 
   }
 

@@ -194,8 +194,13 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint96 amount,
     uint maxPrice,
     StakingPool[] memory stakingPools
-  ) external {
+  ) external returns (uint newCoverId) {
+
+    Cover memory previousCover = covers[coverId];
+    // clone the existing cover
     Cover memory cover = covers[coverId];
+
+    StakingPool[] storage currentStakingPools = stakingPoolsForCover[covers.length];
 
     uint32 period = uint32(block.timestamp) - cover.start;
     // convert to NXM amount
@@ -207,14 +212,28 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       }
 
       IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
-      (uint coveredAmount, uint premiumInINXM) = buyCoverFromPool(stakingPool, cover.productId, amountToCover, period);
+      (uint coveredAmount, uint premiumInNXM) = buyCoverFromPool(stakingPool, cover.productId, amountToCover, period);
       amountToCover -= coveredAmount;
-      totalPremiumInNXM += premiumInINXM;
+      totalPremiumInNXM += premiumInNXM;
+
+      uint j = 0;
+      for ( ; j < currentStakingPools.length; j++) {
+        if (currentStakingPools[j].poolAddress == stakingPools[i].poolAddress) {
+          currentStakingPools[j].coverAmount += uint96(coveredAmount);
+          currentStakingPools[j].premiumInNXM += uint96(premiumInNXM);
+          break;
+        }
+      }
+
+      if (j < currentStakingPools.length) {
+        continue;
+      }
+
       stakingPoolsForCover[covers.length].push(
         StakingPool(
           address(stakingPool),
           uint96(coveredAmount),
-          uint96(premiumInINXM)
+          uint96(premiumInNXM)
       ));
     }
     require(amountToCover == 0, "Not enough available capacity");
@@ -224,8 +243,21 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
     retrievePayment(premiumInAsset, cover.payoutAsset);
 
+    // make the previous cover expire at current block
+    uint32 newPeriod = uint32(block.timestamp) - cover.start;
+    uint32 previousPeriod = covers[coverId].period;
+
     cover.amount += amount;
     cover.premium += uint96(premiumInAsset);
+    cover.start = uint32(block.timestamp);
+    cover.period = uint32(block.timestamp) - previousCover.start;
+
+    covers.push(cover);
+
+    newCoverId = covers.length - 1;
+
+    // mint the new cover
+    _safeMint(msg.sender, newCoverId);
   }
 
   function addPeriod(uint coverId, uint32 extraPeriod, uint maxPrice) external {

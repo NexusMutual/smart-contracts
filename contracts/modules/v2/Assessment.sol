@@ -129,10 +129,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
     {
       uint voteCount = votesOf[user].length;
       withdrawUntilIndex = untilIndex > 0 ? untilIndex : voteCount;
-      require(
-        untilIndex <= voteCount,
-        "Vote count is smaller that the provided untilIndex"
-      );
       require(rewardsWithdrawnUntilIndex < voteCount, "No withdrawable rewards");
     }
 

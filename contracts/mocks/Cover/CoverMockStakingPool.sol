@@ -43,6 +43,18 @@ contract CoverMockStakingPool is IStakingPool {
     revert("Unsupported");
   }
 
+  function reduceAmount(
+    uint productId,
+    uint period,
+    uint startTime,
+    uint previousRewardAmount,
+    uint previousAmount,
+    uint newRewardAmount,
+    uint newAmount
+  ) external override {
+    revert("Unsupported");
+  }
+
   function getAvailableCapacity(uint productId, uint capacityFactor) external override view returns (uint) {
     return stake[productId] * capacityFactor - usedCapacity[productId];
   }

@@ -272,7 +272,14 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   }
 
   function addPeriod(uint coverId, uint32 extraPeriod, uint maxPrice) external {
-    Cover memory cover = covers[coverId];
+    uint premiumInAsset = _addPeriod(coverId, extraPeriod);
+    require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
+    retrievePayment(premiumInAsset, covers[coverId].payoutAsset);
+  }
+
+  function _addPeriod(uint coverId, uint32 extraPeriod) internal returns (uint) {
+
+    Cover storage cover = covers[coverId];
     StakingPool[] storage stakingPools = stakingPoolsForCover[covers.length];
 
     uint totalPremiumInNXM = 0;
@@ -300,19 +307,20 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     uint premiumInAsset = totalPremiumInNXM * pool().getTokenPrice(pool().assets(cover.payoutAsset)) / 1e18;
 
-    require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
-    retrievePayment(premiumInAsset, cover.payoutAsset);
     cover.period += extraPeriod;
+
+    return premiumInAsset;
   }
 
-  function addAmountReducePeriod(
+  function addAmountAndReducePeriod(
     uint coverId,
     uint32 periodReduction,
     uint96 amount,
     uint maxPrice,
     StakingPool[] memory stakingPools
   ) external returns (uint) {
-    Cover memory cover = covers[coverId];
+
+    Cover storage cover = covers[coverId];
     StakingPool[] storage currentStakingPools = stakingPoolsForCover[covers.length];
 
     // reduce period
@@ -333,6 +341,10 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     uint refund = cover.premium * periodReduction / cover.period;
 
+    // reduce the cover period before purchasing additional amount
+    cover.period = cover.period - periodReduction;
+    cover.premium = cover.premium - uint96(refund);
+
     (uint newCoverId, uint premiumInAsset) = _addAmount(coverId, amount, maxPrice, currentStakingPools);
 
     require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
@@ -343,6 +355,48 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     }
 
     return newCoverId;
+  }
+
+  function addPeriodAndReduceAmount(
+    uint coverId,
+    uint32 extraPeriod,
+    uint96 amountReduction,
+    uint maxPrice,
+    StakingPool[] memory stakingPools
+  ) external {
+
+    Cover storage cover = covers[coverId];
+    StakingPool[] storage currentStakingPools = stakingPoolsForCover[covers.length];
+
+    uint newCoverAmount = cover.amount - amountReduction;
+
+    // reduce amount
+    for (uint i = 0; i < currentStakingPools.length; i++) {
+      IStakingPool stakingPool = IStakingPool(currentStakingPools[i].poolAddress);
+
+      stakingPool.reduceAmount(
+        cover.productId,
+        cover.period,
+        cover.start,
+        REWARD_BPS * currentStakingPools[i].premiumInNXM / BASIS_PRECISION,
+        newCoverAmount,
+        REWARD_BPS * (currentStakingPools[i].premiumInNXM * newCoverAmount / cover.amount) / BASIS_PRECISION,
+        cover.amount
+      );
+
+      currentStakingPools[i].premiumInNXM =
+        uint96(uint(currentStakingPools[i].premiumInNXM) * newCoverAmount / cover.amount);
+    }
+
+    uint refund = cover.amount * amountReduction / cover.amount;
+
+    uint premiumInAsset = _addPeriod(coverId, extraPeriod);
+    require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
+
+    if (premiumInAsset > refund) {
+      // retrieve extra required payment
+      retrievePayment(premiumInAsset, cover.payoutAsset);
+    }
   }
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external onlyInternal override {

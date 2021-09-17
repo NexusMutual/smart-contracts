@@ -196,7 +196,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     StakingPool[] memory stakingPools
   ) external returns (uint) {
 
-    (uint coverId, uint premiumInAsset) = _addAmount(coverId, amount, maxPrice, stakingPools);
+    (uint coverId, uint premiumInAsset) = _addAmount(coverId, amount, stakingPools);
 
     require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
     retrievePayment(premiumInAsset, covers[coverId].payoutAsset);
@@ -206,7 +206,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   function _addAmount(
     uint coverId,
     uint96 amount,
-    uint maxPrice,
     StakingPool[] memory stakingPools
   ) internal returns (uint newCoverId, uint premiumInAsset) {
 
@@ -345,7 +344,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     cover.period = cover.period - periodReduction;
     cover.premium = cover.premium - uint96(refund);
 
-    (uint newCoverId, uint premiumInAsset) = _addAmount(coverId, amount, maxPrice, currentStakingPools);
+    (uint newCoverId, uint premiumInAsset) = _addAmount(coverId, amount, currentStakingPools);
 
     require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
 

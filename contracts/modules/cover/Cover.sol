@@ -174,8 +174,10 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     );
 
     // make the cover expire at current block
-    uint32 newPeriod = uint32(block.timestamp) - cover.start;
     uint32 previousPeriod = covers[coverId].period;
+
+    // new period is the remaining time
+    uint32 newPeriod = previousPeriod - (uint32(block.timestamp) - cover.start);
     uint priceAlreadyPaid = (previousPeriod - newPeriod) / previousPeriod * cover.premium;
     covers[coverId].period = newPeriod;
 
@@ -362,42 +364,64 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint96 amountReduction,
     uint maxPrice,
     StakingPool[] memory stakingPools
-  ) external {
+  ) external returns (uint) {
 
-    Cover storage cover = covers[coverId];
-    StakingPool[] storage currentStakingPools = stakingPoolsForCover[covers.length];
+    Cover storage currentCover = covers[coverId];
 
-    uint newTotalCoverAmount = cover.amount - amountReduction;
+    // clone the existing cover
+    Cover memory newCover = covers[coverId];
+
+    // clone existing staking pools
+    StakingPool[] memory newStakingPools = stakingPoolsForCover[coverId];
+
+    uint newTotalCoverAmount = newCover.amount - amountReduction;
+
+    uint newCoverId = covers.length;
 
     // reduce amount
-    for (uint i = 0; i < currentStakingPools.length; i++) {
-      IStakingPool stakingPool = IStakingPool(currentStakingPools[i].poolAddress);
+    for (uint i = 0; i < newStakingPools.length; i++) {
+      IStakingPool stakingPool = IStakingPool(newStakingPools[i].poolAddress);
 
-      uint newCoverAmount = currentStakingPools[i].coverAmount * newTotalCoverAmount / cover.amount;
+      uint newCoverAmount = newStakingPools[i].coverAmount * newTotalCoverAmount / newCover.amount;
       stakingPool.reduceAmount(
-        cover.productId,
-        cover.period,
-        cover.start,
-        REWARD_BPS * currentStakingPools[i].premiumInNXM / BASIS_PRECISION,
+        newCover.productId,
+        newCover.period,
+        newCover.start,
+        REWARD_BPS * newStakingPools[i].premiumInNXM / BASIS_PRECISION,
         newCoverAmount,
-        REWARD_BPS * (currentStakingPools[i].premiumInNXM * newTotalCoverAmount / cover.amount) / BASIS_PRECISION,
-        currentStakingPools[i].coverAmount
+        REWARD_BPS * (newStakingPools[i].premiumInNXM * newTotalCoverAmount / newCover.amount) / BASIS_PRECISION,
+        newStakingPools[i].coverAmount
       );
 
-      currentStakingPools[i].premiumInNXM =
-        uint96(uint(currentStakingPools[i].premiumInNXM) * newTotalCoverAmount / cover.amount);
-      currentStakingPools[i].coverAmount = uint96(newCoverAmount);
+      newStakingPools[i].premiumInNXM =
+      uint96(uint(newStakingPools[i].premiumInNXM) * newTotalCoverAmount / newCover.amount);
+      newStakingPools[i].coverAmount = uint96(newCoverAmount);
+
+      // write the new staking pool with modified parameters
+      stakingPoolsForCover[newCoverId].push(newStakingPools[i]);
     }
 
-    uint refund = cover.amount * amountReduction / cover.amount;
+    // make the current cover expire at current block
+    currentCover.period = uint32(block.timestamp) - currentCover.start;
 
-    uint premiumInAsset = _addPeriod(coverId, extraPeriod);
+    newCover.start = uint32(block.timestamp);
+    // new period is the remaining period
+    newCover.period = currentCover.period - (uint32(block.timestamp) - currentCover.start);
+    covers.push(newCover);
+    // mint the new cover
+    _safeMint(msg.sender, newCoverId);
+
+    uint refund = newCover.amount * amountReduction / newCover.amount;
+
+    uint premiumInAsset = _addPeriod(newCoverId, extraPeriod);
     require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
 
     if (premiumInAsset > refund) {
       // retrieve extra required payment
-      retrievePayment(premiumInAsset- refund, cover.payoutAsset);
+      retrievePayment(premiumInAsset- refund, newCover.payoutAsset);
     }
+
+    return newCoverId;
   }
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external onlyInternal override {

@@ -337,7 +337,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         currentStakingPools[i].coverAmount
       );
 
-      currentStakingPools[i].premiumInNXM = currentStakingPools[i].premiumInNXM * (cover.period - periodReduction ) / cover.period;
+      currentStakingPools[i].premiumInNXM = currentStakingPools[i].premiumInNXM * (cover.period - periodReduction) / cover.period;
     }
 
     uint refund = cover.premium * periodReduction / cover.period;
@@ -382,6 +382,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     for (uint i = 0; i < newStakingPools.length; i++) {
       IStakingPool stakingPool = IStakingPool(newStakingPools[i].poolAddress);
 
+      // reduce the amount per pool proportionately to the overall reduction
       uint newCoverAmount = newStakingPools[i].coverAmount * newTotalCoverAmount / newCover.amount;
       stakingPool.reduceAmount(
         newCover.productId,
@@ -393,6 +394,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         newStakingPools[i].coverAmount
       );
 
+      // TODO: fix this. it should be proportional to the remaining period as well
       newStakingPools[i].premiumInNXM =
       uint96(uint(newStakingPools[i].premiumInNXM) * newTotalCoverAmount / newCover.amount);
       newStakingPools[i].coverAmount = uint96(newCoverAmount);
@@ -411,8 +413,11 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     // mint the new cover
     _safeMint(msg.sender, newCoverId);
 
-    // the refund is proportional to the amount reduction and the period remaining 
+    // the refund is proportional to the amount reduction and the period remaining
     uint refund = currentCover.amount * amountReduction / newCover.amount * newCover.period / currentCover.period;
+
+    // adjust premium on current cover
+    currentCover.premium = currentCover.premium - uint96(refund);
 
     uint premiumInAsset = _addPeriod(newCoverId, extraPeriod);
     require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
@@ -421,6 +426,9 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       // retrieve extra required payment
       retrievePayment(premiumInAsset- refund, newCover.payoutAsset);
     }
+
+    // set the newly paid premium
+    newCover.premium = uint96(premiumInAsset);
 
     return newCoverId;
   }

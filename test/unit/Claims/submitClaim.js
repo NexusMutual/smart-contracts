@@ -8,11 +8,79 @@ const { parseEther } = ethers.utils;
 
 describe.only('submitClaim', function () {
   it('reverts if the submission deposit is not sent', async function () {
-    assert(false, '[todo]');
+    const { claims, cover } = this.contracts;
+    const [coverOwner] = this.accounts.members;
+    const coverPeriod = daysToSeconds(30);
+    const coverAmount = parseEther('100');
+    await cover.buyCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      coverAmount,
+      coverPeriod,
+      parseEther('2.6'),
+      [],
+    );
+    const coverId = 0;
+    await cover.connect(coverOwner).approve(claims.address, 0);
+    await expect(
+      claims.connect(coverOwner).submitClaim(coverId, coverAmount, '', {
+        value: ethers.constants.Zero,
+      }),
+    ).to.be.revertedWith('Assessment deposit is insufficient');
   });
 
-  it('refunds any excess eth sent as a submission deposit', async function () {
-    assert(false, '[todo]');
+  it('reverts if the submission deposit is less than the expected amount', async function () {
+    const { claims, cover } = this.contracts;
+    const [coverOwner] = this.accounts.members;
+    const coverPeriod = daysToSeconds(30);
+    const coverAmount = parseEther('100');
+    const payoutAsset = ASSET.ETH;
+    await cover.buyCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      coverAmount,
+      coverPeriod,
+      parseEther('2.6'),
+      [],
+    );
+    const coverId = 0;
+    await cover.connect(coverOwner).approve(claims.address, 0);
+
+    const [deposit] = await claims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
+    await expect(
+      claims.connect(coverOwner).submitClaim(coverId, coverAmount, '', {
+        value: deposit.div('2'),
+      }),
+    ).to.be.revertedWith('Assessment deposit is insufficient');
+  });
+
+  it.only('refunds any excess eth sent as a submission deposit', async function () {
+    const { claims, cover } = this.contracts;
+    const [coverOwner] = this.accounts.members;
+    const coverPeriod = daysToSeconds(30);
+    const coverAmount = parseEther('100');
+    const payoutAsset = ASSET.ETH;
+    await cover.buyCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      coverAmount,
+      coverPeriod,
+      parseEther('2.6'),
+      [],
+    );
+    const coverId = 0;
+    await cover.connect(coverOwner).approve(claims.address, 0);
+
+    const [deposit] = await claims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
+    // [todo] Get eth balance and compare it after the claim is submitted
+    const balance = await ethers.providers.Provider.balance(coverOwner.address);
+    console.log({ balance });
+    await claims.connect(coverOwner).submitClaim(coverId, coverAmount, '', {
+      value: deposit.mul('2'),
+    });
   });
 
   it('reverts if the requested amount exceeds cover amount', async function () {

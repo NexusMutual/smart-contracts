@@ -85,18 +85,16 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
 const submitClaim = ({ accounts, contracts, config }) => async ({
   coverId = 0,
   amount = parseEther('1'),
+  coverPeriod = 0,
+  payoutAsset = 0,
   ipfsProofHash = '',
   sender,
+  value,
 }) => {
-  const { minAssessmentDepositRatio } = config;
-  const baseAssessmentDeposit = parseEther('1')
-    .mul(minAssessmentDepositRatio)
-    .div('10000');
-  // [todo] Fix the deposit formula and move it in a different helper function
-  const dynamicAssessmentDeposit = Zero;
-  const assessmentDeposit = baseAssessmentDeposit.add(dynamicAssessmentDeposit);
+  const [deposit] = await contracts.claims.getAssessmentDepositAndReward(amount, coverPeriod, payoutAsset);
+  console.log({ deposit, value });
   return await contracts.claims.connect(sender || accounts[0]).submitClaim(coverId, amount, ipfsProofHash, {
-    value: assessmentDeposit,
+    value: value || deposit,
   });
 };
 

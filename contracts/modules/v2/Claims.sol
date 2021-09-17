@@ -47,7 +47,7 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
   function initialize(address masterAddress) external {
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
     config.rewardRatio = 130; // 0.52%
-    config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH submission flat fee
+    config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH assessment minimum flat fee
     master = INXMMaster(masterAddress);
   }
 
@@ -73,20 +73,39 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
     return claims.length;
   }
 
-  //function getSubmissionDeposit(uint requestedAmount) external override view returns (uint) {
-    //// Calculate the expected in NXM using the NXM price at cover purchase time
-    //uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPrice;
+  function _getAssessmentDepositAndReward(
+    uint requestedAmount,
+    uint coverPeriod,
+    uint payoutAsset
+  ) internal view returns (uint, uint) {
+    uint nxmPriceInPayoutAsset = pool().getTokenPrice(payoutAsset);
+    uint nxmPriceInETH = pool().getTokenPrice(0);
 
-    //// Determine the total rewards that should be minted for the assessors based on cover period
-    //uint totalReward = expectedPayoutInNXM * config.rewardRatio * coverPeriod / 365 days
-    /// RATIO_BPS;
+    // Calculate the expected in NXM using the NXM price at cover purchase time
+    uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPriceInPayoutAsset;
 
-    //uint dynamicDeposit = max(config.maxRewardNXM ** PRECISION / nxmPrice, totalReward * nxmPrice / PRECISION);
-    //uint minDeposit = 1 ether * uint(config.minAssessmentDepositRatio) / RATIO_BPS;
+    // Determine the total rewards that should be minted for the assessors based on cover period
+    uint totalReward = max(
+      config.maxRewardNXM * PRECISION,
+      expectedPayoutInNXM * config.rewardRatio * coverPeriod / 365 days / RATIO_BPS
+    );
 
-    //// If dynamicDeposit falls below minDeposit use minDeposit instead
-    //uint deposit = minDeposit > dynamicDeposit ? minDeposit : dynamicDeposit;
-  //}
+    uint dynamicDeposit = totalReward * nxmPriceInETH / PRECISION;
+    uint minDeposit = 1 ether * uint(config.minAssessmentDepositRatio) / RATIO_BPS;
+
+    // If dynamicDeposit falls below minDeposit use minDeposit instead
+    uint deposit = minDeposit > dynamicDeposit ? minDeposit : dynamicDeposit;
+
+    return (deposit, totalReward);
+  }
+
+  function getAssessmentDepositAndReward(
+    uint requestedAmount,
+    uint coverPeriod,
+    uint payoutAsset
+  ) external view returns (uint, uint) {
+    return _getAssessmentDepositAndReward(requestedAmount, coverPeriod, payoutAsset);
+  }
 
   /**
    *  Returns a Claim aggregated in a human-friendly format.
@@ -197,7 +216,7 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
   /**
    *  Submits a claim for assessment
    *
-   *  @dev This function requires an ETH submission fee. See: _getSubmissionFee()
+   *  @dev This function requires an ETH assessment fee. See: _getAssessmentDepositAndReward
    *
    *  @param coverId          Cover identifier
    *  @param requestedAmount  The amount expected to be received at payout
@@ -259,24 +278,18 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       false // coverRedeemed
     );
 
-    uint nxmPrice = pool().getTokenPrice(payoutAsset);
+    (uint deposit, uint totalReward) = _getAssessmentDepositAndReward(
+      requestedAmount,
+      coverPeriod,
+      payoutAsset
+    );
 
-    // Calculate the expected in NXM using the NXM price at cover purchase time
-    uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPrice;
-
-    // Determine the total rewards that should be minted for the assessors based on cover period
-    uint totalReward = expectedPayoutInNXM * config.rewardRatio * coverPeriod / 365 days
-    / RATIO_BPS;
-
-    uint dynamicDeposit = max(config.maxRewardNXM ** PRECISION, totalReward * nxmPrice / PRECISION);
-    uint minDeposit = 1 ether * uint(config.minAssessmentDepositRatio) / RATIO_BPS;
-
-    // If dynamicDeposit falls below minDeposit use minDeposit instead
-    uint deposit = minDeposit > dynamicDeposit ? minDeposit : dynamicDeposit;
+    console.log("value %d", msg.value);
+    console.log("deposit %d", deposit);
 
     require(
       msg.value >= deposit,
-      "Assessment deposit different than the expected value"
+      "Assessment deposit is insufficient"
     );
 
     uint assessmentId = assessment().startAssessment(totalReward, deposit);
@@ -285,7 +298,7 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
 
     if (msg.value > deposit) {
       (bool refunded, /* bytes data */) = msg.sender.call{value: msg.value - deposit}("");
-      require(refunded, "Submission deposit refund failed");
+      require(refunded, "Assessment deposit refund failed");
     }
   }
 
@@ -327,7 +340,7 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
 
     {
       (bool refunded, /* bytes data */) = coverOwner.call{value: assessmentDeposit}("");
-      require(refunded, "Submission deposit refund failed");
+      require(refunded, "Assessment deposit refund failed");
     }
   }
 

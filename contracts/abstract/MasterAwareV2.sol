@@ -6,6 +6,8 @@ import "../interfaces/INXMMaster.sol";
 import "../interfaces/IMasterAwareV2.sol";
 import "../interfaces/IMemberRoles.sol";
 
+import "hardhat/console.sol";
+
 abstract contract MasterAwareV2 is IMasterAwareV2 {
 
   mapping(uint => address payable) internal internalContracts;

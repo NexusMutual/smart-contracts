@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const keccak256 = require('keccak256');
 const { MerkleTree } = require('merkletreejs');
+const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
 const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
 const { BigNumber } = ethers;
 
@@ -12,6 +13,11 @@ const STATUS = {
 
 // Converts days to seconds
 const daysToSeconds = numberOfDays => numberOfDays * 24 * 60 * 60;
+
+const setTime = async timestamp => {
+  await setNextBlockTime(timestamp);
+  await mineNextBlock();
+};
 
 const getVoteCountOfAddresses = assessment => async addresses =>
   await Promise.all(addresses.map(address => assessment.getVoteCountOfAssessor(address)));
@@ -152,6 +158,7 @@ const getIncidentStruct = ({
 module.exports = {
   STATUS,
   daysToSeconds,
+  setTime,
   submitFraud,
   burnFraud,
   getPollStruct,

@@ -13,6 +13,7 @@ import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IERC20Detailed.sol";
 
 import "../../abstract/MasterAwareV2.sol";
+import "hardhat/console.sol";
 
 /**
  *  Provides a way for cover owners to submit claims and redeem the payouts and facilitates
@@ -71,6 +72,21 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
   function getClaimsCount() external override view returns (uint) {
     return claims.length;
   }
+
+  //function getSubmissionDeposit(uint requestedAmount) external override view returns (uint) {
+    //// Calculate the expected in NXM using the NXM price at cover purchase time
+    //uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPrice;
+
+    //// Determine the total rewards that should be minted for the assessors based on cover period
+    //uint totalReward = expectedPayoutInNXM * config.rewardRatio * coverPeriod / 365 days
+    /// RATIO_BPS;
+
+    //uint dynamicDeposit = max(config.maxRewardNXM ** PRECISION / nxmPrice, totalReward * nxmPrice / PRECISION);
+    //uint minDeposit = 1 ether * uint(config.minAssessmentDepositRatio) / RATIO_BPS;
+
+    //// If dynamicDeposit falls below minDeposit use minDeposit instead
+    //uint deposit = minDeposit > dynamicDeposit ? minDeposit : dynamicDeposit;
+  //}
 
   /**
    *  Returns a Claim aggregated in a human-friendly format.
@@ -185,16 +201,12 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
    *
    *  @param coverId          Cover identifier
    *  @param requestedAmount  The amount expected to be received at payout
-   *  @param hasProof         When true, a ProofSubmitted event is emitted with ipfsProofHash.
-   *                          When false, no ProofSubmitted event is emitted to save gas if the
-   *                          cover wording doesn't enforce a proof of loss.
-   *  @param ipfsProofHash    The IPFS hash required for proof of loss. It is ignored if hasProof
-   *                          is false
+   *  @param ipfsProofHash    The IPFS hash required for proof of loss. If this string is empty,
+   *                          no ProofSubmitted event is emitted.
    */
   function submitClaim(
     uint24 coverId,
     uint96 requestedAmount,
-    bool hasProof,
     string calldata ipfsProofHash
   ) external payable override onlyMember {
     uint32 coverStart;
@@ -202,15 +214,30 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
     uint8 payoutAsset;
     {
       uint96 coverAmount;
+      uint24 productId;
       (
-        /*uint24 productId*/,
+        productId,
         payoutAsset,
         coverAmount,
         coverStart,
         coverPeriod,
         /*uint80 nxmPrice*/
       ) = cover().covers(coverId);
-      require(requestedAmount <= coverAmount, "Cannot claim more than the covered amount");
+      (
+        uint16 productType,
+        /*address productAddress*/,
+        /*uint16 capacityFactor*/,
+        /*uint payoutAssets*/
+      ) = cover().products(productId);
+      (
+        /*string descriptionIpfsHash*/,
+        /*uint8 redeemMethod*/,
+        uint16 gracePeriodInDays,
+        /*uint16 burnRatio*/
+      ) = cover().productTypes(productType);
+      require(requestedAmount <= coverAmount, "Covered amount exceeded");
+      require(coverStart <= block.timestamp, "Cover starts in the future");
+      require(coverStart + coverPeriod + gracePeriodInDays * 1 days > block.timestamp, "Cover is outside the grace period");
     }
 
     {
@@ -219,7 +246,7 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       cover().transferFrom(owner, address(this), coverId);
     }
 
-    if (hasProof) {
+    if (bytes(ipfsProofHash).length > 0) {
       emit ProofSubmitted(coverId, msg.sender, ipfsProofHash);
     }
 
@@ -248,13 +275,18 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
     uint deposit = minDeposit > dynamicDeposit ? minDeposit : dynamicDeposit;
 
     require(
-      msg.value == deposit,
+      msg.value >= deposit,
       "Assessment deposit different than the expected value"
     );
 
     uint assessmentId = assessment().startAssessment(totalReward, deposit);
     claim.assessmentId = uint80(assessmentId);
     claims.push(claim);
+
+    if (msg.value > deposit) {
+      (bool refunded, /* bytes data */) = msg.sender.call{value: msg.value - deposit}("");
+      require(refunded, "Submission deposit refund failed");
+    }
   }
 
   function redeemClaimPayout(uint104 claimId) external override {
@@ -290,15 +322,11 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       claim.amount
     );
 
-    // [todo] Replace payoutAddress with the member's address using the member id
-    IMemberRoles memberRolesContract = IMemberRoles(internalContracts[uint(IMasterAwareV2.ID.MR)]);
-    address payable payoutAddress = memberRolesContract.getClaimPayoutAddress(coverOwner);
-
-    bool succeeded = pool().sendClaimPayout(claim.payoutAsset, payoutAddress, claim.amount);
+    bool succeeded = pool().sendClaimPayout(claim.payoutAsset, coverOwner, claim.amount);
     require(succeeded, "Claim payout failed");
 
     {
-      (bool refunded, /* bytes data */) = payoutAddress.call{value: assessmentDeposit}("");
+      (bool refunded, /* bytes data */) = coverOwner.call{value: assessmentDeposit}("");
       require(refunded, "Submission deposit refund failed");
     }
   }

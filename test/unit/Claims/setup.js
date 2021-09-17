@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
+const { getAccounts } = require('../../utils/accounts');
 const { parseEther } = ethers.utils;
 
 async function setup () {
@@ -52,6 +53,13 @@ async function setup () {
     master.setTokenAddress(nxm.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
+  await cover.addProductType('', '0', '30', '5000');
+  await cover.addProductType('', '0', '90', '5000');
+  await cover.addProductType('', '1', '30', '5000');
+
+  await cover.addProduct('0', '0x0000000000000000000000000000000000000001', '1', '0');
+  await cover.addProduct('1', '0x0000000000000000000000000000000000000002', '1', '0');
+  await cover.addProduct('2', '0x0000000000000000000000000000000000000003', '1', '0');
 
   {
     const tx = await claims.initialize(master.address);
@@ -62,14 +70,13 @@ async function setup () {
     await tx.wait();
   }
 
-  const accounts = await ethers.getSigners();
-  // Use address 0 as governance
-  await master.enrollGovernance(accounts[0].address);
-  for (let i = 0; i < 10; i++) {
-    const account = accounts[i];
-    await master.enrollMember(account.address, 1);
-    await nxm.mint(account.address, ethers.utils.parseEther('10000'));
-    await nxm.connect(account).approve(tokenController.address, ethers.utils.parseEther('10000'));
+  const signers = await ethers.getSigners();
+  const accounts = getAccounts(signers);
+  await master.enrollGovernance(accounts.governanceContracts[0].address);
+  for (const member of accounts.members) {
+    await memberRoles.setRole(member.address, 2);
+    await nxm.mint(member.address, ethers.utils.parseEther('10000'));
+    await nxm.connect(member).approve(tokenController.address, ethers.utils.parseEther('10000'));
   }
 
   const config = await claims.config();

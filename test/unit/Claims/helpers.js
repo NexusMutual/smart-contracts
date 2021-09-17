@@ -85,7 +85,6 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
 const submitClaim = ({ accounts, contracts, config }) => async ({
   coverId = 0,
   amount = parseEther('1'),
-  hasProof = false,
   ipfsProofHash = '',
   sender,
 }) => {
@@ -96,7 +95,7 @@ const submitClaim = ({ accounts, contracts, config }) => async ({
   // [todo] Fix the deposit formula and move it in a different helper function
   const dynamicAssessmentDeposit = Zero;
   const assessmentDeposit = baseAssessmentDeposit.add(dynamicAssessmentDeposit);
-  return await contracts.claims.connect(sender || accounts[0]).submitClaim(coverId, amount, hasProof, ipfsProofHash, {
+  return await contracts.claims.connect(sender || accounts[0]).submitClaim(coverId, amount, ipfsProofHash, {
     value: assessmentDeposit,
   });
 };

@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
+const { ContractTypes } = require('../../../lib/constants');
 const { parseEther } = ethers.utils;
 
 async function setup () {
@@ -15,6 +16,10 @@ async function setup () {
   const ASMockTokenController = await ethers.getContractFactory('ASMockTokenController');
   const tokenController = await ASMockTokenController.deploy(nxm.address);
   await tokenController.deployed();
+
+  const ASMockClaims = await ethers.getContractFactory('ASMockClaims');
+  const claims = await ASMockClaims.deploy(nxm.address);
+  await claims.deployed();
 
   nxm.setOperator(tokenController.address);
 
@@ -33,6 +38,9 @@ async function setup () {
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
     master.setTokenAddress(nxm.address),
+    master.setLatestAddress(hex('CL'), claims.address),
+    master.setLatestAddress(hex('AS'), assessment.address),
+    master.enrollInternal(claims.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
@@ -41,7 +49,16 @@ async function setup () {
     await tx.wait();
   }
   {
+    const tx = await claims.initialize(master.address);
+    await tx.wait();
+  }
+
+  {
     const tx = await assessment.changeDependentContractAddress();
+    await tx.wait();
+  }
+  {
+    const tx = await claims.changeDependentContractAddress();
     await tx.wait();
   }
 
@@ -63,6 +80,7 @@ async function setup () {
     dai,
     assessment,
     master,
+    claims,
   };
 }
 

@@ -17,4 +17,8 @@ contract ICMockTokenController {
     token.transfer(_to, _value);
   }
 
+  function mint(address _to, uint _value) external returns (bool) {
+    token.mint(_to, _value);
+  }
+
 }

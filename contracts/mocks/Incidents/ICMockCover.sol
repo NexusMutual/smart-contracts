@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "../../interfaces/ICover.sol";
 
 
-contract Cover is ICover, ERC721 {
+contract ICMockCover is ICover, ERC721 {
 
   Cover[] public override covers;
   mapping(uint => StakingPool[]) stakingPoolsForCover;
@@ -66,7 +66,7 @@ contract Cover is ICover, ERC721 {
       ));
 
     coverId = covers.length - 1;
-    _safeMint(msg.sender, coverId);
+    _safeMint(owner, coverId);
   }
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external override {

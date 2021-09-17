@@ -8,6 +8,7 @@ import "../../interfaces/IAssessment.sol";
 import "../../abstract/MasterAwareV2.sol";
 
 import "@openzeppelin/contracts-v4/utils/cryptography/MerkleProof.sol";
+import "hardhat/console.sol";
 
 /// Provides a way for cover owners to submit claims and redeem the payouts and facilitates
 /// assessment processes where members decide the outcome of the events that lead to potential
@@ -45,7 +46,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   function initialize (address masterAddress) external {
     config.minVotingPeriodDays = 3; // days
-    config.payoutCooldownDays = 1; //days
+    config.payoutCooldownDays = 1; // days
+    config.stakeLockupPeriodDays = 14; // days
     master = INXMMaster(masterAddress);
   }
 
@@ -106,13 +108,15 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   function unstake(uint96 amount) external override {
     uint voteCount = votesOf[msg.sender].length;
-    Vote memory vote = votesOf[msg.sender][voteCount - 1];
-    require(
-      block.timestamp > vote.timestamp + config.stakeLockupPeriodDays * 1 days,
-      "Stake is in lockup period"
-     );
+    if (voteCount > 0) {
+      Vote memory vote = votesOf[msg.sender][voteCount - 1];
+      require(
+        block.timestamp > vote.timestamp + config.stakeLockupPeriodDays * 1 days,
+        "Stake is in lockup period"
+      );
+    }
 
-    nxm.transferFrom(address(this), msg.sender, amount);
+    nxm.transfer(msg.sender, amount);
     stakeOf[msg.sender].amount -= amount;
   }
 
@@ -121,15 +125,19 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///
   /// @param user        The address of the staker for which the rewards are withdrawn
   /// @param untilIndex  The index until which the rewards should be withdrawn. Used if a large
-  ///                    number of assessments accumulates and the function doesn't fir in one
+  ///                    number of assessments accumulates and the function doesn't fit in one
   ///                    block, thus requiring multiple batched transactions.
   function withdrawRewards(address user, uint104 untilIndex) external override
   returns (uint withdrawn, uint withdrawUntilIndex) {
+    // This is the index until which (but not including) the previous withdrawal was processed.
+    // The current withdrawal starts from this index.
     uint104 rewardsWithdrawnUntilIndex = stakeOf[user].rewardsWithdrawnUntilIndex;
     {
       uint voteCount = votesOf[user].length;
-      withdrawUntilIndex = untilIndex > 0 ? untilIndex : voteCount;
       require(rewardsWithdrawnUntilIndex < voteCount, "No withdrawable rewards");
+      // If untilIndex is a non-zero value, it means the withdrawal is going to be batched in
+      // multiple transactions.
+      withdrawUntilIndex = untilIndex > 0 ? untilIndex : voteCount;
     }
 
     Vote memory vote;
@@ -148,6 +156,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
 
     // This is the index where the next withdrawReward call will start iterating from
+    console.log("withdrawUntilIndex %d", withdrawUntilIndex);
     stakeOf[user].rewardsWithdrawnUntilIndex = uint104(withdrawUntilIndex);
     ITokenController(getInternalContractAddress(ID.TC)).mint(user, withdrawn);
   }

@@ -114,7 +114,6 @@ interface IClaims {
   function submitClaim(
     uint24 coverId,
     uint96 requestedAmount,
-    bool hasProof,
     string calldata ipfsProofHash
   ) external payable;
 

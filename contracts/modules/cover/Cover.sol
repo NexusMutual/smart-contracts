@@ -198,6 +198,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     StakingPool[] memory stakingPools
   ) external returns (uint) {
 
+    require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
+
     (uint coverId, uint premiumInAsset) = _addAmount(coverId, amount, stakingPools);
 
     require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
@@ -273,8 +275,11 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   }
 
   function addPeriod(uint coverId, uint32 extraPeriod, uint maxPrice) external {
+
+    require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
     uint premiumInAsset = _addPeriod(coverId, extraPeriod);
     require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
+
     retrievePayment(premiumInAsset, covers[coverId].payoutAsset);
   }
 
@@ -321,7 +326,12 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     StakingPool[] memory stakingPools
   ) external returns (uint) {
 
+    require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
+
     Cover storage cover = covers[coverId];
+
+    require(cover.period - (block.timestamp - cover.start) > periodReduction, "Cover: periodReduction > remaining period");
+
     StakingPool[] storage currentStakingPools = stakingPoolsForCover[covers.length];
 
     // reduce period
@@ -366,7 +376,10 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     StakingPool[] memory stakingPools
   ) external returns (uint) {
 
+    require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
+
     Cover storage currentCover = covers[coverId];
+    require(currentCover.amount > amountReduction, "Cover: amountReduction > cover.amount");
 
     // clone the existing cover
     Cover memory newCover = covers[coverId];

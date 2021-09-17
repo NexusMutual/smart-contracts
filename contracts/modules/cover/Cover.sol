@@ -332,7 +332,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         cover.start,
         REWARD_BPS * currentStakingPools[i].premiumInNXM / BASIS_PRECISION,
         periodReduction,
-        cover.amount
+        currentStakingPools[i].coverAmount
       );
 
       currentStakingPools[i].premiumInNXM = currentStakingPools[i].premiumInNXM * (cover.period - periodReduction ) / cover.period;
@@ -350,7 +350,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     if (premiumInAsset > refund) {
       // retrieve extra required payment
-      retrievePayment(premiumInAsset, cover.payoutAsset);
+      retrievePayment(premiumInAsset - refund, cover.payoutAsset);
     }
 
     return newCoverId;
@@ -367,24 +367,26 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     Cover storage cover = covers[coverId];
     StakingPool[] storage currentStakingPools = stakingPoolsForCover[covers.length];
 
-    uint newCoverAmount = cover.amount - amountReduction;
+    uint newTotalCoverAmount = cover.amount - amountReduction;
 
     // reduce amount
     for (uint i = 0; i < currentStakingPools.length; i++) {
       IStakingPool stakingPool = IStakingPool(currentStakingPools[i].poolAddress);
 
+      uint newCoverAmount = currentStakingPools[i].coverAmount * newTotalCoverAmount / cover.amount;
       stakingPool.reduceAmount(
         cover.productId,
         cover.period,
         cover.start,
         REWARD_BPS * currentStakingPools[i].premiumInNXM / BASIS_PRECISION,
         newCoverAmount,
-        REWARD_BPS * (currentStakingPools[i].premiumInNXM * newCoverAmount / cover.amount) / BASIS_PRECISION,
-        cover.amount
+        REWARD_BPS * (currentStakingPools[i].premiumInNXM * newTotalCoverAmount / cover.amount) / BASIS_PRECISION,
+        currentStakingPools[i].coverAmount
       );
 
       currentStakingPools[i].premiumInNXM =
-        uint96(uint(currentStakingPools[i].premiumInNXM) * newCoverAmount / cover.amount);
+        uint96(uint(currentStakingPools[i].premiumInNXM) * newTotalCoverAmount / cover.amount);
+      currentStakingPools[i].coverAmount = uint96(newCoverAmount);
     }
 
     uint refund = cover.amount * amountReduction / cover.amount;
@@ -394,7 +396,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     if (premiumInAsset > refund) {
       // retrieve extra required payment
-      retrievePayment(premiumInAsset, cover.payoutAsset);
+      retrievePayment(premiumInAsset- refund, cover.payoutAsset);
     }
   }
 

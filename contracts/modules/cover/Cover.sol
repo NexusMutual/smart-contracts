@@ -411,7 +411,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     // mint the new cover
     _safeMint(msg.sender, newCoverId);
 
-    uint refund = newCover.amount * amountReduction / newCover.amount;
+    // the refund is proportional to the amount reduction and the period remaining 
+    uint refund = currentCover.amount * amountReduction / newCover.amount * newCover.period / currentCover.period;
 
     uint premiumInAsset = _addPeriod(newCoverId, extraPeriod);
     require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");

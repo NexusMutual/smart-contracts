@@ -6,7 +6,7 @@ const { submitClaim, daysToSeconds, ASSET } = require('./helpers');
 
 const { parseEther } = ethers.utils;
 
-describe.only('submitClaim', function () {
+describe('submitClaim', function () {
   it('reverts if the submission deposit is not sent', async function () {
     const { claims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
@@ -56,7 +56,7 @@ describe.only('submitClaim', function () {
     ).to.be.revertedWith('Assessment deposit is insufficient');
   });
 
-  it.only('refunds any excess eth sent as a submission deposit', async function () {
+  it('refunds any excess eth sent as a submission deposit', async function () {
     const { claims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
@@ -77,7 +77,6 @@ describe.only('submitClaim', function () {
     const [deposit] = await claims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
     // [todo] Get eth balance and compare it after the claim is submitted
     const balance = await ethers.providers.Provider.balance(coverOwner.address);
-    console.log({ balance });
     await claims.connect(coverOwner).submitClaim(coverId, coverAmount, '', {
       value: deposit.mul('2'),
     });

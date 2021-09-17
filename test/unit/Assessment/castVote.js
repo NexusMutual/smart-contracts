@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { assert } = require('chai');
+const { expect } = require('chai');
 const { setTime, submitClaim, EVENT_TYPE, daysToSeconds } = require('./helpers');
 const { time } = require('@openzeppelin/test-helpers');
 const { parseEther } = ethers.utils;
@@ -11,16 +11,16 @@ describe('castVote', function () {
     await assessment.connect(user).stake(parseEther('100'));
     await claims.submitClaim(0, parseEther('100'), false, '');
     await assessment.connect(user).castVote(0, true);
-    expect(assessment.connect(user).castVote(0, true)).to.be.revertedWith('Already voted');
-    expect(assessment.connect(user).castVote(0, false)).to.be.revertedWith('Already voted');
+    await expect(assessment.connect(user).castVote(0, true)).to.be.revertedWith('Already voted');
+    await expect(assessment.connect(user).castVote(0, false)).to.be.revertedWith('Already voted');
   });
 
   it('reverts if the user has no stake', async function () {
     const { assessment, claims } = this.contracts;
     const user = this.accounts.members[0];
     await claims.submitClaim(0, parseEther('100'), false, '');
-    expect(assessment.connect(user).castVote(0, true)).to.be.revertedWith('A stake is required to cast votes');
-    expect(assessment.connect(user).castVote(0, false)).to.be.revertedWith('A stake is required to cast votes');
+    await expect(assessment.connect(user).castVote(0, true)).to.be.revertedWith('A stake is required to cast votes');
+    await expect(assessment.connect(user).castVote(0, false)).to.be.revertedWith('A stake is required to cast votes');
   });
 
   it('reverts if the voting period has ended', async function () {
@@ -33,8 +33,8 @@ describe('castVote', function () {
       const { poll } = await assessment.assessments(0);
       await setTime(poll.end);
     }
-    expect(assessment.connect(user1).castVote(0, true)).to.be.revertedWith('Voting is closed');
-    expect(assessment.connect(user1).castVote(0, false)).to.be.revertedWith('Voting is closed');
+    await expect(assessment.connect(user1).castVote(0, true)).to.be.revertedWith('Voting is closed');
+    await expect(assessment.connect(user1).castVote(0, false)).to.be.revertedWith('Voting is closed');
 
     await claims.submitClaim(1, parseEther('100'), false, '');
     const timestamp = await time.latest();
@@ -44,8 +44,8 @@ describe('castVote', function () {
       const { poll } = await assessment.assessments(1);
       await setTime(poll.end);
     }
-    expect(assessment.connect(user2).castVote(1, true)).to.be.revertedWith('Voting is closed');
-    expect(assessment.connect(user2).castVote(1, false)).to.be.revertedWith('Voting is closed');
+    await expect(assessment.connect(user2).castVote(1, true)).to.be.revertedWith('Voting is closed');
+    await expect(assessment.connect(user2).castVote(1, false)).to.be.revertedWith('Voting is closed');
   });
 
   it('reverts if the first vote is deny', async function () {
@@ -53,7 +53,7 @@ describe('castVote', function () {
     const user = this.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
     await claims.submitClaim(0, parseEther('100'), false, '');
-    expect(assessment.connect(user).castVote(0, false)).to.be.revertedWith(
+    await expect(assessment.connect(user).castVote(0, false)).to.be.revertedWith(
       'At least one accept vote is required to vote deny',
     );
   });
@@ -106,7 +106,7 @@ describe('castVote', function () {
     {
       const timestamp = await time.latest();
       const { poll } = await assessment.assessments(0);
-      expect(poll.end).to.be.equal(timestamp.toNumber() + daysToSeconds(1) + 1);
+      await expect(poll.end).to.be.equal(timestamp.toNumber() + daysToSeconds(1) + 1);
       // Subtract 1 second to allow the next castVote to happen 1 second before the vote period
       // extension ends
       await setTime(timestamp.toNumber() + daysToSeconds(1) - 1);
@@ -116,7 +116,7 @@ describe('castVote', function () {
     {
       const timestamp = await time.latest();
       const { poll } = await assessment.assessments(0);
-      expect(poll.end).to.be.equal(timestamp.toNumber() + daysToSeconds(1) + 1);
+      await expect(poll.end).to.be.equal(timestamp.toNumber() + daysToSeconds(1) + 1);
       await setTime(timestamp.toNumber() + daysToSeconds(1) - 1);
     }
 
@@ -124,7 +124,7 @@ describe('castVote', function () {
     {
       const timestamp = await time.latest();
       const { poll } = await assessment.assessments(0);
-      expect(poll.end).to.be.equal(timestamp.toNumber() + daysToSeconds(1) + 1);
+      await expect(poll.end).to.be.equal(timestamp.toNumber() + daysToSeconds(1) + 1);
       await setTime(timestamp.toNumber() + daysToSeconds(1) - 1);
     }
 
@@ -133,7 +133,7 @@ describe('castVote', function () {
       const timestamp = await time.latest();
       const { poll } = await assessment.assessments(0);
       // user's stake of 300 NXM out of 1200 NXM total staked represents 1/4 day
-      expect(poll.end).to.be.equal(timestamp.toNumber() + daysToSeconds(0.25) + 1);
+      await expect(poll.end).to.be.equal(timestamp.toNumber() + daysToSeconds(0.25) + 1);
       await setTime(timestamp.toNumber() + daysToSeconds(1) - 1);
     }
   });
@@ -150,19 +150,19 @@ describe('castVote', function () {
     {
       await assessment.connect(user1).castVote(0, true);
       const { poll } = await assessment.assessments(0);
-      expect(poll.accepted).to.be.equal(parseEther('100'));
+      await expect(poll.accepted).to.be.equal(parseEther('100'));
     }
 
     {
       await assessment.connect(user2).castVote(0, false);
       const { poll } = await assessment.assessments(0);
-      expect(poll.accepted).to.be.equal(parseEther('100'));
+      await expect(poll.accepted).to.be.equal(parseEther('100'));
     }
 
     {
       await assessment.connect(user3).castVote(0, true);
       const { poll } = await assessment.assessments(0);
-      expect(poll.accepted).to.be.equal(parseEther('200'));
+      await expect(poll.accepted).to.be.equal(parseEther('200'));
     }
   });
 
@@ -179,25 +179,25 @@ describe('castVote', function () {
     {
       await assessment.connect(user1).castVote(0, true);
       const { poll } = await assessment.assessments(0);
-      expect(poll.denied).to.be.equal(parseEther('0'));
+      await expect(poll.denied).to.be.equal(parseEther('0'));
     }
 
     {
       await assessment.connect(user2).castVote(0, false);
       const { poll } = await assessment.assessments(0);
-      expect(poll.denied).to.be.equal(parseEther('100'));
+      await expect(poll.denied).to.be.equal(parseEther('100'));
     }
 
     {
       await assessment.connect(user3).castVote(0, true);
       const { poll } = await assessment.assessments(0);
-      expect(poll.denied).to.be.equal(parseEther('100'));
+      await expect(poll.denied).to.be.equal(parseEther('100'));
     }
 
     {
       await assessment.connect(user4).castVote(0, false);
       const { poll } = await assessment.assessments(0);
-      expect(poll.denied).to.be.equal(parseEther('200'));
+      await expect(poll.denied).to.be.equal(parseEther('200'));
     }
   });
 
@@ -214,40 +214,40 @@ describe('castVote', function () {
       await assessment.connect(user1).castVote(0, true);
       const timestampAtVoteTime = await time.latest();
       const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user1.address, 0);
-      expect(assessmentId).to.be.equal(0);
-      expect(accepted).to.be.equal(true);
-      expect(timestamp).to.be.equal(timestampAtVoteTime.toNumber());
-      expect(stakedAmount).to.be.equal(parseEther('100'));
+      await expect(assessmentId).to.be.equal(0);
+      await expect(accepted).to.be.equal(true);
+      await expect(timestamp).to.be.equal(timestampAtVoteTime.toNumber());
+      await expect(stakedAmount).to.be.equal(parseEther('100'));
     }
 
     {
       await assessment.connect(user1).castVote(1, true);
       const timestampAtVoteTime = await time.latest();
       const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user1.address, 1);
-      expect(assessmentId).to.be.equal(1);
-      expect(accepted).to.be.equal(true);
-      expect(timestamp).to.be.equal(timestampAtVoteTime.toNumber());
-      expect(stakedAmount).to.be.equal(parseEther('100'));
+      await expect(assessmentId).to.be.equal(1);
+      await expect(accepted).to.be.equal(true);
+      await expect(timestamp).to.be.equal(timestampAtVoteTime.toNumber());
+      await expect(stakedAmount).to.be.equal(parseEther('100'));
     }
 
     {
       await assessment.connect(user2).castVote(0, false);
       const timestampAtVoteTime = await time.latest();
       const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user2.address, 0);
-      expect(assessmentId).to.be.equal(0);
-      expect(accepted).to.be.equal(false);
-      expect(timestamp).to.be.equal(timestampAtVoteTime.toNumber());
-      expect(stakedAmount).to.be.equal(parseEther('1000'));
+      await expect(assessmentId).to.be.equal(0);
+      await expect(accepted).to.be.equal(false);
+      await expect(timestamp).to.be.equal(timestampAtVoteTime.toNumber());
+      await expect(stakedAmount).to.be.equal(parseEther('1000'));
     }
 
     {
       await assessment.connect(user2).castVote(1, false);
       const timestampAtVoteTime = await time.latest();
       const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user2.address, 1);
-      expect(assessmentId).to.be.equal(1);
-      expect(accepted).to.be.equal(false);
-      expect(timestamp).to.be.equal(timestampAtVoteTime.toNumber());
-      expect(stakedAmount).to.be.equal(parseEther('1000'));
+      await expect(assessmentId).to.be.equal(1);
+      await expect(accepted).to.be.equal(false);
+      await expect(timestamp).to.be.equal(timestampAtVoteTime.toNumber());
+      await expect(stakedAmount).to.be.equal(parseEther('1000'));
     }
   });
 });

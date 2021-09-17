@@ -284,9 +284,6 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       payoutAsset
     );
 
-    console.log("value %d", msg.value);
-    console.log("deposit %d", deposit);
-
     require(
       msg.value >= deposit,
       "Assessment deposit is insufficient"

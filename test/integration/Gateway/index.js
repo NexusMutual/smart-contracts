@@ -1,4 +1,4 @@
-describe('Gateway integration tests', function () {
+describe.skip('Gateway integration tests', function () {
   require('./buyCover');
   require('./submitClaim');
   require('./claimTokens');

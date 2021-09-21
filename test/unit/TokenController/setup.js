@@ -7,7 +7,6 @@ const {
 } = require('../utils').accounts;
 
 async function setup () {
-
   const TokenController = artifacts.require('TokenController');
   const NXMToken = artifacts.require('NXMToken');
   const MasterMock = artifacts.require('MasterMock');

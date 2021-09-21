@@ -2,7 +2,6 @@ const { takeSnapshot, revertToSnapshot, reset } = require('../utils').evm;
 const setup = require('./setup');
 
 describe('TokenController', function () {
-
   before(setup);
 
   beforeEach(async function () {
@@ -18,5 +17,4 @@ describe('TokenController', function () {
   require('./removeEmptyReason');
   require('./removeMultipleEmptyReasons');
   require('./markCoverClaim');
-
 });

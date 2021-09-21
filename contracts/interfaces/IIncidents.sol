@@ -4,34 +4,70 @@ pragma solidity >=0.5.0;
 
 interface IIncidents {
 
-  function underlyingToken(address) external view returns (address);
+  /* ========== DATA STRUCTURES ========== */
 
-  function coveredToken(address) external view returns (address);
+  enum UintParams {
+    payoutRedemptionPeriodDays,
+    incidentExpectedPayoutRatio,
+    incidentPayoutDeductibleRatio,
+    rewardRatio
+  }
 
-  function claimPayout(uint) external view returns (uint);
+  struct Configuration {
+    // Number of days in which payouts can be redeemed
+    uint8 payoutRedemptionPeriodDays;
 
-  function incidentCount() external view returns (uint);
+    // Ratio used to calculate potential payout of an incident
+    // (0-10000 bps i.e. double decimal precision)
+    uint16 incidentExpectedPayoutRatio;
 
-  function addIncident(
-    address productId,
-    uint incidentDate,
-    uint priceBefore
+    // Ratio used to determine the deductible payout (0-10000 bps i.e. double decimal precision)
+    uint16 incidentPayoutDeductibleRatio;
+
+    // Ratio used to calculate assessment rewards (0-10000 i.e. double decimal precision)
+    uint16 rewardRatio;
+  }
+
+  struct Incident {
+    uint80 assessmentId;
+    // Product identifier
+    uint24 productId;
+    // Timestamp marking the date of the incident used to verify the user's eligibility for a claim
+    // according to their cover period.
+    uint32 date;
+    uint96 priceBefore;
+  }
+
+  /* ========== VIEWS ========== */
+
+  function config() external view returns (
+    uint8 payoutRedemptionPeriodDays,
+    uint16 incidentExpectedPayoutRatio,
+    uint16 incidentPayoutDeductibleRatio,
+    uint16 rewardRatio
+  );
+
+  function incidents(uint id) external view
+  returns (uint80 assessmentId, uint24 productId, uint32 date, uint96 priceBefore);
+
+  function getIncidentsCount() external view returns (uint);
+
+  /* === MUTATIVE FUNCTIONS ==== */
+
+  function submitIncident(
+    uint24 productId,
+    uint96 priceBefore,
+    uint32 date
   ) external;
 
-  function redeemPayoutForMember(
-    uint coverId,
-    uint incidentId,
-    uint coveredTokenAmount,
-    address member
-  ) external returns (uint claimId, uint payoutAmount, address payoutToken);
+  function redeemIncidentPayout(uint104 incidentId, uint32 coverId, uint depeggedTokens) external
+  returns (uint payoutAmount, uint8 payoutAsset);
 
-  function redeemPayout(
-    uint coverId,
-    uint incidentId,
-    uint coveredTokenAmount
-  ) external returns (uint claimId, uint payoutAmount, address payoutToken);
+  function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values) external;
 
-  function pushBurns(address productId, uint maxIterations) external;
+  /* ========== EVENTS ========== */
 
-  function withdrawAsset(address asset, address destination, uint amount) external;
+  event IncidentSubmitted(address user, uint104 incidentId, uint24 productId);
+  event IncidentPayoutRedeemed(address indexed user, uint256 amount, uint104 incidentId, uint24 productId);
+
 }

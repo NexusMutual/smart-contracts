@@ -21,4 +21,6 @@ interface IERC20Detailed {
   event Approval(address indexed owner, address indexed spender, uint256 value);
 
   function decimals() external view returns (uint8);
+
+  function symbol() external view returns (string memory);
 }

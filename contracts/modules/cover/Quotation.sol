@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../../abstract/MasterAware.sol";
-import "../../interfaces/IClaimsReward.sol";
-import "../../interfaces/IIncidents.sol";
+import "../../interfaces/ILegacyClaimsReward.sol";
+import "../../interfaces/ILegacyIncidents.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IQuotation.sol";
@@ -18,25 +18,25 @@ import "../../interfaces/ITokenData.sol";
 contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
   using SafeMath for uint;
 
-  IClaimsReward public cr;
+  ILegacyClaimsReward public cr;
   IPool public pool;
   IPooledStaking public pooledStaking;
   IQuotationData public qd;
   ITokenController public tc;
   ITokenData public td;
-  IIncidents public incidents;
+  ILegacyIncidents public incidents;
 
   /**
    * @dev Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public onlyInternal {
-    cr = IClaimsReward(master.getLatestAddress("CR"));
+    cr = ILegacyClaimsReward(master.getLatestAddress("CR"));
     pool = IPool(master.getLatestAddress("P1"));
     pooledStaking = IPooledStaking(master.getLatestAddress("PS"));
     qd = IQuotationData(master.getLatestAddress("QD"));
     tc = ITokenController(master.getLatestAddress("TC"));
     td = ITokenData(master.getLatestAddress("TD"));
-    incidents = IIncidents(master.getLatestAddress("IC"));
+    incidents = ILegacyIncidents(master.getLatestAddress("IC"));
   }
 
   // solhint-disable-next-line no-empty-blocks

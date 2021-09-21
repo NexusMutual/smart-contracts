@@ -12,8 +12,8 @@ const NXMaster = artifacts.require('NXMaster');
 const NXMToken = artifacts.require('NXMToken');
 const Governance = artifacts.require('Governance');
 const TokenFunctions = artifacts.require('TokenFunctions');
-const Claims = artifacts.require('Claims');
-const ClaimsReward = artifacts.require('ClaimsReward');
+const Claims = artifacts.require('LegacyClaims');
+const ClaimsReward = artifacts.require('LegacyClaimsReward');
 const Quotation = artifacts.require('Quotation');
 const TokenController = artifacts.require('TokenController');
 const Gateway = artifacts.require('Gateway');
@@ -29,17 +29,17 @@ const fund = async to => web3.eth.sendTransaction({ from: accounts[0], to, value
 const unlock = async member => network.provider.request({ method: 'hardhat_impersonateAccount', params: [member] });
 
 describe('deploy cover interface and locking fixes', function () {
-
   this.timeout(0);
 
   it('initializes contracts', async function () {
-
-    const { mainnet: { abis } } = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
+    const {
+      mainnet: { abis },
+    } = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
     const getAddressByCode = getAddressByCodeFactory(abis);
 
     const token = await NXMToken.at(getAddressByCode('NXMTOKEN'));
     const memberRoles = await MemberRoles.at(getAddressByCode('MR'));
-    const master = await NXMaster.at(getAddressByCode(('NXMASTER')));
+    const master = await NXMaster.at(getAddressByCode('NXMASTER'));
     const governance = await Governance.at(getAddressByCode('GV'));
     this.master = master;
     this.memberRoles = memberRoles;
@@ -48,7 +48,6 @@ describe('deploy cover interface and locking fixes', function () {
   });
 
   it('funds accounts', async function () {
-
     console.log('Funding accounts');
 
     const { memberArray: boardMembers } = await this.memberRoles.members('1');
@@ -68,7 +67,20 @@ describe('deploy cover interface and locking fixes', function () {
     const functionSignature = 'upgradeMultipleImplementations(bytes2[],address[])';
 
     const upgradesActionDataNonProxy = web3.eth.abi.encodeParameters(
-      ['uint256', 'string', 'uint256', 'uint256', 'uint256', 'uint256[]', 'uint256', 'string', 'address', 'bytes2', 'uint256[]', 'string'],
+      [
+        'uint256',
+        'string',
+        'uint256',
+        'uint256',
+        'uint256',
+        'uint256[]',
+        'uint256',
+        'string',
+        'address',
+        'bytes2',
+        'uint256[]',
+        'string',
+      ],
       [
         ProposalCategory.upgradeProxy.toString(), // 1. Category Id
         'Upgrade a contract Implementation', // 2. Name of category
@@ -89,12 +101,7 @@ describe('deploy cover interface and locking fixes', function () {
       preCategoryUpgradeTime: new Date((await time.latest()) * 1000).toDateString(),
     });
 
-    await submitGovernanceProposal(
-      ProposalCategory.editCategory,
-      upgradesActionDataNonProxy,
-      voters,
-      governance,
-    );
+    await submitGovernanceProposal(ProposalCategory.editCategory, upgradesActionDataNonProxy, voters, governance);
 
     console.log('Updated category successfully.');
   });
@@ -114,18 +121,10 @@ describe('deploy cover interface and locking fixes', function () {
 
     const upgradesActionDataProxy = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
-      [
-        ['MR', 'TC'].map(hex),
-        [newMR, newTokenController].map(c => c.address),
-      ],
+      [['MR', 'TC'].map(hex), [newMR, newTokenController].map(c => c.address)],
     );
 
-    await submitGovernanceProposal(
-      ProposalCategory.upgradeProxy,
-      upgradesActionDataProxy,
-      voters,
-      governance,
-    );
+    await submitGovernanceProposal(ProposalCategory.upgradeProxy, upgradesActionDataProxy, voters, governance);
 
     const mrProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('MR')));
     const tcProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('TC')));
@@ -147,12 +146,7 @@ describe('deploy cover interface and locking fixes', function () {
       ],
     );
 
-    await submitGovernanceProposal(
-      ProposalCategory.upgradeNonProxy,
-      upgradesActionDataNonProxy,
-      voters,
-      governance,
-    );
+    await submitGovernanceProposal(ProposalCategory.upgradeNonProxy, upgradesActionDataNonProxy, voters, governance);
 
     const storedCLAddress = await master.getLatestAddress(hex('CL'));
     const storedQTAddress = await master.getLatestAddress(hex('QT'));
@@ -170,10 +164,7 @@ describe('deploy cover interface and locking fixes', function () {
 
     console.log('Initialize TokenController');
     const migrateTx = await tokenController.initialize();
-    await expectRevert(
-      tokenController.initialize(),
-      'TokenController: Already initialized',
-    );
+    await expectRevert(tokenController.initialize(), 'TokenController: Already initialized');
 
     console.log(`Migration gas used: ${migrateTx.receipt.gasUsed}`);
 
@@ -195,12 +186,7 @@ describe('deploy cover interface and locking fixes', function () {
       [hex('GW'), gatewayImplementation.address, 2],
     );
 
-    await submitGovernanceProposal(
-      ProposalCategory.newContract,
-      addNewInternalContractActionData,
-      voters,
-      governance,
-    );
+    await submitGovernanceProposal(ProposalCategory.newContract, addNewInternalContractActionData, voters, governance);
 
     const gatewayProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('GW')));
     const storedImplementation = await gatewayProxy.implementation();
@@ -287,24 +273,15 @@ describe('deploy cover interface and locking fixes', function () {
   });
 
   it('performs hypothetical future proxy upgrade', async function () {
-
     const { voters, governance, master } = this;
 
     const gatewayImplementation = await Gateway.new();
     const upgradesActionDataProxy = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
-      [
-        ['GW'].map(hex),
-        [gatewayImplementation].map(c => c.address),
-      ],
+      [['GW'].map(hex), [gatewayImplementation].map(c => c.address)],
     );
 
-    await submitGovernanceProposal(
-      ProposalCategory.upgradeProxy,
-      upgradesActionDataProxy,
-      voters,
-      governance,
-    );
+    await submitGovernanceProposal(ProposalCategory.upgradeProxy, upgradesActionDataProxy, voters, governance);
 
     const gwProxy = await OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('GW')));
     const gwImplementation = await gwProxy.implementation();
@@ -313,24 +290,15 @@ describe('deploy cover interface and locking fixes', function () {
   });
 
   it('performs hypothetical future non-proxy upgrade', async function () {
-
     const { voters, governance, master } = this;
 
     const tokenFunctionsImplementation = await TokenFunctions.new();
     const upgradesActionDataNonProxy = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
-      [
-        ['TF'].map(hex),
-        [tokenFunctionsImplementation].map(c => c.address),
-      ],
+      [['TF'].map(hex), [tokenFunctionsImplementation].map(c => c.address)],
     );
 
-    await submitGovernanceProposal(
-      ProposalCategory.upgradeNonProxy,
-      upgradesActionDataNonProxy,
-      voters,
-      governance,
-    );
+    await submitGovernanceProposal(ProposalCategory.upgradeNonProxy, upgradesActionDataNonProxy, voters, governance);
 
     const tfStoredAddress = await master.getLatestAddress(hex('TF'));
 
@@ -338,7 +306,6 @@ describe('deploy cover interface and locking fixes', function () {
   });
 
   it('performs hypothetical future master upgrade', async function () {
-
     const { voters, governance, master } = this;
 
     const masterProxy = await OwnedUpgradeabilityProxy.at(master.address);

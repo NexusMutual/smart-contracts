@@ -1,5 +1,7 @@
 const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
+const { getAccounts } = require('../../utils/accounts');
+const { ContractTypes } = require('../../../lib/constants');
 const { parseEther } = ethers.utils;
 
 async function setup () {
@@ -11,9 +13,13 @@ async function setup () {
   const memberRoles = await MemberRoles.deploy();
   await memberRoles.deployed();
 
-  const AssessmentMockTokenController = await ethers.getContractFactory('AssessmentMockTokenController');
-  const tokenController = await AssessmentMockTokenController.deploy(nxm.address);
+  const ASMockTokenController = await ethers.getContractFactory('ASMockTokenController');
+  const tokenController = await ASMockTokenController.deploy(nxm.address);
   await tokenController.deployed();
+
+  const ASMockClaims = await ethers.getContractFactory('ASMockClaims');
+  const claims = await ASMockClaims.deploy(nxm.address);
+  await claims.deployed();
 
   nxm.setOperator(tokenController.address);
 
@@ -25,87 +31,45 @@ async function setup () {
   const dai = await DAI.deploy();
   await dai.deployed();
 
-  const AssessmentMockPool = await ethers.getContractFactory('AssessmentMockPool');
-  const pool = await AssessmentMockPool.deploy();
-  await pool.deployed();
-  await pool.addAsset('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
-  await pool.addAsset(dai.address);
-
-  const AssessmentClaimsLib = await ethers.getContractFactory('AssessmentClaimsLib');
-  const assessmentClaimsLib = await AssessmentClaimsLib.deploy();
-  await assessmentClaimsLib.deployed();
-
-  const AssessmentIncidentsLib = await ethers.getContractFactory('AssessmentIncidentsLib');
-  const assessmentIncidentsLib = await AssessmentIncidentsLib.deploy();
-  await assessmentIncidentsLib.deployed();
-
-  const AssessmentVoteLib = await ethers.getContractFactory('AssessmentVoteLib');
-  const assessmentVoteLib = await AssessmentVoteLib.deploy();
-  await assessmentVoteLib.deployed();
-
-  const AssessmentGovernanceActionsLib = await ethers.getContractFactory('AssessmentGovernanceActionsLib');
-  const assessmentGovernanceActionsLib = await AssessmentGovernanceActionsLib.deploy();
-  await assessmentGovernanceActionsLib.deployed();
-
-  const Assessment = await ethers.getContractFactory('Assessment', {
-    libraries: {
-      AssessmentClaimsLib: assessmentClaimsLib.address,
-      AssessmentIncidentsLib: assessmentIncidentsLib.address,
-      AssessmentVoteLib: assessmentVoteLib.address,
-      AssessmentGovernanceActionsLib: assessmentGovernanceActionsLib.address,
-    },
-  });
-  const assessment = await Assessment.deploy(master.address);
+  const Assessment = await ethers.getContractFactory('Assessment');
+  const assessment = await Assessment.deploy(nxm.address);
   await assessment.deployed();
-
-  const Cover = await ethers.getContractFactory('AssessmentMockCover');
-  const cover = await Cover.deploy('Nexus Mutual Cover', 'NXC');
-  await cover.deployed();
 
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
-    master.setLatestAddress(hex('MR'), memberRoles.address),
-    master.setLatestAddress(hex('P1'), pool.address),
-    master.setLatestAddress(hex('AS'), assessment.address),
-    master.setLatestAddress(hex('CO'), cover.address),
     master.setTokenAddress(nxm.address),
+    master.setLatestAddress(hex('CL'), claims.address),
+    master.setLatestAddress(hex('AS'), assessment.address),
+    master.enrollInternal(claims.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
+
+  {
+    const tx = await assessment.initialize(master.address);
+    await tx.wait();
+  }
+  {
+    const tx = await claims.initialize(master.address);
+    await tx.wait();
+  }
 
   {
     const tx = await assessment.changeDependentContractAddress();
     await tx.wait();
   }
-
-  const accounts = await ethers.getSigners();
-  // Use address 0 as governance
-  await master.enrollGovernance(accounts[0].address);
-  for (let i = 0; i < 10; i++) {
-    const account = accounts[i];
-    await master.enrollMember(account.address, 1);
-    await nxm.mint(account.address, ethers.utils.parseEther('10000'));
-    await nxm.connect(account).approve(tokenController.address, ethers.utils.parseEther('10000'));
+  {
+    const tx = await claims.changeDependentContractAddress();
+    await tx.wait();
   }
 
-  const AssessmentVoteLibTest = await ethers.getContractFactory('AssessmentVoteLibTest');
-  const assessmentVoteLibTest = await AssessmentVoteLibTest.deploy();
-  await assessmentVoteLibTest.deployed();
-
-  const AssessmentClaimsLibTest = await ethers.getContractFactory('AssessmentClaimsLibTest');
-  const assessmentClaimsLibTest = await AssessmentClaimsLibTest.deploy();
-  await assessmentClaimsLibTest.deployed();
-
-  const AssessmentIncidentsLibTest = await ethers.getContractFactory('AssessmentIncidentsLibTest');
-  const assessmentIncidentsLibTest = await AssessmentIncidentsLibTest.deploy();
-  await assessmentIncidentsLibTest.deployed();
-
-  const AssessmentGovernanceActionsLibTest = await ethers.getContractFactory('AssessmentGovernanceActionsLibTest', {
-    libraries: {
-      AssessmentGovernanceActionsLib: assessmentGovernanceActionsLib.address,
-    },
-  });
-  const assessmentGovernanceActionsLibTest = await AssessmentGovernanceActionsLibTest.deploy();
-  await assessmentGovernanceActionsLibTest.deployed();
+  const signers = await ethers.getSigners();
+  const accounts = getAccounts(signers);
+  await master.enrollGovernance(accounts.governanceContracts[0].address);
+  for (const member of accounts.members) {
+    await master.enrollMember(member.address, 1);
+    await nxm.mint(member.address, ethers.utils.parseEther('10000'));
+    await nxm.connect(member).approve(tokenController.address, ethers.utils.parseEther('10000'));
+  }
 
   const config = await assessment.config();
 
@@ -115,10 +79,8 @@ async function setup () {
     nxm,
     dai,
     assessment,
-    cover,
     master,
-    assessmentVoteLibTest,
-    assessmentGovernanceActionsLibTest,
+    claims,
   };
 }
 

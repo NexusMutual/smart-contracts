@@ -1,13 +1,9 @@
 const { ethers } = require('hardhat');
 const keccak256 = require('keccak256');
 const { MerkleTree } = require('merkletreejs');
+const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
 const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
 const { BigNumber } = ethers;
-
-const EVENT_TYPE = {
-  CLAIM: 0,
-  INCIDENT: 1,
-};
 
 const STATUS = {
   PENDING: 0,
@@ -15,13 +11,13 @@ const STATUS = {
   DENIED: 2,
 };
 
-const ASSET = {
-  ETH: 0,
-  DAI: 1,
-};
-
 // Converts days to seconds
 const daysToSeconds = numberOfDays => numberOfDays * 24 * 60 * 60;
+
+const setTime = async timestamp => {
+  await setNextBlockTime(timestamp);
+  await mineNextBlock();
+};
 
 const getVoteCountOfAddresses = assessment => async addresses =>
   await Promise.all(addresses.map(address => assessment.getVoteCountOfAssessor(address)));
@@ -81,24 +77,6 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
   return gasUsed;
 };
 
-const submitClaim = ({ accounts, contracts, config }) => async ({
-  coverId = 0,
-  amount = parseEther('1'),
-  hasProof = false,
-  ipfsProofHash = '',
-  sender,
-}) => {
-  const { claimAssessmentDepositRatio } = config;
-  const claimAssessmentDeposit = parseEther('1')
-    .mul(claimAssessmentDepositRatio)
-    .div('10000');
-  return await contracts.assessment
-    .connect(sender || accounts[0])
-    .submitClaim(coverId, amount, hasProof, ipfsProofHash, {
-      value: claimAssessmentDeposit,
-    });
-};
-
 const getDurationByTokenWeight = ({ config }) => (tokens, payoutImpact) => {
   const { minVotingPeriodDays, maxVotingPeriodDays } = config;
   const MULTIPLIER = '10'; // 10x the cover amount
@@ -133,7 +111,7 @@ const getDurationByConsensus = ({ config }) => ({ accepted, denied }) => {
 };
 
 const stakeAndVoteOnEventType = (eventType, assessment, accounts) => async (userIndex, amount, id, accepted) => {
-  const assessor = accounts[userIndex];
+  const assessor = accounts.members[userIndex];
   await assessment.connect(assessor).depositStake(amount);
   await assessment.connect(assessor).castVote(eventType, id, accepted);
   if (eventType === EVENT_TYPE.CLAIM) {
@@ -148,27 +126,17 @@ const stakeAndVoteOnEventType = (eventType, assessment, accounts) => async (user
   }
 };
 
-const getConfigurationStruct = ({
+const getConfigurationStruct = ({ minVotingPeriodDays, stakeLockupPeriodDays, payoutCooldownDays }) => [
   minVotingPeriodDays,
-  maxVotingPeriodDays,
+  stakeLockupPeriodDays,
   payoutCooldownDays,
-  rewardRatio,
-  incidentExpectedPayoutRatio,
-  claimAssessmentDepositRatio,
-}) => [
-  minVotingPeriodDays,
-  maxVotingPeriodDays,
-  payoutCooldownDays,
-  rewardRatio,
-  incidentExpectedPayoutRatio,
-  claimAssessmentDepositRatio,
 ];
 
 const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
 
 const getVoteStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
 
-const getClaimDetailsStruct = ({
+const getClaimStruct = ({
   amount,
   coverId,
   coverPeriod,
@@ -178,7 +146,7 @@ const getClaimDetailsStruct = ({
   payoutRedeemed,
 }) => [amount, coverId, coverPeriod, payoutAsset, nxmPriceSnapshot, assessmentDepositRatio, payoutRedeemed];
 
-const getIncidentDetailsStruct = ({
+const getIncidentStruct = ({
   productId,
   date,
   payoutAsset,
@@ -188,17 +156,15 @@ const getIncidentDetailsStruct = ({
 }) => [productId, date, payoutAsset, activeCoverAmount, expectedPayoutRatio, assessmentDepositRatio];
 
 module.exports = {
-  ASSET,
   STATUS,
-  EVENT_TYPE,
   daysToSeconds,
+  setTime,
   submitFraud,
-  submitClaim,
   burnFraud,
   getPollStruct,
   getConfigurationStruct,
-  getClaimDetailsStruct,
-  getIncidentDetailsStruct,
+  getClaimStruct,
+  getIncidentStruct,
   getVoteStruct,
   getDurationByTokenWeight,
   getDurationByConsensus,

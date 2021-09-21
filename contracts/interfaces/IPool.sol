@@ -25,7 +25,7 @@ interface IPool {
   );
 
   function sendClaimPayout (
-    address asset,
+    uint assetId,
     address payable payoutAddress,
     uint amount
   ) external returns (bool success);
@@ -57,7 +57,7 @@ interface IPool {
 
   function calculateTokenSpotPrice(uint totalAssetValue, uint mcrEth) external pure returns (uint tokenPrice);
 
-  function getTokenPrice(address asset) external view returns (uint tokenPrice);
+  function getTokenPrice(uint assetId) external view returns (uint tokenPrice);
 
   function getMCRRatio() external view returns (uint);
 }

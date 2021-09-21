@@ -253,7 +253,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
 
       uint capacityFactor = capacityFactors[cover.productId];
-      (uint basePrice, uint premiumInNXM) = getPrice(cover.productId, extraPeriod, cover.productId, stakingPool);
+      (uint basePrice, uint premiumInNXM) = getPrice(stakingPools[i].coverAmount, extraPeriod, cover.productId, stakingPool);
       lastPrices[cover.productId][address(stakingPool)] = basePrice;
       lastPriceUpdate[cover.productId][address(stakingPool)] = block.timestamp;
 

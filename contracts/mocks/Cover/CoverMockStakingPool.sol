@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "../../interfaces/IStakingPool.sol";
+import "hardhat/console.sol";
 
 contract CoverMockStakingPool is IStakingPool {
 
@@ -29,7 +30,7 @@ contract CoverMockStakingPool is IStakingPool {
     uint newRewardAmount,
     uint coveredAmount
   ) external override {
-    revert("Unsupported");
+    // no-op
   }
 
   function reducePeriod(
@@ -40,7 +41,7 @@ contract CoverMockStakingPool is IStakingPool {
     uint periodReduction,
     uint coveredAmount
   ) external override {
-    revert("Unsupported");
+    // no-op
   }
 
   function reduceAmount(
@@ -52,7 +53,7 @@ contract CoverMockStakingPool is IStakingPool {
     uint newRewardAmount,
     uint newAmount
   ) external override {
-    revert("Unsupported");
+    // no-op
   }
 
   function getAvailableCapacity(uint productId, uint capacityFactor) external override view returns (uint) {

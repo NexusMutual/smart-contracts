@@ -11,7 +11,7 @@ const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
 const { toBN } = web3.utils;
 
-describe('buyCover', function () {
+describe.only('addPeriodAndReduceAmount', function () {
 
   it('should purchase new cover', async function () {
     const { cover } = this;
@@ -53,15 +53,6 @@ describe('buyCover', function () {
     console.log({
       expectedPrice: expectedPrice.toString(),
     });
-    /*
-        address owner,
-    uint24 productId,
-    uint8 payoutAsset,
-    uint96 amount,
-    uint32 period,
-    uint maxPrice,
-    StakingPool[] memory stakingPools
-     */
 
     await cover.buyCover(
       coverBuyer1,
@@ -73,6 +64,22 @@ describe('buyCover', function () {
       [{ poolAddress: stakingPool.address, coverAmount: '0', premiumInNXM: '0' }],
       {
         value: expectedPrice,
+      },
+    );
+
+    const coverId = '0';
+    const extraPeriod = toBN(30 * 24 * 3600); // 30 days
+    const amountReduction = ether('10');
+    const maxPrice = ether('100000');
+
+    await cover.addPeriodAndReduceAmount(
+      coverId,
+      extraPeriod,
+      amountReduction,
+      maxPrice,
+      {
+        from: coverBuyer1,
+        value: maxPrice,
       },
     );
   });

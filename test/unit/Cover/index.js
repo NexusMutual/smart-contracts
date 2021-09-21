@@ -15,4 +15,5 @@ describe('Cover unit tests', function () {
   require('./calculatePrice');
   require('./interpolatePrice');
   require('./buyCover');
+  require('./addPeriodAndReduceAmount');
 });

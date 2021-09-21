@@ -120,7 +120,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       ));
 
     coverId = covers.length - 1;
-    _safeMint(msg.sender, coverId);
+    _safeMint(owner, coverId);
   }
 
   function buyCoverFromPool(
@@ -160,7 +160,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint96 amount,
     uint maxPrice,
     StakingPool[] memory stakingPools
-  ) external returns (uint) {
+  ) external payable returns (uint) {
     require(_isApprovedOrOwner(_msgSender(), coverId), "Cover: caller is not owner nor approved");
 
     Cover memory cover = covers[coverId];
@@ -196,7 +196,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint96 amount,
     uint maxPrice,
     StakingPool[] memory stakingPools
-  ) external returns (uint) {
+  ) external payable returns (uint) {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
 
@@ -274,7 +274,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     _safeMint(msg.sender, newCoverId);
   }
 
-  function addPeriod(uint coverId, uint32 extraPeriod, uint maxPrice) external {
+  function addPeriod(uint coverId, uint32 extraPeriod, uint maxPrice) external payable {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
     uint premiumInAsset = _addPeriod(coverId, extraPeriod);
@@ -324,7 +324,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint96 amount,
     uint maxPrice,
     StakingPool[] memory stakingPools
-  ) external returns (uint) {
+  ) external payable returns (uint) {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
 
@@ -372,10 +372,10 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint coverId,
     uint32 extraPeriod,
     uint96 amountReduction,
-    uint maxPrice,
-    StakingPool[] memory stakingPools
-  ) external returns (uint) {
+    uint maxPrice
+  ) external payable returns (uint) {
 
+    console.log("addPeriodAndReduceAmount 1");
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
 
     Cover storage currentCover = covers[coverId];
@@ -390,6 +390,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint newTotalCoverAmount = newCover.amount - amountReduction;
 
     uint newCoverId = covers.length;
+
+    console.log("addPeriodAndReduceAmount 2");
 
     // reduce amount
     for (uint i = 0; i < newStakingPools.length; i++) {
@@ -407,6 +409,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         newStakingPools[i].coverAmount
       );
 
+      console.log("addPeriodAndReduceAmount 3");
+
       // TODO: fix this. it should be proportional to the remaining period as well
       newStakingPools[i].premiumInNXM =
       uint96(uint(newStakingPools[i].premiumInNXM) * newTotalCoverAmount / newCover.amount);
@@ -416,19 +420,33 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       stakingPoolsForCover[newCoverId].push(newStakingPools[i]);
     }
 
-    // make the current cover expire at current block
-    currentCover.period = uint32(block.timestamp) - currentCover.start;
+
+    console.log("addPeriodAndReduceAmount 4");
 
     newCover.start = uint32(block.timestamp);
     // new period is the remaining period
     newCover.period = currentCover.period - (uint32(block.timestamp) - currentCover.start);
+    newCover.amount = newTotalCoverAmount;
     covers.push(newCover);
     // mint the new cover
     _safeMint(msg.sender, newCoverId);
 
-    // the refund is proportional to the amount reduction and the period remaining
-    uint refund = currentCover.amount * amountReduction / newCover.amount * newCover.period / currentCover.period;
+    console.log("addPeriodAndReduceAmount 4.5");
 
+
+    console.log("addPeriodAndReduceAmount 5");
+
+    console.log("currentCover.amount", currentCover.amount);
+    console.log("currentCover.period", currentCover.period);
+
+    // the refund is proportional to the amount reduction and the period remaining
+    uint refund = currentCover.amount
+      * amountReduction / newCover.amount
+      * uint96(newCover.period) / uint96(currentCover.period);
+
+    console.log("addPeriodAndReduceAmount 5");
+    // make the current cover expire at current block
+    currentCover.period = uint32(block.timestamp) - currentCover.start;
     // adjust premium on current cover
     currentCover.premium = currentCover.premium - uint96(refund);
 

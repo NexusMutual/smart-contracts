@@ -10,7 +10,7 @@ const { toBN } = web3.utils;
 
 describe('calculatePrice', function () {
 
-  it.only('should calculate price correctly for high active cover', async function () {
+  it('should calculate price correctly for high active cover', async function () {
     const { cover } = this;
 
     const amount = ether('1000');

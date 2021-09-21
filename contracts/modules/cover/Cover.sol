@@ -172,7 +172,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     StakingPool[] storage originalPools = stakingPoolsForCover[covers.length];
 
-    uint32 period = uint32(block.timestamp) - cover.start;
+    uint32 remainingPeriod = originalCover.start + originalCover.period - uint32(block.timestamp);
     // convert to NXM amount
     uint amountToCover = uint(amount) * 1e18 / pool().getTokenPrice(pool().assets(cover.payoutAsset));
     uint totalPremiumInNXM = 0;
@@ -182,7 +182,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       }
 
       IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
-      (uint coveredAmount, uint premiumInNXM) = buyCoverFromPool(stakingPool, cover.productId, amountToCover, period);
+      (uint coveredAmount, uint premiumInNXM) = buyCoverFromPool(stakingPool, cover.productId, amountToCover, remainingPeriod);
       amountToCover -= coveredAmount;
       totalPremiumInNXM += premiumInNXM;
 
@@ -208,7 +208,10 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     }
     require(amountToCover == 0, "Not enough available capacity");
 
-    premiumInAsset = totalPremiumInNXM * pool().getTokenPrice(pool().assets(cover.payoutAsset)) / 1e18;
+    {
+      IPool pool = pool();
+      premiumInAsset = totalPremiumInNXM * pool.getTokenPrice(pool.assets(cover.payoutAsset)) / 1e18;
+    }
 
     // make the previous cover expire at current block
     uint32 newPeriod = uint32(block.timestamp) - cover.start;
@@ -285,22 +288,22 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     require(cover.period - (block.timestamp - cover.start) > periodReduction, "Cover: periodReduction > remaining period");
 
-    StakingPool[] storage currentStakingPools = stakingPoolsForCover[covers.length];
+    StakingPool[] storage originalPools = stakingPoolsForCover[covers.length];
 
     // reduce period
-    for (uint i = 0; i < currentStakingPools.length; i++) {
-      IStakingPool stakingPool = IStakingPool(currentStakingPools[i].poolAddress);
+    for (uint i = 0; i < originalPools.length; i++) {
+      IStakingPool stakingPool = IStakingPool(originalPools[i].poolAddress);
 
       stakingPool.reducePeriod(
         cover.productId,
         cover.period,
         cover.start,
-        REWARD_BPS * currentStakingPools[i].premiumInNXM / BASIS_PRECISION,
+        REWARD_BPS * originalPools[i].premiumInNXM / BASIS_PRECISION,
         periodReduction,
-        currentStakingPools[i].coverAmount
+        originalPools[i].coverAmount
       );
 
-      currentStakingPools[i].premiumInNXM = currentStakingPools[i].premiumInNXM * (cover.period - periodReduction) / cover.period;
+      originalPools[i].premiumInNXM = originalPools[i].premiumInNXM * (cover.period - periodReduction) / cover.period;
     }
 
     uint refund = cover.premium * periodReduction / cover.period;
@@ -309,7 +312,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     cover.period = cover.period - periodReduction;
     cover.premium = cover.premium - uint96(refund);
 
-    (uint newCoverId, uint premiumInAsset) = _addAmount(coverId, amount, currentStakingPools);
+    (uint newCoverId, uint premiumInAsset) = _addAmount(coverId, amount, stakingPools);
 
     require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
 

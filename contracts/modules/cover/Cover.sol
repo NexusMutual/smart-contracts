@@ -68,7 +68,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint32 period,
     uint maxPrice,
     StakingPool[] memory stakingPools
-  ) external payable override returns (uint /*coverId*/) {
+  ) external payable override onlyMember returns (uint /*coverId*/) {
     require(initialPrices[productId] != 0, "Cover: product not initialized");
 
 
@@ -149,7 +149,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint96 amount,
     uint maxPrice,
     StakingPool[] memory stakingPools
-  ) external payable returns (uint) {
+  ) external payable onlyMember returns (uint) {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
 
@@ -234,7 +234,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     _safeMint(msg.sender, newCoverId);
   }
 
-  function addPeriod(uint coverId, uint32 extraPeriod, uint maxPrice) external payable {
+  function addPeriod(uint coverId, uint32 extraPeriod, uint maxPrice) external payable onlyMember {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
     uint premiumInAsset = _addPeriod(coverId, extraPeriod);
@@ -251,7 +251,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint totalPremiumInNXM = 0;
     for (uint i = 0; i < stakingPools.length; i++) {
       IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
-      
+
       (uint basePrice, uint premiumInNXM) = getPrice(stakingPools[i].coverAmount, extraPeriod, cover.productId, stakingPool);
       lastPrices[cover.productId][address(stakingPool)] = basePrice;
       lastPriceUpdate[cover.productId][address(stakingPool)] = block.timestamp;
@@ -283,7 +283,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint96 amount,
     uint maxPrice,
     StakingPool[] memory stakingPools
-  ) external payable returns (uint) {
+  ) external payable onlyMember returns (uint) {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
 
@@ -332,7 +332,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint32 extraPeriod,
     uint96 amountReduction,
     uint maxPrice
-  ) external payable returns (uint) {
+  ) external payable onlyMember returns (uint) {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
 
@@ -503,7 +503,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
   /* ========== PRODUCT CONFIGURATION ========== */
 
-  function setCapacityFactor(uint productId, uint capacityFactor) external onlyAdvisoryBoard {
+  function setCapacityFactor(uint productId, uint capacityFactor) external onlyGovernance {
     capacityFactors[productId] = capacityFactor;
   }
 

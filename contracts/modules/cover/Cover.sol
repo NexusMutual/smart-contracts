@@ -71,20 +71,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   ) external payable override returns (uint /*coverId*/) {
     require(initialPrices[productId] != 0, "Cover: product not initialized");
 
-    (uint coverId, uint priceInAsset) = _createCover(owner, productId, payoutAsset, amount, period, stakingPools);
-    require(priceInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
-    retrievePayment(priceInAsset, payoutAsset);
-    return coverId;
-  }
-
-  function _createCover(
-    address owner,
-    uint24 productId,
-    uint8 payoutAsset,
-    uint96 amount,
-    uint32 period,
-    StakingPool[] memory stakingPools
-  ) internal returns (uint coverId, uint premiumInAsset) {
 
     IPool pool = pool();
     // convert to NXM amount
@@ -108,7 +94,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     }
     require(amountLeftToCoverInNXM == 0, "Not enough available capacity");
 
-    premiumInAsset = totalPremiumInNXM * pool.getTokenPrice(pool.assets(payoutAsset)) / 1e18;
+    uint premiumInAsset = totalPremiumInNXM * pool.getTokenPrice(pool.assets(payoutAsset)) / 1e18;
 
     covers.push(Cover(
         productId,
@@ -119,8 +105,12 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         uint96(premiumInAsset)
       ));
 
-    coverId = covers.length - 1;
+    uint coverId = covers.length - 1;
     _safeMint(owner, coverId);
+
+    require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
+    retrievePayment(premiumInAsset, payoutAsset);
+    return coverId;
   }
 
   function buyCoverFromPool(
@@ -154,43 +144,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     return (coveredAmount, premiumInNXM);
   }
 
-  function extendCover(
-    uint coverId,
-    uint32 period,
-    uint96 amount,
-    uint maxPrice,
-    StakingPool[] memory stakingPools
-  ) external payable returns (uint) {
-    require(_isApprovedOrOwner(_msgSender(), coverId), "Cover: caller is not owner nor approved");
-
-    Cover memory cover = covers[coverId];
-    (uint newCoverId, uint priceInAsset) = _createCover(
-      ERC721.ownerOf(coverId),
-      cover.productId,
-      cover.payoutAsset,
-      amount,
-      period,
-      stakingPools
-    );
-
-    // make the cover expire at current block
-    uint32 previousPeriod = covers[coverId].period;
-
-    // new period is the remaining time
-    uint32 newPeriod = previousPeriod - (uint32(block.timestamp) - cover.start);
-    uint priceAlreadyPaid = (previousPeriod - newPeriod) / previousPeriod * cover.premium;
-    covers[coverId].period = newPeriod;
-
-    if (priceInAsset > priceAlreadyPaid) {
-      // get price for already paid asset
-      uint priceToBePaid = priceInAsset - priceAlreadyPaid;
-      require(priceToBePaid <= maxPrice, "Cover: Price exceeds maxPrice");
-      retrievePayment(priceToBePaid, cover.payoutAsset);
-    }
-
-    return newCoverId;
-  }
-
   function addAmount(
     uint coverId,
     uint96 amount,
@@ -213,11 +166,11 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     StakingPool[] memory stakingPools
   ) internal returns (uint newCoverId, uint premiumInAsset) {
 
-    Cover memory previousCover = covers[coverId];
+    Cover memory originalCover = covers[coverId];
     // clone the existing cover
     Cover memory cover = covers[coverId];
 
-    StakingPool[] storage currentStakingPools = stakingPoolsForCover[covers.length];
+    StakingPool[] storage originalPools = stakingPoolsForCover[covers.length];
 
     uint32 period = uint32(block.timestamp) - cover.start;
     // convert to NXM amount
@@ -234,15 +187,15 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       totalPremiumInNXM += premiumInNXM;
 
       uint j = 0;
-      for ( ; j < currentStakingPools.length; j++) {
-        if (currentStakingPools[j].poolAddress == stakingPools[i].poolAddress) {
-          currentStakingPools[j].coverAmount += uint96(coveredAmount);
-          currentStakingPools[j].premiumInNXM += uint96(premiumInNXM);
+      for ( ; j < originalPools.length; j++) {
+        if (originalPools[j].poolAddress == stakingPools[i].poolAddress) {
+          originalPools[j].coverAmount += uint96(coveredAmount);
+          originalPools[j].premiumInNXM += uint96(premiumInNXM);
           break;
         }
       }
 
-      if (j < currentStakingPools.length) {
+      if (j < originalPools.length) {
         continue;
       }
 
@@ -264,7 +217,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     cover.amount += amount;
     cover.premium += uint96(premiumInAsset);
     cover.start = uint32(block.timestamp);
-    cover.period = uint32(block.timestamp) - previousCover.start;
+    cover.period = uint32(block.timestamp) - originalCover.start;
 
     covers.push(cover);
 

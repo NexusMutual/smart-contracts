@@ -167,14 +167,12 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   ) internal returns (uint newCoverId, uint premiumInAsset) {
 
     Cover storage originalCover = covers[coverId];
-    // clone the existing cover
-    Cover memory cover = covers[coverId];
 
     StakingPool[] storage originalPools = stakingPoolsForCover[covers.length];
 
     uint32 remainingPeriod = originalCover.start + originalCover.period - uint32(block.timestamp);
     // convert to NXM amount
-    uint amountToCover = uint(amount) * 1e18 / pool().getTokenPrice(pool().assets(cover.payoutAsset));
+    uint amountToCover = uint(amount) * 1e18 / pool().getTokenPrice(pool().assets(originalCover.payoutAsset));
     uint totalPremiumInNXM = 0;
     for (uint i = 0; i < stakingPools.length; i++) {
       if (amountToCover == 0) {
@@ -182,7 +180,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       }
 
       IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
-      (uint coveredAmount, uint premiumInNXM) = buyCoverFromPool(stakingPool, cover.productId, amountToCover, remainingPeriod);
+      (uint coveredAmount, uint premiumInNXM) = buyCoverFromPool(stakingPool, originalCover.productId, amountToCover, remainingPeriod);
       amountToCover -= coveredAmount;
       totalPremiumInNXM += premiumInNXM;
 
@@ -210,7 +208,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     {
       IPool pool = pool();
-      premiumInAsset = totalPremiumInNXM * pool.getTokenPrice(pool.assets(cover.payoutAsset)) / 1e18;
+      premiumInAsset = totalPremiumInNXM * pool.getTokenPrice(pool.assets(originalCover.payoutAsset)) / 1e18;
     }
 
     // make the previous cover expire at current block
@@ -221,12 +219,16 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     originalCover.period = elapsedPeriod;
     covers[coverId].premium = updatedOriginalPremium;
 
-    cover.amount += amount;
-    cover.premium = carriedPremium + uint96(premiumInAsset);
-    cover.start = uint32(block.timestamp);
-    cover.period = remainingPeriod;
-
-    covers.push(cover);
+    covers.push(
+      Cover(
+        originalCover.productId,
+        originalCover.payoutAsset,
+        originalCover.amount + amount,
+        uint32(block.timestamp), // start
+        remainingPeriod,
+        uint96(premiumInAsset + carriedPremium)
+      )
+    );
 
     newCoverId = covers.length - 1;
 

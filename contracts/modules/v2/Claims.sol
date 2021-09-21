@@ -250,10 +250,11 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       ) = cover().products(productId);
       (
         /*string descriptionIpfsHash*/,
-        /*uint8 redeemMethod*/,
+        uint8 redeemMethod,
         uint16 gracePeriodInDays,
         /*uint16 burnRatio*/
       ) = cover().productTypes(productType);
+      require(redeemMethod == uint8(ICover.RedeemMethod.Claim), "Invalid redeem method");
       require(requestedAmount <= coverAmount, "Covered amount exceeded");
       require(coverStart <= block.timestamp, "Cover starts in the future");
       require(coverStart + coverPeriod + gracePeriodInDays * 1 days > block.timestamp, "Cover is outside the grace period");

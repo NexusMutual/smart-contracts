@@ -83,6 +83,19 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
       date,
       priceBefore
     );
+    (
+      uint16 productType,
+      /*coveredToken*/,
+      /*capacityFactor*/,
+      /*payoutAddress*/
+    ) = cover().products(productId);
+    (
+      /*string descriptionIpfsHash*/,
+      uint8 redeemMethod,
+      /*uint gracePeriod*/,
+      /*uint16 burnRatio*/
+    ) = cover().productTypes(productType);
+    require(redeemMethod == uint8(ICover.RedeemMethod.Incident), "Invalid redeem method");
 
     uint expectedPayoutInNXM = activeCoverAmountInNXM * config.incidentExpectedPayoutRatio *
       PRECISION / RATIO_BPS;
@@ -147,28 +160,29 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
           maxAmount = coverAmount * PRECISION / deductiblePriceBefore;
           require(depeggedTokens <= maxAmount, "Amount exceeds sum assured");
         }
-
         payoutAmount = depeggedTokens * coverAmount / maxAmount;
+      }
+      {
+        require(payoutAmount <= coverAmount, "Payout exceeds covered amount");
+        coverContract.performPayoutBurn(coverId, coverOwner, payoutAmount);
+        require(start + period >= incident.date, "Cover end date is before the incident");
+        uint16 productType;
         (
-          /*productType*/,
+          productType,
           coveredToken,
           /*capacityFactor*/,
           /*payoutAddress*/
         ) = cover().products(productId);
+        (
+          /*string descriptionIpfsHash*/,
+          /*uint8 redeemMethod*/,
+          uint gracePeriod,
+          /*uint16 burnRatio*/
+        ) = cover().productTypes(productType);
+        require(start + period + gracePeriod * 1 days>= block.timestamp, "Grace period has expired");
+        require(productId == incident.productId, "Product id mismatch");
+        require(start <= incident.date, "Cover start date is after the incident");
       }
-      require(payoutAmount <= coverAmount, "Payout exceeds covered amount");
-      coverContract.performPayoutBurn(coverId, coverOwner, payoutAmount);
-      require(start + period >= incident.date, "Cover end date is before the incident");
-      (
-        /*string descriptionIpfsHash*/,
-        /*uint8 redeemMethod*/,
-        uint gracePeriod,
-        /*uint16 burnRatio*/
-      ) = cover().productTypes(productId);
-      require(start + period + gracePeriod * 1 days>= block.timestamp, "Grace period has expired");
-
-      require(productId == incident.productId, "Product id mismatch");
-      require(start <= incident.date, "Cover start date is after the incident");
     }
 
 

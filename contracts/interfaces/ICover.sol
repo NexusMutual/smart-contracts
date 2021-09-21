@@ -8,6 +8,11 @@ interface ICover is IERC721 {
 
   /* ========== DATA STRUCTURES ========== */
 
+  enum RedeemMethod {
+    Claim,
+    Incident
+  }
+
   struct StakingPool {
     address poolAddress;
     uint96 coverAmount;

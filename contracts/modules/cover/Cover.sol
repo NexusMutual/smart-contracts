@@ -6,7 +6,6 @@ import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IPool.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IMemberRoles.sol";
-import "hardhat/console.sol";
 
 
 contract Cover is ICover, ERC721, MasterAwareV2 {
@@ -87,8 +86,9 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     StakingPool[] memory stakingPools
   ) internal returns (uint coverId, uint premiumInAsset) {
 
+    IPool pool = pool();
     // convert to NXM amount
-    uint amountLeftToCoverInNXM = uint(amount) * 1e18 / pool().getTokenPrice(pool().assets(payoutAsset));
+    uint amountLeftToCoverInNXM = uint(amount) * 1e18 / pool.getTokenPrice(pool.assets(payoutAsset));
     activeCoverAmountInNXM[productId] += uint96(amountLeftToCoverInNXM);
 
     uint totalPremiumInNXM = 0;
@@ -108,7 +108,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     }
     require(amountLeftToCoverInNXM == 0, "Not enough available capacity");
 
-    premiumInAsset = totalPremiumInNXM * pool().getTokenPrice(pool().assets(payoutAsset)) / 1e18;
+    premiumInAsset = totalPremiumInNXM * pool.getTokenPrice(pool.assets(payoutAsset)) / 1e18;
 
     covers.push(Cover(
         productId,
@@ -375,7 +375,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint maxPrice
   ) external payable returns (uint) {
 
-    console.log("addPeriodAndReduceAmount 1");
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
 
     Cover storage currentCover = covers[coverId];
@@ -390,8 +389,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint newTotalCoverAmount = newCover.amount - amountReduction;
 
     uint newCoverId = covers.length;
-
-    console.log("addPeriodAndReduceAmount 2");
 
     // reduce amount
     for (uint i = 0; i < newStakingPools.length; i++) {
@@ -409,8 +406,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         newStakingPools[i].coverAmount
       );
 
-      console.log("addPeriodAndReduceAmount 3");
-
       // TODO: fix this. it should be proportional to the remaining period as well
       newStakingPools[i].premiumInNXM =
       uint96(uint(newStakingPools[i].premiumInNXM) * newTotalCoverAmount / newCover.amount);
@@ -420,31 +415,19 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       stakingPoolsForCover[newCoverId].push(newStakingPools[i]);
     }
 
-
-    console.log("addPeriodAndReduceAmount 4");
-
     newCover.start = uint32(block.timestamp);
     // new period is the remaining period
     newCover.period = currentCover.period - (uint32(block.timestamp) - currentCover.start);
-    newCover.amount = newTotalCoverAmount;
+    newCover.amount = uint96(newTotalCoverAmount);
     covers.push(newCover);
     // mint the new cover
     _safeMint(msg.sender, newCoverId);
-
-    console.log("addPeriodAndReduceAmount 4.5");
-
-
-    console.log("addPeriodAndReduceAmount 5");
-
-    console.log("currentCover.amount", currentCover.amount);
-    console.log("currentCover.period", currentCover.period);
 
     // the refund is proportional to the amount reduction and the period remaining
     uint refund = currentCover.amount
       * amountReduction / newCover.amount
       * uint96(newCover.period) / uint96(currentCover.period);
 
-    console.log("addPeriodAndReduceAmount 5");
     // make the current cover expire at current block
     currentCover.period = uint32(block.timestamp) - currentCover.start;
     // adjust premium on current cover

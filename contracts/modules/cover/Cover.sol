@@ -166,7 +166,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     StakingPool[] memory stakingPools
   ) internal returns (uint newCoverId, uint premiumInAsset) {
 
-    Cover memory originalCover = covers[coverId];
+    Cover storage originalCover = covers[coverId];
     // clone the existing cover
     Cover memory cover = covers[coverId];
 
@@ -214,13 +214,17 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     }
 
     // make the previous cover expire at current block
-    uint32 newPeriod = uint32(block.timestamp) - cover.start;
-    uint32 previousPeriod = covers[coverId].period;
+    uint32 elapsedPeriod = originalCover.period - remainingPeriod;
+    uint96 updatedOriginalPremium = originalCover.premium * elapsedPeriod / originalCover.period;
+    uint96 carriedPremium = originalCover.premium - updatedOriginalPremium;
+
+    originalCover.period = elapsedPeriod;
+    covers[coverId].premium = updatedOriginalPremium;
 
     cover.amount += amount;
-    cover.premium += uint96(premiumInAsset);
+    cover.premium = carriedPremium + uint96(premiumInAsset);
     cover.start = uint32(block.timestamp);
-    cover.period = uint32(block.timestamp) - originalCover.start;
+    cover.period = remainingPeriod;
 
     covers.push(cover);
 

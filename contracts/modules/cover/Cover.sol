@@ -186,7 +186,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       uint j = 0;
       for ( ; j < originalPools.length; j++) {
         if (originalPools[j].poolAddress == stakingPools[i].poolAddress) {
-          originalPools[j].coverAmount += uint96(coveredAmount);
+          originalPools[j].coverAmountInNXM += uint96(coveredAmount);
           originalPools[j].premiumInNXM += uint96(premiumInNXM);
           break;
         }
@@ -253,7 +253,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     for (uint i = 0; i < stakingPools.length; i++) {
       IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
 
-      (uint basePrice, uint premiumInNXM) = getPrice(stakingPools[i].coverAmount, extraPeriod, cover.productId, stakingPool);
+      (uint basePrice, uint premiumInNXM) = getPrice(stakingPools[i].coverAmountInNXM, extraPeriod, cover.productId, stakingPool);
       lastPrices[cover.productId][address(stakingPool)] = basePrice;
       lastPriceUpdate[cover.productId][address(stakingPool)] = block.timestamp;
 
@@ -304,7 +304,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         cover.start,
         REWARD_BPS * originalPools[i].premiumInNXM / BASIS_PRECISION,
         periodReduction,
-        originalPools[i].coverAmount
+        originalPools[i].coverAmountInNXM
       );
 
       originalPools[i].premiumInNXM = originalPools[i].premiumInNXM * (cover.period - periodReduction) / cover.period;
@@ -355,7 +355,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       IStakingPool stakingPool = IStakingPool(newStakingPools[i].poolAddress);
 
       // reduce the amount per pool proportionately to the overall reduction
-      uint newCoverAmount = newStakingPools[i].coverAmount * newTotalCoverAmount / newCover.amount;
+      uint newCoverAmount = newStakingPools[i].coverAmountInNXM * newTotalCoverAmount / newCover.amount;
       stakingPool.reduceAmount(
         newCover.productId,
         newCover.period,
@@ -363,13 +363,13 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         REWARD_BPS * newStakingPools[i].premiumInNXM / BASIS_PRECISION,
         newCoverAmount,
         REWARD_BPS * (newStakingPools[i].premiumInNXM * newTotalCoverAmount / newCover.amount) / BASIS_PRECISION,
-        newStakingPools[i].coverAmount
+        newStakingPools[i].coverAmountInNXM
       );
 
       // TODO: fix this. it should be proportional to the remaining period as well
       newStakingPools[i].premiumInNXM =
       uint96(uint(newStakingPools[i].premiumInNXM) * newTotalCoverAmount / newCover.amount);
-      newStakingPools[i].coverAmount = uint96(newCoverAmount);
+      newStakingPools[i].coverAmountInNXM = uint96(newCoverAmount);
 
       // write the new staking pool with modified parameters
       stakingPoolsForCover[newCoverId].push(newStakingPools[i]);

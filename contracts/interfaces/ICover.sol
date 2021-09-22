@@ -10,7 +10,7 @@ interface ICover is IERC721 {
 
   struct CoverChunk {
     address poolAddress;
-    uint96 coverAmount;
+    uint96 coverAmountInNXM;
     uint96 premiumInNXM;
   }
 

@@ -67,7 +67,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint96 amount,
     uint32 period,
     uint maxPremiumInAsset,
-    CoverChunk[] memory stakingPools
+    CoverChunk[] calldata stakingPools
   ) external payable override onlyMember returns (uint /*coverId*/) {
     require(initialPrices[productId] != 0, "Cover: product not initialized");
 
@@ -147,7 +147,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint coverId,
     uint96 amount,
     uint maxPremiumInAsset,
-    CoverChunk[] memory stakingPools
+    CoverChunk[] calldata stakingPools
   ) external payable onlyMember returns (uint) {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
@@ -162,7 +162,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   function _increaseAmount(
     uint coverId,
     uint96 amount,
-    CoverChunk[] memory stakingPools
+    CoverChunk[] calldata stakingPools
   ) internal returns (uint newCoverId, uint premiumInAsset) {
 
     CoverData storage originalCover = covers[coverId];
@@ -283,7 +283,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint32 periodReduction,
     uint96 amount,
     uint maxPremiumInAsset,
-    CoverChunk[] memory stakingPools
+    CoverChunk[] calldata stakingPools
   ) external payable onlyMember returns (uint) {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");

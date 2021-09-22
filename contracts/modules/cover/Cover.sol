@@ -11,7 +11,7 @@ import "../../interfaces/IMemberRoles.sol";
 contract Cover is ICover, ERC721, MasterAwareV2 {
 
   Cover[] public override covers;
-  mapping(uint => StakingPool[]) stakingPoolsForCover;
+  mapping(uint => CoverChunk[]) stakingPoolsForCover;
 
   Product[] public override products;
   uint capacityFactor;
@@ -67,7 +67,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint96 amount,
     uint32 period,
     uint maxPremiumInAsset,
-    StakingPool[] memory stakingPools
+    CoverChunk[] memory stakingPools
   ) external payable override onlyMember returns (uint /*coverId*/) {
     require(initialPrices[productId] != 0, "Cover: product not initialized");
 
@@ -89,7 +89,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       amountLeftToCoverInNXM -= coveredAmount;
       totalPremiumInNXM += premiumInNXM;
       stakingPoolsForCover[covers.length].push(
-        StakingPool(address(stakingPool), uint96(coveredAmount), uint96(premiumInNXM))
+        CoverChunk(address(stakingPool), uint96(coveredAmount), uint96(premiumInNXM))
       );
     }
     require(amountLeftToCoverInNXM == 0, "Not enough available capacity");
@@ -137,7 +137,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     );
 
     stakingPoolsForCover[covers.length].push(
-      StakingPool(address(stakingPool), uint96(coveredAmount), uint96(premiumInNXM))
+      CoverChunk(address(stakingPool), uint96(coveredAmount), uint96(premiumInNXM))
     );
 
     return (coveredAmount, premiumInNXM);
@@ -147,7 +147,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint coverId,
     uint96 amount,
     uint maxPremiumInAsset,
-    StakingPool[] memory stakingPools
+    CoverChunk[] memory stakingPools
   ) external payable onlyMember returns (uint) {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
@@ -162,12 +162,12 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   function _increaseAmount(
     uint coverId,
     uint96 amount,
-    StakingPool[] memory stakingPools
+    CoverChunk[] memory stakingPools
   ) internal returns (uint newCoverId, uint premiumInAsset) {
 
     Cover storage originalCover = covers[coverId];
 
-    StakingPool[] storage originalPools = stakingPoolsForCover[covers.length];
+    CoverChunk[] storage originalPools = stakingPoolsForCover[covers.length];
 
     uint32 remainingPeriod = originalCover.start + originalCover.period - uint32(block.timestamp);
     // convert to NXM amount
@@ -197,7 +197,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       }
 
       stakingPoolsForCover[covers.length].push(
-        StakingPool(
+        CoverChunk(
           address(stakingPool),
           uint96(coveredAmount),
           uint96(premiumInNXM)
@@ -247,7 +247,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   function _increasePeriod(uint coverId, uint32 extraPeriod) internal returns (uint) {
 
     Cover storage cover = covers[coverId];
-    StakingPool[] storage stakingPools = stakingPoolsForCover[covers.length];
+    CoverChunk[] storage stakingPools = stakingPoolsForCover[covers.length];
 
     uint extraPremiumInNXM = 0;
     for (uint i = 0; i < stakingPools.length; i++) {
@@ -283,7 +283,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint32 periodReduction,
     uint96 amount,
     uint maxPremiumInAsset,
-    StakingPool[] memory stakingPools
+    CoverChunk[] memory stakingPools
   ) external payable onlyMember returns (uint) {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
@@ -292,7 +292,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     require(cover.period - (block.timestamp - cover.start) > periodReduction, "Cover: periodReduction > remaining period");
 
-    StakingPool[] storage originalPools = stakingPoolsForCover[covers.length];
+    CoverChunk[] storage originalPools = stakingPoolsForCover[covers.length];
 
     // reduce period
     for (uint i = 0; i < originalPools.length; i++) {
@@ -344,7 +344,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     Cover memory newCover = covers[coverId];
 
     // clone existing staking pools
-    StakingPool[] memory newStakingPools = stakingPoolsForCover[coverId];
+    CoverChunk[] memory newStakingPools = stakingPoolsForCover[coverId];
 
     uint newTotalCoverAmount = newCover.amount - amountReduction;
 

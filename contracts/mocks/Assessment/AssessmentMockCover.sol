@@ -8,7 +8,7 @@ import "../../interfaces/ICover.sol";
 
 contract AssessmentMockCover is ICover, ERC721 {
   Cover[] public override covers;
-  mapping(uint => StakingPool[]) public stakingPoolsOfCover;
+  mapping(uint => CoverChunk[]) public stakingPoolsOfCover;
 
   constructor (string memory name_, string memory symbol_) ERC721(name_, symbol_) {
   }
@@ -20,7 +20,7 @@ contract AssessmentMockCover is ICover, ERC721 {
     uint96 amount,
     uint32 period,
     uint maxPrice,
-    StakingPool[] calldata stakingPools
+    CoverChunk[] calldata stakingPools
   ) external payable override returns (uint) {
     return _createCover(
       owner,
@@ -38,7 +38,7 @@ contract AssessmentMockCover is ICover, ERC721 {
     uint8 payoutAsset,
     uint96 amount,
     uint32 period,
-    StakingPool[] calldata stakingPools
+    CoverChunk[] calldata stakingPools
   ) external returns (uint) {
     return _createCover(
       owner,
@@ -56,7 +56,7 @@ contract AssessmentMockCover is ICover, ERC721 {
     uint8 payoutAsset,
     uint amount,
     uint period,
-    StakingPool[] memory stakingPools
+    CoverChunk[] memory stakingPools
   ) internal returns (uint) {
     uint coverId = covers.length;
     _safeMint(owner, coverId);
@@ -81,7 +81,7 @@ contract AssessmentMockCover is ICover, ERC721 {
     uint96 amount,
     uint start,
     uint period,
-    StakingPool[] calldata stakingPools
+    CoverChunk[] calldata stakingPools
   ) public {
     covers[coverId] = Cover(
       productId,
@@ -95,7 +95,7 @@ contract AssessmentMockCover is ICover, ERC721 {
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external override {
     Cover memory cover = covers[coverId];
-    StakingPool[] memory stakingPools = stakingPoolsOfCover[coverId];
+    CoverChunk[] memory stakingPools = stakingPoolsOfCover[coverId];
     // Perform staking burns here
     _createCover(
       owner,

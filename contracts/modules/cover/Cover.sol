@@ -14,7 +14,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   mapping(uint => StakingPool[]) stakingPoolsForCover;
 
   Product[] public override products;
-  mapping(uint => uint) capacityFactors;
+  uint capacityFactor;
 
   ProductType[] public override productTypes;
 
@@ -120,11 +120,10 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint32 period
   ) internal returns (uint, uint) {
 
-    uint availableCapacity = stakingPool.getAvailableCapacity(productId, capacityFactors[productId]);
+    uint availableCapacity = stakingPool.getAvailableCapacity(productId, capacityFactor);
 
     uint coveredAmount = amountToCover > availableCapacity ? availableCapacity : amountToCover;
 
-    uint capacityFactor = capacityFactors[productId];
     (uint basePrice, uint premiumInNXM) = getPrice(coveredAmount, period, productId, stakingPool);
     lastPrices[productId][address(stakingPool)] = basePrice;
     lastPriceUpdate[productId][address(stakingPool)] = block.timestamp;
@@ -445,7 +444,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       amount,
       basePrice,
       pool.getUsedCapacity(productId),
-      pool.getCapacity(productId, capacityFactors[productId])
+      pool.getCapacity(productId, capacityFactor)
     );
 
     uint price = pricePercentage * amount * period / 365 days / MAX_PRICE_PERCENTAGE;
@@ -505,8 +504,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
   /* ========== PRODUCT CONFIGURATION ========== */
 
-  function setCapacityFactor(uint productId, uint capacityFactor) external onlyGovernance {
-    capacityFactors[productId] = capacityFactor;
+  function setCapacityFactor(uint _capacityFactor) external onlyGovernance {
+    capacityFactor = _capacityFactor;
   }
 
   function setInitialPrice(uint productId, uint initialPrice) external onlyAdvisoryBoard {

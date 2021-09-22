@@ -14,7 +14,7 @@ interface ICover is IERC721 {
     uint96 premiumInNXM;
   }
 
-  struct Cover {
+  struct CoverData {
     uint24 productId;
     uint8 payoutAsset;
     uint96 amount;
@@ -56,7 +56,7 @@ interface ICover is IERC721 {
     uint8 payoutAsset,
     uint96 amount,
     uint32 period,
-    uint maxPrice,
+    uint maxPremiumInAsset,
     CoverChunk[] calldata stakingPools
   ) external payable returns (uint /*coverId*/);
 

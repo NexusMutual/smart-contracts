@@ -10,11 +10,11 @@ import "../../interfaces/IMemberRoles.sol";
 
 contract Cover is ICover, ERC721, MasterAwareV2 {
 
-  Cover[] public override covers;
+  CoverData[] public override covers;
   mapping(uint => CoverChunk[]) stakingPoolsForCover;
 
   Product[] public override products;
-  uint capacityFactor;
+  uint public capacityFactor;
 
   ProductType[] public override productTypes;
 
@@ -96,7 +96,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     uint premiumInAsset = totalPremiumInNXM * pool.getTokenPrice(pool.assets(payoutAsset)) / 1e18;
 
-    covers.push(Cover(
+    covers.push(CoverData(
         productId,
         payoutAsset,
         uint96(amount),
@@ -165,7 +165,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     CoverChunk[] memory stakingPools
   ) internal returns (uint newCoverId, uint premiumInAsset) {
 
-    Cover storage originalCover = covers[coverId];
+    CoverData storage originalCover = covers[coverId];
 
     CoverChunk[] storage originalPools = stakingPoolsForCover[covers.length];
 
@@ -219,7 +219,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     covers[coverId].premium = updatedOriginalPremium;
 
     covers.push(
-      Cover(
+      CoverData(
         originalCover.productId,
         originalCover.payoutAsset,
         originalCover.amount + amount,
@@ -246,7 +246,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
   function _increasePeriod(uint coverId, uint32 extraPeriod) internal returns (uint) {
 
-    Cover storage cover = covers[coverId];
+    CoverData storage cover = covers[coverId];
     CoverChunk[] storage stakingPools = stakingPoolsForCover[covers.length];
 
     uint extraPremiumInNXM = 0;
@@ -288,7 +288,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
 
-    Cover storage cover = covers[coverId];
+    CoverData storage cover = covers[coverId];
 
     require(cover.period - (block.timestamp - cover.start) > periodReduction, "Cover: periodReduction > remaining period");
 
@@ -337,11 +337,11 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
 
-    Cover storage currentCover = covers[coverId];
+    CoverData storage currentCover = covers[coverId];
     require(currentCover.amount > amountReduction, "Cover: amountReduction > cover.amount");
 
     // clone the existing cover
-    Cover memory newCover = covers[coverId];
+    CoverData memory newCover = covers[coverId];
 
     // clone existing staking pools
     CoverChunk[] memory newStakingPools = stakingPoolsForCover[coverId];
@@ -408,7 +408,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   }
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external onlyInternal override {
-    Cover memory cover = covers[coverId];
+    CoverData memory cover = covers[coverId];
   }
 
 

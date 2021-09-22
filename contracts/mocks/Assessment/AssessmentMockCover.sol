@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "../../interfaces/ICover.sol";
 
 contract AssessmentMockCover is ICover, ERC721 {
-  Cover[] public override covers;
+  CoverData[] public override covers;
   mapping(uint => CoverChunk[]) public stakingPoolsOfCover;
 
   constructor (string memory name_, string memory symbol_) ERC721(name_, symbol_) {
@@ -60,7 +60,7 @@ contract AssessmentMockCover is ICover, ERC721 {
   ) internal returns (uint) {
     uint coverId = covers.length;
     _safeMint(owner, coverId);
-    covers.push(Cover(
+    covers.push(CoverData(
       productId,
       payoutAsset,
       uint96(amount),
@@ -83,7 +83,7 @@ contract AssessmentMockCover is ICover, ERC721 {
     uint period,
     CoverChunk[] calldata stakingPools
   ) public {
-    covers[coverId] = Cover(
+    covers[coverId] = CoverData(
       productId,
       payoutAsset,
       amount,
@@ -94,7 +94,7 @@ contract AssessmentMockCover is ICover, ERC721 {
   }
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external override {
-    Cover memory cover = covers[coverId];
+    CoverData memory cover = covers[coverId];
     CoverChunk[] memory stakingPools = stakingPoolsOfCover[coverId];
     // Perform staking burns here
     _createCover(

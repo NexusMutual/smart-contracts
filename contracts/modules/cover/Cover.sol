@@ -67,7 +67,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint96 amount,
     uint32 period,
     uint maxPremiumInAsset,
-    CoverChunk[] calldata stakingPools
+    CoverChunk[] memory stakingPools
   ) external payable override onlyMember returns (uint /*coverId*/) {
     require(initialPrices[productId] != 0, "Cover: product not initialized");
 

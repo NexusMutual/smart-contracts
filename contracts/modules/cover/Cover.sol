@@ -66,7 +66,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint8 payoutAsset,
     uint96 amount,
     uint32 period,
-    uint maxPrice,
+    uint maxPremiumInAsset,
     StakingPool[] memory stakingPools
   ) external payable override onlyMember returns (uint /*coverId*/) {
     require(initialPrices[productId] != 0, "Cover: product not initialized");
@@ -108,7 +108,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint coverId = covers.length - 1;
     _safeMint(owner, coverId);
 
-    require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
+    require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
     retrievePayment(premiumInAsset, payoutAsset);
     return coverId;
   }
@@ -147,7 +147,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   function addAmount(
     uint coverId,
     uint96 amount,
-    uint maxPrice,
+    uint maxPremiumInAsset,
     StakingPool[] memory stakingPools
   ) external payable onlyMember returns (uint) {
 
@@ -155,7 +155,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     (uint coverId, uint premiumInAsset) = _addAmount(coverId, amount, stakingPools);
 
-    require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
+    require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
     retrievePayment(premiumInAsset, covers[coverId].payoutAsset);
     return coverId;
   }
@@ -236,21 +236,21 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     _safeMint(msg.sender, newCoverId);
   }
 
-  function addPeriod(uint coverId, uint32 extraPeriod, uint maxPrice) external payable onlyMember {
+  function increasePeriod(uint coverId, uint32 extraPeriod, uint maxPremiumInAsset) external payable onlyMember {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
-    uint premiumInAsset = _addPeriod(coverId, extraPeriod);
-    require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
+    uint premiumInAsset = _increasePeriod(coverId, extraPeriod);
+    require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     retrievePayment(premiumInAsset, covers[coverId].payoutAsset);
   }
 
-  function _addPeriod(uint coverId, uint32 extraPeriod) internal returns (uint) {
+  function _increasePeriod(uint coverId, uint32 extraPeriod) internal returns (uint) {
 
     Cover storage cover = covers[coverId];
     StakingPool[] storage stakingPools = stakingPoolsForCover[covers.length];
 
-    uint totalPremiumInNXM = 0;
+    uint extraPremiumInNXM = 0;
     for (uint i = 0; i < stakingPools.length; i++) {
       IStakingPool stakingPool = IStakingPool(stakingPools[i].poolAddress);
 
@@ -268,11 +268,11 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         cover.amount
       );
 
-      totalPremiumInNXM += premiumInNXM;
+      extraPremiumInNXM += premiumInNXM;
       stakingPools[i].premiumInNXM += uint96(premiumInNXM);
     }
 
-    uint premiumInAsset = totalPremiumInNXM * pool().getTokenPrice(pool().assets(cover.payoutAsset)) / 1e18;
+    uint premiumInAsset = extraPremiumInNXM * pool().getTokenPrice(pool().assets(cover.payoutAsset)) / 1e18;
 
     cover.period += extraPeriod;
 
@@ -283,7 +283,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint coverId,
     uint32 periodReduction,
     uint96 amount,
-    uint maxPrice,
+    uint maxPremiumInAsset,
     StakingPool[] memory stakingPools
   ) external payable onlyMember returns (uint) {
 
@@ -319,7 +319,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     (uint newCoverId, uint premiumInAsset) = _addAmount(coverId, amount, stakingPools);
 
-    require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
+    require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (premiumInAsset > refund) {
       // retrieve extra required payment
@@ -333,7 +333,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint coverId,
     uint32 extraPeriod,
     uint96 amountReduction,
-    uint maxPrice
+    uint maxPremiumInAsset
   ) external payable onlyMember returns (uint) {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
@@ -394,8 +394,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     // adjust premium on current cover
     currentCover.premium = currentCover.premium - uint96(refund);
 
-    uint premiumInAsset = _addPeriod(newCoverId, extraPeriod);
-    require(premiumInAsset <= maxPrice, "Cover: Price exceeds maxPrice");
+    uint premiumInAsset = _increasePeriod(newCoverId, extraPeriod);
+    require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (premiumInAsset > refund) {
       // retrieve extra required payment

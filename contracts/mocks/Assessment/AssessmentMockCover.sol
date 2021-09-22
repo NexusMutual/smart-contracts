@@ -115,7 +115,7 @@ contract AssessmentMockCover is ICover, ERC721 {
     revert("Unsupported");
   }
 
-  function products(uint id) external override view returns (uint16, address, uint16, uint) {
+  function products(uint id) external override view returns (uint16, uint24, uint16, uint) {
     revert("Unsupported");
   }
 }

@@ -144,7 +144,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     return (coveredAmount, premiumInNXM);
   }
 
-  function addAmount(
+  function increaseAmount(
     uint coverId,
     uint96 amount,
     uint maxPremiumInAsset,
@@ -153,14 +153,14 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
 
-    (uint coverId, uint premiumInAsset) = _addAmount(coverId, amount, stakingPools);
+    (uint coverId, uint premiumInAsset) = _increaseAmount(coverId, amount, stakingPools);
 
     require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
     retrievePayment(premiumInAsset, covers[coverId].payoutAsset);
     return coverId;
   }
 
-  function _addAmount(
+  function _increaseAmount(
     uint coverId,
     uint96 amount,
     StakingPool[] memory stakingPools
@@ -279,7 +279,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     return premiumInAsset;
   }
 
-  function addAmountAndReducePeriod(
+  function increaseAmountAndReducePeriod(
     uint coverId,
     uint32 periodReduction,
     uint96 amount,
@@ -317,7 +317,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     cover.period = cover.period - periodReduction;
     cover.premium = cover.premium - uint96(refund);
 
-    (uint newCoverId, uint premiumInAsset) = _addAmount(coverId, amount, stakingPools);
+    (uint newCoverId, uint premiumInAsset) = _increaseAmount(coverId, amount, stakingPools);
 
     require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
@@ -329,7 +329,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     return newCoverId;
   }
 
-  function addPeriodAndReduceAmount(
+  function increasePeriodAndReduceAmount(
     uint coverId,
     uint32 extraPeriod,
     uint96 amountReduction,

@@ -26,7 +26,6 @@ interface ICover is IERC721 {
   struct Product {
     uint16 productType;
     uint24 productId;
-    uint16 capacityFactor;
     /* supported payout assets bitmap TODO: explain */
     uint payoutAssets;
   }
@@ -35,16 +34,15 @@ interface ICover is IERC721 {
     string descriptionIpfsHash;
     uint8 redeemMethod;
     uint16 gracePeriodInDays;
-    uint16 burnRatio;
   }
 
   /* ========== VIEWS ========== */
 
   function covers(uint id) external view returns (uint24, uint8, uint96, uint32, uint32, uint96);
 
-  function products(uint id) external view returns (uint16, uint24, uint16, uint);
+  function products(uint id) external view returns (uint16, uint24, uint);
 
-  function productTypes(uint id) external view returns (string memory, uint8, uint16, uint16);
+  function productTypes(uint id) external view returns (string memory, uint8, uint16);
 
   function activeCoverAmountInNXM(uint id) external view returns (uint96);
 

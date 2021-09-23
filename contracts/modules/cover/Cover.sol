@@ -96,13 +96,11 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         period
       );
 
-      // TODO: re-enable
-      //      // carry over the amount that was not covered by the current pool to the next cover
-      //      if (coveredAmountInNXM < requestedCoverAmountInNXM && i + 1 < coverChunkRequests.length) {
-      //
-      //        // TODO: convert to asset
-      //        coverChunkRequests[i + 1].coverAmountInAsset += requestedCoverAmountInNXM - uint96(coveredAmountInNXM);
-      //      }
+      // carry over the amount that was not covered by the current pool to the next cover
+      if (coveredAmountInNXM < requestedCoverAmountInNXM && i + 1 < coverChunkRequests.length) {
+        coverChunkRequests[i + 1].coverAmountInAsset +=
+          (requestedCoverAmountInNXM - uint96(coveredAmountInNXM)) * tokenPrice / 1e18;
+      }
 
       amountLeftToCoverInNXM -= coveredAmountInNXM;
       totalPremiumInNXM += premiumInNXM;
@@ -180,7 +178,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   function _increaseAmount(
     uint coverId,
     uint96 amount,
-    CoverChunkRequest[] calldata coverChunkRequests
+    CoverChunkRequest[] memory coverChunkRequests
   ) internal returns (uint newCoverId, uint premiumInAsset) {
 
     CoverData storage originalCover = covers[coverId];
@@ -205,26 +203,32 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
           break;
         }
 
-        uint coveredAmount;
+        uint coveredAmountInNXM;
         uint premiumInNXM;
         {
           uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / tokenPrice;
-          (coveredAmount, premiumInNXM) = buyCoverFromPool(
+          (coveredAmountInNXM, premiumInNXM) = buyCoverFromPool(
             IStakingPool(coverChunkRequests[i].poolAddress),
             originalCover.productId,
             requestedCoverAmountInNXM,
             remainingPeriod
           );
+
+          // carry over the amount that was not covered by the current pool to the next cover
+          if (coveredAmountInNXM < requestedCoverAmountInNXM && i + 1 < coverChunkRequests.length) {
+            coverChunkRequests[i + 1].coverAmountInAsset +=
+            (requestedCoverAmountInNXM - uint96(coveredAmountInNXM)) * tokenPrice / 1e18;
+          }
         }
 
-        amountLeftToCoverInNXM -= coveredAmount;
+        amountLeftToCoverInNXM -= coveredAmountInNXM;
         totalPremiumInNXM += premiumInNXM;
 
         {
           uint j = 0;
           for ( ; j < originalCoverChunks.length; j++) {
             if (originalCoverChunks[j].poolAddress == coverChunkRequests[i].poolAddress) {
-              originalCoverChunks[j].coverAmountInNXM += uint96(coveredAmount);
+              originalCoverChunks[j].coverAmountInNXM += uint96(coveredAmountInNXM);
               originalCoverChunks[j].premiumInNXM += uint96(premiumInNXM);
               break;
             }
@@ -237,7 +241,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         coverChunksForCover[covers.length].push(
           CoverChunk(
             coverChunkRequests[i].poolAddress,
-            uint96(coveredAmount),
+            uint96(coveredAmountInNXM),
             uint96(premiumInNXM)
           ));
       }

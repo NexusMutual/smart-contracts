@@ -292,7 +292,11 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     for (uint i = 0; i < coverChunks.length; i++) {
       IStakingPool stakingPool = IStakingPool(coverChunks[i].poolAddress);
 
-      (uint basePrice, uint premiumInNXM) = getPrice(coverChunks[i].coverAmountInNXM, extraPeriod, cover.productId, stakingPool);
+      (uint basePrice, uint premiumInNXM) = getPrice(
+        coverChunks[i].coverAmountInNXM, extraPeriod,
+        cover.productId,
+        stakingPool
+      );
       lastPrices[cover.productId][address(stakingPool)] = basePrice;
       lastPriceUpdate[cover.productId][address(stakingPool)] = block.timestamp;
 
@@ -329,7 +333,10 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     CoverData storage cover = covers[coverId];
 
-    require(cover.period - (block.timestamp - cover.start) > periodReduction, "Cover: periodReduction > remaining period");
+    require(
+      cover.period - (block.timestamp - cover.start) > periodReduction,
+      "Cover: periodReduction > remaining period"
+    );
 
     CoverChunk[] storage originalCoverChunks = coverChunksForCover[covers.length];
 
@@ -346,7 +353,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         originalCoverChunks[i].coverAmountInNXM
       );
 
-      originalCoverChunks[i].premiumInNXM = originalCoverChunks[i].premiumInNXM * (cover.period - periodReduction) / cover.period;
+      originalCoverChunks[i].premiumInNXM =
+        originalCoverChunks[i].premiumInNXM * (cover.period - periodReduction) / cover.period;
     }
 
     uint refund = cover.premium * periodReduction / cover.period;
@@ -501,7 +509,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint now
   ) public pure returns (uint) {
 
-    uint percentageChange = (now - lastPriceUpdate) / 1 days * (stakedNXM / STAKE_SPEED_UNIT) * PERCENTAGE_CHANGE_PER_DAY_BPS;
+    uint percentageChange =
+      (now - lastPriceUpdate) / 1 days * (stakedNXM / STAKE_SPEED_UNIT) * PERCENTAGE_CHANGE_PER_DAY_BPS;
     if (targetPrice > lastPrice) {
       return lastPrice + (targetPrice - lastPrice) * percentageChange / BASIS_PRECISION;
     } else {

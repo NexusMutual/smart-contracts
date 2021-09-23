@@ -22,17 +22,17 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
   mapping(uint => uint96) public override activeCoverAmountInNXM;
 
-  /*
-   (productId, poolAddress) => lastPrice
-   Last base prices at which a cover was sold by a pool for a particular product.
-  */
-  mapping(uint => mapping(address => uint)) lastPrices;
+
+  struct LastPrice {
+    uint96 value;
+    uint32 lastUpdateTime;
+  }
 
   /*
-   (productId, poolAddress) => lastPriceUpdate
-   Last base price update time.
+    (productId, poolAddress) => lastPrice
+    Last base prices at which a cover was sold by a pool for a particular product.
   */
-  mapping(uint => mapping(address => uint)) lastPriceUpdate;
+  mapping(uint => mapping(address => LastPrice)) lastPrices;
 
 
   /* === CONSTANTS ==== */
@@ -141,8 +141,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint coveredAmount = amountToCover > availableCapacity ? availableCapacity : amountToCover;
 
     (uint basePrice, uint premiumInNXM) = getPrice(coveredAmount, period, productId, stakingPool);
-    lastPrices[productId][address(stakingPool)] = basePrice;
-    lastPriceUpdate[productId][address(stakingPool)] = block.timestamp;
+    lastPrices[productId][address(stakingPool)] = LastPrice(uint96(basePrice), uint32(block.timestamp));
 
     stakingPool.buyCover(
       productId,
@@ -301,8 +300,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         cover.productId,
         stakingPool
       );
-      lastPrices[cover.productId][address(stakingPool)] = basePrice;
-      lastPriceUpdate[cover.productId][address(stakingPool)] = block.timestamp;
+      lastPrices[cover.productId][address(stakingPool)] = LastPrice(uint96(basePrice), uint32(block.timestamp));
 
       stakingPool.extendPeriod(
         cover.productId,
@@ -486,9 +484,9 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   function getPrice(uint amount, uint period, uint productId, IStakingPool pool) public view returns (uint, uint) {
     uint basePrice = interpolatePrice(
       pool.getStake(productId),
-      lastPrices[productId][address(pool)] != 0 ? lastPrices[productId][address(pool)] : initialPrices[productId],
+      lastPrices[productId][address(pool)].value != 0 ? lastPrices[productId][address(pool)].value : initialPrices[productId],
       pool.getTargetPrice(productId),
-      lastPriceUpdate[productId][address(pool)],
+      lastPrices[productId][address(pool)].value,
       block.timestamp
     );
     uint pricePercentage = calculatePrice(

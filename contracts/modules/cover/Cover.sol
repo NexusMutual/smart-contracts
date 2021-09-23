@@ -194,46 +194,55 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     }
 
     uint32 remainingPeriod = originalCover.start + originalCover.period - uint32(block.timestamp);
-    // convert to NXM amount
-    uint amountToCover = uint(amount) * 1e18 / tokenPrice;
     uint totalPremiumInNXM = 0;
-    for (uint i = 0; i < coverChunkRequests.length; i++) {
-      if (amountToCover == 0) {
-        break;
-      }
 
-      uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / tokenPrice;
-      (uint coveredAmount, uint premiumInNXM) = buyCoverFromPool(
-        IStakingPool(coverChunkRequests[i].poolAddress),
-        originalCover.productId,
-        requestedCoverAmountInNXM,
-        remainingPeriod
-      );
+    {
+      // convert to NXM amount
+      uint amountLeftToCoverInNXM = uint(amount) * 1e18 / tokenPrice;
 
-      amountToCover -= coveredAmount;
-      totalPremiumInNXM += premiumInNXM;
-
-      uint j = 0;
-      for ( ; j < originalCoverChunks.length; j++) {
-        if (originalCoverChunks[j].poolAddress == coverChunkRequests[i].poolAddress) {
-          originalCoverChunks[j].coverAmountInNXM += uint96(coveredAmount);
-          originalCoverChunks[j].premiumInNXM += uint96(premiumInNXM);
+      for (uint i = 0; i < coverChunkRequests.length; i++) {
+        if (amountLeftToCoverInNXM == 0) {
           break;
         }
-      }
 
-      if (j < originalCoverChunks.length) {
-        continue;
-      }
+        uint coveredAmount;
+        uint premiumInNXM;
+        {
+          uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / tokenPrice;
+          (coveredAmount, premiumInNXM) = buyCoverFromPool(
+            IStakingPool(coverChunkRequests[i].poolAddress),
+            originalCover.productId,
+            requestedCoverAmountInNXM,
+            remainingPeriod
+          );
+        }
 
-      coverChunksForCover[covers.length].push(
-        CoverChunk(
-          coverChunkRequests[i].poolAddress,
-          uint96(coveredAmount),
-          uint96(premiumInNXM)
-        ));
+        amountLeftToCoverInNXM -= coveredAmount;
+        totalPremiumInNXM += premiumInNXM;
+
+        {
+          uint j = 0;
+          for ( ; j < originalCoverChunks.length; j++) {
+            if (originalCoverChunks[j].poolAddress == coverChunkRequests[i].poolAddress) {
+              originalCoverChunks[j].coverAmountInNXM += uint96(coveredAmount);
+              originalCoverChunks[j].premiumInNXM += uint96(premiumInNXM);
+              break;
+            }
+          }
+          if (j < originalCoverChunks.length) {
+            continue;
+          }
+        }
+
+        coverChunksForCover[covers.length].push(
+          CoverChunk(
+            coverChunkRequests[i].poolAddress,
+            uint96(coveredAmount),
+            uint96(premiumInNXM)
+          ));
+      }
+      require(amountLeftToCoverInNXM == 0, "Not enough available capacity");
     }
-    require(amountToCover == 0, "Not enough available capacity");
 
     {
       IPool pool = pool();

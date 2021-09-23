@@ -90,6 +90,12 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         coverChunks[i].coverAmountInNXM,
         period
       );
+
+      // carry over the amount that was not covered by the current pool to the next cover
+      if (coveredAmount < coverChunks[i].coverAmountInNXM && i + 1 < coverChunks.length) {
+        coverChunks[i + 1].coverAmountInNXM += coverChunks[i].coverAmountInNXM - uint96(coveredAmount);
+      }
+
       amountLeftToCoverInNXM -= coveredAmount;
       totalPremiumInNXM += premiumInNXM;
       coverChunksForCover[covers.length].push(

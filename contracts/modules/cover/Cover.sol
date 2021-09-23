@@ -71,7 +71,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   ) external payable override onlyMember returns (uint /*coverId*/) {
     require(initialPrices[productId] != 0, "Cover: product not initialized");
 
-
     IPool pool = pool();
     // convert to NXM amount
     uint amountLeftToCoverInNXM = uint(amount) * 1e18 / pool.getTokenPrice(pool.assets(payoutAsset));
@@ -85,7 +84,12 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       }
 
       IStakingPool stakingPool = IStakingPool(coverChunks[i].poolAddress);
-      (uint coveredAmount, uint premiumInNXM) = buyCoverFromPool(stakingPool, productId, amountLeftToCoverInNXM, period);
+      (uint coveredAmount, uint premiumInNXM) = buyCoverFromPool(
+        stakingPool,
+        productId,
+        coverChunks[i].coverAmountInNXM,
+        period
+      );
       amountLeftToCoverInNXM -= coveredAmount;
       totalPremiumInNXM += premiumInNXM;
       coverChunksForCover[covers.length].push(
@@ -179,7 +183,13 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       }
 
       IStakingPool stakingPool = IStakingPool(coverChunks[i].poolAddress);
-      (uint coveredAmount, uint premiumInNXM) = buyCoverFromPool(stakingPool, originalCover.productId, amountToCover, remainingPeriod);
+      (uint coveredAmount, uint premiumInNXM) = buyCoverFromPool(
+        stakingPool,
+        originalCover.productId,
+        coverChunks[i].coverAmountInNXM,
+        remainingPeriod
+      );
+
       amountToCover -= coveredAmount;
       totalPremiumInNXM += premiumInNXM;
 

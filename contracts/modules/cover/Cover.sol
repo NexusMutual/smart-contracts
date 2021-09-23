@@ -67,44 +67,52 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint96 amount,
     uint32 period,
     uint maxPremiumInAsset,
-    CoverChunk[] memory coverChunks
+    CoverChunkRequest[] memory coverChunkRequests
   ) external payable override onlyMember returns (uint /*coverId*/) {
     require(initialPrices[productId] != 0, "Cover: product not initialized");
 
-    IPool pool = pool();
-    // convert to NXM amount
-    uint amountLeftToCoverInNXM = uint(amount) * 1e18 / pool.getTokenPrice(pool.assets(payoutAsset));
-    activeCoverAmountInNXM[productId] += uint96(amountLeftToCoverInNXM);
+    uint amountLeftToCoverInNXM;
+    uint tokenPrice;
+    {
+      IPool pool = pool();
+      // convert to NXM amount
+      tokenPrice = pool.getTokenPrice(pool.assets(payoutAsset));
+      amountLeftToCoverInNXM = uint(amount) * 1e18 / tokenPrice;
+      activeCoverAmountInNXM[productId] += uint96(amountLeftToCoverInNXM);
+    }
 
     uint totalPremiumInNXM = 0;
 
-    for (uint i = 0; i < coverChunks.length; i++) {
+    for (uint i = 0; i < coverChunkRequests.length; i++) {
       if (amountLeftToCoverInNXM == 0) {
         break;
       }
 
-      IStakingPool stakingPool = IStakingPool(coverChunks[i].poolAddress);
-      (uint coveredAmount, uint premiumInNXM) = buyCoverFromPool(
-        stakingPool,
+      uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / tokenPrice;
+      (uint coveredAmountInNXM, uint premiumInNXM) = buyCoverFromPool(
+        IStakingPool(coverChunkRequests[i].poolAddress),
         productId,
-        coverChunks[i].coverAmountInNXM,
+        requestedCoverAmountInNXM,
         period
       );
 
-      // carry over the amount that was not covered by the current pool to the next cover
-      if (coveredAmount < coverChunks[i].coverAmountInNXM && i + 1 < coverChunks.length) {
-        coverChunks[i + 1].coverAmountInNXM += coverChunks[i].coverAmountInNXM - uint96(coveredAmount);
-      }
+      // TODO: re-enable
+      //      // carry over the amount that was not covered by the current pool to the next cover
+      //      if (coveredAmountInNXM < requestedCoverAmountInNXM && i + 1 < coverChunkRequests.length) {
+      //
+      //        // TODO: convert to asset
+      //        coverChunkRequests[i + 1].coverAmountInAsset += requestedCoverAmountInNXM - uint96(coveredAmountInNXM);
+      //      }
 
-      amountLeftToCoverInNXM -= coveredAmount;
+      amountLeftToCoverInNXM -= coveredAmountInNXM;
       totalPremiumInNXM += premiumInNXM;
       coverChunksForCover[covers.length].push(
-        CoverChunk(address(stakingPool), uint96(coveredAmount), uint96(premiumInNXM))
+        CoverChunk(coverChunkRequests[i].poolAddress, uint96(coveredAmountInNXM), uint96(premiumInNXM))
       );
     }
     require(amountLeftToCoverInNXM == 0, "Not enough available capacity");
 
-    uint premiumInAsset = totalPremiumInNXM * pool.getTokenPrice(pool.assets(payoutAsset)) / 1e18;
+    uint premiumInAsset = totalPremiumInNXM * tokenPrice / 1e18;
 
     covers.push(CoverData(
         productId,
@@ -157,12 +165,12 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint coverId,
     uint96 amount,
     uint maxPremiumInAsset,
-    CoverChunk[] calldata coverChunks
+    CoverChunkRequest[] calldata coverChunkRequests
   ) external payable onlyMember returns (uint) {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
 
-    (uint coverId, uint premiumInAsset) = _increaseAmount(coverId, amount, coverChunks);
+    (uint coverId, uint premiumInAsset) = _increaseAmount(coverId, amount, coverChunkRequests);
 
     require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
     retrievePayment(premiumInAsset, covers[coverId].payoutAsset);
@@ -172,27 +180,33 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   function _increaseAmount(
     uint coverId,
     uint96 amount,
-    CoverChunk[] calldata coverChunks
+    CoverChunkRequest[] calldata coverChunkRequests
   ) internal returns (uint newCoverId, uint premiumInAsset) {
 
     CoverData storage originalCover = covers[coverId];
 
     CoverChunk[] storage originalPools = coverChunksForCover[covers.length];
 
+    uint tokenPrice;
+    {
+      IPool _pool = pool();
+      tokenPrice = _pool.getTokenPrice(_pool.assets(originalCover.payoutAsset));
+    }
+
     uint32 remainingPeriod = originalCover.start + originalCover.period - uint32(block.timestamp);
     // convert to NXM amount
-    uint amountToCover = uint(amount) * 1e18 / pool().getTokenPrice(pool().assets(originalCover.payoutAsset));
+    uint amountToCover = uint(amount) * 1e18 / tokenPrice;
     uint totalPremiumInNXM = 0;
-    for (uint i = 0; i < coverChunks.length; i++) {
+    for (uint i = 0; i < coverChunkRequests.length; i++) {
       if (amountToCover == 0) {
         break;
       }
 
-      IStakingPool stakingPool = IStakingPool(coverChunks[i].poolAddress);
+      uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / tokenPrice;
       (uint coveredAmount, uint premiumInNXM) = buyCoverFromPool(
-        stakingPool,
+        IStakingPool(coverChunkRequests[i].poolAddress),
         originalCover.productId,
-        coverChunks[i].coverAmountInNXM,
+        requestedCoverAmountInNXM,
         remainingPeriod
       );
 
@@ -201,7 +215,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
       uint j = 0;
       for ( ; j < originalPools.length; j++) {
-        if (originalPools[j].poolAddress == coverChunks[i].poolAddress) {
+        if (originalPools[j].poolAddress == coverChunkRequests[i].poolAddress) {
           originalPools[j].coverAmountInNXM += uint96(coveredAmount);
           originalPools[j].premiumInNXM += uint96(premiumInNXM);
           break;
@@ -211,10 +225,10 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       if (j < originalPools.length) {
         continue;
       }
-
+      
       coverChunksForCover[covers.length].push(
         CoverChunk(
-          address(stakingPool),
+          coverChunkRequests[i].poolAddress,
           uint96(coveredAmount),
           uint96(premiumInNXM)
         ));
@@ -223,7 +237,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     {
       IPool pool = pool();
-      premiumInAsset = totalPremiumInNXM * pool.getTokenPrice(pool.assets(originalCover.payoutAsset)) / 1e18;
+      premiumInAsset = totalPremiumInNXM * tokenPrice / 1e18;
     }
 
     // make the previous cover expire at current block
@@ -299,7 +313,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint32 periodReduction,
     uint96 amount,
     uint maxPremiumInAsset,
-    CoverChunk[] calldata coverChunks
+    CoverChunkRequest[] calldata coverChunkRequests
   ) external payable onlyMember returns (uint) {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
@@ -332,7 +346,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     cover.period = cover.period - periodReduction;
     cover.premium = cover.premium - uint96(refund);
 
-    (uint newCoverId, uint premiumInAsset) = _increaseAmount(coverId, amount, coverChunks);
+    (uint newCoverId, uint premiumInAsset) = _increaseAmount(coverId, amount, coverChunkRequests);
 
     require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 

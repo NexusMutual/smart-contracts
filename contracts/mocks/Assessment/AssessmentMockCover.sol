@@ -20,7 +20,7 @@ contract AssessmentMockCover is ICover, ERC721 {
     uint96 amount,
     uint32 period,
     uint maxPrice,
-    CoverChunk[] calldata stakingPools
+    CoverChunkRequest[] calldata stakingPools
   ) external payable override returns (uint) {
     return _createCover(
       owner,
@@ -38,7 +38,7 @@ contract AssessmentMockCover is ICover, ERC721 {
     uint8 payoutAsset,
     uint96 amount,
     uint32 period,
-    CoverChunk[] calldata stakingPools
+    CoverChunkRequest[] calldata stakingPools
   ) external returns (uint) {
     return _createCover(
       owner,
@@ -56,55 +56,38 @@ contract AssessmentMockCover is ICover, ERC721 {
     uint8 payoutAsset,
     uint amount,
     uint period,
-    CoverChunk[] memory stakingPools
+    CoverChunkRequest[] memory stakingPools
   ) internal returns (uint) {
-    uint coverId = covers.length;
-    _safeMint(owner, coverId);
-    covers.push(CoverData(
-      productId,
-      payoutAsset,
-      uint96(amount),
-      uint32(block.timestamp + 1),
-      uint32(period),
-      0 // mock price
-    ));
-    for (uint i=0; i < stakingPools.length; i++) {
-      stakingPoolsOfCover[coverId][i] = stakingPools[i];
-    }
-    return coverId;
-  }
+//    uint coverId = covers.length;
+//    _safeMint(owner, coverId);
+//    covers.push(CoverData(
+//      productId,
+//      payoutAsset,
+//      uint96(amount),
+//      uint32(block.timestamp + 1),
+//      uint32(period),
+//      0 // mock price
+//    ));
+//    for (uint i=0; i < stakingPools.length; i++) {
+//      stakingPoolsOfCover[coverId][i] = stakingPools[i];
+//    }
+//    return coverId;
 
-  function editCover(
-    uint coverId,
-    uint24 productId,
-    uint8 payoutAsset,
-    uint96 amount,
-    uint start,
-    uint period,
-    CoverChunk[] calldata stakingPools
-  ) public {
-    covers[coverId] = CoverData(
-      productId,
-      payoutAsset,
-      amount,
-      uint32(start),
-      uint32(period),
-      0 // mock price
-    );
+    return 0;
   }
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external override {
-    CoverData memory cover = covers[coverId];
-    CoverChunk[] memory stakingPools = stakingPoolsOfCover[coverId];
-    // Perform staking burns here
-    _createCover(
-      owner,
-      cover.productId,
-      cover.payoutAsset,
-      cover.amount - amount,
-      cover.period - (uint32(block.timestamp) - cover.start),
-      stakingPools
-    );
+//    CoverData memory cover = covers[coverId];
+//    CoverChunk[] memory stakingPools = stakingPoolsOfCover[coverId];
+//    // Perform staking burns here
+//    _createCover(
+//      owner,
+//      cover.productId,
+//      cover.payoutAsset,
+//      cover.amount - amount,
+//      cover.period - (uint32(block.timestamp) - cover.start),
+//      stakingPools
+//    );
   }
 
   function activeCoverAmountInNXM(uint id) external override view returns (uint96) {

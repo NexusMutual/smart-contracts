@@ -8,6 +8,11 @@ interface ICover is IERC721 {
 
   /* ========== DATA STRUCTURES ========== */
 
+  struct CoverChunkRequest {
+    address poolAddress;
+    uint coverAmountInAsset;
+  }
+
   struct CoverChunk {
     address poolAddress;
     uint96 coverAmountInNXM;
@@ -55,7 +60,7 @@ interface ICover is IERC721 {
     uint96 amount,
     uint32 period,
     uint maxPremiumInAsset,
-    CoverChunk[] calldata stakingPools
+    CoverChunkRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external;

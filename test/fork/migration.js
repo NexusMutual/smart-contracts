@@ -13,7 +13,7 @@ const NXMToken = artifacts.require('NXMToken');
 const Governance = artifacts.require('Governance');
 const PooledStaking = artifacts.require('PooledStaking');
 const TokenFunctions = artifacts.require('TokenFunctions');
-const ClaimsReward = artifacts.require('ClaimsReward');
+const ClaimsReward = artifacts.require('LegacyClaimsReward');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const TokenData = artifacts.require('TokenData');
 const Quotation = artifacts.require('Quotation');
@@ -36,7 +36,6 @@ function getWeb3Contract (name, versionData, web3) {
 }
 
 async function getMemberStakes (member, td) {
-
   const stakedContractLength = await td.methods.getStakerStakedContractLength(member).call();
   const stakes = [];
 
@@ -56,7 +55,6 @@ async function getMemberStakes (member, td) {
 }
 
 async function submitGovernanceProposal (categoryId, actionHash, members, gv, submitter) {
-
   const proposalId = await gv.getProposalLength();
 
   console.log(`Creating proposal ${proposalId}..`);
@@ -106,9 +104,7 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
 }
 
 describe.skip('migration', function () {
-
   it('upgrades old system', async function () {
-
     const { data: versionData } = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
     const [{ address: masterAddress }] = versionData.mainnet.abis.filter(({ code }) => code === 'NXMASTER');
     const master = await NXMaster.at(masterAddress);
@@ -163,11 +159,18 @@ describe.skip('migration', function () {
 
     const upgradeMultipleContractsActionHash = encode1(
       ['bytes2[]', 'address[]'],
-      [[hex('TF'), hex('CR'), hex('QT')], [newTF.address, newCR.address, newQT.address]],
+      [
+        [hex('TF'), hex('CR'), hex('QT')],
+        [newTF.address, newCR.address, newQT.address],
+      ],
     );
 
     await submitGovernanceProposal(
-      newContractAddressUpgradeCategoryId, upgradeMultipleContractsActionHash, boardMembers, gv, secondBoardMember,
+      newContractAddressUpgradeCategoryId,
+      upgradeMultipleContractsActionHash,
+      boardMembers,
+      gv,
+      secondBoardMember,
     );
 
     const storedTFAddress = await master.getLatestAddress(hex('TF'));
@@ -186,12 +189,18 @@ describe.skip('migration', function () {
 
     const upgradeMultipleImplementationsActionHash = encode1(
       ['bytes2[]', 'address[]'],
-      [[hex('MR'), hex('TC')], [newMR.address, newTC.address]],
+      [
+        [hex('MR'), hex('TC')],
+        [newMR.address, newTC.address],
+      ],
     );
 
     await submitGovernanceProposal(
       newProxyContractAddressUpgradeCategoryId,
-      upgradeMultipleImplementationsActionHash, boardMembers, gv, secondBoardMember,
+      upgradeMultipleImplementationsActionHash,
+      boardMembers,
+      gv,
+      secondBoardMember,
     );
 
     const mrProxy = await UpgradeabilityProxy.at(await master.getLatestAddress(hex('MR')));
@@ -223,7 +232,6 @@ describe.skip('migration', function () {
   });
 
   it('migrates all data from old pooled staking system to new one', async function () {
-
     const { gv, master, directMR, directTF, directTD, directTK, tf, td, tk, tc, cr } = this;
     const { boardMembers, firstBoardMember } = this;
 
@@ -235,10 +243,7 @@ describe.skip('migration', function () {
     console.log(`Deployed pool staking at ${psImpl.address}`);
 
     // Creating proposal for adding new internal contract
-    const addNewInternalContractActionHash = encode1(
-      ['bytes2', 'address', 'uint'],
-      [hex('PS'), psImpl.address, 2],
-    );
+    const addNewInternalContractActionHash = encode1(['bytes2', 'address', 'uint'], [hex('PS'), psImpl.address, 2]);
 
     await submitGovernanceProposal(
       addNewInternalContractCategoryId,
@@ -321,11 +326,12 @@ describe.skip('migration', function () {
         maxGasUsagePerCall = gasUsed;
       }
 
-      console.log(`gasUsed ${gasUsed} | totalGasUsage ${totalGasUsage} | maxGasUsagePerCall ${maxGasUsagePerCall} | totalCallCount ${totalCallCount}`);
+      console.log(
+        `gasUsed ${gasUsed} | totalGasUsage ${totalGasUsage} | maxGasUsagePerCall ${maxGasUsagePerCall} | totalCallCount ${totalCallCount}`,
+      );
       const migratedMemberEvents = tx.logs.filter(log => log.event === MIGRATED_MEMBER_EVENT);
 
       for (const migratedMemberEvent of migratedMemberEvents) {
-
         const migratedMember = migratedMemberEvent.args.member;
         migratedMembersSet.add(migratedMember);
         console.log(`Finished migrating ${migratedMember}. Asserting migration values.`);
@@ -342,34 +348,42 @@ describe.skip('migration', function () {
         assert.equal(commissionEarned.toString(), commissionReedmed.toString(), `Failed for ${migratedMember}`);
 
         if (memberStakes[migratedMember] !== undefined) {
-
           console.log(`Asserting per contract stakes for member ${migratedMember}`);
 
-          const stakesWithStakeLeft = memberStakes[migratedMember].map(({ dateAdd, initialStake, contractAddress, burnedAmount }) => {
+          const stakesWithStakeLeft = memberStakes[migratedMember].map(
+            ({ dateAdd, initialStake, contractAddress, burnedAmount }) => {
+              const daysPassed = now.sub(dateAdd).divn(86400);
+              console.log(`daysPassed ${daysPassed.toString()}`);
 
-            const daysPassed = now.sub(dateAdd).divn(86400);
-            console.log(`daysPassed ${daysPassed.toString()}`);
+              let stakeLeft = new BN('0');
 
-            let stakeLeft = new BN('0');
+              if (daysPassed.ltn(VALID_DAYS)) {
+                const daysLeft = new BN(VALID_DAYS.toString()).sub(daysPassed);
+                stakeLeft = daysLeft
+                  .mul(initialStake)
+                  .muln(100000)
+                  .divn(VALID_DAYS)
+                  .divn(100000);
+              }
 
-            if (daysPassed.ltn(VALID_DAYS)) {
-              const daysLeft = new BN(VALID_DAYS.toString()).sub(daysPassed);
-              stakeLeft = daysLeft.mul(initialStake).muln(100000).divn(VALID_DAYS).divn(100000);
-            }
+              stakeLeft = stakeLeft.sub(burnedAmount);
 
-            stakeLeft = stakeLeft.sub(burnedAmount);
+              if (stakeLeft.ltn(0)) {
+                stakeLeft = new BN('0');
+              }
 
-            if (stakeLeft.ltn(0)) {
-              stakeLeft = new BN('0');
-            }
-
-            return { stakeLeft, dateAdd, initialStake, contractAddress };
-          });
+              return { stakeLeft, dateAdd, initialStake, contractAddress };
+            },
+          );
 
           const totalExpectedStake = stakesWithStakeLeft.reduce((a, b) => a.add(b.stakeLeft), new BN('0'));
           const postMigrationStake = await ps.stakerDeposit(migratedMember);
           totalDeposits[migratedMember] = postMigrationStake;
-          assert.equal(postMigrationStake.toString(), totalExpectedStake.toString(), `Total stake doesn't match for ${migratedMember}`);
+          assert.equal(
+            postMigrationStake.toString(),
+            totalExpectedStake.toString(),
+            `Total stake doesn't match for ${migratedMember}`,
+          );
 
           const aggregatedStakes = {};
 

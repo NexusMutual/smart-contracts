@@ -4,12 +4,15 @@ const { expectRevert } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
 
-const { defaultSender, governanceContracts: [governance], generalPurpose: [destination, arbitraryCaller] } = require('../utils').accounts;
+const {
+  defaultSender,
+  governanceContracts: [governance],
+  generalPurpose: [destination, arbitraryCaller],
+} = require('../utils').accounts;
 
 const ERC20Mock = artifacts.require('ERC20Mock');
 
 describe('transferAsset', function () {
-
   it('transfers added ERC20 asset to destination', async function () {
     const { pool, master, dai } = this;
 
@@ -22,10 +25,7 @@ describe('transferAsset', function () {
 
     const amountToTransfer = tokenAmount.divn(2);
 
-    await pool.transferAsset(
-      otherToken.address, destination, amountToTransfer,
-      { from: governance },
-    );
+    await pool.transferAsset(otherToken.address, destination, amountToTransfer, { from: governance });
     const destinationBalance = await otherToken.balanceOf(destination);
     assert.equal(destinationBalance.toString(), amountToTransfer.toString());
 
@@ -42,10 +42,7 @@ describe('transferAsset', function () {
 
     const amountToTransfer = tokenAmount.divn(2);
 
-    await pool.transferAsset(
-      otherToken.address, destination, amountToTransfer,
-      { from: governance },
-    );
+    await pool.transferAsset(otherToken.address, destination, amountToTransfer, { from: governance });
     const destinationBalance = await otherToken.balanceOf(destination);
     assert.equal(destinationBalance.toString(), amountToTransfer.toString());
 
@@ -62,10 +59,7 @@ describe('transferAsset', function () {
     await otherToken.mint(pool.address, tokenAmount);
     const amountToTransfer = tokenAmount.addn(1);
 
-    await pool.transferAsset(
-      otherToken.address, destination, amountToTransfer,
-      { from: governance },
-    );
+    await pool.transferAsset(otherToken.address, destination, amountToTransfer, { from: governance });
 
     const destinationBalance = await otherToken.balanceOf(destination);
     assert.equal(destinationBalance.toString(), tokenAmount.toString());
@@ -84,11 +78,8 @@ describe('transferAsset', function () {
     });
     await otherToken.mint(pool.address, tokenAmount);
     await expectRevert(
-      pool.transferAsset(
-        otherToken.address, destination, tokenAmount,
-        { from: governance },
-      ),
-      'Pool: max not zero',
+      pool.transferAsset(otherToken.address, destination, tokenAmount, { from: governance }),
+      'Pool: Max not zero',
     );
   });
 
@@ -99,10 +90,7 @@ describe('transferAsset', function () {
     const otherToken = await ERC20Mock.new();
     await otherToken.mint(pool.address, tokenAmount);
     await expectRevert(
-      pool.transferAsset(
-        otherToken.address, destination, tokenAmount,
-        { from: arbitraryCaller },
-      ),
+      pool.transferAsset(otherToken.address, destination, tokenAmount, { from: arbitraryCaller }),
       'Caller is not authorized to govern',
     );
   });

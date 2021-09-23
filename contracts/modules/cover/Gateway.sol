@@ -4,11 +4,11 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../abstract/MasterAware.sol";
-import "../../interfaces/IClaims.sol";
-import "../../interfaces/IClaimsData.sol";
+import "../../interfaces/ILegacyClaims.sol";
+import "../../interfaces/ILegacyClaimsData.sol";
 import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/IGateway.sol";
-import "../../interfaces/IIncidents.sol";
+import "../../interfaces/ILegacyIncidents.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
@@ -25,15 +25,15 @@ contract Gateway is IGateway, MasterAware {
   INXMToken public nxmToken;
   ITokenController public tokenController;
   IQuotationData public quotationData;
-  IClaimsData public claimsData;
-  IClaims public claims;
+  ILegacyClaimsData public claimsData;
+  ILegacyClaims public claims;
   IPool public pool;
   IMemberRoles public memberRoles;
 
   // assigned in initialize
   address public DAI;
 
-  IIncidents public incidents;
+  ILegacyIncidents public incidents;
 
   // constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -61,9 +61,9 @@ contract Gateway is IGateway, MasterAware {
     nxmToken = INXMToken(master.tokenAddress());
     tokenController = ITokenController(master.getLatestAddress("TC"));
     quotationData = IQuotationData(master.getLatestAddress("QD"));
-    claimsData = IClaimsData(master.getLatestAddress("CD"));
-    claims = IClaims(master.getLatestAddress("CL"));
-    incidents = IIncidents(master.getLatestAddress("IC"));
+    claimsData = ILegacyClaimsData(master.getLatestAddress("CD"));
+    claims = ILegacyClaims(master.getLatestAddress("CL"));
+    incidents = ILegacyIncidents(master.getLatestAddress("IC"));
     pool = IPool(master.getLatestAddress("P1"));
     memberRoles = IMemberRoles(master.getLatestAddress("MR"));
   }
@@ -157,7 +157,7 @@ contract Gateway is IGateway, MasterAware {
     IERC20 token = IERC20(coveredToken);
     token.safeTransferFrom(msg.sender, address(this), coveredTokenAmount);
     token.approve(address(incidents), coveredTokenAmount);
-    (claimId, payoutAmount, payoutToken) = incidents.redeemPayoutForMember(coverId, incidentId, coveredTokenAmount, msg.sender);
+    (claimId, payoutAmount, payoutToken) = incidents.redeemPayoutForMember(coverId, coverId, coveredTokenAmount, msg.sender);
   }
 
   function getClaimCoverId(uint claimId) public view returns (uint) {

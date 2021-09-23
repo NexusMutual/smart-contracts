@@ -1,6 +1,11 @@
 const fetch = require('node-fetch');
 const { artifacts, web3, accounts, network } = require('hardhat');
-const { expectRevert, constants: { ZERO_ADDRESS }, ether, time } = require('@openzeppelin/test-helpers');
+const {
+  expectRevert,
+  constants: { ZERO_ADDRESS },
+  ether,
+  time,
+} = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
 
 const { submitGovernanceProposal, submitMemberVoteGovernanceProposal } = require('./utils');
@@ -9,9 +14,7 @@ const { ProposalCategory, Role } = require('../utils').constants;
 const { setNextBlockTime } = require('../utils').evm;
 const { bnEqual } = require('../utils').helpers;
 
-const {
-  calculateRelativeError,
-} = require('../utils').tokenPrice;
+const { calculateRelativeError } = require('../utils').tokenPrice;
 const { quoteAuthAddress } = require('../utils').getQuote;
 const { buyCover, buyCoverWithDai } = require('../utils').buyCover;
 
@@ -23,10 +26,10 @@ const OldPool = artifacts.require('P1MockOldPool');
 const NXMaster = artifacts.require('NXMaster');
 const NXMToken = artifacts.require('NXMToken');
 const Governance = artifacts.require('Governance');
-const ClaimsReward = artifacts.require('ClaimsReward');
+const ClaimsReward = artifacts.require('LegacyClaimsReward');
 const Quotation = artifacts.require('Quotation');
 const QuotationData = artifacts.require('QuotationData');
-const Claims = artifacts.require('Claims');
+const Claims = artifacts.require('LegacyClaims');
 const MCR = artifacts.require('MCR');
 const LegacyMCR = artifacts.require('LegacyMCR');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
@@ -67,7 +70,6 @@ const ratioScale = toBN('10000');
 
 let isHardhat;
 const hardhatRequest = async (...params) => {
-
   if (isHardhat === undefined) {
     const nodeInfo = await web3.eth.getNodeInfo();
     isHardhat = !!nodeInfo.match(/Hardhat/);
@@ -84,13 +86,13 @@ const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAcco
 const bnToNumber = bn => parseInt(bn.toString(), 10);
 
 describe('fix steth investment', function () {
-
   this.timeout(0);
 
   it('initializes contracts', async function () {
-
     const versionDataURL = 'https://api.nexusmutual.io/version-data/data.json';
-    const { mainnet: { abis } } = await fetch(versionDataURL).then(r => r.json());
+    const {
+      mainnet: { abis },
+    } = await fetch(versionDataURL).then(r => r.json());
     const getAddressByCode = getAddressByCodeFactory(abis);
 
     const masterAddress = getAddressByCode('NXMASTER');
@@ -118,7 +120,6 @@ describe('fix steth investment', function () {
   });
 
   it('fetches board members and funds accounts', async function () {
-
     const { memberArray: boardMembers } = await this.memberRoles.members('1');
     const voters = boardMembers.slice(0, 3);
 
@@ -172,12 +173,10 @@ describe('fix steth investment', function () {
 
     await fund(swapController);
     await unlock(swapController);
-    await (swapController);
+    await swapController;
 
     const stETHToken = await ERC20.at(Address.stETH);
-    const swapOperator = await SwapOperator.new(
-      master.address, twapOracle.address, swapController, stETHToken.address,
-    );
+    const swapOperator = await SwapOperator.new(master.address, twapOracle.address, swapController, stETHToken.address);
 
     const parameters = [
       ['bytes8', hex('SWP_OP')],

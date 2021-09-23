@@ -44,16 +44,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   uint public constant PRICE_CURVE_EXPONENT = 7;
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
 
-  /* === MODIFIERS ==== */
-
-  modifier onlyAdvisoryBoard {
-    uint abRole = uint(IMemberRoles.Role.AdvisoryBoard);
-    require(
-      memberRoles().checkRole(msg.sender, abRole),
-      "Cover: Caller is not an advisory board member"
-    );
-    _;
-  }
 
   constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_) {
   }
@@ -76,7 +66,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     {
       IPool pool = pool();
       // convert to NXM amount
-      tokenPrice = pool.getTokenPrice(pool.assets(payoutAsset));
+      tokenPrice = pool.getTokenPrice(payoutAsset);
       amountLeftToCoverInNXM = uint(amount) * 1e18 / tokenPrice;
       activeCoverAmountInNXM[productId] += uint96(amountLeftToCoverInNXM);
     }
@@ -187,7 +177,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint tokenPrice;
     {
       IPool _pool = pool();
-      tokenPrice = _pool.getTokenPrice(_pool.assets(originalCover.payoutAsset));
+      tokenPrice = _pool.getTokenPrice(originalCover.payoutAsset);
     }
 
     uint32 remainingPeriod = originalCover.start + originalCover.period - uint32(block.timestamp);
@@ -316,7 +306,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       coverChunks[i].premiumInNXM += uint96(premiumInNXM);
     }
 
-    uint premiumInAsset = extraPremiumInNXM * pool().getTokenPrice(pool().assets(cover.payoutAsset)) / 1e18;
+    uint premiumInAsset = extraPremiumInNXM * pool().getTokenPrice(cover.payoutAsset) / 1e18;
 
     cover.period += extraPeriod;
 
@@ -491,7 +481,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       lastPrices[productId][address(pool)].value,
       block.timestamp
     );
-    
+
     uint pricePercentage = calculatePrice(
       amount,
       basePrice,

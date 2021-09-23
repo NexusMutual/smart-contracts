@@ -4,6 +4,8 @@ import "hardhat/console.sol";
 
 pragma solidity ^0.5.0;
 
+import "../interfaces/IMemberRoles.sol";
+
 contract MemberRolesMock {
 
   enum Role { UnAssigned, AdvisoryBoard, Member, Owner }
@@ -18,7 +20,7 @@ contract MemberRolesMock {
     return 0;
   }
 
-  function checkRole(address memberAddress, uint roleId) public view returns (bool) {
+  function checkRole(address memberAddress, uint roleId) external view returns (bool) {
     return uint(roles[memberAddress]) == roleId;
   }
 

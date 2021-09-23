@@ -3,12 +3,14 @@ const { expectRevert } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
 
-const { governanceContracts: [governance], generalPurpose: [arbitraryCaller] } = require('../utils').accounts;
+const {
+  governanceContracts: [governance],
+  generalPurpose: [arbitraryCaller],
+} = require('../utils').accounts;
 
 const ERC20Mock = artifacts.require('ERC20Mock');
 
 describe('setAssetDataLastSwapTime', function () {
-
   it('set last swap time for asset', async function () {
     const { pool, swapOperator } = this;
 
@@ -21,10 +23,7 @@ describe('setAssetDataLastSwapTime', function () {
 
     const lastSwapTime = '11512651';
 
-    await pool.setAssetDataLastSwapTime(
-      otherToken.address, lastSwapTime,
-      { from: swapOperator },
-    );
+    await pool.setAssetDataLastSwapTime(otherToken.address, lastSwapTime, { from: swapOperator });
 
     const assetData = await pool.assetData(otherToken.address);
     assert.equal(assetData.lastSwapTime.toString(), lastSwapTime);
@@ -43,11 +42,8 @@ describe('setAssetDataLastSwapTime', function () {
     const lastSwapTime = '11512651';
 
     await expectRevert(
-      pool.setAssetDataLastSwapTime(
-        otherToken.address, lastSwapTime,
-        { from: arbitraryCaller },
-      ),
-      'Pool: not swapOperator',
+      pool.setAssetDataLastSwapTime(otherToken.address, lastSwapTime, { from: arbitraryCaller }),
+      'Pool: Not swapOperator',
     );
   });
 });

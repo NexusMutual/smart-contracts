@@ -63,7 +63,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   /* logic */
   modifier onlySwapOperator {
-    require(msg.sender == swapOperator, "Pool: not swapOperator");
+    require(msg.sender == swapOperator, "Pool: Not swapOperator");
     _;
   }
 
@@ -77,14 +77,17 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     address _swapOperator
   ) public {
 
-    require(_assets.length == _minAmounts.length, "Pool: length mismatch");
-    require(_assets.length == _maxAmounts.length, "Pool: length mismatch");
-    require(_assets.length == _maxSlippageRatios.length, "Pool: length mismatch");
+    // First asset is ETH
+    assets.push(ETH);
+
+    require(_assets.length == _minAmounts.length, "Pool: Length mismatch");
+    require(_assets.length == _maxAmounts.length, "Pool: Length mismatch");
+    require(_assets.length == _maxSlippageRatios.length, "Pool: Length mismatch");
 
     for (uint i = 0; i < _assets.length; i++) {
 
       address asset = _assets[i];
-      require(asset != address(0), "Pool: asset is zero address");
+      require(asset != address(0), "Pool: Asset is zero address");
       require(_maxAmounts[i] >= _minAmounts[i], "Pool: max < min");
       require(_maxSlippageRatios[i] <= 1 ether, "Pool: max < min");
 
@@ -112,13 +115,14 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
     uint total = address(this).balance;
 
-    for (uint i = 0; i < assets.length; i++) {
+    // Skip ETH (index 0)
+    for (uint i = 1; i < assets.length; i++) {
 
       address assetAddress = assets[i];
       IERC20 token = IERC20(assetAddress);
 
       uint rate = priceFeedOracle.getAssetToEthRate(assetAddress);
-      require(rate > 0, "Pool: zero rate");
+      require(rate > 0, "Pool: Zero rate");
 
       uint assetBalance = token.balanceOf(address(this));
       uint assetValue = assetBalance.mul(rate).div(1e18);
@@ -154,12 +158,12 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint _maxSlippageRatio
   ) external onlyGovernance {
 
-    require(_asset != address(0), "Pool: asset is zero address");
+    require(_asset != address(0), "Pool: Asset is zero address");
     require(_max >= _min, "Pool: max < min");
-    require(_maxSlippageRatio <= 1 ether, "Pool: max slippage ratio > 1");
+    require(_maxSlippageRatio <= 1 ether, "Pool: Max slippage ratio > 1");
 
     for (uint i = 0; i < assets.length; i++) {
-      require(_asset != assets[i], "Pool: asset exists");
+      require(_asset != assets[i], "Pool: Asset exists");
     }
 
     assets.push(_asset);
@@ -181,7 +185,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       return;
     }
 
-    revert("Pool: asset not found");
+    revert("Pool: Asset not found");
   }
 
   function setAssetDetails(
@@ -192,7 +196,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   ) external onlyGovernance {
 
     require(_min <= _max, "Pool: min > max");
-    require(_maxSlippageRatio <= 1 ether, "Pool: max slippage ratio > 1");
+    require(_maxSlippageRatio <= 1 ether, "Pool: Max slippage ratio > 1");
 
     for (uint i = 0; i < assets.length; i++) {
 
@@ -207,30 +211,30 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       return;
     }
 
-    revert("Pool: asset not found");
+    revert("Pool: Asset not found");
   }
 
   /* claim related functions */
 
   /**
    * @dev Execute the payout in case a claim is accepted
-   * @param asset token address or 0xEee...EEeE for ether
-   * @param payoutAddress send funds to this address
-   * @param amount amount to send
+   * @param assetId        Index of the asset
+   * @param payoutAddress  Send funds to this address
+   * @param amount         Amount to send
    */
   function sendClaimPayout (
-    address asset,
+    uint assetId,
     address payable payoutAddress,
     uint amount
   ) external onlyInternal nonReentrant returns (bool success) {
-
     bool ok;
+    address asset = assets[assetId];
 
     if (asset == ETH) {
       // solhint-disable-next-line avoid-low-level-calls
       (ok, /* data */) = payoutAddress.call.value(amount)("");
     } else {
-      ok =  _safeTokenTransfer(asset, payoutAddress, amount);
+      ok =  _safeTokenTransfer(assets[assetId], payoutAddress, amount);
     }
 
     if (ok) {
@@ -285,8 +289,8 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint amount
   ) external onlyGovernance nonReentrant {
 
-    require(assetData[asset].maxAmount == 0, "Pool: max not zero");
-    require(destination != address(0), "Pool: dest zero");
+    require(assetData[asset].maxAmount == 0, "Pool: Max not zero");
+    require(destination != address(0), "Pool: Dest zero");
 
     IERC20 token = IERC20(asset);
     uint balance = token.balanceOf(address(this));
@@ -300,10 +304,10 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     // transfer ether
     uint ethBalance = address(this).balance;
     (bool ok, /* data */) = newPoolAddress.call.value(ethBalance)("");
-    require(ok, "Pool: transfer failed");
+    require(ok, "Pool: Transfer failed");
 
-    // transfer assets
-    for (uint i = 0; i < assets.length; i++) {
+    // transfer assets. start from 1 (0 is ETH)
+    for (uint i = 1; i < assets.length; i++) {
       IERC20 token = IERC20(assets[i]);
       uint tokenBalance = token.balanceOf(address(this));
       token.safeTransfer(newPoolAddress, tokenBalance);
@@ -367,7 +371,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
     if (asset == ETH) {
       (bool ok, /* data */) = swapOperator.call.value(amount)("");
-      require(ok, "Pool: Eth transfer failed");
+      require(ok, "Pool: ETH transfer failed");
       return;
     }
 
@@ -615,15 +619,17 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   /**
    * @dev Returns the NXM price in a given asset
-   * @param asset Asset name.
+   * @param assetId  Index of the asset
    */
-  function getTokenPrice(address asset) public view returns (uint tokenPrice) {
+  function getTokenPrice(uint assetId) public view returns (uint tokenPrice) {
 
+    require(assetId < assets.length, "Pool: Unknown asset");
+    address assetAddress = assets[assetId];
     uint totalAssetValue = getPoolValueInEth();
     uint mcrEth = mcr.getMCR();
     uint tokenSpotPriceEth = calculateTokenSpotPrice(totalAssetValue, mcrEth);
 
-    return priceFeedOracle.getAssetForEth(asset, tokenSpotPriceEth);
+    return priceFeedOracle.getAssetForEth(assetAddress, tokenSpotPriceEth);
   }
 
   function getMCRRatio() public view returns (uint) {
@@ -639,7 +645,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       return;
     }
 
-    revert("Pool: unknown parameter");
+    revert("Pool: Unknown parameter");
   }
 
   function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
@@ -654,6 +660,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       return;
     }
 
-    revert("Pool: unknown parameter");
+    revert("Pool: Unknown parameter");
   }
 }

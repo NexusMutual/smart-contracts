@@ -2,31 +2,27 @@ const { artifacts } = require('hardhat');
 const { ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
-const { governanceContracts: [governance] } = require('../utils').accounts;
+const {
+  governanceContracts: [governance],
+} = require('../utils').accounts;
 
 const assetAddress = '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000';
+const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 describe('removeAsset', function () {
-
   it('reverts when not called by goverance', async function () {
     const { pool } = this;
 
-    await expectRevert(
-      pool.removeAsset(assetAddress),
-      'Caller is not authorized to govern',
-    );
+    await expectRevert(pool.removeAsset(assetAddress), 'Caller is not authorized to govern');
   });
 
   it('reverts when asset does not exist', async function () {
     const { pool } = this;
 
-    await expectRevert(
-      pool.removeAsset(assetAddress, { from: governance }),
-      'Pool: asset not found',
-    );
+    await expectRevert(pool.removeAsset(assetAddress, { from: governance }), 'Pool: Asset not found');
   });
 
-  it('should add correctly the asset with its min, max, and slippage ratio', async function () {
+  it('should correctly add the asset with its min, max, and slippage ratio', async function () {
     const { pool, dai } = this;
 
     const ERC20Mock = artifacts.require('ERC20Mock');
@@ -37,7 +33,7 @@ describe('removeAsset', function () {
       await pool.addAsset(token.address, '1', '2', '3', { from: governance });
       await token.mint(pool.address, ether('100'));
 
-      const expectedAssets = [dai.address, token.address];
+      const expectedAssets = [ETH, dai.address, token.address];
       const actualAssets = await pool.getAssets();
       assert.deepEqual(actualAssets, expectedAssets, 'Unexpected assets found');
     }
@@ -54,7 +50,7 @@ describe('removeAsset', function () {
       assert.strictEqual(maxSlippageRatio.toString(), '0');
       assert.strictEqual(lastAssetSwapTime.toString(), '0');
 
-      const expectedAssets = [token.address];
+      const expectedAssets = [ETH, token.address];
       const actualAssets = await pool.getAssets();
       assert.deepEqual(actualAssets, expectedAssets, 'Unexpected assets found');
     }
@@ -69,7 +65,7 @@ describe('removeAsset', function () {
       assert.strictEqual(maxSlippageRatio.toString(), '3');
       assert.strictEqual(lastAssetSwapTime.toString(), '0');
 
-      const expectedAssets = [token.address];
+      const expectedAssets = [ETH, token.address];
       const actualAssets = await pool.getAssets();
       assert.deepEqual(actualAssets, expectedAssets, 'Unexpected assets found');
     }
@@ -86,11 +82,9 @@ describe('removeAsset', function () {
       assert.strictEqual(maxSlippageRatio.toString(), '0');
       assert.strictEqual(lastAssetSwapTime.toString(), '0');
 
-      const expectedAssets = [];
+      const expectedAssets = [ETH];
       const actualAssets = await pool.getAssets();
       assert.deepEqual(actualAssets, expectedAssets, 'Unexpected assets found');
     }
-
   });
-
 });

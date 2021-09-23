@@ -21,26 +21,17 @@ const nextWindowStartTime = async () => {
 };
 
 describe('swapEthForStETH', function () {
-
   it('should revert when called while the system is paused', async function () {
-
     const { master, swapOperator } = contracts();
     await master.pause();
 
-    await expectRevert(
-      swapOperator.swapETHForStETH('0'),
-      'System is paused',
-    );
+    await expectRevert(swapOperator.swapETHForStETH('0'), 'System is paused');
   });
 
   it('should revert when called by an address that is not swap controller', async function () {
-
     const { swapOperator } = contracts();
 
-    await expectRevert(
-      swapOperator.swapETHForStETH('0', { from: nobody }),
-      'SwapOperator: not swapController',
-    );
+    await expectRevert(swapOperator.swapETHForStETH('0', { from: nobody }), 'SwapOperator: not swapController');
   });
 
   it('should revert when asset is not enabled', async function () {
@@ -55,14 +46,10 @@ describe('swapEthForStETH', function () {
     );
     const etherIn = ether('1');
 
-    await expectRevert(
-      swapOperator.swapETHForStETH(etherIn),
-      'SwapOperator: asset is not enabled',
-    );
+    await expectRevert(swapOperator.swapETHForStETH(etherIn), 'SwapOperator: asset is not enabled');
   });
 
   it('should revert if ether left in pool is less than minPoolEth', async function () {
-
     const { pool, lido, swapOperator } = contracts();
 
     // allow to send max 1 ether out of pool
@@ -93,10 +80,7 @@ describe('swapEthForStETH', function () {
     const { swapOperator, pool } = contracts();
 
     const poolBalance = toBN(await web3.eth.getBalance(pool.address));
-    await expectRevert(
-      swapOperator.swapETHForStETH(poolBalance.addn(1)),
-      'Pool: Eth transfer failed',
-    );
+    await expectRevert(swapOperator.swapETHForStETH(poolBalance.addn(1)), 'Pool: ETH transfer failed');
   });
 
   it('should revert if Lido does not sent enough stETH back', async function () {
@@ -106,10 +90,7 @@ describe('swapEthForStETH', function () {
 
     // lido lowers the rate (incorrect)
     await lido.setETHToStETHRate('9999');
-    await expectRevert(
-      swapOperator.swapETHForStETH(amountIn),
-      'SwapOperator: amountOut < amountOutMin',
-    );
+    await expectRevert(swapOperator.swapETHForStETH(amountIn), 'SwapOperator: amountOut < amountOutMin');
   });
 
   it('should revert if balanceAfter > max', async function () {
@@ -130,10 +111,7 @@ describe('swapEthForStETH', function () {
     await setNextBlockTime(windowStart + periodSize * 7);
 
     const etherIn = maxStEthAmount.addn(10001);
-    await expectRevert(
-      swapOperator.swapETHForStETH(etherIn),
-      'SwapOperator: balanceAfter > max',
-    );
+    await expectRevert(swapOperator.swapETHForStETH(etherIn), 'SwapOperator: balanceAfter > max');
   });
 
   it('should swap asset for eth and emit a Swapped event with correct values', async function () {
@@ -271,9 +249,6 @@ describe('swapEthForStETH', function () {
     }
 
     const etherIn = minStEthAmount.divn(2);
-    await expectRevert(
-      swapOperator.swapETHForStETH(etherIn),
-      'SwapOperator: balanceBefore >= min',
-    );
+    await expectRevert(swapOperator.swapETHForStETH(etherIn), 'SwapOperator: balanceBefore >= min');
   });
 });

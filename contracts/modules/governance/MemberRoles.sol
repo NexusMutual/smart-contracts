@@ -2,14 +2,14 @@
 
 pragma solidity ^0.5.0;
 
-import "../../interfaces/IClaimsReward.sol";
+import "../../interfaces/ILegacyClaimsReward.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
 import "../../interfaces/ITokenFunctions.sol";
-import "../claims/ClaimsReward.sol";
+import "../claims/LegacyClaimsReward.sol";
 import "./external/Governed.sol";
 
 contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
@@ -17,7 +17,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   ITokenController public tc;
   ITokenData internal td;
   IQuotationData internal qd;
-  IClaimsReward internal cr;
+  ILegacyClaimsReward internal cr;
   IGovernance internal gv;
   ITokenFunctions internal tf;
   INXMToken public tk;
@@ -113,7 +113,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
    */
   function changeDependentContractAddress() public {
     td = ITokenData(ms.getLatestAddress("TD"));
-    cr = IClaimsReward(ms.getLatestAddress("CR"));
+    cr = ILegacyClaimsReward(ms.getLatestAddress("CR"));
     qd = IQuotationData(ms.getLatestAddress("QD"));
     gv = IGovernance(ms.getLatestAddress("GV"));
     tf = ITokenFunctions(ms.getLatestAddress("TF"));

@@ -185,7 +185,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     CoverData storage originalCover = covers[coverId];
 
-    CoverChunk[] storage originalPools = coverChunksForCover[covers.length];
+    CoverChunk[] storage originalCoverChunks = coverChunksForCover[covers.length];
 
     uint tokenPrice;
     {
@@ -214,18 +214,18 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       totalPremiumInNXM += premiumInNXM;
 
       uint j = 0;
-      for ( ; j < originalPools.length; j++) {
-        if (originalPools[j].poolAddress == coverChunkRequests[i].poolAddress) {
-          originalPools[j].coverAmountInNXM += uint96(coveredAmount);
-          originalPools[j].premiumInNXM += uint96(premiumInNXM);
+      for ( ; j < originalCoverChunks.length; j++) {
+        if (originalCoverChunks[j].poolAddress == coverChunkRequests[i].poolAddress) {
+          originalCoverChunks[j].coverAmountInNXM += uint96(coveredAmount);
+          originalCoverChunks[j].premiumInNXM += uint96(premiumInNXM);
           break;
         }
       }
 
-      if (j < originalPools.length) {
+      if (j < originalCoverChunks.length) {
         continue;
       }
-      
+
       coverChunksForCover[covers.length].push(
         CoverChunk(
           coverChunkRequests[i].poolAddress,
@@ -373,7 +373,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     // clone the existing cover
     CoverData memory newCover = covers[coverId];
 
-    // clone existing staking pools
+    // clone existing cover chunks
     CoverChunk[] memory newCoverChunks = coverChunksForCover[coverId];
 
     uint newTotalCoverAmount = newCover.amount - amountReduction;

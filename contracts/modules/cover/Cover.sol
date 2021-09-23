@@ -10,13 +10,14 @@ import "../../interfaces/IMemberRoles.sol";
 
 contract Cover is ICover, ERC721, MasterAwareV2 {
 
-  CoverData[] public override covers;
-  mapping(uint => CoverChunk[]) coverChunksForCover;
+  uint public capacityFactor;
+  uint public coverCount;
 
   Product[] public override products;
-
-  uint public capacityFactor;
   ProductType[] public override productTypes;
+
+  mapping(uint => CoverData) public override covers;
+  mapping(uint => CoverChunk[]) public coverChunksForCover;
 
   mapping(uint => uint) initialPrices;
 
@@ -94,7 +95,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
       amountLeftToCoverInNXM -= coveredAmountInNXM;
       totalPremiumInNXM += premiumInNXM;
-      coverChunksForCover[covers.length].push(
+      coverChunksForCover[coverCount + 1].push(
         CoverChunk(coverChunkRequests[i].poolAddress, uint96(coveredAmountInNXM), uint96(premiumInNXM))
       );
     }
@@ -102,16 +103,16 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     uint premiumInAsset = totalPremiumInNXM * tokenPrice / 1e18;
 
-    covers.push(CoverData(
+    uint coverId = coverCount++;
+    covers[coverId] = CoverData(
         productId,
         payoutAsset,
         uint96(amount),
         uint32(block.timestamp + 1),
         uint32(period),
         uint96(premiumInAsset)
-      ));
+      );
 
-    uint coverId = covers.length - 1;
     _safeMint(owner, coverId);
 
     require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
@@ -141,10 +142,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       capacityFactor
     );
 
-    coverChunksForCover[covers.length].push(
-      CoverChunk(address(stakingPool), uint96(coveredAmount), uint96(premiumInNXM))
-    );
-
     return (coveredAmount, premiumInNXM);
   }
 
@@ -172,7 +169,9 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     CoverData storage originalCover = covers[coverId];
 
-    CoverChunk[] storage originalCoverChunks = coverChunksForCover[covers.length];
+    CoverChunk[] storage originalCoverChunks = coverChunksForCover[coverId];
+
+    newCoverId = coverCount++;
 
     uint tokenPrice;
     {
@@ -227,7 +226,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
           }
         }
 
-        coverChunksForCover[covers.length].push(
+        coverChunksForCover[newCoverId].push(
           CoverChunk(
             coverChunkRequests[i].poolAddress,
             uint96(coveredAmountInNXM),
@@ -250,18 +249,14 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     originalCover.period = elapsedPeriod;
     covers[coverId].premium = updatedOriginalPremium;
 
-    covers.push(
-      CoverData(
+    covers[coverId] = CoverData(
         originalCover.productId,
         originalCover.payoutAsset,
         originalCover.amount + amount,
         uint32(block.timestamp), // start
         remainingPeriod,
         uint96(premiumInAsset + carriedPremium)
-      )
-    );
-
-    newCoverId = covers.length - 1;
+      );
 
     // mint the new cover
     _safeMint(msg.sender, newCoverId);
@@ -279,7 +274,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   function _increasePeriod(uint coverId, uint32 extraPeriod) internal returns (uint) {
 
     CoverData storage cover = covers[coverId];
-    CoverChunk[] storage coverChunks = coverChunksForCover[covers.length];
+    CoverChunk[] storage coverChunks = coverChunksForCover[coverId];
 
     uint extraPremiumInNXM = 0;
     for (uint i = 0; i < coverChunks.length; i++) {
@@ -330,7 +325,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       "Cover: periodReduction > remaining period"
     );
 
-    CoverChunk[] storage originalCoverChunks = coverChunksForCover[covers.length];
+    CoverChunk[] storage originalCoverChunks = coverChunksForCover[coverId];
 
     // reduce period
     for (uint i = 0; i < originalCoverChunks.length; i++) {
@@ -387,7 +382,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     uint newTotalCoverAmount = newCover.amount - amountReduction;
 
-    uint newCoverId = covers.length;
+    uint newCoverId = coverCount++;
 
     // reduce amount
     for (uint i = 0; i < newCoverChunks.length; i++) {
@@ -418,7 +413,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     // new period is the remaining period
     newCover.period = currentCover.period - (uint32(block.timestamp) - currentCover.start);
     newCover.amount = uint96(newTotalCoverAmount);
-    covers.push(newCover);
+    covers[newCoverId] = newCover;
     // mint the new cover
     _safeMint(msg.sender, newCoverId);
 

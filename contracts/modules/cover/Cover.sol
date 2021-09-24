@@ -169,7 +169,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     CoverData storage originalCover = covers[coverId];
 
-    CoverChunk[] storage originalCoverChunks = coverChunksForCover[coverId];
+    CoverChunk[] memory originalCoverChunks = coverChunksForCover[coverId];
 
     newCoverId = coverCount++;
 
@@ -213,25 +213,23 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         totalPremiumInNXM += premiumInNXM;
 
         {
-          uint j = 0;
-          for ( ; j < originalCoverChunks.length; j++) {
+
+          for (uint j = 0; j < originalCoverChunks.length; j++) {
             if (originalCoverChunks[j].poolAddress == coverChunkRequests[i].poolAddress) {
-              originalCoverChunks[j].coverAmountInNXM += uint96(coveredAmountInNXM);
-              originalCoverChunks[j].premiumInNXM += uint96(premiumInNXM);
+              // if the pool already exists add the previously existing amounts
+              coveredAmountInNXM = coveredAmountInNXM + originalCoverChunks[j].coverAmountInNXM;
+              // set the premium as the premium remainder for the rest of the period + the newly paid premium
+              premiumInNXM = premiumInNXM + originalCoverChunks[j].premiumInNXM * remainingPeriod / originalCover.period;
               break;
             }
           }
-          if (j < originalCoverChunks.length) {
-            continue;
-          }
+          coverChunksForCover[newCoverId].push(
+            CoverChunk(
+              coverChunkRequests[i].poolAddress,
+              uint96(coveredAmountInNXM),
+              uint96(premiumInNXM)
+            ));
         }
-
-        coverChunksForCover[newCoverId].push(
-          CoverChunk(
-            coverChunkRequests[i].poolAddress,
-            uint96(coveredAmountInNXM),
-            uint96(premiumInNXM)
-          ));
       }
       require(amountLeftToCoverInNXM == 0, "Not enough available capacity");
     }

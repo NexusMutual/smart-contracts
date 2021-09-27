@@ -136,7 +136,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
     address coveredToken;
     {
       ICover coverContract = ICover(getInternalContractAddress(ID.CO));
-      coverOwner = payable(coverContract.ownerOf(coverId));
+      coverOwner = payable(coverContract.coverNFT().ownerOf(coverId));
 
       uint24 productId;
       uint32 start;

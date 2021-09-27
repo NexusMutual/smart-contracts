@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "../../interfaces/ICover.sol";
 
 
-contract ICMockCover is ICover, ERC721 {
+contract ICMockCover is ICover {
 
   CoverData[] public override covers;
   mapping(uint => CoverChunk[]) stakingPoolsForCover;
@@ -32,6 +32,8 @@ contract ICMockCover is ICover, ERC721 {
   */
   mapping(uint => mapping(address => uint)) lastPriceUpdate;
 
+  ICoverNFT public override coverNFT;
+
 
   /* === CONSTANTS ==== */
 
@@ -42,7 +44,8 @@ contract ICMockCover is ICover, ERC721 {
   uint public constant PRICE_CURVE_EXPONENT = 7;
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
 
-  constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_) {
+  constructor() {
+    // TODO: setup coverNFT mock
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -66,7 +69,7 @@ contract ICMockCover is ICover, ERC721 {
       ));
 
     coverId = covers.length - 1;
-    _safeMint(owner, coverId);
+    coverNFT.safeMint(owner, coverId);
   }
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external override {

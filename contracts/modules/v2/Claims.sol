@@ -259,9 +259,10 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
     }
 
     {
-      address owner = cover().ownerOf(coverId);
+      ICoverNFT coverNFT = cover().coverNFT();
+      address owner = coverNFT.ownerOf(coverId);
       claimants.push(owner);
-      cover().transferFrom(owner, address(this), coverId);
+      coverNFT.transferFrom(owner, address(this), coverId);
     }
 
     if (bytes(ipfsProofHash).length > 0) {
@@ -370,7 +371,7 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       revert("The claim is in cooldown period");
     }
 
-    cover().transferFrom(address(this), claimants[claimId], claim.coverId);
+    cover().coverNFT().transferFrom(address(this), claimants[claimId], claim.coverId);
     claims[claimId].coverRedeemed = true;
     (bool succeeded, /* bytes data */) = getInternalContractAddress(ID.P1).call{value: assessmentDeposit}("");
     require(succeeded, "Deposit transfer to pool failed");

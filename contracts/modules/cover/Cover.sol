@@ -6,9 +6,10 @@ import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IPool.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/ICoverNFT.sol";
 
 
-contract Cover is ICover, ERC721, MasterAwareV2 {
+contract Cover is ICover, MasterAwareV2 {
 
   uint public capacityFactor;
   uint public coverCount;
@@ -22,6 +23,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   mapping(uint => uint) initialPrices;
 
   mapping(uint => uint96) public override activeCoverAmountInNXM;
+
+  ICoverNFT public override coverNFT;
 
 
   struct LastPrice {
@@ -46,7 +49,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
 
 
-  constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_) {
+  constructor(ICoverNFT _coverNFT) {
+    coverNFT = _coverNFT;
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -113,7 +117,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
         uint96(premiumInAsset)
       );
 
-    _safeMint(owner, coverId);
+    coverNFT.safeMint(owner, coverId);
 
     require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
     retrievePayment(premiumInAsset, payoutAsset);
@@ -152,7 +156,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     CoverChunkRequest[] calldata coverChunkRequests
   ) external payable onlyMember returns (uint) {
 
-    require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
     CoverData memory cover = covers[coverId];
     require(cover.start + cover.period < block.timestamp, "Cover: cover expired");
 
@@ -259,12 +262,12 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
       );
 
     // mint the new cover
-    _safeMint(msg.sender, newCoverId);
+    coverNFT.safeMint(msg.sender, newCoverId);
   }
 
   function increasePeriod(uint coverId, uint32 extraPeriod, uint maxPremiumInAsset) external payable onlyMember {
 
-    require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
+
     CoverData memory cover = covers[coverId];
     require(cover.start + cover.period < block.timestamp, "Cover: cover expired");
 
@@ -319,7 +322,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     CoverChunkRequest[] calldata coverChunkRequests
   ) external payable onlyMember returns (uint) {
 
-    require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
+
 
     CoverData storage cover = covers[coverId];
     require(cover.start + cover.period < block.timestamp, "Cover: cover expired");
@@ -373,7 +376,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     uint maxPremiumInAsset
   ) external payable onlyMember returns (uint) {
 
-    require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
+
 
     CoverData storage currentCover = covers[coverId];
     require(currentCover.amount > amountReduction, "Cover: amountReduction > cover.amount");
@@ -420,7 +423,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     newCover.amount = uint96(newTotalCoverAmount);
     covers[newCoverId] = newCover;
     // mint the new cover
-    _safeMint(msg.sender, newCoverId);
+    coverNFT.safeMint(msg.sender, newCoverId);
 
     // the refund is proportional to the amount reduction and the period remaining
     uint refund = currentCover.amount

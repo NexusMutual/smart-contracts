@@ -475,7 +475,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     uint96 lastPrice = lastPrices[productId][address(pool)].value;
     uint basePrice = interpolatePrice(
-      pool.getStake(productId),
       lastPrice != 0 ? lastPrice : initialPrices[productId],
       pool.getTargetPrice(productId),
       lastPrices[productId][address(pool)].value,
@@ -497,7 +496,6 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     Price changes towards targetPrice from lastPrice by maximum of 1% a day per every 100k NXM staked
   */
   function interpolatePrice(
-    uint stakedNXM,
     uint lastPrice,
     uint targetPrice,
     uint lastPriceUpdate,
@@ -505,7 +503,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   ) public pure returns (uint) {
 
     uint percentageChange =
-      (now - lastPriceUpdate) / 1 days * (stakedNXM / STAKE_SPEED_UNIT) * PERCENTAGE_CHANGE_PER_DAY_BPS;
+      (now - lastPriceUpdate) / 1 days * PERCENTAGE_CHANGE_PER_DAY_BPS;
     if (targetPrice > lastPrice) {
       return lastPrice + (targetPrice - lastPrice) * percentageChange / BASIS_PRECISION;
     } else {

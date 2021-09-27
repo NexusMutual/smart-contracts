@@ -153,6 +153,8 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   ) external payable onlyMember returns (uint) {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
+    CoverData memory cover = covers[coverId];
+    require(cover.start + cover.period < block.timestamp, "Cover: cover expired");
 
     (uint coverId, uint premiumInAsset) = _increaseAmount(coverId, amount, coverChunkRequests);
 
@@ -263,6 +265,9 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
   function increasePeriod(uint coverId, uint32 extraPeriod, uint maxPremiumInAsset) external payable onlyMember {
 
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
+    CoverData memory cover = covers[coverId];
+    require(cover.start + cover.period < block.timestamp, "Cover: cover expired");
+
     uint premiumInAsset = _increasePeriod(coverId, extraPeriod);
     require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
@@ -317,6 +322,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
     require(msg.sender == ERC721.ownerOf(coverId), "Cover: not cover owner");
 
     CoverData storage cover = covers[coverId];
+    require(cover.start + cover.period < block.timestamp, "Cover: cover expired");
 
     require(
       cover.period - (block.timestamp - cover.start) > periodReduction,
@@ -371,6 +377,7 @@ contract Cover is ICover, ERC721, MasterAwareV2 {
 
     CoverData storage currentCover = covers[coverId];
     require(currentCover.amount > amountReduction, "Cover: amountReduction > cover.amount");
+    require(currentCover.start + currentCover.period < block.timestamp, "Cover: cover expired");
 
     // clone the existing cover
     CoverData memory newCover = covers[coverId];

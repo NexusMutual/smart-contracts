@@ -44,6 +44,10 @@ async function setup () {
   const cover = await Cover.deploy('Nexus Mutual Cover', 'NXC');
   await cover.deployed();
 
+  const CLMockUnknownNFT = await ethers.getContractFactory('CLMockUnknownNFT');
+  const unkownNFT = await CLMockUnknownNFT.deploy('Unknown NFT', 'UNK');
+  await unkownNFT.deployed();
+
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
     master.setLatestAddress(hex('MR'), memberRoles.address),
@@ -89,6 +93,7 @@ async function setup () {
     claims,
     assessment,
     cover,
+    unkownNFT,
     master,
   };
 }

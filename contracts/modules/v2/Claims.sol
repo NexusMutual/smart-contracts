@@ -245,7 +245,6 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       (
         uint16 productType,
         /*address productAddress*/,
-        /*uint16 capacityFactor*/,
         /*uint payoutAssets*/
       ) = cover().products(productId);
       (

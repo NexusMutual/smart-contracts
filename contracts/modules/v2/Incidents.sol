@@ -85,9 +85,8 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
     );
     (
       uint16 productType,
-      /*coveredToken*/,
-      /*capacityFactor*/,
-      /*payoutAddress*/
+      /*address productAddress*/,
+      /*uint payoutAssets*/
     ) = cover().products(productId);
     (
       /*string descriptionIpfsHash*/,
@@ -97,11 +96,11 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
     ) = cover().productTypes(productType);
     require(redeemMethod == uint8(ICover.RedeemMethod.Incident), "Invalid redeem method");
 
-    uint expectedPayoutInNXM = activeCoverAmountInNXM * config.incidentExpectedPayoutRatio *
-      PRECISION / RATIO_BPS;
+    uint expectedPayoutInNXM = activeCoverAmountInNXM * config.incidentExpectedPayoutRatio /
+      RATIO_BPS;
 
     // Determine the total rewards that should be minted for the assessors based on cover period
-    uint totalReward = expectedPayoutInNXM * config.rewardRatio * RATIO_BPS;
+    uint totalReward = expectedPayoutInNXM * config.rewardRatio / RATIO_BPS;
     uint assessmentId = assessment().startAssessment(totalReward, 0);
     incident.assessmentId = uint80(assessmentId);
     incidents.push(incident);
@@ -121,7 +120,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
       (,,uint8 payoutCooldownDays) = assessment().config();
       require(
         block.timestamp >= poll.end + payoutCooldownDays * 1 days,
-        "The incident is in cooldown period"
+        "The voting and cooldown periods must end"
       );
 
       require(
@@ -153,35 +152,29 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
       ) = coverContract.covers(coverId);
 
       {
-        uint maxAmount;
-        {
-          uint deductiblePriceBefore = incident.priceBefore * config.incidentPayoutDeductibleRatio /
-            PRECISION;
-          maxAmount = coverAmount * PRECISION / deductiblePriceBefore;
-          require(depeggedTokens <= maxAmount, "Amount exceeds sum assured");
-        }
-        payoutAmount = depeggedTokens * coverAmount / maxAmount;
+        uint deductiblePriceBefore = incident.priceBefore * config.incidentPayoutDeductibleRatio /
+          PRECISION;
+        payoutAmount = depeggedTokens * deductiblePriceBefore / PRECISION;
       }
       {
         require(payoutAmount <= coverAmount, "Payout exceeds covered amount");
         coverContract.performPayoutBurn(coverId, coverOwner, payoutAmount);
         require(start + period >= incident.date, "Cover end date is before the incident");
+        require(start < incident.date, "Cover start date is after the incident");
         uint16 productType;
         (
           productType,
           coveredToken,
-          /*capacityFactor*/,
-          /*payoutAddress*/
-        ) = cover().products(productId);
+          /*uint payoutAssets*/
+        ) = coverContract.products(productId);
         (
           /*string descriptionIpfsHash*/,
           /*uint8 redeemMethod*/,
           uint gracePeriod,
           /*uint16 burnRatio*/
-        ) = cover().productTypes(productType);
-        require(start + period + gracePeriod * 1 days>= block.timestamp, "Grace period has expired");
+        ) = coverContract.productTypes(productType);
+        require(start + period + gracePeriod * 1 days >= block.timestamp, "Grace period has expired");
         require(productId == incident.productId, "Product id mismatch");
-        require(start <= incident.date, "Cover start date is after the incident");
       }
     }
 

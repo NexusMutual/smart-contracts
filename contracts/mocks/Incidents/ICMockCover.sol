@@ -69,6 +69,41 @@ contract ICMockCover is ICover, ERC721 {
     _safeMint(owner, coverId);
   }
 
+  function addProductType(
+    string calldata descriptionIpfsHash,
+    uint8 redeemMethod,
+    uint16 gracePeriodInDays,
+    uint16 burnRatio
+  ) external {
+    productTypes.push(ProductType(
+    descriptionIpfsHash,
+    redeemMethod,
+    gracePeriodInDays,
+    burnRatio
+    ));
+  }
+
+  function addProduct(
+    uint16 productType,
+    address productAddress,
+    uint16 capacityFactor,
+    uint payoutAssets
+  ) external {
+    products.push(Product(
+      productType,
+      productAddress,
+      payoutAssets
+    ));
+  }
+
+  function setActiveCoverAmountInNXM(
+    uint productId,
+    uint96 amount
+  ) external returns (uint96) {
+    activeCoverAmountInNXM[productId] = amount;
+  }
+
+
   function performPayoutBurn(uint coverId, address owner, uint amount) external override {
 
   }

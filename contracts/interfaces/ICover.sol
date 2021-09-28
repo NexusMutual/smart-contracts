@@ -30,7 +30,6 @@ interface ICover is IERC721 {
   struct Product {
     uint16 productType;
     address productAddress;
-    uint16 capacityFactor;
     /* supported payout assets bitmap TODO: explain */
     uint payoutAssets;
   }
@@ -46,7 +45,7 @@ interface ICover is IERC721 {
 
   function covers(uint id) external view returns (uint24, uint8, uint96, uint32, uint32, uint96);
 
-  function products(uint id) external view returns (uint16, address, uint16, uint);
+  function products(uint id) external view returns (uint16, address, uint);
 
   function productTypes(uint id) external view returns (string memory, uint8, uint16, uint16);
 

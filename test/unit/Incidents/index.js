@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const { setup } = require('./setup');
 
-describe('Incidents', function () {
+describe.only('Incidents', function () {
   before(setup);
 
   beforeEach(async function () {
@@ -11,4 +11,9 @@ describe('Incidents', function () {
   afterEach(async function () {
     await revertToSnapshot(this.snapshotId);
   });
+
+  require('./submitIncident');
+  require('./onERC721Received');
+  require('./redeemIncidentPayout');
+  require('./withdrawAsset');
 });

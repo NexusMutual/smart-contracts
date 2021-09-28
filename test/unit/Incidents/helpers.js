@@ -40,8 +40,6 @@ module.exports = {
   ASSET,
   STATUS,
   daysToSeconds,
-  submitFraud,
-  burnFraud,
   getPollStruct,
   getConfigurationStruct,
   getIncidentStruct,

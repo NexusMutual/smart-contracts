@@ -47,6 +47,29 @@ contract CLMockCover is ICover, ERC721 {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
+  function buyCoverAtDate(
+    address owner,
+    uint24 productId,
+    uint8 payoutAsset,
+    uint96 amount,
+    uint32 period,
+    uint maxPrice,
+    StakingPool[] memory stakingPools,
+    uint32 date
+  ) external payable returns (uint coverId) {
+    covers.push(Cover(
+        productId,
+        payoutAsset,
+        uint96(amount),
+        uint32(date + 1),
+        uint32(period),
+        uint96(0)
+      ));
+
+    coverId = covers.length - 1;
+    _safeMint(owner, coverId);
+  }
+
   function buyCover(
     address owner,
     uint24 productId,
@@ -92,7 +115,6 @@ contract CLMockCover is ICover, ERC721 {
     products.push(Product(
       productType,
       productAddress,
-      capacityFactor,
       payoutAssets
     ));
   }

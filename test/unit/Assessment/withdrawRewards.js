@@ -5,7 +5,7 @@ const { setTime, EVENT_TYPE, daysToSeconds } = require('./helpers');
 
 const { parseEther } = ethers.utils;
 
-describe('withdrawReward', function () {
+describe('withdrawRewards', function () {
   it('reverts if there are no withdrawable rewards', async function () {
     assert(false, '[todo]');
   });
@@ -30,10 +30,7 @@ describe('withdrawReward', function () {
 
     await assessment.connect(user).withdrawRewards(user.address, 0);
 
-    const inspect = await assessment.stakeOf(user.address);
-    console.log({ inspect });
     const { rewardsWithdrawnUntilIndex } = await assessment.stakeOf(user.address);
-
     expect(rewardsWithdrawnUntilIndex).to.be.equal(1);
   });
 

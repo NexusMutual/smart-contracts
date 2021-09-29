@@ -49,7 +49,11 @@ contract Cover is ICover, MasterAwareV2 {
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
 
 
-  constructor(ICoverNFT _coverNFT) {
+  constructor() {
+  }
+
+  function initialize(ICoverNFT _coverNFT) public {
+    require(address(coverNFT) == address(0), "Cover: already initialized");
     coverNFT = _coverNFT;
   }
 

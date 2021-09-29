@@ -5,18 +5,18 @@ pragma solidity ^0.5.17;
 
 contract CoverMockPool {
 
-  mapping (address => uint) prices;
+  mapping (uint => uint) prices;
   address[] public assets;
 
   constructor() public {
   }
 
-  function getTokenPrice(address asset) public view returns (uint) {
-    return prices[asset];
+  function getTokenPrice(uint assetId) public view returns (uint) {
+    return prices[assetId];
   }
 
-  function setTokenPrice(address asset, uint price) public {
-    prices[asset] = price;
+  function setTokenPrice(uint assetId, uint price) public {
+    prices[assetId] = price;
   }
 
   function setAssets(address[] memory _assets) public {

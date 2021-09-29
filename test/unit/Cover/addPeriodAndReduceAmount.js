@@ -5,6 +5,8 @@ const { hex } = require('../utils').helpers;
 const accounts = require('../utils').accounts;
 const { calculatePrice } = require('./helpers');
 
+const { governanceContracts: [gv1], members: [member1] } = require('../utils').accounts;
+
 const { members: [coverBuyer1], advisoryBoardMembers: [ab1] } = require('../utils').accounts;
 
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
@@ -31,8 +33,8 @@ describe.only('addPeriodAndReduceAmount', function () {
     const stakingPool = await CoverMockStakingPool.new();
     const capacityFactor = '1';
 
-    await cover.setCapacityFactor(productId, capacityFactor, {
-      from: ab1,
+    await cover.setCapacityFactor(capacityFactor, {
+      from: gv1,
     });
     await cover.setInitialPrice(productId, initialPrice, {
       from: ab1,
@@ -61,8 +63,9 @@ describe.only('addPeriodAndReduceAmount', function () {
       amount,
       period,
       expectedPrice,
-      [{ poolAddress: stakingPool.address, coverAmount: '0', premiumInNXM: '0' }],
+      [{ poolAddress: stakingPool.address, coverAmountInAsset: '0' }],
       {
+        from: member1,
         value: expectedPrice,
       },
     );

@@ -19,12 +19,17 @@ async function setup () {
   const QuotationData = artifacts.require('MCRMockQuotationData');
   const Cover = artifacts.require('Cover');
   const MemberRolesMock = artifacts.require('MemberRolesMock');
+  const CoverNFT = artifacts.require('CoverNFT');
 
   const master = await MasterMock.new();
   const dai = await ERC20Mock.new();
   const stETH = await ERC20Mock.new();
   const memberRoles = await MemberRolesMock.new();
-  const cover = await Cover.new('NexusMutual Cover', 'NXMC');
+
+  const cover = await Cover.new();
+
+  const coverNFT = await CoverNFT.new('NexusMutual Cover', 'NXMC', cover.address);
+  await cover.initialize(coverNFT.address);
 
   const ethToDaiRate = ether('2000');
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
@@ -42,7 +47,7 @@ async function setup () {
 
   await pool.setAssets([ETH, dai.address]);
 
-  await pool.setTokenPrice(ETH, ether('1'));
+  await pool.setTokenPrice('0', ether('1'));
 
   const quotationData = await QuotationData.new();
 

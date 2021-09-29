@@ -524,6 +524,7 @@ contract Cover is ICover, MasterAwareV2 {
     uint activeCover,
     uint capacity
   ) public pure returns (uint) {
+
     return (calculatePriceIntegralAtPoint(
       basePrice,
       activeCover + amount,

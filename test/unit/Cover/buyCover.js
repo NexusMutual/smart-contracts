@@ -15,7 +15,7 @@ const { toBN } = web3.utils;
 
 describe('buyCover', function () {
 
-  it('should purchase new cover', async function () {
+  it.only('should purchase new cover', async function () {
     const { cover } = this;
 
     const productId = 1;
@@ -52,19 +52,6 @@ describe('buyCover', function () {
     );
     const expectedPrice = expectedPricePercentage.mul(amount).div(ether('100'));
 
-    console.log({
-      expectedPrice: expectedPrice.toString(),
-    });
-    /*
-        address owner,
-    uint24 productId,
-    uint8 payoutAsset,
-    uint96 amount,
-    uint32 period,
-    uint maxPrice,
-    StakingPool[] memory stakingPools
-     */
-
     await cover.buyCover(
       coverBuyer1,
       productId,
@@ -72,7 +59,7 @@ describe('buyCover', function () {
       amount,
       period,
       expectedPrice,
-      [{ poolAddress: stakingPool.address, coverAmountInAsset: '0' }],
+      [{ poolAddress: stakingPool.address, coverAmountInAsset: amount.toString() }],
       {
         from: member1,
         value: expectedPrice,

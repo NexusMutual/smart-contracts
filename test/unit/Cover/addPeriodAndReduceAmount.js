@@ -13,7 +13,7 @@ const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
 const { toBN } = web3.utils;
 
-describe.only('addPeriodAndReduceAmount', function () {
+describe('addPeriodAndReduceAmount', function () {
 
   it('should purchase new cover', async function () {
     const { cover } = this;

@@ -7,7 +7,7 @@ import "../../interfaces/IPool.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/ICoverNFT.sol";
-
+import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2 {
 
@@ -161,7 +161,7 @@ contract Cover is ICover, MasterAwareV2 {
   ) external payable onlyMember returns (uint) {
 
     CoverData memory cover = covers[coverId];
-    require(cover.start + cover.period < block.timestamp, "Cover: cover expired");
+    require(cover.start + cover.period > block.timestamp, "Cover: cover expired");
 
     (uint coverId, uint premiumInAsset) = _increaseAmount(coverId, amount, coverChunkRequests);
 
@@ -273,7 +273,7 @@ contract Cover is ICover, MasterAwareV2 {
 
 
     CoverData memory cover = covers[coverId];
-    require(cover.start + cover.period < block.timestamp, "Cover: cover expired");
+    require(cover.start + cover.period > block.timestamp, "Cover: cover expired");
 
     uint premiumInAsset = _increasePeriod(coverId, extraPeriod);
     require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
@@ -329,7 +329,7 @@ contract Cover is ICover, MasterAwareV2 {
 
 
     CoverData storage cover = covers[coverId];
-    require(cover.start + cover.period < block.timestamp, "Cover: cover expired");
+    require(cover.start + cover.period > block.timestamp, "Cover: cover expired");
 
     require(
       cover.period - (block.timestamp - cover.start) > periodReduction,
@@ -380,11 +380,9 @@ contract Cover is ICover, MasterAwareV2 {
     uint maxPremiumInAsset
   ) external payable onlyMember returns (uint) {
 
-
-
     CoverData storage currentCover = covers[coverId];
     require(currentCover.amount > amountReduction, "Cover: amountReduction > cover.amount");
-    require(currentCover.start + currentCover.period < block.timestamp, "Cover: cover expired");
+    require(currentCover.start + currentCover.period > block.timestamp, "Cover: cover expired");
 
     // clone the existing cover
     CoverData memory newCover = covers[coverId];
@@ -396,9 +394,13 @@ contract Cover is ICover, MasterAwareV2 {
 
     uint newCoverId = coverCount++;
 
+    console.log("debug 1");
+
     // reduce amount
     for (uint i = 0; i < newCoverChunks.length; i++) {
       IStakingPool stakingPool = IStakingPool(newCoverChunks[i].poolAddress);
+
+      console.log("debug 2");
 
       // reduce the amount per pool proportionately to the overall reduction
       uint newCoverAmount = newCoverChunks[i].coverAmountInNXM * newTotalCoverAmount / newCover.amount;

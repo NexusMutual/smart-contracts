@@ -103,7 +103,8 @@ contract Cover is ICover, MasterAwareV2 {
 
       amountLeftToCoverInNXM -= coveredAmountInNXM;
       totalPremiumInNXM += premiumInNXM;
-      coverChunksForCover[coverCount + 1].push(
+
+      coverChunksForCover[coverCount].push(
         CoverChunk(coverChunkRequests[i].poolAddress, uint96(coveredAmountInNXM), uint96(premiumInNXM))
       );
     }
@@ -394,13 +395,9 @@ contract Cover is ICover, MasterAwareV2 {
 
     uint newCoverId = coverCount++;
 
-    console.log("debug 1");
-
     // reduce amount
     for (uint i = 0; i < newCoverChunks.length; i++) {
       IStakingPool stakingPool = IStakingPool(newCoverChunks[i].poolAddress);
-
-      console.log("debug 2");
 
       // reduce the amount per pool proportionately to the overall reduction
       uint newCoverAmount = newCoverChunks[i].coverAmountInNXM * newTotalCoverAmount / newCover.amount;
@@ -432,13 +429,14 @@ contract Cover is ICover, MasterAwareV2 {
     coverNFT.safeMint(msg.sender, newCoverId);
 
     // the refund is proportional to the amount reduction and the period remaining
-    uint refund = currentCover.amount
-      * amountReduction / newCover.amount
-      * uint96(newCover.period) / uint96(currentCover.period);
+    uint96 refund = uint96(uint(currentCover.premium)
+      * uint(amountReduction) / uint(newCover.amount)
+      * uint(newCover.period) / uint(currentCover.period));
 
     // make the current cover expire at current block
     currentCover.period = uint32(block.timestamp) - currentCover.start;
     // adjust premium on current cover
+
     currentCover.premium = currentCover.premium - uint96(refund);
 
     uint premiumInAsset = _increasePeriod(newCoverId, extraPeriod);
@@ -446,7 +444,7 @@ contract Cover is ICover, MasterAwareV2 {
 
     if (premiumInAsset > refund) {
       // retrieve extra required payment
-      retrievePayment(premiumInAsset- refund, newCover.payoutAsset);
+      retrievePayment(premiumInAsset - refund, newCover.payoutAsset);
     }
 
     // set the newly paid premium

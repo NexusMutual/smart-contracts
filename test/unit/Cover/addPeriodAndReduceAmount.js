@@ -15,7 +15,7 @@ const { toBN } = web3.utils;
 
 describe('addPeriodAndReduceAmount', function () {
 
-  it('should purchase new cover', async function () {
+  it.only('should purchase new cover', async function () {
     const { cover } = this;
 
     const productId = 1;
@@ -63,19 +63,22 @@ describe('addPeriodAndReduceAmount', function () {
       amount,
       period,
       expectedPrice,
-      [{ poolAddress: stakingPool.address, coverAmountInAsset: '0' }],
+      [{ poolAddress: stakingPool.address, coverAmountInAsset: amount.toString() }],
       {
         from: member1,
         value: expectedPrice,
       },
     );
 
+    // increase time so cover can be edited
+    await time.increase(time.duration.hours(25));
+
     const coverId = '0';
     const extraPeriod = toBN(30 * 24 * 3600); // 30 days
     const amountReduction = ether('10');
     const maxPrice = ether('100000');
 
-    await cover.addPeriodAndReduceAmount(
+    await cover.increasePeriodAndReduceAmount(
       coverId,
       extraPeriod,
       amountReduction,

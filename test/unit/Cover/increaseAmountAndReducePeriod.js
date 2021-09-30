@@ -13,14 +13,14 @@ const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
 const { toBN } = web3.utils;
 
-describe('addPeriodAndReduceAmount', function () {
+describe('increaseAmountAndReducePeriod', function () {
 
-  it.only('should purchase new cover', async function () {
+  it.only('should edit cover by increasing amount and reducing period', async function () {
     const { cover } = this;
 
     const productId = 1;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 365; // 30 days
+    const period = 3600 * 24 * 60; // 60 days
 
     const amount = ether('1000');
 
@@ -78,15 +78,16 @@ describe('addPeriodAndReduceAmount', function () {
     await time.increase(time.duration.hours(25));
 
     const coverId = '0';
-    const extraPeriod = toBN(30 * 24 * 3600); // 30 days
-    const amountReduction = ether('10');
+    const periodReduction = toBN(30 * 24 * 3600); // 30 days
+    const amountIncrease = ether('10');
     const maxPrice = ether('100000');
 
-    const tx2 = await cover.increasePeriodAndReduceAmount(
+    const tx2 = await cover.increaseAmountAndReducePeriod(
       coverId,
-      extraPeriod,
-      amountReduction,
+      periodReduction,
+      amountIncrease,
       maxPrice,
+      [{ poolAddress: stakingPool.address, coverAmountInAsset: amountIncrease.toString() }],
       {
         from: coverBuyer1,
         value: maxPrice,

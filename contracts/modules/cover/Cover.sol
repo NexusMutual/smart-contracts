@@ -296,6 +296,7 @@ contract Cover is ICover, MasterAwareV2 {
         cover.productId,
         stakingPool
       );
+
       lastPrices[cover.productId][address(stakingPool)] = LastPrice(uint96(basePrice), uint32(block.timestamp));
 
       stakingPool.extendPeriod(
@@ -484,7 +485,7 @@ contract Cover is ICover, MasterAwareV2 {
     uint basePrice = interpolatePrice(
       lastPrice != 0 ? lastPrice : initialPrices[productId],
       pool.getTargetPrice(productId),
-      lastPrices[productId][address(pool)].value,
+      lastPrices[productId][address(pool)].lastUpdateTime,
       block.timestamp
     );
 
@@ -495,7 +496,8 @@ contract Cover is ICover, MasterAwareV2 {
       pool.getCapacity(productId, capacityFactor)
     );
 
-    uint price = pricePercentage * amount * period / 365 days / MAX_PRICE_PERCENTAGE;
+    uint price = pricePercentage * amount / MAX_PRICE_PERCENTAGE * period / 365 days;
+
     return (basePrice, price);
   }
 
@@ -511,6 +513,7 @@ contract Cover is ICover, MasterAwareV2 {
 
     uint percentageChange =
       (now - lastPriceUpdate) / 1 days * PERCENTAGE_CHANGE_PER_DAY_BPS;
+
     if (targetPrice > lastPrice) {
       return lastPrice + (targetPrice - lastPrice) * percentageChange / BASIS_PRECISION;
     } else {

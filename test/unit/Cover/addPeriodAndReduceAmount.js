@@ -56,7 +56,7 @@ describe('addPeriodAndReduceAmount', function () {
       expectedPrice: expectedPrice.toString(),
     });
 
-    await cover.buyCover(
+    const tx1 = await cover.buyCover(
       coverBuyer1,
       productId,
       payoutAsset,
@@ -70,6 +70,10 @@ describe('addPeriodAndReduceAmount', function () {
       },
     );
 
+    console.log({
+      gasUsed: tx1.receipt.gasUsed,
+    });
+
     // increase time so cover can be edited
     await time.increase(time.duration.hours(25));
 
@@ -78,7 +82,7 @@ describe('addPeriodAndReduceAmount', function () {
     const amountReduction = ether('10');
     const maxPrice = ether('100000');
 
-    await cover.increasePeriodAndReduceAmount(
+    const tx2 = await cover.increasePeriodAndReduceAmount(
       coverId,
       extraPeriod,
       amountReduction,
@@ -88,5 +92,9 @@ describe('addPeriodAndReduceAmount', function () {
         value: maxPrice,
       },
     );
+
+    console.log({
+      gasUsed: tx2.receipt.gasUsed,
+    });
   });
 });

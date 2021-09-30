@@ -87,13 +87,13 @@ contract CLMockCover is ICover {
 
   function addProduct(
     uint16 productType,
-    uint24 productId,
+    address productAddress,
     uint16 capacityFactor,
     uint payoutAssets
   ) external {
     products.push(Product(
       productType,
-      productId,
+      productAddress,
       payoutAssets
     ));
   }

@@ -72,13 +72,11 @@ contract Cover is ICover, MasterAwareV2 {
 
     uint amountLeftToCoverInNXM;
     uint tokenPrice;
-    {
-      IPool pool = pool();
-      // convert to NXM amount
-      tokenPrice = pool.getTokenPrice(payoutAsset);
-      amountLeftToCoverInNXM = uint(amount) * 1e18 / tokenPrice;
-      activeCoverAmountInNXM[productId] += uint96(amountLeftToCoverInNXM);
-    }
+
+    // convert to NXM amount
+    tokenPrice = pool().getTokenPrice(payoutAsset);
+    amountLeftToCoverInNXM = uint(amount) * 1e18 / tokenPrice;
+    activeCoverAmountInNXM[productId] += uint96(amountLeftToCoverInNXM);
 
     uint totalPremiumInNXM = 0;
 
@@ -244,10 +242,7 @@ contract Cover is ICover, MasterAwareV2 {
       require(amountLeftToCoverInNXM == 0, "Not enough available capacity");
     }
 
-    {
-      IPool pool = pool();
-      premiumInAsset = totalPremiumInNXM * tokenPrice / 1e18;
-    }
+    premiumInAsset = totalPremiumInNXM * tokenPrice / 1e18;
 
     // make the previous cover expire at current block
     uint32 elapsedPeriod = originalCover.period - remainingPeriod;

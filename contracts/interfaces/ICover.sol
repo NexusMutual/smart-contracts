@@ -35,7 +35,7 @@ interface ICover {
 
   struct Product {
     uint16 productType;
-    uint24 productId;
+    address productAddress;
     /* supported payout assets bitmap TODO: explain */
     uint payoutAssets;
   }
@@ -50,7 +50,7 @@ interface ICover {
 
   function covers(uint id) external view returns (uint24, uint8, uint96, uint32, uint32, uint96);
 
-  function products(uint id) external view returns (uint16, uint24, uint);
+  function products(uint id) external view returns (uint16, address, uint);
 
   function productTypes(uint id) external view returns (string memory, uint8, uint16);
 

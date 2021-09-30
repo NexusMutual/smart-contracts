@@ -166,10 +166,9 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
         require(start + period >= incident.date, "Cover end date is before the incident");
         uint16 productType;
 
-        // TODO: set coveredToken address based on the productId
         (
           productType,
-          /*coveredToken*/,
+          coveredToken,
           /*payoutAddress*/
         ) = cover().products(productId);
         (

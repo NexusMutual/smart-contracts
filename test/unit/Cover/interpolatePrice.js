@@ -20,7 +20,6 @@ describe('interpolatePrice', function () {
     const now = toBN(24 * 3600);
 
     const price = await cover.interpolatePrice(
-      stakedNXM,
       lastPrice,
       targetPrice,
       lastPriceUpdate,

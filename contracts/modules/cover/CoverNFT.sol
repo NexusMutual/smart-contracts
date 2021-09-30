@@ -13,4 +13,12 @@ contract CoverNFT is ERC721 {
     require(msg.sender == address(cover), "CoverNFT: Not Cover module");
     _safeMint(to, tokenId);
   }
+
+  function isApprovedOrOwner(address spender, uint tokenId) external view returns (bool) {
+    return _isApprovedOrOwner(spender, tokenId);
+  }
+
+  function burn(uint tokenId) external {
+    _burn(tokenId);
+  }
 }

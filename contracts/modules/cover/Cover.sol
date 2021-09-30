@@ -342,8 +342,6 @@ contract Cover is ICover, MasterAwareV2 {
     for (uint i = 0; i < originalCoverChunks.length; i++) {
       IStakingPool stakingPool = IStakingPool(originalCoverChunks[i].poolAddress);
 
-      console.log("loop 1");
-
       stakingPool.reducePeriod(
         cover.productId,
         cover.period,
@@ -355,8 +353,6 @@ contract Cover is ICover, MasterAwareV2 {
 
       originalCoverChunks[i].premiumInNXM =
         originalCoverChunks[i].premiumInNXM * (cover.period - periodReduction) / cover.period;
-
-      console.log("loop 2");
     }
 
     uint refund = cover.premium * periodReduction / cover.period;

@@ -17,4 +17,6 @@ describe.only('Cover unit tests', function () {
   require('./buyCover');
   require('./increasePeriodAndReduceAmount');
   require('./increaseAmountAndReducePeriod');
+  require('./increaseAmount');
+  require('./increasePeriod');
 });

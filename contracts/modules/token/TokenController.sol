@@ -8,6 +8,7 @@ import "../../interfaces/ILegacyClaimsData.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IAssessment.sol";
 import "./external/LockHandler.sol";
 
 contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
@@ -22,6 +23,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
   INXMToken public token;
   IPooledStaking public pooledStaking;
+  IAssessment public assessment;
 
   uint public minCALockTime;
   uint public claimSubmissionGracePeriod;
@@ -46,6 +48,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   function changeDependentContractAddress() public {
     token = INXMToken(ms.tokenAddress());
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
+    assessment = IAssessment(ms.getLatestAddress("AS"));
   }
 
   function markCoverClaimOpen(uint coverId) external onlyInternal {
@@ -102,20 +105,6 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     token.operatorTransfer(_from, _value);
     token.transfer(_to, _value);
     return true;
-  }
-
-  /**
-  * @dev Locks a specified amount of tokens,
-  *    for CLA reason and for a specified time
-  * @param _amount Number of tokens to be locked
-  * @param _time Lock time in seconds
-  */
-  function lockClaimAssessmentTokens(uint256 _amount, uint256 _time) external checkPause {
-    require(minCALockTime <= _time, "TokenController: Must lock for minimum time");
-    require(_time <= 180 days, "TokenController: Tokens can be locked for 180 days maximum");
-    // If tokens are already locked, then functions extendLock or
-    // increaseClaimAssessmentLock should be used to make any changes
-    _lock(msg.sender, "CLA", _amount, _time);
   }
 
   /**
@@ -427,6 +416,12 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
     uint stakerReward = pooledStaking.stakerReward(_of);
     uint stakerDeposit = pooledStaking.stakerDeposit(_of);
+
+    (
+      uint assessmentStake,
+      /*uint104 rewardsWithdrawnUntilIndex,*/
+      /*uint16 fraudCount*/
+    ) = assessment.stakeOf(_of);
 
     amount = amount.add(stakerDeposit).add(stakerReward);
   }

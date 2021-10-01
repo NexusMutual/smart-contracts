@@ -4,7 +4,7 @@ import "../../interfaces/ICover.sol";
 
 contract CoverNFT is ERC721 {
 
-  ICover cover;
+  ICover immutable public cover;
   constructor(string memory name_, string memory symbol_, address _cover) ERC721(name_, symbol_) {
     cover = ICover(_cover);
   }

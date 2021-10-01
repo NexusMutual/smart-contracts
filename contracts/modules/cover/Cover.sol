@@ -11,8 +11,6 @@ import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2 {
 
-  uint public capacityFactor;
-  uint public coverCount;
 
   Product[] public override products;
   ProductType[] public override productTypes;
@@ -24,6 +22,8 @@ contract Cover is ICover, MasterAwareV2 {
 
   mapping(uint => uint96) public override activeCoverAmountInNXM;
 
+  uint32 public capacityFactor;
+  uint32 public coverCount;
   ICoverNFT public override coverNFT;
 
 
@@ -549,7 +549,7 @@ contract Cover is ICover, MasterAwareV2 {
 
   /* ========== PRODUCT CONFIGURATION ========== */
 
-  function setCapacityFactor(uint _capacityFactor) external onlyGovernance {
+  function setCapacityFactor(uint32 _capacityFactor) external onlyGovernance {
     capacityFactor = _capacityFactor;
   }
 

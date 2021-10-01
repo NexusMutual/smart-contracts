@@ -69,7 +69,7 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
 
   function withdrawCoverNote(address coverOwner, uint[] calldata coverIds, uint[] calldata reasonIndexes) external {
 
-    uint gracePeriod = tc.claimSubmissionGracePeriod();
+    uint gracePeriod = 120; // hardcoded for now
 
     for (uint i = 0; i < coverIds.length; i++) {
       uint expirationDate = qd.getValidityOfCover(coverIds[i]);
@@ -88,7 +88,7 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
 
     uint[] memory coverIds = qd.getAllCoversOfUser(coverOwner);
     uint[] memory expiredIdsQueue = new uint[](coverIds.length);
-    uint gracePeriod = tc.claimSubmissionGracePeriod();
+    uint gracePeriod = 120; //hardcoded
     uint expiredQueueLength = 0;
 
     for (uint i = 0; i < coverIds.length; i++) {
@@ -269,7 +269,7 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
 
     uint coverNoteAmount = coverDetails[2].mul(qd.tokensRetained()).div(100);
 
-    uint gracePeriod = tc.claimSubmissionGracePeriod();
+    uint gracePeriod = 120; // hardcoded
     uint claimSubmissionPeriod = uint(coverPeriod).mul(1 days).add(gracePeriod);
     bytes32 reason = keccak256(abi.encodePacked("CN", from, cid));
 

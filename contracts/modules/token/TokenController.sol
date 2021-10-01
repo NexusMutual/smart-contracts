@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/LegacyMasterAware.sol";
 import "../../interfaces/ILegacyClaimsData.sol";
 import "../../interfaces/INXMToken.sol";
@@ -12,35 +11,17 @@ import "../../interfaces/IAssessment.sol";
 import "./external/LockHandler.sol";
 
 contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
-  using SafeMath for uint256;
-
-  struct CoverInfo {
-    uint16 claimCount;
-    bool hasOpenClaim;
-    bool hasAcceptedClaim;
-    // note: still 224 bits available here, can be used later
-  }
 
   INXMToken public token;
   IPooledStaking public pooledStaking;
   IAssessment public assessment;
+  // 96 bits from this part of the slot were part of uint minCALockTime.  You should initialize
+  // whatever you might want to fit here to avoid any leftover storage issues.
 
-  uint public minCALockTime;
-  uint public claimSubmissionGracePeriod;
+  uint internal _unused;
 
   // coverId => CoverInfo
-  mapping(uint => CoverInfo) public coverInfo;
-
-  event Locked(address indexed _of, bytes32 indexed _reason, uint256 _amount, uint256 _validity);
-
-  event Unlocked(address indexed _of, bytes32 indexed _reason, uint256 _amount);
-
-  event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
-
-  modifier onlyGovernance {
-    require(msg.sender == ms.getLatestAddress("GV"), "TokenController: Caller is not governance");
-    _;
-  }
+  mapping(uint => CoverInfo) public override coverInfo;
 
   /**
   * @dev Just for interface
@@ -51,7 +32,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     assessment = IAssessment(ms.getLatestAddress("AS"));
   }
 
-  function markCoverClaimOpen(uint coverId) external onlyInternal {
+  function markCoverClaimOpen(uint coverId) external override onlyInternal {
 
     CoverInfo storage info = coverInfo[coverId];
 
@@ -78,7 +59,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
    * @param coverId cover id (careful, not claim id!)
    * @param isAccepted claim verdict
    */
-  function markCoverClaimClosed(uint coverId, bool isAccepted) external onlyInternal {
+  function markCoverClaimClosed(uint coverId, bool isAccepted) external override onlyInternal {
 
     CoverInfo storage info = coverInfo[coverId];
     require(info.hasOpenClaim == true, "TokenController: Cover claim is not marked as open");
@@ -91,7 +72,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
    * @dev to change the operator address
    * @param _newOperator is the new address of operator
    */
-  function changeOperator(address _newOperator) public onlyInternal {
+  function changeOperator(address _newOperator) public override onlyInternal {
     token.changeOperator(_newOperator);
   }
 
@@ -101,7 +82,11 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
    * @param _to     Destination address
    * @param _value  Amount to transfer
    */
-  function operatorTransfer(address _from, address _to, uint _value) external onlyInternal returns (bool) {
+  function operatorTransfer(
+    address _from,
+    address _to,
+    uint _value
+  ) external override onlyInternal returns (bool) {
     token.operatorTransfer(_from, _value);
     token.transfer(_to, _value);
     return true;
@@ -115,11 +100,12 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @param _time Lock time in seconds
   * @param _of address whose tokens are to be locked
   */
-  function lockOf(address _of, bytes32 _reason, uint256 _amount, uint256 _time)
-  public
-  onlyInternal
-  returns (bool)
-  {
+  function lockOf(
+    address _of,
+    bytes32 _reason,
+    uint256 _amount,
+    uint256 _time
+  ) public override onlyInternal returns (bool) {
     // If tokens are already locked, then functions extendLock or
     // increaseLockAmount should be used to make any changes
     _lock(_of, _reason, _amount, _time);
@@ -139,7 +125,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     bytes32 _reason,
     uint256 _amount,
     uint256 _time
-  ) external onlyInternal {
+  ) external override onlyInternal {
 
     require(_tokensLocked(_of, _reason) == 0, "TokenController: An amount of tokens is already locked");
     require(_amount != 0, "TokenController: Amount shouldn't be zero");
@@ -150,7 +136,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
     token.mint(address(this), _amount);
 
-    uint256 lockedUntil = now.add(_time);
+    uint256 lockedUntil = block.timestamp + _time;
     locked[_of][_reason] = LockToken(_amount, lockedUntil, false);
 
     emit Locked(_of, _reason, _amount, lockedUntil);
@@ -160,9 +146,9 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @dev Extends lock for reason CLA for a specified time
   * @param _time Lock extension time in seconds
   */
-  function extendClaimAssessmentLock(uint256 _time) external checkPause {
+  function extendClaimAssessmentLock(uint256 _time) external override checkPause {
     uint256 validity = getLockedTokensValidity(msg.sender, "CLA");
-    require(validity.add(_time).sub(block.timestamp) <= 180 days, "TokenController: Tokens can be locked for 180 days maximum");
+    require(validity + _time - block.timestamp <= 180 days, "TokenController: Tokens can be locked for 180 days maximum");
     _extendLock(msg.sender, "CLA", _time);
   }
 
@@ -171,11 +157,11 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @param _reason The reason to lock tokens
   * @param _time Lock extension time in seconds
   */
-  function extendLockOf(address _of, bytes32 _reason, uint256 _time)
-  public
-  onlyInternal
-  returns (bool)
-  {
+  function extendLockOf(
+    address _of,
+    bytes32 _reason,
+    uint256 _time
+  ) public override onlyInternal returns (bool) {
     _extendLock(_of, _reason, _time);
     return true;
   }
@@ -184,12 +170,12 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @dev Increase number of tokens locked for a CLA reason
   * @param _amount Number of tokens to be increased
   */
-  function increaseClaimAssessmentLock(uint256 _amount) external checkPause
+  function increaseClaimAssessmentLock(uint256 _amount) external override checkPause
   {
     require(_tokensLocked(msg.sender, "CLA") > 0, "TokenController: No tokens locked");
     token.operatorTransfer(msg.sender, _amount);
 
-    locked[msg.sender]["CLA"].amount = locked[msg.sender]["CLA"].amount.add(_amount);
+    locked[msg.sender]["CLA"].amount = locked[msg.sender]["CLA"].amount + _amount;
     emit Locked(msg.sender, "CLA", _amount, locked[msg.sender]["CLA"].validity);
   }
 
@@ -199,7 +185,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
    * @param amount is the amount to burn
    * @return the boolean status of the burning process
    */
-  function burnFrom(address _of, uint amount) public onlyInternal returns (bool) {
+  function burnFrom(address _of, uint amount) public override onlyInternal returns (bool) {
     return token.burnFrom(_of, amount);
   }
 
@@ -209,7 +195,11 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @param _reason lock reason for which tokens are to be burned
   * @param _amount amount of tokens to burn
   */
-  function burnLockedTokens(address _of, bytes32 _reason, uint256 _amount) public onlyInternal {
+  function burnLockedTokens(
+    address _of,
+    bytes32 _reason,
+    uint256 _amount
+  ) public override onlyInternal {
     _burnLockedTokens(_of, _reason, _amount);
   }
 
@@ -219,7 +209,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @param _reason The reason to lock tokens
   * @param _time Lock reduction time in seconds
   */
-  function reduceLock(address _of, bytes32 _reason, uint256 _time) public onlyInternal {
+  function reduceLock(address _of, bytes32 _reason, uint256 _time) public override onlyInternal {
     _reduceLock(_of, _reason, _time);
   }
 
@@ -229,10 +219,11 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @param _reason reason of the lock
   * @param _amount amount of tokens to release
   */
-  function releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount)
-  public
-  onlyInternal
-  {
+  function releaseLockedTokens(
+    address _of,
+    bytes32 _reason,
+    uint256 _amount
+  ) public override onlyInternal {
     _releaseLockedTokens(_of, _reason, _amount);
   }
 
@@ -240,7 +231,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @dev Adds an address to whitelist maintained in the contract
   * @param _member address to add to whitelist
   */
-  function addToWhitelist(address _member) public onlyInternal {
+  function addToWhitelist(address _member) public virtual override onlyInternal {
     token.addToWhiteList(_member);
   }
 
@@ -248,7 +239,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @dev Removes an address from the whitelist in the token
   * @param _member address to remove
   */
-  function removeFromWhitelist(address _member) public onlyInternal {
+  function removeFromWhitelist(address _member) public override onlyInternal {
     token.removeFromWhiteList(_member);
   }
 
@@ -257,7 +248,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @param _member address to reward the minted tokens
   * @param _amount number of tokens to mint
   */
-  function mint(address _member, uint _amount) public onlyInternal {
+  function mint(address _member, uint _amount) public override onlyInternal {
     token.mint(_member, _amount);
   }
 
@@ -265,7 +256,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
    * @dev Lock the user's tokens
    * @param _of user's address.
    */
-  function lockForMemberVote(address _of, uint _days) public onlyInternal {
+  function lockForMemberVote(address _of, uint _days) public override onlyInternal {
     token.lockForMemberVote(_of, _days);
   }
 
@@ -273,7 +264,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @dev Unlocks the withdrawable tokens against CLA of a specified address
   * @param _of Address of user, claiming back withdrawable tokens against CLA
   */
-  function withdrawClaimAssessmentTokens(address _of) external checkPause {
+  function withdrawClaimAssessmentTokens(address _of) external override checkPause {
     uint256 withdrawableTokens = _tokensUnlockable(_of, "CLA");
     if (withdrawableTokens > 0) {
       locked[_of]["CLA"].claimed = true;
@@ -289,20 +280,10 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
    */
   function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
 
-    if (code == "MNCLT") {
-      minCALockTime = value;
-      return;
-    }
-
-    if (code == "GRACEPER") {
-      claimSubmissionGracePeriod = value;
-      return;
-    }
-
     revert("TokenController: invalid param code");
   }
 
-  function getLockReasons(address _of) external view returns (bytes32[] memory reasons) {
+  function getLockReasons(address _of) external override view returns (bytes32[] memory reasons) {
     return lockReason[_of];
   }
 
@@ -311,7 +292,10 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @param _of The address to query the validity
   * @param reason reason for which tokens were locked
   */
-  function getLockedTokensValidity(address _of, bytes32 reason) public view returns (uint256 validity) {
+  function getLockedTokensValidity(
+    address _of,
+    bytes32 reason
+  ) public override view returns (uint256 validity) {
     validity = locked[_of][reason].validity;
   }
 
@@ -319,13 +303,11 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @dev Gets the unlockable tokens of a specified address
   * @param _of The address to query the the unlockable token count of
   */
-  function getUnlockableTokens(address _of)
-  public
-  view
-  returns (uint256 unlockableTokens)
-  {
+  function getUnlockableTokens(
+    address _of
+  ) public override view returns (uint256 unlockableTokens) {
     for (uint256 i = 0; i < lockReason[_of].length; i++) {
-      unlockableTokens = unlockableTokens.add(_tokensUnlockable(_of, lockReason[_of][i]));
+      unlockableTokens = unlockableTokens + _tokensUnlockable(_of, lockReason[_of][i]);
     }
   }
 
@@ -336,11 +318,10 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @param _of The address whose tokens are locked
   * @param _reason The reason to query the lock tokens for
   */
-  function tokensLocked(address _of, bytes32 _reason)
-  public
-  view
-  returns (uint256 amount)
-  {
+  function tokensLocked(
+    address _of,
+    bytes32 _reason
+  ) public override view returns (uint256 amount) {
     return _tokensLocked(_of, _reason);
   }
 
@@ -349,11 +330,10 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @param _of The address whose tokens are locked
   * @param _reason The reason to query the lock tokens for
   */
-  function tokensLockedWithValidity(address _of, bytes32 _reason)
-  public
-  view
-  returns (uint256 amount, uint256 validity)
-  {
+  function tokensLockedWithValidity(
+    address _of,
+    bytes32 _reason
+  ) public override view returns (uint256 amount, uint256 validity) {
 
     bool claimed = locked[_of][_reason].claimed;
     amount = locked[_of][_reason].amount;
@@ -369,16 +349,14 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @param _of The address to query the the unlockable token count of
   * @param _reason The reason to query the unlockable tokens for
   */
-  function tokensUnlockable(address _of, bytes32 _reason)
-  public
-  view
-  returns (uint256 amount)
-  {
+  function tokensUnlockable(
+    address _of,
+    bytes32 _reason
+  ) public override view returns (uint256 amount) {
     return _tokensUnlockable(_of, _reason);
   }
 
-  function totalSupply() public view returns (uint256)
-  {
+  function totalSupply() public override view returns (uint256) {
     return token.totalSupply();
   }
 
@@ -390,11 +368,11 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @param _reason The reason to query the lock tokens for
   * @param _time The timestamp to query the lock tokens for
   */
-  function tokensLockedAtTime(address _of, bytes32 _reason, uint256 _time)
-  public
-  view
-  returns (uint256 amount)
-  {
+  function tokensLockedAtTime(
+    address _of,
+    bytes32 _reason,
+    uint256 _time
+  ) public override view returns (uint256 amount) {
     return _tokensLockedAtTime(_of, _reason, _time);
   }
 
@@ -406,12 +384,12 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   * @param _of The address to query the total balance of
   * @param _of The address to query the total balance of
   */
-  function totalBalanceOf(address _of) public view returns (uint256 amount) {
+  function totalBalanceOf(address _of) public override view returns (uint256 amount) {
 
     amount = token.balanceOf(_of);
 
     for (uint256 i = 0; i < lockReason[_of].length; i++) {
-      amount = amount.add(_tokensLocked(_of, lockReason[_of][i]));
+      amount = amount + _tokensLocked(_of, lockReason[_of][i]);
     }
 
     uint stakerReward = pooledStaking.stakerReward(_of);
@@ -419,11 +397,11 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
     (
       uint assessmentStake,
-      /*uint104 rewardsWithdrawnUntilIndex,*/
+      /*uint104 rewardsWithdrawnUntilIndex*/,
       /*uint16 fraudCount*/
     ) = assessment.stakeOf(_of);
 
-    amount = amount.add(stakerDeposit).add(stakerReward);
+    amount += stakerDeposit + stakerReward;
   }
 
   /**
@@ -433,13 +411,13 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   *      Does not take into account pending burns.
   * @param _of member whose locked tokens are to be calculate
   */
-  function totalLockedBalance(address _of) public view returns (uint256 amount) {
+  function totalLockedBalance(address _of) public override view returns (uint256 amount) {
 
     for (uint256 i = 0; i < lockReason[_of].length; i++) {
-      amount = amount.add(_tokensLocked(_of, lockReason[_of][i]));
+      amount = amount + _tokensLocked(_of, lockReason[_of][i]);
     }
 
-    amount = amount.add(pooledStaking.stakerDeposit(_of));
+    amount = amount + pooledStaking.stakerDeposit(_of);
   }
 
   /**
@@ -460,7 +438,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
     token.operatorTransfer(_of, _amount);
 
-    uint256 validUntil = now.add(_time);
+    uint256 validUntil = block.timestamp + _time;
     locked[_of][_reason] = LockToken(_amount, validUntil, false);
     emit Locked(_of, _reason, _amount, validUntil);
   }
@@ -509,7 +487,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   function _extendLock(address _of, bytes32 _reason, uint256 _time) internal {
     require(_tokensLocked(_of, _reason) > 0, "TokenController: No tokens locked");
     emit Unlocked(_of, _reason, locked[_of][_reason].amount);
-    locked[_of][_reason].validity = locked[_of][_reason].validity.add(_time);
+    locked[_of][_reason].validity = locked[_of][_reason].validity + _time;
     emit Locked(_of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
   }
 
@@ -522,7 +500,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   function _reduceLock(address _of, bytes32 _reason, uint256 _time) internal {
     require(_tokensLocked(_of, _reason) > 0, "TokenController: No tokens locked");
     emit Unlocked(_of, _reason, locked[_of][_reason].amount);
-    locked[_of][_reason].validity = locked[_of][_reason].validity.sub(_time);
+    locked[_of][_reason].validity = locked[_of][_reason].validity - _time;
     emit Locked(_of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
   }
 
@@ -533,7 +511,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   */
   function _tokensUnlockable(address _of, bytes32 _reason) internal view returns (uint256 amount)
   {
-    if (locked[_of][_reason].validity <= now && !locked[_of][_reason].claimed) {
+    if (locked[_of][_reason].validity <= block.timestamp && !locked[_of][_reason].claimed) {
       amount = locked[_of][_reason].amount;
     }
   }
@@ -552,7 +530,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
       locked[_of][_reason].claimed = true;
     }
 
-    locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
+    locked[_of][_reason].amount = locked[_of][_reason].amount - _amount;
 
     // lock reason removal is skipped here: needs to be done from offchain
 
@@ -575,7 +553,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
       locked[_of][_reason].claimed = true;
     }
 
-    locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
+    locked[_of][_reason].amount = locked[_of][_reason].amount - _amount;
 
     // lock reason removal is skipped here: needs to be done from offchain
 
@@ -587,10 +565,11 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     address _of,
     uint[] calldata _coverIds,
     uint[] calldata _indexes
-  ) external onlyInternal {
+  ) external override onlyInternal {
 
     uint reasonCount = lockReason[_of].length;
-    uint lastReasonIndex = reasonCount.sub(1, "TokenController: No locked cover notes found");
+    require(reasonCount > 0, "TokenController: No locked cover notes found");
+    uint lastReasonIndex = reasonCount- 1;
     uint totalAmount = 0;
 
     // The iteration is done from the last to first to prevent reason indexes from
@@ -608,7 +587,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
       require(lockReason[_of][_reasonIndex] == _reason, "TokenController: Bad reason index");
 
       uint amount = locked[_of][_reason].amount;
-      totalAmount = totalAmount.add(amount);
+      totalAmount = totalAmount + amount;
       delete locked[_of][_reason];
 
       if (lastReasonIndex != _reasonIndex) {
@@ -619,7 +598,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
       emit Unlocked(_of, _reason, amount);
 
       if (lastReasonIndex > 0) {
-        lastReasonIndex = lastReasonIndex.sub(1, "TokenController: Reason count mismatch");
+        lastReasonIndex = lastReasonIndex- 1;
       }
     }
 
@@ -647,7 +626,8 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
   function _removeEmptyReason(address _of, bytes32 _reason, uint _index) internal {
 
-    uint lastReasonIndex = lockReason[_of].length.sub(1, "TokenController: lockReason is empty");
+    require(lockReason[_of].length > 0, "TokenController: lockReason is empty");
+    uint lastReasonIndex = lockReason[_of].length- 1;
 
     require(lockReason[_of][_index] == _reason, "TokenController: bad reason index");
     require(locked[_of][_reason].amount == 0, "TokenController: reason amount is not zero");
@@ -660,52 +640,17 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   }
 
   function initialize() external {
-    require(claimSubmissionGracePeriod == 0, "TokenController: Already initialized");
-    claimSubmissionGracePeriod = 120 days;
     migrate();
   }
 
   function migrate() internal {
 
-    ILegacyClaimsData cd = ILegacyClaimsData(ms.getLatestAddress("CD"));
-    uint totalClaims = cd.actualClaimLength() - 1;
-
-    // fix stuck claims 21 & 22
-    cd.changeFinalVerdict(20, -1);
-    cd.setClaimStatus(20, 6);
-    cd.changeFinalVerdict(21, -1);
-    cd.setClaimStatus(21, 6);
-
-    // reduce claim assessment lock period for members locked for more than 180 days
-    // extracted using scripts/extract-ca-locked-more-than-180.js
-    address payable[3] memory members = [
-      0x4a9fA34da6d2378c8f3B9F6b83532B169beaEDFc,
-      0x6b5DCDA27b5c3d88e71867D6b10b35372208361F,
-      0x8B6D1e5b4db5B6f9aCcc659e2b9619B0Cd90D617
-    ];
-
-    for (uint i = 0; i < members.length; i++) {
-      if (locked[members[i]]["CLA"].validity > now + 180 days) {
-        locked[members[i]]["CLA"].validity = now + 180 days;
-      }
-    }
-
-    for (uint i = 1; i <= totalClaims; i++) {
-
-      (/*id*/, uint status) = cd.getClaimStatusNumber(i);
-      (/*id*/, uint coverId) = cd.getClaimCoverId(i);
-      int8 verdict = cd.getFinalVerdict(i);
-
-      // SLOAD
-      CoverInfo memory info = coverInfo[coverId];
-
-      info.claimCount = info.claimCount + 1;
-      info.hasAcceptedClaim = (status == 14);
-      info.hasOpenClaim = (verdict == 0);
-
-      // SSTORE
-      coverInfo[coverId] = info;
-    }
   }
+
+  event Locked(address indexed _of, bytes32 indexed _reason, uint256 _amount, uint256 _validity);
+
+  event Unlocked(address indexed _of, bytes32 indexed _reason, uint256 _amount);
+
+  event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
 
 }

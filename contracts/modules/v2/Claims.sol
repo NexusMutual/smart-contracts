@@ -14,11 +14,9 @@ import "../../interfaces/IERC721Mock.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "hardhat/console.sol";
 
-/**
- *  Provides a way for cover owners to submit claims and redeem the payouts and facilitates
- *  assessment processes where members decide the outcome of the events that lead to potential
- *  payouts.
- */
+/// Provides a way for cover owners to submit claims and redeem the payouts and facilitates
+/// assessment processes where members decide the outcome of the events that lead to potential
+/// payouts.
 contract Claims is IClaims, MasterAwareV2 {
 
   // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
@@ -113,14 +111,12 @@ contract Claims is IClaims, MasterAwareV2 {
     return _getAssessmentDepositAndReward(requestedAmount, coverPeriod, payoutAsset);
   }
 
-  /**
-   *  Returns a Claim aggregated in a human-friendly format.
-   *
-   *  @dev This view is meant to be used in user interfaces to get a claim in a format suitable for
-   *  displaying all relevant information in as few calls as possible. See ClaimDisplay struct.
-   *
-   *  @param id    Claim identifier for which the ClaimDisplay is returned
-   */
+  /// Returns a Claim aggregated in a human-friendly format.
+  ///
+  /// @dev This view is meant to be used in user interfaces to get a claim in a format suitable for
+  /// displaying all relevant information in as few calls as possible. See ClaimDisplay struct.
+  ///
+  /// @param id    Claim identifier for which the ClaimDisplay is returned
   function getClaimDisplay(uint id) internal view returns (ClaimDisplay memory) {
     Claim memory claim = claims[id];
     (IAssessment.Poll memory poll,,) = assessment().assessments(claim.assessmentId);
@@ -205,7 +201,6 @@ contract Claims is IClaims, MasterAwareV2 {
   /// claims by providing the following paramterers:
   ///
   /// @param ids   Array of Claim ids which are returned as ClaimDisplay
-  ///
   function getClaimsToDisplay (uint104[] calldata ids)
   external view returns (ClaimDisplay[] memory) {
     ClaimDisplay[] memory claimDisplays = new ClaimDisplay[](ids.length);
@@ -218,16 +213,14 @@ contract Claims is IClaims, MasterAwareV2 {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  /**
-   *  Submits a claim for assessment
-   *
-   *  @dev This function requires an ETH assessment fee. See: _getAssessmentDepositAndReward
-   *
-   *  @param coverId          Cover identifier
-   *  @param requestedAmount  The amount expected to be received at payout
-   *  @param ipfsProofHash    The IPFS hash required for proof of loss. If this string is empty,
-   *                          no ProofSubmitted event is emitted.
-   */
+  /// Submits a claim for assessment
+  ///
+  /// @dev This function requires an ETH assessment fee. See: _getAssessmentDepositAndReward
+  ///
+  /// @param coverId          Cover identifier
+  /// @param requestedAmount  The amount expected to be received at payout
+  /// @param ipfsProofHash    The IPFS hash required for proof of loss. If this string is empty,
+  ///                         no ProofSubmitted event is emitted.
   function submitClaim(
     uint24 coverId,
     uint96 requestedAmount,
@@ -243,12 +236,12 @@ contract Claims is IClaims, MasterAwareV2 {
         uint80 assessmentId = claims[previousSubmission.claimId].assessmentId;
         IAssessment.Poll memory poll = assessment().getPoll(assessmentId);
         (,,uint8 payoutCooldownDays) = assessment().config();
-        if (poll.end + payoutCooldownDays * 1 days < block.timestamp) {
+        if (block.timestamp >= poll.end + payoutCooldownDays * 1 days) {
           if (
             poll.accepted > poll.denied &&
-            poll.end +
+            block.timestamp < poll.end +
             payoutCooldownDays * 1 days +
-            config.payoutRedemptionPeriodDays * 1 days > block.timestamp
+            config.payoutRedemptionPeriodDays * 1 days
           ) {
             revert("A payout can still be redeemed");
           }

@@ -13,7 +13,6 @@ describe.only('Incidents', function () {
   });
 
   require('./submitIncident');
-  require('./onERC721Received');
   require('./redeemIncidentPayout');
   require('./withdrawAsset');
 });

@@ -12,6 +12,7 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IIncidents.sol";
+import "../../interfaces/IERC721Mock.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 
@@ -28,9 +29,11 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
   // Used in operations involving NXM tokens and divisions
   uint internal constant PRECISION = 10 ** 18;
 
-  /* ========== STATE VARIABLES ========== */
-
   INXMToken internal immutable nxm;
+
+  IERC721Mock internal immutable coverNFT;
+
+  /* ========== STATE VARIABLES ========== */
 
   Configuration public override config;
 
@@ -38,8 +41,10 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(address nxmAddress) {
+  constructor(address nxmAddress, address coverNFTAddress) {
     nxm = INXMToken(nxmAddress);
+    // [todo] Replace with CoverNFT interface
+    coverNFT = IERC721Mock(coverNFTAddress);
   }
 
   function initialize(address masterAddress) external {
@@ -176,7 +181,6 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
         require(productId == incident.productId, "Product id mismatch");
       }
     }
-
 
     // [todo] Replace payoutAddress with the member's address using the member id
     IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);

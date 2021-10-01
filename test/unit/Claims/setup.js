@@ -35,13 +35,13 @@ async function setup () {
   const assessment = await Assessment.deploy();
   await assessment.deployed();
 
-  const Claims = await ethers.getContractFactory('Claims');
-  const claims = await Claims.deploy(nxm.address);
-  await claims.deployed();
-
   const CoverNFT = await ethers.getContractFactory('ERC721Mock');
   const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NXC');
   await coverNFT.deployed();
+
+  const Claims = await ethers.getContractFactory('Claims');
+  const claims = await Claims.deploy(nxm.address, coverNFT.address);
+  await claims.deployed();
 
   const Cover = await ethers.getContractFactory('CLMockCover');
   const cover = await Cover.deploy(coverNFT.address);
@@ -82,8 +82,8 @@ async function setup () {
   await master.enrollGovernance(accounts.governanceContracts[0].address);
   for (const member of accounts.members) {
     await memberRoles.setRole(member.address, 2);
-    await nxm.mint(member.address, ethers.utils.parseEther('10000'));
-    await nxm.connect(member).approve(tokenController.address, ethers.utils.parseEther('10000'));
+    await nxm.mint(member.address, parseEther('10000'));
+    await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
   }
 
   const config = await claims.config();

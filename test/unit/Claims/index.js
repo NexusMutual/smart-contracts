@@ -13,7 +13,5 @@ describe.only('Claims', function () {
   });
 
   require('./submitClaim');
-  require('./redeemdClaimPayout');
-  require('./redeemCoverForDeniedClaim');
-  require('./onERC721Received');
+  require('./redeemClaimPayout');
 });

@@ -4,9 +4,14 @@ pragma solidity >=0.5.0;
 
 interface ITokenController {
 
-  function coverInfo(uint id) external view returns (uint16 claimCount, bool hasOpenClaim, bool hasAcceptedClaim);
+  struct CoverInfo {
+    uint16 claimCount;
+    bool hasOpenClaim;
+    bool hasAcceptedClaim;
+    // note: still 224 bits available here, can be used later
+  }
 
-  function claimSubmissionGracePeriod() external view returns (uint);
+  function coverInfo(uint id) external view returns (uint16 claimCount, bool hasOpenClaim, bool hasAcceptedClaim);
 
   function withdrawCoverNote(
     address _of,
@@ -21,8 +26,6 @@ interface ITokenController {
   function changeOperator(address _newOperator) external;
 
   function operatorTransfer(address _from, address _to, uint _value) external returns (bool);
-
-  function lockClaimAssessmentTokens(uint256 _amount, uint256 _time) external;
 
   function lockOf(address _of, bytes32 _reason, uint256 _amount, uint256 _time) external returns (bool);
 

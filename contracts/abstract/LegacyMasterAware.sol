@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity >=0.5.0;
 
 import "../interfaces/INXMMaster.sol";
 
@@ -13,6 +13,12 @@ contract LegacyMasterAware {
     require(ms.isInternal(msg.sender));
     _;
   }
+
+  modifier onlyGovernance {
+    require(msg.sender == ms.getLatestAddress("GV"));
+    _;
+  }
+
 
   modifier isMemberAndcheckPause {
     require(ms.isPause() == false && ms.isMember(msg.sender) == true);
@@ -33,11 +39,6 @@ contract LegacyMasterAware {
     require(ms.isMember(msg.sender), "Not member");
     _;
   }
-
-  /**
-   * @dev Iupgradable Interface to update dependent contract address
-   */
-  function changeDependentContractAddress() public;
 
   /**
    * @dev change master address

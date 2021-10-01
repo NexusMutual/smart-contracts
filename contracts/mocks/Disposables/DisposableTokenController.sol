@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
 import "../../interfaces/INXMToken.sol";
 import "../../modules/token/TokenController.sol";
@@ -11,8 +11,7 @@ contract DisposableTokenController is TokenController {
     address _masterAddress,
     address _tokenAddress,
     address _pooledStakingAddress,
-    uint _claimsAssessmentLockTime,
-    uint _claimSubmissionGracePeriod
+    address _assessmentAddress
   ) external {
 
     token = INXMToken(_tokenAddress);
@@ -20,12 +19,11 @@ contract DisposableTokenController is TokenController {
 
     changeMasterAddress(_masterAddress);
     pooledStaking = IPooledStaking(_pooledStakingAddress);
-    minCALockTime = _claimsAssessmentLockTime;
-    claimSubmissionGracePeriod = _claimSubmissionGracePeriod;
+    assessment = IAssessment(_assessmentAddress);
 
   }
 
-  function addToWhitelist(address _member) public {
+  function addToWhitelist(address _member) public override {
     token.addToWhiteList(_member);
   }
 }

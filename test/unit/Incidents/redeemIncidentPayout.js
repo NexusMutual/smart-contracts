@@ -7,9 +7,23 @@ const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther, formatEther } = ethers.utils;
 
-describe('redeemIncidentPayout', function () {
-  it('reverts if the incident is not accepted', async function () {
-    assert(false, '[todo]');
+describe.only('redeemIncidentPayout', function () {
+  it.only('reverts if the incident is not accepted', async function () {
+    const { incidents } = this.contracts;
+    const [member] = this.accounts.members;
+    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+
+    {
+      const productId = 0;
+      const currentTime = await time.latest();
+      incidents.connect(advisoryBoard).submitIncident(productId, parseEther('1.1'), currentTime.toNumber());
+    }
+
+    {
+      await expect(incidents.connect(member).redeemIncidentPayout(0, 0, parseEther('1'))).to.be.revertedWith(
+        'The incident must be accepted',
+      );
+    }
   });
 
   it("reverts if the voting and cooldown period haven't ended", async function () {

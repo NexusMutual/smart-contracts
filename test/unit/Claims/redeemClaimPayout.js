@@ -12,7 +12,7 @@ const setTime = async timestamp => {
   await mineNextBlock();
 };
 
-describe('redeemdClaimPayout', function () {
+describe('redeemClaimPayout', function () {
   it('reverts if the claim is denied', async function () {
     assert(false, '[todo]');
   });
@@ -33,7 +33,19 @@ describe('redeemdClaimPayout', function () {
     assert(false, '[todo]');
   });
 
+  it('reverts if assessment deposit refund fails', async function () {
+    assert(false, '[todo]');
+  });
+
   it("sets the claim's payoutRedeemed property to true", async function () {
+    assert(false, '[todo]');
+  });
+
+  it('sends the payout amount in ETH and the assessment deposit', async function () {
+    assert(false, '[todo]');
+  });
+
+  it('sends the payout amount in DAI and the assessment deposit', async function () {
     assert(false, '[todo]');
   });
 });

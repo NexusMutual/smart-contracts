@@ -27,7 +27,7 @@ describe('submitIncident', function () {
   });
 
   it('calls startAssessment and stores the returned assessmentId in the incident', async function () {
-    const { assessment, incidents, cover } = this.contracts;
+    const { incidents } = this.contracts;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
 
     {
@@ -50,7 +50,7 @@ describe('submitIncident', function () {
   });
 
   it('pushes an incident with productId, date and priceBefore to incidents', async function () {
-    const { assessment, incidents, cover } = this.contracts;
+    const { incidents } = this.contracts;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
 
     const expectedProductId = 2;
@@ -59,7 +59,6 @@ describe('submitIncident', function () {
     await incidents
       .connect(advisoryBoard)
       .submitIncident(expectedProductId, expectedPriceBefore, currentTime.toNumber());
-    const expectedAssessmentId = 1;
     const { productId, date, priceBefore } = await incidents.incidents(0);
     expect(productId).to.be.equal(expectedProductId);
     expect(date).to.be.equal(currentTime.toNumber());

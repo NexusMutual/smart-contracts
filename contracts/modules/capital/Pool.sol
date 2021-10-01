@@ -230,6 +230,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     bool ok;
     address asset = assets[assetId];
 
+    // [todo] consider adding a minimum sum for triggering an MCR update to save gas
     uint amountInETH;
     if (asset == ETH) {
       // solhint-disable-next-line avoid-low-level-calls

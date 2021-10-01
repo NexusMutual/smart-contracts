@@ -216,29 +216,6 @@ contract Claims is IClaims, MasterAwareV2 {
     return claimDisplays;
   }
 
-  function _getTransferableDeposit(uint claimId) internal view returns (uint) {
-    uint80 assessmentId = claims[claimId].assessmentId;
-    (
-      IAssessment.Poll memory poll,
-      /*uint128 totalReward*/,
-      uint128 assessmentDeposit
-    ) = assessment().assessments(assessmentId);
-    (,,uint8 payoutCooldownDays) = assessment().config();
-    if (poll.end + payoutCooldownDays * 1 days < block.timestamp) {
-      if (
-        poll.accepted > poll.denied &&
-        poll.end +
-        payoutCooldownDays * 1 days +
-        config.payoutRedemptionPeriodDays * 1 days > block.timestamp
-      ) {
-        revert("A payout can still be redeemed");
-      }
-    } else {
-      revert("A claim is already being assessed");
-    }
-    return assessmentDeposit;
-  }
-
   /* === MUTATIVE FUNCTIONS ==== */
 
   /**
@@ -263,12 +240,24 @@ contract Claims is IClaims, MasterAwareV2 {
     {
       ClaimSubmission memory previousSubmission = lastSubmittedClaimOnCover[coverId];
       if (previousSubmission.exists) {
-        uint assessmentDeposit = _getTransferableDeposit(previousSubmission.claimId);
+        uint80 assessmentId = claims[previousSubmission.claimId].assessmentId;
         (
-          bool succeeded,
-          /* bytes data */
-        ) = getInternalContractAddress(ID.P1).call{value: assessmentDeposit}("");
-        require(succeeded, "Deposit transfer to pool failed");
+          IAssessment.Poll memory poll,
+          ,
+        ) = assessment().assessments(assessmentId);
+        (,,uint8 payoutCooldownDays) = assessment().config();
+        if (poll.end + payoutCooldownDays * 1 days < block.timestamp) {
+          if (
+            poll.accepted > poll.denied &&
+            poll.end +
+            payoutCooldownDays * 1 days +
+            config.payoutRedemptionPeriodDays * 1 days > block.timestamp
+          ) {
+            revert("A payout can still be redeemed");
+          }
+        } else {
+          revert("A claim is already being assessed");
+        }
       }
       lastSubmittedClaimOnCover[coverId] = ClaimSubmission(uint80(claims.length), true);
     }
@@ -325,19 +314,21 @@ contract Claims is IClaims, MasterAwareV2 {
       payoutAsset
     );
 
-    require(
-      msg.value >= deposit,
-      "Assessment deposit is insufficient"
-    );
+    require(msg.value >= deposit, "Assessment deposit is insufficient");
+    if (msg.value > deposit) {
+      // Refund ETH excess back to the sender
+      (bool refunded, /* bytes data */) = msg.sender.call{value: msg.value - deposit}("");
+      require(refunded, "Assessment deposit excess refund failed");
+    }
+
+    // Transfer the deposit to the pool
+    (bool transferSucceeded, /* bytes data */) =  internalContracts[uint(ID.P1)].call{value: deposit}("");
+    require(transferSucceeded, "Assessment deposit excess refund failed");
 
     uint newAssessmentId = assessment().startAssessment(totalReward, deposit);
     claim.assessmentId = uint80(newAssessmentId);
     claims.push(claim);
 
-    if (msg.value > deposit) {
-      (bool refunded, /* bytes data */) = msg.sender.call{value: msg.value - deposit}("");
-      require(refunded, "Assessment deposit refund failed");
-    }
   }
 
   function redeemClaimPayout(uint104 claimId) external override {
@@ -371,54 +362,21 @@ contract Claims is IClaims, MasterAwareV2 {
       claim.amount
     ));
 
-    bool succeeded = pool().sendClaimPayout(claim.payoutAsset, coverOwner, claim.amount);
-    require(succeeded, "Claim payout failed");
-
-    {
-      (bool refunded, /* bytes data */) = coverOwner.call{value: assessmentDeposit}("");
-      require(refunded, "Assessment deposit refund failed");
-    }
-  }
-
-  function transferAssessmentDeposits(uint[] calldata coverIds) external {
-    uint amountToTransfer = 0;
-    ICover memory coverContract = cover();
-    for (uint i = 0; i < coverIds.length; i++) {
-      (
-        uint24 productId,
-        /* uint8 payoutAsset*/,
-        /* uint96 amount*/,
-        uint32 start,
-        uint32 period,
-        /* uint96 price */
-      ) = coverContract.covers(coverIds[i]);
-      (
-        uint16 productType,
-        /* address productAddress*/,
-        /*uint payoutAssets*/
-      ) = coverContract.products(productId);
-      (
-        /*string descriptionIpfsHash*/,
-        /*uint8 redeemMethod*/,
-        uint16 gracePeriodInDays,
-        /*uint16 burnRatio*/
-      ) = coverContract.productTypes(productType);
-      require(
-        start + period + gracePeriodInDays * 1 days < block.timestamp,
-        "Some covers could still be claimed"
+    bool payoutSucceeded;
+    if (claim.payoutAsset == 0) {
+      payoutSucceeded = pool().sendClaimPayout(
+        claim.payoutAsset,
+        coverOwner,
+        claim.amount + assessmentDeposit
       );
-      ClaimSubmission memory previousSubmission = lastSubmittedClaimOnCover[coverIds[i]];
-      if (previousSubmission.exists) {
-        amountToTransfer += _getTransferableDeposit(previousSubmission.claimId);
-      }
+    } else {
+      bool depositRefundSucceeded = pool().sendClaimPayout(0, coverOwner, assessmentDeposit);
+      require(depositRefundSucceeded, "Assessment deposit refund failed");
+      payoutSucceeded = pool().sendClaimPayout(claim.payoutAsset, coverOwner, claim.amount);
     }
-    (
-      bool succeeded,
-      /* bytes data */
-    ) = getInternalContractAddress(ID.P1).call{value: amountToTransfer}("");
-    require(succeeded, "Deposit transfer to pool failed");
-  }
+    require(payoutSucceeded, "Claim payout failed");
 
+  }
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)
   external override onlyGovernance {

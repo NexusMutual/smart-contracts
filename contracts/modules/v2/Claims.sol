@@ -241,10 +241,7 @@ contract Claims is IClaims, MasterAwareV2 {
       ClaimSubmission memory previousSubmission = lastSubmittedClaimOnCover[coverId];
       if (previousSubmission.exists) {
         uint80 assessmentId = claims[previousSubmission.claimId].assessmentId;
-        (
-          IAssessment.Poll memory poll,
-          ,
-        ) = assessment().assessments(assessmentId);
+        IAssessment.Poll memory poll = assessment().getPoll(assessmentId);
         (,,uint8 payoutCooldownDays) = assessment().config();
         if (poll.end + payoutCooldownDays * 1 days < block.timestamp) {
           if (

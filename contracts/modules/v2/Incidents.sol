@@ -110,7 +110,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
   external onlyMember override returns (uint, uint8) {
     Incident memory incident =  incidents[incidentId];
     {
-      (IAssessment.Poll memory poll,,) = assessment().assessments(incident.assessmentId);
+      IAssessment.Poll memory poll = assessment().getPoll(incident.assessmentId);
 
       require(
         poll.accepted > poll.denied,

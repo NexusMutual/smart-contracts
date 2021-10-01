@@ -66,6 +66,10 @@ contract Assessment is IAssessment, MasterAwareV2 {
     return assessments.length;
   }
 
+  function getPoll(uint assessmentId) external override view returns (Poll memory) {
+    return assessments[assessmentId].poll;
+  }
+
   function getRewards(address user) external view returns (
     uint total,
     uint withdrawable,

@@ -29,7 +29,6 @@ async function setup () {
   const CLMockPool = await ethers.getContractFactory('CLMockPool');
   const pool = await CLMockPool.deploy();
   await pool.deployed();
-  await pool.addAsset('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
   await pool.addAsset(dai.address);
 
   const Assessment = await ethers.getContractFactory('CLMockAssessment');
@@ -40,8 +39,12 @@ async function setup () {
   const claims = await Claims.deploy(nxm.address);
   await claims.deployed();
 
+  const CoverNFT = await ethers.getContractFactory('ERC721Mock');
+  const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NXC');
+  await coverNFT.deployed();
+
   const Cover = await ethers.getContractFactory('CLMockCover');
-  const cover = await Cover.deploy('Nexus Mutual Cover', 'NXC');
+  const cover = await Cover.deploy(coverNFT.address);
   await cover.deployed();
 
   const CLMockUnknownNFT = await ethers.getContractFactory('CLMockUnknownNFT');

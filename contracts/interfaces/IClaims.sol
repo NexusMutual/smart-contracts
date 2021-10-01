@@ -55,12 +55,13 @@ interface IClaims {
     // True if the payout is already redeemed. Prevents further payouts on the claim if it is
     // accepted.
     bool payoutRedeemed;
-    // True if cover NFT is already redeemed when a claim is either denied or the payout status is
-    // unclaimed. Prevents further attempts to redeemd the cover NFT if the claim is denied.
-    // If a malicious user sends the NFT back after a redemption, he will not be able to recover
-    // the NFT and transfer all the ETH accrued from assessment deposits to the pool which would
-    // result in a denial of service for users who need to redeem payouts.
-    bool coverRedeemed;
+  }
+
+  struct ClaimSubmission {
+    // The index of the claim, stored in Claims.sol
+    uint80 claimId;
+    // True when a previous submission exists
+    bool exists;
   }
 
   /* ========== VIEWS ========== */
@@ -70,8 +71,7 @@ interface IClaims {
     uint32 coverId,
     uint96 amount,
     uint8 payoutAsset,
-    bool payoutRedeemed,
-    bool coverRedeemed
+    bool payoutRedeemed
   );
 
   /*
@@ -105,8 +105,6 @@ interface IClaims {
     uint16 rewardRatio
   );
 
-  function claimants(uint id) external view returns (address);
-
   function getClaimsCount() external view returns (uint);
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -118,8 +116,6 @@ interface IClaims {
   ) external payable;
 
   function redeemClaimPayout(uint104 id) external;
-
-  function redeemCoverForDeniedClaim(uint claimId) external;
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values) external;
 

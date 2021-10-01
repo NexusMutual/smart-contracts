@@ -2,9 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
-
-interface ICover is IERC721 {
+interface ICover {
 
   /* ========== DATA STRUCTURES ========== */
 
@@ -63,7 +61,7 @@ interface ICover is IERC721 {
     StakingPool[] calldata stakingPools
   ) external payable returns (uint /*coverId*/);
 
-  function performPayoutBurn(uint coverId, address owner, uint amount) external;
+  function performPayoutBurn(uint coverId, uint amount) external returns (address /*owner*/);
 
   /* ========== EVENTS ========== */
 

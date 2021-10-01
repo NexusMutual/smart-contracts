@@ -2,12 +2,12 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
-
 import "../../interfaces/ICover.sol";
+import "../../interfaces/IERC721Mock.sol";
 
+contract ICMockCover is ICover {
 
-contract ICMockCover is ICover, ERC721 {
+  IERC721Mock public immutable coverNFT;
 
   Cover[] public override covers;
   mapping(uint => StakingPool[]) stakingPoolsForCover;
@@ -42,7 +42,8 @@ contract ICMockCover is ICover, ERC721 {
   uint public constant PRICE_CURVE_EXPONENT = 7;
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
 
-  constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_) {
+  constructor(address coverNFTAddress) {
+    coverNFT = IERC721Mock(coverNFTAddress);
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -66,7 +67,7 @@ contract ICMockCover is ICover, ERC721 {
       ));
 
     coverId = covers.length - 1;
-    _safeMint(owner, coverId);
+    coverNFT.safeMint(owner, coverId);
   }
 
   function addProductType(
@@ -104,7 +105,8 @@ contract ICMockCover is ICover, ERC721 {
   }
 
 
-  function performPayoutBurn(uint coverId, address owner, uint amount) external override {
-
+  function performPayoutBurn(uint coverId, uint amount) external override returns (address) {
+    // [todo] Return nft owner
+    return 0x0000000000000000000000000000000000000000;
   }
 }

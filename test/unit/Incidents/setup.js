@@ -33,7 +33,6 @@ async function setup () {
   const ICMockPool = await ethers.getContractFactory('ICMockPool');
   const pool = await ICMockPool.deploy();
   await pool.deployed();
-  await pool.addAsset('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
   await pool.addAsset(dai.address);
 
   const Assessment = await ethers.getContractFactory('ICMockAssessment');

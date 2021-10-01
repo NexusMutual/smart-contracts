@@ -137,7 +137,6 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
     address coveredToken;
     {
       ICover coverContract = ICover(getInternalContractAddress(ID.CO));
-      coverOwner = payable(coverContract.ownerOf(coverId));
 
       uint24 productId;
       uint32 start;
@@ -158,7 +157,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
       }
       {
         require(payoutAmount <= coverAmount, "Payout exceeds covered amount");
-        coverContract.performPayoutBurn(coverId, coverOwner, payoutAmount);
+        coverOwner = payable(coverContract.performPayoutBurn(coverId, payoutAmount));
         require(start + period >= incident.date, "Cover end date is before the incident");
         require(start < incident.date, "Cover start date is after the incident");
         uint16 productType;
@@ -180,10 +179,9 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
 
 
     // [todo] Replace payoutAddress with the member's address using the member id
-    address payable payoutAddress = memberRoles().getClaimPayoutAddress(coverOwner);
     IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
     IERC20(coveredToken).transferFrom(msg.sender, address(this), depeggedTokens);
-    bool succeeded = poolContract.sendClaimPayout(payoutAsset, payoutAddress, payoutAmount);
+    bool succeeded = poolContract.sendClaimPayout(payoutAsset, coverOwner, payoutAmount);
     require(succeeded, "Incident payout failed");
 
     return (payoutAmount, payoutAsset);

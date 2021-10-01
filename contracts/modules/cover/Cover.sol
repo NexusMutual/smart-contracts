@@ -68,7 +68,9 @@ contract Cover is ICover, MasterAwareV2 {
     uint maxPremiumInAsset,
     CoverChunkRequest[] memory coverChunkRequests
   ) external payable override onlyMember returns (uint /*coverId*/) {
+
     require(initialPrices[productId] != 0, "Cover: product not initialized");
+    require(assetIsSupported(products[productId].payoutAssets, payoutAsset), "Cover: Asset is not supported");
 
     uint amountLeftToCoverInNXM;
     uint tokenPrice;
@@ -565,6 +567,10 @@ contract Cover is ICover, MasterAwareV2 {
 
   function memberRoles() internal view returns (IMemberRoles) {
     return IMemberRoles(internalContracts[uint(ID.MR)]);
+  }
+
+  function assetIsSupported(uint payoutAssetsBitMap, uint8 payoutAsset) public returns (bool) {
+    return 1 << payoutAsset & payoutAssetsBitMap > 0;
   }
 
   function changeDependentContractAddress() external override {

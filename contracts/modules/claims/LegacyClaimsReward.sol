@@ -291,14 +291,14 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
     if (status == 6 || status == 9 || status == 11) {
 
       cd.changeFinalVerdict(claimid, -1);
-      tc.markCoverClaimClosed(coverid, false);
+      //tc.markCoverClaimClosed(coverid, false);
       _burnCoverNoteDeposit(coverid);
 
     // accepted
     } else if (status == 7 || status == 8 || status == 10) {
 
       cd.changeFinalVerdict(claimid, 1);
-      tc.markCoverClaimClosed(coverid, true);
+      //tc.markCoverClaimClosed(coverid, true);
       _unlockCoverNote(coverid);
 
       bool payoutSucceeded = attemptClaimPayout(coverid);

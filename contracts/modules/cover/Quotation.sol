@@ -139,8 +139,7 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     bytes32 _r,
     bytes32 _s
   ) external onlyMember whenNotPaused {
-    tc.burnFrom(msg.sender, coverDetails[2]); // needs allowance
-    _verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s, true);
+    revert("Deprecated");
   }
 
   /**
@@ -158,17 +157,7 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     bytes32 _r,
     bytes32 _s
   ) public onlyInternal {
-    _verifyCoverDetails(
-      from,
-      scAddress,
-      coverCurr,
-      coverDetails,
-      coverPeriod,
-      _v,
-      _r,
-      _s,
-      false
-    );
+    revert("Deprecated");
   }
 
   /**
@@ -235,88 +224,6 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     return (a == qd.getAuthQuoteEngine());
   }
 
-  /**
-   * @dev Creates cover of the quotation, changes the status of the quotation ,
-   * updates the total sum assured and locks the tokens of the cover against a quote.
-   * @param from Quote member Ethereum address.
-   */
-  function _makeCover(//solhint-disable-line
-    address payable from,
-    address contractAddress,
-    bytes4 coverCurrency,
-    uint[] memory coverDetails,
-    uint16 coverPeriod
-  ) internal {
-
-    address underlyingToken = incidents.underlyingToken(contractAddress);
-
-    if (underlyingToken != address(0)) {
-      address coverAsset = cr.getCurrencyAssetAddress(coverCurrency);
-      require(coverAsset == underlyingToken, "Quotation: Unsupported cover asset for this product");
-    }
-
-    uint cid = qd.getCoverLength();
-
-    qd.addCover(
-      coverPeriod,
-      coverDetails[0],
-      from,
-      coverCurrency,
-      contractAddress,
-      coverDetails[1],
-      coverDetails[2]
-    );
-
-    uint coverNoteAmount = coverDetails[2].mul(qd.tokensRetained()).div(100);
-
-    uint gracePeriod = 120; // hardcoded
-    uint claimSubmissionPeriod = uint(coverPeriod).mul(1 days).add(gracePeriod);
-    bytes32 reason = keccak256(abi.encodePacked("CN", from, cid));
-
-    // mint and lock cover note
-    td.setDepositCNAmount(cid, coverNoteAmount);
-    tc.mintCoverNote(from, reason, coverNoteAmount, claimSubmissionPeriod);
-
-    qd.addInTotalSumAssured(coverCurrency, coverDetails[0]);
-    qd.addInTotalSumAssuredSC(contractAddress, coverCurrency, coverDetails[0]);
-
-    uint coverPremiumInNXM = coverDetails[2];
-    uint stakersRewardPercentage = td.stakerCommissionPer();
-    uint rewardValue = coverPremiumInNXM.mul(stakersRewardPercentage).div(100);
-    pooledStaking.accumulateReward(contractAddress, rewardValue);
-  }
-
-  /**
-   * @dev Makes a cover.
-   * @param from address of funder.
-   * @param scAddress Smart Contract Address
-   */
-  function _verifyCoverDetails(
-    address payable from,
-    address scAddress,
-    bytes4 coverCurr,
-    uint[] memory coverDetails,
-    uint16 coverPeriod,
-    uint8 _v,
-    bytes32 _r,
-    bytes32 _s,
-    bool isNXM
-  ) internal {
-
-    require(coverDetails[3] > now, "Quotation: Quote has expired");
-    require(coverPeriod >= 30 && coverPeriod <= 365, "Quotation: Cover period out of bounds");
-    require(!qd.timestampRepeated(coverDetails[4]), "Quotation: Quote already used");
-    qd.setTimestampRepeated(coverDetails[4]);
-
-    address asset = cr.getCurrencyAssetAddress(coverCurr);
-    if (coverCurr != "ETH" && !isNXM) {
-      pool.transferAssetFrom(asset, from, coverDetails[1]);
-    }
-
-    require(verifySignature(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s), "Quotation: signature mismatch");
-    _makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);
-  }
-
   function createCover(
     address payable from,
     address scAddress,
@@ -328,13 +235,7 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     bytes32 _s
   ) external onlyInternal {
 
-    require(coverDetails[3] > now, "Quotation: Quote has expired");
-    require(coverPeriod >= 30 && coverPeriod <= 365, "Quotation: Cover period out of bounds");
-    require(!qd.timestampRepeated(coverDetails[4]), "Quotation: Quote already used");
-    qd.setTimestampRepeated(coverDetails[4]);
-
-    require(verifySignature(coverDetails, coverPeriod, currency, scAddress, _v, _r, _s), "Quotation: signature mismatch");
-    _makeCover(from, scAddress, currency, coverDetails, coverPeriod);
+    revert("Deprecated");
   }
 
   // referenced in master, keeping for now

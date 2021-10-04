@@ -19,28 +19,13 @@ interface ITokenController {
     uint[] calldata _indexes
   ) external;
 
-  function markCoverClaimOpen(uint coverId) external;
-
-  function markCoverClaimClosed(uint coverId, bool isAccepted) external;
-
   function changeOperator(address _newOperator) external;
 
   function operatorTransfer(address _from, address _to, uint _value) external returns (bool);
 
   function lockOf(address _of, bytes32 _reason, uint256 _amount, uint256 _time) external returns (bool);
 
-  function mintCoverNote(
-    address _of,
-    bytes32 _reason,
-    uint256 _amount,
-    uint256 _time
-  ) external;
-
-  function extendClaimAssessmentLock(uint256 _time) external;
-
   function extendLockOf(address _of, bytes32 _reason, uint256 _time) external returns (bool);
-
-  function increaseClaimAssessmentLock(uint256 _amount) external;
 
   function burnFrom(address _of, uint amount) external returns (bool);
 

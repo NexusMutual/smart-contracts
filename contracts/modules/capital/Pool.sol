@@ -240,12 +240,12 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       ok =  _safeTokenTransfer(asset, payoutAddress, amount);
       uint rate = priceFeedOracle.getAssetToEthRate(asset);
       require(rate > 0, "Pool: Zero rate");
-      amountInETH = amount.mul(rate).div(1e18);;
+      amountInETH = amount.mul(rate).div(1e18);
     }
 
     if (ok) {
       emit Payout(payoutAddress, asset, amount);
-      uint totalAssetValue = getPoolValueInEth().sub(ethIn);
+      uint totalAssetValue = getPoolValueInEth();
       mcr.updateMCRInternal(totalAssetValue.sub(amountInETH), true);
     }
 

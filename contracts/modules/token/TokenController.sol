@@ -32,42 +32,6 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     assessment = IAssessment(ms.getLatestAddress("AS"));
   }
 
-  function markCoverClaimOpen(uint coverId) external override onlyInternal {
-
-    CoverInfo storage info = coverInfo[coverId];
-
-    uint16 claimCount;
-    bool hasOpenClaim;
-    bool hasAcceptedClaim;
-
-    // reads all of them using a single SLOAD
-    (claimCount, hasOpenClaim, hasAcceptedClaim) = (info.claimCount, info.hasOpenClaim, info.hasAcceptedClaim);
-
-    // no safemath for uint16 but should be safe from
-    // overflows as there're max 2 claims per cover
-    claimCount = claimCount + 1;
-
-    require(claimCount <= 2, "TokenController: Max claim count exceeded");
-    require(hasOpenClaim == false, "TokenController: Cover already has an open claim");
-    require(hasAcceptedClaim == false, "TokenController: Cover already has accepted claims");
-
-    // should use a single SSTORE for both
-    (info.claimCount, info.hasOpenClaim) = (claimCount, true);
-  }
-
-  /**
-   * @param coverId cover id (careful, not claim id!)
-   * @param isAccepted claim verdict
-   */
-  function markCoverClaimClosed(uint coverId, bool isAccepted) external override onlyInternal {
-
-    CoverInfo storage info = coverInfo[coverId];
-    require(info.hasOpenClaim == true, "TokenController: Cover claim is not marked as open");
-
-    // should use a single SSTORE for both
-    (info.hasOpenClaim, info.hasAcceptedClaim) = (false, isAccepted);
-  }
-
   /**
    * @dev to change the operator address
    * @param _newOperator is the new address of operator
@@ -113,46 +77,6 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   }
 
   /**
-  * @dev Mints and locks a specified amount of tokens against an address,
-  *      for a CN reason and time
-  * @param _of address whose tokens are to be locked
-  * @param _reason The reason to lock tokens
-  * @param _amount Number of tokens to be locked
-  * @param _time Lock time in seconds
-  */
-  function mintCoverNote(
-    address _of,
-    bytes32 _reason,
-    uint256 _amount,
-    uint256 _time
-  ) external override onlyInternal {
-
-    require(_tokensLocked(_of, _reason) == 0, "TokenController: An amount of tokens is already locked");
-    require(_amount != 0, "TokenController: Amount shouldn't be zero");
-
-    if (locked[_of][_reason].amount == 0) {
-      lockReason[_of].push(_reason);
-    }
-
-    token.mint(address(this), _amount);
-
-    uint256 lockedUntil = block.timestamp + _time;
-    locked[_of][_reason] = LockToken(_amount, lockedUntil, false);
-
-    emit Locked(_of, _reason, _amount, lockedUntil);
-  }
-
-  /**
-  * @dev Extends lock for reason CLA for a specified time
-  * @param _time Lock extension time in seconds
-  */
-  function extendClaimAssessmentLock(uint256 _time) external override checkPause {
-    uint256 validity = getLockedTokensValidity(msg.sender, "CLA");
-    require(validity + _time - block.timestamp <= 180 days, "TokenController: Tokens can be locked for 180 days maximum");
-    _extendLock(msg.sender, "CLA", _time);
-  }
-
-  /**
   * @dev Extends lock for a specified reason and time
   * @param _reason The reason to lock tokens
   * @param _time Lock extension time in seconds
@@ -164,19 +88,6 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   ) public override onlyInternal returns (bool) {
     _extendLock(_of, _reason, _time);
     return true;
-  }
-
-  /**
-  * @dev Increase number of tokens locked for a CLA reason
-  * @param _amount Number of tokens to be increased
-  */
-  function increaseClaimAssessmentLock(uint256 _amount) external override checkPause
-  {
-    require(_tokensLocked(msg.sender, "CLA") > 0, "TokenController: No tokens locked");
-    token.operatorTransfer(msg.sender, _amount);
-
-    locked[msg.sender]["CLA"].amount = locked[msg.sender]["CLA"].amount + _amount;
-    emit Locked(msg.sender, "CLA", _amount, locked[msg.sender]["CLA"].validity);
   }
 
   /**
@@ -401,7 +312,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
       /*uint16 fraudCount*/
     ) = assessment.stakeOf(_of);
 
-    amount += stakerDeposit + stakerReward;
+    amount += stakerDeposit + stakerReward + assessmentStake;
   }
 
   /**

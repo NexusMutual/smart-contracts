@@ -72,6 +72,8 @@ contract Cover is ICover, MasterAwareV2 {
     require(initialPrices[productId] != 0, "Cover: product not initialized");
     require(assetIsSupported(products[productId].payoutAssets, payoutAsset), "Cover: Asset is not supported");
 
+    // TODO: add check for max 20% MCR check for activeCoverAmountInNXM
+
     uint amountLeftToCoverInNXM;
     uint tokenPrice;
 
@@ -168,6 +170,8 @@ contract Cover is ICover, MasterAwareV2 {
 
     CoverData memory cover = covers[coverId];
     require(cover.start + cover.period > block.timestamp, "Cover: cover expired");
+
+    // TODO: add check for max 20% MCR check for activeCoverAmountInNXM
 
     (uint coverId, uint premiumInAsset) = _increaseAmount(coverId, amount, coverChunkRequests);
 
@@ -340,6 +344,8 @@ contract Cover is ICover, MasterAwareV2 {
       cover.period - (block.timestamp - cover.start) > periodReduction,
       "Cover: periodReduction > remaining period"
     );
+
+    // TODO: add check for max 20% MCR check for activeCoverAmountInNXM
 
     CoverChunk[] storage originalCoverChunks = coverChunksForCover[coverId];
 

@@ -87,6 +87,7 @@ contract Cover is ICover, MasterAwareV2 {
         break;
       }
 
+      console.log("iteration", i);
       uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / tokenPrice;
       (uint coveredAmountInNXM, uint premiumInNXM) = buyCoverFromPool(
         IStakingPool(coverChunkRequests[i].poolAddress),
@@ -109,7 +110,7 @@ contract Cover is ICover, MasterAwareV2 {
       );
     }
     require(amountLeftToCoverInNXM == 0, "Not enough available capacity");
-
+    
     uint premiumInAsset = totalPremiumInNXM * tokenPrice / 1e18;
 
     uint coverId = coverCount++;
@@ -559,6 +560,16 @@ contract Cover is ICover, MasterAwareV2 {
     initialPrices[productId] = initialPrice;
   }
 
+  function addProduct(Product calldata product) external onlyAdvisoryBoard {
+    products.push(product);
+  }
+
+  /* ========== HELPERS ========== */
+
+  function assetIsSupported(uint payoutAssetsBitMap, uint8 payoutAsset) public returns (bool) {
+    return 1 << payoutAsset & payoutAssetsBitMap > 0;
+  }
+
   /* ========== DEPENDENCIES ========== */
 
   function pool() internal view returns (IPool) {
@@ -567,10 +578,6 @@ contract Cover is ICover, MasterAwareV2 {
 
   function memberRoles() internal view returns (IMemberRoles) {
     return IMemberRoles(internalContracts[uint(ID.MR)]);
-  }
-
-  function assetIsSupported(uint payoutAssetsBitMap, uint8 payoutAsset) public returns (bool) {
-    return 1 << payoutAsset & payoutAssetsBitMap > 0;
   }
 
   function changeDependentContractAddress() external override {

@@ -82,6 +82,16 @@ async function setup () {
   await cover.changeMasterAddress(master.address);
   await cover.changeDependentContractAddress();
 
+  // add products
+
+  await cover.addProduct({
+    productType: '1',
+    productAddress: '0x0000000000000000000000000000000000000000',
+    payoutAssets: '1', // ETH supported
+  },
+  { from: accounts.advisoryBoardMembers[0] },
+  );
+
   this.master = master;
   this.pool = pool;
   this.dai = dai;

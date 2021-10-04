@@ -15,10 +15,10 @@ const { toBN } = web3.utils;
 
 describe('buyCover', function () {
 
-  it('should purchase new cover', async function () {
+  it.only('should purchase new cover', async function () {
     const { cover } = this;
 
-    const productId = 1;
+    const productId = 0;
     const payoutAsset = 0; // ETH
     const period = 3600 * 365; // 30 days
 

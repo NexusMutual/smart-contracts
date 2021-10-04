@@ -2,28 +2,46 @@ const { ethers } = require('hardhat');
 const { time } = require('@openzeppelin/test-helpers');
 const { assert, expect } = require('chai');
 
-const { submitClaim, daysToSeconds, ASSET } = require('./helpers');
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
+const { submitClaim, daysToSeconds, ASSET, setTime } = require('./helpers');
 
 const { parseEther, formatEther } = ethers.utils;
 
 describe.only('redeemIncidentPayout', function () {
-  it.only('reverts if the incident is not accepted', async function () {
-    const { incidents } = this.contracts;
-    const [member] = this.accounts.members;
+  it('reverts if the incident is not accepted', async function () {
+    const { incidents, assessment } = this.contracts;
+    const [member1, member2] = this.accounts.members;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
 
     {
-      const productId = 0;
+      const productId = 2;
       const currentTime = await time.latest();
-      incidents.connect(advisoryBoard).submitIncident(productId, parseEther('1.1'), currentTime.toNumber());
+      await incidents.connect(advisoryBoard).submitIncident(productId, parseEther('1.1'), currentTime.toNumber());
     }
 
+    await expect(incidents.connect(member1).redeemIncidentPayout(0, 0, parseEther('1'))).to.be.revertedWith(
+      'The incident must be accepted',
+    );
+
+    await assessment.connect(member1).castVote(0, true, parseEther('100'));
+    await assessment.connect(member2).castVote(0, false, parseEther('100'));
+
     {
-      await expect(incidents.connect(member).redeemIncidentPayout(0, 0, parseEther('1'))).to.be.revertedWith(
-        'The incident must be accepted',
-      );
+      const currentTime = await time.latest();
+      await setTime(currentTime.toNumber() + daysToSeconds(1));
     }
+
+    await expect(incidents.connect(member1).redeemIncidentPayout(0, 0, parseEther('1'))).to.be.revertedWith(
+      'The incident must be accepted',
+    );
+
+    {
+      const currentTime = await time.latest();
+      await setTime(currentTime.toNumber() + daysToSeconds(10));
+    }
+
+    await expect(incidents.connect(member1).redeemIncidentPayout(0, 0, parseEther('1'))).to.be.revertedWith(
+      'The incident must be accepted',
+    );
   });
 
   it("reverts if the voting and cooldown period haven't ended", async function () {

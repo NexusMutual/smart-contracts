@@ -107,8 +107,8 @@ async function setup () {
   const twapOracle = await TwapOracle.new(factory.address);
 
   // regular contracts
-  const lcl = await LegacyClaims.new();
-  const lic = await LegacyIncidents.new();
+  // const lcl = await LegacyClaims.new();
+  // const lic = await LegacyIncidents.new();
   const lcd = await LegacyClaimsData.new();
   const lcr = await LegacyClaimsReward.new(master.address, dai.address);
 
@@ -131,9 +131,9 @@ async function setup () {
   const qt = await Quotation.new();
   const qd = await QuotationData.new(QE, owner);
 
-  const ic = await deployProxy(DisposableIncidents, [tk.address]);
-  const as = await deployProxy(DisposableAssessment, [tk.address]);
-  const cl = await deployProxy(DisposableClaims, [tk.address]);
+  const ic = await deployProxy(DisposableIncidents, []);
+  const as = await deployProxy(DisposableAssessment, []);
+  const cl = await deployProxy(DisposableClaims, []);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'QT', 'TF'];
@@ -164,13 +164,7 @@ async function setup () {
     addresses, // addresses
   );
 
-  await tc.initialize(
-    master.address,
-    tk.address,
-    ps.address,
-    30 * 24 * 3600, // minCALockTime
-    120 * 24 * 3600, // claimSubmissionGracePeriod
-  );
+  await tc.initialize(master.address, tk.address, ps.address, as.address);
 
   await tc.addToWhitelist(lcr.address);
 
@@ -301,10 +295,10 @@ async function setup () {
     pc: await ProposalCategory.at(pc.address),
     mr: await MemberRoles.at(mr.address),
     ps: await PooledStaking.at(ps.address),
-    gateway,
-    ic,
-    cl,
-    as,
+    gateway: await Gateway.at(gateway.address),
+    ic: await Incidents.at(ic.address),
+    cl: await Claims.at(cl.address),
+    as: await Assessment.at(as.address),
   };
 
   const nonInternal = { priceFeedOracle, swapOperator };

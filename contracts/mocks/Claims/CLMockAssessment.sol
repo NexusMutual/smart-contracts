@@ -63,6 +63,11 @@ contract CLMockAssessment {
     return assessments.length - 1;
   }
 
+  function getPoll(uint assessmentId) external view returns (IAssessment.Poll memory) {
+    return assessments[assessmentId].poll;
+  }
+
+
   function castVote(uint assessmentId, bool isAccepted, uint96 stakeAmount) external {
     IAssessment.Poll memory poll = assessments[assessmentId].poll;
 

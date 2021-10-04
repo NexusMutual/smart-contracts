@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const keccak256 = require('keccak256');
 const { MerkleTree } = require('merkletreejs');
+const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
 const { BigNumber } = ethers;
 
@@ -17,6 +18,11 @@ const ASSET = {
 
 // Converts days to seconds
 const daysToSeconds = numberOfDays => numberOfDays * 24 * 60 * 60;
+
+const setTime = async timestamp => {
+  await setNextBlockTime(timestamp);
+  await mineNextBlock();
+};
 
 const getConfigurationStruct = ({ rewardRatio, incidentExpectedPayoutRatio }) => [
   rewardRatio,
@@ -44,4 +50,5 @@ module.exports = {
   getConfigurationStruct,
   getIncidentStruct,
   getVoteStruct,
+  setTime,
 };

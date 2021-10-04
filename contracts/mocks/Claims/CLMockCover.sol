@@ -10,8 +10,8 @@ contract CLMockCover is ICover {
 
   IERC721Mock public immutable coverNFT;
 
-  Cover[] public override covers;
-  mapping(uint => StakingPool[]) stakingPoolsForCover;
+  CoverData[] public override covers;
+  mapping(uint => CoverChunk[]) stakingPoolsForCover;
   mapping(uint => uint96) public override activeCoverAmountInNXM;
 
   Product[] public override products;
@@ -20,6 +20,8 @@ contract CLMockCover is ICover {
   ProductType[] public override productTypes;
 
   mapping(uint => uint) initialPrices;
+
+  ICoverNFT public override coverNFT;
 
   /*
    (productId, poolAddress) => lastPrice
@@ -79,9 +81,9 @@ contract CLMockCover is ICover {
     uint96 amount,
     uint32 period,
     uint maxPrice,
-    StakingPool[] memory stakingPools
+    CoverChunkRequest[] memory stakingPools
   ) external payable override returns (uint coverId) {
-    covers.push(Cover(
+    covers.push(CoverData(
         productId,
         payoutAsset,
         uint96(amount),
@@ -103,8 +105,7 @@ contract CLMockCover is ICover {
     productTypes.push(ProductType(
     descriptionIpfsHash,
     redeemMethod,
-    gracePeriodInDays,
-    burnRatio
+    gracePeriodInDays
     ));
   }
 

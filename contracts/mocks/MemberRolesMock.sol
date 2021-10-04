@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+import "hardhat/console.sol";
+
 pragma solidity ^0.5.0;
 
 import "../interfaces/IMemberRoles.sol";

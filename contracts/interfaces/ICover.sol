@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.0;
 
+import "./ICoverNFT.sol";
+
 interface ICover {
 
   /* ========== DATA STRUCTURES ========== */
@@ -11,18 +13,25 @@ interface ICover {
     Incident
   }
 
-  struct StakingPool {
+  struct CoverChunkRequest {
+    // TODO: switch to poolId and derive the address created with CREATE2 from the id
     address poolAddress;
-    uint96 coverAmount;
+    uint coverAmountInAsset;
   }
 
-  struct Cover {
+  struct CoverChunk {
+    address poolAddress;
+    uint96 coverAmountInNXM;
+    uint96 premiumInNXM;
+  }
+
+  struct CoverData {
     uint24 productId;
     uint8 payoutAsset;
     uint96 amount;
     uint32 start;
     uint32 period;  // seconds
-    uint96 price;
+    uint96 premium;
   }
 
   struct Product {
@@ -30,13 +39,14 @@ interface ICover {
     address productAddress;
     /* supported payout assets bitmap TODO: explain */
     uint payoutAssets;
+    // TODO: consider if to pack the initialPrice and activeCoverAmountInNXM here. issues appear with
+    // to many variables currently + not all parameters are needed everywhere
   }
 
   struct ProductType {
     string descriptionIpfsHash;
     uint8 redeemMethod;
     uint16 gracePeriodInDays;
-    uint16 burnRatio;
   }
 
   /* ========== VIEWS ========== */
@@ -45,7 +55,7 @@ interface ICover {
 
   function products(uint id) external view returns (uint16, address, uint);
 
-  function productTypes(uint id) external view returns (string memory, uint8, uint16, uint16);
+  function productTypes(uint id) external view returns (string memory, uint8, uint16);
 
   function activeCoverAmountInNXM(uint id) external view returns (uint96);
 
@@ -57,11 +67,13 @@ interface ICover {
     uint8 payoutAsset,
     uint96 amount,
     uint32 period,
-    uint maxPrice,
-    StakingPool[] calldata stakingPools
+    uint maxPremiumInAsset,
+    CoverChunkRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
   function performPayoutBurn(uint coverId, uint amount) external returns (address /*owner*/);
+
+  function coverNFT() external returns (ICoverNFT);
 
   /* ========== EVENTS ========== */
 

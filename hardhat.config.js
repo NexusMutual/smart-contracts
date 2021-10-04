@@ -92,7 +92,7 @@ module.exports = {
       { settings: compilerSettings, version: '0.5.17' }, // nexus mutual
       { settings: compilerSettings, version: '0.5.16' }, // uniswap v2 core
       { settings: compilerSettings, version: '0.6.6' }, // uniswap v2 peripherals,
-      { settings: compilerSettings, version: '0.8.4' }, // swap operator
+      { settings: compilerSettings, version: '0.8.7' }, // swap operator
     ],
     overrides: {
       'contracts/modules/governance/Governance.sol': {

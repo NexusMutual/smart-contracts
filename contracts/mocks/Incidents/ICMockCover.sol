@@ -9,8 +9,8 @@ contract ICMockCover is ICover {
 
   IERC721Mock public immutable coverNFT;
 
-  Cover[] public override covers;
-  mapping(uint => StakingPool[]) stakingPoolsForCover;
+  CoverData[] public override covers;
+  mapping(uint => CoverChunk[]) stakingPoolsForCover;
   mapping(uint => uint96) public override activeCoverAmountInNXM;
 
   Product[] public override products;
@@ -31,6 +31,8 @@ contract ICMockCover is ICover {
    Last base price update time.
   */
   mapping(uint => mapping(address => uint)) lastPriceUpdate;
+
+  ICoverNFT public override coverNFT;
 
 
   /* === CONSTANTS ==== */
@@ -55,9 +57,9 @@ contract ICMockCover is ICover {
     uint96 amount,
     uint32 period,
     uint maxPrice,
-    StakingPool[] memory stakingPools
+    CoverChunkRequest[] memory stakingPools
   ) external payable override returns (uint coverId) {
-    covers.push(Cover(
+    covers.push(CoverData(
         productId,
         payoutAsset,
         uint96(amount),
@@ -68,6 +70,7 @@ contract ICMockCover is ICover {
 
     coverId = covers.length - 1;
     coverNFT.safeMint(owner, coverId);
+<<<<<<< HEAD
   }
 
   function addProductType(
@@ -102,6 +105,8 @@ contract ICMockCover is ICover {
     uint96 amount
   ) external returns (uint96) {
     activeCoverAmountInNXM[productId] = amount;
+=======
+>>>>>>> nexus-v2
   }
 
 

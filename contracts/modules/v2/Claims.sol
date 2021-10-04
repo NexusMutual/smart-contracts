@@ -273,8 +273,7 @@ contract Claims is IClaims, MasterAwareV2 {
       (
         /*string descriptionIpfsHash*/,
         uint8 redeemMethod,
-        uint16 gracePeriodInDays,
-        /*uint16 burnRatio*/
+        uint16 gracePeriodInDays
       ) = cover().productTypes(productType);
       require(redeemMethod == uint8(ICover.RedeemMethod.Claim), "Invalid redeem method");
       require(requestedAmount <= coverAmount, "Covered amount exceeded");
@@ -284,7 +283,6 @@ contract Claims is IClaims, MasterAwareV2 {
         "Cover is outside the grace period"
       );
     }
-
 
     if (bytes(ipfsProofHash).length > 0) {
       emit ProofSubmitted(coverId, msg.sender, ipfsProofHash);

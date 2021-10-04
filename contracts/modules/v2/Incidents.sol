@@ -96,8 +96,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
     (
       /*string descriptionIpfsHash*/,
       uint8 redeemMethod,
-      /*uint gracePeriod*/,
-      /*uint16 burnRatio*/
+      /*uint gracePeriod*/
     ) = cover().productTypes(productType);
     require(redeemMethod == uint8(ICover.RedeemMethod.Incident), "Invalid redeem method");
 
@@ -166,6 +165,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
         require(start + period >= incident.date, "Cover end date is before the incident");
         require(start < incident.date, "Cover start date is after the incident");
         uint16 productType;
+
         (
           productType,
           coveredToken,

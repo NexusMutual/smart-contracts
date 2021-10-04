@@ -9,7 +9,7 @@ import "../../interfaces/ICover.sol";
 import "../../interfaces/IClaims.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IERC20Detailed.sol";
-import "../../interfaces/IERC721Mock.sol";
+import "../../interfaces/ICoverNFT.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 import "hardhat/console.sol";
@@ -28,7 +28,7 @@ contract Claims is IClaims, MasterAwareV2 {
 
   INXMToken internal immutable nxm;
 
-  IERC721Mock internal immutable coverNFT;
+  ICoverNFT internal immutable coverNFT;
 
   /* ========== STATE VARIABLES ========== */
 
@@ -45,7 +45,7 @@ contract Claims is IClaims, MasterAwareV2 {
   constructor(address nxmAddress, address coverNFTAddress) {
     nxm = INXMToken(nxmAddress);
     // [todo] Replace with CoverNFT interface
-    coverNFT = IERC721Mock(coverNFTAddress);
+    coverNFT = ICoverNFT(coverNFTAddress);
   }
 
   function initialize(address masterAddress) external {

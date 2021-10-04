@@ -5,18 +5,18 @@ pragma solidity ^0.8.0;
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IERC721Mock.sol";
 
-contract ICMockCover is ICover {
+contract ICMockCover {
 
   IERC721Mock public immutable coverNFT;
 
-  CoverData[] public override covers;
-  mapping(uint => CoverChunk[]) stakingPoolsForCover;
-  mapping(uint => uint96) public override activeCoverAmountInNXM;
+  ICover.CoverData[] public covers;
+  mapping(uint => ICover.CoverChunk[]) stakingPoolsForCover;
+  mapping(uint => uint96) public activeCoverAmountInNXM;
 
-  Product[] public override products;
+  ICover.Product[] public products;
   mapping(uint => uint) capacityFactors;
 
-  ProductType[] public override productTypes;
+  ICover.ProductType[] public productTypes;
 
   mapping(uint => uint) initialPrices;
 
@@ -31,8 +31,6 @@ contract ICMockCover is ICover {
    Last base price update time.
   */
   mapping(uint => mapping(address => uint)) lastPriceUpdate;
-
-  ICoverNFT public override coverNFT;
 
 
   /* === CONSTANTS ==== */
@@ -57,9 +55,9 @@ contract ICMockCover is ICover {
     uint96 amount,
     uint32 period,
     uint maxPrice,
-    CoverChunkRequest[] memory stakingPools
-  ) external payable override returns (uint coverId) {
-    covers.push(CoverData(
+    ICover.CoverChunkRequest[] memory stakingPools
+  ) external payable returns (uint coverId) {
+    covers.push(ICover.CoverData(
         productId,
         payoutAsset,
         uint96(amount),
@@ -78,11 +76,10 @@ contract ICMockCover is ICover {
     uint16 gracePeriodInDays,
     uint16 burnRatio
   ) external {
-    productTypes.push(ProductType(
-    descriptionIpfsHash,
-    redeemMethod,
-    gracePeriodInDays,
-    burnRatio
+    productTypes.push(ICover.ProductType(
+      descriptionIpfsHash,
+      redeemMethod,
+      gracePeriodInDays
     ));
   }
 
@@ -92,7 +89,7 @@ contract ICMockCover is ICover {
     uint16 capacityFactor,
     uint payoutAssets
   ) external {
-    products.push(Product(
+    products.push(ICover.Product(
       productType,
       productAddress,
       payoutAssets
@@ -107,7 +104,7 @@ contract ICMockCover is ICover {
   }
 
 
-  function performPayoutBurn(uint coverId, uint amount) external override returns (address) {
+  function performPayoutBurn(uint coverId, uint amount) external returns (address) {
     // [todo] Return nft owner
     return 0x0000000000000000000000000000000000000000;
   }

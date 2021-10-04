@@ -6,22 +6,20 @@ import "../../interfaces/ICover.sol";
 import "../../interfaces/IERC721Mock.sol";
 
 
-contract CLMockCover is ICover {
+contract CLMockCover {
 
   IERC721Mock public immutable coverNFT;
 
-  CoverData[] public override covers;
-  mapping(uint => CoverChunk[]) stakingPoolsForCover;
-  mapping(uint => uint96) public override activeCoverAmountInNXM;
+  ICover.CoverData[] public covers;
+  mapping(uint => ICover.CoverChunk[]) stakingPoolsForCover;
+  mapping(uint => uint96) public activeCoverAmountInNXM;
 
-  Product[] public override products;
+  ICover.Product[] public products;
   mapping(uint => uint) capacityFactors;
 
-  ProductType[] public override productTypes;
+  ICover.ProductType[] public productTypes;
 
   mapping(uint => uint) initialPrices;
-
-  ICoverNFT public override coverNFT;
 
   /*
    (productId, poolAddress) => lastPrice
@@ -58,10 +56,10 @@ contract CLMockCover is ICover {
     uint96 amount,
     uint32 period,
     uint maxPrice,
-    StakingPool[] memory stakingPools,
+    ICover.CoverChunkRequest[] memory coverChunkRequests,
     uint32 date
   ) external payable returns (uint coverId) {
-    covers.push(Cover(
+    covers.push(ICover.CoverData(
         productId,
         payoutAsset,
         uint96(amount),
@@ -81,9 +79,9 @@ contract CLMockCover is ICover {
     uint96 amount,
     uint32 period,
     uint maxPrice,
-    CoverChunkRequest[] memory stakingPools
-  ) external payable override returns (uint coverId) {
-    covers.push(CoverData(
+    ICover.CoverChunkRequest[] memory coverChunkRequests
+  ) external payable returns (uint coverId) {
+    covers.push(ICover.CoverData(
         productId,
         payoutAsset,
         uint96(amount),
@@ -102,7 +100,7 @@ contract CLMockCover is ICover {
     uint16 gracePeriodInDays,
     uint16 burnRatio
   ) external {
-    productTypes.push(ProductType(
+    productTypes.push(ICover.ProductType(
     descriptionIpfsHash,
     redeemMethod,
     gracePeriodInDays
@@ -115,14 +113,14 @@ contract CLMockCover is ICover {
     uint16 capacityFactor,
     uint payoutAssets
   ) external {
-    products.push(Product(
+    products.push(ICover.Product(
       productType,
       productAddress,
       payoutAssets
     ));
   }
 
-  function performPayoutBurn(uint coverId, uint amount) external override returns (address) {
+  function performPayoutBurn(uint coverId, uint amount) external returns (address) {
     // [todo] Return nft owner
     return 0x0000000000000000000000000000000000000000;
   }

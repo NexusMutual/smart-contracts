@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-v4/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 
 import "../../interfaces/INXMToken.sol";
@@ -12,7 +11,7 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IIncidents.sol";
-import "../../interfaces/IERC721Mock.sol";
+import "../../interfaces/ICoverNFT.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 
@@ -21,7 +20,7 @@ import "../../abstract/MasterAwareV2.sol";
  *  assessment processes where members decide the outcome of the events that lead to potential
  *  payouts.
  */
-contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
+contract Incidents is IIncidents, MasterAwareV2 {
 
   // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
   uint internal constant RATIO_BPS = 10000;
@@ -31,7 +30,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
 
   INXMToken internal immutable nxm;
 
-  IERC721Mock internal immutable coverNFT;
+  ICoverNFT internal immutable coverNFT;
 
   /* ========== STATE VARIABLES ========== */
 
@@ -44,7 +43,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
   constructor(address nxmAddress, address coverNFTAddress) {
     nxm = INXMToken(nxmAddress);
     // [todo] Replace with CoverNFT interface
-    coverNFT = IERC721Mock(coverNFTAddress);
+    coverNFT = ICoverNFT(coverNFTAddress);
   }
 
   function initialize(address masterAddress) external {
@@ -174,8 +173,7 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
         (
           /*string descriptionIpfsHash*/,
           /*uint8 redeemMethod*/,
-          uint gracePeriod,
-          /*uint16 burnRatio*/
+          uint gracePeriod
         ) = coverContract.productTypes(productType);
         require(start + period + gracePeriod * 1 days >= block.timestamp, "Grace period has expired");
         require(productId == incident.productId, "Product id mismatch");
@@ -229,17 +227,6 @@ contract Incidents is IIncidents, IERC721Receiver, MasterAwareV2 {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
-  }
-
-  // Required to receive NFTS
-  function onERC721Received(
-    address operator,
-    address from,
-    uint256 tokenId,
-    bytes calldata data
-  ) external view override returns (bytes4) {
-    require(msg.sender == internalContracts[uint(ID.CO)], "Unexpected NFT");
-    return IERC721Receiver.onERC721Received.selector;
   }
 
 }

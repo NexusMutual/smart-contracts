@@ -87,8 +87,9 @@ contract Cover is ICover, MasterAwareV2 {
         break;
       }
 
-      console.log("iteration", i);
       uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / tokenPrice;
+
+      // TODO: receive update on expired cover to update activeCoverInNXM
       (uint coveredAmountInNXM, uint premiumInNXM) = buyCoverFromPool(
         IStakingPool(coverChunkRequests[i].poolAddress),
         productId,
@@ -127,6 +128,9 @@ contract Cover is ICover, MasterAwareV2 {
 
     require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
     retrievePayment(premiumInAsset, payoutAsset);
+
+    // TODO: mint 10% NXM to the user (deposit)
+
     return coverId;
   }
 
@@ -206,6 +210,8 @@ contract Cover is ICover, MasterAwareV2 {
         uint premiumInNXM;
         {
           uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / tokenPrice;
+
+          // TODO: receive update on expired cover to update activeCoverInNXM
           (coveredAmountInNXM, premiumInNXM) = buyCoverFromPool(
             IStakingPool(coverChunkRequests[i].poolAddress),
             originalCover.productId,
@@ -297,6 +303,7 @@ contract Cover is ICover, MasterAwareV2 {
 
       lastPrices[cover.productId][address(stakingPool)] = LastPrice(uint96(basePrice), uint32(block.timestamp));
 
+      // TODO: receive update on expired cover to update activeCoverInNXM
       stakingPool.extendPeriod(
         cover.productId,
         cover.period,
@@ -340,6 +347,7 @@ contract Cover is ICover, MasterAwareV2 {
     for (uint i = 0; i < originalCoverChunks.length; i++) {
       IStakingPool stakingPool = IStakingPool(originalCoverChunks[i].poolAddress);
 
+      // TODO: receive update on expired cover to update activeCoverInNXM
       stakingPool.reducePeriod(
         cover.productId,
         cover.period,
@@ -398,6 +406,8 @@ contract Cover is ICover, MasterAwareV2 {
 
       // reduce the amount per pool proportionately to the overall reduction
       uint newCoverAmount = newCoverChunks[i].coverAmountInNXM * newTotalCoverAmount / newCover.amount;
+
+      // TODO: receive update on expired cover to update activeCoverInNXM
       stakingPool.reduceAmount(
         newCover.productId,
         newCover.period,
@@ -506,6 +516,9 @@ contract Cover is ICover, MasterAwareV2 {
     uint lastPriceUpdate,
     uint now
   ) public pure returns (uint) {
+
+    // TODO: update so that if the targetPrice is higher than the lastPrice the change applies immediately and throttle
+    // only on the way down
 
     uint percentageChange =
       (now - lastPriceUpdate) / 1 days * PERCENTAGE_CHANGE_PER_DAY_BPS;

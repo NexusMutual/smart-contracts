@@ -14,6 +14,7 @@ interface ICover {
   }
 
   struct CoverChunkRequest {
+    // TODO: switch to poolId and derive the address created with CREATE2 from the id
     address poolAddress;
     uint coverAmountInAsset;
   }
@@ -38,6 +39,8 @@ interface ICover {
     address productAddress;
     /* supported payout assets bitmap TODO: explain */
     uint payoutAssets;
+    // TODO: consider if to pack the initialPrice and activeCoverAmountInNXM here. issues appear with
+    // to many variables currently + not all parameters are needed everywhere
   }
 
   struct ProductType {

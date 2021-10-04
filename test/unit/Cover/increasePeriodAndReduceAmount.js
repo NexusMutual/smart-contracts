@@ -18,7 +18,7 @@ describe('increasePeriodAndReduceAmount', function () {
   it('should edit cover by increasing period and reducing amount', async function () {
     const { cover } = this;
 
-    const productId = 1;
+    const productId = 0;
     const payoutAsset = 0; // ETH
     const period = 3600 * 365; // 30 days
 

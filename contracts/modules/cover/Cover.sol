@@ -110,7 +110,7 @@ contract Cover is ICover, MasterAwareV2 {
       );
     }
     require(amountLeftToCoverInNXM == 0, "Not enough available capacity");
-    
+
     uint premiumInAsset = totalPremiumInNXM * tokenPrice / 1e18;
 
     uint coverId = coverCount++;

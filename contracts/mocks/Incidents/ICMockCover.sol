@@ -70,7 +70,6 @@ contract ICMockCover is ICover {
 
     coverId = covers.length - 1;
     coverNFT.safeMint(owner, coverId);
-<<<<<<< HEAD
   }
 
   function addProductType(
@@ -105,8 +104,6 @@ contract ICMockCover is ICover {
     uint96 amount
   ) external returns (uint96) {
     activeCoverAmountInNXM[productId] = amount;
-=======
->>>>>>> nexus-v2
   }
 
 

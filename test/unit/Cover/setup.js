@@ -21,14 +21,17 @@ async function setup () {
   const MemberRolesMock = artifacts.require('MemberRolesMock');
   const CoverNFT = artifacts.require('CoverNFT');
   const TokenController = artifacts.require('TokenControllerMock');
+  const NXMToken = await artifacts.require('NXMTokenMock');
 
   const master = await MasterMock.new();
   const dai = await ERC20Mock.new();
   const stETH = await ERC20Mock.new();
   const memberRoles = await MemberRolesMock.new();
   const tokenController = await TokenController.new();
-
+  const nxm = await NXMToken.new();
   const cover = await Cover.new();
+
+  await master.setTokenAddress(nxm.address);
 
   const coverNFT = await CoverNFT.new('NexusMutual Cover', 'NXMC', cover.address);
   await cover.initialize(coverNFT.address);
@@ -61,7 +64,6 @@ async function setup () {
   await master.setLatestAddress(hex('QD'), quotationData.address);
   await master.setLatestAddress(hex('MR'), memberRoles.address);
   await master.setLatestAddress(hex('CO'), cover.address);
-
   await master.setLatestAddress(hex('TC'), tokenController.address);
 
   for (const member of accounts.members) {
@@ -83,8 +85,11 @@ async function setup () {
     await master.enrollGovernance(governanceContract);
   }
 
-  await cover.changeMasterAddress(master.address);
-  await cover.changeDependentContractAddress();
+  for (const contract of [cover, tokenController]) {
+    await contract.changeMasterAddress(master.address);
+    await contract.changeDependentContractAddress();
+    await master.enrollInternal(contract.address);
+  }
 
   // add products
 

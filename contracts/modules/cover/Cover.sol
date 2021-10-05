@@ -7,7 +7,6 @@ import "../../interfaces/IPool.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/ICoverNFT.sol";
-import "hardhat/console.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/ITokenController.sol";
 
@@ -133,8 +132,6 @@ contract Cover is ICover, MasterAwareV2 {
     require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
     retrievePayment(premiumInAsset, payoutAsset);
 
-
-    console.log("addressTC", address(tokenController()));
     tokenController().mint(owner, totalPremiumInNXM / 10);
 
     return coverId;

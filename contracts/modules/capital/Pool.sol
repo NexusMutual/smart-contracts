@@ -246,7 +246,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     if (ok) {
       emit Payout(payoutAddress, asset, amount);
       uint totalAssetValue = getPoolValueInEth();
-      mcr.updateMCRInternal(totalAssetValue.sub(amountInETH), true);
+      mcr.updateMCRInternal(totalAssetValue, true);
     }
 
     return ok;

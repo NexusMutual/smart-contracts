@@ -472,6 +472,19 @@ contract Cover is ICover, MasterAwareV2 {
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external onlyInternal override {
     CoverData memory cover = covers[coverId];
+    CoverData memory newCover = CoverData(
+      cover.productId,
+      cover.payoutAsset,
+      uint96(cover.amount - amount),
+      uint32(block.timestamp + 1),
+      cover.start + cover.period - uint32(block.timestamp),
+      cover.premium
+    );
+
+    covers[coverCount++] = newCover;
+
+    coverNFT.burn(coverId);
+    coverNFT.safeMint(owner, coverCount - 1);
   }
 
 

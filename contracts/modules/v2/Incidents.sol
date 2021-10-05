@@ -79,7 +79,8 @@ contract Incidents is IIncidents, MasterAwareV2 {
     uint96 priceBefore,
     uint32 date
   ) external onlyAdvisoryBoard override {
-    uint96 activeCoverAmountInNXM = cover().activeCoverAmountInNXM(productId);
+    ICover coverContract = cover();
+    uint96 activeCoverAmountInNXM = coverContract.activeCoverAmountInNXM(productId);
 
     Incident memory incident = Incident(
       0, // assessmentId
@@ -91,12 +92,12 @@ contract Incidents is IIncidents, MasterAwareV2 {
       uint16 productType,
       /*address productAddress*/,
       /*uint payoutAssets*/
-    ) = cover().products(productId);
+    ) = coverContract.products(productId);
     (
       /*string descriptionIpfsHash*/,
       uint8 redeemMethod,
       /*uint gracePeriod*/
-    ) = cover().productTypes(productType);
+    ) = coverContract.productTypes(productType);
     require(redeemMethod == uint8(ICover.RedeemMethod.Incident), "Invalid redeem method");
 
     uint expectedPayoutInNXM = activeCoverAmountInNXM * config.incidentExpectedPayoutRatio /

@@ -82,8 +82,9 @@ contract Claims is IClaims, MasterAwareV2 {
     uint coverPeriod,
     uint payoutAsset
   ) internal view returns (uint, uint) {
-    uint nxmPriceInPayoutAsset = pool().getTokenPrice(payoutAsset);
-    uint nxmPriceInETH = pool().getTokenPrice(0);
+    IPool poolContract = pool();
+    uint nxmPriceInPayoutAsset = poolContract.getTokenPrice(payoutAsset);
+    uint nxmPriceInETH = poolContract.getTokenPrice(0);
 
     // Calculate the expected in NXM using the NXM price at cover purchase time
     uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPriceInPayoutAsset;
@@ -257,6 +258,7 @@ contract Claims is IClaims, MasterAwareV2 {
     {
       uint96 coverAmount;
       uint24 productId;
+      ICover coverContract = cover();
       (
         productId,
         payoutAsset,
@@ -264,17 +266,17 @@ contract Claims is IClaims, MasterAwareV2 {
         coverStart,
         coverPeriod,
         /*uint80 nxmPrice*/
-      ) = cover().covers(coverId);
+      ) = coverContract.covers(coverId);
       (
         uint16 productType,
         /*address productAddress*/,
         /*uint payoutAssets*/
-      ) = cover().products(productId);
+      ) = coverContract.products(productId);
       (
         /*string descriptionIpfsHash*/,
         uint8 redeemMethod,
         uint16 gracePeriodInDays
-      ) = cover().productTypes(productType);
+      ) = coverContract.productTypes(productType);
       require(redeemMethod == uint8(ICover.RedeemMethod.Claim), "Invalid redeem method");
       require(requestedAmount <= coverAmount, "Covered amount exceeded");
       require(coverStart <= block.timestamp, "Cover starts in the future");
@@ -351,16 +353,17 @@ contract Claims is IClaims, MasterAwareV2 {
     ));
 
     bool payoutSucceeded;
+    IPool poolContract = pool();
     if (claim.payoutAsset == 0) {
-      payoutSucceeded = pool().sendClaimPayout(
+      payoutSucceeded = poolContract.sendClaimPayout(
         claim.payoutAsset,
         coverOwner,
         claim.amount + assessmentDeposit
       );
     } else {
-      bool depositRefundSucceeded = pool().sendClaimPayout(0, coverOwner, assessmentDeposit);
+      bool depositRefundSucceeded = poolContract.sendClaimPayout(0, coverOwner, assessmentDeposit);
       require(depositRefundSucceeded, "Assessment deposit refund failed");
-      payoutSucceeded = pool().sendClaimPayout(claim.payoutAsset, coverOwner, claim.amount);
+      payoutSucceeded = poolContract.sendClaimPayout(claim.payoutAsset, coverOwner, claim.amount);
     }
     require(payoutSucceeded, "Claim payout failed");
 

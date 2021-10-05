@@ -8,6 +8,8 @@ import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "hardhat/console.sol";
+import "../../interfaces/IMCR.sol";
+import "../../interfaces/ITokenController.sol";
 
 contract Cover is ICover, MasterAwareV2 {
 
@@ -131,7 +133,9 @@ contract Cover is ICover, MasterAwareV2 {
     require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
     retrievePayment(premiumInAsset, payoutAsset);
 
-    // TODO: mint 10% NXM to the user (deposit)
+
+    console.log("addressTC", address(tokenController()));
+    tokenController().mint(owner, totalPremiumInNXM / 10);
 
     return coverId;
   }
@@ -523,14 +527,11 @@ contract Cover is ICover, MasterAwareV2 {
     uint now
   ) public pure returns (uint) {
 
-    // TODO: update so that if the targetPrice is higher than the lastPrice the change applies immediately and throttle
-    // only on the way down
-
     uint percentageChange =
       (now - lastPriceUpdate) / 1 days * PERCENTAGE_CHANGE_PER_DAY_BPS;
 
     if (targetPrice > lastPrice) {
-      return lastPrice + (targetPrice - lastPrice) * percentageChange / BASIS_PRECISION;
+      return targetPrice;
     } else {
       return lastPrice - (lastPrice - targetPrice) * percentageChange / BASIS_PRECISION;
     }
@@ -599,10 +600,20 @@ contract Cover is ICover, MasterAwareV2 {
     return IMemberRoles(internalContracts[uint(ID.MR)]);
   }
 
+  function mcr() internal view returns (IMCR) {
+    return IMCR(internalContracts[uint(ID.MC)]);
+  }
+
+  function tokenController() internal view returns (ITokenController) {
+    return ITokenController(internalContracts[uint(ID.TC)]);
+  }
+
   function changeDependentContractAddress() external override {
     master = INXMMaster(master);
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
+    internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
+    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
   }
 }

@@ -19,6 +19,7 @@ contract CoverNFT is ERC721 {
   }
 
   function burn(uint tokenId) external {
+    require(msg.sender == address(cover), "CoverNFT: Not Cover module");
     _burn(tokenId);
   }
 }

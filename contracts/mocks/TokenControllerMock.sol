@@ -4,6 +4,7 @@ pragma solidity ^0.5.0;
 
 import "../abstract/MasterAware.sol";
 import "../modules/token/NXMToken.sol";
+import "hardhat/console.sol";
 
 contract TokenControllerMock is MasterAware {
 

@@ -20,11 +20,13 @@ async function setup () {
   const Cover = artifacts.require('Cover');
   const MemberRolesMock = artifacts.require('MemberRolesMock');
   const CoverNFT = artifacts.require('CoverNFT');
+  const TokenController = artifacts.require('TokenControllerMock');
 
   const master = await MasterMock.new();
   const dai = await ERC20Mock.new();
   const stETH = await ERC20Mock.new();
   const memberRoles = await MemberRolesMock.new();
+  const tokenController = await TokenController.new();
 
   const cover = await Cover.new();
 
@@ -59,6 +61,8 @@ async function setup () {
   await master.setLatestAddress(hex('QD'), quotationData.address);
   await master.setLatestAddress(hex('MR'), memberRoles.address);
   await master.setLatestAddress(hex('CO'), cover.address);
+
+  await master.setLatestAddress(hex('TC'), tokenController.address);
 
   for (const member of accounts.members) {
     await master.enrollMember(member, Role.Member);

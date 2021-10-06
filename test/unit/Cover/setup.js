@@ -22,6 +22,7 @@ async function setup () {
   const CoverNFT = artifacts.require('CoverNFT');
   const TokenController = artifacts.require('TokenControllerMock');
   const NXMToken = await artifacts.require('NXMTokenMock');
+  const MCR = await artifacts.require('CoverMockMCR');
 
   const master = await MasterMock.new();
   const dai = await ERC20Mock.new();
@@ -29,6 +30,7 @@ async function setup () {
   const memberRoles = await MemberRolesMock.new();
   const tokenController = await TokenController.new();
   const nxm = await NXMToken.new();
+  const mcr = await MCR.new();
   const cover = await Cover.new();
 
   await master.setTokenAddress(nxm.address);
@@ -59,12 +61,15 @@ async function setup () {
   await quotationData.setTotalSumAssured(hex('DAI'), '0');
   await quotationData.setTotalSumAssured(hex('ETH'), '100000');
 
+  await mcr.setMCR(ether('600000'));
+
   // set contract addresses
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('QD'), quotationData.address);
   await master.setLatestAddress(hex('MR'), memberRoles.address);
   await master.setLatestAddress(hex('CO'), cover.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
+  await master.setLatestAddress(hex('MC'), mcr.address);
 
   for (const member of accounts.members) {
     await master.enrollMember(member, Role.Member);

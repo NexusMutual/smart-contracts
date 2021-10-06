@@ -12,6 +12,11 @@ import "../../interfaces/ITokenController.sol";
 
 contract Cover is ICover, MasterAwareV2 {
 
+  uint public constant BUCKET_SIZE = 7 days;
+
+  struct ProductBucket {
+    uint96 coverAmountExpiring;
+  }
 
   Product[] public override products;
   ProductType[] public override productTypes;
@@ -22,6 +27,9 @@ contract Cover is ICover, MasterAwareV2 {
   mapping(uint => uint) initialPrices;
 
   mapping(uint => uint96) public override activeCoverAmountInNXM;
+
+  mapping(uint => mapping(uint => ProductBucket)) productBuckets;
+  mapping(uint => uint) lastProductBucket;
 
   uint32 public capacityFactor;
   uint32 public coverCount;
@@ -81,7 +89,25 @@ contract Cover is ICover, MasterAwareV2 {
     // convert to NXM amount
     tokenPrice = pool().getTokenPrice(payoutAsset);
     amountLeftToCoverInNXM = uint(amount) * 1e18 / tokenPrice;
-    activeCoverAmountInNXM[productId] += uint96(amountLeftToCoverInNXM);
+
+    {
+      uint currentBucket = block.timestamp / BUCKET_SIZE;
+      // productBuckets[productId][currentBucket]
+
+      uint activeCoverAmount = activeCoverAmountInNXM[productId];
+      uint lastBucket = lastProductBucket[productId];
+      while (lastBucket < currentBucket) {
+        ++lastBucket;
+        activeCoverAmount -= productBuckets[productId][lastBucket].coverAmountExpiring;
+      }
+
+      activeCoverAmountInNXM[productId] = uint96(activeCoverAmount + amountLeftToCoverInNXM);
+      require(activeCoverAmountInNXM[productId] < mcr().getMCR() / 5, "Cover: Total cover amount exceeds 20% of MCR");
+
+      lastProductBucket[productId] = lastBucket;
+
+      productBuckets[productId][(block.timestamp + period) / BUCKET_SIZE].coverAmountExpiring = uint96(amountLeftToCoverInNXM);
+    }
 
     uint totalPremiumInNXM = 0;
 
@@ -591,7 +617,9 @@ contract Cover is ICover, MasterAwareV2 {
   }
 
   function addProduct(Product calldata product) external onlyAdvisoryBoard {
+
     products.push(product);
+    lastProductBucket[products.length - 1] = block.timestamp / BUCKET_SIZE;
   }
 
   /* ========== HELPERS ========== */

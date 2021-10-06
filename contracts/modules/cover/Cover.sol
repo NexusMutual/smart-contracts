@@ -81,8 +81,6 @@ contract Cover is ICover, MasterAwareV2 {
     require(initialPrices[productId] != 0, "Cover: product not initialized");
     require(assetIsSupported(products[productId].payoutAssets, payoutAsset), "Cover: Asset is not supported");
 
-    // TODO: add check for max 20% MCR check for activeCoverAmountInNXM
-
     uint amountLeftToCoverInNXM;
     uint tokenPrice;
 
@@ -90,26 +88,9 @@ contract Cover is ICover, MasterAwareV2 {
     tokenPrice = pool().getTokenPrice(payoutAsset);
     amountLeftToCoverInNXM = uint(amount) * 1e18 / tokenPrice;
 
-    {
-      uint currentBucket = block.timestamp / BUCKET_SIZE;
-      // productBuckets[productId][currentBucket]
-
-      uint activeCoverAmount = activeCoverAmountInNXM[productId];
-      uint lastBucket = lastProductBucket[productId];
-      while (lastBucket < currentBucket) {
-        ++lastBucket;
-        activeCoverAmount -= productBuckets[productId][lastBucket].coverAmountExpiring;
-      }
-
-      activeCoverAmountInNXM[productId] = uint96(activeCoverAmount + amountLeftToCoverInNXM);
-      require(activeCoverAmountInNXM[productId] < mcr().getMCR() / 5, "Cover: Total cover amount exceeds 20% of MCR");
-
-      lastProductBucket[productId] = lastBucket;
-
-      productBuckets[productId][(block.timestamp + period) / BUCKET_SIZE].coverAmountExpiring = uint96(amountLeftToCoverInNXM);
-    }
-
     uint totalPremiumInNXM = 0;
+
+    updateActiveCoverAmountInNXM(productId, period, amountLeftToCoverInNXM);
 
     for (uint i = 0; i < coverChunkRequests.length; i++) {
       if (amountLeftToCoverInNXM == 0) {
@@ -491,6 +472,24 @@ contract Cover is ICover, MasterAwareV2 {
     newCover.premium = uint96(premiumInAsset);
 
     return newCoverId;
+  }
+
+  function updateActiveCoverAmountInNXM(uint productId, uint period, uint amountToCoverInNXM) internal {
+    uint currentBucket = block.timestamp / BUCKET_SIZE;
+
+    uint activeCoverAmount = activeCoverAmountInNXM[productId];
+    uint lastBucket = lastProductBucket[productId];
+    while (lastBucket < currentBucket) {
+      ++lastBucket;
+      activeCoverAmount -= productBuckets[productId][lastBucket].coverAmountExpiring;
+    }
+
+    activeCoverAmountInNXM[productId] = uint96(activeCoverAmount + amountToCoverInNXM);
+    require(activeCoverAmountInNXM[productId] < mcr().getMCR() / 5, "Cover: Total cover amount exceeds 20% of MCR");
+
+    lastProductBucket[productId] = lastBucket;
+
+    productBuckets[productId][(block.timestamp + period) / BUCKET_SIZE].coverAmountExpiring = uint96(amountToCoverInNXM);
   }
 
   function performPayoutBurn(uint coverId, address owner, uint amount) external onlyInternal override {

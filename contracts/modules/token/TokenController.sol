@@ -328,7 +328,6 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
       amount = amount + _tokensLocked(_of, lockReason[_of][i]);
     }
 
-    amount = amount + pooledStaking.stakerDeposit(_of);
   }
 
   /**
@@ -555,7 +554,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   }
 
   function migrate() internal {
-
+    // [todo] Remove CLA locks for all assessors
   }
 
   event Locked(address indexed _of, bytes32 indexed _reason, uint256 _amount, uint256 _validity);

@@ -1,67 +1,90 @@
-const { artifacts, web3 } = require('hardhat');
+const { artifacts, web3, ethers } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 
+const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../utils').constants;
-const accounts = require('../utils').accounts;
 const { hex } = require('../utils').helpers;
 
 const { BN } = web3.utils;
+const { BigNumber } = ethers.utils;
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 async function setup () {
 
-  const MasterMock = artifacts.require('MasterMock');
-  const Pool = artifacts.require('CoverMockPool');
-  const ERC20Mock = artifacts.require('ERC20Mock');
-  const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-  const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
-  const QuotationData = artifacts.require('MCRMockQuotationData');
-  const Cover = artifacts.require('Cover');
-  const MemberRolesMock = artifacts.require('MemberRolesMock');
-  const CoverNFT = artifacts.require('CoverNFT');
-  const TokenController = artifacts.require('TokenControllerMock');
-  const NXMToken = await artifacts.require('NXMTokenMock');
-  const MCR = await artifacts.require('CoverMockMCR');
+  const MasterMock = await ethers.getContractFactory('MasterMock');
+  const Pool = await ethers.getContractFactory('CoverMockPool');
+  const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+  const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
+  const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+  const QuotationData = await ethers.getContractFactory('MCRMockQuotationData');
+  const Cover = await ethers.getContractFactory('Cover');
+  const MemberRolesMock = await ethers.getContractFactory('MemberRolesMock');
+  const CoverNFT = await ethers.getContractFactory('CoverNFT');
+  const TokenController = await ethers.getContractFactory('TokenControllerMock');
+  const NXMToken = await ethers.getContractFactory('NXMTokenMock');
+  const MCR = await ethers.getContractFactory('CoverMockMCR');
 
-  const master = await MasterMock.new();
-  const dai = await ERC20Mock.new();
-  const stETH = await ERC20Mock.new();
-  const memberRoles = await MemberRolesMock.new();
-  const tokenController = await TokenController.new();
-  const nxm = await NXMToken.new();
-  const mcr = await MCR.new();
-  const cover = await Cover.new();
+  const master = await MasterMock.deploy();
+  await master.deployed();
+
+  const dai = await ERC20Mock.deploy();
+  await dai.deployed();
+
+  const stETH = await ERC20Mock.deploy();
+  await stETH.deployed();
+
+  const memberRoles = await MemberRolesMock.deploy();
+  await memberRoles.deployed();
+
+  const tokenController = await TokenController.deploy();
+  await tokenController.deployed();
+
+  const nxm = await NXMToken.deploy();
+  await nxm.deployed();
+
+  const mcr = await MCR.deploy();
+  await mcr.deployed();
+
+  const cover = await Cover.deploy();
+  await cover.deployed();
 
   await master.setTokenAddress(nxm.address);
 
-  const coverNFT = await CoverNFT.new('NexusMutual Cover', 'NXMC', cover.address);
+  const coverNFT = await CoverNFT.deploy('NexusMutual Cover', 'NXMC', cover.address);
+  await coverNFT.deployed();
+
   await cover.initialize(coverNFT.address);
 
   const ethToDaiRate = ether('2000');
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
 
-  const chainlinkDAI = await ChainlinkAggregatorMock.new();
-  await chainlinkDAI.setLatestAnswer(daiToEthRate);
+  const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
+  await chainlinkDAI.deployed();
 
-  const priceFeedOracle = await PriceFeedOracle.new(
+  await chainlinkDAI.setLatestAnswer(daiToEthRate.toString());
+
+  const priceFeedOracle = await PriceFeedOracle.deploy(
     chainlinkDAI.address,
     dai.address,
     stETH.address,
   );
+  await priceFeedOracle.deployed();
 
-  const pool = await Pool.new();
+  const pool = await Pool.deploy();
+  await pool.deployed();
 
   await pool.setAssets([ETH, dai.address]);
 
-  await pool.setTokenPrice('0', ether('1'));
+  await pool.setTokenPrice('0', ethers.utils.parseEther('1'));
 
-  const quotationData = await QuotationData.new();
+  const quotationData = await QuotationData.deploy();
+  await quotationData.deployed();
 
-  await quotationData.setTotalSumAssured(hex('DAI'), '0');
-  await quotationData.setTotalSumAssured(hex('ETH'), '100000');
+  await quotationData.setTotalSumAssured(hex('DAIX'), '0');
+  await quotationData.setTotalSumAssured(hex('ETHX'), '100000');
 
-  await mcr.setMCR(ether('600000'));
+  await mcr.setMCR(ethers.utils.parseEther('600000'));
 
   // set contract addresses
   await master.setLatestAddress(hex('P1'), pool.address);
@@ -71,23 +94,26 @@ async function setup () {
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
 
+  const signers = await ethers.getSigners();
+  const accounts = getAccounts(signers);
+
   for (const member of accounts.members) {
-    await master.enrollMember(member, Role.Member);
-    await memberRoles.setRole(member, Role.Member);
+    await master.enrollMember(member.address, Role.Member);
+    await memberRoles.setRole(member.address, Role.Member);
   }
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
-    await master.enrollMember(advisoryBoardMember, Role.AdvisoryBoard);
-    await memberRoles.setRole(advisoryBoardMember, Role.AdvisoryBoard);
+    await master.enrollMember(advisoryBoardMember.address, Role.AdvisoryBoard);
+    await memberRoles.setRole(advisoryBoardMember.address, Role.AdvisoryBoard);
   }
 
   for (const internalContract of accounts.internalContracts) {
-    await master.enrollInternal(internalContract);
+    await master.enrollInternal(internalContract.address);
   }
 
   // there is only one in reality, but it doesn't matter
   for (const governanceContract of accounts.governanceContracts) {
-    await master.enrollGovernance(governanceContract);
+    await master.enrollGovernance(governanceContract.address);
   }
 
   for (const contract of [cover, tokenController]) {
@@ -97,14 +123,11 @@ async function setup () {
   }
 
   // add products
-
-  await cover.addProduct({
+  await cover.connect(accounts.advisoryBoardMembers[0]).addProduct({
     productType: '1',
     productAddress: '0x0000000000000000000000000000000000000000',
     payoutAssets: '1', // ETH supported
-  },
-  { from: accounts.advisoryBoardMembers[0] },
-  );
+  });
 
   this.master = master;
   this.pool = pool;

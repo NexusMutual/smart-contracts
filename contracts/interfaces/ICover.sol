@@ -49,7 +49,7 @@ interface ICover {
     uint16 productType;
     address productAddress;
     /* supported payout assets bitmap TODO: explain */
-    uint payoutAssets;
+    uint coverAssets;
     // TODO: consider if to pack the initialPrice and activeCoverAmountInNXM here. issues appear with
     // to many variables currently + not all parameters are needed everywhere
   }

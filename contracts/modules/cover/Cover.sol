@@ -35,6 +35,13 @@ contract Cover is ICover, MasterAwareV2 {
   uint32 public coverCount;
   ICoverNFT public override coverNFT;
 
+  /*
+    bit map representing which assets are globally supported for paying for and for paying out covers
+    If the the bit at position N is 1 it means asset with index N is supported.this
+    Eg. coverAssetsFallback = 3 (in binary 11) means assets at index 0 and 1 are supported.
+  */
+  uint public coverAssetsFallback;
+
 
   struct LastPrice {
     uint96 value;
@@ -74,17 +81,24 @@ contract Cover is ICover, MasterAwareV2 {
   ) external payable override onlyMember returns (uint /*coverId*/) {
 
     require(initialPrices[params.productId] != 0, "Cover: product not initialized");
-    require(assetIsSupported(products[params.productId].payoutAssets, params.payoutAsset), "Cover: Asset is not supported");
+    require(
+      assetIsSupported(products[params.productId].coverAssets, params.payoutAsset),
+      "Cover: Payout asset is not supported"
+    );
+    require(
+      assetIsSupported(products[params.productId].coverAssets, params.paymentAsset),
+      "Cover: Payment asset is not supported"
+    );
 
     // convert to NXM amount
-    uint tokenPrice = pool().getTokenPrice(params.payoutAsset);
+    uint payoutAssetTokenPrice = pool().getTokenPrice(params.payoutAsset);
 
-    updateActiveCoverAmountInNXM(params.productId, params.period, uint(params.amount) * 1e18 / tokenPrice);
+    updateActiveCoverAmountInNXM(params.productId, params.period, uint(params.amount) * 1e18 / payoutAssetTokenPrice);
 
     uint totalPremiumInNXM = 0;
     for (uint i = 0; i < coverChunkRequests.length; i++) {
 
-      uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / tokenPrice;
+      uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / payoutAssetTokenPrice;
 
       // TODO: receive update on expired cover to update activeCoverInNXM
       (uint coveredAmountInNXM, uint premiumInNXM) = buyCoverFromPool(
@@ -97,7 +111,7 @@ contract Cover is ICover, MasterAwareV2 {
       // carry over the amount that was not covered by the current pool to the next cover
       if (coveredAmountInNXM < requestedCoverAmountInNXM && i + 1 < coverChunkRequests.length) {
         coverChunkRequests[i + 1].coverAmountInAsset +=
-          (requestedCoverAmountInNXM - uint96(coveredAmountInNXM)) * tokenPrice / 1e18;
+          (requestedCoverAmountInNXM - uint96(coveredAmountInNXM)) * payoutAssetTokenPrice / 1e18;
       } else if (coveredAmountInNXM < requestedCoverAmountInNXM) {
         revert("Not enough available capacity");
       }
@@ -109,7 +123,7 @@ contract Cover is ICover, MasterAwareV2 {
       );
     }
 
-    uint premiumInAsset = totalPremiumInNXM * tokenPrice / 1e18;
+    uint premiumInPaymentAsset = totalPremiumInNXM * pool().getTokenPrice(params.paymentAsset) / 1e18;
 
     uint coverId = coverCount++;
     covers[coverId] = CoverData(
@@ -118,13 +132,13 @@ contract Cover is ICover, MasterAwareV2 {
         uint96(params.amount),
         uint32(block.timestamp + 1),
         uint32(params.period),
-        uint96(premiumInAsset)
+        uint96(premiumInPaymentAsset)
       );
 
     coverNFT.safeMint(params.owner, coverId);
 
-    require(premiumInAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
-    retrievePayment(premiumInAsset, params.payoutAsset);
+    require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
+    retrievePayment(premiumInPaymentAsset, params.payoutAsset);
 
     tokenController().mint(params.owner, totalPremiumInNXM / 10);
 
@@ -604,9 +618,17 @@ contract Cover is ICover, MasterAwareV2 {
     lastProductBucket[products.length - 1] = block.timestamp / BUCKET_SIZE;
   }
 
+  function setCoverAssetsFallback(uint _coverAssetsFallback) external onlyGovernance {
+    coverAssetsFallback = _coverAssetsFallback;
+  }
+
   /* ========== HELPERS ========== */
 
   function assetIsSupported(uint payoutAssetsBitMap, uint8 payoutAsset) public returns (bool) {
+
+    if (payoutAssetsBitMap == 0) {
+      return 1 << payoutAsset & coverAssetsFallback > 0;
+    }
     return 1 << payoutAsset & payoutAssetsBitMap > 0;
   }
 

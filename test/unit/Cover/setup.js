@@ -126,7 +126,7 @@ async function setup () {
   await cover.connect(accounts.advisoryBoardMembers[0]).addProduct({
     productType: '1',
     productAddress: '0x0000000000000000000000000000000000000000',
-    payoutAssets: '1', // ETH supported
+    coverAssets: '1', // ETH supported
   });
 
   this.master = master;

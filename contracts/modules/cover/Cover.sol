@@ -187,11 +187,7 @@ contract Cover is ICover, MasterAwareV2 {
 
     newCoverId = coverCount++;
 
-    uint tokenPrice;
-    {
-      IPool _pool = pool();
-      tokenPrice = _pool.getTokenPrice(originalCover.payoutAsset);
-    }
+    uint tokenPrice = pool().getTokenPrice(originalCover.payoutAsset);
 
     uint32 remainingPeriod = originalCover.start + originalCover.period - uint32(block.timestamp);
     uint totalPremiumInNXM = 0;

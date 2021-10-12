@@ -134,6 +134,7 @@ async function setup () {
   this.dai = dai;
   this.chainlinkDAI = chainlinkDAI;
   this.cover = cover;
+  this.accounts = accounts;
 }
 
 module.exports = setup;

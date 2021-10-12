@@ -1,44 +1,40 @@
 const { assert } = require('chai');
-const { web3 } = require('hardhat');
-const { ether, time, expectRevert } = require('@openzeppelin/test-helpers');
+const { web3, ethers: { utils: { parseEther } } } = require('hardhat');
+const { time, expectRevert } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
-const accounts = require('../utils').accounts;
 const { calculatePrice } = require('./helpers');
-
-const { governanceContracts: [gv1], members: [member1] } = require('../utils').accounts;
-
-const { members: [coverBuyer1], advisoryBoardMembers: [ab1] } = require('../utils').accounts;
 
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
-const { toBN } = web3.utils;
-
 describe('buyCover', function () {
 
-  it('should purchase new cover', async function () {
+  it.only('should purchase new cover', async function () {
     const { cover } = this;
+
+    const {
+      advisoryBoardMembers: [ab1],
+      governanceContracts: [gv1],
+      members: [member1],
+      members: [coverBuyer1],
+    } = this.accounts;
 
     const productId = 0;
     const payoutAsset = 0; // ETH
     const period = 3600 * 365; // 30 days
 
-    const amount = ether('1000');
+    const amount = parseEther('1000');
 
-    const initialPrice = ether('2.6');
-    const targetPrice = ether('2.6');
-    const activeCover = ether('8000');
-    const capacity = ether('10000');
-    const resultingBasePrice = ether('2.6');
+    const initialPrice = parseEther('2.6');
+    const targetPrice = parseEther('2.6');
+    const activeCover = parseEther('8000');
+    const capacity = parseEther('10000');
+    const resultingBasePrice = parseEther('2.6');
 
     const stakingPool = await CoverMockStakingPool.new();
     const capacityFactor = '1';
 
-    await cover.setCapacityFactor(capacityFactor, {
-      from: gv1,
-    });
-    await cover.setInitialPrice(productId, initialPrice, {
-      from: ab1,
-    });
+    await cover.connect(gv1).setCapacityFactor(capacityFactor);
+    await cover.connect(ab1).setInitialPrice(productId, initialPrice);
 
     await stakingPool.setStake(productId, capacity);
     await stakingPool.setTargetPrice(productId, targetPrice);
@@ -50,18 +46,21 @@ describe('buyCover', function () {
       activeCover,
       capacity,
     );
-    const expectedPrice = expectedPricePercentage.mul(amount).div(ether('100'));
+    const expectedPrice = expectedPricePercentage.mul(amount).div(parseEther('100'));
 
-    await cover.buyCover(
-      coverBuyer1,
-      productId,
-      payoutAsset,
-      amount,
-      period,
-      expectedPrice,
+    await cover.connect(member1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        productId,
+        payoutAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPrice,
+        paymentAsset: payoutAsset,
+        payWitNXM: false,
+      },
       [{ poolAddress: stakingPool.address, coverAmountInAsset: amount.toString() }],
       {
-        from: member1,
         value: expectedPrice,
       },
     );

@@ -34,6 +34,17 @@ interface ICover {
     uint96 premium;
   }
 
+  struct BuyCoverParams {
+    address owner;
+    uint24 productId;
+    uint8 payoutAsset;
+    uint96 amount;
+    uint32 period;
+    uint maxPremiumInAsset;
+    uint8 paymentAsset;
+    bool payWithNXM;
+  }
+
   struct Product {
     uint16 productType;
     address productAddress;
@@ -62,12 +73,7 @@ interface ICover {
   /* === MUTATIVE FUNCTIONS ==== */
 
   function buyCover(
-    address owner,
-    uint24 productId,
-    uint8 payoutAsset,
-    uint96 amount,
-    uint32 period,
-    uint maxPremiumInAsset,
+    BuyCoverParams memory params,
     CoverChunkRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 

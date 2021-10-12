@@ -67,18 +67,6 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     qd.changeCoverStatusNo(coverId, uint8(IQuotationData.CoverStatus.CoverExpired));
   }
 
-  function withdrawCoverNote(address coverOwner, uint[] calldata coverIds, uint[] calldata reasonIndexes) external {
-
-    uint gracePeriod = 120; // hardcoded for now
-
-    for (uint i = 0; i < coverIds.length; i++) {
-      uint expirationDate = qd.getValidityOfCover(coverIds[i]);
-      require(expirationDate.add(gracePeriod) < now, "Quotation: cannot withdraw before grace period expiration");
-    }
-
-    tc.withdrawCoverNote(coverOwner, coverIds, reasonIndexes);
-  }
-
   function getWithdrawableCoverNoteCoverIds(
     address coverOwner
   ) public view returns (
@@ -88,16 +76,13 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
 
     uint[] memory coverIds = qd.getAllCoversOfUser(coverOwner);
     uint[] memory expiredIdsQueue = new uint[](coverIds.length);
-    uint gracePeriod = 120; //hardcoded
     uint expiredQueueLength = 0;
 
     for (uint i = 0; i < coverIds.length; i++) {
 
-      uint coverExpirationDate = qd.getValidityOfCover(coverIds[i]);
-      uint gracePeriodExpirationDate = coverExpirationDate.add(gracePeriod);
       (/* claimCount */, bool hasOpenClaim, /* hasAcceptedClaim */) = tc.coverInfo(coverIds[i]);
 
-      if (!hasOpenClaim && gracePeriodExpirationDate < now) {
+      if (!hasOpenClaim) {
         expiredIdsQueue[expiredQueueLength] = coverIds[i];
         expiredQueueLength++;
       }

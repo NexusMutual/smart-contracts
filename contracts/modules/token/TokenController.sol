@@ -471,48 +471,52 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     emit Unlocked(_of, _reason, _amount);
   }
 
+  // Can be removed once all cover notes are withdrawn
   function withdrawCoverNote(
-    address _of,
-    uint[] calldata _coverIds,
-    uint[] calldata _indexes
-  ) external override onlyInternal {
+    address user,
+    uint[] calldata coverIds,
+    uint[] calldata indexes
+  ) external override {
 
-    uint reasonCount = lockReason[_of].length;
+    uint reasonCount = lockReason[user].length;
     require(reasonCount > 0, "TokenController: No locked cover notes found");
-    uint lastReasonIndex = reasonCount- 1;
+    uint lastReasonIndex = reasonCount - 1;
     uint totalAmount = 0;
 
     // The iteration is done from the last to first to prevent reason indexes from
     // changing due to the way we delete the items (copy last to current and pop last).
     // The provided indexes array must be ordered, otherwise reason index checks will fail.
 
-    for (uint i = _coverIds.length; i > 0; i--) {
+    for (uint i = coverIds.length; i > 0; i--) {
 
-      bool hasOpenClaim = coverInfo[_coverIds[i - 1]].hasOpenClaim;
-      require(hasOpenClaim == false, "TokenController: Cannot withdraw for cover with an open claim");
+      // New claims will me opened in v2. Existing claims can be migrated to v2 at migration.
+      // The assessment deposit from v2 can be deducted from the payout amount. Unlikely to have
+      // this situation when we deploy but it's a viable option if needed.
+      //bool hasOpenClaim = coverInfo[coverIds[i - 1]].hasOpenClaim;
+      //require(hasOpenClaim == false, "TokenController: Cannot withdraw for cover with an open claim");
 
       // note: cover owner is implicitly checked using the reason hash
-      bytes32 _reason = keccak256(abi.encodePacked("CN", _of, _coverIds[i - 1]));
-      uint _reasonIndex = _indexes[i - 1];
-      require(lockReason[_of][_reasonIndex] == _reason, "TokenController: Bad reason index");
+      bytes32 _reason = keccak256(abi.encodePacked("CN", user, coverIds[i - 1]));
+      uint _reasonIndex = indexes[i - 1];
+      require(lockReason[user][_reasonIndex] == _reason, "TokenController: Bad reason index");
 
-      uint amount = locked[_of][_reason].amount;
+      uint amount = locked[user][_reason].amount;
       totalAmount = totalAmount + amount;
-      delete locked[_of][_reason];
+      delete locked[user][_reason];
 
       if (lastReasonIndex != _reasonIndex) {
-        lockReason[_of][_reasonIndex] = lockReason[_of][lastReasonIndex];
+        lockReason[user][_reasonIndex] = lockReason[user][lastReasonIndex];
       }
 
-      lockReason[_of].pop();
-      emit Unlocked(_of, _reason, amount);
+      lockReason[user].pop();
+      emit Unlocked(user, _reason, amount);
 
       if (lastReasonIndex > 0) {
-        lastReasonIndex = lastReasonIndex- 1;
+        lastReasonIndex = lastReasonIndex - 1;
       }
     }
 
-    token.transfer(_of, totalAmount);
+    token.transfer(user, totalAmount);
   }
 
   function removeEmptyReason(address _of, bytes32 _reason, uint _index) external {

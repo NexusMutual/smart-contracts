@@ -35,6 +35,9 @@ contract Gateway is IGateway, MasterAware {
 
   ILegacyIncidents public incidents;
 
+  //Incidents public incidentsV2;
+  //Claims public claimsV2;
+
   // constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
@@ -144,7 +147,7 @@ contract Gateway is IGateway, MasterAware {
   }
 
   function submitClaim(uint coverId, bytes calldata data) external returns (uint) {
-    claims.submitClaimForMember(coverId, msg.sender);
+    //claims.submitClaimForMember(coverId, msg.sender);
 
     uint claimId = claimsData.actualClaimLength() - 1;
     emit ClaimSubmitted(claimId, coverId, msg.sender, data);

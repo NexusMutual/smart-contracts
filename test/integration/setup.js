@@ -5,6 +5,7 @@ const { setupUniswap } = require('../utils');
 const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
+const { enrollMember } = require('./utils/enroll');
 
 const { BN } = web3.utils;
 
@@ -31,6 +32,7 @@ async function setup () {
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
   const TwapOracle = artifacts.require('TwapOracle');
   const SwapOperator = artifacts.require('SwapOperator');
+  const CoverNFT = artifacts.require('CoverNFT');
 
   // temporary contracts used for initialization
   const DisposableNXMaster = artifacts.require('DisposableNXMaster');
@@ -43,6 +45,7 @@ async function setup () {
   const DisposableAssessment = artifacts.require('DisposableAssessment');
   const DisposableClaims = artifacts.require('DisposableClaims');
   const DisposableIncidents = artifacts.require('DisposableIncidents');
+  const DisposableCover = artifacts.require('DisposableCover');
 
   // target contracts
   const NXMaster = artifacts.require('NXMaster');
@@ -77,7 +80,7 @@ async function setup () {
     await proxy.transferProxyOwnership(newOwner);
   };
 
-  const [owner, emergencyAdmin] = accounts;
+  const [owner, emergencyAdmin, memberSinceV1] = accounts;
 
   // deploy external contracts
   const { router, factory, weth } = await setupUniswap();
@@ -134,10 +137,13 @@ async function setup () {
   const ic = await deployProxy(DisposableIncidents, []);
   const as = await deployProxy(DisposableAssessment, []);
   const cl = await deployProxy(DisposableClaims, []);
+  const cover = await deployProxy(DisposableCover, []);
+
+  const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NXC', cover.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'QT', 'TF'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC', 'CL', 'AS'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC', 'CL', 'AS', 'CO'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -150,8 +156,8 @@ async function setup () {
     return 0;
   };
 
-  const codes = ['QD', 'TD', 'QT', 'TF', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'AS'];
-  const addresses = [qd, td, qt, tf, tc, p1, mc, { address: owner }, pc, mr, ps, gateway, ic, cl, as].map(
+  const codes = ['QD', 'TD', 'QT', 'TF', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'AS', 'CO'];
+  const addresses = [qd, td, qt, tf, tc, p1, mc, { address: owner }, pc, mr, ps, gateway, ic, cl, as, cover].map(
     c => c.address,
   );
 
@@ -203,6 +209,7 @@ async function setup () {
   await as.initialize(master.address);
   await ic.initialize(master.address);
   await cl.initialize(master.address);
+  await cover.initialize(coverNFT.address);
 
   await lcd.changeMasterAddress(master.address);
   await lcd.updateUintParameters(hex('CAMINVT'), 36); // min voting time 36h
@@ -223,6 +230,9 @@ async function setup () {
 
   await gateway.initialize(master.address, dai.address);
 
+  await enrollMember({ mr, tk, tc }, [memberSinceV1]);
+  // tc.lock(memberSinceV1, coverReason);
+
   await upgradeProxy(mr.address, MemberRoles);
   await upgradeProxy(tc.address, TokenController);
   await upgradeProxy(ps.address, PooledStaking);
@@ -230,8 +240,8 @@ async function setup () {
   await upgradeProxy(master.address, NXMaster);
   await upgradeProxy(gv.address, Governance);
   await upgradeProxy(gateway.address, Gateway);
-  await upgradeProxy(ic.address, Incidents, [master.address]);
-  await upgradeProxy(cl.address, Claims, [master.address]);
+  await upgradeProxy(ic.address, Incidents, [master.address, coverNFT.address]);
+  await upgradeProxy(cl.address, Claims, [master.address, coverNFT.address]);
   await upgradeProxy(as.address, Assessment, [master.address]);
   await gateway.changeDependentContractAddress();
 

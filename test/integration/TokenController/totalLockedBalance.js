@@ -16,30 +16,12 @@ const coverTemplate = {
   contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
 };
 
-describe('totalLockedBalance', function () {
-
+describe.only('totalLockedBalance', function () {
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1]);
   });
 
-  it('accounts for tokens locked in claimed assessment', async function () {
-
-    const { tc: tokenController } = this.contracts;
-    const validity = 180 * 24 * 60 * 60;
-    const lockTokens = ether('100');
-
-    await enrollClaimAssessor(this.contracts, [member1], { validity, lockTokens });
-
-    // accounts for tokens while lock is active
-    bnEqual(await tokenController.totalLockedBalance(member1), lockTokens);
-
-    // accounts for tokens while lock is expired
-    await time.increase(validity + 1);
-    bnEqual(await tokenController.totalLockedBalance(member1), lockTokens);
-  });
-
   it('accounts for tokens locked as cover note', async function () {
-
     const { qt: quotation, tc: tokenController } = this.contracts;
     const cover = { ...coverTemplate };
     const expectedCN = ether('1');
@@ -64,5 +46,4 @@ describe('totalLockedBalance', function () {
     await quotation.withdrawCoverNote(member1, [coverId], ['0']);
     bnEqual(await tokenController.totalLockedBalance(member1), 0);
   });
-
 });

@@ -13,6 +13,23 @@ interface ICover {
     Incident
   }
 
+  // Basically CoverStatus from QuotationData.sol but with the extra Migrated status to avoid
+  // polluting Cover.sol state layout with new status variables.
+  enum LegacyCoverStatus {
+    Active,
+    ClaimAccepted,
+    ClaimDenied,
+    CoverExpired,
+    ClaimSubmitted,
+    Requested,
+    Migrated
+  }
+
+  struct LastPrice {
+    uint96 value;
+    uint32 lastUpdateTime;
+  }
+
   struct CoverChunkRequest {
     // TODO: switch to poolId and derive the address created with CREATE2 from the id
     address poolAddress;

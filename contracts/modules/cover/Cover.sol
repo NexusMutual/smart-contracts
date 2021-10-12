@@ -3,6 +3,7 @@ import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/IPool.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IMemberRoles.sol";
@@ -26,12 +27,6 @@ contract Cover is ICover, MasterAwareV2 {
   uint32 public coverCount;
   ICoverNFT public override coverNFT;
 
-
-  struct LastPrice {
-    uint96 value;
-    uint32 lastUpdateTime;
-  }
-
   /*
     (productId, poolAddress) => lastPrice
     Last base prices at which a cover was sold by a pool for a particular product.
@@ -47,9 +42,12 @@ contract Cover is ICover, MasterAwareV2 {
   uint public constant STAKE_SPEED_UNIT = 100000e18;
   uint public constant PRICE_CURVE_EXPONENT = 7;
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
+  IQuotationData internal immutable quotationData;
 
+  /* ========== CONSTRUCTOR ========== */
 
-  constructor() {
+  constructor(IQuotationData _quotationData) {
+    quotationData = _quotationData;
   }
 
   function initialize(ICoverNFT _coverNFT) public {
@@ -58,6 +56,54 @@ contract Cover is ICover, MasterAwareV2 {
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
+
+  // @dev Migrates covers from V1 to Cover.sol
+  function migrateCover(coverId) external {
+    uint8 status = quotationData.getCoverStatusNo(coverId);
+    (
+      /*uint coverId*/,
+      address coverOwner,
+      address legacyProductIdentifier,
+      bytes4 currencyCode,
+      /*uint sumAssured*/,
+      uint premiumNXM
+    ) = quotationData.getCoverDetailsByCoverID1(coverId);
+    (
+      /*uint coverId*/,
+      uint8 status,
+      uint sumAssured,
+      uint16 coverPeriodInDays,
+      uint validUntil
+    ) = quotationData.getCoverDetailsByCoverID2(coverId);
+
+    require(msg.sender == coverOwner, "Cover can only be migrated by its owner");
+    require(status != LegacyCoverStatus.Migrated, "Cover has already been migrated");
+    require(status != LegacyCoverStatus.ClaimAccepted, "A claim has already been accepted");
+    require(block.timestamp < validUntil, "Cover expired");
+
+    // Mark cover as migrated to prevent future calls on the same cover
+    quotationData.changeCoverStatusNo(coverId, uint8(LegacyCoverStatus.Migrated));
+
+    // mint the new cover
+    uint newCoverId = coverCount++;
+
+    // store mapping as bytecode ?
+    productId = legacyProductData.getProductId(legacyProductIdentifier);
+    uint8 payoutAsset = currencyCode == "ETH" ? 0 : 1;
+    covers[coverId] = CoverData(
+      productId,
+      payoutAsset,
+      uint96(sumAssured * 10 ** 18),
+      uint32(block.timestamp + 1),
+      uint32(coverPeriodInDays * 24 * 60 * 60),
+      // [warn] which asset? this is different than the payout asset. the asset used to pay for the
+      // cover can be eth dai or nxm, while payout assets are only eth or dai. nxm is also not an
+      // asset since it is not part of the pool.
+      uint96(premiumInAsset)
+    );
+
+    coverNFT.safeMint(tx.origin, newCoverId);
+  }
 
   function buyCover(
     address owner,

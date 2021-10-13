@@ -58,8 +58,7 @@ contract Cover is ICover, MasterAwareV2 {
   /* === MUTATIVE FUNCTIONS ==== */
 
   // @dev Migrates covers from V1 to Cover.sol
-  function migrateCover(coverId) external {
-    uint8 status = quotationData.getCoverStatusNo(coverId);
+  function migrateCover(uint32 coverId) external {
     (
       /*uint coverId*/,
       address coverOwner,
@@ -77,8 +76,8 @@ contract Cover is ICover, MasterAwareV2 {
     ) = quotationData.getCoverDetailsByCoverID2(coverId);
 
     require(msg.sender == coverOwner, "Cover can only be migrated by its owner");
-    require(status != LegacyCoverStatus.Migrated, "Cover has already been migrated");
-    require(status != LegacyCoverStatus.ClaimAccepted, "A claim has already been accepted");
+    require(LegacyCoverStatus(status) != LegacyCoverStatus.Migrated, "Cover has already been migrated");
+    require(LegacyCoverStatus(status) != LegacyCoverStatus.ClaimAccepted, "A claim has already been accepted");
     require(block.timestamp < validUntil, "Cover expired");
 
     // Mark cover as migrated to prevent future calls on the same cover
@@ -88,7 +87,8 @@ contract Cover is ICover, MasterAwareV2 {
     uint newCoverId = coverCount++;
 
     // store mapping as bytecode ?
-    productId = legacyProductData.getProductId(legacyProductIdentifier);
+    //uint24 productId = legacyProductData.getProductId(legacyProductIdentifier);
+    uint24 productId = 0;
     uint8 payoutAsset = currencyCode == "ETH" ? 0 : 1;
     covers[coverId] = CoverData(
       productId,
@@ -96,10 +96,7 @@ contract Cover is ICover, MasterAwareV2 {
       uint96(sumAssured * 10 ** 18),
       uint32(block.timestamp + 1),
       uint32(coverPeriodInDays * 24 * 60 * 60),
-      // [warn] which asset? this is different than the payout asset. the asset used to pay for the
-      // cover can be eth dai or nxm, while payout assets are only eth or dai. nxm is also not an
-      // asset since it is not part of the pool.
-      uint96(premiumInAsset)
+      uint96(0)
     );
 
     coverNFT.safeMint(tx.origin, newCoverId);

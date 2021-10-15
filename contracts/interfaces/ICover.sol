@@ -45,6 +45,14 @@ interface ICover {
     bool payWithNXM;
   }
 
+  struct IncreaseAmountAndReducePeriodParams {
+    uint coverId;
+    uint32 periodReduction;
+    uint96 amount;
+    uint8 paymentAsset;
+    uint maxPremiumInAsset;
+  }
+
   struct Product {
     uint16 productType;
     address productAddress;

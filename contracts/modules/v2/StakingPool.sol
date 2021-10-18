@@ -79,11 +79,11 @@ contract StakingPool is ERC20 {
   uint16 public lastPoolBucketIndex;
   uint16 public lastUnstakeBucketIndex;
   uint16 public totalWeight;
-  uint16 public maxTotalWeight;
+  uint16 public maxTotalWeight; // todo: read from cover
 
   /* slot 6 */
-  //// total actually requested
-  //uint96 public totalUnstakeRequested;
+  // total actually requested and not yet processed
+  uint96 public totalUnstakePending;
   // requested at bucket t-2
   uint96 public totalUnstakeAllowed;
   // unstaked but not withdrawn
@@ -185,9 +185,9 @@ contract StakingPool is ERC20 {
 
         uint unstakedNow;
         {
-          uint unstakePending = requested - unstakedPreviously;
+          uint unstakeLeft = requested - unstakedPreviously;
           uint canUnstake = min(maxUnstake, _totalUnstakeAllowed);
-          unstakedNow = min(canUnstake, unstakePending);
+          unstakedNow = min(canUnstake, unstakeLeft);
         }
 
         uint unstakedNXM = unstakedNow * staked / supply;
@@ -201,9 +201,19 @@ contract StakingPool is ERC20 {
         // 1 SLOAD + 1 SSTORE
         poolBuckets[unstakeBucketIndex].unstakedNXM += uint96(unstakedNXM);
 
+        if (requested != unstakedPreviously + unstakedNow) {
+          break;
+        }
+
         // move on
         ++unstakeBucketIndex;
       }
+    }
+
+    {
+      uint oldSupply = totalSupply();
+      uint burnAmount = oldSupply - supply;
+      // todo: burn unstaked lp tokens
     }
 
     // if we're mid-bucket, process rewards until current timestamp

@@ -42,14 +42,18 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   uint private constant DECIMAL1E18 = uint(10) ** 18;
 
-  constructor (address masterAddress, address _daiAddress) public {
+  constructor (
+    address masterAddress,
+    address _daiAddress,
+    address legacyClaimsData
+  ) public {
     changeMasterAddress(masterAddress);
+    cd = ILegacyClaimsData(legacyClaimsData);
     DAI = _daiAddress;
   }
 
   function changeDependentContractAddress() public onlyInternal {
     c1 = ILegacyClaims(ms.getLatestAddress("CL"));
-    cd = ILegacyClaimsData(ms.getLatestAddress("CD"));
     tk = INXMToken(ms.tokenAddress());
     tc = ITokenController(ms.getLatestAddress("TC"));
     td = ITokenData(ms.getLatestAddress("TD"));

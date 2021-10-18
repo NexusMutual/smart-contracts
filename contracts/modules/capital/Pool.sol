@@ -20,17 +20,9 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   using SafeMath for uint;
   using SafeERC20 for IERC20;
 
-  struct AssetData {
-    uint112 minAmount;
-    uint112 maxAmount;
-    uint32 lastSwapTime;
-    // 18 decimals of precision. 0.01% -> 0.0001 -> 1e14
-    uint maxSlippageRatio;
-  }
-
   /* storage */
-  address[] public assets;
-  mapping(address => AssetData) public assetData;
+  Asset[] public assets;
+  mapping(address => AssetSwapData) public assetSwapData;
 
   // contracts
   IQuotation public quotation;
@@ -56,7 +48,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   uint internal constant TOKEN_EXPONENT = 4;
 
   /* events */
-  event Payout(address indexed to, address indexed asset, uint amount);
+  event Payout(address indexed to, address indexed assetAddress, uint amount);
   event NXMSold (address indexed member, uint nxmIn, uint ethOut);
   event NXMBought (address indexed member, uint ethIn, uint nxmOut);
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
@@ -68,33 +60,35 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   }
 
   constructor (
-    address[] memory _assets,
-    uint112[] memory _minAmounts,
-    uint112[] memory _maxAmounts,
-    uint[] memory _maxSlippageRatios,
+    address[] memory assetAddresses,
+    uint8[] memory assetDecimals,
+    uint104[] memory _minAmounts,
+    uint104[] memory _maxAmounts,
+    uint16[] memory _maxSlippageRatios,
     address _master,
     address _priceOracle,
     address _swapOperator
   ) public {
 
     // First asset is ETH
-    assets.push(ETH);
+    assets.push(Asset(ETH, 18, false));
 
-    require(_assets.length == _minAmounts.length, "Pool: Length mismatch");
-    require(_assets.length == _maxAmounts.length, "Pool: Length mismatch");
-    require(_assets.length == _maxSlippageRatios.length, "Pool: Length mismatch");
+    require(assetAddresses.length == _minAmounts.length, "Pool: Length mismatch");
+    require(assetAddresses.length == _maxAmounts.length, "Pool: Length mismatch");
+    require(assetAddresses.length == _maxSlippageRatios.length, "Pool: Length mismatch");
+    require(assetAddresses.length == assetDecimals.length, "Pool: Length mismatch");
 
-    for (uint i = 0; i < _assets.length; i++) {
+    for (uint i = 0; i < assetAddresses.length; i++) {
 
-      address asset = _assets[i];
-      require(asset != address(0), "Pool: Asset is zero address");
+      Asset memory asset = Asset(assetAddresses[i], assetDecimals[i], false);
+      require(asset.assetAddress != address(0), "Pool: Asset cannot be a zero address");
       require(_maxAmounts[i] >= _minAmounts[i], "Pool: max < min");
       require(_maxSlippageRatios[i] <= 1 ether, "Pool: max < min");
 
       assets.push(asset);
-      assetData[asset].minAmount = _minAmounts[i];
-      assetData[asset].maxAmount = _maxAmounts[i];
-      assetData[asset].maxSlippageRatio = _maxSlippageRatios[i];
+      assetSwapData[asset.assetAddress].minAmount = _minAmounts[i];
+      assetSwapData[asset.assetAddress].maxAmount = _maxAmounts[i];
+      assetSwapData[asset.assetAddress].maxSlippageRatio = _maxSlippageRatios[i];
     }
 
     master = INXMMaster(_master);
@@ -115,17 +109,26 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
     uint total = address(this).balance;
 
+    uint assetsCount = assets.length;
+
     // Skip ETH (index 0)
-    for (uint i = 1; i < assets.length; i++) {
+    for (uint i = 1; i < assetsCount; i++) {
 
-      address assetAddress = assets[i];
-      IERC20 token = IERC20(assetAddress);
+      Asset memory asset = assets[i];
+      if (asset.deprecated) {
+        continue;
+      }
 
-      uint rate = priceFeedOracle.getAssetToEthRate(assetAddress);
+      IERC20 token = IERC20(asset.assetAddress);
+
+      uint rate = priceFeedOracle.getAssetToEthRate(asset.assetAddress);
+      console.log("rate %d", rate);
       require(rate > 0, "Pool: Zero rate");
 
       uint assetBalance = token.balanceOf(address(this));
-      uint assetValue = assetBalance.mul(rate).div(1e18);
+      console.log("assetBalance %d", assetBalance);
+      console.log("asset.decimals %d", asset.decimals);
+      uint assetValue = assetBalance.mul(rate).div(10 ** uint(asset.decimals)); // ETH
 
       total = total.add(assetValue);
     }
@@ -135,78 +138,82 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   /* asset related functions */
 
-  function getAssets() external view returns (address[] memory) {
-    return assets;
+  function getAssets() external view returns (address[] memory, uint8[] memory, bool[] memory) {
+    uint assetsCount = assets.length;
+    address[] memory assetAddresses = new address[](assetsCount);
+    uint8[] memory decimals = new uint8[](assetsCount);
+    bool[] memory deprecated = new bool[](assetsCount);
+
+    for (uint i = 0; i < assetsCount; i++) {
+      IPool.Asset memory asset = assets[i];
+      assetAddresses[i] = asset.assetAddress;
+      decimals[i] = asset.decimals;
+      deprecated[i] = asset.deprecated;
+    }
+    return (assetAddresses, decimals, deprecated);
   }
 
-  function getAssetDetails(address _asset) external view returns (
-    uint112 min,
-    uint112 max,
+  function getAssetSwapDetails(address assetAddress) external view returns (
+    uint104 min,
+    uint104 max,
     uint32 lastAssetSwapTime,
-    uint maxSlippageRatio
+    uint16 maxSlippageRatio
   ) {
 
-    AssetData memory data = assetData[_asset];
+    AssetSwapData memory data = assetSwapData[assetAddress];
 
     return (data.minAmount, data.maxAmount, data.lastSwapTime, data.maxSlippageRatio);
   }
 
   function addAsset(
-    address _asset,
-    uint112 _min,
-    uint112 _max,
-    uint _maxSlippageRatio
+    address assetAddress,
+    uint8 decimals,
+    uint104 _min,
+    uint104 _max,
+    uint16 _maxSlippageRatio
   ) external onlyGovernance {
 
-    require(_asset != address(0), "Pool: Asset is zero address");
+    require(assetAddress != address(0), "Pool: Asset is zero address");
     require(_max >= _min, "Pool: max < min");
     require(_maxSlippageRatio <= 1 ether, "Pool: Max slippage ratio > 1");
 
-    for (uint i = 0; i < assets.length; i++) {
-      require(_asset != assets[i], "Pool: Asset exists");
+    uint assetsCount = assets.length;
+    for (uint i = 0; i < assetsCount; i++) {
+      require(assetAddress != assets[i].assetAddress, "Pool: Asset exists");
     }
 
-    assets.push(_asset);
-    assetData[_asset] = AssetData(_min, _max, 0, _maxSlippageRatio);
+    assets.push(Asset(assetAddress, decimals, false));
+    assetSwapData[assetAddress] = AssetSwapData(_min, _max, 0, _maxSlippageRatio);
   }
 
-  function removeAsset(address _asset) external onlyGovernance {
+  function deprecateAsset(uint8 assetId) external onlyGovernance {
+    require(assetId < assets.length, "Pool: Asset does not exist");
+    address assetAddress = assets[assetId].assetAddress;
+    delete assetSwapData[assetAddress];
+    assets[assetId].deprecated = true;
 
-    for (uint i = 0; i < assets.length; i++) {
-
-      if (_asset != assets[i]) {
-        continue;
-      }
-
-      delete assetData[_asset];
-      assets[i] = assets[assets.length - 1];
-      assets.pop();
-
-      return;
-    }
-
-    revert("Pool: Asset not found");
   }
 
   function setAssetDetails(
-    address _asset,
-    uint112 _min,
-    uint112 _max,
-    uint _maxSlippageRatio
+    address assetAddress,
+    uint104 _min,
+    uint104 _max,
+    uint16 _maxSlippageRatio
   ) external onlyGovernance {
 
     require(_min <= _max, "Pool: min > max");
     require(_maxSlippageRatio <= 1 ether, "Pool: Max slippage ratio > 1");
 
-    for (uint i = 0; i < assets.length; i++) {
+    uint assetsCount = assets.length;
+    for (uint i = 0; i < assetsCount; i++) {
 
-      if (_asset != assets[i]) {
+      if (assetAddress != assets[i].assetAddress) {
         continue;
       }
 
-      assetData[_asset].minAmount = _min;
-      assetData[_asset].maxAmount = _max;
-      assetData[_asset].maxSlippageRatio = _maxSlippageRatio;
+      assetSwapData[assetAddress].minAmount = _min;
+      assetSwapData[assetAddress].maxAmount = _max;
+      assetSwapData[assetAddress].maxSlippageRatio = _maxSlippageRatio;
 
       return;
     }
@@ -228,23 +235,23 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint amount
   ) external onlyInternal nonReentrant returns (bool success) {
     bool ok;
-    address asset = assets[assetId];
+    Asset memory asset = assets[assetId];
 
     // [todo] consider adding a minimum sum for triggering an MCR update to save gas
     uint amountInETH;
-    if (asset == ETH) {
+    if (asset.assetAddress == ETH) {
       // solhint-disable-next-line avoid-low-level-calls
       (ok, /* data */) = payoutAddress.call.value(amount)("");
       amountInETH = amount;
     } else {
-      ok =  _safeTokenTransfer(asset, payoutAddress, amount);
-      uint rate = priceFeedOracle.getAssetToEthRate(asset);
+      ok =  _safeTokenTransfer(asset.assetAddress, payoutAddress, amount);
+      uint rate = priceFeedOracle.getAssetToEthRate(asset.assetAddress);
       require(rate > 0, "Pool: Zero rate");
       amountInETH = amount.mul(rate).div(1e18);
     }
 
     if (ok) {
-      emit Payout(payoutAddress, asset, amount);
+      emit Payout(payoutAddress, asset.assetAddress, amount);
       uint totalAssetValue = getPoolValueInEth();
       mcr.updateMCRInternal(totalAssetValue, true);
     }
@@ -292,15 +299,15 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   /* pool lifecycle functions */
 
   function transferAsset(
-    address asset,
+    address assetAddress,
     address payable destination,
     uint amount
   ) external onlyGovernance nonReentrant {
 
-    require(assetData[asset].maxAmount == 0, "Pool: Max not zero");
+    require(assetSwapData[assetAddress].maxAmount == 0, "Pool: Max not zero");
     require(destination != address(0), "Pool: Dest zero");
 
-    IERC20 token = IERC20(asset);
+    IERC20 token = IERC20(assetAddress);
     uint balance = token.balanceOf(address(this));
     uint transferableAmount = amount > balance ? balance : amount;
 
@@ -314,9 +321,10 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     (bool ok, /* data */) = newPoolAddress.call.value(ethBalance)("");
     require(ok, "Pool: Transfer failed");
 
+    uint assetsCount = assets.length;
     // transfer assets. start from 1 (0 is ETH)
-    for (uint i = 1; i < assets.length; i++) {
-      IERC20 token = IERC20(assets[i]);
+    for (uint i = 1; i < assetsCount; i++) {
+      IERC20 token = IERC20(assets[i].assetAddress);
       uint tokenBalance = token.balanceOf(address(this));
       token.safeTransfer(newPoolAddress, tokenBalance);
     }
@@ -370,25 +378,25 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     quotation.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
   }
 
-  function transferAssetFrom (address asset, address from, uint amount) public onlyInternal whenNotPaused {
-    IERC20 token = IERC20(asset);
+  function transferAssetFrom (address assetAddress, address from, uint amount) public onlyInternal whenNotPaused {
+    IERC20 token = IERC20(assetAddress);
     token.safeTransferFrom(from, address(this), amount);
   }
 
-  function transferAssetToSwapOperator (address asset, uint amount) public onlySwapOperator nonReentrant whenNotPaused {
+  function transferAssetToSwapOperator (address assetAddress, uint amount) public onlySwapOperator nonReentrant whenNotPaused {
 
-    if (asset == ETH) {
+    if (assetAddress == ETH) {
       (bool ok, /* data */) = swapOperator.call.value(amount)("");
       require(ok, "Pool: ETH transfer failed");
       return;
     }
 
-    IERC20 token = IERC20(asset);
+    IERC20 token = IERC20(assetAddress);
     token.safeTransfer(swapOperator, amount);
   }
 
-  function setAssetDataLastSwapTime(address asset, uint32 lastSwapTime) public onlySwapOperator whenNotPaused {
-    assetData[asset].lastSwapTime = lastSwapTime;
+  function setAssetSwapDataLastSwapTime(address assetAddress, uint32 lastSwapTime) public onlySwapOperator whenNotPaused {
+    assetSwapData[assetAddress].lastSwapTime = lastSwapTime;
   }
 
   /* token sale functions */
@@ -582,7 +590,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint nxmAmount,
     uint currentTotalAssetValue,
     uint mcrEth
-  ) public pure returns (uint) {
+  ) public view returns (uint) {
 
     // Step 1. Calculate spot price at current values and amount of ETH if tokens are sold at that price
     uint spotPrice0 = calculateTokenSpotPrice(currentTotalAssetValue, mcrEth);
@@ -613,7 +621,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   /**
   * @dev Calculates token price in ETH 1 NXM token. TokenPrice = A + (MCReth / C) * MCR%^4
   */
-  function calculateTokenSpotPrice(uint totalAssetValue, uint mcrEth) public pure returns (uint tokenPrice) {
+  function calculateTokenSpotPrice(uint totalAssetValue, uint mcrEth) public view returns (uint tokenPrice) {
 
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
     uint precisionDecimals = 10 ** TOKEN_EXPONENT.mul(MCR_RATIO_DECIMALS);
@@ -632,7 +640,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   function getTokenPrice(uint assetId) public view returns (uint tokenPrice) {
 
     require(assetId < assets.length, "Pool: Unknown asset");
-    address assetAddress = assets[assetId];
+    address assetAddress = assets[assetId].assetAddress;
     uint totalAssetValue = getPoolValueInEth();
     uint mcrEth = mcr.getMCR();
     uint tokenSpotPriceEth = calculateTokenSpotPrice(totalAssetValue, mcrEth);

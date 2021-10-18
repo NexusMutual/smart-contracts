@@ -156,7 +156,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
 
       {
         uint deductiblePriceBefore = incident.priceBefore * config.incidentPayoutDeductibleRatio /
-          PRECISION;
+          RATIO_BPS;
         payoutAmount = depeggedTokens * deductiblePriceBefore / PRECISION;
       }
       {

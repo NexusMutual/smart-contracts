@@ -8,9 +8,12 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IAssessment.sol";
+import "../../interfaces/IQuotationData.sol";
 import "./external/LockHandler.sol";
 
 contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
+
+  IQuotationData public immutable quotationData;
 
   INXMToken public token;
   IPooledStaking public pooledStaking;
@@ -23,6 +26,9 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
 
+  constructor(address quotationDataAddress) public {
+    quotationData = IQuotationData(quotationDataAddress);
+  }
   /**
   * @dev Just for interface
   */
@@ -469,6 +475,21 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
     token.transfer(_of, _amount);
     emit Unlocked(_of, _reason, _amount);
+  }
+
+  // Can be removed once all cover notes are withdrawn
+  function getUserAllLockedCNTokens(address _of) external view returns (uint) {
+
+    uint[] memory coverIds = quotationData.getAllCoversOfUser(_of);
+    uint total;
+
+    for (uint i = 0; i < coverIds.length; i++) {
+      bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverIds[i]));
+      uint coverNote = tokensLocked(_of, reason);
+      total = total + coverNote;
+    }
+
+    return total;
   }
 
   // Can be removed once all cover notes are withdrawn

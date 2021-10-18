@@ -21,34 +21,13 @@ const coverTemplate = {
   contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
 };
 
-const claimAndVote = async (contracts, coverId, member, assessor, accept) => {
-
-  const { cl, cd, cr } = contracts;
-
-  await cl.submitClaim(coverId, { from: member });
-  const claimId = (await cd.actualClaimLength()).subn(1);
-  const submittedAt = await cd.getClaimDateUpd(claimId);
-  const verdict = accept ? '1' : '-1';
-  await cl.submitCAVote(claimId, verdict, { from: assessor });
-
-  const maxVotingTime = await cd.maxVotingTime();
-  await setNextBlockTime(submittedAt.add(maxVotingTime).toNumber());
-  await cr.closeClaim(claimId);
-
-  const { statno: status } = await cd.getClaimStatusNumber(claimId);
-  const expectedStatus = accept ? 14 : 6;
-  assert(status.eqn(expectedStatus), `expected claim status ${expectedStatus}, got ${status}`);
-};
-
 describe('getWithdrawableCoverNoteCoverIds', function () {
-
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, claimAssessor]);
     await enrollClaimAssessor(this.contracts, [claimAssessor], { lockTokens: ether('2000') });
   });
 
   it('returns no ids when owner has no covers', async function () {
-
     const { qt } = this.contracts;
     const { expiredCoverIds, lockReasons } = await qt.getWithdrawableCoverNoteCoverIds(member1);
 

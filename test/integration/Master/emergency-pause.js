@@ -30,21 +30,18 @@ const coverTemplate = {
 };
 
 describe('emergency pause', function () {
-
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
     await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
   });
 
   it('should revert when not called by emergency admin', async function () {
-
     const { master } = this.contracts;
 
     await expectRevert(master.setEmergencyPause(true, { from: unknown }), 'NXMaster: Not emergencyAdmin');
   });
 
   it('should be able to start and end emergency pause', async function () {
-
     const { master } = this.contracts;
 
     assert.equal(await master.isPause(), false);
@@ -63,7 +60,7 @@ describe('emergency pause', function () {
   });
 
   it('should be able to perform proxy and replaceable upgrades during emergency pause', async function () {
-    const { master, gv } = this.contracts;
+    const { master, gv, productsV1 } = this.contracts;
 
     assert.equal(await master.isPause(), false);
 
@@ -74,17 +71,14 @@ describe('emergency pause', function () {
     const psCode = hex('PS');
     const qtCode = hex('QT');
     const pooledStaking = await PooledStaking.new();
-    const quotation = await Quotation.new();
+    const quotation = await Quotation.new(productsV1.address);
 
     const contractCodes = [psCode, qtCode];
     const newAddresses = [pooledStaking.address, quotation.address];
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
-      [
-        contractCodes,
-        newAddresses,
-      ],
+      [contractCodes, newAddresses],
     );
 
     await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
@@ -108,12 +102,7 @@ describe('emergency pause', function () {
     const code = hex('MS');
     const newMaster = await NXMaster.new();
 
-    const upgradeContractsData = web3.eth.abi.encodeParameters(
-      ['address'],
-      [
-        newMaster.address,
-      ],
-    );
+    const upgradeContractsData = web3.eth.abi.encodeParameters(['address'], [newMaster.address]);
 
     await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [owner]);
 
@@ -130,7 +119,6 @@ describe('emergency pause', function () {
 
     await expectRevert(pool.buyNXM('0', { value: ether('1') }), 'System is paused');
     await expectRevert(pool.sellNXM(ether('1'), '0'), 'System is paused');
-
   });
 
   it('stops cover purchases', async function () {
@@ -152,44 +140,42 @@ describe('emergency pause', function () {
       qt.address,
     );
 
-    await expectRevert(p1.makeCoverBegin(
-      cover.contractAddress,
-      cover.currency,
-      coverToCoverDetailsArray(cover),
-      cover.period,
-      signature[0],
-      signature[1],
-      signature[2],
-      { from: member, value: cover.price },
-    ),
-    'System is paused',
+    await expectRevert(
+      p1.makeCoverBegin(
+        cover.contractAddress,
+        cover.currency,
+        coverToCoverDetailsArray(cover),
+        cover.period,
+        signature[0],
+        signature[1],
+        signature[2],
+        { from: member, value: cover.price },
+      ),
+      'System is paused',
     );
 
     const data = web3.eth.abi.encodeParameters([], []);
 
-    await expectRevert(gateway.buyCover(
-      cover.contractAddress,
-      cover.asset,
-      cover.amount,
-      cover.period,
-      cover.type,
-      data, {
+    await expectRevert(
+      gateway.buyCover(cover.contractAddress, cover.asset, cover.amount, cover.period, cover.type, data, {
         from: member,
         value: cover.price,
       }),
-    'System is paused',
+      'System is paused',
     );
 
-    await expectRevert(qt.makeCoverUsingNXMTokens(
-      coverToCoverDetailsArray(cover),
-      cover.period,
-      cover.currency,
-      cover.contractAddress,
-      signature[0],
-      signature[1],
-      signature[2],
-      { from: member }),
-    'System is paused',
+    await expectRevert(
+      qt.makeCoverUsingNXMTokens(
+        coverToCoverDetailsArray(cover),
+        cover.period,
+        cover.currency,
+        cover.contractAddress,
+        signature[0],
+        signature[1],
+        signature[2],
+        { from: member },
+      ),
+      'System is paused',
     );
   });
 

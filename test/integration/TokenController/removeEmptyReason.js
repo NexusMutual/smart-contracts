@@ -25,7 +25,8 @@ const getReason = async (tc, member, index) => {
   return zeroPaddedReason.replace(/(00)+$/, '');
 };
 
-describe('removeEmptyReason', async function () {
+describe.skip('removeEmptyReason', async function () {
+  // [todo] Move to fork tests
 
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
@@ -33,7 +34,6 @@ describe('removeEmptyReason', async function () {
   });
 
   it('removes the reason after a successful claim', async function () {
-
     const { cd, cl, qd, tc, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
@@ -55,13 +55,10 @@ describe('removeEmptyReason', async function () {
     await tc.removeEmptyReason(coverHolder, reason, '0');
 
     // should have no reason at this index, reverts with out of bounds array read
-    await expectRevert.assertion(
-      tc.lockReason(coverHolder, '0'),
-    );
+    await expectRevert.assertion(tc.lockReason(coverHolder, '0'));
   });
 
   it('removes the reason after two denied claims', async function () {
-
     const { cd, cl, qd, tc, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
@@ -71,7 +68,6 @@ describe('removeEmptyReason', async function () {
 
     // raise 2 claims and vote deny
     for (let i = 0; i < 2; i++) {
-
       await cl.submitClaim(coverId, { from: coverHolder });
       const claimId = (await cd.actualClaimLength()).subn(1);
       await cl.submitCAVote(claimId, toBN('-1'), { from: member1 });
@@ -87,9 +83,6 @@ describe('removeEmptyReason', async function () {
     await tc.removeEmptyReason(coverHolder, reason, '0');
 
     // should have no reason at this index, reverts with out of bounds array read
-    await expectRevert.assertion(
-      tc.lockReason(coverHolder, '0'),
-    );
+    await expectRevert.assertion(tc.lockReason(coverHolder, '0'));
   });
-
 });

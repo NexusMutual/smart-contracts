@@ -21,7 +21,6 @@ const coverTemplate = {
 };
 
 const claimAndVote = async (contracts, coverId, member, assessor, accept) => {
-
   const { cl, cd, cr } = contracts;
 
   await cl.submitClaim(coverId, { from: member });
@@ -39,15 +38,14 @@ const claimAndVote = async (contracts, coverId, member, assessor, accept) => {
   assert(status.eqn(expectedStatus), `expected claim status ${expectedStatus}, got ${status}`);
 };
 
-describe('withdrawCoverNote', function () {
-
+describe.skip('withdrawCoverNote', function () {
+  // [todo] Move to TokenController
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, claimAssessor]);
     await enrollClaimAssessor(this.contracts, [claimAssessor], { lockTokens: ether('2000') });
   });
 
   it('allows to withdrawCoverNote after grace period expiration', async function () {
-
     const { qd, qt, tc, tk } = this.contracts;
 
     const cover = { ...coverTemplate };
@@ -73,10 +71,7 @@ describe('withdrawCoverNote', function () {
     assert(actualCoverNoteAmount.eq(expectedCoverNoteAmount), 'unexpected cover note amount');
 
     const gracePeriodExpirationDate = await tc.getLockedTokensValidity(member1, lockReason);
-    assert(
-      gracePeriodExpirationDate.eq(expectedGracePeriodExpirationDate),
-      'unexpected grace period expiration date',
-    );
+    assert(gracePeriodExpirationDate.eq(expectedGracePeriodExpirationDate), 'unexpected grace period expiration date');
 
     // should not be able to withdraw while cover is active
     await expectRevert(
@@ -111,14 +106,10 @@ describe('withdrawCoverNote', function () {
     await qt.withdrawCoverNote(member1, [coverId], ['0']);
     const balanceAfter = await tk.balanceOf(member1);
 
-    assert(
-      balanceBefore.add(expectedCoverNoteAmount).eq(balanceAfter),
-      'balanceBefore + coverNote != balanceAfter',
-    );
+    assert(balanceBefore.add(expectedCoverNoteAmount).eq(balanceAfter), 'balanceBefore + coverNote != balanceAfter');
   });
 
-  it('does not allow to withdrawCoverNote with an open claim', async function () {
-
+  it.skip('does not allow to withdrawCoverNote with an open claim', async function () {
     const { cr, cd, cl, qt, tc, tk } = this.contracts;
 
     const cover = { ...coverTemplate };
@@ -159,17 +150,15 @@ describe('withdrawCoverNote', function () {
     // should work after the claim was closed
     await qt.withdrawCoverNote(member1, [coverId], ['0']);
     const balanceAfter = await tk.balanceOf(member1);
-    const expectedCoverNoteAmount = toBN(cover.priceNXM).muln(5).divn(100);
+    const expectedCoverNoteAmount = toBN(cover.priceNXM)
+      .muln(5)
+      .divn(100);
 
     // check that half of the initial CN deposit was returned
-    assert(
-      balanceBefore.add(expectedCoverNoteAmount).eq(balanceAfter),
-      'balanceBefore + coverNote != balanceAfter',
-    );
+    assert(balanceBefore.add(expectedCoverNoteAmount).eq(balanceAfter), 'balanceBefore + coverNote != balanceAfter');
   });
 
-  it('does not allow to withdrawCoverNote after two rejected claims', async function () {
-
+  it.skip('does not allow to withdrawCoverNote after two rejected claims', async function () {
     const { qt, tk } = this.contracts;
 
     const cover = { ...coverTemplate };
@@ -193,7 +182,6 @@ describe('withdrawCoverNote', function () {
   });
 
   it('does not allow to withdrawCoverNote after an accepted claim', async function () {
-
     const { qt, tk } = this.contracts;
 
     const cover = { ...coverTemplate };
@@ -210,17 +198,15 @@ describe('withdrawCoverNote', function () {
 
     // should work after the claim was closed
     const balanceAfter = await tk.balanceOf(member1);
-    const expectedCoverNoteAmount = toBN(cover.priceNXM).muln(10).divn(100);
+    const expectedCoverNoteAmount = toBN(cover.priceNXM)
+      .muln(10)
+      .divn(100);
 
     // check that half of the initial CN deposit was returned
-    assert(
-      balanceBefore.add(expectedCoverNoteAmount).eq(balanceAfter),
-      'balanceBefore + coverNote != balanceAfter',
-    );
+    assert(balanceBefore.add(expectedCoverNoteAmount).eq(balanceAfter), 'balanceBefore + coverNote != balanceAfter');
   });
 
   it('does not allow to withdrawCoverNote after one rejected and one an accepted claim', async function () {
-
     const { qt, tk } = this.contracts;
 
     const cover = { ...coverTemplate };
@@ -238,17 +224,15 @@ describe('withdrawCoverNote', function () {
 
     // should work after the claim was closed
     const balanceAfter = await tk.balanceOf(member1);
-    const expectedCoverNoteAmount = toBN(cover.priceNXM).muln(5).divn(100);
+    const expectedCoverNoteAmount = toBN(cover.priceNXM)
+      .muln(5)
+      .divn(100);
 
     // check that half of the initial CN deposit was returned
-    assert(
-      balanceBefore.add(expectedCoverNoteAmount).eq(balanceAfter),
-      'balanceBefore + coverNote != balanceAfter',
-    );
+    assert(balanceBefore.add(expectedCoverNoteAmount).eq(balanceAfter), 'balanceBefore + coverNote != balanceAfter');
   });
 
   it('correctly removes the reasons when withdrawing multiple CNs', async function () {
-
     const { qd, qt, tk } = this.contracts;
 
     const cover = { ...coverTemplate };
@@ -259,7 +243,9 @@ describe('withdrawCoverNote', function () {
     await buyCover({ ...this.contracts, cover: secondCover, coverHolder: member1 });
 
     const balanceBefore = await tk.balanceOf(member1);
-    const expectedCoverNoteTotal = toBN(cover.priceNXM).muln(20).divn(100);
+    const expectedCoverNoteTotal = toBN(cover.priceNXM)
+      .muln(20)
+      .divn(100);
 
     const coverExpirationDate = await qd.getValidityOfCover('2');
     await setNextBlockTime(coverExpirationDate.addn(1).toNumber());
@@ -274,14 +260,10 @@ describe('withdrawCoverNote', function () {
     const balanceAfter = await tk.balanceOf(member1);
 
     // check that half of the initial CN deposit was returned
-    assert(
-      balanceBefore.add(expectedCoverNoteTotal).eq(balanceAfter),
-      'balanceBefore + coverNote != balanceAfter',
-    );
+    assert(balanceBefore.add(expectedCoverNoteTotal).eq(balanceAfter), 'balanceBefore + coverNote != balanceAfter');
   });
 
-  it('should not allow withdrawal of other members\' CNs', async function () {
-
+  it("should not allow withdrawal of other members' CNs", async function () {
     const { qd, qt } = this.contracts;
 
     const cover = { ...coverTemplate };

@@ -18,7 +18,7 @@ async function setup () {
   await master.enrollGovernance(governance);
   await master.setTokenAddress(token.address);
 
-  const tokenController = await TokenController.new();
+  const tokenController = await TokenController.new('0x0000000000000000000000000000000000000000');
   await tokenController.changeMasterAddress(master.address);
   await tokenController.changeDependentContractAddress();
   await tokenController.changeOperator(tokenController.address, { from: internal });

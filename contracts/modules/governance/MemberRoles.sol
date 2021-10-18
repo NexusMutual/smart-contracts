@@ -8,7 +8,6 @@ import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
-import "../../interfaces/ITokenFunctions.sol";
 import "../claims/LegacyClaimsReward.sol";
 import "./external/Governed.sol";
 
@@ -19,7 +18,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   IQuotationData internal qd;
   ILegacyClaimsReward internal cr;
   IGovernance internal gv;
-  ITokenFunctions internal tf;
+  address internal _unused;
   INXMToken public tk;
 
   struct MemberRoleDetails {
@@ -116,7 +115,6 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     cr = ILegacyClaimsReward(ms.getLatestAddress("CR"));
     qd = IQuotationData(ms.getLatestAddress("QD"));
     gv = IGovernance(ms.getLatestAddress("GV"));
-    tf = ITokenFunctions(ms.getLatestAddress("TF"));
     tk = INXMToken(ms.tokenAddress());
     tc = ITokenController(ms.getLatestAddress("TC"));
   }
@@ -201,14 +199,16 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     require(_userAddress != address(0));
     require(!ms.isPause(), "Emergency Pause Applied");
     if (msg.sender == address(ms.getLatestAddress("QT"))) {
+      // [todo] Add walletAddress as a MemberRoles gov param. Use call an reentrancy guard instead.
       require(td.walletAddress() != address(0), "No walletAddress present");
       tc.addToWhitelist(_userAddress);
       _updateRole(_userAddress, uint(Role.Member), true);
       td.walletAddress().transfer(msg.value);
     } else {
       require(!qd.refundEligible(_userAddress));
-      require(!ms.isMember(_userAddress));
+      require(!checkRole(_userAddress, uint(Role.Member)));
       require(msg.value == td.joiningFee());
+      // [todo] Move refundEligible to MemberRoles
       qd.setRefundEligible(_userAddress, true);
     }
   }
@@ -219,20 +219,23 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
    * @param verdict of kyc process
    */
   function kycVerdict(address payable _userAddress, bool verdict) public {
-
+  // [todo] Move kycAuthAddress to MemberRoles
     require(msg.sender == qd.kycAuthAddress());
     require(!ms.isPause());
     require(_userAddress != address(0));
     require(!ms.isMember(_userAddress));
     require(qd.refundEligible(_userAddress));
     if (verdict) {
+      // [todo] Move refundEligible to MemberRoles
       qd.setRefundEligible(_userAddress, false);
       uint fee = td.joiningFee();
       tc.addToWhitelist(_userAddress);
       _updateRole(_userAddress, uint(Role.Member), true);
+      // [todo] Add walletAddress as a MemberRoles gov param. Use call an reentrancy guard instead.
       td.walletAddress().transfer(fee); // solhint-disable-line
 
     } else {
+      // [todo] Move refundEligible to MemberRoles
       qd.setRefundEligible(_userAddress, false);
       _userAddress.transfer(td.joiningFee()); // solhint-disable-line
     }
@@ -245,7 +248,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
 
     require(!ms.isPause() && ms.isMember(msg.sender));
     require(tc.totalLockedBalance(msg.sender) == 0); // solhint-disable-line
-    require(!tf.isLockedForMemberVote(msg.sender)); // No locked tokens for Member/Governance voting
+    require(now > tk.isLockedForMV(msg.sender)); // No locked tokens for Member/Governance voting
     require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
 
     gv.removeDelegation(msg.sender);
@@ -280,7 +283,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
 
     require(!ms.isPause() && ms.isMember(member) && !ms.isMember(newAddress));
     require(tc.totalLockedBalance(member) == 0); // solhint-disable-line
-    require(!tf.isLockedForMemberVote(member)); // No locked tokens for Member/Governance voting
+    require(now > tk.isLockedForMV(member)); // No locked tokens for Member/Governance voting
     require(cr.getAllPendingRewardOfUser(member) == 0); // No pending reward to be claimed(claim assesment).
 
     gv.removeDelegation(member);

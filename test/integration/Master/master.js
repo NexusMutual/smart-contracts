@@ -10,7 +10,6 @@ const [owner] = accounts;
 const Claims = artifacts.require('LegacyClaims');
 const ClaimsReward = artifacts.require('LegacyClaimsReward');
 const MCR = artifacts.require('DisposableMCR');
-const TokenFunctions = artifacts.require('TokenFunctions');
 const Pool = artifacts.require('Pool');
 const Quotation = artifacts.require('Quotation');
 const NXMaster = artifacts.require('NXMaster');
@@ -168,20 +167,20 @@ describe('master', function () {
   });
 
   it('upgrades all contracts', async function () {
-    const { master, gv, dai, priceFeedOracle, p1, cr, tk: token } = this.contracts;
+    const { master, gv, dai, priceFeedOracle, p1, cr, tk: token, qd } = this.contracts;
 
     const contractCodes = ['QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC'];
     const newAddresses = [
       await Quotation.new(),
-      await TokenFunctions.new(),
-      await TokenController.new(),
+      await TokenController.new(qd.address),
       await Claims.new(),
       await ClaimsReward.new(master.address, dai.address),
       await Pool.new(
         [dai.address], // assets
+        [18], // decimals
         [0], // min amounts
         [ether('100')], // max amounts
-        [ether('0.01')], // max slippage 1%
+        [100], // max slippage 1%
         master.address,
         priceFeedOracle.address,
         ZERO_ADDRESS,
@@ -227,10 +226,10 @@ describe('master', function () {
   });
 
   it('upgrades Governance, TokenController and MemberRoles 2 times in a row', async function () {
-    const { master, gv } = this.contracts;
+    const { master, gv, qd } = this.contracts;
     {
       const contractCodes = ['TC', 'GV', 'MR'];
-      const newAddresses = [await TokenController.new(), await Governance.new(), await MemberRoles.new()].map(
+      const newAddresses = [await TokenController.new(qd.address), await Governance.new(), await MemberRoles.new()].map(
         c => c.address,
       );
 

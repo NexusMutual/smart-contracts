@@ -14,13 +14,7 @@ import "../../interfaces/ITwapOracle.sol";
 contract SwapOperator is ReentrancyGuard {
   using SafeERC20 for IERC20;
 
-  struct AssetData {
-    uint112 minAmount;
-    uint112 maxAmount;
-    uint32 lastSwapTime;
-    // 18 decimals of precision. 0.01% -> 0.0001 -> 1e14
-    uint maxSlippageRatio;
-  }
+  uint16 constant RATIO_BPS = 10000;
 
   ITwapOracle public twapOracle;
   address public swapController;
@@ -56,19 +50,19 @@ contract SwapOperator is ReentrancyGuard {
 
     IPool pool = _pool();
     (
-    uint112 min,
-    uint112 max,
+    uint104 min,
+    uint104 max,
     uint32 lastAssetSwapTime,
-    uint maxSlippageRatio
-    ) = pool.getAssetDetails(toTokenAddress);
+    uint16 maxSlippageRatio
+    ) = pool.getAssetSwapDetails(toTokenAddress);
 
-    AssetData memory assetDetails = AssetData(min, max, lastAssetSwapTime, maxSlippageRatio);
-    require(assetIsEnabled(assetDetails), "SwapOperator: asset is not enabled");
+    IPool.AssetSwapData memory swapDetails = IPool.AssetSwapData(min, max, lastAssetSwapTime, maxSlippageRatio);
+    require(assetIsEnabled(swapDetails), "SwapOperator: asset is not enabled");
 
     pool.transferAssetToSwapOperator(ETH, amountIn);
-    pool.setAssetDataLastSwapTime(toTokenAddress, uint32(block.timestamp));
+    pool.setAssetSwapDataLastSwapTime(toTokenAddress, uint32(block.timestamp));
     uint amountOut = _swapETHForAsset(
-      assetDetails,
+      swapDetails,
       toTokenAddress,
       amountIn,
       amountOutMin,
@@ -87,19 +81,19 @@ contract SwapOperator is ReentrancyGuard {
 
     IPool pool = _pool();
     (
-    uint112 min,
-    uint112 max,
+    uint104 min,
+    uint104 max,
     uint32 lastAssetSwapTime,
-    uint maxSlippageRatio
-    ) = pool.getAssetDetails(fromTokenAddress);
+    uint16 maxSlippageRatio
+    ) = pool.getAssetSwapDetails(fromTokenAddress);
 
-    AssetData memory assetDetails = AssetData(min, max, lastAssetSwapTime, maxSlippageRatio);
-    require(assetIsEnabled(assetDetails), "SwapOperator: asset is not enabled");
+    IPool.AssetSwapData memory swapDetails = IPool.AssetSwapData(min, max, lastAssetSwapTime, maxSlippageRatio);
+    require(assetIsEnabled(swapDetails), "SwapOperator: asset is not enabled");
 
     pool.transferAssetToSwapOperator(fromTokenAddress, amountIn);
-    pool.setAssetDataLastSwapTime(fromTokenAddress, uint32(block.timestamp));
+    pool.setAssetSwapDataLastSwapTime(fromTokenAddress, uint32(block.timestamp));
     uint amountOut = _swapAssetForETH(
-      assetDetails,
+      swapDetails,
       fromTokenAddress,
       amountIn,
       amountOutMin
@@ -123,7 +117,7 @@ contract SwapOperator is ReentrancyGuard {
   }
 
   function _swapETHForAsset(
-    AssetData memory assetData,
+    IPool.AssetSwapData memory swapDetails,
     address toTokenAddress,
     uint amountIn,
     uint amountOutMin,
@@ -136,7 +130,7 @@ contract SwapOperator is ReentrancyGuard {
 
     {
       // scope for swap frequency check
-      uint timeSinceLastTrade = block.timestamp - uint(assetData.lastSwapTime);
+      uint timeSinceLastTrade = block.timestamp - uint(swapDetails.lastSwapTime);
       require(timeSinceLastTrade > twapOracle.periodSize(), "SwapOperator: too fast");
     }
 
@@ -161,11 +155,11 @@ contract SwapOperator is ReentrancyGuard {
     {
       // scope for token checks
       uint avgAmountOut = twapOracle.consult(WETH, amountIn, toTokenAddress);
-      uint maxSlippageAmount = avgAmountOut * assetData.maxSlippageRatio / 1e18;
+      uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / RATIO_BPS;
       uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
       // gas optimisation: reads both values using a single SLOAD
-      (uint minAssetAmount, uint maxAssetAmount) = (assetData.minAmount, assetData.maxAmount);
+      (uint minAssetAmount, uint maxAssetAmount) = (swapDetails.minAmount, swapDetails.maxAmount);
 
       require(amountOutMin >= minOutOnMaxSlippage, "SwapOperator: amountOutMin < minOutOnMaxSlippage");
       require(balanceBefore < minAssetAmount, "SwapOperator: balanceBefore >= min");
@@ -183,7 +177,7 @@ contract SwapOperator is ReentrancyGuard {
   }
 
   function _swapAssetForETH(
-    AssetData memory assetData,
+    IPool.AssetSwapData memory swapDetails,
     address fromTokenAddress,
     uint amountIn,
     uint amountOutMin
@@ -195,7 +189,7 @@ contract SwapOperator is ReentrancyGuard {
 
     {
       // scope for swap frequency check
-      uint timeSinceLastTrade = block.timestamp - uint(assetData.lastSwapTime);
+      uint timeSinceLastTrade = block.timestamp - uint(swapDetails.lastSwapTime);
       require(timeSinceLastTrade > twapOracle.periodSize(), "SwapOperator: too fast");
     }
 
@@ -214,11 +208,11 @@ contract SwapOperator is ReentrancyGuard {
     {
       // scope for token checks
       uint avgAmountOut = twapOracle.consult(fromTokenAddress, amountIn, WETH);
-      uint maxSlippageAmount = avgAmountOut * assetData.maxSlippageRatio / 1e18;
+      uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / 1e18;
       uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
       // gas optimisation: reads both values using a single SLOAD
-      (uint minAssetAmount, uint maxAssetAmount) = (assetData.minAmount, assetData.maxAmount);
+      (uint minAssetAmount, uint maxAssetAmount) = (swapDetails.minAmount, swapDetails.maxAmount);
 
       require(amountOutMin >= minOutOnMaxSlippage, "SwapOperator: amountOutMin < minOutOnMaxSlippage");
       require(tokenBalanceBefore > maxAssetAmount, "SwapOperator: tokenBalanceBefore <= max");
@@ -253,11 +247,11 @@ contract SwapOperator is ReentrancyGuard {
     IPool pool = _pool();
     address toTokenAddress = stETH;
     (
-    uint112 minAmount,
-    uint112 maxAmount,
+    uint104 minAmount,
+    uint104 maxAmount,
     /* uint32 lastAssetSwapTime */,
-    /* uint maxSlippageRatio */
-    ) = pool.getAssetDetails(toTokenAddress);
+    /* uint16 maxSlippageRatio */
+    ) = pool.getAssetSwapDetails(toTokenAddress);
 
     require(!(minAmount == 0 && maxAmount == 0), "SwapOperator: asset is not enabled");
 
@@ -273,7 +267,7 @@ contract SwapOperator is ReentrancyGuard {
     (bool ok, /* data */) = toTokenAddress.call{ value: amountIn }("");
     require(ok, "SwapOperator: stEth transfer failed");
 
-    pool.setAssetDataLastSwapTime(toTokenAddress, uint32(block.timestamp));
+    pool.setAssetSwapDataLastSwapTime(toTokenAddress, uint32(block.timestamp));
 
     uint amountOut = IERC20(toTokenAddress).balanceOf(address(this));
 
@@ -290,8 +284,8 @@ contract SwapOperator is ReentrancyGuard {
     emit Swapped(ETH, stETH, amountIn, amountOut);
   }
 
-  function assetIsEnabled(AssetData memory assetData) internal pure returns (bool) {
-    return !(assetData.minAmount == 0 && assetData.maxAmount == 0);
+  function assetIsEnabled(IPool.AssetSwapData memory swapDetails) internal pure returns (bool) {
+    return !(swapDetails.minAmount == 0 && swapDetails.maxAmount == 0);
   }
 
   function _pool() internal view returns (IPool) {

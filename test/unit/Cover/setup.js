@@ -10,13 +10,12 @@ const { BN } = web3.utils;
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 async function setup () {
-
   const MasterMock = artifacts.require('MasterMock');
   const Pool = artifacts.require('CoverMockPool');
   const ERC20Mock = artifacts.require('ERC20Mock');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
-  const QuotationData = artifacts.require('MCRMockQuotationData');
+  const QuotationData = artifacts.require('CoverMockQuotationData');
   const Cover = artifacts.require('Cover');
   const MemberRolesMock = artifacts.require('MemberRolesMock');
   const CoverNFT = artifacts.require('CoverNFT');
@@ -26,7 +25,12 @@ async function setup () {
   const stETH = await ERC20Mock.new();
   const memberRoles = await MemberRolesMock.new();
 
-  const cover = await Cover.new();
+  const quotationData = await QuotationData.new();
+
+  await quotationData.setTotalSumAssured(hex('DAI'), '0');
+  await quotationData.setTotalSumAssured(hex('ETH'), '100000');
+
+  const cover = await Cover.new(quotationData.address);
 
   const coverNFT = await CoverNFT.new('NexusMutual Cover', 'NXMC', cover.address);
   await cover.initialize(coverNFT.address);
@@ -37,22 +41,13 @@ async function setup () {
   const chainlinkDAI = await ChainlinkAggregatorMock.new();
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
-  const priceFeedOracle = await PriceFeedOracle.new(
-    chainlinkDAI.address,
-    dai.address,
-    stETH.address,
-  );
+  const priceFeedOracle = await PriceFeedOracle.new(chainlinkDAI.address, dai.address, stETH.address);
 
   const pool = await Pool.new();
 
-  await pool.setAssets([ETH, dai.address]);
+  await pool.setAssets([dai.address], [18]);
 
   await pool.setTokenPrice('0', ether('1'));
-
-  const quotationData = await QuotationData.new();
-
-  await quotationData.setTotalSumAssured(hex('DAI'), '0');
-  await quotationData.setTotalSumAssured(hex('ETH'), '100000');
 
   // set contract addresses
   await master.setLatestAddress(hex('P1'), pool.address);
@@ -84,12 +79,13 @@ async function setup () {
 
   // add products
 
-  await cover.addProduct({
-    productType: '1',
-    productAddress: '0x0000000000000000000000000000000000000000',
-    payoutAssets: '1', // ETH supported
-  },
-  { from: accounts.advisoryBoardMembers[0] },
+  await cover.addProduct(
+    {
+      productType: '1',
+      productAddress: '0x0000000000000000000000000000000000000000',
+      payoutAssets: '1', // ETH supported
+    },
+    { from: accounts.advisoryBoardMembers[0] },
   );
 
   this.master = master;

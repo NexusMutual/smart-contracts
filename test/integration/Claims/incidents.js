@@ -33,7 +33,7 @@ const coverTemplate = {
   contractAddress: productId,
 };
 
-describe('incidents', function () {
+describe.skip('incidents', function () {
   beforeEach(async function () {
     const { dai, incidents } = this.contracts;
     ybDAI = await ERC20MintableDetailed.new('yield bearing DAI', 'ybDAI', 18);

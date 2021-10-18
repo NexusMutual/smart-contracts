@@ -29,7 +29,7 @@ async function setup () {
   const CLMockPool = await ethers.getContractFactory('CLMockPool');
   const pool = await CLMockPool.deploy();
   await pool.deployed();
-  await pool.addAsset(dai.address);
+  await pool.addAsset(dai.address, 18);
 
   const Assessment = await ethers.getContractFactory('CLMockAssessment');
   const assessment = await Assessment.deploy();

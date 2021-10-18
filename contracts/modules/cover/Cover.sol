@@ -8,10 +8,11 @@ import "../../interfaces/IPool.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/IProductsV1.sol";
 import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2 {
-
+  IProductsV1 internal immutable productsV1;
 
   Product[] public override products;
   ProductType[] public override productTypes;
@@ -25,7 +26,7 @@ contract Cover is ICover, MasterAwareV2 {
 
   uint32 public capacityFactor;
   uint32 public coverCount;
-  ICoverNFT public override coverNFT;
+  address public override coverNFT;
 
   /*
     (productId, poolAddress) => lastPrice
@@ -46,23 +47,24 @@ contract Cover is ICover, MasterAwareV2 {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(IQuotationData _quotationData) {
+  constructor(IQuotationData _quotationData, IProductsV1 _productsV1) {
     quotationData = _quotationData;
+    productsV1 = _productsV1;
   }
 
-  function initialize(ICoverNFT _coverNFT) public {
-    require(address(coverNFT) == address(0), "Cover: already initialized");
+  function initialize(address _coverNFT) public {
+    require(coverNFT == address(0), "Cover: already initialized");
     coverNFT = _coverNFT;
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
 
   // @dev Migrates covers from V1 to Cover.sol
-  function migrateCover(uint32 coverId) external {
+  function migrateCover(uint coverId) external {
     (
       /*uint coverId*/,
       address coverOwner,
-      address legacyProductIdentifier,
+      address legacyProductId,
       bytes4 currencyCode,
       /*uint sumAssured*/,
       uint premiumNXM
@@ -86,9 +88,7 @@ contract Cover is ICover, MasterAwareV2 {
     // mint the new cover
     uint newCoverId = coverCount++;
 
-    // store mapping as bytecode ?
-    //uint24 productId = legacyProductData.getProductId(legacyProductIdentifier);
-    uint24 productId = 0;
+    uint24 productId = productsV1.getNewProductId(legacyProductId);
     uint8 payoutAsset = currencyCode == "ETH" ? 0 : 1;
     covers[coverId] = CoverData(
       productId,
@@ -99,7 +99,7 @@ contract Cover is ICover, MasterAwareV2 {
       uint96(0)
     );
 
-    coverNFT.safeMint(tx.origin, newCoverId);
+    ICoverNFT(coverNFT).safeMint(tx.origin, newCoverId);
   }
 
   function buyCover(
@@ -169,7 +169,7 @@ contract Cover is ICover, MasterAwareV2 {
         uint96(premiumInAsset)
       );
 
-    coverNFT.safeMint(owner, coverId);
+    ICoverNFT(coverNFT).safeMint(owner, coverId);
 
     require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
     retrievePayment(premiumInAsset, payoutAsset);
@@ -318,7 +318,7 @@ contract Cover is ICover, MasterAwareV2 {
       );
 
     // mint the new cover
-    coverNFT.safeMint(msg.sender, newCoverId);
+    ICoverNFT(coverNFT).safeMint(msg.sender, newCoverId);
   }
 
   function increasePeriod(uint coverId, uint32 extraPeriod, uint maxPremiumInAsset) external payable onlyMember {
@@ -482,7 +482,7 @@ contract Cover is ICover, MasterAwareV2 {
     newCover.amount = uint96(newTotalCoverAmount);
     covers[newCoverId] = newCover;
     // mint the new cover
-    coverNFT.safeMint(msg.sender, newCoverId);
+    ICoverNFT(coverNFT).safeMint(msg.sender, newCoverId);
 
     // the refund is proportional to the amount reduction and the period remaining
     uint96 refund = uint96(uint(currentCover.premium)
@@ -514,7 +514,7 @@ contract Cover is ICover, MasterAwareV2 {
     uint amount
   ) external onlyInternal override returns (address /*owner*/) {
     CoverData memory cover = covers[coverId];
-    return coverNFT.ownerOf(coverId);
+    return ICoverNFT(coverNFT).ownerOf(coverId);
   }
 
 

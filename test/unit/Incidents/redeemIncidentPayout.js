@@ -6,7 +6,7 @@ const { submitClaim, daysToSeconds, ASSET, setTime } = require('./helpers');
 
 const { parseEther, formatEther } = ethers.utils;
 
-describe.only('redeemIncidentPayout', function () {
+describe('redeemIncidentPayout', function () {
   it('reverts if the incident is not accepted', async function () {
     const { incidents, assessment } = this.contracts;
     const [member1, member2] = this.accounts.members;

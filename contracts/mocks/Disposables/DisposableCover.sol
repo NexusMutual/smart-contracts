@@ -19,7 +19,7 @@ contract DisposableCover is MasterAwareV2 {
 
   uint32 public capacityFactor;
   uint32 public coverCount;
-  ICoverNFT public coverNFT;
+  address public coverNFT;
 
   /*
     (productId, poolAddress) => lastPrice
@@ -42,9 +42,17 @@ contract DisposableCover is MasterAwareV2 {
   constructor() {
   }
 
-  function initialize(ICoverNFT _coverNFT) public {
-    require(address(coverNFT) == address(0), "Cover: already initialized");
+  function initialize(address _coverNFT) public {
+    require(coverNFT == address(0), "Cover: already initialized");
     coverNFT = _coverNFT;
+  }
+
+  function addProductType(ICover.ProductType calldata productType) public {
+    productTypes.push(productType);
+  }
+
+  function addProduct(ICover.Product calldata product) public {
+    products.push(product);
   }
 
   function changeDependentContractAddress() external override {}

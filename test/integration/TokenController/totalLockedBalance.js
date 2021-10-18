@@ -16,12 +16,13 @@ const coverTemplate = {
   contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
 };
 
-describe.only('totalLockedBalance', function () {
+describe('totalLockedBalance', function () {
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1]);
   });
 
-  it('accounts for tokens locked as cover note', async function () {
+  it.skip('accounts for tokens locked as cover note', async function () {
+    // [todo] Move to fork tests
     const { qt: quotation, tc: tokenController } = this.contracts;
     const cover = { ...coverTemplate };
     const expectedCN = ether('1');

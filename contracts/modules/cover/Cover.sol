@@ -203,7 +203,7 @@ contract Cover is ICover, MasterAwareV2 {
 
   function _increaseAmount(
     IncreaseAmountParams memory params
-  ) internal returns (uint newCoverId, uint premiumInAsset) {
+  ) internal returns (uint newCoverId, uint premiumInPaymentAsset) {
 
     CoverData storage originalCover = covers[params.coverId];
 
@@ -259,8 +259,8 @@ contract Cover is ICover, MasterAwareV2 {
           ));
       }
     }
-
-    premiumInAsset = totalPremiumInNXM * tokenPrice / 1e18;
+    
+    premiumInPaymentAsset = totalPremiumInNXM * pool().getTokenPrice(params.paymentAsset) / 1e18;
 
     // make the previous cover expire at current block
     uint32 elapsedPeriod = originalCover.period - remainingPeriod;
@@ -269,7 +269,7 @@ contract Cover is ICover, MasterAwareV2 {
     uint96 carriedPremium = originalCover.premium * originalCover.amount - updatedOriginalPremium;
 
     originalCover.period = elapsedPeriod;
-    covers[params.coverId].premium = updatedOriginalPremium;
+    originalCover.premium = updatedOriginalPremium * uint96(BASIS_PRECISION) / originalCover.amount;
 
     uint96 amount = uint96(totalCoverAmountInNXM * tokenPrice / 1e18);
     covers[params.coverId] = CoverData(
@@ -278,7 +278,7 @@ contract Cover is ICover, MasterAwareV2 {
         originalCover.amount + amount,
         uint32(block.timestamp), // start
         remainingPeriod,
-        uint96((premiumInAsset + carriedPremium)  * BASIS_PRECISION / (originalCover.amount + amount))
+        uint96((totalPremiumInNXM * tokenPrice / 1e18 + carriedPremium)  * BASIS_PRECISION / (originalCover.amount + amount))
       );
 
     // mint the new cover

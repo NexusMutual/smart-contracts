@@ -1,51 +1,96 @@
-const { accounts, web3 } = require('hardhat');
-const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
+const fetch = require('node-fetch');
+const { artifacts, web3, accounts, network } = require('hardhat');
+const {
+  expectRevert,
+  constants: { ZERO_ADDRESS },
+  ether,
+  time,
+} = require('@openzeppelin/test-helpers');
 
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
-const { buyCover } = require('../utils').buyCover;
-const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
+const { submitGovernanceProposal, getAddressByCodeFactory, Address, fund, unlock, UserAddress } = require('./utils');
 const { hex } = require('../utils').helpers;
+const { ProposalCategory, Role, ContractTypes } = require('../utils').constants;
 
-const { toBN, soliditySha3 } = web3.utils;
-const [, member1, member2, claimAssessor] = accounts;
+const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
+const MemberRoles = artifacts.require('MemberRoles');
+const NXMaster = artifacts.require('NXMaster');
+const NXMToken = artifacts.require('NXMToken');
+const Governance = artifacts.require('Governance');
+const TokenFunctions = artifacts.require('TokenFunctions');
+const Quotation = artifacts.require('Quotation');
+const TokenController = artifacts.require('TokenController');
+const Gateway = artifacts.require('Gateway');
+const Incidents = artifacts.require('Incidents');
+const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
+const Pool = artifacts.require('Pool');
+const MCR = artifacts.require('MCR');
+const QuotationData = artifacts.require('QuotationData');
+const ClaimsReward = artifacts.require('LegacyClaimsReward');
+const ProposalCategoryContract = artifacts.require('ProposalCategory');
+const LegacyNXMaster = artifacts.require('ILegacyNXMaster');
+const MMockNewContract = artifacts.require('MMockNewContract');
+const Claims = artifacts.require('LegacyClaims');
 
-const coverTemplate = {
-  amount: 1, // 100 ETH
-  price: ether('0.01'),
-  priceNXM: '10000000000000000000', // 10 nxm
-  expireTime: '8000000000',
-  generationTime: '1600000000000',
-  currency: hex('ETH'),
-  period: 35,
-  contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
-};
+describe('V2 Phase 1', function () {
+  this.timeout(0);
 
-const claimAndVote = async (contracts, coverId, member, assessor, accept) => {
-  const { cl, cd, cr } = contracts;
+  it('initializes contracts', async function () {
+    const versionDataURL = 'https://api.nexusmutual.io/version-data/data.json';
+    const {
+      mainnet: { abis },
+    } = await fetch(versionDataURL).then(r => r.json());
+    const getAddressByCode = getAddressByCodeFactory(abis);
 
-  await cl.submitClaim(coverId, { from: member });
-  const claimId = (await cd.actualClaimLength()).subn(1);
-  const submittedAt = await cd.getClaimDateUpd(claimId);
-  const verdict = accept ? '1' : toBN('-1');
-  await cl.submitCAVote(claimId, verdict, { from: assessor });
+    const masterAddress = getAddressByCode('NXMASTER');
+    const token = await NXMToken.at(getAddressByCode('NXMTOKEN'));
+    const memberRoles = await MemberRoles.at(getAddressByCode('MR'));
+    const governance = await Governance.at(getAddressByCode('GV'));
+    const pool1 = await Pool.at(getAddressByCode('P1'));
+    const mcr = await MCR.at(getAddressByCode('MC'));
+    const incidents = await Incidents.at(getAddressByCode('IC'));
+    const quotationData = await QuotationData.at(getAddressByCode('QD'));
+    const proposalCategory = await ProposalCategoryContract.at(getAddressByCode('PC'));
+    const claims = await ProposalCategoryContract.at(getAddressByCode('CL'));
 
-  const maxVotingTime = await cd.maxVotingTime();
-  await setNextBlockTime(submittedAt.add(maxVotingTime).toNumber());
-  await cr.closeClaim(claimId);
-
-  const { statno: status } = await cd.getClaimStatusNumber(claimId);
-  const expectedStatus = accept ? 14 : 6;
-  assert(status.eqn(expectedStatus), `expected claim status ${expectedStatus}, got ${status}`);
-};
-
-describe.skip('withdrawCoverNote', function () {
-  // [todo] Move to TokenController
-  beforeEach(async function () {
-    await enrollMember(this.contracts, [member1, member2, claimAssessor]);
-    await enrollClaimAssessor(this.contracts, [claimAssessor], { lockTokens: ether('2000') });
+    this.masterAddress = masterAddress;
+    this.token = token;
+    this.memberRoles = memberRoles;
+    this.governance = governance;
+    this.pool = pool1;
+    this.mcr = mcr;
+    this.master = await NXMaster.at(masterAddress);
+    this.quotationData = quotationData;
+    this.incidents = incidents;
+    this.getAddressByCode = getAddressByCode;
+    this.proposalCategory = proposalCategory;
+    this.claims = claims;
   });
 
-  it('allows to withdrawCoverNote after grace period expiration', async function () {
+  it('fetches board members and funds accounts', async function () {
+    const { memberArray: boardMembers } = await this.memberRoles.members('1');
+    const voters = boardMembers.slice(0, 3);
+
+    const whales = [UserAddress.NXM_WHALE_1, UserAddress.NXM_WHALE_2];
+
+    for (const member of [...voters, Address.NXMHOLDER, ...whales]) {
+      await fund(member);
+      await unlock(member);
+    }
+
+    this.voters = voters;
+    this.whales = whales;
+  });
+
+  it('upgrade contracts', async function () {
+    assert(false, '[todo]');
+  });
+
+  it('getWithdrawableCoverNoteCoverIds only returns v1 covers bought until lastCoverIdWithLockedCN', async function () {
+    assert(false, '[todo]');
+  });
+
+  // [todo] Move function call to QT, buy covers with impersonate account before upgrading QT
+  it('allows to withdrawCoverNote for v1 covers bought until lastCoverIdWithLockedCN', async function () {
     const { qd, qt, tc, tk } = this.contracts;
 
     const cover = { ...coverTemplate };
@@ -57,6 +102,7 @@ describe.skip('withdrawCoverNote', function () {
     const coverPeriod = toBN(cover.period * 24 * 3600);
     const expectedCoverExpirationDate = coverPurchaseTime.add(coverPeriod);
 
+    // [todo] Remove grace period
     const gracePeriod = await tc.claimSubmissionGracePeriod();
     const expectedGracePeriodExpirationDate = expectedCoverExpirationDate.add(gracePeriod);
 
@@ -279,4 +325,6 @@ describe.skip('withdrawCoverNote', function () {
     await setNextBlockTime(gracePeriodExpirationDate.addn(1).toNumber());
     await expectRevert.unspecified(qt.withdrawCoverNote(member2, ['1'], ['0']));
   });
+
+  require('./basic-functionality-tests');
 });

@@ -8,6 +8,8 @@ const { proposalCategories } = require('../utils');
 const { enrollMember } = require('./utils/enroll');
 
 const { BN } = web3.utils;
+const { getAccounts } = require('../utils').accounts;
+const { members } = getAccounts(accounts);
 
 async function setup () {
   // external
@@ -133,8 +135,8 @@ async function setup () {
 
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
   const td = await TokenData.new(owner);
-  const qt = await Quotation.new(productsV1.address);
   const qd = await QuotationData.new(QE, owner);
+  const qt = await Quotation.new(productsV1.address, qd.address);
 
   const tc = await deployProxy(DisposableTokenController, [qd.address]);
   const ic = await deployProxy(DisposableIncidents, []);
@@ -366,6 +368,8 @@ async function setup () {
   };
 
   this.contractType = contractType;
+
+  await enrollMember(this.contracts, members);
 }
 
 module.exports = setup;

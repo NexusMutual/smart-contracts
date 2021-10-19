@@ -17,9 +17,11 @@ import "../../interfaces/IProductsV1.sol";
 
 contract Quotation is IQuotation, MasterAwareV2, ReentrancyGuard {
   IProductsV1 internal immutable productsV1;
+  uint internal immutable lastCoverIdWithLockedCN;
 
-  constructor (address productV1Address) {
+  constructor (address productV1Address, address quotationDataAddress) {
     productsV1 = IProductsV1(productV1Address);
+    lastCoverIdWithLockedCN = IQuotationData(quotationDataAddress).getCoverLength() - 1;
   }
 
   function changeDependentContractAddress() public override onlyInternal {
@@ -101,9 +103,11 @@ contract Quotation is IQuotation, MasterAwareV2, ReentrancyGuard {
     uint expiredQueueLength = 0;
 
     for (uint i = 0; i < coverIds.length; i++) {
+      if (coverIds[i] > lastCoverIdWithLockedCN) {
+        continue;
+      }
 
       (/* claimCount */, bool hasOpenClaim, /* hasAcceptedClaim */) = tokenController().coverInfo(coverIds[i]);
-
       if (!hasOpenClaim) {
         expiredIdsQueue[expiredQueueLength] = coverIds[i];
         expiredQueueLength++;

@@ -1,14 +1,13 @@
-const { accounts, web3 } = require('hardhat');
-const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
+const { accounts } = require('hardhat');
+const { ether } = require('@openzeppelin/test-helpers');
 
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { buyCover } = require('../utils').buyCover;
-const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
-const { CoverStatus } = require('../utils').constants;
+const { getAccounts } = require('../utils').accounts;
 
-const { toBN } = web3.utils;
-const [, member1, member2, claimAssessor] = accounts;
+const {
+  members: [member1],
+} = getAccounts(accounts);
 
 const coverTemplate = {
   amount: 1, // 100 ETH
@@ -22,11 +21,6 @@ const coverTemplate = {
 };
 
 describe('getWithdrawableCoverNoteCoverIds', function () {
-  beforeEach(async function () {
-    await enrollMember(this.contracts, [member1, member2, claimAssessor]);
-    await enrollClaimAssessor(this.contracts, [claimAssessor], { lockTokens: ether('2000') });
-  });
-
   it('returns no ids when owner has no covers', async function () {
     const { qt } = this.contracts;
     const { expiredCoverIds, lockReasons } = await qt.getWithdrawableCoverNoteCoverIds(member1);
@@ -35,36 +29,17 @@ describe('getWithdrawableCoverNoteCoverIds', function () {
     assert.equal(lockReasons.length, '0');
   });
 
-  it('returns ids for expired covers along with lock reasons', async function () {
-    const { qt, qd, tc } = this.contracts;
+  it('returns no ids for v1 covers bought after lastCoverIdWithLockedCN', async function () {
+    const { qt } = this.contracts;
 
     const cover1 = { ...coverTemplate };
     const cover2 = { ...coverTemplate, generationTime: coverTemplate.generationTime + 1 };
     await buyCover({ ...this.contracts, cover: cover1, coverHolder: member1 });
     await buyCover({ ...this.contracts, cover: cover2, coverHolder: member1 });
-    const coverIds = ['1', '2'];
-
-    const coverExpirationDate = await qd.getValidityOfCover(coverIds[0]);
-    await setNextBlockTime(coverExpirationDate.addn(1).toNumber());
-    for (const coverId of coverIds) {
-      await qt.expireCover(coverId);
-    }
-
-    const gracePeriod = await tc.claimSubmissionGracePeriod();
-    await time.increase(gracePeriod);
 
     const { expiredCoverIds, lockReasons } = await qt.getWithdrawableCoverNoteCoverIds(member1);
 
-    assert.equal(expiredCoverIds.length, coverIds.length);
-    assert.equal(lockReasons.length, coverIds.length);
-
-    for (let i = 0; i < expiredCoverIds.length; i++) {
-      assert.equal(expiredCoverIds[i].toString(), coverIds[i]);
-    }
-
-    for (let i = 0; i < lockReasons.length; i++) {
-      const reason = web3.utils.soliditySha3(hex('CN'), member1, expiredCoverIds[i]);
-      assert.equal(lockReasons[i], reason.toString());
-    }
+    assert.equal(expiredCoverIds.length, '0');
+    assert.equal(lockReasons.length, '0');
   });
 });

@@ -3,7 +3,7 @@ pragma solidity >=0.5.0;
 import "../../interfaces/IProductsV1.sol";
 
 contract ProductsV1 is IProductsV1 {
-  function getNewProductId(address legacyProductId) external override returns (uint24) {
+  function getNewProductId(address legacyProductId) external pure override returns (uint24) {
     // [todo] Remove product ids which are not used by covers. Sort them by descending cover count.
     // Replace return values with the actual product ids from v2
 

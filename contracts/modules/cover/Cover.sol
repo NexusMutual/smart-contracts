@@ -9,6 +9,7 @@ import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/IProductsV1.sol";
+import "../../interfaces/ITokenController.sol";
 import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2 {
@@ -81,6 +82,12 @@ contract Cover is ICover, MasterAwareV2 {
     require(LegacyCoverStatus(status) != LegacyCoverStatus.Migrated, "Cover has already been migrated");
     require(LegacyCoverStatus(status) != LegacyCoverStatus.ClaimAccepted, "A claim has already been accepted");
     require(block.timestamp < validUntil, "Cover expired");
+
+    {
+      (uint claimCount , bool hasOpenClaim,  /*hasAcceptedClaim*/) = tokenController().coverInfo(coverId);
+      require(!hasOpenClaim, "Cover has an open V1 claim");
+      require(claimCount < 2, "Cover already has 2 claims");
+    }
 
     // Mark cover as migrated to prevent future calls on the same cover
     quotationData.changeCoverStatusNo(coverId, uint8(LegacyCoverStatus.Migrated));
@@ -640,6 +647,10 @@ contract Cover is ICover, MasterAwareV2 {
 
   function pool() internal view returns (IPool) {
     return IPool(internalContracts[uint(ID.P1)]);
+  }
+
+  function tokenController() internal view returns (ITokenController) {
+    return ITokenController(internalContracts[uint(ID.TC)]);
   }
 
   function memberRoles() internal view returns (IMemberRoles) {

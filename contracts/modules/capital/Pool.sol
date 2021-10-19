@@ -122,12 +122,9 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       IERC20 token = IERC20(asset.assetAddress);
 
       uint rate = priceFeedOracle.getAssetToEthRate(asset.assetAddress);
-      console.log("rate %d", rate);
       require(rate > 0, "Pool: Zero rate");
 
       uint assetBalance = token.balanceOf(address(this));
-      console.log("assetBalance %d", assetBalance);
-      console.log("asset.decimals %d", asset.decimals);
       uint assetValue = assetBalance.mul(rate).div(10 ** uint(asset.decimals)); // ETH
 
       total = total.add(assetValue);

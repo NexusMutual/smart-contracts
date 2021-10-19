@@ -89,6 +89,10 @@ describe('V2 Phase 1', function () {
     assert(false, '[todo]');
   });
 
+  it("doesn't allow to withdrawCoverNote more than once", async function () {
+    assert(false, '[todo]');
+  });
+
   // [todo] Move function call to QT, buy covers with impersonate account before upgrading QT
   it('allows to withdrawCoverNote for v1 covers bought until lastCoverIdWithLockedCN', async function () {
     const { qd, qt, tc, tk } = this.contracts;

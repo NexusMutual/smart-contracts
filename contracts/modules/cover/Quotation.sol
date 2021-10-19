@@ -18,7 +18,7 @@ import "../../interfaces/IProductsV1.sol";
 contract Quotation is IQuotation, MasterAwareV2, ReentrancyGuard {
   IProductsV1 internal immutable productsV1;
 
-  constructor (address productV1Address) public {
+  constructor (address productV1Address) {
     productsV1 = IProductsV1(productV1Address);
   }
 
@@ -146,6 +146,7 @@ contract Quotation is IQuotation, MasterAwareV2, ReentrancyGuard {
     bytes32 _r,
     bytes32 _s
   ) external onlyMember whenNotPaused {
+    tokenController().burnFrom(msg.sender, coverDetails[2]); // needs allowance
     _verifyCoverDetails(
       payable(msg.sender),
       smartCAdd,
@@ -263,9 +264,13 @@ contract Quotation is IQuotation, MasterAwareV2, ReentrancyGuard {
     uint[] memory coverDetails,
     uint16 coverPeriod
   ) internal {
+    // Make sure cover amount is not 0
+    require(coverDetails[0] != 0, "TokenController: Amount shouldn't be zero");
+
+    // Make sure premium in NXM is not 0
+    require(coverDetails[2] != 0, "TokenController: Premium shouldn't be zero");
 
     uint24 productIdV2 = productsV1.getNewProductId(productId);
-
     (
       /* productType */,
       address productAddress,
@@ -282,29 +287,26 @@ contract Quotation is IQuotation, MasterAwareV2, ReentrancyGuard {
     }
 
     uint cid = quotationData().getCoverLength();
-
     quotationData().addCover(
       coverPeriod,
-      coverDetails[0],
+      coverDetails[0], // cover amount
       from,
       coverCurrency,
       productId,
-      coverDetails[1],
-      coverDetails[2]
+      coverDetails[1], // premium in asset
+      coverDetails[2] // premium NXM
     );
 
-    uint coverNoteAmount = coverDetails[2] / 10; // 10%
 
     // mint cover note without locking
-    tokenController().mint(from, coverNoteAmount);
+    tokenController().mint(from, coverDetails[2] / 10); // 10%
 
     quotationData().addInTotalSumAssured(coverCurrency, coverDetails[0]);
     quotationData().addInTotalSumAssuredSC(productId, coverCurrency, coverDetails[0]);
 
     {
-      uint coverPremiumInNXM = coverDetails[2];
       uint stakersRewardPercentage = tokenData().stakerCommissionPer();
-      uint rewardValue = coverPremiumInNXM * stakersRewardPercentage / 100;
+      uint rewardValue = coverDetails[2] * stakersRewardPercentage / 100;
       pooledStaking().accumulateReward(productId, rewardValue);
     }
   }

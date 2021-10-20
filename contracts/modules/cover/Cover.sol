@@ -100,8 +100,6 @@ contract Cover is ICover, MasterAwareV2 {
     // convert to NXM amount
     uint payoutAssetTokenPrice = pool().getTokenPrice(params.payoutAsset);
 
-    updateActiveCoverAmountInNXM(params.productId, params.period, uint(params.amount) * 1e18 / payoutAssetTokenPrice);
-
     uint totalPremiumInNXM = 0;
     uint totalCoverAmountInNXM = 0;
     for (uint i = 0; i < coverChunkRequests.length; i++) {
@@ -132,6 +130,8 @@ contract Cover is ICover, MasterAwareV2 {
         CoverChunk(coverChunkRequests[i].poolAddress, uint96(coveredAmountInNXM), uint96(premiumInNXM))
       );
     }
+
+    updateActiveCoverAmountInNXM(params.productId, params.period, totalCoverAmountInNXM);
 
     uint coverId = coverCount++;
     covers[coverId] = CoverData(
@@ -259,7 +259,7 @@ contract Cover is ICover, MasterAwareV2 {
           ));
       }
     }
-    
+
     premiumInPaymentAsset = totalPremiumInNXM * pool().getTokenPrice(params.paymentAsset) / 1e18;
 
     // make the previous cover expire at current block
@@ -405,6 +405,9 @@ contract Cover is ICover, MasterAwareV2 {
 
     // clone the existing cover
     CoverData memory newCover = covers[coverId];
+    newCover.start = uint32(block.timestamp);
+    // new period is the remaining period
+    newCover.period = currentCover.period - (uint32(block.timestamp) - currentCover.start);
 
     // clone existing cover chunks
     CoverChunk[] memory newCoverChunks = coverChunksForCover[coverId];
@@ -433,16 +436,17 @@ contract Cover is ICover, MasterAwareV2 {
 
       // TODO: fix this. it should be proportional to the remaining period as well
       newCoverChunks[i].premiumInNXM =
-      uint96(uint(newCoverChunks[i].premiumInNXM) * newTotalCoverAmount / newCover.amount);
+      uint96(
+        uint(newCoverChunks[i].premiumInNXM)
+        * newTotalCoverAmount / newCover.amount
+        * newCover.period / currentCover.period
+      );
       newCoverChunks[i].coverAmountInNXM = uint96(newCoverAmount);
 
       // write the new staking pool with modified parameters
       coverChunksForCover[newCoverId].push(newCoverChunks[i]);
     }
 
-    newCover.start = uint32(block.timestamp);
-    // new period is the remaining period
-    newCover.period = currentCover.period - (uint32(block.timestamp) - currentCover.start);
     newCover.amount = uint96(newTotalCoverAmount);
     covers[newCoverId] = newCover;
     // mint the new cover

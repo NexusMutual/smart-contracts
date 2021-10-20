@@ -106,7 +106,6 @@ contract Cover is ICover, MasterAwareV2 {
 
       uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / payoutAssetTokenPrice;
 
-      // TODO: receive update on expired cover to update activeCoverInNXM
       (uint coveredAmountInNXM, uint premiumInNXM) = buyCoverFromPool(
         IStakingPool(coverChunkRequests[i].poolAddress),
         params.productId,
@@ -223,7 +222,6 @@ contract Cover is ICover, MasterAwareV2 {
       {
         uint requestedCoverAmountInNXM = params.coverChunkRequests[i].coverAmountInAsset * 1e18 / tokenPrice;
 
-        // TODO: receive update on expired cover to update activeCoverInNXM
         (coveredAmountInNXM, premiumInNXM) = buyCoverFromPool(
           IStakingPool(params.coverChunkRequests[i].poolAddress),
           originalCover.productId,
@@ -314,7 +312,6 @@ contract Cover is ICover, MasterAwareV2 {
 
       lastPrices[cover.productId][address(stakingPool)] = LastPrice(uint96(basePrice), uint32(block.timestamp));
 
-      // TODO: receive update on expired cover to update activeCoverInNXM
       stakingPool.extendPeriod(
         cover.productId,
         cover.period,
@@ -357,7 +354,6 @@ contract Cover is ICover, MasterAwareV2 {
     for (uint i = 0; i < originalCoverChunks.length; i++) {
       IStakingPool stakingPool = IStakingPool(originalCoverChunks[i].poolAddress);
 
-      // TODO: receive update on expired cover to update activeCoverInNXM
       stakingPool.reducePeriod(
         cover.productId,
         cover.period,
@@ -434,7 +430,6 @@ contract Cover is ICover, MasterAwareV2 {
         newCoverChunks[i].coverAmountInNXM
       );
 
-      // TODO: fix this. it should be proportional to the remaining period as well
       newCoverChunks[i].premiumInNXM =
       uint96(
         uint(newCoverChunks[i].premiumInNXM)

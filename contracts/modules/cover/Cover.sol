@@ -92,10 +92,6 @@ contract Cover is ICover, MasterAwareV2 {
       assetIsSupported(products[params.productId].coverAssets, params.payoutAsset),
       "Cover: Payout asset is not supported"
     );
-    require(
-      assetIsSupported(products[params.productId].coverAssets, params.paymentAsset),
-      "Cover: Payment asset is not supported"
-    );
 
     // convert to NXM amount
     uint payoutAssetTokenPrice = pool().getTokenPrice(params.payoutAsset);
@@ -139,7 +135,7 @@ contract Cover is ICover, MasterAwareV2 {
         uint96(totalCoverAmountInNXM * payoutAssetTokenPrice / 1e18),
         uint32(block.timestamp + 1),
         uint32(params.period),
-        uint96(totalPremiumInNXM * BASIS_PRECISION / totalCoverAmountInNXM)
+        uint16(totalPremiumInNXM * BASIS_PRECISION / totalCoverAmountInNXM)
       );
 
     coverNFT.safeMint(params.owner, coverId);
@@ -263,11 +259,11 @@ contract Cover is ICover, MasterAwareV2 {
     // make the previous cover expire at current block
     uint32 elapsedPeriod = originalCover.period - remainingPeriod;
     uint96 updatedOriginalPremium =
-      uint96(originalCover.premium * originalCover.amount / BASIS_PRECISION * elapsedPeriod / originalCover.period);
-    uint96 carriedPremium = originalCover.premium * originalCover.amount - updatedOriginalPremium;
+      uint96(originalCover.priceRatio * originalCover.amount / BASIS_PRECISION * elapsedPeriod / originalCover.period);
+    uint96 carriedPremium = originalCover.priceRatio * originalCover.amount - updatedOriginalPremium;
 
     originalCover.period = elapsedPeriod;
-    originalCover.premium = updatedOriginalPremium * uint96(BASIS_PRECISION) / originalCover.amount;
+    originalCover.priceRatio = uint16(updatedOriginalPremium * uint96(BASIS_PRECISION) / originalCover.amount);
 
     uint96 amount = uint96(totalCoverAmountInNXM * tokenPrice / 1e18);
     covers[params.coverId] = CoverData(
@@ -276,7 +272,7 @@ contract Cover is ICover, MasterAwareV2 {
         originalCover.amount + amount,
         uint32(block.timestamp), // start
         remainingPeriod,
-        uint96((totalPremiumInNXM * tokenPrice / 1e18 + carriedPremium)  * BASIS_PRECISION / (originalCover.amount + amount))
+        uint16((totalPremiumInNXM * tokenPrice / 1e18 + carriedPremium)  * BASIS_PRECISION / (originalCover.amount + amount))
       );
 
     // mint the new cover
@@ -367,11 +363,11 @@ contract Cover is ICover, MasterAwareV2 {
         originalCoverChunks[i].premiumInNXM * (cover.period - params.periodReduction) / cover.period;
     }
 
-    uint refund = cover.premium * cover.amount / BASIS_PRECISION * params.periodReduction / cover.period;
+    uint refund = cover.priceRatio * cover.amount / BASIS_PRECISION * params.periodReduction / cover.period;
 
     // reduce the cover period before purchasing additional amount
     cover.period = cover.period - params.periodReduction;
-    cover.premium = cover.premium * params.periodReduction / cover.period;
+    cover.priceRatio = uint16(cover.priceRatio * params.periodReduction / cover.period);
 
     (uint newCoverId, uint premiumInAsset) = _increaseAmount(
       IncreaseAmountParams(params.coverId, params.paymentAsset, coverChunkRequests)
@@ -449,18 +445,18 @@ contract Cover is ICover, MasterAwareV2 {
 
     // the refund is proportional to the amount reduction and the period remaining
     uint96 refund = uint96(uint(amountReduction)
-      * uint(currentCover.premium) / BASIS_PRECISION
+      * uint(currentCover.priceRatio) / BASIS_PRECISION
       * uint(newCover.period) / uint(currentCover.period));
 
     uint carryOverPremium = uint(newCover.amount)
-    * uint(currentCover.premium) / BASIS_PRECISION
+    * uint(currentCover.priceRatio) / BASIS_PRECISION
     * uint(newCover.period) / uint(currentCover.period);
 
     uint oldCurrentCoverPeriod = currentCover.period;
     // make the current cover expire at current block
     currentCover.period = uint32(block.timestamp) - currentCover.start;
     // adjust premium on current cover
-    currentCover.premium = uint96(currentCover.premium * currentCover.period / oldCurrentCoverPeriod);
+    currentCover.priceRatio = uint16(currentCover.priceRatio * currentCover.period / oldCurrentCoverPeriod);
 
     uint premiumInAsset = _increasePeriod(newCoverId, extraPeriod, paymentAsset);
     require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
@@ -471,7 +467,7 @@ contract Cover is ICover, MasterAwareV2 {
     }
 
     // set the newly paid premium
-    newCover.premium = uint96(carryOverPremium + premiumInAsset * BASIS_PRECISION / newCover.amount);
+    newCover.priceRatio = uint16(carryOverPremium + premiumInAsset * BASIS_PRECISION / newCover.amount);
 
     return newCoverId;
   }
@@ -502,7 +498,7 @@ contract Cover is ICover, MasterAwareV2 {
       uint96(cover.amount - amount),
       uint32(block.timestamp + 1),
       cover.start + cover.period - uint32(block.timestamp),
-      cover.premium
+      cover.priceRatio
     );
 
     covers[coverCount++] = newCover;

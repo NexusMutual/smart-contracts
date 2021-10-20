@@ -31,7 +31,7 @@ interface ICover {
     uint96 amount;
     uint32 start;
     uint32 period;  // seconds
-    uint96 premium;
+    uint16 priceRatio;
   }
 
   struct BuyCoverParams {
@@ -70,7 +70,7 @@ interface ICover {
 
   /* ========== VIEWS ========== */
 
-  function covers(uint id) external view returns (uint24, uint8, uint96, uint32, uint32, uint96);
+  function covers(uint id) external view returns (uint24, uint8, uint96, uint32, uint32, uint16);
 
   function products(uint id) external view returns (uint16, address, uint);
 

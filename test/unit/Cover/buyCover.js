@@ -8,7 +8,7 @@ const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
 describe('buyCover', function () {
 
-  it.only('should purchase new cover', async function () {
+  it('should purchase new cover', async function () {
     const { cover } = this;
 
     const {

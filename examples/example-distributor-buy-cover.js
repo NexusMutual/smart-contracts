@@ -33,7 +33,7 @@ async function run () {
   };
 
   // URL to request a quote for.
-  const quoteURL = 'https://api.staging.nexusmutual.io/legacy/v1/quote?' +
+  const quoteURL = 'https://api.staging.nexusmutual.io/v1/quote?' +
     `coverAmount=${coverData.coverAmount}&currency=${coverData.currency}&period=${coverData.period}&contractAddress=${coverData.contractAddress}`;
 
   console.log(quoteURL);

@@ -116,6 +116,7 @@ contract Cover is ICover, MasterAwareV2 {
     // Mark cover as migrated to prevent future calls on the same cover
     quotationData.changeCoverStatusNo(coverId, uint8(LegacyCoverStatus.Migrated));
 
+
     // mint the new cover
     covers.push(
       CoverData(

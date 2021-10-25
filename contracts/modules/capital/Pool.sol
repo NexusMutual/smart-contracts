@@ -587,7 +587,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint nxmAmount,
     uint currentTotalAssetValue,
     uint mcrEth
-  ) public view returns (uint) {
+  ) public pure returns (uint) {
 
     // Step 1. Calculate spot price at current values and amount of ETH if tokens are sold at that price
     uint spotPrice0 = calculateTokenSpotPrice(currentTotalAssetValue, mcrEth);
@@ -618,7 +618,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   /**
   * @dev Calculates token price in ETH 1 NXM token. TokenPrice = A + (MCReth / C) * MCR%^4
   */
-  function calculateTokenSpotPrice(uint totalAssetValue, uint mcrEth) public view returns (uint tokenPrice) {
+  function calculateTokenSpotPrice(uint totalAssetValue, uint mcrEth) public pure returns (uint tokenPrice) {
 
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
     uint precisionDecimals = 10 ** TOKEN_EXPONENT.mul(MCR_RATIO_DECIMALS);

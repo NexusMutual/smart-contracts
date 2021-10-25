@@ -66,11 +66,11 @@ interface IPool {
     uint nxmAmount,
     uint currentTotalAssetValue,
     uint mcrEth
-  ) external view returns (uint);
+  ) external pure returns (uint);
 
   function calculateMCRRatio(uint totalAssetValue, uint mcrEth) external pure returns (uint);
 
-  function calculateTokenSpotPrice(uint totalAssetValue, uint mcrEth) external view returns (uint tokenPrice);
+  function calculateTokenSpotPrice(uint totalAssetValue, uint mcrEth) external pure returns (uint tokenPrice);
 
   function getTokenPrice(uint assetId) external view returns (uint tokenPrice);
 

@@ -4,13 +4,19 @@ import "../../interfaces/ICover.sol";
 
 contract CoverNFT is ERC721 {
 
-  ICover immutable public cover;
-  constructor(string memory name_, string memory symbol_, address _cover) ERC721(name_, symbol_) {
-    cover = ICover(_cover);
+  address public operator;
+
+  modifier onlyOperator {
+    require(msg.sender == operator, "CoverNFT: Not operator");
+    _;
   }
 
-  function safeMint(address to, uint tokenId) external {
-    require(msg.sender == address(cover), "CoverNFT: Not Cover module");
+  constructor(string memory name_, string memory symbol_, address _operator) ERC721(name_, symbol_) {
+    operator = _operator;
+
+  }
+
+  function safeMint(address to, uint tokenId) external onlyOperator {
     _safeMint(to, tokenId);
   }
 
@@ -18,7 +24,12 @@ contract CoverNFT is ERC721 {
     return _isApprovedOrOwner(spender, tokenId);
   }
 
-  function burn(uint tokenId) external {
+  function burn(uint tokenId) external onlyOperator {
     _burn(tokenId);
+  }
+
+  function changeOperator(address _newOperator) public onlyOperator returns (bool) {
+    operator = _newOperator;
+    return true;
   }
 }

@@ -182,11 +182,9 @@ describe('makeCoverBegin', function () {
     );
   });
 
-  it('reverts if NXM premium is 0', async function () {
+  it.only('reverts if NXM premium is 0', async function () {
     const cover = { ...coverTemplate, priceNXM: '0' };
-    await expectRevert.unspecified(
-      buyCover({ ...this.contracts, cover, coverHolder: member1 }),
-    );
+    await buyCover({ ...this.contracts, cover, coverHolder: member1 });
   });
 
   it('reverts if signed quote does not match quote parameters', async function () {

@@ -1,5 +1,5 @@
 const { assert } = require('chai');
-const { web3 } = require('hardhat');
+const { web3, ethers } = require('hardhat');
 const { ether, time, expectRevert } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
 
@@ -10,14 +10,13 @@ const { toBN } = web3.utils;
 
 describe('interpolatePrice', function () {
 
-  it('should interpolate price correctly based on time elapsed', async function () {
+  it('should interpolate price correctly based on time elapsed when price is decreasing', async function () {
     const { cover } = this;
 
-    const stakedNXM = ether('100000');
-    const lastPrice = ether('10');
-    const targetPrice = ether('5');
-    const lastPriceUpdate = toBN('0');
-    const now = toBN(24 * 3600);
+    const lastPrice = ethers.utils.parseEther('10');
+    const targetPrice = ethers.utils.parseEther('5');
+    const lastPriceUpdate = '0';
+    const now = (24 * 3600).toString();
 
     const price = await cover.interpolatePrice(
       lastPrice,
@@ -26,9 +25,27 @@ describe('interpolatePrice', function () {
       now,
     );
 
-    const expectedPrice = lastPrice.sub(lastPrice.sub(targetPrice).divn(100));
+    const expectedPrice = lastPrice.sub(lastPrice.sub(targetPrice).div(100));
 
     assert.equal(price.toString(), expectedPrice.toString());
+  });
+
+  it('should set price to target price when price is increasing', async function () {
+    const { cover } = this;
+
+    const lastPrice = ethers.utils.parseEther('5');
+    const targetPrice = ethers.utils.parseEther('10');
+    const lastPriceUpdate = '0';
+    const now = (24 * 3600).toString();
+
+    const price = await cover.interpolatePrice(
+      lastPrice,
+      targetPrice,
+      lastPriceUpdate,
+      now,
+    );
+
+    assert.equal(price.toString(), targetPrice.toString());
   });
 
 });

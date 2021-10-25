@@ -115,7 +115,7 @@ contract Cover is ICover, MasterAwareV2 {
       uint96(sumAssured * 10 ** 18),
       uint32(block.timestamp + 1),
       uint32(coverPeriodInDays * 24 * 60 * 60),
-      uint96(0)
+      uint16(0)
     );
 
     ICoverNFT(coverNFT).safeMint(tx.origin, newCoverId);
@@ -533,7 +533,8 @@ contract Cover is ICover, MasterAwareV2 {
     uint coverId,
     uint amount
   ) external onlyInternal override returns (address /* owner */) {
-    address owner = ICoverNFT(coverNFT).ownerOf(coverId);
+    ICoverNFT coverNFTContract = ICoverNFT(coverNFT);
+    address owner = coverNFTContract.ownerOf(coverId);
     CoverData memory cover = covers[coverId];
     CoverData memory newCover = CoverData(
       cover.productId,
@@ -546,8 +547,8 @@ contract Cover is ICover, MasterAwareV2 {
 
     covers[coverCount++] = newCover;
 
-    coverNFT.burn(coverId);
-    coverNFT.safeMint(owner, coverCount - 1);
+    coverNFTContract.burn(coverId);
+    coverNFTContract.safeMint(owner, coverCount - 1);
     return owner;
   }
 
@@ -572,21 +573,21 @@ contract Cover is ICover, MasterAwareV2 {
 
   /* ========== PRICE CALCULATION ========== */
 
-  function getPrice(uint amount, uint period, uint productId, IStakingPool pool) public view returns (uint, uint) {
+  function getPrice(uint amount, uint period, uint productId, IStakingPool stakingPool) public view returns (uint, uint) {
 
-    uint96 lastPrice = lastPrices[productId][address(pool)].value;
+    uint96 lastPrice = lastPrices[productId][address(stakingPool)].value;
     uint basePrice = interpolatePrice(
       lastPrice != 0 ? lastPrice : initialPrices[productId],
-      pool.getTargetPrice(productId),
-      lastPrices[productId][address(pool)].lastUpdateTime,
+      stakingPool.getTargetPrice(productId),
+      lastPrices[productId][address(stakingPool)].lastUpdateTime,
       block.timestamp
     );
 
     uint pricePercentage = calculatePrice(
       amount,
       basePrice,
-      pool.getUsedCapacity(productId),
-      pool.getCapacity(productId, capacityFactor)
+      stakingPool.getUsedCapacity(productId),
+      stakingPool.getCapacity(productId, capacityFactor)
     );
 
     uint price = pricePercentage * amount / MAX_PRICE_PERCENTAGE * period / 365 days;
@@ -601,11 +602,11 @@ contract Cover is ICover, MasterAwareV2 {
     uint lastPrice,
     uint targetPrice,
     uint lastPriceUpdate,
-    uint now
+    uint currentTimestamp
   ) public pure returns (uint) {
 
     uint percentageChange =
-      (now - lastPriceUpdate) / 1 days * PERCENTAGE_CHANGE_PER_DAY_BPS;
+      (currentTimestamp - lastPriceUpdate) / 1 days * PERCENTAGE_CHANGE_PER_DAY_BPS;
 
     if (targetPrice > lastPrice) {
       return targetPrice;
@@ -693,10 +694,6 @@ contract Cover is ICover, MasterAwareV2 {
 
   function mcr() internal view returns (IMCR) {
     return IMCR(internalContracts[uint(ID.MC)]);
-  }
-
-  function tokenController() internal view returns (ITokenController) {
-    return ITokenController(internalContracts[uint(ID.TC)]);
   }
 
   function changeDependentContractAddress() external override {

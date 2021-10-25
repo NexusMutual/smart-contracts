@@ -65,7 +65,7 @@ contract CLMockCover {
         uint96(amount),
         uint32(date + 1),
         uint32(period),
-        uint96(0)
+        uint16(0)
       ));
 
     coverId = covers.length - 1;
@@ -87,7 +87,7 @@ contract CLMockCover {
         uint96(amount),
         uint32(block.timestamp + 1),
         uint32(period),
-        uint96(0)
+        uint16(0)
       ));
 
     coverId = covers.length - 1;

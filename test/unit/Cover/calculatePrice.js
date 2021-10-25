@@ -1,5 +1,5 @@
 const { assert } = require('chai');
-const { web3 } = require('hardhat');
+const { web3, ethers: { utils: { parseEther } } } = require('hardhat');
 const { ether, time, expectRevert } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
 
@@ -13,11 +13,11 @@ describe('calculatePrice', function () {
   it('should calculate price correctly for high active cover', async function () {
     const { cover } = this;
 
-    const amount = ether('1000');
+    const amount = parseEther('1000');
 
-    const basePrice = ether('2.6');
-    const activeCover = ether('8000');
-    const capacity = ether('10000');
+    const basePrice = parseEther('2.6');
+    const activeCover = parseEther('8000');
+    const capacity = parseEther('10000');
 
     const price = await cover.calculatePrice(
       amount,
@@ -36,11 +36,11 @@ describe('calculatePrice', function () {
   it('should calculate price correctly for medium-range active cover', async function () {
     const { cover } = this;
 
-    const amount = ether('1000');
+    const amount = parseEther('1000');
 
-    const basePrice = ether('2.6');
-    const activeCover = ether('5000');
-    const capacity = ether('10000');
+    const basePrice = parseEther('2.6');
+    const activeCover = parseEther('5000');
+    const capacity = parseEther('10000');
 
     const price = await cover.calculatePrice(
       amount,
@@ -59,11 +59,11 @@ describe('calculatePrice', function () {
   it('should calculate price correctly for low-range active cover', async function () {
     const { cover } = this;
 
-    const amount = ether('1000');
+    const amount = parseEther('1000');
 
-    const basePrice = ether('2.6');
-    const activeCover = ether('1000');
-    const capacity = ether('10000');
+    const basePrice = parseEther('2.6');
+    const activeCover = parseEther('1000');
+    const capacity = parseEther('10000');
 
     const price = await cover.calculatePrice(
       amount,

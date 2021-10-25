@@ -31,14 +31,33 @@ interface ICover {
     uint96 amount;
     uint32 start;
     uint32 period;  // seconds
-    uint96 premium;
+    uint16 priceRatio;
+  }
+
+  struct BuyCoverParams {
+    address owner;
+    uint24 productId;
+    uint8 payoutAsset;
+    uint96 amount;
+    uint32 period;
+    uint maxPremiumInAsset;
+    uint8 paymentAsset;
+    bool payWithNXM;
+  }
+
+  struct IncreaseAmountAndReducePeriodParams {
+    uint coverId;
+    uint32 periodReduction;
+    uint96 amount;
+    uint8 paymentAsset;
+    uint maxPremiumInAsset;
   }
 
   struct Product {
     uint16 productType;
     address productAddress;
     /* supported payout assets bitmap TODO: explain */
-    uint payoutAssets;
+    uint coverAssets;
     // TODO: consider if to pack the initialPrice and activeCoverAmountInNXM here. issues appear with
     // to many variables currently + not all parameters are needed everywhere
   }
@@ -51,7 +70,7 @@ interface ICover {
 
   /* ========== VIEWS ========== */
 
-  function covers(uint id) external view returns (uint24, uint8, uint96, uint32, uint32, uint96);
+  function covers(uint id) external view returns (uint24, uint8, uint96, uint32, uint32, uint16);
 
   function products(uint id) external view returns (uint16, address, uint);
 
@@ -62,12 +81,7 @@ interface ICover {
   /* === MUTATIVE FUNCTIONS ==== */
 
   function buyCover(
-    address owner,
-    uint24 productId,
-    uint8 payoutAsset,
-    uint96 amount,
-    uint32 period,
-    uint maxPremiumInAsset,
+    BuyCoverParams memory params,
     CoverChunkRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 

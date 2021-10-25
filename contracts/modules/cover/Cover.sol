@@ -279,19 +279,19 @@ contract Cover is ICover, MasterAwareV2 {
     coverNFT.safeMint(msg.sender, newCoverId);
   }
 
-  function increasePeriod(uint coverId, uint32 extraPeriod, uint8 paymentAsset, uint maxPremiumInAsset) external payable onlyMember {
+  function increasePeriod(uint coverId, uint32 periodExtension, uint8 paymentAsset, uint maxPremiumInAsset) external payable onlyMember {
 
 
     CoverData memory cover = covers[coverId];
     require(cover.start + cover.period > block.timestamp, "Cover: cover expired");
 
-    uint premiumInAsset = _increasePeriod(coverId, extraPeriod, paymentAsset);
+    uint premiumInAsset = _increasePeriod(coverId, periodExtension, paymentAsset);
     require(premiumInAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     retrievePayment(premiumInAsset, covers[coverId].payoutAsset);
   }
 
-  function _increasePeriod(uint coverId, uint32 extraPeriod, uint8 paymentAsset) internal returns (uint) {
+  function _increasePeriod(uint coverId, uint32 periodExtension, uint8 paymentAsset) internal returns (uint) {
 
     CoverData storage cover = covers[coverId];
     CoverChunk[] storage coverChunks = coverChunksForCover[coverId];
@@ -301,7 +301,7 @@ contract Cover is ICover, MasterAwareV2 {
       IStakingPool stakingPool = IStakingPool(coverChunks[i].poolAddress);
 
       (uint basePrice, uint premiumInNXM) = getPrice(
-        coverChunks[i].coverAmountInNXM, extraPeriod,
+        coverChunks[i].coverAmountInNXM, periodExtension,
         cover.productId,
         stakingPool
       );
@@ -313,7 +313,7 @@ contract Cover is ICover, MasterAwareV2 {
         cover.period,
         cover.start,
         REWARD_BPS * coverChunks[i].premiumInNXM / BASIS_PRECISION,
-        extraPeriod,
+        periodExtension,
         REWARD_BPS * (coverChunks[i].premiumInNXM + premiumInNXM) / BASIS_PRECISION,
         cover.amount
       );
@@ -324,7 +324,7 @@ contract Cover is ICover, MasterAwareV2 {
 
     uint premiumInAsset = extraPremiumInNXM * pool().getTokenPrice(paymentAsset) / 1e18;
 
-    cover.period += extraPeriod;
+    cover.period += periodExtension;
 
     return premiumInAsset;
   }
@@ -335,7 +335,7 @@ contract Cover is ICover, MasterAwareV2 {
   ) external payable onlyMember returns (uint) {
 
     CoverData storage cover = covers[params.coverId];
-    require(cover.start + cover.period > block.timestamp, "Cover: cover expired");
+    require(cover.start + cover.period > block.timestamp, "Cover: Cover expired");
 
     require(
       cover.period - (block.timestamp - cover.start) > params.periodReduction,

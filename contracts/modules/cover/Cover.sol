@@ -114,7 +114,7 @@ contract Cover is ICover, MasterAwareV2 {
       payoutAsset,
       uint96(sumAssured * 10 ** 18),
       uint32(block.timestamp + 1),
-      uint32(coverPeriodInDays * 24 * 60 * 60),
+      uint32(coverPeriodInDays * 1 days),
       uint16(0)
     );
 

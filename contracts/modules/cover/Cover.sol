@@ -189,15 +189,15 @@ contract Cover is ICover, MasterAwareV2 {
 
     updateActiveCoverAmountInNXM(params.productId, params.period, totalCoverAmountInNXM);
 
-    uint coverId = coverCount++;
-    covers[coverId] = CoverData(
+    uint coverId = covers.length;
+    covers.push(CoverData(
         params.productId,
         params.payoutAsset,
         uint96(totalCoverAmountInNXM * payoutAssetTokenPrice / 1e18),
         uint32(block.timestamp + 1),
         uint32(params.period),
         uint16(totalPremiumInNXM * BASIS_PRECISION / totalCoverAmountInNXM)
-      );
+    ));
 
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
 

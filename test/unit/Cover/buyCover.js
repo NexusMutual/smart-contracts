@@ -1,14 +1,14 @@
 const { assert } = require('chai');
 const { web3, ethers: { utils: { parseEther } } } = require('hardhat');
 const { time, expectRevert } = require('@openzeppelin/test-helpers');
-const { hex } = require('../utils').helpers;
+const { hex, zeroPadRight } = require('../utils').helpers;
 const { calculatePrice } = require('./helpers');
 
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
 describe('buyCover', function () {
 
-  it('should purchase new cover', async function () {
+  it.only('should purchase new cover', async function () {
     const { cover } = this;
 
     const {
@@ -48,7 +48,7 @@ describe('buyCover', function () {
     );
     const expectedPrice = expectedPricePercentage.mul(amount).div(parseEther('100'));
 
-    await cover.connect(member1).buyCover(
+    const tx = await cover.connect(member1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
@@ -64,5 +64,11 @@ describe('buyCover', function () {
         value: expectedPrice,
       },
     );
+
+    const receipt = await tx.wait();
+    console.log({
+      receipt: receipt.gasUsed.toString(),
+    });
+
   });
 });

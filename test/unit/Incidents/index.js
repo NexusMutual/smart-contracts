@@ -11,4 +11,8 @@ describe('Incidents', function () {
   afterEach(async function () {
     await revertToSnapshot(this.snapshotId);
   });
+
+  require('./submitIncident');
+  require('./redeemIncidentPayout');
+  require('./withdrawAsset');
 });

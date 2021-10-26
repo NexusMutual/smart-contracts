@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
+import "../../interfaces/IPool.sol";
 
 pragma solidity ^0.5.17;
 
 contract ICMockPool {
-  address[] public assets;
+  IPool.Asset[] public assets;
 
   function sendClaimPayout(
     address asset,
@@ -13,7 +14,7 @@ contract ICMockPool {
     return true;
   }
 
-  function addAsset(address asset) external {
-    assets.push(asset);
+  function addAsset(address assetAddress, uint8 decimals) external {
+    assets.push(IPool.Asset(assetAddress, decimals, false));
   }
 }

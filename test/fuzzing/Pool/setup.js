@@ -16,7 +16,6 @@ const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
 async function setup ({ MCR, Pool }) {
-
   const master = await MasterMock.new();
   const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
@@ -27,6 +26,7 @@ async function setup ({ MCR, Pool }) {
   const tokenData = await TokenData.new(accounts.notariseAddress);
   const pool = await Pool.new(
     [dai.address],
+    [18],
     [0], // min
     [0], // max
     [0], // max slippage

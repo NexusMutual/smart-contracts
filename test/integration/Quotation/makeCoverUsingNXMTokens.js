@@ -1,16 +1,18 @@
 const { accounts, web3 } = require('hardhat');
 const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const { toBN, soliditySha3 } = web3.utils;
+const { toBN } = web3.utils;
 const { coverToCoverDetailsArray } = require('../utils').buyCover;
 const { getQuoteSignature } = require('../utils').getQuote;
-const { enrollMember } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
+const { getAccounts } = require('../utils').accounts;
 
-const [, member1, nonMember1] = accounts;
+const {
+  members: [member1],
+  nonMembers: [nonMember1],
+} = getAccounts(accounts);
 
 async function buyCover ({ cover, coverHolder, qt }) {
-
   const vrsData = await getQuoteSignature(
     coverToCoverDetailsArray(cover),
     cover.currency,
@@ -33,7 +35,7 @@ async function buyCover ({ cover, coverHolder, qt }) {
 
 const coverTemplate = {
   amount: 1000, // 1000 dai
-  price: 1e19.toString(), // 10 dai
+  price: (1e19).toString(), // 10 dai
   priceNXM: '10000000000000000000', // 10 nxm
   expireTime: '8000000000',
   generationTime: '1600000000000',
@@ -43,16 +45,14 @@ const coverTemplate = {
 };
 
 describe('makeCoverUsingNXMTokens', function () {
-
   beforeEach(async function () {
     const { dai } = this.contracts;
-    await enrollMember(this.contracts, [member1]);
     for (const daiHolder of [member1, nonMember1]) {
       await dai.mint(daiHolder, ether('10000000'));
     }
   });
 
-  it('buys DAI cover with NXM for member, premium NXM is burned, NXM is locked and cover fields stored', async function () {
+  it('buys DAI cover with NXM for member, premium NXM is burned, 10% NXM is minted and cover fields stored', async function () {
     const { qd, p1: pool, tk: token, tc: tokenController, dai } = this.contracts;
     const cover = { ...coverTemplate };
     const member = member1;
@@ -79,11 +79,6 @@ describe('makeCoverUsingNXMTokens', function () {
     //  TODO: assert validUntil to be uint expiryDate = now.add(uint(_coverPeriod).mul(1 days));
     // assert.equal(storedCover.validUntil.toString(), cover.expireTime);
 
-    const lockReason = soliditySha3(hex('CN'), member, coverId);
-    const expectedCoverNoteLockedNXM = toBN(cover.priceNXM).divn(10);
-    const memberCoverNoteLockedNXM = await tokenController.tokensLocked(member, lockReason);
-    assert.equal(memberCoverNoteLockedNXM.toString(), expectedCoverNoteLockedNXM.toString());
-
     // no DAI is added to the pool
     const poolBalanceAfter = await dai.balanceOf(pool.address);
     assert.equal(poolBalanceAfter.toString(), poolDAIBalanceBefore.toString());
@@ -92,14 +87,16 @@ describe('makeCoverUsingNXMTokens', function () {
     const expectedTotalSumAsssured = toBN(cover.amount);
     assert.equal(totalSumAssured.toString(), expectedTotalSumAsssured.toString());
 
-    // NXM is burned from the buyer
     const memberNXMBalanceAfter = await token.balanceOf(member);
+    const expectedCoverNote = toBN(cover.priceNXM).divn(10);
+
+    // NXM is burned from the buyer and 10% is minted back
     assert.equal(
-      memberNXMBalanceAfter.toString(),
-      memberNXMBalanceBefore.sub(toBN(cover.priceNXM)).toString(),
+      memberNXMBalanceBefore.toString(),
+      memberNXMBalanceAfter.add(toBN(cover.priceNXM).sub(expectedCoverNote)).toString(),
     );
 
-    const expectedTotalNXMSupply = nxmSupplyBefore.add(expectedCoverNoteLockedNXM).sub(toBN(cover.priceNXM));
+    const expectedTotalNXMSupply = nxmSupplyBefore.add(expectedCoverNote).sub(toBN(cover.priceNXM));
     const totalNXMSupplyAfter = await token.totalSupply();
     assert.equal(expectedTotalNXMSupply.toString(), totalNXMSupplyAfter.toString());
   });
@@ -127,30 +124,37 @@ describe('makeCoverUsingNXMTokens', function () {
     assert.equal(totalSumAssured.toString(), expectedTotalSumAsssured.toString());
 
     const memberNXMBalanceAfter = await token.balanceOf(member);
+    const expectedCoverNote = toBN(cover.priceNXM).divn(10);
+
     assert.equal(
       memberNXMBalanceAfter.toString(),
-      memberNXMBalanceBefore.sub(toBN(cover.priceNXM).muln(coversToBuy)).toString(),
+      memberNXMBalanceBefore
+        .sub(
+          toBN(cover.priceNXM)
+            .sub(expectedCoverNote)
+            .muln(coversToBuy),
+        )
+        .toString(),
     );
 
-    const expectedCoverNoteLockedNXM = toBN(cover.priceNXM).divn(10).muln(coversToBuy);
-    const expectedTotalNXMSupply = nxmSupplyBefore.add(expectedCoverNoteLockedNXM).sub(toBN(cover.priceNXM).muln(coversToBuy));
+    const expectedCoverNoteLockedNXM = toBN(cover.priceNXM)
+      .divn(10)
+      .muln(coversToBuy);
+    const expectedTotalNXMSupply = nxmSupplyBefore
+      .add(expectedCoverNoteLockedNXM)
+      .sub(toBN(cover.priceNXM).muln(coversToBuy));
     const totalNXMSupplyAfter = await token.totalSupply();
     assert.equal(expectedTotalNXMSupply.toString(), totalNXMSupplyAfter.toString());
   });
 
   it('reverts when currency is not a supported asset', async function () {
     const cover = { ...coverTemplate, currency: hex('BTC') };
-    await expectRevert(
-      buyCover({ ...this.contracts, cover, coverHolder: member1 }),
-      'ClaimsReward: unknown asset',
-    );
+    await expectRevert(buyCover({ ...this.contracts, cover, coverHolder: member1 }), 'ClaimsReward: unknown asset');
   });
 
   it('reverts for non-member', async function () {
     const cover = { ...coverTemplate };
-    await expectRevert.unspecified(
-      buyCover({ ...this.contracts, cover, coverHolder: nonMember1 }),
-    );
+    await expectRevert.unspecified(buyCover({ ...this.contracts, cover, coverHolder: nonMember1 }));
   });
 
   it('reverts if cover period < 30', async function () {
@@ -186,47 +190,40 @@ describe('makeCoverUsingNXMTokens', function () {
     const coverPriceWithLockedAmount = coverPriceWei.add(coverPriceWei.divn(10));
     await token.approve(pool.address, coverPriceWithLockedAmount.subn(1), { from: member });
 
-    await expectRevert.unspecified(pool.makeCoverUsingCA(
-      cover.contractAddress,
-      cover.currency,
-      coverToCoverDetailsArray(cover),
-      cover.period,
-      vrsData[0],
-      vrsData[1],
-      vrsData[2],
-      { from: member },
-    ),
+    await expectRevert.unspecified(
+      pool.makeCoverUsingCA(
+        cover.contractAddress,
+        cover.currency,
+        coverToCoverDetailsArray(cover),
+        cover.period,
+        vrsData[0],
+        vrsData[1],
+        vrsData[2],
+        { from: member },
+      ),
     );
   });
 
   it('reverts if smart contract address is the 0 address', async function () {
     const cover = { ...coverTemplate, contractAddress: '0x0000000000000000000000000000000000000000' };
-    await expectRevert.unspecified(
-      buyCover({ ...this.contracts, cover, coverHolder: member1 }),
-    );
+    await expectRevert.unspecified(buyCover({ ...this.contracts, cover, coverHolder: member1 }));
   });
 
   it('reverts if quote validity is expired', async function () {
     const currentTime = await time.latest();
     const cover = { ...coverTemplate, expireTime: currentTime.subn(2) };
-    await expectRevert.unspecified(
-      buyCover({ ...this.contracts, cover, coverHolder: member1 }),
-    );
+    await expectRevert.unspecified(buyCover({ ...this.contracts, cover, coverHolder: member1 }));
   });
 
   it('reverts if quote is reused', async function () {
     const cover = { ...coverTemplate };
     await buyCover({ ...this.contracts, cover, coverHolder: member1 });
-    await expectRevert.unspecified(
-      buyCover({ ...this.contracts, cover, coverHolder: member1 }),
-    );
+    await expectRevert.unspecified(buyCover({ ...this.contracts, cover, coverHolder: member1 }));
   });
 
   it('reverts if NXM premium is 0', async function () {
     const cover = { ...coverTemplate, priceNXM: '0' };
-    await expectRevert.unspecified(
-      buyCover({ ...this.contracts, cover, coverHolder: member1 }),
-    );
+    await expectRevert.unspecified(buyCover({ ...this.contracts, cover, coverHolder: member1 }));
   });
 
   it('reverts if signed quote does not match quote parameters', async function () {
@@ -243,16 +240,17 @@ describe('makeCoverUsingNXMTokens', function () {
       qt.address,
     );
 
-    await expectRevert.unspecified(pool.makeCoverUsingCA(
-      cover.contractAddress,
-      cover.currency,
-      coverToCoverDetailsArray(cover),
-      cover.period,
-      vrsData[0],
-      vrsData[1],
-      vrsData[2],
-      { from: member },
-    ),
+    await expectRevert.unspecified(
+      pool.makeCoverUsingCA(
+        cover.contractAddress,
+        cover.currency,
+        coverToCoverDetailsArray(cover),
+        cover.period,
+        vrsData[0],
+        vrsData[1],
+        vrsData[2],
+        { from: member },
+      ),
     );
   });
 });

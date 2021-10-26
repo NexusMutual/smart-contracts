@@ -12,7 +12,6 @@ const bnToNumber = bn => parseInt(bn.toString(), 10);
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 const addLiquidity = async (router, weth, token, ethAmount, tokenAmount) => {
-
   await weth.deposit({ value: ethAmount });
   await weth.approve(router.address, ethAmount);
 
@@ -41,20 +40,14 @@ const nextWindowStartTime = async () => {
 };
 
 describe('swapAssetForETH', function () {
-
   it('should revert when swapAssetForETH is called while the system is paused', async function () {
-
     const { master, pool, tokenA, swapOperator } = contracts();
     await master.pause();
 
-    await expectRevert(
-      swapOperator.swapAssetForETH(tokenA.address, '0', '0'),
-      'System is paused',
-    );
+    await expectRevert(swapOperator.swapAssetForETH(tokenA.address, '0', '0'), 'System is paused');
   });
 
   it('should revert when swapAssetForETH is not called by swap controller', async function () {
-
     const { pool, tokenA, swapOperator } = contracts();
 
     await expectRevert(
@@ -84,7 +77,6 @@ describe('swapAssetForETH', function () {
   });
 
   it('should revert when swapAssetForETH is called more than once per period', async function () {
-
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
 
@@ -112,19 +104,15 @@ describe('swapAssetForETH', function () {
     const minEtherOut = ether('0.99');
     await swapOperator.swapAssetForETH(tokenA.address, tokenIn, minEtherOut);
 
-    const { lastAssetSwapTime } = await pool.getAssetDetails(tokenA.address);
+    const { lastAssetSwapTime } = await pool.getAssetSwapDetails(tokenA.address);
     assert.strictEqual(lastAssetSwapTime.toString(), period8Start.toString());
 
     await setNextBlockTime(period8End);
 
-    await expectRevert(
-      swapOperator.swapAssetForETH(tokenA.address, tokenIn, minEtherOut),
-      'SwapOperator: too fast',
-    );
+    await expectRevert(swapOperator.swapAssetForETH(tokenA.address, tokenIn, minEtherOut), 'SwapOperator: too fast');
   });
 
   it('should revert when swapAssetForETH amountIn exceeds max tradable amount', async function () {
-
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
 
@@ -150,10 +138,7 @@ describe('swapAssetForETH', function () {
     const maxTradableRatio = ether('3').divn(1000); // 0.003
     const maxTradableAmount = tokenAReserve.mul(maxTradableRatio).div(ether('1'));
 
-    const [, estimateOut] = await router.getAmountsOut(
-      maxTradableAmount,
-      [tokenA.address, weth.address],
-    );
+    const [, estimateOut] = await router.getAmountsOut(maxTradableAmount, [tokenA.address, weth.address]);
 
     await setNextBlockTime(windowStart + periodSize * 7);
 
@@ -168,7 +153,6 @@ describe('swapAssetForETH', function () {
   });
 
   it('should revert swapAssetForETH call when amountOutMin < minOutOnMaxSlippage', async function () {
-
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
     const maxSlippageRatio = ether('0.01');
@@ -215,7 +199,6 @@ describe('swapAssetForETH', function () {
   });
 
   it('should revert when asset balanceBefore <= maxAmount', async function () {
-
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
 
@@ -252,7 +235,6 @@ describe('swapAssetForETH', function () {
   });
 
   it('should revert when asset tokenBalanceAfter < minAmount', async function () {
-
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
 
@@ -283,7 +265,6 @@ describe('swapAssetForETH', function () {
   });
 
   it('should swap asset for eth and emit a Swapped event with correct values', async function () {
-
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
 
@@ -367,5 +348,4 @@ describe('swapAssetForETH', function () {
     assert.strictEqual(tokensSent.toString(), tokenIn.toString());
     assert(etherReceived.gte(minEtherOut));
   });
-
 });

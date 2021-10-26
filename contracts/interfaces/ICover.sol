@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.0;
-
-import "./ICoverNFT.sol";
+pragma solidity >=0.5.0;
 
 interface ICover {
 
@@ -11,6 +9,23 @@ interface ICover {
   enum RedeemMethod {
     Claim,
     Incident
+  }
+
+  // Basically CoverStatus from QuotationData.sol but with the extra Migrated status to avoid
+  // polluting Cover.sol state layout with new status variables.
+  enum LegacyCoverStatus {
+    Active,
+    ClaimAccepted,
+    ClaimDenied,
+    CoverExpired,
+    ClaimSubmitted,
+    Requested,
+    Migrated
+  }
+
+  struct LastPrice {
+    uint96 value;
+    uint32 lastUpdateTime;
   }
 
   struct CoverChunkRequest {
@@ -53,6 +68,16 @@ interface ICover {
     uint maxPremiumInAsset;
   }
 
+  struct ProductBucket {
+    uint96 coverAmountExpiring;
+  }
+
+  struct IncreaseAmountParams {
+    uint coverId;
+    uint8 paymentAsset;
+    CoverChunkRequest[] coverChunkRequests;
+  }
+
   struct Product {
     uint16 productType;
     address productAddress;
@@ -80,14 +105,18 @@ interface ICover {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
+  function migrateCover(uint coverId, address toNewOwner) external;
+
+  function migrateCoverFromOwner(uint coverId, address fromOwner, address toNewOwner) external;
+
   function buyCover(
-    BuyCoverParams memory params,
+    BuyCoverParams calldata params,
     CoverChunkRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
-  function performPayoutBurn(uint coverId, address owner, uint amount) external;
+  function performPayoutBurn(uint coverId, uint amount) external returns (address /*owner*/);
 
-  function coverNFT() external returns (ICoverNFT);
+  function coverNFT() external returns (address);
 
   /* ========== EVENTS ========== */
 

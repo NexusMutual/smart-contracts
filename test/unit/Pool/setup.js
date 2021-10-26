@@ -8,7 +8,6 @@ const { hex } = require('../utils').helpers;
 const { BN } = web3.utils;
 
 async function setup () {
-
   const MasterMock = artifacts.require('MasterMock');
   const TokenData = artifacts.require('TokenData');
   const TokenController = artifacts.require('TokenControllerMock');
@@ -16,7 +15,6 @@ async function setup () {
   const Pool = artifacts.require('Pool');
   const MCR = artifacts.require('P1MockMCR');
   const ERC20Mock = artifacts.require('ERC20Mock');
-  const TokenFunctions = artifacts.require('TokenFunctions');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
@@ -31,20 +29,17 @@ async function setup () {
   const chainlinkDAI = await ChainlinkAggregatorMock.new();
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
-  const priceFeedOracle = await PriceFeedOracle.new(
-    chainlinkDAI.address,
-    dai.address,
-    stETH.address,
-  );
+  const priceFeedOracle = await PriceFeedOracle.new(chainlinkDAI.address, dai.address, stETH.address);
 
   const swapOperator = accounts.generalPurpose[10];
 
   const tokenData = await TokenData.new(accounts.notariseAddress);
   const pool = await Pool.new(
     [dai.address], // assets
+    [18], // decimals
     [0], // min
     [0], // max
-    [ether('0.01')], // maxSlippage 1%
+    [100], // maxSlippage 1%
     accounts.defaultSender, // master: it is changed a few lines below
     priceFeedOracle.address,
     swapOperator, // we do not test swaps here
@@ -55,7 +50,6 @@ async function setup () {
   const token = await TokenMock.new();
   const mcr = await MCR.new();
   const tokenController = await TokenController.new();
-  const tokenFunctions = await TokenFunctions.new();
   await token.mint(accounts.defaultSender, ether('10000'));
 
   // set contract addresses
@@ -65,9 +59,8 @@ async function setup () {
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('P2'), mockP2Address);
-  await master.setLatestAddress(hex('TF'), tokenFunctions.address);
 
-  const contractsToUpdate = [mcr, pool, tokenController, tokenFunctions];
+  const contractsToUpdate = [mcr, pool, tokenController];
 
   for (const contract of contractsToUpdate) {
     await contract.changeMasterAddress(master.address);

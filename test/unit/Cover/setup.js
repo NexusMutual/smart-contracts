@@ -1,23 +1,17 @@
-const { artifacts, web3, ethers } = require('hardhat');
-const { ether } = require('@openzeppelin/test-helpers');
+const { ethers } = require('hardhat');
 
+const { BigNumber, parseEther } = ethers.utils;
 const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
-const { BN } = web3.utils;
-const { BigNumber } = ethers.utils;
-
-const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-
 async function setup () {
-
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const Pool = await ethers.getContractFactory('CoverMockPool');
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
-  const QuotationData = await ethers.getContractFactory('MCRMockQuotationData');
+  const QuotationData = await ethers.getContractFactory('CoverMockQuotationData');
   const Cover = await ethers.getContractFactory('Cover');
   const MemberRolesMock = await ethers.getContractFactory('MemberRolesMock');
   const CoverNFT = await ethers.getContractFactory('CoverNFT');
@@ -27,6 +21,11 @@ async function setup () {
 
   const master = await MasterMock.deploy();
   await master.deployed();
+
+  const quotationData = await QuotationData.deploy();
+
+  await quotationData.setTotalSumAssured(hex('DAI'), '0');
+  await quotationData.setTotalSumAssured(hex('ETH'), '100000');
 
   const dai = await ERC20Mock.deploy();
   await dai.deployed();
@@ -45,8 +44,9 @@ async function setup () {
 
   const mcr = await MCR.deploy();
   await mcr.deployed();
+  await mcr.setMCR(parseEther('600000'));
 
-  const cover = await Cover.deploy();
+  const cover = await Cover.deploy(quotationData.address);
   await cover.deployed();
 
   await master.setTokenAddress(nxm.address);
@@ -56,35 +56,25 @@ async function setup () {
 
   await cover.initialize(coverNFT.address);
 
-  const ethToDaiRate = ether('2000');
-  const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
+  const ethToDaiRate = parseEther('2000');
+  const daiToEthRate = BigNumber.from(10)
+    .pow(BigNumber.from(36))
+    .div(ethToDaiRate);
 
   const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
   await chainlinkDAI.deployed();
 
   await chainlinkDAI.setLatestAnswer(daiToEthRate.toString());
 
-  const priceFeedOracle = await PriceFeedOracle.deploy(
-    chainlinkDAI.address,
-    dai.address,
-    stETH.address,
-  );
+  const priceFeedOracle = await PriceFeedOracle.deploy(chainlinkDAI.address, dai.address, stETH.address);
   await priceFeedOracle.deployed();
 
   const pool = await Pool.deploy();
   await pool.deployed();
 
-  await pool.setAssets([ETH, dai.address]);
+  await pool.setAssets([dai.address], [18]);
 
-  await pool.setTokenPrice('0', ethers.utils.parseEther('1'));
-
-  const quotationData = await QuotationData.deploy();
-  await quotationData.deployed();
-
-  await quotationData.setTotalSumAssured(hex('DAIX'), '0');
-  await quotationData.setTotalSumAssured(hex('ETHX'), '100000');
-
-  await mcr.setMCR(ethers.utils.parseEther('600000'));
+  await pool.setTokenPrice('0', parseEther('1'));
 
   // set contract addresses
   await master.setLatestAddress(hex('P1'), pool.address);

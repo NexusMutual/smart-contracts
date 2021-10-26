@@ -2,8 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-v4/token/ERC721/IERC721Receiver.sol";
-
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
@@ -11,16 +9,15 @@ import "../../interfaces/ICover.sol";
 import "../../interfaces/IClaims.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IERC20Detailed.sol";
+import "../../interfaces/ICoverNFT.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 import "hardhat/console.sol";
 
-/**
- *  Provides a way for cover owners to submit claims and redeem the payouts and facilitates
- *  assessment processes where members decide the outcome of the events that lead to potential
- *  payouts.
- */
-contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
+/// Provides a way for cover owners to submit claims and redeem the payouts and facilitates
+/// assessment processes where members decide the outcome of the events that lead to potential
+/// payouts.
+contract Claims is IClaims, MasterAwareV2 {
 
   // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
   uint internal constant RATIO_BPS = 10000;
@@ -29,19 +26,26 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
   uint internal constant PRECISION = 10 ** 18;
 
 
-  /* ========== STATE VARIABLES ========== */
-
   INXMToken internal immutable nxm;
+
+  ICoverNFT internal immutable coverNFT;
+
+  /* ========== STATE VARIABLES ========== */
 
   Configuration public override config;
 
   Claim[] public override claims;
-  address[] public override claimants;
+
+  // Mapping from coverId to claimId used to check if a new claim can be submitted on the given
+  // cover as long as the last submitted claim reached a final state.
+  mapping(uint => ClaimSubmission) public lastSubmittedClaimOnCover;
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(address nxmAddress) {
+  constructor(address nxmAddress, address coverNFTAddress) {
     nxm = INXMToken(nxmAddress);
+    // [todo] Replace with CoverNFT interface
+    coverNFT = ICoverNFT(coverNFTAddress);
   }
 
   function initialize(address masterAddress) external {
@@ -78,8 +82,9 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
     uint coverPeriod,
     uint payoutAsset
   ) internal view returns (uint, uint) {
-    uint nxmPriceInPayoutAsset = pool().getTokenPrice(payoutAsset);
-    uint nxmPriceInETH = pool().getTokenPrice(0);
+    IPool poolContract = pool();
+    uint nxmPriceInPayoutAsset = poolContract.getTokenPrice(payoutAsset);
+    uint nxmPriceInETH = poolContract.getTokenPrice(0);
 
     // Calculate the expected in NXM using the NXM price at cover purchase time
     uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPriceInPayoutAsset;
@@ -107,14 +112,12 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
     return _getAssessmentDepositAndReward(requestedAmount, coverPeriod, payoutAsset);
   }
 
-  /**
-   *  Returns a Claim aggregated in a human-friendly format.
-   *
-   *  @dev This view is meant to be used in user interfaces to get a claim in a format suitable for
-   *  displaying all relevant information in as few calls as possible. See ClaimDisplay struct.
-   *
-   *  @param id    Claim identifier for which the ClaimDisplay is returned
-   */
+  /// Returns a Claim aggregated in a human-friendly format.
+  ///
+  /// @dev This view is meant to be used in user interfaces to get a claim in a format suitable for
+  /// displaying all relevant information in as few calls as possible. See ClaimDisplay struct.
+  ///
+  /// @param id    Claim identifier for which the ClaimDisplay is returned
   function getClaimDisplay(uint id) internal view returns (ClaimDisplay memory) {
     Claim memory claim = claims[id];
     (IAssessment.Poll memory poll,,) = assessment().assessments(claim.assessmentId);
@@ -156,7 +159,7 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
 
     (
       uint24 productId,
-      uint8 payoutAsset,
+      /*uint8 payoutAsset*/,
       /*uint96 amount*/,
       uint32 coverStart,
       uint32 coverPeriod,
@@ -192,15 +195,13 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
     );
   }
 
-  /**
-   *  Returns an array of claims aggregated in a human-friendly format.
-   *
-   *  @dev This view is meant to be used in user interfaces to get claims in a format suitable for
-   *  displaying all relevant information in as few calls as possible. It can be used to paginate
-   *  claims by providing the following paramterers:
-   *
-   *  @param ids   Array of Claim ids which are returned as ClaimDisplay
-   */
+  /// Returns an array of claims aggregated in a human-friendly format.
+  ///
+  /// @dev This view is meant to be used in user interfaces to get claims in a format suitable for
+  /// displaying all relevant information in as few calls as possible. It can be used to paginate
+  /// claims by providing the following paramterers:
+  ///
+  /// @param ids   Array of Claim ids which are returned as ClaimDisplay
   function getClaimsToDisplay (uint104[] calldata ids)
   external view returns (ClaimDisplay[] memory) {
     ClaimDisplay[] memory claimDisplays = new ClaimDisplay[](ids.length);
@@ -213,27 +214,57 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  /**
-   *  Submits a claim for assessment
-   *
-   *  @dev This function requires an ETH assessment fee. See: _getAssessmentDepositAndReward
-   *
-   *  @param coverId          Cover identifier
-   *  @param requestedAmount  The amount expected to be received at payout
-   *  @param ipfsProofHash    The IPFS hash required for proof of loss. If this string is empty,
-   *                          no ProofSubmitted event is emitted.
-   */
+  /// @dev Migrates covers for arNFT-like contracts that don't use Gateway.sol
+  ///
+  /// @param coverId          Legacy (V1) cover identifier
+  function submitClaim(uint coverId) external {
+    cover().migrateCoverFromOwner(coverId, msg.sender, tx.origin);
+  }
+
+  /// Submits a claim for assessment
+  ///
+  /// @dev This function requires an ETH assessment fee. See: _getAssessmentDepositAndReward
+  ///
+  /// @param coverId          Cover identifier
+  /// @param requestedAmount  The amount expected to be received at payout
+  /// @param ipfsProofHash    The IPFS hash required for proof of loss. If this string is empty,
   function submitClaim(
     uint24 coverId,
     uint96 requestedAmount,
     string calldata ipfsProofHash
   ) external payable override onlyMember {
+    require(
+      coverNFT.isApprovedOrOwner(msg.sender, coverId),
+      "Only the owner or approved addresses can submit a claim"
+    );
+    {
+      ClaimSubmission memory previousSubmission = lastSubmittedClaimOnCover[coverId];
+      if (previousSubmission.exists) {
+        uint80 assessmentId = claims[previousSubmission.claimId].assessmentId;
+        IAssessment.Poll memory poll = assessment().getPoll(assessmentId);
+        (,,uint8 payoutCooldownDays) = assessment().config();
+        if (block.timestamp >= poll.end + payoutCooldownDays * 1 days) {
+          if (
+            poll.accepted > poll.denied &&
+            block.timestamp < poll.end +
+            payoutCooldownDays * 1 days +
+            config.payoutRedemptionPeriodDays * 1 days
+          ) {
+            revert("A payout can still be redeemed");
+          }
+        } else {
+          revert("A claim is already being assessed");
+        }
+      }
+      lastSubmittedClaimOnCover[coverId] = ClaimSubmission(uint80(claims.length), true);
+    }
     uint32 coverStart;
     uint32 coverPeriod;
     uint8 payoutAsset;
     {
       uint96 coverAmount;
       uint24 productId;
+      ICover coverContract = cover();
       (
         productId,
         payoutAsset,
@@ -241,28 +272,24 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
         coverStart,
         coverPeriod,
         /*uint80 nxmPrice*/
-      ) = cover().covers(coverId);
+      ) = coverContract.covers(coverId);
       (
         uint16 productType,
-        /*uint24 productId*/,
+        /*address productAddress*/,
         /*uint payoutAssets*/
-      ) = cover().products(productId);
+      ) = coverContract.products(productId);
       (
         /*string descriptionIpfsHash*/,
         uint8 redeemMethod,
         uint16 gracePeriodInDays
-      ) = cover().productTypes(productType);
+      ) = coverContract.productTypes(productType);
       require(redeemMethod == uint8(ICover.RedeemMethod.Claim), "Invalid redeem method");
       require(requestedAmount <= coverAmount, "Covered amount exceeded");
       require(coverStart <= block.timestamp, "Cover starts in the future");
-      require(coverStart + coverPeriod + gracePeriodInDays * 1 days > block.timestamp, "Cover is outside the grace period");
-    }
-
-    {
-      ICoverNFT coverNFT = cover().coverNFT();
-      address owner = coverNFT.ownerOf(coverId);
-      claimants.push(owner);
-      coverNFT.transferFrom(owner, address(this), coverId);
+      require(
+        coverStart + coverPeriod + gracePeriodInDays * 1 days > block.timestamp,
+        "Cover is outside the grace period"
+      );
     }
 
     if (bytes(ipfsProofHash).length > 0) {
@@ -274,8 +301,7 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       coverId,
       requestedAmount,
       payoutAsset,
-      false, // payoutRedeemed
-      false // coverRedeemed
+      false // payoutRedeemed
     );
 
     (uint deposit, uint totalReward) = _getAssessmentDepositAndReward(
@@ -284,19 +310,21 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
       payoutAsset
     );
 
-    require(
-      msg.value >= deposit,
-      "Assessment deposit is insufficient"
-    );
+    require(msg.value >= deposit, "Assessment deposit is insufficient");
+    if (msg.value > deposit) {
+      // Refund ETH excess back to the sender
+      (bool refunded, /* bytes data */) = msg.sender.call{value: msg.value - deposit}("");
+      require(refunded, "Assessment deposit excess refund failed");
+    }
 
-    uint assessmentId = assessment().startAssessment(totalReward, deposit);
-    claim.assessmentId = uint80(assessmentId);
+    // Transfer the deposit to the pool
+    (bool transferSucceeded, /* bytes data */) =  internalContracts[uint(ID.P1)].call{value: deposit}("");
+    require(transferSucceeded, "Assessment deposit excess refund failed");
+
+    uint newAssessmentId = assessment().startAssessment(totalReward, deposit);
+    claim.assessmentId = uint80(newAssessmentId);
     claims.push(claim);
 
-    if (msg.value > deposit) {
-      (bool refunded, /* bytes data */) = msg.sender.call{value: msg.value - deposit}("");
-      require(refunded, "Assessment deposit refund failed");
-    }
   }
 
   function redeemClaimPayout(uint104 claimId) external override {
@@ -325,56 +353,26 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
     require(!claim.payoutRedeemed, "Payout has already been redeemed");
     claims[claimId].payoutRedeemed = true;
 
-    address payable coverOwner = payable(claimants[claim.coverId]);
-    cover().performPayoutBurn(
+    address payable coverOwner = payable(cover().performPayoutBurn(
       claim.coverId,
-      coverOwner,
       claim.amount
-    );
+    ));
 
-    bool succeeded = pool().sendClaimPayout(claim.payoutAsset, coverOwner, claim.amount);
-    require(succeeded, "Claim payout failed");
-
-    {
-      (bool refunded, /* bytes data */) = coverOwner.call{value: assessmentDeposit}("");
-      require(refunded, "Assessment deposit refund failed");
+    bool payoutSucceeded;
+    IPool poolContract = pool();
+    if (claim.payoutAsset == 0) {
+      payoutSucceeded = poolContract.sendClaimPayout(
+        claim.payoutAsset,
+        coverOwner,
+        claim.amount + assessmentDeposit
+      );
+    } else {
+      bool depositRefundSucceeded = poolContract.sendClaimPayout(0, coverOwner, assessmentDeposit);
+      require(depositRefundSucceeded, "Assessment deposit refund failed");
+      payoutSucceeded = poolContract.sendClaimPayout(claim.payoutAsset, coverOwner, claim.amount);
     }
-  }
+    require(payoutSucceeded, "Claim payout failed");
 
-  function redeemCoverForDeniedClaim(uint claimId) external override {
-    Claim memory claim = claims[claimId];
-
-    (
-      IAssessment.Poll memory poll,
-      /*uint128 totalReward*/,
-      uint128 assessmentDeposit
-    ) = assessment().assessments(claim.assessmentId);
-
-    require(!claim.coverRedeemed, "Cover was already redeemed");
-
-    // A cover can be redeemed if the claim is either denied or the payout is not claimed before
-    // the payout redemption period.
-    (,,uint8 payoutCooldownDays) = assessment().config();
-    if (poll.accepted > poll.denied) {
-      if (
-        block.timestamp < poll.end +
-        payoutCooldownDays * 1 days +
-        config.payoutRedemptionPeriodDays * 1 days
-      ) {
-        revert("A payout can still be claimed");
-      }
-      revert("A cover can be redeemed only if the claim was denied");
-    } else if (block.timestamp < poll.end + payoutCooldownDays * 1 days) {
-      // Sometimes the resolution of a fraudulent assessmnt could potentially change the outcome of
-      // the assessment, thus it is necessary to keep the cover NFT in this contract to be able to
-      // redeem the payout afterwards.
-      revert("The claim is in cooldown period");
-    }
-
-    cover().coverNFT().transferFrom(address(this), claimants[claimId], claim.coverId);
-    claims[claimId].coverRedeemed = true;
-    (bool succeeded, /* bytes data */) = getInternalContractAddress(ID.P1).call{value: assessmentDeposit}("");
-    require(succeeded, "Deposit transfer to pool failed");
   }
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)
@@ -404,16 +402,4 @@ contract Claims is IClaims, IERC721Receiver, MasterAwareV2 {
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
   }
-
-  // Required to receive NFTS
-  function onERC721Received(
-    address operator,
-    address from,
-    uint256 tokenId,
-    bytes calldata data
-  ) external view override returns (bytes4) {
-    require(msg.sender == internalContracts[uint(ID.CO)], "Unexpected NFT");
-    return IERC721Receiver.onERC721Received.selector;
-  }
-
 }

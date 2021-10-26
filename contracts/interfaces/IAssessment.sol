@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.5.0;
+
+pragma experimental ABIEncoderV2;
 
 interface IAssessment {
 
@@ -64,7 +66,9 @@ interface IAssessment {
   function getAssessmentsCount() external view returns (uint);
 
   function assessments(uint id) external view
-  returns (Poll memory poll, uint128 totalAssessmentReward, uint128 assessmentDeposit);
+  returns (Poll memory poll, uint128 totalReward, uint128 assessmentDeposit);
+
+  function getPoll(uint assessmentId) external view returns (Poll memory);
 
   function getVoteCountOfAssessor(address assessor) external view returns (uint);
 
@@ -89,7 +93,7 @@ interface IAssessment {
   function withdrawRewards(address user, uint104 untilIndex) external
   returns (uint withdrawn, uint withdrawUntilIndex);
 
-  function startAssessment(uint totalAssessmentReward, uint assessmentDeposit) external
+  function startAssessment(uint totalReward, uint assessmentDeposit) external
   returns (uint);
 
   function castVote(uint assessmentId, bool isAccepted) external;

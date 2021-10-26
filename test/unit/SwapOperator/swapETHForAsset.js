@@ -13,7 +13,6 @@ const bnToNumber = bn => parseInt(bn.toString(), 10);
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 const addLiquidity = async (router, weth, token, ethAmount, tokenAmount) => {
-
   await weth.deposit({ value: ethAmount });
   await weth.approve(router.address, ethAmount);
 
@@ -42,20 +41,14 @@ const nextWindowStartTime = async () => {
 };
 
 describe('swapETHForAsset', function () {
-
   it('should revert when called while the system is paused', async function () {
-
     const { master, tokenA, swapOperator } = contracts();
     await master.pause();
 
-    await expectRevert(
-      swapOperator.swapETHForAsset(tokenA.address, '0', '0'),
-      'System is paused',
-    );
+    await expectRevert(swapOperator.swapETHForAsset(tokenA.address, '0', '0'), 'System is paused');
   });
 
   it('should revert when called by an address that is not swap controller', async function () {
-
     const { tokenA, swapOperator } = contracts();
 
     await expectRevert(
@@ -71,7 +64,7 @@ describe('swapETHForAsset', function () {
       tokenA.address,
       ether('0'), // asset minimum
       ether('0'), // asset maximum
-      ether('0.01'), // max slippage
+      100, // max slippage
       { from: governance },
     );
 
@@ -85,7 +78,6 @@ describe('swapETHForAsset', function () {
   });
 
   it('should revert when called more than once per period', async function () {
-
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
 
@@ -93,7 +85,7 @@ describe('swapETHForAsset', function () {
       tokenA.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
-      ether('0.01'), // max slippage
+      100, // max slippage
       { from: governance },
     );
 
@@ -111,19 +103,15 @@ describe('swapETHForAsset', function () {
     const minTokenOut = ether('198');
     await swapOperator.swapETHForAsset(tokenA.address, etherIn, minTokenOut);
 
-    const { lastAssetSwapTime } = await pool.getAssetDetails(tokenA.address);
+    const { lastAssetSwapTime } = await pool.getAssetSwapDetails(tokenA.address);
     assert.strictEqual(lastAssetSwapTime.toString(), period8Start.toString());
 
     await setNextBlockTime(period8End);
 
-    await expectRevert(
-      swapOperator.swapETHForAsset(tokenA.address, etherIn, minTokenOut),
-      'SwapOperator: too fast',
-    );
+    await expectRevert(swapOperator.swapETHForAsset(tokenA.address, etherIn, minTokenOut), 'SwapOperator: too fast');
   });
 
   it('should revert when amountIn exceeds max tradable amount', async function () {
-
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
 
@@ -131,7 +119,7 @@ describe('swapETHForAsset', function () {
       tokenA.address,
       ether('100'), // asset minimum
       ether('100000'), // asset maximum
-      ether('0.01'), // max slippage
+      100, // max slippage
       { from: governance },
     );
 
@@ -147,10 +135,7 @@ describe('swapETHForAsset', function () {
     const maxTradableRatio = ether('3').divn(1000); // 0.003
     const maxTradableAmount = wethReserve.mul(maxTradableRatio).div(ether('1'));
 
-    const [, estimateOut] = await router.getAmountsOut(
-      maxTradableAmount,
-      [weth.address, tokenA.address],
-    );
+    const [, estimateOut] = await router.getAmountsOut(maxTradableAmount, [weth.address, tokenA.address]);
 
     await setNextBlockTime(windowStart + periodSize * 7);
 
@@ -165,7 +150,6 @@ describe('swapETHForAsset', function () {
   });
 
   it('should revert if ether left in pool is less than minPoolEth', async function () {
-
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
 
@@ -179,7 +163,7 @@ describe('swapETHForAsset', function () {
       tokenA.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
-      ether('0.01'), // max slippage
+      100, // max slippage
       { from: governance },
     );
 
@@ -188,10 +172,7 @@ describe('swapETHForAsset', function () {
     await setNextBlockTime(windowStart);
     await oracle.update([wethAPair.address]);
 
-    const [, estimateOut] = await router.getAmountsOut(
-      maxPoolTradableEther,
-      [weth.address, tokenA.address],
-    );
+    const [, estimateOut] = await router.getAmountsOut(maxPoolTradableEther, [weth.address, tokenA.address]);
 
     await setNextBlockTime(windowStart + periodSize * 7);
 
@@ -206,7 +187,6 @@ describe('swapETHForAsset', function () {
   });
 
   it('should revert when amountOutMin < minOutOnMaxSlippage', async function () {
-
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
     const maxSlippageRatio = ether('0.01');
@@ -215,7 +195,7 @@ describe('swapETHForAsset', function () {
       tokenA.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
-      ether('0.01'), // max slippage
+      100, // max slippage
       { from: governance },
     );
 
@@ -251,7 +231,6 @@ describe('swapETHForAsset', function () {
   });
 
   it('should revert when asset balanceBefore >= minAmount', async function () {
-
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
 
@@ -263,7 +242,7 @@ describe('swapETHForAsset', function () {
       tokenA.address,
       assetMinAmount, // asset minimum
       ether('1000'), // asset maximum
-      ether('0.01'), // max slippage
+      100, // max slippage
       { from: governance },
     );
 
@@ -284,7 +263,6 @@ describe('swapETHForAsset', function () {
   });
 
   it('should revert when asset balanceBefore + amountOutMin > maxAmount', async function () {
-
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
 
@@ -292,7 +270,7 @@ describe('swapETHForAsset', function () {
       tokenA.address,
       ether('100'), // asset minimum
       ether('200'), // asset maximum
-      ether('0.01'), // max slippage
+      100, // max slippage
       { from: governance },
     );
 
@@ -313,7 +291,6 @@ describe('swapETHForAsset', function () {
   });
 
   it('should swap eth for asset and emit a Swapped event with correct values', async function () {
-
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
 
@@ -321,7 +298,7 @@ describe('swapETHForAsset', function () {
       tokenA.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
-      ether('0.01'), // max slippage
+      100, // max slippage
       { from: governance },
     );
 
@@ -356,5 +333,4 @@ describe('swapETHForAsset', function () {
       amountOut: tokensReceived,
     });
   });
-
 });

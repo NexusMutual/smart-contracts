@@ -245,7 +245,8 @@ describe('Token price functions', function () {
     assert.equal(mcrRatio.toString(), '20000');
   });
 
-  it('sellNXM reverts for member if tokens are locked for member vote', async function () {
+  it.skip('sellNXM reverts for member if tokens are locked for member vote', async function () {
+    // [todo] Use new contracts
     const { cd: claimsData, cl: claims, qd: quotationData, p1: pool, tk: token, master, cr } = this.contracts;
     const cover = { ...coverTemplate };
     await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
@@ -283,7 +284,8 @@ describe('Token price functions', function () {
     await cr.closeClaim(claimId);
   });
 
-  it('computes token price correctly to decide sum of locked tokens value > 10 * sumAssured and close vote immediately', async function () {
+  it.skip('computes token price correctly to decide sum of locked tokens value > 10 * sumAssured and close vote immediately', async function () {
+    // [todo] Use new contracts
     const { cd, cl, qd, mr, master, p1, dai, cr } = this.contracts;
 
     const coverUnitAmount = 28;
@@ -338,7 +340,8 @@ describe('Token price functions', function () {
     assert.strictEqual(claimStatusCA.toNumber(), 14, 'claim status should be 14 (payout done)');
   });
 
-  it('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured and value < 10 * sumAssured for CA vote and allow closing after maxVotingTime', async function () {
+  it.skip('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured and value < 10 * sumAssured for CA vote and allow closing after maxVotingTime', async function () {
+    // [todo] Use new contracts
     const { cd, cl, qd, mr, master, p1, dai, cr } = this.contracts;
 
     const coverUnitAmount = 28;
@@ -385,7 +388,8 @@ describe('Token price functions', function () {
     assert.strictEqual(claimStatusCA.toNumber(), 14, 'claim status should be 14 (payout done)');
   });
 
-  it('computes token price correctly to decide sum of locked tokens value < 5 * sumAssured for CA vote and go to member vote', async function () {
+  it.skip('computes token price correctly to decide sum of locked tokens value < 5 * sumAssured for CA vote and go to member vote', async function () {
+    // [todo] Use new contracts
     const { cd, cl, qd, mr, master, p1, dai, cr } = this.contracts;
 
     const coverUnitAmount = 28;
@@ -429,7 +433,8 @@ describe('Token price functions', function () {
     );
   });
 
-  it('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured for MV vote', async function () {
+  it.skip('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured for MV vote', async function () {
+    // [todo] Use new contracts
     const { cd, cl, qd, mr, master, p1, tk, cr } = this.contracts;
     const coverUnitAmount = 28;
     const coverAmount = ether(coverUnitAmount.toString());
@@ -479,7 +484,8 @@ describe('Token price functions', function () {
     assert.strictEqual(claimStatusMV.toNumber(), 9, 'claim status should be 9 (ca consensus not reached, mv rejected)');
   });
 
-  it('computes token price correctly to decide sum of locked tokens value < 5 * sumAssured for MV vote', async function () {
+  it.skip('computes token price correctly to decide sum of locked tokens value < 5 * sumAssured for MV vote', async function () {
+    // [todo] Use new contracts
     const { cd, cl, qd, mr, master, p1, tk, cr } = this.contracts;
     const coverUnitAmount = 28;
     const coverAmount = ether(coverUnitAmount.toString());

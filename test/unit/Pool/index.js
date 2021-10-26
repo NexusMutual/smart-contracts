@@ -38,5 +38,5 @@ describe('Pool unit tests', function () {
 
   // swapping
   require('./transferAssetToSwapOperator');
-  require('./setAssetDataLastSwapTime');
+  require('./setSwapDetailsLastSwapTime');
 });

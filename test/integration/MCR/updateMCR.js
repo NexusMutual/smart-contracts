@@ -28,7 +28,6 @@ const coverTemplate = {
 const ratioScale = toBN(10000);
 
 describe('updateMCR', function () {
-
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
   });
@@ -149,7 +148,10 @@ describe('updateMCR', function () {
 
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
-    const coverAmount = gearingFactor.mul(currentMCR.add(ether('300'))).div(ether('1')).div(ratioScale);
+    const coverAmount = gearingFactor
+      .mul(currentMCR.add(ether('300')))
+      .div(ether('1'))
+      .div(ratioScale);
     const cover = { ...coverTemplate, amount: coverAmount };
 
     await buyCover({ ...this.contracts, cover, coverHolder });
@@ -164,7 +166,9 @@ describe('updateMCR', function () {
     const lastUpdateTimeAfter = await mcr.lastUpdateTime();
     const mcrFloorAfter = await mcr.mcrFloor();
     const desireMCRAfter = await mcr.desiredMCR();
-    const expectedDesiredMCR = ether(coverAmount.toString()).div(gearingFactor).mul(ratioScale);
+    const expectedDesiredMCR = ether(coverAmount.toString())
+      .div(gearingFactor)
+      .mul(ratioScale);
 
     assert(lastUpdateTimeBefore.lt(lastUpdateTimeAfter));
     assert.equal(lastUpdateTimeAfter.toString(), block.timestamp.toString());
@@ -180,7 +184,10 @@ describe('updateMCR', function () {
 
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
-    const coverAmount = gearingFactor.mul(currentMCR.add(ether('300'))).div(ether('1')).div(ratioScale);
+    const coverAmount = gearingFactor
+      .mul(currentMCR.add(ether('300')))
+      .div(ether('1'))
+      .div(ratioScale);
     const cover = { ...coverTemplate, amount: coverAmount };
 
     await buyCover({ ...this.contracts, cover, coverHolder });
@@ -216,12 +223,16 @@ describe('updateMCR', function () {
     assert.equal(currentMCRFloor.toString(), expectedMCRFloor.toString());
   });
 
-  it('claim payout triggers updateMCR and sets desiredMCR to mcrFloor (sumAssured = 0)', async function () {
+  it.skip('claim payout triggers updateMCR and sets desiredMCR to mcrFloor (sumAssured = 0)', async function () {
+    // [todo] test with new contracts that call sendClaimPayout
     const { mcr, cl: claims, tk: token, p1: pool } = this.contracts;
 
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
-    const coverAmount = gearingFactor.mul(currentMCR.add(ether('300'))).div(ether('1')).div(ratioScale);
+    const coverAmount = gearingFactor
+      .mul(currentMCR.add(ether('300')))
+      .div(ether('1'))
+      .div(ratioScale);
 
     // fund pool to pay for cover
     await pool.sendEther({ from: owner, value: coverAmount.mul(ether('1')) });
@@ -255,7 +266,8 @@ describe('updateMCR', function () {
     assert.equal(desiredMCR.toString(), mcrFloor.toString());
   });
 
-  it('incidents.redeemPayout triggers updateMCR', async function () {
+  it.skip('incidents.redeemPayout triggers updateMCR', async function () {
+    // [todo] test with new contracts that call sendClaimPayout
     const { incidents, qd, p1, mcr } = this.contracts;
 
     const ETH = await p1.ETH();
@@ -272,7 +284,9 @@ describe('updateMCR', function () {
 
     // sumAssured DAI = tokenAmount ybETH @ priceBefore
     // 500 ETH  /  2 ETH/ybETH  =  1000 ybETH
-    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+    const tokenAmount = ether('1')
+      .mul(sumAssured)
+      .div(priceBefore);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);

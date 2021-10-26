@@ -3,32 +3,36 @@ import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/IPool.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/ITokenController.sol";
+import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2 {
 
+  /* === CONSTANTS ==== */
+
+  uint public REWARD_BPS = 5000;
+  uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
+  uint public constant BASIS_PRECISION = 10000;
+  uint public constant STAKE_SPEED_UNIT = 100000e18;
+  uint public constant PRICE_CURVE_EXPONENT = 7;
+  uint public constant MAX_PRICE_PERCENTAGE = 1e20;
   uint public constant BUCKET_SIZE = 7 days;
+  IQuotationData internal immutable quotationData;
+  IProductsV1 internal immutable productsV1;
 
-
-  struct ProductBucket {
-    uint96 coverAmountExpiring;
-  }
-
-  struct IncreaseAmountParams {
-    uint coverId;
-    uint8 paymentAsset;
-    CoverChunkRequest[] coverChunkRequests;
-  }
+  /* ========== STATE VARIABLES ========== */
 
   Product[] public override products;
   ProductType[] public override productTypes;
 
-  mapping(uint => CoverData) public override covers;
+  CoverData[] public override covers;
   mapping(uint => CoverChunk[]) public coverChunksForCover;
 
   mapping(uint => uint) initialPrices;
@@ -39,8 +43,10 @@ contract Cover is ICover, MasterAwareV2 {
   mapping(uint => uint) lastProductBucket;
 
   uint32 public capacityFactor;
+  // [todo] Remove this and use covers.length instead
   uint32 public coverCount;
-  ICoverNFT public override coverNFT;
+
+  address public override coverNFT;
 
   /*
     bit map representing which assets are globally supported for paying for and for paying out covers
@@ -49,38 +55,92 @@ contract Cover is ICover, MasterAwareV2 {
   */
   uint public coverAssetsFallback;
 
-
-  struct LastPrice {
-    uint96 value;
-    uint32 lastUpdateTime;
-  }
-
   /*
     (productId, poolAddress) => lastPrice
     Last base prices at which a cover was sold by a pool for a particular product.
   */
   mapping(uint => mapping(address => LastPrice)) lastPrices;
 
+  /* ========== CONSTRUCTOR ========== */
 
-  /* === CONSTANTS ==== */
-
-  uint public REWARD_BPS = 5000;
-  uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
-  uint public constant BASIS_PRECISION = 10000;
-  uint public constant STAKE_SPEED_UNIT = 100000e18;
-  uint public constant PRICE_CURVE_EXPONENT = 7;
-  uint public constant MAX_PRICE_PERCENTAGE = 1e20;
-
-
-  constructor() {
+  constructor(IQuotationData _quotationData, IProductsV1 _productsV1) {
+    quotationData = _quotationData;
+    productsV1 = _productsV1;
   }
 
-  function initialize(ICoverNFT _coverNFT) public {
-    require(address(coverNFT) == address(0), "Cover: already initialized");
+  function initialize(address _coverNFT) public {
+    require(coverNFT == address(0), "Cover: already initialized");
     coverNFT = _coverNFT;
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
+
+  /// @dev Migrates covers from V1 to Cover.sol, meant to be used by Claims.sol and Gateway.sol to
+  /// allow the users of distributor contracts to migrate their NFTs.
+  ///
+  /// @param coverId     V1 cover identifier
+  /// @param fromOwner   The address from where this function is called that needs to match the
+  /// @param toNewOwner  The address for which the V2 cover NFT is minted
+  function migrateCoverFromOwner(
+    uint coverId,
+    address fromOwner,
+    address toNewOwner
+  ) public override onlyInternal {
+    (
+      /*uint coverId*/,
+      address coverOwner,
+      address legacyProductId,
+      bytes4 currencyCode,
+      /*uint sumAssured*/,
+      uint premiumNXM
+    ) = quotationData.getCoverDetailsByCoverID1(coverId);
+    (
+      /*uint coverId*/,
+      uint8 status,
+      uint sumAssured,
+      uint16 coverPeriodInDays,
+      uint validUntil
+    ) = quotationData.getCoverDetailsByCoverID2(coverId);
+
+    require(fromOwner == coverOwner, "Cover can only be migrated by its owner");
+    require(LegacyCoverStatus(status) != LegacyCoverStatus.Migrated, "Cover has already been migrated");
+    require(LegacyCoverStatus(status) != LegacyCoverStatus.ClaimAccepted, "A claim has already been accepted");
+    require(block.timestamp < validUntil, "Cover expired");
+
+    {
+      (uint claimCount , bool hasOpenClaim,  /*hasAcceptedClaim*/) = tokenController().coverInfo(coverId);
+      require(!hasOpenClaim, "Cover has an open V1 claim");
+      require(claimCount < 2, "Cover already has 2 claims");
+    }
+
+    // Mark cover as migrated to prevent future calls on the same cover
+    quotationData.changeCoverStatusNo(coverId, uint8(LegacyCoverStatus.Migrated));
+
+    // mint the new cover
+    covers.push(
+      CoverData(
+        productsV1.getNewProductId(legacyProductId), // productId
+        currencyCode == "ETH" ? 0 : 1, //payoutAsset
+        uint96(sumAssured * 10 ** 18),
+        uint32(block.timestamp + 1),
+        uint32(coverPeriodInDays * 24 * 60 * 60),
+        uint16(0)
+      )
+    );
+
+    ICoverNFT(coverNFT).safeMint(
+      toNewOwner,
+      covers.length - 1 // newCoverId
+    );
+  }
+
+  /// @dev Migrates covers from V1 to Cover.sol, meant to be used my EOA members
+  ///
+  /// @param coverId     Legacy (V1) cover identifier
+  /// @param toNewOwner  The address for which the V2 cover NFT is minted
+  function migrateCover(uint coverId, address toNewOwner) external override {
+    migrateCoverFromOwner(coverId, msg.sender, toNewOwner);
+  }
 
   function buyCover(
     BuyCoverParams memory params,
@@ -138,7 +198,7 @@ contract Cover is ICover, MasterAwareV2 {
         uint16(totalPremiumInNXM * BASIS_PRECISION / totalCoverAmountInNXM)
       );
 
-    coverNFT.safeMint(params.owner, coverId);
+    ICoverNFT(coverNFT).safeMint(params.owner, coverId);
 
     uint premiumInPaymentAsset = totalPremiumInNXM * pool().getTokenPrice(params.paymentAsset) / 1e18;
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
@@ -276,7 +336,7 @@ contract Cover is ICover, MasterAwareV2 {
       );
 
     // mint the new cover
-    coverNFT.safeMint(msg.sender, newCoverId);
+    ICoverNFT(coverNFT).safeMint(msg.sender, newCoverId);
   }
 
   function increasePeriod(uint coverId, uint32 periodExtension, uint8 paymentAsset, uint maxPremiumInAsset) external payable onlyMember {
@@ -441,7 +501,7 @@ contract Cover is ICover, MasterAwareV2 {
     newCover.amount = uint96(newTotalCoverAmount);
     covers[newCoverId] = newCover;
     // mint the new cover
-    coverNFT.safeMint(msg.sender, newCoverId);
+    ICoverNFT(coverNFT).safeMint(msg.sender, newCoverId);
 
     // the refund is proportional to the amount reduction and the period remaining
     uint96 refund = uint96(uint(amountReduction)
@@ -490,7 +550,12 @@ contract Cover is ICover, MasterAwareV2 {
     productBuckets[productId][(block.timestamp + period) / BUCKET_SIZE].coverAmountExpiring = uint96(amountToCoverInNXM);
   }
 
-  function performPayoutBurn(uint coverId, address owner, uint amount) external onlyInternal override {
+  function performPayoutBurn(
+    uint coverId,
+    uint amount
+  ) external onlyInternal override returns (address /* owner */) {
+    ICoverNFT coverNFTContract = ICoverNFT(coverNFT);
+    address owner = coverNFTContract.ownerOf(coverId);
     CoverData memory cover = covers[coverId];
     CoverData memory newCover = CoverData(
       cover.productId,
@@ -503,8 +568,9 @@ contract Cover is ICover, MasterAwareV2 {
 
     covers[coverCount++] = newCover;
 
-    coverNFT.burn(coverId);
-    coverNFT.safeMint(owner, coverCount - 1);
+    coverNFTContract.burn(coverId);
+    coverNFTContract.safeMint(owner, coverCount - 1);
+    return owner;
   }
 
 
@@ -528,21 +594,21 @@ contract Cover is ICover, MasterAwareV2 {
 
   /* ========== PRICE CALCULATION ========== */
 
-  function getPrice(uint amount, uint period, uint productId, IStakingPool pool) public view returns (uint, uint) {
+  function getPrice(uint amount, uint period, uint productId, IStakingPool stakingPool) public view returns (uint, uint) {
 
-    uint96 lastPrice = lastPrices[productId][address(pool)].value;
+    uint96 lastPrice = lastPrices[productId][address(stakingPool)].value;
     uint basePrice = interpolatePrice(
       lastPrice != 0 ? lastPrice : initialPrices[productId],
-      pool.getTargetPrice(productId),
-      lastPrices[productId][address(pool)].lastUpdateTime,
+      stakingPool.getTargetPrice(productId),
+      lastPrices[productId][address(stakingPool)].lastUpdateTime,
       block.timestamp
     );
 
     uint pricePercentage = calculatePrice(
       amount,
       basePrice,
-      pool.getUsedCapacity(productId),
-      pool.getCapacity(productId, capacityFactor)
+      stakingPool.getUsedCapacity(productId),
+      stakingPool.getCapacity(productId, capacityFactor)
     );
 
     uint price = pricePercentage * amount / MAX_PRICE_PERCENTAGE * period / 365 days;
@@ -557,11 +623,11 @@ contract Cover is ICover, MasterAwareV2 {
     uint lastPrice,
     uint targetPrice,
     uint lastPriceUpdate,
-    uint now
+    uint currentTimestamp
   ) public pure returns (uint) {
 
     uint percentageChange =
-      (now - lastPriceUpdate) / 1 days * PERCENTAGE_CHANGE_PER_DAY_BPS;
+      (currentTimestamp - lastPriceUpdate) / 1 days * PERCENTAGE_CHANGE_PER_DAY_BPS;
 
     if (targetPrice > lastPrice) {
       return targetPrice;
@@ -639,16 +705,16 @@ contract Cover is ICover, MasterAwareV2 {
     return IPool(internalContracts[uint(ID.P1)]);
   }
 
+  function tokenController() internal view returns (ITokenController) {
+    return ITokenController(internalContracts[uint(ID.TC)]);
+  }
+
   function memberRoles() internal view returns (IMemberRoles) {
     return IMemberRoles(internalContracts[uint(ID.MR)]);
   }
 
   function mcr() internal view returns (IMCR) {
     return IMCR(internalContracts[uint(ID.MC)]);
-  }
-
-  function tokenController() internal view returns (ITokenController) {
-    return ITokenController(internalContracts[uint(ID.TC)]);
   }
 
   function changeDependentContractAddress() external override {

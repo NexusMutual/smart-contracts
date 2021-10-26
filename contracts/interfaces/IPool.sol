@@ -5,6 +5,21 @@ pragma solidity >=0.5.0;
 import "./IPriceFeedOracle.sol";
 
 interface IPool {
+
+  struct SwapDetails {
+    uint104 minAmount;
+    uint104 maxAmount;
+    uint32 lastSwapTime;
+    // 2 decimals of precision. 0.01% -> 0.0001 -> 1e14
+    uint16 maxSlippageRatio;
+  }
+
+  struct Asset {
+    address assetAddress;
+    uint8 decimals;
+    bool deprecated;
+  }
+
   function assets(uint index) external view returns (address);
 
   function sellNXM(uint tokenAmount, uint minEthOut) external;
@@ -15,13 +30,13 @@ interface IPool {
 
   function transferAssetToSwapOperator(address asset, uint amount) external;
 
-  function setAssetDataLastSwapTime(address asset, uint32 lastSwapTime) external;
+  function setSwapDetailsLastSwapTime(address asset, uint32 lastSwapTime) external;
 
-  function getAssetDetails(address _asset) external view returns (
-    uint112 min,
-    uint112 max,
+  function getAssetSwapDetails(address assetAddress) external view returns (
+    uint104 min,
+    uint104 max,
     uint32 lastAssetSwapTime,
-    uint maxSlippageRatio
+    uint16 maxSlippageRatio
   );
 
   function sendClaimPayout (

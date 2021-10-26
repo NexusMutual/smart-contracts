@@ -21,7 +21,6 @@ const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const TokenData = artifacts.require('TokenData');
-const TokenFunctions = artifacts.require('TokenFunctions');
 const Pool = artifacts.require('Pool');
 const Quotation = artifacts.require('Quotation');
 const QuotationData = artifacts.require('QuotationData');
@@ -119,21 +118,17 @@ async function main () {
   console.log('Deploying DAI');
   const dai = await ERC20MintableDetailed.new('DAI Mock', 'DAI', 18);
 
-  verifier.add(dai,
-    {
-      constructorArgs: ['DAI Mock', 'DAI', 18],
-      fullPath: 'contracts/mocks/Tokens/ERC20MintableDetailed.sol:ERC20MintableDetailed',
-    },
-  );
+  verifier.add(dai, {
+    constructorArgs: ['DAI Mock', 'DAI', 18],
+    fullPath: 'contracts/mocks/Tokens/ERC20MintableDetailed.sol:ERC20MintableDetailed',
+  });
 
   console.log('Deploying stETH');
   const stETH = await ERC20MintableDetailed.new('stETH Mock', 'stETH', 18);
-  verifier.add(stETH,
-    {
-      constructorArgs: ['stETH Mock', 'stETH', 18],
-      fullPath: 'contracts/mocks/Tokens/ERC20MintableDetailed.sol:ERC20MintableDetailed',
-    },
-  );
+  verifier.add(stETH, {
+    constructorArgs: ['stETH Mock', 'stETH', 18],
+    fullPath: 'contracts/mocks/Tokens/ERC20MintableDetailed.sol:ERC20MintableDetailed',
+  });
 
   console.log('Deploying uniswap pair');
   const uniswapV2Factory = await UniswapV2Factory.at(UNISWAP_FACTORY);
@@ -142,7 +137,6 @@ async function main () {
   console.log('Deploying token contracts');
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
   const td = await TokenData.new(owner);
-  const tf = await TokenFunctions.new();
 
   verifier.add(tk, { constructorArgs: [owner, INITIAL_SUPPLY.toString()] });
   verifier.add(td, { constructorArgs: [owner] });

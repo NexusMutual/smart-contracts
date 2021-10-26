@@ -3,13 +3,15 @@ const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
 
-const { defaultSender, governanceContracts: [governance] } = require('../utils').accounts;
+const {
+  defaultSender,
+  governanceContracts: [governance],
+} = require('../utils').accounts;
 
 const Pool = artifacts.require('Pool');
 const ERC20Mock = artifacts.require('ERC20Mock');
 
 describe('upgradeCapitalPool', function () {
-
   it('moves pool funds to new pool', async function () {
     const { pool, master, dai } = this;
 
@@ -19,7 +21,7 @@ describe('upgradeCapitalPool', function () {
 
     const otherToken = await ERC20Mock.new();
 
-    await pool.addAsset(otherToken.address, '0', '0', ether('0.01'), {
+    await pool.addAsset([otherToken.address, 18], '0', '0', ether('0.01'), {
       from: governance,
     });
     const tokens = [dai, otherToken];

@@ -29,20 +29,27 @@ async function setup () {
   const CLMockPool = await ethers.getContractFactory('CLMockPool');
   const pool = await CLMockPool.deploy();
   await pool.deployed();
-  await pool.addAsset('0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
-  await pool.addAsset(dai.address);
+  await pool.addAsset(dai.address, 18);
 
   const Assessment = await ethers.getContractFactory('CLMockAssessment');
   const assessment = await Assessment.deploy();
   await assessment.deployed();
 
+  const CoverNFT = await ethers.getContractFactory('ERC721Mock');
+  const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NXC');
+  await coverNFT.deployed();
+
   const Claims = await ethers.getContractFactory('Claims');
-  const claims = await Claims.deploy(nxm.address);
+  const claims = await Claims.deploy(nxm.address, coverNFT.address);
   await claims.deployed();
 
   const Cover = await ethers.getContractFactory('CLMockCover');
-  const cover = await Cover.deploy('Nexus Mutual Cover', 'NXC');
+  const cover = await Cover.deploy(coverNFT.address);
   await cover.deployed();
+
+  const CLMockUnknownNFT = await ethers.getContractFactory('CLMockUnknownNFT');
+  const unkownNFT = await CLMockUnknownNFT.deploy('Unknown NFT', 'UNK');
+  await unkownNFT.deployed();
 
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
@@ -75,8 +82,8 @@ async function setup () {
   await master.enrollGovernance(accounts.governanceContracts[0].address);
   for (const member of accounts.members) {
     await memberRoles.setRole(member.address, 2);
-    await nxm.mint(member.address, ethers.utils.parseEther('10000'));
-    await nxm.connect(member).approve(tokenController.address, ethers.utils.parseEther('10000'));
+    await nxm.mint(member.address, parseEther('10000'));
+    await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
   }
 
   const config = await claims.config();
@@ -89,6 +96,7 @@ async function setup () {
     claims,
     assessment,
     cover,
+    unkownNFT,
     master,
   };
 }

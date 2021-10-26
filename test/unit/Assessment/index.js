@@ -14,7 +14,8 @@ describe('Assessment', function () {
 
   require('./stake');
   require('./unstake');
-  require('./withdrawReward');
+  require('./withdrawRewards');
+  require('./startAssessment');
   require('./castVote');
   require('./submitFraud');
   require('./processFraud');

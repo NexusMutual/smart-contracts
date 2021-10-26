@@ -1,42 +1,66 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "../../abstract/MasterAware.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
+import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ILegacyClaimsReward.sol";
-import "../../interfaces/ILegacyIncidents.sol";
+import "../../interfaces/ICover.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IQuotation.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
+import "../../interfaces/IProductsV1.sol";
 
-contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
-  using SafeMath for uint;
+contract Quotation is IQuotation, MasterAwareV2, ReentrancyGuard {
+  IProductsV1 internal immutable productsV1;
+  uint internal immutable lastCoverIdWithLockedCN;
 
-  ILegacyClaimsReward public cr;
-  IPool public pool;
-  IPooledStaking public pooledStaking;
-  IQuotationData public qd;
-  ITokenController public tc;
-  ITokenData public td;
-  ILegacyIncidents public incidents;
+  constructor (address productV1Address, address quotationDataAddress) {
+    productsV1 = IProductsV1(productV1Address);
+    lastCoverIdWithLockedCN = IQuotationData(quotationDataAddress).getCoverLength() - 1;
+  }
 
-  /**
-   * @dev Iupgradable Interface to update dependent contract address
-   */
-  function changeDependentContractAddress() public onlyInternal {
-    cr = ILegacyClaimsReward(master.getLatestAddress("CR"));
-    pool = IPool(master.getLatestAddress("P1"));
-    pooledStaking = IPooledStaking(master.getLatestAddress("PS"));
-    qd = IQuotationData(master.getLatestAddress("QD"));
-    tc = ITokenController(master.getLatestAddress("TC"));
-    td = ITokenData(master.getLatestAddress("TD"));
-    incidents = ILegacyIncidents(master.getLatestAddress("IC"));
+  function changeDependentContractAddress() public override onlyInternal {
+    internalContracts[uint(ID.CR)] = master.getLatestAddress("CR");
+    internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
+    internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
+    internalContracts[uint(ID.QD)] = master.getLatestAddress("QD");
+    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
+    internalContracts[uint(ID.TD)] = master.getLatestAddress("TD");
+    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
+  }
+
+  function claimsReward() internal view returns (ILegacyClaimsReward) {
+    return ILegacyClaimsReward(internalContracts[uint(ID.CR)]);
+  }
+
+  function pool() internal view returns (IPool) {
+    return IPool(internalContracts[uint(ID.P1)]);
+  }
+
+  function pooledStaking() internal view returns (IPooledStaking) {
+    return IPooledStaking(internalContracts[uint(ID.PS)]);
+  }
+
+  function quotationData() internal view returns (IQuotationData) {
+    return IQuotationData(internalContracts[uint(ID.QD)]);
+  }
+
+  function tokenController() internal view returns (ITokenController) {
+    return ITokenController(internalContracts[uint(ID.TC)]);
+  }
+
+  function tokenData() internal view returns (ITokenData) {
+    return ITokenData(internalContracts[uint(ID.TD)]);
+  }
+
+  function cover() internal view returns (ICover) {
+    return ICover(internalContracts[uint(ID.CO)]);
   }
 
   // solhint-disable-next-line no-empty-blocks
@@ -49,34 +73,22 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
    */
   function expireCover(uint coverId) external {
 
-    uint expirationDate = qd.getValidityOfCover(coverId);
-    require(expirationDate < now, "Quotation: cover is not due to expire");
+    uint expirationDate = quotationData().getValidityOfCover(coverId);
+    require(expirationDate < block.timestamp, "Quotation: cover is not due to expire");
 
-    uint coverStatus = qd.getCoverStatusNo(coverId);
+    uint coverStatus = quotationData().getCoverStatusNo(coverId);
     require(coverStatus != uint(IQuotationData.CoverStatus.CoverExpired), "Quotation: cover already expired");
 
-    (/* claim count */, bool hasOpenClaim, /* accepted */) = tc.coverInfo(coverId);
+    (/* claim count */, bool hasOpenClaim, /* accepted */) = tokenController().coverInfo(coverId);
     require(!hasOpenClaim, "Quotation: cover has an open claim");
 
     if (coverStatus != uint(IQuotationData.CoverStatus.ClaimAccepted)) {
-      (,, address contractAddress, bytes4 currency, uint amount,) = qd.getCoverDetailsByCoverID1(coverId);
-      qd.subFromTotalSumAssured(currency, amount);
-      qd.subFromTotalSumAssuredSC(contractAddress, currency, amount);
+      (,, address contractAddress, bytes4 currency, uint amount,) = quotationData().getCoverDetailsByCoverID1(coverId);
+      quotationData().subFromTotalSumAssured(currency, amount);
+      quotationData().subFromTotalSumAssuredSC(contractAddress, currency, amount);
     }
 
-    qd.changeCoverStatusNo(coverId, uint8(IQuotationData.CoverStatus.CoverExpired));
-  }
-
-  function withdrawCoverNote(address coverOwner, uint[] calldata coverIds, uint[] calldata reasonIndexes) external {
-
-    uint gracePeriod = tc.claimSubmissionGracePeriod();
-
-    for (uint i = 0; i < coverIds.length; i++) {
-      uint expirationDate = qd.getValidityOfCover(coverIds[i]);
-      require(expirationDate.add(gracePeriod) < now, "Quotation: cannot withdraw before grace period expiration");
-    }
-
-    tc.withdrawCoverNote(coverOwner, coverIds, reasonIndexes);
+    quotationData().changeCoverStatusNo(coverId, uint8(IQuotationData.CoverStatus.CoverExpired));
   }
 
   function getWithdrawableCoverNoteCoverIds(
@@ -86,18 +98,17 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     bytes32[] memory lockReasons
   ) {
 
-    uint[] memory coverIds = qd.getAllCoversOfUser(coverOwner);
+    uint[] memory coverIds = quotationData().getAllCoversOfUser(coverOwner);
     uint[] memory expiredIdsQueue = new uint[](coverIds.length);
-    uint gracePeriod = tc.claimSubmissionGracePeriod();
     uint expiredQueueLength = 0;
 
     for (uint i = 0; i < coverIds.length; i++) {
+      if (coverIds[i] > lastCoverIdWithLockedCN) {
+        continue;
+      }
 
-      uint coverExpirationDate = qd.getValidityOfCover(coverIds[i]);
-      uint gracePeriodExpirationDate = coverExpirationDate.add(gracePeriod);
-      (/* claimCount */, bool hasOpenClaim, /* hasAcceptedClaim */) = tc.coverInfo(coverIds[i]);
-
-      if (!hasOpenClaim && gracePeriodExpirationDate < now) {
+      (/* claimCount */, bool hasOpenClaim, /* hasAcceptedClaim */) = tokenController().coverInfo(coverIds[i]);
+      if (!hasOpenClaim) {
         expiredIdsQueue[expiredQueueLength] = coverIds[i];
         expiredQueueLength++;
       }
@@ -119,8 +130,8 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     (/*expiredCoverIds*/, lockReasons) = getWithdrawableCoverNoteCoverIds(coverOwner);
 
     for (uint i = 0; i < lockReasons.length; i++) {
-      uint coverNoteAmount = tc.tokensLocked(coverOwner, lockReasons[i]);
-      withdrawableAmount = withdrawableAmount.add(coverNoteAmount);
+      uint coverNoteAmount = tokenController().tokensLocked(coverOwner, lockReasons[i]);
+      withdrawableAmount = withdrawableAmount + coverNoteAmount;
     }
 
     return withdrawableAmount;
@@ -139,8 +150,18 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     bytes32 _r,
     bytes32 _s
   ) external onlyMember whenNotPaused {
-    tc.burnFrom(msg.sender, coverDetails[2]); // needs allowance
-    _verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s, true);
+    tokenController().burnFrom(msg.sender, coverDetails[2]); // needs allowance
+    _verifyCoverDetails(
+      payable(msg.sender),
+      smartCAdd,
+      coverCurr,
+      coverDetails,
+      coverPeriod,
+      _v,
+      _r,
+      _s,
+      true
+    );
   }
 
   /**
@@ -157,7 +178,7 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     uint8 _v,
     bytes32 _r,
     bytes32 _s
-  ) public onlyInternal {
+  ) public override onlyInternal {
     _verifyCoverDetails(
       from,
       scAddress,
@@ -232,7 +253,7 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     bytes memory prefix = "\x19Ethereum Signed Message:\n32";
     bytes32 prefixedHash = keccak256(abi.encodePacked(prefix, hash));
     address a = ecrecover(prefixedHash, v, r, s);
-    return (a == qd.getAuthQuoteEngine());
+    return (a == quotationData().getAuthQuoteEngine());
   }
 
   /**
@@ -242,48 +263,56 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
    */
   function _makeCover(//solhint-disable-line
     address payable from,
-    address contractAddress,
+    address productId,
     bytes4 coverCurrency,
     uint[] memory coverDetails,
     uint16 coverPeriod
   ) internal {
+    // Make sure cover amount is not 0
+    require(coverDetails[0] != 0, "TokenController: Amount shouldn't be zero");
 
-    address underlyingToken = incidents.underlyingToken(contractAddress);
+    // Make sure premium in NXM is not 0
+    require(coverDetails[2] != 0, "TokenController: Premium shouldn't be zero");
 
-    if (underlyingToken != address(0)) {
-      address coverAsset = cr.getCurrencyAssetAddress(coverCurrency);
-      require(coverAsset == underlyingToken, "Quotation: Unsupported cover asset for this product");
+    uint24 productIdV2 = productsV1.getNewProductId(productId);
+    (
+      /* productType */,
+      address productAddress,
+      uint supportedPayoutAssets
+    ) = cover().products(productIdV2);
+
+    // A non-zero product address means that it is a yield token cover
+    if (productAddress != address(0)) {
+      require(
+        coverCurrency == "DAI" && supportedPayoutAssets & 2 == 2 ||
+        coverCurrency == "ETH" && supportedPayoutAssets & 1 == 1,
+        "Quotation: Unsupported cover asset for this product"
+      );
     }
 
-    uint cid = qd.getCoverLength();
-
-    qd.addCover(
+    uint cid = quotationData().getCoverLength();
+    quotationData().addCover(
       coverPeriod,
-      coverDetails[0],
+      coverDetails[0], // cover amount
       from,
       coverCurrency,
-      contractAddress,
-      coverDetails[1],
-      coverDetails[2]
+      productId,
+      coverDetails[1], // premium in asset
+      coverDetails[2] // premium NXM
     );
 
-    uint coverNoteAmount = coverDetails[2].mul(qd.tokensRetained()).div(100);
 
-    uint gracePeriod = tc.claimSubmissionGracePeriod();
-    uint claimSubmissionPeriod = uint(coverPeriod).mul(1 days).add(gracePeriod);
-    bytes32 reason = keccak256(abi.encodePacked("CN", from, cid));
+    // mint cover note without locking
+    tokenController().mint(from, coverDetails[2] / 10); // 10%
 
-    // mint and lock cover note
-    td.setDepositCNAmount(cid, coverNoteAmount);
-    tc.mintCoverNote(from, reason, coverNoteAmount, claimSubmissionPeriod);
+    quotationData().addInTotalSumAssured(coverCurrency, coverDetails[0]);
+    quotationData().addInTotalSumAssuredSC(productId, coverCurrency, coverDetails[0]);
 
-    qd.addInTotalSumAssured(coverCurrency, coverDetails[0]);
-    qd.addInTotalSumAssuredSC(contractAddress, coverCurrency, coverDetails[0]);
-
-    uint coverPremiumInNXM = coverDetails[2];
-    uint stakersRewardPercentage = td.stakerCommissionPer();
-    uint rewardValue = coverPremiumInNXM.mul(stakersRewardPercentage).div(100);
-    pooledStaking.accumulateReward(contractAddress, rewardValue);
+    {
+      uint stakersRewardPercentage = tokenData().stakerCommissionPer();
+      uint rewardValue = coverDetails[2] * stakersRewardPercentage / 100;
+      pooledStaking().accumulateReward(productId, rewardValue);
+    }
   }
 
   /**
@@ -303,14 +332,14 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     bool isNXM
   ) internal {
 
-    require(coverDetails[3] > now, "Quotation: Quote has expired");
+    require(coverDetails[3] > block.timestamp, "Quotation: Quote has expired");
     require(coverPeriod >= 30 && coverPeriod <= 365, "Quotation: Cover period out of bounds");
-    require(!qd.timestampRepeated(coverDetails[4]), "Quotation: Quote already used");
-    qd.setTimestampRepeated(coverDetails[4]);
+    require(!quotationData().timestampRepeated(coverDetails[4]), "Quotation: Quote already used");
+    quotationData().setTimestampRepeated(coverDetails[4]);
 
-    address asset = cr.getCurrencyAssetAddress(coverCurr);
+    address asset = claimsReward().getCurrencyAssetAddress(coverCurr);
     if (coverCurr != "ETH" && !isNXM) {
-      pool.transferAssetFrom(asset, from, coverDetails[1]);
+      pool().transferAssetFrom(asset, from, coverDetails[1]);
     }
 
     require(verifySignature(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s), "Quotation: signature mismatch");
@@ -326,12 +355,12 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     uint8 _v,
     bytes32 _r,
     bytes32 _s
-  ) external onlyInternal {
+  ) external override onlyInternal {
 
-    require(coverDetails[3] > now, "Quotation: Quote has expired");
+    require(coverDetails[3] > block.timestamp, "Quotation: Quote has expired");
     require(coverPeriod >= 30 && coverPeriod <= 365, "Quotation: Cover period out of bounds");
-    require(!qd.timestampRepeated(coverDetails[4]), "Quotation: Quote already used");
-    qd.setTimestampRepeated(coverDetails[4]);
+    require(!quotationData().timestampRepeated(coverDetails[4]), "Quotation: Quote already used");
+    quotationData().setTimestampRepeated(coverDetails[4]);
 
     require(verifySignature(coverDetails, coverPeriod, currency, scAddress, _v, _r, _s), "Quotation: signature mismatch");
     _makeCover(from, scAddress, currency, coverDetails, coverPeriod);
@@ -340,38 +369,4 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
   // referenced in master, keeping for now
   // solhint-disable-next-line no-empty-blocks
   function transferAssetsToNewContract(address) external pure {}
-
-  function freeUpHeldCovers() external nonReentrant {
-
-    IERC20 dai = IERC20(cr.getCurrencyAssetAddress("DAI"));
-    uint membershipFee = td.joiningFee();
-    uint lastCoverId = 106;
-
-    for (uint id = 1; id <= lastCoverId; id++) {
-
-      if (qd.holdedCoverIDStatus(id) != uint(IQuotationData.HCIDStatus.kycPending)) {
-        continue;
-      }
-
-      (/*id*/, /*sc*/, bytes4 currency, /*period*/) = qd.getHoldedCoverDetailsByID1(id);
-      (/*id*/, address payable userAddress, uint[] memory coverDetails) = qd.getHoldedCoverDetailsByID2(id);
-
-      uint refundedETH = membershipFee;
-      uint coverPremium = coverDetails[1];
-
-      if (qd.refundEligible(userAddress)) {
-        qd.setRefundEligible(userAddress, false);
-      }
-
-      qd.setHoldedCoverIDStatus(id, uint(IQuotationData.HCIDStatus.kycFailedOrRefunded));
-
-      if (currency == "ETH") {
-        refundedETH = refundedETH.add(coverPremium);
-      } else {
-        require(dai.transfer(userAddress, coverPremium), "Quotation: DAI refund transfer failed");
-      }
-
-      userAddress.transfer(refundedETH);
-    }
-  }
 }

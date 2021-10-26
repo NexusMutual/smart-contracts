@@ -40,8 +40,7 @@ contract ASMockClaims is MasterAwareV2 {
       coverId,
       requestedAmount,
       0,
-      false, // payoutRedeemed
-      false // coverRedeemed
+      false // payoutRedeemed
     );
 
     uint assessmentId = assessment().startAssessment(0, 0);

@@ -235,6 +235,7 @@ describe('NXM sells and buys', function () {
     console.log('Deploy pool');
     const pool = await Pool.new(
       [Address.DAI],
+      [18],
       [0],
       [ether('10000000')],
       [ether('0.01')],

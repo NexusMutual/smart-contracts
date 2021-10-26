@@ -5,8 +5,11 @@ const { setupUniswap } = require('../utils');
 const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
+const { enrollMember } = require('./utils/enroll');
 
 const { BN } = web3.utils;
+const { getAccounts } = require('../utils').accounts;
+const { members } = getAccounts(accounts);
 
 async function setup () {
   // external
@@ -14,6 +17,7 @@ async function setup () {
   const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
   const Lido = artifacts.require('P1MockLido');
+  const ProductsV1 = artifacts.require('ProductsV1');
 
   // nexusmutual
   const NXMToken = artifacts.require('NXMToken');
@@ -23,7 +27,6 @@ async function setup () {
   const LegacyClaimsReward = artifacts.require('LegacyClaimsReward');
   const MCR = artifacts.require('DisposableMCR');
   const TokenData = artifacts.require('TokenData');
-  const TokenFunctions = artifacts.require('TokenFunctions');
   const Pool = artifacts.require('Pool');
   const Quotation = artifacts.require('Quotation');
   const QuotationData = artifacts.require('QuotationData');
@@ -31,6 +34,8 @@ async function setup () {
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
   const TwapOracle = artifacts.require('TwapOracle');
   const SwapOperator = artifacts.require('SwapOperator');
+  const CoverNFT = artifacts.require('CoverNFT');
+  const Cover = artifacts.require('Cover');
 
   // temporary contracts used for initialization
   const DisposableNXMaster = artifacts.require('DisposableNXMaster');
@@ -43,6 +48,7 @@ async function setup () {
   const DisposableAssessment = artifacts.require('DisposableAssessment');
   const DisposableClaims = artifacts.require('DisposableClaims');
   const DisposableIncidents = artifacts.require('DisposableIncidents');
+  const DisposableCover = artifacts.require('DisposableCover');
 
   // target contracts
   const NXMaster = artifacts.require('NXMaster');
@@ -96,7 +102,6 @@ async function setup () {
   // proxy contracts
   const master = await deployProxy(DisposableNXMaster);
   const mr = await deployProxy(DisposableMemberRoles);
-  const tc = await deployProxy(DisposableTokenController);
   const ps = await deployProxy(DisposablePooledStaking);
   const pc = await deployProxy(DisposableProposalCategory);
   const gv = await deployProxy(DisposableGovernance);
@@ -107,37 +112,43 @@ async function setup () {
   const twapOracle = await TwapOracle.new(factory.address);
 
   // regular contracts
-  const lcl = await LegacyClaims.new();
-  const lic = await LegacyIncidents.new();
+  // const lcl = await LegacyClaims.new();
+  // const lic = await LegacyIncidents.new();
   const lcd = await LegacyClaimsData.new();
-  const lcr = await LegacyClaimsReward.new(master.address, dai.address);
+  const lcr = await LegacyClaimsReward.new(master.address, dai.address, lcd.address);
 
   const mc = await MCR.new(ZERO_ADDRESS);
 
   const p1 = await Pool.new(
     [dai.address], // assets
+    [18], // decimals
     [0], // min amounts
     [ether('100')], // max amounts
-    [ether('0.01')], // max slippage 1%
+    [100], // max slippage 1%
     master.address,
     priceFeedOracle.address,
     ZERO_ADDRESS,
   );
   const swapOperator = await SwapOperator.new(master.address, twapOracle.address, owner, lido.address);
 
+  const productsV1 = await ProductsV1.new();
+
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
   const td = await TokenData.new(owner);
-  const tf = await TokenFunctions.new();
-  const qt = await Quotation.new();
   const qd = await QuotationData.new(QE, owner);
+  const qt = await Quotation.new(productsV1.address, qd.address);
 
-  const ic = await deployProxy(DisposableIncidents, [tk.address]);
-  const as = await deployProxy(DisposableAssessment, [tk.address]);
-  const cl = await deployProxy(DisposableClaims, [tk.address]);
+  const tc = await deployProxy(DisposableTokenController, [qd.address]);
+  const ic = await deployProxy(DisposableIncidents, []);
+  const as = await deployProxy(DisposableAssessment, []);
+  const cl = await deployProxy(DisposableClaims, []);
+  const cover = await deployProxy(DisposableCover, []);
+
+  const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NXC', cover.address);
 
   const contractType = code => {
-    const upgradable = ['MC', 'P1', 'QT', 'TF'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC', 'CL', 'AS'];
+    const upgradable = ['MC', 'P1', 'QT', 'TF', 'CR'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC', 'CL', 'AS', 'CO'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -150,8 +161,8 @@ async function setup () {
     return 0;
   };
 
-  const codes = ['QD', 'TD', 'QT', 'TF', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'AS'];
-  const addresses = [qd, td, qt, tf, tc, p1, mc, { address: owner }, pc, mr, ps, gateway, ic, cl, as].map(
+  const codes = ['QD', 'TD', 'QT', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'AS', 'CO', 'CR'];
+  const addresses = [qd, td, qt, tc, p1, mc, { address: owner }, pc, mr, ps, gateway, ic, cl, as, cover, lcr].map(
     c => c.address,
   );
 
@@ -164,13 +175,7 @@ async function setup () {
     addresses, // addresses
   );
 
-  await tc.initialize(
-    master.address,
-    tk.address,
-    ps.address,
-    30 * 24 * 3600, // minCALockTime
-    120 * 24 * 3600, // claimSubmissionGracePeriod
-  );
+  await tc.initialize(master.address, tk.address, ps.address, as.address);
 
   await tc.addToWhitelist(lcr.address);
 
@@ -209,6 +214,44 @@ async function setup () {
   await as.initialize(master.address);
   await ic.initialize(master.address);
   await cl.initialize(master.address);
+  await cover.initialize(coverNFT.address);
+
+  const REDEEM_METHOS = {
+    CLAIM: 0,
+    INCIDENT: 1,
+  };
+
+  await cover.addProductType({
+    descriptionIpfsHash: 'protocolCoverIPFSHash',
+    redeemMethod: REDEEM_METHOS.CLAIM,
+    gracePeriodInDays: 30,
+  });
+  await cover.addProductType({
+    descriptionIpfsHash: 'custodyCoverIPFSHash',
+    redeemMethod: REDEEM_METHOS.CLAIM,
+    gracePeriodInDays: 90,
+  });
+  await cover.addProductType({
+    descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
+    redeemMethod: REDEEM_METHOS.INCIDENT,
+    gracePeriodInDays: 14,
+  });
+
+  await cover.addProduct({
+    productType: 0,
+    productAddress: '0x0000000000000000000000000000000000000000',
+    payoutAssets: 0,
+  });
+  await cover.addProduct({
+    productType: 1,
+    productAddress: '0x0000000000000000000000000000000000000000',
+    payoutAssets: 0,
+  });
+  await cover.addProduct({
+    productType: 2,
+    productAddress: '0x0000000000000000000000000000000000000001',
+    payoutAssets: 2,
+  });
 
   await lcd.changeMasterAddress(master.address);
   await lcd.updateUintParameters(hex('CAMINVT'), 36); // min voting time 36h
@@ -230,15 +273,16 @@ async function setup () {
   await gateway.initialize(master.address, dai.address);
 
   await upgradeProxy(mr.address, MemberRoles);
-  await upgradeProxy(tc.address, TokenController);
+  await upgradeProxy(tc.address, TokenController, [qd.address]);
   await upgradeProxy(ps.address, PooledStaking);
   await upgradeProxy(pc.address, ProposalCategory);
   await upgradeProxy(master.address, NXMaster);
   await upgradeProxy(gv.address, Governance);
   await upgradeProxy(gateway.address, Gateway);
-  await upgradeProxy(ic.address, Incidents, [master.address]);
-  await upgradeProxy(cl.address, Claims, [master.address]);
+  await upgradeProxy(ic.address, Incidents, [master.address, coverNFT.address]);
+  await upgradeProxy(cl.address, Claims, [master.address, coverNFT.address]);
   await upgradeProxy(as.address, Assessment, [master.address]);
+  await upgradeProxy(cover.address, Cover, [qd.address, productsV1.address]);
   await gateway.changeDependentContractAddress();
 
   await transferProxyOwnership(mr.address, master.address);
@@ -289,9 +333,9 @@ async function setup () {
     minUpdateTime,
   );
 
-  const external = { chainlinkDAI, dai, factory, router, weth };
+  const external = { chainlinkDAI, dai, factory, router, weth, productsV1 };
   const nonUpgradable = { cp, qd, td };
-  const instances = { tk, qt, tf, cl, p1, mcr: mc };
+  const instances = { tk, qt, cl, p1, mcr: mc };
 
   // we upgraded them, get non-disposable instances because
   const proxies = {
@@ -301,10 +345,10 @@ async function setup () {
     pc: await ProposalCategory.at(pc.address),
     mr: await MemberRoles.at(mr.address),
     ps: await PooledStaking.at(ps.address),
-    gateway,
-    ic,
-    cl,
-    as,
+    gateway: await Gateway.at(gateway.address),
+    ic: await Incidents.at(ic.address),
+    cl: await Claims.at(cl.address),
+    as: await Assessment.at(as.address),
   };
 
   const nonInternal = { priceFeedOracle, swapOperator };
@@ -324,6 +368,8 @@ async function setup () {
   };
 
   this.contractType = contractType;
+
+  await enrollMember(this.contracts, members);
 }
 
 module.exports = setup;

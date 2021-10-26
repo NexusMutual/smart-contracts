@@ -60,42 +60,6 @@ contract LegacyClaims is ILegacyClaims, LegacyMasterAware {
     incidents = ILegacyIncidents(ms.getLatestAddress("IC"));
   }
 
-  /**
-   * @dev Submits a claim for a given cover note.
-   * Adds claim to queue incase of emergency pause else directly submits the claim.
-   * @param coverId Cover Id.
-   */
-  function submitClaim(uint coverId) external {
-    _submitClaim(coverId, msg.sender);
-  }
-
-  function submitClaimForMember(uint coverId, address member) external onlyInternal {
-    _submitClaim(coverId, member);
-  }
-
-  function _submitClaim(uint coverId, address member) internal {
-
-    require(!ms.isPause(), "Claims: System is paused");
-
-    (/* id */, address contractAddress) = qd.getscAddressOfCover(coverId);
-    address token = incidents.coveredToken(contractAddress);
-    require(token == address(0), "Claims: Product type does not allow claims");
-
-    address coverOwner = qd.getCoverMemberAddress(coverId);
-    require(coverOwner == member, "Claims: Not cover owner");
-
-    uint expirationDate = qd.getValidityOfCover(coverId);
-    uint gracePeriod = tc.claimSubmissionGracePeriod();
-    require(expirationDate.add(gracePeriod) > now, "Claims: Grace period has expired");
-
-    tc.markCoverClaimOpen(coverId);
-    qd.changeCoverStatusNo(coverId, uint8(IQuotationData.CoverStatus.ClaimSubmitted));
-
-    uint claimId = cd.actualClaimLength();
-    cd.addClaim(claimId, coverId, coverOwner, now);
-    cd.callClaimEvent(coverId, coverOwner, claimId, now);
-  }
-
   // solhint-disable-next-line no-empty-blocks
   function submitClaimAfterEPOff() external pure {}
 

@@ -13,4 +13,5 @@ describe('Claims', function () {
   });
 
   require('./submitClaim');
+  require('./redeemClaimPayout');
 });

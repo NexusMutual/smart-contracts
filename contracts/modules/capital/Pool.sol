@@ -22,7 +22,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   /* storage */
   Asset[] public assets;
-  mapping(address => AssetSwapData) public assetSwapData;
+  mapping(address => SwapDetails) public swapDetails;
 
   // contracts
   IQuotation public quotation;
@@ -86,9 +86,9 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       require(_maxSlippageRatios[i] <= 1 ether, "Pool: max < min");
 
       assets.push(asset);
-      assetSwapData[asset.assetAddress].minAmount = _minAmounts[i];
-      assetSwapData[asset.assetAddress].maxAmount = _maxAmounts[i];
-      assetSwapData[asset.assetAddress].maxSlippageRatio = _maxSlippageRatios[i];
+      swapDetails[asset.assetAddress].minAmount = _minAmounts[i];
+      swapDetails[asset.assetAddress].maxAmount = _maxAmounts[i];
+      swapDetails[asset.assetAddress].maxSlippageRatio = _maxSlippageRatios[i];
     }
 
     master = INXMMaster(_master);
@@ -157,9 +157,9 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint16 maxSlippageRatio
   ) {
 
-    AssetSwapData memory data = assetSwapData[assetAddress];
+    SwapDetails memory details = swapDetails[assetAddress];
 
-    return (data.minAmount, data.maxAmount, data.lastSwapTime, data.maxSlippageRatio);
+    return (details.minAmount, details.maxAmount, details.lastSwapTime, details.maxSlippageRatio);
   }
 
   function addAsset(
@@ -180,13 +180,13 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     }
 
     assets.push(Asset(assetAddress, decimals, false));
-    assetSwapData[assetAddress] = AssetSwapData(_min, _max, 0, _maxSlippageRatio);
+    swapDetails[assetAddress] = SwapDetails(_min, _max, 0, _maxSlippageRatio);
   }
 
   function deprecateAsset(uint8 assetId) external onlyGovernance {
     require(assetId < assets.length, "Pool: Asset does not exist");
     address assetAddress = assets[assetId].assetAddress;
-    delete assetSwapData[assetAddress];
+    delete swapDetails[assetAddress];
     assets[assetId].deprecated = true;
 
   }
@@ -208,9 +208,9 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
         continue;
       }
 
-      assetSwapData[assetAddress].minAmount = _min;
-      assetSwapData[assetAddress].maxAmount = _max;
-      assetSwapData[assetAddress].maxSlippageRatio = _maxSlippageRatio;
+      swapDetails[assetAddress].minAmount = _min;
+      swapDetails[assetAddress].maxAmount = _max;
+      swapDetails[assetAddress].maxSlippageRatio = _maxSlippageRatio;
 
       return;
     }
@@ -301,7 +301,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint amount
   ) external onlyGovernance nonReentrant {
 
-    require(assetSwapData[assetAddress].maxAmount == 0, "Pool: Max not zero");
+    require(swapDetails[assetAddress].maxAmount == 0, "Pool: Max not zero");
     require(destination != address(0), "Pool: Dest zero");
 
     IERC20 token = IERC20(assetAddress);
@@ -393,7 +393,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   }
 
   function setAssetSwapDataLastSwapTime(address assetAddress, uint32 lastSwapTime) public onlySwapOperator whenNotPaused {
-    assetSwapData[assetAddress].lastSwapTime = lastSwapTime;
+    swapDetails[assetAddress].lastSwapTime = lastSwapTime;
   }
 
   /* token sale functions */

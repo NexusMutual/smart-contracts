@@ -6,7 +6,7 @@ import "./IPriceFeedOracle.sol";
 
 interface IPool {
 
-  struct AssetSwapData {
+  struct SwapDetails {
     uint104 minAmount;
     uint104 maxAmount;
     uint32 lastSwapTime;

@@ -56,7 +56,7 @@ contract SwapOperator is ReentrancyGuard {
     uint16 maxSlippageRatio
     ) = pool.getAssetSwapDetails(toTokenAddress);
 
-    IPool.AssetSwapData memory swapDetails = IPool.AssetSwapData(min, max, lastAssetSwapTime, maxSlippageRatio);
+    IPool.SwapDetails memory swapDetails = IPool.SwapDetails(min, max, lastAssetSwapTime, maxSlippageRatio);
     require(assetIsEnabled(swapDetails), "SwapOperator: asset is not enabled");
 
     pool.transferAssetToSwapOperator(ETH, amountIn);
@@ -87,7 +87,7 @@ contract SwapOperator is ReentrancyGuard {
     uint16 maxSlippageRatio
     ) = pool.getAssetSwapDetails(fromTokenAddress);
 
-    IPool.AssetSwapData memory swapDetails = IPool.AssetSwapData(min, max, lastAssetSwapTime, maxSlippageRatio);
+    IPool.SwapDetails memory swapDetails = IPool.SwapDetails(min, max, lastAssetSwapTime, maxSlippageRatio);
     require(assetIsEnabled(swapDetails), "SwapOperator: asset is not enabled");
 
     pool.transferAssetToSwapOperator(fromTokenAddress, amountIn);
@@ -117,7 +117,7 @@ contract SwapOperator is ReentrancyGuard {
   }
 
   function _swapETHForAsset(
-    IPool.AssetSwapData memory swapDetails,
+    IPool.SwapDetails memory swapDetails,
     address toTokenAddress,
     uint amountIn,
     uint amountOutMin,
@@ -177,7 +177,7 @@ contract SwapOperator is ReentrancyGuard {
   }
 
   function _swapAssetForETH(
-    IPool.AssetSwapData memory swapDetails,
+    IPool.SwapDetails memory swapDetails,
     address fromTokenAddress,
     uint amountIn,
     uint amountOutMin
@@ -284,7 +284,7 @@ contract SwapOperator is ReentrancyGuard {
     emit Swapped(ETH, stETH, amountIn, amountOut);
   }
 
-  function assetIsEnabled(IPool.AssetSwapData memory swapDetails) internal pure returns (bool) {
+  function assetIsEnabled(IPool.SwapDetails memory swapDetails) internal pure returns (bool) {
     return !(swapDetails.minAmount == 0 && swapDetails.maxAmount == 0);
   }
 

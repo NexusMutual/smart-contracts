@@ -392,7 +392,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     token.safeTransfer(swapOperator, amount);
   }
 
-  function setAssetSwapDataLastSwapTime(address assetAddress, uint32 lastSwapTime) public onlySwapOperator whenNotPaused {
+  function setSwapDetailsLastSwapTime(address assetAddress, uint32 lastSwapTime) public onlySwapOperator whenNotPaused {
     swapDetails[assetAddress].lastSwapTime = lastSwapTime;
   }
 

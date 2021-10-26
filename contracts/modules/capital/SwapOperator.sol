@@ -60,7 +60,7 @@ contract SwapOperator is ReentrancyGuard {
     require(assetIsEnabled(swapDetails), "SwapOperator: asset is not enabled");
 
     pool.transferAssetToSwapOperator(ETH, amountIn);
-    pool.setAssetSwapDataLastSwapTime(toTokenAddress, uint32(block.timestamp));
+    pool.setSwapDetailsLastSwapTime(toTokenAddress, uint32(block.timestamp));
     uint amountOut = _swapETHForAsset(
       swapDetails,
       toTokenAddress,
@@ -91,7 +91,7 @@ contract SwapOperator is ReentrancyGuard {
     require(assetIsEnabled(swapDetails), "SwapOperator: asset is not enabled");
 
     pool.transferAssetToSwapOperator(fromTokenAddress, amountIn);
-    pool.setAssetSwapDataLastSwapTime(fromTokenAddress, uint32(block.timestamp));
+    pool.setSwapDetailsLastSwapTime(fromTokenAddress, uint32(block.timestamp));
     uint amountOut = _swapAssetForETH(
       swapDetails,
       fromTokenAddress,
@@ -267,7 +267,7 @@ contract SwapOperator is ReentrancyGuard {
     (bool ok, /* data */) = toTokenAddress.call{ value: amountIn }("");
     require(ok, "SwapOperator: stEth transfer failed");
 
-    pool.setAssetSwapDataLastSwapTime(toTokenAddress, uint32(block.timestamp));
+    pool.setSwapDetailsLastSwapTime(toTokenAddress, uint32(block.timestamp));
 
     uint amountOut = IERC20(toTokenAddress).balanceOf(address(this));
 

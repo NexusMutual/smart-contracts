@@ -39,7 +39,7 @@ async function setup () {
     [18], // decimals
     [0], // min
     [0], // max
-    [ether('0.01')], // maxSlippage 1%
+    [100], // maxSlippage 1%
     accounts.defaultSender, // master: it is changed a few lines below
     priceFeedOracle.address,
     swapOperator, // we do not test swaps here

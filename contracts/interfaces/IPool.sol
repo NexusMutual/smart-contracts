@@ -30,7 +30,7 @@ interface IPool {
 
   function transferAssetToSwapOperator(address asset, uint amount) external;
 
-  function setAssetSwapDataLastSwapTime(address asset, uint32 lastSwapTime) external;
+  function setSwapDetailsLastSwapTime(address asset, uint32 lastSwapTime) external;
 
   function getAssetSwapDetails(address assetAddress) external view returns (
     uint104 min,

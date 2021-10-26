@@ -214,6 +214,13 @@ contract Claims is IClaims, MasterAwareV2 {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
+  /// @dev Migrates covers for arNFT-like contracts that don't use Gateway.sol
+  ///
+  /// @param coverId          Legacy (V1) cover identifier
+  function submitClaim(uint coverId) external {
+    cover().migrateCoverFromOwner(coverId, msg.sender, tx.origin);
+  }
+
   /// Submits a claim for assessment
   ///
   /// @dev This function requires an ETH assessment fee. See: _getAssessmentDepositAndReward
@@ -221,7 +228,6 @@ contract Claims is IClaims, MasterAwareV2 {
   /// @param coverId          Cover identifier
   /// @param requestedAmount  The amount expected to be received at payout
   /// @param ipfsProofHash    The IPFS hash required for proof of loss. If this string is empty,
-  ///                         no ProofSubmitted event is emitted.
   function submitClaim(
     uint24 coverId,
     uint96 requestedAmount,

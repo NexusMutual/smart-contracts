@@ -14,13 +14,25 @@ import "../../interfaces/ITokenController.sol";
 import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2 {
+
+  /* === CONSTANTS ==== */
+
+  uint public REWARD_BPS = 5000;
+  uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
+  uint public constant BASIS_PRECISION = 10000;
+  uint public constant STAKE_SPEED_UNIT = 100000e18;
+  uint public constant PRICE_CURVE_EXPONENT = 7;
+  uint public constant MAX_PRICE_PERCENTAGE = 1e20;
   uint public constant BUCKET_SIZE = 7 days;
+  IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
+
+  /* ========== STATE VARIABLES ========== */
 
   Product[] public override products;
   ProductType[] public override productTypes;
 
-  mapping(uint => CoverData) public override covers;
+  CoverData[] public override covers;
   mapping(uint => CoverChunk[]) public coverChunksForCover;
 
   mapping(uint => uint) initialPrices;
@@ -48,16 +60,6 @@ contract Cover is ICover, MasterAwareV2 {
   */
   mapping(uint => mapping(address => LastPrice)) lastPrices;
 
-  /* === CONSTANTS ==== */
-
-  uint public REWARD_BPS = 5000;
-  uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
-  uint public constant BASIS_PRECISION = 10000;
-  uint public constant STAKE_SPEED_UNIT = 100000e18;
-  uint public constant PRICE_CURVE_EXPONENT = 7;
-  uint public constant MAX_PRICE_PERCENTAGE = 1e20;
-  IQuotationData internal immutable quotationData;
-
   /* ========== CONSTRUCTOR ========== */
 
   constructor(IQuotationData _quotationData, IProductsV1 _productsV1) {
@@ -72,8 +74,17 @@ contract Cover is ICover, MasterAwareV2 {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  // @dev Migrates covers from V1 to Cover.sol
-  function migrateCover(uint coverId) external {
+  /// @dev Migrates covers from V1 to Cover.sol, meant to be used by Claims.sol and Gateway.sol to
+  /// allow the users of distributor contracts to migrate their NFTs.
+  ///
+  /// @param coverId     V1 cover identifier
+  /// @param fromOwner   The address from where this function is called that needs to match the
+  /// @param toNewOwner  The address for which the V2 cover NFT is minted
+  function migrateCoverFromOwner(
+    uint coverId,
+    address fromOwner,
+    address toNewOwner
+  ) public override onlyInternal {
     (
       /*uint coverId*/,
       address coverOwner,
@@ -90,7 +101,7 @@ contract Cover is ICover, MasterAwareV2 {
       uint validUntil
     ) = quotationData.getCoverDetailsByCoverID2(coverId);
 
-    require(msg.sender == coverOwner, "Cover can only be migrated by its owner");
+    require(fromOwner == coverOwner, "Cover can only be migrated by its owner");
     require(LegacyCoverStatus(status) != LegacyCoverStatus.Migrated, "Cover has already been migrated");
     require(LegacyCoverStatus(status) != LegacyCoverStatus.ClaimAccepted, "A claim has already been accepted");
     require(block.timestamp < validUntil, "Cover expired");
@@ -105,20 +116,29 @@ contract Cover is ICover, MasterAwareV2 {
     quotationData.changeCoverStatusNo(coverId, uint8(LegacyCoverStatus.Migrated));
 
     // mint the new cover
-    uint newCoverId = coverCount++;
-
-    uint24 productId = productsV1.getNewProductId(legacyProductId);
-    uint8 payoutAsset = currencyCode == "ETH" ? 0 : 1;
-    covers[coverId] = CoverData(
-      productId,
-      payoutAsset,
-      uint96(sumAssured * 10 ** 18),
-      uint32(block.timestamp + 1),
-      uint32(coverPeriodInDays * 1 days),
-      uint16(0)
+    covers.push(
+      CoverData(
+        productsV1.getNewProductId(legacyProductId), // productId
+        currencyCode == "ETH" ? 0 : 1, //payoutAsset
+        uint96(sumAssured * 10 ** 18),
+        uint32(block.timestamp + 1),
+        uint32(coverPeriodInDays * 24 * 60 * 60),
+        uint16(0)
+      )
     );
 
-    ICoverNFT(coverNFT).safeMint(tx.origin, newCoverId);
+    ICoverNFT(coverNFT).safeMint(
+      toNewOwner,
+      covers.length - 1 // newCoverId
+    );
+  }
+
+  /// @dev Migrates covers from V1 to Cover.sol, meant to be used my EOA members
+  ///
+  /// @param coverId     Legacy (V1) cover identifier
+  /// @param toNewOwner  The address for which the V2 cover NFT is minted
+  function migrateCover(uint coverId, address toNewOwner) external override {
+    migrateCoverFromOwner(coverId, msg.sender, toNewOwner);
   }
 
   function buyCover(

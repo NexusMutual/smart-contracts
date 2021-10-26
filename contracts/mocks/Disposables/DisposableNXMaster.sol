@@ -59,7 +59,7 @@ contract DisposableNXMaster is NXMaster {
     // notify all contracts about address change
     for (uint i = 0; i < contractCodes.length; i++) {
       address _address = contractAddresses[contractCodes[i]];
-      MasterAware up = MasterAware(_address);
+      IMasterAware up = IMasterAware(_address);
       up.changeMasterAddress(address(this));
       up.changeDependentContractAddress();
     }

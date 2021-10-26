@@ -105,8 +105,12 @@ interface ICover {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
+  function migrateCover(uint coverId, address toNewOwner) external;
+
+  function migrateCoverFromOwner(uint coverId, address fromOwner, address toNewOwner) external;
+
   function buyCover(
-    BuyCoverParams memory params,
+    BuyCoverParams calldata params,
     CoverChunkRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 

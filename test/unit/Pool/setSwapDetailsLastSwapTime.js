@@ -9,7 +9,7 @@ const {
 
 const ERC20Mock = artifacts.require('ERC20Mock');
 
-describe.only('setSwapDetailsLastSwapTime', function () {
+describe('setSwapDetailsLastSwapTime', function () {
   it('set last swap time for asset', async function () {
     const { pool, swapOperator } = this;
 

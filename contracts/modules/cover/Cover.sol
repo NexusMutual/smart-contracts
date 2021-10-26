@@ -43,6 +43,7 @@ contract Cover is ICover, MasterAwareV2 {
   mapping(uint => uint) lastProductBucket;
 
   uint32 public capacityFactor;
+  // [todo] Remove this and use covers.length instead
   uint32 public coverCount;
 
   address public override coverNFT;

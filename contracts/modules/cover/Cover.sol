@@ -154,6 +154,19 @@ contract Cover is ICover, MasterAwareV2 {
       "Cover: Payout asset is not supported"
     );
 
+    (uint coverId, uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(params, coverChunkRequests);
+    require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
+    retrievePayment(premiumInPaymentAsset, params.payoutAsset);
+
+    tokenController().mint(params.owner, totalPremiumInNXM / 10);
+
+    return coverId;
+  }
+
+  function _buyCover(
+    BuyCoverParams memory params,
+    CoverChunkRequest[] memory coverChunkRequests
+  ) internal returns (uint, uint, uint) {
     // convert to NXM amount
     uint payoutAssetTokenPrice = pool().getTokenPrice(params.payoutAsset);
 
@@ -197,17 +210,12 @@ contract Cover is ICover, MasterAwareV2 {
         uint32(block.timestamp + 1),
         uint32(params.period),
         uint16(totalPremiumInNXM * BASIS_PRECISION / totalCoverAmountInNXM)
-    ));
+      ));
 
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
 
     uint premiumInPaymentAsset = totalPremiumInNXM * pool().getTokenPrice(params.paymentAsset) / 1e18;
-    require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
-    retrievePayment(premiumInPaymentAsset, params.payoutAsset);
-
-    tokenController().mint(params.owner, totalPremiumInNXM / 10);
-
-    return coverId;
+    return (coverId, premiumInPaymentAsset, totalPremiumInNXM);
   }
 
   function buyCoverFromPool(
@@ -233,6 +241,48 @@ contract Cover is ICover, MasterAwareV2 {
     );
 
     return (coveredAmount, premiumInNXM);
+  }
+
+  function editCover(
+    uint coverId,
+    BuyCoverParams memory buyCoverParams,
+    CoverChunkRequest[] memory coverChunkRequests
+  ) external payable onlyMember returns (uint /*coverId*/) {
+
+
+    CoverData memory cover = covers[coverId];
+    require(cover.start + cover.period > block.timestamp, "Cover: cover expired");
+
+    uint32 remainingPeriod = cover.start + cover.period - uint32(block.timestamp);
+
+    // TODO: add check for max 20% MCR check for activeCoverAmountInNXM
+
+    CoverChunk[] storage originalCoverChunks = coverChunksForCover[coverId];
+
+    // reduce period
+    for (uint i = 0; i < originalCoverChunks.length; i++) {
+      IStakingPool stakingPool = IStakingPool(originalCoverChunks[i].poolAddress);
+
+      stakingPool.reducePeriod(
+        cover.productId,
+        cover.period,
+        cover.start,
+        REWARD_BPS * originalCoverChunks[i].premiumInNXM / BASIS_PRECISION,
+        remainingPeriod,
+        originalCoverChunks[i].coverAmountInNXM
+      );
+
+      originalCoverChunks[i].premiumInNXM =
+      originalCoverChunks[i].premiumInNXM * (cover.period - remainingPeriod) / cover.period;
+    }
+
+    uint refund = cover.priceRatio * cover.amount / BASIS_PRECISION * remainingPeriod / cover.period;
+
+    cover.period = cover.period - remainingPeriod;
+    cover.priceRatio = uint16(cover.priceRatio * remainingPeriod / cover.period);
+
+    //buyCover(buyCoverParams, coverChunkRequests);
+    return 0;
   }
 
   function increaseAmount(

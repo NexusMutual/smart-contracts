@@ -25,15 +25,7 @@ async function setup () {
 
   const lido = await P1MockLido.new();
 
-  const {
-    factory,
-    router,
-    wethAPair,
-    wethBPair,
-    weth,
-    tokenA,
-    tokenB,
-  } = await setupUniswap();
+  const { factory, router, wethAPair, wethBPair, weth, tokenA, tokenB } = await setupUniswap();
 
   const twapOracle = await TwapOracle.new(factory.address);
 
@@ -44,9 +36,10 @@ async function setup () {
 
   const pool = await Pool.new(
     [tokenA.address, tokenB.address, lido.address], // assets
+    [18, 18, 18], // decimals
     [0, 0, 0], // min
     [ether('1000'), ether('1000'), ether('1000')], // max
-    [ether('0.05'), ether('0.05'), ether('0.05')], // max slippage ratio [1%, 1%]
+    [500, 500, 500], // max slippage ratio [5%, 5%, 5%]
     master.address,
     ZERO_ADDRESS, // price feed oracle not used
     ZERO_ADDRESS, // swap operator
@@ -55,12 +48,7 @@ async function setup () {
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.enrollGovernance(governance);
 
-  const swapOperator = await SwapOperator.new(
-    master.address,
-    twapOracle.address,
-    owner,
-    lido.address,
-  );
+  const swapOperator = await SwapOperator.new(master.address, twapOracle.address, owner, lido.address);
 
   await pool.updateAddressParameters(hex('SWP_OP'), swapOperator.address, {
     from: governance,

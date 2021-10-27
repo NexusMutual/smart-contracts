@@ -37,12 +37,12 @@ describe('addAsset', function () {
     const { pool } = this;
 
     await expectRevert(
-      pool.addAsset(assetAddress, 18, '0', '1', ether('1').addn(1), { from: governance }),
+      pool.addAsset(assetAddress, 18, '0', '1', 101 /* 1.01% */, { from: governance }),
       'Pool: Max slippage ratio > 1',
     );
 
     // should work with slippage rate = 1
-    await pool.addAsset(assetAddress, 18, '0', '1', ether('1'), { from: governance });
+    await pool.addAsset(assetAddress, 18, '0', '1', 100, { from: governance });
   });
 
   it('reverts when asset exists', async function () {

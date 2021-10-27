@@ -37,11 +37,11 @@ describe('swapEthForStETH', function () {
   it('should revert when asset is not enabled', async function () {
     const { pool, lido, swapOperator } = contracts();
 
-    await pool.setAssetDetails(
+    await pool.setSwapDetails(
       lido.address,
       ether('0'), // asset minimum
       ether('0'), // asset maximum
-      ether('0.01'), // max slippage
+      100, // max slippage
       { from: governance },
     );
     const etherIn = ether('1');
@@ -58,11 +58,11 @@ describe('swapEthForStETH', function () {
     const minEther = toBN(currentEther).sub(maxPoolTradableEther);
 
     await pool.updateUintParameters(hex('MIN_ETH'), minEther, { from: governance });
-    await pool.setAssetDetails(
+    await pool.setSwapDetails(
       lido.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
-      ether('0.01'), // max slippage
+      100, // max slippage
       { from: governance },
     );
 
@@ -99,11 +99,11 @@ describe('swapEthForStETH', function () {
 
     const minStEthAmount = ether('100');
     const maxStEthAmount = ether('1000');
-    await pool.setAssetDetails(
+    await pool.setSwapDetails(
       lido.address,
       minStEthAmount, // asset minimum
       maxStEthAmount, // asset maximum
-      ether('0.01'), // max slippage
+      100, // max slippage
       { from: governance },
     );
 
@@ -118,11 +118,11 @@ describe('swapEthForStETH', function () {
     const { pool, tokenA, swapOperator, lido } = contracts();
     const windowStart = await nextWindowStartTime();
 
-    await pool.setAssetDetails(
+    await pool.setSwapDetails(
       lido.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
-      ether('0.01'), // max slippage
+      100, // max slippage
       { from: governance },
     );
 
@@ -157,11 +157,11 @@ describe('swapEthForStETH', function () {
     const { pool, tokenA, swapOperator, lido } = contracts();
     const windowStart = await nextWindowStartTime();
 
-    await pool.setAssetDetails(
+    await pool.setSwapDetails(
       lido.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
-      ether('0.01'), // max slippage
+      100, // max slippage
       { from: governance },
     );
 
@@ -186,11 +186,11 @@ describe('swapEthForStETH', function () {
 
     const minStEthAmount = ether('100');
 
-    await pool.setAssetDetails(
+    await pool.setSwapDetails(
       lido.address,
       minStEthAmount, // asset minimum
       ether('1000'), // asset maximum
-      ether('0.01'), // max slippage
+      100, // max slippage
       { from: governance },
     );
 

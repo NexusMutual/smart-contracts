@@ -240,17 +240,17 @@ async function setup () {
   await cover.addProduct({
     productType: 0,
     productAddress: '0x0000000000000000000000000000000000000000',
-    payoutAssets: 0,
+    coverAssets: 0,
   });
   await cover.addProduct({
     productType: 1,
     productAddress: '0x0000000000000000000000000000000000000000',
-    payoutAssets: 0,
+    coverAssets: 0,
   });
   await cover.addProduct({
     productType: 2,
     productAddress: '0x0000000000000000000000000000000000000001',
-    payoutAssets: 2,
+    coverAssets: 2,
   });
 
   await lcd.changeMasterAddress(master.address);

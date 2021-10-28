@@ -172,7 +172,12 @@ contract Claims is IClaims, MasterAwareV2 {
     if (claim.payoutAsset == 0) {
       assetSymbol = "ETH";
     } else {
-      try IERC20Detailed(pool().assets(claim.payoutAsset)).symbol() returns (string memory v) {
+      (
+      address payoutAsset,
+      /*uint8 decimals*/,
+      /*bool deprecated*/
+      ) = pool().assets(claim.payoutAsset);
+      try IERC20Detailed(payoutAsset).symbol() returns (string memory v) {
         assetSymbol = v;
       } catch {
         // return assetSymbol as an empty string and use claim.payoutAsset instead in the UI

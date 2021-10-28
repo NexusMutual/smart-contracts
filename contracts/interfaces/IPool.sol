@@ -20,7 +20,11 @@ interface IPool {
     bool deprecated;
   }
 
-  function assets(uint index) external view returns (address);
+  function assets(uint index) external view returns (
+    address assetAddress,
+    uint8 decimals,
+    bool deprecated
+  );
 
   function sellNXM(uint tokenAmount, uint minEthOut) external;
 

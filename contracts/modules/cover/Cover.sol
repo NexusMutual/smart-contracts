@@ -255,6 +255,8 @@ contract Cover is ICover, MasterAwareV2 {
 
     uint32 remainingPeriod = cover.start + cover.period - uint32(block.timestamp);
 
+    (, uint8 paymentAssetDecimals, ) = pool().assets(buyCoverParams.paymentAsset);
+
     // TODO: add check for max 20% MCR check for activeCoverAmountInNXM
 
     CoverChunk[] storage originalCoverChunks = coverChunksForCover[coverId];
@@ -276,13 +278,24 @@ contract Cover is ICover, MasterAwareV2 {
       originalCoverChunks[i].premiumInNXM * (cover.period - remainingPeriod) / cover.period;
     }
 
-    uint refund = cover.priceRatio * cover.amount / BASIS_PRECISION * remainingPeriod / cover.period;
+    uint refundInCoverAsset = cover.priceRatio * cover.amount / BASIS_PRECISION * remainingPeriod / cover.period;
+    uint refundInPaymentAsset =
+      refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset) // value in NXM
+      * (pool().getTokenPrice(buyCoverParams.payoutAsset) / 10 ** paymentAssetDecimals);
 
     cover.period = cover.period - remainingPeriod;
     cover.priceRatio = uint16(cover.priceRatio * remainingPeriod / cover.period);
 
-    //buyCover(buyCoverParams, coverChunkRequests);
-    return 0;
+    (uint newCoverId, uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(buyCoverParams, coverChunkRequests);
+
+    require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
+
+    if (refundInPaymentAsset < premiumInPaymentAsset) {
+      // retrieve extra required payment
+      retrievePayment(premiumInPaymentAsset - refundInPaymentAsset, buyCoverParams.paymentAsset);
+    }
+
+    return newCoverId;
   }
 
   function increaseAmount(
@@ -637,7 +650,7 @@ contract Cover is ICover, MasterAwareV2 {
         require(ok, "Cover: Returning ETH remainder to sender failed.");
       }
     } else {
-      address payoutAsset = pool().assets(payoutAssetIndex);
+      (address payoutAsset, /* uint8 decimals */ , /* */) = pool().assets(payoutAssetIndex);
       IERC20 token = IERC20(payoutAsset);
       token.transferFrom(msg.sender, address(this), totalPrice);
     }

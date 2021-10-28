@@ -261,7 +261,8 @@ contract Cover is ICover, MasterAwareV2 {
 
     CoverChunk[] storage originalCoverChunks = coverChunksForCover[coverId];
 
-    // reduce period
+    uint totalPreviousCoverAmountInNXM = 0;
+    // rollback previous cover
     for (uint i = 0; i < originalCoverChunks.length; i++) {
       IStakingPool stakingPool = IStakingPool(originalCoverChunks[i].poolAddress);
 
@@ -273,10 +274,12 @@ contract Cover is ICover, MasterAwareV2 {
         remainingPeriod,
         originalCoverChunks[i].coverAmountInNXM
       );
-
+      totalPreviousCoverAmountInNXM += originalCoverChunks[i].coverAmountInNXM;
       originalCoverChunks[i].premiumInNXM =
       originalCoverChunks[i].premiumInNXM * (cover.period - remainingPeriod) / cover.period;
     }
+
+    rollbackActiveCoverAmount(cover.productId, remainingPeriod, totalPreviousCoverAmountInNXM);
 
     uint refundInCoverAsset = cover.priceRatio * cover.amount / BASIS_PRECISION * remainingPeriod / cover.period;
     uint refundInPaymentAsset =
@@ -314,6 +317,10 @@ contract Cover is ICover, MasterAwareV2 {
     lastProductBucket[productId] = lastBucket;
 
     productBuckets[productId][(block.timestamp + period) / BUCKET_SIZE].coverAmountExpiring = uint96(amountToCoverInNXM);
+  }
+
+  function rollbackActiveCoverAmount(uint productId, uint period, uint amountInNXM) internal {
+    productBuckets[productId][(block.timestamp + period) / BUCKET_SIZE].coverAmountExpiring -= uint96(amountInNXM);
   }
 
   function performPayoutBurn(

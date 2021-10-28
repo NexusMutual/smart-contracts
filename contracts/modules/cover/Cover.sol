@@ -249,15 +249,12 @@ contract Cover is ICover, MasterAwareV2 {
     CoverChunkRequest[] memory coverChunkRequests
   ) external payable onlyMember returns (uint /*coverId*/) {
 
-
     CoverData memory cover = covers[coverId];
     require(cover.start + cover.period > block.timestamp, "Cover: cover expired");
 
     uint32 remainingPeriod = cover.start + cover.period - uint32(block.timestamp);
 
     (, uint8 paymentAssetDecimals, ) = pool().assets(buyCoverParams.paymentAsset);
-
-    // TODO: add check for max 20% MCR check for activeCoverAmountInNXM
 
     CoverChunk[] storage originalCoverChunks = coverChunksForCover[coverId];
 
@@ -282,10 +279,9 @@ contract Cover is ICover, MasterAwareV2 {
     rollbackActiveCoverAmount(cover.productId, remainingPeriod, totalPreviousCoverAmountInNXM);
 
     uint refundInCoverAsset = cover.priceRatio * cover.amount / BASIS_PRECISION * remainingPeriod / cover.period;
-    uint refundInPaymentAsset =
-      refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset) // value in NXM
-      * (pool().getTokenPrice(buyCoverParams.payoutAsset) / 10 ** paymentAssetDecimals);
 
+
+    // edit cover so it ends at the current block
     cover.period = cover.period - remainingPeriod;
     cover.priceRatio = uint16(cover.priceRatio * remainingPeriod / cover.period);
 
@@ -293,10 +289,25 @@ contract Cover is ICover, MasterAwareV2 {
 
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
-    if (refundInPaymentAsset < premiumInPaymentAsset) {
-      // retrieve extra required payment
-      retrievePayment(premiumInPaymentAsset - refundInPaymentAsset, buyCoverParams.paymentAsset);
+
+    if (buyCoverParams.payWithNXM) {
+      uint refundInNXM = refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset);
+      if (refundInNXM < totalPremiumInNXM) {
+        // requires NXM allowance
+        tokenController().burnFrom(msg.sender, totalPremiumInNXM - refundInNXM);
+      }
+    } else {
+      uint refundInPaymentAsset =
+      refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset)
+      * (pool().getTokenPrice(buyCoverParams.payoutAsset) / 10 ** paymentAssetDecimals);
+
+      if (refundInPaymentAsset < premiumInPaymentAsset) {
+        // retrieve extra required payment
+        retrievePayment(premiumInPaymentAsset - refundInPaymentAsset, buyCoverParams.paymentAsset);
+      }
     }
+
+
 
     return newCoverId;
   }

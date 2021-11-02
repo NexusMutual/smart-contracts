@@ -379,7 +379,7 @@ contract Cover is ICover, MasterAwareV2 {
         require(ok, "Cover: Returning ETH remainder to sender failed.");
       }
     } else {
-      (address payoutAsset, /* uint8 decimals */ , /* */) = pool().assets(payoutAssetIndex);
+      (address payoutAsset, /* uint8 decimals */ , /* bool deprecated */) = pool().assets(payoutAssetIndex);
       IERC20 token = IERC20(payoutAsset);
       token.transferFrom(msg.sender, address(this), totalPrice);
     }

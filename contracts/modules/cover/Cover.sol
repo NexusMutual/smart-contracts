@@ -165,7 +165,7 @@ contract Cover is ICover, MasterAwareV2 {
       // mint 10% of paid premium value to user
       tokenController().mint(params.owner, totalPremiumInNXM / 10);
     }
-    
+
     return coverId;
   }
 

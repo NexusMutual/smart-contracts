@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { hexlify, arrayify, hexValue, hexZeroPad, parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 const { getAccounts } = require('../../utils/accounts');
-const { Role, ZERO_ADDRESS } = require('../utils').constants;
+const { Role } = require('../utils').constants;
 const { hex, zeroPadRight } = require('../utils').helpers;
 
 async function setup () {
@@ -53,7 +53,7 @@ async function setup () {
   await mcr.deployed();
   await mcr.setMCR(parseEther('600000'));
 
-  const cover = await Cover.deploy(quotationData.address, ZERO_ADDRESS);
+  const cover = await Cover.deploy(quotationData.address, ethers.constants.AddressZero);
   await cover.deployed();
 
   await master.setTokenAddress(nxm.address);

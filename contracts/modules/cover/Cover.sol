@@ -158,6 +158,7 @@ contract Cover is ICover, MasterAwareV2 {
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
     retrievePayment(premiumInPaymentAsset, params.payoutAsset);
 
+    // mint 10% of paid premium value to user
     tokenController().mint(params.owner, totalPremiumInNXM / 10);
 
     return coverId;
@@ -258,28 +259,29 @@ contract Cover is ICover, MasterAwareV2 {
 
     CoverChunk[] storage originalCoverChunks = coverChunksForCover[coverId];
 
-    uint totalPreviousCoverAmountInNXM = 0;
-    // rollback previous cover
-    for (uint i = 0; i < originalCoverChunks.length; i++) {
-      IStakingPool stakingPool = IStakingPool(originalCoverChunks[i].poolAddress);
+    {
+      uint totalPreviousCoverAmountInNXM = 0;
+      // rollback previous cover
+      for (uint i = 0; i < originalCoverChunks.length; i++) {
+        IStakingPool stakingPool = IStakingPool(originalCoverChunks[i].poolAddress);
 
-      stakingPool.reducePeriod(
-        cover.productId,
-        cover.period,
-        cover.start,
-        REWARD_BPS * originalCoverChunks[i].premiumInNXM / BASIS_PRECISION,
-        remainingPeriod,
-        originalCoverChunks[i].coverAmountInNXM
-      );
-      totalPreviousCoverAmountInNXM += originalCoverChunks[i].coverAmountInNXM;
-      originalCoverChunks[i].premiumInNXM =
-      originalCoverChunks[i].premiumInNXM * (cover.period - remainingPeriod) / cover.period;
+        stakingPool.reducePeriod(
+          cover.productId,
+          cover.period,
+          cover.start,
+          REWARD_BPS * originalCoverChunks[i].premiumInNXM / BASIS_PRECISION,
+          remainingPeriod,
+          originalCoverChunks[i].coverAmountInNXM
+        );
+        totalPreviousCoverAmountInNXM += originalCoverChunks[i].coverAmountInNXM;
+        originalCoverChunks[i].premiumInNXM =
+        originalCoverChunks[i].premiumInNXM * (cover.period - remainingPeriod) / cover.period;
+      }
+
+      rollbackActiveCoverAmount(cover.productId, remainingPeriod, totalPreviousCoverAmountInNXM);
     }
 
-    rollbackActiveCoverAmount(cover.productId, remainingPeriod, totalPreviousCoverAmountInNXM);
-
     uint refundInCoverAsset = cover.priceRatio * cover.amount / BASIS_PRECISION * remainingPeriod / cover.period;
-
 
     // edit cover so it ends at the current block
     cover.period = cover.period - remainingPeriod;
@@ -289,6 +291,7 @@ contract Cover is ICover, MasterAwareV2 {
 
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
+    uint refundInNXM = refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset);
 
     if (buyCoverParams.payWithNXM) {
       uint refundInNXM = refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset);
@@ -298,16 +301,17 @@ contract Cover is ICover, MasterAwareV2 {
       }
     } else {
       uint refundInPaymentAsset =
-      refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset)
+      refundInNXM
       * (pool().getTokenPrice(buyCoverParams.payoutAsset) / 10 ** paymentAssetDecimals);
 
       if (refundInPaymentAsset < premiumInPaymentAsset) {
         // retrieve extra required payment
         retrievePayment(premiumInPaymentAsset - refundInPaymentAsset, buyCoverParams.paymentAsset);
+
+        // mint 10% of paid premium value to user
+        tokenController().mint(msg.sender, (totalPremiumInNXM - refundInNXM) / 10);
       }
     }
-
-
 
     return newCoverId;
   }

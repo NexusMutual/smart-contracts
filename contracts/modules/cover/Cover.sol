@@ -156,11 +156,16 @@ contract Cover is ICover, MasterAwareV2 {
 
     (uint coverId, uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(params, coverChunkRequests);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
-    retrievePayment(premiumInPaymentAsset, params.payoutAsset);
 
-    // mint 10% of paid premium value to user
-    tokenController().mint(params.owner, totalPremiumInNXM / 10);
+    if (params.payWithNXM) {
+      tokenController().burnFrom(msg.sender, totalPremiumInNXM);
+    } else {
+      retrievePayment(premiumInPaymentAsset, params.payoutAsset);
 
+      // mint 10% of paid premium value to user
+      tokenController().mint(params.owner, totalPremiumInNXM / 10);
+    }
+    
     return coverId;
   }
 

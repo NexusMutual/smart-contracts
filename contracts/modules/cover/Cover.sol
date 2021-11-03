@@ -17,7 +17,7 @@ contract Cover is ICover, MasterAwareV2 {
 
   /* === CONSTANTS ==== */
 
-  uint public REWARD_BPS = 5000;
+  uint public constant REWARD_BPS = 5000;
   uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
   uint public constant BASIS_PRECISION = 10000;
   uint public constant STAKE_SPEED_UNIT = 100000e18;

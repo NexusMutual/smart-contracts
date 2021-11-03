@@ -22,4 +22,6 @@ contract CLMockPool {
     }
     tokenPrice = 3820000000000000000; // 1 NXM ~ 3.82 DAI
   }
+
+  fallback() external payable {}
 }

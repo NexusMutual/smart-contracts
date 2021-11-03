@@ -16,6 +16,8 @@ import "../../interfaces/ITokenController.sol";
 contract Pool is IPool, MasterAware, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
+  uint16 constant RATIO_BPS = 10000;
+
   /* storage */
   Asset[] public override assets;
   mapping(address => SwapDetails) public swapDetails;
@@ -79,7 +81,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       Asset memory asset = Asset(assetAddresses[i], assetDecimals[i], false);
       require(asset.assetAddress != address(0), "Pool: Asset cannot be a zero address");
       require(_maxAmounts[i] >= _minAmounts[i], "Pool: max < min");
-      require(_maxSlippageRatios[i] <= 1 ether, "Pool: max < min");
+      require(_maxSlippageRatios[i] <= RATIO_BPS, "Pool: Max slippage ratio > 1");
 
       assets.push(asset);
       swapDetails[asset.assetAddress].minAmount = _minAmounts[i];
@@ -92,7 +94,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     swapOperator = _swapOperator;
   }
 
-  // fallback function
   fallback() external payable {}
 
   // for legacy Pool1 upgrade compatibility
@@ -171,7 +172,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
     require(assetAddress != address(0), "Pool: Asset is zero address");
     require(_max >= _min, "Pool: max < min");
-    require(_maxSlippageRatio <= 100, "Pool: Max slippage ratio > 1");
+    require(_maxSlippageRatio <= RATIO_BPS, "Pool: Max slippage ratio > 1");
 
     uint assetsCount = assets.length;
     for (uint i = 0; i < assetsCount; i++) {
@@ -198,7 +199,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   ) external onlyGovernance {
 
     require(_min <= _max, "Pool: min > max");
-    require(_maxSlippageRatio <= 100, "Pool: Max slippage ratio > 1");
+    require(_maxSlippageRatio <= RATIO_BPS, "Pool: Max slippage ratio > 1");
 
     uint assetsCount = assets.length;
     for (uint i = 0; i < assetsCount; i++) {

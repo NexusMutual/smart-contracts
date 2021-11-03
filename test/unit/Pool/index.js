@@ -34,7 +34,7 @@ describe('Pool unit tests', function () {
   require('./upgradeCapitalPool');
 
   // payout
-  require('./sendClaimPayout');
+  require('./sendPayout');
 
   // swapping
   require('./transferAssetToSwapOperator');

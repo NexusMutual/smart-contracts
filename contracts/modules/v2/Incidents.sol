@@ -184,8 +184,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
     // [todo] Replace payoutAddress with the member's address using the member id
     IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
     IERC20(coveredToken).transferFrom(msg.sender, address(this), depeggedTokens);
-    bool succeeded = poolContract.sendClaimPayout(payoutAsset, coverOwner, payoutAmount);
-    require(succeeded, "Incident payout failed");
+    poolContract.sendPayout(payoutAsset, coverOwner, payoutAmount);
 
     return (payoutAmount, payoutAsset);
 

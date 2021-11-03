@@ -6,13 +6,11 @@ pragma solidity ^0.5.17;
 contract ICMockPool {
   IPool.Asset[] public assets;
 
-  function sendClaimPayout(
+  function sendPayout(
     address asset,
     address payable payoutAddress,
     uint amount
-  ) public returns (bool) {
-    return true;
-  }
+  ) public {}
 
   function addAsset(address assetAddress, uint8 decimals) external {
     assets.push(IPool.Asset(assetAddress, decimals, false));

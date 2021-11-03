@@ -73,11 +73,11 @@ interface IPool {
 
   function getNXMForEth(uint ethAmount) external view returns (uint);
 
-  function sendClaimPayout (
-    uint assetId,
+  function sendPayout (
+    uint assetIndex,
     address payable payoutAddress,
     uint amount
-  ) external returns (bool success);
+  ) external;
 
   function upgradeCapitalPool(address payable newPoolAddress) external;
 

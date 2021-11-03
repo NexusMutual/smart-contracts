@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IMCR.sol";
@@ -13,6 +14,7 @@ import "../../interfaces/IQuotation.sol";
 import "../../interfaces/ITokenController.sol";
 
 contract Pool is IPool, MasterAware, ReentrancyGuard {
+  using SafeERC20 for IERC20;
 
   /* storage */
   Asset[] public override assets;
@@ -218,70 +220,34 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   /* claim related functions */
 
   /**
-   * @dev Execute the payout in case a claim is accepted
-   * @param assetId        Index of the asset
+   * @dev Executes a payout
+   * @param assetIndex     Index of the payout asset
    * @param payoutAddress  Send funds to this address
    * @param amount         Amount to send
    */
-  function sendClaimPayout (
-    uint assetId,
+  function sendPayout (
+    uint assetIndex,
     address payable payoutAddress,
     uint amount
-  ) external override onlyInternal nonReentrant returns (bool success) {
+  ) external override onlyInternal nonReentrant {
     bool ok;
-    Asset memory asset = assets[assetId];
+    Asset memory asset = assets[assetIndex];
 
-    // [todo] consider adding a minimum sum for triggering an MCR update to save gas
-    uint amountInETH;
     if (asset.assetAddress == ETH) {
       // solhint-disable-next-line avoid-low-level-calls
-      (ok, /* data */) = payoutAddress.call{value: amount}("");
-      amountInETH = amount;
+      (bool transferSucceeded, /* data */) = payoutAddress.call{value: amount}("");
+      require(transferSucceeded, "Pool: ETH transfer failed");
     } else {
-      ok =  _safeTokenTransfer(asset.assetAddress, payoutAddress, amount);
+      IERC20(asset.assetAddress).safeTransfer(payoutAddress, amount);
       uint rate = priceFeedOracle.getAssetToEthRate(asset.assetAddress);
       require(rate > 0, "Pool: Zero rate");
-      amountInETH = amount * rate / 1e18;
     }
 
-    if (ok) {
-      emit Payout(payoutAddress, asset.assetAddress, amount);
-      uint totalAssetValue = getPoolValueInEth();
-      mcr.updateMCRInternal(totalAssetValue, true);
-    }
+    emit Payout(payoutAddress, asset.assetAddress, amount);
+    uint totalAssetValue = getPoolValueInEth();
 
-    return ok;
-  }
-
-  /**
-   * @dev safeTransfer implementation that does not revert
-   * @param tokenAddress ERC20 address
-   * @param to destination
-   * @param value amount to send
-   * @return success  True if the transfer was successfull
-   */
-  function _safeTokenTransfer (
-    address tokenAddress,
-    address to,
-    uint256 value
-  ) internal returns (bool) {
-    IERC20 token = IERC20(tokenAddress);
-    bytes memory data = abi.encodeWithSelector(token.transfer.selector, to, value);
-    // solhint-disable-next-line avoid-low-level-calls
-    (bool success, bytes memory returndata) = tokenAddress.call(data);
-
-    // low-level call failed/reverted
-    if (!success) {
-      return false;
-    }
-
-    // tokens that don't have return data
-    if (returndata.length == 0) {
-      return true;
-    }
-
-    // tokens that have return data will return a bool
-    return abi.decode(returndata, (bool));
+    // [todo] consider adding a minimum sum for triggering an MCR update to save gas
+    mcr.updateMCRInternal(totalAssetValue, true);
   }
 
   /* pool lifecycle functions */
@@ -299,7 +265,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint balance = token.balanceOf(address(this));
     uint transferableAmount = amount > balance ? balance : amount;
 
-    token.transfer(destination, transferableAmount);
+    token.safeTransfer(destination, transferableAmount);
   }
 
   function upgradeCapitalPool(address payable newPoolAddress) external override onlyMaster nonReentrant {
@@ -314,7 +280,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     for (uint i = 1; i < assetsCount; i++) {
       IERC20 token = IERC20(assets[i].assetAddress);
       uint tokenBalance = token.balanceOf(address(this));
-      token.transfer(newPoolAddress, tokenBalance);
+      token.safeTransfer(newPoolAddress, tokenBalance);
     }
 
   }
@@ -381,7 +347,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint amount
   ) public override onlyInternal whenNotPaused {
     IERC20 token = IERC20(assetAddress);
-    token.transferFrom(from, address(this), amount);
+    token.safeTransferFrom(from, address(this), amount);
   }
 
   function transferAssetToSwapOperator (
@@ -396,7 +362,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     }
 
     IERC20 token = IERC20(assetAddress);
-    token.transfer(swapOperator, amount);
+    token.safeTransfer(swapOperator, amount);
   }
 
   function setSwapDetailsLastSwapTime(

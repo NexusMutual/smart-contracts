@@ -189,7 +189,7 @@ describe('fix steth investment', function () {
     );
     const poolValueInEthBefore = pool.getPoolValueInEth();
 
-    // add new category for sendClaimPayout call
+    // add new category for sendPayout call
     await submitGovernanceProposal(setPoolAddressParameters, addSwapOperator, voters, governance);
 
     const storedSwapOperatorAddress = await pool.swapOperator();

@@ -96,9 +96,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   fallback() external payable {}
 
-  // for legacy Pool1 upgrade compatibility
-  function sendEther() external payable {}
-
   /**
    * @dev Calculates total value of all pool assets in ether
    */
@@ -247,7 +244,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     emit Payout(payoutAddress, asset.assetAddress, amount);
     uint totalAssetValue = getPoolValueInEth();
 
-    // [todo] consider adding a minimum sum for triggering an MCR update to save gas
     mcr.updateMCRInternal(totalAssetValue, true);
   }
 

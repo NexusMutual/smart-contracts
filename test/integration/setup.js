@@ -299,8 +299,8 @@ async function setup () {
   const POOL_ETHER = ether('90000');
   const POOL_DAI = ether('2000000');
 
-  // fund pools
-  await p1.sendEther({ from: owner, value: POOL_ETHER });
+  // fund pool
+  await web3.eth.sendTransaction({ from: owner, to: p1.address, value: POOL_ETHER });
   await dai.transfer(p1.address, POOL_DAI);
 
   const ethEthRate = 100;

@@ -283,7 +283,9 @@ contract Cover is ICover, MasterAwareV2 {
         originalCoverChunks[i].premiumInNXM * (cover.period - remainingPeriod) / cover.period;
       }
 
-      rollbackActiveCoverAmount(cover.productId, remainingPeriod, totalPreviousCoverAmountInNXM);
+      // rollback cover amount
+      productBuckets[buyCoverParams.productId][(cover.start + cover.period) / BUCKET_SIZE].coverAmountExpiring
+        -= uint96(totalPreviousCoverAmountInNXM);
     }
 
     uint refundInCoverAsset = cover.priceRatio * cover.amount / BASIS_PRECISION * remainingPeriod / cover.period;
@@ -337,10 +339,6 @@ contract Cover is ICover, MasterAwareV2 {
     lastProductBucket[productId] = lastBucket;
 
     productBuckets[productId][(block.timestamp + period) / BUCKET_SIZE].coverAmountExpiring = uint96(amountToCoverInNXM);
-  }
-
-  function rollbackActiveCoverAmount(uint productId, uint period, uint amountInNXM) internal {
-    productBuckets[productId][(block.timestamp + period) / BUCKET_SIZE].coverAmountExpiring -= uint96(amountInNXM);
   }
 
   function performPayoutBurn(

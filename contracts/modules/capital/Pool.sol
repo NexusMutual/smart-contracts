@@ -16,7 +16,7 @@ import "../../interfaces/ITokenController.sol";
 contract Pool is IPool, MasterAware, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
-  uint16 constant RATIO_BPS = 10000;
+  uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
   /* storage */
   Asset[] public override assets;
@@ -81,7 +81,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       Asset memory asset = Asset(assetAddresses[i], assetDecimals[i], false);
       require(asset.assetAddress != address(0), "Pool: Asset cannot be a zero address");
       require(_maxAmounts[i] >= _minAmounts[i], "Pool: max < min");
-      require(_maxSlippageRatios[i] <= RATIO_BPS, "Pool: Max slippage ratio > 1");
+      require(_maxSlippageRatios[i] <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
 
       assets.push(asset);
       swapDetails[asset.assetAddress].minAmount = _minAmounts[i];
@@ -169,7 +169,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
     require(assetAddress != address(0), "Pool: Asset is zero address");
     require(_max >= _min, "Pool: max < min");
-    require(_maxSlippageRatio <= RATIO_BPS, "Pool: Max slippage ratio > 1");
+    require(_maxSlippageRatio <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
 
     uint assetsCount = assets.length;
     for (uint i = 0; i < assetsCount; i++) {
@@ -196,7 +196,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   ) external onlyGovernance {
 
     require(_min <= _max, "Pool: min > max");
-    require(_maxSlippageRatio <= RATIO_BPS, "Pool: Max slippage ratio > 1");
+    require(_maxSlippageRatio <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
 
     uint assetsCount = assets.length;
     for (uint i = 0; i < assetsCount; i++) {

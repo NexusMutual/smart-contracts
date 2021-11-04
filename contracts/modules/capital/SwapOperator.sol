@@ -14,7 +14,7 @@ import "../../interfaces/ITwapOracle.sol";
 contract SwapOperator is ReentrancyGuard {
   using SafeERC20 for IERC20;
 
-  uint16 constant RATIO_BPS = 10000;
+  uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
   ITwapOracle public twapOracle;
   address public swapController;
@@ -155,7 +155,7 @@ contract SwapOperator is ReentrancyGuard {
     {
       // scope for token checks
       uint avgAmountOut = twapOracle.consult(WETH, amountIn, toTokenAddress);
-      uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / RATIO_BPS;
+      uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / MAX_SLIPPAGE_DENOMINATOR;
       uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
       // gas optimisation: reads both values using a single SLOAD
@@ -208,7 +208,7 @@ contract SwapOperator is ReentrancyGuard {
     {
       // scope for token checks
       uint avgAmountOut = twapOracle.consult(fromTokenAddress, amountIn, WETH);
-      uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / RATIO_BPS;
+      uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / MAX_SLIPPAGE_DENOMINATOR;
       uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
       // gas optimisation: reads both values using a single SLOAD

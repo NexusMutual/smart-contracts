@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/INXMToken.sol";
@@ -16,12 +14,12 @@ import "../../interfaces/IQuotation.sol";
 import "../../interfaces/ITokenController.sol";
 
 contract Pool is IPool, MasterAware, ReentrancyGuard {
-  using Address for address;
-  using SafeMath for uint;
   using SafeERC20 for IERC20;
 
+  uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
+
   /* storage */
-  Asset[] public assets;
+  Asset[] public override assets;
   mapping(address => SwapDetails) public swapDetails;
 
   // contracts
@@ -32,8 +30,8 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   // parameters
   address public swapController;
-  uint public minPoolEth;
-  IPriceFeedOracle public priceFeedOracle;
+  uint public override minPoolEth;
+  IPriceFeedOracle public override priceFeedOracle;
   address public swapOperator;
 
   /* constants */
@@ -83,7 +81,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       Asset memory asset = Asset(assetAddresses[i], assetDecimals[i], false);
       require(asset.assetAddress != address(0), "Pool: Asset cannot be a zero address");
       require(_maxAmounts[i] >= _minAmounts[i], "Pool: max < min");
-      require(_maxSlippageRatios[i] <= 1 ether, "Pool: max < min");
+      require(_maxSlippageRatios[i] <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
 
       assets.push(asset);
       swapDetails[asset.assetAddress].minAmount = _minAmounts[i];
@@ -96,16 +94,12 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     swapOperator = _swapOperator;
   }
 
-  // fallback function
-  function() external payable {}
-
-  // for legacy Pool1 upgrade compatibility
-  function sendEther() external payable {}
+  fallback() external payable {}
 
   /**
    * @dev Calculates total value of all pool assets in ether
    */
-  function getPoolValueInEth() public view returns (uint) {
+  function getPoolValueInEth() public override view returns (uint) {
 
     uint total = address(this).balance;
 
@@ -125,9 +119,9 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       require(rate > 0, "Pool: Zero rate");
 
       uint assetBalance = token.balanceOf(address(this));
-      uint assetValue = assetBalance.mul(rate).div(10 ** uint(asset.decimals)); // ETH
+      uint assetValue = assetBalance * rate / (10 ** uint(asset.decimals)); // ETH
 
-      total = total.add(assetValue);
+      total = total + assetValue;
     }
 
     return total;
@@ -135,12 +129,15 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   /* asset related functions */
 
-  function getAssets() external view returns (address[] memory, uint8[] memory, bool[] memory) {
+  function getAssets() external override view returns (
+    address[] memory assetAddresses,
+    uint8[] memory decimals,
+    bool[] memory deprecated
+  ) {
     uint assetsCount = assets.length;
-    address[] memory assetAddresses = new address[](assetsCount);
-    uint8[] memory decimals = new uint8[](assetsCount);
-    bool[] memory deprecated = new bool[](assetsCount);
-
+    assetAddresses = new address[](assetsCount);
+    decimals = new uint8[](assetsCount);
+    deprecated = new bool[](assetsCount);
     for (uint i = 0; i < assetsCount; i++) {
       IPool.Asset memory asset = assets[i];
       assetAddresses[i] = asset.assetAddress;
@@ -150,7 +147,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     return (assetAddresses, decimals, deprecated);
   }
 
-  function getAssetSwapDetails(address assetAddress) external view returns (
+  function getAssetSwapDetails(address assetAddress) external override view returns (
     uint104 min,
     uint104 max,
     uint32 lastAssetSwapTime,
@@ -172,7 +169,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
     require(assetAddress != address(0), "Pool: Asset is zero address");
     require(_max >= _min, "Pool: max < min");
-    require(_maxSlippageRatio <= 1 ether, "Pool: Max slippage ratio > 1");
+    require(_maxSlippageRatio <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
 
     uint assetsCount = assets.length;
     for (uint i = 0; i < assetsCount; i++) {
@@ -191,7 +188,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   }
 
-  function setAssetDetails(
+  function setSwapDetails(
     address assetAddress,
     uint104 _min,
     uint104 _max,
@@ -199,7 +196,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   ) external onlyGovernance {
 
     require(_min <= _max, "Pool: min > max");
-    require(_maxSlippageRatio <= 1 ether, "Pool: Max slippage ratio > 1");
+    require(_maxSlippageRatio <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
 
     uint assetsCount = assets.length;
     for (uint i = 0; i < assetsCount; i++) {
@@ -221,76 +218,33 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   /* claim related functions */
 
   /**
-   * @dev Execute the payout in case a claim is accepted
-   * @param assetId        Index of the asset
+   * @dev Executes a payout
+   * @param assetIndex     Index of the payout asset
    * @param payoutAddress  Send funds to this address
    * @param amount         Amount to send
    */
-  function sendClaimPayout (
-    uint assetId,
+  function sendPayout (
+    uint assetIndex,
     address payable payoutAddress,
     uint amount
-  ) external onlyInternal nonReentrant returns (bool success) {
+  ) external override onlyInternal nonReentrant {
     bool ok;
-    Asset memory asset = assets[assetId];
+    Asset memory asset = assets[assetIndex];
 
-    // [todo] consider adding a minimum sum for triggering an MCR update to save gas
-    uint amountInETH;
     if (asset.assetAddress == ETH) {
       // solhint-disable-next-line avoid-low-level-calls
-      (ok, /* data */) = payoutAddress.call.value(amount)("");
-      amountInETH = amount;
+      (bool transferSucceeded, /* data */) = payoutAddress.call{value: amount}("");
+      require(transferSucceeded, "Pool: ETH transfer failed");
     } else {
-      ok =  _safeTokenTransfer(asset.assetAddress, payoutAddress, amount);
+      IERC20(asset.assetAddress).safeTransfer(payoutAddress, amount);
       uint rate = priceFeedOracle.getAssetToEthRate(asset.assetAddress);
       require(rate > 0, "Pool: Zero rate");
-      amountInETH = amount.mul(rate).div(1e18);
     }
 
-    if (ok) {
-      emit Payout(payoutAddress, asset.assetAddress, amount);
-      uint totalAssetValue = getPoolValueInEth();
-      mcr.updateMCRInternal(totalAssetValue, true);
-    }
+    emit Payout(payoutAddress, asset.assetAddress, amount);
+    uint totalAssetValue = getPoolValueInEth();
 
-    return ok;
-  }
-
-  /**
-   * @dev safeTransfer implementation that does not revert
-   * @param tokenAddress ERC20 address
-   * @param to destination
-   * @param value amount to send
-   * @return success true if the transfer was successfull
-   */
-  function _safeTokenTransfer (
-    address tokenAddress,
-    address to,
-    uint256 value
-  ) internal returns (bool) {
-
-    // token address is not a contract
-    if (!tokenAddress.isContract()) {
-      return false;
-    }
-
-    IERC20 token = IERC20(tokenAddress);
-    bytes memory data = abi.encodeWithSelector(token.transfer.selector, to, value);
-    // solhint-disable-next-line avoid-low-level-calls
-    (bool success, bytes memory returndata) = tokenAddress.call(data);
-
-    // low-level call failed/reverted
-    if (!success) {
-      return false;
-    }
-
-    // tokens that don't have return data
-    if (returndata.length == 0) {
-      return true;
-    }
-
-    // tokens that have return data will return a bool
-    return abi.decode(returndata, (bool));
+    mcr.updateMCRInternal(totalAssetValue, true);
   }
 
   /* pool lifecycle functions */
@@ -311,11 +265,11 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     token.safeTransfer(destination, transferableAmount);
   }
 
-  function upgradeCapitalPool(address payable newPoolAddress) external onlyMaster nonReentrant {
+  function upgradeCapitalPool(address payable newPoolAddress) external override onlyMaster nonReentrant {
 
     // transfer ether
     uint ethBalance = address(this).balance;
-    (bool ok, /* data */) = newPoolAddress.call.value(ethBalance)("");
+    (bool ok, /* data */) = newPoolAddress.call{value: ethBalance}("");
     require(ok, "Pool: Transfer failed");
 
     uint assetsCount = assets.length;
@@ -342,7 +296,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   /* cover purchase functions */
 
   /// @dev Enables user to purchase cover with funding in ETH.
-  /// @param smartCAdd Smart Contract Address
+  /// @param smartCAdd  Smart Contract Address
   function makeCoverBegin(
     address smartCAdd,
     bytes4 coverCurr,
@@ -351,12 +305,12 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint8 _v,
     bytes32 _r,
     bytes32 _s
-  ) public payable onlyMember whenNotPaused {
+  ) public override payable onlyMember whenNotPaused {
 
     require(coverCurr == "ETH", "Pool: Unexpected asset type");
     require(msg.value == coverDetails[1], "Pool: ETH amount does not match premium");
 
-    quotation.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
+    quotation.verifyCoverDetails(payable(msg.sender), smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
   }
 
   /**
@@ -370,20 +324,36 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint8 _v,
     bytes32 _r,
     bytes32 _s
-  ) public onlyMember whenNotPaused {
+  ) public override onlyMember whenNotPaused {
     require(coverCurr != "ETH", "Pool: Unexpected asset type");
-    quotation.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
+    quotation.verifyCoverDetails(
+      payable(msg.sender),
+      smartCAdd,
+      coverCurr,
+      coverDetails,
+      coverPeriod,
+      _v,
+      _r,
+      _s
+    );
   }
 
-  function transferAssetFrom (address assetAddress, address from, uint amount) public onlyInternal whenNotPaused {
+  function transferAssetFrom (
+    address assetAddress,
+    address from,
+    uint amount
+  ) public override onlyInternal whenNotPaused {
     IERC20 token = IERC20(assetAddress);
     token.safeTransferFrom(from, address(this), amount);
   }
 
-  function transferAssetToSwapOperator (address assetAddress, uint amount) public onlySwapOperator nonReentrant whenNotPaused {
+  function transferAssetToSwapOperator (
+    address assetAddress,
+    uint amount
+  ) public override onlySwapOperator nonReentrant whenNotPaused {
 
     if (assetAddress == ETH) {
-      (bool ok, /* data */) = swapOperator.call.value(amount)("");
+      (bool ok, /* data */) = swapOperator.call{value: amount}("");
       require(ok, "Pool: ETH transfer failed");
       return;
     }
@@ -392,7 +362,10 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     token.safeTransfer(swapOperator, amount);
   }
 
-  function setSwapDetailsLastSwapTime(address assetAddress, uint32 lastSwapTime) public onlySwapOperator whenNotPaused {
+  function setSwapDetailsLastSwapTime(
+    address assetAddress,
+    uint32 lastSwapTime
+  ) public override onlySwapOperator whenNotPaused {
     swapDetails[assetAddress].lastSwapTime = lastSwapTime;
   }
 
@@ -402,10 +375,12 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
    * @dev (DEPRECATED, use sellTokens function instead) Allows selling of NXM for ether.
    * Seller first needs to give this contract allowance to
    * transfer/burn tokens in the NXMToken contract
-   * @param  _amount Amount of NXM to sell
-   * @return success returns true on successfull sale
+   * @param  _amount  Amount of NXM to sell
+   * @return success  Returns true on successfull sale
    */
-  function sellNXMTokens(uint _amount) public onlyMember whenNotPaused returns (bool success) {
+  function sellNXMTokens(
+    uint _amount
+  ) public override onlyMember whenNotPaused returns (bool success) {
     sellNXM(_amount, 0);
     return true;
   }
@@ -413,7 +388,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   /**
    * @dev (DEPRECATED, use calculateNXMForEth function instead) Returns the amount of wei a seller will get for selling NXM
    * @param amount Amount of NXM to sell
-   * @return weiToPay Amount of wei the seller will get
+   * @return weiToPay  Amount of wei the seller will get
    */
   function getWei(uint amount) external view returns (uint weiToPay) {
     return getEthForNXM(amount);
@@ -422,14 +397,12 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   /**
    * @dev Buys NXM tokens with ETH.
    * @param  minTokensOut Minimum amount of tokens to be bought. Revert if boughtTokens falls below this number.
-   * @return boughtTokens number of bought tokens.
    */
-  function buyNXM(uint minTokensOut) public payable onlyMember whenNotPaused {
-
+  function buyNXM(uint minTokensOut) public override payable onlyMember whenNotPaused {
     uint ethIn = msg.value;
     require(ethIn > 0, "Pool: ethIn > 0");
 
-    uint totalAssetValue = getPoolValueInEth().sub(ethIn);
+    uint totalAssetValue = getPoolValueInEth() - ethIn;
     uint mcrEth = mcr.getMCR();
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
 
@@ -439,7 +412,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     tokenController.mint(msg.sender, tokensOut);
 
     // evaluate the new MCR for the current asset value including the ETH paid in
-    mcr.updateMCRInternal(totalAssetValue.add(ethIn), false);
+    mcr.updateMCRInternal(totalAssetValue + ethIn, false);
     emit NXMBought(msg.sender, ethIn, tokensOut);
   }
 
@@ -447,36 +420,37 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
    * @dev Sell NXM tokens and receive ETH.
    * @param tokenAmount Amount of tokens to sell.
    * @param  minEthOut Minimum amount of ETH to be received. Revert if ethOut falls below this number.
-   * @return ethOut amount of ETH received in exchange for the tokens.
    */
-  function sellNXM(uint tokenAmount, uint minEthOut) public onlyMember nonReentrant whenNotPaused {
-
+  function sellNXM(
+    uint tokenAmount,
+    uint minEthOut
+  ) public override onlyMember nonReentrant whenNotPaused {
     require(nxmToken.balanceOf(msg.sender) >= tokenAmount, "Pool: Not enough balance");
-    require(nxmToken.isLockedForMV(msg.sender) <= now, "Pool: NXM tokens are locked for voting");
+    require(nxmToken.isLockedForMV(msg.sender) <= block.timestamp, "Pool: NXM tokens are locked for voting");
 
     uint currentTotalAssetValue = getPoolValueInEth();
     uint mcrEth = mcr.getMCR();
     uint ethOut = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
-    require(currentTotalAssetValue.sub(ethOut) >= mcrEth, "Pool: MCR% cannot fall below 100%");
+    require(currentTotalAssetValue - ethOut >= mcrEth, "Pool: MCR% cannot fall below 100%");
     require(ethOut >= minEthOut, "Pool: ethOut < minEthOut");
 
     tokenController.burnFrom(msg.sender, tokenAmount);
-    (bool ok, /* data */) = msg.sender.call.value(ethOut)("");
+    (bool ok, /* data */) = msg.sender.call{value: ethOut}("");
     require(ok, "Pool: Sell transfer failed");
 
     // evaluate the new MCR for the current asset value excluding the paid out ETH
-    mcr.updateMCRInternal(currentTotalAssetValue.sub(ethOut), false);
+    mcr.updateMCRInternal(currentTotalAssetValue - ethOut, false);
     emit NXMSold(msg.sender, tokenAmount, ethOut);
   }
 
   /**
    * @dev Get value in tokens for an ethAmount purchase.
    * @param ethAmount amount of ETH used for buying.
-   * @return tokenValue tokens obtained by buying worth of ethAmount
+   * @return tokenValue  Tokens obtained by buying worth of ethAmount
    */
   function getNXMForEth(
     uint ethAmount
-  ) public view returns (uint) {
+  ) public override view returns (uint) {
     uint totalAssetValue = getPoolValueInEth();
     uint mcrEth = mcr.getMCR();
     return calculateNXMForEth(ethAmount, totalAssetValue, mcrEth);
@@ -489,7 +463,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   ) public pure returns (uint) {
 
     require(
-      ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div(10 ** MCR_RATIO_DECIMALS),
+      ethAmount <= mcrEth * MAX_BUY_SELL_MCR_ETH_FRACTION / (10 ** MCR_RATIO_DECIMALS),
       "Pool: Purchases worth higher than 5% of MCReth are not allowed"
     );
 
@@ -518,7 +492,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       adjustedTokenAmount = - MCReth ^ 3 * C / (3 * V1 ^3) + MCReth * C /(3 * V0 ^ 3)
     */
 
-    if (currentTotalAssetValue == 0 || mcrEth.div(currentTotalAssetValue) > 1e12) {
+    if (currentTotalAssetValue == 0 || mcrEth / currentTotalAssetValue > 1e12) {
       /*
        If the currentTotalAssetValue = 0, adjustedTokenPrice approaches 0. Therefore we can assume the price is A.
        If currentTotalAssetValue is far smaller than mcrEth, MCR% approaches 0, let the price be A (baseline price).
@@ -526,15 +500,15 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
        This approximation is safe from arbitrage since at MCR% < 100% no sells are possible.
       */
       uint tokenPrice = CONSTANT_A;
-      return ethAmount.mul(1e18).div(tokenPrice);
+      return ethAmount * 1e18 / tokenPrice;
     }
 
     // MCReth * C /(3 * V0 ^ 3)
     uint point0 = calculateIntegralAtPoint(currentTotalAssetValue, mcrEth);
     // MCReth * C / (3 * V1 ^3)
-    uint nextTotalAssetValue = currentTotalAssetValue.add(ethAmount);
+    uint nextTotalAssetValue = currentTotalAssetValue + ethAmount;
     uint point1 = calculateIntegralAtPoint(nextTotalAssetValue, mcrEth);
-    uint adjustedTokenAmount = point0.sub(point1);
+    uint adjustedTokenAmount = point0 - point1;
     /*
       Compute a preliminary adjustedTokenPrice for the minted tokens based on the adjustedTokenAmount above,
       and to that add the A constant (the price offset previously removed in the adjusted Price formula)
@@ -545,10 +519,10 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       tokenValue = ethAmount  / finalPrice
     */
     // ethAmount is multiplied by 1e18 to cancel out the multiplication factor of 1e18 of the adjustedTokenAmount
-    uint adjustedTokenPrice = ethAmount.mul(1e18).div(adjustedTokenAmount);
-    uint tokenPrice = adjustedTokenPrice.add(CONSTANT_A);
+    uint adjustedTokenPrice = ethAmount * 1e18 / adjustedTokenAmount;
+    uint tokenPrice = adjustedTokenPrice + CONSTANT_A;
 
-    return ethAmount.mul(1e18).div(tokenPrice);
+    return ethAmount * 1e18 / tokenPrice;
   }
 
   /**
@@ -562,16 +536,10 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint assetValue,
     uint mcrEth
   ) internal pure returns (uint) {
-
-    return CONSTANT_C
-      .mul(1e18)
-      .div(3)
-      .mul(mcrEth).div(assetValue)
-      .mul(mcrEth).div(assetValue)
-      .mul(mcrEth).div(assetValue);
+    return CONSTANT_C * 1e18 / 3 * mcrEth / assetValue * mcrEth / assetValue * mcrEth / assetValue;
   }
 
-  function getEthForNXM(uint nxmAmount) public view returns (uint ethAmount) {
+  function getEthForNXM(uint nxmAmount) public override view returns (uint ethAmount) {
     uint currentTotalAssetValue = getPoolValueInEth();
     uint mcrEth = mcr.getMCR();
     return calculateEthForNXM(nxmAmount, currentTotalAssetValue, mcrEth);
@@ -587,54 +555,56 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint nxmAmount,
     uint currentTotalAssetValue,
     uint mcrEth
-  ) public pure returns (uint) {
+  ) public override pure returns (uint) {
 
     // Step 1. Calculate spot price at current values and amount of ETH if tokens are sold at that price
     uint spotPrice0 = calculateTokenSpotPrice(currentTotalAssetValue, mcrEth);
-    uint spotEthAmount = nxmAmount.mul(spotPrice0).div(1e18);
+    uint spotEthAmount = nxmAmount * spotPrice0 / 1e18;
 
     //  Step 2. Calculate spot price using V = currentTotalAssetValue - spotEthAmount from step 1
-    uint totalValuePostSpotPriceSell = currentTotalAssetValue.sub(spotEthAmount);
+    uint totalValuePostSpotPriceSell = currentTotalAssetValue - spotEthAmount;
     uint spotPrice1 = calculateTokenSpotPrice(totalValuePostSpotPriceSell, mcrEth);
 
     // Step 3. Min [average[Price(0), Price(1)] x ( 1 - Sell Spread), Price(1) ]
     // Sell Spread = 2.5%
-    uint averagePriceWithSpread = spotPrice0.add(spotPrice1).div(2).mul(975).div(1000);
+    uint averagePriceWithSpread = (spotPrice0 + spotPrice1) / 2 * 975 / 1000;
     uint finalPrice = averagePriceWithSpread < spotPrice1 ? averagePriceWithSpread : spotPrice1;
-    uint ethAmount = finalPrice.mul(nxmAmount).div(1e18);
+    uint ethAmount = finalPrice * nxmAmount / 1e18;
 
     require(
-      ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div(10 ** MCR_RATIO_DECIMALS),
+      ethAmount <= mcrEth * MAX_BUY_SELL_MCR_ETH_FRACTION / (10 ** MCR_RATIO_DECIMALS),
       "Pool: Sales worth more than 5% of MCReth are not allowed"
     );
 
     return ethAmount;
   }
 
-  function calculateMCRRatio(uint totalAssetValue, uint mcrEth) public pure returns (uint) {
-    return totalAssetValue.mul(10 ** MCR_RATIO_DECIMALS).div(mcrEth);
+  function calculateMCRRatio(
+    uint totalAssetValue,
+    uint mcrEth
+  ) public override pure returns (uint) {
+    return totalAssetValue * (10 ** MCR_RATIO_DECIMALS) / mcrEth;
   }
 
   /**
   * @dev Calculates token price in ETH 1 NXM token. TokenPrice = A + (MCReth / C) * MCR%^4
   */
-  function calculateTokenSpotPrice(uint totalAssetValue, uint mcrEth) public pure returns (uint tokenPrice) {
+  function calculateTokenSpotPrice(
+    uint totalAssetValue,
+    uint mcrEth
+  ) public override pure returns (uint tokenPrice) {
 
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
-    uint precisionDecimals = 10 ** TOKEN_EXPONENT.mul(MCR_RATIO_DECIMALS);
+    uint precisionDecimals = 10 ** (TOKEN_EXPONENT * MCR_RATIO_DECIMALS);
 
-    return mcrEth
-      .mul(mcrRatio ** TOKEN_EXPONENT)
-      .div(CONSTANT_C)
-      .div(precisionDecimals)
-      .add(CONSTANT_A);
+    return mcrEth * (mcrRatio ** TOKEN_EXPONENT) / CONSTANT_C / precisionDecimals + CONSTANT_A;
   }
 
   /**
    * @dev Returns the NXM price in a given asset
    * @param assetId  Index of the asset
    */
-  function getTokenPrice(uint assetId) public view returns (uint tokenPrice) {
+  function getTokenPrice(uint assetId) public override view returns (uint tokenPrice) {
 
     require(assetId < assets.length, "Pool: Unknown asset");
     address assetAddress = assets[assetId].assetAddress;
@@ -645,7 +615,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     return priceFeedOracle.getAssetForEth(assetAddress, tokenSpotPriceEth);
   }
 
-  function getMCRRatio() public view returns (uint) {
+  function getMCRRatio() public override view returns (uint) {
     uint totalAssetValue = getPoolValueInEth();
     uint mcrEth = mcr.getMCR();
     return calculateMCRRatio(totalAssetValue, mcrEth);

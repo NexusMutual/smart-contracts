@@ -9,9 +9,7 @@ const {
   generalPurpose: [destination],
 } = require('../utils').accounts;
 
-const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-
-describe('sendClaimPayout', function () {
+describe('sendPayout', function () {
   it('transfers ERC20 payout to destination', async function () {
     const { pool, dai } = this;
 
@@ -20,7 +18,7 @@ describe('sendClaimPayout', function () {
 
     const amountToTransfer = tokenAmount.divn(2);
 
-    await pool.sendClaimPayout(PoolAsset.DAI, destination, amountToTransfer, { from: internal });
+    await pool.sendPayout(PoolAsset.DAI, destination, amountToTransfer, { from: internal });
     const destinationBalance = await dai.balanceOf(destination);
     assert.equal(destinationBalance.toString(), amountToTransfer.toString());
 
@@ -37,7 +35,7 @@ describe('sendClaimPayout', function () {
     const amountToTransfer = ethAmount.divn(2);
 
     const destinationBalancePrePayout = toBN(await web3.eth.getBalance(destination));
-    await pool.sendClaimPayout(PoolAsset.ETH, destination, amountToTransfer, { from: internal });
+    await pool.sendPayout(PoolAsset.ETH, destination, amountToTransfer, { from: internal });
     const destinationBalance = toBN(await web3.eth.getBalance(destination));
     assert.equal(destinationBalance.sub(destinationBalancePrePayout).toString(), amountToTransfer.toString());
 

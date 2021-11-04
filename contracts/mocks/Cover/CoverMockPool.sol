@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.17;
+pragma solidity ^0.8.0;
 
 import "../../interfaces/IPool.sol";
 
@@ -25,4 +25,6 @@ contract CoverMockPool {
       assets.push(IPool.Asset(_assets[i], _decimals[i], false));
     }
   }
+
+  fallback() external payable {}
 }

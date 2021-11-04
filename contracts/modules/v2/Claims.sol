@@ -172,7 +172,12 @@ contract Claims is IClaims, MasterAwareV2 {
     if (claim.payoutAsset == 0) {
       assetSymbol = "ETH";
     } else {
-      try IERC20Detailed(pool().assets(claim.payoutAsset)).symbol() returns (string memory v) {
+      (
+        address payoutAsset,
+        /*uint8 decimals*/,
+        /*bool deprecated*/
+      ) = pool().assets(claim.payoutAsset);
+      try IERC20Detailed(payoutAsset).symbol() returns (string memory v) {
         assetSymbol = v;
       } catch {
         // return assetSymbol as an empty string and use claim.payoutAsset instead in the UI
@@ -358,20 +363,17 @@ contract Claims is IClaims, MasterAwareV2 {
       claim.amount
     ));
 
-    bool payoutSucceeded;
     IPool poolContract = pool();
-    if (claim.payoutAsset == 0) {
-      payoutSucceeded = poolContract.sendClaimPayout(
+    if (claim.payoutAsset == 0 /* ETH */) {
+      poolContract.sendPayout(
         claim.payoutAsset,
         coverOwner,
         claim.amount + assessmentDeposit
       );
     } else {
-      bool depositRefundSucceeded = poolContract.sendClaimPayout(0, coverOwner, assessmentDeposit);
-      require(depositRefundSucceeded, "Assessment deposit refund failed");
-      payoutSucceeded = poolContract.sendClaimPayout(claim.payoutAsset, coverOwner, claim.amount);
+      poolContract.sendPayout(0 /* ETH */, coverOwner, assessmentDeposit);
+      poolContract.sendPayout(claim.payoutAsset, coverOwner, claim.amount);
     }
-    require(payoutSucceeded, "Claim payout failed");
 
   }
 

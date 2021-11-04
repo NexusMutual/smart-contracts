@@ -60,7 +60,7 @@ describe('swapETHForAsset', function () {
   it('should revert when asset is not enabled', async function () {
     const { pool, tokenA, swapOperator } = contracts();
 
-    await pool.setAssetDetails(
+    await pool.setSwapDetails(
       tokenA.address,
       ether('0'), // asset minimum
       ether('0'), // asset maximum
@@ -81,7 +81,7 @@ describe('swapETHForAsset', function () {
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
 
-    await pool.setAssetDetails(
+    await pool.setSwapDetails(
       tokenA.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
@@ -115,7 +115,7 @@ describe('swapETHForAsset', function () {
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
 
-    await pool.setAssetDetails(
+    await pool.setSwapDetails(
       tokenA.address,
       ether('100'), // asset minimum
       ether('100000'), // asset maximum
@@ -159,7 +159,7 @@ describe('swapETHForAsset', function () {
     const minEther = toBN(currentEther).sub(maxPoolTradableEther);
 
     await pool.updateUintParameters(hex('MIN_ETH'), minEther, { from: governance });
-    await pool.setAssetDetails(
+    await pool.setSwapDetails(
       tokenA.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
@@ -191,7 +191,7 @@ describe('swapETHForAsset', function () {
     const windowStart = await nextWindowStartTime();
     const maxSlippageRatio = ether('0.01');
 
-    await pool.setAssetDetails(
+    await pool.setSwapDetails(
       tokenA.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
@@ -238,7 +238,7 @@ describe('swapETHForAsset', function () {
     await tokenA.mint(owner, assetMinAmount);
     await tokenA.transfer(pool.address, assetMinAmount);
 
-    await pool.setAssetDetails(
+    await pool.setSwapDetails(
       tokenA.address,
       assetMinAmount, // asset minimum
       ether('1000'), // asset maximum
@@ -266,7 +266,7 @@ describe('swapETHForAsset', function () {
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
 
-    await pool.setAssetDetails(
+    await pool.setSwapDetails(
       tokenA.address,
       ether('100'), // asset minimum
       ether('200'), // asset maximum
@@ -294,7 +294,7 @@ describe('swapETHForAsset', function () {
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
 
-    await pool.setAssetDetails(
+    await pool.setSwapDetails(
       tokenA.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum

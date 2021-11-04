@@ -21,7 +21,7 @@ describe('upgradeCapitalPool', function () {
 
     const otherToken = await ERC20Mock.new();
 
-    await pool.addAsset([otherToken.address, 18], '0', '0', ether('0.01'), {
+    await pool.addAsset(otherToken.address, 18, '0', '0', 100, {
       from: governance,
     });
     const tokens = [dai, otherToken];
@@ -31,9 +31,10 @@ describe('upgradeCapitalPool', function () {
 
     const newPool = await Pool.new(
       tokens.map(a => a.address), // assets
+      tokens.map(a => 18), // decimals
       tokens.map(a => 0), // min
       tokens.map(a => 0), // max
-      tokens.map(a => ether('0.01')), // maxSlippage 1%
+      tokens.map(a => 100), // maxSlippage 1%
       defaultSender,
       ZERO_ADDRESS,
       ZERO_ADDRESS, // we do not test swaps here

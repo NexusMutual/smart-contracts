@@ -14,7 +14,7 @@ import "../../interfaces/ITwapOracle.sol";
 contract SwapOperator is ReentrancyGuard {
   using SafeERC20 for IERC20;
 
-  uint16 constant RATIO_BPS = 10000;
+  uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
   ITwapOracle public twapOracle;
   address public swapController;
@@ -57,7 +57,7 @@ contract SwapOperator is ReentrancyGuard {
     ) = pool.getAssetSwapDetails(toTokenAddress);
 
     IPool.SwapDetails memory swapDetails = IPool.SwapDetails(min, max, lastAssetSwapTime, maxSlippageRatio);
-    require(assetIsEnabled(swapDetails), "SwapOperator: asset is not enabled");
+    require(min != 0 || max != 0, "SwapOperator: asset is not enabled");
 
     pool.transferAssetToSwapOperator(ETH, amountIn);
     pool.setSwapDetailsLastSwapTime(toTokenAddress, uint32(block.timestamp));
@@ -88,7 +88,7 @@ contract SwapOperator is ReentrancyGuard {
     ) = pool.getAssetSwapDetails(fromTokenAddress);
 
     IPool.SwapDetails memory swapDetails = IPool.SwapDetails(min, max, lastAssetSwapTime, maxSlippageRatio);
-    require(assetIsEnabled(swapDetails), "SwapOperator: asset is not enabled");
+    require(min != 0 || max != 0, "SwapOperator: asset is not enabled");
 
     pool.transferAssetToSwapOperator(fromTokenAddress, amountIn);
     pool.setSwapDetailsLastSwapTime(fromTokenAddress, uint32(block.timestamp));
@@ -155,7 +155,7 @@ contract SwapOperator is ReentrancyGuard {
     {
       // scope for token checks
       uint avgAmountOut = twapOracle.consult(WETH, amountIn, toTokenAddress);
-      uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / RATIO_BPS;
+      uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / MAX_SLIPPAGE_DENOMINATOR;
       uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
       // gas optimisation: reads both values using a single SLOAD
@@ -208,7 +208,7 @@ contract SwapOperator is ReentrancyGuard {
     {
       // scope for token checks
       uint avgAmountOut = twapOracle.consult(fromTokenAddress, amountIn, WETH);
-      uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / 1e18;
+      uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / MAX_SLIPPAGE_DENOMINATOR;
       uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
       // gas optimisation: reads both values using a single SLOAD
@@ -282,10 +282,6 @@ contract SwapOperator is ReentrancyGuard {
     transferAssetTo(stETH, address(pool), amountOut);
 
     emit Swapped(ETH, stETH, amountIn, amountOut);
-  }
-
-  function assetIsEnabled(IPool.SwapDetails memory swapDetails) internal pure returns (bool) {
-    return !(swapDetails.minAmount == 0 && swapDetails.maxAmount == 0);
   }
 
   function _pool() internal view returns (IPool) {

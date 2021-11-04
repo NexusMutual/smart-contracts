@@ -12,7 +12,6 @@ import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/ICoverNFT.sol";
 
 import "../../abstract/MasterAwareV2.sol";
-import "hardhat/console.sol";
 
 /// Provides a way for cover owners to submit claims and redeem the payouts and facilitates
 /// assessment processes where members decide the outcome of the events that lead to potential
@@ -38,7 +37,7 @@ contract Claims is IClaims, MasterAwareV2 {
 
   // Mapping from coverId to claimId used to check if a new claim can be submitted on the given
   // cover as long as the last submitted claim reached a final state.
-  mapping(uint => ClaimSubmission) public lastSubmittedClaimOnCover;
+  mapping(uint => ClaimSubmission) public lastClaimSubmissionOnCover;
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -52,6 +51,7 @@ contract Claims is IClaims, MasterAwareV2 {
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
     config.rewardRatio = 130; // 0.52%
     config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH assessment minimum flat fee
+    config.payoutRedemptionPeriodDays = 14; // days until the payout will not be redeemable anymore
     master = INXMMaster(masterAddress);
   }
 
@@ -234,16 +234,16 @@ contract Claims is IClaims, MasterAwareV2 {
   /// @param requestedAmount  The amount expected to be received at payout
   /// @param ipfsProofHash    The IPFS hash required for proof of loss. If this string is empty,
   function submitClaim(
-    uint24 coverId,
+    uint32 coverId,
     uint96 requestedAmount,
     string calldata ipfsProofHash
-  ) external payable override onlyMember {
+  ) external payable override onlyMember returns (Claim memory) {
     require(
       coverNFT.isApprovedOrOwner(msg.sender, coverId),
       "Only the owner or approved addresses can submit a claim"
     );
     {
-      ClaimSubmission memory previousSubmission = lastSubmittedClaimOnCover[coverId];
+      ClaimSubmission memory previousSubmission = lastClaimSubmissionOnCover[coverId];
       if (previousSubmission.exists) {
         uint80 assessmentId = claims[previousSubmission.claimId].assessmentId;
         IAssessment.Poll memory poll = assessment().getPoll(assessmentId);
@@ -261,7 +261,7 @@ contract Claims is IClaims, MasterAwareV2 {
           revert("A claim is already being assessed");
         }
       }
-      lastSubmittedClaimOnCover[coverId] = ClaimSubmission(uint80(claims.length), true);
+      lastClaimSubmissionOnCover[coverId] = ClaimSubmission(uint80(claims.length), true);
     }
     uint32 coverStart;
     uint32 coverPeriod;
@@ -323,13 +323,14 @@ contract Claims is IClaims, MasterAwareV2 {
     }
 
     // Transfer the deposit to the pool
-    (bool transferSucceeded, /* bytes data */) =  internalContracts[uint(ID.P1)].call{value: deposit}("");
-    require(transferSucceeded, "Assessment deposit excess refund failed");
+    (bool transferSucceeded, /* bytes data */) =  getInternalContractAddress(ID.P1).call{value: deposit}("");
+    require(transferSucceeded, "Assessment deposit transfer to pool failed");
 
     uint newAssessmentId = assessment().startAssessment(totalReward, deposit);
     claim.assessmentId = uint80(newAssessmentId);
     claims.push(claim);
 
+    return claim;
   }
 
   function redeemClaimPayout(uint104 claimId) external override {
@@ -340,6 +341,7 @@ contract Claims is IClaims, MasterAwareV2 {
       uint assessmentDeposit
     ) = assessment().assessments(claim.assessmentId);
 
+    require(block.timestamp >= poll.end, "The claim is still being assessed");
     require(poll.accepted > poll.denied, "The claim needs to be accepted");
 
     (,,uint8 payoutCooldownDays) = assessment().config();

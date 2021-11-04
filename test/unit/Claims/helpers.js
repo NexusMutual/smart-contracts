@@ -92,9 +92,11 @@ const submitClaim = ({ accounts, contracts, config }) => async ({
   value,
 }) => {
   const [deposit] = await contracts.claims.getAssessmentDepositAndReward(amount, coverPeriod, payoutAsset);
-  return await contracts.claims.connect(sender || accounts[0]).submitClaim(coverId, amount, ipfsProofHash, {
-    value: value || deposit,
-  });
+  return await contracts.claims
+    .connect(sender || accounts[0])
+    ['submitClaim(uint32,uint96,string)'](coverId, amount, ipfsProofHash, {
+      value: value || deposit,
+    });
 };
 
 const stakeAndVoteOnEventType = (eventType, assessment, accounts) => async (userIndex, amount, id, accepted) => {

@@ -110,10 +110,10 @@ interface IClaims {
   /* === MUTATIVE FUNCTIONS ==== */
 
   function submitClaim(
-    uint24 coverId,
+    uint32 coverId,
     uint96 requestedAmount,
     string calldata ipfsProofHash
-  ) external payable;
+  ) external payable returns (Claim memory);
 
   function redeemClaimPayout(uint104 id) external;
 

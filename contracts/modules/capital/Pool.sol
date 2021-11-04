@@ -237,8 +237,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       require(transferSucceeded, "Pool: ETH transfer failed");
     } else {
       IERC20(asset.assetAddress).safeTransfer(payoutAddress, amount);
-      uint rate = priceFeedOracle.getAssetToEthRate(asset.assetAddress);
-      require(rate > 0, "Pool: Zero rate");
     }
 
     emit Payout(payoutAddress, asset.assetAddress, amount);

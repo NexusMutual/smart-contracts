@@ -105,7 +105,6 @@ contract ICMockCover {
 
 
   function performPayoutBurn(uint coverId, uint amount) external returns (address) {
-    // [todo] Return nft owner
-    return 0x0000000000000000000000000000000000000000;
+    return coverNFT.ownerOf(coverId);
   }
 }

@@ -5,10 +5,7 @@ const { BN } = web3.utils;
 const Decimal = require('decimal.js');
 const setup = require('./setup');
 
-const {
-  calculatePurchasedTokensWithFullIntegral,
-  calculateMCRRatio,
-} = require('../utils').tokenPrice;
+const { calculatePurchasedTokensWithFullIntegral, calculateMCRRatio } = require('../utils').tokenPrice;
 
 const Pool = artifacts.require('Pool');
 const MCR = artifacts.require('MCR');
@@ -18,18 +15,16 @@ async function setupAll () {
 }
 
 describe('buyNXM', function () {
-
   before(setupAll);
 
-  const maxPercentage = 400;
+  const maxRatio = 400;
 
   it('mints bought tokens to member in exchange of 5% ETH of mcrEth for mcrEth varying from mcrEth=8k to mcrEth=100 million', async function () {
     const { pool } = this.contracts;
 
     let mcrEth = ether('8000');
-    const upperBound = ether(1e8.toString());
+    const upperBound = ether((1e8).toString());
     while (true) {
-
       const initialAssetValue = mcrEth.mul(new BN(3)).div(new BN(4));
       let buyValue = ether('0.01');
       const buyValueUpperBound = mcrEth.div(new BN(20));
@@ -47,7 +42,7 @@ describe('buyNXM', function () {
         console.log({
           mcrRatio: mcrRatio.toString(),
         });
-        while (mcrRatio.lt(new BN(maxPercentage).muln(100))) {
+        while (mcrRatio.lt(new BN(maxRatio).muln(100))) {
           console.log({
             mcrRatio: mcrRatio.toString(),
             mcrEth: mcrEth.toString(),
@@ -57,10 +52,15 @@ describe('buyNXM', function () {
           const nxmOut = await pool.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
 
           const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
-            totalAssetValue, buyValue, mcrEth,
+            totalAssetValue,
+            buyValue,
+            mcrEth,
           );
           const nxmOutDecimal = Decimal(nxmOut.toString());
-          const relativeError = expectedIdealTokenValue.sub(nxmOutDecimal).abs().div(expectedIdealTokenValue);
+          const relativeError = expectedIdealTokenValue
+            .sub(nxmOutDecimal)
+            .abs()
+            .div(expectedIdealTokenValue);
           console.log({ relativeError: relativeError.toString() });
           assert(
             relativeError.lt(maxRelativeError),

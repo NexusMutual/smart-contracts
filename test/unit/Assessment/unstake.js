@@ -1,4 +1,4 @@
-const { assert } = require('chai');
+const { assert, expect } = require('chai');
 const { ethers } = require('hardhat');
 const { time } = require('@openzeppelin/test-helpers');
 const { daysToSeconds, setTime } = require('./helpers');

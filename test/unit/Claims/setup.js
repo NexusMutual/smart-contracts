@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
+const { formatEther } = require('ethers/lib/utils');
 const { parseEther } = ethers.utils;
 
 async function setup () {
@@ -64,9 +65,9 @@ async function setup () {
   await cover.addProductType('', '0', '90', '5000');
   await cover.addProductType('', '1', '30', '5000');
 
-  await cover.addProduct('0', '0x0000000000000000000000000000000000000001', '1', '0');
-  await cover.addProduct('1', '0x0000000000000000000000000000000000000002', '1', '0');
-  await cover.addProduct('2', '0x0000000000000000000000000000000000000003', '1', '0');
+  await cover.addProduct('0', '0x1111111111111111111111111111111111111111', '1', '0');
+  await cover.addProduct('1', '0x2222222222222222222222222222222222222222', '1', '0');
+  await cover.addProduct('2', '0x3333333333333333333333333333333333333333', '1', '0');
 
   {
     const tx = await claims.initialize(master.address);
@@ -86,16 +87,21 @@ async function setup () {
     await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
   }
 
+  accounts.defaultSender.sendTransaction({ to: pool.address, value: parseEther('100') });
+  dai.mint(pool.address, parseEther('100'));
+
   const config = await claims.config();
 
   this.config = config;
   this.accounts = accounts;
   this.contracts = {
+    pool,
     nxm,
     dai,
     claims,
     assessment,
     cover,
+    coverNFT,
     unkownNFT,
     master,
   };

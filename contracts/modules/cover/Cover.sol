@@ -17,13 +17,13 @@ contract Cover is ICover, MasterAwareV2 {
 
   /* === CONSTANTS ==== */
 
-  uint public constant REWARD_BPS = 5000;
   uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
   uint public constant BASIS_PRECISION = 10000;
   uint public constant STAKE_SPEED_UNIT = 100000e18;
   uint public constant PRICE_CURVE_EXPONENT = 7;
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
   uint public constant BUCKET_SIZE = 7 days;
+  uint public constant REWARD_DENOMINATOR = 2;
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
 
@@ -161,9 +161,6 @@ contract Cover is ICover, MasterAwareV2 {
       tokenController().burnFrom(msg.sender, totalPremiumInNXM);
     } else {
       retrievePayment(premiumInPaymentAsset, params.payoutAsset);
-
-      // mint 10% of paid premium value to user
-      tokenController().mint(params.owner, totalPremiumInNXM / 10);
     }
 
     return coverId;
@@ -235,15 +232,22 @@ contract Cover is ICover, MasterAwareV2 {
 
     uint coveredAmount = amountToCover > availableCapacity ? availableCapacity : amountToCover;
 
-    (uint basePrice, uint premiumInNXM) = getPrice(coveredAmount, period, productId, stakingPool);
+    uint96 lastPrice = lastPrices[productId][address(stakingPool)].value;
+    uint basePrice = interpolatePrice(
+      lastPrice != 0 ? lastPrice : initialPrices[productId],
+      stakingPool.getTargetPrice(productId),
+      lastPrices[productId][address(stakingPool)].lastUpdateTime,
+      block.timestamp
+    );
     lastPrices[productId][address(stakingPool)] = LastPrice(uint96(basePrice), uint32(block.timestamp));
 
-    stakingPool.buyCover(
+    uint premiumInNXM = stakingPool.buyCover(
       productId,
       coveredAmount,
-      REWARD_BPS * premiumInNXM / BASIS_PRECISION,
+      REWARD_DENOMINATOR,
       period,
-      capacityFactor
+      capacityFactor,
+      basePrice
     );
 
     return (coveredAmount, premiumInNXM);
@@ -274,7 +278,7 @@ contract Cover is ICover, MasterAwareV2 {
           cover.productId,
           cover.period,
           cover.start,
-          REWARD_BPS * originalCoverChunks[i].premiumInNXM / BASIS_PRECISION,
+          originalCoverChunks[i].premiumInNXM / REWARD_DENOMINATOR,
           remainingPeriod,
           originalCoverChunks[i].coverAmountInNXM
         );
@@ -314,9 +318,6 @@ contract Cover is ICover, MasterAwareV2 {
       if (refundInPaymentAsset < premiumInPaymentAsset) {
         // retrieve extra required payment
         retrievePayment(premiumInPaymentAsset - refundInPaymentAsset, buyCoverParams.paymentAsset);
-
-        // mint 10% of paid premium value to user
-        tokenController().mint(msg.sender, (totalPremiumInNXM - refundInNXM) / 10);
       }
     }
 

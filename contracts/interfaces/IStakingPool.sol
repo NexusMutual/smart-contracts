@@ -8,10 +8,11 @@ interface IStakingPool {
   function buyCover(
     uint productId,
     uint coveredAmount,
-    uint rewardAmount,
+    uint rewardDenominator,
     uint period,
-    uint capacityFactor
-  ) external;
+    uint capacityFactor,
+    uint basePrice
+  ) external returns (uint);
 
   function extendPeriod(
     uint productId,

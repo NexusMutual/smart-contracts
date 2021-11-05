@@ -9,7 +9,12 @@ import "../../interfaces/IERC721Mock.sol";
 contract CLMockCover {
 
   IERC721Mock public immutable coverNFT;
+  struct PerformPayoutBurnCalledWith {
+    uint coverId;
+    uint amount;
+  }
 
+  PerformPayoutBurnCalledWith public performPayoutBurnCalledWith;
   ICover.CoverData[] public covers;
   mapping(uint => ICover.CoverChunk[]) stakingPoolsForCover;
   mapping(uint => uint96) public activeCoverAmountInNXM;
@@ -121,6 +126,7 @@ contract CLMockCover {
   }
 
   function performPayoutBurn(uint coverId, uint amount) external returns (address) {
+    performPayoutBurnCalledWith = PerformPayoutBurnCalledWith(coverId, amount);
     return coverNFT.ownerOf(coverId);
   }
 }

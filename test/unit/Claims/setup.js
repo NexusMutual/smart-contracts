@@ -87,8 +87,8 @@ async function setup () {
     await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
   }
 
-  accounts.defaultSender.sendTransaction({ to: pool.address, value: parseEther('100') });
-  dai.mint(pool.address, parseEther('100'));
+  accounts.defaultSender.sendTransaction({ to: pool.address, value: parseEther('200') });
+  dai.mint(pool.address, parseEther('200'));
 
   const config = await claims.config();
 

@@ -86,7 +86,7 @@ contract Claims is IClaims, MasterAwareV2 {
     uint nxmPriceInPayoutAsset = poolContract.getTokenPrice(payoutAsset);
     uint nxmPriceInETH = poolContract.getTokenPrice(0);
 
-    // Calculate the expected in NXM using the NXM price at cover purchase time
+    // Calculate the expected payout in NXM using the NXM price at cover purchase time
     uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPriceInPayoutAsset;
 
     // Determine the total rewards that should be minted for the assessors based on cover period
@@ -330,7 +330,7 @@ contract Claims is IClaims, MasterAwareV2 {
     claim.assessmentId = uint80(newAssessmentId);
     claims.push(claim);
 
-    return claim;
+    return (claim);
   }
 
   function redeemClaimPayout(uint104 claimId) external override {

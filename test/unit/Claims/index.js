@@ -14,7 +14,7 @@ describe.only('Claims', function () {
 
   require('./submitClaim');
   require('./redeemClaimPayout');
+  require('./getAssessmentDepositAndReward');
   // require('./updateUintParameters');
-  // require('./getAssessmentDepositAndReward');
   // require('./getClaimsToDisplay');
 });

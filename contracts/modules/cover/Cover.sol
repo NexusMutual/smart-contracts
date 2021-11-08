@@ -124,7 +124,7 @@ contract Cover is ICover, MasterAwareV2 {
         currencyCode == "ETH" ? 0 : 1, //payoutAsset
         uint96(sumAssured * 10 ** 18),
         uint32(block.timestamp + 1),
-        uint32(coverPeriodInDays * 24 * 60 * 60),
+        uint32(coverPeriodInDays * 1 days),
         uint16(0)
       )
     );
@@ -378,7 +378,12 @@ contract Cover is ICover, MasterAwareV2 {
         require(ok, "Cover: Returning ETH remainder to sender failed.");
       }
     } else {
-      (address payoutAsset, /* uint8 decimals */ , /* bool deprecated */) = pool().assets(payoutAssetIndex);
+      (
+        address payoutAsset,
+        /*uint8 decimals*/,
+        /*bool deprecated*/
+      ) = pool().assets(payoutAssetIndex);
+      
       IERC20 token = IERC20(payoutAsset);
       token.transferFrom(msg.sender, address(this), totalPrice);
     }

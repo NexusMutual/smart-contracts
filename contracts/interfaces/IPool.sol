@@ -26,6 +26,8 @@ interface IPool {
     bool deprecated
   );
 
+  function buyNXM(uint minTokensOut) external payable;
+
   function sellNXM(uint tokenAmount, uint minEthOut) external;
 
   function sellNXMTokens(uint tokenAmount) external returns (bool);
@@ -36,6 +38,12 @@ interface IPool {
 
   function setSwapDetailsLastSwapTime(address asset, uint32 lastSwapTime) external;
 
+  function getAssets() external view returns (
+    address[] memory assetAddresses,
+    uint8[] memory decimals,
+    bool[] memory deprecated
+  );
+
   function getAssetSwapDetails(address assetAddress) external view returns (
     uint104 min,
     uint104 max,
@@ -43,15 +51,31 @@ interface IPool {
     uint16 maxSlippageRatio
   );
 
-  function sendClaimPayout (
-    uint assetId,
-    address payable payoutAddress,
-    uint amount
-  ) external returns (bool success);
+  function makeCoverBegin(
+    address smartCAdd,
+    bytes4 coverCurr,
+    uint[] calldata coverDetails,
+    uint16 coverPeriod,
+    uint8 _v,
+    bytes32 _r,
+    bytes32 _s
+  ) external payable;
 
-  function transferAsset(
-    address asset,
-    address payable destination,
+  function makeCoverUsingCA(
+    address smartCAdd,
+    bytes4 coverCurr,
+    uint[] calldata coverDetails,
+    uint16 coverPeriod,
+    uint8 _v,
+    bytes32 _r,
+    bytes32 _s
+  ) external;
+
+  function getNXMForEth(uint ethAmount) external view returns (uint);
+
+  function sendPayout (
+    uint assetIndex,
+    address payable payoutAddress,
     uint amount
   ) external;
 

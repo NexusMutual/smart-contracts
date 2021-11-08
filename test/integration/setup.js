@@ -240,17 +240,17 @@ async function setup () {
   await cover.addProduct({
     productType: 0,
     productAddress: '0x0000000000000000000000000000000000000000',
-    payoutAssets: 0,
+    coverAssets: 0,
   });
   await cover.addProduct({
     productType: 1,
     productAddress: '0x0000000000000000000000000000000000000000',
-    payoutAssets: 0,
+    coverAssets: 0,
   });
   await cover.addProduct({
     productType: 2,
     productAddress: '0x0000000000000000000000000000000000000001',
-    payoutAssets: 2,
+    coverAssets: 2,
   });
 
   await lcd.changeMasterAddress(master.address);
@@ -299,8 +299,8 @@ async function setup () {
   const POOL_ETHER = ether('90000');
   const POOL_DAI = ether('2000000');
 
-  // fund pools
-  await p1.sendEther({ from: owner, value: POOL_ETHER });
+  // fund pool
+  await web3.eth.sendTransaction({ from: owner, to: p1.address, value: POOL_ETHER });
   await dai.transfer(p1.address, POOL_DAI);
 
   const ethEthRate = 100;

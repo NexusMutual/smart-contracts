@@ -224,7 +224,7 @@ describe('updateMCR', function () {
   });
 
   it.skip('claim payout triggers updateMCR and sets desiredMCR to mcrFloor (sumAssured = 0)', async function () {
-    // [todo] test with new contracts that call sendClaimPayout
+    // [todo] test with new contracts that call sendPayout
     const { mcr, cl: claims, tk: token, p1: pool } = this.contracts;
 
     const gearingFactor = await mcr.gearingFactor();
@@ -267,7 +267,7 @@ describe('updateMCR', function () {
   });
 
   it.skip('incidents.redeemPayout triggers updateMCR', async function () {
-    // [todo] test with new contracts that call sendClaimPayout
+    // [todo] test with new contracts that call sendPayout
     const { incidents, qd, p1, mcr } = this.contracts;
 
     const ETH = await p1.ETH();

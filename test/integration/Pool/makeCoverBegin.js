@@ -20,7 +20,6 @@ const coverTemplate = {
 };
 
 describe('makeCoverBegin', function () {
-
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1]);
   });
@@ -102,18 +101,12 @@ describe('makeCoverBegin', function () {
 
   it('reverts when currency is not ETH', async function () {
     const cover = { ...coverTemplate, currency: hex('DAI') };
-    await expectRevert(
-      buyCover({ ...this.contracts, cover, coverHolder: member1 }),
-      'Pool: Unexpected asset type',
-    );
+    await expectRevert(buyCover({ ...this.contracts, cover, coverHolder: member1 }), 'Pool: Unexpected asset type');
   });
 
   it('reverts for non-member', async function () {
     const cover = { ...coverTemplate };
-    await expectRevert(
-      buyCover({ ...this.contracts, cover, coverHolder: nonMember1 }),
-      'Caller is not a member',
-    );
+    await expectRevert(buyCover({ ...this.contracts, cover, coverHolder: nonMember1 }), 'Caller is not a member');
   });
 
   it('reverts if cover period < 30', async function () {
@@ -145,46 +138,41 @@ describe('makeCoverBegin', function () {
       qt.address,
     );
 
-    await expectRevert(p1.makeCoverBegin(
-      cover.contractAddress,
-      cover.currency,
-      coverToCoverDetailsArray(cover),
-      cover.period,
-      signature[0],
-      signature[1],
-      signature[2],
-      { from: member, value: toBN(cover.price).subn(1) },
-    ),
-    'Pool: ETH amount does not match premium',
+    await expectRevert(
+      p1.makeCoverBegin(
+        cover.contractAddress,
+        cover.currency,
+        coverToCoverDetailsArray(cover),
+        cover.period,
+        signature[0],
+        signature[1],
+        signature[2],
+        { from: member, value: toBN(cover.price).subn(1) },
+      ),
+      'Pool: ETH amount does not match premium',
     );
   });
 
   it('reverts if smart contract address is the 0 address', async function () {
     const cover = { ...coverTemplate, contractAddress: '0x0000000000000000000000000000000000000000' };
-    await expectRevert.unspecified(
-      buyCover({ ...this.contracts, cover, coverHolder: member1 }),
-    );
+    await expectRevert.unspecified(buyCover({ ...this.contracts, cover, coverHolder: member1 }));
   });
 
   it('reverts if quote validity is expired', async function () {
     const currentTime = await time.latest();
     const cover = { ...coverTemplate, expireTime: currentTime.subn(2) };
-    await expectRevert.unspecified(
-      buyCover({ ...this.contracts, cover, coverHolder: member1 }),
-    );
+    await expectRevert.unspecified(buyCover({ ...this.contracts, cover, coverHolder: member1 }));
   });
 
   it('reverts if quote is reused', async function () {
     const cover = { ...coverTemplate };
     await buyCover({ ...this.contracts, cover, coverHolder: member1 });
-    await expectRevert.unspecified(
-      buyCover({ ...this.contracts, cover, coverHolder: member1 }),
-    );
+    await expectRevert.unspecified(buyCover({ ...this.contracts, cover, coverHolder: member1 }));
   });
 
-  it.only('reverts if NXM premium is 0', async function () {
+  it('reverts if NXM premium is 0', async function () {
     const cover = { ...coverTemplate, priceNXM: '0' };
-    await buyCover({ ...this.contracts, cover, coverHolder: member1 });
+    await expectRevert.unspecified(buyCover({ ...this.contracts, cover, coverHolder: member1 }));
   });
 
   it('reverts if signed quote does not match quote parameters', async function () {
@@ -201,16 +189,17 @@ describe('makeCoverBegin', function () {
       qt.address,
     );
 
-    await expectRevert.unspecified(p1.makeCoverBegin(
-      cover.contractAddress,
-      cover.currency,
-      coverToCoverDetailsArray(cover),
-      cover.period,
-      signature[0],
-      signature[1],
-      signature[2],
-      { from: member, value: cover.price },
-    ),
+    await expectRevert.unspecified(
+      p1.makeCoverBegin(
+        cover.contractAddress,
+        cover.currency,
+        coverToCoverDetailsArray(cover),
+        cover.period,
+        signature[0],
+        signature[1],
+        signature[2],
+        { from: member, value: cover.price },
+      ),
     );
   });
 });

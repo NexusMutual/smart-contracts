@@ -103,6 +103,9 @@ contract StakingPool is ERC20 {
   uint public constant PARAM_PRECISION = 10_000;
   uint public constant BUCKET_SIZE = 7 days;
 
+  uint public constant PRICE_CURVE_EXPONENT = 7;
+  uint public constant MAX_PRICE_PERCENTAGE = 1e20;
+
   modifier onlyCoverContract {
     require(msg.sender == coverContract, "StakingPool: Caller is not the cover contract");
     _;
@@ -238,8 +241,9 @@ contract StakingPool is ERC20 {
     uint coverAmount,
     uint rewardAmount,
     uint period,
-    uint capacityFactor
-  ) external {
+    uint capacityFactor,
+    uint basePrice
+  ) external returns (uint) {
 
     uint staked = processPoolBuckets();
     uint currentBucket = block.timestamp / BUCKET_SIZE;
@@ -255,11 +259,10 @@ contract StakingPool is ERC20 {
       activeCoverAmount -= product.buckets[lastBucket].coverAmountExpiring;
     }
 
-    {
-      // capacity checks
-      uint maxActiveCoverAmount = staked * capacityFactor * weight / PARAM_PRECISION / PARAM_PRECISION;
-      require(activeCoverAmount + coverAmount <= maxActiveCoverAmount, "StakingPool: No available capacity");
-    }
+    // capacity checks
+    uint maxActiveCoverAmount = staked * capacityFactor * weight / PARAM_PRECISION / PARAM_PRECISION;
+    require(activeCoverAmount + coverAmount <= maxActiveCoverAmount, "StakingPool: No available capacity");
+
 
     {
       // calculate expiration bucket, reward period, reward amount
@@ -276,6 +279,16 @@ contract StakingPool is ERC20 {
       product.lastBucket = uint16(lastBucket);
       product.activeCoverAmount = uint96(activeCoverAmount + coverAmount);
     }
+
+    // price calculation
+    uint pricePercentage = calculatePrice(
+      coverAmount,
+      basePrice,
+      product.activeCoverAmount,
+      maxActiveCoverAmount * capacityFactor
+    );
+
+    return calculatePremium(pricePercentage, coverAmount, period);
   }
 
   function burn() external {
@@ -352,6 +365,55 @@ contract StakingPool is ERC20 {
 
     //
 
+  }
+
+  /* VIEWS */
+
+  /* ========== PRICE CALCULATION ========== */
+
+  function getUsedCapacity(uint productId) public view returns (uint) {
+    return 0;
+  }
+
+  function getCapacity(uint productId, uint capacityFactor) public view returns (uint) {
+    return 0;
+  }
+
+  function calculatePremium(uint pricePercentage, uint coverAmount, uint period) public pure returns (uint) {
+    return pricePercentage * coverAmount / MAX_PRICE_PERCENTAGE * period / 365 days;
+  }
+
+  function calculatePrice(
+    uint amount,
+    uint basePrice,
+    uint activeCover,
+    uint capacity
+  ) public pure returns (uint) {
+
+    return (calculatePriceIntegralAtPoint(
+      basePrice,
+      activeCover + amount,
+      capacity
+    ) -
+    calculatePriceIntegralAtPoint(
+      basePrice,
+      activeCover,
+      capacity
+    )) / amount;
+  }
+
+  function calculatePriceIntegralAtPoint(
+    uint basePrice,
+    uint activeCover,
+    uint capacity
+  ) public pure returns (uint) {
+    uint actualPrice = basePrice * activeCover;
+    for (uint i = 0; i < PRICE_CURVE_EXPONENT; i++) {
+      actualPrice = actualPrice * activeCover / capacity;
+    }
+    actualPrice = actualPrice / 8 + basePrice * activeCover;
+
+    return actualPrice;
   }
 
 }

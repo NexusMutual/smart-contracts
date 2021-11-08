@@ -383,35 +383,13 @@ contract Cover is ICover, MasterAwareV2 {
         /*uint8 decimals*/,
         /*bool deprecated*/
       ) = pool().assets(payoutAssetIndex);
-      
+
       IERC20 token = IERC20(payoutAsset);
       token.transferFrom(msg.sender, address(this), totalPrice);
     }
   }
 
   /* ========== PRICE CALCULATION ========== */
-
-  function getPrice(uint amount, uint period, uint productId, IStakingPool stakingPool) public view returns (uint, uint) {
-
-    uint96 lastPrice = lastPrices[productId][address(stakingPool)].value;
-    uint basePrice = interpolatePrice(
-      lastPrice != 0 ? lastPrice : initialPrices[productId],
-      stakingPool.getTargetPrice(productId),
-      lastPrices[productId][address(stakingPool)].lastUpdateTime,
-      block.timestamp
-    );
-
-    uint pricePercentage = calculatePrice(
-      amount,
-      basePrice,
-      stakingPool.getUsedCapacity(productId),
-      stakingPool.getCapacity(productId, capacityFactor)
-    );
-
-    uint price = pricePercentage * amount / MAX_PRICE_PERCENTAGE * period / 365 days;
-
-    return (basePrice, price);
-  }
 
   /**
     Price changes towards targetPrice from lastPrice by maximum of 1% a day per every 100k NXM staked
@@ -431,39 +409,6 @@ contract Cover is ICover, MasterAwareV2 {
     } else {
       return lastPrice - (lastPrice - targetPrice) * percentageChange / BASIS_PRECISION;
     }
-  }
-
-  function calculatePrice(
-    uint amount,
-    uint basePrice,
-    uint activeCover,
-    uint capacity
-  ) public pure returns (uint) {
-
-    return (calculatePriceIntegralAtPoint(
-      basePrice,
-      activeCover + amount,
-      capacity
-    ) -
-    calculatePriceIntegralAtPoint(
-      basePrice,
-      activeCover,
-      capacity
-    )) / amount;
-  }
-
-  function calculatePriceIntegralAtPoint(
-    uint basePrice,
-    uint activeCover,
-    uint capacity
-  ) public pure returns (uint) {
-    uint actualPrice = basePrice * activeCover;
-    for (uint i = 0; i < PRICE_CURVE_EXPONENT; i++) {
-      actualPrice = actualPrice * activeCover / capacity;
-    }
-    actualPrice = actualPrice / 8 + basePrice * activeCover;
-
-    return actualPrice;
   }
 
   /* ========== PRODUCT CONFIGURATION ========== */

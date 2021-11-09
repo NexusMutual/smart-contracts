@@ -1,9 +1,9 @@
 const { ethers } = require('hardhat');
-
-const { BigNumber, parseEther } = ethers.utils;
+const { hexlify, arrayify, hexValue, hexZeroPad, parseEther } = ethers.utils;
+const { BigNumber } = ethers;
 const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../utils').constants;
-const { hex } = require('../utils').helpers;
+const { hex, zeroPadRight } = require('../utils').helpers;
 
 async function setup () {
   const MasterMock = await ethers.getContractFactory('MasterMock');
@@ -24,8 +24,15 @@ async function setup () {
 
   const quotationData = await QuotationData.deploy();
 
-  await quotationData.setTotalSumAssured(hex('DAI'), '0');
-  await quotationData.setTotalSumAssured(hex('ETH'), '100000');
+  const daiAsset = zeroPadRight(Buffer.from('DAI'), 4);
+  const ethAsset = zeroPadRight(Buffer.from('ETH'), 4);
+  console.log({
+    daiAsset,
+    ethAsset,
+  });
+
+  await quotationData.setTotalSumAssured(daiAsset, '0');
+  await quotationData.setTotalSumAssured(ethAsset, '100000');
 
   const dai = await ERC20Mock.deploy();
   await dai.deployed();
@@ -46,7 +53,7 @@ async function setup () {
   await mcr.deployed();
   await mcr.setMCR(parseEther('600000'));
 
-  const cover = await Cover.deploy(quotationData.address);
+  const cover = await Cover.deploy(quotationData.address, ethers.constants.AddressZero);
   await cover.deployed();
 
   await master.setTokenAddress(nxm.address);

@@ -14,11 +14,13 @@ contract CoverMockStakingPool is IStakingPool {
   function buyCover(
     uint productId,
     uint coveredAmount,
-    uint rewardAmount,
+    uint rewardDenominator,
     uint period,
-    uint capacityFactor
-  ) external override {
+    uint capacityFactor,
+    uint basePrice
+  ) external override returns (uint) {
     usedCapacity[productId] += coveredAmount;
+    return 0;
   }
 
   function extendPeriod(

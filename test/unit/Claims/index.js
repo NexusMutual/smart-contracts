@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const { setup } = require('./setup');
 
-describe.only('Claims', function () {
+describe('Claims', function () {
   before(setup);
 
   beforeEach(async function () {
@@ -15,6 +15,6 @@ describe.only('Claims', function () {
   require('./submitClaim');
   require('./redeemClaimPayout');
   require('./getAssessmentDepositAndReward');
-  // require('./updateUintParameters');
-  // require('./getClaimsToDisplay');
+  require('./updateUintParameters');
+  require('./getClaimsToDisplay');
 });

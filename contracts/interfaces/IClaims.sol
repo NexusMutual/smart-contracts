@@ -90,8 +90,8 @@ interface IClaims {
     uint assetIndex;
     uint coverStart;
     uint coverEnd;
-    uint start;
-    uint end;
+    uint pollStart;
+    uint pollEnd;
     uint claimStatus;
     uint payoutStatus;
   }

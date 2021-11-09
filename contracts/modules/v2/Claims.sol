@@ -13,13 +13,13 @@ import "../../interfaces/ICoverNFT.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 
-/// Provides a way for cover owners to submit claims and redeem the payouts and facilitates
-/// assessment processes where members decide the outcome of the events that lead to potential
-/// payouts.
+/// Provides a way for cover owners to submit claims and redeem payouts. It is an entry point to
+/// the assessment process the members of the mutual decide the outcome of claims.
 contract Claims is IClaims, MasterAwareV2 {
 
-  // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
-  uint internal constant RATIO_BPS = 10000;
+  // 0-10000 bps (i.e. double decimal precision percentage)
+  uint internal constant MIN_ASSESSMENT_DEPOSIT_DENOMINATOR = 10000;
+  uint internal constant REWARD_DENOMINATOR = 10000;
 
   // Used in operations involving NXM tokens and divisions
   uint internal constant PRECISION = 10 ** 18;
@@ -50,6 +50,7 @@ contract Claims is IClaims, MasterAwareV2 {
   function initialize(address masterAddress) external {
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
     config.rewardRatio = 130; // 0.52%
+    config.maxRewardNXM = 50; // 50 NXM
     config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH assessment minimum flat fee
     config.payoutRedemptionPeriodDays = 14; // days until the payout will not be redeemable anymore
     master = INXMMaster(masterAddress);
@@ -59,6 +60,10 @@ contract Claims is IClaims, MasterAwareV2 {
 
   function max(uint a, uint b) internal pure returns (uint) {
     return a > b ? a : b;
+  }
+
+  function min(uint a, uint b) internal pure returns (uint) {
+    return a < b ? a : b;
   }
 
   function cover() internal view returns (ICover) {
@@ -90,13 +95,14 @@ contract Claims is IClaims, MasterAwareV2 {
     uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPriceInPayoutAsset;
 
     // Determine the total rewards that should be minted for the assessors based on cover period
-    uint totalReward = max(
+    uint totalReward = min(
       config.maxRewardNXM * PRECISION,
-      expectedPayoutInNXM * config.rewardRatio * coverPeriod / 365 days / RATIO_BPS
+      expectedPayoutInNXM * config.rewardRatio * coverPeriod / 365 days / REWARD_DENOMINATOR
     );
 
     uint dynamicDeposit = totalReward * nxmPriceInETH / PRECISION;
-    uint minDeposit = 1 ether * uint(config.minAssessmentDepositRatio) / RATIO_BPS;
+    uint minDeposit = 1 ether * uint(config.minAssessmentDepositRatio) /
+      MIN_ASSESSMENT_DEPOSIT_DENOMINATOR;
 
     // If dynamicDeposit falls below minDeposit use minDeposit instead
     uint deposit = minDeposit > dynamicDeposit ? minDeposit : dynamicDeposit;
@@ -389,6 +395,10 @@ contract Claims is IClaims, MasterAwareV2 {
       }
       if (paramNames[i] == UintParams.rewardRatio) {
         newConfig.rewardRatio = uint16(values[i]);
+        continue;
+      }
+      if (paramNames[i] == UintParams.maxRewardNXM) {
+        newConfig.maxRewardNXM = uint16(values[i]);
         continue;
       }
       if (paramNames[i] == UintParams.minAssessmentDepositRatio) {

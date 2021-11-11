@@ -40,13 +40,14 @@ describe('buyCover', function () {
     await stakingPool.setTargetPrice(productId, targetPrice);
     await stakingPool.setUsedCapacity(productId, activeCover);
 
-    const expectedPricePercentage = await cover.calculatePrice(
-      amount,
-      resultingBasePrice,
-      activeCover,
-      capacity,
-    );
-    const expectedPrice = expectedPricePercentage.mul(amount).div(parseEther('100'));
+    // const expectedPricePercentage = await cover.calculatePrice(
+    //   amount,
+    //   resultingBasePrice,
+    //   activeCover,
+    //   capacity,
+    // );
+    // const expectedPrice = expectedPricePercentage.mul(amount).div(parseEther('100'));
+    const expectedPrice = parseEther('1000');
 
     const tx = await cover.connect(member1).buyCover(
       {

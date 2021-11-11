@@ -285,7 +285,7 @@ contract StakingPool is ERC20 {
       coverAmount,
       basePrice,
       product.activeCoverAmount,
-      maxActiveCoverAmount * capacityFactor
+      activeCoverAmount
     );
 
     return calculatePremium(pricePercentage, coverAmount, period);
@@ -368,7 +368,7 @@ contract StakingPool is ERC20 {
   }
 
   /* VIEWS */
-
+  
   /* ========== PRICE CALCULATION ========== */
 
   function getUsedCapacity(uint productId) public view returns (uint) {

@@ -1,11 +1,10 @@
 const { ethers } = require('hardhat');
-const { time } = require('@openzeppelin/test-helpers');
 const { assert, expect } = require('chai');
 
 const { submitClaim, daysToSeconds, ASSET } = require('./helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 
-const { parseEther, formatEther } = ethers.utils;
+const { parseEther } = ethers.utils;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
@@ -13,8 +12,29 @@ const setTime = async timestamp => {
 };
 
 describe('submitClaim', function () {
+  it('calls migrateCoverFromOwner with the correct parameters when a legacy coverId is provided as a parameter', async function () {
+    const { claims, cover, distributor } = this.contracts;
+    const [coverOwner] = this.accounts.members;
+
+    {
+      await claims.connect(coverOwner)['submitClaim(uint256)'](123);
+      const migrateCoverFromOwnerCalledWith = await cover.migrateCoverFromOwnerCalledWith();
+      expect(migrateCoverFromOwnerCalledWith.coverId).to.be.equal(123);
+      expect(migrateCoverFromOwnerCalledWith.fromOwner).to.be.equal(coverOwner.address);
+      expect(migrateCoverFromOwnerCalledWith.toNewOwner).to.be.equal(coverOwner.address);
+    }
+
+    {
+      await distributor.connect(coverOwner)['submitClaim(uint256)'](444);
+      const migrateCoverFromOwnerCalledWith = await cover.migrateCoverFromOwnerCalledWith();
+      expect(migrateCoverFromOwnerCalledWith.coverId).to.be.equal(444);
+      expect(migrateCoverFromOwnerCalledWith.fromOwner).to.be.equal(distributor.address);
+      expect(migrateCoverFromOwnerCalledWith.toNewOwner).to.be.equal(coverOwner.address);
+    }
+  });
+
   it('reverts if the submission deposit is not sent', async function () {
-    const { claims, cover, coverNFT } = this.contracts;
+    const { claims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
@@ -36,7 +56,7 @@ describe('submitClaim', function () {
   });
 
   it('reverts if a payout on the same cover can be redeemed ', async function () {
-    const { claims, cover, assessment } = this.contracts;
+    const { cover, assessment } = this.contracts;
     const [coverOwner] = this.accounts.members;
     await cover.buyCover(
       coverOwner.address,
@@ -58,7 +78,7 @@ describe('submitClaim', function () {
   });
 
   it('reverts if a claim on the same cover is already being assessed', async function () {
-    const { claims, cover, assessment } = this.contracts;
+    const { cover, assessment } = this.contracts;
     const [coverOwner] = this.accounts.members;
     await cover.buyCover(
       coverOwner.address,
@@ -70,13 +90,50 @@ describe('submitClaim', function () {
       [],
     );
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
+    await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).to.be.revertedWith(
+      'A claim is already being assessed',
+    );
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
-    const { payoutCooldownDays } = await assessment.config();
-    await setTime(poll.end + daysToSeconds(payoutCooldownDays));
-    await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).to.be.revertedWith(
-      'A payout can still be redeemed',
+    await setTime(poll.end + daysToSeconds(poll.end));
+    await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).not.to.be.revertedWith(
+      'A claim is already being assessed',
     );
+  });
+
+  it('reverts if covered product has a redeemMethod other than claim', async function () {
+    const { cover, assessment } = this.contracts;
+    const [coverOwner] = this.accounts.members;
+    await cover.buyCover(
+      coverOwner.address,
+      2, // productId of type yield token cover
+      ASSET.ETH,
+      parseEther('100'),
+      daysToSeconds(30),
+      parseEther('2.6'),
+      [],
+    );
+    await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).to.be.revertedWith('Invalid redeem method');
+    await cover.buyCover(
+      coverOwner.address,
+      1, // productId of type custodian cover
+      ASSET.ETH,
+      parseEther('100'),
+      daysToSeconds(30),
+      parseEther('2.6'),
+      [],
+    );
+    await expect(submitClaim(this)({ coverId: 1, sender: coverOwner })).not.to.be.revertedWith('Invalid redeem method');
+    await cover.buyCover(
+      coverOwner.address,
+      0, // productId of type protocol cover
+      ASSET.ETH,
+      parseEther('100'),
+      daysToSeconds(30),
+      parseEther('2.6'),
+      [],
+    );
+    await expect(submitClaim(this)({ coverId: 2, sender: coverOwner })).not.to.be.revertedWith('Invalid redeem method');
   });
 
   it('allows to submit a new claim if an accepted claim is not redeemed during the redemption period', async function () {
@@ -225,7 +282,8 @@ describe('submitClaim', function () {
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
     const payoutAsset = ASSET.ETH;
-    const currentTime = await time.latest();
+    const latestBlock = await ethers.provider.getBlock('latest');
+    const currentTime = latestBlock.timestamp;
     await cover.buyCoverAtDate(
       coverOwner.address,
       0, // productId
@@ -234,7 +292,7 @@ describe('submitClaim', function () {
       coverPeriod,
       parseEther('2.6'),
       [],
-      currentTime.toNumber() + daysToSeconds(30),
+      currentTime + daysToSeconds(30),
     );
     const coverId = 0;
 
@@ -253,7 +311,8 @@ describe('submitClaim', function () {
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
     const payoutAsset = ASSET.ETH;
-    const currentTime = await time.latest();
+    const latestBlock = await ethers.provider.getBlock('latest');
+    const currentTime = latestBlock.timestamp;
     const { gracePeriodInDays } = await cover.productTypes(0);
     await cover.buyCover(
       coverOwner.address,
@@ -265,7 +324,7 @@ describe('submitClaim', function () {
       [],
     );
 
-    await setTime(currentTime.toNumber() + coverPeriod + daysToSeconds(gracePeriodInDays) + 1);
+    await setTime(currentTime + coverPeriod + daysToSeconds(gracePeriodInDays) + 1);
     const coverId = 0;
 
     const [deposit] = await claims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);

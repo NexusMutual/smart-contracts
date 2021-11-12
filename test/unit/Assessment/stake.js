@@ -9,15 +9,20 @@ describe('stake', function () {
     const { assessment } = this.contracts;
     const user = this.accounts.members[0];
     let stake = { amount: Zero };
-    await assessment.connect(user).stake(parseEther('100'));
-    prevStake = stake;
-    stake = await assessment.stakeOf(user.address);
-    assert(stake.amount.gt(prevStake.amount), 'Expected stake increase');
 
-    await assessment.connect(user).stake(parseEther('100'));
-    prevStake = stake;
-    stake = await assessment.stakeOf(user.address);
-    assert(stake.amount.gt(prevStake.amount), 'Expected stake increase');
+    {
+      await assessment.connect(user).stake(parseEther('100'));
+      const prevStake = stake;
+      stake = await assessment.stakeOf(user.address);
+      assert(stake.amount.gt(prevStake.amount), 'Expected stake increase');
+    }
+
+    {
+      await assessment.connect(user).stake(parseEther('100'));
+      const prevStake = stake;
+      stake = await assessment.stakeOf(user.address);
+      assert(stake.amount.gt(prevStake.amount), 'Expected stake increase');
+    }
   });
 
   it('transfers the staked NXM to the assessment contract', async function () {

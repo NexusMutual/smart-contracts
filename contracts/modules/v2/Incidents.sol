@@ -23,7 +23,9 @@ import "../../abstract/MasterAwareV2.sol";
 contract Incidents is IIncidents, MasterAwareV2 {
 
   // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
-  uint internal constant RATIO_BPS = 10000;
+  uint internal constant REWARD_DENOMINATOR = 10000;
+  uint internal constant INCIDENT_EXPECTED_PAYOUT_DENOMINATOR = 10000;
+  uint internal constant INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR = 10000;
 
   // Used in operations involving NXM tokens and divisions
   uint internal constant PRECISION = 10 ** 18;
@@ -42,7 +44,6 @@ contract Incidents is IIncidents, MasterAwareV2 {
 
   constructor(address nxmAddress, address coverNFTAddress) {
     nxm = INXMToken(nxmAddress);
-    // [todo] Replace with CoverNFT interface
     coverNFT = ICoverNFT(coverNFTAddress);
   }
 
@@ -101,10 +102,10 @@ contract Incidents is IIncidents, MasterAwareV2 {
     require(redeemMethod == uint8(ICover.RedeemMethod.Incident), "Invalid redeem method");
 
     uint expectedPayoutInNXM = activeCoverAmountInNXM * config.incidentExpectedPayoutRatio /
-      RATIO_BPS;
+      INCIDENT_EXPECTED_PAYOUT_DENOMINATOR;
 
     // Determine the total rewards that should be minted for the assessors based on cover period
-    uint totalReward = expectedPayoutInNXM * config.rewardRatio / RATIO_BPS;
+    uint totalReward = expectedPayoutInNXM * config.rewardRatio / REWARD_DENOMINATOR;
     uint assessmentId = assessment().startAssessment(totalReward, 0);
     incident.assessmentId = uint80(assessmentId);
     incidents.push(incident);
@@ -156,7 +157,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
 
       {
         uint deductiblePriceBefore = incident.priceBefore * config.incidentPayoutDeductibleRatio /
-          RATIO_BPS;
+          INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
         payoutAmount = depeggedTokens * deductiblePriceBefore / PRECISION;
       }
       {
@@ -181,7 +182,6 @@ contract Incidents is IIncidents, MasterAwareV2 {
       }
     }
 
-    // [todo] Replace payoutAddress with the member's address using the member id
     IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
     IERC20(coveredToken).transferFrom(msg.sender, address(this), depeggedTokens);
     poolContract.sendPayout(payoutAsset, coverOwner, payoutAmount);

@@ -17,4 +17,5 @@ describe('Claims', function () {
   require('./getAssessmentDepositAndReward');
   require('./updateUintParameters');
   require('./getClaimsToDisplay');
+  require('./getClaimsCount');
 });

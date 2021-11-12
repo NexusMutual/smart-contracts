@@ -109,6 +109,8 @@ interface IClaims {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
+  function submitClaim(uint coverId) external;
+
   function submitClaim(
     uint32 coverId,
     uint96 requestedAmount,

@@ -21,6 +21,10 @@ async function setup () {
   const claims = await ASMockClaims.deploy(nxm.address);
   await claims.deployed();
 
+  const ASMockIncidents = await ethers.getContractFactory('ASMockIncidents');
+  const incidents = await ASMockIncidents.deploy();
+  await incidents.deployed();
+
   nxm.setOperator(tokenController.address);
 
   const Master = await ethers.getContractFactory('MasterMock');
@@ -39,8 +43,10 @@ async function setup () {
     master.setLatestAddress(hex('TC'), tokenController.address),
     master.setTokenAddress(nxm.address),
     master.setLatestAddress(hex('CL'), claims.address),
+    master.setLatestAddress(hex('IC'), incidents.address),
     master.setLatestAddress(hex('AS'), assessment.address),
     master.enrollInternal(claims.address),
+    master.enrollInternal(incidents.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
@@ -48,8 +54,14 @@ async function setup () {
     const tx = await assessment.initialize(master.address);
     await tx.wait();
   }
+
   {
     const tx = await claims.initialize(master.address);
+    await tx.wait();
+  }
+
+  {
+    const tx = await incidents.initialize(master.address);
     await tx.wait();
   }
 
@@ -57,8 +69,14 @@ async function setup () {
     const tx = await assessment.changeDependentContractAddress();
     await tx.wait();
   }
+
   {
     const tx = await claims.changeDependentContractAddress();
+    await tx.wait();
+  }
+
+  {
+    const tx = await incidents.changeDependentContractAddress();
     await tx.wait();
   }
 
@@ -81,6 +99,7 @@ async function setup () {
     assessment,
     master,
     claims,
+    incidents,
   };
 }
 

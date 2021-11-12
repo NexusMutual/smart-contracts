@@ -45,6 +45,8 @@ const submitFraud = assessment => async (signer, addresses, amounts) => {
     const input = getLeafInput(address, lastFraudulentVoteIndex, amounts[i], fraudCounts[i]);
     return input;
   });
+  // [warning]: Don't use keccak256 from ethers because it returns a different type than what
+  // merkletreejs expects.
   const merkleTree = new MerkleTree(leaves, keccak256, { hashLeaves: true, sortPairs: true });
   const root = merkleTree.getHexRoot();
   await assessment.connect(signer).submitFraud(root);
@@ -110,22 +112,6 @@ const getDurationByConsensus = ({ config }) => ({ accepted, denied }) => {
     .toNumber();
 };
 
-const stakeAndVoteOnEventType = (eventType, assessment, accounts) => async (userIndex, amount, id, accepted) => {
-  const assessor = accounts.members[userIndex];
-  await assessment.connect(assessor).depositStake(amount);
-  await assessment.connect(assessor).castVote(eventType, id, accepted);
-  if (eventType === EVENT_TYPE.CLAIM) {
-    const claim = await assessment.claims(id);
-    const { accepted, denied } = claim.poll;
-    return { accepted, denied, totalTokens: accepted.add(denied) };
-  }
-  if (eventType === EVENT_TYPE.INCIDENT) {
-    const incident = await assessment.incidents(id);
-    const { accepted, denied } = incident.poll;
-    return { accepted, denied, totalTokens: accepted.add(denied) };
-  }
-};
-
 const getConfigurationStruct = ({ minVotingPeriodDays, stakeLockupPeriodDays, payoutCooldownDays }) => [
   minVotingPeriodDays,
   stakeLockupPeriodDays,
@@ -168,5 +154,4 @@ module.exports = {
   getVoteStruct,
   getDurationByTokenWeight,
   getDurationByConsensus,
-  stakeAndVoteOnEventType,
 };

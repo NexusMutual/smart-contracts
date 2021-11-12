@@ -48,6 +48,10 @@ async function setup () {
   const cover = await Cover.deploy(coverNFT.address);
   await cover.deployed();
 
+  const Distributor = await ethers.getContractFactory('CLMockDistributor');
+  const distributor = await Distributor.deploy(claims.address);
+  await distributor.deployed();
+
   const CLMockUnknownNFT = await ethers.getContractFactory('CLMockUnknownNFT');
   const unkownNFT = await CLMockUnknownNFT.deploy('Unknown NFT', 'UNK');
   await unkownNFT.deployed();
@@ -101,6 +105,7 @@ async function setup () {
     claims,
     assessment,
     cover,
+    distributor,
     coverNFT,
     unkownNFT,
     master,

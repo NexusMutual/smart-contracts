@@ -1,11 +1,10 @@
 const { ethers } = require('hardhat');
-const { time } = require('@openzeppelin/test-helpers');
-const { assert, expect } = require('chai');
+const { expect } = require('chai');
 
 const { submitClaim, daysToSeconds, ASSET } = require('./helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 
-const { parseEther, formatEther } = ethers.utils;
+const { parseEther } = ethers.utils;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
@@ -249,7 +248,7 @@ describe('redeemClaimPayout', function () {
         [],
         { gasPrice: 0 },
       );
-  
+
       const coverId = 1;
       const assessmentId = 1;
       const claimId = 1;
@@ -258,17 +257,17 @@ describe('redeemClaimPayout', function () {
         value: deposit,
         gasPrice: 0,
       });
-  
+
       await assessment.connect(otherMember).castVote(assessmentId, true, parseEther('1'));
       const { poll } = await assessment.assessments(assessmentId);
       const { payoutCooldownDays } = await assessment.config();
       await setTime(poll.end + daysToSeconds(payoutCooldownDays));
-  
+
       await coverNFT.connect(originalOwner).transferFrom(originalOwner.address, newOwner.address, coverId);
       const ethBalanceBefore = await ethers.provider.getBalance(newOwner.address);
       await claims.connect(otherMember).redeemClaimPayout(claimId, { gasPrice: 0 }); // anyone can poke this
       const ethBalanceAfter = await ethers.provider.getBalance(newOwner.address);
-  
+
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(coverAmount).add(deposit));
     }
   });
@@ -276,7 +275,7 @@ describe('redeemClaimPayout', function () {
   it('sends the payout amount in DAI and the assessment deposit to the cover owner', async function () {
     // also check after NFT transfer
     const { claims, cover, coverNFT, assessment, dai } = this.contracts;
-    const [ originalOwner, newOwner, otherMember ] = this.accounts.members;
+    const [originalOwner, newOwner, otherMember] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
 
@@ -360,7 +359,7 @@ describe('redeemClaimPayout', function () {
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
 
-    for (let i=0; i<=3; i++) {
+    for (let i = 0; i <= 3; i++) {
       await cover.buyCover(
         coverOwner.address,
         0, // productId

@@ -43,7 +43,7 @@ contract ASMockClaims is MasterAwareV2 {
       false // payoutRedeemed
     );
 
-    uint assessmentId = assessment().startAssessment(0, 0);
+    uint assessmentId = assessment().startAssessment(config.rewardRatio * requestedAmount / 10000, 0);
     claim.assessmentId = uint80(assessmentId);
     claims.push(claim);
   }

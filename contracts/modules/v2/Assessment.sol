@@ -8,7 +8,6 @@ import "../../interfaces/IAssessment.sol";
 import "../../abstract/MasterAwareV2.sol";
 
 import "@openzeppelin/contracts-v4/utils/cryptography/MerkleProof.sol";
-import "hardhat/console.sol";
 
 /// Provides a way for cover owners to submit claims and redeem the payouts and facilitates
 /// assessment processes where members decide the outcome of the events that lead to potential
@@ -160,7 +159,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
 
     // This is the index where the next withdrawReward call will start iterating from
-    console.log("withdrawUntilIndex %d", withdrawUntilIndex);
     stakeOf[user].rewardsWithdrawnUntilIndex = uint104(withdrawUntilIndex);
     ITokenController(getInternalContractAddress(ID.TC)).mint(user, withdrawn);
   }

@@ -58,10 +58,6 @@ contract Claims is IClaims, MasterAwareV2 {
 
   /* ========== VIEWS ========== */
 
-  function max(uint a, uint b) internal pure returns (uint) {
-    return a > b ? a : b;
-  }
-
   function min(uint a, uint b) internal pure returns (uint) {
     return a < b ? a : b;
   }
@@ -228,7 +224,7 @@ contract Claims is IClaims, MasterAwareV2 {
   /// @dev Migrates covers for arNFT-like contracts that don't use Gateway.sol
   ///
   /// @param coverId          Legacy (V1) cover identifier
-  function submitClaim(uint coverId) external {
+  function submitClaim(uint coverId) external override {
     cover().migrateCoverFromOwner(coverId, msg.sender, tx.origin);
   }
 

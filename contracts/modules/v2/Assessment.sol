@@ -8,6 +8,7 @@ import "../../interfaces/IAssessment.sol";
 import "../../abstract/MasterAwareV2.sol";
 
 import "@openzeppelin/contracts-v4/utils/cryptography/MerkleProof.sol";
+import "hardhat/console.sol";
 
 /// Provides a way for cover owners to submit claims and redeem the payouts and facilitates
 /// assessment processes where members decide the outcome of the events that lead to potential
@@ -74,11 +75,11 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint withdrawable,
     uint withdrawableUntilIndex
   ) {
-    uint104 rewardsWithdrawnUntilIndex = stakeOf[user].rewardsWithdrawnUntilIndex;
+    uint104 rewardsWithdrawableFromIndex = stakeOf[user].rewardsWithdrawableFromIndex;
     Vote memory vote;
     Assessment memory assessment;
     uint voteCount = votesOf[user].length;
-    for (uint i = rewardsWithdrawnUntilIndex; i < voteCount; i++) {
+    for (uint i = rewardsWithdrawableFromIndex; i < voteCount; i++) {
       vote = votesOf[user][i];
       assessment = assessments[vote.assessmentId];
 
@@ -134,10 +135,10 @@ contract Assessment is IAssessment, MasterAwareV2 {
   returns (uint withdrawn, uint withdrawUntilIndex) {
     // This is the index until which (but not including) the previous withdrawal was processed.
     // The current withdrawal starts from this index.
-    uint104 rewardsWithdrawnUntilIndex = stakeOf[user].rewardsWithdrawnUntilIndex;
+    uint104 rewardsWithdrawableFromIndex = stakeOf[user].rewardsWithdrawableFromIndex;
     {
       uint voteCount = votesOf[user].length;
-      require(rewardsWithdrawnUntilIndex < voteCount, "No withdrawable rewards");
+      require(rewardsWithdrawableFromIndex < voteCount, "No withdrawable rewards");
       // If untilIndex is a non-zero value, it means the withdrawal is going to be batched in
       // multiple transactions.
       withdrawUntilIndex = untilIndex > 0 ? untilIndex : voteCount;
@@ -145,7 +146,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
     Vote memory vote;
     Assessment memory assessment;
-    for (uint i = rewardsWithdrawnUntilIndex; i < withdrawUntilIndex; i++) {
+    for (uint i = rewardsWithdrawableFromIndex; i < withdrawUntilIndex; i++) {
       vote = votesOf[user][i];
       assessment = assessments[vote.assessmentId];
       if (assessment.poll.end + config.payoutCooldownDays * 1 days >= block.timestamp) {
@@ -159,7 +160,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
 
     // This is the index where the next withdrawReward call will start iterating from
-    stakeOf[user].rewardsWithdrawnUntilIndex = uint104(withdrawUntilIndex);
+    stakeOf[user].rewardsWithdrawableFromIndex = uint104(withdrawUntilIndex);
     ITokenController(getInternalContractAddress(ID.TC)).mint(user, withdrawn);
   }
 
@@ -247,12 +248,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
     Stake memory _stake = stakeOf[assessor];
 
     // Make sure we don't burn beyond lastFraudulentVoteIndex
-    uint processUntil = _stake.rewardsWithdrawnUntilIndex + voteBatchSize;
+    uint processUntil = _stake.rewardsWithdrawableFromIndex + voteBatchSize;
     if (processUntil >= lastFraudulentVoteIndex) {
       processUntil = lastFraudulentVoteIndex + 1;
     }
 
-    for (uint j = _stake.rewardsWithdrawnUntilIndex; j < processUntil; j++) {
+    for (uint j = _stake.rewardsWithdrawableFromIndex; j < processUntil; j++) {
       IAssessment.Vote memory vote = votesOf[assessor][j];
       IAssessment.Poll memory poll = assessments[vote.assessmentId].poll;
 
@@ -293,7 +294,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       _stake.fraudCount++;
     }
 
-    _stake.rewardsWithdrawnUntilIndex = uint104(processUntil);
+    _stake.rewardsWithdrawableFromIndex = uint104(processUntil);
     stakeOf[assessor] = _stake;
 
   }

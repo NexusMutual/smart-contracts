@@ -10,6 +10,7 @@ interface IIncidents {
     payoutRedemptionPeriodDays,
     incidentExpectedPayoutRatio,
     incidentPayoutDeductibleRatio,
+    maxRewardNXM,
     rewardRatio
   }
 
@@ -23,6 +24,9 @@ interface IIncidents {
 
     // Ratio used to determine the deductible payout (0-10000 bps i.e. double decimal precision)
     uint16 incidentPayoutDeductibleRatio;
+
+    // An amount of NXM representing the maximum reward amount given for any claim assessment.
+    uint16 maxRewardNXM;
 
     // Ratio used to calculate assessment rewards (0-10000 i.e. double decimal precision)
     uint16 rewardRatio;
@@ -44,6 +48,7 @@ interface IIncidents {
     uint8 payoutRedemptionPeriodDays,
     uint16 incidentExpectedPayoutRatio,
     uint16 incidentPayoutDeductibleRatio,
+    uint16 maxRewardNXM,
     uint16 rewardRatio
   );
 

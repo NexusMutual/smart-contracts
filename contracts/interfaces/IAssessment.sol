@@ -27,7 +27,7 @@ interface IAssessment {
 
   struct Stake {
     uint96 amount;
-    uint104 rewardsWithdrawnUntilIndex;
+    uint104 rewardsWithdrawableFromIndex;
     uint16 fraudCount;
     /*uint32 unused,*/
   }
@@ -76,7 +76,7 @@ interface IAssessment {
   returns (uint80 assessmentId, bool accepted, uint32 timestamp, uint96 stakedAmount);
 
   function stakeOf(address user) external view
-  returns (uint96 amount, uint104 rewardsWithdrawnUntilIndex, uint16 fraudCount);
+  returns (uint96 amount, uint104 rewardsWithdrawableFromIndex, uint16 fraudCount);
 
   function config() external view
   returns (uint8 minVotingPeriodDays, uint8 stakeLockupPeriodDays, uint8 payoutCooldownDays);

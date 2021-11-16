@@ -36,12 +36,18 @@ const getLeafInput = (address, lastFraudulentVoteIndex, burnAmount, fraudCount) 
   ];
 };
 
-const submitFraud = assessment => async (signer, addresses, amounts) => {
+const getProof = ({ address, lastFraudulentVoteIndex, amount, fraudCount, merkleTree }) => {
+  const input = getLeafInput(address, lastFraudulentVoteIndex, amount, fraudCount);
+  const proof = merkleTree.getHexProof(keccak256(input));
+  return proof;
+};
+
+const submitFraud = async ({ assessment, signer, addresses, amounts, lastFraudulentVoteIndexes }) => {
   const voteCounts = await getVoteCountOfAddresses(assessment)(addresses);
   const fraudCounts = await getFraudCountOfAddresses(assessment)(addresses);
   const leaves = addresses.map((address, i) => {
     // Assume the last fraudulent vote was also the last vote
-    const lastFraudulentVoteIndex = voteCounts[i] - 1;
+    const lastFraudulentVoteIndex = (lastFraudulentVoteIndexes && lastFraudulentVoteIndexes[i]) || voteCounts[i] - 1;
     const input = getLeafInput(address, lastFraudulentVoteIndex, amounts[i], fraudCounts[i]);
     return input;
   });
@@ -61,8 +67,13 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
     const address = addresses[i];
     for (let j = 0; j < callsPerAddress; j++) {
       const lastFraudulentVoteIndex = voteCounts[i] - 1;
-      const input = getLeafInput(address, lastFraudulentVoteIndex, amounts[i], fraudCounts[i]);
-      const proof = merkleTree.getHexProof(keccak256(input));
+      const proof = getProof({
+        address,
+        lastFraudulentVoteIndex,
+        amount: amounts[i],
+        fraudCount: fraudCounts[i],
+        merkleTree,
+      });
       const tx = await assessment.burnFraud(
         rootIndex,
         proof,
@@ -151,6 +162,7 @@ module.exports = {
   getConfigurationStruct,
   getClaimStruct,
   getIncidentStruct,
+  getProof,
   getVoteStruct,
   getDurationByTokenWeight,
   getDurationByConsensus,

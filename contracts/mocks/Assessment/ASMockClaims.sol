@@ -32,7 +32,6 @@ contract ASMockClaims is MasterAwareV2 {
   function submitClaim(
     uint24 coverId,
     uint96 requestedAmount,
-    bool hasProof,
     string calldata ipfsProofHash
   ) external payable {
     IClaims.Claim memory claim = IClaims.Claim(

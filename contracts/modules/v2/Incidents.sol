@@ -52,10 +52,15 @@ contract Incidents is IIncidents, MasterAwareV2 {
     config.rewardRatio = 52; // 0.52%
     config.incidentExpectedPayoutRatio = 3000; // 30%
     config.incidentPayoutDeductibleRatio = 9000; // 90%
+    config.maxRewardNXM = 50; // 50 NXM
     master = INXMMaster(masterAddress);
   }
 
   /* ========== VIEWS ========== */
+
+  function min(uint a, uint b) internal pure returns (uint) {
+    return a < b ? a : b;
+  }
 
   function memberRoles() internal view returns (IMemberRoles) {
     return IMemberRoles(internalContracts[uint(IMasterAwareV2.ID.MR)]);
@@ -105,7 +110,10 @@ contract Incidents is IIncidents, MasterAwareV2 {
       INCIDENT_EXPECTED_PAYOUT_DENOMINATOR;
 
     // Determine the total rewards that should be minted for the assessors based on cover period
-    uint totalReward = expectedPayoutInNXM * config.rewardRatio / REWARD_DENOMINATOR;
+    uint totalReward = min(
+      config.maxRewardNXM * PRECISION,
+      expectedPayoutInNXM * config.rewardRatio / REWARD_DENOMINATOR
+    );
     uint assessmentId = assessment().startAssessment(totalReward, 0);
     incident.assessmentId = uint80(assessmentId);
     incidents.push(incident);

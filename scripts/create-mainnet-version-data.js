@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const assert = require('assert');
 const ethers = require('ethers');
 
 const artifactByCode = {
@@ -28,7 +27,7 @@ const artifactByCode = {
   PRICEORACLE: 'contracts/modules/oracles/PriceFeedOracle.sol/PriceFeedOracle.json',
   TWAP: 'contracts/modules/oracles/TwapOracle.sol/TwapOracle.json',
   DF: 'contracts/modules/distributor/DistributorFactory.sol/DistributorFactory.json',
-  CSI: '../deploy/external/CommunityStakingIncentives.json',
+  CSI: '../scripts/external/CommunityStakingIncentives.json',
   // external
   DAI: '@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json',
   stETH: '@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json',
@@ -91,6 +90,10 @@ const versionData = Object.keys(addresses).map(name => {
     contractAbi: getContractAbi(contractCodeByName[name]),
   };
 });
+
+if (!fs.existsSync(`${rootPath}/deploy`)) {
+  fs.mkdirSync(`${rootPath}/deploy`);
+}
 
 const outfile = `${rootPath}/deploy/mainnet-data.json`;
 

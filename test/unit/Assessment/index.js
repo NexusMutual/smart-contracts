@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const { setup } = require('./setup');
 
-describe.only('Assessment', function () {
+describe('Assessment', function () {
   before(setup);
 
   beforeEach(async function () {
@@ -14,6 +14,10 @@ describe.only('Assessment', function () {
 
   require('./stake');
   require('./unstake');
+  // require('./getRewards');
+  // require('./getPoll');
+  // require('./getAssessmentsCount');
+  // require('./getVoteCountOfAssessor');
   require('./withdrawRewards');
   require('./startAssessment');
   require('./castVote');

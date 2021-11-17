@@ -86,7 +86,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
     uint32 date
   ) external onlyAdvisoryBoard override {
     ICover coverContract = cover();
-    uint96 activeCoverAmountInNXM = coverContract.activeCoverAmountInNXM(productId);
+    uint activeCoverAmountInNXM = coverContract.activeCoverAmountInNXM(productId);
 
     Incident memory incident = Incident(
       0, // assessmentId
@@ -106,13 +106,13 @@ contract Incidents is IIncidents, MasterAwareV2 {
     ) = coverContract.productTypes(productType);
     require(redeemMethod == uint8(ICover.RedeemMethod.Incident), "Invalid redeem method");
 
-    uint expectedPayoutInNXM = activeCoverAmountInNXM * config.incidentExpectedPayoutRatio /
+    uint expectedPayoutInNXM = activeCoverAmountInNXM * uint(config.incidentExpectedPayoutRatio) /
       INCIDENT_EXPECTED_PAYOUT_DENOMINATOR;
 
     // Determine the total rewards that should be minted for the assessors based on cover period
     uint totalReward = min(
-      config.maxRewardNXM * PRECISION,
-      expectedPayoutInNXM * config.rewardRatio / REWARD_DENOMINATOR
+      uint(config.maxRewardNXM) * PRECISION,
+      expectedPayoutInNXM * uint(config.rewardRatio) / REWARD_DENOMINATOR
     );
     uint assessmentId = assessment().startAssessment(totalReward, 0);
     incident.assessmentId = uint80(assessmentId);
@@ -164,7 +164,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
       ) = coverContract.covers(coverId);
 
       {
-        uint deductiblePriceBefore = incident.priceBefore * config.incidentPayoutDeductibleRatio /
+        uint deductiblePriceBefore = uint(incident.priceBefore) * uint(config.incidentPayoutDeductibleRatio) /
           INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
         payoutAmount = depeggedTokens * deductiblePriceBefore / PRECISION;
       }

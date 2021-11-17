@@ -92,8 +92,8 @@ contract Claims is IClaims, MasterAwareV2 {
 
     // Determine the total rewards that should be minted for the assessors based on cover period
     uint totalReward = min(
-      config.maxRewardNXM * PRECISION,
-      expectedPayoutInNXM * config.rewardRatio * coverPeriod / 365 days / REWARD_DENOMINATOR
+      uint(config.maxRewardNXM) * PRECISION,
+      expectedPayoutInNXM * uint(config.rewardRatio) * coverPeriod / 365 days / REWARD_DENOMINATOR
     );
 
     uint dynamicDeposit = totalReward * nxmPriceInETH / PRECISION;

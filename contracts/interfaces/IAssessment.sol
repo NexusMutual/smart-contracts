@@ -70,6 +70,12 @@ interface IAssessment {
 
   function getPoll(uint assessmentId) external view returns (Poll memory);
 
+  function getRewards(address user) external view returns (
+    uint totalPendingAmount,
+    uint withdrawableAmount,
+    uint withdrawableUntilIndex
+  );
+
   function getVoteCountOfAssessor(address assessor) external view returns (uint);
 
   function votesOf(address user, uint id) external view

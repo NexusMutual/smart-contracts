@@ -14,10 +14,10 @@ describe('Assessment', function () {
 
   require('./stake');
   require('./unstake');
-  // require('./getRewards');
-  // require('./getPoll');
-  // require('./getAssessmentsCount');
-  // require('./getVoteCountOfAssessor');
+  require('./getRewards');
+  require('./getPoll');
+  require('./getAssessmentsCount');
+  require('./getVoteCountOfAssessor');
   require('./withdrawRewards');
   require('./startAssessment');
   require('./castVote');

@@ -70,34 +70,41 @@ contract Assessment is IAssessment, MasterAwareV2 {
     return assessments[assessmentId].poll;
   }
 
-  function getRewards(address user) external view returns (
-    uint total,
-    uint withdrawable,
+  function getRewards(address user) external override view returns (
+    uint totalPendingAmount,
+    uint withdrawableAmount,
     uint withdrawableUntilIndex
   ) {
     uint104 rewardsWithdrawableFromIndex = stakeOf[user].rewardsWithdrawableFromIndex;
     Vote memory vote;
     Assessment memory assessment;
     uint voteCount = votesOf[user].length;
+    bool hasReachedUnwithdrawableReward = false;
+
     for (uint i = rewardsWithdrawableFromIndex; i < voteCount; i++) {
       vote = votesOf[user][i];
       assessment = assessments[vote.assessmentId];
 
-      // If withdrawableUntilIndex has been assigned before, continue calculating the total accrued
+      // If hasReachedUnwithdrawableReward is true, skip and continue calculating the pending total
       // rewards.
       if (
-        withdrawableUntilIndex == 0 &&
+        !hasReachedUnwithdrawableReward &&
         assessment.poll.end + config.payoutCooldownDays * 1 days >= block.timestamp
       ) {
-        // If withdrawableUntilIndex has not been assigned before and the poll is not in a final
-        // state, store the index of the vote until which rewards can be withdrawn.
+        hasReachedUnwithdrawableReward = true;
+        // Store the index of the vote until which rewards can be withdrawn.
         withdrawableUntilIndex = i;
-        // Then, also store the total value that can be withdrawn until this index.
-        withdrawable = total;
+        // Then, also store the pending total value that can be withdrawn until this index.
+        withdrawableAmount = totalPendingAmount;
       }
 
-      total += assessment.totalReward * vote.stakedAmount /
-        (assessment.poll.accepted + assessment.poll.denied);
+      totalPendingAmount += uint(assessment.totalReward) * uint(vote.stakedAmount) /
+        (uint(assessment.poll.accepted) + uint(assessment.poll.denied));
+    }
+
+    if (!hasReachedUnwithdrawableReward) {
+      withdrawableUntilIndex = voteCount;
+      withdrawableAmount = totalPendingAmount;
     }
   }
 
@@ -128,11 +135,11 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @dev
   ///
   /// @param user        The address of the staker for which the rewards are withdrawn
-  /// @param untilIndex  The index until which the rewards should be withdrawn. Used if a large
-  ///                    number of assessments accumulates and the function doesn't fit in one
-  ///                    block, thus requiring multiple batched transactions.
+  /// @param untilIndex  The index until which (but not including) the rewards should be withdrawn.
+  ///                    Used if a large number of assessments accumulates and the function doesn't
+  ///                    fit in one block, thus requiring multiple batched transactions.
   function withdrawRewards(address user, uint104 untilIndex) external override
-  returns (uint withdrawn, uint withdrawUntilIndex) {
+  returns (uint withdrawn, uint withdrawnUntilIndex) {
     // This is the index until which (but not including) the previous withdrawal was processed.
     // The current withdrawal starts from this index.
     uint104 rewardsWithdrawableFromIndex = stakeOf[user].rewardsWithdrawableFromIndex;
@@ -141,26 +148,26 @@ contract Assessment is IAssessment, MasterAwareV2 {
       require(rewardsWithdrawableFromIndex < voteCount, "No withdrawable rewards");
       // If untilIndex is a non-zero value, it means the withdrawal is going to be batched in
       // multiple transactions.
-      withdrawUntilIndex = untilIndex > 0 ? untilIndex : voteCount;
+      withdrawnUntilIndex = untilIndex > 0 ? untilIndex : voteCount;
     }
 
     Vote memory vote;
     Assessment memory assessment;
-    for (uint i = rewardsWithdrawableFromIndex; i < withdrawUntilIndex; i++) {
+    for (uint i = rewardsWithdrawableFromIndex; i < withdrawnUntilIndex; i++) {
       vote = votesOf[user][i];
       assessment = assessments[vote.assessmentId];
       if (assessment.poll.end + config.payoutCooldownDays * 1 days >= block.timestamp) {
         // Poll is not final
-        withdrawUntilIndex = i;
+        withdrawnUntilIndex = i;
         break;
       }
 
-      withdrawn += assessment.totalReward * vote.stakedAmount /
-        (assessment.poll.accepted + assessment.poll.denied);
+      withdrawn += uint(assessment.totalReward) * uint(vote.stakedAmount) /
+        (uint(assessment.poll.accepted) + uint(assessment.poll.denied));
     }
 
     // This is the index where the next withdrawReward call will start iterating from
-    stakeOf[user].rewardsWithdrawableFromIndex = uint104(withdrawUntilIndex);
+    stakeOf[user].rewardsWithdrawableFromIndex = uint104(withdrawnUntilIndex);
     ITokenController(getInternalContractAddress(ID.TC)).mint(user, withdrawn);
   }
 
@@ -204,7 +211,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
     // Check if poll ends in less than 24 hours
     if (poll.end - block.timestamp < 1 days) {
       // Extend proportionally to the user's stake but up to 1 day maximum
-      poll.end += uint32(min(1 days, 1 days * stakeAmount / (poll.accepted + poll.denied)));
+      poll.end += uint32(
+        min(
+          1 days,
+          1 days * uint(stakeAmount) / (uint(poll.accepted) + uint(poll.denied))
+        )
+      );
     }
 
     if (isAccepted) {

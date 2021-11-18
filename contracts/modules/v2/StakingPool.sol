@@ -51,6 +51,19 @@ contract StakingPool is ERC20 {
     // uint48 _unused;
   }
 
+  struct LastPrice {
+    uint96 value;
+    uint32 lastUpdateTime;
+  }
+
+  /*
+  (productId, poolAddress) => lastPrice
+  Last base prices at which a cover was sold by a pool for a particular product.
+  */
+  mapping(uint => LastPrice) lastPrices;
+
+  mapping (uint => uint) targetPrices;
+
   /* slot 0 */
   // bucket index => pool bucket
   mapping(uint => PoolBucket) public poolBuckets;
@@ -105,6 +118,8 @@ contract StakingPool is ERC20 {
 
   uint public constant PRICE_CURVE_EXPONENT = 7;
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
+  uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
+  uint public constant BASIS_PRECISION = 10000;
 
   modifier onlyCoverContract {
     require(msg.sender == coverContract, "StakingPool: Caller is not the cover contract");
@@ -242,7 +257,7 @@ contract StakingPool is ERC20 {
     uint rewardAmount,
     uint period,
     uint capacityFactor,
-    uint basePrice
+    uint initialPrice
   ) external returns (uint) {
 
     uint staked = processPoolBuckets();
@@ -281,14 +296,15 @@ contract StakingPool is ERC20 {
     }
 
     // price calculation
-    uint pricePercentage = calculatePrice(
+    uint actualPrice = getPriceAndUpdateBasePrice(
+      productId,
       coverAmount,
-      basePrice,
       product.activeCoverAmount,
-      activeCoverAmount
+      activeCoverAmount,
+      initialPrice
     );
 
-    return calculatePremium(pricePercentage, coverAmount, period);
+    return calculatePremium(actualPrice, coverAmount, period);
   }
 
   function burn() external {
@@ -368,19 +384,36 @@ contract StakingPool is ERC20 {
   }
 
   /* VIEWS */
-  
+
   /* ========== PRICE CALCULATION ========== */
-
-  function getUsedCapacity(uint productId) public view returns (uint) {
-    return 0;
-  }
-
-  function getCapacity(uint productId, uint capacityFactor) public view returns (uint) {
-    return 0;
-  }
 
   function calculatePremium(uint pricePercentage, uint coverAmount, uint period) public pure returns (uint) {
     return pricePercentage * coverAmount / MAX_PRICE_PERCENTAGE * period / 365 days;
+  }
+
+  uint public constant SURGE_THRESHOLD = 8e17;
+  uint public constant BASE_SURGE_LOADING = 1e16;
+
+
+  function getPriceAndUpdateBasePrice(
+    uint productId,
+    uint amount,
+    uint activeCover,
+    uint capacity,
+    uint initialPrice
+  ) internal returns (uint) {
+    uint96 lastPrice = lastPrices[productId].value;
+    uint basePrice = interpolatePrice(
+      lastPrice != 0 ? lastPrice : initialPrice,
+      targetPrices[productId],
+      lastPrices[productId].lastUpdateTime,
+      block.timestamp
+    );
+
+    // store the last base price
+    lastPrices[productId] = LastPrice(uint96(basePrice), uint32(block.timestamp));
+
+    return calculatePrice(amount, basePrice, activeCover, capacity);
   }
 
   function calculatePrice(
@@ -390,16 +423,18 @@ contract StakingPool is ERC20 {
     uint capacity
   ) public pure returns (uint) {
 
-    return (calculatePriceIntegralAtPoint(
-      basePrice,
-      activeCover + amount,
-      capacity
-    ) -
-    calculatePriceIntegralAtPoint(
-      basePrice,
-      activeCover,
-      capacity
-    )) / amount;
+    uint newActiveCoverAmount = amount + activeCover;
+    uint newActiveCoverPercentage = newActiveCoverAmount * 1e18 / capacity;
+
+    if (newActiveCoverPercentage > SURGE_THRESHOLD) {
+      return basePrice;
+    }
+
+    uint surgeLoadingPercentage = newActiveCoverPercentage - SURGE_THRESHOLD;
+    uint surgeFraction = surgeLoadingPercentage * capacity / newActiveCoverAmount;
+    uint surgeLoading = BASE_SURGE_LOADING * surgeLoadingPercentage / 1e18 / 2 * surgeFraction / 1e18;
+
+    return basePrice * (1e18 + surgeLoading) / 1e18;
   }
 
   function calculatePriceIntegralAtPoint(
@@ -414,6 +449,26 @@ contract StakingPool is ERC20 {
     actualPrice = actualPrice / 8 + basePrice * activeCover;
 
     return actualPrice;
+  }
+
+  /**
+    Price changes towards targetPrice from lastPrice by maximum of 1% a day per every 100k NXM staked
+  */
+  function interpolatePrice(
+    uint lastPrice,
+    uint targetPrice,
+    uint lastPriceUpdate,
+    uint currentTimestamp
+  ) public pure returns (uint) {
+
+    uint percentageChange =
+    (currentTimestamp - lastPriceUpdate) / 1 days * PERCENTAGE_CHANGE_PER_DAY_BPS;
+
+    if (targetPrice > lastPrice) {
+      return targetPrice;
+    } else {
+      return lastPrice - (lastPrice - targetPrice) * percentageChange / BASIS_PRECISION;
+    }
   }
 
 }

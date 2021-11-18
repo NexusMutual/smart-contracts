@@ -17,7 +17,6 @@ contract Cover is ICover, MasterAwareV2 {
 
   /* === CONSTANTS ==== */
 
-  uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
   uint public constant BASIS_PRECISION = 10000;
   uint public constant STAKE_SPEED_UNIT = 100000e18;
   uint public constant PRICE_CURVE_EXPONENT = 7;
@@ -54,12 +53,6 @@ contract Cover is ICover, MasterAwareV2 {
     Eg. coverAssetsFallback = 3 (in binary 11) means assets at index 0 and 1 are supported.
   */
   uint public coverAssetsFallback;
-
-  /*
-    (productId, poolAddress) => lastPrice
-    Last base prices at which a cover was sold by a pool for a particular product.
-  */
-  mapping(uint => mapping(address => LastPrice)) lastPrices;
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -232,22 +225,14 @@ contract Cover is ICover, MasterAwareV2 {
 
     uint coveredAmount = amountToCover > availableCapacity ? availableCapacity : amountToCover;
 
-    uint96 lastPrice = lastPrices[productId][address(stakingPool)].value;
-    uint basePrice = interpolatePrice(
-      lastPrice != 0 ? lastPrice : initialPrices[productId],
-      stakingPool.getTargetPrice(productId),
-      lastPrices[productId][address(stakingPool)].lastUpdateTime,
-      block.timestamp
-    );
-    lastPrices[productId][address(stakingPool)] = LastPrice(uint96(basePrice), uint32(block.timestamp));
-
+    uint initialPrice = initialPrices[productId];
     uint premiumInNXM = stakingPool.buyCover(
       productId,
       coveredAmount,
       REWARD_DENOMINATOR,
       period,
       capacityFactor,
-      basePrice
+      initialPrice
     );
 
     return (coveredAmount, premiumInNXM);
@@ -386,28 +371,6 @@ contract Cover is ICover, MasterAwareV2 {
 
       IERC20 token = IERC20(payoutAsset);
       token.transferFrom(msg.sender, address(this), totalPrice);
-    }
-  }
-
-  /* ========== PRICE CALCULATION ========== */
-
-  /**
-    Price changes towards targetPrice from lastPrice by maximum of 1% a day per every 100k NXM staked
-  */
-  function interpolatePrice(
-    uint lastPrice,
-    uint targetPrice,
-    uint lastPriceUpdate,
-    uint currentTimestamp
-  ) public pure returns (uint) {
-
-    uint percentageChange =
-      (currentTimestamp - lastPriceUpdate) / 1 days * PERCENTAGE_CHANGE_PER_DAY_BPS;
-
-    if (targetPrice > lastPrice) {
-      return targetPrice;
-    } else {
-      return lastPrice - (lastPrice - targetPrice) * percentageChange / BASIS_PRECISION;
     }
   }
 

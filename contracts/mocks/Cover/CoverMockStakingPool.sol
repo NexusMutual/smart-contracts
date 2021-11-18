@@ -11,6 +11,8 @@ contract CoverMockStakingPool is IStakingPool {
   mapping (uint => uint) public stake;
   mapping (uint => uint) public targetPrices;
 
+  mapping (uint => uint) public mockPrices;
+
   function buyCover(
     uint productId,
     uint coveredAmount,
@@ -84,6 +86,10 @@ contract CoverMockStakingPool is IStakingPool {
   }
   function setStake(uint productId, uint amount) external {
     stake[productId] = amount;
+  }
+
+  function setPrice(uint productId, uint price) external {
+    mockPrices[productId] = price;
   }
 
 }

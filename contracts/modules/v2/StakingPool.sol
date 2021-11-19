@@ -119,7 +119,7 @@ contract StakingPool is ERC20 {
   uint public constant PRICE_CURVE_EXPONENT = 7;
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
   uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
-  uint public constant BASIS_PRECISION = 10000;
+  uint public constant BASIS_PRECISION = 10_000;
 
   modifier onlyCoverContract {
     require(msg.sender == coverContract, "StakingPool: Caller is not the cover contract");
@@ -296,7 +296,7 @@ contract StakingPool is ERC20 {
     }
 
     // price calculation
-    uint actualPrice = getPriceAndUpdateBasePrice(
+    uint actualPrice = getActualPriceAndUpdateBasePrice(
       productId,
       coverAmount,
       product.activeCoverAmount,
@@ -395,25 +395,46 @@ contract StakingPool is ERC20 {
   uint public constant BASE_SURGE_LOADING = 1e16;
 
 
-  function getPriceAndUpdateBasePrice(
+  function getActualPriceAndUpdateBasePrice(
     uint productId,
     uint amount,
     uint activeCover,
     uint capacity,
     uint initialPrice
   ) internal returns (uint) {
+
+
+    (uint actualPrice, uint basePrice) = getPrices(productId, amount, activeCover, capacity, initialPrice);
+    // store the last base price
+    lastPrices[productId] = LastPrice(
+      uint96(basePrice),
+      uint32(block.timestamp
+    ));
+
+    return actualPrice;
+  }
+
+  function getPrices(
+    uint productId,
+    uint amount,
+    uint activeCover,
+    uint capacity,
+    uint initialPrice
+  ) public view returns  (uint actualPrice, uint basePrice) {
     uint96 lastPrice = lastPrices[productId].value;
-    uint basePrice = interpolatePrice(
+    basePrice = interpolatePrice(
       lastPrice != 0 ? lastPrice : initialPrice,
       targetPrices[productId],
       lastPrices[productId].lastUpdateTime,
       block.timestamp
     );
 
-    // store the last base price
-    lastPrices[productId] = LastPrice(uint96(basePrice), uint32(block.timestamp));
+    // calculate actualPrice using the current basePrice
+    actualPrice = calculatePrice(amount, basePrice, activeCover, capacity);
 
-    return calculatePrice(amount, basePrice, activeCover, capacity);
+    // Bump base price by 2% (200 basis points) per 10% (1000 basis points) of capacity used
+    uint priceBump = amount * BASIS_PRECISION / capacity / 1000 *  200;
+    basePrice = uint96(basePrice + priceBump);
   }
 
   function calculatePrice(
@@ -437,19 +458,6 @@ contract StakingPool is ERC20 {
     return basePrice * (1e18 + surgeLoading) / 1e18;
   }
 
-  function calculatePriceIntegralAtPoint(
-    uint basePrice,
-    uint activeCover,
-    uint capacity
-  ) public pure returns (uint) {
-    uint actualPrice = basePrice * activeCover;
-    for (uint i = 0; i < PRICE_CURVE_EXPONENT; i++) {
-      actualPrice = actualPrice * activeCover / capacity;
-    }
-    actualPrice = actualPrice / 8 + basePrice * activeCover;
-
-    return actualPrice;
-  }
 
   /**
     Price changes towards targetPrice from lastPrice by maximum of 1% a day per every 100k NXM staked

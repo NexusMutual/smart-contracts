@@ -53,6 +53,8 @@ interface ICover {
     uint maxPremiumInAsset;
     uint8 paymentAsset;
     bool payWithNXM;
+    uint16 commissionRate;
+    address commissionDestination;
   }
 
   struct IncreaseAmountAndReducePeriodParams {

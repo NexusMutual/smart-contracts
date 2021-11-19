@@ -153,7 +153,7 @@ contract Cover is ICover, MasterAwareV2 {
     if (params.payWithNXM) {
       tokenController().burnFrom(msg.sender, totalPremiumInNXM);
     } else {
-      retrievePayment(premiumInPaymentAsset, params.payoutAsset);
+      retrievePayment(premiumInPaymentAsset, params);
     }
 
     return coverId;
@@ -302,7 +302,7 @@ contract Cover is ICover, MasterAwareV2 {
 
       if (refundInPaymentAsset < premiumInPaymentAsset) {
         // retrieve extra required payment
-        retrievePayment(premiumInPaymentAsset - refundInPaymentAsset, buyCoverParams.paymentAsset);
+        retrievePayment(premiumInPaymentAsset - refundInPaymentAsset, buyCoverParams);
       }
     }
 
@@ -351,26 +351,45 @@ contract Cover is ICover, MasterAwareV2 {
   }
 
 
-  function retrievePayment(uint totalPrice, uint8 payoutAssetIndex) internal {
+  function retrievePayment(
+    uint actualPrice,
+    BuyCoverParams memory buyParams
+  ) internal {
 
-    if (payoutAssetIndex == 0) {
-      require(msg.value >= totalPrice, "Cover: Insufficient ETH sent");
-      uint remainder = msg.value - totalPrice;
+    // add commission
+    uint endPrice = buyParams.commissionRate > 0 ?
+      actualPrice / (BASIS_PRECISION - buyParams.commissionRate) * BASIS_PRECISION
+      : actualPrice;
+    uint commission = endPrice - actualPrice;
+
+    if (buyParams.paymentAsset == 0) {
+      require(msg.value >= endPrice, "Cover: Insufficient ETH sent");
+      uint remainder = msg.value - endPrice;
 
       if (remainder > 0) {
         // solhint-disable-next-line avoid-low-level-calls
         (bool ok, /* data */) = address(msg.sender).call{value: remainder}("");
         require(ok, "Cover: Returning ETH remainder to sender failed.");
       }
+
+      // send commission
+      if (commission > 0) {
+        (bool ok, /* data */) = address(buyParams.commissionDestination).call{value: commission}("");
+        require(ok, "Cover: Sending ETH to commissionDestination failed.");
+      }
     } else {
       (
         address payoutAsset,
         /*uint8 decimals*/,
         /*bool deprecated*/
-      ) = pool().assets(payoutAssetIndex);
+      ) = pool().assets(buyParams.paymentAsset);
 
       IERC20 token = IERC20(payoutAsset);
-      token.transferFrom(msg.sender, address(this), totalPrice);
+      token.transferFrom(msg.sender, address(this), endPrice);
+
+      if (commission > 0) {
+        token.transfer(buyParams.commissionDestination, commission);
+      }
     }
   }
 

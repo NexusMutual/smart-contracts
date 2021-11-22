@@ -1,6 +1,10 @@
 
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+
+import "@openzeppelin/contracts-v4/proxy/beacon/UpgradeableBeacon.sol";
+import "@openzeppelin/contracts-v4/proxy/beacon/IBeacon.sol";
+import "@openzeppelin/contracts-v4/proxy/beacon/BeaconProxy.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IQuotationData.sol";
@@ -47,6 +51,11 @@ contract Cover is ICover, MasterAwareV2 {
 
   address public override coverNFT;
 
+  address public stakingPoolBeacon;
+  bytes internal stakingPoolProxyCode;
+  bytes32 internal stakingPoolProxyCodeHash;
+  uint public stakingPoolCounter;
+
   /*
     bit map representing which assets are globally supported for paying for and for paying out covers
     If the the bit at position N is 1 it means asset with index N is supported.this
@@ -64,6 +73,11 @@ contract Cover is ICover, MasterAwareV2 {
   function initialize(address _coverNFT) public {
     require(coverNFT == address(0), "Cover: already initialized");
     coverNFT = _coverNFT;
+
+    bytes memory beaconProxyCode = type(BeaconProxy).creationCode;
+
+    stakingPoolProxyCode = abi.encodePacked(beaconProxyCode, abi.encode(stakingPoolBeacon, 0));
+    stakingPoolProxyCodeHash = keccak256(stakingPoolProxyCode);
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -391,6 +405,41 @@ contract Cover is ICover, MasterAwareV2 {
         token.transfer(buyParams.commissionDestination, commission);
       }
     }
+  }
+
+  /* ========== Staking Pool creation ========== */
+
+
+  function createStakingPool() public {
+
+    address addr;
+    uint stakingPoolIndex = stakingPoolCounter;
+
+    bytes memory code = stakingPoolProxyCode;
+    assembly {
+      addr := create2(
+      callvalue(), // wei sent with current call
+      // Actual code starts after skipping the first 32 bytes
+      add(code, 0x20),
+      mload(code), // Load the size of code contained in the first 32 bytes
+      stakingPoolIndex // Salt from function arguments
+      )
+
+      if iszero(extcodesize(addr)) {
+        revert(0, 0)
+      }
+    }
+
+    stakingPoolCounter++;
+  }
+
+  function stakingPool(uint index) public view returns (address) {
+
+    bytes32 hash = keccak256(
+      abi.encodePacked(bytes1(0xff), address(this), index, stakingPoolProxyCodeHash)
+    );
+    // cast last 20 bytes of hash to address
+    return address(uint160(uint(hash)));
   }
 
   /* ========== PRODUCT CONFIGURATION ========== */

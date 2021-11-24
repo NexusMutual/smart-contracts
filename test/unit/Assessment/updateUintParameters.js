@@ -1,9 +1,9 @@
 const { expect } = require('chai');
 
 const uintParams = {
-  minVotingPeriodDays: 0,
-  stakeLockupPeriodDays: 1,
-  payoutCooldownDays: 2,
+  minVotingPeriodInDays: 0,
+  stakeLockupPeriodInDays: 1,
+  payoutCooldownInDays: 2,
 };
 
 describe('updateUintParameters', function () {
@@ -25,23 +25,23 @@ describe('updateUintParameters', function () {
       governanceContracts: [governance],
     } = this.accounts;
     const newValues = {
-      minVotingPeriodDays: 111,
-      stakeLockupPeriodDays: 222,
-      payoutCooldownDays: 123,
+      minVotingPeriodInDays: 111,
+      stakeLockupPeriodInDays: 222,
+      payoutCooldownInDays: 123,
     };
 
     {
       await assessment
         .connect(governance)
         .updateUintParameters(
-          [uintParams.minVotingPeriodDays, uintParams.stakeLockupPeriodDays, uintParams.payoutCooldownDays],
-          [newValues.minVotingPeriodDays, newValues.stakeLockupPeriodDays, newValues.payoutCooldownDays],
+          [uintParams.minVotingPeriodInDays, uintParams.stakeLockupPeriodInDays, uintParams.payoutCooldownInDays],
+          [newValues.minVotingPeriodInDays, newValues.stakeLockupPeriodInDays, newValues.payoutCooldownInDays],
         );
-      const { minVotingPeriodDays, stakeLockupPeriodDays, payoutCooldownDays } = await assessment.config();
+      const { minVotingPeriodInDays, stakeLockupPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
-      expect(minVotingPeriodDays).to.be.equal(newValues.minVotingPeriodDays);
-      expect(stakeLockupPeriodDays).to.be.equal(newValues.stakeLockupPeriodDays);
-      expect(payoutCooldownDays).to.be.equal(newValues.payoutCooldownDays);
+      expect(minVotingPeriodInDays).to.be.equal(newValues.minVotingPeriodInDays);
+      expect(stakeLockupPeriodInDays).to.be.equal(newValues.stakeLockupPeriodInDays);
+      expect(payoutCooldownInDays).to.be.equal(newValues.payoutCooldownInDays);
     }
   });
 
@@ -51,40 +51,40 @@ describe('updateUintParameters', function () {
       governanceContracts: [governance],
     } = this.accounts;
     const newValues = {
-      minVotingPeriodDays: 11,
-      stakeLockupPeriodDays: 22,
-      payoutCooldownDays: 23,
+      minVotingPeriodInDays: 11,
+      stakeLockupPeriodInDays: 22,
+      payoutCooldownInDays: 23,
     };
 
     {
       const {
-        stakeLockupPeriodDays: initialStakeLockupPeriodDays,
-        payoutCooldownDays: initialPayoutCooldownDays,
+        stakeLockupPeriodInDays: initialStakeLockupPeriodDays,
+        payoutCooldownInDays: initialPayoutCooldownDays,
       } = await assessment.config();
       await assessment
         .connect(governance)
-        .updateUintParameters([uintParams.minVotingPeriodDays], [newValues.minVotingPeriodDays]);
+        .updateUintParameters([uintParams.minVotingPeriodInDays], [newValues.minVotingPeriodInDays]);
 
-      const { minVotingPeriodDays, stakeLockupPeriodDays, payoutCooldownDays } = await assessment.config();
+      const { minVotingPeriodInDays, stakeLockupPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
-      expect(minVotingPeriodDays).to.be.equal(newValues.minVotingPeriodDays);
-      expect(stakeLockupPeriodDays).to.be.equal(initialStakeLockupPeriodDays);
-      expect(payoutCooldownDays).to.be.equal(initialPayoutCooldownDays);
+      expect(minVotingPeriodInDays).to.be.equal(newValues.minVotingPeriodInDays);
+      expect(stakeLockupPeriodInDays).to.be.equal(initialStakeLockupPeriodDays);
+      expect(payoutCooldownInDays).to.be.equal(initialPayoutCooldownDays);
     }
 
     {
-      const { minVotingPeriodDays: initialMinVotingPeriodDays } = await assessment.config();
+      const { minVotingPeriodInDays: initialMinVotingPeriodDays } = await assessment.config();
       await assessment
         .connect(governance)
         .updateUintParameters(
-          [uintParams.stakeLockupPeriodDays, uintParams.payoutCooldownDays],
-          [newValues.stakeLockupPeriodDays, newValues.payoutCooldownDays],
+          [uintParams.stakeLockupPeriodInDays, uintParams.payoutCooldownInDays],
+          [newValues.stakeLockupPeriodInDays, newValues.payoutCooldownInDays],
         );
-      const { minVotingPeriodDays, stakeLockupPeriodDays, payoutCooldownDays } = await assessment.config();
+      const { minVotingPeriodInDays, stakeLockupPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
-      expect(minVotingPeriodDays).to.be.equal(initialMinVotingPeriodDays);
-      expect(stakeLockupPeriodDays).to.be.equal(newValues.stakeLockupPeriodDays);
-      expect(payoutCooldownDays).to.be.equal(newValues.payoutCooldownDays);
+      expect(minVotingPeriodInDays).to.be.equal(initialMinVotingPeriodDays);
+      expect(stakeLockupPeriodInDays).to.be.equal(newValues.stakeLockupPeriodInDays);
+      expect(payoutCooldownInDays).to.be.equal(newValues.payoutCooldownInDays);
     }
   });
 
@@ -96,40 +96,40 @@ describe('updateUintParameters', function () {
 
     {
       const newValues = {
-        minVotingPeriodDays: 33,
-        stakeLockupPeriodDays: 11,
-        payoutCooldownDays: 22,
+        minVotingPeriodInDays: 33,
+        stakeLockupPeriodInDays: 11,
+        payoutCooldownInDays: 22,
       };
       await assessment
         .connect(governance)
         .updateUintParameters(
-          [uintParams.stakeLockupPeriodDays, uintParams.minVotingPeriodDays, uintParams.payoutCooldownDays],
-          [newValues.stakeLockupPeriodDays, newValues.minVotingPeriodDays, newValues.payoutCooldownDays],
+          [uintParams.stakeLockupPeriodInDays, uintParams.minVotingPeriodInDays, uintParams.payoutCooldownInDays],
+          [newValues.stakeLockupPeriodInDays, newValues.minVotingPeriodInDays, newValues.payoutCooldownInDays],
         );
-      const { minVotingPeriodDays, stakeLockupPeriodDays, payoutCooldownDays } = await assessment.config();
+      const { minVotingPeriodInDays, stakeLockupPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
-      expect(minVotingPeriodDays).to.be.equal(newValues.minVotingPeriodDays);
-      expect(stakeLockupPeriodDays).to.be.equal(newValues.stakeLockupPeriodDays);
-      expect(payoutCooldownDays).to.be.equal(newValues.payoutCooldownDays);
+      expect(minVotingPeriodInDays).to.be.equal(newValues.minVotingPeriodInDays);
+      expect(stakeLockupPeriodInDays).to.be.equal(newValues.stakeLockupPeriodInDays);
+      expect(payoutCooldownInDays).to.be.equal(newValues.payoutCooldownInDays);
     }
 
     {
       const newValues = {
-        minVotingPeriodDays: 44,
-        stakeLockupPeriodDays: 55,
-        payoutCooldownDays: 66,
+        minVotingPeriodInDays: 44,
+        stakeLockupPeriodInDays: 55,
+        payoutCooldownInDays: 66,
       };
       await assessment
         .connect(governance)
         .updateUintParameters(
-          [uintParams.payoutCooldownDays, uintParams.stakeLockupPeriodDays, uintParams.minVotingPeriodDays],
-          [newValues.payoutCooldownDays, newValues.stakeLockupPeriodDays, newValues.minVotingPeriodDays],
+          [uintParams.payoutCooldownInDays, uintParams.stakeLockupPeriodInDays, uintParams.minVotingPeriodInDays],
+          [newValues.payoutCooldownInDays, newValues.stakeLockupPeriodInDays, newValues.minVotingPeriodInDays],
         );
-      const { minVotingPeriodDays, stakeLockupPeriodDays, payoutCooldownDays } = await assessment.config();
+      const { minVotingPeriodInDays, stakeLockupPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
-      expect(minVotingPeriodDays).to.be.equal(newValues.minVotingPeriodDays);
-      expect(stakeLockupPeriodDays).to.be.equal(newValues.stakeLockupPeriodDays);
-      expect(payoutCooldownDays).to.be.equal(newValues.payoutCooldownDays);
+      expect(minVotingPeriodInDays).to.be.equal(newValues.minVotingPeriodInDays);
+      expect(stakeLockupPeriodInDays).to.be.equal(newValues.stakeLockupPeriodInDays);
+      expect(payoutCooldownInDays).to.be.equal(newValues.payoutCooldownInDays);
     }
   });
 });

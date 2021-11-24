@@ -70,8 +70,8 @@ describe('submitClaim', function () {
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
-    const { payoutCooldownDays } = await assessment.config();
-    await setTime(poll.end + daysToSeconds(payoutCooldownDays));
+    const { payoutCooldownInDays } = await assessment.config();
+    await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
     await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).to.be.revertedWith(
       'A payout can still be redeemed',
     );
@@ -151,9 +151,9 @@ describe('submitClaim', function () {
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
-    const { payoutCooldownDays } = await assessment.config();
-    const { payoutRedemptionPeriodDays } = await claims.config();
-    await setTime(poll.end + daysToSeconds(payoutCooldownDays) + daysToSeconds(payoutRedemptionPeriodDays));
+    const { payoutCooldownInDays } = await assessment.config();
+    const { payoutRedemptionPeriodInDays } = await claims.config();
+    await setTime(poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays));
     await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).not.to.be.reverted;
   });
 
@@ -311,8 +311,6 @@ describe('submitClaim', function () {
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
     const payoutAsset = ASSET.ETH;
-    const latestBlock = await ethers.provider.getBlock('latest');
-    const currentTime = latestBlock.timestamp;
     const { gracePeriodInDays } = await cover.productTypes(0);
     await cover.buyCover(
       coverOwner.address,
@@ -324,6 +322,8 @@ describe('submitClaim', function () {
       [],
     );
 
+    const latestBlock = await ethers.provider.getBlock('latest');
+    const currentTime = latestBlock.timestamp;
     await setTime(currentTime + coverPeriod + daysToSeconds(gracePeriodInDays) + 1);
     const coverId = 0;
 

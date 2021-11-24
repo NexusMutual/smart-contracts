@@ -113,7 +113,7 @@ describe('startAssessment', function () {
     }
   });
 
-  it('stores a poll that starts at the block timestamp and ends after minVotingPeriodDays', async function () {
+  it('stores a poll that starts at the block timestamp and ends after minVotingPeriodInDays', async function () {
     const { claims, incidents, assessment } = this.contracts;
     const [user] = this.accounts.members;
     const [AB] = this.accounts.advisoryBoardMembers;
@@ -122,9 +122,9 @@ describe('startAssessment', function () {
       await claims.connect(user).submitClaim(0, parseEther('100'), '');
       const { timestamp } = await ethers.provider.getBlock('latest');
       const { poll } = await assessment.assessments(0);
-      const { minVotingPeriodDays } = await assessment.config();
+      const { minVotingPeriodInDays } = await assessment.config();
       expect(poll.start).to.be.equal(timestamp);
-      expect(poll.end).to.be.equal(timestamp + daysToSeconds(minVotingPeriodDays));
+      expect(poll.end).to.be.equal(timestamp + daysToSeconds(minVotingPeriodInDays));
       expect(poll.accepted).to.be.equal(0);
       expect(poll.denied).to.be.equal(0);
     }
@@ -133,9 +133,9 @@ describe('startAssessment', function () {
       const { timestamp } = await ethers.provider.getBlock('latest');
       await incidents.connect(AB).submitIncident(0, parseEther('1'), timestamp, Zero);
       const { poll } = await assessment.assessments(0);
-      const { minVotingPeriodDays } = await assessment.config();
+      const { minVotingPeriodInDays } = await assessment.config();
       expect(poll.start).to.be.equal(timestamp);
-      expect(poll.end).to.be.equal(timestamp + daysToSeconds(minVotingPeriodDays));
+      expect(poll.end).to.be.equal(timestamp + daysToSeconds(minVotingPeriodInDays));
       expect(poll.accepted).to.be.equal(0);
       expect(poll.denied).to.be.equal(0);
     }

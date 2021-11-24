@@ -57,7 +57,7 @@ describe('castVote', function () {
     );
   });
 
-  it('resets the voting period to minVotingPeriodDays after the first accept vote', async function () {
+  it('resets the voting period to minVotingPeriodInDays after the first accept vote', async function () {
     const { assessment, claims } = this.contracts;
     const user = this.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
@@ -71,8 +71,8 @@ describe('castVote', function () {
     let expectedEnd;
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
-      const { minVotingPeriodDays } = await assessment.config();
-      expectedEnd = timestamp + daysToSeconds(minVotingPeriodDays);
+      const { minVotingPeriodInDays } = await assessment.config();
+      expectedEnd = timestamp + daysToSeconds(minVotingPeriodInDays);
     }
 
     {

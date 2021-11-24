@@ -91,14 +91,14 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
 };
 
 const getDurationByTokenWeight = ({ config }) => (tokens, payoutImpact) => {
-  const { minVotingPeriodDays, maxVotingPeriodDays } = config;
+  const { minVotingPeriodInDays, maxVotingPeriodDays } = config;
   const MULTIPLIER = '10'; // 10x the cover amount
   let tokenDrivenStrength = tokens.mul(parseEther('1')).div(payoutImpact.mul(MULTIPLIER));
   // tokenDrivenStrength is capped at 1 i.e. 100%
   tokenDrivenStrength = tokenDrivenStrength.gt(parseEther('1')) ? parseEther('1') : tokenDrivenStrength;
-  return BigNumber.from(daysToSeconds(minVotingPeriodDays).toString())
+  return BigNumber.from(daysToSeconds(minVotingPeriodInDays).toString())
     .add(
-      BigNumber.from(daysToSeconds(maxVotingPeriodDays - minVotingPeriodDays).toString())
+      BigNumber.from(daysToSeconds(maxVotingPeriodDays - minVotingPeriodInDays).toString())
         .mul(parseEther('1').sub(tokenDrivenStrength))
         .div(parseEther('1')),
     )
@@ -106,16 +106,16 @@ const getDurationByTokenWeight = ({ config }) => (tokens, payoutImpact) => {
 };
 
 const getDurationByConsensus = ({ config }) => ({ accepted, denied }) => {
-  const { minVotingPeriodDays, maxVotingPeriodDays } = config;
+  const { minVotingPeriodInDays, maxVotingPeriodDays } = config;
   if (accepted.isZero()) return daysToSeconds(maxVotingPeriodDays);
   const consensusStrength = accepted
     .mul(parseEther('2'))
     .div(accepted.add(denied))
     .sub(parseEther('1'))
     .abs();
-  return parseEther(daysToSeconds(minVotingPeriodDays).toString())
+  return parseEther(daysToSeconds(minVotingPeriodInDays).toString())
     .add(
-      parseEther(daysToSeconds(maxVotingPeriodDays - minVotingPeriodDays).toString())
+      parseEther(daysToSeconds(maxVotingPeriodDays - minVotingPeriodInDays).toString())
         .mul(parseEther('1').sub(consensusStrength))
         .div(parseEther('1')),
     )
@@ -123,10 +123,10 @@ const getDurationByConsensus = ({ config }) => ({ accepted, denied }) => {
     .toNumber();
 };
 
-const getConfigurationStruct = ({ minVotingPeriodDays, stakeLockupPeriodDays, payoutCooldownDays }) => [
-  minVotingPeriodDays,
-  stakeLockupPeriodDays,
-  payoutCooldownDays,
+const getConfigurationStruct = ({ minVotingPeriodInDays, stakeLockupPeriodInDays, payoutCooldownInDays }) => [
+  minVotingPeriodInDays,
+  stakeLockupPeriodInDays,
+  payoutCooldownInDays,
 ];
 
 const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];

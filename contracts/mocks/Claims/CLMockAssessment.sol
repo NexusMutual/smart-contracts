@@ -28,8 +28,8 @@ contract CLMockAssessment {
   /* ========== CONSTRUCTOR ========== */
 
   constructor() {
-    config.minVotingPeriodDays = 3; // days
-    config.payoutCooldownDays = 1; //days
+    config.minVotingPeriodInDays = 3; // days
+    config.payoutCooldownInDays = 1; //days
   }
 
   /* ========== VIEWS ========== */
@@ -55,7 +55,7 @@ contract CLMockAssessment {
         0, // accepted
         0, // denied
         uint32(block.timestamp), // start
-        uint32(block.timestamp + config.minVotingPeriodDays * 1 days) // end
+        uint32(block.timestamp + config.minVotingPeriodInDays * 1 days) // end
       ),
       uint128(totalAssessmentReward),
       uint128(assessmentDeposit)
@@ -68,12 +68,12 @@ contract CLMockAssessment {
   }
 
 
-  function castVote(uint assessmentId, bool isAccepted, uint96 stakeAmount) external {
+  function castVote(uint assessmentId, bool isAcceptVote, uint96 stakeAmount) external {
     IAssessment.Poll memory poll = assessments[assessmentId].poll;
 
-    if (isAccepted && poll.accepted == 0) {
+    if (isAcceptVote && poll.accepted == 0) {
       // Reset the poll end when the first accepted vote
-      poll.end = uint32(block.timestamp + config.minVotingPeriodDays * 1 days);
+      poll.end = uint32(block.timestamp + config.minVotingPeriodInDays * 1 days);
     }
 
     // Check if poll ends in less than 24 hours
@@ -82,7 +82,7 @@ contract CLMockAssessment {
       poll.end += uint32(min(1 days, 1 days * stakeAmount / (poll.accepted + poll.denied)));
     }
 
-    if (isAccepted) {
+    if (isAcceptVote) {
       poll.accepted += stakeAmount;
     } else {
       poll.denied += stakeAmount;
@@ -92,7 +92,7 @@ contract CLMockAssessment {
 
     votesOf[msg.sender].push(IAssessment.Vote(
       uint80(assessmentId),
-      isAccepted,
+      isAcceptVote,
       uint32(block.timestamp),
       stakeAmount
     ));

@@ -150,8 +150,8 @@ describe('getClaimsToDisplay', function () {
       expectedPollStarts.push(latestBlock.timestamp);
     }
 
-    const { minVotingPeriodDays } = await assessment.config();
-    const expectedPollEnds = expectedPollStarts.map(x => x + daysToSeconds(minVotingPeriodDays));
+    const { minVotingPeriodInDays } = await assessment.config();
+    const expectedPollEnds = expectedPollStarts.map(x => x + daysToSeconds(minVotingPeriodInDays));
     const expectedCoverEnds = expectedCoverStarts.map(x => x + coverPeriod);
 
     const res = await claims.getClaimsToDisplay([0, 1, 2, 3, 4]);

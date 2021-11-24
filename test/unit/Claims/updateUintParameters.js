@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 
-const uintParams = { payoutRedemptionPeriodDays: 0, minAssessmentDepositRatio: 1, maxRewardNXM: 2, rewardRatio: 3 };
+const uintParams = { payoutRedemptionPeriodInDays: 0, minAssessmentDepositRatio: 1, maxRewardInNXM: 2, rewardRatio: 3 };
 
 describe('updateUintParameters', function () {
   it('can only be called by governance', async function () {
@@ -23,9 +23,9 @@ describe('updateUintParameters', function () {
       governanceContracts: [governance],
     } = this.accounts;
     const newValues = {
-      payoutRedemptionPeriodDays: 111,
+      payoutRedemptionPeriodInDays: 111,
       minAssessmentDepositRatio: 2222,
-      maxRewardNXM: 3333,
+      maxRewardInNXM: 3333,
       rewardRatio: 4444,
     };
 
@@ -34,28 +34,28 @@ describe('updateUintParameters', function () {
         .connect(governance)
         .updateUintParameters(
           [
-            uintParams.payoutRedemptionPeriodDays,
+            uintParams.payoutRedemptionPeriodInDays,
             uintParams.minAssessmentDepositRatio,
-            uintParams.maxRewardNXM,
+            uintParams.maxRewardInNXM,
             uintParams.rewardRatio,
           ],
           [
-            newValues.payoutRedemptionPeriodDays,
+            newValues.payoutRedemptionPeriodInDays,
             newValues.minAssessmentDepositRatio,
-            newValues.maxRewardNXM,
+            newValues.maxRewardInNXM,
             newValues.rewardRatio,
           ],
         );
       const {
-        payoutRedemptionPeriodDays,
+        payoutRedemptionPeriodInDays,
         minAssessmentDepositRatio,
-        maxRewardNXM,
+        maxRewardInNXM,
         rewardRatio,
       } = await claims.config();
 
-      expect(payoutRedemptionPeriodDays).to.be.equal(newValues.payoutRedemptionPeriodDays);
+      expect(payoutRedemptionPeriodInDays).to.be.equal(newValues.payoutRedemptionPeriodInDays);
       expect(minAssessmentDepositRatio).to.be.equal(newValues.minAssessmentDepositRatio);
-      expect(maxRewardNXM).to.be.equal(newValues.maxRewardNXM);
+      expect(maxRewardInNXM).to.be.equal(newValues.maxRewardInNXM);
       expect(rewardRatio).to.be.equal(newValues.rewardRatio);
     }
   });
@@ -66,54 +66,54 @@ describe('updateUintParameters', function () {
       governanceContracts: [governance],
     } = this.accounts;
     const newValues = {
-      payoutRedemptionPeriodDays: 111,
+      payoutRedemptionPeriodInDays: 111,
       minAssessmentDepositRatio: 2222,
-      maxRewardNXM: 3333,
+      maxRewardInNXM: 3333,
       rewardRatio: 4444,
     };
 
     {
-      const { maxRewardNXM: initialMaxRewardNXM, rewardRatio: initialRewardRatio } = await claims.config();
+      const { maxRewardInNXM: initialMaxRewardNXM, rewardRatio: initialRewardRatio } = await claims.config();
       await claims
         .connect(governance)
         .updateUintParameters(
-          [uintParams.payoutRedemptionPeriodDays, uintParams.minAssessmentDepositRatio],
-          [newValues.payoutRedemptionPeriodDays, newValues.minAssessmentDepositRatio],
+          [uintParams.payoutRedemptionPeriodInDays, uintParams.minAssessmentDepositRatio],
+          [newValues.payoutRedemptionPeriodInDays, newValues.minAssessmentDepositRatio],
         );
       const {
-        payoutRedemptionPeriodDays,
+        payoutRedemptionPeriodInDays,
         minAssessmentDepositRatio,
-        maxRewardNXM,
+        maxRewardInNXM,
         rewardRatio,
       } = await claims.config();
 
-      expect(payoutRedemptionPeriodDays).to.be.equal(newValues.payoutRedemptionPeriodDays);
+      expect(payoutRedemptionPeriodInDays).to.be.equal(newValues.payoutRedemptionPeriodInDays);
       expect(minAssessmentDepositRatio).to.be.equal(newValues.minAssessmentDepositRatio);
-      expect(maxRewardNXM).to.be.equal(initialMaxRewardNXM);
+      expect(maxRewardInNXM).to.be.equal(initialMaxRewardNXM);
       expect(rewardRatio).to.be.equal(initialRewardRatio);
     }
 
     {
       const {
-        payoutRedemptionPeriodDays: initialPayoutRedemptionPeriodDays,
+        payoutRedemptionPeriodInDays: initialPayoutRedemptionPeriodDays,
         minAssessmentDepositRatio: initialMinAssessmentDepositRatio,
       } = await claims.config();
       await claims
         .connect(governance)
         .updateUintParameters(
-          [uintParams.maxRewardNXM, uintParams.rewardRatio],
-          [newValues.maxRewardNXM, newValues.rewardRatio],
+          [uintParams.maxRewardInNXM, uintParams.rewardRatio],
+          [newValues.maxRewardInNXM, newValues.rewardRatio],
         );
       const {
-        payoutRedemptionPeriodDays,
+        payoutRedemptionPeriodInDays,
         minAssessmentDepositRatio,
-        maxRewardNXM,
+        maxRewardInNXM,
         rewardRatio,
       } = await claims.config();
 
-      expect(payoutRedemptionPeriodDays).to.be.equal(initialPayoutRedemptionPeriodDays);
+      expect(payoutRedemptionPeriodInDays).to.be.equal(initialPayoutRedemptionPeriodDays);
       expect(minAssessmentDepositRatio).to.be.equal(initialMinAssessmentDepositRatio);
-      expect(maxRewardNXM).to.be.equal(newValues.maxRewardNXM);
+      expect(maxRewardInNXM).to.be.equal(newValues.maxRewardInNXM);
       expect(rewardRatio).to.be.equal(newValues.rewardRatio);
     }
   });
@@ -126,9 +126,9 @@ describe('updateUintParameters', function () {
 
     {
       const newValues = {
-        payoutRedemptionPeriodDays: 1,
+        payoutRedemptionPeriodInDays: 1,
         minAssessmentDepositRatio: 2,
-        maxRewardNXM: 3,
+        maxRewardInNXM: 3,
         rewardRatio: 4,
       };
       await claims
@@ -136,63 +136,63 @@ describe('updateUintParameters', function () {
         .updateUintParameters(
           [
             uintParams.rewardRatio,
-            uintParams.maxRewardNXM,
+            uintParams.maxRewardInNXM,
             uintParams.minAssessmentDepositRatio,
-            uintParams.payoutRedemptionPeriodDays,
+            uintParams.payoutRedemptionPeriodInDays,
           ],
           [
             newValues.rewardRatio,
-            newValues.maxRewardNXM,
+            newValues.maxRewardInNXM,
             newValues.minAssessmentDepositRatio,
-            newValues.payoutRedemptionPeriodDays,
+            newValues.payoutRedemptionPeriodInDays,
           ],
         );
       const {
-        payoutRedemptionPeriodDays,
+        payoutRedemptionPeriodInDays,
         minAssessmentDepositRatio,
-        maxRewardNXM,
+        maxRewardInNXM,
         rewardRatio,
       } = await claims.config();
 
-      expect(payoutRedemptionPeriodDays).to.be.equal(newValues.payoutRedemptionPeriodDays);
+      expect(payoutRedemptionPeriodInDays).to.be.equal(newValues.payoutRedemptionPeriodInDays);
       expect(minAssessmentDepositRatio).to.be.equal(newValues.minAssessmentDepositRatio);
-      expect(maxRewardNXM).to.be.equal(newValues.maxRewardNXM);
+      expect(maxRewardInNXM).to.be.equal(newValues.maxRewardInNXM);
       expect(rewardRatio).to.be.equal(newValues.rewardRatio);
     }
 
     {
       const newValues = {
-        payoutRedemptionPeriodDays: 5,
+        payoutRedemptionPeriodInDays: 5,
         minAssessmentDepositRatio: 6,
-        maxRewardNXM: 7,
+        maxRewardInNXM: 7,
         rewardRatio: 8,
       };
       await claims
         .connect(governance)
         .updateUintParameters(
           [
-            uintParams.maxRewardNXM,
-            uintParams.payoutRedemptionPeriodDays,
+            uintParams.maxRewardInNXM,
+            uintParams.payoutRedemptionPeriodInDays,
             uintParams.minAssessmentDepositRatio,
             uintParams.rewardRatio,
           ],
           [
-            newValues.maxRewardNXM,
-            newValues.payoutRedemptionPeriodDays,
+            newValues.maxRewardInNXM,
+            newValues.payoutRedemptionPeriodInDays,
             newValues.minAssessmentDepositRatio,
             newValues.rewardRatio,
           ],
         );
       const {
-        payoutRedemptionPeriodDays,
+        payoutRedemptionPeriodInDays,
         minAssessmentDepositRatio,
-        maxRewardNXM,
+        maxRewardInNXM,
         rewardRatio,
       } = await claims.config();
 
-      expect(payoutRedemptionPeriodDays).to.be.equal(newValues.payoutRedemptionPeriodDays);
+      expect(payoutRedemptionPeriodInDays).to.be.equal(newValues.payoutRedemptionPeriodInDays);
       expect(minAssessmentDepositRatio).to.be.equal(newValues.minAssessmentDepositRatio);
-      expect(maxRewardNXM).to.be.equal(newValues.maxRewardNXM);
+      expect(maxRewardInNXM).to.be.equal(newValues.maxRewardInNXM);
       expect(rewardRatio).to.be.equal(newValues.rewardRatio);
     }
   });

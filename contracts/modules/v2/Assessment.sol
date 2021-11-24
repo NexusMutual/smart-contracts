@@ -10,15 +10,15 @@ import "../../abstract/MasterAwareV2.sol";
 import "@openzeppelin/contracts-v4/utils/cryptography/MerkleProof.sol";
 import "hardhat/console.sol";
 
-/// Provides a way for cover owners to submit claims and redeem the payouts and facilitates
-/// assessment processes where members decide the outcome of the events that lead to potential
-/// payouts.
+/// Provides the assessment mechanism for members to decide the outcome of the events that can lead
+/// to payouts. Mints rewards for stakers that act benevolently and allows burning fraudulent ones.
 contract Assessment is IAssessment, MasterAwareV2 {
 
   INXMToken internal immutable nxm;
 
   /* ========== STATE VARIABLES ========== */
 
+  // Parameters configurable through governance.
   Configuration public override config;
 
   // Stake states of users. (See Stake struct)
@@ -45,12 +45,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
   }
 
   function initialize (address masterAddress) external {
-    config.minVotingPeriodDays = 3; // days
-    config.payoutCooldownDays = 1; // days
-    config.stakeLockupPeriodDays = 14; // days
+    config.minVotingPeriodInDays = 3; // days
+    config.payoutCooldownInDays = 1; // days
+    config.stakeLockupPeriodInDays = 14; // days
+    config.silentEndingPeriodInDays = 1; // days
     master = INXMMaster(masterAddress);
   }
-
 
   /* ========== VIEWS ========== */
 
@@ -58,18 +58,30 @@ contract Assessment is IAssessment, MasterAwareV2 {
     return a <= b ? a : b;
   }
 
+  /// @dev Returns the vote count of an assessor.
+  ///
+  /// @param assessor  The address of the assessor.
   function getVoteCountOfAssessor(address assessor) external override view returns (uint) {
     return votesOf[assessor].length;
   }
 
+  /// @dev Returns the number of assessments.
   function getAssessmentsCount() external override view returns (uint) {
     return assessments.length;
   }
 
+  /// @dev Returns only the poll from the assessment struct to make only one SLOAD. Is used by
+  /// other contracts.
+  ///
+  /// @param assessmentId  The index of the assessment
   function getPoll(uint assessmentId) external override view returns (Poll memory) {
     return assessments[assessmentId].poll;
   }
 
+  /// Returns all pending rewards, the withdrawable amount and the index until which they can be
+  /// withdrawn.
+  ///
+  /// @param user  The address of the staker
   function getRewards(address user) external override view returns (
     uint totalPendingAmount,
     uint withdrawableAmount,
@@ -89,7 +101,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       // rewards.
       if (
         !hasReachedUnwithdrawableReward &&
-        assessment.poll.end + config.payoutCooldownDays * 1 days >= block.timestamp
+        assessment.poll.end + config.payoutCooldownInDays * 1 days >= block.timestamp
       ) {
         hasReachedUnwithdrawableReward = true;
         // Store the index of the vote until which rewards can be withdrawn.
@@ -108,21 +120,28 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
   }
 
-
   /* === MUTATIVE FUNCTIONS ==== */
 
+  /// Increases the sender's stake by the specified amount and transfers NXM to this contract
+  ///
+  /// @param amount  The amount of nxm to stake
   function stake(uint96 amount) external override {
     stakeOf[msg.sender].amount += amount;
     ITokenController(getInternalContractAddress(ID.TC))
       .operatorTransfer(msg.sender, address(this), amount);
   }
 
+  /// Withdraws a portion or all of the user's stake
+  ///
+  /// @dev At least stakeLockupPeriodInDays must have passed since the last vote.
+  ///
+  /// @param amount  The amount of nxm to unstake
   function unstake(uint96 amount) external override {
     uint voteCount = votesOf[msg.sender].length;
     if (voteCount > 0) {
       Vote memory vote = votesOf[msg.sender][voteCount - 1];
       require(
-        block.timestamp > vote.timestamp + config.stakeLockupPeriodDays * 1 days,
+        block.timestamp > vote.timestamp + config.stakeLockupPeriodInDays * 1 days,
         "Stake is in lockup period"
       );
     }
@@ -131,8 +150,9 @@ contract Assessment is IAssessment, MasterAwareV2 {
     stakeOf[msg.sender].amount -= amount;
   }
 
-  /// Withdraws a staker's accumulated rewards
-  /// @dev
+  /// Withdraws a staker's accumulated rewards.
+  ///
+  /// @dev Only withdraws until the last finalized poll.
   ///
   /// @param user        The address of the staker for which the rewards are withdrawn
   /// @param untilIndex  The index until which (but not including) the rewards should be withdrawn.
@@ -156,7 +176,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     for (uint i = rewardsWithdrawableFromIndex; i < withdrawnUntilIndex; i++) {
       vote = votesOf[user][i];
       assessment = assessments[vote.assessmentId];
-      if (assessment.poll.end + config.payoutCooldownDays * 1 days >= block.timestamp) {
+      if (assessment.poll.end + config.payoutCooldownInDays * 1 days >= block.timestamp) {
         // Poll is not final
         withdrawnUntilIndex = i;
         break;
@@ -172,14 +192,25 @@ contract Assessment is IAssessment, MasterAwareV2 {
   }
 
 
-  function startAssessment(uint totalAssessmentReward, uint assessmentDeposit) external
-  override onlyInternal returns (uint) {
+  /// Creates a new assessment
+  ///
+  /// @dev Is used only by contracts acting as redemption methods for cover product types.
+  ///
+  /// @param totalAssessmentReward  The total reward that is shared among the stakers participating
+  ///                               the assessment.
+  /// @param assessmentDeposit      The deposit that covers assessment rewards in case it's denied.
+  ///                               If the assessment verdict is positive, the contract that relies
+  ///                               on it can send back the deposit at payout.
+  function startAssessment(
+    uint totalAssessmentReward,
+    uint assessmentDeposit
+  ) external override onlyInternal returns (uint) {
     assessments.push(Assessment(
       Poll(
         0, // accepted
         0, // denied
         uint32(block.timestamp), // start
-        uint32(block.timestamp + config.minVotingPeriodDays * 1 days) // end
+        uint32(block.timestamp + config.minVotingPeriodInDays * 1 days) // end
       ),
       uint128(totalAssessmentReward),
       uint128(assessmentDeposit)
@@ -187,7 +218,18 @@ contract Assessment is IAssessment, MasterAwareV2 {
     return assessments.length - 1;
   }
 
-  function castVote(uint assessmentId, bool isAccepted) external override {
+  /// Casts a vote on an assessment
+  ///
+  /// @dev Resets the poll's end date on the first vote. The first vote can only be an accept vote.
+  /// If no votes are cast during minVotingPeriodInDays it is automatically considered denied. When
+  /// the poll ends in less than silentEndingPeriodInDays, the end date is extended with a potion of
+  /// silentEndingPeriodInDays proportional to the user's stake compared to the
+  /// total stake on that assessment, namely the sum of tokens used for both accept and deny votes,
+  /// but no greater than silentEndingPeriodInDays.
+  ///
+  /// @param assessmentId  The index of the assessment for which the vote is cast
+  /// @param isAcceptVote  True to accept, false to deny
+  function castVote(uint assessmentId, bool isAcceptVote) external override {
     {
       require(!hasAlreadyVotedOn[msg.sender][assessmentId], "Already voted");
       hasAlreadyVotedOn[msg.sender][assessmentId] = true;
@@ -199,27 +241,28 @@ contract Assessment is IAssessment, MasterAwareV2 {
     Poll memory poll = assessments[assessmentId].poll;
     require(block.timestamp < poll.end, "Voting is closed");
     require(
-      poll.accepted > 0 || isAccepted,
+      poll.accepted > 0 || isAcceptVote,
       "At least one accept vote is required to vote deny"
     );
 
-    if (isAccepted && poll.accepted == 0) {
+    if (isAcceptVote && poll.accepted == 0) {
       // Reset the poll end when the first accepted vote
-      poll.end = uint32(block.timestamp + config.minVotingPeriodDays * 1 days);
+      poll.end = uint32(block.timestamp + config.minVotingPeriodInDays * 1 days);
     }
 
     // Check if poll ends in less than 24 hours
-    if (poll.end - block.timestamp < 1 days) {
+    uint silentEndingPeriod = config.silentEndingPeriodInDays * 1 days;
+    if (poll.end - block.timestamp < silentEndingPeriod) {
       // Extend proportionally to the user's stake but up to 1 day maximum
       poll.end += uint32(
         min(
-          1 days,
-          1 days * uint(stakeAmount) / (uint(poll.accepted) + uint(poll.denied))
+          silentEndingPeriod,
+          silentEndingPeriod * uint(stakeAmount) / (uint(poll.accepted) + uint(poll.denied))
         )
       );
     }
 
-    if (isAccepted) {
+    if (isAcceptVote) {
       poll.accepted += stakeAmount;
     } else {
       poll.denied += stakeAmount;
@@ -229,16 +272,39 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
     votesOf[msg.sender].push(Vote(
       uint80(assessmentId),
-      isAccepted,
+      isAcceptVote,
       uint32(block.timestamp),
       stakeAmount
     ));
   }
 
+  /// Allows governance to submit a merkle tree root hash representing fraudulent stakers
+  ///
+  /// @dev Leaves' inputs are the sequence of bytes obtained by concatenating:
+  /// - Staker address (20 bytes or 160 bits)
+  /// - The index of the last fraudulent vote (32 bytes or 256 bits)
+  /// - Amount of stake to be burned (12 bytes or 96 bits)
+  /// - The number of previous fraud attempts (2 bytes or 16 bits)
+  ///
+  /// @param root  The merkle tree root hash
   function submitFraud(bytes32 root) external override onlyGovernance {
     fraudResolution.push(root);
   }
 
+  /// Allows anyone to undo fraudulent votes and burn the fraudulent assessors present in the
+  /// merkle tree whose hash is submitted through submitFraud
+  ///
+  /// @param rootIndex                The index of the merkle tree root hash stored in
+  ///                                 fraudResolution.
+  /// @param proof                    The path from the leaf to the root.
+  /// @param assessor                 The address of the fraudulent assessor.
+  /// @param lastFraudulentVoteIndex  The index of the last fraudulent vote cast by the assessor.
+  /// @param burnAmount               The amount of stake that needs to be burned.
+  /// @param fraudCount               The number of times the assessor has taken part in fraudulent
+  ///                                 voting.
+  /// @param voteBatchSize            The number of iterations that prevents an unbounded loop and
+  ///                                 allows chunked processing. Can also be 0 if chunking is not
+  ///                                 necessary.
   function processFraud(
     uint256 rootIndex,
     bytes32[] calldata proof,
@@ -270,7 +336,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       IAssessment.Poll memory poll = assessments[vote.assessmentId].poll;
 
       {
-        if (uint32(block.timestamp) >= poll.end + config.payoutCooldownDays * 1 days) {
+        if (uint32(block.timestamp) >= poll.end + config.payoutCooldownInDays * 1 days) {
           // Once the cooldown period ends the poll result is final, thus skip
           continue;
         }
@@ -311,26 +377,39 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   }
 
-  function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)
-  external override onlyGovernance {
+  /// Redeems payouts for accepted claims
+  ///
+  /// @param paramNames  An array of elements from UintParams enum
+  /// @param values      An array of the new values, each one corresponding to the parameter
+  ///                    from paramNames on the same position.
+  function updateUintParameters(
+    UintParams[] calldata paramNames,
+    uint[] calldata values
+  ) external override onlyGovernance {
     Configuration memory newConfig = config;
     for (uint i = 0; i < paramNames.length; i++) {
-      if (paramNames[i] == IAssessment.UintParams.minVotingPeriodDays) {
-        newConfig.minVotingPeriodDays = uint8(values[i]);
+      if (paramNames[i] == IAssessment.UintParams.minVotingPeriodInDays) {
+        newConfig.minVotingPeriodInDays = uint8(values[i]);
         continue;
       }
-      if (paramNames[i] == IAssessment.UintParams.stakeLockupPeriodDays) {
-        newConfig.stakeLockupPeriodDays = uint8(values[i]);
+      if (paramNames[i] == IAssessment.UintParams.stakeLockupPeriodInDays) {
+        newConfig.stakeLockupPeriodInDays = uint8(values[i]);
         continue;
       }
-      if (paramNames[i] == IAssessment.UintParams.payoutCooldownDays) {
-        newConfig.payoutCooldownDays = uint8(values[i]);
+      if (paramNames[i] == IAssessment.UintParams.payoutCooldownInDays) {
+        newConfig.payoutCooldownInDays = uint8(values[i]);
+        continue;
+      }
+      if (paramNames[i] == IAssessment.UintParams.silentEndingPeriodInDays) {
+        newConfig.silentEndingPeriodInDays = uint8(values[i]);
         continue;
       }
     }
     config = newConfig;
   }
 
+  /// @dev Updates internal contract addresses to the ones stored in master. This function is
+  /// automatically called by the master contract when a contract is added or upgraded.
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
   }

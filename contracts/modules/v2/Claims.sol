@@ -14,7 +14,7 @@ import "../../interfaces/ICoverNFT.sol";
 import "../../abstract/MasterAwareV2.sol";
 
 /// Provides a way for cover owners to submit claims and redeem payouts. It is an entry point to
-/// the assessment process the members of the mutual decide the outcome of claims.
+/// the assessment process where the members of the mutual decide the outcome of claims.
 contract Claims is IClaims, MasterAwareV2 {
 
   // 0-10000 bps (i.e. double decimal precision percentage)
@@ -24,9 +24,7 @@ contract Claims is IClaims, MasterAwareV2 {
   // Used in operations involving NXM tokens and divisions
   uint internal constant PRECISION = 10 ** 18;
 
-
   INXMToken internal immutable nxm;
-
   ICoverNFT internal immutable coverNFT;
 
   /* ========== STATE VARIABLES ========== */
@@ -43,16 +41,15 @@ contract Claims is IClaims, MasterAwareV2 {
 
   constructor(address nxmAddress, address coverNFTAddress) {
     nxm = INXMToken(nxmAddress);
-    // [todo] Replace with CoverNFT interface
     coverNFT = ICoverNFT(coverNFTAddress);
   }
 
   function initialize(address masterAddress) external {
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
-    config.rewardRatio = 130; // 0.52%
-    config.maxRewardNXM = 50; // 50 NXM
+    config.rewardRatio = 130; // 1.3%
+    config.maxRewardInNXM = 50; // 50 NXM
     config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH assessment minimum flat fee
-    config.payoutRedemptionPeriodDays = 14; // days until the payout will not be redeemable anymore
+    config.payoutRedemptionPeriodInDays = 14; // days until the payout will not be redeemable anymore
     master = INXMMaster(masterAddress);
   }
 
@@ -92,7 +89,7 @@ contract Claims is IClaims, MasterAwareV2 {
 
     // Determine the total rewards that should be minted for the assessors based on cover period
     uint totalReward = min(
-      uint(config.maxRewardNXM) * PRECISION,
+      uint(config.maxRewardInNXM) * PRECISION,
       expectedPayoutInNXM * uint(config.rewardRatio) * coverPeriod / 365 days / REWARD_DENOMINATOR
     );
 
@@ -106,6 +103,14 @@ contract Claims is IClaims, MasterAwareV2 {
     return (deposit, totalReward);
   }
 
+  /// Returns the required deposit and total reward for a new claim
+  ///
+  /// @dev This view is meant to be used either by users or user interfaces to determine the
+  /// minimum deposit value of the submitClaim tx.
+  ///
+  /// @param requestedAmount  The amount that is claimed
+  /// @param coverPeriod      The cover period in days
+  /// @param payoutAsset      The asset in which the payout would be made
   function getAssessmentDepositAndReward(
     uint requestedAmount,
     uint coverPeriod,
@@ -141,11 +146,11 @@ contract Claims is IClaims, MasterAwareV2 {
         if (claim.payoutRedeemed) {
           payoutStatus = PayoutStatus.COMPLETE;
         } else {
-          (,,uint8 payoutCooldownDays) = assessment().config();
+          (,,uint8 payoutCooldownInDays,) = assessment().config();
           if (
             block.timestamp >= poll.end +
-            payoutCooldownDays * 1 days +
-            config.payoutRedemptionPeriodDays * 1 days
+            payoutCooldownInDays * 1 days +
+            config.payoutRedemptionPeriodInDays * 1 days
           ) {
             payoutStatus = PayoutStatus.UNCLAIMED;
           } else {
@@ -249,13 +254,13 @@ contract Claims is IClaims, MasterAwareV2 {
       if (previousSubmission.exists) {
         uint80 assessmentId = claims[previousSubmission.claimId].assessmentId;
         IAssessment.Poll memory poll = assessment().getPoll(assessmentId);
-        (,,uint8 payoutCooldownDays) = assessment().config();
-        if (block.timestamp >= poll.end + payoutCooldownDays * 1 days) {
+        (,,uint8 payoutCooldownInDays,) = assessment().config();
+        if (block.timestamp >= poll.end + payoutCooldownInDays * 1 days) {
           if (
             poll.accepted > poll.denied &&
             block.timestamp < poll.end +
-            payoutCooldownDays * 1 days +
-            config.payoutRedemptionPeriodDays * 1 days
+            payoutCooldownInDays * 1 days +
+            config.payoutRedemptionPeriodInDays * 1 days
           ) {
             revert("A payout can still be redeemed");
           }
@@ -335,6 +340,12 @@ contract Claims is IClaims, MasterAwareV2 {
     return (claim);
   }
 
+  /// Redeems payouts for accepted claims
+  ///
+  /// @dev Anyone can call this function, the payout always being transfered to the NFT owner.
+  /// When the tokens are transfered the assessment deposit is also sent back.
+  ///
+  /// @param claimId  Claim identifier
   function redeemClaimPayout(uint104 claimId) external override {
     Claim memory claim = claims[claimId];
     (
@@ -346,16 +357,16 @@ contract Claims is IClaims, MasterAwareV2 {
     require(block.timestamp >= poll.end, "The claim is still being assessed");
     require(poll.accepted > poll.denied, "The claim needs to be accepted");
 
-    (,,uint8 payoutCooldownDays) = assessment().config();
+    (,,uint8 payoutCooldownInDays,) = assessment().config();
     require(
-      block.timestamp >= poll.end + payoutCooldownDays * 1 days,
+      block.timestamp >= poll.end + payoutCooldownInDays * 1 days,
       "The claim is in cooldown period"
     );
 
     require(
       block.timestamp < poll.end +
-      payoutCooldownDays * 1 days +
-      config.payoutRedemptionPeriodDays * 1 days,
+      payoutCooldownInDays * 1 days +
+      config.payoutRedemptionPeriodInDays * 1 days,
       "The redemption period has expired"
     );
 
@@ -381,20 +392,27 @@ contract Claims is IClaims, MasterAwareV2 {
 
   }
 
-  function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)
-  external override onlyGovernance {
+  /// Redeems payouts for accepted claims
+  ///
+  /// @param paramNames  An array of elements from UintParams enum
+  /// @param values      An array of the new values, each one corresponding to the parameter
+  ///                    from paramNames on the same position.
+  function updateUintParameters(
+    UintParams[] calldata paramNames,
+    uint[] calldata values
+  ) external override onlyGovernance {
     Configuration memory newConfig = config;
     for (uint i = 0; i < paramNames.length; i++) {
-      if (paramNames[i] == UintParams.payoutRedemptionPeriodDays) {
-        newConfig.payoutRedemptionPeriodDays = uint8(values[i]);
+      if (paramNames[i] == UintParams.payoutRedemptionPeriodInDays) {
+        newConfig.payoutRedemptionPeriodInDays = uint8(values[i]);
         continue;
       }
       if (paramNames[i] == UintParams.rewardRatio) {
         newConfig.rewardRatio = uint16(values[i]);
         continue;
       }
-      if (paramNames[i] == UintParams.maxRewardNXM) {
-        newConfig.maxRewardNXM = uint16(values[i]);
+      if (paramNames[i] == UintParams.maxRewardInNXM) {
+        newConfig.maxRewardInNXM = uint16(values[i]);
         continue;
       }
       if (paramNames[i] == UintParams.minAssessmentDepositRatio) {
@@ -405,6 +423,8 @@ contract Claims is IClaims, MasterAwareV2 {
     config = newConfig;
   }
 
+  /// @dev Updates internal contract addresses to the ones stored in master. This function is
+  /// automatically called by the master contract when a contract is added or upgraded.
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");

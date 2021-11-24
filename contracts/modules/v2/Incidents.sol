@@ -15,11 +15,10 @@ import "../../interfaces/ICoverNFT.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 
-/**
- *  Provides a way for cover owners to submit claims and redeem the payouts and facilitates
- *  assessment processes where members decide the outcome of the events that lead to potential
- *  payouts.
- */
+/// Allows cover owners to redeem payouts from yield token depeg incidents. It is an entry point
+/// to the assessment process where the members of the mutual decides the validity of the
+/// submitted incident. At the moment incidents can only be submitted by the Advisory Board members
+/// while all members are allowed to vote through Assessment.sol.
 contract Incidents is IIncidents, MasterAwareV2 {
 
   // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
@@ -48,11 +47,11 @@ contract Incidents is IIncidents, MasterAwareV2 {
   }
 
   function initialize(address masterAddress) external {
-    // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
-    config.rewardRatio = 52; // 0.52%
+    // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 50% = 1.30%
+    config.rewardRatio = 130; // 1.3%
     config.incidentExpectedPayoutRatio = 3000; // 30%
     config.incidentPayoutDeductibleRatio = 9000; // 90%
-    config.maxRewardNXM = 50; // 50 NXM
+    config.maxRewardInNXM = 50; // 50 NXM
     master = INXMMaster(masterAddress);
   }
 
@@ -74,12 +73,18 @@ contract Incidents is IIncidents, MasterAwareV2 {
     return ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
   }
 
+  /// @dev Returns the number of incidents.
   function getIncidentsCount() external override view returns (uint) {
     return incidents.length;
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
 
+  /// Submits an incident for assessment
+  ///
+  /// @param productId    Product identifier on which the incident occured
+  /// @param priceBefore  The price of the token before the incident
+  /// @param date         The date the incident occured
   function submitIncident(
     uint24 productId,
     uint96 priceBefore,
@@ -111,7 +116,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
 
     // Determine the total rewards that should be minted for the assessors based on cover period
     uint totalReward = min(
-      uint(config.maxRewardNXM) * PRECISION,
+      uint(config.maxRewardInNXM) * PRECISION,
       expectedPayoutInNXM * uint(config.rewardRatio) / REWARD_DENOMINATOR
     );
     uint assessmentId = assessment().startAssessment(totalReward, 0);
@@ -119,6 +124,13 @@ contract Incidents is IIncidents, MasterAwareV2 {
     incidents.push(incident);
   }
 
+  /// Redeems payouts for eligible covers matching an accepted incident
+  ///
+  /// @dev The function must be called during the redemption period.
+  ///
+  /// @param incidentId      Index of the incident
+  /// @param coverId         Index of the cover to be redeemed
+  /// @param depeggedTokens  The amount of depegged tokens to be swapped for the payoutAsset.
   function redeemIncidentPayout(uint104 incidentId, uint32 coverId, uint depeggedTokens)
   external onlyMember override returns (uint, uint8) {
     Incident memory incident =  incidents[incidentId];
@@ -130,16 +142,16 @@ contract Incidents is IIncidents, MasterAwareV2 {
         "The incident must be accepted"
       );
 
-      (,,uint8 payoutCooldownDays) = assessment().config();
+      (,,uint8 payoutCooldownInDays,) = assessment().config();
       require(
-        block.timestamp >= poll.end + payoutCooldownDays * 1 days,
+        block.timestamp >= poll.end + payoutCooldownInDays * 1 days,
         "The voting and cooldown periods must end"
       );
 
       require(
         block.timestamp < poll.end +
-        payoutCooldownDays * 1 days +
-        config.payoutRedemptionPeriodDays * 1 days,
+        payoutCooldownInDays * 1 days +
+        config.payoutRedemptionPeriodInDays * 1 days,
         "The redemption period has expired"
       );
     }
@@ -191,13 +203,20 @@ contract Incidents is IIncidents, MasterAwareV2 {
     }
 
     IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
+    // [todo] While only members can call this function it could make sense to reduce transfer
+    // drilling by transfering and sending the payout to the original cover owner instead that
+    // isn't necessarily a member but calls this function through a distributor instead.
     IERC20(coveredToken).transferFrom(msg.sender, address(this), depeggedTokens);
     poolContract.sendPayout(payoutAsset, coverOwner, payoutAmount);
 
     return (payoutAmount, payoutAsset);
-
   }
 
+  /// Withdraws an amount of any asset held by this contract to a destination address.
+  ///
+  /// @param asset        The ERC20 address of the asset that needs to be withdrawn.
+  /// @param destination  The address where the assets are transfered.
+  /// @param amount       The amount of assets that are need to be transfered.
   function withdrawAsset(address asset, address destination, uint amount) external onlyGovernance {
     IERC20 token = IERC20(asset);
     uint balance = token.balanceOf(address(this));
@@ -205,12 +224,19 @@ contract Incidents is IIncidents, MasterAwareV2 {
     token.transfer(destination, transferAmount);
   }
 
-  function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)
-  external override onlyGovernance {
+  /// Redeems payouts for accepted claims
+  ///
+  /// @param paramNames  An array of elements from UintParams enum
+  /// @param values      An array of the new values, each one corresponding to the parameter
+  ///                    from paramNames on the same position.
+  function updateUintParameters(
+    UintParams[] calldata paramNames,
+    uint[] calldata values
+  ) external override onlyGovernance {
     Configuration memory newConfig = config;
     for (uint i = 0; i < paramNames.length; i++) {
-      if (paramNames[i] == UintParams.payoutRedemptionPeriodDays) {
-        newConfig.payoutRedemptionPeriodDays = uint8(values[i]);
+      if (paramNames[i] == UintParams.payoutRedemptionPeriodInDays) {
+        newConfig.payoutRedemptionPeriodInDays = uint8(values[i]);
         continue;
       }
       if (paramNames[i] == UintParams.incidentExpectedPayoutRatio) {
@@ -229,6 +255,8 @@ contract Incidents is IIncidents, MasterAwareV2 {
     config = newConfig;
   }
 
+  /// @dev Updates internal contract addresses to the ones stored in master. This function is
+  /// automatically called by the master contract when a contract is added or upgraded.
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");

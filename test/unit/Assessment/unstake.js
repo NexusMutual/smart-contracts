@@ -54,7 +54,7 @@ describe('unstake', function () {
     }
   });
 
-  it("reverts if less than stakeLockupPeriodDays passed since the staker's last vote", async function () {
+  it("reverts if less than stakeLockupPeriodInDays passed since the staker's last vote", async function () {
     const { assessment, nxm, claims } = this.contracts;
     const user = this.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
@@ -62,13 +62,13 @@ describe('unstake', function () {
     await assessment.connect(user).castVote(0, true);
     await expect(assessment.connect(user).unstake(parseEther('100'))).to.be.revertedWith('Stake is in lockup period');
 
-    const { stakeLockupPeriodDays } = await assessment.config();
+    const { stakeLockupPeriodInDays } = await assessment.config();
     const { timestamp } = await ethers.provider.getBlock('latest');
-    for (let i = 1; i < stakeLockupPeriodDays; i++) {
+    for (let i = 1; i < stakeLockupPeriodInDays; i++) {
       await setTime(timestamp + daysToSeconds(i));
       await expect(assessment.connect(user).unstake(parseEther('100'))).to.be.revertedWith('Stake is in lockup period');
     }
-    await setTime(timestamp + daysToSeconds(stakeLockupPeriodDays));
+    await setTime(timestamp + daysToSeconds(stakeLockupPeriodInDays));
     expect(assessment.connect(user).unstake(parseEther('100'))).not.to.be.revertedWith('Stake is in lockup period');
   });
 });

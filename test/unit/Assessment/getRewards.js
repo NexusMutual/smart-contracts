@@ -8,7 +8,7 @@ describe('getRewards', function () {
   it("returns the pending rewards pro-rated to the user's stake", async function () {
     const { assessment, claims } = this.contracts;
     const [user1, user2] = this.accounts.members;
-    const { minVotingPeriodDays, payoutCooldownDays } = await assessment.config();
+    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
     await assessment.connect(user1).stake(parseEther('10'));
     await assessment.connect(user2).stake(parseEther('90'));
@@ -49,7 +49,7 @@ describe('getRewards', function () {
     }
 
     const { end } = await assessment.getPoll(2);
-    await setTime(end + daysToSeconds(minVotingPeriodDays + payoutCooldownDays));
+    await setTime(end + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
     await assessment.withdrawRewards(user1.address, 1);
 
     {
@@ -85,7 +85,7 @@ describe('getRewards', function () {
   it('returns the withdrawable reward', async function () {
     const { assessment, claims } = this.contracts;
     const [user] = this.accounts.members;
-    const { minVotingPeriodDays, payoutCooldownDays } = await assessment.config();
+    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
     await assessment.connect(user).stake(parseEther('10'));
     await claims.submitClaim(0, parseEther('10'), '');
@@ -113,7 +113,7 @@ describe('getRewards', function () {
 
     {
       const { end } = await assessment.getPoll(1);
-      await setTime(end + daysToSeconds(minVotingPeriodDays + payoutCooldownDays));
+      await setTime(end + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
       const { withdrawableAmount } = await assessment.getRewards(user.address);
       expect(withdrawableAmount).to.be.equal(expectedReward);
     }
@@ -141,7 +141,7 @@ describe('getRewards', function () {
 
     {
       const { end } = await assessment.getPoll(2);
-      await setTime(end + daysToSeconds(minVotingPeriodDays + payoutCooldownDays));
+      await setTime(end + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
       const { totalReward } = await assessment.assessments(2);
       const { withdrawableAmount } = await assessment.getRewards(user.address);
       expect(withdrawableAmount).to.be.equal(totalReward);
@@ -151,7 +151,7 @@ describe('getRewards', function () {
   it("returns the index of the first vote on an assessment that hasn't ended or is still in cooldown period", async function () {
     const { assessment, claims } = this.contracts;
     const [user] = this.accounts.members;
-    const { minVotingPeriodDays, payoutCooldownDays } = await assessment.config();
+    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
     await assessment.connect(user).stake(parseEther('10'));
     await claims.submitClaim(0, parseEther('10'), '');
@@ -167,7 +167,7 @@ describe('getRewards', function () {
 
     {
       const { end } = await assessment.getPoll(1);
-      await setTime(end + daysToSeconds(minVotingPeriodDays + payoutCooldownDays));
+      await setTime(end + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
       const { withdrawableUntilIndex } = await assessment.getRewards(user.address);
       expect(withdrawableUntilIndex).to.be.equal(2);
     }
@@ -180,7 +180,7 @@ describe('getRewards', function () {
     }
     {
       const { end } = await assessment.getPoll(2);
-      await setTime(end + daysToSeconds(minVotingPeriodDays + payoutCooldownDays));
+      await setTime(end + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
       const { withdrawableUntilIndex } = await assessment.getRewards(user.address);
       expect(withdrawableUntilIndex).to.be.equal(3);
     }

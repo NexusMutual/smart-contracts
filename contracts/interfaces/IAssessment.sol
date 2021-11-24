@@ -11,18 +11,25 @@ interface IAssessment {
   enum PollStatus { PENDING, ACCEPTED, DENIED }
 
   enum UintParams {
-    minVotingPeriodDays,
-    stakeLockupPeriodDays,
-    payoutCooldownDays
+    minVotingPeriodInDays,
+    stakeLockupPeriodInDays,
+    payoutCooldownInDays,
+    silentEndingPeriodInDays
   }
 
   struct Configuration {
     // The minimum number of days the users can vote on polls
-    uint8 minVotingPeriodDays;
-    // Number of days the users must wait from their last vote, to withdraw their stake.
-    uint8 stakeLockupPeriodDays;
-    // Number of days the users must wait after a poll closes, to redeem payouts.
-    uint8 payoutCooldownDays;
+    uint8 minVotingPeriodInDays;
+
+    // Number of days the users must wait from their last vote to withdraw their stake.
+    uint8 stakeLockupPeriodInDays;
+
+    // Number of days the users must wait after a poll closes to redeem payouts.
+    uint8 payoutCooldownInDays;
+
+    // Number of days representing the silence period. It is used to extend a poll's end date when
+    // a vote is cast during the silence period before the end date.
+    uint8 silentEndingPeriodInDays;
   }
 
   struct Stake {
@@ -84,8 +91,12 @@ interface IAssessment {
   function stakeOf(address user) external view
   returns (uint96 amount, uint104 rewardsWithdrawableFromIndex, uint16 fraudCount);
 
-  function config() external view
-  returns (uint8 minVotingPeriodDays, uint8 stakeLockupPeriodDays, uint8 payoutCooldownDays);
+  function config() external view returns (
+    uint8 minVotingPeriodInDays,
+    uint8 stakeLockupPeriodInDays,
+    uint8 payoutCooldownInDays,
+    uint8 silentEndingPeriodInDays
+  );
 
   function hasAlreadyVotedOn(address voter, uint pollId) external view returns (bool);
 
@@ -102,7 +113,7 @@ interface IAssessment {
   function startAssessment(uint totalReward, uint assessmentDeposit) external
   returns (uint);
 
-  function castVote(uint assessmentId, bool isAccepted) external;
+  function castVote(uint assessmentId, bool isAcceptVote) external;
 
   function submitFraud(bytes32 root) external;
 

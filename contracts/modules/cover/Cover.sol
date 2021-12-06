@@ -27,6 +27,8 @@ contract Cover is ICover, MasterAwareV2 {
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
   uint public constant BUCKET_SIZE = 7 days;
   uint public constant REWARD_DENOMINATOR = 2;
+  uint public constant MAX_COVER_PERIOD = 365 days;
+
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
 
@@ -154,13 +156,13 @@ contract Cover is ICover, MasterAwareV2 {
     BuyCoverParams memory params,
     CoverChunkRequest[] memory coverChunkRequests
   ) external payable override onlyMember returns (uint /*coverId*/) {
-
-    // TODO: check if the cover period is too long
-    require(initialPrices[params.productId] != 0, "Cover: product not initialized");
+    
+    require(initialPrices[params.productId] != 0, "Cover: Product not initialized");
     require(
       assetIsSupported(products[params.productId].coverAssets, params.payoutAsset),
       "Cover: Payout asset is not supported"
     );
+    require(params.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
 
     (uint coverId, uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(params, coverChunkRequests);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
@@ -261,9 +263,11 @@ contract Cover is ICover, MasterAwareV2 {
     CoverChunkRequest[] memory coverChunkRequests
   ) external payable onlyMember returns (uint /*coverId*/) {
 
-    // TODO: check if the extra cover period is too long
+    // TODO: consider implementation using segments instead of minting a new NFT
+
     CoverData memory cover = covers[coverId];
     require(cover.start + cover.period > block.timestamp, "Cover: cover expired");
+    require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
 
     uint32 remainingPeriod = cover.start + cover.period - uint32(block.timestamp);
 
@@ -351,6 +355,7 @@ contract Cover is ICover, MasterAwareV2 {
     uint coverId,
     uint amount
   ) external onlyInternal override returns (address /* owner */) {
+
     ICoverNFT coverNFTContract = ICoverNFT(coverNFT);
     address owner = coverNFTContract.ownerOf(coverId);
     CoverData memory cover = covers[coverId];

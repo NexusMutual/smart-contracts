@@ -155,6 +155,7 @@ contract Cover is ICover, MasterAwareV2 {
     CoverChunkRequest[] memory coverChunkRequests
   ) external payable override onlyMember returns (uint /*coverId*/) {
 
+    // TODO: check if the cover period is too long
     require(initialPrices[params.productId] != 0, "Cover: product not initialized");
     require(
       assetIsSupported(products[params.productId].coverAssets, params.payoutAsset),
@@ -165,6 +166,8 @@ contract Cover is ICover, MasterAwareV2 {
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (params.payWithNXM) {
+
+      // TODO: apply comission payment to NXM
       tokenController().burnFrom(msg.sender, totalPremiumInNXM);
     } else {
       retrievePayment(premiumInPaymentAsset, params);
@@ -258,6 +261,7 @@ contract Cover is ICover, MasterAwareV2 {
     CoverChunkRequest[] memory coverChunkRequests
   ) external payable onlyMember returns (uint /*coverId*/) {
 
+    // TODO: check if the extra cover period is too long
     CoverData memory cover = covers[coverId];
     require(cover.start + cover.period > block.timestamp, "Cover: cover expired");
 
@@ -306,6 +310,7 @@ contract Cover is ICover, MasterAwareV2 {
     if (buyCoverParams.payWithNXM) {
       uint refundInNXM = refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset);
       if (refundInNXM < totalPremiumInNXM) {
+        // TODO: apply comission payment to NXM
         // requires NXM allowance
         tokenController().burnFrom(msg.sender, totalPremiumInNXM - refundInNXM);
       }
@@ -323,6 +328,7 @@ contract Cover is ICover, MasterAwareV2 {
     return newCoverId;
   }
 
+  // TODO: remove cover amount tracking
   function updateActiveCoverAmountInNXM(uint productId, uint period, uint amountToCoverInNXM) internal {
     uint currentBucket = block.timestamp / BUCKET_SIZE;
 

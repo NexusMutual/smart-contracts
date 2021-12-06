@@ -15,7 +15,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
   IQuotationData public immutable quotationData;
 
-  INXMToken public token;
+  INXMToken public override token;
   IPooledStaking public pooledStaking;
   IAssessment public assessment;
   // 96 bits from this part of the slot were part of uint minCALockTime.  You should initialize

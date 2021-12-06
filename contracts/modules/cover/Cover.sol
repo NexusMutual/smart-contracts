@@ -28,6 +28,7 @@ contract Cover is ICover, MasterAwareV2 {
   uint public constant BUCKET_SIZE = 7 days;
   uint public constant REWARD_DENOMINATOR = 2;
   uint public constant MAX_COVER_PERIOD = 365 days;
+  uint public constant MIN_COVER_PERIOD = 30 days;
 
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
@@ -156,21 +157,20 @@ contract Cover is ICover, MasterAwareV2 {
     BuyCoverParams memory params,
     CoverChunkRequest[] memory coverChunkRequests
   ) external payable override onlyMember returns (uint /*coverId*/) {
-    
+
     require(initialPrices[params.productId] != 0, "Cover: Product not initialized");
     require(
       assetIsSupported(products[params.productId].coverAssets, params.payoutAsset),
       "Cover: Payout asset is not supported"
     );
-    require(params.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
+    require(params.period >= MIN_COVER_PERIOD, "Cover: Cover period is too short");
+    require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
 
     (uint coverId, uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(params, coverChunkRequests);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (params.payWithNXM) {
-
-      // TODO: apply comission payment to NXM
-      tokenController().burnFrom(msg.sender, totalPremiumInNXM);
+      retrieveNXMPayment(totalPremiumInNXM, params.commissionRate, params.commissionDestination);
     } else {
       retrievePayment(premiumInPaymentAsset, params);
     }
@@ -314,9 +314,8 @@ contract Cover is ICover, MasterAwareV2 {
     if (buyCoverParams.payWithNXM) {
       uint refundInNXM = refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset);
       if (refundInNXM < totalPremiumInNXM) {
-        // TODO: apply comission payment to NXM
         // requires NXM allowance
-        tokenController().burnFrom(msg.sender, totalPremiumInNXM - refundInNXM);
+        retrieveNXMPayment(totalPremiumInNXM - refundInNXM, buyCoverParams.commissionRate, buyCoverParams.commissionDestination);
       }
     } else {
       uint refundInPaymentAsset =
@@ -416,6 +415,23 @@ contract Cover is ICover, MasterAwareV2 {
         token.transfer(buyParams.commissionDestination, commission);
       }
     }
+  }
+
+  function retrieveNXMPayment(uint actualPrice, uint commissionRate, address commissionDestination) internal {
+
+    ITokenController tokenController = tokenController();
+    if (commissionRate > 0) {
+      uint endPrice = actualPrice / (BASIS_PRECISION - commissionRate) * BASIS_PRECISION;
+      tokenController.burnFrom(msg.sender, actualPrice);
+      uint commission = endPrice - actualPrice;
+
+      // transfer the commission to the commissionDestination; reverts if commissionDestination is not a member
+      tokenController.token().transferFrom(msg.sender, commissionDestination, commission);
+
+      return;
+    }
+
+    tokenController.burnFrom(msg.sender, actualPrice);
   }
 
   /* ========== Staking Pool creation ========== */

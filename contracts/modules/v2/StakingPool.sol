@@ -123,6 +123,8 @@ contract StakingPool is ERC20 {
   uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
   uint public constant BASIS_PRECISION = 10_000;
 
+  uint public constant GLOBAL_MIN_PRICE = 100; // 1%
+
   modifier onlyCoverContract {
     require(msg.sender == coverContract, "StakingPool: Caller is not the cover contract");
     _;
@@ -392,6 +394,7 @@ contract StakingPool is ERC20 {
   }
 
   function setTargetPrice(uint productId, uint targetPrice) external onlyOwner {
+    require(targetPrice >= GLOBAL_MIN_PRICE, "StakingPool: Target price must be greater than global min price");
     targetPrices[productId] = targetPrice;
   }
 

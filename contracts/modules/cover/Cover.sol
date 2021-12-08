@@ -43,11 +43,6 @@ contract Cover is ICover, MasterAwareV2 {
 
   mapping(uint => uint) initialPrices;
 
-  mapping(uint => uint96) public override activeCoverAmountInNXM;
-
-  mapping(uint => mapping(uint => ProductBucket)) productBuckets;
-  mapping(uint => uint) lastProductBucket;
-
   uint32 public capacityFactor;
   // [todo] Remove this and use covers.length instead
   uint32 public coverCount;
@@ -215,8 +210,6 @@ contract Cover is ICover, MasterAwareV2 {
       );
     }
 
-    updateActiveCoverAmountInNXM(params.productId, params.period, totalCoverAmountInNXM);
-
     uint coverId = covers.length;
     covers.push(CoverData(
         params.productId,
@@ -293,10 +286,6 @@ contract Cover is ICover, MasterAwareV2 {
         originalCoverChunks[i].premiumInNXM =
         originalCoverChunks[i].premiumInNXM * (cover.period - remainingPeriod) / cover.period;
       }
-
-      // rollback cover amount
-      productBuckets[buyCoverParams.productId][(cover.start + cover.period) / BUCKET_SIZE].coverAmountExpiring
-        -= uint96(totalPreviousCoverAmountInNXM);
     }
 
     uint refundInCoverAsset = cover.priceRatio * cover.amount / BASIS_PRECISION * remainingPeriod / cover.period;
@@ -329,25 +318,6 @@ contract Cover is ICover, MasterAwareV2 {
     }
 
     return newCoverId;
-  }
-
-  // TODO: remove cover amount tracking
-  function updateActiveCoverAmountInNXM(uint productId, uint period, uint amountToCoverInNXM) internal {
-    uint currentBucket = block.timestamp / BUCKET_SIZE;
-
-    uint activeCoverAmount = activeCoverAmountInNXM[productId];
-    uint lastBucket = lastProductBucket[productId];
-    while (lastBucket < currentBucket) {
-      ++lastBucket;
-      activeCoverAmount -= productBuckets[productId][lastBucket].coverAmountExpiring;
-    }
-
-    activeCoverAmountInNXM[productId] = uint96(activeCoverAmount + amountToCoverInNXM);
-    require(activeCoverAmountInNXM[productId] < mcr().getMCR() / 5, "Cover: Total cover amount exceeds 20% of MCR");
-
-    lastProductBucket[productId] = lastBucket;
-
-    productBuckets[productId][(block.timestamp + period) / BUCKET_SIZE].coverAmountExpiring = uint96(amountToCoverInNXM);
   }
 
   function performPayoutBurn(
@@ -480,9 +450,7 @@ contract Cover is ICover, MasterAwareV2 {
   }
 
   function addProduct(Product calldata product) external onlyAdvisoryBoard {
-
     products.push(product);
-    lastProductBucket[products.length - 1] = block.timestamp / BUCKET_SIZE;
   }
 
   function setCoverAssetsFallback(uint _coverAssetsFallback) external onlyGovernance {

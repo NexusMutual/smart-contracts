@@ -80,7 +80,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
     uint32 date
   ) external onlyAdvisoryBoard override {
     ICover coverContract = cover();
-    uint96 activeCoverAmountInNXM = coverContract.activeCoverAmountInNXM(productId);
+    uint96 activeCoverAmountInNXM = 0; // TODO: FIXME need to use user input to set the NXM reward instead of using activeCoverAmountInNXM
 
     Incident memory incident = Incident(
       0, // assessmentId

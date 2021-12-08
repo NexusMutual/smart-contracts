@@ -33,6 +33,8 @@ contract Cover is ICover, MasterAwareV2 {
 
   uint public constant MAX_COMMISSION_RATE = 2500; // 25%
 
+  uint public constant GLOBAL_MIN_PRICE = 100; // 1%
+
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
 
@@ -451,6 +453,8 @@ contract Cover is ICover, MasterAwareV2 {
   }
 
   function setInitialPrice(uint productId, uint initialPrice) external onlyAdvisoryBoard {
+
+    require(initialPrice >= GLOBAL_MIN_PRICE, "Cover: Initial price must be greater than the global min price");
     initialPrices[productId] = initialPrice;
   }
 

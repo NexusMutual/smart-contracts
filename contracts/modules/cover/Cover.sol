@@ -27,8 +27,11 @@ contract Cover is ICover, MasterAwareV2 {
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
   uint public constant BUCKET_SIZE = 7 days;
   uint public constant REWARD_DENOMINATOR = 2;
+
   uint public constant MAX_COVER_PERIOD = 365 days;
   uint public constant MIN_COVER_PERIOD = 30 days;
+
+  uint public constant MAX_COMMISSION_RATE = 2500; // 25%
 
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
@@ -160,6 +163,7 @@ contract Cover is ICover, MasterAwareV2 {
     );
     require(params.period >= MIN_COVER_PERIOD, "Cover: Cover period is too short");
     require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
+    require(params.commissionRate <= MAX_COMMISSION_RATE, "Cover: Commission rate is too high");
 
     (uint coverId, uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(params, coverChunkRequests);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
@@ -261,6 +265,7 @@ contract Cover is ICover, MasterAwareV2 {
     CoverData memory cover = covers[coverId];
     require(cover.start + cover.period > block.timestamp, "Cover: cover expired");
     require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
+    require(buyCoverParams.commissionRate <= MAX_COMMISSION_RATE, "Cover: Commission rate is too high");
 
     uint32 remainingPeriod = cover.start + cover.period - uint32(block.timestamp);
 

@@ -48,6 +48,8 @@ contract Cover is ICover, MasterAwareV2 {
 
   mapping(uint => uint) initialPrices;
 
+  mapping(uint => uint) public ltaDeductions;
+
   uint32 public capacityFactor;
   // [todo] Remove this and use covers.length instead
   uint32 public coverCount;
@@ -239,21 +241,16 @@ contract Cover is ICover, MasterAwareV2 {
     uint32 period
   ) internal returns (uint, uint) {
 
-    uint availableCapacity = stakingPool.getAvailableCapacity(productId, capacityFactor);
-
-    uint coveredAmount = amountToCover > availableCapacity ? availableCapacity : amountToCover;
-
     uint initialPrice = initialPrices[productId];
-    uint premiumInNXM = stakingPool.buyCover(
+    return stakingPool.buyCover(IStakingPool.BuyStakingPoolCoverParams(
       productId,
-      coveredAmount,
+      amountToCover,
       REWARD_DENOMINATOR,
       period,
       capacityFactor,
+      ltaDeductions[productId],
       initialPrice
-    );
-
-    return (coveredAmount, premiumInNXM);
+    ));
   }
 
   function editCover(
@@ -456,6 +453,11 @@ contract Cover is ICover, MasterAwareV2 {
 
     require(initialPrice >= GLOBAL_MIN_PRICE, "Cover: Initial price must be greater than the global min price");
     initialPrices[productId] = initialPrice;
+  }
+
+  function setLTADeduction(uint productId, uint deduction) external onlyAdvisoryBoard {
+    require(deduction <= BASIS_PRECISION, "Cover: LTADeduction must be less than or equal to 100%");
+    ltaDeductions[productId] = deduction;
   }
 
   function addProduct(Product calldata product) external onlyAdvisoryBoard {

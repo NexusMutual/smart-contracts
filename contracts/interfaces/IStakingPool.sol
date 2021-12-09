@@ -5,14 +5,17 @@ pragma solidity >=0.5.0;
 
 interface IStakingPool {
 
-  function buyCover(
-    uint productId,
-    uint coveredAmount,
-    uint rewardDenominator,
-    uint period,
-    uint capacityFactor,
-    uint basePrice
-  ) external returns (uint);
+  struct BuyStakingPoolCoverParams {
+    uint productId;
+    uint coverAmount;
+    uint rewardAmount;
+    uint period;
+    uint capacityFactor;
+    uint ltaDeduction;
+    uint initialPrice;
+  }
+
+  function buyCover(BuyStakingPoolCoverParams calldata params) external returns (uint, uint);
 
   function extendPeriod(
     uint productId,

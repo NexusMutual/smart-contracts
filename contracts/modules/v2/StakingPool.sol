@@ -107,7 +107,7 @@ contract StakingPool is ERC20 {
   uint96 public maxCapacity;
   uint96 public totalLeverage;
 
-  address public owner;
+  address public manager;
 
   /* immutables */
   ERC20 public immutable nxm;
@@ -130,15 +130,15 @@ contract StakingPool is ERC20 {
     _;
   }
 
-  modifier onlyOwner {
-    require(msg.sender == owner, "StakingPool: Caller is not the owner");
+  modifier onlyManager {
+    require(msg.sender == manager, "StakingPool: Caller is not the manager");
     _;
   }
 
   constructor (address _nxm, address _coverContract, address _owner) ERC20("Staked NXM", "SNXM") {
     nxm = ERC20(_nxm);
     coverContract = _coverContract;
-    owner = _owner;
+    manager = _owner;
   }
 
   function initialize() external onlyCoverContract {
@@ -375,25 +375,25 @@ contract StakingPool is ERC20 {
 
   /* callable by pool owner */
 
-  function addProduct() external onlyOwner {
+  function addProduct() external onlyManager {
 
     //
 
   }
 
-  function removeProduct() external onlyOwner {
+  function removeProduct() external onlyManager {
 
     //
 
   }
 
-  function setWeights() external onlyOwner {
+  function setWeights() external onlyManager {
 
     //
 
   }
 
-  function setTargetPrice(uint productId, uint targetPrice) external onlyOwner {
+  function setTargetPrice(uint productId, uint targetPrice) external onlyManager {
     require(targetPrice >= GLOBAL_MIN_PRICE, "StakingPool: Target price must be greater than global min price");
     targetPrices[productId] = targetPrice;
   }

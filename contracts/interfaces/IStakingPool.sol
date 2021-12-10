@@ -5,7 +5,7 @@ pragma solidity >=0.5.0;
 
 interface IStakingPool {
 
-  struct BuyStakingPoolCoverParams {
+  struct AllocateCapacityParams {
     uint productId;
     uint coverAmount;
     uint rewardAmount;
@@ -15,7 +15,7 @@ interface IStakingPool {
     uint initialPrice;
   }
 
-  function allocateCapacity(BuyStakingPoolCoverParams calldata params) external returns (uint, uint);
+  function allocateCapacity(AllocateCapacityParams calldata params) external returns (uint, uint);
 
   function freeCapacity(
     uint productId,

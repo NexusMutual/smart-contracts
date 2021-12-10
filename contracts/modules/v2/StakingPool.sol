@@ -42,7 +42,7 @@ contract StakingPool is ERC20 {
     // uint48 _unused;
   }
 
-  struct BuyStakingPoolCoverParams {
+  struct AllocateCapacityParams {
     uint productId;
     uint coverAmount;
     uint rewardAmount;
@@ -271,7 +271,7 @@ contract StakingPool is ERC20 {
 
   /* callable by cover contract */
 
-  function allocateCapacity(BuyStakingPoolCoverParams calldata params) external returns (uint, uint) {
+  function allocateCapacity(AllocateCapacityParams calldata params) external returns (uint, uint) {
 
     uint staked = processPoolBuckets();
     uint currentBucket = block.timestamp / BUCKET_SIZE;

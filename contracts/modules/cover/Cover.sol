@@ -243,7 +243,7 @@ contract Cover is ICover, MasterAwareV2 {
   ) internal returns (uint, uint) {
 
     uint initialPrice = initialPrices[productId];
-    return stakingPool.allocateCapacity(IStakingPool.BuyStakingPoolCoverParams(
+    return stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
       productId,
       amountToCover,
       REWARD_DENOMINATOR,

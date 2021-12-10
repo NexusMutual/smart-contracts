@@ -24,8 +24,8 @@ contract DisposableAssessment is MasterAwareV2 {
   /* ========== CONSTRUCTOR ========== */
 
   function initialize (address masterAddress) external {
-    config.minVotingPeriodDays = 3; // days
-    config.payoutCooldownDays = 1; //days
+    config.minVotingPeriodInDays = 3; // days
+    config.payoutCooldownInDays = 1; //days
     master = INXMMaster(masterAddress);
   }
 

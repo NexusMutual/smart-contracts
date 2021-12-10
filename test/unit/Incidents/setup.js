@@ -73,7 +73,7 @@ async function setup () {
   await cover.addProduct('1', '0x0000000000000000000000000000000000000002', '1', '0');
   await cover.addProduct('2', '0x0000000000000000000000000000000000000003', '1', '0');
 
-  await cover.setActiveCoverAmountInNXM(2, parseEther('35000'));
+  await cover.setActiveCoverAmountInNXM(2, parseEther('3500'));
 
   {
     const tx = await incidents.initialize(master.address);

@@ -12,22 +12,19 @@ import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/ICoverNFT.sol";
 
 import "../../abstract/MasterAwareV2.sol";
-import "hardhat/console.sol";
 
-/// Provides a way for cover owners to submit claims and redeem the payouts and facilitates
-/// assessment processes where members decide the outcome of the events that lead to potential
-/// payouts.
+/// Provides a way for cover owners to submit claims and redeem payouts. It is an entry point to
+/// the assessment process where the members of the mutual decide the outcome of claims.
 contract Claims is IClaims, MasterAwareV2 {
 
-  // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
-  uint internal constant RATIO_BPS = 10000;
+  // 0-10000 bps (i.e. double decimal precision percentage)
+  uint internal constant MIN_ASSESSMENT_DEPOSIT_DENOMINATOR = 10000;
+  uint internal constant REWARD_DENOMINATOR = 10000;
 
   // Used in operations involving NXM tokens and divisions
   uint internal constant PRECISION = 10 ** 18;
 
-
   INXMToken internal immutable nxm;
-
   ICoverNFT internal immutable coverNFT;
 
   /* ========== STATE VARIABLES ========== */
@@ -38,27 +35,28 @@ contract Claims is IClaims, MasterAwareV2 {
 
   // Mapping from coverId to claimId used to check if a new claim can be submitted on the given
   // cover as long as the last submitted claim reached a final state.
-  mapping(uint => ClaimSubmission) public lastSubmittedClaimOnCover;
+  mapping(uint => ClaimSubmission) public lastClaimSubmissionOnCover;
 
   /* ========== CONSTRUCTOR ========== */
 
   constructor(address nxmAddress, address coverNFTAddress) {
     nxm = INXMToken(nxmAddress);
-    // [todo] Replace with CoverNFT interface
     coverNFT = ICoverNFT(coverNFTAddress);
   }
 
   function initialize(address masterAddress) external {
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
-    config.rewardRatio = 130; // 0.52%
+    config.rewardRatio = 130; // 1.3%
+    config.maxRewardInNXMWad = 50; // 50 NXM
     config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH assessment minimum flat fee
+    config.payoutRedemptionPeriodInDays = 14; // days until the payout will not be redeemable anymore
     master = INXMMaster(masterAddress);
   }
 
   /* ========== VIEWS ========== */
 
-  function max(uint a, uint b) internal pure returns (uint) {
-    return a > b ? a : b;
+  function min(uint a, uint b) internal pure returns (uint) {
+    return a < b ? a : b;
   }
 
   function cover() internal view returns (ICover) {
@@ -86,17 +84,18 @@ contract Claims is IClaims, MasterAwareV2 {
     uint nxmPriceInPayoutAsset = poolContract.getTokenPrice(payoutAsset);
     uint nxmPriceInETH = poolContract.getTokenPrice(0);
 
-    // Calculate the expected in NXM using the NXM price at cover purchase time
+    // Calculate the expected payout in NXM using the NXM price at cover purchase time
     uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPriceInPayoutAsset;
 
     // Determine the total rewards that should be minted for the assessors based on cover period
-    uint totalReward = max(
-      config.maxRewardNXM * PRECISION,
-      expectedPayoutInNXM * config.rewardRatio * coverPeriod / 365 days / RATIO_BPS
+    uint totalReward = min(
+      uint(config.maxRewardInNXMWad) * PRECISION,
+      expectedPayoutInNXM * uint(config.rewardRatio) * coverPeriod / 365 days / REWARD_DENOMINATOR
     );
 
     uint dynamicDeposit = totalReward * nxmPriceInETH / PRECISION;
-    uint minDeposit = 1 ether * uint(config.minAssessmentDepositRatio) / RATIO_BPS;
+    uint minDeposit = 1 ether * uint(config.minAssessmentDepositRatio) /
+      MIN_ASSESSMENT_DEPOSIT_DENOMINATOR;
 
     // If dynamicDeposit falls below minDeposit use minDeposit instead
     uint deposit = minDeposit > dynamicDeposit ? minDeposit : dynamicDeposit;
@@ -104,6 +103,14 @@ contract Claims is IClaims, MasterAwareV2 {
     return (deposit, totalReward);
   }
 
+  /// Returns the required deposit and total reward for a new claim
+  ///
+  /// @dev This view is meant to be used either by users or user interfaces to determine the
+  /// minimum deposit value of the submitClaim tx.
+  ///
+  /// @param requestedAmount  The amount that is claimed
+  /// @param coverPeriod      The cover period in days
+  /// @param payoutAsset      The asset in which the payout would be made
   function getAssessmentDepositAndReward(
     uint requestedAmount,
     uint coverPeriod,
@@ -139,11 +146,11 @@ contract Claims is IClaims, MasterAwareV2 {
         if (claim.payoutRedeemed) {
           payoutStatus = PayoutStatus.COMPLETE;
         } else {
-          (,,uint8 payoutCooldownDays) = assessment().config();
+          (,,uint8 payoutCooldownInDays,) = assessment().config();
           if (
             block.timestamp >= poll.end +
-            payoutCooldownDays * 1 days +
-            config.payoutRedemptionPeriodDays * 1 days
+            payoutCooldownInDays * 1 days +
+            config.payoutRedemptionPeriodInDays * 1 days
           ) {
             payoutStatus = PayoutStatus.UNCLAIMED;
           } else {
@@ -222,7 +229,7 @@ contract Claims is IClaims, MasterAwareV2 {
   /// @dev Migrates covers for arNFT-like contracts that don't use Gateway.sol
   ///
   /// @param coverId          Legacy (V1) cover identifier
-  function submitClaim(uint coverId) external {
+  function submitClaim(uint coverId) external override {
     cover().migrateCoverFromOwner(coverId, msg.sender, tx.origin);
   }
 
@@ -234,26 +241,26 @@ contract Claims is IClaims, MasterAwareV2 {
   /// @param requestedAmount  The amount expected to be received at payout
   /// @param ipfsProofHash    The IPFS hash required for proof of loss. If this string is empty,
   function submitClaim(
-    uint24 coverId,
+    uint32 coverId,
     uint96 requestedAmount,
     string calldata ipfsProofHash
-  ) external payable override onlyMember {
+  ) external payable override onlyMember returns (Claim memory) {
     require(
       coverNFT.isApprovedOrOwner(msg.sender, coverId),
       "Only the owner or approved addresses can submit a claim"
     );
     {
-      ClaimSubmission memory previousSubmission = lastSubmittedClaimOnCover[coverId];
+      ClaimSubmission memory previousSubmission = lastClaimSubmissionOnCover[coverId];
       if (previousSubmission.exists) {
         uint80 assessmentId = claims[previousSubmission.claimId].assessmentId;
         IAssessment.Poll memory poll = assessment().getPoll(assessmentId);
-        (,,uint8 payoutCooldownDays) = assessment().config();
-        if (block.timestamp >= poll.end + payoutCooldownDays * 1 days) {
+        (,,uint8 payoutCooldownInDays,) = assessment().config();
+        if (block.timestamp >= poll.end + payoutCooldownInDays * 1 days) {
           if (
             poll.accepted > poll.denied &&
             block.timestamp < poll.end +
-            payoutCooldownDays * 1 days +
-            config.payoutRedemptionPeriodDays * 1 days
+            payoutCooldownInDays * 1 days +
+            config.payoutRedemptionPeriodInDays * 1 days
           ) {
             revert("A payout can still be redeemed");
           }
@@ -261,7 +268,7 @@ contract Claims is IClaims, MasterAwareV2 {
           revert("A claim is already being assessed");
         }
       }
-      lastSubmittedClaimOnCover[coverId] = ClaimSubmission(uint80(claims.length), true);
+      lastClaimSubmissionOnCover[coverId] = ClaimSubmission(uint80(claims.length), true);
     }
     uint32 coverStart;
     uint32 coverPeriod;
@@ -323,15 +330,22 @@ contract Claims is IClaims, MasterAwareV2 {
     }
 
     // Transfer the deposit to the pool
-    (bool transferSucceeded, /* bytes data */) =  internalContracts[uint(ID.P1)].call{value: deposit}("");
-    require(transferSucceeded, "Assessment deposit excess refund failed");
+    (bool transferSucceeded, /* bytes data */) =  getInternalContractAddress(ID.P1).call{value: deposit}("");
+    require(transferSucceeded, "Assessment deposit transfer to pool failed");
 
     uint newAssessmentId = assessment().startAssessment(totalReward, deposit);
     claim.assessmentId = uint80(newAssessmentId);
     claims.push(claim);
 
+    return (claim);
   }
 
+  /// Redeems payouts for accepted claims
+  ///
+  /// @dev Anyone can call this function, the payout always being transfered to the NFT owner.
+  /// When the tokens are transfered the assessment deposit is also sent back.
+  ///
+  /// @param claimId  Claim identifier
   function redeemClaimPayout(uint104 claimId) external override {
     Claim memory claim = claims[claimId];
     (
@@ -340,18 +354,19 @@ contract Claims is IClaims, MasterAwareV2 {
       uint assessmentDeposit
     ) = assessment().assessments(claim.assessmentId);
 
+    require(block.timestamp >= poll.end, "The claim is still being assessed");
     require(poll.accepted > poll.denied, "The claim needs to be accepted");
 
-    (,,uint8 payoutCooldownDays) = assessment().config();
+    (,,uint8 payoutCooldownInDays,) = assessment().config();
     require(
-      block.timestamp >= poll.end + payoutCooldownDays * 1 days,
+      block.timestamp >= poll.end + payoutCooldownInDays * 1 days,
       "The claim is in cooldown period"
     );
 
     require(
       block.timestamp < poll.end +
-      payoutCooldownDays * 1 days +
-      config.payoutRedemptionPeriodDays * 1 days,
+      payoutCooldownInDays * 1 days +
+      config.payoutRedemptionPeriodInDays * 1 days,
       "The redemption period has expired"
     );
 
@@ -377,16 +392,27 @@ contract Claims is IClaims, MasterAwareV2 {
 
   }
 
-  function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values)
-  external override onlyGovernance {
+  /// Redeems payouts for accepted claims
+  ///
+  /// @param paramNames  An array of elements from UintParams enum
+  /// @param values      An array of the new values, each one corresponding to the parameter
+  ///                    from paramNames on the same position.
+  function updateUintParameters(
+    UintParams[] calldata paramNames,
+    uint[] calldata values
+  ) external override onlyGovernance {
     Configuration memory newConfig = config;
     for (uint i = 0; i < paramNames.length; i++) {
-      if (paramNames[i] == UintParams.payoutRedemptionPeriodDays) {
-        newConfig.payoutRedemptionPeriodDays = uint8(values[i]);
+      if (paramNames[i] == UintParams.payoutRedemptionPeriodInDays) {
+        newConfig.payoutRedemptionPeriodInDays = uint8(values[i]);
         continue;
       }
       if (paramNames[i] == UintParams.rewardRatio) {
         newConfig.rewardRatio = uint16(values[i]);
+        continue;
+      }
+      if (paramNames[i] == UintParams.maxRewardInNXMWad) {
+        newConfig.maxRewardInNXMWad = uint16(values[i]);
         continue;
       }
       if (paramNames[i] == UintParams.minAssessmentDepositRatio) {
@@ -397,6 +423,8 @@ contract Claims is IClaims, MasterAwareV2 {
     config = newConfig;
   }
 
+  /// @dev Updates internal contract addresses to the ones stored in master. This function is
+  /// automatically called by the master contract when a contract is added or upgraded.
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");

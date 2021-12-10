@@ -1,6 +1,5 @@
-const { assert } = require('chai');
+const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { time } = require('@openzeppelin/test-helpers');
 const { daysToSeconds, setTime } = require('./helpers');
 const { parseEther } = ethers.utils;
 
@@ -55,21 +54,21 @@ describe('unstake', function () {
     }
   });
 
-  it("reverts if less than stakeLockupPeriodDays passed since the staker's last vote", async function () {
+  it("reverts if less than stakeLockupPeriodInDays passed since the staker's last vote", async function () {
     const { assessment, nxm, claims } = this.contracts;
     const user = this.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
-    await claims.submitClaim(0, parseEther('100'), false, '');
+    await claims.submitClaim(0, parseEther('100'), '');
     await assessment.connect(user).castVote(0, true);
     await expect(assessment.connect(user).unstake(parseEther('100'))).to.be.revertedWith('Stake is in lockup period');
 
-    const { stakeLockupPeriodDays } = await assessment.config();
-    const timestamp = await time.latest();
-    for (let i = 1; i < stakeLockupPeriodDays; i++) {
-      await setTime(timestamp.toNumber() + daysToSeconds(i));
+    const { stakeLockupPeriodInDays } = await assessment.config();
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    for (let i = 1; i < stakeLockupPeriodInDays; i++) {
+      await setTime(timestamp + daysToSeconds(i));
       await expect(assessment.connect(user).unstake(parseEther('100'))).to.be.revertedWith('Stake is in lockup period');
     }
-    await setTime(timestamp.toNumber() + daysToSeconds(stakeLockupPeriodDays));
+    await setTime(timestamp + daysToSeconds(stakeLockupPeriodInDays));
     expect(assessment.connect(user).unstake(parseEther('100'))).not.to.be.revertedWith('Stake is in lockup period');
   });
 });

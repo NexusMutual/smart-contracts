@@ -1,7 +1,5 @@
 const { ethers } = require('hardhat');
-const { time } = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
-const { submitClaim, EVENT_TYPE, daysToSeconds } = require('./helpers');
+const { expect } = require('chai');
 const { arrayify } = ethers.utils;
 
 describe('submitFraud', function () {
@@ -10,10 +8,10 @@ describe('submitFraud', function () {
     const user = this.accounts.members[0];
     const governance = this.accounts.governanceContracts[0];
     const merkleTreeRootMock = arrayify('0x1111111111111111111111111111111111111111111111111111111111111111');
-    expect(assessment.connect(user).submitFraud(merkleTreeRootMock)).to.be.revertedWith(
+    await expect(assessment.connect(user).submitFraud(merkleTreeRootMock)).to.be.revertedWith(
       'Caller is not authorized to govern',
     );
-    expect(assessment.connect(governance).submitFraud(merkleTreeRootMock)).not.to.be.revertedWith(
+    await expect(assessment.connect(governance).submitFraud(merkleTreeRootMock)).not.to.be.revertedWith(
       'Caller is not authorized to govern',
     );
   });

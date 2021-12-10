@@ -1,5 +1,10 @@
 const { assert } = require('chai');
-const { web3, ethers: { utils: { parseEther } } } = require('hardhat');
+const {
+  web3,
+  ethers: {
+    utils: { parseEther },
+  },
+} = require('hardhat');
 const { time, expectRevert } = require('@openzeppelin/test-helpers');
 const { hex, zeroPadRight } = require('../utils').helpers;
 const { calculatePrice } = require('./helpers');
@@ -7,8 +12,7 @@ const { calculatePrice } = require('./helpers');
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
 describe('buyCover', function () {
-
-  it.only('should purchase new cover', async function () {
+  it('should purchase new cover', async function () {
     const { cover } = this;
 
     const {
@@ -70,6 +74,5 @@ describe('buyCover', function () {
     console.log({
       receipt: receipt.gasUsed.toString(),
     });
-
   });
 });

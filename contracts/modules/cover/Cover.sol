@@ -51,6 +51,7 @@ contract Cover is ICover, MasterAwareV2 {
   mapping(uint => uint) public ltaDeductions;
 
   uint32 public capacityFactor;
+  uint32 public rewardsFactor;
   // [todo] Remove this and use covers.length instead
   uint32 public coverCount;
 
@@ -447,6 +448,10 @@ contract Cover is ICover, MasterAwareV2 {
 
   function setCapacityFactor(uint32 _capacityFactor) external onlyGovernance {
     capacityFactor = _capacityFactor;
+  }
+
+  function setRewardsFactor(uint32 _rewardsFactor) external onlyGovernance {
+    rewardsFactor = _rewardsFactor;
   }
 
   function setInitialPrice(uint productId, uint initialPrice) external onlyAdvisoryBoard {

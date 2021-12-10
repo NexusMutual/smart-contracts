@@ -271,7 +271,7 @@ contract StakingPool is ERC20 {
 
   /* callable by cover contract */
 
-  function buyCover(BuyStakingPoolCoverParams calldata params) external returns (uint, uint) {
+  function allocateCapacity(BuyStakingPoolCoverParams calldata params) external returns (uint, uint) {
 
     uint staked = processPoolBuckets();
     uint currentBucket = block.timestamp / BUCKET_SIZE;

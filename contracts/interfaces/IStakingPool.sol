@@ -15,35 +15,15 @@ interface IStakingPool {
     uint initialPrice;
   }
 
-  function buyCover(BuyStakingPoolCoverParams calldata params) external returns (uint, uint);
+  function allocateCapacity(BuyStakingPoolCoverParams calldata params) external returns (uint, uint);
 
-  function extendPeriod(
-    uint productId,
-    uint previousPeriod,
-    uint previousStartTime,
-    uint previousRewardAmount,
-    uint newPeriod,
-    uint newRewardAmount,
-    uint coveredAmount
-  ) external;
-
-  function reducePeriod(
+  function freeCapacity(
     uint productId,
     uint previousPeriod,
     uint previousStartTime,
     uint previousRewardAmount,
     uint periodReduction,
     uint coveredAmount
-  ) external;
-
-  function reduceAmount(
-    uint productId,
-    uint period,
-    uint startTime,
-    uint previousRewardAmount,
-    uint previousAmount,
-    uint newRewardAmount,
-    uint newAmount
   ) external;
 
   function getAvailableCapacity(uint productId, uint capacityFactor) external view returns (uint);

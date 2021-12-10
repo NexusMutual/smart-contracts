@@ -243,7 +243,7 @@ contract Cover is ICover, MasterAwareV2 {
   ) internal returns (uint, uint) {
 
     uint initialPrice = initialPrices[productId];
-    return stakingPool.buyCover(IStakingPool.BuyStakingPoolCoverParams(
+    return stakingPool.allocateCapacity(IStakingPool.BuyStakingPoolCoverParams(
       productId,
       amountToCover,
       REWARD_DENOMINATOR,
@@ -279,7 +279,7 @@ contract Cover is ICover, MasterAwareV2 {
       for (uint i = 0; i < originalCoverChunks.length; i++) {
         IStakingPool stakingPool = IStakingPool(originalCoverChunks[i].poolAddress);
 
-        stakingPool.reducePeriod(
+        stakingPool.freeCapacity(
           cover.productId,
           cover.period,
           cover.start,

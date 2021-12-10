@@ -13,42 +13,18 @@ contract CoverMockStakingPool is IStakingPool {
 
   mapping (uint => uint) public mockPrices;
 
-  function buyCover(BuyStakingPoolCoverParams calldata params) external override returns (uint, uint) {
+  function allocateCapacity(BuyStakingPoolCoverParams calldata params) external override returns (uint, uint) {
     usedCapacity[params.productId] += params.coverAmount;
     return (0, 0);
   }
 
-  function extendPeriod(
-    uint productId,
-    uint previousPeriod,
-    uint previousStartTime,
-    uint previousRewardAmount,
-    uint newPeriod,
-    uint newRewardAmount,
-    uint coveredAmount
-  ) external override {
-    // no-op
-  }
-
-  function reducePeriod(
+  function freeCapacity(
     uint productId,
     uint previousPeriod,
     uint previousStartTime,
     uint previousRewardAmount,
     uint periodReduction,
     uint coveredAmount
-  ) external override {
-    // no-op
-  }
-
-  function reduceAmount(
-    uint productId,
-    uint period,
-    uint startTime,
-    uint previousRewardAmount,
-    uint previousAmount,
-    uint newRewardAmount,
-    uint newAmount
   ) external override {
     // no-op
   }

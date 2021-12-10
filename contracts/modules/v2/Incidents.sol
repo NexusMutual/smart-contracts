@@ -51,7 +51,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
     config.rewardRatio = 130; // 1.3%
     config.incidentExpectedPayoutRatio = 3000; // 30%
     config.incidentPayoutDeductibleRatio = 9000; // 90%
-    config.maxRewardInNXM = 50; // 50 NXM
+    config.maxRewardInNXMWad = 50; // 50 NXM
     master = INXMMaster(masterAddress);
   }
 
@@ -116,7 +116,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
 
     // Determine the total rewards that should be minted for the assessors based on cover period
     uint totalReward = min(
-      uint(config.maxRewardInNXM) * PRECISION,
+      uint(config.maxRewardInNXMWad) * PRECISION,
       expectedPayoutInNXM * uint(config.rewardRatio) / REWARD_DENOMINATOR
     );
     uint assessmentId = assessment().startAssessment(totalReward, 0);

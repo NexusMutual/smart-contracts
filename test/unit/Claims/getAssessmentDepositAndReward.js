@@ -6,10 +6,10 @@ const { daysToSeconds, ASSET } = require('./helpers');
 const { parseEther } = ethers.utils;
 
 describe('getAssessmentDepositAndReward', function () {
-  it('returns a total reward in NXM no greater than config.maxRewardInNXM', async function () {
+  it('returns a total reward in NXM no greater than config.maxRewardInNXMWad', async function () {
     const { claims } = this.contracts;
-    const { maxRewardInNXM } = await claims.config();
-    const max = parseEther(maxRewardInNXM.toString());
+    const { maxRewardInNXMWad } = await claims.config();
+    const max = parseEther(maxRewardInNXMWad.toString());
 
     {
       const [, /* deposit */ totalReward] = await claims.getAssessmentDepositAndReward(

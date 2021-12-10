@@ -15,7 +15,7 @@ interface IClaims {
   enum UintParams {
     payoutRedemptionPeriodInDays,
     minAssessmentDepositRatio,
-    maxRewardInNXM,
+    maxRewardInNXMWad,
     rewardRatio
   }
 
@@ -29,7 +29,7 @@ interface IClaims {
     uint16 minAssessmentDepositRatio;
 
     // An amount of NXM representing the maximum reward amount given for any claim assessment.
-    uint16 maxRewardInNXM;
+    uint16 maxRewardInNXMWad;
 
     // Ratio used to calculate assessment rewards. (0-10000 i.e. double decimal precision).
     uint16 rewardRatio;

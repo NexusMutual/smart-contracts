@@ -47,7 +47,7 @@ contract Claims is IClaims, MasterAwareV2 {
   function initialize(address masterAddress) external {
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
     config.rewardRatio = 130; // 1.3%
-    config.maxRewardInNXM = 50; // 50 NXM
+    config.maxRewardInNXMWad = 50; // 50 NXM
     config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH assessment minimum flat fee
     config.payoutRedemptionPeriodInDays = 14; // days until the payout will not be redeemable anymore
     master = INXMMaster(masterAddress);
@@ -89,7 +89,7 @@ contract Claims is IClaims, MasterAwareV2 {
 
     // Determine the total rewards that should be minted for the assessors based on cover period
     uint totalReward = min(
-      uint(config.maxRewardInNXM) * PRECISION,
+      uint(config.maxRewardInNXMWad) * PRECISION,
       expectedPayoutInNXM * uint(config.rewardRatio) * coverPeriod / 365 days / REWARD_DENOMINATOR
     );
 
@@ -411,8 +411,8 @@ contract Claims is IClaims, MasterAwareV2 {
         newConfig.rewardRatio = uint16(values[i]);
         continue;
       }
-      if (paramNames[i] == UintParams.maxRewardInNXM) {
-        newConfig.maxRewardInNXM = uint16(values[i]);
+      if (paramNames[i] == UintParams.maxRewardInNXMWad) {
+        newConfig.maxRewardInNXMWad = uint16(values[i]);
         continue;
       }
       if (paramNames[i] == UintParams.minAssessmentDepositRatio) {

@@ -82,7 +82,7 @@ describe('submitIncident', function () {
     expect(totalReward).to.be.equal(expectedTotalReward);
   });
 
-  it('calculates the totalReward capped at config.maxRewardInNXM', async function () {
+  it('calculates the totalReward capped at config.maxRewardInNXMWad', async function () {
     const { assessment, incidents, cover } = this.contracts;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
 
@@ -90,7 +90,7 @@ describe('submitIncident', function () {
     const productId = 2;
     const currentTime = await time.latest();
     await incidents.connect(advisoryBoard).submitIncident(productId, parseEther('1.1'), currentTime.toNumber());
-    const expectedTotalReward = parseEther(this.config.maxRewardInNXM.toString());
+    const expectedTotalReward = parseEther(this.config.maxRewardInNXMWad.toString());
     const { totalReward } = await assessment.assessments(0);
     expect(totalReward).to.be.equal(expectedTotalReward);
   });

@@ -28,7 +28,7 @@ contract Cover is ICover, MasterAwareV2 {
   uint public constant REWARD_DENOMINATOR = 2;
 
   uint public constant PRICE_DENOMINATOR = 10000;
-  uint public constant LTA_DEDUCTION_DENOMINATOR = 10000;
+  uint public constant CAPACITY_REDUCTION_RATIO_DENOMINATOR = 10000;
 
   uint public constant MAX_COVER_PERIOD = 365 days;
   uint public constant MIN_COVER_PERIOD = 30 days;
@@ -197,7 +197,7 @@ contract Cover is ICover, MasterAwareV2 {
 
       uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / payoutAssetTokenPrice;
 
-      (uint coveredAmountInNXM, uint premiumInNXM) = buyCoverFromPool(
+      (uint coveredAmountInNXM, uint premiumInNXM) = allocateCapacity(
         IStakingPool(coverChunkRequests[i].poolAddress),
         params.productId,
         requestedCoverAmountInNXM,
@@ -237,7 +237,7 @@ contract Cover is ICover, MasterAwareV2 {
     return (coverId, premiumInPaymentAsset, totalPremiumInNXM);
   }
 
-  function buyCoverFromPool(
+  function allocateCapacity(
     IStakingPool stakingPool,
     uint24 productId,
     uint amount,
@@ -251,6 +251,7 @@ contract Cover is ICover, MasterAwareV2 {
       REWARD_DENOMINATOR,
       period,
       capacityFactor,
+      rewardsFactor,
       capacityReductionRatios[productId],
       initialPrice
     ));
@@ -462,8 +463,8 @@ contract Cover is ICover, MasterAwareV2 {
     initialPrices[productId] = initialPrice;
   }
 
-  function setLTADeduction(uint productId, uint deduction) external onlyAdvisoryBoard {
-    require(deduction <= LTA_DEDUCTION_DENOMINATOR, "Cover: LTADeduction must be less than or equal to 100%");
+  function setCapacityReductionRatio(uint productId, uint deduction) external onlyAdvisoryBoard {
+    require(deduction <= CAPACITY_REDUCTION_RATIO_DENOMINATOR, "Cover: LTADeduction must be less than or equal to 100%");
     capacityReductionRatios[productId] = deduction;
   }
 

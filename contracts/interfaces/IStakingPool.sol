@@ -8,10 +8,11 @@ interface IStakingPool {
   struct AllocateCapacityParams {
     uint productId;
     uint coverAmount;
-    uint rewardAmount;
+    uint rewardsDenominator;
     uint period;
     uint capacityFactor;
-    uint ltaDeduction;
+    uint rewardsFactor;
+    uint capacityReductionRatio;
     uint initialPrice;
   }
 

@@ -45,10 +45,11 @@ contract StakingPool is ERC20 {
   struct AllocateCapacityParams {
     uint productId;
     uint coverAmount;
-    uint rewardAmount;
+    uint rewardsDenominator;
     uint period;
     uint capacityFactor;
-    uint ltaDeduction;
+    uint rewardsFactor;
+    uint capacityReductionRatio;
     uint initialPrice;
   }
 
@@ -132,6 +133,9 @@ contract StakingPool is ERC20 {
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
   uint public constant PRICE_RATIO_CHANGE_PER_DAY = 100;
   uint public constant PRICE_DENOMINATOR = 10_000;
+  uint public constant CAPACITY_FACTOR_DENOMINATOR = 10_000;
+  uint public constant PRODUCT_WEIGHT_DENOMINATOR = 10_000;
+  uint public constant CAPACITY_REDUCTION_RATIO_DENOMINATOR = 10_000;
 
   uint public constant GLOBAL_MIN_PRICE = 100; // 1%
 
@@ -277,7 +281,6 @@ contract StakingPool is ERC20 {
     uint currentBucket = block.timestamp / BUCKET_SIZE;
 
     Product storage product = products[params.productId];
-    uint weight = product.weight;
     uint activeCoverAmount = product.activeCoverAmount;
     uint lastBucket = product.lastBucket;
 
@@ -287,37 +290,42 @@ contract StakingPool is ERC20 {
       activeCoverAmount -= product.buckets[lastBucket].coverAmountExpiring;
     }
 
-    // capacity checks
-    uint maxActiveCoverAmount = staked * params.capacityFactor * weight / PARAM_PRECISION / PARAM_PRECISION;
-    require(activeCoverAmount + params.coverAmount <= maxActiveCoverAmount, "StakingPool: No available capacity");
+    // limit cover amount to the amount left available
 
+    uint capacity =
+      staked * params.capacityFactor * product.weight * (CAPACITY_REDUCTION_RATIO_DENOMINATOR - params.capacityReductionRatio)
+      / CAPACITY_FACTOR_DENOMINATOR / PRODUCT_WEIGHT_DENOMINATOR / CAPACITY_REDUCTION_RATIO_DENOMINATOR;
+    uint coverAmount = min(
+      capacity - activeCoverAmount,
+      params.coverAmount
+    );
 
     {
       // calculate expiration bucket, reward period, reward amount
       uint expirationBucket = (block.timestamp + params.period) / BUCKET_SIZE + 1;
       uint rewardPeriod = expirationBucket * BUCKET_SIZE - block.timestamp;
-      uint addedRewardPerSecond = params.rewardAmount / rewardPeriod;
+      uint addedRewardPerSecond = params.rewardsFactor * coverAmount / params.rewardsDenominator / rewardPeriod;
 
       // update state
       // 1 SLOAD + 3 SSTORE
       currentRewardPerSecond = uint64(currentRewardPerSecond + addedRewardPerSecond);
       poolBuckets[expirationBucket].rewardPerSecondCut += uint64(addedRewardPerSecond);
-      product.buckets[expirationBucket].coverAmountExpiring += uint96(params.coverAmount);
+      product.buckets[expirationBucket].coverAmountExpiring += uint96(coverAmount);
 
       product.lastBucket = uint16(lastBucket);
-      product.activeCoverAmount = uint96(activeCoverAmount + params.coverAmount);
+      product.activeCoverAmount = uint96(activeCoverAmount + coverAmount);
     }
 
     // price calculation
     uint actualPrice = getActualPriceAndUpdateBasePrice(
       params.productId,
-      params.coverAmount,
+      coverAmount,
       product.activeCoverAmount,
       activeCoverAmount,
       params.initialPrice
     );
 
-    return (0, calculatePremium(actualPrice, params.coverAmount, params.period));
+    return (coverAmount, calculatePremium(actualPrice, coverAmount, params.period));
   }
 
   function burn() external {

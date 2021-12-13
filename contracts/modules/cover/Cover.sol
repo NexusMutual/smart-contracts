@@ -240,14 +240,14 @@ contract Cover is ICover, MasterAwareV2 {
   function buyCoverFromPool(
     IStakingPool stakingPool,
     uint24 productId,
-    uint amountToCover,
+    uint amount,
     uint32 period
   ) internal returns (uint, uint) {
 
     uint initialPrice = initialPrices[productId];
     return stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
       productId,
-      amountToCover,
+      amount,
       REWARD_DENOMINATOR,
       period,
       capacityFactor,

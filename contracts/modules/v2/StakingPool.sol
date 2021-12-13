@@ -70,7 +70,7 @@ contract StakingPool is ERC20 {
   (productId, poolAddress) => lastPrice
   Last base prices at which a cover was sold by a pool for a particular product.
   */
-  mapping(uint => LastPrice) lastPrices;
+  mapping(uint => LastPrice) lastBasePrices;
 
   mapping (uint => uint) targetPrices;
 
@@ -130,8 +130,8 @@ contract StakingPool is ERC20 {
 
   uint public constant PRICE_CURVE_EXPONENT = 7;
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
-  uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
-  uint public constant BASIS_PRECISION = 10_000;
+  uint public constant PRICE_RATIO_CHANGE_PER_DAY = 100;
+  uint public constant PRICE_DENOMINATOR = 10_000;
 
   uint public constant GLOBAL_MIN_PRICE = 100; // 1%
 
@@ -424,7 +424,7 @@ contract StakingPool is ERC20 {
 
     (uint actualPrice, uint basePrice) = getPrices(productId, amount, activeCover, capacity, initialPrice);
     // store the last base price
-    lastPrices[productId] = LastPrice(
+    lastBasePrices[productId] = LastPrice(
       uint96(basePrice),
       uint32(block.timestamp
     ));
@@ -439,11 +439,13 @@ contract StakingPool is ERC20 {
     uint capacity,
     uint initialPrice
   ) public view returns  (uint actualPrice, uint basePrice) {
-    uint96 lastPrice = lastPrices[productId].value;
+
+    LastPrice memory lastBasePrice = lastBasePrices[productId];
+    uint96 lastPrice = lastBasePrices[productId].value;
     basePrice = interpolatePrice(
-      lastPrice != 0 ? lastPrice : initialPrice,
+      lastBasePrice.value != 0 ? lastBasePrice.value : initialPrice,
       targetPrices[productId],
-      lastPrices[productId].lastUpdateTime,
+      lastBasePrices[productId].lastUpdateTime,
       block.timestamp
     );
 
@@ -451,7 +453,7 @@ contract StakingPool is ERC20 {
     actualPrice = calculatePrice(amount, basePrice, activeCover, capacity);
 
     // Bump base price by 2% (200 basis points) per 10% (1000 basis points) of capacity used
-    uint priceBump = amount * BASIS_PRECISION / capacity / 1000 *  200;
+    uint priceBump = amount * PRICE_DENOMINATOR / capacity / 1000 *  200;
     basePrice = uint96(basePrice + priceBump);
   }
 
@@ -463,15 +465,15 @@ contract StakingPool is ERC20 {
   ) public pure returns (uint) {
 
     uint newActiveCoverAmount = amount + activeCover;
-    uint newActiveCoverPercentage = newActiveCoverAmount * 1e18 / capacity;
+    uint newActiveCoverRatio = newActiveCoverAmount * 1e18 / capacity;
 
-    if (newActiveCoverPercentage > SURGE_THRESHOLD) {
+    if (newActiveCoverRatio > SURGE_THRESHOLD) {
       return basePrice;
     }
 
-    uint surgeLoadingPercentage = newActiveCoverPercentage - SURGE_THRESHOLD;
-    uint surgeFraction = surgeLoadingPercentage * capacity / newActiveCoverAmount;
-    uint surgeLoading = BASE_SURGE_LOADING * surgeLoadingPercentage / 1e18 / 2 * surgeFraction / 1e18;
+    uint surgeLoadingRatio = newActiveCoverRatio - SURGE_THRESHOLD;
+    uint surgeFraction = surgeLoadingRatio * capacity / newActiveCoverAmount;
+    uint surgeLoading = BASE_SURGE_LOADING * surgeLoadingRatio / 1e18 / 2 * surgeFraction / 1e18;
 
     return basePrice * (1e18 + surgeLoading) / 1e18;
   }
@@ -488,12 +490,12 @@ contract StakingPool is ERC20 {
   ) public pure returns (uint) {
 
     uint percentageChange =
-    (currentTimestamp - lastPriceUpdate) / 1 days * PERCENTAGE_CHANGE_PER_DAY_BPS;
+    (currentTimestamp - lastPriceUpdate) / 1 days * PRICE_RATIO_CHANGE_PER_DAY;
 
     if (targetPrice > lastPrice) {
       return targetPrice;
     } else {
-      return lastPrice - (lastPrice - targetPrice) * percentageChange / BASIS_PRECISION;
+      return lastPrice - (lastPrice - targetPrice) * percentageChange / PRICE_DENOMINATOR;
     }
   }
 }

@@ -21,12 +21,14 @@ contract Cover is ICover, MasterAwareV2 {
 
   /* === CONSTANTS ==== */
 
-  uint public constant BASIS_PRECISION = 10000;
   uint public constant STAKE_SPEED_UNIT = 100000e18;
   uint public constant PRICE_CURVE_EXPONENT = 7;
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
   uint public constant BUCKET_SIZE = 7 days;
   uint public constant REWARD_DENOMINATOR = 2;
+
+  uint public constant PRICE_DENOMINATOR = 10000;
+  uint public constant LTA_DEDUCTION_DENOMINATOR = 10000;
 
   uint public constant MAX_COVER_PERIOD = 365 days;
   uint public constant MIN_COVER_PERIOD = 30 days;
@@ -48,7 +50,7 @@ contract Cover is ICover, MasterAwareV2 {
 
   mapping(uint => uint) initialPrices;
 
-  mapping(uint => uint) public ltaDeductions;
+  mapping(uint => uint) public capacityReductionRatios;
 
   uint32 public capacityFactor;
   uint32 public rewardsFactor;
@@ -168,13 +170,13 @@ contract Cover is ICover, MasterAwareV2 {
     );
     require(params.period >= MIN_COVER_PERIOD, "Cover: Cover period is too short");
     require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
-    require(params.commissionRate <= MAX_COMMISSION_RATE, "Cover: Commission rate is too high");
+    require(params.commissionRatio <= MAX_COMMISSION_RATE, "Cover: Commission rate is too high");
 
     (uint coverId, uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(params, coverChunkRequests);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (params.payWithNXM) {
-      retrieveNXMPayment(totalPremiumInNXM, params.commissionRate, params.commissionDestination);
+      retrieveNXMPayment(totalPremiumInNXM, params.commissionRatio, params.commissionDestination);
     } else {
       retrievePayment(premiumInPaymentAsset, params);
     }
@@ -226,7 +228,7 @@ contract Cover is ICover, MasterAwareV2 {
         uint96(totalCoverAmountInNXM * payoutAssetTokenPrice / 1e18),
         uint32(block.timestamp + 1),
         uint32(params.period),
-        uint16(totalPremiumInNXM * BASIS_PRECISION / totalCoverAmountInNXM)
+        uint16(totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM)
       ));
 
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
@@ -249,7 +251,7 @@ contract Cover is ICover, MasterAwareV2 {
       REWARD_DENOMINATOR,
       period,
       capacityFactor,
-      ltaDeductions[productId],
+      capacityReductionRatios[productId],
       initialPrice
     ));
   }
@@ -265,7 +267,7 @@ contract Cover is ICover, MasterAwareV2 {
     CoverData memory cover = covers[coverId];
     require(cover.start + cover.period > block.timestamp, "Cover: cover expired");
     require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
-    require(buyCoverParams.commissionRate <= MAX_COMMISSION_RATE, "Cover: Commission rate is too high");
+    require(buyCoverParams.commissionRatio <= MAX_COMMISSION_RATE, "Cover: Commission rate is too high");
 
     uint32 remainingPeriod = cover.start + cover.period - uint32(block.timestamp);
 
@@ -293,7 +295,7 @@ contract Cover is ICover, MasterAwareV2 {
       }
     }
 
-    uint refundInCoverAsset = cover.priceRatio * cover.amount / BASIS_PRECISION * remainingPeriod / cover.period;
+    uint refundInCoverAsset = cover.priceRatio * cover.amount / PRICE_DENOMINATOR * remainingPeriod / cover.period;
 
     // edit cover so it ends at the current block
     cover.period = cover.period - remainingPeriod;
@@ -309,7 +311,7 @@ contract Cover is ICover, MasterAwareV2 {
       uint refundInNXM = refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset);
       if (refundInNXM < totalPremiumInNXM) {
         // requires NXM allowance
-        retrieveNXMPayment(totalPremiumInNXM - refundInNXM, buyCoverParams.commissionRate, buyCoverParams.commissionDestination);
+        retrieveNXMPayment(totalPremiumInNXM - refundInNXM, buyCoverParams.commissionRatio, buyCoverParams.commissionDestination);
       }
     } else {
       uint refundInPaymentAsset =
@@ -351,19 +353,19 @@ contract Cover is ICover, MasterAwareV2 {
 
 
   function retrievePayment(
-    uint actualPrice,
+    uint premium,
     BuyCoverParams memory buyParams
   ) internal {
 
     // add commission
-    uint endPrice = buyParams.commissionRate > 0 ?
-      actualPrice / (BASIS_PRECISION - buyParams.commissionRate) * BASIS_PRECISION
-      : actualPrice;
-    uint commission = endPrice - actualPrice;
+    uint premiumWithCommission = buyParams.commissionRatio > 0 ?
+      premium / (PRICE_DENOMINATOR - buyParams.commissionRatio) * PRICE_DENOMINATOR
+      : premium;
+    uint commission = premiumWithCommission - premium;
 
     if (buyParams.paymentAsset == 0) {
-      require(msg.value >= endPrice, "Cover: Insufficient ETH sent");
-      uint remainder = msg.value - endPrice;
+      require(msg.value >= premiumWithCommission, "Cover: Insufficient ETH sent");
+      uint remainder = msg.value - premiumWithCommission;
 
       if (remainder > 0) {
         // solhint-disable-next-line avoid-low-level-calls
@@ -374,7 +376,7 @@ contract Cover is ICover, MasterAwareV2 {
       // send commission
       if (commission > 0) {
         (bool ok, /* data */) = address(buyParams.commissionDestination).call{value: commission}("");
-        require(ok, "Cover: Sending ETH to commissionDestination failed.");
+        require(ok, "Cover: Sending ETH to commission destination failed.");
       }
     } else {
       (
@@ -384,7 +386,7 @@ contract Cover is ICover, MasterAwareV2 {
       ) = pool().assets(buyParams.paymentAsset);
 
       IERC20 token = IERC20(payoutAsset);
-      token.transferFrom(msg.sender, address(this), endPrice);
+      token.transferFrom(msg.sender, address(pool()), premium);
 
       if (commission > 0) {
         token.transfer(buyParams.commissionDestination, commission);
@@ -392,13 +394,13 @@ contract Cover is ICover, MasterAwareV2 {
     }
   }
 
-  function retrieveNXMPayment(uint actualPrice, uint commissionRate, address commissionDestination) internal {
+  function retrieveNXMPayment(uint price, uint commissionRatio, address commissionDestination) internal {
 
     ITokenController tokenController = tokenController();
-    if (commissionRate > 0) {
-      uint endPrice = actualPrice / (BASIS_PRECISION - commissionRate) * BASIS_PRECISION;
-      tokenController.burnFrom(msg.sender, actualPrice);
-      uint commission = endPrice - actualPrice;
+    if (commissionRatio > 0) {
+      uint priceWithCommission = price / (PRICE_DENOMINATOR - commissionRatio) * PRICE_DENOMINATOR;
+      tokenController.burnFrom(msg.sender, price);
+      uint commission = priceWithCommission - price;
 
       // transfer the commission to the commissionDestination; reverts if commissionDestination is not a member
       tokenController.token().transferFrom(msg.sender, commissionDestination, commission);
@@ -406,7 +408,7 @@ contract Cover is ICover, MasterAwareV2 {
       return;
     }
 
-    tokenController.burnFrom(msg.sender, actualPrice);
+    tokenController.burnFrom(msg.sender, price);
   }
 
   /* ========== Staking Pool creation ========== */
@@ -461,8 +463,8 @@ contract Cover is ICover, MasterAwareV2 {
   }
 
   function setLTADeduction(uint productId, uint deduction) external onlyAdvisoryBoard {
-    require(deduction <= BASIS_PRECISION, "Cover: LTADeduction must be less than or equal to 100%");
-    ltaDeductions[productId] = deduction;
+    require(deduction <= LTA_DEDUCTION_DENOMINATOR, "Cover: LTADeduction must be less than or equal to 100%");
+    capacityReductionRatios[productId] = deduction;
   }
 
   function addProduct(Product calldata product) external onlyAdvisoryBoard {

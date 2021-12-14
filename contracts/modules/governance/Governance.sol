@@ -333,7 +333,7 @@ contract Governance is IGovernance, LegacyMasterAware {
     address leader;
     uint lastUpd;
 
-    require(msg.sender == ms.getLatestAddress("CR"));
+    require(msg.sender == ms.getLatestAddress("TC"));
 
     uint delegationId = followerDelegation[_memberAddress];
     DelegateVote memory delegationData = allDelegation[delegationId];

@@ -24,10 +24,7 @@ const setTime = async timestamp => {
   await mineNextBlock();
 };
 
-const getConfigurationStruct = ({ rewardRatio, incidentExpectedPayoutRatio }) => [
-  rewardRatio,
-  incidentExpectedPayoutRatio,
-];
+const getConfigurationStruct = ({ rewardRatio, expectedPayoutRatio }) => [rewardRatio, expectedPayoutRatio];
 
 const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
 

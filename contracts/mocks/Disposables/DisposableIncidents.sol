@@ -16,9 +16,10 @@ contract DisposableIncidents is MasterAwareV2 {
   /* ========== CONSTRUCTOR ========== */
 
   function initialize (address masterAddress) external {
+    config.expectedPayoutRatio = 3000; // 30%
+    config.payoutDeductibleRatio = 9000; // 90%
     config.rewardRatio = 52; // 0.52%
-    config.incidentExpectedPayoutRatio = 3000; // 30%
-    config.incidentPayoutDeductibleRatio = 9000; // 90%
+    config.maxRewardInNXMWad = 59; // 50 NXM
     master = INXMMaster(masterAddress);
   }
 

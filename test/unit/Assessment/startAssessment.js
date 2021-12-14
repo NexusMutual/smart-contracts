@@ -65,7 +65,7 @@ describe('startAssessment', function () {
       const activeCoverAmountInNXM = parseEther('1000');
       await incidents.connect(AB).submitIncident(0, parseEther('1'), timestamp, activeCoverAmountInNXM);
       const { assessmentDeposit, totalReward } = await assessment.assessments(1);
-      const { rewardRatio, incidentExpectedPayoutRatio } = await incidents.config();
+      const { rewardRatio, expectedPayoutRatio } = await incidents.config();
 
       // For now being AB only, it doesn't require a deposit to submit incidents
       expect(assessmentDeposit).to.be.equal(Zero);
@@ -73,7 +73,7 @@ describe('startAssessment', function () {
         activeCoverAmountInNXM
           .mul(rewardRatio)
           .div(10000)
-          .mul(incidentExpectedPayoutRatio)
+          .mul(expectedPayoutRatio)
           .div(10000),
       );
     }
@@ -101,13 +101,13 @@ describe('startAssessment', function () {
       const activeCoverAmountInNXM = parseEther('1000');
       await incidents.connect(AB).submitIncident(0, parseEther('1'), timestamp, activeCoverAmountInNXM);
       const { assessmentDeposit, totalReward } = await assessment.assessments(1);
-      const { rewardRatio, incidentExpectedPayoutRatio } = await incidents.config();
+      const { rewardRatio, expectedPayoutRatio } = await incidents.config();
       expect(assessmentDeposit).to.be.equal(Zero); // For now AB doesn't require a deposit to submit incidents
       expect(totalReward).to.be.equal(
         activeCoverAmountInNXM
           .mul(rewardRatio)
           .div(10000)
-          .mul(incidentExpectedPayoutRatio)
+          .mul(expectedPayoutRatio)
           .div(10000),
       );
     }

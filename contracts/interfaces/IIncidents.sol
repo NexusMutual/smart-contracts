@@ -8,8 +8,8 @@ interface IIncidents {
 
   enum UintParams {
     payoutRedemptionPeriodInDays,
-    incidentExpectedPayoutRatio,
-    incidentPayoutDeductibleRatio,
+    expectedPayoutRatio,
+    payoutDeductibleRatio,
     maxRewardInNXMWad,
     rewardRatio
   }
@@ -20,10 +20,10 @@ interface IIncidents {
 
     // Ratio used to calculate potential payout of an incident
     // (0-10000 bps i.e. double decimal precision)
-    uint16 incidentExpectedPayoutRatio;
+    uint16 expectedPayoutRatio;
 
     // Ratio used to determine the deductible payout (0-10000 bps i.e. double decimal precision)
-    uint16 incidentPayoutDeductibleRatio;
+    uint16 payoutDeductibleRatio;
 
     // An amount of NXM representing the maximum reward amount given for any claim assessment.
     uint16 maxRewardInNXMWad;
@@ -50,8 +50,8 @@ interface IIncidents {
 
   function config() external view returns (
     uint8 payoutRedemptionPeriodInDays,
-    uint16 incidentExpectedPayoutRatio,
-    uint16 incidentPayoutDeductibleRatio,
+    uint16 expectedPayoutRatio,
+    uint16 payoutDeductibleRatio,
     uint16 maxRewardInNXMWad,
     uint16 rewardRatio
   );
@@ -66,17 +66,24 @@ interface IIncidents {
   function submitIncident(
     uint24 productId,
     uint96 priceBefore,
-    uint32 date
+    uint32 date,
+    uint expectedPayoutInNXM,
+    string calldata ipfsMetadata
   ) external;
 
-  function redeemIncidentPayout(uint104 incidentId, uint32 coverId, uint depeggedTokens) external
-  returns (uint payoutAmount, uint8 payoutAsset);
+  function redeemIncidentPayout(
+    uint104 incidentId,
+    uint32 coverId,
+    uint depeggedTokens,
+    address payable payoutAddress
+  ) external returns (uint payoutAmount, uint8 payoutAsset);
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values) external;
 
   /* ========== EVENTS ========== */
 
   event IncidentSubmitted(address user, uint104 incidentId, uint24 productId);
+  event MetadataSubmitted(uint indexed incidentId, uint expectedPayoutInNXM, string ipfsMetadata);
   event IncidentPayoutRedeemed(address indexed user, uint256 amount, uint104 incidentId, uint24 productId);
 
 }

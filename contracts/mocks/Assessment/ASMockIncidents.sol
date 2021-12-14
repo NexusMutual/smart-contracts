@@ -23,7 +23,7 @@ contract ASMockIncidents is MasterAwareV2 {
   function initialize(address masterAddress) external {
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
     config.rewardRatio = 52; // 0.52%
-    config.incidentExpectedPayoutRatio = 3000; // 30%
+    config.expectedPayoutRatio = 3000; // 30%
     master = INXMMaster(masterAddress);
   }
 
@@ -44,7 +44,7 @@ contract ASMockIncidents is MasterAwareV2 {
       priceBefore
     );
 
-    uint expectedPayoutInNXM = activeCoverAmountInNXM * config.incidentExpectedPayoutRatio /
+    uint expectedPayoutInNXM = activeCoverAmountInNXM * config.expectedPayoutRatio /
       INCIDENT_EXPECTED_PAYOUT_DENOMINATOR;
 
     // Determine the total rewards that should be minted for the assessors based on cover period

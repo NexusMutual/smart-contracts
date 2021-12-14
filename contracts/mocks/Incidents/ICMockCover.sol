@@ -5,6 +5,8 @@ pragma solidity ^0.8.0;
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IERC721Mock.sol";
 
+import "hardhat/console.sol";
+
 contract ICMockCover {
 
   IERC721Mock public immutable coverNFT;

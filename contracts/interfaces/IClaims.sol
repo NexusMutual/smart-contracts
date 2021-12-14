@@ -114,7 +114,7 @@ interface IClaims {
   function submitClaim(
     uint32 coverId,
     uint96 requestedAmount,
-    string calldata ipfsProofHash
+    string calldata ipfsMetadata
   ) external payable returns (Claim memory);
 
   function redeemClaimPayout(uint104 id) external;
@@ -124,7 +124,7 @@ interface IClaims {
   /* ========== EVENTS ========== */
 
   event ClaimSubmitted(address user, uint104 claimId, uint32 coverId, uint24 productId);
-  event ProofSubmitted(uint indexed coverId, address indexed owner, string ipfsHash);
+  event MetadataSubmitted(uint indexed claimId, string ipfsMetadata);
   event ClaimPayoutRedeemed(address indexed user, uint256 amount, uint104 claimId);
 
 }

@@ -8,6 +8,7 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IAssessment.sol";
+import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IQuotationData.sol";
 import "./external/LockHandler.sol";
 
@@ -21,7 +22,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   // 96 bits from this part of the slot were part of uint minCALockTime.  You should initialize
   // whatever you might want to fit here to avoid any leftover storage issues.
 
-  uint internal _unused;
+  IGovernance public governance;
 
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
@@ -29,6 +30,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   constructor(address quotationDataAddress) public {
     quotationData = IQuotationData(quotationDataAddress);
   }
+
   /**
   * @dev Just for interface
   */
@@ -319,6 +321,15 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     ) = assessment.stakeOf(_of);
 
     amount += stakerDeposit + stakerReward + assessmentStake;
+  }
+
+  /// Withdraws governance rewards
+  /// @dev This function requires a batchSize that fits in one block. It cannot be 0.
+  /// @param batchSize  The maximum number of iterations to avoid unbounded loops
+  function withdrawGovernanceRewards(uint batchSize) public isMemberAndcheckPause {
+    uint governanceRewards = governance.claimReward(msg.sender, batchSize);
+    require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
+    token.transfer(msg.sender, governanceRewards);
   }
 
   /**

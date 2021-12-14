@@ -1,61 +1,59 @@
-const { web3 } = require('hardhat');
-const { ether, expectRevert } = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
-const { accounts, helpers } = require('../utils');
-
-const {
-  members,
-  internalContracts: [internal],
-} = accounts;
-const [firstMember, secondMember, thirdMember] = members;
-const { hex } = helpers;
-const { toBN } = web3.utils;
+const { assert, expect } = require('chai');
+const { helpers } = require('../utils');
+const { ethers } = require('hardhat');
+const { BigNumber } = ethers;
+const { parseEther } = ethers.utils;
+const { zeroPadRight } = helpers;
 
 const days = n => 3600 * 24 * n;
-const [R0, R1, R2] = ['R0', 'R1', 'R2'].map(hex);
+const [R0, R1, R2] = ['R0', 'R1', 'R2'].map(x => zeroPadRight(Buffer.from(x), 32));
 
 describe('removeMultipleEmptyReasons', function () {
   it('reverts when members and reasons array lengths differ', async function () {
-    const { tokenController } = this;
-    await expectRevert(
-      tokenController.removeMultipleEmptyReasons([firstMember], [], ['0']),
+    const { tokenController, members } = this;
+    const [firstMember] = members;
+    await expect(tokenController.removeMultipleEmptyReasons([firstMember.address], [], ['0'])).to.be.revertedWith(
       'TokenController: members and reasons array lengths differ',
     );
   });
 
   it('reverts when reasons and indexes array lengths differ', async function () {
-    const { tokenController } = this;
-    await expectRevert(
-      tokenController.removeMultipleEmptyReasons([firstMember], [R0], []),
+    const { tokenController, members } = this;
+    const [firstMember] = members;
+    await expect(tokenController.removeMultipleEmptyReasons([firstMember.address], [R0], [])).to.be.revertedWith(
       'TokenController: reasons and indexes array lengths differ',
     );
   });
 
   it('clears up all reasons if parameters are supplied correctly', async function () {
-    const { token, tokenController } = this;
-    const lockPeriod = toBN(days(60));
+    const { token, tokenController, members, internal } = this;
+    const lockPeriod = BigNumber.from(days(60));
     const reasons = [R2, R1, R0];
-    const members = [firstMember, secondMember, thirdMember];
+    const [firstMember, secondMember, thirdMember] = members;
 
     for (let i = 0; i < reasons.length; i++) {
       const member = members[i];
       const reason = reasons[i];
 
-      await tokenController.mint(member, ether('100'), { from: internal });
-      await token.approve(tokenController.address, ether('100'), { from: member });
-      await tokenController.lockOf(member, reason, ether('100'), lockPeriod, { from: internal });
+      await tokenController.connect(internal).mint(member.address, parseEther('100'));
+      await token.connect(member).approve(tokenController.address, parseEther('100'));
+      await tokenController.connect(internal).lockOf(member.address, reason, parseEther('100'), lockPeriod);
 
-      const locked = await tokenController.locked(member, reason);
-      assert.strictEqual(locked.amount.toString(), ether('100').toString());
+      const locked = await tokenController.locked(member.address, reason);
+      assert.strictEqual(locked.amount.toString(), parseEther('100').toString());
       assert.isFalse(locked.claimed);
 
-      await tokenController.burnLockedTokens(member, reason, ether('100'), { from: internal });
+      await tokenController.connect(internal).burnLockedTokens(member.address, reason, parseEther('100'));
     }
 
-    await tokenController.removeMultipleEmptyReasons(members, reasons, ['0', '0', '0']);
+    await tokenController.removeMultipleEmptyReasons(
+      [firstMember, secondMember, thirdMember].map(x => x.address),
+      reasons,
+      ['0', '0', '0'],
+    );
 
     // the reason should have been removed
     // the getter should revert due to array out of bounds read (invalid opcode)
-    await expectRevert.assertion(tokenController.lockReason(firstMember, '0'));
+    await expect(tokenController.lockReason([firstMember.address], '0')).to.be.reverted;
   });
 });

@@ -1,35 +1,43 @@
-const { artifacts } = require('hardhat');
-const {
-  defaultSender,
-  members,
-  internalContracts: [internal],
-  governanceContracts: [governance],
-} = require('../utils').accounts;
+const { ethers } = require('hardhat');
+const { getAccounts } = require('../../utils/accounts');
 
 async function setup () {
-  const TokenController = artifacts.require('TokenController');
-  const NXMToken = artifacts.require('NXMToken');
-  const MasterMock = artifacts.require('MasterMock');
+  const TokenController = await ethers.getContractFactory('TokenController');
+  const tokenController = await TokenController.deploy('0x0000000000000000000000000000000000000000');
+  await tokenController.deployed();
 
-  const token = await NXMToken.new(defaultSender, '0');
+  const MasterMock = await ethers.getContractFactory('MasterMock');
+  const master = await MasterMock.deploy();
+  await master.deployed();
 
-  const master = await MasterMock.new();
-  await master.enrollInternal(internal);
-  await master.enrollGovernance(governance);
+  const signers = await ethers.getSigners();
+  const accounts = getAccounts(signers);
+  const { internalContracts, members } = accounts;
+  const internal = internalContracts[0];
+
+  await master.enrollGovernance(accounts.governanceContracts[0].address);
+
+  const NXM = await ethers.getContractFactory('NXMToken');
+  const token = await NXM.deploy(accounts.defaultSender.address, '0');
+  await token.deployed();
+
+  await master.enrollInternal(internal.address);
   await master.setTokenAddress(token.address);
 
-  const tokenController = await TokenController.new('0x0000000000000000000000000000000000000000');
   await tokenController.changeMasterAddress(master.address);
   await tokenController.changeDependentContractAddress();
-  await tokenController.changeOperator(tokenController.address, { from: internal });
+  await tokenController.connect(internal).changeOperator(tokenController.address);
 
-  for (const member of [...members, tokenController.address]) {
-    await tokenController.addToWhitelist(member, { from: internal });
+  for (const member of [...members, tokenController]) {
+    await tokenController.connect(internal).addToWhitelist(member.address);
   }
 
   this.master = master;
   this.token = token;
   this.tokenController = tokenController;
+
+  this.members = members;
+  this.internal = internal;
 }
 
 module.exports = setup;

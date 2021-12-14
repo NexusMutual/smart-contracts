@@ -65,7 +65,7 @@ for (const network of ['MAINNET', 'KOVAN']) {
   networks[network.toLowerCase()] = { accounts, gasPrice, gasLimit, url };
 }
 
-const compilerSettings = process.env.ENABLE_OPTIMIZER ? { optimizer: { enabled: true, runs: 200 } } : {};
+const compilerSettings = process.env.ENABLE_OPTIMIZER ? { optimizer: { enabled: true, runs: 10000 } } : {};
 
 module.exports = {
   contractSizer: {

@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/NexusMutual/smart-contracts",
   "dependencies": {
+    "@nexusmutual/utils": "^0.3.0",
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@openzeppelin/contract-loader": "^0.6.1",
     "@openzeppelin/contracts": "^2.5.1",

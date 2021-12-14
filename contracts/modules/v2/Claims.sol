@@ -239,11 +239,13 @@ contract Claims is IClaims, MasterAwareV2 {
   ///
   /// @param coverId          Cover identifier
   /// @param requestedAmount  The amount expected to be received at payout
-  /// @param ipfsProofHash    The IPFS hash required for proof of loss. If this string is empty,
+  /// @param ipfsMetadata     An IPFS hash that stores metadata about the claim that is emitted as
+  ///                         an event. It's required for proof of loss. If this string is empty,
+  ///                         no event is emitted.
   function submitClaim(
     uint32 coverId,
     uint96 requestedAmount,
-    string calldata ipfsProofHash
+    string calldata ipfsMetadata
   ) external payable override onlyMember returns (Claim memory) {
     require(
       coverNFT.isApprovedOrOwner(msg.sender, coverId),
@@ -304,10 +306,6 @@ contract Claims is IClaims, MasterAwareV2 {
       );
     }
 
-    if (bytes(ipfsProofHash).length > 0) {
-      emit ProofSubmitted(coverId, msg.sender, ipfsProofHash);
-    }
-
     Claim memory claim = Claim(
       0,
       coverId,
@@ -336,6 +334,10 @@ contract Claims is IClaims, MasterAwareV2 {
     uint newAssessmentId = assessment().startAssessment(totalReward, deposit);
     claim.assessmentId = uint80(newAssessmentId);
     claims.push(claim);
+
+    if (bytes(ipfsMetadata).length > 0) {
+      emit MetadataSubmitted(claims.length - 1, ipfsMetadata);
+    }
 
     return (claim);
   }

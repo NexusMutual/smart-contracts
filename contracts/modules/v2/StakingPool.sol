@@ -137,7 +137,12 @@ contract StakingPool is ERC20 {
   uint public constant PRODUCT_WEIGHT_DENOMINATOR = 10_000;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10_000;
 
-  uint public constant GLOBAL_MIN_PRICE = 100; // 1%
+  // base price bump by 2% for each 10% of capacity used
+  uint public constant BASE_PRICE_BUMP_RATIO = 200; // 2%
+  uint public constant BASE_PRICE_BUMP_INTERVAL = 1000; // 10%
+  uint public constant BASE_PRICE_BUMP_DENOMINATOR = 10_000;
+
+  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
   modifier onlyCoverContract {
     require(msg.sender == coverContract, "StakingPool: Caller is not the cover contract");
@@ -405,7 +410,7 @@ contract StakingPool is ERC20 {
   }
 
   function setTargetPrice(uint productId, uint targetPrice) external onlyManager {
-    require(targetPrice >= GLOBAL_MIN_PRICE, "StakingPool: Target price must be greater than global min price");
+    require(targetPrice >= GLOBAL_MIN_PRICE_RATIO, "StakingPool: Target price must be greater than global min price");
     targetPrices[productId] = targetPrice;
   }
 
@@ -461,7 +466,7 @@ contract StakingPool is ERC20 {
     actualPrice = calculatePrice(amount, basePrice, activeCover, capacity);
 
     // Bump base price by 2% (200 basis points) per 10% (1000 basis points) of capacity used
-    uint priceBump = amount * PRICE_DENOMINATOR / capacity / 1000 *  200;
+    uint priceBump = amount * BASE_PRICE_BUMP_DENOMINATOR / capacity / BASE_PRICE_BUMP_INTERVAL * BASE_PRICE_BUMP_RATIO;
     basePrice = uint96(basePrice + priceBump);
   }
 

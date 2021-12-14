@@ -19,26 +19,22 @@ contract StakingPool is ERC20 {
     uint96 unstakedNXM;
   }
 
-  struct ProductBucket {
-    uint96 coverAmountExpiring;
-    // expiring capacity for the last 5 buckets
-    // but only if this is the checkpoint bucket
-    uint96 checkpointCapacityExpiring;
-    // uint64 _unused;
-  }
-
   struct Product {
     uint96 activeCoverAmount;
     uint16 weight;
     uint16 lastBucket;
     // uint128 _unused;
-    mapping(uint => ProductBucket) buckets;
+  }
+
+  struct ProductBucket {
+    uint96 expiringCoverAmount;
+    // uint160 _unused;
   }
 
   struct UnstakeRequest {
     uint96 amount;
     uint96 withdrawn;
-    uint16 poolBucketIndex;
+    uint16 bucketIndex;
     // uint48 _unused;
   }
 
@@ -54,7 +50,9 @@ contract StakingPool is ERC20 {
   }
 
   struct Staker {
-    uint96 pendingUnstakeAmount;
+    uint96 unstakeAmount;
+    uint16 lastUnstakeBucket;
+    // FIFO:
     // unstakeRequests mapping keys. zero means no unstake exists.
     uint32 firstUnstakeId;
     uint32 lastUnstakeId;
@@ -73,45 +71,57 @@ contract StakingPool is ERC20 {
   */
   mapping(uint => LastPrice) lastBasePrices;
 
-  mapping (uint => uint) targetPrices;
+  mapping(uint => uint) targetPrices;
 
   /* slot 0 */
   // bucket index => pool bucket
   mapping(uint => PoolBucket) public poolBuckets;
 
   /* slot 1 */
+  // product index => bucket index => cover amount expiring
+  mapping(uint => mapping(uint => ProductBucket)) public productBuckets;
+
+  /* slot 2 */
   // staker address => staker unstake info
   // todo: unstakes may take a looooong time, consider issuing an nft that represents staker's requests
   mapping(address => Staker) public stakers;
 
-  /* slot 2 */
+  /* slot 3 */
+  // staker address => request id => unstake request
   mapping(address => mapping(uint32 => UnstakeRequest)) unstakeRequests;
 
-  /* slot 3 */
+  /* slot 4 */
   // product id => product info
   mapping(uint => Product) public products;
 
-  /* slot 4 */
+  /* slot 5 */
   // array with product ids to be able to iterate them
   // todo: pack me
   uint[] public poolProductsIds;
 
-  /* slot 5 */
-  uint96 public currentStake;
-  uint64 public currentRewardPerSecond;
+  // unstakes flow:
+  // 1. bucket n: unstake requested
+  // 2. bucket n + 2: unstake becomes queued
+  // 3. bucket n + 2 + m: unstake is granted
+
+  /* slot 6 */
+  uint96 public stakeActive;
+  uint96 public stakeInactive;
+  uint64 public lastRewardPerSecond;
+
   uint32 public lastRewardTime;
   uint16 public lastPoolBucketIndex;
   uint16 public lastUnstakeBucketIndex;
   uint16 public totalWeight;
   uint16 public maxTotalWeight; // todo: read from cover
 
-  /* slot 6 */
-  // total actually requested and not yet processed
-  uint96 public totalUnstakePending;
+  // IDK if the next three are needed:
+  // total actually requested and not yet queued
+  uint96 public totalUnstakeRequested;
   // requested at bucket t-2
-  uint96 public totalUnstakeAllowed;
+  uint96 public totalUnstakeQueued;
   // unstaked but not withdrawn
-  uint96 public totalUnstaked;
+  uint96 public totalUnstakeGranted;
 
   // used for max unstake
   // max unstake = min(stake - maxCapacity, stake - totalLeverage)
@@ -181,31 +191,18 @@ contract StakingPool is ERC20 {
   function processPoolBuckets() internal returns (uint staked) {
 
     // 1 SLOAD
-    staked = currentStake;
-    uint rewardPerSecond = currentRewardPerSecond;
+    staked = stakeActive;
+    uint rewardPerSecond = lastRewardPerSecond;
     uint rewardTime = lastRewardTime;
     uint poolBucketIndex = lastPoolBucketIndex;
-    uint unstakeBucketIndex = lastUnstakeBucketIndex;
 
     // 1 SLOAD
-    uint _totalUnstakeAllowed = totalUnstakeAllowed;
-    // TODO: do we need this one?
-    uint _totalUnstaked = totalUnstaked;
-
-    // 1 SLOAD
-    uint supply = totalSupply();
+    uint unstakeQueued = totalUnstakeQueued;
 
     // get bucket for current time
     uint currentBucketIndex = block.timestamp / BUCKET_SIZE;
-    uint maxUnstake;
 
-    {
-      // 1 SLOAD
-      uint maxUsage = max(maxCapacity, totalLeverage);
-      maxUnstake = staked > maxUsage ? staked - maxUsage : 0;
-    }
-
-    // process expirations
+    // process expirations, 1 SLOAD / iteration
     while (poolBucketIndex < currentBucketIndex) {
 
       ++poolBucketIndex;
@@ -215,67 +212,20 @@ contract StakingPool is ERC20 {
 
       // 1 SLOAD for both
       rewardPerSecond -= poolBuckets[poolBucketIndex].rewardPerSecondCut;
-      _totalUnstakeAllowed += poolBuckets[poolBucketIndex].unstakeRequested;
-
-      // process unstakes
-      while (maxUnstake > 0 && _totalUnstakeAllowed > 0 && unstakeBucketIndex <= poolBucketIndex) {
-
-        // 1 SLOAD
-        uint requested = poolBuckets[unstakeBucketIndex].unstakeRequested;
-        uint unstakedPreviously = poolBuckets[unstakeBucketIndex].unstaked;
-
-        if (requested == unstakedPreviously) {
-          // all freed up or none requested
-          ++unstakeBucketIndex;
-          continue;
-        }
-
-        uint unstakedNow;
-        {
-          uint unstakeLeft = requested - unstakedPreviously;
-          uint canUnstake = min(maxUnstake, _totalUnstakeAllowed);
-          unstakedNow = min(canUnstake, unstakeLeft);
-        }
-
-        uint unstakedNXM = unstakedNow * staked / supply;
-        _totalUnstakeAllowed -= unstakedNow;
-        maxUnstake -= unstakedNow;
-        staked -= unstakedNXM;
-        supply -= unstakedNow;
-
-        // 1 SSTORE
-        poolBuckets[unstakeBucketIndex].unstaked = uint96(unstakedPreviously + unstakedNow);
-        // 1 SLOAD + 1 SSTORE
-        poolBuckets[unstakeBucketIndex].unstakedNXM += uint96(unstakedNXM);
-
-        if (requested != unstakedPreviously + unstakedNow) {
-          break;
-        }
-
-        // move on
-        ++unstakeBucketIndex;
-      }
-    }
-
-    {
-      uint oldSupply = totalSupply();
-      uint burnAmount = oldSupply - supply;
-      // todo: burn unstaked lp tokens
+      unstakeQueued += poolBuckets[poolBucketIndex].unstakeRequested;
     }
 
     // if we're mid-bucket, process rewards until current timestamp
     staked += (block.timestamp - rewardTime) * rewardPerSecond;
 
     // 1 SSTORE
-    currentStake = uint96(staked);
-    currentRewardPerSecond = uint64(rewardPerSecond);
+    stakeActive = uint96(staked);
+    lastRewardPerSecond = uint64(rewardPerSecond);
     lastRewardTime = uint32(block.timestamp);
     lastPoolBucketIndex = uint16(poolBucketIndex);
-    lastUnstakeBucketIndex = uint16(unstakeBucketIndex);
 
     // 1 SSTORE
-    totalUnstakeAllowed = uint96(_totalUnstakeAllowed);
-    totalUnstaked = uint96(_totalUnstaked);
+    totalUnstakeQueued = uint96(unstakeQueued);
   }
 
   /* callable by cover contract */
@@ -292,14 +242,20 @@ contract StakingPool is ERC20 {
     // process expirations
     while (lastBucket < currentBucket) {
       ++lastBucket;
-      activeCoverAmount -= product.buckets[lastBucket].coverAmountExpiring;
+      activeCoverAmount -= productBuckets[params.productId][lastBucket].expiringCoverAmount;
     }
 
     // limit cover amount to the amount left available
+    uint capacity = (
+      staked *
+      params.globalCapacityRatio *
+      product.weight *
+      (CAPACITY_REDUCTION_DENOMINATOR - params.capacityReductionRatio) /
+      GLOBAL_CAPACITY_DENOMINATOR /
+      PRODUCT_WEIGHT_DENOMINATOR /
+      CAPACITY_REDUCTION_DENOMINATOR
+    );
 
-    uint capacity =
-      staked * params.globalCapacityRatio * product.weight * (CAPACITY_REDUCTION_DENOMINATOR - params.capacityReductionRatio)
-      / GLOBAL_CAPACITY_DENOMINATOR / PRODUCT_WEIGHT_DENOMINATOR / CAPACITY_REDUCTION_DENOMINATOR;
     uint coverAmount = min(
       capacity - activeCoverAmount,
       params.coverAmount
@@ -313,9 +269,9 @@ contract StakingPool is ERC20 {
 
       // update state
       // 1 SLOAD + 3 SSTORE
-      currentRewardPerSecond = uint64(currentRewardPerSecond + addedRewardPerSecond);
+      lastRewardPerSecond = uint64(lastRewardPerSecond + addedRewardPerSecond);
       poolBuckets[expirationBucket].rewardPerSecondCut += uint64(addedRewardPerSecond);
-      product.buckets[expirationBucket].coverAmountExpiring += uint96(coverAmount);
+      productBuckets[params.productId][expirationBucket].expiringCoverAmount += uint96(coverAmount);
 
       product.lastBucket = uint16(lastBucket);
       product.activeCoverAmount = uint96(activeCoverAmount + coverAmount);
@@ -333,7 +289,7 @@ contract StakingPool is ERC20 {
     return (coverAmount, calculatePremium(actualPrice, coverAmount, params.period));
   }
 
-  function burn() external {
+  function burnStake() external {
 
     //
 
@@ -341,55 +297,62 @@ contract StakingPool is ERC20 {
 
   /* callable by stakers */
 
-  function deposit(uint amount) external {
+  function stake(uint amount) external {
+
+    // TODO: use operator transfer and transfer to TC instead
+    nxm.transferFrom(msg.sender, address(this), amount);
+
+    uint supply = totalSupply();
+    uint staked;
+    uint shares;
+
+    if (supply == 0) {
+      shares = amount;
+    } else {
+      staked = processPoolBuckets();
+      shares = supply * amount / staked;
+    }
+
+    stakeActive = uint96(staked + amount);
+    _mint(msg.sender, shares);
+  }
+
+  function requestUnstake(uint shares) external {
 
     uint staked = processPoolBuckets();
     uint supply = totalSupply();
-    uint mintAmount = supply == 0 ? amount : (amount * supply / staked);
+    uint amount = shares * staked / supply;
+    uint currentBucket = block.timestamp / BUCKET_SIZE;
 
-    // TODO: use operator transfer and transfer to TC
-    nxm.transferFrom(msg.sender, address(this), amount);
-    _mint(msg.sender, mintAmount);
-  }
-
-  function requestUnstake(uint96 amount) external {
+    // should revert if caller doesn't have enough shares
+    _burn(msg.sender, shares);
+    stakeActive = uint96(staked - amount);
 
     Staker memory staker = stakers[msg.sender];
-    uint16 unstakeBucketIndex = uint16(block.timestamp / BUCKET_SIZE + 2);
 
-    // update staker if we're not reusing the unstake request
-    if (staker.lastUnstakeBucketIndex != unstakeBucketIndex) {
-
-      staker.lastUnstakeId += 1;
-      staker.lastUnstakeBucketIndex = unstakeBucketIndex;
-      staker.pendingUnstakeAmount += amount;
-
-      if (staker.firstUnstakeId == 0) {
-        staker.firstUnstakeId = staker.lastUnstakeId;
-      }
-
-      // update staker info
-      stakers[msg.sender] = staker;
+    if (currentBucket != staker.lastUnstakeBucket) {
+      ++staker.lastUnstakeId;
     }
 
-    // upsert unstake request
-    UnstakeRequest storage unstakeRequest = unstakeRequests[msg.sender][staker.lastUnstakeId];
-    unstakeRequest.amount += amount;
-    unstakeRequest.poolBucketIndex = unstakeBucketIndex;
+    // SLOAD
+    UnstakeRequest memory unstakeRequest = unstakeRequests[msg.sender][staker.lastUnstakeId];
 
-    // update pool bucket
-    poolBuckets[unstakeBucketIndex].unstakeRequested += amount;
+    // update
+    unstakeRequest.amount += uint96(amount);
+    staker.unstakeAmount += uint96(amount);
 
-    _transfer(msg.sender, address(this), amount);
+    // SSTORE
+    unstakeRequests[msg.sender][staker.lastUnstakeId] = unstakeRequest;
+    stakers[msg.sender] = staker;
   }
 
-  function withdraw() external {
+  function withdraw(uint amount) external {
 
     // uint lastUnstakeBucket = lastUnstakeBucketIndex;
 
   }
 
-  /* callable by pool owner */
+  /* Pool management functions */
 
   function addProduct() external onlyManager {
 
@@ -439,8 +402,8 @@ contract StakingPool is ERC20 {
     // store the last base price
     lastBasePrices[productId] = LastPrice(
       uint96(basePrice),
-      uint32(block.timestamp
-    ));
+      uint32(block.timestamp)
+    );
 
     return actualPrice;
   }
@@ -451,7 +414,7 @@ contract StakingPool is ERC20 {
     uint activeCover,
     uint capacity,
     uint initialPrice
-  ) public view returns  (uint actualPrice, uint basePrice) {
+  ) public view returns (uint actualPrice, uint basePrice) {
 
     LastPrice memory lastBasePrice = lastBasePrices[productId];
     basePrice = interpolatePrice(
@@ -490,10 +453,9 @@ contract StakingPool is ERC20 {
     return basePrice * (1e18 + surgeLoading) / 1e18;
   }
 
-
   /**
-    Price changes towards targetPrice from lastPrice by maximum of 1% a day per every 100k NXM staked
-  */
+   * Price changes towards targetPrice from lastPrice by maximum of 1% a day per every 100k NXM staked
+   */
   function interpolatePrice(
     uint lastPrice,
     uint targetPrice,
@@ -501,13 +463,12 @@ contract StakingPool is ERC20 {
     uint currentTimestamp
   ) public pure returns (uint) {
 
-    uint priceChange =
-    (currentTimestamp - lastPriceUpdate) / 1 days * PRICE_RATIO_CHANGE_PER_DAY;
+    uint priceChange = (currentTimestamp - lastPriceUpdate) / 1 days * PRICE_RATIO_CHANGE_PER_DAY;
 
     if (targetPrice > lastPrice) {
       return targetPrice;
-    } else {
-      return lastPrice - (lastPrice - targetPrice) * priceChange / PRICE_DENOMINATOR;
     }
+
+    return lastPrice - (lastPrice - targetPrice) * priceChange / PRICE_DENOMINATOR;
   }
 }

@@ -454,7 +454,6 @@ contract StakingPool is ERC20 {
   ) public view returns  (uint actualPrice, uint basePrice) {
 
     LastPrice memory lastBasePrice = lastBasePrices[productId];
-    uint96 lastPrice = lastBasePrices[productId].value;
     basePrice = interpolatePrice(
       lastBasePrice.value != 0 ? lastBasePrice.value : initialPrice,
       targetPrices[productId],

@@ -130,7 +130,7 @@ contract StakingPool is ERC20 {
   uint public constant BUCKET_SIZE = 7 days;
 
   uint public constant PRICE_CURVE_EXPONENT = 7;
-  uint public constant MAX_PRICE_PERCENTAGE = 1e20;
+  uint public constant MAX_PRICE_RATIO = 1e20;
   uint public constant PRICE_RATIO_CHANGE_PER_DAY = 100;
   uint public constant PRICE_DENOMINATOR = 10_000;
   uint public constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
@@ -413,8 +413,8 @@ contract StakingPool is ERC20 {
 
   /* ========== PRICE CALCULATION ========== */
 
-  function calculatePremium(uint pricePercentage, uint coverAmount, uint period) public pure returns (uint) {
-    return pricePercentage * coverAmount / MAX_PRICE_PERCENTAGE * period / 365 days;
+  function calculatePremium(uint priceRatio, uint coverAmount, uint period) public pure returns (uint) {
+    return priceRatio * coverAmount / MAX_PRICE_RATIO * period / 365 days;
   }
 
   uint public constant SURGE_THRESHOLD = 8e17;
@@ -497,13 +497,13 @@ contract StakingPool is ERC20 {
     uint currentTimestamp
   ) public pure returns (uint) {
 
-    uint percentageChange =
+    uint priceChange =
     (currentTimestamp - lastPriceUpdate) / 1 days * PRICE_RATIO_CHANGE_PER_DAY;
 
     if (targetPrice > lastPrice) {
       return targetPrice;
     } else {
-      return lastPrice - (lastPrice - targetPrice) * percentageChange / PRICE_DENOMINATOR;
+      return lastPrice - (lastPrice - targetPrice) * priceChange / PRICE_DENOMINATOR;
     }
   }
 }

@@ -3,8 +3,6 @@ import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 
 import "@openzeppelin/contracts-v4/proxy/beacon/UpgradeableBeacon.sol";
-import "@openzeppelin/contracts-v4/proxy/beacon/IBeacon.sol";
-import "@openzeppelin/contracts-v4/proxy/beacon/BeaconProxy.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IQuotationData.sol";
@@ -15,9 +13,11 @@ import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/ITokenController.sol";
-import "hardhat/console.sol";
+import "../../interfaces/IStakingPoolBeacon.sol";
 
-contract Cover is ICover, MasterAwareV2 {
+import "./MinimalBeaconProxy.sol";
+
+contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* === CONSTANTS ==== */
 
@@ -39,6 +39,8 @@ contract Cover is ICover, MasterAwareV2 {
 
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
+  bytes32 public immutable stakingPoolProxyCodeHash;
+  address public immutable stakingPoolImplementationAddress;
 
   /* ========== STATE VARIABLES ========== */
 
@@ -60,8 +62,6 @@ contract Cover is ICover, MasterAwareV2 {
   address public override coverNFT;
 
   address public stakingPoolBeacon;
-  bytes internal stakingPoolProxyCode;
-  bytes32 internal stakingPoolProxyCodeHash;
   uint public stakingPoolCounter;
 
   /*
@@ -73,19 +73,17 @@ contract Cover is ICover, MasterAwareV2 {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(IQuotationData _quotationData, IProductsV1 _productsV1) {
+  constructor(IQuotationData _quotationData, IProductsV1 _productsV1, address _stakingPoolImplementationAddress) {
+
     quotationData = _quotationData;
     productsV1 = _productsV1;
+    stakingPoolProxyCodeHash = keccak256(abi.encodePacked(type(MinimalBeaconProxy).creationCode, abi.encode(address(this))));
+    stakingPoolImplementationAddress =  _stakingPoolImplementationAddress;
   }
 
   function initialize(address _coverNFT) public {
     require(coverNFT == address(0), "Cover: already initialized");
     coverNFT = _coverNFT;
-
-    bytes memory beaconProxyCode = type(BeaconProxy).creationCode;
-
-    stakingPoolProxyCode = abi.encodePacked(beaconProxyCode, abi.encode(stakingPoolBeacon, 0));
-    stakingPoolProxyCodeHash = keccak256(stakingPoolProxyCode);
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -420,7 +418,7 @@ contract Cover is ICover, MasterAwareV2 {
     address addr;
     uint stakingPoolIndex = stakingPoolCounter;
 
-    bytes memory code = stakingPoolProxyCode;
+    bytes memory code = abi.encodePacked(type(MinimalBeaconProxy).creationCode, abi.encode(stakingPoolBeacon, 0));
     assembly {
       addr := create2(
       callvalue(), // wei sent with current call
@@ -445,6 +443,11 @@ contract Cover is ICover, MasterAwareV2 {
     );
     // cast last 20 bytes of hash to address
     return address(uint160(uint(hash)));
+  }
+
+
+  function stakingPoolImplementation() public view override returns (address) {
+    return stakingPoolImplementationAddress;
   }
 
   /* ========== PRODUCT CONFIGURATION ========== */

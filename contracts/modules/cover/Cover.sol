@@ -28,7 +28,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint public constant REWARD_DENOMINATOR = 2;
 
   uint public constant PRICE_DENOMINATOR = 10000;
-  uint public constant CAPACITY_REDUCTION_RATIO_DENOMINATOR = 10000;
+  uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
 
   uint public constant MAX_COVER_PERIOD = 365 days;
   uint public constant MIN_COVER_PERIOD = 30 days;
@@ -54,8 +54,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   mapping(uint => uint) public capacityReductionRatios;
 
-  uint32 public capacityFactor;
-  uint32 public rewardsFactor;
+  uint32 public globalCapacityRatio;
+  uint32 public globalRewardsRatio;
   // [todo] Remove this and use covers.length instead
   uint32 public coverCount;
 
@@ -248,8 +248,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       amount,
       REWARD_DENOMINATOR,
       period,
-      capacityFactor,
-      rewardsFactor,
+      globalCapacityRatio,
+      globalRewardsRatio,
       capacityReductionRatios[productId],
       initialPrice
     ));
@@ -452,12 +452,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== PRODUCT CONFIGURATION ========== */
 
-  function setCapacityFactor(uint32 _capacityFactor) external onlyGovernance {
-    capacityFactor = _capacityFactor;
+  function setGlobalCapacityRatio(uint32 _globalCapacityRatio) external onlyGovernance {
+    globalCapacityRatio = _globalCapacityRatio;
   }
 
-  function setRewardsFactor(uint32 _rewardsFactor) external onlyGovernance {
-    rewardsFactor = _rewardsFactor;
+  function setGlobalRewardsRatio(uint32 _globalRewardsRatio) external onlyGovernance {
+    globalRewardsRatio = _globalRewardsRatio;
   }
 
   function setInitialPrice(uint productId, uint initialPrice) external onlyAdvisoryBoard {
@@ -467,7 +467,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   }
 
   function setCapacityReductionRatio(uint productId, uint deduction) external onlyAdvisoryBoard {
-    require(deduction <= CAPACITY_REDUCTION_RATIO_DENOMINATOR, "Cover: LTADeduction must be less than or equal to 100%");
+    require(deduction <= CAPACITY_REDUCTION_DENOMINATOR, "Cover: LTADeduction must be less than or equal to 100%");
     capacityReductionRatios[productId] = deduction;
   }
 

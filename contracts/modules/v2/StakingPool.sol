@@ -47,8 +47,8 @@ contract StakingPool is ERC20 {
     uint coverAmount;
     uint rewardsDenominator;
     uint period;
-    uint capacityFactor;
-    uint rewardsFactor;
+    uint globalCapacityRatio;
+    uint globalRewardsRatio;
     uint capacityReductionRatio;
     uint initialPrice;
   }
@@ -133,9 +133,9 @@ contract StakingPool is ERC20 {
   uint public constant MAX_PRICE_PERCENTAGE = 1e20;
   uint public constant PRICE_RATIO_CHANGE_PER_DAY = 100;
   uint public constant PRICE_DENOMINATOR = 10_000;
-  uint public constant CAPACITY_FACTOR_DENOMINATOR = 10_000;
+  uint public constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
   uint public constant PRODUCT_WEIGHT_DENOMINATOR = 10_000;
-  uint public constant CAPACITY_REDUCTION_RATIO_DENOMINATOR = 10_000;
+  uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10_000;
 
   uint public constant GLOBAL_MIN_PRICE = 100; // 1%
 
@@ -293,8 +293,8 @@ contract StakingPool is ERC20 {
     // limit cover amount to the amount left available
 
     uint capacity =
-      staked * params.capacityFactor * product.weight * (CAPACITY_REDUCTION_RATIO_DENOMINATOR - params.capacityReductionRatio)
-      / CAPACITY_FACTOR_DENOMINATOR / PRODUCT_WEIGHT_DENOMINATOR / CAPACITY_REDUCTION_RATIO_DENOMINATOR;
+      staked * params.globalCapacityRatio * product.weight * (CAPACITY_REDUCTION_DENOMINATOR - params.capacityReductionRatio)
+      / GLOBAL_CAPACITY_DENOMINATOR / PRODUCT_WEIGHT_DENOMINATOR / CAPACITY_REDUCTION_DENOMINATOR;
     uint coverAmount = min(
       capacity - activeCoverAmount,
       params.coverAmount
@@ -304,7 +304,7 @@ contract StakingPool is ERC20 {
       // calculate expiration bucket, reward period, reward amount
       uint expirationBucket = (block.timestamp + params.period) / BUCKET_SIZE + 1;
       uint rewardPeriod = expirationBucket * BUCKET_SIZE - block.timestamp;
-      uint addedRewardPerSecond = params.rewardsFactor * coverAmount / params.rewardsDenominator / rewardPeriod;
+      uint addedRewardPerSecond = params.globalRewardsRatio * coverAmount / params.rewardsDenominator / rewardPeriod;
 
       // update state
       // 1 SLOAD + 3 SSTORE

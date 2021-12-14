@@ -10,8 +10,8 @@ interface IStakingPool {
     uint coverAmount;
     uint rewardsDenominator;
     uint period;
-    uint capacityFactor;
-    uint rewardsFactor;
+    uint globalCapacityRatio;
+    uint globalRewardsRatio;
     uint capacityReductionRatio;
     uint initialPrice;
   }

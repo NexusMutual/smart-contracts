@@ -37,6 +37,10 @@ interface ICover {
   struct CoverData {
     uint24 productId;
     uint8 payoutAsset;
+    uint96 amountPaidOut;
+  }
+
+  struct CoverSegment {
     uint96 amount;
     uint32 start;
     uint32 period;  // seconds

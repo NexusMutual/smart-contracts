@@ -187,13 +187,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     CoverChunkRequest[] memory coverChunkRequests
   ) internal returns (uint, uint, uint) {
     // convert to NXM amount
-    uint payoutAssetTokenPrice = pool().getTokenPrice(params.payoutAsset);
+    uint nxmPriceInPayoutAsset = pool().getTokenPrice(params.payoutAsset);
 
     uint totalPremiumInNXM = 0;
     uint totalCoverAmountInNXM = 0;
     for (uint i = 0; i < coverChunkRequests.length; i++) {
 
-      uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / payoutAssetTokenPrice;
+      uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / nxmPriceInPayoutAsset;
 
       (uint coveredAmountInNXM, uint premiumInNXM) = allocateCapacity(
         IStakingPool(coverChunkRequests[i].poolAddress),
@@ -205,7 +205,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       // carry over the amount that was not covered by the current pool to the next cover
       if (coveredAmountInNXM < requestedCoverAmountInNXM && i + 1 < coverChunkRequests.length) {
 
-        uint remainder = (requestedCoverAmountInNXM - uint96(coveredAmountInNXM)) * payoutAssetTokenPrice / 1e18;
+        uint remainder = (requestedCoverAmountInNXM - uint96(coveredAmountInNXM)) * nxmPriceInPayoutAsset / 1e18;
         coverChunkRequests[i + 1].coverAmountInAsset += remainder;
       } else if (coveredAmountInNXM < requestedCoverAmountInNXM) {
         revert("Not enough available capacity");
@@ -223,7 +223,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     covers.push(CoverData(
         params.productId,
         params.payoutAsset,
-        uint96(totalCoverAmountInNXM * payoutAssetTokenPrice / 1e18),
+        uint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18),
         uint32(block.timestamp + 1),
         uint32(params.period),
         uint16(totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM)

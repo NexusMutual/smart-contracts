@@ -75,7 +75,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     quotationData = _quotationData;
     productsV1 = _productsV1;
-    stakingPoolProxyCodeHash = keccak256(abi.encodePacked(type(MinimalBeaconProxy).creationCode, abi.encode(address(this))));
+    stakingPoolProxyCodeHash = keccak256(
+      abi.encodePacked(
+        type(MinimalBeaconProxy).creationCode,
+        abi.encode(address(this))
+      )
+    );
     stakingPoolImplementationAddress =  _stakingPoolImplementationAddress;
   }
 
@@ -416,7 +421,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     address addr;
     uint stakingPoolIndex = stakingPoolCounter;
 
-    bytes memory code = abi.encodePacked(type(MinimalBeaconProxy).creationCode, abi.encode(address(this)));
+    bytes memory code = abi.encodePacked(
+        type(MinimalBeaconProxy).creationCode,
+        abi.encode(address(this))
+      );
+    
     assembly {
       addr := create2(
       callvalue(), // wei sent with current call

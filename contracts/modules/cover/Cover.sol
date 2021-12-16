@@ -69,6 +69,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   */
   uint public coverAssetsFallback;
 
+
+  event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
+
   /* ========== CONSTRUCTOR ========== */
 
   constructor(IQuotationData _quotationData, IProductsV1 _productsV1, address _stakingPoolImplementation) {
@@ -422,6 +425,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     IStakingPool(addr).initialize(manager);
 
     stakingPoolCounter++;
+
+    emit StakingPoolCreated(addr, manager, stakingPoolImplementation);
   }
 
   function stakingPool(uint index) public view returns (address) {

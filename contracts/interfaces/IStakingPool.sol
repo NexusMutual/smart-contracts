@@ -34,4 +34,5 @@ interface IStakingPool {
   function getUsedCapacity(uint productId) external view returns (uint);
   function getTargetPrice(uint productId) external view returns (uint);
   function getStake(uint productId) external view returns (uint);
+  function manager() external view returns (address);
 }

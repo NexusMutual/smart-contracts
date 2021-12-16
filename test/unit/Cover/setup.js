@@ -18,6 +18,7 @@ async function setup () {
   const TokenController = await ethers.getContractFactory('TokenControllerMock');
   const NXMToken = await ethers.getContractFactory('NXMTokenMock');
   const MCR = await ethers.getContractFactory('CoverMockMCR');
+  const StakingPool = await ethers.getContractFactory('CoverMockStakingPool');
 
   const master = await MasterMock.deploy();
   await master.deployed();
@@ -53,7 +54,9 @@ async function setup () {
   await mcr.deployed();
   await mcr.setMCR(parseEther('600000'));
 
-  const cover = await Cover.deploy(quotationData.address, ethers.constants.AddressZero);
+  const stakingPool = await StakingPool.deploy();
+
+  const cover = await Cover.deploy(quotationData.address, ethers.constants.AddressZero, stakingPool.address);
   await cover.deployed();
 
   await master.setTokenAddress(nxm.address);

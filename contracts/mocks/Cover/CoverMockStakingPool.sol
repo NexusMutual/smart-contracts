@@ -13,8 +13,10 @@ contract CoverMockStakingPool is IStakingPool {
 
   mapping (uint => uint) public mockPrices;
 
-  function initialize(address) external override {
-    // no-op
+  address public override manager;
+
+  function initialize(address _manager) external override {
+    manager = _manager;
   }
 
   function allocateCapacity(AllocateCapacityParams calldata params) external override returns (uint, uint) {

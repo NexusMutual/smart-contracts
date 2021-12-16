@@ -40,7 +40,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
   bytes32 public immutable stakingPoolProxyCodeHash;
-  address public stakingPoolImplementationAddress;
+  address public override stakingPoolImplementation;
 
   /* ========== STATE VARIABLES ========== */
 
@@ -71,7 +71,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(IQuotationData _quotationData, IProductsV1 _productsV1, address _stakingPoolImplementationAddress) {
+  constructor(IQuotationData _quotationData, IProductsV1 _productsV1, address _stakingPoolImplementation) {
 
     quotationData = _quotationData;
     productsV1 = _productsV1;
@@ -81,7 +81,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         abi.encode(address(this))
       )
     );
-    stakingPoolImplementationAddress =  _stakingPoolImplementationAddress;
+    stakingPoolImplementation =  _stakingPoolImplementation;
   }
 
   function initialize(address _coverNFT) public {
@@ -208,7 +208,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       // carry over the amount that was not covered by the current pool to the next cover
       if (coveredAmountInNXM < requestedCoverAmountInNXM && i + 1 < coverChunkRequests.length) {
 
-        uint remainder = (requestedCoverAmountInNXM - uint96(coveredAmountInNXM)) * nxmPriceInPayoutAsset / 1e18;
+        uint remainder = (requestedCoverAmountInNXM - coveredAmountInNXM) * nxmPriceInPayoutAsset / 1e18;
         coverChunkRequests[i + 1].coverAmountInAsset += remainder;
       } else if (coveredAmountInNXM < requestedCoverAmountInNXM) {
         revert("Not enough available capacity");
@@ -431,17 +431,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     );
     // cast last 20 bytes of hash to address
     return address(uint160(uint(hash)));
-  }
-
-
-  function stakingPoolImplementation() public view override returns (address) {
-    return stakingPoolImplementationAddress;
-  }
-
-  function setStakingPoolImplementation(address newStakingPoolImplementation) external onlyGovernance {
-    require(newStakingPoolImplementation != address(0), "Staking Pool Implementation cannot be the null address.");
-
-    stakingPoolImplementationAddress = newStakingPoolImplementation;
   }
 
   /* ========== PRODUCT CONFIGURATION ========== */

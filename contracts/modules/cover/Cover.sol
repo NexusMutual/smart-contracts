@@ -40,7 +40,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
   bytes32 public immutable stakingPoolProxyCodeHash;
-  address public immutable stakingPoolImplementationAddress;
+  address public stakingPoolImplementationAddress;
 
   /* ========== STATE VARIABLES ========== */
 
@@ -416,29 +416,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   /* ========== Staking Pool creation ========== */
 
 
-  function createStakingPool() public {
+  function createStakingPool(address manager) public {
 
-    address addr;
-    uint stakingPoolIndex = stakingPoolCounter;
-
-    bytes memory code = abi.encodePacked(
-        type(MinimalBeaconProxy).creationCode,
-        abi.encode(address(this))
-      );
-    
-    assembly {
-      addr := create2(
-      callvalue(), // wei sent with current call
-      // Actual code starts after skipping the first 32 bytes
-      add(code, 0x20),
-      mload(code), // Load the size of code contained in the first 32 bytes
-      stakingPoolIndex // Salt from function arguments
-      )
-
-      if iszero(extcodesize(addr)) {
-        revert(0, 0)
-      }
-    }
+    address addr = address(new MinimalBeaconProxy{ salt: bytes32(stakingPoolCounter) }(address(this)));
+    IStakingPool(addr).initialize(manager);
 
     stakingPoolCounter++;
   }
@@ -455,6 +436,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function stakingPoolImplementation() public view override returns (address) {
     return stakingPoolImplementationAddress;
+  }
+
+  function setStakingPoolImplementation(address newStakingPoolImplementation) external onlyGovernance {
+    require(newStakingPoolImplementation != address(0), "Staking Pool Implementation cannot be the null address.");
+
+    stakingPoolImplementationAddress = newStakingPoolImplementation;
   }
 
   /* ========== PRODUCT CONFIGURATION ========== */

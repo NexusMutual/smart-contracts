@@ -164,16 +164,17 @@ contract StakingPool is ERC20 {
     _;
   }
 
-  constructor (address _nxm, address _coverContract, address _owner) ERC20("Staked NXM", "SNXM") {
+  constructor (address _nxm, address _coverContract) ERC20("Staked NXM", "SNXM") {
     nxm = ERC20(_nxm);
     coverContract = _coverContract;
-    manager = _owner;
+
   }
 
-  function initialize() external onlyCoverContract {
+  function initialize(address _manager) external onlyCoverContract {
     require(lastPoolBucketIndex == 0, "Staking Pool: Already initialized");
     lastPoolBucketIndex = uint16(block.timestamp / BUCKET_SIZE);
     lastUnstakeBucketIndex = uint16(block.timestamp / BUCKET_SIZE);
+    manager = _manager;
   }
 
   /* View functions */

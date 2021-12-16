@@ -13,6 +13,10 @@ contract CoverMockStakingPool is IStakingPool {
 
   mapping (uint => uint) public mockPrices;
 
+  function initialize(address) external override {
+    // no-op
+  }
+
   function allocateCapacity(AllocateCapacityParams calldata params) external override returns (uint, uint) {
     usedCapacity[params.productId] += params.coverAmount;
     return (0, 0);

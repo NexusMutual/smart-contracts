@@ -60,8 +60,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint32 public coverCount;
 
   address public override coverNFT;
-
-  address public stakingPoolBeacon;
   uint public stakingPoolCounter;
 
   /*
@@ -418,7 +416,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     address addr;
     uint stakingPoolIndex = stakingPoolCounter;
 
-    bytes memory code = abi.encodePacked(type(MinimalBeaconProxy).creationCode, abi.encode(stakingPoolBeacon, 0));
+    bytes memory code = abi.encodePacked(type(MinimalBeaconProxy).creationCode, abi.encode(address(this)));
     assembly {
       addr := create2(
       callvalue(), // wei sent with current call

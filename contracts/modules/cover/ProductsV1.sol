@@ -1379,7 +1379,7 @@ contract ProductsV1 is IProductsV1 {
     if (legacyProductId == 0x0000000000000000000000000000000000000012)  {
       return 0;
     }
-    
+
     revert("Unknown product id");
   }
 }

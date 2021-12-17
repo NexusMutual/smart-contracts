@@ -208,7 +208,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
       (uint coveredAmountInNXM, uint premiumInNXM) = allocateCapacity(
         params,
-        IStakingPool(coverChunkRequests[i].poolAddress),
+        stakingPool(coverChunkRequests[i].poolId),
         requestedCoverAmountInNXM
       );
 
@@ -217,7 +217,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       totalPremiumInNXM += premiumInNXM;
 
       coverChunksForCover[coverCount].push(
-        CoverChunk(coverChunkRequests[i].poolAddress, uint96(coveredAmountInNXM), uint96(premiumInNXM))
+        CoverChunk(coverChunkRequests[i].poolId, uint96(coveredAmountInNXM), uint96(premiumInNXM))
       );
     }
 
@@ -280,7 +280,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       uint totalPreviousCoverAmountInNXM = 0;
       // rollback previous cover
       for (uint i = 0; i < originalCoverChunks.length; i++) {
-        IStakingPool stakingPool = IStakingPool(originalCoverChunks[i].poolAddress);
+        IStakingPool stakingPool = stakingPool(originalCoverChunks[i].poolId);
 
         stakingPool.freeCapacity(
           cover.productId,
@@ -423,13 +423,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     emit StakingPoolCreated(addr, manager, stakingPoolImplementation);
   }
 
-  function stakingPool(uint index) public view returns (address) {
+  function stakingPool(uint index) public view returns (IStakingPool) {
 
     bytes32 hash = keccak256(
       abi.encodePacked(bytes1(0xff), address(this), index, stakingPoolProxyCodeHash)
     );
     // cast last 20 bytes of hash to address
-    return address(uint160(uint(hash)));
+    return IStakingPool(address(uint160(uint(hash))));
   }
 
   /* ========== PRODUCT CONFIGURATION ========== */
@@ -466,9 +466,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function assetIsSupported(uint payoutAssetsBitMap, uint8 payoutAsset) public returns (bool) {
 
     if (payoutAssetsBitMap == 0) {
-      return 1 << payoutAsset & coverAssetsFallback > 0;
+      return (1 << payoutAsset) & coverAssetsFallback > 0;
     }
-    return 1 << payoutAsset & payoutAssetsBitMap > 0;
+    return (1 << payoutAsset) & payoutAssetsBitMap > 0;
   }
 
   /* ========== DEPENDENCIES ========== */

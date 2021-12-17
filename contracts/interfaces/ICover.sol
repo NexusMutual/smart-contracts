@@ -24,13 +24,12 @@ interface ICover {
   }
 
   struct CoverChunkRequest {
-    // TODO: switch to poolId and derive the address created with CREATE2 from the id
-    address poolAddress;
+    uint64 poolId;
     uint coverAmountInAsset;
   }
 
   struct CoverChunk {
-    address poolAddress;
+    uint64 poolId;
     uint96 coverAmountInNXM;
     uint96 premiumInNXM;
   }

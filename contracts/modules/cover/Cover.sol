@@ -30,6 +30,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint public constant REWARD_DENOMINATOR = 2;
 
   uint public constant PRICE_DENOMINATOR = 10000;
+  uint public constant COMMISSION_DENOMINATOR = 10000;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
 
   uint public constant MAX_COVER_PERIOD = 365 days;
@@ -358,7 +359,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   ) internal {
 
     // add commission
-    uint commission = premium * buyParams.commissionRatio / PRICE_DENOMINATOR;
+    uint commission = premium * buyParams.commissionRatio / COMMISSION_DENOMINATOR;
     uint premiumWithCommission = premium + commission;
 
     if (buyParams.paymentAsset == 0) {
@@ -401,7 +402,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     ITokenController tokenController = tokenController();
 
     if (commissionRatio > 0) {
-      uint commission = price * commissionRatio / PRICE_DENOMINATOR;
+      uint commission = price * commissionRatio / COMMISSION_DENOMINATOR;
       // transfer the commission to the commissionDestination; reverts if commissionDestination is not a member
       tokenController.token().transferFrom(msg.sender, commissionDestination, commission);
     }

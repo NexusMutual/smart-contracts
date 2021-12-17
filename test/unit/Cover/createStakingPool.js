@@ -6,7 +6,7 @@ const IStakingPool = artifacts.require('IStakingPool');
 
 describe('createStakingPool', function () {
 
-  it.only('should create new pool', async function () {
+  it('should create new pool', async function () {
     const { cover } = this;
 
     const {

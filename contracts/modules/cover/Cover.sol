@@ -143,6 +143,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     // Mark cover as migrated to prevent future calls on the same cover
     quotationData.changeCoverStatusNo(coverId, uint8(LegacyCoverStatus.Migrated));
 
+    // TODO: fix
 //
 //    // mint the new cover
 //    covers.push(

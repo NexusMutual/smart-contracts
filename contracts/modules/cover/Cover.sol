@@ -59,8 +59,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   uint32 public globalCapacityRatio;
   uint32 public globalRewardsRatio;
-  // [todo] Remove this and use covers.length instead
-  uint32 public coverCount;
 
   address public override coverNFT;
   uint public stakingPoolCounter;
@@ -216,7 +214,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       totalCoverAmountInNXM += coveredAmountInNXM;
       totalPremiumInNXM += premiumInNXM;
 
-      coverChunksForCover[coverCount].push(
+      coverChunksForCover[covers.length].push(
         CoverChunk(coverChunkRequests[i].poolId, uint96(coveredAmountInNXM), uint96(premiumInNXM))
       );
     }
@@ -345,10 +343,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       cover.priceRatio
     );
 
-    covers[coverCount++] = newCover;
+    covers.push(newCover);
 
     coverNFTContract.burn(coverId);
-    coverNFTContract.safeMint(owner, coverCount - 1);
+    coverNFTContract.safeMint(owner, covers.length - 1);
     return owner;
   }
 

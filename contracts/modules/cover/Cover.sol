@@ -1,8 +1,9 @@
 
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-
+import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/proxy/beacon/UpgradeableBeacon.sol";
+
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IQuotationData.sol";
@@ -18,6 +19,7 @@ import "../../interfaces/IStakingPoolBeacon.sol";
 import "./MinimalBeaconProxy.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
+  using SafeERC20 for IERC20;
 
   /* === CONSTANTS ==== */
 
@@ -194,29 +196,22 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   ) internal returns (uint, uint, uint) {
     // convert to NXM amount
     uint nxmPriceInPayoutAsset = pool().getTokenPrice(params.payoutAsset);
-
     uint totalPremiumInNXM = 0;
     uint totalCoverAmountInNXM = 0;
+    uint remainderAmountInNXM = 0;
+
     for (uint i = 0; i < coverChunkRequests.length; i++) {
 
       uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / nxmPriceInPayoutAsset;
+      requestedCoverAmountInNXM += remainderAmountInNXM;
 
       (uint coveredAmountInNXM, uint premiumInNXM) = allocateCapacity(
+        params,
         IStakingPool(coverChunkRequests[i].poolAddress),
-        params.productId,
-        requestedCoverAmountInNXM,
-        params.period
+        requestedCoverAmountInNXM
       );
 
-      // carry over the amount that was not covered by the current pool to the next cover
-      if (coveredAmountInNXM < requestedCoverAmountInNXM && i + 1 < coverChunkRequests.length) {
-
-        uint remainder = (requestedCoverAmountInNXM - coveredAmountInNXM) * nxmPriceInPayoutAsset / 1e18;
-        coverChunkRequests[i + 1].coverAmountInAsset += remainder;
-      } else if (coveredAmountInNXM < requestedCoverAmountInNXM) {
-        revert("Not enough available capacity");
-      }
-
+      remainderAmountInNXM = requestedCoverAmountInNXM - coveredAmountInNXM;
       totalCoverAmountInNXM += coveredAmountInNXM;
       totalPremiumInNXM += premiumInNXM;
 
@@ -225,7 +220,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       );
     }
 
-    uint coverId = covers.length;
+    require(remainderAmountInNXM == 0, "Not enough available capacity");
+
     covers.push(CoverData(
         params.productId,
         params.payoutAsset,
@@ -235,6 +231,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         uint16(totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM)
       ));
 
+    uint coverId = covers.length - 1;
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
 
     uint premiumInPaymentAsset = totalPremiumInNXM * pool().getTokenPrice(params.paymentAsset) / 1e18;
@@ -242,23 +239,21 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   }
 
   function allocateCapacity(
+    BuyCoverParams memory params,
     IStakingPool stakingPool,
-    uint24 productId,
-    uint amount,
-    uint32 period
+    uint amount
   ) internal returns (uint, uint) {
 
-    uint initialPrice = initialPrices[productId];
     return stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
-      productId,
-      amount,
-      REWARD_DENOMINATOR,
-      period,
-      globalCapacityRatio,
-      globalRewardsRatio,
-      capacityReductionRatios[productId],
-      initialPrice
-    ));
+        params.productId,
+        amount,
+        REWARD_DENOMINATOR,
+        params.period,
+        globalCapacityRatio,
+        globalRewardsRatio,
+        capacityReductionRatios[params.productId],
+        initialPrices[params.productId]
+      ));
   }
 
   function editCover(
@@ -363,10 +358,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   ) internal {
 
     // add commission
-    uint premiumWithCommission = buyParams.commissionRatio > 0 ?
-      premium / (PRICE_DENOMINATOR - buyParams.commissionRatio) * PRICE_DENOMINATOR
-      : premium;
-    uint commission = premiumWithCommission - premium;
+    uint commission = premium * buyParams.commissionRatio / PRICE_DENOMINATOR;
+    uint premiumWithCommission = premium + commission;
 
     if (buyParams.paymentAsset == 0) {
       require(msg.value >= premiumWithCommission, "Cover: Insufficient ETH sent");
@@ -383,34 +376,34 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         (bool ok, /* data */) = address(buyParams.commissionDestination).call{value: commission}("");
         require(ok, "Cover: Sending ETH to commission destination failed.");
       }
-    } else {
-      (
-        address payoutAsset,
-        /*uint8 decimals*/,
-        /*bool deprecated*/
-      ) = pool().assets(buyParams.paymentAsset);
 
-      IERC20 token = IERC20(payoutAsset);
-      token.transferFrom(msg.sender, address(pool()), premium);
+      return;
+    }
 
-      if (commission > 0) {
-        token.transfer(buyParams.commissionDestination, commission);
-      }
+    IPool pool = pool();
+
+    (
+    address payoutAsset,
+    /*uint8 decimals*/,
+    /*bool deprecated*/
+    ) = pool.assets(buyParams.paymentAsset);
+
+    IERC20 token = IERC20(payoutAsset);
+    token.safeTransferFrom(msg.sender, address(pool), premium);
+
+    if (commission > 0) {
+      token.safeTransfer(buyParams.commissionDestination, commission);
     }
   }
 
   function retrieveNXMPayment(uint price, uint commissionRatio, address commissionDestination) internal {
 
     ITokenController tokenController = tokenController();
-    if (commissionRatio > 0) {
-      uint priceWithCommission = price / (PRICE_DENOMINATOR - commissionRatio) * PRICE_DENOMINATOR;
-      tokenController.burnFrom(msg.sender, price);
-      uint commission = priceWithCommission - price;
 
+    if (commissionRatio > 0) {
+      uint commission = price * commissionRatio / PRICE_DENOMINATOR;
       // transfer the commission to the commissionDestination; reverts if commissionDestination is not a member
       tokenController.token().transferFrom(msg.sender, commissionDestination, commission);
-
-      return;
     }
 
     tokenController.burnFrom(msg.sender, price);

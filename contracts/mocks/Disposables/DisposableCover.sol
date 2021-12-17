@@ -21,12 +21,6 @@ contract DisposableCover is MasterAwareV2 {
   uint32 public coverCount;
   address public coverNFT;
 
-  /*
-    (productId, poolAddress) => lastPrice
-    Last base prices at which a cover was sold by a pool for a particular product.
-  */
-  mapping(uint => mapping(address => ICover.LastPrice)) lastPrices;
-
 
   /* === CONSTANTS ==== */
 

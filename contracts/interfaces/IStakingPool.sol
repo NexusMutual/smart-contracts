@@ -5,26 +5,22 @@ pragma solidity >=0.5.0;
 
 interface IStakingPool {
 
-  function buyCover(
-    uint productId,
-    uint coveredAmount,
-    uint rewardDenominator,
-    uint period,
-    uint capacityFactor,
-    uint basePrice
-  ) external returns (uint);
+  struct AllocateCapacityParams {
+    uint productId;
+    uint coverAmount;
+    uint rewardsDenominator;
+    uint period;
+    uint globalCapacityRatio;
+    uint globalRewardsRatio;
+    uint capacityReductionRatio;
+    uint initialPrice;
+  }
 
-  function extendPeriod(
-    uint productId,
-    uint previousPeriod,
-    uint previousStartTime,
-    uint previousRewardAmount,
-    uint newPeriod,
-    uint newRewardAmount,
-    uint coveredAmount
-  ) external;
+  function initialize(address manager) external;
 
-  function reducePeriod(
+  function allocateCapacity(AllocateCapacityParams calldata params) external returns (uint, uint);
+
+  function freeCapacity(
     uint productId,
     uint previousPeriod,
     uint previousStartTime,
@@ -33,19 +29,10 @@ interface IStakingPool {
     uint coveredAmount
   ) external;
 
-  function reduceAmount(
-    uint productId,
-    uint period,
-    uint startTime,
-    uint previousRewardAmount,
-    uint previousAmount,
-    uint newRewardAmount,
-    uint newAmount
-  ) external;
-
   function getAvailableCapacity(uint productId, uint capacityFactor) external view returns (uint);
   function getCapacity(uint productId, uint capacityFactor) external view returns (uint);
   function getUsedCapacity(uint productId) external view returns (uint);
   function getTargetPrice(uint productId) external view returns (uint);
   function getStake(uint productId) external view returns (uint);
+  function manager() external view returns (address);
 }

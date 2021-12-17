@@ -11,49 +11,26 @@ contract CoverMockStakingPool is IStakingPool {
   mapping (uint => uint) public stake;
   mapping (uint => uint) public targetPrices;
 
-  function buyCover(
-    uint productId,
-    uint coveredAmount,
-    uint rewardDenominator,
-    uint period,
-    uint capacityFactor,
-    uint basePrice
-  ) external override returns (uint) {
-    usedCapacity[productId] += coveredAmount;
-    return 0;
+  mapping (uint => uint) public mockPrices;
+
+  address public override manager;
+
+  function initialize(address _manager) external override {
+    manager = _manager;
   }
 
-  function extendPeriod(
-    uint productId,
-    uint previousPeriod,
-    uint previousStartTime,
-    uint previousRewardAmount,
-    uint newPeriod,
-    uint newRewardAmount,
-    uint coveredAmount
-  ) external override {
-    // no-op
+  function allocateCapacity(AllocateCapacityParams calldata params) external override returns (uint, uint) {
+    usedCapacity[params.productId] += params.coverAmount;
+    return (0, 0);
   }
 
-  function reducePeriod(
+  function freeCapacity(
     uint productId,
     uint previousPeriod,
     uint previousStartTime,
     uint previousRewardAmount,
     uint periodReduction,
     uint coveredAmount
-  ) external override {
-    // no-op
-  }
-
-  function reduceAmount(
-    uint productId,
-    uint period,
-    uint startTime,
-    uint previousRewardAmount,
-    uint previousAmount,
-    uint newRewardAmount,
-    uint newAmount
   ) external override {
     // no-op
   }
@@ -84,6 +61,10 @@ contract CoverMockStakingPool is IStakingPool {
   }
   function setStake(uint productId, uint amount) external {
     stake[productId] = amount;
+  }
+
+  function setPrice(uint productId, uint price) external {
+    mockPrices[productId] = price;
   }
 
 }

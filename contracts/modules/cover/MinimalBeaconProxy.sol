@@ -6,7 +6,6 @@ import "../../interfaces/IStakingPoolBeacon.sol";
  *
  * The beacon address is stored as an immutable field.
  *
- * _Available since v3.4._
  */
 contract MinimalBeaconProxy is Proxy {
 
@@ -18,11 +17,8 @@ contract MinimalBeaconProxy is Proxy {
   /**
    * @dev Initializes the proxy with `beacon`.
    *
-   * Requirements:
-   *
-   * - `beacon` must be a contract with the interface {IBeacon}.
    */
-  constructor(address _beacon) payable {
+  constructor(address _beacon) {
     beacon = _beacon;
   }
 

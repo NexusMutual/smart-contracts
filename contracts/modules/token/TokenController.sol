@@ -19,9 +19,6 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   INXMToken public token;
   IPooledStaking public pooledStaking;
   IAssessment public assessment;
-  // 96 bits from this part of the slot were part of uint minCALockTime.  You should initialize
-  // whatever you might want to fit here to avoid any leftover storage issues.
-
   IGovernance public governance;
 
   // coverId => CoverInfo
@@ -325,12 +322,33 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
   /// Withdraws governance rewards
   /// @dev This function requires a batchSize that fits in one block. It cannot be 0.
-  /// @param batchSize  The maximum number of iterations to avoid unbounded loops
   function withdrawGovernanceRewards(uint batchSize) public isMemberAndcheckPause {
     uint governanceRewards = governance.claimReward(msg.sender, batchSize);
     require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
     token.transfer(msg.sender, governanceRewards);
   }
+
+  /// Function used to claim all pending rewards in one tx. It can be used to selectively withdraw
+  /// rewards.
+  ///
+  /// @param batchSize  The maximum number of iterations to avoid unbounded loops
+  /// @param batchSize  The maximum number of iterations to avoid unbounded loops
+  function withdrawPendingRewards(
+    address forUser,
+    bool fromGovernance,
+    bool fromAssessment,
+    uint batchSize
+  ) external isMemberAndcheckPause {
+    if (fromAssessment) {
+      assessment.withdrawRewards(forUser, batchSize);
+    }
+    if (fromGovernance) {
+      uint governanceRewards = gv.claimReward(forUser, batchSize);
+      require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
+      require(tk.transfer(forUser, governanceRewards), "TokenController: Governance rewards transfer failed");
+    }
+  }
+
 
   /**
   * @dev Returns the total amount of locked and staked tokens.

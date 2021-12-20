@@ -24,7 +24,6 @@ const TokenData = artifacts.require('TokenData');
 const Pool = artifacts.require('Pool');
 const Quotation = artifacts.require('Quotation');
 const QuotationData = artifacts.require('QuotationData');
-const ClaimProofs = artifacts.require('ClaimProofs');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const SwapOperator = artifacts.require('SwapOperator');
 const TwapOracle = artifacts.require('TwapOracle');
@@ -140,12 +139,6 @@ async function main () {
 
   verifier.add(tk, { constructorArgs: [owner, INITIAL_SUPPLY.toString()] });
   verifier.add(td, { constructorArgs: [owner] });
-  verifier.add(tf);
-
-  // Non-upgradable contracts
-  console.log('Deploying non-upgradable contracts');
-  const cp = await ClaimProofs.new();
-  verifier.add(cp);
 
   // proxy contracts
   console.log('Deploying proxy contracts');

@@ -62,10 +62,6 @@ contract Incidents is IIncidents, MasterAwareV2 {
     return a < b ? a : b;
   }
 
-  function memberRoles() internal view returns (IMemberRoles) {
-    return IMemberRoles(internalContracts[uint(IMasterAwareV2.ID.MR)]);
-  }
-
   function assessment() internal view returns (IAssessment) {
     return IAssessment(getInternalContractAddress(ID.AS));
   }
@@ -77,6 +73,58 @@ contract Incidents is IIncidents, MasterAwareV2 {
   /// @dev Returns the number of incidents.
   function getIncidentsCount() external override view returns (uint) {
     return incidents.length;
+  }
+
+  function getIncidentDisplay(uint id) internal view returns (IncidentDisplay memory) {
+    Incident memory incident = incidents[id];
+    (IAssessment.Poll memory poll,,) = assessment().assessments(incident.assessmentId);
+
+    IncidentStatus incidentStatus;
+
+    (,,uint payoutCooldownInDays,) = assessment().config();
+    uint redeemableUntil = poll.end + (payoutCooldownInDays + config.payoutRedemptionPeriodInDays) * 1 days;
+
+    // Determine the incidents status
+    if (block.timestamp < poll.end) {
+      incidentStatus = IncidentStatus.PENDING;
+    } else if (poll.accepted > poll.denied) {
+      if (block.timestamp > redeemableUntil) {
+        incidentStatus = IncidentStatus.EXPIRED;
+      } else {
+        incidentStatus = IncidentStatus.ACCEPTED;
+      }
+    } else {
+      incidentStatus = IncidentStatus.DENIED;
+    }
+
+
+    return IncidentDisplay(
+      id,
+      incident.productId,
+      incident.priceBefore,
+      incident.date,
+      poll.start,
+      poll.end,
+      redeemableUntil,
+      uint(incidentStatus)
+    );
+  }
+
+  /// Returns an array of incidents aggregated in a human-friendly format.
+  ///
+  /// @dev This view is meant to be used in user interfaces to get incidents in a format suitable
+  /// for displaying all relevant information in as few calls as possible. It can be used to
+  /// paginate incidents by providing the following paramterers:
+  ///
+  /// @param ids   Array of Incident ids which are returned as IncidentDisplay
+  function getIncidentsToDisplay (uint104[] calldata ids)
+  external view returns (IncidentDisplay[] memory) {
+    IncidentDisplay[] memory incidentDisplays = new IncidentDisplay[](ids.length);
+    for (uint i = 0; i < ids.length; i++) {
+      uint104 id = ids[i];
+      incidentDisplays[i] = getIncidentDisplay(id);
+    }
+    return incidentDisplays;
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -238,7 +286,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
     token.transfer(destination, transferAmount);
   }
 
-  /// Redeems payouts for accepted claims
+  /// Allows to update configurable aprameters through governance
   ///
   /// @param paramNames  An array of elements from UintParams enum
   /// @param values      An array of the new values, each one corresponding to the parameter

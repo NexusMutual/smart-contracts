@@ -1111,7 +1111,7 @@ contract Governance is IGovernance, LegacyMasterAware {
     }
 
     if (proposalVoteTally[_proposalId].voters > 0) {
-      tokenInstance.mint(ms.getLatestAddress("CR"), allProposalData[_proposalId].commonIncentive);
+      tokenInstance.mint(ms.getLatestAddress("TC"), allProposalData[_proposalId].commonIncentive);
     }
   }
 

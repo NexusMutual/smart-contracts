@@ -394,7 +394,7 @@ contract Claims is IClaims, MasterAwareV2 {
 
   }
 
-  /// Redeems payouts for accepted claims
+  /// Allows to update configurable aprameters through governance
   ///
   /// @param paramNames  An array of elements from UintParams enum
   /// @param values      An array of the new values, each one corresponding to the parameter

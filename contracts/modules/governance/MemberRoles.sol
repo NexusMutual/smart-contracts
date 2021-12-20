@@ -247,9 +247,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   function withdrawMembership() public {
 
     require(!ms.isPause() && ms.isMember(msg.sender));
-    require(tc.totalLockedBalance(msg.sender) == 0); // solhint-disable-line
     require(now > tk.isLockedForMV(msg.sender)); // No locked tokens for Member/Governance voting
-    require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
 
     gv.removeDelegation(msg.sender);
     tc.burnFrom(msg.sender, tk.balanceOf(msg.sender));

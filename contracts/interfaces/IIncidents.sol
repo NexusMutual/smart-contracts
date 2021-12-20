@@ -6,6 +6,8 @@ interface IIncidents {
 
   /* ========== DATA STRUCTURES ========== */
 
+  enum IncidentStatus { PENDING, ACCEPTED, DENIED, EXPIRED }
+
   enum UintParams {
     payoutRedemptionPeriodInDays,
     expectedPayoutRatio,
@@ -44,6 +46,17 @@ interface IIncidents {
 
     // The price of the depegged token before the incident that resulted in the depeg.
     uint96 priceBefore;
+  }
+
+  struct IncidentDisplay {
+    uint id;
+    uint productId;
+    uint priceBefore;
+    uint incidentDate;
+    uint pollStart;
+    uint pollEnd;
+    uint redeemableUntil;
+    uint status;
   }
 
   /* ========== VIEWS ========== */

@@ -249,19 +249,6 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
   }
 
   /**
-   * @dev Function used to claim all pending rewards : Claims Assessment + Risk Assessment + Governance
-   * Claim assesment, Risk assesment, Governance rewards
-   */
-  function claimAllPendingReward(uint records) public isMemberAndcheckPause {
-    _claimRewardToBeDistributed(records);
-    pooledStaking.withdrawReward(msg.sender);
-    uint governanceRewards = gv.claimReward(msg.sender, records);
-    if (governanceRewards > 0) {
-      require(tk.transfer(msg.sender, governanceRewards));
-    }
-  }
-
-  /**
    * @dev Function used to get pending rewards of a particular user address.
    * @param _add user address.
    * @return total reward amount of the user

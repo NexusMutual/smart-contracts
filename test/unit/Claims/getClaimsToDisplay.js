@@ -210,7 +210,6 @@ describe('getClaimsToDisplay', function () {
 
     {
       const latestBlock = await ethers.provider.getBlock('latest');
-      expectedPollStarts.push(latestBlock.timestamp);
       await setTime(latestBlock.timestamp + daysToSeconds(1));
     }
 
@@ -230,7 +229,6 @@ describe('getClaimsToDisplay', function () {
 
     {
       const latestBlock = await ethers.provider.getBlock('latest');
-      expectedPollStarts.push(latestBlock.timestamp);
       await setTime(latestBlock.timestamp + daysToSeconds(3));
     }
 
@@ -257,7 +255,6 @@ describe('getClaimsToDisplay', function () {
 
     {
       const latestBlock = await ethers.provider.getBlock('latest');
-      expectedPollStarts.push(latestBlock.timestamp);
       await setTime(latestBlock.timestamp + daysToSeconds(60));
     }
 

@@ -76,13 +76,14 @@ describe('updateUintParameters', function () {
     const {
       governanceContracts: [governance],
     } = this.accounts;
-    const newValues = {
-      payoutRedemptionPeriodInDays: 111,
-      payoutDeductibleRatio: 3333,
-      rewardRatio: 5555,
-    };
 
     {
+      const newValues = {
+        payoutRedemptionPeriodInDays: 111,
+        payoutDeductibleRatio: 3333,
+        rewardRatio: 5555,
+      };
+
       const {
         maxRewardInNXMWad: initialMaxRewardInNXMWad,
         expectedPayoutRatio: initialExpectedPayoutRatio,
@@ -106,6 +107,37 @@ describe('updateUintParameters', function () {
       expect(payoutDeductibleRatio).to.be.equal(newValues.payoutDeductibleRatio);
       expect(maxRewardInNXMWad).to.be.equal(initialMaxRewardInNXMWad);
       expect(rewardRatio).to.be.equal(newValues.rewardRatio);
+    }
+
+    {
+      const newValues = {
+        maxRewardInNXMWad: 666,
+        expectedPayoutRatio: 777,
+      };
+      const {
+        payoutRedemptionPeriodInDays: initialPayoutRedemptionPeriodInDays,
+        payoutDeductibleRatio: initialPayoutDeductibleRatio,
+        rewardRatio: initialRewardRatio,
+      } = await incidents.config();
+      await incidents
+        .connect(governance)
+        .updateUintParameters(
+          [uintParams.maxRewardInNXMWad, uintParams.expectedPayoutRatio],
+          [newValues.maxRewardInNXMWad, newValues.expectedPayoutRatio],
+        );
+      const {
+        payoutRedemptionPeriodInDays,
+        expectedPayoutRatio,
+        payoutDeductibleRatio,
+        maxRewardInNXMWad,
+        rewardRatio,
+      } = await incidents.config();
+
+      expect(payoutRedemptionPeriodInDays).to.be.equal(initialPayoutRedemptionPeriodInDays);
+      expect(expectedPayoutRatio).to.be.equal(newValues.expectedPayoutRatio);
+      expect(payoutDeductibleRatio).to.be.equal(initialPayoutDeductibleRatio);
+      expect(maxRewardInNXMWad).to.be.equal(newValues.maxRewardInNXMWad);
+      expect(rewardRatio).to.be.equal(initialRewardRatio);
     }
   });
 

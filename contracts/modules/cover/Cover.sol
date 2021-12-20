@@ -49,7 +49,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   Product[] public override products;
   ProductType[] public override productTypes;
-  
+
   CoverData[] private coverData;
   mapping(uint => mapping(uint => CoverChunk[])) public coverChunksForCoverSegments;
 

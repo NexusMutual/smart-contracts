@@ -15,7 +15,6 @@ contract CLMockCover {
   ICover.CoverData[] public coverData;
   mapping(uint => ICover.CoverSegment[]) coverSegments;
 
-
   mapping(uint => ICover.CoverChunk[]) stakingPoolsForCover;
   mapping(uint => uint96) public activeCoverAmountInNXM;
 

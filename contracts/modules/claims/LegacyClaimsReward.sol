@@ -47,6 +47,9 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
     address _daiAddress,
     address legacyClaimsData
   ) public {
+    // [todo] Add public function that transfers rewards to assessors then transfer the remained
+    // to TokenController
+    revert("Don't deploy before updating the transfer list of rewardable accounts");
     changeMasterAddress(masterAddress);
     cd = ILegacyClaimsData(legacyClaimsData);
     DAI = _daiAddress;

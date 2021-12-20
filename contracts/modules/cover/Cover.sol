@@ -49,8 +49,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   Product[] public override products;
   ProductType[] public override productTypes;
-
-  // TODO: add override keyword back and delete the covers() function
+  
   CoverData[] private coverData;
   mapping(uint => mapping(uint => CoverChunk[])) public coverChunksForCoverSegments;
 
@@ -444,7 +443,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     return IStakingPool(address(uint160(uint(hash))));
   }
 
-  // TODO: delete
   function covers(uint id) external view override returns (uint24, uint8, uint96, uint32, uint32, uint16) {
     CoverData memory cover = coverData[id];
     CoverSegment memory lastCoverSegment = coverSegments[id][coverSegments[id].length - 1];

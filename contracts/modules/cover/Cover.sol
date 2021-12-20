@@ -143,24 +143,30 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     // Mark cover as migrated to prevent future calls on the same cover
     quotationData.changeCoverStatusNo(coverId, uint8(LegacyCoverStatus.Migrated));
 
-    // TODO: fix
-//
-//    // mint the new cover
-//    covers.push(
-//      CoverData(
-//        productsV1.getNewProductId(legacyProductId), // productId
-//        currencyCode == "ETH" ? 0 : 1, //payoutAsset
-//        uint96(sumAssured * 10 ** 18),
-//        uint32(block.timestamp + 1),
-//        uint32(coverPeriodInDays * 1 days),
-//        uint16(0)
-//      )
-//    );
-//
-//    ICoverNFT(coverNFT).safeMint(
-//      toNewOwner,
-//      covers.length - 1 // newCoverId
-//    );
+
+    // mint the new cover
+
+    coverData.push(
+      CoverData(
+        productsV1.getNewProductId(legacyProductId), // productId
+        currencyCode == "ETH" ? 0 : 1, //payoutAsset
+        0 // amountPaidOut
+      )
+    );
+
+    coverSegments[coverId].push(
+      CoverSegment(
+        uint96(sumAssured * 10 ** 18),
+        uint32(block.timestamp + 1),
+        uint32(coverPeriodInDays * 1 days),
+        uint16(0)
+      )
+    );
+
+    ICoverNFT(coverNFT).safeMint(
+      toNewOwner,
+      coverData.length - 1 // newCoverId
+    );
   }
 
   /// @dev Migrates covers from V1 to Cover.sol, meant to be used my EOA members
@@ -276,8 +282,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     CoverChunkRequest[] memory coverChunkRequests
   ) external payable onlyMember {
 
-    // TODO: consider implementation using segments instead of minting a new NFT
-
     CoverData memory cover = coverData[coverId];
     uint lastCoverSegmentIndex = coverSegments[coverId].length - 1;
     CoverSegment memory lastCoverSegment = coverSegments[coverId][lastCoverSegmentIndex];
@@ -354,21 +358,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     ICoverNFT coverNFTContract = ICoverNFT(coverNFT);
     address owner = coverNFTContract.ownerOf(coverId);
 
-    // TODO: implement burn
-//    CoverData memory cover = covers[coverId];
-//    CoverData memory newCover = CoverData(
-//      cover.productId,
-//      cover.payoutAsset,
-//      uint96(cover.amount - amount),
-//      uint32(block.timestamp + 1),
-//      cover.start + cover.period - uint32(block.timestamp),
-//      cover.priceRatio
-//    );
-//
-//    covers[coverCount++] = newCover;
-//
-//    coverNFTContract.burn(coverId);
-//    coverNFTContract.safeMint(owner, coverCount - 1);
+    CoverData storage cover = coverData[coverId];
+    cover.amountPaidOut += uint96(amount);
+
     return owner;
   }
 

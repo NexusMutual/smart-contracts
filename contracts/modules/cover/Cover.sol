@@ -4,6 +4,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/proxy/beacon/UpgradeableBeacon.sol";
 
+import "../../utils/SafeUintCast.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IQuotationData.sol";
@@ -155,9 +156,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     coverSegments[coverId].push(
       CoverSegment(
-        uint96(sumAssured * 10 ** 18),
+        SafeUintCast.toUint96(sumAssured * 10 ** 18),
         uint32(block.timestamp + 1),
-        uint32(coverPeriodInDays * 1 days),
+        SafeUintCast.toUint32(coverPeriodInDays * 1 days),
         uint16(0)
       )
     );
@@ -239,15 +240,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       totalPremiumInNXM += premiumInNXM;
 
       coverChunksForCoverSegments[coverId][coverSegments[coverId].length].push(
-        CoverChunk(coverChunkRequests[i].poolId, uint96(coveredAmountInNXM), uint96(premiumInNXM))
+        CoverChunk(coverChunkRequests[i].poolId, SafeUintCast.toUint96(coveredAmountInNXM), SafeUintCast.toUint96(premiumInNXM))
       );
     }
 
     coverSegments[coverId].push(CoverSegment(
-        uint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18),
+        SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18),
         uint32(block.timestamp + 1),
-        uint32(params.period),
-        uint16(totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM)
+        SafeUintCast.toUint32(params.period),
+        SafeUintCast.toUint16(totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM)
       ));
 
     uint coverId = coverData.length - 1;
@@ -322,7 +323,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     // edit cover so it ends at the current block
     lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
-    lastCoverSegment.priceRatio = uint16(lastCoverSegment.priceRatio * remainingPeriod / lastCoverSegment.period);
+    lastCoverSegment.priceRatio = SafeUintCast.toUint16(lastCoverSegment.priceRatio * remainingPeriod / lastCoverSegment.period);
 
     (uint premiumInPaymentAsset, uint totalPremiumInNXM) =
       _buyCover(buyCoverParams, coverId, coverChunkRequests);
@@ -358,7 +359,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     address owner = coverNFTContract.ownerOf(coverId);
 
     CoverData storage cover = coverData[coverId];
-    cover.amountPaidOut += uint96(amount);
+    cover.amountPaidOut += SafeUintCast.toUint96(amount);
 
     return owner;
   }

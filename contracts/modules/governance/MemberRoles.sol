@@ -18,7 +18,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   IQuotationData internal qd;
   ILegacyClaimsReward internal cr;
   IGovernance internal gv;
-  address internal _unused;
+  address internal _unused1;
   INXMToken public tk;
 
   struct MemberRoleDetails {
@@ -32,15 +32,13 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
 
   event switchedMembership(address indexed previousMember, address indexed newMember, uint timeStamp);
 
-  event ClaimPayoutAddressSet(address indexed member, address indexed payoutAddress);
-
   MemberRoleDetails[] internal memberRoleData;
   bool internal constructorCheck;
   uint public maxABCount;
   bool public launched;
   uint public launchedOn;
 
-  mapping (address => address payable) internal claimPayoutAddress;
+  mapping (address => address payable) internal _unused2;
 
   modifier checkRoleAuthority(uint _memberRoleId) {
     if (memberRoleData[_memberRoleId].authorized != address(0))
@@ -253,11 +251,6 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     tc.burnFrom(msg.sender, tk.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
     tc.removeFromWhitelist(msg.sender); // need clarification on whitelist
-
-    if (claimPayoutAddress[msg.sender] != address(0)) {
-      claimPayoutAddress[msg.sender] = address(0);
-      emit ClaimPayoutAddressSet(msg.sender, address(0));
-    }
   }
 
   /**
@@ -271,6 +264,15 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
 
   function switchMembershipOf(address member, address newAddress) external onlyInternal {
     _switchMembership(member, newAddress);
+  }
+
+  function storageCleanup() external {
+    assembly {
+      mstore(0, 0x1337def1e9c7645352d93baf0b789d04562b4185)
+      mstore(32, _unused2_slot)
+      let hash := keccak256(0, 64)
+      sstore(hash, 0)
+    }
   }
 
   /**
@@ -290,40 +292,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     _updateRole(member, uint(Role.Member), false);
     tc.removeFromWhitelist(member);
 
-    address payable previousPayoutAddress = claimPayoutAddress[member];
-
-    if (previousPayoutAddress != address(0)) {
-
-      address payable storedAddress = previousPayoutAddress == newAddress ? address(0) : previousPayoutAddress;
-
-      claimPayoutAddress[member] = address(0);
-      claimPayoutAddress[newAddress] = storedAddress;
-
-      // emit event for old address reset
-      emit ClaimPayoutAddressSet(member, address(0));
-
-      if (storedAddress != address(0)) {
-        // emit event for setting the payout address on the new member address if it's non zero
-        emit ClaimPayoutAddressSet(newAddress, storedAddress);
-      }
-    }
-
     emit switchedMembership(member, newAddress, now);
-  }
-
-  function getClaimPayoutAddress(address payable _member) external view returns (address payable) {
-    address payable payoutAddress = claimPayoutAddress[_member];
-    return payoutAddress != address(0) ? payoutAddress : _member;
-  }
-
-  function setClaimPayoutAddress(address payable _address) external {
-
-    require(!ms.isPause(), "system is paused");
-    require(ms.isMember(msg.sender), "sender is not a member");
-    require(_address != msg.sender, "should be different than the member address");
-
-    claimPayoutAddress[msg.sender] = _address;
-    emit ClaimPayoutAddressSet(msg.sender, _address);
   }
 
   /// @dev Return number of member roles

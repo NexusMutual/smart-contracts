@@ -127,7 +127,7 @@ describe('getRewards', function () {
     }
 
     {
-      await assessment.withdrawRewards(user.address, 2);
+      await assessment.withdrawRewards(user.address, 1);
       const { withdrawableAmount } = await assessment.getRewards(user.address);
       expect(withdrawableAmount).to.be.equal(0);
     }

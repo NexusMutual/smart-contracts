@@ -5,7 +5,7 @@ const { setTime, daysToSeconds, INCIDENT_STATUS } = require('./helpers');
 const { parseEther } = ethers.utils;
 
 describe('getIncidentsToDisplay', function () {
-  it.only('aggregates and displays claims related data in a human-readable form', async function () {
+  it('aggregates and displays claims related data in a human-readable form', async function () {
     const { incidents, assessment } = this.contracts;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
 

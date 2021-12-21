@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import "../../utils/SafeUintCast.sol";
 import "../../abstract/LegacyMasterAware.sol";
 import "../../interfaces/ILegacyClaimsData.sol";
 import "../../interfaces/INXMToken.sol";
@@ -13,7 +14,6 @@ import "../../interfaces/IQuotationData.sol";
 import "./external/LockHandler.sol";
 
 contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
-
   IQuotationData public immutable quotationData;
 
   INXMToken public token;
@@ -340,12 +340,12 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     uint batchSize
   ) external isMemberAndcheckPause {
     if (fromAssessment) {
-      assessment.withdrawRewards(forUser, batchSize);
+      assessment.withdrawRewards(forUser, SafeUintCast.toUint104(batchSize));
     }
     if (fromGovernance) {
-      uint governanceRewards = gv.claimReward(forUser, batchSize);
+      uint governanceRewards = governance.claimReward(forUser, batchSize);
       require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
-      require(tk.transfer(forUser, governanceRewards), "TokenController: Governance rewards transfer failed");
+      require(token.transfer(forUser, governanceRewards), "TokenController: Governance rewards transfer failed");
     }
   }
 

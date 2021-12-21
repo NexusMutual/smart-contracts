@@ -105,7 +105,7 @@ interface IAssessment {
 
   function stake(uint96 amount) external;
 
-  function unstake(uint96 amount) external;
+  function unstake(uint96 amount, address to) external;
 
   function withdrawRewards(address user, uint104 untilIndex) external
   returns (uint withdrawn, uint withdrawUntilIndex);

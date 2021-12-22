@@ -281,7 +281,9 @@ contract Claims is IClaims, MasterAwareV2 {
       (
         uint16 productType,
         /*address productAddress*/,
-        /*uint payoutAssets*/
+        /*uint payoutAssets*/,
+        /* initialPriceRatio */,
+        /* capacityReductionRatio */
       ) = coverContract.products(productId);
       (
         /*string descriptionIpfsHash*/,

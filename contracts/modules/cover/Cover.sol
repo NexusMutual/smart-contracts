@@ -60,10 +60,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   */
   mapping(uint => CoverSegment[]) coverSegments;
 
-  mapping(uint => uint16) initialPriceRatios;
-
-  mapping(uint => uint16) public capacityReductionRatios;
-
   uint32 public globalCapacityRatio;
   uint32 public globalRewardsRatio;
 
@@ -182,9 +178,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     CoverChunkRequest[] memory coverChunkRequests
   ) external payable override onlyMember returns (uint /*coverId*/) {
 
-    require(initialPriceRatios[params.productId] != 0, "Cover: Product not initialized");
+    Product memory product = products[params.productId];
+    require(product.initialPriceRatio != 0, "Cover: Product not initialized");
     require(
-      assetIsSupported(products[params.productId].coverAssets, params.payoutAsset),
+      assetIsSupported(product.coverAssets, params.payoutAsset),
       "Cover: Payout asset is not supported"
     );
     require(params.period >= MIN_COVER_PERIOD, "Cover: Cover period is too short");
@@ -264,6 +261,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint amount
   ) internal returns (uint, uint) {
 
+    Product memory product = products[params.productId];
     return stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
         params.productId,
         amount,
@@ -271,8 +269,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         params.period,
         globalCapacityRatio,
         globalRewardsRatio,
-        capacityReductionRatios[params.productId],
-        initialPriceRatios[params.productId]
+        product.capacityReductionRatio,
+        product.initialPriceRatio
       ));
   }
 
@@ -470,12 +468,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function setInitialPrice(uint productId, uint16 initialPriceRatio) external onlyAdvisoryBoard {
 
     require(initialPriceRatio >= GLOBAL_MIN_PRICE_RATIO, "Cover: Initial price must be greater than the global min price");
-    initialPriceRatios[productId] = initialPriceRatio;
+    products[productId].initialPriceRatio = initialPriceRatio;
   }
 
   function setCapacityReductionRatio(uint productId, uint16 reduction) external onlyAdvisoryBoard {
     require(reduction <= CAPACITY_REDUCTION_DENOMINATOR, "Cover: LTADeduction must be less than or equal to 100%");
-    capacityReductionRatios[productId] = reduction;
+    products[productId].capacityReductionRatio = reduction;
   }
 
   function addProduct(Product calldata product) external onlyAdvisoryBoard {

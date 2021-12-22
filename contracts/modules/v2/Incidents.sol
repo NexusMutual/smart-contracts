@@ -91,7 +91,9 @@ contract Incidents is IIncidents, MasterAwareV2 {
     (
       uint16 productType,
       /*address productAddress*/,
-      /*uint payoutAssets*/
+      /*uint payoutAssets*/,
+      /* initialPriceRatio */,
+      /* capacityReductionRatio */
     ) = coverContract.products(productId);
     (
       /*string descriptionIpfsHash*/,
@@ -169,7 +171,9 @@ contract Incidents is IIncidents, MasterAwareV2 {
         (
           productType,
           coveredToken,
-          /*uint payoutAssets*/
+          /*uint payoutAssets*/,
+          /* initialPriceRatio */,
+          /* capacityReductionRatio */
         ) = coverContract.products(productId);
         (
           /*string descriptionIpfsHash*/,

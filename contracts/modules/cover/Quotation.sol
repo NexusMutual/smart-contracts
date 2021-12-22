@@ -278,7 +278,9 @@ contract Quotation is IQuotation, MasterAwareV2, ReentrancyGuard {
     (
       /* productType */,
       address productAddress,
-      uint supportedPayoutAssets
+      uint supportedPayoutAssets,
+      /* initialPriceRatio */,
+      /* capacityReductionRatio */
     ) = cover().products(productIdV2);
 
     // A non-zero product address means that it is a yield token cover

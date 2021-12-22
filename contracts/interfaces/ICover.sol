@@ -86,6 +86,8 @@ interface ICover {
       of that bit is enabled as a cover asset for this product.
     */
     uint32 coverAssets;
+    uint16 initialPriceRatio;
+    uint16 capacityReductionRatio;
     // TODO: consider if to pack the initialPrice here. issues appear with
     // to many variables currently + not all parameters are needed everywhere
   }
@@ -100,7 +102,7 @@ interface ICover {
 
   function covers(uint id) external view returns (uint24, uint8, uint96, uint32, uint32, uint16);
 
-  function products(uint id) external view returns (uint16, address, uint32);
+  function products(uint id) external view returns (uint16, address, uint32, uint16, uint16);
 
   function productTypes(uint id) external view returns (string memory, uint8, uint16);
 

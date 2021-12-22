@@ -89,17 +89,8 @@ contract ICMockCover {
     ));
   }
 
-  function addProduct(
-    uint16 productType,
-    address productAddress,
-    uint16 capacityFactor,
-    uint32 payoutAssets
-  ) external {
-    products.push(ICover.Product(
-      productType,
-      productAddress,
-      payoutAssets
-    ));
+  function addProduct(ICover.Product calldata product) external {
+    products.push(product);
   }
 
   function setActiveCoverAmountInNXM(

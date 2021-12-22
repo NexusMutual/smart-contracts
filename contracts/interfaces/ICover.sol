@@ -81,9 +81,12 @@ interface ICover {
   struct Product {
     uint16 productType;
     address productAddress;
-    /* supported payout assets bitmap TODO: explain */
+    /*
+      cover assets bitmap. each bit in the base-2 representation represents whether the asset with the index
+      of that bit is enabled as a cover asset for this product.
+    */
     uint coverAssets;
-    // TODO: consider if to pack the initialPrice and activeCoverAmountInNXM here. issues appear with
+    // TODO: consider if to pack the initialPrice here. issues appear with
     // to many variables currently + not all parameters are needed everywhere
   }
 

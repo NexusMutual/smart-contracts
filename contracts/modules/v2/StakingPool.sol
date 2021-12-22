@@ -3,8 +3,10 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts-v4/utils/math/SafeCast.sol";
 
 contract StakingPool is ERC20 {
+  using SafeCast for uint;
 
   struct PoolBucket {
     // slot 0
@@ -16,12 +18,13 @@ contract StakingPool is ERC20 {
 
     // slot 1
     // underlying amount unstaked, stored for rate calculation
-    uint96 unstakedNXM;
+    // uint96 unstakedNXM;
   }
 
   struct Product {
     uint96 activeCoverAmount;
     uint16 weight;
+    // todo: last processed bucket?
     uint16 lastBucket;
     // uint128 _unused;
   }
@@ -34,7 +37,7 @@ contract StakingPool is ERC20 {
   struct UnstakeRequest {
     uint96 amount;
     uint96 withdrawn;
-    uint16 bucketIndex;
+    uint16 bucketIndex; // createdAtBucket
     // uint48 _unused;
   }
 
@@ -56,8 +59,7 @@ contract StakingPool is ERC20 {
     // unstakeRequests mapping keys. zero means no unstake exists.
     uint32 firstUnstakeId;
     uint32 lastUnstakeId;
-    uint16 lastUnstakeBucketIndex;
-    // uint48 _unused;
+    // uint80 _unused;
   }
 
   struct LastPrice {
@@ -65,6 +67,7 @@ contract StakingPool is ERC20 {
     uint32 lastUpdateTime;
   }
 
+  // TODO: pack these inside Product
   /*
   (productId, poolAddress) => lastPrice
   Last base prices at which a cover was sold by a pool for a particular product.
@@ -124,7 +127,7 @@ contract StakingPool is ERC20 {
   uint96 public totalUnstakeGranted;
 
   // used for max unstake
-  // max unstake = min(stake - maxCapacity, stake - totalLeverage)
+  // max unstake = min(staked - maxCapacity, staked - totalLeverage)
   uint96 public maxCapacity;
   uint96 public totalLeverage;
 
@@ -167,13 +170,12 @@ contract StakingPool is ERC20 {
   constructor (address _nxm, address _coverContract) ERC20("Staked NXM", "SNXM") {
     nxm = ERC20(_nxm);
     coverContract = _coverContract;
-
   }
 
   function initialize(address _manager) external onlyCoverContract {
     require(lastPoolBucketIndex == 0, "Staking Pool: Already initialized");
-    lastPoolBucketIndex = uint16(block.timestamp / BUCKET_SIZE);
-    lastUnstakeBucketIndex = uint16(block.timestamp / BUCKET_SIZE);
+    lastPoolBucketIndex = (block.timestamp / BUCKET_SIZE).toUint16();
+    lastUnstakeBucketIndex = (block.timestamp / BUCKET_SIZE).toUint16();
     manager = _manager;
   }
 
@@ -204,6 +206,7 @@ contract StakingPool is ERC20 {
     uint currentBucketIndex = block.timestamp / BUCKET_SIZE;
 
     // process expirations, 1 SLOAD / iteration
+    // process until current bucket (inclusive, see increment inside the loop)
     while (poolBucketIndex < currentBucketIndex) {
 
       ++poolBucketIndex;
@@ -220,13 +223,60 @@ contract StakingPool is ERC20 {
     staked += (block.timestamp - rewardTime) * rewardPerSecond;
 
     // 1 SSTORE
-    stakeActive = uint96(staked);
-    lastRewardPerSecond = uint64(rewardPerSecond);
-    lastRewardTime = uint32(block.timestamp);
-    lastPoolBucketIndex = uint16(poolBucketIndex);
+    stakeActive = staked.toUint96();
+    lastRewardPerSecond = rewardPerSecond.toUint64();
+    lastRewardTime = block.timestamp.toUint32();
+    lastPoolBucketIndex = poolBucketIndex.toUint16();
 
     // 1 SSTORE
-    totalUnstakeQueued = uint96(unstakeQueued);
+    totalUnstakeQueued = (unstakeQueued).toUint96();
+  }
+
+  function processUnstakes() internal {
+
+    uint staked = processPoolBuckets();
+    uint supply = totalSupply();
+
+    uint currentUnstakeBucketIndex = lastUnstakeBucketIndex;
+    uint maxUnstakeBucketIndex = block.timestamp / BUCKET_SIZE - 2;
+
+    // max unstake = min(staked - maxCapacity, staked - totalLeverage)
+    // => max unstake = staked - max(maxCapacity, totalLeverage)
+    uint maxUsed = max(maxCapacity, totalLeverage);
+    uint maxUnstake = staked > maxUsed ? staked - maxUsed : 0;
+
+    // TODO: add grace period check
+
+    // TODO: Flawed because maxCapacity and totalLeverage
+    //       - assume the stake is not subtracted upon unstake request
+    //       - are in NXM and requested unstake amounts are shares
+
+    while (maxUnstake > 0 && currentUnstakeBucketIndex <= maxUnstakeBucketIndex) {
+
+      // 2 SLOADs
+      PoolBucket memory poolBucket = poolBuckets[currentUnstakeBucketIndex];
+      uint requested = poolBucket.unstakeRequested - poolBucket.unstaked;
+
+      if (maxUnstake < requested) {
+        poolBucket.unstaked += maxUnstake.toUint96();
+      }
+
+      if (maxUnstake >= requested) {
+        poolBucket.unstaked += requested.toUint96();
+        maxUnstake -= requested;
+        // done with this one, next!
+        ++currentUnstakeBucketIndex;
+      }
+
+      uint unstake = maxUnstake >= requested ? requested : maxUnstake;
+
+      if (requested >= maxUnstake) {
+
+        break;
+      }
+
+    }
+
   }
 
   /* callable by cover contract */
@@ -270,12 +320,12 @@ contract StakingPool is ERC20 {
 
       // update state
       // 1 SLOAD + 3 SSTORE
-      lastRewardPerSecond = uint64(lastRewardPerSecond + addedRewardPerSecond);
-      poolBuckets[expirationBucket].rewardPerSecondCut += uint64(addedRewardPerSecond);
-      productBuckets[params.productId][expirationBucket].expiringCoverAmount += uint96(coverAmount);
+      lastRewardPerSecond = (lastRewardPerSecond + addedRewardPerSecond).toUint64();
+      poolBuckets[expirationBucket].rewardPerSecondCut += addedRewardPerSecond.toUint64();
+      productBuckets[params.productId][expirationBucket].expiringCoverAmount += coverAmount.toUint96();
 
-      product.lastBucket = uint16(lastBucket);
-      product.activeCoverAmount = uint96(activeCoverAmount + coverAmount);
+      product.lastBucket = lastBucket.toUint16();
+      product.activeCoverAmount = (activeCoverAmount + coverAmount).toUint96();
     }
 
     // price calculation
@@ -290,6 +340,7 @@ contract StakingPool is ERC20 {
     return (coverAmount, calculatePremium(actualPrice, coverAmount, params.period));
   }
 
+  // TODO: consider burning up to max(99% of total stake, stake - X nxm)
   function burnStake() external {
 
     //
@@ -308,14 +359,18 @@ contract StakingPool is ERC20 {
     uint shares;
 
     if (supply == 0) {
+      // TODO: consider using sqrt
       shares = amount;
     } else {
       staked = processPoolBuckets();
       shares = supply * amount / staked;
     }
 
-    stakeActive = uint96(staked + amount);
+    // TODO: consider reducing unstake requests instead of increasing stake
+    stakeActive = (staked + amount).toUint96();
     _mint(msg.sender, shares);
+
+    // TODO: update maxCapacity and totalLeverage
   }
 
   function requestUnstake(uint shares) external {
@@ -327,24 +382,29 @@ contract StakingPool is ERC20 {
 
     // should revert if caller doesn't have enough shares
     _burn(msg.sender, shares);
-    stakeActive = uint96(staked - amount);
+    stakeActive = (staked - amount).toUint96();
 
     Staker memory staker = stakers[msg.sender];
 
+    // reuse the last request if it was in the same bucket, otherwise create a new one
     if (currentBucket != staker.lastUnstakeBucket) {
       ++staker.lastUnstakeId;
     }
 
     // SLOAD
+    // can potentially read an empty slot which we'll write to anyway
+    // but we achieve code deduplication
     UnstakeRequest memory unstakeRequest = unstakeRequests[msg.sender][staker.lastUnstakeId];
 
-    // update
-    unstakeRequest.amount += uint96(amount);
-    staker.unstakeAmount += uint96(amount);
+    // update memory structs
+    uint96 amount96 = amount.toUint96();
+    staker.unstakeAmount += amount96;
+    unstakeRequest.amount += amount96;
+    unstakeRequest.bucketIndex = currentBucket.toUint16();
 
     // SSTORE
-    unstakeRequests[msg.sender][staker.lastUnstakeId] = unstakeRequest;
     stakers[msg.sender] = staker;
+    unstakeRequests[msg.sender][staker.lastUnstakeId] = unstakeRequest;
   }
 
   function withdraw(uint amount) external {
@@ -402,8 +462,8 @@ contract StakingPool is ERC20 {
     (uint actualPrice, uint basePrice) = getPrices(productId, amount, activeCover, capacity, initialPrice);
     // store the last base price
     lastBasePrices[productId] = LastPrice(
-      uint96(basePrice),
-      uint32(block.timestamp)
+      basePrice.toUint96(),
+      block.timestamp.toUint32()
     );
 
     return actualPrice;
@@ -430,7 +490,7 @@ contract StakingPool is ERC20 {
 
     // Bump base price by 2% (200 basis points) per 10% (1000 basis points) of capacity used
     uint priceBump = amount * BASE_PRICE_BUMP_DENOMINATOR / capacity / BASE_PRICE_BUMP_INTERVAL * BASE_PRICE_BUMP_RATIO;
-    basePrice = uint96(basePrice + priceBump);
+    basePrice = (basePrice + priceBump).toUint96();
   }
 
   function calculatePrice(

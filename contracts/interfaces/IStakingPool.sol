@@ -16,7 +16,7 @@ interface IStakingPool {
     uint initialPrice;
   }
 
-  function initialize(address manager) external;
+  function initialize(address _manager) external;
 
   function allocateCapacity(AllocateCapacityParams calldata params) external returns (uint, uint);
 

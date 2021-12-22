@@ -93,7 +93,7 @@ contract ICMockCover {
     uint16 productType,
     address productAddress,
     uint16 capacityFactor,
-    uint payoutAssets
+    uint32 payoutAssets
   ) external {
     products.push(ICover.Product(
       productType,

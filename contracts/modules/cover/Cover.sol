@@ -75,7 +75,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     If the the bit at position N is 1 it means asset with index N is supported.this
     Eg. coverAssetsFallback = 3 (in binary 11) means assets at index 0 and 1 are supported.
   */
-  uint public coverAssetsFallback;
+  uint32 public coverAssetsFallback;
 
 
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
@@ -482,13 +482,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     products.push(product);
   }
 
-  function setCoverAssetsFallback(uint _coverAssetsFallback) external onlyGovernance {
+  function setCoverAssetsFallback(uint32 _coverAssetsFallback) external onlyGovernance {
     coverAssetsFallback = _coverAssetsFallback;
   }
 
   /* ========== HELPERS ========== */
 
-  function assetIsSupported(uint payoutAssetsBitMap, uint8 payoutAsset) public returns (bool) {
+  function assetIsSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) public returns (bool) {
 
     if (payoutAssetsBitMap == 0) {
       return (1 << payoutAsset) & coverAssetsFallback > 0;

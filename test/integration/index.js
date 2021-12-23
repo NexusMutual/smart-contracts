@@ -15,7 +15,7 @@ describe('INTEGRATION TESTS', function () {
   require('./Master');
   require('./PooledStaking');
   require('./Pool');
-  require('./Quotation');
+  // require('./Quotation');
   require('./MCR');
   require('./MemberRoles');
   require('./Claims');

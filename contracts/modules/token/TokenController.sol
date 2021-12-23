@@ -14,6 +14,7 @@ import "../../interfaces/IQuotationData.sol";
 import "./external/LockHandler.sol";
 
 contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
+  using SafeUintCast for uint;
   IQuotationData public immutable quotationData;
 
   INXMToken public token;
@@ -340,7 +341,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     uint batchSize
   ) external isMemberAndcheckPause {
     if (fromAssessment) {
-      assessment.withdrawRewards(forUser, SafeUintCast.toUint104(batchSize));
+      assessment.withdrawRewards(forUser, batchSize.toUint104());
     }
     if (fromGovernance) {
       uint governanceRewards = governance.claimReward(forUser, batchSize);

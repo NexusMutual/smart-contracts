@@ -51,26 +51,6 @@ interface IPool {
     uint16 maxSlippageRatio
   );
 
-  function makeCoverBegin(
-    address smartCAdd,
-    bytes4 coverCurr,
-    uint[] calldata coverDetails,
-    uint16 coverPeriod,
-    uint8 _v,
-    bytes32 _r,
-    bytes32 _s
-  ) external payable;
-
-  function makeCoverUsingCA(
-    address smartCAdd,
-    bytes4 coverCurr,
-    uint[] calldata coverDetails,
-    uint16 coverPeriod,
-    uint8 _v,
-    bytes32 _r,
-    bytes32 _s
-  ) external;
-
   function getNXMForEth(uint ethAmount) external view returns (uint);
 
   function sendPayout (

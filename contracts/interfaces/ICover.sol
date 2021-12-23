@@ -118,6 +118,8 @@ interface ICover {
 
   function coverNFT() external returns (address);
 
+  function transferCovers(address from, address to, uint256[] calldata coverIds) external;
+
   /* ========== EVENTS ========== */
 
 }

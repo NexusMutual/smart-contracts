@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity >=0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/LegacyMasterAware.sol";
@@ -45,11 +45,14 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
   constructor (
     address masterAddress,
     address _daiAddress,
-    address legacyClaimsData
+    address legacyClaimsData,
+    bool isTestnet
   ) public {
     // [todo] Add public function that transfers rewards to assessors then transfer the remained
     // to TokenController
-    revert("Don't deploy before updating the transfer list of rewardable accounts");
+    if (!isTestnet) {
+      revert("Don't deploy before updating the transfer list of rewardable accounts");
+    }
     changeMasterAddress(masterAddress);
     cd = ILegacyClaimsData(legacyClaimsData);
     DAI = _daiAddress;

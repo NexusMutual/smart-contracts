@@ -365,6 +365,18 @@ contract Cover is ICover, MasterAwareV2 {
     return owner;
   }
 
+  function transferCovers(address from, address to, uint256[] calldata coverIds) external override {
+    require(
+      msg.sender == internalContracts[uint(ID.MR)],
+      "Cover: Only MemberRoles is permitted to use operator transfer"
+    );
+
+    ICoverNFT coverNFTContract = ICoverNFT(coverNFT);
+    for (uint256 i = 0; i < coverIds.length; i++) {
+      coverNFTContract.operatorTransferFrom(from, to, coverIds[i]);
+    }
+  }
+
 
   function retrievePayment(uint totalPrice, uint8 payoutAssetIndex) internal {
 

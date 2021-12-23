@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity >=0.5.0;
 
 import "../../interfaces/ITokenController.sol";
 import "../../modules/governance/MemberRoles.sol";
@@ -19,7 +19,7 @@ contract DisposableMemberRoles is MemberRoles {
     require(!constructorCheck);
     constructorCheck = true;
     launched = true;
-    launchedOn = now;
+    launchedOn = block.timestamp;
 
     require(
       _initialMembers.length == _initialMemberTokens.length,

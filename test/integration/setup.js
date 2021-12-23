@@ -115,7 +115,7 @@ async function setup () {
   // const lcl = await LegacyClaims.new();
   // const lic = await LegacyIncidents.new();
   const lcd = await LegacyClaimsData.new();
-  const lcr = await LegacyClaimsReward.new(master.address, dai.address, lcd.address);
+  const lcr = await LegacyClaimsReward.new(master.address, dai.address, lcd.address, true);
 
   const mc = await MCR.new(ZERO_ADDRESS);
 

@@ -19,7 +19,6 @@ const coverTemplate = {
 };
 
 describe('switchMembership', function () {
-
   it('switches membership for current member', async function () {
     const { mr: memberRoles, tk: token } = this.contracts;
 
@@ -58,21 +57,10 @@ describe('switchMembership', function () {
     await expectRevert.unspecified(memberRoles.switchMembership(nonMember2, { from: nonMember1 }));
   });
 
-  it('reverts when switching membership for member with active covers', async function () {
-    const { mr: memberRoles } = this.contracts;
-
-    const member = member1;
-    await enrollMember(this.contracts, [member]);
-    await buyCover({ ...this.contracts, cover: coverTemplate, coverHolder: member });
-
-    await expectRevert.unspecified(memberRoles.switchMembership(nonMember1, { from: member }));
-  });
-
-  it('reverts when switching membership to an address that\'s already a member', async function () {
+  it("reverts when switching membership to an address that's already a member", async function () {
     const { mr: memberRoles } = this.contracts;
 
     await enrollMember(this.contracts, [member1, member2]);
     await expectRevert.unspecified(memberRoles.switchMembership(member2, { from: member1 }));
   });
-
 });

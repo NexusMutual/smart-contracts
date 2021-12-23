@@ -1,12 +1,13 @@
 const { assert } = require('chai');
 const { web3, ethers: { utils: { parseEther } } } = require('hardhat');
 const { time, expectRevert, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
+const { hex, zeroPadRight } = require('../utils').helpers;
 
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
-describe('buyCover', function () {
+describe('editCover', function () {
 
-  it('should purchase new cover', async function () {
+  it.only('should edit purchased cover', async function () {
     const { cover } = this;
 
     const {
@@ -45,7 +46,9 @@ describe('buyCover', function () {
 
     const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
 
-    const tx = await cover.connect(member1).buyCover(
+    console.log('pre buy cover');
+
+    await cover.connect(member1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
@@ -64,14 +67,39 @@ describe('buyCover', function () {
       },
     );
 
+    const increasedAmount = amount.mul(2);
+
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium.sub(expectedPremium);
+
     const expectedCoverId = '0';
+
+    await cover.connect(member1).editCover(
+      expectedCoverId,
+      {
+        owner: coverBuyer1.address,
+        productId,
+        payoutAsset,
+        amount: increasedAmount,
+        period,
+        maxPremiumInAsset: expectedEditPremium,
+        paymentAsset: payoutAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: ZERO_ADDRESS,
+      },
+      [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
+      {
+        value: extraPremium,
+      },
+    );
 
     const storedCover = await cover.covers(expectedCoverId);
 
     await assert.equal(storedCover.productId, productId);
     await assert.equal(storedCover.payoutAsset, payoutAsset);
     await assert.equal(storedCover.period, period);
-    await assert.equal(storedCover.amount.toString(), amount.toString());
+    await assert.equal(storedCover.amount.toString(), increasedAmount.toString());
     await assert.equal(storedCover.priceRatio.toString(), targetPriceRatio.toString());
   });
 });

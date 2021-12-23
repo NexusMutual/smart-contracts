@@ -178,8 +178,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     CoverChunkRequest[] memory coverChunkRequests
   ) external payable override onlyMember returns (uint /*coverId*/) {
 
-    console.log("buyCover");
-
     Product memory product = products[params.productId];
     require(product.initialPriceRatio != 0, "Cover: Product not initialized");
     require(
@@ -190,7 +188,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(params.commissionRatio <= MAX_COMMISSION_RATE, "Cover: Commission rate is too high");
 
-    console.log("_buyCover");
     (uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(params, coverData.length, coverChunkRequests);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
@@ -235,8 +232,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         requestedCoverAmountInNXM
       );
 
-      console.log("premiumInNXM", premiumInNXM);
-
       remainderAmountInNXM = requestedCoverAmountInNXM - coveredAmountInNXM;
       totalCoverAmountInNXM += coveredAmountInNXM;
       totalPremiumInNXM += premiumInNXM;
@@ -255,8 +250,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     uint tPrice = pool().getTokenPrice(params.paymentAsset);
     uint premiumInPaymentAsset = totalPremiumInNXM * pool().getTokenPrice(params.paymentAsset) / 1e18;
-
-    console.log("premiumInPaymentAsset", premiumInPaymentAsset);
 
     return (premiumInPaymentAsset, totalPremiumInNXM);
   }
@@ -325,9 +318,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       / PRICE_DENOMINATOR * remainingPeriod
       / lastCoverSegment.period;
 
+    // update the price ratio beased on the shorter period
+    lastCoverSegment.priceRatio = SafeUintCast.toUint16(lastCoverSegment.priceRatio * remainingPeriod / lastCoverSegment.period);
     // edit cover so it ends at the current block
     lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
-    lastCoverSegment.priceRatio = SafeUintCast.toUint16(lastCoverSegment.priceRatio * remainingPeriod / lastCoverSegment.period);
 
     (uint premiumInPaymentAsset, uint totalPremiumInNXM) =
       _buyCover(buyCoverParams, coverId, coverChunkRequests);

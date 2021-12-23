@@ -3,7 +3,6 @@
 pragma solidity ^0.8.0;
 
 import "../../interfaces/IStakingPool.sol";
-import "hardhat/console.sol";
 
 contract CoverMockStakingPool is IStakingPool {
 

@@ -1,6 +1,6 @@
 const { assert } = require('chai');
 const { web3, ethers: { utils: { parseEther } } } = require('hardhat');
-const { time, expectRevert } = require('@openzeppelin/test-helpers');
+const { time, expectRevert, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 const { hex, zeroPadRight } = require('../utils').helpers;
 const { calculatePrice } = require('./helpers');
 
@@ -8,46 +8,45 @@ const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
 describe('buyCover', function () {
 
-  it('should purchase new cover', async function () {
+  it.only('should purchase new cover', async function () {
     const { cover } = this;
 
     const {
       advisoryBoardMembers: [ab1],
       governanceContracts: [gv1],
       members: [member1],
-      members: [coverBuyer1],
+      members: [coverBuyer1, stakingPoolManager],
     } = this.accounts;
 
     const productId = 0;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 365; // 30 days
+    const period = 3600 * 24 * 30; // 30 days
 
     const amount = parseEther('1000');
 
-    const initialPrice = parseEther('2.6');
-    const targetPrice = parseEther('2.6');
+    const targetPriceRatio = '260';
+    const priceDenominator = '10000';
     const activeCover = parseEther('8000');
     const capacity = parseEther('10000');
-    const resultingBasePrice = parseEther('2.6');
 
-    const stakingPool = await CoverMockStakingPool.new();
-    const capacityFactor = '1';
+    const capacityFactor = '10000';
 
-    await cover.connect(gv1).setCapacityFactor(capacityFactor);
-    await cover.connect(ab1).setInitialPrice(productId, initialPrice);
+    await cover.connect(gv1).setGlobalCapacityRatio(capacityFactor);
+
+    const createStakingPoolTx = await cover.connect(stakingPoolManager).createStakingPool(stakingPoolManager.address);
+    const createStakingPoolReceipt = await createStakingPoolTx.wait();
+
+    const { stakingPoolAddress } = createStakingPoolReceipt.events[0].args;
+
+    const stakingPool = await CoverMockStakingPool.at(stakingPoolAddress);
 
     await stakingPool.setStake(productId, capacity);
-    await stakingPool.setTargetPrice(productId, targetPrice);
+    await stakingPool.setTargetPrice(productId, targetPriceRatio);
     await stakingPool.setUsedCapacity(productId, activeCover);
 
-    // const expectedPricePercentage = await cover.calculatePrice(
-    //   amount,
-    //   resultingBasePrice,
-    //   activeCover,
-    //   capacity,
-    // );
-    // const expectedPrice = expectedPricePercentage.mul(amount).div(parseEther('100'));
-    const expectedPrice = parseEther('1000');
+    await stakingPool.setPrice(productId, targetPriceRatio); // 2.6%
+
+    const expectedPrice = amount.mul(targetPriceRatio).div(priceDenominator);
 
     const tx = await cover.connect(member1).buyCover(
       {
@@ -59,12 +58,25 @@ describe('buyCover', function () {
         maxPremiumInAsset: expectedPrice,
         paymentAsset: payoutAsset,
         payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: ZERO_ADDRESS,
       },
-      [{ poolAddress: stakingPool.address, coverAmountInAsset: amount.toString() }],
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
       {
         value: expectedPrice,
       },
     );
+
+    const expectedCoverId = '0';
+
+    const storedCover = await cover.covers(expectedCoverId);
+    console.log(storedCover);
+
+    await assert.equal(storedCover.productId, productId);
+    await assert.equal(storedCover.payoutAsset, payoutAsset);
+    await assert.equal(storedCover.period, period);
+    await assert.equal(storedCover.amount.toString(), amount.toString());
+    await assert.equal(storedCover.priceRatio.toString(), targetPriceRatio.toString());
 
     const receipt = await tx.wait();
     console.log({

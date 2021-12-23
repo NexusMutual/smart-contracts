@@ -27,10 +27,6 @@ async function setup () {
 
   const daiAsset = zeroPadRight(Buffer.from('DAI'), 4);
   const ethAsset = zeroPadRight(Buffer.from('ETH'), 4);
-  console.log({
-    daiAsset,
-    ethAsset,
-  });
 
   await quotationData.setTotalSumAssured(daiAsset, '0');
   await quotationData.setTotalSumAssured(ethAsset, '100000');
@@ -127,6 +123,8 @@ async function setup () {
     productType: '1',
     productAddress: '0x0000000000000000000000000000000000000000',
     coverAssets: '1', // ETH supported
+    initialPriceRatio: '1000', // 10%
+    capacityReductionRatio: '0',
   });
 
   this.master = master;

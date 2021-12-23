@@ -88,8 +88,6 @@ interface ICover {
     uint32 coverAssets;
     uint16 initialPriceRatio;
     uint16 capacityReductionRatio;
-    // TODO: consider if to pack the initialPrice here. issues appear with
-    // to many variables currently + not all parameters are needed everywhere
   }
 
   struct ProductType {

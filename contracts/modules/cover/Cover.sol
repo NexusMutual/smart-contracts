@@ -178,6 +178,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     CoverChunkRequest[] memory coverChunkRequests
   ) external payable override onlyMember returns (uint /*coverId*/) {
 
+    console.log("buyCover");
+
     Product memory product = products[params.productId];
     require(product.initialPriceRatio != 0, "Cover: Product not initialized");
     require(
@@ -188,6 +190,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(params.commissionRatio <= MAX_COMMISSION_RATE, "Cover: Commission rate is too high");
 
+    console.log("_buyCover");
     (uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(params, coverData.length, coverChunkRequests);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
@@ -232,6 +235,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         requestedCoverAmountInNXM
       );
 
+      console.log("premiumInNXM", premiumInNXM);
+
       remainderAmountInNXM = requestedCoverAmountInNXM - coveredAmountInNXM;
       totalCoverAmountInNXM += coveredAmountInNXM;
       totalPremiumInNXM += premiumInNXM;
@@ -248,10 +253,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         SafeUintCast.toUint16(totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM)
       ));
 
-    uint coverId = coverData.length - 1;
-    ICoverNFT(coverNFT).safeMint(params.owner, coverId);
-
+    uint tPrice = pool().getTokenPrice(params.paymentAsset);
     uint premiumInPaymentAsset = totalPremiumInNXM * pool().getTokenPrice(params.paymentAsset) / 1e18;
+
+    console.log("premiumInPaymentAsset", premiumInPaymentAsset);
+
     return (premiumInPaymentAsset, totalPremiumInNXM);
   }
 
@@ -442,7 +448,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     return IStakingPool(address(uint160(uint(hash))));
   }
 
-  function covers(uint id) external view override returns (uint24, uint8, uint96, uint32, uint32, uint16) {
+  function covers(
+    uint id
+  ) external view override returns (
+    uint24 productId,
+    uint8 payoutAsset,
+    uint96 amount,
+    uint32 start,
+    uint32 period,
+    uint16 priceRatio
+  ) {
     CoverData memory cover = coverData[id];
     CoverSegment memory lastCoverSegment = coverSegments[id][coverSegments[id].length - 1];
     return (

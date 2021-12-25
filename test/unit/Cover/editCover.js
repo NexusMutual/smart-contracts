@@ -46,8 +46,6 @@ describe('editCover', function () {
 
     const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
 
-    console.log('pre buy cover');
-
     await cover.connect(member1).buyCover(
       {
         owner: coverBuyer1.address,

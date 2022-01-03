@@ -11,14 +11,10 @@ contract StakingPool is ERC20 {
   struct PoolBucket {
     // slot 0
     uint64 rewardPerSecondCut;
-    // amount of shares requested for unstake
-    uint96 unstakeRequested;
-    // amount of unstaked shares
-    uint96 unstaked;
-
-    // slot 1
-    // underlying amount unstaked, stored for rate calculation
-    // uint96 unstakedNXM;
+    // amount of nxm requested for unstake
+    uint96 nxmUnstakeRequested;
+    // amount of unstaked nxm
+    uint96 nxmUnstaked;
   }
 
   struct Product {
@@ -35,7 +31,7 @@ contract StakingPool is ERC20 {
   }
 
   struct UnstakeRequest {
-    uint96 amount;
+    uint96 amountOfNxm;
     uint96 withdrawn;
     uint16 bucketIndex; // createdAtBucket
     // uint48 _unused;
@@ -53,6 +49,7 @@ contract StakingPool is ERC20 {
   }
 
   struct Staker {
+    // TODO: consider removing in favor of a view fn that iterates the queue
     uint96 unstakeAmount;
     uint16 lastUnstakeBucket;
     // FIFO:
@@ -118,13 +115,15 @@ contract StakingPool is ERC20 {
   uint16 public totalWeight;
   uint16 public maxTotalWeight; // todo: read from cover
 
-  // IDK if the next three are needed:
+  /*
+  // IDK if these are needed:
   // total actually requested and not yet queued
   uint96 public totalUnstakeRequested;
   // requested at bucket t-2
   uint96 public totalUnstakeQueued;
   // unstaked but not withdrawn
   uint96 public totalUnstakeGranted;
+  */
 
   // used for max unstake
   // max unstake = min(staked - maxCapacity, staked - totalLeverage)
@@ -199,9 +198,6 @@ contract StakingPool is ERC20 {
     uint rewardTime = lastRewardTime;
     uint poolBucketIndex = lastPoolBucketIndex;
 
-    // 1 SLOAD
-    uint unstakeQueued = totalUnstakeQueued;
-
     // get bucket for current time
     uint currentBucketIndex = block.timestamp / BUCKET_SIZE;
 
@@ -216,7 +212,8 @@ contract StakingPool is ERC20 {
 
       // 1 SLOAD for both
       rewardPerSecond -= poolBuckets[poolBucketIndex].rewardPerSecondCut;
-      unstakeQueued += poolBuckets[poolBucketIndex].unstakeRequested;
+      // unnecessary?
+      // unstakeQueued += poolBuckets[poolBucketIndex].unstakeRequested;
     }
 
     // if we're mid-bucket, process rewards until current timestamp
@@ -227,16 +224,11 @@ contract StakingPool is ERC20 {
     lastRewardPerSecond = rewardPerSecond.toUint64();
     lastRewardTime = block.timestamp.toUint32();
     lastPoolBucketIndex = poolBucketIndex.toUint16();
-
-    // 1 SSTORE
-    totalUnstakeQueued = (unstakeQueued).toUint96();
   }
 
   function processUnstakes() internal {
 
     uint staked = processPoolBuckets();
-    uint supply = totalSupply();
-
     uint currentUnstakeBucketIndex = lastUnstakeBucketIndex;
     uint maxUnstakeBucketIndex = block.timestamp / BUCKET_SIZE - 2;
 
@@ -247,36 +239,36 @@ contract StakingPool is ERC20 {
 
     // TODO: add grace period check
 
-    // TODO: Flawed because maxCapacity and totalLeverage
-    //       - assume the stake is not subtracted upon unstake request
-    //       - are in NXM and requested unstake amounts are shares
+    // TODO: Flawed because maxCapacity and totalLeverage assume the stake is not subtracted upon unstake request
 
     while (maxUnstake > 0 && currentUnstakeBucketIndex <= maxUnstakeBucketIndex) {
 
-      // 2 SLOADs
+      // 1 SLOAD
       PoolBucket memory poolBucket = poolBuckets[currentUnstakeBucketIndex];
-      uint requested = poolBucket.unstakeRequested - poolBucket.unstaked;
+      uint requestedLeft = poolBucket.nxmUnstakeRequested - poolBucket.nxmUnstaked;
+      bool shouldAdvance = false;
 
-      if (maxUnstake < requested) {
-        poolBucket.unstaked += maxUnstake.toUint96();
+      if (maxUnstake < requestedLeft) {
+        poolBucket.nxmUnstaked += maxUnstake.toUint96();
+        maxUnstake = 0;
+      } else {
+        // maxUnstake >= requestedLeft
+        poolBucket.nxmUnstaked += requestedLeft.toUint96();
+        maxUnstake -= requestedLeft;
+        shouldAdvance = true;
       }
 
-      if (maxUnstake >= requested) {
-        poolBucket.unstaked += requested.toUint96();
-        maxUnstake -= requested;
+      // SSTORE
+      poolBuckets[currentUnstakeBucketIndex] = poolBucket;
+
+      if (shouldAdvance) {
         // done with this one, next!
         ++currentUnstakeBucketIndex;
       }
-
-      uint unstake = maxUnstake >= requested ? requested : maxUnstake;
-
-      if (requested >= maxUnstake) {
-
-        break;
-      }
-
     }
 
+    // SSTORE
+    lastUnstakeBucketIndex = currentUnstakeBucketIndex.toUint16();
   }
 
   /* callable by cover contract */
@@ -375,14 +367,17 @@ contract StakingPool is ERC20 {
 
   function requestUnstake(uint shares) external {
 
-    uint staked = processPoolBuckets();
+    uint stakedNxm = processPoolBuckets();
     uint supply = totalSupply();
-    uint amount = shares * staked / supply;
+    uint amountOfNxm = shares * stakedNxm / supply;
     uint currentBucket = block.timestamp / BUCKET_SIZE;
 
     // should revert if caller doesn't have enough shares
     _burn(msg.sender, shares);
-    stakeActive = (staked - amount).toUint96();
+
+    // SSTORE
+    stakeActive = (stakedNxm - amountOfNxm).toUint96();
+    stakeInactive = (stakeInactive + amountOfNxm).toUint96();
 
     Staker memory staker = stakers[msg.sender];
 
@@ -397,17 +392,25 @@ contract StakingPool is ERC20 {
     UnstakeRequest memory unstakeRequest = unstakeRequests[msg.sender][staker.lastUnstakeId];
 
     // update memory structs
-    uint96 amount96 = amount.toUint96();
-    staker.unstakeAmount += amount96;
-    unstakeRequest.amount += amount96;
+    uint96 amountOfNxm96 = amountOfNxm.toUint96();
+    staker.unstakeAmount += amountOfNxm96;
+    unstakeRequest.amountOfNxm += amountOfNxm96;
     unstakeRequest.bucketIndex = currentBucket.toUint16();
+
+    // SLOAD
+    PoolBucket memory poolBucket = poolBuckets[currentBucket];
+    poolBucket.nxmUnstakeRequested += amountOfNxm96;
 
     // SSTORE
     stakers[msg.sender] = staker;
     unstakeRequests[msg.sender][staker.lastUnstakeId] = unstakeRequest;
+    poolBuckets[currentBucket] = poolBucket;
   }
 
-  function withdraw(uint amount) external {
+  function withdraw(uint amountOfNxm) external {
+
+    // TODO: incremented on unstake request, to be checked
+    stakeInactive = (stakeInactive - amountOfNxm).toUint96();
 
     // uint lastUnstakeBucket = lastUnstakeBucketIndex;
 

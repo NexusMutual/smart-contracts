@@ -37,7 +37,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint public constant MAX_COVER_PERIOD = 365 days;
   uint public constant MIN_COVER_PERIOD = 30 days;
 
-  uint public constant MAX_COMMISSION_RATE = 2500; // 25%
+  uint public constant MAX_COMMISSION_RATIO = 2500; // 25%
 
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
@@ -52,7 +52,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   ProductType[] public override productTypes;
 
   CoverData[] private coverData;
-  mapping(uint => mapping(uint => CoverChunk[])) public coverChunksForCoverSegments;
+  mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
 
   /*
     Each Cover has an array of segments. A new segment is created everytime a cover is edited to
@@ -175,7 +175,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function buyCover(
     BuyCoverParams memory params,
-    CoverChunkRequest[] memory coverChunkRequests
+    PoolAllocationRequest[] memory allocationRequests
   ) external payable override onlyMember returns (uint /*coverId*/) {
 
     Product memory product = products[params.productId];
@@ -186,9 +186,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     );
     require(params.period >= MIN_COVER_PERIOD, "Cover: Cover period is too short");
     require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
-    require(params.commissionRatio <= MAX_COMMISSION_RATE, "Cover: Commission rate is too high");
+    require(params.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
 
-    (uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(params, coverData.length, coverChunkRequests);
+    (uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(params, coverData.length, allocationRequests);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (params.payWithNXM) {
@@ -213,7 +213,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function _buyCover(
     BuyCoverParams memory params,
     uint coverId,
-    CoverChunkRequest[] memory coverChunkRequests
+    PoolAllocationRequest[] memory allocationRequests
   ) internal returns (uint, uint) {
     // convert to NXM amount
     uint nxmPriceInPayoutAsset = pool().getTokenPrice(params.payoutAsset);
@@ -221,14 +221,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint totalCoverAmountInNXM = 0;
     uint remainderAmountInNXM = 0;
 
-    for (uint i = 0; i < coverChunkRequests.length; i++) {
+    for (uint i = 0; i < allocationRequests.length; i++) {
 
-      uint requestedCoverAmountInNXM = coverChunkRequests[i].coverAmountInAsset * 1e18 / nxmPriceInPayoutAsset;
+      uint requestedCoverAmountInNXM = allocationRequests[i].coverAmountInAsset * 1e18 / nxmPriceInPayoutAsset;
       requestedCoverAmountInNXM += remainderAmountInNXM;
 
       (uint coveredAmountInNXM, uint premiumInNXM) = allocateCapacity(
         params,
-        stakingPool(coverChunkRequests[i].poolId),
+        stakingPool(allocationRequests[i].poolId),
         requestedCoverAmountInNXM
       );
 
@@ -236,8 +236,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       totalCoverAmountInNXM += coveredAmountInNXM;
       totalPremiumInNXM += premiumInNXM;
 
-      coverChunksForCoverSegments[coverId][coverSegments[coverId].length].push(
-        CoverChunk(coverChunkRequests[i].poolId, SafeUintCast.toUint96(coveredAmountInNXM), SafeUintCast.toUint96(premiumInNXM))
+      coverSegmentAllocations[coverId][coverSegments[coverId].length].push(
+        PoolAllocation(allocationRequests[i].poolId, SafeUintCast.toUint96(coveredAmountInNXM), SafeUintCast.toUint96(premiumInNXM))
       );
     }
 
@@ -276,7 +276,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function editCover(
     uint coverId,
     BuyCoverParams memory buyCoverParams,
-    CoverChunkRequest[] memory coverChunkRequests
+    PoolAllocationRequest[] memory poolAllocations
   ) external payable onlyMember {
 
     CoverData memory cover = coverData[coverId];
@@ -285,31 +285,31 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     require(lastCoverSegment.start + lastCoverSegment.period > block.timestamp, "Cover: cover expired");
     require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
-    require(buyCoverParams.commissionRatio <= MAX_COMMISSION_RATE, "Cover: Commission rate is too high");
+    require(buyCoverParams.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
 
     uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
 
     (, uint8 paymentAssetDecimals, ) = pool().assets(buyCoverParams.paymentAsset);
 
-    CoverChunk[] storage originalCoverChunks = coverChunksForCoverSegments[coverId][lastCoverSegmentIndex];
+    PoolAllocation[] storage originalPoolAllocations = coverSegmentAllocations[coverId][lastCoverSegmentIndex];
 
     {
       uint totalPreviousCoverAmountInNXM = 0;
       // rollback previous cover
-      for (uint i = 0; i < originalCoverChunks.length; i++) {
-        IStakingPool stakingPool = stakingPool(originalCoverChunks[i].poolId);
+      for (uint i = 0; i < originalPoolAllocations.length; i++) {
+        IStakingPool stakingPool = stakingPool(originalPoolAllocations[i].poolId);
 
         stakingPool.freeCapacity(
           cover.productId,
           lastCoverSegment.period,
           lastCoverSegment.start,
-          originalCoverChunks[i].premiumInNXM / REWARD_DENOMINATOR,
+          originalPoolAllocations[i].premiumInNXM / REWARD_DENOMINATOR,
           remainingPeriod,
-          originalCoverChunks[i].coverAmountInNXM
+          originalPoolAllocations[i].coverAmountInNXM
         );
-        totalPreviousCoverAmountInNXM += originalCoverChunks[i].coverAmountInNXM;
-        originalCoverChunks[i].premiumInNXM =
-        originalCoverChunks[i].premiumInNXM * (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
+        totalPreviousCoverAmountInNXM += originalPoolAllocations[i].coverAmountInNXM;
+        originalPoolAllocations[i].premiumInNXM =
+        originalPoolAllocations[i].premiumInNXM * (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
       }
     }
 
@@ -324,7 +324,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
 
     (uint premiumInPaymentAsset, uint totalPremiumInNXM) =
-      _buyCover(buyCoverParams, coverId, coverChunkRequests);
+      _buyCover(buyCoverParams, coverId, poolAllocations);
 
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 

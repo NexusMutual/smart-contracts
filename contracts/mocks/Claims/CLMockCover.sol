@@ -4,8 +4,6 @@ pragma solidity ^0.8.0;
 
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IERC721Mock.sol";
-import "../../interfaces/ICover.sol";
-import "../../interfaces/ICover.sol";
 
 
 contract CLMockCover {
@@ -15,7 +13,7 @@ contract CLMockCover {
   ICover.CoverData[] public coverData;
   mapping(uint => ICover.CoverSegment[]) coverSegments;
 
-  mapping(uint => ICover.CoverChunk[]) stakingPoolsForCover;
+  mapping(uint => ICover.PoolAllocation[]) stakingPoolsForCover;
   mapping(uint => uint96) public activeCoverAmountInNXM;
 
   ICover.Product[] public products;
@@ -60,7 +58,7 @@ contract CLMockCover {
     uint96 amount,
     uint32 period,
     uint maxPrice,
-    ICover.CoverChunkRequest[] memory coverChunkRequests,
+    ICover.PoolAllocationRequest[] memory coverChunkRequests,
     uint32 date
   ) external payable returns (uint coverId) {
     coverData.push(ICover.CoverData(
@@ -87,7 +85,7 @@ contract CLMockCover {
     uint96 amount,
     uint32 period,
     uint maxPrice,
-    ICover.CoverChunkRequest[] memory coverChunkRequests
+    ICover.PoolAllocationRequest[] memory coverChunkRequests
   ) external payable returns (uint coverId) {
 
     coverData.push(ICover.CoverData(

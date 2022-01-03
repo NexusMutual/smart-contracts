@@ -12,7 +12,7 @@ contract ICMockCover {
   ICover.CoverData[] public coverData;
   mapping(uint => ICover.CoverSegment[]) coverSegments;
 
-  mapping(uint => ICover.CoverChunk[]) stakingPoolsForCover;
+  mapping(uint => ICover.PoolAllocation[]) poolAllocations;
   mapping(uint => uint96) public activeCoverAmountInNXM;
 
   ICover.Product[] public products;
@@ -57,7 +57,7 @@ contract ICMockCover {
     uint96 amount,
     uint32 period,
     uint maxPrice,
-    ICover.CoverChunkRequest[] memory stakingPools
+    ICover.PoolAllocationRequest[] memory stakingPools
   ) external payable returns (uint coverId) {
     coverData.push(ICover.CoverData(
         productId,

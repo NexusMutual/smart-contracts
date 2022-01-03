@@ -23,12 +23,12 @@ interface ICover {
     Migrated
   }
 
-  struct CoverChunkRequest {
+  struct PoolAllocationRequest {
     uint64 poolId;
     uint coverAmountInAsset;
   }
 
-  struct CoverChunk {
+  struct PoolAllocation {
     uint64 poolId;
     uint96 coverAmountInNXM;
     uint96 premiumInNXM;
@@ -75,7 +75,7 @@ interface ICover {
   struct IncreaseAmountParams {
     uint coverId;
     uint8 paymentAsset;
-    CoverChunkRequest[] coverChunkRequests;
+    PoolAllocationRequest[] coverChunkRequests;
   }
 
   struct Product {
@@ -112,7 +112,7 @@ interface ICover {
 
   function buyCover(
     BuyCoverParams calldata params,
-    CoverChunkRequest[] calldata coverChunkRequests
+    PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
   function performPayoutBurn(uint coverId, uint amount) external returns (address /*owner*/);

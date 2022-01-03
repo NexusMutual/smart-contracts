@@ -1,5 +1,6 @@
-const { accounts, artifacts, web3 } = require('hardhat');
+const { accounts, artifacts, web3, ethers } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
+const { parseEther } = ethers.utils;
 
 const { setupUniswap } = require('../utils');
 const { ContractTypes } = require('../utils').constants;
@@ -10,6 +11,23 @@ const { enrollMember } = require('./utils/enroll');
 const { BN } = web3.utils;
 const { getAccounts } = require('../utils').accounts;
 const { members } = getAccounts(accounts);
+
+// Convert web3 instances to ethers.js
+const web3ToEthers = (x, signers) => {
+  const { contracts, rates } = x;
+  const { daiToEthRate, ethToDaiRate } = rates;
+
+  const accounts = getAccounts(signers);
+  const ret = {
+    contracts: Object.keys(contracts)
+      .map(x => ({ val: new ethers.Contract(contracts[x].address, contracts[x].abi, accounts.defaultSender), key: x }))
+      .reduce((acc, x) => ({ ...acc, [x.key]: x.val }), {}),
+    rates: { daiToEthRate: parseEther(daiToEthRate.toString()), ethToDaiRate },
+    accounts: accounts,
+  };
+  // console.log({ ret, provider: ethers.provider });
+  return ret;
+};
 
 async function setup () {
   // external
@@ -283,7 +301,10 @@ async function setup () {
   await upgradeProxy(cl.address, Claims, [master.address, coverNFT.address]);
   await upgradeProxy(as.address, Assessment, [master.address]);
   await upgradeProxy(cover.address, Cover, [qd.address, productsV1.address]);
+
+  // [todo] We should probably call changeDependentContractAddress on every contract
   await gateway.changeDependentContractAddress();
+  await cover.changeDependentContractAddress();
 
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
@@ -303,7 +324,6 @@ async function setup () {
   await web3.eth.sendTransaction({ from: owner, to: p1.address, value: POOL_ETHER });
   await dai.transfer(p1.address, POOL_DAI);
 
-  const ethEthRate = 100;
   const ethToDaiRate = 20000;
 
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ether((ethToDaiRate / 100).toString()));
@@ -363,13 +383,15 @@ async function setup () {
 
   this.rates = {
     daiToEthRate,
-    ethEthRate,
     ethToDaiRate,
   };
 
   this.contractType = contractType;
 
   await enrollMember(this.contracts, members);
+
+  const signers = await ethers.getSigners();
+  this.withEthers = web3ToEthers(this, signers);
 }
 
 module.exports = setup;

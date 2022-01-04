@@ -35,7 +35,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   bool public launched;
   uint public launchedOn;
 
-  mapping (address => address payable) internal _unused2;
+  mapping (address => address payable) public _unused2;
 
   modifier checkRoleAuthority(uint _memberRoleId) {
     if (memberRoleData[_memberRoleId].authorized != address(0))
@@ -263,7 +263,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   /// @param newAddress    Address of user to forward membership.
   /// @param coverIds      Array of cover ids to transfer to the new address.
   /// @param stakingPools  Array of staking pool addresses where the user has LP tokens.
-  function switchMembership(
+  function switchMembershipAndAssets(
     address newAddress,
     uint[] calldata coverIds,
     address[] calldata stakingPools
@@ -288,12 +288,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   }
 
   function storageCleanup() external {
-    assembly {
-      mstore(0, 0x181aea6936b407514ebfc0754a37704eb8d98f91)
-      mstore(32, _unused2.slot)
-      let hash := keccak256(0, 64)
-      sstore(hash, 0)
-    }
+    _unused2[0x181Aea6936B407514ebFC0754A37704eB8d98F91] = payable(0x0000000000000000000000000000000000000000);
   }
 
   /**

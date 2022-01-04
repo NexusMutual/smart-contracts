@@ -10,7 +10,7 @@ interface IMemberRoles {
 
   function switchMembership(address _newAddress) external;
 
-  function switchMembership(
+  function switchMembershipAndAssets(
     address newAddress,
     uint[] calldata coverIds,
     address[] calldata stakingPools

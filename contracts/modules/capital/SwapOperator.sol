@@ -22,10 +22,19 @@ contract SwapOperator is ReentrancyGuard {
     uint maxSlippageRatio;
   }
 
-  ITwapOracle public twapOracle;
-  address public swapController;
-  INXMMaster master;
-  address public stETH;
+  /* storage */
+  bool public communityFundTransferExecuted;
+
+  /* immutables */
+  ITwapOracle immutable public twapOracle;
+  address immutable public swapController;
+  INXMMaster immutable master;
+  address immutable public stETH;
+
+  /* constants */
+  address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+  IUniswapV2Router02 constant public router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+  uint constant public MAX_LIQUIDITY_RATIO = 3 * 1e15;
 
   /* events */
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
@@ -35,11 +44,6 @@ contract SwapOperator is ReentrancyGuard {
     require(msg.sender == swapController, "SwapOperator: not swapController");
     _;
   }
-
-  /* constants */
-  address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-  IUniswapV2Router02 constant public router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
-  uint constant public MAX_LIQUIDITY_RATIO = 3 * 1e15;
 
   constructor(address payable _master, address _twapOracle, address _swapController, address _stETH) {
     master = INXMMaster(_master);
@@ -288,6 +292,24 @@ contract SwapOperator is ReentrancyGuard {
     transferAssetTo(stETH, address(pool), amountOut);
 
     emit Swapped(ETH, stETH, amountIn, amountOut);
+  }
+
+  function transferToCommunityFund() external onlySwapController {
+
+    // amount, destination, deadline
+    uint amount = 8000 ether;
+    address communityFund = 0x586b9b2F8010b284A0197f392156f1A7Eb5e86e9;
+    uint deadline = 1638057600; // Sun Nov 28 2021 00:00:00 GMT+0000
+
+    // perform checks and mark as paid
+    require(block.timestamp < deadline, "SwapOperator: the deadline has passed");
+    require(!communityFundTransferExecuted, "SwapOperator: already executed");
+    communityFundTransferExecuted = true;
+
+    // transfer
+    _pool().transferAssetToSwapOperator(ETH, amount);
+    (bool ok, /* data */) = communityFund.call{ value: amount }("");
+    require(ok, "SwapOperator: transfer failed");
   }
 
   function assetIsEnabled(AssetData memory assetData) internal pure returns (bool) {

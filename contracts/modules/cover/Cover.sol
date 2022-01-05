@@ -64,7 +64,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint24 public globalCapacityRatio;
   uint24 public globalRewardsRatio;
 
-  uint public stakingPoolCounter;
+  uint64 public stakingPoolCounter;
 
   /*
     bit map representing which assets are globally supported for paying for and for paying out covers
@@ -421,7 +421,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function createStakingPool(address manager) public {
 
-    address addr = address(new MinimalBeaconProxy{ salt: bytes32(stakingPoolCounter) }(address(this)));
+    address addr = address(new MinimalBeaconProxy{ salt: bytes32(uint(stakingPoolCounter)) }(address(this)));
     IStakingPool(addr).initialize(manager);
 
     stakingPoolCounter++;

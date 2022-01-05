@@ -11,7 +11,7 @@ contract DisposableCover is MasterAwareV2 {
   ICover.ProductType[] public productTypes;
 
   mapping(uint => ICover.CoverData) public covers;
-  mapping(uint => ICover.CoverChunk[]) public coverChunksForCover;
+  mapping(uint => ICover.PoolAllocation[]) public coverAllocations;
 
   mapping(uint => uint) initialPrices;
 

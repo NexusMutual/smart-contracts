@@ -14,7 +14,7 @@ describe('Cover unit tests', function () {
 
   // require('./calculatePrice');
   // require('./interpolatePrice');
-  // require('./buyCover');
-  // require('./editCover');
+  require('./buyCover');
+  require('./editCover');
   require('./createStakingPool');
 });

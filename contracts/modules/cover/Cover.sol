@@ -44,7 +44,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
   bytes32 public immutable stakingPoolProxyCodeHash;
-  address public override stakingPoolImplementation;
   address public immutable override coverNFT;
 
   /* ========== STATE VARIABLES ========== */
@@ -64,6 +63,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint24 public globalCapacityRatio;
   uint24 public globalRewardsRatio;
 
+  address public override stakingPoolImplementation;
   uint64 public stakingPoolCounter;
 
   /*

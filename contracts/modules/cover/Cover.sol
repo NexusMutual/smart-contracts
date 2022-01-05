@@ -482,7 +482,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     globalRewardsRatio = _globalRewardsRatio;
   }
 
-  function setInitialPrice(uint productId, uint16 initialPriceRatio) external onlyAdvisoryBoard {
+  function setInitialPrice(uint productId, uint16 initialPriceRatio) external override onlyAdvisoryBoard {
 
     require(initialPriceRatio >= GLOBAL_MIN_PRICE_RATIO, "Cover: Initial price must be greater than the global min price");
     products[productId].initialPriceRatio = initialPriceRatio;
@@ -497,11 +497,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     products.push(product);
   }
 
-  function addProductType(ProductType calldata productType) external onlyAdvisoryBoard {
+  function addProductType(ProductType calldata productType) external override onlyAdvisoryBoard {
     productTypes.push(productType);
   }
 
-  function setCoverAssetsFallback(uint32 _coverAssetsFallback) external onlyGovernance {
+  function setCoverAssetsFallback(uint32 _coverAssetsFallback) external override onlyGovernance {
     coverAssetsFallback = _coverAssetsFallback;
   }
 

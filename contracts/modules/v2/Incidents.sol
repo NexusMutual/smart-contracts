@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/ITokenController.sol";
@@ -270,7 +271,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
       }
     }
 
-    IERC20(coveredToken).transferFrom(msg.sender, address(this), depeggedTokens);
+    SafeERC20.safeTransferFrom(IERC20(coveredToken), msg.sender, address(this), depeggedTokens);
     IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
     poolContract.sendPayout(payoutAsset, payoutAddress, payoutAmount);
 

@@ -270,6 +270,10 @@ async function setup () {
     productAddress: '0x0000000000000000000000000000000000000001',
     coverAssets: 2,
   });
+  await cover.setInitialPrice(0, 1);
+  await cover.setInitialPrice(1, 1);
+  await cover.setInitialPrice(2, 1);
+  await cover.setCoverAssetsFallback(0b11); // eth and dai
 
   await lcd.changeMasterAddress(master.address);
   await lcd.updateUintParameters(hex('CAMINVT'), 36); // min voting time 36h
@@ -369,6 +373,7 @@ async function setup () {
     ic: await Incidents.at(ic.address),
     cl: await Claims.at(cl.address),
     as: await Assessment.at(as.address),
+    cover: await Cover.at(cover.address),
   };
 
   const nonInternal = { priceFeedOracle, swapOperator };

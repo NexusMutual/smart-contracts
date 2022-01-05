@@ -6,30 +6,38 @@ import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ICover.sol";
 
 contract DisposableCover is MasterAwareV2 {
+  IQuotationData internal immutable quotationData;
+  IProductsV1 internal immutable productsV1;
 
-  ICover.Product[] public products;
-  ICover.ProductType[] public productTypes;
+  bytes32 public immutable stakingPoolProxyCodeHash;
+  address public immutable override coverNFT;
 
-  mapping(uint => ICover.CoverData) public covers;
-  mapping(uint => ICover.PoolAllocation[]) public coverAllocations;
+  /* ========== STATE VARIABLES ========== */
 
-  mapping(uint => uint) initialPrices;
+  Product[] public override products;
+  ProductType[] public override productTypes;
 
-  mapping(uint => uint96) public activeCoverAmountInNXM;
+  CoverData[] private coverData;
+  mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
 
-  uint32 public capacityFactor;
-  uint32 public coverCount;
-  address public coverNFT;
+  /*
+    Each Cover has an array of segments. A new segment is created everytime a cover is edited to
+    deliniate the different cover periods.
+  */
+  mapping(uint => CoverSegment[]) coverSegments;
 
+  uint24 public globalCapacityRatio;
+  uint24 public globalRewardsRatio;
 
-  /* === CONSTANTS ==== */
+  address public override stakingPoolImplementation;
+  uint64 public stakingPoolCounter;
 
-  uint public REWARD_BPS = 5000;
-  uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
-  uint public constant BASIS_PRECISION = 10000;
-  uint public constant STAKE_SPEED_UNIT = 100000e18;
-  uint public constant PRICE_CURVE_EXPONENT = 7;
-  uint public constant MAX_PRICE_PERCENTAGE = 1e20;
+  /*
+    bit map representing which assets are globally supported for paying for and for paying out covers
+    If the the bit at position N is 1 it means asset with index N is supported.this
+    Eg. coverAssetsFallback = 3 (in binary 11) means assets at index 0 and 1 are supported.
+  */
+  uint32 public coverAssetsFallback;
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -47,6 +55,14 @@ contract DisposableCover is MasterAwareV2 {
 
   function addProduct(ICover.Product calldata product) public {
     products.push(product);
+  }
+
+  function setInitialPrice(uint productId, uint initialPrice) external {
+    initialPrices[productId] = initialPrice;
+  }
+
+  function setCoverAssetsFallback(uint _coverAssetsFallback) external {
+    coverAssetsFallback = _coverAssetsFallback;
   }
 
   function changeDependentContractAddress() external override {}

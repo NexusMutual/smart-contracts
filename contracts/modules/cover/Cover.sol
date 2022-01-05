@@ -60,8 +60,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   */
   mapping(uint => CoverSegment[]) coverSegments;
 
-  uint32 public globalCapacityRatio;
-  uint32 public globalRewardsRatio;
+  uint24 public globalCapacityRatio;
+  uint24 public globalRewardsRatio;
 
   address public override coverNFT;
   uint public stakingPoolCounter;
@@ -153,7 +153,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     coverSegments[coverId].push(
       CoverSegment(
         SafeUintCast.toUint96(sumAssured * 10 ** 18),
-        uint32(block.timestamp + 1),
+        uint32(block.timestamp),
         SafeUintCast.toUint32(coverPeriodInDays * 1 days),
         uint16(0)
       )
@@ -243,7 +243,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     coverSegments[coverId].push(CoverSegment(
         SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18),
-        uint32(block.timestamp + 1),
+        uint32(block.timestamp),
         SafeUintCast.toUint32(params.period),
         SafeUintCast.toUint16(totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM)
       ));
@@ -466,11 +466,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== PRODUCT CONFIGURATION ========== */
 
-  function setGlobalCapacityRatio(uint32 _globalCapacityRatio) external onlyGovernance {
+  function setGlobalCapacityRatio(uint24 _globalCapacityRatio) external onlyGovernance {
     globalCapacityRatio = _globalCapacityRatio;
   }
 
-  function setGlobalRewardsRatio(uint32 _globalRewardsRatio) external onlyGovernance {
+  function setGlobalRewardsRatio(uint24 _globalRewardsRatio) external onlyGovernance {
     globalRewardsRatio = _globalRewardsRatio;
   }
 

@@ -23,19 +23,13 @@ interface ICover {
     Migrated
   }
 
-  struct LastPrice {
-    uint96 value;
-    uint32 lastUpdateTime;
-  }
-
-  struct CoverChunkRequest {
-    // TODO: switch to poolId and derive the address created with CREATE2 from the id
-    address poolAddress;
+  struct PoolAllocationRequest {
+    uint64 poolId;
     uint coverAmountInAsset;
   }
 
-  struct CoverChunk {
-    address poolAddress;
+  struct PoolAllocation {
+    uint64 poolId;
     uint96 coverAmountInNXM;
     uint96 premiumInNXM;
   }
@@ -43,6 +37,10 @@ interface ICover {
   struct CoverData {
     uint24 productId;
     uint8 payoutAsset;
+    uint96 amountPaidOut;
+  }
+
+  struct CoverSegment {
     uint96 amount;
     uint32 start;
     uint32 period;  // seconds
@@ -58,6 +56,8 @@ interface ICover {
     uint maxPremiumInAsset;
     uint8 paymentAsset;
     bool payWithNXM;
+    uint16 commissionRatio;
+    address commissionDestination;
   }
 
   struct IncreaseAmountAndReducePeriodParams {
@@ -75,16 +75,19 @@ interface ICover {
   struct IncreaseAmountParams {
     uint coverId;
     uint8 paymentAsset;
-    CoverChunkRequest[] coverChunkRequests;
+    PoolAllocationRequest[] coverChunkRequests;
   }
 
   struct Product {
     uint16 productType;
     address productAddress;
-    /* supported payout assets bitmap TODO: explain */
-    uint coverAssets;
-    // TODO: consider if to pack the initialPrice and activeCoverAmountInNXM here. issues appear with
-    // to many variables currently + not all parameters are needed everywhere
+    /*
+      cover assets bitmap. each bit in the base-2 representation represents whether the asset with the index
+      of that bit is enabled as a cover asset for this product.
+    */
+    uint32 coverAssets;
+    uint16 initialPriceRatio;
+    uint16 capacityReductionRatio;
   }
 
   struct ProductType {
@@ -97,11 +100,9 @@ interface ICover {
 
   function covers(uint id) external view returns (uint24, uint8, uint96, uint32, uint32, uint16);
 
-  function products(uint id) external view returns (uint16, address, uint);
+  function products(uint id) external view returns (uint16, address, uint32, uint16, uint16);
 
   function productTypes(uint id) external view returns (string memory, uint8, uint16);
-
-  function activeCoverAmountInNXM(uint id) external view returns (uint96);
 
   /* === MUTATIVE FUNCTIONS ==== */
 
@@ -111,7 +112,7 @@ interface ICover {
 
   function buyCover(
     BuyCoverParams calldata params,
-    CoverChunkRequest[] calldata coverChunkRequests
+    PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
   function performPayoutBurn(uint coverId, uint amount) external returns (address /*owner*/);

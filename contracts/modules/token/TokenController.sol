@@ -17,7 +17,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   using SafeUintCast for uint;
   IQuotationData public immutable quotationData;
 
-  INXMToken public token;
+  INXMToken public override token;
   IPooledStaking public pooledStaking;
   IAssessment public assessment;
   IGovernance public governance;

@@ -11,8 +11,10 @@ contract ICMockCover {
 
   IERC721Mock public immutable coverNFT;
 
-  ICover.CoverData[] public covers;
-  mapping(uint => ICover.CoverChunk[]) stakingPoolsForCover;
+  ICover.CoverData[] public coverData;
+  mapping(uint => ICover.CoverSegment[]) coverSegments;
+
+  mapping(uint => ICover.PoolAllocation[]) poolAllocations;
   mapping(uint => uint96) public activeCoverAmountInNXM;
 
   ICover.Product[] public products;
@@ -57,18 +59,22 @@ contract ICMockCover {
     uint96 amount,
     uint32 period,
     uint maxPrice,
-    ICover.CoverChunkRequest[] memory stakingPools
+    ICover.PoolAllocationRequest[] memory stakingPools
   ) external payable returns (uint coverId) {
-    covers.push(ICover.CoverData(
+    coverData.push(ICover.CoverData(
         productId,
         payoutAsset,
+        0
+      ));
+
+    coverSegments[coverData.length - 1].push(ICover.CoverSegment(
         uint96(amount),
         uint32(block.timestamp + 1),
         uint32(period),
         uint16(0)
       ));
 
-    coverId = covers.length - 1;
+    coverId = coverData.length - 1;
     coverNFT.safeMint(owner, coverId);
   }
 
@@ -85,17 +91,8 @@ contract ICMockCover {
     ));
   }
 
-  function addProduct(
-    uint16 productType,
-    address productAddress,
-    uint16 capacityFactor,
-    uint payoutAssets
-  ) external {
-    products.push(ICover.Product(
-      productType,
-      productAddress,
-      payoutAssets
-    ));
+  function addProduct(ICover.Product calldata product) external {
+    products.push(product);
   }
 
   function setActiveCoverAmountInNXM(

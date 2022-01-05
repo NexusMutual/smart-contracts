@@ -12,11 +12,9 @@ describe('Cover unit tests', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
-  require('./calculatePrice');
-  require('./interpolatePrice');
+  // require('./calculatePrice');
+  // require('./interpolatePrice');
   require('./buyCover');
-  require('./increasePeriodAndReduceAmount');
-  require('./increaseAmountAndReducePeriod');
-  require('./increaseAmount');
-  require('./increasePeriod');
+  require('./editCover');
+  require('./createStakingPool');
 });

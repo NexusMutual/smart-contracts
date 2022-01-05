@@ -1,4 +1,5 @@
 const { ethers } = require('hardhat');
+const { getContractAddress } = require('@ethersproject/address');
 const { hexlify, arrayify, hexValue, hexZeroPad, parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 const { getAccounts } = require('../../utils/accounts');
@@ -18,6 +19,9 @@ async function setup () {
   const TokenController = await ethers.getContractFactory('TokenControllerMock');
   const NXMToken = await ethers.getContractFactory('NXMTokenMock');
   const MCR = await ethers.getContractFactory('CoverMockMCR');
+  const StakingPool = await ethers.getContractFactory('CoverMockStakingPool');
+
+  const [owner] = await ethers.getSigners();
 
   const master = await MasterMock.deploy();
   await master.deployed();
@@ -26,10 +30,6 @@ async function setup () {
 
   const daiAsset = zeroPadRight(Buffer.from('DAI'), 4);
   const ethAsset = zeroPadRight(Buffer.from('ETH'), 4);
-  console.log({
-    daiAsset,
-    ethAsset,
-  });
 
   await quotationData.setTotalSumAssured(daiAsset, '0');
   await quotationData.setTotalSumAssured(ethAsset, '100000');
@@ -53,15 +53,21 @@ async function setup () {
   await mcr.deployed();
   await mcr.setMCR(parseEther('600000'));
 
-  const cover = await Cover.deploy(quotationData.address, ethers.constants.AddressZero);
-  await cover.deployed();
+  const stakingPool = await StakingPool.deploy();
 
-  await master.setTokenAddress(nxm.address);
+  const transactionCount = await owner.getTransactionCount();
+  const futureCoverNFTAddress = getContractAddress({
+    from: owner.address,
+    nonce: transactionCount + 1, // add 1 because the Cover contract is deployed before
+  });
+
+  const cover = await Cover.deploy(quotationData.address, ethers.constants.AddressZero, stakingPool.address, futureCoverNFTAddress);
+  await cover.deployed();
 
   const coverNFT = await CoverNFT.deploy('NexusMutual Cover', 'NXMC', cover.address);
   await coverNFT.deployed();
 
-  await cover.initialize(coverNFT.address);
+  await master.setTokenAddress(nxm.address);
 
   const ethToDaiRate = parseEther('2000');
   const daiToEthRate = BigNumber.from(10)
@@ -124,6 +130,8 @@ async function setup () {
     productType: '1',
     productAddress: '0x0000000000000000000000000000000000000000',
     coverAssets: '1', // ETH supported
+    initialPriceRatio: '1000', // 10%
+    capacityReductionRatio: '0',
   });
 
   this.master = master;

@@ -11,7 +11,7 @@ contract DisposableCover is MasterAwareV2 {
   ICover.ProductType[] public productTypes;
 
   mapping(uint => ICover.CoverData) public covers;
-  mapping(uint => ICover.CoverChunk[]) public coverChunksForCover;
+  mapping(uint => ICover.PoolAllocation[]) public coverAllocations;
 
   mapping(uint => uint) initialPrices;
 
@@ -20,12 +20,6 @@ contract DisposableCover is MasterAwareV2 {
   uint32 public capacityFactor;
   uint32 public coverCount;
   address public coverNFT;
-
-  /*
-    (productId, poolAddress) => lastPrice
-    Last base prices at which a cover was sold by a pool for a particular product.
-  */
-  mapping(uint => mapping(address => ICover.LastPrice)) lastPrices;
 
 
   /* === CONSTANTS ==== */

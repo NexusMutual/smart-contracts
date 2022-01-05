@@ -2,6 +2,8 @@
 
 pragma solidity >=0.5.0;
 
+import "./INXMToken.sol";
+
 interface ITokenController {
 
   struct CoverInfo {
@@ -65,4 +67,6 @@ interface ITokenController {
   function totalBalanceOf(address _of) external view returns (uint256 amount);
 
   function totalLockedBalance(address _of) external view returns (uint256 amount);
+
+  function token() external view returns (INXMToken);
 }

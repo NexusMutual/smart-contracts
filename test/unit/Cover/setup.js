@@ -1,4 +1,5 @@
 const { ethers } = require('hardhat');
+const { getContractAddress } = require('@ethersproject/address');
 const { hexlify, arrayify, hexValue, hexZeroPad, parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 const { getAccounts } = require('../../utils/accounts');
@@ -19,6 +20,8 @@ async function setup () {
   const NXMToken = await ethers.getContractFactory('NXMTokenMock');
   const MCR = await ethers.getContractFactory('CoverMockMCR');
   const StakingPool = await ethers.getContractFactory('CoverMockStakingPool');
+
+  const [owner] = await ethers.getSigners();
 
   const master = await MasterMock.deploy();
   await master.deployed();
@@ -52,15 +55,19 @@ async function setup () {
 
   const stakingPool = await StakingPool.deploy();
 
-  const cover = await Cover.deploy(quotationData.address, ethers.constants.AddressZero, stakingPool.address);
-  await cover.deployed();
+  const transactionCount = await owner.getTransactionCount();
+  const futureCoverNFTAddress = getContractAddress({
+    from: owner.address,
+    nonce: transactionCount + 1, // add 1 because the Cover contract is deployed before
+  });
 
-  await master.setTokenAddress(nxm.address);
+  const cover = await Cover.deploy(quotationData.address, ethers.constants.AddressZero, stakingPool.address, futureCoverNFTAddress);
+  await cover.deployed();
 
   const coverNFT = await CoverNFT.deploy('NexusMutual Cover', 'NXMC', cover.address);
   await coverNFT.deployed();
 
-  await cover.initialize(coverNFT.address);
+  await master.setTokenAddress(nxm.address);
 
   const ethToDaiRate = parseEther('2000');
   const daiToEthRate = BigNumber.from(10)

@@ -78,7 +78,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(IQuotationData _quotationData, IProductsV1 _productsV1, address _stakingPoolImplementation) {
+  constructor(IQuotationData _quotationData, IProductsV1 _productsV1, address _stakingPoolImplementation, address _coverNFT) public {
 
     quotationData = _quotationData;
     productsV1 = _productsV1;
@@ -89,10 +89,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       )
     );
     stakingPoolImplementation =  _stakingPoolImplementation;
-  }
-
-  function initialize(address _coverNFT) public {
-    require(coverNFT == address(0), "Cover: already initialized");
     coverNFT = _coverNFT;
   }
 
@@ -153,7 +149,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     coverSegments[coverId].push(
       CoverSegment(
         SafeUintCast.toUint96(sumAssured * 10 ** 18),
-        uint32(block.timestamp),
+        uint32(block.timestamp + 1),
         SafeUintCast.toUint32(coverPeriodInDays * 1 days),
         uint16(0)
       )
@@ -243,7 +239,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     coverSegments[coverId].push(CoverSegment(
         SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18),
-        uint32(block.timestamp),
+        uint32(block.timestamp + 1),
         SafeUintCast.toUint32(params.period),
         SafeUintCast.toUint16(totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM)
       ));

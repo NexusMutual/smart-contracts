@@ -14,4 +14,8 @@ describe('Claims', function () {
 
   require('./submitClaim');
   require('./redeemClaimPayout');
+  require('./getAssessmentDepositAndReward');
+  require('./updateUintParameters');
+  require('./getClaimsToDisplay');
+  require('./getClaimsCount');
 });

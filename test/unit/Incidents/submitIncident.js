@@ -81,4 +81,17 @@ describe('submitIncident', function () {
     const { totalReward } = await assessment.assessments(0);
     expect(totalReward).to.be.equal(expectedTotalReward);
   });
+
+  it('calculates the totalReward capped at config.maxRewardInNXMWad', async function () {
+    const { assessment, incidents, cover } = this.contracts;
+    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+
+    await cover.setActiveCoverAmountInNXM(2, parseEther('100000000'));
+    const productId = 2;
+    const currentTime = await time.latest();
+    await incidents.connect(advisoryBoard).submitIncident(productId, parseEther('1.1'), currentTime.toNumber());
+    const expectedTotalReward = parseEther(this.config.maxRewardInNXMWad.toString());
+    const { totalReward } = await assessment.assessments(0);
+    expect(totalReward).to.be.equal(expectedTotalReward);
+  });
 });

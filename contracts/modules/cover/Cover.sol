@@ -485,6 +485,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     products.push(product);
   }
 
+  function addProductType(ProductType calldata productType) external onlyAdvisoryBoard {
+    productTypes.push(productType);
+  }
+
   function setCoverAssetsFallback(uint32 _coverAssetsFallback) external onlyGovernance {
     coverAssetsFallback = _coverAssetsFallback;
   }

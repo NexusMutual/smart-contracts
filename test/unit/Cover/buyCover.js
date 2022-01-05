@@ -1,11 +1,17 @@
 const { assert } = require('chai');
-const { web3, ethers: { utils: { parseEther } } } = require('hardhat');
+const {
+  web3,
+  ethers: {
+    utils: { parseEther },
+  },
+} = require('hardhat');
 const { time, expectRevert, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
+const { hex, zeroPadRight } = require('../utils').helpers;
+const { calculatePrice } = require('./helpers');
 
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
 describe('buyCover', function () {
-
   it('should purchase new cover', async function () {
     const { cover } = this;
 

@@ -32,7 +32,6 @@ contract ASMockClaims is MasterAwareV2 {
   function submitClaim(
     uint24 coverId,
     uint96 requestedAmount,
-    bool hasProof,
     string calldata ipfsProofHash
   ) external payable {
     IClaims.Claim memory claim = IClaims.Claim(
@@ -43,7 +42,7 @@ contract ASMockClaims is MasterAwareV2 {
       false // payoutRedeemed
     );
 
-    uint assessmentId = assessment().startAssessment(0, 0);
+    uint assessmentId = assessment().startAssessment(config.rewardRatio * requestedAmount / 10000, 0);
     claim.assessmentId = uint80(assessmentId);
     claims.push(claim);
   }

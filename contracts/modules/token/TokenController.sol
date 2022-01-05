@@ -314,7 +314,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
     (
       uint assessmentStake,
-      /*uint104 rewardsWithdrawnUntilIndex*/,
+      /*uint104 rewardsWithdrawableFromIndex*/,
       /*uint16 fraudCount*/
     ) = assessment.stakeOf(_of);
 

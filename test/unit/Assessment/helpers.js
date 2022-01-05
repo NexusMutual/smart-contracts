@@ -36,15 +36,23 @@ const getLeafInput = (address, lastFraudulentVoteIndex, burnAmount, fraudCount) 
   ];
 };
 
-const submitFraud = assessment => async (signer, addresses, amounts) => {
+const getProof = ({ address, lastFraudulentVoteIndex, amount, fraudCount, merkleTree }) => {
+  const input = getLeafInput(address, lastFraudulentVoteIndex, amount, fraudCount);
+  const proof = merkleTree.getHexProof(keccak256(input));
+  return proof;
+};
+
+const submitFraud = async ({ assessment, signer, addresses, amounts, lastFraudulentVoteIndexes }) => {
   const voteCounts = await getVoteCountOfAddresses(assessment)(addresses);
   const fraudCounts = await getFraudCountOfAddresses(assessment)(addresses);
   const leaves = addresses.map((address, i) => {
     // Assume the last fraudulent vote was also the last vote
-    const lastFraudulentVoteIndex = voteCounts[i] - 1;
+    const lastFraudulentVoteIndex = (lastFraudulentVoteIndexes && lastFraudulentVoteIndexes[i]) || voteCounts[i] - 1;
     const input = getLeafInput(address, lastFraudulentVoteIndex, amounts[i], fraudCounts[i]);
     return input;
   });
+  // [warning]: Don't use keccak256 from ethers because it returns a different type than what
+  // merkletreejs expects.
   const merkleTree = new MerkleTree(leaves, keccak256, { hashLeaves: true, sortPairs: true });
   const root = merkleTree.getHexRoot();
   await assessment.connect(signer).submitFraud(root);
@@ -59,8 +67,13 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
     const address = addresses[i];
     for (let j = 0; j < callsPerAddress; j++) {
       const lastFraudulentVoteIndex = voteCounts[i] - 1;
-      const input = getLeafInput(address, lastFraudulentVoteIndex, amounts[i], fraudCounts[i]);
-      const proof = merkleTree.getHexProof(keccak256(input));
+      const proof = getProof({
+        address,
+        lastFraudulentVoteIndex,
+        amount: amounts[i],
+        fraudCount: fraudCounts[i],
+        merkleTree,
+      });
       const tx = await assessment.burnFraud(
         rootIndex,
         proof,
@@ -78,14 +91,14 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
 };
 
 const getDurationByTokenWeight = ({ config }) => (tokens, payoutImpact) => {
-  const { minVotingPeriodDays, maxVotingPeriodDays } = config;
+  const { minVotingPeriodInDays, maxVotingPeriodDays } = config;
   const MULTIPLIER = '10'; // 10x the cover amount
   let tokenDrivenStrength = tokens.mul(parseEther('1')).div(payoutImpact.mul(MULTIPLIER));
   // tokenDrivenStrength is capped at 1 i.e. 100%
   tokenDrivenStrength = tokenDrivenStrength.gt(parseEther('1')) ? parseEther('1') : tokenDrivenStrength;
-  return BigNumber.from(daysToSeconds(minVotingPeriodDays).toString())
+  return BigNumber.from(daysToSeconds(minVotingPeriodInDays).toString())
     .add(
-      BigNumber.from(daysToSeconds(maxVotingPeriodDays - minVotingPeriodDays).toString())
+      BigNumber.from(daysToSeconds(maxVotingPeriodDays - minVotingPeriodInDays).toString())
         .mul(parseEther('1').sub(tokenDrivenStrength))
         .div(parseEther('1')),
     )
@@ -93,16 +106,16 @@ const getDurationByTokenWeight = ({ config }) => (tokens, payoutImpact) => {
 };
 
 const getDurationByConsensus = ({ config }) => ({ accepted, denied }) => {
-  const { minVotingPeriodDays, maxVotingPeriodDays } = config;
+  const { minVotingPeriodInDays, maxVotingPeriodDays } = config;
   if (accepted.isZero()) return daysToSeconds(maxVotingPeriodDays);
   const consensusStrength = accepted
     .mul(parseEther('2'))
     .div(accepted.add(denied))
     .sub(parseEther('1'))
     .abs();
-  return parseEther(daysToSeconds(minVotingPeriodDays).toString())
+  return parseEther(daysToSeconds(minVotingPeriodInDays).toString())
     .add(
-      parseEther(daysToSeconds(maxVotingPeriodDays - minVotingPeriodDays).toString())
+      parseEther(daysToSeconds(maxVotingPeriodDays - minVotingPeriodInDays).toString())
         .mul(parseEther('1').sub(consensusStrength))
         .div(parseEther('1')),
     )
@@ -110,26 +123,10 @@ const getDurationByConsensus = ({ config }) => ({ accepted, denied }) => {
     .toNumber();
 };
 
-const stakeAndVoteOnEventType = (eventType, assessment, accounts) => async (userIndex, amount, id, accepted) => {
-  const assessor = accounts.members[userIndex];
-  await assessment.connect(assessor).depositStake(amount);
-  await assessment.connect(assessor).castVote(eventType, id, accepted);
-  if (eventType === EVENT_TYPE.CLAIM) {
-    const claim = await assessment.claims(id);
-    const { accepted, denied } = claim.poll;
-    return { accepted, denied, totalTokens: accepted.add(denied) };
-  }
-  if (eventType === EVENT_TYPE.INCIDENT) {
-    const incident = await assessment.incidents(id);
-    const { accepted, denied } = incident.poll;
-    return { accepted, denied, totalTokens: accepted.add(denied) };
-  }
-};
-
-const getConfigurationStruct = ({ minVotingPeriodDays, stakeLockupPeriodDays, payoutCooldownDays }) => [
-  minVotingPeriodDays,
-  stakeLockupPeriodDays,
-  payoutCooldownDays,
+const getConfigurationStruct = ({ minVotingPeriodInDays, stakeLockupPeriodInDays, payoutCooldownInDays }) => [
+  minVotingPeriodInDays,
+  stakeLockupPeriodInDays,
+  payoutCooldownInDays,
 ];
 
 const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
@@ -165,8 +162,8 @@ module.exports = {
   getConfigurationStruct,
   getClaimStruct,
   getIncidentStruct,
+  getProof,
   getVoteStruct,
   getDurationByTokenWeight,
   getDurationByConsensus,
-  stakeAndVoteOnEventType,
 };

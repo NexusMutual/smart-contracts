@@ -7,15 +7,16 @@ interface IIncidents {
   /* ========== DATA STRUCTURES ========== */
 
   enum UintParams {
-    payoutRedemptionPeriodDays,
+    payoutRedemptionPeriodInDays,
     incidentExpectedPayoutRatio,
     incidentPayoutDeductibleRatio,
+    maxRewardInNXMWad,
     rewardRatio
   }
 
   struct Configuration {
     // Number of days in which payouts can be redeemed
-    uint8 payoutRedemptionPeriodDays;
+    uint8 payoutRedemptionPeriodInDays;
 
     // Ratio used to calculate potential payout of an incident
     // (0-10000 bps i.e. double decimal precision)
@@ -24,26 +25,34 @@ interface IIncidents {
     // Ratio used to determine the deductible payout (0-10000 bps i.e. double decimal precision)
     uint16 incidentPayoutDeductibleRatio;
 
+    // An amount of NXM representing the maximum reward amount given for any claim assessment.
+    uint16 maxRewardInNXMWad;
+
     // Ratio used to calculate assessment rewards (0-10000 i.e. double decimal precision)
     uint16 rewardRatio;
   }
 
   struct Incident {
     uint80 assessmentId;
+
     // Product identifier
     uint24 productId;
+
     // Timestamp marking the date of the incident used to verify the user's eligibility for a claim
     // according to their cover period.
     uint32 date;
+
+    // The price of the depegged token before the incident that resulted in the depeg.
     uint96 priceBefore;
   }
 
   /* ========== VIEWS ========== */
 
   function config() external view returns (
-    uint8 payoutRedemptionPeriodDays,
+    uint8 payoutRedemptionPeriodInDays,
     uint16 incidentExpectedPayoutRatio,
     uint16 incidentPayoutDeductibleRatio,
+    uint16 maxRewardInNXMWad,
     uint16 rewardRatio
   );
 

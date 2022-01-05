@@ -1,9 +1,13 @@
 const fs = require('fs');
+const path = require('path');
 const getVersionDataTemplate = require('./version-data-template');
 
 const network = process.argv[2];
+const rootPath = path.normalize(`${__dirname}/..`);
+const deployPath = `${rootPath}/deploy`;
+const baseModulesPath = `${rootPath}/artifacts/contracts/modules`;
 
-const deployData = JSON.parse(fs.readFileSync(__dirname + '/../deploy/' + network + '-deploy-data.json', 'utf8'));
+const deployData = JSON.parse(fs.readFileSync(`${deployPath}/${network}-deploy-data.json`, 'utf8'));
 
 const nonProxies = Object.keys(deployData)
   .filter(
@@ -40,9 +44,7 @@ const addresses = {
   ...proxies,
 };
 
-fs.writeFileSync(__dirname + '/../deploy/' + network + '-addresses.json', JSON.stringify(addresses, null, 2));
-
-const baseModulesPath = __dirname + '/../artifacts/contracts/modules/';
+fs.writeFileSync(`${deployPath}/${network}-addresses.json`, JSON.stringify(addresses, null, 2));
 
 const artifactPathOfContractCode = {
   CD: 'claims/ClaimsData.sol/ClaimsData.json',
@@ -68,7 +70,7 @@ const artifactPathOfContractCode = {
   SO: 'capital/SwapOperator.sol/SwapOperator.json',
 };
 
-const addressKeyOfContractCode = {
+const contractNameByCode = {
   CD: 'ClaimsData',
   CL: 'Claims',
   CR: 'ClaimsReward',
@@ -92,21 +94,27 @@ const addressKeyOfContractCode = {
   SO: 'SwapOperator',
 };
 
-const getCotractAbi = code => {
-  const artifact = JSON.parse(fs.readFileSync(baseModulesPath + artifactPathOfContractCode[code], 'utf8'));
+const getContractAbi = code => {
+  const artifact = JSON.parse(fs.readFileSync(`${baseModulesPath}/${artifactPathOfContractCode[code]}`, 'utf8'));
   return JSON.stringify(artifact.abi);
 };
 
 const versionDataTemplate = getVersionDataTemplate(network);
 const versionData = [];
+
 for (const contract of versionDataTemplate) {
   if (!contract.contractAbi) {
-    const contractAbi = getCotractAbi(contract.code);
-    const address = addresses[addressKeyOfContractCode[contract.code]].toLowerCase();
+    const contractAbi = getContractAbi(contract.code);
+    const address = addresses[contractNameByCode[contract.code]].toLowerCase();
     versionData.push({ ...contract, address, contractAbi });
   }
 }
+
+if (!fs.existsSync(deployPath)) {
+  fs.mkdirSync(deployPath);
+}
+
 fs.writeFileSync(
-  __dirname + '/../deploy/' + network + '-data.json',
+  `${deployPath}/${network}-data.json`,
   JSON.stringify({ [network]: { abis: versionData } }, null, 2),
 );

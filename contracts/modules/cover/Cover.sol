@@ -43,7 +43,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
   bytes32 public immutable stakingPoolProxyCodeHash;
-  address public override stakingPoolImplementation;
+  address public immutable override stakingPoolImplementation;
 
   /* ========== STATE VARIABLES ========== */
 

@@ -115,9 +115,15 @@ interface ICover {
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
-  function setInitialPrice(uint productId, uint initialPrice) external;
+  function createStakingPool(address manager) external;
 
-  function setCoverAssetsFallback(uint _coverAssetsFallback) external;
+  function setInitialPrice(uint productId, uint16 initialPriceRatio) external;
+
+  function addProduct(Product calldata product) external;
+
+  function addProductType(ProductType calldata productType) external;
+
+  function setCoverAssetsFallback(uint32 _coverAssetsFallback) external;
 
   function performPayoutBurn(uint coverId, uint amount) external returns (address /*owner*/);
 

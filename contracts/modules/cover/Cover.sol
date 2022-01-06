@@ -18,6 +18,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
 
 import "./MinimalBeaconProxy.sol";
+import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   using SafeERC20 for IERC20;
@@ -257,6 +258,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   ) internal returns (uint, uint) {
 
     Product memory product = products[params.productId];
+    console.log("%s stakingPool", address(stakingPool));
     return stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
         params.productId,
         amount,
@@ -431,7 +433,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   /* ========== Staking Pool creation ========== */
 
 
-  function createStakingPool(address manager) public {
+  function createStakingPool(address manager) public override {
 
     address addr = address(new MinimalBeaconProxy{ salt: bytes32(uint(stakingPoolCounter)) }(address(this)));
     IStakingPool(addr).initialize(manager);
@@ -439,6 +441,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     stakingPoolCounter++;
 
     emit StakingPoolCreated(addr, manager, stakingPoolImplementation);
+    console.log("%s created stakingPool", addr);
   }
 
   function stakingPool(uint index) public view returns (IStakingPool) {
@@ -493,7 +496,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     products[productId].capacityReductionRatio = reduction;
   }
 
-  function addProduct(Product calldata product) external onlyAdvisoryBoard {
+  function addProduct(Product calldata product) external override onlyAdvisoryBoard {
     products.push(product);
   }
 

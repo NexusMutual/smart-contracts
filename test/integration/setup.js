@@ -45,7 +45,6 @@ async function setup () {
   // external
   const ERC20BlacklistableMock = artifacts.require('ERC20BlacklistableMock');
   const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
-  const MinimalBeaconProxy = artifacts.require('MinimalBeaconProxy');
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
   const Lido = artifacts.require('P1MockLido');
   const ProductsV1 = artifacts.require('ProductsV1');
@@ -68,7 +67,6 @@ async function setup () {
   const CoverNFT = artifacts.require('CoverNFT');
   const Cover = artifacts.require('Cover');
   const StakingPool = artifacts.require('StakingPool');
-  const IStakingPool = artifacts.require('IStakingPool');
   const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
   // temporary contracts used for initialization
@@ -104,12 +102,6 @@ async function setup () {
     const implementation = await contract.new(...deployParams);
     const proxy = await OwnedUpgradeabilityProxy.new(implementation.address);
     return contract.at(proxy.address);
-  };
-
-  const deployMinimalBeacon = async (contract, deployParams = []) => {
-    const implementation = await contract.new(...deployParams);
-    const beacon = await MinimalBeaconProxy.new(implementation.address);
-    return await Promise.all([MinimalBeaconProxy.at(beacon.address), contract.at(implementation.address)]);
   };
 
   const upgradeProxy = async (proxyAddress, contract, params = []) => {
@@ -183,18 +175,9 @@ async function setup () {
   const as = await deployProxy(DisposableAssessment, []);
   const cl = await deployProxy(DisposableClaims, []);
 
-  // 2 transacitons for stakingPool proxy and implementation
-  // 1 transaciton for coverNFT
-  // 1 transaciton for cover implementation
-  const coverAddress = await getDeployAddressAfter(4);
-
-  // [todo] Replace mock with StakingPool after the contract is functional
-  const [stakingPool, stakingPoolImplementation] = await deployMinimalBeacon(CoverMockStakingPool, [
-    tk.address,
-    coverAddress,
-  ]);
-  const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NXC', coverAddress);
   const cover = await deployProxy(DisposableCover, []);
+  const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NXC', cover.address);
+  const stakingPool = await CoverMockStakingPool.new(tk.address, cover.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'QT', 'TF', 'CR'];
@@ -360,7 +343,7 @@ async function setup () {
   await upgradeProxy(cover.address, Cover, [
     qd.address,
     productsV1.address,
-    stakingPoolImplementation.address,
+    stakingPool.address,
     coverNFT.address,
     cover.address, // The proxy contract
   ]);

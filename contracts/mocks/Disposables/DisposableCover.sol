@@ -9,11 +9,6 @@ import "../../interfaces/IProductsV1.sol";
 import "../../modules/cover/MinimalBeaconProxy.sol";
 
 contract DisposableCover is MasterAwareV2 {
-  IQuotationData internal immutable quotationData;
-  IProductsV1 internal immutable productsV1;
-
-  bytes32 public immutable stakingPoolProxyCodeHash;
-  address public immutable coverNFT;
 
   /* ========== STATE VARIABLES ========== */
 
@@ -41,22 +36,6 @@ contract DisposableCover is MasterAwareV2 {
     Eg. coverAssetsFallback = 3 (in binary 11) means assets at index 0 and 1 are supported.
   */
   uint32 public coverAssetsFallback;
-
-  /* ========== CONSTRUCTOR ========== */
-
-  constructor(IQuotationData _quotationData, IProductsV1 _productsV1, address _stakingPoolImplementation, address _coverNFT) public {
-
-    quotationData = _quotationData;
-    productsV1 = _productsV1;
-    stakingPoolProxyCodeHash = keccak256(
-      abi.encodePacked(
-        type(MinimalBeaconProxy).creationCode,
-        abi.encode(address(this))
-      )
-    );
-    stakingPoolImplementation =  _stakingPoolImplementation;
-    coverNFT = _coverNFT;
-  }
 
   function addProductType(ICover.ProductType calldata productType) public {
     productTypes.push(productType);

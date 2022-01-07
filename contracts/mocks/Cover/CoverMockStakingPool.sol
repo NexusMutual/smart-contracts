@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "../../interfaces/IStakingPool.sol";
+import "hardhat/console.sol";
 
 contract CoverMockStakingPool is IStakingPool {
 
@@ -22,7 +23,10 @@ contract CoverMockStakingPool is IStakingPool {
     usedCapacity[params.productId] += params.coverAmount;
 
     // uint coveredAmountInNXM, uint premiumInNXM
-    return (params.coverAmount, mockPrices[params.productId] * params.coverAmount / 10000);
+    console.log("%d coverAmount", params.coverAmount);
+    console.log("%d price", mockPrices[params.productId] * params.coverAmount / 10000);
+    return (0,0);
+    //return (uint(params.coverAmount), uint(mockPrices[params.productId]) * uint(params.coverAmount) / 10000);
   }
 
   function freeCapacity(

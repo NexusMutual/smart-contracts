@@ -68,6 +68,7 @@ async function setup () {
   const CoverNFT = artifacts.require('CoverNFT');
   const Cover = artifacts.require('Cover');
   const StakingPool = artifacts.require('StakingPool');
+  const IStakingPool = artifacts.require('IStakingPool');
   const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
   // temporary contracts used for initialization
@@ -108,7 +109,7 @@ async function setup () {
   const deployMinimalBeacon = async (contract, deployParams = []) => {
     const implementation = await contract.new(...deployParams);
     const beacon = await MinimalBeaconProxy.new(implementation.address);
-    return contract.at(beacon.address);
+    return await Promise.all([MinimalBeaconProxy.at(beacon.address), contract.at(implementation.address)]);
   };
 
   const upgradeProxy = async (proxyAddress, contract, params = []) => {
@@ -188,14 +189,12 @@ async function setup () {
   const coverAddress = await getDeployAddressAfter(4);
 
   // [todo] Replace mock with StakingPool after the contract is functional
-  const stakingPool = await deployMinimalBeacon(CoverMockStakingPool, [tk.address, coverAddress]);
-  const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NXC', coverAddress);
-  const cover = await deployProxy(DisposableCover, [
-    qd.address,
-    productsV1.address,
-    stakingPool.address,
-    coverNFT.address,
+  const [stakingPool, stakingPoolImplementation] = await deployMinimalBeacon(CoverMockStakingPool, [
+    tk.address,
+    coverAddress,
   ]);
+  const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NXC', coverAddress);
+  const cover = await deployProxy(DisposableCover, []);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'QT', 'TF', 'CR'];
@@ -358,7 +357,13 @@ async function setup () {
   await upgradeProxy(ic.address, Incidents, [master.address, coverNFT.address]);
   await upgradeProxy(cl.address, Claims, [master.address, coverNFT.address]);
   await upgradeProxy(as.address, Assessment, [master.address]);
-  await upgradeProxy(cover.address, Cover, [qd.address, productsV1.address, stakingPool.address, coverNFT.address]);
+  await upgradeProxy(cover.address, Cover, [
+    qd.address,
+    productsV1.address,
+    stakingPoolImplementation.address,
+    coverNFT.address,
+    cover.address, // The proxy contract
+  ]);
 
   // [todo] We should probably call changeDependentContractAddress on every contract
   await gateway.changeDependentContractAddress();
@@ -455,11 +460,12 @@ async function setup () {
   const tx = await this.withEthers.contracts.cover.createStakingPool(stakingPoolManagers[0]);
 
   const receipt = await tx.wait();
-  const { stakingPoolAddress, manager } = receipt.events[0].args;
-  console.log({ stakingPoolAddress, manager });
-  const stakingPoolInstance = await StakingPool.at(stakingPoolAddress);
-  const storedManager = await stakingPoolInstance.manager();
-  console.log({ storedManager, manager });
+  const { stakingPoolAddress } = receipt.events[0].args;
+  const stakingPoolInstance = await CoverMockStakingPool.at(stakingPoolAddress);
+  await stakingPoolInstance.setPrice(0, 100);
+  await stakingPoolInstance.setPrice(1, 100);
+  await stakingPoolInstance.setPrice(2, 100);
+  await stakingPoolInstance.setPrice(3, 100);
 }
 
 module.exports = setup;

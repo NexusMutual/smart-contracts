@@ -71,8 +71,19 @@ describe.only('switchMembershipAndAssets', function () {
 
     {
       await cover.buyCover(
-        [member1.address, 0, 0, parseEther('100'), daysToSeconds(30), parseEther('1'), 0, false],
-        [],
+        [
+          member1.address,
+          0,
+          0,
+          parseEther('100'),
+          daysToSeconds(30),
+          parseEther('1'),
+          0,
+          false,
+          0,
+          ethers.constants.AddressZero,
+        ],
+        [[0, parseEther('100')]],
       );
       const newMemberAddress = nonMember1.address;
       await token.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);

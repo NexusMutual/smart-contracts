@@ -79,14 +79,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(IQuotationData _quotationData, IProductsV1 _productsV1, address _stakingPoolImplementation, address _coverNFT) public {
+  constructor(IQuotationData _quotationData, IProductsV1 _productsV1, address _stakingPoolImplementation, address _coverNFT, address coverProxy) public {
 
     quotationData = _quotationData;
     productsV1 = _productsV1;
     stakingPoolProxyCodeHash = keccak256(
       abi.encodePacked(
         type(MinimalBeaconProxy).creationCode,
-        abi.encode(address(this))
+        abi.encode(coverProxy)
       )
     );
     stakingPoolImplementation =  _stakingPoolImplementation;
@@ -255,11 +255,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     BuyCoverParams memory params,
     IStakingPool stakingPool,
     uint amount
-  ) internal returns (uint, uint) {
+  ) internal returns (uint a, uint b) {
 
     Product memory product = products[params.productId];
-    console.log("%s stakingPool", address(stakingPool));
-    return stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
+    (a,b) = stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
         params.productId,
         amount,
         REWARD_DENOMINATOR,
@@ -269,6 +268,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         product.capacityReductionRatio,
         product.initialPriceRatio
       ));
+      console.log("%d a", a);
+      console.log("%d b", b);
+      return (a,b);
   }
 
   function editCover(

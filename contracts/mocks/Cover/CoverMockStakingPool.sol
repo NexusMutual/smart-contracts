@@ -20,13 +20,13 @@ contract CoverMockStakingPool is IStakingPool {
   }
 
   function allocateCapacity(AllocateCapacityParams calldata params) external override returns (uint, uint) {
+    console.log("start");
     usedCapacity[params.productId] += params.coverAmount;
 
     // uint coveredAmountInNXM, uint premiumInNXM
     console.log("%d coverAmount", params.coverAmount);
     console.log("%d price", mockPrices[params.productId] * params.coverAmount / 10000);
-    return (0,0);
-    //return (uint(params.coverAmount), uint(mockPrices[params.productId]) * uint(params.coverAmount) / 10000);
+    return (uint(params.coverAmount), uint(mockPrices[params.productId]) * uint(params.coverAmount) / 10000);
   }
 
   function freeCapacity(

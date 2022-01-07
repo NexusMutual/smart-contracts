@@ -1,12 +1,15 @@
 
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "../../interfaces/ICover.sol";
+import "hardhat/console.sol";
 
 contract CoverNFT is ERC721 {
 
   address public operator;
 
   modifier onlyOperator {
+    console.log("%s sender", msg.sender);
+    console.log("%s operator", operator);
     require(msg.sender == operator, "CoverNFT: Not operator");
     _;
   }

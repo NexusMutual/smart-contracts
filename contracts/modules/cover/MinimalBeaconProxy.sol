@@ -1,5 +1,6 @@
 import "@openzeppelin/contracts-v4/proxy/Proxy.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
+import "hardhat/console.sol";
 
 /**
  * @dev This contract implements a proxy that gets the implementation address for each call from a {UpgradeableBeacon}.
@@ -33,6 +34,8 @@ contract MinimalBeaconProxy is Proxy {
    * @dev Returns the current implementation address of the associated beacon.
    */
   function _implementation() internal view virtual override returns (address) {
+    console.log('implementation called');
+    console.log('%s beacon', beacon);
     return IStakingPoolBeacon(beacon).stakingPoolImplementation();
   }
 }

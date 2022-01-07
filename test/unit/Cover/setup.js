@@ -6,6 +6,17 @@ const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../utils').constants;
 const { hex, zeroPadRight } = require('../utils').helpers;
 
+const getDeployAddressAfter = async txCount => {
+  const signers = await ethers.getSigners();
+  const { defaultSender } = getAccounts(signers);
+  const transactionCount = await defaultSender.getTransactionCount();
+  const nextAddress = getContractAddress({
+    from: defaultSender.address,
+    nonce: transactionCount + txCount,
+  });
+  return nextAddress;
+};
+
 async function setup () {
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const Pool = await ethers.getContractFactory('CoverMockPool');
@@ -55,13 +66,15 @@ async function setup () {
 
   const stakingPool = await StakingPool.deploy();
 
-  const transactionCount = await owner.getTransactionCount();
-  const futureCoverNFTAddress = getContractAddress({
-    from: owner.address,
-    nonce: transactionCount + 1, // add 1 because the Cover contract is deployed before
-  });
-
-  const cover = await Cover.deploy(quotationData.address, ethers.constants.AddressZero, stakingPool.address, futureCoverNFTAddress);
+  const futureCoverNFTAddress = getDeployAddressAfter(1);
+  const coverAddress = getDeployAddressAfter(0);
+  const cover = await Cover.deploy(
+    quotationData.address,
+    ethers.constants.AddressZero,
+    stakingPool.address,
+    futureCoverNFTAddress,
+    coverAddress,
+  );
   await cover.deployed();
 
   const coverNFT = await CoverNFT.deploy('NexusMutual Cover', 'NXMC', cover.address);

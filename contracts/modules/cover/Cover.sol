@@ -79,7 +79,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(IQuotationData _quotationData, IProductsV1 _productsV1, address _stakingPoolImplementation, address _coverNFT, address coverProxy) public {
+  constructor(
+    IQuotationData _quotationData,
+    IProductsV1 _productsV1,
+    address _stakingPoolImplementation,
+    address _coverNFT,
+    address coverProxy
+  ) public {
 
     quotationData = _quotationData;
     productsV1 = _productsV1;
@@ -262,6 +268,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   ) internal returns (uint a, uint b) {
 
     Product memory product = products[params.productId];
+    console.log("right before the call");
+    console.log("%s stakingPool", address(stakingPool));
     (a,b) = stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
         params.productId,
         amount,

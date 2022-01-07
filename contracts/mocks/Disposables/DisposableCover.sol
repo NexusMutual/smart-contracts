@@ -26,8 +26,6 @@ contract DisposableCover is MasterAwareV2 {
 
   uint24 public globalCapacityRatio;
   uint24 public globalRewardsRatio;
-
-  address public stakingPoolImplementation;
   uint64 public stakingPoolCounter;
 
   /*

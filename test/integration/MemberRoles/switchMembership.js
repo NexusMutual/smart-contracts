@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expectRevert } = require('@openzeppelin/test-helpers');
 const { Role } = require('../utils').constants;
 
-describe.only('switchMembership', function () {
+describe('switchMembership', function () {
   it('switches membership from one address to another', async function () {
     const { contracts, accounts } = this.withEthers;
     const { mr: memberRoles, tk: token } = contracts;

@@ -2,31 +2,56 @@
 
 pragma solidity ^0.8.0;
 
-import "../../interfaces/IStakingPool.sol";
-import "hardhat/console.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts-v4/utils/Strings.sol";
 
-contract CoverMockStakingPool is IStakingPool {
+import "../../interfaces/IStakingPool.sol";
+
+contract CoverMockStakingPool is IStakingPool, ERC20 {
+  /* immutables */
+  ERC20 public immutable nxm;
+  address public immutable coverContract;
+  address public immutable memberRoles;
+  uint public poolId;
 
   mapping (uint => uint) public usedCapacity;
-  mapping (uint => uint) public stake;
+  mapping (uint => uint) public stakedAmount;
   mapping (uint => uint) public targetPrices;
 
   mapping (uint => uint) public mockPrices;
 
   address public override manager;
 
-  function initialize(address _manager) external override {
+  constructor (address _nxm, address _coverContract, address _memberRoles)
+  ERC20("Nexus Mutual Staking Pool", "NMSPT") {
+    nxm = ERC20(_nxm);
+    coverContract = _coverContract;
+    memberRoles = _memberRoles;
+  }
+
+  function name() public view override returns (string memory) {
+    return string(abi.encodePacked(super.name(), " ", Strings.toString(poolId)));
+  }
+
+  function initialize(address _manager, uint _poolId) external override {
     manager = _manager;
+    poolId = _poolId;
+  }
+
+  function operatorTransferFrom(address from, address to, uint256 amount) external override {
+    require(msg.sender == memberRoles, "StakingPool: Caller is not MemberRoles");
+    _transfer(from, to, amount);
   }
 
   function allocateCapacity(AllocateCapacityParams calldata params) external override returns (uint, uint) {
-    console.log("start");
     usedCapacity[params.productId] += params.coverAmount;
 
     // uint coveredAmountInNXM, uint premiumInNXM
-    console.log("%d coverAmount", params.coverAmount);
-    console.log("%d price", mockPrices[params.productId] * params.coverAmount / 10000);
     return (uint(params.coverAmount), uint(mockPrices[params.productId]) * uint(params.coverAmount) / 10000);
+  }
+
+  function stake(uint amount) external {
+    _mint(msg.sender, amount);
   }
 
   function freeCapacity(
@@ -41,11 +66,11 @@ contract CoverMockStakingPool is IStakingPool {
   }
 
   function getAvailableCapacity(uint productId, uint capacityFactor) external override view returns (uint) {
-    return stake[productId] * capacityFactor - usedCapacity[productId];
+    return stakedAmount[productId] * capacityFactor - usedCapacity[productId];
   }
 
   function getCapacity(uint productId, uint capacityFactor) external override view returns (uint) {
-    return stake[productId] * capacityFactor;
+    return stakedAmount[productId] * capacityFactor;
   }
 
   function getUsedCapacity(uint productId) external override view returns (uint) {
@@ -55,7 +80,7 @@ contract CoverMockStakingPool is IStakingPool {
     return targetPrices[productId];
   }
   function getStake(uint productId) external override view returns (uint) {
-    return stake[productId];
+    return stakedAmount[productId];
   }
 
   function setUsedCapacity(uint productId, uint amount) external {
@@ -65,7 +90,7 @@ contract CoverMockStakingPool is IStakingPool {
     targetPrices[productId] = amount;
   }
   function setStake(uint productId, uint amount) external {
-    stake[productId] = amount;
+    stakedAmount[productId] = amount;
   }
 
   function setPrice(uint productId, uint price) external {

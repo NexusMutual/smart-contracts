@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expectRevert } = require('@openzeppelin/test-helpers');
 const { Role } = require('../utils').constants;
 
-describe.only('storageCleanup', function () {
+describe('storageCleanup', function () {
   it('cleans up _unused2 mapping', async function () {
     const { contracts } = this.withEthers;
     const { mr: memberRoles } = contracts;

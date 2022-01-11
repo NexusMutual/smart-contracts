@@ -64,10 +64,9 @@ async function setup () {
   await mcr.deployed();
   await mcr.setMCR(parseEther('600000'));
 
-  const stakingPool = await StakingPool.deploy();
-
   const futureCoverNFTAddress = getDeployAddressAfter(1);
   const coverAddress = getDeployAddressAfter(0);
+  const stakingPool = await StakingPool.deploy(nxm.address, coverAddress, memberRoles.address);
   const cover = await Cover.deploy(
     quotationData.address,
     ethers.constants.AddressZero,
@@ -150,6 +149,8 @@ async function setup () {
   this.master = master;
   this.pool = pool;
   this.dai = dai;
+  this.nxm = nxm;
+  this.memberRoles = memberRoles;
   this.chainlinkDAI = chainlinkDAI;
   this.cover = cover;
   this.accounts = accounts;

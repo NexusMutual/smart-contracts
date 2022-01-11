@@ -2,8 +2,9 @@
 
 pragma solidity >=0.5.0;
 
+import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 
-interface IStakingPool {
+interface IStakingPool is IERC20 {
 
   struct AllocateCapacityParams {
     uint productId;
@@ -16,7 +17,9 @@ interface IStakingPool {
     uint initialPrice;
   }
 
-  function initialize(address manager) external;
+  function initialize(address _manager, uint _poolId) external;
+
+  function operatorTransferFrom(address from, address to, uint256 amount) external;
 
   function allocateCapacity(AllocateCapacityParams calldata params) external returns (uint, uint);
 

@@ -10,6 +10,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ITokenData.sol";
 import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IStakingPool.sol";
 import "../../abstract/LegacyMasterAware_sol0_8.sol";
 import "./external/Governed.sol";
 
@@ -271,15 +272,14 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     _switchMembership(msg.sender, newAddress);
     tk.transferFrom(msg.sender, newAddress, tk.balanceOf(msg.sender));
 
-
     // Transfer the cover NFTs to the new address, if any were given
     cover.transferCovers(msg.sender, newAddress, coverIds);
 
     // Transfer the staking LP tokens to the new address, if any were given
     for (uint256 i = 0; i < stakingPools.length; i++) {
-      IERC20 stakingLPToken = IERC20(stakingPools[i]);
-      uint amount = stakingLPToken.balanceOf(msg.sender);
-      stakingLPToken.transfer(newAddress, amount);
+      IStakingPool stakingLPToken = IStakingPool(stakingPools[i]);
+      uint fullAmount = stakingLPToken.balanceOf(msg.sender);
+      stakingLPToken.operatorTransferFrom(msg.sender, newAddress, fullAmount);
     }
   }
 

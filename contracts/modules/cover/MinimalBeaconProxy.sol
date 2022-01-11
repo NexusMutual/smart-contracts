@@ -34,8 +34,6 @@ contract MinimalBeaconProxy is Proxy {
    * @dev Returns the current implementation address of the associated beacon.
    */
   function _implementation() internal view virtual override returns (address) {
-    console.log('implementation called');
-    console.log('%s beacon', beacon);
     return IStakingPoolBeacon(beacon).stakingPoolImplementation();
   }
 }

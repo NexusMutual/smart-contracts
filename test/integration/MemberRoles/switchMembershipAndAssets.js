@@ -1,10 +1,11 @@
 const { ethers } = require('hardhat');
 const { expectRevert } = require('@openzeppelin/test-helpers');
+const { expect, assert } = require('chai');
 const { Role } = require('../utils').constants;
 const { parseEther } = ethers.utils;
 const { daysToSeconds } = require('../../utils/helpers');
 
-describe.only('switchMembershipAndAssets', function () {
+describe('switchMembershipAndAssets', function () {
   it('switches membership from one address to another', async function () {
     const { contracts, accounts } = this.withEthers;
     const { mr: memberRoles, tk: token } = contracts;
@@ -61,15 +62,15 @@ describe.only('switchMembershipAndAssets', function () {
     await expectRevert.unspecified(memberRoles.connect(member1).switchMembershipAndAssets(member2.address, [], []));
   });
 
-  it.only('transfers the provided covers to the new address', async function () {
+  it('transfers the provided covers to the new address', async function () {
     const { contracts, accounts } = this.withEthers;
-    const { mr: memberRoles, tk: token, cover } = contracts;
+    const { mr: memberRoles, tk: token, cover, coverNFT } = contracts;
     const {
       members: [member1],
       nonMembers: [nonMember1],
     } = accounts;
 
-    {
+    for (let i = 0; i < 3; i++) {
       await cover.buyCover(
         [
           member1.address,
@@ -84,14 +85,68 @@ describe.only('switchMembershipAndAssets', function () {
           ethers.constants.AddressZero,
         ],
         [[0, parseEther('100')]],
+        { value: parseEther('1') },
       );
-      const newMemberAddress = nonMember1.address;
-      await token.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
-      await memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [], []);
-      const oldAddressHasRole = await memberRoles.checkRole(member1.address, Role.Member);
-      assert(!oldAddressHasRole);
-      const newAddressHasRole = await memberRoles.checkRole(newMemberAddress, Role.Member);
-      assert(newAddressHasRole);
+    }
+
+    await token.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
+    {
+      const ownershipArr = await Promise.all([0, 1, 2].map(x => coverNFT.ownerOf(x)));
+      assert(ownershipArr.every(x => x === member1.address));
+    }
+
+    const newMemberAddress = nonMember1.address;
+    await memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [0, 2], []);
+    {
+      const ownershipArr = await Promise.all([0, 1, 2].map(x => coverNFT.ownerOf(x)));
+      assert(ownershipArr[1] === member1.address);
+      assert(ownershipArr[0] === newMemberAddress);
+      assert(ownershipArr[2] === newMemberAddress);
+    }
+  });
+
+  it('transfers all staking LP shares of the provided staking pools', async function () {
+    const { contracts, accounts } = this.withEthers;
+    const { mr: memberRoles, tk: token, stakingPool0, stakingPool1, stakingPool2 } = contracts;
+    const {
+      members: [member1],
+      nonMembers: [nonMember1],
+    } = accounts;
+
+    await stakingPool0.connect(member1).stake(parseEther('1000'));
+    await stakingPool1.connect(member1).stake(parseEther('10'));
+    await stakingPool2.connect(member1).stake(parseEther('100'));
+    await token.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
+
+    const newMemberAddress = nonMember1.address;
+    await memberRoles
+      .connect(member1)
+      .switchMembershipAndAssets(newMemberAddress, [], [stakingPool0.address, stakingPool2.address]);
+
+    {
+      const balance = await stakingPool0.balanceOf(member1.address);
+      expect(balance).to.be.equal(0);
+    }
+    {
+      const balance = await stakingPool1.balanceOf(member1.address);
+      expect(balance).to.be.equal(parseEther('10'));
+    }
+    {
+      const balance = await stakingPool2.balanceOf(member1.address);
+      expect(balance).to.be.equal(0);
+    }
+
+    {
+      const balance = await stakingPool0.balanceOf(newMemberAddress);
+      expect(balance).to.be.equal(parseEther('1000'));
+    }
+    {
+      const balance = await stakingPool1.balanceOf(newMemberAddress);
+      expect(balance).to.be.equal(0);
+    }
+    {
+      const balance = await stakingPool2.balanceOf(newMemberAddress);
+      expect(balance).to.be.equal(parseEther('100'));
     }
   });
 });

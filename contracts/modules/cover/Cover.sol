@@ -18,7 +18,6 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
 
 import "./MinimalBeaconProxy.sol";
-import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   using SafeERC20 for IERC20;
@@ -228,10 +227,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       uint requestedCoverAmountInNXM = allocationRequests[i].coverAmountInAsset * 1e18 / nxmPriceInPayoutAsset;
       requestedCoverAmountInNXM += remainderAmountInNXM;
 
-      {
-        address stakingPoolAddress = address(stakingPool(allocationRequests[i].poolId));
-        console.log("stakingPoolAddress %s", stakingPoolAddress);
-      }
       (uint coveredAmountInNXM, uint premiumInNXM) = allocateCapacity(
         params,
         stakingPool(allocationRequests[i].poolId),
@@ -267,19 +262,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   ) internal returns (uint a, uint b) {
 
     Product memory product = products[params.productId];
-    console.log("right before the call");
-    console.log("%s stakingPool", address(stakingPool));
-    (a,b) = stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
-        params.productId,
-        amount,
-        REWARD_DENOMINATOR,
-        params.period,
-        globalCapacityRatio,
-        globalRewardsRatio,
-        product.capacityReductionRatio,
-        product.initialPriceRatio
-      ));
-      return (a,b);
+    console.log("%s", address(stakingPool));
+    return stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
+      params.productId,
+      amount,
+      REWARD_DENOMINATOR,
+      params.period,
+      globalCapacityRatio,
+      globalRewardsRatio,
+      product.capacityReductionRatio,
+      product.initialPriceRatio
+    ));
   }
 
   function editCover(
@@ -447,12 +440,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function createStakingPool(address manager) public override {
 
     address addr = address(new MinimalBeaconProxy{ salt: bytes32(uint(stakingPoolCounter)) }(address(this)));
-    IStakingPool(addr).initialize(manager);
+    IStakingPool(addr).initialize(manager, stakingPoolCounter);
+    console.log("%s", addr);
 
     stakingPoolCounter++;
 
     emit StakingPoolCreated(addr, manager, stakingPoolImplementation);
-    console.log("%s created stakingPool", addr);
   }
 
   function stakingPool(uint index) public view returns (IStakingPool) {

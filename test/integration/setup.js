@@ -19,26 +19,13 @@ const web3ToEthers = (x, signers) => {
   const { daiToEthRate, ethToDaiRate } = rates;
 
   const accounts = getAccounts(signers);
-  const ret = {
+  return {
     contracts: Object.keys(contracts)
       .map(x => ({ val: new ethers.Contract(contracts[x].address, contracts[x].abi, accounts.defaultSender), key: x }))
       .reduce((acc, x) => ({ ...acc, [x.key]: x.val }), {}),
     rates: { daiToEthRate: parseEther(daiToEthRate.toString()), ethToDaiRate },
     accounts: accounts,
   };
-  // console.log({ ret, provider: ethers.provider });
-  return ret;
-};
-
-const getDeployAddressAfter = async txCount => {
-  const signers = await ethers.getSigners();
-  const { defaultSender } = getAccounts(signers);
-  const transactionCount = await defaultSender.getTransactionCount();
-  const nextAddress = getContractAddress({
-    from: defaultSender.address,
-    nonce: transactionCount + txCount,
-  });
-  return nextAddress;
 };
 
 async function setup () {
@@ -166,7 +153,7 @@ async function setup () {
   const productsV1 = await ProductsV1.new();
 
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
-  const td = await TokenData.new(owner);
+  const td = await TokenData.new();
   const qd = await QuotationData.new(QE, owner);
   const qt = await Quotation.new(productsV1.address, qd.address);
 
@@ -177,8 +164,7 @@ async function setup () {
 
   const cover = await deployProxy(DisposableCover, []);
   const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NXC', cover.address);
-  const stakingPool = await CoverMockStakingPool.new(tk.address, cover.address);
-  console.log({ stakingPool: stakingPool.address });
+  const stakingPool = await CoverMockStakingPool.new(tk.address, cover.address, mr.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'QT', 'TF', 'CR'];
@@ -301,7 +287,7 @@ async function setup () {
 
   await cover.addProduct({
     productType: 2, // Yield Token Cover
-    productAddress: '0x0000000000000000000000000000000000000001',
+    productAddress: '0x0000000000000000000000000000000000000002',
     coverAssets: 0b10, // DAI
     initialPriceRatio: 100,
     capacityReductionRatio: 0,
@@ -417,6 +403,7 @@ async function setup () {
     cl: await Claims.at(cl.address),
     as: await Assessment.at(as.address),
     cover: await Cover.at(cover.address),
+    coverNFT: await CoverNFT.at(coverNFT.address),
   };
 
   const nonInternal = { priceFeedOracle, swapOperator };
@@ -441,15 +428,19 @@ async function setup () {
   const signers = await ethers.getSigners();
   this.withEthers = web3ToEthers(this, signers);
 
-  const tx = await this.withEthers.contracts.cover.createStakingPool(stakingPoolManagers[0]);
+  for (let i = 0; i < 3; i++) {
+    const tx = await this.withEthers.contracts.cover.createStakingPool(stakingPoolManagers[i]);
+    const receipt = await tx.wait();
+    const { stakingPoolAddress } = receipt.events[0].args;
+    const stakingPoolInstance = await CoverMockStakingPool.at(stakingPoolAddress);
+    await stakingPoolInstance.setPrice(0, 100);
+    await stakingPoolInstance.setPrice(1, 100);
+    await stakingPoolInstance.setPrice(2, 100);
+    await stakingPoolInstance.setPrice(3, 100);
+    this.contracts['stakingPool' + i] = stakingPoolInstance;
+  }
 
-  const receipt = await tx.wait();
-  const { stakingPoolAddress } = receipt.events[0].args;
-  const stakingPoolInstance = await CoverMockStakingPool.at(stakingPoolAddress);
-  await stakingPoolInstance.setPrice(0, 100);
-  await stakingPoolInstance.setPrice(1, 100);
-  await stakingPoolInstance.setPrice(2, 100);
-  await stakingPoolInstance.setPrice(3, 100);
+  this.withEthers = web3ToEthers(this, signers);
 }
 
 module.exports = setup;

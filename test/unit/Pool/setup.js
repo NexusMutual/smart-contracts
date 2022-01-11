@@ -33,7 +33,7 @@ async function setup () {
 
   const swapOperator = accounts.generalPurpose[10];
 
-  const tokenData = await TokenData.new(accounts.notariseAddress);
+  const tokenData = await TokenData.new();
   const pool = await Pool.new(
     [dai.address], // assets
     [18], // decimals

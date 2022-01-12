@@ -17,8 +17,8 @@ describe('createStakingPool', function () {
 
     const productId = 0;
 
-    const initialPrice = parseEther('2.6');
-    const targetPrice = parseEther('2.6');
+    const initialPrice = '260';
+    const targetPrice = '260';
     const activeCover = parseEther('8000');
     const capacity = parseEther('10000');
 

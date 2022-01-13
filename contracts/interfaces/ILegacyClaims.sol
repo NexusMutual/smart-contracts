@@ -8,10 +8,6 @@ interface ILegacyClaims {
 
   function getCATokens(uint claimId, uint member) external view returns (uint tokens);
 
-  function submitClaim(uint coverId) external;
-
-  function submitClaimForMember(uint coverId, address member) external;
-
   function submitClaimAfterEPOff() external pure;
 
   function submitCAVote(uint claimId, int8 verdict) external;

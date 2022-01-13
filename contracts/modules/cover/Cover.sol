@@ -145,7 +145,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     coverData.push(
       CoverData(
-        productsV1.getNewProductId(legacyProductId), // productId
+        uint24(productsV1.getNewProductId(legacyProductId)), // productId
         currencyCode == "ETH" ? 0 : 1, //payoutAsset
         0 // amountPaidOut
       )
@@ -489,10 +489,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     globalRewardsRatio = _globalRewardsRatio;
   }
 
-  function setInitialPrice(uint productId, uint16 initialPriceRatio) external override onlyAdvisoryBoard {
-
-    require(initialPriceRatio >= GLOBAL_MIN_PRICE_RATIO, "Cover: Initial price must be greater than the global min price");
-    products[productId].initialPriceRatio = initialPriceRatio;
+  function setInitialPrices(
+    uint[] calldata productIds,
+    uint16[] calldata initialPriceRatios
+  ) external override onlyAdvisoryBoard {
+    require(productIds.length == initialPriceRatios.length, "Cover: Array lengths must not be different");
+    for (uint i = 0; i < productIds.length; i++) {
+      require(initialPriceRatios[i] >= GLOBAL_MIN_PRICE_RATIO, "Cover: Initial price must be greater than the global min price");
+      products[productIds[i]].initialPriceRatio = initialPriceRatios[i];
+    }
   }
 
   function setCapacityReductionRatio(uint productId, uint16 reduction) external onlyAdvisoryBoard {
@@ -500,12 +505,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     products[productId].capacityReductionRatio = reduction;
   }
 
-  function addProduct(Product calldata product) external override onlyAdvisoryBoard {
-    products.push(product);
+  function addProducts(Product[] calldata newProducts) external override onlyAdvisoryBoard {
+    for (uint i = 0; i < newProducts.length; i++) {
+      products.push(newProducts[i]);
+    }
   }
 
-  function addProductType(ProductType calldata productType) external override onlyAdvisoryBoard {
-    productTypes.push(productType);
+  function addProductTypes(ProductType[] calldata newProductTypes) external override onlyAdvisoryBoard {
+    for (uint i = 0; i < newProductTypes.length; i++) {
+      productTypes.push(newProductTypes[i]);
+    }
   }
 
   function setCoverAssetsFallback(uint32 _coverAssetsFallback) external override onlyGovernance {

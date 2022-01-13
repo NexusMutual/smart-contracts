@@ -240,62 +240,58 @@ async function setup () {
     INCIDENT: 1,
   };
 
-  // Protocol Cover
-  await cover.addProductType({
-    descriptionIpfsHash: 'protocolCoverIPFSHash',
-    redeemMethod: REDEEM_METHOS.CLAIM,
-    gracePeriodInDays: 30,
-  });
+  await cover.addProductTypes([
+    // Protocol Cover
+    {
+      descriptionIpfsHash: 'protocolCoverIPFSHash',
+      redeemMethod: REDEEM_METHOS.CLAIM,
+      gracePeriodInDays: 30,
+    },
+    // Custody Cover
+    {
+      descriptionIpfsHash: 'custodyCoverIPFSHash',
+      redeemMethod: REDEEM_METHOS.CLAIM,
+      gracePeriodInDays: 90,
+    },
+    // Yield Token Cover
+    {
+      descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
+      redeemMethod: REDEEM_METHOS.INCIDENT,
+      gracePeriodInDays: 14,
+    },
+  ]);
 
-  // Custody Cover
-  await cover.addProductType({
-    descriptionIpfsHash: 'custodyCoverIPFSHash',
-    redeemMethod: REDEEM_METHOS.CLAIM,
-    gracePeriodInDays: 90,
-  });
+  await cover.addProducts([
+    {
+      productType: 0, // Protocol Cover
+      productAddress: '0x0000000000000000000000000000000000000000',
+      coverAssets: 0, // Use fallback
+      initialPriceRatio: 100,
+      capacityReductionRatio: 0,
+    },
+    {
+      productType: 1, // Custody Cover
+      productAddress: '0x0000000000000000000000000000000000000000',
+      coverAssets: 0, // Use fallback
+      initialPriceRatio: 100,
+      capacityReductionRatio: 0,
+    },
+    {
+      productType: 2, // Yield Token Cover
+      productAddress: '0x0000000000000000000000000000000000000001',
+      coverAssets: 0b01, // ETH
+      initialPriceRatio: 100,
+      capacityReductionRatio: 0,
+    },
+    {
+      productType: 2, // Yield Token Cover
+      productAddress: '0x0000000000000000000000000000000000000002',
+      coverAssets: 0b10, // DAI
+      initialPriceRatio: 100,
+      capacityReductionRatio: 0,
+    },
+  ]);
 
-  // Yield Token Cover
-  await cover.addProductType({
-    descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
-    redeemMethod: REDEEM_METHOS.INCIDENT,
-    gracePeriodInDays: 14,
-  });
-
-  await cover.addProduct({
-    productType: 0, // Protocol Cover
-    productAddress: '0x0000000000000000000000000000000000000000',
-    coverAssets: 0, // Use fallback
-    initialPriceRatio: 100,
-    capacityReductionRatio: 0,
-  });
-
-  await cover.addProduct({
-    productType: 1, // Custody Cover
-    productAddress: '0x0000000000000000000000000000000000000000',
-    coverAssets: 0, // Use fallback
-    initialPriceRatio: 100,
-    capacityReductionRatio: 0,
-  });
-
-  await cover.addProduct({
-    productType: 2, // Yield Token Cover
-    productAddress: '0x0000000000000000000000000000000000000001',
-    coverAssets: 0b01, // ETH
-    initialPriceRatio: 100,
-    capacityReductionRatio: 0,
-  });
-
-  await cover.addProduct({
-    productType: 2, // Yield Token Cover
-    productAddress: '0x0000000000000000000000000000000000000002',
-    coverAssets: 0b10, // DAI
-    initialPriceRatio: 100,
-    capacityReductionRatio: 0,
-  });
-
-  await cover.setInitialPrice(0, 1);
-  await cover.setInitialPrice(1, 1);
-  await cover.setInitialPrice(2, 1);
   await cover.setCoverAssetsFallback(0b11); // eth and dai
 
   await lcd.changeMasterAddress(master.address);

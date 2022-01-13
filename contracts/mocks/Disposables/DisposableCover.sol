@@ -35,16 +35,26 @@ contract DisposableCover is MasterAwareV2 {
   */
   uint32 public coverAssetsFallback;
 
-  function addProductType(ICover.ProductType calldata productType) public {
-    productTypes.push(productType);
+  function addProducts(ICover.Product[] calldata newProducts) public {
+    for (uint i = 0; i < newProducts.length; i++) {
+      products.push(newProducts[i]);
+    }
   }
 
-  function addProduct(ICover.Product calldata product) public {
-    products.push(product);
+  function addProductTypes(ICover.ProductType[] calldata newProductTypes) public {
+    for (uint i = 0; i < newProductTypes.length; i++) {
+      productTypes.push(newProductTypes[i]);
+    }
   }
 
-  function setInitialPrice(uint productId, uint16 initialPriceRatio) external {
-    products[productId].initialPriceRatio = initialPriceRatio;
+  function setInitialPrices(
+    uint[] calldata productIds,
+    uint16[] calldata initialPriceRatios
+  ) public {
+    require(productIds.length == initialPriceRatios.length, "Cover: Array lengths must not be different");
+    for (uint i = 0; i < productIds.length; i++) {
+      products[productIds[i]].initialPriceRatio = initialPriceRatios[i];
+    }
   }
 
   function setCoverAssetsFallback(uint32 _coverAssetsFallback) external {

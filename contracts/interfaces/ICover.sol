@@ -117,11 +117,14 @@ interface ICover {
 
   function createStakingPool(address manager) external;
 
-  function setInitialPrice(uint productId, uint16 initialPriceRatio) external;
+  function setInitialPrices(
+    uint[] calldata productId,
+    uint16[] calldata initialPriceRatio
+  ) external;
 
-  function addProduct(Product calldata product) external;
+  function addProducts(Product[] calldata newProducts) external;
 
-  function addProductType(ProductType calldata productType) external;
+  function addProductTypes(ProductType[] calldata newProductTypes) external;
 
   function setCoverAssetsFallback(uint32 _coverAssetsFallback) external;
 

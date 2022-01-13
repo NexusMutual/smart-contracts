@@ -3,6 +3,7 @@ const {
   ether,
   constants: { ZERO_ADDRESS },
 } = require('@openzeppelin/test-helpers');
+const fs = require('fs');
 
 const Verifier = require('../lib/verifier');
 const { getEnv, hex } = require('../lib/helpers');
@@ -203,6 +204,51 @@ async function main () {
     });
     verifier.add(implementation);
   }
+
+  const REDEEM_METHOS = {
+    CLAIM: 0,
+    INCIDENT: 1,
+  };
+
+  await cover.addProductTypes([
+    // Protocol Cover
+    {
+      descriptionIpfsHash: 'protocolCoverIPFSHash',
+      redeemMethod: REDEEM_METHOS.CLAIM,
+      gracePeriodInDays: 30,
+    },
+    // Custody Cover
+    {
+      descriptionIpfsHash: 'custodyCoverIPFSHash',
+      redeemMethod: REDEEM_METHOS.CLAIM,
+      gracePeriodInDays: 90,
+    },
+    // Yield Token Cover
+    {
+      descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
+      redeemMethod: REDEEM_METHOS.INCIDENT,
+      gracePeriodInDays: 14,
+    },
+  ]);
+
+  const products = JSON.parse(fs.readFileSync('./scripts/migratable.json'));
+  const addProductsParams = products.map(x => {
+    const underlyingToken = ['ETH', 'DAI'].indexOf(x.underlyingToken);
+    return {
+      productType: { protocol: 0, custodian: 1, token: 2 }[x.type],
+      productAddress: x.coveredToken || '0x0000000000000000000000000000000000000000',
+      coverAssets:
+        x.legacyProductId === '0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B'
+          ? 0b01 // only ETH for MakerDAO
+          : underlyingToken === -1
+            ? 0 // when no underlyingToken is present use the global fallback
+            : 1 << underlyingToken, // 0b01 for ETH and 0b10 for DAI
+      initialPriceRatio: 100,
+      capacityReductionRatio: 0,
+    };
+  });
+
+  await cover.addProducts(addProductsParams);
 
   // non-proxy contracts and libraries
   console.log('Deploying TwapOracle, SwapOperator, PriceFeedOracle');

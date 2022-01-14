@@ -18,6 +18,8 @@ contract StakingVe is ERC721 {
   uint16 firstGroupId;
   uint16 lastGroupId;
 
+  uint totalSupply;
+
   // stakers are grouped based on the timelock expiration
   // group index is calculated from the expiration
   // the initial proposal is to have 4 groups per year (1 group per quarter)
@@ -48,20 +50,20 @@ contract StakingVe is ERC721 {
 
     // update buckets
     for (uint i = fromGroup; i <= toGroup; i++) {
-      stakeGroups[i].stake += amount;
+      stakeGroups[i] += amount;
     }
 
     _mint(msg.sender, totalSupply++);
   }
 
   // O(16) ie. O(1)
-  function burn(uint amount) {
+  function burn(uint amount) public {
 
     uint first = firstGroupId;
     uint last = lastGroupId;
 
     for (uint i = first + 1; i <= last; i++) {
-      stakeGroups[i].stake -= amount;
+      stakeGroups[i] -= amount;
     }
   }
 

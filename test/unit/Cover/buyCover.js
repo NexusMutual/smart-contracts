@@ -100,6 +100,11 @@ describe('buyCover', function () {
       cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
     );
 
+    // create a 2nd pool
+    await createStakingPool(
+      cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
+    );
+
     const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
 
     const tx = await cover.connect(member1).buyCover(
@@ -115,7 +120,10 @@ describe('buyCover', function () {
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
       },
-      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      [
+        { poolId: '0', coverAmountInAsset: amount.div(2).toString() },
+        { poolId: '1', coverAmountInAsset: amount.div(2).toString() },
+      ],
       {
         value: expectedPremium,
       },

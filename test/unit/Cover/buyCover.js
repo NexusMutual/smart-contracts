@@ -37,7 +37,7 @@ describe('buyCover', function () {
     await cover.connect(gv1).setGlobalCapacityRatio(capacityFactor);
 
     const stakingPool = await createStakingPool(
-      cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager,
+      cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
     );
 
     const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
@@ -96,18 +96,9 @@ describe('buyCover', function () {
 
     await cover.connect(gv1).setGlobalCapacityRatio(capacityFactor);
 
-    const createStakingPoolTx = await cover.connect(stakingPoolManager).createStakingPool(stakingPoolManager.address);
-    const createStakingPoolReceipt = await createStakingPoolTx.wait();
-
-    const { stakingPoolAddress } = createStakingPoolReceipt.events[0].args;
-
-    const stakingPool = await CoverMockStakingPool.at(stakingPoolAddress);
-
-    await stakingPool.setStake(productId, capacity);
-    await stakingPool.setTargetPrice(productId, targetPriceRatio);
-    await stakingPool.setUsedCapacity(productId, activeCover);
-
-    await stakingPool.setPrice(productId, targetPriceRatio); // 2.6%
+    await createStakingPool(
+      cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
+    );
 
     const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
 

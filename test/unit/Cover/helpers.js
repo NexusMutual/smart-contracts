@@ -34,7 +34,7 @@ function calculatePrice (
 }
 
 async function createStakingPool (
-  cover, productId, capacity, targetPrice, activeCover, stakingPoolCreator, stakingPoolManager,
+  cover, productId, capacity, targetPrice, activeCover, stakingPoolCreator, stakingPoolManager, currentPrice,
 ) {
 
   const tx = await cover.connect(stakingPoolCreator).createStakingPool(stakingPoolManager.address);
@@ -48,6 +48,8 @@ async function createStakingPool (
   await stakingPool.setStake(productId, capacity);
   await stakingPool.setTargetPrice(productId, targetPrice);
   await stakingPool.setUsedCapacity(productId, activeCover);
+
+  await stakingPool.setPrice(productId, currentPrice); // 2.6%
 
   return stakingPool;
 }

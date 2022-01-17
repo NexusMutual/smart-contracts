@@ -19,6 +19,8 @@ import "../../interfaces/IStakingPoolBeacon.sol";
 
 import "./MinimalBeaconProxy.sol";
 
+import "hardhat/console.sol";
+
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   using SafeERC20 for IERC20;
 
@@ -59,7 +61,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     Each Cover has an array of segments. A new segment is created everytime a cover is edited to
     deliniate the different cover periods.
   */
-  mapping(uint => CoverSegment[]) coverSegments;
+  mapping(uint => CoverSegment[]) public coverSegments;
 
   uint24 public globalCapacityRatio;
   uint24 public globalRewardsRatio;
@@ -235,6 +237,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         PoolAllocation(allocationRequests[i].poolId, SafeUintCast.toUint96(coveredAmountInNXM), SafeUintCast.toUint96(premiumInNXM))
       );
     }
+
+    console.log("totalPremiumInNXM", totalPremiumInNXM);
+    console.log("totalCoverAmountInNXM", totalCoverAmountInNXM);
+    console.log("ratio", SafeUintCast.toUint16(totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM));
 
     coverSegments[coverId].push(CoverSegment(
         SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18),

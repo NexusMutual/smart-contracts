@@ -2,23 +2,30 @@ const fs = require('fs');
 const path = require('path');
 const getVersionDataTemplate = require('./version-data-template');
 
-const network = process.argv[2];
+const network = 'kovan';
 const rootPath = path.normalize(`${__dirname}/..`);
 const deployPath = `${rootPath}/deploy`;
-const baseModulesPath = `${rootPath}/artifacts/contracts/modules`;
+const contractsBasePath = `${rootPath}/artifacts/contracts`;
 
 const deployData = JSON.parse(fs.readFileSync(`${deployPath}/${network}-deploy-data.json`, 'utf8'));
 
 const nonProxies = Object.keys(deployData)
   .filter(
     // Temporary fix until DisposableMCR is replaced by the actual MCR
-    x => !/^Disposable|^Testnet|^ERC20MintableDetailed|^OwnedUpgradeabilityProxy/.test(x) || /^DisposableMCR/.test(x),
+    x =>
+      !/^Disposable|^Testnet|^ERC20MintableDetailed|^OwnedUpgradeabilityProxy/.test(x) ||
+      /^DisposableMCR/.test(x) ||
+      /^TestnetQuotationData/.test(x),
   )
   .reduce((acc, name) => {
     const { address } = deployData[name][0];
     if (name === 'DisposableMCR') {
       // Temporary fix until DisposableMCR is replaced by the actual MCR
       acc.MCR = address;
+      return acc;
+    }
+    if (name === 'TestnetQuotationData') {
+      acc.QuotationData = address;
       return acc;
     }
     acc[name] = address;
@@ -43,37 +50,42 @@ const addresses = {
   ...tokens,
   ...proxies,
 };
+console.log({ addresses });
 
 fs.writeFileSync(`${deployPath}/${network}-addresses.json`, JSON.stringify(addresses, null, 2));
 
 const artifactPathOfContractCode = {
-  CD: 'claims/ClaimsData.sol/ClaimsData.json',
-  CL: 'claims/Claims.sol/Claims.json',
-  CR: 'claims/ClaimsReward.sol/ClaimsReward.json',
-  GV: 'governance/Governance.sol/Governance.json',
-  MC: 'capital/MCR.sol/MCR.json',
-  MR: 'governance/MemberRoles.sol/MemberRoles.json',
-  NXMASTER: 'governance/NXMaster.sol/NXMaster.json',
-  NXMTOKEN: 'token/NXMToken.sol/NXMToken.json',
-  P1: 'capital/Pool.sol/Pool.json',
-  PC: 'governance/ProposalCategory.sol/ProposalCategory.json',
-  PD: 'capital/LegacyPoolData.sol/LegacyPoolData.json',
-  QD: 'cover/QuotationData.sol/QuotationData.json',
-  QT: 'cover/Quotation.sol/Quotation.json',
-  TC: 'token/TokenController.sol/TokenController.json',
-  TD: 'token/TokenData.sol/TokenData.json',
-  TF: 'token/TokenFunctions.sol/TokenFunctions.json',
-  PS: 'staking/PooledStaking.sol/PooledStaking.json',
-  CP: 'claims/ClaimProofs.sol/ClaimProofs.json',
-  GW: 'cover/Gateway.sol/Gateway.json',
-  IC: 'claims/Incidents.sol/Incidents.json',
-  SO: 'capital/SwapOperator.sol/SwapOperator.json',
+  LCD: 'modules/claims/LegacyClaimsData.sol/LegacyClaimsData.json',
+  LCL: 'modules/claims/LegacyClaims.sol/LegacyClaims.json',
+  LCR: 'modules/claims/LegacyClaimsReward.sol/LegacyClaimsReward.json',
+  LCP: 'modules/claims/LegacyClaimProofs.sol/LegacyClaimProofs.json',
+  GV: 'modules/governance/Governance.sol/Governance.json',
+  MC: 'modules/capital/MCR.sol/MCR.json',
+  MR: 'modules/governance/MemberRoles.sol/MemberRoles.json',
+  NXMASTER: 'modules/governance/NXMaster.sol/NXMaster.json',
+  NXMTOKEN: 'modules/token/NXMToken.sol/NXMToken.json',
+  P1: 'modules/capital/Pool.sol/Pool.json',
+  PC: 'modules/governance/ProposalCategory.sol/ProposalCategory.json',
+  PD: 'modules/capital/LegacyPoolData.sol/LegacyPoolData.json',
+  QD: 'mocks/Testnet/TestnetQuotationData.sol/TestnetQuotationData.json',
+  QT: 'modules/cover/Quotation.sol/Quotation.json',
+  TC: 'modules/token/TokenController.sol/TokenController.json',
+  TD: 'modules/token/TokenData.sol/TokenData.json',
+  PS: 'modules/staking/PooledStaking.sol/PooledStaking.json',
+  GW: 'modules/cover/Gateway.sol/Gateway.json',
+  SO: 'modules/capital/SwapOperator.sol/SwapOperator.json',
+  CO: 'modules/cover/Cover.sol/Cover.json',
+  CL: 'modules/v2/Claims.sol/Claims.json',
+  IC: 'modules/v2/Incidents.sol/Incidents.json',
+  AS: 'modules/v2/Assessment.sol/Assessment.json',
+  SP: 'modules/v2/StakingPool.sol/StakingPool.json',
 };
 
 const contractNameByCode = {
-  CD: 'ClaimsData',
-  CL: 'Claims',
-  CR: 'ClaimsReward',
+  LCD: 'LegacyClaimsData',
+  LCL: 'LegacyClaims',
+  LCR: 'LegacyClaimsReward',
+  LCP: 'LegacyClaimProofs',
   GV: 'Governance',
   MC: 'MCR',
   MR: 'MemberRoles',
@@ -86,16 +98,18 @@ const contractNameByCode = {
   QT: 'Quotation',
   TC: 'TokenController',
   TD: 'TokenData',
-  TF: 'TokenFunctions',
   PS: 'PooledStaking',
-  CP: 'ClaimProofs',
   GW: 'Gateway',
-  IC: 'Incidents',
   SO: 'SwapOperator',
+  CO: 'Cover',
+  CL: 'Claims',
+  IC: 'Incidents',
+  AS: 'Assessment',
+  SP: 'CoverMockStakingPool',
 };
 
 const getContractAbi = code => {
-  const artifact = JSON.parse(fs.readFileSync(`${baseModulesPath}/${artifactPathOfContractCode[code]}`, 'utf8'));
+  const artifact = JSON.parse(fs.readFileSync(`${contractsBasePath}/${artifactPathOfContractCode[code]}`, 'utf8'));
   return JSON.stringify(artifact.abi);
 };
 
@@ -104,7 +118,15 @@ const versionData = [];
 
 for (const contract of versionDataTemplate) {
   if (!contract.contractAbi) {
+    console.log({ code: contract.code });
     const contractAbi = getContractAbi(contract.code);
+    if (!fs.existsSync(deployPath + '/' + network)) {
+      fs.mkdirSync(deployPath + '/' + network);
+    }
+    fs.writeFileSync(
+      `${deployPath}/${network}/${contractNameByCode[contract.code]}.json`,
+      JSON.stringify(contractAbi, null, 2),
+    );
     const address = addresses[contractNameByCode[contract.code]].toLowerCase();
     versionData.push({ ...contract, address, contractAbi });
   }
@@ -114,7 +136,4 @@ if (!fs.existsSync(deployPath)) {
   fs.mkdirSync(deployPath);
 }
 
-fs.writeFileSync(
-  `${deployPath}/${network}-data.json`,
-  JSON.stringify({ [network]: { abis: versionData } }, null, 2),
-);
+fs.writeFileSync(`${deployPath}/${network}-data.json`, JSON.stringify({ [network]: { abis: versionData } }, null, 2));

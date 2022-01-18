@@ -21,13 +21,14 @@ const NXMToken = artifacts.require('NXMToken');
 const LegacyClaims = artifacts.require('LegacyClaims');
 const LegacyClaimsData = artifacts.require('LegacyClaimsData');
 const LegacyClaimsReward = artifacts.require('LegacyClaimsReward');
+const LegacyClaimProofs = artifacts.require('LegacyClaimProofs');
 const Claims = artifacts.require('Claims');
 const Incidents = artifacts.require('Incidents');
 const Assessment = artifacts.require('Assessment');
 const TokenData = artifacts.require('TokenData');
 const Pool = artifacts.require('Pool');
 const Quotation = artifacts.require('Quotation');
-const QuotationData = artifacts.require('QuotationData');
+const QuotationData = artifacts.require('TestnetQuotationData');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const SwapOperator = artifacts.require('SwapOperator');
 const TwapOracle = artifacts.require('TwapOracle');
@@ -168,7 +169,8 @@ async function main () {
 
   console.log('Deploying disposable contracts');
   const { instance: cover, implementation: coverImpl } = await deployProxy(DisposableCover, []);
-  const stakingPool = await CoverMockStakingPool.new(tk.address, cover.address, mr.address);
+  const stakingPoolParameters = [tk.address, cover.address, mr.address];
+  const stakingPool = await CoverMockStakingPool.new(...stakingPoolParameters);
   const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
   const { instance: tc, implementation: tcImpl } = await deployProxy(DisposableTokenController, [qd.address]);
   const { instance: ps, implementation: psImpl } = await deployProxy(DisposablePooledStaking);
@@ -278,10 +280,12 @@ async function main () {
   const lcl = await LegacyClaims.new();
   const lcd = await LegacyClaimsData.new();
   const lcr = await LegacyClaimsReward.new(master.address, dai.address, lcd.address, true);
+  const lcp = await LegacyClaimProofs.new();
 
   verifier.add(lcl);
   verifier.add(lcd);
   verifier.add(lcr, { constructorArgs: [master.address, dai.address] });
+  verifier.add(lcp);
 
   console.log('Deploying capital contracts');
   const mc = await DisposableMCR.new(ZERO_ADDRESS);
@@ -324,7 +328,7 @@ async function main () {
 
   verifier.add(mc, { constructorArgs: [ZERO_ADDRESS] });
   verifier.add(p1, { constructorArgs: poolParameters });
-  verifier.add(incidents, { constructorArgs: [] });
+  verifier.add(stakingPool, { constructorArgs: stakingPoolParameters });
 
   const codes = ['TD', 'QT', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'AS'];
   const addresses = [td, qt, tc, p1, mc, { address: owner }, pc, mr, ps, gateway, incidents, claims, assessment].map(

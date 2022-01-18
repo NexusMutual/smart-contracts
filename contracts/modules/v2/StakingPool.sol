@@ -399,7 +399,9 @@ contract StakingPool is ERC20 {
   ) internal returns (uint) {
 
 
-    (uint actualPrice, uint basePrice) = getPrices(productId, amount, activeCover, capacity, initialPrice);
+    (uint actualPrice, uint basePrice) = getPrices(
+      amount, activeCover, capacity, initialPrice, lastBasePrices[productId], targetPrices[productId], block.timestamp
+    );
     // store the last base price
     lastBasePrices[productId] = LastPrice(
       uint96(basePrice),
@@ -410,19 +412,20 @@ contract StakingPool is ERC20 {
   }
 
   function getPrices(
-    uint productId,
     uint amount,
     uint activeCover,
     uint capacity,
-    uint initialPrice
-  ) public view returns (uint actualPrice, uint basePrice) {
+    uint initialPrice,
+    LastPrice memory lastBasePrice,
+    uint targetPrice,
+    uint blockTimestamp
+  ) public pure returns (uint actualPrice, uint basePrice) {
 
-    LastPrice memory lastBasePrice = lastBasePrices[productId];
     basePrice = interpolatePrice(
       lastBasePrice.value != 0 ? lastBasePrice.value : initialPrice,
-      targetPrices[productId],
-      lastBasePrices[productId].lastUpdateTime,
-      block.timestamp
+      targetPrice,
+      lastBasePrice.lastUpdateTime,
+      blockTimestamp
     );
 
     // calculate actualPrice using the current basePrice

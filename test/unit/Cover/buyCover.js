@@ -140,4 +140,182 @@ describe('buyCover', function () {
     await assert.equal(storedCover.priceRatio.toString(), targetPriceRatio.toString());
   });
 
+  it('should revert for unavailable product', async function () {
+    const { cover } = this;
+
+    const {
+      members: [member1],
+      members: [coverBuyer1],
+    } = this.accounts;
+
+    const productId = 1337;
+    const payoutAsset = 0; // ETH
+    const period = 3600 * 24 * 30; // 30 days
+
+    const amount = parseEther('1000');
+
+    await expectRevert.unspecified(cover.connect(member1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        productId,
+        payoutAsset,
+        amount,
+        period,
+        maxPremiumInAsset: '0',
+        paymentAsset: payoutAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: ZERO_ADDRESS,
+      },
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      {
+        value: '0',
+      },
+    ));
+  });
+
+  it('should revert for unsupported payout asset', async function () {
+    const { cover } = this;
+
+    const {
+      members: [member1],
+      members: [coverBuyer1],
+    } = this.accounts;
+
+    const productId = 0;
+    const payoutAsset = 1; // not ETH
+    const period = 3600 * 24 * 30; // 30 days
+
+    const amount = parseEther('1000');
+
+    await expectRevert(cover.connect(member1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        productId,
+        payoutAsset,
+        amount,
+        period,
+        maxPremiumInAsset: '0',
+        paymentAsset: payoutAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: ZERO_ADDRESS,
+      },
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      {
+        value: '0',
+      },
+    ),
+    'Cover: Payout asset is not supported',
+    );
+  });
+
+  it('should revert for period too short', async function () {
+    const { cover } = this;
+
+    const {
+      members: [member1],
+      members: [coverBuyer1],
+    } = this.accounts;
+
+    const productId = 0;
+    const payoutAsset = 0; // ETH
+    const period = 3600 * 24 * 29; // 29 days
+
+    const amount = parseEther('1000');
+
+    await expectRevert(cover.connect(member1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        productId,
+        payoutAsset,
+        amount,
+        period,
+        maxPremiumInAsset: '0',
+        paymentAsset: payoutAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: ZERO_ADDRESS,
+      },
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      {
+        value: '0',
+      },
+    ),
+    'Cover: Cover period is too short',
+    );
+  });
+
+  it('should revert for period too long', async function () {
+    const { cover } = this;
+
+    const {
+      members: [member1],
+      members: [coverBuyer1],
+    } = this.accounts;
+
+    const productId = 0;
+    const payoutAsset = 0; // ETH
+    const period = 3600 * 24 * 366;
+
+    const amount = parseEther('1000');
+
+    await expectRevert(cover.connect(member1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        productId,
+        payoutAsset,
+        amount,
+        period,
+        maxPremiumInAsset: '0',
+        paymentAsset: payoutAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: ZERO_ADDRESS,
+      },
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      {
+        value: '0',
+      },
+    ),
+    'Cover: Cover period is too long',
+    );
+  });
+
+  it.only('should revert for commission rate too high', async function () {
+    const { cover } = this;
+
+    const {
+      members: [member1],
+      members: [coverBuyer1],
+    } = this.accounts;
+
+    const productId = 0;
+    const payoutAsset = 0; // ETH
+    const period = 3600 * 24 * 30; // 30 days
+
+    const amount = parseEther('1000');
+
+    await expectRevert(cover.connect(member1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        productId,
+        payoutAsset,
+        amount,
+        period,
+        maxPremiumInAsset: '0',
+        paymentAsset: payoutAsset,
+        payWitNXM: false,
+        commissionRatio: '2501',
+        commissionDestination: ZERO_ADDRESS,
+      },
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      {
+        value: '0',
+      },
+    ),
+    'Cover: Commission rate is too high',
+    );
+  });
+
 });

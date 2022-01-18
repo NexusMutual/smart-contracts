@@ -10,4 +10,5 @@ describe('UNIT TESTS', function () {
   require('./Cover');
   require('./Claims');
   require('./Incidents');
+  require('./StakingPool');
 });

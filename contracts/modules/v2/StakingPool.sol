@@ -398,7 +398,6 @@ contract StakingPool is ERC20 {
     uint initialPrice
   ) internal returns (uint) {
 
-
     (uint actualPrice, uint basePrice) = getPrices(
       amount, activeCover, capacity, initialPrice, lastBasePrices[productId], targetPrices[productId], block.timestamp
     );

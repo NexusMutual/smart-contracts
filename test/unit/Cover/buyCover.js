@@ -282,7 +282,7 @@ describe('buyCover', function () {
     );
   });
 
-  it.only('should revert for commission rate too high', async function () {
+  it('should revert for commission rate too high', async function () {
     const { cover } = this;
 
     const {

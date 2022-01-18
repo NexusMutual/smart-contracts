@@ -129,7 +129,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(fromOwner == coverOwner, "Cover can only be migrated by its owner");
     require(LegacyCoverStatus(status) != LegacyCoverStatus.Migrated, "Cover has already been migrated");
     require(LegacyCoverStatus(status) != LegacyCoverStatus.ClaimAccepted, "A claim has already been accepted");
-    require(block.timestamp < validUntil, "Cover expired");
 
     {
       (uint claimCount , bool hasOpenClaim,  /*hasAcceptedClaim*/) = tokenController().coverInfo(coverId);
@@ -142,10 +141,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
 
     // mint the new cover
+    uint productId = productsV1.getNewProductId(legacyProductId);
+    Product memory product = products[productId];
+    ProductType memory productType = productTypes[product.productType];
+    require(
+      block.timestamp < validUntil + productType.gracePeriodInDays * 1 days,
+      "Cover outside of the grace period"
+    );
 
     coverData.push(
       CoverData(
-        uint24(productsV1.getNewProductId(legacyProductId)), // productId
+        uint24(productId),
         currencyCode == "ETH" ? 0 : 1, //payoutAsset
         0 // amountPaidOut
       )
@@ -166,7 +172,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     );
   }
 
-  /// @dev Migrates covers from V1 to Cover.sol, meant to be used my EOA members
+  /// @dev Migrates covers from V1 to Cover.sol, meant to be used by EOA members
   ///
   /// @param coverId     Legacy (V1) cover identifier
   /// @param toNewOwner  The address for which the V2 cover NFT is minted

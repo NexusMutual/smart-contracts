@@ -106,7 +106,7 @@ interface ICover {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function migrateCover(uint coverId, address toNewOwner) external;
+  function migrateCovers(uint[] calldata coverIds, address toNewOwner) external;
 
   function migrateCoverFromOwner(uint coverId, address fromOwner, address toNewOwner) external;
 

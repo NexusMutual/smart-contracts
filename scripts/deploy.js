@@ -413,7 +413,7 @@ async function main () {
   const { implementation: newPsImpl } = await upgradeProxy(ps.address, PooledStaking);
   const { implementation: newPcImpl } = await upgradeProxy(pc.address, ProposalCategory);
   const { implementation: newGvImpl } = await upgradeProxy(gv.address, Governance);
-  const { implementation: newCoverImpl } = await upgradeProxy(gv.address, Cover, [
+  const { implementation: newCoverImpl } = await upgradeProxy(cover.address, Cover, [
     qd.address,
     productsV1.address,
     stakingPool.address,
@@ -431,6 +431,8 @@ async function main () {
   verifier.add(newGvImpl);
   verifier.add(newGatewayImpl);
   verifier.add(newCoverImpl);
+  verifier.add(productsV1);
+  verifier.add(coverNFT);
 
   console.log('Transfering ownership of proxy contracts');
   await transferProxyOwnership(mr.address, master.address);

@@ -174,10 +174,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /// @dev Migrates covers from V1 to Cover.sol, meant to be used by EOA members
   ///
-  /// @param coverId     Legacy (V1) cover identifier
+  /// @param coverIds     Legacy (V1) cover identifiers
   /// @param toNewOwner  The address for which the V2 cover NFT is minted
-  function migrateCover(uint coverId, address toNewOwner) external override {
-    migrateCoverFromOwner(coverId, msg.sender, toNewOwner);
+  function migrateCovers(uint[] calldata coverIds, address toNewOwner) external override {
+    for (uint coverId = 0; coverId < coverIds.length; coverId++) {
+      migrateCoverFromOwner(coverId, msg.sender, toNewOwner);
+    }
   }
 
   function buyCover(

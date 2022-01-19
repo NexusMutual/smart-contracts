@@ -11,6 +11,7 @@ contract TestnetQuotationData is QuotationData {
   }
 
   function addCover(
+    uint startDate,
     uint16 coverPeriod,
     uint sumAssured,
     address payable userAddress,
@@ -19,11 +20,12 @@ contract TestnetQuotationData is QuotationData {
     uint premium,
     uint premiumNXM
   ) external {
-    uint expiryDate = now.add(uint(coverPeriod).mul(1 days));
+    uint start = startDate == 0 ? now : startDate;
+    uint expiryDate = start.add(uint(coverPeriod).mul(1 days));
     allCovers.push(Cover(userAddress, currencyCode,
       sumAssured, coverPeriod, expiryDate, scAddress, premiumNXM));
     uint cid = allCovers.length.sub(1);
     userCover[userAddress].push(cid);
-    emit CoverDetailsEvent(cid, scAddress, sumAssured, expiryDate, premium, premiumNXM, currencyCode);
+    emit CoverDetailsEvent(cid, scAddress, sumAssured, expiryDate, 123e16, 123e18, currencyCode);
   }
 }

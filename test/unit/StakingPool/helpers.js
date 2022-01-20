@@ -12,7 +12,7 @@ function calculatePriceIntegral (
 }
 
 const SURGE_THRESHOLD = new Decimal(8e17);
-const BASE_SURGE_LOADING = 1e16;
+const BASE_SURGE_LOADING = 1e17;
 
 function calculatePrice (
   amount,
@@ -26,17 +26,19 @@ function calculatePrice (
   capacity = toDecimal(capacity);
 
   const newActiveCoverAmount = amount.add(activeCover);
+  const activeCoverRatio = activeCover.mul(1e18).div(capacity);
   const newActiveCoverRatio = newActiveCoverAmount.mul(1e18).div(capacity);
 
-  if (newActiveCoverRatio.gt(SURGE_THRESHOLD)) {
+  if (newActiveCoverRatio.lt(SURGE_THRESHOLD)) {
     return basePrice;
   }
 
   const surgeLoadingRatio = newActiveCoverRatio.sub(SURGE_THRESHOLD);
-  const surgeFraction = surgeLoadingRatio.mul(capacity).div(newActiveCoverAmount);
-  const surgeLoading = BASE_SURGE_LOADING.mul(surgeLoadingRatio).div(1e18).div(2).mul(surgeFraction).div(1e18);
+  const surgeFraction =
+    activeCoverRatio.gte(SURGE_THRESHOLD) ? toDecimal(1e18) : surgeLoadingRatio.mul(capacity).div(amount);
+  const surgeLoading = surgeLoadingRatio.mul(BASE_SURGE_LOADING).div(1e16).div(2).mul(surgeFraction).div(1e18);
 
-  return basePrice.mul(surgeLoading.add(1e18)).div(1e18);
+  return basePrice.mul(surgeLoading.add(1e18)).div(1e18).floor();
 }
 
 function toDecimal (x) {

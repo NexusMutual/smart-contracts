@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/token/ERC20/ERC20.sol";
 
+import "hardhat/console.sol";
+
 contract StakingPool is ERC20 {
 
   struct PoolBucket {
@@ -386,8 +388,9 @@ contract StakingPool is ERC20 {
     return priceRatio * coverAmount / MAX_PRICE_RATIO * period / 365 days;
   }
 
-  uint public constant SURGE_THRESHOLD = 8e17;
-  uint public constant BASE_SURGE_LOADING = 1e16;
+  uint public constant SURGE_THRESHOLD_RATIO = 8e17;
+  uint public constant BASE_SURGE_LOADING_RATIO = 1e17;
+  uint public constant SURGE_DENOMINATOR = 1e18;
 
 
   function getActualPriceAndUpdateBasePrice(
@@ -442,16 +445,25 @@ contract StakingPool is ERC20 {
     uint capacity
   ) public pure returns (uint) {
 
+    uint activeCoverRatio = activeCover * 1e18 / capacity;
     uint newActiveCoverAmount = amount + activeCover;
     uint newActiveCoverRatio = newActiveCoverAmount * 1e18 / capacity;
 
-    if (newActiveCoverRatio > SURGE_THRESHOLD) {
+    if (newActiveCoverRatio < SURGE_THRESHOLD_RATIO) {
       return basePrice;
     }
 
-    uint surgeLoadingRatio = newActiveCoverRatio - SURGE_THRESHOLD;
-    uint surgeFraction = surgeLoadingRatio * capacity / newActiveCoverAmount;
-    uint surgeLoading = BASE_SURGE_LOADING * surgeLoadingRatio / 1e18 / 2 * surgeFraction / 1e18;
+    uint surgeLoadingRatio = newActiveCoverRatio - SURGE_THRESHOLD_RATIO;
+
+    // if the active cover ratio is already above SURGE_THRESHOLD (80%) then apply the surge loading to the entire
+    // value of the cover (surgeFraction = 1). Otherwise apply to the part of the cover that is above the threshold.
+    uint surgeFraction = activeCoverRatio >= SURGE_THRESHOLD_RATIO ? SURGE_DENOMINATOR : surgeLoadingRatio * capacity / amount;
+
+    // apply a base BASE_SURGE_LOADING_RATIO of 10% for each 1% of the surgeLoadingRatio
+    uint surgeLoading =
+      BASE_SURGE_LOADING_RATIO
+      * surgeLoadingRatio / (SURGE_DENOMINATOR / 100)
+      / 2 * surgeFraction / 1e18;
 
     return basePrice * (1e18 + surgeLoading) / 1e18;
   }

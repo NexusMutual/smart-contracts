@@ -35,8 +35,6 @@ async function setup () {
   await quotationData.setTotalSumAssured(daiAsset, '0');
   await quotationData.setTotalSumAssured(ethAsset, '100000');
 
-  console.log('debug 8');
-
   const dai = await ERC20Mock.deploy();
   await dai.deployed();
 
@@ -56,8 +54,6 @@ async function setup () {
   await mcr.deployed();
   await mcr.setMCR(parseEther('600000'));
 
-  console.log('debug 9');
-
   const stakingPool = await StakingPool.deploy(nxm.address, ZERO_ADDRESS);
 
   const signers = await ethers.getSigners();
@@ -67,8 +63,6 @@ async function setup () {
     await master.enrollMember(member.address, Role.Member);
     await memberRoles.setRole(member.address, Role.Member);
   }
-
-  console.log('debug 9.1');
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
     await master.enrollMember(advisoryBoardMember.address, Role.AdvisoryBoard);
@@ -83,8 +77,6 @@ async function setup () {
   for (const governanceContract of accounts.governanceContracts) {
     await master.enrollGovernance(governanceContract.address);
   }
-
-  console.log('debug 10');
 
   this.master = master;
   this.stakingPool = stakingPool;

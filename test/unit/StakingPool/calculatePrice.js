@@ -10,7 +10,7 @@ const { toBN } = web3.utils;
 
 describe.only('calculatePrice', function () {
 
-  it('should calculate price correctly for high active cover', async function () {
+  it('should calculate price correctly for current active cover exceeding surge treshold', async function () {
     const { stakingPool } = this;
 
     const amount = parseEther('1000');
@@ -35,13 +35,13 @@ describe.only('calculatePrice', function () {
     assert.equal(price.toString(), expectedPrice.toString());
   });
 
-  it('should calculate price correctly for medium-range active cover', async function () {
+  it.only('should calculate price correctly for current active cover below surge treshold and new active cover above surge treshold', async function () {
     const { stakingPool } = this;
 
-    const amount = parseEther('1000');
+    const amount = parseEther('700');
 
     const basePrice = parseEther('2.6');
-    const activeCover = parseEther('5000');
+    const activeCover = parseEther('7800');
     const capacity = parseEther('10000');
 
     const price = await stakingPool.calculatePrice(
@@ -55,10 +55,11 @@ describe.only('calculatePrice', function () {
       amount, basePrice, activeCover, capacity,
     );
 
-    assert.equal(price.toString(), expectedPrice.toString());
+    // allow for precision error
+    assert.equal(price.div(100).toString(), expectedPrice.div(100).floor().toString());
   });
 
-  it('should calculate price correctly for low-range active cover', async function () {
+  it.only('should calculate price correctly for new active cover below surge treshold', async function () {
     const { stakingPool } = this;
 
     const amount = parseEther('1000');

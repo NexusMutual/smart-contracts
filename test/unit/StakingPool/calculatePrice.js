@@ -8,7 +8,7 @@ const { calculatePrice } = require('./helpers');
 
 const { toBN } = web3.utils;
 
-describe.only('calculatePrice', function () {
+describe('calculatePrice', function () {
 
   it('should calculate price correctly for current active cover exceeding surge treshold', async function () {
     const { stakingPool } = this;
@@ -35,7 +35,7 @@ describe.only('calculatePrice', function () {
     assert.equal(price.toString(), expectedPrice.toString());
   });
 
-  it.only('should calculate price correctly for current active cover below surge treshold and new active cover above surge treshold', async function () {
+  it('should calculate price correctly for current active cover below surge treshold and new active cover above surge treshold', async function () {
     const { stakingPool } = this;
 
     const amount = parseEther('700');
@@ -59,7 +59,7 @@ describe.only('calculatePrice', function () {
     assert.equal(price.div(100).toString(), expectedPrice.div(100).floor().toString());
   });
 
-  it.only('should calculate price correctly for new active cover below surge treshold', async function () {
+  it('should calculate price correctly for new active cover below surge treshold', async function () {
     const { stakingPool } = this;
 
     const amount = parseEther('1000');

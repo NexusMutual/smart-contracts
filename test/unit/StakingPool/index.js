@@ -14,4 +14,5 @@ describe.only('StakingPool unit tests', function () {
 
   require('./calculatePrice');
   require('./interpolatePrice');
+  require('./getPrices');
 });

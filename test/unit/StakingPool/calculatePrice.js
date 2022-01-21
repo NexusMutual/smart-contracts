@@ -15,7 +15,7 @@ describe('calculatePrice', function () {
 
     const amount = parseEther('1000');
 
-    const basePrice = parseEther('2.6');
+    const basePrice = '260';
 
     // exceeds surge treshold
     const activeCover = parseEther('9000');
@@ -40,7 +40,7 @@ describe('calculatePrice', function () {
 
     const amount = parseEther('700');
 
-    const basePrice = parseEther('2.6');
+    const basePrice = '260';
     const activeCover = parseEther('7800');
     const capacity = parseEther('10000');
 
@@ -64,7 +64,7 @@ describe('calculatePrice', function () {
 
     const amount = parseEther('1000');
 
-    const basePrice = parseEther('2.6');
+    const basePrice = '260';
     const activeCover = parseEther('1000');
     const capacity = parseEther('10000');
 

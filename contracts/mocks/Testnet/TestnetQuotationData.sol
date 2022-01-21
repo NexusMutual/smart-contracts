@@ -10,7 +10,7 @@ contract TestnetQuotationData is QuotationData {
     /* noop */
   }
 
-  function addCover(
+  function addOldCover(
     uint startDate,
     uint16 coverPeriod,
     uint sumAssured,

@@ -99,8 +99,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  /// @dev Migrates covers from V1 to Cover.sol, meant to be used by Claims.sol and Gateway.sol to
-  /// allow the users of distributor contracts to migrate their NFTs.
+  /// @dev Migrates covers from V1. Meant to be used by Claims.sol and Gateway.sol to allow the
+  /// users of distributor contracts to migrate their NFTs.
   ///
   /// @param coverId     V1 cover identifier
   /// @param fromOwner   The address from where this function is called that needs to match the
@@ -109,7 +109,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint coverId,
     address fromOwner,
     address toNewOwner
-  ) public override onlyInternal {
+  ) external override onlyInternal {
+    _migrateCoverFromOwner(coverId, fromOwner, toNewOwner);
+  }
+
+  /// @dev Migrates covers from V1
+  ///
+  /// @param coverId     V1 cover identifier
+  /// @param fromOwner   The address from where this function is called that needs to match the
+  /// @param toNewOwner  The address for which the V2 cover NFT is minted
+  function _migrateCoverFromOwner(
+    uint coverId,
+    address fromOwner,
+    address toNewOwner
+  ) internal {
     (
       /*uint coverId*/,
       address coverOwner,
@@ -170,15 +183,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       toNewOwner,
       coverData.length - 1 // newCoverId
     );
+
   }
 
-  /// @dev Migrates covers from V1 to Cover.sol, meant to be used by EOA members
+  /// @dev Migrates covers from V1. Meant to be used by EOA Nexus Mutual members
   ///
-  /// @param coverIds     Legacy (V1) cover identifiers
+  /// @param coverIds    Legacy (V1) cover identifiers
   /// @param toNewOwner  The address for which the V2 cover NFT is minted
   function migrateCovers(uint[] calldata coverIds, address toNewOwner) external override {
-    for (uint coverId = 0; coverId < coverIds.length; coverId++) {
-      migrateCoverFromOwner(coverId, msg.sender, toNewOwner);
+    for (uint i = 0; i < coverIds.length; i++) {
+      _migrateCoverFromOwner(coverIds[i], msg.sender, toNewOwner);
     }
   }
 
@@ -563,6 +577,5 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
-    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
   }
 }

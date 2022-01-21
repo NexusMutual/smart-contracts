@@ -97,4 +97,12 @@ contract CoverMockStakingPool is IStakingPool, ERC20 {
     mockPrices[productId] = price;
   }
 
+  function changeMasterAddress(address payable _a) external {
+    // noop
+  }
+
+  function changeDependentContractAddress() external {
+    // noop
+  }
+
 }

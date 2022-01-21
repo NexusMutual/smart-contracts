@@ -41,9 +41,12 @@ const networks = {
     blockGasLimit: 12e6,
     gas: 12e6,
   },
-  localhost: {
-    blockGasLimit: 12e6,
+  kovan: {
     gas: 12e6,
+  },
+  localhost: {
+    blockGasLimit: 21e6,
+    gas: 21e6,
   },
 };
 
@@ -56,13 +59,13 @@ const getenv = (network, key, fallback, parser = i => i) => {
   return value ? parser(value) : fallback;
 };
 
-for (const network of ['MAINNET', 'KOVAN']) {
+for (const network of ['MAINNET', 'KOVAN', 'TENDERLY', 'LOCALHOST']) {
   const url = getenv(network, 'PROVIDER_URL', false);
   if (!url) continue;
   const accounts = getenv(network, 'ACCOUNT_KEY', undefined, v => v.split(/[^0-9a-fx]+/i));
   const gasPrice = getenv(network, 'GAS_PRICE', undefined, v => parseInt(v, 10) * 1e9);
-  const gasLimit = getenv(network, 'GAS_LIMIT', undefined, v => parseInt(v, 10));
-  networks[network.toLowerCase()] = { accounts, gasPrice, gasLimit, url };
+  const gas = getenv(network, 'GAS_LIMIT', undefined, v => parseInt(v, 10));
+  networks[network.toLowerCase()] = { accounts, gasPrice, gas, url };
 }
 
 const compilerSettings = process.env.ENABLE_OPTIMIZER ? { optimizer: { enabled: true, runs: 200 } } : {};

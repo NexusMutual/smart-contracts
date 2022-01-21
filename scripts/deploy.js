@@ -1,4 +1,5 @@
 const { artifacts, config, network, run, web3 } = require('hardhat');
+const hre = require('hardhat');
 const {
   ether,
   constants: { ZERO_ADDRESS },
@@ -60,24 +61,10 @@ const Gateway = artifacts.require('Gateway');
 // external contracts
 const DistributorFactory = artifacts.require('DistributorFactory');
 const SelfKyc = artifacts.require('SelfKyc');
+const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
 const INITIAL_SUPPLY = ether('1500000');
 const etherscanApiKey = getEnv('ETHERSCAN_API_KEY');
-
-const contractType = code => {
-  const upgradable = ['CL', 'CR', 'MC', 'P1', 'QT', 'TF'];
-  const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC'];
-
-  if (upgradable.includes(code)) {
-    return 1;
-  }
-
-  if (proxies.includes(code)) {
-    return 2;
-  }
-
-  return 0;
-};
 
 const UNISWAP_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
 const WETH_ADDRESS = '0xd0a1e359811322d97991e03f863a0c30c2cf029c';
@@ -88,6 +75,7 @@ const CHAINLINK_DAI_ETH_AGGREGATORS = {
   mainnet: '0x773616E4d11A78F511299002da57A0a94577F1f4',
   rinkeby: '0x2bA49Aaa16E6afD2a993473cfB70Fa8559B523cF',
   kovan: '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541',
+  tenderly: '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541',
   // used when running hh node to fork a network, change me if needed
   localhost: '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541',
 };
@@ -100,7 +88,6 @@ async function main () {
   console.log('Network config:', config.networks[network.name]);
 
   const [owner] = await web3.eth.getAccounts();
-  console.log({ owner });
   const verifier = new Verifier(web3, etherscanApiKey, network.name);
 
   const deployProxy = async (contract, deployParams = []) => {
@@ -140,8 +127,9 @@ async function main () {
   });
 
   let uniswapV2Factory;
-  if (network.name === 'hardhat') {
-    console.log('Skipped uniswap pair deploy');
+  if (['hardhat', 'localhost'].includes(network.name)) {
+    uniswapV2Factory = await UniswapV2Factory.new(owner);
+    await uniswapV2Factory.setFeeTo(owner);
   } else {
     console.log('Deploying uniswap pair');
     uniswapV2Factory = await UniswapV2Factory.at(UNISWAP_FACTORY);
@@ -153,7 +141,7 @@ async function main () {
   const td = await TokenData.new();
 
   verifier.add(tk, { constructorArgs: [owner, INITIAL_SUPPLY.toString()] });
-  verifier.add(td, { constructorArgs: [owner] });
+  verifier.add(td, { constructorArgs: [] });
 
   const { instance: master, implementation: masterImpl } = await deployProxy(DisposableNXMaster);
   const { instance: mr, implementation: mrImpl } = await deployProxy(DisposableMemberRoles);
@@ -250,9 +238,7 @@ async function main () {
     };
   });
 
-  await cover.addProducts(addProductsParams);
-
-  // non-proxy contracts and libraries
+  await cover.addProducts(addProductsParams); // non-proxy contracts and libraries
   console.log('Deploying TwapOracle, SwapOperator, PriceFeedOracle');
   const uniswapV2FactoryAddress = uniswapV2Factory
     ? uniswapV2Factory.address
@@ -263,11 +249,19 @@ async function main () {
   verifier.add(twapOracle, { constructorArgs: [uniswapV2FactoryAddress] });
   verifier.add(swapOperator, { constructorArgs: [master.address, twapOracle.address, owner, stETH.address] });
 
-  const priceFeedOracle = await PriceFeedOracle.new(
-    CHAINLINK_DAI_ETH_AGGREGATORS[network.name],
-    dai.address,
-    stETH.address,
-  );
+  let priceFeedOracle;
+  if (['hardhat', 'localhost'].includes(network.name)) {
+    const chainlinkDaiMock = await ChainlinkAggregatorMock.new();
+    await chainlinkDaiMock.setLatestAnswer('357884806717390');
+    verifier.add(chainlinkDaiMock);
+    priceFeedOracle = await PriceFeedOracle.new(chainlinkDaiMock.address, dai.address, stETH.address);
+  } else {
+    priceFeedOracle = await PriceFeedOracle.new(
+      CHAINLINK_DAI_ETH_AGGREGATORS[network.name],
+      dai.address,
+      stETH.address,
+    );
+  }
 
   verifier.add(priceFeedOracle, {
     constructorArgs: [CHAINLINK_DAI_ETH_AGGREGATORS[network.name], dai.address, stETH.address],
@@ -330,23 +324,33 @@ async function main () {
   verifier.add(p1, { constructorArgs: poolParameters });
   verifier.add(stakingPool, { constructorArgs: stakingPoolParameters });
 
-  const codes = ['TD', 'QT', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'AS'];
-  const addresses = [td, qt, tc, p1, mc, { address: owner }, pc, mr, ps, gateway, incidents, claims, assessment].map(
-    c => c.address,
-  );
+  const upgradableContractCodes = ['TD', 'MC', 'P1', 'SP'];
+  const upgradableContractAddresses = [td, mc, p1, stakingPool].map(x => x.address);
+
+  const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'IC', 'CL', 'AS'];
+  const proxyContractAddresses = [
+    { address: owner }, // as governance
+    mr,
+    pc,
+    ps,
+    tc,
+    gateway,
+    cover,
+    incidents,
+    claims,
+    assessment,
+  ].map(x => x.address);
+
+  const addresses = [...upgradableContractAddresses, ...proxyContractAddresses];
+  const codes = [...upgradableContractCodes, ...proxyContractCodes].map(hex);
+  const types = [...upgradableContractCodes.fill(1), ...proxyContractCodes.fill(2)]; // 1 for upgradable 2 for proxy
 
   console.log('Deploying ProductsV1 contract');
   const productsV1 = await ProductsV1.new();
 
   console.log('Running initializations');
-  await master.initialize(
-    owner,
-    tk.address,
-    owner,
-    codes.map(hex), // codes
-    codes.map(contractType), // types
-    addresses, // addresses
-  );
+  console.log({ owner, tk: tk.address, owner, codes, types, addresses });
+  await master.initialize(owner, tk.address, owner, codes, types, addresses);
 
   await tc.initialize(master.address, tk.address, ps.address, assessment.address);
 
@@ -461,10 +465,13 @@ async function main () {
   const testnetMaster = await TestnetNXMaster.at(master.address);
   await testnetMaster.initializeGovernanceOwner();
 
-  console.log('Performing verifications');
-  await verifier.submit();
+  if (!['hardhat', 'localhost'].includes(network.name)) {
+    console.log('Performing verifications');
+    await verifier.submit();
+  }
 
   console.log('Done!');
+  process.exit(0);
 }
 
 main().catch(error => {

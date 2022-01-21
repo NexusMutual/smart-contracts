@@ -32,9 +32,7 @@ contract TestnetNXMaster is NXMaster {
     bytes2[] memory _contractCodes,
     address payable[] memory newAddresses
   )
-  public
-  onlyAuthorizedToGovern
-  {
+  public {
 
     require(getLatestAddress("GV") == msg.sender || governanceOwner == msg.sender, "Not authorized");
 

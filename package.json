@@ -30,7 +30,7 @@
     "bn.js": "^5.1.2",
     "dotenv": "^8.2.0",
     "ethereumjs-util": "7.0.1",
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^3.1.1"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-etherscan": "^2.1.0",

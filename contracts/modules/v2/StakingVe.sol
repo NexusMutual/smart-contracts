@@ -11,11 +11,17 @@ contract StakingVe is ERC721 {
 
   /* storage */
 
-  uint128 public stakeActive;
-  uint128 public accRewardPerToken;
-  uint32 public lastRewardUpdate;
+  // current active stake amount
+  uint128 public totalStaked;
 
-  uint16 public currentGroupId;
+  // current nxm reward per bucket (1 bucket = 1 week)
+  uint128 public rewardRate;
+
+  // accumulated reward per second
+  uint128 public accRewardPerSecond;
+
+  uint32 public lastRewardUpdate;
+  uint16 public firstGroupId;
   uint16 public lastGroupId;
 
   // erc721 related
@@ -27,6 +33,8 @@ contract StakingVe is ERC721 {
   struct StakeGroup {
     uint128 stake;
     uint128 shares;
+    uint128 accRewardPerToken;
+    /* uint128 unused */
   }
 
   // group id => amount
@@ -35,16 +43,14 @@ contract StakingVe is ERC721 {
   // user => group id => amount of shares
   mapping(address => mapping(uint16 => uint)) public balanceOf;
 
-  // group id => earned
-  mapping(uint16 => uint) public earned;
-
   /* immutables */
 
   IERC20 public immutable nxm;
 
   /* constants */
 
-  uint GROUP_SIZE = 90 days;
+  // 91 * 4 = 364
+  uint GROUP_SIZE = 91 days;
 
   constructor (
     string memory _name,
@@ -54,27 +60,53 @@ contract StakingVe is ERC721 {
     nxm = _token;
   }
 
-  function processGroups() public {
+  // TODO: this should be combined with the processPoolBuckets function
+  function updateGroups() public {
 
-    uint16 targetId = (block.timestamp / GROUP_SIZE).toUint16();
-    uint16 currentId = currentGroupId;
-    uint stake = stakeActive;
+    // 1 SLOAD
+    uint _totalStaked = totalStaked;
+    uint _rewardRate = rewardRate;
 
-    while (currentId < targetId) {
-      // TODO: update group rewards
-      stake += stakeGroups[currentId].stake;
-      currentId++;
+    // 1 SLOAD
+    uint32 _lastRewardUpdate = lastRewardUpdate;
+    uint16 _firstGroupId = firstGroupId;
+
+    // the group id for the current timestamp
+    uint16 target = (block.timestamp / GROUP_SIZE).toUint16();
+
+    while (_firstGroupId < target) {
+
+      // 2 SLOADs
+      StakeGroup memory group = stakeGroups[_firstGroupId];
+
+      // calculate group reward
+      uint expiredAt = (_firstGroupId + 1) * GROUP_SIZE;
+      uint elapsed = expiredAt - group.lastRewardTimestamp;
+      uint rewardPerSecond = _rewardRate / _totalStaked;
+
+      // pool_earnings = elapsed * reward_per_second
+      // group_share = group_stake / total_staked
+      // group_earnings = pool_earnings * group_share
+      group.accRewardPerToken += (elapsed * _rewardPerSecond * group.stake / _totalStaked).toUint128();
+
+      // 2 SSTOREs
+      stakeGroups[_firstGroupId] = group;
+
+      // unstake!
+      _totalStaked -= group.stake;
+      _firstGroupId++;
     }
 
-    currentGroupId = currentId;
+    firstGroupId = _firstGroupId;
+    totalStaked = _totalStaked.toUint128();
   }
 
   function deposit(uint amount, uint16 groupId) external {
 
-    processGroups();
+    updateGroups();
 
     // require groupId not to be expired
-    require(groupId >= currentGroupId);
+    require(groupId >= firstGroupId);
 
     // transfer nxm from staker
     nxm.transferFrom(msg.sender, address(this), amount);
@@ -93,7 +125,7 @@ contract StakingVe is ERC721 {
     balanceOf[msg.sender][groupId] = (userShares + newShares).toUint128();
 
     // 1 SSTORE update total active stake
-    stakeActive += amount.toUint128();
+    totalStaked += amount.toUint128();
 
     // 2 SSTORE mint nft
     _mint(msg.sender, totalSupply++);
@@ -102,11 +134,11 @@ contract StakingVe is ERC721 {
   // O(16) ie. O(1)
   function burn(uint amount) public {
 
-    processGroups();
+    updateGroups();
 
     // 1 SLOAD
-    uint totalStake = stakeActive;
-    uint16 first = currentGroupId;
+    uint totalStake = totalStaked;
+    uint16 first = firstGroupId;
     uint16 last = lastGroupId;
 
     for (uint16 i = first; i <= last; i++) {

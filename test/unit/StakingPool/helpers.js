@@ -24,7 +24,7 @@ function interpolatePrice (
     return targetPrice;
   }
 
-  return lastPrice.sub(lastPrice.sub(targetPrice)).mul(priceChange).div(PRICE_DENOMINATOR);
+  return lastPrice.sub(lastPrice.sub(targetPrice).muln(priceChange).divn(PRICE_DENOMINATOR));
 }
 
 function calculatePrice (
@@ -64,15 +64,15 @@ function getPrices (
   blockTimestamp,
 ) {
 
-  amount = toDecimal(amount);
-  activeCover = toDecimal(activeCover);
-  capacity = toDecimal(capacity);
-  initialPrice = toDecimal(initialPrice);
-  targetPrice = toDecimal(targetPrice);
-  const lastBasePriceValue = toDecimal(lastBasePrice.value);
-  const lastUpdateTime = toDecimal(lastBasePrice.lastUpdateTime);
+  amount = toBN(amount);
+  activeCover = toBN(activeCover);
+  capacity = toBN(capacity);
+  initialPrice = toBN(initialPrice);
+  targetPrice = toBN(targetPrice);
+  const lastBasePriceValue = toBN(lastBasePrice.value);
+  const lastUpdateTime = toBN(lastBasePrice.lastUpdateTime);
 
-  let basePrice = interpolatePrice(
+  const basePrice = interpolatePrice(
     lastBasePriceValue.gt(0) ? lastBasePriceValue : initialPrice,
     targetPrice,
     lastUpdateTime,
@@ -88,20 +88,30 @@ function getPrices (
   const actualPrice = calculatePrice(amount, basePrice, activeCover, capacity);
 
   // Bump base price by 2% (200 basis points) per 10% (1000 basis points) of capacity used
-  const priceBump = amount.mul(BASE_PRICE_BUMP_DENOMINATOR).div(capacity).div(BASE_PRICE_BUMP_INTERVAL).mul(BASE_PRICE_BUMP_RATIO);
+  const priceBump = amount.muln(BASE_PRICE_BUMP_DENOMINATOR).div(capacity).divn(BASE_PRICE_BUMP_INTERVAL).muln(BASE_PRICE_BUMP_RATIO);
+
+  const bumpedBasePrice = basePrice.add(priceBump);
 
   console.log({
-    capacity: capacity.toFixed(),
-    amount: amount.toFixed(),
-    priceBump: priceBump.toFixed(),
+    initialPrice: initialPrice.toString(),
+    lastBasePriceValue: lastBasePriceValue.toString(),
+    capacity: capacity.toString(),
+    amount: amount.toString(),
+    priceBump: priceBump.toString(),
+    basePrice: basePrice.toString(),
+    bumpedBasePrice: bumpedBasePrice.toString(),
+    actualPrice: actualPrice.toString(),
   });
-  basePrice = basePrice + priceBump;
 
-  return { basePrice, actualPrice };
+  return { basePrice: bumpedBasePrice, actualPrice };
 }
 
 function toDecimal (x) {
   return new Decimal(x.toString());
+}
+
+function assertRoughlyEqual (a, b) {
+  assert(a.eq(b), `${a.toString()} != ${b.toString()}`);
 }
 
 module.exports = {

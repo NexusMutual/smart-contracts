@@ -27,6 +27,12 @@ describe('interpolatePrice', function () {
 
     const expectedPrice = toDecimal(lastPrice).sub(toDecimal(lastPrice).sub(toDecimal(targetPrice)).div(100));
 
+    console.log({
+      lastPrice: lastPrice.toString(),
+      targetPrice: targetPrice.toString(),
+      price: price.toString(),
+    });
+
     assert.equal(price.toString(), expectedPrice.toString());
   });
 

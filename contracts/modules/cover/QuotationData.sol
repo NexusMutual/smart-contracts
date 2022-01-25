@@ -4,6 +4,7 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/LegacyMasterAware.sol";
+import "../../interfaces/INXMMaster.sol";
 
 contract QuotationData is LegacyMasterAware {
   using SafeMath for uint;
@@ -66,7 +67,7 @@ contract QuotationData is LegacyMasterAware {
 
   event CoverStatusEvent(uint indexed cid, uint8 statusNum);
 
-  constructor(address _authQuoteAdd, address _kycAuthAdd) public {
+  constructor(address _authQuoteAdd, address _kycAuthAdd, address masterAddress) public {
     authQuoteEngine = _authQuoteAdd;
     kycAuthAddress = _kycAuthAdd;
     stlp = 90;
@@ -77,7 +78,8 @@ contract QuotationData is LegacyMasterAware {
     allCovers.push(Cover(address(0), "0x00", 0, 0, 0, address(0), 0));
     uint[] memory arr = new uint[](1);
     allCoverHolded.push(HoldCover(0, address(0), address(0), 0x00, arr, 0));
-
+    ms = INXMMaster(masterAddress);
+    nxMasterAddress = masterAddress;
   }
 
   /// @dev Adds the amount in Total Sum Assured of a given currency of a given smart contract address.

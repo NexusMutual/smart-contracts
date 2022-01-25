@@ -8,7 +8,7 @@ const { calculatePrice, getPrices } = require('./helpers');
 
 const { toBN } = web3.utils;
 
-describe.only('getPrices', function () {
+describe('getPrices', function () {
 
   it('should calculate prices correctly for current active cover exceeding surge treshold', async function () {
     const { stakingPool } = this;

@@ -421,7 +421,7 @@ contract StakingPool is ERC20 {
     LastPrice memory lastBasePrice,
     uint targetPrice,
     uint blockTimestamp
-  ) public view returns (uint actualPrice, uint basePrice) {
+  ) public pure returns (uint actualPrice, uint basePrice) {
 
     basePrice = interpolatePrice(
       lastBasePrice.value != 0 ? lastBasePrice.value : initialPrice,
@@ -430,17 +430,12 @@ contract StakingPool is ERC20 {
       blockTimestamp
     );
 
-    console.log("basePrice", basePrice);
-
     // calculate actualPrice using the current basePrice
     actualPrice = calculatePrice(amount, basePrice, activeCover, capacity);
-
-    console.log("actualPrice", actualPrice);
 
     // Bump base price by 2% (200 basis points) per 10% (1000 basis points) of capacity used
     uint priceBump = amount * BASE_PRICE_BUMP_DENOMINATOR / capacity / BASE_PRICE_BUMP_INTERVAL * BASE_PRICE_BUMP_RATIO;
 
-    console.log("priceBump", priceBump);
     basePrice = uint96(basePrice + priceBump);
   }
 

@@ -238,10 +238,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       );
     }
 
-    console.log("totalPremiumInNXM", totalPremiumInNXM);
-    console.log("totalCoverAmountInNXM", totalCoverAmountInNXM);
-    console.log("ratio", SafeUintCast.toUint16(totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM));
-
     coverSegments[coverId].push(CoverSegment(
         SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18),
         uint32(block.timestamp + 1),

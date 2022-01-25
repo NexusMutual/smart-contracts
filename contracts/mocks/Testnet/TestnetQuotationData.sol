@@ -6,7 +6,11 @@ import "../../modules/cover/QuotationData.sol";
 
 contract TestnetQuotationData is QuotationData {
 
-  constructor(address _authQuoteAdd, address _kycAuthAdd) QuotationData(_authQuoteAdd, _kycAuthAdd) public {
+  constructor(
+    address _authQuoteAdd,
+    address _kycAuthAdd,
+    address masterAddress
+  ) QuotationData(_authQuoteAdd, _kycAuthAdd, masterAddress) public {
     /* noop */
   }
 

@@ -284,7 +284,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   ) internal returns (uint a, uint b) {
 
     Product memory product = products[params.productId];
-    console.log("%s", address(stakingPool));
     return stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
       params.productId,
       amount,
@@ -463,7 +462,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     address addr = address(new MinimalBeaconProxy{ salt: bytes32(uint(stakingPoolCounter)) }(address(this)));
     IStakingPool(addr).initialize(manager, stakingPoolCounter);
-    console.log("%s", addr);
 
     stakingPoolCounter++;
 

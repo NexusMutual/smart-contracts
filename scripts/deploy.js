@@ -102,6 +102,12 @@ async function main () {
     const implementation = await contract.new(...deployParams);
     const proxy = await OwnedUpgradeabilityProxy.at(proxyAddress);
     await proxy.upgradeTo(implementation.address);
+    try {
+      const c = await contract.at(proxyAddress);
+      await c.changeDependentContractAddress();
+    } catch (e) {
+      console.log(`[WARNING]: ${contract.contractName} has no changeDependentContractAddress method`);
+    }
     return { implementation };
   };
 
@@ -153,7 +159,7 @@ async function main () {
 
   console.log('Deploying quotation contracts');
   const qt = await Quotation.new();
-  const qd = await QuotationData.new(owner, selfKyc.address);
+  const qd = await QuotationData.new(owner, selfKyc.address, master.address);
 
   console.log('Deploying disposable contracts');
   const { instance: cover, implementation: coverImpl } = await deployProxy(DisposableCover, []);
@@ -349,7 +355,6 @@ async function main () {
   const productsV1 = await ProductsV1.new();
 
   console.log('Running initializations');
-  console.log({ owner, tk: tk.address, owner, codes, types, addresses });
   await master.initialize(owner, tk.address, owner, codes, types, addresses);
 
   await tc.initialize(master.address, tk.address, ps.address, assessment.address);
@@ -425,7 +430,6 @@ async function main () {
     cover.address,
   ]);
   const { implementation: newGatewayImpl } = await upgradeProxy(gateway.address, Gateway);
-  await gateway.changeDependentContractAddress();
 
   verifier.add(newMasterImpl);
   verifier.add(newMrImpl);
@@ -439,12 +443,15 @@ async function main () {
   verifier.add(coverNFT);
 
   console.log('Transfering ownership of proxy contracts');
+  const res = await master.getLatestAddress(hex('TC'));
+  console.log({ res });
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
   await transferProxyOwnership(ps.address, master.address);
   await transferProxyOwnership(pc.address, master.address);
   await transferProxyOwnership(gv.address, master.address);
   await transferProxyOwnership(gateway.address, master.address);
+  await transferProxyOwnership(cover.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
 
   console.log('Deploying external contracts');

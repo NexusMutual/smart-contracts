@@ -30,6 +30,10 @@ async function setup () {
   const ybDai = await ybDAI.deploy();
   await ybDai.deployed();
 
+  const ybETH = await ethers.getContractFactory('ERC20BlacklistableMock');
+  const ybEth = await ybETH.deploy();
+  await ybEth.deployed();
+
   const ICMockPool = await ethers.getContractFactory('ICMockPool');
   const pool = await ICMockPool.deploy();
   await pool.deployed();
@@ -71,7 +75,8 @@ async function setup () {
 
   await cover.addProduct('0', '0x0000000000000000000000000000000000000001', '1', '0');
   await cover.addProduct('1', '0x0000000000000000000000000000000000000002', '1', '0');
-  await cover.addProduct('2', '0x0000000000000000000000000000000000000003', '1', '0');
+  await cover.addProduct('2', ybEth.address, '1', '0');
+  await cover.addProduct('2', ybDai.address, '1', '1');
 
   await cover.setActiveCoverAmountInNXM(2, parseEther('3500'));
 
@@ -92,8 +97,13 @@ async function setup () {
   for (const member of accounts.members) {
     await memberRoles.setRole(member.address, 2);
     await nxm.mint(member.address, ethers.utils.parseEther('10000'));
+    await ybDai.mint(member.address, ethers.utils.parseEther('10000'));
+    await ybEth.mint(member.address, ethers.utils.parseEther('10000'));
     await nxm.connect(member).approve(tokenController.address, ethers.utils.parseEther('10000'));
   }
+
+  accounts.defaultSender.sendTransaction({ to: pool.address, value: parseEther('10000') });
+  dai.mint(pool.address, parseEther('10000'));
 
   const config = await incidents.config();
 
@@ -103,9 +113,11 @@ async function setup () {
     nxm,
     dai,
     ybDai,
+    ybEth,
     assessment,
     incidents,
     cover,
+    coverNFT,
     unkownNFT,
     master,
   };

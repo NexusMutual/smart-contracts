@@ -5,7 +5,11 @@ const {
     utils: { parseEther },
   },
 } = require('hardhat');
-const { time, expectRevert, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
+const {
+  time,
+  expectRevert,
+  constants: { ZERO_ADDRESS },
+} = require('@openzeppelin/test-helpers');
 const { hex, zeroPadRight } = require('../utils').helpers;
 const { calculatePrice } = require('./helpers');
 

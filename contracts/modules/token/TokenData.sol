@@ -94,8 +94,7 @@ contract TokenData is ITokenData, LegacyMasterAware {
     uint commissionAmount
   );
 
-  constructor(address payable _walletAdd) public {
-    walletAddress = _walletAdd;
+  constructor() public {
     bookTime = 12 hours;
     joiningFee = 2000000000000000; // 0.002 Ether
     lockTokenTimeAfterCoverExp = 35 days;

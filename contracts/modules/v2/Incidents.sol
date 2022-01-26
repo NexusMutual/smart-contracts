@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/ITokenController.sol";
@@ -49,8 +50,9 @@ contract Incidents is IIncidents, MasterAwareV2 {
   function initialize(address masterAddress) external {
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 50% = 1.30%
     config.rewardRatio = 130; // 1.3%
-    config.incidentExpectedPayoutRatio = 3000; // 30%
-    config.incidentPayoutDeductibleRatio = 9000; // 90%
+    config.expectedPayoutRatio = 3000; // 30%
+    config.payoutDeductibleRatio = 9000; // 90%
+    config.payoutRedemptionPeriodInDays = 14; // days
     config.maxRewardInNXMWad = 50; // 50 NXM
     master = INXMMaster(masterAddress);
   }
@@ -59,10 +61,6 @@ contract Incidents is IIncidents, MasterAwareV2 {
 
   function min(uint a, uint b) internal pure returns (uint) {
     return a < b ? a : b;
-  }
-
-  function memberRoles() internal view returns (IMemberRoles) {
-    return IMemberRoles(internalContracts[uint(IMasterAwareV2.ID.MR)]);
   }
 
   function assessment() internal view returns (IAssessment) {
@@ -78,22 +76,77 @@ contract Incidents is IIncidents, MasterAwareV2 {
     return incidents.length;
   }
 
+  function getIncidentDisplay(uint id) internal view returns (IncidentDisplay memory) {
+    Incident memory incident = incidents[id];
+    (IAssessment.Poll memory poll,,) = assessment().assessments(incident.assessmentId);
+
+    IncidentStatus incidentStatus;
+
+    (,,uint payoutCooldownInDays,) = assessment().config();
+    uint redeemableUntil = poll.end + (payoutCooldownInDays + config.payoutRedemptionPeriodInDays) * 1 days;
+
+    // Determine the incidents status
+    if (block.timestamp < poll.end) {
+      incidentStatus = IncidentStatus.PENDING;
+    } else if (poll.accepted > poll.denied) {
+      if (block.timestamp > redeemableUntil) {
+        incidentStatus = IncidentStatus.EXPIRED;
+      } else {
+        incidentStatus = IncidentStatus.ACCEPTED;
+      }
+    } else {
+      incidentStatus = IncidentStatus.DENIED;
+    }
+
+
+    return IncidentDisplay(
+      id,
+      incident.productId,
+      incident.priceBefore,
+      incident.date,
+      poll.start,
+      poll.end,
+      redeemableUntil,
+      uint(incidentStatus)
+    );
+  }
+
+  /// Returns an array of incidents aggregated in a human-friendly format.
+  ///
+  /// @dev This view is meant to be used in user interfaces to get incidents in a format suitable
+  /// for displaying all relevant information in as few calls as possible. It can be used to
+  /// paginate incidents by providing the following paramterers:
+  ///
+  /// @param ids   Array of Incident ids which are returned as IncidentDisplay
+  function getIncidentsToDisplay (uint104[] calldata ids)
+  external view returns (IncidentDisplay[] memory) {
+    IncidentDisplay[] memory incidentDisplays = new IncidentDisplay[](ids.length);
+    for (uint i = 0; i < ids.length; i++) {
+      uint104 id = ids[i];
+      incidentDisplays[i] = getIncidentDisplay(id);
+    }
+    return incidentDisplays;
+  }
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   /// Submits an incident for assessment
   ///
-  /// @param productId    Product identifier on which the incident occured
-  /// @param priceBefore  The price of the token before the incident
-  /// @param date         The date the incident occured
+  /// @param productId            Product identifier on which the incident occured
+  /// @param priceBefore          The price of the token before the incident
+  /// @param priceBefore          The price of the token before the incident
+  /// @param date                 The date the incident occured
+  /// @param expectedPayoutInNXM  The date the incident occured
+  /// @param ipfsMetadata         An IPFS hash that stores metadata about the incident that is
+  ///                             emitted as an event.
   function submitIncident(
     uint24 productId,
     uint96 priceBefore,
-    uint32 date
+    uint32 date,
+    uint expectedPayoutInNXM,
+    string calldata ipfsMetadata
   ) external onlyAdvisoryBoard override {
     ICover coverContract = cover();
-
-    uint96 activeCoverAmountInNXM = 0; // TODO: FIXME need to use user input to set the NXM reward instead of using activeCoverAmountInNXM
-
     Incident memory incident = Incident(
       0, // assessmentId
       productId,
@@ -114,9 +167,6 @@ contract Incidents is IIncidents, MasterAwareV2 {
     ) = coverContract.productTypes(productType);
     require(redeemMethod == uint8(ICover.RedeemMethod.Incident), "Invalid redeem method");
 
-    uint expectedPayoutInNXM = activeCoverAmountInNXM * uint(config.incidentExpectedPayoutRatio) /
-      INCIDENT_EXPECTED_PAYOUT_DENOMINATOR;
-
     // Determine the total rewards that should be minted for the assessors based on cover period
     uint totalReward = min(
       uint(config.maxRewardInNXMWad) * PRECISION,
@@ -125,6 +175,8 @@ contract Incidents is IIncidents, MasterAwareV2 {
     uint assessmentId = assessment().startAssessment(totalReward, 0);
     incident.assessmentId = uint80(assessmentId);
     incidents.push(incident);
+
+    emit MetadataSubmitted(incidents.length - 1, expectedPayoutInNXM, ipfsMetadata);
   }
 
   /// Redeems payouts for eligible covers matching an accepted incident
@@ -134,8 +186,13 @@ contract Incidents is IIncidents, MasterAwareV2 {
   /// @param incidentId      Index of the incident
   /// @param coverId         Index of the cover to be redeemed
   /// @param depeggedTokens  The amount of depegged tokens to be swapped for the payoutAsset.
-  function redeemIncidentPayout(uint104 incidentId, uint32 coverId, uint depeggedTokens)
-  external onlyMember override returns (uint, uint8) {
+  /// @param payoutAddress   The addres where the payout must be sent to
+  function redeemIncidentPayout(
+    uint104 incidentId,
+    uint32 coverId,
+    uint depeggedTokens,
+    address payable payoutAddress
+  ) external onlyMember override returns (uint, uint8) {
     Incident memory incident =  incidents[incidentId];
     {
       IAssessment.Poll memory poll = assessment().getPoll(incident.assessmentId);
@@ -161,11 +218,9 @@ contract Incidents is IIncidents, MasterAwareV2 {
 
     uint payoutAmount;
     uint8 payoutAsset;
-    address payable coverOwner;
     address coveredToken;
-    {
-      ICover coverContract = ICover(getInternalContractAddress(ID.CO));
 
+    {
       uint24 productId;
       uint32 start;
       uint32 period;
@@ -176,20 +231,29 @@ contract Incidents is IIncidents, MasterAwareV2 {
         coverAmount,
         start,
         period,
-      ) = coverContract.covers(coverId);
+      ) = ICover(getInternalContractAddress(ID.CO)).covers(coverId);
 
       {
-        uint deductiblePriceBefore = uint(incident.priceBefore) * uint(config.incidentPayoutDeductibleRatio) /
+        uint deductiblePriceBefore = uint(incident.priceBefore) * uint(config.payoutDeductibleRatio) /
           INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
-        payoutAmount = depeggedTokens * deductiblePriceBefore / PRECISION;
+        uint payoutAssetDecimals;
+        {
+          IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
+          (,payoutAssetDecimals,) = poolContract.assets(payoutAsset);
+        }
+        payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** uint(payoutAssetDecimals));
       }
-      {
-        require(payoutAmount <= coverAmount, "Payout exceeds covered amount");
-        coverOwner = payable(coverContract.performPayoutBurn(coverId, payoutAmount));
-        require(start + period >= incident.date, "Cover end date is before the incident");
-        require(start < incident.date, "Cover start date is after the incident");
-        uint16 productType;
 
+      {
+
+        require(coverNFT.isApprovedOrOwner(msg.sender, coverId), "Only the cover owner or approved addresses can redeem");
+        require(payoutAmount <= coverAmount, "Payout exceeds covered amount");
+        require(start + period >= incident.date, "Cover end date is before the incident");
+        require(start <= incident.date, "Cover start date is after the incident");
+
+        ICover coverContract = ICover(getInternalContractAddress(ID.CO));
+        coverContract.performPayoutBurn(coverId, payoutAmount);
+        uint16 productType;
         (
           productType,
           coveredToken,
@@ -207,12 +271,9 @@ contract Incidents is IIncidents, MasterAwareV2 {
       }
     }
 
+    SafeERC20.safeTransferFrom(IERC20(coveredToken), msg.sender, address(this), depeggedTokens);
     IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
-    // [todo] While only members can call this function it could make sense to reduce transfer
-    // drilling by transfering and sending the payout to the original cover owner instead that
-    // isn't necessarily a member but calls this function through a distributor instead.
-    IERC20(coveredToken).transferFrom(msg.sender, address(this), depeggedTokens);
-    poolContract.sendPayout(payoutAsset, coverOwner, payoutAmount);
+    poolContract.sendPayout(payoutAsset, payoutAddress, payoutAmount);
 
     return (payoutAmount, payoutAsset);
   }
@@ -229,7 +290,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
     token.transfer(destination, transferAmount);
   }
 
-  /// Redeems payouts for accepted claims
+  /// Allows to update configurable aprameters through governance
   ///
   /// @param paramNames  An array of elements from UintParams enum
   /// @param values      An array of the new values, each one corresponding to the parameter
@@ -244,12 +305,16 @@ contract Incidents is IIncidents, MasterAwareV2 {
         newConfig.payoutRedemptionPeriodInDays = uint8(values[i]);
         continue;
       }
-      if (paramNames[i] == UintParams.incidentExpectedPayoutRatio) {
-        newConfig.incidentExpectedPayoutRatio = uint16(values[i]);
+      if (paramNames[i] == UintParams.expectedPayoutRatio) {
+        newConfig.expectedPayoutRatio = uint16(values[i]);
         continue;
       }
-      if (paramNames[i] == UintParams.incidentExpectedPayoutRatio) {
-        newConfig.incidentExpectedPayoutRatio = uint16(values[i]);
+      if (paramNames[i] == UintParams.payoutDeductibleRatio) {
+        newConfig.payoutDeductibleRatio = uint16(values[i]);
+        continue;
+      }
+      if (paramNames[i] == UintParams.maxRewardInNXMWad) {
+        newConfig.maxRewardInNXMWad = uint16(values[i]);
         continue;
       }
       if (paramNames[i] == UintParams.rewardRatio) {

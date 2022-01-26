@@ -2,7 +2,7 @@
 
 pragma solidity ^0.5.0;
 
-contract ClaimProofs {
+contract LegacyClaimProofs {
 
   event ProofAdded(uint indexed coverId, address indexed owner, string ipfsHash);
 

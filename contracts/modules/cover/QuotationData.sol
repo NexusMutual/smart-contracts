@@ -77,7 +77,6 @@ contract QuotationData is LegacyMasterAware {
     allCovers.push(Cover(address(0), "0x00", 0, 0, 0, address(0), 0));
     uint[] memory arr = new uint[](1);
     allCoverHolded.push(HoldCover(0, address(0), address(0), 0x00, arr, 0));
-
   }
 
   /// @dev Adds the amount in Total Sum Assured of a given currency of a given smart contract address.

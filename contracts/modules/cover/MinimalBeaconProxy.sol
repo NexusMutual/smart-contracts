@@ -1,5 +1,6 @@
 import "@openzeppelin/contracts-v4/proxy/Proxy.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
+import "hardhat/console.sol";
 
 /**
  * @dev This contract implements a proxy that gets the implementation address for each call from a {UpgradeableBeacon}.

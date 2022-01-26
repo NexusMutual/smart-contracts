@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity >=0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/LegacyMasterAware.sol";
@@ -45,8 +45,14 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
   constructor (
     address masterAddress,
     address _daiAddress,
-    address legacyClaimsData
+    address legacyClaimsData,
+    bool isTestnet
   ) public {
+    // [todo] Add public function that transfers rewards to assessors then transfer the remained
+    // to TokenController
+    if (!isTestnet) {
+      revert("Don't deploy before updating the transfer list of rewardable accounts");
+    }
     changeMasterAddress(masterAddress);
     cd = ILegacyClaimsData(legacyClaimsData);
     DAI = _daiAddress;
@@ -246,19 +252,6 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
     }
     (reward,,,) = getRewardToBeGiven(check, voteId, 1);
 
-  }
-
-  /**
-   * @dev Function used to claim all pending rewards : Claims Assessment + Risk Assessment + Governance
-   * Claim assesment, Risk assesment, Governance rewards
-   */
-  function claimAllPendingReward(uint records) public isMemberAndcheckPause {
-    _claimRewardToBeDistributed(records);
-    pooledStaking.withdrawReward(msg.sender);
-    uint governanceRewards = gv.claimReward(msg.sender, records);
-    if (governanceRewards > 0) {
-      require(tk.transfer(msg.sender, governanceRewards));
-    }
   }
 
   /**

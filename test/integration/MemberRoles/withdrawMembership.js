@@ -18,7 +18,6 @@ const coverTemplate = {
 };
 
 describe('withdrawMembership', function () {
-
   it('withdraws membership for current member', async function () {
     const { mr: memberRoles, tk: token } = this.contracts;
 
@@ -42,15 +41,4 @@ describe('withdrawMembership', function () {
     const { mr: memberRoles } = this.contracts;
     await expectRevert.unspecified(memberRoles.withdrawMembership({ from: nonMember1 }));
   });
-
-  it('reverts when withdrawing membership for member with active covers', async function () {
-    const { mr: memberRoles } = this.contracts;
-
-    const member = member1;
-    await enrollMember(this.contracts, [member]);
-    await buyCover({ ...this.contracts, cover: coverTemplate, coverHolder: member });
-
-    await expectRevert.unspecified(memberRoles.withdrawMembership({ from: member }));
-  });
-
 });

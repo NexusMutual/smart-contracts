@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
@@ -77,14 +80,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== CONSTRUCTOR ========== */
 
-  constructor(IQuotationData _quotationData, IProductsV1 _productsV1, address _stakingPoolImplementation, address _coverNFT) public {
+  constructor(
+    IQuotationData _quotationData,
+    IProductsV1 _productsV1,
+    address _stakingPoolImplementation,
+    address _coverNFT,
+    address coverProxy
+  ) public {
 
     quotationData = _quotationData;
     productsV1 = _productsV1;
     stakingPoolProxyCodeHash = keccak256(
       abi.encodePacked(
         type(MinimalBeaconProxy).creationCode,
-        abi.encode(address(this))
+        abi.encode(coverProxy)
       )
     );
     stakingPoolImplementation =  _stakingPoolImplementation;
@@ -93,8 +102,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  /// @dev Migrates covers from V1 to Cover.sol, meant to be used by Claims.sol and Gateway.sol to
-  /// allow the users of distributor contracts to migrate their NFTs.
+  /// @dev Migrates covers from V1. Meant to be used by Claims.sol and Gateway.sol to allow the
+  /// users of distributor contracts to migrate their NFTs.
   ///
   /// @param coverId     V1 cover identifier
   /// @param fromOwner   The address from where this function is called that needs to match the
@@ -103,7 +112,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint coverId,
     address fromOwner,
     address toNewOwner
-  ) public override onlyInternal {
+  ) external override onlyInternal {
+    _migrateCoverFromOwner(coverId, fromOwner, toNewOwner);
+  }
+
+  /// @dev Migrates covers from V1
+  ///
+  /// @param coverId     V1 cover identifier
+  /// @param fromOwner   The address from where this function is called that needs to match the
+  /// @param toNewOwner  The address for which the V2 cover NFT is minted
+  function _migrateCoverFromOwner(
+    uint coverId,
+    address fromOwner,
+    address toNewOwner
+  ) internal {
     (
       /*uint coverId*/,
       address coverOwner,
@@ -123,7 +145,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(fromOwner == coverOwner, "Cover can only be migrated by its owner");
     require(LegacyCoverStatus(status) != LegacyCoverStatus.Migrated, "Cover has already been migrated");
     require(LegacyCoverStatus(status) != LegacyCoverStatus.ClaimAccepted, "A claim has already been accepted");
-    require(block.timestamp < validUntil, "Cover expired");
 
     {
       (uint claimCount , bool hasOpenClaim,  /*hasAcceptedClaim*/) = tokenController().coverInfo(coverId);
@@ -136,10 +157,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
 
     // mint the new cover
+    uint productId = productsV1.getNewProductId(legacyProductId);
+    Product memory product = products[productId];
+    ProductType memory productType = productTypes[product.productType];
+    require(
+      block.timestamp < validUntil + productType.gracePeriodInDays * 1 days,
+      "Cover outside of the grace period"
+    );
 
     coverData.push(
       CoverData(
-        productsV1.getNewProductId(legacyProductId), // productId
+        uint24(productId),
         currencyCode == "ETH" ? 0 : 1, //payoutAsset
         0 // amountPaidOut
       )
@@ -158,14 +186,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       toNewOwner,
       coverData.length - 1 // newCoverId
     );
+
   }
 
-  /// @dev Migrates covers from V1 to Cover.sol, meant to be used my EOA members
+  /// @dev Migrates covers from V1. Meant to be used by EOA Nexus Mutual members
   ///
-  /// @param coverId     Legacy (V1) cover identifier
+  /// @param coverIds    Legacy (V1) cover identifiers
   /// @param toNewOwner  The address for which the V2 cover NFT is minted
-  function migrateCover(uint coverId, address toNewOwner) external override {
-    migrateCoverFromOwner(coverId, msg.sender, toNewOwner);
+  function migrateCovers(uint[] calldata coverIds, address toNewOwner) external override {
+    for (uint i = 0; i < coverIds.length; i++) {
+      _migrateCoverFromOwner(coverIds[i], msg.sender, toNewOwner);
+    }
   }
 
   function buyCover(
@@ -253,19 +284,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     BuyCoverParams memory params,
     IStakingPool stakingPool,
     uint amount
-  ) internal returns (uint, uint) {
+  ) internal returns (uint a, uint b) {
 
     Product memory product = products[params.productId];
     return stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
-        params.productId,
-        amount,
-        REWARD_DENOMINATOR,
-        params.period,
-        globalCapacityRatio,
-        globalRewardsRatio,
-        product.capacityReductionRatio,
-        product.initialPriceRatio
-      ));
+      params.productId,
+      amount,
+      REWARD_DENOMINATOR,
+      params.period,
+      globalCapacityRatio,
+      globalRewardsRatio,
+      product.capacityReductionRatio,
+      product.initialPriceRatio
+    ));
   }
 
   function editCover(
@@ -357,6 +388,18 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     return owner;
   }
 
+  function transferCovers(address from, address to, uint256[] calldata coverIds) external override {
+    require(
+      msg.sender == internalContracts[uint(ID.MR)],
+      "Cover: Only MemberRoles is permitted to use operator transfer"
+    );
+
+    ICoverNFT coverNFTContract = ICoverNFT(coverNFT);
+    for (uint256 i = 0; i < coverIds.length; i++) {
+      coverNFTContract.operatorTransferFrom(from, to, coverIds[i]);
+    }
+  }
+
 
   function retrievePayment(
     uint premium,
@@ -418,10 +461,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   /* ========== Staking Pool creation ========== */
 
 
-  function createStakingPool(address manager) public {
+  function createStakingPool(address manager) public override {
 
     address addr = address(new MinimalBeaconProxy{ salt: bytes32(uint(stakingPoolCounter)) }(address(this)));
-    IStakingPool(addr).initialize(manager);
+    IStakingPool(addr).initialize(manager, stakingPoolCounter);
 
     stakingPoolCounter++;
 
@@ -469,10 +512,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     globalRewardsRatio = _globalRewardsRatio;
   }
 
-  function setInitialPrice(uint productId, uint16 initialPriceRatio) external onlyAdvisoryBoard {
-
-    require(initialPriceRatio >= GLOBAL_MIN_PRICE_RATIO, "Cover: Initial price must be greater than the global min price");
-    products[productId].initialPriceRatio = initialPriceRatio;
+  function setInitialPrices(
+    uint[] calldata productIds,
+    uint16[] calldata initialPriceRatios
+  ) external override onlyAdvisoryBoard {
+    require(productIds.length == initialPriceRatios.length, "Cover: Array lengths must not be different");
+    for (uint i = 0; i < productIds.length; i++) {
+      require(initialPriceRatios[i] >= GLOBAL_MIN_PRICE_RATIO, "Cover: Initial price must be greater than the global min price");
+      products[productIds[i]].initialPriceRatio = initialPriceRatios[i];
+    }
   }
 
   function setCapacityReductionRatio(uint productId, uint16 reduction) external onlyAdvisoryBoard {
@@ -480,15 +528,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     products[productId].capacityReductionRatio = reduction;
   }
 
-  function addProduct(Product calldata product) external onlyAdvisoryBoard {
-    products.push(product);
+  function addProducts(Product[] calldata newProducts) external override onlyAdvisoryBoard {
+    for (uint i = 0; i < newProducts.length; i++) {
+      products.push(newProducts[i]);
+    }
   }
 
-  function addProductType(ProductType calldata productType) external onlyAdvisoryBoard {
-    productTypes.push(productType);
+  function addProductTypes(ProductType[] calldata newProductTypes) external override onlyAdvisoryBoard {
+    for (uint i = 0; i < newProductTypes.length; i++) {
+      productTypes.push(newProductTypes[i]);
+    }
   }
 
-  function setCoverAssetsFallback(uint32 _coverAssetsFallback) external onlyGovernance {
+  function setCoverAssetsFallback(uint32 _coverAssetsFallback) external override onlyGovernance {
     coverAssetsFallback = _coverAssetsFallback;
   }
 
@@ -526,6 +578,5 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
-    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
   }
 }

@@ -10,15 +10,19 @@ interface IMemberRoles {
 
   function switchMembership(address _newAddress) external;
 
+  function switchMembershipAndAssets(
+    address newAddress,
+    uint[] calldata coverIds,
+    address[] calldata stakingPools
+  ) external;
+
   function switchMembershipOf(address member, address _newAddress) external;
 
   function swapOwner(address _newOwnerAddress) external;
 
+  function addInitialABMembers(address[] calldata abArray) external;
+
   function kycVerdict(address payable _userAddress, bool verdict) external;
-
-  function getClaimPayoutAddress(address payable _member) external view returns (address payable);
-
-  function setClaimPayoutAddress(address payable _address) external;
 
   function totalRoles() external view returns (uint256);
 
@@ -39,4 +43,8 @@ interface IMemberRoles {
   function memberAtIndex(uint _memberRoleId, uint index) external view returns (address, bool);
 
   function membersLength(uint _memberRoleId) external view returns (uint);
+
+  event MemberRole(uint256 indexed roleId, bytes32 roleName, string roleDescription);
+
+  event switchedMembership(address indexed previousMember, address indexed newMember, uint timeStamp);
 }

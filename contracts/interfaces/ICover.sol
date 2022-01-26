@@ -106,7 +106,7 @@ interface ICover {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function migrateCover(uint coverId, address toNewOwner) external;
+  function migrateCovers(uint[] calldata coverIds, address toNewOwner) external;
 
   function migrateCoverFromOwner(uint coverId, address fromOwner, address toNewOwner) external;
 
@@ -115,9 +115,24 @@ interface ICover {
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
+  function createStakingPool(address manager) external;
+
+  function setInitialPrices(
+    uint[] calldata productId,
+    uint16[] calldata initialPriceRatio
+  ) external;
+
+  function addProducts(Product[] calldata newProducts) external;
+
+  function addProductTypes(ProductType[] calldata newProductTypes) external;
+
+  function setCoverAssetsFallback(uint32 _coverAssetsFallback) external;
+
   function performPayoutBurn(uint coverId, uint amount) external returns (address /*owner*/);
 
   function coverNFT() external returns (address);
+
+  function transferCovers(address from, address to, uint256[] calldata coverIds) external;
 
   /* ========== EVENTS ========== */
 

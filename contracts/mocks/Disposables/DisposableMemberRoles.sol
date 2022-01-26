@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity >=0.5.0;
 
 import "../../interfaces/ITokenController.sol";
 import "../../modules/governance/MemberRoles.sol";
@@ -19,7 +19,7 @@ contract DisposableMemberRoles is MemberRoles {
     require(!constructorCheck);
     constructorCheck = true;
     launched = true;
-    launchedOn = now;
+    launchedOn = block.timestamp;
 
     require(
       _initialMembers.length == _initialMemberTokens.length,
@@ -42,6 +42,11 @@ contract DisposableMemberRoles is MemberRoles {
     for (uint i = 0; i < _initialABMembers.length; i++) {
       _updateRole(_initialABMembers[i], uint(Role.AdvisoryBoard), true);
     }
+
+    // _unused2 was previously used by the claimPayoutAddress mapping which is only used by armor.
+    // The purpose of this initialization is to be able to check the storage cleanup in integration
+    // tests.
+    _unused2[0x181Aea6936B407514ebFC0754A37704eB8d98F91] = payable(0x1337DEF18C680aF1f9f45cBcab6309562975b1dD);
   }
 
 }

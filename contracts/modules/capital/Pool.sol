@@ -291,51 +291,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     mcr = IMCR(master.getLatestAddress("MC"));
   }
 
-  /* cover purchase functions */
-
-  /// @dev Enables user to purchase cover with funding in ETH.
-  /// @param smartCAdd  Smart Contract Address
-  function makeCoverBegin(
-    address smartCAdd,
-    bytes4 coverCurr,
-    uint[] memory coverDetails,
-    uint16 coverPeriod,
-    uint8 _v,
-    bytes32 _r,
-    bytes32 _s
-  ) public override payable onlyMember whenNotPaused {
-
-    require(coverCurr == "ETH", "Pool: Unexpected asset type");
-    require(msg.value == coverDetails[1], "Pool: ETH amount does not match premium");
-
-    quotation.verifyCoverDetails(payable(msg.sender), smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
-  }
-
-  /**
-   * @dev Enables user to purchase cover via currency asset eg DAI
-   */
-  function makeCoverUsingCA(
-    address smartCAdd,
-    bytes4 coverCurr,
-    uint[] memory coverDetails,
-    uint16 coverPeriod,
-    uint8 _v,
-    bytes32 _r,
-    bytes32 _s
-  ) public override onlyMember whenNotPaused {
-    require(coverCurr != "ETH", "Pool: Unexpected asset type");
-    quotation.verifyCoverDetails(
-      payable(msg.sender),
-      smartCAdd,
-      coverCurr,
-      coverDetails,
-      coverPeriod,
-      _v,
-      _r,
-      _s
-    );
-  }
-
   function transferAssetFrom (
     address assetAddress,
     address from,

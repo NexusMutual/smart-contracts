@@ -4,49 +4,61 @@ pragma solidity ^0.8.0;
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ICover.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/IProductsV1.sol";
+import "../../modules/cover/MinimalBeaconProxy.sol";
 
 contract DisposableCover is MasterAwareV2 {
+
+  /* ========== STATE VARIABLES ========== */
 
   ICover.Product[] public products;
   ICover.ProductType[] public productTypes;
 
-  mapping(uint => ICover.CoverData) public covers;
-  mapping(uint => ICover.PoolAllocation[]) public coverAllocations;
+  ICover.CoverData[] private coverData;
+  mapping(uint => mapping(uint => ICover.PoolAllocation[])) public coverSegmentAllocations;
 
-  mapping(uint => uint) initialPrices;
+  /*
+    Each Cover has an array of segments. A new segment is created everytime a cover is edited to
+    deliniate the different cover periods.
+  */
+  mapping(uint => ICover.CoverSegment[]) coverSegments;
 
-  mapping(uint => uint96) public activeCoverAmountInNXM;
+  uint24 public globalCapacityRatio;
+  uint24 public globalRewardsRatio;
+  uint64 public stakingPoolCounter;
 
-  uint32 public capacityFactor;
-  uint32 public coverCount;
-  address public coverNFT;
+  /*
+    bit map representing which assets are globally supported for paying for and for paying out covers
+    If the the bit at position N is 1 it means asset with index N is supported.this
+    Eg. coverAssetsFallback = 3 (in binary 11) means assets at index 0 and 1 are supported.
+  */
+  uint32 public coverAssetsFallback;
 
-
-  /* === CONSTANTS ==== */
-
-  uint public REWARD_BPS = 5000;
-  uint public constant PERCENTAGE_CHANGE_PER_DAY_BPS = 100;
-  uint public constant BASIS_PRECISION = 10000;
-  uint public constant STAKE_SPEED_UNIT = 100000e18;
-  uint public constant PRICE_CURVE_EXPONENT = 7;
-  uint public constant MAX_PRICE_PERCENTAGE = 1e20;
-
-  /* ========== CONSTRUCTOR ========== */
-
-  constructor() {
+  function addProducts(ICover.Product[] calldata newProducts) public {
+    for (uint i = 0; i < newProducts.length; i++) {
+      products.push(newProducts[i]);
+    }
   }
 
-  function initialize(address _coverNFT) public {
-    require(coverNFT == address(0), "Cover: already initialized");
-    coverNFT = _coverNFT;
+  function addProductTypes(ICover.ProductType[] calldata newProductTypes) public {
+    for (uint i = 0; i < newProductTypes.length; i++) {
+      productTypes.push(newProductTypes[i]);
+    }
   }
 
-  function addProductType(ICover.ProductType calldata productType) public {
-    productTypes.push(productType);
+  function setInitialPrices(
+    uint[] calldata productIds,
+    uint16[] calldata initialPriceRatios
+  ) public {
+    require(productIds.length == initialPriceRatios.length, "Cover: Array lengths must not be different");
+    for (uint i = 0; i < productIds.length; i++) {
+      products[productIds[i]].initialPriceRatio = initialPriceRatios[i];
+    }
   }
 
-  function addProduct(ICover.Product calldata product) public {
-    products.push(product);
+  function setCoverAssetsFallback(uint32 _coverAssetsFallback) external {
+    coverAssetsFallback = _coverAssetsFallback;
   }
 
   function changeDependentContractAddress() external override {}

@@ -2,26 +2,25 @@
 
 pragma solidity ^0.8.0;
 
+import "../../utils/SafeUintCast.sol";
 import "../../abstract/LegacyMasterAware.sol";
 import "../../interfaces/ILegacyClaimsData.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IAssessment.sol";
+import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IQuotationData.sol";
 import "./external/LockHandler.sol";
 
 contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
-
+  using SafeUintCast for uint;
   IQuotationData public immutable quotationData;
 
   INXMToken public override token;
   IPooledStaking public pooledStaking;
   IAssessment public assessment;
-  // 96 bits from this part of the slot were part of uint minCALockTime.  You should initialize
-  // whatever you might want to fit here to avoid any leftover storage issues.
-
-  uint internal _unused;
+  IGovernance public governance;
 
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
@@ -29,6 +28,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   constructor(address quotationDataAddress) public {
     quotationData = IQuotationData(quotationDataAddress);
   }
+
   /**
   * @dev Just for interface
   */
@@ -320,6 +320,36 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
     amount += stakerDeposit + stakerReward + assessmentStake;
   }
+
+  /// Withdraws governance rewards
+  /// @dev This function requires a batchSize that fits in one block. It cannot be 0.
+  function withdrawGovernanceRewards(uint batchSize) public isMemberAndcheckPause {
+    uint governanceRewards = governance.claimReward(msg.sender, batchSize);
+    require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
+    token.transfer(msg.sender, governanceRewards);
+  }
+
+  /// Function used to claim all pending rewards in one tx. It can be used to selectively withdraw
+  /// rewards.
+  ///
+  /// @param batchSize  The maximum number of iterations to avoid unbounded loops
+  /// @param batchSize  The maximum number of iterations to avoid unbounded loops
+  function withdrawPendingRewards(
+    address forUser,
+    bool fromGovernance,
+    bool fromAssessment,
+    uint batchSize
+  ) external isMemberAndcheckPause {
+    if (fromAssessment) {
+      assessment.withdrawRewards(forUser, batchSize.toUint104());
+    }
+    if (fromGovernance) {
+      uint governanceRewards = governance.claimReward(forUser, batchSize);
+      require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
+      require(token.transfer(forUser, governanceRewards), "TokenController: Governance rewards transfer failed");
+    }
+  }
+
 
   /**
   * @dev Returns the total amount of locked and staked tokens.

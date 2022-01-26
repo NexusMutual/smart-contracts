@@ -31,14 +31,14 @@ const submitClaim = ({ accounts, contracts, config }) => async ({
   amount = parseEther('1'),
   coverPeriod = 0,
   payoutAsset = 0,
-  ipfsProofHash = '',
+  ipfsMetadata = '',
   sender,
   value,
 }) => {
   const [deposit] = await contracts.claims.getAssessmentDepositAndReward(amount, coverPeriod, payoutAsset);
   return await contracts.claims
     .connect(sender || accounts[0])
-    ['submitClaim(uint32,uint96,string)'](coverId, amount, ipfsProofHash, {
+    ['submitClaim(uint32,uint96,string)'](coverId, amount, ipfsMetadata, {
       value: value || deposit,
     });
 };

@@ -1,18 +1,23 @@
 const getVersionDataTemplate = network => [
   {
-    code: 'CD',
-    smartContractCode: 'CD',
-    contractName: 'claimData',
+    code: 'LCD',
+    smartContractCode: 'LCD',
+    contractName: 'legacyClaimData',
   },
   {
-    code: 'CL',
-    smartContractCode: 'CL',
-    contractName: 'claim1',
+    code: 'LCL',
+    smartContractCode: 'LCL',
+    contractName: 'legacyClaim1',
   },
   {
-    code: 'CR',
-    smartContractCode: 'CR',
-    contractName: 'claimsReward',
+    code: 'LCR',
+    smartContractCode: 'LCR',
+    contractName: 'legacyClaimsReward',
+  },
+  {
+    code: 'LCP',
+    smartContractCode: 'LCP',
+    contractName: 'LegacyClaimProofs',
   },
   {
     address:
@@ -88,11 +93,6 @@ const getVersionDataTemplate = network => [
     contractName: 'tokenData',
   },
   {
-    code: 'TF',
-    smartContractCode: 'TF',
-    contractName: 'tokenFunction',
-  },
-  {
     address:
       network === 'kovan' ? '0x22b58f1ebedfca50fef632bd73368b2fda96d541' : '0x773616e4d11a78f511299002da57a0a94577f1f4',
     code: 'CHAINLINK-DAI-ETH',
@@ -116,14 +116,24 @@ const getVersionDataTemplate = network => [
       '[{"inputs":[{"internalType":"uint256","name":"_roundDuration","type":"uint256"},{"internalType":"uint256","name":"_roundsStartTime","type":"uint256"},{"internalType":"address","name":"masterAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"address","name":"stakedContract","type":"address"},{"indexed":false,"internalType":"address","name":"sponsor","type":"address"},{"indexed":false,"internalType":"address","name":"tokenAddress","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"address","name":"receiver","type":"address"},{"indexed":false,"internalType":"uint256","name":"roundNumber","type":"uint256"}],"name":"Claimed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"stakedContract","type":"address"},{"indexed":true,"internalType":"address","name":"sponsor","type":"address"},{"indexed":false,"internalType":"address","name":"tokenAddress","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"Deposited","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"address","name":"stakedContract","type":"address"},{"indexed":false,"internalType":"address","name":"sponsor","type":"address"},{"indexed":false,"internalType":"address","name":"tokenAddress","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"Withdrawn","type":"event"},{"inputs":[{"internalType":"address[]","name":"stakedContracts","type":"address[]"},{"internalType":"address[]","name":"sponsors","type":"address[]"},{"internalType":"address[]","name":"tokenAddresses","type":"address[]"}],"name":"claimRewards","outputs":[{"internalType":"uint256[]","name":"tokensRewarded","type":"uint256[]"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"stakedContract","type":"address"},{"internalType":"address","name":"tokenAddress","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"depositRewards","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"stakedContract","type":"address"},{"internalType":"address","name":"tokenAddress","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"uint256","name":"rate","type":"uint256"}],"name":"depositRewardsAndSetRate","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"staker","type":"address"},{"internalType":"address","name":"stakedContract","type":"address"},{"internalType":"address","name":"sponsor","type":"address"},{"internalType":"address","name":"tokenAddress","type":"address"}],"name":"getAvailableStakerReward","outputs":[{"internalType":"uint256","name":"rewardAmount","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"staker","type":"address"},{"internalType":"address[]","name":"stakedContracts","type":"address[]"},{"internalType":"address[]","name":"sponsors","type":"address[]"},{"internalType":"address[]","name":"tokenAddresses","type":"address[]"}],"name":"getAvailableStakerRewards","outputs":[{"internalType":"uint256[]","name":"tokensRewarded","type":"uint256[]"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getCurrentRound","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"stakedContract","type":"address"},{"internalType":"address","name":"sponsor","type":"address"},{"internalType":"address","name":"tokenAddress","type":"address"},{"internalType":"address","name":"staker","type":"address"}],"name":"getLastRoundClaimed","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"stakedContract","type":"address"},{"internalType":"address","name":"sponsor","type":"address"},{"internalType":"address","name":"tokenAddress","type":"address"}],"name":"getRewardPool","outputs":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"uint256","name":"rate","type":"uint256"},{"internalType":"uint256","name":"nextRateStartRound","type":"uint256"},{"internalType":"uint256","name":"nextRate","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address[]","name":"stakedContracts","type":"address[]"},{"internalType":"address[]","name":"sponsors","type":"address[]"},{"internalType":"address[]","name":"tokenAddresses","type":"address[]"}],"name":"getRewardPools","outputs":[{"internalType":"uint256[]","name":"amount","type":"uint256[]"},{"internalType":"uint256[]","name":"rate","type":"uint256[]"},{"internalType":"uint256[]","name":"nextRateStartRound","type":"uint256[]"},{"internalType":"uint256[]","name":"nextRate","type":"uint256[]"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"master","outputs":[{"internalType":"contract INXMMaster","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"rewardRateScale","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"roundDuration","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"roundsStartTime","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"stakedContract","type":"address"},{"internalType":"address","name":"tokenAddress","type":"address"},{"internalType":"uint256","name":"rate","type":"uint256"}],"name":"setRewardRate","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"stakedContract","type":"address"},{"internalType":"address","name":"tokenAddress","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"withdrawRewards","outputs":[],"stateMutability":"nonpayable","type":"function"}]',
   },
   {
-    code: 'CP',
-    smartContractCode: 'CP',
-    contractName: 'ClaimProofs',
-  },
-  {
     code: 'GW',
     smartContractCode: 'GW',
     contractName: 'Gateway',
+  },
+  {
+    code: 'SO',
+    smartContractCode: 'SO',
+    contractName: 'SwapOperator',
+  },
+  {
+    code: 'CO',
+    smartContractCode: 'CO',
+    contractName: 'Cover',
+  },
+  {
+    code: 'AS',
+    smartContractCode: 'AS',
+    contractName: 'Assessment',
   },
   {
     code: 'IC',
@@ -131,9 +141,14 @@ const getVersionDataTemplate = network => [
     contractName: 'Incidents',
   },
   {
-    code: 'SO',
-    smartContractCode: 'SO',
-    contractName: 'SwapOperator',
+    code: 'CL',
+    smartContractCode: 'CL',
+    contractName: 'Claims',
+  },
+  {
+    code: 'SP',
+    smartContractCode: 'SP',
+    contractName: 'StakingPool',
   },
 ];
 

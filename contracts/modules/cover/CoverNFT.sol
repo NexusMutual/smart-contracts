@@ -28,6 +28,11 @@ contract CoverNFT is ERC721 {
     _burn(tokenId);
   }
 
+  function operatorTransferFrom(address from, address to, uint256 tokenId) external onlyOperator {
+    _transfer(from, to, tokenId);
+  }
+
+
   function changeOperator(address _newOperator) public onlyOperator returns (bool) {
     operator = _newOperator;
     return true;

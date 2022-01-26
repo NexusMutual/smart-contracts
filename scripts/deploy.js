@@ -159,7 +159,7 @@ async function main () {
 
   console.log('Deploying quotation contracts');
   const qt = await Quotation.new();
-  const qd = await QuotationData.new(owner, selfKyc.address, master.address);
+  const qd = await QuotationData.new(owner, selfKyc.address);
 
   console.log('Deploying disposable contracts');
   const { instance: cover, implementation: coverImpl } = await deployProxy(DisposableCover, []);
@@ -398,6 +398,9 @@ async function main () {
   }
 
   console.log('Setting parameters');
+
+  console.log('Setting QuotationData parameters');
+  await qd.changeMasterAddress(master.address);
 
   console.log('Setting ClaimsData parameters');
   await lcd.changeMasterAddress(master.address);

@@ -8,9 +8,8 @@ contract TestnetQuotationData is QuotationData {
 
   constructor(
     address _authQuoteAdd,
-    address _kycAuthAdd,
-    address masterAddress
-  ) QuotationData(_authQuoteAdd, _kycAuthAdd, masterAddress) public {
+    address _kycAuthAdd
+  ) QuotationData(_authQuoteAdd, _kycAuthAdd) public {
     /* noop */
   }
 

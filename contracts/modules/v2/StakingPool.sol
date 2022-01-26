@@ -3,10 +3,11 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts-v4/utils/Strings.sol";
+import "../../interfaces/IStakingPool.sol";
 
-import "hardhat/console.sol";
+contract StakingPool is IStakingPool, ERC20 {
 
-contract StakingPool is ERC20 {
 
   struct PoolBucket {
     // slot 0
@@ -40,17 +41,6 @@ contract StakingPool is ERC20 {
     // uint48 _unused;
   }
 
-  struct AllocateCapacityParams {
-    uint productId;
-    uint coverAmount;
-    uint rewardsDenominator;
-    uint period;
-    uint globalCapacityRatio;
-    uint globalRewardsRatio;
-    uint capacityReductionRatio;
-    uint initialPrice;
-  }
-
   struct Staker {
     uint96 unstakeAmount;
     uint16 lastUnstakeBucket;
@@ -66,6 +56,8 @@ contract StakingPool is ERC20 {
     uint96 value;
     uint32 lastUpdateTime;
   }
+
+  uint public poolId;
 
   /*
   (productId, poolAddress) => lastPrice
@@ -130,11 +122,12 @@ contract StakingPool is ERC20 {
   uint96 public maxCapacity;
   uint96 public totalLeverage;
 
-  address public manager;
+  address public override manager;
 
   /* immutables */
   ERC20 public immutable nxm;
   address public immutable coverContract;
+  address public immutable memberRoles;
 
   /* constants */
   uint public constant TOKEN_PRECISION = 1e18;
@@ -166,20 +159,27 @@ contract StakingPool is ERC20 {
     _;
   }
 
-  constructor (address _nxm, address _coverContract) ERC20("Staked NXM", "SNXM") {
+  constructor (uint _poolId, address _nxm, address _coverContract, address _memberRoles)
+  ERC20("Nexus Mutual Staking Pool", "NMSPT") {
     nxm = ERC20(_nxm);
     coverContract = _coverContract;
-
+    memberRoles = _memberRoles;
+    poolId = _poolId;
   }
 
-  function initialize(address _manager) external onlyCoverContract {
+  function initialize(address _manager, uint _poolId) external override onlyCoverContract {
     require(lastPoolBucketIndex == 0, "Staking Pool: Already initialized");
     lastPoolBucketIndex = uint16(block.timestamp / BUCKET_SIZE);
     lastUnstakeBucketIndex = uint16(block.timestamp / BUCKET_SIZE);
     manager = _manager;
+    poolId = _poolId;
   }
 
   /* View functions */
+
+  function name() public view override returns (string memory) {
+    return string(abi.encodePacked(super.name(), " ", Strings.toString(poolId)));
+  }
 
   function min(uint a, uint b) internal pure returns (uint) {
     return a < b ? a : b;
@@ -189,7 +189,27 @@ contract StakingPool is ERC20 {
     return a > b ? a : b;
   }
 
+  function getAvailableCapacity(
+    uint productId,
+    uint capacityFactor
+  ) external override view returns (uint) {
+    //
+  }
+
+  function getCapacity(uint productId, uint capacityFactor) external override view returns (uint) {}
+
+  function getUsedCapacity(uint productId) external override view returns (uint) {}
+
+  function getTargetPrice(uint productId) external override view returns (uint) {}
+
+  function getStake(uint productId) external override view returns (uint) {}
+
   /* State-changing functions */
+
+  function operatorTransferFrom(address from, address to, uint256 amount) external override {
+    require(msg.sender == memberRoles, "StakingPool: Caller is not MemberRoles");
+    _transfer(from, to, amount);
+  }
 
   function processPoolBuckets() internal returns (uint staked) {
 
@@ -233,7 +253,9 @@ contract StakingPool is ERC20 {
 
   /* callable by cover contract */
 
-  function allocateCapacity(AllocateCapacityParams calldata params) external returns (uint, uint) {
+  function allocateCapacity(
+    AllocateCapacityParams calldata params
+  ) external override returns (uint, uint) {
 
     uint staked = processPoolBuckets();
     uint currentBucket = block.timestamp / BUCKET_SIZE;
@@ -290,6 +312,17 @@ contract StakingPool is ERC20 {
     );
 
     return (coverAmount, calculatePremium(actualPrice, coverAmount, params.period));
+  }
+
+  function freeCapacity(
+    uint productId,
+    uint previousPeriod,
+    uint previousStartTime,
+    uint previousRewardAmount,
+    uint periodReduction,
+    uint coveredAmount
+  ) external override {
+
   }
 
   function burnStake() external {

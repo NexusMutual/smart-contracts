@@ -1,5 +1,7 @@
-const { accounts, artifacts, web3 } = require('hardhat');
+const { accounts, artifacts, web3, ethers } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
+const { getContractAddress } = require('@ethersproject/address');
+const { parseEther } = ethers.utils;
 
 const { setupUniswap } = require('../utils');
 const { ContractTypes } = require('../utils').constants;
@@ -8,8 +10,23 @@ const { proposalCategories } = require('../utils');
 const { enrollMember } = require('./utils/enroll');
 
 const { BN } = web3.utils;
-const { getAccounts } = require('../utils').accounts;
+const { getAccounts, stakingPoolManagers } = require('../utils').accounts;
 const { members } = getAccounts(accounts);
+
+// Convert web3 instances to ethers.js
+const web3ToEthers = (x, signers) => {
+  const { contracts, rates } = x;
+  const { daiToEthRate, ethToDaiRate } = rates;
+
+  const accounts = getAccounts(signers);
+  return {
+    contracts: Object.keys(contracts)
+      .map(x => ({ val: new ethers.Contract(contracts[x].address, contracts[x].abi, accounts.defaultSender), key: x }))
+      .reduce((acc, x) => ({ ...acc, [x.key]: x.val }), {}),
+    rates: { daiToEthRate: parseEther(daiToEthRate.toString()), ethToDaiRate },
+    accounts: accounts,
+  };
+};
 
 async function setup () {
   // external
@@ -36,6 +53,8 @@ async function setup () {
   const SwapOperator = artifacts.require('SwapOperator');
   const CoverNFT = artifacts.require('CoverNFT');
   const Cover = artifacts.require('Cover');
+  const StakingPool = artifacts.require('StakingPool');
+  const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
   // temporary contracts used for initialization
   const DisposableNXMaster = artifacts.require('DisposableNXMaster');
@@ -115,7 +134,7 @@ async function setup () {
   // const lcl = await LegacyClaims.new();
   // const lic = await LegacyIncidents.new();
   const lcd = await LegacyClaimsData.new();
-  const lcr = await LegacyClaimsReward.new(master.address, dai.address, lcd.address);
+  const lcr = await LegacyClaimsReward.new(master.address, dai.address, lcd.address, true);
 
   const mc = await MCR.new(ZERO_ADDRESS);
 
@@ -134,7 +153,7 @@ async function setup () {
   const productsV1 = await ProductsV1.new();
 
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
-  const td = await TokenData.new(owner);
+  const td = await TokenData.new();
   const qd = await QuotationData.new(QE, owner);
   const qt = await Quotation.new(productsV1.address, qd.address);
 
@@ -142,9 +161,10 @@ async function setup () {
   const ic = await deployProxy(DisposableIncidents, []);
   const as = await deployProxy(DisposableAssessment, []);
   const cl = await deployProxy(DisposableClaims, []);
-  const cover = await deployProxy(DisposableCover, []);
 
-  const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NXC', cover.address);
+  const cover = await deployProxy(DisposableCover, []);
+  const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
+  const stakingPool = await CoverMockStakingPool.new(tk.address, cover.address, mr.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'QT', 'TF', 'CR'];
@@ -214,44 +234,65 @@ async function setup () {
   await as.initialize(master.address);
   await ic.initialize(master.address);
   await cl.initialize(master.address);
-  await cover.initialize(coverNFT.address);
 
   const REDEEM_METHOS = {
     CLAIM: 0,
     INCIDENT: 1,
   };
 
-  await cover.addProductType({
-    descriptionIpfsHash: 'protocolCoverIPFSHash',
-    redeemMethod: REDEEM_METHOS.CLAIM,
-    gracePeriodInDays: 30,
-  });
-  await cover.addProductType({
-    descriptionIpfsHash: 'custodyCoverIPFSHash',
-    redeemMethod: REDEEM_METHOS.CLAIM,
-    gracePeriodInDays: 90,
-  });
-  await cover.addProductType({
-    descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
-    redeemMethod: REDEEM_METHOS.INCIDENT,
-    gracePeriodInDays: 14,
-  });
+  await cover.addProductTypes([
+    // Protocol Cover
+    {
+      descriptionIpfsHash: 'protocolCoverIPFSHash',
+      redeemMethod: REDEEM_METHOS.CLAIM,
+      gracePeriodInDays: 30,
+    },
+    // Custody Cover
+    {
+      descriptionIpfsHash: 'custodyCoverIPFSHash',
+      redeemMethod: REDEEM_METHOS.CLAIM,
+      gracePeriodInDays: 90,
+    },
+    // Yield Token Cover
+    {
+      descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
+      redeemMethod: REDEEM_METHOS.INCIDENT,
+      gracePeriodInDays: 14,
+    },
+  ]);
 
-  await cover.addProduct({
-    productType: 0,
-    productAddress: '0x0000000000000000000000000000000000000000',
-    coverAssets: 0,
-  });
-  await cover.addProduct({
-    productType: 1,
-    productAddress: '0x0000000000000000000000000000000000000000',
-    coverAssets: 0,
-  });
-  await cover.addProduct({
-    productType: 2,
-    productAddress: '0x0000000000000000000000000000000000000001',
-    coverAssets: 2,
-  });
+  await cover.addProducts([
+    {
+      productType: 0, // Protocol Cover
+      productAddress: '0x0000000000000000000000000000000000000000',
+      coverAssets: 0, // Use fallback
+      initialPriceRatio: 100,
+      capacityReductionRatio: 0,
+    },
+    {
+      productType: 1, // Custody Cover
+      productAddress: '0x0000000000000000000000000000000000000000',
+      coverAssets: 0, // Use fallback
+      initialPriceRatio: 100,
+      capacityReductionRatio: 0,
+    },
+    {
+      productType: 2, // Yield Token Cover
+      productAddress: '0x0000000000000000000000000000000000000001',
+      coverAssets: 0b01, // ETH
+      initialPriceRatio: 100,
+      capacityReductionRatio: 0,
+    },
+    {
+      productType: 2, // Yield Token Cover
+      productAddress: '0x0000000000000000000000000000000000000002',
+      coverAssets: 0b10, // DAI
+      initialPriceRatio: 100,
+      capacityReductionRatio: 0,
+    },
+  ]);
+
+  await cover.setCoverAssetsFallback(0b11); // eth and dai
 
   await lcd.changeMasterAddress(master.address);
   await lcd.updateUintParameters(hex('CAMINVT'), 36); // min voting time 36h
@@ -282,8 +323,17 @@ async function setup () {
   await upgradeProxy(ic.address, Incidents, [master.address, coverNFT.address]);
   await upgradeProxy(cl.address, Claims, [master.address, coverNFT.address]);
   await upgradeProxy(as.address, Assessment, [master.address]);
-  await upgradeProxy(cover.address, Cover, [qd.address, productsV1.address]);
+  await upgradeProxy(cover.address, Cover, [
+    qd.address,
+    productsV1.address,
+    stakingPool.address,
+    coverNFT.address,
+    cover.address, // The proxy contract
+  ]);
+
+  // [todo] We should probably call changeDependentContractAddress on every contract
   await gateway.changeDependentContractAddress();
+  await cover.changeDependentContractAddress();
 
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
@@ -303,7 +353,6 @@ async function setup () {
   await web3.eth.sendTransaction({ from: owner, to: p1.address, value: POOL_ETHER });
   await dai.transfer(p1.address, POOL_DAI);
 
-  const ethEthRate = 100;
   const ethToDaiRate = 20000;
 
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ether((ethToDaiRate / 100).toString()));
@@ -349,6 +398,8 @@ async function setup () {
     ic: await Incidents.at(ic.address),
     cl: await Claims.at(cl.address),
     as: await Assessment.at(as.address),
+    cover: await Cover.at(cover.address),
+    coverNFT: await CoverNFT.at(coverNFT.address),
   };
 
   const nonInternal = { priceFeedOracle, swapOperator };
@@ -363,13 +414,29 @@ async function setup () {
 
   this.rates = {
     daiToEthRate,
-    ethEthRate,
     ethToDaiRate,
   };
 
   this.contractType = contractType;
 
   await enrollMember(this.contracts, members);
+
+  const signers = await ethers.getSigners();
+  this.withEthers = web3ToEthers(this, signers);
+
+  for (let i = 0; i < 3; i++) {
+    const tx = await this.withEthers.contracts.cover.createStakingPool(stakingPoolManagers[i]);
+    const receipt = await tx.wait();
+    const { stakingPoolAddress } = receipt.events[0].args;
+    const stakingPoolInstance = await CoverMockStakingPool.at(stakingPoolAddress);
+    await stakingPoolInstance.setPrice(0, 100);
+    await stakingPoolInstance.setPrice(1, 100);
+    await stakingPoolInstance.setPrice(2, 100);
+    await stakingPoolInstance.setPrice(3, 100);
+    this.contracts['stakingPool' + i] = stakingPoolInstance;
+  }
+
+  this.withEthers = web3ToEthers(this, signers);
 }
 
 module.exports = setup;

@@ -136,7 +136,10 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @dev At least stakeLockupPeriodInDays must have passed since the last vote.
   ///
   /// @param amount  The amount of nxm to unstake
-  function unstake(uint96 amount) external override {
+  /// @param to      The member address where the NXM is transfered to. Useful for switching
+  ///                membership during stake lockup period and thus allowing the user to withdraw
+  ///                their staked amount to the new address when possible.
+  function unstake(uint96 amount, address to) external override {
     uint voteCount = votesOf[msg.sender].length;
     if (voteCount > 0) {
       Vote memory vote = votesOf[msg.sender][voteCount - 1];
@@ -146,7 +149,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       );
     }
 
-    nxm.transfer(msg.sender, amount);
+    nxm.transfer(to, amount);
     stakeOf[msg.sender].amount -= amount;
   }
 
@@ -155,10 +158,10 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @dev Only withdraws until the last finalized poll.
   ///
   /// @param user        The address of the staker for which the rewards are withdrawn
-  /// @param untilIndex  The index until which (but not including) the rewards should be withdrawn.
+  /// @param batchSize   The index until which (but not including) the rewards should be withdrawn.
   ///                    Used if a large number of assessments accumulates and the function doesn't
   ///                    fit in one block, thus requiring multiple batched transactions.
-  function withdrawRewards(address user, uint104 untilIndex) external override
+  function withdrawRewards(address user, uint104 batchSize) external override
   returns (uint withdrawn, uint withdrawnUntilIndex) {
     // This is the index until which (but not including) the previous withdrawal was processed.
     // The current withdrawal starts from this index.
@@ -166,9 +169,9 @@ contract Assessment is IAssessment, MasterAwareV2 {
     {
       uint voteCount = votesOf[user].length;
       require(rewardsWithdrawableFromIndex < voteCount, "No withdrawable rewards");
-      // If untilIndex is a non-zero value, it means the withdrawal is going to be batched in
+      // If batchSize is a non-zero value, it means the withdrawal is going to be batched in
       // multiple transactions.
-      withdrawnUntilIndex = untilIndex > 0 ? untilIndex : voteCount;
+      withdrawnUntilIndex = batchSize > 0 ? rewardsWithdrawableFromIndex + batchSize : voteCount;
     }
 
     Vote memory vote;

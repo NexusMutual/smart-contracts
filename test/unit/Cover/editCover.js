@@ -6,7 +6,7 @@ const { hex, zeroPadRight } = require('../utils').helpers;
 
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
-describe.only('editCover', function () {
+describe('editCover', function () {
 
   const coverBuyFixture = {
     productId: 0,

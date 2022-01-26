@@ -105,7 +105,7 @@ interface IAssessment {
 
   function stake(uint96 amount) external;
 
-  function unstake(uint96 amount) external;
+  function unstake(uint96 amount, address to) external;
 
   function withdrawRewards(address user, uint104 untilIndex) external
   returns (uint withdrawn, uint withdrawUntilIndex);
@@ -133,7 +133,6 @@ interface IAssessment {
 
   event StakeDeposited(address user, uint104 amount);
   event StakeWithdrawn(address indexed user, uint96 amount);
-  event ProofSubmitted(uint indexed coverId, address indexed owner, string ipfsHash);
   event VoteCast(address indexed user, uint96 stakedAmount, bool accepted);
   event RewardWithdrawn(address user, uint256 amount);
   event FraudResolution(uint assessmentId, address assessor, Poll poll);

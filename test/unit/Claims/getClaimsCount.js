@@ -1,4 +1,5 @@
 const { ethers } = require('hardhat');
+const { expect } = require('chai');
 
 const { submitClaim, daysToSeconds, ASSET } = require('./helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');

@@ -1,13 +1,16 @@
 const { assert } = require('chai');
-const { ethers: { utils: { parseEther } } } = require('hardhat');
+const {
+  ethers: {
+    utils: { parseEther },
+  },
+} = require('hardhat');
 
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 const IStakingPool = artifacts.require('IStakingPool');
 
 describe('createStakingPool', function () {
-
   it('should create new pool', async function () {
-    const { cover } = this;
+    const { cover, nxm, memberRoles } = this;
 
     const {
       advisoryBoardMembers: [ab1],
@@ -17,16 +20,16 @@ describe('createStakingPool', function () {
 
     const productId = 0;
 
-    const initialPrice = '260';
-    const targetPrice = '260';
+    const initialPrice = 260;
+    const targetPrice = 260;
     const activeCover = parseEther('8000');
     const capacity = parseEther('10000');
 
-    const stakingPool = await CoverMockStakingPool.new();
+    const stakingPool = await CoverMockStakingPool.new(nxm.address, cover.address, memberRoles.address);
     const capacityFactor = '1';
 
     await cover.connect(gv1).setGlobalCapacityRatio(capacityFactor);
-    await cover.connect(ab1).setInitialPrice(productId, initialPrice);
+    await cover.connect(ab1).setInitialPrices([productId], [initialPrice]);
 
     await stakingPool.setStake(productId, capacity);
     await stakingPool.setTargetPrice(productId, targetPrice);

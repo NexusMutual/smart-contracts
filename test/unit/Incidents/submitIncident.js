@@ -1,5 +1,4 @@
 const { ethers } = require('hardhat');
-const { time } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
 
 const { parseEther } = ethers.utils;
@@ -11,17 +10,21 @@ describe('submitIncident', function () {
 
     {
       const productId = 0;
-      const currentTime = await time.latest();
+      const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await expect(
-        incidents.connect(advisoryBoard).submitIncident(productId, parseEther('1.1'), currentTime.toNumber()),
+        incidents
+          .connect(advisoryBoard)
+          .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), ''),
       ).to.be.revertedWith('Invalid redeem method');
     }
 
     {
       const productId = 1;
-      const currentTime = await time.latest();
+      const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await expect(
-        incidents.connect(advisoryBoard).submitIncident(productId, parseEther('1.1'), currentTime.toNumber()),
+        incidents
+          .connect(advisoryBoard)
+          .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), ''),
       ).to.be.revertedWith('Invalid redeem method');
     }
   });
@@ -32,8 +35,10 @@ describe('submitIncident', function () {
 
     {
       const productId = 2;
-      const currentTime = await time.latest();
-      await incidents.connect(advisoryBoard).submitIncident(productId, parseEther('1.1'), currentTime.toNumber());
+      const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+      await incidents
+        .connect(advisoryBoard)
+        .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), '');
       const expectedAssessmentId = 0;
       const { assessmentId } = await incidents.incidents(0);
       expect(assessmentId).to.be.equal(expectedAssessmentId);
@@ -41,8 +46,10 @@ describe('submitIncident', function () {
 
     {
       const productId = 2;
-      const currentTime = await time.latest();
-      await incidents.connect(advisoryBoard).submitIncident(productId, parseEther('1.1'), currentTime.toNumber());
+      const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+      await incidents
+        .connect(advisoryBoard)
+        .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), '');
       const expectedAssessmentId = 1;
       const { assessmentId } = await incidents.incidents(1);
       expect(assessmentId).to.be.equal(expectedAssessmentId);
@@ -54,44 +61,67 @@ describe('submitIncident', function () {
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
 
     const expectedProductId = 2;
-    const currentTime = await time.latest();
+    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const expectedPriceBefore = parseEther('1.1');
     await incidents
       .connect(advisoryBoard)
-      .submitIncident(expectedProductId, expectedPriceBefore, currentTime.toNumber());
+      .submitIncident(expectedProductId, expectedPriceBefore, currentTime, parseEther('20000'), '');
     const { productId, date, priceBefore } = await incidents.incidents(0);
     expect(productId).to.be.equal(expectedProductId);
-    expect(date).to.be.equal(currentTime.toNumber());
+    expect(date).to.be.equal(currentTime);
     expect(priceBefore).to.be.equal(expectedPriceBefore);
   });
 
-  it('calculates the totalReward using the active cover amount', async function () {
-    const { assessment, incidents, cover } = this.contracts;
+  it('calculates the total reward using the expected payout amount parameter provided', async function () {
+    const { assessment, incidents } = this.contracts;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
 
     const productId = 2;
-    const currentTime = await time.latest();
-    const activeCoverAmountInNXM = await cover.activeCoverAmountInNXM(productId);
-    await incidents.connect(advisoryBoard).submitIncident(productId, parseEther('1.1'), currentTime.toNumber());
-    const expectedTotalReward = activeCoverAmountInNXM
-      .mul(this.config.incidentExpectedPayoutRatio)
-      .mul(this.config.rewardRatio)
-      .div(10000)
-      .div(10000);
+    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+    const expectedPayoutAmount = parseEther('100');
+    await incidents
+      .connect(advisoryBoard)
+      .submitIncident(productId, parseEther('1.1'), currentTime, expectedPayoutAmount, '');
+    const expectedTotalReward = expectedPayoutAmount.mul(this.config.rewardRatio).div(10000);
     const { totalReward } = await assessment.assessments(0);
     expect(totalReward).to.be.equal(expectedTotalReward);
   });
 
   it('calculates the totalReward capped at config.maxRewardInNXMWad', async function () {
-    const { assessment, incidents, cover } = this.contracts;
+    const { assessment, incidents } = this.contracts;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
-
-    await cover.setActiveCoverAmountInNXM(2, parseEther('100000000'));
+    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const productId = 2;
-    const currentTime = await time.latest();
-    await incidents.connect(advisoryBoard).submitIncident(productId, parseEther('1.1'), currentTime.toNumber());
+
+    await incidents
+      .connect(advisoryBoard)
+      .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100000000'), '');
     const expectedTotalReward = parseEther(this.config.maxRewardInNXMWad.toString());
+
     const { totalReward } = await assessment.assessments(0);
     expect(totalReward).to.be.equal(expectedTotalReward);
+  });
+
+  it('emits MetadataSubmitted event with the provided ipfsMetadata when it is not empty string', async function () {
+    const { incidents } = this.contracts;
+    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+    const productId = 2;
+
+    await expect(
+      incidents
+        .connect(advisoryBoard)
+        .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('10000'), 'ipfsMetadata1'),
+    )
+      .to.emit(incidents, 'MetadataSubmitted')
+      .withArgs(0, parseEther('10000'), 'ipfsMetadata1');
+
+    await expect(
+      incidents
+        .connect(advisoryBoard)
+        .submitIncident(productId, parseEther('1.2'), currentTime, parseEther('20000'), 'ipfsMetadata2'),
+    )
+      .to.emit(incidents, 'MetadataSubmitted')
+      .withArgs(1, parseEther('20000'), 'ipfsMetadata2');
   });
 });

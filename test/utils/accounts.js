@@ -7,8 +7,8 @@ const advisoryBoardMembers = accounts.slice(10, 15);
 const internalContracts = accounts.slice(15, 20);
 const nonInternalContracts = accounts.slice(20, 25);
 const governanceContracts = accounts.slice(25, 30);
-const notariseAddress = accounts[30];
-const generalPurpose = accounts.slice(35); // 75 general purpose addresses
+const stakingPoolManagers = accounts.slice(30, 35);
+const generalPurpose = accounts.slice(35); // 65 general purpose addresses
 
 const getAccounts = accounts => {
   const [defaultSender] = accounts;
@@ -18,8 +18,8 @@ const getAccounts = accounts => {
   const internalContracts = accounts.slice(15, 20);
   const nonInternalContracts = accounts.slice(20, 25);
   const governanceContracts = accounts.slice(25, 30);
-  const notariseAddress = accounts[30];
-  const generalPurpose = accounts.slice(35); // 75 general purpose addresses
+  const stakingPoolManagers = accounts.slice(30, 35);
+  const generalPurpose = accounts.slice(35); // 65 general purpose addresses
   return {
     defaultSender,
     nonMembers,
@@ -28,7 +28,7 @@ const getAccounts = accounts => {
     internalContracts,
     nonInternalContracts,
     governanceContracts,
-    notariseAddress,
+    stakingPoolManagers,
     generalPurpose,
   };
 };
@@ -42,6 +42,6 @@ module.exports = {
   internalContracts,
   nonInternalContracts,
   governanceContracts,
-  notariseAddress,
+  stakingPoolManagers,
   generalPurpose,
 };

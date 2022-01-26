@@ -6,6 +6,17 @@ const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../utils').constants;
 const { hex, zeroPadRight } = require('../utils').helpers;
 
+const getDeployAddressAfter = async txCount => {
+  const signers = await ethers.getSigners();
+  const { defaultSender } = getAccounts(signers);
+  const transactionCount = await defaultSender.getTransactionCount();
+  const nextAddress = getContractAddress({
+    from: defaultSender.address,
+    nonce: transactionCount + txCount,
+  });
+  return nextAddress;
+};
+
 async function setup () {
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const Pool = await ethers.getContractFactory('CoverMockPool');
@@ -53,15 +64,18 @@ async function setup () {
   await mcr.deployed();
   await mcr.setMCR(parseEther('600000'));
 
-  const stakingPool = await StakingPool.deploy();
+  const futureCoverNFTAddress = getDeployAddressAfter(2);
 
-  const transactionCount = await owner.getTransactionCount();
-  const futureCoverNFTAddress = getContractAddress({
-    from: owner.address,
-    nonce: transactionCount + 1, // add 1 because the Cover contract is deployed before
-  });
+  const coverAddress = getDeployAddressAfter(1);
 
-  const cover = await Cover.deploy(quotationData.address, ethers.constants.AddressZero, stakingPool.address, futureCoverNFTAddress);
+  const stakingPool = await StakingPool.deploy(nxm.address, coverAddress, memberRoles.address);
+  const cover = await Cover.deploy(
+    quotationData.address,
+    ethers.constants.AddressZero,
+    stakingPool.address,
+    futureCoverNFTAddress,
+    coverAddress,
+  );
   await cover.deployed();
 
   const coverNFT = await CoverNFT.deploy('NexusMutual Cover', 'NXMC', cover.address);
@@ -126,17 +140,19 @@ async function setup () {
   }
 
   // add products
-  await cover.connect(accounts.advisoryBoardMembers[0]).addProduct({
+  await cover.connect(accounts.advisoryBoardMembers[0]).addProducts([{
     productType: '1',
     productAddress: '0x0000000000000000000000000000000000000000',
     coverAssets: '1', // ETH supported
     initialPriceRatio: '1000', // 10%
     capacityReductionRatio: '0',
-  });
+  }]);
 
   this.master = master;
   this.pool = pool;
   this.dai = dai;
+  this.nxm = nxm;
+  this.memberRoles = memberRoles;
   this.chainlinkDAI = chainlinkDAI;
   this.cover = cover;
   this.accounts = accounts;

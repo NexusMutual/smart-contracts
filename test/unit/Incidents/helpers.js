@@ -5,10 +5,11 @@ const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
 const { BigNumber } = ethers;
 
-const STATUS = {
+const INCIDENT_STATUS = {
   PENDING: 0,
   ACCEPTED: 1,
   DENIED: 2,
+  EXPIRED: 3,
 };
 
 const ASSET = {
@@ -24,10 +25,7 @@ const setTime = async timestamp => {
   await mineNextBlock();
 };
 
-const getConfigurationStruct = ({ rewardRatio, incidentExpectedPayoutRatio }) => [
-  rewardRatio,
-  incidentExpectedPayoutRatio,
-];
+const getConfigurationStruct = ({ rewardRatio, expectedPayoutRatio }) => [rewardRatio, expectedPayoutRatio];
 
 const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
 
@@ -44,7 +42,7 @@ const getIncidentStruct = ({
 
 module.exports = {
   ASSET,
-  STATUS,
+  INCIDENT_STATUS,
   daysToSeconds,
   getPollStruct,
   getConfigurationStruct,

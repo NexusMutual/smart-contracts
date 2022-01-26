@@ -433,9 +433,9 @@ describe('submitClaim', function () {
     }
   });
 
-  it('emits ProofSubmitted event with the provided ipfsProofHash when it is not empty string', async function () {
+  it('emits MetadataSubmitted event with the provided ipfsMetadata when it is not empty string', async function () {
     const { claims, cover } = this.contracts;
-    const ipfsProofHash = 'ipfsProofHashMock';
+    const ipfsMetadata = 'ipfsProofHashMock';
     const [coverOwner] = this.accounts.members;
     await cover.buyCover(
       coverOwner.address,
@@ -447,12 +447,12 @@ describe('submitClaim', function () {
       [],
     );
     const coverId = 0;
-    await expect(submitClaim(this)({ coverId, ipfsProofHash, sender: coverOwner }))
-      .to.emit(claims, 'ProofSubmitted')
-      .withArgs(0, coverOwner.address, ipfsProofHash);
+    await expect(submitClaim(this)({ coverId, ipfsMetadata, sender: coverOwner }))
+      .to.emit(claims, 'MetadataSubmitted')
+      .withArgs(0, ipfsMetadata);
   });
 
-  it("doesn't emit ProofSubmitted event if ipfsProofHash is an empty string", async function () {
+  it("doesn't emit MetadataSubmitted event if ipfsMetadata is an empty string", async function () {
     const { claims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
     await cover.buyCover(
@@ -466,27 +466,9 @@ describe('submitClaim', function () {
     );
     const coverId = 0;
     await expect(submitClaim(this)({ coverId, sender: coverOwner }))
-      .not.to.emit(claims, 'ProofSubmitted')
-      .withArgs(0, coverOwner.address);
+      .not.to.emit(claims, 'MetadataSubmitted')
+      .withArgs(0, '');
   });
-
-  // it('transfers the cover NFT to the Claims contract', async function () {
-  // const { claims, cover, coverNFT } = this.contracts;
-  // const [coverOwner] = this.accounts.members;
-  // await cover.buyCover(
-  // coverOwner.address,
-  // 0, // productId
-  // ASSET.ETH,
-  // parseEther('100'),
-  // daysToSeconds(30),
-  // parseEther('2.6'),
-  // [],
-  // );
-  // const coverId = 0;
-  // await submitClaim(this)({ coverId, sender: coverOwner });
-  // const owner = await coverNFT.ownerOf(coverId);
-  // assert.equal(owner, claims.address);
-  // });
 
   it('stores the claimId in lastClaimSubmissionOnCover', async function () {
     const { claims, cover } = this.contracts;

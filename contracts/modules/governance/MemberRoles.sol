@@ -1,24 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "../../interfaces/ILegacyClaimsReward.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../interfaces/ICover.sol";
 import "../../interfaces/ITokenData.sol";
-import "../claims/LegacyClaimsReward.sol";
+import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IStakingPool.sol";
+import "../../abstract/LegacyMasterAware_sol0_8.sol";
 import "./external/Governed.sol";
 
 contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
-
   ITokenController public tc;
   ITokenData internal td;
   IQuotationData internal qd;
-  ILegacyClaimsReward internal cr;
+  ICover internal cover;
   IGovernance internal gv;
-  address internal _unused;
+  address internal _unused1;
   INXMToken public tk;
 
   struct MemberRoleDetails {
@@ -28,19 +30,13 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     address authorized;
   }
 
-  event MemberRole(uint256 indexed roleId, bytes32 roleName, string roleDescription);
-
-  event switchedMembership(address indexed previousMember, address indexed newMember, uint timeStamp);
-
-  event ClaimPayoutAddressSet(address indexed member, address indexed payoutAddress);
-
   MemberRoleDetails[] internal memberRoleData;
   bool internal constructorCheck;
   uint public maxABCount;
   bool public launched;
   uint public launchedOn;
 
-  mapping (address => address payable) internal claimPayoutAddress;
+  mapping (address => address payable) public _unused2;
 
   modifier checkRoleAuthority(uint _memberRoleId) {
     if (memberRoleData[_memberRoleId].authorized != address(0))
@@ -74,7 +70,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   function swapOwner(
     address _newOwnerAddress
   )
-  external {
+  external override {
     require(msg.sender == address(ms));
     _updateRole(ms.owner(), uint(Role.Owner), false);
     _updateRole(_newOwnerAddress, uint(Role.Owner), true);
@@ -84,14 +80,12 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
    * @dev is used to add initital advisory board members
    * @param abArray is the list of initial advisory board members
    */
-  function addInitialABMembers(address[] calldata abArray) external onlyOwner {
+  function addInitialABMembers(address[] calldata abArray) external override onlyOwner {
 
     //Ensure that NXMaster has initialized.
     require(ms.masterInitialized());
 
-    require(maxABCount >=
-      SafeMath.add(numberOfMembers(uint(Role.AdvisoryBoard)), abArray.length)
-    );
+    require(maxABCount >= numberOfMembers(uint(Role.AdvisoryBoard)) + abArray.length);
     //AB count can't exceed maxABCount
     for (uint i = 0; i < abArray.length; i++) {
       require(checkRole(abArray[i], uint(Role.Member)));
@@ -112,18 +106,18 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
    */
   function changeDependentContractAddress() public {
     td = ITokenData(ms.getLatestAddress("TD"));
-    cr = ILegacyClaimsReward(ms.getLatestAddress("CR"));
     qd = IQuotationData(ms.getLatestAddress("QD"));
     gv = IGovernance(ms.getLatestAddress("GV"));
     tk = INXMToken(ms.tokenAddress());
     tc = ITokenController(ms.getLatestAddress("TC"));
+    cover = ICover(ms.getLatestAddress("CO"));
   }
 
   /**
    * @dev to change the master address
    * @param _masterAddress is the new master address
    */
-  function changeMasterAddress(address _masterAddress) public {
+  function changeMasterAddress(address _masterAddress) public override {
 
     if (masterAddress != address(0)) {
       require(masterAddress == msg.sender);
@@ -188,14 +182,14 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
       tc.mint(userArray[i], tokens[i]);
     }
     launched = true;
-    launchedOn = now;
+    launchedOn = block.timestamp;
 
   }
 
   /**
     * @dev Called by user to pay joining membership fee
     */
-  function payJoiningFee(address _userAddress) public payable {
+  function payJoiningFee(address _userAddress) public override payable {
     require(_userAddress != address(0));
     require(!ms.isPause(), "Emergency Pause Applied");
     if (msg.sender == address(ms.getLatestAddress("QT"))) {
@@ -218,7 +212,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
    * @param _userAddress whose kyc is being performed
    * @param verdict of kyc process
    */
-  function kycVerdict(address payable _userAddress, bool verdict) public {
+  function kycVerdict(address payable _userAddress, bool verdict) public override {
   // [todo] Move kycAuthAddress to MemberRoles
     require(msg.sender == qd.kycAuthAddress());
     require(!ms.isPause());
@@ -247,32 +241,54 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   function withdrawMembership() public {
 
     require(!ms.isPause() && ms.isMember(msg.sender));
-    require(tc.totalLockedBalance(msg.sender) == 0); // solhint-disable-line
-    require(now > tk.isLockedForMV(msg.sender)); // No locked tokens for Member/Governance voting
-    require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
+    require(block.timestamp > tk.isLockedForMV(msg.sender)); // No locked tokens for Member/Governance voting
 
     gv.removeDelegation(msg.sender);
     tc.burnFrom(msg.sender, tk.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
     tc.removeFromWhitelist(msg.sender); // need clarification on whitelist
-
-    if (claimPayoutAddress[msg.sender] != address(0)) {
-      claimPayoutAddress[msg.sender] = address(0);
-      emit ClaimPayoutAddressSet(msg.sender, address(0));
-    }
   }
 
   /**
    * @dev switches membership for msg.sender to the specified address.
    * @param newAddress address of user to forward membership.
    */
-  function switchMembership(address newAddress) external {
+  function switchMembership(address newAddress) external override {
     _switchMembership(msg.sender, newAddress);
     tk.transferFrom(msg.sender, newAddress, tk.balanceOf(msg.sender));
   }
 
-  function switchMembershipOf(address member, address newAddress) external onlyInternal {
+  /// Switches membership for msg.sender to the specified address and transfers the senders'
+  /// assets in a single transaction.
+  ///
+  /// @param newAddress    Address of user to forward membership.
+  /// @param coverIds      Array of cover ids to transfer to the new address.
+  /// @param stakingPools  Array of staking pool addresses where the user has LP tokens.
+  function switchMembershipAndAssets(
+    address newAddress,
+    uint[] calldata coverIds,
+    address[] calldata stakingPools
+  ) external override {
+    _switchMembership(msg.sender, newAddress);
+    tk.transferFrom(msg.sender, newAddress, tk.balanceOf(msg.sender));
+
+    // Transfer the cover NFTs to the new address, if any were given
+    cover.transferCovers(msg.sender, newAddress, coverIds);
+
+    // Transfer the staking LP tokens to the new address, if any were given
+    for (uint256 i = 0; i < stakingPools.length; i++) {
+      IStakingPool stakingLPToken = IStakingPool(stakingPools[i]);
+      uint fullAmount = stakingLPToken.balanceOf(msg.sender);
+      stakingLPToken.operatorTransferFrom(msg.sender, newAddress, fullAmount);
+    }
+  }
+
+  function switchMembershipOf(address member, address newAddress) external override onlyInternal {
     _switchMembership(member, newAddress);
+  }
+
+  function storageCleanup() external {
+    _unused2[0x181Aea6936B407514ebFC0754A37704eB8d98F91] = payable(0x0000000000000000000000000000000000000000);
   }
 
   /**
@@ -281,10 +297,10 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
    */
   function _switchMembership(address member, address newAddress) internal {
 
-    require(!ms.isPause() && ms.isMember(member) && !ms.isMember(newAddress));
-    require(tc.totalLockedBalance(member) == 0); // solhint-disable-line
-    require(now > tk.isLockedForMV(member)); // No locked tokens for Member/Governance voting
-    require(cr.getAllPendingRewardOfUser(member) == 0); // No pending reward to be claimed(claim assesment).
+    require(!ms.isPause(), "System is paused");
+    require(ms.isMember(member), "The current address is not a member");
+    require(!ms.isMember(newAddress), "The new address is already a member");
+    require(block.timestamp > tk.isLockedForMV(member), "Locked for governance voting"); // No locked tokens for Governance voting
 
     gv.removeDelegation(member);
     tc.addToWhitelist(newAddress);
@@ -292,59 +308,31 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     _updateRole(member, uint(Role.Member), false);
     tc.removeFromWhitelist(member);
 
-    address payable previousPayoutAddress = claimPayoutAddress[member];
-
-    if (previousPayoutAddress != address(0)) {
-
-      address payable storedAddress = previousPayoutAddress == newAddress ? address(0) : previousPayoutAddress;
-
-      claimPayoutAddress[member] = address(0);
-      claimPayoutAddress[newAddress] = storedAddress;
-
-      // emit event for old address reset
-      emit ClaimPayoutAddressSet(member, address(0));
-
-      if (storedAddress != address(0)) {
-        // emit event for setting the payout address on the new member address if it's non zero
-        emit ClaimPayoutAddressSet(newAddress, storedAddress);
-      }
-    }
-
-    emit switchedMembership(member, newAddress, now);
-  }
-
-  function getClaimPayoutAddress(address payable _member) external view returns (address payable) {
-    address payable payoutAddress = claimPayoutAddress[_member];
-    return payoutAddress != address(0) ? payoutAddress : _member;
-  }
-
-  function setClaimPayoutAddress(address payable _address) external {
-
-    require(!ms.isPause(), "system is paused");
-    require(ms.isMember(msg.sender), "sender is not a member");
-    require(_address != msg.sender, "should be different than the member address");
-
-    claimPayoutAddress[msg.sender] = _address;
-    emit ClaimPayoutAddressSet(msg.sender, _address);
+    emit switchedMembership(member, newAddress, block.timestamp);
   }
 
   /// @dev Return number of member roles
-  function totalRoles() public view returns (uint256) {//solhint-disable-line
+  function totalRoles() public override view returns (uint256) {//solhint-disable-line
     return memberRoleData.length;
   }
 
   /// @dev Change Member Address who holds the authority to Add/Delete any member from specific role.
   /// @param _roleId roleId to update its Authorized Address
   /// @param _newAuthorized New authorized address against role id
-  function changeAuthorized(uint _roleId, address _newAuthorized) public checkRoleAuthority(_roleId) {//solhint-disable-line
+  function changeAuthorized(
+    uint _roleId,
+    address _newAuthorized
+  ) public override checkRoleAuthority(_roleId) {//solhint-disable-line
     memberRoleData[_roleId].authorized = _newAuthorized;
   }
 
   /// @dev Gets the member addresses assigned by a specific role
-  /// @param _memberRoleId Member role id
-  /// @return roleId Role id
-  /// @return allMemberAddress Member addresses of specified role id
-  function members(uint _memberRoleId) public view returns (uint, address[] memory memberArray) {//solhint-disable-line
+  /// @param _memberRoleId  Member role id
+  /// @return roleId        Role id
+  /// @return memberArray   Member addresses of specified role id
+  function members(
+    uint _memberRoleId
+  ) public override view returns (uint, address[] memory memberArray) {//solhint-disable-line
     uint length = memberRoleData[_memberRoleId].memberAddress.length;
     uint i;
     uint j = 0;
@@ -363,17 +351,23 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   /// @dev Gets all members' length
   /// @param _memberRoleId Member role id
   /// @return memberRoleData[_memberRoleId].memberCounter Member length
-  function numberOfMembers(uint _memberRoleId) public view returns (uint) {//solhint-disable-line
+  function numberOfMembers(
+    uint _memberRoleId
+  ) public override view returns (uint) {//solhint-disable-line
     return memberRoleData[_memberRoleId].memberCounter;
   }
 
   /// @dev Return member address who holds the right to add/remove any member from specific role.
-  function authorized(uint _memberRoleId) public view returns (address) {//solhint-disable-line
+  function authorized(
+    uint _memberRoleId
+  ) public override view returns (address) {//solhint-disable-line
     return memberRoleData[_memberRoleId].authorized;
   }
 
   /// @dev Get All role ids array that has been assigned to a member so far.
-  function roles(address _memberAddress) public view returns (uint[] memory) {//solhint-disable-line
+  function roles(
+    address _memberAddress
+  ) public override view returns (uint[] memory) {//solhint-disable-line
     uint length = memberRoleData.length;
     uint[] memory assignedRoles = new uint[](length);
     uint counter = 0;
@@ -390,7 +384,10 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   /// @param _memberAddress Address of member
   /// @param _roleId Checks member's authenticity with the roleId.
   /// i.e. Returns true if this roleId is assigned to member
-  function checkRole(address _memberAddress, uint _roleId) public view returns (bool) {//solhint-disable-line
+  function checkRole(
+    address _memberAddress,
+    uint _roleId
+  ) public override view returns (bool) {//solhint-disable-line
     if (_roleId == uint(Role.UnAssigned))
       return true;
     else
@@ -402,7 +399,9 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
 
   /// @dev Return total number of members assigned against each role id.
   /// @return totalMembers Total members in particular role id
-  function getMemberLengthForAllRoles() public view returns (uint[] memory totalMembers) {//solhint-disable-line
+  function getMemberLengthForAllRoles() public override view returns (
+    uint[] memory totalMembers
+  ) {//solhint-disable-line
     totalMembers = new uint[](memberRoleData.length);
     for (uint i = 0; i < memberRoleData.length; i++) {
       totalMembers[i] = numberOfMembers(i);
@@ -421,12 +420,12 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     // require(_roleId != uint(Role.TokenHolder), "Membership to Token holder is detected automatically");
     if (_active) {
       require(!memberRoleData[_roleId].memberActive[_memberAddress]);
-      memberRoleData[_roleId].memberCounter = SafeMath.add(memberRoleData[_roleId].memberCounter, 1);
+      memberRoleData[_roleId].memberCounter = memberRoleData[_roleId].memberCounter + 1;
       memberRoleData[_roleId].memberActive[_memberAddress] = true;
       memberRoleData[_roleId].memberAddress.push(_memberAddress);
     } else {
       require(memberRoleData[_roleId].memberActive[_memberAddress]);
-      memberRoleData[_roleId].memberCounter = SafeMath.sub(memberRoleData[_roleId].memberCounter, 1);
+      memberRoleData[_roleId].memberCounter = memberRoleData[_roleId].memberCounter - 1;
       delete memberRoleData[_roleId].memberActive[_memberAddress];
     }
   }
@@ -441,15 +440,16 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     address _authorized
   ) internal {
     emit MemberRole(memberRoleData.length, _roleName, _roleDescription);
-    memberRoleData.push(MemberRoleDetails(0, new address[](0), _authorized));
+    MemberRoleDetails storage newMemberRoleData = memberRoleData.push();
+    newMemberRoleData.memberCounter = 0;
+    newMemberRoleData.memberAddress = new address[](0);
+    newMemberRoleData.authorized = _authorized;
   }
 
-  /**
-   * @dev to check if member is in the given member array
-   * @param _memberAddress in concern
-   * @param memberArray in concern
-   * @return boolean to represent the presence
-   */
+  /// @dev Checks if a member address is in the given members array
+  /// @param _memberAddress  The address that's checked against memberArray
+  /// @param memberArray     Array of member addresses
+  /// @return memberExists   True if the member exists
   function _checkMemberInArray(
     address _memberAddress,
     address[] memory memberArray
@@ -496,12 +496,17 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     launchedOn = 0;
   }
 
-  function memberAtIndex(uint _memberRoleId, uint index) external view returns (address, bool) {
+  function memberAtIndex(
+    uint _memberRoleId,
+    uint index
+  ) external override view returns (address, bool) {
     address memberAddress = memberRoleData[_memberRoleId].memberAddress[index];
     return (memberAddress, memberRoleData[_memberRoleId].memberActive[memberAddress]);
   }
 
-  function membersLength(uint _memberRoleId) external view returns (uint) {
+  function membersLength(
+    uint _memberRoleId
+  ) external override view returns (uint) {
     return memberRoleData[_memberRoleId].memberAddress.length;
   }
 }

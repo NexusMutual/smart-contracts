@@ -413,6 +413,16 @@ contract StakingPool is ERC20 {
     return actualPrice;
   }
 
+  /**
+   * @dev Calculates the actual price and the base price for a given amount of tokens
+   * @param amount Amount of cover to be bought
+   * @param activeCover Total amount of active cover
+   * @param capacity Total capacity for the product
+   * @param initialPrice Initial price set for the product
+   * @param lastBasePrice Last recorded base price (during the last capacity allocation)
+   * @param targetPrice Target price set by the pool manager
+   * @param blockTimestamp Current block timestamp
+  **/
   function getPrices(
     uint amount,
     uint activeCover,

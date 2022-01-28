@@ -87,6 +87,7 @@ interface IIncidents {
   function redeemIncidentPayout(
     uint104 incidentId,
     uint32 coverId,
+    uint segmentId,
     uint depeggedTokens,
     address payable payoutAddress
   ) external returns (uint payoutAmount, uint8 payoutAsset);

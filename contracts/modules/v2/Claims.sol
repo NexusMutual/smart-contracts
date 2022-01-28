@@ -77,7 +77,7 @@ contract Claims is IClaims, MasterAwareV2 {
 
   function _getAssessmentDepositAndReward(
     uint requestedAmount,
-    uint coverPeriod,
+    uint segmentPeriod,
     uint payoutAsset
   ) internal view returns (uint, uint) {
     IPool poolContract = pool();
@@ -90,7 +90,7 @@ contract Claims is IClaims, MasterAwareV2 {
     // Determine the total rewards that should be minted for the assessors based on cover period
     uint totalReward = min(
       uint(config.maxRewardInNXMWad) * PRECISION,
-      expectedPayoutInNXM * uint(config.rewardRatio) * coverPeriod / 365 days / REWARD_DENOMINATOR
+      expectedPayoutInNXM * uint(config.rewardRatio) * segmentPeriod / 365 days / REWARD_DENOMINATOR
     );
 
     uint dynamicDeposit = totalReward * nxmPriceInETH / PRECISION;
@@ -109,14 +109,14 @@ contract Claims is IClaims, MasterAwareV2 {
   /// minimum deposit value of the submitClaim tx.
   ///
   /// @param requestedAmount  The amount that is claimed
-  /// @param coverPeriod      The cover period in days
+  /// @param segmentPeriod    The cover period of the segment in days
   /// @param payoutAsset      The asset in which the payout would be made
   function getAssessmentDepositAndReward(
     uint requestedAmount,
-    uint coverPeriod,
+    uint segmentPeriod,
     uint payoutAsset
   ) external view returns (uint, uint) {
-    return _getAssessmentDepositAndReward(requestedAmount, coverPeriod, payoutAsset);
+    return _getAssessmentDepositAndReward(requestedAmount, segmentPeriod, payoutAsset);
   }
 
   /// Returns a Claim aggregated in a human-friendly format.
@@ -164,16 +164,11 @@ contract Claims is IClaims, MasterAwareV2 {
       }
     }
 
-    (
-      uint24 productId,
-      /*uint8 payoutAsset*/,
-      /*uint96 amount*/,
-      uint32 coverStart,
-      uint32 coverPeriod,
-      /*uint80 nxmPrice*/
-    ) = cover().covers(claim.coverId);
+    ICover.CoverData memory coverData = cover().coverData(claim.coverId);
 
-    uint coverEnd = coverStart + coverPeriod;
+    ICover.CoverSegment memory segment = cover().coverSegments(claim.coverId, claim.segmentId);
+
+    uint segmentEnd = segment.start + segment.period;
 
     string memory assetSymbol;
     if (claim.payoutAsset == 0) {
@@ -193,13 +188,13 @@ contract Claims is IClaims, MasterAwareV2 {
 
     return ClaimDisplay(
       id,
-      productId,
+      coverData.productId,
       claim.coverId,
       claim.amount,
       assetSymbol,
       claim.payoutAsset,
-      coverStart,
-      coverEnd,
+      segment.start,
+      segmentEnd,
       poll.start,
       poll.end,
       uint(claimStatus),
@@ -244,6 +239,7 @@ contract Claims is IClaims, MasterAwareV2 {
   ///                         no event is emitted.
   function submitClaim(
     uint32 coverId,
+    uint16 segmentId,
     uint96 requestedAmount,
     string calldata ipfsMetadata
   ) external payable override onlyMember returns (Claim memory) {
@@ -251,6 +247,7 @@ contract Claims is IClaims, MasterAwareV2 {
       coverNFT.isApprovedOrOwner(msg.sender, coverId),
       "Only the owner or approved addresses can submit a claim"
     );
+
     {
       ClaimSubmission memory previousSubmission = lastClaimSubmissionOnCover[coverId];
       if (previousSubmission.exists) {
@@ -272,38 +269,29 @@ contract Claims is IClaims, MasterAwareV2 {
       }
       lastClaimSubmissionOnCover[coverId] = ClaimSubmission(uint80(claims.length), true);
     }
-    uint32 coverStart;
-    uint32 coverPeriod;
-    uint8 payoutAsset;
+
+    ICover coverContract = cover();
+    ICover.CoverData memory coverData = cover().coverData(coverId);
+    ICover.CoverSegment memory segment = cover().coverSegments(coverId, segmentId);
+
     {
-      uint96 coverAmount;
-      uint24 productId;
-      ICover coverContract = cover();
-      (
-        productId,
-        payoutAsset,
-        coverAmount,
-        coverStart,
-        coverPeriod,
-        /*uint80 nxmPrice*/
-      ) = coverContract.covers(coverId);
       (
         uint16 productType,
         /*address productAddress*/,
         /*uint payoutAssets*/,
         /* initialPriceRatio */,
         /* capacityReductionRatio */
-      ) = coverContract.products(productId);
+      ) = coverContract.products(coverData.productId);
       (
         /*string descriptionIpfsHash*/,
         uint8 redeemMethod,
         uint16 gracePeriodInDays
       ) = coverContract.productTypes(productType);
       require(redeemMethod == uint8(ICover.RedeemMethod.Claim), "Invalid redeem method");
-      require(requestedAmount <= coverAmount, "Covered amount exceeded");
-      require(coverStart <= block.timestamp, "Cover starts in the future");
+      require(requestedAmount <= segment.amount, "Covered amount exceeded");
+      require(segment.start <= block.timestamp, "Cover starts in the future");
       require(
-        coverStart + coverPeriod + gracePeriodInDays * 1 days > block.timestamp,
+        segment.start + segment.period + gracePeriodInDays * 1 days > block.timestamp,
         "Cover is outside the grace period"
       );
     }
@@ -311,15 +299,16 @@ contract Claims is IClaims, MasterAwareV2 {
     Claim memory claim = Claim(
       0,
       coverId,
+      segmentId,
       requestedAmount,
-      payoutAsset,
+      coverData.payoutAsset,
       false // payoutRedeemed
     );
 
     (uint deposit, uint totalReward) = _getAssessmentDepositAndReward(
       requestedAmount,
-      coverPeriod,
-      payoutAsset
+      segment.period,
+      coverData.payoutAsset
     );
 
     require(msg.value >= deposit, "Assessment deposit is insufficient");

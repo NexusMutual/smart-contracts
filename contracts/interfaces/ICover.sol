@@ -98,7 +98,24 @@ interface ICover {
 
   /* ========== VIEWS ========== */
 
-  function covers(uint id) external view returns (uint24, uint8, uint96, uint32, uint32, uint16);
+  //function coverData(uint id) external view returns (
+    //uint24 productId,
+    //uint8 payoutAsset,
+    //uint96 amountPaidOut
+  //);
+
+  function coverData(uint id) external view returns (CoverData memory);
+
+  function coverSegmentsCount(uint coverId) external view returns (uint);
+
+  //function coverSegments(uint coverId, uint segmentId) external view returns (
+    //uint96 amount,
+    //uint32 start,
+    //uint32 period,
+    //uint16 priceRatio
+  //);
+
+  function coverSegments(uint coverId, uint segmentId) external view returns (CoverSegment memory);
 
   function products(uint id) external view returns (uint16, address, uint32, uint16, uint16);
 

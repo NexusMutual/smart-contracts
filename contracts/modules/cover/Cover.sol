@@ -165,6 +165,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       "Cover outside of the grace period"
     );
 
+    uint newCoverId = _coverData.length;
+
     _coverData.push(
       CoverData(
         uint24(productId),
@@ -173,20 +175,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       )
     );
 
-    _coverSegments[coverId].push(
+    _coverSegments[newCoverId].push(
       CoverSegment(
         SafeUintCast.toUint96(sumAssured * 10 ** 18),
-        uint32(block.timestamp + 1),
+        SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days),
         SafeUintCast.toUint32(coverPeriodInDays * 1 days),
         uint16(0)
       )
     );
 
-    ICoverNFT(coverNFT).safeMint(
-      toNewOwner,
-      _coverData.length - 1 // newCoverId
-    );
-
+    ICoverNFT(coverNFT).safeMint(toNewOwner, newCoverId);
   }
 
   /// @dev Migrates covers from V1. Meant to be used by EOA Nexus Mutual members
@@ -489,7 +487,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint segmentId
   ) external override view returns (CoverSegment memory) {
     CoverSegment memory segment = _coverSegments[coverId][segmentId];
-    uint amountPaidOut = _coverData[coverId].amountPaidOut;
+    uint96 amountPaidOut = _coverData[coverId].amountPaidOut;
     segment.amount = segment.amount >= amountPaidOut
       ? segment.amount - amountPaidOut
       : 0;

@@ -1,6 +1,4 @@
-const { assert } = require('chai');
-const { web3, ethers: { utils: { parseEther } } } = require('hardhat');
-const { time, expectRevert } = require('@openzeppelin/test-helpers');
+const { ethers: { utils: { parseEther } } } = require('hardhat');
 const { bnEqual } = require('../utils').helpers;
 
 const { getPrices } = require('./helpers');

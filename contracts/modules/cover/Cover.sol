@@ -219,7 +219,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     (uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(params, coverData.length, allocationRequests);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
-    console.log("payWithNXM", params.payWithNXM);
     if (params.payWithNXM) {
       retrieveNXMPayment(totalPremiumInNXM, params.commissionRatio, params.commissionDestination);
     } else {
@@ -249,8 +248,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint totalPremiumInNXM = 0;
     uint totalCoverAmountInNXM = 0;
     uint remainderAmountInNXM = 0;
-
-    console.log("nxmPriceInPayoutAsset", nxmPriceInPayoutAsset);
 
     for (uint i = 0; i < allocationRequests.length; i++) {
 

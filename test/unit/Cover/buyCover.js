@@ -16,7 +16,7 @@ const { bnEqual } = require('../utils').helpers;
 
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
-describe('buyCover', function () {
+describe.only('buyCover', function () {
 
   it('should purchase new cover using 1 staking pool', async function () {
     const { cover } = this;
@@ -146,7 +146,7 @@ describe('buyCover', function () {
     await assert.equal(storedCover.priceRatio.toString(), targetPriceRatio.toString());
   });
 
-  it.only('should purchase new cover using NXM with commission', async function () {
+  it('should purchase new cover using NXM with commission', async function () {
     const { cover, nxm, tokenController } = this;
 
     const {
@@ -350,7 +350,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const productId = 0;
-    const payoutAsset = 1; // not ETH
+    const payoutAsset = 2; // not ETH or DAI
     const period = 3600 * 24 * 30; // 30 days
 
     const amount = parseEther('1000');

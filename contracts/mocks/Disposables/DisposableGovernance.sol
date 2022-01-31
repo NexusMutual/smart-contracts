@@ -68,12 +68,6 @@ contract DisposableGovernance is IGovernance, LegacyMasterAware {
     uint voters;
   }
 
-  struct DelegateVote {
-    address follower;
-    address leader;
-    uint lastUpd;
-  }
-
   /* copied state variables */
 
   ProposalVote[] internal allVotes;

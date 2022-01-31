@@ -188,6 +188,7 @@ describe('basic functionality tests', async function () {
     const { dai } = this;
     const generationTime = await time.latest();
     await time.increase(toBN('1'));
+
     const ybDAICover = {
       amount: 30000, // 1 dai or eth
       price: '3000000000000000', // 0.003

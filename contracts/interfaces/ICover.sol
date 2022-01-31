@@ -91,6 +91,7 @@ interface ICover {
   }
 
   struct ProductType {
+    // TODO: emit an event for ipfs hash
     string descriptionIpfsHash;
     uint8 redeemMethod;
     uint16 gracePeriodInDays;

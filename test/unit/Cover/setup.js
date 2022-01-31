@@ -59,6 +59,7 @@ async function setup () {
 
   const nxm = await NXMToken.deploy();
   await nxm.deployed();
+  nxm.setOperator(tokenController.address);
 
   const mcr = await MCR.deploy();
   await mcr.deployed();
@@ -102,6 +103,7 @@ async function setup () {
   await pool.setAssets([dai.address], [18]);
 
   await pool.setTokenPrice('0', parseEther('1'));
+  await pool.setTokenPrice('1', parseEther('1'));
 
   // set contract addresses
   await master.setLatestAddress(hex('P1'), pool.address);
@@ -143,7 +145,7 @@ async function setup () {
   await cover.connect(accounts.advisoryBoardMembers[0]).addProducts([{
     productType: '1',
     productAddress: '0x0000000000000000000000000000000000000000',
-    coverAssets: '1', // ETH supported
+    coverAssets: parseInt('11', 2), // ETH and DAI supported
     initialPriceRatio: '1000', // 10%
     capacityReductionRatio: '0',
   }]);
@@ -152,6 +154,7 @@ async function setup () {
   this.pool = pool;
   this.dai = dai;
   this.nxm = nxm;
+  this.tokenController = tokenController;
   this.memberRoles = memberRoles;
   this.chainlinkDAI = chainlinkDAI;
   this.cover = cover;

@@ -447,7 +447,9 @@ contract StakingPool is IStakingPool, ERC20 {
   }
 
   /**
-   * @dev Calculates the actual price and the base price for a given amount of tokens
+   * @dev Calculates the actual price (price to be charged to the buyer)
+   *      and the newly update base price - which moves towards the target price linearly with time
+          and is subject to price bumps everytime a purchase is made
    * @param amount Amount of cover to be bought
    * @param activeCover Total amount of active cover
    * @param capacity Total capacity for the product
@@ -482,6 +484,15 @@ contract StakingPool is IStakingPool, ERC20 {
     basePrice = uint96(basePrice + priceBump);
   }
 
+  /**
+    @dev calculates the actual price to be charged to the buyer using the time-interpolated base price.this
+         Surge pricing applies for the cover amount that exceeds the SURGE_THRESHOLD_RATIO as a percentage of the total
+         capacity.
+    @param amount Amount of cover to be bought
+    @param basePrice Time-interpolated base price set for the product
+    @param activeCover Total amount of active cover
+    @param capacity Total capacity for the product
+  */
   function calculatePrice(
     uint amount,
     uint basePrice,

@@ -7,7 +7,7 @@ import "../modules/token/NXMToken.sol";
 
 contract TokenControllerMock is MasterAware {
 
-  NXMToken token;
+  NXMToken public token;
 
   function mint(address _member, uint256 _amount) public onlyInternal {
     token.mint(_member, _amount);
@@ -27,7 +27,8 @@ contract TokenControllerMock is MasterAware {
   }
 
   function operatorTransfer(address _from, address _to, uint _value) onlyInternal external returns (bool) {
-    require(msg.sender == master.getLatestAddress("PS"), "Call is only allowed from PooledStaking address");
+    require(msg.sender == master.getLatestAddress("PS") || msg.sender == master.getLatestAddress("CO"),
+      "Call is only allowed from PooledStaking or Cover address");
     require(token.operatorTransfer(_from, _value), "Operator transfer failed");
     require(token.transfer(_to, _value), "Internal transfer failed");
     return true;

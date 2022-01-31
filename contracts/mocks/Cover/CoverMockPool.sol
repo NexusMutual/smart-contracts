@@ -9,7 +9,11 @@ contract CoverMockPool {
   mapping (uint => uint) prices;
   IPool.Asset[] public assets;
 
+  address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
   constructor() public {
+    // First asset is ETH
+    assets.push(IPool.Asset(ETH, 18, false));
   }
 
   function getTokenPrice(uint assetId) public view returns (uint) {

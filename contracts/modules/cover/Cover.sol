@@ -219,6 +219,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     (uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(params, coverData.length, allocationRequests);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
+    console.log("payWithNXM", params.payWithNXM);
     if (params.payWithNXM) {
       retrieveNXMPayment(totalPremiumInNXM, params.commissionRatio, params.commissionDestination);
     } else {
@@ -248,6 +249,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint totalPremiumInNXM = 0;
     uint totalCoverAmountInNXM = 0;
     uint remainderAmountInNXM = 0;
+
+    console.log("nxmPriceInPayoutAsset", nxmPriceInPayoutAsset);
 
     for (uint i = 0; i < allocationRequests.length; i++) {
 
@@ -376,6 +379,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     }
   }
 
+
+  // TODO: implement properly. we need the staking interface for burning.
   function performPayoutBurn(
     uint coverId,
     uint amount
@@ -443,7 +448,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     token.safeTransferFrom(msg.sender, address(pool), premium);
 
     if (commission > 0) {
-      token.safeTransfer(buyParams.commissionDestination, commission);
+      token.safeTransferFrom(msg.sender, buyParams.commissionDestination, commission);
     }
   }
 
@@ -454,9 +459,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     if (commissionRatio > 0) {
       uint commission = price * commissionRatio / COMMISSION_DENOMINATOR;
       // transfer the commission to the commissionDestination; reverts if commissionDestination is not a member
-      tokenController.token().transferFrom(msg.sender, commissionDestination, commission);
+      tokenController.operatorTransfer(msg.sender, commissionDestination, commission);
     }
-
     tokenController.burnFrom(msg.sender, price);
   }
 

@@ -1,22 +1,16 @@
-const { assert } = require('chai');
+const { assert, expect } = require('chai');
 const {
-  web3,
   ethers: {
     utils: { parseEther },
   },
 } = require('hardhat');
 const {
-  time,
-  expectRevert,
   constants: { ZERO_ADDRESS },
 } = require('@openzeppelin/test-helpers');
-const { hex, zeroPadRight } = require('../utils').helpers;
 const { createStakingPool } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 
-const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
-
-describe.only('buyCover', function () {
+describe('buyCover', function () {
 
   it('should purchase new cover using 1 staking pool', async function () {
     const { cover } = this;
@@ -42,7 +36,7 @@ describe.only('buyCover', function () {
 
     await cover.connect(gv1).setGlobalCapacityRatio(capacityFactor);
 
-    const stakingPool = await createStakingPool(
+    await createStakingPool(
       cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
     );
 
@@ -321,7 +315,7 @@ describe.only('buyCover', function () {
 
     const amount = parseEther('1000');
 
-    await expectRevert.unspecified(cover.connect(member1).buyCover(
+    await expect((cover.connect(member1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
@@ -338,7 +332,7 @@ describe.only('buyCover', function () {
       {
         value: '0',
       },
-    ));
+    ))).to.be.revertedWith('Cover: Product not found');
   });
 
   it('should revert for unsupported payout asset', async function () {
@@ -355,7 +349,7 @@ describe.only('buyCover', function () {
 
     const amount = parseEther('1000');
 
-    await expectRevert(cover.connect(member1).buyCover(
+    await expect(cover.connect(member1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
@@ -372,9 +366,7 @@ describe.only('buyCover', function () {
       {
         value: '0',
       },
-    ),
-    'Cover: Payout asset is not supported',
-    );
+    )).to.be.revertedWith('Cover: Payout asset is not supported');
   });
 
   it('should revert for period too short', async function () {
@@ -391,7 +383,7 @@ describe.only('buyCover', function () {
 
     const amount = parseEther('1000');
 
-    await expectRevert(cover.connect(member1).buyCover(
+    await expect(cover.connect(member1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
@@ -408,9 +400,7 @@ describe.only('buyCover', function () {
       {
         value: '0',
       },
-    ),
-    'Cover: Cover period is too short',
-    );
+    )).to.be.revertedWith('Cover: Cover period is too short');
   });
 
   it('should revert for period too long', async function () {
@@ -427,7 +417,7 @@ describe.only('buyCover', function () {
 
     const amount = parseEther('1000');
 
-    await expectRevert(cover.connect(member1).buyCover(
+    await expect(cover.connect(member1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
@@ -444,9 +434,7 @@ describe.only('buyCover', function () {
       {
         value: '0',
       },
-    ),
-    'Cover: Cover period is too long',
-    );
+    )).to.be.revertedWith('Cover: Cover period is too long');
   });
 
   it('should revert for commission rate too high', async function () {
@@ -463,7 +451,7 @@ describe.only('buyCover', function () {
 
     const amount = parseEther('1000');
 
-    await expectRevert(cover.connect(member1).buyCover(
+    await expect(cover.connect(member1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
@@ -480,8 +468,6 @@ describe.only('buyCover', function () {
       {
         value: '0',
       },
-    ),
-    'Cover: Commission rate is too high',
-    );
+    )).to.be.revertedWith('Cover: Commission rate is too high');
   });
 });

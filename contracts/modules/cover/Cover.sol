@@ -206,6 +206,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     PoolAllocationRequest[] memory allocationRequests
   ) external payable override onlyMember returns (uint /*coverId*/) {
 
+    require(products.length > params.productId, "Cover: Product not found");
     Product memory product = products[params.productId];
     require(product.initialPriceRatio != 0, "Cover: Product not initialized");
     require(

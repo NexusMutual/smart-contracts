@@ -1,5 +1,4 @@
-const { artifacts, web3 } = require('hardhat');
-const { toBN, BN } = web3.utils;
+const { artifacts } = require('hardhat');
 const Decimal = require('decimal.js');
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
@@ -11,7 +10,7 @@ async function createStakingPool (
 
   const receipt = await tx.wait();
 
-  const { stakingPoolAddress, manager, stakingPoolImplementation } = receipt.events[0].args;
+  const { stakingPoolAddress } = receipt.events[0].args;
 
   const stakingPool = await CoverMockStakingPool.at(stakingPoolAddress);
 

@@ -1,10 +1,7 @@
-const { assert } = require('chai');
-const { web3, ethers: { utils: { parseEther } } } = require('hardhat');
-const { time, expectRevert, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
+const { assert, expect } = require('chai');
+const { ethers: { utils: { parseEther } } } = require('hardhat');
+const { time, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 const { createStakingPool } = require('./helpers');
-const { hex, zeroPadRight } = require('../utils').helpers;
-
-const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
 describe('editCover', function () {
 
@@ -267,7 +264,7 @@ describe('editCover', function () {
     const expectedEditPremium = expectedPremium.mul(2);
     const extraPremium = expectedEditPremium.sub(expectedPremium);
 
-    await expectRevert(cover.connect(member1).editCover(
+    await expect(cover.connect(member1).editCover(
       expectedCoverId,
       {
         owner: coverBuyer1.address,
@@ -285,7 +282,7 @@ describe('editCover', function () {
       {
         value: extraPremium,
       },
-    ), 'Cover: cover expired');
+    )).to.be.revertedWith('Cover: cover expired');
   });
 
   it('should revert when period is too long', async function () {
@@ -314,7 +311,7 @@ describe('editCover', function () {
 
     const periodTooLong = 366 * 24 * 3600; // 366 days
 
-    await expectRevert(cover.connect(member1).editCover(
+    await expect(cover.connect(member1).editCover(
       expectedCoverId,
       {
         owner: coverBuyer1.address,
@@ -331,8 +328,7 @@ describe('editCover', function () {
       [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
       {
         value: extraPremium,
-      },
-    ), 'Cover: Cover period is too long');
+      })).to.be.revertedWith('Cover: Cover period is too long');
   });
 
   it('should revert when commission rate too high', async function () {
@@ -361,7 +357,7 @@ describe('editCover', function () {
 
     const periodTooLong = 366 * 24 * 3600; // 366 days
 
-    await expectRevert(cover.connect(member1).editCover(
+    await expect(cover.connect(member1).editCover(
       expectedCoverId,
       {
         owner: coverBuyer1.address,
@@ -379,6 +375,6 @@ describe('editCover', function () {
       {
         value: extraPremium,
       },
-    ), 'Cover: Cover period is too long');
+    )).to.be.revertedWith('Cover: Cover period is too long');
   });
 });

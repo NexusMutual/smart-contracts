@@ -183,6 +183,62 @@ describe('editCover', function () {
     await assert.equal(storedCover.priceRatio.toString(), targetPriceRatio.toString());
   });
 
+  it('should edit purchased cover and increase period', async function () {
+    const { cover } = this;
+
+    const {
+      members: [member1],
+      members: [coverBuyer1],
+    } = this.accounts;
+
+    const {
+      productId,
+      payoutAsset,
+      period,
+      amount,
+      targetPriceRatio,
+      priceDenominator,
+    } = coverBuyFixture;
+
+    await buyCover.call(this, coverBuyFixture);
+
+    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const expectedCoverId = '0';
+
+    const increasedPeriod = period * 2;
+
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium.sub(expectedPremium);
+
+    await cover.connect(member1).editCover(
+      expectedCoverId,
+      {
+        owner: coverBuyer1.address,
+        productId,
+        payoutAsset,
+        amount,
+        period: increasedPeriod,
+        maxPremiumInAsset: expectedEditPremium,
+        paymentAsset: payoutAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: ZERO_ADDRESS,
+      },
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      {
+        value: extraPremium,
+      },
+    );
+
+    const storedCover = await cover.covers(expectedCoverId);
+
+    await assert.equal(storedCover.productId, productId);
+    await assert.equal(storedCover.payoutAsset, payoutAsset);
+    await assert.equal(storedCover.period, increasedPeriod);
+    await assert.equal(storedCover.amount.toString(), amount.toString());
+    await assert.equal(storedCover.priceRatio.toString(), targetPriceRatio.toString());
+  });
+
   it('should revert when cover is expired', async function () {
     const { cover } = this;
 

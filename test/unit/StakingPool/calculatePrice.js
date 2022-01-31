@@ -1,12 +1,7 @@
 const { assert } = require('chai');
-const { web3, ethers: { utils: { parseEther } } } = require('hardhat');
-const { ether, time, expectRevert } = require('@openzeppelin/test-helpers');
-const { hex } = require('../utils').helpers;
+const { ethers: { utils: { parseEther } } } = require('hardhat');
 
-const accounts = require('../utils').accounts;
 const { calculatePrice } = require('./helpers');
-
-const { toBN } = web3.utils;
 
 describe('calculatePrice', function () {
 

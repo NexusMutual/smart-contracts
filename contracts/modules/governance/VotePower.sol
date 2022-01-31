@@ -41,7 +41,7 @@ contract VotePower {
       }
     }
 
-    uint balance = tokenController.totalBalanceOf(member) + 1;
+    uint balance = tokenController.totalBalanceOf(member) + 1e18;
     uint[] memory delegationIds = governance.getFollowers(member);
 
     for (uint i = 0; i < delegationIds.length; i++) {
@@ -55,7 +55,7 @@ contract VotePower {
         continue;
       }
 
-      balance += tokenController.totalBalanceOf(follower) + 1;
+      balance += tokenController.totalBalanceOf(follower) + 1e18;
     }
 
     return balance;

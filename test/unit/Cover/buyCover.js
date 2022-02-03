@@ -7,13 +7,13 @@ const {
 const {
   constants: { ZERO_ADDRESS },
 } = require('@openzeppelin/test-helpers');
-const { createStakingPool } = require('./helpers');
+const { createStakingPool, assertCoverFields } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 
 describe('buyCover', function () {
 
   it('should purchase new cover using 1 staking pool', async function () {
-    const { cover } = this;
+    const { cover, coverViewer } = this;
 
     const {
       governanceContracts: [gv1],
@@ -63,13 +63,8 @@ describe('buyCover', function () {
 
     const expectedCoverId = '0';
 
-    const storedCover = await cover.covers(expectedCoverId);
-
-    await assert.equal(storedCover.productId, productId);
-    await assert.equal(storedCover.payoutAsset, payoutAsset);
-    await assert.equal(storedCover.period, period);
-    await assert.equal(storedCover.amount.toString(), amount.toString());
-    await assert.equal(storedCover.priceRatio.toString(), targetPriceRatio.toString());
+    await assertCoverFields(cover, expectedCoverId,
+      { productId, payoutAsset, period, amount, targetPriceRatio });
   });
 
   it('should purchase new cover using 2 staking pools', async function () {
@@ -131,13 +126,8 @@ describe('buyCover', function () {
 
     const expectedCoverId = '0';
 
-    const storedCover = await cover.covers(expectedCoverId);
-
-    await assert.equal(storedCover.productId, productId);
-    await assert.equal(storedCover.payoutAsset, payoutAsset);
-    await assert.equal(storedCover.period, period);
-    await assert.equal(storedCover.amount.toString(), amount.toString());
-    await assert.equal(storedCover.priceRatio.toString(), targetPriceRatio.toString());
+    await assertCoverFields(cover, expectedCoverId,
+      { productId, payoutAsset, period, amount, targetPriceRatio });
   });
 
   it('should purchase new cover using NXM with commission', async function () {
@@ -211,13 +201,8 @@ describe('buyCover', function () {
 
     const expectedCoverId = '0';
 
-    const storedCover = await cover.covers(expectedCoverId);
-
-    await assert.equal(storedCover.productId, productId);
-    await assert.equal(storedCover.payoutAsset, payoutAsset);
-    await assert.equal(storedCover.period, period);
-    await assert.equal(storedCover.amount.toString(), amount.toString());
-    await assert.equal(storedCover.priceRatio.toString(), targetPriceRatio.toString());
+    await assertCoverFields(cover, expectedCoverId,
+      { productId, payoutAsset, period, amount, targetPriceRatio });
   });
 
   it('should purchase new cover using DAI with commission', async function () {
@@ -292,13 +277,8 @@ describe('buyCover', function () {
 
     const expectedCoverId = '0';
 
-    const storedCover = await cover.covers(expectedCoverId);
-
-    await assert.equal(storedCover.productId, productId);
-    await assert.equal(storedCover.payoutAsset, payoutAsset);
-    await assert.equal(storedCover.period, period);
-    await assert.equal(storedCover.amount.toString(), amount.toString());
-    await assert.equal(storedCover.priceRatio.toString(), targetPriceRatio.toString());
+    await assertCoverFields(cover, expectedCoverId,
+      { productId, payoutAsset, period, amount, targetPriceRatio });
   });
 
   it('should revert for unavailable product', async function () {

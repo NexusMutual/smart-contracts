@@ -1,7 +1,7 @@
 const { assert, expect } = require('chai');
 const { ethers: { utils: { parseEther } } } = require('hardhat');
 const { time, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
-const { createStakingPool } = require('./helpers');
+const { createStakingPool, assertCoverFields } = require('./helpers');
 
 describe('editCover', function () {
 
@@ -115,13 +115,8 @@ describe('editCover', function () {
       },
     );
 
-    const storedCover = await cover.covers(expectedCoverId);
-
-    await assert.equal(storedCover.productId, productId);
-    await assert.equal(storedCover.payoutAsset, payoutAsset);
-    await assert.equal(storedCover.period, period);
-    await assert.equal(storedCover.amount.toString(), increasedAmount.toString());
-    await assert.equal(storedCover.priceRatio.toString(), targetPriceRatio.toString());
+    await assertCoverFields(cover, expectedCoverId,
+      { productId, payoutAsset, period, amount, targetPriceRatio });
   });
 
   it('should edit purchased cover and increase period', async function () {
@@ -171,13 +166,8 @@ describe('editCover', function () {
       },
     );
 
-    const storedCover = await cover.covers(expectedCoverId);
-
-    await assert.equal(storedCover.productId, productId);
-    await assert.equal(storedCover.payoutAsset, payoutAsset);
-    await assert.equal(storedCover.period, increasedPeriod);
-    await assert.equal(storedCover.amount.toString(), amount.toString());
-    await assert.equal(storedCover.priceRatio.toString(), targetPriceRatio.toString());
+    await assertCoverFields(cover, expectedCoverId,
+      { productId, payoutAsset, period, amount, targetPriceRatio });
   });
 
   it('should edit purchased cover and increase period', async function () {
@@ -227,13 +217,8 @@ describe('editCover', function () {
       },
     );
 
-    const storedCover = await cover.covers(expectedCoverId);
-
-    await assert.equal(storedCover.productId, productId);
-    await assert.equal(storedCover.payoutAsset, payoutAsset);
-    await assert.equal(storedCover.period, increasedPeriod);
-    await assert.equal(storedCover.amount.toString(), amount.toString());
-    await assert.equal(storedCover.priceRatio.toString(), targetPriceRatio.toString());
+    await assertCoverFields(cover, expectedCoverId,
+      { productId, payoutAsset, period, amount, targetPriceRatio });
   });
 
   it('should revert when cover is expired', async function () {

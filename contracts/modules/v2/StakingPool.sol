@@ -510,17 +510,13 @@ contract StakingPool is IStakingPool, ERC20 {
 
     uint surgeLoadingRatio = newActiveCoverRatio - SURGE_THRESHOLD_RATIO;
 
-    /*
-      If the active cover ratio is already above SURGE_THRESHOLD (80%) then apply the surge loading to the entire
-      value of the cover (surgeFraction = 1). Otherwise apply to the part of the cover that is above the threshold.
-    */
+    // If the active cover ratio is already above SURGE_THRESHOLD (80%) then apply the surge loading to the entire
+    // value of the cover (surgeFraction = 1). Otherwise apply to the part of the cover that is above the threshold.
     uint surgeFraction = activeCoverRatio >= SURGE_THRESHOLD_RATIO ? SURGE_DENOMINATOR : surgeLoadingRatio * capacity / amount;
 
-    /*
-     Apply a base BASE_SURGE_LOADING_RATIO of 10% for each 1% of capacity used above SURGE_THRESHOLD_RATIO (80%)
-     to the value of the cover that is above the SURGE_THRESHOLD_RATIO (surgeLoadingRatio)
-     Divide the surge ratio by 2.
-    */
+    // Apply a base BASE_SURGE_LOADING_RATIO of 10% for each 1% of capacity used above SURGE_THRESHOLD_RATIO (80%)
+    // to the value of the cover that is above the SURGE_THRESHOLD_RATIO (surgeLoadingRatio)
+    // Divide the surge ratio by 2.
     uint surgeLoading =
       BASE_SURGE_LOADING_RATIO
       * surgeLoadingRatio / (SURGE_DENOMINATOR / 100)

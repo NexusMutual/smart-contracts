@@ -24,6 +24,8 @@ interface INXMMaster {
 
   function getLatestAddress(bytes2 _contractName) external view returns (address payable contractAddress);
 
+  function contractAddresses(bytes2 code) external view returns (address payable);
+
   function upgradeMultipleContracts(
     bytes2[] calldata _contractCodes,
     address payable[] calldata newAddresses

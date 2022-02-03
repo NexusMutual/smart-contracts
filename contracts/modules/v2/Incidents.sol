@@ -185,14 +185,18 @@ contract Incidents is IIncidents, MasterAwareV2 {
   ///
   /// @param incidentId      Index of the incident
   /// @param coverId         Index of the cover to be redeemed
+  /// @param segmentId       Index of the cover's segment that's elidgible for redemption
   /// @param depeggedTokens  The amount of depegged tokens to be swapped for the payoutAsset.
   /// @param payoutAddress   The addres where the payout must be sent to
   function redeemIncidentPayout(
     uint104 incidentId,
     uint32 coverId,
+    uint segmentId,
     uint depeggedTokens,
     address payable payoutAddress
   ) external onlyMember override returns (uint, uint8) {
+    require(coverNFT.isApprovedOrOwner(msg.sender, coverId), "Only the cover owner or approved addresses can redeem");
+
     Incident memory incident =  incidents[incidentId];
     {
       IAssessment.Poll memory poll = assessment().getPoll(incident.assessmentId);
@@ -216,42 +220,30 @@ contract Incidents is IIncidents, MasterAwareV2 {
       );
     }
 
+    IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
     uint payoutAmount;
     uint8 payoutAsset;
     address coveredToken;
 
     {
-      uint24 productId;
-      uint32 start;
-      uint32 period;
-      uint96 coverAmount;
-      (
-        productId,
-        payoutAsset,
-        coverAmount,
-        start,
-        period,
-      ) = ICover(getInternalContractAddress(ID.CO)).covers(coverId);
+      ICover coverContract = ICover(getInternalContractAddress(ID.CO));
+
+      ICover.CoverSegment memory coverSegment = coverContract.coverSegments(coverId, segmentId);
 
       {
         uint deductiblePriceBefore = uint(incident.priceBefore) * uint(config.payoutDeductibleRatio) /
           INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
-        uint payoutAssetDecimals;
-        {
-          IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
-          (,payoutAssetDecimals,) = poolContract.assets(payoutAsset);
-        }
+        (,uint payoutAssetDecimals,) = poolContract.assets(payoutAsset);
         payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** uint(payoutAssetDecimals));
       }
 
       {
+        ICover.CoverData memory coverData;
+        coverData = coverContract.coverData(coverId);
+        require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");
+        require(coverSegment.start + coverSegment.period >= incident.date, "Cover end date is before the incident");
+        require(coverSegment.start <= incident.date, "Cover start date is after the incident");
 
-        require(coverNFT.isApprovedOrOwner(msg.sender, coverId), "Only the cover owner or approved addresses can redeem");
-        require(payoutAmount <= coverAmount, "Payout exceeds covered amount");
-        require(start + period >= incident.date, "Cover end date is before the incident");
-        require(start <= incident.date, "Cover start date is after the incident");
-
-        ICover coverContract = ICover(getInternalContractAddress(ID.CO));
         coverContract.performPayoutBurn(coverId, payoutAmount);
         uint16 productType;
         (
@@ -260,19 +252,18 @@ contract Incidents is IIncidents, MasterAwareV2 {
           /*uint payoutAssets*/,
           /* initialPriceRatio */,
           /* capacityReductionRatio */
-        ) = coverContract.products(productId);
+        ) = coverContract.products(coverData.productId);
         (
           /*string descriptionIpfsHash*/,
           /*uint8 redeemMethod*/,
           uint gracePeriod
         ) = coverContract.productTypes(productType);
-        require(start + period + gracePeriod * 1 days >= block.timestamp, "Grace period has expired");
-        require(productId == incident.productId, "Product id mismatch");
+        require(coverSegment.start + coverSegment.period + gracePeriod * 1 days >= block.timestamp, "Grace period has expired");
+        require(coverData.productId == incident.productId, "Product id mismatch");
       }
     }
 
     SafeERC20.safeTransferFrom(IERC20(coveredToken), msg.sender, address(this), depeggedTokens);
-    IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
     poolContract.sendPayout(payoutAsset, payoutAddress, payoutAmount);
 
     return (payoutAmount, payoutAsset);

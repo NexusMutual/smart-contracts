@@ -57,14 +57,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   Product[] public override products;
   ProductType[] public override productTypes;
 
-  CoverData[] private coverData;
+  CoverData[] private _coverData;
   mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
 
   /*
     Each Cover has an array of segments. A new segment is created everytime a cover is edited to
     deliniate the different cover periods.
   */
-  mapping(uint => CoverSegment[]) public coverSegments;
+  mapping(uint => CoverSegment[]) private _coverSegments;
+
 
   uint24 public globalCapacityRatio;
   uint24 public globalRewardsRatio;
@@ -167,7 +168,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       "Cover outside of the grace period"
     );
 
-    coverData.push(
+    uint newCoverId = _coverData.length;
+
+    _coverData.push(
       CoverData(
         uint24(productId),
         currencyCode == "ETH" ? 0 : 1, //payoutAsset
@@ -175,20 +178,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       )
     );
 
-    coverSegments[coverId].push(
+    _coverSegments[newCoverId].push(
       CoverSegment(
         SafeUintCast.toUint96(sumAssured * 10 ** 18),
-        uint32(block.timestamp + 1),
+        SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days),
         SafeUintCast.toUint32(coverPeriodInDays * 1 days),
         uint16(0)
       )
     );
 
-    ICoverNFT(coverNFT).safeMint(
-      toNewOwner,
-      coverData.length - 1 // newCoverId
-    );
-
+    ICoverNFT(coverNFT).safeMint(toNewOwner, newCoverId);
   }
 
   /// @dev Migrates covers from V1. Meant to be used by EOA Nexus Mutual members
@@ -217,7 +216,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(params.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
 
-    (uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(params, coverData.length, allocationRequests);
+    (uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(params, _coverData.length, allocationRequests);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (params.payWithNXM) {
@@ -227,13 +226,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     }
 
     // push the newly created cover
-    coverData.push(CoverData(
+    _coverData.push(CoverData(
         params.productId,
         params.payoutAsset,
         0 // amountPaidOut
       ));
 
-    uint coverId = coverData.length - 1;
+    uint coverId = _coverData.length - 1;
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
 
     return coverId;
@@ -265,12 +264,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       totalCoverAmountInNXM += coveredAmountInNXM;
       totalPremiumInNXM += premiumInNXM;
 
-      coverSegmentAllocations[coverId][coverSegments[coverId].length].push(
+      coverSegmentAllocations[coverId][_coverSegments[coverId].length].push(
         PoolAllocation(allocationRequests[i].poolId, SafeUintCast.toUint96(coveredAmountInNXM), SafeUintCast.toUint96(premiumInNXM))
       );
     }
 
-    coverSegments[coverId].push(CoverSegment(
+    _coverSegments[coverId].push(CoverSegment(
         SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18),
         uint32(block.timestamp + 1),
         SafeUintCast.toUint32(params.period),
@@ -308,9 +307,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     PoolAllocationRequest[] memory poolAllocations
   ) external payable onlyMember {
 
-    CoverData memory cover = coverData[coverId];
-    uint lastCoverSegmentIndex = coverSegments[coverId].length - 1;
-    CoverSegment memory lastCoverSegment = coverSegments[coverId][lastCoverSegmentIndex];
+    CoverData memory cover = _coverData[coverId];
+    uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;
+    CoverSegment memory lastCoverSegment = _coverSegments[coverId][lastCoverSegmentIndex];
 
     require(lastCoverSegment.start + lastCoverSegment.period > block.timestamp, "Cover: cover expired");
     require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
@@ -387,7 +386,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     ICoverNFT coverNFTContract = ICoverNFT(coverNFT);
     address owner = coverNFTContract.ownerOf(coverId);
 
-    CoverData storage cover = coverData[coverId];
+    CoverData storage cover = _coverData[coverId];
     cover.amountPaidOut += SafeUintCast.toUint96(amount);
 
     return owner;
@@ -484,26 +483,24 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     return IStakingPool(address(uint160(uint(hash))));
   }
 
-  function covers(
-    uint id
-  ) external view override returns (
-    uint24 productId,
-    uint8 payoutAsset,
-    uint96 amount,
-    uint32 start,
-    uint32 period,
-    uint16 priceRatio
-  ) {
-    CoverData memory cover = coverData[id];
-    CoverSegment memory lastCoverSegment = coverSegments[id][coverSegments[id].length - 1];
-    return (
-      cover.productId,
-      cover.payoutAsset,
-      lastCoverSegment.amount,
-      lastCoverSegment.start,
-      lastCoverSegment.period,
-      lastCoverSegment.priceRatio
-    );
+  function coverData(uint coverId) external override view returns (CoverData memory) {
+    return _coverData[coverId];
+  }
+
+  function coverSegments(
+    uint coverId,
+    uint segmentId
+  ) external override view returns (CoverSegment memory) {
+    CoverSegment memory segment = _coverSegments[coverId][segmentId];
+    uint96 amountPaidOut = _coverData[coverId].amountPaidOut;
+    segment.amount = segment.amount >= amountPaidOut
+      ? segment.amount - amountPaidOut
+      : 0;
+    return segment;
+  }
+
+  function coverSegmentsCount(uint coverId) external override view returns (uint) {
+    return _coverSegments[coverId].length;
   }
 
   /* ========== PRODUCT CONFIGURATION ========== */

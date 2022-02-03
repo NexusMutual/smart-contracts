@@ -48,6 +48,9 @@ interface IClaims {
     // The identifier of the cover on which this claim is submitted
     uint32 coverId;
 
+    // The index of the cover segment on which this claim is submitted
+    uint16 segmentId;
+
     // Amount requested as part of this claim up to the total cover amount
     uint96 amount;
 
@@ -71,6 +74,7 @@ interface IClaims {
   function claims(uint id) external view returns (
     uint80 assessmentId,
     uint32 coverId,
+    uint16 segmentId,
     uint96 amount,
     uint8 payoutAsset,
     bool payoutRedeemed
@@ -113,6 +117,7 @@ interface IClaims {
 
   function submitClaim(
     uint32 coverId,
+    uint16 segmentId,
     uint96 requestedAmount,
     string calldata ipfsMetadata
   ) external payable returns (Claim memory);

@@ -12,7 +12,7 @@ const { bnEqual } = require('../utils').helpers;
 
 describe('buyCover', function () {
 
-  it('should purchase new cover using 1 staking pool', async function () {
+  it.only('should purchase new cover using 1 staking pool', async function () {
     const { cover, coverViewer } = this;
 
     const {
@@ -60,6 +60,11 @@ describe('buyCover', function () {
         value: expectedPremium,
       },
     );
+    const receipt = await tx.wait();
+
+    console.log({
+      gasUsed: receipt.gasUsed.toString(),
+    });
 
     const expectedCoverId = '0';
 

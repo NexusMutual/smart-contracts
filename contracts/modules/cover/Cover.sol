@@ -78,6 +78,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   */
   uint32 public coverAssetsFallback;
 
+  /*
+    Active cover amount per product.
+  */
+  mapping(uint => uint96) public activeCoverAmountInNXM;
+  mapping(uint => mapping(uint => ProductBucket)) productBuckets;
+  mapping(uint => uint) lastProductBucket;
 
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
 
@@ -216,7 +222,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(params.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
 
-    (uint premiumInPaymentAsset, uint totalPremiumInNXM) = _buyCover(params, _coverData.length, allocationRequests);
+    (uint premiumInPaymentAsset, uint totalPremiumInNXM, uint totalCoverAmountInNXM) =
+      _buyCover(params, _coverData.length, allocationRequests);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (params.payWithNXM) {
@@ -235,6 +242,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint coverId = _coverData.length - 1;
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
 
+    updateActiveCoverAmountInNXM(params.productId, params.period, totalCoverAmountInNXM);
+
     return coverId;
   }
 
@@ -242,11 +251,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     BuyCoverParams memory params,
     uint coverId,
     PoolAllocationRequest[] memory allocationRequests
-  ) internal returns (uint, uint) {
+  ) internal returns (uint, uint totalPremiumInNXM, uint totalCoverAmountInNXM) {
     // convert to NXM amount
     uint nxmPriceInPayoutAsset = pool().getTokenPrice(params.payoutAsset);
-    uint totalPremiumInNXM = 0;
-    uint totalCoverAmountInNXM = 0;
     uint remainderAmountInNXM = 0;
 
     for (uint i = 0; i < allocationRequests.length; i++) {
@@ -279,7 +286,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint tPrice = pool().getTokenPrice(params.paymentAsset);
     uint premiumInPaymentAsset = totalPremiumInNXM * pool().getTokenPrice(params.paymentAsset) / 1e18;
 
-    return (premiumInPaymentAsset, totalPremiumInNXM);
+    return (premiumInPaymentAsset, totalPremiumInNXM, totalCoverAmountInNXM);
   }
 
   function allocateCapacity(
@@ -351,7 +358,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     // edit cover so it ends at the current block
     lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
 
-    (uint premiumInPaymentAsset, uint totalPremiumInNXM) =
+    (uint premiumInPaymentAsset, uint totalPremiumInNXM, /* uint totalCoverAmountInNXM */ ) =
       _buyCover(buyCoverParams, coverId, poolAllocations);
 
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
@@ -459,6 +466,26 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       tokenController.operatorTransfer(msg.sender, commissionDestination, commission);
     }
     tokenController.burnFrom(msg.sender, price);
+  }
+
+  /* ========== Active cover amount tracking ========== */
+
+  function updateActiveCoverAmountInNXM(uint productId, uint period, uint amountToCoverInNXM) internal {
+    uint currentBucket = block.timestamp / BUCKET_SIZE;
+
+    uint activeCoverAmount = activeCoverAmountInNXM[productId];
+    uint lastBucket = lastProductBucket[productId];
+    while (lastBucket < currentBucket) {
+      ++lastBucket;
+      activeCoverAmount -= productBuckets[productId][lastBucket].coverAmountExpiring;
+    }
+
+    activeCoverAmountInNXM[productId] = uint96(activeCoverAmount + amountToCoverInNXM);
+    require(activeCoverAmountInNXM[productId] < mcr().getMCR() / 5, "Cover: Total cover amount exceeds 20% of MCR");
+
+    lastProductBucket[productId] = lastBucket;
+
+    productBuckets[productId][(block.timestamp + period) / BUCKET_SIZE].coverAmountExpiring = uint96(amountToCoverInNXM);
   }
 
   /* ========== Staking Pool creation ========== */

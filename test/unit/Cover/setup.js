@@ -105,6 +105,8 @@ async function setup () {
   await pool.setTokenPrice('0', parseEther('1'));
   await pool.setTokenPrice('1', parseEther('1'));
 
+  await cover.initialize();
+
   // set contract addresses
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('QD'), quotationData.address);

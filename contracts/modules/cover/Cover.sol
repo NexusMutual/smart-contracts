@@ -81,9 +81,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   /*
     Active cover amount per product.
   */
-  mapping(uint => uint96) public activeCoverAmountInNXM;
+  mapping(uint => uint96) public activeCoverAmountInNXMPerProduct;
   mapping(uint => mapping(uint => ProductBucket)) productBuckets;
   mapping(uint => uint) lastProductBucket;
+
+  /*
+    Global active cover amount.
+  */
+  uint96 public globalActiveCoverAmountInNXM;
+  uint32 public lastGlobalBucket;
+  mapping(uint => uint96) public globalActiveCoverAmountBuckets;
+
 
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
 
@@ -97,6 +105,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     address coverProxy
   ) public {
 
+    // initialize immutable fields only
     quotationData = _quotationData;
     productsV1 = _productsV1;
     stakingPoolProxyCodeHash = keccak256(
@@ -107,6 +116,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     );
     stakingPoolImplementation =  _stakingPoolImplementation;
     coverNFT = _coverNFT;
+  }
+
+  function initialize() public {
+    require(lastGlobalBucket == 0, "Cover: Already initalized");
+    lastGlobalBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -242,7 +256,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint coverId = _coverData.length - 1;
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
 
-    updateActiveCoverAmountInNXM(params.productId, params.period, totalCoverAmountInNXM);
+    updateActiveCoverAmountInNXMPerProduct(params.productId, params.period, totalCoverAmountInNXM);
+    updateGlobalActiveCoverAmountInNXM(params.period, totalCoverAmountInNXM);
 
     return coverId;
   }
@@ -470,22 +485,37 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== Active cover amount tracking ========== */
 
-  function updateActiveCoverAmountInNXM(uint productId, uint period, uint amountToCoverInNXM) internal {
+  function updateActiveCoverAmountInNXMPerProduct(uint productId, uint period, uint amountToCoverInNXM) internal {
     uint currentBucket = block.timestamp / BUCKET_SIZE;
 
-    uint activeCoverAmount = activeCoverAmountInNXM[productId];
+    uint activeCoverAmount = activeCoverAmountInNXMPerProduct[productId];
     uint lastBucket = lastProductBucket[productId];
     while (lastBucket < currentBucket) {
       ++lastBucket;
       activeCoverAmount -= productBuckets[productId][lastBucket].coverAmountExpiring;
     }
 
-    activeCoverAmountInNXM[productId] = uint96(activeCoverAmount + amountToCoverInNXM);
-    require(activeCoverAmountInNXM[productId] < mcr().getMCR() / 5, "Cover: Total cover amount exceeds 20% of MCR");
+    activeCoverAmountInNXMPerProduct[productId] = uint96(activeCoverAmount + amountToCoverInNXM);
+    require(activeCoverAmountInNXMPerProduct[productId] < mcr().getMCR() / 5, "Cover: Total cover amount exceeds 20% of MCR");
 
     lastProductBucket[productId] = lastBucket;
 
     productBuckets[productId][(block.timestamp + period) / BUCKET_SIZE].coverAmountExpiring = uint96(amountToCoverInNXM);
+  }
+
+  function updateGlobalActiveCoverAmountInNXM(uint period, uint amountToCoverInNXM) internal {
+    uint currentBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
+
+    uint activeCoverAmount = globalActiveCoverAmountInNXM;
+    uint32 lastBucket = lastGlobalBucket;
+    while (lastBucket < currentBucket) {
+      ++lastBucket;
+      activeCoverAmount -= globalActiveCoverAmountBuckets[lastBucket];
+    }
+
+    globalActiveCoverAmountInNXM = uint96(activeCoverAmount + amountToCoverInNXM);
+    lastGlobalBucket = lastBucket;
+    globalActiveCoverAmountBuckets[(block.timestamp + period) / BUCKET_SIZE] = uint96(amountToCoverInNXM);
   }
 
   /* ========== Staking Pool creation ========== */
@@ -559,6 +589,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function addProducts(Product[] calldata newProducts) external override onlyAdvisoryBoard {
     for (uint i = 0; i < newProducts.length; i++) {
       products.push(newProducts[i]);
+      lastProductBucket[products.length - 1] = block.timestamp / BUCKET_SIZE;
     }
   }
 

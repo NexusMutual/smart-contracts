@@ -1,6 +1,7 @@
 require('dotenv').config();
 const fs = require('fs');
 
+const outpputDir = './deploy/';
 const getProductsContract = x => `// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity >=0.5.0;
@@ -8,10 +9,10 @@ pragma solidity >=0.5.0;
 import "../../interfaces/IProductsV1.sol";
 
 contract ProductsV1 is IProductsV1 {
-function getNewProductId(address legacyProductId) external pure override returns (uint) {
-  ${x.join('')}
-  revert("Invalid product!");
-}
+  function getNewProductId(address legacyProductId) external pure override returns (uint) {
+    ${x.join('')}
+    revert("Invalid product!");
+  }
 }
 `;
 
@@ -34,9 +35,8 @@ const main = async () => {
     `,
     ),
   );
-  fs.appendFileSync('./scripts/ProductsV1.sol', ProductsV1, 'utf8');
-  fs.appendFileSync(
-    './scripts/migratable.json',
+  fs.writeFileSync(
+    outpputDir + 'migratable.json',
     JSON.stringify(
       migratable.map(({ name, type, supportedChains, logo }) => ({ name, type, supportedChains, logo })),
       null,
@@ -44,8 +44,8 @@ const main = async () => {
     ),
     'utf8',
   );
-  fs.appendFileSync(
-    './scripts/v1ProductIds.json',
+  fs.writeFileSync(
+    outpputDir + 'v1ProductIds.json',
     JSON.stringify(
       migratable.map(x => x.legacyProductId),
       null,
@@ -53,8 +53,8 @@ const main = async () => {
     ),
     'utf8',
   );
-  fs.appendFileSync(
-    './scripts/deprecatedV1Products.json',
+  fs.writeFileSync(
+    outpputDir + 'deprecatedV1Products.json',
     JSON.stringify(
       deprecatedV1Products
         .map(({ name, type, supportedChains, logo, legacyProductId }) => ({
@@ -78,6 +78,7 @@ const main = async () => {
     ),
     'utf8',
   );
+  fs.writeFileSync('./contracts/modules/cover/ProductsV1.sol', ProductsV1, 'utf8');
 };
 
 main().catch(e => {

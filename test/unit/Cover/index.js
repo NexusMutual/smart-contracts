@@ -15,4 +15,5 @@ describe.only('Cover unit tests', function () {
   require('./buyCover');
   require('./editCover');
   require('./createStakingPool');
+  require('./globalActiveCoverAmountInNXM');
 });

@@ -70,6 +70,9 @@ describe('buyCover', function () {
 
     await assertCoverFields(cover, expectedCoverId,
       { productId, payoutAsset, period, amount, targetPriceRatio });
+
+    const activeCoverAmountInNXM = await cover.globalActiveCoverAmountInNXM();
+    bnEqual(activeCoverAmountInNXM, amount);
   });
 
   it('should purchase new cover using 2 staking pools', async function () {
@@ -133,6 +136,9 @@ describe('buyCover', function () {
 
     await assertCoverFields(cover, expectedCoverId,
       { productId, payoutAsset, period, amount, targetPriceRatio });
+
+    const activeCoverAmountInNXM = await cover.globalActiveCoverAmountInNXM();
+    bnEqual(activeCoverAmountInNXM, amount);
   });
 
   it('should purchase new cover using NXM with commission', async function () {
@@ -208,6 +214,9 @@ describe('buyCover', function () {
 
     await assertCoverFields(cover, expectedCoverId,
       { productId, payoutAsset, period, amount, targetPriceRatio });
+
+    const activeCoverAmountInNXM = await cover.globalActiveCoverAmountInNXM();
+    bnEqual(activeCoverAmountInNXM, amount);
   });
 
   it('should purchase new cover using DAI with commission', async function () {
@@ -284,6 +293,9 @@ describe('buyCover', function () {
 
     await assertCoverFields(cover, expectedCoverId,
       { productId, payoutAsset, period, amount, targetPriceRatio });
+
+    const activeCoverAmountInNXM = await cover.globalActiveCoverAmountInNXM();
+    bnEqual(activeCoverAmountInNXM, amount);
   });
 
   it('should revert for unavailable product', async function () {

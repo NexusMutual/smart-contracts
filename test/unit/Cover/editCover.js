@@ -183,7 +183,7 @@ describe('editCover', function () {
     );
   });
 
-  it.only('should edit purchased cover and increase period and amount', async function () {
+  it('should edit purchased cover and increase period and amount', async function () {
     const { cover } = this;
 
     const {

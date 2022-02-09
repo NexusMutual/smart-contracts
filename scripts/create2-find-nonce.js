@@ -161,14 +161,14 @@ const getDeploymentBytecode = async options => {
 
 async function main () {
 
-  // make sure the contracts are compiled and we're not deploying an outdated artifact
-  await run('compile');
-
   const opts = await parseArgs(process.argv)
     .catch(err => {
       console.error(`Error: ${err.message}`);
       process.exit(1);
     });
+
+  // make sure the contracts are compiled and we're not deploying an outdated artifact
+  await run('compile');
 
   const deploymentBytecode = await getDeploymentBytecode(opts)
     .catch(err => {
@@ -188,7 +188,7 @@ async function main () {
     ignoreCase: opts.ignoreCase,
   };
 
-  const pool = workerpool.pool(`${__dirname}/worker.js`);
+  const pool = workerpool.pool(`${__dirname}/create2-worker.js`);
   const batchSize = 1000;
   let nonce = opts.nonce;
   let processed = 0;

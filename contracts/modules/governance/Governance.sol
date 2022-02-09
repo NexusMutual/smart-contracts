@@ -43,12 +43,6 @@ contract Governance is IGovernance, LegacyMasterAware {
     uint voters;
   }
 
-  struct DelegateVote {
-    address follower;
-    address leader;
-    uint lastUpd;
-  }
-
   ProposalVote[] internal allVotes;
   DelegateVote[] public allDelegation;
 

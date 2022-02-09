@@ -31,6 +31,7 @@
     "bn.js": "^5.1.2",
     "dotenv": "^8.2.0",
     "ethereum-waffle": "^3.4.0",
+    "es6-promise-pool": "^2.5.0",
     "ethereumjs-util": "7.0.1",
     "ethers": "^5.4.3",
     "keccak256": "^1.0.3",

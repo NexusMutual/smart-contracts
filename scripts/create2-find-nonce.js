@@ -12,18 +12,19 @@ const Position = {
 const usage = () => {
   console.log(`
     Usage:
-      create2-find-nonce [OPTION] CONTRACT HEXSTRING
+      create2-find-nonce [OPTION] CONTRACT_NAME
 
-      CONTRACT is the name of the target contract.
-      HEXSTRING is text that should be found in the resulting address. Default: 0000.
+      CONTRACT_NAME is the contract you want to deploy.
 
     Options:
+      --search-text, -t HEXSTRING
+        Search for HEXSTRING in the resulting address. Default: 0000.
+      --ignore-case, -i
+        Ignore case when searching the hex string.
       --factory-address, -f ADDRESS
         Address of the contract that will call the CREATE2 opcode. This argument is required.
       --search-position, -p POSITION
         Look for given text at this position. POSITION can be 'start', 'end' or 'any'. Default: start.
-      --ignore-case, -i
-        Ignore case when searching the hex string.
       --constructor-args, -c ARGS
         Contract's constructor arguments. If there's more than one argument ARGS should be a valid JSON array.
       --nonce, -n NONCE

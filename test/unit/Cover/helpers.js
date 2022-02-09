@@ -24,10 +24,14 @@ async function createStakingPool (
   return stakingPool;
 }
 
-async function assertCoverFields (cover, coverId, { productId, payoutAsset, period, amount, targetPriceRatio }) {
+async function assertCoverFields (
+  cover,
+  coverId,
+  { productId, payoutAsset, period, amount, targetPriceRatio, segmentId = '0' },
+) {
   const storedCoverData = await cover.coverData(coverId);
 
-  const segment = await cover.coverSegments(coverId, '0');
+  const segment = await cover.coverSegments(coverId, segmentId);
 
   await assert.equal(storedCoverData.productId, productId);
   await assert.equal(storedCoverData.payoutAsset, payoutAsset);

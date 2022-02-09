@@ -371,7 +371,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     lastCoverSegment.priceRatio = SafeUintCast.toUint16(lastCoverSegment.priceRatio * remainingPeriod / lastCoverSegment.period);
     // edit cover so it ends at the current block
     lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
-
+    
     (uint premiumInPaymentAsset, uint totalPremiumInNXM, uint totalCoverAmountInNXM ) =
       _buyCover(buyCoverParams, coverId, poolAllocations);
 

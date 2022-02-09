@@ -52,6 +52,12 @@ interface IGovernance {
     uint256 proposalId
   );
 
+  struct DelegateVote {
+    address follower;
+    address leader;
+    uint lastUpd;
+  }
+
   /// @dev Creates a new proposal
   /// @param _proposalDescHash Proposal description hash through IPFS having Short and long description of proposal
   /// @param _categoryId This id tells under which the proposal is categorized i.e. Proposal's Objective
@@ -133,4 +139,11 @@ interface IGovernance {
   function removeDelegation(address _add) external;
 
   function getPendingReward(address _memberAddress) external view returns (uint pendingDAppReward);
+
+  function getFollowers(address _add) external view returns (uint[] memory);
+
+  function followerDelegation(address _add) external view returns (uint delegationId);
+
+  function allDelegation(uint _delegationId) external view returns (address follower, address leader, uint lastUpd);
+
 }

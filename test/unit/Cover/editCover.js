@@ -68,7 +68,7 @@ describe('editCover', function () {
     );
   }
 
-  it('should edit purchased cover and increase amount', async function () {
+  it.only('should edit purchased cover and increase amount', async function () {
     const { cover } = this;
 
     const {
@@ -95,7 +95,7 @@ describe('editCover', function () {
     const expectedEditPremium = expectedPremium.mul(2);
     const extraPremium = expectedEditPremium.sub(expectedPremium);
 
-    await cover.connect(member1).editCover(
+    const tx = await cover.connect(member1).editCover(
       expectedCoverId,
       {
         owner: coverBuyer1.address,
@@ -114,6 +114,11 @@ describe('editCover', function () {
         value: extraPremium,
       },
     );
+    const receipt = await tx.wait();
+
+    console.log({
+      gasUsed: receipt.gasUsed.toString(),
+    });
 
     await assertCoverFields(cover, expectedCoverId,
       { productId, payoutAsset, period, amount, targetPriceRatio });

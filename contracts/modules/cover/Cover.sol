@@ -256,7 +256,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint coverId = _coverData.length - 1;
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
 
-    updateActiveCoverAmountInNXMPerProduct(params.productId, params.period, totalCoverAmountInNXM);
+    // updateActiveCoverAmountInNXMPerProduct(params.productId, params.period, totalCoverAmountInNXM);
     updateGlobalActiveCoverAmountInNXM(params.period, totalCoverAmountInNXM);
 
     return coverId;
@@ -339,8 +339,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
 
-    (, uint8 paymentAssetDecimals, ) = pool().assets(buyCoverParams.paymentAsset);
-
     PoolAllocation[] storage originalPoolAllocations = coverSegmentAllocations[coverId][lastCoverSegmentIndex];
 
     {
@@ -361,6 +359,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         originalPoolAllocations[i].premiumInNXM =
         originalPoolAllocations[i].premiumInNXM * (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
       }
+      rollbackGlobalActiveCoverAmountInNXM(totalPreviousCoverAmountInNXM, lastCoverSegment.start + lastCoverSegment.period);
     }
 
     uint refundInCoverAsset =
@@ -373,15 +372,26 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     // edit cover so it ends at the current block
     lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
 
-    (uint premiumInPaymentAsset, uint totalPremiumInNXM, /* uint totalCoverAmountInNXM */ ) =
+    (uint premiumInPaymentAsset, uint totalPremiumInNXM, uint totalCoverAmountInNXM ) =
       _buyCover(buyCoverParams, coverId, poolAllocations);
 
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     uint refundInNXM = refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset);
+    handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, premiumInPaymentAsset, refundInNXM);
 
+    updateGlobalActiveCoverAmountInNXM(buyCoverParams.period, totalCoverAmountInNXM);
+  }
+
+  function handlePaymentAndRefund(
+    BuyCoverParams memory buyCoverParams,
+    uint totalPremiumInNXM,
+    uint premiumInPaymentAsset,
+    uint refundInNXM
+  ) internal {
+
+    (, uint8 paymentAssetDecimals, ) = pool().assets(buyCoverParams.paymentAsset);
     if (buyCoverParams.payWithNXM) {
-      uint refundInNXM = refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset);
       if (refundInNXM < totalPremiumInNXM) {
         // requires NXM allowance
         retrieveNXMPayment(totalPremiumInNXM - refundInNXM, buyCoverParams.commissionRatio, buyCoverParams.commissionDestination);
@@ -516,6 +526,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     globalActiveCoverAmountInNXM = uint96(activeCoverAmount + amountToCoverInNXM);
     lastGlobalBucket = lastBucket;
     globalActiveCoverAmountBuckets[(block.timestamp + period) / BUCKET_SIZE] = uint96(amountToCoverInNXM);
+  }
+
+  function rollbackGlobalActiveCoverAmountInNXM(uint amountToRollback, uint endTimestamp) internal {
+    uint bucket = endTimestamp / BUCKET_SIZE;
+    globalActiveCoverAmountBuckets[bucket] -= uint96(amountToRollback);
   }
 
   /* ========== Staking Pool creation ========== */

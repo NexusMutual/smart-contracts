@@ -12,7 +12,7 @@ const { bnEqual } = require('../utils').helpers;
 
 describe('buyCover', function () {
 
-  it.only('should purchase new cover using 1 staking pool', async function () {
+  it('should purchase new cover using 1 staking pool', async function () {
     const { cover, coverViewer } = this;
 
     const {

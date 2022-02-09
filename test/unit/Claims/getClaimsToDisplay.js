@@ -28,86 +28,71 @@ describe('getClaimsToDisplay', function () {
 
     {
       // 0
-      await cover.buyCover(
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await cover.createMockCover(
         coverOwner.address,
         0, // productId
         ASSET.ETH,
-        coverAmount,
-        coverPeriod,
-        parseEther('2.6'),
-        [],
+        [[coverAmount, timestamp + 1, coverPeriod, 0]],
       );
-      const latestBlock = await ethers.provider.getBlock('latest');
-      expectedCoverStarts[3] = latestBlock.timestamp + 1; // This will be the 4th calim
-      await setTime(latestBlock.timestamp + daysToSeconds(1));
+      expectedCoverStarts[3] = timestamp + 1; // This will be the 4th calim
+      await setTime(timestamp + daysToSeconds(1));
     }
 
     {
       // 1
-      await cover.buyCover(
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await cover.createMockCover(
         coverOwner.address,
         0, // productId
         ASSET.DAI,
-        coverAmount,
-        coverPeriod,
-        parseEther('2.6'),
-        [],
+        [[coverAmount, timestamp + 1, coverPeriod, 0]],
       );
-      const latestBlock = await ethers.provider.getBlock('latest');
-      expectedCoverStarts[1] = latestBlock.timestamp + 1; // This will be the 2nd calim
-      await setTime(latestBlock.timestamp + daysToSeconds(2));
+      expectedCoverStarts[1] = timestamp + 1; // This will be the 2nd calim
+      await setTime(timestamp + daysToSeconds(2));
     }
 
     {
       // 2
-      await cover.buyCover(
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await cover.createMockCover(
         coverOwner.address,
         1, // productId
         ASSET.ETH,
-        coverAmount,
-        coverPeriod,
-        parseEther('2.6'),
-        [],
+        [[coverAmount, timestamp + 1, coverPeriod, 0]],
       );
-      const latestBlock = await ethers.provider.getBlock('latest');
-      expectedCoverStarts[2] = latestBlock.timestamp + 1; // This will be the 3rd calim
-      await setTime(latestBlock.timestamp + daysToSeconds(4));
+      expectedCoverStarts[2] = timestamp + 1; // This will be the 3rd calim
+      await setTime(timestamp + daysToSeconds(4));
     }
 
     {
       // 3
-      await cover.buyCover(
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await cover.createMockCover(
         coverOwner.address,
         1, // productId
         ASSET.DAI,
-        coverAmount,
-        coverPeriod,
-        parseEther('2.6'),
-        [],
+        [[coverAmount, timestamp + 1, coverPeriod, 0]],
       );
-      const latestBlock = await ethers.provider.getBlock('latest');
-      expectedCoverStarts[0] = latestBlock.timestamp + 1; // This will be the 1st calim
-      await setTime(latestBlock.timestamp + daysToSeconds(1));
+      expectedCoverStarts[0] = timestamp + 1; // This will be the 1st calim
+      await setTime(timestamp + daysToSeconds(1));
     }
 
     {
       // 4
-      await cover.buyCover(
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await cover.createMockCover(
         coverOwner.address,
         1, // productId
         ASSET.DAI,
-        coverAmount,
-        coverPeriod,
-        parseEther('2.6'),
-        [],
+        [[coverAmount, timestamp + 1, coverPeriod, 0]],
       );
-      const latestBlock = await ethers.provider.getBlock('latest');
-      expectedCoverStarts[4] = latestBlock.timestamp + 1; // This will be the 5th calim
+      expectedCoverStarts[4] = timestamp + 1; // This will be the 5th calim
     }
 
     {
       const [deposit] = await claims.getAssessmentDepositAndReward(expectedAmounts[0], coverPeriod, ASSET.DAI);
-      await claims.connect(coverOwner)['submitClaim(uint32,uint96,string)'](3, expectedAmounts[0], '', {
+      await claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](3, 0, expectedAmounts[0], '', {
         value: deposit,
       });
       const latestBlock = await ethers.provider.getBlock('latest');
@@ -116,7 +101,7 @@ describe('getClaimsToDisplay', function () {
     }
     {
       const [deposit] = await claims.getAssessmentDepositAndReward(expectedAmounts[1], coverPeriod, ASSET.DAI);
-      await claims.connect(coverOwner)['submitClaim(uint32,uint96,string)'](1, expectedAmounts[1], '', {
+      await claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](1, 0, expectedAmounts[1], '', {
         value: deposit,
       });
       const latestBlock = await ethers.provider.getBlock('latest');
@@ -125,7 +110,7 @@ describe('getClaimsToDisplay', function () {
     }
     {
       const [deposit] = await claims.getAssessmentDepositAndReward(expectedAmounts[2], coverPeriod, ASSET.ETH);
-      await claims.connect(coverOwner)['submitClaim(uint32,uint96,string)'](2, expectedAmounts[2], '', {
+      await claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](2, 0, expectedAmounts[2], '', {
         value: deposit,
       });
       const latestBlock = await ethers.provider.getBlock('latest');
@@ -134,7 +119,7 @@ describe('getClaimsToDisplay', function () {
     }
     {
       const [deposit] = await claims.getAssessmentDepositAndReward(expectedAmounts[3], coverPeriod, ASSET.ETH);
-      await claims.connect(coverOwner)['submitClaim(uint32,uint96,string)'](0, expectedAmounts[3], '', {
+      await claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](0, 0, expectedAmounts[3], '', {
         value: deposit,
       });
       const latestBlock = await ethers.provider.getBlock('latest');
@@ -143,7 +128,7 @@ describe('getClaimsToDisplay', function () {
     }
     {
       const [deposit] = await claims.getAssessmentDepositAndReward(expectedAmounts[4], coverPeriod, ASSET.ETH);
-      await claims.connect(coverOwner)['submitClaim(uint32,uint96,string)'](4, expectedAmounts[4], '', {
+      await claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](4, 0, expectedAmounts[4], '', {
         value: deposit,
       });
       const latestBlock = await ethers.provider.getBlock('latest');

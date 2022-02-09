@@ -133,7 +133,11 @@ interface ICover {
 
   function setCoverAssetsFallback(uint32 _coverAssetsFallback) external;
 
-  function performPayoutBurn(uint coverId, uint amount) external returns (address /*owner*/);
+  function performPayoutBurn(
+    uint coverId,
+    uint segmentId,
+    uint amount
+  ) external returns (address /*owner*/);
 
   function coverNFT() external returns (address);
 

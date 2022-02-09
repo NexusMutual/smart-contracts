@@ -368,6 +368,7 @@ contract Claims is IClaims, MasterAwareV2 {
 
     address payable coverOwner = payable(cover().performPayoutBurn(
       claim.coverId,
+      claim.segmentId,
       claim.amount
     ));
 

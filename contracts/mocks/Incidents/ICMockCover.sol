@@ -9,10 +9,17 @@ import "hardhat/console.sol";
 
 contract ICMockCover {
 
+  struct PerformPayoutBurnCalledWith {
+    uint coverId;
+    uint segmentId;
+    uint amount;
+  }
+
   IERC721Mock public immutable coverNFT;
 
   ICover.CoverData[] public coverData;
-  mapping(uint => ICover.CoverSegment[]) coverSegments;
+  PerformPayoutBurnCalledWith public performPayoutBurnCalledWith;
+  mapping(uint => ICover.CoverSegment[]) _coverSegments;
 
   mapping(uint => ICover.PoolAllocation[]) poolAllocations;
   mapping(uint => uint96) public activeCoverAmountInNXM;
@@ -52,30 +59,37 @@ contract ICMockCover {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function buyCover(
+  function createMockCover(
     address owner,
     uint24 productId,
     uint8 payoutAsset,
-    uint96 amount,
-    uint32 period,
-    uint maxPrice,
-    ICover.PoolAllocationRequest[] memory stakingPools
+    ICover.CoverSegment[] memory segments
   ) external payable returns (uint coverId) {
+
     coverData.push(ICover.CoverData(
         productId,
         payoutAsset,
         0
       ));
 
-    coverSegments[coverData.length - 1].push(ICover.CoverSegment(
-        uint96(amount),
-        uint32(block.timestamp + 1),
-        uint32(period),
-        uint16(0)
-      ));
+    for (uint i = 0; i < segments.length; i++) {
+      _coverSegments[coverData.length - 1].push(segments[i]);
+    }
 
     coverId = coverData.length - 1;
     coverNFT.safeMint(owner, coverId);
+  }
+
+  function coverSegments(
+    uint coverId,
+    uint segmentId
+  ) external view returns (ICover.CoverSegment memory) {
+    ICover.CoverSegment memory segment = _coverSegments[coverId][segmentId];
+    uint96 amountPaidOut = coverData[coverId].amountPaidOut;
+    segment.amount = segment.amount >= amountPaidOut
+      ? segment.amount - amountPaidOut
+      : 0;
+    return segment;
   }
 
   function addProductType(
@@ -103,7 +117,8 @@ contract ICMockCover {
   }
 
 
-  function performPayoutBurn(uint coverId, uint amount) external returns (address) {
+  function performPayoutBurn(uint coverId, uint segmentId, uint amount) external returns (address) {
+    performPayoutBurnCalledWith = PerformPayoutBurnCalledWith(coverId, segmentId, amount);
     return coverNFT.ownerOf(coverId);
   }
 }

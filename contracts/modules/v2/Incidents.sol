@@ -244,7 +244,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
         require(coverSegment.start + coverSegment.period >= incident.date, "Cover end date is before the incident");
         require(coverSegment.start <= incident.date, "Cover start date is after the incident");
 
-        coverContract.performPayoutBurn(coverId, payoutAmount);
+        coverContract.performPayoutBurn(coverId, segmentId, payoutAmount);
         uint16 productType;
         (
           productType,

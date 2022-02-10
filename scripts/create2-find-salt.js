@@ -12,7 +12,7 @@ const Position = {
 const usage = () => {
   console.log(`
     Usage:
-      create2-find-nonce [OPTION] CONTRACT_NAME
+      create2-find-salt [OPTION] CONTRACT_NAME
 
       CONTRACT_NAME is the contract you want to deploy.
 
@@ -22,13 +22,13 @@ const usage = () => {
       --ignore-case, -i
         Ignore case when searching the hex string.
       --factory-address, -f ADDRESS
-        Address of the contract that will call the CREATE2 opcode. This argument is required.
+        Address of the contract that will call the CREATE2 opcode. This is a required parameter.
       --search-position, -p POSITION
         Look for given text at this position. POSITION can be 'start', 'end' or 'any'. Default: start.
       --constructor-args, -c ARGS
         Contract's constructor arguments. If there's more than one argument ARGS should be a valid JSON array.
-      --nonce, -n NONCE
-        Start the search from this nonce.
+      --salt, -s SALT
+        Start the search from this salt.
       --help, -h
         Print this help message.
   `);
@@ -41,7 +41,7 @@ const parseArgs = async args => {
     position: Position.start,
     ignoreCase: false,
     constructorArgs: [],
-    nonce: 0,
+    salt: 0,
   };
 
   const argsArray = args.slice(2);
@@ -91,12 +91,12 @@ const parseArgs = async args => {
       continue;
     }
 
-    if (['--nonce', '-n'].includes(arg)) {
-      opts.nonce = parseInt(argsArray.shift(), 10);
+    if (['--salt', '-s'].includes(arg)) {
+      opts.salt = parseInt(argsArray.shift(), 10);
       continue;
     }
 
-    if (['--factory', '-f'].includes(arg)) {
+    if (['--factory-address', '-f'].includes(arg)) {
       opts.factory = argsArray.shift();
       if (!(opts.factory || '').match(/0x[a-f0-9]{40}/i)) {
         throw new Error(`Invalid factory address: ${opts.factory}`);
@@ -191,16 +191,16 @@ async function main () {
 
   const pool = workerpool.pool(`${__dirname}/create2-worker.js`);
   const batchSize = 1000;
-  let nonce = opts.nonce;
-  let processed = 0;
+  let salt = opts.salt;
+  let processed = salt;
 
   const crunch = async () => {
 
-    await pool.exec('worker', [config, nonce++, batchSize])
+    await pool.exec('worker', [config, salt++, batchSize])
       .then(results => {
-        process.stdout.write(`\rProcessed ${processed += batchSize} nonces`);
+        process.stdout.write(`\rProcessed ${processed += batchSize} salts`);
         for (const result of results) {
-          console.log(`\rAddress: ${result.address}   Salt: ${result.nonce}`);
+          console.log(`\rAddress: ${result.address}   Salt: ${result.salt}`);
         }
       })
       .catch(err => console.error(`Worker error: ${err.message}`))

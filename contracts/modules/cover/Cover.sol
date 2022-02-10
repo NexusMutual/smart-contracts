@@ -92,6 +92,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint32 public lastGlobalBucket;
   mapping(uint => uint96) public globalActiveCoverAmountBuckets;
 
+  /*
+    Global active cover amount per asset. #experimental
+   */
+  mapping(uint24 => uint96) public globalActiveCoverAmountPerAsset;
+  mapping(uint24 => mapping(uint => uint96)) public globalActiveCoverAmountBucketsPerAsset;
+  mapping(uint24 => uint32) public lastGlobalBuckets;
+
 
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
 
@@ -526,6 +533,21 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     globalActiveCoverAmountInNXM = uint96(activeCoverAmount + amountToCoverInNXM);
     lastGlobalBucket = lastBucket;
     globalActiveCoverAmountBuckets[(block.timestamp + period) / BUCKET_SIZE] = uint96(amountToCoverInNXM);
+  }
+
+  function updateGlobalActiveCoverAmountPerAsset(uint period, uint amountToCover, uint24 assetId) internal {
+    uint currentBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
+
+    uint activeCoverAmount = globalActiveCoverAmountPerAsset[assetId];
+    uint32 lastBucket = lastGlobalBuckets[assetId];
+    while (lastBucket < currentBucket) {
+      ++lastBucket;
+      activeCoverAmount -= globalActiveCoverAmountBucketsPerAsset[assetId][lastBucket];
+    }
+
+    globalActiveCoverAmountPerAsset[assetId] = uint96(activeCoverAmount + amountToCover);
+    lastGlobalBuckets[assetId] = lastBucket;
+    globalActiveCoverAmountBucketsPerAsset[assetId][(block.timestamp + period) / BUCKET_SIZE] = uint96(amountToCover);
   }
 
   function rollbackGlobalActiveCoverAmountInNXM(uint amountToRollback, uint endTimestamp) internal {

@@ -15,11 +15,11 @@ const create2Worker = (config, batchNumber, size) => {
   const to = from + size;
   const results = [];
 
-  for (let nonce = from; nonce < to; nonce++) {
+  for (let salt = from; salt < to; salt++) {
 
     // assemble input
-    const nonceHex = nonce.toString(16).padStart(64, '0');
-    const input = hexToBytes(`ff${config.factory}${nonceHex}${config.bytecodeHash}`);
+    const saltHex = salt.toString(16).padStart(64, '0');
+    const input = hexToBytes(`ff${config.factory}${saltHex}${config.bytecodeHash}`);
     const create2Hash = keccak256(input);
     const address = bytesToHex(create2Hash.slice(32 - 20));
     const checksumedAddress = toChecksumAddress(`0x${address}`);
@@ -33,7 +33,7 @@ const create2Worker = (config, batchNumber, size) => {
       (config.position === Position.end && output.endsWith(config.search)) ||
       (config.position === Position.any && output.includes(config.search))
     ) {
-      results.push({ nonce, address: checksumedAddress });
+      results.push({ salt, address: checksumedAddress });
     }
   }
 

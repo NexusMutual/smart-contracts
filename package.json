@@ -36,7 +36,7 @@
     "ethers": "^5.4.3",
     "keccak256": "^1.0.3",
     "merkletreejs": "^0.2.24",
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^2.6.7"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-etherscan": "^2.1.0",

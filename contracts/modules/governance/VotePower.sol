@@ -32,6 +32,10 @@ contract VotePower {
     IMemberRoles memberRoles = IMemberRoles(master.getLatestAddress("MR"));
     IGovernance governance = IGovernance(master.getLatestAddress("GV"));
 
+    if (!memberRoles.checkRole(member, uint(Role.Member))) {
+      return 0;
+    }
+
     uint delegationId = governance.followerDelegation(member);
 
     if (delegationId != 0) {

@@ -68,7 +68,7 @@ describe('editCover', function () {
     );
   }
 
-  it('should edit purchased cover and increase amount', async function () {
+  it.only('should edit purchased cover and increase amount', async function () {
     const { cover } = this;
 
     const {

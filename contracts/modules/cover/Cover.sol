@@ -128,6 +128,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function initialize() public {
     require(lastGlobalBucket == 0, "Cover: Already initalized");
     lastGlobalBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
+
+    uint32 initialBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
+    lastGlobalBuckets[0] = initialBucket;
+    lastGlobalBuckets[1] = initialBucket;
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -264,7 +268,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
 
     // updateActiveCoverAmountInNXMPerProduct(params.productId, params.period, totalCoverAmountInNXM);
-    updateGlobalActiveCoverAmountInNXM(params.period, totalCoverAmountInNXM);
+    // updateGlobalActiveCoverAmountInNXM(params.period, totalCoverAmountInNXM);
+    updateGlobalActiveCoverAmountPerAsset(params.period, params.amount, params.payoutAsset);
 
     return coverId;
   }
@@ -366,7 +371,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         originalPoolAllocations[i].premiumInNXM =
         originalPoolAllocations[i].premiumInNXM * (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
       }
-      rollbackGlobalActiveCoverAmountInNXM(totalPreviousCoverAmountInNXM, lastCoverSegment.start + lastCoverSegment.period);
+
+      // rollbackGlobalActiveCoverAmountInNXM(totalPreviousCoverAmountInNXM, lastCoverSegment.start + lastCoverSegment.period);
+      rollbackGlobalActiveCoverAmountPerAsset(
+        lastCoverSegment.amount, lastCoverSegment.start + lastCoverSegment.period, cover.payoutAsset
+      );
     }
 
     uint refundInCoverAsset =
@@ -387,7 +396,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint refundInNXM = refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset);
     handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, premiumInPaymentAsset, refundInNXM);
 
-    updateGlobalActiveCoverAmountInNXM(buyCoverParams.period, totalCoverAmountInNXM);
+    // updateGlobalActiveCoverAmountInNXM(buyCoverParams.period, totalCoverAmountInNXM);
+    updateGlobalActiveCoverAmountPerAsset(buyCoverParams.period, buyCoverParams.amount, buyCoverParams.payoutAsset);
   }
 
   function handlePaymentAndRefund(
@@ -548,6 +558,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     globalActiveCoverAmountPerAsset[assetId] = uint96(activeCoverAmount + amountToCover);
     lastGlobalBuckets[assetId] = lastBucket;
     globalActiveCoverAmountBucketsPerAsset[assetId][(block.timestamp + period) / BUCKET_SIZE] = uint96(amountToCover);
+  }
+
+  function rollbackGlobalActiveCoverAmountPerAsset(uint amountToRollback, uint endTimestamp, uint24 assetId) internal {
+    uint bucket = endTimestamp / BUCKET_SIZE;
+    globalActiveCoverAmountBucketsPerAsset[assetId][bucket] -= uint96(amountToRollback);
   }
 
   function rollbackGlobalActiveCoverAmountInNXM(uint amountToRollback, uint endTimestamp) internal {

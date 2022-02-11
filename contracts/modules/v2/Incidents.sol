@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/extensions/draft-IERC20Permit.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import "../../interfaces/INXMToken.sol";
@@ -15,6 +16,7 @@ import "../../interfaces/IIncidents.sol";
 import "../../interfaces/ICoverNFT.sol";
 
 import "../../abstract/MasterAwareV2.sol";
+import "hardhat/console.sol";
 
 /// Allows cover owners to redeem payouts from yield token depeg incidents. It is an entry point
 /// to the assessment process where the members of the mutual decides the validity of the
@@ -179,25 +181,39 @@ contract Incidents is IIncidents, MasterAwareV2 {
     emit MetadataSubmitted(incidents.length - 1, expectedPayoutInNXM, ipfsMetadata);
   }
 
-  /// Redeems payouts for eligible covers matching an accepted incident
-  ///
-  /// @dev The function must be called during the redemption period.
-  ///
-  /// @param incidentId      Index of the incident
-  /// @param coverId         Index of the cover to be redeemed
-  /// @param segmentId       Index of the cover's segment that's elidgible for redemption
-  /// @param depeggedTokens  The amount of depegged tokens to be swapped for the payoutAsset.
-  /// @param payoutAddress   The addres where the payout must be sent to
-  function redeemIncidentPayout(
-    uint104 incidentId,
-    uint32 coverId,
-    uint segmentId,
-    uint depeggedTokens,
-    address payable payoutAddress
-  ) external onlyMember override returns (uint, uint8) {
-    require(coverNFT.isApprovedOrOwner(msg.sender, coverId), "Only the cover owner or approved addresses can redeem");
+  function redeemPayoutWithPermit (
+    RedeemParams calldata redeemParams,
+    PermitData calldata permitData
+  ) external override onlyMember returns (uint payoutAmount, uint8 payoutAsset) {
+    return _redeemPayout(redeemParams, permitData);
+  }
 
-    Incident memory incident =  incidents[incidentId];
+  function redeemPayout (
+    RedeemParams calldata redeemParams
+  ) external override onlyMember returns (uint payoutAmount, uint8 payoutAsset) {
+    PermitData memory emptyPremitData;
+    return _redeemPayout(redeemParams, emptyPremitData);
+  }
+
+  // Redeems payouts for eligible covers matching an accepted incident
+  //
+  // @dev The function must be called during the redemption period.
+  //
+  // @param incidentId      Index of the incident
+  // @param coverId         Index of the cover to be redeemed
+  // @param segmentId       Index of the cover's segment that's elidgible for redemption
+  // @param depeggedTokens  The amount of depegged tokens to be swapped for the payoutAsset.
+  // @param payoutAddress   The addres where the payout must be sent to
+  function _redeemPayout(
+    RedeemParams calldata redeemParams,
+    PermitData memory permitData
+  ) internal returns (uint, uint8) {
+    require(
+      coverNFT.isApprovedOrOwner(msg.sender, redeemParams.coverId),
+      "Only the cover owner or approved addresses can redeem"
+    );
+
+    Incident memory incident =  incidents[redeemParams.incidentId];
     {
       IAssessment.Poll memory poll = assessment().getPoll(incident.assessmentId);
 
@@ -228,43 +244,62 @@ contract Incidents is IIncidents, MasterAwareV2 {
     {
       ICover coverContract = ICover(getInternalContractAddress(ID.CO));
 
-      ICover.CoverSegment memory coverSegment = coverContract.coverSegments(coverId, segmentId);
+      ICover.CoverSegment memory coverSegment = coverContract.coverSegments(
+        redeemParams.coverId,
+        redeemParams.segmentId
+      );
+
+      ICover.CoverData memory coverData = coverContract.coverData(redeemParams.coverId);
+      payoutAsset = coverData.payoutAsset;
 
       {
-        uint deductiblePriceBefore = uint(incident.priceBefore) * uint(config.payoutDeductibleRatio) /
-          INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
+        uint deductiblePriceBefore = uint(incident.priceBefore) *
+          uint(config.payoutDeductibleRatio) / INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
         (,uint payoutAssetDecimals,) = poolContract.assets(payoutAsset);
-        payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** uint(payoutAssetDecimals));
+        payoutAmount = redeemParams.depeggedTokens * deductiblePriceBefore / (10 ** uint(payoutAssetDecimals));
       }
 
-      {
-        ICover.CoverData memory coverData;
-        coverData = coverContract.coverData(coverId);
-        require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");
-        require(coverSegment.start + coverSegment.period >= incident.date, "Cover end date is before the incident");
-        require(coverSegment.start <= incident.date, "Cover start date is after the incident");
+      require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");
+      require(
+        coverSegment.start + coverSegment.period >= incident.date,
+        "Cover end date is before the incident"
+      );
+      require(coverSegment.start <= incident.date, "Cover start date is after the incident");
 
-        coverContract.performPayoutBurn(coverId, segmentId, payoutAmount);
-        uint16 productType;
-        (
-          productType,
-          coveredToken,
-          /*uint payoutAssets*/,
-          /* initialPriceRatio */,
-          /* capacityReductionRatio */
-        ) = coverContract.products(coverData.productId);
-        (
-          /*string descriptionIpfsHash*/,
-          /*uint8 redeemMethod*/,
-          uint gracePeriod
-        ) = coverContract.productTypes(productType);
-        require(coverSegment.start + coverSegment.period + gracePeriod * 1 days >= block.timestamp, "Grace period has expired");
-        require(coverData.productId == incident.productId, "Product id mismatch");
-      }
+      coverContract.performPayoutBurn(redeemParams.coverId, redeemParams.segmentId, payoutAmount);
+      uint16 productType;
+      (
+        productType,
+        coveredToken,
+        /* coverAssets */,
+        /* initialPriceRatio */,
+        /* capacityReductionRatio */
+      ) = coverContract.products(coverData.productId);
+      (
+        /*string descriptionIpfsHash*/,
+        /*uint8 redeemMethod*/,
+        uint gracePeriod
+      ) = coverContract.productTypes(productType);
+      require(
+        coverSegment.start + coverSegment.period + gracePeriod * 1 days >= block.timestamp,
+        "Grace period has expired"
+      );
+      require(coverData.productId == incident.productId, "Product id mismatch");
     }
 
-    SafeERC20.safeTransferFrom(IERC20(coveredToken), msg.sender, address(this), depeggedTokens);
-    poolContract.sendPayout(payoutAsset, payoutAddress, payoutAmount);
+    if (permitData.spender != address(0)) {
+      IERC20Permit(coveredToken).permit(
+        permitData.owner,
+        permitData.spender,
+        permitData.value,
+        permitData.deadline,
+        permitData.v,
+        permitData.r,
+        permitData.s
+      );
+    }
+    SafeERC20.safeTransferFrom(IERC20(coveredToken), msg.sender, address(this), redeemParams.depeggedTokens);
+    poolContract.sendPayout(payoutAsset, redeemParams.payoutAddress, payoutAmount);
 
     return (payoutAmount, payoutAsset);
   }

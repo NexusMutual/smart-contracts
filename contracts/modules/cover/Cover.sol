@@ -209,7 +209,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     Product memory product = products[params.productId];
     require(product.initialPriceRatio != 0, "Cover: Product not initialized");
     require(
-      assetIsSupported(product.coverAssets, params.payoutAsset),
+      isAssetSupported(product.coverAssets, params.payoutAsset),
       "Cover: Payout asset is not supported"
     );
     require(params.period >= MIN_COVER_PERIOD, "Cover: Cover period is too short");
@@ -548,7 +548,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== HELPERS ========== */
 
-  function assetIsSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) public returns (bool) {
+  function isAssetSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) public override returns (bool) {
 
     if (payoutAssetsBitMap == 0) {
       return (1 << payoutAsset) & coverAssetsFallback > 0;

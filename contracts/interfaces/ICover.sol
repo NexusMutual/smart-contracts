@@ -109,6 +109,8 @@ interface ICover {
 
   function productTypes(uint id) external view returns (string memory, uint8, uint16);
 
+  function isAssetSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) external returns (bool);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function migrateCovers(uint[] calldata coverIds, address toNewOwner) external;

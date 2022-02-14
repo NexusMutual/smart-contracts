@@ -1,4 +1,5 @@
-const { artifacts } = require('hardhat');
+const { artifacts, ethers: { utils: { parseEther } } } = require('hardhat');
+const { constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
 const { assert } = require('chai');
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
@@ -41,6 +42,55 @@ async function assertCoverFields (
   await assert.equal(segment.priceRatio.toString(), targetPriceRatio.toString());
 }
 
+async function buyCoverOnOnePool (
+  {
+    productId,
+    payoutAsset,
+    period,
+    amount,
+    targetPriceRatio,
+    priceDenominator,
+    activeCover,
+    capacity,
+    capacityFactor,
+  },
+) {
+  const { cover } = this;
+
+  const {
+    governanceContracts: [gv1],
+    members: [member1],
+    members: [coverBuyer1, stakingPoolManager],
+  } = this.accounts;
+
+  await cover.connect(gv1).setGlobalCapacityRatio(capacityFactor);
+
+  await createStakingPool(
+    cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
+  );
+
+  const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+
+  await cover.connect(member1).buyCover(
+    {
+      owner: coverBuyer1.address,
+      productId,
+      payoutAsset,
+      amount,
+      period,
+      maxPremiumInAsset: expectedPremium,
+      paymentAsset: payoutAsset,
+      payWitNXM: false,
+      commissionRatio: parseEther('0'),
+      commissionDestination: ZERO_ADDRESS,
+    },
+    [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+    {
+      value: expectedPremium,
+    },
+  );
+}
+
 function toDecimal (x) {
   return new Decimal(x.toString());
 }
@@ -48,4 +98,5 @@ function toDecimal (x) {
 module.exports = {
   createStakingPool,
   assertCoverFields,
+  buyCoverOnOnePool,
 };

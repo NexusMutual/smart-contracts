@@ -1,9 +1,9 @@
 const { assert, expect } = require('chai');
 const { ethers: { utils: { parseEther } } } = require('hardhat');
 const { time, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
-const { createStakingPool, assertCoverFields } = require('./helpers');
+const { createStakingPool, assertCoverFields, buyCoverOnOnePool } = require('./helpers');
 
-describe('editCover', function () {
+describe.only('editCover', function () {
 
   const coverBuyFixture = {
     productId: 0,
@@ -19,56 +19,7 @@ describe('editCover', function () {
     capacityFactor: '10000',
   };
 
-  async function buyCover (
-    {
-      productId,
-      payoutAsset,
-      period,
-      amount,
-      targetPriceRatio,
-      priceDenominator,
-      activeCover,
-      capacity,
-      capacityFactor,
-    },
-  ) {
-    const { cover } = this;
-
-    const {
-      governanceContracts: [gv1],
-      members: [member1],
-      members: [coverBuyer1, stakingPoolManager],
-    } = this.accounts;
-
-    await cover.connect(gv1).setGlobalCapacityRatio(capacityFactor);
-
-    const stakingPool = await createStakingPool(
-      cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
-    );
-
-    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
-
-    const tx = await cover.connect(member1).buyCover(
-      {
-        owner: coverBuyer1.address,
-        productId,
-        payoutAsset,
-        amount,
-        period,
-        maxPremiumInAsset: expectedPremium,
-        paymentAsset: payoutAsset,
-        payWitNXM: false,
-        commissionRatio: parseEther('0'),
-        commissionDestination: ZERO_ADDRESS,
-      },
-      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
-      {
-        value: expectedPremium,
-      },
-    );
-  }
-
-  it.only('should edit purchased cover and increase amount', async function () {
+  it('should edit purchased cover and increase amount', async function () {
     const { cover } = this;
 
     const {
@@ -85,7 +36,7 @@ describe('editCover', function () {
       priceDenominator,
     } = coverBuyFixture;
 
-    await buyCover.call(this, coverBuyFixture);
+    await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
     const expectedCoverId = '0';
@@ -142,7 +93,7 @@ describe('editCover', function () {
       priceDenominator,
     } = coverBuyFixture;
 
-    await buyCover.call(this, coverBuyFixture);
+    await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
     const expectedCoverId = '0';
@@ -200,7 +151,7 @@ describe('editCover', function () {
       priceDenominator,
     } = coverBuyFixture;
 
-    await buyCover.call(this, coverBuyFixture);
+    await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
     const expectedCoverId = '0';
@@ -259,7 +210,7 @@ describe('editCover', function () {
       priceDenominator,
     } = coverBuyFixture;
 
-    await buyCover.call(this, coverBuyFixture);
+    await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     // make cover expire
     await time.increase(period + 3600);
@@ -307,7 +258,7 @@ describe('editCover', function () {
       priceDenominator,
     } = coverBuyFixture;
 
-    await buyCover.call(this, coverBuyFixture);
+    await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const expectedCoverId = '0';
     const increasedAmount = amount.mul(2);
@@ -353,7 +304,7 @@ describe('editCover', function () {
       priceDenominator,
     } = coverBuyFixture;
 
-    await buyCover.call(this, coverBuyFixture);
+    await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const expectedCoverId = '0';
     const increasedAmount = amount.mul(2);

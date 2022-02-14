@@ -13,6 +13,20 @@ const { bnEqual } = require('../utils').helpers;
 
 describe.only('getGlobalActiveCoverAmountForAsset', function () {
 
+  const coverBuyFixture = {
+    productId: 0,
+    payoutAsset: 0, // ETH
+    period: 3600 * 24 * 30, // 30 days
+
+    amount: parseEther('1000'),
+
+    targetPriceRatio: '260',
+    priceDenominator: '10000',
+    activeCover: parseEther('8000'),
+    capacity: parseEther('10000'),
+    capacityFactor: '10000',
+  };
+
   it('should compute active cover amount for ETH correctly after cover purchase', async function () {
     const { cover, coverViewer } = this;
 

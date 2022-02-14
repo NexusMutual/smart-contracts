@@ -3,7 +3,7 @@ const { ethers: { utils: { parseEther } } } = require('hardhat');
 const { time, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 const { createStakingPool, assertCoverFields, buyCoverOnOnePool } = require('./helpers');
 
-describe.only('editCover', function () {
+describe('editCover', function () {
 
   const coverBuyFixture = {
     productId: 0,

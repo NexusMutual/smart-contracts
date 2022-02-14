@@ -570,6 +570,18 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     globalActiveCoverAmountBuckets[bucket] -= uint96(amountToRollback);
   }
 
+  function getGlobalActiveCoverAmountForAsset(uint24 assetId) public view returns (uint) {
+    uint currentBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
+
+    uint activeCoverAmount = globalActiveCoverAmountPerAsset[assetId];
+    uint32 lastBucket = lastGlobalBuckets[assetId];
+    while (lastBucket < currentBucket) {
+      ++lastBucket;
+      activeCoverAmount -= globalActiveCoverAmountBucketsPerAsset[assetId][lastBucket];
+    }
+    return activeCoverAmount;
+  }
+
   /* ========== Staking Pool creation ========== */
 
 

@@ -11,9 +11,9 @@ const {
 const { createStakingPool, assertCoverFields } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 
-describe('globalActiveCoverAmountInNXM', function () {
+describe.only('getGlobalActiveCoverAmountForAsset', function () {
 
-  it('should compute globalActiveCoverAmountInNXM correctly at cover expiry', async function () {
+  it('should compute active cover amount for ETH correctly after cover purchase', async function () {
     const { cover, coverViewer } = this;
 
     const {
@@ -62,9 +62,7 @@ describe('globalActiveCoverAmountInNXM', function () {
       },
     );
 
-    const activeCoverAmountInNXM = await cover.globalActiveCoverAmountInNXM();
-    bnEqual(activeCoverAmountInNXM, amount);
-
-    // await time.increasesBy(period + 3600 * 24);
+    const activeCoverAmount = await cover.getGlobalActiveCoverAmountForAsset(payoutAsset);
+    bnEqual(activeCoverAmount, amount);
   });
 });

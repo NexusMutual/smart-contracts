@@ -12,7 +12,7 @@ const { bnEqual } = require('../utils').helpers;
 
 describe('buyCover', function () {
 
-  it.only('should purchase new cover using 1 staking pool', async function () {
+  it('should purchase new cover using 1 staking pool', async function () {
     const { cover, coverViewer } = this;
 
     const {
@@ -136,9 +136,6 @@ describe('buyCover', function () {
 
     await assertCoverFields(cover, expectedCoverId,
       { productId, payoutAsset, period, amount, targetPriceRatio });
-
-    const activeCoverAmountInNXM = await cover.globalActiveCoverAmountInNXM();
-    bnEqual(activeCoverAmountInNXM, amount);
   });
 
   it('should purchase new cover using NXM with commission', async function () {
@@ -215,8 +212,6 @@ describe('buyCover', function () {
     await assertCoverFields(cover, expectedCoverId,
       { productId, payoutAsset, period, amount, targetPriceRatio });
 
-    const activeCoverAmountInNXM = await cover.globalActiveCoverAmountInNXM();
-    bnEqual(activeCoverAmountInNXM, amount);
   });
 
   it('should purchase new cover using DAI with commission', async function () {
@@ -293,9 +288,6 @@ describe('buyCover', function () {
 
     await assertCoverFields(cover, expectedCoverId,
       { productId, payoutAsset, period, amount, targetPriceRatio });
-
-    const activeCoverAmountInNXM = await cover.globalActiveCoverAmountInNXM();
-    bnEqual(activeCoverAmountInNXM, amount);
   });
 
   it('should revert for unavailable product', async function () {

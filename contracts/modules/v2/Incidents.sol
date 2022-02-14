@@ -16,7 +16,6 @@ import "../../interfaces/IIncidents.sol";
 import "../../interfaces/ICoverNFT.sol";
 
 import "../../abstract/MasterAwareV2.sol";
-import "hardhat/console.sol";
 
 /// Allows cover owners to redeem payouts from yield token depeg incidents. It is an entry point
 /// to the assessment process where the members of the mutual decides the validity of the
@@ -159,8 +158,8 @@ contract Incidents is IIncidents, MasterAwareV2 {
       uint16 productType,
       /*address productAddress*/,
       /*uint payoutAssets*/,
-      /* initialPriceRatio */,
-      /* capacityReductionRatio */
+      /*initialPriceRatio*/,
+      /*capacityReductionRatio*/
     ) = coverContract.products(productId);
     (
       /*string descriptionIpfsHash*/,
@@ -181,39 +180,63 @@ contract Incidents is IIncidents, MasterAwareV2 {
     emit MetadataSubmitted(incidents.length - 1, expectedPayoutInNXM, ipfsMetadata);
   }
 
-  function redeemPayoutWithPermit (
-    RedeemParams calldata redeemParams,
-    PermitData calldata permitData
-  ) external override onlyMember returns (uint payoutAmount, uint8 payoutAsset) {
-    return _redeemPayout(redeemParams, permitData);
+  /// @notice Redeems payouts for eligible covers matching an accepted incident
+  ///
+  /// @dev The function must be called during the redemption period.
+  ///
+  /// @param incidentId      Index of the incident
+  /// @param coverId         Index of the cover to be redeemed
+  /// @param segmentId       Index of the cover's segment that's elidgible for redemption
+  /// @param depeggedTokens  The amount of depegged tokens to be swapped for the payoutAsset
+  /// @param payoutAddress   The addres where the payout must be sent to
+  /// @param optionalParams  Reserved for permit data which is still in draft phase. Some tokens
+  ///                        might support it already and it can be used accordingly.
+  ///                        See: IIncidents.PermitData
+  function redeemPayout(
+    uint104 incidentId,
+    uint32 coverId,
+    uint segmentId,
+    uint depeggedTokens,
+    address payable payoutAddress,
+    bytes calldata optionalParams
+  ) external override returns (uint, uint8) {
+    Incident memory incident =  incidents[incidentId];
+    PermitData memory permitData;
+    if (optionalParams.length > 0) {
+      (
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+      ) = abi.decode(optionalParams, (address, address, uint256, uint256, uint8, bytes32, bytes32));
+      permitData = PermitData(owner, spender, value, deadline, v, r, s);
+    }
+    return _redeemPayout(
+      coverId,
+      segmentId,
+      depeggedTokens,
+      payoutAddress,
+      incident,
+      permitData
+    );
   }
 
-  function redeemPayout (
-    RedeemParams calldata redeemParams
-  ) external override onlyMember returns (uint payoutAmount, uint8 payoutAsset) {
-    PermitData memory emptyPremitData;
-    return _redeemPayout(redeemParams, emptyPremitData);
-  }
-
-  // Redeems payouts for eligible covers matching an accepted incident
-  //
-  // @dev The function must be called during the redemption period.
-  //
-  // @param incidentId      Index of the incident
-  // @param coverId         Index of the cover to be redeemed
-  // @param segmentId       Index of the cover's segment that's elidgible for redemption
-  // @param depeggedTokens  The amount of depegged tokens to be swapped for the payoutAsset.
-  // @param payoutAddress   The addres where the payout must be sent to
   function _redeemPayout(
-    RedeemParams calldata redeemParams,
+    uint32 coverId,
+    uint segmentId,
+    uint depeggedTokens,
+    address payable payoutAddress,
+    Incident memory incident,
     PermitData memory permitData
   ) internal returns (uint, uint8) {
     require(
-      coverNFT.isApprovedOrOwner(msg.sender, redeemParams.coverId),
+      coverNFT.isApprovedOrOwner(msg.sender, coverId),
       "Only the cover owner or approved addresses can redeem"
     );
 
-    Incident memory incident =  incidents[redeemParams.incidentId];
     {
       IAssessment.Poll memory poll = assessment().getPoll(incident.assessmentId);
 
@@ -236,7 +259,6 @@ contract Incidents is IIncidents, MasterAwareV2 {
       );
     }
 
-    IPool poolContract = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]);
     uint payoutAmount;
     uint8 payoutAsset;
     address coveredToken;
@@ -245,19 +267,21 @@ contract Incidents is IIncidents, MasterAwareV2 {
       ICover coverContract = ICover(getInternalContractAddress(ID.CO));
 
       ICover.CoverSegment memory coverSegment = coverContract.coverSegments(
-        redeemParams.coverId,
-        redeemParams.segmentId
+        coverId,
+        segmentId
       );
 
-      ICover.CoverData memory coverData = coverContract.coverData(redeemParams.coverId);
+      ICover.CoverData memory coverData = coverContract.coverData(coverId);
       payoutAsset = coverData.payoutAsset;
 
       {
         uint deductiblePriceBefore = uint(incident.priceBefore) *
           uint(config.payoutDeductibleRatio) / INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
-        (,uint payoutAssetDecimals,) = poolContract.assets(payoutAsset);
-        payoutAmount = redeemParams.depeggedTokens * deductiblePriceBefore / (10 ** uint(payoutAssetDecimals));
+        (,uint payoutAssetDecimals,) = IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]).assets(payoutAsset);
+        payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** uint(payoutAssetDecimals));
       }
+
+      coverContract.performPayoutBurn(coverId, segmentId, payoutAmount);
 
       require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");
       require(
@@ -266,7 +290,6 @@ contract Incidents is IIncidents, MasterAwareV2 {
       );
       require(coverSegment.start <= incident.date, "Cover start date is after the incident");
 
-      coverContract.performPayoutBurn(redeemParams.coverId, redeemParams.segmentId, payoutAmount);
       uint16 productType;
       (
         productType,
@@ -298,8 +321,8 @@ contract Incidents is IIncidents, MasterAwareV2 {
         permitData.s
       );
     }
-    SafeERC20.safeTransferFrom(IERC20(coveredToken), msg.sender, address(this), redeemParams.depeggedTokens);
-    poolContract.sendPayout(payoutAsset, redeemParams.payoutAddress, payoutAmount);
+    SafeERC20.safeTransferFrom(IERC20(coveredToken), msg.sender, address(this), depeggedTokens);
+    IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]).sendPayout(payoutAsset, payoutAddress, payoutAmount);
 
     return (payoutAmount, payoutAsset);
   }

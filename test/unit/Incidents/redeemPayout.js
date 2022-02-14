@@ -1,9 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { daysToSeconds, setTime, ASSET } = require('./helpers');
-
-const { parseEther } = ethers.utils;
+const { daysToSeconds, setTime, ASSET, signPermit } = require('./helpers');
+const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
 
 describe('redeemPayout', function () {
   it("reverts if the address is not the cover owner's or approved", async function () {
@@ -56,27 +55,27 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(coverOwner).redeemPayout([0, 0, 0, parseEther('100'), coverOwner.address]),
+      incidents.connect(coverOwner).redeemPayout(0, 0, 0, parseEther('100'), coverOwner.address, []),
     ).not.to.be.revertedWith('Only the cover owner or approved addresses can redeem');
 
     await expect(
-      incidents.connect(nonCoverOwner).redeemPayout([0, 1, 0, parseEther('100'), coverOwner.address]),
+      incidents.connect(nonCoverOwner).redeemPayout(0, 1, 0, parseEther('100'), coverOwner.address, []),
     ).to.be.revertedWith('Only the cover owner or approved addresses can redeem');
 
     await coverNFT.connect(coverOwner).approve(nonCoverOwner.address, 1);
 
     await expect(
-      incidents.connect(nonCoverOwner).redeemPayout([0, 1, 0, parseEther('100'), coverOwner.address]),
+      incidents.connect(nonCoverOwner).redeemPayout(0, 1, 0, parseEther('100'), coverOwner.address, []),
     ).not.to.be.revertedWith('Only the cover owner or approved addresses can redeem');
 
     await expect(
-      incidents.connect(nonCoverOwner).redeemPayout([0, 2, 0, parseEther('100'), coverOwner.address]),
+      incidents.connect(nonCoverOwner).redeemPayout(0, 2, 0, parseEther('100'), coverOwner.address, []),
     ).to.be.revertedWith('Only the cover owner or approved addresses can redeem');
 
     await coverNFT.connect(coverOwner).setApprovalForAll(nonCoverOwner.address, true);
 
     await expect(
-      incidents.connect(nonCoverOwner).redeemPayout([0, 2, 0, parseEther('100'), coverOwner.address]),
+      incidents.connect(nonCoverOwner).redeemPayout(0, 2, 0, parseEther('100'), coverOwner.address, []),
     ).not.to.be.revertedWith('Only the cover owner or approved addresses can redeem');
   });
 
@@ -104,7 +103,7 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout([0, 0, 0, parseEther('1'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The incident must be accepted');
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
@@ -116,7 +115,7 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout([0, 0, 0, parseEther('1'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The incident must be accepted');
 
     {
@@ -125,7 +124,7 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout([0, 0, 0, parseEther('1'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The incident must be accepted');
   });
 
@@ -160,14 +159,14 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout([0, 0, 0, parseEther('1'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The voting and cooldown periods must end');
 
     const { end } = await assessment.getPoll(0);
     await setTime(end);
 
     await expect(
-      incidents.connect(member1).redeemPayout([0, 0, 0, parseEther('1'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The voting and cooldown periods must end');
 
     {
@@ -210,7 +209,7 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout([0, 0, 0, parseEther('1'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The redemption period has expired');
   });
 
@@ -251,11 +250,11 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout([0, 0, 0, parseEther('101.011'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('101.011'), member1.address, []),
     ).to.be.revertedWith('Payout exceeds covered amount');
 
     await expect(
-      incidents.connect(member1).redeemPayout([0, 0, 0, parseEther('101.01'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('101.01'), member1.address, []),
     ).not.to.be.revertedWith('Payout exceeds covered amount');
   });
 
@@ -299,10 +298,10 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout([0, 0, 0, parseEther('100'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Cover end date is before the incident');
     await expect(
-      incidents.connect(member1).redeemPayout([0, 0, 1, parseEther('100'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 0, 1, parseEther('100'), member1.address, []),
     ).not.to.be.revertedWith('Cover end date is before the incident');
   });
 
@@ -351,13 +350,13 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout([0, 0, 1, parseEther('100'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 0, 1, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Cover start date is after the incident');
     await expect(
-      incidents.connect(member1).redeemPayout([0, 1, 0, parseEther('100'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Cover start date is after the incident');
     await expect(
-      incidents.connect(member1).redeemPayout([0, 0, 0, parseEther('100'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
     ).not.to.be.revertedWith('Cover start date is after the incident');
   });
 
@@ -397,10 +396,10 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout([0, 0, 0, parseEther('100'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Grace period has expired');
     await expect(
-      incidents.connect(member1).redeemPayout([0, 1, 0, parseEther('100'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
     ).not.to.be.revertedWith('Grace period has expired');
   });
 
@@ -467,19 +466,19 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout([0, 0, 0, parseEther('100'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Product id mismatch');
 
     await expect(
-      incidents.connect(member1).redeemPayout([0, 1, 0, parseEther('100'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Product id mismatch');
 
     await expect(
-      incidents.connect(member1).redeemPayout([0, 2, 0, parseEther('100'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 2, 0, parseEther('100'), member1.address, []),
     ).not.to.be.revertedWith('Product id mismatch');
 
     await expect(
-      incidents.connect(member1).redeemPayout([0, 3, 0, parseEther('100'), member1.address]),
+      incidents.connect(member1).redeemPayout(0, 3, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Product id mismatch');
   });
 
@@ -520,23 +519,107 @@ describe('redeemPayout', function () {
     // [warning] Cover mock does not subtract the covered amount
     {
       const ethBalanceBefore = await ethers.provider.getBalance(member1.address);
-      await incidents.connect(member1).redeemPayout([0, 0, 0, parseEther('100'), member1.address], { gasPrice: 0 });
+      await incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(member1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('99')));
     }
 
     {
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
-      await incidents.connect(member1).redeemPayout([0, 0, 0, parseEther('111'), nonMember1.address], { gasPrice: 0 });
+      await incidents
+        .connect(member1)
+        .redeemPayout(0, 0, 0, parseEther('111'), nonMember1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('109.89')));
     }
 
     {
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember2.address);
-      await incidents.connect(member1).redeemPayout([0, 0, 0, parseEther('3000'), nonMember2.address], { gasPrice: 0 });
+      await incidents
+        .connect(member1)
+        .redeemPayout(0, 0, 0, parseEther('3000'), nonMember2.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember2.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('2970')));
     }
+  });
+
+  it("uses permit when it's provided in optionalParams", async function () {
+    const { incidents, assessment, cover, ybPermitDai, dai } = this.contracts;
+    const [member1] = this.accounts.members;
+    const [nonMember] = this.accounts.nonMembers;
+    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const segmentPeriod = daysToSeconds(30);
+
+    {
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await cover.createMockCover(
+        member1.address,
+        4, // productId
+        ASSET.DAI,
+        [[parseEther('10000'), timestamp + 1, segmentPeriod, 0]],
+      );
+    }
+
+    {
+      const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+      await incidents
+        .connect(advisoryBoard)
+        .submitIncident(4, parseEther('1.1'), currentTime + segmentPeriod / 2, parseEther('100'), '');
+    }
+
+    await assessment.connect(member1).castVote(0, true, parseEther('100'));
+
+    {
+      const { payoutCooldownInDays } = await assessment.config();
+      const { end } = await assessment.getPoll(0);
+      await setTime(end + daysToSeconds(payoutCooldownInDays));
+    }
+
+    let permit, permitDeadline;
+    {
+      const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+      permitDeadline = currentTime + daysToSeconds(1);
+      permit = await signPermit(
+        member1,
+        ybPermitDai,
+        network.config.chainId,
+        incidents.address,
+        parseEther('3000'),
+        permitDeadline,
+        '1',
+      );
+    }
+
+    const daiBalanceBefore = await dai.balanceOf(nonMember.address);
+
+    const parsePermitParam = ({ owner, spender, value, deadline, v, r, s }) => [
+      ...arrayify(hexZeroPad(owner, 32)),
+      ...arrayify(hexZeroPad(spender, 32)),
+      ...arrayify(hexZeroPad(hexValue(value), 32)),
+      ...arrayify(hexZeroPad(deadline, 32)),
+      ...arrayify(hexZeroPad(v, 32)),
+      ...arrayify(hexZeroPad(r, 32)),
+      ...arrayify(hexZeroPad(s, 32)),
+    ];
+
+    await incidents.connect(member1).redeemPayout(
+      0,
+      0,
+      0,
+      parseEther('3000'),
+      nonMember.address,
+      parsePermitParam({
+        owner: member1.address,
+        spender: incidents.address,
+        value: parseEther('3000'),
+        deadline: permitDeadline,
+        v: permit.v,
+        r: permit.r,
+        s: permit.s,
+      }),
+      { gasPrice: 0 },
+    );
+    const daiBalanceAfter = await dai.balanceOf(nonMember.address);
+    expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(parseEther('2970')));
   });
 });

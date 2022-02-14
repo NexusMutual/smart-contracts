@@ -82,7 +82,6 @@ async function setup () {
   await cover.addProduct(['2', ybEth.address, '1', 0b01, '0']);
   await cover.addProduct(['2', ybDai.address, '1', 0b10, '0']);
   await cover.addProduct(['2', ybPermitDai.address, 0b10, '1', '0']);
-  console.log({ ybPermitDai: ybPermitDai.address });
 
   await cover.setActiveCoverAmountInNXM(2, parseEther('3500'));
 

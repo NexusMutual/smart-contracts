@@ -14,7 +14,6 @@ describe('Incidents', function () {
 
   require('./submitIncident');
   require('./redeemPayout');
-  require('./redeemPayoutWithPermit');
   require('./withdrawAsset');
   require('./updateUintParameters');
   require('./getIncidentsCount');

@@ -102,13 +102,13 @@ interface IIncidents {
     string calldata ipfsMetadata
   ) external;
 
-  function redeemPayoutWithPermit(
-    RedeemParams calldata redeemParams,
-    PermitData calldata permitData
-  ) external returns (uint payoutAmount, uint8 payoutAsset);
-
   function redeemPayout(
-    RedeemParams calldata redeemParams
+    uint104 incidentId,
+    uint32 coverId,
+    uint segmentId,
+    uint depeggedTokens,
+    address payable payoutAddress,
+    bytes calldata optionalParams
   ) external returns (uint payoutAmount, uint8 payoutAsset);
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values) external;

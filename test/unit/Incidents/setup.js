@@ -34,6 +34,10 @@ async function setup () {
   const ybEth = await ybETH.deploy();
   await ybEth.deployed();
 
+  const ybPermitDAI = await ethers.getContractFactory('ERC20PermitMock');
+  const ybPermitDai = await ybPermitDAI.deploy('Mock with permit', 'MOCK');
+  await ybPermitDai.deployed();
+
   const ICMockPool = await ethers.getContractFactory('ICMockPool');
   const pool = await ICMockPool.deploy();
   await pool.deployed();
@@ -73,10 +77,11 @@ async function setup () {
   await cover.addProductType('', '0', '90', '5000');
   await cover.addProductType('', '1', '30', '5000');
 
-  await cover.addProduct('0', '0x0000000000000000000000000000000000000001', '1', '0');
-  await cover.addProduct('1', '0x0000000000000000000000000000000000000002', '1', '0');
-  await cover.addProduct('2', ybEth.address, '1', '0');
-  await cover.addProduct('2', ybDai.address, '1', '1');
+  await cover.addProduct(['0', '0x0000000000000000000000000000000000000001', '1', '0', '0']);
+  await cover.addProduct(['1', '0x0000000000000000000000000000000000000002', '1', '0', '0']);
+  await cover.addProduct(['2', ybEth.address, '1', 0b01, '0']);
+  await cover.addProduct(['2', ybDai.address, '1', 0b10, '0']);
+  await cover.addProduct(['2', ybPermitDai.address, 0b10, '1', '0']);
 
   await cover.setActiveCoverAmountInNXM(2, parseEther('3500'));
 
@@ -99,6 +104,7 @@ async function setup () {
     await nxm.mint(member.address, ethers.utils.parseEther('10000'));
     await ybDai.mint(member.address, ethers.utils.parseEther('10000'));
     await ybEth.mint(member.address, ethers.utils.parseEther('10000'));
+    await ybPermitDai.mint(member.address, ethers.utils.parseEther('10000'));
     await nxm.connect(member).approve(tokenController.address, ethers.utils.parseEther('10000'));
   }
 
@@ -114,6 +120,7 @@ async function setup () {
     dai,
     ybDai,
     ybEth,
+    ybPermitDai,
     assessment,
     incidents,
     cover,

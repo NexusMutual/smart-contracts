@@ -13,7 +13,7 @@ describe('Incidents', function () {
   });
 
   require('./submitIncident');
-  require('./redeemIncidentPayout');
+  require('./redeemPayout');
   require('./withdrawAsset');
   require('./updateUintParameters');
   require('./getIncidentsCount');

@@ -3,7 +3,52 @@ const keccak256 = require('keccak256');
 const { MerkleTree } = require('merkletreejs');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
-const { BigNumber } = ethers;
+const { BigNumber, BigNumberish, Signature, utils, providers, Contract } = ethers;
+
+// this is designed to work with USDC
+async function signPermit (signer, token, chainId, spender, value, deadline, domainVersion) {
+  const address = await signer.getAddress();
+  const rawSignature = await signer._signTypedData(
+    {
+      name: await token.name(), // unique name of EIP-712 domain
+      version: domainVersion, // version of domain
+      chainId,
+      verifyingContract: token.address, // address that receives permit
+    },
+    {
+      Permit: [
+        {
+          name: 'owner',
+          type: 'address',
+        },
+        {
+          name: 'spender',
+          type: 'address',
+        },
+        {
+          name: 'value',
+          type: 'uint256',
+        },
+        {
+          name: 'nonce',
+          type: 'uint256',
+        },
+        {
+          name: 'deadline',
+          type: 'uint256',
+        },
+      ],
+    },
+    {
+      owner: address,
+      spender,
+      value,
+      nonce: await token.nonces(address), // current nonce
+      deadline,
+    },
+  );
+  return utils.splitSignature(rawSignature);
+}
 
 const INCIDENT_STATUS = {
   PENDING: 0,
@@ -49,4 +94,5 @@ module.exports = {
   getIncidentStruct,
   getVoteStruct,
   setTime,
+  signPermit,
 };

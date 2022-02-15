@@ -28,6 +28,7 @@ const daysToSeconds = numberOfDays => numberOfDays * 24 * 60 * 60;
 
 const submitClaim = ({ accounts, contracts, config }) => async ({
   coverId = 0,
+  segmentId = 0,
   amount = parseEther('1'),
   coverPeriod = 0,
   payoutAsset = 0,
@@ -38,7 +39,7 @@ const submitClaim = ({ accounts, contracts, config }) => async ({
   const [deposit] = await contracts.claims.getAssessmentDepositAndReward(amount, coverPeriod, payoutAsset);
   return await contracts.claims
     .connect(sender || accounts[0])
-    ['submitClaim(uint32,uint96,string)'](coverId, amount, ipfsMetadata, {
+    ['submitClaim(uint32,uint16,uint96,string)'](coverId, segmentId, amount, ipfsMetadata, {
       value: value || deposit,
     });
 };

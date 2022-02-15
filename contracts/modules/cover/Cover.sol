@@ -54,8 +54,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== STATE VARIABLES ========== */
 
-  Product[] public override products;
-  ProductType[] public override productTypes;
+  Product[] internal _products;
+  ProductType[] internal _productTypes;
 
   CoverData[] private _coverData;
   mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
@@ -161,8 +161,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     // mint the new cover
     uint productId = productsV1.getNewProductId(legacyProductId);
-    Product memory product = products[productId];
-    ProductType memory productType = productTypes[product.productType];
+    Product memory product = _products[productId];
+    ProductType memory productType = _productTypes[product.productType];
     require(
       block.timestamp < validUntil + productType.gracePeriodInDays * 1 days,
       "Cover outside of the grace period"
@@ -205,11 +205,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     PoolAllocationRequest[] memory allocationRequests
   ) external payable override onlyMember returns (uint /*coverId*/) {
 
-    require(products.length > params.productId, "Cover: Product not found");
-    Product memory product = products[params.productId];
+    require(_products.length > params.productId, "Cover: Product not found");
+    Product memory product = _products[params.productId];
     require(product.initialPriceRatio != 0, "Cover: Product not initialized");
     require(
-      assetIsSupported(product.coverAssets, params.payoutAsset),
+      isAssetSupported(product.coverAssets, params.payoutAsset),
       "Cover: Payout asset is not supported"
     );
     require(params.period >= MIN_COVER_PERIOD, "Cover: Cover period is too short");
@@ -288,7 +288,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint amount
   ) internal returns (uint a, uint b) {
 
-    Product memory product = products[params.productId];
+    Product memory product = _products[params.productId];
     return stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
       params.productId,
       amount,
@@ -380,6 +380,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   // TODO: implement properly. we need the staking interface for burning.
   function performPayoutBurn(
     uint coverId,
+    uint segmentId,
     uint amount
   ) external onlyInternal override returns (address /* owner */) {
 
@@ -499,6 +500,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     return segment;
   }
 
+  function products(uint id) external override view returns (Product memory) {
+    return _products[id];
+  }
+
+  function productTypes(uint id) external override view returns (ProductType memory) {
+    return _productTypes[id];
+  }
+
   function coverSegmentsCount(uint coverId) external override view returns (uint) {
     return _coverSegments[coverId].length;
   }
@@ -520,24 +529,24 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(productIds.length == initialPriceRatios.length, "Cover: Array lengths must not be different");
     for (uint i = 0; i < productIds.length; i++) {
       require(initialPriceRatios[i] >= GLOBAL_MIN_PRICE_RATIO, "Cover: Initial price must be greater than the global min price");
-      products[productIds[i]].initialPriceRatio = initialPriceRatios[i];
+      _products[productIds[i]].initialPriceRatio = initialPriceRatios[i];
     }
   }
 
   function setCapacityReductionRatio(uint productId, uint16 reduction) external onlyAdvisoryBoard {
     require(reduction <= CAPACITY_REDUCTION_DENOMINATOR, "Cover: LTADeduction must be less than or equal to 100%");
-    products[productId].capacityReductionRatio = reduction;
+    _products[productId].capacityReductionRatio = reduction;
   }
 
   function addProducts(Product[] calldata newProducts) external override onlyAdvisoryBoard {
     for (uint i = 0; i < newProducts.length; i++) {
-      products.push(newProducts[i]);
+      _products.push(newProducts[i]);
     }
   }
 
   function addProductTypes(ProductType[] calldata newProductTypes) external override onlyAdvisoryBoard {
     for (uint i = 0; i < newProductTypes.length; i++) {
-      productTypes.push(newProductTypes[i]);
+      _productTypes.push(newProductTypes[i]);
     }
   }
 
@@ -547,7 +556,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== HELPERS ========== */
 
-  function assetIsSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) public returns (bool) {
+  function isAssetSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) public override returns (bool) {
 
     if (payoutAssetsBitMap == 0) {
       return (1 << payoutAsset) & coverAssetsFallback > 0;

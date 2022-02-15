@@ -13,7 +13,7 @@ describe('startAssessment', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     {
-      await claims.connect(user).submitClaim(0, parseEther('100'), '');
+      await claims.connect(user).submitClaim(0, 0, parseEther('100'), '');
       const { assessmentId } = await claims.claims(0);
       expect(assessmentId).to.be.equal(0);
     }
@@ -25,13 +25,13 @@ describe('startAssessment', function () {
     }
 
     {
-      await claims.connect(user).submitClaim(2, parseEther('100'), '');
+      await claims.connect(user).submitClaim(2, 0, parseEther('100'), '');
       const { assessmentId } = await claims.claims(1);
       expect(assessmentId).to.be.equal(2);
     }
 
     {
-      await claims.connect(user).submitClaim(3, parseEther('100'), '');
+      await claims.connect(user).submitClaim(3, 0, parseEther('100'), '');
       const { assessmentId } = await claims.claims(2);
       expect(assessmentId).to.be.equal(3);
     }
@@ -50,7 +50,7 @@ describe('startAssessment', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     {
-      await claims.connect(user).submitClaim(0, parseEther('100'), '');
+      await claims.connect(user).submitClaim(0, 0, parseEther('100'), '');
       const { assessmentDeposit, totalReward } = await assessment.assessments(0);
       const { rewardRatio } = await claims.config();
       expect(assessmentDeposit).to.be.equal(0);
@@ -86,7 +86,7 @@ describe('startAssessment', function () {
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     {
-      await claims.connect(user).submitClaim(0, parseEther('100'), '');
+      await claims.connect(user).submitClaim(0, 0, parseEther('100'), '');
       const { assessmentDeposit, totalReward } = await assessment.assessments(0);
       const { rewardRatio } = await claims.config();
       expect(assessmentDeposit).to.be.equal(0);
@@ -119,7 +119,7 @@ describe('startAssessment', function () {
     const [AB] = this.accounts.advisoryBoardMembers;
 
     {
-      await claims.connect(user).submitClaim(0, parseEther('100'), '');
+      await claims.connect(user).submitClaim(0, 0, parseEther('100'), '');
       const { timestamp } = await ethers.provider.getBlock('latest');
       const { poll } = await assessment.assessments(0);
       const { minVotingPeriodInDays } = await assessment.config();

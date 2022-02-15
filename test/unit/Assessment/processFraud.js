@@ -10,7 +10,7 @@ describe('processFraud', function () {
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember, honestMember] = this.accounts.members;
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
-    await claims.submitClaim(0, parseEther('100'), '');
+    await claims.submitClaim(0, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(0, true);
     const merkleTree = await submitFraud({
       assessment,
@@ -81,10 +81,10 @@ describe('processFraud', function () {
     await assessment.connect(otherMember1).stake(parseEther('50'));
     await assessment.connect(otherMember2).stake(parseEther('10'));
 
-    await claims.submitClaim(0, parseEther('100'), '');
+    await claims.submitClaim(0, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(0, true);
 
-    await claims.submitClaim(1, parseEther('100'), '');
+    await claims.submitClaim(1, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(1, true);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -92,17 +92,17 @@ describe('processFraud', function () {
     await assessment.withdrawRewards(fraudulentMember.address, 0);
 
     // Fraudulent claim
-    await claims.submitClaim(2, parseEther('100'), '');
+    await claims.submitClaim(2, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(2, true);
     await assessment.connect(otherMember1).castVote(2, false);
     await assessment.connect(otherMember2).castVote(2, false);
 
-    await claims.submitClaim(3, parseEther('100'), '');
+    await claims.submitClaim(3, 0, parseEther('100'), '');
     await assessment.connect(otherMember1).castVote(3, true);
     await assessment.connect(otherMember2).castVote(3, true);
     await assessment.connect(fraudulentMember).castVote(3, false);
 
-    await claims.submitClaim(4, parseEther('100'), '');
+    await claims.submitClaim(4, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(4, true);
     await assessment.connect(otherMember1).castVote(4, true);
     await assessment.connect(otherMember2).castVote(4, true);
@@ -180,7 +180,7 @@ describe('processFraud', function () {
     await Promise.all(
       Array(10)
         .fill('')
-        .map((_, i) => claims.submitClaim(i, parseEther('100'), '')),
+        .map((_, i) => claims.submitClaim(i, 0, parseEther('100'), '')),
     );
     await Promise.all(
       Array(10)
@@ -282,10 +282,10 @@ describe('processFraud', function () {
     await assessment.connect(otherMember1).stake(parseEther('100'));
     await assessment.connect(otherMember2).stake(parseEther('200'));
 
-    await claims.submitClaim(0, parseEther('100'), '');
+    await claims.submitClaim(0, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(0, true);
 
-    await claims.submitClaim(1, parseEther('100'), '');
+    await claims.submitClaim(1, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(1, true);
 
     {
@@ -345,7 +345,7 @@ describe('processFraud', function () {
 
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
 
-    await claims.submitClaim(0, parseEther('100'), '');
+    await claims.submitClaim(0, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(0, true);
 
     {
@@ -386,8 +386,8 @@ describe('processFraud', function () {
     await assessment.connect(fraudulentMember1).stake(parseEther('100'));
     await assessment.connect(fraudulentMember2).stake(parseEther('50'));
 
-    await claims.submitClaim(0, parseEther('100'), '');
-    await claims.submitClaim(1, parseEther('1000'), '');
+    await claims.submitClaim(0, 0, parseEther('100'), '');
+    await claims.submitClaim(1, 0, parseEther('1000'), '');
 
     await assessment.connect(fraudulentMember1).castVote(0, true);
     await assessment.connect(fraudulentMember1).castVote(1, true);
@@ -479,7 +479,7 @@ describe('processFraud', function () {
 
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
 
-    await claims.submitClaim(0, parseEther('100'), '');
+    await claims.submitClaim(0, 0, parseEther('100'), '');
 
     await assessment.connect(fraudulentMember).castVote(0, true);
 
@@ -520,7 +520,7 @@ describe('processFraud', function () {
 
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
 
-    await claims.submitClaim(0, parseEther('100'), '');
+    await claims.submitClaim(0, 0, parseEther('100'), '');
 
     await assessment.connect(fraudulentMember).castVote(0, true);
 
@@ -566,7 +566,7 @@ describe('processFraud', function () {
     await Promise.all(
       Array(10)
         .fill('')
-        .map((_, i) => claims.submitClaim(i, parseEther('100'), '')),
+        .map((_, i) => claims.submitClaim(i, 0, parseEther('100'), '')),
     );
     await Promise.all(
       Array(10)
@@ -658,7 +658,7 @@ describe('processFraud', function () {
     await Promise.all(
       Array(2)
         .fill('')
-        .map((_, i) => claims.submitClaim(i, parseEther('100'), '')),
+        .map((_, i) => claims.submitClaim(i, 0, parseEther('100'), '')),
     );
     await Promise.all(
       Array(2)
@@ -721,7 +721,7 @@ describe('processFraud', function () {
     await Promise.all(
       Array(2)
         .fill('')
-        .map((_, i) => claims.submitClaim(i, parseEther('100'), '')),
+        .map((_, i) => claims.submitClaim(i, 0, parseEther('100'), '')),
     );
     await Promise.all(
       Array(2)

@@ -41,9 +41,6 @@ const networks = {
     blockGasLimit: 12e6,
     gas: 12e6,
   },
-  kovan: {
-    gas: 12e6,
-  },
   localhost: {
     blockGasLimit: 21e6,
     gas: 21e6,

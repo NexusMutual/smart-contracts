@@ -275,23 +275,17 @@ contract Claims is IClaims, MasterAwareV2 {
     ICover.CoverSegment memory segment = cover().coverSegments(coverId, segmentId);
 
     {
-      (
-        uint16 productType,
-        /*address productAddress*/,
-        /*uint payoutAssets*/,
-        /* initialPriceRatio */,
-        /* capacityReductionRatio */
-      ) = coverContract.products(coverData.productId);
-      (
-        /*string descriptionIpfsHash*/,
-        uint8 redeemMethod,
-        uint16 gracePeriodInDays
-      ) = coverContract.productTypes(productType);
-      require(redeemMethod == uint8(ICover.RedeemMethod.Claim), "Invalid redeem method");
+      ICover.Product memory product = coverContract.products(coverData.productId);
+      ICover.ProductType memory productType = coverContract.productTypes(product.productType);
+
+      require(
+        productType.redeemMethod == uint8(ICover.RedeemMethod.Claim),
+        "Invalid redeem method"
+      );
       require(requestedAmount <= segment.amount, "Covered amount exceeded");
       require(segment.start <= block.timestamp, "Cover starts in the future");
       require(
-        segment.start + segment.period + gracePeriodInDays * 1 days > block.timestamp,
+        segment.start + segment.period + productType.gracePeriodInDays * 1 days > block.timestamp,
         "Cover is outside the grace period"
       );
     }
@@ -368,6 +362,7 @@ contract Claims is IClaims, MasterAwareV2 {
 
     address payable coverOwner = payable(cover().performPayoutBurn(
       claim.coverId,
+      claim.segmentId,
       claim.amount
     ));
 

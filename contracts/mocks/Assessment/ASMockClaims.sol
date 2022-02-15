@@ -14,8 +14,8 @@ contract ASMockClaims is MasterAwareV2 {
   IClaims.Configuration public config;
   IClaims.Claim[] public claims;
 
-  constructor(address tokenAddres) {
-    token = INXMToken(tokenAddres);
+  constructor(address tokenAddress) {
+    token = INXMToken(tokenAddress);
   }
 
   function initialize(address masterAddress) external {

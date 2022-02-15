@@ -64,18 +64,8 @@ contract CoverViewer {
       }
     }
 
-    (
-      uint16 productType,
-      address productAddress,
-      /*uint32 coverAssets*/,
-      /*uint16 initialPriceRatio*/,
-      /*uint16 capacityReductionRatio*/
-    ) = cover().products(coverData.productId);
-    (
-      /*string memory descriptionIpfsHash*/,
-      uint8 redeemMethod,
-      uint16 gracePeriodInDays
-    ) = cover().productTypes(productType);
+    ICover.Product memory product = cover().products(coverData.productId);
+    ICover.ProductType memory productType = cover().productTypes(product.productType);
 
     string memory payoutAssetSymbol;
     if (coverData.payoutAsset == 0) {
@@ -95,16 +85,16 @@ contract CoverViewer {
 
     return CoverView(
       coverData.productId,
-      productType,
-      productAddress,
+      product.productType,
+      product.productAddress,
       coverData.amountPaidOut,
       amountRemaining,
       coverStart,
       coverEnd,
       coverData.payoutAsset,
       payoutAssetSymbol,
-      redeemMethod,
-      gracePeriodInDays
+      productType.redeemMethod,
+      productType.gracePeriodInDays
     );
   }
 

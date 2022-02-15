@@ -91,8 +91,6 @@ interface ICover {
   }
 
   struct ProductType {
-    // TODO: emit an event for ipfs hash
-    string descriptionIpfsHash;
     uint8 redeemMethod;
     uint16 gracePeriodInDays;
   }
@@ -105,9 +103,9 @@ interface ICover {
 
   function coverSegments(uint coverId, uint segmentId) external view returns (CoverSegment memory);
 
-  function products(uint id) external view returns (uint16, address, uint32, uint16, uint16);
+  function products(uint id) external view returns (Product memory);
 
-  function productTypes(uint id) external view returns (string memory, uint8, uint16);
+  function productTypes(uint id) external view returns (ProductType memory);
 
   function isAssetSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) external returns (bool);
 

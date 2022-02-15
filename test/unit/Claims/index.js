@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const { setup } = require('./setup');
 
-describe('Claims', function () {
+describe.only('Claims', function () {
   before(setup);
 
   beforeEach(async function () {

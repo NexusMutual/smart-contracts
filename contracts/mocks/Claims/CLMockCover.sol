@@ -105,7 +105,6 @@ contract CLMockCover {
     uint16 burnRatio
   ) external {
     productTypes.push(ICover.ProductType(
-    descriptionIpfsHash,
     redeemMethod,
     gracePeriodInDays
     ));

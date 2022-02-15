@@ -269,7 +269,7 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
 
     uint coverNoteAmount = coverDetails[2].mul(qd.tokensRetained()).div(100);
 
-    uint gracePeriod = 120;
+    //uint gracePeriod = 120;
     //uint claimSubmissionPeriod = uint(coverPeriod).mul(1 days).add(gracePeriod);
     //bytes32 reason = keccak256(abi.encodePacked("CN", from, cid));
 

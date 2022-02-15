@@ -30,7 +30,7 @@ contract CoverViewer {
 
   INXMMaster internal immutable master;
 
-  constructor(address masterAddress) public {
+  constructor(address masterAddress) {
     master = INXMMaster(masterAddress);
   }
 
@@ -46,36 +46,24 @@ contract CoverViewer {
     uint coverStart;
     uint coverEnd;
     uint amountRemaining;
-    ICover.CoverData memory coverData = cover().coverData(coverId);
+    CoverData memory coverData = cover().coverData(coverId);
 
     {
-      ICover.CoverSegment memory firstSegment = cover().coverSegments(coverId, 0);
+      CoverSegment memory firstSegment = cover().coverSegments(coverId, 0);
       coverStart = firstSegment.start;
       uint segmentCount = cover().coverSegmentsCount(coverId);
       if (segmentCount == 1) {
         coverEnd = coverStart + firstSegment.period;
         amountRemaining = firstSegment.amount;
       } else {
-        uint lastSegmentStart;
-        uint lastSegmentPeriod;
-        ICover.CoverSegment memory lastSegment = cover().coverSegments(coverId, segmentCount - 1);
+        CoverSegment memory lastSegment = cover().coverSegments(coverId, segmentCount - 1);
         coverEnd = lastSegment.start + lastSegment.period;
         amountRemaining = lastSegment.amount;
       }
     }
 
-    (
-      uint16 productType,
-      address productAddress,
-      /*uint32 coverAssets*/,
-      /*uint16 initialPriceRatio*/,
-      /*uint16 capacityReductionRatio*/
-    ) = cover().products(coverData.productId);
-    (
-      /*string memory descriptionIpfsHash*/,
-      uint8 redeemMethod,
-      uint16 gracePeriodInDays
-    ) = cover().productTypes(productType);
+    Product memory product = cover().products(coverData.productId);
+    ProductType memory productType = cover().productTypes(product.productType);
 
     string memory payoutAssetSymbol;
     if (coverData.payoutAsset == 0) {
@@ -95,16 +83,16 @@ contract CoverViewer {
 
     return CoverView(
       coverData.productId,
-      productType,
-      productAddress,
+      product.productType,
+      product.productAddress,
       coverData.amountPaidOut,
       amountRemaining,
       coverStart,
       coverEnd,
       coverData.payoutAsset,
       payoutAssetSymbol,
-      redeemMethod,
-      gracePeriodInDays
+      productType.redeemMethod,
+      productType.gracePeriodInDays
     );
   }
 

@@ -5,22 +5,27 @@ pragma solidity ^0.8.0;
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IERC721Mock.sol";
 
-import "hardhat/console.sol";
-
 contract ICMockCover {
+
+  struct PerformPayoutBurnCalledWith {
+    uint coverId;
+    uint segmentId;
+    uint amount;
+  }
 
   IERC721Mock public immutable coverNFT;
 
-  ICover.CoverData[] public coverData;
-  mapping(uint => ICover.CoverSegment[]) coverSegments;
+  CoverData[] public coverData;
+  PerformPayoutBurnCalledWith public performPayoutBurnCalledWith;
+  mapping(uint => CoverSegment[]) _coverSegments;
 
-  mapping(uint => ICover.PoolAllocation[]) poolAllocations;
+  mapping(uint => PoolAllocation[]) poolAllocations;
   mapping(uint => uint96) public activeCoverAmountInNXM;
 
-  ICover.Product[] public products;
+  Product[] internal _products;
   mapping(uint => uint) capacityFactors;
 
-  ICover.ProductType[] public productTypes;
+  ProductType[] internal _productTypes;
 
   mapping(uint => uint) initialPrices;
 
@@ -50,60 +55,76 @@ contract ICMockCover {
     coverNFT = IERC721Mock(coverNFTAddress);
   }
 
+  function products(uint id) external view returns (Product memory) {
+    return _products[id];
+  }
+
+  function productTypes(uint id) external view returns (ProductType memory) {
+    return _productTypes[id];
+  }
+
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function buyCover(
+  function createMockCover(
     address owner,
     uint24 productId,
     uint8 payoutAsset,
-    uint96 amount,
-    uint32 period,
-    uint maxPrice,
-    ICover.PoolAllocationRequest[] memory stakingPools
+    CoverSegment[] memory segments
   ) external payable returns (uint coverId) {
-    coverData.push(ICover.CoverData(
+
+    coverData.push(CoverData(
         productId,
         payoutAsset,
         0
       ));
 
-    coverSegments[coverData.length - 1].push(ICover.CoverSegment(
-        uint96(amount),
-        uint32(block.timestamp + 1),
-        uint32(period),
-        uint16(0)
-      ));
+    for (uint i = 0; i < segments.length; i++) {
+      _coverSegments[coverData.length - 1].push(segments[i]);
+    }
 
     coverId = coverData.length - 1;
     coverNFT.safeMint(owner, coverId);
+  }
+
+  function coverSegments(
+    uint coverId,
+    uint segmentId
+  ) external view returns (CoverSegment memory) {
+    CoverSegment memory segment = _coverSegments[coverId][segmentId];
+    uint96 amountPaidOut = coverData[coverId].amountPaidOut;
+    segment.amount = segment.amount >= amountPaidOut
+      ? segment.amount - amountPaidOut
+      : 0;
+    return segment;
   }
 
   function addProductType(
     string calldata descriptionIpfsHash,
     uint8 redeemMethod,
     uint16 gracePeriodInDays,
-    uint16 burnRatio
+    uint16 /*burnRatio*/
   ) external {
-    productTypes.push(ICover.ProductType(
+    _productTypes.push(ProductType(
       descriptionIpfsHash,
       redeemMethod,
       gracePeriodInDays
     ));
   }
 
-  function addProduct(ICover.Product calldata product) external {
-    products.push(product);
+  function addProduct(Product calldata product) external {
+    _products.push(product);
   }
 
   function setActiveCoverAmountInNXM(
     uint productId,
     uint96 amount
-  ) external returns (uint96) {
+  ) external {
     activeCoverAmountInNXM[productId] = amount;
   }
 
 
-  function performPayoutBurn(uint coverId, uint amount) external returns (address) {
+  function performPayoutBurn(uint coverId, uint segmentId, uint amount) external returns (address) {
+    performPayoutBurnCalledWith = PerformPayoutBurnCalledWith(coverId, segmentId, amount);
     return coverNFT.ownerOf(coverId);
   }
 }

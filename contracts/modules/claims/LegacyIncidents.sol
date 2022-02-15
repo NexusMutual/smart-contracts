@@ -146,12 +146,12 @@ contract LegacyIncidents is ILegacyIncidents, MasterAware {
   }
 
   function _sendPayoutAndPushBurn(
-    address productId,
-    address payable coverOwner,
-    uint coveredTokenAmount,
-    address coverAsset,
-    uint payoutAmount
-  ) internal {
+    address /*productId*/,
+    address payable /*coverOwner*/,
+    uint /*coveredTokenAmount*/,
+    address /*coverAsset*/,
+    uint /*payoutAmount*/
+  ) internal pure {
     revert("Migrate to v2");
   }
 

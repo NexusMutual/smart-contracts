@@ -68,12 +68,6 @@ contract DisposableGovernance is IGovernance, LegacyMasterAware {
     uint voters;
   }
 
-  struct DelegateVote {
-    address follower;
-    address leader;
-    uint lastUpd;
-  }
-
   /* copied state variables */
 
   ProposalVote[] internal allVotes;
@@ -142,7 +136,12 @@ contract DisposableGovernance is IGovernance, LegacyMasterAware {
 
   function allowedToCatgorize() public view returns (uint) {return 0;}
 
-  function removeDelegation(address _add) external {}
+  function removeDelegation(address) external {}
 
-  function getPendingReward(address _memberAddress) external view returns (uint pendingDAppReward) {return 0;}
+  function getPendingReward(address) external view returns (uint pendingDAppReward) {return 0;}
+
+  function getFollowers(address) external view returns (uint[] memory) {
+    return new uint[](0);
+  }
+
 }

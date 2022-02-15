@@ -59,7 +59,7 @@ describe('unstake', function () {
     const { assessment, nxm, claims } = this.contracts;
     const user = this.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
-    await claims.submitClaim(0, parseEther('100'), '');
+    await claims.submitClaim(0, 0, parseEther('100'), '');
     await assessment.connect(user).castVote(0, true);
     await expect(assessment.connect(user).unstake(parseEther('100'), user.address)).to.be.revertedWith(
       'Stake is in lockup period',
@@ -74,7 +74,7 @@ describe('unstake', function () {
       );
     }
     await setTime(timestamp + daysToSeconds(stakeLockupPeriodInDays));
-    expect(assessment.connect(user).unstake(parseEther('100'), user.address)).not.to.be.revertedWith(
+    await expect(assessment.connect(user).unstake(parseEther('100'), user.address)).not.to.be.revertedWith(
       'Stake is in lockup period',
     );
   });

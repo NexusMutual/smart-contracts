@@ -15,17 +15,13 @@ describe('getClaimsCount', function () {
   it('returns the total number of claims', async function () {
     const { claims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
-    const coverPeriod = daysToSeconds(365);
-    const coverAmount = parseEther('100');
 
-    await cover.buyCover(
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    await cover.createMockCover(
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      coverAmount,
-      coverPeriod,
-      parseEther('2.6'),
-      [],
+      [[parseEther('100'), timestamp + 1, daysToSeconds(365), 0]],
     );
 
     {

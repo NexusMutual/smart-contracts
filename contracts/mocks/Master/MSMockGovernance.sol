@@ -1,11 +1,15 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
+pragma solidity ^0.8.0;
+
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/ITokenController.sol";
 
-
 contract MSMockGovernance is MasterAware {
+
   ITokenController tc;
-  constructor() public {
-  }
+
+  constructor() { }
 
   function changeDependentContractAddress() external {
     tc = ITokenController(master.getLatestAddress("TC"));
@@ -14,8 +18,7 @@ contract MSMockGovernance is MasterAware {
   function upgradeMultipleContracts(
     bytes2[] memory _contractCodes,
     address payable[] memory newAddresses
-  )
-  public {
+  ) public {
     master.upgradeMultipleContracts(_contractCodes, newAddresses);
   }
 
@@ -31,9 +34,7 @@ contract MSMockGovernance is MasterAware {
     bytes2[] memory _contractCodes,
     address payable[] memory newAddresses,
     uint[] memory _types
-  )
-  public
-  {
+  ) public {
     master.addNewInternalContracts(_contractCodes, newAddresses, _types);
   }
 }

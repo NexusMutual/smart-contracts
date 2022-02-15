@@ -30,12 +30,15 @@
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
     "bn.js": "^5.1.2",
     "dotenv": "^8.2.0",
+    "ethereum-cryptography": "^1.0.0",
     "ethereum-waffle": "^3.4.0",
+    "es6-promise-pool": "^2.5.0",
     "ethereumjs-util": "7.0.1",
     "ethers": "^5.4.3",
     "keccak256": "^1.0.3",
     "merkletreejs": "^0.2.24",
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^2.6.7",
+    "workerpool": "^6.2.0"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-etherscan": "^2.1.0",

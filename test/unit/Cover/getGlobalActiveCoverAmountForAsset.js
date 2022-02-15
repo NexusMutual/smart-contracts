@@ -3,11 +3,7 @@ const {
   ethers: {
     utils: { parseEther },
   },
-  time,
 } = require('hardhat');
-const {
-  constants: { ZERO_ADDRESS },
-} = require('@openzeppelin/test-helpers');
 const { buyCoverOnOnePool } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 

@@ -12,17 +12,17 @@ contract DisposableCover is MasterAwareV2 {
 
   /* ========== STATE VARIABLES ========== */
 
-  ICover.Product[] public products;
-  ICover.ProductType[] public productTypes;
+  Product[] public products;
+  ProductType[] public productTypes;
 
-  ICover.CoverData[] private coverData;
-  mapping(uint => mapping(uint => ICover.PoolAllocation[])) public coverSegmentAllocations;
+  CoverData[] private coverData;
+  mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
 
   /*
     Each Cover has an array of segments. A new segment is created everytime a cover is edited to
     deliniate the different cover periods.
   */
-  mapping(uint => ICover.CoverSegment[]) coverSegments;
+  mapping(uint => CoverSegment[]) coverSegments;
 
   uint24 public globalCapacityRatio;
   uint24 public globalRewardsRatio;
@@ -35,13 +35,13 @@ contract DisposableCover is MasterAwareV2 {
   */
   uint32 public coverAssetsFallback;
 
-  function addProducts(ICover.Product[] calldata newProducts) public {
+  function addProducts(Product[] calldata newProducts) public {
     for (uint i = 0; i < newProducts.length; i++) {
       products.push(newProducts[i]);
     }
   }
 
-  function addProductTypes(ICover.ProductType[] calldata newProductTypes) public {
+  function addProductTypes(ProductType[] calldata newProductTypes) public {
     for (uint i = 0; i < newProductTypes.length; i++) {
       productTypes.push(newProductTypes[i]);
     }

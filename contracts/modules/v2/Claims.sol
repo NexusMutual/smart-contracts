@@ -164,9 +164,9 @@ contract Claims is IClaims, MasterAwareV2 {
       }
     }
 
-    ICover.CoverData memory coverData = cover().coverData(claim.coverId);
+    CoverData memory coverData = cover().coverData(claim.coverId);
 
-    ICover.CoverSegment memory segment = cover().coverSegments(claim.coverId, claim.segmentId);
+    CoverSegment memory segment = cover().coverSegments(claim.coverId, claim.segmentId);
 
     uint segmentEnd = segment.start + segment.period;
 
@@ -271,15 +271,15 @@ contract Claims is IClaims, MasterAwareV2 {
     }
 
     ICover coverContract = cover();
-    ICover.CoverData memory coverData = cover().coverData(coverId);
-    ICover.CoverSegment memory segment = cover().coverSegments(coverId, segmentId);
+    CoverData memory coverData = cover().coverData(coverId);
+    CoverSegment memory segment = cover().coverSegments(coverId, segmentId);
 
     {
-      ICover.Product memory product = coverContract.products(coverData.productId);
-      ICover.ProductType memory productType = coverContract.productTypes(product.productType);
+      Product memory product = coverContract.products(coverData.productId);
+      ProductType memory productType = coverContract.productTypes(product.productType);
 
       require(
-        productType.redeemMethod == uint8(ICover.RedeemMethod.Claim),
+        productType.redeemMethod == uint8(RedeemMethod.Claim),
         "Invalid redeem method"
       );
       require(requestedAmount <= segment.amount, "Covered amount exceeded");

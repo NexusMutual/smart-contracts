@@ -46,10 +46,10 @@ contract CoverViewer {
     uint coverStart;
     uint coverEnd;
     uint amountRemaining;
-    ICover.CoverData memory coverData = cover().coverData(coverId);
+    CoverData memory coverData = cover().coverData(coverId);
 
     {
-      ICover.CoverSegment memory firstSegment = cover().coverSegments(coverId, 0);
+      CoverSegment memory firstSegment = cover().coverSegments(coverId, 0);
       coverStart = firstSegment.start;
       uint segmentCount = cover().coverSegmentsCount(coverId);
       if (segmentCount == 1) {
@@ -58,14 +58,14 @@ contract CoverViewer {
       } else {
         uint lastSegmentStart;
         uint lastSegmentPeriod;
-        ICover.CoverSegment memory lastSegment = cover().coverSegments(coverId, segmentCount - 1);
+        CoverSegment memory lastSegment = cover().coverSegments(coverId, segmentCount - 1);
         coverEnd = lastSegment.start + lastSegment.period;
         amountRemaining = lastSegment.amount;
       }
     }
 
-    ICover.Product memory product = cover().products(coverData.productId);
-    ICover.ProductType memory productType = cover().productTypes(product.productType);
+    Product memory product = cover().products(coverData.productId);
+    ProductType memory productType = cover().productTypes(product.productType);
 
     string memory payoutAssetSymbol;
     if (coverData.payoutAsset == 0) {

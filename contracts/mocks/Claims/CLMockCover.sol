@@ -24,16 +24,16 @@ contract CLMockCover {
 
   PerformPayoutBurnCalledWith public performPayoutBurnCalledWith;
   MigrateCoverFromOwnerCalledWith public migrateCoverFromOwnerCalledWith;
-  ICover.CoverData[] public coverData;
-  mapping(uint => ICover.CoverSegment[]) _coverSegments;
-  mapping(uint => ICover.PoolAllocation[]) stakingPoolsForCover;
+  CoverData[] public coverData;
+  mapping(uint => CoverSegment[]) _coverSegments;
+  mapping(uint => PoolAllocation[]) stakingPoolsForCover;
 
   mapping(uint => uint96) public activeCoverAmountInNXM;
 
-  ICover.Product[] internal _products;
+  Product[] internal _products;
   mapping(uint => uint) capacityFactors;
 
-  ICover.ProductType[] internal _productTypes;
+  ProductType[] internal _productTypes;
 
   mapping(uint => uint) initialPrices;
 
@@ -63,11 +63,11 @@ contract CLMockCover {
     coverNFT = IERC721Mock(coverNFTAddress);
   }
 
-  function products(uint id) external view returns (ICover.Product memory) {
+  function products(uint id) external view returns (Product memory) {
     return _products[id];
   }
 
-  function productTypes(uint id) external view returns (ICover.ProductType memory) {
+  function productTypes(uint id) external view returns (ProductType memory) {
     return _productTypes[id];
   }
 
@@ -77,8 +77,8 @@ contract CLMockCover {
   function coverSegments(
     uint coverId,
     uint segmentId
-  ) external view returns (ICover.CoverSegment memory) {
-    ICover.CoverSegment memory segment = _coverSegments[coverId][segmentId];
+  ) external view returns (CoverSegment memory) {
+    CoverSegment memory segment = _coverSegments[coverId][segmentId];
     uint96 amountPaidOut = coverData[coverId].amountPaidOut;
     segment.amount = segment.amount >= amountPaidOut
       ? segment.amount - amountPaidOut
@@ -90,10 +90,10 @@ contract CLMockCover {
     address owner,
     uint24 productId,
     uint8 payoutAsset,
-    ICover.CoverSegment[] memory segments
+    CoverSegment[] memory segments
   ) external payable returns (uint coverId) {
 
-    coverData.push(ICover.CoverData(
+    coverData.push(CoverData(
         productId,
         payoutAsset,
         0
@@ -113,14 +113,14 @@ contract CLMockCover {
     uint16 gracePeriodInDays,
     uint16 burnRatio
   ) external {
-    _productTypes.push(ICover.ProductType(
+    _productTypes.push(ProductType(
       descriptionIpfsHash,
       redeemMethod,
       gracePeriodInDays
     ));
   }
 
-  function addProduct(ICover.Product calldata product) external {
+  function addProduct(Product calldata product) external {
     _products.push(product);
   }
 

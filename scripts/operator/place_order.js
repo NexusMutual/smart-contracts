@@ -2,12 +2,10 @@ const { ethers } = require('hardhat');
 const { BigNumber, Contract } = require('ethers');
 const { domain, computeOrderUid, hashOrder } = require('@gnosis.pm/gp-v2-contracts');
 const swapOperatorAddress = require('./operatorAddress');
-
 const {
   address: settlementAddress,
   abi: settlementABI,
 } = require('@gnosis.pm/gp-v2-contracts/deployments/mainnet/GPv2Settlement.json');
-
 const axios = require('axios');
 const { keccak256 } = require('ethers/lib/utils');
 
@@ -18,12 +16,9 @@ const baseUrl = 'https://api.cow.fi/rinkeby/api/v1';
 const sellAmount = 1e15;
 
 const main = async () => {
-  const signer = (await ethers.getSigners())[0];
-  const signerAddress = await signer.getAddress();
+  // const signer = (await ethers.getSigners())[0];
 
   const _domain = domain(4, settlementAddress);
-
-  const settlementContract = new Contract(settlementAddress, settlementABI, signer);
 
   // get fee and quote
   const http = axios.create({ baseURL: baseUrl });
@@ -36,7 +31,7 @@ const main = async () => {
   const fee = BigNumber.from(data.fee.amount);
   const expirationDate = data.fee.expirationDate;
   const sellAmountAfterFee = BigNumber.from(sellAmount).sub(fee);
-  const validTo = Math.floor(new Date().getTime() / 1000 + 3600);
+  const validTo = Math.floor(new Date().getTime() / 1000 + 600);
 
   console.log('sellAmount', ethers.utils.formatEther(sellAmount));
   console.log('sellAmountAfterFee', ethers.utils.formatEther(sellAmountAfterFee));
@@ -70,49 +65,47 @@ const main = async () => {
     buyTokenBalance: hashUtf('erc20'),
   };
 
-  // const signingSchemaId = 0; // 0: eip712, 3: presign
-  // const signingSchemaSlug = 'eip712'; // 0: eip712, 3: presign
-  const signingSchemaSlug = 'presign'; // 0: eip712, 3: presign
-
-  // const signature = (await signOrder(_domain, order, signer, signingSchemaId)).data;
-  const signature = swapOperatorAddress; // when presign, signature = address of trader
-
-  // const payload = {
-  //   ...order,
-  //   signingScheme: signingSchemaSlug,
-  //   signature: signature.data,
-  //   from: signerAddress,
-  // };
-
   const payload = {
     ...order,
-    signingScheme: signingSchemaSlug,
-    signature: signature,
+    signingScheme: 'presign',
+    signature: swapOperatorAddress, // when presign, signature = address of trader
     from: swapOperatorAddress,
   };
 
-  const uid = computeOrderUid(_domain, order, order.receiver);
+  const computedUID = computeOrderUid(_domain, order, order.receiver);
   const digest = hashOrder(_domain, order);
 
-  console.log({ uid });
+  console.log({ uid: computedUID });
   console.log({ digest });
 
   const domainHash = ethers.utils._TypedDataEncoder.hashDomain(_domain);
   const swapOperatorContract = await ethers.getContractAt('CowSwapOperator', swapOperatorAddress);
+
   const contractDigest = await swapOperatorContract.getDigest(contractOrder, domainHash);
   console.log({ contractDigest });
 
-  const contractUID = await swapOperatorContract.getUID(contractOrder, domainHash, order.receiver, validTo);
+  const contractUID = await swapOperatorContract.getUID(contractOrder, domainHash);
   console.log({ contractUID });
 
+  // Place order in api
   console.log(JSON.stringify(payload, null, 2));
-
-  return;
-
   console.log('Creating order');
   const response = await http.post('orders', payload);
   const uidFromApi = response.data;
   console.log('Response', uidFromApi);
+  console.log(`All orders: https://explorer.cow.fi/rinkeby/address/${swapOperatorAddress}`);
+  console.log(`This order: https://explorer.cow.fi/rinkeby/orders/${uidFromApi}`);
+
+  if (computedUID !== uidFromApi) {
+    console.error(`ERROR: Got different uid from api (${uidFromApi}) than calculated (${computedUID})`);
+  }
+
+  // Presign via contract
+  console.log('Sending placeOrder tx');
+  const placeOrderTx = await swapOperatorContract.placeOrder(contractOrder, domainHash, uidFromApi);
+  console.log(`Presign tx hash ${placeOrderTx.hash}`);
+  await placeOrderTx.wait();
+  console.log('Done');
 };
 
 main()

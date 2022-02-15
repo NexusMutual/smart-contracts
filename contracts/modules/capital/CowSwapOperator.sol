@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "../../external/cow/GPv2Order.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 
 interface ICowSettlement {
     function setPreSignature(bytes calldata orderUid, bool signed) external;
@@ -16,12 +17,30 @@ contract CowSwapOperator {
         cowVaultRelayer = _cowVaultRelayer;
     }
 
-    function setPreSignature(bytes calldata orderUID, bool signed) public {
-        cowSettlement.setPreSignature(orderUID, signed);
+    function placeOrder(
+        GPv2Order.Data calldata order,
+        bytes32 domainSeparator,
+        bytes calldata orderUID
+    ) public {
+        require(
+            validateUID(order, domainSeparator, orderUID),
+            'Provided UID doesnt match calculated UID'
+        );
+
+        require(order.sellToken.balanceOf(address(this)) >= order.sellAmount, 'Not enough sellToken balance');
+
+        approveVaultRelayer(order.sellToken, order.sellAmount + order.feeAmount);
+
+        cowSettlement.setPreSignature(orderUID, true);
     }
 
-    function approveVaultRelayer(address token) public {
-        IERC20(token).approve(cowVaultRelayer, 2 ** 256 - 1); // infinite approval
+    function approveVaultRelayer(IERC20 token, uint amount) private {
+        token.approve(cowVaultRelayer, amount); // infinite approval
+    }
+
+    function validateUID(GPv2Order.Data calldata order, bytes32 domainSeparator, bytes calldata providedOrderUID) private pure returns (bool) {
+        bytes memory calculatedUID = getUID(order, domainSeparator);
+        return keccak256(calculatedUID) == keccak256(providedOrderUID);
     }
 
     function getDigest(GPv2Order.Data calldata order, bytes32 domainSeparator) public pure returns (bytes32) {
@@ -29,10 +48,10 @@ contract CowSwapOperator {
         return hash;
     }
 
-    function getUID(GPv2Order.Data calldata order, bytes32 domainSeparator, address owner, uint32 validTo) public pure returns (bytes memory){
+    function getUID(GPv2Order.Data calldata order, bytes32 domainSeparator) public pure returns (bytes memory){
         bytes memory uid = new bytes(56);
         bytes32 digest = getDigest(order, domainSeparator);
-        GPv2Order.packOrderUidParams(uid, digest, owner, validTo);
+        GPv2Order.packOrderUidParams(uid, digest, order.receiver, order.validTo);
         return uid;
     }
 }

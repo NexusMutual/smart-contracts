@@ -79,21 +79,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint32 public coverAssetsFallback;
 
   /*
-    Active cover amount per product.
-  */
-  mapping(uint => uint96) public activeCoverAmountInNXMPerProduct;
-  mapping(uint => mapping(uint => ProductBucket)) productBuckets;
-  mapping(uint => uint) lastProductBucket;
-
-  /*
-    Global active cover amount.
-  */
-  uint96 public override globalActiveCoverAmountInNXM;
-  uint32 public lastGlobalBucket;
-  mapping(uint => uint96) public globalActiveCoverAmountBuckets;
-
-  /*
-    Global active cover amount per asset. #experimental
+    Global active cover amount per asset.
    */
   mapping(uint24 => uint96) public globalActiveCoverAmountPerAsset;
   mapping(uint24 => mapping(uint => uint96)) public globalActiveCoverAmountBucketsPerAsset;
@@ -126,8 +112,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   }
 
   function initialize() public {
-    require(lastGlobalBucket == 0, "Cover: Already initalized");
-    lastGlobalBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
+    require(lastGlobalBuckets[0] == 0, "Cover: Already initalized");
 
     uint32 initialBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
     lastGlobalBuckets[0] = initialBucket;
@@ -267,8 +252,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint coverId = _coverData.length - 1;
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
 
-    // updateActiveCoverAmountInNXMPerProduct(params.productId, params.period, totalCoverAmountInNXM);
-    // updateGlobalActiveCoverAmountInNXM(params.period, totalCoverAmountInNXM);
     updateGlobalActiveCoverAmountPerAsset(params.period, params.amount, params.payoutAsset);
 
     return coverId;
@@ -512,62 +495,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== Active cover amount tracking ========== */
 
-  function updateActiveCoverAmountInNXMPerProduct(uint productId, uint period, uint amountToCoverInNXM) internal {
-    uint currentBucket = block.timestamp / BUCKET_SIZE;
-
-    uint activeCoverAmount = activeCoverAmountInNXMPerProduct[productId];
-    uint lastBucket = lastProductBucket[productId];
-    while (lastBucket < currentBucket) {
-      ++lastBucket;
-      activeCoverAmount -= productBuckets[productId][lastBucket].coverAmountExpiring;
-    }
-
-    activeCoverAmountInNXMPerProduct[productId] = uint96(activeCoverAmount + amountToCoverInNXM);
-    require(activeCoverAmountInNXMPerProduct[productId] < mcr().getMCR() / 5, "Cover: Total cover amount exceeds 20% of MCR");
-
-    lastProductBucket[productId] = lastBucket;
-
-    productBuckets[productId][(block.timestamp + period) / BUCKET_SIZE].coverAmountExpiring = uint96(amountToCoverInNXM);
-  }
-
-  function updateGlobalActiveCoverAmountInNXM(uint period, uint amountToCoverInNXM) internal {
-    uint currentBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
-
-    uint activeCoverAmount = globalActiveCoverAmountInNXM;
-    uint32 lastBucket = lastGlobalBucket;
-    while (lastBucket < currentBucket) {
-      ++lastBucket;
-      activeCoverAmount -= globalActiveCoverAmountBuckets[lastBucket];
-    }
-
-    globalActiveCoverAmountInNXM = uint96(activeCoverAmount + amountToCoverInNXM);
-    lastGlobalBucket = lastBucket;
-    globalActiveCoverAmountBuckets[(block.timestamp + period) / BUCKET_SIZE] = uint96(amountToCoverInNXM);
-  }
-
   function updateGlobalActiveCoverAmountPerAsset(uint period, uint amountToCover, uint24 assetId) internal {
-    uint currentBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
 
-    uint activeCoverAmount = globalActiveCoverAmountPerAsset[assetId];
-    uint32 lastBucket = lastGlobalBuckets[assetId];
-    while (lastBucket < currentBucket) {
-      ++lastBucket;
-      activeCoverAmount -= globalActiveCoverAmountBucketsPerAsset[assetId][lastBucket];
-    }
+    uint activeCoverAmount = getGlobalActiveCoverAmountForAsset(assetId);
+    uint32 currentBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
 
     globalActiveCoverAmountPerAsset[assetId] = uint96(activeCoverAmount + amountToCover);
-    lastGlobalBuckets[assetId] = lastBucket;
+    lastGlobalBuckets[assetId] = currentBucket;
     globalActiveCoverAmountBucketsPerAsset[assetId][(block.timestamp + period) / BUCKET_SIZE] = uint96(amountToCover);
   }
 
   function rollbackGlobalActiveCoverAmountPerAsset(uint amountToRollback, uint endTimestamp, uint24 assetId) internal {
     uint bucket = endTimestamp / BUCKET_SIZE;
     globalActiveCoverAmountBucketsPerAsset[assetId][bucket] -= uint96(amountToRollback);
-  }
-
-  function rollbackGlobalActiveCoverAmountInNXM(uint amountToRollback, uint endTimestamp) internal {
-    uint bucket = endTimestamp / BUCKET_SIZE;
-    globalActiveCoverAmountBuckets[bucket] -= uint96(amountToRollback);
   }
 
   function getGlobalActiveCoverAmountForAsset(uint24 assetId) public view returns (uint) {
@@ -653,7 +593,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function addProducts(Product[] calldata newProducts) external override onlyAdvisoryBoard {
     for (uint i = 0; i < newProducts.length; i++) {
       products.push(newProducts[i]);
-      lastProductBucket[products.length - 1] = block.timestamp / BUCKET_SIZE;
     }
   }
 
@@ -669,7 +608,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== HELPERS ========== */
 
-  function assetIsSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) public view returns (bool) {
+  function assetIsSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) public returns (bool) {
 
     if (payoutAssetsBitMap == 0) {
       return (1 << payoutAsset) & coverAssetsFallback > 0;

@@ -109,8 +109,6 @@ interface ICover {
 
   function productTypes(uint id) external view returns (string memory, uint8, uint16);
 
-  function globalActiveCoverAmountInNXM() external view returns (uint96);
-
   /* === MUTATIVE FUNCTIONS ==== */
 
   function migrateCovers(uint[] calldata coverIds, address toNewOwner) external;

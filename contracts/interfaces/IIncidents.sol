@@ -16,7 +16,7 @@ interface IIncidents {
     rewardRatio
   }
 
-  struct PermitData {
+  struct Permit {
     address owner;
     address spender;
     uint256 value;
@@ -24,14 +24,6 @@ interface IIncidents {
     uint8 v;
     bytes32 r;
     bytes32 s;
-  }
-
-  struct RedeemParams {
-    uint104 incidentId;
-    uint32 coverId;
-    uint segmentId;
-    uint depeggedTokens;
-    address payable payoutAddress;
   }
 
   struct Configuration {
@@ -102,13 +94,22 @@ interface IIncidents {
     string calldata ipfsMetadata
   ) external;
 
-  function redeemPayout(
+  function redeemPayoutWithPermit(
     uint104 incidentId,
     uint32 coverId,
     uint segmentId,
     uint depeggedTokens,
     address payable payoutAddress,
-    bytes calldata optionalParams
+    address coveredToken,
+    Permit calldata permit
+  ) external returns (uint payoutAmount, uint8 payoutAsset);
+
+  function redeemPayout(
+    uint104 incidentId,
+    uint32 coverId,
+    uint segmentId,
+    uint depeggedTokens,
+    address payable payoutAddress
   ) external returns (uint payoutAmount, uint8 payoutAsset);
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values) external;

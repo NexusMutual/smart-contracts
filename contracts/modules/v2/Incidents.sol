@@ -180,47 +180,68 @@ contract Incidents is IIncidents, MasterAwareV2 {
     emit MetadataSubmitted(incidents.length - 1, expectedPayoutInNXM, ipfsMetadata);
   }
 
-  /// @notice Redeems payouts for eligible covers matching an accepted incident
-  ///
+  /// @notice Redeems payouts for eligible covers matching an accepted incident using permit
   /// @dev The function must be called during the redemption period.
-  ///
   /// @param incidentId      Index of the incident
   /// @param coverId         Index of the cover to be redeemed
   /// @param segmentId       Index of the cover's segment that's elidgible for redemption
   /// @param depeggedTokens  The amount of depegged tokens to be swapped for the payoutAsset
   /// @param payoutAddress   The addres where the payout must be sent to
-  /// @param optionalParams  Reserved for permit data which is still in draft phase. Some tokens
-  ///                        might support it already and it can be used accordingly.
-  ///                        See: IIncidents.PermitData
-  function redeemPayout(
+  /// @param permitToken     Address of the permitted token
+  /// @param permit      Permit details
+  function redeemPayoutWithPermit(
     uint104 incidentId,
     uint32 coverId,
     uint segmentId,
     uint depeggedTokens,
     address payable payoutAddress,
-    bytes calldata optionalParams
+    address permitToken,
+    Permit memory permit
   ) external override returns (uint, uint8) {
-    Incident memory incident =  incidents[incidentId];
-    PermitData memory permitData;
-    if (optionalParams.length > 0) {
-      (
-        address owner,
-        address spender,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-      ) = abi.decode(optionalParams, (address, address, uint256, uint256, uint8, bytes32, bytes32));
-      permitData = PermitData(owner, spender, value, deadline, v, r, s);
-    }
+
+    // This is an arbitrary external call to an arbitrary address,
+    // but we're making it early so it should be fine
+
+    IERC20Permit(permitToken).permit(
+      permit.owner,
+      permit.spender,
+      permit.value,
+      permit.deadline,
+      permit.v,
+      permit.r,
+      permit.s
+    );
+
     return _redeemPayout(
       coverId,
       segmentId,
       depeggedTokens,
       payoutAddress,
-      incident,
-      permitData
+      incidentId
+    );
+  }
+
+  /// @notice Redeems payouts for eligible covers matching an accepted incident using permit
+  /// @dev The function must be called during the redemption period.
+  /// @param incidentId      Index of the incident
+  /// @param coverId         Index of the cover to be redeemed
+  /// @param segmentId       Index of the cover's segment that's elidgible for redemption
+  /// @param depeggedTokens  The amount of depegged tokens to be swapped for the payoutAsset
+  /// @param payoutAddress   The addres where the payout must be sent to
+  function redeemPayout(
+    uint104 incidentId,
+    uint32 coverId,
+    uint segmentId,
+    uint depeggedTokens,
+    address payable payoutAddress
+  ) external override returns (uint, uint8) {
+
+    return _redeemPayout(
+      coverId,
+      segmentId,
+      depeggedTokens,
+      payoutAddress,
+      incidentId
     );
   }
 
@@ -229,23 +250,25 @@ contract Incidents is IIncidents, MasterAwareV2 {
     uint segmentId,
     uint depeggedTokens,
     address payable payoutAddress,
-    Incident memory incident,
-    PermitData memory permitData
+    uint incidentId
   ) internal returns (uint, uint8) {
+
     require(
       coverNFT.isApprovedOrOwner(msg.sender, coverId),
       "Only the cover owner or approved addresses can redeem"
     );
 
+    Incident memory incident = incidents[incidentId];
+
     {
       IAssessment.Poll memory poll = assessment().getPoll(incident.assessmentId);
+      (,,uint8 payoutCooldownInDays,) = assessment().config();
 
       require(
         poll.accepted > poll.denied,
         "The incident must be accepted"
       );
 
-      (,,uint8 payoutCooldownInDays,) = assessment().config();
       require(
         block.timestamp >= poll.end + payoutCooldownInDays * 1 days,
         "The voting and cooldown periods must end"
@@ -310,17 +333,6 @@ contract Incidents is IIncidents, MasterAwareV2 {
       require(coverData.productId == incident.productId, "Product id mismatch");
     }
 
-    if (permitData.spender != address(0)) {
-      IERC20Permit(coveredToken).permit(
-        permitData.owner,
-        permitData.spender,
-        permitData.value,
-        permitData.deadline,
-        permitData.v,
-        permitData.r,
-        permitData.s
-      );
-    }
     SafeERC20.safeTransferFrom(IERC20(coveredToken), msg.sender, address(this), depeggedTokens);
     IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]).sendPayout(payoutAsset, payoutAddress, payoutAmount);
 

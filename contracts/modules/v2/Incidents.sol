@@ -154,10 +154,10 @@ contract Incidents is IIncidents, MasterAwareV2 {
       date,
       priceBefore
     );
-    ICover.Product memory product = coverContract.products(productId);
-    ICover.ProductType memory productType = coverContract.productTypes(product.productType);
+    Product memory product = coverContract.products(productId);
+    ProductType memory productType = coverContract.productTypes(product.productType);
     require(
-      productType.redeemMethod == uint8(ICover.RedeemMethod.Incident),
+      productType.redeemMethod == uint8(RedeemMethod.Incident),
       "Invalid redeem method"
     );
 
@@ -200,15 +200,15 @@ contract Incidents is IIncidents, MasterAwareV2 {
     );
 
     ICover coverContract = ICover(getInternalContractAddress(ID.CO));
-    ICover.CoverSegment memory coverSegment = coverContract.coverSegments(
+    CoverSegment memory coverSegment = coverContract.coverSegments(
       coverId,
       segmentId
     );
-    ICover.CoverData memory coverData = coverContract.coverData(coverId);
-    ICover.Product memory product = coverContract.products(coverData.productId);
+    CoverData memory coverData = coverContract.coverData(coverId);
+    Product memory product = coverContract.products(coverData.productId);
 
     {
-      ICover.ProductType memory productType = coverContract.productTypes(product.productType);
+      ProductType memory productType = coverContract.productTypes(product.productType);
       require(
         coverSegment.start + coverSegment.period +
         productType.gracePeriodInDays * 1 days >= block.timestamp,

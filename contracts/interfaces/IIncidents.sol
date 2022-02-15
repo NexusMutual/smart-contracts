@@ -16,24 +16,6 @@ interface IIncidents {
     rewardRatio
   }
 
-  struct PermitData {
-    address owner;
-    address spender;
-    uint256 value;
-    uint256 deadline;
-    uint8 v;
-    bytes32 r;
-    bytes32 s;
-  }
-
-  struct RedeemParams {
-    uint104 incidentId;
-    uint32 coverId;
-    uint segmentId;
-    uint depeggedTokens;
-    address payable payoutAddress;
-  }
-
   struct Configuration {
     // Number of days in which payouts can be redeemed
     uint8 payoutRedemptionPeriodInDays;

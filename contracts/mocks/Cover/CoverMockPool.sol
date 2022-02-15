@@ -11,7 +11,7 @@ contract CoverMockPool {
 
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-  constructor() public {
+  constructor() {
     // First asset is ETH
     assets.push(IPool.Asset(ETH, 18, false));
   }
@@ -31,4 +31,7 @@ contract CoverMockPool {
   }
 
   fallback() external payable {}
+
+  receive() external payable {}
+
 }

@@ -14,7 +14,7 @@ contract ASMockClaims is MasterAwareV2 {
   IClaims.Configuration public config;
   IClaims.Claim[] public claims;
 
-  constructor(address tokenAddres) public {
+  constructor(address tokenAddres) {
     token = INXMToken(tokenAddres);
   }
 
@@ -33,7 +33,7 @@ contract ASMockClaims is MasterAwareV2 {
     uint24 coverId,
     uint16 segmentId,
     uint96 requestedAmount,
-    string calldata ipfsMetadata
+    string calldata /*ipfsMetadata*/
   ) external payable {
     IClaims.Claim memory claim = IClaims.Claim(
       0,

@@ -8,7 +8,6 @@ import "../../interfaces/IAssessment.sol";
 import "../../abstract/MasterAwareV2.sol";
 
 import "@openzeppelin/contracts-v4/utils/cryptography/MerkleProof.sol";
-import "hardhat/console.sol";
 
 /// Provides the assessment mechanism for members to decide the outcome of the events that can lead
 /// to payouts. Mints rewards for stakers that act benevolently and allows burning fraudulent ones.

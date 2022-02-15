@@ -37,7 +37,7 @@ contract CoverMockQuotationData {
     address payable _userAddress,
     bytes4 _currencyCode,
     address _scAddress,
-    uint premium,
+    uint /*premium*/,
     uint premiumNXM
   ) external {
     uint expiryDate = now.add(uint(_coverPeriod).mul(1 days));

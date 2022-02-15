@@ -44,6 +44,10 @@ contract LegacyClaims is ILegacyClaims, LegacyMasterAware {
    * @return tokens Total Amount used in Claims assessment.
    */
   function getCATokens(uint claimId, uint member) external view returns (uint tokens) {
+    // silence compiler warnings
+    claimId;
+    member;
+    tokens;
     revert("Migrate to v2");
   }
 
@@ -161,7 +165,11 @@ contract LegacyClaims is ILegacyClaims, LegacyMasterAware {
    * @return close 1 if voting should be closed,0 in case voting should not be closed,
    * -1 if voting has already been closed.
    */
-  function _checkVoteClosingFinal(uint claimId, uint status) internal view returns (int8 close) {
+  function _checkVoteClosingFinal(uint claimId, uint status) internal pure returns (int8 close) {
+    // silence compiler warnings:
+    claimId;
+    status;
+    close = 0;
     revert("Migrate to v2");
   }
 

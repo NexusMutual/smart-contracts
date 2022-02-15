@@ -111,7 +111,7 @@ contract CLMockCover {
     string calldata descriptionIpfsHash,
     uint8 redeemMethod,
     uint16 gracePeriodInDays,
-    uint16 burnRatio
+    uint16 /*burnRatio*/
   ) external {
     _productTypes.push(ProductType(
       descriptionIpfsHash,
@@ -135,6 +135,8 @@ contract CLMockCover {
     address toNewOwner
   ) external returns (address) {
     migrateCoverFromOwnerCalledWith = MigrateCoverFromOwnerCalledWith(coverId, fromOwner, toNewOwner);
+    // silence compiler warning:
+    return address(0);
   }
 
 }

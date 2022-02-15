@@ -13,7 +13,7 @@ contract ICMockPool {
 
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-  constructor () public {
+  constructor () {
     // First asset is ETH
     assets.push(IPool.Asset(ETH, 18, false));
   }
@@ -23,7 +23,6 @@ contract ICMockPool {
     address payable payoutAddress,
     uint amount
   ) external {
-    bool ok;
     IPool.Asset memory asset = assets[assetIndex];
 
     if (asset.assetAddress == ETH) {
@@ -40,4 +39,7 @@ contract ICMockPool {
   }
 
   fallback() external payable {}
+
+  receive() external payable {}
+
 }

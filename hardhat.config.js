@@ -99,6 +99,18 @@ module.exports = {
         settings: compilerSettings,
         version: '0.5.7',
       },
+      'contracts/external/uniswap/ImportUniswapCore.sol': {
+        settings: compilerSettings,
+        version: '0.5.16',
+      },
+      'contracts/external/uniswap/ImportUniswapPeriphery.sol': {
+        settings: compilerSettings,
+        version: '0.6.6',
+      },
+      'contracts/modules/oracles/TwapOracle.sol': {
+        settings: compilerSettings,
+        version: '0.5.17',
+      },
     },
   },
 };

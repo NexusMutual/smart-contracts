@@ -124,7 +124,7 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
     revert("ClaimsReward: unknown asset");
   }
 
-  function attemptClaimPayout(uint coverId) internal returns (bool success) {
+  function attemptClaimPayout(uint /*coverId*/) internal pure returns (bool) {
     revert("Migrate to v2");
   }
 

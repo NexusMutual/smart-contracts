@@ -66,7 +66,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     address _master,
     address _priceOracle,
     address _swapOperator
-  ) public {
+  ) {
 
     // First asset is ETH
     assets.push(Asset(ETH, 18, false));
@@ -95,6 +95,8 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   }
 
   fallback() external payable {}
+
+  receive() external payable {}
 
   /**
    * @dev Calculates total value of all pool assets in ether
@@ -228,7 +230,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     address payable payoutAddress,
     uint amount
   ) external override onlyInternal nonReentrant {
-    bool ok;
     Asset memory asset = assets[assetIndex];
 
     if (asset.assetAddress == ETH) {
@@ -452,8 +453,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
        This avoids overflow in the calculateIntegralAtPoint computation.
        This approximation is safe from arbitrage since at MCR% < 100% no sells are possible.
       */
-      uint tokenPrice = CONSTANT_A;
-      return ethAmount * 1e18 / tokenPrice;
+      return ethAmount * 1e18 / CONSTANT_A;
     }
 
     // MCReth * C /(3 * V0 ^ 3)

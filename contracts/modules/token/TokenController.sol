@@ -25,7 +25,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
 
-  constructor(address quotationDataAddress) public {
+  constructor(address quotationDataAddress) {
     quotationData = IQuotationData(quotationDataAddress);
   }
 
@@ -195,8 +195,10 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
    * @param code whose details we want to update
    * @param value value to set
    */
-  function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
-
+  function updateUintParameters(bytes8 code, uint value) external view onlyGovernance {
+    // silence compiler warnings
+    code;
+    value;
     revert("TokenController: invalid param code");
   }
 

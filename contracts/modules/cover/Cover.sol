@@ -22,8 +22,6 @@ import "../../interfaces/IStakingPoolBeacon.sol";
 
 import "./MinimalBeaconProxy.sol";
 
-import "hardhat/console.sol";
-
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   using SafeERC20 for IERC20;
 
@@ -89,7 +87,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     address _stakingPoolImplementation,
     address _coverNFT,
     address coverProxy
-  ) public {
+  ) {
 
     quotationData = _quotationData;
     productsV1 = _productsV1;
@@ -135,7 +133,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       address legacyProductId,
       bytes4 currencyCode,
       /*uint sumAssured*/,
-      uint premiumNXM
+      /*uint premiumNXM*/
     ) = quotationData.getCoverDetailsByCoverID1(coverId);
     (
       /*uint coverId*/,
@@ -276,20 +274,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         SafeUintCast.toUint16(totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM)
       ));
 
-    uint tPrice = pool().getTokenPrice(params.paymentAsset);
-    uint premiumInPaymentAsset = totalPremiumInNXM * pool().getTokenPrice(params.paymentAsset) / 1e18;
+    uint premiumInPaymentAsset = totalPremiumInNXM * nxmPriceInPayoutAsset / 1e18;
 
     return (premiumInPaymentAsset, totalPremiumInNXM);
   }
 
   function allocateCapacity(
     BuyCoverParams memory params,
-    IStakingPool stakingPool,
+    IStakingPool _stakingPool,
     uint amount
   ) internal returns (uint a, uint b) {
 
     Product memory product = _products[params.productId];
-    return stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
+    return _stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
       params.productId,
       amount,
       REWARD_DENOMINATOR,
@@ -325,9 +322,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       uint totalPreviousCoverAmountInNXM = 0;
       // rollback previous cover
       for (uint i = 0; i < originalPoolAllocations.length; i++) {
-        IStakingPool stakingPool = stakingPool(originalPoolAllocations[i].poolId);
-
-        stakingPool.freeCapacity(
+        stakingPool(originalPoolAllocations[i].poolId).freeCapacity(
           cover.productId,
           lastCoverSegment.period,
           lastCoverSegment.start,
@@ -359,7 +354,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint refundInNXM = refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset);
 
     if (buyCoverParams.payWithNXM) {
-      uint refundInNXM = refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset);
       if (refundInNXM < totalPremiumInNXM) {
         // requires NXM allowance
         retrieveNXMPayment(totalPremiumInNXM - refundInNXM, buyCoverParams.commissionRatio, buyCoverParams.commissionDestination);
@@ -380,7 +374,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   // TODO: implement properly. we need the staking interface for burning.
   function performPayoutBurn(
     uint coverId,
-    uint segmentId,
+    uint /*segmentId*/,
     uint amount
   ) external onlyInternal override returns (address /* owner */) {
 
@@ -434,16 +428,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       return;
     }
 
-    IPool pool = pool();
+    IPool _pool = pool();
 
     (
     address payoutAsset,
     /*uint8 decimals*/,
     /*bool deprecated*/
-    ) = pool.assets(buyParams.paymentAsset);
+    ) = _pool.assets(buyParams.paymentAsset);
 
     IERC20 token = IERC20(payoutAsset);
-    token.safeTransferFrom(msg.sender, address(pool), premium);
+    token.safeTransferFrom(msg.sender, address(_pool), premium);
 
     if (commission > 0) {
       token.safeTransferFrom(msg.sender, buyParams.commissionDestination, commission);
@@ -452,14 +446,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function retrieveNXMPayment(uint price, uint commissionRatio, address commissionDestination) internal {
 
-    ITokenController tokenController = tokenController();
+    ITokenController _tokenController = tokenController();
 
     if (commissionRatio > 0) {
       uint commission = price * commissionRatio / COMMISSION_DENOMINATOR;
       // transfer the commission to the commissionDestination; reverts if commissionDestination is not a member
-      tokenController.operatorTransfer(msg.sender, commissionDestination, commission);
+      _tokenController.operatorTransfer(msg.sender, commissionDestination, commission);
     }
-    tokenController.burnFrom(msg.sender, price);
+
+    _tokenController.burnFrom(msg.sender, price);
   }
 
   /* ========== Staking Pool creation ========== */
@@ -556,7 +551,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== HELPERS ========== */
 
-  function isAssetSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) public override returns (bool) {
+  function isAssetSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) public view override returns (bool) {
 
     if (payoutAssetsBitMap == 0) {
       return (1 << payoutAsset) & coverAssetsFallback > 0;

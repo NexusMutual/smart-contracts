@@ -107,6 +107,7 @@ contract ICMockCover {
     uint16 burnRatio
   ) external {
     _productTypes.push(ICover.ProductType(
+      "",
       redeemMethod,
       gracePeriodInDays
     ));

@@ -30,10 +30,10 @@ contract CLMockCover {
 
   mapping(uint => uint96) public activeCoverAmountInNXM;
 
-  ICover.Product[] public products;
+  ICover.Product[] internal _products;
   mapping(uint => uint) capacityFactors;
 
-  ICover.ProductType[] public productTypes;
+  ICover.ProductType[] public _productTypes;
 
   mapping(uint => uint) initialPrices;
 
@@ -62,6 +62,15 @@ contract CLMockCover {
   constructor(address coverNFTAddress) {
     coverNFT = IERC721Mock(coverNFTAddress);
   }
+
+  function products(uint id) external view returns (ICover.Product memory) {
+    return _products[id];
+  }
+
+  function productTypes(uint id) external view returns (ICover.ProductType memory) {
+    return _productTypes[id];
+  }
+
 
   /* === MUTATIVE FUNCTIONS ==== */
 
@@ -104,14 +113,15 @@ contract CLMockCover {
     uint16 gracePeriodInDays,
     uint16 burnRatio
   ) external {
-    productTypes.push(ICover.ProductType(
-    redeemMethod,
-    gracePeriodInDays
+    _productTypes.push(ICover.ProductType(
+      "",
+      redeemMethod,
+      gracePeriodInDays
     ));
   }
 
   function addProduct(ICover.Product calldata product) external {
-    products.push(product);
+    _products.push(product);
   }
 
   function performPayoutBurn(uint coverId, uint segmentId, uint amount) external returns (address) {

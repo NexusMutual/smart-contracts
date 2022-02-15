@@ -197,7 +197,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
     address payable payoutAddress,
     address permitToken,
     Permit memory permit
-  ) external override returns (uint, uint8) {
+  ) external override returns (uint payoutAmount, uint8 payoutAsset) {
 
     // This is an arbitrary external call to an arbitrary address,
     // but we're making it early so it should be fine
@@ -234,7 +234,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
     uint segmentId,
     uint depeggedTokens,
     address payable payoutAddress
-  ) external override returns (uint, uint8) {
+  ) external override returns (uint payoutAmount, uint8 payoutAsset) {
 
     return _redeemPayout(
       coverId,
@@ -251,7 +251,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
     uint depeggedTokens,
     address payable payoutAddress,
     uint incidentId
-  ) internal returns (uint, uint8) {
+  ) internal returns (uint payoutAmount, uint8 payoutAsset) {
 
     require(
       coverNFT.isApprovedOrOwner(msg.sender, coverId),
@@ -282,8 +282,6 @@ contract Incidents is IIncidents, MasterAwareV2 {
       );
     }
 
-    uint payoutAmount;
-    uint8 payoutAsset;
     address coveredToken;
 
     {
@@ -335,8 +333,6 @@ contract Incidents is IIncidents, MasterAwareV2 {
 
     SafeERC20.safeTransferFrom(IERC20(coveredToken), msg.sender, address(this), depeggedTokens);
     IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]).sendPayout(payoutAsset, payoutAddress, payoutAmount);
-
-    return (payoutAmount, payoutAsset);
   }
 
   /// Withdraws an amount of any asset held by this contract to a destination address.

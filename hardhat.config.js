@@ -99,15 +99,19 @@ module.exports = {
         settings: compilerSettings,
         version: '0.5.7',
       },
-      'contracts/external/uniswap/ImportUniswapCore.sol': {
-        settings: compilerSettings,
-        version: '0.5.16',
-      },
-      'contracts/external/uniswap/ImportUniswapPeriphery.sol': {
-        settings: compilerSettings,
-        version: '0.6.6',
-      },
       'contracts/modules/oracles/TwapOracle.sol': {
+        settings: compilerSettings,
+        version: '0.5.17',
+      },
+      '@uniswap/lib/contracts/libraries/FixedPoint.sol': {
+        settings: compilerSettings,
+        version: '0.5.17',
+      },
+      '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol': {
+        settings: compilerSettings,
+        version: '0.5.17',
+      },
+      '@uniswap/v2-periphery/contracts/libraries/UniswapV2OracleLibrary.sol': {
         settings: compilerSettings,
         version: '0.5.17',
       },

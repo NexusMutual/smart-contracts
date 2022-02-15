@@ -182,8 +182,10 @@ contract Incidents is IIncidents, MasterAwareV2 {
   /// @param segmentId       Index of the cover's segment that's elidgible for redemption
   /// @param depeggedTokens  The amount of depegged tokens to be swapped for the payoutAsset
   /// @param payoutAddress   The addres where the payout must be sent to
-  /// @param optionalParams  Reserved for permit data which is still in draft phase. Some tokens
-  ///                        might support it already and it can be used accordingly.
+  /// @param optionalParams  (Optional) Reserved for permit data which is still in draft phase.
+  ///                        For tokens that already support it, use it by encoding the following
+  ///                        values in this exact order: address owner, address spender,
+  ///                        uint256 value, uint256 deadline, uint8 v , bytes32 r, bytes32 s
   function redeemPayout(
     uint104 incidentId,
     uint32 coverId,
@@ -214,7 +216,8 @@ contract Incidents is IIncidents, MasterAwareV2 {
       );
     }
 
-    if (optionalParams.length > 0) {
+
+    if (optionalParams.length > 0) { // Skip the permit call when it is not provided
       (
         address owner,
         address spender,
@@ -263,7 +266,7 @@ contract Incidents is IIncidents, MasterAwareV2 {
 
     require(coverData.productId == incident.productId, "Product id mismatch");
 
-
+    // Calculate the payout amount
     uint payoutAmount;
     {
       uint deductiblePriceBefore = uint(incident.priceBefore) *
@@ -276,8 +279,17 @@ contract Incidents is IIncidents, MasterAwareV2 {
 
     require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");
     coverContract.performPayoutBurn(coverId, segmentId, payoutAmount);
-    SafeERC20.safeTransferFrom(IERC20(product.productAddress), msg.sender, address(this), depeggedTokens);
-    IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]).sendPayout(coverData.payoutAsset, payoutAddress, payoutAmount);
+    SafeERC20.safeTransferFrom(
+      IERC20(product.productAddress),
+      msg.sender,
+      address(this),
+      depeggedTokens
+    );
+    IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]).sendPayout(
+      coverData.payoutAsset,
+      payoutAddress,
+      payoutAmount
+    );
 
     return (payoutAmount, coverData.payoutAsset);
   }

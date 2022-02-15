@@ -104,7 +104,7 @@ describe('redeemPayout', function () {
 
     await expect(
       incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
-    ).to.be.revertedWith('The incident must be accepted');
+    ).to.be.revertedWith('The incident needs to be accepted');
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
     await assessment.connect(member2).castVote(0, false, parseEther('100'));
@@ -116,7 +116,7 @@ describe('redeemPayout', function () {
 
     await expect(
       incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
-    ).to.be.revertedWith('The incident must be accepted');
+    ).to.be.revertedWith('The incident needs to be accepted');
 
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
@@ -125,7 +125,7 @@ describe('redeemPayout', function () {
 
     await expect(
       incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
-    ).to.be.revertedWith('The incident must be accepted');
+    ).to.be.revertedWith('The incident needs to be accepted');
   });
 
   it("reverts if the voting and cooldown period haven't ended", async function () {
@@ -299,10 +299,10 @@ describe('redeemPayout', function () {
 
     await expect(
       incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
-    ).to.be.revertedWith('Cover end date is before the incident');
+    ).to.be.revertedWith('Cover ended before the incident');
     await expect(
       incidents.connect(member1).redeemPayout(0, 0, 1, parseEther('100'), member1.address, []),
-    ).not.to.be.revertedWith('Cover end date is before the incident');
+    ).not.to.be.revertedWith('Cover ended before the incident');
   });
 
   it('reverts if the cover segment starts after or when the incident occured', async function () {
@@ -351,13 +351,13 @@ describe('redeemPayout', function () {
 
     await expect(
       incidents.connect(member1).redeemPayout(0, 0, 1, parseEther('100'), member1.address, []),
-    ).to.be.revertedWith('Cover start date is after the incident');
+    ).to.be.revertedWith('Cover started after the incident');
     await expect(
       incidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
-    ).to.be.revertedWith('Cover start date is after the incident');
+    ).to.be.revertedWith('Cover started after the incident');
     await expect(
       incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
-    ).not.to.be.revertedWith('Cover start date is after the incident');
+    ).not.to.be.revertedWith('Cover started after the incident');
   });
 
   it('reverts if the cover segment is outside the grace period', async function () {

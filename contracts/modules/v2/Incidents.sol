@@ -184,7 +184,6 @@ contract Incidents is IIncidents, MasterAwareV2 {
   /// @param payoutAddress   The addres where the payout must be sent to
   /// @param optionalParams  Reserved for permit data which is still in draft phase. Some tokens
   ///                        might support it already and it can be used accordingly.
-  ///
   function redeemPayout(
     uint104 incidentId,
     uint32 coverId,

@@ -320,7 +320,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     BuyCoverParams memory params,
     IStakingPool stakingPool,
     uint amount
-  ) internal returns (uint a, uint b) {
+  ) internal returns (uint coveredAmountInNXM, uint premiumInNXM) {
 
     Product memory product = products[params.productId];
     return stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
@@ -669,7 +669,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== HELPERS ========== */
 
-  function assetIsSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) public returns (bool) {
+  function assetIsSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) public view returns (bool) {
 
     if (payoutAssetsBitMap == 0) {
       return (1 << payoutAsset) & coverAssetsFallback > 0;

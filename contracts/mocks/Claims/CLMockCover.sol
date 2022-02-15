@@ -33,7 +33,7 @@ contract CLMockCover {
   ICover.Product[] internal _products;
   mapping(uint => uint) capacityFactors;
 
-  ICover.ProductType[] public _productTypes;
+  ICover.ProductType[] internal _productTypes;
 
   mapping(uint => uint) initialPrices;
 

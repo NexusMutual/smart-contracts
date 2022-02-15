@@ -24,10 +24,10 @@ contract ICMockCover {
   mapping(uint => ICover.PoolAllocation[]) poolAllocations;
   mapping(uint => uint96) public activeCoverAmountInNXM;
 
-  ICover.Product[] public _products;
+  ICover.Product[] internal _products;
   mapping(uint => uint) capacityFactors;
 
-  ICover.ProductType[] public _productTypes;
+  ICover.ProductType[] internal _productTypes;
 
   mapping(uint => uint) initialPrices;
 

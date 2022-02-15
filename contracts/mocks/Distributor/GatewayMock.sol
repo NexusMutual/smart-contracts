@@ -122,7 +122,7 @@ contract GatewayMock is IGateway {
     revert("CoverMock: Unknown action");
   }
 
-  function switchMembership(address) external override {
+  function switchMembership(address) external pure override {
     revert("Unsupported");
   }
 }

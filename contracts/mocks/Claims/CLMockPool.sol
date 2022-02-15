@@ -13,7 +13,7 @@ contract CLMockPool {
 
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-  constructor () public {
+  constructor () {
     // First asset is ETH
     assets.push(IPool.Asset(ETH, 18, false));
   }
@@ -22,7 +22,7 @@ contract CLMockPool {
     assets.push(IPool.Asset(assetAddress, decimals, false));
   }
 
-  function getTokenPrice(uint assetId) public view returns (uint tokenPrice) {
+  function getTokenPrice(uint assetId) public pure returns (uint tokenPrice) {
     if (assetId == 0) {
       tokenPrice = 38200000000000000; // 1 NXM ~ 0.0382 ETH
     }
@@ -34,7 +34,6 @@ contract CLMockPool {
     address payable payoutAddress,
     uint amount
   ) external {
-    bool ok;
     IPool.Asset memory asset = assets[assetIndex];
 
     if (asset.assetAddress == ETH) {
@@ -47,4 +46,7 @@ contract CLMockPool {
   }
 
   fallback() external payable {}
+
+  receive() external payable {}
+
 }

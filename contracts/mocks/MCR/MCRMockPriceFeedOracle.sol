@@ -10,7 +10,7 @@ contract MCRMockPriceFeedOracle {
     address public daiAddress;
     uint public daiToEthRate;
 
-    constructor(address _daiAddress, uint _daiToEthRate) public{
+    constructor(address _daiAddress, uint _daiToEthRate) public {
         daiAddress = _daiAddress;
         daiToEthRate = _daiToEthRate;
     }

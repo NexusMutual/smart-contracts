@@ -136,11 +136,11 @@ contract DisposableGovernance is IGovernance, LegacyMasterAware {
 
   function allowedToCatgorize() public view returns (uint) {return 0;}
 
-  function removeDelegation(address _add) external {}
+  function removeDelegation(address) external {}
 
-  function getPendingReward(address _memberAddress) external view returns (uint pendingDAppReward) {return 0;}
+  function getPendingReward(address) external view returns (uint pendingDAppReward) {return 0;}
 
-  function getFollowers(address _add) external view returns (uint[] memory) {
+  function getFollowers(address) external view returns (uint[] memory) {
     return new uint[](0);
   }
 

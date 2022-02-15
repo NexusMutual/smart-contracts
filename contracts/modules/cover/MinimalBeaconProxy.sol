@@ -1,6 +1,9 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
+pragma solidity ^0.8.0;
+
 import "@openzeppelin/contracts-v4/proxy/Proxy.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
-import "hardhat/console.sol";
 
 /**
  * @dev This contract implements a proxy that gets the implementation address for each call from a {UpgradeableBeacon}.
@@ -19,8 +22,8 @@ contract MinimalBeaconProxy is Proxy {
    * @dev Initializes the proxy with `beacon`.
    *
    */
-  constructor(address _beacon) {
-    beacon = _beacon;
+  constructor(address beaconAddress) {
+    beacon = beaconAddress;
   }
 
   /**

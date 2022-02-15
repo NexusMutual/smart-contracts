@@ -20,7 +20,7 @@ contract TestnetQuotationData is QuotationData {
     address payable userAddress,
     bytes4 currencyCode,
     address scAddress,
-    uint premium,
+    uint /*premium*/,
     uint premiumNXM
   ) external {
     uint start = startDate == 0 ? now : startDate;

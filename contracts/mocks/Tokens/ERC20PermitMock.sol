@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/extensions/draft-ERC20Permit.sol"
 
 contract ERC20PermitMock is ERC20Permit {
 
-  constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) ERC20Permit(name_) public {
+  constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) ERC20Permit(name_) {
     /* noop */
   }
 

@@ -1,11 +1,15 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
+pragma solidity ^0.8.0;
+
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/ITokenController.sol";
 
-
 contract MMockNewContract is MasterAware {
+
   ITokenController tc;
-  constructor() public {
-  }
+
+  constructor() { }
 
   function changeDependentContractAddress() external {
     tc = ITokenController(master.getLatestAddress("TC"));

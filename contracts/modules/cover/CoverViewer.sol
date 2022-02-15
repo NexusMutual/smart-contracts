@@ -30,7 +30,7 @@ contract CoverViewer {
 
   INXMMaster internal immutable master;
 
-  constructor(address masterAddress) public {
+  constructor(address masterAddress) {
     master = INXMMaster(masterAddress);
   }
 
@@ -56,8 +56,6 @@ contract CoverViewer {
         coverEnd = coverStart + firstSegment.period;
         amountRemaining = firstSegment.amount;
       } else {
-        uint lastSegmentStart;
-        uint lastSegmentPeriod;
         CoverSegment memory lastSegment = cover().coverSegments(coverId, segmentCount - 1);
         coverEnd = lastSegment.start + lastSegment.period;
         amountRemaining = lastSegment.amount;

@@ -137,11 +137,14 @@ contract Gateway is IGateway, MasterAware {
     // [todo] Maybe we could use data to specify other addresses and only use tx.origin if empty,
     // thus allowing multisigs to migrate a cover in one tx without an EOA being involved.
     cover.migrateCoverFromOwner(coverId, msg.sender, tx.origin);
+    // silence compiler warnings
+    data;
+    return 0;
   }
 
   function claimTokens(
     uint coverId,
-    uint incidentId,
+    uint /*incidentId*/,
     uint coveredTokenAmount,
     address coveredToken
   ) external override returns (uint claimId, uint payoutAmount, address payoutToken) {

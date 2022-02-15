@@ -5,8 +5,6 @@ pragma solidity ^0.8.0;
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IERC721Mock.sol";
 
-import "hardhat/console.sol";
-
 contract ICMockCover {
 
   struct PerformPayoutBurnCalledWith {
@@ -104,7 +102,7 @@ contract ICMockCover {
     string calldata descriptionIpfsHash,
     uint8 redeemMethod,
     uint16 gracePeriodInDays,
-    uint16 burnRatio
+    uint16 /*burnRatio*/
   ) external {
     _productTypes.push(ProductType(
       descriptionIpfsHash,
@@ -120,7 +118,7 @@ contract ICMockCover {
   function setActiveCoverAmountInNXM(
     uint productId,
     uint96 amount
-  ) external returns (uint96) {
+  ) external {
     activeCoverAmountInNXM[productId] = amount;
   }
 

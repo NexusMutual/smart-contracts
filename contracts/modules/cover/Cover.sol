@@ -230,7 +230,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(params.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
 
-    (uint premiumInPaymentAsset, uint totalPremiumInNXM, uint totalCoverAmountInNXM) =
+    (uint premiumInPaymentAsset, uint totalPremiumInNXM) =
       _buyCover(params, _coverData.length, allocationRequests);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
@@ -264,11 +264,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     BuyCoverParams memory params,
     uint coverId,
     PoolAllocationRequest[] memory allocationRequests
-  ) internal returns (uint, uint totalPremiumInNXM, uint totalCoverAmountInNXM) {
+  ) internal returns (uint, uint totalPremiumInNXM) {
     // convert to NXM amount
     uint nxmPriceInPayoutAsset = pool().getTokenPrice(params.payoutAsset);
     uint remainderAmountInNXM = 0;
-
+    uint totalCoverAmountInNXM = 0;
+    
     for (uint i = 0; i < allocationRequests.length; i++) {
 
       uint requestedCoverAmountInNXM = allocationRequests[i].coverAmountInAsset * 1e18 / nxmPriceInPayoutAsset;
@@ -298,7 +299,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     uint premiumInPaymentAsset = totalPremiumInNXM * nxmPriceInPayoutAsset / 1e18;
 
-    return (premiumInPaymentAsset, totalPremiumInNXM, totalCoverAmountInNXM);
+    return (premiumInPaymentAsset, totalPremiumInNXM);
   }
 
   function allocateCapacity(
@@ -339,7 +340,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     PoolAllocation[] storage originalPoolAllocations = coverSegmentAllocations[coverId][lastCoverSegmentIndex];
 
     {
-      uint totalPreviousCoverAmountInNXM = 0;
       // rollback previous cover
       for (uint i = 0; i < originalPoolAllocations.length; i++) {
         stakingPool(originalPoolAllocations[i].poolId).freeCapacity(
@@ -350,12 +350,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
           remainingPeriod,
           originalPoolAllocations[i].coverAmountInNXM
         );
-        totalPreviousCoverAmountInNXM += originalPoolAllocations[i].coverAmountInNXM;
         originalPoolAllocations[i].premiumInNXM =
         originalPoolAllocations[i].premiumInNXM * (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
       }
 
-      // rollbackGlobalActiveCoverAmountInNXM(totalPreviousCoverAmountInNXM, lastCoverSegment.start + lastCoverSegment.period);
       rollbackGlobalActiveCoverAmountPerAsset(
         lastCoverSegment.amount, lastCoverSegment.start + lastCoverSegment.period, cover.payoutAsset
       );
@@ -371,7 +369,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     // edit cover so it ends at the current block
     lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
 
-    (uint premiumInPaymentAsset, uint totalPremiumInNXM, uint totalCoverAmountInNXM ) =
+    (uint premiumInPaymentAsset, uint totalPremiumInNXM) =
       _buyCover(buyCoverParams, coverId, poolAllocations);
 
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
@@ -379,7 +377,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint refundInNXM = refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset);
     handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, premiumInPaymentAsset, refundInNXM);
 
-    // updateGlobalActiveCoverAmountInNXM(buyCoverParams.period, totalCoverAmountInNXM);
     updateGlobalActiveCoverAmountPerAsset(buyCoverParams.period, buyCoverParams.amount, buyCoverParams.payoutAsset);
   }
 

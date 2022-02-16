@@ -35,9 +35,10 @@ async function setup () {
   const WETH9 = artifacts.require('WETH9');
   const TwapOracle = artifacts.require('TwapOracle');
 
-  const UniswapV2Factory = artifacts.require('UniswapV2Factory');
-  const UniswapV2Pair = artifacts.require('UniswapV2Pair');
-  const UniswapV2Router02 = artifacts.require('UniswapV2Router02');
+  const getFullArtifactName = c => `contracts/external/uniswap/${c}.sol:${c}`;
+  const UniswapV2Factory = artifacts.require(getFullArtifactName('IUniswapV2Factory'));
+  const UniswapV2Pair = artifacts.require(getFullArtifactName('IUniswapV2Pair'));
+  const UniswapV2Router02 = artifacts.require(getFullArtifactName('IUniswapV2Router02'));
 
   /* deploy tokens */
 

@@ -337,11 +337,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(lastCoverSegment.start + lastCoverSegment.period > block.timestamp, "Cover: cover expired");
     require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(buyCoverParams.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
+    require(buyCoverParams.payoutAsset == cover.payoutAsset, "Cover: Payout asset mismatch");
 
     uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
 
     PoolAllocation[] storage originalPoolAllocations = coverSegmentAllocations[coverId][lastCoverSegmentIndex];
-    
+
     {
       uint originalPoolAllocationsCount = originalPoolAllocations.length;
 

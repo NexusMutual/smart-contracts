@@ -79,8 +79,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   /*
     Global active cover amount per asset.
    */
-  mapping(uint24 => uint96) public globalActiveCoverAmountPerAsset;
-  mapping(uint24 => mapping(uint => uint96)) public globalActiveCoverAmountBucketsPerAsset;
+  mapping(uint24 => uint96) public totalActiveCoverAmountInAsset;
+  mapping(uint24 => mapping(uint => uint96)) public totalActiveCoverInAssetExpiryBucket;
   mapping(uint24 => uint32) public lastGlobalBuckets;
 
 
@@ -269,7 +269,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint nxmPriceInPayoutAsset = pool().getTokenPrice(params.payoutAsset);
     uint remainderAmountInNXM = 0;
     uint totalCoverAmountInNXM = 0;
-    
+
+
+    uint _coverSegmentsCount = _coverSegments[coverId].length;
+
     for (uint i = 0; i < allocationRequests.length; i++) {
 
       uint requestedCoverAmountInNXM = allocationRequests[i].coverAmountInAsset * 1e18 / nxmPriceInPayoutAsset;
@@ -285,7 +288,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       totalCoverAmountInNXM += coveredAmountInNXM;
       totalPremiumInNXM += premiumInNXM;
 
-      coverSegmentAllocations[coverId][_coverSegments[coverId].length].push(
+      coverSegmentAllocations[coverId][_coverSegmentsCount].push(
         PoolAllocation(allocationRequests[i].poolId, SafeUintCast.toUint96(coveredAmountInNXM), SafeUintCast.toUint96(premiumInNXM))
       );
     }
@@ -338,10 +341,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
 
     PoolAllocation[] storage originalPoolAllocations = coverSegmentAllocations[coverId][lastCoverSegmentIndex];
-
+    
     {
+      uint originalPoolAllocationsCount = originalPoolAllocations.length;
+
       // rollback previous cover
-      for (uint i = 0; i < originalPoolAllocations.length; i++) {
+      for (uint i = 0; i < originalPoolAllocationsCount; i++) {
         stakingPool(originalPoolAllocations[i].poolId).freeCapacity(
           cover.productId,
           lastCoverSegment.period,
@@ -511,24 +516,24 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint activeCoverAmount = getGlobalActiveCoverAmountForAsset(assetId);
     uint32 currentBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
 
-    globalActiveCoverAmountPerAsset[assetId] = uint96(activeCoverAmount + amountToCover);
+    totalActiveCoverAmountInAsset[assetId] = uint96(activeCoverAmount + amountToCover);
     lastGlobalBuckets[assetId] = currentBucket;
-    globalActiveCoverAmountBucketsPerAsset[assetId][(block.timestamp + period) / BUCKET_SIZE] = uint96(amountToCover);
+    totalActiveCoverInAssetExpiryBucket[assetId][(block.timestamp + period) / BUCKET_SIZE] = uint96(amountToCover);
   }
 
   function rollbackGlobalActiveCoverAmountPerAsset(uint amountToRollback, uint endTimestamp, uint24 assetId) internal {
     uint bucket = endTimestamp / BUCKET_SIZE;
-    globalActiveCoverAmountBucketsPerAsset[assetId][bucket] -= uint96(amountToRollback);
+    totalActiveCoverInAssetExpiryBucket[assetId][bucket] -= uint96(amountToRollback);
   }
 
   function getGlobalActiveCoverAmountForAsset(uint24 assetId) public view returns (uint) {
     uint currentBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
 
-    uint activeCoverAmount = globalActiveCoverAmountPerAsset[assetId];
+    uint activeCoverAmount = totalActiveCoverAmountInAsset[assetId];
     uint32 lastBucket = lastGlobalBuckets[assetId];
     while (lastBucket < currentBucket) {
       ++lastBucket;
-      activeCoverAmount -= globalActiveCoverAmountBucketsPerAsset[assetId][lastBucket];
+      activeCoverAmount -= totalActiveCoverInAssetExpiryBucket[assetId][lastBucket];
     }
     return activeCoverAmount;
   }

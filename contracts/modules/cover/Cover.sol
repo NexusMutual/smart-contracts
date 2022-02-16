@@ -237,7 +237,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     if (params.payWithNXM) {
       retrieveNXMPayment(totalPremiumInNXM, params.commissionRatio, params.commissionDestination);
     } else {
-      retrievePayment(premiumInPaymentAsset, params);
+      retrievePayment(
+        premiumInPaymentAsset,
+        params.paymentAsset,
+        params.commissionRatio,
+        params.commissionDestination
+      );
     }
 
     // push the newly created cover
@@ -386,20 +391,28 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   ) internal {
 
     (, uint8 paymentAssetDecimals, ) = pool().assets(buyCoverParams.paymentAsset);
-    if (buyCoverParams.payWithNXM) {
-      if (refundInNXM < totalPremiumInNXM) {
-        // requires NXM allowance
-        retrieveNXMPayment(totalPremiumInNXM - refundInNXM, buyCoverParams.commissionRatio, buyCoverParams.commissionDestination);
-      }
-    } else {
-      uint refundInPaymentAsset =
-      refundInNXM
-      * (pool().getTokenPrice(buyCoverParams.payoutAsset) / 10 ** paymentAssetDecimals);
 
-      if (refundInPaymentAsset < premiumInPaymentAsset) {
-        // retrieve extra required payment
-        retrievePayment(premiumInPaymentAsset - refundInPaymentAsset, buyCoverParams);
-      }
+    if (buyCoverParams.payWithNXM && refundInNXM < totalPremiumInNXM) {
+      // requires NXM allowance
+      retrieveNXMPayment(
+        totalPremiumInNXM - refundInNXM,
+        buyCoverParams.commissionRatio,
+        buyCoverParams.commissionDestination
+      );
+      return;
+    }
+
+    uint tokenPrice = pool().getTokenPrice(buyCoverParams.payoutAsset);
+    uint refundInPaymentAsset = refundInNXM * (tokenPrice / 10 ** paymentAssetDecimals);
+
+    if (refundInPaymentAsset < premiumInPaymentAsset) {
+      // retrieve extra required payment
+      retrievePayment(
+        premiumInPaymentAsset - refundInPaymentAsset,
+        buyCoverParams.paymentAsset,
+        buyCoverParams.commissionRatio,
+        buyCoverParams.commissionDestination
+      );
     }
   }
 
@@ -435,15 +448,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function retrievePayment(
     uint premium,
-    BuyCoverParams memory buyParams
+    uint8 paymentAsset,
+    uint16 commissionRatio,
+    address commissionDestination
   ) internal {
 
     // add commission
-    uint commission = premium * buyParams.commissionRatio / COMMISSION_DENOMINATOR;
-    uint premiumWithCommission = premium + commission;
+    uint commission = premium * commissionRatio / COMMISSION_DENOMINATOR;
 
-    if (buyParams.paymentAsset == 0) {
+    if (paymentAsset == 0) {
+
+      uint premiumWithCommission = premium + commission;
       require(msg.value >= premiumWithCommission, "Cover: Insufficient ETH sent");
+
       uint remainder = msg.value - premiumWithCommission;
 
       if (remainder > 0) {
@@ -454,7 +471,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
       // send commission
       if (commission > 0) {
-        (bool ok, /* data */) = address(buyParams.commissionDestination).call{value: commission}("");
+        (bool ok, /* data */) = address(commissionDestination).call{value: commission}("");
         require(ok, "Cover: Sending ETH to commission destination failed.");
       }
 
@@ -467,13 +484,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     address payoutAsset,
     /*uint8 decimals*/,
     /*bool deprecated*/
-    ) = _pool.assets(buyParams.paymentAsset);
+    ) = _pool.assets(paymentAsset);
 
     IERC20 token = IERC20(payoutAsset);
     token.safeTransferFrom(msg.sender, address(_pool), premium);
 
     if (commission > 0) {
-      token.safeTransferFrom(msg.sender, buyParams.commissionDestination, commission);
+      token.safeTransferFrom(msg.sender, commissionDestination, commission);
     }
   }
 

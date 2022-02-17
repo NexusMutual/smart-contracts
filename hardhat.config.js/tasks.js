@@ -1,8 +1,8 @@
 const { task } = require('hardhat/config');
 
-task('test', async (_, hre, runSuper) => {
-  const testFiles = _.testFiles.length
-    ? _.testFiles
+task('test', async (taskArgs, hre, runSuper) => {
+  const testFiles = taskArgs.testFiles.length
+    ? taskArgs.testFiles
     : [`${__dirname}/../test/index.js`];
   // ^ using absolute path to avoid a hardhat-mocha bug
   // https://github.com/NomicFoundation/hardhat/issues/2220

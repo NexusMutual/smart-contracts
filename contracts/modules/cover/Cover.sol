@@ -380,6 +380,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
+    // calculate refundValue in NXM
     uint refundInNXM = refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset);
     handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, premiumInPaymentAsset, refundInNXM);
 
@@ -405,7 +406,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       return;
     }
 
-    uint tokenPrice = pool().getTokenPrice(buyCoverParams.payoutAsset);
+    // calculate the refund value in the payment asset
+    uint tokenPrice = pool().getTokenPrice(buyCoverParams.paymentAsset);
     uint refundInPaymentAsset = refundInNXM * (tokenPrice / 10 ** paymentAssetDecimals);
 
     if (refundInPaymentAsset < premiumInPaymentAsset) {

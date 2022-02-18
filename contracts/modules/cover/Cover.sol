@@ -230,8 +230,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(params.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
 
-    (uint premiumInPaymentAsset, uint totalPremiumInNXM) =
+    uint totalPremiumInNXM =
       _buyCover(params, _coverData.length, allocationRequests);
+
+    IPool _pool = pool();
+    uint tokenPriceInPaymentAsset = _pool.getTokenPrice(params.paymentAsset);
+    (, uint8 paymentAssetDecimals, ) = _pool.assets(params.paymentAsset);
+
+    uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (params.payWithNXM) {
@@ -264,7 +270,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     BuyCoverParams memory params,
     uint coverId,
     PoolAllocationRequest[] memory allocationRequests
-  ) internal returns (uint, uint totalPremiumInNXM) {
+  ) internal returns (uint totalPremiumInNXM) {
     // convert to NXM amount
     uint nxmPriceInPayoutAsset = pool().getTokenPrice(params.payoutAsset);
     uint remainderAmountInNXM = 0;
@@ -300,9 +306,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         SafeUintCast.toUint16(totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM)
       ));
 
-    uint premiumInPaymentAsset = totalPremiumInNXM * nxmPriceInPayoutAsset / 1e18;
-
-    return (premiumInPaymentAsset, totalPremiumInNXM);
+    return totalPremiumInNXM;
   }
 
   function allocateCapacity(
@@ -375,14 +379,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     // edit cover so it ends at the current block
     lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
 
-    (uint premiumInPaymentAsset, uint totalPremiumInNXM) =
+    uint totalPremiumInNXM =
       _buyCover(buyCoverParams, coverId, poolAllocations);
 
-    require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
-
-    // calculate refundValue in NXM
-    uint refundInNXM = refundInCoverAsset * 1e18 / pool().getTokenPrice(cover.payoutAsset);
-    handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, premiumInPaymentAsset, refundInNXM);
+    handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset, cover.payoutAsset);
 
     updateGlobalActiveCoverAmountPerAsset(buyCoverParams.period, buyCoverParams.amount, buyCoverParams.payoutAsset);
   }
@@ -390,13 +390,27 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function handlePaymentAndRefund(
     BuyCoverParams memory buyCoverParams,
     uint totalPremiumInNXM,
-    uint premiumInPaymentAsset,
-    uint refundInNXM
+    uint refundInCoverAsset,
+    uint payoutAsset
   ) internal {
 
-    (, uint8 paymentAssetDecimals, ) = pool().assets(buyCoverParams.paymentAsset);
+    IPool _pool = pool();
 
-    if (buyCoverParams.payWithNXM && refundInNXM < totalPremiumInNXM) {
+    // calculate refundValue in NXM
+    uint refundInNXM = refundInCoverAsset * 1e18 / _pool.getTokenPrice(payoutAsset);
+
+    if (refundInNXM >= totalPremiumInNXM) {
+      // no extra charge for the user
+      return;
+    }
+
+    uint tokenPriceInPaymentAsset = _pool.getTokenPrice(buyCoverParams.paymentAsset);
+    (, uint8 paymentAssetDecimals, ) = _pool.assets(buyCoverParams.paymentAsset);
+
+    uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
+    require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
+
+    if (buyCoverParams.payWithNXM) {
       // requires NXM allowance
       retrieveNXMPayment(
         totalPremiumInNXM - refundInNXM,
@@ -407,20 +421,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     }
 
     // calculate the refund value in the payment asset
-    uint tokenPrice = pool().getTokenPrice(buyCoverParams.paymentAsset);
-    uint refundInPaymentAsset = refundInNXM * (tokenPrice / 10 ** paymentAssetDecimals);
-
-    if (refundInPaymentAsset < premiumInPaymentAsset) {
+    uint refundInPaymentAsset = refundInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
       // retrieve extra required payment
-      retrievePayment(
-        premiumInPaymentAsset - refundInPaymentAsset,
-        buyCoverParams.paymentAsset,
-        buyCoverParams.commissionRatio,
-        buyCoverParams.commissionDestination
-      );
-    }
+    retrievePayment(
+      premiumInPaymentAsset - refundInPaymentAsset,
+      buyCoverParams.paymentAsset,
+      buyCoverParams.commissionRatio,
+      buyCoverParams.commissionDestination
+    );
   }
-
 
   // TODO: implement properly. we need the staking interface for burning.
   function performPayoutBurn(

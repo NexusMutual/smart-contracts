@@ -24,10 +24,20 @@ contract CowSwapOperator {
     ) public {
         require(
             validateUID(order, domainSeparator, orderUID),
-            'Provided UID doesnt match calculated UID'
+            "Provided UID doesnt match calculated UID"
         );
 
-        require(order.sellToken.balanceOf(address(this)) >= order.sellAmount, 'Not enough sellToken balance');
+        require(order.sellToken.balanceOf(address(this)) >= order.sellAmount, "Not enough token balance to sell");
+        require(order.sellTokenBalance == GPv2Order.BALANCE_ERC20, "Only erc20 supported for sellTokenBalance");
+        require(order.buyTokenBalance == GPv2Order.BALANCE_ERC20, "Only erc20 supported for buyTokenBalance");
+        require(order.kind == GPv2Order.KIND_SELL, "Only sell operations are supported");
+        require(order.receiver == address(this), "Receiver must be this contract");
+        require(order.validTo >= block.timestamp + 600, "validTo must be at least 10 minutes in the future");
+        // TODO: sellToken validation
+        // TODO: buyToken validation
+        // TODO: sellAmount validation
+        // TODO: buyAmount validation
+        // TODO: feeAmount validation
 
         approveVaultRelayer(order.sellToken, order.sellAmount + order.feeAmount);
 

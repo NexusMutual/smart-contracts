@@ -105,6 +105,8 @@ async function setup () {
   await pool.setTokenPrice('0', parseEther('1'));
   await pool.setTokenPrice('1', parseEther('1'));
 
+  await cover.initialize();
+
   // set contract addresses
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('QD'), quotationData.address);
@@ -143,11 +145,17 @@ async function setup () {
 
   // add products
   await cover.connect(accounts.advisoryBoardMembers[0]).addProducts([{
-    productType: '1',
+    productType: '0',
     productAddress: '0x0000000000000000000000000000000000000000',
     coverAssets: parseInt('11', 2), // ETH and DAI supported
     initialPriceRatio: '1000', // 10%
     capacityReductionRatio: '0',
+  }]);
+
+  await cover.connect(accounts.advisoryBoardMembers[0]).addProductTypes([{
+    descriptionIpfsHash: 'my ipfs hash',
+    redeemMethod: '1',
+    gracePeriodInDays: '120',
   }]);
 
   this.master = master;

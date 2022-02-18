@@ -17,7 +17,7 @@ contract MasterMock {
   mapping(address => Role) public members;
   mapping(address => bool) internalAddresses;
   mapping(address => bool) governanceAddresses;
-  mapping(bytes2 => address payable) contractAddresses;
+  mapping(bytes2 => address payable) public contractAddresses;
 
   bool paused;
   address public tokenAddress;

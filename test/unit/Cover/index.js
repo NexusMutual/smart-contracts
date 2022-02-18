@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot, reset } = require('../utils').evm;
 const setup = require('./setup');
 
-describe('Cover unit tests', function () {
+describe.only('Cover unit tests', function () {
   before(setup);
 
   beforeEach(async function () {
@@ -15,4 +15,5 @@ describe('Cover unit tests', function () {
   require('./buyCover');
   require('./editCover');
   require('./createStakingPool');
+  require('./getGlobalActiveCoverAmountForAsset');
 });

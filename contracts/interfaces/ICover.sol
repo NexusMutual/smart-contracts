@@ -123,7 +123,7 @@ interface ICover {
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
-  function createStakingPool(address manager) external;
+  function createStakingPool(address manager) external returns (address stakingPoolAddress);
 
   function setInitialPrices(
     uint[] calldata productId,

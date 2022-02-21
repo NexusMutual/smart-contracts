@@ -12,7 +12,7 @@ import "../../interfaces/IMCR.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IPooledStaking.sol";
+//import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
@@ -31,7 +31,7 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
   ILegacyClaimsData internal cd;
   IPool internal pool;
   IGovernance internal gv;
-  IPooledStaking internal pooledStaking;
+  uint internal unused;
   IMemberRoles internal memberRoles;
   IMCR public mcr;
 
@@ -65,7 +65,7 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
     td = ITokenData(ms.getLatestAddress("TD"));
     qd = IQuotationData(ms.getLatestAddress("QD"));
     gv = IGovernance(ms.getLatestAddress("GV"));
-    pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
+    //pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
     memberRoles = IMemberRoles(ms.getLatestAddress("MR"));
     pool = IPool(ms.getLatestAddress("P1"));
     mcr = IMCR(ms.getLatestAddress("MC"));
@@ -261,9 +261,9 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
    */
   function getAllPendingRewardOfUser(address _add) public view returns (uint) {
     uint caReward = getRewardToBeDistributedByUser(_add);
-    uint pooledStakingReward = pooledStaking.stakerReward(_add);
+    //uint pooledStakingReward = pooledStaking.stakerReward(_add);
     uint governanceReward = gv.getPendingReward(_add);
-    return caReward.add(pooledStakingReward).add(governanceReward);
+    return caReward.add(governanceReward)/*.add(pooledStakingReward)*/;
   }
 
   /// @dev Rewards/Punishes users who  participated in Claims assessment.

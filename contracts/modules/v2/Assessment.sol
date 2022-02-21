@@ -26,7 +26,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   // Votes of users. (See Vote struct)
   mapping(address => Vote[]) public override votesOf;
 
-  // Mapping used to determine if a user has already voted, using a vote hash as a key
+  // Mapping used to determine if a user has already voted
   mapping(address => mapping(uint => bool)) public override hasAlreadyVotedOn;
 
   // An array of merkle tree roots used to indicate fraudulent assessors. Each root represents a

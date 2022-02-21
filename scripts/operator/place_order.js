@@ -10,6 +10,7 @@ const axios = require('axios');
 const { keccak256 } = require('ethers/lib/utils');
 
 const sellToken = '0xc778417e063141139fce010982780140aa0cd5ab'; // weth
+// const sellToken = '0xb07de0148b53e5ec7bb73e16016bb4d3fc71f0ca'; // some random lido token
 const buyToken = '0x5592ec0cfb4dbc12d3ab100b257153436a1f0fea'; // dai
 const baseUrl = 'https://api.cow.fi/rinkeby/api/v1';
 
@@ -22,8 +23,10 @@ const main = async () => {
 
   // get fee and quote
   const http = axios.create({ baseURL: baseUrl });
+  const httpParams = { sellToken, buyToken, sellAmountBeforeFee: sellAmount };
+  console.log(`Calling cowswap API with params ${JSON.stringify(httpParams, null, 2)}`);
   const { data } = await http.get('feeAndQuote/sell', {
-    params: { sellToken, buyToken, sellAmountBeforeFee: sellAmount },
+    params: httpParams,
     headers: { Accept: 'application/json' },
   });
 
@@ -31,7 +34,7 @@ const main = async () => {
   const fee = BigNumber.from(data.fee.amount);
   const expirationDate = data.fee.expirationDate;
   const sellAmountAfterFee = BigNumber.from(sellAmount).sub(fee);
-  const validTo = Math.floor(new Date().getTime() / 1000 + 600);
+  const validTo = Math.floor(new Date().getTime() / 1000 + 3600);
 
   console.log('sellAmount', ethers.utils.formatEther(sellAmount));
   console.log('sellAmountAfterFee', ethers.utils.formatEther(sellAmountAfterFee));
@@ -47,7 +50,7 @@ const main = async () => {
     sellAmount: sellAmountAfterFee.toString(),
     buyAmount: buyAmount,
     validTo: validTo,
-    appData: '0x487B02C558D729ABAF3ECF17881A4181E5BC2446429A0995142297E897B6EB38',
+    appData: ethers.utils.hexZeroPad(0, 32),
     feeAmount: fee.toString(),
     kind: 'sell',
     receiver: swapOperatorAddress,
@@ -103,7 +106,7 @@ const main = async () => {
   // Presign via contract
   console.log('Sending placeOrder tx');
   const placeOrderTx = await swapOperatorContract.placeOrder(contractOrder, domainHash, uidFromApi);
-  console.log(`Presign tx hash ${placeOrderTx.hash}`);
+  console.log(`placeOrder tx hash ${placeOrderTx.hash}`);
   await placeOrderTx.wait();
   console.log('Done');
 };
@@ -111,6 +114,10 @@ const main = async () => {
 main()
   .then(() => process.exit())
   .catch(e => {
-    console.error(e);
+    if (e.isAxiosError) {
+      console.error(`HTTP Error: Status ${e.response.status}. ${JSON.stringify(e.response.data, null, 2)}`);
+    } else {
+      console.error(e);
+    }
     process.exit(1);
   });

@@ -6,10 +6,15 @@ import '@openzeppelin/contracts-v4/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts-v4/utils/math/Math.sol';
 import '../../interfaces/INXMMaster.sol';
 import '../../interfaces/IPool.sol';
+import './Pool.sol';
 import '../../interfaces/ITwapOracle.sol';
 
 interface ICowSettlement {
   function setPreSignature(bytes calldata orderUid, bool signed) external;
+}
+
+interface IWETH is IERC20 {
+  function deposit() external payable;
 }
 
 contract CowSwapOperator {
@@ -18,7 +23,7 @@ contract CowSwapOperator {
   address public immutable cowVaultRelayer;
   INXMMaster public master;
   address public immutable swapController;
-  IERC20 public immutable weth;
+  IWETH public immutable weth;
   ITwapOracle public immutable twapOracle;
 
   // Constants
@@ -37,7 +42,7 @@ contract CowSwapOperator {
     cowVaultRelayer = _cowVaultRelayer;
     master = INXMMaster(_master);
     swapController = _swapController;
-    weth = IERC20(_weth);
+    weth = IWETH(_weth);
     twapOracle = ITwapOracle(_twapOracle);
   }
 
@@ -47,53 +52,70 @@ contract CowSwapOperator {
     bytes calldata orderUID
   ) public {
     // Helper local variables
-    IPool pool = _pool();
+    Pool pool = _pool();
     uint256 totalOutAmount = order.sellAmount + order.feeAmount;
-    uint256 sellTokenBalance = order.sellToken.balanceOf(address(pool));
-    uint256 buyTokenBalance = order.buyToken.balanceOf(address(pool));
-    bool isSellingEth = address(order.sellToken) == ETH;
-    bool isBuyingEth = address(order.buyToken) == ETH;
 
     // Order UID verification
-    require(validateUID(order, domainSeparator, orderUID), 'Provided UID doesnt match calculated UID');
+    validateUID(order, domainSeparator, orderUID);
 
-    // Basic sanity checks
-    require(order.sellToken.balanceOf(address(pool)) >= order.sellAmount, 'Not enough token balance to sell');
-    require(order.sellTokenBalance == GPv2Order.BALANCE_ERC20, 'Only erc20 supported for sellTokenBalance');
-    require(order.buyTokenBalance == GPv2Order.BALANCE_ERC20, 'Only erc20 supported for buyTokenBalance');
-    require(order.kind == GPv2Order.KIND_SELL, 'Only sell operations are supported');
-    require(order.receiver == address(this), 'Receiver must be this contract');
-    require(order.validTo >= block.timestamp + 600, 'validTo must be at least 10 minutes in the future');
+    // Validate pool has enough funds for the trade
+    validatePoolBalance(order, pool);
+
+    // Validate basic CoW params
+    validateBasicCowParams(order);
 
     // Validate that swaps for sellToken are enabled
-    (
-      uint104 sellTokenMin,
-      uint104 sellTokenMax,
-      uint32 sellTokenLastAssetSwapTime,
-      uint16 sellTokenMaxSlippageRatio
-    ) = pool.getAssetSwapDetails(address(order.sellToken));
-    if (!isSellingEth) {
+    // (
+    //   uint104 sellTokenMin,
+    //   uint104 sellTokenMax,
+    //   uint32 sellTokenLastAssetSwapTime,
+    //   uint16 sellTokenMaxSlippageRatio
+    // ) = pool.getAssetSwapDetails(address(order.sellToken));
+    // if (!isSellingEth) {
+    //   // Eth is always enabled
+    //   require(sellTokenMin != 0 || sellTokenMax != 0, 'CowSwapOperator: sellToken is not enabled');
+    // }
+    IPool.SwapDetails memory sellTokenSwapDetails = pool.getAssetSwapDetailsStruct(address(order.sellToken));
+    if (!isSellingEth(order)) {
       // Eth is always enabled
-      require(sellTokenMin != 0 || sellTokenMax != 0, 'CowSwapOperator: sellToken is not enabled');
+      require(
+        sellTokenSwapDetails.minAmount != 0 || sellTokenSwapDetails.maxAmount != 0,
+        'CowSwapOperator: sellToken is not enabled'
+      );
     }
 
     // Validate that swaps for buyToken are enabled
-    (uint104 buyTokenMin, uint104 buyTokenMax, uint32 buyTokenLastAssetSwapTime, uint16 buyTokenMaxSlippageRatio) = pool
-      .getAssetSwapDetails(address(order.buyToken));
-    if (!isBuyingEth) {
+    // (uint104 buyTokenMin, uint104 buyTokenMax, uint32 buyTokenLastAssetSwapTime, uint16 buyTokenMaxSlippageRatio) = pool
+    //   .getAssetSwapDetails(address(order.buyToken));
+    // if (!isBuyingEth) {
+    //   // Eth is always enabled
+    //   require(buyTokenMin != 0 || buyTokenMax != 0, 'CowSwapOperator: buyToken is not enabled');
+    // }
+
+    IPool.SwapDetails memory buyTokenSwapDetails = pool.getAssetSwapDetailsStruct(address(order.buyToken));
+    if (!isBuyingEth(order)) {
       // Eth is always enabled
-      require(buyTokenMin != 0 || buyTokenMax != 0, 'CowSwapOperator: buyToken is not enabled');
+      require(
+        buyTokenSwapDetails.minAmount != 0 || buyTokenSwapDetails.maxAmount != 0,
+        'CowSwapOperator: buyToken is not enabled'
+      );
     }
 
     // Validate oracle price
-    uint256 finalSlippage = Math.max(buyTokenMaxSlippageRatio, sellTokenMaxSlippageRatio);
+    // uint256 finalSlippage = Math.max(buyTokenSwapDetails.maxSlippageRatio, sellTokenSwapDetails.maxSlippageRatio);
+    uint256 finalSlippage = MAX_SLIPPAGE_DENOMINATOR; // Slippage TBD. 100% for now
     uint256 oracleBuyAmount = twapOracle.consult(address(order.sellToken), totalOutAmount, address(order.buyToken));
     uint256 maxSlippageAmount = (oracleBuyAmount * finalSlippage) / MAX_SLIPPAGE_DENOMINATOR;
     uint256 minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
     require(order.buyAmount >= minBuyAmountOnMaxSlippage, 'CowSwapOperator: order.buyAmount doesnt match oracle data');
 
-    // Transfer pool's asset to this contract
-    pool.transferAssetToSwapOperator(address(order.sellToken), totalOutAmount);
+    // Transfer pool's asset to this contract; wrap ether if needed
+    if (isSellingEth(order)) {
+      pool.transferAssetToSwapOperator(ETH, totalOutAmount);
+      weth.deposit{value: totalOutAmount}();
+    } else {
+      pool.transferAssetToSwapOperator(address(order.sellToken), totalOutAmount);
+    }
 
     // Approve Cow's contract to spend sellToken
     approveVaultRelayer(order.sellToken, totalOutAmount);
@@ -101,8 +123,32 @@ contract CowSwapOperator {
     // Register last swap time on swapDetail
     // pool.setSwapDetailsLastSwapTime(nonEthToken, uint32(block.timestamp));
 
-    // Sign the Cow order
+    // // Sign the Cow order
     cowSettlement.setPreSignature(orderUID, true);
+  }
+
+  function validatePoolBalance(GPv2Order.Data calldata order, Pool pool) private view {
+    if (isSellingEth(order)) {
+      require(address(pool).balance >= order.sellAmount, 'Not enough ether to sell');
+    } else {
+      require(order.sellToken.balanceOf(address(pool)) >= order.sellAmount, 'Not enough token balance to sell');
+    }
+  }
+
+  function isSellingEth(GPv2Order.Data calldata order) private view returns (bool) {
+    return order.sellToken == weth;
+  }
+
+  function isBuyingEth(GPv2Order.Data calldata order) private view returns (bool) {
+    return order.buyToken == weth;
+  }
+
+  function validateBasicCowParams(GPv2Order.Data calldata order) private view {
+    require(order.sellTokenBalance == GPv2Order.BALANCE_ERC20, 'Only erc20 supported for sellTokenBalance');
+    require(order.buyTokenBalance == GPv2Order.BALANCE_ERC20, 'Only erc20 supported for buyTokenBalance');
+    require(order.kind == GPv2Order.KIND_SELL, 'Only sell operations are supported');
+    require(order.receiver == address(this), 'Receiver must be this contract');
+    require(order.validTo >= block.timestamp + 600, 'validTo must be at least 10 minutes in the future');
   }
 
   function approveVaultRelayer(IERC20 token, uint256 amount) private {
@@ -113,9 +159,9 @@ contract CowSwapOperator {
     GPv2Order.Data calldata order,
     bytes32 domainSeparator,
     bytes calldata providedOrderUID
-  ) private pure returns (bool) {
+  ) private pure {
     bytes memory calculatedUID = getUID(order, domainSeparator);
-    return keccak256(calculatedUID) == keccak256(providedOrderUID);
+    require(keccak256(calculatedUID) == keccak256(providedOrderUID), 'Provided UID doesnt match calculated UID');
   }
 
   function getDigest(GPv2Order.Data calldata order, bytes32 domainSeparator) public pure returns (bytes32) {
@@ -130,7 +176,7 @@ contract CowSwapOperator {
     return uid;
   }
 
-  function _pool() internal view returns (IPool) {
-    return IPool(master.getLatestAddress('P1'));
+  function _pool() internal view returns (Pool) {
+    return Pool(master.getLatestAddress('P1'));
   }
 }

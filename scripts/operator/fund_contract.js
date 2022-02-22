@@ -1,4 +1,4 @@
-const swapOperatorAddress = require('./operatorAddress');
+const { pool } = require('./addresses.json');
 const { ethers } = require('hardhat');
 const { BigNumber, Contract } = require('ethers');
 
@@ -12,15 +12,15 @@ const main = async () => {
 
   const wethContract = await ethers.getContractAt(ierc20, wethAddress);
 
-  const operatorBalance = await wethContract.balanceOf(swapOperatorAddress);
+  const operatorBalance = await wethContract.balanceOf(pool);
   const signerBalance = await wethContract.balanceOf(signerAddress);
 
   console.log({ operatorBalance, signerBalance });
 
   if (operatorBalance.lt(minBalance)) {
     if (signerBalance.gt(minBalance)) {
-      console.log('Sending weth to operator contract');
-      await (await wethContract.transfer(swapOperatorAddress, minBalance)).wait();
+      console.log('Sending weth to pool contract');
+      await (await wethContract.transfer(pool, minBalance)).wait();
       console.log('Done');
     } else {
       console.log('not enough weth to send');

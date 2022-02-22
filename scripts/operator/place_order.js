@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { BigNumber, Contract } = require('ethers');
 const { domain, computeOrderUid, hashOrder } = require('@gnosis.pm/gp-v2-contracts');
-const swapOperatorAddress = require('./operatorAddress');
+const { swapOperator: swapOperatorAddress, pool: poolAddress } = require('./addresses');
 const {
   address: settlementAddress,
   abi: settlementABI,
@@ -42,6 +42,18 @@ const main = async () => {
   console.log('fee', ethers.utils.formatEther(fee));
   console.log('expirationDate', expirationDate);
   console.log('validTo', validTo);
+
+  // Check the pool has funds to execute the order
+  const sellTokenContract = await ethers.getContractAt(
+    '@openzeppelin/contracts-v4/token/ERC20/IERC20.sol:IERC20',
+    sellToken,
+  );
+  const sellTokenBalance = await sellTokenContract.balanceOf(poolAddress);
+
+  if (sellTokenBalance.lt(sellAmount)) {
+    console.log(`Not enough sellToken balance in pool (currently ${sellTokenBalance.toString()})`);
+    return;
+  }
 
   // The data to sign
   const order = {
@@ -105,7 +117,9 @@ const main = async () => {
 
   // Presign via contract
   console.log('Sending placeOrder tx');
-  const placeOrderTx = await swapOperatorContract.placeOrder(contractOrder, domainHash, uidFromApi);
+  const placeOrderTx = await swapOperatorContract.placeOrder(contractOrder, domainHash, uidFromApi, {
+    gasLimit: 1e6,
+  });
   console.log(`placeOrder tx hash ${placeOrderTx.hash}`);
   await placeOrderTx.wait();
   console.log('Done');

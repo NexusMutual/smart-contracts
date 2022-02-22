@@ -94,7 +94,7 @@ describe('submitClaim', function () {
     );
   });
 
-  it('reverts if covered product uses a redeemMethod other than claim', async function () {
+  it('reverts if covered product uses a claimMethod other than individual claims', async function () {
     const { cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
     {

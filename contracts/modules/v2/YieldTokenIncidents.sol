@@ -12,7 +12,7 @@ import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IAssessment.sol";
-import "../../interfaces/IIncidents.sol";
+import "../../interfaces/IYieldTokenIncidents.sol";
 import "../../interfaces/ICoverNFT.sol";
 
 import "../../abstract/MasterAwareV2.sol";
@@ -21,7 +21,7 @@ import "../../abstract/MasterAwareV2.sol";
 /// to the assessment process where the members of the mutual decides the validity of the
 /// submitted incident. At the moment incidents can only be submitted by the Advisory Board members
 /// while all members are allowed to vote through Assessment.sol.
-contract Incidents is IIncidents, MasterAwareV2 {
+contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
 
   // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
   uint internal constant REWARD_DENOMINATOR = 10000;
@@ -157,8 +157,8 @@ contract Incidents is IIncidents, MasterAwareV2 {
     Product memory product = coverContract.products(productId);
     ProductType memory productType = coverContract.productTypes(product.productType);
     require(
-      productType.redeemMethod == uint8(RedeemMethod.Incident),
-      "Invalid redeem method"
+      productType.claimMethod == uint8(ClaimMethod.YieldTokenIncidents),
+      "Invalid claim method for this product type"
     );
 
     // Determine the total rewards that should be minted for the assessors based on cover period

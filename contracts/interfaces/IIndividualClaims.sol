@@ -4,7 +4,7 @@ pragma solidity >=0.5.0;
 
 import "@openzeppelin/contracts-v4/token/ERC721/IERC721Receiver.sol";
 
-interface IClaims {
+interface IIndividualClaims {
 
   /* ========== DATA STRUCTURES ========== */
 

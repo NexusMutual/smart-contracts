@@ -9,7 +9,10 @@ const artifactByCode = {
   CR: 'contracts/modules/claims/ClaimsReward.sol/ClaimsReward.json',
   GV: 'contracts/modules/governance/Governance.sol/Governance.json',
   GW: 'contracts/modules/cover/Gateway.sol/Gateway.json',
-  IC: 'contracts/modules/claims/Incidents.sol/Incidents.json',
+  IC: 'contracts/modules/claims/IndividualClaims.sol/IndividualClaims.json',
+  YT: 'contracts/modules/claims/YieldTokenIncidents.sol/YieldTokenIncidents.json',
+  AS: 'contracts/modules/claims/Assessment.sol/Assessment.json',
+  CO: 'contracts/modules/claims/Cover.sol/Cover.json',
   MC: 'contracts/modules/capital/MCR.sol/MCR.json',
   MR: 'contracts/modules/governance/MemberRoles.sol/MemberRoles.json',
   NXMASTER: 'contracts/modules/governance/NXMaster.sol/NXMaster.json',
@@ -35,27 +38,15 @@ const artifactByCode = {
 };
 
 const contractCodeByName = {
-  ClaimsData: 'CD',
-  Claims: 'CL',
-  ClaimsReward: 'CR',
-  Governance: 'GV',
-  MCR: 'MC',
-  MemberRoles: 'MR',
-  NXMaster: 'NXMASTER',
-  NXMToken: 'NXMTOKEN',
-  Pool: 'P1',
+  LegacyClaimsData: 'CD',
+  LegacyClaims: 'CL',
+  LegacyClaimsReward: 'CR',
+  LegacyClaimProofs: 'CP',
   Pool2: 'P2',
-  ProposalCategory: 'PC',
   QuotationData: 'QD',
   Quotation: 'QT',
-  TokenController: 'TC',
-  TokenData: 'TD',
-  TokenFunctions: 'TF',
   PooledStaking: 'PS',
-  ClaimProofs: 'CP',
-  Gateway: 'GW',
-  Incidents: 'IC',
-  SwapOperator: 'SO',
+  TokenFunctions: 'TF',
   PriceFeedOracle: 'PRICEORACLE',
   TwapOracle: 'TWAP',
   CommunityStakingIncentives: 'CSI',
@@ -63,6 +54,22 @@ const contractCodeByName = {
   // external
   Aggregator: 'CHAINLINK-DAI-ETH',
   Dai: 'DAI',
+  // v2
+  TokenController: 'TC',
+  SwapOperator: 'SO',
+  Gateway: 'GW',
+  TokenData: 'TD',
+  MemberRoles: 'MR',
+  NXMaster: 'NXMASTER',
+  NXMToken: 'NXMTOKEN',
+  ProposalCategory: 'PC',
+  Governance: 'GV',
+  MCR: 'MC',
+  IndividualClaims: 'IC',
+  YieldTokenIncidents: 'YT',
+  Assessment: 'AS',
+  Cover: 'CO',
+  Pool: 'P1',
 };
 
 const rootPath = path.normalize(`${__dirname}/../`);
@@ -75,7 +82,6 @@ const getContractAbi = code => {
 };
 
 const versionData = Object.keys(addresses).map(name => {
-
   const address = addresses[name];
 
   if (ethers.utils.getAddress(address) !== address) {
@@ -97,9 +103,6 @@ if (!fs.existsSync(`${rootPath}/deploy`)) {
 
 const outfile = `${rootPath}/deploy/mainnet-data.json`;
 
-fs.writeFileSync(
-  outfile,
-  JSON.stringify({ mainnet: { abis: versionData } }, null, 2),
-);
+fs.writeFileSync(outfile, JSON.stringify({ mainnet: { abis: versionData } }, null, 2));
 
 console.log(`${path.basename(outfile)} generated succesfully`);

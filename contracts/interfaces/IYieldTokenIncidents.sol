@@ -2,7 +2,7 @@
 
 pragma solidity >=0.5.0;
 
-interface IIncidents {
+interface IYieldTokenIncidents {
 
   /* ========== DATA STRUCTURES ========== */
 

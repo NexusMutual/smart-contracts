@@ -7,6 +7,8 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
+import "../../interfaces/IProductsV1.sol";
+import "../../interfaces/IStakingPool.sol";
 
 contract PooledStaking is IPooledStaking, MasterAware {
   /* Events */
@@ -109,8 +111,9 @@ contract PooledStaking is IPooledStaking, MasterAware {
     _;
   }
 
-  constructor() {
-    revert("[todo] Add the addresses marked for implicit migration in migrateToNewV2Pool before deploy");
+  constructor(address coverAddress, address productsV1Address) {
+    productsV1 = IProductsV1(productsV1Address);
+    cover = ICover(coverAddress);
   }
 
   /* Getters and view functions */
@@ -127,7 +130,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
     return contractStakers[contractAddress];
   }
 
-  function contractStake(address contractAddress) public view returns (uint) {
+  function contractStake(address contractAddress) public override view returns (uint) {
 
     address[] storage _stakers = contractStakers[contractAddress];
     uint stakerCount = _stakers.length;
@@ -158,7 +161,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
     return stakers[staker].contracts;
   }
 
-  function stakerContractStake(address staker, address contractAddress) external view returns (uint) {
+  function stakerContractStake(address staker, address contractAddress) external override view returns (uint) {
     uint stake = stakers[staker].stakes[contractAddress];
     uint deposit = stakers[staker].deposit;
     return stake < deposit ? stake : deposit;
@@ -168,15 +171,15 @@ contract PooledStaking is IPooledStaking, MasterAware {
     return stakers[staker].pendingUnstakeRequestsTotal[contractAddress];
   }
 
-  function stakerReward(address staker) external view returns (uint) {
+  function stakerReward(address staker) external override view returns (uint) {
     return stakers[staker].reward;
   }
 
-  function stakerDeposit(address staker) external view returns (uint) {
+  function stakerDeposit(address staker) external override view returns (uint) {
     return stakers[staker].deposit;
   }
 
-  function stakerMaxWithdrawable(address stakerAddress) public view returns (uint) {
+  function stakerMaxWithdrawable(address stakerAddress) public override view returns (uint) {
 
     Staker storage staker = stakers[stakerAddress];
     uint deposit = staker.deposit;
@@ -195,10 +198,10 @@ contract PooledStaking is IPooledStaking, MasterAware {
       }
     }
 
-    uint minRequired = totalStaked.div(MAX_EXPOSURE);
+    uint minRequired = totalStaked / MAX_EXPOSURE;
     uint locked = maxStake > minRequired ? maxStake : minRequired;
 
-    return deposit.sub(locked);
+    return deposit - locked;
   }
 
   function unstakeRequestAtIndex(uint unstakeRequestId) external view returns (
@@ -212,7 +215,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
     next = unstakeRequest.next;
   }
 
-  function hasPendingActions() public view returns (bool) {
+  function hasPendingActions() public override view returns (bool) {
     return hasPendingBurns() || hasPendingUnstakeRequests() || hasPendingRewards();
   }
 
@@ -245,8 +248,8 @@ contract PooledStaking is IPooledStaking, MasterAware {
     /* noop */
   }
 
-  function withdraw(uint amount) external whenNotPausedAndInitialized onlyMember noPendingBurns {
-    stakers[msg.sender].deposit = stakers[msg.sender].deposit.sub(amount);
+  function withdraw(uint amount) external override whenNotPausedAndInitialized onlyMember noPendingBurns {
+    stakers[msg.sender].deposit = stakers[msg.sender].deposit - amount;
     token.transfer(msg.sender, amount);
     emit Withdrawn(msg.sender, amount);
   }
@@ -259,7 +262,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
     /* noop */
   }
 
-  function withdrawReward(address stakerAddress) external whenNotPausedAndInitialized {
+  function withdrawReward(address stakerAddress) external override whenNotPausedAndInitialized {
 
     uint amount = stakers[stakerAddress].reward;
     stakers[stakerAddress].reward = 0;
@@ -271,7 +274,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
 
   function pushBurn(
     address contractAddress, uint amount
-  ) public onlyInternal whenNotPausedAndInitialized noPendingBurns {
+  ) public override onlyInternal whenNotPausedAndInitialized noPendingBurns {
 
     address[] memory contractAddresses = new address[](1);
     contractAddresses[0] = contractAddress;
@@ -352,7 +355,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
   /**
    * @dev Add reward for contract. Automatically triggers distribution if enough time has passed.
    */
-  function accumulateReward(address contractAddress, uint amount) external onlyInternal whenNotPausedAndInitialized {
+  function accumulateReward(address contractAddress, uint amount) external override onlyInternal whenNotPausedAndInitialized {
 
     // will push rewards if needed
     address[] memory contractAddresses = new address[](1);
@@ -364,7 +367,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
     emit RewardAdded(contractAddress, amount);
   }
 
-  function processPendingActions(uint maxIterations) public whenNotPausedAndInitialized returns (bool finished) {
+  function processPendingActions(uint maxIterations) public override whenNotPausedAndInitialized returns (bool finished) {
     (finished,) = _processPendingActions(maxIterations);
   }
 
@@ -534,15 +537,15 @@ contract PooledStaking is IPooledStaking, MasterAware {
     if (_stakedOnContract != _totalBurnAmount) {
       // formula: staker_burn = staker_stake / total_contract_stake * contract_burn
       // reordered for precision loss prevention
-      _stakerBurnAmount = _currentStake.mul(_totalBurnAmount).div(_stakedOnContract);
-      _newStake = _currentStake.sub(_stakerBurnAmount);
+      _stakerBurnAmount = _currentStake * _totalBurnAmount / _stakedOnContract;
+      _newStake = _currentStake - _stakerBurnAmount;
     } else {
       // it's the whole stake
       _stakerBurnAmount = _currentStake;
     }
 
     if (_stakerBurnAmount != 0) {
-      staker.deposit = _currentDeposit.sub(_stakerBurnAmount);
+      staker.deposit = _currentDeposit - _stakerBurnAmount;
     }
 
     staker.stakes[_contractAddress] = _newStake;
@@ -608,10 +611,10 @@ contract PooledStaking is IPooledStaking, MasterAware {
 
     uint requestedAmount = unstakeRequest.amount;
     uint actualUnstakedAmount = stake < requestedAmount ? stake : requestedAmount;
-    staker.stakes[contractAddress] = stake.sub(actualUnstakedAmount);
+    staker.stakes[contractAddress] = stake - actualUnstakedAmount;
 
     uint pendingUnstakeRequestsTotal = staker.pendingUnstakeRequestsTotal[contractAddress];
-    staker.pendingUnstakeRequestsTotal[contractAddress] = pendingUnstakeRequestsTotal.sub(requestedAmount);
+    staker.pendingUnstakeRequestsTotal[contractAddress] = pendingUnstakeRequestsTotal - requestedAmount;
 
     // update pointer to first unstake request
     unstakeRequests[0].next = unstakeRequest.next;
@@ -710,7 +713,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
     }
 
     // reward = staker_stake / total_contract_stake * total_reward
-    rewardedAmount = totalRewardAmount.mul(stake).div(totalStakedOnContract);
+    rewardedAmount = totalRewardAmount * stake / totalStakedOnContract;
     staker.reward = staker.reward + rewardedAmount;
   }
 
@@ -734,43 +737,44 @@ contract PooledStaking is IPooledStaking, MasterAware {
     }
   }
 
-  function migrateToNewV2Pool(address staker) external {
+  function migrateToNewV2Pool(address stakerAddress) external {
     // Addresses marked for implicit migration can be migrated by anyone.
     // Addresses who are not can only be migrated by calling this function themselves.
     // [todo] Add the marked addresses before deploy
     require(
-      staker == msg.sender ||
-      staker == '0x0000000000000000000000000000000000000001' ||
-      staker == '0x0000000000000000000000000000000000000002', // etc.
+      stakerAddress == msg.sender ||
+      stakerAddress == 0x0000000000000000000000000000000000000001 ||
+      stakerAddress == 0x0000000000000000000000000000000000000002, // etc.
       "You are not authorized to migrate this staker"
     );
 
-    IStakingPool stakingPool = IStakingPool(cover.createStakingPool(staker));
-    uint deposit = staker.deposit;
-    uint[] memory = products;
-    uint[] memory = weights;
 
-    for (uint i = 0; i < staker.contracts.length; i++) {
-      address oldProductId = staker.contracts[i];
+    uint contractsCount = stakers[stakerAddress].contracts.length;
+    uint deposit = stakers[stakerAddress].deposit;
+
+    uint[] memory weights = new uint[](contractsCount);
+    uint[] memory products = new uint[](contractsCount);
+    for (uint i = 0; i < contractsCount; i++) {
+      address oldProductId = stakers[stakerAddress].contracts[i];
       uint productId = productsV1.getNewProductId(oldProductId);
-      products.push(productId);
-
-      uint stake = staker.stakes[contractAddress];
-      weights.push(stake * 1e18 / deposit);
+      products[i] = productId;
+      uint stake = stakers[stakerAddress].stakes[oldProductId];
+      weights[i] = stake * 1e18 / deposit;
     }
 
+    IStakingPool stakingPool = IStakingPool(cover.createStakingPool(stakerAddress));
     // [todo] Add the corresponding calls after a IStakingPool is available
     // uint stakingPositionNFT = stakingPool.deposit(deposit);
     // stakingPool.stakeAllocation(products, weights);
 
-    staker.deposit = 0;
+    stakers[stakerAddress].deposit = 0;
   }
 
-  function migrateToExistingV2Pool(address staker, IStakingPool stakingPool) external {
-    require(staker == msg.sender, "You are not authorized to migrate this staker");
+  function migrateToExistingV2Pool(IStakingPool stakingPool) external {
+    uint deposit = stakers[msg.sender].deposit;
     // [todo] Add the corresponding calls after a IStakingPool is available
     // uint stakingPositionNFT = stakingPool.deposit(deposit);
-    staker.deposit = 0;
+    stakers[msg.sender].deposit = 0;
   }
 
 }

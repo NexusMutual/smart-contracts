@@ -28,4 +28,8 @@ contract DisposablePooledStaking is PooledStaking {
     REWARD_ROUNDS_START = block.timestamp;
   }
 
+  constructor() PooledStaking(0x0000000000000000000000000000000000000000, 0x0000000000000000000000000000000000000000) {
+    // noop
+  }
+
 }

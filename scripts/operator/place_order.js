@@ -9,7 +9,10 @@ const {
 const axios = require('axios');
 const { keccak256 } = require('ethers/lib/utils');
 
-const sellToken = '0xc778417e063141139fce010982780140aa0cd5ab'; // weth
+const WETH = '0xc778417e063141139fce010982780140aa0cd5ab';
+const IERC20 = '@openzeppelin/contracts-v4/token/ERC20/IERC20.sol:IERC20';
+
+const sellToken = WETH; // weth
 // const sellToken = '0xb07de0148b53e5ec7bb73e16016bb4d3fc71f0ca'; // some random lido token
 const buyToken = '0x5592ec0cfb4dbc12d3ab100b257153436a1f0fea'; // dai
 const baseUrl = 'https://api.cow.fi/rinkeby/api/v1';
@@ -44,12 +47,13 @@ const main = async () => {
   console.log('validTo', validTo);
 
   // Check the pool has funds to execute the order
-  const sellTokenContract = await ethers.getContractAt(
-    '@openzeppelin/contracts-v4/token/ERC20/IERC20.sol:IERC20',
-    sellToken,
-  );
-  const sellTokenBalance = await sellTokenContract.balanceOf(poolAddress);
-
+  let sellTokenBalance;
+  if (sellToken === WETH) {
+    sellTokenBalance = await ethers.provider.getBalance(poolAddress);
+  } else {
+    const sellTokenContract = await ethers.getContractAt(IERC20, sellToken);
+    sellTokenBalance = await sellTokenContract.balanceOf(poolAddress);
+  }
   if (sellTokenBalance.lt(sellAmount)) {
     console.log(`Not enough sellToken balance in pool (currently ${sellTokenBalance.toString()})`);
     return;

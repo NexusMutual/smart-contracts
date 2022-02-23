@@ -6,24 +6,20 @@ const main = async () => {
   const signer = (await ethers.getSigners())[0];
   const signerAddress = await signer.getAddress();
 
-  const wethAddress = '0xc778417E063141139Fce010982780140Aa0cD5Ab';
-  const ierc20 = '@openzeppelin/contracts-v4/token/ERC20/IERC20.sol:IERC20';
   const minBalance = ethers.utils.parseEther('0.005');
 
-  const wethContract = await ethers.getContractAt(ierc20, wethAddress);
-
-  const operatorBalance = await wethContract.balanceOf(pool);
-  const signerBalance = await wethContract.balanceOf(signerAddress);
+  const operatorBalance = await ethers.provider.getBalance(pool);
+  const signerBalance = await ethers.provider.getBalance(signerAddress);
 
   console.log({ operatorBalance, signerBalance });
 
   if (operatorBalance.lt(minBalance)) {
     if (signerBalance.gt(minBalance)) {
-      console.log('Sending weth to pool contract');
-      await (await wethContract.transfer(pool, minBalance)).wait();
+      console.log('Sending eth to pool contract');
+      await (await signer.sendTransaction({ to: pool, value: minBalance })).wait();
       console.log('Done');
     } else {
-      console.log('not enough weth to send');
+      console.log('not enough eth to send');
     }
   } else {
     console.log('no need to fund');

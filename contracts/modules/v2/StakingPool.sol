@@ -271,14 +271,8 @@ contract StakingPool is IStakingPool, ERC20 {
     }
 
     // limit cover amount to the amount left available
-    uint capacity = (
-      staked *
-      params.globalCapacityRatio *
-      product.weight *
-      (CAPACITY_REDUCTION_DENOMINATOR - params.capacityReductionRatio) /
-      GLOBAL_CAPACITY_DENOMINATOR /
-      PRODUCT_WEIGHT_DENOMINATOR /
-      CAPACITY_REDUCTION_DENOMINATOR
+    uint capacity = calculateCapacity(
+      staked, product.weight, params.globalCapacityRatio,  params.capacityReductionRatio
     );
 
     uint coverAmount = min(
@@ -307,7 +301,7 @@ contract StakingPool is IStakingPool, ERC20 {
       params.productId,
       coverAmount,
       product.activeCoverAmount,
-      activeCoverAmount,
+      capacity,
       params.initialPrice
     );
 
@@ -546,4 +540,47 @@ contract StakingPool is IStakingPool, ERC20 {
 
     return lastPrice - (lastPrice - targetPrice) * priceChange / PRICE_DENOMINATOR;
   }
+
+  /**
+  */
+  function calculateCapacity(
+    uint staked,
+    uint productWeight,
+    uint globalCapacityRatio,
+    uint capacityReductionRatio
+  ) internal pure returns (uint) {
+    return staked *
+    globalCapacityRatio *
+    productWeight *
+    (CAPACITY_REDUCTION_DENOMINATOR - capacityReductionRatio) /
+    GLOBAL_CAPACITY_DENOMINATOR /
+    PRODUCT_WEIGHT_DENOMINATOR /
+    CAPACITY_REDUCTION_DENOMINATOR;
+  }
+
+  /**
+  */
+  function getPriceParameters(
+    uint productId,
+    uint globalCapacityRatio,
+    uint capacityReductionRatio
+  ) external view returns (uint) {
+
+    Product storage product = products[productId];
+
+    uint activeCover;
+    uint staked;
+    uint capacity = calculateCapacity(
+      staked,
+      product.weight,
+      globalCapacityRatio,
+      capacityReductionRatio
+    );
+    uint initialPrice;
+    uint lastBasePrice = lastBasePrices[productId].value;
+    uint targetPrice = targetPrices[productId];
+
+    return 0;
+  }
+
 }

@@ -10,7 +10,6 @@ import "../../interfaces/IMCR.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
-import "../../interfaces/IQuotation.sol";
 import "../../interfaces/ITokenController.sol";
 
 contract Pool is IPool, MasterAware, ReentrancyGuard {
@@ -23,7 +22,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   mapping(address => SwapDetails) public swapDetails;
 
   // contracts
-  IQuotation public quotation;
   INXMToken public nxmToken;
   ITokenController public tokenController;
   IMCR public mcr;
@@ -288,7 +286,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   function changeDependentContractAddress() public {
     nxmToken = INXMToken(master.tokenAddress());
     tokenController = ITokenController(master.getLatestAddress("TC"));
-    quotation = IQuotation(master.getLatestAddress("QT"));
     mcr = IMCR(master.getLatestAddress("MC"));
   }
 

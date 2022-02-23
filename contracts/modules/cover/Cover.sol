@@ -67,7 +67,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   uint24 public globalCapacityRatio;
   uint24 public globalRewardsRatio;
-  uint64 public stakingPoolCounter;
+  uint64 public override stakingPoolCounter;
 
   /*
     bit map representing which assets are globally supported for paying for and for paying out covers
@@ -598,6 +598,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function coverSegmentsCount(uint coverId) external override view returns (uint) {
     return _coverSegments[coverId].length;
+  }
+
+  function productsCount() external override view returns (uint) {
+    return _products.length;
   }
 
   /* ========== PRODUCT CONFIGURATION ========== */

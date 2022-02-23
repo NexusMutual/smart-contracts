@@ -1,7 +1,7 @@
-const { takeSnapshot, revertToSnapshot, reset } = require('../utils').evm;
+const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const setup = require('./setup');
 
-describe.only('Cover unit tests', function () {
+describe('Cover unit tests', function () {
   before(setup);
 
   beforeEach(async function () {

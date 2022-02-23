@@ -661,9 +661,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint lastBasePrice,
     uint targetPrice
   ) {
-    IStakingPool pool = stakingPool(poolId);
+    IStakingPool _pool = stakingPool(poolId);
     Product memory product = _products[productId];
-    (activeCover, capacity, lastBasePrice, targetPrice) = pool.getPriceParameters(
+
+    (activeCover, capacity, lastBasePrice, targetPrice) = _pool.getPriceParameters(
       productId, globalCapacityRatio, product.capacityReductionRatio
     );
     initialPriceRatio = product.initialPriceRatio;

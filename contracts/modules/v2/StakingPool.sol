@@ -568,7 +568,17 @@ contract StakingPool is IStakingPool, ERC20 {
 
     Product storage product = products[productId];
 
-    uint staked;
+    activeCover = product.activeCoverAmount;
+    uint currentBucket = block.timestamp / BUCKET_SIZE;
+    uint lastBucket = product.lastBucket;
+    // process expirations
+    while (lastBucket < currentBucket) {
+      ++lastBucket;
+      activeCover -= productBuckets[productId][lastBucket].expiringCoverAmount;
+    }
+
+    // TODO: FIXME: implement with new staking implementation
+    uint staked = 0;
     capacity = calculateCapacity(
       staked,
       product.weight,

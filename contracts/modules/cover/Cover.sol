@@ -652,6 +652,23 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     return (1 << payoutAsset) & payoutAssetsBitMap > 0;
   }
 
+  /* ========== VIEWS ========== */
+
+  function getPoolAllocationPriceParameters(uint poolId, uint productId) public view returns (
+    uint activeCover,
+    uint capacity,
+    uint initialPriceRatio,
+    uint lastBasePrice,
+    uint targetPrice
+  ) {
+    IStakingPool pool = stakingPool(poolId);
+    Product memory product = _products[productId];
+    (activeCover, capacity, lastBasePrice, targetPrice) = pool.getPriceParameters(
+      productId, globalCapacityRatio, product.capacityReductionRatio
+    );
+    initialPriceRatio = product.initialPriceRatio;
+  }
+
   /* ========== DEPENDENCIES ========== */
 
   function pool() internal view returns (IPool) {

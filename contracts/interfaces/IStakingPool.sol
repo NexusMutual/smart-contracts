@@ -38,4 +38,12 @@ interface IStakingPool is IERC20 {
   function getTargetPrice(uint productId) external view returns (uint);
   function getStake(uint productId) external view returns (uint);
   function manager() external view returns (address);
+
+  function getPriceParameters(
+    uint productId,
+    uint globalCapacityRatio,
+    uint capacityReductionRatio
+  ) external view returns (
+    uint activeCover, uint capacity, uint lastBasePrice, uint targetPrice
+  );
 }

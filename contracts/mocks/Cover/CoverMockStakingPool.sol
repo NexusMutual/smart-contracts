@@ -105,4 +105,14 @@ contract CoverMockStakingPool is IStakingPool, ERC20 {
     // noop
   }
 
+  function getPriceParameters(
+    uint /* productId */,
+    uint /* globalCapacityRatio */,
+    uint /* capacityReductionRatio */
+  ) external view returns (
+    uint, uint, uint, uint
+  ) {
+    nxm;
+    return (0, 0, 0, 0);
+  }
 }

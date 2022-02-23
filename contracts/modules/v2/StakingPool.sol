@@ -558,29 +558,25 @@ contract StakingPool is IStakingPool, ERC20 {
     CAPACITY_REDUCTION_DENOMINATOR;
   }
 
-  /**
-  */
   function getPriceParameters(
     uint productId,
     uint globalCapacityRatio,
     uint capacityReductionRatio
-  ) external view returns (uint) {
+  ) external view returns (
+    uint activeCover, uint capacity, uint lastBasePrice, uint targetPrice
+  ) {
 
     Product storage product = products[productId];
 
-    uint activeCover;
     uint staked;
-    uint capacity = calculateCapacity(
+    capacity = calculateCapacity(
       staked,
       product.weight,
       globalCapacityRatio,
       capacityReductionRatio
     );
-    uint initialPrice;
-    uint lastBasePrice = lastBasePrices[productId].value;
-    uint targetPrice = targetPrices[productId];
-
-    return 0;
+    lastBasePrice = lastBasePrices[productId].value;
+    targetPrice = targetPrices[productId];
   }
 
 }

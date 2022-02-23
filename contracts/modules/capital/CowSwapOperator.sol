@@ -30,6 +30,11 @@ contract CowSwapOperator {
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
+  modifier onlyController() {
+    require(msg.sender == swapController, 'Only controller');
+    _;
+  }
+
   constructor(
     address _cowSettlement,
     address _cowVaultRelayer,
@@ -46,11 +51,25 @@ contract CowSwapOperator {
     twapOracle = ITwapOracle(_twapOracle);
   }
 
+  receive() external payable {}
+
+  function getDigest(GPv2Order.Data calldata order, bytes32 domainSeparator) public pure returns (bytes32) {
+    bytes32 hash = GPv2Order.hash(order, domainSeparator);
+    return hash;
+  }
+
+  function getUID(GPv2Order.Data calldata order, bytes32 domainSeparator) public pure returns (bytes memory) {
+    bytes memory uid = new bytes(56);
+    bytes32 digest = getDigest(order, domainSeparator);
+    GPv2Order.packOrderUidParams(uid, digest, order.receiver, order.validTo);
+    return uid;
+  }
+
   function placeOrder(
     GPv2Order.Data calldata order,
     bytes32 domainSeparator,
     bytes calldata orderUID
-  ) public {
+  ) public onlyController {
     // Helper local variables
     Pool pool = _pool();
     uint256 totalOutAmount = order.sellAmount + order.feeAmount;
@@ -162,18 +181,6 @@ contract CowSwapOperator {
   ) private pure {
     bytes memory calculatedUID = getUID(order, domainSeparator);
     require(keccak256(calculatedUID) == keccak256(providedOrderUID), 'Provided UID doesnt match calculated UID');
-  }
-
-  function getDigest(GPv2Order.Data calldata order, bytes32 domainSeparator) public pure returns (bytes32) {
-    bytes32 hash = GPv2Order.hash(order, domainSeparator);
-    return hash;
-  }
-
-  function getUID(GPv2Order.Data calldata order, bytes32 domainSeparator) public pure returns (bytes memory) {
-    bytes memory uid = new bytes(56);
-    bytes32 digest = getDigest(order, domainSeparator);
-    GPv2Order.packOrderUidParams(uid, digest, order.receiver, order.validTo);
-    return uid;
   }
 
   function _pool() internal view returns (Pool) {

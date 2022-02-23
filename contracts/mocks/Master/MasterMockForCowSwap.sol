@@ -17,4 +17,8 @@ contract MasterMockForCowSwap {
   function setPool(address _pool) public {
     pool = _pool;
   }
+
+  function isPause() public pure returns (bool) {
+    return false;
+  }
 }

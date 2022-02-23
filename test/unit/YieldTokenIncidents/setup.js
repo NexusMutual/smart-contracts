@@ -51,9 +51,9 @@ async function setup () {
   const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NXC');
   await coverNFT.deployed();
 
-  const Incidents = await ethers.getContractFactory('Incidents');
-  const incidents = await Incidents.deploy(nxm.address, coverNFT.address);
-  await incidents.deployed();
+  const YieldTokenIncidents = await ethers.getContractFactory('YieldTokenIncidents');
+  const yieldTokenIncidents = await YieldTokenIncidents.deploy(nxm.address, coverNFT.address);
+  await yieldTokenIncidents.deployed();
 
   const Cover = await ethers.getContractFactory('ICMockCover');
   const cover = await Cover.deploy(coverNFT.address);
@@ -86,12 +86,12 @@ async function setup () {
   await cover.setActiveCoverAmountInNXM(2, parseEther('3500'));
 
   {
-    const tx = await incidents.initialize(master.address);
+    const tx = await yieldTokenIncidents.initialize(master.address);
     await tx.wait();
   }
 
   {
-    const tx = await incidents.changeDependentContractAddress();
+    const tx = await yieldTokenIncidents.changeDependentContractAddress();
     await tx.wait();
   }
 
@@ -111,7 +111,7 @@ async function setup () {
   accounts.defaultSender.sendTransaction({ to: pool.address, value: parseEther('10000') });
   dai.mint(pool.address, parseEther('10000'));
 
-  const config = await incidents.config();
+  const config = await yieldTokenIncidents.config();
 
   this.config = config;
   this.accounts = accounts;
@@ -122,7 +122,7 @@ async function setup () {
     ybEth,
     ybPermitDai,
     assessment,
-    incidents,
+    yieldTokenIncidents,
     cover,
     coverNFT,
     unkownNFT,

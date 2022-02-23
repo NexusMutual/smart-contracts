@@ -13,11 +13,11 @@ const setTime = async timestamp => {
 
 describe('submitClaim', function () {
   it('calls migrateCoverFromOwner with the correct parameters when a legacy coverId is provided as a parameter', async function () {
-    const { claims, cover, distributor } = this.contracts;
+    const { individualClaims, cover, distributor } = this.contracts;
     const [coverOwner] = this.accounts.members;
 
     {
-      await claims.connect(coverOwner)['submitClaim(uint256)'](123);
+      await individualClaims.connect(coverOwner)['submitClaim(uint256)'](123);
       const migrateCoverFromOwnerCalledWith = await cover.migrateCoverFromOwnerCalledWith();
       expect(migrateCoverFromOwnerCalledWith.coverId).to.be.equal(123);
       expect(migrateCoverFromOwnerCalledWith.fromOwner).to.be.equal(coverOwner.address);
@@ -34,7 +34,7 @@ describe('submitClaim', function () {
   });
 
   it('reverts if the submission deposit is not sent', async function () {
-    const { claims, cover } = this.contracts;
+    const { individualClaims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
     const coverAmount = parseEther('100');
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -46,7 +46,7 @@ describe('submitClaim', function () {
     );
     const coverId = 0;
     await expect(
-      claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', {
+      individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', {
         value: ethers.constants.Zero,
       }),
     ).to.be.revertedWith('Assessment deposit is insufficient');
@@ -130,7 +130,7 @@ describe('submitClaim', function () {
   });
 
   it('allows to submit a new claim if an accepted claim is not redeemed during the redemption period', async function () {
-    const { claims, cover, assessment } = this.contracts;
+    const { individualClaims, cover, assessment } = this.contracts;
     const [coverOwner] = this.accounts.members;
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
@@ -145,13 +145,13 @@ describe('submitClaim', function () {
     await assessment.castVote(0, true, parseEther('1'));
     const { poll } = await assessment.assessments(0);
     const { payoutCooldownInDays } = await assessment.config();
-    const { payoutRedemptionPeriodInDays } = await claims.config();
+    const { payoutRedemptionPeriodInDays } = await individualClaims.config();
     await setTime(poll.end + daysToSeconds(payoutCooldownInDays) + daysToSeconds(payoutRedemptionPeriodInDays));
     await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).not.to.be.reverted;
   });
 
   it('reverts if the submission deposit is less than the expected amount', async function () {
-    const { claims, cover } = this.contracts;
+    const { individualClaims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
@@ -167,22 +167,22 @@ describe('submitClaim', function () {
     }
     const coverId = 0;
 
-    const [deposit] = await claims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
     await expect(
-      claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', {
+      individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', {
         value: deposit.div('2'),
       }),
     ).to.be.revertedWith('Assessment deposit is insufficient');
   });
 
   it('refunds any excess ETH sent as a submission deposit', async function () {
-    const { claims, cover } = this.contracts;
+    const { individualClaims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
     const payoutAsset = ASSET.ETH;
 
-    const [deposit] = await claims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
 
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
@@ -193,7 +193,7 @@ describe('submitClaim', function () {
         [[coverAmount, timestamp + 1, coverPeriod, 0]],
       );
       const balanceBefore = await ethers.provider.getBalance(coverOwner.address);
-      await claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](0, 0, coverAmount, '', {
+      await individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](0, 0, coverAmount, '', {
         value: deposit.mul('2'),
         gasPrice: 0,
       });
@@ -210,7 +210,7 @@ describe('submitClaim', function () {
         [[coverAmount, timestamp + 1, coverPeriod, 0]],
       );
       const balanceBefore = await ethers.provider.getBalance(coverOwner.address);
-      await claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](1, 0, coverAmount, '', {
+      await individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](1, 0, coverAmount, '', {
         value: deposit.mul('3'),
         gasPrice: 0,
       });
@@ -227,7 +227,7 @@ describe('submitClaim', function () {
         [[coverAmount, timestamp + 1, coverPeriod, 0]],
       );
       const balanceBefore = await ethers.provider.getBalance(coverOwner.address);
-      await claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](2, 0, coverAmount, '', {
+      await individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](2, 0, coverAmount, '', {
         value: deposit.mul('10'),
         gasPrice: 0,
       });
@@ -237,7 +237,7 @@ describe('submitClaim', function () {
   });
 
   it('reverts if the requested amount exceeds cover segment amount', async function () {
-    const { claims, cover } = this.contracts;
+    const { individualClaims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
@@ -256,24 +256,28 @@ describe('submitClaim', function () {
     }
     const coverId = 0;
 
-    const [deposit] = await claims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
 
     await expect(
-      claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount.add('1'), '', {
-        value: deposit,
-        gasPrice: 0,
-      }),
+      individualClaims
+        .connect(coverOwner)
+        ['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount.add('1'), '', {
+          value: deposit,
+          gasPrice: 0,
+        }),
     ).to.be.revertedWith('Covered amount exceeded');
     await expect(
-      claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 1, coverAmount.add('1'), '', {
-        value: deposit,
-        gasPrice: 0,
-      }),
+      individualClaims
+        .connect(coverOwner)
+        ['submitClaim(uint32,uint16,uint96,string)'](coverId, 1, coverAmount.add('1'), '', {
+          value: deposit,
+          gasPrice: 0,
+        }),
     ).not.to.be.revertedWith('Covered amount exceeded');
   });
 
   it('reverts if the cover segment starts in the future', async function () {
-    const { claims, cover } = this.contracts;
+    const { individualClaims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
@@ -290,22 +294,22 @@ describe('submitClaim', function () {
     );
     const coverId = 0;
 
-    const [deposit] = await claims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
 
     await expect(
-      claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 1, coverAmount, '', {
+      individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 1, coverAmount, '', {
         value: deposit,
       }),
     ).to.be.revertedWith('Cover starts in the future');
     await expect(
-      claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', {
+      individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', {
         value: deposit,
       }),
     ).not.to.be.revertedWith('Cover starts in the future');
   });
 
   it('reverts if the cover segment is outside the grace period', async function () {
-    const { claims, cover } = this.contracts;
+    const { individualClaims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
@@ -329,23 +333,23 @@ describe('submitClaim', function () {
     await setTime(currentTime + coverPeriod + daysToSeconds(gracePeriodInDays) + 1);
     const coverId = 0;
 
-    const [deposit] = await claims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
 
     await expect(
-      claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', {
+      individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', {
         value: deposit,
       }),
     ).to.be.revertedWith('Cover is outside the grace period');
 
     await expect(
-      claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 1, coverAmount, '', {
+      individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 1, coverAmount, '', {
         value: deposit,
       }),
     ).not.to.be.revertedWith('Cover is outside the grace period');
   });
 
   it('calls startAssessment and stores the returned assessmentId in the claim', async function () {
-    const { assessment, claims, cover } = this.contracts;
+    const { assessment, individualClaims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
@@ -362,13 +366,13 @@ describe('submitClaim', function () {
 
     const coverId = 0;
 
-    const [expectedDeposit, expectedTotalReward] = await claims.getAssessmentDepositAndReward(
+    const [expectedDeposit, expectedTotalReward] = await individualClaims.getAssessmentDepositAndReward(
       coverAmount,
       coverPeriod,
       payoutAsset,
     );
 
-    await claims
+    await individualClaims
       .connect(coverOwner)
       ['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', { value: expectedDeposit });
 
@@ -378,7 +382,7 @@ describe('submitClaim', function () {
     expect(assessmentDeposit).to.be.equal(expectedDeposit);
     expect(totalReward).to.be.equal(expectedTotalReward);
 
-    const { assessmentId } = await claims.claims(0);
+    const { assessmentId } = await individualClaims.claims(0);
     expect(assessmentId).to.be.equal(expectedAssessmentId);
   });
 
@@ -438,7 +442,7 @@ describe('submitClaim', function () {
   });
 
   it('emits MetadataSubmitted event with the provided ipfsMetadata when it is not an empty string', async function () {
-    const { claims, cover } = this.contracts;
+    const { individualClaims, cover } = this.contracts;
     const ipfsMetadata = 'ipfsProofHashMock';
     const [coverOwner] = this.accounts.members;
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -450,12 +454,12 @@ describe('submitClaim', function () {
     );
     const coverId = 0;
     await expect(submitClaim(this)({ coverId, ipfsMetadata, sender: coverOwner }))
-      .to.emit(claims, 'MetadataSubmitted')
+      .to.emit(individualClaims, 'MetadataSubmitted')
       .withArgs(0, ipfsMetadata);
   });
 
   it("doesn't emit MetadataSubmitted event if ipfsMetadata is an empty string", async function () {
-    const { claims, cover } = this.contracts;
+    const { individualClaims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
     const { timestamp } = await ethers.provider.getBlock('latest');
     await cover.createMockCover(
@@ -466,12 +470,12 @@ describe('submitClaim', function () {
     );
     const coverId = 0;
     await expect(submitClaim(this)({ coverId, sender: coverOwner }))
-      .not.to.emit(claims, 'MetadataSubmitted')
+      .not.to.emit(individualClaims, 'MetadataSubmitted')
       .withArgs(0, '');
   });
 
   it('stores the claimId in lastClaimSubmissionOnCover', async function () {
-    const { claims, cover } = this.contracts;
+    const { individualClaims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
@@ -485,14 +489,14 @@ describe('submitClaim', function () {
     const firstCoverId = 0;
 
     {
-      const [claimId, exists] = await claims.lastClaimSubmissionOnCover(firstCoverId);
+      const [claimId, exists] = await individualClaims.lastClaimSubmissionOnCover(firstCoverId);
       assert.equal(exists, false);
       expect(claimId).to.be.equal(ethers.constants.Zero);
     }
 
     {
       await submitClaim(this)({ coverId: firstCoverId, sender: coverOwner });
-      const [claimId, exists] = await claims.lastClaimSubmissionOnCover(firstCoverId);
+      const [claimId, exists] = await individualClaims.lastClaimSubmissionOnCover(firstCoverId);
       assert.equal(exists, true);
       expect(claimId).to.be.equal(ethers.constants.Zero);
     }
@@ -509,14 +513,14 @@ describe('submitClaim', function () {
     const secondCoverId = 1;
 
     {
-      const [claimId, exists] = await claims.lastClaimSubmissionOnCover(secondCoverId);
+      const [claimId, exists] = await individualClaims.lastClaimSubmissionOnCover(secondCoverId);
       assert.equal(exists, false);
       expect(claimId).to.be.equal(ethers.constants.Zero);
     }
 
     {
       await submitClaim(this)({ coverId: secondCoverId, sender: coverOwner });
-      const [claimId, exists] = await claims.lastClaimSubmissionOnCover(secondCoverId);
+      const [claimId, exists] = await individualClaims.lastClaimSubmissionOnCover(secondCoverId);
       assert.equal(exists, true);
       expect(claimId).to.be.equal(ethers.constants.One);
     }

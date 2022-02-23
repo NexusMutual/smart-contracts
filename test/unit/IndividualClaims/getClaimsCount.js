@@ -13,7 +13,7 @@ const setTime = async timestamp => {
 
 describe('getClaimsCount', function () {
   it('returns the total number of claims', async function () {
-    const { claims, cover } = this.contracts;
+    const { individualClaims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -25,14 +25,14 @@ describe('getClaimsCount', function () {
     );
 
     {
-      const count = await claims.getClaimsCount();
+      const count = await individualClaims.getClaimsCount();
       expect(count).to.be.equal(0);
     }
 
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
 
     {
-      const count = await claims.getClaimsCount();
+      const count = await individualClaims.getClaimsCount();
       expect(count).to.be.equal(1);
     }
 
@@ -43,7 +43,7 @@ describe('getClaimsCount', function () {
     }
 
     {
-      const count = await claims.getClaimsCount();
+      const count = await individualClaims.getClaimsCount();
       expect(count).to.be.equal(7);
     }
   });

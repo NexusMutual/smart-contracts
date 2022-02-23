@@ -5,7 +5,7 @@ pragma solidity >=0.5.0;
 /* ========== DATA STRUCTURES ========== */
 
 enum ClaimMethod {
-  Individual,
+  IndividualClaims,
   YieldTokenIncidents
 }
 

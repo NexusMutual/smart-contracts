@@ -2,62 +2,60 @@
 
 pragma solidity >=0.5.0;
 
+enum IncidentStatus { PENDING, ACCEPTED, DENIED, EXPIRED }
+
+enum UintParams {
+  payoutRedemptionPeriodInDays,
+  expectedPayoutRatio,
+  payoutDeductibleRatio,
+  maxRewardInNXMWad,
+  rewardRatio
+}
+
+struct Configuration {
+  // Number of days in which payouts can be redeemed
+  uint8 payoutRedemptionPeriodInDays;
+
+  // Ratio used to calculate potential payout of an incident
+  // (0-10000 bps i.e. double decimal precision)
+  uint16 expectedPayoutRatio;
+
+  // Ratio used to determine the deductible payout (0-10000 bps i.e. double decimal precision)
+  uint16 payoutDeductibleRatio;
+
+  // An amount of NXM representing the maximum reward amount given for any claim assessment.
+  uint16 maxRewardInNXMWad;
+
+  // Ratio used to calculate assessment rewards (0-10000 i.e. double decimal precision)
+  uint16 rewardRatio;
+}
+
+struct Incident {
+  uint80 assessmentId;
+
+  // Product identifier
+  uint24 productId;
+
+  // Timestamp marking the date of the incident used to verify the user's eligibility for a claim
+  // according to their cover period.
+  uint32 date;
+
+  // The price of the depegged token before the incident that resulted in the depeg.
+  uint96 priceBefore;
+}
+
+struct IncidentDisplay {
+  uint id;
+  uint productId;
+  uint priceBefore;
+  uint incidentDate;
+  uint pollStart;
+  uint pollEnd;
+  uint redeemableUntil;
+  uint status;
+}
+
 interface IYieldTokenIncidents {
-
-  /* ========== DATA STRUCTURES ========== */
-
-  enum IncidentStatus { PENDING, ACCEPTED, DENIED, EXPIRED }
-
-  enum UintParams {
-    payoutRedemptionPeriodInDays,
-    expectedPayoutRatio,
-    payoutDeductibleRatio,
-    maxRewardInNXMWad,
-    rewardRatio
-  }
-
-  struct Configuration {
-    // Number of days in which payouts can be redeemed
-    uint8 payoutRedemptionPeriodInDays;
-
-    // Ratio used to calculate potential payout of an incident
-    // (0-10000 bps i.e. double decimal precision)
-    uint16 expectedPayoutRatio;
-
-    // Ratio used to determine the deductible payout (0-10000 bps i.e. double decimal precision)
-    uint16 payoutDeductibleRatio;
-
-    // An amount of NXM representing the maximum reward amount given for any claim assessment.
-    uint16 maxRewardInNXMWad;
-
-    // Ratio used to calculate assessment rewards (0-10000 i.e. double decimal precision)
-    uint16 rewardRatio;
-  }
-
-  struct Incident {
-    uint80 assessmentId;
-
-    // Product identifier
-    uint24 productId;
-
-    // Timestamp marking the date of the incident used to verify the user's eligibility for a claim
-    // according to their cover period.
-    uint32 date;
-
-    // The price of the depegged token before the incident that resulted in the depeg.
-    uint96 priceBefore;
-  }
-
-  struct IncidentDisplay {
-    uint id;
-    uint productId;
-    uint priceBefore;
-    uint incidentDate;
-    uint pollStart;
-    uint pollEnd;
-    uint redeemableUntil;
-    uint status;
-  }
 
   /* ========== VIEWS ========== */
 

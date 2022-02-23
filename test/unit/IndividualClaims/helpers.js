@@ -36,8 +36,8 @@ const submitClaim = ({ accounts, contracts, config }) => async ({
   sender,
   value,
 }) => {
-  const [deposit] = await contracts.claims.getAssessmentDepositAndReward(amount, coverPeriod, payoutAsset);
-  return await contracts.claims
+  const [deposit] = await contracts.individualClaims.getAssessmentDepositAndReward(amount, coverPeriod, payoutAsset);
+  return await contracts.individualClaims
     .connect(sender || accounts[0])
     ['submitClaim(uint32,uint16,uint96,string)'](coverId, segmentId, amount, ipfsMetadata, {
       value: value || deposit,

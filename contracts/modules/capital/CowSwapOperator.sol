@@ -15,6 +15,8 @@ interface ICowSettlement {
 
 interface IWETH is IERC20 {
   function deposit() external payable;
+
+  function withdraw(uint256 wad) external;
 }
 
 contract CowSwapOperator {
@@ -25,6 +27,7 @@ contract CowSwapOperator {
   address public immutable swapController;
   IWETH public immutable weth;
   ITwapOracle public immutable twapOracle;
+  bytes currentOrderUID;
 
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -142,8 +145,28 @@ contract CowSwapOperator {
     // Register last swap time on swapDetail
     // pool.setSwapDetailsLastSwapTime(nonEthToken, uint32(block.timestamp));
 
-    // // Sign the Cow order
+    // Store the order UID
+    currentOrderUID = orderUID;
+
+    // Sign the Cow order
     cowSettlement.setPreSignature(orderUID, true);
+  }
+
+  function finalizeOrder(GPv2Order.Data calldata order, bytes32 domainSeparator) public onlyController {
+    // validate the order was executed
+    uint256 buyTokenBalance = order.buyToken.balanceOf(address(this));
+    require(buyTokenBalance >= order.buyAmount, 'Order was not executed');
+
+    // validate the order to finalize is the one executed
+    validateUID(order, domainSeparator, currentOrderUID);
+
+    // transfer funds to pool
+    if (isBuyingEth(order)) {
+      weth.withdraw(buyTokenBalance);
+      payable(_pool()).transfer(buyTokenBalance);
+    } else {
+      order.buyToken.transfer(address(_pool()), buyTokenBalance);
+    }
   }
 
   function validatePoolBalance(GPv2Order.Data calldata order, Pool pool) private view {
@@ -168,6 +191,7 @@ contract CowSwapOperator {
     require(order.kind == GPv2Order.KIND_SELL, 'Only sell operations are supported');
     require(order.receiver == address(this), 'Receiver must be this contract');
     require(order.validTo >= block.timestamp + 600, 'validTo must be at least 10 minutes in the future');
+    require(order.partiallyFillable == false, 'Partially fillable orders are not supported by CoW yet');
   }
 
   function approveVaultRelayer(IERC20 token, uint256 amount) private {
@@ -177,7 +201,7 @@ contract CowSwapOperator {
   function validateUID(
     GPv2Order.Data calldata order,
     bytes32 domainSeparator,
-    bytes calldata providedOrderUID
+    bytes memory providedOrderUID
   ) private pure {
     bytes memory calculatedUID = getUID(order, domainSeparator);
     require(keccak256(calculatedUID) == keccak256(providedOrderUID), 'Provided UID doesnt match calculated UID');

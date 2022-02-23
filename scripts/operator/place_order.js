@@ -9,6 +9,8 @@ const {
 const axios = require('axios');
 const { keccak256 } = require('ethers/lib/utils');
 
+const fs = require('fs');
+
 const WETH = '0xc778417e063141139fce010982780140aa0cd5ab';
 const IERC20 = '@openzeppelin/contracts-v4/token/ERC20/IERC20.sol:IERC20';
 
@@ -101,10 +103,20 @@ const main = async () => {
   const swapOperatorContract = await ethers.getContractAt('CowSwapOperator', swapOperatorAddress);
 
   const contractDigest = await swapOperatorContract.getDigest(contractOrder, domainHash);
-  console.log({ contractDigest });
+  if (contractDigest === digest) {
+    console.log(`Digest computed successfully: ${digest}`);
+  } else {
+    console.error(`Javascript digest ${digest} doesnt match contract digest ${contractDigest}`);
+    return;
+  }
 
   const contractUID = await swapOperatorContract.getUID(contractOrder, domainHash);
-  console.log({ contractUID });
+  if (contractUID === computedUID) {
+    console.log(`UID computed successfully: ${computedUID}`);
+  } else {
+    console.error(`Javascript UID ${computedUID} doesnt match contract UID ${contractUID}`);
+    return;
+  }
 
   // Place order in api
   console.log(JSON.stringify(payload, null, 2));
@@ -117,6 +129,7 @@ const main = async () => {
 
   if (computedUID !== uidFromApi) {
     console.error(`ERROR: Got different uid from api (${uidFromApi}) than calculated (${computedUID})`);
+    return;
   }
 
   // Presign via contract
@@ -127,6 +140,7 @@ const main = async () => {
   console.log(`placeOrder tx hash ${placeOrderTx.hash}`);
   await placeOrderTx.wait();
   console.log('Done');
+  fs.writeFileSync('contractOrder.json', JSON.stringify(contractOrder, null, 2));
 };
 
 main()

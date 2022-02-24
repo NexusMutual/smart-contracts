@@ -61,10 +61,10 @@ describe('addAsset', function () {
     await token.mint(pool.address, ether('100'));
 
     const assetDetails = await pool.getAssetSwapDetails(token.address);
-    const { min, max, maxSlippageRatio } = assetDetails;
+    const { minAmount, maxAmount, maxSlippageRatio } = assetDetails;
 
-    assert.strictEqual(min.toString(), '1');
-    assert.strictEqual(max.toString(), '2');
+    assert.strictEqual(minAmount.toString(), '1');
+    assert.strictEqual(maxAmount.toString(), '2');
     assert.strictEqual(maxSlippageRatio.toString(), '3');
   });
 });

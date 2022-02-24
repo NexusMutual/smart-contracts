@@ -147,19 +147,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     return (assetAddresses, decimals, deprecated);
   }
 
-  function getAssetSwapDetails(address assetAddress) external override view returns (
-    uint104 min,
-    uint104 max,
-    uint32 lastAssetSwapTime,
-    uint16 maxSlippageRatio
-  ) {
-
-    SwapDetails memory details = swapDetails[assetAddress];
-
-    return (details.minAmount, details.maxAmount, details.lastSwapTime, details.maxSlippageRatio);
-  }
-
-  function getAssetSwapDetailsStruct(address assetAddress) external view returns (SwapDetails memory) {
+  function getAssetSwapDetails(address assetAddress) external view returns (SwapDetails memory) {
     return swapDetails[assetAddress];
   }
 

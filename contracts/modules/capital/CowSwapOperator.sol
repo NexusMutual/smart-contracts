@@ -74,7 +74,7 @@ contract CowSwapOperator {
     bytes calldata orderUID
   ) public onlyController {
     // Helper local variables
-    Pool pool = _pool();
+    IPool pool = _pool();
     uint256 totalOutAmount = order.sellAmount + order.feeAmount;
 
     // Order UID verification
@@ -90,17 +90,7 @@ contract CowSwapOperator {
     validateBasicCowParams(order);
 
     // Validate that swaps for sellToken are enabled
-    // (
-    //   uint104 sellTokenMin,
-    //   uint104 sellTokenMax,
-    //   uint32 sellTokenLastAssetSwapTime,
-    //   uint16 sellTokenMaxSlippageRatio
-    // ) = pool.getAssetSwapDetails(address(order.sellToken));
-    // if (!isSellingEth) {
-    //   // Eth is always enabled
-    //   require(sellTokenMin != 0 || sellTokenMax != 0, 'CowSwapOperator: sellToken is not enabled');
-    // }
-    IPool.SwapDetails memory sellTokenSwapDetails = pool.getAssetSwapDetailsStruct(address(order.sellToken));
+    IPool.SwapDetails memory sellTokenSwapDetails = pool.getAssetSwapDetails(address(order.sellToken));
     if (!isSellingEth(order)) {
       // Eth is always enabled
       require(
@@ -110,14 +100,7 @@ contract CowSwapOperator {
     }
 
     // Validate that swaps for buyToken are enabled
-    // (uint104 buyTokenMin, uint104 buyTokenMax, uint32 buyTokenLastAssetSwapTime, uint16 buyTokenMaxSlippageRatio) = pool
-    //   .getAssetSwapDetails(address(order.buyToken));
-    // if (!isBuyingEth) {
-    //   // Eth is always enabled
-    //   require(buyTokenMin != 0 || buyTokenMax != 0, 'CowSwapOperator: buyToken is not enabled');
-    // }
-
-    IPool.SwapDetails memory buyTokenSwapDetails = pool.getAssetSwapDetailsStruct(address(order.buyToken));
+    IPool.SwapDetails memory buyTokenSwapDetails = pool.getAssetSwapDetails(address(order.buyToken));
     if (!isBuyingEth(order)) {
       // Eth is always enabled
       require(
@@ -170,7 +153,7 @@ contract CowSwapOperator {
     // transfer funds to pool
     if (isBuyingEth(order)) {
       weth.withdraw(buyTokenBalance);
-      payable(_pool()).transfer(buyTokenBalance);
+      payable(address(_pool())).transfer(buyTokenBalance);
     } else {
       order.buyToken.transfer(address(_pool()), buyTokenBalance);
     }
@@ -198,13 +181,13 @@ contract CowSwapOperator {
     // transfer funds to pool
     if (isSellingEth(order)) {
       weth.withdraw(sellTokenBalance);
-      payable(_pool()).transfer(sellTokenBalance);
+      payable(address(_pool())).transfer(sellTokenBalance);
     } else {
       order.sellToken.transfer(address(_pool()), sellTokenBalance);
     }
   }
 
-  function validatePoolBalance(GPv2Order.Data calldata order, Pool pool) private view {
+  function validatePoolBalance(GPv2Order.Data calldata order, IPool pool) private view {
     if (isSellingEth(order)) {
       require(address(pool).balance >= order.sellAmount, 'Not enough ether to sell');
     } else {
@@ -251,7 +234,7 @@ contract CowSwapOperator {
     return calculatedUID;
   }
 
-  function _pool() internal view returns (Pool) {
-    return Pool(master.getLatestAddress('P1'));
+  function _pool() internal view returns (IPool) {
+    return IPool(master.getLatestAddress('P1'));
   }
 }

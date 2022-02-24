@@ -104,8 +104,8 @@ describe('swapAssetForETH', function () {
     const minEtherOut = ether('0.99');
     await swapOperator.swapAssetForETH(tokenA.address, tokenIn, minEtherOut);
 
-    const { lastAssetSwapTime } = await pool.getAssetSwapDetails(tokenA.address);
-    assert.strictEqual(lastAssetSwapTime.toString(), period8Start.toString());
+    const { lastSwapTime } = await pool.getAssetSwapDetails(tokenA.address);
+    assert.strictEqual(lastSwapTime.toString(), period8Start.toString());
 
     await setNextBlockTime(period8End);
 

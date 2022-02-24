@@ -45,12 +45,12 @@ describe('deprecateAsset', function () {
       await pool.deprecateAsset(1, { from: governance });
 
       const swapDetails = await pool.getAssetSwapDetails(dai.address);
-      const { min, max, maxSlippageRatio, lastAssetSwapTime } = swapDetails;
+      const { minAmount, maxAmount, maxSlippageRatio, lastSwapTime } = swapDetails;
 
-      assert.strictEqual(min.toString(), '0');
-      assert.strictEqual(max.toString(), '0');
+      assert.strictEqual(minAmount.toString(), '0');
+      assert.strictEqual(maxAmount.toString(), '0');
       assert.strictEqual(maxSlippageRatio.toString(), '0');
-      assert.strictEqual(lastAssetSwapTime.toString(), '0');
+      assert.strictEqual(lastSwapTime.toString(), '0');
 
       const expectedAssetAddresses = [ETH, dai.address, token.address];
       const expectedDeprecatedAssets = [false, true, false];
@@ -62,12 +62,12 @@ describe('deprecateAsset', function () {
     {
       // check that token was unaffected by dai removal
       const swapDetails = await pool.getAssetSwapDetails(token.address);
-      const { min, max, maxSlippageRatio, lastAssetSwapTime } = swapDetails;
+      const { minAmount, maxAmount, maxSlippageRatio, lastSwapTime } = swapDetails;
 
-      assert.strictEqual(min.toString(), '1');
-      assert.strictEqual(max.toString(), '2');
+      assert.strictEqual(minAmount.toString(), '1');
+      assert.strictEqual(maxAmount.toString(), '2');
       assert.strictEqual(maxSlippageRatio.toString(), '3');
-      assert.strictEqual(lastAssetSwapTime.toString(), '0');
+      assert.strictEqual(lastSwapTime.toString(), '0');
     }
 
     {
@@ -75,12 +75,12 @@ describe('deprecateAsset', function () {
       await pool.deprecateAsset(2, { from: governance });
 
       const swapDetails = await pool.getAssetSwapDetails(token.address);
-      const { min, max, maxSlippageRatio, lastAssetSwapTime } = swapDetails;
+      const { minAmount, maxAmount, maxSlippageRatio, lastSwapTime } = swapDetails;
 
-      assert.strictEqual(min.toString(), '0');
-      assert.strictEqual(max.toString(), '0');
+      assert.strictEqual(minAmount.toString(), '0');
+      assert.strictEqual(maxAmount.toString(), '0');
       assert.strictEqual(maxSlippageRatio.toString(), '0');
-      assert.strictEqual(lastAssetSwapTime.toString(), '0');
+      assert.strictEqual(lastSwapTime.toString(), '0');
 
       const expectedAssetAddresses = [ETH, dai.address, token.address];
       const expectedDeprecatedAssets = [false, true, true];

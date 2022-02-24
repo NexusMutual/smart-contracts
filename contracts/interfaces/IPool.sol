@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity >=0.5.0;
+pragma experimental ABIEncoderV2;
 
 import "./IPriceFeedOracle.sol";
 
@@ -44,12 +45,7 @@ interface IPool {
     bool[] memory deprecated
   );
 
-  function getAssetSwapDetails(address assetAddress) external view returns (
-    uint104 min,
-    uint104 max,
-    uint32 lastAssetSwapTime,
-    uint16 maxSlippageRatio
-  );
+  function getAssetSwapDetails(address assetAddress) external view returns (SwapDetails memory);
 
   function getNXMForEth(uint ethAmount) external view returns (uint);
 

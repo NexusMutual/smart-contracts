@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-contract MasterMockForCowSwap {
+contract CSMockMaster {
   address public pool;
 
   function getLatestAddress(bytes2 module) public view returns (address) {

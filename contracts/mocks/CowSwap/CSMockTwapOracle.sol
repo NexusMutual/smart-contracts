@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-contract TwapMockForCowSwap {
+contract CSMockTwapOracle {
   uint256 constant DENOMINATOR = 10000;
 
   mapping(address => mapping(address => uint256)) priceNumerators;

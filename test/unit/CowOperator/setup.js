@@ -13,26 +13,35 @@ async function setup () {
   const [owner, governance] = await ethers.getSigners();
 
   const MasterMock = await ethers.getContractFactory('MasterMock');
+  const CSMockTwapOracle = await ethers.getContractFactory('CSMockTwapOracle');
   const Pool = await ethers.getContractFactory('Pool');
   const MCR = await ethers.getContractFactory('MCR');
-  const SwapOperator = await ethers.getContractFactory('SwapOperator');
+  const CowSwapOperator = await ethers.getContractFactory('CowSwapOperator');
   const CSMockQuotationData = await ethers.getContractFactory('CSMockQuotationData');
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+  const CSMockWeth = await ethers.getContractFactory('CSMockWeth');
+  const CSMockSettlement = await ethers.getContractFactory('CSMockSettlement');
+  const CSMockVaultRelayer = await ethers.getContractFactory('CSMockVaultRelayer');
 
-  // mock tokens
-  const tokenA = await ERC20Mock.deploy();
-  const tokenB = await ERC20Mock.deploy();
-  const tokenC = await ERC20Mock.deploy();
+  // Deploy WETH + ERC20 test tokens
+  const weth = await CSMockWeth.deploy();
+  const dai = await ERC20Mock.deploy();
+  const usdc = await ERC20Mock.deploy();
+  const stEth = await ERC20Mock.deploy();
 
-  // master contract
+  // Deploy CoW Protocol mocks
+  const cowVaultRelayer = await CSMockVaultRelayer.deploy();
+  const cowSettlement = await CSMockSettlement.deploy(cowVaultRelayer.address);
+
+  // Deploy Master, QD and MCR
   const master = await MasterMock.deploy();
   const quotationData = await CSMockQuotationData.deploy();
   const mcr = await MCR.deploy(master.address);
 
+  // Deploy Pool
   const oneK = parseEther('1000');
-
   const pool = await Pool.deploy(
-    [tokenA.address, tokenB.address, tokenC.address], // assets
+    [dai.address, usdc.address, stEth.address], // assets
     [18, 18, 18], // decimals
     [0, 0, 0], // min
     [oneK, oneK, oneK], // max
@@ -42,6 +51,7 @@ async function setup () {
     AddressZero, // swap operator
   );
 
+  // Setup master, pool and mcr connections
   await master.enrollGovernance(governance.address);
   await master.setLatestAddress(hex('QD'), quotationData.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
@@ -50,33 +60,33 @@ async function setup () {
   await pool.changeDependentContractAddress();
   await mcr.changeDependentContractAddress();
 
-  /* swap operator start */
+  // Deploy Twap Oracle
+  const twap = await CSMockTwapOracle.deploy();
 
-  const swapOperator = await SwapOperator.deploy(
+  // Deploy CowSwapOperator
+  const swapOperator = await CowSwapOperator.deploy(
+    cowSettlement.address,
+    cowVaultRelayer.address,
+    await owner.getAddress(),
     master.address,
-    AddressZero, // twap oracle, not used
-    owner.address, // swap controller
-    AddressZero, // lido token addres, not used
+    weth.address,
+    twap.address,
   );
 
+  // Setup pool's swap operator
   await pool.connect(governance).updateAddressParameters(
     hex('SWP_OP'.padEnd(8, '\0')),
     swapOperator.address,
   );
-
-  /* swap operator end */
-
-  // add ether to pool
-  await owner.sendTransaction({
-    to: pool.address,
-    value: parseEther('10000'),
-  });
 
   Object.assign(instances, {
     master,
     pool,
     mcr,
     swapOperator,
+    twap,
+    cowSettlement,
+    cowVaultRelayer,
   });
 }
 

@@ -20,7 +20,7 @@ const main = async () => {
   const signerAddress = await signer.getAddress();
 
   console.log('deploying master mock');
-  const master = await (await ethers.getContractFactory('MasterMockForCowSwap')).deploy();
+  const master = await (await ethers.getContractFactory('CSMockMaster')).deploy();
   await master.deployTransaction.wait();
 
   console.log('deploying pool');
@@ -41,7 +41,7 @@ const main = async () => {
   await (await master.setPool(pool.address)).wait();
 
   console.log('deploying twap mock');
-  const twap = await (await ethers.getContractFactory('TwapMockForCowSwap')).deploy();
+  const twap = await (await ethers.getContractFactory('CSMockTwapOracle')).deploy();
   await twap.deployTransaction.wait();
 
   console.log('adding price for weth -> dai');

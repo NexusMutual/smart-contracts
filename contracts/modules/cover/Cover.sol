@@ -85,6 +85,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
 
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
+  event CoverBought(uint coverId, uint productId, uint segmentId, address buyer);
+  event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -263,6 +265,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     updateGlobalActiveCoverAmountPerAsset(params.period, params.amount, params.payoutAsset);
 
+    emit CoverBought(coverId, params.productId, 0, msg.sender);
     return coverId;
   }
 
@@ -385,6 +388,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset, cover.payoutAsset);
 
     updateGlobalActiveCoverAmountPerAsset(buyCoverParams.period, buyCoverParams.amount, buyCoverParams.payoutAsset);
+
+    emit CoverEdited(coverId, cover.productId, lastCoverSegmentIndex + 1, msg.sender);
   }
 
   function handlePaymentAndRefund(
@@ -683,7 +688,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   ) {
     uint count = _products.length;
     params = new PoolAllocationPriceParameters[](count);
-    
+
     for (uint i = 0; i < count; i++) {
       params[i] = getPoolAllocationPriceParametersForProduct(poolId, i);
     }

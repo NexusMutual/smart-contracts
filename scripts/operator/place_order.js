@@ -32,7 +32,7 @@ const main = async () => {
     headers: { Accept: 'application/json' },
   });
 
-  const buyAmount = data.buyAmountAfterFee;
+  const buyAmount = BigNumber.from(data.buyAmountAfterFee);
   const fee = BigNumber.from(data.fee.amount);
   const expirationDate = data.fee.expirationDate;
   const sellAmountAfterFee = BigNumber.from(sellAmount).sub(fee);
@@ -40,7 +40,7 @@ const main = async () => {
 
   console.log('sellAmount', ethers.utils.formatEther(sellAmount));
   console.log('sellAmountAfterFee', ethers.utils.formatEther(sellAmountAfterFee));
-  console.log('buyAmount', ethers.utils.formatEther(buyAmount));
+  console.log('buyAmount', ethers.utils.formatEther(buyAmount.toString()));
   console.log('fee', ethers.utils.formatEther(fee));
   console.log('expirationDate', expirationDate);
   console.log('validTo', validTo);
@@ -63,7 +63,7 @@ const main = async () => {
     sellToken,
     buyToken,
     sellAmount: sellAmountAfterFee.toString(),
-    buyAmount: buyAmount,
+    buyAmount: buyAmount.toString(),
     validTo: validTo,
     appData: ethers.utils.hexZeroPad(0, 32),
     feeAmount: fee.toString(),

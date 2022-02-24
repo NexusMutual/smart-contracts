@@ -80,6 +80,9 @@ contract CowSwapOperator {
     // Order UID verification
     validateUID(order, domainSeparator, orderUID);
 
+    // Validate there's no current order going on
+    validateHasCurrentOrder(false);
+
     // Validate pool has enough funds for the trade
     validatePoolBalance(order, pool);
 
@@ -153,15 +156,13 @@ contract CowSwapOperator {
   }
 
   function finalizeOrder(GPv2Order.Data calldata order, bytes32 domainSeparator) public onlyController {
-    // validate there's an order in place
-    require(currentOrderUID.length > 0, 'CowSwapOperator: No order in place');
+    validateUID(order, domainSeparator, currentOrderUID);
 
-    // validate the order was executed
+    validateHasCurrentOrder(true);
+
+    // Validate order was executed
     uint256 buyTokenBalance = order.buyToken.balanceOf(address(this));
     require(buyTokenBalance >= order.buyAmount, 'CowSwapOperator: Order was not executed');
-
-    // validate the order to finalize is the one executed
-    validateUID(order, domainSeparator, currentOrderUID);
 
     // Clear the current order
     delete currentOrderUID;
@@ -172,6 +173,34 @@ contract CowSwapOperator {
       payable(_pool()).transfer(buyTokenBalance);
     } else {
       order.buyToken.transfer(address(_pool()), buyTokenBalance);
+    }
+  }
+
+  function cancelOrder(GPv2Order.Data calldata order, bytes32 domainSeparator) public onlyController {
+    validateHasCurrentOrder(true);
+
+    // UID validation
+    bytes memory orderUID = validateUID(order, domainSeparator, currentOrderUID);
+
+    // Validate order was not executed
+    uint256 sellTokenBalance = order.sellToken.balanceOf(address(this));
+    require(sellTokenBalance >= order.sellAmount + order.feeAmount, 'CowSwapOperator: Order was already executed');
+
+    // Clear the current order
+    delete currentOrderUID;
+
+    // Cancel the presignature
+    cowSettlement.setPreSignature(orderUID, false);
+
+    // Unapprove the funds
+    approveVaultRelayer(order.sellToken, 0);
+
+    // transfer funds to pool
+    if (isSellingEth(order)) {
+      weth.withdraw(sellTokenBalance);
+      payable(_pool()).transfer(sellTokenBalance);
+    } else {
+      order.sellToken.transfer(address(_pool()), sellTokenBalance);
     }
   }
 
@@ -200,6 +229,14 @@ contract CowSwapOperator {
     require(order.partiallyFillable == false, 'Partially fillable orders are not supported by CoW yet');
   }
 
+  function validateHasCurrentOrder(bool shouldHaveOrder) private view {
+    if (shouldHaveOrder) {
+      require(currentOrderUID.length > 0, 'CowSwapOperator: No order in place');
+    } else {
+      require(currentOrderUID.length == 0, 'CowSwapOperator: an order is already in place');
+    }
+  }
+
   function approveVaultRelayer(IERC20 token, uint256 amount) private {
     token.approve(cowVaultRelayer, amount); // infinite approval
   }
@@ -208,9 +245,10 @@ contract CowSwapOperator {
     GPv2Order.Data calldata order,
     bytes32 domainSeparator,
     bytes memory providedOrderUID
-  ) private pure {
+  ) private pure returns (bytes memory) {
     bytes memory calculatedUID = getUID(order, domainSeparator);
     require(keccak256(calculatedUID) == keccak256(providedOrderUID), 'Provided UID doesnt match calculated UID');
+    return calculatedUID;
   }
 
   function _pool() internal view returns (Pool) {

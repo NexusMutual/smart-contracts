@@ -1,11 +1,8 @@
 const { ethers } = require('hardhat');
-const { BigNumber, Contract } = require('ethers');
+const { BigNumber } = require('ethers');
 const { domain, computeOrderUid, hashOrder } = require('@gnosis.pm/gp-v2-contracts');
 const { swapOperator: swapOperatorAddress, pool: poolAddress } = require('./addresses');
-const {
-  address: settlementAddress,
-  abi: settlementABI,
-} = require('@gnosis.pm/gp-v2-contracts/deployments/mainnet/GPv2Settlement.json');
+const { address: settlementAddress } = require('@gnosis.pm/gp-v2-contracts/deployments/mainnet/GPv2Settlement.json');
 const axios = require('axios');
 const { keccak256 } = require('ethers/lib/utils');
 

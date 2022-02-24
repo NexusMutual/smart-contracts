@@ -153,12 +153,18 @@ contract CowSwapOperator {
   }
 
   function finalizeOrder(GPv2Order.Data calldata order, bytes32 domainSeparator) public onlyController {
+    // validate there's an order in place
+    require(currentOrderUID.length > 0, 'CowSwapOperator: No order in place');
+
     // validate the order was executed
     uint256 buyTokenBalance = order.buyToken.balanceOf(address(this));
-    require(buyTokenBalance >= order.buyAmount, 'Order was not executed');
+    require(buyTokenBalance >= order.buyAmount, 'CowSwapOperator: Order was not executed');
 
     // validate the order to finalize is the one executed
     validateUID(order, domainSeparator, currentOrderUID);
+
+    // Clear the current order
+    delete currentOrderUID;
 
     // transfer funds to pool
     if (isBuyingEth(order)) {

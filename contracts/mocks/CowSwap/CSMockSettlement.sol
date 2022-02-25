@@ -6,7 +6,13 @@ import './CSMockVaultRelayer.sol';
 contract CSMockSettlement {
   CSMockVaultRelayer public immutable vaultRelayer;
 
+  mapping(bytes32 => bool) presignatures;
+
   constructor(address _vault) {
     vaultRelayer = CSMockVaultRelayer(_vault);
+  }
+
+  function setPreSignature(bytes memory orderUID, bool signed) external {
+    presignatures[keccak256(orderUID)] = signed;
   }
 }

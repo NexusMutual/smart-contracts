@@ -80,6 +80,10 @@ async function setup () {
   );
 
   Object.assign(instances, {
+    dai,
+    weth,
+    stEth,
+    usdc,
     master,
     pool,
     mcr,
@@ -91,4 +95,4 @@ async function setup () {
 }
 
 module.exports = setup;
-module.exports.contracts = () => instances;
+module.exports.contracts = instances;

@@ -33,6 +33,10 @@ contract CowSwapOperator {
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
+  event OrderPlaced(GPv2Order.Data order);
+  event OrderCanceled(GPv2Order.Data order);
+  event OrderFinalized(GPv2Order.Data order);
+
   modifier onlyController() {
     require(msg.sender == swapController, 'Only controller');
     _;
@@ -136,6 +140,9 @@ contract CowSwapOperator {
 
     // Sign the Cow order
     cowSettlement.setPreSignature(orderUID, true);
+
+    // Emit an event
+    emit OrderPlaced(order);
   }
 
   function finalizeOrder(GPv2Order.Data calldata order, bytes32 domainSeparator) public onlyController {
@@ -150,13 +157,16 @@ contract CowSwapOperator {
     // Clear the current order
     delete currentOrderUID;
 
-    // transfer funds to pool
+    // Transfer funds to pool
     if (isBuyingEth(order)) {
       weth.withdraw(buyTokenBalance);
       payable(address(_pool())).transfer(buyTokenBalance);
     } else {
       order.buyToken.transfer(address(_pool()), buyTokenBalance);
     }
+
+    // Emit event
+    emit OrderFinalized(order);
   }
 
   function cancelOrder(GPv2Order.Data calldata order, bytes32 domainSeparator) public onlyController {
@@ -185,6 +195,9 @@ contract CowSwapOperator {
     } else {
       order.sellToken.transfer(address(_pool()), sellTokenBalance);
     }
+
+    // Emit event
+    emit OrderCanceled(order);
   }
 
   function validatePoolBalance(GPv2Order.Data calldata order, IPool pool) private view {

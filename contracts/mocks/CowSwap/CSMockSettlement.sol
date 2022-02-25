@@ -6,7 +6,7 @@ import './CSMockVaultRelayer.sol';
 contract CSMockSettlement {
   CSMockVaultRelayer public immutable vaultRelayer;
 
-  mapping(bytes32 => bool) presignatures;
+  mapping(bytes32 => bool) public presignatures;
 
   constructor(address _vault) {
     vaultRelayer = CSMockVaultRelayer(_vault);

@@ -27,7 +27,7 @@ contract CowSwapOperator {
   address public immutable swapController;
   IWETH public immutable weth;
   ITwapOracle public immutable twapOracle;
-  bytes currentOrderUID;
+  bytes public currentOrderUID;
 
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -38,7 +38,7 @@ contract CowSwapOperator {
   event OrderFinalized(GPv2Order.Data order);
 
   modifier onlyController() {
-    require(msg.sender == swapController, 'Only controller');
+    require(msg.sender == swapController, 'SwapOp: only controller can execute');
     _;
   }
 
@@ -79,16 +79,13 @@ contract CowSwapOperator {
   ) public onlyController {
     // Helper local variables
     IPool pool = _pool();
-    uint256 totalOutAmount = order.sellAmount + order.feeAmount;
+    uint256 totalOutAmount = orderOutAmount(order);
 
     // Order UID verification
     validateUID(order, domainSeparator, orderUID);
 
     // Validate there's no current order going on
     validateHasCurrentOrder(false);
-
-    // Validate pool has enough funds for the trade
-    validatePoolBalance(order, pool);
 
     // Validate basic CoW params
     validateBasicCowParams(order);
@@ -99,7 +96,7 @@ contract CowSwapOperator {
       // Eth is always enabled
       require(
         sellTokenSwapDetails.minAmount != 0 || sellTokenSwapDetails.maxAmount != 0,
-        'CowSwapOperator: sellToken is not enabled'
+        'SwapOp: sellToken is not enabled'
       );
     }
 
@@ -109,9 +106,12 @@ contract CowSwapOperator {
       // Eth is always enabled
       require(
         buyTokenSwapDetails.minAmount != 0 || buyTokenSwapDetails.maxAmount != 0,
-        'CowSwapOperator: buyToken is not enabled'
+        'SwapOp: buyToken is not enabled'
       );
     }
+
+    // Validate pool has enough funds for the trade
+    validatePoolBalance(order, pool);
 
     // Validate oracle price
     // uint256 finalSlippage = Math.max(buyTokenSwapDetails.maxSlippageRatio, sellTokenSwapDetails.maxSlippageRatio);
@@ -119,7 +119,7 @@ contract CowSwapOperator {
     uint256 oracleBuyAmount = twapOracle.consult(address(order.sellToken), totalOutAmount, address(order.buyToken));
     uint256 maxSlippageAmount = (oracleBuyAmount * finalSlippage) / MAX_SLIPPAGE_DENOMINATOR;
     uint256 minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
-    require(order.buyAmount >= minBuyAmountOnMaxSlippage, 'CowSwapOperator: order.buyAmount doesnt match oracle data');
+    require(order.buyAmount >= minBuyAmountOnMaxSlippage, 'SwapOp: order.buyAmount doesnt match oracle data');
 
     // Transfer pool's asset to this contract; wrap ether if needed
     if (isSellingEth(order)) {
@@ -131,9 +131,6 @@ contract CowSwapOperator {
 
     // Approve Cow's contract to spend sellToken
     approveVaultRelayer(order.sellToken, totalOutAmount);
-
-    // Register last swap time on swapDetail
-    // pool.setSwapDetailsLastSwapTime(nonEthToken, uint32(block.timestamp));
 
     // Store the order UID
     currentOrderUID = orderUID;
@@ -152,7 +149,7 @@ contract CowSwapOperator {
 
     // Validate order was executed
     uint256 buyTokenBalance = order.buyToken.balanceOf(address(this));
-    require(buyTokenBalance >= order.buyAmount, 'CowSwapOperator: Order was not executed');
+    require(buyTokenBalance >= order.buyAmount, 'SwapOp: Order was not executed');
 
     // Clear the current order
     delete currentOrderUID;
@@ -177,7 +174,7 @@ contract CowSwapOperator {
 
     // Validate order was not executed
     uint256 sellTokenBalance = order.sellToken.balanceOf(address(this));
-    require(sellTokenBalance >= order.sellAmount + order.feeAmount, 'CowSwapOperator: Order was already executed');
+    require(sellTokenBalance >= orderOutAmount(order), 'SwapOp: Order was already executed');
 
     // Clear the current order
     delete currentOrderUID;
@@ -202,9 +199,12 @@ contract CowSwapOperator {
 
   function validatePoolBalance(GPv2Order.Data calldata order, IPool pool) private view {
     if (isSellingEth(order)) {
-      require(address(pool).balance >= order.sellAmount, 'Not enough ether to sell');
+      require(address(pool).balance >= orderOutAmount(order), 'SwapOp: not enough ether to sell');
     } else {
-      require(order.sellToken.balanceOf(address(pool)) >= order.sellAmount, 'Not enough token balance to sell');
+      require(
+        order.sellToken.balanceOf(address(pool)) >= orderOutAmount(order),
+        'SwapOp: not enough token balance to sell'
+      );
     }
   }
 
@@ -217,19 +217,19 @@ contract CowSwapOperator {
   }
 
   function validateBasicCowParams(GPv2Order.Data calldata order) private view {
-    require(order.sellTokenBalance == GPv2Order.BALANCE_ERC20, 'Only erc20 supported for sellTokenBalance');
-    require(order.buyTokenBalance == GPv2Order.BALANCE_ERC20, 'Only erc20 supported for buyTokenBalance');
-    require(order.kind == GPv2Order.KIND_SELL, 'Only sell operations are supported');
-    require(order.receiver == address(this), 'Receiver must be this contract');
-    require(order.validTo >= block.timestamp + 600, 'validTo must be at least 10 minutes in the future');
-    require(order.partiallyFillable == false, 'Partially fillable orders are not supported by CoW yet');
+    require(order.sellTokenBalance == GPv2Order.BALANCE_ERC20, 'SwapOp: Only erc20 supported for sellTokenBalance');
+    require(order.buyTokenBalance == GPv2Order.BALANCE_ERC20, 'SwapOp: Only erc20 supported for buyTokenBalance');
+    require(order.kind == GPv2Order.KIND_SELL, 'SwapOp: Only sell operations are supported');
+    require(order.receiver == address(this), 'SwapOp: Receiver must be this contract');
+    require(order.validTo >= block.timestamp + 600, 'SwapOp: validTo must be at least 10 minutes in the future');
+    require(order.partiallyFillable == false, 'SwapOp: Partially fillable orders are not supported by CoW yet');
   }
 
   function validateHasCurrentOrder(bool shouldHaveOrder) private view {
     if (shouldHaveOrder) {
-      require(currentOrderUID.length > 0, 'CowSwapOperator: No order in place');
+      require(currentOrderUID.length > 0, 'SwapOp: No order in place');
     } else {
-      require(currentOrderUID.length == 0, 'CowSwapOperator: an order is already in place');
+      require(currentOrderUID.length == 0, 'SwapOp: an order is already in place');
     }
   }
 
@@ -243,11 +243,18 @@ contract CowSwapOperator {
     bytes memory providedOrderUID
   ) private pure returns (bytes memory) {
     bytes memory calculatedUID = getUID(order, domainSeparator);
-    require(keccak256(calculatedUID) == keccak256(providedOrderUID), 'Provided UID doesnt match calculated UID');
+    require(
+      keccak256(calculatedUID) == keccak256(providedOrderUID),
+      'SwapOp: Provided UID doesnt match calculated UID'
+    );
     return calculatedUID;
   }
 
   function _pool() internal view returns (IPool) {
     return IPool(master.getLatestAddress('P1'));
+  }
+
+  function orderOutAmount(GPv2Order.Data calldata order) private pure returns (uint256) {
+    return order.sellAmount + order.feeAmount;
   }
 }

@@ -13,6 +13,7 @@ contract CSMockTwapOracle {
     uint256 priceNumerator
   ) public {
     priceNumerators[tokenIn][tokenOut] = priceNumerator;
+    priceNumerators[tokenOut][tokenIn] = DENOMINATOR**2 / priceNumerator;
   }
 
   function consult(

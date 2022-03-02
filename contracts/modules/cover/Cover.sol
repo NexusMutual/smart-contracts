@@ -344,7 +344,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(lastCoverSegment.start + lastCoverSegment.period > block.timestamp, "Cover: cover expired");
     require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(buyCoverParams.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
-    require(buyCoverParams.payoutAsset == cover.payoutAsset, "Cover: Payout asset mismatch");
+
+    // Override cover specific parameters
+    buyCoverParams.payoutAsset = cover.payoutAsset;
+    buyCoverParams.productId = cover.productId;
 
     uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
 
@@ -385,7 +388,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint totalPremiumInNXM =
       _buyCover(buyCoverParams, coverId, poolAllocations);
 
-    handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset, cover.payoutAsset);
+    handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset);
 
     updateGlobalActiveCoverAmountPerAsset(buyCoverParams.period, buyCoverParams.amount, buyCoverParams.payoutAsset);
 
@@ -395,14 +398,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function handlePaymentAndRefund(
     BuyCoverParams memory buyCoverParams,
     uint totalPremiumInNXM,
-    uint refundInCoverAsset,
-    uint payoutAsset
+    uint refundInCoverAsset
   ) internal {
 
     IPool _pool = pool();
 
     // calculate refundValue in NXM
-    uint refundInNXM = refundInCoverAsset * 1e18 / _pool.getTokenPrice(payoutAsset);
+    uint refundInNXM = refundInCoverAsset * 1e18 / _pool.getTokenPrice(buyCoverParams.payoutAsset);
 
     if (refundInNXM >= totalPremiumInNXM) {
       // no extra charge for the user

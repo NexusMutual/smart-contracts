@@ -1,4 +1,4 @@
-const { artifacts, ethers: { utils: { parseEther } } } = require('hardhat');
+const { artifacts, ethers: { utils: { parseEther }, BigNumber } } = require('hardhat');
 const { constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
 const { assert } = require('chai');
@@ -20,7 +20,10 @@ async function createStakingPool (
   await stakingPool.setTargetPrice(productId, targetPrice);
   await stakingPool.setUsedCapacity(productId, activeCover);
 
-  await stakingPool.setPrice(productId, currentPrice); // 2.6%
+  console.log({
+    currentPrice: currentPrice.toString()
+  })
+  await stakingPool.setPrice(productId, BigNumber.from(currentPrice).mul(1e16.toString())); // 2.6%
 
   return stakingPool;
 }

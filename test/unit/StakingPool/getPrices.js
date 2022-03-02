@@ -5,7 +5,7 @@ const { getPrices } = require('./helpers');
 
 describe('getPrices', function () {
 
-  it.only('should calculate prices correctly for current active cover exceeding surge treshold', async function () {
+  it('should calculate prices correctly for current active cover exceeding surge treshold', async function () {
     const { stakingPool } = this;
 
     const amount = parseEther('1000');

@@ -193,6 +193,65 @@ describe('editCover', function () {
     );
   });
 
+  it('should edit purchased cover and increase period and decrease amount', async function () {
+    const { cover } = this;
+
+    const {
+      members: [member1],
+      members: [coverBuyer1],
+    } = this.accounts;
+
+    const {
+      productId,
+      payoutAsset,
+      period,
+      amount,
+      targetPriceRatio,
+      priceDenominator,
+    } = coverBuyFixture;
+
+    await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const expectedCoverId = '0';
+
+    const decreasedAmount = amount.div(2);
+    const increasedPeriod = period * 2;
+
+    const expectedEditPremium = expectedPremium;
+    const extraPremium = expectedEditPremium.sub(expectedPremium);
+
+    const tx = await cover.connect(member1).editCover(
+      expectedCoverId,
+      {
+        owner: coverBuyer1.address,
+        productId,
+        payoutAsset,
+        amount: decreasedAmount,
+        period: increasedPeriod,
+        maxPremiumInAsset: expectedEditPremium,
+        paymentAsset: payoutAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: ZERO_ADDRESS,
+      },
+      [{ poolId: '0', coverAmountInAsset: decreasedAmount.toString() }],
+      {
+        value: extraPremium,
+      },
+    );
+
+    const receipt = await tx.wait();
+
+    console.log({
+      gasUsed: receipt.gasUsed.toString(),
+    });
+
+    await assertCoverFields(cover, expectedCoverId,
+      { productId, payoutAsset, period: increasedPeriod, amount: decreasedAmount, targetPriceRatio, segmentId: '1' },
+    );
+  });
+
   it('should revert when cover is expired', async function () {
     const { cover } = this;
 

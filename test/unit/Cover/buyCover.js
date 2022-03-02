@@ -10,7 +10,7 @@ const {
 const { createStakingPool, assertCoverFields } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 
-describe('buyCover', function () {
+describe.only('buyCover', function () {
 
   it('should purchase new cover using 1 staking pool', async function () {
     const { cover, coverViewer } = this;
@@ -23,7 +23,7 @@ describe('buyCover', function () {
 
     const productId = 0;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 24 * 30; // 30 days
+    const period = 3600 * 24 * 365; // 365 days
 
     const amount = parseEther('1000');
 
@@ -70,9 +70,6 @@ describe('buyCover', function () {
 
     await assertCoverFields(cover, expectedCoverId,
       { productId, payoutAsset, period, amount, targetPriceRatio });
-
-    // const activeCoverAmountInNXM = await cover.globalActiveCoverAmountInNXM();
-    // bnEqual(activeCoverAmountInNXM, amount);
   });
 
   it('should purchase new cover using 2 staking pools', async function () {
@@ -86,7 +83,7 @@ describe('buyCover', function () {
 
     const productId = 0;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 24 * 30; // 30 days
+    const period = 3600 * 24 * 365; // 365 days
 
     const amount = parseEther('1000');
 
@@ -149,7 +146,7 @@ describe('buyCover', function () {
 
     const productId = 0;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 24 * 30; // 30 days
+    const period = 3600 * 24 * 365; // 365 days
 
     const amount = parseEther('1000');
 
@@ -226,7 +223,7 @@ describe('buyCover', function () {
 
     const productId = 0;
     const payoutAsset = 1; // DAI
-    const period = 3600 * 24 * 30; // 30 days
+    const period = 3600 * 24 * 365; // 365 days
 
     const amount = parseEther('1000');
 
@@ -300,7 +297,7 @@ describe('buyCover', function () {
 
     const productId = 1337;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 24 * 30; // 30 days
+    const period = 3600 * 24 * 365; // 365 days
 
     const amount = parseEther('1000');
 
@@ -436,7 +433,7 @@ describe('buyCover', function () {
 
     const productId = 0;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 24 * 30; // 30 days
+    const period = 3600 * 24 * 365; // 365 days
 
     const amount = parseEther('1000');
 

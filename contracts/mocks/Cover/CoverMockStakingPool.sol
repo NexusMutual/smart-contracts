@@ -22,6 +22,8 @@ contract CoverMockStakingPool is IStakingPool, ERC20 {
 
   address public override manager;
 
+  uint public constant MAX_PRICE_RATIO = 1e20;
+
   constructor (address _nxm, address _coverContract, address _memberRoles)
   ERC20("Nexus Mutual Staking Pool", "NMSPT") {
     nxm = ERC20(_nxm);
@@ -46,8 +48,11 @@ contract CoverMockStakingPool is IStakingPool, ERC20 {
   function allocateCapacity(AllocateCapacityParams calldata params) external override returns (uint, uint) {
     usedCapacity[params.productId] += params.coverAmount;
 
-    // uint coveredAmountInNXM, uint premiumInNXM
-    return (uint(params.coverAmount), uint(mockPrices[params.productId]) * uint(params.coverAmount) / 10000);
+    return (uint(params.coverAmount), calculatePremium(mockPrices[params.productId], params.coverAmount, params.period));
+  }
+
+  function calculatePremium(uint priceRatio, uint coverAmount, uint period) public pure returns (uint) {
+    return priceRatio * coverAmount / MAX_PRICE_RATIO * period / 365 days;
   }
 
   function stake(uint amount) external {

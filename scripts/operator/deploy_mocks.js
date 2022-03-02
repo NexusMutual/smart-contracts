@@ -20,6 +20,7 @@ const main = async () => {
   const signerAddress = await signer.getAddress();
 
   console.log('deploying master mock');
+  // TODO: Use existing MasterMock
   const master = await (await ethers.getContractFactory('CSMockMaster')).deploy();
   await master.deployTransaction.wait();
 

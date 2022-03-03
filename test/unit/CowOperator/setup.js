@@ -2,8 +2,9 @@ const { ethers } = require('hardhat');
 const { hex } = require('../utils').helpers;
 
 const {
+  BigNumber,
   constants: { AddressZero },
-  utils: { parseEther },
+  utils: { parseEther, hexlify, randomBytes, isHexString, hexDataLength },
 } = ethers;
 
 // will be assigned by setup()
@@ -94,5 +95,21 @@ async function setup () {
   });
 }
 
+// helper function to alter a given value
+const makeWrongValue = (value) => {
+  if (isHexString(value)) {
+    return hexlify(randomBytes(hexDataLength(value)));
+  } else if (value instanceof BigNumber) {
+    return value.add(1);
+  } else if (typeof (value) === 'number') {
+    return value + 1;
+  } else if (typeof (value) === 'boolean') {
+    return !value;
+  } else {
+    throw new Error(`Unsupported value while fuzzing order: ${value}`);
+  }
+};
+
 module.exports = setup;
 module.exports.contracts = instances;
+module.exports.makeWrongValue = makeWrongValue;

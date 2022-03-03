@@ -143,9 +143,9 @@ contract CowSwapOperator {
   }
 
   function finalizeOrder(GPv2Order.Data calldata order, bytes32 domainSeparator) public onlyController {
-    validateUID(order, domainSeparator, currentOrderUID);
-
     validateHasCurrentOrder(true);
+
+    validateUID(order, domainSeparator, currentOrderUID);
 
     // Validate order was executed
     uint256 buyTokenBalance = order.buyToken.balanceOf(address(this));
@@ -169,7 +169,6 @@ contract CowSwapOperator {
   function cancelOrder(GPv2Order.Data calldata order, bytes32 domainSeparator) public onlyController {
     validateHasCurrentOrder(true);
 
-    // UID validation
     bytes memory orderUID = validateUID(order, domainSeparator, currentOrderUID);
 
     // Validate order was not executed

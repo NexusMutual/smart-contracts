@@ -1,4 +1,4 @@
-const { contracts } = require('./setup');
+const { contracts, makeWrongValue } = require('./setup');
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { domain: makeDomain, computeOrderUid } = require('@gnosis.pm/gp-v2-contracts');
@@ -86,19 +86,6 @@ describe('placeOrder', function () {
 
     // call with invalid struct, with each individual field modified, should fail
     for (const [key, value] of Object.entries(contractOrder)) {
-      const makeWrongValue = (value) => {
-        if (isHexString(value)) {
-          return hexlify(randomBytes(hexDataLength(value)));
-        } else if (value instanceof BigNumber) {
-          return value.add(1);
-        } else if (typeof (value) === 'number') {
-          return value + 1;
-        } else if (typeof (value) === 'boolean') {
-          return !value;
-        } else {
-          throw new Error(`Unsupported value while fuzzing order: ${value}`);
-        }
-      };
       const wrongOrder = {
         ...contractOrder,
         [key]: makeWrongValue(value),

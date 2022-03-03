@@ -5,8 +5,7 @@ const { domain: makeDomain, computeOrderUid } = require('@gnosis.pm/gp-v2-contra
 const { setEtherBalance } = require('../../utils/evm');
 
 const {
-  BigNumber,
-  utils: { parseEther, hexZeroPad, keccak256, toUtf8Bytes, hexlify, randomBytes, isHexString, hexDataLength },
+  utils: { parseEther, hexZeroPad, keccak256, toUtf8Bytes, hexlify, randomBytes },
 } = ethers;
 
 const hashUtf = str => keccak256(toUtf8Bytes(str));
@@ -68,12 +67,12 @@ describe('placeOrder', function () {
   it('is callable only by swap controller', async function () {
     // call with non-controller, should fail
     await expect(
-      contracts.swapOperator.connect(otherSigner).placeOrder(contractOrder, domainHash, orderUID),
+      swapOperator.connect(otherSigner).placeOrder(contractOrder, domainHash, orderUID),
     ).to.revertedWith('SwapOp: only controller can execute');
 
     // call with controller, should succeed
     await expect(
-      contracts.swapOperator.connect(signer).placeOrder(contractOrder, domainHash, orderUID),
+      swapOperator.connect(signer).placeOrder(contractOrder, domainHash, orderUID),
     ).to.not.be.reverted;
   });
 
@@ -81,7 +80,7 @@ describe('placeOrder', function () {
     // call with invalid UID, should fail
     const wrongUID = hexlify(randomBytes(56));
     await expect(
-      contracts.swapOperator.connect(signer).placeOrder(contractOrder, domainHash, wrongUID),
+      swapOperator.placeOrder(contractOrder, domainHash, wrongUID),
     ).to.revertedWith('SwapOp: Provided UID doesnt match calculated UID');
 
     // call with invalid struct, with each individual field modified, should fail
@@ -91,25 +90,25 @@ describe('placeOrder', function () {
         [key]: makeWrongValue(value),
       };
       await expect(
-        contracts.swapOperator.connect(signer).placeOrder(wrongOrder, domainHash, orderUID),
+        swapOperator.placeOrder(wrongOrder, domainHash, orderUID),
       ).to.revertedWith('SwapOp: Provided UID doesnt match calculated UID');
     }
 
     // call with valid order and UID, should succeed
     await expect(
-      contracts.swapOperator.connect(signer).placeOrder(contractOrder, domainHash, orderUID),
+      swapOperator.placeOrder(contractOrder, domainHash, orderUID),
     ).to.not.be.reverted;
   });
 
   it('validates theres no other order already placed', async function () {
     // calling with valid data should succeed first time
     await expect(
-      contracts.swapOperator.connect(signer).placeOrder(contractOrder, domainHash, orderUID),
+      swapOperator.placeOrder(contractOrder, domainHash, orderUID),
     ).to.not.be.reverted;
 
     // calling with valid data should fail second time, because first order is still there
     await expect(
-      contracts.swapOperator.connect(signer).placeOrder(contractOrder, domainHash, orderUID),
+      swapOperator.placeOrder(contractOrder, domainHash, orderUID),
     ).to.be.revertedWith('SwapOp: an order is already in place');
   });
 
@@ -118,13 +117,13 @@ describe('placeOrder', function () {
       // calling when pool doesnt have enough eth should fail
       await setEtherBalance(pool.address, order.sellAmount.add(order.feeAmount).sub(1)); // 1 wei short
       await expect(
-        contracts.swapOperator.connect(signer).placeOrder(contractOrder, domainHash, orderUID),
+        swapOperator.placeOrder(contractOrder, domainHash, orderUID),
       ).to.be.revertedWith('SwapOp: not enough ether to sell');
 
       // calling when pool has enough eth should succeed
       await setEtherBalance(pool.address, order.sellAmount.add(order.feeAmount)); // exact eth
       await expect(
-        contracts.swapOperator.connect(signer).placeOrder(contractOrder, domainHash, orderUID),
+        swapOperator.placeOrder(contractOrder, domainHash, orderUID),
       ).to.not.be.reverted;
     });
 
@@ -145,13 +144,13 @@ describe('placeOrder', function () {
       // calling when pool doesnt have enough token balance should fail
       await dai.mint(pool.address, newOrder.sellAmount.add(newOrder.feeAmount).sub(1)); // 1 wei short
       await expect(
-        contracts.swapOperator.connect(signer).placeOrder(newContractOrder, domainHash, newOrderUID),
+        swapOperator.placeOrder(newContractOrder, domainHash, newOrderUID),
       ).to.be.revertedWith('SwapOp: not enough token balance to sell');
 
       // calling when pool has enough token balance should succeed
       await dai.mint(pool.address, 1); // add 1 wei, matching exact amount
       await expect(
-        contracts.swapOperator.connect(signer).placeOrder(newContractOrder, domainHash, newOrderUID),
+        swapOperator.placeOrder(newContractOrder, domainHash, newOrderUID),
       ).to.not.be.reverted;
     });
   });
@@ -168,7 +167,7 @@ describe('placeOrder', function () {
       };
       const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
       await expect(
-        contracts.swapOperator.connect(signer).placeOrder(newContractOrder, domainHash, newOrderUID),
+        swapOperator.placeOrder(newContractOrder, domainHash, newOrderUID),
       ).to.be.revertedWith('SwapOp: Only erc20 supported for sellTokenBalance');
     });
 
@@ -183,7 +182,7 @@ describe('placeOrder', function () {
       };
       const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
       await expect(
-        contracts.swapOperator.connect(signer).placeOrder(newContractOrder, domainHash, newOrderUID),
+        swapOperator.placeOrder(newContractOrder, domainHash, newOrderUID),
       ).to.be.revertedWith('SwapOp: Only erc20 supported for buyTokenBalance');
     });
 
@@ -198,7 +197,7 @@ describe('placeOrder', function () {
       };
       const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
       await expect(
-        contracts.swapOperator.connect(signer).placeOrder(newContractOrder, domainHash, newOrderUID),
+        swapOperator.placeOrder(newContractOrder, domainHash, newOrderUID),
       ).to.be.revertedWith('SwapOp: Only sell operations are supported');
     });
 
@@ -213,7 +212,7 @@ describe('placeOrder', function () {
       };
       const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
       await expect(
-        contracts.swapOperator.connect(signer).placeOrder(newContractOrder, domainHash, newOrderUID),
+        swapOperator.placeOrder(newContractOrder, domainHash, newOrderUID),
       ).to.be.revertedWith('SwapOp: Receiver must be this contract');
     });
 
@@ -228,23 +227,8 @@ describe('placeOrder', function () {
       };
       const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
       await expect(
-        contracts.swapOperator.connect(signer).placeOrder(newContractOrder, domainHash, newOrderUID),
+        swapOperator.placeOrder(newContractOrder, domainHash, newOrderUID),
       ).to.be.revertedWith('SwapOp: validTo must be at least 10 minutes in the future');
-    });
-
-    it('validates that partiallyFillable is false', async function () {
-      const newOrder = {
-        ...order,
-        partiallyFillable: true,
-      };
-      const newContractOrder = {
-        ...contractOrder,
-        partiallyFillable: true,
-      };
-      const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
-      await expect(
-        contracts.swapOperator.connect(signer).placeOrder(newContractOrder, domainHash, newOrderUID),
-      ).to.be.revertedWith('SwapOp: Partially fillable orders are not supported by CoW yet');
     });
   });
 
@@ -257,7 +241,7 @@ describe('placeOrder', function () {
 
       // Order selling WETH (eth) still should succeed
       await expect(
-        contracts.swapOperator.connect(signer).placeOrder(contractOrder, domainHash, orderUID),
+        swapOperator.placeOrder(contractOrder, domainHash, orderUID),
       ).to.not.be.reverted;
       //
     });
@@ -280,7 +264,7 @@ describe('placeOrder', function () {
 
       // Order selling DAI should fail
       await expect(
-        contracts.swapOperator.connect(signer).placeOrder(newContractOrder, domainHash, newOrderUID),
+        swapOperator.placeOrder(newContractOrder, domainHash, newOrderUID),
       ).to.be.revertedWith('SwapOp: sellToken is not enabled');
     });
   });
@@ -309,7 +293,7 @@ describe('placeOrder', function () {
 
       // Order buying WETH (eth) still should succeed
       await expect(
-        contracts.swapOperator.connect(signer).placeOrder(newContractOrder, domainHash, newOrderUID),
+        swapOperator.placeOrder(newContractOrder, domainHash, newOrderUID),
       ).to.not.be.reverted;
       //
     });
@@ -320,7 +304,7 @@ describe('placeOrder', function () {
 
       // Order buying DAI should fail
       await expect(
-        contracts.swapOperator.connect(signer).placeOrder(contractOrder, domainHash, orderUID),
+        swapOperator.placeOrder(contractOrder, domainHash, orderUID),
       ).to.be.revertedWith('SwapOp: buyToken is not enabled');
     });
   });
@@ -386,11 +370,11 @@ describe('placeOrder', function () {
   });
 
   it('calls setPreSignature on CoW settlement contract', async function () {
-    expect(await cowSettlement.presignatures(keccak256(orderUID))).to.eq(false);
+    expect(await cowSettlement.presignatures(orderUID)).to.eq(false);
 
     await swapOperator.placeOrder(contractOrder, domainHash, orderUID);
 
-    expect(await cowSettlement.presignatures(keccak256(orderUID))).to.eq(true);
+    expect(await cowSettlement.presignatures(orderUID)).to.eq(true);
   });
 
   it('emits an OrderPlaced event', async function () {

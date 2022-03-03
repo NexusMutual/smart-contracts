@@ -14,6 +14,6 @@ describe.only('CowSwap unit tests', function () {
 
   // include your unit tests here
   require('./placeOrder');
-  require('./cancelOrder');
+  require('./closeOrder');
 
 });

@@ -11,6 +11,8 @@ import '../../interfaces/ITwapOracle.sol';
 
 interface ICowSettlement {
   function setPreSignature(bytes calldata orderUid, bool signed) external;
+
+  function filledAmount(bytes calldata orderUid) external returns (uint256);
 }
 
 interface IWETH is IERC20 {
@@ -34,8 +36,7 @@ contract CowSwapOperator {
   uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
   event OrderPlaced(GPv2Order.Data order);
-  event OrderCanceled(GPv2Order.Data order);
-  event OrderFinalized(GPv2Order.Data order);
+  event OrderClosed(GPv2Order.Data order, uint256 filledAmount);
 
   modifier onlyController() {
     require(msg.sender == swapController, 'SwapOp: only controller can execute');
@@ -142,58 +143,48 @@ contract CowSwapOperator {
     emit OrderPlaced(order);
   }
 
-  function finalizeOrder(GPv2Order.Data calldata order, bytes32 domainSeparator) public onlyController {
+  function closeOrder(GPv2Order.Data calldata order, bytes32 domainSeparator) external onlyController {
     validateHasCurrentOrder(true);
 
     validateUID(order, domainSeparator, currentOrderUID);
 
-    // Validate order was executed
     uint256 buyTokenBalance = order.buyToken.balanceOf(address(this));
-    require(buyTokenBalance >= order.buyAmount, 'SwapOp: Order was not executed');
-
-    // Clear the current order
-    delete currentOrderUID;
-
-    // Transfer funds to pool
-    if (isBuyingEth(order)) {
-      weth.withdraw(buyTokenBalance);
-      payable(address(_pool())).transfer(buyTokenBalance);
-    } else {
-      order.buyToken.transfer(address(_pool()), buyTokenBalance);
-    }
-
-    // Emit event
-    emit OrderFinalized(order);
-  }
-
-  function cancelOrder(GPv2Order.Data calldata order, bytes32 domainSeparator) public onlyController {
-    validateHasCurrentOrder(true);
-
-    bytes memory orderUID = validateUID(order, domainSeparator, currentOrderUID);
-
-    // Validate order was not executed
     uint256 sellTokenBalance = order.sellToken.balanceOf(address(this));
-    require(sellTokenBalance >= orderOutAmount(order), 'SwapOp: Order was already executed');
+
+    uint256 filledAmount = cowSettlement.filledAmount(currentOrderUID);
+    bool fullyFilled = filledAmount == order.sellAmount;
+
+    // Cancel signature and unapprove tokens
+    if (!fullyFilled) {
+      cowSettlement.setPreSignature(currentOrderUID, false);
+      approveVaultRelayer(order.sellToken, 0);
+    }
 
     // Clear the current order
     delete currentOrderUID;
 
-    // Cancel the presignature
-    cowSettlement.setPreSignature(orderUID, false);
+    // Withdraw buyToken if there's any remaining
+    if (buyTokenBalance > 0) {
+      if (isBuyingEth(order)) {
+        weth.withdraw(buyTokenBalance); // unwrap purchased WETH
+        payable(address(_pool())).transfer(buyTokenBalance);
+      } else {
+        order.buyToken.transfer(address(_pool()), buyTokenBalance);
+      }
+    }
 
-    // Unapprove the funds
-    approveVaultRelayer(order.sellToken, 0);
-
-    // transfer funds to pool
-    if (isSellingEth(order)) {
-      weth.withdraw(sellTokenBalance);
-      payable(address(_pool())).transfer(sellTokenBalance);
-    } else {
-      order.sellToken.transfer(address(_pool()), sellTokenBalance);
+    // Withdraw sellToken if there's any remaining
+    if (sellTokenBalance > 0) {
+      if (isSellingEth(order)) {
+        weth.withdraw(sellTokenBalance); // unwrap unsold WETH
+        payable(address(_pool())).transfer(sellTokenBalance);
+      } else {
+        order.sellToken.transfer(address(_pool()), sellTokenBalance);
+      }
     }
 
     // Emit event
-    emit OrderCanceled(order);
+    emit OrderClosed(order, filledAmount);
   }
 
   function validatePoolBalance(GPv2Order.Data calldata order, IPool pool) private view {
@@ -221,7 +212,6 @@ contract CowSwapOperator {
     require(order.kind == GPv2Order.KIND_SELL, 'SwapOp: Only sell operations are supported');
     require(order.receiver == address(this), 'SwapOp: Receiver must be this contract');
     require(order.validTo >= block.timestamp + 600, 'SwapOp: validTo must be at least 10 minutes in the future');
-    require(order.partiallyFillable == false, 'SwapOp: Partially fillable orders are not supported by CoW yet');
   }
 
   function validateHasCurrentOrder(bool shouldHaveOrder) private view {
@@ -240,13 +230,12 @@ contract CowSwapOperator {
     GPv2Order.Data calldata order,
     bytes32 domainSeparator,
     bytes memory providedOrderUID
-  ) private pure returns (bytes memory) {
+  ) private pure {
     bytes memory calculatedUID = getUID(order, domainSeparator);
     require(
       keccak256(calculatedUID) == keccak256(providedOrderUID),
       'SwapOp: Provided UID doesnt match calculated UID'
     );
-    return calculatedUID;
   }
 
   function _pool() internal view returns (IPool) {

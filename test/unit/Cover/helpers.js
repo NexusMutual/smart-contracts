@@ -20,9 +20,6 @@ async function createStakingPool (
   await stakingPool.setTargetPrice(productId, targetPrice);
   await stakingPool.setUsedCapacity(productId, activeCover);
 
-  console.log({
-    currentPrice: currentPrice.toString()
-  })
   await stakingPool.setPrice(productId, BigNumber.from(currentPrice).mul(1e16.toString())); // 2.6%
 
   return stakingPool;
@@ -42,7 +39,7 @@ async function assertCoverFields (
   await assert.equal(storedCoverData.amountPaidOut, '0');
   await assert.equal(segment.period, period);
   await assert.equal(segment.amount.toString(), amount.toString());
-  await assert.equal(segment.priceRatio.toString(), targetPriceRatio.toString());
+  await assert.equal(segment.priceRatio.toString(), BigNumber.from(targetPriceRatio).mul(period).div(3600 * 24 * 365).toString());
 }
 
 async function buyCoverOnOnePool (
@@ -72,7 +69,7 @@ async function buyCoverOnOnePool (
     cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
   );
 
-  const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+  const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator).mul(period).div(3600 * 24 * 365);
 
   await cover.connect(member1).buyCover(
     {

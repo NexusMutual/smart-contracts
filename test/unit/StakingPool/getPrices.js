@@ -37,11 +37,6 @@ describe('getPrices', function () {
       blockTimestamp,
     );
 
-    console.log({
-      newBasePrice: newBasePrice.toString(),
-      actualPrice: actualPrice.toString(),
-    });
-
     bnEqual(newBasePrice, expectedNewBasePrice);
     bnEqual(actualPrice, expectedActualPrice);
   });

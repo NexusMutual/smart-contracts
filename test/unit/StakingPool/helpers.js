@@ -79,11 +79,6 @@ function getPrices (
     blockTimestamp,
   );
 
-  console.log({
-    lastBasePriceValue: lastBasePriceValue.toString(),
-    basePrice: basePrice.toString(),
-  });
-
   // calculate actualPrice using the current basePrice
   const actualPrice = calculatePrice(amount, basePrice, activeCover, capacity);
 
@@ -91,17 +86,6 @@ function getPrices (
   const priceBump = amount.muln(BASE_PRICE_BUMP_DENOMINATOR).div(capacity).divn(BASE_PRICE_BUMP_INTERVAL).muln(BASE_PRICE_BUMP_RATIO);
 
   const bumpedBasePrice = basePrice.add(priceBump);
-
-  console.log({
-    initialPrice: initialPrice.toString(),
-    lastBasePriceValue: lastBasePriceValue.toString(),
-    capacity: capacity.toString(),
-    amount: amount.toString(),
-    priceBump: priceBump.toString(),
-    basePrice: basePrice.toString(),
-    bumpedBasePrice: bumpedBasePrice.toString(),
-    actualPrice: actualPrice.toString(),
-  });
 
   return { basePrice: bumpedBasePrice, actualPrice };
 }

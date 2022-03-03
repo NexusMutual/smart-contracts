@@ -13,7 +13,7 @@ const { bnEqual } = require('../utils').helpers;
 describe.only('buyCover', function () {
 
   it('should purchase new cover using 1 staking pool', async function () {
-    const { cover, coverViewer } = this;
+    const { cover } = this;
 
     const {
       governanceContracts: [gv1],
@@ -23,7 +23,7 @@ describe.only('buyCover', function () {
 
     const productId = 0;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 24 * 365; // 365 days
+    const period = 3600 * 24 * 30; // 30 days
 
     const amount = parseEther('1000');
 
@@ -83,7 +83,7 @@ describe.only('buyCover', function () {
 
     const productId = 0;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 24 * 365; // 365 days
+    const period = 3600 * 24 * 30; // 30 days
 
     const amount = parseEther('1000');
 
@@ -146,7 +146,7 @@ describe.only('buyCover', function () {
 
     const productId = 0;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 24 * 365; // 365 days
+    const period = 3600 * 24 * 30; // 30 days
 
     const amount = parseEther('1000');
 
@@ -165,7 +165,7 @@ describe.only('buyCover', function () {
       cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
     );
 
-    const expectedBasePremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const expectedBasePremium = amount.mul(targetPriceRatio).div(priceDenominator).mul(period).div(3600 * 24 * 365);
     const expectedCommission = expectedBasePremium.mul(commissionRatio).div(priceDenominator);
     const expectedPremium = expectedBasePremium.add(expectedCommission);
 
@@ -223,7 +223,7 @@ describe.only('buyCover', function () {
 
     const productId = 0;
     const payoutAsset = 1; // DAI
-    const period = 3600 * 24 * 365; // 365 days
+    const period = 3600 * 24 * 30; // 30 days
 
     const amount = parseEther('1000');
 
@@ -242,7 +242,7 @@ describe.only('buyCover', function () {
       cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
     );
 
-    const expectedBasePremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const expectedBasePremium = amount.mul(targetPriceRatio).div(priceDenominator).mul(period).div(3600 * 24 * 365);
     const expectedCommission = expectedBasePremium.mul(commissionRatio).div(10000);
     const expectedPremium = expectedBasePremium.add(expectedCommission);
 
@@ -297,7 +297,7 @@ describe.only('buyCover', function () {
 
     const productId = 1337;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 24 * 365; // 365 days
+    const period = 3600 * 24 * 30; // 30 days
 
     const amount = parseEther('1000');
 
@@ -433,7 +433,7 @@ describe.only('buyCover', function () {
 
     const productId = 0;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 24 * 365; // 365 days
+    const period = 3600 * 24 * 30; // 30 days
 
     const amount = parseEther('1000');
 

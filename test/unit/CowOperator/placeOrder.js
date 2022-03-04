@@ -112,49 +112,6 @@ describe('placeOrder', function () {
     ).to.be.revertedWith('SwapOp: an order is already in place');
   });
 
-  describe('validating the pool has enough funds for the swap', function () {
-    it('validates eth balance when sellToken is WETH', async function () {
-      // calling when pool doesnt have enough eth should fail
-      await setEtherBalance(pool.address, order.sellAmount.add(order.feeAmount).sub(1)); // 1 wei short
-      await expect(
-        swapOperator.placeOrder(contractOrder, domainHash, orderUID),
-      ).to.be.revertedWith('SwapOp: not enough ether to sell');
-
-      // calling when pool has enough eth should succeed
-      await setEtherBalance(pool.address, order.sellAmount.add(order.feeAmount)); // exact eth
-      await expect(
-        swapOperator.placeOrder(contractOrder, domainHash, orderUID),
-      ).to.not.be.reverted;
-    });
-
-    it('validates erc20 balance when sellToken is not WETH', async function () {
-      // Build a new order and calculate UID
-      const newOrder = {
-        ...order,
-        sellToken: dai.address,
-        buyToken: weth.address,
-      };
-      const newContractOrder = {
-        ...contractOrder,
-        sellToken: dai.address,
-        buyToken: weth.address,
-      };
-      const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
-
-      // calling when pool doesnt have enough token balance should fail
-      await dai.mint(pool.address, newOrder.sellAmount.add(newOrder.feeAmount).sub(1)); // 1 wei short
-      await expect(
-        swapOperator.placeOrder(newContractOrder, domainHash, newOrderUID),
-      ).to.be.revertedWith('SwapOp: not enough token balance to sell');
-
-      // calling when pool has enough token balance should succeed
-      await dai.mint(pool.address, 1); // add 1 wei, matching exact amount
-      await expect(
-        swapOperator.placeOrder(newContractOrder, domainHash, newOrderUID),
-      ).to.not.be.reverted;
-    });
-  });
-
   describe('validating basic CoW protocol parameters', function () {
     it('validates only erc20 is supported for sellTokenBalance', async function () {
       const newOrder = {

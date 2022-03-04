@@ -271,11 +271,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint coverId,
     PoolAllocationRequest[] memory allocationRequests
   ) internal returns (uint totalPremiumInNXM) {
+
     // convert to NXM amount
     uint nxmPriceInPayoutAsset = pool().getTokenPrice(params.payoutAsset);
     uint remainderAmountInNXM = 0;
     uint totalCoverAmountInNXM = 0;
-
 
     uint _coverSegmentsCount = _coverSegments[coverId].length;
 

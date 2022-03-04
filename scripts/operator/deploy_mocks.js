@@ -3,8 +3,7 @@ const { BigNumber, Contract } = require('ethers');
 const fs = require('fs');
 const addresses = require('./addresses.json');
 const { etherscanVerification } = require('./helper');
-
-const SETTLEMENT_ADDRESS = '0x9008D19f58AAbD9eD0D60971565AA8510560ab41';
+const { hex } = require('../../lib/helpers');
 
 const WETH_ADDRESS = '0xc778417E063141139Fce010982780140Aa0cD5Ab';
 
@@ -16,12 +15,18 @@ const DAI_SLIPPAGE = 100; // 1%
 
 const main = async () => {
   const signer = (await ethers.getSigners())[0];
-  const signerAddress = await signer.getAddress();
 
   console.log('deploying master mock');
-  // TODO: Use existing MasterMock
-  const master = await (await ethers.getContractFactory('CSMockMaster')).deploy();
+  const master = await (await ethers.getContractFactory('MasterMock')).deploy();
   await master.deployTransaction.wait();
+
+  console.log('deploying qd');
+  const qd = await (await ethers.getContractFactory('CSMockQuotationData')).deploy();
+  await qd.deployTransaction.wait();
+
+  console.log('deploying mcr');
+  const mcr = await (await ethers.getContractFactory('MCR')).deploy(master.address);
+  await mcr.deployTransaction.wait();
 
   console.log('deploying pool');
   const poolArgs = [
@@ -37,8 +42,17 @@ const main = async () => {
   const pool = await (await ethers.getContractFactory('Pool')).deploy(...poolArgs);
   await pool.deployTransaction.wait();
 
-  console.log('setting pool on master');
-  await (await master.setPool(pool.address)).wait();
+  // console.log('setting pool on master');
+  // await (await master.setPool(pool.address)).wait();
+  // Setup master, pool and mcr connections
+  console.log('Setting up governance and dependencies');
+  await (await master.enrollGovernance(signer.address)).wait();
+  await (await master.setLatestAddress(hex('QD'), qd.address)).wait();
+  await (await master.setLatestAddress(hex('MC'), mcr.address)).wait();
+  await (await master.setLatestAddress(hex('P1'), pool.address)).wait();
+
+  await (await pool.changeDependentContractAddress()).wait();
+  await (await mcr.changeDependentContractAddress()).wait();
 
   console.log('deploying twap mock');
   const twap = await (await ethers.getContractFactory('CSMockTwapOracle')).deploy();

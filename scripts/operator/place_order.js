@@ -96,10 +96,9 @@ const main = async () => {
   console.log({ uid: computedUID });
   console.log({ digest });
 
-  const domainHash = ethers.utils._TypedDataEncoder.hashDomain(_domain);
   const swapOperatorContract = await ethers.getContractAt('CowSwapOperator', swapOperatorAddress);
 
-  const contractDigest = await swapOperatorContract.getDigest(contractOrder, domainHash);
+  const contractDigest = await swapOperatorContract.getDigest(contractOrder);
   if (contractDigest === digest) {
     console.log(`Digest computed successfully: ${digest}`);
   } else {
@@ -107,7 +106,7 @@ const main = async () => {
     return;
   }
 
-  const contractUID = await swapOperatorContract.getUID(contractOrder, domainHash);
+  const contractUID = await swapOperatorContract.getUID(contractOrder);
   if (contractUID === computedUID) {
     console.log(`UID computed successfully: ${computedUID}`);
   } else {
@@ -131,7 +130,7 @@ const main = async () => {
 
   // Presign via contract
   console.log('Sending placeOrder tx');
-  const placeOrderTx = await swapOperatorContract.placeOrder(contractOrder, domainHash, uidFromApi, {
+  const placeOrderTx = await swapOperatorContract.placeOrder(contractOrder, uidFromApi, {
     gasLimit: 1e6,
   });
   console.log(`placeOrder tx hash ${placeOrderTx.hash}`);

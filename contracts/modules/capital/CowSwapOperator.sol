@@ -6,28 +6,17 @@ import '@openzeppelin/contracts-v4/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts-v4/utils/math/Math.sol';
 import '../../interfaces/INXMMaster.sol';
 import '../../interfaces/IPool.sol';
-// import './Pool.sol';
+import '../../interfaces/IWeth.sol';
+import '../../interfaces/ICowSettlement.sol';
 import '../../interfaces/ITwapOracle.sol';
-
-interface ICowSettlement {
-  function setPreSignature(bytes calldata orderUid, bool signed) external;
-
-  function filledAmount(bytes calldata orderUid) external returns (uint256);
-}
-
-interface IWETH is IERC20 {
-  function deposit() external payable;
-
-  function withdraw(uint256 wad) external;
-}
 
 contract CowSwapOperator {
   // Storage
   ICowSettlement public immutable cowSettlement;
   address public immutable cowVaultRelayer;
-  INXMMaster public master;
+  INXMMaster public immutable master;
   address public immutable swapController;
-  IWETH public immutable weth;
+  IWeth public immutable weth;
   ITwapOracle public immutable twapOracle;
   bytes public currentOrderUID;
 
@@ -45,17 +34,16 @@ contract CowSwapOperator {
 
   constructor(
     address _cowSettlement,
-    address _cowVaultRelayer,
     address _swapController,
     address _master,
     address _weth,
     address _twapOracle
   ) {
     cowSettlement = ICowSettlement(_cowSettlement);
-    cowVaultRelayer = _cowVaultRelayer;
+    cowVaultRelayer = cowSettlement.vaultRelayer();
     master = INXMMaster(_master);
     swapController = _swapController;
-    weth = IWETH(_weth);
+    weth = IWeth(_weth);
     twapOracle = ITwapOracle(_twapOracle);
   }
 
@@ -78,20 +66,17 @@ contract CowSwapOperator {
     bytes32 domainSeparator,
     bytes calldata orderUID
   ) public onlyController {
-    // Helper local variables
-    IPool pool = _pool();
-    uint256 totalOutAmount = orderOutAmount(order);
+    // Validate there's no current order going on
+    require(currentOrderUID.length == 0, 'SwapOp: an order is already in place');
 
     // Order UID verification
     validateUID(order, domainSeparator, orderUID);
-
-    // Validate there's no current order going on
-    validateHasCurrentOrder(false);
 
     // Validate basic CoW params
     validateBasicCowParams(order);
 
     // Validate that swaps for sellToken are enabled
+    IPool pool = _pool();
     IPool.SwapDetails memory sellTokenSwapDetails = pool.getAssetSwapDetails(address(order.sellToken));
     if (!isSellingEth(order)) {
       // Eth is always enabled
@@ -113,6 +98,7 @@ contract CowSwapOperator {
 
     // Validate oracle price
     // uint256 finalSlippage = Math.max(buyTokenSwapDetails.maxSlippageRatio, sellTokenSwapDetails.maxSlippageRatio);
+    uint256 totalOutAmount = orderOutAmount(order);
     uint256 finalSlippage = MAX_SLIPPAGE_DENOMINATOR; // Slippage TBD. 100% for now
     uint256 oracleBuyAmount = twapOracle.consult(address(order.sellToken), totalOutAmount, address(order.buyToken));
     uint256 maxSlippageAmount = (oracleBuyAmount * finalSlippage) / MAX_SLIPPAGE_DENOMINATOR;
@@ -141,13 +127,12 @@ contract CowSwapOperator {
   }
 
   function closeOrder(GPv2Order.Data calldata order, bytes32 domainSeparator) external onlyController {
-    validateHasCurrentOrder(true);
+    // Validate there is an order in place
+    require(currentOrderUID.length > 0, 'SwapOp: No order in place');
 
     validateUID(order, domainSeparator, currentOrderUID);
 
-    uint256 buyTokenBalance = order.buyToken.balanceOf(address(this));
-    uint256 sellTokenBalance = order.sellToken.balanceOf(address(this));
-
+    // Check how much of the order was filled, and if it was fully filled
     uint256 filledAmount = cowSettlement.filledAmount(currentOrderUID);
     bool fullyFilled = filledAmount == order.sellAmount;
 
@@ -161,6 +146,7 @@ contract CowSwapOperator {
     delete currentOrderUID;
 
     // Withdraw buyToken if there's any remaining
+    uint256 buyTokenBalance = order.buyToken.balanceOf(address(this));
     if (buyTokenBalance > 0) {
       if (isBuyingEth(order)) {
         weth.withdraw(buyTokenBalance); // unwrap purchased WETH
@@ -171,6 +157,7 @@ contract CowSwapOperator {
     }
 
     // Withdraw sellToken if there's any remaining
+    uint256 sellTokenBalance = order.sellToken.balanceOf(address(this));
     if (sellTokenBalance > 0) {
       if (isSellingEth(order)) {
         weth.withdraw(sellTokenBalance); // unwrap unsold WETH
@@ -184,15 +171,15 @@ contract CowSwapOperator {
     emit OrderClosed(order, filledAmount);
   }
 
-  function isSellingEth(GPv2Order.Data calldata order) private view returns (bool) {
-    return order.sellToken == weth;
+  function isSellingEth(GPv2Order.Data calldata order) internal view returns (bool) {
+    return address(order.sellToken) == address(weth);
   }
 
-  function isBuyingEth(GPv2Order.Data calldata order) private view returns (bool) {
-    return order.buyToken == weth;
+  function isBuyingEth(GPv2Order.Data calldata order) internal view returns (bool) {
+    return address(order.buyToken) == address(weth);
   }
 
-  function validateBasicCowParams(GPv2Order.Data calldata order) private view {
+  function validateBasicCowParams(GPv2Order.Data calldata order) internal view {
     require(order.sellTokenBalance == GPv2Order.BALANCE_ERC20, 'SwapOp: Only erc20 supported for sellTokenBalance');
     require(order.buyTokenBalance == GPv2Order.BALANCE_ERC20, 'SwapOp: Only erc20 supported for buyTokenBalance');
     require(order.kind == GPv2Order.KIND_SELL, 'SwapOp: Only sell operations are supported');
@@ -200,15 +187,7 @@ contract CowSwapOperator {
     require(order.validTo >= block.timestamp + 600, 'SwapOp: validTo must be at least 10 minutes in the future');
   }
 
-  function validateHasCurrentOrder(bool shouldHaveOrder) private view {
-    if (shouldHaveOrder) {
-      require(currentOrderUID.length > 0, 'SwapOp: No order in place');
-    } else {
-      require(currentOrderUID.length == 0, 'SwapOp: an order is already in place');
-    }
-  }
-
-  function approveVaultRelayer(IERC20 token, uint256 amount) private {
+  function approveVaultRelayer(IERC20 token, uint256 amount) internal {
     token.approve(cowVaultRelayer, amount); // infinite approval
   }
 
@@ -216,7 +195,7 @@ contract CowSwapOperator {
     GPv2Order.Data calldata order,
     bytes32 domainSeparator,
     bytes memory providedOrderUID
-  ) private pure {
+  ) internal pure {
     bytes memory calculatedUID = getUID(order, domainSeparator);
     require(
       keccak256(calculatedUID) == keccak256(providedOrderUID),
@@ -228,7 +207,7 @@ contract CowSwapOperator {
     return IPool(master.getLatestAddress('P1'));
   }
 
-  function orderOutAmount(GPv2Order.Data calldata order) private pure returns (uint256) {
+  function orderOutAmount(GPv2Order.Data calldata order) internal pure returns (uint256) {
     return order.sellAmount + order.feeAmount;
   }
 }

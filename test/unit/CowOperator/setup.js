@@ -67,7 +67,6 @@ async function setup () {
   // Deploy CowSwapOperator
   const swapOperator = await CowSwapOperator.deploy(
     cowSettlement.address,
-    cowVaultRelayer.address,
     await owner.getAddress(),
     master.address,
     weth.address,

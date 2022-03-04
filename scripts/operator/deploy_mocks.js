@@ -5,7 +5,6 @@ const addresses = require('./addresses.json');
 const { etherscanVerification } = require('./helper');
 
 const SETTLEMENT_ADDRESS = '0x9008D19f58AAbD9eD0D60971565AA8510560ab41';
-const VAULT_RELAYER_ADDRESS = '0xC92E8bdf79f0507f65a392b0ab4667716BFE0110';
 
 const WETH_ADDRESS = '0xc778417E063141139Fce010982780140Aa0cD5Ab';
 

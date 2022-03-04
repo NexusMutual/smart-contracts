@@ -91,7 +91,7 @@ describe('closeOrder', function () {
         [key]: makeWrongValue(value),
       };
       await expect(
-        swapOperator.placeOrder(wrongOrder, domainHash, orderUID),
+        swapOperator.closeOrder(wrongOrder, domainHash),
       ).to.revertedWith('SwapOp: Provided UID doesnt match calculated UID');
     }
 

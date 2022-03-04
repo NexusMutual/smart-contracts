@@ -6,7 +6,7 @@ import '@openzeppelin/contracts-v4/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts-v4/utils/math/Math.sol';
 import '../../interfaces/INXMMaster.sol';
 import '../../interfaces/IPool.sol';
-import './Pool.sol';
+// import './Pool.sol';
 import '../../interfaces/ITwapOracle.sol';
 
 interface ICowSettlement {

@@ -116,6 +116,7 @@ contract StakingVe is ERC721 {
 
       _accRewardPerShare += elapsed * _rewardPerSecond / _rewardsSharesSupply;
       _lastRewardUpdate = bucketEndTime;
+      _rewardPerSecond -= poolBuckets[_firstActiveBucketId].rewardPerSecondCut;
 
       // should we expire a group?
       if (

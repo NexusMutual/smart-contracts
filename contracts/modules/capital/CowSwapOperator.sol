@@ -111,9 +111,6 @@ contract CowSwapOperator {
       );
     }
 
-    // Validate pool has enough funds for the trade
-    validatePoolBalance(order, pool);
-
     // Validate oracle price
     // uint256 finalSlippage = Math.max(buyTokenSwapDetails.maxSlippageRatio, sellTokenSwapDetails.maxSlippageRatio);
     uint256 finalSlippage = MAX_SLIPPAGE_DENOMINATOR; // Slippage TBD. 100% for now
@@ -185,17 +182,6 @@ contract CowSwapOperator {
 
     // Emit event
     emit OrderClosed(order, filledAmount);
-  }
-
-  function validatePoolBalance(GPv2Order.Data calldata order, IPool pool) private view {
-    if (isSellingEth(order)) {
-      require(address(pool).balance >= orderOutAmount(order), 'SwapOp: not enough ether to sell');
-    } else {
-      require(
-        order.sellToken.balanceOf(address(pool)) >= orderOutAmount(order),
-        'SwapOp: not enough token balance to sell'
-      );
-    }
   }
 
   function isSellingEth(GPv2Order.Data calldata order) private view returns (bool) {

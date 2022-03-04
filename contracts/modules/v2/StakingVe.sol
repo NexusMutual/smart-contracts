@@ -14,20 +14,26 @@ contract StakingVe is ERC721 {
   // currently active staked nxm amount
   uint public activeStake;
 
-  // supply of pool shares used by groups
-  uint public poolSharesSupply;
+  // supply of pool stake shares used by groups
+  uint public stakeSharesSupply;
 
-  // current nxm reward per second
+  // supply of pool rewards shares used by groups
+  uint public rewardsSharesSupply;
+
+  // current nxm reward per second for the entire pool
+  // applies to active stake only and does not need update on deposits
   uint public rewardPerSecond;
 
-  // accumulated reward per token
-  uint public accRewardPerToken;
+  // accumulated reward per share of pool
+  uint public accRewardPerPoolShare;
 
-  // last accRewardPerToken update timestamp
+  // last accRewardPerPoolShare update timestamp
   uint public lastRewardUpdate;
 
   uint public firstActiveGroupId;
   uint public lastActiveGroupId;
+
+  uint public firstActiveBucketId;
 
   // erc721 supply
   uint public totalSupply;
@@ -36,14 +42,19 @@ contract StakingVe is ERC721 {
   // group index is calculated based on the expiration date
   // the initial proposal is to have 4 groups per year (1 group per quarter)
   struct StakeGroup {
-    uint poolShares;
+    uint stakeShares;
+    uint rewardsShares;
     uint groupSharesSupply;
-    uint accRewardPerTokenAtExpiration;
+    uint accRewardPerStakeShareAtExpiration;
     uint expiredStakeAmount;
   }
 
   struct PoolBucket {
     uint rewardPerSecondCut;
+  }
+
+  struct ProductBucket {
+    uint capacityCut;
   }
 
   // group id => amount
@@ -52,7 +63,10 @@ contract StakingVe is ERC721 {
   // pool bucket id => PoolBucket
   mapping(uint => PoolBucket) public poolBuckets;
 
-  // nft id => group id => amount of shares
+  // pool bucket id => ProductBucket
+  mapping(uint => ProductBucket) public productBuckets;
+
+  // nft id => group id => amount of group shares
   mapping(uint => mapping(uint => uint)) public balanceOf;
 
   /* immutables */
@@ -61,9 +75,8 @@ contract StakingVe is ERC721 {
 
   /* constants */
 
-  // 90 * 4 = 360
-  // 91 * 4 = 364
-  // 92 * 4 = 368
+  // 7 * 13 = 91
+  uint BUCKET_SIZE = 7 days;
   uint GROUP_SIZE = 91 days;
 
   constructor (
@@ -74,42 +87,54 @@ contract StakingVe is ERC721 {
     nxm = _token;
   }
 
-  // TODO: this should be combined with the processPoolBuckets function
   function updateGroups() public {
+
+    uint _firstActiveBucketId = firstActiveBucketId;
+    uint currentBucketId = block.timestamp / BUCKET_SIZE;
+
+    if (_firstActiveBucketId == currentBucketId) {
+      return;
+    }
 
     // SLOAD
     uint _activeStake = activeStake;
     uint _rewardPerSecond = rewardPerSecond;
-    uint _accRewardPerToken = accRewardPerToken;
-    uint _poolSharesSupply = poolSharesSupply;
-
-    // SLOAD
+    uint _accRewardPerShare = accRewardPerPoolShare;
+    uint _stakeSharesSupply = stakeSharesSupply;
+    uint _rewardsSharesSupply = rewardsSharesSupply;
     uint _lastRewardUpdate = lastRewardUpdate;
     uint _firstActiveGroupId = firstActiveGroupId;
 
-    // the group id for the current timestamp
+    // the group and pool bucket ids for the current timestamp
     uint currentGroupId = block.timestamp / GROUP_SIZE;
 
-    while (_firstActiveGroupId < currentGroupId) {
+    while (_firstActiveBucketId < currentBucketId) {
 
-      // TODO: check pool buckets expiration here and update _accRewardPerToken & _lastRewardUpdate
+      ++_firstActiveBucketId;
+      uint bucketEndTime = _firstActiveBucketId * BUCKET_SIZE;
+      uint elapsed = bucketEndTime - _lastRewardUpdate;
+
+      _accRewardPerShare += elapsed * _rewardPerSecond / _rewardsSharesSupply;
+      _lastRewardUpdate = bucketEndTime;
+
+      // should we expire a group?
+      if (
+        bucketEndTime % GROUP_SIZE != 0 ||
+        _firstActiveGroupId == currentGroupId
+      ) {
+        continue;
+      }
 
       // SLOAD
       StakeGroup memory group = stakeGroups[_firstActiveGroupId];
 
-      // calculate group reward
-      uint groupExpirationTime = (_firstActiveGroupId + 1) * GROUP_SIZE;
-      uint elapsed = groupExpirationTime - _lastRewardUpdate;
-
-      _accRewardPerToken += elapsed * _rewardPerSecond / _activeStake;
-      _lastRewardUpdate = groupExpirationTime;
-      uint expiredStake = _activeStake * group.poolShares / _poolSharesSupply;
-
+      uint expiredStake = _activeStake * group.stakeShares / _stakeSharesSupply;
       _activeStake -= expiredStake;
-      _poolSharesSupply -= group.poolShares;
-
-      group.accRewardPerTokenAtExpiration = _accRewardPerToken;
       group.expiredStakeAmount = expiredStake;
+      group.accRewardPerStakeShareAtExpiration = _accRewardPerShare;
+
+      _stakeSharesSupply -= group.stakeShares;
+      _rewardsSharesSupply -= group.rewardsShares;
 
       // SSTORE
       stakeGroups[_firstActiveGroupId] = group;
@@ -119,7 +144,13 @@ contract StakingVe is ERC721 {
     }
 
     firstActiveGroupId = _firstActiveGroupId;
+    firstActiveBucketId = _firstActiveBucketId;
     activeStake = _activeStake;
+
+    rewardPerSecond = _rewardPerSecond;
+    accRewardPerPoolShare = _accRewardPerShare;
+    stakeSharesSupply = _stakeSharesSupply;
+    rewardsSharesSupply = _rewardsSharesSupply;
   }
 
   function deposit(
@@ -133,66 +164,75 @@ contract StakingVe is ERC721 {
     // require groupId not to be expired
     require(groupId >= firstActiveGroupId);
 
+    if (_positionId == 0) {
+      positionId = ++totalSupply;
+      _mint(msg.sender, positionId);
+    } else {
+      positionId = _positionId;
+    }
+
     // transfer nxm from staker
     nxm.transferFrom(msg.sender, address(this), amount);
 
     StakeGroup memory group = stakeGroups[groupId];
 
-    // TODO: double-check that the incresae should happen here
-    uint _activeStake = activeStake + amount;
-    uint _poolSharesSupply = poolSharesSupply;
+    uint _activeStake = activeStake;
+    uint _stakeSharesSupply = stakeSharesSupply;
+    uint _rewardsSharesSupply = rewardsSharesSupply;
 
-    uint newPoolShares = _poolSharesSupply == 0
-      ? amount
-      : _poolSharesSupply * amount / _activeStake;
+    uint newStakeShares = _stakeSharesSupply == 0
+    ? amount
+    : _stakeSharesSupply * amount / _activeStake;
+
+    // TODO: calculate based on time till group expiry
+    // temporarily hardcoding a x1.1 multiplier
+    uint newRewardsShares = newStakeShares * 110 / 100;
 
     uint newGroupShares;
 
     if (group.groupSharesSupply == 0) {
       newGroupShares = amount;
     } else {
-      // TODO: the math here is wrong
-      uint groupStake = 0;
+      // amount of nxm corresponding to this group
+      uint groupStake = _activeStake * group.stakeShares / _stakeSharesSupply;
       newGroupShares = group.groupSharesSupply * amount / groupStake;
     }
 
-    group.groupSharesSupply += newGroupShares;
-    group.poolShares += newPoolShares;
+    /* update rewards */
 
-    if (_positionId == 0) {
-      positionId = totalSupply++;
-      _mint(msg.sender, positionId);
-    } else {
-      positionId = _positionId;
+    uint _rewardPerSecond = rewardPerSecond;
+    uint elapsed = block.timestamp - lastRewardUpdate;
+
+    if (elapsed > 0) {
+      lastRewardUpdate = block.timestamp;
+      accRewardPerPoolShare += elapsed * _rewardPerSecond / _rewardsSharesSupply;
     }
 
-    // TODO: update accRewardPerToken & lastRewardUpdate here
+    /* store */
 
-    // SSTORE
+    group.stakeShares += newStakeShares;
+    group.rewardsShares += newRewardsShares;
+    group.groupSharesSupply += newGroupShares;
+
     stakeGroups[groupId] = group;
     balanceOf[positionId][groupId] += newGroupShares;
 
-    // SSTORE
-    activeStake = _activeStake;
-    poolSharesSupply = _poolSharesSupply + newPoolShares;
+    activeStake = _activeStake + amount;
+    stakeSharesSupply = _stakeSharesSupply + newStakeShares;
+    rewardsSharesSupply = _rewardsSharesSupply + newRewardsShares;
   }
 
-  // O(16) ie. O(1)
+  // O(1)
   function burn(uint amount) public {
+
+    // TODO: restrict msg sender to Cover contract only
 
     updateGroups();
 
-    // 1 SLOAD
-    uint _activeStake = activeStake;
-    uint first = firstActiveGroupId;
-    uint last = lastActiveGroupId;
+    // I think it's enough to only decrease the active stake amount (!)
+    activeStake -= amount;
 
-    for (uint i = first; i <= last; i++) {
-      // TODO: burn shares instead
-      // uint stake = stakeGroups[i].stake;
-      // uint burnAmount = stake * amount / _activeStake;
-      // stakeGroups[i].stake -= burnAmount;
-    }
+    // TODO: optionally enfore max 99% burn to avoid share super-inflation
   }
 
 }

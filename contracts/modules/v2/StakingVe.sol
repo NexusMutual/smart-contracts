@@ -63,8 +63,8 @@ contract StakingVe is ERC721 {
   // pool bucket id => PoolBucket
   mapping(uint => PoolBucket) public poolBuckets;
 
-  // pool bucket id => ProductBucket
-  mapping(uint => ProductBucket) public productBuckets;
+  // product id => pool bucket id => ProductBucket
+  mapping(uint => mapping(uint => ProductBucket)) public productBuckets;
 
   // nft id => group id => amount of group shares
   mapping(uint => mapping(uint => uint)) public balanceOf;
@@ -76,8 +76,11 @@ contract StakingVe is ERC721 {
   /* constants */
 
   // 7 * 13 = 91
-  uint BUCKET_SIZE = 7 days;
-  uint GROUP_SIZE = 91 days;
+  uint constant BUCKET_SIZE = 7 days;
+  uint constant GROUP_SIZE = 91 days;
+
+  uint constant REWARDS_MULTIPLIER = 125;
+  uint constant REWARDS_DENOMINATOR = 100;
 
   constructor (
     string memory _name,
@@ -185,9 +188,14 @@ contract StakingVe is ERC721 {
     ? amount
     : _stakeSharesSupply * amount / _activeStake;
 
-    // TODO: calculate based on time till group expiry
-    // temporarily hardcoding a x1.1 multiplier
-    uint newRewardsShares = newStakeShares * 110 / 100;
+    uint newRewardsShares = newStakeShares;
+
+    {
+      uint lockDuration = (groupId + 1) * GROUP_SIZE - block.timestamp;
+      uint maxLockDuration = GROUP_SIZE * 8;
+      newRewardsShares = newRewardsShares * REWARDS_MULTIPLIER / REWARDS_DENOMINATOR;
+      newRewardsShares = newRewardsShares * lockDuration / maxLockDuration;
+    }
 
     uint newGroupShares;
 
@@ -227,13 +235,11 @@ contract StakingVe is ERC721 {
   function burn(uint amount) public {
 
     // TODO: restrict msg sender to Cover contract only
+    // TODO: free up the capacity used by the corresponding cover
+    // TODO: check if it's worth restricting the burn to 99% of the active stake
 
     updateGroups();
-
-    // I think it's enough to only decrease the active stake amount (!)
     activeStake -= amount;
-
-    // TODO: optionally enfore max 99% burn to avoid share super-inflation
   }
 
 }

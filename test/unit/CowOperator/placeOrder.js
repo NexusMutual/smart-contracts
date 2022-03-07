@@ -3,6 +3,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { domain: makeDomain, computeOrderUid } = require('@gnosis.pm/gp-v2-contracts');
 const { setEtherBalance } = require('../../utils/evm');
+const { hex } = require('../utils').helpers;
 
 const {
   utils: { parseEther, hexZeroPad, keccak256, toUtf8Bytes, hexlify, randomBytes },
@@ -11,14 +12,14 @@ const {
 const hashUtf = str => keccak256(toUtf8Bytes(str));
 
 describe('placeOrder', function () {
-  let signer, otherSigner;
+  let controller, governance;
 
   let order, contractOrder, domain, orderUID;
 
   let dai, weth, pool, swapOperator, twap, cowSettlement, cowVaultRelayer;
 
   beforeEach(async () => {
-    [signer, otherSigner] = await ethers.getSigners();
+    [controller, governance] = await ethers.getSigners();
 
     // Assign contracts (destructuring isn't working)
     dai = contracts.dai;
@@ -66,12 +67,12 @@ describe('placeOrder', function () {
   it('is callable only by swap controller', async function () {
     // call with non-controller, should fail
     await expect(
-      swapOperator.connect(otherSigner).placeOrder(contractOrder, orderUID),
+      swapOperator.connect(governance).placeOrder(contractOrder, orderUID),
     ).to.revertedWith('SwapOp: only controller can execute');
 
     // call with controller, should succeed
     await expect(
-      swapOperator.connect(signer).placeOrder(contractOrder, orderUID),
+      swapOperator.connect(controller).placeOrder(contractOrder, orderUID),
     ).to.not.be.reverted;
   });
 
@@ -160,11 +161,11 @@ describe('placeOrder', function () {
     it('validates the receiver of the swap is the swap operator contract', async function () {
       const newOrder = {
         ...order,
-        receiver: otherSigner.address,
+        receiver: governance.address,
       };
       const newContractOrder = {
         ...contractOrder,
-        receiver: otherSigner.address,
+        receiver: governance.address,
       };
       const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
       await expect(
@@ -204,7 +205,7 @@ describe('placeOrder', function () {
 
     it('performs the validation when sellToken is not WETH', async function () {
       // Since DAI was already registered on setup, set its details to 0
-      await pool.connect(otherSigner).setSwapDetails(dai.address, 0, 0, 0); // otherSigner is governant
+      await pool.connect(governance).setSwapDetails(dai.address, 0, 0, 0); // otherSigner is governant
 
       const newOrder = {
         ...order,
@@ -223,6 +224,24 @@ describe('placeOrder', function () {
         swapOperator.placeOrder(newContractOrder, newOrderUID),
       ).to.be.revertedWith('SwapOp: sellToken is not enabled');
     });
+  });
+
+  it('validates that pools eth balance is not brought below established minimum', async function () {
+    // Set pool balance to 2 eth - 1 wei
+    await setEtherBalance(pool.address, parseEther('2').sub(1));
+
+    // Set min pool eth to 1 eth
+    await pool.connect(governance).updateUintParameters(hex('MIN_ETH'.padEnd(8, '\0')), parseEther('1'));
+
+    // Execute trade for 1 eth, should fail
+    expect(contractOrder.sellAmount.add(contractOrder.feeAmount)).to.eq(parseEther('1'));
+    await expect(
+      swapOperator.placeOrder(contractOrder, orderUID), //
+    ).to.revertedWith('SwapOp: Pool eth balance below min');
+
+    // Add 1 wei to balance and it should succeed
+    await setEtherBalance(pool.address, parseEther('2'));
+    await swapOperator.placeOrder(contractOrder, orderUID);
   });
 
   describe('validating there are asset details for buyToken', function () {
@@ -256,7 +275,7 @@ describe('placeOrder', function () {
 
     it('performs the validation when buyToken is not WETH', async function () {
       // Since DAI was already registered on setup, set its details to 0
-      await pool.connect(otherSigner).setSwapDetails(dai.address, 0, 0, 0); // otherSigner is governant
+      await pool.connect(governance).setSwapDetails(dai.address, 0, 0, 0); // otherSigner is governant
 
       // Order buying DAI should fail
       await expect(

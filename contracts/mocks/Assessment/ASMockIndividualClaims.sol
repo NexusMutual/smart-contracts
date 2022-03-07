@@ -3,7 +3,7 @@
 pragma solidity ^0.8.4;
 
 import "../../interfaces/INXMToken.sol";
-import "../../interfaces/IClaims.sol";
+import "../../interfaces/IIndividualClaims.sol";
 import "../../interfaces/IAssessment.sol";
 
 import "../../abstract/MasterAwareV2.sol";
@@ -11,8 +11,8 @@ import "../../abstract/MasterAwareV2.sol";
 contract ASMockClaims is MasterAwareV2 {
 
   INXMToken public token;
-  IClaims.Configuration public config;
-  IClaims.Claim[] public claims;
+  Configuration public config;
+  Claim[] public claims;
 
   constructor(address tokenAddress) {
     token = INXMToken(tokenAddress);
@@ -35,7 +35,7 @@ contract ASMockClaims is MasterAwareV2 {
     uint96 requestedAmount,
     string calldata /*ipfsMetadata*/
   ) external payable {
-    IClaims.Claim memory claim = IClaims.Claim(
+    Claim memory claim = Claim(
       0,
       coverId,
       segmentId,

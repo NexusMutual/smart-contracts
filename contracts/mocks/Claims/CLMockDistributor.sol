@@ -2,15 +2,15 @@
 
 pragma solidity ^0.8.0;
 
-import "../../interfaces/IClaims.sol";
+import "../../interfaces/IIndividualClaims.sol";
 
 
 contract CLMockDistributor {
 
-  IClaims internal claims;
+  IIndividualClaims internal claims;
 
   constructor(address claimsAddress) {
-    claims = IClaims(claimsAddress);
+    claims = IIndividualClaims(claimsAddress);
   }
 
   function submitClaim(uint coverId) external {

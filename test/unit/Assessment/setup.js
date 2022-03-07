@@ -16,13 +16,13 @@ async function setup () {
   const tokenController = await ASMockTokenController.deploy(nxm.address);
   await tokenController.deployed();
 
-  const ASMockClaims = await ethers.getContractFactory('ASMockClaims');
-  const claims = await ASMockClaims.deploy(nxm.address);
-  await claims.deployed();
+  const ASMockIndividualClaims = await ethers.getContractFactory('ASMockIndividualClaims');
+  const individualClaims = await ASMockIndividualClaims.deploy(nxm.address);
+  await individualClaims.deployed();
 
-  const ASMockIncidents = await ethers.getContractFactory('ASMockIncidents');
-  const incidents = await ASMockIncidents.deploy();
-  await incidents.deployed();
+  const ASMockYieldTokenIncidents = await ethers.getContractFactory('ASMockYieldTokenIncidents');
+  const yieldTokenIncidents = await ASMockYieldTokenIncidents.deploy();
+  await yieldTokenIncidents.deployed();
 
   nxm.setOperator(tokenController.address);
 
@@ -41,11 +41,11 @@ async function setup () {
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
     master.setTokenAddress(nxm.address),
-    master.setLatestAddress(hex('CL'), claims.address),
-    master.setLatestAddress(hex('IC'), incidents.address),
+    master.setLatestAddress(hex('IC'), individualClaims.address),
+    master.setLatestAddress(hex('YT'), yieldTokenIncidents.address),
     master.setLatestAddress(hex('AS'), assessment.address),
-    master.enrollInternal(claims.address),
-    master.enrollInternal(incidents.address),
+    master.enrollInternal(individualClaims.address),
+    master.enrollInternal(yieldTokenIncidents.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
@@ -55,12 +55,12 @@ async function setup () {
   }
 
   {
-    const tx = await claims.initialize(master.address);
+    const tx = await individualClaims.initialize(master.address);
     await tx.wait();
   }
 
   {
-    const tx = await incidents.initialize(master.address);
+    const tx = await yieldTokenIncidents.initialize(master.address);
     await tx.wait();
   }
 
@@ -70,12 +70,12 @@ async function setup () {
   }
 
   {
-    const tx = await claims.changeDependentContractAddress();
+    const tx = await individualClaims.changeDependentContractAddress();
     await tx.wait();
   }
 
   {
-    const tx = await incidents.changeDependentContractAddress();
+    const tx = await yieldTokenIncidents.changeDependentContractAddress();
     await tx.wait();
   }
 
@@ -97,8 +97,8 @@ async function setup () {
     dai,
     assessment,
     master,
-    claims,
-    incidents,
+    individualClaims,
+    yieldTokenIncidents,
   };
 }
 

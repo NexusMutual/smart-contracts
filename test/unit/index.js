@@ -7,7 +7,7 @@ describe('UNIT TESTS', function () {
   require('./Distributor');
   require('./Assessment');
   require('./Cover');
-  require('./Claims');
-  require('./Incidents');
+  require('./IndividualClaims');
+  require('./YieldTokenIncidents');
   require('./StakingPool');
 });

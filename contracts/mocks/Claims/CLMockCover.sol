@@ -109,13 +109,13 @@ contract CLMockCover {
 
   function addProductType(
     string calldata descriptionIpfsHash,
-    uint8 redeemMethod,
+    uint8 claimMethod,
     uint16 gracePeriodInDays,
     uint16 /*burnRatio*/
   ) external {
     _productTypes.push(ProductType(
       descriptionIpfsHash,
-      redeemMethod,
+      claimMethod,
       gracePeriodInDays
     ));
   }

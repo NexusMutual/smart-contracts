@@ -14,7 +14,7 @@ const hashUtf = str => keccak256(toUtf8Bytes(str));
 describe('closeOrder', function () {
   let signer, otherSigner;
 
-  let order, contractOrder, domain, domainHash, orderUID;
+  let order, contractOrder, domain, orderUID;
 
   let dai, weth, pool, swapOperator, cowSettlement, cowVaultRelayer, twap;
 
@@ -55,7 +55,6 @@ describe('closeOrder', function () {
 
     const { chainId } = await ethers.provider.getNetwork();
     domain = makeDomain(chainId, cowSettlement.address);
-    domainHash = ethers.utils._TypedDataEncoder.hashDomain(domain);
     orderUID = computeOrderUid(domain, order, order.receiver);
 
     // Fund the contracts
@@ -67,18 +66,18 @@ describe('closeOrder', function () {
     await (await twap.addPrice(weth.address, dai.address, 5000 * 10000)).wait(); // 1 weth = 5000 dai
 
     // place order
-    await swapOperator.placeOrder(contractOrder, domainHash, orderUID);
+    await swapOperator.placeOrder(contractOrder, orderUID);
   });
 
   it('is callable only by swap controller', async function () {
     // call with non-controller, should fail
     await expect(
-      swapOperator.connect(otherSigner).closeOrder(contractOrder, domainHash),
+      swapOperator.connect(otherSigner).closeOrder(contractOrder),
     ).to.revertedWith('SwapOp: only controller can execute');
 
     // call with controller, should succeed
     await expect(
-      swapOperator.connect(signer).closeOrder(contractOrder, domainHash),
+      swapOperator.connect(signer).closeOrder(contractOrder),
     ).to.not.be.reverted;
   });
 
@@ -91,21 +90,21 @@ describe('closeOrder', function () {
         [key]: makeWrongValue(value),
       };
       await expect(
-        swapOperator.closeOrder(wrongOrder, domainHash),
+        swapOperator.closeOrder(wrongOrder),
       ).to.revertedWith('SwapOp: Provided UID doesnt match calculated UID');
     }
 
     // call with an order that matches currentOrderUID, should succeed
     await expect(
-      swapOperator.closeOrder(contractOrder, domainHash),
+      swapOperator.closeOrder(contractOrder),
     ).to.not.be.reverted;
   });
 
   it('validates that theres an order in place', async function () {
     // cancel the current order, leaving no order in place
-    await expect(swapOperator.closeOrder(contractOrder, domainHash)).to.not.be.reverted;
+    await expect(swapOperator.closeOrder(contractOrder)).to.not.be.reverted;
 
-    await expect(swapOperator.closeOrder(contractOrder, domainHash)).to.be.revertedWith('SwapOp: No order in place');
+    await expect(swapOperator.closeOrder(contractOrder)).to.be.revertedWith('SwapOp: No order in place');
   });
 
   describe('canceling the presignature and allowance', function () {
@@ -113,7 +112,7 @@ describe('closeOrder', function () {
       expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
       expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(order.sellAmount.add(order.feeAmount));
 
-      await swapOperator.closeOrder(contractOrder, domainHash);
+      await swapOperator.closeOrder(contractOrder);
 
       expect(await cowSettlement.presignatures(orderUID)).to.equal(false);
       expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(0);
@@ -135,7 +134,7 @@ describe('closeOrder', function () {
       expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
       expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(order.sellAmount.div(2).add(order.feeAmount.div(2)));
 
-      await swapOperator.closeOrder(contractOrder, domainHash);
+      await swapOperator.closeOrder(contractOrder);
 
       // after closing, presignature = false and allowance = 0
       expect(await cowSettlement.presignatures(orderUID)).to.equal(false);
@@ -155,7 +154,7 @@ describe('closeOrder', function () {
       expect(await dai.balanceOf(swapOperator.address)).to.be.gt(0);
       expect(await weth.balanceOf(swapOperator.address)).to.eq(0);
 
-      await swapOperator.closeOrder(contractOrder, domainHash);
+      await swapOperator.closeOrder(contractOrder);
 
       // After closing, there's 0 allowance because all has been used up, but presignature is not canceled to save gas
       expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
@@ -166,7 +165,7 @@ describe('closeOrder', function () {
   it('clears the currentOrderUID variable', async function () {
     expect(await swapOperator.currentOrderUID()).to.eq(orderUID);
 
-    await swapOperator.closeOrder(contractOrder, domainHash);
+    await swapOperator.closeOrder(contractOrder);
 
     expect(await swapOperator.currentOrderUID()).to.eq('0x');
   });
@@ -174,7 +173,7 @@ describe('closeOrder', function () {
   describe('withdrawing buyToken to pool', function () {
     it('withdraws and unwraps ether if buyToken is weth', async function () {
       // Cancel current order
-      await swapOperator.closeOrder(contractOrder, domainHash);
+      await swapOperator.closeOrder(contractOrder);
 
       // Place new order that is selling dai for weth
       const newOrder = {
@@ -190,7 +189,7 @@ describe('closeOrder', function () {
       const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
       await dai.mint(pool.address, order.sellAmount.add(order.feeAmount));
       await weth.mint(cowVaultRelayer.address, order.buyAmount);
-      await swapOperator.placeOrder(newContractOrder, domainHash, newOrderUID);
+      await swapOperator.placeOrder(newContractOrder, newOrderUID);
 
       const initialPoolEth = await ethers.provider.getBalance(pool.address);
 
@@ -199,7 +198,7 @@ describe('closeOrder', function () {
       expect(await weth.balanceOf(swapOperator.address)).to.eq(order.buyAmount);
       expect(await ethers.provider.getBalance(pool.address)).to.eq(initialPoolEth);
 
-      await swapOperator.closeOrder(newContractOrder, domainHash);
+      await swapOperator.closeOrder(newContractOrder);
 
       expect(await weth.balanceOf(swapOperator.address)).to.eq(0);
       expect(await ethers.provider.getBalance(pool.address)).to.eq(initialPoolEth.add(order.buyAmount));
@@ -213,7 +212,7 @@ describe('closeOrder', function () {
 
       expect(await dai.balanceOf(swapOperator.address)).to.eq(order.buyAmount);
 
-      await swapOperator.closeOrder(contractOrder, domainHash);
+      await swapOperator.closeOrder(contractOrder);
 
       expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
       expect(await dai.balanceOf(pool.address)).to.eq(order.buyAmount);
@@ -228,7 +227,7 @@ describe('closeOrder', function () {
       expect(initialPoolEth).to.be.gt(0);
       expect(initialOperatorWeth).to.be.gt(0);
 
-      await swapOperator.closeOrder(contractOrder, domainHash);
+      await swapOperator.closeOrder(contractOrder);
 
       expect(await ethers.provider.getBalance(pool.address)).to.eq(initialPoolEth.add(initialOperatorWeth));
       expect(await weth.balanceOf(swapOperator.address)).to.eq(0);
@@ -236,7 +235,7 @@ describe('closeOrder', function () {
 
     it('transfers the erc20 token to pool if its not weth', async function () {
       // Cancel current order
-      await swapOperator.closeOrder(contractOrder, domainHash);
+      await swapOperator.closeOrder(contractOrder);
 
       // Place new order that is selling dai for weth
       const newOrder = {
@@ -252,14 +251,14 @@ describe('closeOrder', function () {
       const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
       await dai.mint(pool.address, order.sellAmount.add(order.feeAmount));
       await weth.mint(cowVaultRelayer.address, order.buyAmount);
-      await swapOperator.placeOrder(newContractOrder, domainHash, newOrderUID);
+      await swapOperator.placeOrder(newContractOrder, newOrderUID);
 
       const checkpointPoolDai = await dai.balanceOf(pool.address);
       const checkpointOperatorDai = await dai.balanceOf(swapOperator.address);
 
       expect(checkpointOperatorDai).to.eq(order.sellAmount.add(order.feeAmount));
 
-      await swapOperator.closeOrder(newContractOrder, domainHash);
+      await swapOperator.closeOrder(newContractOrder);
 
       expect(await dai.balanceOf(pool.address)).to.eq(checkpointPoolDai.add(checkpointOperatorDai));
       expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
@@ -268,7 +267,7 @@ describe('closeOrder', function () {
 
   describe('emitting OrderClosed event', function () {
     it('when order was not filled', async function () {
-      const tx = await swapOperator.closeOrder(contractOrder, domainHash);
+      const tx = await swapOperator.closeOrder(contractOrder);
       const rcp = await tx.wait();
 
       const event = rcp.events.find(e => e.event === 'OrderClosed');
@@ -280,7 +279,7 @@ describe('closeOrder', function () {
     it('when order was partially filled', async function () {
       await cowSettlement.fill(contractOrder, orderUID, order.sellAmount.div(2), order.feeAmount.div(2), order.buyAmount.div(2));
 
-      const tx = await swapOperator.closeOrder(contractOrder, domainHash);
+      const tx = await swapOperator.closeOrder(contractOrder);
       const rcp = await tx.wait();
 
       const event = rcp.events.find(e => e.event === 'OrderClosed');
@@ -292,7 +291,7 @@ describe('closeOrder', function () {
     it('when order was fully filled', async function () {
       await cowSettlement.fill(contractOrder, orderUID, order.sellAmount, order.feeAmount, order.buyAmount);
 
-      const tx = await swapOperator.closeOrder(contractOrder, domainHash);
+      const tx = await swapOperator.closeOrder(contractOrder);
       const rcp = await tx.wait();
 
       const event = rcp.events.find(e => e.event === 'OrderClosed');

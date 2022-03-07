@@ -19,6 +19,7 @@ contract CowSwapOperator {
   IWeth public immutable weth;
   ITwapOracle public immutable twapOracle;
   bytes public currentOrderUID;
+  bytes32 public immutable domainSeparator;
 
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -45,32 +46,29 @@ contract CowSwapOperator {
     swapController = _swapController;
     weth = IWeth(_weth);
     twapOracle = ITwapOracle(_twapOracle);
+    domainSeparator = cowSettlement.domainSeparator();
   }
 
   receive() external payable {}
 
-  function getDigest(GPv2Order.Data calldata order, bytes32 domainSeparator) public pure returns (bytes32) {
+  function getDigest(GPv2Order.Data calldata order) public view returns (bytes32) {
     bytes32 hash = GPv2Order.hash(order, domainSeparator);
     return hash;
   }
 
-  function getUID(GPv2Order.Data calldata order, bytes32 domainSeparator) public pure returns (bytes memory) {
+  function getUID(GPv2Order.Data calldata order) public view returns (bytes memory) {
     bytes memory uid = new bytes(56);
-    bytes32 digest = getDigest(order, domainSeparator);
+    bytes32 digest = getDigest(order);
     GPv2Order.packOrderUidParams(uid, digest, order.receiver, order.validTo);
     return uid;
   }
 
-  function placeOrder(
-    GPv2Order.Data calldata order,
-    bytes32 domainSeparator,
-    bytes calldata orderUID
-  ) public onlyController {
+  function placeOrder(GPv2Order.Data calldata order, bytes calldata orderUID) public onlyController {
     // Validate there's no current order going on
     require(currentOrderUID.length == 0, 'SwapOp: an order is already in place');
 
     // Order UID verification
-    validateUID(order, domainSeparator, orderUID);
+    validateUID(order, orderUID);
 
     // Validate basic CoW params
     validateBasicCowParams(order);
@@ -126,11 +124,11 @@ contract CowSwapOperator {
     emit OrderPlaced(order);
   }
 
-  function closeOrder(GPv2Order.Data calldata order, bytes32 domainSeparator) external onlyController {
+  function closeOrder(GPv2Order.Data calldata order) external onlyController {
     // Validate there is an order in place
     require(currentOrderUID.length > 0, 'SwapOp: No order in place');
 
-    validateUID(order, domainSeparator, currentOrderUID);
+    validateUID(order, currentOrderUID);
 
     // Check how much of the order was filled, and if it was fully filled
     uint256 filledAmount = cowSettlement.filledAmount(currentOrderUID);
@@ -191,12 +189,8 @@ contract CowSwapOperator {
     token.approve(cowVaultRelayer, amount); // infinite approval
   }
 
-  function validateUID(
-    GPv2Order.Data calldata order,
-    bytes32 domainSeparator,
-    bytes memory providedOrderUID
-  ) internal pure {
-    bytes memory calculatedUID = getUID(order, domainSeparator);
+  function validateUID(GPv2Order.Data calldata order, bytes memory providedOrderUID) internal view {
+    bytes memory calculatedUID = getUID(order);
     require(
       keccak256(calculatedUID) == keccak256(providedOrderUID),
       'SwapOp: Provided UID doesnt match calculated UID'

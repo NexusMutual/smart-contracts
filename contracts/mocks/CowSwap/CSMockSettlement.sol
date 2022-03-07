@@ -7,11 +7,19 @@ import '../../external/cow/GPv2Order.sol';
 contract CSMockSettlement {
   CSMockVaultRelayer public immutable vaultRelayer;
   mapping(bytes => uint256) public filledAmount;
-
   mapping(bytes => bool) public presignatures;
+  bytes32 public immutable domainSeparator;
+
+  bytes32 private constant DOMAIN_TYPE_HASH =
+    keccak256('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)');
+  bytes32 private constant DOMAIN_NAME = keccak256('Gnosis Protocol');
+  bytes32 private constant DOMAIN_VERSION = keccak256('v2');
 
   constructor(address _vault) {
     vaultRelayer = CSMockVaultRelayer(_vault);
+    domainSeparator = keccak256(
+      abi.encode(DOMAIN_TYPE_HASH, DOMAIN_NAME, DOMAIN_VERSION, block.chainid, address(this))
+    );
   }
 
   function setPreSignature(bytes memory orderUID, bool signed) external {

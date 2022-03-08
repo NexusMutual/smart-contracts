@@ -3,6 +3,7 @@ const { constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
 const { assert } = require('chai');
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
+const { bnRoughlyEqual } = require('../utils').helpers;
 
 async function createStakingPool (
   cover, productId, capacity, targetPrice, activeCover, stakingPoolCreator, stakingPoolManager, currentPrice,
@@ -34,12 +35,12 @@ async function assertCoverFields (
 
   const segment = await cover.coverSegments(coverId, segmentId);
 
-  await assert.equal(storedCoverData.productId, productId);
-  await assert.equal(storedCoverData.payoutAsset, payoutAsset);
-  await assert.equal(storedCoverData.amountPaidOut, '0');
-  await assert.equal(segment.period, period);
-  await assert.equal(segment.amount.toString(), amount.toString());
-  await assert.equal(segment.priceRatio.toString(), BigNumber.from(targetPriceRatio).mul(period).div(3600 * 24 * 365).toString());
+  assert.equal(storedCoverData.productId, productId);
+  assert.equal(storedCoverData.payoutAsset, payoutAsset);
+  assert.equal(storedCoverData.amountPaidOut, '0');
+  assert.equal(segment.period, period);
+  assert.equal(segment.amount.toString(), amount.toString());
+  bnRoughlyEqual(segment.priceRatio, BigNumber.from(targetPriceRatio));
 }
 
 async function buyCoverOnOnePool (
@@ -71,6 +72,10 @@ async function buyCoverOnOnePool (
 
   const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator).mul(period).div(3600 * 24 * 365);
 
+  console.log({
+    expectedPremium: expectedPremium.toString()
+  })
+
   await cover.connect(member1).buyCover(
     {
       owner: coverBuyer1.address,
@@ -89,6 +94,8 @@ async function buyCoverOnOnePool (
       value: expectedPremium,
     },
   );
+
+  return expectedPremium;
 }
 
 function toDecimal (x) {

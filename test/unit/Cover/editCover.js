@@ -3,7 +3,7 @@ const { ethers: { utils: { parseEther } } } = require('hardhat');
 const { time, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 const { createStakingPool, assertCoverFields, buyCoverOnOnePool } = require('./helpers');
 
-describe('editCover', function () {
+describe.only('editCover', function () {
 
   const coverBuyFixture = {
     productId: 0,
@@ -14,12 +14,12 @@ describe('editCover', function () {
 
     targetPriceRatio: '260',
     priceDenominator: '10000',
-    activeCover: parseEther('8000'),
+    activeCover: parseEther('5000'),
     capacity: parseEther('10000'),
     capacityFactor: '10000',
   };
 
-  it('should edit purchased cover and increase amount', async function () {
+  it.only('should edit purchased cover and increase amount', async function () {
     const { cover } = this;
 
     const {
@@ -36,9 +36,8 @@ describe('editCover', function () {
       priceDenominator,
     } = coverBuyFixture;
 
-    await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const expectedPremium = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
-    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
     const expectedCoverId = '0';
 
     const increasedAmount = amount.mul(2);
@@ -54,7 +53,7 @@ describe('editCover', function () {
         payoutAsset,
         amount: increasedAmount,
         period,
-        maxPremiumInAsset: expectedEditPremium,
+        maxPremiumInAsset: expectedEditPremium.add(1),
         paymentAsset: payoutAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
@@ -62,7 +61,7 @@ describe('editCover', function () {
       },
       [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
       {
-        value: extraPremium,
+        value: extraPremium.add(1),
       },
     );
     const receipt = await tx.wait();

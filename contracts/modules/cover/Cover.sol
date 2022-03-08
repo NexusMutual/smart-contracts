@@ -19,6 +19,7 @@ import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
+import "hardhat/console.sol";
 
 import "./MinimalBeaconProxy.sol";
 
@@ -196,10 +197,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     _coverSegments[newCoverId].push(
       CoverSegment(
-        SafeUintCast.toUint96(sumAssured * 10 ** 18),
-        SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days),
-        SafeUintCast.toUint32(coverPeriodInDays * 1 days),
-        uint16(0)
+        SafeUintCast.toUint96(sumAssured * 10 ** 18), // amount
+        SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days), // start
+        SafeUintCast.toUint32(coverPeriodInDays * 1 days), // period
+        uint16(0) // priceRatio
       )
     );
 
@@ -302,11 +303,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       );
     }
 
+    console.log("totalPremiumInNXM", totalPremiumInNXM);
+    console.log("totalCoverAmountInNXM", totalCoverAmountInNXM);
+    console.log("totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM", totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM);
+
+
+    // priceRatio is normalized on a per year basis (eg. 1.5% per year)
+    uint16 priceRatio = SafeUintCast.toUint16(totalPremiumInNXM * PRICE_DENOMINATOR * MAX_COVER_PERIOD / params.period / totalCoverAmountInNXM);
+    console.log("priceRatio", priceRatio);
+
     _coverSegments[coverId].push(CoverSegment(
-        SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18),
-        uint32(block.timestamp + 1),
-        SafeUintCast.toUint32(params.period),
-        SafeUintCast.toUint16(totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM)
+        SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18), // amount
+        uint32(block.timestamp + 1), // start
+        SafeUintCast.toUint32(params.period), // period
+        priceRatio
       ));
 
     return totalPremiumInNXM;
@@ -378,10 +388,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint refundInCoverAsset =
       lastCoverSegment.priceRatio * lastCoverSegment.amount
       / PRICE_DENOMINATOR * remainingPeriod
-      / lastCoverSegment.period;
+      / MAX_COVER_PERIOD;
 
-    // update the price ratio beased on the shorter period
-    lastCoverSegment.priceRatio = SafeUintCast.toUint16(lastCoverSegment.priceRatio * remainingPeriod / lastCoverSegment.period);
     // edit cover so it ends at the current block
     lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
 
@@ -415,6 +423,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     (, uint8 paymentAssetDecimals, ) = _pool.assets(buyCoverParams.paymentAsset);
 
     uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
+
+    console.log("premiumInPaymentAsset", premiumInPaymentAsset);
+    console.log("maxPremiumInPaymentAsset", buyCoverParams.maxPremiumInAsset);
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (buyCoverParams.payWithNXM) {
@@ -429,7 +440,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     // calculate the refund value in the payment asset
     uint refundInPaymentAsset = refundInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
-      // retrieve extra required payment
+
+    console.log("refundInNXM", refundInNXM);
+    console.log("refundInPaymentAsset", refundInPaymentAsset);
+
+    // retrieve extra required payment
     retrievePayment(
       premiumInPaymentAsset - refundInPaymentAsset,
       buyCoverParams.paymentAsset,
@@ -480,6 +495,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     if (paymentAsset == 0) {
 
       uint premiumWithCommission = premium + commission;
+      console.log("premiumWithCommission", premiumWithCommission);
+      console.log("msg.value", msg.value);
       require(msg.value >= premiumWithCommission, "Cover: Insufficient ETH sent");
 
       uint remainder = msg.value - premiumWithCommission;

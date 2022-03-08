@@ -77,12 +77,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   */
   uint32 public coverAssetsFallback;
 
-  /*
-    Global active cover amount per asset.
-   */
-  mapping(uint24 => uint96) public totalActiveCoverAmountInAsset;
-  mapping(uint24 => mapping(uint => uint96)) public totalActiveCoverInAssetExpiryBucket;
-  mapping(uint24 => uint32) public lastGlobalBuckets;
+  // Global active cover amount per asset.
+  mapping(uint24 => uint96) public totalActiveCoverAmountForAsset;
 
 
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
@@ -110,14 +106,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     );
     stakingPoolImplementation =  _stakingPoolImplementation;
     coverNFT = _coverNFT;
-  }
-
-  function initialize() public {
-    require(lastGlobalBuckets[0] == 0, "Cover: Already initalized");
-
-    uint32 initialBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
-    lastGlobalBuckets[0] = initialBucket;
-    lastGlobalBuckets[1] = initialBucket;
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -264,7 +252,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint coverId = _coverData.length - 1;
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
 
-    updateGlobalActiveCoverAmountPerAsset(params.period, params.amount, params.payoutAsset);
+    totalActiveCoverAmountForAsset[params.payoutAsset] += uint96(params.amount);
 
     emit CoverBought(coverId, params.productId, 0, msg.sender);
     return coverId;
@@ -373,10 +361,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         originalPoolAllocations[i].premiumInNXM =
         originalPoolAllocations[i].premiumInNXM * (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
       }
-
-      rollbackGlobalActiveCoverAmountPerAsset(
-        lastCoverSegment.amount, lastCoverSegment.start + lastCoverSegment.period, cover.payoutAsset
-      );
     }
 
     uint refundInCoverAsset =
@@ -392,7 +376,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset);
 
-    updateGlobalActiveCoverAmountPerAsset(buyCoverParams.period, buyCoverParams.amount, buyCoverParams.payoutAsset);
+    // update total cover amount for asset by decreasing the previous amount and adding the new amount
+    totalActiveCoverAmountForAsset[cover.payoutAsset] +=
+      totalActiveCoverAmountForAsset[cover.payoutAsset] - uint96(lastCoverSegment.amount) + uint96(buyCoverParams.amount);
 
     emit CoverEdited(coverId, cover.productId, lastCoverSegmentIndex + 1, msg.sender);
   }
@@ -530,35 +516,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     }
 
     _tokenController.burnFrom(msg.sender, price);
-  }
-
-  /* ========== Active cover amount tracking ========== */
-
-  function updateGlobalActiveCoverAmountPerAsset(uint period, uint amountToCover, uint24 assetId) internal {
-
-    uint activeCoverAmount = getGlobalActiveCoverAmountForAsset(assetId);
-    uint32 currentBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
-
-    totalActiveCoverAmountInAsset[assetId] = uint96(activeCoverAmount + amountToCover);
-    lastGlobalBuckets[assetId] = currentBucket;
-    totalActiveCoverInAssetExpiryBucket[assetId][(block.timestamp + period) / BUCKET_SIZE] = uint96(amountToCover);
-  }
-
-  function rollbackGlobalActiveCoverAmountPerAsset(uint amountToRollback, uint endTimestamp, uint24 assetId) internal {
-    uint bucket = endTimestamp / BUCKET_SIZE;
-    totalActiveCoverInAssetExpiryBucket[assetId][bucket] -= uint96(amountToRollback);
-  }
-
-  function getGlobalActiveCoverAmountForAsset(uint24 assetId) public view returns (uint) {
-    uint currentBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
-
-    uint activeCoverAmount = totalActiveCoverAmountInAsset[assetId];
-    uint32 lastBucket = lastGlobalBuckets[assetId];
-    while (lastBucket < currentBucket) {
-      ++lastBucket;
-      activeCoverAmount -= totalActiveCoverInAssetExpiryBucket[assetId][lastBucket];
-    }
-    return activeCoverAmount;
   }
 
   /* ========== Staking Pool creation ========== */

@@ -94,9 +94,14 @@ contract CowSwapOperator {
       );
     }
 
+    // Validate minimum pool eth reserve
+    uint256 totalOutAmount = orderOutAmount(order);
+    if (isSellingEth(order)) {
+      require(address(pool).balance - totalOutAmount >= pool.minPoolEth(), 'SwapOp: Pool eth balance below min');
+    }
+
     // Validate oracle price
     // uint256 finalSlippage = Math.max(buyTokenSwapDetails.maxSlippageRatio, sellTokenSwapDetails.maxSlippageRatio);
-    uint256 totalOutAmount = orderOutAmount(order);
     uint256 finalSlippage = MAX_SLIPPAGE_DENOMINATOR; // Slippage TBD. 100% for now
     uint256 oracleBuyAmount = twapOracle.consult(address(order.sellToken), totalOutAmount, address(order.buyToken));
     uint256 maxSlippageAmount = (oracleBuyAmount * finalSlippage) / MAX_SLIPPAGE_DENOMINATOR;

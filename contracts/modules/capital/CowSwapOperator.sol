@@ -80,8 +80,11 @@ contract CowSwapOperator {
     if (!isSellingEth(order)) {
       require(sellTokenDetails.minAmount != 0 || sellTokenDetails.maxAmount != 0, 'SwapOp: sellToken is not enabled');
       uint256 sellTokenBalance = order.sellToken.balanceOf(address(pool));
-      require(sellTokenBalance > sellTokenDetails.maxAmount, 'SwapOp: can only sell asset when > max');
-      require(sellTokenBalance - totalOutAmount >= sellTokenDetails.minAmount, 'SwapOp: swap brings asset below min');
+      require(sellTokenBalance > sellTokenDetails.maxAmount, 'SwapOp: can only sell asset when > maxAmount');
+      require(
+        sellTokenBalance - totalOutAmount >= sellTokenDetails.minAmount,
+        'SwapOp: swap brings sellToken below min'
+      );
     }
 
     // Validate swapping is enabled for buyToken (eth always enabled)
@@ -89,6 +92,9 @@ contract CowSwapOperator {
     if (!isBuyingEth(order)) {
       // Eth is always enabled
       require(buyTokenDetails.minAmount != 0 || buyTokenDetails.maxAmount != 0, 'SwapOp: buyToken is not enabled');
+      uint256 buyTokenBalance = order.buyToken.balanceOf(address(pool));
+      require(buyTokenBalance < buyTokenDetails.minAmount, 'SwapOp: can only buy asset when < minAmount');
+      require(buyTokenBalance + order.buyAmount <= buyTokenDetails.maxAmount, 'SwapOp: swap brings buyToken above max');
     }
 
     // Validate minimum pool eth reserve

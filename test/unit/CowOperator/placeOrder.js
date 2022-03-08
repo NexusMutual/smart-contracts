@@ -247,7 +247,7 @@ describe('placeOrder', function () {
       await dai.setBalance(pool.address, daiMinAmount.add(sellAmount).add(feeAmount).sub(1));
       await expect(
         swapOperator.placeOrder(newContractOrder, newOrderUID),
-      ).to.be.revertedWith('SwapOp: swap brings asset below min');
+      ).to.be.revertedWith('SwapOp: swap brings sellToken below min');
 
       // Set balance so it can exactly cover totalOutAmount
       await dai.setBalance(pool.address, daiMinAmount.add(sellAmount).add(feeAmount));
@@ -296,6 +296,34 @@ describe('placeOrder', function () {
       await expect(
         swapOperator.placeOrder(contractOrder, orderUID),
       ).to.be.revertedWith('SwapOp: buyToken is not enabled');
+    });
+  });
+
+  describe('validating that buyToken is within boundaries', function () {
+    it('only allows to buy when balance is below minAmount', async function () {
+      // set buyToken balance to be minAmount, txn should fail
+      await dai.setBalance(pool.address, daiMinAmount);
+      await expect(swapOperator.placeOrder(contractOrder, orderUID)).to.be.revertedWith('SwapOp: can only buy asset when < minAmount');
+
+      // set buyToken balance to be < minAmount, txn should succeed
+      await dai.setBalance(pool.address, daiMinAmount.sub(1));
+      await swapOperator.placeOrder(contractOrder, orderUID);
+    });
+
+    it('the swap cannot bring buyToken above maxAmount', async function () {
+      await dai.setBalance(pool.address, 0);
+
+      // try to place an order that will bring balance 1 wei above max, should fail
+      const bigOrder = { ...order, buyAmount: daiMaxAmount.add(1) };
+      const bigContractOrder = makeContractOrder(bigOrder);
+      const bigOrderUID = computeOrderUid(domain, bigOrder, bigOrder.receiver);
+      await expect(swapOperator.placeOrder(bigContractOrder, bigOrderUID)).to.be.revertedWith('SwapOp: swap brings buyToken above max');
+
+      // place an order that will bring balance exactly to maxAmount, should succeed
+      const okOrder = { ...order, buyAmount: daiMaxAmount };
+      const okContractOrder = makeContractOrder(okOrder);
+      const okOrderUID = computeOrderUid(domain, okOrder, okOrder.receiver);
+      await swapOperator.placeOrder(okContractOrder, okOrderUID);
     });
   });
 

@@ -61,12 +61,13 @@ describe('closeOrder', function () {
     twap = contracts.twap;
 
     // Build order struct, domain separator and calculate UID
+    const lastBlockTimestamp = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
     order = {
       sellToken: weth.address,
       buyToken: dai.address,
       sellAmount: parseEther('0.999'),
       buyAmount: parseEther('3000'),
-      validTo: Math.floor(new Date().getTime() / 1000 + 650),
+      validTo: lastBlockTimestamp + 650,
       appData: hexZeroPad(0, 32),
       feeAmount: parseEther('0.001'),
       kind: 'sell',

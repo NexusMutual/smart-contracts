@@ -149,12 +149,13 @@ contract StakingVe is ERC721 {
 
     firstActiveGroupId = _firstActiveGroupId;
     firstActiveBucketId = _firstActiveBucketId;
-    activeStake = _activeStake;
 
+    activeStake = _activeStake;
     rewardPerSecond = _rewardPerSecond;
     accRewardPerPoolShare = _accRewardPerShare;
     stakeSharesSupply = _stakeSharesSupply;
     rewardsSharesSupply = _rewardsSharesSupply;
+    lastRewardUpdate = _lastRewardUpdate;
   }
 
   function deposit(

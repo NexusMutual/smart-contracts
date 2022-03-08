@@ -84,6 +84,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
   event CoverBought(uint coverId, uint productId, uint segmentId, address buyer);
   event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
+  event CoverExpired(uint coverId, uint segmentId);
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -179,7 +180,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       CoverData(
         uint24(productId),
         currencyCode == "ETH" ? 0 : 1, //payoutAsset
-        0 // amountPaidOut
+        0, // amountPaidOut
+        false
       )
     );
 
@@ -246,7 +248,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     _coverData.push(CoverData(
         params.productId,
         params.payoutAsset,
-        0 // amountPaidOut
+        0, // amountPaidOut
+        false
       ));
 
     uint coverId = _coverData.length - 1;
@@ -570,6 +573,27 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function productsCount() external override view returns (uint) {
     return _products.length;
+  }
+
+  /*========== COVER EXPIRATION ========== */
+  
+  function expireCovers(uint[] calldata coverIds) external {
+    for (uint i = 0; i < coverIds.length; i++) {
+      expireCover(coverIds[i]);
+    }
+  }
+
+  function expireCover(uint coverId) public {
+    CoverData memory cover = _coverData[coverId];
+    require(!cover.expired, "Cover: Cover is already expired.");
+
+    uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;
+    CoverSegment memory lastCoverSegment = _coverSegments[coverId][lastCoverSegmentIndex];
+    if (lastCoverSegment.period + lastCoverSegment.start > block.timestamp) {
+      cover.expired = true;
+      totalActiveCoverAmountForAsset[cover.payoutAsset] -= SafeUintCast.toUint96(lastCoverSegment.amount);
+      emit CoverExpired(coverId, lastCoverSegmentIndex);
+    }
   }
 
   /* ========== PRODUCT CONFIGURATION ========== */

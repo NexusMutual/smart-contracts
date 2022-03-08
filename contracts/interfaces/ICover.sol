@@ -36,6 +36,7 @@ struct CoverData {
   uint24 productId;
   uint8 payoutAsset;
   uint96 amountPaidOut;
+  bool expired;
 }
 
 struct CoverSegment {

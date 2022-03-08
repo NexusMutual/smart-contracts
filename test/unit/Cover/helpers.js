@@ -111,8 +111,6 @@ async function buyCoverOnOnePool (
 
 const MAX_COVER_PERIOD = 3600 * 24 * 365;
 
-const PRICE_DENOMINATOR = 10000;
-
 function toDecimal (x) {
   return new Decimal(x.toString());
 }
@@ -121,6 +119,5 @@ module.exports = {
   createStakingPool,
   assertCoverFields,
   buyCoverOnOnePool,
-  MAX_COVER_PERIOD,
-  PRICE_DENOMINATOR
+  MAX_COVER_PERIOD
 };

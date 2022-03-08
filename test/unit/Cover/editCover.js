@@ -1,7 +1,7 @@
 const { assert, expect } = require('chai');
 const { ethers: { utils: { parseEther } } } = require('hardhat');
 const { time, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
-const { createStakingPool, assertCoverFields, buyCoverOnOnePool, MAX_COVER_PERIOD, PRICE_DENOMINATOR } = require('./helpers');
+const { createStakingPool, assertCoverFields, buyCoverOnOnePool, MAX_COVER_PERIOD } = require('./helpers');
 
 describe('editCover', function () {
 
@@ -32,6 +32,7 @@ describe('editCover', function () {
       payoutAsset,
       period,
       amount,
+      priceDenominator,
       targetPriceRatio
     } = coverBuyFixture;
 
@@ -39,7 +40,7 @@ describe('editCover', function () {
 
     const increasedAmount = amount.mul(2);
 
-    const expectedRefund = segment.amount.mul(segment.priceRatio).mul(segment.period).div(MAX_COVER_PERIOD).div(PRICE_DENOMINATOR);
+    const expectedRefund = segment.amount.mul(segment.priceRatio).mul(segment.period).div(MAX_COVER_PERIOD).div(priceDenominator);
 
     const expectedEditPremium = expectedPremium.mul(2);
     const extraPremium = expectedEditPremium.sub(expectedRefund);
@@ -93,7 +94,7 @@ describe('editCover', function () {
 
     const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
-    const expectedRefund = segment.amount.mul(segment.priceRatio).mul(segment.period).div(MAX_COVER_PERIOD).div(PRICE_DENOMINATOR);
+    const expectedRefund = segment.amount.mul(segment.priceRatio).mul(segment.period).div(MAX_COVER_PERIOD).div(priceDenominator);
 
     const expectedEditPremium = expectedPremium.mul(2);
     const extraPremium = expectedEditPremium.sub(expectedRefund);
@@ -151,7 +152,7 @@ describe('editCover', function () {
 
     const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
-    const expectedRefund = segment.amount.mul(segment.priceRatio).mul(segment.period).div(MAX_COVER_PERIOD).div(PRICE_DENOMINATOR);
+    const expectedRefund = segment.amount.mul(segment.priceRatio).mul(segment.period).div(MAX_COVER_PERIOD).div(priceDenominator);
 
     const expectedEditPremium = expectedPremium.mul(4);
     const extraPremium = expectedEditPremium.sub(expectedRefund);
@@ -210,7 +211,7 @@ describe('editCover', function () {
 
     const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
-    const expectedRefund = segment.amount.mul(segment.priceRatio).mul(segment.period).div(MAX_COVER_PERIOD).div(PRICE_DENOMINATOR);
+    const expectedRefund = segment.amount.mul(segment.priceRatio).mul(segment.period).div(MAX_COVER_PERIOD).div(priceDenominator);
 
     const expectedEditPremium = expectedPremium;
     const extraPremium = expectedEditPremium.sub(expectedRefund);
@@ -267,7 +268,7 @@ describe('editCover', function () {
 
     const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
-    const expectedRefund = segment.amount.mul(segment.priceRatio).mul(segment.period).div(MAX_COVER_PERIOD).div(PRICE_DENOMINATOR);
+    const expectedRefund = segment.amount.mul(segment.priceRatio).mul(segment.period).div(MAX_COVER_PERIOD).div(priceDenominator);
     const increasedAmount = amount.mul(2);
     const expectedEditPremium = expectedPremium.mul(2);
     const extraPremium = expectedEditPremium.sub(expectedRefund);
@@ -313,7 +314,7 @@ describe('editCover', function () {
 
     const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
-    const expectedRefund = segment.amount.mul(segment.priceRatio).mul(segment.period).div(MAX_COVER_PERIOD).div(PRICE_DENOMINATOR);
+    const expectedRefund = segment.amount.mul(segment.priceRatio).mul(segment.period).div(MAX_COVER_PERIOD).div(priceDenominator);
     const increasedAmount = amount.mul(2);
     const expectedEditPremium = expectedPremium.mul(2);
     const extraPremium = expectedEditPremium.sub(expectedRefund);
@@ -353,13 +354,14 @@ describe('editCover', function () {
       payoutAsset,
       amount,
       period,
+      priceDenominator
     } = coverBuyFixture;
 
     await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
-    const expectedRefund = segment.amount.mul(segment.priceRatio).mul(segment.period).div(MAX_COVER_PERIOD).div(PRICE_DENOMINATOR);
+    const expectedRefund = segment.amount.mul(segment.priceRatio).mul(segment.period).div(MAX_COVER_PERIOD).div(priceDenominator);
     const increasedAmount = amount.mul(2);
     const expectedEditPremium = expectedPremium.mul(2);
     const extraPremium = expectedEditPremium.sub(expectedRefund);

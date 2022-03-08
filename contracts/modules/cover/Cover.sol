@@ -303,14 +303,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       );
     }
 
-    console.log("totalPremiumInNXM", totalPremiumInNXM);
-    console.log("totalCoverAmountInNXM", totalCoverAmountInNXM);
-    console.log("totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM", totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM);
-
-
     // priceRatio is normalized on a per year basis (eg. 1.5% per year)
     uint16 priceRatio = SafeUintCast.toUint16(totalPremiumInNXM * PRICE_DENOMINATOR * MAX_COVER_PERIOD / params.period / totalCoverAmountInNXM);
-    console.log("priceRatio", priceRatio);
 
     _coverSegments[coverId].push(CoverSegment(
         SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18), // amount
@@ -424,8 +418,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
 
-    console.log("premiumInPaymentAsset", premiumInPaymentAsset);
-    console.log("maxPremiumInPaymentAsset", buyCoverParams.maxPremiumInAsset);
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (buyCoverParams.payWithNXM) {
@@ -440,9 +432,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     // calculate the refund value in the payment asset
     uint refundInPaymentAsset = refundInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
-
-    console.log("refundInNXM", refundInNXM);
-    console.log("refundInPaymentAsset", refundInPaymentAsset);
 
     // retrieve extra required payment
     retrievePayment(
@@ -495,8 +484,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     if (paymentAsset == 0) {
 
       uint premiumWithCommission = premium + commission;
-      console.log("premiumWithCommission", premiumWithCommission);
-      console.log("msg.value", msg.value);
       require(msg.value >= premiumWithCommission, "Cover: Insufficient ETH sent");
 
       uint remainder = msg.value - premiumWithCommission;

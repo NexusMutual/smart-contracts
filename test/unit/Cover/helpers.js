@@ -1,7 +1,7 @@
 const { artifacts, ethers: { utils: { parseEther }, BigNumber } } = require('hardhat');
 const { constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
-const { assert } = require('chai');
+const { assert, expect} = require('chai');
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 const { bnRoughlyEqual } = require('../utils').helpers;
 
@@ -72,11 +72,7 @@ async function buyCoverOnOnePool (
 
   const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator).mul(period).div(3600 * 24 * 365);
 
-  console.log({
-    expectedPremium: expectedPremium.toString()
-  })
-
-  await cover.connect(member1).buyCover(
+  const tx = await cover.connect(member1).buyCover(
     {
       owner: coverBuyer1.address,
       productId,
@@ -95,8 +91,27 @@ async function buyCoverOnOnePool (
     },
   );
 
-  return expectedPremium;
+  const { events } = await tx.wait();
+  const coverBoughtEvent = events.filter(e => e.event === 'CoverBought')[0];
+
+  const coverId = coverBoughtEvent.args.coverId;
+  const segmentId = coverBoughtEvent.args.segmentId;
+
+  const storedCoverData = await cover.coverData(coverId);
+  const segment = await cover.coverSegments(coverId, segmentId);
+
+  return {
+    expectedPremium,
+    storedCoverData,
+    segment,
+    coverId,
+    segmentId
+  };
 }
+
+const MAX_COVER_PERIOD = 3600 * 24 * 365;
+
+const PRICE_DENOMINATOR = 10000;
 
 function toDecimal (x) {
   return new Decimal(x.toString());
@@ -106,4 +121,6 @@ module.exports = {
   createStakingPool,
   assertCoverFields,
   buyCoverOnOnePool,
+  MAX_COVER_PERIOD,
+  PRICE_DENOMINATOR
 };

@@ -198,6 +198,21 @@ describe('placeOrder', function () {
     });
   });
 
+  it('validates the feeAmount is at most 1% of sellAmount', async function () {
+    // Order with fee slightly above 1%, should fail
+    const invalidOrder = { ...order, sellAmount: 9999, feeAmount: 100 };
+    const invalidContractOrder = makeContractOrder(invalidOrder);
+    const invalidOrderUID = computeOrderUid(domain, invalidOrder, invalidOrder.receiver);
+    await expect(swapOperator.placeOrder(invalidContractOrder, invalidOrderUID))
+      .to.be.revertedWith('SwapOp: Fee is above 1% of sellAmount');
+
+    // Order with fee exactly 1%, should succeed
+    const validOrder = { ...order, sellAmount: 10000, feeAmount: 100 };
+    const validContractOrder = makeContractOrder(validOrder);
+    const validOrderUID = computeOrderUid(domain, validOrder, validOrder.receiver);
+    await swapOperator.placeOrder(validContractOrder, validOrderUID);
+  });
+
   describe('validating there are asset details for sellToken', function () {
     it('doesnt perform validation when sellToken is WETH, because eth is used', async function () {
       // Ensure eth (weth) is disabled by checking min and max amount

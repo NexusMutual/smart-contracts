@@ -73,6 +73,9 @@ contract CowSwapOperator {
     // Validate basic CoW params
     validateBasicCowParams(order);
 
+    // Validate feeAmount is not too high
+    require(order.sellAmount / order.feeAmount >= 100, 'SwapOp: Fee is above 1% of sellAmount');
+
     // Validate swapping is enabled for sellToken (eth always enabled)
     IPool pool = _pool();
     IPool.SwapDetails memory sellTokenDetails = pool.getAssetSwapDetails(address(order.sellToken));

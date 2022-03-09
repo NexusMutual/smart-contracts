@@ -20,6 +20,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   /* storage */
   Asset[] public override assets;
   mapping(address => SwapDetails) public swapDetails;
+  uint public swapValue;
 
   // contracts
   INXMToken public nxmToken;
@@ -123,6 +124,8 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
       total = total + assetValue;
     }
+
+    total += swapValue;
 
     return total;
   }
@@ -586,5 +589,9 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     }
 
     revert("Pool: Unknown parameter");
+  }
+
+  function setSwapValue(uint newValue) external onlySwapOperator whenNotPaused {
+    swapValue = newValue;
   }
 }

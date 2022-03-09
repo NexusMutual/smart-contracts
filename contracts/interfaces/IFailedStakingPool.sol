@@ -4,7 +4,7 @@ pragma solidity >=0.5.0;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 
-interface IStakingPool is IERC20 {
+interface IFailedStakingPool is IERC20 {
 
   struct AllocateCapacityParams {
     uint productId;

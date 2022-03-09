@@ -4,9 +4,9 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-v4/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
-import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/IFailedStakingPool.sol";
 
-contract StakingPool is IStakingPool, ERC20 {
+contract StakingPool is IFailedStakingPool, ERC20 {
 
 
   struct PoolBucket {

@@ -54,6 +54,11 @@ abstract contract StakingPool is IStakingPool, ERC721 {
     uint rewardPerSecondCut;
   }
 
+  struct Product {
+    uint capacityUsed;
+    uint lastBucket;
+  }
+
   struct ProductBucket {
     uint capacityCut;
   }
@@ -82,6 +87,11 @@ abstract contract StakingPool is IStakingPool, ERC721 {
 
   uint constant REWARDS_MULTIPLIER = 125;
   uint constant REWARDS_DENOMINATOR = 100;
+
+  modifier onlyCoverContract {
+    // TODO: restrict calls to cover contract only
+    _;
+  }
 
   constructor (
     string memory _name,
@@ -233,15 +243,55 @@ abstract contract StakingPool is IStakingPool, ERC721 {
     rewardsSharesSupply = _rewardsSharesSupply + newRewardsShares;
   }
 
-  // O(1)
-  function burn(uint amount) public {
+  struct AllocateCapacityParams {
+    uint productId;
+    uint amountInNXM;
+    uint reward;
+    uint period;
+  }
 
-    // TODO: restrict msg sender to Cover contract only
+  function allocateCapacity(AllocateCapacityParams memory params) public onlyCoverContract {
+
+    updateGroups();
+
+    uint capacityUsed = products[params.productId].capacityUsed;
+    uint lastBucket = products[params.productId].lastBucket;
+    uint currentBucket = block.timestamp / BUCKET_SIZE;
+    uint productId = params.productId;
+
+    while (lastBucket < currentBucket) {
+      ++lastBucket;
+      capacityUsed -= productBuckets[productId][lastBucket].capacityCut;
+    }
+
+    uint _activeStake = activeStake;
+    uint _stakeSharesSupply = stakeSharesSupply;
+    uint capacity;
+
+    // lazy bucket read: read bucket data only if more capacity is still needed
+    uint minGroup = (block.timestamp + params.period) / GROUP_SIZE;
+    uint maxGroup = (block.timestamp + maxGroups) / GROUP_SIZE;
+    // todo: read groups here
+  }
+
+  struct BurnParams {
+    uint productId;
+    uint amount;
+    uint start;
+    uint period;
+  }
+
+  // O(1)
+  function burn(BurnParams memory params) public onlyCoverContract {
+
     // TODO: free up the capacity used by the corresponding cover
     // TODO: check if it's worth restricting the burn to 99% of the active stake
 
     updateGroups();
-    activeStake -= amount;
+
+    uint _activeStake = activeStake;
+    uint burnAmount = params.amount;
+    activeStake = _activeStake > burnAmount ? _activeStake - burnAmount : 0;
   }
 
 }

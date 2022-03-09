@@ -5,8 +5,9 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/math/SafeCast.sol";
+import "../../interfaces/IStakingPool.sol";
 
-contract StakingVe is ERC721 {
+contract StakingPool is IStakingPool, ERC721 {
   using SafeCast for uint;
 
   /* storage */

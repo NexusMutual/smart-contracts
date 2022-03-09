@@ -26,10 +26,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   using SafeERC20 for IERC20;
 
   /* === CONSTANTS ==== */
-
-  uint public constant STAKE_SPEED_UNIT = 100000e18;
-  uint public constant PRICE_CURVE_EXPONENT = 7;
-  uint public constant MAX_PRICE_PERCENTAGE = 1e20;
+  
   uint public constant BUCKET_SIZE = 7 days;
   uint public constant REWARD_DENOMINATOR = 2;
 

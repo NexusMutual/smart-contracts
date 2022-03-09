@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
 import "../../interfaces/IFailedStakingPool.sol";
 
-contract StakingPool is IFailedStakingPool, ERC20 {
+contract FailedStakingPool is IFailedStakingPool, ERC20 {
 
 
   struct PoolBucket {

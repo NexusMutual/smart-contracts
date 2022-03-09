@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/math/SafeCast.sol";
 import "../../interfaces/IStakingPool.sol";
 
-contract StakingPool is IStakingPool, ERC721 {
+abstract contract StakingPool is IStakingPool, ERC721 {
   using SafeCast for uint;
 
   /* storage */

@@ -19,7 +19,6 @@ import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
-import "hardhat/console.sol";
 
 import "./MinimalBeaconProxy.sol";
 

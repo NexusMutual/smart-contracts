@@ -55,12 +55,13 @@ abstract contract StakingPool is IStakingPool, ERC721 {
   }
 
   struct Product {
-    uint capacityUsed;
+    uint weight;
+    uint currentAllocation;
     uint lastBucket;
   }
 
   struct ProductBucket {
-    uint capacityCut;
+    uint allocationCut;
   }
 
   // group id => amount
@@ -71,6 +72,9 @@ abstract contract StakingPool is IStakingPool, ERC721 {
 
   // product id => pool bucket id => ProductBucket
   mapping(uint => mapping(uint => ProductBucket)) public productBuckets;
+
+  // product id => Product
+  mapping(uint => Product) public products;
 
   // nft id => group id => amount of group shares
   mapping(uint => mapping(uint => uint)) public balanceOf;
@@ -84,9 +88,11 @@ abstract contract StakingPool is IStakingPool, ERC721 {
   // 7 * 13 = 91
   uint constant BUCKET_SIZE = 7 days;
   uint constant GROUP_SIZE = 91 days;
+  uint constant MAX_GROUPS = 9; // 8 whole quarters + 1 partial quarter
 
   uint constant REWARDS_MULTIPLIER = 125;
   uint constant REWARDS_DENOMINATOR = 100;
+  uint constant WEIGHT_DENOMINATOR = 100;
 
   modifier onlyCoverContract {
     // TODO: restrict calls to cover contract only
@@ -119,8 +125,8 @@ abstract contract StakingPool is IStakingPool, ERC721 {
     uint _lastRewardUpdate = lastRewardUpdate;
     uint _firstActiveGroupId = firstActiveGroupId;
 
-    // the group and pool bucket ids for the current timestamp
-    uint currentGroupId = block.timestamp / GROUP_SIZE;
+    // first group for the current timestamp
+    uint targetGroupId = block.timestamp / GROUP_SIZE;
 
     while (_firstActiveBucketId < currentBucketId) {
 
@@ -135,7 +141,7 @@ abstract contract StakingPool is IStakingPool, ERC721 {
       // should we expire a group?
       if (
         bucketEndTime % GROUP_SIZE != 0 ||
-        _firstActiveGroupId == currentGroupId
+        _firstActiveGroupId == targetGroupId
       ) {
         continue;
       }
@@ -243,35 +249,80 @@ abstract contract StakingPool is IStakingPool, ERC721 {
     rewardsSharesSupply = _rewardsSharesSupply + newRewardsShares;
   }
 
-  struct AllocateCapacityParams {
-    uint productId;
-    uint amountInNXM;
-    uint reward;
-    uint period;
-  }
-
-  function allocateCapacity(AllocateCapacityParams memory params) public onlyCoverContract {
+  function allocateCapacity(
+    uint productId,
+    uint amountInNXM,
+    uint period,
+    uint rewardRatio,
+    uint initialPriceRatio
+  ) public onlyCoverContract returns (uint newAllocation, uint premium) {
 
     updateGroups();
 
-    uint capacityUsed = products[params.productId].capacityUsed;
-    uint lastBucket = products[params.productId].lastBucket;
+    uint currentAllocation = products[productId].currentAllocation;
+    uint lastBucket = products[productId].lastBucket;
     uint currentBucket = block.timestamp / BUCKET_SIZE;
-    uint productId = params.productId;
 
     while (lastBucket < currentBucket) {
       ++lastBucket;
-      capacityUsed -= productBuckets[productId][lastBucket].capacityCut;
+      currentAllocation -= productBuckets[productId][lastBucket].allocationCut;
+    }
+
+    uint firstGroupId = block.timestamp / GROUP_SIZE;
+    // group expiration must exceed the cover period
+    uint firstUsableGroupId = (block.timestamp + period) / GROUP_SIZE;
+    uint unusableShares = 0;
+
+    for (uint i = firstGroupId; i < firstUsableGroupId; ++i) {
+      unusableShares += stakeGroups[i].stakeShares;
     }
 
     uint _activeStake = activeStake;
     uint _stakeSharesSupply = stakeSharesSupply;
-    uint capacity;
+    uint usableShares = _stakeSharesSupply - unusableShares;
 
-    // lazy bucket read: read bucket data only if more capacity is still needed
-    uint minGroup = (block.timestamp + params.period) / GROUP_SIZE;
-    uint maxGroup = (block.timestamp + maxGroups) / GROUP_SIZE;
-    // todo: read groups here
+    // can be used total
+    uint usableStake = _activeStake * usableShares / _stakeSharesSupply;
+    // can be used by this product
+    usableStake = usableStake * products[productId].weight / WEIGHT_DENOMINATOR;
+
+    // could happen if is 100% in-use or if product weight is changed
+    if (currentAllocation >= usableStake) {
+      return (0, 0);
+    }
+
+    uint maxAllocation = usableStake - currentAllocation;
+    newAllocation = min(amountInNXM, maxAllocation);
+
+    premium = calculatePremium(
+      currentAllocation,
+      maxAllocation,
+      newAllocation,
+      initialPriceRatio,
+      period
+    );
+
+    currentAllocation += newAllocation;
+    products[productId].currentAllocation = currentAllocation;
+
+    // ceil = fn(a, b) => (a + b - 1) / b
+    uint expireAtBucket = (block.timestamp + period + BUCKET_SIZE - 1) / BUCKET_SIZE;
+    productBuckets[productId][expireAtBucket].allocationCut += newAllocation;
+
+    // TODO: this is the other rewards denominator, we need a different name for the shares one
+    uint reward = premium * rewardRatio / REWARDS_DENOMINATOR;
+    reward;
+    // TODO: calculate and update the reward per second
+  }
+
+  function calculatePremium(
+    uint currentAllocation,
+    uint maxAllocation,
+    uint newAllocation,
+    uint initialPriceRatio,
+    uint period
+  ) public returns (uint) {
+    return 0;
   }
 
   struct BurnParams {
@@ -284,7 +335,7 @@ abstract contract StakingPool is IStakingPool, ERC721 {
   // O(1)
   function burn(BurnParams memory params) public onlyCoverContract {
 
-    // TODO: free up the capacity used by the corresponding cover
+    // TODO: free up the stake used by the corresponding cover
     // TODO: check if it's worth restricting the burn to 99% of the active stake
 
     updateGroups();
@@ -292,6 +343,16 @@ abstract contract StakingPool is IStakingPool, ERC721 {
     uint _activeStake = activeStake;
     uint burnAmount = params.amount;
     activeStake = _activeStake > burnAmount ? _activeStake - burnAmount : 0;
+  }
+
+  /* utils */
+
+  function min(uint a, uint b) internal pure returns (uint) {
+    return a < b ? a : b;
+  }
+
+  function max(uint a, uint b) internal pure returns (uint) {
+    return a > b ? a : b;
   }
 
 }

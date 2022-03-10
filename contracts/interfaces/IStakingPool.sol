@@ -6,17 +6,6 @@ import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 
 interface IStakingPool is IERC721 {
 
-  struct AllocateCapacityParams {
-    uint productId;
-    uint coverAmount;
-    uint rewardsDenominator;
-    uint period;
-    uint globalCapacityRatio;
-    uint globalRewardsRatio;
-    uint capacityReductionRatio;
-    uint initialPrice;
-  }
-
   struct Weight {
     uint productId;
     uint weight;
@@ -26,7 +15,7 @@ interface IStakingPool is IERC721 {
 
   function operatorTransferFrom(address from, address to, uint256 amount) external;
 
-  function allocateCapacity(AllocateCapacityParams calldata params) external returns (uint allocatedNXM, uint premium);
+  function allocateCapacity(uint productId, uint amountInNXM, uint period, uint rewardRatio, uint initialPriceRatio) external returns (uint allocatedNXM, uint premium);
 
   function freeCapacity(
     uint productId,

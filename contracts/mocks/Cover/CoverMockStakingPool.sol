@@ -46,10 +46,14 @@ abstract contract CoverMockStakingPool is IStakingPool, ERC721 {
   }
 
   function allocateCapacity(
-    AllocateCapacityParams calldata params
+    uint productId,
+    uint amountInNXM,
+    uint period,
+    uint rewardRatio,
+    uint initialPriceRatio
   ) external /*override*/ returns (uint coveredAmountInNXM, uint premiumInNXM) {
-    usedCapacity[params.productId] += params.coverAmount;
-    return (params.coverAmount, mockPrices[params.productId] * params.coverAmount / 10000);
+    usedCapacity[productId] += amountInNXM;
+    return (amountInNXM, mockPrices[productId] * amountInNXM / 10000);
   }
 
   function stake(uint amount) external {

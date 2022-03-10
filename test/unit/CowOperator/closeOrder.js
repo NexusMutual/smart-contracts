@@ -9,17 +9,47 @@ const {
   utils: { parseEther, hexZeroPad, keccak256, toUtf8Bytes },
 } = ethers;
 
-const hashUtf = str => keccak256(toUtf8Bytes(str));
-
 describe('closeOrder', function () {
-  let signer, otherSigner;
+  let controller, governance;
 
   let order, contractOrder, domain, orderUID;
 
   let dai, weth, pool, swapOperator, cowSettlement, cowVaultRelayer, twap;
 
+  const daiMinAmount = parseEther('10000');
+  const daiMaxAmount = parseEther('20000');
+
+  const hashUtf = str => keccak256(toUtf8Bytes(str));
+
+  const makeContractOrder = (order) => {
+    return {
+      ...order,
+      kind: hashUtf(order.kind),
+      sellTokenBalance: hashUtf(order.sellTokenBalance),
+      buyTokenBalance: hashUtf(order.buyTokenBalance),
+    };
+  };
+
+  const setupSellDaiForEth = async () => {
+    // Set DAI balance above asset max, so we can sell it
+    await dai.setBalance(pool.address, parseEther('25000'));
+
+    // Set reasonable amounts for DAI so selling doesnt bring balance below min
+    const newOrder = {
+      ...order,
+      sellToken: dai.address,
+      buyToken: weth.address,
+      sellAmount: parseEther('9999'),
+      feeAmount: parseEther('1'),
+      buyAmount: parseEther('2'),
+    };
+    const newContractOrder = makeContractOrder(newOrder);
+    const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
+    return { newOrder, newContractOrder, newOrderUID };
+  };
+
   beforeEach(async () => {
-    [signer, otherSigner] = await ethers.getSigners();
+    [controller, governance] = await ethers.getSigners();
 
     // Assign contracts (destructuring isn't working)
     dai = contracts.dai;
@@ -62,6 +92,9 @@ describe('closeOrder', function () {
     await setEtherBalance(weth.address, parseEther('1000000'));
     await dai.mint(cowVaultRelayer.address, parseEther('1000000'));
 
+    // Set asset details for DAI
+    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
+
     // Set price in oracle
     await (await twap.addPrice(weth.address, dai.address, 5000 * 10000)).wait(); // 1 weth = 5000 dai
 
@@ -72,12 +105,12 @@ describe('closeOrder', function () {
   it('is callable only by swap controller', async function () {
     // call with non-controller, should fail
     await expect(
-      swapOperator.connect(otherSigner).closeOrder(contractOrder),
+      swapOperator.connect(governance).closeOrder(contractOrder),
     ).to.revertedWith('SwapOp: only controller can execute');
 
     // call with controller, should succeed
     await expect(
-      swapOperator.connect(signer).closeOrder(contractOrder),
+      swapOperator.connect(controller).closeOrder(contractOrder),
     ).to.not.be.reverted;
   });
 
@@ -176,17 +209,8 @@ describe('closeOrder', function () {
       await swapOperator.closeOrder(contractOrder);
 
       // Place new order that is selling dai for weth
-      const newOrder = {
-        ...order,
-        sellToken: dai.address,
-        buyToken: weth.address,
-      };
-      const newContractOrder = {
-        ...contractOrder,
-        sellToken: dai.address,
-        buyToken: weth.address,
-      };
-      const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
+      const { newContractOrder, newOrderUID } = await setupSellDaiForEth();
+
       await dai.mint(pool.address, order.sellAmount.add(order.feeAmount));
       await weth.mint(cowVaultRelayer.address, order.buyAmount);
       await swapOperator.placeOrder(newContractOrder, newOrderUID);
@@ -237,26 +261,15 @@ describe('closeOrder', function () {
       // Cancel current order
       await swapOperator.closeOrder(contractOrder);
 
-      // Place new order that is selling dai for weth
-      const newOrder = {
-        ...order,
-        sellToken: dai.address,
-        buyToken: weth.address,
-      };
-      const newContractOrder = {
-        ...contractOrder,
-        sellToken: dai.address,
-        buyToken: weth.address,
-      };
-      const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
-      await dai.mint(pool.address, order.sellAmount.add(order.feeAmount));
+      const { newOrder, newContractOrder, newOrderUID } = await setupSellDaiForEth();
+
       await weth.mint(cowVaultRelayer.address, order.buyAmount);
       await swapOperator.placeOrder(newContractOrder, newOrderUID);
 
       const checkpointPoolDai = await dai.balanceOf(pool.address);
       const checkpointOperatorDai = await dai.balanceOf(swapOperator.address);
 
-      expect(checkpointOperatorDai).to.eq(order.sellAmount.add(order.feeAmount));
+      expect(checkpointOperatorDai).to.eq(newOrder.sellAmount.add(newOrder.feeAmount));
 
       await swapOperator.closeOrder(newContractOrder);
 

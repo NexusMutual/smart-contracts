@@ -73,35 +73,40 @@ contract CowSwapOperator {
     // Validate basic CoW params
     validateBasicCowParams(order);
 
-    // Validate that swaps for sellToken are enabled
+    // Validate feeAmount is not too high
+    require(order.sellAmount / order.feeAmount >= 100, 'SwapOp: Fee is above 1% of sellAmount');
+
+    // Validate swapping is enabled for sellToken (eth always enabled)
     IPool pool = _pool();
-    IPool.SwapDetails memory sellTokenSwapDetails = pool.getAssetSwapDetails(address(order.sellToken));
+    IPool.SwapDetails memory sellTokenDetails = pool.getAssetSwapDetails(address(order.sellToken));
+    uint256 totalOutAmount = orderOutAmount(order);
     if (!isSellingEth(order)) {
-      // Eth is always enabled
+      require(sellTokenDetails.minAmount != 0 || sellTokenDetails.maxAmount != 0, 'SwapOp: sellToken is not enabled');
+      uint256 sellTokenBalance = order.sellToken.balanceOf(address(pool));
+      require(sellTokenBalance > sellTokenDetails.maxAmount, 'SwapOp: can only sell asset when > maxAmount');
       require(
-        sellTokenSwapDetails.minAmount != 0 || sellTokenSwapDetails.maxAmount != 0,
-        'SwapOp: sellToken is not enabled'
+        sellTokenBalance - totalOutAmount >= sellTokenDetails.minAmount,
+        'SwapOp: swap brings sellToken below min'
       );
     }
 
-    // Validate that swaps for buyToken are enabled
-    IPool.SwapDetails memory buyTokenSwapDetails = pool.getAssetSwapDetails(address(order.buyToken));
+    // Validate swapping is enabled for buyToken (eth always enabled)
+    IPool.SwapDetails memory buyTokenDetails = pool.getAssetSwapDetails(address(order.buyToken));
     if (!isBuyingEth(order)) {
       // Eth is always enabled
-      require(
-        buyTokenSwapDetails.minAmount != 0 || buyTokenSwapDetails.maxAmount != 0,
-        'SwapOp: buyToken is not enabled'
-      );
+      require(buyTokenDetails.minAmount != 0 || buyTokenDetails.maxAmount != 0, 'SwapOp: buyToken is not enabled');
+      uint256 buyTokenBalance = order.buyToken.balanceOf(address(pool));
+      require(buyTokenBalance < buyTokenDetails.minAmount, 'SwapOp: can only buy asset when < minAmount');
+      require(buyTokenBalance + order.buyAmount <= buyTokenDetails.maxAmount, 'SwapOp: swap brings buyToken above max');
     }
 
     // Validate minimum pool eth reserve
-    uint256 totalOutAmount = orderOutAmount(order);
     if (isSellingEth(order)) {
       require(address(pool).balance - totalOutAmount >= pool.minPoolEth(), 'SwapOp: Pool eth balance below min');
     }
 
     // Validate oracle price
-    // uint256 finalSlippage = Math.max(buyTokenSwapDetails.maxSlippageRatio, sellTokenSwapDetails.maxSlippageRatio);
+    // uint256 finalSlippage = Math.max(buyTokenDetails.maxSlippageRatio, sellTokenDetails.maxSlippageRatio);
     uint256 finalSlippage = MAX_SLIPPAGE_DENOMINATOR; // Slippage TBD. 100% for now
     uint256 oracleBuyAmount = twapOracle.consult(address(order.sellToken), totalOutAmount, address(order.buyToken));
     uint256 maxSlippageAmount = (oracleBuyAmount * finalSlippage) / MAX_SLIPPAGE_DENOMINATOR;

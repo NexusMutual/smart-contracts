@@ -508,24 +508,22 @@ contract StakingPool is IStakingPool, ERC20 {
       return basePrice;
     }
 
-    uint surgeLoadingRatio = newActiveCoverRatio - SURGE_THRESHOLD_RATIO;
-
     // If the active cover ratio is already above SURGE_THRESHOLD (80%) then apply the surge loading to the entire
     // value of the cover (surgeFraction = 1). Otherwise apply to the part of the cover that is above the threshold.
-    uint surgeFraction = activeCoverRatio >= SURGE_THRESHOLD_RATIO ? SURGE_DENOMINATOR : surgeLoadingRatio * capacity / amount;
+    uint capacityUsedFlat = activeCoverRatio >= SURGE_THRESHOLD_RATIO ? 0 : SURGE_THRESHOLD_RATIO - activeCoverRatio;
+    uint capacityUsedSteep = activeCoverRatio >= SURGE_THRESHOLD_RATIO ? newActiveCoverRatio - activeCoverRatio : newActiveCoverRatio - SURGE_THRESHOLD_RATIO;
+
+    uint steepSectionStart = basePrice;
+    uint steepSectionEnd = basePrice + capacityUsedSteep;
 
     // Apply a base BASE_SURGE_LOADING_RATIO of 10% for each 1% of capacity used above SURGE_THRESHOLD_RATIO (80%)
     // to the value of the cover that is above the SURGE_THRESHOLD_RATIO (surgeLoadingRatio)
     // Divide the surge ratio by 2.
-    uint surgeLoading =
-      BASE_SURGE_LOADING_RATIO
-      * surgeLoadingRatio / (SURGE_DENOMINATOR / 100)
-      / 2 * surgeFraction / 1e18;
+    uint actualPrice = (basePrice * capacityUsedFlat
+     + ((steepSectionStart + steepSectionEnd) / 2) * capacityUsedSteep)
+     / (capacityUsedFlat + capacityUsedSteep);
 
-    /*
-      Apply the surge loading to the base price
-    */
-    return basePrice * (1e18 + surgeLoading) / 1e18;
+    return actualPrice;
   }
 
   /**
@@ -544,6 +542,12 @@ contract StakingPool is IStakingPool, ERC20 {
       return targetPrice;
     }
 
-    return lastPrice - (lastPrice - targetPrice) * priceChange / PRICE_DENOMINATOR;
+    uint nextPrice = lastPrice - priceChange;
+
+    if (nextPrice > targetPrice) {
+      return targetPrice;
+    }
+
+    return nextPrice;
   }
 }

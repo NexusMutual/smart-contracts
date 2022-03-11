@@ -134,13 +134,18 @@ contract StakingPool is IStakingPool, ERC20 {
   uint public constant PARAM_PRECISION = 10_000;
   uint public constant BUCKET_SIZE = 7 days;
 
-  uint public constant PRICE_CURVE_EXPONENT = 7;
+  /* price computation constants. values have 18 decimals */
   uint public constant MAX_PRICE_RATIO = 1e20;
   uint public constant PRICE_DENOMINATOR = 1e18;
-  uint public constant PRICE_RATIO_CHANGE_PER_DAY = 100;
+  uint public constant PRICE_RATIO_CHANGE_PER_DAY = 5e15;
+  uint public constant SURGE_THRESHOLD_RATIO = 8e17;
+  uint public constant BASE_SURGE_LOADING_RATIO = 1e17; // 10%
+  uint public constant BASE_SURGE_CAPACITY_USED_RATIO = 1e16; // 1%
+
   uint public constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
   uint public constant PRODUCT_WEIGHT_DENOMINATOR = 10_000;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10_000;
+  uint public constant INITIAL_PRICE_DENOMINATOR = 10_000;
 
   // base price bump by 2% for each 10% of capacity used
   uint public constant BASE_PRICE_BUMP_RATIO = 200; // 2%
@@ -421,11 +426,6 @@ contract StakingPool is IStakingPool, ERC20 {
     return priceRatio * coverAmount / MAX_PRICE_RATIO * period / 365 days;
   }
 
-  uint public constant SURGE_THRESHOLD_RATIO = 8e17;
-  uint public constant BASE_SURGE_LOADING_RATIO = 1e17; // 10%
-  uint public constant BASE_SURGE_CAPACITY_USED_RATIO = 1e16; // 1%
-
-
   function getActualPriceAndUpdateBasePrice(
     uint productId,
     uint amount,
@@ -435,7 +435,8 @@ contract StakingPool is IStakingPool, ERC20 {
   ) internal returns (uint) {
 
     (uint actualPrice, uint basePrice) = getPrices(
-      amount, activeCover, capacity, initialPrice, lastBasePrices[productId], targetPrices[productId], block.timestamp
+      amount, activeCover, capacity, initialPrice * PRICE_DENOMINATOR / INITIAL_PRICE_DENOMINATOR,
+      lastBasePrices[productId], targetPrices[productId], block.timestamp
     );
     // store the last base price
     lastBasePrices[productId] = LastPrice(
@@ -510,7 +511,6 @@ contract StakingPool is IStakingPool, ERC20 {
 
     // If the active cover ratio is already above SURGE_THRESHOLD (80%) then apply the surge loading to the entire
     // value of the cover (surgeFraction = 1). Otherwise apply to the part of the cover that is above the threshold.
-    uint capacityUsedFlat = activeCoverRatio >= SURGE_THRESHOLD_RATIO ? 0 : SURGE_THRESHOLD_RATIO - activeCoverRatio;
     uint capacityUsedSteep = activeCoverRatio >= SURGE_THRESHOLD_RATIO ? newActiveCoverRatio - activeCoverRatio : newActiveCoverRatio - SURGE_THRESHOLD_RATIO;
 
     uint capacityUsed = newActiveCoverRatio - activeCoverRatio;
@@ -535,7 +535,7 @@ contract StakingPool is IStakingPool, ERC20 {
     uint targetPrice,
     uint lastPriceUpdate,
     uint currentTimestamp
-  ) public pure returns (uint) {
+  ) public view returns (uint) {
 
     uint priceChange = (currentTimestamp - lastPriceUpdate) / 1 days * PRICE_RATIO_CHANGE_PER_DAY;
 
@@ -544,10 +544,6 @@ contract StakingPool is IStakingPool, ERC20 {
     }
 
     uint nextPrice = lastPrice - priceChange;
-
-    if (nextPrice > targetPrice) {
-      return targetPrice;
-    }
 
     return nextPrice;
   }

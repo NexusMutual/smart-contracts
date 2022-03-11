@@ -1,10 +1,10 @@
 const { assert } = require('chai');
 const { toDecimal, PRICE_RATIO_CHANGE_PER_DAY } = require('./helpers');
-const { ethers: { BigNumber } } = require('hardhat');
+const { ethers: { BigNumber, utils: { parseEther } } } = require('hardhat');
 
 describe('interpolatePrice', function () {
 
-  it('should interpolate price correctly based on time elapsed when price is decreasing', async function () {
+  it.only('should interpolate price correctly based on time elapsed when price is decreasing', async function () {
     const { stakingPool } = this;
 
     const lastPrice = parseEther('0.1');

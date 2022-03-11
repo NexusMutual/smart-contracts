@@ -17,6 +17,7 @@ import "../../interfaces/ITokenData.sol";
 import "./external/Governed.sol";
 import "./external/OwnedUpgradeabilityProxy.sol";
 
+
 contract NXMaster is INXMMaster, Governed {
   using SafeMath for uint;
 

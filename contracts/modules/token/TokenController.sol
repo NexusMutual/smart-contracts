@@ -11,7 +11,9 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/INXMMaster.sol";
 import "./external/LockHandler.sol";
+import "hardhat/console.sol";
 
 contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   using SafeUintCast for uint;
@@ -607,6 +609,9 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   }
 
   function initialize() external {
+    address tokenControllerProxy = INXMMaster(nxMasterAddress).getLatestAddress("TC");
+    console.log("tokenControllerProxy %s", tokenControllerProxy);
+    INXMToken(ms.tokenAddress()).addToWhiteList(tokenControllerProxy);
     migrate();
   }
 

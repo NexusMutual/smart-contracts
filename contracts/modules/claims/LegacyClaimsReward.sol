@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity >=0.5.0;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/LegacyMasterAware.sol";
 import "../../interfaces/ILegacyClaims.sol";
 import "../../interfaces/ILegacyClaimsData.sol";
@@ -16,13 +15,12 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
+import 'hardhat/console.sol';
 
 //Claims Reward Contract contains the functions for calculating number of tokens
 // that will get rewarded, unlocked or burned depending upon the status of claim.
 
 contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
-  using SafeMath for uint;
-
   INXMToken internal tk;
   ITokenController internal tc;
   ITokenData internal td;
@@ -45,17 +43,59 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
   constructor (
     address masterAddress,
     address _daiAddress,
-    address legacyClaimsData,
-    bool isTestnet
+    address legacyClaimsData
   ) public {
-    // [todo] Add public function that transfers rewards to assessors then transfer the remained
-    // to TokenController
-    if (!isTestnet) {
-      revert("Don't deploy before updating the transfer list of rewardable accounts");
-    }
     changeMasterAddress(masterAddress);
     cd = ILegacyClaimsData(legacyClaimsData);
     DAI = _daiAddress;
+  }
+
+  function changeClaimStatus(uint claimid) external override {
+    // noop
+  }
+
+  function transferRewards() override external returns (bool) {
+    // {REWARD_TRANSFERS_HELPER_BEGIN}
+    tk.transfer(0x8D38C81B7bE9Dbe7440D66B92d4EF529806baAE7, 35760493284880538281);
+    tk.transfer(0x87B2a7559d85f4653f13E6546A14189cd5455d45, 55352901017354677134);
+    tk.transfer(0xb7FeE4f0e877A348481355FFf757D8A079A2A48b, 833640762734095);
+    tk.transfer(0xe5DD78C224F26E306c84A9B1aa2DEF30bdf15835, 4244323033916347);
+    tk.transfer(0xF9fA438fE4723C9B2096868F892c1C5F14bb2cAa, 255737891525236889);
+    tk.transfer(0x971965f8981910763a8984204FD2249C04B4202D, 23495676475906360);
+    tk.transfer(0x144aAD1020cbBFD2441443721057e1eC0577a639, 78369292856786);
+    tk.transfer(0xea4e84f81BeAfA8C0004f15d26fD8835f54E2384, 221085438547705);
+    tk.transfer(0x927165752a4dDF685F9D6eF21Fd180b0f9Bc7E03, 269639440705719);
+    tk.transfer(0x21Cf5649ee1a9362202EBfF266Ef7BBC8c26A917, 116286322435811720);
+    tk.transfer(0x6Bb740B57627123EcB2DeBE195Ea5B225b4F9AD8, 218253612124841);
+    tk.transfer(0x76FE8E056230344B65104ca3c96FF062bFAf9cf7, 292661475471199774);
+    tk.transfer(0x0A8C2eE08760251705f5aaF7bb0E7B490029Bc27, 292164303519382683);
+    tk.transfer(0x57F589DcBd0fd14b4528018f8Ba6777696D38ECD, 195857733291784);
+    tk.transfer(0xCb95cAB0D557808491A0d498aCaE4fb37277da00, 797989782506267);
+    tk.transfer(0xB791CE850C29732D7F8116d813457c840040102b, 151075450744570);
+    tk.transfer(0xFC64382c9Ce89bA1C21692A68000366a35fF0336, 345525383725487030);
+    tk.transfer(0x65711ee91AFC72398E7F9DB2F8B0f73a87Cc524c, 909958561377403);
+    tk.transfer(0x0B6625300742Cc4aace3CBE85296a4D19D16aA3f, 385299571488172);
+    tk.transfer(0xe8b27fb302B9629FA54b070119b6Ed1AFE42De19, 4149058133053374);
+    tk.transfer(0xbe26316df4399a9762DF24c7c12D619b3ECaA9a0, 3731609920104424);
+    tk.transfer(0xc5E37eb0D48C8edD6a842D47B2c288eFa1773435, 229547229008);
+    tk.transfer(0x81941E3DeEeA41b6309045ECbAFd919Db5aF6147, 166386849852224);
+    tk.transfer(0x8C767cc84C5cC3aD35DCa39919D9c3906E4E1998, 22954722900832);
+    tk.transfer(0xD8eD830E33859AF668Bf4bF1550DFe4CC9984157, 6374079622486500);
+    tk.transfer(0xa13eF1eB4f6603321f05a95C0E8bb2c847FFe5a2, 1292070249286796);
+    tk.transfer(0x0616e02d2492e33ABa850b9a83cFd379169c00be, 4734737571918997);
+    tk.transfer(0x7f8069Dfdd61f3AaAbDFf9F6D7257496733D340d, 2474823651144190);
+    tk.transfer(0x92A0b2C089733beF43Ac367D2CE7783526AEA590, 7860439097919);
+    tk.transfer(0xbee0889F9f74090889C3AD5fDf174b6Af6480607, 31441756391679);
+    tk.transfer(0x4c262bA680b20640a51d00a7D2D3115a54A04108, 5242073859524);
+    tk.transfer(0x07cD0dffB4ca317c56c232A8130a7c3f07BF207A, 92726739727973018);
+    tk.transfer(0xa7009b120eb1016A91a9aCEC52D243BEf01de74e, 10651502465310038504);
+    tk.transfer(0xf76e252e3c40EEF8A90a4fcD1a34ee8209115074, 210504943489815226);
+    tk.transfer(0x2255B4523939045C6F4C42fD0b6d945C52bE98A8, 102063437327263615);
+    tk.transfer(0xF7e5Ac6564105980d1c1ECd7a3b4C5a8bAe9982E, 446637592594148042);
+    // {REWARD_TRANSFERS_HELPER_END}
+
+    uint remainderNMX = tk.balanceOf(address(this));
+    tk.transfer(address(tc), remainderNMX);
   }
 
   function changeDependentContractAddress() public onlyInternal {
@@ -76,42 +116,10 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
    * @param _claimId id of claim to be closed.
    */
   function closeClaim(uint _claimId) external {
-
-    (, , , uint status, uint dateUpd,) = cd.getClaim(_claimId);
-    bool canRetryPayout = status != 12 || dateUpd.add(cd.payoutRetryTime()) < block.timestamp;
-    require(canRetryPayout, "ClaimsReward: Payout retry time not reached.");
-
-    _changeClaimStatus(_claimId);
+    // noop
   }
 
-  function changeClaimStatus(uint claimId) public checkPause onlyInternal {
-    _changeClaimStatus(claimId);
-  }
-
-  /// @dev Decides the next course of action for a given claim.
-  function _changeClaimStatus(uint claimId) internal {
-
-    (, uint coverid) = cd.getClaimCoverId(claimId);
-    (, uint status) = cd.getClaimStatusNumber(claimId);
-
-    // when current status is "Pending-Claim Assessor Vote"
-    if (status == 0) {
-      _changeClaimStatusCA(claimId, coverid, status);
-    } else if (status >= 1 && status <= 5) {
-      _changeClaimStatusMV(claimId, coverid, status);
-    } else if (status == 12) {// when current status is "Claim Accepted Payout Pending"
-
-      bool payoutSucceeded = attemptClaimPayout(coverid);
-
-      if (payoutSucceeded) {
-        c1.setClaimStatus(claimId, 14);
-      } else {
-        c1.setClaimStatus(claimId, 12);
-      }
-    }
-  }
-
-  function getCurrencyAssetAddress(bytes4 currency) public view returns (address) {
+  function getCurrencyAssetAddress(bytes4 currency) public override view returns (address) {
 
     if (currency == "ETH") {
       return ETH;
@@ -124,402 +132,12 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
     revert("ClaimsReward: unknown asset");
   }
 
-  function attemptClaimPayout(uint /*coverId*/) internal pure returns (bool) {
-    revert("Migrate to v2");
-  }
-
-  /// @dev Amount of tokens to be rewarded to a user for a particular vote id.
-  /// @param check 1 -> CA vote, else member vote
-  /// @param voteid vote id for which reward has to be Calculated
-  /// @param flag if 1 calculate even if claimed,else don't calculate if already claimed
-  /// @return tokenCalculated reward to be given for vote id
-  /// @return lastClaimedCheck true if final verdict is still pending for that voteid
-  /// @return tokens number of tokens locked under that voteid
-  /// @return perc percentage of reward to be given.
-  function getRewardToBeGiven(
-    uint check,
-    uint voteid,
-    uint flag
-  )
-  public
-  view
-  returns (
-    uint tokenCalculated,
-    bool lastClaimedCheck,
-    uint tokens,
-    uint perc
-  )
-
-  {
-    uint claimId;
-    int8 verdict;
-    bool claimed;
-    uint tokensToBeDist;
-    uint totalTokens;
-    (tokens, claimId, verdict, claimed) = cd.getVoteDetails(voteid);
-    lastClaimedCheck = false;
-    int8 claimVerdict = cd.getFinalVerdict(claimId);
-    if (claimVerdict == 0) {
-      lastClaimedCheck = true;
-    }
-
-    if (claimVerdict == verdict && (claimed == false || flag == 1)) {
-
-      if (check == 1) {
-        (perc, , tokensToBeDist) = cd.getClaimRewardDetail(claimId);
-      } else {
-        (, perc, tokensToBeDist) = cd.getClaimRewardDetail(claimId);
-      }
-
-      if (perc > 0) {
-        if (check == 1) {
-          if (verdict == 1) {
-            (, totalTokens,) = cd.getClaimsTokenCA(claimId);
-          } else {
-            (,, totalTokens) = cd.getClaimsTokenCA(claimId);
-          }
-        } else {
-          if (verdict == 1) {
-            (, totalTokens,) = cd.getClaimsTokenMV(claimId);
-          } else {
-            (,, totalTokens) = cd.getClaimsTokenMV(claimId);
-          }
-        }
-        tokenCalculated = (perc.mul(tokens).mul(tokensToBeDist)).div(totalTokens.mul(100));
-
-
-      }
-    }
-  }
-
   /// @dev Transfers all tokens held by contract to a new contract in case of upgrade.
-  function upgrade(address _newAdd) public onlyInternal {
+  function upgrade(address _newAdd) public override onlyInternal {
     uint amount = tk.balanceOf(address(this));
     if (amount > 0) {
       require(tk.transfer(_newAdd, amount));
     }
 
-  }
-
-  /// @dev Total reward in token due for claim by a user.
-  /// @return total total number of tokens
-  function getRewardToBeDistributedByUser(address _add) public view returns (uint total) {
-    uint lengthVote = cd.getVoteAddressCALength(_add);
-    uint lastIndexCA;
-    uint lastIndexMV;
-    uint tokenForVoteId;
-    uint voteId;
-    (lastIndexCA, lastIndexMV) = cd.getRewardDistributedIndex(_add);
-
-    for (uint i = lastIndexCA; i < lengthVote; i++) {
-      voteId = cd.getVoteAddressCA(_add, i);
-      (tokenForVoteId,,,) = getRewardToBeGiven(1, voteId, 0);
-      total = total.add(tokenForVoteId);
-    }
-
-    lengthVote = cd.getVoteAddressMemberLength(_add);
-
-    for (uint j = lastIndexMV; j < lengthVote; j++) {
-      voteId = cd.getVoteAddressMember(_add, j);
-      (tokenForVoteId,,,) = getRewardToBeGiven(0, voteId, 0);
-      total = total.add(tokenForVoteId);
-    }
-    return (total);
-  }
-
-  /// @dev Gets reward amount and claiming status for a given claim id.
-  /// @return reward amount of tokens to user.
-  /// @return claimed true if already claimed false if yet to be claimed.
-  function getRewardAndClaimedStatus(uint check, uint claimId) public view returns (uint reward, bool claimed) {
-    uint voteId;
-    uint claimid;
-    uint lengthVote;
-
-    if (check == 1) {
-      lengthVote = cd.getVoteAddressCALength(msg.sender);
-      for (uint i = 0; i < lengthVote; i++) {
-        voteId = cd.getVoteAddressCA(msg.sender, i);
-        (, claimid, , claimed) = cd.getVoteDetails(voteId);
-        if (claimid == claimId) {break;}
-      }
-    } else {
-      lengthVote = cd.getVoteAddressMemberLength(msg.sender);
-      for (uint j = 0; j < lengthVote; j++) {
-        voteId = cd.getVoteAddressMember(msg.sender, j);
-        (, claimid, , claimed) = cd.getVoteDetails(voteId);
-        if (claimid == claimId) {break;}
-      }
-    }
-    (reward,,,) = getRewardToBeGiven(check, voteId, 1);
-
-  }
-
-  /**
-   * @dev Function used to get pending rewards of a particular user address.
-   * @param _add user address.
-   * @return total reward amount of the user
-   */
-  function getAllPendingRewardOfUser(address _add) public view returns (uint) {
-    uint caReward = getRewardToBeDistributedByUser(_add);
-    //uint pooledStakingReward = pooledStaking.stakerReward(_add);
-    uint governanceReward = gv.getPendingReward(_add);
-    return caReward.add(governanceReward)/*.add(pooledStakingReward)*/;
-  }
-
-  /// @dev Rewards/Punishes users who  participated in Claims assessment.
-  //    Unlocking and burning of the tokens will also depend upon the status of claim.
-  /// @param claimid Claim Id.
-  function _rewardAgainstClaim(uint claimid, uint coverid, uint status) internal {
-
-    uint premiumNXM = qd.getCoverPremiumNXM(coverid);
-    uint distributableTokens = premiumNXM.mul(cd.claimRewardPerc()).div(100); // 20% of premium
-
-    uint percCA;
-    uint percMV;
-
-    (percCA, percMV) = cd.getRewardStatus(status);
-    cd.setClaimRewardDetail(claimid, percCA, percMV, distributableTokens);
-
-    if (percCA > 0 || percMV > 0) {
-      tc.mint(address(this), distributableTokens);
-    }
-
-    // denied
-    if (status == 6 || status == 9 || status == 11) {
-
-      cd.changeFinalVerdict(claimid, -1);
-      //tc.markCoverClaimClosed(coverid, false);
-      _burnCoverNoteDeposit(coverid);
-
-    // accepted
-    } else if (status == 7 || status == 8 || status == 10) {
-
-      cd.changeFinalVerdict(claimid, 1);
-      //tc.markCoverClaimClosed(coverid, true);
-      _unlockCoverNote(coverid);
-
-      bool payoutSucceeded = attemptClaimPayout(coverid);
-
-      // 12 = payout pending, 14 = payout succeeded
-      uint nextStatus = payoutSucceeded ? 14 : 12;
-      c1.setClaimStatus(claimid, nextStatus);
-    }
-  }
-
-  function _burnCoverNoteDeposit(uint coverId) internal {
-
-    address _of = qd.getCoverMemberAddress(coverId);
-    bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
-    uint lockedAmount = tc.tokensLocked(_of, reason);
-
-    (uint amount,) = td.depositedCN(coverId);
-    amount = amount.div(2);
-
-    // limit burn amount to actual amount locked
-    uint burnAmount = lockedAmount < amount ? lockedAmount : amount;
-
-    if (burnAmount != 0) {
-      tc.burnLockedTokens(_of, reason, amount);
-    }
-  }
-
-  function unlockCoverNote(uint coverId) external onlyInternal {
-    _unlockCoverNote(coverId);
-  }
-
-  function _unlockCoverNote(uint coverId) internal {
-
-    address coverHolder = qd.getCoverMemberAddress(coverId);
-    bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, coverId));
-    uint lockedCN = tc.tokensLocked(coverHolder, reason);
-
-    if (lockedCN != 0) {
-      tc.releaseLockedTokens(coverHolder, reason, lockedCN);
-    }
-  }
-
-  /// @dev Computes the result of Claim Assessors Voting for a given claim id.
-  function _changeClaimStatusCA(uint claimid, uint coverid, uint status) internal {
-    // Check if voting should be closed or not
-    if (c1.checkVoteClosing(claimid) == 1) {
-      uint caTokens = c1.getCATokens(claimid, 0); // converted in cover currency.
-      uint accept;
-      uint deny;
-      uint acceptAndDeny;
-      bool rewardOrPunish;
-      uint sumAssured;
-      (, accept) = cd.getClaimVote(claimid, 1);
-      (, deny) = cd.getClaimVote(claimid, - 1);
-      acceptAndDeny = accept.add(deny);
-      accept = accept.mul(100);
-      deny = deny.mul(100);
-
-      if (caTokens == 0) {
-        status = 3;
-      } else {
-        sumAssured = qd.getCoverSumAssured(coverid).mul(DECIMAL1E18);
-        // Min threshold reached tokens used for voting > 5* sum assured
-        if (caTokens > sumAssured.mul(5)) {
-
-          if (accept.div(acceptAndDeny) > 70) {
-            status = 7;
-            qd.changeCoverStatusNo(coverid, uint8(IQuotationData.CoverStatus.ClaimAccepted));
-            rewardOrPunish = true;
-          } else if (deny.div(acceptAndDeny) > 70) {
-            status = 6;
-            qd.changeCoverStatusNo(coverid, uint8(IQuotationData.CoverStatus.ClaimDenied));
-            rewardOrPunish = true;
-          } else if (accept.div(acceptAndDeny) > deny.div(acceptAndDeny)) {
-            status = 4;
-          } else {
-            status = 5;
-          }
-
-        } else {
-
-          if (accept.div(acceptAndDeny) > deny.div(acceptAndDeny)) {
-            status = 2;
-          } else {
-            status = 3;
-          }
-        }
-      }
-
-      c1.setClaimStatus(claimid, status);
-
-      if (rewardOrPunish) {
-        _rewardAgainstClaim(claimid, coverid, status);
-      }
-    }
-  }
-
-  /// @dev Computes the result of Member Voting for a given claim id.
-  function _changeClaimStatusMV(uint claimid, uint coverid, uint status) internal {
-
-    // Check if voting should be closed or not
-    if (c1.checkVoteClosing(claimid) == 1) {
-      uint8 coverStatus;
-      uint statusOrig = status;
-      uint mvTokens = c1.getCATokens(claimid, 1); // converted in cover currency.
-
-      // If tokens used for acceptance >50%, claim is accepted
-      uint sumAssured = qd.getCoverSumAssured(coverid).mul(DECIMAL1E18);
-      uint thresholdUnreached = 0;
-      // Minimum threshold for member voting is reached only when
-      // value of tokens used for voting > 5* sum assured of claim id
-      if (mvTokens < sumAssured.mul(5)) {
-        thresholdUnreached = 1;
-      }
-
-      uint accept;
-      (, accept) = cd.getClaimMVote(claimid, 1);
-      uint deny;
-      (, deny) = cd.getClaimMVote(claimid, - 1);
-
-      if (accept.add(deny) > 0) {
-        if (accept.mul(100).div(accept.add(deny)) >= 50 && statusOrig > 1 &&
-        statusOrig <= 5 && thresholdUnreached == 0) {
-          status = 8;
-          coverStatus = uint8(IQuotationData.CoverStatus.ClaimAccepted);
-        } else if (deny.mul(100).div(accept.add(deny)) >= 50 && statusOrig > 1 &&
-        statusOrig <= 5 && thresholdUnreached == 0) {
-          status = 9;
-          coverStatus = uint8(IQuotationData.CoverStatus.ClaimDenied);
-        }
-      }
-
-      if (thresholdUnreached == 1 && (statusOrig == 2 || statusOrig == 4)) {
-        status = 10;
-        coverStatus = uint8(IQuotationData.CoverStatus.ClaimAccepted);
-      } else if (thresholdUnreached == 1 && (statusOrig == 5 || statusOrig == 3 || statusOrig == 1)) {
-        status = 11;
-        coverStatus = uint8(IQuotationData.CoverStatus.ClaimDenied);
-      }
-
-      c1.setClaimStatus(claimid, status);
-      qd.changeCoverStatusNo(coverid, uint8(coverStatus));
-      // Reward/Punish Claim Assessors and Members who participated in Claims assessment
-      _rewardAgainstClaim(claimid, coverid, status);
-    }
-  }
-
-  /// @dev Allows a user to claim all pending  Claims assessment rewards.
-  function _claimRewardToBeDistributed(uint _records) internal {
-    uint lengthVote = cd.getVoteAddressCALength(msg.sender);
-    uint voteid;
-    uint lastIndex;
-    (lastIndex,) = cd.getRewardDistributedIndex(msg.sender);
-    uint total = 0;
-    uint tokenForVoteId = 0;
-    bool lastClaimedCheck;
-    uint _days = td.lockCADays();
-    bool claimed;
-    uint counter = 0;
-    uint claimId;
-    uint perc;
-    uint i;
-    uint lastClaimed = lengthVote;
-
-    for (i = lastIndex; i < lengthVote && counter < _records; i++) {
-      voteid = cd.getVoteAddressCA(msg.sender, i);
-      (tokenForVoteId, lastClaimedCheck, , perc) = getRewardToBeGiven(1, voteid, 0);
-      if (lastClaimed == lengthVote && lastClaimedCheck == true) {
-        lastClaimed = i;
-      }
-      (, claimId, , claimed) = cd.getVoteDetails(voteid);
-
-      if (perc > 0 && !claimed) {
-        counter++;
-        cd.setRewardClaimed(voteid, true);
-      } else if (perc == 0 && cd.getFinalVerdict(claimId) != 0 && !claimed) {
-        (perc,,) = cd.getClaimRewardDetail(claimId);
-        if (perc == 0) {
-          counter++;
-        }
-        cd.setRewardClaimed(voteid, true);
-      }
-      if (tokenForVoteId > 0) {
-        total = tokenForVoteId.add(total);
-      }
-    }
-    if (lastClaimed == lengthVote) {
-      cd.setRewardDistributedIndexCA(msg.sender, i);
-    }
-    else {
-      cd.setRewardDistributedIndexCA(msg.sender, lastClaimed);
-    }
-    lengthVote = cd.getVoteAddressMemberLength(msg.sender);
-    lastClaimed = lengthVote;
-    _days = _days.mul(counter);
-    if (tc.tokensLockedAtTime(msg.sender, "CLA", now) > 0) {
-      tc.reduceLock(msg.sender, "CLA", _days);
-    }
-    (, lastIndex) = cd.getRewardDistributedIndex(msg.sender);
-    lastClaimed = lengthVote;
-    counter = 0;
-    for (i = lastIndex; i < lengthVote && counter < _records; i++) {
-      voteid = cd.getVoteAddressMember(msg.sender, i);
-      (tokenForVoteId, lastClaimedCheck,,) = getRewardToBeGiven(0, voteid, 0);
-      if (lastClaimed == lengthVote && lastClaimedCheck == true) {
-        lastClaimed = i;
-      }
-      (, claimId, , claimed) = cd.getVoteDetails(voteid);
-      if (claimed == false && cd.getFinalVerdict(claimId) != 0) {
-        cd.setRewardClaimed(voteid, true);
-        counter++;
-      }
-      if (tokenForVoteId > 0) {
-        total = tokenForVoteId.add(total);
-      }
-    }
-    if (total > 0) {
-      require(tk.transfer(msg.sender, total));
-    }
-    if (lastClaimed == lengthVote) {
-      cd.setRewardDistributedIndexMV(msg.sender, i);
-    }
-    else {
-      cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
-    }
   }
 }

@@ -8,6 +8,7 @@ import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IProposalCategory.sol";
 import "../../interfaces/ITokenController.sol";
+import "hardhat/console.sol";
 
 contract Governance is IGovernance, LegacyMasterAware {
   using SafeMath for uint;
@@ -1120,6 +1121,7 @@ contract Governance is IGovernance, LegacyMasterAware {
     (,, _majorityVote,,,,) = proposalCategory.category(category);
     if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100)
     .div(memberRole.numberOfMembers(uint(_roleId))) >= _majorityVote) {
+
       _callIfMajReached(_proposalId, uint(ProposalStatus.Accepted), category, 1, _roleId);
     } else {
       _updateProposalStatus(_proposalId, uint(ProposalStatus.Denied));

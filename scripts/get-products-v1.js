@@ -81,7 +81,11 @@ const main = async () => {
   fs.writeFileSync('./contracts/modules/cover/ProductsV1.sol', ProductsV1, 'utf8');
 };
 
-main().catch(e => {
-  console.log('Unhandled error encountered: ', e.stack);
-  process.exit(1);
-});
+if (!module.parent) {
+  main().catch(e => {
+    console.log('Unhandled error encountered: ', e.stack);
+    process.exit(1);
+  });
+}
+
+module.exports = { main };

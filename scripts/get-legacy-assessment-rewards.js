@@ -25,6 +25,14 @@ function onlyUnique (value, index, self) {
   return self.indexOf(value) === index;
 }
 
+const getTransferCalls = rewardable => `// {REWARD_TRANSFERS_HELPER_BEGIN}
+${Object.keys(rewardable)
+  .map(address => {
+    return `    tk.transfer(${address}, ${rewardable[address]});`;
+  })
+  .join('\n')}
+    // {REWARD_TRANSFERS_HELPER_END}`;
+
 const main = async () => {
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL);
   const factory = await getContractFactory(provider);
@@ -53,13 +61,21 @@ const main = async () => {
     return acc;
   }, {});
 
-  console.log(rewardable);
-  console.log(Object.keys(rewardable).length);
+  const contract = fs.readFileSync('./contracts/modules/claims/LegacyClaimsReward.sol');
 
   fs.appendFileSync('rewardable.json', JSON.stringify(rewardable, null, 2), 'utf8');
+
+  // Regex used to replace the transfer operations in LegacyClaimsReward.sol
+  const templateHelperRegex = /\/\/ \{REWARD_TRANSFERS_HELPER_BEGIN\}([\s\S]*?)\/\/ \{REWARD_TRANSFERS_HELPER_END\}/;
+  const newContract = contract.toString().replace(templateHelperRegex, getTransferCalls(rewardable));
+  fs.writeFileSync('./contracts/modules/claims/LegacyClaimsReward.sol', newContract);
 };
 
-main().catch(e => {
-  console.log('Unhandled error encountered: ', e.stack);
-  process.exit(1);
-});
+if (!module.parent) {
+  main().catch(e => {
+    console.log('Unhandled error encountered: ', e.stack);
+    process.exit(1);
+  });
+}
+
+module.exports = { main };

@@ -136,8 +136,8 @@ contract StakingPool is IStakingPool, ERC20 {
 
   uint public constant PRICE_CURVE_EXPONENT = 7;
   uint public constant MAX_PRICE_RATIO = 1e20;
+  uint public constant PRICE_DENOMINATOR = 1e18;
   uint public constant PRICE_RATIO_CHANGE_PER_DAY = 100;
-  uint public constant PRICE_DENOMINATOR = 10_000;
   uint public constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
   uint public constant PRODUCT_WEIGHT_DENOMINATOR = 10_000;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10_000;
@@ -422,8 +422,8 @@ contract StakingPool is IStakingPool, ERC20 {
   }
 
   uint public constant SURGE_THRESHOLD_RATIO = 8e17;
-  uint public constant BASE_SURGE_LOADING_RATIO = 1e17;
-  uint public constant SURGE_DENOMINATOR = 1e18;
+  uint public constant BASE_SURGE_LOADING_RATIO = 1e17; // 10%
+  uint public constant BASE_SURGE_CAPACITY_USED_RATIO = 1e16; // 1%
 
 
   function getActualPriceAndUpdateBasePrice(
@@ -466,7 +466,7 @@ contract StakingPool is IStakingPool, ERC20 {
     LastPrice memory lastBasePrice,
     uint targetPrice,
     uint blockTimestamp
-  ) public pure returns (uint actualPrice, uint basePrice) {
+  ) public view returns (uint actualPrice, uint basePrice) {
 
     basePrice = interpolatePrice(
       lastBasePrice.value != 0 ? lastBasePrice.value : initialPrice,
@@ -500,9 +500,9 @@ contract StakingPool is IStakingPool, ERC20 {
     uint capacity
   ) public pure returns (uint) {
 
-    uint activeCoverRatio = activeCover * 1e18 / capacity;
+    uint activeCoverRatio = activeCover * TOKEN_PRECISION / capacity;
     uint newActiveCoverAmount = amount + activeCover;
-    uint newActiveCoverRatio = newActiveCoverAmount * 1e18 / capacity;
+    uint newActiveCoverRatio = newActiveCoverAmount * TOKEN_PRECISION / capacity;
 
     if (newActiveCoverRatio < SURGE_THRESHOLD_RATIO) {
       return basePrice;
@@ -513,15 +513,16 @@ contract StakingPool is IStakingPool, ERC20 {
     uint capacityUsedFlat = activeCoverRatio >= SURGE_THRESHOLD_RATIO ? 0 : SURGE_THRESHOLD_RATIO - activeCoverRatio;
     uint capacityUsedSteep = activeCoverRatio >= SURGE_THRESHOLD_RATIO ? newActiveCoverRatio - activeCoverRatio : newActiveCoverRatio - SURGE_THRESHOLD_RATIO;
 
-    uint steepSectionStart = basePrice;
-    uint steepSectionEnd = basePrice + capacityUsedSteep;
+    uint capacityUsed = newActiveCoverRatio - activeCoverRatio;
 
-    // Apply a base BASE_SURGE_LOADING_RATIO of 10% for each 1% of capacity used above SURGE_THRESHOLD_RATIO (80%)
-    // to the value of the cover that is above the SURGE_THRESHOLD_RATIO (surgeLoadingRatio)
-    // Divide the surge ratio by 2.
-    uint actualPrice = (basePrice * capacityUsedFlat
-     + ((steepSectionStart + steepSectionEnd) / 2) * capacityUsedSteep)
-     / (capacityUsedFlat + capacityUsedSteep);
+    uint startSurgeLoading = activeCoverRatio < SURGE_THRESHOLD_RATIO ? 0
+      : (activeCoverRatio - SURGE_THRESHOLD_RATIO) * BASE_SURGE_LOADING_RATIO / BASE_SURGE_CAPACITY_USED_RATIO;
+
+    uint endSurgeLoading = (newActiveCoverRatio - SURGE_THRESHOLD_RATIO) * BASE_SURGE_LOADING_RATIO / BASE_SURGE_CAPACITY_USED_RATIO;
+
+    uint surgeLoadingRatio = capacityUsedSteep * (endSurgeLoading + startSurgeLoading) / 2 / capacityUsed;
+
+    uint actualPrice = basePrice * (surgeLoadingRatio + PRICE_DENOMINATOR);
 
     return actualPrice;
   }

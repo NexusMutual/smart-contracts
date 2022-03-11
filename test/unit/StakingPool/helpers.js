@@ -1,12 +1,11 @@
-const { artifacts, web3, ethers: { BigNumber } } = require('hardhat');
-const { toBN, BN } = web3.utils;
+const { ethers: { BigNumber } } = require('hardhat');
 const Decimal = require('decimal.js');
 
 const SURGE_THRESHOLD = BigNumber.from(8e17.toString());
-const BASE_SURGE_LOADING = 1e17;
+const BASE_SURGE_LOADING = BigNumber.from(1e17.toString()); // 10%
+const BASE_SURGE_CAPACITY_USED = BigNumber.from(1e16.toString()); // 1%
 
-const PRICE_RATIO_CHANGE_PER_DAY = 2e16;
-const PRICE_DENOMINATOR = 10000;
+const PRICE_RATIO_CHANGE_PER_DAY = BigNumber.from(5e15.toString()); // 0.5%
 const BASE_PRICE_BUMP_RATIO = 200; // 2%
 const BASE_PRICE_BUMP_INTERVAL = 1000; // 10%
 const BASE_PRICE_BUMP_DENOMINATOR = 10000;
@@ -18,9 +17,12 @@ function interpolatePrice (
   currentTimestamp,
 ) {
 
-  const priceChange = BigNumber.from((currentTimestamp - lastPriceUpdate) / (24 * 3600) * PRICE_RATIO_CHANGE_PER_DAY);
+  const priceChange = BigNumber.from(currentTimestamp - lastPriceUpdate).div(24 * 3600).mul(PRICE_RATIO_CHANGE_PER_DAY);
 
-  console.log(priceChange);
+  console.log({
+    priceChange: priceChange.toString(),
+    lastPrice: lastPrice.toString()
+  });
 
   if (targetPrice.gt(lastPrice)) {
     return targetPrice;
@@ -33,8 +35,6 @@ function interpolatePrice (
   }
 
   return nextPrice;
-
-  // return lastPrice.sub(lastPrice.sub(targetPrice).muln(priceChange).divn(PRICE_DENOMINATOR));
 }
 
 function calculatePrice (
@@ -58,14 +58,25 @@ function calculatePrice (
 
   const capacityUsedFlat = activeCoverRatio.gte(SURGE_THRESHOLD) ? BigNumber.from(0) : SURGE_THRESHOLD.sub(activeCoverRatio);
   const capacityUsedSteep = activeCoverRatio.gte(SURGE_THRESHOLD) ? newActiveCoverRatio.sub(activeCoverRatio) : newActiveCoverRatio.sub(SURGE_THRESHOLD);
+  const capacityUsed = newActiveCoverRatio.sub(activeCoverRatio);
 
-  const steepSectionStart = basePrice;
-  const steepSectionEnd = basePrice.add(capacityUsedSteep);
+  const startSurgeLoading =
+    activeCoverRatio.lt(SURGE_THRESHOLD) ? BigNumber.from(0)
+    : activeCoverRatio.sub(SURGE_THRESHOLD).mul(BASE_SURGE_LOADING).div(BASE_SURGE_CAPACITY_USED);
+  const endSurgeLoading = newActiveCoverRatio.sub(SURGE_THRESHOLD).mul(BASE_SURGE_LOADING).div(BASE_SURGE_CAPACITY_USED);
 
-  const actualPrice =
-    basePrice.mul(capacityUsedFlat)
-      .add((steepSectionStart.add(steepSectionEnd).div(2)).mul(capacityUsedSteep))
-      .div(capacityUsedFlat.add(capacityUsedSteep));
+  const surgeLoadingRatio = capacityUsedSteep.mul(endSurgeLoading.add(startSurgeLoading).div(2)).div(capacityUsed);
+
+  console.log({
+    capacityUsedSteep: capacityUsedSteep.toString(),
+    capacityUsedFlat: capacityUsedFlat.toString(),
+    surgeLoadingRatio: surgeLoadingRatio.toString(),
+    startSurgeLoading: startSurgeLoading.toString(),
+    endSurgeLoading: endSurgeLoading.toString()
+  })
+
+  const actualPrice = basePrice.mul(surgeLoadingRatio.add(1e18.toString()));
+
 
   return actualPrice;
 }
@@ -128,4 +139,5 @@ module.exports = {
   getPrices,
   calculatePrice,
   toDecimal,
+  PRICE_RATIO_CHANGE_PER_DAY
 };

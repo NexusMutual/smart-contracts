@@ -51,7 +51,7 @@ describe('calculatePrice', function () {
     );
 
     // allow for precision error
-    assert.equal(price.div(100).toString(), expectedPrice.div(100).floor().toString());
+    assert.equal(price.div(100).toString(), expectedPrice.div(100).toString());
   });
 
   it('should calculate price correctly for new active cover below surge treshold', async function () {

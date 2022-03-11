@@ -1,13 +1,14 @@
 const { assert } = require('chai');
-const { toDecimal } = require('./helpers');
+const { toDecimal, PRICE_RATIO_CHANGE_PER_DAY } = require('./helpers');
+const { ethers: { BigNumber } } = require('hardhat');
 
 describe('interpolatePrice', function () {
 
   it('should interpolate price correctly based on time elapsed when price is decreasing', async function () {
     const { stakingPool } = this;
 
-    const lastPrice = '1000';
-    const targetPrice = '500';
+    const lastPrice = parseEther('0.1');
+    const targetPrice = parseEther('0.05');
     const lastPriceUpdate = '0';
     const now = (24 * 3600).toString();
 
@@ -18,13 +19,7 @@ describe('interpolatePrice', function () {
       now,
     );
 
-    const expectedPrice = toDecimal(lastPrice).sub(toDecimal(lastPrice).sub(toDecimal(targetPrice)).div(100));
-
-    console.log({
-      lastPrice: lastPrice.toString(),
-      targetPrice: targetPrice.toString(),
-      price: price.toString(),
-    });
+    const expectedPrice = BigNumber.from(lastPrice).sub(PRICE_RATIO_CHANGE_PER_DAY);
 
     assert.equal(price.toString(), expectedPrice.toString());
   });

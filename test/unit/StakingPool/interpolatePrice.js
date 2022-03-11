@@ -4,7 +4,7 @@ const { ethers: { BigNumber, utils: { parseEther } } } = require('hardhat');
 
 describe('interpolatePrice', function () {
 
-  it.only('should interpolate price correctly based on time elapsed when price is decreasing', async function () {
+  it('should interpolate price correctly based on time elapsed when price is decreasing', async function () {
     const { stakingPool } = this;
 
     const lastPrice = parseEther('0.1');
@@ -27,8 +27,8 @@ describe('interpolatePrice', function () {
   it('should set price to target price when price is increasing', async function () {
     const { stakingPool } = this;
 
-    const lastPrice = '500';
-    const targetPrice = '1000';
+    const lastPrice = parseEther('0.05');
+    const targetPrice = parseEther('0.1');
     const lastPriceUpdate = '0';
     const now = (24 * 3600).toString();
 

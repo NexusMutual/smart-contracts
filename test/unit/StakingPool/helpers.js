@@ -19,11 +19,6 @@ function interpolatePrice (
 
   const priceChange = BigNumber.from(currentTimestamp - lastPriceUpdate).div(24 * 3600).mul(PRICE_RATIO_CHANGE_PER_DAY);
 
-  console.log({
-    priceChange: priceChange.toString(),
-    lastPrice: lastPrice.toString()
-  });
-
   if (targetPrice.gt(lastPrice)) {
     return targetPrice;
   }
@@ -67,17 +62,7 @@ function calculatePrice (
 
   const surgeLoadingRatio = capacityUsedSteep.mul(endSurgeLoading.add(startSurgeLoading).div(2)).div(capacityUsed);
 
-  console.log({
-    capacityUsedSteep: capacityUsedSteep.toString(),
-    capacityUsedFlat: capacityUsedFlat.toString(),
-    surgeLoadingRatio: surgeLoadingRatio.toString(),
-    startSurgeLoading: startSurgeLoading.toString(),
-    endSurgeLoading: endSurgeLoading.toString()
-  })
-
   const actualPrice = basePrice.mul(surgeLoadingRatio.add(1e18.toString()));
-
-
   return actualPrice;
 }
 
@@ -112,17 +97,6 @@ function getPrices (
   const priceBump = amount.mul(BASE_PRICE_BUMP_DENOMINATOR).div(capacity).div(BASE_PRICE_BUMP_INTERVAL).mul(BASE_PRICE_BUMP_RATIO);
 
   const bumpedBasePrice = basePrice.add(priceBump);
-
-  console.log({
-    initialPrice: initialPrice.toString(),
-    lastBasePriceValue: lastBasePriceValue.toString(),
-    capacity: capacity.toString(),
-    amount: amount.toString(),
-    priceBump: priceBump.toString(),
-    basePrice: basePrice.toString(),
-    bumpedBasePrice: bumpedBasePrice.toString(),
-    actualPrice: actualPrice.toString(),
-  });
 
   return { basePrice: bumpedBasePrice, actualPrice };
 }

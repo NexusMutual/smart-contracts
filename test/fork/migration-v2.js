@@ -156,11 +156,8 @@ describe('v2 migration', function () {
       this.governance,
     );
 
-    console.log({ TokenController });
-    const tc = TokenController(this.tokenController.address);
-    const token = await tc.token();
-    console.log({ token });
-    await mineNextBlock();
+    console.log('Proxy address of TokenController: ' + this.tokenController.address);
+    console.log('New implementation address of TokenController: ' + tokenController.address);
     const tx = await tokenController.initialize();
     await tx.wait();
     this.tokenController = tokenController;

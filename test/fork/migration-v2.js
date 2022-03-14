@@ -5,10 +5,11 @@ const { expect } = require('chai');
 const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
 const { main: getLegacyAssessmentRewards } = require('../../scripts/get-legacy-assessment-rewards');
 const { main: getProductsV1 } = require('../../scripts/get-products-v1');
+const { main: populateV2Products } = require('../../scripts/populate-v2-products');
 const hre = require('hardhat');
+const fs = require('fs');
 
 const proposalCategories = require('../../lib/proposal-categories');
-const { parseEther } = require('ethers/lib/utils');
 
 const { PROVIDER_URL } = process.env;
 const UNISWAP_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
@@ -26,6 +27,10 @@ const CHAINLINK_DAI_ETH_AGGREGATORS = {
 };
 
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
+const SWAP_CONTROLLER = '0x551D5500F613a4beC77BA8B834b5eEd52ad5764f';
+const STETH_ADDRESS = '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84';
+const PRICE_FEED_ORACLE_ADDRESS = '0xcafea55b2d62399DcFe3DfA3CFc71E4076B14b71';
+const TWAP_ORACLE_ADDRESS = '0xcafea1C9f94e077DF44D95c4A1ad5a5747a18b5C';
 
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 const { defaultAbiCoder, hexlify, toUtf8Bytes } = ethers.utils;
@@ -146,7 +151,7 @@ describe('v2 migration', function () {
 
   it('update TokenController contract', async function () {
     const TokenController = await ethers.getContractFactory('TokenController');
-    const tokenController = await TokenController.deploy(this.quotationData.address);
+    const tokenController = await TokenController.deploy(this.quotationData.address, this.claimsReward.address);
     await tokenController.deployed();
 
     await submitGovernanceProposal(
@@ -156,9 +161,7 @@ describe('v2 migration', function () {
       this.governance,
     );
 
-    console.log('Proxy address of TokenController: ' + this.tokenController.address);
-    console.log('New implementation address of TokenController: ' + tokenController.address);
-    const tx = await tokenController.initialize();
+    const tx = await this.tokenController.initialize();
     await tx.wait();
     this.tokenController = tokenController;
   });
@@ -167,11 +170,11 @@ describe('v2 migration', function () {
     await this.claimsReward.transferRewards();
   });
 
-  it.skip('check if TokenController balance checks out with Governance rewards', async function () {
+  it('check if TokenController balance checks out with Governance rewards', async function () {
     console.log('[todo]');
   });
 
-  it.skip('edit proposal category 41 (Set Asset Swap Details)', async function () {
+  it('edit proposal category 41 (Set Asset Swap Details)', async function () {
     await submitGovernanceProposal(
       4, // editCategory(uint256,string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
@@ -196,7 +199,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it.skip('add proposal category 42 (Add new contracts)', async function () {
+  it('add proposal category 42 (Add new contracts)', async function () {
     await submitGovernanceProposal(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
@@ -220,7 +223,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it.skip('add proposal category 43 (Remove contracts)', async function () {
+  it('add proposal category 43 (Remove contracts)', async function () {
     await submitGovernanceProposal(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
@@ -244,18 +247,18 @@ describe('v2 migration', function () {
     );
   });
 
-  it.skip('run get-legacy-assessment-rewards script', async function () {
+  it('run get-legacy-assessment-rewards script', async function () {
     await getProductsV1();
   });
 
-  it.skip('deploy ProductsV1', async function () {
+  it('deploy ProductsV1', async function () {
     const ProductsV1 = await ethers.getContractFactory('ProductsV1');
     const productsV1 = await ProductsV1.deploy();
     await productsV1.deployed();
     this.productsV1 = productsV1;
   });
 
-  it.skip('add empty internal contract for Cover', async function () {
+  it('add empty internal contract for Cover', async function () {
     const CoverInitializer = await ethers.getContractFactory('CoverInitializer');
     const coverInitializer = await CoverInitializer.deploy();
     await coverInitializer.deployed();
@@ -271,7 +274,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it.skip('deploy StakingPool', async function () {
+  it('deploy StakingPool', async function () {
     const coverAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const StakingPool = await ethers.getContractFactory('StakingPool');
     const stakingPool = await StakingPool.deploy(
@@ -298,7 +301,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it.skip('deploy cover contracts', async function () {
+  it('deploy cover contracts', async function () {
     const coverAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const CoverNFT = await ethers.getContractFactory('CoverNFT');
     const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NXC', coverAddress);
@@ -321,9 +324,12 @@ describe('v2 migration', function () {
       this.abMembers,
       this.governance,
     );
+
+    const { abi } = JSON.parse(fs.readFileSync('./artifacts/contracts/modules/cover/Cover.sol/Cover.json'));
+    this.cover = new ethers.Contract(coverAddress, abi, this.deployer);
   });
 
-  it.skip('remove CR, CD, IC, CL, QD, QT, TF', async function () {
+  it('remove CR, CD, IC, CL, QD, QT, TF', async function () {
     await submitGovernanceProposal(
       43, // removeContracts(bytes2[])
       defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'CL', 'QD', 'QT', 'TF'].map(x => toUtf8Bytes(x))]),
@@ -332,5 +338,90 @@ describe('v2 migration', function () {
     );
   });
 
-  it.skip('run populate-v2-products script', async function () {});
+  it('run populate-v2-products script', async function () {
+    await populateV2Products(this.cover.address, this.abMembers[0]);
+  });
+
+  it('deploy SwapOperator', async function () {
+    const SwapOperator = await ethers.getContractFactory('SwapOperator');
+    const swapOperator = await SwapOperator.deploy(
+      this.master.address,
+      TWAP_ORACLE_ADDRESS,
+      SWAP_CONTROLLER,
+      STETH_ADDRESS,
+    );
+    await swapOperator.deployed();
+
+    this.swapOperator = swapOperator;
+  });
+
+  it('deploy Pool', async function () {
+    const Pool = await ethers.getContractFactory('Pool');
+    const pool = await Pool.deploy(
+      [DAI_ADDRESS],
+      [18], // 18 decimals
+      [0], // 0%
+      [ethers.utils.parseEther('1000')], // 1000 DAI
+      [100], // 1%
+      this.master.address,
+      PRICE_FEED_ORACLE_ADDRESS,
+      this.swapOperator.address,
+    );
+    await pool.deployed();
+
+    await submitGovernanceProposal(
+      29, // upgradeMultipleContracts(bytes2[],address[])
+      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[hexlify(toUtf8Bytes('P1'))], [pool.address]]),
+      this.abMembers,
+      this.governance,
+    );
+
+    this.pool = pool;
+  });
+
+  it('deploy PooledStakingPool', async function () {
+    const coverAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
+    const PooledStaking = await ethers.getContractFactory('PooledStaking');
+    const pooledStaking = await PooledStaking.deploy(coverAddress, this.productsV1.address);
+    await pooledStaking.deployed();
+
+    await submitGovernanceProposal(
+      29, // upgradeMultipleContracts(bytes2[],address[])
+      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[hexlify(toUtf8Bytes('PS'))], [pooledStaking.address]]),
+      this.abMembers,
+      this.governance,
+    );
+
+    const pooledStakingAddress = await this.master.contractAddresses(toUtf8Bytes('PS'));
+    const { abi } = JSON.parse(
+      fs.readFileSync('./artifacts/contracts/modules/staking/PooledStaking.sol/PooledStaking.json'),
+    );
+    this.pooledStaking = new ethers.Contract(pooledStakingAddress, abi, this.deployer);
+  });
+
+  it('process all PooledStaking pending actions', async function () {
+    let hasPendingActions = await this.pooledStaking.hasPendingActions();
+    while (hasPendingActions) {
+      const tx = await this.pooledStaking.processPendingActions(100);
+      await tx.wait();
+      hasPendingActions = await this.pooledStaking.hasPendingActions();
+    }
+  });
+
+  it('migrate top stakers to new v2 staking pools', async function () {
+    const topStakers = [
+      '0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4',
+      '0x87B2a7559d85f4653f13E6546A14189cd5455d45',
+      '0x4a9fA34da6d2378c8f3B9F6b83532B169beaEDFc',
+      '0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2',
+      '0xE1Ad30971b83c17E2A24c0334CB45f808AbEBc87',
+      '0x5FAdEA9d64FFbe0b8A6799B8f0c72250F92E2B1d',
+      '0x9c657DB2B697846BE13Ca0B2bB5a6D17f860a395',
+      '0xF99b3a13d46A04735BF3828eB3030cfED5Ea0087',
+      '0x8C878B8f805472C0b70eD66a71c0B33da3d233c8',
+      '0x4544e2Fae244eA4Ca20d075bb760561Ce5990DC3',
+    ];
+    const txs = await Promise.all(topStakers.map(x => this.pooledStaking.migrateToNewV2Pool(x)));
+    await Promise.all(txs.map(x => x.wait()));
+  });
 });

@@ -95,7 +95,8 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
     // {REWARD_TRANSFERS_HELPER_END}
 
     uint remainderNMX = tk.balanceOf(address(this));
-    tk.transfer(address(tc), remainderNMX);
+    tk.approve(address(tc), remainderNMX);
+    tc.operatorTransfer(address(this), address(tc), remainderNMX);
   }
 
   function changeDependentContractAddress() public onlyInternal {

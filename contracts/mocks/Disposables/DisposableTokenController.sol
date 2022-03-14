@@ -7,7 +7,10 @@ import "../../modules/token/TokenController.sol";
 
 contract DisposableTokenController is TokenController {
 
-  constructor(address quotationDataAddress) TokenController(quotationDataAddress) {}
+  constructor(
+    address quotationDataAddress,
+    address claimsRewardAddress
+  ) TokenController(quotationDataAddress, claimsRewardAddress) {}
 
   function initialize(
     address _masterAddress,

@@ -18,6 +18,7 @@ import "hardhat/console.sol";
 contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   using SafeUintCast for uint;
   IQuotationData public immutable quotationData;
+  address public immutable claimsReward;
 
   INXMToken public override token;
   IPooledStaking public pooledStaking;
@@ -27,19 +28,16 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
 
-  constructor(address quotationDataAddress) {
+  constructor(address quotationDataAddress, address claimsRewardAddress) {
     quotationData = IQuotationData(quotationDataAddress);
+    claimsReward = claimsRewardAddress;
   }
 
   /**
   * @dev Just for interface
   */
   function changeDependentContractAddress() public {
-    console.log("In changeDependentContractAddress token is already initialzied");
-    console.log("token %s", address(token));
     token = INXMToken(ms.tokenAddress());
-    console.log("In changeDependentContractAddress even if it's reassigned token has the correct state");
-    console.log("token %s", address(token));
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
     assessment = IAssessment(ms.getLatestAddress("AS"));
   }
@@ -613,11 +611,8 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   }
 
   function initialize() external {
-    console.log("In initialize, for some reason token address is 0");
-    console.log("token %s", address(token));
-    console.log("Also in initialize, for some reason address(this) is also 0");
-    console.log("address(this) %s", address(this));
-    INXMToken(ms.tokenAddress()).addToWhiteList(address(this));
+    token.addToWhiteList(address(this));
+    //token.removeFromWhiteList(claimsReward);
     migrate();
   }
 

@@ -21,6 +21,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
 
 import "./MinimalBeaconProxy.sol";
+import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   using SafeERC20 for IERC20;
@@ -552,6 +553,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     );
     IStakingPool(stakingPoolAddress).initialize(manager, stakingPoolCounter);
 
+    console.log("stakingPoolCounter %d", stakingPoolCounter);
     stakingPoolCounter++;
 
     emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);

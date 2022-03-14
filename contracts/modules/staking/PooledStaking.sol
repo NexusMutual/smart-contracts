@@ -9,6 +9,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IStakingPool.sol";
+import "hardhat/console.sol";
 
 contract PooledStaking is IPooledStaking, MasterAware {
   /* Events */
@@ -737,17 +738,27 @@ contract PooledStaking is IPooledStaking, MasterAware {
     }
   }
 
-  function migrateToNewV2Pool(address stakerAddress) external {
+  function migrateToNewV2Pool(address stakerAddress) external noPendingActions {
     // Addresses marked for implicit migration can be migrated by anyone.
     // Addresses who are not can only be migrated by calling this function themselves.
-    // [todo] Add the marked addresses before deploy
+    // [todo] Check these addresses before deploy
     require(
       stakerAddress == msg.sender ||
-      stakerAddress == 0x0000000000000000000000000000000000000001 ||
-      stakerAddress == 0x0000000000000000000000000000000000000002, // etc.
+      stakerAddress == 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4 || // Armor 48%
+      stakerAddress == 0x87B2a7559d85f4653f13E6546A14189cd5455d45 || // Hugh 16.3%
+      stakerAddress == 0x4a9fA34da6d2378c8f3B9F6b83532B169beaEDFc || // 6.6%
+      stakerAddress == 0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2 || // 4.5%
+      stakerAddress == 0xE1Ad30971b83c17E2A24c0334CB45f808AbEBc87 || // 2.5%
+      stakerAddress == 0x5FAdEA9d64FFbe0b8A6799B8f0c72250F92E2B1d || // 1.7%
+      stakerAddress == 0x9c657DB2B697846BE13Ca0B2bB5a6D17f860a395 || // 1.5%
+      stakerAddress == 0xF99b3a13d46A04735BF3828eB3030cfED5Ea0087 || // 1.4%
+      stakerAddress == 0x8C878B8f805472C0b70eD66a71c0B33da3d233c8 || // 1.4%
+      stakerAddress == 0x4544e2Fae244eA4Ca20d075bb760561Ce5990DC3, // 0.7%
       "You are not authorized to migrate this staker"
     );
 
+    require(stakers[stakerAddress].deposit > 0, "Address has no migratable stake");
+    console.log("Migrating staker %s", stakerAddress);
 
     uint contractsCount = stakers[stakerAddress].contracts.length;
     uint deposit = stakers[stakerAddress].deposit;
@@ -756,7 +767,13 @@ contract PooledStaking is IPooledStaking, MasterAware {
     uint[] memory products = new uint[](contractsCount);
     for (uint i = 0; i < contractsCount; i++) {
       address oldProductId = stakers[stakerAddress].contracts[i];
-      uint productId = productsV1.getNewProductId(oldProductId);
+      uint productId;
+      try productsV1.getNewProductId(oldProductId) returns (uint v) {
+        productId = v;
+      } catch {
+        console.log("oldProductId %s not found in productsV1, likely deprecated", oldProductId);
+        continue;
+      }
       products[i] = productId;
       uint stake = stakers[stakerAddress].stakes[oldProductId];
       weights[i] = stake * 1e18 / deposit;

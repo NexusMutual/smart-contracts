@@ -15,7 +15,7 @@ async function setup () {
   const Pool = artifacts.require('Pool');
   const MCR = artifacts.require('P1MockMCR');
   const ERC20Mock = artifacts.require('ERC20Mock');
-  const PriceFeedOracle = artifacts.require('P1MockPriceFeedOracle');
+  const PriceFeedOracle = artifacts.require('PriceFeedOracle');
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
   const master = await MasterMock.new();

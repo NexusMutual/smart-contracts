@@ -22,7 +22,7 @@ async function setup () {
   const CSMockWeth = await ethers.getContractFactory('CSMockWeth');
   const CSMockSettlement = await ethers.getContractFactory('CSMockSettlement');
   const CSMockVaultRelayer = await ethers.getContractFactory('CSMockVaultRelayer');
-  const P1MockPriceFeedOracle = await ethers.getContractFactory('P1MockPriceFeedOracle');
+  const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
 
   // Deploy WETH + ERC20 test tokens
@@ -45,7 +45,7 @@ async function setup () {
   await daiAggregator.setLatestAnswer(0.0002 * 1e18); // 1 dai = 0.0002 eth, 1 eth = 5000 dai
 
   // Deploy PriceFeedOracle
-  const priceFeedOracle = await P1MockPriceFeedOracle.deploy(daiAggregator.address, dai.address, stEth.address);
+  const priceFeedOracle = await PriceFeedOracle.deploy(daiAggregator.address, dai.address, stEth.address);
 
   // Deploy Pool
   const oneK = parseEther('1000');

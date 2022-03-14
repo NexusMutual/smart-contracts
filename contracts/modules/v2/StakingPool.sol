@@ -56,7 +56,7 @@ abstract contract StakingPool is IStakingPool, ERC721 {
 
   struct Product {
     uint weight;
-    uint currentAllocation;
+    uint allocatedStake;
     uint lastBucket;
   }
 
@@ -249,7 +249,7 @@ abstract contract StakingPool is IStakingPool, ERC721 {
     rewardsSharesSupply = _rewardsSharesSupply + newRewardsShares;
   }
 
-  function allocateCapacity(
+  function allocateStake(
     uint productId,
     uint amountInNXM,
     uint period,
@@ -259,53 +259,62 @@ abstract contract StakingPool is IStakingPool, ERC721 {
 
     updateGroups();
 
-    uint currentAllocation = products[productId].currentAllocation;
+    // active stake = staked in active (not expired) groups
+    // available stake = subset of active stake, accounts for product weight and cover period
+    // allocated stake = subset of available stake that has been allocated to back covers
+    // usable stake = available - allocated
+
+    uint allocatedStake = products[productId].allocatedStake;
     uint lastBucket = products[productId].lastBucket;
     uint currentBucket = block.timestamp / BUCKET_SIZE;
 
+    // process expirations
     while (lastBucket < currentBucket) {
       ++lastBucket;
-      currentAllocation -= productBuckets[productId][lastBucket].allocationCut;
+      allocatedStake -= productBuckets[productId][lastBucket].allocationCut;
     }
 
-    uint firstGroupId = block.timestamp / GROUP_SIZE;
-    // group expiration must exceed the cover period
-    uint firstUsableGroupId = (block.timestamp + period) / GROUP_SIZE;
-    uint unusableShares = 0;
-
-    for (uint i = firstGroupId; i < firstUsableGroupId; ++i) {
-      unusableShares += stakeGroups[i].stakeShares;
-    }
-
-    uint _activeStake = activeStake;
     uint _stakeSharesSupply = stakeSharesSupply;
-    uint usableShares = _stakeSharesSupply - unusableShares;
+    uint _activeStake = activeStake;
 
-    // can be used total
-    uint usableStake = _activeStake * usableShares / _stakeSharesSupply;
-    // can be used by this product
-    usableStake = usableStake * products[productId].weight / WEIGHT_DENOMINATOR;
+    // group expiration must exceed the cover period
+    uint firstAvailableGroupId = (block.timestamp + period) / GROUP_SIZE;
+    // TODO: shadows the state variable, rename it
+    uint firstActiveGroupId = block.timestamp / GROUP_SIZE;
+
+    // start with the entire supply and subtract unavailable groups
+    uint availableShares = _stakeSharesSupply;
+
+    for (uint i = firstActiveGroupId; i < firstAvailableGroupId; ++i) {
+      availableShares -= stakeGroups[i].stakeShares;
+    }
+
+    // total stake available without applying product weight
+    uint availableStake = _activeStake * availableShares / _stakeSharesSupply;
+    // total stake available for this product
+    availableStake = availableStake * products[productId].weight / WEIGHT_DENOMINATOR;
 
     // could happen if is 100% in-use or if product weight is changed
-    if (currentAllocation >= usableStake) {
+    if (allocatedStake >= availableStake) {
+      // store expirations
+      products[productId].allocatedStake = allocatedStake;
       return (0, 0);
     }
 
-    uint maxAllocation = usableStake - currentAllocation;
-    newAllocation = min(amountInNXM, maxAllocation);
+    uint usableStake = availableStake - allocatedStake;
+    newAllocation = min(amountInNXM, usableStake);
 
     premium = calculatePremium(
-      currentAllocation,
-      maxAllocation,
+      allocatedStake,
+      usableStake,
       newAllocation,
       initialPriceRatio,
       period
     );
 
-    currentAllocation += newAllocation;
-    products[productId].currentAllocation = currentAllocation;
+    products[productId].allocatedStake = allocatedStake + newAllocation;
 
-    // ceil = fn(a, b) => (a + b - 1) / b
+    // divCeil = fn(a, b) => (a + b - 1) / b
     uint expireAtBucket = (block.timestamp + period + BUCKET_SIZE - 1) / BUCKET_SIZE;
     productBuckets[productId][expireAtBucket].allocationCut += newAllocation;
 
@@ -316,8 +325,8 @@ abstract contract StakingPool is IStakingPool, ERC721 {
   }
 
   function calculatePremium(
-    uint currentAllocation,
-    uint maxAllocation,
+    uint allocatedStake,
+    uint usableStake,
     uint newAllocation,
     uint initialPriceRatio,
     uint period

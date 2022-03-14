@@ -320,8 +320,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     // TODO: correctly calculate the capacity
     uint allocation = amount * globalCapacityRatio;
+    revert("capacity calculation: not implemented");
 
-    return _stakingPool.allocateCapacity(
+    return _stakingPool.allocateStake(
       params.productId,
       allocation,
       params.period,

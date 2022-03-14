@@ -15,7 +15,7 @@ interface IStakingPool is IERC721 {
 
   function operatorTransferFrom(address from, address to, uint256 amount) external;
 
-  function allocateCapacity(uint productId, uint amountInNXM, uint period, uint rewardRatio, uint initialPriceRatio) external returns (uint allocatedNXM, uint premium);
+  function allocateStake(uint productId, uint amountInNXM, uint period, uint rewardRatio, uint initialPriceRatio) external returns (uint allocatedNXM, uint premium);
 
   function freeCapacity(
     uint productId,

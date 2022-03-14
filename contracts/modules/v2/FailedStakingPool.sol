@@ -154,7 +154,7 @@ contract FailedStakingPool is IFailedStakingPool, ERC20 {
   uint public constant BASE_PRICE_BUMP_DENOMINATOR = 10_000;
 
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
-  
+
   modifier onlyCoverContract {
     require(msg.sender == coverContract, "StakingPool: Caller is not the cover contract");
     _;

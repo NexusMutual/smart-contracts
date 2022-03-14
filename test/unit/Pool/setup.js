@@ -1,6 +1,5 @@
 const { artifacts, web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
-const _ = require('lodash');
 
 const { Role } = require('../utils').constants;
 const accounts = require('../utils').accounts;
@@ -24,12 +23,6 @@ async function setup () {
   const dai = await ERC20Mock.new();
   const stETH = await ERC20Mock.new();
 
-  // Create 6 generic ERC20 assets
-  const genericAssets = [];
-  for (let i = 0; i < 6; i++) {
-    genericAssets.push(await ERC20Mock.new());
-  }
-
   const ethToDaiRate = new BN((394.59 * 1e18).toString());
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
 
@@ -42,11 +35,11 @@ async function setup () {
 
   const tokenData = await TokenData.new();
   const pool = await Pool.new(
-    [dai.address, ..._.map(genericAssets, 'address')], // assets
-    new Array(7).fill(18), // decimals
-    new Array(7).fill(0), // min
-    new Array(7).fill(0), // max
-    new Array(7).fill(100), // maxSlippage 1%
+    [dai.address], // assets
+    [18], // decimals
+    [0], // min
+    [0], // max
+    [100], // maxSlippage 1%
     accounts.defaultSender, // master: it is changed a few lines below
     priceFeedOracle.address,
     swapOperator, // we do not test swaps here

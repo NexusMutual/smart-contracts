@@ -8,7 +8,7 @@ const { utils: { parseEther } } = ethers;
 
 const { nonMembers: [fundSource], defaultSender, governanceContracts: [governance] } = require('../utils').accounts;
 
-describe.only('getPoolValueInEth', function () {
+describe('getPoolValueInEth', function () {
 
   it('gets total value of ETH and DAI assets in the pool', async function () {
     const { pool, mcr, chainlinkDAI, dai } = this;

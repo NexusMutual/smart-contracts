@@ -300,19 +300,11 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     if (assetAddress == ETH) {
       (bool ok, /* data */) = swapOperator.call{value: amount}("");
       require(ok, "Pool: ETH transfer failed");
-
-      swapValue = amount;
-    } else {
-      IERC20 token = IERC20(assetAddress);
-      token.safeTransfer(swapOperator, amount);
-
-      // Calculate swapValue in ETH using priceFeedOracle
-      Asset memory asset = getAssetFromAddress(assetAddress);
-      uint rate = priceFeedOracle.getAssetToEthRate(assetAddress);
-      require(rate > 0, "Pool: Zero rate");
-
-      swapValue = amount * rate / (10 ** uint(asset.decimals));
+      return;
     }
+
+    IERC20 token = IERC20(assetAddress);
+    token.safeTransfer(swapOperator, amount);
   }
 
   function setSwapDetailsLastSwapTime(
@@ -602,7 +594,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     swapValue = newValue;
   }
 
-  function getAssetFromAddress(address addr) internal view returns (Asset memory) {
+  function getAssetFromAddress(address addr) public view returns (Asset memory) {
     for (uint i = 0; i < assets.length; i++) {
       if (assets[i].assetAddress == addr) {
         return assets[i];

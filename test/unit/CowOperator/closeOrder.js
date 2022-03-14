@@ -95,9 +95,6 @@ describe('closeOrder', function () {
     // Set asset details for DAI
     await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
 
-    // Set price in oracle
-    // await (await twap.addPrice(weth.address, dai.address, 5000 * 10000)).wait(); // 1 weth = 5000 dai
-
     // place order
     await swapOperator.placeOrder(contractOrder, orderUID);
   });

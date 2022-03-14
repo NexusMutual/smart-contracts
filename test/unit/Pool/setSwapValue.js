@@ -8,7 +8,7 @@ const {
   defaultSender,
 } = require('../utils').accounts;
 
-describe.only('setSwapValue', function () {
+describe('setSwapValue', function () {
   it('is only callabe by swap operator', async function () {
     const { pool } = this;
 

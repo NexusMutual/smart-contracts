@@ -81,4 +81,6 @@ interface IPool {
   function getMCRRatio() external view returns (uint);
 
   function setSwapValue(uint value) external;
+
+  function getAssetFromAddress(address addr) external view returns (Asset memory);
 }

@@ -117,8 +117,16 @@ contract CowSwapOperator {
     if (isSellingEth(order)) {
       pool.transferAssetToSwapOperator(ETH, totalOutAmount);
       weth.deposit{value: totalOutAmount}();
+      pool.setSwapValue(totalOutAmount);
     } else {
       pool.transferAssetToSwapOperator(address(order.sellToken), totalOutAmount);
+
+      // Calculate swapValue for non-eth asset
+      IPool.Asset memory asset = pool.getAssetFromAddress(address(order.sellToken));
+      uint rate = priceFeedOracle.getAssetToEthRate(address(order.sellToken));
+      require(rate > 0, "SwapOp: Zero rate from oracle");
+
+      pool.setSwapValue(totalOutAmount * rate / (10 ** uint(asset.decimals)));
     }
 
     // Approve Cow's contract to spend sellToken

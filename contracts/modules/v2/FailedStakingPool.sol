@@ -468,7 +468,7 @@ contract FailedStakingPool is IFailedStakingPool, ERC20 {
     LastPrice memory lastBasePrice,
     uint targetPrice,
     uint blockTimestamp
-  ) public view returns (uint actualPrice, uint basePrice) {
+  ) public pure returns (uint actualPrice, uint basePrice) {
 
     basePrice = interpolatePrice(
       lastBasePrice.value != 0 ? lastBasePrice.value : initialPrice,
@@ -500,7 +500,7 @@ contract FailedStakingPool is IFailedStakingPool, ERC20 {
     uint basePrice,
     uint activeCover,
     uint capacity
-  ) public view returns (uint) {
+  ) public pure returns (uint) {
 
     uint activeCoverRatio = activeCover * TOKEN_PRECISION / capacity;
     uint newActiveCoverAmount = amount + activeCover;
@@ -534,7 +534,7 @@ contract FailedStakingPool is IFailedStakingPool, ERC20 {
     uint targetPrice,
     uint lastPriceUpdate,
     uint currentTimestamp
-  ) public view returns (uint) {
+  ) public pure returns (uint) {
 
     uint priceChange = (currentTimestamp - lastPriceUpdate) / 1 days * PRICE_RATIO_CHANGE_PER_DAY;
 

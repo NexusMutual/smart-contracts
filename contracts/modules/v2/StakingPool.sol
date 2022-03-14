@@ -148,7 +148,8 @@ contract StakingPool is IStakingPool, ERC20 {
   uint public constant INITIAL_PRICE_DENOMINATOR = 10_000;
 
   // base price bump by 2% for each 10% of capacity used
-  uint public constant BASE_PRICE_BUMP_RATIO = 200; // 2%
+  uint public constant BASE_PRICE_BUMP_RATIO = 2e16; // 2% with 18 decimals
+
   uint public constant BASE_PRICE_BUMP_INTERVAL = 1000; // 10%
   uint public constant BASE_PRICE_BUMP_DENOMINATOR = 10_000;
 
@@ -480,7 +481,7 @@ contract StakingPool is IStakingPool, ERC20 {
     actualPrice = calculatePrice(amount, basePrice, activeCover, capacity);
 
     // Bump base price by 2% (200 basis points) per 10% (1000 basis points) of capacity used
-    uint priceBump = amount * BASE_PRICE_BUMP_DENOMINATOR / capacity / BASE_PRICE_BUMP_INTERVAL * BASE_PRICE_BUMP_RATIO;
+    uint priceBump = BASE_PRICE_BUMP_RATIO  * amount * BASE_PRICE_BUMP_DENOMINATOR / capacity / BASE_PRICE_BUMP_INTERVAL;
 
     basePrice = uint96(basePrice + priceBump);
   }
@@ -499,7 +500,7 @@ contract StakingPool is IStakingPool, ERC20 {
     uint basePrice,
     uint activeCover,
     uint capacity
-  ) public pure returns (uint) {
+  ) public view returns (uint) {
 
     uint activeCoverRatio = activeCover * TOKEN_PRECISION / capacity;
     uint newActiveCoverAmount = amount + activeCover;
@@ -522,9 +523,7 @@ contract StakingPool is IStakingPool, ERC20 {
 
     uint surgeLoadingRatio = capacityUsedSteep * (endSurgeLoading + startSurgeLoading) / 2 / capacityUsed;
 
-    uint actualPrice = basePrice * (surgeLoadingRatio + PRICE_DENOMINATOR);
-
-    return actualPrice;
+    return basePrice * (surgeLoadingRatio + PRICE_DENOMINATOR) / PRICE_DENOMINATOR;
   }
 
   /**
@@ -539,12 +538,10 @@ contract StakingPool is IStakingPool, ERC20 {
 
     uint priceChange = (currentTimestamp - lastPriceUpdate) / 1 days * PRICE_RATIO_CHANGE_PER_DAY;
 
-    if (targetPrice > lastPrice) {
+    if (targetPrice > lastPrice || int(lastPrice) - int(priceChange) < int(targetPrice)) {
       return targetPrice;
     }
 
-    uint nextPrice = lastPrice - priceChange;
-
-    return nextPrice;
+    return lastPrice - priceChange;
   }
 }

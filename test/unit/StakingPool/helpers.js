@@ -1,14 +1,16 @@
-const { ethers: { BigNumber } } = require('hardhat');
+const { ethers: { BigNumber, utils: { parseUnits } } } = require('hardhat');
 const Decimal = require('decimal.js');
 
-const SURGE_THRESHOLD = BigNumber.from(8e17.toString());
-const BASE_SURGE_LOADING = BigNumber.from(1e17.toString()); // 10%
-const BASE_SURGE_CAPACITY_USED = BigNumber.from(1e16.toString()); // 1%
+const SURGE_THRESHOLD = parseUnits('0.8');
+const BASE_SURGE_LOADING = parseUnits('0.1'); // 10%
+const BASE_SURGE_CAPACITY_USED = parseUnits('0.01'); // 1%
 
-const PRICE_RATIO_CHANGE_PER_DAY = BigNumber.from(5e15.toString()); // 0.5%
+const PRICE_RATIO_CHANGE_PER_DAY = parseUnits('0.005'); // 0.5%
 const BASE_PRICE_BUMP_RATIO = 200; // 2%
 const BASE_PRICE_BUMP_INTERVAL = 1000; // 10%
 const BASE_PRICE_BUMP_DENOMINATOR = 10000;
+
+const PRICE_DENOMINATOR = parseUnits('1');
 
 function interpolatePrice (
   lastPrice,
@@ -62,8 +64,9 @@ function calculatePrice (
 
   const surgeLoadingRatio = capacityUsedSteep.mul(endSurgeLoading.add(startSurgeLoading).div(2)).div(capacityUsed);
 
-  const actualPrice = basePrice.mul(surgeLoadingRatio.add(1e18.toString()));
+  const actualPrice = basePrice.mul(surgeLoadingRatio.add(PRICE_DENOMINATOR)).div(PRICE_DENOMINATOR);
   return actualPrice;
+
 }
 
 function getPrices (

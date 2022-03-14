@@ -25,8 +25,7 @@ describe.only('getPrices', function () {
       targetPrice,
       blockTimestamp,
     );
-
-
+    
     const expectedNewBasePrice = parseUnits('0.0296');
     const expectedActualPrice = parseUnits('0.02');
 

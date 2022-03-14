@@ -1,9 +1,16 @@
 const { task } = require('hardhat/config');
 
-task('test', async (_, hre, runSuper) => {
-  hre.accounts = await hre.web3.eth.getAccounts();
-  const testFiles = _.testFiles.length ? _.testFiles : ['./test/index.js'];
+task('test', async (taskArgs, hre, runSuper) => {
+  const testFiles = taskArgs.testFiles.length
+    ? taskArgs.testFiles
+    : [`${__dirname}/../test/index.js`];
+  // ^ using absolute path to avoid a hardhat-mocha bug
+  // https://github.com/NomicFoundation/hardhat/issues/2220
   await runSuper({ testFiles });
+});
+
+task('test:setup-test-environment', async (_, hre) => {
+  hre.accounts = await hre.web3.eth.getAccounts();
 });
 
 task('typechain', async (_, { config }) => {

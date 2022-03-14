@@ -4,7 +4,7 @@ const compilerSettings = process.env.ENABLE_OPTIMIZER
 
 const compilers = {
   '0.5.17': { settings: compilerSettings, version: '0.5.17' }, // nexus mutual v1
-  '0.8.4': { settings: compilerSettings, version: '0.8.4' }, // nexus mutual v2
+  '0.8.9': { settings: compilerSettings, version: '0.8.9' }, // nexus mutual v2
 };
 
 const contracts = {

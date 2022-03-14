@@ -298,6 +298,7 @@ abstract contract StakingPool is IStakingPool, ERC721 {
     if (allocatedStake >= availableStake) {
       // store expirations
       products[productId].allocatedStake = allocatedStake;
+      products[productId].lastBucket = currentBucket;
       return (0, 0);
     }
 
@@ -313,6 +314,7 @@ abstract contract StakingPool is IStakingPool, ERC721 {
     );
 
     products[productId].allocatedStake = allocatedStake + newAllocation;
+    products[productId].lastBucket = currentBucket;
 
     // divCeil = fn(a, b) => (a + b - 1) / b
     uint expireAtBucket = (block.timestamp + period + BUCKET_SIZE - 1) / BUCKET_SIZE;

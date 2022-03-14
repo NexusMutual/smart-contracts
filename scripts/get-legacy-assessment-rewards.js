@@ -63,7 +63,7 @@ const main = async () => {
 
   const contract = fs.readFileSync('./contracts/modules/claims/LegacyClaimsReward.sol');
 
-  fs.appendFileSync('rewardable.json', JSON.stringify(rewardable, null, 2), 'utf8');
+  fs.writeFileSync('rewardable.json', JSON.stringify(rewardable, null, 2), 'utf8');
 
   // Regex used to replace the transfer operations in LegacyClaimsReward.sol
   const templateHelperRegex = /\/\/ \{REWARD_TRANSFERS_HELPER_BEGIN\}([\s\S]*?)\/\/ \{REWARD_TRANSFERS_HELPER_END\}/;

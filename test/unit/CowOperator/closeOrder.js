@@ -14,7 +14,7 @@ describe('closeOrder', function () {
 
   let order, contractOrder, domain, orderUID;
 
-  let dai, weth, pool, swapOperator, cowSettlement, cowVaultRelayer, twap;
+  let dai, weth, pool, swapOperator, cowSettlement, cowVaultRelayer;
 
   const daiMinAmount = parseEther('10000');
   const daiMaxAmount = parseEther('20000');
@@ -58,7 +58,6 @@ describe('closeOrder', function () {
     swapOperator = contracts.swapOperator;
     cowSettlement = contracts.cowSettlement;
     cowVaultRelayer = contracts.cowVaultRelayer;
-    twap = contracts.twap;
 
     // Build order struct, domain separator and calculate UID
     const lastBlockTimestamp = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
@@ -97,7 +96,7 @@ describe('closeOrder', function () {
     await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
 
     // Set price in oracle
-    await (await twap.addPrice(weth.address, dai.address, 5000 * 10000)).wait(); // 1 weth = 5000 dai
+    // await (await twap.addPrice(weth.address, dai.address, 5000 * 10000)).wait(); // 1 weth = 5000 dai
 
     // place order
     await swapOperator.placeOrder(contractOrder, orderUID);
@@ -313,5 +312,15 @@ describe('closeOrder', function () {
       expect(event.args.order).to.deep.include.members(Object.values(contractOrder));
       expect(event.args.filledAmount).to.eq(order.sellAmount);
     });
+  });
+
+  it('sets swapValue to 0 on the pool', async function () {
+    const oldSwapValue = await pool.swapValue();
+    expect(oldSwapValue).to.be.gt(0);
+
+    await swapOperator.closeOrder(contractOrder);
+
+    const newSwapValue = await pool.swapValue();
+    expect(newSwapValue).to.eq(0);
   });
 });

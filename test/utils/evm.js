@@ -10,7 +10,7 @@ const stopImpersonatingAccount = async address => provider.send('hardhat_stopImp
 const takeSnapshot = async () => provider.send('evm_snapshot');
 const revertToSnapshot = async id => provider.send('evm_revert', [id]);
 
-const setEtherBalance = async (address, wei) => { provider.send('hardhat_setBalance', [address, utils.hexStripZeros(BigNumber.from(wei).toHexString())]); };
+const setEtherBalance = async (address, wei) => { await provider.send('hardhat_setBalance', [address, utils.hexStripZeros(BigNumber.from(wei).toHexString())]); };
 
 module.exports = {
   setNextBlockTime,

@@ -14,7 +14,6 @@ async function setup () {
   const [owner, governance] = await ethers.getSigners();
 
   const MasterMock = await ethers.getContractFactory('MasterMock');
-  const CSMockTwapOracle = await ethers.getContractFactory('CSMockTwapOracle');
   const Pool = await ethers.getContractFactory('Pool');
   const MCR = await ethers.getContractFactory('MCR');
   const CowSwapOperator = await ethers.getContractFactory('CowSwapOperator');
@@ -23,6 +22,7 @@ async function setup () {
   const CSMockWeth = await ethers.getContractFactory('CSMockWeth');
   const CSMockSettlement = await ethers.getContractFactory('CSMockSettlement');
   const CSMockVaultRelayer = await ethers.getContractFactory('CSMockVaultRelayer');
+  const P1MockPriceFeedOracle = await ethers.getContractFactory('P1MockPriceFeedOracle');
 
   // Deploy WETH + ERC20 test tokens
   const weth = await CSMockWeth.deploy();
@@ -39,6 +39,9 @@ async function setup () {
   const quotationData = await CSMockQuotationData.deploy();
   const mcr = await MCR.deploy(master.address);
 
+  // Deploy PriceFeedOracle
+  const priceFeedOracle = await P1MockPriceFeedOracle.deploy(AddressZero, dai.address, stEth.address);
+
   // Deploy Pool
   const oneK = parseEther('1000');
   const pool = await Pool.deploy(
@@ -48,7 +51,7 @@ async function setup () {
     [oneK, oneK, oneK], // max
     [500, 500, 500], // max slippage ratio [5%, 5%, 5%]
     master.address,
-    AddressZero, // price feed oracle, add to setup if needed
+    priceFeedOracle.address, // price feed oracle, add to setup if needed
     AddressZero, // swap operator
   );
 
@@ -61,16 +64,13 @@ async function setup () {
   await pool.changeDependentContractAddress();
   await mcr.changeDependentContractAddress();
 
-  // Deploy Twap Oracle
-  const twap = await CSMockTwapOracle.deploy();
-
   // Deploy CowSwapOperator
   const swapOperator = await CowSwapOperator.deploy(
     cowSettlement.address,
     await owner.getAddress(),
     master.address,
     weth.address,
-    twap.address,
+    priceFeedOracle.address,
   );
 
   // Setup pool's swap operator
@@ -88,7 +88,7 @@ async function setup () {
     pool,
     mcr,
     swapOperator,
-    twap,
+    priceFeedOracle,
     cowSettlement,
     cowVaultRelayer,
   });

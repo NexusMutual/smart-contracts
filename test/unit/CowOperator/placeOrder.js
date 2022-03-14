@@ -14,7 +14,7 @@ describe('placeOrder', function () {
 
   let order, contractOrder, domain, orderUID;
 
-  let dai, weth, pool, swapOperator, twap, cowSettlement, cowVaultRelayer;
+  let dai, weth, pool, swapOperator, cowSettlement, cowVaultRelayer;
 
   const daiMinAmount = parseEther('10000');
   const daiMaxAmount = parseEther('20000');
@@ -57,7 +57,6 @@ describe('placeOrder', function () {
     weth = contracts.weth;
     pool = contracts.pool;
     swapOperator = contracts.swapOperator;
-    twap = contracts.twap;
     cowSettlement = contracts.cowSettlement;
     cowVaultRelayer = contracts.cowVaultRelayer;
 
@@ -91,7 +90,6 @@ describe('placeOrder', function () {
     await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
 
     // Set price in oracle
-    await (await twap.addPrice(weth.address, dai.address, 5000 * 10000)).wait(); // 1 weth = 5000 dai
   });
 
   it('is callable only by swap controller', async function () {

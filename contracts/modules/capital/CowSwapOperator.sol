@@ -107,11 +107,11 @@ contract CowSwapOperator {
 
     // Validate oracle price
     // uint256 finalSlippage = Math.max(buyTokenDetails.maxSlippageRatio, sellTokenDetails.maxSlippageRatio);
-    uint256 finalSlippage = MAX_SLIPPAGE_DENOMINATOR; // Slippage TBD. 100% for now
-    uint256 oracleBuyAmount = twapOracle.consult(address(order.sellToken), totalOutAmount, address(order.buyToken));
-    uint256 maxSlippageAmount = (oracleBuyAmount * finalSlippage) / MAX_SLIPPAGE_DENOMINATOR;
-    uint256 minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
-    require(order.buyAmount >= minBuyAmountOnMaxSlippage, 'SwapOp: order.buyAmount doesnt match oracle data');
+    // uint256 finalSlippage = MAX_SLIPPAGE_DENOMINATOR; // Slippage TBD. 100% for now
+    // uint256 oracleBuyAmount = twapOracle.consult(address(order.sellToken), totalOutAmount, address(order.buyToken));
+    // uint256 maxSlippageAmount = (oracleBuyAmount * finalSlippage) / MAX_SLIPPAGE_DENOMINATOR;
+    // uint256 minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
+    // require(order.buyAmount >= minBuyAmountOnMaxSlippage, 'SwapOp: order.buyAmount doesnt match oracle data');
 
     // Transfer pool's asset to this contract; wrap ether if needed
     if (isSellingEth(order)) {
@@ -174,6 +174,9 @@ contract CowSwapOperator {
         order.sellToken.transfer(address(_pool()), sellTokenBalance);
       }
     }
+
+    // Set swapValue on pool to 0
+    _pool().setSwapValue(0);
 
     // Emit event
     emit OrderClosed(order, filledAmount);

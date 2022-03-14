@@ -28,13 +28,15 @@ describe('deprecateAsset', function () {
     const ERC20Mock = artifacts.require('ERC20Mock');
     const token = await ERC20Mock.new();
 
+    const { assetAddresses: existingAssetAddresses, deprecated: existingAssetsDeprecated } = await pool.getAssets();
+
     {
       // add token as asset
       await pool.addAsset(token.address, 18, '1', '2', '3', { from: governance });
       await token.mint(pool.address, ether('100'));
 
-      const expectedAssetAddresses = [ETH, dai.address, token.address];
-      const expectedDeprecatedAssets = [false, false, false];
+      const expectedAssetAddresses = [...existingAssetAddresses, token.address];
+      const expectedDeprecatedAssets = [...existingAssetsDeprecated, false];
       const { assetAddresses, deprecated } = await pool.getAssets();
       assert.deepEqual(assetAddresses, expectedAssetAddresses, 'Unexpected asset addresses found');
       assert.deepEqual(deprecated, expectedDeprecatedAssets, 'Unexpected deprecated assets found');
@@ -52,8 +54,8 @@ describe('deprecateAsset', function () {
       assert.strictEqual(maxSlippageRatio.toString(), '0');
       assert.strictEqual(lastSwapTime.toString(), '0');
 
-      const expectedAssetAddresses = [ETH, dai.address, token.address];
-      const expectedDeprecatedAssets = [false, true, false];
+      const expectedAssetAddresses = [...existingAssetAddresses, token.address];
+      const expectedDeprecatedAssets = expectedAssetAddresses.map(asset => asset === dai.address);
       const { assetAddresses, deprecated } = await pool.getAssets();
       assert.deepEqual(assetAddresses, expectedAssetAddresses, 'Unexpected assets found');
       assert.deepEqual(deprecated, expectedDeprecatedAssets, 'Unexpected deprecated assets found');
@@ -69,10 +71,9 @@ describe('deprecateAsset', function () {
       assert.strictEqual(maxSlippageRatio.toString(), '3');
       assert.strictEqual(lastSwapTime.toString(), '0');
     }
-
     {
       // deprecate token as asset
-      await pool.deprecateAsset(2, { from: governance });
+      await pool.deprecateAsset(existingAssetAddresses.length, { from: governance });
 
       const swapDetails = await pool.getAssetSwapDetails(token.address);
       const { minAmount, maxAmount, maxSlippageRatio, lastSwapTime } = swapDetails;
@@ -82,8 +83,8 @@ describe('deprecateAsset', function () {
       assert.strictEqual(maxSlippageRatio.toString(), '0');
       assert.strictEqual(lastSwapTime.toString(), '0');
 
-      const expectedAssetAddresses = [ETH, dai.address, token.address];
-      const expectedDeprecatedAssets = [false, true, true];
+      const expectedAssetAddresses = [...existingAssetAddresses, token.address];
+      const expectedDeprecatedAssets = expectedAssetAddresses.map(asset => [dai.address, token.address].includes(asset));
       const { assetAddresses, deprecated } = await pool.getAssets();
       assert.deepEqual(assetAddresses, expectedAssetAddresses, 'Unexpected assets found');
       assert.deepEqual(deprecated, expectedDeprecatedAssets, 'Unexpected deprecated assets found');

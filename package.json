@@ -56,17 +56,11 @@
     "eslint-plugin-node": "^11.0.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
-<<<<<<< HEAD
     "ethlint": "^1.2.5",
-    "glob": "^7.1.6",
-    "hardhat": "^2.6.1",
-    "hardhat-contract-sizer": "^2.0.2",
-    "ipfs-http-client": "^47.0.1",
-=======
     "glob": "^7.2.0",
     "hardhat": "^2.8.4",
     "hardhat-contract-sizer": "^2.4.0",
->>>>>>> nexus-v2
+    "ipfs-http-client": "^47.0.1",
     "mocha": "^7.1.2",
     "nodemon": "^2.0.15",
     "prettier": "^1.19.1",

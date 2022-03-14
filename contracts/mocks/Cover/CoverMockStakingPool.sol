@@ -3,11 +3,13 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-v4/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
 
 import "../../interfaces/IStakingPool.sol";
 
-contract CoverMockStakingPool is IStakingPool, ERC20 {
+abstract contract CoverMockStakingPool is IStakingPool, ERC721 {
+
   /* immutables */
   ERC20 public immutable nxm;
   address public immutable coverContract;
@@ -20,10 +22,10 @@ contract CoverMockStakingPool is IStakingPool, ERC20 {
 
   mapping (uint => uint) public mockPrices;
 
-  address public override manager;
+  address public /*override*/ manager;
 
   constructor (address _nxm, address _coverContract, address _memberRoles)
-  ERC20("Nexus Mutual Staking Pool", "NMSPT") {
+  ERC721("Nexus Mutual Staking Pool", "NMSPT") {
     nxm = ERC20(_nxm);
     coverContract = _coverContract;
     memberRoles = _memberRoles;
@@ -33,21 +35,25 @@ contract CoverMockStakingPool is IStakingPool, ERC20 {
     return string(abi.encodePacked(super.name(), " ", Strings.toString(poolId)));
   }
 
-  function initialize(address _manager, uint _poolId) external override {
+  function initialize(address _manager, uint _poolId) external /*override*/ {
     manager = _manager;
     poolId = _poolId;
   }
 
-  function operatorTransferFrom(address from, address to, uint256 amount) external override {
+  function operatorTransferFrom(address from, address to, uint256 amount) external /*override*/ {
     require(msg.sender == memberRoles, "StakingPool: Caller is not MemberRoles");
     _transfer(from, to, amount);
   }
 
-  function allocateCapacity(AllocateCapacityParams calldata params) external override returns (uint, uint) {
-    usedCapacity[params.productId] += params.coverAmount;
-
-    // uint coveredAmountInNXM, uint premiumInNXM
-    return (uint(params.coverAmount), uint(mockPrices[params.productId]) * uint(params.coverAmount) / 10000);
+  function allocateCapacity(
+    uint productId,
+    uint amountInNXM,
+    uint period,
+    uint rewardRatio,
+    uint initialPriceRatio
+  ) external /*override*/ returns (uint coveredAmountInNXM, uint premiumInNXM) {
+    usedCapacity[productId] += amountInNXM;
+    return (amountInNXM, mockPrices[productId] * amountInNXM / 10000);
   }
 
   function stake(uint amount) external {
@@ -61,25 +67,25 @@ contract CoverMockStakingPool is IStakingPool, ERC20 {
     uint previousRewardAmount,
     uint periodReduction,
     uint coveredAmount
-  ) external override {
+  ) external /*override*/ {
     // no-op
   }
 
-  function getAvailableCapacity(uint productId, uint capacityFactor) external override view returns (uint) {
+  function getAvailableCapacity(uint productId, uint capacityFactor) external /*override*/ view returns (uint) {
     return stakedAmount[productId] * capacityFactor - usedCapacity[productId];
   }
 
-  function getCapacity(uint productId, uint capacityFactor) external override view returns (uint) {
+  function getCapacity(uint productId, uint capacityFactor) external /*override*/ view returns (uint) {
     return stakedAmount[productId] * capacityFactor;
   }
 
-  function getUsedCapacity(uint productId) external override view returns (uint) {
+  function getUsedCapacity(uint productId) external /*override*/ view returns (uint) {
     return usedCapacity[productId];
   }
-  function getTargetPrice(uint productId) external override view returns (uint) {
+  function getTargetPrice(uint productId) external /*override*/ view returns (uint) {
     return targetPrices[productId];
   }
-  function getStake(uint productId) external override view returns (uint) {
+  function getStake(uint productId) external /*override*/ view returns (uint) {
     return stakedAmount[productId];
   }
 

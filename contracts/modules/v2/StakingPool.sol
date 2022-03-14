@@ -2,190 +2,350 @@
 
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts-v4/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts-v4/utils/Strings.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts-v4/utils/math/SafeCast.sol";
 import "../../interfaces/IStakingPool.sol";
 
-contract StakingPool is IStakingPool, ERC20 {
+abstract contract StakingPool is IStakingPool, ERC721 {
+  using SafeCast for uint;
 
+  /* storage */
+
+  // currently active staked nxm amount
+  uint public activeStake;
+
+  // supply of pool stake shares used by groups
+  uint public stakeSharesSupply;
+
+  // supply of pool rewards shares used by groups
+  uint public rewardsSharesSupply;
+
+  // current nxm reward per second for the entire pool
+  // applies to active stake only and does not need update on deposits
+  uint public rewardPerSecond;
+
+  // accumulated reward per share of pool
+  uint public accRewardPerPoolShare;
+
+  // last accRewardPerPoolShare update timestamp
+  uint public lastRewardUpdate;
+
+  uint public firstActiveGroupId;
+  uint public lastActiveGroupId;
+
+  uint public firstActiveBucketId;
+
+  // erc721 supply
+  uint public totalSupply;
+
+  // stakers are grouped based on the timelock expiration
+  // group index is calculated based on the expiration date
+  // the initial proposal is to have 4 groups per year (1 group per quarter)
+  struct StakeGroup {
+    uint stakeShares;
+    uint rewardsShares;
+    uint groupSharesSupply;
+    uint accRewardPerStakeShareAtExpiration;
+    uint expiredStakeAmount;
+  }
 
   struct PoolBucket {
-    // slot 0
-    uint64 rewardPerSecondCut;
-    // amount of shares requested for unstake
-    uint96 unstakeRequested;
-    // amount of unstaked shares
-    uint96 unstaked;
-
-    // slot 1
-    // underlying amount unstaked, stored for rate calculation
-    uint96 unstakedNXM;
+    uint rewardPerSecondCut;
   }
 
   struct Product {
-    uint96 activeCoverAmount;
-    uint16 weight;
-    uint16 lastBucket;
-    // uint128 _unused;
+    uint weight;
+    uint currentAllocation;
+    uint lastBucket;
   }
 
   struct ProductBucket {
-    uint96 expiringCoverAmount;
-    // uint160 _unused;
+    uint allocationCut;
   }
 
-  struct UnstakeRequest {
-    uint96 amount;
-    uint96 withdrawn;
-    uint16 bucketIndex;
-    // uint48 _unused;
-  }
+  // group id => amount
+  mapping(uint => StakeGroup) public stakeGroups;
 
-  struct Staker {
-    uint96 unstakeAmount;
-    uint16 lastUnstakeBucket;
-    // FIFO:
-    // unstakeRequests mapping keys. zero means no unstake exists.
-    uint32 firstUnstakeId;
-    uint32 lastUnstakeId;
-    uint16 lastUnstakeBucketIndex;
-    // uint48 _unused;
-  }
-
-  struct LastPrice {
-    uint96 value;
-    uint32 lastUpdateTime;
-  }
-
-  uint public poolId;
-
-  /*
-  (productId, poolAddress) => lastPrice
-  Last base prices at which a cover was sold by a pool for a particular product.
-  */
-  mapping(uint => LastPrice) lastBasePrices;
-
-  mapping(uint => uint) targetPrices;
-
-  /* slot 0 */
-  // bucket index => pool bucket
+  // pool bucket id => PoolBucket
   mapping(uint => PoolBucket) public poolBuckets;
 
-  /* slot 1 */
-  // product index => bucket index => cover amount expiring
+  // product id => pool bucket id => ProductBucket
   mapping(uint => mapping(uint => ProductBucket)) public productBuckets;
 
-  /* slot 2 */
-  // staker address => staker unstake info
-  // todo: unstakes may take a looooong time, consider issuing an nft that represents staker's requests
-  mapping(address => Staker) public stakers;
-
-  /* slot 3 */
-  // staker address => request id => unstake request
-  mapping(address => mapping(uint32 => UnstakeRequest)) unstakeRequests;
-
-  /* slot 4 */
-  // product id => product info
+  // product id => Product
   mapping(uint => Product) public products;
 
-  /* slot 5 */
-  // array with product ids to be able to iterate them
-  // todo: pack me
-  uint[] public poolProductsIds;
-
-  // unstakes flow:
-  // 1. bucket n: unstake requested
-  // 2. bucket n + 2: unstake becomes queued
-  // 3. bucket n + 2 + m: unstake is granted
-
-  /* slot 6 */
-  uint96 public stakeActive;
-  uint96 public stakeInactive;
-  uint64 public lastRewardPerSecond;
-
-  uint32 public lastRewardTime;
-  uint16 public lastPoolBucketIndex;
-  uint16 public lastUnstakeBucketIndex;
-  uint16 public totalWeight;
-  uint16 public maxTotalWeight; // todo: read from cover
-
-  // IDK if the next three are needed:
-  // total actually requested and not yet queued
-  uint96 public totalUnstakeRequested;
-  // requested at bucket t-2
-  uint96 public totalUnstakeQueued;
-  // unstaked but not withdrawn
-  uint96 public totalUnstakeGranted;
-
-  // used for max unstake
-  // max unstake = min(stake - maxCapacity, stake - totalLeverage)
-  uint96 public maxCapacity;
-  uint96 public totalLeverage;
-
-  address public override manager;
+  // nft id => group id => amount of group shares
+  mapping(uint => mapping(uint => uint)) public balanceOf;
 
   /* immutables */
-  ERC20 public immutable nxm;
-  address public immutable coverContract;
-  address public immutable memberRoles;
+
+  IERC20 public immutable nxm;
 
   /* constants */
-  uint public constant TOKEN_PRECISION = 1e18;
-  uint public constant PARAM_PRECISION = 10_000;
-  uint public constant BUCKET_SIZE = 7 days;
 
-  /* price computation constants. values have 18 decimals */
-  uint public constant MAX_PRICE_RATIO = 1e20;
-  uint public constant PRICE_DENOMINATOR = 1e18;
-  uint public constant PRICE_RATIO_CHANGE_PER_DAY = 5e15;
-  uint public constant SURGE_THRESHOLD_RATIO = 8e17;
-  uint public constant BASE_SURGE_LOADING_RATIO = 1e17; // 10%
-  uint public constant BASE_SURGE_CAPACITY_USED_RATIO = 1e16; // 1%
+  // 7 * 13 = 91
+  uint constant BUCKET_SIZE = 7 days;
+  uint constant GROUP_SIZE = 91 days;
+  uint constant MAX_GROUPS = 9; // 8 whole quarters + 1 partial quarter
 
-  uint public constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
-  uint public constant PRODUCT_WEIGHT_DENOMINATOR = 10_000;
-  uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10_000;
-  uint public constant INITIAL_PRICE_DENOMINATOR = 10_000;
-
-  // base price bump by 2% for each 10% of capacity used
-  uint public constant BASE_PRICE_BUMP_RATIO = 2e16; // 2% with 18 decimals
-
-  uint public constant BASE_PRICE_BUMP_INTERVAL = 1000; // 10%
-  uint public constant BASE_PRICE_BUMP_DENOMINATOR = 10_000;
-
-  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+  uint constant REWARDS_MULTIPLIER = 125;
+  uint constant REWARDS_DENOMINATOR = 100;
+  uint constant WEIGHT_DENOMINATOR = 100;
 
   modifier onlyCoverContract {
-    require(msg.sender == coverContract, "StakingPool: Caller is not the cover contract");
+    // TODO: restrict calls to cover contract only
     _;
   }
 
-  modifier onlyManager {
-    require(msg.sender == manager, "StakingPool: Caller is not the manager");
-    _;
+  constructor (
+    string memory _name,
+    string memory _symbol,
+    IERC20 _token
+  ) ERC721(_name, _symbol) {
+    nxm = _token;
   }
 
-  constructor (uint _poolId, address _nxm, address _coverContract, address _memberRoles)
-  ERC20("Nexus Mutual Staking Pool", "NMSPT") {
-    nxm = ERC20(_nxm);
-    coverContract = _coverContract;
-    memberRoles = _memberRoles;
-    poolId = _poolId;
+  function updateGroups() public {
+
+    uint _firstActiveBucketId = firstActiveBucketId;
+    uint currentBucketId = block.timestamp / BUCKET_SIZE;
+
+    if (_firstActiveBucketId == currentBucketId) {
+      return;
+    }
+
+    // SLOAD
+    uint _activeStake = activeStake;
+    uint _rewardPerSecond = rewardPerSecond;
+    uint _accRewardPerShare = accRewardPerPoolShare;
+    uint _stakeSharesSupply = stakeSharesSupply;
+    uint _rewardsSharesSupply = rewardsSharesSupply;
+    uint _lastRewardUpdate = lastRewardUpdate;
+    uint _firstActiveGroupId = firstActiveGroupId;
+
+    // first group for the current timestamp
+    uint targetGroupId = block.timestamp / GROUP_SIZE;
+
+    while (_firstActiveBucketId < currentBucketId) {
+
+      ++_firstActiveBucketId;
+      uint bucketEndTime = _firstActiveBucketId * BUCKET_SIZE;
+      uint elapsed = bucketEndTime - _lastRewardUpdate;
+
+      _accRewardPerShare += elapsed * _rewardPerSecond / _rewardsSharesSupply;
+      _lastRewardUpdate = bucketEndTime;
+      _rewardPerSecond -= poolBuckets[_firstActiveBucketId].rewardPerSecondCut;
+
+      // should we expire a group?
+      if (
+        bucketEndTime % GROUP_SIZE != 0 ||
+        _firstActiveGroupId == targetGroupId
+      ) {
+        continue;
+      }
+
+      // SLOAD
+      StakeGroup memory group = stakeGroups[_firstActiveGroupId];
+
+      uint expiredStake = _activeStake * group.stakeShares / _stakeSharesSupply;
+      _activeStake -= expiredStake;
+      group.expiredStakeAmount = expiredStake;
+      group.accRewardPerStakeShareAtExpiration = _accRewardPerShare;
+
+      _stakeSharesSupply -= group.stakeShares;
+      _rewardsSharesSupply -= group.rewardsShares;
+
+      // SSTORE
+      stakeGroups[_firstActiveGroupId] = group;
+
+      // advance to the next group
+      _firstActiveGroupId++;
+    }
+
+    firstActiveGroupId = _firstActiveGroupId;
+    firstActiveBucketId = _firstActiveBucketId;
+
+    activeStake = _activeStake;
+    rewardPerSecond = _rewardPerSecond;
+    accRewardPerPoolShare = _accRewardPerShare;
+    stakeSharesSupply = _stakeSharesSupply;
+    rewardsSharesSupply = _rewardsSharesSupply;
+    lastRewardUpdate = _lastRewardUpdate;
   }
 
-  function initialize(address _manager, uint _poolId) external override onlyCoverContract {
-    require(lastPoolBucketIndex == 0, "Staking Pool: Already initialized");
-    lastPoolBucketIndex = uint16(block.timestamp / BUCKET_SIZE);
-    lastUnstakeBucketIndex = uint16(block.timestamp / BUCKET_SIZE);
-    manager = _manager;
-    poolId = _poolId;
+  function deposit(
+    uint amount,
+    uint groupId,
+    uint _positionId
+  ) external returns (uint positionId) {
+
+    updateGroups();
+
+    // require groupId not to be expired
+    require(groupId >= firstActiveGroupId);
+
+    if (_positionId == 0) {
+      positionId = ++totalSupply;
+      _mint(msg.sender, positionId);
+    } else {
+      positionId = _positionId;
+    }
+
+    // transfer nxm from staker
+    nxm.transferFrom(msg.sender, address(this), amount);
+
+    StakeGroup memory group = stakeGroups[groupId];
+
+    uint _activeStake = activeStake;
+    uint _stakeSharesSupply = stakeSharesSupply;
+    uint _rewardsSharesSupply = rewardsSharesSupply;
+
+    uint newStakeShares = _stakeSharesSupply == 0
+    ? amount
+    : _stakeSharesSupply * amount / _activeStake;
+
+    uint newRewardsShares = newStakeShares;
+
+    {
+      uint lockDuration = (groupId + 1) * GROUP_SIZE - block.timestamp;
+      uint maxLockDuration = GROUP_SIZE * 8;
+      newRewardsShares = newRewardsShares * REWARDS_MULTIPLIER / REWARDS_DENOMINATOR;
+      newRewardsShares = newRewardsShares * lockDuration / maxLockDuration;
+    }
+
+    uint newGroupShares;
+
+    if (group.groupSharesSupply == 0) {
+      newGroupShares = amount;
+    } else {
+      // amount of nxm corresponding to this group
+      uint groupStake = _activeStake * group.stakeShares / _stakeSharesSupply;
+      newGroupShares = group.groupSharesSupply * amount / groupStake;
+    }
+
+    /* update rewards */
+
+    uint _rewardPerSecond = rewardPerSecond;
+    uint elapsed = block.timestamp - lastRewardUpdate;
+
+    if (elapsed > 0) {
+      lastRewardUpdate = block.timestamp;
+      accRewardPerPoolShare += elapsed * _rewardPerSecond / _rewardsSharesSupply;
+    }
+
+    /* store */
+
+    group.stakeShares += newStakeShares;
+    group.rewardsShares += newRewardsShares;
+    group.groupSharesSupply += newGroupShares;
+
+    stakeGroups[groupId] = group;
+    balanceOf[positionId][groupId] += newGroupShares;
+
+    activeStake = _activeStake + amount;
+    stakeSharesSupply = _stakeSharesSupply + newStakeShares;
+    rewardsSharesSupply = _rewardsSharesSupply + newRewardsShares;
   }
 
-  /* View functions */
+  function allocateCapacity(
+    uint productId,
+    uint amountInNXM,
+    uint period,
+    uint rewardRatio,
+    uint initialPriceRatio
+  ) public onlyCoverContract returns (uint newAllocation, uint premium) {
 
-  function name() public view override returns (string memory) {
-    return string(abi.encodePacked(super.name(), " ", Strings.toString(poolId)));
+    updateGroups();
+
+    uint currentAllocation = products[productId].currentAllocation;
+    uint lastBucket = products[productId].lastBucket;
+    uint currentBucket = block.timestamp / BUCKET_SIZE;
+
+    while (lastBucket < currentBucket) {
+      ++lastBucket;
+      currentAllocation -= productBuckets[productId][lastBucket].allocationCut;
+    }
+
+    uint firstGroupId = block.timestamp / GROUP_SIZE;
+    // group expiration must exceed the cover period
+    uint firstUsableGroupId = (block.timestamp + period) / GROUP_SIZE;
+    uint unusableShares = 0;
+
+    for (uint i = firstGroupId; i < firstUsableGroupId; ++i) {
+      unusableShares += stakeGroups[i].stakeShares;
+    }
+
+    uint _activeStake = activeStake;
+    uint _stakeSharesSupply = stakeSharesSupply;
+    uint usableShares = _stakeSharesSupply - unusableShares;
+
+    // can be used total
+    uint usableStake = _activeStake * usableShares / _stakeSharesSupply;
+    // can be used by this product
+    usableStake = usableStake * products[productId].weight / WEIGHT_DENOMINATOR;
+
+    // could happen if is 100% in-use or if product weight is changed
+    if (currentAllocation >= usableStake) {
+      return (0, 0);
+    }
+
+    uint maxAllocation = usableStake - currentAllocation;
+    newAllocation = min(amountInNXM, maxAllocation);
+
+    premium = calculatePremium(
+      currentAllocation,
+      maxAllocation,
+      newAllocation,
+      initialPriceRatio,
+      period
+    );
+
+    currentAllocation += newAllocation;
+    products[productId].currentAllocation = currentAllocation;
+
+    // ceil = fn(a, b) => (a + b - 1) / b
+    uint expireAtBucket = (block.timestamp + period + BUCKET_SIZE - 1) / BUCKET_SIZE;
+    productBuckets[productId][expireAtBucket].allocationCut += newAllocation;
+
+    // TODO: this is the other rewards denominator, we need a different name for the shares one
+    uint reward = premium * rewardRatio / REWARDS_DENOMINATOR;
+    reward;
+    // TODO: calculate and update the reward per second
   }
+
+  function calculatePremium(
+    uint currentAllocation,
+    uint maxAllocation,
+    uint newAllocation,
+    uint initialPriceRatio,
+    uint period
+  ) public returns (uint) {
+    return 0;
+  }
+
+  struct BurnParams {
+    uint productId;
+    uint amount;
+    uint start;
+    uint period;
+  }
+
+  // O(1)
+  function burn(BurnParams memory params) public onlyCoverContract {
+
+    // TODO: free up the stake used by the corresponding cover
+    // TODO: check if it's worth restricting the burn to 99% of the active stake
+
+    updateGroups();
+
+    uint _activeStake = activeStake;
+    uint burnAmount = params.amount;
+    activeStake = _activeStake > burnAmount ? _activeStake - burnAmount : 0;
+  }
+
+  /* utils */
 
   function min(uint a, uint b) internal pure returns (uint) {
     return a < b ? a : b;
@@ -195,353 +355,4 @@ contract StakingPool is IStakingPool, ERC20 {
     return a > b ? a : b;
   }
 
-  function getAvailableCapacity(
-    uint productId,
-    uint capacityFactor
-  ) external override view returns (uint) {
-    //
-  }
-
-  function getCapacity(uint productId, uint capacityFactor) external override view returns (uint) {}
-
-  function getUsedCapacity(uint productId) external override view returns (uint) {}
-
-  function getTargetPrice(uint productId) external override view returns (uint) {}
-
-  function getStake(uint productId) external override view returns (uint) {}
-
-  /* State-changing functions */
-
-  function operatorTransferFrom(address from, address to, uint256 amount) external override {
-    require(msg.sender == memberRoles, "StakingPool: Caller is not MemberRoles");
-    _transfer(from, to, amount);
-  }
-
-  function processPoolBuckets() internal returns (uint staked) {
-
-    // 1 SLOAD
-    staked = stakeActive;
-    uint rewardPerSecond = lastRewardPerSecond;
-    uint rewardTime = lastRewardTime;
-    uint poolBucketIndex = lastPoolBucketIndex;
-
-    // 1 SLOAD
-    uint unstakeQueued = totalUnstakeQueued;
-
-    // get bucket for current time
-    uint currentBucketIndex = block.timestamp / BUCKET_SIZE;
-
-    // process expirations, 1 SLOAD / iteration
-    while (poolBucketIndex < currentBucketIndex) {
-
-      ++poolBucketIndex;
-      uint bucketStartTime = poolBucketIndex * BUCKET_SIZE;
-      staked += (bucketStartTime - rewardTime) * rewardPerSecond;
-      rewardTime = bucketStartTime;
-
-      // 1 SLOAD for both
-      rewardPerSecond -= poolBuckets[poolBucketIndex].rewardPerSecondCut;
-      unstakeQueued += poolBuckets[poolBucketIndex].unstakeRequested;
-    }
-
-    // if we're mid-bucket, process rewards until current timestamp
-    staked += (block.timestamp - rewardTime) * rewardPerSecond;
-
-    // 1 SSTORE
-    stakeActive = uint96(staked);
-    lastRewardPerSecond = uint64(rewardPerSecond);
-    lastRewardTime = uint32(block.timestamp);
-    lastPoolBucketIndex = uint16(poolBucketIndex);
-
-    // 1 SSTORE
-    totalUnstakeQueued = uint96(unstakeQueued);
-  }
-
-  /* callable by cover contract */
-
-  function allocateCapacity(
-    AllocateCapacityParams calldata params
-  ) external override returns (uint, uint) {
-
-    uint staked = processPoolBuckets();
-    uint currentBucket = block.timestamp / BUCKET_SIZE;
-
-    Product storage product = products[params.productId];
-    uint activeCoverAmount = product.activeCoverAmount;
-    uint lastBucket = product.lastBucket;
-
-    // process expirations
-    while (lastBucket < currentBucket) {
-      ++lastBucket;
-      activeCoverAmount -= productBuckets[params.productId][lastBucket].expiringCoverAmount;
-    }
-
-    // limit cover amount to the amount left available
-    uint capacity = (
-      staked *
-      params.globalCapacityRatio *
-      product.weight *
-      (CAPACITY_REDUCTION_DENOMINATOR - params.capacityReductionRatio) /
-      GLOBAL_CAPACITY_DENOMINATOR /
-      PRODUCT_WEIGHT_DENOMINATOR /
-      CAPACITY_REDUCTION_DENOMINATOR
-    );
-
-    uint coverAmount = min(
-      capacity - activeCoverAmount,
-      params.coverAmount
-    );
-
-    {
-      // calculate expiration bucket, reward period, reward amount
-      uint expirationBucket = (block.timestamp + params.period) / BUCKET_SIZE + 1;
-      uint rewardPeriod = expirationBucket * BUCKET_SIZE - block.timestamp;
-      uint addedRewardPerSecond = params.globalRewardsRatio * coverAmount / params.rewardsDenominator / rewardPeriod;
-
-      // update state
-      // 1 SLOAD + 3 SSTORE
-      lastRewardPerSecond = uint64(lastRewardPerSecond + addedRewardPerSecond);
-      poolBuckets[expirationBucket].rewardPerSecondCut += uint64(addedRewardPerSecond);
-      productBuckets[params.productId][expirationBucket].expiringCoverAmount += uint96(coverAmount);
-
-      product.lastBucket = uint16(lastBucket);
-      product.activeCoverAmount = uint96(activeCoverAmount + coverAmount);
-    }
-
-    // price calculation
-    uint actualPrice = getActualPriceAndUpdateBasePrice(
-      params.productId,
-      coverAmount,
-      product.activeCoverAmount,
-      activeCoverAmount,
-      params.initialPrice
-    );
-
-    return (coverAmount, calculatePremium(actualPrice, coverAmount, params.period));
-  }
-
-  function freeCapacity(
-    uint productId,
-    uint previousPeriod,
-    uint previousStartTime,
-    uint previousRewardAmount,
-    uint periodReduction,
-    uint coveredAmount
-  ) external override {
-
-  }
-
-  function burnStake() external {
-
-    //
-
-  }
-
-  /* callable by stakers */
-
-  function stake(uint amount) external {
-
-    // TODO: use operator transfer and transfer to TC instead
-    nxm.transferFrom(msg.sender, address(this), amount);
-
-    uint supply = totalSupply();
-    uint staked;
-    uint shares;
-
-    if (supply == 0) {
-      shares = amount;
-    } else {
-      staked = processPoolBuckets();
-      shares = supply * amount / staked;
-    }
-
-    stakeActive = uint96(staked + amount);
-    _mint(msg.sender, shares);
-  }
-
-  function requestUnstake(uint shares) external {
-
-    uint staked = processPoolBuckets();
-    uint supply = totalSupply();
-    uint amount = shares * staked / supply;
-    uint currentBucket = block.timestamp / BUCKET_SIZE;
-
-    // should revert if caller doesn't have enough shares
-    _burn(msg.sender, shares);
-    stakeActive = uint96(staked - amount);
-
-    Staker memory staker = stakers[msg.sender];
-
-    if (currentBucket != staker.lastUnstakeBucket) {
-      ++staker.lastUnstakeId;
-    }
-
-    // SLOAD
-    UnstakeRequest memory unstakeRequest = unstakeRequests[msg.sender][staker.lastUnstakeId];
-
-    // update
-    unstakeRequest.amount += uint96(amount);
-    staker.unstakeAmount += uint96(amount);
-
-    // SSTORE
-    unstakeRequests[msg.sender][staker.lastUnstakeId] = unstakeRequest;
-    stakers[msg.sender] = staker;
-  }
-
-  function withdraw(uint amount) external {
-
-    // uint lastUnstakeBucket = lastUnstakeBucketIndex;
-
-  }
-
-  /* Pool management functions */
-
-  function addProduct() external onlyManager {
-
-    //
-
-  }
-
-  function removeProduct() external onlyManager {
-
-    //
-
-  }
-
-  function setWeights() external onlyManager {
-
-    //
-
-  }
-
-  function setTargetPrice(uint productId, uint targetPrice) external onlyManager {
-    require(targetPrice >= GLOBAL_MIN_PRICE_RATIO, "StakingPool: Target price must be greater than global min price");
-    targetPrices[productId] = targetPrice;
-  }
-
-  /* VIEWS */
-
-  /* ========== PRICE CALCULATION ========== */
-
-  function calculatePremium(uint priceRatio, uint coverAmount, uint period) public pure returns (uint) {
-    return priceRatio * coverAmount / MAX_PRICE_RATIO * period / 365 days;
-  }
-
-  function getActualPriceAndUpdateBasePrice(
-    uint productId,
-    uint amount,
-    uint activeCover,
-    uint capacity,
-    uint initialPrice
-  ) internal returns (uint) {
-
-    (uint actualPrice, uint basePrice) = getPrices(
-      amount, activeCover, capacity, initialPrice * PRICE_DENOMINATOR / INITIAL_PRICE_DENOMINATOR,
-      lastBasePrices[productId], targetPrices[productId], block.timestamp
-    );
-    // store the last base price
-    lastBasePrices[productId] = LastPrice(
-      uint96(basePrice),
-      uint32(block.timestamp)
-    );
-
-    return actualPrice;
-  }
-
-  /**
-   * @dev Calculates the actual price (price to be charged to the buyer)
-   *      and the newly update base price - which moves towards the target price linearly with time
-          and is subject to price bumps everytime a purchase is made
-   * @param amount Amount of cover to be bought
-   * @param activeCover Total amount of active cover
-   * @param capacity Total capacity for the product
-   * @param initialPrice Initial price set for the product
-   * @param lastBasePrice Last recorded base price (during the last capacity allocation)
-   * @param targetPrice Target price set by the pool manager
-   * @param blockTimestamp Current block timestamp
-  **/
-  function getPrices(
-    uint amount,
-    uint activeCover,
-    uint capacity,
-    uint initialPrice,
-    LastPrice memory lastBasePrice,
-    uint targetPrice,
-    uint blockTimestamp
-  ) public view returns (uint actualPrice, uint basePrice) {
-
-    basePrice = interpolatePrice(
-      lastBasePrice.value != 0 ? lastBasePrice.value : initialPrice,
-      targetPrice,
-      lastBasePrice.lastUpdateTime,
-      blockTimestamp
-    );
-
-    // calculate actualPrice using the current basePrice
-    actualPrice = calculatePrice(amount, basePrice, activeCover, capacity);
-
-    // Bump base price by 2% (200 basis points) per 10% (1000 basis points) of capacity used
-    uint priceBump = BASE_PRICE_BUMP_RATIO  * amount * BASE_PRICE_BUMP_DENOMINATOR / capacity / BASE_PRICE_BUMP_INTERVAL;
-
-    basePrice = uint96(basePrice + priceBump);
-  }
-
-  /**
-    @dev calculates the actual price to be charged to the buyer using the time-interpolated base price.this
-         Surge pricing applies for the cover amount that exceeds the SURGE_THRESHOLD_RATIO as a percentage of the total
-         capacity.
-    @param amount Amount of cover to be bought
-    @param basePrice Time-interpolated base price set for the product
-    @param activeCover Total amount of active cover
-    @param capacity Total capacity for the product
-  */
-  function calculatePrice(
-    uint amount,
-    uint basePrice,
-    uint activeCover,
-    uint capacity
-  ) public view returns (uint) {
-
-    uint activeCoverRatio = activeCover * TOKEN_PRECISION / capacity;
-    uint newActiveCoverAmount = amount + activeCover;
-    uint newActiveCoverRatio = newActiveCoverAmount * TOKEN_PRECISION / capacity;
-
-    if (newActiveCoverRatio < SURGE_THRESHOLD_RATIO) {
-      return basePrice;
-    }
-
-    // If the active cover ratio is already above SURGE_THRESHOLD (80%) then apply the surge loading to the entire
-    // value of the cover (surgeFraction = 1). Otherwise apply to the part of the cover that is above the threshold.
-    uint capacityUsedSteep = activeCoverRatio >= SURGE_THRESHOLD_RATIO ? newActiveCoverRatio - activeCoverRatio : newActiveCoverRatio - SURGE_THRESHOLD_RATIO;
-
-    uint capacityUsed = newActiveCoverRatio - activeCoverRatio;
-
-    uint startSurgeLoading = activeCoverRatio < SURGE_THRESHOLD_RATIO ? 0
-      : (activeCoverRatio - SURGE_THRESHOLD_RATIO) * BASE_SURGE_LOADING_RATIO / BASE_SURGE_CAPACITY_USED_RATIO;
-
-    uint endSurgeLoading = (newActiveCoverRatio - SURGE_THRESHOLD_RATIO) * BASE_SURGE_LOADING_RATIO / BASE_SURGE_CAPACITY_USED_RATIO;
-
-    uint surgeLoadingRatio = capacityUsedSteep * (endSurgeLoading + startSurgeLoading) / 2 / capacityUsed;
-
-    return basePrice * (surgeLoadingRatio + PRICE_DENOMINATOR) / PRICE_DENOMINATOR;
-  }
-
-  /**
-   * Price changes towards targetPrice from lastPrice by maximum of 1% a day per every 100k NXM staked
-   */
-  function interpolatePrice(
-    uint lastPrice,
-    uint targetPrice,
-    uint lastPriceUpdate,
-    uint currentTimestamp
-  ) public view returns (uint) {
-
-    uint priceChange = (currentTimestamp - lastPriceUpdate) / 1 days * PRICE_RATIO_CHANGE_PER_DAY;
-
-    if (targetPrice > lastPrice || int(lastPrice) - int(priceChange) < int(targetPrice)) {
-      return targetPrice;
-    }
-
-    return lastPrice - priceChange;
-  }
 }

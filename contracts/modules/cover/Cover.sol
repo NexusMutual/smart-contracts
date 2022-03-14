@@ -317,16 +317,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   ) internal returns (uint coveredAmountInNXM, uint premiumInNXM) {
 
     Product memory product = _products[params.productId];
-    return _stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
+
+    // TODO: correctly calculate the capacity
+    uint allocation = amount * globalCapacityRatio;
+
+    return _stakingPool.allocateCapacity(
       params.productId,
-      amount,
-      REWARD_DENOMINATOR,
+      allocation,
       params.period,
-      globalCapacityRatio,
       globalRewardsRatio,
-      product.capacityReductionRatio,
       product.initialPriceRatio
-    ));
+    );
   }
 
   function editCover(

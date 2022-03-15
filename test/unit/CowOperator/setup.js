@@ -45,7 +45,7 @@ async function setup () {
   await daiAggregator.setLatestAnswer(0.0002 * 1e18); // 1 dai = 0.0002 eth, 1 eth = 5000 dai
 
   // Deploy PriceFeedOracle
-  const priceFeedOracle = await PriceFeedOracle.deploy(daiAggregator.address, dai.address, stEth.address);
+  const priceFeedOracle = await PriceFeedOracle.deploy([dai.address], [daiAggregator.address], [18]);
 
   // Deploy Pool
   const oneK = parseEther('1000');

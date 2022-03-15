@@ -455,35 +455,35 @@ contract FailedStakingPool is IFailedStakingPool, ERC20 {
    * @param amount Amount of cover to be bought
    * @param activeCover Total amount of active cover
    * @param capacity Total capacity for the product
-   * @param initialPrice Initial price set for the product
+   * @param initialPriceRatio Initial price set for the product (4 decimals)
    * @param lastBasePrice Last recorded base price (during the last capacity allocation)
-   * @param targetPrice Target price set by the pool manager
+   * @param targetPriceRatio Target price set by the pool manager
    * @param blockTimestamp Current block timestamp
   **/
   function getPrices(
     uint amount,
     uint activeCover,
     uint capacity,
-    uint initialPrice,
+    uint initialPriceRatio,
     LastPrice memory lastBasePrice,
-    uint targetPrice,
+    uint targetPriceRatio,
     uint blockTimestamp
-  ) public pure returns (uint actualPrice, uint basePrice) {
+  ) public pure returns (uint actualPriceRatio, uint basePriceRatio) {
 
-    basePrice = interpolatePrice(
-      lastBasePrice.value != 0 ? lastBasePrice.value : initialPrice,
-      targetPrice,
+    basePriceRatio = interpolatePrice(
+      lastBasePrice.value != 0 ? lastBasePrice.value : initialPriceRatio,
+      targetPriceRatio,
       lastBasePrice.lastUpdateTime,
       blockTimestamp
     );
 
     // calculate actualPrice using the current basePrice
-    actualPrice = calculatePrice(amount, basePrice, activeCover, capacity);
+    actualPriceRatio = calculatePrice(amount, basePriceRatio, activeCover, capacity);
 
     // Bump base price by 2% (200 basis points) per 10% (1000 basis points) of capacity used
     uint priceBump = BASE_PRICE_BUMP_RATIO  * amount * BASE_PRICE_BUMP_DENOMINATOR / capacity / BASE_PRICE_BUMP_INTERVAL;
 
-    basePrice = uint96(basePrice + priceBump);
+    basePriceRatio = uint96(basePriceRatio + priceBump);
   }
 
   /**
@@ -491,13 +491,13 @@ contract FailedStakingPool is IFailedStakingPool, ERC20 {
          Surge pricing applies for the cover amount that exceeds the SURGE_THRESHOLD_RATIO as a percentage of the total
          capacity.
     @param amount Amount of cover to be bought
-    @param basePrice Time-interpolated base price set for the product
+    @param basePriceRatio Time-interpolated base price set for the product
     @param activeCover Total amount of active cover
     @param capacity Total capacity for the product
   */
   function calculatePrice(
     uint amount,
-    uint basePrice,
+    uint basePriceRatio,
     uint activeCover,
     uint capacity
   ) public pure returns (uint) {
@@ -507,41 +507,41 @@ contract FailedStakingPool is IFailedStakingPool, ERC20 {
     uint newActiveCoverRatio = newActiveCoverAmount * TOKEN_PRECISION / capacity;
 
     if (newActiveCoverRatio < SURGE_THRESHOLD_RATIO) {
-      return basePrice;
+      return basePriceRatio;
     }
 
     // If the active cover ratio is already above SURGE_THRESHOLD (80%) then apply the surge loading to the entire
     // value of the cover (surgeFraction = 1). Otherwise apply to the part of the cover that is above the threshold.
-    uint capacityUsedSteep = activeCoverRatio >= SURGE_THRESHOLD_RATIO ? newActiveCoverRatio - activeCoverRatio : newActiveCoverRatio - SURGE_THRESHOLD_RATIO;
+    uint capacityUsedSteepRatio = activeCoverRatio >= SURGE_THRESHOLD_RATIO ? newActiveCoverRatio - activeCoverRatio : newActiveCoverRatio - SURGE_THRESHOLD_RATIO;
 
-    uint capacityUsed = newActiveCoverRatio - activeCoverRatio;
+    uint capacityUsedRatio = newActiveCoverRatio - activeCoverRatio;
 
-    uint startSurgeLoading = activeCoverRatio < SURGE_THRESHOLD_RATIO ? 0
+    uint startSurgeLoadingRatio = activeCoverRatio < SURGE_THRESHOLD_RATIO ? 0
     : (activeCoverRatio - SURGE_THRESHOLD_RATIO) * BASE_SURGE_LOADING_RATIO / BASE_SURGE_CAPACITY_USED_RATIO;
 
-    uint endSurgeLoading = (newActiveCoverRatio - SURGE_THRESHOLD_RATIO) * BASE_SURGE_LOADING_RATIO / BASE_SURGE_CAPACITY_USED_RATIO;
+    uint endSurgeLoadingRatio = (newActiveCoverRatio - SURGE_THRESHOLD_RATIO) * BASE_SURGE_LOADING_RATIO / BASE_SURGE_CAPACITY_USED_RATIO;
 
-    uint surgeLoadingRatio = capacityUsedSteep * (endSurgeLoading + startSurgeLoading) / 2 / capacityUsed;
+    uint surgeLoadingRatio = capacityUsedSteepRatio * (endSurgeLoadingRatio + startSurgeLoadingRatio) / 2 / capacityUsedRatio;
 
-    return basePrice * (surgeLoadingRatio + PRICE_DENOMINATOR) / PRICE_DENOMINATOR;
+    return basePriceRatio * (surgeLoadingRatio + PRICE_DENOMINATOR) / PRICE_DENOMINATOR;
   }
 
   /**
    * Price changes towards targetPrice from lastPrice by maximum of 1% a day per every 100k NXM staked
    */
   function interpolatePrice(
-    uint lastPrice,
-    uint targetPrice,
+    uint lastPriceRatio,
+    uint targetPriceRatio,
     uint lastPriceUpdate,
     uint currentTimestamp
   ) public pure returns (uint) {
 
     uint priceChange = (currentTimestamp - lastPriceUpdate) / 1 days * PRICE_RATIO_CHANGE_PER_DAY;
 
-    if (targetPrice > lastPrice || int(lastPrice) - int(priceChange) < int(targetPrice)) {
-      return targetPrice;
+    if (targetPriceRatio > lastPriceRatio || int(lastPriceRatio) - int(priceChange) < int(targetPriceRatio)) {
+      return targetPriceRatio;
     }
 
-    return lastPrice - priceChange;
+    return lastPriceRatio - priceChange;
   }
 }

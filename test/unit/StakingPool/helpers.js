@@ -13,22 +13,22 @@ const BASE_PRICE_BUMP_DENOMINATOR = 10000;
 const PRICE_DENOMINATOR = parseUnits('1');
 
 function interpolatePrice (
-  lastPrice,
-  targetPrice,
+  lastPriceRatio,
+  targetPriceRatio,
   lastPriceUpdate,
   currentTimestamp,
 ) {
 
   const priceChange = BigNumber.from(currentTimestamp - lastPriceUpdate).div(24 * 3600).mul(PRICE_RATIO_CHANGE_PER_DAY);
 
-  if (targetPrice.gt(lastPrice)) {
-    return targetPrice;
+  if (targetPriceRatio.gt(lastPriceRatio)) {
+    return targetPriceRatio;
   }
 
-  const nextPrice = lastPrice.sub(priceChange);
+  const nextPrice = lastPriceRatio.sub(priceChange);
 
-  if (nextPrice.lt(targetPrice)) {
-    return targetPrice;
+  if (nextPrice.lt(targetPriceRatio)) {
+    return targetPriceRatio;
   }
 
   return nextPrice;
@@ -36,12 +36,12 @@ function interpolatePrice (
 
 function calculatePrice (
   amount,
-  basePrice,
+  basePriceRatio,
   activeCover,
   capacity) {
 
   amount = BigNumber.from(amount);
-  basePrice = BigNumber.from(basePrice);
+  basePriceRatio = BigNumber.from(basePriceRatio);
   activeCover = BigNumber.from(activeCover);
   capacity = BigNumber.from(capacity);
 
@@ -50,22 +50,21 @@ function calculatePrice (
   const newActiveCoverRatio = newActiveCoverAmount.mul(1e18.toString()).div(capacity);
 
   if (newActiveCoverRatio.lt(SURGE_THRESHOLD)) {
-    return basePrice;
+    return basePriceRatio;
   }
 
-  const capacityUsedFlat = activeCoverRatio.gte(SURGE_THRESHOLD) ? BigNumber.from(0) : SURGE_THRESHOLD.sub(activeCoverRatio);
-  const capacityUsedSteep = activeCoverRatio.gte(SURGE_THRESHOLD) ? newActiveCoverRatio.sub(activeCoverRatio) : newActiveCoverRatio.sub(SURGE_THRESHOLD);
-  const capacityUsed = newActiveCoverRatio.sub(activeCoverRatio);
+  const capacityUsedSteepRatio = activeCoverRatio.gte(SURGE_THRESHOLD) ? newActiveCoverRatio.sub(activeCoverRatio) : newActiveCoverRatio.sub(SURGE_THRESHOLD);
+  const capacityUsedRatio = newActiveCoverRatio.sub(activeCoverRatio);
 
-  const startSurgeLoading =
+  const startSurgeLoadingRatio =
     activeCoverRatio.lt(SURGE_THRESHOLD) ? BigNumber.from(0)
     : activeCoverRatio.sub(SURGE_THRESHOLD).mul(BASE_SURGE_LOADING).div(BASE_SURGE_CAPACITY_USED);
-  const endSurgeLoading = newActiveCoverRatio.sub(SURGE_THRESHOLD).mul(BASE_SURGE_LOADING).div(BASE_SURGE_CAPACITY_USED);
+  const endSurgeLoadingRatio = newActiveCoverRatio.sub(SURGE_THRESHOLD).mul(BASE_SURGE_LOADING).div(BASE_SURGE_CAPACITY_USED);
 
-  const surgeLoadingRatio = capacityUsedSteep.mul(endSurgeLoading.add(startSurgeLoading).div(2)).div(capacityUsed);
+  const surgeLoadingRatio = capacityUsedSteepRatio.mul(endSurgeLoadingRatio.add(startSurgeLoadingRatio).div(2)).div(capacityUsedRatio);
 
-  const actualPrice = basePrice.mul(surgeLoadingRatio.add(PRICE_DENOMINATOR)).div(PRICE_DENOMINATOR);
-  return actualPrice;
+  const actualPriceRatio = basePriceRatio.mul(surgeLoadingRatio.add(PRICE_DENOMINATOR)).div(PRICE_DENOMINATOR);
+  return actualPriceRatio;
 
 }
 

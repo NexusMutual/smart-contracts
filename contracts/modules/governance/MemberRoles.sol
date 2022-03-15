@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "../../interfaces/IGovernance.sol";
@@ -263,7 +263,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   ///
   /// @param newAddress    Address of user to forward membership.
   /// @param coverIds      Array of cover ids to transfer to the new address.
-  /// @param stakingPools  Array of staking pool addresses where the user has LP tokens.
+  /// @notice // @param stakingPools  Array of staking pool addresses where the user has LP tokens.
   function switchMembershipAndAssets(
     address newAddress,
     uint[] calldata coverIds,
@@ -275,12 +275,15 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     // Transfer the cover NFTs to the new address, if any were given
     cover.transferCovers(msg.sender, newAddress, coverIds);
 
+    stakingPools;
+    /*
     // Transfer the staking LP tokens to the new address, if any were given
     for (uint256 i = 0; i < stakingPools.length; i++) {
       IStakingPool stakingLPToken = IStakingPool(stakingPools[i]);
       uint fullAmount = stakingLPToken.balanceOf(msg.sender);
       stakingLPToken.operatorTransferFrom(msg.sender, newAddress, fullAmount);
     }
+    */
   }
 
   function switchMembershipOf(address member, address newAddress) external override onlyInternal {

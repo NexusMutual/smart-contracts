@@ -54,7 +54,7 @@ async function setup () {
   await mcr.deployed();
   await mcr.setMCR(parseEther('600000'));
 
-  const stakingPool = await StakingPool.deploy(nxm.address, ZERO_ADDRESS);
+  const stakingPool = await StakingPool.deploy(nxm.address, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS);
 
   const signers = await ethers.getSigners();
   const accounts = getAccounts(signers);

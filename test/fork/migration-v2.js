@@ -275,12 +275,12 @@ describe('v2 migration', function () {
   });
 
   it('deploy StakingPool', async function () {
-    const coverAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
+    const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const StakingPool = await ethers.getContractFactory('StakingPool');
     const stakingPool = await StakingPool.deploy(
       0, // [todo]
       this.nxm.address,
-      coverAddress,
+      coverProxyAddress,
       this.memberRoles.address,
     );
     await stakingPool.deployed();
@@ -302,9 +302,9 @@ describe('v2 migration', function () {
   });
 
   it('deploy cover contracts', async function () {
-    const coverAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
+    const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const CoverNFT = await ethers.getContractFactory('CoverNFT');
-    const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NXC', coverAddress);
+    const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NXC', coverProxyAddress);
     await coverNFT.deployed();
     this.coverNFT = coverNFT;
 
@@ -314,7 +314,7 @@ describe('v2 migration', function () {
       this.productsV1.address,
       this.stakingPoolImplementation.address,
       this.coverNFT.address,
-      coverAddress,
+      coverProxyAddress,
     );
     await cover.deployed();
 
@@ -325,14 +325,15 @@ describe('v2 migration', function () {
       this.governance,
     );
 
-    const { abi } = JSON.parse(fs.readFileSync('./artifacts/contracts/modules/cover/Cover.sol/Cover.json'));
-    this.cover = new ethers.Contract(coverAddress, abi, this.deployer);
+    this.cover = await ethers.getContractAt('Cover', coverProxyAddress);
+    console.log('cover');
+    console.log(this.cover);
   });
 
-  it('remove CR, CD, IC, CL, QD, QT, TF', async function () {
+  it('remove CR, CD, IC, QD, QT, TF', async function () {
     await submitGovernanceProposal(
       43, // removeContracts(bytes2[])
-      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'CL', 'QD', 'QT', 'TF'].map(x => toUtf8Bytes(x))]),
+      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF'].map(x => toUtf8Bytes(x))]),
       this.abMembers,
       this.governance,
     );
@@ -379,10 +380,10 @@ describe('v2 migration', function () {
     this.pool = pool;
   });
 
-  it('deploy PooledStakingPool', async function () {
-    const coverAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
+  it('deploy PooledStaking', async function () {
+    const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const PooledStaking = await ethers.getContractFactory('PooledStaking');
-    const pooledStaking = await PooledStaking.deploy(coverAddress, this.productsV1.address);
+    const pooledStaking = await PooledStaking.deploy(coverProxyAddress, this.productsV1.address);
     await pooledStaking.deployed();
 
     await submitGovernanceProposal(
@@ -393,10 +394,7 @@ describe('v2 migration', function () {
     );
 
     const pooledStakingAddress = await this.master.contractAddresses(toUtf8Bytes('PS'));
-    const { abi } = JSON.parse(
-      fs.readFileSync('./artifacts/contracts/modules/staking/PooledStaking.sol/PooledStaking.json'),
-    );
-    this.pooledStaking = new ethers.Contract(pooledStakingAddress, abi, this.deployer);
+    this.pooledStaking = await ethers.getContractAt('PooledStaking', pooledStakingAddress);
   });
 
   it('process all PooledStaking pending actions', async function () {

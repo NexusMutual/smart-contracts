@@ -88,8 +88,7 @@ const main = async (coverAddress, abMemberSigner) => {
 
   const migratableProducts = JSON.parse(fs.readFileSync('./deploy/migratable.json'));
 
-  // [todo] TBD, how to uniquely identify each product through IPFS
-  // Maybe exceptions and special wording notes could also have an on-chain reference
+  // [todo] Add ipfs reference in Cover.sol event
   // const migratableProductsIpfsHashes = [];
   // for (const product of migratableProducts) {
   // console.log({ product });

@@ -6,7 +6,7 @@ const { parseEther } = ethers.utils;
 
 describe('getIncidentsToDisplay', function () {
   it('aggregates and displays claims related data in a human-readable form', async function () {
-    const { incidents, assessment } = this.contracts;
+    const { yieldTokenIncidents, assessment } = this.contracts;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
 
     const expectedIncidentIds = ['0', '1', '2', '3', '4'];
@@ -23,14 +23,14 @@ describe('getIncidentsToDisplay', function () {
     const expectedPollEnds = [];
     const expectedRedeemableUntil = [];
 
-    const { payoutRedemptionPeriodInDays } = await incidents.config();
+    const { payoutRedemptionPeriodInDays } = await yieldTokenIncidents.config();
     const { payoutCooldownInDays, minVotingPeriodInDays } = await assessment.config();
 
     for (let i = 0; i < 5; i++) {
       {
         const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
         expectedIncidentDates.push(currentTime);
-        await incidents
+        await yieldTokenIncidents
           .connect(advisoryBoard)
           .submitIncident(expectedProductIds[i], expectedPriceBefore[i], currentTime, parseEther('100'), '');
       }
@@ -46,7 +46,7 @@ describe('getIncidentsToDisplay', function () {
       }
     }
 
-    const res = await incidents.getIncidentsToDisplay([0, 1, 2, 3, 4]);
+    const res = await yieldTokenIncidents.getIncidentsToDisplay([0, 1, 2, 3, 4]);
     const actualIncidentIds = res.map(x => x.id);
     const actualProductIds = res.map(x => x.productId);
     const actualPriceBefore = res.map(x => x.priceBefore);
@@ -77,7 +77,7 @@ describe('getIncidentsToDisplay', function () {
     }
 
     {
-      const res = await incidents.getIncidentsToDisplay([0, 1, 2, 3, 4]);
+      const res = await yieldTokenIncidents.getIncidentsToDisplay([0, 1, 2, 3, 4]);
       const actualStatuses = res.map(x => x.status.toNumber());
 
       await assessment.castVote(3, true, parseEther('100'));
@@ -94,7 +94,7 @@ describe('getIncidentsToDisplay', function () {
     }
 
     {
-      const res = await incidents.getIncidentsToDisplay([0, 1, 2, 3, 4]);
+      const res = await yieldTokenIncidents.getIncidentsToDisplay([0, 1, 2, 3, 4]);
       const actualStatuses = res.map(x => x.status.toNumber());
 
       for (const i of [3, 4]) {
@@ -108,7 +108,7 @@ describe('getIncidentsToDisplay', function () {
     }
 
     {
-      const res = await incidents.getIncidentsToDisplay([0, 1, 2, 3, 4]);
+      const res = await yieldTokenIncidents.getIncidentsToDisplay([0, 1, 2, 3, 4]);
       const actualStatuses = res.map(x => x.status.toNumber());
       expect(actualStatuses[3]).to.be.equal(INCIDENT_STATUS.PENDING);
       expect(actualStatuses[4]).to.be.equal(INCIDENT_STATUS.PENDING);
@@ -120,7 +120,7 @@ describe('getIncidentsToDisplay', function () {
     }
 
     {
-      const res = await incidents.getIncidentsToDisplay([0, 1, 2, 3, 4]);
+      const res = await yieldTokenIncidents.getIncidentsToDisplay([0, 1, 2, 3, 4]);
       const actualStatuses = res.map(x => x.status.toNumber());
       expect(actualStatuses[3]).to.be.equal(INCIDENT_STATUS.ACCEPTED);
       expect(actualStatuses[4]).to.be.equal(INCIDENT_STATUS.ACCEPTED);
@@ -134,7 +134,7 @@ describe('getIncidentsToDisplay', function () {
     }
 
     {
-      const res = await incidents.getIncidentsToDisplay([0, 1, 2, 3, 4]);
+      const res = await yieldTokenIncidents.getIncidentsToDisplay([0, 1, 2, 3, 4]);
       const actualStatuses = res.map(x => x.status.toNumber());
       expect(actualStatuses[3]).to.be.equal(INCIDENT_STATUS.EXPIRED);
       expect(actualStatuses[4]).to.be.equal(INCIDENT_STATUS.EXPIRED);

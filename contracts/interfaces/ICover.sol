@@ -4,9 +4,9 @@ pragma solidity >=0.5.0;
 
 /* ========== DATA STRUCTURES ========== */
 
-enum RedeemMethod {
-  Claim,
-  Incident
+enum ClaimMethod {
+  IndividualClaims,
+  YieldTokenIncidents
 }
 
 // Basically CoverStatus from QuotationData.sol but with the extra Migrated status to avoid
@@ -91,7 +91,7 @@ struct Product {
 struct ProductType {
   // TODO: emit an event for ipfs hash
   string descriptionIpfsHash;
-  uint8 redeemMethod;
+  uint8 claimMethod;
   uint16 gracePeriodInDays;
 }
 

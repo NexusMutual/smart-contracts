@@ -1,21 +1,48 @@
-const { ethers: { utils: { parseEther } } } = require('hardhat');
+const { ethers: { utils: { parseEther, parseUnits } } } = require('hardhat');
 const { bnEqual } = require('../utils').helpers;
 
 const { getPrices } = require('./helpers');
 
-describe('getPrices', function () {
+describe.only('getPrices', function () {
 
-  it('should calculate prices correctly for current active cover exceeding surge treshold', async function () {
+  it('should calculate price correctly for active cover starting at 0 without surge', async function () {
     const { stakingPool } = this;
 
-    const amount = parseEther('1000');
+    const amount = parseEther('2400');
+    const activeCover = parseEther('0');
+    const capacity = parseEther('50000');
+    const initialPrice = parseUnits('0.2');
+    const lastBasePrice = { value: parseUnits('0.02'), lastUpdateTime: 0 };
+    const targetPrice = parseUnits('0.02');
+    const blockTimestamp = 24 * 3600 * 183;
 
-    const activeCover = parseEther('8000');
-    const capacity = parseEther('10000');
-    const initialPrice = '1000';
-    const lastBasePrice = { value: '300', lastUpdateTime: 0 };
-    const targetPrice = '150';
-    const blockTimestamp = 24 * 3600;
+    const { actualPrice, basePrice: newBasePrice } = await stakingPool.getPrices(
+      amount,
+      activeCover,
+      capacity,
+      initialPrice,
+      lastBasePrice,
+      targetPrice,
+      blockTimestamp,
+    );
+    
+    const expectedNewBasePrice = parseUnits('0.0296');
+    const expectedActualPrice = parseUnits('0.02');
+
+    bnEqual(newBasePrice, expectedNewBasePrice);
+    bnEqual(actualPrice, expectedActualPrice);
+  });
+
+  it('should calculate price correctly for active cover without surge starting off at base price = target price', async function () {
+    const { stakingPool } = this;
+
+    const amount = parseEther('12000');
+    const activeCover = parseEther('2400');
+    const capacity = parseEther('50000');
+    const initialPrice = parseUnits('0.2');
+    const lastBasePrice = { value: parseUnits('0.0296'), lastUpdateTime: 0 };
+    const targetPrice = parseUnits('0.02');
+    const blockTimestamp = 24 * 3600 * 3;
 
     const { actualPrice, basePrice: newBasePrice } = await stakingPool.getPrices(
       amount,
@@ -27,31 +54,23 @@ describe('getPrices', function () {
       blockTimestamp,
     );
 
-    const { actualPrice: expectedActualPrice, basePrice: expectedNewBasePrice } = getPrices(
-      amount,
-      activeCover,
-      capacity,
-      initialPrice,
-      lastBasePrice,
-      targetPrice,
-      blockTimestamp,
-    );
+    const expectedNewBasePrice = parseUnits('0.068');
+    const expectedActualPrice = parseUnits('0.02');
 
     bnEqual(newBasePrice, expectedNewBasePrice);
     bnEqual(actualPrice, expectedActualPrice);
   });
 
-  it('should calculate price correctly for medium-range active cover that partially surges', async function () {
+  it('should calculate price correctly for active cover without surge starting off at base price > target price', async function () {
     const { stakingPool } = this;
 
-    const amount = parseEther('700');
-
-    const activeCover = parseEther('7800');
-    const capacity = parseEther('10000');
-    const initialPrice = '1000';
-    const lastBasePrice = { value: '300', lastUpdateTime: 0 };
-    const targetPrice = '150';
-    const blockTimestamp = 24 * 3600;
+    const amount = parseEther('12000');
+    const activeCover = parseEther('14400');
+    const capacity = parseEther('50000');
+    const initialPrice = parseUnits('0.2');
+    const lastBasePrice = { value: parseUnits('0.068'), lastUpdateTime: 0 };
+    const targetPrice = parseUnits('0.02');
+    const blockTimestamp = 24 * 3600 * 5;
 
     const { actualPrice, basePrice: newBasePrice } = await stakingPool.getPrices(
       amount,
@@ -63,30 +82,23 @@ describe('getPrices', function () {
       blockTimestamp,
     );
 
-    const { actualPrice: expectedActualPrice, basePrice: expectedNewBasePrice } = getPrices(
-      amount,
-      activeCover,
-      capacity,
-      initialPrice,
-      lastBasePrice,
-      targetPrice,
-      blockTimestamp,
-    );
+    const expectedNewBasePrice = parseUnits('0.091');
+    const expectedActualPrice = parseUnits('0.043');
 
     bnEqual(newBasePrice, expectedNewBasePrice);
     bnEqual(actualPrice, expectedActualPrice);
   });
 
-  it('should calculate price correctly for low-range active cover', async function () {
+  it('should calculate price correctly for active cover without surge which increases base price', async function () {
     const { stakingPool } = this;
 
-    const amount = parseEther('1000');
-    const activeCover = parseEther('1000');
-    const capacity = parseEther('10000');
-    const initialPrice = '1000';
-    const lastBasePrice = { value: '300', lastUpdateTime: 0 };
-    const targetPrice = '150';
-    const blockTimestamp = 24 * 3600;
+    const amount = parseEther('12000');
+    const activeCover = parseEther('26400');
+    const capacity = parseEther('50000');
+    const initialPrice = parseUnits('0.2');
+    const lastBasePrice = { value: parseUnits('0.091'), lastUpdateTime: 0 };
+    const targetPrice = parseUnits('0.02');
+    const blockTimestamp = 24 * 3600 * 5;
 
     const { actualPrice, basePrice: newBasePrice } = await stakingPool.getPrices(
       amount,
@@ -98,7 +110,25 @@ describe('getPrices', function () {
       blockTimestamp,
     );
 
-    const { actualPrice: expectedActualPrice, basePrice: expectedNewBasePrice } = getPrices(
+    const expectedNewBasePrice = parseUnits('0.114');
+    const expectedActualPrice = parseUnits('0.066');
+
+    bnEqual(newBasePrice, expectedNewBasePrice);
+    bnEqual(actualPrice, expectedActualPrice);
+  });
+
+  it('should calculate price correctly for active cover with both flat and surge pricing', async function () {
+    const { stakingPool } = this;
+
+    const amount = parseEther('8000');
+    const activeCover = parseEther('38400');
+    const capacity = parseEther('50000');
+    const initialPrice = parseUnits('0.2');
+    const lastBasePrice = { value: parseUnits('0.114'), lastUpdateTime: 0 };
+    const targetPrice = parseUnits('0.02');
+    const blockTimestamp = 24 * 3600 * 15;
+
+    const { actualPrice, basePrice: newBasePrice } = await stakingPool.getPrices(
       amount,
       activeCover,
       capacity,
@@ -108,7 +138,39 @@ describe('getPrices', function () {
       blockTimestamp,
     );
 
+    const expectedNewBasePrice = parseUnits('0.071');
+    const expectedActualPrice = parseUnits('0.058968');
+
     bnEqual(newBasePrice, expectedNewBasePrice);
     bnEqual(actualPrice, expectedActualPrice);
   });
+
+  it('should calculate price correctly for active cover with surge pricing only', async function () {
+    const { stakingPool } = this;
+
+    const amount = parseEther('2400');
+    const activeCover = parseEther('46400');
+    const capacity = parseEther('50000');
+    const initialPrice = parseUnits('0.2');
+    const lastBasePrice = { value: parseUnits('0.071'), lastUpdateTime: 0 };
+    const targetPrice = parseUnits('0.02');
+    const blockTimestamp = 24 * 3600 * 10;
+
+    const { actualPrice, basePrice: newBasePrice } = await stakingPool.getPrices(
+      amount,
+      activeCover,
+      capacity,
+      initialPrice,
+      lastBasePrice,
+      targetPrice,
+      blockTimestamp,
+    );
+
+    const expectedNewBasePrice = parseUnits('0.0306');
+    const expectedActualPrice = parseUnits('0.05292');
+
+    bnEqual(newBasePrice, expectedNewBasePrice);
+    bnEqual(actualPrice, expectedActualPrice);
+  });
+
 });

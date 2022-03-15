@@ -23,6 +23,7 @@ import "../../interfaces/IStakingPoolBeacon.sol";
 import "./MinimalBeaconProxy.sol";
 import "hardhat/console.sol";
 
+
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   using SafeERC20 for IERC20;
 

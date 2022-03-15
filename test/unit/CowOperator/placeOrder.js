@@ -14,10 +14,13 @@ describe('placeOrder', function () {
 
   let order, contractOrder, domain, orderUID;
 
-  let dai, weth, pool, swapOperator, cowSettlement, cowVaultRelayer;
+  let dai, stEth, weth, pool, swapOperator, cowSettlement, cowVaultRelayer;
 
   const daiMinAmount = parseEther('10000');
   const daiMaxAmount = parseEther('20000');
+
+  const stethMinAmount = parseEther('10');
+  const stethMaxAmount = parseEther('20');
 
   const hashUtf = str => keccak256(toUtf8Bytes(str));
 
@@ -41,7 +44,7 @@ describe('placeOrder', function () {
       buyToken: weth.address,
       sellAmount: parseEther('9999'),
       feeAmount: parseEther('1'),
-      buyAmount: parseEther('2'),
+      buyAmount: parseEther('1.9998'),
       ...overrides,
     };
     const newContractOrder = makeContractOrder(newOrder);
@@ -54,6 +57,7 @@ describe('placeOrder', function () {
 
     // Assign contracts (destructuring isn't working)
     dai = contracts.dai;
+    stEth = contracts.stEth;
     weth = contracts.weth;
     pool = contracts.pool;
     swapOperator = contracts.swapOperator;
@@ -66,7 +70,7 @@ describe('placeOrder', function () {
       sellToken: weth.address,
       buyToken: dai.address,
       sellAmount: parseEther('0.999'),
-      buyAmount: parseEther('3000'),
+      buyAmount: parseEther('4995'),
       validTo: lastBlockTimestamp + 650,
       appData: hexZeroPad(0, 32),
       feeAmount: parseEther('0.001'),
@@ -86,8 +90,9 @@ describe('placeOrder', function () {
     // Fund the pool contract
     await setEtherBalance(pool.address, parseEther('100'));
 
-    // Set asset details for DAI
-    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
+    // Set asset details for DAI and stEth. 0% slippage
+    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 0);
+    await pool.connect(governance).setSwapDetails(stEth.address, stethMinAmount, stethMaxAmount, 0);
   });
 
   it('is callable only by swap controller', async function () {
@@ -130,6 +135,24 @@ describe('placeOrder', function () {
     await expect(
       swapOperator.placeOrder(contractOrder, orderUID),
     ).to.be.revertedWith('SwapOp: an order is already in place');
+  });
+
+  it('fails if neither buyToken or sellToken are WETH', async function () {
+    const newOrder = {
+      ...order,
+      sellToken: dai.address,
+      sellAmount: parseEther('5000'),
+      buyToken: stEth.address,
+      buyAmount: parseEther('15'),
+    };
+    const newContractOrder = makeContractOrder(newOrder);
+    const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
+
+    await dai.setBalance(pool.address, daiMaxAmount.add(1));
+
+    await expect(
+      swapOperator.placeOrder(newContractOrder, newOrderUID),
+    ).to.be.revertedWith('SwapOp: Must either sell or buy eth');
   });
 
   describe('validating basic CoW protocol parameters', function () {
@@ -253,7 +276,8 @@ describe('placeOrder', function () {
     it('selling cannot bring balance below minAmount', async function () {
       const sellAmount = parseEther('14999');
       const feeAmount = parseEther('1');
-      const { newContractOrder, newOrderUID } = await setupSellDaiForEth({ sellAmount, feeAmount });
+      const buyAmount = parseEther('2.9998');
+      const { newContractOrder, newOrderUID } = await setupSellDaiForEth({ sellAmount, feeAmount, buyAmount });
 
       // Set balance so that balance - totalAmountOut is 1 wei below asset minAmount
       await dai.setBalance(pool.address, daiMinAmount.add(sellAmount).add(feeAmount).sub(1));
@@ -336,6 +360,36 @@ describe('placeOrder', function () {
       const okContractOrder = makeContractOrder(okOrder);
       const okOrderUID = computeOrderUid(domain, okOrder, okOrder.receiver);
       await swapOperator.placeOrder(okContractOrder, okOrderUID);
+    });
+  });
+
+  describe('validating prices against oracle', function () {
+    describe('when selling eth', function () {
+      it('takes oracle price into account', async function () {
+        //
+      });
+
+      it('takes slippage into account', async function () {
+        //
+      });
+
+      it('takes both oracle price and slippage into account', async function () {
+        //
+      });
+    });
+
+    describe('when buying eth', function () {
+      it('takes oracle price into account', async function () {
+        //
+      });
+
+      it('takes slippage into account', async function () {
+        //
+      });
+
+      it('takes both oracle price and slippage into account', async function () {
+        //
+      });
     });
   });
 

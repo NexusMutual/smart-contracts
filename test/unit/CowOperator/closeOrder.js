@@ -65,7 +65,7 @@ describe('closeOrder', function () {
       sellToken: weth.address,
       buyToken: dai.address,
       sellAmount: parseEther('0.999'),
-      buyAmount: parseEther('3000'),
+      buyAmount: parseEther('4995'),
       validTo: lastBlockTimestamp + 650,
       appData: hexZeroPad(0, 32),
       feeAmount: parseEther('0.001'),

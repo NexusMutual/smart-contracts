@@ -124,8 +124,6 @@ contract CowSwapOperator {
       // Calculate swapValue for non-eth asset
       IPool.Asset memory asset = pool.getAssetFromAddress(address(order.sellToken));
       uint rate = priceFeedOracle.getAssetToEthRate(address(order.sellToken));
-      require(rate > 0, "SwapOp: Zero rate from oracle");
-
       pool.setSwapValue(totalOutAmount * rate / (10 ** uint(asset.decimals)));
     }
 

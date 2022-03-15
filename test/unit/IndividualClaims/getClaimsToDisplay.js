@@ -13,7 +13,7 @@ const setTime = async timestamp => {
 
 describe('getClaimsToDisplay', function () {
   it('aggregates and displays claims related data in a human-readable form', async function () {
-    const { claims, cover, assessment } = this.contracts;
+    const { individualClaims, cover, assessment } = this.contracts;
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(66);
     const coverAmount = parseEther('100');
@@ -91,46 +91,76 @@ describe('getClaimsToDisplay', function () {
     }
 
     {
-      const [deposit] = await claims.getAssessmentDepositAndReward(expectedAmounts[0], coverPeriod, ASSET.DAI);
-      await claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](3, 0, expectedAmounts[0], '', {
-        value: deposit,
-      });
+      const [deposit] = await individualClaims.getAssessmentDepositAndReward(
+        expectedAmounts[0],
+        coverPeriod,
+        ASSET.DAI,
+      );
+      await individualClaims
+        .connect(coverOwner)
+        ['submitClaim(uint32,uint16,uint96,string)'](3, 0, expectedAmounts[0], '', {
+          value: deposit,
+        });
       const latestBlock = await ethers.provider.getBlock('latest');
       expectedPollStarts.push(latestBlock.timestamp);
       await setTime(latestBlock.timestamp + daysToSeconds(1));
     }
     {
-      const [deposit] = await claims.getAssessmentDepositAndReward(expectedAmounts[1], coverPeriod, ASSET.DAI);
-      await claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](1, 0, expectedAmounts[1], '', {
-        value: deposit,
-      });
+      const [deposit] = await individualClaims.getAssessmentDepositAndReward(
+        expectedAmounts[1],
+        coverPeriod,
+        ASSET.DAI,
+      );
+      await individualClaims
+        .connect(coverOwner)
+        ['submitClaim(uint32,uint16,uint96,string)'](1, 0, expectedAmounts[1], '', {
+          value: deposit,
+        });
       const latestBlock = await ethers.provider.getBlock('latest');
       expectedPollStarts.push(latestBlock.timestamp);
       await setTime(latestBlock.timestamp + daysToSeconds(1));
     }
     {
-      const [deposit] = await claims.getAssessmentDepositAndReward(expectedAmounts[2], coverPeriod, ASSET.ETH);
-      await claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](2, 0, expectedAmounts[2], '', {
-        value: deposit,
-      });
+      const [deposit] = await individualClaims.getAssessmentDepositAndReward(
+        expectedAmounts[2],
+        coverPeriod,
+        ASSET.ETH,
+      );
+      await individualClaims
+        .connect(coverOwner)
+        ['submitClaim(uint32,uint16,uint96,string)'](2, 0, expectedAmounts[2], '', {
+          value: deposit,
+        });
       const latestBlock = await ethers.provider.getBlock('latest');
       expectedPollStarts.push(latestBlock.timestamp);
       await setTime(latestBlock.timestamp + daysToSeconds(1));
     }
     {
-      const [deposit] = await claims.getAssessmentDepositAndReward(expectedAmounts[3], coverPeriod, ASSET.ETH);
-      await claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](0, 0, expectedAmounts[3], '', {
-        value: deposit,
-      });
+      const [deposit] = await individualClaims.getAssessmentDepositAndReward(
+        expectedAmounts[3],
+        coverPeriod,
+        ASSET.ETH,
+      );
+      await individualClaims
+        .connect(coverOwner)
+        ['submitClaim(uint32,uint16,uint96,string)'](0, 0, expectedAmounts[3], '', {
+          value: deposit,
+        });
       const latestBlock = await ethers.provider.getBlock('latest');
       expectedPollStarts.push(latestBlock.timestamp);
       await setTime(latestBlock.timestamp + daysToSeconds(1));
     }
     {
-      const [deposit] = await claims.getAssessmentDepositAndReward(expectedAmounts[4], coverPeriod, ASSET.ETH);
-      await claims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](4, 0, expectedAmounts[4], '', {
-        value: deposit,
-      });
+      const [deposit] = await individualClaims.getAssessmentDepositAndReward(
+        expectedAmounts[4],
+        coverPeriod,
+        ASSET.ETH,
+      );
+      await individualClaims
+        .connect(coverOwner)
+        ['submitClaim(uint32,uint16,uint96,string)'](4, 0, expectedAmounts[4], '', {
+          value: deposit,
+        });
       const latestBlock = await ethers.provider.getBlock('latest');
       expectedPollStarts.push(latestBlock.timestamp);
     }
@@ -139,7 +169,7 @@ describe('getClaimsToDisplay', function () {
     const expectedPollEnds = expectedPollStarts.map(x => x + daysToSeconds(minVotingPeriodInDays));
     const expectedCoverEnds = expectedCoverStarts.map(x => x + coverPeriod);
 
-    const res = await claims.getClaimsToDisplay([0, 1, 2, 3, 4]);
+    const res = await individualClaims.getClaimsToDisplay([0, 1, 2, 3, 4]);
     const actualClaimIds = res.map(x => x.id);
     const actualProductIds = res.map(x => x.productId);
     const actualCoverIds = res.map(x => x.coverId);
@@ -179,7 +209,7 @@ describe('getClaimsToDisplay', function () {
     }
 
     {
-      const res = await claims.getClaimsToDisplay([0, 1, 2, 3, 4]);
+      const res = await individualClaims.getClaimsToDisplay([0, 1, 2, 3, 4]);
       const actualPayoutStatuses = res.map(x => x.payoutStatus.toNumber());
       const actualClaimStatuses = res.map(x => x.claimStatus.toNumber());
 
@@ -199,7 +229,7 @@ describe('getClaimsToDisplay', function () {
     }
 
     {
-      const res = await claims.getClaimsToDisplay([0, 1, 2, 3, 4]);
+      const res = await individualClaims.getClaimsToDisplay([0, 1, 2, 3, 4]);
       const actualPayoutStatuses = res.map(x => x.payoutStatus.toNumber());
       const actualClaimStatuses = res.map(x => x.claimStatus.toNumber());
       for (const i of [2, 3, 4]) {
@@ -218,7 +248,7 @@ describe('getClaimsToDisplay', function () {
     }
 
     {
-      const res = await claims.getClaimsToDisplay([0, 1, 2, 3, 4]);
+      const res = await individualClaims.getClaimsToDisplay([0, 1, 2, 3, 4]);
       const actualPayoutStatuses = res.map(x => x.payoutStatus.toNumber());
       const actualClaimStatuses = res.map(x => x.claimStatus.toNumber());
 
@@ -230,10 +260,10 @@ describe('getClaimsToDisplay', function () {
       expect(actualPayoutStatuses[4]).to.be.equal(PAYOUT_STATUS.PENDING);
     }
 
-    await claims.redeemClaimPayout(3);
+    await individualClaims.redeemClaimPayout(3);
 
     {
-      const [claim] = await claims.getClaimsToDisplay([3]);
+      const [claim] = await individualClaims.getClaimsToDisplay([3]);
       expect(claim.claimStatus.toNumber()).to.be.equal(CLAIM_STATUS.ACCEPTED);
       expect(claim.payoutStatus.toNumber()).to.be.equal(PAYOUT_STATUS.COMPLETE);
     }
@@ -244,7 +274,7 @@ describe('getClaimsToDisplay', function () {
     }
 
     {
-      const [claim] = await claims.getClaimsToDisplay([4]);
+      const [claim] = await individualClaims.getClaimsToDisplay([4]);
       expect(claim.claimStatus.toNumber()).to.be.equal(CLAIM_STATUS.ACCEPTED);
       expect(claim.payoutStatus.toNumber()).to.be.equal(PAYOUT_STATUS.UNCLAIMED);
     }

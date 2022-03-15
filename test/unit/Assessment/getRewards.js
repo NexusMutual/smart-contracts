@@ -6,15 +6,15 @@ const { parseEther } = ethers.utils;
 
 describe('getRewards', function () {
   it("returns the pending rewards pro-rated to the user's stake", async function () {
-    const { assessment, claims } = this.contracts;
+    const { assessment, individualClaims } = this.contracts;
     const [user1, user2] = this.accounts.members;
     const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
     await assessment.connect(user1).stake(parseEther('10'));
     await assessment.connect(user2).stake(parseEther('90'));
-    await claims.submitClaim(0, 0, parseEther('10'), '');
-    await claims.submitClaim(1, 0, parseEther('100'), '');
-    await claims.submitClaim(2, 0, parseEther('1000'), '');
+    await individualClaims.submitClaim(0, 0, parseEther('10'), '');
+    await individualClaims.submitClaim(1, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(2, 0, parseEther('1000'), '');
 
     await assessment.connect(user1).castVote(0, true);
     await assessment.connect(user2).castVote(0, true);
@@ -83,13 +83,13 @@ describe('getRewards', function () {
   });
 
   it('returns the withdrawable reward', async function () {
-    const { assessment, claims } = this.contracts;
+    const { assessment, individualClaims } = this.contracts;
     const [user] = this.accounts.members;
     const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
     await assessment.connect(user).stake(parseEther('10'));
-    await claims.submitClaim(0, 0, parseEther('10'), '');
-    await claims.submitClaim(1, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, 0, parseEther('10'), '');
+    await individualClaims.submitClaim(1, 0, parseEther('100'), '');
 
     await assessment.connect(user).castVote(0, true);
     await assessment.connect(user).castVote(1, true);
@@ -133,7 +133,7 @@ describe('getRewards', function () {
     }
 
     {
-      await claims.submitClaim(0, 0, parseEther('1000'), '');
+      await individualClaims.submitClaim(0, 0, parseEther('1000'), '');
       await assessment.connect(user).castVote(2, true);
       const { withdrawableAmount } = await assessment.getRewards(user.address);
       expect(withdrawableAmount).to.be.equal(0);
@@ -149,13 +149,13 @@ describe('getRewards', function () {
   });
 
   it("returns the index of the first vote on an assessment that hasn't ended or is still in cooldown period", async function () {
-    const { assessment, claims } = this.contracts;
+    const { assessment, individualClaims } = this.contracts;
     const [user] = this.accounts.members;
     const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
     await assessment.connect(user).stake(parseEther('10'));
-    await claims.submitClaim(0, 0, parseEther('10'), '');
-    await claims.submitClaim(0, 1, parseEther('100'), '');
+    await individualClaims.submitClaim(0, 0, parseEther('10'), '');
+    await individualClaims.submitClaim(0, 1, parseEther('100'), '');
 
     await assessment.connect(user).castVote(0, true);
     await assessment.connect(user).castVote(1, true);
@@ -173,7 +173,7 @@ describe('getRewards', function () {
     }
 
     {
-      await claims.submitClaim(0, 0, parseEther('1000'), '');
+      await individualClaims.submitClaim(0, 0, parseEther('1000'), '');
       await assessment.connect(user).castVote(2, true);
       const { withdrawableUntilIndex } = await assessment.getRewards(user.address);
       expect(withdrawableUntilIndex).to.be.equal(2);

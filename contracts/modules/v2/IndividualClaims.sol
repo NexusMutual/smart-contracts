@@ -6,7 +6,7 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/ICover.sol";
-import "../../interfaces/IClaims.sol";
+import "../../interfaces/IIndividualClaims.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/ICoverNFT.sol";
@@ -15,7 +15,7 @@ import "../../abstract/MasterAwareV2.sol";
 
 /// Provides a way for cover owners to submit claims and redeem payouts. It is an entry point to
 /// the assessment process where the members of the mutual decide the outcome of claims.
-contract Claims is IClaims, MasterAwareV2 {
+contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
 
   // 0-10000 bps (i.e. double decimal precision percentage)
   uint internal constant MIN_ASSESSMENT_DEPOSIT_DENOMINATOR = 10000;
@@ -279,8 +279,8 @@ contract Claims is IClaims, MasterAwareV2 {
       ProductType memory productType = coverContract.productTypes(product.productType);
 
       require(
-        productType.redeemMethod == uint8(RedeemMethod.Claim),
-        "Invalid redeem method"
+        productType.claimMethod == uint8(ClaimMethod.IndividualClaims),
+        "Invalid claim method for this product type"
       );
       require(requestedAmount <= segment.amount, "Covered amount exceeded");
       require(segment.start <= block.timestamp, "Cover starts in the future");

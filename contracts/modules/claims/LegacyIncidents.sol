@@ -11,7 +11,7 @@ import "../../interfaces/ILegacyIncidents.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IPooledStaking.sol";
+//import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 
@@ -133,9 +133,9 @@ contract LegacyIncidents is ILegacyIncidents, MasterAware {
     require(burnAmount > 0, "Incidents: No burns to push");
     require(maxIterations >= 30, "Incidents: Pass at least 30 iterations");
 
-    IPooledStaking ps = pooledStaking();
-    ps.pushBurn(productId, burnAmount);
-    ps.processPendingActions(maxIterations);
+    //IPooledStaking ps = pooledStaking();
+    //ps.pushBurn(productId, burnAmount);
+    //ps.processPendingActions(maxIterations);
   }
 
   function withdrawAsset(address asset, address destination, uint amount) external onlyGovernance {
@@ -179,9 +179,9 @@ contract LegacyIncidents is ILegacyIncidents, MasterAware {
     return IPool(internalContracts[uint(ID.P1)]);
   }
 
-  function pooledStaking() internal view returns (IPooledStaking) {
-    return IPooledStaking(internalContracts[uint(ID.PS)]);
-  }
+  //function pooledStaking() internal view returns (IPooledStaking) {
+    //return IPooledStaking(internalContracts[uint(ID.PS)]);
+  //}
 
   function mcr() internal view returns (IMCR) {
     return IMCR(internalContracts[uint(ID.MC)]);

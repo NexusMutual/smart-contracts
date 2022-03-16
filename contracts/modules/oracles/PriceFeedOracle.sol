@@ -85,8 +85,4 @@ contract PriceFeedOracle is IPriceFeedOracle {
 
     return amount.mul(price).div(10**decimals);
   }
-
-  function daiAddress() external view returns (address) {
-    return address(0);
-  }
 }

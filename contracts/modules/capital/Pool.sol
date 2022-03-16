@@ -102,7 +102,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
    */
   function getPoolValueInEth() public override view returns (uint) {
 
-    uint total = address(this).balance;
+    uint total = address(this).balance + swapValue;
 
     uint assetsCount = assets.length;
 
@@ -124,8 +124,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
       total = total + assetValue;
     }
-
-    total += swapValue;
 
     return total;
   }

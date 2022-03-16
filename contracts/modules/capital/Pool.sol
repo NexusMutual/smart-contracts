@@ -20,6 +20,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   /* storage */
   Asset[] public override assets;
   mapping(address => SwapDetails) public swapDetails;
+  uint public swapValue;
 
   // contracts
   INXMToken public nxmToken;
@@ -101,7 +102,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
    */
   function getPoolValueInEth() public override view returns (uint) {
 
-    uint total = address(this).balance;
+    uint total = address(this).balance + swapValue;
 
     uint assetsCount = assets.length;
 
@@ -294,7 +295,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     address assetAddress,
     uint amount
   ) public override onlySwapOperator nonReentrant whenNotPaused {
-
     if (assetAddress == ETH) {
       (bool ok, /* data */) = swapOperator.call{value: amount}("");
       require(ok, "Pool: ETH transfer failed");
@@ -586,5 +586,18 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     }
 
     revert("Pool: Unknown parameter");
+  }
+
+  function setSwapValue(uint newValue) external onlySwapOperator whenNotPaused {
+    swapValue = newValue;
+  }
+
+  function getAssetFromAddress(address addr) public view returns (Asset memory) {
+    for (uint i = 0; i < assets.length; i++) {
+      if (assets[i].assetAddress == addr) {
+        return assets[i];
+      }
+    }
+    revert('Asset not found');
   }
 }

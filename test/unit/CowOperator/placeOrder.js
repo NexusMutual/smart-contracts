@@ -14,7 +14,7 @@ describe('placeOrder', function () {
 
   let order, contractOrder, domain, orderUID;
 
-  let dai, weth, pool, swapOperator, twap, cowSettlement, cowVaultRelayer;
+  let dai, weth, pool, swapOperator, cowSettlement, cowVaultRelayer;
 
   const daiMinAmount = parseEther('10000');
   const daiMaxAmount = parseEther('20000');
@@ -57,17 +57,17 @@ describe('placeOrder', function () {
     weth = contracts.weth;
     pool = contracts.pool;
     swapOperator = contracts.swapOperator;
-    twap = contracts.twap;
     cowSettlement = contracts.cowSettlement;
     cowVaultRelayer = contracts.cowVaultRelayer;
 
     // Build order struct, domain separator and calculate UID
+    const lastBlockTimestamp = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
     order = {
       sellToken: weth.address,
       buyToken: dai.address,
       sellAmount: parseEther('0.999'),
       buyAmount: parseEther('3000'),
-      validTo: Math.floor(new Date().getTime() / 1000 + 650),
+      validTo: lastBlockTimestamp + 650,
       appData: hexZeroPad(0, 32),
       feeAmount: parseEther('0.001'),
       kind: 'sell',
@@ -88,9 +88,6 @@ describe('placeOrder', function () {
 
     // Set asset details for DAI
     await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
-
-    // Set price in oracle
-    await (await twap.addPrice(weth.address, dai.address, 5000 * 10000)).wait(); // 1 weth = 5000 dai
   });
 
   it('is callable only by swap controller', async function () {
@@ -188,7 +185,7 @@ describe('placeOrder', function () {
     it('validates that deadline is at least 10 minutes in the future', async function () {
       const newOrder = {
         ...order,
-        validTo: Math.floor(new Date().getTime() / 1000 + 599),
+        validTo: Math.floor(new Date().getTime() / 1000 + 500),
       };
       const newContractOrder = makeContractOrder(newOrder);
       const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
@@ -369,6 +366,27 @@ describe('placeOrder', function () {
 
       expect(poolDaiBefore.sub(poolDaiAfter)).to.eq(newOrder.sellAmount.add(newOrder.feeAmount));
       expect(swapOpDaiAfter.sub(swapOpDaiBefore)).to.eq(newOrder.sellAmount.add(newOrder.feeAmount));
+    });
+  });
+
+  describe('setting pools swapValue', function () {
+    it('works when selling eth', async function () {
+      expect(await pool.swapValue()).to.eq(0);
+
+      await swapOperator.placeOrder(contractOrder, orderUID);
+
+      expect(await pool.swapValue()).to.eq(order.sellAmount.add(order.feeAmount));
+    });
+
+    it('works when transfering ERC20', async function () {
+      const { newContractOrder, newOrderUID } = await setupSellDaiForEth();
+
+      expect(await pool.swapValue()).to.eq(0);
+
+      await swapOperator.placeOrder(newContractOrder, newOrderUID);
+
+      // We are selling 10k dai at a price of 5k dai/eth
+      expect((await pool.swapValue()).toString()).to.eq(parseEther('2'));
     });
   });
 

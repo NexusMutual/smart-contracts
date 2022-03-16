@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const setup = require('./setup');
 
-describe('Pool unit tests', function () {
+describe.only('Pool unit tests', function () {
   before(setup);
 
   beforeEach(async function () {
@@ -39,4 +39,5 @@ describe('Pool unit tests', function () {
   // swapping
   require('./transferAssetToSwapOperator');
   require('./setSwapDetailsLastSwapTime');
+  require('./setSwapValue');
 });

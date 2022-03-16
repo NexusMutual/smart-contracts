@@ -1,9 +1,12 @@
-const { web3 } = require('hardhat');
-const { assert } = require('chai');
+const { web3, ethers } = require('hardhat');
+const { assert, expect } = require('chai');
 const { ether } = require('@openzeppelin/test-helpers');
+const { hex } = require('../utils').helpers;
 const { BN } = web3.utils;
 
-const { nonMembers: [fundSource] } = require('../utils').accounts;
+const { utils: { parseEther } } = ethers;
+
+const { nonMembers: [fundSource], defaultSender, governanceContracts: [governance] } = require('../utils').accounts;
 
 describe('getPoolValueInEth', function () {
 
@@ -25,6 +28,22 @@ describe('getPoolValueInEth', function () {
     const expectedPoolValue = initialAssetValue.add(daiAmount.mul(daiToEthRate).div(ether('1')));
     const poolValue = await pool.getPoolValueInEth();
     assert.equal(poolValue.toString(), expectedPoolValue.toString());
+  });
+
+  it('includes swapValue in the calculation', async function () {
+    const { pool } = this;
+
+    const oldPoolValue = await pool.getPoolValueInEth();
+
+    await pool.updateAddressParameters(hex('SWP_OP'), defaultSender, { from: governance });
+    await pool.setSwapValue(parseEther('1'));
+
+    const swapValue = await pool.swapValue();
+    expect(swapValue.toString()).to.eq(parseEther('1').toString());
+
+    const newPoolValue = await pool.getPoolValueInEth();
+
+    expect(newPoolValue.toString()).to.eq(oldPoolValue.add(swapValue).toString());
   });
 
 });

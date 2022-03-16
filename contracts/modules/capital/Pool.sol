@@ -591,13 +591,4 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   function setSwapValue(uint newValue) external onlySwapOperator whenNotPaused {
     swapValue = newValue;
   }
-
-  function getAssetFromAddress(address addr) public view returns (Asset memory) {
-    for (uint i = 0; i < assets.length; i++) {
-      if (assets[i].assetAddress == addr) {
-        return assets[i];
-      }
-    }
-    revert('Asset not found');
-  }
 }

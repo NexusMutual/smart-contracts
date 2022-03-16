@@ -54,9 +54,9 @@ contract PriceFeedOracle is IPriceFeedOracle {
 
   /**
    * @dev Returns the amount of currency that is equivalent to ethIn amount of ether.
-   * @param asset quoted  Supported values: ["DAI", "ETH"]
-   * @param ethIn amount of ether to be converted to the currency
-   * @return price in ether
+   * @param asset address of asset
+   * @param ethIn amount of ether to be converted to the asset
+   * @return asset amount
    */
   function getAssetForEth(address asset, uint256 ethIn) external view returns (uint256) {
     if (asset == ETH) {
@@ -67,9 +67,14 @@ contract PriceFeedOracle is IPriceFeedOracle {
     uint256 price = getAssetToEthRate(asset);
 
     return ethIn.mul(10**decimals).div(price);
-    // return (ethIn * 10 ** decimals) / price;
   }
 
+  /**
+   * @dev Returns the amount of eth that is equivalent to a given asset and amount
+   * @param asset address of asset
+   * @param amount amount of asset
+   * @return amount of ether
+   */
   function getEthForAsset(address asset, uint amount) external view returns (uint) {
     if (asset == ETH) {
       return amount;

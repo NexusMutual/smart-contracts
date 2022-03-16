@@ -139,9 +139,8 @@ contract CowSwapOperator {
       pool.transferAssetToSwapOperator(address(order.sellToken), totalOutAmount);
 
       // Calculate swapValue for non-eth asset
-      IPool.Asset memory asset = pool.getAssetFromAddress(address(order.sellToken));
-      uint256 rate = priceFeedOracle.getAssetToEthRate(address(order.sellToken));
-      pool.setSwapValue((totalOutAmount * rate) / (10**uint256(asset.decimals)));
+      uint256 swapValue = priceFeedOracle.getEthForAsset(address(order.sellToken), totalOutAmount);
+      pool.setSwapValue(swapValue);
     }
 
     // Approve Cow's contract to spend sellToken

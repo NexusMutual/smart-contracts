@@ -9,5 +9,6 @@ interface IPriceFeedOracle {
 
   function getAssetToEthRate(address asset) external view returns (uint);
   function getAssetForEth(address asset, uint ethIn) external view returns (uint);
+  function getEthForAsset(address asset, uint amount) external view returns (uint);
 
 }

@@ -118,14 +118,14 @@ contract CowSwapOperator {
 
       require(order.buyAmount >= minBuyAmountOnMaxSlippage, "SwapOp: order.buyAmount too low (oracle)");
     } else if (isBuyingEth(order)) {
-      // Ask oracle how much of the other asset we should be selling
-      uint256 oracleSellAmount = priceFeedOracle.getAssetForEth(address(order.sellToken), order.buyAmount);
+      // Ask oracle how much ether we should get
+      uint256 oracleBuyAmount = priceFeedOracle.getEthForAsset(address(order.sellToken), order.sellAmount);
 
-      // Calculate slippage and maximum amount we can pay
-      uint256 maxSlippageAmount = (oracleSellAmount * finalSlippage) / MAX_SLIPPAGE_DENOMINATOR;
-      uint256 maxSellAmountOnMaxSlippage = oracleSellAmount + maxSlippageAmount;
+      // Calculate slippage and minimum amount we should accept
+      uint256 maxSlippageAmount = (oracleBuyAmount * finalSlippage) / MAX_SLIPPAGE_DENOMINATOR;
+      uint256 minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
 
-      require(order.sellAmount <= maxSellAmountOnMaxSlippage, "SwapOp: order.sellAmount too high (oracle)");
+      require(order.buyAmount >= minBuyAmountOnMaxSlippage, "SwapOp: order.buyAmount too low (oracle)");
     } else {
       revert("SwapOp: Must either sell or buy eth");
     }

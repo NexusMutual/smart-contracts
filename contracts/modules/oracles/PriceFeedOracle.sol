@@ -70,6 +70,17 @@ contract PriceFeedOracle is IPriceFeedOracle {
     // return (ethIn * 10 ** decimals) / price;
   }
 
+  function getEthForAsset(address asset, uint amount) external view returns (uint) {
+    if (asset == ETH) {
+      return amount;
+    }
+
+    uint256 decimals = assetDecimals[asset];
+    uint256 price = getAssetToEthRate(asset);
+
+    return amount.mul(price).div(10**decimals);
+  }
+
   function daiAddress() external view returns (address) {
     return address(0);
   }

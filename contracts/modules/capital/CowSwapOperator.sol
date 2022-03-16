@@ -107,7 +107,6 @@ contract CowSwapOperator {
 
     // Validate oracle price
     uint256 finalSlippage = Math.max(buyTokenDetails.maxSlippageRatio, sellTokenDetails.maxSlippageRatio);
-    // uint256 finalSlippage = MAX_SLIPPAGE_DENOMINATOR; // Slippage TBD. 100% for now
     if (isSellingEth(order)) {
       // Ask oracle how much of the other asset we should get
       uint256 oracleBuyAmount = priceFeedOracle.getAssetForEth(address(order.buyToken), order.sellAmount);

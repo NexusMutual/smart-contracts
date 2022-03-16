@@ -259,13 +259,21 @@ async function main () {
   if (['hardhat', 'localhost'].includes(network.name)) {
     const chainlinkDaiMock = await ChainlinkAggregatorMock.new();
     await chainlinkDaiMock.setLatestAnswer('357884806717390');
+    const chainlinkStEthMock = await ChainlinkAggregatorMock.new();
+    await chainlinkStEthMock.setLatestAnswer('1000000000000000000');
     verifier.add(chainlinkDaiMock);
-    priceFeedOracle = await PriceFeedOracle.new(chainlinkDaiMock.address, dai.address, stETH.address);
-  } else {
+    verifier.add(chainlinkStEthMock);
     priceFeedOracle = await PriceFeedOracle.new(
-      CHAINLINK_DAI_ETH_AGGREGATORS[network.name],
-      dai.address,
-      stETH.address,
+      [dai.address, stETH.address],
+      [chainlinkDaiMock.address, chainlinkStEthMock.address],
+      [18, 18],
+    );
+  } else {
+    // TODO: Add more mainnet assets to oracle
+    priceFeedOracle = await PriceFeedOracle.new(
+      [dai.address],
+      [CHAINLINK_DAI_ETH_AGGREGATORS[network.name]],
+      [18],
     );
   }
 

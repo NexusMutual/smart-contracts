@@ -14,6 +14,7 @@ import "../../interfaces/IQuotation.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
+import "hardhat/console.sol";
 
 contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
   using SafeMath for uint;
@@ -95,6 +96,7 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
 
       uint coverExpirationDate = qd.getValidityOfCover(coverIds[i]);
       uint gracePeriodExpirationDate = coverExpirationDate.add(gracePeriod);
+      console.log("tc %s", address(tc));
       (/* claimCount */, bool hasOpenClaim, /* hasAcceptedClaim */) = tc.coverInfo(coverIds[i]);
 
       if (!hasOpenClaim && gracePeriodExpirationDate < now) {

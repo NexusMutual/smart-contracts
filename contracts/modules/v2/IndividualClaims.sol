@@ -221,13 +221,6 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  /// @dev Migrates covers for arNFT-like contracts that don't use Gateway.sol
-  ///
-  /// @param coverId          Legacy (V1) cover identifier
-  function submitClaim(uint coverId) external override {
-    cover().migrateCoverFromOwner(coverId, msg.sender, tx.origin);
-  }
-
   /// Submits a claim for assessment
   ///
   /// @dev This function requires an ETH assessment fee. See: _getAssessmentDepositAndReward

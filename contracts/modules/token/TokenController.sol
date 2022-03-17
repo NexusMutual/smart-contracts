@@ -514,18 +514,39 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   }
 
   // Can be removed once all cover notes are withdrawn
-  function getUserAllLockedCNTokens(address _of) external view returns (uint) {
+  function getWithdrawableCoverNotes(
+    address coverOwner
+  ) public view returns (
+    uint[] memory coverIds,
+    bytes32[] memory lockReasons,
+    uint withdrawableAmount
+  ) {
 
-    uint[] memory coverIds = quotationData.getAllCoversOfUser(_of);
-    uint total;
+    uint[] memory allCoverIds = quotationData.getAllCoversOfUser(coverOwner);
+    uint[] memory idsQueue = new uint[](allCoverIds.length);
+    bytes32[] memory lockReasonsQueue = new bytes32[](allCoverIds.length);
+    uint idsQueueLength = 0;
 
-    for (uint i = 0; i < coverIds.length; i++) {
-      bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverIds[i]));
-      uint coverNote = tokensLocked(_of, reason);
-      total = total + coverNote;
+    for (uint i = 0; i < allCoverIds.length; i++) {
+      uint coverId = allCoverIds[i];
+      bytes32 lockReason = keccak256(abi.encodePacked("CN", coverOwner, coverId));
+      uint coverNoteAmount = _tokensLocked(coverOwner, lockReason);
+
+      if (coverNoteAmount > 0) {
+        idsQueue[idsQueueLength] = coverId;
+        lockReasonsQueue[idsQueueLength] = lockReason;
+        withdrawableAmount += coverNoteAmount;
+        idsQueueLength++;
+      }
     }
 
-    return total;
+    coverIds = new uint[](idsQueueLength);
+    lockReasons = new bytes32[](idsQueueLength);
+
+    for (uint i = 0; i < idsQueueLength; i++) {
+      coverIds[i] = idsQueue[i];
+      lockReasons[i] = lockReasonsQueue[i];
+    }
   }
 
   // Can be removed once all cover notes are withdrawn
@@ -545,12 +566,6 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     // The provided indexes array must be ordered, otherwise reason index checks will fail.
 
     for (uint i = coverIds.length; i > 0; i--) {
-
-      // New claims will me opened in v2. Existing claims can be migrated to v2 at migration.
-      // The assessment deposit from v2 can be deducted from the payout amount. Unlikely to have
-      // this situation when we deploy but it's a viable option if needed.
-      //bool hasOpenClaim = coverInfo[coverIds[i - 1]].hasOpenClaim;
-      //require(hasOpenClaim == false, "TokenController: Cannot withdraw for cover with an open claim");
 
       // note: cover owner is implicitly checked using the reason hash
       bytes32 _reason = keccak256(abi.encodePacked("CN", user, coverIds[i - 1]));
@@ -612,7 +627,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
   function initialize() external {
     token.addToWhiteList(address(this));
-    //token.removeFromWhiteList(claimsReward);
+    token.removeFromWhiteList(claimsReward);
     migrate();
   }
 

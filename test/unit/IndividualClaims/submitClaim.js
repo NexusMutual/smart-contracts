@@ -12,27 +12,6 @@ const setTime = async timestamp => {
 };
 
 describe('submitClaim', function () {
-  it('calls migrateCoverFromOwner with the correct parameters when a legacy coverId is provided as a parameter', async function () {
-    const { individualClaims, cover, distributor } = this.contracts;
-    const [coverOwner] = this.accounts.members;
-
-    {
-      await individualClaims.connect(coverOwner)['submitClaim(uint256)'](123);
-      const migrateCoverFromOwnerCalledWith = await cover.migrateCoverFromOwnerCalledWith();
-      expect(migrateCoverFromOwnerCalledWith.coverId).to.be.equal(123);
-      expect(migrateCoverFromOwnerCalledWith.fromOwner).to.be.equal(coverOwner.address);
-      expect(migrateCoverFromOwnerCalledWith.toNewOwner).to.be.equal(coverOwner.address);
-    }
-
-    {
-      await distributor.connect(coverOwner)['submitClaim(uint256)'](444);
-      const migrateCoverFromOwnerCalledWith = await cover.migrateCoverFromOwnerCalledWith();
-      expect(migrateCoverFromOwnerCalledWith.coverId).to.be.equal(444);
-      expect(migrateCoverFromOwnerCalledWith.fromOwner).to.be.equal(distributor.address);
-      expect(migrateCoverFromOwnerCalledWith.toNewOwner).to.be.equal(coverOwner.address);
-    }
-  });
-
   it('reverts if the submission deposit is not sent', async function () {
     const { individualClaims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
@@ -46,7 +25,7 @@ describe('submitClaim', function () {
     );
     const coverId = 0;
     await expect(
-      individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', {
+      individualClaims.connect(coverOwner).submitClaim(coverId, 0, coverAmount, '', {
         value: ethers.constants.Zero,
       }),
     ).to.be.revertedWith('Assessment deposit is insufficient');
@@ -169,7 +148,7 @@ describe('submitClaim', function () {
 
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
     await expect(
-      individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', {
+      individualClaims.connect(coverOwner).submitClaim(coverId, 0, coverAmount, '', {
         value: deposit.div('2'),
       }),
     ).to.be.revertedWith('Assessment deposit is insufficient');
@@ -193,7 +172,7 @@ describe('submitClaim', function () {
         [[coverAmount, timestamp + 1, coverPeriod, 0]],
       );
       const balanceBefore = await ethers.provider.getBalance(coverOwner.address);
-      await individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](0, 0, coverAmount, '', {
+      await individualClaims.connect(coverOwner).submitClaim(0, 0, coverAmount, '', {
         value: deposit.mul('2'),
         gasPrice: 0,
       });
@@ -210,7 +189,7 @@ describe('submitClaim', function () {
         [[coverAmount, timestamp + 1, coverPeriod, 0]],
       );
       const balanceBefore = await ethers.provider.getBalance(coverOwner.address);
-      await individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](1, 0, coverAmount, '', {
+      await individualClaims.connect(coverOwner).submitClaim(1, 0, coverAmount, '', {
         value: deposit.mul('3'),
         gasPrice: 0,
       });
@@ -227,7 +206,7 @@ describe('submitClaim', function () {
         [[coverAmount, timestamp + 1, coverPeriod, 0]],
       );
       const balanceBefore = await ethers.provider.getBalance(coverOwner.address);
-      await individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](2, 0, coverAmount, '', {
+      await individualClaims.connect(coverOwner).submitClaim(2, 0, coverAmount, '', {
         value: deposit.mul('10'),
         gasPrice: 0,
       });
@@ -259,20 +238,16 @@ describe('submitClaim', function () {
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
 
     await expect(
-      individualClaims
-        .connect(coverOwner)
-        ['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount.add('1'), '', {
-          value: deposit,
-          gasPrice: 0,
-        }),
+      individualClaims.connect(coverOwner).submitClaim(coverId, 0, coverAmount.add('1'), '', {
+        value: deposit,
+        gasPrice: 0,
+      }),
     ).to.be.revertedWith('Covered amount exceeded');
     await expect(
-      individualClaims
-        .connect(coverOwner)
-        ['submitClaim(uint32,uint16,uint96,string)'](coverId, 1, coverAmount.add('1'), '', {
-          value: deposit,
-          gasPrice: 0,
-        }),
+      individualClaims.connect(coverOwner).submitClaim(coverId, 1, coverAmount.add('1'), '', {
+        value: deposit,
+        gasPrice: 0,
+      }),
     ).not.to.be.revertedWith('Covered amount exceeded');
   });
 
@@ -297,12 +272,12 @@ describe('submitClaim', function () {
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
 
     await expect(
-      individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 1, coverAmount, '', {
+      individualClaims.connect(coverOwner).submitClaim(coverId, 1, coverAmount, '', {
         value: deposit,
       }),
     ).to.be.revertedWith('Cover starts in the future');
     await expect(
-      individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', {
+      individualClaims.connect(coverOwner).submitClaim(coverId, 0, coverAmount, '', {
         value: deposit,
       }),
     ).not.to.be.revertedWith('Cover starts in the future');
@@ -336,13 +311,13 @@ describe('submitClaim', function () {
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
 
     await expect(
-      individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', {
+      individualClaims.connect(coverOwner).submitClaim(coverId, 0, coverAmount, '', {
         value: deposit,
       }),
     ).to.be.revertedWith('Cover is outside the grace period');
 
     await expect(
-      individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](coverId, 1, coverAmount, '', {
+      individualClaims.connect(coverOwner).submitClaim(coverId, 1, coverAmount, '', {
         value: deposit,
       }),
     ).not.to.be.revertedWith('Cover is outside the grace period');
@@ -372,9 +347,7 @@ describe('submitClaim', function () {
       payoutAsset,
     );
 
-    await individualClaims
-      .connect(coverOwner)
-      ['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', { value: expectedDeposit });
+    await individualClaims.connect(coverOwner).submitClaim(coverId, 0, coverAmount, '', { value: expectedDeposit });
 
     const expectedAssessmentId = 0;
     const { assessmentDeposit, totalReward } = await assessment.assessments(expectedAssessmentId);

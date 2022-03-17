@@ -70,7 +70,7 @@ const submitGovernanceProposal = async (categoryId, actionData, signers, gv) => 
     const { timestamp } = await ethers.provider.getBlock('latest');
     await setTime(timestamp + daysToSeconds(7));
   }
-  const tx = await gv.closeProposal(id, { gasLimit: 15e6 });
+  const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
   const receipt = await tx.wait();
   assert.equal(
     receipt.events.some(x => x.event === 'ActionSuccess' && x.address === gv.address),
@@ -163,7 +163,8 @@ describe('v2 migration', function () {
 
     const tx = await this.tokenController.initialize();
     await tx.wait();
-    this.tokenController = tokenController;
+    const tokenControllerAddress = await this.master.contractAddresses(toUtf8Bytes('TC'));
+    this.tokenController = await ethers.getContractAt('TokenController', tokenControllerAddress);
   });
 
   it('transfer v1 assessment rewrds to assessors', async function () {
@@ -326,8 +327,6 @@ describe('v2 migration', function () {
     );
 
     this.cover = await ethers.getContractAt('Cover', coverProxyAddress);
-    console.log('cover');
-    console.log(this.cover);
   });
 
   it('remove CR, CD, IC, QD, QT, TF', async function () {
@@ -380,7 +379,7 @@ describe('v2 migration', function () {
     this.pool = pool;
   });
 
-  it('deploy PooledStaking', async function () {
+  it.skip('deploy PooledStaking', async function () {
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const PooledStaking = await ethers.getContractFactory('PooledStaking');
     const pooledStaking = await PooledStaking.deploy(coverProxyAddress, this.productsV1.address);
@@ -397,7 +396,7 @@ describe('v2 migration', function () {
     this.pooledStaking = await ethers.getContractAt('PooledStaking', pooledStakingAddress);
   });
 
-  it('process all PooledStaking pending actions', async function () {
+  it.skip('process all PooledStaking pending actions', async function () {
     let hasPendingActions = await this.pooledStaking.hasPendingActions();
     while (hasPendingActions) {
       const tx = await this.pooledStaking.processPendingActions(100);
@@ -406,7 +405,7 @@ describe('v2 migration', function () {
     }
   });
 
-  it('migrate top stakers to new v2 staking pools', async function () {
+  it.skip('migrate top stakers to new v2 staking pools', async function () {
     const topStakers = [
       '0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4',
       '0x87B2a7559d85f4653f13E6546A14189cd5455d45',
@@ -421,5 +420,135 @@ describe('v2 migration', function () {
     ];
     const txs = await Promise.all(topStakers.map(x => this.pooledStaking.migrateToNewV2Pool(x)));
     await Promise.all(txs.map(x => x.wait()));
+  });
+
+  it('deploy Assessment contracts', async function () {
+    // [todo] remove me
+    // await submitGovernanceProposal(
+    // 43, // removeContracts(bytes2[])
+    // defaultAbiCoder.encode(['bytes2[]'], [['IC'].map(x => toUtf8Bytes(x))]),
+    // this.abMembers,
+    // this.governance,
+    // );
+
+    const IndividualClaims = await ethers.getContractFactory('IndividualClaims');
+    const individualClaims = await IndividualClaims.deploy(this.nxm.address, this.coverNFT.address);
+    await individualClaims.deployed();
+
+    const YieldTokenIncidents = await ethers.getContractFactory('YieldTokenIncidents');
+    const yieldTokenIncidents = await YieldTokenIncidents.deploy(this.nxm.address, this.coverNFT.address);
+    await yieldTokenIncidents.deployed();
+
+    const Assessment = await ethers.getContractFactory('Assessment');
+    const assessment = await Assessment.deploy(this.nxm.address);
+    await assessment.deployed();
+
+    await submitGovernanceProposal(
+      42, // addNewInternalContracts(bytes2[],address[],uint256[])
+      defaultAbiCoder.encode(
+        ['bytes2[]', 'address[]', 'uint256[]'],
+        [
+          [hexlify(toUtf8Bytes('IC')), hexlify(toUtf8Bytes('YT')), hexlify(toUtf8Bytes('AS'))],
+          [individualClaims.address, yieldTokenIncidents.address, assessment.address],
+          [2, 2, 2],
+        ],
+      ),
+      this.abMembers,
+      this.governance,
+    );
+  });
+
+  it.skip('deploy CoverMigrator and Gateway contracts', async function () {
+    const CoverMigrator = await ethers.getContractFactory('CoverMigrator');
+    const coverMigrator = await CoverMigrator.deploy();
+    await coverMigrator.deployed();
+
+    const Gateway = await ethers.getContractFactory('Gateway');
+    const gateway = await Gateway.deploy();
+    await gateway.deployed();
+
+    await submitGovernanceProposal(
+      29, // upgradeMultipleContracts(bytes2[],address[])
+      defaultAbiCoder.encode(
+        ['bytes2[]', 'address[]'],
+        [
+          [hexlify(toUtf8Bytes('CL')), hexlify(toUtf8Bytes('GW'))],
+          [coverMigrator.address, gateway.address],
+        ],
+      ),
+      this.abMembers,
+      this.governance,
+    );
+
+    this.coverMigrator = await ethers.getContractAt('CoverMigrator', coverMigrator.address);
+    this.gateway = await ethers.getContractAt('Gateway', gateway.address);
+  });
+
+  // [todo] remove me, used just for console logs
+  // it('deploy Quotation', async function () {
+  // const Quotation = await ethers.getContractFactory('Quotation');
+  // const quotation = await Quotation.deploy();
+  // await quotation.deployed();
+
+  // await submitGovernanceProposal(
+  // 29, // upgradeMultipleContracts(bytes2[],address[])
+  // defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[hexlify(toUtf8Bytes('QT'))], [quotation.address]]),
+  // this.abMembers,
+  // this.governance,
+  // );
+
+  // this.quotation = await ethers.getContractAt('Quotation', quotation.address);
+  // });
+
+  it("TokenController doesn't allow to withdrawCoverNote more than once", async function () {
+    for (const member of this.abMembers) {
+      console.log(member.address);
+      const {
+        coverIds: unsortedCoverIds,
+        lockReasons,
+        withdrawableAmount,
+      } = await this.tokenController.getWithdrawableCoverNotes(member.address);
+      const nxmBalanceBefore = await this.nxm.balanceOf(member.address);
+      const reasons = await this.tokenController.getLockReasons(member.address);
+      console.log({ unsortedCoverIds, lockReasons, withdrawableAmount });
+      console.log({ reasons });
+      if (!reasons.length) {
+        continue;
+      }
+      const unsortedCoverReasons = lockReasons
+        .map((x, i) => ({
+          coverId: unsortedCoverIds[i],
+          index: reasons.indexOf(x),
+        }))
+        .filter(x => x.index > -1);
+      const sortedCoverReasons = unsortedCoverReasons.sort((a, b) => a.index - b.index);
+      const indexes = sortedCoverReasons.map(x => x.index);
+      const coverIds = sortedCoverReasons.map(x => x.coverId);
+      console.log({ indexes, coverIds });
+      const tx = await this.tokenController.withdrawCoverNote(member.address, coverIds, indexes);
+      await tx.wait();
+      const nxmBalanceAfter = await this.nxm.balanceOf(member.address);
+      console.log({ withdrawableAmount, nxmBalanceBefore, nxmBalanceAfter });
+      expect(nxmBalanceAfter).to.be.equal(nxmBalanceBefore.add(withdrawableAmount));
+      await expect(this.tokenController.withdrawCoverNote(member.address, coverIds, indexes)).to.be.revertedWith(
+        'reverted with panic code 0x32',
+      );
+    }
+  });
+
+  it.skip('does not allow to withdrawCoverNote after two rejected claims', async function () {
+    // [todo]
+  });
+
+  it.skip('does not allow to withdrawCoverNote after an accepted claim', async function () {
+    // [todo]
+  });
+
+  it.skip('does not allow to withdrawCoverNote after one rejected and one an accepted claim', async function () {
+    // [todo]
+  });
+
+  it.skip('correctly removes the reasons when withdrawing multiple CNs', async function () {
+    // [todo]
   });
 });

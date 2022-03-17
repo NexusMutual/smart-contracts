@@ -80,6 +80,15 @@ const CHAINLINK_DAI_ETH_AGGREGATORS = {
   localhost: '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541',
 };
 
+const CHAINLINK_STETH_ETH_AGGREGATORS = {
+  hardhat: '0x0000000000000000000000000000000000000000',
+  mainnet: '0x716BB759A5f6faCdfF91F0AfB613133d510e1573',
+  rinkeby: '0x525cD3ca0601Ab455af06A4c179C26Ad7da34bA9', // mock, returns price = 1 eth
+  kovan: '0x302257dB355951Ee3caa42E9355Ae27C02Ae9422', // mock, returns price = 1 eth
+  tenderly: '0x302257dB355951Ee3caa42E9355Ae27C02Ae9422',
+  localhost: '0x302257dB355951Ee3caa42E9355Ae27C02Ae9422',
+};
+
 async function main () {
   // make sure the contracts are compiled and we're not deploying an outdated artifact
   await run('compile');
@@ -269,11 +278,10 @@ async function main () {
       [18, 18],
     );
   } else {
-    // TODO: Add more mainnet assets to oracle
     priceFeedOracle = await PriceFeedOracle.new(
-      [dai.address],
-      [CHAINLINK_DAI_ETH_AGGREGATORS[network.name]],
-      [18],
+      [dai.address, stETH.address],
+      [CHAINLINK_DAI_ETH_AGGREGATORS[network.name], CHAINLINK_STETH_ETH_AGGREGATORS[network.name]],
+      [18, 18],
     );
   }
 

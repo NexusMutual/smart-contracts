@@ -155,9 +155,14 @@ contract CowSwapOperator {
     emit OrderPlaced(order);
   }
 
-  function closeOrder(GPv2Order.Data calldata order) external onlyController {
+  function closeOrder(GPv2Order.Data calldata order) external {
     // Validate there is an order in place
     require(currentOrderUID.length > 0, "SwapOp: No order in place");
+
+    // Before validTo, only controller can call this. After it, everyone can call
+    if (block.timestamp <= order.validTo) {
+      require(msg.sender == swapController, "SwapOp: only controller can execute");
+    }
 
     validateUID(order, currentOrderUID);
 
@@ -217,6 +222,7 @@ contract CowSwapOperator {
     require(order.kind == GPv2Order.KIND_SELL, "SwapOp: Only sell operations are supported");
     require(order.receiver == address(this), "SwapOp: Receiver must be this contract");
     require(order.validTo >= block.timestamp + 600, "SwapOp: validTo must be at least 10 minutes in the future");
+    require(order.validTo <= block.timestamp + 3600, "SwapOp: validTo must be at most 60 minutes in the future");
   }
 
   function approveVaultRelayer(IERC20 token, uint256 amount) internal {

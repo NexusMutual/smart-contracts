@@ -80,6 +80,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   // Global active cover amount per asset.
   mapping(uint24 => uint96) public totalActiveCoverAmountForAsset;
 
+  bool coverAmountTrackingEnabled;
+
 
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
   event CoverBought(uint coverId, uint productId, uint segmentId, address buyer);
@@ -255,6 +257,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint coverId = _coverData.length - 1;
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
 
+    // Enable this when cover amount tracking is necessary
     totalActiveCoverAmountForAsset[params.payoutAsset] += uint96(params.amount);
 
     emit CoverBought(coverId, params.productId, 0, msg.sender);
@@ -380,8 +383,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset);
 
     // update total cover amount for asset by decreasing the previous amount and adding the new amount
-    totalActiveCoverAmountForAsset[cover.payoutAsset] +=
-      totalActiveCoverAmountForAsset[cover.payoutAsset] - uint96(lastCoverSegment.amount) + uint96(buyCoverParams.amount);
+    if (coverAmountTrackingEnabled) {
+       totalActiveCoverAmountForAsset[cover.payoutAsset] +=
+        totalActiveCoverAmountForAsset[cover.payoutAsset] - uint96(lastCoverSegment.amount) + uint96(buyCoverParams.amount);
+    }
 
     emit CoverEdited(coverId, cover.productId, lastCoverSegmentIndex + 1, msg.sender);
   }
@@ -584,6 +589,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   }
 
   function expireCover(uint coverId) public {
+
+    require(coverAmountTrackingEnabled, "Cover expiring not enabled");
+
     CoverData memory cover = _coverData[coverId];
     require(!cover.expired, "Cover: Cover is already expired.");
 
@@ -591,7 +599,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     CoverSegment memory lastCoverSegment = _coverSegments[coverId][lastCoverSegmentIndex];
     if (lastCoverSegment.period + lastCoverSegment.start > block.timestamp) {
       cover.expired = true;
-      totalActiveCoverAmountForAsset[cover.payoutAsset] -= SafeUintCast.toUint96(lastCoverSegment.amount);
+
+
+      if (coverAmountTrackingEnabled) {
+        totalActiveCoverAmountForAsset[cover.payoutAsset] -= SafeUintCast.toUint96(lastCoverSegment.amount);
+      }
+
       emit CoverExpired(coverId, lastCoverSegmentIndex);
     }
   }

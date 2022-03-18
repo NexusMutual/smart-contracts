@@ -14,10 +14,13 @@ describe('placeOrder', function () {
 
   let order, contractOrder, domain, orderUID;
 
-  let dai, weth, pool, swapOperator, cowSettlement, cowVaultRelayer;
+  let dai, stEth, weth, pool, swapOperator, cowSettlement, cowVaultRelayer;
 
   const daiMinAmount = parseEther('10000');
-  const daiMaxAmount = parseEther('20000');
+  const daiMaxAmount = parseEther('30000');
+
+  const stethMinAmount = parseEther('10');
+  const stethMaxAmount = parseEther('20');
 
   const hashUtf = str => keccak256(toUtf8Bytes(str));
 
@@ -32,14 +35,14 @@ describe('placeOrder', function () {
 
   const setupSellDaiForEth = async (overrides = {}) => {
     // Set DAI balance above asset max, so we can sell it
-    await dai.setBalance(pool.address, parseEther('25000'));
+    await dai.setBalance(pool.address, parseEther('35000'));
 
     // Set reasonable amounts for DAI so selling doesnt bring balance below min
     const newOrder = {
       ...order,
       sellToken: dai.address,
       buyToken: weth.address,
-      sellAmount: parseEther('9999'),
+      sellAmount: parseEther('10000'),
       feeAmount: parseEther('1'),
       buyAmount: parseEther('2'),
       ...overrides,
@@ -54,6 +57,7 @@ describe('placeOrder', function () {
 
     // Assign contracts (destructuring isn't working)
     dai = contracts.dai;
+    stEth = contracts.stEth;
     weth = contracts.weth;
     pool = contracts.pool;
     swapOperator = contracts.swapOperator;
@@ -66,7 +70,7 @@ describe('placeOrder', function () {
       sellToken: weth.address,
       buyToken: dai.address,
       sellAmount: parseEther('0.999'),
-      buyAmount: parseEther('3000'),
+      buyAmount: parseEther('4995'),
       validTo: lastBlockTimestamp + 650,
       appData: hexZeroPad(0, 32),
       feeAmount: parseEther('0.001'),
@@ -86,8 +90,9 @@ describe('placeOrder', function () {
     // Fund the pool contract
     await setEtherBalance(pool.address, parseEther('100'));
 
-    // Set asset details for DAI
-    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
+    // Set asset details for DAI and stEth. 0% slippage
+    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 0);
+    await pool.connect(governance).setSwapDetails(stEth.address, stethMinAmount, stethMaxAmount, 0);
   });
 
   it('is callable only by swap controller', async function () {
@@ -130,6 +135,24 @@ describe('placeOrder', function () {
     await expect(
       swapOperator.placeOrder(contractOrder, orderUID),
     ).to.be.revertedWith('SwapOp: an order is already in place');
+  });
+
+  it('fails if neither buyToken or sellToken are WETH', async function () {
+    const newOrder = {
+      ...order,
+      sellToken: dai.address,
+      sellAmount: parseEther('5000'),
+      buyToken: stEth.address,
+      buyAmount: parseEther('15'),
+    };
+    const newContractOrder = makeContractOrder(newOrder);
+    const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
+
+    await dai.setBalance(pool.address, daiMaxAmount.add(1));
+
+    await expect(
+      swapOperator.placeOrder(newContractOrder, newOrderUID),
+    ).to.be.revertedWith('SwapOp: Must either sell or buy eth');
   });
 
   describe('validating basic CoW protocol parameters', function () {
@@ -251,9 +274,10 @@ describe('placeOrder', function () {
     });
 
     it('selling cannot bring balance below minAmount', async function () {
-      const sellAmount = parseEther('14999');
+      const sellAmount = parseEther('24999');
       const feeAmount = parseEther('1');
-      const { newContractOrder, newOrderUID } = await setupSellDaiForEth({ sellAmount, feeAmount });
+      const buyAmount = parseEther('4.9998');
+      const { newContractOrder, newOrderUID } = await setupSellDaiForEth({ sellAmount, feeAmount, buyAmount });
 
       // Set balance so that balance - totalAmountOut is 1 wei below asset minAmount
       await dai.setBalance(pool.address, daiMinAmount.add(sellAmount).add(feeAmount).sub(1));
@@ -315,7 +339,8 @@ describe('placeOrder', function () {
     it('only allows to buy when balance is below minAmount', async function () {
       // set buyToken balance to be minAmount, txn should fail
       await dai.setBalance(pool.address, daiMinAmount);
-      await expect(swapOperator.placeOrder(contractOrder, orderUID)).to.be.revertedWith('SwapOp: can only buy asset when < minAmount');
+      await expect(swapOperator.placeOrder(contractOrder, orderUID))
+        .to.be.revertedWith('SwapOp: can only buy asset when < minAmount');
 
       // set buyToken balance to be < minAmount, txn should succeed
       await dai.setBalance(pool.address, daiMinAmount.sub(1));
@@ -329,13 +354,108 @@ describe('placeOrder', function () {
       const bigOrder = { ...order, buyAmount: daiMaxAmount.add(1) };
       const bigContractOrder = makeContractOrder(bigOrder);
       const bigOrderUID = computeOrderUid(domain, bigOrder, bigOrder.receiver);
-      await expect(swapOperator.placeOrder(bigContractOrder, bigOrderUID)).to.be.revertedWith('SwapOp: swap brings buyToken above max');
+      await expect(swapOperator.placeOrder(bigContractOrder, bigOrderUID))
+        .to.be.revertedWith('SwapOp: swap brings buyToken above max');
 
       // place an order that will bring balance exactly to maxAmount, should succeed
       const okOrder = { ...order, buyAmount: daiMaxAmount };
       const okContractOrder = makeContractOrder(okOrder);
       const okOrderUID = computeOrderUid(domain, okOrder, okOrder.receiver);
       await swapOperator.placeOrder(okContractOrder, okOrderUID);
+    });
+  });
+
+  describe('validating prices against oracle', function () {
+    describe('when selling eth', function () {
+      it('takes oracle price into account', async function () {
+        const newOrder = {
+          ...order,
+          sellAmount: parseEther('1'),
+          buyAmount: parseEther('5000').sub(1), // 5000e18 - 1 DAI wei
+        };
+        let newContractOrder = makeContractOrder(newOrder);
+        let newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
+
+        // Since buyAmount is short by 1 wei, txn should revert
+        await expect(swapOperator.placeOrder(newContractOrder, newOrderUID))
+          .to.be.revertedWith('SwapOp: order.buyAmount too low (oracle)');
+
+        // Add 1 wei to buyAmount
+        newOrder.buyAmount = newOrder.buyAmount.add(1);
+
+        newContractOrder = makeContractOrder(newOrder);
+        newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
+
+        // Now txn should not revert
+        await swapOperator.placeOrder(newContractOrder, newOrderUID);
+      });
+
+      it('takes slippage into account', async function () {
+        await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100); // 1% slippage
+
+        const newOrder = {
+          ...order,
+          sellAmount: parseEther('1'),
+          buyAmount: parseEther('4950').sub(1), // 4950e18 - 1 DAI wei
+        };
+        let newContractOrder = makeContractOrder(newOrder);
+        let newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
+
+        // Since buyAmount is short by 1 wei, txn should revert
+        await expect(swapOperator.placeOrder(newContractOrder, newOrderUID))
+          .to.be.revertedWith('SwapOp: order.buyAmount too low (oracle)');
+
+        // Add 1 wei to buyAmount
+        newOrder.buyAmount = newOrder.buyAmount.add(1);
+
+        newContractOrder = makeContractOrder(newOrder);
+        newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
+
+        // Now txn should not revert
+        await swapOperator.placeOrder(newContractOrder, newOrderUID);
+      });
+    });
+
+    describe('when buying eth', function () {
+      it('takes oracle price into account', async function () {
+        let { newOrder, newContractOrder, newOrderUID } = await setupSellDaiForEth();
+
+        // Since buyAmount is short by 1 wei, txn should revert
+        newOrder.buyAmount = newOrder.buyAmount.sub(1);
+        newContractOrder = makeContractOrder(newOrder);
+        newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
+
+        await expect(swapOperator.placeOrder(newContractOrder, newOrderUID))
+          .to.be.revertedWith('SwapOp: order.buyAmount too low (oracle)');
+
+        // Add 1 wei to buyAmount
+        newOrder.buyAmount = newOrder.buyAmount.add(1);
+        newContractOrder = makeContractOrder(newOrder);
+        newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
+
+        await swapOperator.placeOrder(newContractOrder, newOrderUID);
+      });
+
+      it('takes slippage into account', async function () {
+        await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100); // 1% slippage
+
+        let { newOrder, newContractOrder, newOrderUID } = await setupSellDaiForEth();
+
+        // Set buyAmount to be (oracle amount * 0.99) - 1 wei
+        newOrder.buyAmount = newOrder.buyAmount.mul(99).div(100).sub(1);
+        newContractOrder = makeContractOrder(newOrder);
+        newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
+
+        await expect(swapOperator.placeOrder(newContractOrder, newOrderUID))
+          .to.be.revertedWith('SwapOp: order.buyAmount too low (oracle)');
+
+        // Set buyAmount to be (oracle amount * 0.99)
+        newOrder.buyAmount = newOrder.buyAmount.add(1);
+        newContractOrder = makeContractOrder(newOrder);
+        newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
+
+        await swapOperator.placeOrder(newContractOrder, newOrderUID);
+      });
     });
   });
 
@@ -385,8 +505,7 @@ describe('placeOrder', function () {
 
       await swapOperator.placeOrder(newContractOrder, newOrderUID);
 
-      // We are selling 10k dai at a price of 5k dai/eth
-      expect((await pool.swapValue()).toString()).to.eq(parseEther('2'));
+      expect((await pool.swapValue()).toString()).to.eq(parseEther('2.0002')); // (10000 + 1) / 5000
     });
   });
 

@@ -40,12 +40,18 @@ async function setup () {
   const quotationData = await CSMockQuotationData.deploy();
   const mcr = await MCR.deploy(master.address);
 
-  // Deploy DAI price aggregator
+  // Deploy price aggregators
   const daiAggregator = await ChainlinkAggregatorMock.deploy();
   await daiAggregator.setLatestAnswer(0.0002 * 1e18); // 1 dai = 0.0002 eth, 1 eth = 5000 dai
+  const stethAggregator = await ChainlinkAggregatorMock.deploy();
+  await stethAggregator.setLatestAnswer(parseEther('1')); // 1 steth = 1 eth
 
   // Deploy PriceFeedOracle
-  const priceFeedOracle = await PriceFeedOracle.deploy(daiAggregator.address, dai.address, stEth.address);
+  const priceFeedOracle = await PriceFeedOracle.deploy(
+    [dai.address, stEth.address],
+    [daiAggregator.address, stethAggregator.address],
+    [18, 18],
+  );
 
   // Deploy Pool
   const oneK = parseEther('1000');
@@ -54,7 +60,7 @@ async function setup () {
     [18, 18, 18], // decimals
     [0, 0, 0], // min
     [oneK, oneK, oneK], // max
-    [500, 500, 500], // max slippage ratio [5%, 5%, 5%]
+    [0, 0, 0], // max slippage ratio 0%
     master.address,
     priceFeedOracle.address, // price feed oracle, add to setup if needed
     AddressZero, // swap operator

@@ -11,4 +11,5 @@ describe('UNIT TESTS', function () {
   require('./Claims');
   require('./Incidents');
   require('./StakingPool');
+  require('./PriceFeedOracle');
 });

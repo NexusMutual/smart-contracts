@@ -6,25 +6,31 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 
 interface Aggregator {
-  function latestAnswer() external view returns (int);
+  function latestAnswer() external view returns (int256);
 }
 
 contract PriceFeedOracle is IPriceFeedOracle {
-  using SafeMath for uint;
+  using SafeMath for uint256;
 
-  mapping(address => address) public aggregators;
-  address public daiAddress;
-  address public stETH;
-  address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+  mapping(address => Aggregator) public assetAggregators;
+  mapping(address => uint256) public assetDecimals;
 
-  constructor (
-    address _daiAggregator,
-    address _daiAddress,
-    address _stEthAddress
+  address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+  constructor(
+    address[] memory _assetAddresses,
+    address[] memory _assetAggregators,
+    uint256[] memory _assetDecimals
   ) public {
-    aggregators[_daiAddress] = _daiAggregator;
-    daiAddress = _daiAddress;
-    stETH = _stEthAddress;
+    require(
+      _assetAddresses.length == _assetAggregators.length && _assetAggregators.length == _assetDecimals.length,
+      "PriceFeedOracle: different args length"
+    );
+
+    for (uint256 i = 0; i < _assetAddresses.length; i++) {
+      assetAggregators[_assetAddresses[i]] = Aggregator(_assetAggregators[i]);
+      assetDecimals[_assetAddresses[i]] = _assetDecimals[i];
+    }
   }
 
   /**
@@ -32,41 +38,51 @@ contract PriceFeedOracle is IPriceFeedOracle {
    * @param asset quoted currency
    * @return price in ether
    */
-  function getAssetToEthRate(address asset) public view returns (uint) {
-
-    if (asset == ETH || asset == stETH) {
+  function getAssetToEthRate(address asset) public view returns (uint256) {
+    if (asset == ETH) {
       return 1 ether;
     }
 
-    address aggregatorAddress = aggregators[asset];
+    Aggregator aggregator = assetAggregators[asset];
+    require(address(aggregator) != address(0), "PriceFeedOracle: Unknown asset");
 
-    if (aggregatorAddress == address(0)) {
-      revert("PriceFeedOracle: Oracle asset not found");
-    }
-
-    int rate = Aggregator(aggregatorAddress).latestAnswer();
+    int256 rate = aggregator.latestAnswer();
     require(rate > 0, "PriceFeedOracle: Rate must be > 0");
 
-    return uint(rate);
+    return uint256(rate);
   }
 
   /**
-  * @dev Returns the amount of currency that is equivalent to ethIn amount of ether.
-  * @param asset quoted  Supported values: ["DAI", "ETH"]
-  * @param ethIn amount of ether to be converted to the currency
-  * @return price in ether
-  */
-  function getAssetForEth(address asset, uint ethIn) external view returns (uint) {
-
-    if (asset == daiAddress) {
-      return ethIn.mul(1e18).div(getAssetToEthRate(daiAddress));
-    }
-
-    if (asset == ETH || asset == stETH) {
+   * @dev Returns the amount of currency that is equivalent to ethIn amount of ether.
+   * @param asset address of asset
+   * @param ethIn amount of ether to be converted to the asset
+   * @return asset amount
+   */
+  function getAssetForEth(address asset, uint256 ethIn) external view returns (uint256) {
+    if (asset == ETH) {
       return ethIn;
     }
 
-    revert("PriceFeedOracle: Unknown asset");
+    uint256 decimals = assetDecimals[asset];
+    uint256 price = getAssetToEthRate(asset);
+
+    return ethIn.mul(10**decimals).div(price);
   }
 
+  /**
+   * @dev Returns the amount of eth that is equivalent to a given asset and amount
+   * @param asset address of asset
+   * @param amount amount of asset
+   * @return amount of ether
+   */
+  function getEthForAsset(address asset, uint amount) external view returns (uint) {
+    if (asset == ETH) {
+      return amount;
+    }
+
+    uint256 decimals = assetDecimals[asset];
+    uint256 price = getAssetToEthRate(asset);
+
+    return amount.mul(price).div(10**decimals);
+  }
 }

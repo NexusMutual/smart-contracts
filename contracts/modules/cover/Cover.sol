@@ -33,6 +33,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint public constant PRICE_DENOMINATOR = 10000;
   uint public constant COMMISSION_DENOMINATOR = 10000;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
+  uint public constant INTERIM_PRICE_DENOMINATOR = 1e18;
 
   uint public constant MAX_COVER_PERIOD = 365 days;
   uint public constant MIN_COVER_PERIOD = 30 days;
@@ -276,7 +277,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint remainderAmountInNXM = 0;
     uint totalCoverAmountInNXM = 0;
 
-
     uint _coverSegmentsCount = _coverSegments[coverId].length;
 
     for (uint i = 0; i < allocationRequests.length; i++) {
@@ -300,7 +300,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     }
 
     // priceRatio is normalized on a per year basis (eg. 1.5% per year)
-    uint16 priceRatio = SafeUintCast.toUint16(totalPremiumInNXM * PRICE_DENOMINATOR * MAX_COVER_PERIOD / params.period / totalCoverAmountInNXM);
+    uint16 priceRatio = SafeUintCast.toUint16(
+          divRound(totalPremiumInNXM * PRICE_DENOMINATOR * MAX_COVER_PERIOD / params.period, totalCoverAmountInNXM)
+    );
 
     _coverSegments[coverId].push(CoverSegment(
         SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18), // amount
@@ -694,6 +696,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     for (uint i = 0; i < count; i++) {
       params[i] = getPoolAllocationPriceParametersForProduct(poolId, i);
     }
+  }
+
+  /* ========== UTILS ========== */
+
+  function divRound(uint a, uint b) private pure returns (uint) {
+    return (a + b - 1) / b;
   }
 
   /* ========== DEPENDENCIES ========== */

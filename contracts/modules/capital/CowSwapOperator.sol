@@ -24,6 +24,9 @@ contract CowSwapOperator {
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
+  uint256 constant MIN_VALID_TO_PERIOD = 600; // 10 minutes
+  uint256 constant MAX_VALID_TO_PERIOD = 3600; // 60 minutes
+  uint256 constant MIN_SELL_AMT_TO_FEE_RATIO = 100; // Sell amount at least 100x fee amount
 
   event OrderPlaced(GPv2Order.Data order);
   event OrderClosed(GPv2Order.Data order, uint256 filledAmount);
@@ -74,7 +77,7 @@ contract CowSwapOperator {
     validateBasicCowParams(order);
 
     // Validate feeAmount is not too high
-    require(order.sellAmount / order.feeAmount >= 100, "SwapOp: Fee is above 1% of sellAmount");
+    require(order.sellAmount / order.feeAmount >= MIN_SELL_AMT_TO_FEE_RATIO, "SwapOp: Fee is above 1% of sellAmount");
 
     // Validate swapping is enabled for sellToken (eth always enabled)
     IPool pool = _pool();
@@ -221,8 +224,14 @@ contract CowSwapOperator {
     require(order.buyTokenBalance == GPv2Order.BALANCE_ERC20, "SwapOp: Only erc20 supported for buyTokenBalance");
     require(order.kind == GPv2Order.KIND_SELL, "SwapOp: Only sell operations are supported");
     require(order.receiver == address(this), "SwapOp: Receiver must be this contract");
-    require(order.validTo >= block.timestamp + 600, "SwapOp: validTo must be at least 10 minutes in the future");
-    require(order.validTo <= block.timestamp + 3600, "SwapOp: validTo must be at most 60 minutes in the future");
+    require(
+      order.validTo >= block.timestamp + MIN_VALID_TO_PERIOD,
+      "SwapOp: validTo must be at least 10 minutes in the future"
+    );
+    require(
+      order.validTo <= block.timestamp + MAX_VALID_TO_PERIOD,
+      "SwapOp: validTo must be at most 60 minutes in the future"
+    );
   }
 
   function approveVaultRelayer(IERC20 token, uint256 amount) internal {

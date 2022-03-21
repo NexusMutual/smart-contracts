@@ -325,13 +325,6 @@ abstract contract StakingPool is IStakingPool, ERC721 {
     return 0;
   }
 
-  struct BurnParams {
-    uint productId;
-    uint amount;
-    uint start;
-    uint period;
-  }
-
   // O(1)
   function burn(BurnParams memory params) public onlyCoverContract {
 

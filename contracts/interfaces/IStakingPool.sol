@@ -4,6 +4,13 @@ pragma solidity >=0.5.0;
 
 import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 
+struct BurnParams {
+  uint productId;
+  uint amount;
+  uint start;
+  uint period;
+}
+
 interface IStakingPool is IERC721 {
 
   struct Weight {
@@ -30,7 +37,7 @@ interface IStakingPool is IERC721 {
 
   function deposit(uint amount, uint groupId, uint _positionId) external returns (uint positionId);
 
-  function burn(uint amount /* uint start?, uint period? */) external;
+  function burn(BurnParams memory params) external;
 
   function setWeights(Weight[] memory weights) external;
 

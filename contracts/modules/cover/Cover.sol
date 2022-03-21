@@ -437,7 +437,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   // TODO: implement properly. we need the staking interface for burning.
   function performPayoutBurn(
     uint coverId,
-    uint /*segmentId*/,
+    uint segmentId,
     uint amount
   ) external onlyInternal override returns (address /* owner */) {
 
@@ -446,6 +446,22 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     CoverData storage cover = _coverData[coverId];
     cover.amountPaidOut += SafeUintCast.toUint96(amount);
+
+    CoverSegment memory segment = _coverSegments[coverId][segmentId];
+    PoolAllocation[] memory allocations = coverSegmentAllocations[coverId][segmentId];
+
+    for (uint i = 0; i < allocations.length; i++) {
+
+      PoolAllocation memory allocation = allocations[i];
+      IStakingPool stakingPool = stakingPool(allocation.poolId);
+
+      stakingPool.burn(BurnParams(
+        cover.productId,
+        segment.start,
+        segment.period,
+        allocation.coverAmountInNXM
+      ));
+    }
 
     return owner;
   }

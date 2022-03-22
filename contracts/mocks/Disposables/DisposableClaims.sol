@@ -3,15 +3,15 @@
 pragma solidity ^0.8.9;
 
 import "../../abstract/MasterAwareV2.sol";
-import "../../interfaces/IClaims.sol";
+import "../../interfaces/IIndividualClaims.sol";
 
-contract DisposableClaims is MasterAwareV2 {
+contract DisposableIndividualClaims is MasterAwareV2 {
 
   /* ========== STATE VARIABLES ========== */
 
-  IClaims.Configuration public config;
+  Configuration public config;
 
-  IClaims.Claim[] public claims;
+  Claim[] public claims;
   address[] public claimants;
 
   /* ========== CONSTRUCTOR ========== */

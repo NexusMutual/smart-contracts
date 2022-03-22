@@ -120,6 +120,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
+
   /// @dev Migrates covers from V1. Meant to be used by Claims.sol and Gateway.sol to allow the
   /// users of distributor contracts to migrate their NFTs.
   ///
@@ -554,14 +555,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function createStakingPool(
     address manager,
     IStakingPool.ProductInitializationParams[] calldata params
-  ) external override {
+  ) external override returns (address stakingPoolAddress) {
 
-    address addr = address(new MinimalBeaconProxy{ salt: bytes32(uint(stakingPoolCounter)) }(address(this)));
-    IStakingPool(addr).initialize(manager, params);
+    stakingPoolAddress = address(
+      new MinimalBeaconProxy{ salt: bytes32(uint(stakingPoolCounter)) }(address(this))
+    );
+    IStakingPool(stakingPoolAddress).initialize(manager, params);
 
     stakingPoolCounter++;
 
-    emit StakingPoolCreated(addr, manager, stakingPoolImplementation);
+    emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
   }
 
   function stakingPool(uint index) public view returns (IStakingPool) {

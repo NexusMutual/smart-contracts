@@ -3,15 +3,15 @@
 pragma solidity ^0.8.9;
 
 import "../../abstract/MasterAwareV2.sol";
-import "../../interfaces/IIncidents.sol";
+import "../../interfaces/IYieldTokenIncidents.sol";
 
-contract DisposableIncidents is MasterAwareV2 {
+contract DisposableYieldTokenIncidents is MasterAwareV2 {
 
   /* ========== STATE VARIABLES ========== */
 
-  IIncidents.Configuration public config;
+  Configuration public config;
 
-  IIncidents.Incident[] public incidents;
+  Incident[] public incidents;
 
   /* ========== CONSTRUCTOR ========== */
 

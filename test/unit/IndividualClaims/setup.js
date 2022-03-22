@@ -41,16 +41,16 @@ async function setup () {
   const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NXC');
   await coverNFT.deployed();
 
-  const Claims = await ethers.getContractFactory('Claims');
-  const claims = await Claims.deploy(nxm.address, coverNFT.address);
-  await claims.deployed();
+  const IndividualClaims = await ethers.getContractFactory('IndividualClaims');
+  const individualClaims = await IndividualClaims.deploy(nxm.address, coverNFT.address);
+  await individualClaims.deployed();
 
   const Cover = await ethers.getContractFactory('CLMockCover');
   const cover = await Cover.deploy(coverNFT.address);
   await cover.deployed();
 
   const Distributor = await ethers.getContractFactory('CLMockDistributor');
-  const distributor = await Distributor.deploy(claims.address);
+  const distributor = await Distributor.deploy(individualClaims.address);
   await distributor.deployed();
 
   const CLMockUnknownNFT = await ethers.getContractFactory('CLMockUnknownNFT');
@@ -75,11 +75,11 @@ async function setup () {
   await cover.addProduct(['2', '0x3333333333333333333333333333333333333333', '1', '0', '0']);
 
   {
-    const tx = await claims.initialize(master.address);
+    const tx = await individualClaims.initialize(master.address);
     await tx.wait();
   }
   {
-    const tx = await claims.changeDependentContractAddress();
+    const tx = await individualClaims.changeDependentContractAddress();
     await tx.wait();
   }
 
@@ -95,7 +95,7 @@ async function setup () {
   accounts.defaultSender.sendTransaction({ to: pool.address, value: parseEther('200') });
   dai.mint(pool.address, parseEther('200'));
 
-  const config = await claims.config();
+  const config = await individualClaims.config();
 
   this.config = config;
   this.accounts = accounts;
@@ -103,7 +103,7 @@ async function setup () {
     pool,
     nxm,
     dai,
-    claims,
+    individualClaims,
     assessment,
     cover,
     distributor,

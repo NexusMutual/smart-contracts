@@ -6,7 +6,7 @@ const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
 
 describe('redeemPayout', function () {
   it("reverts if the address is not the cover owner's or approved", async function () {
-    const { incidents, assessment, cover, coverNFT } = this.contracts;
+    const { yieldTokenIncidents, assessment, cover, coverNFT } = this.contracts;
     const [coverOwner, nonCoverOwner] = this.accounts.members;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
     const segmentPeriod = daysToSeconds(30);
@@ -41,7 +41,7 @@ describe('redeemPayout', function () {
 
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-      await incidents
+      await yieldTokenIncidents
         .connect(advisoryBoard)
         .submitIncident(2, parseEther('1.1'), currentTime + segmentPeriod / 2, parseEther('100'), '');
     }
@@ -55,32 +55,32 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(coverOwner).redeemPayout(0, 0, 0, parseEther('100'), coverOwner.address, []),
+      yieldTokenIncidents.connect(coverOwner).redeemPayout(0, 0, 0, parseEther('100'), coverOwner.address, []),
     ).not.to.be.revertedWith('Only the cover owner or approved addresses can redeem');
 
     await expect(
-      incidents.connect(nonCoverOwner).redeemPayout(0, 1, 0, parseEther('100'), coverOwner.address, []),
+      yieldTokenIncidents.connect(nonCoverOwner).redeemPayout(0, 1, 0, parseEther('100'), coverOwner.address, []),
     ).to.be.revertedWith('Only the cover owner or approved addresses can redeem');
 
     await coverNFT.connect(coverOwner).approve(nonCoverOwner.address, 1);
 
     await expect(
-      incidents.connect(nonCoverOwner).redeemPayout(0, 1, 0, parseEther('100'), coverOwner.address, []),
+      yieldTokenIncidents.connect(nonCoverOwner).redeemPayout(0, 1, 0, parseEther('100'), coverOwner.address, []),
     ).not.to.be.revertedWith('Only the cover owner or approved addresses can redeem');
 
     await expect(
-      incidents.connect(nonCoverOwner).redeemPayout(0, 2, 0, parseEther('100'), coverOwner.address, []),
+      yieldTokenIncidents.connect(nonCoverOwner).redeemPayout(0, 2, 0, parseEther('100'), coverOwner.address, []),
     ).to.be.revertedWith('Only the cover owner or approved addresses can redeem');
 
     await coverNFT.connect(coverOwner).setApprovalForAll(nonCoverOwner.address, true);
 
     await expect(
-      incidents.connect(nonCoverOwner).redeemPayout(0, 2, 0, parseEther('100'), coverOwner.address, []),
+      yieldTokenIncidents.connect(nonCoverOwner).redeemPayout(0, 2, 0, parseEther('100'), coverOwner.address, []),
     ).not.to.be.revertedWith('Only the cover owner or approved addresses can redeem');
   });
 
   it('reverts if the incident is not accepted', async function () {
-    const { incidents, assessment, cover } = this.contracts;
+    const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1, member2] = this.accounts.members;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
 
@@ -97,13 +97,13 @@ describe('redeemPayout', function () {
     {
       const productId = 2;
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-      await incidents
+      await yieldTokenIncidents
         .connect(advisoryBoard)
         .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100'), '');
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The incident needs to be accepted');
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
@@ -115,7 +115,7 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The incident needs to be accepted');
 
     {
@@ -124,12 +124,12 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The incident needs to be accepted');
   });
 
   it("reverts if the voting and cooldown period haven't ended", async function () {
-    const { incidents, assessment, cover } = this.contracts;
+    const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
 
@@ -146,7 +146,7 @@ describe('redeemPayout', function () {
     {
       const productId = 2;
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-      await incidents
+      await yieldTokenIncidents
         .connect(advisoryBoard)
         .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100'), '');
     }
@@ -159,14 +159,14 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The voting and cooldown periods must end');
 
     const { end } = await assessment.getPoll(0);
     await setTime(end);
 
     await expect(
-      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The voting and cooldown periods must end');
 
     {
@@ -177,10 +177,10 @@ describe('redeemPayout', function () {
   });
 
   it('reverts if the redemption period expired', async function () {
-    const { incidents, assessment, cover } = this.contracts;
+    const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
-    const { payoutRedemptionPeriodInDays } = await incidents.config();
+    const { payoutRedemptionPeriodInDays } = await yieldTokenIncidents.config();
     const { payoutCooldownInDays } = await assessment.config();
 
     {
@@ -196,7 +196,7 @@ describe('redeemPayout', function () {
     {
       const productId = 2;
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-      await incidents
+      await yieldTokenIncidents
         .connect(advisoryBoard)
         .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100'), '');
     }
@@ -209,12 +209,12 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('1'), member1.address, []),
     ).to.be.revertedWith('The redemption period has expired');
   });
 
   it('reverts if the payout exceeds the covered amount', async function () {
-    const { incidents, assessment, cover } = this.contracts;
+    const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
     const { payoutCooldownInDays } = await assessment.config();
@@ -237,7 +237,7 @@ describe('redeemPayout', function () {
 
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-      await incidents
+      await yieldTokenIncidents
         .connect(advisoryBoard)
         .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100'), '');
     }
@@ -250,16 +250,16 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('101.011'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('101.011'), member1.address, []),
     ).to.be.revertedWith('Payout exceeds covered amount');
 
     await expect(
-      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('101.01'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('101.01'), member1.address, []),
     ).not.to.be.revertedWith('Payout exceeds covered amount');
   });
 
   it('reverts if the cover segment ends before the incident occured', async function () {
-    const { incidents, assessment, cover } = this.contracts;
+    const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
     const { payoutCooldownInDays } = await assessment.config();
@@ -285,7 +285,7 @@ describe('redeemPayout', function () {
 
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-      await incidents
+      await yieldTokenIncidents
         .connect(advisoryBoard)
         .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100'), '');
     }
@@ -298,15 +298,15 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Cover ended before the incident');
     await expect(
-      incidents.connect(member1).redeemPayout(0, 0, 1, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 1, parseEther('100'), member1.address, []),
     ).not.to.be.revertedWith('Cover ended before the incident');
   });
 
   it('reverts if the cover segment starts after or when the incident occured', async function () {
-    const { incidents, assessment, cover } = this.contracts;
+    const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
     const { payoutCooldownInDays } = await assessment.config();
@@ -327,7 +327,7 @@ describe('redeemPayout', function () {
 
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-      await incidents
+      await yieldTokenIncidents
         .connect(advisoryBoard)
         .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100'), '');
     }
@@ -350,18 +350,18 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout(0, 0, 1, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 1, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Cover started after the incident');
     await expect(
-      incidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Cover started after the incident');
     await expect(
-      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
     ).not.to.be.revertedWith('Cover started after the incident');
   });
 
   it('reverts if the cover segment is outside the grace period', async function () {
-    const { incidents, assessment, cover } = this.contracts;
+    const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
     const { gracePeriodInDays } = await cover.productTypes(2);
@@ -383,7 +383,7 @@ describe('redeemPayout', function () {
 
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     await setTime(currentTime + segmentPeriod + daysToSeconds(gracePeriodInDays));
-    await incidents
+    await yieldTokenIncidents
       .connect(advisoryBoard)
       .submitIncident(productId, parseEther('1.1'), currentTime + segmentPeriod - 1, parseEther('100'), '');
 
@@ -396,15 +396,15 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Grace period has expired');
     await expect(
-      incidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
     ).not.to.be.revertedWith('Grace period has expired');
   });
 
   it("reverts if the cover's productId mismatches the incident's productId", async function () {
-    const { incidents, assessment, cover } = this.contracts;
+    const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
     const segmentPeriod = daysToSeconds(30);
@@ -452,7 +452,7 @@ describe('redeemPayout', function () {
 
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-      await incidents
+      await yieldTokenIncidents
         .connect(advisoryBoard)
         .submitIncident(validProductId, parseEther('1.1'), currentTime + segmentPeriod / 2, parseEther('100'), '');
     }
@@ -466,24 +466,24 @@ describe('redeemPayout', function () {
     }
 
     await expect(
-      incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Product id mismatch');
 
     await expect(
-      incidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 1, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Product id mismatch');
 
     await expect(
-      incidents.connect(member1).redeemPayout(0, 2, 0, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 2, 0, parseEther('100'), member1.address, []),
     ).not.to.be.revertedWith('Product id mismatch');
 
     await expect(
-      incidents.connect(member1).redeemPayout(0, 3, 0, parseEther('100'), member1.address, []),
+      yieldTokenIncidents.connect(member1).redeemPayout(0, 3, 0, parseEther('100'), member1.address, []),
     ).to.be.revertedWith('Product id mismatch');
   });
 
   it('transfers the deductible amount of the payout asset to the payoutAddress, according to the requested amount and priceBefore', async function () {
-    const { incidents, assessment, cover, ybEth } = this.contracts;
+    const { yieldTokenIncidents, assessment, cover, ybEth } = this.contracts;
     const [member1] = this.accounts.members;
     const [nonMember1, nonMember2] = this.accounts.nonMembers;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
@@ -501,7 +501,7 @@ describe('redeemPayout', function () {
 
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-      await incidents
+      await yieldTokenIncidents
         .connect(advisoryBoard)
         .submitIncident(2, parseEther('1.1'), currentTime + segmentPeriod / 2, parseEther('100'), '');
     }
@@ -514,19 +514,21 @@ describe('redeemPayout', function () {
       await setTime(end + daysToSeconds(payoutCooldownInDays));
     }
 
-    await ybEth.connect(member1).approve(incidents.address, parseEther('10000'));
+    await ybEth.connect(member1).approve(yieldTokenIncidents.address, parseEther('10000'));
 
     // [warning] Cover mock does not subtract the covered amount
     {
       const ethBalanceBefore = await ethers.provider.getBalance(member1.address);
-      await incidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, [], { gasPrice: 0 });
+      await yieldTokenIncidents
+        .connect(member1)
+        .redeemPayout(0, 0, 0, parseEther('100'), member1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(member1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('99')));
     }
 
     {
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
-      await incidents
+      await yieldTokenIncidents
         .connect(member1)
         .redeemPayout(0, 0, 0, parseEther('111'), nonMember1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
@@ -535,7 +537,7 @@ describe('redeemPayout', function () {
 
     {
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember2.address);
-      await incidents
+      await yieldTokenIncidents
         .connect(member1)
         .redeemPayout(0, 0, 0, parseEther('3000'), nonMember2.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember2.address);
@@ -544,7 +546,7 @@ describe('redeemPayout', function () {
   });
 
   it("uses permit when it's provided in optionalParams", async function () {
-    const { incidents, assessment, cover, ybPermitDai, dai } = this.contracts;
+    const { yieldTokenIncidents, assessment, cover, ybPermitDai, dai } = this.contracts;
     const [member1] = this.accounts.members;
     const [nonMember] = this.accounts.nonMembers;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
@@ -562,7 +564,7 @@ describe('redeemPayout', function () {
 
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-      await incidents
+      await yieldTokenIncidents
         .connect(advisoryBoard)
         .submitIncident(4, parseEther('1.1'), currentTime + segmentPeriod / 2, parseEther('100'), '');
     }
@@ -583,7 +585,7 @@ describe('redeemPayout', function () {
         member1,
         ybPermitDai,
         network.config.chainId,
-        incidents.address,
+        yieldTokenIncidents.address,
         parseEther('3000'),
         permitDeadline,
         '1',
@@ -602,7 +604,7 @@ describe('redeemPayout', function () {
       ...arrayify(hexZeroPad(s, 32)),
     ];
 
-    await incidents.connect(member1).redeemPayout(
+    await yieldTokenIncidents.connect(member1).redeemPayout(
       0,
       0,
       0,
@@ -610,7 +612,7 @@ describe('redeemPayout', function () {
       nonMember.address,
       parsePermitParam({
         owner: member1.address,
-        spender: incidents.address,
+        spender: yieldTokenIncidents.address,
         value: parseEther('3000'),
         deadline: permitDeadline,
         v: permit.v,

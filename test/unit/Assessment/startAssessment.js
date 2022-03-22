@@ -7,52 +7,52 @@ const { Zero } = ethers.constants;
 
 describe('startAssessment', function () {
   it('returns the index of the newly created assessment', async function () {
-    const { claims, incidents } = this.contracts;
+    const { individualClaims, yieldTokenIncidents } = this.contracts;
     const [user] = this.accounts.members;
     const [AB] = this.accounts.advisoryBoardMembers;
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     {
-      await claims.connect(user).submitClaim(0, 0, parseEther('100'), '');
-      const { assessmentId } = await claims.claims(0);
+      await individualClaims.connect(user).submitClaim(0, 0, parseEther('100'), '');
+      const { assessmentId } = await individualClaims.claims(0);
       expect(assessmentId).to.be.equal(0);
     }
 
     {
-      await incidents.connect(AB).submitIncident(0, parseEther('1'), timestamp, parseEther('1000'));
-      const { assessmentId } = await incidents.incidents(0);
+      await yieldTokenIncidents.connect(AB).submitIncident(0, parseEther('1'), timestamp, parseEther('1000'));
+      const { assessmentId } = await yieldTokenIncidents.incidents(0);
       expect(assessmentId).to.be.equal(1);
     }
 
     {
-      await claims.connect(user).submitClaim(2, 0, parseEther('100'), '');
-      const { assessmentId } = await claims.claims(1);
+      await individualClaims.connect(user).submitClaim(2, 0, parseEther('100'), '');
+      const { assessmentId } = await individualClaims.claims(1);
       expect(assessmentId).to.be.equal(2);
     }
 
     {
-      await claims.connect(user).submitClaim(3, 0, parseEther('100'), '');
-      const { assessmentId } = await claims.claims(2);
+      await individualClaims.connect(user).submitClaim(3, 0, parseEther('100'), '');
+      const { assessmentId } = await individualClaims.claims(2);
       expect(assessmentId).to.be.equal(3);
     }
 
     {
-      await incidents.connect(AB).submitIncident(0, parseEther('1'), timestamp, parseEther('1000'));
-      const { assessmentId } = await incidents.incidents(1);
+      await yieldTokenIncidents.connect(AB).submitIncident(0, parseEther('1'), timestamp, parseEther('1000'));
+      const { assessmentId } = await yieldTokenIncidents.incidents(1);
       expect(assessmentId).to.be.equal(4);
     }
   });
 
   it('stores assessmentDeposit and totalReward', async function () {
-    const { claims, incidents, assessment } = this.contracts;
+    const { individualClaims, yieldTokenIncidents, assessment } = this.contracts;
     const [user] = this.accounts.members;
     const [AB] = this.accounts.advisoryBoardMembers;
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     {
-      await claims.connect(user).submitClaim(0, 0, parseEther('100'), '');
+      await individualClaims.connect(user).submitClaim(0, 0, parseEther('100'), '');
       const { assessmentDeposit, totalReward } = await assessment.assessments(0);
-      const { rewardRatio } = await claims.config();
+      const { rewardRatio } = await individualClaims.config();
       expect(assessmentDeposit).to.be.equal(0);
       expect(totalReward).to.be.equal(
         parseEther('100')
@@ -63,11 +63,11 @@ describe('startAssessment', function () {
 
     {
       const activeCoverAmountInNXM = parseEther('1000');
-      await incidents.connect(AB).submitIncident(0, parseEther('1'), timestamp, activeCoverAmountInNXM);
+      await yieldTokenIncidents.connect(AB).submitIncident(0, parseEther('1'), timestamp, activeCoverAmountInNXM);
       const { assessmentDeposit, totalReward } = await assessment.assessments(1);
-      const { rewardRatio, expectedPayoutRatio } = await incidents.config();
+      const { rewardRatio, expectedPayoutRatio } = await yieldTokenIncidents.config();
 
-      // For now being AB only, it doesn't require a deposit to submit incidents
+      // For now being AB only, it doesn't require a deposit to submit yieldTokenIncidents
       expect(assessmentDeposit).to.be.equal(Zero);
       expect(totalReward).to.be.equal(
         activeCoverAmountInNXM
@@ -80,15 +80,15 @@ describe('startAssessment', function () {
   });
 
   it('stores assessmentDeposit and totalReward', async function () {
-    const { claims, incidents, assessment } = this.contracts;
+    const { individualClaims, yieldTokenIncidents, assessment } = this.contracts;
     const [user] = this.accounts.members;
     const [AB] = this.accounts.advisoryBoardMembers;
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     {
-      await claims.connect(user).submitClaim(0, 0, parseEther('100'), '');
+      await individualClaims.connect(user).submitClaim(0, 0, parseEther('100'), '');
       const { assessmentDeposit, totalReward } = await assessment.assessments(0);
-      const { rewardRatio } = await claims.config();
+      const { rewardRatio } = await individualClaims.config();
       expect(assessmentDeposit).to.be.equal(0);
       expect(totalReward).to.be.equal(
         parseEther('100')
@@ -99,10 +99,10 @@ describe('startAssessment', function () {
 
     {
       const activeCoverAmountInNXM = parseEther('1000');
-      await incidents.connect(AB).submitIncident(0, parseEther('1'), timestamp, activeCoverAmountInNXM);
+      await yieldTokenIncidents.connect(AB).submitIncident(0, parseEther('1'), timestamp, activeCoverAmountInNXM);
       const { assessmentDeposit, totalReward } = await assessment.assessments(1);
-      const { rewardRatio, expectedPayoutRatio } = await incidents.config();
-      expect(assessmentDeposit).to.be.equal(Zero); // For now AB doesn't require a deposit to submit incidents
+      const { rewardRatio, expectedPayoutRatio } = await yieldTokenIncidents.config();
+      expect(assessmentDeposit).to.be.equal(Zero); // For now AB doesn't require a deposit to submit yieldTokenIncidents
       expect(totalReward).to.be.equal(
         activeCoverAmountInNXM
           .mul(rewardRatio)
@@ -114,12 +114,12 @@ describe('startAssessment', function () {
   });
 
   it('stores a poll that starts at the block timestamp and ends after minVotingPeriodInDays', async function () {
-    const { claims, incidents, assessment } = this.contracts;
+    const { individualClaims, yieldTokenIncidents, assessment } = this.contracts;
     const [user] = this.accounts.members;
     const [AB] = this.accounts.advisoryBoardMembers;
 
     {
-      await claims.connect(user).submitClaim(0, 0, parseEther('100'), '');
+      await individualClaims.connect(user).submitClaim(0, 0, parseEther('100'), '');
       const { timestamp } = await ethers.provider.getBlock('latest');
       const { poll } = await assessment.assessments(0);
       const { minVotingPeriodInDays } = await assessment.config();
@@ -131,7 +131,7 @@ describe('startAssessment', function () {
 
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
-      await incidents.connect(AB).submitIncident(0, parseEther('1'), timestamp, Zero);
+      await yieldTokenIncidents.connect(AB).submitIncident(0, parseEther('1'), timestamp, Zero);
       const { poll } = await assessment.assessments(0);
       const { minVotingPeriodInDays } = await assessment.config();
       expect(poll.start).to.be.equal(timestamp);

@@ -2,12 +2,12 @@
 
 pragma solidity ^0.8.9;
 
-import "../../interfaces/IIncidents.sol";
+import "../../interfaces/IYieldTokenIncidents.sol";
 import "../../interfaces/IAssessment.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 
-contract ASMockIncidents is MasterAwareV2 {
+contract ASMockYieldTokenIncidents is MasterAwareV2 {
 
   // Ratios are defined between 0-10000 bps (i.e. double decimal precision percentage)
   uint internal constant REWARD_DENOMINATOR = 10000;
@@ -16,9 +16,9 @@ contract ASMockIncidents is MasterAwareV2 {
   // Used in operations involving NXM tokens and divisions
   uint internal constant PRECISION = 10 ** 18;
 
-  IIncidents.Incident[] public incidents;
+  Incident[] public incidents;
 
-  IIncidents.Configuration public config;
+  Configuration public config;
 
   function initialize(address masterAddress) external {
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
@@ -37,7 +37,7 @@ contract ASMockIncidents is MasterAwareV2 {
     uint32 date,
     uint96 activeCoverAmountInNXM
   ) external {
-    IIncidents.Incident memory incident = IIncidents.Incident(
+    Incident memory incident = Incident(
       0, // assessmentId
       productId,
       date,

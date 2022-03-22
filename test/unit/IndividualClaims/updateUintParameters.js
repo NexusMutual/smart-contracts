@@ -9,21 +9,21 @@ const uintParams = {
 
 describe('updateUintParameters', function () {
   it('can only be called by governance', async function () {
-    const { claims } = this.contracts;
+    const { individualClaims } = this.contracts;
     const {
       governanceContracts: [governance],
       members: [member],
     } = this.accounts;
-    await expect(claims.connect(member).updateUintParameters([], [])).to.be.revertedWith(
+    await expect(individualClaims.connect(member).updateUintParameters([], [])).to.be.revertedWith(
       'Caller is not authorized to govern',
     );
-    await expect(claims.connect(governance).updateUintParameters([], [])).not.to.be.revertedWith(
+    await expect(individualClaims.connect(governance).updateUintParameters([], [])).not.to.be.revertedWith(
       'Caller is not authorized to govern',
     );
   });
 
   it('sets each parameter to the given new values', async function () {
-    const { claims } = this.contracts;
+    const { individualClaims } = this.contracts;
     const {
       governanceContracts: [governance],
     } = this.accounts;
@@ -35,7 +35,7 @@ describe('updateUintParameters', function () {
     };
 
     {
-      await claims
+      await individualClaims
         .connect(governance)
         .updateUintParameters(
           [
@@ -56,7 +56,7 @@ describe('updateUintParameters', function () {
         minAssessmentDepositRatio,
         maxRewardInNXMWad,
         rewardRatio,
-      } = await claims.config();
+      } = await individualClaims.config();
 
       expect(payoutRedemptionPeriodInDays).to.be.equal(newValues.payoutRedemptionPeriodInDays);
       expect(minAssessmentDepositRatio).to.be.equal(newValues.minAssessmentDepositRatio);
@@ -66,7 +66,7 @@ describe('updateUintParameters', function () {
   });
 
   it('sets only the given parameters to the new values', async function () {
-    const { claims } = this.contracts;
+    const { individualClaims } = this.contracts;
     const {
       governanceContracts: [governance],
     } = this.accounts;
@@ -78,8 +78,11 @@ describe('updateUintParameters', function () {
     };
 
     {
-      const { maxRewardInNXMWad: initialMaxRewardNXM, rewardRatio: initialRewardRatio } = await claims.config();
-      await claims
+      const {
+        maxRewardInNXMWad: initialMaxRewardNXM,
+        rewardRatio: initialRewardRatio,
+      } = await individualClaims.config();
+      await individualClaims
         .connect(governance)
         .updateUintParameters(
           [uintParams.payoutRedemptionPeriodInDays, uintParams.minAssessmentDepositRatio],
@@ -90,7 +93,7 @@ describe('updateUintParameters', function () {
         minAssessmentDepositRatio,
         maxRewardInNXMWad,
         rewardRatio,
-      } = await claims.config();
+      } = await individualClaims.config();
 
       expect(payoutRedemptionPeriodInDays).to.be.equal(newValues.payoutRedemptionPeriodInDays);
       expect(minAssessmentDepositRatio).to.be.equal(newValues.minAssessmentDepositRatio);
@@ -102,8 +105,8 @@ describe('updateUintParameters', function () {
       const {
         payoutRedemptionPeriodInDays: initialPayoutRedemptionPeriodDays,
         minAssessmentDepositRatio: initialMinAssessmentDepositRatio,
-      } = await claims.config();
-      await claims
+      } = await individualClaims.config();
+      await individualClaims
         .connect(governance)
         .updateUintParameters(
           [uintParams.maxRewardInNXMWad, uintParams.rewardRatio],
@@ -114,7 +117,7 @@ describe('updateUintParameters', function () {
         minAssessmentDepositRatio,
         maxRewardInNXMWad,
         rewardRatio,
-      } = await claims.config();
+      } = await individualClaims.config();
 
       expect(payoutRedemptionPeriodInDays).to.be.equal(initialPayoutRedemptionPeriodDays);
       expect(minAssessmentDepositRatio).to.be.equal(initialMinAssessmentDepositRatio);
@@ -124,7 +127,7 @@ describe('updateUintParameters', function () {
   });
 
   it('allows parameters to be given in any order', async function () {
-    const { claims } = this.contracts;
+    const { individualClaims } = this.contracts;
     const {
       governanceContracts: [governance],
     } = this.accounts;
@@ -136,7 +139,7 @@ describe('updateUintParameters', function () {
         maxRewardInNXMWad: 3,
         rewardRatio: 4,
       };
-      await claims
+      await individualClaims
         .connect(governance)
         .updateUintParameters(
           [
@@ -157,7 +160,7 @@ describe('updateUintParameters', function () {
         minAssessmentDepositRatio,
         maxRewardInNXMWad,
         rewardRatio,
-      } = await claims.config();
+      } = await individualClaims.config();
 
       expect(payoutRedemptionPeriodInDays).to.be.equal(newValues.payoutRedemptionPeriodInDays);
       expect(minAssessmentDepositRatio).to.be.equal(newValues.minAssessmentDepositRatio);
@@ -172,7 +175,7 @@ describe('updateUintParameters', function () {
         maxRewardInNXMWad: 7,
         rewardRatio: 8,
       };
-      await claims
+      await individualClaims
         .connect(governance)
         .updateUintParameters(
           [
@@ -193,7 +196,7 @@ describe('updateUintParameters', function () {
         minAssessmentDepositRatio,
         maxRewardInNXMWad,
         rewardRatio,
-      } = await claims.config();
+      } = await individualClaims.config();
 
       expect(payoutRedemptionPeriodInDays).to.be.equal(newValues.payoutRedemptionPeriodInDays);
       expect(minAssessmentDepositRatio).to.be.equal(newValues.minAssessmentDepositRatio);

@@ -7,9 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/ILegacyClaimsReward.sol";
-import "../../interfaces/ILegacyIncidents.sol";
+//import "../../interfaces/ILegacyIncidents.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IPooledStaking.sol";
+//import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IQuotation.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
@@ -20,11 +20,11 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
 
   ILegacyClaimsReward public cr;
   IPool public pool;
-  IPooledStaking public pooledStaking;
+  uint public _unused1;
   IQuotationData public qd;
   ITokenController public tc;
   ITokenData public td;
-  ILegacyIncidents public incidents;
+  uint public _unused2;
 
   /**
    * @dev Iupgradable Interface to update dependent contract address
@@ -32,11 +32,11 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
   function changeDependentContractAddress() public onlyInternal {
     cr = ILegacyClaimsReward(master.getLatestAddress("CR"));
     pool = IPool(master.getLatestAddress("P1"));
-    pooledStaking = IPooledStaking(master.getLatestAddress("PS"));
+    //pooledStaking = IPooledStaking(master.getLatestAddress("PS"));
     qd = IQuotationData(master.getLatestAddress("QD"));
     tc = ITokenController(master.getLatestAddress("TC"));
     td = ITokenData(master.getLatestAddress("TD"));
-    incidents = ILegacyIncidents(master.getLatestAddress("IC"));
+    //incidents = ILegacyIncidents(master.getLatestAddress("IC"));
   }
 
   // solhint-disable-next-line no-empty-blocks
@@ -248,12 +248,13 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     uint16 coverPeriod
   ) internal {
 
-    address underlyingToken = incidents.underlyingToken(contractAddress);
+    return;
+    //address underlyingToken = incidents.underlyingToken(contractAddress);
 
-    if (underlyingToken != address(0)) {
-      address coverAsset = cr.getCurrencyAssetAddress(coverCurrency);
-      require(coverAsset == underlyingToken, "Quotation: Unsupported cover asset for this product");
-    }
+    //if (underlyingToken != address(0)) {
+      //address coverAsset = cr.getCurrencyAssetAddress(coverCurrency);
+      //require(coverAsset == underlyingToken, "Quotation: Unsupported cover asset for this product");
+    //}
 
     uint cid = qd.getCoverLength();
 
@@ -283,7 +284,7 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     uint coverPremiumInNXM = coverDetails[2];
     uint stakersRewardPercentage = td.stakerCommissionPer();
     uint rewardValue = coverPremiumInNXM.mul(stakersRewardPercentage).div(100);
-    pooledStaking.accumulateReward(contractAddress, rewardValue);
+    //pooledStaking.accumulateReward(contractAddress, rewardValue);
   }
 
   /**

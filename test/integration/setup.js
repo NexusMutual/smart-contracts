@@ -1,6 +1,5 @@
 const { accounts, artifacts, web3, ethers } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
-const { getContractAddress } = require('@ethersproject/address');
 const { parseEther } = ethers.utils;
 
 const { setupUniswap } = require('../utils');
@@ -43,9 +42,7 @@ async function setup () {
   const LegacyClaimsData = artifacts.require('LegacyClaimsData');
   const LegacyClaimsReward = artifacts.require('LegacyClaimsReward');
   const MCR = artifacts.require('DisposableMCR');
-  const TokenData = artifacts.require('TokenData');
   const Pool = artifacts.require('Pool');
-  const Quotation = artifacts.require('Quotation');
   const QuotationData = artifacts.require('QuotationData');
   const ClaimProofs = artifacts.require('ClaimProofs');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
@@ -154,7 +151,6 @@ async function setup () {
 
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
   const qd = await QuotationData.new(QE, owner);
-  const qt = await Quotation.new(productsV1.address, qd.address);
 
   const tc = await deployProxy(DisposableTokenController, [qd.address]);
   const ic = await deployProxy(DisposableIncidents, []);
@@ -166,8 +162,8 @@ async function setup () {
   const stakingPool = await CoverMockStakingPool.new(tk.address, cover.address, mr.address);
 
   const contractType = code => {
-    const upgradable = ['MC', 'P1', 'QT', 'TF', 'CR'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC', 'CL', 'AS', 'CO'];
+    const upgradable = ['MC', 'P1', 'CR'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC', 'YT', 'AS', 'CO'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -180,8 +176,8 @@ async function setup () {
     return 0;
   };
 
-  const codes = ['QD', 'QT', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'AS', 'CO', 'CR'];
-  const addresses = [qd, qt, tc, p1, mc, { address: owner }, pc, mr, ps, gateway, ic, cl, as, cover, lcr].map(
+  const codes = ['QD', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'AS', 'CO', 'CR'];
+  const addresses = [qd, tc, p1, mc, { address: owner }, pc, mr, ps, gateway, ic, cl, as, cover, lcr].map(
     c => c.address,
   );
 
@@ -377,7 +373,7 @@ async function setup () {
 
   const external = { chainlinkDAI, dai, factory, router, weth, productsV1 };
   const nonUpgradable = { cp, qd };
-  const instances = { tk, qt, cl, p1, mcr: mc };
+  const instances = { tk, cl, p1, mcr: mc };
 
   // we upgraded them, get non-disposable instances because
   const proxies = {

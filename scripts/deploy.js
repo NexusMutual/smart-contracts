@@ -28,7 +28,6 @@ const YieldTokenIncidents = artifacts.require('YieldTokenIncidents');
 const Assessment = artifacts.require('Assessment');
 const TokenData = artifacts.require('TokenData');
 const Pool = artifacts.require('Pool');
-const Quotation = artifacts.require('Quotation');
 const QuotationData = artifacts.require('TestnetQuotationData');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const SwapOperator = artifacts.require('SwapOperator');
@@ -156,7 +155,6 @@ async function main () {
   verifier.add(selfKyc, { constructorArgs: [mr.address] });
 
   console.log('Deploying quotation contracts');
-  const qt = await Quotation.new();
   const qd = await QuotationData.new(owner, selfKyc.address);
 
   console.log('Deploying disposable contracts');
@@ -274,7 +272,6 @@ async function main () {
     constructorArgs: [CHAINLINK_DAI_ETH_AGGREGATORS[network.name], dai.address, stETH.address],
   });
 
-  verifier.add(qt);
   verifier.add(qd, { constructorArgs: [owner, selfKyc.address] });
 
   console.log('Deploying legacy claims contracts');

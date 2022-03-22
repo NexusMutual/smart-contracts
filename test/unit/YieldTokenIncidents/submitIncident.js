@@ -4,7 +4,7 @@ const { expect } = require('chai');
 const { parseEther } = ethers.utils;
 
 describe('submitIncident', function () {
-  it('reverts if the product uses a different redeem method', async function () {
+  it('reverts if the product uses a different claim method', async function () {
     const { yieldTokenIncidents } = this.contracts;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
 
@@ -15,7 +15,7 @@ describe('submitIncident', function () {
         yieldTokenIncidents
           .connect(advisoryBoard)
           .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), ''),
-      ).to.be.revertedWith('Invalid redeem method');
+      ).to.be.revertedWith('Invalid claim method for this product type');
     }
 
     {
@@ -25,7 +25,7 @@ describe('submitIncident', function () {
         yieldTokenIncidents
           .connect(advisoryBoard)
           .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), ''),
-      ).to.be.revertedWith('Invalid redeem method');
+      ).to.be.revertedWith('Invalid claim method for this product type');
     }
   });
 

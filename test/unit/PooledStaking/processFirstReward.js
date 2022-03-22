@@ -24,7 +24,6 @@ async function fundApproveDepositStake (token, tokenController, staking, amount,
 }
 
 describe('processFirstReward', function () {
-
   it('should mint the reward amount in the PS contract', async function () {
     const { token, tokenController, staking } = this;
     const roundDuration = await staking.REWARD_ROUND_DURATION();
@@ -311,7 +310,6 @@ describe('processFirstReward', function () {
   });
 
   it('should delete the item from the rewards mapping after processing it', async function () {
-
     const { token, tokenController, staking } = this;
 
     await fundApproveDepositStake(token, tokenController, staking, ether('300'), firstContract, memberOne);
@@ -330,7 +328,6 @@ describe('processFirstReward', function () {
   });
 
   it('should do up to maxIterations and finish in stakers.length * 2 cycles', async function () {
-
     const { token, tokenController, master, staking } = this;
     const iterationsNeeded = accounts.generalPurpose.length * 2;
 
@@ -355,7 +352,6 @@ describe('processFirstReward', function () {
   });
 
   it('should remove and re-add 0-account stakers', async function () {
-
     const { token, tokenController, staking } = this;
 
     await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
@@ -374,12 +370,7 @@ describe('processFirstReward', function () {
       const stake = stakes[member];
       await token.transfer(member, ether(stake.amount));
       await token.approve(tokenController.address, ether(stake.amount), { from: member });
-      await staking.depositAndStake(
-        ether(stake.amount),
-        stake.on,
-        stake.amounts.map(ether),
-        { from: member },
-      );
+      await staking.depositAndStake(ether(stake.amount), stake.on, stake.amounts.map(ether), { from: member });
     }
 
     const expectedFirstContractStake = ether('40');
@@ -409,7 +400,9 @@ describe('processFirstReward', function () {
     assert.deepEqual(
       secondTestStakers,
       expectedSecondTestStakers,
-      `expected initial stakers to be "${expectedSecondTestStakers.join(',')}" but found "${secondTestStakers.join(',')}"`,
+      `expected initial stakers to be "${expectedSecondTestStakers.join(',')}" but found "${secondTestStakers.join(
+        ',',
+      )}"`,
     );
 
     // push a small reward on secondContract and expect firstStaker to be removed
@@ -445,7 +438,6 @@ describe('processFirstReward', function () {
   });
 
   it('should emit Rewarded event', async function () {
-
     const { token, tokenController, staking } = this;
     await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 

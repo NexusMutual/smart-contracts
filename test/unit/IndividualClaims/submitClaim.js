@@ -85,7 +85,9 @@ describe('submitClaim', function () {
         [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
       );
     }
-    await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).to.be.revertedWith('Invalid redeem method');
+    await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).to.be.revertedWith(
+      'Invalid claim method for this product type',
+    );
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       await cover.createMockCover(
@@ -95,7 +97,9 @@ describe('submitClaim', function () {
         [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
       );
     }
-    await expect(submitClaim(this)({ coverId: 1, sender: coverOwner })).not.to.be.revertedWith('Invalid redeem method');
+    await expect(submitClaim(this)({ coverId: 1, sender: coverOwner })).not.to.be.revertedWith(
+      'Invalid claim method for this product type',
+    );
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       await cover.createMockCover(

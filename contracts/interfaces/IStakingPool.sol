@@ -36,28 +36,6 @@ interface IStakingPool is IERC721 {
 
   /* structs for io */
 
-  struct AllocateParams {
-    uint productId;
-    uint period;
-    uint productStakeAmount;
-    uint rewardRatio;
-  }
-
-  struct DeallocateParams {
-    uint productId;
-    uint start;
-    uint period;
-    uint amount;
-    uint premium;
-  }
-
-  struct BurnParams {
-    uint productId;
-    uint start;
-    uint period;
-    uint amount;
-  }
-
   struct WithdrawParams {
     uint positionId;
     uint[] groupIds;
@@ -84,11 +62,22 @@ interface IStakingPool is IERC721 {
 
   function updateGroups() external;
 
-  function allocateStake(AllocateParams calldata params) external returns (uint allocatedNXM, uint premium);
+  function allocateStake(
+    uint productId,
+    uint period,
+    uint productStakeAmount,
+    uint rewardRatio
+  ) external returns (uint allocatedNXM, uint premium);
 
-  function deallocateStake(DeallocateParams calldata params) external;
+  function deallocateStake(
+    uint productId,
+    uint start,
+    uint period,
+    uint amount,
+    uint premium
+  ) external;
 
-  function burnStake(BurnParams calldata params) external;
+  function burnStake(uint productId, uint start, uint period, uint amount) external;
 
   function deposit(uint amount, uint groupId, uint _positionId) external returns (uint positionId);
 

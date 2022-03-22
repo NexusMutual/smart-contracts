@@ -294,15 +294,13 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   function allocateStake(
-    AllocateParams calldata params
+    uint productId,
+    uint period,
+    uint productStakeAmount,
+    uint rewardRatio
   ) external onlyCoverContract returns (uint newAllocation, uint premium) {
 
     updateGroups();
-
-    uint productId = params.productId;
-    uint productStakeAmount = params.productStakeAmount;
-    uint period = params.period;
-    uint rewardRatio = params.rewardRatio;
 
     uint allocatedStake = products[productId].allocatedStake;
     uint currentBucket = block.timestamp / BUCKET_SIZE;
@@ -331,9 +329,8 @@ contract StakingPool is IStakingPool, ERC721 {
         availableShares -= stakeGroups[i].stakeShares;
       }
 
-      uint _activeStake = activeStake;
       // total stake available without applying product weight
-      availableStake = _activeStake * availableShares / _stakeSharesSupply;
+      availableStake = activeStake * availableShares / _stakeSharesSupply;
       // total stake available for this product
       availableStake = availableStake * products[productId].weight / WEIGHT_DENOMINATOR;
     }
@@ -375,15 +372,29 @@ contract StakingPool is IStakingPool, ERC721 {
     uint newAllocation,
     uint period
   ) public returns (uint) {
+    allocatedStake;
+    usableStake;
+    newAllocation;
+    period;
     return 0;
   }
 
-  function deallocateStake(DeallocateParams calldata params) external onlyCoverContract {
+  function deallocateStake(
+    uint productId,
+    uint start,
+    uint period,
+    uint amount,
+    uint premium
+  ) external onlyCoverContract {
 
   }
 
   // O(1)
-  function burnStake(BurnParams calldata params) external onlyCoverContract {
+  function burnStake(uint productId, uint start, uint period, uint amount) external onlyCoverContract {
+
+    productId;
+    start;
+    period;
 
     // TODO: free up the stake used by the corresponding cover
     // TODO: check if it's worth restricting the burn to 99% of the active stake
@@ -391,8 +402,7 @@ contract StakingPool is IStakingPool, ERC721 {
     updateGroups();
 
     uint _activeStake = activeStake;
-    uint burnAmount = params.amount;
-    activeStake = _activeStake > burnAmount ? _activeStake - burnAmount : 0;
+    activeStake = _activeStake > amount ? _activeStake - amount : 0;
   }
 
   /* pool management */

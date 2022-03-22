@@ -322,12 +322,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     revert("capacity calculation: not implemented");
 
     return _stakingPool.allocateStake(
-      IStakingPool.AllocateParams(
-        params.productId,
-        params.period,
-        allocation,
-        globalRewardsRatio
-      )
+      params.productId,
+      params.period,
+      allocation,
+      globalRewardsRatio
     );
   }
 
@@ -356,13 +354,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       // rollback previous cover
       for (uint i = 0; i < originalPoolAllocationsCount; i++) {
         stakingPool(originalPoolAllocations[i].poolId).deallocateStake(
-          IStakingPool.DeallocateParams(
-            cover.productId,
-            lastCoverSegment.start,
-            lastCoverSegment.period,
-            originalPoolAllocations[i].coverAmountInNXM,
-            originalPoolAllocations[i].premiumInNXM / REWARD_DENOMINATOR
-          )
+          cover.productId,
+          lastCoverSegment.start,
+          lastCoverSegment.period,
+          originalPoolAllocations[i].coverAmountInNXM,
+          originalPoolAllocations[i].premiumInNXM / REWARD_DENOMINATOR
         );
         originalPoolAllocations[i].premiumInNXM =
           originalPoolAllocations[i].premiumInNXM * (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;

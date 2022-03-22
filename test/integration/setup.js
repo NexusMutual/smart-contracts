@@ -153,7 +153,6 @@ async function setup () {
   const productsV1 = await ProductsV1.new();
 
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
-  const td = await TokenData.new();
   const qd = await QuotationData.new(QE, owner);
   const qt = await Quotation.new(productsV1.address, qd.address);
 
@@ -181,8 +180,8 @@ async function setup () {
     return 0;
   };
 
-  const codes = ['QD', 'TD', 'QT', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'AS', 'CO', 'CR'];
-  const addresses = [qd, td, qt, tc, p1, mc, { address: owner }, pc, mr, ps, gateway, ic, cl, as, cover, lcr].map(
+  const codes = ['QD', 'QT', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'AS', 'CO', 'CR'];
+  const addresses = [qd, qt, tc, p1, mc, { address: owner }, pc, mr, ps, gateway, ic, cl, as, cover, lcr].map(
     c => c.address,
   );
 
@@ -300,12 +299,6 @@ async function setup () {
   await lcd.updateUintParameters(hex('CADEPT'), 7); // claim deposit time 7 days
   await lcd.updateUintParameters(hex('CAPAUSET'), 3); // claim assessment pause time 3 days
 
-  await td.changeMasterAddress(master.address);
-  await td.updateUintParameters(hex('RACOMM'), 50); // staker commission percentage 50%
-  await td.updateUintParameters(hex('CABOOKT'), 6); // "book time" 6h
-  await td.updateUintParameters(hex('CALOCKT'), 7); // ca lock 7 days
-  await td.updateUintParameters(hex('MVLOCKT'), 2); // ca lock mv 2 days
-
   await p1.updateAddressParameters(hex('SWP_OP'), swapOperator.address);
 
   await gv.changeMasterAddress(master.address);
@@ -383,7 +376,7 @@ async function setup () {
   );
 
   const external = { chainlinkDAI, dai, factory, router, weth, productsV1 };
-  const nonUpgradable = { cp, qd, td };
+  const nonUpgradable = { cp, qd };
   const instances = { tk, qt, cl, p1, mcr: mc };
 
   // we upgraded them, get non-disposable instances because

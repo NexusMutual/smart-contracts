@@ -102,6 +102,7 @@ describe('v2 migration', function () {
     this.quotationData = await factory('QD');
     this.proposalCategory = await factory('PC');
     this.tokenController = await factory('TC');
+    this.tokenData = await factory('TD');
     this.claims = await factory('CL');
     this.claimsReward = await factory('CR');
     this.claimsData = await factory('CD');
@@ -288,8 +289,7 @@ describe('v2 migration', function () {
     this.stakingPoolImplementation = stakingPool;
   });
 
-  // [todo] Remove, just deploying to have those console logs
-  it.skip('deploy master contract', async function () {
+  it('deploy master contract', async function () {
     const NXMaster = await ethers.getContractFactory('NXMaster');
     const master = await NXMaster.deploy();
     await master.deployed();
@@ -300,6 +300,21 @@ describe('v2 migration', function () {
       this.abMembers,
       this.governance,
     );
+  });
+
+  it('deploy MemberRoles', async function () {
+    const MemberRoles = await ethers.getContractFactory('MemberRoles');
+    const memberRoles = await MemberRoles.deploy();
+    await memberRoles.deployed();
+
+    await submitGovernanceProposal(
+      29, // upgradeMultipleContracts(bytes2[],address[])
+      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[hexlify(toUtf8Bytes('MR'))], [memberRoles.address]]),
+      this.abMembers,
+      this.governance,
+    );
+
+    this.memberRoles = await ethers.getContractAt('MemberRoles', this.memberRoles.address);
   });
 
   it('deploy cover contracts', async function () {
@@ -329,10 +344,10 @@ describe('v2 migration', function () {
     this.cover = await ethers.getContractAt('Cover', coverProxyAddress);
   });
 
-  it('remove CR, CD, IC, QD, QT, TF', async function () {
+  it('remove CR, CD, IC, QD, QT, TF, TD', async function () {
     await submitGovernanceProposal(
       43, // removeContracts(bytes2[])
-      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF'].map(x => toUtf8Bytes(x))]),
+      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD'].map(x => toUtf8Bytes(x))]),
       this.abMembers,
       this.governance,
     );
@@ -500,40 +515,58 @@ describe('v2 migration', function () {
   // this.quotation = await ethers.getContractAt('Quotation', quotation.address);
   // });
 
+  it('MemberRoles is initialized with walletAddress from TokenData', async function () {
+    const joiningFeeWalletTK = await this.tokenData.walletAddress();
+    const joiningFeeWalletMR = await this.memberRoles.joiningFeeWallet();
+    console.log({ joiningFeeWalletMR, joiningFeeWalletTK });
+    expect(joiningFeeWalletMR).to.be.equal(joiningFeeWalletTK);
+  });
+
+  it('MemberRoles is initialized with kycAuthAddress from QuotationData', async function () {
+    const kycAuthAddressQD = await this.quotationData.kycAuthAddress();
+    const kycAuthAddressMR = await this.memberRoles.kycAuthAddress();
+    console.log({ kycAuthAddressMR, kycAuthAddressQD });
+    expect(kycAuthAddressMR).to.be.equal(kycAuthAddressQD);
+  });
+
   it("TokenController doesn't allow to withdrawCoverNote more than once", async function () {
-    for (const member of this.abMembers) {
-      console.log(member.address);
-      const {
-        coverIds: unsortedCoverIds,
-        lockReasons,
-        withdrawableAmount,
-      } = await this.tokenController.getWithdrawableCoverNotes(member.address);
-      const nxmBalanceBefore = await this.nxm.balanceOf(member.address);
-      const reasons = await this.tokenController.getLockReasons(member.address);
-      console.log({ unsortedCoverIds, lockReasons, withdrawableAmount });
-      console.log({ reasons });
-      if (!reasons.length) {
-        continue;
-      }
-      const unsortedCoverReasons = lockReasons
-        .map((x, i) => ({
-          coverId: unsortedCoverIds[i],
-          index: reasons.indexOf(x),
-        }))
-        .filter(x => x.index > -1);
-      const sortedCoverReasons = unsortedCoverReasons.sort((a, b) => a.index - b.index);
-      const indexes = sortedCoverReasons.map(x => x.index);
-      const coverIds = sortedCoverReasons.map(x => x.coverId);
-      console.log({ indexes, coverIds });
-      const tx = await this.tokenController.withdrawCoverNote(member.address, coverIds, indexes);
-      await tx.wait();
-      const nxmBalanceAfter = await this.nxm.balanceOf(member.address);
-      console.log({ withdrawableAmount, nxmBalanceBefore, nxmBalanceAfter });
-      expect(nxmBalanceAfter).to.be.equal(nxmBalanceBefore.add(withdrawableAmount));
-      await expect(this.tokenController.withdrawCoverNote(member.address, coverIds, indexes)).to.be.revertedWith(
-        'reverted with panic code 0x32',
-      );
-    }
+    // Address of member with unwithdrawn cover notes
+    const member = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
+    console.log(member.address);
+    const {
+      coverIds: unsortedCoverIds,
+      lockReasons,
+      withdrawableAmount,
+    } = await this.tokenController.getWithdrawableCoverNotes(member.address);
+    const nxmBalanceBefore = await this.nxm.balanceOf(member.address);
+    const reasons = await this.tokenController.getLockReasons(member.address);
+    console.log({ unsortedCoverIds, lockReasons, withdrawableAmount });
+    console.log({ reasons });
+    // if (!reasons.length) {
+    // continue;
+    // }
+    const unsortedCoverReasons = lockReasons
+      .map((x, i) => ({
+        coverId: unsortedCoverIds[i],
+        index: reasons.indexOf(x),
+      }))
+      .filter(x => x.index > -1);
+    const sortedCoverReasons = unsortedCoverReasons.sort((a, b) => a.index - b.index);
+    const indexes = sortedCoverReasons.map(x => x.index);
+    const coverIds = sortedCoverReasons.map(x => x.coverId);
+    console.log({ indexes, coverIds });
+    const tx = await this.tokenController.withdrawCoverNote(member.address, coverIds, indexes);
+    await tx.wait();
+    const nxmBalanceAfter = await this.nxm.balanceOf(member.address);
+    console.log({ withdrawableAmount, nxmBalanceBefore, nxmBalanceAfter });
+    expect(nxmBalanceAfter).to.be.equal(nxmBalanceBefore.add(withdrawableAmount));
+    await expect(this.tokenController.withdrawCoverNote(member.address, coverIds, indexes)).to.be.revertedWith(
+      'reverted with panic code 0x32',
+    );
+  });
+
+  it.skip('getWithdrawableCoverNotes returns no ids when owner has no covers', async function () {
+    // [todo]
   });
 
   it.skip('does not allow to withdrawCoverNote after two rejected claims', async function () {

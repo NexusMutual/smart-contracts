@@ -8,9 +8,20 @@ const { buyCover } = require('../utils').buyCover;
 const { hex } = require('../utils').helpers;
 
 const [
-  /* owner */,
-  member1, member2, member3,
-  staker1, staker2, staker3, staker4, staker5, staker6, staker7, staker8, staker9, staker10,
+  ,
+  /* owner */ member1,
+  member2,
+  member3,
+  staker1,
+  staker2,
+  staker3,
+  staker4,
+  staker5,
+  staker6,
+  staker7,
+  staker8,
+  staker9,
+  staker10,
   coverHolder,
 ] = accounts;
 
@@ -18,8 +29,7 @@ const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 const stakers = [staker1, staker2, staker3, staker4, staker5, staker6, staker7, staker8, staker9, staker10];
 const tokensLockedForVoting = ether('200');
 
-async function submitMemberVotes ({ cd, td, cl, voteValue, maxVotingMembers }) {
-
+async function submitMemberVotes ({ cd, cl, voteValue, maxVotingMembers }) {
   const claimId = (await cd.actualClaimLength()) - 1;
   const initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
   const baseMembers = [member1, member2, member3];
@@ -37,22 +47,14 @@ async function submitMemberVotes ({ cd, td, cl, voteValue, maxVotingMembers }) {
   const allVotes = await cd.getAllVotesForClaim(claimId);
   const expectedVotes = allVotes[1].length;
   assert.equal(voters.length, expectedVotes);
-
-  const isBooked = await td.isCATokensBooked(member1);
-  assert.isTrue(isBooked);
 }
 
 async function closeClaim ({ cl, cd, cr, now, expectedClaimStatusNumber }) {
-
   const claimId = (await cd.actualClaimLength()) - 1;
   const minVotingTime = await cd.minVotingTime();
-  const minTime = new BN(minVotingTime.toString()).add(
-    new BN(now.toString()),
-  );
+  const minTime = new BN(minVotingTime.toString()).add(new BN(now.toString()));
 
-  await time.increaseTo(
-    new BN(minTime.toString()).add(new BN('2')),
-  );
+  await time.increaseTo(new BN(minTime.toString()).add(new BN('2')));
 
   const actualVoteClosingBefore = await cl.checkVoteClosing(claimId);
   assert.equal(actualVoteClosingBefore.toString(), '1');
@@ -66,7 +68,6 @@ async function closeClaim ({ cl, cd, cr, now, expectedClaimStatusNumber }) {
 }
 
 describe('burns', function () {
-
   beforeEach(async function () {
     const members = [member1, member2, member3, ...stakers, coverHolder];
     await enrollMember(this.contracts, members);
@@ -74,7 +75,6 @@ describe('burns', function () {
   });
 
   it('claim is accepted for contract whose staker that staked on multiple contracts', async function () {
-
     const { ps, tk, td, qd, cl, tc, p1, mcr } = this.contracts;
 
     const currency = hex('ETH');
@@ -93,9 +93,9 @@ describe('burns', function () {
     const stakeTokens = ether('20');
 
     await tk.approve(tc.address, stakeTokens, { from: staker1 });
-    await ps.depositAndStake(
-      stakeTokens, [cover.contractAddress, secondCoveredAddress], [stakeTokens, stakeTokens], { from: staker1 },
-    );
+    await ps.depositAndStake(stakeTokens, [cover.contractAddress, secondCoveredAddress], [stakeTokens, stakeTokens], {
+      from: staker1,
+    });
 
     await buyCover({ ...this.contracts, cover, coverHolder });
     await time.increase(await ps.REWARD_ROUND_DURATION());
@@ -107,12 +107,10 @@ describe('burns', function () {
     const stakerRewardPostProcessing = await ps.stakerReward(staker1);
 
     const rewardValue = new BN(stakerRewardPostProcessing).sub(new BN(stakerRewardPreProcessing));
-    const stakerRewardPercentage = await td.stakerCommissionPer();
+    const stakerRewardPercentage = 50;
     const coverPrice = new BN(cover.priceNXM);
 
-    const expectedTotalReward = coverPrice
-      .mul(new BN(stakerRewardPercentage))
-      .div(new BN(100));
+    const expectedTotalReward = coverPrice.mul(new BN(stakerRewardPercentage)).div(new BN(100));
 
     assert.equal(rewardValue.toString(), expectedTotalReward.toString());
 
@@ -144,7 +142,6 @@ describe('burns', function () {
   });
 
   it('claim is accepted for 10 stakers', async function () {
-
     const currency = hex('ETH');
 
     const cover = {
@@ -179,11 +176,12 @@ describe('burns', function () {
     const stakerRewardPostProcessing = await ps.stakerReward(staker1);
 
     const rewardValue = new BN(stakerRewardPostProcessing).sub(new BN(stakerRewardPreProcessing));
-    const stakerRewardPercentage = await td.stakerCommissionPer();
+    const stakerRewardPercentage = 50;
     const coverPrice = new BN(cover.priceNXM);
     const expectedRewardPerStaker = coverPrice
       .mul(new BN(stakerRewardPercentage))
-      .div(new BN(100)).div(new BN(stakers.length));
+      .div(new BN(100))
+      .div(new BN(stakers.length));
 
     assert.equal(rewardValue.toString(), expectedRewardPerStaker.toString());
 
@@ -220,7 +218,6 @@ describe('burns', function () {
   });
 
   it('claim is rejected', async function () {
-
     const { ps, tk, qd, cl, tc } = this.contracts;
     const currency = hex('ETH');
 
@@ -262,15 +259,10 @@ describe('burns', function () {
 
     const totalBurn = balanceBefore.sub(balanceAfter);
 
-    assert.equal(
-      totalBurn.toString(),
-      '0',
-      `Total burn: ${totalBurn}, expected: ${0}`,
-    );
+    assert.equal(totalBurn.toString(), '0', `Total burn: ${totalBurn}, expected: ${0}`);
   });
 
   it('claim is accepted and burn happens after an unprocessed unstake request by staker', async function () {
-
     const { p1, ps, tk, qd, cl, tc } = this.contracts;
     const currency = hex('ETH');
 
@@ -323,7 +315,6 @@ describe('burns', function () {
   });
 
   it('claim is accepted and burn happens when the final vote is submitted', async function () {
-
     const { ps, tk, cd, qd, cl, p1, tc } = this.contracts;
     const currency = hex('ETH');
 
@@ -383,7 +374,6 @@ describe('burns', function () {
   });
 
   it('claim is accepted and burn happens after an unstake request by staker is processed', async function () {
-
     const { ps, tk, qd, cl, qt, p1 } = this.contracts;
     const currency = hex('ETH');
 
@@ -448,5 +438,4 @@ describe('burns', function () {
     const totalBurn = balanceBefore.sub(balanceAfter);
     assert.equal(totalBurn.toString(), '0');
   });
-
 });

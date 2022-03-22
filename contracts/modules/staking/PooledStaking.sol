@@ -84,6 +84,8 @@ contract PooledStaking is IPooledStaking, MasterAware {
   uint public REWARD_ROUND_DURATION;
   uint public REWARD_ROUNDS_START;
 
+  bool public v1Blocked;
+
   /* Modifiers */
 
   modifier noPendingActions {
@@ -115,6 +117,10 @@ contract PooledStaking is IPooledStaking, MasterAware {
   constructor(address coverAddress, address productsV1Address) {
     productsV1 = IProductsV1(productsV1Address);
     cover = ICover(coverAddress);
+  }
+
+  function min(uint x, uint y) pure internal returns (uint) {
+    return x < y ? x : y;
   }
 
   /* Getters and view functions */
@@ -245,12 +251,104 @@ contract PooledStaking is IPooledStaking, MasterAware {
     uint amount,
     address[] calldata _contracts,
     uint[] calldata _stakes
-  ) external {
-    /* noop */
+  ) external whenNotPausedAndInitialized onlyMember noPendingActions {
+    require(!v1Blocked, "Migrate to v2");
+
+    Staker storage staker = stakers[msg.sender];
+    uint oldLength = staker.contracts.length;
+
+    require(
+      _contracts.length >= oldLength,
+      "Staking on fewer contracts is not allowed"
+    );
+
+    require(
+      _contracts.length == _stakes.length,
+      "Contracts and stakes arrays should have the same length"
+    );
+
+    uint totalStaked;
+
+    // cap old stakes to this amount
+    uint oldDeposit = staker.deposit;
+    uint newDeposit = oldDeposit + amount;
+
+    staker.deposit = newDeposit;
+    tokenController.operatorTransfer(msg.sender, address(this), amount);
+
+    for (uint i = 0; i < _contracts.length; i++) {
+
+      address contractAddress = _contracts[i];
+
+      for (uint j = 0; j < i; j++) {
+        require(_contracts[j] != contractAddress, "Contracts array should not contain duplicates");
+      }
+
+      uint initialStake = staker.stakes[contractAddress];
+      uint oldStake = oldDeposit < initialStake ? oldDeposit : initialStake;
+      uint newStake = _stakes[i];
+      bool isNewStake = i >= oldLength;
+
+      if (!isNewStake) {
+        require(contractAddress == staker.contracts[i], "Unexpected contract order");
+        require(oldStake <= newStake, "New stake is less than previous stake");
+      } else {
+        require(newStake > 0, "New stakes should be greater than 0");
+        staker.contracts.push(contractAddress);
+      }
+
+      if (oldStake == newStake) {
+
+        // if there were burns but the stake was not updated, update it now
+        if (initialStake != newStake) {
+          staker.stakes[contractAddress] = newStake;
+        }
+
+        totalStaked = totalStaked + newStake;
+
+        // no other changes to this contract
+        continue;
+      }
+
+      require(newStake >= MIN_STAKE, "Minimum stake amount not met");
+      require(newStake <= newDeposit, "Cannot stake more than deposited");
+
+      if (isNewStake || !staker.isInContractStakers[contractAddress]) {
+        staker.isInContractStakers[contractAddress] = true;
+        contractStakers[contractAddress].push(msg.sender);
+      }
+
+      staker.stakes[contractAddress] = newStake;
+      totalStaked = totalStaked + newStake;
+      uint increase = newStake - oldStake;
+
+      emit Staked(contractAddress, msg.sender, increase);
+    }
+
+    require(
+      totalStaked <= staker.deposit * MAX_EXPOSURE,
+      "Total stake exceeds maximum allowed"
+    );
+
+    if (amount > 0) {
+      emit Deposited(msg.sender, amount);
+    }
+
+    // cleanup zero-amount contracts
+    uint lastContractIndex = _contracts.length - 1;
+
+    for (uint i = oldLength; i > 0; i--) {
+      if (_stakes[i - 1] == 0) {
+        staker.contracts[i - 1] = staker.contracts[lastContractIndex];
+        staker.contracts.pop();
+        --lastContractIndex;
+      }
+    }
   }
 
-  function withdraw(uint amount) external override whenNotPausedAndInitialized onlyMember noPendingBurns {
-    stakers[msg.sender].deposit = stakers[msg.sender].deposit - amount;
+  function withdraw(uint ignoredParam) external override whenNotPausedAndInitialized onlyMember noPendingBurns {
+    uint amount = stakers[msg.sender].deposit;
+    stakers[msg.sender].deposit -= amount;
     token.transfer(msg.sender, amount);
     emit Withdrawn(msg.sender, amount);
   }
@@ -260,7 +358,91 @@ contract PooledStaking is IPooledStaking, MasterAware {
     uint[] calldata _amounts,
     uint _insertAfter // unstake request id after which the new unstake request will be inserted
   ) external whenNotPausedAndInitialized onlyMember {
-    /* noop */
+    require(!v1Blocked, "Migrate to v2");
+
+    require(
+      _contracts.length == _amounts.length,
+      "Contracts and amounts arrays should have the same length"
+    );
+
+    require(_insertAfter <= lastUnstakeRequestId, "Invalid unstake request id provided");
+
+    Staker storage staker = stakers[msg.sender];
+    uint deposit = staker.deposit;
+    uint previousId = _insertAfter;
+    uint unstakeAt = block.timestamp + UNSTAKE_LOCK_TIME;
+
+    UnstakeRequest storage previousRequest = unstakeRequests[previousId];
+
+    // Forbid insertion after an empty slot when there are non-empty slots
+    // previousId != 0 allows inserting on the first position (in case lock time has been reduced)
+    if (previousId != 0) {
+      require(previousRequest.unstakeAt != 0, "Provided unstake request id should not be an empty slot");
+    }
+
+    for (uint i = 0; i < _contracts.length; i++) {
+
+      address contractAddress = _contracts[i];
+      uint stake = staker.stakes[contractAddress];
+
+      if (stake > deposit) {
+        stake = deposit;
+      }
+
+      uint pendingUnstakeAmount = staker.pendingUnstakeRequestsTotal[contractAddress];
+      uint requestedAmount = _amounts[i];
+      uint max = pendingUnstakeAmount > stake ? 0 : stake - pendingUnstakeAmount;
+
+      require(max > 0, "Nothing to unstake on this contract");
+      require(requestedAmount <= max, "Cannot unstake more than staked");
+
+      // To prevent spam, small stakes and unstake requests are not allowed
+      // However, we allow the user to unstake the entire amount
+      if (requestedAmount != max) {
+        require(requestedAmount >= MIN_UNSTAKE, "Unstaked amount cannot be less than minimum unstake amount");
+        require(max - requestedAmount >= MIN_STAKE, "Remaining stake cannot be less than minimum unstake amount");
+      }
+
+      require(
+        unstakeAt >= previousRequest.unstakeAt,
+        "Unstake request time must be greater or equal to previous unstake request"
+      );
+
+      if (previousRequest.next != 0) {
+        UnstakeRequest storage nextRequest = unstakeRequests[previousRequest.next];
+        require(
+          nextRequest.unstakeAt > unstakeAt,
+          "Next unstake request time must be greater than new unstake request time"
+        );
+      }
+
+      // Note: We previously had an `id` variable that was assigned immediately to `previousId`.
+      //   It was removed in order to save some memory and previousId used instead.
+      //   This makes the next section slightly harder to read but you can read "previousId" as "newId" instead.
+
+      // get next available unstake request id. our new unstake request becomes previous for the next loop
+      previousId = ++lastUnstakeRequestId;
+
+      unstakeRequests[previousId] = UnstakeRequest(
+        requestedAmount,
+        unstakeAt,
+        contractAddress,
+        msg.sender,
+        previousRequest.next
+      );
+
+      // point to our new unstake request
+      previousRequest.next = previousId;
+
+      emit UnstakeRequested(contractAddress, msg.sender, requestedAmount, unstakeAt);
+
+      // increase pending unstake requests total so we keep track of final stake
+      uint newPending = staker.pendingUnstakeRequestsTotal[contractAddress] + requestedAmount;
+      staker.pendingUnstakeRequestsTotal[contractAddress] = newPending;
+
+      // update the reference to the unstake request at target index for the next loop
+      previousRequest = unstakeRequests[previousId];
+    }
   }
 
   function withdrawReward(address stakerAddress) external override whenNotPausedAndInitialized {
@@ -468,7 +650,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
       _totalBurnAmount = _stakedOnContract;
     }
 
-    for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
+    for (uint i = processedToStakerIndex; i < _stakerCount; ) {
 
       if (iterationsLeft == 0) {
         contractBurned = _actualBurnAmount;
@@ -485,7 +667,9 @@ contract PooledStaking is IPooledStaking, MasterAware {
       (_stakerBurnAmount, _newStake) = _burnStaker(staker, _contractAddress, _stakedOnContract, _totalBurnAmount);
       _actualBurnAmount = _actualBurnAmount + _stakerBurnAmount;
 
+
       if (_newStake != 0) {
+        unchecked{i++;}
         continue;
       }
 
@@ -498,8 +682,9 @@ contract PooledStaking is IPooledStaking, MasterAware {
 
       // i-- might underflow to MAX_UINT
       // but that's fine since it will be incremented back to 0 on the next loop
-      i--;
+      //unchecked{i--;}
       _stakerCount--;
+      //unchecked{i++;}
     }
 
     delete burn;
@@ -644,7 +829,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
     uint _stakerCount = _contractStakers.length;
     uint _actualRewardAmount = contractRewarded;
 
-    for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
+    for (uint i = processedToStakerIndex; i < _stakerCount;) {
 
       if (iterationsLeft == 0) {
         contractRewarded = _actualRewardAmount;
@@ -670,7 +855,6 @@ contract PooledStaking is IPooledStaking, MasterAware {
         // remove the staker from the contract stakers array
         _contractStakers[i] = _contractStakers[_stakerCount - 1];
         _contractStakers.pop();
-        i--;
         _stakerCount--;
 
         // since the stake is 0, there's no reward to give
@@ -678,6 +862,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
       }
 
       _actualRewardAmount = _actualRewardAmount + _stakerRewardAmount;
+      i++;
     }
 
     delete rewards[firstReward];
@@ -718,8 +903,26 @@ contract PooledStaking is IPooledStaking, MasterAware {
     staker.reward = staker.reward + rewardedAmount;
   }
 
-  function updateUintParameters(bytes8 code, uint value) external {
-    /* noop */
+  function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
+    if (code == "MIN_STAK") {
+      MIN_STAKE = value;
+      return;
+    }
+
+    if (code == "MAX_EXPO") {
+      MAX_EXPOSURE = value;
+      return;
+    }
+
+    if (code == "MIN_UNST") {
+      MIN_UNSTAKE = value;
+      return;
+    }
+
+    if (code == "UNST_LKT") {
+      UNSTAKE_LOCK_TIME = value;
+      return;
+    }
   }
 
   function initialize() public {
@@ -763,8 +966,10 @@ contract PooledStaking is IPooledStaking, MasterAware {
     uint contractsCount = stakers[stakerAddress].contracts.length;
     uint deposit = stakers[stakerAddress].deposit;
 
-    uint[] memory weights = new uint[](contractsCount);
     uint[] memory products = new uint[](contractsCount);
+    uint[] memory stakes = new uint[](contractsCount);
+    uint migratableCount = 0;
+
     for (uint i = 0; i < contractsCount; i++) {
       address oldProductId = stakers[stakerAddress].contracts[i];
       uint productId;
@@ -776,13 +981,26 @@ contract PooledStaking is IPooledStaking, MasterAware {
       }
       products[i] = productId;
       uint stake = stakers[stakerAddress].stakes[oldProductId];
-      weights[i] = stake * 1e18 / deposit;
+      migratableCount++;
+    }
+
+    uint[] memory migratableProducts = new uint[](migratableCount);
+    uint8[] memory weights = new uint8[](migratableCount);
+    uint migrateAtIndex = 0;
+
+    for (uint i = 0; i < contractsCount; i++) {
+      if (stakes[i] == 0) {
+        continue;
+      }
+      migratableProducts[migrateAtIndex] = products[i];
+      weights[migrateAtIndex] = uint8(min(stakes[i] * 1e18 / deposit / 1e16, 100));
+      migrateAtIndex++;
     }
 
     IStakingPool stakingPool = IStakingPool(cover.createStakingPool(stakerAddress));
     // [todo] Add the corresponding calls after a IStakingPool is available
     // uint stakingPositionNFT = stakingPool.deposit(deposit);
-    // stakingPool.stakeAllocation(products, weights);
+    // stakingPool.stakeAllocation(migratableProducts, weights);
 
     stakers[stakerAddress].deposit = 0;
   }

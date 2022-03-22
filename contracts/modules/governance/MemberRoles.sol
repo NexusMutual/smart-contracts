@@ -15,9 +15,11 @@ import "../../abstract/LegacyMasterAware_sol0_8.sol";
 import "./external/Governed.sol";
 
 contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
+  uint public constant joiningFee = 2000000000000000; // 0.002 Ether
+
   ITokenController public tc;
-  ITokenData internal td;
-  IQuotationData internal qd;
+  address payable public joiningFeeWallet;
+  address public kycAuthAddress;
   ICover internal cover;
   IGovernance internal gv;
   address internal _unused1;
@@ -36,7 +38,9 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   bool public launched;
   uint public launchedOn;
 
+  // This slot was previously used as a mapping (address => address payable)
   mapping (address => address payable) public _unused2;
+  mapping(address => bool) public refundEligible;
 
   modifier checkRoleAuthority(uint _memberRoleId) {
     if (memberRoleData[_memberRoleId].authorized != address(0))
@@ -102,11 +106,23 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   }
 
   /**
+   * @dev to set address of kyc authentication
+   * @param _add is the new address
+   */
+  function setKycAuthAddress(address _add) external onlyInternal {
+    kycAuthAddress = _add;
+  }
+
+  /**
    * @dev Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public {
-    td = ITokenData(ms.getLatestAddress("TD"));
-    qd = IQuotationData(ms.getLatestAddress("QD"));
+    if (joiningFeeWallet == 0xE20B3aE826Cdb43676e418F7C3B84B75b5697a40) {
+      joiningFeeWallet = ITokenData(0xE20B3aE826Cdb43676e418F7C3B84B75b5697a40).walletAddress();
+    }
+    if (kycAuthAddress == 0x1776651F58a17a50098d31ba3C3cD259C1903f7A) {
+      kycAuthAddress = IQuotationData(0x1776651F58a17a50098d31ba3C3cD259C1903f7A).kycAuthAddress();
+    }
     gv = IGovernance(ms.getLatestAddress("GV"));
     tk = INXMToken(ms.tokenAddress());
     tc = ITokenController(ms.getLatestAddress("TC"));
@@ -187,23 +203,28 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   }
 
   /**
+   * @dev Change the wallet address which receive Joining Fee
+   */
+  function changeJoiningFeeWallet(address payable _address) external onlyInternal {
+    joiningFeeWallet = _address;
+  }
+
+  /**
     * @dev Called by user to pay joining membership fee
     */
   function payJoiningFee(address _userAddress) public override payable {
     require(_userAddress != address(0));
     require(!ms.isPause(), "Emergency Pause Applied");
     if (msg.sender == address(ms.getLatestAddress("QT"))) {
-      // [todo] Add walletAddress as a MemberRoles gov param. Use call an reentrancy guard instead.
-      require(td.walletAddress() != address(0), "No walletAddress present");
+      require(joiningFeeWallet != address(0), "No joiningFeeWallet present");
       tc.addToWhitelist(_userAddress);
       _updateRole(_userAddress, uint(Role.Member), true);
-      td.walletAddress().transfer(msg.value);
+      joiningFeeWallet.transfer(msg.value);
     } else {
-      require(!qd.refundEligible(_userAddress));
+      require(!refundEligible[_userAddress]);
       require(!checkRole(_userAddress, uint(Role.Member)));
-      require(msg.value == td.joiningFee());
-      // [todo] Move refundEligible to MemberRoles
-      qd.setRefundEligible(_userAddress, true);
+      require(msg.value == joiningFee);
+      refundEligible[_userAddress] = true;
     }
   }
 
@@ -213,25 +234,20 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
    * @param verdict of kyc process
    */
   function kycVerdict(address payable _userAddress, bool verdict) public override {
-  // [todo] Move kycAuthAddress to MemberRoles
-    require(msg.sender == qd.kycAuthAddress());
+    require(msg.sender == kycAuthAddress);
     require(!ms.isPause());
     require(_userAddress != address(0));
     require(!ms.isMember(_userAddress));
-    require(qd.refundEligible(_userAddress));
+    require(refundEligible[_userAddress]);
     if (verdict) {
-      // [todo] Move refundEligible to MemberRoles
-      qd.setRefundEligible(_userAddress, false);
-      uint fee = td.joiningFee();
+      refundEligible[_userAddress] = false;
       tc.addToWhitelist(_userAddress);
       _updateRole(_userAddress, uint(Role.Member), true);
-      // [todo] Add walletAddress as a MemberRoles gov param. Use call an reentrancy guard instead.
-      td.walletAddress().transfer(fee); // solhint-disable-line
+      joiningFeeWallet.transfer(joiningFee); // solhint-disable-line
 
     } else {
-      // [todo] Move refundEligible to MemberRoles
-      qd.setRefundEligible(_userAddress, false);
-      _userAddress.transfer(td.joiningFee()); // solhint-disable-line
+      refundEligible[_userAddress] = false;
+      _userAddress.transfer(joiningFee); // solhint-disable-line
     }
   }
 
@@ -291,6 +307,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   }
 
   function storageCleanup() external {
+    _unused1 = 0x0000000000000000000000000000000000000000;
     _unused2[0x181Aea6936B407514ebFC0754A37704eB8d98F91] = payable(0x0000000000000000000000000000000000000000);
   }
 

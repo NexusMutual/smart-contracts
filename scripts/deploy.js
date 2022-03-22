@@ -144,10 +144,8 @@ async function main () {
 
   console.log('Deploying token contracts');
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
-  const td = await TokenData.new();
 
   verifier.add(tk, { constructorArgs: [owner, INITIAL_SUPPLY.toString()] });
-  verifier.add(td, { constructorArgs: [] });
 
   const { instance: master, implementation: masterImpl } = await deployProxy(DisposableNXMaster);
   const { instance: mr, implementation: mrImpl } = await deployProxy(DisposableMemberRoles);
@@ -333,8 +331,8 @@ async function main () {
   verifier.add(p1, { constructorArgs: poolParameters });
   verifier.add(stakingPool, { constructorArgs: stakingPoolParameters });
 
-  const upgradableContractCodes = ['TD', 'MC', 'P1', 'SP'];
-  const upgradableContractAddresses = [td, mc, p1, stakingPool].map(x => x.address);
+  const upgradableContractCodes = ['MC', 'P1', 'SP'];
+  const upgradableContractAddresses = [mc, p1, stakingPool].map(x => x.address);
 
   const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'YT', 'IC', 'AS'];
   const proxyContractAddresses = [
@@ -411,13 +409,6 @@ async function main () {
   await lcd.updateUintParameters(hex('CAMINVT'), 1); // min voting time 1h
   await lcd.updateUintParameters(hex('CADEPT'), 1); // claim deposit time 1 day
   await lcd.updateUintParameters(hex('CAPAUSET'), 1); // claim assessment pause time 1 day
-
-  console.log('Setting TokenData parameters');
-  await td.changeMasterAddress(master.address);
-  await td.updateUintParameters(hex('RACOMM'), 50); // staker commission percentage 50%
-  await td.updateUintParameters(hex('CABOOKT'), 1); // "book time" 1h
-  await td.updateUintParameters(hex('CALOCKT'), 1); // ca lock 1 day
-  await td.updateUintParameters(hex('MVLOCKT'), 1); // ca lock mv 1 day
 
   await master.switchGovernanceAddress(gv.address);
 

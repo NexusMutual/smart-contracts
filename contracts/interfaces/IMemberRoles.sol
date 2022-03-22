@@ -28,6 +28,10 @@ interface IMemberRoles {
 
   function changeAuthorized(uint _roleId, address _newAuthorized) external;
 
+  function changeJoiningFeeWallet(address payable _address) external;
+
+  function setKycAuthAddress(address _add) external;
+
   function members(uint _memberRoleId) external view returns (uint, address[] memory memberArray);
 
   function numberOfMembers(uint _memberRoleId) external view returns (uint);

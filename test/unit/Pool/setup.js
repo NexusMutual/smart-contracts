@@ -33,7 +33,6 @@ async function setup () {
 
   const swapOperator = accounts.generalPurpose[10];
 
-  const tokenData = await TokenData.new();
   const pool = await Pool.new(
     [dai.address], // assets
     [18], // decimals
@@ -55,7 +54,6 @@ async function setup () {
   // set contract addresses
   await master.setTokenAddress(token.address);
   await master.setLatestAddress(hex('P1'), pool.address);
-  await master.setLatestAddress(hex('TD'), tokenData.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('P2'), mockP2Address);
@@ -94,7 +92,6 @@ async function setup () {
   this.token = token;
   this.pool = pool;
   this.mcr = mcr;
-  this.tokenData = tokenData;
   this.tokenController = tokenController;
   this.dai = dai;
   this.chainlinkDAI = chainlinkDAI;

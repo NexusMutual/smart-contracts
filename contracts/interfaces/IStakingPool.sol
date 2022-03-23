@@ -44,9 +44,10 @@ interface IStakingPool is IERC721 {
 
   struct Product {
     uint weight;
-    uint targetPrice;
     uint allocatedStake;
     uint lastBucket;
+    uint targetPrice;
+    uint lastPrice;
   }
 
   struct PoolBucket {

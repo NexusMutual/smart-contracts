@@ -305,21 +305,23 @@ contract StakingPool is IStakingPool, ERC721 {
 
     updateGroups();
 
-    uint allocatedStake = products[productId].allocatedStake;
+    Product memory product = products[productId];
+    uint allocatedProductStake = product.allocatedStake;
     uint currentBucket = block.timestamp / BUCKET_SIZE;
 
     {
-      uint lastBucket = products[productId].lastBucket;
+      uint lastBucket = product.lastBucket;
 
       // process expirations
       while (lastBucket < currentBucket) {
         ++lastBucket;
-        allocatedStake -= productBuckets[productId][lastBucket].allocationCut;
+        allocatedProductStake -= productBuckets[productId][lastBucket].allocationCut;
       }
     }
 
-    uint availableStake;
+    uint freeProductStake;
     {
+      // TODO: account for grace period
       // group expiration must exceed the cover period
       uint _firstAvailableGroupId = (block.timestamp + period) / GROUP_SIZE;
       uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;
@@ -333,30 +335,29 @@ contract StakingPool is IStakingPool, ERC721 {
       }
 
       // total stake available without applying product weight
-      availableStake = activeStake * availableShares / _stakeSharesSupply;
-      // total stake available for this product
-      availableStake = availableStake * products[productId].weight / WEIGHT_DENOMINATOR;
+      freeProductStake =
+        activeStake * availableShares * product.weight / _stakeSharesSupply / WEIGHT_DENOMINATOR;
     }
 
-    // could happen if is 100% in-use or if product weight is changed
-    if (allocatedStake >= availableStake) {
+    // could happen if is 100% in-use or if the product weight was changed
+    if (allocatedProductStake >= freeProductStake) {
       // store expirations
-      products[productId].allocatedStake = allocatedStake;
+      products[productId].allocatedStake = allocatedProductStake;
       products[productId].lastBucket = currentBucket;
       return (0, 0);
     }
 
-    uint usableStake = availableStake - allocatedStake;
+    uint usableStake = freeProductStake - allocatedProductStake;
     newAllocation = min(productStakeAmount, usableStake);
 
     premium = calculatePremium(
-      allocatedStake,
+      allocatedProductStake,
       usableStake,
       newAllocation,
       period
     );
 
-    products[productId].allocatedStake = allocatedStake + newAllocation;
+    products[productId].allocatedStake = allocatedProductStake + newAllocation;
     products[productId].lastBucket = currentBucket;
 
     // divCeil = fn(a, b) => (a + b - 1) / b

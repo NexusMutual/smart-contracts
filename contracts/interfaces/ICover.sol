@@ -2,6 +2,8 @@
 
 pragma solidity >=0.5.0;
 
+import "./IStakingPool.sol";
+
 /* ========== DATA STRUCTURES ========== */
 
 enum ClaimMethod {
@@ -121,7 +123,10 @@ interface ICover {
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
-  function createStakingPool(address manager) external returns (address stakingPoolAddress);
+  function createStakingPool(
+    address manager,
+    ProductInitializationParams[] memory params
+  ) external returns (address stakingPoolAddress);
 
   function setInitialPrices(
     uint[] calldata productId,

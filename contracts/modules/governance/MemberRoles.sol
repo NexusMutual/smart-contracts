@@ -279,7 +279,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   ///
   /// @param newAddress    Address of user to forward membership.
   /// @param coverIds      Array of cover ids to transfer to the new address.
-  /// @notice // @param stakingPools  Array of staking pool addresses where the user has LP tokens.
+  /// @param stakingPools  Array of staking pool addresses where the user has LP tokens.
   function switchMembershipAndAssets(
     address newAddress,
     uint[] calldata coverIds,
@@ -292,6 +292,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     cover.transferCovers(msg.sender, newAddress, coverIds);
 
     stakingPools;
+    revert("Staking pool migration not implemented");
     /*
     // Transfer the staking LP tokens to the new address, if any were given
     for (uint256 i = 0; i < stakingPools.length; i++) {

@@ -242,16 +242,15 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _rewardsSharesSupply = rewardsSharesSupply;
 
     uint newStakeShares = _stakeSharesSupply == 0
-    ? amount
-    : _stakeSharesSupply * amount / _activeStake;
+      ? amount
+      : _stakeSharesSupply * amount / _activeStake;
 
-    uint newRewardsShares = newStakeShares;
-
+    uint newRewardsShares;
     {
       uint lockDuration = (groupId + 1) * GROUP_SIZE - block.timestamp;
       uint maxLockDuration = GROUP_SIZE * 8;
-      newRewardsShares = newRewardsShares * REWARDS_MULTIPLIER / REWARDS_DENOMINATOR;
-      newRewardsShares = newRewardsShares * lockDuration / maxLockDuration;
+      newRewardsShares =
+        newStakeShares * REWARDS_MULTIPLIER * lockDuration / REWARDS_DENOMINATOR / maxLockDuration;
     }
 
     uint newGroupShares;

@@ -36,7 +36,7 @@ const main = async () => {
     ),
   );
   fs.writeFileSync(
-    outpputDir + 'migratable.json',
+    outpputDir + 'migratableProducts.json',
     JSON.stringify(
       migratable.map(({ name, type, supportedChains, logo, underlyingToken, coveredToken }) => ({
         name,

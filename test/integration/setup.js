@@ -254,7 +254,7 @@ async function setup () {
       claimMethod: CLAIM_METHOD.YIELD_TOKEN_INCIDENTS,
       gracePeriodInDays: 14,
     },
-  ]);
+  ], ['', '', '']);
 
   await cover.addProducts([
     {
@@ -285,7 +285,7 @@ async function setup () {
       initialPriceRatio: 100,
       capacityReductionRatio: 0,
     },
-  ]);
+  ], ['', '', '', '']);
 
   await cover.setCoverAssetsFallback(0b11); // eth and dai
 

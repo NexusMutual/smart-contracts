@@ -78,17 +78,21 @@ const main = async (coverAddress, abMemberSigner) => {
   ipfs.pin.add(yieldTokenCoverHash);
 
   {
-    const tx = await cover.connect(abMemberSigner).addProductTypes([
-      [protocolCoverHash, claimMethod.individualClaim, 30],
-      [custodianCoverHash, claimMethod.individualClaim, 120],
-      [yieldTokenCoverHash, claimMethod.yieldTokenIncidents, 14],
-    ]);
+    const tx = await cover.connect(abMemberSigner).addProductTypes(
+      [
+        [claimMethod.individualClaim, 30],
+        [claimMethod.individualClaim, 120],
+        [claimMethod.yieldTokenIncidents, 14],
+      ],
+      [protocolCoverHash, custodianCoverHash, yieldTokenCoverHash],
+    );
     await tx.wait();
   }
 
-  const migratableProducts = JSON.parse(fs.readFileSync('./deploy/migratable.json'));
+  const migratableProducts = JSON.parse(fs.readFileSync('./deploy/migratableProducts.json'));
 
-  // [todo] Add ipfs reference in Cover.sol event
+  // [todo] Delete next line and uncomment next block at deploy
+  const migratableProductsIpfsHashes = JSON.parse(fs.readFileSync('./deploy/migratableProductsIpfsHashes.json'));
   // const migratableProductsIpfsHashes = [];
   // for (const product of migratableProducts) {
   // console.log({ product });
@@ -104,6 +108,12 @@ const main = async (coverAddress, abMemberSigner) => {
   // }
   // console.log({ migratableProductsIpfsHashes });
 
+  // fs.writeFileSync(
+  // './deploy/migratableProductsIpfsHashes.json',
+  // JSON.stringify(migratableProductsIpfsHashes, null, 2),
+  // 'utf8',
+  // );
+
   {
     const tx = await cover.connect(abMemberSigner).addProducts(
       migratableProducts.map(x => [
@@ -116,15 +126,10 @@ const main = async (coverAddress, abMemberSigner) => {
         1000,
         0,
       ]),
+      migratableProductsIpfsHashes,
     );
     await tx.wait();
   }
-
-  const products = await Promise.all(
-    Array(100)
-      .fill()
-      .map((_, i) => cover.products(i)),
-  );
 };
 
 if (!module.parent) {

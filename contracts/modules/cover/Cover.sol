@@ -87,6 +87,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
 
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
+  event ProductTypeUpserted(uint id, string ipfsMetadata);
+  event ProductUpserted(uint id, string ipfsMetadata);
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -633,15 +635,34 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     _products[productId].capacityReductionRatio = reduction;
   }
 
-  function addProducts(Product[] calldata newProducts) external override onlyAdvisoryBoard {
+  function addProducts(
+    Product[] calldata newProducts,
+    string[] calldata ipfsMetadata
+  ) external override onlyAdvisoryBoard {
+    uint initialProuctsCount = _products.length;
     for (uint i = 0; i < newProducts.length; i++) {
       _products.push(newProducts[i]);
+      emit ProductUpserted(initialProuctsCount + i, ipfsMetadata[i]);
     }
   }
 
-  function addProductTypes(ProductType[] calldata newProductTypes) external override onlyAdvisoryBoard {
+  function editProductsIpfsMetadata(
+    uint[] calldata productIds,
+    string[] calldata ipfsMetadata
+  ) external override onlyAdvisoryBoard {
+    for (uint i = 0; i < productIds.length; i++) {
+      emit ProductUpserted(productIds[i], ipfsMetadata[i]);
+    }
+  }
+
+  function addProductTypes(
+    ProductType[] calldata newProductTypes,
+    string[] calldata ipfsMetadata
+  ) external override onlyAdvisoryBoard {
+    uint initialProuctTypesCount = _productTypes.length;
     for (uint i = 0; i < newProductTypes.length; i++) {
       _productTypes.push(newProductTypes[i]);
+      emit ProductTypeUpserted(initialProuctTypesCount + i, ipfsMetadata[i]);
     }
   }
 

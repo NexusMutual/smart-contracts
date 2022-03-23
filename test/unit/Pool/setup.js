@@ -9,7 +9,6 @@ const { BN } = web3.utils;
 
 async function setup () {
   const MasterMock = artifacts.require('MasterMock');
-  const TokenData = artifacts.require('TokenData');
   const TokenController = artifacts.require('TokenControllerMock');
   const TokenMock = artifacts.require('NXMTokenMock');
   const Pool = artifacts.require('Pool');

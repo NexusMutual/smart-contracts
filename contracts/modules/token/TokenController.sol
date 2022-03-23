@@ -13,7 +13,6 @@ import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/INXMMaster.sol";
 import "./external/LockHandler.sol";
-import "hardhat/console.sol";
 
 contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   using SafeUintCast for uint;

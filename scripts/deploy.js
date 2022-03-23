@@ -26,7 +26,6 @@ const LegacyClaimProofs = artifacts.require('LegacyClaimProofs');
 const IndividualClaims = artifacts.require('IndividualClaims');
 const YieldTokenIncidents = artifacts.require('YieldTokenIncidents');
 const Assessment = artifacts.require('Assessment');
-const TokenData = artifacts.require('TokenData');
 const Pool = artifacts.require('Pool');
 const QuotationData = artifacts.require('TestnetQuotationData');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
@@ -205,28 +204,31 @@ async function main () {
     YIELD_TOKEN_INCIDENTS: 1,
   };
 
-  await cover.addProductTypes([
-    // Protocol Cover
-    {
-      descriptionIpfsHash: 'protocolCoverIPFSHash',
-      claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
-      gracePeriodInDays: 30,
-    },
-    // Custody Cover
-    {
-      descriptionIpfsHash: 'custodyCoverIPFSHash',
-      claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
-      gracePeriodInDays: 90,
-    },
-    // Yield Token Cover
-    {
-      descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
-      claimMethod: CLAIM_METHOD.YIELD_TOKEN_INCIDENTS,
-      gracePeriodInDays: 14,
-    },
-  ]);
+  await cover.addProductTypes(
+    [
+      // Protocol Cover
+      {
+        descriptionIpfsHash: 'protocolCoverIPFSHash',
+        claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
+        gracePeriodInDays: 30,
+      },
+      // Custody Cover
+      {
+        descriptionIpfsHash: 'custodyCoverIPFSHash',
+        claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
+        gracePeriodInDays: 90,
+      },
+      // Yield Token Cover
+      {
+        descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
+        claimMethod: CLAIM_METHOD.YIELD_TOKEN_INCIDENTS,
+        gracePeriodInDays: 14,
+      },
+    ],
+    ['', '', ''],
+  );
 
-  const products = JSON.parse(fs.readFileSync('./scripts/migratable.json'));
+  const products = JSON.parse(fs.readFileSync('./deploy/migratableProducts.json'));
   const addProductsParams = products.map(x => {
     const underlyingToken = ['ETH', 'DAI'].indexOf(x.underlyingToken);
     return {
@@ -243,7 +245,8 @@ async function main () {
     };
   });
 
-  await cover.addProducts(addProductsParams); // non-proxy contracts and libraries
+  // [todo] Add ipfs hashes
+  await cover.addProducts(addProductsParams, Array(products.length).fill('')); // non-proxy contracts and libraries
   console.log('Deploying TwapOracle, SwapOperator, PriceFeedOracle');
   const uniswapV2FactoryAddress = uniswapV2Factory
     ? uniswapV2Factory.address

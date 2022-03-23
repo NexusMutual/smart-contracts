@@ -89,16 +89,20 @@ contract MCR is IMCR, MasterAware {
    */
   function getAllSumAssurance() public view returns (uint) {
 
-    IPriceFeedOracle priceFeed = pool.priceFeedOracle();
-    address daiAddress = priceFeed.daiAddress();
+    // Requires a new implementation once geared MCR should be used instead. To save gas it is
+    // left out on purpose.
+    return 0;
 
-    uint ethAmount = qd.getTotalSumAssured("ETH").mul(1e18);
-    uint daiAmount = qd.getTotalSumAssured("DAI").mul(1e18);
+    // IPriceFeedOracle priceFeed = pool.priceFeedOracle();
+    // address daiAddress = priceFeed.daiAddress();
 
-    uint daiRate = priceFeed.getAssetToEthRate(daiAddress);
-    uint daiAmountInEth = daiAmount.mul(daiRate).div(1e18);
+    // uint ethAmount = qd.getTotalSumAssured("ETH").mul(1e18);
+    // uint daiAmount = qd.getTotalSumAssured("DAI").mul(1e18);
 
-    return ethAmount.add(daiAmountInEth);
+    // uint daiRate = priceFeed.getAssetToEthRate(daiAddress);
+    // uint daiAmountInEth = daiAmount.mul(daiRate).div(1e18);
+
+    // return ethAmount.add(daiAmountInEth);
   }
 
   /*

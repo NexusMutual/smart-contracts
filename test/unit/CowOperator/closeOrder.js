@@ -3,7 +3,7 @@ const { contracts, makeWrongValue } = require('./setup');
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { domain: makeDomain, computeOrderUid } = require('@gnosis.pm/gp-v2-contracts');
-const { setEtherBalance } = require('../../utils/evm');
+const { setEtherBalance, setNextBlockTime, revertToSnapshot, takeSnapshot } = require('../../utils/evm');
 
 const {
   utils: { parseEther, hexZeroPad, keccak256, toUtf8Bytes },
@@ -99,16 +99,35 @@ describe('closeOrder', function () {
     await swapOperator.placeOrder(contractOrder, orderUID);
   });
 
-  it('is callable only by swap controller', async function () {
-    // call with non-controller, should fail
-    await expect(
-      swapOperator.connect(governance).closeOrder(contractOrder),
-    ).to.revertedWith('SwapOp: only controller can execute');
+  describe('access control', function () {
+    it('before deadline, its callable only by controller', async function () {
+      const deadline = order.validTo;
+      const snapshot = await takeSnapshot();
 
-    // call with controller, should succeed
-    await expect(
-      swapOperator.connect(controller).closeOrder(contractOrder),
-    ).to.not.be.reverted;
+      // Executing as non-controller should fail
+      await setNextBlockTime(deadline);
+      await expect(swapOperator.connect(governance).closeOrder(contractOrder))
+        .to.be.revertedWith('SwapOp: only controller can execute');
+
+      // Executing as controller should succeed
+      await revertToSnapshot(snapshot);
+      await setNextBlockTime(deadline);
+      await swapOperator.connect(controller).closeOrder(contractOrder);
+    });
+
+    it('after deadline, its callable by anyone', async function () {
+      const deadline = order.validTo;
+      const snapshot = await takeSnapshot();
+
+      // Executing as non-controller should succeed
+      await setNextBlockTime(deadline + 1);
+      await swapOperator.connect(governance).closeOrder(contractOrder);
+
+      // Executing as controller should succeed
+      await revertToSnapshot(snapshot);
+      await setNextBlockTime(deadline + 1);
+      await swapOperator.connect(controller).closeOrder(contractOrder);
+    });
   });
 
   it('computes order UID on-chain and validates against placed order UID', async function () {
@@ -140,7 +159,8 @@ describe('closeOrder', function () {
   describe('canceling the presignature and allowance', function () {
     it('does so if the order was not filled at all', async function () {
       expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
-      expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(order.sellAmount.add(order.feeAmount));
+      expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address))
+        .to.eq(order.sellAmount.add(order.feeAmount));
 
       await swapOperator.closeOrder(contractOrder);
 
@@ -154,7 +174,9 @@ describe('closeOrder', function () {
       expect(await weth.balanceOf(swapOperator.address)).to.gt(0);
 
       // Fill 50% of order
-      await cowSettlement.fill(contractOrder, orderUID, order.sellAmount.div(2), order.feeAmount.div(2), order.buyAmount.div(2));
+      await cowSettlement.fill(
+        contractOrder, orderUID, order.sellAmount.div(2), order.feeAmount.div(2), order.buyAmount.div(2),
+      );
 
       // now there is some sellToken and buyToken
       expect(await dai.balanceOf(swapOperator.address)).to.gt(0);
@@ -162,7 +184,8 @@ describe('closeOrder', function () {
 
       // presignature still valid, allowance was decreased
       expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
-      expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(order.sellAmount.div(2).add(order.feeAmount.div(2)));
+      expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address))
+        .to.eq(order.sellAmount.div(2).add(order.feeAmount.div(2)));
 
       await swapOperator.closeOrder(contractOrder);
 

@@ -67,6 +67,7 @@ interface IStakingPool is IERC721 {
   function allocateStake(
     uint productId,
     uint period,
+    uint gracePeriod,
     uint productStakeAmount,
     uint rewardRatio
   ) external returns (uint allocatedNXM, uint premium);

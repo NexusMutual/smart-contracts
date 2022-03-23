@@ -132,6 +132,7 @@ contract StakingPool is IStakingPool, ERC721 {
   ) external onlyCoverContract {
     manager = _manager;
     // TODO: initialize products
+    params;
   }
 
   function operatorTransfer(
@@ -299,6 +300,7 @@ contract StakingPool is IStakingPool, ERC721 {
   function allocateStake(
     uint productId,
     uint period,
+    uint gracePeriod,
     uint productStakeAmount,
     uint rewardRatio
   ) external onlyCoverContract returns (uint newAllocation, uint premium) {
@@ -323,7 +325,7 @@ contract StakingPool is IStakingPool, ERC721 {
     {
       // TODO: account for grace period
       // group expiration must exceed the cover period
-      uint _firstAvailableGroupId = (block.timestamp + period) / GROUP_SIZE;
+      uint _firstAvailableGroupId = (block.timestamp + period + gracePeriod) / GROUP_SIZE;
       uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;
 
       // start with the entire supply and subtract unavailable groups
@@ -351,6 +353,7 @@ contract StakingPool is IStakingPool, ERC721 {
     newAllocation = min(productStakeAmount, usableStake);
 
     premium = calculatePremium(
+      productId,
       allocatedProductStake,
       usableStake,
       newAllocation,
@@ -371,15 +374,22 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   function calculatePremium(
+    uint productId,
     uint allocatedStake,
     uint usableStake,
     uint newAllocation,
     uint period
   ) public returns (uint) {
+
+    // silence compiler warnings
     allocatedStake;
     usableStake;
     newAllocation;
     period;
+    block.timestamp;
+    uint nextPrice = 0;
+    products[productId].lastPrice = nextPrice;
+
     return 0;
   }
 
@@ -391,6 +401,13 @@ contract StakingPool is IStakingPool, ERC721 {
     uint premium
   ) external onlyCoverContract {
 
+    // silence compiler warnings
+    productId;
+    start;
+    period;
+    amount;
+    premium;
+    activeStake = activeStake;
   }
 
   // O(1)
@@ -412,28 +429,40 @@ contract StakingPool is IStakingPool, ERC721 {
   /* pool management */
 
   function setProductDetails(ProductParams[] memory params) external onlyManager {
-
+    // silence compiler warnings
+    params;
+    activeStake = activeStake;
+    revert("Not implemented");
   }
 
   /* views */
 
   function getActiveStake() external view returns (uint) {
+    block.timestamp; // prevents warning about function being pure
     return 0;
   }
 
   function getProductStake(
     uint productId, uint coverExpirationDate
   ) external view returns (uint) {
+    productId;
+    coverExpirationDate;
+    block.timestamp;
     return 0;
   }
 
   function getAllocatedProductStake(uint productId) external view returns (uint) {
+    productId;
+    block.timestamp;
     return 0;
   }
 
   function getFreeProductStake(
     uint productId, uint coverExpirationDate
   ) external view returns (uint) {
+    productId;
+    coverExpirationDate;
+    block.timestamp;
     return 0;
   }
 
@@ -448,4 +477,3 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
 }
-

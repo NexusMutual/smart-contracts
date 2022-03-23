@@ -763,19 +763,22 @@ contract PooledStaking is IPooledStaking, MasterAware {
     }
 
     // IStakingPool stakingPool = IStakingPool(cover.createStakingPool(stakerAddress));
-    revert("Not implemented");
 
     // [todo] Add the corresponding calls after a IStakingPool is available
     // uint stakingPositionNFT = stakingPool.deposit(deposit);
     // stakingPool.stakeAllocation(products, weights);
 
     stakers[stakerAddress].deposit = 0;
+
+    revert("Not implemented");
   }
 
   function migrateToExistingV2Pool(IStakingPool stakingPool) external {
     uint deposit = stakers[msg.sender].deposit;
     // [todo] Add the corresponding calls after a IStakingPool is available
     // uint stakingPositionNFT = stakingPool.deposit(deposit);
+    deposit;
+    stakingPool;
     stakers[msg.sender].deposit = 0;
   }
 

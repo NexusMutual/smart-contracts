@@ -16,7 +16,7 @@ describe('closeOrder', function () {
 
   let dai, weth, pool, swapOperator, cowSettlement, cowVaultRelayer;
 
-  const daiMinAmount = parseEther('10000');
+  const daiMinAmount = parseEther('3000');
   const daiMaxAmount = parseEther('20000');
 
   const hashUtf = str => keccak256(toUtf8Bytes(str));

@@ -127,7 +127,7 @@ interface ICover {
 
   function createStakingPool(
     address manager,
-    IStakingPool.ProductInitializationParams[] memory params
+    ProductInitializationParams[] memory params
   ) external returns (address stakingPoolAddress);
 
   function setInitialPrices(

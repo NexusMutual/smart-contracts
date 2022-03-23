@@ -554,7 +554,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function createStakingPool(
     address manager,
-    IStakingPool.ProductInitializationParams[] calldata params
+    ProductInitializationParams[] calldata params
   ) external override returns (address stakingPoolAddress) {
 
     stakingPoolAddress = address(

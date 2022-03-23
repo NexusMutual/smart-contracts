@@ -4,6 +4,28 @@ pragma solidity >=0.5.0;
 
 import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 
+/* structs for io */
+
+struct WithdrawParams {
+  uint positionId;
+  uint[] groupIds;
+  uint flags;
+}
+
+struct ProductParams {
+  uint productId;
+  uint weight;
+  uint targetPrice;
+  uint flags;
+}
+
+struct ProductInitializationParams {
+  uint productId;
+  uint weight;
+  uint initialPrice;
+  uint targetPrice;
+}
+
 interface IStakingPool is IERC721 {
 
   /* structs for storage */
@@ -22,6 +44,7 @@ interface IStakingPool is IERC721 {
 
   struct Product {
     uint weight;
+    uint targetPrice;
     uint allocatedStake;
     uint lastBucket;
   }
@@ -32,28 +55,6 @@ interface IStakingPool is IERC721 {
 
   struct ProductBucket {
     uint allocationCut;
-  }
-
-  /* structs for io */
-
-  struct WithdrawParams {
-    uint positionId;
-    uint[] groupIds;
-    uint flags;
-  }
-
-  struct ProductParams {
-    uint productId;
-    uint weight;
-    uint targetPrice;
-    uint flags;
-  }
-
-  struct ProductInitializationParams {
-    uint productId;
-    uint weight;
-    uint initialPrice;
-    uint targetPrice;
   }
 
   function initialize(address _manager, ProductInitializationParams[] calldata params) external;

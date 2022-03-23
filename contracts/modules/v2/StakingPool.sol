@@ -94,9 +94,10 @@ contract StakingPool is IStakingPool, ERC721 {
   uint constant GROUP_SIZE = 91 days;
   uint constant MAX_GROUPS = 9; // 8 whole quarters + 1 partial quarter
 
-  uint constant REWARDS_MULTIPLIER = 125;
-  uint constant REWARDS_DENOMINATOR = 100;
+  uint constant REWARDS_SHARES_RATIO = 125;
+  uint constant REWARDS_SHARES_DENOMINATOR = 100;
   uint constant WEIGHT_DENOMINATOR = 100;
+  uint constant REWARDS_DENOMINATOR = 100;
 
   // product params flags
   uint constant FLAG_PRODUCT_WEIGHT = 1;
@@ -223,7 +224,7 @@ contract StakingPool is IStakingPool, ERC721 {
     updateGroups();
 
     // require groupId not to be expired
-    require(groupId >= firstActiveGroupId);
+    require(groupId >= firstActiveGroupId, "StakingPool: Requested group has expired");
 
     if (_positionId == 0) {
       positionId = ++totalSupply;
@@ -251,7 +252,7 @@ contract StakingPool is IStakingPool, ERC721 {
       uint lockDuration = (groupId + 1) * GROUP_SIZE - block.timestamp;
       uint maxLockDuration = GROUP_SIZE * 8;
       newRewardsShares =
-        newStakeShares * REWARDS_MULTIPLIER * lockDuration / REWARDS_DENOMINATOR / maxLockDuration;
+        newStakeShares * REWARDS_SHARES_RATIO * lockDuration / REWARDS_SHARES_DENOMINATOR / maxLockDuration;
     }
 
     uint newGroupShares;
@@ -348,28 +349,36 @@ contract StakingPool is IStakingPool, ERC721 {
       return (0, 0);
     }
 
-    uint usableStake = freeProductStake - allocatedProductStake;
-    newAllocation = min(productStakeAmount, usableStake);
+    {
+      uint usableStake = freeProductStake - allocatedProductStake;
+      newAllocation = min(productStakeAmount, usableStake);
 
-    premium = calculatePremium(
-      productId,
-      allocatedProductStake,
-      usableStake,
-      newAllocation,
-      period
-    );
+      premium = calculatePremium(
+        productId,
+        allocatedProductStake,
+        usableStake,
+        newAllocation,
+        period
+      );
+    }
 
+    // 1 SSTORE
     products[productId].allocatedStake = allocatedProductStake + newAllocation;
     products[productId].lastBucket = currentBucket;
 
-    // divCeil = fn(a, b) => (a + b - 1) / b
-    uint expireAtBucket = (block.timestamp + period + BUCKET_SIZE - 1) / BUCKET_SIZE;
-    productBuckets[productId][expireAtBucket].allocationCut += newAllocation;
+    {
+      require(rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
 
-    // TODO: this is the other rewards denominator, we need a different name for the shares one
-    uint reward = premium * rewardRatio / REWARDS_DENOMINATOR;
-    reward;
-    // TODO: calculate and update the reward per second
+      // divCeil = fn(a, b) => (a + b - 1) / b
+      uint expireAtBucket = (block.timestamp + period + BUCKET_SIZE - 1) / BUCKET_SIZE;
+      uint _rewardPerSecond =
+        premium * rewardRatio / REWARDS_DENOMINATOR
+        / (expireAtBucket * BUCKET_SIZE - block.timestamp);
+
+      // 2 SLOAD + 2 SSTORE
+      productBuckets[productId][expireAtBucket].allocationCut += newAllocation;
+      poolBuckets[expireAtBucket].rewardPerSecondCut += _rewardPerSecond;
+    }
   }
 
   function calculatePremium(

@@ -181,18 +181,6 @@ describe('placeOrder', function () {
       ).to.be.revertedWith('SwapOp: Only erc20 supported for buyTokenBalance');
     });
 
-    it('validates only sell operations are supported', async function () {
-      const newOrder = {
-        ...order,
-        kind: 'buy',
-      };
-      const newContractOrder = makeContractOrder(newOrder);
-      const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
-      await expect(
-        swapOperator.placeOrder(newContractOrder, newOrderUID),
-      ).to.be.revertedWith('SwapOp: Only sell operations are supported');
-    });
-
     it('validates the receiver of the swap is the swap operator contract', async function () {
       const newOrder = {
         ...order,

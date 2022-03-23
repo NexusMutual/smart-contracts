@@ -227,7 +227,6 @@ contract CowSwapOperator {
   function validateBasicCowParams(GPv2Order.Data calldata order) internal view {
     require(order.sellTokenBalance == GPv2Order.BALANCE_ERC20, "SwapOp: Only erc20 supported for sellTokenBalance");
     require(order.buyTokenBalance == GPv2Order.BALANCE_ERC20, "SwapOp: Only erc20 supported for buyTokenBalance");
-    require(order.kind == GPv2Order.KIND_SELL, "SwapOp: Only sell operations are supported");
     require(order.receiver == address(this), "SwapOp: Receiver must be this contract");
     require(
       order.validTo >= block.timestamp + MIN_VALID_TO_PERIOD,

@@ -38,6 +38,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint public constant COMMISSION_DENOMINATOR = 10000;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
 
+  uint public constant BURN_DENOMINATOR = 1e18;
+
   uint public constant MAX_COVER_PERIOD = 365 days;
   uint public constant MIN_COVER_PERIOD = 30 days;
 
@@ -438,29 +440,35 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function performPayoutBurn(
     uint coverId,
     uint segmentId,
-    uint amount
+    uint burnAmount
   ) external onlyInternal override returns (address /* owner */) {
 
     ICoverNFT coverNFTContract = ICoverNFT(coverNFT);
     address owner = coverNFTContract.ownerOf(coverId);
 
     CoverData storage cover = _coverData[coverId];
-    cover.amountPaidOut += SafeUintCast.toUint96(amount);
+    cover.amountPaidOut += SafeUintCast.toUint96(burnAmount);
 
-    CoverSegment memory segment = _coverSegments[coverId][segmentId];
-    PoolAllocation[] memory allocations = coverSegmentAllocations[coverId][segmentId];
+    CoverSegment memory segment = coverSegments(coverId, segmentId);
+    PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];
+
+    // burn an
+    uint burnRatio = burnAmount * BURN_DENOMINATOR / segment.amount;
 
     for (uint i = 0; i < allocations.length; i++) {
 
-      PoolAllocation memory allocation = allocations[i];
-      IStakingPool stakingPool = stakingPool(allocation.poolId);
+      PoolAllocation storage allocation = allocations[i];
+      IStakingPool _stakingPool = stakingPool(allocation.poolId);
 
-      stakingPool.burn(BurnParams(
+      uint nxmBurned = allocation.coverAmountInNXM * burnRatio / BURN_DENOMINATOR;
+      _stakingPool.burn(BurnParams(
         cover.productId,
         segment.start,
         segment.period,
-        allocation.coverAmountInNXM
+        nxmBurned
       ));
+
+      allocation.coverAmountInNXM -= SafeUintCast.toUint96(nxmBurned);
     }
 
     return owner;
@@ -600,7 +608,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function coverSegments(
     uint coverId,
     uint segmentId
-  ) external override view returns (CoverSegment memory) {
+  ) public override view returns (CoverSegment memory) {
     CoverSegment memory segment = _coverSegments[coverId][segmentId];
     uint96 amountPaidOut = _coverData[coverId].amountPaidOut;
     segment.amount = segment.amount >= amountPaidOut

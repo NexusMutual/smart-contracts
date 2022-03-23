@@ -233,6 +233,7 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     // transfer nxm from staker
+    // TODO: use TokenController.operatorTransfer instead
     nxm.transferFrom(msg.sender, address(this), amount);
 
     StakeGroup memory group = stakeGroups[groupId];
@@ -322,7 +323,6 @@ contract StakingPool is IStakingPool, ERC721 {
 
     uint freeProductStake;
     {
-      // TODO: account for grace period
       // group expiration must exceed the cover period
       uint _firstAvailableGroupId = (block.timestamp + period + gracePeriod) / GROUP_SIZE;
       uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;

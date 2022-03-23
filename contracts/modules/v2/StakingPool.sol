@@ -444,3 +444,4 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
 }
+

@@ -137,9 +137,12 @@ contract StakingPool is IStakingPool, ERC721 {
   function operatorTransfer(
     address from,
     address to,
-    uint256 tokenId
+    uint[] calldata tokenIds
   ) external onlyCoverContract {
-    _safeTransfer(from, to, tokenId, "");
+    uint length = tokenIds.length;
+    for (uint i = 0; i < length; ++i) {
+      _safeTransfer(from, to, tokenIds[i], "");
+    }
   }
 
   function updateGroups() public {

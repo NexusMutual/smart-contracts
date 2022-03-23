@@ -59,7 +59,7 @@ interface IStakingPool is IERC721 {
 
   function initialize(address _manager, ProductInitializationParams[] calldata params) external;
 
-  function operatorTransfer(address from, address to, uint256 tokenId) external;
+  function operatorTransfer(address from, address to, uint[] calldata tokenIds) external;
 
   function updateGroups() external;
 

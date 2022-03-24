@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
 import "../../interfaces/ITokenController.sol";
 import "../../modules/staking/PooledStaking.sol";
@@ -25,7 +25,11 @@ contract DisposablePooledStaking is PooledStaking {
     UNSTAKE_LOCK_TIME = unstakeLockTime;
 
     REWARD_ROUND_DURATION = 7 days;
-    REWARD_ROUNDS_START = now;
+    REWARD_ROUNDS_START = block.timestamp;
+  }
+
+  constructor() PooledStaking(0x0000000000000000000000000000000000000000, 0x0000000000000000000000000000000000000000) {
+    // noop
   }
 
 }

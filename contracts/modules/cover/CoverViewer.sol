@@ -24,7 +24,7 @@ contract CoverViewer {
     uint coverEnd;
     uint8 payoutAsset;
     string payoutAssetSymbol;
-    uint8 redeemMethod;
+    uint8 claimMethod;
     uint16 gracePeriodInDays;
   }
 
@@ -91,7 +91,7 @@ contract CoverViewer {
       coverEnd,
       coverData.payoutAsset,
       payoutAssetSymbol,
-      productType.redeemMethod,
+      productType.claimMethod,
       productType.gracePeriodInDays
     );
   }

@@ -4,9 +4,9 @@ pragma solidity >=0.5.0;
 
 /* ========== DATA STRUCTURES ========== */
 
-enum RedeemMethod {
-  Claim,
-  Incident
+enum ClaimMethod {
+  IndividualClaims,
+  YieldTokenIncidents
 }
 
 // Basically CoverStatus from QuotationData.sol but with the extra Migrated status to avoid
@@ -91,7 +91,7 @@ struct Product {
 struct ProductType {
   // TODO: emit an event for ipfs hash
   string descriptionIpfsHash;
-  uint8 redeemMethod;
+  uint8 claimMethod;
   uint16 gracePeriodInDays;
 }
 
@@ -127,7 +127,7 @@ interface ICover {
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
-  function createStakingPool(address manager) external;
+  function createStakingPool(address manager) external returns (address stakingPoolAddress);
 
   function setInitialPrices(
     uint[] calldata productId,

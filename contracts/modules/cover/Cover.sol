@@ -22,6 +22,7 @@ import "../../interfaces/IStakingPoolBeacon.sol";
 
 import "./MinimalBeaconProxy.sol";
 
+
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   using SafeERC20 for IERC20;
 
@@ -118,6 +119,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
+
 
   /// @dev Migrates covers from V1. Meant to be used by Claims.sol and Gateway.sol to allow the
   /// users of distributor contracts to migrate their NFTs.
@@ -272,6 +274,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint coverId,
     PoolAllocationRequest[] memory allocationRequests
   ) internal returns (uint totalPremiumInNXM) {
+
     // convert to NXM amount
     uint nxmPriceInPayoutAsset = pool().getTokenPrice(params.payoutAsset);
     uint remainderAmountInNXM = 0;
@@ -321,16 +324,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   ) internal returns (uint coveredAmountInNXM, uint premiumInNXM) {
 
     Product memory product = _products[params.productId];
-    return _stakingPool.allocateCapacity(IStakingPool.AllocateCapacityParams(
+
+    // TODO: correctly calculate the capacity
+    uint allocation = amount * globalCapacityRatio;
+
+    return _stakingPool.allocateCapacity(
       params.productId,
-      amount,
-      REWARD_DENOMINATOR,
+      allocation,
       params.period,
-      globalCapacityRatio,
       globalRewardsRatio,
-      product.capacityReductionRatio,
       product.initialPriceRatio
-    ));
+    );
   }
 
   function editCover(
@@ -562,14 +566,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   /* ========== Staking Pool creation ========== */
 
 
-  function createStakingPool(address manager) public override {
+  function createStakingPool(address manager) public override returns (address stakingPoolAddress) {
 
-    address addr = address(new MinimalBeaconProxy{ salt: bytes32(uint(stakingPoolCount)) }(address(this)));
-    IStakingPool(addr).initialize(manager, stakingPoolCount);
+    stakingPoolAddress = address(
+      new MinimalBeaconProxy{ salt: bytes32(uint(stakingPoolCount)) }(address(this))
+    );
+    IStakingPool(stakingPoolAddress).initialize(manager, stakingPoolCount);
 
     stakingPoolCount++;
 
-    emit StakingPoolCreated(addr, manager, stakingPoolImplementation);
+    emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
   }
 
   function stakingPool(uint index) public view returns (IStakingPool) {

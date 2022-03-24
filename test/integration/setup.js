@@ -235,28 +235,28 @@ async function setup () {
   await ic.initialize(master.address);
   await cl.initialize(master.address);
 
-  const REDEEM_METHOS = {
-    CLAIM: 0,
-    INCIDENT: 1,
+  const CLAIM_METHOD = {
+    INDIVIDUAL_CLAIMS: 0,
+    YIELD_TOKEN_INCIDENTS: 1,
   };
 
   await cover.addProductTypes([
     // Protocol Cover
     {
       descriptionIpfsHash: 'protocolCoverIPFSHash',
-      redeemMethod: REDEEM_METHOS.CLAIM,
+      claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
       gracePeriodInDays: 30,
     },
     // Custody Cover
     {
       descriptionIpfsHash: 'custodyCoverIPFSHash',
-      redeemMethod: REDEEM_METHOS.CLAIM,
+      claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
       gracePeriodInDays: 90,
     },
     // Yield Token Cover
     {
       descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
-      redeemMethod: REDEEM_METHOS.INCIDENT,
+      claimMethod: CLAIM_METHOD.YIELD_TOKEN_INCIDENTS,
       gracePeriodInDays: 14,
     },
   ]);

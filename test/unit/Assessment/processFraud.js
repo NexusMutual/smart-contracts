@@ -6,11 +6,11 @@ const { parseEther } = ethers.utils;
 
 describe('processFraud', function () {
   it('reverts if the proof is invalid', async function () {
-    const { assessment, claims } = this.contracts;
+    const { assessment, individualClaims } = this.contracts;
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember, honestMember] = this.accounts.members;
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
-    await claims.submitClaim(0, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(0, true);
     const merkleTree = await submitFraud({
       assessment,
@@ -73,7 +73,7 @@ describe('processFraud', function () {
   });
 
   it("cancels the staker's votes starting from the last vote where the reward was withdrawn until lastFraudulentVoteIndex", async function () {
-    const { assessment, claims } = this.contracts;
+    const { assessment, individualClaims } = this.contracts;
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember, otherMember1, otherMember2] = this.accounts.members;
 
@@ -81,10 +81,10 @@ describe('processFraud', function () {
     await assessment.connect(otherMember1).stake(parseEther('50'));
     await assessment.connect(otherMember2).stake(parseEther('10'));
 
-    await claims.submitClaim(0, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(0, true);
 
-    await claims.submitClaim(1, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(1, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(1, true);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -92,17 +92,17 @@ describe('processFraud', function () {
     await assessment.withdrawRewards(fraudulentMember.address, 0);
 
     // Fraudulent claim
-    await claims.submitClaim(2, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(2, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(2, true);
     await assessment.connect(otherMember1).castVote(2, false);
     await assessment.connect(otherMember2).castVote(2, false);
 
-    await claims.submitClaim(3, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(3, 0, parseEther('100'), '');
     await assessment.connect(otherMember1).castVote(3, true);
     await assessment.connect(otherMember2).castVote(3, true);
     await assessment.connect(fraudulentMember).castVote(3, false);
 
-    await claims.submitClaim(4, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(4, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(4, true);
     await assessment.connect(otherMember1).castVote(4, true);
     await assessment.connect(otherMember2).castVote(4, true);
@@ -171,7 +171,7 @@ describe('processFraud', function () {
   });
 
   it("cancels the staker's votes in batches", async function () {
-    const { assessment, claims } = this.contracts;
+    const { assessment, individualClaims } = this.contracts;
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember] = this.accounts.members;
 
@@ -180,7 +180,7 @@ describe('processFraud', function () {
     await Promise.all(
       Array(10)
         .fill('')
-        .map((_, i) => claims.submitClaim(i, 0, parseEther('100'), '')),
+        .map((_, i) => individualClaims.submitClaim(i, 0, parseEther('100'), '')),
     );
     await Promise.all(
       Array(10)
@@ -274,7 +274,7 @@ describe('processFraud', function () {
   });
 
   it('skips polls that are outside the cooldown period', async function () {
-    const { assessment, claims } = this.contracts;
+    const { assessment, individualClaims } = this.contracts;
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember, otherMember1, otherMember2] = this.accounts.members;
 
@@ -282,10 +282,10 @@ describe('processFraud', function () {
     await assessment.connect(otherMember1).stake(parseEther('100'));
     await assessment.connect(otherMember2).stake(parseEther('200'));
 
-    await claims.submitClaim(0, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(0, true);
 
-    await claims.submitClaim(1, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(1, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(1, true);
 
     {
@@ -339,13 +339,13 @@ describe('processFraud', function () {
   });
 
   it('extends the poll voting period by a maximum of 24h if it ends in less than 24h', async function () {
-    const { assessment, claims } = this.contracts;
+    const { assessment, individualClaims } = this.contracts;
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember] = this.accounts.members;
 
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
 
-    await claims.submitClaim(0, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
     await assessment.connect(fraudulentMember).castVote(0, true);
 
     {
@@ -379,15 +379,15 @@ describe('processFraud', function () {
   });
 
   it('emits a FraudResolution event for every cancelled vote', async function () {
-    const { assessment, claims } = this.contracts;
+    const { assessment, individualClaims } = this.contracts;
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember1, fraudulentMember2] = this.accounts.members;
 
     await assessment.connect(fraudulentMember1).stake(parseEther('100'));
     await assessment.connect(fraudulentMember2).stake(parseEther('50'));
 
-    await claims.submitClaim(0, 0, parseEther('100'), '');
-    await claims.submitClaim(1, 0, parseEther('1000'), '');
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(1, 0, parseEther('1000'), '');
 
     await assessment.connect(fraudulentMember1).castVote(0, true);
     await assessment.connect(fraudulentMember1).castVote(1, true);
@@ -473,13 +473,13 @@ describe('processFraud', function () {
   });
 
   it("burns the fraudulent member's stake by burnAmount", async function () {
-    const { assessment, claims } = this.contracts;
+    const { assessment, individualClaims } = this.contracts;
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember] = this.accounts.members;
 
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
 
-    await claims.submitClaim(0, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
     await assessment.connect(fraudulentMember).castVote(0, true);
 
@@ -514,13 +514,13 @@ describe('processFraud', function () {
   });
 
   it('allows vote correction without burning stake', async function () {
-    const { assessment, claims } = this.contracts;
+    const { assessment, individualClaims } = this.contracts;
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember] = this.accounts.members;
 
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
 
-    await claims.submitClaim(0, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
     await assessment.connect(fraudulentMember).castVote(0, true);
 
@@ -557,7 +557,7 @@ describe('processFraud', function () {
   });
 
   it("skips burning if the provided fraudCount doesn't match the staker's fraudCount", async function () {
-    const { assessment, claims } = this.contracts;
+    const { assessment, individualClaims } = this.contracts;
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember] = this.accounts.members;
 
@@ -566,7 +566,7 @@ describe('processFraud', function () {
     await Promise.all(
       Array(10)
         .fill('')
-        .map((_, i) => claims.submitClaim(i, 0, parseEther('100'), '')),
+        .map((_, i) => individualClaims.submitClaim(i, 0, parseEther('100'), '')),
     );
     await Promise.all(
       Array(10)
@@ -649,7 +649,7 @@ describe('processFraud', function () {
   });
 
   it("increases the fraudulent staker's fraudCount on the first call", async function () {
-    const { assessment, claims } = this.contracts;
+    const { assessment, individualClaims } = this.contracts;
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember] = this.accounts.members;
 
@@ -658,7 +658,7 @@ describe('processFraud', function () {
     await Promise.all(
       Array(2)
         .fill('')
-        .map((_, i) => claims.submitClaim(i, 0, parseEther('100'), '')),
+        .map((_, i) => individualClaims.submitClaim(i, 0, parseEther('100'), '')),
     );
     await Promise.all(
       Array(2)
@@ -712,7 +712,7 @@ describe('processFraud', function () {
   });
 
   it('sets rewardsWithdrawableFromIndex to the last cancelled vote', async function () {
-    const { assessment, claims } = this.contracts;
+    const { assessment, individualClaims } = this.contracts;
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember] = this.accounts.members;
 
@@ -721,7 +721,7 @@ describe('processFraud', function () {
     await Promise.all(
       Array(2)
         .fill('')
-        .map((_, i) => claims.submitClaim(i, 0, parseEther('100'), '')),
+        .map((_, i) => individualClaims.submitClaim(i, 0, parseEther('100'), '')),
     );
     await Promise.all(
       Array(2)

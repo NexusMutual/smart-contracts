@@ -112,7 +112,7 @@ interface ICover {
 
   function isAssetSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) external view returns (bool);
 
-  function stakingPoolCounter() external view returns (uint64);
+  function stakingPoolCount() external view returns (uint64);
 
   function productsCount() external view returns (uint);
 

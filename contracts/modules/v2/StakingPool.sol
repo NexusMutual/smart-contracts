@@ -3,11 +3,37 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+// TODO: consider using solmate ERC721 implementation
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/math/SafeCast.sol";
 import "../../interfaces/IStakingPool.sol";
 
-abstract contract StakingPool is IStakingPool, ERC721 {
+// total stake = active stake + expired stake
+// product stake = active stake * product weight
+// product stake = allocated product stake + free product stake
+// on cover buys we allocate the free product stake and it becomes allocated.
+// on expiration we deallocate the stake and it becomes free again
+
+// ╭───────╼ Active stake ╾────────╮
+// │                               │
+// │     product weight            │
+// │<────────────────────────>     │
+// ├────╼ Product stake ╾────╮     │
+// │                         │     │
+// │ Allocated product stake │     │
+// │   (used by covers)      │     │
+// │                         │     │
+// ├─────────────────────────┤     │
+// │                         │     │
+// │    Free product stake   │     │
+// │                         │     │
+// ╰─────────────────────────┴─────╯
+//
+// ╭───────╼ Expired stake ╾───────╮
+// │                               │
+// ╰───────────────────────────────╯
+
+contract StakingPool is IStakingPool, ERC721 {
   using SafeCast for uint;
 
   /* storage */
@@ -47,36 +73,6 @@ abstract contract StakingPool is IStakingPool, ERC721 {
 
   mapping(uint => uint) targetPrices;
 
-  // stakers are grouped based on the timelock expiration
-  // group index is calculated based on the expiration date
-  // the initial proposal is to have 4 groups per year (1 group per quarter)
-  struct StakeGroup {
-    uint stakeShares;
-    uint rewardsShares;
-    uint groupSharesSupply;
-    uint accRewardPerStakeShareAtExpiration;
-    uint expiredStakeAmount;
-  }
-
-  struct PoolBucket {
-    uint rewardPerSecondCut;
-  }
-
-  struct Product {
-    uint weight;
-    uint currentAllocation;
-    uint lastBucket;
-  }
-
-  struct ProductBucket {
-    uint allocationCut;
-  }
-
-  struct LastPrice {
-    uint96 value;
-    uint32 lastUpdateTime;
-  }
-
   // group id => amount
   mapping(uint => StakeGroup) public stakeGroups;
 
@@ -92,9 +88,12 @@ abstract contract StakingPool is IStakingPool, ERC721 {
   // nft id => group id => amount of group shares
   mapping(uint => mapping(uint => uint)) public balanceOf;
 
+  address public manager;
+
   /* immutables */
 
   IERC20 public immutable nxm;
+  address public immutable coverContract;
 
   /* constants */
 
@@ -112,17 +111,48 @@ abstract contract StakingPool is IStakingPool, ERC721 {
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10_000;
   uint public constant INITIAL_PRICE_DENOMINATOR = 10_000;
 
+  // product params flags
+  uint constant FLAG_PRODUCT_WEIGHT = 1;
+  uint constant FLAG_PRODUCT_PRICE = 2;
+
+  // withdraw flags
+  uint constant FLAG_WITHDRAW_DEPOSIT = 1;
+  uint constant FLAG_WITHDRAW_REWARDS = 2;
+
   modifier onlyCoverContract {
     // TODO: restrict calls to cover contract only
+    _;
+  }
+
+  modifier onlyManager {
+    require(msg.sender == manager, "StakingPool: Only pool manager can call this function");
     _;
   }
 
   constructor (
     string memory _name,
     string memory _symbol,
-    IERC20 _token
+    IERC20 _token,
+    address _coverContract
   ) ERC721(_name, _symbol) {
     nxm = _token;
+    coverContract = _coverContract;
+  }
+
+  function initialize(
+    address _manager,
+    ProductInitializationParams[] calldata params
+  ) external onlyCoverContract {
+    manager = _manager;
+    // TODO: initialize products
+  }
+
+  function operatorTransfer(
+    address from,
+    address to,
+    uint256 tokenId
+  ) external onlyCoverContract {
+    _safeTransfer(from, to, tokenId, "");
   }
 
   function updateGroups() public {
@@ -267,63 +297,79 @@ abstract contract StakingPool is IStakingPool, ERC721 {
     rewardsSharesSupply = _rewardsSharesSupply + newRewardsShares;
   }
 
-  function allocateCapacity(
+  function withdraw(WithdrawParams[] memory params) external {
+    // 1. check nft ownership / allowance
+    // 2. loop through each group:
+    // 2.1. check group expiration if the deposit flag is set
+    // 2.2. calculate the reward amount if the reward flag is set
+    // 3. sum up nxm amount of each group
+    // 4. transfer nxm to staker
+  }
+
+  function allocateStake(
     uint productId,
-    uint amountInNXM,
     uint period,
-    uint rewardRatio,
-    uint initialPriceRatio
-  ) public onlyCoverContract returns (uint newAllocation, uint premium) {
+    uint productStakeAmount,
+    uint rewardRatio
+  ) external onlyCoverContract returns (uint newAllocation, uint premium) {
 
     updateGroups();
 
-    uint currentAllocation = products[productId].currentAllocation;
-    uint lastBucket = products[productId].lastBucket;
+    uint allocatedStake = products[productId].allocatedStake;
     uint currentBucket = block.timestamp / BUCKET_SIZE;
 
-    while (lastBucket < currentBucket) {
-      ++lastBucket;
-      currentAllocation -= productBuckets[productId][lastBucket].allocationCut;
+    {
+      uint lastBucket = products[productId].lastBucket;
+
+      // process expirations
+      while (lastBucket < currentBucket) {
+        ++lastBucket;
+        allocatedStake -= productBuckets[productId][lastBucket].allocationCut;
+      }
     }
 
-    uint firstGroupId = block.timestamp / GROUP_SIZE;
-    // group expiration must exceed the cover period
-    uint firstUsableGroupId = (block.timestamp + period) / GROUP_SIZE;
-    uint unusableShares = 0;
+    uint availableStake;
+    {
+      // group expiration must exceed the cover period
+      uint _firstAvailableGroupId = (block.timestamp + period) / GROUP_SIZE;
+      uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;
 
-    for (uint i = firstGroupId; i < firstUsableGroupId; ++i) {
-      unusableShares += stakeGroups[i].stakeShares;
+      // start with the entire supply and subtract unavailable groups
+      uint _stakeSharesSupply = stakeSharesSupply;
+      uint availableShares = _stakeSharesSupply;
+
+      for (uint i = _firstActiveGroupId; i < _firstAvailableGroupId; ++i) {
+        availableShares -= stakeGroups[i].stakeShares;
+      }
+
+      // total stake available without applying product weight
+      availableStake = activeStake * availableShares / _stakeSharesSupply;
+      // total stake available for this product
+      availableStake = availableStake * products[productId].weight / WEIGHT_DENOMINATOR;
     }
-
-    uint _activeStake = activeStake;
-    uint _stakeSharesSupply = stakeSharesSupply;
-    uint usableShares = _stakeSharesSupply - unusableShares;
-
-    // can be used total
-    uint usableStake = _activeStake * usableShares / _stakeSharesSupply;
-    // can be used by this product
-    usableStake = usableStake * products[productId].weight / WEIGHT_DENOMINATOR;
 
     // could happen if is 100% in-use or if product weight is changed
-    if (currentAllocation >= usableStake) {
+    if (allocatedStake >= availableStake) {
+      // store expirations
+      products[productId].allocatedStake = allocatedStake;
+      products[productId].lastBucket = currentBucket;
       return (0, 0);
     }
 
-    uint maxAllocation = usableStake - currentAllocation;
-    newAllocation = min(amountInNXM, maxAllocation);
+    uint usableStake = availableStake - allocatedStake;
+    newAllocation = min(productStakeAmount, usableStake);
 
     premium = calculatePremium(
-      currentAllocation,
-      maxAllocation,
+      allocatedStake,
+      usableStake,
       newAllocation,
-      initialPriceRatio,
       period
     );
 
-    currentAllocation += newAllocation;
-    products[productId].currentAllocation = currentAllocation;
+    products[productId].allocatedStake = allocatedStake + newAllocation;
+    products[productId].lastBucket = currentBucket;
 
-    // ceil = fn(a, b) => (a + b - 1) / b
+    // divCeil = fn(a, b) => (a + b - 1) / b
     uint expireAtBucket = (block.timestamp + period + BUCKET_SIZE - 1) / BUCKET_SIZE;
     productBuckets[productId][expireAtBucket].allocationCut += newAllocation;
 
@@ -334,24 +380,34 @@ abstract contract StakingPool is IStakingPool, ERC721 {
   }
 
   function calculatePremium(
-    uint currentAllocation,
-    uint maxAllocation,
+    uint allocatedStake,
+    uint usableStake,
     uint newAllocation,
-    uint initialPriceRatio,
     uint period
   ) public returns (uint) {
+    allocatedStake;
+    usableStake;
+    newAllocation;
+    period;
     return 0;
   }
 
-  struct BurnParams {
-    uint productId;
-    uint amount;
-    uint start;
-    uint period;
+  function deallocateStake(
+    uint productId,
+    uint start,
+    uint period,
+    uint amount,
+    uint premium
+  ) external onlyCoverContract {
+
   }
 
   // O(1)
-  function burn(BurnParams memory params) public onlyCoverContract {
+  function burnStake(uint productId, uint start, uint period, uint amount) external onlyCoverContract {
+
+    productId;
+    start;
+    period;
 
     // TODO: free up the stake used by the corresponding cover
     // TODO: check if it's worth restricting the burn to 99% of the active stake
@@ -359,8 +415,35 @@ abstract contract StakingPool is IStakingPool, ERC721 {
     updateGroups();
 
     uint _activeStake = activeStake;
-    uint burnAmount = params.amount;
-    activeStake = _activeStake > burnAmount ? _activeStake - burnAmount : 0;
+    activeStake = _activeStake > amount ? _activeStake - amount : 0;
+  }
+
+  /* pool management */
+
+  function setProductDetails(ProductParams[] memory params) external onlyManager {
+
+  }
+
+  /* views */
+
+  function getActiveStake() external view returns (uint) {
+    return 0;
+  }
+
+  function getProductStake(
+    uint productId, uint coverExpirationDate
+  ) public view returns (uint) {
+    return 0;
+  }
+
+  function getAllocatedProductStake(uint productId) public view returns (uint) {
+    return 0;
+  }
+
+  function getFreeProductStake(
+    uint productId, uint coverExpirationDate
+  ) external view returns (uint) {
+    return 0;
   }
 
   /* utils */
@@ -391,18 +474,17 @@ abstract contract StakingPool is IStakingPool, ERC721 {
   function getPriceParameters(
     uint productId,
     uint globalCapacityRatio,
-    uint capacityReductionRatio
+    uint capacityReductionRatio,
+    uint period
   ) external view returns (
     uint activeCover, uint capacity, uint lastBasePrice, uint targetPrice
   ) {
 
     Product storage product = products[productId];
 
-    // TODO: FIXME: implement with new staking implementation
-    activeCover = 0;
+    activeCover = getAllocatedProductStake(productId);
 
-    // TODO: FIXME: implement with new staking implementation
-    uint staked = 0;
+    uint staked = getProductStake(productId, block.timestamp + period);
     capacity = calculateCapacity(
       staked,
       product.weight,
@@ -413,3 +495,4 @@ abstract contract StakingPool is IStakingPool, ERC721 {
     targetPrice = targetPrices[productId];
   }
 }
+

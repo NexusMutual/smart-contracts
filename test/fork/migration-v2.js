@@ -33,7 +33,7 @@ const PRICE_FEED_ORACLE_ADDRESS = '0xcafea55b2d62399DcFe3DfA3CFc71E4076B14b71';
 const TWAP_ORACLE_ADDRESS = '0xcafea1C9f94e077DF44D95c4A1ad5a5747a18b5C';
 
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
-const { defaultAbiCoder, hexlify, toUtf8Bytes } = ethers.utils;
+const { defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 
 const getContractFactory = async providerOrSigner => {
   const data = await fetch(VERSION_DATA_URL).then(r => r.json());
@@ -133,47 +133,6 @@ describe('v2 migration', function () {
 
   it('run get-legacy-assessment-rewards script', async function () {
     await getLegacyAssessmentRewards();
-  });
-
-  it('update ClaimsReward contract', async function () {
-    const ClaimsReward = await ethers.getContractFactory('LegacyClaimsReward');
-    const newClaimsReward = await ClaimsReward.deploy(this.master.address, DAI_ADDRESS, this.claimsData.address);
-    await newClaimsReward.deployed();
-
-    await submitGovernanceProposal(
-      29, // upgradeMultipleContracts(bytes2[],address[])
-      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('CR')], [newClaimsReward.address]]),
-      this.abMembers,
-      this.governance,
-    );
-
-    this.claimsReward = newClaimsReward;
-  });
-
-  it('update TokenController contract', async function () {
-    const TokenController = await ethers.getContractFactory('TokenController');
-    const tokenController = await TokenController.deploy(this.quotationData.address, this.claimsReward.address);
-    await tokenController.deployed();
-
-    await submitGovernanceProposal(
-      29, // upgradeMultipleContracts(bytes2[],address[])
-      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('TC')], [tokenController.address]]),
-      this.abMembers,
-      this.governance,
-    );
-
-    const tx = await this.tokenController.initialize();
-    await tx.wait();
-    const tokenControllerAddress = await this.master.contractAddresses(toUtf8Bytes('TC'));
-    this.tokenController = await ethers.getContractAt('TokenController', tokenControllerAddress);
-  });
-
-  it('transfer v1 assessment rewrds to assessors', async function () {
-    await this.claimsReward.transferRewards();
-  });
-
-  it('check if TokenController balance checks out with Governance rewards', async function () {
-    console.log('[todo]');
   });
 
   it('edit proposal category 41 (Set Asset Swap Details)', async function () {
@@ -302,27 +261,31 @@ describe('v2 migration', function () {
     );
   });
 
-  it('deploy MemberRoles', async function () {
-    const MemberRoles = await ethers.getContractFactory('MemberRoles');
-    const memberRoles = await MemberRoles.deploy();
-    await memberRoles.deployed();
-
-    await submitGovernanceProposal(
-      29, // upgradeMultipleContracts(bytes2[],address[])
-      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[hexlify(toUtf8Bytes('MR'))], [memberRoles.address]]),
-      this.abMembers,
-      this.governance,
-    );
-
-    this.memberRoles = await ethers.getContractAt('MemberRoles', this.memberRoles.address);
-  });
-
-  it('deploy cover contracts', async function () {
+  it('deploy CoverNFT contracts', async function () {
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const CoverNFT = await ethers.getContractFactory('CoverNFT');
     const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NXC', coverProxyAddress);
     await coverNFT.deployed();
     this.coverNFT = coverNFT;
+  });
+
+  it('deploy & update ClaimsReward, TokenController, MCR, MemberRoles, Cover contracts', async function () {
+    const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
+    const ClaimsReward = await ethers.getContractFactory('LegacyClaimsReward');
+    const newClaimsReward = await ClaimsReward.deploy(this.master.address, DAI_ADDRESS, this.claimsData.address);
+    await newClaimsReward.deployed();
+
+    const TokenController = await ethers.getContractFactory('TokenController');
+    const tokenController = await TokenController.deploy(this.quotationData.address, newClaimsReward.address);
+    await tokenController.deployed();
+
+    const MCR = await ethers.getContractFactory('MCR');
+    const mcr = await MCR.deploy(this.master.address);
+    await mcr.deployed();
+
+    const MemberRoles = await ethers.getContractFactory('MemberRoles');
+    const memberRoles = await MemberRoles.deploy();
+    await memberRoles.deployed();
 
     const Cover = await ethers.getContractFactory('Cover');
     const cover = await Cover.deploy(
@@ -336,12 +299,36 @@ describe('v2 migration', function () {
 
     await submitGovernanceProposal(
       29, // upgradeMultipleContracts(bytes2[],address[])
-      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[hexlify(toUtf8Bytes('CO'))], [cover.address]]),
+      defaultAbiCoder.encode(
+        ['bytes2[]', 'address[]'],
+        [
+          [toUtf8Bytes('MR'), toUtf8Bytes('MC'), toUtf8Bytes('CO'), toUtf8Bytes('TC'), toUtf8Bytes('CR')],
+          [memberRoles.address, mcr.address, cover.address, tokenController.address, newClaimsReward.address],
+        ],
+      ),
       this.abMembers,
       this.governance,
     );
 
+    const tokenControllerAddress = await this.master.contractAddresses(toUtf8Bytes('TC'));
+    this.tokenController = await ethers.getContractAt('TokenController', tokenControllerAddress);
+    this.claimsReward = newClaimsReward;
+    this.memberRoles = await ethers.getContractAt('MemberRoles', this.memberRoles.address);
+    this.mcr = await ethers.getContractAt('MCR', mcr.address);
     this.cover = await ethers.getContractAt('Cover', coverProxyAddress);
+  });
+
+  it('initialize TokenController', async function () {
+    const tx = await this.tokenController.initialize();
+    await tx.wait();
+  });
+
+  it('transfer v1 assessment rewrds to assessors', async function () {
+    await this.claimsReward.transferRewards();
+  });
+
+  it.skip('check if TokenController balance checks out with Governance rewards', async function () {
+    // [todo]
   });
 
   it('remove CR, CD, IC, QD, QT, TF, TD', async function () {
@@ -386,7 +373,7 @@ describe('v2 migration', function () {
 
     await submitGovernanceProposal(
       29, // upgradeMultipleContracts(bytes2[],address[])
-      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[hexlify(toUtf8Bytes('P1'))], [pool.address]]),
+      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('P1')], [pool.address]]),
       this.abMembers,
       this.governance,
     );
@@ -402,7 +389,7 @@ describe('v2 migration', function () {
 
     await submitGovernanceProposal(
       29, // upgradeMultipleContracts(bytes2[],address[])
-      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[hexlify(toUtf8Bytes('PS'))], [pooledStaking.address]]),
+      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('PS')], [pooledStaking.address]]),
       this.abMembers,
       this.governance,
     );
@@ -463,7 +450,7 @@ describe('v2 migration', function () {
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]', 'uint256[]'],
         [
-          [hexlify(toUtf8Bytes('IC')), hexlify(toUtf8Bytes('YT')), hexlify(toUtf8Bytes('AS'))],
+          [toUtf8Bytes('IC'), toUtf8Bytes('YT'), toUtf8Bytes('AS')],
           [individualClaims.address, yieldTokenIncidents.address, assessment.address],
           [2, 2, 2],
         ],
@@ -487,7 +474,7 @@ describe('v2 migration', function () {
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]'],
         [
-          [hexlify(toUtf8Bytes('CL')), hexlify(toUtf8Bytes('GW'))],
+          [toUtf8Bytes('CL'), toUtf8Bytes('GW')],
           [coverMigrator.address, gateway.address],
         ],
       ),
@@ -507,7 +494,7 @@ describe('v2 migration', function () {
 
   // await submitGovernanceProposal(
   // 29, // upgradeMultipleContracts(bytes2[],address[])
-  // defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[hexlify(toUtf8Bytes('QT'))], [quotation.address]]),
+  // defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('QT')], [quotation.address]]),
   // this.abMembers,
   // this.governance,
   // );
@@ -531,8 +518,7 @@ describe('v2 migration', function () {
 
   it("TokenController doesn't allow to withdrawCoverNote more than once", async function () {
     // Address of member with unwithdrawn cover notes
-    const member = '0x87B2a7559d85f4653f13E6546A14189cd5455d45';
-    console.log(member.address);
+    const member = { address: '0x87B2a7559d85f4653f13E6546A14189cd5455d45' };
     const {
       coverIds: unsortedCoverIds,
       lockReasons,

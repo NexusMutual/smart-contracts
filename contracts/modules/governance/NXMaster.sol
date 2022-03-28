@@ -297,7 +297,6 @@ contract NXMaster is INXMMaster, Governed {
    * @param val is value to be set
    */
   function updateOwnerParameters(bytes8 code, address payable val) public onlyAuthorizedToGovern {
-    IQuotationData qd;
     if (code == "MSWALLET") {
 
       IMemberRoles mr = IMemberRoles(getLatestAddress("MR"));

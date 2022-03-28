@@ -62,7 +62,11 @@ interface IPooledStaking {
 
   function withdraw(uint amount) external;
 
+  function withdrawForUser(address user) external;
+
   function stakerMaxWithdrawable(address stakerAddress) external view returns (uint);
 
   function withdrawReward(address stakerAddress) external;
+
+  function blockV1() external;
 }

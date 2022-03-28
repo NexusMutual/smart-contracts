@@ -87,7 +87,7 @@ contract MCR is IMCR, MasterAware {
    * @dev Gets total sum assured (in ETH).
    * @return amount of sum assured
    */
-  function getAllSumAssurance() public view returns (uint) {
+  function getAllSumAssurance() public pure returns (uint) {
 
     // Requires a new implementation once geared MCR should be used instead. To save gas it is
     // left out on purpose.

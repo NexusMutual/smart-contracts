@@ -215,17 +215,10 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   function payJoiningFee(address _userAddress) public override payable {
     require(_userAddress != address(0));
     require(!ms.isPause(), "Emergency Pause Applied");
-    if (msg.sender == address(ms.getLatestAddress("QT"))) {
-      require(joiningFeeWallet != address(0), "No joiningFeeWallet present");
-      tc.addToWhitelist(_userAddress);
-      _updateRole(_userAddress, uint(Role.Member), true);
-      joiningFeeWallet.transfer(msg.value);
-    } else {
-      require(!refundEligible[_userAddress]);
-      require(!checkRole(_userAddress, uint(Role.Member)));
-      require(msg.value == joiningFee);
-      refundEligible[_userAddress] = true;
-    }
+    require(!refundEligible[_userAddress]);
+    require(!checkRole(_userAddress, uint(Role.Member)));
+    require(msg.value == joiningFee);
+    refundEligible[_userAddress] = true;
   }
 
   /**

@@ -44,7 +44,7 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
     address masterAddress,
     address _daiAddress,
     address legacyClaimsData
-  ) public {
+  ) {
     changeMasterAddress(masterAddress);
     cd = ILegacyClaimsData(legacyClaimsData);
     DAI = _daiAddress;
@@ -54,7 +54,7 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
     // noop
   }
 
-  function transferRewards() override external returns (bool) {
+  function transferRewards() override external {
     // {REWARD_TRANSFERS_HELPER_BEGIN}
     tk.transfer(0x8D38C81B7bE9Dbe7440D66B92d4EF529806baAE7, 35760493284880538281);
     tk.transfer(0x87B2a7559d85f4653f13E6546A14189cd5455d45, 55352901017354677134);

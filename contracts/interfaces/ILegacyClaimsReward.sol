@@ -7,7 +7,7 @@ interface ILegacyClaimsReward {
   /// @dev Decides the next course of action for a given claim.
   function changeClaimStatus(uint claimid) external;
 
-  function transferRewards() external returns (bool);
+  function transferRewards() external;
 
   function getCurrencyAssetAddress(bytes4 currency) external view returns (address);
 

@@ -91,6 +91,10 @@ contract CowSwapOperator {
         sellTokenBalance - totalOutAmount >= sellTokenDetails.minAmount,
         "SwapOp: swap brings sellToken below min"
       );
+      require(
+        sellTokenBalance - totalOutAmount <= sellTokenDetails.maxAmount,
+        "SwapOp: swap leaves sellToken above max"
+      );
     }
 
     // Validate swapping is enabled for buyToken (eth always enabled)
@@ -101,6 +105,7 @@ contract CowSwapOperator {
       uint256 buyTokenBalance = order.buyToken.balanceOf(address(pool));
       require(buyTokenBalance < buyTokenDetails.minAmount, "SwapOp: can only buy asset when < minAmount");
       require(buyTokenBalance + order.buyAmount <= buyTokenDetails.maxAmount, "SwapOp: swap brings buyToken above max");
+      require(buyTokenBalance + order.buyAmount >= buyTokenDetails.minAmount, "SwapOp: swap leaves buyToken below min");
     }
 
     // Validate minimum pool eth reserve
@@ -222,7 +227,6 @@ contract CowSwapOperator {
   function validateBasicCowParams(GPv2Order.Data calldata order) internal view {
     require(order.sellTokenBalance == GPv2Order.BALANCE_ERC20, "SwapOp: Only erc20 supported for sellTokenBalance");
     require(order.buyTokenBalance == GPv2Order.BALANCE_ERC20, "SwapOp: Only erc20 supported for buyTokenBalance");
-    require(order.kind == GPv2Order.KIND_SELL, "SwapOp: Only sell operations are supported");
     require(order.receiver == address(this), "SwapOp: Receiver must be this contract");
     require(
       order.validTo >= block.timestamp + MIN_VALID_TO_PERIOD,

@@ -16,8 +16,8 @@ describe('placeOrder', function () {
 
   let dai, stEth, weth, pool, swapOperator, cowSettlement, cowVaultRelayer;
 
-  const daiMinAmount = parseEther('10000');
-  const daiMaxAmount = parseEther('30000');
+  const daiMinAmount = parseEther('3000');
+  const daiMaxAmount = parseEther('20000');
 
   const stethMinAmount = parseEther('10');
   const stethMaxAmount = parseEther('20');
@@ -35,7 +35,7 @@ describe('placeOrder', function () {
 
   const setupSellDaiForEth = async (overrides = {}) => {
     // Set DAI balance above asset max, so we can sell it
-    await dai.setBalance(pool.address, parseEther('35000'));
+    await dai.setBalance(pool.address, parseEther('25000'));
 
     // Set reasonable amounts for DAI so selling doesnt bring balance below min
     const newOrder = {
@@ -181,18 +181,6 @@ describe('placeOrder', function () {
       ).to.be.revertedWith('SwapOp: Only erc20 supported for buyTokenBalance');
     });
 
-    it('validates only sell operations are supported', async function () {
-      const newOrder = {
-        ...order,
-        kind: 'buy',
-      };
-      const newContractOrder = makeContractOrder(newOrder);
-      const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
-      await expect(
-        swapOperator.placeOrder(newContractOrder, newOrderUID),
-      ).to.be.revertedWith('SwapOp: Only sell operations are supported');
-    });
-
     it('validates the receiver of the swap is the swap operator contract', async function () {
       const newOrder = {
         ...order,
@@ -291,6 +279,25 @@ describe('placeOrder', function () {
 
       expect(await dai.balanceOf(pool.address)).to.eq(daiMinAmount);
     });
+
+    it('selling must bring balance below maxAmount', async function () {
+      const sellAmount = parseEther('24999');
+      const feeAmount = parseEther('1');
+      const buyAmount = parseEther('4.9998');
+      const { newContractOrder, newOrderUID } = await setupSellDaiForEth({ sellAmount, feeAmount, buyAmount });
+
+      // Set balance so that balance - totalAmountOut is 1 wei above asset maxAmount
+      await dai.setBalance(pool.address, daiMaxAmount.add(sellAmount).add(feeAmount).add(1));
+      await expect(
+        swapOperator.placeOrder(newContractOrder, newOrderUID),
+      ).to.be.revertedWith('SwapOp: swap leaves sellToken above max');
+
+      // Set balance so the swap will leave balance at exactly maxAmount
+      await dai.setBalance(pool.address, daiMaxAmount.add(sellAmount).add(feeAmount));
+      await swapOperator.placeOrder(newContractOrder, newOrderUID);
+
+      expect(await dai.balanceOf(pool.address)).to.eq(daiMaxAmount);
+    });
   });
 
   it('validates that pools eth balance is not brought below established minimum', async function () {
@@ -359,6 +366,25 @@ describe('placeOrder', function () {
 
       // place an order that will bring balance exactly to maxAmount, should succeed
       const okOrder = { ...order, buyAmount: daiMaxAmount };
+      const okContractOrder = makeContractOrder(okOrder);
+      const okOrderUID = computeOrderUid(domain, okOrder, okOrder.receiver);
+      await swapOperator.placeOrder(okContractOrder, okOrderUID);
+    });
+
+    it('the swap must bring buyToken above minAmount', async function () {
+      await dai.setBalance(pool.address, 0);
+
+      // try to place an order that will bring balance 1 wei below min, should fail
+      const buyAmount = daiMinAmount.sub(1);
+      const smallOrder = { ...order, buyAmount, sellAmount: buyAmount.div(5000) };
+      const smallContractOrder = makeContractOrder(smallOrder);
+      const smallOrderUID = computeOrderUid(domain, smallOrder, smallOrder.receiver);
+
+      await expect(swapOperator.placeOrder(smallContractOrder, smallOrderUID))
+        .to.be.revertedWith('SwapOp: swap leaves buyToken below min');
+
+      // place an order that will bring balance exactly to minAmount, should succeed
+      const okOrder = { ...order, buyAmount: daiMinAmount, sellAmount: buyAmount.div(5000) };
       const okContractOrder = makeContractOrder(okOrder);
       const okOrderUID = computeOrderUid(domain, okOrder, okOrder.receiver);
       await swapOperator.placeOrder(okContractOrder, okOrderUID);

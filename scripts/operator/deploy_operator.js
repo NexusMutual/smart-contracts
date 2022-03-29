@@ -4,7 +4,6 @@ const { etherscanVerification } = require('./helper');
 const fs = require('fs');
 
 const SETTLEMENT_ADDRESS = '0x9008D19f58AAbD9eD0D60971565AA8510560ab41';
-
 const WETH_ADDRESS = '0xc778417E063141139Fce010982780140Aa0cD5Ab';
 
 const main = async () => {
@@ -17,7 +16,7 @@ const main = async () => {
     signerAddress,
     addresses.master,
     WETH_ADDRESS,
-    addresses.twap,
+    addresses.priceFeedOracle,
   ];
   const swapOperator = await (await ethers.getContractFactory('CowSwapOperator')).deploy(...args);
   await swapOperator.deployTransaction.wait();

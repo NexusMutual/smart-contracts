@@ -6,14 +6,14 @@ const main = async () => {
   const signer = (await ethers.getSigners())[0];
   const signerAddress = await signer.getAddress();
 
-  const minBalance = ethers.utils.parseEther('0.005');
+  const minBalance = ethers.utils.parseEther('1');
 
-  const operatorBalance = await ethers.provider.getBalance(pool);
+  const poolBalance = await ethers.provider.getBalance(pool);
   const signerBalance = await ethers.provider.getBalance(signerAddress);
 
-  console.log({ operatorBalance, signerBalance });
+  console.log({ poolBalance, signerBalance });
 
-  if (operatorBalance.lt(minBalance)) {
+  if (poolBalance.lt(minBalance)) {
     if (signerBalance.gt(minBalance)) {
       console.log('Sending eth to pool contract');
       await (await signer.sendTransaction({ to: pool, value: minBalance })).wait();

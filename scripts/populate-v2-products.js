@@ -91,28 +91,28 @@ const main = async (coverAddress, abMemberSigner) => {
 
   const migratableProducts = JSON.parse(fs.readFileSync('./deploy/migratableProducts.json'));
 
-  // [todo] Delete next line and uncomment next block at deploy
-  const migratableProductsIpfsHashes = JSON.parse(fs.readFileSync('./deploy/migratableProductsIpfsHashes.json'));
-  // const migratableProductsIpfsHashes = [];
-  // for (const product of migratableProducts) {
-  // console.log({ product });
-  // const ipfsUpload = await ipfs.add(
-  // Buffer.from(
-  // JSON.stringify({
-  // name: product.name,
-  // }),
-  // ),
-  // );
-  // await sleep(20000); // Required to avoid "Too many requests"
-  // migratableProductsIpfsHashes.push(ipfsUpload.path);
-  // }
-  // console.log({ migratableProductsIpfsHashes });
+  // Use the next line to skip reuploading when testing
+  // const migratableProductsIpfsHashes = JSON.parse(fs.readFileSync('./deploy/migratableProductsIpfsHashes.json'));
+  const migratableProductsIpfsHashes = [];
+  for (const product of migratableProducts) {
+    console.log({ product });
+    const ipfsUpload = await ipfs.add(
+      Buffer.from(
+        JSON.stringify({
+          name: product.name,
+        }),
+      ),
+    );
+    await sleep(20000); // Required to avoid "Too many requests"
+    migratableProductsIpfsHashes.push(ipfsUpload.path);
+  }
+  console.log({ migratableProductsIpfsHashes });
 
-  // fs.writeFileSync(
-  // './deploy/migratableProductsIpfsHashes.json',
-  // JSON.stringify(migratableProductsIpfsHashes, null, 2),
-  // 'utf8',
-  // );
+  fs.writeFileSync(
+    './deploy/migratableProductsIpfsHashes.json',
+    JSON.stringify(migratableProductsIpfsHashes, null, 2),
+    'utf8',
+  );
 
   {
     const tx = await cover.connect(abMemberSigner).addProducts(

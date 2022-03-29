@@ -252,14 +252,19 @@ describe('closeOrder', function () {
       expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
       expect(await dai.balanceOf(pool.address)).to.eq(0);
 
+      // Fill the order
       await cowSettlement.fill(contractOrder, orderUID, order.sellAmount, order.feeAmount, order.buyAmount);
 
-      expect(await dai.balanceOf(swapOperator.address)).to.eq(order.buyAmount);
+      // Mint extra buyToken, simulating a token rebase
+      const extraAmount = parseEther('1');
+      await dai.mint(swapOperator.address, extraAmount);
+
+      expect(await dai.balanceOf(swapOperator.address)).to.eq(order.buyAmount.add(extraAmount));
 
       await swapOperator.closeOrder(contractOrder);
 
       expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
-      expect(await dai.balanceOf(pool.address)).to.eq(order.buyAmount);
+      expect(await dai.balanceOf(pool.address)).to.eq(order.buyAmount.add(extraAmount));
     });
   });
 
@@ -281,19 +286,22 @@ describe('closeOrder', function () {
       // Cancel current order
       await swapOperator.closeOrder(contractOrder);
 
+      // Place an order swapping DAI for ETH
       const { newOrder, newContractOrder, newOrderUID } = await setupSellDaiForEth();
-
       await weth.mint(cowVaultRelayer.address, order.buyAmount);
       await swapOperator.placeOrder(newContractOrder, newOrderUID);
 
       const checkpointPoolDai = await dai.balanceOf(pool.address);
       const checkpointOperatorDai = await dai.balanceOf(swapOperator.address);
-
       expect(checkpointOperatorDai).to.eq(newOrder.sellAmount.add(newOrder.feeAmount));
+
+      // Add some extra sellToken to the swap operator balance, simulating a token rebase
+      const extraAmount = parseEther('1');
+      await dai.mint(swapOperator.address, extraAmount);
 
       await swapOperator.closeOrder(newContractOrder);
 
-      expect(await dai.balanceOf(pool.address)).to.eq(checkpointPoolDai.add(checkpointOperatorDai));
+      expect(await dai.balanceOf(pool.address)).to.eq(checkpointPoolDai.add(checkpointOperatorDai).add(extraAmount));
       expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
     });
   });

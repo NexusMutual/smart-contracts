@@ -90,7 +90,7 @@ ${priceMap[price]
 const main = async () => {
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL);
   const factory = await getContractFactory(provider);
-  const products = JSON.parse(fs.readFileSync('./scripts/contracts.json'));
+  const products = JSON.parse(fs.readFileSync('./scripts/v2-migration-input/contracts.json'));
   const migratableProducts = JSON.parse(fs.readFileSync('./deploy/migratableProducts.json'));
 
   const priceToProductMap = {};

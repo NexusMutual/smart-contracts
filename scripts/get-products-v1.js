@@ -17,7 +17,7 @@ contract ProductsV1 is IProductsV1 {
 `;
 
 const main = async () => {
-  const products = JSON.parse(fs.readFileSync('./scripts/contracts.json'));
+  const products = JSON.parse(fs.readFileSync('./scripts/v2-migration-input/contracts.json'));
   const deprecatedV1Products = Object.keys(products)
     .filter(k => products[k].deprecated)
     .map((k, i) => ({ ...products[k], productId: i, legacyProductId: k }));

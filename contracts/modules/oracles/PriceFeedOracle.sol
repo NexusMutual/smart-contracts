@@ -46,6 +46,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
     Aggregator aggregator = assetAggregators[asset];
     require(address(aggregator) != address(0), "PriceFeedOracle: Unknown asset");
 
+    // TODO: consider checking the latest timestamp and revert if it's *very* old
     int256 rate = aggregator.latestAnswer();
     require(rate > 0, "PriceFeedOracle: Rate must be > 0");
 

@@ -20,6 +20,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   /* storage */
   Asset[] public override assets;
   mapping(address => SwapDetails) public swapDetails;
+  // TODO: pack swapValue
   uint public swapValue;
 
   // contracts
@@ -29,6 +30,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   // parameters
   address public swapController;
+  // TODO: pack minPoolEth
   uint public override minPoolEth;
   IPriceFeedOracle public override priceFeedOracle;
   address public swapOperator;

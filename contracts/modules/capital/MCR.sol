@@ -88,7 +88,8 @@ contract MCR is IMCR, MasterAware {
    * @return amount of sum assured
    */
   function getAllSumAssurance() public view returns (uint) {
-    return 0; // TODO: This part is meant to be removed in v2
+    // TODO: This part is meant to be removed in v2
+    return 0;
   }
 
   /*

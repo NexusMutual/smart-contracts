@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+// TODO: consider upgrading to 0.8 to get rid of the experimental pragma
 pragma solidity >=0.5.0;
 pragma experimental ABIEncoderV2;
 
@@ -60,7 +61,6 @@ interface IPool {
   function priceFeedOracle() external view returns (IPriceFeedOracle);
 
   function getPoolValueInEth() external view returns (uint);
-
 
   function transferAssetFrom(address asset, address from, uint amount) external;
 

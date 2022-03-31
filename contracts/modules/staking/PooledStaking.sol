@@ -762,7 +762,9 @@ contract PooledStaking is IPooledStaking, MasterAware {
       weights[i] = stake * 1e18 / deposit;
     }
 
-    IStakingPool stakingPool = IStakingPool(cover.createStakingPool(stakerAddress));
+    // IStakingPool stakingPool = IStakingPool(cover.createStakingPool(stakerAddress));
+    revert("Not implemented");
+
     // [todo] Add the corresponding calls after a IStakingPool is available
     // uint stakingPositionNFT = stakingPool.deposit(deposit);
     // stakingPool.stakeAllocation(products, weights);

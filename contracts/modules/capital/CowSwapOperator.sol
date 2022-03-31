@@ -93,7 +93,6 @@ contract CowSwapOperator {
       uint buyTokenBalance = order.buyToken.balanceOf(address(pool));
       require(buyTokenBalance < swapDetails.minAmount, "SwapOp: can only buy asset when < minAmount");
       require(buyTokenBalance + order.buyAmount <= swapDetails.maxAmount, "SwapOp: swap brings buyToken above max");
-      require(buyTokenBalance + order.buyAmount >= swapDetails.minAmount, "SwapOp: swap leaves buyToken below min");
 
       // Validate minimum pool eth reserve
       require(address(pool).balance - totalOutAmount >= pool.minPoolEth(), "SwapOp: Pool eth balance below min");
@@ -120,7 +119,6 @@ contract CowSwapOperator {
       uint sellTokenBalance = order.sellToken.balanceOf(address(pool));
       require(sellTokenBalance > swapDetails.maxAmount, "SwapOp: can only sell asset when > maxAmount");
       require(sellTokenBalance - totalOutAmount >= swapDetails.minAmount, "SwapOp: swap brings sellToken below min");
-      require(sellTokenBalance - totalOutAmount <= swapDetails.maxAmount, "SwapOp: swap leaves sellToken above max");
 
       // Ask oracle how much ether we should get
       uint oracleBuyAmount = priceFeedOracle.getEthForAsset(address(order.sellToken), order.sellAmount);

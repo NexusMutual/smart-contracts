@@ -280,23 +280,15 @@ describe('placeOrder', function () {
       expect(await dai.balanceOf(pool.address)).to.eq(daiMinAmount);
     });
 
-    it('selling must bring balance below maxAmount', async function () {
+    it('selling can leave balance above maxAmount', async function () {
       const sellAmount = parseEther('24999');
       const feeAmount = parseEther('1');
       const buyAmount = parseEther('4.9998');
       const { newContractOrder, newOrderUID } = await setupSellDaiForEth({ sellAmount, feeAmount, buyAmount });
 
-      // Set balance so that balance - totalAmountOut is 1 wei above asset maxAmount
+      // Set balance so that balance - totalAmountOut is 1 wei above asset maxAmount, should succeed
       await dai.setBalance(pool.address, daiMaxAmount.add(sellAmount).add(feeAmount).add(1));
-      await expect(
-        swapOperator.placeOrder(newContractOrder, newOrderUID),
-      ).to.be.revertedWith('SwapOp: swap leaves sellToken above max');
-
-      // Set balance so the swap will leave balance at exactly maxAmount
-      await dai.setBalance(pool.address, daiMaxAmount.add(sellAmount).add(feeAmount));
       await swapOperator.placeOrder(newContractOrder, newOrderUID);
-
-      expect(await dai.balanceOf(pool.address)).to.eq(daiMaxAmount);
     });
   });
 
@@ -371,23 +363,16 @@ describe('placeOrder', function () {
       await swapOperator.placeOrder(okContractOrder, okOrderUID);
     });
 
-    it('the swap must bring buyToken above minAmount', async function () {
+    it('the swap can leave buyToken below minAmount', async function () {
       await dai.setBalance(pool.address, 0);
 
-      // try to place an order that will bring balance 1 wei below min, should fail
+      // place an order that will bring balance 1 wei below min, should succeed
       const buyAmount = daiMinAmount.sub(1);
       const smallOrder = { ...order, buyAmount, sellAmount: buyAmount.div(5000) };
       const smallContractOrder = makeContractOrder(smallOrder);
       const smallOrderUID = computeOrderUid(domain, smallOrder, smallOrder.receiver);
 
-      await expect(swapOperator.placeOrder(smallContractOrder, smallOrderUID))
-        .to.be.revertedWith('SwapOp: swap leaves buyToken below min');
-
-      // place an order that will bring balance exactly to minAmount, should succeed
-      const okOrder = { ...order, buyAmount: daiMinAmount, sellAmount: buyAmount.div(5000) };
-      const okContractOrder = makeContractOrder(okOrder);
-      const okOrderUID = computeOrderUid(domain, okOrder, okOrder.receiver);
-      await swapOperator.placeOrder(okContractOrder, okOrderUID);
+      await swapOperator.placeOrder(smallContractOrder, smallOrderUID);
     });
   });
 

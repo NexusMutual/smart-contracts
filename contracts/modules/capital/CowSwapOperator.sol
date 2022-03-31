@@ -3,6 +3,7 @@ pragma solidity ^0.8.9;
 
 import "../../external/cow/GPv2Order.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/utils/math/Math.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
@@ -11,6 +12,8 @@ import "../../interfaces/ICowSettlement.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 
 contract CowSwapOperator {
+  using SafeERC20 for IERC20;
+
   // Storage
   bytes public currentOrderUID;
 
@@ -177,8 +180,10 @@ contract CowSwapOperator {
     // Cancel signature and unapprove tokens
     if (!fullyFilled) {
       cowSettlement.setPreSignature(currentOrderUID, false);
-      approveVaultRelayer(order.sellToken, 0);
     }
+
+    // Clear allowance
+    approveVaultRelayer(order.sellToken, 0);
 
     // Clear the current order
     delete currentOrderUID;
@@ -205,7 +210,7 @@ contract CowSwapOperator {
       weth.withdraw(balance); // Unwrap WETH
       payable(address(_pool())).transfer(balance); // Transfer ETH to pool
     } else {
-      asset.transfer(address(_pool()), balance); // Transfer ERC20 to pool
+      asset.safeTransfer(address(_pool()), balance); // Transfer ERC20 to pool
     }
   }
 
@@ -232,7 +237,7 @@ contract CowSwapOperator {
   }
 
   function approveVaultRelayer(IERC20 token, uint amount) internal {
-    token.approve(cowVaultRelayer, amount); // infinite approval
+    token.safeApprove(cowVaultRelayer, amount);
   }
 
   function validateUID(GPv2Order.Data calldata order, bytes memory providedOrderUID) internal view {

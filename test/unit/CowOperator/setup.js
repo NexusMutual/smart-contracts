@@ -81,7 +81,6 @@ async function setup () {
     await owner.getAddress(),
     master.address,
     weth.address,
-    priceFeedOracle.address,
   );
 
   // Setup pool's swap operator

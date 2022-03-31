@@ -23,7 +23,6 @@ contract CowSwapOperator {
   INXMMaster public immutable master;
   address public immutable swapController;
   IWeth public immutable weth;
-  IPriceFeedOracle public immutable priceFeedOracle;
   bytes32 public immutable domainSeparator;
 
   // Constants
@@ -51,15 +50,13 @@ contract CowSwapOperator {
     address _cowSettlement,
     address _swapController,
     address _master,
-    address _weth,
-    address _priceFeedOracle
+    address _weth
   ) {
     cowSettlement = ICowSettlement(_cowSettlement);
     cowVaultRelayer = cowSettlement.vaultRelayer();
     master = INXMMaster(_master);
     swapController = _swapController;
     weth = IWeth(_weth);
-    priceFeedOracle = IPriceFeedOracle(_priceFeedOracle);
     domainSeparator = cowSettlement.domainSeparator();
   }
 
@@ -95,6 +92,7 @@ contract CowSwapOperator {
 
     // Local variables
     IPool pool = _pool();
+    IPriceFeedOracle priceFeedOracle = pool.priceFeedOracle();
     uint totalOutAmount = order.sellAmount + order.feeAmount;
 
     if (isSellingEth(order)) {

@@ -40,7 +40,7 @@ async function assertCoverFields (
   assert.equal(storedCoverData.amountPaidOut, '0');
   assert.equal(segment.period, period);
   assert.equal(segment.amount.toString(), amount.toString());
-  bnEqual(segment.priceRatio, BigNumber.from(targetPriceRatio));
+  bnEqual(segment.priceRatio, targetPriceRatio);
 }
 
 async function buyCoverOnOnePool (

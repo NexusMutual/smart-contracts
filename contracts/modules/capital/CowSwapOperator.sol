@@ -34,6 +34,11 @@ contract CowSwapOperator {
   event OrderPlaced(GPv2Order.Data order);
   event OrderClosed(GPv2Order.Data order, uint filledAmount);
 
+  /// Fee too high: `current`. Max is `maxFee`
+  /// @param current actual fee
+  /// @param maxFee maximum allowed fee
+  error FeeTooHigh(uint current, uint maxFee);
+
   modifier onlyController() {
     require(msg.sender == swapController, "SwapOp: only controller can execute");
     _;
@@ -80,7 +85,10 @@ contract CowSwapOperator {
     validateBasicCowParams(order);
 
     // Validate feeAmount is not too high
-    require(order.sellAmount / order.feeAmount >= MIN_SELL_AMT_TO_FEE_RATIO, "SwapOp: Fee is above 1% of sellAmount");
+    uint maxFee = order.sellAmount / MIN_SELL_AMT_TO_FEE_RATIO;
+    if (order.feeAmount > maxFee) {
+      revert FeeTooHigh(order.feeAmount, maxFee);
+    }
 
     // Local variables
     IPool pool = _pool();

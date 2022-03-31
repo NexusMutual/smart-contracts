@@ -212,7 +212,7 @@ describe('placeOrder', function () {
     const invalidContractOrder = makeContractOrder(invalidOrder);
     const invalidOrderUID = computeOrderUid(domain, invalidOrder, invalidOrder.receiver);
     await expect(swapOperator.placeOrder(invalidContractOrder, invalidOrderUID))
-      .to.be.revertedWith('SwapOp: Fee is above 1% of sellAmount');
+      .to.be.revertedWith('FeeTooHigh(100, 99)');
 
     // Order with fee exactly 1%, should succeed
     const validOrder = { ...order, sellAmount: 10000, feeAmount: 100 };

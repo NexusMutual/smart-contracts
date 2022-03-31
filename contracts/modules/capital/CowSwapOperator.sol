@@ -205,10 +205,15 @@ contract CowSwapOperator {
     }
 
     if (address(asset) == address(weth)) {
-      weth.withdraw(balance); // Unwrap WETH
-      payable(address(_pool())).transfer(balance); // Transfer ETH to pool
+      // Unwrap WETH
+      weth.withdraw(balance);
+
+      // Transfer ETH to pool
+      (bool sent, ) = payable(address(_pool())).call{value: balance}("");
+      require(sent, "Failed to send Ether");
     } else {
-      asset.safeTransfer(address(_pool()), balance); // Transfer ERC20 to pool
+      // Transfer ERC20 to pool
+      asset.safeTransfer(address(_pool()), balance);
     }
   }
 

@@ -109,6 +109,6 @@ interface IStakingPool is IERC721 {
     uint capacityReductionRatio,
     uint period
   ) external view returns (
-    uint activeCover, uint capacity, uint lastBasePrice, uint targetPrice
+    uint activeCover, uint[] memory capacities, uint lastBasePrice, uint targetPrice
   );
 }

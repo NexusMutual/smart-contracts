@@ -157,4 +157,6 @@ interface ICover {
 
   /* ========== EVENTS ========== */
 
+
+  function MAX_COVER_PERIOD() external view returns (uint);
 }

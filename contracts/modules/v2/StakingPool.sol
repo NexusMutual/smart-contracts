@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/math/SafeCast.sol";
 import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/ICover.sol";
 
 // total stake = active stake + expired stake
 // product stake = active stake * product weight
@@ -477,20 +478,25 @@ contract StakingPool is IStakingPool, ERC721 {
     uint capacityReductionRatio,
     uint period
   ) external view returns (
-    uint activeCover, uint capacity, uint lastBasePrice, uint targetPrice
+    uint activeCover, uint[] memory capacities, uint lastBasePrice, uint targetPrice
   ) {
 
     Product storage product = products[productId];
 
     activeCover = getAllocatedProductStake(productId);
 
-    uint staked = getProductStake(productId, block.timestamp + period);
-    capacity = calculateCapacity(
-      staked,
-      product.weight,
-      globalCapacityRatio,
-      capacityReductionRatio
-    );
+    uint maxGroupSpanCount = ICover(coverContract).MAX_COVER_PERIOD() / GROUP_SIZE + 1;
+    capacities = new uint[](maxGroupSpanCount);
+    for (uint i = 0; i < maxGroupSpanCount; i++) {
+      uint staked = getProductStake(productId, block.timestamp + i * GROUP_SIZE);
+
+      capacities[i] = calculateCapacity(
+        staked,
+        product.weight,
+        globalCapacityRatio,
+        capacityReductionRatio
+      );
+    }
     lastBasePrice = lastBasePrices[productId].value;
     targetPrice = targetPrices[productId];
   }

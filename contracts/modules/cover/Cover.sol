@@ -679,7 +679,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     IStakingPool _pool = stakingPool(poolId);
     Product memory product = _products[productId];
 
-    (params.activeCover, params.capacity, params.lastBasePrice, params.targetPrice) = _pool.getPriceParameters(
+    (params.activeCover, params.capacities, params.lastBasePrice, params.targetPrice) = _pool.getPriceParameters(
       productId, globalCapacityRatio, product.capacityReductionRatio, period
     );
     params.initialPriceRatio = product.initialPriceRatio;
@@ -687,7 +687,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   struct PoolAllocationPriceParameters {
     uint activeCover;
-    uint capacity;
+    uint[] capacities;
     uint initialPriceRatio;
     uint lastBasePrice;
     uint targetPrice;

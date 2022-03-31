@@ -278,7 +278,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     }
 
     require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");
-    coverContract.performPayoutBurn(coverId, segmentId, payoutAmount);
+    coverContract.burnStakers(coverId, segmentId, payoutAmount);
     SafeERC20.safeTransferFrom(
       IERC20(product.productAddress),
       msg.sender,

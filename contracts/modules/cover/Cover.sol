@@ -434,7 +434,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   }
 
   // TODO: implement properly. we need the staking interface for burning.
-  function performPayoutBurn(
+  function burnStakers(
     uint coverId,
     uint segmentId,
     uint burnAmount

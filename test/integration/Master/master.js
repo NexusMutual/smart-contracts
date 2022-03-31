@@ -7,7 +7,7 @@ const { hex, bnEqual } = require('../utils').helpers;
 
 const [owner] = accounts;
 
-const Claims = artifacts.require('LegacyClaims');
+const CoverMigrator = artifacts.require('CoverMigrator');
 const ClaimsReward = artifacts.require('LegacyClaimsReward');
 const MCR = artifacts.require('DisposableMCR');
 const Pool = artifacts.require('Pool');
@@ -17,7 +17,7 @@ const TokenController = artifacts.require('TokenController');
 const Governance = artifacts.require('Governance');
 const PooledStaking = artifacts.require('PooledStaking');
 const Gateway = artifacts.require('Gateway');
-const Incidents = artifacts.require('Incidents');
+const IndividualClaims = artifacts.require('IndividualClaims');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const MMockNewContract = artifacts.require('MMockNewContract');
 const ProposalCategoryContract = artifacts.require('ProposalCategory');
@@ -171,7 +171,7 @@ describe('master', function () {
     const contractCodes = ['TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC'];
     const newAddresses = [
       await TokenController.new(qd.address),
-      await Claims.new(),
+      await CoverMigrator.new(),
       await ClaimsReward.new(master.address, dai.address),
       await Pool.new(
         [dai.address], // assets
@@ -189,7 +189,7 @@ describe('master', function () {
       await MemberRoles.new(),
       await PooledStaking.new(),
       await Gateway.new(),
-      await Incidents.new(),
+      await IndividualClaims.new(),
     ].map(c => c.address);
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(

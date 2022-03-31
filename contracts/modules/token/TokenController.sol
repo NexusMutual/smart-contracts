@@ -66,85 +66,15 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   }
 
   /**
-  * @dev Locks a specified amount of tokens against an address,
-  *    for a specified reason and time
-  * @param _reason The reason to lock tokens
-  * @param _amount Number of tokens to be locked
-  * @param _time Lock time in seconds
-  * @param _of address whose tokens are to be locked
-  */
-  function lockOf(
-    address _of,
-    bytes32 _reason,
-    uint256 _amount,
-    uint256 _time
-  ) public override onlyInternal returns (bool) {
-    // If tokens are already locked, then functions extendLock or
-    // increaseLockAmount should be used to make any changes
-    _lock(_of, _reason, _amount, _time);
-    return true;
-  }
-
-  /**
-  * @dev Extends lock for a specified reason and time
-  * @param _reason The reason to lock tokens
-  * @param _time Lock extension time in seconds
-  */
-  function extendLockOf(
-    address _of,
-    bytes32 _reason,
-    uint256 _time
-  ) public override onlyInternal returns (bool) {
-    _extendLock(_of, _reason, _time);
-    return true;
-  }
-
-  /**
    * @dev burns tokens of an address
    * @param _of is the address to burn tokens of
    * @param amount is the amount to burn
    * @return the boolean status of the burning process
    */
   function burnFrom(address _of, uint amount) public override onlyInternal returns (bool) {
+    // [todo] Check if conracts can call token.burnFrom directly instead of
+    // calling through TokenController
     return token.burnFrom(_of, amount);
-  }
-
-  /**
-  * @dev Burns locked tokens of a user
-  * @param _of address whose tokens are to be burned
-  * @param _reason lock reason for which tokens are to be burned
-  * @param _amount amount of tokens to burn
-  */
-  function burnLockedTokens(
-    address _of,
-    bytes32 _reason,
-    uint256 _amount
-  ) public override onlyInternal {
-    _burnLockedTokens(_of, _reason, _amount);
-  }
-
-  /**
-  * @dev reduce lock duration for a specified reason and time
-  * @param _of The address whose tokens are locked
-  * @param _reason The reason to lock tokens
-  * @param _time Lock reduction time in seconds
-  */
-  function reduceLock(address _of, bytes32 _reason, uint256 _time) public override onlyInternal {
-    _reduceLock(_of, _reason, _time);
-  }
-
-  /**
-  * @dev Released locked tokens of an address locked for a specific reason
-  * @param _of address whose tokens are to be released from lock
-  * @param _reason reason of the lock
-  * @param _amount amount of tokens to release
-  */
-  function releaseLockedTokens(
-    address _of,
-    bytes32 _reason,
-    uint256 _amount
-  ) public override onlyInternal {
-    _releaseLockedTokens(_of, _reason, _amount);
   }
 
   /**
@@ -181,15 +111,20 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   }
 
   /**
-  * @dev Unlocks the withdrawable tokens against CLA of a specified address
-  * @param _of Address of user, claiming back withdrawable tokens against CLA
+  * @dev Unlocks the withdrawable tokens against CLA of a specified addresses
+  * @param users  Addresses of users for whom the tokens are unlocked
   */
-  function withdrawClaimAssessmentTokens(address _of) external override checkPause {
-    uint256 withdrawableTokens = _tokensUnlockable(_of, "CLA");
-    if (withdrawableTokens > 0) {
-      locked[_of]["CLA"].claimed = true;
-      emit Unlocked(_of, "CLA", withdrawableTokens);
-      token.transfer(_of, withdrawableTokens);
+  function withdrawClaimAssessmentTokens(address[] calldata users) external {
+    for (uint256 i = 0; i < users.length; i++) {
+      if (locked[users[i]]["CLA"].claimed) {
+        continue;
+      }
+      uint256 amount = locked[users[i]]["CLA"].amount;
+      if (amount > 0) {
+        locked[users[i]]["CLA"].claimed = true;
+        emit Unlocked(users[i], "CLA", amount);
+        token.transfer(users[i], amount);
+      }
     }
   }
 
@@ -209,93 +144,8 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     return lockReason[_of];
   }
 
-  /**
-  * @dev Gets the validity of locked tokens of a specified address
-  * @param _of The address to query the validity
-  * @param reason reason for which tokens were locked
-  */
-  function getLockedTokensValidity(
-    address _of,
-    bytes32 reason
-  ) public override view returns (uint256 validity) {
-    validity = locked[_of][reason].validity;
-  }
-
-  /**
-  * @dev Gets the unlockable tokens of a specified address
-  * @param _of The address to query the the unlockable token count of
-  */
-  function getUnlockableTokens(
-    address _of
-  ) public override view returns (uint256 unlockableTokens) {
-    for (uint256 i = 0; i < lockReason[_of].length; i++) {
-      unlockableTokens = unlockableTokens + _tokensUnlockable(_of, lockReason[_of][i]);
-    }
-  }
-
-  /**
-  * @dev Returns tokens locked for a specified address for a
-  *    specified reason
-  *
-  * @param _of The address whose tokens are locked
-  * @param _reason The reason to query the lock tokens for
-  */
-  function tokensLocked(
-    address _of,
-    bytes32 _reason
-  ) public override view returns (uint256 amount) {
-    return _tokensLocked(_of, _reason);
-  }
-
-  /**
-  * @dev Returns tokens locked and validity for a specified address and reason
-  * @param _of The address whose tokens are locked
-  * @param _reason The reason to query the lock tokens for
-  */
-  function tokensLockedWithValidity(
-    address _of,
-    bytes32 _reason
-  ) public override view returns (uint256 amount, uint256 validity) {
-
-    bool claimed = locked[_of][_reason].claimed;
-    amount = locked[_of][_reason].amount;
-    validity = locked[_of][_reason].validity;
-
-    if (claimed) {
-      amount = 0;
-    }
-  }
-
-  /**
-  * @dev Returns unlockable tokens for a specified address for a specified reason
-  * @param _of The address to query the the unlockable token count of
-  * @param _reason The reason to query the unlockable tokens for
-  */
-  function tokensUnlockable(
-    address _of,
-    bytes32 _reason
-  ) public override view returns (uint256 amount) {
-    return _tokensUnlockable(_of, _reason);
-  }
-
   function totalSupply() public override view returns (uint256) {
     return token.totalSupply();
-  }
-
-  /**
-  * @dev Returns tokens locked for a specified address for a
-  *    specified reason at a specific time
-  *
-  * @param _of The address whose tokens are locked
-  * @param _reason The reason to query the lock tokens for
-  * @param _time The timestamp to query the lock tokens for
-  */
-  function tokensLockedAtTime(
-    address _of,
-    bytes32 _reason,
-    uint256 _time
-  ) public override view returns (uint256 amount) {
-    return _tokensLockedAtTime(_of, _reason, _time);
   }
 
   /**
@@ -310,10 +160,14 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
     amount = token.balanceOf(_of);
 
+    // This loop can be removed once all cover notes are withdrawn
     for (uint256 i = 0; i < lockReason[_of].length; i++) {
       amount = amount + _tokensLocked(_of, lockReason[_of][i]);
     }
 
+    // [todo] Consider accounting for v2 staking pools
+
+    // [todo] Can be removed after PooledStaking is decommissioned
     uint stakerReward = pooledStaking.stakerReward(_of);
     uint stakerDeposit = pooledStaking.stakerDeposit(_of);
 
@@ -357,159 +211,19 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
 
   /**
-  * @dev Returns the total amount of locked and staked tokens.
-  *      Used by MemberRoles to check eligibility for withdraw / switch membership.
-  *      Includes tokens locked for claim assessment, tokens staked for risk assessment, and locked cover notes
-  *      Does not take into account pending burns.
-  * @param _of member whose locked tokens are to be calculate
-  */
-  function totalLockedBalance(address _of) public override view returns (uint256 amount) {
-
-    for (uint256 i = 0; i < lockReason[_of].length; i++) {
-      amount = amount + _tokensLocked(_of, lockReason[_of][i]);
-    }
-
-  }
-
-  /**
-  * @dev Locks a specified amount of tokens against an address,
-  *    for a specified reason and time
-  * @param _of address whose tokens are to be locked
-  * @param _reason The reason to lock tokens
-  * @param _amount Number of tokens to be locked
-  * @param _time Lock time in seconds
-  */
-  function _lock(address _of, bytes32 _reason, uint256 _amount, uint256 _time) internal {
-    require(_tokensLocked(_of, _reason) == 0, "TokenController: An amount of tokens is already locked");
-    require(_amount != 0, "TokenController: Amount shouldn't be zero");
-
-    if (locked[_of][_reason].amount == 0) {
-      lockReason[_of].push(_reason);
-    }
-
-    token.operatorTransfer(_of, _amount);
-
-    uint256 validUntil = block.timestamp + _time;
-    locked[_of][_reason] = LockToken(_amount, validUntil, false);
-    emit Locked(_of, _reason, _amount, validUntil);
-  }
-
-  /**
   * @dev Returns tokens locked for a specified address for a
   *    specified reason
   *
   * @param _of The address whose tokens are locked
   * @param _reason The reason to query the lock tokens for
   */
-  function _tokensLocked(address _of, bytes32 _reason)
-  internal
-  view
-  returns (uint256 amount)
-  {
+  function _tokensLocked(
+    address _of,
+    bytes32 _reason
+  ) internal view returns (uint256 amount) {
     if (!locked[_of][_reason].claimed) {
       amount = locked[_of][_reason].amount;
     }
-  }
-
-  /**
-  * @dev Returns tokens locked for a specified address for a
-  *    specified reason at a specific time
-  *
-  * @param _of The address whose tokens are locked
-  * @param _reason The reason to query the lock tokens for
-  * @param _time The timestamp to query the lock tokens for
-  */
-  function _tokensLockedAtTime(address _of, bytes32 _reason, uint256 _time)
-  internal
-  view
-  returns (uint256 amount)
-  {
-    if (locked[_of][_reason].validity > _time) {
-      amount = locked[_of][_reason].amount;
-    }
-  }
-
-  /**
-  * @dev Extends lock for a specified reason and time
-  * @param _of The address whose tokens are locked
-  * @param _reason The reason to lock tokens
-  * @param _time Lock extension time in seconds
-  */
-  function _extendLock(address _of, bytes32 _reason, uint256 _time) internal {
-    require(_tokensLocked(_of, _reason) > 0, "TokenController: No tokens locked");
-    emit Unlocked(_of, _reason, locked[_of][_reason].amount);
-    locked[_of][_reason].validity = locked[_of][_reason].validity + _time;
-    emit Locked(_of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
-  }
-
-  /**
-  * @dev reduce lock duration for a specified reason and time
-  * @param _of The address whose tokens are locked
-  * @param _reason The reason to lock tokens
-  * @param _time Lock reduction time in seconds
-  */
-  function _reduceLock(address _of, bytes32 _reason, uint256 _time) internal {
-    require(_tokensLocked(_of, _reason) > 0, "TokenController: No tokens locked");
-    emit Unlocked(_of, _reason, locked[_of][_reason].amount);
-    locked[_of][_reason].validity = locked[_of][_reason].validity - _time;
-    emit Locked(_of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
-  }
-
-  /**
-  * @dev Returns unlockable tokens for a specified address for a specified reason
-  * @param _of The address to query the the unlockable token count of
-  * @param _reason The reason to query the unlockable tokens for
-  */
-  function _tokensUnlockable(address _of, bytes32 _reason) internal view returns (uint256 amount)
-  {
-    if (locked[_of][_reason].validity <= block.timestamp && !locked[_of][_reason].claimed) {
-      amount = locked[_of][_reason].amount;
-    }
-  }
-
-  /**
-  * @dev Burns locked tokens of a user
-  * @param _of address whose tokens are to be burned
-  * @param _reason lock reason for which tokens are to be burned
-  * @param _amount amount of tokens to burn
-  */
-  function _burnLockedTokens(address _of, bytes32 _reason, uint256 _amount) internal {
-    uint256 amount = _tokensLocked(_of, _reason);
-    require(amount >= _amount, "TokenController: Amount exceedes locked tokens amount");
-
-    if (amount == _amount) {
-      locked[_of][_reason].claimed = true;
-    }
-
-    locked[_of][_reason].amount = locked[_of][_reason].amount - _amount;
-
-    // lock reason removal is skipped here: needs to be done from offchain
-
-    token.burn(_amount);
-    emit Burned(_of, _reason, _amount);
-  }
-
-  /**
-  * @dev Released locked tokens of an address locked for a specific reason
-  * @param _of address whose tokens are to be released from lock
-  * @param _reason reason of the lock
-  * @param _amount amount of tokens to release
-  */
-  function _releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount) internal
-  {
-    uint256 amount = _tokensLocked(_of, _reason);
-    require(amount >= _amount, "TokenController: Amount exceedes locked tokens amount");
-
-    if (amount == _amount) {
-      locked[_of][_reason].claimed = true;
-    }
-
-    locked[_of][_reason].amount = locked[_of][_reason].amount - _amount;
-
-    // lock reason removal is skipped here: needs to be done from offchain
-
-    token.transfer(_of, _amount);
-    emit Unlocked(_of, _reason, _amount);
   }
 
   // Can be removed once all cover notes are withdrawn
@@ -590,53 +304,10 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     token.transfer(user, totalAmount);
   }
 
-  function removeEmptyReason(address _of, bytes32 _reason, uint _index) external {
-    _removeEmptyReason(_of, _reason, _index);
-  }
-
-  function removeMultipleEmptyReasons(
-    address[] calldata _members,
-    bytes32[] calldata _reasons,
-    uint[] calldata _indexes
-  ) external {
-
-    require(_members.length == _reasons.length, "TokenController: members and reasons array lengths differ");
-    require(_reasons.length == _indexes.length, "TokenController: reasons and indexes array lengths differ");
-
-    for (uint i = _members.length; i > 0; i--) {
-      uint idx = i - 1;
-      _removeEmptyReason(_members[idx], _reasons[idx], _indexes[idx]);
-    }
-  }
-
-  function _removeEmptyReason(address _of, bytes32 _reason, uint _index) internal {
-
-    require(lockReason[_of].length > 0, "TokenController: lockReason is empty");
-    uint lastReasonIndex = lockReason[_of].length- 1;
-
-    require(lockReason[_of][_index] == _reason, "TokenController: bad reason index");
-    require(locked[_of][_reason].amount == 0, "TokenController: reason amount is not zero");
-
-    if (lastReasonIndex != _index) {
-      lockReason[_of][_index] = lockReason[_of][lastReasonIndex];
-    }
-
-    lockReason[_of].pop();
-  }
-
   function initialize() external {
     token.addToWhiteList(address(this));
     token.removeFromWhiteList(claimsReward);
-    migrate();
   }
-
-  function migrate() internal {
-    // [todo] Remove CLA locks for all assessors
-  }
-
-  event Locked(address indexed _of, bytes32 indexed _reason, uint256 _amount, uint256 _validity);
-
-  event Unlocked(address indexed _of, bytes32 indexed _reason, uint256 _amount);
 
   event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
 

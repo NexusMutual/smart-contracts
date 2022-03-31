@@ -1430,7 +1430,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
       uint price = getV1ProceForProduct(products[i]);
       params[migrateAtIndex] = ProductInitializationParams(
         products[i], // productId
-        uint8(min(stakes[i] * 1e18 / deposit / 1e16, 100)), // weight
+        uint8(min(stakes[i] * 1e18 / deposit / 1e16, 100)), // weight (0-100)
         price, // initialPrice
         price // targetPrice
       );
@@ -1439,17 +1439,20 @@ contract PooledStaking is IPooledStaking, MasterAware {
 
     {
       IStakingPool stakingPool = IStakingPool(cover.createStakingPool(stakerAddress, params));
+      uint stakePositionNFTId;
 
-      // [todo] This might require an offset to start the first group at the time of v2 deploy
-      uint GROUP_SIZE = 91 days;
-      uint firstActiveGroupId = block.timestamp / GROUP_SIZE;
+      {
+        // [todo] This might require an offset to start the first group at the time of v2 deploy
+        uint GROUP_SIZE = 91 days;
+        uint firstActiveGroupId = block.timestamp / GROUP_SIZE;
 
-      // Use the groupId provided as a paramtere if the user is migrating to v2 himself
-      // Use next id after the first active gorup id for those in the initial migration list
-      uint groupIdInEffect = stakerAddress == msg.sender ? groupId : firstActiveGroupId + 1;
+        // Use the groupId provided as a paramtere if the user is migrating to v2 himself
+        // Use next id after the first active gorup id for those in the initial migration list
+        uint groupIdInEffect = stakerAddress == msg.sender ? groupId : firstActiveGroupId + 1;
 
-      // Move deposit to v2 pool
-      uint stakePositionNFTId = stakingPool.deposit(deposit, groupIdInEffect, 0);
+        // Move deposit to v2 pool
+        stakePositionNFTId = stakingPool.deposit(deposit, groupIdInEffect, 0);
+      }
 
       // NFT transfer reverts if stakerAddress is a contract that doesn't implement IERC721Receiver
       stakingPool.safeTransferFrom(address(this), stakerAddress, stakePositionNFTId);

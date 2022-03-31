@@ -26,7 +26,6 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
   ITokenData internal td;
   IQuotationData internal qd;
   ILegacyClaims internal c1;
-  ILegacyClaimsData internal cd;
   IPool internal pool;
   IGovernance internal gv;
   uint internal unused;
@@ -40,13 +39,8 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   uint private constant DECIMAL1E18 = uint(10) ** 18;
 
-  constructor (
-    address masterAddress,
-    address _daiAddress,
-    address legacyClaimsData
-  ) {
+  constructor (address masterAddress, address _daiAddress) {
     changeMasterAddress(masterAddress);
-    cd = ILegacyClaimsData(legacyClaimsData);
     DAI = _daiAddress;
   }
 

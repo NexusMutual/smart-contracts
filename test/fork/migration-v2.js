@@ -4,6 +4,7 @@ const { artifacts, ethers, config, network, run } = require('hardhat');
 const { expect } = require('chai');
 const { setNextBlockTime, mineNextBlock } = require('../utils/evm');
 const { main: getLegacyAssessmentRewards } = require('../../scripts/get-legacy-assessment-rewards');
+const { main: getLockedInV1ClaimAssessment } = require('../../scripts/get-locked-in-v1-claim-assessment');
 const { main: getProductsV1 } = require('../../scripts/get-products-v1');
 const { main: populateV2Products } = require('../../scripts/populate-v2-products');
 const hre = require('hardhat');
@@ -402,6 +403,12 @@ describe('v2 migration', function () {
 
   it('initialize TokenController', async function () {
     const tx = await this.tokenController.initialize();
+    await tx.wait();
+  });
+
+  it('run get-locked-in-v1-claim-assessment script and call withdrawClaimAssessmentTokens', async function () {
+    const eligibleForUnlock = await getLockedInV1ClaimAssessment();
+    const tx = await this.tokenController.withdrawClaimAssessmentTokens(eligibleForUnlock.map(x => x.member));
     await tx.wait();
   });
 

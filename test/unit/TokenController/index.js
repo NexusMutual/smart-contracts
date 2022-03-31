@@ -11,7 +11,4 @@ describe('TokenController', function () {
   afterEach(async function () {
     await revertToSnapshot(this.snapshotId);
   });
-
-  require('./removeEmptyReason');
-  require('./removeMultipleEmptyReasons');
 });

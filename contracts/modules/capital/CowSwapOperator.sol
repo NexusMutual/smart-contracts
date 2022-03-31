@@ -12,24 +12,27 @@ import "../../interfaces/IPriceFeedOracle.sol";
 
 contract CowSwapOperator {
   // Storage
+  bytes public currentOrderUID;
+
+  // Immutables
   ICowSettlement public immutable cowSettlement;
   address public immutable cowVaultRelayer;
   INXMMaster public immutable master;
   address public immutable swapController;
   IWeth public immutable weth;
   IPriceFeedOracle public immutable priceFeedOracle;
-  bytes public currentOrderUID;
   bytes32 public immutable domainSeparator;
 
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
-  uint256 constant MIN_VALID_TO_PERIOD = 600; // 10 minutes
-  uint256 constant MAX_VALID_TO_PERIOD = 3600; // 60 minutes
-  uint256 constant MIN_SELL_AMT_TO_FEE_RATIO = 100; // Sell amount at least 100x fee amount
+  uint constant MIN_VALID_TO_PERIOD = 600; // 10 minutes
+  uint constant MAX_VALID_TO_PERIOD = 3600; // 60 minutes
+  uint constant MIN_SELL_AMT_TO_FEE_RATIO = 100; // Sell amount at least 100x fee amount
 
+  // Events
   event OrderPlaced(GPv2Order.Data order);
-  event OrderClosed(GPv2Order.Data order, uint256 filledAmount);
+  event OrderClosed(GPv2Order.Data order, uint filledAmount);
 
   modifier onlyController() {
     require(msg.sender == swapController, "SwapOp: only controller can execute");
@@ -81,13 +84,13 @@ contract CowSwapOperator {
 
     // Local variables
     IPool pool = _pool();
-    uint256 totalOutAmount = order.sellAmount + order.feeAmount;
+    uint totalOutAmount = order.sellAmount + order.feeAmount;
 
     if (isSellingEth(order)) {
       // Validate min/max setup for buyToken
       IPool.SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(order.buyToken));
       require(swapDetails.minAmount != 0 || swapDetails.maxAmount != 0, "SwapOp: buyToken is not enabled");
-      uint256 buyTokenBalance = order.buyToken.balanceOf(address(pool));
+      uint buyTokenBalance = order.buyToken.balanceOf(address(pool));
       require(buyTokenBalance < swapDetails.minAmount, "SwapOp: can only buy asset when < minAmount");
       require(buyTokenBalance + order.buyAmount <= swapDetails.maxAmount, "SwapOp: swap brings buyToken above max");
       require(buyTokenBalance + order.buyAmount >= swapDetails.minAmount, "SwapOp: swap leaves buyToken below min");
@@ -96,11 +99,11 @@ contract CowSwapOperator {
       require(address(pool).balance - totalOutAmount >= pool.minPoolEth(), "SwapOp: Pool eth balance below min");
 
       // Ask oracle how much of the other asset we should get
-      uint256 oracleBuyAmount = priceFeedOracle.getAssetForEth(address(order.buyToken), order.sellAmount);
+      uint oracleBuyAmount = priceFeedOracle.getAssetForEth(address(order.buyToken), order.sellAmount);
 
       // Calculate slippage and minimum amount we should accept
-      uint256 maxSlippageAmount = (oracleBuyAmount * swapDetails.maxSlippageRatio) / MAX_SLIPPAGE_DENOMINATOR;
-      uint256 minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
+      uint maxSlippageAmount = (oracleBuyAmount * swapDetails.maxSlippageRatio) / MAX_SLIPPAGE_DENOMINATOR;
+      uint minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
 
       require(order.buyAmount >= minBuyAmountOnMaxSlippage, "SwapOp: order.buyAmount too low (oracle)");
 
@@ -114,24 +117,24 @@ contract CowSwapOperator {
       // Validate min/max setup for sellToken
       IPool.SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(order.sellToken));
       require(swapDetails.minAmount != 0 || swapDetails.maxAmount != 0, "SwapOp: sellToken is not enabled");
-      uint256 sellTokenBalance = order.sellToken.balanceOf(address(pool));
+      uint sellTokenBalance = order.sellToken.balanceOf(address(pool));
       require(sellTokenBalance > swapDetails.maxAmount, "SwapOp: can only sell asset when > maxAmount");
       require(sellTokenBalance - totalOutAmount >= swapDetails.minAmount, "SwapOp: swap brings sellToken below min");
       require(sellTokenBalance - totalOutAmount <= swapDetails.maxAmount, "SwapOp: swap leaves sellToken above max");
 
       // Ask oracle how much ether we should get
-      uint256 oracleBuyAmount = priceFeedOracle.getEthForAsset(address(order.sellToken), order.sellAmount);
+      uint oracleBuyAmount = priceFeedOracle.getEthForAsset(address(order.sellToken), order.sellAmount);
 
       // Calculate slippage and minimum amount we should accept
-      uint256 maxSlippageAmount = (oracleBuyAmount * swapDetails.maxSlippageRatio) / MAX_SLIPPAGE_DENOMINATOR;
-      uint256 minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
+      uint maxSlippageAmount = (oracleBuyAmount * swapDetails.maxSlippageRatio) / MAX_SLIPPAGE_DENOMINATOR;
+      uint minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
       require(order.buyAmount >= minBuyAmountOnMaxSlippage, "SwapOp: order.buyAmount too low (oracle)");
 
       // Transfer ERC20 asset from Pool
       pool.transferAssetToSwapOperator(address(order.sellToken), totalOutAmount);
 
       // Calculate swapValue using oracle and set it on the pool
-      uint256 swapValue = priceFeedOracle.getEthForAsset(address(order.sellToken), totalOutAmount);
+      uint swapValue = priceFeedOracle.getEthForAsset(address(order.sellToken), totalOutAmount);
       pool.setSwapValue(swapValue);
     } else {
       revert("SwapOp: Must either sell or buy eth");
@@ -162,7 +165,7 @@ contract CowSwapOperator {
     validateUID(order, currentOrderUID);
 
     // Check how much of the order was filled, and if it was fully filled
-    uint256 filledAmount = cowSettlement.filledAmount(currentOrderUID);
+    uint filledAmount = cowSettlement.filledAmount(currentOrderUID);
     bool fullyFilled = filledAmount == order.sellAmount;
 
     // Cancel signature and unapprove tokens
@@ -186,7 +189,7 @@ contract CowSwapOperator {
   }
 
   function returnAssetToPool(IERC20 asset) internal {
-    uint256 balance = asset.balanceOf(address(this));
+    uint balance = asset.balanceOf(address(this));
 
     if (balance == 0) {
       return;
@@ -222,7 +225,7 @@ contract CowSwapOperator {
     );
   }
 
-  function approveVaultRelayer(IERC20 token, uint256 amount) internal {
+  function approveVaultRelayer(IERC20 token, uint amount) internal {
     token.approve(cowVaultRelayer, amount); // infinite approval
   }
 

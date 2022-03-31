@@ -8,7 +8,8 @@
     {
       "files": "*.sol",
       "options": {
-        "singleQuote": false
+        "singleQuote": false,
+        "explicitTypes": "never"
       }
     }
   ]

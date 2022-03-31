@@ -15,14 +15,10 @@ const { toBN } = web3.utils;
 // external
 const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
-const UniswapV2Factory = artifacts.require('UniswapV2Factory');
 
 // nexusmutual
 const NXMToken = artifacts.require('NXMToken');
-const LegacyClaims = artifacts.require('LegacyClaims');
-const LegacyClaimsData = artifacts.require('LegacyClaimsData');
 const LegacyClaimsReward = artifacts.require('LegacyClaimsReward');
-const LegacyClaimProofs = artifacts.require('LegacyClaimProofs');
 const IndividualClaims = artifacts.require('IndividualClaims');
 const YieldTokenIncidents = artifacts.require('YieldTokenIncidents');
 const Assessment = artifacts.require('Assessment');
@@ -131,11 +127,9 @@ async function main () {
   });
 
   let uniswapV2Factory;
-  if (['hardhat', 'localhost'].includes(network.name)) {
-    uniswapV2Factory = await UniswapV2Factory.new(owner);
-    await uniswapV2Factory.setFeeTo(owner);
-  } else {
+  if (!['hardhat', 'localhost'].includes(network.name)) {
     console.log('Deploying uniswap pair');
+    const UniswapV2Factory = artifacts.require('UniswapV2Factory');
     uniswapV2Factory = await UniswapV2Factory.at(UNISWAP_FACTORY);
     await uniswapV2Factory.createPair(WETH_ADDRESS, dai.address);
   }
@@ -277,16 +271,9 @@ async function main () {
 
   verifier.add(qd, { constructorArgs: [owner, selfKyc.address] });
 
-  console.log('Deploying legacy claims contracts');
-  const lcl = await LegacyClaims.new();
-  const lcd = await LegacyClaimsData.new();
-  const lcr = await LegacyClaimsReward.new(master.address, dai.address, lcd.address, true);
-  const lcp = await LegacyClaimProofs.new();
-
-  verifier.add(lcl);
-  verifier.add(lcd);
+  console.log('Deploying legacy claims reward');
+  const lcr = await LegacyClaimsReward.new(master.address, dai.address);
   verifier.add(lcr, { constructorArgs: [master.address, dai.address] });
-  verifier.add(lcp);
 
   console.log('Deploying capital contracts');
   const mc = await DisposableMCR.new(ZERO_ADDRESS);
@@ -402,13 +389,6 @@ async function main () {
 
   console.log('Setting QuotationData parameters');
   await qd.changeMasterAddress(master.address);
-
-  console.log('Setting ClaimsData parameters');
-  await lcd.changeMasterAddress(master.address);
-  await lcd.updateUintParameters(hex('CAMAXVT'), 2); // max voting time 2h
-  await lcd.updateUintParameters(hex('CAMINVT'), 1); // min voting time 1h
-  await lcd.updateUintParameters(hex('CADEPT'), 1); // claim deposit time 1 day
-  await lcd.updateUintParameters(hex('CAPAUSET'), 1); // claim assessment pause time 1 day
 
   await master.switchGovernanceAddress(gv.address);
 

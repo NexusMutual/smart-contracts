@@ -32,6 +32,7 @@ contract CowSwapOperator {
   uint public constant MAX_VALID_TO_PERIOD = 3600; // 60 minutes
   uint public constant MIN_SELL_AMT_TO_FEE_RATIO = 100; // Sell amount at least 100x fee amount
   uint public constant MIN_TIME_BETWEEN_ORDERS = 900; // 15 minutes
+  uint public constant maxFee = 0.3 ether;
 
   // Events
   event OrderPlaced(GPv2Order.Data order);
@@ -85,13 +86,6 @@ contract CowSwapOperator {
     // Validate basic CoW params
     validateBasicCowParams(order);
 
-    // Validate feeAmount is not too high
-    uint maxFee = order.sellAmount / MIN_SELL_AMT_TO_FEE_RATIO;
-    if (order.feeAmount > maxFee) {
-      revert FeeTooHigh(order.feeAmount, maxFee);
-    }
-
-    // Local variables
     IPool pool = _pool();
     IPriceFeedOracle priceFeedOracle = pool.priceFeedOracle();
     uint totalOutAmount = order.sellAmount + order.feeAmount;
@@ -105,6 +99,8 @@ contract CowSwapOperator {
       require(buyTokenBalance + order.buyAmount <= swapDetails.maxAmount, "SwapOp: swap brings buyToken above max");
 
       validateSwapFrequency(swapDetails);
+
+      validateMaxFee(priceFeedOracle, ETH, order.feeAmount);
 
       // Validate minimum pool eth reserve
       require(address(pool).balance - totalOutAmount >= pool.minPoolEth(), "SwapOp: Pool eth balance below min");
@@ -135,6 +131,8 @@ contract CowSwapOperator {
       require(sellTokenBalance - totalOutAmount >= swapDetails.minAmount, "SwapOp: swap brings sellToken below min");
 
       validateSwapFrequency(swapDetails);
+
+      validateMaxFee(priceFeedOracle, address(order.sellToken), order.feeAmount);
 
       // Ask oracle how much ether we should get
       uint oracleBuyAmount = priceFeedOracle.getEthForAsset(address(order.sellToken), order.sellAmount);
@@ -273,5 +271,16 @@ contract CowSwapOperator {
 
   function refreshAssetLastSwapDate(IPool pool, address asset) internal {
     pool.setSwapDetailsLastSwapTime(asset, uint32(block.timestamp));
+  }
+
+  function validateMaxFee(
+    IPriceFeedOracle oracle,
+    address asset,
+    uint feeAmount
+  ) internal view {
+    uint feeInEther = oracle.getEthForAsset(asset, feeAmount);
+    if (feeInEther > maxFee) {
+      revert FeeTooHigh(feeInEther, maxFee);
+    }
   }
 }

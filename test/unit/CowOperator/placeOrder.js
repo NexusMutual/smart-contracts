@@ -212,21 +212,6 @@ describe('placeOrder', function () {
     });
   });
 
-  it('validates the feeAmount is at most 1% of sellAmount', async function () {
-    // Order with fee slightly above 1%, should fail
-    const invalidOrder = { ...order, sellAmount: 9999, feeAmount: 100 };
-    const invalidContractOrder = makeContractOrder(invalidOrder);
-    const invalidOrderUID = computeOrderUid(domain, invalidOrder, invalidOrder.receiver);
-    await expect(swapOperator.placeOrder(invalidContractOrder, invalidOrderUID))
-      .to.be.revertedWith('FeeTooHigh(100, 99)');
-
-    // Order with fee exactly 1%, should succeed
-    const validOrder = { ...order, sellAmount: 10000, feeAmount: 100 };
-    const validContractOrder = makeContractOrder(validOrder);
-    const validOrderUID = computeOrderUid(domain, validOrder, validOrder.receiver);
-    await swapOperator.placeOrder(validContractOrder, validOrderUID);
-  });
-
   describe('validating there are asset details for sellToken', function () {
     it('doesnt perform validation when sellToken is WETH, because eth is used', async function () {
       // Ensure eth (weth) is disabled by checking min and max amount
@@ -444,6 +429,48 @@ describe('placeOrder', function () {
 
       // Placing the order should succeed now
       await swapOperator.placeOrder(secondContractOrder, secondOrderUID);
+    });
+  });
+
+  describe('validating fee is not too high', function () {
+    it('when selling ether, checks that feeAmount is not higher than maxFee', async function () {
+      const maxFee = await swapOperator.maxFee();
+
+      // Place order with fee 1 wei higher than maximum, should fail
+      const badOrder = { ...order, feeAmount: maxFee.add(1) };
+      const badContractOrder = makeContractOrder(badOrder);
+      const badOrderUID = computeOrderUid(domain, badOrder, badOrder.receiver);
+
+      await expect(swapOperator.placeOrder(badContractOrder, badOrderUID))
+        .to.be.revertedWith(`FeeTooHigh(${maxFee.add(1).toString()}, ${maxFee.toString()})`);
+
+      // Place order with exactly maxFee, should succeed
+      const goodOrder = { ...order, feeAmount: maxFee };
+      const goodContractOrder = makeContractOrder(goodOrder);
+      const goodOrderUID = computeOrderUid(domain, goodOrder, goodOrder.receiver);
+
+      await swapOperator.placeOrder(goodContractOrder, goodOrderUID);
+    });
+
+    it('when selling other asset, uses oracle to check fee in ether is not higher than maxFee', async function () {
+      const maxFee = await swapOperator.maxFee();
+
+      // Place order with fee 1 wei higher than maximum, should fail
+      const {
+        newContractOrder: badContractOrder,
+        newOrderUID: badOrderUID,
+      } = await setupSellDaiForEth({ feeAmount: maxFee.add(1).mul(5000) }); // because 1 eth = 5000 dai
+
+      await expect(swapOperator.placeOrder(badContractOrder, badOrderUID))
+        .to.be.revertedWith(`FeeTooHigh(${maxFee.add(1).toString()}, ${maxFee.toString()})`);
+
+      // Place order with exactly maxFee, should succeed
+      const {
+        newContractOrder: goodContractOrder,
+        newOrderUID: goodOrderUID,
+      } = await setupSellDaiForEth({ feeAmount: maxFee.mul(5000) }); // because 1 eth = 5000 dai
+
+      await swapOperator.placeOrder(goodContractOrder, goodOrderUID);
     });
   });
 

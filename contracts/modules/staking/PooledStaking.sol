@@ -1460,6 +1460,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
 
     // Finally set the v1 deosit to 0
     stakers[stakerAddress].deposit = 0;
+
   }
 
   function migrateToExistingV2Pool(IStakingPool stakingPool, uint groupId) external {

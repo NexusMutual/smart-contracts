@@ -44,9 +44,10 @@ interface IStakingPool is IERC721 {
 
   struct Product {
     uint weight;
-    uint targetPrice;
     uint allocatedStake;
     uint lastBucket;
+    uint targetPrice;
+    uint lastPrice;
   }
 
   struct PoolBucket {
@@ -59,13 +60,14 @@ interface IStakingPool is IERC721 {
 
   function initialize(address _manager, ProductInitializationParams[] calldata params) external;
 
-  function operatorTransfer(address from, address to, uint256 tokenId) external;
+  function operatorTransfer(address from, address to, uint[] calldata tokenIds) external;
 
   function updateGroups() external;
 
   function allocateStake(
     uint productId,
     uint period,
+    uint gracePeriod,
     uint productStakeAmount,
     uint rewardRatio
   ) external returns (uint allocatedNXM, uint premium);

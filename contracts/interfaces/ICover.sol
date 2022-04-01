@@ -141,7 +141,7 @@ interface ICover {
 
   function setCoverAssetsFallback(uint32 _coverAssetsFallback) external;
 
-  function burnStakers(
+  function performPayoutBurn(
     uint coverId,
     uint segmentId,
     uint amount

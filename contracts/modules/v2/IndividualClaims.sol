@@ -360,7 +360,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     require(!claim.payoutRedeemed, "Payout has already been redeemed");
     claims[claimId].payoutRedeemed = true;
 
-    address payable coverOwner = payable(cover().burnStakers(
+    address payable coverOwner = payable(cover().performPayoutBurn(
       claim.coverId,
       claim.segmentId,
       claim.amount

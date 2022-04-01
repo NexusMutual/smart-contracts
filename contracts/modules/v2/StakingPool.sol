@@ -440,7 +440,7 @@ contract StakingPool is IStakingPool, ERC721 {
     // silence compiler warnings
     params;
     activeStake = activeStake;
-    revert("Not implemented");
+    // [todo] Implement
   }
 
   /* views */

@@ -770,7 +770,6 @@ contract PooledStaking is IPooledStaking, MasterAware {
 
     stakers[stakerAddress].deposit = 0;
 
-    revert("Not implemented");
   }
 
   function migrateToExistingV2Pool(IStakingPool stakingPool) external {

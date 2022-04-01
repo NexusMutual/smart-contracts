@@ -180,14 +180,9 @@ contract CowSwapOperator {
 
     // Check how much of the order was filled, and if it was fully filled
     uint filledAmount = cowSettlement.filledAmount(currentOrderUID);
-    bool fullyFilled = filledAmount == order.sellAmount;
 
     // Cancel signature and unapprove tokens
-    if (!fullyFilled) {
-      cowSettlement.setPreSignature(currentOrderUID, false);
-    }
-
-    // Clear allowance
+    cowSettlement.setPreSignature(currentOrderUID, false);
     approveVaultRelayer(order.sellToken, 0);
 
     // Clear the current order

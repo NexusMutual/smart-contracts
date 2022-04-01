@@ -202,7 +202,7 @@ describe('closeOrder', function () {
       expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(0);
     });
 
-    it('doesnt cancel the presignature if the order was fully filled', async function () {
+    it('does so if the order was fully filled', async function () {
       expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
       expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(order.sellAmount.add(order.feeAmount));
       expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
@@ -217,8 +217,8 @@ describe('closeOrder', function () {
 
       await swapOperator.closeOrder(contractOrder);
 
-      // After closing, there's 0 allowance because all has been used up, but presignature is not canceled to save gas
-      expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
+      // After closing, presignature should be false
+      expect(await cowSettlement.presignatures(orderUID)).to.equal(false);
       expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(0);
     });
   });

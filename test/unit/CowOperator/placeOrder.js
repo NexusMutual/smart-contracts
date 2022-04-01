@@ -2,7 +2,7 @@ const { contracts, makeWrongValue } = require('./setup');
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { domain: makeDomain, computeOrderUid } = require('@gnosis.pm/gp-v2-contracts');
-const { setEtherBalance } = require('../../utils/evm');
+const { setEtherBalance, setNextBlockTime } = require('../../utils/evm');
 const { hex } = require('../utils').helpers;
 
 const {
@@ -16,6 +16,8 @@ describe('placeOrder', function () {
 
   let dai, stEth, weth, pool, swapOperator, cowSettlement, cowVaultRelayer;
 
+  let MIN_TIME_BETWEEN_ORDERS;
+
   const daiMinAmount = parseEther('3000');
   const daiMaxAmount = parseEther('20000');
 
@@ -23,6 +25,8 @@ describe('placeOrder', function () {
   const stethMaxAmount = parseEther('20');
 
   const hashUtf = str => keccak256(toUtf8Bytes(str));
+
+  const lastBlockTimestamp = async () => (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
 
   const makeContractOrder = (order) => {
     return {
@@ -64,14 +68,16 @@ describe('placeOrder', function () {
     cowSettlement = contracts.cowSettlement;
     cowVaultRelayer = contracts.cowVaultRelayer;
 
+    // Read constants
+    MIN_TIME_BETWEEN_ORDERS = (await swapOperator.MIN_TIME_BETWEEN_ORDERS()).toNumber();
+
     // Build order struct, domain separator and calculate UID
-    const lastBlockTimestamp = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
     order = {
       sellToken: weth.address,
       buyToken: dai.address,
       sellAmount: parseEther('0.999'),
       buyAmount: parseEther('4995'),
-      validTo: lastBlockTimestamp + 650,
+      validTo: await lastBlockTimestamp() + 650,
       appData: hexZeroPad(0, 32),
       feeAmount: parseEther('0.001'),
       kind: 'sell',
@@ -376,6 +382,71 @@ describe('placeOrder', function () {
     });
   });
 
+  describe('validating swaps dont happen too fast', function () {
+    it('validates minimum time between swaps when selling eth', async function () {
+      // Place and close an order
+      await swapOperator.placeOrder(contractOrder, orderUID);
+      await swapOperator.closeOrder(contractOrder);
+
+      // Prepare valid pool params for allowing next order
+      await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount.mul(2), daiMaxAmount.mul(2), 0);
+
+      // Read last swap time
+      const lastSwapTime = (await pool.getAssetSwapDetails(dai.address)).lastSwapTime;
+
+      // Set next block time to minimum - 2
+      await setNextBlockTime(lastSwapTime + MIN_TIME_BETWEEN_ORDERS - 2);
+
+      // Build a new valid order
+      const secondOrder = { ...order, validTo: lastSwapTime + MIN_TIME_BETWEEN_ORDERS + 650 };
+      const secondContractOrder = makeContractOrder(secondOrder);
+      const secondOrderUID = computeOrderUid(domain, secondOrder, secondOrder.receiver);
+
+      // Try to place order, should revert because of frequency
+      await expect(swapOperator.placeOrder(secondContractOrder, secondOrderUID))
+        .to.be.revertedWith('SwapOp: already swapped this asset recently');
+
+      // Set next block time to minimum
+      await setNextBlockTime(lastSwapTime + MIN_TIME_BETWEEN_ORDERS);
+
+      // Placing the order should succeed now
+      await swapOperator.placeOrder(secondContractOrder, secondOrderUID);
+    });
+
+    it('validates minimum time between swaps when buying eth', async function () {
+      const { newContractOrder, newOrderUID } = await setupSellDaiForEth();
+
+      // Place and close an order
+      await swapOperator.placeOrder(newContractOrder, newOrderUID);
+      await swapOperator.closeOrder(newContractOrder);
+
+      // Prepare valid pool params for allowing next order
+      await pool.connect(governance).setSwapDetails(dai.address, 3000, 6000, 0);
+
+      // Read last swap time
+      const lastSwapTime = (await pool.getAssetSwapDetails(dai.address)).lastSwapTime;
+
+      // Set next block time to minimum - 2
+      await setNextBlockTime(lastSwapTime + MIN_TIME_BETWEEN_ORDERS - 2);
+
+      // Build a new valid order
+      const {
+        newContractOrder: secondContractOrder,
+        newOrderUID: secondOrderUID,
+      } = await setupSellDaiForEth({ validTo: lastSwapTime + MIN_TIME_BETWEEN_ORDERS + 650 });
+
+      // Try to place order, should revert because of frequency
+      await expect(swapOperator.placeOrder(secondContractOrder, secondOrderUID))
+        .to.be.revertedWith('SwapOp: already swapped this asset recently');
+
+      // Set next block time to minimum
+      await setNextBlockTime(lastSwapTime + MIN_TIME_BETWEEN_ORDERS);
+
+      // Placing the order should succeed now
+      await swapOperator.placeOrder(secondContractOrder, secondOrderUID);
+    });
+  });
+
   describe('validating prices against oracle', function () {
     describe('when selling eth', function () {
       it('takes oracle price into account', async function () {
@@ -497,6 +568,29 @@ describe('placeOrder', function () {
 
       expect(poolDaiBefore.sub(poolDaiAfter)).to.eq(newOrder.sellAmount.add(newOrder.feeAmount));
       expect(swapOpDaiAfter.sub(swapOpDaiBefore)).to.eq(newOrder.sellAmount.add(newOrder.feeAmount));
+    });
+  });
+
+  describe('setting lastSwapDate', function () {
+    it('sets it on buyAsset when selling ETH', async function () {
+      let lastSwapTime = (await pool.getAssetSwapDetails(dai.address)).lastSwapTime;
+      expect(lastSwapTime).to.not.eq(await lastBlockTimestamp());
+
+      await swapOperator.placeOrder(contractOrder, orderUID);
+
+      lastSwapTime = (await pool.getAssetSwapDetails(dai.address)).lastSwapTime;
+      expect(lastSwapTime).to.eq(await lastBlockTimestamp());
+    });
+
+    it('sets it on sellAsset when buying ETH', async function () {
+      const { newContractOrder, newOrderUID } = await setupSellDaiForEth();
+      let lastSwapTime = (await pool.getAssetSwapDetails(dai.address)).lastSwapTime;
+      expect(lastSwapTime).to.not.eq(await lastBlockTimestamp());
+
+      await swapOperator.placeOrder(newContractOrder, newOrderUID);
+
+      lastSwapTime = (await pool.getAssetSwapDetails(dai.address)).lastSwapTime;
+      expect(lastSwapTime).to.eq(await lastBlockTimestamp());
     });
   });
 

@@ -27,10 +27,11 @@ contract CowSwapOperator {
 
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-  uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
-  uint constant MIN_VALID_TO_PERIOD = 600; // 10 minutes
-  uint constant MAX_VALID_TO_PERIOD = 3600; // 60 minutes
-  uint constant MIN_SELL_AMT_TO_FEE_RATIO = 100; // Sell amount at least 100x fee amount
+  uint16 public constant MAX_SLIPPAGE_DENOMINATOR = 10000;
+  uint public constant MIN_VALID_TO_PERIOD = 600; // 10 minutes
+  uint public constant MAX_VALID_TO_PERIOD = 3600; // 60 minutes
+  uint public constant MIN_SELL_AMT_TO_FEE_RATIO = 100; // Sell amount at least 100x fee amount
+  uint public constant MIN_TIME_BETWEEN_ORDERS = 900; // 15 minutes
 
   // Events
   event OrderPlaced(GPv2Order.Data order);
@@ -103,6 +104,8 @@ contract CowSwapOperator {
       require(buyTokenBalance < swapDetails.minAmount, "SwapOp: can only buy asset when < minAmount");
       require(buyTokenBalance + order.buyAmount <= swapDetails.maxAmount, "SwapOp: swap brings buyToken above max");
 
+      validateSwapFrequency(swapDetails);
+
       // Validate minimum pool eth reserve
       require(address(pool).balance - totalOutAmount >= pool.minPoolEth(), "SwapOp: Pool eth balance below min");
 
@@ -114,6 +117,8 @@ contract CowSwapOperator {
       uint minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
 
       require(order.buyAmount >= minBuyAmountOnMaxSlippage, "SwapOp: order.buyAmount too low (oracle)");
+
+      refreshAssetLastSwapDate(pool, address(order.buyToken));
 
       // Transfer ETH from pool and wrap it
       pool.transferAssetToSwapOperator(ETH, totalOutAmount);
@@ -129,6 +134,8 @@ contract CowSwapOperator {
       require(sellTokenBalance > swapDetails.maxAmount, "SwapOp: can only sell asset when > maxAmount");
       require(sellTokenBalance - totalOutAmount >= swapDetails.minAmount, "SwapOp: swap brings sellToken below min");
 
+      validateSwapFrequency(swapDetails);
+
       // Ask oracle how much ether we should get
       uint oracleBuyAmount = priceFeedOracle.getEthForAsset(address(order.sellToken), order.sellAmount);
 
@@ -136,6 +143,8 @@ contract CowSwapOperator {
       uint maxSlippageAmount = (oracleBuyAmount * swapDetails.maxSlippageRatio) / MAX_SLIPPAGE_DENOMINATOR;
       uint minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
       require(order.buyAmount >= minBuyAmountOnMaxSlippage, "SwapOp: order.buyAmount too low (oracle)");
+
+      refreshAssetLastSwapDate(pool, address(order.sellToken));
 
       // Transfer ERC20 asset from Pool
       pool.transferAssetToSwapOperator(address(order.sellToken), totalOutAmount);
@@ -253,5 +262,16 @@ contract CowSwapOperator {
 
   function _pool() internal view returns (IPool) {
     return IPool(master.getLatestAddress("P1"));
+  }
+
+  function validateSwapFrequency(IPool.SwapDetails memory swapDetails) internal view {
+    require(
+      block.timestamp >= swapDetails.lastSwapTime + MIN_TIME_BETWEEN_ORDERS,
+      "SwapOp: already swapped this asset recently"
+    );
+  }
+
+  function refreshAssetLastSwapDate(IPool pool, address asset) internal {
+    pool.setSwapDetailsLastSwapTime(asset, uint32(block.timestamp));
   }
 }

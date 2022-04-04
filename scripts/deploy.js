@@ -150,12 +150,19 @@ async function main () {
   console.log('Deploying quotation contracts');
   const qd = await QuotationData.new(owner, selfKyc.address);
 
+  console.log('Deploying legacy claims reward');
+  const lcr = await LegacyClaimsReward.new(master.address, dai.address);
+  verifier.add(lcr, { constructorArgs: [master.address, dai.address] });
+
   console.log('Deploying disposable contracts');
   const { instance: cover, implementation: coverImpl } = await deployProxy(DisposableCover, []);
   const stakingPoolParameters = [tk.address, cover.address, mr.address];
   const stakingPool = await CoverMockStakingPool.new(...stakingPoolParameters);
   const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
-  const { instance: tc, implementation: tcImpl } = await deployProxy(DisposableTokenController, [qd.address]);
+  const { instance: tc, implementation: tcImpl } = await deployProxy(DisposableTokenController, [
+    qd.address,
+    lcr.address,
+  ]);
   const { instance: ps, implementation: psImpl } = await deployProxy(DisposablePooledStaking);
   const { instance: pc, implementation: pcImpl } = await deployProxy(DisposableProposalCategory);
   const { instance: gv, implementation: gvImpl } = await deployProxy(DisposableGovernance, [{ gas: 12e6 }]);
@@ -270,10 +277,6 @@ async function main () {
   });
 
   verifier.add(qd, { constructorArgs: [owner, selfKyc.address] });
-
-  console.log('Deploying legacy claims reward');
-  const lcr = await LegacyClaimsReward.new(master.address, dai.address);
-  verifier.add(lcr, { constructorArgs: [master.address, dai.address] });
 
   console.log('Deploying capital contracts');
   const mc = await DisposableMCR.new(ZERO_ADDRESS);
@@ -395,8 +398,11 @@ async function main () {
   console.log('Upgrading to non-disposable contracts');
   const { implementation: newMasterImpl } = await upgradeProxy(master.address, TestnetNXMaster);
   const { implementation: newMrImpl } = await upgradeProxy(mr.address, MemberRoles);
-  const { implementation: newTcImpl } = await upgradeProxy(tc.address, TokenController, [qd.address]);
-  const { implementation: newPsImpl } = await upgradeProxy(ps.address, PooledStaking);
+  const { implementation: newTcImpl } = await upgradeProxy(tc.address, TokenController, [qd.address, lcr.address]);
+  const { implementation: newPsImpl } = await upgradeProxy(ps.address, PooledStaking, [
+    cover.address,
+    productsV1.address,
+  ]);
   const { implementation: newPcImpl } = await upgradeProxy(pc.address, ProposalCategory);
   const { implementation: newGvImpl } = await upgradeProxy(gv.address, Governance);
   const { implementation: newCoverImpl } = await upgradeProxy(cover.address, Cover, [
@@ -420,8 +426,6 @@ async function main () {
   verifier.add(coverNFT);
 
   console.log('Transfering ownership of proxy contracts');
-  const res = await master.getLatestAddress(hex('TC'));
-  console.log({ res });
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
   await transferProxyOwnership(ps.address, master.address);
@@ -445,7 +449,7 @@ async function main () {
   console.log('Minting DAI to pool');
   await dai.mint(p1.address, ether('6500000'));
 
-  console.log('Set governanceOwner to allow for execution of onlyGovernance actions.');
+  console.log('Set governanceOwner to allow execution of onlyGovernance actions.');
   const testnetMaster = await TestnetNXMaster.at(master.address);
   await testnetMaster.initializeGovernanceOwner();
 

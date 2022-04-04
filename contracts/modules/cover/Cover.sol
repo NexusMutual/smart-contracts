@@ -85,11 +85,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   mapping(uint24 => mapping(uint => uint96)) public totalActiveCoverInAssetExpiryBucket;
   mapping(uint24 => uint32) public lastGlobalBuckets;
 
-
-  event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
-  event ProductTypeUpserted(uint id, string ipfsMetadata);
-  event ProductUpserted(uint id, string ipfsMetadata);
-
   /* ========== CONSTRUCTOR ========== */
 
   constructor(

@@ -162,4 +162,8 @@ interface ICover {
 
   /* ========== EVENTS ========== */
 
+  event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
+  event ProductTypeUpserted(uint id, string ipfsMetadata);
+  event ProductUpserted(uint id, string ipfsMetadata);
+
 }

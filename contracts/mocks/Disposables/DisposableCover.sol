@@ -35,15 +35,25 @@ contract DisposableCover is MasterAwareV2 {
   */
   uint32 public coverAssetsFallback;
 
-  function addProducts(Product[] calldata newProducts) public {
+  function addProducts(
+    Product[] calldata newProducts,
+    string[] calldata ipfsMetadata
+  ) external {
+    uint initialProuctsCount = products.length;
     for (uint i = 0; i < newProducts.length; i++) {
       products.push(newProducts[i]);
+      emit ProductUpserted(initialProuctsCount + i, ipfsMetadata[i]);
     }
   }
 
-  function addProductTypes(ProductType[] calldata newProductTypes) public {
+  function addProductTypes(
+    ProductType[] calldata newProductTypes,
+    string[] calldata ipfsMetadata
+  ) public {
+    uint initialProuctTypesCount = productTypes.length;
     for (uint i = 0; i < newProductTypes.length; i++) {
       productTypes.push(newProductTypes[i]);
+      emit ProductTypeUpserted(initialProuctTypesCount + i, ipfsMetadata[i]);
     }
   }
 
@@ -63,4 +73,6 @@ contract DisposableCover is MasterAwareV2 {
 
   function changeDependentContractAddress() external override {}
 
+  event ProductTypeUpserted(uint id, string ipfsMetadata);
+  event ProductUpserted(uint id, string ipfsMetadata);
 }

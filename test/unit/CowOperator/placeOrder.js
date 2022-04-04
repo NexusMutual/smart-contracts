@@ -442,7 +442,7 @@ describe('placeOrder', function () {
       const badOrderUID = computeOrderUid(domain, badOrder, badOrder.receiver);
 
       await expect(swapOperator.placeOrder(badContractOrder, badOrderUID))
-        .to.be.revertedWith(`FeeTooHigh(${maxFee.add(1).toString()}, ${maxFee.toString()})`);
+        .to.be.revertedWith('SwapOp: Fee amount is higher than configured max fee');
 
       // Place order with exactly maxFee, should succeed
       const goodOrder = { ...order, feeAmount: maxFee };
@@ -462,7 +462,7 @@ describe('placeOrder', function () {
       } = await setupSellDaiForEth({ feeAmount: maxFee.add(1).mul(5000) }); // because 1 eth = 5000 dai
 
       await expect(swapOperator.placeOrder(badContractOrder, badOrderUID))
-        .to.be.revertedWith(`FeeTooHigh(${maxFee.add(1).toString()}, ${maxFee.toString()})`);
+        .to.be.revertedWith('SwapOp: Fee amount is higher than configured max fee');
 
       // Place order with exactly maxFee, should succeed
       const {

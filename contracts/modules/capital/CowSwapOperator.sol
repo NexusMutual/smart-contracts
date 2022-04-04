@@ -38,11 +38,6 @@ contract CowSwapOperator {
   event OrderPlaced(GPv2Order.Data order);
   event OrderClosed(GPv2Order.Data order, uint filledAmount);
 
-  /// Fee too high: `current`. Max is `maxFee`
-  /// @param current actual fee
-  /// @param maxFee maximum allowed fee
-  error FeeTooHigh(uint current, uint maxFee);
-
   modifier onlyController() {
     require(msg.sender == swapController, "SwapOp: only controller can execute");
     _;
@@ -274,8 +269,6 @@ contract CowSwapOperator {
     uint feeAmount
   ) internal view {
     uint feeInEther = oracle.getEthForAsset(asset, feeAmount);
-    if (feeInEther > maxFee) {
-      revert FeeTooHigh(feeInEther, maxFee);
-    }
+    require(feeInEther <= maxFee, "SwapOp: Fee amount is higher than configured max fee");
   }
 }

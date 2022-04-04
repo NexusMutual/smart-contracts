@@ -2,11 +2,13 @@
 
 pragma solidity >=0.5.0;
 
+import "./IStakingPool.sol";
+
 /* ========== DATA STRUCTURES ========== */
 
-enum RedeemMethod {
-  Claim,
-  Incident
+enum ClaimMethod {
+  IndividualClaims,
+  YieldTokenIncidents
 }
 
 // Basically CoverStatus from QuotationData.sol but with the extra Migrated status to avoid
@@ -92,7 +94,7 @@ struct Product {
 struct ProductType {
   // TODO: emit an event for ipfs hash
   string descriptionIpfsHash;
-  uint8 redeemMethod;
+  uint8 claimMethod;
   uint16 gracePeriodInDays;
 }
 
@@ -113,7 +115,7 @@ interface ICover {
 
   function isAssetSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) external view returns (bool);
 
-  function stakingPoolCounter() external view returns (uint64);
+  function stakingPoolCount() external view returns (uint64);
 
   function productsCount() external view returns (uint);
 
@@ -128,7 +130,10 @@ interface ICover {
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
-  function createStakingPool(address manager) external;
+  function createStakingPool(
+    address manager,
+    ProductInitializationParams[] memory params
+  ) external returns (address stakingPoolAddress);
 
   function setInitialPrices(
     uint[] calldata productId,
@@ -153,4 +158,6 @@ interface ICover {
 
   /* ========== EVENTS ========== */
 
+
+  function MAX_COVER_PERIOD() external view returns (uint);
 }

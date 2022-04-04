@@ -136,14 +136,14 @@ const getVersionDataTemplate = network => [
     contractName: 'Assessment',
   },
   {
-    code: 'IC',
-    smartContractCode: 'IC',
-    contractName: 'Incidents',
+    code: 'YT',
+    smartContractCode: 'YT',
+    contractName: 'YieldTokenIncidents',
   },
   {
-    code: 'CL',
-    smartContractCode: 'CL',
-    contractName: 'Claims',
+    code: 'IC',
+    smartContractCode: 'IC',
+    contractName: 'IndividualClaims',
   },
   {
     code: 'SP',

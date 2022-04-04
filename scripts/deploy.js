@@ -23,8 +23,8 @@ const LegacyClaims = artifacts.require('LegacyClaims');
 const LegacyClaimsData = artifacts.require('LegacyClaimsData');
 const LegacyClaimsReward = artifacts.require('LegacyClaimsReward');
 const LegacyClaimProofs = artifacts.require('LegacyClaimProofs');
-const Claims = artifacts.require('Claims');
-const Incidents = artifacts.require('Incidents');
+const IndividualClaims = artifacts.require('IndividualClaims');
+const YieldTokenIncidents = artifacts.require('YieldTokenIncidents');
 const Assessment = artifacts.require('Assessment');
 const TokenData = artifacts.require('TokenData');
 const Pool = artifacts.require('Pool');
@@ -171,11 +171,14 @@ async function main () {
   const { instance: pc, implementation: pcImpl } = await deployProxy(DisposableProposalCategory);
   const { instance: gv, implementation: gvImpl } = await deployProxy(DisposableGovernance, [{ gas: 12e6 }]);
   const { instance: gateway, implementation: gatewayImpl } = await deployProxy(DisposableGateway);
-  const { instance: incidents, implementation: incidentsImpl } = await deployProxy(Incidents, [
+  const { instance: yieldTokenIncidents, implementation: incidentsImpl } = await deployProxy(YieldTokenIncidents, [
     tk.address,
     coverNFT.address,
   ]);
-  const { instance: claims, implementation: claimsImpl } = await deployProxy(Claims, [tk.address, coverNFT.address]);
+  const { instance: individualClaims, implementation: individualClaimsImpl } = await deployProxy(IndividualClaims, [
+    tk.address,
+    coverNFT.address,
+  ]);
   const { instance: assessment, implementation: assessmentImpl } = await deployProxy(Assessment, [tk.address]);
 
   const proxiesAndImplementations = [
@@ -186,8 +189,8 @@ async function main () {
     { proxy: pc, implementation: pcImpl, contract: 'DisposableProposalCategory' },
     { proxy: gv, implementation: gvImpl, contract: 'DisposableGovernance' },
     { proxy: gateway, implementation: gatewayImpl, contract: 'DisposableGateway' },
-    { proxy: incidents, implementation: incidentsImpl, contract: 'Incidents' },
-    { proxy: claims, implementation: claimsImpl, contract: 'Claims' },
+    { proxy: yieldTokenIncidents, implementation: incidentsImpl, contract: 'Incidents' },
+    { proxy: individualClaims, implementation: individualClaimsImpl, contract: 'IndividualClaims' },
     { proxy: cover, implementation: coverImpl, contract: 'Cover' },
     { proxy: assessment, implementation: assessmentImpl, contract: 'Assessment' },
   ];
@@ -201,28 +204,28 @@ async function main () {
     verifier.add(implementation);
   }
 
-  const REDEEM_METHOS = {
-    CLAIM: 0,
-    INCIDENT: 1,
+  const CLAIM_METHOD = {
+    INDIVIDUAL_CLAIMS: 0,
+    YIELD_TOKEN_INCIDENTS: 1,
   };
 
   await cover.addProductTypes([
     // Protocol Cover
     {
       descriptionIpfsHash: 'protocolCoverIPFSHash',
-      redeemMethod: REDEEM_METHOS.CLAIM,
+      claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
       gracePeriodInDays: 30,
     },
     // Custody Cover
     {
       descriptionIpfsHash: 'custodyCoverIPFSHash',
-      redeemMethod: REDEEM_METHOS.CLAIM,
+      claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
       gracePeriodInDays: 90,
     },
     // Yield Token Cover
     {
       descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
-      redeemMethod: REDEEM_METHOS.INCIDENT,
+      claimMethod: CLAIM_METHOD.YIELD_TOKEN_INCIDENTS,
       gracePeriodInDays: 14,
     },
   ]);
@@ -333,7 +336,7 @@ async function main () {
   const upgradableContractCodes = ['TD', 'MC', 'P1', 'SP'];
   const upgradableContractAddresses = [td, mc, p1, stakingPool].map(x => x.address);
 
-  const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'IC', 'CL', 'AS'];
+  const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'YT', 'IC', 'AS'];
   const proxyContractAddresses = [
     { address: owner }, // as governance
     mr,
@@ -342,8 +345,8 @@ async function main () {
     tc,
     gateway,
     cover,
-    incidents,
-    claims,
+    yieldTokenIncidents,
+    individualClaims,
     assessment,
   ].map(x => x.address);
 
@@ -385,7 +388,7 @@ async function main () {
     600, // unstake lock time
   );
 
-  await incidents.initialize(master.address);
+  await yieldTokenIncidents.initialize(master.address);
 
   await gateway.initialize(master.address, dai.address);
 

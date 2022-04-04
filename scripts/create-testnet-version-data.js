@@ -75,8 +75,8 @@ const artifactPathOfContractCode = {
   GW: 'modules/cover/Gateway.sol/Gateway.json',
   SO: 'modules/capital/SwapOperator.sol/SwapOperator.json',
   CO: 'modules/cover/Cover.sol/Cover.json',
-  CL: 'modules/v2/Claims.sol/Claims.json',
-  IC: 'modules/v2/Incidents.sol/Incidents.json',
+  IC: 'modules/v2/IndividualClaims.sol/IndividualClaims.json',
+  YT: 'modules/v2/YieldTokenIncidents.sol/YieldTokenIncidents.json',
   AS: 'modules/v2/Assessment.sol/Assessment.json',
   SP: 'modules/v2/StakingPool.sol/StakingPool.json',
 };
@@ -102,8 +102,8 @@ const contractNameByCode = {
   GW: 'Gateway',
   SO: 'SwapOperator',
   CO: 'Cover',
-  CL: 'Claims',
-  IC: 'Incidents',
+  IC: 'IndividualClaims',
+  YT: 'YieldTokenIncidents',
   AS: 'Assessment',
   SP: 'CoverMockStakingPool',
 };

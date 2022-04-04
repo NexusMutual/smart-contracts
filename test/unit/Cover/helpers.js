@@ -2,8 +2,8 @@ const { artifacts, ethers: { utils: { parseEther }, BigNumber } } = require('har
 const { constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
 const { assert, expect} = require('chai');
+const { bnEqual } = require("../../../lib/helpers");
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
-const { bnRoughlyEqual } = require('../utils').helpers;
 
 async function createStakingPool (
   cover, productId, capacity, targetPrice, activeCover, stakingPoolCreator, stakingPoolManager, currentPrice,
@@ -40,7 +40,7 @@ async function assertCoverFields (
   assert.equal(storedCoverData.amountPaidOut, '0');
   assert.equal(segment.period, period);
   assert.equal(segment.amount.toString(), amount.toString());
-  bnRoughlyEqual(segment.priceRatio, BigNumber.from(targetPriceRatio));
+  bnEqual(segment.priceRatio, targetPriceRatio);
 }
 
 async function buyCoverOnOnePool (

@@ -10,21 +10,21 @@ const uintParams = {
 
 describe('updateUintParameters', function () {
   it('can only be called by governance', async function () {
-    const { incidents } = this.contracts;
+    const { yieldTokenIncidents } = this.contracts;
     const {
       governanceContracts: [governance],
       members: [member],
     } = this.accounts;
-    await expect(incidents.connect(member).updateUintParameters([], [])).to.be.revertedWith(
+    await expect(yieldTokenIncidents.connect(member).updateUintParameters([], [])).to.be.revertedWith(
       'Caller is not authorized to govern',
     );
-    await expect(incidents.connect(governance).updateUintParameters([], [])).not.to.be.revertedWith(
+    await expect(yieldTokenIncidents.connect(governance).updateUintParameters([], [])).not.to.be.revertedWith(
       'Caller is not authorized to govern',
     );
   });
 
   it('sets each parameter to the given new values', async function () {
-    const { incidents } = this.contracts;
+    const { yieldTokenIncidents } = this.contracts;
     const {
       governanceContracts: [governance],
     } = this.accounts;
@@ -37,7 +37,7 @@ describe('updateUintParameters', function () {
     };
 
     {
-      await incidents
+      await yieldTokenIncidents
         .connect(governance)
         .updateUintParameters(
           [
@@ -61,7 +61,7 @@ describe('updateUintParameters', function () {
         payoutDeductibleRatio,
         maxRewardInNXMWad,
         rewardRatio,
-      } = await incidents.config();
+      } = await yieldTokenIncidents.config();
 
       expect(payoutRedemptionPeriodInDays).to.be.equal(newValues.payoutRedemptionPeriodInDays);
       expect(expectedPayoutRatio).to.be.equal(newValues.expectedPayoutRatio);
@@ -72,7 +72,7 @@ describe('updateUintParameters', function () {
   });
 
   it('sets only the given parameters to the new values', async function () {
-    const { incidents } = this.contracts;
+    const { yieldTokenIncidents } = this.contracts;
     const {
       governanceContracts: [governance],
     } = this.accounts;
@@ -87,8 +87,8 @@ describe('updateUintParameters', function () {
       const {
         maxRewardInNXMWad: initialMaxRewardInNXMWad,
         expectedPayoutRatio: initialExpectedPayoutRatio,
-      } = await incidents.config();
-      await incidents
+      } = await yieldTokenIncidents.config();
+      await yieldTokenIncidents
         .connect(governance)
         .updateUintParameters(
           [uintParams.payoutRedemptionPeriodInDays, uintParams.payoutDeductibleRatio, uintParams.rewardRatio],
@@ -100,7 +100,7 @@ describe('updateUintParameters', function () {
         payoutDeductibleRatio,
         maxRewardInNXMWad,
         rewardRatio,
-      } = await incidents.config();
+      } = await yieldTokenIncidents.config();
 
       expect(payoutRedemptionPeriodInDays).to.be.equal(newValues.payoutRedemptionPeriodInDays);
       expect(expectedPayoutRatio).to.be.equal(initialExpectedPayoutRatio);
@@ -118,8 +118,8 @@ describe('updateUintParameters', function () {
         payoutRedemptionPeriodInDays: initialPayoutRedemptionPeriodInDays,
         payoutDeductibleRatio: initialPayoutDeductibleRatio,
         rewardRatio: initialRewardRatio,
-      } = await incidents.config();
-      await incidents
+      } = await yieldTokenIncidents.config();
+      await yieldTokenIncidents
         .connect(governance)
         .updateUintParameters(
           [uintParams.maxRewardInNXMWad, uintParams.expectedPayoutRatio],
@@ -131,7 +131,7 @@ describe('updateUintParameters', function () {
         payoutDeductibleRatio,
         maxRewardInNXMWad,
         rewardRatio,
-      } = await incidents.config();
+      } = await yieldTokenIncidents.config();
 
       expect(payoutRedemptionPeriodInDays).to.be.equal(initialPayoutRedemptionPeriodInDays);
       expect(expectedPayoutRatio).to.be.equal(newValues.expectedPayoutRatio);
@@ -142,7 +142,7 @@ describe('updateUintParameters', function () {
   });
 
   it('allows parameters to be given in any order', async function () {
-    const { incidents } = this.contracts;
+    const { yieldTokenIncidents } = this.contracts;
     const {
       governanceContracts: [governance],
     } = this.accounts;
@@ -155,7 +155,7 @@ describe('updateUintParameters', function () {
         payoutRedemptionPeriodInDays: 4,
         expectedPayoutRatio: 5,
       };
-      await incidents
+      await yieldTokenIncidents
         .connect(governance)
         .updateUintParameters(
           [
@@ -179,7 +179,7 @@ describe('updateUintParameters', function () {
         maxRewardInNXMWad,
         payoutRedemptionPeriodInDays,
         expectedPayoutRatio,
-      } = await incidents.config();
+      } = await yieldTokenIncidents.config();
 
       expect(payoutRedemptionPeriodInDays).to.be.equal(newValues.payoutRedemptionPeriodInDays);
       expect(expectedPayoutRatio).to.be.equal(newValues.expectedPayoutRatio);

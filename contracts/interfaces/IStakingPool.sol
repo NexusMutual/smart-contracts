@@ -2,48 +2,113 @@
 
 pragma solidity >=0.5.0;
 
-import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 
-interface IStakingPool is IERC20 {
+/* structs for io */
 
-  struct AllocateCapacityParams {
-    uint productId;
-    uint coverAmount;
-    uint rewardsDenominator;
-    uint period;
-    uint globalCapacityRatio;
-    uint globalRewardsRatio;
-    uint capacityReductionRatio;
-    uint initialPrice;
+struct WithdrawParams {
+  uint positionId;
+  uint[] groupIds;
+  uint flags;
+}
+
+struct ProductParams {
+  uint productId;
+  uint weight;
+  uint targetPrice;
+  uint flags;
+}
+
+struct ProductInitializationParams {
+  uint productId;
+  uint weight;
+  uint initialPrice;
+  uint targetPrice;
+}
+
+struct LastPrice {
+  uint96 value;
+  uint32 lastUpdateTime;
+}
+
+
+interface IStakingPool is IERC721 {
+
+  /* structs for storage */
+
+  // stakers are grouped based on the timelock expiration
+  // group index is calculated based on the expiration date
+  // the initial proposal is to have 4 groups per year (1 group per quarter)
+  struct StakeGroup {
+    uint stakeShares;
+    uint rewardsShares;
+    uint groupSharesSupply;
+    // TODO: consider extracting the following fields to a separate struct
+    uint accRewardPerStakeShareAtExpiration;
+    uint expiredStakeAmount;
   }
 
-  function initialize(address _manager, uint _poolId) external;
+  struct Product {
+    uint weight;
+    uint targetPrice;
+    uint allocatedStake;
+    uint lastBucket;
+  }
 
-  function operatorTransferFrom(address from, address to, uint256 amount) external;
+  struct PoolBucket {
+    uint rewardPerSecondCut;
+  }
 
-  function allocateCapacity(AllocateCapacityParams calldata params) external returns (uint, uint);
+  struct ProductBucket {
+    uint allocationCut;
+  }
 
-  function freeCapacity(
+  function initialize(address _manager, ProductInitializationParams[] calldata params) external;
+
+  function operatorTransfer(address from, address to, uint256 tokenId) external;
+
+  function updateGroups() external;
+
+  function allocateStake(
     uint productId,
-    uint previousPeriod,
-    uint previousStartTime,
-    uint previousRewardAmount,
-    uint periodReduction,
-    uint coveredAmount
+    uint period,
+    uint productStakeAmount,
+    uint rewardRatio
+  ) external returns (uint allocatedNXM, uint premium);
+
+  function deallocateStake(
+    uint productId,
+    uint start,
+    uint period,
+    uint amount,
+    uint premium
   ) external;
 
-  function getAvailableCapacity(uint productId, uint capacityFactor) external view returns (uint);
-  function getCapacity(uint productId, uint capacityFactor) external view returns (uint);
-  function getUsedCapacity(uint productId) external view returns (uint);
-  function getTargetPrice(uint productId) external view returns (uint);
-  function getStake(uint productId) external view returns (uint);
+  function burnStake(uint productId, uint start, uint period, uint amount) external;
+
+  function deposit(uint amount, uint groupId, uint _positionId) external returns (uint positionId);
+
+  function withdraw(WithdrawParams[] memory params) external;
+
+  function setProductDetails(ProductParams[] memory params) external;
+
   function manager() external view returns (address);
+
+  function getActiveStake() external view returns (uint);
+
+  function getProductStake(uint productId, uint coverExpirationDate) external view returns (uint);
+
+  function getFreeProductStake(uint productId, uint coverExpirationDate) external view returns (uint);
+
+  function getAllocatedProductStake(uint productId) external view returns (uint);
+
 
   function getPriceParameters(
     uint productId,
     uint globalCapacityRatio,
-    uint capacityReductionRatio
+    uint capacityReductionRatio,
+    uint period
   ) external view returns (
-    uint activeCover, uint capacity, uint lastBasePrice, uint targetPrice
+    uint activeCover, uint[] memory capacities, uint lastBasePrice, uint targetPrice
   );
 }

@@ -275,12 +275,16 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     // Transfer the cover NFTs to the new address, if any were given
     cover.transferCovers(msg.sender, newAddress, coverIds);
 
+    stakingPools;
+    revert("Staking pool migration not implemented");
+    /*
     // Transfer the staking LP tokens to the new address, if any were given
     for (uint256 i = 0; i < stakingPools.length; i++) {
       IStakingPool stakingLPToken = IStakingPool(stakingPools[i]);
       uint fullAmount = stakingLPToken.balanceOf(msg.sender);
       stakingLPToken.operatorTransferFrom(msg.sender, newAddress, fullAmount);
     }
+    */
   }
 
   function switchMembershipOf(address member, address newAddress) external override onlyInternal {

@@ -3,6 +3,7 @@ pragma solidity ^0.8.9;
 
 import "../../external/cow/GPv2Order.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/utils/math/Math.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
@@ -11,25 +12,31 @@ import "../../interfaces/ICowSettlement.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 
 contract CowSwapOperator {
+  using SafeERC20 for IERC20;
+
   // Storage
+  bytes public currentOrderUID;
+
+  // Immutables
   ICowSettlement public immutable cowSettlement;
   address public immutable cowVaultRelayer;
   INXMMaster public immutable master;
   address public immutable swapController;
   IWeth public immutable weth;
-  IPriceFeedOracle public immutable priceFeedOracle;
-  bytes public currentOrderUID;
   bytes32 public immutable domainSeparator;
 
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-  uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
-  uint256 constant MIN_VALID_TO_PERIOD = 600; // 10 minutes
-  uint256 constant MAX_VALID_TO_PERIOD = 3600; // 60 minutes
-  uint256 constant MIN_SELL_AMT_TO_FEE_RATIO = 100; // Sell amount at least 100x fee amount
+  uint public constant MAX_SLIPPAGE_DENOMINATOR = 10000;
+  uint public constant MIN_VALID_TO_PERIOD = 600; // 10 minutes
+  uint public constant MAX_VALID_TO_PERIOD = 3600; // 60 minutes
+  uint public constant MIN_SELL_AMT_TO_FEE_RATIO = 100; // Sell amount at least 100x fee amount
+  uint public constant MIN_TIME_BETWEEN_ORDERS = 900; // 15 minutes
+  uint public constant maxFee = 0.3 ether;
 
+  // Events
   event OrderPlaced(GPv2Order.Data order);
-  event OrderClosed(GPv2Order.Data order, uint256 filledAmount);
+  event OrderClosed(GPv2Order.Data order, uint filledAmount);
 
   modifier onlyController() {
     require(msg.sender == swapController, "SwapOp: only controller can execute");
@@ -40,15 +47,13 @@ contract CowSwapOperator {
     address _cowSettlement,
     address _swapController,
     address _master,
-    address _weth,
-    address _priceFeedOracle
+    address _weth
   ) {
     cowSettlement = ICowSettlement(_cowSettlement);
     cowVaultRelayer = cowSettlement.vaultRelayer();
     master = INXMMaster(_master);
     swapController = _swapController;
     weth = IWeth(_weth);
-    priceFeedOracle = IPriceFeedOracle(_priceFeedOracle);
     domainSeparator = cowSettlement.domainSeparator();
   }
 
@@ -76,33 +81,35 @@ contract CowSwapOperator {
     // Validate basic CoW params
     validateBasicCowParams(order);
 
-    // Validate feeAmount is not too high
-    require(order.sellAmount / order.feeAmount >= MIN_SELL_AMT_TO_FEE_RATIO, "SwapOp: Fee is above 1% of sellAmount");
-
-    // Local variables
     IPool pool = _pool();
-    uint256 totalOutAmount = order.sellAmount + order.feeAmount;
+    IPriceFeedOracle priceFeedOracle = pool.priceFeedOracle();
+    uint totalOutAmount = order.sellAmount + order.feeAmount;
 
     if (isSellingEth(order)) {
       // Validate min/max setup for buyToken
       IPool.SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(order.buyToken));
       require(swapDetails.minAmount != 0 || swapDetails.maxAmount != 0, "SwapOp: buyToken is not enabled");
-      uint256 buyTokenBalance = order.buyToken.balanceOf(address(pool));
+      uint buyTokenBalance = order.buyToken.balanceOf(address(pool));
       require(buyTokenBalance < swapDetails.minAmount, "SwapOp: can only buy asset when < minAmount");
       require(buyTokenBalance + order.buyAmount <= swapDetails.maxAmount, "SwapOp: swap brings buyToken above max");
-      require(buyTokenBalance + order.buyAmount >= swapDetails.minAmount, "SwapOp: swap leaves buyToken below min");
+
+      validateSwapFrequency(swapDetails);
+
+      validateMaxFee(priceFeedOracle, ETH, order.feeAmount);
 
       // Validate minimum pool eth reserve
       require(address(pool).balance - totalOutAmount >= pool.minPoolEth(), "SwapOp: Pool eth balance below min");
 
       // Ask oracle how much of the other asset we should get
-      uint256 oracleBuyAmount = priceFeedOracle.getAssetForEth(address(order.buyToken), order.sellAmount);
+      uint oracleBuyAmount = priceFeedOracle.getAssetForEth(address(order.buyToken), order.sellAmount);
 
       // Calculate slippage and minimum amount we should accept
-      uint256 maxSlippageAmount = (oracleBuyAmount * swapDetails.maxSlippageRatio) / MAX_SLIPPAGE_DENOMINATOR;
-      uint256 minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
+      uint maxSlippageAmount = (oracleBuyAmount * swapDetails.maxSlippageRatio) / MAX_SLIPPAGE_DENOMINATOR;
+      uint minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
 
       require(order.buyAmount >= minBuyAmountOnMaxSlippage, "SwapOp: order.buyAmount too low (oracle)");
+
+      refreshAssetLastSwapDate(pool, address(order.buyToken));
 
       // Transfer ETH from pool and wrap it
       pool.transferAssetToSwapOperator(ETH, totalOutAmount);
@@ -114,24 +121,29 @@ contract CowSwapOperator {
       // Validate min/max setup for sellToken
       IPool.SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(order.sellToken));
       require(swapDetails.minAmount != 0 || swapDetails.maxAmount != 0, "SwapOp: sellToken is not enabled");
-      uint256 sellTokenBalance = order.sellToken.balanceOf(address(pool));
+      uint sellTokenBalance = order.sellToken.balanceOf(address(pool));
       require(sellTokenBalance > swapDetails.maxAmount, "SwapOp: can only sell asset when > maxAmount");
       require(sellTokenBalance - totalOutAmount >= swapDetails.minAmount, "SwapOp: swap brings sellToken below min");
-      require(sellTokenBalance - totalOutAmount <= swapDetails.maxAmount, "SwapOp: swap leaves sellToken above max");
+
+      validateSwapFrequency(swapDetails);
+
+      validateMaxFee(priceFeedOracle, address(order.sellToken), order.feeAmount);
 
       // Ask oracle how much ether we should get
-      uint256 oracleBuyAmount = priceFeedOracle.getEthForAsset(address(order.sellToken), order.sellAmount);
+      uint oracleBuyAmount = priceFeedOracle.getEthForAsset(address(order.sellToken), order.sellAmount);
 
       // Calculate slippage and minimum amount we should accept
-      uint256 maxSlippageAmount = (oracleBuyAmount * swapDetails.maxSlippageRatio) / MAX_SLIPPAGE_DENOMINATOR;
-      uint256 minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
+      uint maxSlippageAmount = (oracleBuyAmount * swapDetails.maxSlippageRatio) / MAX_SLIPPAGE_DENOMINATOR;
+      uint minBuyAmountOnMaxSlippage = oracleBuyAmount - maxSlippageAmount;
       require(order.buyAmount >= minBuyAmountOnMaxSlippage, "SwapOp: order.buyAmount too low (oracle)");
+
+      refreshAssetLastSwapDate(pool, address(order.sellToken));
 
       // Transfer ERC20 asset from Pool
       pool.transferAssetToSwapOperator(address(order.sellToken), totalOutAmount);
 
       // Calculate swapValue using oracle and set it on the pool
-      uint256 swapValue = priceFeedOracle.getEthForAsset(address(order.sellToken), totalOutAmount);
+      uint swapValue = priceFeedOracle.getEthForAsset(address(order.sellToken), totalOutAmount);
       pool.setSwapValue(swapValue);
     } else {
       revert("SwapOp: Must either sell or buy eth");
@@ -162,14 +174,11 @@ contract CowSwapOperator {
     validateUID(order, currentOrderUID);
 
     // Check how much of the order was filled, and if it was fully filled
-    uint256 filledAmount = cowSettlement.filledAmount(currentOrderUID);
-    bool fullyFilled = filledAmount == order.sellAmount;
+    uint filledAmount = cowSettlement.filledAmount(currentOrderUID);
 
     // Cancel signature and unapprove tokens
-    if (!fullyFilled) {
-      cowSettlement.setPreSignature(currentOrderUID, false);
-      approveVaultRelayer(order.sellToken, 0);
-    }
+    cowSettlement.setPreSignature(currentOrderUID, false);
+    approveVaultRelayer(order.sellToken, 0);
 
     // Clear the current order
     delete currentOrderUID;
@@ -186,17 +195,22 @@ contract CowSwapOperator {
   }
 
   function returnAssetToPool(IERC20 asset) internal {
-    uint256 balance = asset.balanceOf(address(this));
+    uint balance = asset.balanceOf(address(this));
 
     if (balance == 0) {
       return;
     }
 
     if (address(asset) == address(weth)) {
-      weth.withdraw(balance); // Unwrap WETH
-      payable(address(_pool())).transfer(balance); // Transfer ETH to pool
+      // Unwrap WETH
+      weth.withdraw(balance);
+
+      // Transfer ETH to pool
+      (bool sent, ) = payable(address(_pool())).call{value: balance}("");
+      require(sent, "Failed to send Ether");
     } else {
-      asset.transfer(address(_pool()), balance); // Transfer ERC20 to pool
+      // Transfer ERC20 to pool
+      asset.safeTransfer(address(_pool()), balance);
     }
   }
 
@@ -222,8 +236,8 @@ contract CowSwapOperator {
     );
   }
 
-  function approveVaultRelayer(IERC20 token, uint256 amount) internal {
-    token.approve(cowVaultRelayer, amount); // infinite approval
+  function approveVaultRelayer(IERC20 token, uint amount) internal {
+    token.safeApprove(cowVaultRelayer, amount);
   }
 
   function validateUID(GPv2Order.Data calldata order, bytes memory providedOrderUID) internal view {
@@ -236,5 +250,25 @@ contract CowSwapOperator {
 
   function _pool() internal view returns (IPool) {
     return IPool(master.getLatestAddress("P1"));
+  }
+
+  function validateSwapFrequency(IPool.SwapDetails memory swapDetails) internal view {
+    require(
+      block.timestamp >= swapDetails.lastSwapTime + MIN_TIME_BETWEEN_ORDERS,
+      "SwapOp: already swapped this asset recently"
+    );
+  }
+
+  function refreshAssetLastSwapDate(IPool pool, address asset) internal {
+    pool.setSwapDetailsLastSwapTime(asset, uint32(block.timestamp));
+  }
+
+  function validateMaxFee(
+    IPriceFeedOracle oracle,
+    address asset,
+    uint feeAmount
+  ) internal view {
+    uint feeInEther = oracle.getEthForAsset(asset, feeAmount);
+    require(feeInEther <= maxFee, "SwapOp: Fee amount is higher than configured max fee");
   }
 }

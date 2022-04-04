@@ -4,6 +4,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { domain: makeDomain, computeOrderUid } = require('@gnosis.pm/gp-v2-contracts');
 const { setEtherBalance, setNextBlockTime, revertToSnapshot, takeSnapshot } = require('../../utils/evm');
+const { time } = require('@openzeppelin/test-helpers');
 
 const {
   utils: { parseEther, hexZeroPad, keccak256, toUtf8Bytes },
@@ -15,6 +16,8 @@ describe('closeOrder', function () {
   let order, contractOrder, domain, orderUID;
 
   let dai, weth, pool, swapOperator, cowSettlement, cowVaultRelayer;
+
+  let MIN_TIME_BETWEEN_ORDERS;
 
   const daiMinAmount = parseEther('3000');
   const daiMaxAmount = parseEther('20000');
@@ -30,7 +33,7 @@ describe('closeOrder', function () {
     };
   };
 
-  const setupSellDaiForEth = async () => {
+  const setupSellDaiForEth = async (overrides = {}) => {
     // Set DAI balance above asset max, so we can sell it
     await dai.setBalance(pool.address, parseEther('25000'));
 
@@ -42,11 +45,14 @@ describe('closeOrder', function () {
       sellAmount: parseEther('9999'),
       feeAmount: parseEther('1'),
       buyAmount: parseEther('2'),
+      ...overrides,
     };
     const newContractOrder = makeContractOrder(newOrder);
     const newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
     return { newOrder, newContractOrder, newOrderUID };
   };
+
+  const lastBlockTimestamp = async () => (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
 
   beforeEach(async () => {
     [controller, governance] = await ethers.getSigners();
@@ -59,14 +65,16 @@ describe('closeOrder', function () {
     cowSettlement = contracts.cowSettlement;
     cowVaultRelayer = contracts.cowVaultRelayer;
 
+    // Read constants
+    MIN_TIME_BETWEEN_ORDERS = (await swapOperator.MIN_TIME_BETWEEN_ORDERS()).toNumber();
+
     // Build order struct, domain separator and calculate UID
-    const lastBlockTimestamp = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
     order = {
       sellToken: weth.address,
       buyToken: dai.address,
       sellAmount: parseEther('0.999'),
       buyAmount: parseEther('4995'),
-      validTo: lastBlockTimestamp + 650,
+      validTo: await lastBlockTimestamp() + 650,
       appData: hexZeroPad(0, 32),
       feeAmount: parseEther('0.001'),
       kind: 'sell',
@@ -194,7 +202,7 @@ describe('closeOrder', function () {
       expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(0);
     });
 
-    it('doesnt cancel the presignature if the order was fully filled', async function () {
+    it('does so if the order was fully filled', async function () {
       expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
       expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(order.sellAmount.add(order.feeAmount));
       expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
@@ -209,8 +217,8 @@ describe('closeOrder', function () {
 
       await swapOperator.closeOrder(contractOrder);
 
-      // After closing, there's 0 allowance because all has been used up, but presignature is not canceled to save gas
-      expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
+      // After closing, presignature should be false
+      expect(await cowSettlement.presignatures(orderUID)).to.equal(false);
       expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(0);
     });
   });
@@ -228,8 +236,11 @@ describe('closeOrder', function () {
       // Cancel current order
       await swapOperator.closeOrder(contractOrder);
 
+      // Advance time to enable swapping again
+      await time.increase(MIN_TIME_BETWEEN_ORDERS);
+
       // Place new order that is selling dai for weth
-      const { newContractOrder, newOrderUID } = await setupSellDaiForEth();
+      const { newContractOrder, newOrderUID } = await setupSellDaiForEth({ validTo: await lastBlockTimestamp() + 650 });
 
       await dai.mint(pool.address, order.sellAmount.add(order.feeAmount));
       await weth.mint(cowVaultRelayer.address, order.buyAmount);
@@ -286,8 +297,11 @@ describe('closeOrder', function () {
       // Cancel current order
       await swapOperator.closeOrder(contractOrder);
 
+      // Advance time to enable swapping again
+      await time.increase(MIN_TIME_BETWEEN_ORDERS);
+
       // Place an order swapping DAI for ETH
-      const { newOrder, newContractOrder, newOrderUID } = await setupSellDaiForEth();
+      const { newOrder, newContractOrder, newOrderUID } = await setupSellDaiForEth({ validTo: await lastBlockTimestamp() + 650 });
       await weth.mint(cowVaultRelayer.address, order.buyAmount);
       await swapOperator.placeOrder(newContractOrder, newOrderUID);
 

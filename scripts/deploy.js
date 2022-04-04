@@ -29,6 +29,8 @@ const SwapOperator = artifacts.require('SwapOperator');
 const TwapOracle = artifacts.require('TwapOracle');
 const DisposableMCR = artifacts.require('DisposableMCR');
 const Cover = artifacts.require('Cover');
+const CoverViewer = artifacts.require('CoverViewer');
+const CoverMigrator = artifacts.require('CoverMigrator');
 
 // temporary contracts used for initialization
 const DisposableNXMaster = artifacts.require('DisposableNXMaster');
@@ -158,6 +160,7 @@ async function main () {
   const { instance: cover, implementation: coverImpl } = await deployProxy(DisposableCover, []);
   const stakingPoolParameters = [tk.address, cover.address, mr.address];
   const stakingPool = await CoverMockStakingPool.new(...stakingPoolParameters);
+  const coverMigrator = await CoverMigrator.new();
   const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
   const { instance: tc, implementation: tcImpl } = await deployProxy(DisposableTokenController, [
     qd.address,
@@ -167,10 +170,10 @@ async function main () {
   const { instance: pc, implementation: pcImpl } = await deployProxy(DisposableProposalCategory);
   const { instance: gv, implementation: gvImpl } = await deployProxy(DisposableGovernance, [{ gas: 12e6 }]);
   const { instance: gateway, implementation: gatewayImpl } = await deployProxy(DisposableGateway);
-  const { instance: yieldTokenIncidents, implementation: incidentsImpl } = await deployProxy(YieldTokenIncidents, [
-    tk.address,
-    coverNFT.address,
-  ]);
+  const {
+    instance: yieldTokenIncidents,
+    implementation: yieldTokenIncidentsImpl,
+  } = await deployProxy(YieldTokenIncidents, [tk.address, coverNFT.address]);
   const { instance: individualClaims, implementation: individualClaimsImpl } = await deployProxy(IndividualClaims, [
     tk.address,
     coverNFT.address,
@@ -185,7 +188,7 @@ async function main () {
     { proxy: pc, implementation: pcImpl, contract: 'DisposableProposalCategory' },
     { proxy: gv, implementation: gvImpl, contract: 'DisposableGovernance' },
     { proxy: gateway, implementation: gatewayImpl, contract: 'DisposableGateway' },
-    { proxy: yieldTokenIncidents, implementation: incidentsImpl, contract: 'Incidents' },
+    { proxy: yieldTokenIncidents, implementation: yieldTokenIncidentsImpl, contract: 'YieldTokenIncidents' },
     { proxy: individualClaims, implementation: individualClaimsImpl, contract: 'IndividualClaims' },
     { proxy: cover, implementation: coverImpl, contract: 'Cover' },
     { proxy: assessment, implementation: assessmentImpl, contract: 'Assessment' },
@@ -320,9 +323,10 @@ async function main () {
   verifier.add(mc, { constructorArgs: [ZERO_ADDRESS] });
   verifier.add(p1, { constructorArgs: poolParameters });
   verifier.add(stakingPool, { constructorArgs: stakingPoolParameters });
+  verifier.add(coverMigrator, { constructorArgs: [] });
 
-  const upgradableContractCodes = ['MC', 'P1', 'SP'];
-  const upgradableContractAddresses = [mc, p1, stakingPool].map(x => x.address);
+  const upgradableContractCodes = ['MC', 'P1', 'SP', 'CL'];
+  const upgradableContractAddresses = [mc, p1, stakingPool, coverMigrator].map(x => x.address);
 
   const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'YT', 'IC', 'AS'];
   const proxyContractAddresses = [
@@ -442,6 +446,11 @@ async function main () {
   const distributorFactory = await DistributorFactory.new(master.address);
 
   verifier.add(distributorFactory, { constructorArgs: [master.address] });
+
+  console.log('Deploying CoverViewer');
+
+  const coverViewer = await CoverViewer.new(master.address);
+  verifier.add(coverViewer, { constructorArgs: [master.address] });
 
   const deployDataFile = `${__dirname}/../deploy/${network.name}-deploy-data.json`;
   verifier.dump(deployDataFile);

@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const getVersionDataTemplate = require('./version-data-template');
 
-const network = 'localhost';
+const network = 'hardhat';
 const rootPath = path.normalize(`${__dirname}/..`);
 const deployPath = `${rootPath}/deploy`;
 const contractsBasePath = `${rootPath}/artifacts/contracts`;
@@ -55,10 +55,11 @@ console.log({ addresses });
 fs.writeFileSync(`${deployPath}/${network}-addresses.json`, JSON.stringify(addresses, null, 2));
 
 const artifactPathOfContractCode = {
-  LCD: 'modules/claims/LegacyClaimsData.sol/LegacyClaimsData.json',
-  LCL: 'modules/claims/LegacyClaims.sol/LegacyClaims.json',
-  LCR: 'modules/claims/LegacyClaimsReward.sol/LegacyClaimsReward.json',
-  LCP: 'modules/claims/LegacyClaimProofs.sol/LegacyClaimProofs.json',
+  // LCD: 'modules/claims/LegacyClaimsData.sol/LegacyClaimsData.json',
+  // LCL: 'modules/claims/LegacyClaims.sol/LegacyClaims.json',
+  CR: 'modules/claims/LegacyClaimsReward.sol/LegacyClaimsReward.json',
+  // LCP: 'modules/claims/LegacyClaimProofs.sol/LegacyClaimProofs.json',
+  CL: 'modules/v2/CoverMigrator.sol/CoverMigrator.json',
   GV: 'modules/governance/Governance.sol/Governance.json',
   MC: 'modules/capital/MCR.sol/MCR.json',
   MR: 'modules/governance/MemberRoles.sol/MemberRoles.json',
@@ -66,11 +67,10 @@ const artifactPathOfContractCode = {
   NXMTOKEN: 'modules/token/NXMToken.sol/NXMToken.json',
   P1: 'modules/capital/Pool.sol/Pool.json',
   PC: 'modules/governance/ProposalCategory.sol/ProposalCategory.json',
-  PD: 'modules/capital/LegacyPoolData.sol/LegacyPoolData.json',
   QD: 'mocks/Testnet/TestnetQuotationData.sol/TestnetQuotationData.json',
-  QT: 'modules/cover/Quotation.sol/Quotation.json',
+  // QT: 'modules/cover/Quotation.sol/Quotation.json',
   TC: 'modules/token/TokenController.sol/TokenController.json',
-  TD: 'modules/token/TokenData.sol/TokenData.json',
+  // TD: 'modules/token/TokenData.sol/TokenData.json',
   PS: 'modules/staking/PooledStaking.sol/PooledStaking.json',
   GW: 'modules/cover/Gateway.sol/Gateway.json',
   SO: 'modules/capital/SwapOperator.sol/SwapOperator.json',
@@ -82,12 +82,10 @@ const artifactPathOfContractCode = {
 };
 
 const contractNameByCode = {
-  LCD: 'LegacyClaimsData',
-  LCL: 'LegacyClaims',
-  LCR: 'LegacyClaimsReward',
-  LCP: 'LegacyClaimProofs',
+  CR: 'LegacyClaimsReward',
   GV: 'Governance',
   MC: 'MCR',
+  CL: 'CoverMigrator',
   MR: 'MemberRoles',
   NXMASTER: 'NXMaster',
   NXMTOKEN: 'NXMToken',

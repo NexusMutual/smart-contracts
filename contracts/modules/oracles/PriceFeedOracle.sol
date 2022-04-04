@@ -46,8 +46,8 @@ contract PriceFeedOracle is IPriceFeedOracle {
       return 1 ether;
     }
 
-    OracleAsset storage asset = assets[assetAddress];
-    return _getAssetToEthRate(asset);
+    OracleAsset memory asset = assets[assetAddress];
+    return _getAssetToEthRate(asset.aggregator);
   }
 
   /**
@@ -61,8 +61,8 @@ contract PriceFeedOracle is IPriceFeedOracle {
       return ethIn;
     }
 
-    OracleAsset storage asset = assets[assetAddress];
-    uint price = _getAssetToEthRate(asset);
+    OracleAsset memory asset = assets[assetAddress];
+    uint price = _getAssetToEthRate(asset.aggregator);
 
     return ethIn.mul(10**uint(asset.decimals)).div(price);
   }
@@ -78,21 +78,21 @@ contract PriceFeedOracle is IPriceFeedOracle {
       return amount;
     }
 
-    OracleAsset storage asset = assets[assetAddress];
-    uint price = _getAssetToEthRate(asset);
+    OracleAsset memory asset = assets[assetAddress];
+    uint price = _getAssetToEthRate(asset.aggregator);
 
     return amount.mul(price).div(10**uint(asset.decimals));
   }
 
   /**
    * @dev Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
-   * @param asset The asset
+   * @param aggregator The asset aggregator
    * @return price in ether
    */
-  function _getAssetToEthRate(OracleAsset storage asset) internal view returns (uint) {
-    require(address(asset.aggregator) != address(0), "PriceFeedOracle: Unknown asset");
+  function _getAssetToEthRate(Aggregator aggregator) internal view returns (uint) {
+    require(address(aggregator) != address(0), "PriceFeedOracle: Unknown asset");
     // TODO: consider checking the latest timestamp and revert if it's *very* old
-    int rate = asset.aggregator.latestAnswer();
+    int rate = aggregator.latestAnswer();
     require(rate > 0, "PriceFeedOracle: Rate must be > 0");
 
     return uint(rate);

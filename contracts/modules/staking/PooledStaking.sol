@@ -354,6 +354,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
   }
 
   function withdraw(uint ignoredParam) external override whenNotPausedAndInitialized onlyMember noPendingBurns {
+    ignoredParam; // Silence warnings. Keeping this to avoid changing function selector
     uint amount = stakers[msg.sender].deposit;
     stakers[msg.sender].deposit -= amount;
     token.transfer(msg.sender, amount);
@@ -1374,6 +1375,8 @@ contract PooledStaking is IPooledStaking, MasterAware {
       return 7995085516794736000; // 7.9950855167947354%
     }
     // {V1_PRICES_HELPER_END}
+
+    revert("Invalid product id");
   }
 
   function migrateToNewV2Pool(address stakerAddress, uint groupId) external noPendingActions {

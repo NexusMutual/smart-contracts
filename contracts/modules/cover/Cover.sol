@@ -679,14 +679,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== VIEWS ========== */
 
-  function getPoolAllocationPriceParametersForProduct(uint poolId, uint productId, uint period) public view returns (
+  function getPoolAllocationPriceParametersForProduct(uint poolId, uint productId) public view returns (
     PoolAllocationPriceParameters memory params
   ) {
     IStakingPool _pool = stakingPool(poolId);
     Product memory product = _products[productId];
 
     (params.activeCover, params.capacities, params.lastBasePrice, params.targetPrice) = _pool.getPriceParameters(
-      productId, globalCapacityRatio, product.capacityReductionRatio, period
+      productId, globalCapacityRatio, product.capacityReductionRatio
     );
     params.initialPriceRatio = product.initialPriceRatio;
   }
@@ -699,14 +699,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint targetPrice;
   }
 
-  function getPoolAllocationPriceParameters(uint poolId, uint period) public view returns (
+  function getPoolAllocationPriceParameters(uint poolId) public view returns (
     PoolAllocationPriceParameters[] memory params
   ) {
     uint count = _products.length;
     params = new PoolAllocationPriceParameters[](count);
 
     for (uint i = 0; i < count; i++) {
-      params[i] = getPoolAllocationPriceParametersForProduct(poolId, i, period);
+      params[i] = getPoolAllocationPriceParametersForProduct(poolId, i);
     }
   }
 

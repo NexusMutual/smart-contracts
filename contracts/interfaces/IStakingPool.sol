@@ -108,8 +108,7 @@ interface IStakingPool is IERC721 {
   function getPriceParameters(
     uint productId,
     uint globalCapacityRatio,
-    uint capacityReductionRatio,
-    uint period
+    uint capacityReductionRatio
   ) external view returns (
     uint activeCover, uint[] memory capacities, uint lastBasePrice, uint targetPrice
   );

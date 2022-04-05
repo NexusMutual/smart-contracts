@@ -125,9 +125,10 @@ abstract contract CoverMockStakingPool is IStakingPool, ERC721 {
     uint /* globalCapacityRatio */,
     uint /* capacityReductionRatio */
   ) external view returns (
-    uint, uint, uint, uint
+    uint, uint[] memory, uint, uint
   ) {
     nxm;
-    return (0, 0, 0, 0);
+    uint [] memory capacities = new uint[](1);
+    return (0, capacities, 0, 0);
   }
 }

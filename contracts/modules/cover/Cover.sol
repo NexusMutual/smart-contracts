@@ -323,14 +323,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   ) internal returns (uint coveredAmountInNXM, uint premiumInNXM) {
 
     Product memory product = _products[params.productId];
+    uint gracePeriod = _productTypes[product.productType].gracePeriodInDays * 1 days;
 
     // TODO: correctly calculate the capacity
     uint allocation = amount * globalCapacityRatio;
-    revert("capacity calculation: not implemented");
+
+    if (true) {
+      // wrapped in if(true) to avoid the compiler warning about unreachable code
+      revert("capacity calculation: not implemented");
+    }
 
     return _stakingPool.allocateStake(
       params.productId,
       params.period,
+      gracePeriod,
       allocation,
       globalRewardsRatio
     );

@@ -54,6 +54,9 @@ abstract contract CoverMockStakingPool is IStakingPool, ERC721 {
     uint rewardRatio,
     uint initialPriceRatio
   ) external /*override*/ returns (uint coveredAmountInNXM, uint premiumInNXM) {
+    period;
+    rewardRatio;
+    initialPriceRatio;
     usedCapacity[productId] += amountInNXM;
     return (amountInNXM, calculatePremium(mockPrices[productId], amountInNXM, period));
   }

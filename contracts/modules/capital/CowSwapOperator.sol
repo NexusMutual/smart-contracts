@@ -13,7 +13,6 @@ import "../../interfaces/IPriceFeedOracle.sol";
 
 /**
   @title A contract for swapping Pool's assets using CoW protocol
-  @author Armando Andini (antico5)
   @dev This contract's address is set on the Pool's swapOperator variable via governance
  */
 contract CowSwapOperator {

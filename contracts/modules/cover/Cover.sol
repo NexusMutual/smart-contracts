@@ -34,7 +34,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint public constant PRICE_DENOMINATOR = 10000;
   uint public constant COMMISSION_DENOMINATOR = 10000;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
-  uint public constant INTERIM_PRICE_DENOMINATOR = 1e18;
+  uint public constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
 
   uint public constant MAX_COVER_PERIOD = 365 days;
   uint public constant MIN_COVER_PERIOD = 30 days;
@@ -685,9 +685,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     IStakingPool _pool = stakingPool(poolId);
     Product memory product = _products[productId];
 
-    (params.activeCover, params.capacities, params.lastBasePrice, params.targetPrice) = _pool.getPriceParameters(
+
+    uint[] memory staked;
+    (params.activeCover, staked, params.lastBasePrice, params.targetPrice) = _pool.getPriceParameters(
       productId, globalCapacityRatio, product.capacityReductionRatio
     );
+    params.capacities = new uint[](staked.length);
+    for (uint i = 0; i < staked.length; i++) {
+      params.capacities[i] = calculateCapacity(
+        staked[i],
+        product.capacityReductionRatio
+      );
+    }
+
     params.initialPriceRatio = product.initialPriceRatio;
   }
 
@@ -708,6 +718,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     for (uint i = 0; i < count; i++) {
       params[i] = getPoolAllocationPriceParametersForProduct(poolId, i);
     }
+  }
+
+  /* ========== CAPACITY CALCULATION ========== */
+
+  function calculateCapacity(
+    uint staked,
+    uint capacityReductionRatio
+  ) internal view returns (uint) {
+    return staked *
+    globalCapacityRatio *
+    (CAPACITY_REDUCTION_DENOMINATOR - capacityReductionRatio) /
+    GLOBAL_CAPACITY_DENOMINATOR /
+    CAPACITY_REDUCTION_DENOMINATOR;
   }
 
   /* ========== UTILS ========== */

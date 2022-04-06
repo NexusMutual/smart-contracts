@@ -54,6 +54,8 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   /* constants */
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+  address constant public DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+  address constant public stETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
 
   uint public constant MCR_RATIO_DECIMALS = 4;
   uint public constant MAX_MCR_RATIO = 40000; // 400%
@@ -76,42 +78,37 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   }
 
   constructor (
-    address[] memory assetAddresses,
-    uint8[] memory assetDecimals,
-    uint104[] memory _minAmounts,
-    uint104[] memory _maxAmounts,
-    uint16[] memory _maxSlippageRatios,
     address _master,
     address _priceOracle,
     address _swapOperator
   ) {
-
-    // First asset is ETH
-    payoutAssets.push(Asset(ETH, 18));
-
-    // [todo] Hardcode initial payout and investment assets and their corresponding
-    // swap details instead.
-    require(assetAddresses.length == _minAmounts.length, "Pool: Length mismatch");
-    require(assetAddresses.length == _maxAmounts.length, "Pool: Length mismatch");
-    require(assetAddresses.length == _maxSlippageRatios.length, "Pool: Length mismatch");
-    require(assetAddresses.length == assetDecimals.length, "Pool: Length mismatch");
-
-    for (uint i = 0; i < assetAddresses.length; i++) {
-
-      Asset memory asset = Asset(assetAddresses[i], assetDecimals[i]);
-      require(asset.assetAddress != address(0), "Pool: Asset cannot be a zero address");
-      require(_maxAmounts[i] >= _minAmounts[i], "Pool: max < min");
-      require(_maxSlippageRatios[i] <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
-
-      payoutAssets.push(asset);
-      swapDetails[asset.assetAddress].minAmount = _minAmounts[i];
-      swapDetails[asset.assetAddress].maxAmount = _maxAmounts[i];
-      swapDetails[asset.assetAddress].maxSlippageRatio = _maxSlippageRatios[i];
-    }
-
     master = INXMMaster(_master);
     priceFeedOracle = IPriceFeedOracle(_priceOracle);
     swapOperator = _swapOperator;
+
+    // The order of payoutAssets should never change between updates. Do not remove the following
+    // lines!
+    payoutAssets.push(Asset(ETH, 18));
+    payoutAssets.push(Asset(DAI, 18));
+
+    // Add investment assets
+    investmentAssets.push(Asset(stETH, 18))
+
+    // Set DAI swap details
+    swapDetails[DAI] = SwapDetails(
+      1000000 ether, // minAmount (1 mil)
+      2000000 ether, // maxAmount (2 mil)
+      0,             // lastSwapTime
+      250,           // maxSlippageRatio (0.25%)
+    );
+
+    // Set stETH swap details
+    swapDetails[stETH] = SwapDetails(
+      24360 ether,   // minAmount (~24k)
+      32500 ether,   // maxAmount (~32k)
+      1633425218,    // lastSwapTime
+      0,             // maxSlippageRatio (0%)
+    );
   }
 
   fallback() external payable {}

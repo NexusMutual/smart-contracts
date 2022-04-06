@@ -93,7 +93,7 @@ contract CowSwapOperator {
 
   /**
    * @dev Approve a given order to be executed, by presigning it on CoW protocol's settlement contract
-   * @dev Only one order can be open at the same time
+   * Only one order can be open at the same time, and one of the swapped assets must be ether
    * @param order The order
    * @param orderUID The order UID, for verification purposes
    */

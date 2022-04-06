@@ -33,11 +33,6 @@ async function setup () {
   const swapOperator = accounts.generalPurpose[10];
 
   const pool = await Pool.new(
-    [dai.address], // assets
-    [18], // decimals
-    [0], // min
-    [0], // max
-    [100], // maxSlippage 1%
     accounts.defaultSender, // master: it is changed a few lines below
     priceFeedOracle.address,
     swapOperator, // we do not test swaps here

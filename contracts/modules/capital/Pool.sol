@@ -92,14 +92,14 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     payoutAssets.push(Asset(DAI, 18));
 
     // Add investment assets
-    investmentAssets.push(Asset(stETH, 18))
+    investmentAssets.push(Asset(stETH, 18));
 
     // Set DAI swap details
     swapDetails[DAI] = SwapDetails(
       1000000 ether, // minAmount (1 mil)
       2000000 ether, // maxAmount (2 mil)
       0,             // lastSwapTime
-      250,           // maxSlippageRatio (0.25%)
+      250            // maxSlippageRatio (0.25%)
     );
 
     // Set stETH swap details
@@ -107,7 +107,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       24360 ether,   // minAmount (~24k)
       32500 ether,   // maxAmount (~32k)
       1633425218,    // lastSwapTime
-      0,             // maxSlippageRatio (0%)
+      0              // maxSlippageRatio (0%)
     );
   }
 

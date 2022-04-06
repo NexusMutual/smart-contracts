@@ -307,16 +307,7 @@ async function main () {
     minUpdateTime,
   );
 
-  const poolParameters = [
-    [dai.address, stETH.address],
-    [18, 18],
-    [ether('1000000'), ether('15000')],
-    [ether('2000000'), ether('20000')],
-    [2500, 0],
-    master.address,
-    priceFeedOracle.address,
-    swapOperator.address,
-  ];
+  const poolParameters = [master.address, priceFeedOracle.address, swapOperator.address];
 
   const p1 = await Pool.new(...poolParameters);
 

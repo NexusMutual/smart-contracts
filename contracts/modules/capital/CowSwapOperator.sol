@@ -11,6 +11,10 @@ import "../../interfaces/IWeth.sol";
 import "../../interfaces/ICowSettlement.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 
+/**
+  @title A contract for swapping Pool's assets using CoW protocol
+  @dev This contract's address is set on the Pool's swapOperator variable via governance
+ */
 contract CowSwapOperator {
   using SafeERC20 for IERC20;
 
@@ -43,6 +47,12 @@ contract CowSwapOperator {
     _;
   }
 
+  /**
+   * @param _cowSettlement Address of CoW protocol's settlement contract
+   * @param _swapController Account allowed to place and close orders
+   * @param _master Address of Nexus' master contract
+   * @param _weth Address of wrapped eth token
+   */
   constructor(
     address _cowSettlement,
     address _swapController,
@@ -59,11 +69,21 @@ contract CowSwapOperator {
 
   receive() external payable {}
 
+  /**
+   * @dev Compute the digest of an order using CoW protocol's logic
+   * @param order The order
+   * @return The digest
+   */
   function getDigest(GPv2Order.Data calldata order) public view returns (bytes32) {
     bytes32 hash = GPv2Order.hash(order, domainSeparator);
     return hash;
   }
 
+  /**
+   * @dev Compute the UID of an order using CoW protocol's logic
+   * @param order The order
+   * @return The UID (56 bytes)
+   */
   function getUID(GPv2Order.Data calldata order) public view returns (bytes memory) {
     bytes memory uid = new bytes(56);
     bytes32 digest = getDigest(order);
@@ -71,6 +91,12 @@ contract CowSwapOperator {
     return uid;
   }
 
+  /**
+   * @dev Approve a given order to be executed, by presigning it on CoW protocol's settlement contract
+   * Only one order can be open at the same time, and one of the swapped assets must be ether
+   * @param order The order
+   * @param orderUID The order UID, for verification purposes
+   */
   function placeOrder(GPv2Order.Data calldata order, bytes calldata orderUID) public onlyController {
     // Validate there's no current order going on
     require(currentOrderUID.length == 0, "SwapOp: an order is already in place");
@@ -162,6 +188,10 @@ contract CowSwapOperator {
     emit OrderPlaced(order);
   }
 
+  /**
+   * @dev Close a previously placed order, returning assets to the pool (either fulfilled or not)
+   * @param order The order to close
+   */
   function closeOrder(GPv2Order.Data calldata order) external {
     // Validate there is an order in place
     require(currentOrderUID.length > 0, "SwapOp: No order in place");
@@ -194,6 +224,10 @@ contract CowSwapOperator {
     emit OrderClosed(order, filledAmount);
   }
 
+  /**
+   * @dev Return a given asset to the pool, either ETH or ERC20
+   * @param asset The asset
+   */
   function returnAssetToPool(IERC20 asset) internal {
     uint balance = asset.balanceOf(address(this));
 
@@ -214,14 +248,28 @@ contract CowSwapOperator {
     }
   }
 
+  /**
+   * @dev Function to determine if an order is for selling eth
+   * @param order The order
+   * @return true or false
+   */
   function isSellingEth(GPv2Order.Data calldata order) internal view returns (bool) {
     return address(order.sellToken) == address(weth);
   }
 
+  /**
+   * @dev Function to determine if an order is for buying eth
+   * @param order The order
+   * @return true or false
+   */
   function isBuyingEth(GPv2Order.Data calldata order) internal view returns (bool) {
     return address(order.buyToken) == address(weth);
   }
 
+  /**
+   * @dev General validations on individual order fields
+   * @param order The order
+   */
   function validateBasicCowParams(GPv2Order.Data calldata order) internal view {
     require(order.sellTokenBalance == GPv2Order.BALANCE_ERC20, "SwapOp: Only erc20 supported for sellTokenBalance");
     require(order.buyTokenBalance == GPv2Order.BALANCE_ERC20, "SwapOp: Only erc20 supported for buyTokenBalance");
@@ -236,10 +284,20 @@ contract CowSwapOperator {
     );
   }
 
+  /**
+   * @dev Approve CoW's vault relayer to spend some given ERC20 token
+   * @param token The token
+   * @param amount Amount to approve
+   */
   function approveVaultRelayer(IERC20 token, uint amount) internal {
     token.safeApprove(cowVaultRelayer, amount);
   }
 
+  /**
+   * @dev Validate that a given UID is the correct one for a given order
+   * @param order The order
+   * @param providedOrderUID The UID
+   */
   function validateUID(GPv2Order.Data calldata order, bytes memory providedOrderUID) internal view {
     bytes memory calculatedUID = getUID(order);
     require(
@@ -248,10 +306,18 @@ contract CowSwapOperator {
     );
   }
 
+  /**
+   * @dev Get the Pool's instance through master contract
+   * @return The pool instance
+   */
   function _pool() internal view returns (IPool) {
     return IPool(master.getLatestAddress("P1"));
   }
 
+  /**
+   * @dev Validates that a given asset is not swapped too fast
+   * @param swapDetails Swap details for the given asset
+   */
   function validateSwapFrequency(IPool.SwapDetails memory swapDetails) internal view {
     require(
       block.timestamp >= swapDetails.lastSwapTime + MIN_TIME_BETWEEN_ORDERS,
@@ -259,10 +325,21 @@ contract CowSwapOperator {
     );
   }
 
+  /**
+   * @dev Set the last swap's time of a given asset to current time
+   * @param pool The pool instance
+   * @param asset The asset
+   */
   function refreshAssetLastSwapDate(IPool pool, address asset) internal {
     pool.setSwapDetailsLastSwapTime(asset, uint32(block.timestamp));
   }
 
+  /**
+   * @dev Validate that the fee for the order is not higher than the maximum allowed fee, in ether
+   * @param oracle The oracle instance
+   * @param asset The asset
+   * @param feeAmount The fee, in asset's units
+   */
   function validateMaxFee(
     IPriceFeedOracle oracle,
     address asset,

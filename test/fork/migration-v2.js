@@ -316,16 +316,7 @@ describe('v2 migration', function () {
     await pooledStaking.deployed();
 
     const Pool = await ethers.getContractFactory('Pool');
-    const pool = await Pool.deploy(
-      [DAI_ADDRESS],
-      [18], // 18 decimals
-      [0], // 0%
-      [ethers.utils.parseEther('1000')], // 1000 DAI
-      [100], // 1%
-      this.master.address,
-      PRICE_FEED_ORACLE_ADDRESS,
-      this.swapOperator.address,
-    );
+    const pool = await Pool.deploy(this.master.address, PRICE_FEED_ORACLE_ADDRESS, this.swapOperator.address);
     await pool.deployed();
 
     const CoverMigrator = await ethers.getContractFactory('CoverMigrator');

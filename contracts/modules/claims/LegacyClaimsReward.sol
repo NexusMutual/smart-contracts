@@ -15,11 +15,9 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ITokenData.sol";
-import 'hardhat/console.sol';
 
-//Claims Reward Contract contains the functions for calculating number of tokens
-// that will get rewarded, unlocked or burned depending upon the status of claim.
-
+/// Claims Reward Contract contains the functions for calculating number of tokens
+/// that will get rewarded, unlocked or burned depending upon the status of claim.
 contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
   INXMToken internal tk;
   ITokenController internal tc;

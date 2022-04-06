@@ -98,10 +98,6 @@ contract MasterMock {
 
   function updatePauseTime(uint) unused public {}
 
-  function dAppLocker() unused public view returns (address) {}
-
-  function dAppToken() unused public view returns (address) {}
-
   function owner() external view returns (address) {}
 
   function pauseTime() external view returns (uint) {}

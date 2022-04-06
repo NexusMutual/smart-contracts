@@ -20,8 +20,6 @@ interface INXMMaster {
 
   function checkIsAuthToGoverned(address _add) external view returns (bool);
 
-  function dAppLocker() external view returns (address _add);
-
   function getLatestAddress(bytes2 _contractName) external view returns (address payable contractAddress);
 
   function contractAddresses(bytes2 code) external view returns (address payable);

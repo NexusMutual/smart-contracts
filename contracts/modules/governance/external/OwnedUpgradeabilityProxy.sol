@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity >=0.8.9;
 
 import "./UpgradeabilityProxy.sol";
 
@@ -35,10 +35,8 @@ contract OwnedUpgradeabilityProxy is UpgradeabilityProxy {
     _;
   }
 
-  /**
-  * @dev Tells the address of the owner
-  * @return the address of the owner
-  */
+  /// @dev           Returns the address of the owner
+  /// @return owner  The address of the proxy contract's owner
   function proxyOwner() public view returns (address owner) {
     bytes32 position = PROXY_OWNER_POSITION;
     // solhint-disable-next-line no-inline-assembly

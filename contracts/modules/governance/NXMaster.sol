@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IMasterAware.sol";
 import "../../interfaces/ILegacyClaims.sol";
@@ -19,8 +18,6 @@ import "./external/OwnedUpgradeabilityProxy.sol";
 
 
 contract NXMaster is INXMMaster, Governed {
-  using SafeMath for uint;
-
   uint public _unused0;
 
   bytes2[] public contractCodes;
@@ -107,7 +104,7 @@ contract NXMaster is INXMMaster, Governed {
       revert("NXMaster: Unsupported contract type");
     }
 
-    contractAddresses[contractCode] = address(uint160(newInternalContract));
+    contractAddresses[contractCode] = payable(newInternalContract);
     contractsActive[newInternalContract] = true;
 
     IMasterAware up = IMasterAware(newInternalContract);
@@ -121,10 +118,7 @@ contract NXMaster is INXMMaster, Governed {
   function upgradeMultipleContracts(
     bytes2[] calldata _contractCodes,
     address payable[] calldata newAddresses
-  )
-  external
-  onlyAuthorizedToGovern
-  {
+  ) external virtual onlyAuthorizedToGovern {
     require(_contractCodes.length == newAddresses.length, "NXMaster: _contractCodes.length != newAddresses.length");
 
     for (uint i = 0; i < _contractCodes.length; i++) {
@@ -186,7 +180,7 @@ contract NXMaster is INXMMaster, Governed {
       require(contractAddress != address(0), "NXMaster: Address is 0");
       require(isInternal(contractAddress), "NXMaster: Contract not internal");
       contractsActive[contractAddress] = false;
-      contractAddresses[code] = address(0);
+      contractAddresses[code] = payable(address(0));
 
       if (isProxy[code]) {
         isProxy[code] = false;
@@ -250,8 +244,8 @@ contract NXMaster is INXMMaster, Governed {
   }
 
   /// @dev Gets current contract codes and their addresses
-  /// @return contractCodes
-  /// @return contractAddresses
+  /// @return _contractCodes
+  /// @return _contractAddresses
   function getInternalContracts()
   public
   view
@@ -266,14 +260,6 @@ contract NXMaster is INXMMaster, Governed {
     for (uint i = 0; i < _contractCodes.length; i++) {
       _contractAddresses[i] = contractAddresses[contractCodes[i]];
     }
-  }
-
-  /**
-   * @dev returns the address of token controller
-   * @return address is returned
-   */
-  function dAppLocker() public view returns (address) {
-    return getLatestAddress("TC");
   }
 
   /// @dev Gets latest contract address

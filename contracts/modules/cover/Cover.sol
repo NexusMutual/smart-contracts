@@ -21,7 +21,6 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
 
 import "./MinimalBeaconProxy.sol";
-import "hardhat/console.sol";
 
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
@@ -234,7 +233,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     IPool _pool = pool();
     uint tokenPriceInPaymentAsset = _pool.getTokenPrice(params.paymentAsset);
-    (, uint8 paymentAssetDecimals, ) = _pool.assets(params.paymentAsset);
+    (, uint8 paymentAssetDecimals) = _pool.payoutAssets(params.paymentAsset);
 
     uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
@@ -409,7 +408,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     }
 
     uint tokenPriceInPaymentAsset = _pool.getTokenPrice(buyCoverParams.paymentAsset);
-    (, uint8 paymentAssetDecimals, ) = _pool.assets(buyCoverParams.paymentAsset);
+    (, uint8 paymentAssetDecimals) = _pool.payoutAssets(buyCoverParams.paymentAsset);
 
     uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
@@ -500,9 +499,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     (
     address payoutAsset,
-    /*uint8 decimals*/,
-    /*bool deprecated*/
-    ) = _pool.assets(paymentAsset);
+    /*uint8 decimals*/
+    ) = _pool.payoutAssets(paymentAsset);
 
     IERC20 token = IERC20(payoutAsset);
     token.safeTransferFrom(msg.sender, address(_pool), premium);
@@ -566,7 +564,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     );
     IStakingPool(stakingPoolAddress).initialize(manager, params);
 
-    console.log("stakingPoolCounter %d", stakingPoolCounter);
     stakingPoolCounter++;
 
     emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);

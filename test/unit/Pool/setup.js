@@ -80,6 +80,7 @@ async function setup () {
   }
 
   // there is only one in reality, but it doesn't matter
+  console.log({ gov: accounts.governanceContracts });
   for (const governanceContract of accounts.governanceContracts) {
     await master.enrollGovernance(governanceContract);
   }

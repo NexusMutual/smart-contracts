@@ -89,6 +89,8 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     // First asset is ETH
     payoutAssets.push(Asset(ETH, 18));
 
+    // [todo] Hardcode initial payout and investment assets and their corresponding
+    // swap details instead.
     require(assetAddresses.length == _minAmounts.length, "Pool: Length mismatch");
     require(assetAddresses.length == _maxAmounts.length, "Pool: Length mismatch");
     require(assetAddresses.length == _maxSlippageRatios.length, "Pool: Length mismatch");

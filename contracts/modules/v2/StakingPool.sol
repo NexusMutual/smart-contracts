@@ -122,7 +122,7 @@ contract StakingPool is IStakingPool, ERC721 {
   uint constant FLAG_WITHDRAW_REWARDS = 2;
 
   modifier onlyCoverContract {
-    // TODO: restrict calls to cover contract only
+    require(msg.sender == coverContract, "StakingPool: Only Cover contract can call this function");
     _;
   }
 

@@ -3,7 +3,6 @@ describe('UNIT TESTS', function () {
   require('./PooledStaking');
   require('./Pool');
   require('./CowOperator');
-  require('./SwapOperator');
   require('./MCR');
   require('./Distributor');
   require('./Assessment');

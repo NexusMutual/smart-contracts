@@ -54,8 +54,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   /* constants */
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-  address constant public DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-  address constant public stETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
 
   uint public constant MCR_RATIO_DECIMALS = 4;
   uint public constant MAX_MCR_RATIO = 40000; // 400%
@@ -80,7 +78,9 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   constructor (
     address _master,
     address _priceOracle,
-    address _swapOperator
+    address _swapOperator,
+    address DAIAddress,
+    address stETHAddress
   ) {
     master = INXMMaster(_master);
     priceFeedOracle = IPriceFeedOracle(_priceOracle);
@@ -89,13 +89,13 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     // The order of payoutAssets should never change between updates. Do not remove the following
     // lines!
     payoutAssets.push(Asset(ETH, 18));
-    payoutAssets.push(Asset(DAI, 18));
+    payoutAssets.push(Asset(DAIAddress, 18));
 
     // Add investment assets
-    investmentAssets.push(Asset(stETH, 18));
+    investmentAssets.push(Asset(stETHAddress, 18));
 
     // Set DAI swap details
-    swapDetails[DAI] = SwapDetails(
+    swapDetails[DAIAddress] = SwapDetails(
       1000000 ether, // minAmount (1 mil)
       2000000 ether, // maxAmount (2 mil)
       0,             // lastSwapTime
@@ -103,7 +103,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     );
 
     // Set stETH swap details
-    swapDetails[stETH] = SwapDetails(
+    swapDetails[stETHAddress] = SwapDetails(
       24360 ether,   // minAmount (~24k)
       32500 ether,   // maxAmount (~32k)
       1633425218,    // lastSwapTime

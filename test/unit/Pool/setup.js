@@ -36,6 +36,8 @@ async function setup () {
     accounts.defaultSender, // master: it is changed a few lines below
     priceFeedOracle.address,
     swapOperator, // we do not test swaps here
+    dai.address,
+    stETH.address,
   );
 
   await master.setLatestAddress(hex('P1'), pool.address);

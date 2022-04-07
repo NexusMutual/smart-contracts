@@ -134,16 +134,7 @@ async function setup () {
 
   const mc = await MCR.new(ZERO_ADDRESS);
 
-  const p1 = await Pool.new(
-    [dai.address], // assets
-    [18], // decimals
-    [0], // min amounts
-    [ether('100')], // max amounts
-    [100], // max slippage 1%
-    master.address,
-    priceFeedOracle.address,
-    ZERO_ADDRESS,
-  );
+  const p1 = await Pool.new(master.address, priceFeedOracle.address, ZERO_ADDRESS, dai.address, stETH.address);
   const swapOperator = await SwapOperator.new(master.address, twapOracle.address, owner, lido.address);
 
   const productsV1 = await ProductsV1.new();

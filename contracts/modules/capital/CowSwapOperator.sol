@@ -34,7 +34,6 @@ contract CowSwapOperator {
   uint public constant MAX_SLIPPAGE_DENOMINATOR = 10000;
   uint public constant MIN_VALID_TO_PERIOD = 600; // 10 minutes
   uint public constant MAX_VALID_TO_PERIOD = 3600; // 60 minutes
-  uint public constant MIN_SELL_AMT_TO_FEE_RATIO = 100; // Sell amount at least 100x fee amount
   uint public constant MIN_TIME_BETWEEN_ORDERS = 900; // 15 minutes
   uint public constant maxFee = 0.3 ether;
 

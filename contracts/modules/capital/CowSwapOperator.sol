@@ -240,7 +240,7 @@ contract CowSwapOperator {
 
       // Transfer ETH to pool
       (bool sent, ) = payable(address(_pool())).call{value: balance}("");
-      require(sent, "Failed to send Ether");
+      require(sent, "SwapOp: Failed to send Ether to pool");
     } else {
       // Transfer ERC20 to pool
       asset.safeTransfer(address(_pool()), balance);

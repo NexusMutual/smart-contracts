@@ -5,6 +5,7 @@ const { expect } = require('chai');
 const { domain: makeDomain, computeOrderUid } = require('@gnosis.pm/gp-v2-contracts');
 const { setEtherBalance, setNextBlockTime, revertToSnapshot, takeSnapshot } = require('../../utils/evm');
 const { time } = require('@openzeppelin/test-helpers');
+const _ = require('lodash');
 
 const {
   utils: { parseEther, hexZeroPad, keccak256, toUtf8Bytes },
@@ -31,6 +32,23 @@ describe('closeOrder', function () {
       sellTokenBalance: hashUtf(order.sellTokenBalance),
       buyTokenBalance: hashUtf(order.buyTokenBalance),
     };
+  };
+
+  const makeOrderTuple = (contractOrder) => {
+    return _.values(_.pick(contractOrder, [
+      'sellToken',
+      'buyToken',
+      'receiver',
+      'sellAmount',
+      'buyAmount',
+      'validTo',
+      'appData',
+      'feeAmount',
+      'kind',
+      'partiallyFillable',
+      'sellTokenBalance',
+      'buyTokenBalance',
+    ]));
   };
 
   const setupSellDaiForEth = async (overrides = {}) => {
@@ -322,37 +340,21 @@ describe('closeOrder', function () {
 
   describe('emitting OrderClosed event', function () {
     it('when order was not filled', async function () {
-      const tx = await swapOperator.closeOrder(contractOrder);
-      const rcp = await tx.wait();
-
-      const event = rcp.events.find(e => e.event === 'OrderClosed');
-
-      expect(event.args.order).to.deep.include.members(Object.values(contractOrder));
-      expect(event.args.filledAmount).to.eq(0);
+      await expect(swapOperator.closeOrder(contractOrder)).to.emit(swapOperator, 'OrderClosed')
+        .withArgs(makeOrderTuple(contractOrder), 0);
     });
 
     it('when order was partially filled', async function () {
       await cowSettlement.fill(contractOrder, orderUID, order.sellAmount.div(2), order.feeAmount.div(2), order.buyAmount.div(2));
-
-      const tx = await swapOperator.closeOrder(contractOrder);
-      const rcp = await tx.wait();
-
-      const event = rcp.events.find(e => e.event === 'OrderClosed');
-
-      expect(event.args.order).to.deep.include.members(Object.values(contractOrder));
-      expect(event.args.filledAmount).to.eq(order.sellAmount.div(2));
+      await expect(swapOperator.closeOrder(contractOrder)).to.emit(swapOperator, 'OrderClosed')
+        .withArgs(makeOrderTuple(contractOrder), order.sellAmount.div(2));
     });
 
     it('when order was fully filled', async function () {
       await cowSettlement.fill(contractOrder, orderUID, order.sellAmount, order.feeAmount, order.buyAmount);
 
-      const tx = await swapOperator.closeOrder(contractOrder);
-      const rcp = await tx.wait();
-
-      const event = rcp.events.find(e => e.event === 'OrderClosed');
-
-      expect(event.args.order).to.deep.include.members(Object.values(contractOrder));
-      expect(event.args.filledAmount).to.eq(order.sellAmount);
+      await expect(swapOperator.closeOrder(contractOrder)).to.emit(swapOperator, 'OrderClosed')
+        .withArgs(_.values(makeOrderTuple(contractOrder)), order.sellAmount);
     });
   });
 

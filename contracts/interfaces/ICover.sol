@@ -98,6 +98,11 @@ struct ProductType {
   uint16 gracePeriodInDays;
 }
 
+struct ActiveCoverForAsset {
+  uint96 amount;
+  uint96 lastCoverId;
+}
+
 interface ICover {
 
 

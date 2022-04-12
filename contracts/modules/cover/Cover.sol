@@ -21,9 +21,10 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
 
 import "./MinimalBeaconProxy.sol";
+import "../../interfaces/IStakingPoolCreator.sol";
 
 
-contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
+contract Cover is ICover, MasterAwareV2 {
   using SafeERC20 for IERC20;
 
   /* === CONSTANTS ==== */
@@ -49,9 +50,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
-  bytes32 public immutable stakingPoolProxyCodeHash;
+  IStakingPoolCreator internal immutable stakingPoolCreator;
   address public immutable override coverNFT;
-  address public immutable override stakingPoolImplementation;
 
   /* ========== STATE VARIABLES ========== */
 
@@ -94,21 +94,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   constructor(
     IQuotationData _quotationData,
     IProductsV1 _productsV1,
-    address _stakingPoolImplementation,
     address _coverNFT,
-    address coverProxy
+    address _stakingPoolCreator
   ) {
 
     // initialize immutable fields only
     quotationData = _quotationData;
     productsV1 = _productsV1;
-    stakingPoolProxyCodeHash = keccak256(
-      abi.encodePacked(
-        type(MinimalBeaconProxy).creationCode,
-        abi.encode(coverProxy)
-      )
-    );
-    stakingPoolImplementation =  _stakingPoolImplementation;
+    stakingPoolCreator = IStakingPoolCreator(_stakingPoolCreator);
     coverNFT = _coverNFT;
   }
 
@@ -575,28 +568,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== Staking Pool creation ========== */
 
-  function createStakingPool(
-    address manager,
-    ProductInitializationParams[] calldata params
-  ) external override returns (address stakingPoolAddress) {
-
-    stakingPoolAddress = address(
-      new MinimalBeaconProxy{ salt: bytes32(uint(stakingPoolCounter)) }(address(this))
-    );
-    IStakingPool(stakingPoolAddress).initialize(manager, params);
-
-    stakingPoolCounter++;
-
-    emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
-  }
-
   function stakingPool(uint index) public view returns (IStakingPool) {
-
-    bytes32 hash = keccak256(
-      abi.encodePacked(bytes1(0xff), address(this), index, stakingPoolProxyCodeHash)
-    );
-    // cast last 20 bytes of hash to address
-    return IStakingPool(address(uint160(uint(hash))));
+    return stakingPoolCreator.stakingPool(index);
   }
 
   function coverData(uint coverId) external override view returns (CoverData memory) {

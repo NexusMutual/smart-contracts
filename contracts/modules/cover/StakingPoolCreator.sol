@@ -11,7 +11,7 @@ import "./MinimalBeaconProxy.sol";
 import "../../interfaces/IStakingPoolCreator.sol";
 
 
-contract StakingPoolCreator is IStakingPoolCreator {
+contract StakingPoolCreator is IStakingPoolCreator, IStakingPoolBeacon {
 
   bytes32 public immutable stakingPoolProxyCodeHash;
   address public immutable stakingPoolImplementation;

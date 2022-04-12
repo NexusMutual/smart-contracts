@@ -125,11 +125,6 @@ interface ICover {
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
-  function createStakingPool(
-    address manager,
-    ProductInitializationParams[] memory params
-  ) external returns (address stakingPoolAddress);
-
   function setInitialPrices(
     uint[] calldata productId,
     uint16[] calldata initialPriceRatio

@@ -178,7 +178,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       (
         address payoutAsset,
         /*uint8 decimals*/
-      ) = pool().payoutAssets(claim.payoutAsset);
+      ) = pool().coverAssets(claim.payoutAsset);
       try IERC20Detailed(payoutAsset).symbol() returns (string memory v) {
         assetSymbol = v;
       } catch {

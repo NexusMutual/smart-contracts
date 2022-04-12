@@ -69,7 +69,7 @@ contract CoverViewer {
     if (coverData.payoutAsset == 0) {
       payoutAssetSymbol = "ETH";
     } else {
-      (address assetAddress,) = pool().payoutAssets(coverData.payoutAsset);
+      (address assetAddress,) = pool().coverAssets(coverData.payoutAsset);
       try IERC20Detailed(assetAddress).symbol() returns (string memory v) {
         payoutAssetSymbol = v;
       } catch {

@@ -24,14 +24,14 @@ interface IPool {
     uint8 decimals
   );
 
-  function payoutAssets(uint index) external view returns (
+  function coverAssets(uint index) external view returns (
     address assetAddress,
     uint8 decimals
   );
 
   function getInvestmentAssets() external view returns (Asset[] memory);
 
-  function getPayoutAssets() external view returns (Asset[] memory);
+  function getCoverAssets() external view returns (Asset[] memory);
 
   function buyNXM(uint minTokensOut) external payable;
 

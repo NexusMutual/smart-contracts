@@ -233,7 +233,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     IPool _pool = pool();
     uint tokenPriceInPaymentAsset = _pool.getTokenPrice(params.paymentAsset);
-    (, uint8 paymentAssetDecimals) = _pool.payoutAssets(params.paymentAsset);
+    (, uint8 paymentAssetDecimals) = _pool.coverAssets(params.paymentAsset);
 
     uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
@@ -408,7 +408,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     }
 
     uint tokenPriceInPaymentAsset = _pool.getTokenPrice(buyCoverParams.paymentAsset);
-    (, uint8 paymentAssetDecimals) = _pool.payoutAssets(buyCoverParams.paymentAsset);
+    (, uint8 paymentAssetDecimals) = _pool.coverAssets(buyCoverParams.paymentAsset);
 
     uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
@@ -500,7 +500,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     (
     address payoutAsset,
     /*uint8 decimals*/
-    ) = _pool.payoutAssets(paymentAsset);
+    ) = _pool.coverAssets(paymentAsset);
 
     IERC20 token = IERC20(payoutAsset);
     token.safeTransferFrom(msg.sender, address(_pool), premium);

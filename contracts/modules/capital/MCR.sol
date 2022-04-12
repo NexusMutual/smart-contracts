@@ -43,7 +43,7 @@ contract MCR is IMCR, MasterAware {
   uint constant MAX_MCR_ADJUSTMENT = 100;
   uint constant BASIS_PRECISION = 10000;
 
-  constructor (address masterAddress) public {
+  constructor (address masterAddress) {
     changeMasterAddress(masterAddress);
 
     if (masterAddress != address(0)) {

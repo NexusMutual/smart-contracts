@@ -6,7 +6,7 @@ import "../../modules/capital/MCR.sol";
 
 contract DisposableMCR is MCR {
 
-    constructor(address masterAddress) public MCR(masterAddress) {
+    constructor(address masterAddress) MCR(masterAddress) {
     }
 
     function initialize(

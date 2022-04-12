@@ -8,12 +8,7 @@ pragma solidity ^0.8.9;
  */
 abstract contract Proxy {
 
-  /**
-  * @dev Fallback function allowing to perform a delegatecall to the given implementation.
-  * This function will return whatever the implementation call returns
-  */
-  // solhint-disable-next-line no-complex-fallback
-  fallback() external payable {
+  function _callImpl() internal {
     address _impl = implementation();
     require(_impl != address(0));
 
@@ -29,6 +24,22 @@ abstract contract Proxy {
       case 0 {revert(ptr, size)}
       default {return (ptr, size)}
     }
+  }
+
+  /**
+  * @dev Fallback function allowing to perform a delegatecall to the given implementation.
+  * This function will return whatever the implementation call returns
+  */
+  fallback() external payable {
+    _callImpl();
+  }
+
+  /**
+  * @dev Receive function allowing to perform a delegatecall to the given implementation.
+  * This function will return whatever the implementation call returns
+  */
+  receive() external payable {
+    _callImpl();
   }
 
   /**

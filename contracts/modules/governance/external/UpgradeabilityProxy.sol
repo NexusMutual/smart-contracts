@@ -22,7 +22,7 @@ contract UpgradeabilityProxy is Proxy {
   * @dev Constructor function
   */
   // solhint-disable-next-line no-empty-blocks
-  constructor() public {}
+  constructor() {}
 
   /// @dev Returns the address of the current implementation
   /// @return impl  Address of the current implementation

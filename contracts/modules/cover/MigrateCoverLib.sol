@@ -22,7 +22,7 @@ library MigrateCoverLib {
     IProductsV1 productsV1;
   }
 
-  function _migrateCoverFromOwner(
+  function migrateCoverFromOwner(
     MigrateParams memory params,
     Product[] storage _products,
     ProductType[] storage _productTypes,

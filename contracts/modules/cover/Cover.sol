@@ -7,6 +7,9 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/proxy/beacon/UpgradeableBeacon.sol";
 
+import "./MigrateCoverLib.sol";
+import "./MinimalBeaconProxy.sol";
+
 import "../../utils/SafeUintCast.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingPool.sol";
@@ -19,8 +22,6 @@ import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
-
-import "./MinimalBeaconProxy.sol";
 import "../../interfaces/IStakingPoolCreator.sol";
 
 
@@ -140,65 +141,22 @@ contract Cover is ICover, MasterAwareV2 {
     address fromOwner,
     address toNewOwner
   ) internal {
-    (
-      /*uint coverId*/,
-      address coverOwner,
-      address legacyProductId,
-      bytes4 currencyCode,
-      /*uint sumAssured*/,
-      /*uint premiumNXM*/
-    ) = quotationData.getCoverDetailsByCoverID1(coverId);
-    (
-      /*uint coverId*/,
-      uint8 status,
-      uint sumAssured,
-      uint16 coverPeriodInDays,
-      uint validUntil
-    ) = quotationData.getCoverDetailsByCoverID2(coverId);
-
-    require(fromOwner == coverOwner, "Cover can only be migrated by its owner");
-    require(LegacyCoverStatus(status) != LegacyCoverStatus.Migrated, "Cover has already been migrated");
-    require(LegacyCoverStatus(status) != LegacyCoverStatus.ClaimAccepted, "A claim has already been accepted");
-
-    {
-      (uint claimCount , bool hasOpenClaim,  /*hasAcceptedClaim*/) = tokenController().coverInfo(coverId);
-      require(!hasOpenClaim, "Cover has an open V1 claim");
-      require(claimCount < 2, "Cover already has 2 claims");
-    }
-
-    // Mark cover as migrated to prevent future calls on the same cover
-    quotationData.changeCoverStatusNo(coverId, uint8(LegacyCoverStatus.Migrated));
-
-
-    // mint the new cover
-    uint productId = productsV1.getNewProductId(legacyProductId);
-    Product memory product = _products[productId];
-    ProductType memory productType = _productTypes[product.productType];
-    require(
-      block.timestamp < validUntil + productType.gracePeriodInDays * 1 days,
-      "Cover outside of the grace period"
+    
+    MigrateCoverLib.migrateCoverFromOwner(
+      MigrateCoverLib.MigrateParams(
+        coverId,
+        fromOwner,
+        toNewOwner,
+        ICoverNFT(coverNFT),
+        quotationData,
+        tokenController(),
+        productsV1
+      ),
+      _products,
+      _productTypes,
+      _coverData,
+      _coverSegments
     );
-
-    uint newCoverId = _coverData.length;
-
-    _coverData.push(
-      CoverData(
-        uint24(productId),
-        currencyCode == "ETH" ? 0 : 1, //payoutAsset
-        0 // amountPaidOut
-      )
-    );
-
-    _coverSegments[newCoverId].push(
-      CoverSegment(
-        SafeUintCast.toUint96(sumAssured * 10 ** 18),
-        SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days),
-        SafeUintCast.toUint32(coverPeriodInDays * 1 days),
-        uint16(0)
-      )
-    );
-
-    ICoverNFT(coverNFT).safeMint(toNewOwner, newCoverId);
   }
 
   /// @dev Migrates covers from V1. Meant to be used by EOA Nexus Mutual members

@@ -249,9 +249,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   /// in ETH which saves a slot read for each asset removed. However this does not prevent cover
   /// sales in that particular cover asset and it is required to set coverAssetsFallback and
   /// coverAssets on each product beforehand (See: Cover.sol). When an asset is removed, the
-  /// corresponding swapDetails are also removed and it is assumed that the balance is 0. To allow
-  /// removing assets which might revert on balance calls (such as a malicious ), there are no
-  /// balance checks in this function.
+  /// corresponding swapDetails are also removed.
   ///
   /// @param assetId        The index of the asset that needs to be removed.
   /// @param isCoverAsset   True if the asset is used for payouts or false if it's just an

@@ -266,9 +266,6 @@ async function main () {
     const chainlinkDaiMock = await ChainlinkAggregatorMock.new();
     await chainlinkDaiMock.setLatestAnswer('357884806717390');
 
-    const chainlinkStETHMock = await ChainlinkAggregatorMock.new();
-    await chainlinkStETHMock.setLatestAnswer('357884806717390');
-
     verifier.add(chainlinkDaiMock);
     priceFeedOracle = await PriceFeedOracle.new(chainlinkDaiMock.address, dai.address, stETH.address);
   } else {

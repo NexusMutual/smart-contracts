@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const getVersionDataTemplate = require('./version-data-template');
 
-const network = 'hardhat';
+const network = 'localhost';
 const rootPath = path.normalize(`${__dirname}/..`);
 const deployPath = `${rootPath}/deploy`;
 const contractsBasePath = `${rootPath}/artifacts/contracts`;

@@ -141,7 +141,7 @@ contract Cover is ICover, MasterAwareV2 {
     address fromOwner,
     address toNewOwner
   ) internal {
-    
+
     MigrateCoverLib.migrateCoverFromOwner(
       MigrateCoverLib.MigrateParams(
         coverId,

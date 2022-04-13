@@ -59,24 +59,26 @@ library MigrateCoverLib {
     params.quotationData.changeCoverStatusNo(params.coverId, uint8(LegacyCoverStatus.Migrated));
 
 
-    // mint the new cover
-    uint productId = params.productsV1.getNewProductId(legacyProductId);
-    Product memory product = _products[productId];
-    ProductType memory productType = _productTypes[product.productType];
-    require(
-      block.timestamp < validUntil + productType.gracePeriodInDays * 1 days,
-      "Cover outside of the grace period"
-    );
+    {
+      // mint the new cover
+      uint productId = params.productsV1.getNewProductId(legacyProductId);
+      Product memory product = _products[productId];
+      ProductType memory productType = _productTypes[product.productType];
+      require(
+        block.timestamp < validUntil + productType.gracePeriodInDays * 1 days,
+        "Cover outside of the grace period"
+      );
 
-    uint newCoverId = _coverData.length;
-
-    _coverData.push(
-      CoverData(
-        uint24(productId),
-        currencyCode == "ETH" ? 0 : 1, //payoutAsset
-        0 // amountPaidOut
-      )
-    );
+      _coverData.push(
+        CoverData(
+          uint24(productId),
+          currencyCode == "ETH" ? 0 : 1, //payoutAsset
+          0 // amountPaidOut
+        )
+      );
+    }
+    
+    uint newCoverId = _coverData.length - 1;
 
     _coverSegments[newCoverId].push(
       CoverSegment(

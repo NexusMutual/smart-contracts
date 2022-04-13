@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.9;
+pragma solidity ^0.5.0;
 
 import "../../modules/governance/NXMaster.sol";
 
@@ -31,7 +31,7 @@ contract TestnetNXMaster is NXMaster {
   function upgradeMultipleContracts(
     bytes2[] memory _contractCodes,
     address payable[] memory newAddresses
-  ) public override {
+  ) public {
 
     require(getLatestAddress("GV") == msg.sender || governanceOwner == msg.sender, "Not authorized");
 

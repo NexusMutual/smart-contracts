@@ -1,23 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.9;
+pragma solidity ^0.5.0;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IMasterAware.sol";
-import "../../interfaces/ILegacyClaims.sol";
-import "../../interfaces/ILegacyClaimsData.sol";
-import "../../interfaces/ILegacyClaimsReward.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IQuotation.sol";
-import "../../interfaces/IQuotationData.sol";
-import "../../interfaces/ITokenController.sol";
-import "../../interfaces/ITokenData.sol";
 import "./external/Governed.sol";
 import "./external/OwnedUpgradeabilityProxy.sol";
 
-
 contract NXMaster is INXMMaster, Governed {
+  using SafeMath for uint;
+
   uint public _unused0;
 
   bytes2[] public contractCodes;
@@ -104,7 +99,7 @@ contract NXMaster is INXMMaster, Governed {
       revert("NXMaster: Unsupported contract type");
     }
 
-    contractAddresses[contractCode] = payable(newInternalContract);
+    contractAddresses[contractCode] = address(uint160(newInternalContract));
     contractsActive[newInternalContract] = true;
 
     IMasterAware up = IMasterAware(newInternalContract);
@@ -118,7 +113,7 @@ contract NXMaster is INXMMaster, Governed {
   function upgradeMultipleContracts(
     bytes2[] calldata _contractCodes,
     address payable[] calldata newAddresses
-  ) external virtual onlyAuthorizedToGovern {
+  ) external onlyAuthorizedToGovern {
     require(_contractCodes.length == newAddresses.length, "NXMaster: _contractCodes.length != newAddresses.length");
 
     for (uint i = 0; i < _contractCodes.length; i++) {
@@ -148,14 +143,7 @@ contract NXMaster is INXMMaster, Governed {
   }
 
   function replaceContract(bytes2 code, address payable newAddress) internal {
-    if (code == "CR") {
-      ITokenController tc = ITokenController(getLatestAddress("TC"));
-      tc.addToWhitelist(newAddress);
-      tc.removeFromWhitelist(contractAddresses["CR"]);
-      ILegacyClaimsReward cr = ILegacyClaimsReward(contractAddresses["CR"]);
-      cr.upgrade(newAddress);
-
-    } else if (code == "P1") {
+    if (code == "P1") {
       IPool p1 = IPool(contractAddresses["P1"]);
       p1.upgradeCapitalPool(newAddress);
     }
@@ -180,7 +168,7 @@ contract NXMaster is INXMMaster, Governed {
       require(contractAddress != address(0), "NXMaster: Address is 0");
       require(isInternal(contractAddress), "NXMaster: Contract not internal");
       contractsActive[contractAddress] = false;
-      contractAddresses[code] = payable(address(0));
+      contractAddresses[code] = address(0);
 
       if (isProxy[code]) {
         isProxy[code] = false;
@@ -244,8 +232,8 @@ contract NXMaster is INXMMaster, Governed {
   }
 
   /// @dev Gets current contract codes and their addresses
-  /// @return _contractCodes
-  /// @return _contractAddresses
+  /// @return contractCodes
+  /// @return contractAddresses
   function getInternalContracts()
   public
   view
@@ -283,23 +271,7 @@ contract NXMaster is INXMMaster, Governed {
    * @param val is value to be set
    */
   function updateOwnerParameters(bytes8 code, address payable val) public onlyAuthorizedToGovern {
-    if (code == "MSWALLET") {
-
-      IMemberRoles mr = IMemberRoles(getLatestAddress("MR"));
-      mr.changeJoiningFeeWallet(val);
-
-    } else if (code == "OWNER") {
-
-      IMemberRoles mr = IMemberRoles(getLatestAddress("MR"));
-      mr.swapOwner(val);
-      owner = val;
-
-    } else if (code == "KYCAUTH") {
-
-      IMemberRoles mr = IMemberRoles(getLatestAddress("MR"));
-      mr.setKycAuthAddress(val);
-
-    } else if (code == "EMADMIN") {
+    if (code == "EMADMIN") {
 
       emergencyAdmin = val;
 

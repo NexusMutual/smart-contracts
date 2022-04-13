@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.9;
+pragma solidity ^0.5.0;
 
 import "./Proxy.sol";
 
@@ -22,11 +22,13 @@ contract UpgradeabilityProxy is Proxy {
   * @dev Constructor function
   */
   // solhint-disable-next-line no-empty-blocks
-  constructor() {}
+  constructor() public {}
 
-  /// @dev Returns the address of the current implementation
-  /// @return impl  Address of the current implementation
-  function implementation() public override view returns (address impl) {
+  /**
+  * @dev Tells the address of the current implementation
+  * @return address of the current implementation
+  */
+  function implementation() public view returns (address impl) {
     bytes32 position = IMPLEMENTATION_POSITION;
     // solhint-disable-next-line no-inline-assembly
     assembly {

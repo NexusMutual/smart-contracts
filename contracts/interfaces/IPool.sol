@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+// TODO: consider upgrading to 0.8 to get rid of the experimental pragma
 pragma solidity >=0.5.0;
+pragma experimental ABIEncoderV2;
 
 import "./IPriceFeedOracle.sol";
 
@@ -44,12 +46,7 @@ interface IPool {
     bool[] memory deprecated
   );
 
-  function getAssetSwapDetails(address assetAddress) external view returns (
-    uint104 min,
-    uint104 max,
-    uint32 lastAssetSwapTime,
-    uint16 maxSlippageRatio
-  );
+  function getAssetSwapDetails(address assetAddress) external view returns (SwapDetails memory);
 
   function getNXMForEth(uint ethAmount) external view returns (uint);
 
@@ -64,7 +61,6 @@ interface IPool {
   function priceFeedOracle() external view returns (IPriceFeedOracle);
 
   function getPoolValueInEth() external view returns (uint);
-
 
   function transferAssetFrom(address asset, address from, uint amount) external;
 
@@ -83,4 +79,6 @@ interface IPool {
   function getTokenPrice(uint assetId) external view returns (uint tokenPrice);
 
   function getMCRRatio() external view returns (uint);
+
+  function setSwapValue(uint value) external;
 }

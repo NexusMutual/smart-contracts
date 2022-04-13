@@ -43,6 +43,7 @@
     "@nomiclabs/hardhat-etherscan": "^2.1.8",
     "@nomiclabs/hardhat-truffle5": "^2.0.4",
     "@nomiclabs/hardhat-waffle": "^2.0.2",
+    "@gnosis.pm/gp-v2-contracts": "^1.1.2",
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@tenderly/hardhat-tenderly": "^1.0.13",
     "@typechain/truffle-v5": "^3.0.0",

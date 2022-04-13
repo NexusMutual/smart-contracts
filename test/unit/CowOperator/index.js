@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const setup = require('./setup');
 
-describe('Cover unit tests', function () {
+describe('CowSwap unit tests', function () {
   before(setup);
 
   beforeEach(async function () {
@@ -12,9 +12,8 @@ describe('Cover unit tests', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
-  require('./buyCover');
-  require('./editCover');
-  require('./createStakingPool');
-  require('./getGlobalActiveCoverAmountForAsset');
-  require('./performPayoutBurn');
+  // include your unit tests here
+  require('./placeOrder');
+  require('./closeOrder');
+
 });

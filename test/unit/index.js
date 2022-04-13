@@ -2,7 +2,7 @@ describe('UNIT TESTS', function () {
   require('./TokenController');
   require('./PooledStaking');
   require('./Pool');
-  require('./SwapOperator');
+  require('./CowOperator');
   require('./MCR');
   require('./Distributor');
   require('./Assessment');
@@ -10,4 +10,5 @@ describe('UNIT TESTS', function () {
   require('./IndividualClaims');
   require('./YieldTokenIncidents');
   require('./StakingPool');
+  require('./PriceFeedOracle');
 });

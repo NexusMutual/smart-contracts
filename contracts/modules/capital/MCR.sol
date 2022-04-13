@@ -88,17 +88,8 @@ contract MCR is IMCR, MasterAware {
    * @return amount of sum assured
    */
   function getAllSumAssurance() public view returns (uint) {
-
-    IPriceFeedOracle priceFeed = pool.priceFeedOracle();
-    address daiAddress = priceFeed.daiAddress();
-
-    uint ethAmount = qd.getTotalSumAssured("ETH").mul(1e18);
-    uint daiAmount = qd.getTotalSumAssured("DAI").mul(1e18);
-
-    uint daiRate = priceFeed.getAssetToEthRate(daiAddress);
-    uint daiAmountInEth = daiAmount.mul(daiRate).div(1e18);
-
-    return ethAmount.add(daiAmountInEth);
+    // TODO: This part is meant to be removed in v2
+    return 0;
   }
 
   /*

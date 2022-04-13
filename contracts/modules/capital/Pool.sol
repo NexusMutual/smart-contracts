@@ -10,7 +10,6 @@ import "../../interfaces/IMCR.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
-import "../../interfaces/IQuotation.sol";
 import "../../interfaces/ITokenController.sol";
 
 contract Pool is IPool, MasterAware, ReentrancyGuard {
@@ -21,15 +20,17 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   /* storage */
   Asset[] public override assets;
   mapping(address => SwapDetails) public swapDetails;
+  // TODO: pack swapValue
+  uint public swapValue;
 
   // contracts
-  IQuotation public quotation;
   INXMToken public nxmToken;
   ITokenController public tokenController;
   IMCR public mcr;
 
   // parameters
   address public swapController;
+  // TODO: pack minPoolEth
   uint public override minPoolEth;
   IPriceFeedOracle public override priceFeedOracle;
   address public swapOperator;
@@ -103,7 +104,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
    */
   function getPoolValueInEth() public override view returns (uint) {
 
-    uint total = address(this).balance;
+    uint total = address(this).balance + swapValue;
 
     uint assetsCount = assets.length;
 
@@ -149,16 +150,8 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     return (assetAddresses, decimals, deprecated);
   }
 
-  function getAssetSwapDetails(address assetAddress) external override view returns (
-    uint104 min,
-    uint104 max,
-    uint32 lastAssetSwapTime,
-    uint16 maxSlippageRatio
-  ) {
-
-    SwapDetails memory details = swapDetails[assetAddress];
-
-    return (details.minAmount, details.maxAmount, details.lastSwapTime, details.maxSlippageRatio);
+  function getAssetSwapDetails(address assetAddress) external view returns (SwapDetails memory) {
+    return swapDetails[assetAddress];
   }
 
   function addAsset(
@@ -288,7 +281,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   function changeDependentContractAddress() public {
     nxmToken = INXMToken(master.tokenAddress());
     tokenController = ITokenController(master.getLatestAddress("TC"));
-    quotation = IQuotation(master.getLatestAddress("QT"));
     mcr = IMCR(master.getLatestAddress("MC"));
   }
 
@@ -305,7 +297,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     address assetAddress,
     uint amount
   ) public override onlySwapOperator nonReentrant whenNotPaused {
-
     if (assetAddress == ETH) {
       (bool ok, /* data */) = swapOperator.call{value: amount}("");
       require(ok, "Pool: ETH transfer failed");
@@ -597,5 +588,9 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     }
 
     revert("Pool: Unknown parameter");
+  }
+
+  function setSwapValue(uint newValue) external onlySwapOperator whenNotPaused {
+    swapValue = newValue;
   }
 }

@@ -37,20 +37,20 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   IPriceFeedOracle public override priceFeedOracle;
   address public swapOperator;
 
-  // Binary map where each on bit, starting from the LSB, represents whether the payout asset found
+  // Binary map where each on bit, starting from the LSB, represents whether the cover asset found
   // at the same index as the bit's position should be ignored when calulating the value of the pool
   // in ETH.
   //
   // Examples:
   // 1 (10) = 00000000000000000000000000000001 (2)
   //                                         ^
-  //                                         coverAssets[0] is ignored
+  //                                         coverAssets[0] is deprecated
   //
   // 9 (10) = 00000000000000000000000000001001 (2)
   //                                      ^  ^
-  //                                      coverAssets[0] and coverAssets[3] are both ignored
+  //                                      coverAssets[0] and coverAssets[3] are both deprecated
   //
-  uint32 public ignoredCoverAssetsBitmap;
+  uint32 public deprecatedCoverAssetsBitmap;
 
   /* constants */
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -140,11 +140,11 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       total = total + assetValue;
     }
 
-    uint ignoredCoverAssets = ignoredCoverAssetsBitmap;
+    uint deprecatedCoverAssets = deprecatedCoverAssetsBitmap;
     // Skip ETH (index 0)
     for (uint i = 1; i < coverAssetsCount; i++) {
-      // Skip ignored assets by looking at the bits that are on in ignoredCoverAssetsBitmap
-      if ((1 << i) & ignoredCoverAssets != 0) {
+      // Skip deprecated assets by looking at the bits that are on in deprecatedCoverAssetsBitmap
+      if ((1 << i) & deprecatedCoverAssets != 0) {
         continue;
       }
       Asset memory asset = coverAssets[i];
@@ -203,7 +203,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     require(_max >= _min, "Pool: max < min");
     require(_maxSlippageRatio <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
 
-    // Check whether the new asset already exists as a payout asset
+    // Check whether the new asset already exists as a cover asset
     uint coverAssetsCount = coverAssets.length;
     for (uint i = 0; i < coverAssetsCount; i++) {
       require(assetAddress != coverAssets[i].assetAddress, "Pool: Asset exists");
@@ -228,12 +228,12 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   /// Removes an asset which is no longer used.
   ///
-  /// @dev Investment assets will be removed from the investmentAssets array. Payout assets
+  /// @dev Investment assets will be removed from the investmentAssets array. Cover assets
   /// however cannot be removed entirely as they are referenced by their index in covers.
-  /// Instead, they are ignored by setting the bit corresponding to the asset's index in
-  /// ignoredCoverAssets to 1. Ignored payout assets are skipped when calculating the pool value
+  /// Instead, they are deprecated by setting the bit corresponding to the asset's index in
+  /// deprecatedCoverAssets to 1. Ignored cover assets are skipped when calculating the pool value
   /// in ETH which saves a slot read for each asset removed. However this does not prevent cover
-  /// sales in that particular payout asset and it is required to set coverAssetsFallback and
+  /// sales in that particular cover asset and it is required to set coverAssetsFallback and
   /// coverAssets on each product beforehand (See: Cover.sol). When an asset is removed, the
   /// corresponding swapDetails are also removed and it is assumed that the balance is 0. To allow
   /// removing assets which might revert on balance calls (such as a malicious ), there are no
@@ -245,8 +245,8 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   ///
   function removeAsset(uint assetId, bool isCoverAsset) external onlyGovernance {
     if (isCoverAsset) {
-      require(assetId < coverAssets.length, "Pool: Payout asset does not exist");
-      require(ignoredCoverAssetsBitmap & (1 << assetId) != 0, "Pool: Payout asset is ignored");
+      require(assetId < coverAssets.length, "Pool: Cover asset does not exist");
+      require(deprecatedCoverAssetsBitmap & (1 << assetId) != 0, "Pool: Cover asset is deprecated");
 
       // Remove swap details
       address assetAddress = coverAssets[assetId].assetAddress;
@@ -254,7 +254,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
       // Ignore asset which makes getPoolValueInEth skip it when the function loops through
       // payments assets
-      ignoredCoverAssetsBitmap |= SafeUintCast.toUint32(1 << assetId);
+      deprecatedCoverAssetsBitmap |= SafeUintCast.toUint32(1 << assetId);
     } else {
       require(assetId < investmentAssets.length, "Pool: Investment asset does not exist");
 
@@ -300,7 +300,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   /**
    * @dev Executes a payout
-   * @param assetId        Index of the payout asset
+   * @param assetId        Index of the cover asset
    * @param payoutAddress  Send funds to this address
    * @param amount         Amount to send
    */
@@ -349,7 +349,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     (bool ok, /* data */) = newPoolAddress.call{value: ethBalance}("");
     require(ok, "Pool: Transfer failed");
 
-    // Transfer payout assets. Start from 1 (0 is ETH)
+    // Transfer cover assets. Start from 1 (0 is ETH)
     uint coverAssetsCount = coverAssets.length;
     for (uint i = 1; i < coverAssetsCount; i++) {
       IERC20 token = IERC20(coverAssets[i].assetAddress);
@@ -640,14 +640,14 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     return mcrEth * (mcrRatio ** TOKEN_EXPONENT) / CONSTANT_C / precisionDecimals + CONSTANT_A;
   }
 
-  /// Returns the NXM price in a given payout asset.
+  /// Returns the NXM price in a given cover asset.
   ///
   /// @dev This function cannot be used to get the token price in investment assets.
   ///
-  /// @param assetId  Index of the payout asset.
+  /// @param assetId  Index of the cover asset.
   ///
   function getTokenPrice(uint assetId) public override view returns (uint tokenPrice) {
-    require(assetId < coverAssets.length, "Pool: Unknown payout asset");
+    require(assetId < coverAssets.length, "Pool: Unknown cover asset");
     address assetAddress = coverAssets[assetId].assetAddress;
     uint totalAssetValue = getPoolValueInEth();
     uint mcrEth = mcr.getMCR();

@@ -118,10 +118,21 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   function getAssetValueInEth(address assetAddress, uint8 assetDecimals) internal view returns (uint) {
     IERC20 token = IERC20(assetAddress);
 
+    uint assetBalance = token.balanceOf(address(this));
+    try token.balanceOf(address(this)) returns (uint balance) {
+      assetBalance = balance;
+    } catch {
+      // If balanceOf reverts consider it 0
+    }
+
+    // If the assetBalance is 0 skip the oracle call to save gas
+    if (assetBalance == 0) {
+      return 0; // ETH
+    }
+
     uint rate = priceFeedOracle.getAssetToEthRate(assetAddress);
     require(rate > 0, "Pool: Zero rate");
 
-    uint assetBalance = token.balanceOf(address(this));
     return assetBalance * rate / (10 ** uint(assetDecimals)); // ETH
   }
 
@@ -240,16 +251,27 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   /// balance checks in this function.
   ///
   /// @param assetId        The index of the asset that needs to be removed.
-  /// @param isCoverAsset  True if the asset is used for payouts or false if it's just an
+  /// @param isCoverAsset   True if the asset is used for payouts or false if it's just an
   ///                       investment asset.
   ///
   function removeAsset(uint assetId, bool isCoverAsset) external onlyGovernance {
+    address assetAddress = isCoverAsset ? coverAssets[assetId].assetAddress
+                                        : investmentAssets[assetId].assetAddress;
+
+    uint assetBalance;
+    try IERC20(assetAddress).balanceOf(address(this)) returns (uint balance) {
+      assetBalance = balance;
+    } catch {
+      // If balanceOf reverts consider it 0
+    }
+
+    require(assetBalance == 0, "Pool: Asset balance must be 0");
+
     if (isCoverAsset) {
       require(assetId < coverAssets.length, "Pool: Cover asset does not exist");
       require(deprecatedCoverAssetsBitmap & (1 << assetId) != 0, "Pool: Cover asset is deprecated");
 
       // Remove swap details
-      address assetAddress = coverAssets[assetId].assetAddress;
       delete swapDetails[assetAddress];
 
       // Ignore asset which makes getPoolValueInEth skip it when the function loops through
@@ -259,7 +281,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       require(assetId < investmentAssets.length, "Pool: Investment asset does not exist");
 
       // Remove swap details
-      address assetAddress = investmentAssets[assetId].assetAddress;
       delete swapDetails[assetAddress];
 
       // Remove investment asset from the array
@@ -353,7 +374,12 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint coverAssetsCount = coverAssets.length;
     for (uint i = 1; i < coverAssetsCount; i++) {
       IERC20 token = IERC20(coverAssets[i].assetAddress);
-      uint tokenBalance = token.balanceOf(address(this));
+      uint tokenBalance;
+      try token.balanceOf(address(this)) returns (uint balance) {
+        tokenBalance = balance;
+      } catch {
+        // If balanceOf reverts consider it 0
+      }
       token.safeTransfer(newPoolAddress, tokenBalance);
     }
 
@@ -361,7 +387,12 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint investmentAssetsCount = investmentAssets.length;
     for (uint i = 0; i < investmentAssetsCount; i++) {
       IERC20 token = IERC20(investmentAssets[i].assetAddress);
-      uint tokenBalance = token.balanceOf(address(this));
+      uint tokenBalance;
+      try token.balanceOf(address(this)) returns (uint balance) {
+        tokenBalance = balance;
+      } catch {
+        // If balanceOf reverts consider it 0
+      }
       token.safeTransfer(newPoolAddress, tokenBalance);
     }
   }

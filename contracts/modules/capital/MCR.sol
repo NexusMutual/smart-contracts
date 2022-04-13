@@ -88,17 +88,6 @@ contract MCR is IMCR, MasterAware {
     // Requires a new implementation once geared MCR should be used instead. To save gas it is
     // left out on purpose.
     return 0;
-
-    // IPriceFeedOracle priceFeed = pool.priceFeedOracle();
-    // address daiAddress = priceFeed.daiAddress();
-
-    // uint ethAmount = qd.getTotalSumAssured("ETH") * 1e18;
-    // uint daiAmount = qd.getTotalSumAssured("DAI") * 1e18;
-
-    // uint daiRate = priceFeed.getAssetToEthRate(daiAddress);
-    // uint daiAmountInEth = daiAmount * daiRate / 1e18;
-
-    // return ethAmount + daiAmountInEth;
   }
 
   /*

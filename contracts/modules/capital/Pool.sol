@@ -3,6 +3,7 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/utils/Address.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
@@ -17,6 +18,7 @@ import "../../interfaces/ITokenController.sol";
 
 contract Pool is IPool, MasterAware, ReentrancyGuard {
   using SafeERC20 for IERC20;
+  using Address for address;
 
   uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
@@ -51,6 +53,10 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   //                                      coverAssets[0] and coverAssets[3] are both deprecated
   //
   uint32 public deprecatedCoverAssetsBitmap;
+
+  // When an asset transfer reverts it can be abandoned by flagging the address. This allows pool
+  // upgrades if the upgrade reverts due to one or more failed transfers to the new address.
+  mapping(address => bool) public abandonAssets;
 
   /* constants */
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -365,6 +371,32 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     token.safeTransfer(destination, transferableAmount);
   }
 
+
+  function _transferEntireAssetBalance(address assetAddress, address destination) internal {
+    IERC20 asset = IERC20(assetAddress);
+    uint balance;
+    try asset.balanceOf(address(this)) returns (uint _balance) {
+      balance = _balance;
+    } catch {
+      if (!abandonAssets[assetAddress]) {
+        revert("Pool: Could not obtain asset balance");
+      }
+    }
+
+    try asset.transfer(destination, balance) returns (bool success) {
+      if (!success && !abandonAssets[assetAddress]) {
+        revert("Pool: Could not transfer asset");
+      }
+    } catch {
+      if (!abandonAssets[assetAddress]) {
+        revert("Pool: Could not transfer asset");
+      }
+    }
+  }
+
+  // Revert if any of the asset functions revert while not being marked for getting abandoned.
+  // Otherwise, continue without reverting while the marked asset will remain stuck in the
+  // previous pool contract.
   function upgradeCapitalPool(address payable newPoolAddress) external override onlyMaster nonReentrant {
     // Transfer ETH
     uint ethBalance = address(this).balance;
@@ -374,27 +406,13 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     // Transfer cover assets. Start from 1 (0 is ETH)
     uint coverAssetsCount = coverAssets.length;
     for (uint i = 1; i < coverAssetsCount; i++) {
-      IERC20 token = IERC20(coverAssets[i].assetAddress);
-      uint tokenBalance;
-      try token.balanceOf(address(this)) returns (uint balance) {
-        tokenBalance = balance;
-      } catch {
-        // If balanceOf reverts consider it 0
-      }
-      token.safeTransfer(newPoolAddress, tokenBalance);
+      _transferEntireAssetBalance(coverAssets[i].assetAddress, newPoolAddress);
     }
 
-    // Transfer investment assets. Start from 1 (0 is ETH)
+    // Transfer investment assets.
     uint investmentAssetsCount = investmentAssets.length;
     for (uint i = 0; i < investmentAssetsCount; i++) {
-      IERC20 token = IERC20(investmentAssets[i].assetAddress);
-      uint tokenBalance;
-      try token.balanceOf(address(this)) returns (uint balance) {
-        tokenBalance = balance;
-      } catch {
-        // If balanceOf reverts consider it 0
-      }
-      token.safeTransfer(newPoolAddress, tokenBalance);
+      _transferEntireAssetBalance(investmentAssets[i].assetAddress, newPoolAddress);
     }
   }
 
@@ -677,7 +695,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   /// @dev This function cannot be used to get the token price in investment assets.
   ///
   /// @param assetId  Index of the cover asset.
-  ///
   function getTokenPrice(uint assetId) public override view returns (uint tokenPrice) {
     require(assetId < coverAssets.length, "Pool: Unknown cover asset");
     address assetAddress = coverAssets[assetId].assetAddress;
@@ -701,6 +718,24 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     }
 
     revert("Pool: Unknown parameter");
+  }
+
+  /// Sets the given asset addresses as abandoned when shouldAbandon is true and back to their
+  /// initial state when it's false.
+  ///
+  /// @param assetsToAbandon  Array of addresses that represnt tokens which need to be left behind.
+  ///                         This can be desired when one or more tokens revert, which would
+  ///                         prevent the pool to be upgraded.
+  /// @param shouldAbandon    True when the tokens passed in the assetsToAbandon array should be
+  ///                         marked as abandoned. If a token is accidentally marked it can be
+  ///                         unmarked by passing false instead.
+  function setAssetsToAbandon(
+    address[] calldata assetsToAbandon,
+    bool shouldAbandon
+  ) external onlyGovernance {
+    for (uint i = 0; i < assetsToAbandon.length; i++) {
+      abandonAssets[assetsToAbandon[i]] = shouldAbandon;
+    }
   }
 
   function updateAddressParameters(bytes8 code, address value) external onlyGovernance {

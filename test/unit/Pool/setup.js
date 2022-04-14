@@ -14,13 +14,14 @@ async function setup () {
   const Pool = artifacts.require('Pool');
   const MCR = artifacts.require('P1MockMCR');
   const ERC20Mock = artifacts.require('ERC20Mock');
+  const ERC20BlacklistableMock = artifacts.require('ERC20BlacklistableMock');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
   const master = await MasterMock.new();
   const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
-  const stETH = await ERC20Mock.new();
+  const stETH = await ERC20BlacklistableMock.new();
 
   const ethToDaiRate = new BN((394.59 * 1e18).toString());
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
@@ -92,6 +93,7 @@ async function setup () {
   this.dai = dai;
   this.chainlinkDAI = chainlinkDAI;
   this.swapOperator = swapOperator;
+  this.stETH = stETH;
 }
 
 module.exports = setup;

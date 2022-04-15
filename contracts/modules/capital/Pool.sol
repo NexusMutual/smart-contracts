@@ -15,6 +15,7 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/IQuotation.sol";
 import "../../interfaces/ITokenController.sol";
+import "hardhat/console.sol";
 
 contract Pool is IPool, MasterAware, ReentrancyGuard {
   using SafeERC20 for IERC20;
@@ -262,8 +263,15 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   ///                       investment asset.
   ///
   function removeAsset(uint assetId, bool isCoverAsset) external onlyGovernance {
-    address assetAddress = isCoverAsset ? coverAssets[assetId].assetAddress
-                                        : investmentAssets[assetId].assetAddress;
+    address assetAddress;
+    if (isCoverAsset) {
+      require(assetId < coverAssets.length, "Pool: Cover asset does not exist");
+      assetAddress = coverAssets[assetId].assetAddress;
+    } else {
+      require(assetId < investmentAssets.length, "Pool: Investment asset does not exist");
+      assetAddress = investmentAssets[assetId].assetAddress;
+    }
+
 
     uint assetBalance;
     try IERC20(assetAddress).balanceOf(address(this)) returns (uint balance) {
@@ -275,8 +283,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     require(assetBalance == 0, "Pool: Asset balance must be 0");
 
     if (isCoverAsset) {
-      require(assetId < coverAssets.length, "Pool: Cover asset does not exist");
-      require(deprecatedCoverAssetsBitmap & (1 << assetId) != 0, "Pool: Cover asset is deprecated");
+      require(deprecatedCoverAssetsBitmap & (1 << assetId) == 0, "Pool: Cover asset is deprecated");
 
       // Remove swap details
       delete swapDetails[assetAddress];
@@ -285,7 +292,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       // payments assets
       deprecatedCoverAssetsBitmap |= SafeUintCast.toUint32(1 << assetId);
     } else {
-      require(assetId < investmentAssets.length, "Pool: Investment asset does not exist");
 
       // Remove swap details
       delete swapDetails[assetAddress];

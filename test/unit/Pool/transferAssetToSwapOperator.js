@@ -16,7 +16,7 @@ describe('transferAssetToSwapOperator', function () {
 
     const tokenAmount = ether('100000');
     const otherToken = await ERC20Mock.new();
-    await pool.addAsset(otherToken.address, 18, '0', '0', 100 /* 1% */, {
+    await pool.addAsset(otherToken.address, 18, '0', '0', 100 /* 1% */, true, {
       from: governance,
     });
     await otherToken.mint(pool.address, tokenAmount);
@@ -36,7 +36,7 @@ describe('transferAssetToSwapOperator', function () {
 
     const tokenAmount = ether('100000');
     const otherToken = await ERC20Mock.new();
-    await pool.addAsset(otherToken.address, 18, '0', '0', 100 /* 1% */, {
+    await pool.addAsset(otherToken.address, 18, '0', '0', 100 /* 1% */, true, {
       from: governance,
     });
     await otherToken.mint(pool.address, tokenAmount);

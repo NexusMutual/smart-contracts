@@ -373,24 +373,10 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
 
   function _transferEntireAssetBalance(address assetAddress, address destination) internal {
-    IERC20 asset = IERC20(assetAddress);
-    uint balance;
-    try asset.balanceOf(address(this)) returns (uint _balance) {
-      balance = _balance;
-    } catch {
-      if (!abandonAssets[assetAddress]) {
-        revert("Pool: Could not obtain asset balance");
-      }
-    }
-
-    try asset.transfer(destination, balance) returns (bool success) {
-      if (!success && !abandonAssets[assetAddress]) {
-        revert("Pool: Could not transfer asset");
-      }
-    } catch {
-      if (!abandonAssets[assetAddress]) {
-        revert("Pool: Could not transfer asset");
-      }
+    if (!abandonAssets[assetAddress]) {
+      IERC20 asset = IERC20(assetAddress);
+      uint balance = asset.balanceOf(address(this));
+      asset.safeTransfer(destination, balance);
     }
   }
 

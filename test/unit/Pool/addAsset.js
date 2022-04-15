@@ -62,7 +62,7 @@ describe('addAsset', function () {
     await expectRevert(pool.addAsset(dai.address, 18, '0', '1', '0', true, { from: governance }), 'Pool: Asset exists');
   });
 
-  it('should add correctly the asset with its min, max, and slippage ratio', async function () {
+  it('should correctly add the asset with its min, max, and slippage ratio', async function () {
     const { pool } = this;
 
     const ERC20Mock = artifacts.require('ERC20Mock');
@@ -77,5 +77,35 @@ describe('addAsset', function () {
     assert.strictEqual(min.toString(), '1');
     assert.strictEqual(max.toString(), '2');
     assert.strictEqual(maxSlippageRatio.toString(), '3');
+  });
+
+  it('should correctly add the asset to either investment or cover asset arrays', async function () {
+    const { pool } = this;
+
+    const ERC20Mock = artifacts.require('ERC20Mock');
+
+    // Cover asset
+    {
+      const token = await ERC20Mock.new();
+      await pool.addAsset(token.address, 18, '1', '2', '3', true, { from: governance });
+      const coverAssets = await pool.getCoverAssets();
+      const investmentAssets = await pool.getInvestmentAssets();
+      assert.strictEqual(coverAssets[coverAssets.length - 1].assetAddress, token.address);
+      assert.strictEqual(coverAssets[coverAssets.length - 1].decimals, '18');
+      const insertedInInvestmentAssets = !!investmentAssets.find(x => x.assetAddress === token.address);
+      assert.strictEqual(insertedInInvestmentAssets, false);
+    }
+
+    // Investment asset
+    {
+      const token = await ERC20Mock.new();
+      await pool.addAsset(token.address, 8, '4', '5', '6', false, { from: governance });
+      const coverAssets = await pool.getCoverAssets();
+      const investmentAssets = await pool.getInvestmentAssets();
+      assert.strictEqual(investmentAssets[investmentAssets.length - 1].assetAddress, token.address);
+      assert.strictEqual(investmentAssets[investmentAssets.length - 1].decimals, '8');
+      const insertedInCoverAssets = !!coverAssets.find(x => x.assetAddress === token.address);
+      assert.strictEqual(insertedInCoverAssets, false);
+    }
   });
 });

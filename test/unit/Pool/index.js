@@ -29,6 +29,7 @@ describe.only('Pool unit tests', function () {
 
   // pool management
   require('./addAsset');
+  require('./removeAsset');
   require('./transferAsset');
   require('./upgradeCapitalPool');
 

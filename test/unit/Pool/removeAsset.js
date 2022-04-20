@@ -11,7 +11,7 @@ const {
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-describe.only('removeAsset', function () {
+describe('removeAsset', function () {
   it('reverts when not called by goverance', async function () {
     const { pool } = this;
 

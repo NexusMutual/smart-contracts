@@ -180,13 +180,29 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     amount += stakerDeposit + stakerReward + assessmentStake;
   }
 
-  /// Withdraws governance rewards
+  /// Withdraws governance rewards for the given member address
   /// @dev This function requires a batchSize that fits in one block. It cannot be 0.
-  function withdrawGovernanceRewards(uint batchSize) public isMemberAndcheckPause {
+  function withdrawGovernanceRewards(
+    address memberAddress,
+    uint batchSize
+  ) public isMemberAndcheckPause {
+    uint governanceRewards = governance.claimReward(memberAddress, batchSize);
+    require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
+    token.transfer(memberAddress, governanceRewards);
+  }
+
+  /// Withdraws governance rewards to the destination address. It can only be called by the owner
+  /// of the rewards.
+  /// @dev This function requires a batchSize that fits in one block. It cannot be 0.
+  function withdrawGovernanceRewardsTo(
+    address destination,
+    uint batchSize
+  ) public isMemberAndcheckPause {
     uint governanceRewards = governance.claimReward(msg.sender, batchSize);
     require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
-    token.transfer(msg.sender, governanceRewards);
+    token.transfer(destination, governanceRewards);
   }
+
 
   /// Function used to claim all pending rewards in one tx. It can be used to selectively withdraw
   /// rewards.

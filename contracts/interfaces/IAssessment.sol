@@ -107,8 +107,15 @@ interface IAssessment {
 
   function unstake(uint96 amount, address to) external;
 
-  function withdrawRewards(address user, uint104 untilIndex) external
-  returns (uint withdrawn, uint withdrawUntilIndex);
+  function withdrawRewards(
+    address user,
+    uint104 batchSize
+  ) external returns (uint withdrawn, uint withdrawnUntilIndex);
+
+  function withdrawRewardsTo(
+    address destination,
+    uint104 batchSize
+  ) external returns (uint withdrawn, uint withdrawnUntilIndex);
 
   function startAssessment(uint totalReward, uint assessmentDeposit) external
   returns (uint);

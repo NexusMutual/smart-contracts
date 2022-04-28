@@ -28,8 +28,14 @@ async function setup () {
 
   const chainlinkDAI = await ChainlinkAggregatorMock.new();
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
+  const chainlinkSteth = await ChainlinkAggregatorMock.new();
+  await chainlinkSteth.setLatestAnswer(new BN(1e18.toString()));
 
-  const priceFeedOracle = await PriceFeedOracle.new(chainlinkDAI.address, dai.address, stETH.address);
+  const priceFeedOracle = await PriceFeedOracle.new(
+    [dai.address, stETH.address],
+    [chainlinkDAI.address, chainlinkSteth.address],
+    [18, 18],
+  );
 
   const swapOperator = accounts.generalPurpose[10];
 

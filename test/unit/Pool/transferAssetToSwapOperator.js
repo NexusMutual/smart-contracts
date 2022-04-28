@@ -1,6 +1,5 @@
 const { ether } = require('@openzeppelin/test-helpers');
 const { expectRevert } = require('@openzeppelin/test-helpers');
-const { web3 } = require('hardhat');
 const { assert } = require('chai');
 
 const {

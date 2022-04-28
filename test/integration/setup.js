@@ -111,7 +111,13 @@ async function setup () {
   await stETH.mint(owner, ether('10000000'));
 
   const chainlinkDAI = await ChainlinkAggregatorMock.new();
-  const priceFeedOracle = await PriceFeedOracle.new(chainlinkDAI.address, dai.address, stETH.address);
+  const chainlinkSteth = await ChainlinkAggregatorMock.new();
+  await chainlinkSteth.setLatestAnswer(new BN(1e18.toString()));
+  const priceFeedOracle = await PriceFeedOracle.new(
+    [dai.address, stETH.address],
+    [chainlinkDAI.address, chainlinkSteth.address],
+    [18, 18],
+  );
 
   const lido = await Lido.new();
 

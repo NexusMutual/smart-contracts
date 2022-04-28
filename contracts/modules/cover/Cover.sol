@@ -38,6 +38,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint public constant COMMISSION_DENOMINATOR = 10000;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
 
+  uint public constant BURN_DENOMINATOR = 1e18;
+
   uint public constant MAX_COVER_PERIOD = 365 days;
   uint public constant MIN_COVER_PERIOD = 30 days;
 
@@ -437,15 +439,30 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   // TODO: implement properly. we need the staking interface for burning.
   function performPayoutBurn(
     uint coverId,
-    uint /*segmentId*/,
-    uint amount
+    uint segmentId,
+    uint burnAmount
   ) external onlyInternal override returns (address /* owner */) {
 
     ICoverNFT coverNFTContract = ICoverNFT(coverNFT);
     address owner = coverNFTContract.ownerOf(coverId);
 
     CoverData storage cover = _coverData[coverId];
-    cover.amountPaidOut += SafeUintCast.toUint96(amount);
+    cover.amountPaidOut += SafeUintCast.toUint96(burnAmount);
+
+    CoverSegment memory segment = coverSegments(coverId, segmentId);
+    PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];
+
+    uint allocationCount = allocations.length;
+    for (uint i = 0; i < allocationCount; i++) {
+
+      PoolAllocation storage allocation = allocations[i];
+      IStakingPool _stakingPool = stakingPool(allocation.poolId);
+
+      uint nxmBurned = allocation.coverAmountInNXM * burnAmount / segment.amount;
+      _stakingPool.burnStake(cover.productId, segment.start, segment.period, nxmBurned);
+
+      allocation.coverAmountInNXM -= SafeUintCast.toUint96(nxmBurned);
+    }
 
     return owner;
   }
@@ -585,7 +602,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function coverSegments(
     uint coverId,
     uint segmentId
-  ) external override view returns (CoverSegment memory) {
+  ) public override view returns (CoverSegment memory) {
     CoverSegment memory segment = _coverSegments[coverId][segmentId];
     uint96 amountPaidOut = _coverData[coverId].amountPaidOut;
     segment.amount = segment.amount >= amountPaidOut

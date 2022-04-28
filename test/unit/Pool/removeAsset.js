@@ -33,7 +33,7 @@ describe('removeAsset', function () {
     await expectRevert(pool.removeAsset(1, false, { from: governance }), 'Pool: Investment asset does not exist');
   });
 
-  it('should correctly remove the asset with its min, max, and slippage ratio', async function () {
+  it('should correctly remove the asset with its minAmount, maxAmount, and slippage ratio', async function () {
     const { pool, dai, stETH } = this;
 
     const ERC20Mock = artifacts.require('ERC20Mock');
@@ -78,12 +78,12 @@ describe('removeAsset', function () {
       await pool.removeAsset(1, true, { from: governance });
 
       const assetDetails = await pool.getAssetSwapDetails(dai.address);
-      const { min, max, maxSlippageRatio, lastAssetSwapTime } = assetDetails;
+      const { minAmount, maxAmount, maxSlippageRatio, lastSwapTime } = assetDetails;
 
-      assert.strictEqual(min.toString(), '0');
-      assert.strictEqual(max.toString(), '0');
+      assert.strictEqual(minAmount.toString(), '0');
+      assert.strictEqual(maxAmount.toString(), '0');
       assert.strictEqual(maxSlippageRatio.toString(), '0');
-      assert.strictEqual(lastAssetSwapTime.toString(), '0');
+      assert.strictEqual(lastSwapTime.toString(), '0');
 
       const expectedCoverAssets = [ETH, dai.address, coverToken.address];
       const coverAssets = await pool.getCoverAssets();
@@ -110,12 +110,12 @@ describe('removeAsset', function () {
     {
       // check that cover token swap details were unaffected by dai removal
       const assetDetails = await pool.getAssetSwapDetails(coverToken.address);
-      const { min, max, maxSlippageRatio, lastAssetSwapTime } = assetDetails;
+      const { minAmount, maxAmount, maxSlippageRatio, lastSwapTime } = assetDetails;
 
-      assert.strictEqual(min.toString(), '1');
-      assert.strictEqual(max.toString(), '2');
+      assert.strictEqual(minAmount.toString(), '1');
+      assert.strictEqual(maxAmount.toString(), '2');
       assert.strictEqual(maxSlippageRatio.toString(), '3');
-      assert.strictEqual(lastAssetSwapTime.toString(), '0');
+      assert.strictEqual(lastSwapTime.toString(), '0');
     }
 
     {
@@ -123,12 +123,12 @@ describe('removeAsset', function () {
       await pool.removeAsset(1, false, { from: governance });
 
       const assetDetails = await pool.getAssetSwapDetails(investmentToken.address);
-      const { min, max, maxSlippageRatio, lastAssetSwapTime } = assetDetails;
+      const { minAmount, maxAmount, maxSlippageRatio, lastSwapTime } = assetDetails;
 
-      assert.strictEqual(min.toString(), '0');
-      assert.strictEqual(max.toString(), '0');
+      assert.strictEqual(minAmount.toString(), '0');
+      assert.strictEqual(maxAmount.toString(), '0');
       assert.strictEqual(maxSlippageRatio.toString(), '0');
-      assert.strictEqual(lastAssetSwapTime.toString(), '0');
+      assert.strictEqual(lastSwapTime.toString(), '0');
 
       const expectedInvestmentAssets = [stETH.address];
       const investmentAssets = await pool.getInvestmentAssets();
@@ -142,12 +142,12 @@ describe('removeAsset', function () {
     {
       // check that stETH was not affected by the investment token removal
       const assetDetails = await pool.getAssetSwapDetails(stETH.address);
-      const { min, max, maxSlippageRatio, lastAssetSwapTime } = assetDetails;
+      const { minAmount, maxAmount, maxSlippageRatio, lastSwapTime } = assetDetails;
 
-      assert.strictEqual(min.toString(), ether('24360').toString());
-      assert.strictEqual(max.toString(), ether('32500').toString());
+      assert.strictEqual(minAmount.toString(), ether('24360').toString());
+      assert.strictEqual(maxAmount.toString(), ether('32500').toString());
       assert.strictEqual(maxSlippageRatio.toString(), '0');
-      assert.strictEqual(lastAssetSwapTime.toString(), '1633425218');
+      assert.strictEqual(lastSwapTime.toString(), '1633425218');
 
       const expectedInvestmentAssets = [stETH.address];
       const investmentAssets = await pool.getInvestmentAssets();

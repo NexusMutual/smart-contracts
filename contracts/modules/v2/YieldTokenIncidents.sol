@@ -262,7 +262,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       "Cover ended before the incident"
     );
 
-    require(coverSegment.start <= incident.date, "Cover started after the incident");
+    require(coverSegment.start < incident.date, "Cover started after the incident");
 
     require(coverData.productId == incident.productId, "Product id mismatch");
 

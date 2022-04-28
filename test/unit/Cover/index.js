@@ -16,5 +16,6 @@ describe.skip('Cover unit tests', function () {
   require('./editCover');
   require('./createStakingPool');
   require('./getGlobalActiveCoverAmountForAsset');
-  require('./performPayoutBurn');
+  // [todo] This test suite is missing
+  // require('./performPayoutBurn');
 });

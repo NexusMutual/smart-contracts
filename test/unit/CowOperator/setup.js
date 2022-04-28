@@ -19,6 +19,7 @@ async function setup () {
   const CowSwapOperator = await ethers.getContractFactory('CowSwapOperator');
   const CSMockQuotationData = await ethers.getContractFactory('CSMockQuotationData');
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+  const ERC20CustomDecimalsMock = await ethers.getContractFactory('ERC20CustomDecimalsMock');
   const CSMockWeth = await ethers.getContractFactory('CSMockWeth');
   const CSMockSettlement = await ethers.getContractFactory('CSMockSettlement');
   const CSMockVaultRelayer = await ethers.getContractFactory('CSMockVaultRelayer');
@@ -28,7 +29,7 @@ async function setup () {
   // Deploy WETH + ERC20 test tokens
   const weth = await CSMockWeth.deploy();
   const dai = await ERC20Mock.deploy();
-  const usdc = await ERC20Mock.deploy();
+  const usdc = await ERC20CustomDecimalsMock.deploy(6);
   const stEth = await ERC20Mock.deploy();
 
   // Deploy CoW Protocol mocks
@@ -54,16 +55,12 @@ async function setup () {
   );
 
   // Deploy Pool
-  const oneK = parseEther('1000');
   const pool = await Pool.deploy(
-    [dai.address, usdc.address, stEth.address], // assets
-    [18, 18, 18], // decimals
-    [0, 0, 0], // min
-    [oneK, oneK, oneK], // max
-    [0, 0, 0], // max slippage ratio 0%
     master.address,
     priceFeedOracle.address, // price feed oracle, add to setup if needed
     AddressZero, // swap operator
+    dai.address,
+    stEth.address,
   );
 
   // Setup master, pool and mcr connections
@@ -75,6 +72,8 @@ async function setup () {
   await pool.changeDependentContractAddress();
   await mcr.changeDependentContractAddress();
 
+  await pool.connect(governance).addAsset(usdc.address, 6, 0, parseEther('1000'), 0, true);
+
   // Deploy CowSwapOperator
   const swapOperator = await CowSwapOperator.deploy(
     cowSettlement.address,
@@ -84,10 +83,7 @@ async function setup () {
   );
 
   // Setup pool's swap operator
-  await pool.connect(governance).updateAddressParameters(
-    hex('SWP_OP'.padEnd(8, '\0')),
-    swapOperator.address,
-  );
+  await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), swapOperator.address);
 
   Object.assign(instances, {
     dai,
@@ -106,14 +102,14 @@ async function setup () {
 }
 
 // helper function to alter a given value
-const makeWrongValue = (value) => {
+const makeWrongValue = value => {
   if (isHexString(value)) {
     return hexlify(randomBytes(hexDataLength(value)));
   } else if (value instanceof BigNumber) {
     return value.add(1);
-  } else if (typeof (value) === 'number') {
+  } else if (typeof value === 'number') {
     return value + 1;
-  } else if (typeof (value) === 'boolean') {
+  } else if (typeof value === 'boolean') {
     return !value;
   } else {
     throw new Error(`Unsupported value while fuzzing order: ${value}`);

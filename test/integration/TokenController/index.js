@@ -1,6 +1,1 @@
-describe('TokenController integration tests', function () {
-
-  require('./removeEmptyReason');
-  require('./totalLockedBalance');
-
-});
+describe('TokenController integration tests', function () {});

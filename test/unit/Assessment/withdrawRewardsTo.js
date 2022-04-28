@@ -4,7 +4,7 @@ const { setTime, daysToSeconds } = require('./helpers');
 
 const { parseEther } = ethers.utils;
 
-describe.only('withdrawRewardsTo', function () {
+describe('withdrawRewardsTo', function () {
   it('reverts if there are no withdrawable rewards', async function () {
     const { assessment } = this.contracts;
     const [user] = this.accounts.members;

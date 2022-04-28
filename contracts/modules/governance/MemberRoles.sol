@@ -272,6 +272,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     cover.transferCovers(msg.sender, newAddress, coverIds);
 
     stakingPools;
+    // [todo] Transfer staking pool NFTS to newAddress
     /*
     // Transfer the staking LP tokens to the new address, if any were given
     for (uint256 i = 0; i < stakingPools.length; i++) {

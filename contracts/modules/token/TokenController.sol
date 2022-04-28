@@ -4,7 +4,6 @@ pragma solidity ^0.8.9;
 
 import "../../utils/SafeUintCast.sol";
 import "../../abstract/LegacyMasterAware.sol";
-import "../../interfaces/ILegacyClaimsData.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/ITokenController.sol";

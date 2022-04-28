@@ -19,6 +19,7 @@ describe('Assessment', function () {
   require('./getAssessmentsCount');
   require('./getVoteCountOfAssessor');
   require('./withdrawRewards');
+  require('./withdrawRewardsTo');
   require('./startAssessment');
   require('./castVote');
   require('./submitFraud');

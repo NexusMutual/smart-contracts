@@ -68,19 +68,6 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   }
 
   /**
-   * @dev to swap the owner address
-   * @param _newOwnerAddress is the new owner address
-   */
-  function swapOwner(
-    address _newOwnerAddress
-  )
-  external override {
-    require(msg.sender == address(ms));
-    _updateRole(ms.owner(), uint(Role.Owner), false);
-    _updateRole(_newOwnerAddress, uint(Role.Owner), true);
-  }
-
-  /**
    * @dev is used to add initital advisory board members
    * @param abArray is the list of initial advisory board members
    */
@@ -109,7 +96,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
    * @dev to set address of kyc authentication
    * @param _add is the new address
    */
-  function setKycAuthAddress(address _add) external onlyInternal {
+  function setKycAuthAddress(address _add) external onlyGovernance {
     kycAuthAddress = _add;
   }
 
@@ -285,7 +272,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     cover.transferCovers(msg.sender, newAddress, coverIds);
 
     stakingPools;
-    revert("Staking pool migration not implemented");
+    // [todo] Transfer staking pool NFTS to newAddress
     /*
     // Transfer the staking LP tokens to the new address, if any were given
     for (uint256 i = 0; i < stakingPools.length; i++) {

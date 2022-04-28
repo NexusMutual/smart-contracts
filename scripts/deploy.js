@@ -265,6 +265,7 @@ async function main () {
   if (['hardhat', 'localhost'].includes(network.name)) {
     const chainlinkDaiMock = await ChainlinkAggregatorMock.new();
     await chainlinkDaiMock.setLatestAnswer('357884806717390');
+
     verifier.add(chainlinkDaiMock);
     priceFeedOracle = await PriceFeedOracle.new(chainlinkDaiMock.address, dai.address, stETH.address);
   } else {
@@ -307,16 +308,7 @@ async function main () {
     minUpdateTime,
   );
 
-  const poolParameters = [
-    [dai.address, stETH.address],
-    [18, 18],
-    [ether('1000000'), ether('15000')],
-    [ether('2000000'), ether('20000')],
-    [2500, 0],
-    master.address,
-    priceFeedOracle.address,
-    swapOperator.address,
-  ];
+  const poolParameters = [master.address, priceFeedOracle.address, swapOperator.address, dai.address, stETH.address];
 
   const p1 = await Pool.new(...poolParameters);
 

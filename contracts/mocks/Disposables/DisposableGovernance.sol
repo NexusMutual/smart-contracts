@@ -107,7 +107,7 @@ contract DisposableGovernance is IGovernance, LegacyMasterAware {
   uint internal actionWaitingTime;
 
   function changeDependentContractAddress() public {
-    tokenInstance = ITokenController(ms.dAppLocker());
+    tokenInstance = ITokenController(ms.getLatestAddress("TC"));
     memberRole = IMemberRoles(ms.getLatestAddress("MR"));
     proposalCategory = IProposalCategory(ms.getLatestAddress("PC"));
   }

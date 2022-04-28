@@ -271,9 +271,9 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     {
       uint deductiblePriceBefore = uint(incident.priceBefore) *
         uint(config.payoutDeductibleRatio) / INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
-      (,uint payoutAssetDecimals,) = IPool(
+      (,uint payoutAssetDecimals) = IPool(
         internalContracts[uint(IMasterAwareV2.ID.P1)]
-      ).assets(coverData.payoutAsset);
+      ).coverAssets(coverData.payoutAsset);
       payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** uint(payoutAssetDecimals));
     }
 

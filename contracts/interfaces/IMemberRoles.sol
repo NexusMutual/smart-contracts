@@ -18,8 +18,6 @@ interface IMemberRoles {
 
   function switchMembershipOf(address member, address _newAddress) external;
 
-  function swapOwner(address _newOwnerAddress) external;
-
   function addInitialABMembers(address[] calldata abArray) external;
 
   function kycVerdict(address payable _userAddress, bool verdict) external;

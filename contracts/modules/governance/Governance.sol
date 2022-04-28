@@ -8,7 +8,6 @@ import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IProposalCategory.sol";
 import "../../interfaces/ITokenController.sol";
-import "hardhat/console.sol";
 
 contract Governance is IGovernance, LegacyMasterAware {
   using SafeMath for uint;
@@ -645,7 +644,7 @@ contract Governance is IGovernance, LegacyMasterAware {
   * @dev Updates all dependency addresses to latest ones from Master
   */
   function changeDependentContractAddress() public {
-    tokenInstance = ITokenController(ms.dAppLocker());
+    tokenInstance = ITokenController(ms.getLatestAddress("TC"));
     memberRole = IMemberRoles(ms.getLatestAddress("MR"));
     proposalCategory = IProposalCategory(ms.getLatestAddress("PC"));
   }

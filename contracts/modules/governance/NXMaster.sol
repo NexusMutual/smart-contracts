@@ -5,18 +5,10 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IMasterAware.sol";
-import "../../interfaces/ILegacyClaims.sol";
-import "../../interfaces/ILegacyClaimsData.sol";
-import "../../interfaces/ILegacyClaimsReward.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IQuotation.sol";
-import "../../interfaces/IQuotationData.sol";
-import "../../interfaces/ITokenController.sol";
-import "../../interfaces/ITokenData.sol";
 import "./external/Governed.sol";
 import "./external/OwnedUpgradeabilityProxy.sol";
-
 
 contract NXMaster is INXMMaster, Governed {
   using SafeMath for uint;
@@ -121,10 +113,7 @@ contract NXMaster is INXMMaster, Governed {
   function upgradeMultipleContracts(
     bytes2[] calldata _contractCodes,
     address payable[] calldata newAddresses
-  )
-  external
-  onlyAuthorizedToGovern
-  {
+  ) external onlyAuthorizedToGovern {
     require(_contractCodes.length == newAddresses.length, "NXMaster: _contractCodes.length != newAddresses.length");
 
     for (uint i = 0; i < _contractCodes.length; i++) {
@@ -154,14 +143,7 @@ contract NXMaster is INXMMaster, Governed {
   }
 
   function replaceContract(bytes2 code, address payable newAddress) internal {
-    if (code == "CR") {
-      ITokenController tc = ITokenController(getLatestAddress("TC"));
-      tc.addToWhitelist(newAddress);
-      tc.removeFromWhitelist(contractAddresses["CR"]);
-      ILegacyClaimsReward cr = ILegacyClaimsReward(contractAddresses["CR"]);
-      cr.upgrade(newAddress);
-
-    } else if (code == "P1") {
+    if (code == "P1") {
       IPool p1 = IPool(contractAddresses["P1"]);
       p1.upgradeCapitalPool(newAddress);
     }
@@ -268,14 +250,6 @@ contract NXMaster is INXMMaster, Governed {
     }
   }
 
-  /**
-   * @dev returns the address of token controller
-   * @return address is returned
-   */
-  function dAppLocker() public view returns (address) {
-    return getLatestAddress("TC");
-  }
-
   /// @dev Gets latest contract address
   /// @param _contractName Contract name to fetch
   function getLatestAddress(bytes2 _contractName) public view returns (address payable contractAddress) {
@@ -297,23 +271,7 @@ contract NXMaster is INXMMaster, Governed {
    * @param val is value to be set
    */
   function updateOwnerParameters(bytes8 code, address payable val) public onlyAuthorizedToGovern {
-    if (code == "MSWALLET") {
-
-      IMemberRoles mr = IMemberRoles(getLatestAddress("MR"));
-      mr.changeJoiningFeeWallet(val);
-
-    } else if (code == "OWNER") {
-
-      IMemberRoles mr = IMemberRoles(getLatestAddress("MR"));
-      mr.swapOwner(val);
-      owner = val;
-
-    } else if (code == "KYCAUTH") {
-
-      IMemberRoles mr = IMemberRoles(getLatestAddress("MR"));
-      mr.setKycAuthAddress(val);
-
-    } else if (code == "EMADMIN") {
+    if (code == "EMADMIN") {
 
       emergencyAdmin = val;
 

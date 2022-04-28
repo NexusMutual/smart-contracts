@@ -174,11 +174,11 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     if (claim.payoutAsset == 0) {
       assetSymbol = "ETH";
     } else {
+
       (
         address payoutAsset,
-        /*uint8 decimals*/,
-        /*bool deprecated*/
-      ) = pool().assets(claim.payoutAsset);
+        /*uint8 decimals*/
+      ) = pool().coverAssets(claim.payoutAsset);
       try IERC20Detailed(payoutAsset).symbol() returns (string memory v) {
         assetSymbol = v;
       } catch {

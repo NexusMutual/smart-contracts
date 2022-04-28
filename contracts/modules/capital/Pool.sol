@@ -3,8 +3,11 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/utils/Address.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
+
+import "../../utils/SafeUintCast.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/INXMToken.sol";
@@ -15,11 +18,13 @@ import "../../interfaces/ITokenController.sol";
 
 contract Pool is IPool, MasterAware, ReentrancyGuard {
   using SafeERC20 for IERC20;
+  using Address for address;
 
   uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
   /* storage */
-  Asset[] public override assets;
+  Asset[] public override coverAssets;
+  Asset[] public override investmentAssets;
   mapping(address => SwapDetails) public swapDetails;
 
   // contracts
@@ -33,6 +38,25 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   uint public override minPoolEth;
   IPriceFeedOracle public override priceFeedOracle;
   address public swapOperator;
+
+  // Binary map where each on bit, starting from the LSB, represents whether the cover asset found
+  // at the same index as the bit's position should be ignored when calulating the value of the pool
+  // in ETH.
+  //
+  // Examples:
+  // 1 (10) = 00000000000000000000000000000001 (2)
+  //                                         ^
+  //                                         coverAssets[0] is deprecated
+  //
+  // 9 (10) = 00000000000000000000000000001001 (2)
+  //                                      ^  ^
+  //                                      coverAssets[0] and coverAssets[3] are both deprecated
+  //
+  uint32 public deprecatedCoverAssetsBitmap;
+
+  // When an asset transfer reverts it can be abandoned by flagging the address. This allows pool
+  // upgrades if the upgrade reverts due to one or more failed transfers to the new address.
+  mapping(address => bool) public abandonAssets;
 
   /* constants */
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -58,45 +82,68 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   }
 
   constructor (
-    address[] memory assetAddresses,
-    uint8[] memory assetDecimals,
-    uint104[] memory _minAmounts,
-    uint104[] memory _maxAmounts,
-    uint16[] memory _maxSlippageRatios,
     address _master,
     address _priceOracle,
-    address _swapOperator
+    address _swapOperator,
+    address DAIAddress,
+    address stETHAddress
   ) {
-
-    // First asset is ETH
-    assets.push(Asset(ETH, 18, false));
-
-    require(assetAddresses.length == _minAmounts.length, "Pool: Length mismatch");
-    require(assetAddresses.length == _maxAmounts.length, "Pool: Length mismatch");
-    require(assetAddresses.length == _maxSlippageRatios.length, "Pool: Length mismatch");
-    require(assetAddresses.length == assetDecimals.length, "Pool: Length mismatch");
-
-    for (uint i = 0; i < assetAddresses.length; i++) {
-
-      Asset memory asset = Asset(assetAddresses[i], assetDecimals[i], false);
-      require(asset.assetAddress != address(0), "Pool: Asset cannot be a zero address");
-      require(_maxAmounts[i] >= _minAmounts[i], "Pool: max < min");
-      require(_maxSlippageRatios[i] <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
-
-      assets.push(asset);
-      swapDetails[asset.assetAddress].minAmount = _minAmounts[i];
-      swapDetails[asset.assetAddress].maxAmount = _maxAmounts[i];
-      swapDetails[asset.assetAddress].maxSlippageRatio = _maxSlippageRatios[i];
-    }
-
     master = INXMMaster(_master);
     priceFeedOracle = IPriceFeedOracle(_priceOracle);
     swapOperator = _swapOperator;
+
+    // [todo] After this contract is deployed it might be worth modifying upgradeCapitalPool to
+    // copy the assets on future upgrades instead of having them hardcoded in the constructor.
+
+    // The order of coverAssets should never change between updates. Do not remove the following
+    // lines!
+    coverAssets.push(Asset(ETH, 18));
+    coverAssets.push(Asset(DAIAddress, 18));
+
+    // Add investment assets
+    investmentAssets.push(Asset(stETHAddress, 18));
+
+    // Set DAI swap details
+    swapDetails[DAIAddress] = SwapDetails(
+      1000000 ether, // minAmount (1 mil)
+      2000000 ether, // maxAmount (2 mil)
+      0,             // lastSwapTime
+      250            // maxSlippageRatio (0.25%)
+    );
+
+    // Set stETH swap details
+    swapDetails[stETHAddress] = SwapDetails(
+      24360 ether,   // minAmount (~24k)
+      32500 ether,   // maxAmount (~32k)
+      1633425218,    // lastSwapTime
+      0              // maxSlippageRatio (0%)
+    );
   }
 
   fallback() external payable {}
 
   receive() external payable {}
+
+  function getAssetValueInEth(address assetAddress, uint8 assetDecimals) internal view returns (uint) {
+    IERC20 token = IERC20(assetAddress);
+
+    uint assetBalance = token.balanceOf(address(this));
+    try token.balanceOf(address(this)) returns (uint balance) {
+      assetBalance = balance;
+    } catch {
+      // If balanceOf reverts consider it 0
+    }
+
+    // If the assetBalance is 0 skip the oracle call to save gas
+    if (assetBalance == 0) {
+      return 0; // ETH
+    }
+
+    uint rate = priceFeedOracle.getAssetToEthRate(assetAddress);
+    require(rate > 0, "Pool: Zero rate");
+
+    return assetBalance * rate / (10 ** uint(assetDecimals)); // ETH
+  }
 
   /**
    * @dev Calculates total value of all pool assets in ether
@@ -104,25 +151,24 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   function getPoolValueInEth() public override view returns (uint) {
 
     uint total = address(this).balance;
+    uint investmentAssetsCount = investmentAssets.length;
+    uint coverAssetsCount = coverAssets.length;
 
-    uint assetsCount = assets.length;
+    for (uint i = 0; i < investmentAssetsCount; i++) {
+      Asset memory asset = investmentAssets[i];
+      uint assetValue = getAssetValueInEth(asset.assetAddress, asset.decimals);
+      total = total + assetValue;
+    }
 
+    uint deprecatedCoverAssets = deprecatedCoverAssetsBitmap;
     // Skip ETH (index 0)
-    for (uint i = 1; i < assetsCount; i++) {
-
-      Asset memory asset = assets[i];
-      if (asset.deprecated) {
+    for (uint i = 1; i < coverAssetsCount; i++) {
+      // Skip deprecated assets by looking at the bits that are on in deprecatedCoverAssetsBitmap
+      if ((1 << i) & deprecatedCoverAssets != 0) {
         continue;
       }
-
-      IERC20 token = IERC20(asset.assetAddress);
-
-      uint rate = priceFeedOracle.getAssetToEthRate(asset.assetAddress);
-      require(rate > 0, "Pool: Zero rate");
-
-      uint assetBalance = token.balanceOf(address(this));
-      uint assetValue = assetBalance * rate / (10 ** uint(asset.decimals)); // ETH
-
+      Asset memory asset = coverAssets[i];
+      uint assetValue = getAssetValueInEth(asset.assetAddress, asset.decimals);
       total = total + assetValue;
     }
 
@@ -131,22 +177,26 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   /* asset related functions */
 
-  function getAssets() external override view returns (
-    address[] memory assetAddresses,
-    uint8[] memory decimals,
-    bool[] memory deprecated
-  ) {
-    uint assetsCount = assets.length;
-    assetAddresses = new address[](assetsCount);
-    decimals = new uint8[](assetsCount);
-    deprecated = new bool[](assetsCount);
-    for (uint i = 0; i < assetsCount; i++) {
-      IPool.Asset memory asset = assets[i];
-      assetAddresses[i] = asset.assetAddress;
-      decimals[i] = asset.decimals;
-      deprecated[i] = asset.deprecated;
+  function getCoverAssets() external override view returns (Asset[] memory assets) {
+    uint count = coverAssets.length;
+    assets = new Asset[](count);
+
+    for (uint i = 0; i < count; i++) {
+      assets[i] = coverAssets[i];
     }
-    return (assetAddresses, decimals, deprecated);
+
+    return assets;
+  }
+
+  function getInvestmentAssets() external override view returns (Asset[] memory assets) {
+    uint count = investmentAssets.length;
+    assets = new Asset[](count);
+
+    for (uint i = 0; i < count; i++) {
+      assets[i] = investmentAssets[i];
+    }
+
+    return assets;
   }
 
   function getAssetSwapDetails(address assetAddress) external override view returns (
@@ -166,44 +216,106 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint8 decimals,
     uint104 _min,
     uint104 _max,
-    uint16 _maxSlippageRatio
+    uint16 _maxSlippageRatio,
+    bool isCoverAsset
   ) external onlyGovernance {
-
     require(assetAddress != address(0), "Pool: Asset is zero address");
     require(_max >= _min, "Pool: max < min");
     require(_maxSlippageRatio <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
 
-    uint assetsCount = assets.length;
-    for (uint i = 0; i < assetsCount; i++) {
-      require(assetAddress != assets[i].assetAddress, "Pool: Asset exists");
+    // Check whether the new asset already exists as a cover asset
+    uint coverAssetsCount = coverAssets.length;
+    for (uint i = 0; i < coverAssetsCount; i++) {
+      require(assetAddress != coverAssets[i].assetAddress, "Pool: Asset exists");
     }
 
-    assets.push(Asset(assetAddress, decimals, false));
+    // Check whether the new asset already exists as an investment asset
+    uint investmentAssetsCount = investmentAssets.length;
+    for (uint i = 0; i < investmentAssetsCount; i++) {
+      require(assetAddress != investmentAssets[i].assetAddress, "Pool: Asset exists");
+    }
+
+    // Add the new asset to its corresponding array
+    if (isCoverAsset) {
+      coverAssets.push(Asset(assetAddress, decimals));
+    } else {
+      investmentAssets.push(Asset(assetAddress, decimals));
+    }
+
+    // Set the swap details
     swapDetails[assetAddress] = SwapDetails(_min, _max, 0, _maxSlippageRatio);
   }
 
-  function deprecateAsset(uint8 assetId) external onlyGovernance {
-    require(assetId < assets.length, "Pool: Asset does not exist");
-    address assetAddress = assets[assetId].assetAddress;
-    delete swapDetails[assetAddress];
-    assets[assetId].deprecated = true;
+  /// Removes an asset which is no longer used.
+  ///
+  /// @dev Investment assets will be removed from the investmentAssets array. Cover assets
+  /// however cannot be removed entirely as they are referenced by their index in covers.
+  /// Instead, they are deprecated by setting the bit corresponding to the asset's index in
+  /// deprecatedCoverAssets to 1. Ignored cover assets are skipped when calculating the pool value
+  /// in ETH which saves a slot read for each asset removed. However this does not prevent cover
+  /// sales in that particular cover asset and it is required to set coverAssetsFallback and
+  /// coverAssets on each product beforehand (See: Cover.sol). When an asset is removed, the
+  /// corresponding swapDetails are also removed.
+  ///
+  /// @param assetId        The index of the asset that needs to be removed.
+  /// @param isCoverAsset   True if the asset is used for payouts or false if it's just an
+  ///                       investment asset.
+  ///
+  function removeAsset(uint assetId, bool isCoverAsset) external onlyGovernance {
+    address assetAddress;
+    if (isCoverAsset) {
+      require(assetId < coverAssets.length, "Pool: Cover asset does not exist");
+      assetAddress = coverAssets[assetId].assetAddress;
+    } else {
+      require(assetId < investmentAssets.length, "Pool: Investment asset does not exist");
+      assetAddress = investmentAssets[assetId].assetAddress;
+    }
 
+
+    uint assetBalance;
+    try IERC20(assetAddress).balanceOf(address(this)) returns (uint balance) {
+      assetBalance = balance;
+    } catch {
+      // If balanceOf reverts consider it 0
+    }
+
+    require(assetBalance == 0, "Pool: Asset balance must be 0");
+
+    if (isCoverAsset) {
+      require(deprecatedCoverAssetsBitmap & (1 << assetId) == 0, "Pool: Cover asset is deprecated");
+
+      // Remove swap details
+      delete swapDetails[assetAddress];
+
+      // Ignore asset which makes getPoolValueInEth skip it when the function loops through
+      // payments assets
+      deprecatedCoverAssetsBitmap |= SafeUintCast.toUint32(1 << assetId);
+    } else {
+
+      // Remove swap details
+      delete swapDetails[assetAddress];
+
+      // Remove investment asset from the array
+      investmentAssets[assetId] = investmentAssets[investmentAssets.length - 1];
+      investmentAssets.pop();
+    }
   }
 
   function setSwapDetails(
     address assetAddress,
     uint104 _min,
     uint104 _max,
-    uint16 _maxSlippageRatio
+    uint16 _maxSlippageRatio,
+    bool isCoverAsset
   ) external onlyGovernance {
 
     require(_min <= _max, "Pool: min > max");
     require(_maxSlippageRatio <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
 
-    uint assetsCount = assets.length;
+    uint assetsCount = isCoverAsset ? coverAssets.length : investmentAssets.length;
     for (uint i = 0; i < assetsCount; i++) {
-
-      if (assetAddress != assets[i].assetAddress) {
+      Asset memory asset = isCoverAsset ? coverAssets[i] : investmentAssets[i];
+      if (assetAddress != asset.assetAddress) {
         continue;
       }
 
@@ -221,16 +333,16 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   /**
    * @dev Executes a payout
-   * @param assetIndex     Index of the payout asset
+   * @param assetId        Index of the cover asset
    * @param payoutAddress  Send funds to this address
    * @param amount         Amount to send
    */
   function sendPayout (
-    uint assetIndex,
+    uint assetId,
     address payable payoutAddress,
     uint amount
   ) external override onlyInternal nonReentrant {
-    Asset memory asset = assets[assetIndex];
+    Asset memory asset = coverAssets[assetId];
 
     if (asset.assetAddress == ETH) {
       // solhint-disable-next-line avoid-low-level-calls
@@ -264,21 +376,35 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     token.safeTransfer(destination, transferableAmount);
   }
 
-  function upgradeCapitalPool(address payable newPoolAddress) external override onlyMaster nonReentrant {
 
-    // transfer ether
+  function _transferEntireAssetBalance(address assetAddress, address destination) internal {
+    if (!abandonAssets[assetAddress]) {
+      IERC20 asset = IERC20(assetAddress);
+      uint balance = asset.balanceOf(address(this));
+      asset.safeTransfer(destination, balance);
+    }
+  }
+
+  // Revert if any of the asset functions revert while not being marked for getting abandoned.
+  // Otherwise, continue without reverting while the marked asset will remain stuck in the
+  // previous pool contract.
+  function upgradeCapitalPool(address payable newPoolAddress) external override onlyMaster nonReentrant {
+    // Transfer ETH
     uint ethBalance = address(this).balance;
     (bool ok, /* data */) = newPoolAddress.call{value: ethBalance}("");
     require(ok, "Pool: Transfer failed");
 
-    uint assetsCount = assets.length;
-    // transfer assets. start from 1 (0 is ETH)
-    for (uint i = 1; i < assetsCount; i++) {
-      IERC20 token = IERC20(assets[i].assetAddress);
-      uint tokenBalance = token.balanceOf(address(this));
-      token.safeTransfer(newPoolAddress, tokenBalance);
+    // Transfer cover assets. Start from 1 (0 is ETH)
+    uint coverAssetsCount = coverAssets.length;
+    for (uint i = 1; i < coverAssetsCount; i++) {
+      _transferEntireAssetBalance(coverAssets[i].assetAddress, newPoolAddress);
     }
 
+    // Transfer investment assets.
+    uint investmentAssetsCount = investmentAssets.length;
+    for (uint i = 0; i < investmentAssetsCount; i++) {
+      _transferEntireAssetBalance(investmentAssets[i].assetAddress, newPoolAddress);
+    }
   }
 
   /**
@@ -329,29 +455,32 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
    * @dev (DEPRECATED, use sellTokens function instead) Allows selling of NXM for ether.
    * Seller first needs to give this contract allowance to
    * transfer/burn tokens in the NXMToken contract
-   * @param  _amount  Amount of NXM to sell
+   * @param amount   Amount of NXM to sell
    * @return success  Returns true on successfull sale
    */
   function sellNXMTokens(
-    uint _amount
+    uint amount
   ) public override onlyMember whenNotPaused returns (bool success) {
-    sellNXM(_amount, 0);
+    sellNXM(amount, 0);
     return true;
   }
 
-  /**
-   * @dev (DEPRECATED, use calculateNXMForEth function instead) Returns the amount of wei a seller will get for selling NXM
-   * @param amount Amount of NXM to sell
-   * @return weiToPay  Amount of wei the seller will get
-   */
+
+  /// @dev DEPRECATED, use calculateNXMForEth function instead! Returns the amount of wei a seller
+  /// will get for selling NXM
+  ///
+  /// @param amount     Amount of NXM to sell
+  /// @return weiToPay  Amount of wei the seller will get
+  /// [todo] Is it safe to remove this?
   function getWei(uint amount) external view returns (uint weiToPay) {
     return getEthForNXM(amount);
   }
 
-  /**
-   * @dev Buys NXM tokens with ETH.
-   * @param  minTokensOut Minimum amount of tokens to be bought. Revert if boughtTokens falls below this number.
-   */
+  /// Buys NXM tokens with ETH.
+  ///
+  /// @param minTokensOut  Minimum amount of tokens to be bought. Revert if boughtTokens falls below
+  /// this number.
+  ///
   function buyNXM(uint minTokensOut) public override payable onlyMember whenNotPaused {
     uint ethIn = msg.value;
     require(ethIn > 0, "Pool: ethIn > 0");
@@ -370,11 +499,11 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     emit NXMBought(msg.sender, ethIn, tokensOut);
   }
 
-  /**
-   * @dev Sell NXM tokens and receive ETH.
-   * @param tokenAmount Amount of tokens to sell.
-   * @param  minEthOut Minimum amount of ETH to be received. Revert if ethOut falls below this number.
-   */
+  /// Sell NXM tokens and receive ETH.
+  ///
+  /// @param tokenAmount  Amount of tokens to sell.
+  /// @param minEthOut    Minimum amount of ETH to be received. Revert if ethOut falls below this number.
+  ///
   function sellNXM(
     uint tokenAmount,
     uint minEthOut
@@ -397,11 +526,11 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     emit NXMSold(msg.sender, tokenAmount, ethOut);
   }
 
-  /**
-   * @dev Get value in tokens for an ethAmount purchase.
-   * @param ethAmount amount of ETH used for buying.
-   * @return tokenValue  Tokens obtained by buying worth of ethAmount
-   */
+  /// Get value in tokens for an ethAmount purchase.
+  ///
+  /// @param ethAmount    Amount of ETH used for buying.
+  /// @return tokenValue  Tokens obtained by buying worth of ethAmount
+  ///
   function getNXMForEth(
     uint ethAmount
   ) public override view returns (uint) {
@@ -539,9 +668,8 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     return totalAssetValue * (10 ** MCR_RATIO_DECIMALS) / mcrEth;
   }
 
-  /**
-  * @dev Calculates token price in ETH 1 NXM token. TokenPrice = A + (MCReth / C) * MCR%^4
-  */
+  /// Calculates token price in ETH of 1 NXM token. TokenPrice = A + (MCReth / C) * MCR%^4
+  ///
   function calculateTokenSpotPrice(
     uint totalAssetValue,
     uint mcrEth
@@ -553,14 +681,14 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     return mcrEth * (mcrRatio ** TOKEN_EXPONENT) / CONSTANT_C / precisionDecimals + CONSTANT_A;
   }
 
-  /**
-   * @dev Returns the NXM price in a given asset
-   * @param assetId  Index of the asset
-   */
+  /// Returns the NXM price in a given cover asset.
+  ///
+  /// @dev This function cannot be used to get the token price in investment assets.
+  ///
+  /// @param assetId  Index of the cover asset.
   function getTokenPrice(uint assetId) public override view returns (uint tokenPrice) {
-
-    require(assetId < assets.length, "Pool: Unknown asset");
-    address assetAddress = assets[assetId].assetAddress;
+    require(assetId < coverAssets.length, "Pool: Unknown cover asset");
+    address assetAddress = coverAssets[assetId].assetAddress;
     uint totalAssetValue = getPoolValueInEth();
     uint mcrEth = mcr.getMCR();
     uint tokenSpotPriceEth = calculateTokenSpotPrice(totalAssetValue, mcrEth);
@@ -575,7 +703,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   }
 
   function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
-
     if (code == "MIN_ETH") {
       minPoolEth = value;
       return;
@@ -584,8 +711,25 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     revert("Pool: Unknown parameter");
   }
 
-  function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
+  /// Sets the given asset addresses as abandoned when shouldAbandon is true and back to their
+  /// initial state when it's false.
+  ///
+  /// @param assetsToAbandon  Array of addresses that represnt tokens which need to be left behind.
+  ///                         This can be desired when one or more tokens revert, which would
+  ///                         prevent the pool to be upgraded.
+  /// @param shouldAbandon    True when the tokens passed in the assetsToAbandon array should be
+  ///                         marked as abandoned. If a token is accidentally marked it can be
+  ///                         unmarked by passing false instead.
+  function setAssetsToAbandon(
+    address[] calldata assetsToAbandon,
+    bool shouldAbandon
+  ) external onlyGovernance {
+    for (uint i = 0; i < assetsToAbandon.length; i++) {
+      abandonAssets[assetsToAbandon[i]] = shouldAbandon;
+    }
+  }
 
+  function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
     if (code == "SWP_OP") {
       swapOperator = value;
       return;

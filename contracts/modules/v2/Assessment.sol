@@ -124,7 +124,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// Increases the sender's stake by the specified amount and transfers NXM to this contract
   ///
   /// @param amount  The amount of nxm to stake
-  function stake(uint96 amount) external override {
+  function stake(uint96 amount) public {
     stakeOf[msg.sender].amount += amount;
     ITokenController(getInternalContractAddress(ID.TC))
       .operatorTransfer(msg.sender, address(this), amount);
@@ -172,7 +172,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///
   /// @dev Only withdraws until the last finalized poll.
   ///
-  /// @param destination The address of the staker for which the rewards are withdrawn
+  /// @param destination The destination address where the rewards will be withdrawn.
   /// @param batchSize   The index until which (but not including) the rewards should be withdrawn.
   ///                    Used if a large number of assessments accumulates and the function doesn't
   ///                    fit in one block, thus requiring multiple batched transactions.
@@ -246,6 +246,36 @@ contract Assessment is IAssessment, MasterAwareV2 {
     return assessments.length - 1;
   }
 
+  /// Casts multiple votes on assessments and optionally allows to increase the stake in the same
+  /// transaction.
+  ///
+  /// @dev See stake and castVote functions.
+  ///
+  /// @param assessmentIds  Array of assessment indexes for which the votes are cast.
+  /// @param votes          Array of votes corresponding to each assessment id from the
+  ///                       assessmentIds param. Elements that are false represent a deny vote and
+  ///                       those that are true represent an accept vote.
+  /// @param stakeIncrease  When a non-zero value is given, this function will also increase the
+  ///                       stake in the same transaction.
+  function castVotes(
+    uint[] calldata assessmentIds,
+    bool[] calldata votes,
+    uint96 stakeIncrease
+  ) external override {
+    require(
+      assessmentIds.length == votes.length,
+      "The lengths of the assessment ids and votes arrays mismatch"
+    );
+
+    if (stakeIncrease > 0) {
+      stake(stakeIncrease);
+    }
+
+    for (uint i = 0; i < assessmentIds.length; i++) {
+      castVote(assessmentIds[i], votes[i]);
+    }
+  }
+
   /// Casts a vote on an assessment
   ///
   /// @dev Resets the poll's end date on the first vote. The first vote can only be an accept vote.
@@ -257,7 +287,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///
   /// @param assessmentId  The index of the assessment for which the vote is cast
   /// @param isAcceptVote  True to accept, false to deny
-  function castVote(uint assessmentId, bool isAcceptVote) external override {
+  function castVote(uint assessmentId, bool isAcceptVote) public {
     {
       require(!hasAlreadyVotedOn[msg.sender][assessmentId], "Already voted");
       hasAlreadyVotedOn[msg.sender][assessmentId] = true;

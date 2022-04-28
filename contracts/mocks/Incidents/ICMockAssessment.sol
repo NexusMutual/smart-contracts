@@ -28,7 +28,6 @@ contract ICMockAssessment {
   // and correct the outcome of the poll.
   bytes32[] internal fraudMerkleRoots;
 
-  // [todo] add comments
   mapping(uint => IAssessment.Poll) internal fraudSnapshot;
 
   IAssessment.Assessment[] public assessments;

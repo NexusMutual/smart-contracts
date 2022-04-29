@@ -9,7 +9,6 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IStakingPool.sol";
-import "hardhat/console.sol";
 
 contract PooledStaking is IPooledStaking, MasterAware {
   /* Events */
@@ -1400,7 +1399,6 @@ contract PooledStaking is IPooledStaking, MasterAware {
     );
 
     require(stakers[stakerAddress].deposit > 0, "Address has no migratable stake");
-    console.log("Migrating staker %s", stakerAddress);
 
     uint contractsCount = stakers[stakerAddress].contracts.length;
     uint deposit = stakers[stakerAddress].deposit;
@@ -1415,7 +1413,6 @@ contract PooledStaking is IPooledStaking, MasterAware {
       try productsV1.getNewProductId(oldProductId) returns (uint v) {
         productId = v;
       } catch {
-        console.log("oldProductId %s not found in productsV1, likely deprecated", oldProductId);
         continue;
       }
       products[i] = productId;

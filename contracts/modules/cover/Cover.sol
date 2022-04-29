@@ -653,10 +653,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     Product[] calldata newProducts,
     string[] calldata ipfsMetadata
   ) external override onlyAdvisoryBoard {
-    uint initialProuctsCount = _products.length;
+    uint initialProductsCount = _products.length;
     for (uint i = 0; i < newProducts.length; i++) {
       _products.push(newProducts[i]);
-      emit ProductUpserted(initialProuctsCount + i, ipfsMetadata[i]);
+      emit ProductUpserted(initialProductsCount + i, ipfsMetadata[i]);
     }
   }
 

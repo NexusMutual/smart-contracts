@@ -35,6 +35,9 @@ contract PooledStaking is IPooledStaking, MasterAware {
   // pending actions processing
   event PendingActionsProcessed(bool finished);
 
+  // used for logging products not listed in ProductsV1.sol when migrating  to a new pool
+  event ProductNotFound(address oldProductId);
+
   ICover public immutable cover;
   IProductsV1 public immutable productsV1;
   uint public immutable migrationDeadline;
@@ -1413,6 +1416,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
       try productsV1.getNewProductId(oldProductId) returns (uint v) {
         productId = v;
       } catch {
+        emit ProductNotFound(oldProductId);
         continue;
       }
       products[i] = productId;

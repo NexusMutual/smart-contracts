@@ -1447,7 +1447,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
         uint firstActiveGroupId = block.timestamp / GROUP_SIZE;
 
         // Use the groupId provided as a parameter if the user is migrating to v2 himself
-        // Use next id after the first active gorup id for those in the initial migration list
+        // Use next id after the first active group id for those in the initial migration list
         uint groupIdInEffect = stakerAddress == msg.sender ? groupId : firstActiveGroupId + 1;
 
         // Move deposit to v2 pool

@@ -119,6 +119,8 @@ interface ICover {
 
   function productsCount() external view returns (uint);
 
+  function activeCoverAmountCommitted() external view returns (bool);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function migrateCovers(uint[] calldata coverIds, address toNewOwner) external;

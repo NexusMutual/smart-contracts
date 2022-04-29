@@ -78,8 +78,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   // Global active cover amount per asset.
   mapping(uint24 => uint) public totalActiveCoverForAsset;
 
-  bool coverAmountTrackingEnabled;
-  bool activeCoverAmountCommitted;
+  bool public coverAmountTrackingEnabled;
+  bool public activeCoverAmountCommitted;
 
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
   event CoverBought(uint coverId, uint productId, uint segmentId, address buyer);

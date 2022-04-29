@@ -54,6 +54,14 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
     _;
   }
 
+  modifier onlyEmergencyAdmin {
+    require(
+      msg.sender == master.emergencyAdmin(),
+      "Caller is not emergency admin"
+    );
+    _;
+  }
+
   modifier whenPaused {
     require(master.isPause(), "System is not paused");
     _;

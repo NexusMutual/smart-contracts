@@ -8,6 +8,8 @@ interface INXMMaster {
 
   function owner() external view returns (address);
 
+  function emergencyAdmin() external view returns (address);
+
   function masterInitialized() external view returns (bool);
 
   function isInternal(address _add) external view returns (bool);

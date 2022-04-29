@@ -1462,7 +1462,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
       stakingPool.safeTransferFrom(address(this), stakerAddress, stakePositionNFTId);
     }
 
-    // Finally set the v1 deosit to 0
+    // Finally set the v1 deposit to 0
     stakers[stakerAddress].deposit = 0;
 
   }

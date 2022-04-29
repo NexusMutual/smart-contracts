@@ -956,7 +956,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
     }
   }
 
-  function getV1ProceForProduct(uint id) pure internal returns (uint) {
+  function getV1PriceForProduct(uint id) pure internal returns (uint) {
     // {V1_PRICES_HELPER_BEGIN}
 
     // bZx v1
@@ -1427,7 +1427,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
       if (stakes[i] == 0) {
         continue;
       }
-      uint price = getV1ProceForProduct(products[i]);
+      uint price = getV1PriceForProduct(products[i]);
       params[migrateAtIndex] = ProductInitializationParams(
         products[i], // productId
         uint8(min(stakes[i] * 1e18 / deposit / 1e16, 100)), // weight (0-100)

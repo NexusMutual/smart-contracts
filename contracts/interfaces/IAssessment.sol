@@ -122,6 +122,12 @@ interface IAssessment {
 
   function castVote(uint assessmentId, bool isAcceptVote) external;
 
+  function castVotes(
+    uint[] calldata assessmentIds,
+    bool[] calldata votes,
+    uint96 stakeIncrease
+  ) external;
+
   function submitFraud(bytes32 root) external;
 
   function processFraud(

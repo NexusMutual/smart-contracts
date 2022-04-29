@@ -116,7 +116,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
   ///
   /// @dev This view is meant to be used in user interfaces to get incidents in a format suitable
   /// for displaying all relevant information in as few calls as possible. It can be used to
-  /// paginate incidents by providing the following paramterers:
+  /// paginate incidents by providing the following parameters:
   ///
   /// @param ids   Array of Incident ids which are returned as IncidentDisplay
   function getIncidentsToDisplay (uint104[] calldata ids)

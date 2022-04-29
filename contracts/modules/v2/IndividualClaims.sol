@@ -198,7 +198,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   ///
   /// @dev This view is meant to be used in user interfaces to get claims in a format suitable for
   /// displaying all relevant information in as few calls as possible. It can be used to paginate
-  /// claims by providing the following paramterers:
+  /// claims by providing the following parameters:
   ///
   /// @param ids   Array of Claim ids which are returned as ClaimDisplay
   function getClaimsToDisplay (uint104[] calldata ids)

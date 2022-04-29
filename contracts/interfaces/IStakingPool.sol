@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 
 struct WithdrawParams {
   uint positionId;
-  uint[] groupIds;
+  uint groupId;
   uint flags;
 }
 
@@ -42,10 +42,21 @@ interface IStakingPool is IERC721 {
   struct StakeGroup {
     uint stakeShares;
     uint rewardsShares;
-    uint groupSharesSupply;
-    // TODO: consider extracting the following fields to a separate struct
-    uint accRewardPerStakeShareAtExpiration;
-    uint expiredStakeAmount;
+    uint lastAccNxmPerRewardShare;
+    uint lastAccNxmUpdate;
+    // todo: consider moving these three into a separate struct
+    uint accNxmPerRewardShareAtExpiry;
+    uint stakeAmountAtExpiry;
+    uint stakeShareSupplyAtExpiry;
+  }
+
+  struct PositionData {
+    uint stakeShares;
+    uint rewardsShares;
+    uint lastAccNxmPerRewardShare;
+    uint lastAccNxmUpdate;
+    uint rewardEarned;
+    uint rewardWithdrawn;
   }
 
   struct Product {
@@ -91,6 +102,10 @@ interface IStakingPool is IERC721 {
   function deposit(uint amount, uint groupId, uint _positionId) external returns (uint positionId);
 
   function withdraw(WithdrawParams[] memory params) external;
+
+  function addProducts(ProductParams[] memory params) external;
+
+  function removeProducts(uint[] memory productIds) external;
 
   function setProductDetails(ProductParams[] memory params) external;
 

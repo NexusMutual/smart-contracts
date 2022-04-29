@@ -87,9 +87,6 @@ contract Cover is ICover, MasterAwareV2 {
   mapping(uint24 => mapping(uint => uint96)) public totalActiveCoverInAssetExpiryBucket;
   mapping(uint24 => uint32) public lastGlobalBuckets;
 
-
-  event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
-
   /* ========== CONSTRUCTOR ========== */
 
   constructor(
@@ -525,6 +522,13 @@ contract Cover is ICover, MasterAwareV2 {
   }
 
   /* ========== Staking Pool creation ========== */
+
+  function createStakingPool(
+    address manager,
+    ProductInitializationParams[] calldata params
+  ) external returns (address stakingPoolAddress) {
+    return stakingPoolCreator.createStakingPool(manager, stakingPoolCounter++, params);
+  }
 
   function stakingPool(uint index) public view returns (IStakingPool) {
     return stakingPoolCreator.stakingPool(index);

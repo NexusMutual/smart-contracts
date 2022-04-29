@@ -17,7 +17,6 @@ contract StakingPoolCreator is IStakingPoolCreator, IStakingPoolBeacon {
   address public immutable stakingPoolImplementation;
 
   address coverAddress;
-  uint64 public stakingPoolCounter;
 
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
 
@@ -39,15 +38,16 @@ contract StakingPoolCreator is IStakingPoolCreator, IStakingPoolBeacon {
 
   function createStakingPool(
     address manager,
+    uint poolId,
     ProductInitializationParams[] calldata params
   ) external returns (address stakingPoolAddress) {
 
+    require(msg.sender == coverAddress, "StakingPoolCreator: Only the cover model can create staking pools");
+
     stakingPoolAddress = address(
-      new MinimalBeaconProxy{ salt: bytes32(uint(stakingPoolCounter)) }(coverAddress)
+      new MinimalBeaconProxy{ salt: bytes32(poolId) }(coverAddress)
     );
     IStakingPool(stakingPoolAddress).initialize(manager, params);
-
-    stakingPoolCounter++;
 
     emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
   }

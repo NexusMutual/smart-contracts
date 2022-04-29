@@ -226,6 +226,8 @@ contract StakingPool is IStakingPool, ERC721 {
     // require groupId not to be expired
     require(groupId >= firstActiveGroupId, "StakingPool: Requested group has expired");
 
+    // [todo] Prevent locking on groups that are too far into the future
+
     if (_positionId == 0) {
       positionId = ++totalSupply;
       _mint(msg.sender, positionId);

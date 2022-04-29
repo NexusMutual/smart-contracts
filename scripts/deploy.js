@@ -25,7 +25,9 @@ const Assessment = artifacts.require('Assessment');
 const Pool = artifacts.require('Pool');
 const QuotationData = artifacts.require('TestnetQuotationData');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-const SwapOperator = artifacts.require('SwapOperator');
+const CowSwapOperator = artifacts.require('CowSwapOperator');
+const CSMockSettlement = artifacts.require('CSMockSettlement');
+const CSMockVaultRelayer = artifacts.require('CSMockVaultRelayer');
 const TwapOracle = artifacts.require('TwapOracle');
 const DisposableMCR = artifacts.require('DisposableMCR');
 const Cover = artifacts.require('Cover');
@@ -260,12 +262,19 @@ async function main () {
 
   // [todo] Add ipfs hashes
   await cover.addProducts(addProductsParams, Array(products.length).fill('')); // non-proxy contracts and libraries
-  console.log('Deploying TwapOracle, SwapOperator, PriceFeedOracle');
+  console.log('Deploying TwapOracle, CowSwapOperator, PriceFeedOracle');
   const uniswapV2FactoryAddress = uniswapV2Factory
     ? uniswapV2Factory.address
     : '0x0000000000000000000000000000000000000000';
   const twapOracle = await TwapOracle.new(uniswapV2FactoryAddress);
-  const swapOperator = await SwapOperator.new(master.address, twapOracle.address, owner, stETH.address);
+  const cowVaultRelayer = await CSMockVaultRelayer.new();
+  const cowSettlement = await CSMockSettlement.new(cowVaultRelayer.address);
+  const swapOperator = await CowSwapOperator.new(
+    cowSettlement.address,
+    owner,
+    master.address,
+    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+  );
 
   verifier.add(twapOracle, { constructorArgs: [uniswapV2FactoryAddress] });
   verifier.add(swapOperator, { constructorArgs: [master.address, twapOracle.address, owner, stETH.address] });

@@ -128,7 +128,7 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   modifier onlyManager {
-    require(msg.sender == manager, "StakingPool: Only pool manager can call this function");
+    require(_isApprovedOrOwner(msg.sender, 0), "StakingPool: Only pool manager can call this function");
     _;
   }
 
@@ -146,7 +146,8 @@ contract StakingPool is IStakingPool, ERC721 {
     address _manager,
     ProductInitializationParams[] calldata params
   ) external onlyCoverContract {
-    manager = _manager;
+    // create ownership position
+    _mint(_manager, 0);
     // TODO: initialize products
     params;
   }

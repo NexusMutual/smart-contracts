@@ -24,7 +24,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
 
 
-contract Cover is ICover, MasterAwareV2 {
+contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   using SafeERC20 for IERC20;
 
   /* === CONSTANTS ==== */

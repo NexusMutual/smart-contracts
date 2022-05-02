@@ -242,9 +242,12 @@ contract StakingPool is IStakingPool, ERC721 {
 
     updateGroups();
 
-    // require groupId not to be expired
-    require(groupId >= firstActiveGroupId, "StakingPool: Requested group has expired");
-    require(amount > 0, "StakingPool: Insufficient deposit amount");
+    {
+      uint maxGroup = firstActiveGroupId + MAX_GROUPS;
+      require(groupId <= maxGroup, "StakingPool: Requested group is not active");
+      require(groupId >= firstActiveGroupId, "StakingPool: Requested group has expired");
+      require(amount > 0, "StakingPool: Insufficient deposit amount");
+    }
 
     // [todo] Prevent locking on groups that are too far in the future
 

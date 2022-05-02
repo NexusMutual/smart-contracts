@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/proxy/beacon/UpgradeableBeacon.sol";
 
-import "./MigrateCoverLib.sol";
+import "./CoverUtilsLib.sol";
 import "./MinimalBeaconProxy.sol";
 
 import "../../utils/SafeUintCast.sol";
@@ -22,7 +22,6 @@ import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
-import "../../interfaces/IStakingPoolCreator.sol";
 
 
 contract Cover is ICover, MasterAwareV2 {
@@ -51,8 +50,12 @@ contract Cover is ICover, MasterAwareV2 {
 
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
-  IStakingPoolCreator internal immutable stakingPoolCreator;
   address public immutable override coverNFT;
+
+  /* Staking pool creation */
+  bytes32 public immutable stakingPoolProxyCodeHash;
+  address public immutable stakingPoolImplementation;
+
 
   /* ========== STATE VARIABLES ========== */
 
@@ -93,14 +96,16 @@ contract Cover is ICover, MasterAwareV2 {
     IQuotationData _quotationData,
     IProductsV1 _productsV1,
     address _coverNFT,
-    address _stakingPoolCreator
+    address _stakingPoolImplementation
   ) {
 
     // initialize immutable fields only
     quotationData = _quotationData;
     productsV1 = _productsV1;
-    stakingPoolCreator = IStakingPoolCreator(_stakingPoolCreator);
     coverNFT = _coverNFT;
+
+    stakingPoolProxyCodeHash = CoverUtilsLib.calculateProxyCodeHash();
+    stakingPoolImplementation = _stakingPoolImplementation;
   }
 
   function initialize() public {
@@ -139,8 +144,8 @@ contract Cover is ICover, MasterAwareV2 {
     address toNewOwner
   ) internal {
 
-    MigrateCoverLib.migrateCoverFromOwner(
-      MigrateCoverLib.MigrateParams(
+    CoverUtilsLib.migrateCoverFromOwner(
+      CoverUtilsLib.MigrateParams(
         coverId,
         fromOwner,
         toNewOwner,
@@ -527,11 +532,11 @@ contract Cover is ICover, MasterAwareV2 {
     address manager,
     ProductInitializationParams[] calldata params
   ) external returns (address stakingPoolAddress) {
-    return stakingPoolCreator.createStakingPool(manager, stakingPoolCounter++, params);
+    return CoverUtilsLib.createStakingPool(manager, stakingPoolCounter++, stakingPoolImplementation, params);
   }
 
   function stakingPool(uint index) public view returns (IStakingPool) {
-    return stakingPoolCreator.stakingPool(index);
+    return CoverUtilsLib.stakingPool(index, stakingPoolProxyCodeHash);
   }
 
   function coverData(uint coverId) external override view returns (CoverData memory) {

@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.9;
 
+import "./MinimalBeaconProxy.sol";
+
 import "../../utils/SafeUintCast.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ICover.sol";
@@ -9,7 +11,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/ICoverNFT.sol";
 
-library MigrateCoverLib {
+library CoverUtilsLib {
 
 
   struct MigrateParams {
@@ -21,6 +23,8 @@ library MigrateCoverLib {
     ITokenController tokenController;
     IProductsV1 productsV1;
   }
+
+  event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
 
   function migrateCoverFromOwner(
     MigrateParams memory params,
@@ -90,5 +94,39 @@ library MigrateCoverLib {
     );
 
     params.coverNFT.safeMint(params.toNewOwner, newCoverId);
+  }
+
+
+  function calculateProxyCodeHash() external view returns (bytes32) {
+
+    return keccak256(
+      abi.encodePacked(
+      type(MinimalBeaconProxy).creationCode,
+      abi.encode(address(this))
+    ));
+  }
+
+  function createStakingPool(
+    address manager,
+    uint poolId,
+    address stakingPoolImplementation,
+    ProductInitializationParams[] calldata params
+  ) external returns (address stakingPoolAddress) {
+
+    stakingPoolAddress = address(
+      new MinimalBeaconProxy{ salt: bytes32(poolId) }(address(this))
+    );
+    IStakingPool(stakingPoolAddress).initialize(manager, params);
+
+    emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
+  }
+
+  function stakingPool(uint index, bytes32 stakingPoolProxyCodeHash) public view returns (IStakingPool) {
+
+    bytes32 hash = keccak256(
+      abi.encodePacked(bytes1(0xff), address(this), index, stakingPoolProxyCodeHash)
+    );
+    // cast last 20 bytes of hash to address
+    return IStakingPool(address(uint160(uint(hash))));
   }
 }

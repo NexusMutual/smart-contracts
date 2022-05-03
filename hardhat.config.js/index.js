@@ -10,7 +10,6 @@ require('hardhat-contract-sizer');
 require('./tasks');
 
 module.exports = {
-
   contractSizer: {
     alphaSort: true,
     runOnCompile: false,
@@ -31,5 +30,4 @@ module.exports = {
   networks: require('./networks'),
 
   solidity: require('./solidity'),
-
 };

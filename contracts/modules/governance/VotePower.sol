@@ -28,7 +28,7 @@ contract VotePower {
 
   function balanceOf(address member) public view returns (uint) {
 
-    ITokenController tokenController = ITokenController(master.dAppLocker());
+    ITokenController tokenController = ITokenController(master.getLatestAddress("TC"));
     IMemberRoles memberRoles = IMemberRoles(master.getLatestAddress("MR"));
     IGovernance governance = IGovernance(master.getLatestAddress("GV"));
 

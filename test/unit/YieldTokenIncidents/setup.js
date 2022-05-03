@@ -73,9 +73,9 @@ async function setup () {
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
-  await cover.addProductType('', '0', '30', '5000');
-  await cover.addProductType('', '0', '90', '5000');
-  await cover.addProductType('', '1', '30', '5000');
+  await cover.addProductType('0', '30', '5000');
+  await cover.addProductType('0', '90', '5000');
+  await cover.addProductType('1', '30', '5000');
 
   await cover.addProduct(['0', '0x0000000000000000000000000000000000000001', '1', '0', '0']);
   await cover.addProduct(['1', '0x0000000000000000000000000000000000000002', '1', '0', '0']);

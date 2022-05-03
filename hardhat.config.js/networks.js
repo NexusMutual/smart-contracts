@@ -8,8 +8,8 @@ const networks = {
     // TODO: fix tests with gasPrice = 0 and remove the hardfork param
     hardfork: 'berlin',
     allowUnlimitedContractSize: true,
-    blockGasLimit: 12e6,
-    gas: 12e6,
+    blockGasLimit: 15e6,
+    gas: 15e6,
   },
   localhost: {
     blockGasLimit: 21e6,

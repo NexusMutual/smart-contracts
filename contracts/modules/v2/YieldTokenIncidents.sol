@@ -116,7 +116,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
   ///
   /// @dev This view is meant to be used in user interfaces to get incidents in a format suitable
   /// for displaying all relevant information in as few calls as possible. It can be used to
-  /// paginate incidents by providing the following paramterers:
+  /// paginate incidents by providing the following parameters:
   ///
   /// @param ids   Array of Incident ids which are returned as IncidentDisplay
   function getIncidentsToDisplay (uint104[] calldata ids)
@@ -262,7 +262,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       "Cover ended before the incident"
     );
 
-    require(coverSegment.start <= incident.date, "Cover started after the incident");
+    require(coverSegment.start < incident.date, "Cover started after the incident");
 
     require(coverData.productId == incident.productId, "Product id mismatch");
 
@@ -271,9 +271,9 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     {
       uint deductiblePriceBefore = uint(incident.priceBefore) *
         uint(config.payoutDeductibleRatio) / INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
-      (,uint payoutAssetDecimals,) = IPool(
+      (,uint payoutAssetDecimals) = IPool(
         internalContracts[uint(IMasterAwareV2.ID.P1)]
-      ).assets(coverData.payoutAsset);
+      ).coverAssets(coverData.payoutAsset);
       payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** uint(payoutAssetDecimals));
     }
 

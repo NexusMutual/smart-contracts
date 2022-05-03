@@ -103,9 +103,10 @@ contract StakingPool is IStakingPool, ERC721 {
   uint constant GROUP_SIZE = 91 days;
   uint constant MAX_GROUPS = 9; // 8 whole quarters + 1 partial quarter
 
-  uint constant REWARDS_MULTIPLIER = 125;
-  uint constant REWARDS_DENOMINATOR = 100;
+  uint constant REWARDS_SHARES_RATIO = 125;
+  uint constant REWARDS_SHARES_DENOMINATOR = 100;
   uint constant WEIGHT_DENOMINATOR = 100;
+  uint constant REWARDS_DENOMINATOR = 100;
 
   uint public constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
   uint public constant PRODUCT_WEIGHT_DENOMINATOR = 10_000;
@@ -146,14 +147,18 @@ contract StakingPool is IStakingPool, ERC721 {
   ) external onlyCoverContract {
     manager = _manager;
     // TODO: initialize products
+    params;
   }
 
   function operatorTransfer(
     address from,
     address to,
-    uint256 tokenId
+    uint[] calldata tokenIds
   ) external onlyCoverContract {
-    _safeTransfer(from, to, tokenId, "");
+    uint length = tokenIds.length;
+    for (uint i = 0; i < length; ++i) {
+      _safeTransfer(from, to, tokenIds[i], "");
+    }
   }
 
   function updateGroups() public {
@@ -233,7 +238,9 @@ contract StakingPool is IStakingPool, ERC721 {
     updateGroups();
 
     // require groupId not to be expired
-    require(groupId >= firstActiveGroupId);
+    require(groupId >= firstActiveGroupId, "StakingPool: Requested group has expired");
+
+    // [todo] Prevent locking on groups that are too far into the future
 
     if (_positionId == 0) {
       positionId = ++totalSupply;
@@ -243,6 +250,7 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     // transfer nxm from staker
+    // TODO: use TokenController.operatorTransfer instead
     nxm.transferFrom(msg.sender, address(this), amount);
 
     StakeGroup memory group = stakeGroups[groupId];
@@ -252,16 +260,15 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _rewardsSharesSupply = rewardsSharesSupply;
 
     uint newStakeShares = _stakeSharesSupply == 0
-    ? amount
-    : _stakeSharesSupply * amount / _activeStake;
+      ? amount
+      : _stakeSharesSupply * amount / _activeStake;
 
-    uint newRewardsShares = newStakeShares;
-
+    uint newRewardsShares;
     {
       uint lockDuration = (groupId + 1) * GROUP_SIZE - block.timestamp;
       uint maxLockDuration = GROUP_SIZE * 8;
-      newRewardsShares = newRewardsShares * REWARDS_MULTIPLIER / REWARDS_DENOMINATOR;
-      newRewardsShares = newRewardsShares * lockDuration / maxLockDuration;
+      newRewardsShares =
+        newStakeShares * REWARDS_SHARES_RATIO * lockDuration / REWARDS_SHARES_DENOMINATOR / maxLockDuration;
     }
 
     uint newGroupShares;
@@ -310,29 +317,31 @@ contract StakingPool is IStakingPool, ERC721 {
   function allocateStake(
     uint productId,
     uint period,
+    uint gracePeriod,
     uint productStakeAmount,
     uint rewardRatio
   ) external onlyCoverContract returns (uint newAllocation, uint premium) {
 
     updateGroups();
 
-    uint allocatedStake = products[productId].allocatedStake;
+    Product memory product = products[productId];
+    uint allocatedProductStake = product.allocatedStake;
     uint currentBucket = block.timestamp / BUCKET_SIZE;
 
     {
-      uint lastBucket = products[productId].lastBucket;
+      uint lastBucket = product.lastBucket;
 
       // process expirations
       while (lastBucket < currentBucket) {
         ++lastBucket;
-        allocatedStake -= productBuckets[productId][lastBucket].allocationCut;
+        allocatedProductStake -= productBuckets[productId][lastBucket].allocationCut;
       }
     }
 
-    uint availableStake;
+    uint freeProductStake;
     {
       // group expiration must exceed the cover period
-      uint _firstAvailableGroupId = (block.timestamp + period) / GROUP_SIZE;
+      uint _firstAvailableGroupId = (block.timestamp + period + gracePeriod) / GROUP_SIZE;
       uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;
 
       // start with the entire supply and subtract unavailable groups
@@ -344,52 +353,67 @@ contract StakingPool is IStakingPool, ERC721 {
       }
 
       // total stake available without applying product weight
-      availableStake = activeStake * availableShares / _stakeSharesSupply;
-      // total stake available for this product
-      availableStake = availableStake * products[productId].weight / WEIGHT_DENOMINATOR;
+      freeProductStake =
+        activeStake * availableShares * product.weight / _stakeSharesSupply / WEIGHT_DENOMINATOR;
     }
 
-    // could happen if is 100% in-use or if product weight is changed
-    if (allocatedStake >= availableStake) {
+    // could happen if is 100% in-use or if the product weight was changed
+    if (allocatedProductStake >= freeProductStake) {
       // store expirations
-      products[productId].allocatedStake = allocatedStake;
+      products[productId].allocatedStake = allocatedProductStake;
       products[productId].lastBucket = currentBucket;
       return (0, 0);
     }
 
-    uint usableStake = availableStake - allocatedStake;
-    newAllocation = min(productStakeAmount, usableStake);
+    {
+      uint usableStake = freeProductStake - allocatedProductStake;
+      newAllocation = min(productStakeAmount, usableStake);
 
-    premium = calculatePremium(
-      allocatedStake,
-      usableStake,
-      newAllocation,
-      period
-    );
+      premium = calculatePremium(
+        productId,
+        allocatedProductStake,
+        usableStake,
+        newAllocation,
+        period
+      );
+    }
 
-    products[productId].allocatedStake = allocatedStake + newAllocation;
+    // 1 SSTORE
+    products[productId].allocatedStake = allocatedProductStake + newAllocation;
     products[productId].lastBucket = currentBucket;
 
-    // divCeil = fn(a, b) => (a + b - 1) / b
-    uint expireAtBucket = (block.timestamp + period + BUCKET_SIZE - 1) / BUCKET_SIZE;
-    productBuckets[productId][expireAtBucket].allocationCut += newAllocation;
+    {
+      require(rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
 
-    // TODO: this is the other rewards denominator, we need a different name for the shares one
-    uint reward = premium * rewardRatio / REWARDS_DENOMINATOR;
-    reward;
-    // TODO: calculate and update the reward per second
+      // divCeil = fn(a, b) => (a + b - 1) / b
+      uint expireAtBucket = (block.timestamp + period + BUCKET_SIZE - 1) / BUCKET_SIZE;
+      uint _rewardPerSecond =
+        premium * rewardRatio / REWARDS_DENOMINATOR
+        / (expireAtBucket * BUCKET_SIZE - block.timestamp);
+
+      // 2 SLOAD + 2 SSTORE
+      productBuckets[productId][expireAtBucket].allocationCut += newAllocation;
+      poolBuckets[expireAtBucket].rewardPerSecondCut += _rewardPerSecond;
+    }
   }
 
   function calculatePremium(
+    uint productId,
     uint allocatedStake,
     uint usableStake,
     uint newAllocation,
     uint period
   ) public returns (uint) {
+
+    // silence compiler warnings
     allocatedStake;
     usableStake;
     newAllocation;
     period;
+    block.timestamp;
+    uint nextPrice = 0;
+    products[productId].lastPrice = nextPrice;
+
     return 0;
   }
 
@@ -401,6 +425,13 @@ contract StakingPool is IStakingPool, ERC721 {
     uint premium
   ) external onlyCoverContract {
 
+    // silence compiler warnings
+    productId;
+    start;
+    period;
+    amount;
+    premium;
+    activeStake = activeStake;
   }
 
   // O(1)
@@ -422,12 +453,16 @@ contract StakingPool is IStakingPool, ERC721 {
   /* pool management */
 
   function setProductDetails(ProductParams[] memory params) external onlyManager {
-
+    // silence compiler warnings
+    params;
+    activeStake = activeStake;
+    // [todo] Implement
   }
 
   /* views */
 
   function getActiveStake() external view returns (uint) {
+    block.timestamp; // prevents warning about function being pure
     return 0;
   }
 
@@ -438,12 +473,16 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   function getAllocatedProductStake(uint productId) public view returns (uint) {
+    productId;
     return 0;
   }
 
   function getFreeProductStake(
     uint productId, uint coverExpirationDate
   ) external view returns (uint) {
+    productId;
+    coverExpirationDate;
+    block.timestamp;
     return 0;
   }
 
@@ -501,4 +540,3 @@ contract StakingPool is IStakingPool, ERC721 {
     targetPrice = targetPrices[productId];
   }
 }
-

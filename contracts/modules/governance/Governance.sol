@@ -644,7 +644,7 @@ contract Governance is IGovernance, LegacyMasterAware {
   * @dev Updates all dependency addresses to latest ones from Master
   */
   function changeDependentContractAddress() public {
-    tokenInstance = ITokenController(ms.dAppLocker());
+    tokenInstance = ITokenController(ms.getLatestAddress("TC"));
     memberRole = IMemberRoles(ms.getLatestAddress("MR"));
     proposalCategory = IProposalCategory(ms.getLatestAddress("PC"));
   }
@@ -1120,6 +1120,7 @@ contract Governance is IGovernance, LegacyMasterAware {
     (,, _majorityVote,,,,) = proposalCategory.category(category);
     if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100)
     .div(memberRole.numberOfMembers(uint(_roleId))) >= _majorityVote) {
+
       _callIfMajReached(_proposalId, uint(ProposalStatus.Accepted), category, 1, _roleId);
     } else {
       _updateProposalStatus(_proposalId, uint(ProposalStatus.Denied));

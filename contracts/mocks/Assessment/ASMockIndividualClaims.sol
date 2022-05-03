@@ -8,7 +8,7 @@ import "../../interfaces/IAssessment.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 
-contract ASMockClaims is MasterAwareV2 {
+contract ASMockIndividualClaims is MasterAwareV2 {
 
   INXMToken public token;
   Configuration public config;

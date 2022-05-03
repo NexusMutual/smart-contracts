@@ -15,7 +15,7 @@ describe('setSwapDetailsLastSwapTime', function () {
 
     const tokenAmount = ether('100000');
     const otherToken = await ERC20Mock.new();
-    await pool.addAsset(otherToken.address, 18, '0', '0', 100, {
+    await pool.addAsset(otherToken.address, 18, '0', '0', 100, true, {
       from: governance,
     });
     await otherToken.mint(pool.address, tokenAmount);
@@ -33,7 +33,7 @@ describe('setSwapDetailsLastSwapTime', function () {
 
     const tokenAmount = ether('100000');
     const otherToken = await ERC20Mock.new();
-    await pool.addAsset(otherToken.address, 18, '0', '0', 100, {
+    await pool.addAsset(otherToken.address, 18, '0', '0', 100, true, {
       from: governance,
     });
     await otherToken.mint(pool.address, tokenAmount);

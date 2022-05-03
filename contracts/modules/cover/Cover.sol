@@ -36,6 +36,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
   uint public constant INTERIM_PRICE_DENOMINATOR = 1e18;
 
+  uint public constant BURN_DENOMINATOR = 1e18;
+
   uint public constant MAX_COVER_PERIOD = 365 days;
   uint public constant MIN_COVER_PERIOD = 30 days;
 
@@ -80,8 +82,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   bool public coverAmountTrackingEnabled;
   bool public activeCoverAmountCommitted;
-
-  event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
+  
   event CoverBought(uint coverId, uint productId, uint segmentId, address buyer);
   event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
   event CoverExpired(uint coverId, uint segmentId);
@@ -229,7 +230,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     IPool _pool = pool();
     uint tokenPriceInPaymentAsset = _pool.getTokenPrice(params.paymentAsset);
-    (, uint8 paymentAssetDecimals, ) = _pool.assets(params.paymentAsset);
+    (, uint8 paymentAssetDecimals) = _pool.coverAssets(params.paymentAsset);
 
     uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
@@ -320,14 +321,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   ) internal returns (uint coveredAmountInNXM, uint premiumInNXM) {
 
     Product memory product = _products[params.productId];
+    uint gracePeriod = _productTypes[product.productType].gracePeriodInDays * 1 days;
 
     // TODO: correctly calculate the capacity
     uint allocation = amount * globalCapacityRatio;
-    revert("capacity calculation: not implemented");
+
+    if (true) {
+      // wrapped in if(true) to avoid the compiler warning about unreachable code
+      revert("capacity calculation: not implemented");
+    }
 
     return _stakingPool.allocateStake(
       params.productId,
       params.period,
+      gracePeriod,
       allocation,
       globalRewardsRatio
     );
@@ -410,7 +417,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     }
 
     uint tokenPriceInPaymentAsset = _pool.getTokenPrice(buyCoverParams.paymentAsset);
-    (, uint8 paymentAssetDecimals, ) = _pool.assets(buyCoverParams.paymentAsset);
+    (, uint8 paymentAssetDecimals) = _pool.coverAssets(buyCoverParams.paymentAsset);
 
     uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
 
@@ -441,15 +448,30 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   // TODO: implement properly. we need the staking interface for burning.
   function performPayoutBurn(
     uint coverId,
-    uint /*segmentId*/,
-    uint amount
+    uint segmentId,
+    uint burnAmount
   ) external onlyInternal override returns (address /* owner */) {
 
     ICoverNFT coverNFTContract = ICoverNFT(coverNFT);
     address owner = coverNFTContract.ownerOf(coverId);
 
     CoverData storage cover = _coverData[coverId];
-    cover.amountPaidOut += SafeUintCast.toUint96(amount);
+    cover.amountPaidOut += SafeUintCast.toUint96(burnAmount);
+
+    CoverSegment memory segment = coverSegments(coverId, segmentId);
+    PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];
+
+    uint allocationCount = allocations.length;
+    for (uint i = 0; i < allocationCount; i++) {
+
+      PoolAllocation storage allocation = allocations[i];
+      IStakingPool _stakingPool = stakingPool(allocation.poolId);
+
+      uint nxmBurned = allocation.coverAmountInNXM * burnAmount / segment.amount;
+      _stakingPool.burnStake(cover.productId, segment.start, segment.period, nxmBurned);
+
+      allocation.coverAmountInNXM -= SafeUintCast.toUint96(nxmBurned);
+    }
 
     return owner;
   }
@@ -503,9 +525,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     (
     address payoutAsset,
-    /*uint8 decimals*/,
-    /*bool deprecated*/
-    ) = _pool.assets(paymentAsset);
+    /*uint8 decimals*/
+    ) = _pool.coverAssets(paymentAsset);
 
     IERC20 token = IERC20(payoutAsset);
     token.safeTransferFrom(msg.sender, address(_pool), premium);
@@ -562,7 +583,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function coverSegments(
     uint coverId,
     uint segmentId
-  ) external override view returns (CoverSegment memory) {
+  ) public override view returns (CoverSegment memory) {
     CoverSegment memory segment = _coverSegments[coverId][segmentId];
     uint96 amountPaidOut = _coverData[coverId].amountPaidOut;
     segment.amount = segment.amount >= amountPaidOut
@@ -642,15 +663,34 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     _products[productId].capacityReductionRatio = reduction;
   }
 
-  function addProducts(Product[] calldata newProducts) external override onlyAdvisoryBoard {
+  function addProducts(
+    Product[] calldata newProducts,
+    string[] calldata ipfsMetadata
+  ) external override onlyAdvisoryBoard {
+    uint initialProductsCount = _products.length;
     for (uint i = 0; i < newProducts.length; i++) {
       _products.push(newProducts[i]);
+      emit ProductUpserted(initialProductsCount + i, ipfsMetadata[i]);
     }
   }
 
-  function addProductTypes(ProductType[] calldata newProductTypes) external override onlyAdvisoryBoard {
+  function editProductsIpfsMetadata(
+    uint[] calldata productIds,
+    string[] calldata ipfsMetadata
+  ) external override onlyAdvisoryBoard {
+    for (uint i = 0; i < productIds.length; i++) {
+      emit ProductUpserted(productIds[i], ipfsMetadata[i]);
+    }
+  }
+
+  function addProductTypes(
+    ProductType[] calldata newProductTypes,
+    string[] calldata ipfsMetadata
+  ) external override onlyAdvisoryBoard {
+    uint initialProuctTypesCount = _productTypes.length;
     for (uint i = 0; i < newProductTypes.length; i++) {
       _productTypes.push(newProductTypes[i]);
+      emit ProductTypeUpserted(initialProuctTypesCount + i, ipfsMetadata[i]);
     }
   }
 

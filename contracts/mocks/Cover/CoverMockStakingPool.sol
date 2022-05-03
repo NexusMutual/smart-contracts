@@ -2,34 +2,27 @@
 
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts-v4/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
 
-import "../../interfaces/IStakingPool.sol";
+import "../../modules/v2/StakingPool.sol";
 
-abstract contract CoverMockStakingPool is IStakingPool, ERC721 {
+contract CoverMockStakingPool is StakingPool {
 
   /* immutables */
-  ERC20 public immutable nxm;
-  address public immutable coverContract;
   address public immutable memberRoles;
   uint public poolId;
 
   mapping (uint => uint) public usedCapacity;
   mapping (uint => uint) public stakedAmount;
-  mapping (uint => uint) public targetPrices;
 
   mapping (uint => uint) public mockPrices;
-
-  address public /*override*/ manager;
 
   uint public constant MAX_PRICE_RATIO = 1e20;
 
   constructor (address _nxm, address _coverContract, address _memberRoles)
-  ERC721("Nexus Mutual Staking Pool", "NMSPT") {
-    nxm = ERC20(_nxm);
-    coverContract = _coverContract;
+  StakingPool("Nexus Mutual Staking Pool", "NMSPT", IERC20(_nxm), _coverContract) {
     memberRoles = _memberRoles;
   }
 
@@ -54,6 +47,9 @@ abstract contract CoverMockStakingPool is IStakingPool, ERC721 {
     uint rewardRatio,
     uint initialPriceRatio
   ) external /*override*/ returns (uint coveredAmountInNXM, uint premiumInNXM) {
+    period;
+    rewardRatio;
+    initialPriceRatio;
     usedCapacity[productId] += amountInNXM;
     return (amountInNXM, calculatePremium(mockPrices[productId], amountInNXM, period));
   }

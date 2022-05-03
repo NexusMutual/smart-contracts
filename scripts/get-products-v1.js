@@ -17,7 +17,7 @@ contract ProductsV1 is IProductsV1 {
 `;
 
 const main = async () => {
-  const products = JSON.parse(fs.readFileSync('./scripts/contracts.json'));
+  const products = JSON.parse(fs.readFileSync('./scripts/v2-migration-input/contracts.json'));
   const deprecatedV1Products = Object.keys(products)
     .filter(k => products[k].deprecated)
     .map((k, i) => ({ ...products[k], productId: i, legacyProductId: k }));
@@ -36,9 +36,16 @@ const main = async () => {
     ),
   );
   fs.writeFileSync(
-    outpputDir + 'migratable.json',
+    outpputDir + 'migratableProducts.json',
     JSON.stringify(
-      migratable.map(({ name, type, supportedChains, logo }) => ({ name, type, supportedChains, logo })),
+      migratable.map(({ name, type, supportedChains, logo, underlyingToken, coveredToken }) => ({
+        name,
+        type,
+        supportedChains,
+        logo,
+        underlyingToken,
+        coveredToken,
+      })),
       null,
       2,
     ),
@@ -81,7 +88,11 @@ const main = async () => {
   fs.writeFileSync('./contracts/modules/cover/ProductsV1.sol', ProductsV1, 'utf8');
 };
 
-main().catch(e => {
-  console.log('Unhandled error encountered: ', e.stack);
-  process.exit(1);
-});
+if (!module.parent) {
+  main().catch(e => {
+    console.log('Unhandled error encountered: ', e.stack);
+    process.exit(1);
+  });
+}
+
+module.exports = { main };

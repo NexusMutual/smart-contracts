@@ -19,14 +19,21 @@ interface IPool {
   struct Asset {
     address assetAddress;
     uint8 decimals;
-    bool deprecated;
   }
 
-  function assets(uint index) external view returns (
+  function investmentAssets(uint index) external view returns (
     address assetAddress,
-    uint8 decimals,
-    bool deprecated
+    uint8 decimals
   );
+
+  function coverAssets(uint index) external view returns (
+    address assetAddress,
+    uint8 decimals
+  );
+
+  function getInvestmentAssets() external view returns (Asset[] memory);
+
+  function getCoverAssets() external view returns (Asset[] memory);
 
   function buyNXM(uint minTokensOut) external payable;
 
@@ -39,12 +46,6 @@ interface IPool {
   function transferAssetToSwapOperator(address asset, uint amount) external;
 
   function setSwapDetailsLastSwapTime(address asset, uint32 lastSwapTime) external;
-
-  function getAssets() external view returns (
-    address[] memory assetAddresses,
-    uint8[] memory decimals,
-    bool[] memory deprecated
-  );
 
   function getAssetSwapDetails(address assetAddress) external view returns (SwapDetails memory);
 

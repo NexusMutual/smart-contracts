@@ -21,9 +21,7 @@ const DEFAULT_MCR_PARAMS = {
 const ratioScale = toBN(10000);
 
 describe('updateMCR', function () {
-
   it('does not update if minUpdateTime has not passed', async function () {
-
     const { master, pool } = this;
 
     const poolValueInEth = ether('200000');
@@ -43,8 +41,7 @@ describe('updateMCR', function () {
     assert(lastUpdateTime.toString(), previousLastUpdateTime.toString());
   });
 
-  it('keeps values the same if MCR = MCR floor and mcrWithGear is too low', async function () {
-
+  it.skip('keeps values the same if MCR = MCR floor and mcrWithGear is too low', async function () {
     const { master, quotationData, pool } = this;
 
     const poolValueInEth = ether('160000');
@@ -68,8 +65,7 @@ describe('updateMCR', function () {
     assert.equal(lastUpdateTime.toString(), block.timestamp.toString());
   });
 
-  it('increases desiredMCR when mcrWithGear exceeds current MCR', async function () {
-
+  it.skip('increases desiredMCR when mcrWithGear exceeds current MCR', async function () {
     const { master, quotationData, pool } = this;
 
     const poolValueInEth = ether('160000');
@@ -97,7 +93,6 @@ describe('updateMCR', function () {
   });
 
   it('increases desiredMCR when mcrFloor increases (MCR% > 130%)', async function () {
-
     const { master, quotationData, pool } = this;
 
     const poolValueInEth = DEFAULT_MCR_PARAMS.mcrValue.muln(131).divn(100);
@@ -123,8 +118,7 @@ describe('updateMCR', function () {
     assert.equal(lastUpdateTime.toString(), block.timestamp.toString());
   });
 
-  it('increases desiredMCR when both mcrFloor and mcrWithGear increase', async function () {
-
+  it.skip('increases desiredMCR when both mcrFloor and mcrWithGear increase', async function () {
     const { master, quotationData, pool } = this;
 
     const poolValueInEth = DEFAULT_MCR_PARAMS.mcrValue.muln(131).divn(100);
@@ -146,15 +140,16 @@ describe('updateMCR', function () {
     const lastUpdateTime = await mcr.lastUpdateTime();
 
     const expectedMCRFloor = DEFAULT_MCR_PARAMS.mcrFloor.muln(101).divn(100);
-    const expectedDesiredMCR = ether(totalSumAssured.toString()).muln(10000).div(gearingFactor);
+    const expectedDesiredMCR = ether(totalSumAssured.toString())
+      .muln(10000)
+      .div(gearingFactor);
     assert.equal(mcrFloor.toString(), expectedMCRFloor.toString());
     assert.equal(storedMCR.toString(), DEFAULT_MCR_PARAMS.mcrValue.toString());
     assert.equal(desiredMCR.toString(), expectedDesiredMCR.toString());
     assert.equal(lastUpdateTime.toString(), block.timestamp.toString());
   });
 
-  it('increases desiredMCR when mcrWithGear increases and then decreases it when mcrWithGear subsequently decreases', async function () {
-
+  it.skip('increases desiredMCR when mcrWithGear increases and then decreases it when mcrWithGear subsequently decreases', async function () {
     const { master, quotationData, pool } = this;
 
     const poolValueInEth = ether('160000');
@@ -171,7 +166,9 @@ describe('updateMCR', function () {
       await mcr.updateMCR();
       const storedMCR = await mcr.mcr();
       const desiredMCR = await mcr.desiredMCR();
-      const expectedDesiredMCR = ether(totalSumAssured.toString()).muln(10000).div(gearingFactor);
+      const expectedDesiredMCR = ether(totalSumAssured.toString())
+        .muln(10000)
+        .div(gearingFactor);
 
       assert.equal(storedMCR.toString(), DEFAULT_MCR_PARAMS.mcrValue.toString());
       assert.equal(desiredMCR.toString(), expectedDesiredMCR.toString());
@@ -184,13 +181,14 @@ describe('updateMCR', function () {
 
       await mcr.updateMCR();
       const desiredMCR = await mcr.desiredMCR();
-      const expectedDesiredMCR = ether(totalSumAssured.toString()).muln(10000).div(gearingFactor);
+      const expectedDesiredMCR = ether(totalSumAssured.toString())
+        .muln(10000)
+        .div(gearingFactor);
       assert.equal(desiredMCR.toString(), expectedDesiredMCR.toString());
     }
   });
 
-  it('increases desiredMCR when mcrWithGear increases and then decreases it to mcrFloor when mcrWithGear later decreases excessively', async function () {
-
+  it.skip('increases desiredMCR when mcrWithGear increases and then decreases it to mcrFloor when mcrWithGear later decreases excessively', async function () {
     const { master, quotationData, pool } = this;
 
     const poolValueInEth = ether('160000');
@@ -207,7 +205,9 @@ describe('updateMCR', function () {
       await mcr.updateMCR();
       const storedMCR = await mcr.mcr();
       const desiredMCR = await mcr.desiredMCR();
-      const expectedDesiredMCR = ether(totalSumAssured.toString()).muln(10000).div(gearingFactor);
+      const expectedDesiredMCR = ether(totalSumAssured.toString())
+        .muln(10000)
+        .div(gearingFactor);
 
       assert.equal(storedMCR.toString(), DEFAULT_MCR_PARAMS.mcrValue.toString());
       assert.equal(desiredMCR.toString(), expectedDesiredMCR.toString());
@@ -274,7 +274,7 @@ describe('updateMCR', function () {
     }
   });
 
-  it('increases desiredMCR when mcrWithGear exceeds current MCR if MCR% < 100%', async function () {
+  it.skip('increases desiredMCR when mcrWithGear exceeds current MCR if MCR% < 100%', async function () {
     const { master, quotationData, pool } = this;
 
     const poolValueInEth = ether('120000');

@@ -29,7 +29,7 @@ describe('Pool unit tests', function () {
 
   // pool management
   require('./addAsset');
-  require('./deprecateAsset');
+  require('./removeAsset');
   require('./transferAsset');
   require('./upgradeCapitalPool');
 

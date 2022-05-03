@@ -51,7 +51,6 @@ contract QuotationData is LegacyMasterAware {
   uint public pm;
   uint public minDays;
   uint public tokensRetained;
-  // [todo] Move to MemberRoles
   address public kycAuthAddress;
 
   event CoverDetailsEvent(

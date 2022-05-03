@@ -1,6 +1,5 @@
 const { accounts, artifacts, web3, ethers } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
-const { getContractAddress } = require('@ethersproject/address');
 const { parseEther } = ethers.utils;
 
 const { setupUniswap } = require('../utils');
@@ -35,19 +34,17 @@ async function setup () {
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
   const Lido = artifacts.require('P1MockLido');
   const ProductsV1 = artifacts.require('ProductsV1');
+  const CoverMigrator = artifacts.require('CoverMigrator');
 
   // nexusmutual
   const NXMToken = artifacts.require('NXMToken');
-  const LegacyClaims = artifacts.require('LegacyClaims');
-  const LegacyIncidents = artifacts.require('LegacyIncidents');
-  const LegacyClaimsData = artifacts.require('LegacyClaimsData');
+  // const LegacyClaims = artifacts.require('LegacyClaims');
+  // const LegacyIncidents = artifacts.require('LegacyIncidents');
+  // const LegacyClaimsData = artifacts.require('LegacyClaimsData');
   const LegacyClaimsReward = artifacts.require('LegacyClaimsReward');
   const MCR = artifacts.require('DisposableMCR');
-  const TokenData = artifacts.require('TokenData');
   const Pool = artifacts.require('Pool');
-  const Quotation = artifacts.require('Quotation');
   const QuotationData = artifacts.require('QuotationData');
-  const ClaimProofs = artifacts.require('ClaimProofs');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
   const TwapOracle = artifacts.require('TwapOracle');
   const SwapOperator = artifacts.require('SwapOperator');
@@ -65,8 +62,8 @@ async function setup () {
   const DisposablePooledStaking = artifacts.require('DisposablePooledStaking');
   const DisposableGateway = artifacts.require('DisposableGateway');
   const DisposableAssessment = artifacts.require('DisposableAssessment');
-  const DisposableClaims = artifacts.require('DisposableClaims');
-  const DisposableIncidents = artifacts.require('DisposableIncidents');
+  const DisposableYieldTokenIncidents = artifacts.require('DisposableYieldTokenIncidents');
+  const DisposableIndividualClaims = artifacts.require('DisposableIndividualClaims');
   const DisposableCover = artifacts.require('DisposableCover');
 
   // target contracts
@@ -77,8 +74,8 @@ async function setup () {
   const Governance = artifacts.require('Governance');
   const PooledStaking = artifacts.require('PooledStaking');
   const Gateway = artifacts.require('Gateway');
-  const Incidents = artifacts.require('Incidents');
-  const Claims = artifacts.require('Claims');
+  const YieldTokenIncidents = artifacts.require('YieldTokenIncidents');
+  const IndividualClaims = artifacts.require('IndividualClaims');
   const Assessment = artifacts.require('Assessment');
 
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -133,48 +130,37 @@ async function setup () {
   const gateway = await deployProxy(DisposableGateway);
 
   // non-proxy contracts and libraries
-  const cp = await ClaimProofs.new(master.address);
   const twapOracle = await TwapOracle.new(factory.address);
 
   // regular contracts
   // const lcl = await LegacyClaims.new();
   // const lic = await LegacyIncidents.new();
-  const lcd = await LegacyClaimsData.new();
-  const lcr = await LegacyClaimsReward.new(master.address, dai.address, lcd.address, true);
+  // const lcd = await LegacyClaimsData.new();
+  const lcr = await LegacyClaimsReward.new(master.address, dai.address);
 
   const mc = await MCR.new(ZERO_ADDRESS);
 
-  const p1 = await Pool.new(
-    [dai.address], // assets
-    [18], // decimals
-    [0], // min amounts
-    [ether('100')], // max amounts
-    [100], // max slippage 1%
-    master.address,
-    priceFeedOracle.address,
-    ZERO_ADDRESS,
-  );
+  const p1 = await Pool.new(master.address, priceFeedOracle.address, ZERO_ADDRESS, dai.address, stETH.address);
   const swapOperator = await SwapOperator.new(master.address, twapOracle.address, owner, lido.address);
 
   const productsV1 = await ProductsV1.new();
 
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
-  const td = await TokenData.new();
   const qd = await QuotationData.new(QE, owner);
-  const qt = await Quotation.new(productsV1.address, qd.address);
 
-  const tc = await deployProxy(DisposableTokenController, [qd.address]);
-  const ic = await deployProxy(DisposableIncidents, []);
+  const tc = await deployProxy(DisposableTokenController, [qd.address, lcr.address]);
+  const ic = await deployProxy(DisposableIndividualClaims, []);
+  const yt = await deployProxy(DisposableYieldTokenIncidents, []);
   const as = await deployProxy(DisposableAssessment, []);
-  const cl = await deployProxy(DisposableClaims, []);
+  const cl = await deployProxy(CoverMigrator, []);
 
   const cover = await deployProxy(DisposableCover, []);
   const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
   const stakingPool = await CoverMockStakingPool.new(tk.address, cover.address, mr.address);
 
   const contractType = code => {
-    const upgradable = ['MC', 'P1', 'QT', 'TF', 'CR'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC', 'CL', 'AS', 'CO'];
+    const upgradable = ['MC', 'P1', 'CR'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'IC', 'YT', 'AS', 'CO', 'CL'];
 
     if (upgradable.includes(code)) {
       return ContractTypes.Replaceable;
@@ -187,8 +173,8 @@ async function setup () {
     return 0;
   };
 
-  const codes = ['QD', 'TD', 'QT', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'AS', 'CO', 'CR'];
-  const addresses = [qd, td, qt, tc, p1, mc, { address: owner }, pc, mr, ps, gateway, ic, cl, as, cover, lcr].map(
+  const codes = ['QD', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'YT', 'AS', 'CO', 'CR'];
+  const addresses = [qd, tc, p1, mc, { address: owner }, pc, mr, ps, gateway, ic, cl, yt, as, cover, lcr].map(
     c => c.address,
   );
 
@@ -246,71 +232,65 @@ async function setup () {
     YIELD_TOKEN_INCIDENTS: 1,
   };
 
-  await cover.addProductTypes([
-    // Protocol Cover
-    {
-      descriptionIpfsHash: 'protocolCoverIPFSHash',
-      claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
-      gracePeriodInDays: 30,
-    },
-    // Custody Cover
-    {
-      descriptionIpfsHash: 'custodyCoverIPFSHash',
-      claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
-      gracePeriodInDays: 90,
-    },
-    // Yield Token Cover
-    {
-      descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
-      claimMethod: CLAIM_METHOD.YIELD_TOKEN_INCIDENTS,
-      gracePeriodInDays: 14,
-    },
-  ]);
+  await cover.addProductTypes(
+    [
+      // Protocol Cover
+      {
+        descriptionIpfsHash: 'protocolCoverIPFSHash',
+        claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
+        gracePeriodInDays: 30,
+      },
+      // Custody Cover
+      {
+        descriptionIpfsHash: 'custodyCoverIPFSHash',
+        claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
+        gracePeriodInDays: 90,
+      },
+      // Yield Token Cover
+      {
+        descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
+        claimMethod: CLAIM_METHOD.YIELD_TOKEN_INCIDENTS,
+        gracePeriodInDays: 14,
+      },
+    ],
+    ['', '', ''],
+  );
 
-  await cover.addProducts([
-    {
-      productType: 0, // Protocol Cover
-      productAddress: '0x0000000000000000000000000000000000000000',
-      coverAssets: 0, // Use fallback
-      initialPriceRatio: 100,
-      capacityReductionRatio: 0,
-    },
-    {
-      productType: 1, // Custody Cover
-      productAddress: '0x0000000000000000000000000000000000000000',
-      coverAssets: 0, // Use fallback
-      initialPriceRatio: 100,
-      capacityReductionRatio: 0,
-    },
-    {
-      productType: 2, // Yield Token Cover
-      productAddress: '0x0000000000000000000000000000000000000001',
-      coverAssets: 0b01, // ETH
-      initialPriceRatio: 100,
-      capacityReductionRatio: 0,
-    },
-    {
-      productType: 2, // Yield Token Cover
-      productAddress: '0x0000000000000000000000000000000000000002',
-      coverAssets: 0b10, // DAI
-      initialPriceRatio: 100,
-      capacityReductionRatio: 0,
-    },
-  ]);
+  await cover.addProducts(
+    [
+      {
+        productType: 0, // Protocol Cover
+        productAddress: '0x0000000000000000000000000000000000000000',
+        coverAssets: 0, // Use fallback
+        initialPriceRatio: 100,
+        capacityReductionRatio: 0,
+      },
+      {
+        productType: 1, // Custody Cover
+        productAddress: '0x0000000000000000000000000000000000000000',
+        coverAssets: 0, // Use fallback
+        initialPriceRatio: 100,
+        capacityReductionRatio: 0,
+      },
+      {
+        productType: 2, // Yield Token Cover
+        productAddress: '0x0000000000000000000000000000000000000001',
+        coverAssets: 0b01, // ETH
+        initialPriceRatio: 100,
+        capacityReductionRatio: 0,
+      },
+      {
+        productType: 2, // Yield Token Cover
+        productAddress: '0x0000000000000000000000000000000000000002',
+        coverAssets: 0b10, // DAI
+        initialPriceRatio: 100,
+        capacityReductionRatio: 0,
+      },
+    ],
+    ['', '', '', ''],
+  );
 
   await cover.setCoverAssetsFallback(0b11); // eth and dai
-
-  await lcd.changeMasterAddress(master.address);
-  await lcd.updateUintParameters(hex('CAMINVT'), 36); // min voting time 36h
-  await lcd.updateUintParameters(hex('CAMAXVT'), 72); // max voting time 72h
-  await lcd.updateUintParameters(hex('CADEPT'), 7); // claim deposit time 7 days
-  await lcd.updateUintParameters(hex('CAPAUSET'), 3); // claim assessment pause time 3 days
-
-  await td.changeMasterAddress(master.address);
-  await td.updateUintParameters(hex('RACOMM'), 50); // staker commission percentage 50%
-  await td.updateUintParameters(hex('CABOOKT'), 6); // "book time" 6h
-  await td.updateUintParameters(hex('CALOCKT'), 7); // ca lock 7 days
-  await td.updateUintParameters(hex('MVLOCKT'), 2); // ca lock mv 2 days
 
   await p1.updateAddressParameters(hex('SWP_OP'), swapOperator.address);
 
@@ -327,7 +307,6 @@ async function setup () {
   await upgradeProxy(gv.address, Governance);
   await upgradeProxy(gateway.address, Gateway);
   await upgradeProxy(ic.address, Incidents, [master.address, coverNFT.address]);
-  await upgradeProxy(cl.address, Claims, [master.address, coverNFT.address]);
   await upgradeProxy(as.address, Assessment, [master.address]);
   await upgradeProxy(cover.address, Cover, [
     qd.address,
@@ -389,8 +368,8 @@ async function setup () {
   );
 
   const external = { chainlinkDAI, dai, factory, router, weth, productsV1 };
-  const nonUpgradable = { cp, qd, td };
-  const instances = { tk, qt, cl, p1, mcr: mc };
+  const nonUpgradable = { qd };
+  const instances = { tk, cl, p1, mcr: mc };
 
   // we upgraded them, get non-disposable instances because
   const proxies = {
@@ -402,7 +381,7 @@ async function setup () {
     ps: await PooledStaking.at(ps.address),
     gateway: await Gateway.at(gateway.address),
     ic: await Incidents.at(ic.address),
-    cl: await Claims.at(cl.address),
+    cl: await CoverMigrator.at(cl.address),
     as: await Assessment.at(as.address),
     cover: await Cover.at(cover.address),
     coverNFT: await CoverNFT.at(coverNFT.address),

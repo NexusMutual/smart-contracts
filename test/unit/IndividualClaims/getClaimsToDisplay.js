@@ -96,11 +96,9 @@ describe('getClaimsToDisplay', function () {
         coverPeriod,
         ASSET.DAI,
       );
-      await individualClaims
-        .connect(coverOwner)
-        ['submitClaim(uint32,uint16,uint96,string)'](3, 0, expectedAmounts[0], '', {
-          value: deposit,
-        });
+      await individualClaims.connect(coverOwner).submitClaim(3, 0, expectedAmounts[0], '', {
+        value: deposit,
+      });
       const latestBlock = await ethers.provider.getBlock('latest');
       expectedPollStarts.push(latestBlock.timestamp);
       await setTime(latestBlock.timestamp + daysToSeconds(1));
@@ -111,11 +109,9 @@ describe('getClaimsToDisplay', function () {
         coverPeriod,
         ASSET.DAI,
       );
-      await individualClaims
-        .connect(coverOwner)
-        ['submitClaim(uint32,uint16,uint96,string)'](1, 0, expectedAmounts[1], '', {
-          value: deposit,
-        });
+      await individualClaims.connect(coverOwner).submitClaim(1, 0, expectedAmounts[1], '', {
+        value: deposit,
+      });
       const latestBlock = await ethers.provider.getBlock('latest');
       expectedPollStarts.push(latestBlock.timestamp);
       await setTime(latestBlock.timestamp + daysToSeconds(1));
@@ -126,11 +122,9 @@ describe('getClaimsToDisplay', function () {
         coverPeriod,
         ASSET.ETH,
       );
-      await individualClaims
-        .connect(coverOwner)
-        ['submitClaim(uint32,uint16,uint96,string)'](2, 0, expectedAmounts[2], '', {
-          value: deposit,
-        });
+      await individualClaims.connect(coverOwner).submitClaim(2, 0, expectedAmounts[2], '', {
+        value: deposit,
+      });
       const latestBlock = await ethers.provider.getBlock('latest');
       expectedPollStarts.push(latestBlock.timestamp);
       await setTime(latestBlock.timestamp + daysToSeconds(1));
@@ -141,11 +135,9 @@ describe('getClaimsToDisplay', function () {
         coverPeriod,
         ASSET.ETH,
       );
-      await individualClaims
-        .connect(coverOwner)
-        ['submitClaim(uint32,uint16,uint96,string)'](0, 0, expectedAmounts[3], '', {
-          value: deposit,
-        });
+      await individualClaims.connect(coverOwner).submitClaim(0, 0, expectedAmounts[3], '', {
+        value: deposit,
+      });
       const latestBlock = await ethers.provider.getBlock('latest');
       expectedPollStarts.push(latestBlock.timestamp);
       await setTime(latestBlock.timestamp + daysToSeconds(1));
@@ -156,11 +148,9 @@ describe('getClaimsToDisplay', function () {
         coverPeriod,
         ASSET.ETH,
       );
-      await individualClaims
-        .connect(coverOwner)
-        ['submitClaim(uint32,uint16,uint96,string)'](4, 0, expectedAmounts[4], '', {
-          value: deposit,
-        });
+      await individualClaims.connect(coverOwner).submitClaim(4, 0, expectedAmounts[4], '', {
+        value: deposit,
+      });
       const latestBlock = await ethers.provider.getBlock('latest');
       expectedPollStarts.push(latestBlock.timestamp);
     }

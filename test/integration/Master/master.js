@@ -7,18 +7,17 @@ const { hex, bnEqual } = require('../utils').helpers;
 
 const [owner] = accounts;
 
-const Claims = artifacts.require('LegacyClaims');
+const CoverMigrator = artifacts.require('CoverMigrator');
 const ClaimsReward = artifacts.require('LegacyClaimsReward');
 const MCR = artifacts.require('DisposableMCR');
 const Pool = artifacts.require('Pool');
-const Quotation = artifacts.require('Quotation');
 const NXMaster = artifacts.require('NXMaster');
 const MemberRoles = artifacts.require('MemberRoles');
 const TokenController = artifacts.require('TokenController');
 const Governance = artifacts.require('Governance');
 const PooledStaking = artifacts.require('PooledStaking');
 const Gateway = artifacts.require('Gateway');
-const Incidents = artifacts.require('Incidents');
+const IndividualClaims = artifacts.require('IndividualClaims');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const MMockNewContract = artifacts.require('MMockNewContract');
 const ProposalCategoryContract = artifacts.require('ProposalCategory');
@@ -84,13 +83,13 @@ describe('master', function () {
   });
 
   it('replace contract', async function () {
-    const { master, gv } = this.contracts;
+    const { master, gv, qd } = this.contracts;
 
-    const code = hex('QT');
-    const quotation = await Quotation.new();
+    const code = hex('TC');
+    const tokenController = await TokenController.new(qd.address, cr.address);
 
     const contractCodes = [code];
-    const newAddresses = [quotation.address];
+    const newAddresses = [tokenController.address];
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
@@ -126,15 +125,15 @@ describe('master', function () {
   });
 
   it('upgrade proxies and replaceables', async function () {
-    const { master, gv, pc, tk } = this.contracts;
+    const { master, gv, pc, tk, qd, cr } = this.contracts;
 
     const psCode = hex('PS');
-    const qtCode = hex('QT');
+    const tcCode = hex('TC');
     const pooledStaking = await PooledStaking.new();
-    const quotation = await Quotation.new();
+    const tokenController = await TokenController.new(qd.address, cr.address);
 
-    const contractCodes = [psCode, qtCode];
-    const newAddresses = [pooledStaking.address, quotation.address];
+    const contractCodes = [psCode, tcCode];
+    const newAddresses = [pooledStaking.address, tokenController.address];
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
@@ -149,7 +148,7 @@ describe('master', function () {
     assert.equal(implementation, pooledStaking.address);
 
     const address = await master.getLatestAddress(qtCode);
-    assert.equal(address, quotation.address);
+    assert.equal(address, tokenController.address);
   });
 
   it('upgrades master', async function () {
@@ -169,11 +168,10 @@ describe('master', function () {
   it('upgrades all contracts', async function () {
     const { master, gv, dai, priceFeedOracle, p1, cr, tk: token, qd } = this.contracts;
 
-    const contractCodes = ['QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC'];
+    const contractCodes = ['TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC'];
     const newAddresses = [
-      await Quotation.new(),
       await TokenController.new(qd.address),
-      await Claims.new(),
+      await CoverMigrator.new(),
       await ClaimsReward.new(master.address, dai.address),
       await Pool.new(
         [dai.address], // assets
@@ -191,7 +189,7 @@ describe('master', function () {
       await MemberRoles.new(),
       await PooledStaking.new(),
       await Gateway.new(),
-      await Incidents.new(),
+      await IndividualClaims.new(),
     ].map(c => c.address);
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(

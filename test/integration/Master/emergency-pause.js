@@ -9,7 +9,7 @@ const { getQuoteSignature } = require('../utils').getQuote;
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { toBN } = web3.utils;
 
-const Quotation = artifacts.require('Quotation');
+const MCR = artifacts.require('MCR');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const PooledStaking = artifacts.require('PooledStaking');
 const NXMaster = artifacts.require('NXMaster');
@@ -69,12 +69,12 @@ describe('emergency pause', function () {
     });
 
     const psCode = hex('PS');
-    const qtCode = hex('QT');
+    const mcCode = hex('MC');
     const pooledStaking = await PooledStaking.new();
-    const quotation = await Quotation.new(productsV1.address);
+    const mcr = await MCR.new(master.address);
 
-    const contractCodes = [psCode, qtCode];
-    const newAddresses = [pooledStaking.address, quotation.address];
+    const contractCodes = [psCode, mcCode];
+    const newAddresses = [pooledStaking.address, mcr.address];
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
@@ -88,8 +88,8 @@ describe('emergency pause', function () {
     const implementation = await (await OwnedUpgradeabilityProxy.at(psAddress)).implementation();
     assert.equal(implementation, pooledStaking.address);
 
-    const address = await master.getLatestAddress(qtCode);
-    assert.equal(address, quotation.address);
+    const address = await master.getLatestAddress(mcCode);
+    assert.equal(address, mcr.address);
   });
 
   it('should be able to perform master upgrade during emergency pause', async function () {

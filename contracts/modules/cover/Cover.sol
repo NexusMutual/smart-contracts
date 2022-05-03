@@ -86,9 +86,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   mapping(uint24 => mapping(uint => uint96)) public totalActiveCoverInAssetExpiryBucket;
   mapping(uint24 => uint32) public lastGlobalBuckets;
 
-
-  event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
-
   /* ========== CONSTRUCTOR ========== */
 
   constructor(
@@ -238,7 +235,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     IPool _pool = pool();
     uint tokenPriceInPaymentAsset = _pool.getTokenPrice(params.paymentAsset);
-    (, uint8 paymentAssetDecimals, ) = _pool.assets(params.paymentAsset);
+    (, uint8 paymentAssetDecimals) = _pool.coverAssets(params.paymentAsset);
 
     uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
     require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
@@ -413,7 +410,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     }
 
     uint tokenPriceInPaymentAsset = _pool.getTokenPrice(buyCoverParams.paymentAsset);
-    (, uint8 paymentAssetDecimals, ) = _pool.assets(buyCoverParams.paymentAsset);
+    (, uint8 paymentAssetDecimals) = _pool.coverAssets(buyCoverParams.paymentAsset);
 
     uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
@@ -519,9 +516,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     (
     address payoutAsset,
-    /*uint8 decimals*/,
-    /*bool deprecated*/
-    ) = _pool.assets(paymentAsset);
+    /*uint8 decimals*/
+    ) = _pool.coverAssets(paymentAsset);
 
     IERC20 token = IERC20(payoutAsset);
     token.safeTransferFrom(msg.sender, address(_pool), premium);
@@ -653,15 +649,34 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     _products[productId].capacityReductionRatio = reduction;
   }
 
-  function addProducts(Product[] calldata newProducts) external override onlyAdvisoryBoard {
+  function addProducts(
+    Product[] calldata newProducts,
+    string[] calldata ipfsMetadata
+  ) external override onlyAdvisoryBoard {
+    uint initialProductsCount = _products.length;
     for (uint i = 0; i < newProducts.length; i++) {
       _products.push(newProducts[i]);
+      emit ProductUpserted(initialProductsCount + i, ipfsMetadata[i]);
     }
   }
 
-  function addProductTypes(ProductType[] calldata newProductTypes) external override onlyAdvisoryBoard {
+  function editProductsIpfsMetadata(
+    uint[] calldata productIds,
+    string[] calldata ipfsMetadata
+  ) external override onlyAdvisoryBoard {
+    for (uint i = 0; i < productIds.length; i++) {
+      emit ProductUpserted(productIds[i], ipfsMetadata[i]);
+    }
+  }
+
+  function addProductTypes(
+    ProductType[] calldata newProductTypes,
+    string[] calldata ipfsMetadata
+  ) external override onlyAdvisoryBoard {
+    uint initialProuctTypesCount = _productTypes.length;
     for (uint i = 0; i < newProductTypes.length; i++) {
       _productTypes.push(newProductTypes[i]);
+      emit ProductTypeUpserted(initialProuctTypesCount + i, ipfsMetadata[i]);
     }
   }
 

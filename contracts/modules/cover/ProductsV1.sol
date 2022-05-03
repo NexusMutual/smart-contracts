@@ -5,8 +5,8 @@ pragma solidity >=0.5.0;
 import "../../interfaces/IProductsV1.sol";
 
 contract ProductsV1 is IProductsV1 {
-function getNewProductId(address legacyProductId) external pure override returns (uint) {
-  
+  function getNewProductId(address legacyProductId) external pure override returns (uint) {
+    
     // Product: bZx v1
     // Type: protocol
     if (legacyProductId == 0x8B3d70d628Ebd30D4A2ea82DB95bA2e906c71633) {
@@ -679,6 +679,6 @@ function getNewProductId(address legacyProductId) external pure override returns
       return 111;
     }
     
-  revert("Invalid product!");
-}
+    revert("Invalid product!");
+  }
 }

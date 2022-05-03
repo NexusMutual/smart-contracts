@@ -1,20 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/IQuotationData.sol";
-import "./LegacyMCR.sol";
 
 contract MCR is IMCR, MasterAware {
-  using SafeMath for uint;
-
   IPool public pool;
   IQuotationData public qd;
   // sizeof(qd) + 96 = 160 + 96 = 256 (occupies entire slot)
@@ -43,11 +39,11 @@ contract MCR is IMCR, MasterAware {
     uint totalSumAssured
   );
 
-  uint constant UINT24_MAX = ~uint24(0);
+  uint constant UINT24_MAX = type(uint24).max;
   uint constant MAX_MCR_ADJUSTMENT = 100;
   uint constant BASIS_PRECISION = 10000;
 
-  constructor (address masterAddress) public {
+  constructor (address masterAddress) {
     changeMasterAddress(masterAddress);
 
     if (masterAddress != address(0)) {
@@ -87,8 +83,9 @@ contract MCR is IMCR, MasterAware {
    * @dev Gets total sum assured (in ETH).
    * @return amount of sum assured
    */
-  function getAllSumAssurance() public view returns (uint) {
-    // TODO: This part is meant to be removed in v2
+  function getAllSumAssurance() public pure returns (uint) {
+    // Requires a new implementation once geared MCR should be used instead. To save gas it is
+    // left out on purpose.
     return 0;
   }
 
@@ -127,11 +124,11 @@ contract MCR is IMCR, MasterAware {
         // MCR floor updates by up to maxMCRFloorIncrement percentage per day whenever the MCR ratio exceeds 1.3
         // MCR floor is monotonically increasing.
       uint basisPointsAdjustment = min(
-        _maxMCRFloorIncrement.mul(block.timestamp - _lastUpdateTime).div(1 days),
+        _maxMCRFloorIncrement * (block.timestamp - _lastUpdateTime) / 1 days,
         _maxMCRFloorIncrement
       );
-      uint newMCRFloor = _mcrFloor.mul(basisPointsAdjustment.add(BASIS_PRECISION)).div(BASIS_PRECISION);
-      require(newMCRFloor <= uint112(~0), 'MCR: newMCRFloor overflow');
+      uint newMCRFloor = _mcrFloor * (basisPointsAdjustment + BASIS_PRECISION) / BASIS_PRECISION;
+      require(newMCRFloor <= type(uint112).max, 'MCR: newMCRFloor overflow');
 
       mcrFloor = uint112(newMCRFloor);
     }
@@ -145,7 +142,7 @@ contract MCR is IMCR, MasterAware {
     // the desiredMCR cannot fall below the mcrFloor but may have a higher or lower target value based
     // on the changes in the totalSumAssured in the system.
     uint totalSumAssured = getAllSumAssurance();
-    uint gearedMCR = totalSumAssured.mul(BASIS_PRECISION).div(_gearingFactor);
+    uint gearedMCR = totalSumAssured * BASIS_PRECISION / _gearingFactor;
     uint112 newDesiredMCR = uint112(max(gearedMCR, mcrFloor));
     if (newDesiredMCR != _desiredMCR) {
       desiredMCR = newDesiredMCR;
@@ -181,19 +178,19 @@ contract MCR is IMCR, MasterAware {
 
     uint _maxMCRIncrement = maxMCRIncrement;
 
-    uint basisPointsAdjustment = _maxMCRIncrement.mul(block.timestamp - _lastUpdateTime).div(1 days);
+    uint basisPointsAdjustment = _maxMCRIncrement * (block.timestamp - _lastUpdateTime) / 1 days;
     basisPointsAdjustment = min(basisPointsAdjustment, MAX_MCR_ADJUSTMENT);
 
     if (_desiredMCR > _mcr) {
-      return min(_mcr.mul(basisPointsAdjustment.add(BASIS_PRECISION)).div(BASIS_PRECISION), _desiredMCR);
+      return min(_mcr * (basisPointsAdjustment + BASIS_PRECISION) / BASIS_PRECISION, _desiredMCR);
     }
 
     // in case desiredMCR <= mcr
-    return max(_mcr.mul(BASIS_PRECISION - basisPointsAdjustment).div(BASIS_PRECISION), _desiredMCR);
+    return max(_mcr * (BASIS_PRECISION - basisPointsAdjustment) / (BASIS_PRECISION), _desiredMCR);
   }
 
   function getGearedMCR() external view returns (uint) {
-    return getAllSumAssurance().mul(BASIS_PRECISION).div(gearingFactor);
+    return getAllSumAssurance() * BASIS_PRECISION / gearingFactor;
   }
 
   function min(uint x, uint y) pure internal returns (uint) {

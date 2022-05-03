@@ -21,7 +21,7 @@ struct ProductParams {
 
 struct ProductInitializationParams {
   uint productId;
-  uint weight;
+  uint8 weight;
   uint initialPrice;
   uint targetPrice;
 }

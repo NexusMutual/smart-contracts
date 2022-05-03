@@ -159,7 +159,7 @@ async function setup () {
       initialPriceRatio: '1000', // 10%
       capacityReductionRatio: '0',
     },
-  ]);
+  ], ['']);
 
   await cover.connect(accounts.advisoryBoardMembers[0]).addProductTypes([
     {
@@ -167,7 +167,7 @@ async function setup () {
       claimMethod: '1',
       gracePeriodInDays: '120',
     },
-  ]);
+  ], ['']);
 
   this.master = master;
   this.pool = pool;

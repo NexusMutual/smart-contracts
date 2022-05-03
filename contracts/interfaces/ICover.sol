@@ -91,8 +91,6 @@ struct Product {
 }
 
 struct ProductType {
-  // TODO: emit an event for ipfs hash
-  string descriptionIpfsHash;
   uint8 claimMethod;
   uint16 gracePeriodInDays;
 }
@@ -135,9 +133,20 @@ interface ICover {
     uint16[] calldata initialPriceRatio
   ) external;
 
-  function addProducts(Product[] calldata newProducts) external;
+  function addProducts(
+    Product[] calldata newProducts,
+    string[] calldata ipfsMetadata
+  ) external;
 
-  function addProductTypes(ProductType[] calldata newProductTypes) external;
+  function addProductTypes(
+    ProductType[] calldata newProductTypes,
+    string[] calldata ipfsMetadata
+  ) external;
+
+  function editProductsIpfsMetadata(
+    uint[] calldata productIds,
+    string[] calldata ipfsMetadata
+  ) external;
 
   function setCoverAssetsFallback(uint32 _coverAssetsFallback) external;
 
@@ -152,5 +161,9 @@ interface ICover {
   function transferCovers(address from, address to, uint256[] calldata coverIds) external;
 
   /* ========== EVENTS ========== */
+
+  event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
+  event ProductTypeUpserted(uint id, string ipfsMetadata);
+  event ProductUpserted(uint id, string ipfsMetadata);
 
 }

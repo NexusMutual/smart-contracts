@@ -18,8 +18,6 @@ interface IMemberRoles {
 
   function switchMembershipOf(address member, address _newAddress) external;
 
-  function swapOwner(address _newOwnerAddress) external;
-
   function addInitialABMembers(address[] calldata abArray) external;
 
   function kycVerdict(address payable _userAddress, bool verdict) external;
@@ -27,6 +25,8 @@ interface IMemberRoles {
   function totalRoles() external view returns (uint256);
 
   function changeAuthorized(uint _roleId, address _newAuthorized) external;
+
+  function setKycAuthAddress(address _add) external;
 
   function members(uint _memberRoleId) external view returns (uint, address[] memory memberArray);
 

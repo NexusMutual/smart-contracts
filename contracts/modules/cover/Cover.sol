@@ -78,11 +78,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint32 public coverAssetsFallback;
 
   // Global active cover amount per asset.
-  mapping(uint24 => uint) public totalActiveCoverForAsset;
+  mapping(uint24 => uint) public override totalActiveCoverForAsset;
 
   bool public coverAmountTrackingEnabled;
   bool public activeCoverAmountCommitted;
-  
+
   event CoverBought(uint coverId, uint productId, uint segmentId, address buyer);
   event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
   event CoverExpired(uint coverId, uint segmentId);

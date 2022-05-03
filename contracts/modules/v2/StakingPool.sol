@@ -469,11 +469,15 @@ contract StakingPool is IStakingPool, ERC721 {
   function getProductStake(
     uint productId, uint coverExpirationDate
   ) public view returns (uint) {
+    productId;
+    coverExpirationDate;
+    block.timestamp;
     return 0;
   }
 
   function getAllocatedProductStake(uint productId) public view returns (uint) {
     productId;
+    block.timestamp;
     return 0;
   }
 

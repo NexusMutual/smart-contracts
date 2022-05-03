@@ -121,6 +121,8 @@ interface ICover {
 
   function MAX_COVER_PERIOD() external view returns (uint);
 
+  function totalActiveCoverForAsset(uint24 coverAsset) external view returns (uint);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function migrateCovers(uint[] calldata coverIds, address toNewOwner) external;

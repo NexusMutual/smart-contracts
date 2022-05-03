@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 struct Staker {
   uint deposit; // total amount of deposit nxm
@@ -62,7 +62,11 @@ interface IPooledStaking {
 
   function withdraw(uint amount) external;
 
+  function withdrawForUser(address user) external;
+
   function stakerMaxWithdrawable(address stakerAddress) external view returns (uint);
 
   function withdrawReward(address stakerAddress) external;
+
+  function blockV1() external;
 }

@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot, reset } = require('./utils').evm;
 const setup = require('./setup');
 
-describe('INTEGRATION TESTS', function () {
+describe.skip('INTEGRATION TESTS', function () {
   before(setup);
 
   beforeEach(async function () {
@@ -15,7 +15,6 @@ describe('INTEGRATION TESTS', function () {
   require('./Master');
   require('./PooledStaking');
   require('./Pool');
-  // require('./Quotation');
   require('./MCR');
   require('./MemberRoles');
   require('./Claims');

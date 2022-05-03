@@ -80,20 +80,20 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// Returns all pending rewards, the withdrawable amount and the index until which they can be
   /// withdrawn.
   ///
-  /// @param user  The address of the staker
-  function getRewards(address user) external override view returns (
+  /// @param staker  The address of the staker
+  function getRewards(address staker) external override view returns (
     uint totalPendingAmount,
     uint withdrawableAmount,
     uint withdrawableUntilIndex
   ) {
-    uint104 rewardsWithdrawableFromIndex = stakeOf[user].rewardsWithdrawableFromIndex;
+    uint104 rewardsWithdrawableFromIndex = stakeOf[staker].rewardsWithdrawableFromIndex;
     Vote memory vote;
     Assessment memory assessment;
-    uint voteCount = votesOf[user].length;
+    uint voteCount = votesOf[staker].length;
     bool hasReachedUnwithdrawableReward = false;
 
     for (uint i = rewardsWithdrawableFromIndex; i < voteCount; i++) {
-      vote = votesOf[user][i];
+      vote = votesOf[staker][i];
       assessment = assessments[vote.assessmentId];
 
       // If hasReachedUnwithdrawableReward is true, skip and continue calculating the pending total
@@ -124,7 +124,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// Increases the sender's stake by the specified amount and transfers NXM to this contract
   ///
   /// @param amount  The amount of nxm to stake
-  function stake(uint96 amount) external override {
+  function stake(uint96 amount) public {
     stakeOf[msg.sender].amount += amount;
     ITokenController(getInternalContractAddress(ID.TC))
       .operatorTransfer(msg.sender, address(this), amount);
@@ -152,21 +152,47 @@ contract Assessment is IAssessment, MasterAwareV2 {
     stakeOf[msg.sender].amount -= amount;
   }
 
+  /// Withdraws a staker's accumulated rewards to a destination address but only the staker can
+  /// call this.
+  ///
+  /// @dev Only withdraws until the last finalized poll.
+  ///
+  /// @param staker      The address of the staker for which the rewards are withdrawn
+  /// @param batchSize   The index until which (but not including) the rewards should be withdrawn.
+  ///                    Used if a large number of assessments accumulates and the function doesn't
+  ///                    fit in one block, thus requiring multiple batched transactions.
+  function withdrawRewards(
+    address staker,
+    uint104 batchSize
+  ) external override returns (uint withdrawn, uint withdrawnUntilIndex) {
+    return _withdrawRewards(staker, staker, batchSize);
+  }
+
   /// Withdraws a staker's accumulated rewards.
   ///
   /// @dev Only withdraws until the last finalized poll.
   ///
-  /// @param user        The address of the staker for which the rewards are withdrawn
+  /// @param destination The destination address where the rewards will be withdrawn.
   /// @param batchSize   The index until which (but not including) the rewards should be withdrawn.
   ///                    Used if a large number of assessments accumulates and the function doesn't
   ///                    fit in one block, thus requiring multiple batched transactions.
-  function withdrawRewards(address user, uint104 batchSize) external override
-  returns (uint withdrawn, uint withdrawnUntilIndex) {
+  function withdrawRewardsTo(
+    address destination,
+    uint104 batchSize
+  ) external override returns (uint withdrawn, uint withdrawnUntilIndex) {
+    return _withdrawRewards(msg.sender, destination, batchSize);
+  }
+
+  function _withdrawRewards(
+    address staker,
+    address destination,
+    uint104 batchSize
+  ) internal returns (uint withdrawn, uint withdrawnUntilIndex) {
     // This is the index until which (but not including) the previous withdrawal was processed.
     // The current withdrawal starts from this index.
-    uint104 rewardsWithdrawableFromIndex = stakeOf[user].rewardsWithdrawableFromIndex;
+    uint104 rewardsWithdrawableFromIndex = stakeOf[staker].rewardsWithdrawableFromIndex;
     {
-      uint voteCount = votesOf[user].length;
+      uint voteCount = votesOf[staker].length;
       require(rewardsWithdrawableFromIndex < voteCount, "No withdrawable rewards");
       // If batchSize is a non-zero value, it means the withdrawal is going to be batched in
       // multiple transactions.
@@ -176,7 +202,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     Vote memory vote;
     Assessment memory assessment;
     for (uint i = rewardsWithdrawableFromIndex; i < withdrawnUntilIndex; i++) {
-      vote = votesOf[user][i];
+      vote = votesOf[staker][i];
       assessment = assessments[vote.assessmentId];
       if (assessment.poll.end + config.payoutCooldownInDays * 1 days >= block.timestamp) {
         // Poll is not final
@@ -189,8 +215,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
 
     // This is the index where the next withdrawReward call will start iterating from
-    stakeOf[user].rewardsWithdrawableFromIndex = uint104(withdrawnUntilIndex);
-    ITokenController(getInternalContractAddress(ID.TC)).mint(user, withdrawn);
+    stakeOf[staker].rewardsWithdrawableFromIndex = uint104(withdrawnUntilIndex);
+    ITokenController(getInternalContractAddress(ID.TC)).mint(destination, withdrawn);
   }
 
 
@@ -220,6 +246,36 @@ contract Assessment is IAssessment, MasterAwareV2 {
     return assessments.length - 1;
   }
 
+  /// Casts multiple votes on assessments and optionally allows to increase the stake in the same
+  /// transaction.
+  ///
+  /// @dev See stake and castVote functions.
+  ///
+  /// @param assessmentIds  Array of assessment indexes for which the votes are cast.
+  /// @param votes          Array of votes corresponding to each assessment id from the
+  ///                       assessmentIds param. Elements that are false represent a deny vote and
+  ///                       those that are true represent an accept vote.
+  /// @param stakeIncrease  When a non-zero value is given, this function will also increase the
+  ///                       stake in the same transaction.
+  function castVotes(
+    uint[] calldata assessmentIds,
+    bool[] calldata votes,
+    uint96 stakeIncrease
+  ) external override {
+    require(
+      assessmentIds.length == votes.length,
+      "The lengths of the assessment ids and votes arrays mismatch"
+    );
+
+    if (stakeIncrease > 0) {
+      stake(stakeIncrease);
+    }
+
+    for (uint i = 0; i < assessmentIds.length; i++) {
+      castVote(assessmentIds[i], votes[i]);
+    }
+  }
+
   /// Casts a vote on an assessment
   ///
   /// @dev Resets the poll's end date on the first vote. The first vote can only be an accept vote.
@@ -231,7 +287,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///
   /// @param assessmentId  The index of the assessment for which the vote is cast
   /// @param isAcceptVote  True to accept, false to deny
-  function castVote(uint assessmentId, bool isAcceptVote) external override {
+  function castVote(uint assessmentId, bool isAcceptVote) public {
     {
       require(!hasAlreadyVotedOn[msg.sender][assessmentId], "Already voted");
       hasAlreadyVotedOn[msg.sender][assessmentId] = true;

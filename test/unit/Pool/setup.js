@@ -9,40 +9,42 @@ const { BN } = web3.utils;
 
 async function setup () {
   const MasterMock = artifacts.require('MasterMock');
-  const TokenData = artifacts.require('TokenData');
   const TokenController = artifacts.require('TokenControllerMock');
   const TokenMock = artifacts.require('NXMTokenMock');
   const Pool = artifacts.require('Pool');
   const MCR = artifacts.require('P1MockMCR');
   const ERC20Mock = artifacts.require('ERC20Mock');
+  const ERC20BlacklistableMock = artifacts.require('ERC20BlacklistableMock');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
   const master = await MasterMock.new();
   const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
-  const stETH = await ERC20Mock.new();
+  const stETH = await ERC20BlacklistableMock.new();
 
   const ethToDaiRate = new BN((394.59 * 1e18).toString());
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
 
   const chainlinkDAI = await ChainlinkAggregatorMock.new();
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
+  const chainlinkSteth = await ChainlinkAggregatorMock.new();
+  await chainlinkSteth.setLatestAnswer(new BN(1e18.toString()));
 
-  const priceFeedOracle = await PriceFeedOracle.new(chainlinkDAI.address, dai.address, stETH.address);
+  const priceFeedOracle = await PriceFeedOracle.new(
+    [dai.address, stETH.address],
+    [chainlinkDAI.address, chainlinkSteth.address],
+    [18, 18],
+  );
 
   const swapOperator = accounts.generalPurpose[10];
 
-  const tokenData = await TokenData.new();
   const pool = await Pool.new(
-    [dai.address], // assets
-    [18], // decimals
-    [0], // min
-    [0], // max
-    [100], // maxSlippage 1%
     accounts.defaultSender, // master: it is changed a few lines below
     priceFeedOracle.address,
     swapOperator, // we do not test swaps here
+    dai.address,
+    stETH.address,
   );
 
   await master.setLatestAddress(hex('P1'), pool.address);
@@ -55,7 +57,6 @@ async function setup () {
   // set contract addresses
   await master.setTokenAddress(token.address);
   await master.setLatestAddress(hex('P1'), pool.address);
-  await master.setLatestAddress(hex('TD'), tokenData.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('P2'), mockP2Address);
@@ -94,11 +95,11 @@ async function setup () {
   this.token = token;
   this.pool = pool;
   this.mcr = mcr;
-  this.tokenData = tokenData;
   this.tokenController = tokenController;
   this.dai = dai;
   this.chainlinkDAI = chainlinkDAI;
   this.swapOperator = swapOperator;
+  this.stETH = stETH;
 }
 
 module.exports = setup;

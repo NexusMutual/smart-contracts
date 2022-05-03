@@ -66,9 +66,10 @@ async function setup () {
     master.setTokenAddress(nxm.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
-  await cover.addProductType('', '0', '30', '5000');
-  await cover.addProductType('', '0', '90', '5000');
-  await cover.addProductType('', '1', '30', '5000');
+  await cover.addProductType('0', '30', '5000');
+  console.log('works');
+  await cover.addProductType('0', '90', '5000');
+  await cover.addProductType('1', '30', '5000');
 
   await cover.addProduct(['0', '0x1111111111111111111111111111111111111111', '1', '0', '0']);
   await cover.addProduct(['1', '0x2222222222222222222222222222222222222222', '1', '0', '0']);

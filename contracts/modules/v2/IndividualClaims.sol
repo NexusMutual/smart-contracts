@@ -75,11 +75,19 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     return claims.length;
   }
 
-  function _getAssessmentDepositAndReward(
+  /// Returns the required deposit and total reward for a new claim
+  ///
+  /// @dev This view is meant to be used either by users or user interfaces to determine the
+  /// minimum deposit value of the submitClaim tx.
+  ///
+  /// @param requestedAmount  The amount that is claimed
+  /// @param segmentPeriod    The cover period of the segment in days
+  /// @param payoutAsset      The asset in which the payout would be made
+  function getAssessmentDepositAndReward(
     uint requestedAmount,
     uint segmentPeriod,
     uint payoutAsset
-  ) internal view returns (uint, uint) {
+  ) public view returns (uint, uint) {
     IPool poolContract = pool();
     uint nxmPriceInPayoutAsset = poolContract.getTokenPrice(payoutAsset);
     uint nxmPriceInETH = poolContract.getTokenPrice(0);
@@ -101,22 +109,6 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint deposit = minDeposit > dynamicDeposit ? minDeposit : dynamicDeposit;
 
     return (deposit, totalReward);
-  }
-
-  /// Returns the required deposit and total reward for a new claim
-  ///
-  /// @dev This view is meant to be used either by users or user interfaces to determine the
-  /// minimum deposit value of the submitClaim tx.
-  ///
-  /// @param requestedAmount  The amount that is claimed
-  /// @param segmentPeriod    The cover period of the segment in days
-  /// @param payoutAsset      The asset in which the payout would be made
-  function getAssessmentDepositAndReward(
-    uint requestedAmount,
-    uint segmentPeriod,
-    uint payoutAsset
-  ) external view returns (uint, uint) {
-    return _getAssessmentDepositAndReward(requestedAmount, segmentPeriod, payoutAsset);
   }
 
   /// Returns a Claim aggregated in a human-friendly format.
@@ -174,11 +166,11 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     if (claim.payoutAsset == 0) {
       assetSymbol = "ETH";
     } else {
+
       (
         address payoutAsset,
-        /*uint8 decimals*/,
-        /*bool deprecated*/
-      ) = pool().assets(claim.payoutAsset);
+        /*uint8 decimals*/
+      ) = pool().coverAssets(claim.payoutAsset);
       try IERC20Detailed(payoutAsset).symbol() returns (string memory v) {
         assetSymbol = v;
       } catch {
@@ -206,7 +198,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   ///
   /// @dev This view is meant to be used in user interfaces to get claims in a format suitable for
   /// displaying all relevant information in as few calls as possible. It can be used to paginate
-  /// claims by providing the following paramterers:
+  /// claims by providing the following parameters:
   ///
   /// @param ids   Array of Claim ids which are returned as ClaimDisplay
   function getClaimsToDisplay (uint104[] calldata ids)
@@ -221,16 +213,9 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  /// @dev Migrates covers for arNFT-like contracts that don't use Gateway.sol
-  ///
-  /// @param coverId          Legacy (V1) cover identifier
-  function submitClaim(uint coverId) external override {
-    cover().migrateCoverFromOwner(coverId, msg.sender, tx.origin);
-  }
-
   /// Submits a claim for assessment
   ///
-  /// @dev This function requires an ETH assessment fee. See: _getAssessmentDepositAndReward
+  /// @dev This function requires an ETH assessment fee. See: getAssessmentDepositAndReward
   ///
   /// @param coverId          Cover identifier
   /// @param requestedAmount  The amount expected to be received at payout
@@ -299,7 +284,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       false // payoutRedeemed
     );
 
-    (uint deposit, uint totalReward) = _getAssessmentDepositAndReward(
+    (uint deposit, uint totalReward) = getAssessmentDepositAndReward(
       requestedAmount,
       segment.period,
       coverData.payoutAsset

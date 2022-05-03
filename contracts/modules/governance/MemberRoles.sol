@@ -3,12 +3,12 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "../../interfaces/IPool.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
-import "../../interfaces/ITokenData.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../abstract/LegacyMasterAware_sol0_8.sol";
@@ -18,7 +18,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   uint public constant joiningFee = 2000000000000000; // 0.002 Ether
 
   ITokenController public tc;
-  address payable public joiningFeeWallet;
+  address payable public poolAddress;
   address public kycAuthAddress;
   ICover internal cover;
   IGovernance internal gv;
@@ -104,15 +104,13 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
    * @dev Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public {
-    if (joiningFeeWallet == 0xE20B3aE826Cdb43676e418F7C3B84B75b5697a40) {
-      joiningFeeWallet = ITokenData(0xE20B3aE826Cdb43676e418F7C3B84B75b5697a40).walletAddress();
-    }
     if (kycAuthAddress == 0x1776651F58a17a50098d31ba3C3cD259C1903f7A) {
       kycAuthAddress = IQuotationData(0x1776651F58a17a50098d31ba3C3cD259C1903f7A).kycAuthAddress();
     }
     gv = IGovernance(ms.getLatestAddress("GV"));
     tk = INXMToken(ms.tokenAddress());
     tc = ITokenController(ms.getLatestAddress("TC"));
+    poolAddress = payable(ms.getLatestAddress("P1"));
     cover = ICover(ms.getLatestAddress("CO"));
   }
 
@@ -190,13 +188,6 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   }
 
   /**
-   * @dev Change the wallet address which receive Joining Fee
-   */
-  function changeJoiningFeeWallet(address payable _address) external onlyInternal {
-    joiningFeeWallet = _address;
-  }
-
-  /**
     * @dev Called by user to pay joining membership fee
     */
   function payJoiningFee(address _userAddress) public override payable {
@@ -223,11 +214,12 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
       refundEligible[_userAddress] = false;
       tc.addToWhitelist(_userAddress);
       _updateRole(_userAddress, uint(Role.Member), true);
-      joiningFeeWallet.transfer(joiningFee); // solhint-disable-line
-
+      (bool ok, /* data */) = poolAddress.call{value: joiningFee}("");
+      require(ok, "MemberRoles: Joining fee pool transfer failed");
     } else {
       refundEligible[_userAddress] = false;
-      _userAddress.transfer(joiningFee); // solhint-disable-line
+      (bool ok, /* data */) = _userAddress.call{value: joiningFee}("");
+      require(ok, "MemberRoles: Joining fee refund transfer failed");
     }
   }
 

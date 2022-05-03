@@ -24,8 +24,6 @@ library CoverUtilsLib {
     IProductsV1 productsV1;
   }
 
-  event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
-
   function migrateCoverFromOwner(
     MigrateParams memory params,
     Product[] storage _products,
@@ -109,7 +107,6 @@ library CoverUtilsLib {
   function createStakingPool(
     address manager,
     uint poolId,
-    address stakingPoolImplementation,
     ProductInitializationParams[] calldata params
   ) external returns (address stakingPoolAddress) {
 
@@ -117,8 +114,6 @@ library CoverUtilsLib {
       new MinimalBeaconProxy{ salt: bytes32(poolId) }(address(this))
     );
     IStakingPool(stakingPoolAddress).initialize(manager, params);
-
-    emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
   }
 
   function stakingPool(uint index, bytes32 stakingPoolProxyCodeHash) public view returns (IStakingPool) {

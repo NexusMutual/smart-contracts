@@ -148,4 +148,5 @@ interface ICover {
 
   /* ========== EVENTS ========== */
 
+  event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
 }

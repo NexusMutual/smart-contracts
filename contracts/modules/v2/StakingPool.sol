@@ -501,9 +501,7 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   function getPriceParameters(
-    uint productId,
-    uint globalCapacityRatio,
-    uint capacityReductionRatio
+    uint productId
   ) external override view returns (
     uint activeCover, uint[] memory staked, uint lastBasePrice, uint targetPrice
   ) {

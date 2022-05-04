@@ -27,7 +27,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   using SafeERC20 for IERC20;
 
   /* === CONSTANTS ==== */
-  
+
   uint public constant BUCKET_SIZE = 7 days;
   uint public constant REWARD_DENOMINATOR = 2;
 
@@ -720,9 +720,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
 
     uint[] memory staked;
-    (params.activeCover, staked, params.lastBasePrice, params.targetPrice) = _pool.getPriceParameters(
-      productId, globalCapacityRatio, product.capacityReductionRatio
-    );
+    (params.activeCover, staked, params.lastBasePrice, params.targetPrice) = _pool.getPriceParameters(productId);
     params.capacities = new uint[](staked.length);
     for (uint i = 0; i < staked.length; i++) {
       params.capacities[i] = calculateCapacity(

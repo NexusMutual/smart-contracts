@@ -158,7 +158,9 @@ interface ICover {
 
   function createStakingPool(
     address manager,
-    ProductInitializationParams[] calldata params
+    ProductInitializationParams[] calldata params,
+    uint depositAmount,
+    uint groupId
   ) external returns (address stakingPoolAddress);
 
   /* ========== EVENTS ========== */

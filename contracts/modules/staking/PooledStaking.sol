@@ -1442,24 +1442,16 @@ contract PooledStaking is IPooledStaking, MasterAware {
     }
 
     {
-      IStakingPool stakingPool = IStakingPool(cover.createStakingPool(stakerAddress, params));
-      uint stakePositionNFTId;
 
-      {
-        // [todo] This might require an offset to start the first group at the time of v2 deploy
-        uint GROUP_SIZE = 91 days;
-        uint firstActiveGroupId = block.timestamp / GROUP_SIZE;
+      // [todo] This might require an offset to start the first group at the time of v2 deploy
+      uint GROUP_SIZE = 91 days;
+      uint firstActiveGroupId = block.timestamp / GROUP_SIZE;
 
-        // Use the groupId provided as a parameter if the user is migrating to v2 himself
-        // Use next id after the first active group id for those in the initial migration list
-        uint groupIdInEffect = stakerAddress == msg.sender ? groupId : firstActiveGroupId + 1;
+      // Use the groupId provided as a parameter if the user is migrating to v2 himself
+      // Use next id after the first active group id for those in the initial migration list
+      uint groupIdInEffect = stakerAddress == msg.sender ? groupId : firstActiveGroupId + 1;
 
-        // Move deposit to v2 pool
-        stakePositionNFTId = stakingPool.deposit(deposit, groupIdInEffect, 0);
-      }
-
-      // NFT transfer reverts if stakerAddress is a contract that doesn't implement IERC721Receiver
-      stakingPool.safeTransferFrom(address(this), stakerAddress, stakePositionNFTId);
+      cover.createStakingPool(stakerAddress, params, deposit, groupIdInEffect);
     }
 
     // Finally set the v1 deposit to 0

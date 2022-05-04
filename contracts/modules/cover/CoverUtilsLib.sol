@@ -79,7 +79,7 @@ library CoverUtilsLib {
         )
       );
     }
-    
+
     uint newCoverId = _coverData.length - 1;
 
     _coverSegments[newCoverId].push(
@@ -107,13 +107,22 @@ library CoverUtilsLib {
   function createStakingPool(
     address manager,
     uint poolId,
-    ProductInitializationParams[] calldata params
+    ProductInitializationParams[] calldata params,
+    uint depositAmount,
+    uint groupId
   ) external returns (address stakingPoolAddress) {
 
     stakingPoolAddress = address(
       new MinimalBeaconProxy{ salt: bytes32(poolId) }(address(this))
     );
-    IStakingPool(stakingPoolAddress).initialize(manager, params);
+
+    IStakingPool newStakingPool = IStakingPool(stakingPoolAddress);
+    newStakingPool.initialize(manager, params);
+
+    uint stakePositionNFTId = newStakingPool.deposit(depositAmount, groupId, 0);
+
+    // NFT transfer reverts if manager is a contract that doesn't implement IERC721Receiver
+    newStakingPool.safeTransferFrom(address(this), manager, stakePositionNFTId);
   }
 
   function stakingPool(uint index, bytes32 stakingPoolProxyCodeHash) public view returns (IStakingPool) {

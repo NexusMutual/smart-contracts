@@ -529,13 +529,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function createStakingPool(
     address manager,
-    ProductInitializationParams[] calldata params
+    ProductInitializationParams[] calldata params,
+    uint depositAmount,
+    uint groupId
   ) external returns (address stakingPoolAddress) {
 
 
     emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
-    
-    return CoverUtilsLib.createStakingPool(manager, stakingPoolCounter++, params);
+
+    return CoverUtilsLib.createStakingPool(manager, stakingPoolCounter++, params, depositAmount, groupId);
 
   }
 

@@ -31,8 +31,7 @@ contract TestnetNXMaster is NXMaster {
   function upgradeMultipleContracts(
     bytes2[] memory _contractCodes,
     address payable[] memory newAddresses
-  )
-  public {
+  ) public {
 
     require(getLatestAddress("GV") == msg.sender || governanceOwner == msg.sender, "Not authorized");
 

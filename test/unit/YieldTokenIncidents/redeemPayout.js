@@ -319,17 +319,14 @@ describe('redeemPayout', function () {
         2, // productId
         ASSET.ETH,
         [
-          [parseEther('100'), timestamp + 1, 1, 0],
-          [parseEther('100'), timestamp + 2, daysToSeconds('30'), 0],
+          [parseEther('100'), timestamp + 1, 1, 0], // 1s segment
+          [parseEther('100'), timestamp + 2, daysToSeconds('30'), 0], // 30d segment
         ],
       );
-    }
 
-    {
-      const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
         .connect(advisoryBoard)
-        .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100'), '');
+        .submitIncident(productId, parseEther('1.1'), timestamp + 2, parseEther('100'), '');
     }
 
     {

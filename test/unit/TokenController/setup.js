@@ -3,7 +3,10 @@ const { getAccounts } = require('../../utils/accounts');
 
 async function setup () {
   const TokenController = await ethers.getContractFactory('TokenController');
-  const tokenController = await TokenController.deploy('0x0000000000000000000000000000000000000000');
+  const tokenController = await TokenController.deploy(
+    '0x0000000000000000000000000000000000000000',
+    '0x0000000000000000000000000000000000000000',
+  );
   await tokenController.deployed();
 
   const MasterMock = await ethers.getContractFactory('MasterMock');

@@ -3,6 +3,7 @@
 pragma solidity ^0.8.9;
 
 import "../interfaces/INXMMaster.sol";
+import "../interfaces/IMasterAwareV2.sol";
 import "../modules/capital/Pool.sol";
 
 contract MasterMock {
@@ -38,6 +39,10 @@ contract MasterMock {
 
   function setLatestAddress(bytes2 contractName, address payable contractAddress) public {
     contractAddresses[contractName] = contractAddress;
+  }
+
+  function callChangeMaster(address payable contractAddress) public {
+    IMasterAwareV2(contractAddress).changeMasterAddress(address(this));
   }
 
   function setTokenAddress(address _tokenAddress) public {
@@ -92,10 +97,6 @@ contract MasterMock {
   function isOwner(address) unused public view returns (bool) {}
 
   function updatePauseTime(uint) unused public {}
-
-  function dAppLocker() unused public view returns (address) {}
-
-  function dAppToken() unused public view returns (address) {}
 
   function owner() external view returns (address) {}
 

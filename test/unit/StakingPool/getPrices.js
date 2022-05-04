@@ -1,10 +1,13 @@
-const { ethers: { utils: { parseEther, parseUnits } } } = require('hardhat');
+const {
+  ethers: {
+    utils: { parseEther, parseUnits },
+  },
+} = require('hardhat');
 const { bnEqual } = require('../utils').helpers;
 
 const { getPrices } = require('./helpers');
 
-describe.only('getPrices', function () {
-
+describe('getPrices', function () {
   it('should calculate price correctly for active cover starting at 0 without surge', async function () {
     const { stakingPool } = this;
 
@@ -25,7 +28,7 @@ describe.only('getPrices', function () {
       targetPrice,
       blockTimestamp,
     );
-    
+
     const expectedNewBasePrice = parseUnits('0.0296');
     const expectedActualPrice = parseUnits('0.02');
 
@@ -172,5 +175,4 @@ describe.only('getPrices', function () {
     bnEqual(newBasePrice, expectedNewBasePrice);
     bnEqual(actualPrice, expectedActualPrice);
   });
-
 });

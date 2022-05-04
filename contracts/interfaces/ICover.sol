@@ -155,6 +155,12 @@ interface ICover {
 
   function transferCovers(address from, address to, uint256[] calldata coverIds) external;
 
+
+  function createStakingPool(
+    address manager,
+    ProductInitializationParams[] calldata params
+  ) external returns (address stakingPoolAddress);
+
   /* ========== EVENTS ========== */
 
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);

@@ -116,6 +116,8 @@ library CoverUtilsLib {
       new MinimalBeaconProxy{ salt: bytes32(poolId) }(address(this))
     );
 
+    // [todo] handle the creation of NFT 0 which is the default NFT owned by the pool manager
+
     IStakingPool newStakingPool = IStakingPool(stakingPoolAddress);
     newStakingPool.initialize(manager, params);
 

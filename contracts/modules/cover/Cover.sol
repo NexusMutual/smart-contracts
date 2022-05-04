@@ -534,8 +534,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint groupId
   ) external returns (address stakingPoolAddress) {
 
-
     emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
+
+    // [todo] handle the creation of NFT 0 which is the default NFT owned by the pool manager
 
     return CoverUtilsLib.createStakingPool(manager, stakingPoolCounter++, params, depositAmount, groupId);
 

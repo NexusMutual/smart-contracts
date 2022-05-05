@@ -21,8 +21,13 @@ contract CoverMockStakingPool is StakingPool {
 
   uint public constant MAX_PRICE_RATIO = 1e20;
 
-  constructor (address _nxm, address _coverContract, address _memberRoles)
-  StakingPool("Nexus Mutual Staking Pool", "NMSPT", IERC20(_nxm), _coverContract) {
+  constructor (
+    address _nxm,
+    address _coverContract,
+    address _memberRoles
+  )
+    StakingPool("Nexus Mutual Staking Pool", "NMSPT", _nxm, _coverContract)
+  {
     memberRoles = _memberRoles;
   }
 

@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/math/SafeCast.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICover.sol";
+import "../../interfaces/INXMToken.sol";
 
 // total stake = active stake + expired stake
 // product stake = active stake * product weight
@@ -94,7 +95,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
   /* immutables */
 
-  IERC20 public immutable nxm;
+  INXMToken public immutable nxm;
   address public immutable coverContract;
 
   /* constants */
@@ -135,10 +136,10 @@ contract StakingPool is IStakingPool, ERC721 {
   constructor (
     string memory _name,
     string memory _symbol,
-    IERC20 _token,
+    address _token,
     address _coverContract
   ) ERC721(_name, _symbol) {
-    nxm = _token;
+    nxm = INXMToken(_token);
     coverContract = _coverContract;
   }
 
@@ -534,6 +535,19 @@ contract StakingPool is IStakingPool, ERC721 {
 
     uint _activeStake = activeStake;
     activeStake = _activeStake > amount ? _activeStake - amount : 0;
+  }
+
+  /* nft */
+
+  function _beforeTokenTransfer(
+    address from,
+    address /*to*/,
+    uint256 tokenId
+  ) internal override {
+    require(
+      nxm.isLockedForMV(from) < block.timestamp,
+      "StakingPool: Locked for voting in governance"
+    );
   }
 
   /* pool management */

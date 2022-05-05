@@ -196,21 +196,22 @@ contract StakingPool is IStakingPool, ERC721 {
 
       // SLOAD
       Group memory group = groups[_firstActiveGroupId];
-      ExpiredGroup memory expiredGroup = ExpiredGroup(
-        _activeStake, // stakeAmountAtExpiry
-        _stakeSharesSupply // stakeShareSupplyAtExpiry
-      );
-
       uint expiredStake = _activeStake * group.stakeShares / _stakeSharesSupply;
 
-      expiredGroups[_firstActiveGroupId] = expiredGroup;
+      group.lastAccNxmUpdate = _lastAccNxmUpdate;
+      group.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
 
+      // the group is expired so we decrease the stake and share supply
       _activeStake -= expiredStake;
       _stakeSharesSupply -= group.stakeShares;
       _rewardsSharesSupply -= group.rewardsShares;
 
       // SSTORE
       groups[_firstActiveGroupId] = group;
+      expiredGroups[_firstActiveGroupId] = ExpiredGroup(
+        _activeStake, // stakeAmountAtExpiry
+        _stakeSharesSupply // stakeShareSupplyAtExpiry
+      );
 
       // advance to the next group
       _firstActiveGroupId++;

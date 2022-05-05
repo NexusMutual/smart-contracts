@@ -7,6 +7,9 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/proxy/beacon/UpgradeableBeacon.sol";
 
+import "./CoverUtilsLib.sol";
+import "./MinimalBeaconProxy.sol";
+
 import "../../utils/SafeUintCast.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingPool.sol";
@@ -19,8 +22,6 @@ import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
-
-import "./MinimalBeaconProxy.sol";
 
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
@@ -47,9 +48,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
-  bytes32 public immutable stakingPoolProxyCodeHash;
   address public immutable override coverNFT;
-  address public immutable override stakingPoolImplementation;
+
+  /* Staking pool creation */
+  bytes32 public immutable stakingPoolProxyCodeHash;
+  address public immutable stakingPoolImplementation;
+
 
   /* ========== STATE VARIABLES ========== */
 
@@ -92,22 +96,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   constructor(
     IQuotationData _quotationData,
     IProductsV1 _productsV1,
-    address _stakingPoolImplementation,
     address _coverNFT,
-    address coverProxy
+    address _stakingPoolImplementation
   ) {
 
     // initialize immutable fields only
     quotationData = _quotationData;
     productsV1 = _productsV1;
-    stakingPoolProxyCodeHash = keccak256(
-      abi.encodePacked(
-        type(MinimalBeaconProxy).creationCode,
-        abi.encode(coverProxy)
-      )
-    );
-    stakingPoolImplementation =  _stakingPoolImplementation;
     coverNFT = _coverNFT;
+
+    stakingPoolProxyCodeHash = CoverUtilsLib.calculateProxyCodeHash();
+    stakingPoolImplementation = _stakingPoolImplementation;
   }
 
   function initialize() public {
@@ -145,65 +144,22 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     address fromOwner,
     address toNewOwner
   ) internal {
-    (
-      /*uint coverId*/,
-      address coverOwner,
-      address legacyProductId,
-      bytes4 currencyCode,
-      /*uint sumAssured*/,
-      /*uint premiumNXM*/
-    ) = quotationData.getCoverDetailsByCoverID1(coverId);
-    (
-      /*uint coverId*/,
-      uint8 status,
-      uint sumAssured,
-      uint16 coverPeriodInDays,
-      uint validUntil
-    ) = quotationData.getCoverDetailsByCoverID2(coverId);
 
-    require(fromOwner == coverOwner, "Cover can only be migrated by its owner");
-    require(LegacyCoverStatus(status) != LegacyCoverStatus.Migrated, "Cover has already been migrated");
-    require(LegacyCoverStatus(status) != LegacyCoverStatus.ClaimAccepted, "A claim has already been accepted");
-
-    {
-      (uint claimCount , bool hasOpenClaim,  /*hasAcceptedClaim*/) = tokenController().coverInfo(coverId);
-      require(!hasOpenClaim, "Cover has an open V1 claim");
-      require(claimCount < 2, "Cover already has 2 claims");
-    }
-
-    // Mark cover as migrated to prevent future calls on the same cover
-    quotationData.changeCoverStatusNo(coverId, uint8(LegacyCoverStatus.Migrated));
-
-
-    // mint the new cover
-    uint productId = productsV1.getNewProductId(legacyProductId);
-    Product memory product = _products[productId];
-    ProductType memory productType = _productTypes[product.productType];
-    require(
-      block.timestamp < validUntil + productType.gracePeriodInDays * 1 days,
-      "Cover outside of the grace period"
+    CoverUtilsLib.migrateCoverFromOwner(
+      CoverUtilsLib.MigrateParams(
+        coverId,
+        fromOwner,
+        toNewOwner,
+        ICoverNFT(coverNFT),
+        quotationData,
+        tokenController(),
+        productsV1
+      ),
+      _products,
+      _productTypes,
+      _coverData,
+      _coverSegments
     );
-
-    uint newCoverId = _coverData.length;
-
-    _coverData.push(
-      CoverData(
-        uint24(productId),
-        currencyCode == "ETH" ? 0 : 1, //payoutAsset
-        0 // amountPaidOut
-      )
-    );
-
-    _coverSegments[newCoverId].push(
-      CoverSegment(
-        SafeUintCast.toUint96(sumAssured * 10 ** 18), // amount
-        SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days), // start
-        SafeUintCast.toUint32(coverPeriodInDays * 1 days), // period
-        uint16(0) // priceRatio
-      )
-    );
-
-    ICoverNFT(coverNFT).safeMint(toNewOwner, newCoverId);
   }
 
   /// @dev Migrates covers from V1. Meant to be used by EOA Nexus Mutual members
@@ -584,27 +540,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function createStakingPool(
     address manager,
-    ProductInitializationParams[] calldata params
-  ) external override returns (address stakingPoolAddress) {
-
-    stakingPoolAddress = address(
-      new MinimalBeaconProxy{ salt: bytes32(uint(stakingPoolCount)) }(address(this))
-    );
-
-    IStakingPool(stakingPoolAddress).initialize(manager, params);
-
-    stakingPoolCount++;
+    ProductInitializationParams[] calldata params,
+    uint depositAmount,
+    uint groupId
+  ) external returns (address stakingPoolAddress) {
 
     emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
+
+    // [todo] add a fee parameter for the staking pool once its implemented
+    // [todo] handle the creation of NFT 0 which is the default NFT owned by the pool manager
+    return CoverUtilsLib.createStakingPool(manager, stakingPoolCount++, params, depositAmount, groupId);
   }
 
   function stakingPool(uint index) public view returns (IStakingPool) {
-
-    bytes32 hash = keccak256(
-      abi.encodePacked(bytes1(0xff), address(this), index, stakingPoolProxyCodeHash)
-    );
-    // cast last 20 bytes of hash to address
-    return IStakingPool(address(uint160(uint(hash))));
+    return CoverUtilsLib.stakingPool(index, stakingPoolProxyCodeHash);
   }
 
   function coverData(uint coverId) external override view returns (CoverData memory) {

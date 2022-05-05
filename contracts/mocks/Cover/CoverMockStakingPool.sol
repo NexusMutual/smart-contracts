@@ -36,7 +36,7 @@ contract CoverMockStakingPool is StakingPool {
   }
 
   function initialize(address _manager, uint _poolId) external /*override*/ {
-    manager = _manager;
+    _mint(_manager, totalSupply++);
     poolId = _poolId;
   }
 

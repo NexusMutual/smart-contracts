@@ -68,16 +68,11 @@ contract StakingPool is IStakingPool, ERC721 {
   // erc721 supply
   uint public totalSupply;
 
-  /*
-    (productId, poolAddress) => lastPrice
-    Last base prices at which a cover was sold by a pool for a particular product.
-  */
-  mapping(uint => LastPrice) lastBasePrices;
-
-  mapping(uint => uint) targetPrices;
+  // group id => group data
+  mapping(uint => Group) public groups;
 
   // group id => amount
-  mapping(uint => StakeGroup) public stakeGroups;
+  mapping(uint => ExpiredGroup) public expiredGroups;
 
   // pool bucket id => PoolBucket
   mapping(uint => PoolBucket) public poolBuckets;
@@ -88,10 +83,11 @@ contract StakingPool is IStakingPool, ERC721 {
   // product id => Product
   mapping(uint => Product) public products;
 
-  // nft id => group id => position data
-  mapping(uint => mapping(uint => PositionData)) public positionData;
+  // nft id => position data
+  mapping(uint => Position) public positions;
 
-  address public manager;
+  // nft id => group id => position group data
+  mapping(uint => mapping(uint => PositionGroupData)) public positionGroupData;
 
   /* immutables */
 
@@ -114,14 +110,6 @@ contract StakingPool is IStakingPool, ERC721 {
   uint public constant PRODUCT_WEIGHT_DENOMINATOR = 10_000;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10_000;
   uint public constant INITIAL_PRICE_DENOMINATOR = 10_000;
-
-  // product params flags
-  uint constant FLAG_PRODUCT_WEIGHT = 1;
-  uint constant FLAG_PRODUCT_PRICE = 2;
-
-  // withdraw flags
-  uint constant FLAG_WITHDRAW_DEPOSIT = 1;
-  uint constant FLAG_WITHDRAW_REWARDS = 2;
 
   modifier onlyCoverContract {
     require(msg.sender == coverContract, "StakingPool: Only Cover contract can call this function");
@@ -205,20 +193,22 @@ contract StakingPool is IStakingPool, ERC721 {
       }
 
       // SLOAD
-      StakeGroup memory group = stakeGroups[_firstActiveGroupId];
+      Group memory group = groups[_firstActiveGroupId];
+      ExpiredGroup memory expiredGroup = ExpiredGroup(
+        _activeStake, // stakeAmountAtExpiry
+        _stakeSharesSupply // stakeShareSupplyAtExpiry
+      );
 
       uint expiredStake = _activeStake * group.stakeShares / _stakeSharesSupply;
+
+      expiredGroups[_firstActiveGroupId] = expiredGroup;
+
       _activeStake -= expiredStake;
-
-      group.stakeAmountAtExpiry = expiredStake;
-      group.accNxmPerRewardShareAtExpiry = _accNxmPerRewardsShare;
-      group.stakeShareSupplyAtExpiry = _stakeSharesSupply;
-
       _stakeSharesSupply -= group.stakeShares;
       _rewardsSharesSupply -= group.rewardsShares;
 
       // SSTORE
-      stakeGroups[_firstActiveGroupId] = group;
+      groups[_firstActiveGroupId] = group;
 
       // advance to the next group
       _firstActiveGroupId++;
@@ -291,8 +281,8 @@ contract StakingPool is IStakingPool, ERC721 {
     /* update reward streaming */
 
     // SLOAD
-    PositionData memory position = positionData[positionId][groupId];
-    StakeGroup memory group = stakeGroups[groupId];
+    Position memory position = positions[positionId];
+    Group memory group = groups[groupId];
 
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
     uint earnedPerShareSinceLastUpdate = 0;
@@ -318,8 +308,8 @@ contract StakingPool is IStakingPool, ERC721 {
     group.rewardsShares += newRewardsShares;
 
     // SSTORE
-    positionData[positionId][groupId] = position;
-    stakeGroups[groupId] = group;
+    positions[positionId] = position;
+    groups[groupId] = group;
 
     /* update globals */
 
@@ -346,56 +336,55 @@ contract StakingPool is IStakingPool, ERC721 {
 
     updateGroups();
 
-    uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
-    uint withdrawable;
+    uint withdrawnStake;
 
     for (uint i = 0; i < params.length; i++) {
 
       uint positionId = params[i].positionId;
-      uint groupId = params[i].groupId;
+      uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;
 
       // check ownership or approval
       require(_isApprovedOrOwner(msg.sender, positionId), "StakingPool: Not owner or approved");
 
-      if (params[i].flags & FLAG_WITHDRAW_DEPOSIT != 0) {
+      // withdraw stake from all expired groups
+      if (params[i].withdrawStake) {
 
-        // make sure the group is expired
-        require(groupId < _firstActiveGroupId, "StakingPool: Group is still active");
+        uint withdrawnStakeShares;
+        uint groupCount = params[i].groupIds.length;
 
-        // calculate the amount of nxm for this position
-        uint groupStake = stakeGroups[groupId].stakeAmountAtExpiry;
-        uint groupShares = stakeGroups[groupId].stakeShareSupplyAtExpiry;
-        uint positionShares = positionData[positionId][groupId].stakeShares;
+        for (uint j = 0; j < groupCount; j++) {
 
-        withdrawable += groupStake * positionShares / groupShares;
+          uint groupId = params[i].groupIds[j];
 
-        // mark as withdrawn
-        positionData[positionId][groupId].stakeShares = 0;
+          if (groupId >= _firstActiveGroupId) {
+            // the group is still active
+            continue;
+          }
+
+          // calculate the amount of nxm for this position
+          uint stake = expiredGroups[groupId].stakeAmountAtExpiry;
+          uint stakeShareSupply = expiredGroups[groupId].stakeShareSupplyAtExpiry;
+          uint positionStakeShares = positionGroupData[positionId][groupId].stakeShares;
+
+          withdrawnStakeShares += positionStakeShares;
+          withdrawnStake += stake * positionStakeShares / stakeShareSupply;
+
+          // mark as withdrawn
+          positionGroupData[positionId][groupId].stakeShares = 0;
+        }
+
+        positions[positionId].stakeShares -= withdrawnStakeShares;
       }
 
-      if (params[i].flags & FLAG_WITHDRAW_REWARDS != 0) {
-
-        // TODO: additional accumulator?
-        /*
-        // if the group is expired, used stored accumulated rewards value
-        uint accRewards = groupId < _firstActiveGroupId
-          ? stakeGroups[groupId].accNxmPerRewardsShare
-          : _accNxmPerRewardsShare;
-
-        // expired case
-        if (groupId < _firstActiveGroupId) {
-          //
-        }
-        */
+      if (params[i].withdrawRewards) {
 
       }
 
     }
 
-    // 1. check nft ownership / allowance
-    // 2. loop through each group:
-    // 2.1. check group expiration if the deposit flag is set
+    // - sum up nxm amount of each group
+    // - transfer nxm to staker
     // 2.2. calculate the reward amount if the reward flag is set
     // 3. sum up nxm amount of each group
     // 4. transfer nxm to staker

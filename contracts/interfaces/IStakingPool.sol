@@ -39,13 +39,14 @@ interface IStakingPool is IERC721 {
   // stakers are grouped based on the timelock expiration
   // group index is calculated based on the expiration date
   // the initial proposal is to have 4 groups per year (1 group per quarter)
-  struct StakeGroup {
+  struct Group {
     uint stakeShares;
     uint rewardsShares;
     uint lastAccNxmPerRewardShare;
     uint lastAccNxmUpdate;
-    // todo: consider moving these three into a separate struct
-    uint accNxmPerRewardShareAtExpiry;
+  }
+
+  struct ExpiredGroup {
     uint stakeAmountAtExpiry;
     uint stakeShareSupplyAtExpiry;
   }
@@ -57,6 +58,11 @@ interface IStakingPool is IERC721 {
     uint lastAccNxmUpdate;
     uint rewardEarned;
     uint rewardWithdrawn;
+  }
+
+  struct PositionGroupData {
+    uint stakeShares;
+    uint rewardsShares;
   }
 
   struct Product {

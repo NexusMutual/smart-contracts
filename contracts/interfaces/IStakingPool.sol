@@ -14,9 +14,10 @@ struct WithdrawParams {
 
 struct ProductParams {
   uint productId;
+  bool setWeight;
+  bool setPrice;
   uint weight;
   uint targetPrice;
-  uint flags;
 }
 
 struct ProductInitializationParams {

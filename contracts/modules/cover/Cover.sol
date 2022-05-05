@@ -144,7 +144,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     address fromOwner,
     address toNewOwner
   ) internal {
-    
+
     CoverUtilsLib.migrateCoverFromOwner(
       CoverUtilsLib.MigrateParams(
         coverId,
@@ -547,6 +547,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
 
+    // [todo] add a fee parameter for the staking pool once its implemented
     // [todo] handle the creation of NFT 0 which is the default NFT owned by the pool manager
     return CoverUtilsLib.createStakingPool(manager, stakingPoolCount++, params, depositAmount, groupId);
   }

@@ -500,28 +500,10 @@ contract StakingPool is IStakingPool, ERC721 {
     return a > b ? a : b;
   }
 
-   function calculateCapacity(
-     uint staked,
-     uint productWeight,
-     uint globalCapacityRatio,
-     uint capacityReductionRatio
-   ) internal pure returns (uint) {
-     return staked *
-     globalCapacityRatio *
-     productWeight *
-     (CAPACITY_REDUCTION_DENOMINATOR - capacityReductionRatio) /
-     GLOBAL_CAPACITY_DENOMINATOR /
-     PRODUCT_WEIGHT_DENOMINATOR /
-     CAPACITY_REDUCTION_DENOMINATOR;
-   }
-
   function getPriceParameters(
-    uint productId,
-    uint globalCapacityRatio,
-    uint capacityReductionRatio,
-    uint period
-  ) external view returns (
-    uint activeCover, uint[] memory capacities, uint lastBasePrice, uint targetPrice
+    uint productId
+  ) external override view returns (
+    uint activeCover, uint[] memory staked, uint lastBasePrice, uint targetPrice
   ) {
 
     Product storage product = products[productId];
@@ -529,17 +511,11 @@ contract StakingPool is IStakingPool, ERC721 {
     activeCover = getAllocatedProductStake(productId);
 
     uint maxGroupSpanCount = ICover(coverContract).MAX_COVER_PERIOD() / GROUP_SIZE + 1;
-    capacities = new uint[](maxGroupSpanCount);
+    staked = new uint[](maxGroupSpanCount);
     for (uint i = 0; i < maxGroupSpanCount; i++) {
-      uint staked = getProductStake(productId, block.timestamp + i * GROUP_SIZE);
-
-      capacities[i] = calculateCapacity(
-        staked,
-        product.weight,
-        globalCapacityRatio,
-        capacityReductionRatio
-      );
+      staked[i] = getProductStake(productId, block.timestamp + i * GROUP_SIZE);
     }
+
     lastBasePrice = lastBasePrices[productId].value;
     targetPrice = targetPrices[productId];
   }

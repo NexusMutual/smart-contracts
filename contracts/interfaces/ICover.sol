@@ -134,11 +134,6 @@ interface ICover {
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
-  function createStakingPool(
-    address manager,
-    ProductInitializationParams[] memory params
-  ) external returns (address stakingPoolAddress);
-
   function setInitialPrices(
     uint[] calldata productId,
     uint16[] calldata initialPriceRatio
@@ -170,6 +165,13 @@ interface ICover {
   function coverNFT() external returns (address);
 
   function transferCovers(address from, address to, uint256[] calldata coverIds) external;
+
+  function createStakingPool(
+    address manager,
+    ProductInitializationParams[] calldata params,
+    uint depositAmount,
+    uint groupId
+  ) external returns (address stakingPoolAddress);
 
 
   /* ========== EVENTS ========== */

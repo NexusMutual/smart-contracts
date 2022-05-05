@@ -10,7 +10,7 @@ const {
 const { createStakingPool, assertCoverFields } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 
-describe.only('buyCover', function () {
+describe('buyCover', function () {
 
   it('should purchase new cover using 1 staking pool', async function () {
     const { cover } = this;

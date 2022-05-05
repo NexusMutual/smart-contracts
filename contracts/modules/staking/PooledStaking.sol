@@ -687,7 +687,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
 
 
       if (_newStake != 0) {
-        unchecked{i++;}
+        i++;
         continue;
       }
 
@@ -698,11 +698,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
       _contractStakers[i] = _contractStakers[_stakerCount - 1];
       _contractStakers.pop();
 
-      // i-- might underflow to MAX_UINT
-      // but that's fine since it will be incremented back to 0 on the next loop
-      //unchecked{i--;}
       _stakerCount--;
-      //unchecked{i++;}
     }
 
     delete burn;
@@ -1442,24 +1438,16 @@ contract PooledStaking is IPooledStaking, MasterAware {
     }
 
     {
-      IStakingPool stakingPool = IStakingPool(cover.createStakingPool(stakerAddress, params));
-      uint stakePositionNFTId;
 
-      {
-        // [todo] This might require an offset to start the first group at the time of v2 deploy
-        uint GROUP_SIZE = 91 days;
-        uint firstActiveGroupId = block.timestamp / GROUP_SIZE;
+      // [todo] This might require an offset to start the first group at the time of v2 deploy
+      uint GROUP_SIZE = 91 days;
+      uint firstActiveGroupId = block.timestamp / GROUP_SIZE;
 
-        // Use the groupId provided as a parameter if the user is migrating to v2 himself
-        // Use next id after the first active group id for those in the initial migration list
-        uint groupIdInEffect = stakerAddress == msg.sender ? groupId : firstActiveGroupId + 1;
+      // Use the groupId provided as a parameter if the user is migrating to v2 himself
+      // Use next id after the first active group id for those in the initial migration list
+      uint groupIdInEffect = stakerAddress == msg.sender ? groupId : firstActiveGroupId + 1;
 
-        // Move deposit to v2 pool
-        stakePositionNFTId = stakingPool.deposit(deposit, groupIdInEffect, 0);
-      }
-
-      // NFT transfer reverts if stakerAddress is a contract that doesn't implement IERC721Receiver
-      stakingPool.safeTransferFrom(address(this), stakerAddress, stakePositionNFTId);
+      cover.createStakingPool(stakerAddress, params, deposit, groupIdInEffect);
     }
 
     // Finally set the v1 deposit to 0

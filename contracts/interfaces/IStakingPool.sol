@@ -8,8 +8,9 @@ import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 
 struct WithdrawParams {
   uint positionId;
-  uint groupId;
-  uint flags;
+  bool withdrawStake;
+  bool withdrawRewards;
+  uint[] groupIds;
 }
 
 struct ProductParams {

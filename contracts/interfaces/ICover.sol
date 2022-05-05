@@ -110,7 +110,11 @@ interface ICover {
 
   function productTypes(uint id) external view returns (ProductType memory);
 
-  function isAssetSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) external returns (bool);
+  function isAssetSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) external view returns (bool);
+
+  function stakingPoolCount() external view returns (uint64);
+
+  function productsCount() external view returns (uint);
 
   /* === MUTATIVE FUNCTIONS ==== */
 
@@ -164,6 +168,8 @@ interface ICover {
   ) external returns (address stakingPoolAddress);
 
   /* ========== EVENTS ========== */
+
+  function MAX_COVER_PERIOD() external view returns (uint);
 
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
   event ProductTypeUpserted(uint id, string ipfsMetadata);

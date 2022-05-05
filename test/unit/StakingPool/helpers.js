@@ -92,6 +92,7 @@ function getPrices (
     lastUpdateTime,
     blockTimestamp,
   );
+  
   // calculate actualPrice using the current basePrice
   const actualPrice = calculatePrice(amount, basePrice, activeCover, capacity);
 

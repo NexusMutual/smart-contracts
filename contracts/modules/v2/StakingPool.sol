@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/math/SafeCast.sol";
 import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/ICover.sol";
 
 // total stake = active stake + expired stake
 // product stake = active stake * product weight
@@ -65,6 +66,14 @@ contract StakingPool is IStakingPool, ERC721 {
   // erc721 supply
   uint public totalSupply;
 
+  /*
+    (productId, poolAddress) => lastPrice
+    Last base prices at which a cover was sold by a pool for a particular product.
+  */
+  mapping(uint => LastPrice) lastBasePrices;
+
+  mapping(uint => uint) targetPrices;
+
   // group id => amount
   mapping(uint => StakeGroup) public stakeGroups;
 
@@ -98,6 +107,11 @@ contract StakingPool is IStakingPool, ERC721 {
   uint constant REWARDS_SHARES_DENOMINATOR = 100;
   uint constant WEIGHT_DENOMINATOR = 100;
   uint constant REWARDS_DENOMINATOR = 100;
+
+  uint public constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
+  uint public constant PRODUCT_WEIGHT_DENOMINATOR = 10_000;
+  uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10_000;
+  uint public constant INITIAL_PRICE_DENOMINATOR = 10_000;
 
   // product params flags
   uint constant FLAG_PRODUCT_WEIGHT = 1;
@@ -454,14 +468,14 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function getProductStake(
     uint productId, uint coverExpirationDate
-  ) external view returns (uint) {
+  ) public view returns (uint) {
     productId;
     coverExpirationDate;
     block.timestamp;
     return 0;
   }
 
-  function getAllocatedProductStake(uint productId) external view returns (uint) {
+  function getAllocatedProductStake(uint productId) public view returns (uint) {
     productId;
     block.timestamp;
     return 0;
@@ -486,4 +500,23 @@ contract StakingPool is IStakingPool, ERC721 {
     return a > b ? a : b;
   }
 
+  function getPriceParameters(
+    uint productId
+  ) external override view returns (
+    uint activeCover, uint[] memory staked, uint lastBasePrice, uint targetPrice
+  ) {
+
+    Product storage product = products[productId];
+
+    activeCover = getAllocatedProductStake(productId);
+
+    uint maxGroupSpanCount = ICover(coverContract).MAX_COVER_PERIOD() / GROUP_SIZE + 1;
+    staked = new uint[](maxGroupSpanCount);
+    for (uint i = 0; i < maxGroupSpanCount; i++) {
+      staked[i] = getProductStake(productId, block.timestamp + i * GROUP_SIZE);
+    }
+
+    lastBasePrice = lastBasePrices[productId].value;
+    targetPrice = targetPrices[productId];
+  }
 }

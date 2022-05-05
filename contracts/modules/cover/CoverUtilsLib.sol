@@ -84,10 +84,10 @@ library CoverUtilsLib {
 
     _coverSegments[newCoverId].push(
       CoverSegment(
-        SafeUintCast.toUint96(sumAssured * 10 ** 18),
-        SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days),
-        SafeUintCast.toUint32(coverPeriodInDays * 1 days),
-        uint16(0)
+        SafeUintCast.toUint96(sumAssured * 10 ** 18), // amount
+        SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days), // start
+        SafeUintCast.toUint32(coverPeriodInDays * 1 days), // period
+        uint16(0) // priceRatio
       )
     );
 

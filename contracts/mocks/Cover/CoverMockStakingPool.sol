@@ -16,9 +16,10 @@ contract CoverMockStakingPool is StakingPool {
 
   mapping (uint => uint) public usedCapacity;
   mapping (uint => uint) public stakedAmount;
-  mapping (uint => uint) public targetPrices;
 
   mapping (uint => uint) public mockPrices;
+
+  uint public constant MAX_PRICE_RATIO = 1e20;
 
   constructor (address _nxm, address _coverContract, address _memberRoles)
   StakingPool("Nexus Mutual Staking Pool", "NMSPT", IERC20(_nxm), _coverContract) {
@@ -50,7 +51,11 @@ contract CoverMockStakingPool is StakingPool {
     rewardRatio;
     initialPriceRatio;
     usedCapacity[productId] += amountInNXM;
-    return (amountInNXM, mockPrices[productId] * amountInNXM / 10000);
+    return (amountInNXM, calculatePremium(mockPrices[productId], amountInNXM, period));
+  }
+
+  function calculatePremium(uint priceRatio, uint coverAmount, uint period) public pure returns (uint) {
+    return priceRatio * coverAmount / MAX_PRICE_RATIO * period / 365 days;
   }
 
   function stake(uint amount) external {
@@ -107,5 +112,4 @@ contract CoverMockStakingPool is StakingPool {
   function changeDependentContractAddress() external {
     // noop
   }
-
 }

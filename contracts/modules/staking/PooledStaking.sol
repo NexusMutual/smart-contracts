@@ -687,7 +687,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
 
 
       if (_newStake != 0) {
-        unchecked{i++;}
+        i++;
         continue;
       }
 
@@ -698,11 +698,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
       _contractStakers[i] = _contractStakers[_stakerCount - 1];
       _contractStakers.pop();
 
-      // i-- might underflow to MAX_UINT
-      // but that's fine since it will be incremented back to 0 on the next loop
-      //unchecked{i--;}
       _stakerCount--;
-      //unchecked{i++;}
     }
 
     delete burn;

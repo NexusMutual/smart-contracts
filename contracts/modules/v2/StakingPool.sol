@@ -137,10 +137,12 @@ contract StakingPool is IStakingPool, ERC721 {
   ) external onlyCoverContract {
     // create ownership position
     _mint(_manager, 0);
+    totalSupply = 1;
     // TODO: initialize products
     params;
   }
 
+  // used to transfer all nfts when a user switches the membership to a new address
   function operatorTransfer(
     address from,
     address to,
@@ -245,7 +247,7 @@ contract StakingPool is IStakingPool, ERC721 {
     // deposit to position id = 0 is not allowed
     // we treat it as a flag to create a new position
     if (_positionId == 0) {
-      positionId = ++totalSupply;
+      positionId = totalSupply++;
       _mint(msg.sender, positionId);
     } else {
       positionId = _positionId;
@@ -575,6 +577,12 @@ contract StakingPool is IStakingPool, ERC721 {
     block.timestamp;
     return 0;
   }
+
+  function manager() external view returns (address) {
+    return ownerOf(0);
+  }
+
+  /* management */
 
   function addProducts(ProductParams[] memory params) external onlyManager {
     params;

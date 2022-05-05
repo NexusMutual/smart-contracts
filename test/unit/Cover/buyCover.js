@@ -13,7 +13,7 @@ const { bnEqual } = require('../utils').helpers;
 describe('buyCover', function () {
 
   it('should purchase new cover using 1 staking pool', async function () {
-    const { cover, coverViewer } = this;
+    const { cover } = this;
 
     const {
       governanceContracts: [gv1],
@@ -70,9 +70,6 @@ describe('buyCover', function () {
 
     await assertCoverFields(cover, expectedCoverId,
       { productId, payoutAsset, period, amount, targetPriceRatio });
-
-    // const activeCoverAmountInNXM = await cover.globalActiveCoverAmountInNXM();
-    // bnEqual(activeCoverAmountInNXM, amount);
   });
 
   it('should purchase new cover using 2 staking pools', async function () {
@@ -168,7 +165,7 @@ describe('buyCover', function () {
       cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
     );
 
-    const expectedBasePremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const expectedBasePremium = amount.mul(targetPriceRatio).div(priceDenominator).mul(period).div(3600 * 24 * 365);
     const expectedCommission = expectedBasePremium.mul(commissionRatio).div(priceDenominator);
     const expectedPremium = expectedBasePremium.add(expectedCommission);
 
@@ -245,7 +242,7 @@ describe('buyCover', function () {
       cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
     );
 
-    const expectedBasePremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const expectedBasePremium = amount.mul(targetPriceRatio).div(priceDenominator).mul(period).div(3600 * 24 * 365);
     const expectedCommission = expectedBasePremium.mul(commissionRatio).div(10000);
     const expectedPremium = expectedBasePremium.add(expectedCommission);
 

@@ -26,6 +26,12 @@ struct ProductInitializationParams {
   uint targetPrice;
 }
 
+struct LastPrice {
+  uint96 value;
+  uint32 lastUpdateTime;
+}
+
+
 interface IStakingPool is IERC721 {
 
   /* structs for storage */
@@ -98,4 +104,10 @@ interface IStakingPool is IERC721 {
 
   function getAllocatedProductStake(uint productId) external view returns (uint);
 
+
+  function getPriceParameters(
+    uint productId
+  ) external view returns (
+    uint activeCover, uint[] memory capacities, uint lastBasePrice, uint targetPrice
+  );
 }

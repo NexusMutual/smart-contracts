@@ -28,15 +28,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* === CONSTANTS ==== */
 
-  uint public constant STAKE_SPEED_UNIT = 100000e18;
-  uint public constant PRICE_CURVE_EXPONENT = 7;
-  uint public constant MAX_PRICE_PERCENTAGE = 1e20;
   uint public constant BUCKET_SIZE = 7 days;
   uint public constant REWARD_DENOMINATOR = 2;
 
   uint public constant PRICE_DENOMINATOR = 10000;
   uint public constant COMMISSION_DENOMINATOR = 10000;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
+  uint public constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
 
   uint public constant BURN_DENOMINATOR = 1e18;
 
@@ -70,7 +68,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   uint24 public globalCapacityRatio;
   uint24 public globalRewardsRatio;
-  uint64 public stakingPoolCounter;
+  uint64 public override stakingPoolCount;
 
   /*
     bit map representing which assets are globally supported for paying for and for paying out covers
@@ -85,6 +83,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   mapping(uint24 => uint96) public totalActiveCoverAmountInAsset;
   mapping(uint24 => mapping(uint => uint96)) public totalActiveCoverInAssetExpiryBucket;
   mapping(uint24 => uint32) public lastGlobalBuckets;
+
+  event CoverBought(uint coverId, uint productId, uint segmentId, address buyer);
+  event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -195,10 +196,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     _coverSegments[newCoverId].push(
       CoverSegment(
-        SafeUintCast.toUint96(sumAssured * 10 ** 18),
-        SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days),
-        SafeUintCast.toUint32(coverPeriodInDays * 1 days),
-        uint16(0)
+        SafeUintCast.toUint96(sumAssured * 10 ** 18), // amount
+        SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days), // start
+        SafeUintCast.toUint32(coverPeriodInDays * 1 days), // period
+        uint16(0) // priceRatio
       )
     );
 
@@ -263,6 +264,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     updateGlobalActiveCoverAmountPerAsset(params.period, params.amount, params.payoutAsset);
 
+    emit CoverBought(coverId, params.productId, 0, msg.sender);
     return coverId;
   }
 
@@ -299,11 +301,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       );
     }
 
+    // priceRatio is normalized on a per year basis (eg. 1.5% per year)
+    uint16 priceRatio = SafeUintCast.toUint16(
+          divRound(totalPremiumInNXM * PRICE_DENOMINATOR * MAX_COVER_PERIOD / params.period, totalCoverAmountInNXM)
+    );
+
     _coverSegments[coverId].push(CoverSegment(
-        SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18),
-        uint32(block.timestamp + 1),
-        SafeUintCast.toUint32(params.period),
-        SafeUintCast.toUint16(totalPremiumInNXM * PRICE_DENOMINATOR / totalCoverAmountInNXM)
+        SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18), // amount
+        uint32(block.timestamp + 1), // start
+        SafeUintCast.toUint32(params.period), // period
+        priceRatio
       ));
 
     return totalPremiumInNXM;
@@ -348,7 +355,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(lastCoverSegment.start + lastCoverSegment.period > block.timestamp, "Cover: cover expired");
     require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(buyCoverParams.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
-    require(buyCoverParams.payoutAsset == cover.payoutAsset, "Cover: Payout asset mismatch");
+
+    // Override cover specific parameters
+    buyCoverParams.payoutAsset = cover.payoutAsset;
+    buyCoverParams.productId = cover.productId;
 
     uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
 
@@ -378,31 +388,30 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint refundInCoverAsset =
       lastCoverSegment.priceRatio * lastCoverSegment.amount
       / PRICE_DENOMINATOR * remainingPeriod
-      / lastCoverSegment.period;
+      / MAX_COVER_PERIOD;
 
-    // update the price ratio beased on the shorter period
-    lastCoverSegment.priceRatio = SafeUintCast.toUint16(lastCoverSegment.priceRatio * remainingPeriod / lastCoverSegment.period);
     // edit cover so it ends at the current block
     lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
 
     uint totalPremiumInNXM = _buyCover(buyCoverParams, coverId, poolAllocations);
 
-    handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset, cover.payoutAsset);
+    handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset);
 
     updateGlobalActiveCoverAmountPerAsset(buyCoverParams.period, buyCoverParams.amount, buyCoverParams.payoutAsset);
+
+    emit CoverEdited(coverId, cover.productId, lastCoverSegmentIndex + 1, msg.sender);
   }
 
   function handlePaymentAndRefund(
     BuyCoverParams memory buyCoverParams,
     uint totalPremiumInNXM,
-    uint refundInCoverAsset,
-    uint payoutAsset
+    uint refundInCoverAsset
   ) internal {
 
     IPool _pool = pool();
 
     // calculate refundValue in NXM
-    uint refundInNXM = refundInCoverAsset * 1e18 / _pool.getTokenPrice(payoutAsset);
+    uint refundInNXM = refundInCoverAsset * 1e18 / _pool.getTokenPrice(buyCoverParams.payoutAsset);
 
     if (refundInNXM >= totalPremiumInNXM) {
       // no extra charge for the user
@@ -413,6 +422,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     (, uint8 paymentAssetDecimals) = _pool.coverAssets(buyCoverParams.paymentAsset);
 
     uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
+
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (buyCoverParams.payWithNXM) {
@@ -427,7 +437,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     // calculate the refund value in the payment asset
     uint refundInPaymentAsset = refundInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
-      // retrieve extra required payment
+
+    // retrieve extra required payment
     retrievePayment(
       premiumInPaymentAsset - refundInPaymentAsset,
       buyCoverParams.paymentAsset,
@@ -577,11 +588,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   ) external override returns (address stakingPoolAddress) {
 
     stakingPoolAddress = address(
-      new MinimalBeaconProxy{ salt: bytes32(uint(stakingPoolCounter)) }(address(this))
+      new MinimalBeaconProxy{ salt: bytes32(uint(stakingPoolCount)) }(address(this))
     );
+
     IStakingPool(stakingPoolAddress).initialize(manager, params);
 
-    stakingPoolCounter++;
+    stakingPoolCount++;
 
     emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
   }
@@ -621,6 +633,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function coverSegmentsCount(uint coverId) external override view returns (uint) {
     return _coverSegments[coverId].length;
+  }
+
+  function productsCount() external override view returns (uint) {
+    return _products.length;
   }
 
   /* ========== PRODUCT CONFIGURATION ========== */
@@ -692,6 +708,66 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       return (1 << payoutAsset) & coverAssetsFallback > 0;
     }
     return (1 << payoutAsset) & payoutAssetsBitMap > 0;
+  }
+
+  /* ========== VIEWS ========== */
+
+  function getPoolAllocationPriceParametersForProduct(uint poolId, uint productId) public view returns (
+    PoolAllocationPriceParameters memory params
+  ) {
+    IStakingPool _pool = stakingPool(poolId);
+    Product memory product = _products[productId];
+
+
+    uint[] memory staked;
+    (params.activeCover, staked, params.lastBasePrice, params.targetPrice) = _pool.getPriceParameters(productId);
+    params.capacities = new uint[](staked.length);
+    for (uint i = 0; i < staked.length; i++) {
+      params.capacities[i] = calculateCapacity(
+        staked[i],
+        product.capacityReductionRatio
+      );
+    }
+
+    params.initialPriceRatio = product.initialPriceRatio;
+  }
+
+  struct PoolAllocationPriceParameters {
+    uint activeCover;
+    uint[] capacities;
+    uint initialPriceRatio;
+    uint lastBasePrice;
+    uint targetPrice;
+  }
+
+  function getPoolAllocationPriceParameters(uint poolId) public view returns (
+    PoolAllocationPriceParameters[] memory params
+  ) {
+    uint count = _products.length;
+    params = new PoolAllocationPriceParameters[](count);
+
+    for (uint i = 0; i < count; i++) {
+      params[i] = getPoolAllocationPriceParametersForProduct(poolId, i);
+    }
+  }
+
+  /* ========== CAPACITY CALCULATION ========== */
+
+  function calculateCapacity(
+    uint staked,
+    uint capacityReductionRatio
+  ) internal view returns (uint) {
+    return staked *
+    globalCapacityRatio *
+    (CAPACITY_REDUCTION_DENOMINATOR - capacityReductionRatio) /
+    GLOBAL_CAPACITY_DENOMINATOR /
+    CAPACITY_REDUCTION_DENOMINATOR;
+  }
+
+  /* ========== UTILS ========== */
+
+  function divRound(uint a, uint b) private pure returns (uint) {
+    return (a + b / 2) / b;
   }
 
   /* ========== DEPENDENCIES ========== */

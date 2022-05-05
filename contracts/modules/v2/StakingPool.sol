@@ -385,9 +385,6 @@ contract StakingPool is IStakingPool, ERC721 {
 
     // - sum up nxm amount of each group
     // - transfer nxm to staker
-    // 2.2. calculate the reward amount if the reward flag is set
-    // 3. sum up nxm amount of each group
-    // 4. transfer nxm to staker
   }
 
   function allocateStake(
@@ -425,7 +422,7 @@ contract StakingPool is IStakingPool, ERC721 {
       uint availableShares = _stakeSharesSupply;
 
       for (uint i = _firstActiveGroupId; i < _firstAvailableGroupId; ++i) {
-        availableShares -= stakeGroups[i].stakeShares;
+        availableShares -= groups[i].stakeShares;
       }
 
       // total stake available without applying product weight

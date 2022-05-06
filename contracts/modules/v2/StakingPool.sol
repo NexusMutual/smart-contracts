@@ -342,34 +342,34 @@ contract StakingPool is IStakingPool, ERC721 {
 
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
     uint withdrawnStake;
+    uint withdrawnRewards;
 
     for (uint i = 0; i < params.length; i++) {
 
-      uint positionId = params[i].positionId;
-      uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;
-
       // check ownership or approval
+      uint positionId = params[i].positionId;
       require(_isApprovedOrOwner(msg.sender, positionId), "StakingPool: Not owner or approved");
 
-      // withdraw stake from all expired groups
-      if (params[i].withdrawStake) {
+      uint withdrawnStakeShares;
+      uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;
+      uint groupCount = params[i].groupIds.length;
 
-        uint withdrawnStakeShares;
-        uint groupCount = params[i].groupIds.length;
+      for (uint j = 0; j < groupCount; j++) {
 
-        for (uint j = 0; j < groupCount; j++) {
+        uint groupId = params[i].groupIds[j];
+        PositionGroupData memory posGroupData = positionGroupData[positionId][groupId];
 
-          uint groupId = params[i].groupIds[j];
+        if (params[i].withdrawStake) {
 
+          // is the group is still active?
           if (groupId >= _firstActiveGroupId) {
-            // the group is still active
             continue;
           }
 
           // calculate the amount of nxm for this position
           uint stake = expiredGroups[groupId].stakeAmountAtExpiry;
           uint stakeShareSupply = expiredGroups[groupId].stakeShareSupplyAtExpiry;
-          uint positionStakeShares = positionGroupData[positionId][groupId].stakeShares;
+          uint positionStakeShares = posGroupData.stakeShares;
 
           withdrawnStakeShares += positionStakeShares;
           withdrawnStake += stake * positionStakeShares / stakeShareSupply;
@@ -378,13 +378,12 @@ contract StakingPool is IStakingPool, ERC721 {
           positionGroupData[positionId][groupId].stakeShares = 0;
         }
 
-        positions[positionId].stakeShares -= withdrawnStakeShares;
+        if (params[i].withdrawRewards) {
+          // TODO: implement
+        }
       }
 
-      if (params[i].withdrawRewards) {
-
-      }
-
+      positions[positionId].stakeShares -= withdrawnStakeShares;
     }
 
     // - sum up nxm amount of each group

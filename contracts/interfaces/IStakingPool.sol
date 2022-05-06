@@ -44,11 +44,11 @@ interface IStakingPool is IERC721 {
   struct Group {
     uint stakeShares;
     uint rewardsShares;
-    uint lastAccNxmPerRewardShare;
-    uint lastAccNxmUpdate;
   }
 
   struct ExpiredGroup {
+    uint expiredAt;
+    uint accNxmPerRewardShareAtExpiry;
     uint stakeAmountAtExpiry;
     uint stakeShareSupplyAtExpiry;
   }
@@ -57,7 +57,6 @@ interface IStakingPool is IERC721 {
     uint stakeShares;
     uint rewardsShares;
     uint lastAccNxmPerRewardShare;
-    uint lastAccNxmUpdate;
     uint rewardEarned;
     uint rewardWithdrawn;
   }

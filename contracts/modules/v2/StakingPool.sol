@@ -182,6 +182,7 @@ contract StakingPool is IStakingPool, ERC721 {
       uint elapsed = bucketEndTime - _lastAccNxmUpdate;
 
       // todo: should be allowed to overflow?
+      // todo: handle division by zero
       _accNxmPerRewardsShare += elapsed * _rewardPerSecond / _rewardsSharesSupply;
       _lastAccNxmUpdate = bucketEndTime;
       _rewardPerSecond -= poolBuckets[_firstActiveBucketId].rewardPerSecondCut;
@@ -194,21 +195,29 @@ contract StakingPool is IStakingPool, ERC721 {
         continue;
       }
 
+      // todo: handle _firstActiveGroupId = 0 case
+
       // SLOAD
       Group memory group = groups[_firstActiveGroupId];
+
+      // todo: handle division by zero
       uint expiredStake = _activeStake * group.stakeShares / _stakeSharesSupply;
 
-      group.lastAccNxmUpdate = _lastAccNxmUpdate;
-      group.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
-
-      // the group is expired so we decrease the stake and share supply
+      // the group is expired now so we decrease the stake and share supply
       _activeStake -= expiredStake;
       _stakeSharesSupply -= group.stakeShares;
       _rewardsSharesSupply -= group.rewardsShares;
 
+      // todo: update nft 0
+
+      group.stakeShares = 0;
+      group.rewardsShares = 0;
+
       // SSTORE
       groups[_firstActiveGroupId] = group;
       expiredGroups[_firstActiveGroupId] = ExpiredGroup(
+        bucketEndTime, // expiredAt
+        _accNxmPerRewardsShare, // accNxmPerRewardShareAtExpiry
         _activeStake, // stakeAmountAtExpiry
         _stakeSharesSupply // stakeShareSupplyAtExpiry
       );
@@ -247,7 +256,9 @@ contract StakingPool is IStakingPool, ERC721 {
 
     // deposit to position id = 0 is not allowed
     // we treat it as a flag to create a new position
-    if (_positionId == 0) {
+    bool isNewPosition = _positionId == 0;
+
+    if (isNewPosition) {
       positionId = totalSupply++;
       _mint(msg.sender, positionId);
     } else {
@@ -283,27 +294,23 @@ contract StakingPool is IStakingPool, ERC721 {
 
     /* update reward streaming */
 
+    // SLOAD when the position is not new
+    Position memory position = isNewPosition
+      ? Position(0, 0, 0, 0, 0)
+      : positions[positionId];
+
     // SLOAD
-    Position memory position = positions[positionId];
     Group memory group = groups[groupId];
-
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
-    uint earnedPerShareSinceLastUpdate = 0;
-    uint elapsed = position.lastAccNxmUpdate == 0
-      ? block.timestamp - position.lastAccNxmUpdate
-      : 0;
-
-    if (elapsed > 0) {
-      earnedPerShareSinceLastUpdate = elapsed * rewardPerSecond / _rewardsSharesSupply;
-      _accNxmPerRewardsShare += earnedPerShareSinceLastUpdate;
-    }
 
     /* update group and position */
 
-    // MSTORE
-    position.rewardEarned += earnedPerShareSinceLastUpdate * position.rewardsShares;
+    if (!isNewPosition) {
+      uint newEarningsPerShare = _accNxmPerRewardsShare - position.lastAccNxmPerRewardShare;
+      position.rewardEarned += newEarningsPerShare * position.rewardsShares;
+    }
+
     position.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
-    position.lastAccNxmUpdate = block.timestamp;
     position.stakeShares += newStakeShares;
     position.rewardsShares += newRewardsShares;
 
@@ -320,11 +327,6 @@ contract StakingPool is IStakingPool, ERC721 {
     activeStake = _activeStake + amount;
     stakeSharesSupply = _stakeSharesSupply + newStakeShares;
     rewardsSharesSupply = _rewardsSharesSupply + newRewardsShares;
-
-    if (elapsed > 0) {
-      accNxmPerRewardsShare = _accNxmPerRewardsShare;
-      lastAccNxmUpdate = block.timestamp;
-    }
   }
 
 /*

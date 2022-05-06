@@ -216,7 +216,6 @@ contract StakingPool is IStakingPool, ERC721 {
       // SSTORE
       groups[_firstActiveGroupId] = group;
       expiredGroups[_firstActiveGroupId] = ExpiredGroup(
-        bucketEndTime, // expiredAt
         _accNxmPerRewardsShare, // accNxmPerRewardShareAtExpiry
         _activeStake, // stakeAmountAtExpiry
         _stakeSharesSupply // stakeShareSupplyAtExpiry

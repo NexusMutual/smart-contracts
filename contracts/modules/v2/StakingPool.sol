@@ -227,6 +227,12 @@ contract StakingPool is IStakingPool, ERC721 {
       _firstActiveGroupId++;
     }
 
+    {
+      uint elapsed = block.timestamp - _lastAccNxmUpdate;
+      _accNxmPerRewardsShare += elapsed * _rewardPerSecond / _rewardsSharesSupply;
+      _lastAccNxmUpdate = block.timestamp;
+    }
+
     firstActiveGroupId = _firstActiveGroupId;
     firstActiveBucketId = _firstActiveBucketId;
 

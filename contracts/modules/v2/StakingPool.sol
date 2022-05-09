@@ -274,7 +274,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _rewardsSharesSupply = rewardsSharesSupply;
 
     uint newStakeShares = _stakeSharesSupply == 0
-      ? amount // TODO: use sqrt?
+      ? sqrt(amount)
       : _stakeSharesSupply * amount / _activeStake;
 
     uint newRewardsShares;
@@ -621,5 +621,25 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function max(uint a, uint b) internal pure returns (uint) {
     return a > b ? a : b;
+  }
+
+  // babylonian method
+  function sqrt(uint y) internal pure returns (uint) {
+
+    if (y > 3) {
+      uint z = y;
+      uint x = y / 2 + 1;
+      while (x < z) {
+        z = x;
+        x = (y / x + x) / 2;
+      }
+      return z;
+    }
+
+    if (y != 0) {
+      return 1;
+    }
+
+    return 0;
   }
 }

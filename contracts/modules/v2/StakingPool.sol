@@ -534,7 +534,7 @@ contract StakingPool is IStakingPool, ERC721 {
     address from,
     address /*to*/,
     uint256 tokenId
-  ) internal override {
+  ) internal view override {
     require(
       tokenId != 0 || nxm.isLockedForMV(from) < block.timestamp,
       "StakingPool: Locked for voting in governance"

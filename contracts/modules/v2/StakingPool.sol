@@ -233,9 +233,9 @@ contract StakingPool is IStakingPool, ERC721 {
     activeStake = _activeStake;
     rewardPerSecond = _rewardPerSecond;
     accNxmPerRewardsShare = _accNxmPerRewardsShare;
+    lastAccNxmUpdate = _lastAccNxmUpdate;
     stakeSharesSupply = _stakeSharesSupply;
     rewardsSharesSupply = _rewardsSharesSupply;
-    lastAccNxmUpdate = _lastAccNxmUpdate;
   }
 
   function deposit(

@@ -19,7 +19,6 @@ async function setup () {
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
   const master = await MasterMock.new();
-  const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
   const stETH = await ERC20BlacklistableMock.new();
 
@@ -29,7 +28,7 @@ async function setup () {
   const chainlinkDAI = await ChainlinkAggregatorMock.new();
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
   const chainlinkSteth = await ChainlinkAggregatorMock.new();
-  await chainlinkSteth.setLatestAnswer(new BN(1e18.toString()));
+  await chainlinkSteth.setLatestAnswer(new BN((1e18).toString()));
 
   const priceFeedOracle = await PriceFeedOracle.new(
     [dai.address, stETH.address],
@@ -59,7 +58,6 @@ async function setup () {
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
-  await master.setLatestAddress(hex('P2'), mockP2Address);
 
   const contractsToUpdate = [mcr, pool, tokenController];
 

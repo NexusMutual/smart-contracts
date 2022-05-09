@@ -157,7 +157,17 @@ contract StakingPool is IStakingPool, ERC721 {
   function updateGroups() public {
 
     uint _firstActiveBucketId = firstActiveBucketId;
+    uint _firstActiveGroupId = firstActiveGroupId;
+
     uint currentBucketId = block.timestamp / BUCKET_SIZE;
+    uint currentGroupId = block.timestamp / GROUP_SIZE;
+
+    // populate if the pool is new
+    if (_firstActiveBucketId == 0) {
+      firstActiveBucketId = currentBucketId;
+      firstActiveGroupId = currentGroupId;
+      return;
+    }
 
     if (_firstActiveBucketId == currentBucketId) {
       return;
@@ -170,10 +180,6 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _rewardsSharesSupply = rewardsSharesSupply;
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
     uint _lastAccNxmUpdate = lastAccNxmUpdate;
-    uint _firstActiveGroupId = firstActiveGroupId;
-
-    // first group for the current timestamp
-    uint targetGroupId = block.timestamp / GROUP_SIZE;
 
     while (_firstActiveBucketId < currentBucketId) {
 
@@ -191,7 +197,7 @@ contract StakingPool is IStakingPool, ERC721 {
       // should we expire a group?
       if (
         bucketEndTime % GROUP_SIZE != 0 ||
-        _firstActiveGroupId == targetGroupId
+        _firstActiveGroupId == currentGroupId
       ) {
         continue;
       }

@@ -352,17 +352,14 @@ contract StakingPool is IStakingPool, ERC721 {
     updateGroups();
 
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
-    uint withdrawnStake;
-    uint withdrawnRewards;
+    uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;
 
     for (uint i = 0; i < params.length; i++) {
 
-      // check ownership or approval
-      uint tokenId = params[i].tokenId;
-      require(_isApprovedOrOwner(msg.sender, tokenId), "StakingPool: Not owner or approved");
+      uint stakeToWithdraw;
+      uint rewardToWithdraw;
 
-      uint withdrawnStakeShares;
-      uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;
+      uint tokenId = params[i].tokenId;
       uint groupCount = params[i].groupIds.length;
 
       for (uint j = 0; j < groupCount; j++) {
@@ -370,33 +367,41 @@ contract StakingPool is IStakingPool, ERC721 {
         uint groupId = params[i].groupIds[j];
         Position memory position = positions[tokenId][groupId];
 
-        if (params[i].withdrawStake) {
-
-          // is the group is still active?
-          if (groupId >= _firstActiveGroupId) {
-            continue;
-          }
+        // can withdraw stake only if the group is expired
+        if (params[i].withdrawStake && groupId < _firstActiveGroupId) {
 
           // calculate the amount of nxm for this position
           uint stake = expiredGroups[groupId].stakeAmountAtExpiry;
           uint stakeShareSupply = expiredGroups[groupId].stakeShareSupplyAtExpiry;
-          uint positionStakeShares = position.stakeShares;
-
-          withdrawnStakeShares += positionStakeShares;
-          withdrawnStake += stake * positionStakeShares / stakeShareSupply;
+          stakeToWithdraw += stake * position.stakeShares / stakeShareSupply;
 
           // mark as withdrawn
-          positions[tokenId][groupId].stakeShares = 0;
+          position.stakeShares = 0;
         }
 
         if (params[i].withdrawRewards) {
-          // TODO: implement
-        }
-      }
-    }
 
-    // - sum up nxm amount of each group
-    // - transfer nxm to staker
+          // calculate reward since checkpoint
+          uint newRewardPerShare = _accNxmPerRewardsShare - position.lastAccNxmPerRewardShare;
+          rewardToWithdraw += newRewardPerShare * position.rewardsShares;
+
+          // save checkpoint
+          position.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+        }
+
+        positions[tokenId][groupId] = position;
+      }
+
+      uint withdrawable = stakeToWithdraw + rewardToWithdraw;
+
+      if (params[i].withdrawRewards) {
+        withdrawable += pendingRewards[tokenId];
+        pendingRewards[tokenId] = 0;
+      }
+
+      // TODO: use TC instead
+      nxm.transfer(ownerOf(tokenId), withdrawable);
+    }
   }
 
   function allocateStake(

@@ -39,8 +39,9 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   uint public launchedOn;
 
   // This slot was previously used as a mapping (address => address payable)
-  mapping (address => address payable) public _unused2;
+  mapping(address => address payable) public _unused2;
   mapping(address => bool) public refundEligible;
+  mapping(address => address payable) public approvedMembership;
 
   modifier checkRoleAuthority(uint _memberRoleId) {
     if (memberRoleData[_memberRoleId].authorized != address(0))
@@ -65,23 +66,6 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     _updateRole(_newABAddress, uint(Role.AdvisoryBoard), true);
     _updateRole(_removeAB, uint(Role.AdvisoryBoard), false);
 
-  }
-
-  /**
-   * @dev is used to add initital advisory board members
-   * @param abArray is the list of initial advisory board members
-   */
-  function addInitialABMembers(address[] calldata abArray) external override onlyOwner {
-
-    //Ensure that NXMaster has initialized.
-    require(ms.masterInitialized());
-
-    require(maxABCount >= numberOfMembers(uint(Role.AdvisoryBoard)) + abArray.length);
-    //AB count can't exceed maxABCount
-    for (uint i = 0; i < abArray.length; i++) {
-      require(checkRole(abArray[i], uint(Role.Member)));
-      _updateRole(abArray[i], uint(Role.AdvisoryBoard), true);
-    }
   }
 
   /**
@@ -168,59 +152,36 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     _updateRole(_memberAddress, _roleId, _active);
   }
 
-  /**
-   * @dev to add members before launch
-   * @param userArray is list of addresses of members
-   * @param tokens is list of tokens minted for each array element
-   */
-  function addMembersBeforeLaunch(address[] memory userArray, uint[] memory tokens) public onlyOwner {
-    require(!launched);
-
-    for (uint i = 0; i < userArray.length; i++) {
-      require(!ms.isMember(userArray[i]));
-      tc.addToWhitelist(userArray[i]);
-      _updateRole(userArray[i], uint(Role.Member), true);
-      tc.mint(userArray[i], tokens[i]);
-    }
-    launched = true;
-    launchedOn = block.timestamp;
-
-  }
-
-  /**
-    * @dev Called by user to pay joining membership fee
-    */
+  /// Finalises the sign up process for the user address by allowing the joining fee to be paid.
+  ///
+  /// @param _userAddress  The address of the user for whom the joining fee is paid.
   function payJoiningFee(address _userAddress) public override payable {
     require(_userAddress != address(0));
-    require(!ms.isPause(), "Emergency Pause Applied");
-    require(!refundEligible[_userAddress]);
+    require(!ms.isPause(), "MemberRoles: Emergency Pause Applied");
     require(!checkRole(_userAddress, uint(Role.Member)));
-    require(msg.value == joiningFee);
-    refundEligible[_userAddress] = true;
+    require(
+      msg.value == joiningFee,
+      "MemberRoles: The transaction value should equal to the joining fee"
+    );
+    require(approvedMembership[_userAddress], "MemberRoles: Membership not approved");
+    tc.addToWhitelist(_userAddress);
+    _updateRole(_userAddress, uint(Role.Member), true);
+    (bool ok, /* data */) = poolAddress.call{value: joiningFee}("");
+    require(ok, "MemberRoles: Joining fee pool transfer failed");
   }
 
-  /**
-   * @dev to perform kyc verdict
-   * @param _userAddress whose kyc is being performed
-   * @param verdict of kyc process
-   */
-  function kycVerdict(address payable _userAddress, bool verdict) public override {
+  /// Approves the user's address membership.
+  ///
+  /// @dev It's used to perform KYC by kycAuthAddress. After aproval, the user address will be
+  /// allowed to call the payJoiningFee function.
+  ///
+  /// @param _userAddress  The address of the user whose membership should be approved.
+  function signUpMember(address payable _userAddress) public override {
     require(msg.sender == kycAuthAddress);
-    require(!ms.isPause());
-    require(_userAddress != address(0));
-    require(!ms.isMember(_userAddress));
-    require(refundEligible[_userAddress]);
-    if (verdict) {
-      refundEligible[_userAddress] = false;
-      tc.addToWhitelist(_userAddress);
-      _updateRole(_userAddress, uint(Role.Member), true);
-      (bool ok, /* data */) = poolAddress.call{value: joiningFee}("");
-      require(ok, "MemberRoles: Joining fee pool transfer failed");
-    } else {
-      refundEligible[_userAddress] = false;
-      (bool ok, /* data */) = _userAddress.call{value: joiningFee}("");
-      require(ok, "MemberRoles: Joining fee refund transfer failed");
-    }
+    require(!ms.isPause(), "MemberRoles: Emergency Pause Applied");
+    require(_userAddress != address(0), "MemberRoles: Invalid user address");
+    require(!ms.isMember(_userAddress), "MemberRoles: Already a member");
+    approvedMembership[_userAddress] = true;
   }
 
   /**

@@ -463,16 +463,6 @@ contract Governance is IGovernance, LegacyMasterAware {
   }
 
   /**
-   * @dev Sets intial actionWaitingTime value
-   * To be called after governance implementation has been updated
-   */
-  function setInitialActionParameters() external onlyOwner {
-    require(!actionParamsInitialised);
-    actionParamsInitialised = true;
-    actionWaitingTime = 24 * 1 hours;
-  }
-
-  /**
    * @dev Gets Uint Parameters of a code
    * @param code whose details we want
    * @return string value of the code

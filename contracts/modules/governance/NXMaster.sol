@@ -215,11 +215,6 @@ contract NXMaster is INXMMaster, Governed {
     return contractsActive[_contractAddress];
   }
 
-  /// @dev checks whether the address is the Owner or not.
-  function isOwner(address _address) public view returns (bool) {
-    return owner == _address;
-  }
-
   /// @dev Checks whether emergency pause is on/not.
   function isPause() public view returns (bool) {
     return paused;

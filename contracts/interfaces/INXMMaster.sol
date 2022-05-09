@@ -14,8 +14,6 @@ interface INXMMaster {
 
   function isPause() external view returns (bool check);
 
-  function isOwner(address _add) external view returns (bool);
-
   function isMember(address _add) external view returns (bool);
 
   function checkIsAuthToGoverned(address _add) external view returns (bool);

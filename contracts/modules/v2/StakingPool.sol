@@ -275,77 +275,77 @@ contract StakingPool is IStakingPool, ERC721 {
     // TODO: use TokenController.operatorTransfer instead and transfer to TC
     nxm.transferFrom(msg.sender, address(this), amount);
 
-    // SLOAD
+    /* storage reads */
+
     uint _activeStake = activeStake;
     uint _stakeSharesSupply = stakeSharesSupply;
     uint _rewardsSharesSupply = rewardsSharesSupply;
+    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
+
+    Group memory group = groups[groupId];
+
+    // conditional read
+    uint pendingReward = isNewToken ? 0 : pendingRewards[tokenId];
+
+    // conditional read
+    Position memory position = isNewToken
+      ? Position(_accNxmPerRewardsShare, 0, 0)
+      : positions[tokenId][groupId];
+
+    /* end storage reads */
+
+    /* calculate and update pending reward */
+
+    // position could be empty even if the token is not new
+    if (position.lastAccNxmPerRewardShare != 0) {
+      uint newEarningsPerShare = _accNxmPerRewardsShare - position.lastAccNxmPerRewardShare;
+      pendingReward += newEarningsPerShare * position.rewardsShares;
+    }
+
+    position.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+
+    /* end calculate and update pending reward */
 
     uint newStakeShares = _stakeSharesSupply == 0
       ? sqrt(amount)
       : _stakeSharesSupply * amount / _activeStake;
 
-    uint newRewardsShares;
-    {
-      uint lockDuration = (groupId + 1) * GROUP_SIZE - block.timestamp;
-      uint maxLockDuration = GROUP_SIZE * 8;
-
-      // TODO: determine extra rewards formula
-      newRewardsShares =
-        newStakeShares
-        * REWARDS_SHARES_RATIO
-        * lockDuration
-        / REWARDS_SHARES_DENOMINATOR
-        / maxLockDuration;
-    }
-
-    /* update reward streaming */
-
-    // SLOAD when the nft is not new
-    Reward memory reward = isNewToken
-      ? Reward(0, 0)
-      : rewards[tokenId];
-
-    // SLOAD
-    Group memory group = groups[groupId];
-    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
-
-    /* update group and reward */
-
-    if (!isNewToken) {
-      // TODO: use position's accNxmPerRewardShare
-      // uint newEarningsPerShare = _accNxmPerRewardsShare - reward.lastAccNxmPerRewardShare;
-      // reward.rewardEarned += newEarningsPerShare * reward.rewardsShares;
-    }
-
-    // TODO: use position's accNxmPerRewardShare
-    // reward.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
-    // reward.stakeShares += newStakeShares;
-    // reward.rewardsShares += newRewardsShares;
+    uint newRewardsShares = calculateRewardSharesAmount(newStakeShares, groupId);
 
     group.stakeShares += newStakeShares;
     group.rewardsShares += newRewardsShares;
 
-    // TODO: recalculate accNxmPerRewardsShare and update it along with lastAccNxmUpdate
+    /* storage writes */
 
-    // SSTORE
-    rewards[tokenId] = reward;
-    groups[groupId] = group;
-
-    /* update globals */
-
-    // SSTORE
+    // update globals
     activeStake = _activeStake + amount;
     stakeSharesSupply = _stakeSharesSupply + newStakeShares;
     rewardsSharesSupply = _rewardsSharesSupply + newRewardsShares;
+
+    // update group and staker data
+    groups[groupId] = group;
+    positions[tokenId][groupId] = position;
+    pendingRewards[tokenId] = pendingReward;
+
+    /* end storage writes */
   }
 
-/*
-  struct WithdrawParams {
-    uint tokenId;
-    uint groupId;
-    uint flags;
+  function calculateRewardSharesAmount(
+    uint stakeSharesAmount,
+    uint groupId
+  ) internal view returns (uint) {
+
+    uint lockDuration = (groupId + 1) * GROUP_SIZE - block.timestamp;
+    uint maxLockDuration = GROUP_SIZE * 8;
+
+    // TODO: determine extra rewards formula
+    return
+      stakeSharesAmount
+      * REWARDS_SHARES_RATIO
+      * lockDuration
+      / REWARDS_SHARES_DENOMINATOR
+      / maxLockDuration;
   }
-*/
 
   function withdraw(WithdrawParams[] calldata params) external {
 

@@ -597,14 +597,6 @@ contract StakingPool is IStakingPool, ERC721 {
 
   /* utils */
 
-  function min(uint a, uint b) internal pure returns (uint) {
-    return a < b ? a : b;
-  }
-
-  function max(uint a, uint b) internal pure returns (uint) {
-    return a > b ? a : b;
-  }
-
   function getPriceParameters(
     uint productId
   ) external override view returns (
@@ -621,5 +613,13 @@ contract StakingPool is IStakingPool, ERC721 {
 
     lastBasePrice = lastBasePrices[productId].value;
     targetPrice = targetPrices[productId];
+  }
+
+  function min(uint a, uint b) internal pure returns (uint) {
+    return a < b ? a : b;
+  }
+
+  function max(uint a, uint b) internal pure returns (uint) {
+    return a > b ? a : b;
   }
 }

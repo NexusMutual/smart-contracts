@@ -83,8 +83,8 @@ contract StakingPool is IStakingPool, ERC721 {
   // product id => Product
   mapping(uint => Product) public products;
 
-  // token id => reward data
-  mapping(uint => Reward) public rewards;
+  // token id => pending reward
+  mapping(uint => uint) public pendingRewards;
 
   // token id => group id => position data
   mapping(uint => mapping(uint => Position)) public positions;

@@ -83,11 +83,11 @@ contract StakingPool is IStakingPool, ERC721 {
   // product id => Product
   mapping(uint => Product) public products;
 
-  // nft id => position data
-  mapping(uint => Position) public positions;
+  // token id => reward data
+  mapping(uint => Reward) public rewards;
 
-  // nft id => group id => position group data
-  mapping(uint => mapping(uint => PositionGroupData)) public positionGroupData;
+  // token id => group id => position data
+  mapping(uint => mapping(uint => Position)) public positions;
 
   /* immutables */
 
@@ -135,7 +135,7 @@ contract StakingPool is IStakingPool, ERC721 {
     address _manager,
     ProductInitializationParams[] calldata params
   ) external onlyCoverContract {
-    // create ownership position
+    // create ownership nft
     _mint(_manager, 0);
     totalSupply = 1;
     // TODO: initialize products
@@ -185,6 +185,7 @@ contract StakingPool is IStakingPool, ERC721 {
       // todo: handle division by zero
       _accNxmPerRewardsShare += elapsed * _rewardPerSecond / _rewardsSharesSupply;
       _lastAccNxmUpdate = bucketEndTime;
+      // TODO: use _firstActiveBucketId before incrementing it?
       _rewardPerSecond -= poolBuckets[_firstActiveBucketId].rewardPerSecondCut;
 
       // should we expire a group?
@@ -217,6 +218,7 @@ contract StakingPool is IStakingPool, ERC721 {
       groups[_firstActiveGroupId] = group;
       expiredGroups[_firstActiveGroupId] = ExpiredGroup(
         _accNxmPerRewardsShare, // accNxmPerRewardShareAtExpiry
+        // TODO: should this be before or after active stake reduction?
         _activeStake, // stakeAmountAtExpiry
         _stakeSharesSupply // stakeShareSupplyAtExpiry
       );
@@ -239,8 +241,8 @@ contract StakingPool is IStakingPool, ERC721 {
   function deposit(
     uint amount,
     uint groupId,
-    uint _positionId
-  ) external returns (uint positionId) {
+    uint _tokenId
+  ) external returns (uint tokenId) {
 
     updateGroups();
 
@@ -251,17 +253,15 @@ contract StakingPool is IStakingPool, ERC721 {
       require(amount > 0, "StakingPool: Insufficient deposit amount");
     }
 
-    // [todo] Prevent locking on groups that are too far in the future
+    // deposit to token id = 0 is not allowed
+    // we treat it as a flag to create a new token
+    bool isNewToken = _tokenId == 0;
 
-    // deposit to position id = 0 is not allowed
-    // we treat it as a flag to create a new position
-    bool isNewPosition = _positionId == 0;
-
-    if (isNewPosition) {
-      positionId = totalSupply++;
-      _mint(msg.sender, positionId);
+    if (isNewToken) {
+      tokenId = totalSupply++;
+      _mint(msg.sender, tokenId);
     } else {
-      positionId = _positionId;
+      tokenId = _tokenId;
     }
 
     // transfer nxm from staker
@@ -274,7 +274,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _rewardsSharesSupply = rewardsSharesSupply;
 
     uint newStakeShares = _stakeSharesSupply == 0
-      ? amount
+      ? amount // TODO: use sqrt?
       : _stakeSharesSupply * amount / _activeStake;
 
     uint newRewardsShares;
@@ -293,31 +293,35 @@ contract StakingPool is IStakingPool, ERC721 {
 
     /* update reward streaming */
 
-    // SLOAD when the position is not new
-    Position memory position = isNewPosition
-      ? Position(0, 0, 0, 0, 0)
-      : positions[positionId];
+    // SLOAD when the nft is not new
+    Reward memory reward = isNewToken
+      ? Reward(0, 0)
+      : rewards[tokenId];
 
     // SLOAD
     Group memory group = groups[groupId];
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
 
-    /* update group and position */
+    /* update group and reward */
 
-    if (!isNewPosition) {
-      uint newEarningsPerShare = _accNxmPerRewardsShare - position.lastAccNxmPerRewardShare;
-      position.rewardEarned += newEarningsPerShare * position.rewardsShares;
+    if (!isNewToken) {
+      // TODO: use position's accNxmPerRewardShare
+      // uint newEarningsPerShare = _accNxmPerRewardsShare - reward.lastAccNxmPerRewardShare;
+      // reward.rewardEarned += newEarningsPerShare * reward.rewardsShares;
     }
 
-    position.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
-    position.stakeShares += newStakeShares;
-    position.rewardsShares += newRewardsShares;
+    // TODO: use position's accNxmPerRewardShare
+    // reward.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+    // reward.stakeShares += newStakeShares;
+    // reward.rewardsShares += newRewardsShares;
 
     group.stakeShares += newStakeShares;
     group.rewardsShares += newRewardsShares;
 
+    // TODO: recalculate accNxmPerRewardsShare and update it along with lastAccNxmUpdate
+
     // SSTORE
-    positions[positionId] = position;
+    rewards[tokenId] = reward;
     groups[groupId] = group;
 
     /* update globals */
@@ -330,7 +334,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
 /*
   struct WithdrawParams {
-    uint positionId;
+    uint tokenId;
     uint groupId;
     uint flags;
   }
@@ -347,8 +351,8 @@ contract StakingPool is IStakingPool, ERC721 {
     for (uint i = 0; i < params.length; i++) {
 
       // check ownership or approval
-      uint positionId = params[i].positionId;
-      require(_isApprovedOrOwner(msg.sender, positionId), "StakingPool: Not owner or approved");
+      uint tokenId = params[i].tokenId;
+      require(_isApprovedOrOwner(msg.sender, tokenId), "StakingPool: Not owner or approved");
 
       uint withdrawnStakeShares;
       uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;
@@ -357,7 +361,7 @@ contract StakingPool is IStakingPool, ERC721 {
       for (uint j = 0; j < groupCount; j++) {
 
         uint groupId = params[i].groupIds[j];
-        PositionGroupData memory posGroupData = positionGroupData[positionId][groupId];
+        Position memory position = positions[tokenId][groupId];
 
         if (params[i].withdrawStake) {
 
@@ -369,21 +373,19 @@ contract StakingPool is IStakingPool, ERC721 {
           // calculate the amount of nxm for this position
           uint stake = expiredGroups[groupId].stakeAmountAtExpiry;
           uint stakeShareSupply = expiredGroups[groupId].stakeShareSupplyAtExpiry;
-          uint positionStakeShares = posGroupData.stakeShares;
+          uint positionStakeShares = position.stakeShares;
 
           withdrawnStakeShares += positionStakeShares;
           withdrawnStake += stake * positionStakeShares / stakeShareSupply;
 
           // mark as withdrawn
-          positionGroupData[positionId][groupId].stakeShares = 0;
+          positions[tokenId][groupId].stakeShares = 0;
         }
 
         if (params[i].withdrawRewards) {
           // TODO: implement
         }
       }
-
-      positions[positionId].stakeShares -= withdrawnStakeShares;
     }
 
     // - sum up nxm amount of each group
@@ -533,6 +535,8 @@ contract StakingPool is IStakingPool, ERC721 {
     address /*to*/,
     uint256 tokenId
   ) internal override {
+    // TODO: track ownership of tokenId = 0
+    // TODO: restrict transfers to tokenId = 0 only
     require(
       nxm.isLockedForMV(from) < block.timestamp,
       "StakingPool: Locked for voting in governance"

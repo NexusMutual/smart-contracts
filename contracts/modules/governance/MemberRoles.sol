@@ -190,12 +190,18 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   function withdrawMembership() public {
 
     require(!ms.isPause() && ms.isMember(msg.sender));
-    require(block.timestamp > tk.isLockedForMV(msg.sender)); // No locked tokens for Member/Governance voting
+    // No locked tokens for Member/Governance voting
+    require(block.timestamp > tk.isLockedForMV(msg.sender));
 
     gv.removeDelegation(msg.sender);
     tc.burnFrom(msg.sender, tk.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
     tc.removeFromWhitelist(msg.sender); // need clarification on whitelist
+
+    // [todo] Should we also remove the user from the approvedMembership mapping? In case they
+    // want to rejoin I wouldn't see the need for kycAuthAddress to make that transaction again
+    // as long as the user was already KYCed.
+
   }
 
   /**

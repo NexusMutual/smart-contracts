@@ -4,7 +4,6 @@ describe('UNIT TESTS', function () {
   require('./Pool');
   require('./CowOperator');
   require('./MCR');
-  require('./Distributor');
   require('./Assessment');
   require('./Cover');
   require('./IndividualClaims');

@@ -332,10 +332,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         }
       }
 
-      refundInCoverAsset =
-      lastCoverSegment.priceRatio * lastCoverSegment.amount
-      / PRICE_DENOMINATOR * remainingPeriod
-      / MAX_COVER_PERIOD;
+      refundInCoverAsset = lastCoverSegment.priceRatio * lastCoverSegment.amount
+        / PRICE_DENOMINATOR
+        * remainingPeriod
+        / MAX_COVER_PERIOD;
 
       // edit cover so it ends at the current block
       lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;

@@ -231,8 +231,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     for (uint i = 0; i < allocationRequests.length; i++) {
 
-      uint requestedCoverAmountInNXM = allocationRequests[i].coverAmountInAsset * 1e18 / nxmPriceInPayoutAsset;
-      requestedCoverAmountInNXM += remainderAmountInNXM;
+      uint requestedCoverAmountInNXM
+        = allocationRequests[i].coverAmountInAsset * 1e18 / nxmPriceInPayoutAsset + remainderAmountInNXM;
 
       (uint coveredAmountInNXM, uint premiumInNXM) = allocateCapacity(
         params,

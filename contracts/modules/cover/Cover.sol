@@ -347,7 +347,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     // update total cover amount for asset by decreasing the previous amount and adding the new amount
     if (coverAmountTrackingEnabled) {
-       totalActiveCoverInAsset[cover.payoutAsset] +=
+       totalActiveCoverInAsset[cover.payoutAsset] =
         totalActiveCoverInAsset[cover.payoutAsset] - lastCoverSegment.amount + buyCoverParams.amount;
     }
 

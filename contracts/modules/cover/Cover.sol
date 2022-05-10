@@ -82,14 +82,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint32 public coverAssetsFallback;
 
   // Global active cover amount per asset.
-  mapping(uint24 => uint) public override totalActiveCoverForAsset;
+  mapping(uint24 => uint) public override totalActiveCoverInAsset;
 
   bool public coverAmountTrackingEnabled;
   bool public activeCoverAmountCommitted;
-
-  event CoverBought(uint coverId, uint productId, uint segmentId, address buyer);
-  event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
-  event CoverExpired(uint coverId, uint segmentId);
 
 
   /* ========== CONSTRUCTOR ========== */
@@ -214,7 +210,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     // Enable this when cover amount tracking is necessary
     if (coverAmountTrackingEnabled) {
-      totalActiveCoverForAsset[params.payoutAsset] += params.amount;
+      totalActiveCoverInAsset[params.payoutAsset] += params.amount;
     }
 
     emit CoverBought(coverId, params.productId, 0, msg.sender);
@@ -348,8 +344,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     // update total cover amount for asset by decreasing the previous amount and adding the new amount
     if (coverAmountTrackingEnabled) {
-       totalActiveCoverForAsset[cover.payoutAsset] +=
-        totalActiveCoverForAsset[cover.payoutAsset] - lastCoverSegment.amount + buyCoverParams.amount;
+       totalActiveCoverInAsset[cover.payoutAsset] +=
+        totalActiveCoverInAsset[cover.payoutAsset] - lastCoverSegment.amount + buyCoverParams.amount;
     }
 
     emit CoverEdited(coverId, cover.productId, lastCoverSegmentIndex + 1, msg.sender);
@@ -572,13 +568,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(!cover.expired, "Cover: Cover is already expired.");
 
     uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;
-    CoverSegment memory lastCoverSegment = _coverSegments[coverId][lastCoverSegmentIndex];
+    CoverSegment memory lastCoverSegment = coverSegments(); _coverSegments[coverId][lastCoverSegmentIndex];
     if (lastCoverSegment.period + lastCoverSegment.start > block.timestamp) {
       cover.expired = true;
 
 
       if (coverAmountTrackingEnabled) {
-        totalActiveCoverForAsset[cover.payoutAsset] -= lastCoverSegment.amount;
+        totalActiveCoverInAsset[cover.payoutAsset] -= lastCoverSegment.amount;
       }
 
       emit CoverExpired(coverId, lastCoverSegmentIndex);
@@ -658,7 +654,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
 
     for (uint i = 0; i < assetIds.length; i++) {
-      totalActiveCoverForAsset[assetIds[i]] = activeCoverAmountsForAssets[i];
+      totalActiveCoverInAsset[assetIds[i]] = activeCoverAmountsForAssets[i];
     }
   }
 

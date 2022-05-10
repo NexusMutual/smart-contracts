@@ -90,7 +90,7 @@ contract MCR is IMCR, MasterAware {
 
     IPriceFeedOracle priceFeed = pool.priceFeedOracle();
     if (cover.activeCoverAmountCommitted()) {
-      uint totalActiveCoverAmountInEth = cover.totalActiveCoverForAsset(0);
+      uint totalActiveCoverAmountInEth = cover.totalActiveCoverInAsset(0);
 
       IPool.Asset[] memory assets = pool.getCoverAssets();
 
@@ -98,7 +98,7 @@ contract MCR is IMCR, MasterAware {
       for (uint i = 1; i < assets.length; i++) {
 
         IPool.Asset memory asset = assets[i];
-        uint activeCoverAmount = cover.totalActiveCoverForAsset(uint24(i));
+        uint activeCoverAmount = cover.totalActiveCoverInAsset(uint24(i));
 
         uint assetRate = priceFeed.getAssetToEthRate(assets[i].assetAddress);
         uint assetAmountInEth = activeCoverAmount * assetRate / 10 ** asset.decimals;

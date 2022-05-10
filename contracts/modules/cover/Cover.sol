@@ -88,7 +88,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   mapping(uint24 => mapping(uint => uint96)) public totalActiveCoverInAssetExpiryBucket;
   mapping(uint24 => uint32) public lastGlobalBuckets;
 
-  event CoverBought(uint coverId, uint productId, uint segmentId, address buyer);
+  event CoverBought(uint coverId, uint productId, uint segmentId, address buyer, string ipfsData);
   event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
 
   /* ========== CONSTRUCTOR ========== */
@@ -220,7 +220,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     updateGlobalActiveCoverAmountPerAsset(params.period, params.amount, params.payoutAsset);
 
-    emit CoverBought(coverId, params.productId, 0, msg.sender);
+    emit CoverBought(coverId, params.productId, 0, msg.sender, params.ipfsData);
     return coverId;
   }
 
@@ -308,9 +308,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;
     CoverSegment memory lastCoverSegment = _coverSegments[coverId][lastCoverSegmentIndex];
 
+    require(ICoverNFT(coverNFT).ownerOf(coverId) == msg.sender, "Cover: Only the owner can edit the cover");
     require(lastCoverSegment.start + lastCoverSegment.period > block.timestamp, "Cover: cover expired");
     require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(buyCoverParams.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
+
 
     // Override cover specific parameters
     buyCoverParams.payoutAsset = cover.payoutAsset;

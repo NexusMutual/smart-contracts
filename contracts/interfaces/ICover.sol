@@ -58,6 +58,7 @@ struct BuyCoverParams {
   bool payWithNXM;
   uint16 commissionRatio;
   address commissionDestination;
+  string ipfsData;
 }
 
 struct IncreaseAmountAndReducePeriodParams {

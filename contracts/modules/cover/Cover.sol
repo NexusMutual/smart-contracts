@@ -201,8 +201,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     _coverData.push(CoverData(
         params.productId,
         params.payoutAsset,
-        0, // amountPaidOut
-        false
+        0 // amountPaidOut
       ));
 
     uint coverId = _coverData.length - 1;
@@ -259,7 +258,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18), // amount
         uint32(block.timestamp + 1), // start
         SafeUintCast.toUint32(params.period), // period
-        priceRatio
+        priceRatio,
+        false // expired
       ));
 
     return totalPremiumInNXM;
@@ -309,34 +309,37 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     buyCoverParams.payoutAsset = cover.payoutAsset;
     buyCoverParams.productId = cover.productId;
 
-    uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
+    uint refundInCoverAsset = 0;
+    if (!lastCoverSegment.expired) {
+      uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
 
-    PoolAllocation[] storage originalPoolAllocations = coverSegmentAllocations[coverId][lastCoverSegmentIndex];
+      PoolAllocation[] storage originalPoolAllocations = coverSegmentAllocations[coverId][lastCoverSegmentIndex];
 
-    {
-      uint originalPoolAllocationsCount = originalPoolAllocations.length;
+      {
+        uint originalPoolAllocationsCount = originalPoolAllocations.length;
 
-      // rollback previous cover
-      for (uint i = 0; i < originalPoolAllocationsCount; i++) {
-        stakingPool(originalPoolAllocations[i].poolId).deallocateStake(
-          cover.productId,
-          lastCoverSegment.start,
-          lastCoverSegment.period,
-          originalPoolAllocations[i].coverAmountInNXM,
-          originalPoolAllocations[i].premiumInNXM / REWARD_DENOMINATOR
-        );
-        originalPoolAllocations[i].premiumInNXM =
+        // rollback previous cover
+        for (uint i = 0; i < originalPoolAllocationsCount; i++) {
+          stakingPool(originalPoolAllocations[i].poolId).deallocateStake(
+            cover.productId,
+            lastCoverSegment.start,
+            lastCoverSegment.period,
+            originalPoolAllocations[i].coverAmountInNXM,
+            originalPoolAllocations[i].premiumInNXM / REWARD_DENOMINATOR
+          );
+          originalPoolAllocations[i].premiumInNXM =
           originalPoolAllocations[i].premiumInNXM * (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
+        }
       }
-    }
 
-    uint refundInCoverAsset =
+      refundInCoverAsset =
       lastCoverSegment.priceRatio * lastCoverSegment.amount
       / PRICE_DENOMINATOR * remainingPeriod
       / MAX_COVER_PERIOD;
 
-    // edit cover so it ends at the current block
-    lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
+      // edit cover so it ends at the current block
+      lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
+    }
 
     uint totalPremiumInNXM = _buyCover(buyCoverParams, coverId, poolAllocations);
 
@@ -564,16 +567,18 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     require(coverAmountTrackingEnabled, "Cover expiring not enabled");
 
-    CoverData memory cover = _coverData[coverId];
-    require(!cover.expired, "Cover: Cover is already expired.");
 
     uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;
     CoverSegment memory lastCoverSegment = coverSegments(coverId, lastCoverSegmentIndex);
-    if (lastCoverSegment.period + lastCoverSegment.start > block.timestamp) {
-      cover.expired = true;
 
+    require(!lastCoverSegment.expired, "Cover: Cover is already expired.");
+
+    if (lastCoverSegment.period + lastCoverSegment.start > block.timestamp) {
+
+      _coverSegments[coverId][lastCoverSegmentIndex].expired = true;
 
       if (coverAmountTrackingEnabled) {
+        CoverData memory cover = _coverData[coverId];
         totalActiveCoverInAsset[cover.payoutAsset] -= lastCoverSegment.amount;
       }
 

@@ -75,8 +75,7 @@ contract ICMockCover {
     coverData.push(CoverData(
         productId,
         payoutAsset,
-        0,
-        false
+        0
       ));
 
     for (uint i = 0; i < segments.length; i++) {

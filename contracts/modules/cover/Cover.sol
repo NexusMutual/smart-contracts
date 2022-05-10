@@ -577,10 +577,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
       _coverSegments[coverId][lastCoverSegmentIndex].expired = true;
 
-      if (coverAmountTrackingEnabled) {
-        CoverData memory cover = _coverData[coverId];
-        totalActiveCoverInAsset[cover.payoutAsset] -= lastCoverSegment.amount;
-      }
+      CoverData memory cover = _coverData[coverId];
+      totalActiveCoverInAsset[cover.payoutAsset] -= lastCoverSegment.amount;
 
       emit CoverExpired(coverId, lastCoverSegmentIndex);
     }

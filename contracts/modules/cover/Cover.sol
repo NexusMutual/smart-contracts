@@ -327,8 +327,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
             originalPoolAllocations[i].coverAmountInNXM,
             originalPoolAllocations[i].premiumInNXM / REWARD_DENOMINATOR
           );
-          originalPoolAllocations[i].premiumInNXM =
-          originalPoolAllocations[i].premiumInNXM * (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
+          originalPoolAllocations[i].premiumInNXM *= (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
         }
       }
 

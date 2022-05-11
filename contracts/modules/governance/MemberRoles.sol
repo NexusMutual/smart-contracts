@@ -180,7 +180,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     console.log("_userAddress %s", _userAddress);
     console.log("hash:");
     console.logBytes32(hash);
-    address recoveredAddress = ECDSA.recover(hash, signature);
+    address recoveredAddress = ECDSA.recover(ECDSA.toEthSignedMessageHash(hash), signature);
     console.log("recoveredAddress %s", recoveredAddress);
     console.log("kycAuthAddress %s", kycAuthAddress);
     require(recoveredAddress == kycAuthAddress, "MemberRoles: Membership not approved");

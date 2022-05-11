@@ -61,8 +61,6 @@ contract StakingPool is IStakingPool, ERC721 {
   uint public lastAccNxmUpdate;
 
   uint public firstActiveGroupId;
-  uint public lastActiveGroupId;
-
   uint public firstActiveBucketId;
 
   // erc721 supply
@@ -507,7 +505,7 @@ contract StakingPool is IStakingPool, ERC721 {
     newAllocation;
     period;
     block.timestamp;
-    uint nextPrice = 0;
+    uint96 nextPrice = 0;
     products[productId].lastPrice = nextPrice;
 
     return 0;
@@ -616,21 +614,25 @@ contract StakingPool is IStakingPool, ERC721 {
   /* utils */
 
   function getPriceParameters(
-    uint productId
+    uint productId,
+    uint maxCoverPeriod
   ) external override view returns (
-    uint activeCover, uint[] memory staked, uint lastBasePrice, uint targetPrice
+    uint activeCover,
+    uint[] memory staked,
+    uint lastBasePrice,
+    uint targetPrice
   ) {
 
-    activeCover = getAllocatedProductStake(productId);
-
-    uint maxGroupSpanCount = ICover(coverContract).MAX_COVER_PERIOD() / GROUP_SIZE + 1;
+    uint maxGroupSpanCount = maxCoverPeriod / GROUP_SIZE + 1;
     staked = new uint[](maxGroupSpanCount);
+
     for (uint i = 0; i < maxGroupSpanCount; i++) {
       staked[i] = getProductStake(productId, block.timestamp + i * GROUP_SIZE);
     }
 
-    lastBasePrice = lastBasePrices[productId].value;
-    targetPrice = targetPrices[productId];
+    activeCover = getAllocatedProductStake(productId);
+    lastBasePrice = products[productId].lastPrice;
+    targetPrice = products[productId].targetPrice;
   }
 
   function min(uint a, uint b) internal pure returns (uint) {

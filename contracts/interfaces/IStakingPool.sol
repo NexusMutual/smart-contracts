@@ -24,15 +24,9 @@ struct ProductParams {
 struct ProductInitializationParams {
   uint productId;
   uint8 weight;
-  uint initialPrice;
-  uint targetPrice;
+  uint96 initialPrice;
+  uint96 targetPrice;
 }
-
-struct LastPrice {
-  uint96 value;
-  uint32 lastUpdateTime;
-}
-
 
 interface IStakingPool is IERC721 {
 
@@ -80,7 +74,8 @@ interface IStakingPool is IERC721 {
     uint allocatedStake;
     uint lastBucket;
     uint targetPrice;
-    uint lastPrice;
+    uint96 lastPrice;
+    uint32 lastPriceUpdateTime;
   }
 
   struct PoolBucket {
@@ -135,10 +130,13 @@ interface IStakingPool is IERC721 {
 
   function getAllocatedProductStake(uint productId) external view returns (uint);
 
-
   function getPriceParameters(
-    uint productId
+    uint productId,
+    uint maxCoverPeriod
   ) external view returns (
-    uint activeCover, uint[] memory capacities, uint lastBasePrice, uint targetPrice
+    uint activeCover,
+    uint[] memory capacities,
+    uint lastBasePrice,
+    uint targetPrice
   );
 }

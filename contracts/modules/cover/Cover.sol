@@ -678,16 +678,30 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== VIEWS ========== */
 
-  function getPoolAllocationPriceParametersForProduct(uint poolId, uint productId) public view returns (
+  function getPoolAllocationPriceParametersForProduct(
+    uint poolId,
+    uint productId
+  ) public view returns (
     PoolAllocationPriceParameters memory params
   ) {
+
     IStakingPool _pool = stakingPool(poolId);
     Product memory product = _products[productId];
 
-
     uint[] memory staked;
-    (params.activeCover, staked, params.lastBasePrice, params.targetPrice) = _pool.getPriceParameters(productId);
+
+    // FIXME: activeCover is actually allocatedStake
+    // FIXME: I think we want to return the allocated stake instead,
+    // FIXME: because active cover amount will change if the capacity factors are changed
+    (
+      params.activeCover,
+      staked,
+      params.lastBasePrice,
+      params.targetPrice
+    ) = _pool.getPriceParameters(productId, MAX_COVER_PERIOD);
+
     params.capacities = new uint[](staked.length);
+
     for (uint i = 0; i < staked.length; i++) {
       params.capacities[i] = calculateCapacity(
         staked[i],

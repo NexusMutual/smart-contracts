@@ -3,6 +3,7 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IMemberRoles.sol";
@@ -13,6 +14,7 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../abstract/LegacyMasterAware_sol0_8.sol";
 import "./external/Governed.sol";
+import "hardhat/console.sol";
 
 contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   uint public constant joiningFee = 2000000000000000; // 0.002 Ether
@@ -164,14 +166,24 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     );
 
     // Verify the signature to see if membership has been approved
-    (
-      uint8 v,
-      bytes32 r,
-      bytes32 s,
-      uint nonce
-    ) = abi.decode(data, (uint8, bytes32, bytes32, uint));
-    bytes32 hash = keccak256(abi.encodePacked(_userAddress, nonce));
-    require(isValidSignature(hash, v, r, s), "MemberRoles: Membership not approved");
+    // [todo] the data needs to be encoded in multiple of 32 bytes
+    (uint nonce) = abi.decode(data[:32], (uint));
+    console.log("nonce %s", nonce);
+    //(bytes memory signature) = abi.decode(data[32:64], (bytes));
+    bytes memory signature = data[32:96];
+    console.log("signature:");
+    console.logBytes(signature);
+    bytes32 MEMBERSHIP_APPROVAL = bytes32('MEMBERSHIP_APPROVAL');
+    console.log("MEMBERSHIP_APPROVAL:");
+    console.logBytes32(MEMBERSHIP_APPROVAL);
+    bytes32 hash = keccak256(abi.encode(MEMBERSHIP_APPROVAL, nonce, _userAddress));
+    console.log("_userAddress %s", _userAddress);
+    console.log("hash:");
+    console.logBytes32(hash);
+    address recoveredAddress = ECDSA.recover(hash, signature);
+    console.log("recoveredAddress %s", recoveredAddress);
+    console.log("kycAuthAddress %s", kycAuthAddress);
+    require(recoveredAddress == kycAuthAddress, "MemberRoles: Membership not approved");
 
     // Verify if the signature hasn't been used before
     require(usedSignatures[hash] == false, "MemberRoles: This signature is no longer valid");

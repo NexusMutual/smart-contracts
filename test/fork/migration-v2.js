@@ -418,10 +418,10 @@ describe('v2 migration', function() {
     // [todo]
   });
 
-  it('remove CR, CD, IC, QD, QT, TF, TD', async function() {
+  it('remove CR, CD, IC, QD, QT, TF, TD, P2', async function() {
     await submitGovernanceProposal(
       43, // removeContracts(bytes2[])
-      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD'].map(x => toUtf8Bytes(x))]),
+      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
       this.abMembers,
       this.governance,
     );

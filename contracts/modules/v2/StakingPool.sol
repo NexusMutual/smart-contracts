@@ -448,7 +448,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
       // total stake available without applying product weight
       freeProductStake =
-        activeStake * availableShares * product.weight / _stakeSharesSupply / WEIGHT_DENOMINATOR;
+        activeStake * availableShares * product.targetWeight / _stakeSharesSupply / WEIGHT_DENOMINATOR;
     }
 
     // could happen if is 100% in-use or if the product weight was changed

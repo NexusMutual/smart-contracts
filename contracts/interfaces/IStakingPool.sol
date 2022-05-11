@@ -16,8 +16,8 @@ struct WithdrawParams {
 struct ProductParams {
   uint productId;
   bool setWeight;
+  uint targetWeight;
   bool setPrice;
-  uint weight;
   uint targetPrice;
 }
 
@@ -70,7 +70,8 @@ interface IStakingPool is IERC721 {
   }
 
   struct Product {
-    uint weight;
+    uint8 lastWeight;
+    uint8 targetWeight;
     uint allocatedStake;
     uint lastBucket;
     uint targetPrice;

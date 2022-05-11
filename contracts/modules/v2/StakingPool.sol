@@ -506,8 +506,6 @@ contract StakingPool is IStakingPool, ERC721 {
     uint activeCover, uint[] memory staked, uint lastBasePrice, uint targetPrice
   ) {
 
-    Product storage product = products[productId];
-
     activeCover = getAllocatedProductStake(productId);
 
     uint maxGroupSpanCount = ICover(coverContract).MAX_COVER_PERIOD() / GROUP_SIZE + 1;

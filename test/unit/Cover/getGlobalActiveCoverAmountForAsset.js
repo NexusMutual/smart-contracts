@@ -47,7 +47,7 @@ describe('getGlobalActiveCoverAmountForAsset', function () {
 
     await buyCoverOnOnePool.call(this, ethCoverBuyFixture);
 
-    const activeCoverAmount = await cover.getGlobalActiveCoverAmountForAsset(payoutAsset);
+    const activeCoverAmount = await cover.totalActiveCoverAmountForAsset(payoutAsset);
     bnEqual(activeCoverAmount, amount);
   });
 
@@ -69,7 +69,7 @@ describe('getGlobalActiveCoverAmountForAsset', function () {
 
     await buyCoverOnOnePool.call(this, daiCoverBuyFixture);
 
-    const activeCoverAmount = await cover.getGlobalActiveCoverAmountForAsset(payoutAsset);
+    const activeCoverAmount = await cover.totalActiveCoverAmountForAsset(payoutAsset);
     bnEqual(activeCoverAmount, amount);
   });
 

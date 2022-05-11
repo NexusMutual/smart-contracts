@@ -81,15 +81,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   */
   uint32 public coverAssetsFallback;
 
-  /*
-    Global active cover amount per asset.
-   */
-  mapping(uint24 => uint96) public totalActiveCoverAmountInAsset;
-  mapping(uint24 => mapping(uint => uint96)) public totalActiveCoverInAssetExpiryBucket;
-  mapping(uint24 => uint32) public lastGlobalBuckets;
+  // Global active cover amount per asset.
+  mapping(uint24 => uint) public override totalActiveCoverInAsset;
 
-  event CoverBought(uint coverId, uint productId, uint segmentId, address buyer);
-  event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
+  bool public coverAmountTrackingEnabled;
+  bool public activeCoverAmountCommitted;
+
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -107,14 +104,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     stakingPoolProxyCodeHash = CoverUtilsLib.calculateProxyCodeHash();
     stakingPoolImplementation = _stakingPoolImplementation;
-  }
-
-  function initialize() public {
-    require(lastGlobalBuckets[0] == 0, "Cover: Already initalized");
-
-    uint32 initialBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
-    lastGlobalBuckets[0] = initialBucket;
-    lastGlobalBuckets[1] = initialBucket;
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -218,7 +207,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint coverId = _coverData.length - 1;
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
 
-    updateGlobalActiveCoverAmountPerAsset(params.period, params.amount, params.payoutAsset);
+    // Enable this when cover amount tracking is necessary
+    if (coverAmountTrackingEnabled) {
+      totalActiveCoverInAsset[params.payoutAsset] += params.amount;
+    }
 
     emit CoverBought(coverId, params.productId, 0, msg.sender);
     return coverId;
@@ -239,8 +231,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     for (uint i = 0; i < allocationRequests.length; i++) {
 
-      uint requestedCoverAmountInNXM = allocationRequests[i].coverAmountInAsset * 1e18 / nxmPriceInPayoutAsset;
-      requestedCoverAmountInNXM += remainderAmountInNXM;
+      uint requestedCoverAmountInNXM
+        = allocationRequests[i].coverAmountInAsset * 1e18 / nxmPriceInPayoutAsset + remainderAmountInNXM;
 
       (uint coveredAmountInNXM, uint premiumInNXM) = allocateCapacity(
         params,
@@ -266,7 +258,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18), // amount
         uint32(block.timestamp + 1), // start
         SafeUintCast.toUint32(params.period), // period
-        priceRatio
+        priceRatio,
+        false // expired
       ));
 
     return totalPremiumInNXM;
@@ -306,7 +299,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     CoverData memory cover = _coverData[coverId];
     uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;
-    CoverSegment memory lastCoverSegment = _coverSegments[coverId][lastCoverSegmentIndex];
+    CoverSegment memory lastCoverSegment = coverSegments(coverId, lastCoverSegmentIndex);
 
     require(lastCoverSegment.start + lastCoverSegment.period > block.timestamp, "Cover: cover expired");
     require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
@@ -316,44 +309,47 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     buyCoverParams.payoutAsset = cover.payoutAsset;
     buyCoverParams.productId = cover.productId;
 
-    uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
+    uint refundInCoverAsset = 0;
+    if (!lastCoverSegment.expired) {
+      uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
 
-    PoolAllocation[] storage originalPoolAllocations = coverSegmentAllocations[coverId][lastCoverSegmentIndex];
+      PoolAllocation[] storage originalPoolAllocations = coverSegmentAllocations[coverId][lastCoverSegmentIndex];
 
-    {
-      uint originalPoolAllocationsCount = originalPoolAllocations.length;
+      {
+        uint originalPoolAllocationsCount = originalPoolAllocations.length;
 
-      // rollback previous cover
-      for (uint i = 0; i < originalPoolAllocationsCount; i++) {
-        stakingPool(originalPoolAllocations[i].poolId).deallocateStake(
-          cover.productId,
-          lastCoverSegment.start,
-          lastCoverSegment.period,
-          originalPoolAllocations[i].coverAmountInNXM,
-          originalPoolAllocations[i].premiumInNXM / REWARD_DENOMINATOR
-        );
-        originalPoolAllocations[i].premiumInNXM =
-          originalPoolAllocations[i].premiumInNXM * (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
+        // rollback previous cover
+        for (uint i = 0; i < originalPoolAllocationsCount; i++) {
+          stakingPool(originalPoolAllocations[i].poolId).deallocateStake(
+            cover.productId,
+            lastCoverSegment.start,
+            lastCoverSegment.period,
+            originalPoolAllocations[i].coverAmountInNXM,
+            originalPoolAllocations[i].premiumInNXM / REWARD_DENOMINATOR
+          );
+          originalPoolAllocations[i].premiumInNXM *= (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
+        }
       }
 
-      rollbackGlobalActiveCoverAmountPerAsset(
-        lastCoverSegment.amount, lastCoverSegment.start + lastCoverSegment.period, cover.payoutAsset
-      );
+      refundInCoverAsset = lastCoverSegment.priceRatio
+        * lastCoverSegment.amount
+        / PRICE_DENOMINATOR
+        * remainingPeriod
+        / MAX_COVER_PERIOD;
+
+      // edit cover so it ends at the current block
+      lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
     }
-
-    uint refundInCoverAsset =
-      lastCoverSegment.priceRatio * lastCoverSegment.amount
-      / PRICE_DENOMINATOR * remainingPeriod
-      / MAX_COVER_PERIOD;
-
-    // edit cover so it ends at the current block
-    lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
 
     uint totalPremiumInNXM = _buyCover(buyCoverParams, coverId, poolAllocations);
 
     handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset);
 
-    updateGlobalActiveCoverAmountPerAsset(buyCoverParams.period, buyCoverParams.amount, buyCoverParams.payoutAsset);
+    // update total cover amount for asset by decreasing the previous amount and adding the new amount
+    if (coverAmountTrackingEnabled) {
+       totalActiveCoverInAsset[cover.payoutAsset] =
+        totalActiveCoverInAsset[cover.payoutAsset] - lastCoverSegment.amount + buyCoverParams.amount;
+    }
 
     emit CoverEdited(coverId, cover.productId, lastCoverSegmentIndex + 1, msg.sender);
   }
@@ -507,35 +503,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     _tokenController.burnFrom(msg.sender, price);
   }
 
-  /* ========== Active cover amount tracking ========== */
-
-  function updateGlobalActiveCoverAmountPerAsset(uint period, uint amountToCover, uint24 assetId) internal {
-
-    uint activeCoverAmount = getGlobalActiveCoverAmountForAsset(assetId);
-    uint32 currentBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
-
-    totalActiveCoverAmountInAsset[assetId] = uint96(activeCoverAmount + amountToCover);
-    lastGlobalBuckets[assetId] = currentBucket;
-    totalActiveCoverInAssetExpiryBucket[assetId][(block.timestamp + period) / BUCKET_SIZE] = uint96(amountToCover);
-  }
-
-  function rollbackGlobalActiveCoverAmountPerAsset(uint amountToRollback, uint endTimestamp, uint24 assetId) internal {
-    uint bucket = endTimestamp / BUCKET_SIZE;
-    totalActiveCoverInAssetExpiryBucket[assetId][bucket] -= uint96(amountToRollback);
-  }
-
-  function getGlobalActiveCoverAmountForAsset(uint24 assetId) public view returns (uint) {
-    uint currentBucket = SafeUintCast.toUint32(block.timestamp / BUCKET_SIZE);
-
-    uint activeCoverAmount = totalActiveCoverAmountInAsset[assetId];
-    uint32 lastBucket = lastGlobalBuckets[assetId];
-    while (lastBucket < currentBucket) {
-      ++lastBucket;
-      activeCoverAmount -= totalActiveCoverInAssetExpiryBucket[assetId][lastBucket];
-    }
-    return activeCoverAmount;
-  }
-
   /* ========== Staking Pool creation ========== */
 
   function createStakingPool(
@@ -586,6 +553,35 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function productsCount() external override view returns (uint) {
     return _products.length;
+  }
+
+  /*========== COVER EXPIRATION ========== */
+
+  function expireCovers(uint[] calldata coverIds) external {
+    for (uint i = 0; i < coverIds.length; i++) {
+      expireCover(coverIds[i]);
+    }
+  }
+
+  function expireCover(uint coverId) public {
+
+    require(coverAmountTrackingEnabled, "Cover expiring not enabled");
+
+
+    uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;
+    CoverSegment memory lastCoverSegment = coverSegments(coverId, lastCoverSegmentIndex);
+
+    require(!lastCoverSegment.expired, "Cover: Cover is already expired.");
+
+    if (lastCoverSegment.period + lastCoverSegment.start > block.timestamp) {
+
+      _coverSegments[coverId][lastCoverSegmentIndex].expired = true;
+
+      CoverData memory cover = _coverData[coverId];
+      totalActiveCoverInAsset[cover.payoutAsset] -= lastCoverSegment.amount;
+
+      emit CoverExpired(coverId, lastCoverSegmentIndex);
+    }
   }
 
   /* ========== PRODUCT CONFIGURATION ========== */
@@ -647,6 +643,27 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function setCoverAssetsFallback(uint32 _coverAssetsFallback) external override onlyGovernance {
     coverAssetsFallback = _coverAssetsFallback;
+  }
+
+  /* ========== ACTIVE COVER AMOUNT TRACKING ========== */
+
+  function enableActiveCoverAmountTracking(uint24[] memory assetIds, uint[] memory activeCoverAmountsForAssets) external onlyEmergencyAdmin {
+    require(!activeCoverAmountCommitted, "Cover: activeCoverAmountCommitted = true");
+
+    require(assetIds.length == activeCoverAmountsForAssets.length, "Cover: Array lengths must not be different");
+    if (!coverAmountTrackingEnabled) {
+      coverAmountTrackingEnabled = true;
+    }
+
+
+    for (uint i = 0; i < assetIds.length; i++) {
+      totalActiveCoverInAsset[assetIds[i]] = activeCoverAmountsForAssets[i];
+    }
+  }
+
+  function commitActiveCoverAmounts() external onlyEmergencyAdmin {
+    require(!activeCoverAmountCommitted, "Cover: activeCoverAmountCommitted = true");
+    activeCoverAmountCommitted = true;
   }
 
   /* ========== HELPERS ========== */

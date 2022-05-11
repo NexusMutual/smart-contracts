@@ -955,27 +955,27 @@ contract PooledStaking is IPooledStaking, MasterAware {
     }
   }
 
-  function getV1PriceForProduct(uint id) pure internal returns (uint) {
+  function getV1PriceForProduct(uint id) pure internal returns (uint96) {
     // {V1_PRICES_HELPER_BEGIN}
 
     // bZx v1
     if (id == 0) {
-      return 42880894339275514000; // 42.880894339275514%
+      return 42_880894339275514000; // 42.880894339275514%
     }
 
     // Saturn DAO Token
     if (id == 1) {
-      return 63420369661816350000; // 63.42036966181635%
+      return 63_420369661816350000; // 63.42036966181635%
     }
 
     // Legacy Gnosis MultiSig
     if (id == 2) {
-      return 25075515385886447000; // 25.075515385886444%
+      return 25_075515385886447000; // 25.075515385886444%
     }
 
     // dxDAO
     if (id == 3) {
-      return 24184951105233400000; // 24.1849511052334%
+      return 24_184951105233400000; // 24.1849511052334%
     }
 
     if (
@@ -1427,7 +1427,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
       if (stakes[i] == 0) {
         continue;
       }
-      uint price = getV1PriceForProduct(products[i]);
+      uint96 price = getV1PriceForProduct(products[i]);
       params[migrateAtIndex] = ProductInitializationParams(
         products[i], // productId
         uint8(min(stakes[i] * 1e18 / deposit / 1e16, 100)), // weight (0-100)

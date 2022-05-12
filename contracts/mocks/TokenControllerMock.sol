@@ -8,6 +8,8 @@ import "../modules/token/NXMToken.sol";
 contract TokenControllerMock is MasterAware {
 
   NXMToken public token;
+  address public addToWhitelistLastCalledWtih;
+  address public removeFromWhitelistLastCalledWtih;
 
   function mint(address _member, uint256 _amount) public onlyInternal {
     token.mint(_member, _amount);
@@ -17,14 +19,12 @@ contract TokenControllerMock is MasterAware {
     return token.burnFrom(_of, amount);
   }
 
-  function addToWhitelist(address _member) public view onlyInternal {
-    // noop
-    _member;
+  function addToWhitelist(address _member) public onlyInternal {
+    addToWhitelistLastCalledWtih = _member;
   }
 
-  function removeFromWhitelist(address _member) public view onlyInternal {
-    // noop
-    _member;
+  function removeFromWhitelist(address _member) public onlyInternal {
+    removeFromWhitelistLastCalledWtih = _member;
   }
 
   function changeDependentContractAddress() public {

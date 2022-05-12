@@ -194,7 +194,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
 
     // Verify the signature to see if membership has been approved.
     address recoveredAddress = ECDSA.recover(ethSignedMessageHash, signature);
-    require(recoveredAddress == kycAuthAddress, "MemberRoles: Membership has not been approved");
+    require(recoveredAddress == kycAuthAddress, "MemberRoles: Signature is invalid");
 
     // Whitelist the address.
     tc.addToWhitelist(_userAddress);
@@ -264,7 +264,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     _unused3[0x181Aea6936B407514ebFC0754A37704eB8d98F91] = payable(0x0000000000000000000000000000000000000000);
   }
 
-  function isMember(address member) internal view returns (bool) {
+  function isMember(address member) public view returns (bool) {
     return checkRole(member, uint(IMemberRoles.Role.Member));
   }
 

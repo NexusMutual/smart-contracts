@@ -3,10 +3,18 @@
 pragma solidity ^0.8.9;
 
 contract MRMockPool {
-  constructor() public { }
+  bool public revertOnTransfers;
 
-  fallback() external payable {}
+  function setRevertOnTransfers(bool value) public {
+    revertOnTransfers = value;
+  }
 
-  receive() external payable {}
+  fallback() external payable {
+    require(!revertOnTransfers);
+  }
+
+  receive() external payable {
+    require(!revertOnTransfers);
+  }
 
 }

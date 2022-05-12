@@ -30,11 +30,6 @@ contract LegacyMasterAware {
     _;
   }
 
-  modifier isMember {
-    require(ms.isMember(msg.sender), "Not member");
-    _;
-  }
-
   /**
    * @dev change master address
    * @param _masterAddress is the new address

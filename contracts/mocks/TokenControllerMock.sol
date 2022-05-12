@@ -22,6 +22,11 @@ contract TokenControllerMock is MasterAware {
     _member;
   }
 
+  function removeFromWhitelist(address _member) public view onlyInternal {
+    // noop
+    _member;
+  }
+
   function changeDependentContractAddress() public {
     token = NXMToken(master.tokenAddress());
   }

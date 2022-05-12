@@ -2,11 +2,8 @@
 
 pragma solidity ^0.8.9;
 
-contract MRMockPool {
+contract MRMockGovernance {
   constructor() public { }
 
-  fallback() external payable {}
-
-  receive() external payable {}
-
+  function removeDelegation(address) public {}
 }

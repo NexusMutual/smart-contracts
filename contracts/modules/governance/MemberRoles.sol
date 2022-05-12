@@ -19,6 +19,9 @@ import "hardhat/console.sol";
 contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   uint public constant joiningFee = 2000000000000000; // 0.002 Ether
 
+  // Prefixes for ECDSA signatures' scope
+  bytes32 public constant MEMBERSHIP_APPROVAL = bytes32('MEMBERSHIP_APPROVAL');
+
   ITokenController public tc;
   address payable public poolAddress;
   address public kycAuthAddress;
@@ -42,7 +45,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
 
   mapping(address => address payable) public _unused3;
   mapping(address => bool) public _unused4;
-  mapping(bytes32 => bool) public usedSignatures;
+  mapping(bytes32 => bool) public usedMessageHashes;
 
   modifier checkRoleAuthority(uint _memberRoleId) {
     if (memberRoleData[_memberRoleId].authorized != address(0))
@@ -152,59 +155,60 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   /// the address and a nonce (incremented if a new signature is required for the same address).
   ///
   /// @param _userAddress  The address of the user for whom the joining fee is paid.
-  /// @param data          Encoded data containing the signature and nonce.
+  /// @param data          Encoded data containing the nonce and signature.
   function signUp(
     address _userAddress,
     bytes calldata data
   ) public override payable {
-    require(_userAddress != address(0));
-    require(!ms.isPause(), "MemberRoles: Emergency Pause Applied");
-    require(!checkRole(_userAddress, uint(Role.Member)));
+    require(_userAddress != address(0), "MemberRoles: Address 0 cannot be used");
+    require(!ms.isPause(), "MemberRoles: Emergency pause applied");
+    require(!isMember(_userAddress), "MemberRoles: This address is already a member");
     require(
       msg.value == joiningFee,
       "MemberRoles: The transaction value should equal to the joining fee"
     );
 
-    // Verify the signature to see if membership has been approved
-    // [todo] the data needs to be encoded in multiple of 32 bytes
+    // Extract the nonce and the compact signature representation.
+    // See: https://eips.ethereum.org/EIPS/eip-2098
     (uint nonce) = abi.decode(data[:32], (uint));
-    console.log("nonce %s", nonce);
-    //(bytes memory signature) = abi.decode(data[32:64], (bytes));
     bytes memory signature = data[32:96];
-    console.log("signature:");
-    console.logBytes(signature);
-    bytes32 MEMBERSHIP_APPROVAL = bytes32('MEMBERSHIP_APPROVAL');
-    console.log("MEMBERSHIP_APPROVAL:");
-    console.logBytes32(MEMBERSHIP_APPROVAL);
-    bytes32 hash = keccak256(abi.encode(MEMBERSHIP_APPROVAL, nonce, _userAddress));
-    console.log("_userAddress %s", _userAddress);
-    console.log("hash:");
-    console.logBytes32(hash);
-    address recoveredAddress = ECDSA.recover(ECDSA.toEthSignedMessageHash(hash), signature);
-    console.log("recoveredAddress %s", recoveredAddress);
-    console.log("kycAuthAddress %s", kycAuthAddress);
-    require(recoveredAddress == kycAuthAddress, "MemberRoles: Membership not approved");
 
-    // Verify if the signature hasn't been used before
-    require(usedSignatures[hash] == false, "MemberRoles: This signature is no longer valid");
+    // Reconstruct the original message hash.
+    bytes32 messageHash = keccak256(abi.encode(MEMBERSHIP_APPROVAL, nonce, _userAddress));
 
-    // Mark it as used to avoid whitelisting any number of addresses by combining this function with
-    // the switchMembership function.
-    usedSignatures[hash] = true;
+    // Verify if the message hash hasn't been used before. If it has, it means that the nonce for
+    // the given _userAddress needs to be higher and the signature should use the first available
+    // one.
+    require(
+      usedMessageHashes[messageHash] == false,
+      "MemberRoles: Nonce already used for this address"
+    );
 
-    // Whitelist the address
+    // Mark it as used to avoid whitelisting an unbounded number of addresses when combining this
+    // function with the switchMembership function.
+    usedMessageHashes[messageHash] = true;
+
+    // Signatures are obtained by signing the hash of the messageHash prefixed with
+    // "\x19Ethereum Signed Message:\n32". This gives us the actual hash that was signed off chain.
+    bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(messageHash);
+
+    // Verify the signature to see if membership has been approved.
+    address recoveredAddress = ECDSA.recover(ethSignedMessageHash, signature);
+    require(recoveredAddress == kycAuthAddress, "MemberRoles: Membership has not been approved");
+
+    // Whitelist the address.
     tc.addToWhitelist(_userAddress);
     _updateRole(_userAddress, uint(Role.Member), true);
 
-    // Transfer the joining fee to the pool
+    // Transfer the joining fee to the pool.
     (bool ok, /* data */) = poolAddress.call{value: joiningFee}("");
-    require(ok, "MemberRoles: Joining fee pool transfer failed");
+    require(ok, "MemberRoles: The joining fee transfer to the pool failed");
   }
 
   /// Withdraws membership
   function withdrawMembership() public {
 
-    require(!ms.isPause() && ms.isMember(msg.sender));
+    require(!ms.isPause() && isMember(msg.sender));
     // No locked tokens for Member/Governance voting
     require(block.timestamp > tk.isLockedForMV(msg.sender));
 
@@ -260,11 +264,15 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     _unused3[0x181Aea6936B407514ebFC0754A37704eB8d98F91] = payable(0x0000000000000000000000000000000000000000);
   }
 
+  function isMember(address member) internal view returns (bool) {
+    return checkRole(member, uint(IMemberRoles.Role.Member));
+  }
+
   function _switchMembership(address member, address newAddress) internal {
 
     require(!ms.isPause(), "System is paused");
-    require(ms.isMember(member), "The current address is not a member");
-    require(!ms.isMember(newAddress), "The new address is already a member");
+    require(isMember(member), "The current address is not a member");
+    require(!isMember(newAddress), "The new address is already a member");
     require(block.timestamp > tk.isLockedForMV(member), "Locked for governance voting"); // No locked tokens for Governance voting
 
     gv.removeDelegation(member);

@@ -4,46 +4,43 @@ const { getAccounts } = require('../../utils/accounts');
 const { parseEther, defaultAbiCoder, hexZeroPad, toUtf8Bytes } = ethers.utils;
 
 async function setup () {
-  console.log('deploying nxm');
   const NXM = await ethers.getContractFactory('NXMTokenMock');
   const nxm = await NXM.deploy();
   await nxm.deployed();
 
-  console.log('deploying mr');
   const MemberRoles = await ethers.getContractFactory('MemberRoles');
   const memberRoles = await MemberRoles.deploy();
   await memberRoles.deployed();
 
-  console.log('deploying tc');
   const TokenControllerMock = await ethers.getContractFactory('TokenControllerMock');
   const tokenController = await TokenControllerMock.deploy();
   await tokenController.deployed();
 
-  console.log('deploying tc');
   nxm.setOperator(tokenController.address);
 
-  console.log('deploying master');
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();
   await master.deployed();
 
-  console.log('deploying pool');
   const Pool = await ethers.getContractFactory('MRMockPool');
   const pool = await Pool.deploy();
   await pool.deployed();
 
-  console.log('deploying cover');
   const Cover = await ethers.getContractFactory('MRMockCover');
   const cover = await Cover.deploy();
   await cover.deployed();
 
-  console.log('init master');
+  const Governance = await ethers.getContractFactory('MRMockGovernance');
+  const governance = await Governance.deploy();
+  await governance.deployed();
+
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('CO'), cover.address),
     master.setTokenAddress(nxm.address),
     master.setLatestAddress(hex('TC'), tokenController.address),
     master.setLatestAddress(hex('P1'), pool.address),
     master.setLatestAddress(hex('MR'), memberRoles.address),
+    master.setLatestAddress(hex('GV'), governance.address),
     master.enrollInternal(tokenController.address),
     master.enrollInternal(pool.address),
     master.enrollInternal(nxm.address),
@@ -52,7 +49,6 @@ async function setup () {
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
-  console.log('enrollment');
   const signers = await ethers.getSigners();
   const accounts = getAccounts(signers);
   await master.enrollGovernance(accounts.governanceContracts[0].address);
@@ -64,6 +60,21 @@ async function setup () {
 
   {
     const tx = await memberRoles.changeMasterAddress(master.address);
+    await tx.wait();
+  }
+
+  {
+    const tx = await memberRoles.changeDependentContractAddress();
+    await tx.wait();
+  }
+
+  {
+    const tx = await tokenController.changeMasterAddress(master.address);
+    await tx.wait();
+  }
+
+  {
+    const tx = await tokenController.changeDependentContractAddress();
     await tx.wait();
   }
 

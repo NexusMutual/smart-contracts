@@ -586,18 +586,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== PRODUCT CONFIGURATION ========== */
 
-  function setGlobalCapacityRatio(uint24 _globalCapacityRatio) external onlyGovernance {
-    globalCapacityRatio = _globalCapacityRatio;
-  }
-
-  function setGlobalRewardsRatio(uint24 _globalRewardsRatio) external onlyGovernance {
-    globalRewardsRatio = _globalRewardsRatio;
-  }
-
-  function setCoverAssetsFallback(uint32 _coverAssetsFallback) external override onlyGovernance {
-    coverAssetsFallback = _coverAssetsFallback;
-  }
-
   /**
    * @param paramNames  An array of elements from UintParams enum
    * @param values An array of the new values, each one corresponding to the parameter

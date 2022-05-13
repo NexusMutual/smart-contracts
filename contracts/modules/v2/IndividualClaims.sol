@@ -44,13 +44,23 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     coverNFT = ICoverNFT(coverNFTAddress);
   }
 
-  function initialize(address masterAddress) external {
+  function initialize() external {
+    Configuration memory currentConfig = config;
+    bool notInitialized = bytes32(
+      abi.encodePacked(
+        currentConfig.rewardRatio,
+        currentConfig.maxRewardInNXMWad,
+        currentConfig.minAssessmentDepositRatio,
+        currentConfig.payoutRedemptionPeriodInDays
+      )
+    ) == bytes32(0);
+    require(notInitialized, "Already initialized");
+
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
     config.rewardRatio = 130; // 1.3%
     config.maxRewardInNXMWad = 50; // 50 NXM
     config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH assessment minimum flat fee
     config.payoutRedemptionPeriodInDays = 14; // days until the payout will not be redeemable anymore
-    master = INXMMaster(masterAddress);
   }
 
   /* ========== VIEWS ========== */
@@ -227,7 +237,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint16 segmentId,
     uint96 requestedAmount,
     string calldata ipfsMetadata
-  ) external payable override onlyMember returns (Claim memory) {
+  ) external payable override onlyMember whenNotPaused returns (Claim memory) {
     require(
       coverNFT.isApprovedOrOwner(msg.sender, coverId),
       "Only the owner or approved addresses can submit a claim"
@@ -318,7 +328,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   /// When the tokens are transfered the assessment deposit is also sent back.
   ///
   /// @param claimId  Claim identifier
-  function redeemClaimPayout(uint104 claimId) external override {
+  function redeemClaimPayout(uint104 claimId) external override whenNotPaused {
     Claim memory claim = claims[claimId];
     (
       IAssessment.Poll memory poll,

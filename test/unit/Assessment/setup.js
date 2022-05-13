@@ -49,35 +49,17 @@ async function setup () {
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
-  {
-    const tx = await assessment.initialize(master.address);
-    await tx.wait();
-  }
+  await assessment.changeMasterAddress(master.address);
+  await individualClaims.changeMasterAddress(master.address);
+  await yieldTokenIncidents.changeMasterAddress(master.address);
 
-  {
-    const tx = await individualClaims.initialize(master.address);
-    await tx.wait();
-  }
+  await assessment.changeDependentContractAddress();
+  await individualClaims.changeDependentContractAddress();
+  await yieldTokenIncidents.changeDependentContractAddress();
 
-  {
-    const tx = await yieldTokenIncidents.initialize(master.address);
-    await tx.wait();
-  }
-
-  {
-    const tx = await assessment.changeDependentContractAddress();
-    await tx.wait();
-  }
-
-  {
-    const tx = await individualClaims.changeDependentContractAddress();
-    await tx.wait();
-  }
-
-  {
-    const tx = await yieldTokenIncidents.changeDependentContractAddress();
-    await tx.wait();
-  }
+  await assessment.initialize();
+  await individualClaims.initialize();
+  await yieldTokenIncidents.initialize();
 
   const signers = await ethers.getSigners();
   const accounts = getAccounts(signers);

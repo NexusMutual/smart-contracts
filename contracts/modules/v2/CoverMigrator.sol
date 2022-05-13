@@ -24,7 +24,7 @@ contract CoverMigrator is MasterAwareV2 {
   /// @dev Migrates covers for arNFT-like contracts that don't use Gateway.sol
   ///
   /// @param coverId          Legacy (V1) cover identifier
-  function submitClaim(uint coverId) external {
+  function submitClaim(uint coverId) external whenNotPaused {
     cover().migrateCoverFromOwner(coverId, msg.sender, tx.origin);
   }
 

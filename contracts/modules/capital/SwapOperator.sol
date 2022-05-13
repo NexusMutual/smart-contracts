@@ -34,7 +34,8 @@ contract SwapOperator is ReentrancyGuard {
   /* constants */
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   IUniswapV2Router02 constant public router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
-  uint constant public MAX_LIQUIDITY_RATIO = 3 * 1e15;
+  uint constant public MAX_LIQUIDITY_RATIO = 0.015 ether;
+  uint constant public MIN_TIME_BETWEEN_SWAPS = 10 minutes;
 
   /* events */
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
@@ -141,7 +142,7 @@ contract SwapOperator is ReentrancyGuard {
     {
       // scope for swap frequency check
       uint timeSinceLastTrade = block.timestamp - uint(assetData.lastSwapTime);
-      require(timeSinceLastTrade > twapOracle.periodSize(), "SwapOperator: too fast");
+      require(timeSinceLastTrade > MIN_TIME_BETWEEN_SWAPS, "SwapOperator: too fast");
     }
 
     {
@@ -200,7 +201,7 @@ contract SwapOperator is ReentrancyGuard {
     {
       // scope for swap frequency check
       uint timeSinceLastTrade = block.timestamp - uint(assetData.lastSwapTime);
-      require(timeSinceLastTrade > twapOracle.periodSize(), "SwapOperator: too fast");
+      require(timeSinceLastTrade > MIN_TIME_BETWEEN_SWAPS, "SwapOperator: too fast");
     }
 
     {

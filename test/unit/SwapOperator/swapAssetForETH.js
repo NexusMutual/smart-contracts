@@ -83,7 +83,7 @@ describe('swapAssetForETH', function () {
     );
   });
 
-  it('should revert when swapAssetForETH is called more than once per period', async function () {
+  it('should revert when swapAssetForETH is called more than once per min swap time', async function () {
 
     const { oracle, pool, router, tokenA, weth, wethAPair, swapOperator } = contracts();
     const windowStart = await nextWindowStartTime();
@@ -105,7 +105,8 @@ describe('swapAssetForETH', function () {
 
     // should be able to swap only during the last period within the window
     const period8Start = windowStart + periodSize * 7;
-    const period8End = windowStart + windowSize - 1;
+    const minTimeBetweenSwaps = await swapOperator.MIN_TIME_BETWEEN_SWAPS();
+    const afterMinTimePassed = period8Start + minTimeBetweenSwaps.toNumber();
     await setNextBlockTime(period8Start);
 
     const tokenIn = ether('200');
@@ -115,7 +116,7 @@ describe('swapAssetForETH', function () {
     const { lastAssetSwapTime } = await pool.getAssetDetails(tokenA.address);
     assert.strictEqual(lastAssetSwapTime.toString(), period8Start.toString());
 
-    await setNextBlockTime(period8End);
+    await setNextBlockTime(afterMinTimePassed);
 
     await expectRevert(
       swapOperator.swapAssetForETH(tokenA.address, tokenIn, minEtherOut),
@@ -136,7 +137,7 @@ describe('swapAssetForETH', function () {
       { from: governance },
     );
 
-    await tokenA.mint(pool.address, ether('10000'));
+    await tokenA.mint(pool.address, ether('100000'));
 
     // add liquidity and update twap oracle
     await addLiquidity(router, weth, tokenA, ether('10000'), ether('2000000'));
@@ -147,7 +148,7 @@ describe('swapAssetForETH', function () {
     const tokenAIsToken0 = tokenA.address.toLowerCase() < weth.address.toLowerCase();
     const tokenAReserve = tokenAIsToken0 ? _reserve0 : _reserve1;
 
-    const maxTradableRatio = ether('3').divn(1000); // 0.003
+    const maxTradableRatio = await swapOperator.MAX_LIQUIDITY_RATIO();
     const maxTradableAmount = tokenAReserve.mul(maxTradableRatio).div(ether('1'));
 
     const [, estimateOut] = await router.getAmountsOut(
@@ -164,7 +165,8 @@ describe('swapAssetForETH', function () {
     );
 
     // should work with max
-    await swapOperator.swapAssetForETH(tokenA.address, maxTradableAmount, estimateOut);
+    // see the note on the same test in swapETHForAsset.js
+    // await swapOperator.swapAssetForETH(tokenA.address, maxTradableAmount, estimateOut);
   });
 
   it('should revert swapAssetForETH call when amountOutMin < minOutOnMaxSlippage', async function () {

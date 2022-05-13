@@ -155,8 +155,6 @@ interface ICover {
     string[] calldata ipfsMetadata
   ) external;
 
-  function setCoverAssetsFallback(uint32 _coverAssetsFallback) external;
-
   function performPayoutBurn(
     uint coverId,
     uint segmentId,

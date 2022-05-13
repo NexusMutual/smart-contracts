@@ -594,6 +594,35 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     globalRewardsRatio = _globalRewardsRatio;
   }
 
+  function setCoverAssetsFallback(uint32 _coverAssetsFallback) external override onlyGovernance {
+    coverAssetsFallback = _coverAssetsFallback;
+  }
+
+  /**
+   * @param paramNames  An array of elements from UintParams enum
+   * @param values An array of the new values, each one corresponding to the parameter
+  */
+  function updateUintParameters(
+    CoverUintParams[] calldata paramNames,
+    uint[] calldata values
+  ) external onlyGovernance {
+
+    for (uint i = 0; i < paramNames.length; i++) {
+      if (paramNames[i] == CoverUintParams.globalCapacityRatio) {
+        globalCapacityRatio = uint24(values[i]);
+        continue;
+      }
+      if (paramNames[i] == CoverUintParams.globalRewardsRatio) {
+        globalRewardsRatio = uint24(values[i]);
+        continue;
+      }
+      if (paramNames[i] == CoverUintParams.coverAssetsFallback) {
+        coverAssetsFallback = uint32(values[i]);
+        continue;
+      }
+    }
+  }
+
   function setInitialPrices(
     uint[] calldata productIds,
     uint16[] calldata initialPriceRatios
@@ -641,9 +670,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     }
   }
 
-  function setCoverAssetsFallback(uint32 _coverAssetsFallback) external override onlyGovernance {
-    coverAssetsFallback = _coverAssetsFallback;
-  }
 
   /* ========== ACTIVE COVER AMOUNT TRACKING ========== */
 

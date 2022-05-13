@@ -23,6 +23,13 @@ enum LegacyCoverStatus {
   Migrated
 }
 
+enum CoverUintParams {
+  globalCapacityRatio,
+  globalRewardsRatio,
+  coverAssetsFallback
+}
+
+
 struct PoolAllocationRequest {
   uint64 poolId;
   uint coverAmountInAsset;

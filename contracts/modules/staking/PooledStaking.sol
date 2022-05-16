@@ -1415,7 +1415,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
         continue;
       }
       products[i] = productId;
-      stakes[i] = stakers[stakerAddress].stakes[oldProductId];
+      stakes[i] = min(stakers[stakerAddress].stakes[oldProductId], deposit);
       migratableCount++;
     }
 

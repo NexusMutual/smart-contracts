@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-v4/utils/math/SafeCast.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/INXMToken.sol";
+import "../../utils/Math.sol";
 
 // total stake = active stake + expired stake
 // product stake = active stake * product weight
@@ -321,7 +322,7 @@ contract StakingPool is IStakingPool, ERC721 {
     /* end calculate and update pending reward */
 
     uint newStakeShares = _stakeSharesSupply == 0
-      ? sqrt(amount)
+      ? Math.sqrt(amount)
       : _stakeSharesSupply * amount / _activeStake;
 
     uint newRewardsShares = calculateRewardSharesAmount(newStakeShares, groupId);
@@ -471,7 +472,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
     {
       uint usableStake = freeProductStake - allocatedProductStake;
-      newAllocation = min(productStakeAmount, usableStake);
+      newAllocation = Math.min(productStakeAmount, usableStake);
 
       premium = calculatePremium(
         productId,
@@ -644,33 +645,5 @@ contract StakingPool is IStakingPool, ERC721 {
     activeCover = getAllocatedProductStake(productId);
     lastBasePrice = products[productId].lastPrice;
     targetPrice = products[productId].targetPrice;
-  }
-
-  function min(uint a, uint b) internal pure returns (uint) {
-    return a < b ? a : b;
-  }
-
-  function max(uint a, uint b) internal pure returns (uint) {
-    return a > b ? a : b;
-  }
-
-  // babylonian method
-  function sqrt(uint y) internal pure returns (uint) {
-
-    if (y > 3) {
-      uint z = y;
-      uint x = y / 2 + 1;
-      while (x < z) {
-        z = x;
-        x = (y / x + x) / 2;
-      }
-      return z;
-    }
-
-    if (y != 0) {
-      return 1;
-    }
-
-    return 0;
   }
 }

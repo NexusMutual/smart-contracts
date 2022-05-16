@@ -9,6 +9,8 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ICover.sol";
+
 
 contract MCR is IMCR, MasterAware {
   IPool public pool;
@@ -30,6 +32,7 @@ contract MCR is IMCR, MasterAware {
   uint32 public lastUpdateTime;
 
   IMCR public previousMCR;
+  ICover public cover;
 
   event MCRUpdated(
     uint mcr,
@@ -83,9 +86,28 @@ contract MCR is IMCR, MasterAware {
    * @dev Gets total sum assured (in ETH).
    * @return amount of sum assured
    */
-  function getAllSumAssurance() public pure returns (uint) {
-    // Requires a new implementation once geared MCR should be used instead. To save gas it is
-    // left out on purpose.
+  function getAllSumAssurance() public view returns (uint) {
+
+    IPriceFeedOracle priceFeed = pool.priceFeedOracle();
+    if (cover.activeCoverAmountCommitted()) {
+      uint totalActiveCoverAmountInEth = cover.totalActiveCoverInAsset(0);
+
+      IPool.Asset[] memory assets = pool.getCoverAssets();
+
+      // the first asset is ETH. skip it, it's already counted
+      for (uint i = 1; i < assets.length; i++) {
+
+        IPool.Asset memory asset = assets[i];
+        uint activeCoverAmount = cover.totalActiveCoverInAsset(uint24(i));
+
+        uint assetRate = priceFeed.getAssetToEthRate(assets[i].assetAddress);
+        uint assetAmountInEth = activeCoverAmount * assetRate / 10 ** asset.decimals;
+
+        totalActiveCoverAmountInEth += assetAmountInEth;
+      }
+
+      return totalActiveCoverAmountInEth;
+    }
     return 0;
   }
 

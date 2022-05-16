@@ -17,7 +17,6 @@ const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
 async function setup ({ MCR, Pool }) {
   const master = await MasterMock.new();
-  const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
 
   const chainlinkDAI = await ChainlinkAggregatorMock.new();
@@ -47,7 +46,6 @@ async function setup ({ MCR, Pool }) {
   await master.setLatestAddress(hex('TD'), tokenData.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
-  await master.setLatestAddress(hex('P2'), mockP2Address);
   await master.setLatestAddress(hex('TF'), tokenFunctions.address);
 
   const contractsToUpdate = [pool, tokenController, tokenFunctions, mcr];

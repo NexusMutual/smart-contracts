@@ -52,6 +52,7 @@ struct CoverSegment {
   uint32 start;
   uint32 period;  // seconds
   uint16 priceRatio;
+  bool expired;
 }
 
 struct BuyCoverParams {
@@ -124,6 +125,12 @@ interface ICover {
 
   function productsCount() external view returns (uint);
 
+  function activeCoverAmountCommitted() external view returns (bool);
+
+  function MAX_COVER_PERIOD() external view returns (uint);
+
+  function totalActiveCoverInAsset(uint24 coverAsset) external view returns (uint);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function migrateCovers(uint[] calldata coverIds, address toNewOwner) external;
@@ -165,7 +172,6 @@ interface ICover {
 
   function transferCovers(address from, address to, uint256[] calldata coverIds) external;
 
-
   function createStakingPool(
     address manager,
     ProductInitializationParams[] calldata params,
@@ -173,11 +179,13 @@ interface ICover {
     uint groupId
   ) external returns (address stakingPoolAddress);
 
-  /* ========== EVENTS ========== */
 
-  function MAX_COVER_PERIOD() external view returns (uint);
+  /* ========== EVENTS ========== */
 
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
   event ProductTypeUpserted(uint id, string ipfsMetadata);
   event ProductUpserted(uint id, string ipfsMetadata);
+  event CoverBought(uint coverId, uint productId, uint segmentId, address buyer, string ipfsData);
+  event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
+  event CoverExpired(uint coverId, uint segmentId);
 }

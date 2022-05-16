@@ -355,10 +355,9 @@ contract PooledStaking is IPooledStaking, MasterAware {
     }
   }
 
-  function withdraw(uint ignoredParam) external override whenNotPausedAndInitialized onlyMember noPendingBurns {
-    ignoredParam; // Silence warnings. Keeping this to avoid changing function selector
+  function withdraw(uint /*ignoredParam*/) external override whenNotPausedAndInitialized onlyMember noPendingBurns {
     uint amount = stakers[msg.sender].deposit;
-    stakers[msg.sender].deposit -= amount;
+    stakers[msg.sender].deposit = 0;
     token.transfer(msg.sender, amount);
     emit Withdrawn(msg.sender, amount);
   }
@@ -366,7 +365,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
   function withdrawForUser(address user) external override whenNotPausedAndInitialized onlyMember noPendingBurns {
     require(block.timestamp > migrationDeadline, "Migration period hasn't ended");
     uint amount = stakers[user].deposit;
-    stakers[user].deposit -= amount;
+    stakers[user].deposit = 0;
     token.transfer(user, amount);
     emit Withdrawn(user, amount);
   }

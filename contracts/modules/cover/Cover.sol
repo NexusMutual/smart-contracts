@@ -175,7 +175,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function buyCover(
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory allocationRequests
-  ) external payable override onlyMember returns (uint /*coverId*/) {
+  ) external payable override onlyMember whenNotPaused returns (uint /*coverId*/) {
 
     require(_products.length > params.productId, "Cover: Product not found");
     Product memory product = _products[params.productId];
@@ -302,7 +302,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint coverId,
     BuyCoverParams memory buyCoverParams,
     PoolAllocationRequest[] memory poolAllocations
-  ) external payable onlyMember {
+  ) external payable onlyMember whenNotPaused {
 
     CoverData memory cover = _coverData[coverId];
     uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;

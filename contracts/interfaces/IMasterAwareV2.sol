@@ -10,10 +10,10 @@ interface IMasterAwareV2 {
     P1, // Pool.sol
     MR, // MemberRoles.sol
     MC, // MCR.sol
-    CO  // Cover.sol
+    CO,  // Cover.sol
     AS, // Assessment.sol
     IC, // IndividualClaims.sol
-    YT, // YieldTokenIncidents.sol
+    YT  // YieldTokenIncidents.sol
   }
 
   function changeMasterAddress(address masterAddress) external;

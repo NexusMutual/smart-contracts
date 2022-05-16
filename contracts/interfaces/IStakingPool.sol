@@ -110,6 +110,10 @@ interface IStakingPool is IERC721 {
 
   function setProductDetails(ProductParams[] memory params) external;
 
+  function setPoolFee(uint newFee) external;
+
+  function setPoolPrivacy(bool isPrivatePool) external;
+
   function manager() external view returns (address);
 
   function getActiveStake() external view returns (uint);

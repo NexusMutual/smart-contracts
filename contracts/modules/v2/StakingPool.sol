@@ -64,6 +64,10 @@ contract StakingPool is IStakingPool, ERC721 {
   uint public firstActiveGroupId;
   uint public firstActiveBucketId;
 
+  bool public isPrivatePool;
+  uint8 public poolFee;
+  uint8 public maxPoolFee;
+
   // erc721 supply
   uint public totalSupply;
 
@@ -132,9 +136,9 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function initialize(
     address _manager,
-    bool isPrivatePool,
-    uint initialPoolFee,
-    uint maxPoolFee,
+    bool _isPrivatePool,
+    uint _initialPoolFee,
+    uint _maxPoolFee,
     ProductInitializationParams[] calldata params
   ) external onlyCoverContract {
 
@@ -142,9 +146,12 @@ contract StakingPool is IStakingPool, ERC721 {
     _mint(_manager, 0);
     totalSupply = 1;
 
-    isPrivatePool;
-    initialPoolFee;
-    maxPoolFee;
+    isPrivatePool = _isPrivatePool;
+
+    require(_initialPoolFee <= _maxPoolFee, "StakingPool: Pool fee should not exceed max pool fee");
+    poolFee = uint8(_initialPoolFee);
+    maxPoolFee = uint8(_maxPoolFee);
+    // TODO: limit max fee and use safe cast
 
     // TODO: initialize products
     params;
@@ -264,6 +271,10 @@ contract StakingPool is IStakingPool, ERC721 {
     uint groupId,
     uint _tokenId
   ) external returns (uint tokenId) {
+
+    if (isPrivatePool) {
+      require(msg.sender == manager(), "StakingPool: The pool is private");
+    }
 
     updateGroups();
 
@@ -609,7 +620,7 @@ contract StakingPool is IStakingPool, ERC721 {
     return 0;
   }
 
-  function manager() external view returns (address) {
+  function manager() public view returns (address) {
     return ownerOf(0);
   }
 
@@ -621,6 +632,16 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function removeProducts(uint[] memory productIds) external onlyManager {
     productIds;
+  }
+
+  function setPoolFee(uint newFee) external onlyManager {
+    require(newFee <= maxPoolFee, "StakingPool: new fee exceeds max fee");
+    poolFee = uint8(newFee);
+    // TODO: update pool manager's reward shares amount
+  }
+
+  function setPoolPrivacy(bool _isPrivatePool) external onlyManager {
+    isPrivatePool = _isPrivatePool;
   }
 
   /* utils */

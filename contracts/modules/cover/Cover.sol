@@ -507,6 +507,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function createStakingPool(
     address manager,
+    bool isPrivatePool,
+    uint initialPoolFee,
+    uint maxPoolFee,
     ProductInitializationParams[] calldata params,
     uint depositAmount,
     uint groupId
@@ -514,9 +517,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
 
-    // [todo] add a fee parameter for the staking pool once its implemented
     // [todo] handle the creation of NFT 0 which is the default NFT owned by the pool manager
-    return CoverUtilsLib.createStakingPool(manager, stakingPoolCount++, params, depositAmount, groupId);
+    return CoverUtilsLib.createStakingPool(
+      stakingPoolCount++,
+      manager,
+      isPrivatePool,
+      initialPoolFee,
+      maxPoolFee,
+      params,
+      depositAmount,
+      groupId
+    );
   }
 
   function stakingPool(uint index) public view returns (IStakingPool) {

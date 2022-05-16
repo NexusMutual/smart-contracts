@@ -106,8 +106,11 @@ library CoverUtilsLib {
   }
 
   function createStakingPool(
-    address manager,
     uint poolId,
+    address manager,
+    bool isPrivatePool,
+    uint initialPoolFee,
+    uint maxPoolFee,
     ProductInitializationParams[] calldata params,
     uint depositAmount,
     uint groupId
@@ -120,7 +123,7 @@ library CoverUtilsLib {
     // [todo] handle the creation of NFT 0 which is the default NFT owned by the pool manager
 
     IStakingPool newStakingPool = IStakingPool(stakingPoolAddress);
-    newStakingPool.initialize(manager, params);
+    newStakingPool.initialize(manager, isPrivatePool, initialPoolFee, maxPoolFee, params);
 
     uint stakePositionNFTId = newStakingPool.deposit(depositAmount, groupId, 0);
 

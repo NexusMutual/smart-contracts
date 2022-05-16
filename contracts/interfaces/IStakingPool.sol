@@ -70,7 +70,13 @@ interface IStakingPool is IERC721 {
     uint allocationCut;
   }
 
-  function initialize(address _manager, ProductInitializationParams[] calldata params) external;
+  function initialize(
+    address _manager,
+    bool isPrivatePool,
+    uint initialPoolFee,
+    uint maxPoolFee,
+    ProductInitializationParams[] calldata params
+  ) external;
 
   function operatorTransfer(address from, address to, uint[] calldata tokenIds) external;
 

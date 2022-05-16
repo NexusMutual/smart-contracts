@@ -131,11 +131,20 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function initialize(
     address _manager,
+    bool isPrivatePool,
+    uint initialPoolFee,
+    uint maxPoolFee,
     ProductInitializationParams[] calldata params
   ) external onlyCoverContract {
+
     // create ownership nft
     _mint(_manager, 0);
     totalSupply = 1;
+
+    isPrivatePool;
+    initialPoolFee;
+    maxPoolFee;
+
     // TODO: initialize products
     params;
   }

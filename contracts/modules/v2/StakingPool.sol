@@ -248,6 +248,7 @@ contract StakingPool is IStakingPool, ERC721 {
     rewardsSharesSupply = _rewardsSharesSupply;
   }
 
+  // todo: allow deposits to multiple groups/nfts
   function deposit(
     uint amount,
     uint groupId,
@@ -555,6 +556,7 @@ contract StakingPool is IStakingPool, ERC721 {
       tokenId != 0 || nxm.isLockedForMV(from) < block.timestamp,
       "StakingPool: Locked for voting in governance"
     );
+    // todo: track owned zero-id nfts in TC
   }
 
   /* pool management */

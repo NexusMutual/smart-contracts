@@ -203,23 +203,23 @@ contract StakingPool is IStakingPool, ERC721 {
       // todo: handle _firstActiveGroupId = 0 case
 
       // SLOAD
-      Group memory group = groups[_firstActiveGroupId];
+      Group memory expiringGroup = groups[_firstActiveGroupId];
 
       // todo: handle division by zero
-      uint expiredStake = _activeStake * group.stakeShares / _stakeSharesSupply;
+      uint expiredStake = _activeStake * expiringGroup.stakeShares / _stakeSharesSupply;
 
       // the group is expired now so we decrease the stake and share supply
       _activeStake -= expiredStake;
-      _stakeSharesSupply -= group.stakeShares;
-      _rewardsSharesSupply -= group.rewardsShares;
+      _stakeSharesSupply -= expiringGroup.stakeShares;
+      _rewardsSharesSupply -= expiringGroup.rewardsShares;
 
       // todo: update nft 0
 
-      group.stakeShares = 0;
-      group.rewardsShares = 0;
+      expiringGroup.stakeShares = 0;
+      expiringGroup.rewardsShares = 0;
 
       // SSTORE
-      groups[_firstActiveGroupId] = group;
+      groups[_firstActiveGroupId] = expiringGroup;
       expiredGroups[_firstActiveGroupId] = ExpiredGroup(
         _accNxmPerRewardsShare, // accNxmPerRewardShareAtExpiry
         // TODO: should this be before or after active stake reduction?

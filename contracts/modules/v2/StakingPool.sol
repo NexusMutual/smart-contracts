@@ -95,8 +95,8 @@ contract StakingPool is IStakingPool, ERC721 {
   /* constants */
 
   // 7 * 13 = 91
-  uint constant BUCKET_SIZE = 7 days;
-  uint constant GROUP_SIZE = 91 days;
+  uint constant BUCKET_DURATION = 7 days;
+  uint constant GROUP_DURATION = 91 days;
   uint constant MAX_GROUPS = 9; // 8 whole quarters + 1 partial quarter
 
   uint constant REWARDS_SHARES_RATIO = 125;
@@ -157,8 +157,8 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _firstActiveBucketId = firstActiveBucketId;
     uint _firstActiveGroupId = firstActiveGroupId;
 
-    uint currentBucketId = block.timestamp / BUCKET_SIZE;
-    uint currentGroupId = block.timestamp / GROUP_SIZE;
+    uint currentBucketId = block.timestamp / BUCKET_DURATION;
+    uint currentGroupId = block.timestamp / GROUP_DURATION;
 
     // populate if the pool is new
     if (_firstActiveBucketId == 0) {
@@ -182,7 +182,7 @@ contract StakingPool is IStakingPool, ERC721 {
     while (_firstActiveBucketId < currentBucketId) {
 
       ++_firstActiveBucketId;
-      uint bucketEndTime = _firstActiveBucketId * BUCKET_SIZE;
+      uint bucketEndTime = _firstActiveBucketId * BUCKET_DURATION;
       uint elapsed = bucketEndTime - _lastAccNxmUpdate;
 
       // todo: should be allowed to overflow?
@@ -194,7 +194,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
       // should we expire a group?
       if (
-        bucketEndTime % GROUP_SIZE != 0 ||
+        bucketEndTime % GROUP_DURATION != 0 ||
         _firstActiveGroupId == currentGroupId
       ) {
         continue;
@@ -257,7 +257,7 @@ contract StakingPool is IStakingPool, ERC721 {
     updateGroups();
 
     {
-      uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;
+      uint _firstActiveGroupId = block.timestamp / GROUP_DURATION;
       uint maxGroup = _firstActiveGroupId + MAX_GROUPS;
       require(groupId <= maxGroup, "StakingPool: Requested group is not yet active");
       require(groupId >= _firstActiveGroupId, "StakingPool: Requested group has expired");
@@ -339,8 +339,8 @@ contract StakingPool is IStakingPool, ERC721 {
     uint groupId
   ) internal view returns (uint) {
 
-    uint lockDuration = (groupId + 1) * GROUP_SIZE - block.timestamp;
-    uint maxLockDuration = GROUP_SIZE * 8;
+    uint lockDuration = (groupId + 1) * GROUP_DURATION - block.timestamp;
+    uint maxLockDuration = GROUP_DURATION * 8;
 
     // TODO: determine extra rewards formula
     return
@@ -356,7 +356,7 @@ contract StakingPool is IStakingPool, ERC721 {
     updateGroups();
 
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
-    uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;
+    uint _firstActiveGroupId = block.timestamp / GROUP_DURATION;
 
     for (uint i = 0; i < params.length; i++) {
 
@@ -420,7 +420,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
     Product memory product = products[productId];
     uint allocatedProductStake = product.allocatedStake;
-    uint currentBucket = block.timestamp / BUCKET_SIZE;
+    uint currentBucket = block.timestamp / BUCKET_DURATION;
 
     {
       uint lastBucket = product.lastBucket;
@@ -435,8 +435,8 @@ contract StakingPool is IStakingPool, ERC721 {
     uint freeProductStake;
     {
       // group expiration must exceed the cover period
-      uint _firstAvailableGroupId = (block.timestamp + period + gracePeriod) / GROUP_SIZE;
-      uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;
+      uint _firstAvailableGroupId = (block.timestamp + period + gracePeriod) / GROUP_DURATION;
+      uint _firstActiveGroupId = block.timestamp / GROUP_DURATION;
 
       // start with the entire supply and subtract unavailable groups
       uint _stakeSharesSupply = stakeSharesSupply;
@@ -480,10 +480,10 @@ contract StakingPool is IStakingPool, ERC721 {
       require(rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
 
       // divCeil = fn(a, b) => (a + b - 1) / b
-      uint expireAtBucket = (block.timestamp + period + BUCKET_SIZE - 1) / BUCKET_SIZE;
+      uint expireAtBucket = (block.timestamp + period + BUCKET_DURATION - 1) / BUCKET_DURATION;
       uint _rewardPerSecond =
         premium * rewardRatio / REWARDS_DENOMINATOR
-        / (expireAtBucket * BUCKET_SIZE - block.timestamp);
+        / (expireAtBucket * BUCKET_DURATION - block.timestamp);
 
       // 2 SLOAD + 2 SSTORE
       productBuckets[productId][expireAtBucket].allocationCut += newAllocation;
@@ -623,11 +623,11 @@ contract StakingPool is IStakingPool, ERC721 {
     uint targetPrice
   ) {
 
-    uint maxGroupSpanCount = maxCoverPeriod / GROUP_SIZE + 1;
+    uint maxGroupSpanCount = maxCoverPeriod / GROUP_DURATION + 1;
     staked = new uint[](maxGroupSpanCount);
 
     for (uint i = 0; i < maxGroupSpanCount; i++) {
-      staked[i] = getProductStake(productId, block.timestamp + i * GROUP_SIZE);
+      staked[i] = getProductStake(productId, block.timestamp + i * GROUP_DURATION);
     }
 
     activeCover = getAllocatedProductStake(productId);

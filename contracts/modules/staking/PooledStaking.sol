@@ -1377,7 +1377,14 @@ contract PooledStaking is IPooledStaking, MasterAware {
     revert("Invalid product id");
   }
 
-  function migrateToNewV2Pool(address stakerAddress, uint groupId) external noPendingActions {
+  /// Creates a new v2 staking pool from a v1 staking deposit
+  ///
+  /// @param stakerAddress  The address of the staker that is going to own the new pool. A few
+  ///                       hardcoded addresses will be migrated at launch which means that the
+  ///                       sender address can be different for these. The rest of the addresses
+  ///                       can only be migrated by the matching sender.
+  /// @param termId         The id of the term until which the deposit is staked.
+  function migrateToNewV2Pool(address stakerAddress, uint termId) external noPendingActions {
     require(block.timestamp <= migrationDeadline, "Migration period has ended");
     // Addresses marked for implicit migration can be migrated by anyone.
     // Addresses who are not can only be migrated by calling this function themselves.
@@ -1443,9 +1450,9 @@ contract PooledStaking is IPooledStaking, MasterAware {
       uint GROUP_SIZE = 91 days;
       uint firstActiveGroupId = block.timestamp / GROUP_SIZE;
 
-      // Use the groupId provided as a parameter if the user is migrating to v2 himself
+      // Use the termId provided as a parameter if the user is migrating to v2 himself
       // Use next id after the first active group id for those in the initial migration list
-      uint groupIdInEffect = stakerAddress == msg.sender ? groupId : firstActiveGroupId + 1;
+      uint groupIdInEffect = stakerAddress == msg.sender ? termId : firstActiveGroupId + 1;
 
       cover.createStakingPool(stakerAddress, params, deposit, groupIdInEffect);
     }
@@ -1455,11 +1462,16 @@ contract PooledStaking is IPooledStaking, MasterAware {
 
   }
 
-  function migrateToExistingV2Pool(IStakingPool stakingPool, uint groupId) external {
+  /// Migrates the sender to an existing pool
+  ///
+  /// @param stakingPool    The address of the staking pool where the sender will move the existing
+  ///                       deposit.
+  /// @param termId         The id of the term until which the deposit is staked.
+  function migrateToExistingV2Pool(IStakingPool stakingPool, uint termId) external {
     uint deposit = stakers[msg.sender].deposit;
-    uint stakePositionNFTId = stakingPool.deposit(deposit, groupId, 0);
-    stakingPool.safeTransferFrom(address(this), msg.sender, stakePositionNFTId);
     stakers[msg.sender].deposit = 0;
+    uint stakePositionNFTId = stakingPool.deposit(deposit, termId, 0);
+    stakingPool.safeTransferFrom(address(this), msg.sender, stakePositionNFTId);
   }
 
 }

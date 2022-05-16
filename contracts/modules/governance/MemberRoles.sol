@@ -288,20 +288,26 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
    * @dev switches membership for member to the specified address.
    * @param newAddress address of user to forward membership.
    */
-  function _switchMembership(address member, address newAddress) internal {
+  function _switchMembership(address currentAddress, address newAddress) internal {
 
     require(!ms.isPause(), "System is paused");
-    require(ms.isMember(member), "The current address is not a member");
+    require(ms.isMember(currentAddress), "The current address is not a member");
     require(!ms.isMember(newAddress), "The new address is already a member");
-    require(block.timestamp > tk.isLockedForMV(member), "Locked for governance voting"); // No locked tokens for Governance voting
+    require(block.timestamp > tk.isLockedForMV(currentAddress), "Locked for governance voting"); // No locked tokens for Governance voting
 
-    gv.removeDelegation(member);
+    gv.removeDelegation(currentAddress);
     tc.addToWhitelist(newAddress);
+    _updateRole(currentAddress, uint(Role.Member), false);
     _updateRole(newAddress, uint(Role.Member), true);
-    _updateRole(member, uint(Role.Member), false);
-    tc.removeFromWhitelist(member);
 
-    emit switchedMembership(member, newAddress, block.timestamp);
+    if (checkRole(currentAddress, uint(Role.AdvisoryBoard))) {
+      _updateRole(currentAddress, uint(Role.AdvisoryBoard), false);
+      _updateRole(newAddress, uint(Role.AdvisoryBoard), true);
+    }
+
+    tc.removeFromWhitelist(currentAddress);
+
+    emit switchedMembership(currentAddress, newAddress, block.timestamp);
   }
 
   /// @dev Return number of member roles

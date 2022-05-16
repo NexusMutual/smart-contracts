@@ -1456,9 +1456,9 @@ contract PooledStaking is IPooledStaking, MasterAware {
 
   function migrateToExistingV2Pool(IStakingPool stakingPool, uint groupId) external {
     uint deposit = stakers[msg.sender].deposit;
+    stakers[msg.sender].deposit = 0;
+    token.approve(address(tokenController), deposit);
     uint stakePositionNFTId = stakingPool.deposit(deposit, groupId, 0);
     stakingPool.safeTransferFrom(address(this), msg.sender, stakePositionNFTId);
-    stakers[msg.sender].deposit = 0;
   }
-
 }

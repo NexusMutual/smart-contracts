@@ -172,7 +172,7 @@ interface ICover {
     uint maxPoolFee,
     ProductInitializationParams[] calldata params,
     uint depositAmount,
-    uint groupId
+    uint trancheId
   ) external returns (address stakingPoolAddress);
 
   /* ========== EVENTS ========== */

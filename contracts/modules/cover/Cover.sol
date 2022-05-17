@@ -512,7 +512,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint maxPoolFee,
     ProductInitializationParams[] calldata params,
     uint depositAmount,
-    uint groupId
+    uint trancheId
   ) external returns (address stakingPoolAddress) {
 
     emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
@@ -526,7 +526,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       maxPoolFee,
       params,
       depositAmount,
-      groupId
+      trancheId
     );
   }
 

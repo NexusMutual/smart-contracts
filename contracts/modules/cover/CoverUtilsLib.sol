@@ -111,7 +111,7 @@ library CoverUtilsLib {
     uint maxPoolFee,
     ProductInitializationParams[] calldata params,
     uint depositAmount,
-    uint groupId
+    uint trancheId
   ) external returns (address stakingPoolAddress) {
 
     stakingPoolAddress = address(
@@ -122,9 +122,9 @@ library CoverUtilsLib {
     IStakingPool newStakingPool = IStakingPool(stakingPoolAddress);
     newStakingPool.initialize(manager, isPrivatePool, initialPoolFee, maxPoolFee, params);
 
-    // will create nft with a position in the desired group id
+    // will create nft with a position in the desired tranche id
     if (depositAmount > 0) {
-      newStakingPool.deposit(depositAmount, groupId, 0, manager);
+      newStakingPool.deposit(depositAmount, trancheId, 0, manager);
     }
   }
 

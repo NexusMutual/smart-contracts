@@ -10,7 +10,7 @@ struct WithdrawParams {
   uint tokenId;
   bool withdrawStake;
   bool withdrawRewards;
-  uint[] groupIds;
+  uint[] trancheIds;
 }
 
 struct ProductParams {
@@ -32,15 +32,15 @@ interface IStakingPool is IERC721 {
 
   /* structs for storage */
 
-  // stakers are grouped based on the timelock expiration
-  // group index is calculated based on the expiration date
-  // the initial proposal is to have 4 groups per year (1 group per quarter)
-  struct Group {
+  // stakers are grouped in tranches based on the timelock expiration
+  // tranche index is calculated based on the expiration date
+  // the initial proposal is to have 4 tranches per year (1 tranche per quarter)
+  struct Tranche {
     uint stakeShares;
     uint rewardsShares;
   }
 
-  struct ExpiredGroup {
+  struct ExpiredTranche {
     uint accNxmPerRewardShareAtExpiry;
     uint stakeAmountAtExpiry;
     uint stakeShareSupplyAtExpiry;
@@ -81,7 +81,7 @@ interface IStakingPool is IERC721 {
 
   function operatorTransfer(address from, address to, uint[] calldata tokenIds) external;
 
-  function updateGroups() external;
+  function updateTranches() external;
 
   function allocateStake(
     uint productId,
@@ -103,7 +103,7 @@ interface IStakingPool is IERC721 {
 
   function deposit(
     uint amount,
-    uint groupId,
+    uint trancheId,
     uint _tokenId,
     address destination
   ) external returns (uint tokenId);

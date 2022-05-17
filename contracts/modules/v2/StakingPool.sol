@@ -44,10 +44,10 @@ contract StakingPool is IStakingPool, ERC721 {
   // currently active staked nxm amount
   uint public activeStake;
 
-  // supply of pool stake shares used by groups
+  // supply of pool stake shares used by tranches
   uint public stakeSharesSupply;
 
-  // supply of pool rewards shares used by groups
+  // supply of pool rewards shares used by tranches
   uint public rewardsSharesSupply;
 
   // current nxm reward per second for the entire pool
@@ -61,7 +61,7 @@ contract StakingPool is IStakingPool, ERC721 {
   // timestamp when accNxmPerRewardsShare was last updated
   uint public lastAccNxmUpdate;
 
-  uint public firstActiveGroupId;
+  uint public firstActiveTrancheId;
   uint public firstActiveBucketId;
 
   bool public isPrivatePool;
@@ -71,11 +71,11 @@ contract StakingPool is IStakingPool, ERC721 {
   // erc721 supply
   uint public totalSupply;
 
-  // group id => group data
-  mapping(uint => Group) public groups;
+  // tranche id => tranche data
+  mapping(uint => Tranche) public tranches;
 
-  // group id => amount
-  mapping(uint => ExpiredGroup) public expiredGroups;
+  // tranche id => amount
+  mapping(uint => ExpiredTranche) public expiredTranches;
 
   // pool bucket id => PoolBucket
   mapping(uint => PoolBucket) public poolBuckets;
@@ -86,7 +86,7 @@ contract StakingPool is IStakingPool, ERC721 {
   // product id => Product
   mapping(uint => Product) public products;
 
-  // token id => group id => position data
+  // token id => tranche id => position data
   mapping(uint => mapping(uint => Position)) public positions;
 
   /* immutables */
@@ -98,8 +98,8 @@ contract StakingPool is IStakingPool, ERC721 {
 
   // 7 * 13 = 91
   uint constant BUCKET_DURATION = 7 days;
-  uint constant GROUP_DURATION = 91 days;
-  uint constant MAX_GROUPS = 9; // 8 whole quarters + 1 partial quarter
+  uint constant TRANCHE_DURATION = 91 days;
+  uint constant MAX_ACTIVE_TRANCHES = 9; // 8 whole quarters + 1 partial quarter
 
   uint constant REWARDS_SHARES_RATIO = 125;
   uint constant REWARDS_SHARES_DENOMINATOR = 100;
@@ -167,18 +167,18 @@ contract StakingPool is IStakingPool, ERC721 {
     }
   }
 
-  function updateGroups() public {
+  function updateTranches() public {
 
     uint _firstActiveBucketId = firstActiveBucketId;
-    uint _firstActiveGroupId = firstActiveGroupId;
+    uint _firstActiveTrancheId = firstActiveTrancheId;
 
     uint currentBucketId = block.timestamp / BUCKET_DURATION;
-    uint currentGroupId = block.timestamp / GROUP_DURATION;
+    uint currentTrancheId = block.timestamp / TRANCHE_DURATION;
 
     // populate if the pool is new
     if (_firstActiveBucketId == 0) {
       firstActiveBucketId = currentBucketId;
-      firstActiveGroupId = currentGroupId;
+      firstActiveTrancheId = currentTrancheId;
       return;
     }
 
@@ -207,43 +207,43 @@ contract StakingPool is IStakingPool, ERC721 {
       // TODO: use _firstActiveBucketId before incrementing it?
       _rewardPerSecond -= poolBuckets[_firstActiveBucketId].rewardPerSecondCut;
 
-      // should we expire a group?
+      // should we expire a tranche?
       if (
-        bucketEndTime % GROUP_DURATION != 0 ||
-        _firstActiveGroupId == currentGroupId
+        bucketEndTime % TRANCHE_DURATION != 0 ||
+        _firstActiveTrancheId == currentTrancheId
       ) {
         continue;
       }
 
-      // todo: handle _firstActiveGroupId = 0 case
+      // todo: handle _firstActiveTrancheId = 0 case
 
       // SLOAD
-      Group memory expiringGroup = groups[_firstActiveGroupId];
+      Tranche memory expiringTranche = tranches[_firstActiveTrancheId];
 
       // todo: handle division by zero
-      uint expiredStake = _activeStake * expiringGroup.stakeShares / _stakeSharesSupply;
+      uint expiredStake = _activeStake * expiringTranche.stakeShares / _stakeSharesSupply;
 
-      // the group is expired now so we decrease the stake and share supply
+      // the tranche is expired now so we decrease the stake and share supply
       _activeStake -= expiredStake;
-      _stakeSharesSupply -= expiringGroup.stakeShares;
-      _rewardsSharesSupply -= expiringGroup.rewardsShares;
+      _stakeSharesSupply -= expiringTranche.stakeShares;
+      _rewardsSharesSupply -= expiringTranche.rewardsShares;
 
       // todo: update nft 0
 
-      expiringGroup.stakeShares = 0;
-      expiringGroup.rewardsShares = 0;
+      expiringTranche.stakeShares = 0;
+      expiringTranche.rewardsShares = 0;
 
       // SSTORE
-      groups[_firstActiveGroupId] = expiringGroup;
-      expiredGroups[_firstActiveGroupId] = ExpiredGroup(
+      tranches[_firstActiveTrancheId] = expiringTranche;
+      expiredTranches[_firstActiveTrancheId] = ExpiredTranche(
         _accNxmPerRewardsShare, // accNxmPerRewardShareAtExpiry
         // TODO: should this be before or after active stake reduction?
         _activeStake, // stakeAmountAtExpiry
         _stakeSharesSupply // stakeShareSupplyAtExpiry
       );
 
-      // advance to the next group
-      _firstActiveGroupId++;
+      // advance to the next tranche
+      _firstActiveTrancheId++;
     }
 
     {
@@ -252,7 +252,7 @@ contract StakingPool is IStakingPool, ERC721 {
       _lastAccNxmUpdate = block.timestamp;
     }
 
-    firstActiveGroupId = _firstActiveGroupId;
+    firstActiveTrancheId = _firstActiveTrancheId;
     firstActiveBucketId = _firstActiveBucketId;
 
     activeStake = _activeStake;
@@ -263,10 +263,10 @@ contract StakingPool is IStakingPool, ERC721 {
     rewardsSharesSupply = _rewardsSharesSupply;
   }
 
-  // todo: allow deposits to multiple groups/nfts
+  // todo: allow deposits to multiple tranches/nfts
   function deposit(
     uint amount,
-    uint groupId,
+    uint trancheId,
     uint _tokenId,
     address destination
   ) external returns (uint tokenId) {
@@ -275,13 +275,13 @@ contract StakingPool is IStakingPool, ERC721 {
       require(msg.sender == manager(), "StakingPool: The pool is private");
     }
 
-    updateGroups();
+    updateTranches();
 
     {
-      uint _firstActiveGroupId = block.timestamp / GROUP_DURATION;
-      uint maxGroup = _firstActiveGroupId + MAX_GROUPS;
-      require(groupId <= maxGroup, "StakingPool: Requested group is not yet active");
-      require(groupId >= _firstActiveGroupId, "StakingPool: Requested group has expired");
+      uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+      uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES;
+      require(trancheId <= maxTranche, "StakingPool: Requested tranche is not yet active");
+      require(trancheId >= _firstActiveTrancheId, "StakingPool: Requested tranche has expired");
       require(amount > 0, "StakingPool: Insufficient deposit amount");
     }
 
@@ -311,14 +311,14 @@ contract StakingPool is IStakingPool, ERC721 {
       ? Math.sqrt(amount)
       : _stakeSharesSupply * amount / _activeStake;
 
-    uint newRewardsShares = calculateRewardSharesAmount(newStakeShares, groupId);
+    uint newRewardsShares = calculateRewardSharesAmount(newStakeShares, trancheId);
 
     // update position and pending reward
     {
       // conditional read
       Position memory position = isNewToken
         ? Position(_accNxmPerRewardsShare, 0, 0, 0)
-        : positions[tokenId][groupId];
+        : positions[tokenId][trancheId];
 
       // if we're increasing an existing position
       if (position.lastAccNxmPerRewardShare != 0) {
@@ -331,15 +331,15 @@ contract StakingPool is IStakingPool, ERC721 {
       position.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
 
       // sstore
-      positions[tokenId][groupId] = position;
+      positions[tokenId][trancheId] = position;
     }
 
-    // update group
+    // update tranche
     {
-      Group memory group = groups[groupId];
-      group.stakeShares += newStakeShares;
-      group.rewardsShares += newRewardsShares;
-      groups[groupId] = group;
+      Tranche memory tranche = tranches[trancheId];
+      tranche.stakeShares += newStakeShares;
+      tranche.rewardsShares += newRewardsShares;
+      tranches[trancheId] = tranche;
     }
 
     // update globals
@@ -350,11 +350,11 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function calculateRewardSharesAmount(
     uint stakeSharesAmount,
-    uint groupId
+    uint trancheId
   ) internal view returns (uint) {
 
-    uint lockDuration = (groupId + 1) * GROUP_DURATION - block.timestamp;
-    uint maxLockDuration = GROUP_DURATION * 8;
+    uint lockDuration = (trancheId + 1) * TRANCHE_DURATION - block.timestamp;
+    uint maxLockDuration = TRANCHE_DURATION * 8;
 
     // TODO: determine extra rewards formula
     return
@@ -367,10 +367,10 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function withdraw(WithdrawParams[] calldata params) external {
 
-    updateGroups();
+    updateTranches();
 
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
-    uint _firstActiveGroupId = block.timestamp / GROUP_DURATION;
+    uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 
     for (uint i = 0; i < params.length; i++) {
 
@@ -378,19 +378,19 @@ contract StakingPool is IStakingPool, ERC721 {
       uint rewardsToWithdraw;
 
       uint tokenId = params[i].tokenId;
-      uint groupCount = params[i].groupIds.length;
+      uint trancheCount = params[i].trancheIds.length;
 
-      for (uint j = 0; j < groupCount; j++) {
+      for (uint j = 0; j < trancheCount; j++) {
 
-        uint groupId = params[i].groupIds[j];
-        Position memory position = positions[tokenId][groupId];
+        uint trancheId = params[i].trancheIds[j];
+        Position memory position = positions[tokenId][trancheId];
 
-        // can withdraw stake only if the group is expired
-        if (params[i].withdrawStake && groupId < _firstActiveGroupId) {
+        // can withdraw stake only if the tranche is expired
+        if (params[i].withdrawStake && trancheId < _firstActiveTrancheId) {
 
           // calculate the amount of nxm for this position
-          uint stake = expiredGroups[groupId].stakeAmountAtExpiry;
-          uint stakeShareSupply = expiredGroups[groupId].stakeShareSupplyAtExpiry;
+          uint stake = expiredTranches[trancheId].stakeAmountAtExpiry;
+          uint stakeShareSupply = expiredTranches[trancheId].stakeShareSupplyAtExpiry;
           stakeToWithdraw += stake * position.stakeShares / stakeShareSupply;
 
           // mark as withdrawn
@@ -399,9 +399,9 @@ contract StakingPool is IStakingPool, ERC721 {
 
         if (params[i].withdrawRewards) {
 
-          // if the group is expired, use the accumulator value saved at expiration time
-          uint accNxmPerRewardShareInUse = groupId < _firstActiveGroupId
-            ? expiredGroups[groupId].accNxmPerRewardShareAtExpiry
+          // if the tranche is expired, use the accumulator value saved at expiration time
+          uint accNxmPerRewardShareInUse = trancheId < _firstActiveTrancheId
+            ? expiredTranches[trancheId].accNxmPerRewardShareAtExpiry
             : _accNxmPerRewardsShare;
 
           // calculate reward since checkpoint
@@ -414,7 +414,7 @@ contract StakingPool is IStakingPool, ERC721 {
           position.rewardsShares = 0;
         }
 
-        positions[tokenId][groupId] = position;
+        positions[tokenId][trancheId] = position;
       }
 
       uint withdrawable = stakeToWithdraw + rewardsToWithdraw;
@@ -432,7 +432,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint rewardRatio
   ) external onlyCoverContract returns (uint newAllocation, uint premium) {
 
-    updateGroups();
+    updateTranches();
 
     Product memory product = products[productId];
     uint allocatedProductStake = product.allocatedStake;
@@ -450,16 +450,16 @@ contract StakingPool is IStakingPool, ERC721 {
 
     uint freeProductStake;
     {
-      // group expiration must exceed the cover period
-      uint _firstAvailableGroupId = (block.timestamp + period + gracePeriod) / GROUP_DURATION;
-      uint _firstActiveGroupId = block.timestamp / GROUP_DURATION;
+      // tranche expiration must exceed the cover period
+      uint _firstAvailableTrancheId = (block.timestamp + period + gracePeriod) / TRANCHE_DURATION;
+      uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 
-      // start with the entire supply and subtract unavailable groups
+      // start with the entire supply and subtract unavailable tranches
       uint _stakeSharesSupply = stakeSharesSupply;
       uint availableShares = _stakeSharesSupply;
 
-      for (uint i = _firstActiveGroupId; i < _firstAvailableGroupId; ++i) {
-        availableShares -= groups[i].stakeShares;
+      for (uint i = _firstActiveTrancheId; i < _firstAvailableTrancheId; ++i) {
+        availableShares -= tranches[i].stakeShares;
       }
 
       // total stake available without applying product weight
@@ -554,7 +554,7 @@ contract StakingPool is IStakingPool, ERC721 {
     // TODO: free up the stake used by the corresponding cover
     // TODO: check if it's worth restricting the burn to 99% of the active stake
 
-    updateGroups();
+    updateTranches();
 
     uint _activeStake = activeStake;
     activeStake = _activeStake > amount ? _activeStake - amount : 0;
@@ -650,11 +650,11 @@ contract StakingPool is IStakingPool, ERC721 {
     uint targetPrice
   ) {
 
-    uint maxGroupSpanCount = maxCoverPeriod / GROUP_DURATION + 1;
-    staked = new uint[](maxGroupSpanCount);
+    uint maxTranches = maxCoverPeriod / TRANCHE_DURATION + 1;
+    staked = new uint[](maxTranches);
 
-    for (uint i = 0; i < maxGroupSpanCount; i++) {
-      staked[i] = getProductStake(productId, block.timestamp + i * GROUP_DURATION);
+    for (uint i = 0; i < maxTranches; i++) {
+      staked[i] = getProductStake(productId, block.timestamp + i * TRANCHE_DURATION);
     }
 
     activeCover = getAllocatedProductStake(productId);

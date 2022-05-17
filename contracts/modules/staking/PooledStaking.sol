@@ -1423,7 +1423,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
     }
   }
 
-  function migrateToNewV2Pool(address stakerAddress, uint groupId) external noPendingActions {
+  function migrateToNewV2Pool(address stakerAddress, uint trancheId) external noPendingActions {
 
     require(block.timestamp <= migrationDeadline, "Migration period has ended");
 
@@ -1452,11 +1452,11 @@ contract PooledStaking is IPooledStaking, MasterAware {
     uint initialPoolFee = 0;
     uint maxPoolFee = 0;
 
-    // Use the groupId provided as a parameter if the user is migrating to v2 himself
+    // Use the trancheId provided as a parameter if the user is migrating to v2 himself
     // Use next id after the first active group id for those in the initial migration list
     uint GROUP_SIZE = 91 days;
-    uint groupIdInEffect = stakerAddress == msg.sender
-      ? groupId
+    uint trancheIdInEffect = stakerAddress == msg.sender
+      ? trancheId
       : block.timestamp / GROUP_SIZE + 1;
 
     cover.createStakingPool(
@@ -1466,14 +1466,14 @@ contract PooledStaking is IPooledStaking, MasterAware {
       maxPoolFee,
       params,
       deposit,
-      groupIdInEffect
+      trancheIdInEffect
     );
   }
 
-  function migrateToExistingV2Pool(IStakingPool stakingPool, uint groupId) external {
+  function migrateToExistingV2Pool(IStakingPool stakingPool, uint trancheId) external {
     uint deposit = stakers[msg.sender].deposit;
     stakers[msg.sender].deposit = 0;
     token.approve(address(tokenController), deposit);
-    stakingPool.deposit(deposit, groupId, 0, msg.sender);
+    stakingPool.deposit(deposit, trancheId, 0, msg.sender);
   }
 }

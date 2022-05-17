@@ -270,7 +270,8 @@ contract StakingPool is IStakingPool, ERC721 {
   function deposit(
     uint amount,
     uint groupId,
-    uint _tokenId
+    uint _tokenId,
+    address destination
   ) external returns (uint tokenId) {
 
     if (isPrivatePool) {
@@ -293,7 +294,8 @@ contract StakingPool is IStakingPool, ERC721 {
 
     if (isNewToken) {
       tokenId = totalSupply++;
-      _mint(msg.sender, tokenId);
+      address to = destination == address(0) ? msg.sender : destination;
+      _mint(to, tokenId);
     } else {
       tokenId = _tokenId;
     }
@@ -302,36 +304,11 @@ contract StakingPool is IStakingPool, ERC721 {
     // TODO: use TokenController.operatorTransfer instead and transfer to TC
     nxm.transferFrom(msg.sender, address(this), amount);
 
-    /* storage reads */
-
+    // storage reads
     uint _activeStake = activeStake;
     uint _stakeSharesSupply = stakeSharesSupply;
     uint _rewardsSharesSupply = rewardsSharesSupply;
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
-
-    Group memory group = groups[groupId];
-
-    // conditional read
-    uint pendingReward = isNewToken ? 0 : pendingRewards[tokenId];
-
-    // conditional read
-    Position memory position = isNewToken
-      ? Position(_accNxmPerRewardsShare, 0, 0)
-      : positions[tokenId][groupId];
-
-    /* end storage reads */
-
-    /* calculate and update pending reward */
-
-    // position could be empty even if the token is not new
-    if (position.lastAccNxmPerRewardShare != 0) {
-      uint newEarningsPerShare = _accNxmPerRewardsShare - position.lastAccNxmPerRewardShare;
-      pendingReward += newEarningsPerShare * position.rewardsShares;
-    }
-
-    position.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
-
-    /* end calculate and update pending reward */
 
     uint newStakeShares = _stakeSharesSupply == 0
       ? Math.sqrt(amount)
@@ -339,22 +316,37 @@ contract StakingPool is IStakingPool, ERC721 {
 
     uint newRewardsShares = calculateRewardSharesAmount(newStakeShares, groupId);
 
-    group.stakeShares += newStakeShares;
-    group.rewardsShares += newRewardsShares;
+    // update position and pending reward
+    {
+      // conditional read
+      Position memory position = isNewToken
+        ? Position(_accNxmPerRewardsShare, 0, 0)
+        : positions[tokenId][groupId];
 
-    /* storage writes */
+      // if we're increasing an existing position
+      if (position.lastAccNxmPerRewardShare != 0) {
+        uint newEarningsPerShare = _accNxmPerRewardsShare - position.lastAccNxmPerRewardShare;
+        pendingRewards[tokenId] += newEarningsPerShare * position.rewardsShares;
+      }
+
+      position.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+
+      // sstore
+      positions[tokenId][groupId] = position;
+    }
+
+    // update group
+    {
+      Group memory group = groups[groupId];
+      group.stakeShares += newStakeShares;
+      group.rewardsShares += newRewardsShares;
+      groups[groupId] = group;
+    }
 
     // update globals
     activeStake = _activeStake + amount;
     stakeSharesSupply = _stakeSharesSupply + newStakeShares;
     rewardsSharesSupply = _rewardsSharesSupply + newRewardsShares;
-
-    // update group and staker data
-    groups[groupId] = group;
-    positions[tokenId][groupId] = position;
-    pendingRewards[tokenId] = pendingReward;
-
-    /* end storage writes */
   }
 
   function calculateRewardSharesAmount(

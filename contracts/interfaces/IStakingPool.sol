@@ -100,7 +100,12 @@ interface IStakingPool is IERC721 {
 
   function burnStake(uint productId, uint start, uint period, uint amount) external;
 
-  function deposit(uint amount, uint groupId, uint _tokenId) external returns (uint tokenId);
+  function deposit(
+    uint amount,
+    uint groupId,
+    uint _tokenId,
+    address destination
+  ) external returns (uint tokenId);
 
   function withdraw(WithdrawParams[] memory params) external;
 

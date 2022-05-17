@@ -329,6 +329,8 @@ contract StakingPool is IStakingPool, ERC721 {
         pendingRewards[tokenId] += newEarningsPerShare * position.rewardsShares;
       }
 
+      position.stakeShares += newStakeShares;
+      position.rewardsShares += newRewardsShares;
       position.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
 
       // sstore

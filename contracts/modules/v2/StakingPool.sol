@@ -142,19 +142,20 @@ contract StakingPool is IStakingPool, ERC721 {
     ProductInitializationParams[] calldata params
   ) external onlyCoverContract {
 
-    // create ownership nft
-    _mint(_manager, 0);
-    totalSupply = 1;
-
     isPrivatePool = _isPrivatePool;
 
     require(_initialPoolFee <= _maxPoolFee, "StakingPool: Pool fee should not exceed max pool fee");
+    require(_maxPoolFee < 100, "StakingPool: Max pool fee cannot be 100%");
+
     poolFee = uint8(_initialPoolFee);
     maxPoolFee = uint8(_maxPoolFee);
-    // TODO: limit max fee and use safe cast
 
     // TODO: initialize products
     params;
+
+    // create ownership nft
+    totalSupply = 1;
+    _safeMint(_manager, 0);
   }
 
   // used to transfer all nfts when a user switches the membership to a new address

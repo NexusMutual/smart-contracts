@@ -1474,6 +1474,6 @@ contract PooledStaking is IPooledStaking, MasterAware {
     uint deposit = stakers[msg.sender].deposit;
     stakers[msg.sender].deposit = 0;
     token.approve(address(tokenController), deposit);
-    stakingPool.deposit(deposit, trancheId, 0, msg.sender);
+    stakingPool.depositTo(deposit, trancheId, 0, msg.sender);
   }
 }

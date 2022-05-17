@@ -86,8 +86,8 @@ contract StakingPool is IStakingPool, ERC721 {
   // product id => Product
   mapping(uint => Product) public products;
 
-  // token id => tranche id => position data
-  mapping(uint => mapping(uint => Position)) public positions;
+  // token id => tranche id => deposit data
+  mapping(uint => mapping(uint => Deposit)) public deposits;
 
   /* immutables */
 
@@ -264,7 +264,7 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   // todo: allow deposits to multiple tranches/nfts
-  function deposit(
+  function depositTo(
     uint amount,
     uint trancheId,
     uint _tokenId,
@@ -313,25 +313,25 @@ contract StakingPool is IStakingPool, ERC721 {
 
     uint newRewardsShares = calculateRewardSharesAmount(newStakeShares, trancheId);
 
-    // update position and pending reward
+    // update deposit and pending reward
     {
       // conditional read
-      Position memory position = isNewToken
-        ? Position(_accNxmPerRewardsShare, 0, 0, 0)
-        : positions[tokenId][trancheId];
+      Deposit memory deposit = isNewToken
+        ? Deposit(_accNxmPerRewardsShare, 0, 0, 0)
+        : deposits[tokenId][trancheId];
 
-      // if we're increasing an existing position
-      if (position.lastAccNxmPerRewardShare != 0) {
-        uint newEarningsPerShare = _accNxmPerRewardsShare - position.lastAccNxmPerRewardShare;
-        position.pendingRewards += newEarningsPerShare * position.rewardsShares;
+      // if we're increasing an existing deposit
+      if (deposit.lastAccNxmPerRewardShare != 0) {
+        uint newEarningsPerShare = _accNxmPerRewardsShare - deposit.lastAccNxmPerRewardShare;
+        deposit.pendingRewards += newEarningsPerShare * deposit.rewardsShares;
       }
 
-      position.stakeShares += newStakeShares;
-      position.rewardsShares += newRewardsShares;
-      position.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+      deposit.stakeShares += newStakeShares;
+      deposit.rewardsShares += newRewardsShares;
+      deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
 
       // sstore
-      positions[tokenId][trancheId] = position;
+      deposits[tokenId][trancheId] = deposit;
     }
 
     // update tranche
@@ -383,18 +383,18 @@ contract StakingPool is IStakingPool, ERC721 {
       for (uint j = 0; j < trancheCount; j++) {
 
         uint trancheId = params[i].trancheIds[j];
-        Position memory position = positions[tokenId][trancheId];
+        Deposit memory deposit = deposits[tokenId][trancheId];
 
         // can withdraw stake only if the tranche is expired
         if (params[i].withdrawStake && trancheId < _firstActiveTrancheId) {
 
-          // calculate the amount of nxm for this position
+          // calculate the amount of nxm for this deposit
           uint stake = expiredTranches[trancheId].stakeAmountAtExpiry;
           uint stakeShareSupply = expiredTranches[trancheId].stakeShareSupplyAtExpiry;
-          stakeToWithdraw += stake * position.stakeShares / stakeShareSupply;
+          stakeToWithdraw += stake * deposit.stakeShares / stakeShareSupply;
 
           // mark as withdrawn
-          position.stakeShares = 0;
+          deposit.stakeShares = 0;
         }
 
         if (params[i].withdrawRewards) {
@@ -405,16 +405,16 @@ contract StakingPool is IStakingPool, ERC721 {
             : _accNxmPerRewardsShare;
 
           // calculate reward since checkpoint
-          uint newRewardPerShare = accNxmPerRewardShareInUse - position.lastAccNxmPerRewardShare;
-          rewardsToWithdraw += newRewardPerShare * position.rewardsShares + position.pendingRewards;
+          uint newRewardPerShare = accNxmPerRewardShareInUse - deposit.lastAccNxmPerRewardShare;
+          rewardsToWithdraw += newRewardPerShare * deposit.rewardsShares + deposit.pendingRewards;
 
           // save checkpoint
-          position.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
-          position.pendingRewards = 0;
-          position.rewardsShares = 0;
+          deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+          deposit.pendingRewards = 0;
+          deposit.rewardsShares = 0;
         }
 
-        positions[tokenId][trancheId] = position;
+        deposits[tokenId][trancheId] = deposit;
       }
 
       uint withdrawable = stakeToWithdraw + rewardsToWithdraw;

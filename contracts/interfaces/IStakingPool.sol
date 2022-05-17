@@ -46,7 +46,7 @@ interface IStakingPool is IERC721 {
     uint stakeShareSupplyAtExpiry;
   }
 
-  struct Position {
+  struct Deposit {
     uint lastAccNxmPerRewardShare;
     uint pendingRewards;
     uint stakeShares;
@@ -101,7 +101,7 @@ interface IStakingPool is IERC721 {
 
   function burnStake(uint productId, uint start, uint period, uint amount) external;
 
-  function deposit(
+  function depositTo(
     uint amount,
     uint trancheId,
     uint _tokenId,

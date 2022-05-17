@@ -124,7 +124,7 @@ library CoverUtilsLib {
 
     // will create nft with a position in the desired tranche id
     if (depositAmount > 0) {
-      newStakingPool.deposit(depositAmount, trancheId, 0, manager);
+      newStakingPool.depositTo(depositAmount, trancheId, 0, manager);
     }
   }
 

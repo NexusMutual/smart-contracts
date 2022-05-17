@@ -6,14 +6,11 @@ interface IMasterAwareV2 {
 
   enum ID {
     TC, // TokenController.sol
-    GV, // Governance.sol
     P1, // Pool.sol
     MR, // MemberRoles.sol
     MC, // MCR.sol
-    CO,  // Cover.sol
-    AS, // Assessment.sol
-    IC, // IndividualClaims.sol
-    YT  // YieldTokenIncidents.sol
+    CO, // Cover.sol
+    AS  // Assessment.sol
   }
 
   function changeMasterAddress(address masterAddress) external;

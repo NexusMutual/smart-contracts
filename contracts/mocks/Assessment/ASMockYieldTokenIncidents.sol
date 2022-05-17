@@ -20,11 +20,10 @@ contract ASMockYieldTokenIncidents is MasterAwareV2 {
 
   Configuration public config;
 
-  function initialize(address masterAddress) external {
+  function initialize() external {
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
     config.rewardRatio = 52; // 0.52%
     config.expectedPayoutRatio = 3000; // 30%
-    master = INXMMaster(masterAddress);
   }
 
   function assessment() internal view returns (IAssessment) {

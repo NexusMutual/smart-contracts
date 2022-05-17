@@ -12,6 +12,7 @@ describe('YieldTokenIncidents', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
+  require('./initialize');
   require('./submitIncident');
   require('./redeemPayout');
   require('./withdrawAsset');

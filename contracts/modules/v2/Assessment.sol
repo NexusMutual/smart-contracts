@@ -43,12 +43,22 @@ contract Assessment is IAssessment, MasterAwareV2 {
     nxm = INXMToken(nxmAddress);
   }
 
-  function initialize (address masterAddress) external {
+  function initialize () external {
+    Configuration memory currentConfig = config;
+    bool notInitialized = bytes32(
+      abi.encodePacked(
+        currentConfig.minVotingPeriodInDays,
+        currentConfig.payoutCooldownInDays,
+        currentConfig.stakeLockupPeriodInDays,
+        currentConfig.silentEndingPeriodInDays
+      )
+    ) == bytes32(0);
+    require(notInitialized, "Already initialized");
+
     config.minVotingPeriodInDays = 3; // days
     config.payoutCooldownInDays = 1; // days
     config.stakeLockupPeriodInDays = 14; // days
     config.silentEndingPeriodInDays = 1; // days
-    master = INXMMaster(masterAddress);
   }
 
   /* ========== VIEWS ========== */
@@ -124,7 +134,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// Increases the sender's stake by the specified amount and transfers NXM to this contract
   ///
   /// @param amount  The amount of nxm to stake
-  function stake(uint96 amount) public {
+  function stake(uint96 amount) public whenNotPaused {
     stakeOf[msg.sender].amount += amount;
     ITokenController(getInternalContractAddress(ID.TC))
       .operatorTransfer(msg.sender, address(this), amount);
@@ -138,7 +148,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param to      The member address where the NXM is transfered to. Useful for switching
   ///                membership during stake lockup period and thus allowing the user to withdraw
   ///                their staked amount to the new address when possible.
-  function unstake(uint96 amount, address to) external override {
+  function unstake(uint96 amount, address to) external whenNotPaused override {
     uint voteCount = votesOf[msg.sender].length;
     if (voteCount > 0) {
       Vote memory vote = votesOf[msg.sender][voteCount - 1];
@@ -164,7 +174,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function withdrawRewards(
     address staker,
     uint104 batchSize
-  ) external override returns (uint withdrawn, uint withdrawnUntilIndex) {
+  ) external override whenNotPaused returns (uint withdrawn, uint withdrawnUntilIndex) {
     return _withdrawRewards(staker, staker, batchSize);
   }
 
@@ -179,7 +189,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function withdrawRewardsTo(
     address destination,
     uint104 batchSize
-  ) external override returns (uint withdrawn, uint withdrawnUntilIndex) {
+  ) external override whenNotPaused returns (uint withdrawn, uint withdrawnUntilIndex) {
     return _withdrawRewards(msg.sender, destination, batchSize);
   }
 
@@ -261,7 +271,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint[] calldata assessmentIds,
     bool[] calldata votes,
     uint96 stakeIncrease
-  ) external override {
+  ) external override whenNotPaused {
     require(
       assessmentIds.length == votes.length,
       "The lengths of the assessment ids and votes arrays mismatch"
@@ -287,7 +297,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///
   /// @param assessmentId  The index of the assessment for which the vote is cast
   /// @param isAcceptVote  True to accept, false to deny
-  function castVote(uint assessmentId, bool isAcceptVote) public {
+  function castVote(uint assessmentId, bool isAcceptVote) public whenNotPaused {
     {
       require(!hasAlreadyVotedOn[msg.sender][assessmentId], "Already voted");
       hasAlreadyVotedOn[msg.sender][assessmentId] = true;
@@ -371,7 +381,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint96 burnAmount,
     uint16 fraudCount,
     uint256 voteBatchSize
-  ) external override {
+  ) external override whenNotPaused {
     require(
       MerkleProof.verify(
         proof,

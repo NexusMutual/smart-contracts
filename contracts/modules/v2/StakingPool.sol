@@ -86,9 +86,6 @@ contract StakingPool is IStakingPool, ERC721 {
   // product id => Product
   mapping(uint => Product) public products;
 
-  // token id => pending reward
-  mapping(uint => uint) public pendingRewards;
-
   // token id => group id => position data
   mapping(uint => mapping(uint => Position)) public positions;
 
@@ -320,13 +317,13 @@ contract StakingPool is IStakingPool, ERC721 {
     {
       // conditional read
       Position memory position = isNewToken
-        ? Position(_accNxmPerRewardsShare, 0, 0)
+        ? Position(_accNxmPerRewardsShare, 0, 0, 0)
         : positions[tokenId][groupId];
 
       // if we're increasing an existing position
       if (position.lastAccNxmPerRewardShare != 0) {
         uint newEarningsPerShare = _accNxmPerRewardsShare - position.lastAccNxmPerRewardShare;
-        pendingRewards[tokenId] += newEarningsPerShare * position.rewardsShares;
+        position.pendingRewards += newEarningsPerShare * position.rewardsShares;
       }
 
       position.stakeShares += newStakeShares;
@@ -378,7 +375,7 @@ contract StakingPool is IStakingPool, ERC721 {
     for (uint i = 0; i < params.length; i++) {
 
       uint stakeToWithdraw;
-      uint rewardToWithdraw;
+      uint rewardsToWithdraw;
 
       uint tokenId = params[i].tokenId;
       uint groupCount = params[i].groupIds.length;
@@ -402,23 +399,25 @@ contract StakingPool is IStakingPool, ERC721 {
 
         if (params[i].withdrawRewards) {
 
+          // if the group is expired, use the accumulator value saved at expiration time
+          uint accNxmPerRewardShareInUse = groupId < _firstActiveGroupId
+            ? expiredGroups[groupId].accNxmPerRewardShareAtExpiry
+            : _accNxmPerRewardsShare;
+
           // calculate reward since checkpoint
-          uint newRewardPerShare = _accNxmPerRewardsShare - position.lastAccNxmPerRewardShare;
-          rewardToWithdraw += newRewardPerShare * position.rewardsShares;
+          uint newRewardPerShare = accNxmPerRewardShareInUse - position.lastAccNxmPerRewardShare;
+          rewardsToWithdraw += newRewardPerShare * position.rewardsShares + position.pendingRewards;
 
           // save checkpoint
           position.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+          position.pendingRewards = 0;
+          position.rewardsShares = 0;
         }
 
         positions[tokenId][groupId] = position;
       }
 
-      uint withdrawable = stakeToWithdraw + rewardToWithdraw;
-
-      if (params[i].withdrawRewards) {
-        withdrawable += pendingRewards[tokenId];
-        pendingRewards[tokenId] = 0;
-      }
+      uint withdrawable = stakeToWithdraw + rewardsToWithdraw;
 
       // TODO: use TC instead
       nxm.transfer(ownerOf(tokenId), withdrawable);

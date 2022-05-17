@@ -48,6 +48,7 @@ interface IStakingPool is IERC721 {
 
   struct Position {
     uint lastAccNxmPerRewardShare;
+    uint pendingRewards;
     uint stakeShares;
     uint rewardsShares;
   }

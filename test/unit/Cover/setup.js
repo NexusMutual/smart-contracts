@@ -24,13 +24,22 @@ async function setup () {
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
   const QuotationData = await ethers.getContractFactory('CoverMockQuotationData');
-  const Cover = await ethers.getContractFactory('Cover');
   const MemberRolesMock = await ethers.getContractFactory('MemberRolesMock');
   const CoverNFT = await ethers.getContractFactory('CoverNFT');
   const TokenController = await ethers.getContractFactory('TokenControllerMock');
   const NXMToken = await ethers.getContractFactory('NXMTokenMock');
   const MCR = await ethers.getContractFactory('CoverMockMCR');
   const StakingPool = await ethers.getContractFactory('CoverMockStakingPool');
+  const CoverUtilsLib = await ethers.getContractFactory('CoverUtilsLib');
+
+  
+  const coverUtilsLib = await CoverUtilsLib.deploy();
+
+  const Cover = await ethers.getContractFactory('Cover', {
+    libraries: {
+      CoverUtilsLib: coverUtilsLib.address
+    }
+  });
 
   const [owner] = await ethers.getSigners();
 

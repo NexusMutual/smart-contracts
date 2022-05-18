@@ -98,7 +98,6 @@ struct ProductType {
 
 interface ICover {
 
-
   /* ========== VIEWS ========== */
 
   function coverData(uint id) external view returns (CoverData memory);
@@ -168,11 +167,13 @@ interface ICover {
 
   function createStakingPool(
     address manager,
+    bool isPrivatePool,
+    uint initialPoolFee,
+    uint maxPoolFee,
     ProductInitializationParams[] calldata params,
     uint depositAmount,
-    uint groupId
+    uint trancheId
   ) external returns (address stakingPoolAddress);
-
 
   /* ========== EVENTS ========== */
 

@@ -108,7 +108,9 @@ interface IStakingPool is IERC721 {
     address destination
   ) external returns (uint tokenId);
 
-  function withdraw(WithdrawParams[] memory params) external;
+  function withdraw(
+    WithdrawParams[] memory params
+  ) external returns (uint stakeToWithdraw, uint rewardsToWithdraw);
 
   function addProducts(ProductParams[] memory params) external;
 

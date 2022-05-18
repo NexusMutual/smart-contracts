@@ -269,7 +269,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint trancheId,
     uint _tokenId,
     address destination
-  ) external returns (uint tokenId) {
+  ) public returns (uint tokenId) {
 
     if (isPrivatePool) {
       require(msg.sender == manager(), "StakingPool: The pool is private");
@@ -365,17 +365,17 @@ contract StakingPool is IStakingPool, ERC721 {
       / maxLockDuration;
   }
 
-  function withdraw(WithdrawParams[] calldata params) external {
+  function withdraw(
+    WithdrawParams[] memory params
+  ) public returns (uint stakeToWithdraw, uint rewardsToWithdraw) {
 
     updateTranches();
 
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
+
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 
     for (uint i = 0; i < params.length; i++) {
-
-      uint stakeToWithdraw;
-      uint rewardsToWithdraw;
 
       uint tokenId = params[i].tokenId;
       uint trancheCount = params[i].trancheIds.length;
@@ -505,6 +505,131 @@ contract StakingPool is IStakingPool, ERC721 {
       productBuckets[productId][expireAtBucket].allocationCut += newAllocation;
       poolBuckets[expireAtBucket].rewardPerSecondCut += _rewardPerSecond;
     }
+  }
+
+  /// Extends the period of an existing deposit until a tranche that ends further into the future
+  ///
+  /// @dev Only the NFT owner and the authorized addresses can call this function. Pool manager
+  /// NFTs cannot be extended.
+  ///
+  /// @param tokenId           The id of the NFT that proves the ownership of the deposit.
+  /// @param initialTrancheId  The id of the tranche the deposit is already a part of.
+  /// @param newTrancheId      The id of the new tranche determining the new deposit period.
+  /// @param topUpAmount       An optional amount if the user wants to also increase the deposit
+  ///                          amount.
+  function extendDeposit(
+    uint tokenId,
+    uint initialTrancheId,
+    uint newTrancheId,
+    uint topUpAmount
+  ) public {
+    uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+    uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES;
+    require(tokenId != 0, "StakingPool: Invalid token id");
+    require(
+      _isApprovedOrOwner(msg.sender, tokenId),
+      "StakingPool: Not authorized to extend deposits on this token"
+    );
+    require(
+      initialTrancheId != newTrancheId,
+      "StakingPool: The chosen tranche cannot be the same as the initial one"
+    );
+    require(newTrancheId <= maxTranche, "StakingPool: The chosen tranche is not available yet");
+    require(
+      newTrancheId >= _firstActiveTrancheId,
+      "StakingPool: The chosen tranche has already reached the maturity date"
+    );
+
+    // If the intial tranche is expired, withdraw everything and make a new deposit equal to the
+    // withdrawn stake amount plus a top up amount if applicable. This will require the user to
+    // grant sufficient allowance beforehand.
+    if (initialTrancheId < _firstActiveTrancheId) {
+      uint[] memory trancheIds = new uint[](1);
+      trancheIds[0] = initialTrancheId;
+
+      WithdrawParams[] memory withdrawParams = new WithdrawParams[](1);
+      withdrawParams[0] = WithdrawParams(
+        tokenId,
+        true, // Withdraw deposit
+        true, // Withdraw rewards
+        trancheIds
+      );
+
+      (uint withdrawnStake, /* uint rewardsToWithdraw */) = withdraw(withdrawParams);
+
+      depositTo(
+        withdrawnStake + topUpAmount,
+        newTrancheId,
+        tokenId,
+        msg.sender
+      );
+
+      return; // Done! Skip the rest of the function.
+    }
+
+    // If the initial tranche is still active, move all the shares and pending rewards to the
+    // newly chosen tranche and its coresponding deopsit.
+
+    // First make sure tranches are up to date in terms of accumulated NXM rewards.
+    updateTranches();
+
+    Tranche memory initialTranche = tranches[initialTrancheId];
+    Tranche memory newTranche = tranches[newTrancheId];
+    Deposit memory initialDeposit = deposits[tokenId][initialTrancheId];
+    Deposit memory newDeposit = deposits[tokenId][newTrancheId];
+    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
+
+
+    // The user's shares are moved from the initial tranche to the new one.
+    initialTranche.stakeShares -= initialDeposit.stakeShares;
+    initialTranche.rewardsShares -= initialDeposit.rewardsShares;
+    newTranche.stakeShares += initialDeposit.stakeShares;
+    newTranche.rewardsShares += initialDeposit.rewardsShares;
+
+    // Store the updated tranches.
+    tranches[initialTrancheId] = initialTranche;
+    tranches[newTrancheId] = newTranche;
+
+    // Calculate the rewards that will be carried from the initial deposit to the next one.
+    uint rewardsToCarry;
+    {
+      uint newEarningsPerShare = _accNxmPerRewardsShare - initialDeposit.lastAccNxmPerRewardShare;
+      rewardsToCarry = newEarningsPerShare * initialDeposit.rewardsShares
+        + initialDeposit.pendingRewards;
+    }
+
+    // Set the pending rewards from the intial deposit to zero since they will be carried over to
+    // the new one.
+    initialDeposit.pendingRewards = 0;
+
+    // If a deposit lasting until the new tranche's end date already exists, calculate its pending
+    // rewards before carrying over the rewards from the inital deposit.
+    if (newDeposit.lastAccNxmPerRewardShare != 0) {
+      uint newEarningsPerShare = _accNxmPerRewardsShare - newDeposit.lastAccNxmPerRewardShare;
+      newDeposit.pendingRewards += newEarningsPerShare * newDeposit.rewardsShares;
+    }
+
+    // The carried rewards are added to the pending rewards of the new depostit.
+    newDeposit.pendingRewards += rewardsToCarry;
+
+    // Update the last value of accumulated NXM per share in the new deposit.
+    newDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+
+    // Reset the last value of accumulated NXM per share in the initial deposit. In case the user
+    // decides to make another deposit before the end date of the initial tranche it has to be
+    // treated a new one.
+    initialDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+
+    // Move the user's shares from the initial deposit to the new one.
+    initialDeposit.stakeShares = 0;
+    initialDeposit.rewardsShares = 0;
+    newDeposit.rewardsShares += initialDeposit.rewardsShares;
+    newDeposit.stakeShares += initialDeposit.stakeShares;
+
+    // Store the updated deposits.
+    deposits[tokenId][initialTrancheId] = initialDeposit;
+    deposits[tokenId][newTrancheId] = newDeposit;
+
   }
 
   function calculatePremium(

@@ -421,7 +421,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       PoolAllocation storage allocation = allocations[i];
       IStakingPool _stakingPool = stakingPool(allocation.poolId);
 
-      uint nxmBurned = allocation.coverAmountInNXM * burnAmount / segment.amount;
+      uint nxmBurned = allocation.coverAmountInNXM
+        * burnAmount / segment.amount
+        * GLOBAL_CAPACITY_DENOMINATOR / globalCapacityRatio;
+
       _stakingPool.burnStake(cover.productId, segment.start, segment.period, nxmBurned);
 
       allocation.coverAmountInNXM -= SafeUintCast.toUint96(nxmBurned);

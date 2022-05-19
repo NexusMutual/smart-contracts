@@ -11,6 +11,7 @@ import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/INXMMaster.sol";
+import "../../interfaces/IStakingPool.sol";
 import "./external/LockHandler.sol";
 
 contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
@@ -206,21 +207,48 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   /// Function used to claim all pending rewards in one tx. It can be used to selectively withdraw
   /// rewards.
   ///
-  /// @param batchSize  The maximum number of iterations to avoid unbounded loops
-  /// @param batchSize  The maximum number of iterations to avoid unbounded loops
+  /// @param forUser           The address for whom the governance and/or assessment rewards are
+  ///                          withdrawn.
+  /// @param fromGovernance    When true, governance rewards are withdrawn.
+  /// @param fromAssessment    When true, assessment rewards are withdrawn.
+  /// @param batchSize         The maximum number of iterations to avoid unbounded loops when
+  ///                          withdrawing governance and/or assessment rewards.
+  /// @param fromStakingPools  An array of structures containing staking pools, token ids and
+  ///                          tranche ids. See: WithdrawFromStakingPoolParams from ITokenController
+  ///                          When empty, no staking rewards are withdrawn.
   function withdrawPendingRewards(
     address forUser,
     bool fromGovernance,
     bool fromAssessment,
-    uint batchSize
+    uint batchSize,
+    WithdrawFromStakingPoolParams[] calldata fromStakingPools
   ) external isMemberAndcheckPause {
     if (fromAssessment) {
       assessment.withdrawRewards(forUser, batchSize.toUint104());
     }
+
     if (fromGovernance) {
       uint governanceRewards = governance.claimReward(forUser, batchSize);
       require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
-      require(token.transfer(forUser, governanceRewards), "TokenController: Governance rewards transfer failed");
+      require(
+        token.transfer(forUser, governanceRewards),
+        "TokenController: Governance rewards transfer failed"
+      );
+    }
+
+    for (uint i = 0; i < fromStakingPools.length; i++) {
+      WithdrawParams[] memory withdrawParams = new WithdrawParams[](
+        fromStakingPools[i].nfts.length
+      );
+      for (uint j = 0; j < fromStakingPools[i].nfts.length; j++) {
+        withdrawParams[j] = WithdrawParams(
+          fromStakingPools[i].nfts[j].id,
+          false, // withdrawStake
+          true,  // withdrawRewards
+          fromStakingPools[i].nfts[j].trancheIds
+        );
+      }
+      IStakingPool(fromStakingPools[i].poolAddress).withdraw(withdrawParams);
     }
   }
 

@@ -44,4 +44,8 @@ interface ITokenController {
   function totalBalanceOf(address _of) external view returns (uint256 amount);
 
   function token() external view returns (INXMToken);
+
+  function mintPooledStakingNXM(uint amount) external;
+
+  function burnPooledStakingNXM(uint amount) external;
 }

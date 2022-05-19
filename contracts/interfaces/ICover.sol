@@ -185,7 +185,7 @@ interface ICover {
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
   event ProductTypeUpserted(uint id, string ipfsMetadata);
   event ProductUpserted(uint id, string ipfsMetadata);
-  event CoverBought(uint coverId, uint productId, uint segmentId, address buyer, string ipfsData);
+  event CoverBought(uint coverId, uint productId, uint segmentId, address buyer, string ipfsMetadata);
   event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
   event CoverExpired(uint coverId, uint segmentId);
 }

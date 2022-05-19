@@ -580,6 +580,10 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
 
 
+    // [todo] Reward shares should account for inflating the shares, using
+    // calculateRewardSharesAmount and based on the difference between the
+    // first active tranche and the new tranche.
+
     // The user's shares are moved from the initial tranche to the new one.
     initialTranche.stakeShares -= initialDeposit.stakeShares;
     initialTranche.rewardsShares -= initialDeposit.rewardsShares;
@@ -598,10 +602,6 @@ contract StakingPool is IStakingPool, ERC721 {
         + initialDeposit.pendingRewards;
     }
 
-    // Set the pending rewards from the intial deposit to zero since they will be carried over to
-    // the new one.
-    initialDeposit.pendingRewards = 0;
-
     // If a deposit lasting until the new tranche's end date already exists, calculate its pending
     // rewards before carrying over the rewards from the inital deposit.
     if (newDeposit.lastAccNxmPerRewardShare != 0) {
@@ -615,19 +615,19 @@ contract StakingPool is IStakingPool, ERC721 {
     // Update the last value of accumulated NXM per share in the new deposit.
     newDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
 
-    // Reset the last value of accumulated NXM per share in the initial deposit. In case the user
-    // decides to make another deposit until the end of initial tranche, it has to be treated as a
-    // new deposit, not an increase.
-    initialDeposit.lastAccNxmPerRewardShare = 0;
 
     // Move the user's shares from the initial deposit to the new one.
-    initialDeposit.stakeShares = 0;
-    initialDeposit.rewardsShares = 0;
     newDeposit.rewardsShares += initialDeposit.rewardsShares;
     newDeposit.stakeShares += initialDeposit.stakeShares;
 
-    // Store the updated deposits.
-    deposits[tokenId][initialTrancheId] = initialDeposit;
+    // Reset the initial deposit. This sets the pending rewards and shares from the intial deposit
+    // to zero since at this point they are already carried over to the new one and the last value
+    // of accumulated NXM per share in the initial deposit is also set to 0 in case the user
+    // decides to make another another one until the end of initial tranche, because in that case
+    // it needs to be treated as a new deposit, not as deposit increase.
+    delete deposits[tokenId][initialTrancheId];
+
+    // Store the new deposit.
     deposits[tokenId][newTrancheId] = newDeposit;
 
   }

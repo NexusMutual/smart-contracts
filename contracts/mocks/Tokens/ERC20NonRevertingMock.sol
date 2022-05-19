@@ -11,7 +11,7 @@ contract ERC20NonRevertingMock  {
     return 0 ether;
   }
 
-  function transfer(address recipient, uint256 amount) public {
+  function transfer(address, uint256) public {
     // noop
   }
 

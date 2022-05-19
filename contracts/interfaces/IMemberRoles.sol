@@ -7,7 +7,7 @@ interface IMemberRoles {
 
   enum Role {UnAssigned, AdvisoryBoard, Member, Owner}
 
-  function payJoiningFee(address _userAddress) external payable;
+  function signUp(address _userAddress, bytes calldata data) external payable;
 
   function switchMembership(address _newAddress) external;
 
@@ -19,10 +19,6 @@ interface IMemberRoles {
   ) external;
 
   function switchMembershipOf(address member, address _newAddress) external;
-
-  function addInitialABMembers(address[] calldata abArray) external;
-
-  function kycVerdict(address payable _userAddress, bool verdict) external;
 
   function totalRoles() external view returns (uint256);
 

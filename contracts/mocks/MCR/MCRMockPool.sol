@@ -13,7 +13,7 @@ contract MCRMockPool {
 
     IPool.Asset[] public coverAssets;
 
-    constructor(address _priceFeedOracle) public {
+    constructor(address _priceFeedOracle) {
         priceFeedOracle = IPriceFeedOracle(_priceFeedOracle);
     }
 

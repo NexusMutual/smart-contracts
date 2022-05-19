@@ -93,11 +93,11 @@ describe('updateMCR', function () {
   });
 
   it('increases desiredMCR when mcrFloor increases (MCR% > 130%)', async function () {
-    const { master, quotationData, pool } = this;
+    const { master, cover, pool } = this;
 
     const poolValueInEth = DEFAULT_MCR_PARAMS.mcrValue.muln(131).divn(100);
     await pool.setPoolValueInEth(poolValueInEth);
-    await quotationData.setTotalSumAssured(hex('ETH'), '100000');
+    await cover.setTotalActiveCoverInAsset(0, ether('100000'));
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
 
     await time.increase(time.duration.days(1));

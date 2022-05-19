@@ -23,6 +23,13 @@ enum LegacyCoverStatus {
   Migrated
 }
 
+enum CoverUintParams {
+  globalCapacityRatio,
+  globalRewardsRatio,
+  coverAssetsFallback
+}
+
+
 struct PoolAllocationRequest {
   uint64 poolId;
   uint coverAmountInAsset;
@@ -59,6 +66,7 @@ struct BuyCoverParams {
   bool payWithNXM;
   uint16 commissionRatio;
   address commissionDestination;
+  string ipfsData;
 }
 
 struct IncreaseAmountAndReducePeriodParams {
@@ -153,8 +161,6 @@ interface ICover {
     string[] calldata ipfsMetadata
   ) external;
 
-  function setCoverAssetsFallback(uint32 _coverAssetsFallback) external;
-
   function performPayoutBurn(
     uint coverId,
     uint segmentId,
@@ -180,7 +186,7 @@ interface ICover {
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
   event ProductTypeUpserted(uint id, string ipfsMetadata);
   event ProductUpserted(uint id, string ipfsMetadata);
-  event CoverBought(uint coverId, uint productId, uint segmentId, address buyer);
+  event CoverBought(uint coverId, uint productId, uint segmentId, address buyer, string ipfsMetadata);
   event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
   event CoverExpired(uint coverId, uint segmentId);
 }

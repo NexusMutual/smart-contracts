@@ -11,6 +11,7 @@ import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/INXMMaster.sol";
+import "../../interfaces/ICover.sol";
 import "./external/LockHandler.sol";
 
 contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
@@ -22,6 +23,9 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   IPooledStaking public pooledStaking;
   IAssessment public assessment;
   IGovernance public governance;
+
+  ICover public cover;
+  uint pooledStakingNXMBalance;
 
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
@@ -38,6 +42,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     token = INXMToken(ms.tokenAddress());
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
     assessment = IAssessment(ms.getLatestAddress("AS"));
+    cover = ICover(ms.getLatestAddress("CO"));
   }
 
   /**
@@ -317,6 +322,21 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     }
 
     token.transfer(user, totalAmount);
+  }
+
+
+  function mintPooledStakingNXM(uint amount) external {
+
+    require(msg.sender == address(cover), "TokenController: only Cover allowed");
+    mint(address(this), amount);
+    pooledStakingNXMBalance += amount;
+  }
+
+  function burnPooledStakingNXM(uint amount) external {
+
+    require(msg.sender == address(cover), "TokenController: only Cover allowed");
+    burnFrom(address(this), amount);
+    pooledStakingNXMBalance += amount;
   }
 
   function initialize() external {

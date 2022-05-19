@@ -616,9 +616,9 @@ contract StakingPool is IStakingPool, ERC721 {
     newDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
 
     // Reset the last value of accumulated NXM per share in the initial deposit. In case the user
-    // decides to make another deposit before the end date of the initial tranche it has to be
-    // treated a new one.
-    initialDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+    // decides to make another deposit until the end of initial tranche, it has to be treated as a
+    // new deposit, not an increase.
+    initialDeposit.lastAccNxmPerRewardShare = 0;
 
     // Move the user's shares from the initial deposit to the new one.
     initialDeposit.stakeShares = 0;

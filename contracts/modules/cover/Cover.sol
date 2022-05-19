@@ -301,7 +301,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;
     CoverSegment memory lastCoverSegment = coverSegments(coverId, lastCoverSegmentIndex);
 
-    require(ICoverNFT(coverNFT).ownerOf(coverId) == msg.sender, "Cover: Only the owner can edit the cover");
+    ICoverNFT _coverNFT = ICoverNFT(coverNFT);
+    address owner = _coverNFT.ownerOf(coverId);
+    require(owner == msg.sender || _coverNFT.isApprovedForAll(owner, msg.sender), "Cover: Only owner or approved can edit");
     require(lastCoverSegment.start + lastCoverSegment.period > block.timestamp, "Cover: cover expired");
     require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(buyCoverParams.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");

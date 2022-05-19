@@ -1,7 +1,7 @@
-const { takeSnapshot, revertToSnapshot, reset } = require('../utils').evm;
+const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const { setup } = require('./setup');
 
-describe('Distributor unit tests', function () {
+describe('MemberRoles unit tests', function () {
   before(setup);
 
   beforeEach(async function () {
@@ -12,7 +12,5 @@ describe('Distributor unit tests', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
-  require('./executeCoverAction');
-  require('./buyCover');
-  require('./setters');
+  require('./signUp');
 });

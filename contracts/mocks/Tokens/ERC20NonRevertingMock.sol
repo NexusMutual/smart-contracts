@@ -7,11 +7,11 @@ pragma solidity ^0.8.0;
 /// is usually expected.
 contract ERC20NonRevertingMock  {
 
-  function balanceOf(address account) public view returns (uint256) {
+  function balanceOf(address) public pure returns (uint) {
     return 0 ether;
   }
 
-  function transfer(address recipient, uint256 amount) public {
+  function transfer(address, uint256) public {
     // noop
   }
 

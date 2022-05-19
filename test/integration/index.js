@@ -20,5 +20,4 @@ describe.skip('INTEGRATION TESTS', function () {
   require('./Claims');
   require('./Gateway');
   require('./TokenController');
-  require('./Distributor');
 });

@@ -249,13 +249,16 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   /// Switches membership for msg.sender to the specified address and transfers the senders'
   /// assets in a single transaction.
   ///
-  /// @param newAddress    Address of user to forward membership.
-  /// @param coverIds      Array of cover ids to transfer to the new address.
-  /// @param stakingPools  Array of staking pool addresses where the user has LP tokens.
+  /// @param newAddress           Address of user to forward membership.
+  /// @param coverIds             Array of cover ids to transfer to the new address.
+  /// @param stakingPools         Array of staking pool addresses where the user has LP tokens.
+  /// @param stakingPoolTokenIds  Arrays of token ids each belonging to each staking pool given
+  ///                             through stakingPool parameter.
   function switchMembershipAndAssets(
     address newAddress,
     uint[] calldata coverIds,
-    address[] calldata stakingPools
+    address[] calldata stakingPools,
+    uint[][] calldata stakingPoolTokenIds
   ) external override {
     _switchMembership(msg.sender, newAddress);
     tk.transferFrom(msg.sender, newAddress, tk.balanceOf(msg.sender));
@@ -264,15 +267,13 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     cover.transferCovers(msg.sender, newAddress, coverIds);
 
     stakingPools;
-    // [todo] Transfer staking pool NFTS to newAddress
-    /*
-    // Transfer the staking LP tokens to the new address, if any were given
+
+    // Transfer the staking deposits to the new address
     for (uint256 i = 0; i < stakingPools.length; i++) {
       IStakingPool stakingLPToken = IStakingPool(stakingPools[i]);
-      uint fullAmount = stakingLPToken.balanceOf(msg.sender);
-      stakingLPToken.operatorTransferFrom(msg.sender, newAddress, fullAmount);
+      stakingLPToken.operatorTransfer(msg.sender, newAddress, stakingPoolTokenIds[i]);
     }
-    */
+
   }
 
   function switchMembershipOf(address member, address newAddress) external override onlyInternal {

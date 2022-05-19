@@ -264,13 +264,7 @@ contract StakingPool is IStakingPool, ERC721 {
     rewardsSharesSupply = _rewardsSharesSupply;
   }
 
-  // todo: allow deposits to multiple tranches/nfts
-  function depositTo(
-    uint amount,
-    uint trancheId,
-    uint _tokenId,
-    address destination
-  ) external returns (uint tokenId) {
+  function depositTo(DepositRequest[] calldata requests) external returns (uint[] memory tokenIds) {
 
     if (isPrivatePool) {
       require(msg.sender == manager(), "StakingPool: The pool is private");
@@ -278,95 +272,109 @@ contract StakingPool is IStakingPool, ERC721 {
 
     updateTranches();
 
-    {
-      uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
-      uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES;
-      require(trancheId <= maxTranche, "StakingPool: Requested tranche is not yet active");
-      require(trancheId >= _firstActiveTrancheId, "StakingPool: Requested tranche has expired");
-      require(amount > 0, "StakingPool: Insufficient deposit amount");
-    }
-
-    // deposit to token id = 0 is not allowed
-    // we treat it as a flag to create a new token
-    bool isNewToken = _tokenId == 0;
-
-    if (isNewToken) {
-      tokenId = totalSupply++;
-      address to = destination == address(0) ? msg.sender : destination;
-      _mint(to, tokenId);
-    } else {
-      tokenId = _tokenId;
-    }
-
-    // transfer nxm from staker
-    // TODO: use TokenController.operatorTransfer instead and transfer to TC
-    nxm.transferFrom(msg.sender, address(this), amount);
-
     // storage reads
     uint _activeStake = activeStake;
     uint _stakeSharesSupply = stakeSharesSupply;
     uint _rewardsSharesSupply = rewardsSharesSupply;
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
 
-    uint newStakeShares = _stakeSharesSupply == 0
-      ? Math.sqrt(amount)
-      : _stakeSharesSupply * amount / _activeStake;
+    uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+    uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES;
 
-    uint newRewardsShares = calculateRewardSharesAmount(newStakeShares, trancheId);
+    uint totalAmount;
+    tokenIds = new uint[](requests.length);
 
-    // update deposit and pending reward
-    {
-      // conditional read
-      Deposit memory deposit = isNewToken
-        ? Deposit(_accNxmPerRewardsShare, 0, 0, 0)
-        : deposits[tokenId][trancheId];
+    for (uint i = 0; i < requests.length; i++) {
 
-      // if we're increasing an existing deposit
-      if (deposit.lastAccNxmPerRewardShare != 0) {
-        uint newEarningsPerShare = _accNxmPerRewardsShare - deposit.lastAccNxmPerRewardShare;
-        deposit.pendingRewards += newEarningsPerShare * deposit.rewardsShares;
-      }
-
-      deposit.stakeShares += newStakeShares;
-      deposit.rewardsShares += newRewardsShares;
-      deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
-
-      // sstore
-      deposits[tokenId][trancheId] = deposit;
-    }
-
-    // update pool manager's reward shares
-    {
-      Deposit memory feeDeposit = deposits[0][trancheId];
+      DepositRequest memory request = requests[i];
 
       {
-        // create fee deposit reward shares
-        uint newFeeRewardShares = newRewardsShares * poolFee / FEE_DENOMINATOR;
-        newRewardsShares += newFeeRewardShares;
-
-        // calculate rewards until now
-        uint newRewardPerShare = _accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare;
-
-        feeDeposit.pendingRewards += newRewardPerShare * feeDeposit.rewardsShares;
-        feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
-        feeDeposit.rewardsShares += newFeeRewardShares;
+        require(request.amount > 0, "StakingPool: Insufficient deposit amount");
+        require(request.trancheId <= maxTranche, "StakingPool: Requested tranche is not yet active");
+        require(request.trancheId >= _firstActiveTrancheId, "StakingPool: Requested tranche has expired");
       }
 
-      deposits[0][trancheId] = feeDeposit;
+      // deposit to token id = 0 is not allowed
+      // we treat it as a flag to create a new token
+      bool isNewToken = request.tokenId == 0;
+
+      if (isNewToken) {
+        tokenIds[i] = totalSupply++;
+        address to = request.destination == address(0) ? msg.sender : request.destination;
+        _mint(to, request.tokenId);
+      } else {
+        tokenIds[i] = request.tokenId;
+      }
+
+      uint newStakeShares = _stakeSharesSupply == 0
+        ? Math.sqrt(request.amount)
+        : _stakeSharesSupply * request.amount / _activeStake;
+
+      uint newRewardsShares = calculateRewardSharesAmount(newStakeShares, request.trancheId);
+
+      // update deposit and pending reward
+      {
+        // conditional read
+        Deposit memory deposit = isNewToken
+          ? Deposit(_accNxmPerRewardsShare, 0, 0, 0)
+          : deposits[request.tokenId][request.trancheId];
+
+        // if we're increasing an existing deposit
+        if (deposit.lastAccNxmPerRewardShare != 0) {
+          uint newEarningsPerShare = _accNxmPerRewardsShare - deposit.lastAccNxmPerRewardShare;
+          deposit.pendingRewards += newEarningsPerShare * deposit.rewardsShares;
+        }
+
+        deposit.stakeShares += newStakeShares;
+        deposit.rewardsShares += newRewardsShares;
+        deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+
+        // sstore
+        deposits[request.tokenId][request.trancheId] = deposit;
+      }
+
+      // update pool manager's reward shares
+      {
+        Deposit memory feeDeposit = deposits[0][request.trancheId];
+
+        {
+          // create fee deposit reward shares
+          uint newFeeRewardShares = newRewardsShares * poolFee / FEE_DENOMINATOR;
+          newRewardsShares += newFeeRewardShares;
+
+          // calculate rewards until now
+          uint newRewardPerShare = _accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare;
+
+          feeDeposit.pendingRewards += newRewardPerShare * feeDeposit.rewardsShares;
+          feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+          feeDeposit.rewardsShares += newFeeRewardShares;
+        }
+
+        deposits[0][request.trancheId] = feeDeposit;
+      }
+
+      // update tranche
+      {
+        Tranche memory tranche = tranches[request.trancheId];
+        tranche.stakeShares += newStakeShares;
+        tranche.rewardsShares += newRewardsShares;
+        tranches[request.trancheId] = tranche;
+      }
+
+      totalAmount += request.amount;
+      _activeStake += request.amount;
+      _stakeSharesSupply += newStakeShares;
+      _rewardsSharesSupply += newRewardsShares;
     }
 
-    // update tranche
-    {
-      Tranche memory tranche = tranches[trancheId];
-      tranche.stakeShares += newStakeShares;
-      tranche.rewardsShares += newRewardsShares;
-      tranches[trancheId] = tranche;
-    }
+    // transfer nxm from staker
+    // TODO: use TokenController.operatorTransfer instead and transfer to TC
+    nxm.transferFrom(msg.sender, address(this), totalAmount);
 
     // update globals
-    activeStake = _activeStake + amount;
-    stakeSharesSupply = _stakeSharesSupply + newStakeShares;
-    rewardsSharesSupply = _rewardsSharesSupply + newRewardsShares;
+    activeStake = _activeStake;
+    stakeSharesSupply = _stakeSharesSupply;
+    rewardsSharesSupply = _rewardsSharesSupply;
   }
 
   function calculateRewardSharesAmount(

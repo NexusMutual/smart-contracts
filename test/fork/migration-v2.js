@@ -104,7 +104,6 @@ describe('v2 migration', function() {
     this.quotationData = await factory('QD');
     this.proposalCategory = await factory('PC');
     this.tokenController = await factory('TC');
-    this.tokenData = await factory('TD');
     this.claims = await factory('CL');
     this.claimsReward = await factory('CR');
     this.claimsData = await factory('CD');
@@ -418,10 +417,10 @@ describe('v2 migration', function() {
     // [todo]
   });
 
-  it('remove CR, CD, IC, QD, QT, TF, TD', async function() {
+  it('remove CR, CD, IC, QD, QT, TF, TD, P2', async function() {
     await submitGovernanceProposal(
       43, // removeContracts(bytes2[])
-      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD'].map(x => toUtf8Bytes(x))]),
+      defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
       this.abMembers,
       this.governance,
     );
@@ -497,13 +496,6 @@ describe('v2 migration', function() {
 
   // this.quotation = await ethers.getContractAt('Quotation', quotation.address);
   // });
-
-  it('MemberRoles is initialized with walletAddress from TokenData', async function() {
-    const joiningFeeWalletTK = await this.tokenData.walletAddress();
-    const joiningFeeWalletMR = await this.memberRoles.joiningFeeWallet();
-    console.log({ joiningFeeWalletMR, joiningFeeWalletTK });
-    expect(joiningFeeWalletMR).to.be.equal(joiningFeeWalletTK);
-  });
 
   it('MemberRoles is initialized with kycAuthAddress from QuotationData', async function() {
     const kycAuthAddressQD = await this.quotationData.kycAuthAddress();

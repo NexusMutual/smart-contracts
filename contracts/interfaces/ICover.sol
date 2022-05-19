@@ -23,6 +23,13 @@ enum LegacyCoverStatus {
   Migrated
 }
 
+enum CoverUintParams {
+  globalCapacityRatio,
+  globalRewardsRatio,
+  coverAssetsFallback
+}
+
+
 struct PoolAllocationRequest {
   uint64 poolId;
   uint coverAmountInAsset;
@@ -45,6 +52,7 @@ struct CoverSegment {
   uint32 start;
   uint32 period;  // seconds
   uint16 priceRatio;
+  bool expired;
 }
 
 struct BuyCoverParams {
@@ -58,6 +66,7 @@ struct BuyCoverParams {
   bool payWithNXM;
   uint16 commissionRatio;
   address commissionDestination;
+  string ipfsData;
 }
 
 struct IncreaseAmountAndReducePeriodParams {
@@ -97,7 +106,6 @@ struct ProductType {
 
 interface ICover {
 
-
   /* ========== VIEWS ========== */
 
   function coverData(uint id) external view returns (CoverData memory);
@@ -115,6 +123,12 @@ interface ICover {
   function stakingPoolCount() external view returns (uint64);
 
   function productsCount() external view returns (uint);
+
+  function activeCoverAmountCommitted() external view returns (bool);
+
+  function MAX_COVER_PERIOD() external view returns (uint);
+
+  function totalActiveCoverInAsset(uint24 coverAsset) external view returns (uint);
 
   /* === MUTATIVE FUNCTIONS ==== */
 
@@ -147,8 +161,6 @@ interface ICover {
     string[] calldata ipfsMetadata
   ) external;
 
-  function setCoverAssetsFallback(uint32 _coverAssetsFallback) external;
-
   function performPayoutBurn(
     uint coverId,
     uint segmentId,
@@ -159,19 +171,22 @@ interface ICover {
 
   function transferCovers(address from, address to, uint256[] calldata coverIds) external;
 
-
   function createStakingPool(
     address manager,
+    bool isPrivatePool,
+    uint initialPoolFee,
+    uint maxPoolFee,
     ProductInitializationParams[] calldata params,
     uint depositAmount,
-    uint groupId
+    uint trancheId
   ) external returns (address stakingPoolAddress);
 
   /* ========== EVENTS ========== */
 
-  function MAX_COVER_PERIOD() external view returns (uint);
-
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
   event ProductTypeUpserted(uint id, string ipfsMetadata);
   event ProductUpserted(uint id, string ipfsMetadata);
+  event CoverBought(uint coverId, uint productId, uint segmentId, address buyer, string ipfsMetadata);
+  event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
+  event CoverExpired(uint coverId, uint segmentId);
 }

@@ -215,13 +215,16 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   /// Switches the membership from the sender's address to the new address and transfers the
   /// sender's assets in a single transaction.
   ///
-  /// @param newAddress    Address of user to forward membership.
-  /// @param coverIds      Array of cover ids to transfer to the new address.
-  /// @param stakingPools  Array of staking pool addresses where the user has LP tokens.
+  /// @param newAddress           Address of user to forward membership.
+  /// @param coverIds             Array of cover ids to transfer to the new address.
+  /// @param stakingPools         Array of staking pool addresses where the user has LP tokens.
+  /// @param stakingPoolTokenIds  Arrays of token ids each belonging to each staking pool given
+  ///                             through stakingPool parameter.
   function switchMembershipAndAssets(
     address newAddress,
     uint[] calldata coverIds,
-    address[] calldata stakingPools
+    address[] calldata stakingPools,
+    uint[][] calldata stakingPoolTokenIds
   ) external override {
     _switchMembership(msg.sender, newAddress);
     tk.transferFrom(msg.sender, newAddress, tk.balanceOf(msg.sender));
@@ -230,15 +233,13 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     cover.transferCovers(msg.sender, newAddress, coverIds);
 
     stakingPools;
-    // [todo] Transfer staking pool NFTS to newAddress
-    /*
-    // Transfer the staking LP tokens to the new address, if any were given
+
+    // Transfer the staking deposits to the new address
     for (uint256 i = 0; i < stakingPools.length; i++) {
       IStakingPool stakingLPToken = IStakingPool(stakingPools[i]);
-      uint fullAmount = stakingLPToken.balanceOf(msg.sender);
-      stakingLPToken.operatorTransferFrom(msg.sender, newAddress, fullAmount);
+      stakingLPToken.operatorTransfer(msg.sender, newAddress, stakingPoolTokenIds[i]);
     }
-    */
+
   }
 
   function switchMembershipOf(address member, address newAddress) external override onlyInternal {
@@ -254,20 +255,25 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     return checkRole(member, uint(IMemberRoles.Role.Member));
   }
 
-  function _switchMembership(address member, address newAddress) internal {
-
+  function _switchMembership(address currentAddress, address newAddress) internal {
     require(!ms.isPause(), "System is paused");
-    require(isMember(member), "The current address is not a member");
-    require(!isMember(newAddress), "The new address is already a member");
-    require(block.timestamp > tk.isLockedForMV(member), "Locked for governance voting"); // No locked tokens for Governance voting
+    require(ms.isMember(currentAddress), "The current address is not a member");
+    require(!ms.isMember(newAddress), "The new address is already a member");
+    require(block.timestamp > tk.isLockedForMV(currentAddress), "Locked for governance voting"); // No locked tokens for Governance voting
 
-    gv.removeDelegation(member);
+    gv.removeDelegation(currentAddress);
     tc.addToWhitelist(newAddress);
+    _updateRole(currentAddress, uint(Role.Member), false);
     _updateRole(newAddress, uint(Role.Member), true);
-    _updateRole(member, uint(Role.Member), false);
-    tc.removeFromWhitelist(member);
 
-    emit switchedMembership(member, newAddress, block.timestamp);
+    if (checkRole(currentAddress, uint(Role.AdvisoryBoard))) {
+      _updateRole(currentAddress, uint(Role.AdvisoryBoard), false);
+      _updateRole(newAddress, uint(Role.AdvisoryBoard), true);
+    }
+
+    tc.removeFromWhitelist(currentAddress);
+
+    emit switchedMembership(currentAddress, newAddress, block.timestamp);
   }
 
   /// Returns the number of member roles.

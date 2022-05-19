@@ -14,7 +14,7 @@ describe('submitClaim', function () {
     }
 
     {
-      await coverMigrator.connect(coverOwner).submitClaim(444);
+      await distributor.connect(coverOwner).submitClaim(444);
       const migrateCoverFromOwnerCalledWith = await cover.migrateCoverFromOwnerCalledWith();
       expect(migrateCoverFromOwnerCalledWith.coverId).to.be.equal(444);
       expect(migrateCoverFromOwnerCalledWith.fromOwner).to.be.equal(distributor.address);

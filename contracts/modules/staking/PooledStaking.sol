@@ -355,10 +355,9 @@ contract PooledStaking is IPooledStaking, MasterAware {
     }
   }
 
-  function withdraw(uint ignoredParam) external override whenNotPausedAndInitialized onlyMember noPendingBurns {
-    ignoredParam; // Silence warnings. Keeping this to avoid changing function selector
+  function withdraw(uint /*ignoredParam*/) external override whenNotPausedAndInitialized onlyMember noPendingBurns {
     uint amount = stakers[msg.sender].deposit;
-    stakers[msg.sender].deposit -= amount;
+    stakers[msg.sender].deposit = 0;
     token.transfer(msg.sender, amount);
     emit Withdrawn(msg.sender, amount);
   }
@@ -366,7 +365,7 @@ contract PooledStaking is IPooledStaking, MasterAware {
   function withdrawForUser(address user) external override whenNotPausedAndInitialized onlyMember noPendingBurns {
     require(block.timestamp > migrationDeadline, "Migration period hasn't ended");
     uint amount = stakers[user].deposit;
-    stakers[user].deposit -= amount;
+    stakers[user].deposit = 0;
     token.transfer(user, amount);
     emit Withdrawn(user, amount);
   }
@@ -955,27 +954,27 @@ contract PooledStaking is IPooledStaking, MasterAware {
     }
   }
 
-  function getV1PriceForProduct(uint id) pure internal returns (uint) {
+  function getV1PriceForProduct(uint id) pure internal returns (uint96) {
     // {V1_PRICES_HELPER_BEGIN}
 
     // bZx v1
     if (id == 0) {
-      return 42880894339275514000; // 42.880894339275514%
+      return 42_880894339275514000; // 42.880894339275514%
     }
 
     // Saturn DAO Token
     if (id == 1) {
-      return 63420369661816350000; // 63.42036966181635%
+      return 63_420369661816350000; // 63.42036966181635%
     }
 
     // Legacy Gnosis MultiSig
     if (id == 2) {
-      return 25075515385886447000; // 25.075515385886444%
+      return 25_075515385886447000; // 25.075515385886444%
     }
 
     // dxDAO
     if (id == 3) {
-      return 24184951105233400000; // 24.1849511052334%
+      return 24_184951105233400000; // 24.1849511052334%
     }
 
     if (
@@ -1377,8 +1376,57 @@ contract PooledStaking is IPooledStaking, MasterAware {
     revert("Invalid product id");
   }
 
-  function migrateToNewV2Pool(address stakerAddress, uint groupId) external noPendingActions {
+  function getStakerConfig(address stakerAddress) internal returns (
+    ProductInitializationParams[] memory params,
+    uint deposit
+  ) {
+
+    // read and set deposit to zero to avoid re-entrancy
+    deposit = stakers[stakerAddress].deposit;
+    require(deposit > 0, "Address has no stake to migrate");
+    stakers[stakerAddress].deposit = 0;
+
+    uint contractCount = stakers[stakerAddress].contracts.length;
+    uint[] memory products = new uint[](contractCount);
+    uint[] memory stakes = new uint[](contractCount);
+    uint migratableCount = 0;
+
+    for (uint i = 0; i < contractCount; i++) {
+      address oldProductId = stakers[stakerAddress].contracts[i];
+      uint productId;
+      try productsV1.getNewProductId(oldProductId) returns (uint v) {
+        productId = v;
+      } catch {
+        emit ProductNotFound(oldProductId);
+        continue;
+      }
+      products[i] = productId;
+      stakes[i] = min(stakers[stakerAddress].stakes[oldProductId], deposit);
+      migratableCount++;
+    }
+
+    params = new ProductInitializationParams[](migratableCount);
+    uint migrateAtIndex = 0;
+
+    for (uint i = 0; i < contractCount; i++) {
+      if (stakes[i] == 0) {
+        continue;
+      }
+      uint96 price = getV1PriceForProduct(products[i]);
+      params[migrateAtIndex] = ProductInitializationParams(
+        products[i], // productId
+        uint8(min(stakes[i] * 1e18 / deposit / 1e16, 100)), // weight (0-100)
+        price, // initialPrice
+        price // targetPrice
+      );
+      migrateAtIndex++;
+    }
+  }
+
+  function migrateToNewV2Pool(address stakerAddress, uint trancheId) external noPendingActions {
+
     require(block.timestamp <= migrationDeadline, "Migration period has ended");
+
     // Addresses marked for implicit migration can be migrated by anyone.
     // Addresses who are not can only be migrated by calling this function themselves.
     // [todo] Check these addresses before deploy
@@ -1397,69 +1445,35 @@ contract PooledStaking is IPooledStaking, MasterAware {
       "You are not authorized to migrate this staker"
     );
 
-    require(stakers[stakerAddress].deposit > 0, "Address has no migratable stake");
+    (ProductInitializationParams[] memory params, uint deposit) = getStakerConfig(stakerAddress);
 
-    uint contractsCount = stakers[stakerAddress].contracts.length;
-    uint deposit = stakers[stakerAddress].deposit;
+    // TODO: how do we get these values?
+    bool isPrivatePool = false;
+    uint initialPoolFee = 0;
+    uint maxPoolFee = 0;
 
-    uint[] memory products = new uint[](contractsCount);
-    uint[] memory stakes = new uint[](contractsCount);
-    uint migratableCount = 0;
+    // Use the trancheId provided as a parameter if the user is migrating to v2 himself
+    // Use next id after the first active group id for those in the initial migration list
+    uint GROUP_SIZE = 91 days;
+    uint trancheIdInEffect = stakerAddress == msg.sender
+      ? trancheId
+      : block.timestamp / GROUP_SIZE + 1;
 
-    for (uint i = 0; i < contractsCount; i++) {
-      address oldProductId = stakers[stakerAddress].contracts[i];
-      uint productId;
-      try productsV1.getNewProductId(oldProductId) returns (uint v) {
-        productId = v;
-      } catch {
-        emit ProductNotFound(oldProductId);
-        continue;
-      }
-      products[i] = productId;
-      stakes[i] = stakers[stakerAddress].stakes[oldProductId];
-      migratableCount++;
-    }
-
-    ProductInitializationParams[] memory params = new ProductInitializationParams[](migratableCount);
-    uint migrateAtIndex = 0;
-
-    for (uint i = 0; i < contractsCount; i++) {
-      if (stakes[i] == 0) {
-        continue;
-      }
-      uint price = getV1PriceForProduct(products[i]);
-      params[migrateAtIndex] = ProductInitializationParams(
-        products[i], // productId
-        uint8(min(stakes[i] * 1e18 / deposit / 1e16, 100)), // weight (0-100)
-        price, // initialPrice
-        price // targetPrice
-      );
-      migrateAtIndex++;
-    }
-
-    {
-
-      // [todo] This might require an offset to start the first group at the time of v2 deploy
-      uint GROUP_SIZE = 91 days;
-      uint firstActiveGroupId = block.timestamp / GROUP_SIZE;
-
-      // Use the groupId provided as a parameter if the user is migrating to v2 himself
-      // Use next id after the first active group id for those in the initial migration list
-      uint groupIdInEffect = stakerAddress == msg.sender ? groupId : firstActiveGroupId + 1;
-
-      cover.createStakingPool(stakerAddress, params, deposit, groupIdInEffect);
-    }
-
-    // Finally set the v1 deposit to 0
-    stakers[stakerAddress].deposit = 0;
-
+    cover.createStakingPool(
+      stakerAddress,
+      isPrivatePool,
+      initialPoolFee,
+      maxPoolFee,
+      params,
+      deposit,
+      trancheIdInEffect
+    );
   }
 
-  function migrateToExistingV2Pool(IStakingPool stakingPool, uint groupId) external {
+  function migrateToExistingV2Pool(IStakingPool stakingPool, uint trancheId) external {
     uint deposit = stakers[msg.sender].deposit;
-    uint stakePositionNFTId = stakingPool.deposit(deposit, groupId, 0);
-    stakingPool.safeTransferFrom(address(this), msg.sender, stakePositionNFTId);
     stakers[msg.sender].deposit = 0;
+    token.approve(address(tokenController), deposit);
+    stakingPool.depositTo(deposit, trancheId, 0, msg.sender);
   }
-
 }

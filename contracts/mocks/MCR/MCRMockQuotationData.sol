@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.17;
-
-import "../../modules/oracles/PriceFeedOracle.sol";
+pragma solidity ^0.8.0;
 
 contract MCRMockQuotationData {
-    using SafeMath for uint;
 
     mapping(bytes4 => uint) public sumAssuredByCurrency;
 

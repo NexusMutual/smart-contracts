@@ -75,14 +75,9 @@ async function setup () {
   await cover.addProduct(['1', '0x2222222222222222222222222222222222222222', '1', '0', '0']);
   await cover.addProduct(['2', '0x3333333333333333333333333333333333333333', '1', '0', '0']);
 
-  {
-    const tx = await individualClaims.initialize(master.address);
-    await tx.wait();
-  }
-  {
-    const tx = await individualClaims.changeDependentContractAddress();
-    await tx.wait();
-  }
+  await individualClaims.changeMasterAddress(master.address);
+  await individualClaims.changeDependentContractAddress();
+  await individualClaims.initialize();
 
   const signers = await ethers.getSigners();
   const accounts = getAccounts(signers);

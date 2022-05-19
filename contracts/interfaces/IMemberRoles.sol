@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity >=0.5.0;
+pragma experimental ABIEncoderV2;
 
 interface IMemberRoles {
 
@@ -13,7 +14,8 @@ interface IMemberRoles {
   function switchMembershipAndAssets(
     address newAddress,
     uint[] calldata coverIds,
-    address[] calldata stakingPools
+    address[] calldata stakingPools,
+    uint[][] calldata stakingPoolTokenIds
   ) external;
 
   function switchMembershipOf(address member, address _newAddress) external;

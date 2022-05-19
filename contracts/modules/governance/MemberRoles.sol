@@ -14,7 +14,6 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../abstract/LegacyMasterAware_sol0_8.sol";
 import "./external/Governed.sol";
-import "hardhat/console.sol";
 
 contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   uint public constant joiningFee = 2000000000000000; // 0.002 Ether
@@ -135,19 +134,6 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     _updateRole(_memberAddress, _roleId, _active);
   }
 
-  /// Verifies if a signed message was signed by kycAuthAddress.
-  ///
-  /// @param hash  The hash of the message that is signed.
-  /// @param v     The recovery id.
-  /// @param r     The r argument from the ECDSA signature.
-  /// @param s     The s argument from the ECDSA signature.
-  function isValidSignature(bytes32 hash, uint8 v, bytes32 r, bytes32 s) public view returns (bool) {
-    bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-    bytes32 prefixedHash = keccak256(abi.encodePacked(prefix, hash));
-    address signer = ecrecover(prefixedHash, v, r, s);
-    return (signer == kycAuthAddress);
-  }
-
   /// Finalises the sign up process by allowing the user to pay the joining fee and marks the
   /// address as a member.
   ///
@@ -181,7 +167,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     // one.
     require(
       usedMessageHashes[messageHash] == false,
-      "MemberRoles: Nonce already used for this address"
+      "MemberRoles: Signature already used"
     );
 
     // Mark it as used to avoid whitelisting an unbounded number of addresses when combining this

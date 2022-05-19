@@ -105,6 +105,7 @@ contract StakingPool is IStakingPool, ERC721 {
   uint constant REWARDS_SHARES_DENOMINATOR = 100;
   uint constant WEIGHT_DENOMINATOR = 100;
   uint constant REWARDS_DENOMINATOR = 100;
+  uint constant FEE_DENOMINATOR = 100;
 
   uint public constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
   uint public constant PRODUCT_WEIGHT_DENOMINATOR = 10_000;
@@ -162,7 +163,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint[] calldata tokenIds
   ) external onlyCoverContract {
     uint length = tokenIds.length;
-    for (uint i = 0; i < length; ++i) {
+    for (uint i = 0; i < length; i++) {
       _safeTransfer(from, to, tokenIds[i], "");
     }
   }
@@ -334,6 +335,26 @@ contract StakingPool is IStakingPool, ERC721 {
       deposits[tokenId][trancheId] = deposit;
     }
 
+    // update pool manager's reward shares
+    {
+      Deposit memory feeDeposit = deposits[0][trancheId];
+
+      {
+        // create fee deposit reward shares
+        uint newFeeRewardShares = newRewardsShares * poolFee / FEE_DENOMINATOR;
+        newRewardsShares += newFeeRewardShares;
+
+        // calculate rewards until now
+        uint newRewardPerShare = _accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare;
+
+        feeDeposit.pendingRewards += newRewardPerShare * feeDeposit.rewardsShares;
+        feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+        feeDeposit.rewardsShares += newFeeRewardShares;
+      }
+
+      deposits[0][trancheId] = feeDeposit;
+    }
+
     // update tranche
     {
       Tranche memory tranche = tranches[trancheId];
@@ -458,7 +479,7 @@ contract StakingPool is IStakingPool, ERC721 {
       uint _stakeSharesSupply = stakeSharesSupply;
       uint availableShares = _stakeSharesSupply;
 
-      for (uint i = _firstActiveTrancheId; i < _firstAvailableTrancheId; ++i) {
+      for (uint i = _firstActiveTrancheId; i < _firstAvailableTrancheId; i++) {
         availableShares -= tranches[i].stakeShares;
       }
 
@@ -629,9 +650,35 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   function setPoolFee(uint newFee) external onlyManager {
+
     require(newFee <= maxPoolFee, "StakingPool: new fee exceeds max fee");
+    uint oldFee = poolFee;
     poolFee = uint8(newFee);
-    // TODO: update pool manager's reward shares amount
+
+    updateTranches();
+
+    uint fromTrancheId = firstActiveTrancheId;
+    uint toTrancheId = fromTrancheId + MAX_ACTIVE_TRANCHES;
+    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
+
+    for (uint trancheId = fromTrancheId; trancheId <= toTrancheId; trancheId++) {
+
+      // sload
+      Deposit memory feeDeposit = deposits[0][trancheId];
+
+      if (feeDeposit.rewardsShares == 0) {
+        continue;
+      }
+
+      // update pending reward and reward shares
+      uint newRewardPerRewardsShare = _accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare;
+      feeDeposit.pendingRewards += newRewardPerRewardsShare * feeDeposit.rewardsShares;
+      // TODO: would using tranche.rewardsShares give a better precision?
+      feeDeposit.rewardsShares = feeDeposit.rewardsShares * newFee / oldFee;
+
+      // sstore
+      deposits[0][trancheId] = feeDeposit;
+    }
   }
 
   function setPoolPrivacy(bool _isPrivatePool) external onlyManager {

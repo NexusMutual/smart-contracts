@@ -207,26 +207,21 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   /// Function used to claim all pending rewards in one tx. It can be used to selectively withdraw
   /// rewards.
   ///
-  /// @param forUser          The address for whom the governance and/or assessment rewards are
-  ///                         withdrawn.
-  /// @param fromGovernance   When true, governance rewards are withdrawn.
-  /// @param fromAssessment   When true, assessment rewards are withdrawn.
-  /// @param batchSize        The maximum number of iterations to avoid unbounded loops when
-  ///                         withdrawing governance and/or assessment rewards.
-  /// @param stakingPools     The addresses of the staking pools that have withdrawable rewards.
-  ///                         When empty, no staking rewards are withdrawn.
-  /// @param stakingTokenIds  The ids of the tokens corresponding to every staking pool provided
-  ///                         above which have withdrwable rewards.
-  /// @param stakingTermIds   The ids of the terms corresponding to every token provided above
-  ///                         which have withdrwable rewards.
+  /// @param forUser           The address for whom the governance and/or assessment rewards are
+  ///                          withdrawn.
+  /// @param fromGovernance    When true, governance rewards are withdrawn.
+  /// @param fromAssessment    When true, assessment rewards are withdrawn.
+  /// @param batchSize         The maximum number of iterations to avoid unbounded loops when
+  ///                          withdrawing governance and/or assessment rewards.
+  /// @param fromStakingPools  An array of structures containing staking pools, token ids and
+  ///                          tranche ids. See: WithdrawFromStakingPoolParams from ITokenController
+  ///                          When empty, no staking rewards are withdrawn.
   function withdrawPendingRewards(
     address forUser,
     bool fromGovernance,
     bool fromAssessment,
     uint batchSize,
-    address[] calldata stakingPools,
-    uint[][] calldata stakingTokenIds,
-    uint[][][] calldata stakingTermIds
+    WithdrawFromStakingPoolParams[] calldata fromStakingPools
   ) external isMemberAndcheckPause {
     if (fromAssessment) {
       assessment.withdrawRewards(forUser, batchSize.toUint104());
@@ -241,29 +236,19 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
       );
     }
 
-    require(
-      stakingPools.length == stakingTokenIds.length,
-      "TokenController: Provide all withdrawable the token ids for each staking pool"
-    );
-    require(
-      stakingTokenIds.length == stakingTokenIds.length,
-      "TokenController: Provide all expired terms for every token from each staking pool"
-    );
-    for (uint i = 0; i < stakingPools.length; i++) {
-      require(
-        stakingTokenIds[i].length == stakingTermIds[i].length,
-        "TokenController: Provide all expired terms for each token"
+    for (uint i = 0; i < fromStakingPools.length; i++) {
+      WithdrawParams[] memory withdrawParams = new WithdrawParams[](
+        fromStakingPools[i].nfts.length
       );
-      WithdrawParams[] memory withdrawParams = new WithdrawParams[](stakingTokenIds.length);
-      for (uint j = 0; j < stakingTokenIds.length; j++) {
+      for (uint j = 0; j < fromStakingPools[i].nfts.length; j++) {
         withdrawParams[j] = WithdrawParams(
-          stakingTokenIds[i][j],
+          fromStakingPools[i].nfts[j].id,
           false, // withdrawStake
           true,  // withdrawRewards
-          stakingTermIds[i][j]
+          fromStakingPools[i].nfts[j].trancheIds
         );
       }
-      IStakingPool(stakingPools[i]).withdraw(withdrawParams);
+      IStakingPool(fromStakingPools[i].poolAddress).withdraw(withdrawParams);
     }
   }
 

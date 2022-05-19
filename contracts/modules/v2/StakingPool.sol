@@ -531,8 +531,8 @@ contract StakingPool is IStakingPool, ERC721 {
       "StakingPool: Not authorized to extend deposits on this token"
     );
     require(
-      initialTrancheId != newTrancheId,
-      "StakingPool: The chosen tranche cannot be the same as the initial one"
+      initialTrancheId < newTrancheId,
+      "StakingPool: The chosen tranche cannot end before the initial one"
     );
     require(newTrancheId <= maxTranche, "StakingPool: The chosen tranche is not available yet");
     require(

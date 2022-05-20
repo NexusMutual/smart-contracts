@@ -320,7 +320,7 @@ contract StakingPool is IStakingPool, ERC721 {
         ? Deposit(_accNxmPerRewardsShare, 0, 0, 0)
         : deposits[tokenId][trancheId];
 
-      newRewardsShares = claculateNewRewardShares(
+      newRewardsShares = calculateNewRewardShares(
         deposit.stakeShares, // initialStakeShares
         newStakeShares,      // newStakeShares
         trancheId,           // initialTrancheId
@@ -355,7 +355,7 @@ contract StakingPool is IStakingPool, ERC721 {
     rewardsSharesSupply = _rewardsSharesSupply + newRewardsShares;
   }
 
-  function getTimeLeftOfTranche(uint trancheId) internal pure returns (uint) {
+  function getTimeLeftOfTranche(uint trancheId) internal view returns (uint) {
     uint endDate = (trancheId + 1) * TRANCHE_DURATION;
     if (endDate > block.timestamp) {
       return endDate - block.timestamp;
@@ -371,8 +371,7 @@ contract StakingPool is IStakingPool, ERC721 {
   ) internal view returns (uint) {
 
     uint timeLeftOfInitialTranche = getTimeLeftOfTranche(initialTrancheId);
-    uint timeLeftOfNewTranche = getRemainingTimeOfTranche(newTrancheId);
-    bool isDepositPeriodExtended = initialTrancheId < newTrancheId;
+    uint timeLeftOfNewTranche = getTimeLeftOfTranche(newTrancheId);
 
     uint REWARD_BONUS_PER_TRANCHE_RATIO = 1000; // 10.00%
     uint REWARD_BONUS_PER_TRANCHE_DENOMINATOR = 10000;
@@ -599,8 +598,6 @@ contract StakingPool is IStakingPool, ERC721 {
     // First make sure tranches are up to date in terms of accumulated NXM rewards.
     updateTranches();
 
-    Tranche memory initialTranche = tranches[initialTrancheId];
-    Tranche memory newTranche = tranches[newTrancheId];
     Deposit memory initialDeposit = deposits[tokenId][initialTrancheId];
     Deposit memory newDeposit = deposits[tokenId][newTrancheId];
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
@@ -608,26 +605,32 @@ contract StakingPool is IStakingPool, ERC721 {
     // Calculate the new stake shares if there's also a deposit top up.
     uint newStakeShares;
     if (topUpAmount > 0) {
-      uint newStakeShares = stakeSharesSupply * topUpAmount / _activeStake;
+      newStakeShares = stakeSharesSupply * topUpAmount / activeStake;
+      activeStake += topUpAmount;
     }
 
     // Calculate the new reward shares
-    uint newRewardsShares = claculateNewRewardShares(
+    uint newRewardsShares = calculateNewRewardShares(
       initialDeposit.stakeShares,
       newStakeShares,
       initialTrancheId,
       newTrancheId
     );
 
-    // The user's shares are moved from the initial tranche to the new one.
-    initialTranche.stakeShares -= initialDeposit.stakeShares;
-    initialTranche.rewardsShares -= initialDeposit.rewardsShares;
-    newTranche.stakeShares += initialDeposit.stakeShares + newStakeShares;
-    newTranche.rewardsShares += initialDeposit.rewardsShares + newRewardsShares;
+    {
+      Tranche memory initialTranche = tranches[initialTrancheId];
+      Tranche memory newTranche = tranches[newTrancheId];
 
-    // Store the updated tranches.
-    tranches[initialTrancheId] = initialTranche;
-    tranches[newTrancheId] = newTranche;
+      // The user's shares are moved from the initial tranche to the new one.
+      initialTranche.stakeShares -= initialDeposit.stakeShares;
+      initialTranche.rewardsShares -= initialDeposit.rewardsShares;
+      newTranche.stakeShares += initialDeposit.stakeShares + newStakeShares;
+      newTranche.rewardsShares += initialDeposit.rewardsShares + newRewardsShares;
+
+      // Store the updated tranches.
+      tranches[initialTrancheId] = initialTranche;
+      tranches[newTrancheId] = newTranche;
+    }
 
     // Calculate the rewards that will be carried from the initial deposit to the next one.
     uint rewardsToCarry;
@@ -665,8 +668,7 @@ contract StakingPool is IStakingPool, ERC721 {
     // Store the new deposit.
     deposits[tokenId][newTrancheId] = newDeposit;
 
-    // Update global state variables
-    activeStake += amount;
+    // Update global shares supply
     stakeSharesSupply += newStakeShares;
     rewardsSharesSupply += newRewardsShares;
   }

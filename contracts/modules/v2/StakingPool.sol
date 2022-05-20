@@ -377,27 +377,18 @@ contract StakingPool is IStakingPool, ERC721 {
     uint REWARD_BONUS_PER_TRANCHE_RATIO = 1000; // 10.00%
     uint REWARD_BONUS_PER_TRANCHE_DENOMINATOR = 10000;
 
-    uint rewardsShares =
-      (initialStakeShares + newStakeShares) * (
-        REWARD_BONUS_PER_TRANCHE_RATIO
-        * timeLeftOfNewTranche
-        / TRANCHE_DURATION
-        + REWARD_BONUS_PER_TRANCHE_DENOMINATOR
-      ) / REWARD_BONUS_PER_TRANCHE_DENOMINATOR
-      - initialStakeShares * (
-        REWARD_BONUS_PER_TRANCHE_RATIO
-        * timeLeftOfInitialTranche
-        / TRANCHE_DURATION
-        + REWARD_BONUS_PER_TRANCHE_DENOMINATOR
-      ) / REWARD_BONUS_PER_TRANCHE_DENOMINATOR;
-
-    // TODO: determine extra rewards formula
-    return
-      stakeSharesAmount
-      * REWARDS_SHARES_RATIO
-      * lockDuration
-      / REWARDS_SHARES_DENOMINATOR
-      / maxLockDuration;
+    return (initialStakeShares + newStakeShares) * (
+      REWARD_BONUS_PER_TRANCHE_RATIO
+      * timeLeftOfNewTranche
+      / TRANCHE_DURATION
+      + REWARD_BONUS_PER_TRANCHE_DENOMINATOR
+    ) / REWARD_BONUS_PER_TRANCHE_DENOMINATOR
+    - initialStakeShares * (
+      REWARD_BONUS_PER_TRANCHE_RATIO
+      * timeLeftOfInitialTranche
+      / TRANCHE_DURATION
+      + REWARD_BONUS_PER_TRANCHE_DENOMINATOR
+    ) / REWARD_BONUS_PER_TRANCHE_DENOMINATOR;
   }
 
   function withdraw(

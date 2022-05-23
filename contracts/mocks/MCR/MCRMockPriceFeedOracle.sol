@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.17;
-
-import "../../modules/oracles/PriceFeedOracle.sol";
+pragma solidity ^0.8.0;
 
 contract MCRMockPriceFeedOracle {
-    using SafeMath for uint;
 
     address public daiAddress;
     uint public daiToEthRate;
 
-    constructor(address _daiAddress, uint _daiToEthRate) public {
+    constructor(address _daiAddress, uint _daiToEthRate) {
         daiAddress = _daiAddress;
         daiToEthRate = _daiToEthRate;
     }

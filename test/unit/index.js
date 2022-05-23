@@ -1,10 +1,10 @@
 describe('UNIT TESTS', function () {
+  require('./MemberRoles');
   require('./TokenController');
   require('./PooledStaking');
   require('./Pool');
   require('./CowOperator');
   require('./MCR');
-  require('./Distributor');
   require('./Assessment');
   require('./Cover');
   require('./CoverMigrator');

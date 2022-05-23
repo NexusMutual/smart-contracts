@@ -13,6 +13,16 @@ interface ITokenController {
     // note: still 224 bits available here, can be used later
   }
 
+  struct WithdrawFromStakingNftParams {
+    uint id;
+    uint[] trancheIds;
+  }
+
+  struct WithdrawFromStakingPoolParams {
+    address poolAddress;
+    WithdrawFromStakingNftParams[] nfts;
+  }
+
   function coverInfo(uint id) external view returns (uint16 claimCount, bool hasOpenClaim, bool hasAcceptedClaim);
 
   function withdrawCoverNote(

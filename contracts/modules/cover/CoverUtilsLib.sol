@@ -13,7 +13,6 @@ import "../../interfaces/ICoverNFT.sol";
 
 library CoverUtilsLib {
 
-
   struct MigrateParams {
     uint coverId;
     address fromOwner;
@@ -31,20 +30,22 @@ library CoverUtilsLib {
     CoverData[] storage _coverData,
     mapping(uint => CoverSegment[]) storage _coverSegments
   ) external {
+
     (
-    /*uint coverId*/,
-    address coverOwner,
-    address legacyProductId,
-    bytes4 currencyCode,
-    /*uint sumAssured*/,
-    /*uint premiumNXM*/
+      /*uint coverId*/,
+      address coverOwner,
+      address legacyProductId,
+      bytes4 currencyCode,
+      /*uint sumAssured*/,
+      /*uint premiumNXM*/
     ) = params.quotationData.getCoverDetailsByCoverID1(params.coverId);
+
     (
-    /*uint coverId*/,
-    uint8 status,
-    uint sumAssured,
-    uint16 coverPeriodInDays,
-    uint validUntil
+      /*uint coverId*/,
+      uint8 status,
+      uint sumAssured,
+      uint16 coverPeriodInDays,
+      uint validUntil
     ) = params.quotationData.getCoverDetailsByCoverID2(params.coverId);
 
     require(params.fromOwner == coverOwner, "Cover can only be migrated by its owner");
@@ -59,7 +60,6 @@ library CoverUtilsLib {
 
     // Mark cover as migrated to prevent future calls on the same cover
     params.quotationData.changeCoverStatusNo(params.coverId, uint8(LegacyCoverStatus.Migrated));
-
 
     {
       // mint the new cover
@@ -95,9 +95,7 @@ library CoverUtilsLib {
     params.coverNFT.safeMint(params.toNewOwner, newCoverId);
   }
 
-
   function calculateProxyCodeHash() external view returns (bytes32) {
-
     return keccak256(
       abi.encodePacked(
       type(MinimalBeaconProxy).creationCode,
@@ -106,26 +104,28 @@ library CoverUtilsLib {
   }
 
   function createStakingPool(
-    address manager,
     uint poolId,
+    address manager,
+    bool isPrivatePool,
+    uint initialPoolFee,
+    uint maxPoolFee,
     ProductInitializationParams[] calldata params,
     uint depositAmount,
-    uint groupId
+    uint trancheId
   ) external returns (address stakingPoolAddress) {
 
     stakingPoolAddress = address(
       new MinimalBeaconProxy{ salt: bytes32(poolId) }(address(this))
     );
 
-    // [todo] handle the creation of NFT 0 which is the default NFT owned by the pool manager
-
+    // will create the ownership nft
     IStakingPool newStakingPool = IStakingPool(stakingPoolAddress);
-    newStakingPool.initialize(manager, params);
+    newStakingPool.initialize(manager, isPrivatePool, initialPoolFee, maxPoolFee, params);
 
-    uint stakePositionNFTId = newStakingPool.deposit(depositAmount, groupId, 0);
-
-    // NFT transfer reverts if manager is a contract that doesn't implement IERC721Receiver
-    newStakingPool.safeTransferFrom(address(this), manager, stakePositionNFTId);
+    // will create nft with a position in the desired tranche id
+    if (depositAmount > 0) {
+      newStakingPool.depositTo(depositAmount, trancheId, 0, manager);
+    }
   }
 
   function stakingPool(uint index, bytes32 stakingPoolProxyCodeHash) public view returns (IStakingPool) {

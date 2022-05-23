@@ -36,6 +36,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint public constant COMMISSION_DENOMINATOR = 10000;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
   uint public constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
+  uint public constant REWARDS_DENOMINATOR = 10_000;
 
   uint public constant BURN_DENOMINATOR = 1e18;
 
@@ -211,6 +212,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     if (coverAmountTrackingEnabled) {
       totalActiveCoverInAsset[params.payoutAsset] += params.amount;
     }
+
+    uint totalRewardsInNXM =
+      totalPremiumInNXM
+      * GLOBAL_CAPACITY_DENOMINATOR / globalCapacityRatio
+      * globalRewardsRatio / REWARDS_DENOMINATOR;
+
+    tokenController().mintPooledStakingNXM(totalRewardsInNXM);
 
     emit CoverBought(coverId, params.productId, 0, msg.sender);
     return coverId;

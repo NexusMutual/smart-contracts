@@ -213,10 +213,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       totalActiveCoverInAsset[params.payoutAsset] += params.amount;
     }
 
+    // apply the global rewards ratio and the total Rewards in NXM
     uint totalRewardsInNXM =
       totalPremiumInNXM
-      * GLOBAL_CAPACITY_DENOMINATOR / globalCapacityRatio
-      * globalRewardsRatio / REWARDS_DENOMINATOR;
+      * GLOBAL_CAPACITY_DENOMINATOR
+      * globalRewardsRatio
+      / globalCapacityRatio
+      / REWARDS_DENOMINATOR;
 
     tokenController().mintPooledStakingNXM(totalRewardsInNXM);
 
@@ -333,7 +336,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
             lastCoverSegment.start,
             lastCoverSegment.period,
             originalPoolAllocations[i].coverAmountInNXM,
-            originalPoolAllocations[i].premiumInNXM / REWARD_DENOMINATOR
+            originalPoolAllocations[i].premiumInNXM
           );
           originalPoolAllocations[i].premiumInNXM *= (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
         }

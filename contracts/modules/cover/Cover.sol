@@ -29,23 +29,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* === CONSTANTS ==== */
 
-  uint public constant BUCKET_SIZE = 7 days;
-  uint public constant REWARD_DENOMINATOR = 2;
+  uint private constant REWARD_DENOMINATOR = 10000;
 
-  uint public constant PRICE_DENOMINATOR = 10000;
-  uint public constant COMMISSION_DENOMINATOR = 10000;
-  uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
-  uint public constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
-  uint public constant REWARDS_DENOMINATOR = 10_000;
-
-  uint public constant BURN_DENOMINATOR = 1e18;
+  uint private constant PRICE_DENOMINATOR = 10000;
+  uint private constant COMMISSION_DENOMINATOR = 10000;
+  uint private constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
+  uint private constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
+  uint private constant REWARDS_DENOMINATOR = 10_000;
 
   uint public constant MAX_COVER_PERIOD = 365 days;
-  uint public constant MIN_COVER_PERIOD = 30 days;
+  uint private constant MIN_COVER_PERIOD = 30 days;
 
-  uint public constant MAX_COMMISSION_RATIO = 2500; // 25%
+  uint private constant MAX_COMMISSION_RATIO = 2500; // 25%
 
-  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+  uint private constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
@@ -54,7 +51,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   /* Staking pool creation */
   bytes32 public immutable stakingPoolProxyCodeHash;
   address public immutable stakingPoolImplementation;
-
 
   /* ========== STATE VARIABLES ========== */
 

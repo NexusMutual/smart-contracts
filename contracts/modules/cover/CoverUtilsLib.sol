@@ -88,7 +88,8 @@ library CoverUtilsLib {
         SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days), // start
         SafeUintCast.toUint32(coverPeriodInDays * 1 days), // period
         uint16(0), // priceRatio
-        false // expired
+        false, // expired
+        0 // global rewards ratio //
       )
     );
 

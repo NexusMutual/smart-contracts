@@ -553,7 +553,8 @@ contract StakingPool is IStakingPool, ERC721 {
     uint start,
     uint period,
     uint amount,
-    uint premium
+    uint premium,
+    uint globalRewardsRatio
   ) external onlyCoverContract {
 
     // silence compiler warnings

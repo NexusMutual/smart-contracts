@@ -96,7 +96,8 @@ interface IStakingPool is IERC721 {
     uint start,
     uint period,
     uint amount,
-    uint premium
+    uint premium,
+    uint globalRewardsRatio
   ) external;
 
   function burnStake(uint productId, uint start, uint period, uint amount) external;

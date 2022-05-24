@@ -31,12 +31,12 @@ enum CoverUintParams {
 
 
 struct PoolAllocationRequest {
-  uint64 poolId;
+  uint40 poolId;
   uint coverAmountInAsset;
 }
 
 struct PoolAllocation {
-  uint64 poolId;
+  uint40 poolId;
   uint96 coverAmountInNXM;
   uint96 premiumInNXM;
 }
@@ -53,6 +53,7 @@ struct CoverSegment {
   uint32 period;  // seconds
   uint16 priceRatio;
   bool expired;
+  uint24 globalRewardsRatio;
 }
 
 struct BuyCoverParams {

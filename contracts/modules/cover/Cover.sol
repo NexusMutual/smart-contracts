@@ -251,7 +251,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       totalPremiumInNXM += premiumInNXM;
 
       coverSegmentAllocations[coverId][_coverSegmentsCount].push(
-        PoolAllocation(allocationRequests[i].poolId, SafeUintCast.toUint96(coveredAmountInNXM), SafeUintCast.toUint96(premiumInNXM))
+        PoolAllocation(
+          allocationRequests[i].poolId,
+          SafeUintCast.toUint96(coveredAmountInNXM),
+          SafeUintCast.toUint96(premiumInNXM)
+        )
       );
     }
 
@@ -265,7 +269,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         uint32(block.timestamp + 1), // start
         SafeUintCast.toUint32(params.period), // period
         priceRatio,
-        false // expired
+        false, // expired,
+        globalRewardsRatio
       ));
 
     return totalPremiumInNXM;
@@ -318,6 +323,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     buyCoverParams.productId = cover.productId;
 
     uint refundInCoverAsset = 0;
+
+    uint deallocatedRewardsInNXM = 0;
+
     if (!lastCoverSegment.expired) {
       uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
 
@@ -326,6 +334,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       {
         uint originalPoolAllocationsCount = originalPoolAllocations.length;
 
+        uint totalPreviousPremiumInNXM = 0;
+
         // rollback previous cover
         for (uint i = 0; i < originalPoolAllocationsCount; i++) {
           stakingPool(originalPoolAllocations[i].poolId).deallocateStake(
@@ -333,10 +343,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
             lastCoverSegment.start,
             lastCoverSegment.period,
             originalPoolAllocations[i].coverAmountInNXM,
-            originalPoolAllocations[i].premiumInNXM
+            originalPoolAllocations[i].premiumInNXM,
+            lastCoverSegment.globalRewardsRatio
           );
+          totalPreviousPremiumInNXM += originalPoolAllocations[i].premiumInNXM;
           originalPoolAllocations[i].premiumInNXM *= (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
         }
+
+        // compute NXM rewards deallocated
+        deallocatedRewardsInNXM = totalPreviousPremiumInNXM
+        * remainingPeriod / lastCoverSegment.period
+        * lastCoverSegment.globalRewardsRatio / REWARDS_DENOMINATOR;
       }
 
       refundInCoverAsset = lastCoverSegment.priceRatio
@@ -349,7 +366,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
     }
 
+
+
     uint totalPremiumInNXM = _buyCover(buyCoverParams, coverId, poolAllocations);
+
+    {
+      uint newlyAllocatedRewardsInNXM = totalPremiumInNXM * globalRewardsRatio / REWARD_DENOMINATOR;
+
+      // burn or mint reward NXM based on the difference between deallocated
+      if (deallocatedRewardsInNXM > newlyAllocatedRewardsInNXM) {
+        tokenController().burnPooledStakingNXM(deallocatedRewardsInNXM - newlyAllocatedRewardsInNXM);
+      } else {
+        tokenController().mintPooledStakingNXM(newlyAllocatedRewardsInNXM - deallocatedRewardsInNXM);
+      }
+    }
 
     handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset);
 

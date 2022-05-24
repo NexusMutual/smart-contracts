@@ -121,6 +121,8 @@ interface ICover {
 
   function isAssetSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) external view returns (bool);
 
+  function stakingPool(uint index) external view returns (IStakingPool);
+
   function stakingPoolCount() external view returns (uint64);
 
   function productsCount() external view returns (uint);
@@ -130,6 +132,8 @@ interface ICover {
   function MAX_COVER_PERIOD() external view returns (uint);
 
   function totalActiveCoverInAsset(uint24 coverAsset) external view returns (uint);
+
+  function calculateCapacity(uint staked, uint capacityReductionRatio) external view returns (uint);
 
   /* === MUTATIVE FUNCTIONS ==== */
 

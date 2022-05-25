@@ -101,8 +101,8 @@ contract StakingPool is IStakingPool, ERC721 {
   uint constant TRANCHE_DURATION = 91 days;
   uint constant MAX_ACTIVE_TRANCHES = 9; // 8 whole quarters + 1 partial quarter
 
-  uint constant REWARDS_SHARES_RATIO = 125;
-  uint constant REWARDS_SHARES_DENOMINATOR = 100;
+  uint public constant REWARD_BONUS_PER_TRANCHE_RATIO = 10_00; // 10.00%
+  uint public constant REWARD_BONUS_PER_TRANCHE_DENOMINATOR = 100_00;
   uint constant WEIGHT_DENOMINATOR = 100;
   uint constant REWARDS_DENOMINATOR = 100;
 
@@ -324,7 +324,8 @@ contract StakingPool is IStakingPool, ERC721 {
         deposit.stakeShares, // initialStakeShares
         newStakeShares,      // newStakeShares
         trancheId,           // initialTrancheId
-        trancheId            // newTrancheId, the same as initialTrancheId in this case
+        trancheId,           // newTrancheId, the same as initialTrancheId in this case
+        block.timestamp
       );
 
       // if we're increasing an existing deposit
@@ -355,39 +356,55 @@ contract StakingPool is IStakingPool, ERC721 {
     rewardsSharesSupply = _rewardsSharesSupply + newRewardsShares;
   }
 
-  function getTimeLeftOfTranche(uint trancheId) internal view returns (uint) {
+  function getTimeLeftOfTranche(uint trancheId, uint blockTimestamp) internal pure returns (uint) {
     uint endDate = (trancheId + 1) * TRANCHE_DURATION;
-    if (endDate > block.timestamp) {
-      return endDate - block.timestamp;
+    if (endDate > blockTimestamp) {
+      return endDate - blockTimestamp;
     }
     return 0;
   }
 
+  /// Calculates the amount of new reward shares based on the initial and new stake shares and
+  /// tranche.
+  ///
+  /// @param initialStakeShares  The amount of stake shares that the deposit is already entitled
+  ///                            to.
+  /// @param newStakeShares      The amount o new stake shares that the deposit will entitled to
+  ///                            on top of the existing ones.
+  /// @param initialTrancheId    The initial id of the tranche that defines the deposit period.
+  /// @param newTrancheId        The new id of the tranche that will define the deposit period.
+  /// @param blockTimestamp      The timestamp of the block when the new shares are recalculated.
   function calculateNewRewardShares(
     uint initialStakeShares,
     uint newStakeShares,
     uint initialTrancheId,
-    uint newTrancheId
-  ) internal view returns (uint) {
+    uint newTrancheId,
+    uint blockTimestamp
+  ) public pure returns (uint) {
+    uint timeLeftOfInitialTranche = getTimeLeftOfTranche(initialTrancheId, blockTimestamp);
+    uint timeLeftOfNewTranche = getTimeLeftOfTranche(newTrancheId, blockTimestamp);
 
-    uint timeLeftOfInitialTranche = getTimeLeftOfTranche(initialTrancheId);
-    uint timeLeftOfNewTranche = getTimeLeftOfTranche(newTrancheId);
-
-    uint REWARD_BONUS_PER_TRANCHE_RATIO = 1000; // 10.00%
-    uint REWARD_BONUS_PER_TRANCHE_DENOMINATOR = 10000;
-
-    return (initialStakeShares + newStakeShares) * (
-      REWARD_BONUS_PER_TRANCHE_RATIO
+    // A new bonus is calculated based on the the time left until the new tranche ends and the
+    // total amount of stake shares (initial + new).
+    uint newBonusShares = (initialStakeShares + newStakeShares)
+      * REWARD_BONUS_PER_TRANCHE_RATIO
       * timeLeftOfNewTranche
       / TRANCHE_DURATION
-      + REWARD_BONUS_PER_TRANCHE_DENOMINATOR
-    ) / REWARD_BONUS_PER_TRANCHE_DENOMINATOR
-    - initialStakeShares * (
-      REWARD_BONUS_PER_TRANCHE_RATIO
+      / REWARD_BONUS_PER_TRANCHE_DENOMINATOR;
+
+    // In case of existing deposits the previous bonus is deducted from the final amount of new
+    // shares. The new bonus shares are recalculated based on the total stake shares and it
+    // already includes a potentially larger amount of shares (when the deposit is extended to
+    // a tranche ending futher into the future) that account for the initial stake shares.
+    uint previousBonusSharesDeduction = initialStakeShares
+      * REWARD_BONUS_PER_TRANCHE_RATIO
       * timeLeftOfInitialTranche
       / TRANCHE_DURATION
-      + REWARD_BONUS_PER_TRANCHE_DENOMINATOR
-    ) / REWARD_BONUS_PER_TRANCHE_DENOMINATOR;
+      / REWARD_BONUS_PER_TRANCHE_DENOMINATOR;
+
+    // Return one reward share per stake share, add the newly calculated bonus shares and deduct the
+    // previous ones.
+    return newStakeShares + newBonusShares - previousBonusSharesDeduction;
   }
 
   function withdraw(
@@ -614,7 +631,8 @@ contract StakingPool is IStakingPool, ERC721 {
       initialDeposit.stakeShares,
       newStakeShares,
       initialTrancheId,
-      newTrancheId
+      newTrancheId,
+      block.timestamp
     );
 
     {

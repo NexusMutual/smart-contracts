@@ -13,6 +13,13 @@ struct WithdrawParams {
   uint[] trancheIds;
 }
 
+struct DepositRequest {
+  uint amount;
+  uint trancheId;
+  uint tokenId;
+  address destination;
+}
+
 struct ProductParams {
   uint productId;
   bool setWeight;
@@ -101,12 +108,7 @@ interface IStakingPool is IERC721 {
 
   function burnStake(uint productId, uint start, uint period, uint amount) external;
 
-  function depositTo(
-    uint amount,
-    uint trancheId,
-    uint _tokenId,
-    address destination
-  ) external returns (uint tokenId);
+  function depositTo(DepositRequest[] memory requests) external returns (uint[] memory tokenIds);
 
   function withdraw(WithdrawParams[] memory params) external;
 

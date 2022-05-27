@@ -29,13 +29,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* === CONSTANTS ==== */
 
-  uint private constant REWARD_DENOMINATOR = 10000;
-
   uint private constant PRICE_DENOMINATOR = 10000;
   uint private constant COMMISSION_DENOMINATOR = 10000;
   uint private constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
   uint private constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
-  uint private constant REWARDS_DENOMINATOR = 10_000;
+  uint private constant REWARD_DENOMINATOR = 10_000;
 
   uint public constant MAX_COVER_PERIOD = 365 days;
   uint private constant MIN_COVER_PERIOD = 30 days;
@@ -210,7 +208,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     }
 
     // apply the global rewards ratio and the total Rewards in NXM
-    uint totalRewardsInNXM = totalPremiumInNXM * globalRewardsRatio / REWARDS_DENOMINATOR;
+    uint totalRewardsInNXM = totalPremiumInNXM * globalRewardsRatio / REWARD_DENOMINATOR;
 
     tokenController().mintPooledStakingNXM(totalRewardsInNXM);
 
@@ -349,7 +347,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         // compute NXM rewards deallocated
         deallocatedRewardsInNXM = totalPreviousPremiumInNXM
         * remainingPeriod / lastCoverSegment.period
-        * lastCoverSegment.globalRewardsRatio / REWARDS_DENOMINATOR;
+        * lastCoverSegment.globalRewardsRatio / REWARD_DENOMINATOR;
       }
 
       refundInCoverAsset = lastCoverSegment.priceRatio

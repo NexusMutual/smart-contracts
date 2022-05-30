@@ -41,7 +41,7 @@ describe('signUp', function () {
       memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
-    ).to.be.revertedWith('MemberRoles: Nonce already used for this address');
+    ).to.be.revertedWith('MemberRoles: Signature already used');
 
     const membershipApprovalData1 = await approveMembership({
       nonce: 1,
@@ -52,7 +52,7 @@ describe('signUp', function () {
       memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData1), {
         value: JOINING_FEE,
       }),
-    ).not.to.be.revertedWith('MemberRoles: Nonce already used for this address');
+    ).not.to.be.revertedWith('MemberRoles: Signature already used');
   });
 
   it('reverts when using the signature of another address', async function () {

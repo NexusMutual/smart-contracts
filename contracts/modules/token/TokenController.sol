@@ -237,11 +237,11 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     }
 
     for (uint i = 0; i < fromStakingPools.length; i++) {
-      WithdrawParams[] memory withdrawParams = new WithdrawParams[](
+      WithdrawRequest[] memory withdrawParams = new WithdrawRequest[](
         fromStakingPools[i].nfts.length
       );
       for (uint j = 0; j < fromStakingPools[i].nfts.length; j++) {
-        withdrawParams[j] = WithdrawParams(
+        withdrawParams[j] = WithdrawRequest(
           fromStakingPools[i].nfts[j].id,
           false, // withdrawStake
           true,  // withdrawRewards

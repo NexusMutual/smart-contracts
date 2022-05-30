@@ -5,17 +5,18 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 // TODO: consider using solmate ERC721 implementation
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts-v4/utils/math/SafeCast.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../utils/Math.sol";
+import "../../utils/SafeUintCast.sol";
+import "./StakingTypesLib.sol";
 
 // total stake = active stake + expired stake
 // product stake = active stake * product weight
 // product stake = allocated product stake + free product stake
 // on cover buys we allocate the free product stake and it becomes allocated.
-// on expiration we deallocate the stake and it becomes free again
+// on cover expiration we deallocate the stake and it becomes free again
 
 // ╭───────╼ Active stake ╾────────╮
 // │                               │
@@ -37,7 +38,10 @@ import "../../utils/Math.sol";
 // ╰───────────────────────────────╯
 
 contract StakingPool is IStakingPool, ERC721 {
-  using SafeCast for uint;
+  using SafeUintCast for uint;
+  using StakingTypes for CoverAmountGroup;
+  using StakingTypes for CoverAmount;
+  using StakingTypes for BucketTrancheGroup;
 
   /* storage */
 
@@ -74,14 +78,20 @@ contract StakingPool is IStakingPool, ERC721 {
   // tranche id => tranche data
   mapping(uint => Tranche) public tranches;
 
-  // tranche id => amount
+  // tranche id => expired tranche data
   mapping(uint => ExpiredTranche) public expiredTranches;
 
-  // pool bucket id => PoolBucket
-  mapping(uint => PoolBucket) public poolBuckets;
+  // reward bucket id => RewardBucket
+  mapping(uint => RewardBucket) public rewardBuckets;
 
-  // product id => pool bucket id => ProductBucket
-  mapping(uint => mapping(uint => ProductBucket)) public productBuckets;
+  // product id => cover tranche group id => active cover amounts for a tranche group
+  mapping(uint => mapping(uint => CoverAmountGroup)) public activeCoverAmounts;
+
+  // product id => bucket id => bucket tranche group id => tranche group's expiring cover amounts
+  mapping(uint => mapping(uint => mapping(uint => BucketTrancheGroup))) public expiringCoverBuckets;
+
+  // cover id => per tranche cover amounts (8 32-bit values, one per tranche, packed in a slot)
+  mapping(uint => uint) public coverAmountPerTranche;
 
   // product id => Product
   mapping(uint => Product) public products;
@@ -97,9 +107,11 @@ contract StakingPool is IStakingPool, ERC721 {
   /* constants */
 
   // 7 * 13 = 91
-  uint constant BUCKET_DURATION = 7 days;
+  uint constant BUCKET_DURATION = 28 days;
   uint constant TRANCHE_DURATION = 91 days;
-  uint constant MAX_ACTIVE_TRANCHES = 9; // 8 whole quarters + 1 partial quarter
+  uint constant MAX_ACTIVE_TRANCHES = 8; // 7 whole quarters + 1 partial quarter
+  uint constant COVER_TRANCHE_GROUP_SIZE = 4;
+  uint constant BUCKET_TRANCHE_GROUP_SIZE = 8;
 
   uint constant REWARDS_SHARES_RATIO = 125;
   uint constant REWARDS_SHARES_DENOMINATOR = 100;
@@ -206,9 +218,10 @@ contract StakingPool is IStakingPool, ERC721 {
       _accNxmPerRewardsShare += elapsed * _rewardPerSecond / _rewardsSharesSupply;
       _lastAccNxmUpdate = bucketEndTime;
       // TODO: use _firstActiveBucketId before incrementing it?
-      _rewardPerSecond -= poolBuckets[_firstActiveBucketId].rewardPerSecondCut;
+      _rewardPerSecond -= rewardBuckets[_firstActiveBucketId].rewardPerSecondCut;
 
       // should we expire a tranche?
+      // FIXME: this doesn't work with the new bucket size
       if (
         bucketEndTime % TRANCHE_DURATION != 0 ||
         _firstActiveTrancheId == currentTrancheId
@@ -231,11 +244,8 @@ contract StakingPool is IStakingPool, ERC721 {
 
       // todo: update nft 0
 
-      expiringTranche.stakeShares = 0;
-      expiringTranche.rewardsShares = 0;
-
       // SSTORE
-      tranches[_firstActiveTrancheId] = expiringTranche;
+      delete tranches[_firstActiveTrancheId];
       expiredTranches[_firstActiveTrancheId] = ExpiredTranche(
         _accNxmPerRewardsShare, // accNxmPerRewardShareAtExpiry
         // TODO: should this be before or after active stake reduction?
@@ -386,7 +396,7 @@ contract StakingPool is IStakingPool, ERC721 {
       / maxLockDuration;
   }
 
-  function withdraw(WithdrawParams[] calldata params) external {
+  function withdraw(WithdrawRequest[] calldata params) external {
 
     updateTranches();
 

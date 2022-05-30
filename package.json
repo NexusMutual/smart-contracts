@@ -32,7 +32,7 @@
     "ethereum-cryptography": "^1.0.1",
     "ethereum-waffle": "^3.4.0",
     "ethereumjs-util": "7.0.1",
-    "ethers": "5.6.1",
+    "ethers": "5.6.0",
     "keccak256": "^1.0.3",
     "merkletreejs": "^0.2.24",
     "node-fetch": "^2.6.7",

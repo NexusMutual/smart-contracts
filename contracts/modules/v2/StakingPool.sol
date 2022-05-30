@@ -6,7 +6,9 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 // TODO: consider using solmate ERC721 implementation
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/math/SafeCast.sol";
+import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/IGovernance.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../utils/Math.sol";
@@ -36,7 +38,7 @@ import "../../utils/Math.sol";
 // │                               │
 // ╰───────────────────────────────╯
 
-contract StakingPool is IStakingPool, ERC721 {
+contract StakingPool is ERC721, MasterAwareV2, IStakingPool {
   using SafeCast for uint;
 
   /* storage */
@@ -166,6 +168,7 @@ contract StakingPool is IStakingPool, ERC721 {
       _safeTransfer(from, to, tokenIds[i], "");
     }
   }
+
 
   function updateTranches() public {
 
@@ -412,6 +415,15 @@ contract StakingPool is IStakingPool, ERC721 {
   ) public returns (uint stakeToWithdraw, uint rewardsToWithdraw) {
 
     updateTranches();
+    uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
+    uint governanceVotingLockPeriod;
+
+    // Call only if the manager recently voted in governance otherwise governanceVotingLockPeriod
+    // is not needed.
+    if (managerLockedInGovernanceUntil < block.timestamp) {
+      // To avoid calling the governance contract in a loop we cache the value in memory.
+      governanceVotingLockPeriod = governance().tokenHoldingTime();
+    }
 
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
 
@@ -425,6 +437,47 @@ contract StakingPool is IStakingPool, ERC721 {
       for (uint j = 0; j < trancheCount; j++) {
 
         uint trancheId = params[i].trancheIds[j];
+        if (managerLockedInGovernanceUntil < block.timestamp) {
+          uint trancheExpiry = (trancheId + 1) * TRANCHE_DURATION;
+
+          // We allow deposit and reward withdrawals on tranches that already expired before to the
+          // date of the last vote as they are not subject to double voting. Double voting with
+          // withdrawn funds from active tranches that expire during the lock period, is prevented
+          // by making sure that the the tranche expiry is at least 2 * governanceVotingLockPeriod
+          // (currently 2 * 3 = 6 days) since multiple votes could have overlapping lock periods.
+          // Here's a graphical explanation of the scenario:
+          //
+          //                                   t0       t1       t2
+          //                                   │        │        │
+          //  Vote 1 lock                      ├┄┄┄┄┄┄┄┄┤        │
+          //                                   │        │        │
+          //  Vote 2 lock                      │  ├┄┄┄┄┄┼┄┤      │
+          //                                   │        │        │
+          //  Vote 3 lock                      │      ├┄┼┄┄┄┄┄┤  │
+          //                                   │        │        │
+          //  Vote 4 lock (latest)             │        ├┄┄┄┄┄┄┄┄┤
+          //                                   │        │        │
+          //  Tranche active ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┼┄┄┄┄┄┄┄┄┤        │
+          //                                   │        │        │
+          //  Tranche expired                  │        ├┄┄┄┄┄┄┄┄┼┄┄┄┄┄┄┄┄
+          //                                   │        │        │
+          //                                   ╽        │        │
+          //          Earliest possible vote prior to   │        │
+          //          the last one that can lock the    │        │
+          //          pool's active NXM.                │        │
+          //                                            ╽        │
+          //                                   Tranche expires   │
+          //                                                     ╽
+          //                        End of the latest vote lock period
+          //
+          // t2 - t0 = 2 * governanceVotingLockPeriod
+          // t2 - t1 = t1 - t0 = governanceVotingLockPeriod
+          require(
+            trancheExpiry < managerLockedInGovernanceUntil - governanceVotingLockPeriod * 2,
+            "StakingPool: Active NXM are locked for governance voting"
+          );
+        }
+
         Deposit memory deposit = deposits[tokenId][trancheId];
 
         // can withdraw stake only if the tranche is expired
@@ -747,15 +800,54 @@ contract StakingPool is IStakingPool, ERC721 {
   /* nft */
 
   function _beforeTokenTransfer(
-    address from,
+    address /*from*/,
     address /*to*/,
     uint256 tokenId
   ) internal view override {
-    require(
-      tokenId != 0 || nxm.isLockedForMV(from) < block.timestamp,
-      "StakingPool: Locked for voting in governance"
-    );
+    if(tokenId == 0) {
+      require(
+        nxm.isLockedForMV(manager()) < block.timestamp,
+        "StakingPool: Active pool assets are locked for voting in governance"
+      );
+    }
     // todo: track owned zero-id nfts in TC
+  }
+
+  /**
+   * @dev See {IERC721-transferFrom}.
+   */
+  function transferFrom(
+      address from,
+      address to,
+      uint256 tokenId
+  ) public override(ERC721, IERC721) {
+      _beforeTokenTransfer(from, to, tokenId);
+      super.transferFrom(from, to, tokenId);
+  }
+
+  /**
+   * @dev See {IERC721-safeTransferFrom}.
+   */
+  function safeTransferFrom(
+      address from,
+      address to,
+      uint256 tokenId
+  ) public override(ERC721, IERC721) {
+      _beforeTokenTransfer(from, to, tokenId);
+      super.safeTransferFrom(from, to, tokenId);
+  }
+
+  /**
+   * @dev See {IERC721-safeTransferFrom}.
+   */
+  function safeTransferFrom(
+      address from,
+      address to,
+      uint256 tokenId,
+      bytes memory _data
+  ) public override(ERC721, IERC721) {
+      _beforeTokenTransfer(from, to, tokenId);
+      super.safeTransferFrom(from, to, tokenId, _data);
   }
 
   /* pool management */
@@ -768,6 +860,10 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   /* views */
+
+  function governance() internal view returns (IGovernance) {
+    return IGovernance(getInternalContractAddress(ID.GV));
+  }
 
   function getActiveStake() external view returns (uint) {
     block.timestamp; // prevents warning about function being pure
@@ -844,5 +940,11 @@ contract StakingPool is IStakingPool, ERC721 {
     activeCover = getAllocatedProductStake(productId);
     lastBasePrice = products[productId].lastPrice;
     targetPrice = products[productId].targetPrice;
+  }
+
+  /// @dev Updates internal contract addresses to the ones stored in master. This function is
+  /// automatically called by the master contract when a contract is added or upgraded.
+  function changeDependentContractAddress() external override {
+    internalContracts[uint(ID.GV)] = master.getLatestAddress("GV");
   }
 }

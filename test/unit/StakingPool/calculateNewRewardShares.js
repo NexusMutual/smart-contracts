@@ -11,7 +11,7 @@ const TRANCHE_DURATION =
   60 * // minutes
   60; // seconds
 
-describe.only('calculateNewRewardShares', function () {
+describe('calculateNewRewardShares', function () {
   it('grants bonus shares proportionally to the time left of the first active tranche', async function () {
     const { stakingPool, config } = this;
 

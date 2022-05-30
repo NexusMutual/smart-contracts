@@ -114,11 +114,4 @@ contract CoverMockStakingPool is StakingPool {
     mockPrices[productId] = price;
   }
 
-  function changeMasterAddress(address payable _a) external {
-    // noop
-  }
-
-  function changeDependentContractAddress() external {
-    // noop
-  }
 }

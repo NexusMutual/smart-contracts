@@ -202,7 +202,6 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     token.transfer(destination, governanceRewards);
   }
 
-
   /// Function used to claim all pending rewards in one tx. It can be used to selectively withdraw
   /// rewards.
   ///

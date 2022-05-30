@@ -257,8 +257,8 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
 
   function _switchMembership(address currentAddress, address newAddress) internal {
     require(!ms.isPause(), "System is paused");
-    require(ms.isMember(currentAddress), "The current address is not a member");
-    require(!ms.isMember(newAddress), "The new address is already a member");
+    require(isMember(currentAddress), "The current address is not a member");
+    require(!isMember(newAddress), "The new address is already a member");
     require(block.timestamp > tk.isLockedForMV(currentAddress), "Locked for governance voting"); // No locked tokens for Governance voting
 
     gv.removeDelegation(currentAddress);

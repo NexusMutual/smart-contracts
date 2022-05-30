@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 /* structs for io */
 
 struct CoverRequest {
+  uint coverId;
   uint productId;
   uint amount;
   uint period;

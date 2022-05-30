@@ -236,6 +236,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
       (uint coveredAmountInNXM, uint premiumInNXM) = allocateCapacity(
         params,
+        coverId,
         stakingPool(allocationRequests[i].poolId),
         requestedCoverAmountInNXM
       );
@@ -245,13 +246,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       totalPremiumInNXM += premiumInNXM;
 
       coverSegmentAllocations[coverId][_coverSegmentsCount].push(
-        PoolAllocation(allocationRequests[i].poolId, SafeUintCast.toUint96(coveredAmountInNXM), SafeUintCast.toUint96(premiumInNXM))
+        PoolAllocation(
+          allocationRequests[i].poolId,
+          SafeUintCast.toUint96(coveredAmountInNXM),
+          SafeUintCast.toUint96(premiumInNXM)
+        )
       );
     }
 
     // priceRatio is normalized on a per year basis (eg. 1.5% per year)
     uint16 priceRatio = SafeUintCast.toUint16(
-          divRound(totalPremiumInNXM * PRICE_DENOMINATOR * MAX_COVER_PERIOD / params.period, totalCoverAmountInNXM)
+      divRound(
+        totalPremiumInNXM * PRICE_DENOMINATOR * MAX_COVER_PERIOD / params.period,
+        totalCoverAmountInNXM
+      )
     );
 
     _coverSegments[coverId].push(CoverSegment(
@@ -267,6 +275,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function allocateCapacity(
     BuyCoverParams memory params,
+    uint coverId,
     IStakingPool _stakingPool,
     uint amount
   ) internal returns (uint coveredAmountInNXM, uint premiumInNXM) {
@@ -280,6 +289,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     }
 
     CoverRequest memory request = CoverRequest(
+      coverId,
       params.productId,
       amount,
       params.period,

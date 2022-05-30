@@ -456,85 +456,125 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   function allocateStake(
-    uint productId,
-    uint period,
-    uint gracePeriod,
+    CoverRequest calldata request,
     uint productStakeAmount,
     uint rewardRatio
-  ) external onlyCoverContract returns (uint newAllocation, uint premium) {
+  ) external onlyCoverContract returns (uint newCoverAmount, uint premium) {
 
     updateTranches();
 
-    Product memory product = products[productId];
-    uint allocatedProductStake = product.allocatedStake;
+    Product memory product = products[request.productId];
     uint currentBucket = block.timestamp / BUCKET_DURATION;
 
+    uint activeCoverAmount;
+    uint availableCapacity;
+
+    // process expirations
     {
-      uint lastBucket = product.lastBucket;
+      uint firstTrancheIdToUse = (block.timestamp + request.period + request.gracePeriod) / TRANCHE_DURATION;
+      uint lastTrancheIdToUse = block.timestamp / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES;
 
-      // process expirations
-      while (lastBucket < currentBucket) {
-        ++lastBucket;
-        allocatedProductStake -= productBuckets[productId][lastBucket].allocationCut;
-      }
-    }
+      // tranche group ids for active cover amounts
+      uint minCoverTrancheGroupId = firstTrancheIdToUse / COVER_TRANCHE_GROUP_SIZE;
 
-    uint freeProductStake;
-    {
-      // tranche expiration must exceed the cover period
-      uint _firstAvailableTrancheId = (block.timestamp + period + gracePeriod) / TRANCHE_DURATION;
-      uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+      // read cover amounts
+      CoverAmountGroup[] memory coverAmountGroups;
+      uint maxCoverTrancheGroupId = lastTrancheIdToUse / COVER_TRANCHE_GROUP_SIZE;
+      uint coverAmountsCount = maxCoverTrancheGroupId - minCoverTrancheGroupId + 1;
+      coverAmountGroups = new CoverAmountGroup[](coverAmountsCount);
 
-      // start with the entire supply and subtract unavailable tranches
-      uint _stakeSharesSupply = stakeSharesSupply;
-      uint availableShares = _stakeSharesSupply;
-
-      for (uint i = _firstActiveTrancheId; i < _firstAvailableTrancheId; i++) {
-        availableShares -= tranches[i].stakeShares;
+      // min 1 and max 3 reads
+      for (uint i = 0; i < coverAmountsCount; i++) {
+        coverAmountGroups[i] = activeCoverAmounts[request.productId][minCoverTrancheGroupId + i];
       }
 
-      // total stake available without applying product weight
-      freeProductStake =
-        activeStake * availableShares * product.targetWeight / _stakeSharesSupply / WEIGHT_DENOMINATOR;
+      {
+        // tranche group ids for expiring cover amount buckets
+        uint minBucketTrancheGroupId = firstTrancheIdToUse / BUCKET_TRANCHE_GROUP_SIZE;
+        uint maxBucketTrancheGroupId = lastTrancheIdToUse / BUCKET_TRANCHE_GROUP_SIZE;
+        // min 1, max 2
+        uint bucketTrancheGroupCount = maxBucketTrancheGroupId - minBucketTrancheGroupId + 1;
+        BucketTrancheGroup[] memory bucketTrancheGroups = new BucketTrancheGroup[](bucketTrancheGroupCount);
+
+        uint firstCoverTrancheIndex = firstTrancheIdToUse % COVER_TRANCHE_GROUP_SIZE;
+        uint16 lastBucketId = coverAmountGroups[0].getItemAt(firstCoverTrancheIndex).lastBucketId();
+        uint16 currentBucketId = (block.timestamp / BUCKET_DURATION).toUint16();
+
+        while (lastBucketId < currentBucket) {
+
+          ++lastBucketId;
+
+          // read buckets with expiring cover amounts
+          for (uint i = 0; i < bucketTrancheGroupCount; i++) {
+
+            uint bucketTrancheGroupId = minBucketTrancheGroupId + i;
+            BucketTrancheGroup bucketTrancheGroup;
+            bucketTrancheGroup = expiringCoverBuckets[request.productId][lastBucketId][bucketTrancheGroupId];
+
+            uint trancheCount = lastTrancheIdToUse - firstTrancheIdToUse + 1;
+
+            for (uint t = 0; t < trancheCount; t++) {
+              uint trancheId = firstTrancheIdToUse + t;
+
+              // index of the current tranche inside the coverAmountGroups array
+              uint coverTrancheGroupId = trancheId / COVER_TRANCHE_GROUP_SIZE;
+              // index of the current tranche inside the coverAmountGroup
+              uint trancheIndexInCoverAmountGroup = trancheId % COVER_TRANCHE_GROUP_SIZE;
+
+              uint trancheGroupIndexInCoverAmountGroups = coverTrancheGroupId - minCoverTrancheGroupId;
+              CoverAmountGroup coverAmountGroup = coverAmountGroups[trancheGroupIndexInCoverAmountGroups];
+              CoverAmount coverAmount = coverAmountGroup.getItemAt(trancheIndexInCoverAmountGroup);
+
+              // currrent active cover tranche was updated already, skip it
+              if (coverAmount.lastBucketId() >= lastBucketId) {
+                continue;
+              }
+
+              uint trancheIndexInBucketTrancheGroup = trancheId % BUCKET_TRANCHE_GROUP_SIZE;
+              uint48 previousCoverAmount = coverAmount.activeCoverAmount();
+              uint48 expiringCoverAmount = bucketTrancheGroup.getItemAt(trancheIndexInBucketTrancheGroup);
+
+              // save back to array
+              coverAmountGroups[trancheGroupIndexInCoverAmountGroups].setItemAt(
+                trancheIndexInCoverAmountGroup,
+                StakingTypes.newCoverAmount(
+                    previousCoverAmount - expiringCoverAmount,
+                    lastBucketId
+                )
+              );
+            }
+            // end loop through trancheCount
+          }
+          // end loop through bucketTrancheGroupCount
+        }
+        // end while
+      }
+      // end scope
+
+      // TODO: 1. loop through coverAmountGroups and allocate the new cover capacity
+      // TODO: 2. update activeCoverAmounts
     }
+    // end scope for bucket updates
 
-    // could happen if is 100% in-use or if the product weight was changed
-    if (allocatedProductStake >= freeProductStake) {
-      // store expirations
-      products[productId].allocatedStake = allocatedProductStake;
-      products[productId].lastBucket = currentBucket;
-      return (0, 0);
-    }
-
-    {
-      uint usableStake = freeProductStake - allocatedProductStake;
-      newAllocation = Math.min(productStakeAmount, usableStake);
-
-      premium = calculatePremium(
-        productId,
-        allocatedProductStake,
-        usableStake,
-        newAllocation,
-        period
-      );
-    }
-
-    // 1 SSTORE
-    products[productId].allocatedStake = allocatedProductStake + newAllocation;
-    products[productId].lastBucket = currentBucket;
+    premium = calculatePremium(
+      request.productId,
+      activeCoverAmount,
+      availableCapacity,
+      newCoverAmount,
+      request.period
+    );
 
     {
       require(rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
 
       // divCeil = fn(a, b) => (a + b - 1) / b
-      uint expireAtBucket = (block.timestamp + period + BUCKET_DURATION - 1) / BUCKET_DURATION;
+      uint expireAtBucket = (block.timestamp + request.period + BUCKET_DURATION - 1) / BUCKET_DURATION;
       uint _rewardPerSecond =
         premium * rewardRatio / REWARDS_DENOMINATOR
         / (expireAtBucket * BUCKET_DURATION - block.timestamp);
 
-      // 2 SLOAD + 2 SSTORE
-      productBuckets[productId][expireAtBucket].allocationCut += newAllocation;
-      poolBuckets[expireAtBucket].rewardPerSecondCut += _rewardPerSecond;
+      // 1 SLOAD + 1 SSTORE
+      rewardBuckets[expireAtBucket].rewardPerSecondCut += _rewardPerSecond;
     }
   }
 

@@ -274,19 +274,21 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     Product memory product = _products[params.productId];
     uint gracePeriod = _productTypes[product.productType].gracePeriodInDays * 1 days;
 
-    // TODO: correctly calculate the capacity
-    uint allocation = amount * globalCapacityRatio;
-
     if (true) {
       // wrapped in if(true) to avoid the compiler warning about unreachable code
       revert("capacity calculation: not implemented");
     }
 
-    return _stakingPool.allocateStake(
+    CoverRequest memory request = CoverRequest(
       params.productId,
+      amount,
       params.period,
-      gracePeriod,
-      allocation,
+      gracePeriod
+    );
+
+    return _stakingPool.allocateStake(
+      request,
+      globalCapacityRatio,
       globalRewardsRatio
     );
   }
@@ -300,7 +302,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     CoverData memory cover = _coverData[coverId];
     uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;
     CoverSegment memory lastCoverSegment = coverSegments(coverId, lastCoverSegmentIndex);
-    
+
     require(ICoverNFT(coverNFT).isApprovedOrOwner(msg.sender, coverId), "Cover: Only owner or approved can edit");
     require(lastCoverSegment.start + lastCoverSegment.period > block.timestamp, "Cover: cover expired");
     require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");

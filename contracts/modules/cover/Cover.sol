@@ -207,11 +207,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       totalActiveCoverInAsset[params.payoutAsset] += params.amount;
     }
 
-    // apply the global rewards ratio and the total Rewards in NXM
-    uint totalRewardsInNXM = totalPremiumInNXM * globalRewardsRatio / REWARD_DENOMINATOR;
-
-    tokenController().mintPooledStakingNXM(totalRewardsInNXM);
-
     emit CoverBought(coverId, params.productId, 0, msg.sender, params.ipfsData);
     return coverId;
   }
@@ -239,6 +234,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         stakingPool(allocationRequests[i].poolId),
         requestedCoverAmountInNXM
       );
+
+      // apply the global rewards ratio and the total Rewards in NXM
+      uint totalRewardsInNXM = premiumInNXM * globalRewardsRatio / REWARD_DENOMINATOR;
+      tokenController().mintPooledStakingNXMRewards(totalRewardsInNXM, allocationRequests[i].poolId);
 
       remainderAmountInNXM = requestedCoverAmountInNXM - coveredAmountInNXM;
       totalCoverAmountInNXM += coveredAmountInNXM;
@@ -318,8 +317,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     uint refundInCoverAsset = 0;
 
-    uint deallocatedRewardsInNXM = 0;
-
     if (!lastCoverSegment.expired) {
       uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
 
@@ -327,8 +324,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
       {
         uint originalPoolAllocationsCount = originalPoolAllocations.length;
-
-        uint totalPreviousPremiumInNXM = 0;
 
         // rollback previous cover
         for (uint i = 0; i < originalPoolAllocationsCount; i++) {
@@ -340,14 +335,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
             originalPoolAllocations[i].premiumInNXM,
             lastCoverSegment.globalRewardsRatio
           );
-          totalPreviousPremiumInNXM += originalPoolAllocations[i].premiumInNXM;
-          originalPoolAllocations[i].premiumInNXM *= (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
-        }
 
-        // compute NXM rewards deallocated
-        deallocatedRewardsInNXM = totalPreviousPremiumInNXM
-        * remainingPeriod / lastCoverSegment.period
-        * lastCoverSegment.globalRewardsRatio / REWARD_DENOMINATOR;
+          originalPoolAllocations[i].premiumInNXM *= (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
+
+          // compute NXM rewards deallocated
+          uint deallocatedRewardsInNXM = originalPoolAllocations[i].premiumInNXM
+          * remainingPeriod / lastCoverSegment.period
+          * lastCoverSegment.globalRewardsRatio / REWARD_DENOMINATOR;
+          tokenController().burnPooledStakingNXMRewards(deallocatedRewardsInNXM, originalPoolAllocations[i].poolId);
+        }
       }
 
       refundInCoverAsset = lastCoverSegment.priceRatio
@@ -360,20 +356,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
     }
 
-
-
     uint totalPremiumInNXM = _buyCover(buyCoverParams, coverId, poolAllocations);
-
-    {
-      uint newlyAllocatedRewardsInNXM = totalPremiumInNXM * globalRewardsRatio / REWARD_DENOMINATOR;
-
-      // burn or mint reward NXM based on the difference between deallocated
-      if (deallocatedRewardsInNXM > newlyAllocatedRewardsInNXM) {
-        tokenController().burnPooledStakingNXM(deallocatedRewardsInNXM - newlyAllocatedRewardsInNXM);
-      } else {
-        tokenController().mintPooledStakingNXM(newlyAllocatedRewardsInNXM - deallocatedRewardsInNXM);
-      }
-    }
 
     handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset);
 

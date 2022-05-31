@@ -55,7 +55,7 @@ interface ITokenController {
 
   function token() external view returns (INXMToken);
 
-  function mintPooledStakingNXM(uint amount) external;
+  function mintPooledStakingNXMRewards(uint amount, uint poolId) external;
 
-  function burnPooledStakingNXM(uint amount) external;
+  function burnPooledStakingNXMRewards(uint amount, uint poolId) external;
 }

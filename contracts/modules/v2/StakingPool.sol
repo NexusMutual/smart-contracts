@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/math/SafeCast.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICover.sol";
+import "../../interfaces/ITokenController.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../utils/Math.sol";
 
@@ -40,6 +41,8 @@ contract StakingPool is IStakingPool, ERC721 {
   using SafeCast for uint;
 
   /* storage */
+
+  uint poolId;
 
   // currently active staked nxm amount
   uint public activeStake;
@@ -89,6 +92,8 @@ contract StakingPool is IStakingPool, ERC721 {
   // token id => tranche id => deposit data
   mapping(uint => mapping(uint => Deposit)) public deposits;
 
+  ITokenController public tokenController;
+
   /* immutables */
 
   INXMToken public immutable nxm;
@@ -137,7 +142,9 @@ contract StakingPool is IStakingPool, ERC721 {
     bool _isPrivatePool,
     uint _initialPoolFee,
     uint _maxPoolFee,
-    ProductInitializationParams[] calldata params
+    ProductInitializationParams[] calldata params,
+    uint _poolId,
+    ITokenController _tokenController
   ) external onlyCoverContract {
 
     isPrivatePool = _isPrivatePool;
@@ -154,6 +161,9 @@ contract StakingPool is IStakingPool, ERC721 {
     // create ownership nft
     totalSupply = 1;
     _safeMint(_manager, 0);
+
+    poolId = _poolId;
+    tokenController = _tokenController;
   }
 
   // used to transfer all nfts when a user switches the membership to a new address
@@ -368,8 +378,8 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     // transfer nxm from staker
-    // TODO: use TokenController.operatorTransfer instead and transfer to TC
     nxm.transferFrom(msg.sender, address(this), totalAmount);
+    tokenController.depositStakedNXM(totalAmount, msg.sender, poolId);
 
     // update globals
     activeStake = _activeStake;

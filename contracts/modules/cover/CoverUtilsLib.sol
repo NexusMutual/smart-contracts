@@ -23,6 +23,14 @@ library CoverUtilsLib {
     IProductsV1 productsV1;
   }
 
+  struct PoolInitializationParams {
+    uint poolId;
+    address manager;
+    bool isPrivatePool;
+    uint initialPoolFee;
+    uint maxPoolFee;
+  }
+
   function migrateCoverFromOwner(
     MigrateParams memory params,
     Product[] storage _products,
@@ -105,28 +113,33 @@ library CoverUtilsLib {
   }
 
   function createStakingPool(
-    uint poolId,
-    address manager,
-    bool isPrivatePool,
-    uint initialPoolFee,
-    uint maxPoolFee,
+    PoolInitializationParams memory poolInitParams,
     ProductInitializationParams[] calldata params,
     uint depositAmount,
-    uint trancheId
+    uint trancheId,
+    ITokenController tokenController
   ) external returns (address stakingPoolAddress) {
 
     stakingPoolAddress = address(
-      new MinimalBeaconProxy{ salt: bytes32(poolId) }(address(this))
+      new MinimalBeaconProxy{ salt: bytes32(poolInitParams.poolId) }(address(this))
     );
 
     // will create the ownership nft
     IStakingPool newStakingPool = IStakingPool(stakingPoolAddress);
-    newStakingPool.initialize(manager, isPrivatePool, initialPoolFee, maxPoolFee, params);
+    newStakingPool.initialize(
+      poolInitParams.manager,
+      poolInitParams.isPrivatePool,
+      poolInitParams.initialPoolFee,
+      poolInitParams.maxPoolFee,
+      params,
+      poolInitParams.poolId,
+      tokenController
+    );
 
     // will create nft with a position in the desired tranche id
     if (depositAmount > 0) {
       DepositRequest[] memory requests = new DepositRequest[](1);
-      requests[0] = DepositRequest(depositAmount, trancheId, 0, manager);
+      requests[0] = DepositRequest(depositAmount, trancheId, 0, poolInitParams.manager);
       newStakingPool.depositTo(requests);
     }
   }

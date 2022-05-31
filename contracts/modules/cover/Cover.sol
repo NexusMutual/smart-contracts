@@ -537,14 +537,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     // [todo] handle the creation of NFT 0 which is the default NFT owned by the pool manager
     return CoverUtilsLib.createStakingPool(
-      stakingPoolCount++,
-      manager,
-      isPrivatePool,
-      initialPoolFee,
-      maxPoolFee,
+      CoverUtilsLib.PoolInitializationParams(
+        stakingPoolCount++,
+        manager,
+        isPrivatePool,
+        initialPoolFee,
+        maxPoolFee
+      ),
       params,
       depositAmount,
-      trancheId
+      trancheId,
+      tokenController()
     );
   }
 

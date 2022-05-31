@@ -4,6 +4,8 @@ pragma solidity >=0.5.0;
 
 import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 
+import "./ITokenController.sol";
+
 /* structs for io */
 
 struct WithdrawParams {
@@ -83,7 +85,9 @@ interface IStakingPool is IERC721 {
     bool isPrivatePool,
     uint initialPoolFee,
     uint maxPoolFee,
-    ProductInitializationParams[] calldata params
+    ProductInitializationParams[] calldata params,
+    uint _poolId,
+    ITokenController _tokenController
   ) external;
 
   function operatorTransfer(address from, address to, uint[] calldata tokenIds) external;

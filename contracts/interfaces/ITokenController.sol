@@ -58,4 +58,8 @@ interface ITokenController {
   function mintPooledStakingNXMRewards(uint amount, uint poolId) external;
 
   function burnPooledStakingNXMRewards(uint amount, uint poolId) external;
+
+  function depositStakedNXM(uint amount, address from, uint poolId) external;
+
+  function withdrawStakedNXM(uint amount, uint poolId) external;
 }

@@ -27,6 +27,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
   ICover public cover;
   mapping(uint => uint) stakingPoolNXMRewards;
+  mapping(uint => uint) stakingPoolDeposits;
 
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
@@ -365,6 +366,17 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     require(msg.sender == address(cover), "TokenController: only Cover allowed");
     burnFrom(address(this), amount);
     stakingPoolNXMRewards[poolId] -= amount;
+  }
+
+  function depositStakedNXM(uint amount, address from, uint poolId) external {
+    require(msg.sender == address(cover.stakingPool(poolId)), "TokenController: msg.sender not staking pool");
+
+    token.operatorTransfer(from, amount);
+    stakingPoolDeposits[poolId] += amount;
+  }
+
+  function withdrawStakedNXM(uint amount, uint poolId) external {
+    require(msg.sender == address(cover.stakingPool(poolId)), "TokenController: msg.sender not staking pool");
   }
 
   function initialize() external {

@@ -12,7 +12,6 @@ contract CoverMockStakingPool is StakingPool {
 
   /* immutables */
   address public immutable memberRoles;
-  uint public poolId;
 
   mapping (uint => uint) public usedCapacity;
   mapping (uint => uint) public stakedAmount;

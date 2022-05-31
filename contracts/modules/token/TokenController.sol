@@ -26,7 +26,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   IGovernance public governance;
 
   ICover public cover;
-  uint pooledStakingNXMBalance;
+  mapping(uint => uint) stakingPoolNXMRewards;
 
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
@@ -357,14 +357,14 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
     require(msg.sender == address(cover), "TokenController: only Cover allowed");
     mint(address(this), amount);
-    pooledStakingNXMBalance += amount;
+    stakingPoolNXMRewards[poolId] += amount;
   }
 
   function burnPooledStakingNXMRewards(uint amount, uint poolId) external {
 
     require(msg.sender == address(cover), "TokenController: only Cover allowed");
     burnFrom(address(this), amount);
-    pooledStakingNXMBalance += amount;
+    stakingPoolNXMRewards[poolId] -= amount;
   }
 
   function initialize() external {

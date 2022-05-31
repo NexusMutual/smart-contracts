@@ -377,9 +377,8 @@ contract StakingPool is IStakingPool, ERC721 {
       _rewardsSharesSupply += newRewardsShares;
     }
 
-    // transfer nxm from staker
-    nxm.transferFrom(msg.sender, address(this), totalAmount);
-    tokenController.depositStakedNXM(totalAmount, msg.sender, poolId);
+    // transfer nxm from staker and update pool deposit balance
+    tokenController.depositStakedNXM(msg.sender, totalAmount, poolId);
 
     // update globals
     activeStake = _activeStake;
@@ -458,8 +457,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
       uint withdrawable = stakeToWithdraw + rewardsToWithdraw;
 
-      // TODO: use TC instead
-      nxm.transfer(ownerOf(tokenId), withdrawable);
+      tokenController.withdrawStakedNXM(ownerOf(tokenId), withdrawable, poolId);
     }
   }
 

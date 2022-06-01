@@ -288,18 +288,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       revert("capacity calculation: not implemented");
     }
 
-    CoverRequest memory request = CoverRequest(
-      coverId,
-      params.productId,
-      amount,
-      params.period,
-      gracePeriod
-    );
-
     return _stakingPool.allocateStake(
-      request,
-      globalCapacityRatio,
-      globalRewardsRatio
+      CoverRequest(
+        coverId,
+        params.productId,
+        amount,
+        params.period,
+        gracePeriod,
+        globalCapacityRatio,
+        product.capacityReductionRatio,
+        globalRewardsRatio
+      )
     );
   }
 

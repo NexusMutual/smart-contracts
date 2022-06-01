@@ -12,6 +12,9 @@ struct CoverRequest {
   uint amount;
   uint period;
   uint gracePeriod;
+  uint globalCapacityRatio;
+  uint capacityReductionRatio;
+  uint rewardRatio;
 }
 
 struct WithdrawRequest {
@@ -87,10 +90,8 @@ interface IStakingPool is IERC721 {
   function updateTranches() external;
 
   function allocateStake(
-    CoverRequest calldata request,
-    uint capacityRatio,
-    uint rewardRatio
-  ) external returns (uint allocatedNXM, uint premium);
+    CoverRequest calldata request
+  ) external returns (uint allocatedAmount, uint premium);
 
   function deallocateStake(
     uint productId,

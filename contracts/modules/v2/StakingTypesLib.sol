@@ -8,7 +8,7 @@ type CoverAmount is uint64;
 // 8 x (uint32 expiringCoverAmount)
 type BucketTrancheGroup is uint;
 
-library StakingTypes {
+library StakingTypesLib {
 
   // CoverAmount
 

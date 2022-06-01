@@ -39,9 +39,9 @@ import "./StakingTypesLib.sol";
 
 contract StakingPool is IStakingPool, ERC721 {
   using SafeUintCast for uint;
-  using StakingTypes for CoverAmountGroup;
-  using StakingTypes for CoverAmount;
-  using StakingTypes for BucketTrancheGroup;
+  using StakingTypesLib for CoverAmountGroup;
+  using StakingTypesLib for CoverAmount;
+  using StakingTypesLib for BucketTrancheGroup;
 
   /* storage */
 
@@ -498,7 +498,7 @@ contract StakingPool is IStakingPool, ERC721 {
             continue;
           }
 
-          coverAmounts[i] = StakingTypes.newCoverAmount(
+          coverAmounts[i] = StakingTypesLib.newCoverAmount(
             coverAmounts[i].activeCoverAmount() - coverExpirations[i],
             lastBucketId
           );

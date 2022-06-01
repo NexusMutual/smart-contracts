@@ -113,16 +113,27 @@ library CoverUtilsLib {
   }
 
   function createStakingPool(
+    Product[] storage products,
     PoolInitializationParams memory poolInitParams,
-    ProductInitializationParams[] calldata params,
+    ProductInitializationParams[] memory productInitParams,
     uint depositAmount,
     uint trancheId,
-    ITokenController tokenController
+    ITokenController tokenController,
+    address pooledStakingAddress
   ) external returns (address stakingPoolAddress) {
 
     stakingPoolAddress = address(
       new MinimalBeaconProxy{ salt: bytes32(poolInitParams.poolId) }(address(this))
     );
+
+
+    if (msg.sender != pooledStakingAddress) {
+
+      // override with initial price
+      for (uint i = 0; i < productInitParams.length; i++) {
+        productInitParams[0].initialPrice = products[productInitParams[i].productId].initialPriceRatio;
+      }
+    }
 
     // will create the ownership nft
     IStakingPool newStakingPool = IStakingPool(stakingPoolAddress);
@@ -131,7 +142,7 @@ library CoverUtilsLib {
       poolInitParams.isPrivatePool,
       poolInitParams.initialPoolFee,
       poolInitParams.maxPoolFee,
-      params,
+      productInitParams,
       poolInitParams.poolId,
       tokenController
     );

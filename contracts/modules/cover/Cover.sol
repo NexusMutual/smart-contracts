@@ -528,7 +528,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     bool isPrivatePool,
     uint initialPoolFee,
     uint maxPoolFee,
-    ProductInitializationParams[] calldata params,
+    ProductInitializationParams[] memory params,
     uint depositAmount,
     uint trancheId
   ) external returns (address stakingPoolAddress) {
@@ -537,6 +537,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     // [todo] handle the creation of NFT 0 which is the default NFT owned by the pool manager
     return CoverUtilsLib.createStakingPool(
+      _products,
       CoverUtilsLib.PoolInitializationParams(
         stakingPoolCount++,
         manager,
@@ -547,7 +548,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       params,
       depositAmount,
       trancheId,
-      tokenController()
+      tokenController(),
+      master.getLatestAddress("PS")
     );
   }
 

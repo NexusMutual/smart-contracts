@@ -38,6 +38,7 @@ library StakingTypesLib {
     return CoverAmount.wrap(item);
   }
 
+  // heads up: does not mutate the CoverAmountGroup but returns a new one instead
   function setItemAt(
     CoverAmountGroup items,
     uint index,
@@ -60,6 +61,7 @@ library StakingTypesLib {
     return uint32(underlying << (index * 32));
   }
 
+  // heads up: does not mutate the BucketTrancheGroup but returns a new one instead
   function setItemAt(
     BucketTrancheGroup items,
     uint index,

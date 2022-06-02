@@ -481,12 +481,12 @@ contract StakingPool is IStakingPool, ERC721 {
       }
     }
 
-    for (uint i = 0; i < trancheCount; i++) {
-      // TODO: recreate CoverAmount[]
-      // TODO: recreate CoverAmountGroups[]
-    }
-
-    // TODO: update activeCoverAmounts
+    storeAllocatedCapacities(
+      request.productId,
+      firstTrancheIdToUse,
+      trancheCount,
+      allocatedCapacities
+    );
 
     premium = calculatePremium(
       request.productId,
@@ -655,6 +655,46 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     return (totalCapacities, totalCapacity);
+  }
+
+  function storeAllocatedCapacities(
+    uint productId,
+    uint firstTrancheId,
+    uint trancheCount,
+    uint[] memory allocatedCapacities
+  ) internal {
+
+    uint firstGroupId = firstTrancheId / COVER_TRANCHE_GROUP_SIZE;
+    uint lastGroupId = (firstTrancheId + trancheCount - 1) / COVER_TRANCHE_GROUP_SIZE;
+    uint16 currentBucket = (block.timestamp / BUCKET_DURATION).toUint16();
+
+    // min 1 and max 3 reads
+    uint groupCount = lastGroupId - firstGroupId + 1;
+    CoverAmountGroup[] memory coverAmountGroups = new CoverAmountGroup[](groupCount);
+
+    for (uint i = 0; i < groupCount; i++) {
+      coverAmountGroups[i] = activeCoverAmounts[productId][firstGroupId + i];
+    }
+
+    for (uint i = 0; i < trancheCount; i++) {
+
+      uint trancheId = firstTrancheId + i;
+      uint trancheGroupId = trancheId / COVER_TRANCHE_GROUP_SIZE;
+      uint trancheIndexInGroup = trancheId % COVER_TRANCHE_GROUP_SIZE;
+
+      CoverAmount stored = coverAmountGroups[trancheGroupId].getItemAt(trancheIndexInGroup);
+      uint48 newAmount = (stored.activeCoverAmount() + allocatedCapacities[i]).toUint48();
+
+      // setItemAt does not mutate so we have to reassign it
+      coverAmountGroups[trancheGroupId] = coverAmountGroups[trancheGroupId].setItemAt(
+        trancheIndexInGroup,
+        StakingTypesLib.newCoverAmount(newAmount, currentBucket)
+      );
+    }
+
+    for (uint i = 0; i < groupCount; i++) {
+      activeCoverAmounts[productId][firstGroupId + i] = coverAmountGroups[i];
+    }
   }
 
   function calculatePremium(

@@ -14,8 +14,9 @@ import "./StakingTypesLib.sol";
 import "./StakingTypesLib.sol";
 
 // total stake = active stake + expired stake
-// total product capacity = active stake * product weight
-// total product capacity = allocated product capacity + available product stake
+// total capacity = active stake * global capacity factor
+// total product capacity = total capacity * capacity reduction factor * product weight
+// total product capacity = allocated product capacity + available product capacity
 // on cover buys we allocate the available product capacity
 // on cover expiration we deallocate the capacity and it becomes available again
 
@@ -475,8 +476,8 @@ contract StakingPool is IStakingPool, ERC721 {
           continue;
         }
 
-        uint freeTrancheCapacity = totalCapacities[i] - trancheAllocatedCapacities[i];
-        uint allocate = Math.min(freeTrancheCapacity, remainingAmount);
+        uint availableTrancheCapacity = totalCapacities[i] - trancheAllocatedCapacities[i];
+        uint allocate = Math.min(availableTrancheCapacity, remainingAmount);
 
         remainingAmount -= allocate;
         allocatedAmount += allocate;

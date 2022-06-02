@@ -742,7 +742,7 @@ contract StakingPool is IStakingPool, ERC721 {
       uint32 expiringAmount = bucketTrancheGroups[trancheGroupId].getItemAt(trancheIndexInGroup);
       uint32 trancheAllocation = coverTrancheAllocation[i].toUint32();
 
-      packedCoverTrancheAllocation |= (trancheAllocation << uint32(i * 32));
+      packedCoverTrancheAllocation |= trancheAllocation << uint32(i * 32);
 
       // setItemAt does not mutate so we have to reassign it
       bucketTrancheGroups[trancheGroupId] = bucketTrancheGroups[trancheGroupId].setItemAt(

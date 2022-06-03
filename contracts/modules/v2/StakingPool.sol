@@ -616,8 +616,6 @@ contract StakingPool is IStakingPool, ERC721 {
     updateTranches();
 
     Deposit memory initialDeposit = deposits[tokenId][initialTrancheId];
-    Deposit memory updatedDeposit = deposits[tokenId][newTrancheId];
-    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
 
     // Calculate the new stake shares if there's also a deposit top up.
     uint newStakeShares;
@@ -652,11 +650,14 @@ contract StakingPool is IStakingPool, ERC721 {
 
     // Calculate the rewards that will be carried from the initial deposit to the next one.
     uint rewardsToCarry;
+    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
     {
       uint newEarningsPerShare = _accNxmPerRewardsShare - initialDeposit.lastAccNxmPerRewardShare;
       rewardsToCarry = newEarningsPerShare * initialDeposit.rewardsShares
         + initialDeposit.pendingRewards;
     }
+
+    Deposit memory updatedDeposit = deposits[tokenId][newTrancheId];
 
     // If a deposit lasting until the new tranche's end date already exists, calculate its pending
     // rewards before carrying over the rewards from the inital deposit.

@@ -267,11 +267,13 @@ contract Governance is IGovernance, LegacyMasterAware {
     );
   }
 
-  /**
-   * @dev Submit a vote on the proposal.
-   * @param _proposalId to vote upon.
-   * @param _solutionChosen is the chosen vote.
-   */
+  /// Submit a vote on the proposal.
+  ///
+  /// @param _proposalId            The id of the proposal that the user votes upon.
+  /// @param _solutionChosen        True if the vote is in favor of the proposal or false otherwise.
+  /// @param managedStakingPoolIds  An array of staking pool ids that the user is a manager of.
+  ///                               The active stake from these pools is added to the user's
+  ///                               voting power.
   function submitVote(
     uint _proposalId,
     uint _solutionChosen,
@@ -765,11 +767,13 @@ contract Governance is IGovernance, LegacyMasterAware {
 
   }
 
-  /**
-   * @dev Internal call to submit vote
-   * @param _proposalId of proposal in concern
-   * @param _solution for that proposal
-   */
+  /// @dev Internal call to submit vote
+  ///
+  /// @param _proposalId            The id of the proposal that the user votes upon.
+  /// @param _solution              True if the vote is in favor of the proposal or false otherwise.
+  /// @param managedStakingPoolIds  An array of staking pool ids that the user is a manager of.
+  ///                               The active stake from these pools is added to the user's
+  ///                               voting power.
   function _submitVote(
     uint _proposalId,
     uint _solution,

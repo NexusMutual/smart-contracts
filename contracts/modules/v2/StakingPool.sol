@@ -567,7 +567,11 @@ contract StakingPool is IStakingPool, ERC721 {
   ) public {
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES;
+
+    // Token id 0 does not wrap any deposits but instead it is used to determine who the pool
+    // manager is.
     require(tokenId != 0, "StakingPool: Invalid token id");
+
     require(
       _isApprovedOrOwner(msg.sender, tokenId),
       "StakingPool: Not authorized to extend deposits on this token"

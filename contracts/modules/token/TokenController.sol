@@ -26,8 +26,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   IGovernance public governance;
 
   ICover public cover;
-  mapping(uint => uint) stakingPoolNXMRewards;
-  mapping(uint => uint) stakingPoolDeposits;
+  mapping(uint => StakingPoolNXMBalances) stakingPoolNXMBalances;
 
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
@@ -358,27 +357,27 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
     require(msg.sender == address(cover), "TokenController: only Cover allowed");
     mint(address(this), amount);
-    stakingPoolNXMRewards[poolId] += amount;
+    stakingPoolNXMBalances[poolId].rewards += amount.toUint96();
   }
 
   function burnPooledStakingNXMRewards(uint amount, uint poolId) external {
 
     require(msg.sender == address(cover), "TokenController: only Cover allowed");
     burnFrom(address(this), amount);
-    stakingPoolNXMRewards[poolId] -= amount;
+    stakingPoolNXMBalances[poolId].rewards -= amount.toUint96();
   }
 
   function depositStakedNXM(address from, uint amount, uint poolId) external {
     require(msg.sender == address(cover.stakingPool(poolId)), "TokenController: msg.sender not staking pool");
 
-    stakingPoolDeposits[poolId] += amount;
+    stakingPoolNXMBalances[poolId].deposits += amount.toUint96();
     token.operatorTransfer(from, amount);
   }
 
   function withdrawStakedNXM(address to, uint amount, uint poolId) external {
     require(msg.sender == address(cover.stakingPool(poolId)), "TokenController: msg.sender not staking pool");
 
-    stakingPoolDeposits[poolId] -= amount;
+    stakingPoolNXMBalances[poolId].deposits -= amount.toUint96();
     token.transfer(to, amount);
   }
 

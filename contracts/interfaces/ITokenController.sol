@@ -6,6 +6,11 @@ import "./INXMToken.sol";
 
 interface ITokenController {
 
+  struct StakingPoolNXMBalances {
+    uint128 rewards;
+    uint128 deposits;
+  }
+
   struct CoverInfo {
     uint16 claimCount;
     bool hasOpenClaim;

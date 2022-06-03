@@ -442,7 +442,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
       _stakingPool.burnStake(cover.productId, segment.start, segment.period, nxmBurned);
 
-      allocation.coverAmountInNXM -= SafeUintCast.toUint96(nxmBurned);
+      uint coverAmountInNXMRemoved = allocation.coverAmountInNXM * burnAmount / segment.amount;
+      allocation.coverAmountInNXM -= SafeUintCast.toUint96(coverAmountInNXMRemoved);
     }
 
     return owner;

@@ -449,17 +449,17 @@ contract StakingPool is ERC721, MasterAwareV2, IStakingPool {
           //
           //                                   t0       t1       t2
           //                                   │        │        │
-          //  Vote 1 lock                      ├┄┄┄┄┄┄┄┄┤        │
+          //  Vote 1 lock                      ├────────┤        │
           //                                   │        │        │
-          //  Vote 2 lock                      │  ├┄┄┄┄┄┼┄┤      │
+          //  Vote 2 lock                      │  ├─────┼─┤      │
           //                                   │        │        │
-          //  Vote 3 lock                      │      ├┄┼┄┄┄┄┄┤  │
+          //  Vote 3 lock                      │      ├─┼─────┤  │
           //                                   │        │        │
-          //  Vote 4 lock (latest)             │        ├┄┄┄┄┄┄┄┄┤
+          //  Vote 4 lock (latest)             │        ├────────┤
           //                                   │        │        │
-          //  Tranche active ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┼┄┄┄┄┄┄┄┄┤        │
+          //  Tranche active ──────────────────┼────────┼────────┤
           //                                   │        │        │
-          //  Tranche expired                  │        ├┄┄┄┄┄┄┄┄┼┄┄┄┄┄┄┄┄
+          //  Tranche expired                  │        ├────────┼────────
           //                                   │        │        │
           //                                   ╽        │        │
           //          Earliest possible vote prior to   │        │

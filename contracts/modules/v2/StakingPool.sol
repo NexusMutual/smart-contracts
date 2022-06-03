@@ -810,7 +810,6 @@ contract StakingPool is ERC721, MasterAwareV2, IStakingPool {
         "StakingPool: Active pool assets are locked for voting in governance"
       );
     }
-    // todo: track owned zero-id nfts in TC
   }
 
   /**

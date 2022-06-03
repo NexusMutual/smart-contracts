@@ -568,8 +568,11 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES;
 
-    // Token id 0 does not wrap any deposits but instead it is used to determine who the pool
-    // manager is.
+    // Token id 0 does not wrap actual deposits but instead it is used to determine who the pool
+    // manager is and to calculate his reward shares according to the pool fee. In other words,
+    // it holds no stake the would expire at the end of a certain tranche, only rewards from fees.
+    // If the manager wishes to make a deposit, he will use the same mechanism like everyone else
+    // by minting a different NFT with id > 0.
     require(tokenId != 0, "StakingPool: Invalid token id");
 
     require(

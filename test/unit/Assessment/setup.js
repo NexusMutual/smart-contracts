@@ -8,10 +8,6 @@ async function setup () {
   const nxm = await NXM.deploy();
   await nxm.deployed();
 
-  const MemberRoles = await ethers.getContractFactory('MemberRolesMock');
-  const memberRoles = await MemberRoles.deploy();
-  await memberRoles.deployed();
-
   const ASMockTokenController = await ethers.getContractFactory('ASMockTokenController');
   const tokenController = await ASMockTokenController.deploy(nxm.address);
   await tokenController.deployed();
@@ -38,12 +34,17 @@ async function setup () {
   const assessment = await Assessment.deploy(nxm.address);
   await assessment.deployed();
 
+  const ASMockMemberRoles = await ethers.getContractFactory('ASMockMemberRoles');
+  const memberRoles = await ASMockMemberRoles.deploy();
+  await memberRoles.deployed();
+
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
     master.setTokenAddress(nxm.address),
     master.setLatestAddress(hex('IC'), individualClaims.address),
     master.setLatestAddress(hex('YT'), yieldTokenIncidents.address),
     master.setLatestAddress(hex('AS'), assessment.address),
+    master.setLatestAddress(hex('MR'), memberRoles.address),
     master.enrollInternal(individualClaims.address),
     master.enrollInternal(yieldTokenIncidents.address),
   ]);
@@ -65,7 +66,8 @@ async function setup () {
   const accounts = getAccounts(signers);
   await master.enrollGovernance(accounts.governanceContracts[0].address);
   for (const member of accounts.members) {
-    await master.enrollMember(member.address, 1);
+    await master.enrollMember(member.address, 1); // Uses a different role value than IMemberRoles
+    await memberRoles.enrollMember(member.address, 2); // Uses the actual member role value
     await nxm.mint(member.address, parseEther('10000'));
     await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
   }

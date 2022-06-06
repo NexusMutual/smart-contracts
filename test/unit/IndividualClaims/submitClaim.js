@@ -354,10 +354,10 @@ describe('submitClaim', function () {
     await individualClaims.connect(coverOwner).submitClaim(coverId, 0, coverAmount, '', { value: expectedDeposit });
 
     const expectedAssessmentId = 0;
-    const { assessmentDeposit, totalReward } = await assessment.assessments(expectedAssessmentId);
+    const { assessmentDepositInETH, totalRewardInNXM } = await assessment.assessments(expectedAssessmentId);
 
-    expect(assessmentDeposit).to.be.equal(expectedDeposit);
-    expect(totalReward).to.be.equal(expectedTotalReward);
+    expect(assessmentDepositInETH).to.be.equal(expectedDeposit);
+    expect(totalRewardInNXM).to.be.equal(expectedTotalReward);
 
     const { assessmentId } = await individualClaims.claims(0);
     expect(assessmentId).to.be.equal(expectedAssessmentId);

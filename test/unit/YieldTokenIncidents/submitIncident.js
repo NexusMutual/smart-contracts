@@ -83,11 +83,11 @@ describe('submitIncident', function () {
       .connect(advisoryBoard)
       .submitIncident(productId, parseEther('1.1'), currentTime, expectedPayoutAmount, '');
     const expectedTotalReward = expectedPayoutAmount.mul(this.config.rewardRatio).div(10000);
-    const { totalReward } = await assessment.assessments(0);
-    expect(totalReward).to.be.equal(expectedTotalReward);
+    const { totalRewardInNXM } = await assessment.assessments(0);
+    expect(totalRewardInNXM).to.be.equal(expectedTotalReward);
   });
 
-  it('calculates the totalReward capped at config.maxRewardInNXMWad', async function () {
+  it('calculates the totalRewardInNXM capped at config.maxRewardInNXMWad', async function () {
     const { assessment, yieldTokenIncidents } = this.contracts;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
@@ -98,8 +98,8 @@ describe('submitIncident', function () {
       .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100000000'), '');
     const expectedTotalReward = parseEther(this.config.maxRewardInNXMWad.toString());
 
-    const { totalReward } = await assessment.assessments(0);
-    expect(totalReward).to.be.equal(expectedTotalReward);
+    const { totalRewardInNXM } = await assessment.assessments(0);
+    expect(totalRewardInNXM).to.be.equal(expectedTotalReward);
   });
 
   it('emits MetadataSubmitted event with the provided ipfsMetadata when it is not empty string', async function () {

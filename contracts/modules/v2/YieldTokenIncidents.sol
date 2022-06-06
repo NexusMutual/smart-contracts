@@ -14,6 +14,7 @@ import "../../interfaces/ICover.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IYieldTokenIncidents.sol";
 import "../../interfaces/ICoverNFT.sol";
+import "../../utils/Math.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 
@@ -70,10 +71,6 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
   }
 
   /* ========== VIEWS ========== */
-
-  function min(uint a, uint b) internal pure returns (uint) {
-    return a < b ? a : b;
-  }
 
   function assessment() internal view returns (IAssessment) {
     return IAssessment(getInternalContractAddress(ID.AS));
@@ -173,7 +170,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     );
 
     // Determine the total rewards that should be minted for the assessors based on cover period
-    uint totalReward = min(
+    uint totalReward = Math.min(
       uint(config.maxRewardInNXMWad) * PRECISION,
       expectedPayoutInNXM * uint(config.rewardRatio) / REWARD_DENOMINATOR
     );
@@ -204,7 +201,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     uint depeggedTokens,
     address payable payoutAddress,
     bytes calldata optionalParams
-  ) external override whenNotPaused returns (uint, uint8) {
+  ) external override onlyMember whenNotPaused returns (uint, uint8) {
     require(
       coverNFT.isApprovedOrOwner(msg.sender, coverId),
       "Only the cover owner or approved addresses can redeem"
@@ -318,10 +315,10 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     IERC20 token = IERC20(asset);
     uint balance = token.balanceOf(address(this));
     uint transferAmount = amount > balance ? balance : amount;
-    token.transfer(destination, transferAmount);
+    SafeERC20.safeTransfer(token, destination, transferAmount);
   }
 
-  /// Allows to update configurable aprameters through governance
+  /// Updates configurable parameters through governance
   ///
   /// @param paramNames  An array of elements from UintParams enum
   /// @param values      An array of the new values, each one corresponding to the parameter

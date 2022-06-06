@@ -5,7 +5,9 @@ pragma solidity ^0.8.9;
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IAssessment.sol";
+import "../../interfaces/IMemberRoles.sol";
 import "../../abstract/MasterAwareV2.sol";
+import "../../utils/Math.sol";
 
 import "@openzeppelin/contracts-v4/utils/cryptography/MerkleProof.sol";
 
@@ -63,10 +65,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   /* ========== VIEWS ========== */
 
-  function min(uint a, uint b) internal pure returns (uint) {
-    return a <= b ? a : b;
-  }
-
   /// @dev Returns the vote count of an assessor.
   ///
   /// @param assessor  The address of the assessor.
@@ -92,8 +90,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///
   /// @param staker  The address of the staker
   function getRewards(address staker) external override view returns (
-    uint totalPendingAmount,
-    uint withdrawableAmount,
+    uint totalPendingAmountInNXM,
+    uint withdrawableAmountInNXM,
     uint withdrawableUntilIndex
   ) {
     uint104 rewardsWithdrawableFromIndex = stakeOf[staker].rewardsWithdrawableFromIndex;
@@ -116,16 +114,16 @@ contract Assessment is IAssessment, MasterAwareV2 {
         // Store the index of the vote until which rewards can be withdrawn.
         withdrawableUntilIndex = i;
         // Then, also store the pending total value that can be withdrawn until this index.
-        withdrawableAmount = totalPendingAmount;
+        withdrawableAmountInNXM = totalPendingAmountInNXM;
       }
 
-      totalPendingAmount += uint(assessment.totalReward) * uint(vote.stakedAmount) /
+      totalPendingAmountInNXM += uint(assessment.totalRewardInNXM) * uint(vote.stakedAmount) /
         (uint(assessment.poll.accepted) + uint(assessment.poll.denied));
     }
 
     if (!hasReachedUnwithdrawableReward) {
       withdrawableUntilIndex = voteCount;
-      withdrawableAmount = totalPendingAmount;
+      withdrawableAmountInNXM = totalPendingAmountInNXM;
     }
   }
 
@@ -198,6 +196,14 @@ contract Assessment is IAssessment, MasterAwareV2 {
     address destination,
     uint104 batchSize
   ) internal returns (uint withdrawn, uint withdrawnUntilIndex) {
+    require(
+      IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(
+        destination,
+        uint(IMemberRoles.Role.Member)
+      ),
+      "Destination address is not a member"
+    );
+
     // This is the index until which (but not including) the previous withdrawal was processed.
     // The current withdrawal starts from this index.
     uint104 rewardsWithdrawableFromIndex = stakeOf[staker].rewardsWithdrawableFromIndex;
@@ -220,7 +226,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
         break;
       }
 
-      withdrawn += uint(assessment.totalReward) * uint(vote.stakedAmount) /
+      withdrawn += uint(assessment.totalRewardInNXM) * uint(vote.stakedAmount) /
         (uint(assessment.poll.accepted) + uint(assessment.poll.denied));
     }
 
@@ -234,14 +240,14 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///
   /// @dev Is used only by contracts acting as redemption methods for cover product types.
   ///
-  /// @param totalAssessmentReward  The total reward that is shared among the stakers participating
-  ///                               the assessment.
-  /// @param assessmentDeposit      The deposit that covers assessment rewards in case it's denied.
-  ///                               If the assessment verdict is positive, the contract that relies
-  ///                               on it can send back the deposit at payout.
+  /// @param totalAssessmentReward   The total reward that is shared among the stakers participating
+  ///                                the assessment.
+  /// @param assessmentDepositInETH  The deposit that covers assessment rewards in case it's denied.
+  ///                                If the assessment verdict is positive, the contract that relies
+  ///                                on it can send back the deposit at payout.
   function startAssessment(
     uint totalAssessmentReward,
-    uint assessmentDeposit
+    uint assessmentDepositInETH
   ) external override onlyInternal returns (uint) {
     assessments.push(Assessment(
       Poll(
@@ -251,7 +257,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
         uint32(block.timestamp + config.minVotingPeriodInDays * 1 days) // end
       ),
       uint128(totalAssessmentReward),
-      uint128(assessmentDeposit)
+      uint128(assessmentDepositInETH)
     ));
     return assessments.length - 1;
   }
@@ -271,7 +277,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint[] calldata assessmentIds,
     bool[] calldata votes,
     uint96 stakeIncrease
-  ) external override whenNotPaused {
+  ) external override onlyMember whenNotPaused {
     require(
       assessmentIds.length == votes.length,
       "The lengths of the assessment ids and votes arrays mismatch"
@@ -297,7 +303,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///
   /// @param assessmentId  The index of the assessment for which the vote is cast
   /// @param isAcceptVote  True to accept, false to deny
-  function castVote(uint assessmentId, bool isAcceptVote) public whenNotPaused {
+  function castVote(uint assessmentId, bool isAcceptVote) internal {
     {
       require(!hasAlreadyVotedOn[msg.sender][assessmentId], "Already voted");
       hasAlreadyVotedOn[msg.sender][assessmentId] = true;
@@ -323,7 +329,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     if (poll.end - block.timestamp < silentEndingPeriod) {
       // Extend proportionally to the user's stake but up to 1 day maximum
       poll.end += uint32(
-        min(
+        Math.min(
           silentEndingPeriod,
           silentEndingPeriod * uint(stakeAmount) / (uint(poll.accepted) + uint(poll.denied))
         )
@@ -445,7 +451,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
   }
 
-  /// Redeems payouts for accepted claims
+  /// Updates configurable parameters through governance
   ///
   /// @param paramNames  An array of elements from UintParams enum
   /// @param values      An array of the new values, each one corresponding to the parameter
@@ -480,6 +486,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// automatically called by the master contract when a contract is added or upgraded.
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
   }
 
 }

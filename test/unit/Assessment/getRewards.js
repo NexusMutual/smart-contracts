@@ -16,34 +16,34 @@ describe('getRewards', function () {
     await individualClaims.submitClaim(1, 0, parseEther('100'), '');
     await individualClaims.submitClaim(2, 0, parseEther('1000'), '');
 
-    await assessment.connect(user1).castVote(0, true);
-    await assessment.connect(user2).castVote(0, true);
-    await assessment.connect(user1).castVote(1, true);
-    await assessment.connect(user2).castVote(1, true);
-    await assessment.connect(user1).castVote(2, true);
-    await assessment.connect(user2).castVote(2, true);
+    await assessment.connect(user1).castVotes([0], [true], 0);
+    await assessment.connect(user2).castVotes([0], [true], 0);
+    await assessment.connect(user1).castVotes([1], [true], 0);
+    await assessment.connect(user2).castVotes([1], [true], 0);
+    await assessment.connect(user1).castVotes([2], [true], 0);
+    await assessment.connect(user2).castVotes([2], [true], 0);
 
     let expectedUser1Reward = ethers.constants.Zero;
     let expectedUser2Reward = ethers.constants.Zero;
     {
-      const { totalReward } = await assessment.assessments(0);
-      expectedUser1Reward = expectedUser1Reward.add(totalReward.mul(1).div(10));
-      expectedUser2Reward = expectedUser2Reward.add(totalReward.mul(9).div(10));
+      const { totalRewardInNXM } = await assessment.assessments(0);
+      expectedUser1Reward = expectedUser1Reward.add(totalRewardInNXM.mul(1).div(10));
+      expectedUser2Reward = expectedUser2Reward.add(totalRewardInNXM.mul(9).div(10));
     }
     {
-      const { totalReward } = await assessment.assessments(1);
-      expectedUser1Reward = expectedUser1Reward.add(totalReward.mul(1).div(10));
-      expectedUser2Reward = expectedUser2Reward.add(totalReward.mul(9).div(10));
+      const { totalRewardInNXM } = await assessment.assessments(1);
+      expectedUser1Reward = expectedUser1Reward.add(totalRewardInNXM.mul(1).div(10));
+      expectedUser2Reward = expectedUser2Reward.add(totalRewardInNXM.mul(9).div(10));
     }
     {
-      const { totalReward } = await assessment.assessments(2);
-      expectedUser1Reward = expectedUser1Reward.add(totalReward.mul(1).div(10));
-      expectedUser2Reward = expectedUser2Reward.add(totalReward.mul(9).div(10));
+      const { totalRewardInNXM } = await assessment.assessments(2);
+      expectedUser1Reward = expectedUser1Reward.add(totalRewardInNXM.mul(1).div(10));
+      expectedUser2Reward = expectedUser2Reward.add(totalRewardInNXM.mul(9).div(10));
     }
 
     {
-      const { totalPendingAmount: user1Total } = await assessment.getRewards(user1.address);
-      const { totalPendingAmount: user2Total } = await assessment.getRewards(user2.address);
+      const { totalPendingAmountInNXM: user1Total } = await assessment.getRewards(user1.address);
+      const { totalPendingAmountInNXM: user2Total } = await assessment.getRewards(user2.address);
       expect(user1Total).to.be.equal(expectedUser1Reward);
       expect(user2Total).to.be.equal(expectedUser2Reward);
     }
@@ -53,21 +53,21 @@ describe('getRewards', function () {
     await assessment.withdrawRewards(user1.address, 1);
 
     {
-      const { totalPendingAmount: user1Total } = await assessment.getRewards(user1.address);
-      const { totalPendingAmount: user2Total } = await assessment.getRewards(user2.address);
-      const { totalReward } = await assessment.assessments(0);
-      expect(user1Total).to.be.equal(expectedUser1Reward.sub(totalReward.mul(1).div(10)));
+      const { totalPendingAmountInNXM: user1Total } = await assessment.getRewards(user1.address);
+      const { totalPendingAmountInNXM: user2Total } = await assessment.getRewards(user2.address);
+      const { totalRewardInNXM } = await assessment.assessments(0);
+      expect(user1Total).to.be.equal(expectedUser1Reward.sub(totalRewardInNXM.mul(1).div(10)));
       expect(user2Total).to.be.equal(expectedUser2Reward);
     }
 
     await assessment.withdrawRewards(user2.address, 1);
 
     {
-      const { totalPendingAmount: user1Total } = await assessment.getRewards(user1.address);
-      const { totalPendingAmount: user2Total } = await assessment.getRewards(user2.address);
-      const { totalReward } = await assessment.assessments(0);
-      expect(user1Total).to.be.equal(expectedUser1Reward.sub(totalReward.mul(1).div(10)));
-      expect(user2Total).to.be.equal(expectedUser2Reward.sub(totalReward.mul(9).div(10)));
+      const { totalPendingAmountInNXM: user1Total } = await assessment.getRewards(user1.address);
+      const { totalPendingAmountInNXM: user2Total } = await assessment.getRewards(user2.address);
+      const { totalRewardInNXM } = await assessment.assessments(0);
+      expect(user1Total).to.be.equal(expectedUser1Reward.sub(totalRewardInNXM.mul(1).div(10)));
+      expect(user2Total).to.be.equal(expectedUser2Reward.sub(totalRewardInNXM.mul(9).div(10)));
     }
 
     // Withdraw everything
@@ -75,8 +75,8 @@ describe('getRewards', function () {
     await assessment.withdrawRewards(user1.address, 0);
 
     {
-      const { totalPendingAmount: user1Total } = await assessment.getRewards(user1.address);
-      const { totalPendingAmount: user2Total } = await assessment.getRewards(user2.address);
+      const { totalPendingAmountInNXM: user1Total } = await assessment.getRewards(user1.address);
+      const { totalPendingAmountInNXM: user2Total } = await assessment.getRewards(user2.address);
       expect(user1Total).to.be.equal(0);
       expect(user2Total).to.be.equal(0);
     }
@@ -91,60 +91,60 @@ describe('getRewards', function () {
     await individualClaims.submitClaim(0, 0, parseEther('10'), '');
     await individualClaims.submitClaim(1, 0, parseEther('100'), '');
 
-    await assessment.connect(user).castVote(0, true);
-    await assessment.connect(user).castVote(1, true);
+    await assessment.connect(user).castVotes([0], [true], 0);
+    await assessment.connect(user).castVotes([1], [true], 0);
 
     let expectedReward = ethers.constants.Zero;
 
     {
-      const { totalReward } = await assessment.assessments(0);
-      expectedReward = expectedReward.add(totalReward);
+      const { totalRewardInNXM } = await assessment.assessments(0);
+      expectedReward = expectedReward.add(totalRewardInNXM);
     }
 
     {
-      const { totalReward } = await assessment.assessments(1);
-      expectedReward = expectedReward.add(totalReward);
+      const { totalRewardInNXM } = await assessment.assessments(1);
+      expectedReward = expectedReward.add(totalRewardInNXM);
     }
 
     {
-      const { withdrawableAmount } = await assessment.getRewards(user.address);
-      expect(withdrawableAmount).to.be.equal(0);
+      const { withdrawableAmountInNXM } = await assessment.getRewards(user.address);
+      expect(withdrawableAmountInNXM).to.be.equal(0);
     }
 
     {
       const { end } = await assessment.getPoll(1);
       await setTime(end + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
-      const { withdrawableAmount } = await assessment.getRewards(user.address);
-      expect(withdrawableAmount).to.be.equal(expectedReward);
+      const { withdrawableAmountInNXM } = await assessment.getRewards(user.address);
+      expect(withdrawableAmountInNXM).to.be.equal(expectedReward);
     }
 
     {
       await assessment.withdrawRewards(user.address, 1);
-      const { totalReward } = await assessment.assessments(0);
-      expectedReward = expectedReward.sub(totalReward);
-      const { withdrawableAmount } = await assessment.getRewards(user.address);
-      expect(withdrawableAmount).to.be.equal(expectedReward);
+      const { totalRewardInNXM } = await assessment.assessments(0);
+      expectedReward = expectedReward.sub(totalRewardInNXM);
+      const { withdrawableAmountInNXM } = await assessment.getRewards(user.address);
+      expect(withdrawableAmountInNXM).to.be.equal(expectedReward);
     }
 
     {
       await assessment.withdrawRewards(user.address, 1);
-      const { withdrawableAmount } = await assessment.getRewards(user.address);
-      expect(withdrawableAmount).to.be.equal(0);
+      const { withdrawableAmountInNXM } = await assessment.getRewards(user.address);
+      expect(withdrawableAmountInNXM).to.be.equal(0);
     }
 
     {
       await individualClaims.submitClaim(0, 0, parseEther('1000'), '');
-      await assessment.connect(user).castVote(2, true);
-      const { withdrawableAmount } = await assessment.getRewards(user.address);
-      expect(withdrawableAmount).to.be.equal(0);
+      await assessment.connect(user).castVotes([2], [true], 0);
+      const { withdrawableAmountInNXM } = await assessment.getRewards(user.address);
+      expect(withdrawableAmountInNXM).to.be.equal(0);
     }
 
     {
       const { end } = await assessment.getPoll(2);
       await setTime(end + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
-      const { totalReward } = await assessment.assessments(2);
-      const { withdrawableAmount } = await assessment.getRewards(user.address);
-      expect(withdrawableAmount).to.be.equal(totalReward);
+      const { totalRewardInNXM } = await assessment.assessments(2);
+      const { withdrawableAmountInNXM } = await assessment.getRewards(user.address);
+      expect(withdrawableAmountInNXM).to.be.equal(totalRewardInNXM);
     }
   });
 
@@ -157,8 +157,8 @@ describe('getRewards', function () {
     await individualClaims.submitClaim(0, 0, parseEther('10'), '');
     await individualClaims.submitClaim(0, 1, parseEther('100'), '');
 
-    await assessment.connect(user).castVote(0, true);
-    await assessment.connect(user).castVote(1, true);
+    await assessment.connect(user).castVotes([0], [true], 0);
+    await assessment.connect(user).castVotes([1], [true], 0);
 
     {
       const { withdrawableUntilIndex } = await assessment.getRewards(user.address);
@@ -174,7 +174,7 @@ describe('getRewards', function () {
 
     {
       await individualClaims.submitClaim(0, 0, parseEther('1000'), '');
-      await assessment.connect(user).castVote(2, true);
+      await assessment.connect(user).castVotes([2], [true], 0);
       const { withdrawableUntilIndex } = await assessment.getRewards(user.address);
       expect(withdrawableUntilIndex).to.be.equal(2);
     }

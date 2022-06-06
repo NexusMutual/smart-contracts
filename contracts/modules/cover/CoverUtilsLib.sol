@@ -117,7 +117,6 @@ library CoverUtilsLib {
     ProductInitializationParams[] memory productInitParams,
     uint depositAmount,
     uint trancheId,
-    ITokenController tokenController,
     address pooledStakingAddress
   ) external returns (address stakingPoolAddress) {
 

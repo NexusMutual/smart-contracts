@@ -454,9 +454,12 @@ contract StakingPool is IStakingPool, ERC721 {
         deposits[tokenId][trancheId] = deposit;
       }
 
-      uint withdrawable = stakeToWithdraw + rewardsToWithdraw;
-
-      tokenController.withdrawNXMStakeAndRewards(ownerOf(tokenId), stakeToWithdraw, rewardsToWithdraw, poolId);
+      tokenController.withdrawNXMStakeAndRewards(
+        ownerOf(tokenId),
+        stakeToWithdraw,
+        rewardsToWithdraw,
+        poolId
+      );
     }
   }
 

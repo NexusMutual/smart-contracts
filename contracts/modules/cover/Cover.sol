@@ -546,7 +546,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       params,
       depositAmount,
       trancheId,
-      tokenController(),
       master.getLatestAddress("PS")
     );
   }

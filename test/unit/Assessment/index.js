@@ -22,7 +22,7 @@ describe('Assessment', function () {
   require('./withdrawRewards');
   require('./withdrawRewardsTo');
   require('./startAssessment');
-  require('./castVote');
+  require('./castVotes');
   require('./submitFraud');
   require('./processFraud');
   require('./updateUintParameters');

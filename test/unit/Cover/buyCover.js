@@ -12,7 +12,7 @@ const { bnEqual } = require('../utils').helpers;
 
 describe('buyCover', function () {
 
-  it('should purchase new cover using 1 staking pool', async function () {
+  it.only('should purchase new cover using 1 staking pool', async function () {
     const { cover } = this;
 
     const {
@@ -34,7 +34,7 @@ describe('buyCover', function () {
 
     const capacityFactor = '10000';
 
-    await cover.connect(gv1).setGlobalCapacityRatio(capacityFactor);
+    await cover.connect(gv1).updateUintParameters(0, capacityFactor);
 
     await createStakingPool(
       cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,

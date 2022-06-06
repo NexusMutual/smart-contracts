@@ -66,5 +66,5 @@ interface ITokenController {
 
   function depositStakedNXM(address from, uint amount, uint poolId) external;
 
-  function withdrawStakedNXM(address to, uint amount, uint poolId) external;
+  function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external;
 }

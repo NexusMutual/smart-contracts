@@ -370,14 +370,14 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   function depositStakedNXM(address from, uint amount, uint poolId) external {
     require(msg.sender == address(cover.stakingPool(poolId)), "TokenController: msg.sender not staking pool");
 
-    stakingPoolNXMBalances[poolId].deposits += amount.toUint96();
+    stakingPoolNXMBalances[poolId].deposits += amount.toUint128();
     token.operatorTransfer(from, amount);
   }
 
   function withdrawStakedNXM(address to, uint amount, uint poolId) external {
     require(msg.sender == address(cover.stakingPool(poolId)), "TokenController: msg.sender not staking pool");
 
-    stakingPoolNXMBalances[poolId].deposits -= amount.toUint96();
+    stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();
     token.transfer(to, amount);
   }
 

@@ -172,7 +172,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function withdrawRewards(
     address staker,
     uint104 batchSize
-  ) external override whenNotPaused onlyMember returns (uint withdrawn, uint withdrawnUntilIndex) {
+  ) external override whenNotPaused returns (uint withdrawn, uint withdrawnUntilIndex) {
     return _withdrawRewards(staker, staker, batchSize);
   }
 
@@ -187,7 +187,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function withdrawRewardsTo(
     address destination,
     uint104 batchSize
-  ) external override whenNotPaused onlyMember returns (uint withdrawn, uint withdrawnUntilIndex) {
+  ) external override whenNotPaused returns (uint withdrawn, uint withdrawnUntilIndex) {
     return _withdrawRewards(msg.sender, destination, batchSize);
   }
 

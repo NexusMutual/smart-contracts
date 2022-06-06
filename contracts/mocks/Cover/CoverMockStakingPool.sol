@@ -23,9 +23,10 @@ contract CoverMockStakingPool is StakingPool {
   constructor (
     address _nxm,
     address _coverContract,
+    ITokenController _tokenController,
     address _memberRoles
   )
-    StakingPool("Nexus Mutual Staking Pool", "NMSPT", _nxm, _coverContract)
+    StakingPool("Nexus Mutual Staking Pool", "NMSPT", _nxm, _coverContract, _tokenController)
   {
     memberRoles = _memberRoles;
   }

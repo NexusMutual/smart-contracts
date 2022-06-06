@@ -86,8 +86,7 @@ interface IStakingPool is IERC721 {
     uint initialPoolFee,
     uint maxPoolFee,
     ProductInitializationParams[] calldata params,
-    uint _poolId,
-    ITokenController _tokenController
+    uint _poolId
   ) external;
 
   function operatorTransfer(address from, address to, uint[] calldata tokenIds) external;

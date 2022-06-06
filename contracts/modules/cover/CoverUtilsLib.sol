@@ -143,8 +143,7 @@ library CoverUtilsLib {
       poolInitParams.initialPoolFee,
       poolInitParams.maxPoolFee,
       productInitParams,
-      poolInitParams.poolId,
-      tokenController
+      poolInitParams.poolId
     );
 
     // will create nft with a position in the desired tranche id

@@ -92,11 +92,10 @@ contract StakingPool is IStakingPool, ERC721 {
   // token id => tranche id => deposit data
   mapping(uint => mapping(uint => Deposit)) public deposits;
 
-  ITokenController public tokenController;
-
   /* immutables */
 
   INXMToken public immutable nxm;
+  ITokenController public  immutable tokenController;
   address public immutable coverContract;
 
   /* constants */
@@ -131,10 +130,12 @@ contract StakingPool is IStakingPool, ERC721 {
     string memory _name,
     string memory _symbol,
     address _token,
-    address _coverContract
+    address _coverContract,
+    ITokenController _tokenController
   ) ERC721(_name, _symbol) {
     nxm = INXMToken(_token);
     coverContract = _coverContract;
+    tokenController = _tokenController;
   }
 
   function initialize(
@@ -143,8 +144,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _initialPoolFee,
     uint _maxPoolFee,
     ProductInitializationParams[] calldata params,
-    uint _poolId,
-    ITokenController _tokenController
+    uint _poolId
   ) external onlyCoverContract {
 
     isPrivatePool = _isPrivatePool;
@@ -163,7 +163,6 @@ contract StakingPool is IStakingPool, ERC721 {
     _safeMint(_manager, 0);
 
     poolId = _poolId;
-    tokenController = _tokenController;
   }
 
   // used to transfer all nfts when a user switches the membership to a new address

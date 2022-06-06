@@ -7,13 +7,13 @@ import "@openzeppelin/contracts-v4/utils/Address.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
-import "../../utils/SafeUintCast.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../libraries/SafeUintCast.sol";
 
 contract Pool is IPool, MasterAware, ReentrancyGuard {
   using SafeERC20 for IERC20;

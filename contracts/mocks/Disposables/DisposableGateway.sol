@@ -2,7 +2,7 @@
 
 pragma solidity >=0.5.0;
 
-import "../../modules/cover/Gateway.sol";
+import "../../modules/legacy/Gateway.sol";
 
 contract DisposableGateway is Gateway {
 

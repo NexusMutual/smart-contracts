@@ -10,7 +10,7 @@ import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/INXMToken.sol";
-import "../../utils/Math.sol";
+import "../../libraries/Math.sol";
 
 // total stake = active stake + expired stake
 // product stake = active stake * product weight

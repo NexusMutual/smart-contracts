@@ -2,14 +2,14 @@
 
 pragma solidity ^0.8.9;
 
-import "../../interfaces/INXMToken.sol";
-import "../../interfaces/ITokenController.sol";
+import "@openzeppelin/contracts-v4/utils/cryptography/MerkleProof.sol";
+
+import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IMemberRoles.sol";
-import "../../abstract/MasterAwareV2.sol";
+import "../../interfaces/INXMToken.sol";
+import "../../interfaces/ITokenController.sol";
 import "../../utils/Math.sol";
-
-import "@openzeppelin/contracts-v4/utils/cryptography/MerkleProof.sol";
 
 /// Provides the assessment mechanism for members to decide the outcome of the events that can lead
 /// to payouts. Mints rewards for stakers that act benevolently and allows burning fraudulent ones.

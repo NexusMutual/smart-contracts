@@ -32,7 +32,7 @@ async function setup () {
   const StakingPool = await ethers.getContractFactory('CoverMockStakingPool');
   const CoverUtilsLib = await ethers.getContractFactory('CoverUtilsLib');
 
-  
+
   const coverUtilsLib = await CoverUtilsLib.deploy();
 
   const Cover = await ethers.getContractFactory('Cover', {
@@ -78,7 +78,7 @@ async function setup () {
 
   const coverAddress = getDeployAddressAfter(1);
 
-  const stakingPool = await StakingPool.deploy(nxm.address, coverAddress, memberRoles.address);
+  const stakingPool = await StakingPool.deploy(nxm.address, coverAddress, memberRoles.address, tokenController.address);
   const cover = await Cover.deploy(
     quotationData.address,
     ethers.constants.AddressZero,

@@ -353,14 +353,14 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   }
 
 
-  function mintPooledStakingNXMRewards(uint amount, uint poolId) external {
+  function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
 
     require(msg.sender == address(cover), "TokenController: only Cover allowed");
     mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
 
-  function burnPooledStakingNXMRewards(uint amount, uint poolId) external {
+  function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
 
     require(msg.sender == address(cover), "TokenController: only Cover allowed");
     burnFrom(address(this), amount);

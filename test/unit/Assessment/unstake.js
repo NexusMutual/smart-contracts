@@ -56,11 +56,11 @@ describe('unstake', function () {
   });
 
   it("reverts if less than stakeLockupPeriodInDays passed since the staker's last vote", async function () {
-    const { assessment, nxm, individualClaims } = this.contracts;
+    const { assessment, individualClaims } = this.contracts;
     const user = this.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
-    await assessment.connect(user).castVote(0, true);
+    await assessment.connect(user).castVotes([0], [true], 0);
     await expect(assessment.connect(user).unstake(parseEther('100'), user.address)).to.be.revertedWith(
       'Stake is in lockup period',
     );

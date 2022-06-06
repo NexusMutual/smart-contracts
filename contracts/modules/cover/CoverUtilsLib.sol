@@ -23,6 +23,14 @@ library CoverUtilsLib {
     IProductsV1 productsV1;
   }
 
+  struct PoolInitializationParams {
+    uint poolId;
+    address manager;
+    bool isPrivatePool;
+    uint initialPoolFee;
+    uint maxPoolFee;
+  }
+
   function migrateCoverFromOwner(
     MigrateParams memory params,
     Product[] storage _products,
@@ -88,7 +96,8 @@ library CoverUtilsLib {
         SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days), // start
         SafeUintCast.toUint32(coverPeriodInDays * 1 days), // period
         uint16(0), // priceRatio
-        false // expired
+        false, // expired
+        0 // global rewards ratio //
       )
     );
 
@@ -104,28 +113,43 @@ library CoverUtilsLib {
   }
 
   function createStakingPool(
-    uint poolId,
-    address manager,
-    bool isPrivatePool,
-    uint initialPoolFee,
-    uint maxPoolFee,
-    ProductInitializationParams[] calldata params,
+    Product[] storage products,
+    PoolInitializationParams memory poolInitParams,
+    ProductInitializationParams[] memory productInitParams,
     uint depositAmount,
-    uint trancheId
+    uint trancheId,
+    ITokenController tokenController,
+    address pooledStakingAddress
   ) external returns (address stakingPoolAddress) {
 
     stakingPoolAddress = address(
-      new MinimalBeaconProxy{ salt: bytes32(poolId) }(address(this))
+      new MinimalBeaconProxy{ salt: bytes32(poolInitParams.poolId) }(address(this))
     );
+
+
+    if (msg.sender != pooledStakingAddress) {
+
+      // override with initial price
+      for (uint i = 0; i < productInitParams.length; i++) {
+        productInitParams[0].initialPrice = products[productInitParams[i].productId].initialPriceRatio;
+      }
+    }
 
     // will create the ownership nft
     IStakingPool newStakingPool = IStakingPool(stakingPoolAddress);
-    newStakingPool.initialize(manager, isPrivatePool, initialPoolFee, maxPoolFee, params);
+    newStakingPool.initialize(
+      poolInitParams.manager,
+      poolInitParams.isPrivatePool,
+      poolInitParams.initialPoolFee,
+      poolInitParams.maxPoolFee,
+      productInitParams,
+      poolInitParams.poolId
+    );
 
     // will create nft with a position in the desired tranche id
     if (depositAmount > 0) {
       DepositRequest[] memory requests = new DepositRequest[](1);
-      requests[0] = DepositRequest(depositAmount, trancheId, 0, manager);
+      requests[0] = DepositRequest(depositAmount, trancheId, 0, poolInitParams.manager);
       newStakingPool.depositTo(requests);
     }
   }

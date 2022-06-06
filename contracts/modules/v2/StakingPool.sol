@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/math/SafeCast.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICover.sol";
+import "../../interfaces/ITokenController.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../utils/Math.sol";
 
@@ -40,6 +41,8 @@ contract StakingPool is IStakingPool, ERC721 {
   using SafeCast for uint;
 
   /* storage */
+
+  uint poolId;
 
   // currently active staked nxm amount
   uint public activeStake;
@@ -92,6 +95,7 @@ contract StakingPool is IStakingPool, ERC721 {
   /* immutables */
 
   INXMToken public immutable nxm;
+  ITokenController public  immutable tokenController;
   address public immutable coverContract;
 
   /* constants */
@@ -126,10 +130,12 @@ contract StakingPool is IStakingPool, ERC721 {
     string memory _name,
     string memory _symbol,
     address _token,
-    address _coverContract
+    address _coverContract,
+    ITokenController _tokenController
   ) ERC721(_name, _symbol) {
     nxm = INXMToken(_token);
     coverContract = _coverContract;
+    tokenController = _tokenController;
   }
 
   function initialize(
@@ -137,7 +143,8 @@ contract StakingPool is IStakingPool, ERC721 {
     bool _isPrivatePool,
     uint _initialPoolFee,
     uint _maxPoolFee,
-    ProductInitializationParams[] calldata params
+    ProductInitializationParams[] calldata params,
+    uint _poolId
   ) external onlyCoverContract {
 
     isPrivatePool = _isPrivatePool;
@@ -154,6 +161,8 @@ contract StakingPool is IStakingPool, ERC721 {
     // create ownership nft
     totalSupply = 1;
     _safeMint(_manager, 0);
+
+    poolId = _poolId;
   }
 
   // used to transfer all nfts when a user switches the membership to a new address
@@ -367,9 +376,8 @@ contract StakingPool is IStakingPool, ERC721 {
       _rewardsSharesSupply += newRewardsShares;
     }
 
-    // transfer nxm from staker
-    // TODO: use TokenController.operatorTransfer instead and transfer to TC
-    nxm.transferFrom(msg.sender, address(this), totalAmount);
+    // transfer nxm from staker and update pool deposit balance
+    tokenController.depositStakedNXM(msg.sender, totalAmount, poolId);
 
     // update globals
     activeStake = _activeStake;
@@ -448,8 +456,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
       uint withdrawable = stakeToWithdraw + rewardsToWithdraw;
 
-      // TODO: use TC instead
-      nxm.transfer(ownerOf(tokenId), withdrawable);
+      tokenController.withdrawNXMStakeAndRewards(ownerOf(tokenId), stakeToWithdraw, rewardsToWithdraw, poolId);
     }
   }
 
@@ -459,12 +466,11 @@ contract StakingPool is IStakingPool, ERC721 {
     uint gracePeriod,
     uint productStakeAmount,
     uint rewardRatio
-  ) external onlyCoverContract returns (uint newAllocation, uint premium) {
+  ) external onlyCoverContract returns (uint newAllocation, uint premium, uint rewardsInNXM) {
 
     updateTranches();
 
     Product memory product = products[productId];
-    uint allocatedProductStake = product.allocatedStake;
     uint currentBucket = block.timestamp / BUCKET_DURATION;
 
     {
@@ -473,7 +479,7 @@ contract StakingPool is IStakingPool, ERC721 {
       // process expirations
       while (lastBucket < currentBucket) {
         ++lastBucket;
-        allocatedProductStake -= productBuckets[productId][lastBucket].allocationCut;
+        product.allocatedStake -= productBuckets[productId][lastBucket].allocationCut;
       }
     }
 
@@ -497,20 +503,20 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     // could happen if is 100% in-use or if the product weight was changed
-    if (allocatedProductStake >= freeProductStake) {
+    if (product.allocatedStake >= freeProductStake) {
       // store expirations
-      products[productId].allocatedStake = allocatedProductStake;
+      products[productId].allocatedStake = product.allocatedStake;
       products[productId].lastBucket = currentBucket;
-      return (0, 0);
+      return (0, 0, 0);
     }
 
     {
-      uint usableStake = freeProductStake - allocatedProductStake;
+      uint usableStake = freeProductStake - product.allocatedStake;
       newAllocation = Math.min(productStakeAmount, usableStake);
 
       premium = calculatePremium(
         productId,
-        allocatedProductStake,
+        product.allocatedStake,
         usableStake,
         newAllocation,
         period
@@ -518,7 +524,7 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     // 1 SSTORE
-    products[productId].allocatedStake = allocatedProductStake + newAllocation;
+    products[productId].allocatedStake = product.allocatedStake + newAllocation;
     products[productId].lastBucket = currentBucket;
 
     {
@@ -526,8 +532,10 @@ contract StakingPool is IStakingPool, ERC721 {
 
       // divCeil = fn(a, b) => (a + b - 1) / b
       uint expireAtBucket = (block.timestamp + period + BUCKET_DURATION - 1) / BUCKET_DURATION;
+
+      rewardsInNXM = premium * rewardRatio / REWARDS_DENOMINATOR;
       uint _rewardPerSecond =
-        premium * rewardRatio / REWARDS_DENOMINATOR
+        rewardsInNXM
         / (expireAtBucket * BUCKET_DURATION - block.timestamp);
 
       // 2 SLOAD + 2 SSTORE
@@ -561,7 +569,8 @@ contract StakingPool is IStakingPool, ERC721 {
     uint start,
     uint period,
     uint amount,
-    uint premium
+    uint premium,
+    uint globalRewardsRatio
   ) external onlyCoverContract {
 
     // silence compiler warnings

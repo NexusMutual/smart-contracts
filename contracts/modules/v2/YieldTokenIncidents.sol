@@ -201,7 +201,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     uint depeggedTokens,
     address payable payoutAddress,
     bytes calldata optionalParams
-  ) external override whenNotPaused returns (uint, uint8) {
+  ) external override onlyMember whenNotPaused returns (uint, uint8) {
     require(
       coverNFT.isApprovedOrOwner(msg.sender, coverId),
       "Only the cover owner or approved addresses can redeem"

@@ -18,15 +18,15 @@ describe('getVoteCountOfAssessor', function () {
       expect(count).to.be.equal(0);
     }
 
-    await assessment.connect(assessor1).castVote(0, true);
+    await assessment.connect(assessor1).castVotes([0], [true], 0);
 
     {
       const count = await assessment.getVoteCountOfAssessor(assessor1.address);
       expect(count).to.be.equal(1);
     }
 
-    await assessment.connect(assessor1).castVote(1, true);
-    await assessment.connect(assessor1).castVote(2, true);
+    await assessment.connect(assessor1).castVotes([1], [true], 0);
+    await assessment.connect(assessor1).castVotes([2], [true], 0);
 
     {
       const count = await assessment.getVoteCountOfAssessor(assessor1.address);
@@ -38,8 +38,8 @@ describe('getVoteCountOfAssessor', function () {
       expect(count).to.be.equal(0);
     }
 
-    await assessment.connect(assessor2).castVote(1, true);
-    await assessment.connect(assessor2).castVote(2, true);
+    await assessment.connect(assessor2).castVotes([1], [true], 0);
+    await assessment.connect(assessor2).castVotes([2], [true], 0);
 
     {
       const count = await assessment.getVoteCountOfAssessor(assessor2.address);

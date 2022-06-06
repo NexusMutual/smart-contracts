@@ -3,23 +3,27 @@ const { expect } = require('chai');
 const { setTime, daysToSeconds } = require('./helpers');
 const { parseEther } = ethers.utils;
 
-describe('castVote', function () {
+describe('castVotes', function () {
   it('reverts if the user has already voted on the same assessment', async function () {
     const { assessment, individualClaims } = this.contracts;
     const user = this.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
-    await assessment.connect(user).castVote(0, true);
-    await expect(assessment.connect(user).castVote(0, true)).to.be.revertedWith('Already voted');
-    await expect(assessment.connect(user).castVote(0, false)).to.be.revertedWith('Already voted');
+    await assessment.connect(user).castVotes([0], [true], 0);
+    await expect(assessment.connect(user).castVotes([0], [true], 0)).to.be.revertedWith('Already voted');
+    await expect(assessment.connect(user).castVotes([0], [false], 0)).to.be.revertedWith('Already voted');
   });
 
   it('reverts if the user has no stake', async function () {
     const { assessment, individualClaims } = this.contracts;
     const user = this.accounts.members[0];
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
-    await expect(assessment.connect(user).castVote(0, true)).to.be.revertedWith('A stake is required to cast votes');
-    await expect(assessment.connect(user).castVote(0, false)).to.be.revertedWith('A stake is required to cast votes');
+    await expect(assessment.connect(user).castVotes([0], [true], 0)).to.be.revertedWith(
+      'A stake is required to cast votes',
+    );
+    await expect(assessment.connect(user).castVotes([0], [false], 0)).to.be.revertedWith(
+      'A stake is required to cast votes',
+    );
   });
 
   it('reverts if the voting period has ended', async function () {
@@ -32,19 +36,19 @@ describe('castVote', function () {
       const { poll } = await assessment.assessments(0);
       await setTime(poll.end);
     }
-    await expect(assessment.connect(user1).castVote(0, true)).to.be.revertedWith('Voting is closed');
-    await expect(assessment.connect(user1).castVote(0, false)).to.be.revertedWith('Voting is closed');
+    await expect(assessment.connect(user1).castVotes([0], [true], 0)).to.be.revertedWith('Voting is closed');
+    await expect(assessment.connect(user1).castVotes([0], [false], 0)).to.be.revertedWith('Voting is closed');
 
     await individualClaims.submitClaim(1, 0, parseEther('100'), '');
     const { timestamp } = await ethers.provider.getBlock('latest');
     await setTime(timestamp + daysToSeconds(1));
-    await assessment.connect(user1).castVote(1, true);
+    await assessment.connect(user1).castVotes([1], [true], 0);
     {
       const { poll } = await assessment.assessments(1);
       await setTime(poll.end);
     }
-    await expect(assessment.connect(user2).castVote(1, true)).to.be.revertedWith('Voting is closed');
-    await expect(assessment.connect(user2).castVote(1, false)).to.be.revertedWith('Voting is closed');
+    await expect(assessment.connect(user2).castVotes([1], [true], 0)).to.be.revertedWith('Voting is closed');
+    await expect(assessment.connect(user2).castVotes([1], [false], 0)).to.be.revertedWith('Voting is closed');
   });
 
   it('reverts if the first vote is deny', async function () {
@@ -52,7 +56,7 @@ describe('castVote', function () {
     const user = this.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
-    await expect(assessment.connect(user).castVote(0, false)).to.be.revertedWith(
+    await expect(assessment.connect(user).castVotes([0], [false], 0)).to.be.revertedWith(
       'At least one accept vote is required to vote deny',
     );
   });
@@ -67,7 +71,7 @@ describe('castVote', function () {
       await setTime(timestamp + daysToSeconds(1));
     }
 
-    await assessment.connect(user).castVote(0, true);
+    await assessment.connect(user).castVotes([0], [true], 0);
     let expectedEnd;
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
@@ -92,7 +96,7 @@ describe('castVote', function () {
     await assessment.connect(user4).stake(parseEther('800'));
     await assessment.connect(user5).stake(parseEther('300'));
 
-    await assessment.connect(user1).castVote(0, true);
+    await assessment.connect(user1).castVotes([0], [true], 0);
 
     {
       const { poll } = await assessment.assessments(0);
@@ -101,17 +105,17 @@ describe('castVote', function () {
       await setTime(poll.end - 2);
     }
 
-    await assessment.connect(user2).castVote(0, true);
+    await assessment.connect(user2).castVotes([0], [true], 0);
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       const { poll } = await assessment.assessments(0);
       expect(poll.end).to.be.equal(timestamp + daysToSeconds(1) + 1);
-      // Subtract 1 second to allow the next castVote to happen 1 second before the vote period
+      // Subtract 1 second to allow the next castVotes to happen 1 second before the vote period
       // extension ends
       await setTime(timestamp + daysToSeconds(1) - 1);
     }
 
-    await assessment.connect(user3).castVote(0, true);
+    await assessment.connect(user3).castVotes([0], [true], 0);
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       const { poll } = await assessment.assessments(0);
@@ -119,7 +123,7 @@ describe('castVote', function () {
       await setTime(timestamp + daysToSeconds(1) - 1);
     }
 
-    await assessment.connect(user4).castVote(0, true);
+    await assessment.connect(user4).castVotes([0], [true], 0);
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       const { poll } = await assessment.assessments(0);
@@ -127,7 +131,7 @@ describe('castVote', function () {
       await setTime(timestamp + daysToSeconds(1) - 1);
     }
 
-    await assessment.connect(user5).castVote(0, true);
+    await assessment.connect(user5).castVotes([0], [true], 0);
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       const { poll } = await assessment.assessments(0);
@@ -147,19 +151,19 @@ describe('castVote', function () {
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
     {
-      await assessment.connect(user1).castVote(0, true);
+      await assessment.connect(user1).castVotes([0], [true], 0);
       const { poll } = await assessment.assessments(0);
       expect(poll.accepted).to.be.equal(parseEther('100'));
     }
 
     {
-      await assessment.connect(user2).castVote(0, false);
+      await assessment.connect(user2).castVotes([0], [false], 0);
       const { poll } = await assessment.assessments(0);
       expect(poll.accepted).to.be.equal(parseEther('100'));
     }
 
     {
-      await assessment.connect(user3).castVote(0, true);
+      await assessment.connect(user3).castVotes([0], [true], 0);
       const { poll } = await assessment.assessments(0);
       expect(poll.accepted).to.be.equal(parseEther('200'));
     }
@@ -176,25 +180,25 @@ describe('castVote', function () {
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
     {
-      await assessment.connect(user1).castVote(0, true);
+      await assessment.connect(user1).castVotes([0], [true], 0);
       const { poll } = await assessment.assessments(0);
       expect(poll.denied).to.be.equal(parseEther('0'));
     }
 
     {
-      await assessment.connect(user2).castVote(0, false);
+      await assessment.connect(user2).castVotes([0], [false], 0);
       const { poll } = await assessment.assessments(0);
       expect(poll.denied).to.be.equal(parseEther('100'));
     }
 
     {
-      await assessment.connect(user3).castVote(0, true);
+      await assessment.connect(user3).castVotes([0], [true], 0);
       const { poll } = await assessment.assessments(0);
       expect(poll.denied).to.be.equal(parseEther('100'));
     }
 
     {
-      await assessment.connect(user4).castVote(0, false);
+      await assessment.connect(user4).castVotes([0], [false], 0);
       const { poll } = await assessment.assessments(0);
       expect(poll.denied).to.be.equal(parseEther('200'));
     }
@@ -210,7 +214,7 @@ describe('castVote', function () {
     await individualClaims.submitClaim(1, 0, parseEther('100'), '');
 
     {
-      await assessment.connect(user1).castVote(0, true);
+      await assessment.connect(user1).castVotes([0], [true], 0);
       const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
       const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user1.address, 0);
       expect(assessmentId).to.be.equal(0);
@@ -220,7 +224,7 @@ describe('castVote', function () {
     }
 
     {
-      await assessment.connect(user1).castVote(1, true);
+      await assessment.connect(user1).castVotes([1], [true], 0);
       const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
       const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user1.address, 1);
       expect(assessmentId).to.be.equal(1);
@@ -230,7 +234,7 @@ describe('castVote', function () {
     }
 
     {
-      await assessment.connect(user2).castVote(0, false);
+      await assessment.connect(user2).castVotes([0], [false], 0);
       const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
       const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user2.address, 0);
       expect(assessmentId).to.be.equal(0);
@@ -240,13 +244,50 @@ describe('castVote', function () {
     }
 
     {
-      await assessment.connect(user2).castVote(1, false);
+      await assessment.connect(user2).castVotes([1], [false], 0);
       const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
       const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user2.address, 1);
       expect(assessmentId).to.be.equal(1);
       expect(accepted).to.be.equal(false);
       expect(timestamp).to.be.equal(timestampAtVoteTime);
       expect(stakedAmount).to.be.equal(parseEther('1000'));
+    }
+  });
+
+  it('increases stake in the same transaction before casting votes', async function () {
+    const { assessment, individualClaims } = this.contracts;
+    const [user1] = this.accounts.members;
+    await assessment.connect(user1).stake(parseEther('100'));
+
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(1, 0, parseEther('100'), '');
+
+    {
+      await assessment.connect(user1).castVotes([0], [true], 0);
+      const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
+      const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user1.address, 0);
+      expect(assessmentId).to.be.equal(0);
+      expect(accepted).to.be.equal(true);
+      expect(timestamp).to.be.equal(timestampAtVoteTime);
+      expect(stakedAmount).to.be.equal(parseEther('100'));
+    }
+
+    {
+      await assessment.connect(user1).castVotes([1], [true], parseEther('33'));
+      const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
+      const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user1.address, 1);
+      expect(assessmentId).to.be.equal(1);
+      expect(accepted).to.be.equal(true);
+      expect(timestamp).to.be.equal(timestampAtVoteTime);
+      expect(stakedAmount).to.be.equal(parseEther('133'));
+    }
+
+    // Also make sure the previous vote was not affected by the stake increase just in case
+    {
+      const { assessmentId, accepted, stakedAmount } = await assessment.votesOf(user1.address, 0);
+      expect(assessmentId).to.be.equal(0);
+      expect(accepted).to.be.equal(true);
+      expect(stakedAmount).not.to.be.equal(parseEther('133'));
     }
   });
 });

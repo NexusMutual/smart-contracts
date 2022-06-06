@@ -13,7 +13,6 @@ import "../../interfaces/ICoverNFT.sol";
 
 library CoverUtilsLib {
 
-
   struct MigrateParams {
     uint coverId;
     address fromOwner;
@@ -24,6 +23,14 @@ library CoverUtilsLib {
     IProductsV1 productsV1;
   }
 
+  struct PoolInitializationParams {
+    uint poolId;
+    address manager;
+    bool isPrivatePool;
+    uint initialPoolFee;
+    uint maxPoolFee;
+  }
+
   function migrateCoverFromOwner(
     MigrateParams memory params,
     Product[] storage _products,
@@ -31,20 +38,22 @@ library CoverUtilsLib {
     CoverData[] storage _coverData,
     mapping(uint => CoverSegment[]) storage _coverSegments
   ) external {
+
     (
-    /*uint coverId*/,
-    address coverOwner,
-    address legacyProductId,
-    bytes4 currencyCode,
-    /*uint sumAssured*/,
-    /*uint premiumNXM*/
+      /*uint coverId*/,
+      address coverOwner,
+      address legacyProductId,
+      bytes4 currencyCode,
+      /*uint sumAssured*/,
+      /*uint premiumNXM*/
     ) = params.quotationData.getCoverDetailsByCoverID1(params.coverId);
+
     (
-    /*uint coverId*/,
-    uint8 status,
-    uint sumAssured,
-    uint16 coverPeriodInDays,
-    uint validUntil
+      /*uint coverId*/,
+      uint8 status,
+      uint sumAssured,
+      uint16 coverPeriodInDays,
+      uint validUntil
     ) = params.quotationData.getCoverDetailsByCoverID2(params.coverId);
 
     require(params.fromOwner == coverOwner, "Cover can only be migrated by its owner");
@@ -59,7 +68,6 @@ library CoverUtilsLib {
 
     // Mark cover as migrated to prevent future calls on the same cover
     params.quotationData.changeCoverStatusNo(params.coverId, uint8(LegacyCoverStatus.Migrated));
-
 
     {
       // mint the new cover
@@ -88,16 +96,15 @@ library CoverUtilsLib {
         SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days), // start
         SafeUintCast.toUint32(coverPeriodInDays * 1 days), // period
         uint16(0), // priceRatio
-        false // expired
+        false, // expired
+        0 // global rewards ratio //
       )
     );
 
     params.coverNFT.safeMint(params.toNewOwner, newCoverId);
   }
 
-
   function calculateProxyCodeHash() external view returns (bytes32) {
-
     return keccak256(
       abi.encodePacked(
       type(MinimalBeaconProxy).creationCode,
@@ -106,26 +113,45 @@ library CoverUtilsLib {
   }
 
   function createStakingPool(
-    address manager,
-    uint poolId,
-    ProductInitializationParams[] calldata params,
+    Product[] storage products,
+    PoolInitializationParams memory poolInitParams,
+    ProductInitializationParams[] memory productInitParams,
     uint depositAmount,
-    uint groupId
+    uint trancheId,
+    ITokenController tokenController,
+    address pooledStakingAddress
   ) external returns (address stakingPoolAddress) {
 
     stakingPoolAddress = address(
-      new MinimalBeaconProxy{ salt: bytes32(poolId) }(address(this))
+      new MinimalBeaconProxy{ salt: bytes32(poolInitParams.poolId) }(address(this))
     );
 
-    // [todo] handle the creation of NFT 0 which is the default NFT owned by the pool manager
 
+    if (msg.sender != pooledStakingAddress) {
+
+      // override with initial price
+      for (uint i = 0; i < productInitParams.length; i++) {
+        productInitParams[0].initialPrice = products[productInitParams[i].productId].initialPriceRatio;
+      }
+    }
+
+    // will create the ownership nft
     IStakingPool newStakingPool = IStakingPool(stakingPoolAddress);
-    newStakingPool.initialize(manager, params);
+    newStakingPool.initialize(
+      poolInitParams.manager,
+      poolInitParams.isPrivatePool,
+      poolInitParams.initialPoolFee,
+      poolInitParams.maxPoolFee,
+      productInitParams,
+      poolInitParams.poolId
+    );
 
-    uint stakePositionNFTId = newStakingPool.deposit(depositAmount, groupId, 0);
-
-    // NFT transfer reverts if manager is a contract that doesn't implement IERC721Receiver
-    newStakingPool.safeTransferFrom(address(this), manager, stakePositionNFTId);
+    // will create nft with a position in the desired tranche id
+    if (depositAmount > 0) {
+      DepositRequest[] memory requests = new DepositRequest[](1);
+      requests[0] = DepositRequest(depositAmount, trancheId, 0, poolInitParams.manager);
+      newStakingPool.depositTo(requests);
+    }
   }
 
   function stakingPool(uint index, bytes32 stakingPoolProxyCodeHash) public view returns (IStakingPool) {

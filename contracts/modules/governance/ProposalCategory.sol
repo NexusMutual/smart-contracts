@@ -67,45 +67,6 @@ contract ProposalCategory is IProposalCategory, Governed, LegacyMasterAware {
   function proposalCategoryInitiate() external {}
 
   /**
-  * @dev Initiates Default action function hashes for existing categories
-  * To be called after the contract has been upgraded by governance
-  */
-  function updateCategoryActionHashes() external onlyOwner {
-
-    require(!categoryActionHashUpdated, "Category action hashes already updated");
-    categoryActionHashUpdated = true;
-    categoryActionHashes[1] = abi.encodeWithSignature("addRole(bytes32,string,address)");
-    categoryActionHashes[2] = abi.encodeWithSignature("updateRole(address,uint256,bool)");
-    categoryActionHashes[3] = abi.encodeWithSignature("newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)"); // solhint-disable-line
-    categoryActionHashes[4] = abi.encodeWithSignature("editCategory(uint256,string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)"); // solhint-disable-line
-    categoryActionHashes[5] = abi.encodeWithSignature("upgradeContractImplementation(bytes2,address)");
-    categoryActionHashes[6] = abi.encodeWithSignature("startEmergencyPause()");
-    categoryActionHashes[7] = abi.encodeWithSignature("addEmergencyPause(bool,bytes4)");
-    categoryActionHashes[8] = abi.encodeWithSignature("burnCAToken(uint256,uint256,address)");
-    categoryActionHashes[9] = abi.encodeWithSignature("setUserClaimVotePausedOn(address)");
-    categoryActionHashes[12] = abi.encodeWithSignature("transferEther(uint256,address)");
-    categoryActionHashes[13] = abi.encodeWithSignature("addInvestmentAssetCurrency(bytes4,address,bool,uint64,uint64,uint8)"); // solhint-disable-line
-    categoryActionHashes[14] = abi.encodeWithSignature("changeInvestmentAssetHoldingPerc(bytes4,uint64,uint64)");
-    categoryActionHashes[15] = abi.encodeWithSignature("changeInvestmentAssetStatus(bytes4,bool)");
-    categoryActionHashes[16] = abi.encodeWithSignature("swapABMember(address,address)");
-    categoryActionHashes[17] = abi.encodeWithSignature("addCurrencyAssetCurrency(bytes4,address,uint256)");
-    categoryActionHashes[20] = abi.encodeWithSignature("updateUintParameters(bytes8,uint256)");
-    categoryActionHashes[21] = abi.encodeWithSignature("updateUintParameters(bytes8,uint256)");
-    categoryActionHashes[22] = abi.encodeWithSignature("updateUintParameters(bytes8,uint256)");
-    categoryActionHashes[23] = abi.encodeWithSignature("updateUintParameters(bytes8,uint256)");
-    categoryActionHashes[24] = abi.encodeWithSignature("updateUintParameters(bytes8,uint256)");
-    categoryActionHashes[25] = abi.encodeWithSignature("updateUintParameters(bytes8,uint256)");
-    categoryActionHashes[26] = abi.encodeWithSignature("updateUintParameters(bytes8,uint256)");
-    categoryActionHashes[27] = abi.encodeWithSignature("updateAddressParameters(bytes8,address)");
-    categoryActionHashes[28] = abi.encodeWithSignature("updateOwnerParameters(bytes8,address)");
-    categoryActionHashes[29] = abi.encodeWithSignature("upgradeMultipleContracts(bytes2[],address[])");
-    categoryActionHashes[30] = abi.encodeWithSignature("changeCurrencyAssetAddress(bytes4,address)");
-    categoryActionHashes[31] = abi.encodeWithSignature("changeCurrencyAssetBaseMin(bytes4,uint256)");
-    categoryActionHashes[32] = abi.encodeWithSignature("changeInvestmentAssetAddressAndDecimal(bytes4,address,uint8)"); // solhint-disable-line
-    categoryActionHashes[33] = abi.encodeWithSignature("externalLiquidityTrade()");
-  }
-
-  /**
   * @dev Gets Total number of categories added till now
   */
   function totalCategories() external view returns (uint) {

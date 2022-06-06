@@ -12,6 +12,7 @@ describe('Assessment', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
+  require('./initialize');
   require('./stake');
   require('./unstake');
   require('./getRewards');
@@ -21,7 +22,7 @@ describe('Assessment', function () {
   require('./withdrawRewards');
   require('./withdrawRewardsTo');
   require('./startAssessment');
-  require('./castVote');
+  require('./castVotes');
   require('./submitFraud');
   require('./processFraud');
   require('./updateUintParameters');

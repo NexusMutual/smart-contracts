@@ -4,56 +4,72 @@ pragma solidity >=0.5.0;
 
 import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 
+import "./ITokenController.sol";
+
 /* structs for io */
 
 struct WithdrawParams {
-  uint positionId;
-  uint[] groupIds;
-  uint flags;
+  uint tokenId;
+  bool withdrawStake;
+  bool withdrawRewards;
+  uint[] trancheIds;
+}
+
+struct DepositRequest {
+  uint amount;
+  uint trancheId;
+  uint tokenId;
+  address destination;
 }
 
 struct ProductParams {
   uint productId;
-  uint weight;
+  bool setWeight;
+  uint targetWeight;
+  bool setPrice;
   uint targetPrice;
-  uint flags;
 }
 
 struct ProductInitializationParams {
   uint productId;
   uint8 weight;
-  uint initialPrice;
-  uint targetPrice;
+  uint96 initialPrice;
+  uint96 targetPrice;
 }
-
-struct LastPrice {
-  uint96 value;
-  uint32 lastUpdateTime;
-}
-
 
 interface IStakingPool is IERC721 {
 
   /* structs for storage */
 
-  // stakers are grouped based on the timelock expiration
-  // group index is calculated based on the expiration date
-  // the initial proposal is to have 4 groups per year (1 group per quarter)
-  struct StakeGroup {
+  // stakers are grouped in tranches based on the timelock expiration
+  // tranche index is calculated based on the expiration date
+  // the initial proposal is to have 4 tranches per year (1 tranche per quarter)
+  struct Tranche {
     uint stakeShares;
     uint rewardsShares;
-    uint groupSharesSupply;
-    // TODO: consider extracting the following fields to a separate struct
-    uint accRewardPerStakeShareAtExpiration;
-    uint expiredStakeAmount;
+  }
+
+  struct ExpiredTranche {
+    uint accNxmPerRewardShareAtExpiry;
+    uint stakeAmountAtExpiry;
+    uint stakeShareSupplyAtExpiry;
+  }
+
+  struct Deposit {
+    uint lastAccNxmPerRewardShare;
+    uint pendingRewards;
+    uint stakeShares;
+    uint rewardsShares;
   }
 
   struct Product {
-    uint weight;
+    uint8 lastWeight;
+    uint8 targetWeight;
     uint allocatedStake;
     uint lastBucket;
     uint targetPrice;
-    uint lastPrice;
+    uint96 lastPrice;
+    uint32 lastPriceUpdateTime;
   }
 
   struct PoolBucket {
@@ -64,11 +80,18 @@ interface IStakingPool is IERC721 {
     uint allocationCut;
   }
 
-  function initialize(address _manager, ProductInitializationParams[] calldata params) external;
+  function initialize(
+    address _manager,
+    bool isPrivatePool,
+    uint initialPoolFee,
+    uint maxPoolFee,
+    ProductInitializationParams[] calldata params,
+    uint _poolId
+  ) external;
 
   function operatorTransfer(address from, address to, uint[] calldata tokenIds) external;
 
-  function updateGroups() external;
+  function updateTranches() external;
 
   function allocateStake(
     uint productId,
@@ -76,23 +99,32 @@ interface IStakingPool is IERC721 {
     uint gracePeriod,
     uint productStakeAmount,
     uint rewardRatio
-  ) external returns (uint allocatedNXM, uint premium);
+  ) external returns (uint allocatedNXM, uint premium, uint rewardsInNXM);
 
   function deallocateStake(
     uint productId,
     uint start,
     uint period,
     uint amount,
-    uint premium
+    uint premium,
+    uint globalRewardsRatio
   ) external;
 
   function burnStake(uint productId, uint start, uint period, uint amount) external;
 
-  function deposit(uint amount, uint groupId, uint _positionId) external returns (uint positionId);
+  function depositTo(DepositRequest[] memory requests) external returns (uint[] memory tokenIds);
 
   function withdraw(WithdrawParams[] memory params) external;
 
+  function addProducts(ProductParams[] memory params) external;
+
+  function removeProducts(uint[] memory productIds) external;
+
   function setProductDetails(ProductParams[] memory params) external;
+
+  function setPoolFee(uint newFee) external;
+
+  function setPoolPrivacy(bool isPrivatePool) external;
 
   function manager() external view returns (address);
 
@@ -104,10 +136,13 @@ interface IStakingPool is IERC721 {
 
   function getAllocatedProductStake(uint productId) external view returns (uint);
 
-
   function getPriceParameters(
-    uint productId
+    uint productId,
+    uint maxCoverPeriod
   ) external view returns (
-    uint activeCover, uint[] memory capacities, uint lastBasePrice, uint targetPrice
+    uint activeCover,
+    uint[] memory capacities,
+    uint lastBasePrice,
+    uint targetPrice
   );
 }

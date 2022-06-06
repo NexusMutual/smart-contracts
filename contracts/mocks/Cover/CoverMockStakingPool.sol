@@ -12,7 +12,6 @@ contract CoverMockStakingPool is StakingPool {
 
   /* immutables */
   address public immutable memberRoles;
-  uint public poolId;
 
   mapping (uint => uint) public usedCapacity;
   mapping (uint => uint) public stakedAmount;
@@ -21,8 +20,14 @@ contract CoverMockStakingPool is StakingPool {
 
   uint public constant MAX_PRICE_RATIO = 1e20;
 
-  constructor (address _nxm, address _coverContract, address _memberRoles)
-  StakingPool("Nexus Mutual Staking Pool", "NMSPT", IERC20(_nxm), _coverContract) {
+  constructor (
+    address _nxm,
+    address _coverContract,
+    ITokenController _tokenController,
+    address _memberRoles
+  )
+    StakingPool("Nexus Mutual Staking Pool", "NMSPT", _nxm, _coverContract, _tokenController)
+  {
     memberRoles = _memberRoles;
   }
 
@@ -31,7 +36,7 @@ contract CoverMockStakingPool is StakingPool {
   }
 
   function initialize(address _manager, uint _poolId) external /*override*/ {
-    manager = _manager;
+    _mint(_manager, totalSupply++);
     poolId = _poolId;
   }
 
@@ -84,9 +89,11 @@ contract CoverMockStakingPool is StakingPool {
   function getUsedCapacity(uint productId) external /*override*/ view returns (uint) {
     return usedCapacity[productId];
   }
+
   function getTargetPrice(uint productId) external /*override*/ view returns (uint) {
-    return targetPrices[productId];
+    return products[productId].targetPrice;
   }
+
   function getStake(uint productId) external /*override*/ view returns (uint) {
     return stakedAmount[productId];
   }
@@ -94,9 +101,11 @@ contract CoverMockStakingPool is StakingPool {
   function setUsedCapacity(uint productId, uint amount) external {
     usedCapacity[productId] = amount;
   }
+
   function setTargetPrice(uint productId, uint amount) external {
-    targetPrices[productId] = amount;
+    products[productId].targetPrice = amount;
   }
+
   function setStake(uint productId, uint amount) external {
     stakedAmount[productId] = amount;
   }

@@ -1,26 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity >=0.5.0;
+pragma experimental ABIEncoderV2;
 
 interface IMemberRoles {
 
   enum Role {UnAssigned, AdvisoryBoard, Member, Owner}
 
-  function payJoiningFee(address _userAddress) external payable;
+  function signUp(address _userAddress, bytes calldata data) external payable;
 
   function switchMembership(address _newAddress) external;
 
   function switchMembershipAndAssets(
     address newAddress,
     uint[] calldata coverIds,
-    address[] calldata stakingPools
+    address[] calldata stakingPools,
+    uint[][] calldata stakingPoolTokenIds
   ) external;
 
   function switchMembershipOf(address member, address _newAddress) external;
-
-  function addInitialABMembers(address[] calldata abArray) external;
-
-  function kycVerdict(address payable _userAddress, bool verdict) external;
 
   function totalRoles() external view returns (uint256);
 

@@ -60,6 +60,7 @@ contract MCR is IMCR, MasterAware {
   function changeDependentContractAddress() public {
     qd = IQuotationData(master.getLatestAddress("QD"));
     pool = IPool(master.getLatestAddress("P1"));
+    cover = ICover(master.getLatestAddress("CO"));
     initialize();
   }
 

@@ -21,7 +21,7 @@ describe('submitClaim', function () {
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
+      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
     );
     const coverId = 0;
     await expect(
@@ -39,7 +39,7 @@ describe('submitClaim', function () {
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
+      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
     );
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
@@ -59,7 +59,7 @@ describe('submitClaim', function () {
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
+      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
     );
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
     await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).to.be.revertedWith(
@@ -82,7 +82,7 @@ describe('submitClaim', function () {
         coverOwner.address,
         2, // productId of type yield token cover
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
+        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
       );
     }
     await expect(submitClaim(this)({ coverId: 0, sender: coverOwner })).to.be.revertedWith(
@@ -94,7 +94,7 @@ describe('submitClaim', function () {
         coverOwner.address,
         1, // productId of type custodian cover
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
+        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
       );
     }
     await expect(submitClaim(this)({ coverId: 1, sender: coverOwner })).not.to.be.revertedWith(
@@ -106,7 +106,7 @@ describe('submitClaim', function () {
         coverOwner.address,
         0, // productId of type protocol cover
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
+        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
       );
     }
     await expect(submitClaim(this)({ coverId: 2, sender: coverOwner })).not.to.be.revertedWith('Invalid redeem method');
@@ -121,7 +121,7 @@ describe('submitClaim', function () {
         coverOwner.address,
         0, // productId
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
+        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
       );
     }
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
@@ -145,7 +145,7 @@ describe('submitClaim', function () {
         coverOwner.address,
         0, // productId
         ASSET.ETH,
-        [[coverAmount, timestamp + 1, coverPeriod, 0]],
+        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
       );
     }
     const coverId = 0;
@@ -173,7 +173,7 @@ describe('submitClaim', function () {
         coverOwner.address,
         0, // productId
         ASSET.ETH,
-        [[coverAmount, timestamp + 1, coverPeriod, 0]],
+        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
       );
       const balanceBefore = await ethers.provider.getBalance(coverOwner.address);
       await individualClaims.connect(coverOwner).submitClaim(0, 0, coverAmount, '', {
@@ -190,7 +190,7 @@ describe('submitClaim', function () {
         coverOwner.address,
         0, // productId
         ASSET.ETH,
-        [[coverAmount, timestamp + 1, coverPeriod, 0]],
+        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
       );
       const balanceBefore = await ethers.provider.getBalance(coverOwner.address);
       await individualClaims.connect(coverOwner).submitClaim(1, 0, coverAmount, '', {
@@ -207,7 +207,7 @@ describe('submitClaim', function () {
         coverOwner.address,
         0, // productId
         ASSET.ETH,
-        [[coverAmount, timestamp + 1, coverPeriod, 0]],
+        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
       );
       const balanceBefore = await ethers.provider.getBalance(coverOwner.address);
       await individualClaims.connect(coverOwner).submitClaim(2, 0, coverAmount, '', {
@@ -232,8 +232,8 @@ describe('submitClaim', function () {
         0, // productId
         ASSET.ETH,
         [
-          [coverAmount, timestamp + 1, 0, 0],
-          [coverAmount.add('1'), timestamp + 1, coverPeriod, 0],
+          [coverAmount, timestamp + 1, 0, 0, false, 0],
+          [coverAmount.add('1'), timestamp + 1, coverPeriod, 0, false, 0],
         ],
       );
     }
@@ -267,8 +267,8 @@ describe('submitClaim', function () {
       0, // productId
       ASSET.ETH,
       [
-        [coverAmount, timestamp, coverPeriod, 0],
-        [coverAmount, timestamp + coverPeriod, coverPeriod, 0],
+        [coverAmount, timestamp, coverPeriod, 0, false, 0],
+        [coverAmount, timestamp + coverPeriod, coverPeriod, 0, false, 0],
       ],
     );
     const coverId = 0;
@@ -301,8 +301,8 @@ describe('submitClaim', function () {
         0, // productId
         payoutAsset,
         [
-          [coverAmount, timestamp + 1, coverPeriod, 0],
-          [coverAmount, timestamp + coverPeriod + 1, coverPeriod, 0],
+          [coverAmount, timestamp + 1, coverPeriod, 0, false, 0],
+          [coverAmount, timestamp + coverPeriod + 1, coverPeriod, 0, false, 0],
         ],
       );
     }
@@ -339,7 +339,7 @@ describe('submitClaim', function () {
         coverOwner.address,
         0, // productId
         payoutAsset,
-        [[coverAmount, timestamp + 1, coverPeriod, 0]],
+        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
       );
     }
 
@@ -354,10 +354,10 @@ describe('submitClaim', function () {
     await individualClaims.connect(coverOwner).submitClaim(coverId, 0, coverAmount, '', { value: expectedDeposit });
 
     const expectedAssessmentId = 0;
-    const { assessmentDeposit, totalReward } = await assessment.assessments(expectedAssessmentId);
+    const { assessmentDepositInETH, totalRewardInNXM } = await assessment.assessments(expectedAssessmentId);
 
-    expect(assessmentDeposit).to.be.equal(expectedDeposit);
-    expect(totalReward).to.be.equal(expectedTotalReward);
+    expect(assessmentDepositInETH).to.be.equal(expectedDeposit);
+    expect(totalRewardInNXM).to.be.equal(expectedTotalReward);
 
     const { assessmentId } = await individualClaims.claims(0);
     expect(assessmentId).to.be.equal(expectedAssessmentId);
@@ -373,7 +373,7 @@ describe('submitClaim', function () {
         coverOwner.address,
         0, // productId
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
+        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
       );
     }
     const coverId = 0;
@@ -391,7 +391,7 @@ describe('submitClaim', function () {
         coverOwner.address,
         0, // productId
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
+        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
       );
       const coverId = 0;
       await expect(submitClaim(this)({ coverId, sender: otherMember })).to.be.revertedWith(
@@ -408,7 +408,7 @@ describe('submitClaim', function () {
         coverOwner.address,
         0, // productId
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
+        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
       );
       const coverId = 1;
       await coverNFT.connect(coverOwner).approve(otherMember.address, coverId);
@@ -427,7 +427,7 @@ describe('submitClaim', function () {
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
+      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
     );
     const coverId = 0;
     await expect(submitClaim(this)({ coverId, ipfsMetadata, sender: coverOwner }))
@@ -443,7 +443,7 @@ describe('submitClaim', function () {
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
+      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
     );
     const coverId = 0;
     await expect(submitClaim(this)({ coverId, sender: coverOwner }))
@@ -460,7 +460,7 @@ describe('submitClaim', function () {
         coverOwner.address,
         0, // productId
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
+        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
       );
     }
     const firstCoverId = 0;
@@ -484,7 +484,7 @@ describe('submitClaim', function () {
         coverOwner.address,
         0, // productId
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0]],
+        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
       );
     }
     const secondCoverId = 1;

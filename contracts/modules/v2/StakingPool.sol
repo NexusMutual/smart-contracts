@@ -8,6 +8,9 @@ import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/math/SafeCast.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICover.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/INXMToken.sol";
+import "../../utils/Math.sol";
 
 // total stake = active stake + expired stake
 // product stake = active stake * product weight
@@ -39,43 +42,43 @@ contract StakingPool is IStakingPool, ERC721 {
 
   /* storage */
 
+  uint poolId;
+
   // currently active staked nxm amount
   uint public activeStake;
 
-  // supply of pool stake shares used by groups
+  // supply of pool stake shares used by tranches
   uint public stakeSharesSupply;
 
-  // supply of pool rewards shares used by groups
+  // supply of pool rewards shares used by tranches
   uint public rewardsSharesSupply;
 
   // current nxm reward per second for the entire pool
   // applies to active stake only and does not need update on deposits
   uint public rewardPerSecond;
 
-  // accumulated reward per share of pool
-  uint public accRewardPerPoolShare;
+  // TODO: this should be allowed to overflow (similar to uniswapv2 twap)
+  // accumulated rewarded nxm per reward share
+  uint public accNxmPerRewardsShare;
 
-  // last accRewardPerPoolShare update timestamp
-  uint public lastRewardUpdate;
+  // timestamp when accNxmPerRewardsShare was last updated
+  uint public lastAccNxmUpdate;
 
-  uint public firstActiveGroupId;
-  uint public lastActiveGroupId;
-
+  uint public firstActiveTrancheId;
   uint public firstActiveBucketId;
+
+  bool public isPrivatePool;
+  uint8 public poolFee;
+  uint8 public maxPoolFee;
 
   // erc721 supply
   uint public totalSupply;
 
-  /*
-    (productId, poolAddress) => lastPrice
-    Last base prices at which a cover was sold by a pool for a particular product.
-  */
-  mapping(uint => LastPrice) lastBasePrices;
+  // tranche id => tranche data
+  mapping(uint => Tranche) public tranches;
 
-  mapping(uint => uint) targetPrices;
-
-  // group id => amount
-  mapping(uint => StakeGroup) public stakeGroups;
+  // tranche id => amount
+  mapping(uint => ExpiredTranche) public expiredTranches;
 
   // pool bucket id => PoolBucket
   mapping(uint => PoolBucket) public poolBuckets;
@@ -86,85 +89,108 @@ contract StakingPool is IStakingPool, ERC721 {
   // product id => Product
   mapping(uint => Product) public products;
 
-  // nft id => group id => amount of group shares
-  mapping(uint => mapping(uint => uint)) public balanceOf;
-
-  address public manager;
+  // token id => tranche id => deposit data
+  mapping(uint => mapping(uint => Deposit)) public deposits;
 
   /* immutables */
 
-  IERC20 public immutable nxm;
+  INXMToken public immutable nxm;
+  ITokenController public  immutable tokenController;
   address public immutable coverContract;
 
   /* constants */
 
   // 7 * 13 = 91
-  uint constant BUCKET_SIZE = 7 days;
-  uint constant GROUP_SIZE = 91 days;
-  uint constant MAX_GROUPS = 9; // 8 whole quarters + 1 partial quarter
+  uint constant BUCKET_DURATION = 7 days;
+  uint constant TRANCHE_DURATION = 91 days;
+  uint constant MAX_ACTIVE_TRANCHES = 9; // 8 whole quarters + 1 partial quarter
 
   uint constant REWARDS_SHARES_RATIO = 125;
   uint constant REWARDS_SHARES_DENOMINATOR = 100;
   uint constant WEIGHT_DENOMINATOR = 100;
   uint constant REWARDS_DENOMINATOR = 100;
+  uint constant FEE_DENOMINATOR = 100;
 
   uint public constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
   uint public constant PRODUCT_WEIGHT_DENOMINATOR = 10_000;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10_000;
   uint public constant INITIAL_PRICE_DENOMINATOR = 10_000;
 
-  // product params flags
-  uint constant FLAG_PRODUCT_WEIGHT = 1;
-  uint constant FLAG_PRODUCT_PRICE = 2;
-
-  // withdraw flags
-  uint constant FLAG_WITHDRAW_DEPOSIT = 1;
-  uint constant FLAG_WITHDRAW_REWARDS = 2;
-
   modifier onlyCoverContract {
-    // TODO: restrict calls to cover contract only
+    require(msg.sender == coverContract, "StakingPool: Only Cover contract can call this function");
     _;
   }
 
   modifier onlyManager {
-    require(msg.sender == manager, "StakingPool: Only pool manager can call this function");
+    require(_isApprovedOrOwner(msg.sender, 0), "StakingPool: Only pool manager can call this function");
     _;
   }
 
   constructor (
     string memory _name,
     string memory _symbol,
-    IERC20 _token,
-    address _coverContract
+    address _token,
+    address _coverContract,
+    ITokenController _tokenController
   ) ERC721(_name, _symbol) {
-    nxm = _token;
+    nxm = INXMToken(_token);
     coverContract = _coverContract;
+    tokenController = _tokenController;
   }
 
   function initialize(
     address _manager,
-    ProductInitializationParams[] calldata params
+    bool _isPrivatePool,
+    uint _initialPoolFee,
+    uint _maxPoolFee,
+    ProductInitializationParams[] calldata params,
+    uint _poolId
   ) external onlyCoverContract {
-    manager = _manager;
+
+    isPrivatePool = _isPrivatePool;
+
+    require(_initialPoolFee <= _maxPoolFee, "StakingPool: Pool fee should not exceed max pool fee");
+    require(_maxPoolFee < 100, "StakingPool: Max pool fee cannot be 100%");
+
+    poolFee = uint8(_initialPoolFee);
+    maxPoolFee = uint8(_maxPoolFee);
+
     // TODO: initialize products
     params;
+
+    // create ownership nft
+    totalSupply = 1;
+    _safeMint(_manager, 0);
+
+    poolId = _poolId;
   }
 
+  // used to transfer all nfts when a user switches the membership to a new address
   function operatorTransfer(
     address from,
     address to,
     uint[] calldata tokenIds
   ) external onlyCoverContract {
     uint length = tokenIds.length;
-    for (uint i = 0; i < length; ++i) {
+    for (uint i = 0; i < length; i++) {
       _safeTransfer(from, to, tokenIds[i], "");
     }
   }
 
-  function updateGroups() public {
+  function updateTranches() public {
 
     uint _firstActiveBucketId = firstActiveBucketId;
-    uint currentBucketId = block.timestamp / BUCKET_SIZE;
+    uint _firstActiveTrancheId = firstActiveTrancheId;
+
+    uint currentBucketId = block.timestamp / BUCKET_DURATION;
+    uint currentTrancheId = block.timestamp / TRANCHE_DURATION;
+
+    // populate if the pool is new
+    if (_firstActiveBucketId == 0) {
+      firstActiveBucketId = currentBucketId;
+      firstActiveTrancheId = currentTrancheId;
+      return;
+    }
 
     if (_firstActiveBucketId == currentBucketId) {
       return;
@@ -173,145 +199,265 @@ contract StakingPool is IStakingPool, ERC721 {
     // SLOAD
     uint _activeStake = activeStake;
     uint _rewardPerSecond = rewardPerSecond;
-    uint _accRewardPerShare = accRewardPerPoolShare;
     uint _stakeSharesSupply = stakeSharesSupply;
     uint _rewardsSharesSupply = rewardsSharesSupply;
-    uint _lastRewardUpdate = lastRewardUpdate;
-    uint _firstActiveGroupId = firstActiveGroupId;
-
-    // first group for the current timestamp
-    uint targetGroupId = block.timestamp / GROUP_SIZE;
+    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
+    uint _lastAccNxmUpdate = lastAccNxmUpdate;
 
     while (_firstActiveBucketId < currentBucketId) {
 
       ++_firstActiveBucketId;
-      uint bucketEndTime = _firstActiveBucketId * BUCKET_SIZE;
-      uint elapsed = bucketEndTime - _lastRewardUpdate;
+      uint bucketEndTime = _firstActiveBucketId * BUCKET_DURATION;
+      uint elapsed = bucketEndTime - _lastAccNxmUpdate;
 
-      _accRewardPerShare += elapsed * _rewardPerSecond / _rewardsSharesSupply;
-      _lastRewardUpdate = bucketEndTime;
+      // todo: should be allowed to overflow?
+      // todo: handle division by zero
+      _accNxmPerRewardsShare += elapsed * _rewardPerSecond / _rewardsSharesSupply;
+      _lastAccNxmUpdate = bucketEndTime;
+      // TODO: use _firstActiveBucketId before incrementing it?
       _rewardPerSecond -= poolBuckets[_firstActiveBucketId].rewardPerSecondCut;
 
-      // should we expire a group?
+      // should we expire a tranche?
       if (
-        bucketEndTime % GROUP_SIZE != 0 ||
-        _firstActiveGroupId == targetGroupId
+        bucketEndTime % TRANCHE_DURATION != 0 ||
+        _firstActiveTrancheId == currentTrancheId
       ) {
         continue;
       }
 
+      // todo: handle _firstActiveTrancheId = 0 case
+
       // SLOAD
-      StakeGroup memory group = stakeGroups[_firstActiveGroupId];
+      Tranche memory expiringTranche = tranches[_firstActiveTrancheId];
 
-      uint expiredStake = _activeStake * group.stakeShares / _stakeSharesSupply;
+      // todo: handle division by zero
+      uint expiredStake = _activeStake * expiringTranche.stakeShares / _stakeSharesSupply;
+
+      // the tranche is expired now so we decrease the stake and share supply
       _activeStake -= expiredStake;
-      group.expiredStakeAmount = expiredStake;
-      group.accRewardPerStakeShareAtExpiration = _accRewardPerShare;
+      _stakeSharesSupply -= expiringTranche.stakeShares;
+      _rewardsSharesSupply -= expiringTranche.rewardsShares;
 
-      _stakeSharesSupply -= group.stakeShares;
-      _rewardsSharesSupply -= group.rewardsShares;
+      // todo: update nft 0
+
+      expiringTranche.stakeShares = 0;
+      expiringTranche.rewardsShares = 0;
 
       // SSTORE
-      stakeGroups[_firstActiveGroupId] = group;
+      tranches[_firstActiveTrancheId] = expiringTranche;
+      expiredTranches[_firstActiveTrancheId] = ExpiredTranche(
+        _accNxmPerRewardsShare, // accNxmPerRewardShareAtExpiry
+        // TODO: should this be before or after active stake reduction?
+        _activeStake, // stakeAmountAtExpiry
+        _stakeSharesSupply // stakeShareSupplyAtExpiry
+      );
 
-      // advance to the next group
-      _firstActiveGroupId++;
+      // advance to the next tranche
+      _firstActiveTrancheId++;
     }
 
-    firstActiveGroupId = _firstActiveGroupId;
+    {
+      uint elapsed = block.timestamp - _lastAccNxmUpdate;
+      _accNxmPerRewardsShare += elapsed * _rewardPerSecond / _rewardsSharesSupply;
+      _lastAccNxmUpdate = block.timestamp;
+    }
+
+    firstActiveTrancheId = _firstActiveTrancheId;
     firstActiveBucketId = _firstActiveBucketId;
 
     activeStake = _activeStake;
     rewardPerSecond = _rewardPerSecond;
-    accRewardPerPoolShare = _accRewardPerShare;
+    accNxmPerRewardsShare = _accNxmPerRewardsShare;
+    lastAccNxmUpdate = _lastAccNxmUpdate;
     stakeSharesSupply = _stakeSharesSupply;
     rewardsSharesSupply = _rewardsSharesSupply;
-    lastRewardUpdate = _lastRewardUpdate;
   }
 
-  function deposit(
-    uint amount,
-    uint groupId,
-    uint _positionId
-  ) external returns (uint positionId) {
+  function depositTo(DepositRequest[] calldata requests) external returns (uint[] memory tokenIds) {
 
-    updateGroups();
-
-    // require groupId not to be expired
-    require(groupId >= firstActiveGroupId, "StakingPool: Requested group has expired");
-
-    // [todo] Prevent locking on groups that are too far into the future
-
-    if (_positionId == 0) {
-      positionId = ++totalSupply;
-      _mint(msg.sender, positionId);
-    } else {
-      positionId = _positionId;
+    if (isPrivatePool) {
+      require(msg.sender == manager(), "StakingPool: The pool is private");
     }
 
-    // transfer nxm from staker
-    // TODO: use TokenController.operatorTransfer instead
-    nxm.transferFrom(msg.sender, address(this), amount);
+    updateTranches();
 
-    StakeGroup memory group = stakeGroups[groupId];
-
+    // storage reads
     uint _activeStake = activeStake;
     uint _stakeSharesSupply = stakeSharesSupply;
     uint _rewardsSharesSupply = rewardsSharesSupply;
+    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
 
-    uint newStakeShares = _stakeSharesSupply == 0
-      ? amount
-      : _stakeSharesSupply * amount / _activeStake;
+    uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+    uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES;
 
-    uint newRewardsShares;
-    {
-      uint lockDuration = (groupId + 1) * GROUP_SIZE - block.timestamp;
-      uint maxLockDuration = GROUP_SIZE * 8;
-      newRewardsShares =
-        newStakeShares * REWARDS_SHARES_RATIO * lockDuration / REWARDS_SHARES_DENOMINATOR / maxLockDuration;
+    uint totalAmount;
+    tokenIds = new uint[](requests.length);
+
+    for (uint i = 0; i < requests.length; i++) {
+
+      DepositRequest memory request = requests[i];
+
+      {
+        require(request.amount > 0, "StakingPool: Insufficient deposit amount");
+        require(request.trancheId <= maxTranche, "StakingPool: Requested tranche is not yet active");
+        require(request.trancheId >= _firstActiveTrancheId, "StakingPool: Requested tranche has expired");
+      }
+
+      // deposit to token id = 0 is not allowed
+      // we treat it as a flag to create a new token
+      bool isNewToken = request.tokenId == 0;
+
+      if (isNewToken) {
+        tokenIds[i] = totalSupply++;
+        address to = request.destination == address(0) ? msg.sender : request.destination;
+        _mint(to, request.tokenId);
+      } else {
+        tokenIds[i] = request.tokenId;
+      }
+
+      uint newStakeShares = _stakeSharesSupply == 0
+        ? Math.sqrt(request.amount)
+        : _stakeSharesSupply * request.amount / _activeStake;
+
+      uint newRewardsShares = calculateRewardSharesAmount(newStakeShares, request.trancheId);
+
+      // update deposit and pending reward
+      {
+        // conditional read
+        Deposit memory deposit = isNewToken
+          ? Deposit(_accNxmPerRewardsShare, 0, 0, 0)
+          : deposits[request.tokenId][request.trancheId];
+
+        // if we're increasing an existing deposit
+        if (deposit.lastAccNxmPerRewardShare != 0) {
+          uint newEarningsPerShare = _accNxmPerRewardsShare - deposit.lastAccNxmPerRewardShare;
+          deposit.pendingRewards += newEarningsPerShare * deposit.rewardsShares;
+        }
+
+        deposit.stakeShares += newStakeShares;
+        deposit.rewardsShares += newRewardsShares;
+        deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+
+        // sstore
+        deposits[request.tokenId][request.trancheId] = deposit;
+      }
+
+      // update pool manager's reward shares
+      {
+        Deposit memory feeDeposit = deposits[0][request.trancheId];
+
+        {
+          // create fee deposit reward shares
+          uint newFeeRewardShares = newRewardsShares * poolFee / FEE_DENOMINATOR;
+          newRewardsShares += newFeeRewardShares;
+
+          // calculate rewards until now
+          uint newRewardPerShare = _accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare;
+
+          feeDeposit.pendingRewards += newRewardPerShare * feeDeposit.rewardsShares;
+          feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+          feeDeposit.rewardsShares += newFeeRewardShares;
+        }
+
+        deposits[0][request.trancheId] = feeDeposit;
+      }
+
+      // update tranche
+      {
+        Tranche memory tranche = tranches[request.trancheId];
+        tranche.stakeShares += newStakeShares;
+        tranche.rewardsShares += newRewardsShares;
+        tranches[request.trancheId] = tranche;
+      }
+
+      totalAmount += request.amount;
+      _activeStake += request.amount;
+      _stakeSharesSupply += newStakeShares;
+      _rewardsSharesSupply += newRewardsShares;
     }
 
-    uint newGroupShares;
+    // transfer nxm from staker and update pool deposit balance
+    tokenController.depositStakedNXM(msg.sender, totalAmount, poolId);
 
-    if (group.groupSharesSupply == 0) {
-      newGroupShares = amount;
-    } else {
-      // amount of nxm corresponding to this group
-      uint groupStake = _activeStake * group.stakeShares / _stakeSharesSupply;
-      newGroupShares = group.groupSharesSupply * amount / groupStake;
-    }
-
-    /* update rewards */
-
-    uint _rewardPerSecond = rewardPerSecond;
-    uint elapsed = block.timestamp - lastRewardUpdate;
-
-    if (elapsed > 0) {
-      lastRewardUpdate = block.timestamp;
-      accRewardPerPoolShare += elapsed * _rewardPerSecond / _rewardsSharesSupply;
-    }
-
-    /* store */
-
-    group.stakeShares += newStakeShares;
-    group.rewardsShares += newRewardsShares;
-    group.groupSharesSupply += newGroupShares;
-
-    stakeGroups[groupId] = group;
-    balanceOf[positionId][groupId] += newGroupShares;
-
-    activeStake = _activeStake + amount;
-    stakeSharesSupply = _stakeSharesSupply + newStakeShares;
-    rewardsSharesSupply = _rewardsSharesSupply + newRewardsShares;
+    // update globals
+    activeStake = _activeStake;
+    stakeSharesSupply = _stakeSharesSupply;
+    rewardsSharesSupply = _rewardsSharesSupply;
   }
 
-  function withdraw(WithdrawParams[] memory params) external {
-    // 1. check nft ownership / allowance
-    // 2. loop through each group:
-    // 2.1. check group expiration if the deposit flag is set
-    // 2.2. calculate the reward amount if the reward flag is set
-    // 3. sum up nxm amount of each group
-    // 4. transfer nxm to staker
+  function calculateRewardSharesAmount(
+    uint stakeSharesAmount,
+    uint trancheId
+  ) internal view returns (uint) {
+
+    uint lockDuration = (trancheId + 1) * TRANCHE_DURATION - block.timestamp;
+    uint maxLockDuration = TRANCHE_DURATION * 8;
+
+    // TODO: determine extra rewards formula
+    return
+      stakeSharesAmount
+      * REWARDS_SHARES_RATIO
+      * lockDuration
+      / REWARDS_SHARES_DENOMINATOR
+      / maxLockDuration;
+  }
+
+  function withdraw(WithdrawParams[] calldata params) external {
+
+    updateTranches();
+
+    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
+    uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+
+    for (uint i = 0; i < params.length; i++) {
+
+      uint stakeToWithdraw;
+      uint rewardsToWithdraw;
+
+      uint tokenId = params[i].tokenId;
+      uint trancheCount = params[i].trancheIds.length;
+
+      for (uint j = 0; j < trancheCount; j++) {
+
+        uint trancheId = params[i].trancheIds[j];
+        Deposit memory deposit = deposits[tokenId][trancheId];
+
+        // can withdraw stake only if the tranche is expired
+        if (params[i].withdrawStake && trancheId < _firstActiveTrancheId) {
+
+          // calculate the amount of nxm for this deposit
+          uint stake = expiredTranches[trancheId].stakeAmountAtExpiry;
+          uint stakeShareSupply = expiredTranches[trancheId].stakeShareSupplyAtExpiry;
+          stakeToWithdraw += stake * deposit.stakeShares / stakeShareSupply;
+
+          // mark as withdrawn
+          deposit.stakeShares = 0;
+        }
+
+        if (params[i].withdrawRewards) {
+
+          // if the tranche is expired, use the accumulator value saved at expiration time
+          uint accNxmPerRewardShareInUse = trancheId < _firstActiveTrancheId
+            ? expiredTranches[trancheId].accNxmPerRewardShareAtExpiry
+            : _accNxmPerRewardsShare;
+
+          // calculate reward since checkpoint
+          uint newRewardPerShare = accNxmPerRewardShareInUse - deposit.lastAccNxmPerRewardShare;
+          rewardsToWithdraw += newRewardPerShare * deposit.rewardsShares + deposit.pendingRewards;
+
+          // save checkpoint
+          deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+          deposit.pendingRewards = 0;
+          deposit.rewardsShares = 0;
+        }
+
+        deposits[tokenId][trancheId] = deposit;
+      }
+
+      uint withdrawable = stakeToWithdraw + rewardsToWithdraw;
+
+      tokenController.withdrawNXMStakeAndRewards(ownerOf(tokenId), stakeToWithdraw, rewardsToWithdraw, poolId);
+    }
   }
 
   function allocateStake(
@@ -320,13 +466,12 @@ contract StakingPool is IStakingPool, ERC721 {
     uint gracePeriod,
     uint productStakeAmount,
     uint rewardRatio
-  ) external onlyCoverContract returns (uint newAllocation, uint premium) {
+  ) external onlyCoverContract returns (uint newAllocation, uint premium, uint rewardsInNXM) {
 
-    updateGroups();
+    updateTranches();
 
     Product memory product = products[productId];
-    uint allocatedProductStake = product.allocatedStake;
-    uint currentBucket = block.timestamp / BUCKET_SIZE;
+    uint currentBucket = block.timestamp / BUCKET_DURATION;
 
     {
       uint lastBucket = product.lastBucket;
@@ -334,44 +479,44 @@ contract StakingPool is IStakingPool, ERC721 {
       // process expirations
       while (lastBucket < currentBucket) {
         ++lastBucket;
-        allocatedProductStake -= productBuckets[productId][lastBucket].allocationCut;
+        product.allocatedStake -= productBuckets[productId][lastBucket].allocationCut;
       }
     }
 
     uint freeProductStake;
     {
-      // group expiration must exceed the cover period
-      uint _firstAvailableGroupId = (block.timestamp + period + gracePeriod) / GROUP_SIZE;
-      uint _firstActiveGroupId = block.timestamp / GROUP_SIZE;
+      // tranche expiration must exceed the cover period
+      uint _firstAvailableTrancheId = (block.timestamp + period + gracePeriod) / TRANCHE_DURATION;
+      uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 
-      // start with the entire supply and subtract unavailable groups
+      // start with the entire supply and subtract unavailable tranches
       uint _stakeSharesSupply = stakeSharesSupply;
       uint availableShares = _stakeSharesSupply;
 
-      for (uint i = _firstActiveGroupId; i < _firstAvailableGroupId; ++i) {
-        availableShares -= stakeGroups[i].stakeShares;
+      for (uint i = _firstActiveTrancheId; i < _firstAvailableTrancheId; i++) {
+        availableShares -= tranches[i].stakeShares;
       }
 
       // total stake available without applying product weight
       freeProductStake =
-        activeStake * availableShares * product.weight / _stakeSharesSupply / WEIGHT_DENOMINATOR;
+        activeStake * availableShares * product.targetWeight / _stakeSharesSupply / WEIGHT_DENOMINATOR;
     }
 
     // could happen if is 100% in-use or if the product weight was changed
-    if (allocatedProductStake >= freeProductStake) {
+    if (product.allocatedStake >= freeProductStake) {
       // store expirations
-      products[productId].allocatedStake = allocatedProductStake;
+      products[productId].allocatedStake = product.allocatedStake;
       products[productId].lastBucket = currentBucket;
-      return (0, 0);
+      return (0, 0, 0);
     }
 
     {
-      uint usableStake = freeProductStake - allocatedProductStake;
-      newAllocation = min(productStakeAmount, usableStake);
+      uint usableStake = freeProductStake - product.allocatedStake;
+      newAllocation = Math.min(productStakeAmount, usableStake);
 
       premium = calculatePremium(
         productId,
-        allocatedProductStake,
+        product.allocatedStake,
         usableStake,
         newAllocation,
         period
@@ -379,17 +524,19 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     // 1 SSTORE
-    products[productId].allocatedStake = allocatedProductStake + newAllocation;
+    products[productId].allocatedStake = product.allocatedStake + newAllocation;
     products[productId].lastBucket = currentBucket;
 
     {
       require(rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
 
       // divCeil = fn(a, b) => (a + b - 1) / b
-      uint expireAtBucket = (block.timestamp + period + BUCKET_SIZE - 1) / BUCKET_SIZE;
+      uint expireAtBucket = (block.timestamp + period + BUCKET_DURATION - 1) / BUCKET_DURATION;
+
+      rewardsInNXM = premium * rewardRatio / REWARDS_DENOMINATOR;
       uint _rewardPerSecond =
-        premium * rewardRatio / REWARDS_DENOMINATOR
-        / (expireAtBucket * BUCKET_SIZE - block.timestamp);
+        rewardsInNXM
+        / (expireAtBucket * BUCKET_DURATION - block.timestamp);
 
       // 2 SLOAD + 2 SSTORE
       productBuckets[productId][expireAtBucket].allocationCut += newAllocation;
@@ -411,7 +558,7 @@ contract StakingPool is IStakingPool, ERC721 {
     newAllocation;
     period;
     block.timestamp;
-    uint nextPrice = 0;
+    uint96 nextPrice = 0;
     products[productId].lastPrice = nextPrice;
 
     return 0;
@@ -422,7 +569,8 @@ contract StakingPool is IStakingPool, ERC721 {
     uint start,
     uint period,
     uint amount,
-    uint premium
+    uint premium,
+    uint globalRewardsRatio
   ) external onlyCoverContract {
 
     // silence compiler warnings
@@ -444,10 +592,24 @@ contract StakingPool is IStakingPool, ERC721 {
     // TODO: free up the stake used by the corresponding cover
     // TODO: check if it's worth restricting the burn to 99% of the active stake
 
-    updateGroups();
+    updateTranches();
 
     uint _activeStake = activeStake;
     activeStake = _activeStake > amount ? _activeStake - amount : 0;
+  }
+
+  /* nft */
+
+  function _beforeTokenTransfer(
+    address from,
+    address /*to*/,
+    uint256 tokenId
+  ) internal view override {
+    require(
+      tokenId != 0 || nxm.isLockedForMV(from) < block.timestamp,
+      "StakingPool: Locked for voting in governance"
+    );
+    // todo: track owned zero-id nfts in TC
   }
 
   /* pool management */
@@ -490,31 +652,77 @@ contract StakingPool is IStakingPool, ERC721 {
     return 0;
   }
 
+  function manager() public view returns (address) {
+    return ownerOf(0);
+  }
+
+  /* management */
+
+  function addProducts(ProductParams[] memory params) external onlyManager {
+    params;
+  }
+
+  function removeProducts(uint[] memory productIds) external onlyManager {
+    productIds;
+  }
+
+  function setPoolFee(uint newFee) external onlyManager {
+
+    require(newFee <= maxPoolFee, "StakingPool: new fee exceeds max fee");
+    uint oldFee = poolFee;
+    poolFee = uint8(newFee);
+
+    updateTranches();
+
+    uint fromTrancheId = firstActiveTrancheId;
+    uint toTrancheId = fromTrancheId + MAX_ACTIVE_TRANCHES;
+    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
+
+    for (uint trancheId = fromTrancheId; trancheId <= toTrancheId; trancheId++) {
+
+      // sload
+      Deposit memory feeDeposit = deposits[0][trancheId];
+
+      if (feeDeposit.rewardsShares == 0) {
+        continue;
+      }
+
+      // update pending reward and reward shares
+      uint newRewardPerRewardsShare = _accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare;
+      feeDeposit.pendingRewards += newRewardPerRewardsShare * feeDeposit.rewardsShares;
+      // TODO: would using tranche.rewardsShares give a better precision?
+      feeDeposit.rewardsShares = feeDeposit.rewardsShares * newFee / oldFee;
+
+      // sstore
+      deposits[0][trancheId] = feeDeposit;
+    }
+  }
+
+  function setPoolPrivacy(bool _isPrivatePool) external onlyManager {
+    isPrivatePool = _isPrivatePool;
+  }
+
   /* utils */
 
-  function min(uint a, uint b) internal pure returns (uint) {
-    return a < b ? a : b;
-  }
-
-  function max(uint a, uint b) internal pure returns (uint) {
-    return a > b ? a : b;
-  }
-
   function getPriceParameters(
-    uint productId
+    uint productId,
+    uint maxCoverPeriod
   ) external override view returns (
-    uint activeCover, uint[] memory staked, uint lastBasePrice, uint targetPrice
+    uint activeCover,
+    uint[] memory staked,
+    uint lastBasePrice,
+    uint targetPrice
   ) {
 
-    activeCover = getAllocatedProductStake(productId);
+    uint maxTranches = maxCoverPeriod / TRANCHE_DURATION + 1;
+    staked = new uint[](maxTranches);
 
-    uint maxGroupSpanCount = ICover(coverContract).MAX_COVER_PERIOD() / GROUP_SIZE + 1;
-    staked = new uint[](maxGroupSpanCount);
-    for (uint i = 0; i < maxGroupSpanCount; i++) {
-      staked[i] = getProductStake(productId, block.timestamp + i * GROUP_SIZE);
+    for (uint i = 0; i < maxTranches; i++) {
+      staked[i] = getProductStake(productId, block.timestamp + i * TRANCHE_DURATION);
     }
 
-    lastBasePrice = lastBasePrices[productId].value;
-    targetPrice = targetPrices[productId];
+    activeCover = getAllocatedProductStake(productId);
+    lastBasePrice = products[productId].lastPrice;
+    targetPrice = products[productId].targetPrice;
   }
 }

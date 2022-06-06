@@ -85,15 +85,9 @@ async function setup () {
 
   await cover.setActiveCoverAmountInNXM(2, parseEther('3500'));
 
-  {
-    const tx = await yieldTokenIncidents.initialize(master.address);
-    await tx.wait();
-  }
-
-  {
-    const tx = await yieldTokenIncidents.changeDependentContractAddress();
-    await tx.wait();
-  }
+  await yieldTokenIncidents.changeMasterAddress(master.address);
+  await yieldTokenIncidents.changeDependentContractAddress();
+  await yieldTokenIncidents.initialize();
 
   const signers = await ethers.getSigners();
   const accounts = getAccounts(signers);

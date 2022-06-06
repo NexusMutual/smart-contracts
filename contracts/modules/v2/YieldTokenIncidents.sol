@@ -14,6 +14,7 @@ import "../../interfaces/ICover.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IYieldTokenIncidents.sol";
 import "../../interfaces/ICoverNFT.sol";
+import "../../utils/Math.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 
@@ -48,21 +49,28 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     coverNFT = ICoverNFT(coverNFTAddress);
   }
 
-  function initialize(address masterAddress) external {
+  function initialize() external {
+    Configuration memory currentConfig = config;
+    bool notInitialized = bytes32(
+      abi.encodePacked(
+        currentConfig.rewardRatio,
+        currentConfig.expectedPayoutRatio,
+        currentConfig.payoutDeductibleRatio,
+        currentConfig.payoutRedemptionPeriodInDays,
+        currentConfig.maxRewardInNXMWad
+      )
+    ) == bytes32(0);
+    require(notInitialized, "Already initialized");
+
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 50% = 1.30%
     config.rewardRatio = 130; // 1.3%
     config.expectedPayoutRatio = 3000; // 30%
     config.payoutDeductibleRatio = 9000; // 90%
     config.payoutRedemptionPeriodInDays = 14; // days
     config.maxRewardInNXMWad = 50; // 50 NXM
-    master = INXMMaster(masterAddress);
   }
 
   /* ========== VIEWS ========== */
-
-  function min(uint a, uint b) internal pure returns (uint) {
-    return a < b ? a : b;
-  }
 
   function assessment() internal view returns (IAssessment) {
     return IAssessment(getInternalContractAddress(ID.AS));
@@ -146,7 +154,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     uint32 date,
     uint expectedPayoutInNXM,
     string calldata ipfsMetadata
-  ) external onlyAdvisoryBoard override {
+  ) external override onlyAdvisoryBoard whenNotPaused {
     ICover coverContract = cover();
     Incident memory incident = Incident(
       0, // assessmentId
@@ -162,7 +170,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     );
 
     // Determine the total rewards that should be minted for the assessors based on cover period
-    uint totalReward = min(
+    uint totalReward = Math.min(
       uint(config.maxRewardInNXMWad) * PRECISION,
       expectedPayoutInNXM * uint(config.rewardRatio) / REWARD_DENOMINATOR
     );
@@ -193,7 +201,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     uint depeggedTokens,
     address payable payoutAddress,
     bytes calldata optionalParams
-  ) external override returns (uint, uint8) {
+  ) external override onlyMember whenNotPaused returns (uint, uint8) {
     require(
       coverNFT.isApprovedOrOwner(msg.sender, coverId),
       "Only the cover owner or approved addresses can redeem"
@@ -299,14 +307,18 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
   /// @param asset        The ERC20 address of the asset that needs to be withdrawn.
   /// @param destination  The address where the assets are transfered.
   /// @param amount       The amount of assets that are need to be transfered.
-  function withdrawAsset(address asset, address destination, uint amount) external onlyGovernance {
+  function withdrawAsset(
+    address asset,
+    address destination,
+    uint amount
+  ) external onlyGovernance {
     IERC20 token = IERC20(asset);
     uint balance = token.balanceOf(address(this));
     uint transferAmount = amount > balance ? balance : amount;
-    token.transfer(destination, transferAmount);
+    SafeERC20.safeTransfer(token, destination, transferAmount);
   }
 
-  /// Allows to update configurable aprameters through governance
+  /// Updates configurable parameters through governance
   ///
   /// @param paramNames  An array of elements from UintParams enum
   /// @param values      An array of the new values, each one corresponding to the parameter

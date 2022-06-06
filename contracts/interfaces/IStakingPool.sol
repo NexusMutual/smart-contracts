@@ -100,7 +100,7 @@ interface IStakingPool is IERC721 {
     uint gracePeriod,
     uint productStakeAmount,
     uint rewardRatio
-  ) external returns (uint allocatedNXM, uint premium);
+  ) external returns (uint allocatedNXM, uint premium, uint rewardsInNXM);
 
   function deallocateStake(
     uint productId,

@@ -467,12 +467,11 @@ contract StakingPool is IStakingPool, ERC721 {
     uint gracePeriod,
     uint productStakeAmount,
     uint rewardRatio
-  ) external onlyCoverContract returns (uint newAllocation, uint premium) {
+  ) external onlyCoverContract returns (uint newAllocation, uint premium, uint rewardsInNXM) {
 
     updateTranches();
 
     Product memory product = products[productId];
-    uint allocatedProductStake = product.allocatedStake;
     uint currentBucket = block.timestamp / BUCKET_DURATION;
 
     {
@@ -481,7 +480,7 @@ contract StakingPool is IStakingPool, ERC721 {
       // process expirations
       while (lastBucket < currentBucket) {
         ++lastBucket;
-        allocatedProductStake -= productBuckets[productId][lastBucket].allocationCut;
+        product.allocatedStake -= productBuckets[productId][lastBucket].allocationCut;
       }
     }
 
@@ -505,20 +504,20 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     // could happen if is 100% in-use or if the product weight was changed
-    if (allocatedProductStake >= freeProductStake) {
+    if (product.allocatedStake >= freeProductStake) {
       // store expirations
-      products[productId].allocatedStake = allocatedProductStake;
+      products[productId].allocatedStake = product.allocatedStake;
       products[productId].lastBucket = currentBucket;
-      return (0, 0);
+      return (0, 0, 0);
     }
 
     {
-      uint usableStake = freeProductStake - allocatedProductStake;
+      uint usableStake = freeProductStake - product.allocatedStake;
       newAllocation = Math.min(productStakeAmount, usableStake);
 
       premium = calculatePremium(
         productId,
-        allocatedProductStake,
+        product.allocatedStake,
         usableStake,
         newAllocation,
         period
@@ -526,7 +525,7 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     // 1 SSTORE
-    products[productId].allocatedStake = allocatedProductStake + newAllocation;
+    products[productId].allocatedStake = product.allocatedStake + newAllocation;
     products[productId].lastBucket = currentBucket;
 
     {
@@ -534,8 +533,10 @@ contract StakingPool is IStakingPool, ERC721 {
 
       // divCeil = fn(a, b) => (a + b - 1) / b
       uint expireAtBucket = (block.timestamp + period + BUCKET_DURATION - 1) / BUCKET_DURATION;
+
+      rewardsInNXM = premium * rewardRatio / REWARDS_DENOMINATOR;
       uint _rewardPerSecond =
-        premium * rewardRatio / REWARDS_DENOMINATOR
+        rewardsInNXM
         / (expireAtBucket * BUCKET_DURATION - block.timestamp);
 
       // 2 SLOAD + 2 SSTORE

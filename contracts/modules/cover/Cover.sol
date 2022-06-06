@@ -229,15 +229,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       uint requestedCoverAmountInNXM
         = allocationRequests[i].coverAmountInAsset * 1e18 / nxmPriceInPayoutAsset + remainderAmountInNXM;
 
-      (uint coveredAmountInNXM, uint premiumInNXM) = allocateCapacity(
+      (uint coveredAmountInNXM, uint premiumInNXM, uint rewardsInNXM) = allocateCapacity(
         params,
         stakingPool(allocationRequests[i].poolId),
         requestedCoverAmountInNXM
       );
 
       // apply the global rewards ratio and the total Rewards in NXM
-      uint totalRewardsInNXM = premiumInNXM * globalRewardsRatio / REWARD_DENOMINATOR;
-      tokenController().mintPooledStakingNXMRewards(totalRewardsInNXM, allocationRequests[i].poolId);
+      tokenController().mintPooledStakingNXMRewards(rewardsInNXM, allocationRequests[i].poolId);
 
       remainderAmountInNXM = requestedCoverAmountInNXM - coveredAmountInNXM;
       totalCoverAmountInNXM += coveredAmountInNXM;
@@ -273,7 +272,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     BuyCoverParams memory params,
     IStakingPool _stakingPool,
     uint amount
-  ) internal returns (uint coveredAmountInNXM, uint premiumInNXM) {
+  ) internal returns (uint coveredAmountInNXM, uint premiumInNXM, uint rewardsInNXM) {
 
     Product memory product = _products[params.productId];
     uint gracePeriod = _productTypes[product.productType].gracePeriodInDays * 1 days;

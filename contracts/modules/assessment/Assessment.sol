@@ -9,7 +9,7 @@ import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/ITokenController.sol";
-import "../../utils/Math.sol";
+import "../../libraries/Math.sol";
 
 /// Provides the assessment mechanism for members to decide the outcome of the events that can lead
 /// to payouts. Mints rewards for stakers that act benevolently and allows burning fraudulent ones.

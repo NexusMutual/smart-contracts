@@ -11,7 +11,7 @@ import "../../interfaces/IIndividualClaims.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
-import "../../utils/Math.sol";
+import "../../libraries/Math.sol";
 
 /// Provides a way for cover owners to submit claims and redeem payouts. It is an entry point to
 /// the assessment process where the members of the mutual decide the outcome of claims.

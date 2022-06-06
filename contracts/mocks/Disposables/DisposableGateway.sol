@@ -2,9 +2,9 @@
 
 pragma solidity >=0.5.0;
 
-import "../../modules/legacy/Gateway.sol";
+import "../../modules/legacy/LegacyGateway.sol";
 
-contract DisposableGateway is Gateway {
+contract DisposableGateway is LegacyGateway {
 
   function initialize(address masterAddress, address daiAddress) external {
     master = INXMMaster(masterAddress);

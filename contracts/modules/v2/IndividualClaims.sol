@@ -10,6 +10,7 @@ import "../../interfaces/IIndividualClaims.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/ICoverNFT.sol";
+import "../../utils/Math.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 
@@ -65,10 +66,6 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
 
   /* ========== VIEWS ========== */
 
-  function min(uint a, uint b) internal pure returns (uint) {
-    return a < b ? a : b;
-  }
-
   function cover() internal view returns (ICover) {
     return ICover(getInternalContractAddress(ID.CO));
   }
@@ -85,10 +82,10 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     return claims.length;
   }
 
-  /// Returns the required deposit and total reward for a new claim
+  /// Returns the required assessment deposit and total reward for a new claim
   ///
   /// @dev This view is meant to be used either by users or user interfaces to determine the
-  /// minimum deposit value of the submitClaim tx.
+  /// minimum assessment deposit value of the submitClaim tx.
   ///
   /// @param requestedAmount  The amount that is claimed
   /// @param segmentPeriod    The cover period of the segment in days
@@ -106,19 +103,19 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPriceInPayoutAsset;
 
     // Determine the total rewards that should be minted for the assessors based on cover period
-    uint totalReward = min(
+    uint totalRewardInNXM = Math.min(
       uint(config.maxRewardInNXMWad) * PRECISION,
       expectedPayoutInNXM * uint(config.rewardRatio) * segmentPeriod / 365 days / REWARD_DENOMINATOR
     );
 
-    uint dynamicDeposit = totalReward * nxmPriceInETH / PRECISION;
+    uint dynamicDeposit = totalRewardInNXM * nxmPriceInETH / PRECISION;
     uint minDeposit = 1 ether * uint(config.minAssessmentDepositRatio) /
       MIN_ASSESSMENT_DEPOSIT_DENOMINATOR;
 
     // If dynamicDeposit falls below minDeposit use minDeposit instead
-    uint deposit = minDeposit > dynamicDeposit ? minDeposit : dynamicDeposit;
+    uint assessmentDepositInETH = minDeposit > dynamicDeposit ? minDeposit : dynamicDeposit;
 
-    return (deposit, totalReward);
+    return (assessmentDepositInETH, totalRewardInNXM);
   }
 
   /// Returns a Claim aggregated in a human-friendly format.
@@ -294,24 +291,24 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       false // payoutRedeemed
     );
 
-    (uint deposit, uint totalReward) = getAssessmentDepositAndReward(
+    (uint assessmentDepositInETH, uint totalRewardInNXM) = getAssessmentDepositAndReward(
       requestedAmount,
       segment.period,
       coverData.payoutAsset
     );
 
-    require(msg.value >= deposit, "Assessment deposit is insufficient");
-    if (msg.value > deposit) {
+    require(msg.value >= assessmentDepositInETH, "Assessment deposit is insufficient");
+    if (msg.value > assessmentDepositInETH) {
       // Refund ETH excess back to the sender
-      (bool refunded, /* bytes data */) = msg.sender.call{value: msg.value - deposit}("");
+      (bool refunded, /* bytes data */) = msg.sender.call{value: msg.value - assessmentDepositInETH}("");
       require(refunded, "Assessment deposit excess refund failed");
     }
 
-    // Transfer the deposit to the pool
-    (bool transferSucceeded, /* bytes data */) =  getInternalContractAddress(ID.P1).call{value: deposit}("");
+    // Transfer the assessment deposit to the pool
+    (bool transferSucceeded, /* bytes data */) =  getInternalContractAddress(ID.P1).call{value: assessmentDepositInETH}("");
     require(transferSucceeded, "Assessment deposit transfer to pool failed");
 
-    uint newAssessmentId = assessment().startAssessment(totalReward, deposit);
+    uint newAssessmentId = assessment().startAssessment(totalRewardInNXM, assessmentDepositInETH);
     claim.assessmentId = uint80(newAssessmentId);
     claims.push(claim);
 
@@ -333,7 +330,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     (
       IAssessment.Poll memory poll,
       /*uint128 totalAssessmentReward*/,
-      uint assessmentDeposit
+      uint assessmentDepositInETH
     ) = assessment().assessments(claim.assessmentId);
 
     require(block.timestamp >= poll.end, "The claim is still being assessed");
@@ -366,16 +363,16 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       poolContract.sendPayout(
         claim.payoutAsset,
         coverOwner,
-        claim.amount + assessmentDeposit
+        claim.amount + assessmentDepositInETH
       );
     } else {
-      poolContract.sendPayout(0 /* ETH */, coverOwner, assessmentDeposit);
+      poolContract.sendPayout(0 /* ETH */, coverOwner, assessmentDepositInETH);
       poolContract.sendPayout(claim.payoutAsset, coverOwner, claim.amount);
     }
 
   }
 
-  /// Allows to update configurable aprameters through governance
+  /// Updates configurable aprameters through governance
   ///
   /// @param paramNames  An array of elements from UintParams enum
   /// @param values      An array of the new values, each one corresponding to the parameter

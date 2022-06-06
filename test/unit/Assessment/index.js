@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const { setup } = require('./setup');
 
-describe('Assessment', function () {
+describe.only('Assessment', function () {
   before(setup);
 
   beforeEach(async function () {
@@ -22,7 +22,7 @@ describe('Assessment', function () {
   require('./withdrawRewards');
   require('./withdrawRewardsTo');
   require('./startAssessment');
-  require('./castVote');
+  require('./castVotes');
   require('./submitFraud');
   require('./processFraud');
   require('./updateUintParameters');

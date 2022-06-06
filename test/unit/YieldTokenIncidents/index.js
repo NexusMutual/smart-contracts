@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const { setup } = require('./setup');
 
-describe('YieldTokenIncidents', function () {
+describe.only('YieldTokenIncidents', function () {
   before(setup);
 
   beforeEach(async function () {

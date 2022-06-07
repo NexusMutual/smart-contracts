@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 // TODO: consider using solmate ERC721 implementation
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/math/SafeCast.sol";
-import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/ICover.sol";
@@ -38,7 +37,7 @@ import "../../utils/Math.sol";
 // │                               │
 // ╰───────────────────────────────╯
 
-contract StakingPool is ERC721, MasterAwareV2, IStakingPool {
+contract StakingPool is ERC721, IStakingPool {
   using SafeCast for uint;
 
   /* storage */
@@ -414,16 +413,16 @@ contract StakingPool is ERC721, MasterAwareV2, IStakingPool {
     WithdrawParams[] memory params
   ) public returns (uint stakeToWithdraw, uint rewardsToWithdraw) {
 
-    updateTranches();
-    uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
-    uint governanceVotingLockPeriod;
-
-    // Call only if the manager recently voted in governance otherwise governanceVotingLockPeriod
-    // is not needed.
-    if (managerLockedInGovernanceUntil < block.timestamp) {
-      // To avoid calling the governance contract in a loop we cache the value in memory.
-      governanceVotingLockPeriod = governance().tokenHoldingTime();
+    // Prevent withdrawals while the manager is locked in governance
+    {
+      uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
+      require(
+        managerLockedInGovernanceUntil > block.timestamp,
+        "StakingPool: Cannot withdraw while the pool manager is locked for governance voting"
+      );
     }
+
+    updateTranches();
 
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
 
@@ -437,46 +436,6 @@ contract StakingPool is ERC721, MasterAwareV2, IStakingPool {
       for (uint j = 0; j < trancheCount; j++) {
 
         uint trancheId = params[i].trancheIds[j];
-        if (managerLockedInGovernanceUntil < block.timestamp) {
-          uint trancheExpiry = (trancheId + 1) * TRANCHE_DURATION;
-
-          // We allow deposit and reward withdrawals on tranches that already expired before to the
-          // date of the last vote as they are not subject to double voting. Double voting with
-          // withdrawn funds from active tranches that expire during the lock period, is prevented
-          // by making sure that the the tranche expiry is at least 2 * governanceVotingLockPeriod
-          // (currently 2 * 3 = 6 days) since multiple votes could have overlapping lock periods.
-          // Here's a graphical explanation of the scenario:
-          //
-          //                                   t0       t1       t2
-          //                                   │        │        │
-          //  Vote 1 lock                      ├────────┤        │
-          //                                   │        │        │
-          //  Vote 2 lock                      │  ├─────┼─┤      │
-          //                                   │        │        │
-          //  Vote 3 lock                      │      ├─┼─────┤  │
-          //                                   │        │        │
-          //  Vote 4 lock (latest)             │        ├────────┤
-          //                                   │        │        │
-          //  Tranche active ──────────────────┼────────┼────────┤
-          //                                   │        │        │
-          //  Tranche expired                  │        ├────────┼────────
-          //                                   │        │        │
-          //                                   ╽        │        │
-          //          Earliest possible vote prior to   │        │
-          //          the last one that can lock the    │        │
-          //          pool's active NXM.                │        │
-          //                                            ╽        │
-          //                                   Tranche expires   │
-          //                                                     ╽
-          //                        End of the latest vote lock period
-          //
-          // t2 - t0 = 2 * governanceVotingLockPeriod
-          // t2 - t1 = t1 - t0 = governanceVotingLockPeriod
-          require(
-            trancheExpiry < managerLockedInGovernanceUntil - governanceVotingLockPeriod * 2,
-            "StakingPool: Active NXM are locked for governance voting"
-          );
-        }
 
         Deposit memory deposit = deposits[tokenId][trancheId];
 
@@ -939,11 +898,5 @@ contract StakingPool is ERC721, MasterAwareV2, IStakingPool {
     activeCover = getAllocatedProductStake(productId);
     lastBasePrice = products[productId].lastPrice;
     targetPrice = products[productId].targetPrice;
-  }
-
-  /// @dev Updates internal contract addresses to the ones stored in master. This function is
-  /// automatically called by the master contract when a contract is added or upgraded.
-  function changeDependentContractAddress() external override {
-    internalContracts[uint(ID.GV)] = master.getLatestAddress("GV");
   }
 }

@@ -395,7 +395,6 @@ contract StakingPool is IStakingPool, ERC721 {
     return 0;
   }
 
-<<<<<<< HEAD
   /// Calculates the amount of new reward shares based on the initial and new stake shares and
   /// tranche.
   ///
@@ -440,7 +439,7 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   function withdraw(
-    WithdrawParams[] memory params
+    WithdrawRequest[] memory params
   ) public returns (uint stakeToWithdraw, uint rewardsToWithdraw) {
 
     uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
@@ -876,15 +875,15 @@ contract StakingPool is IStakingPool, ERC721 {
       uint[] memory trancheIds = new uint[](1);
       trancheIds[0] = initialTrancheId;
 
-      WithdrawParams[] memory withdrawParams = new WithdrawParams[](1);
-      withdrawParams[0] = WithdrawParams(
+      WithdrawRequest[] memory withdrawRequests = new WithdrawRequest[](1);
+      withdrawRequests[0] = WithdrawRequest(
         tokenId,
         true, // Withdraw deposit
         true, // Withdraw rewards
         trancheIds
       );
 
-      (uint withdrawnStake, /* uint rewardsToWithdraw */) = withdraw(withdrawParams);
+      (uint withdrawnStake, /* uint rewardsToWithdraw */) = withdraw(withdrawRequests);
 
       DepositRequest[] memory depositRequests;
       depositRequests[0] = (

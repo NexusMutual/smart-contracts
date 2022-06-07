@@ -5,7 +5,7 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/LegacyMasterAware.sol";
 
-contract QuotationData is LegacyMasterAware {
+contract LegacyQuotationData is LegacyMasterAware {
   using SafeMath for uint;
 
   enum HCIDStatus {NA, kycPending, kycPass, kycFailedOrRefunded, kycPassNoCover}

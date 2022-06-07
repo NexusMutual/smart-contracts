@@ -10,7 +10,7 @@ import "../../interfaces/ICover.sol";
 import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IStakingPool.sol";
 
-contract PooledStaking is IPooledStaking, MasterAware {
+contract LegacyPooledStaking is IPooledStaking, MasterAware {
   /* Events */
 
   // deposits

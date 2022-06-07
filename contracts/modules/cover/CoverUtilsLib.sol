@@ -2,14 +2,13 @@
 
 pragma solidity ^0.8.9;
 
-import "./MinimalBeaconProxy.sol";
-
-import "../../utils/SafeUintCast.sol";
-import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ICover.sol";
-import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/IProductsV1.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../libraries/SafeUintCast.sol";
+import "./MinimalBeaconProxy.sol";
 
 
 library CoverUtilsLib {
@@ -119,7 +118,6 @@ library CoverUtilsLib {
     ProductInitializationParams[] memory productInitParams,
     uint depositAmount,
     uint trancheId,
-    ITokenController tokenController,
     address pooledStakingAddress
   ) external returns (address stakingPoolAddress) {
 

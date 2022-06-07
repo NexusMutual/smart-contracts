@@ -2,17 +2,17 @@
 
 pragma solidity ^0.8.9;
 
-import "../../utils/SafeUintCast.sol";
 import "../../abstract/LegacyMasterAware.sol";
+import "../../interfaces/IAssessment.sol";
+import "../../interfaces/ICover.sol";
+import "../../interfaces/IGovernance.sol";
+import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
-import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IAssessment.sol";
-import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IQuotationData.sol";
-import "../../interfaces/INXMMaster.sol";
-import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../libraries/SafeUintCast.sol";
 import "./external/LockHandler.sol";
 
 contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
@@ -242,11 +242,11 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     }
 
     for (uint i = 0; i < fromStakingPools.length; i++) {
-      WithdrawParams[] memory withdrawParams = new WithdrawParams[](
+      WithdrawRequest[] memory withdrawParams = new WithdrawRequest[](
         fromStakingPools[i].nfts.length
       );
       for (uint j = 0; j < fromStakingPools[i].nfts.length; j++) {
-        withdrawParams[j] = WithdrawParams(
+        withdrawParams[j] = WithdrawRequest(
           fromStakingPools[i].nfts[j].id,
           false, // withdrawStake
           true,  // withdrawRewards

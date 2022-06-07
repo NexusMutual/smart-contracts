@@ -7,22 +7,20 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/proxy/beacon/UpgradeableBeacon.sol";
 
+import "../../abstract/MasterAwareV2.sol";
+import "../../interfaces/ICover.sol";
+import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/IMCR.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/IProductsV1.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/IStakingPoolBeacon.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../libraries/SafeUintCast.sol";
 import "./CoverUtilsLib.sol";
 import "./MinimalBeaconProxy.sol";
-
-import "../../utils/SafeUintCast.sol";
-import "../../interfaces/ICover.sol";
-import "../../interfaces/IStakingPool.sol";
-import "../../interfaces/IQuotationData.sol";
-import "../../interfaces/IPool.sol";
-import "../../abstract/MasterAwareV2.sol";
-import "../../interfaces/IMemberRoles.sol";
-import "../../interfaces/ICoverNFT.sol";
-import "../../interfaces/IProductsV1.sol";
-import "../../interfaces/IMCR.sol";
-import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IStakingPoolBeacon.sol";
-
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   using SafeERC20 for IERC20;
@@ -231,6 +229,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
       (uint coveredAmountInNXM, uint premiumInNXM, uint rewardsInNXM) = allocateCapacity(
         params,
+        coverId,
         stakingPool(allocationRequests[i].poolId),
         requestedCoverAmountInNXM
       );
@@ -253,7 +252,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     // priceRatio is normalized on a per year basis (eg. 1.5% per year)
     uint16 priceRatio = SafeUintCast.toUint16(
-          divRound(totalPremiumInNXM * PRICE_DENOMINATOR * MAX_COVER_PERIOD / params.period, totalCoverAmountInNXM)
+      divRound(
+        totalPremiumInNXM * PRICE_DENOMINATOR * MAX_COVER_PERIOD / params.period,
+        totalCoverAmountInNXM
+      )
     );
 
     _coverSegments[coverId].push(CoverSegment(
@@ -270,6 +272,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   function allocateCapacity(
     BuyCoverParams memory params,
+    uint coverId,
     IStakingPool _stakingPool,
     uint amount
   ) internal returns (uint coveredAmountInNXM, uint premiumInNXM, uint rewardsInNXM) {
@@ -277,20 +280,22 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     Product memory product = _products[params.productId];
     uint gracePeriod = _productTypes[product.productType].gracePeriodInDays * 1 days;
 
-    // TODO: correctly calculate the capacity
-    uint allocation = amount * globalCapacityRatio;
-
     if (true) {
       // wrapped in if(true) to avoid the compiler warning about unreachable code
       revert("capacity calculation: not implemented");
     }
 
     return _stakingPool.allocateStake(
-      params.productId,
-      params.period,
-      gracePeriod,
-      allocation,
-      globalRewardsRatio
+      CoverRequest(
+        coverId,
+        params.productId,
+        amount,
+        params.period,
+        gracePeriod,
+        globalCapacityRatio,
+        product.capacityReductionRatio,
+        globalRewardsRatio
+      )
     );
   }
 
@@ -548,7 +553,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       productInitializationParams,
       depositAmount,
       trancheId,
-      tokenController(),
       master.getLatestAddress("PS")
     );
   }

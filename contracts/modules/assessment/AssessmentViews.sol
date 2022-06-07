@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.9;
 
-import "../interfaces/IAssessment.sol";
-import "../abstract/MasterAwareV2.sol";
+import "../../abstract/MasterAwareV2.sol";
+import "../../interfaces/IAssessment.sol";
 
 contract AssessmentViews is MasterAwareV2 {
 

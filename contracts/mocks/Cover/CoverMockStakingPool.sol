@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
 
-import "../../modules/v2/StakingPool.sol";
+import "../../modules/staking/StakingPool.sol";
 
 contract CoverMockStakingPool is StakingPool {
 
@@ -103,7 +103,7 @@ contract CoverMockStakingPool is StakingPool {
   }
 
   function setTargetPrice(uint productId, uint amount) external {
-    products[productId].targetPrice = amount;
+    products[productId].targetPrice = uint96(amount);
   }
 
   function setStake(uint productId, uint amount) external {

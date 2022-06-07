@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.9;
 
-import "../../external/cow/GPv2Order.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
+
+import "../../external/cow/GPv2Order.sol";
+import "../../interfaces/ICowSettlement.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IWeth.sol";
-import "../../interfaces/ICowSettlement.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
+import "../../interfaces/IWeth.sol";
 
 /**
   @title A contract for swapping Pool's assets using CoW protocol

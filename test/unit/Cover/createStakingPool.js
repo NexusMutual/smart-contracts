@@ -3,13 +3,14 @@ const {
   ethers: {
     utils: { parseEther },
   },
+  ethers,
 } = require('hardhat');
 
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 const IStakingPool = artifacts.require('IStakingPool');
 
 describe('createStakingPool', function () {
-  it('should create new pool', async function () {
+  it.only('should create new pool', async function () {
     const { cover, nxm, memberRoles } = this;
 
     const {
@@ -21,21 +22,32 @@ describe('createStakingPool', function () {
     const productId = 0;
 
     const initialPrice = 260;
-    const targetPrice = 260;
-    const activeCover = parseEther('8000');
-    const capacity = parseEther('10000');
 
-    const stakingPool = await CoverMockStakingPool.new(nxm.address, cover.address, memberRoles.address);
+    const initialPoolFee = '5'; // 5%
+    const maxPoolFee = '5'; // 5%
+
     const capacityFactor = '1';
 
-    await cover.connect(gv1).setGlobalCapacityRatio(capacityFactor);
-    await cover.connect(ab1).setInitialPrices([productId], [initialPrice]);
+    const depositAmount = '0';
+    const trancheId = '0';
 
-    await stakingPool.setStake(productId, capacity);
-    await stakingPool.setTargetPrice(productId, targetPrice);
-    await stakingPool.setUsedCapacity(productId, activeCover);
+    const productinitializationParams = [{
+      productId: 0,
+      weight: 100,
+      initialPrice: '500',
+      targetPrice: '500'
+    }];
 
-    const tx = await cover.connect(stakingPoolCreator).createStakingPool(stakingPoolManager.address);
+
+    const tx = await cover.connect(stakingPoolCreator).createStakingPool(
+      stakingPoolManager.address,
+      false, // isPrivatePool,
+      initialPoolFee,
+      maxPoolFee,
+      productinitializationParams,
+      depositAmount,
+      trancheId
+    );
 
     const receipt = await tx.wait();
 

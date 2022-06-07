@@ -5,23 +5,57 @@ const { assert, expect} = require('chai');
 const { bnEqual } = require("../../../lib/helpers");
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
+const DEFAULT_POOL_FEE = '5'
+
+const DEFAULT_PRODUCT_INITIALIZATION = [
+  {
+    productId: 0,
+    weight: 100
+  }
+]
+
 async function createStakingPool (
   cover, productId, capacity, targetPrice, activeCover, stakingPoolCreator, stakingPoolManager, currentPrice,
 ) {
 
-  const tx = await cover.connect(stakingPoolCreator).createStakingPool(stakingPoolManager.address);
+  console.log('##### 1')
+
+
+  const productinitializationParams = DEFAULT_PRODUCT_INITIALIZATION.map(p => {
+    p.initialPrice = currentPrice;
+    p.targetPrice = targetPrice;
+    return p;
+  });
+
+  const tx = await cover.connect(stakingPoolCreator).createStakingPool(
+    stakingPoolManager.address,
+    false, // isPrivatePool,
+    DEFAULT_POOL_FEE, // initialPoolFee
+    DEFAULT_POOL_FEE, // maxPoolFee,
+    productinitializationParams,
+    '0', // depositAmount,
+    '0', // trancheId
+  );
+
+  console.log('##### 1.5')
 
   const receipt = await tx.wait();
+
 
   const { stakingPoolAddress } = receipt.events[0].args;
 
   const stakingPool = await CoverMockStakingPool.at(stakingPoolAddress);
 
+  console.log('##### 2')
   await stakingPool.setStake(productId, capacity);
+
+  console.log('##### 3')
   await stakingPool.setTargetPrice(productId, targetPrice);
   await stakingPool.setUsedCapacity(productId, activeCover);
 
   await stakingPool.setPrice(productId, BigNumber.from(currentPrice).mul(1e16.toString())); // 2.6%
+
+
 
   return stakingPool;
 }
@@ -116,8 +150,8 @@ function toDecimal (x) {
 }
 
 module.exports = {
-  createStakingPool,
   assertCoverFields,
   buyCoverOnOnePool,
-  MAX_COVER_PERIOD
+  MAX_COVER_PERIOD,
+  createStakingPool
 };

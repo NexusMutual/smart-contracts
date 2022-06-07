@@ -413,7 +413,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     );
   }
 
-  // TODO: implement properly. we need the staking interface for burning.
   function performPayoutBurn(
     uint coverId,
     uint segmentId,
@@ -528,24 +527,25 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     bool isPrivatePool,
     uint initialPoolFee,
     uint maxPoolFee,
-    ProductInitializationParams[] memory params,
+    ProductInitializationParams[] memory productInitializationParams,
     uint depositAmount,
     uint trancheId
   ) external returns (address stakingPoolAddress) {
 
     emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
 
-    // [todo] handle the creation of NFT 0 which is the default NFT owned by the pool manager
+    CoverUtilsLib.PoolInitializationParams memory poolInitializationParams = CoverUtilsLib.PoolInitializationParams(
+      stakingPoolCount++,
+      manager,
+      isPrivatePool,
+      initialPoolFee,
+      maxPoolFee
+    );
+
     return CoverUtilsLib.createStakingPool(
       _products,
-      CoverUtilsLib.PoolInitializationParams(
-        stakingPoolCount++,
-        manager,
-        isPrivatePool,
-        initialPoolFee,
-        maxPoolFee
-      ),
-      params,
+      poolInitializationParams,
+      productInitializationParams,
       depositAmount,
       trancheId,
       tokenController(),

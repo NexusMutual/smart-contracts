@@ -14,19 +14,10 @@ describe('createStakingPool', function () {
     const { cover, nxm, memberRoles } = this;
 
     const {
-      advisoryBoardMembers: [ab1],
-      governanceContracts: [gv1],
       members: [stakingPoolCreator, stakingPoolManager],
     } = this.accounts;
-
-    const productId = 0;
-
-    const initialPrice = 260;
-
     const initialPoolFee = '5'; // 5%
     const maxPoolFee = '5'; // 5%
-
-    const capacityFactor = '1';
 
     const depositAmount = '0';
     const trancheId = '0';
@@ -38,8 +29,13 @@ describe('createStakingPool', function () {
       targetPrice: '500'
     }];
 
+    const firstStakingPoolAddress = await cover.stakingPool(0);
 
-    const tx = await cover.connect(stakingPoolCreator).createStakingPool(
+    console.log({
+      firstStakingPoolAddress
+    });
+
+    await cover.connect(stakingPoolCreator).createStakingPool(
       stakingPoolManager.address,
       false, // isPrivatePool,
       initialPoolFee,
@@ -49,17 +45,14 @@ describe('createStakingPool', function () {
       trancheId
     );
 
-    const receipt = await tx.wait();
-
-    const { stakingPoolAddress, manager, stakingPoolImplementation } = receipt.events[0].args;
-
-    const expectedStakingPoolImplementation = await cover.stakingPoolImplementation();
-
-    assert.equal(manager, stakingPoolManager.address);
-    assert.equal(stakingPoolImplementation, expectedStakingPoolImplementation);
-
-    const stakingPoolInstance = await IStakingPool.at(stakingPoolAddress);
+    const stakingPoolInstance = await ethers.getContractAt('IStakingPool', firstStakingPoolAddress);
     const storedManager = await stakingPoolInstance.manager();
     assert.equal(storedManager, stakingPoolManager.address);
+
+    const proxyInstance = await ethers.getContractAt('MinimalBeaconProxy', firstStakingPoolAddress);
+
+    const beacon = await proxyInstance.beacon();
+
+    await assert.equal(beacon, cover.address);
   });
 });

@@ -82,9 +82,8 @@ async function setup () {
   const cover = await Cover.deploy(
     quotationData.address,
     ethers.constants.AddressZero,
-    stakingPool.address,
     futureCoverNFTAddress,
-    coverAddress,
+    stakingPool.address
   );
   await cover.deployed();
 

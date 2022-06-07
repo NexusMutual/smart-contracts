@@ -11,6 +11,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/ICoverNFT.sol";
 
+
 library CoverUtilsLib {
 
   struct MigrateParams {
@@ -125,7 +126,6 @@ library CoverUtilsLib {
     stakingPoolAddress = address(
       new MinimalBeaconProxy{ salt: bytes32(poolInitParams.poolId) }(address(this))
     );
-
 
     if (msg.sender != pooledStakingAddress) {
 

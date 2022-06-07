@@ -2,16 +2,15 @@
 
 pragma solidity ^0.8.9;
 
-import "../../interfaces/INXMToken.sol";
-import "../../interfaces/IMemberRoles.sol";
-import "../../interfaces/IPool.sol";
-import "../../interfaces/ICover.sol";
-import "../../interfaces/IIndividualClaims.sol";
-import "../../interfaces/IAssessment.sol";
-import "../../interfaces/IERC20Detailed.sol";
-import "../../interfaces/ICoverNFT.sol";
-
 import "../../abstract/MasterAwareV2.sol";
+import "../../interfaces/IAssessment.sol";
+import "../../interfaces/ICover.sol";
+import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/IERC20Detailed.sol";
+import "../../interfaces/IIndividualClaims.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IPool.sol";
 
 /// Provides a way for contracts which don't use the Gateway.sol contract to migrate covers to V2
 /// using the submitClaim claim function.

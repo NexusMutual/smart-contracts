@@ -2,17 +2,16 @@
 
 pragma solidity ^0.8.9;
 
-import "../../interfaces/INXMToken.sol";
-import "../../interfaces/IMemberRoles.sol";
-import "../../interfaces/IPool.sol";
-import "../../interfaces/ICover.sol";
-import "../../interfaces/IIndividualClaims.sol";
-import "../../interfaces/IAssessment.sol";
-import "../../interfaces/IERC20Detailed.sol";
-import "../../interfaces/ICoverNFT.sol";
-import "../../utils/Math.sol";
-
 import "../../abstract/MasterAwareV2.sol";
+import "../../interfaces/IAssessment.sol";
+import "../../interfaces/ICover.sol";
+import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/IERC20Detailed.sol";
+import "../../interfaces/IIndividualClaims.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IPool.sol";
+import "../../libraries/Math.sol";
 
 /// Provides a way for cover owners to submit claims and redeem payouts. It is an entry point to
 /// the assessment process where the members of the mutual decide the outcome of claims.

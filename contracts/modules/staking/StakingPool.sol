@@ -9,9 +9,8 @@ import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/INXMToken.sol";
-import "../../utils/Math.sol";
-import "../../utils/SafeUintCast.sol";
-import "./StakingTypesLib.sol";
+import "../../libraries/Math.sol";
+import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
 
 // total stake = active stake + expired stake
@@ -447,9 +446,12 @@ contract StakingPool is IStakingPool, ERC721 {
         deposits[tokenId][trancheId] = deposit;
       }
 
-      uint withdrawable = stakeToWithdraw + rewardsToWithdraw;
-
-      tokenController.withdrawNXMStakeAndRewards(ownerOf(tokenId), stakeToWithdraw, rewardsToWithdraw, poolId);
+      tokenController.withdrawNXMStakeAndRewards(
+        ownerOf(tokenId),
+        stakeToWithdraw,
+        rewardsToWithdraw,
+        poolId
+      );
     }
   }
 

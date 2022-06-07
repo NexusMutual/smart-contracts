@@ -6,17 +6,16 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/extensions/draft-IERC20Permit.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import "../../interfaces/INXMToken.sol";
-import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IMemberRoles.sol";
-import "../../interfaces/IPool.sol";
-import "../../interfaces/ICover.sol";
-import "../../interfaces/IAssessment.sol";
-import "../../interfaces/IYieldTokenIncidents.sol";
-import "../../interfaces/ICoverNFT.sol";
-import "../../utils/Math.sol";
-
 import "../../abstract/MasterAwareV2.sol";
+import "../../interfaces/IAssessment.sol";
+import "../../interfaces/ICover.sol";
+import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IYieldTokenIncidents.sol";
+import "../../libraries/Math.sol";
 
 /// Allows cover owners to redeem payouts from yield token depeg incidents. It is an entry point
 /// to the assessment process where the members of the mutual decides the validity of the

@@ -2,14 +2,14 @@
 
 pragma solidity ^0.5.0;
 
-import "../../modules/cover/QuotationData.sol";
+import "../../modules/legacy/LegacyQuotationData.sol";
 
-contract TestnetQuotationData is QuotationData {
+contract TestnetQuotationData is LegacyQuotationData {
 
   constructor(
     address _authQuoteAdd,
     address _kycAuthAdd
-  ) QuotationData(_authQuoteAdd, _kycAuthAdd) public {
+  ) LegacyQuotationData(_authQuoteAdd, _kycAuthAdd) public {
     /* noop */
   }
 

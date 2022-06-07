@@ -7,22 +7,20 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/proxy/beacon/UpgradeableBeacon.sol";
 
+import "../../abstract/MasterAwareV2.sol";
+import "../../interfaces/ICover.sol";
+import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/IMCR.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/IPool.sol";
+import "../../interfaces/IProductsV1.sol";
+import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/IStakingPoolBeacon.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../libraries/SafeUintCast.sol";
 import "./CoverUtilsLib.sol";
 import "./MinimalBeaconProxy.sol";
-
-import "../../utils/SafeUintCast.sol";
-import "../../interfaces/ICover.sol";
-import "../../interfaces/IStakingPool.sol";
-import "../../interfaces/IQuotationData.sol";
-import "../../interfaces/IPool.sol";
-import "../../abstract/MasterAwareV2.sol";
-import "../../interfaces/IMemberRoles.sol";
-import "../../interfaces/ICoverNFT.sol";
-import "../../interfaces/IProductsV1.sol";
-import "../../interfaces/IMCR.sol";
-import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IStakingPoolBeacon.sol";
-
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   using SafeERC20 for IERC20;
@@ -548,7 +546,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       params,
       depositAmount,
       trancheId,
-      tokenController(),
       master.getLatestAddress("PS")
     );
   }

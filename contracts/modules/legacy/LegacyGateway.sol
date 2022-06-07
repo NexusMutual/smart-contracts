@@ -17,7 +17,7 @@ import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
 
-contract Gateway is IGateway, MasterAware {
+contract LegacyGateway is IGateway, MasterAware {
 
   /* ============ CONSTANTS ============== */
 

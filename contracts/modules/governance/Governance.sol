@@ -866,10 +866,10 @@ contract Governance is IGovernance, LegacyMasterAware {
           "One or more staking pools are not managed by the sender"
         );
         (
-          uint stakingRewards,
+          /*uint stakingRewards*/,
           uint stakingDeposits
         ) = tokenInstance.stakingPoolNXMBalances(managedStakingPoolIds[i]);
-        voteWeight = voteWeight.add(stakingRewards).add(stakingDeposits);
+        voteWeight = voteWeight.add(stakingDeposits);
       }
 
       // If it's not a special resolution, the vote weight is bounded by a percentage out of the total supply

@@ -450,14 +450,7 @@ contract StakingPool is IStakingPool, ERC721{
     WithdrawParams[] memory params
   ) public returns (uint stakeToWithdraw, uint rewardsToWithdraw) {
 
-    // Prevent withdrawals while the manager is locked in governance
-    {
-      uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
-      require(
-        managerLockedInGovernanceUntil < block.timestamp,
-        "StakingPool: Cannot withdraw while the pool manager is locked for governance voting"
-      );
-    }
+    uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
 
     updateTranches();
 
@@ -478,6 +471,13 @@ contract StakingPool is IStakingPool, ERC721{
 
         // can withdraw stake only if the tranche is expired
         if (params[i].withdrawStake && trancheId < _firstActiveTrancheId) {
+
+          // Deposit withdrawals are not permitted while the manager is locked in governance to
+          // prevent double voting.
+          require(
+            managerLockedInGovernanceUntil < block.timestamp,
+            "StakingPool: While the pool manager is locked for governance voting only rewards can be withdrawn"
+          );
 
           // calculate the amount of nxm for this deposit
           uint stake = expiredTranches[trancheId].stakeAmountAtExpiry;
@@ -817,7 +817,7 @@ contract StakingPool is IStakingPool, ERC721{
     address from,
     address to,
     uint256 tokenId
-  ) internal view override {
+  ) internal override {
     if(tokenId == 0) {
       require(
         nxm.isLockedForMV(manager()) < block.timestamp,

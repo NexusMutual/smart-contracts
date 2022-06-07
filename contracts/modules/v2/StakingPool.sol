@@ -369,16 +369,16 @@ contract StakingPool is ERC721, IStakingPool {
   /// Calculates the amount of new reward shares based on the initial and new stake shares and
   /// tranche.
   ///
-  /// @param initialStakeShares  The amount of stake shares that the deposit is already entitled
-  ///                            to.
-  /// @param newStakeShares      The amount o new stake shares that the deposit will entitled to
-  ///                            on top of the existing ones.
-  /// @param initialTrancheId    The initial id of the tranche that defines the deposit period.
-  /// @param newTrancheId        The new id of the tranche that will define the deposit period.
-  /// @param blockTimestamp      The timestamp of the block when the new shares are recalculated.
+  /// @param initialStakeShares   The amount of stake shares that the deposit is already entitled
+  ///                             to.
+  /// @param stakeSharesIncrease  The amount o new stake shares that the deposit will entitled to
+  ///                             on top of the existing ones.
+  /// @param initialTrancheId     The initial id of the tranche that defines the deposit period.
+  /// @param newTrancheId         The new id of the tranche that will define the deposit period.
+  /// @param blockTimestamp       The timestamp of the block when the new shares are recalculated.
   function calculateNewRewardShares(
     uint initialStakeShares,
-    uint newStakeShares,
+    uint stakeSharesIncrease,
     uint initialTrancheId,
     uint newTrancheId,
     uint blockTimestamp
@@ -388,7 +388,7 @@ contract StakingPool is ERC721, IStakingPool {
 
     // A new bonus is calculated based on the the time left until the new tranche ends and the
     // total amount of stake shares (initial + new).
-    uint newBonusShares = (initialStakeShares + newStakeShares)
+    uint newBonusShares = (initialStakeShares + stakeSharesIncrease)
       * REWARD_BONUS_PER_TRANCHE_RATIO
       * timeLeftOfNewTranche
       / TRANCHE_DURATION
@@ -406,7 +406,7 @@ contract StakingPool is ERC721, IStakingPool {
 
     // Return one reward share per stake share, add the newly calculated bonus shares and deduct the
     // previous ones.
-    return newStakeShares + newBonusShares - previousBonusSharesDeduction;
+    return stakeSharesIncrease + newBonusShares - previousBonusSharesDeduction;
   }
 
   function withdraw(
@@ -579,7 +579,14 @@ contract StakingPool is ERC721, IStakingPool {
   ) public {
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES;
+
+    // Token id 0 does not wrap actual deposits but instead it is used to determine who the pool
+    // manager is and to calculate his reward shares according to the pool fee. In other words,
+    // it holds no stake the would expire at the end of a certain tranche, only rewards from fees.
+    // If the manager wishes to make a deposit, he will use the same mechanism like everyone else
+    // by minting a different NFT with id > 0.
     require(tokenId != 0, "StakingPool: Invalid token id");
+
     require(
       _isApprovedOrOwner(msg.sender, tokenId),
       "StakingPool: Not authorized to extend deposits on this token"
@@ -628,8 +635,6 @@ contract StakingPool is ERC721, IStakingPool {
     updateTranches();
 
     Deposit memory initialDeposit = deposits[tokenId][initialTrancheId];
-    Deposit memory newDeposit = deposits[tokenId][newTrancheId];
-    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
 
     // Calculate the new stake shares if there's also a deposit top up.
     uint newStakeShares;
@@ -664,29 +669,33 @@ contract StakingPool is ERC721, IStakingPool {
 
     // Calculate the rewards that will be carried from the initial deposit to the next one.
     uint rewardsToCarry;
+    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
     {
       uint newEarningsPerShare = _accNxmPerRewardsShare - initialDeposit.lastAccNxmPerRewardShare;
       rewardsToCarry = newEarningsPerShare * initialDeposit.rewardsShares
         + initialDeposit.pendingRewards;
     }
 
+    Deposit memory updatedDeposit = deposits[tokenId][newTrancheId];
+
     // If a deposit lasting until the new tranche's end date already exists, calculate its pending
     // rewards before carrying over the rewards from the inital deposit.
-    if (newDeposit.lastAccNxmPerRewardShare != 0) {
-      uint newEarningsPerShare = _accNxmPerRewardsShare - newDeposit.lastAccNxmPerRewardShare;
-      newDeposit.pendingRewards += newEarningsPerShare * newDeposit.rewardsShares;
+    if (updatedDeposit.lastAccNxmPerRewardShare != 0) {
+      uint newEarningsPerShare = _accNxmPerRewardsShare - updatedDeposit.lastAccNxmPerRewardShare;
+      updatedDeposit.pendingRewards += newEarningsPerShare * updatedDeposit.rewardsShares;
     }
 
     // The carried rewards are added to the pending rewards of the new depostit.
-    newDeposit.pendingRewards += rewardsToCarry;
+    updatedDeposit.pendingRewards += rewardsToCarry;
 
     // Update the last value of accumulated NXM per share in the new deposit.
-    newDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+    updatedDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
 
 
-    // Move the user's shares from the initial deposit to the new one.
-    newDeposit.rewardsShares += initialDeposit.rewardsShares + newRewardsShares;
-    newDeposit.stakeShares += initialDeposit.stakeShares + newStakeShares;
+    // Move the user's shares from the initial deposit to the new one. The updated deposit can
+    // already exist so the new shares are added on top of the existing ones.
+    updatedDeposit.rewardsShares += initialDeposit.rewardsShares + newRewardsShares;
+    updatedDeposit.stakeShares += initialDeposit.stakeShares + newStakeShares;
 
     // Reset the initial deposit. This sets the pending rewards and shares from the intial deposit
     // to zero since at this point they are already carried over to the new one and the last value
@@ -696,7 +705,7 @@ contract StakingPool is ERC721, IStakingPool {
     delete deposits[tokenId][initialTrancheId];
 
     // Store the new deposit.
-    deposits[tokenId][newTrancheId] = newDeposit;
+    deposits[tokenId][newTrancheId] = updatedDeposit;
 
     // Update global shares supply
     stakeSharesSupply += newStakeShares;

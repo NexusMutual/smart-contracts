@@ -58,7 +58,6 @@ const Gateway = artifacts.require('Gateway');
 
 // external contracts
 const DistributorFactory = artifacts.require('DistributorFactory');
-const SelfKyc = artifacts.require('SelfKyc');
 const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
 const INITIAL_SUPPLY = ether('1500000');
@@ -155,13 +154,8 @@ async function main () {
   const { instance: master, implementation: masterImpl } = await deployProxy(DisposableNXMaster);
   const { instance: mr, implementation: mrImpl } = await deployProxy(DisposableMemberRoles);
 
-  console.log('Deploying SelfKyc');
-  const selfKyc = await SelfKyc.new(mr.address);
-
-  verifier.add(selfKyc, { constructorArgs: [mr.address] });
-
   console.log('Deploying quotation contracts');
-  const qd = await QuotationData.new(owner, selfKyc.address);
+  const qd = await QuotationData.new(owner);
 
   console.log('Deploying legacy claims reward');
   const lcr = await LegacyClaimsReward.new(master.address, dai.address);
@@ -304,7 +298,7 @@ async function main () {
     constructorArgs: [CHAINLINK_DAI_ETH_AGGREGATORS[network.name], dai.address, stETH.address],
   });
 
-  verifier.add(qd, { constructorArgs: [owner, selfKyc.address] });
+  verifier.add(qd, { constructorArgs: [owner] });
 
   console.log('Deploying capital contracts');
   const mc = await DisposableMCR.new(ZERO_ADDRESS);

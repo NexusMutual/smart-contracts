@@ -2,15 +2,17 @@
 
 pragma solidity ^0.8.9;
 
-import "../../utils/SafeUintCast.sol";
 import "../../abstract/LegacyMasterAware.sol";
+import "../../interfaces/IAssessment.sol";
+import "../../interfaces/ICover.sol";
+import "../../interfaces/IGovernance.sol";
+import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
-import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IAssessment.sol";
-import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IQuotationData.sol";
-import "../../interfaces/INXMMaster.sol";
+import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../libraries/SafeUintCast.sol";
 import "./external/LockHandler.sol";
 
 contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
@@ -22,6 +24,9 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   IPooledStaking public pooledStaking;
   IAssessment public assessment;
   IGovernance public governance;
+
+  ICover public cover;
+  mapping(uint => StakingPoolNXMBalances) stakingPoolNXMBalances;
 
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
@@ -38,6 +43,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     token = INXMToken(ms.tokenAddress());
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
     assessment = IAssessment(ms.getLatestAddress("AS"));
+    cover = ICover(ms.getLatestAddress("CO"));
   }
 
   /**
@@ -205,21 +211,48 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   /// Function used to claim all pending rewards in one tx. It can be used to selectively withdraw
   /// rewards.
   ///
-  /// @param batchSize  The maximum number of iterations to avoid unbounded loops
-  /// @param batchSize  The maximum number of iterations to avoid unbounded loops
+  /// @param forUser           The address for whom the governance and/or assessment rewards are
+  ///                          withdrawn.
+  /// @param fromGovernance    When true, governance rewards are withdrawn.
+  /// @param fromAssessment    When true, assessment rewards are withdrawn.
+  /// @param batchSize         The maximum number of iterations to avoid unbounded loops when
+  ///                          withdrawing governance and/or assessment rewards.
+  /// @param fromStakingPools  An array of structures containing staking pools, token ids and
+  ///                          tranche ids. See: WithdrawFromStakingPoolParams from ITokenController
+  ///                          When empty, no staking rewards are withdrawn.
   function withdrawPendingRewards(
     address forUser,
     bool fromGovernance,
     bool fromAssessment,
-    uint batchSize
+    uint batchSize,
+    WithdrawFromStakingPoolParams[] calldata fromStakingPools
   ) external isMemberAndcheckPause {
     if (fromAssessment) {
       assessment.withdrawRewards(forUser, batchSize.toUint104());
     }
+
     if (fromGovernance) {
       uint governanceRewards = governance.claimReward(forUser, batchSize);
       require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
-      require(token.transfer(forUser, governanceRewards), "TokenController: Governance rewards transfer failed");
+      require(
+        token.transfer(forUser, governanceRewards),
+        "TokenController: Governance rewards transfer failed"
+      );
+    }
+
+    for (uint i = 0; i < fromStakingPools.length; i++) {
+      WithdrawParams[] memory withdrawParams = new WithdrawParams[](
+        fromStakingPools[i].nfts.length
+      );
+      for (uint j = 0; j < fromStakingPools[i].nfts.length; j++) {
+        withdrawParams[j] = WithdrawParams(
+          fromStakingPools[i].nfts[j].id,
+          false, // withdrawStake
+          true,  // withdrawRewards
+          fromStakingPools[i].nfts[j].trancheIds
+        );
+      }
+      IStakingPool(fromStakingPools[i].poolAddress).withdraw(withdrawParams);
     }
   }
 
@@ -316,6 +349,39 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     }
 
     token.transfer(user, totalAmount);
+  }
+
+
+  function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
+
+    require(msg.sender == address(cover), "TokenController: only Cover allowed");
+    mint(address(this), amount);
+    stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
+  }
+
+  function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
+
+    require(msg.sender == address(cover), "TokenController: only Cover allowed");
+    burnFrom(address(this), amount);
+    stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
+  }
+
+  function depositStakedNXM(address from, uint amount, uint poolId) external {
+    require(msg.sender == address(cover.stakingPool(poolId)), "TokenController: msg.sender not staking pool");
+
+    stakingPoolNXMBalances[poolId].deposits += amount.toUint128();
+    token.operatorTransfer(from, amount);
+  }
+
+  function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {
+    require(msg.sender == address(cover.stakingPool(poolId)), "TokenController: msg.sender not staking pool");
+
+    StakingPoolNXMBalances memory currentBalances = stakingPoolNXMBalances[poolId];
+    stakingPoolNXMBalances[poolId] = StakingPoolNXMBalances(
+      currentBalances.deposits - stakeToWithdraw.toUint128(),
+      currentBalances.rewards - rewardsToWithdraw.toUint128()
+    );
+    token.transfer(to, stakeToWithdraw + rewardsToWithdraw);
   }
 
   function initialize() external {

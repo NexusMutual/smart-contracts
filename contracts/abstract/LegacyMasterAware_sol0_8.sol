@@ -25,18 +25,8 @@ contract LegacyMasterAware {
     _;
   }
 
-  modifier onlyOwner {
-    require(ms.isOwner(msg.sender));
-    _;
-  }
-
   modifier checkPause {
     require(ms.isPause() == false);
-    _;
-  }
-
-  modifier isMember {
-    require(ms.isMember(msg.sender), "Not member");
     _;
   }
 

@@ -23,13 +23,20 @@ enum LegacyCoverStatus {
   Migrated
 }
 
+enum CoverUintParams {
+  globalCapacityRatio,
+  globalRewardsRatio,
+  coverAssetsFallback
+}
+
+
 struct PoolAllocationRequest {
-  uint64 poolId;
+  uint40 poolId;
   uint coverAmountInAsset;
 }
 
 struct PoolAllocation {
-  uint64 poolId;
+  uint40 poolId;
   uint96 coverAmountInNXM;
   uint96 premiumInNXM;
 }
@@ -46,6 +53,7 @@ struct CoverSegment {
   uint32 period;  // seconds
   uint16 priceRatio;
   bool expired;
+  uint24 globalRewardsRatio;
 }
 
 struct BuyCoverParams {
@@ -59,6 +67,7 @@ struct BuyCoverParams {
   bool payWithNXM;
   uint16 commissionRatio;
   address commissionDestination;
+  string ipfsData;
 }
 
 struct IncreaseAmountAndReducePeriodParams {
@@ -112,6 +121,8 @@ interface ICover {
 
   function isAssetSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) external view returns (bool);
 
+  function stakingPool(uint index) external view returns (IStakingPool);
+
   function stakingPoolCount() external view returns (uint64);
 
   function productsCount() external view returns (uint);
@@ -121,6 +132,8 @@ interface ICover {
   function MAX_COVER_PERIOD() external view returns (uint);
 
   function totalActiveCoverInAsset(uint24 coverAsset) external view returns (uint);
+
+  function calculateCapacity(uint staked, uint capacityReductionRatio) external view returns (uint);
 
   /* === MUTATIVE FUNCTIONS ==== */
 
@@ -153,8 +166,6 @@ interface ICover {
     string[] calldata ipfsMetadata
   ) external;
 
-  function setCoverAssetsFallback(uint32 _coverAssetsFallback) external;
-
   function performPayoutBurn(
     uint coverId,
     uint segmentId,
@@ -180,7 +191,7 @@ interface ICover {
   event StakingPoolCreated(address stakingPoolAddress, address manager, address stakingPoolImplementation);
   event ProductTypeUpserted(uint id, string ipfsMetadata);
   event ProductUpserted(uint id, string ipfsMetadata);
-  event CoverBought(uint coverId, uint productId, uint segmentId, address buyer);
+  event CoverBought(uint coverId, uint productId, uint segmentId, address buyer, string ipfsMetadata);
   event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
   event CoverExpired(uint coverId, uint segmentId);
 }

@@ -4,6 +4,8 @@ pragma solidity >=0.5.0;
 
 import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 
+import "./ITokenController.sol";
+
 /* structs for io */
 
 struct WithdrawParams {
@@ -11,6 +13,13 @@ struct WithdrawParams {
   bool withdrawStake;
   bool withdrawRewards;
   uint[] trancheIds;
+}
+
+struct DepositRequest {
+  uint amount;
+  uint trancheId;
+  uint tokenId;
+  address destination;
 }
 
 struct ProductParams {
@@ -76,7 +85,8 @@ interface IStakingPool is IERC721 {
     bool isPrivatePool,
     uint initialPoolFee,
     uint maxPoolFee,
-    ProductInitializationParams[] calldata params
+    ProductInitializationParams[] calldata params,
+    uint _poolId
   ) external;
 
   function operatorTransfer(address from, address to, uint[] calldata tokenIds) external;
@@ -89,24 +99,20 @@ interface IStakingPool is IERC721 {
     uint gracePeriod,
     uint productStakeAmount,
     uint rewardRatio
-  ) external returns (uint allocatedNXM, uint premium);
+  ) external returns (uint allocatedNXM, uint premium, uint rewardsInNXM);
 
   function deallocateStake(
     uint productId,
     uint start,
     uint period,
     uint amount,
-    uint premium
+    uint premium,
+    uint globalRewardsRatio
   ) external;
 
   function burnStake(uint productId, uint start, uint period, uint amount) external;
 
-  function depositTo(
-    uint amount,
-    uint trancheId,
-    uint _tokenId,
-    address destination
-  ) external returns (uint tokenId);
+  function depositTo(DepositRequest[] memory requests) external returns (uint[] memory tokenIds);
 
   function withdraw(
     WithdrawParams[] memory params

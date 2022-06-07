@@ -94,8 +94,6 @@ contract MasterMock {
 
   function masterInitialized() unused public view returns (bool) {}
 
-  function isOwner(address) unused public view returns (bool) {}
-
   function updatePauseTime(uint) unused public {}
 
   function owner() external view returns (address) {}

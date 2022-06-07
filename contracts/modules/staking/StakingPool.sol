@@ -820,7 +820,7 @@ contract StakingPool is IStakingPool, ERC721{
   ) internal override {
     if(tokenId == 0) {
       require(
-        nxm.isLockedForMV(manager()) < block.timestamp,
+        nxm.isLockedForMV(from) < block.timestamp,
         "StakingPool: Active pool assets are locked for voting in governance"
       );
     }

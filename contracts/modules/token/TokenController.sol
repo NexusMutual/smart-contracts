@@ -11,6 +11,7 @@ import "../../interfaces/IAssessment.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/INXMMaster.sol";
+import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingPool.sol";
 import "./external/LockHandler.sol";
 
@@ -23,6 +24,9 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   IPooledStaking public pooledStaking;
   IAssessment public assessment;
   IGovernance public governance;
+
+  ICover public cover;
+  mapping(uint => StakingPoolNXMBalances) stakingPoolNXMBalances;
 
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
@@ -39,6 +43,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     token = INXMToken(ms.tokenAddress());
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
     assessment = IAssessment(ms.getLatestAddress("AS"));
+    cover = ICover(ms.getLatestAddress("CO"));
   }
 
   /**
@@ -345,6 +350,39 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     }
 
     token.transfer(user, totalAmount);
+  }
+
+
+  function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
+
+    require(msg.sender == address(cover), "TokenController: only Cover allowed");
+    mint(address(this), amount);
+    stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
+  }
+
+  function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
+
+    require(msg.sender == address(cover), "TokenController: only Cover allowed");
+    burnFrom(address(this), amount);
+    stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
+  }
+
+  function depositStakedNXM(address from, uint amount, uint poolId) external {
+    require(msg.sender == address(cover.stakingPool(poolId)), "TokenController: msg.sender not staking pool");
+
+    stakingPoolNXMBalances[poolId].deposits += amount.toUint128();
+    token.operatorTransfer(from, amount);
+  }
+
+  function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {
+    require(msg.sender == address(cover.stakingPool(poolId)), "TokenController: msg.sender not staking pool");
+
+    StakingPoolNXMBalances memory currentBalances = stakingPoolNXMBalances[poolId];
+    stakingPoolNXMBalances[poolId] = StakingPoolNXMBalances(
+      currentBalances.deposits - stakeToWithdraw.toUint128(),
+      currentBalances.rewards - rewardsToWithdraw.toUint128()
+    );
+    token.transfer(to, stakeToWithdraw + rewardsToWithdraw);
   }
 
   function initialize() external {

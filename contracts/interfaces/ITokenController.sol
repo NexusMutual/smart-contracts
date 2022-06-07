@@ -6,6 +6,11 @@ import "./INXMToken.sol";
 
 interface ITokenController {
 
+  struct StakingPoolNXMBalances {
+    uint128 rewards;
+    uint128 deposits;
+  }
+
   struct CoverInfo {
     uint16 claimCount;
     bool hasOpenClaim;
@@ -54,4 +59,12 @@ interface ITokenController {
   function totalBalanceOf(address _of) external view returns (uint256 amount);
 
   function token() external view returns (INXMToken);
+
+  function mintStakingPoolNXMRewards(uint amount, uint poolId) external;
+
+  function burnStakingPoolNXMRewards(uint amount, uint poolId) external;
+
+  function depositStakedNXM(address from, uint amount, uint poolId) external;
+
+  function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external;
 }

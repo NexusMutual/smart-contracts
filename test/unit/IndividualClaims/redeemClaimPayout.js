@@ -23,7 +23,7 @@ describe('redeemClaimPayout', function () {
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[coverAmount, timestamp + 1, coverPeriod, 0]],
+      [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
     );
 
     {
@@ -64,7 +64,7 @@ describe('redeemClaimPayout', function () {
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[coverAmount, timestamp + 1, coverPeriod, 0]],
+      [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
     );
 
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
@@ -101,7 +101,7 @@ describe('redeemClaimPayout', function () {
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[coverAmount, timestamp + 1, coverPeriod, 0]],
+      [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
     );
 
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
@@ -126,7 +126,7 @@ describe('redeemClaimPayout', function () {
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[coverAmount, timestamp + 1, coverPeriod, 0]],
+      [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
     );
 
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
@@ -150,7 +150,7 @@ describe('redeemClaimPayout', function () {
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[coverAmount, timestamp + 1, coverPeriod, 0]],
+      [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
     );
 
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
@@ -174,7 +174,7 @@ describe('redeemClaimPayout', function () {
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[coverAmount, timestamp + 1, coverPeriod, 0]],
+      [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
     );
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
@@ -199,7 +199,7 @@ describe('redeemClaimPayout', function () {
         originalOwner.address,
         0, // productId
         ASSET.ETH,
-        [[coverAmount, timestamp + 1, coverPeriod, 0]],
+        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
         { gasPrice: 0 },
       );
 
@@ -232,7 +232,7 @@ describe('redeemClaimPayout', function () {
         originalOwner.address,
         0, // productId
         ASSET.ETH,
-        [[coverAmount, timestamp + 1, coverPeriod, 0]],
+        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
         { gasPrice: 0 },
       );
 
@@ -274,7 +274,7 @@ describe('redeemClaimPayout', function () {
         originalOwner.address,
         0, // productId
         ASSET.DAI,
-        [[coverAmount, timestamp + 1, coverPeriod, 0]],
+        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
         { gasPrice: 0 },
       );
 
@@ -308,7 +308,7 @@ describe('redeemClaimPayout', function () {
         originalOwner.address,
         0, // productId
         ASSET.DAI,
-        [[coverAmount, timestamp + 1, coverPeriod, 0]],
+        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
         { gasPrice: 0 },
       );
 
@@ -354,9 +354,9 @@ describe('redeemClaimPayout', function () {
         0, // productId
         ASSET.DAI,
         [
-          [0, 0, 0, 0],
-          [0, 0, 0, 0],
-          [coverAmount, timestamp + 1, coverPeriod, 0],
+          [0, 0, 0, 0, false, 0],
+          [0, 0, 0, 0, false, 0],
+          [coverAmount, timestamp + 1, coverPeriod, 0, false, 0],
         ],
         { gasPrice: 0 },
       );

@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICover.sol";
+import "../../interfaces/ITokenController.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../utils/Math.sol";
 import "../../utils/SafeUintCast.sol";
@@ -27,6 +28,8 @@ contract StakingPool is IStakingPool, ERC721 {
   using StakingTypesLib for BucketTrancheGroup;
 
   /* storage */
+
+  uint poolId;
 
   // currently active staked nxm amount
   uint public activeStake;
@@ -85,6 +88,7 @@ contract StakingPool is IStakingPool, ERC721 {
   /* immutables */
 
   INXMToken public immutable nxm;
+  ITokenController public  immutable tokenController;
   address public immutable coverContract;
 
   /* constants */
@@ -121,10 +125,12 @@ contract StakingPool is IStakingPool, ERC721 {
     string memory _name,
     string memory _symbol,
     address _token,
-    address _coverContract
+    address _coverContract,
+    ITokenController _tokenController
   ) ERC721(_name, _symbol) {
     nxm = INXMToken(_token);
     coverContract = _coverContract;
+    tokenController = _tokenController;
   }
 
   function initialize(
@@ -132,7 +138,8 @@ contract StakingPool is IStakingPool, ERC721 {
     bool _isPrivatePool,
     uint _initialPoolFee,
     uint _maxPoolFee,
-    ProductInitializationParams[] calldata params
+    ProductInitializationParams[] calldata params,
+    uint _poolId
   ) external onlyCoverContract {
 
     isPrivatePool = _isPrivatePool;
@@ -149,6 +156,8 @@ contract StakingPool is IStakingPool, ERC721 {
     // create ownership nft
     totalSupply = 1;
     _safeMint(_manager, 0);
+
+    poolId = _poolId;
   }
 
   // used to transfer all nfts when a user switches the membership to a new address
@@ -360,9 +369,8 @@ contract StakingPool is IStakingPool, ERC721 {
       _rewardsSharesSupply += newRewardsShares;
     }
 
-    // transfer nxm from staker
-    // TODO: use TokenController.operatorTransfer instead and transfer to TC
-    nxm.transferFrom(msg.sender, address(this), totalAmount);
+    // transfer nxm from staker and update pool deposit balance
+    tokenController.depositStakedNXM(msg.sender, totalAmount, poolId);
 
     // update globals
     activeStake = _activeStake;
@@ -441,8 +449,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
       uint withdrawable = stakeToWithdraw + rewardsToWithdraw;
 
-      // TODO: use TC instead
-      nxm.transfer(ownerOf(tokenId), withdrawable);
+      tokenController.withdrawNXMStakeAndRewards(ownerOf(tokenId), stakeToWithdraw, rewardsToWithdraw, poolId);
     }
   }
 
@@ -792,7 +799,8 @@ contract StakingPool is IStakingPool, ERC721 {
     uint start,
     uint period,
     uint amount,
-    uint premium
+    uint premium,
+    uint globalRewardsRatio
   ) external onlyCoverContract {
 
     // silence compiler warnings
@@ -846,8 +854,7 @@ contract StakingPool is IStakingPool, ERC721 {
   /* views */
 
   function getActiveStake() external view returns (uint) {
-    block.timestamp;
-    // prevents warning about function being pure
+    block.timestamp; // prevents warning about function being pure
     return 0;
   }
 

@@ -4,6 +4,8 @@ pragma solidity >=0.5.0;
 
 import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 
+import "./ITokenController.sol";
+
 /* structs for io */
 
 struct CoverRequest {
@@ -89,7 +91,8 @@ interface IStakingPool is IERC721 {
     bool isPrivatePool,
     uint initialPoolFee,
     uint maxPoolFee,
-    ProductInitializationParams[] calldata params
+    ProductInitializationParams[] calldata params,
+    uint _poolId
   ) external;
 
   function operatorTransfer(address from, address to, uint[] calldata tokenIds) external;
@@ -98,14 +101,15 @@ interface IStakingPool is IERC721 {
 
   function allocateStake(
     CoverRequest calldata request
-  ) external returns (uint allocatedAmount, uint premium);
+  ) external returns (uint allocatedAmount, uint premium, uint rewardsInNXM);
 
   function deallocateStake(
     uint productId,
     uint start,
     uint period,
     uint amount,
-    uint premium
+    uint premium,
+    uint globalRewardsRatio
   ) external;
 
   function burnStake(uint productId, uint start, uint period, uint amount) external;

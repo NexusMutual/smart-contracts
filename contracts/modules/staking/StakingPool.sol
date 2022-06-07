@@ -457,7 +457,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function allocateStake(
     CoverRequest calldata request
-  ) external onlyCoverContract returns (uint allocatedAmount, uint premium) {
+  ) external onlyCoverContract returns (uint allocatedAmount, uint premium, uint rewardsInNXM) {
 
     updateTranches();
 
@@ -531,22 +531,20 @@ contract StakingPool is IStakingPool, ERC721 {
       request.period
     );
 
+    uint rewards;
     {
       require(request.rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
 
-      // divCeil = fn(a, b) => (a + b - 1) / b
+      rewards = premium * request.rewardRatio / REWARDS_DENOMINATOR;
       uint expireAtBucket = (block.timestamp + request.period + BUCKET_DURATION - 1) / BUCKET_DURATION;
-      uint _rewardPerSecond =
-        premium *
-        request.rewardRatio /
-        REWARDS_DENOMINATOR
-        / (expireAtBucket * BUCKET_DURATION - block.timestamp);
+      // divCeil = fn(a, b) => (a + b - 1) / b
+      uint _rewardPerSecond = rewards / (expireAtBucket * BUCKET_DURATION - block.timestamp);
 
       // 1 SLOAD + 1 SSTORE
       rewardBuckets[expireAtBucket].rewardPerSecondCut += _rewardPerSecond;
     }
 
-    return (allocatedAmount, premium);
+    return (allocatedAmount, premium, rewards);
   }
 
   function getStoredActiveCoverAmounts(

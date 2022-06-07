@@ -4,8 +4,6 @@ pragma solidity >=0.5.0;
 
 import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 
-import "./ITokenController.sol";
-
 /* structs for io */
 
 struct CoverRequest {

@@ -38,7 +38,7 @@ import "../../libraries/Math.sol";
 // │                               │
 // ╰───────────────────────────────╯
 
-contract StakingPool is ERC721, IStakingPool {
+contract StakingPool is IStakingPool, ERC721{
   using SafeCast for uint;
 
   /* storage */
@@ -454,7 +454,7 @@ contract StakingPool is ERC721, IStakingPool {
     {
       uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
       require(
-        managerLockedInGovernanceUntil > block.timestamp,
+        managerLockedInGovernanceUntil < block.timestamp,
         "StakingPool: Cannot withdraw while the pool manager is locked for governance voting"
       );
     }
@@ -814,8 +814,8 @@ contract StakingPool is ERC721, IStakingPool {
   /* nft */
 
   function _beforeTokenTransfer(
-    address /*from*/,
-    address /*to*/,
+    address from,
+    address to,
     uint256 tokenId
   ) internal view override {
     if(tokenId == 0) {
@@ -824,43 +824,7 @@ contract StakingPool is ERC721, IStakingPool {
         "StakingPool: Active pool assets are locked for voting in governance"
       );
     }
-  }
-
-  /**
-   * @dev See {IERC721-transferFrom}.
-   */
-  function transferFrom(
-      address from,
-      address to,
-      uint256 tokenId
-  ) public override(ERC721, IERC721) {
-      _beforeTokenTransfer(from, to, tokenId);
-      super.transferFrom(from, to, tokenId);
-  }
-
-  /**
-   * @dev See {IERC721-safeTransferFrom}.
-   */
-  function safeTransferFrom(
-      address from,
-      address to,
-      uint256 tokenId
-  ) public override(ERC721, IERC721) {
-      _beforeTokenTransfer(from, to, tokenId);
-      super.safeTransferFrom(from, to, tokenId);
-  }
-
-  /**
-   * @dev See {IERC721-safeTransferFrom}.
-   */
-  function safeTransferFrom(
-      address from,
-      address to,
-      uint256 tokenId,
-      bytes memory _data
-  ) public override(ERC721, IERC721) {
-      _beforeTokenTransfer(from, to, tokenId);
-      super.safeTransferFrom(from, to, tokenId, _data);
+    super._beforeTokenTransfer(from, to, tokenId);
   }
 
   /* pool management */

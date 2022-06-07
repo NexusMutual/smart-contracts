@@ -26,7 +26,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   IGovernance public governance;
 
   ICover public cover;
-  mapping(uint => StakingPoolNXMBalances) stakingPoolNXMBalances;
+  mapping(uint => StakingPoolNXMBalances) public override stakingPoolNXMBalances;
 
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;

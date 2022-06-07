@@ -4,11 +4,20 @@ pragma solidity >=0.5.0;
 
 import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 
-import "./ITokenController.sol";
-
 /* structs for io */
 
-struct WithdrawParams {
+struct CoverRequest {
+  uint coverId;
+  uint productId;
+  uint amount;
+  uint period;
+  uint gracePeriod;
+  uint globalCapacityRatio;
+  uint capacityReductionRatio;
+  uint rewardRatio;
+}
+
+struct WithdrawRequest {
   uint tokenId;
   bool withdrawStake;
   bool withdrawRewards;
@@ -45,8 +54,8 @@ interface IStakingPool is IERC721 {
   // tranche index is calculated based on the expiration date
   // the initial proposal is to have 4 tranches per year (1 tranche per quarter)
   struct Tranche {
-    uint stakeShares;
-    uint rewardsShares;
+    uint /* uint128 */ stakeShares;
+    uint /* uint128 */ rewardsShares;
   }
 
   struct ExpiredTranche {
@@ -65,19 +74,14 @@ interface IStakingPool is IERC721 {
   struct Product {
     uint8 lastWeight;
     uint8 targetWeight;
-    uint allocatedStake;
-    uint lastBucket;
-    uint targetPrice;
+    uint96 targetPrice;
     uint96 lastPrice;
     uint32 lastPriceUpdateTime;
   }
 
-  struct PoolBucket {
+  struct RewardBucket {
+    // TODO: pack 4 buckets in a slot. uint64 can hold a max of ~1593798 nxm rewards per day
     uint rewardPerSecondCut;
-  }
-
-  struct ProductBucket {
-    uint allocationCut;
   }
 
   function initialize(
@@ -94,12 +98,8 @@ interface IStakingPool is IERC721 {
   function updateTranches() external;
 
   function allocateStake(
-    uint productId,
-    uint period,
-    uint gracePeriod,
-    uint productStakeAmount,
-    uint rewardRatio
-  ) external returns (uint allocatedNXM, uint premium, uint rewardsInNXM);
+    CoverRequest calldata request
+  ) external returns (uint allocatedAmount, uint premium, uint rewardsInNXM);
 
   function deallocateStake(
     uint productId,
@@ -114,7 +114,7 @@ interface IStakingPool is IERC721 {
 
   function depositTo(DepositRequest[] memory requests) external returns (uint[] memory tokenIds);
 
-  function withdraw(WithdrawParams[] memory params) external;
+  function withdraw(WithdrawRequest[] memory params) external;
 
   function addProducts(ProductParams[] memory params) external;
 

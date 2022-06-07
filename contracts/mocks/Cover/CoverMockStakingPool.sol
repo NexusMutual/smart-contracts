@@ -103,7 +103,7 @@ contract CoverMockStakingPool is StakingPool {
   }
 
   function setTargetPrice(uint productId, uint amount) external {
-    products[productId].targetPrice = amount;
+    products[productId].targetPrice = uint96(amount);
   }
 
   function setStake(uint productId, uint amount) external {

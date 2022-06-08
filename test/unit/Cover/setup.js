@@ -175,6 +175,10 @@ async function setup () {
     },
   ], ['']);
 
+  const capacityFactor = '10000';
+
+  await cover.connect(accounts.governanceContracts[0]).updateUintParameters([0], [capacityFactor]);
+
   this.master = master;
   this.pool = pool;
   this.dai = dai;
@@ -184,6 +188,7 @@ async function setup () {
   this.chainlinkDAI = chainlinkDAI;
   this.cover = cover;
   this.accounts = accounts;
+  this.capacityFactor = capacityFactor;
 }
 
 module.exports = setup;

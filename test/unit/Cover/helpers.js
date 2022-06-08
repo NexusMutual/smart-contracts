@@ -1,9 +1,8 @@
 const { artifacts, ethers: { utils: { parseEther }, BigNumber } } = require('hardhat');
 const { constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
-const { assert, expect} = require('chai');
+const { assert, expect } = require('chai');
 const { bnEqual } = require("../../../lib/helpers");
-const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
 
 const DEFAULT_POOL_FEE = '5'
 
@@ -17,9 +16,6 @@ const DEFAULT_PRODUCT_INITIALIZATION = [
 async function createStakingPool (
   cover, productId, capacity, targetPrice, activeCover, stakingPoolCreator, stakingPoolManager, currentPrice,
 ) {
-
-  console.log('##### 1')
-
 
   const productinitializationParams = DEFAULT_PRODUCT_INITIALIZATION.map(p => {
     p.initialPrice = currentPrice;
@@ -37,25 +33,23 @@ async function createStakingPool (
     '0', // trancheId
   );
 
-  console.log('##### 1.5')
+  await tx.wait();
 
-  const receipt = await tx.wait();
+  const stakingPoolCount = await cover.stakingPoolCount();
 
+  const stakingPoolIndex = stakingPoolCount.sub(1);
 
-  const { stakingPoolAddress } = receipt.events[0].args;
+  const stakingPoolAddress = await cover.stakingPool(stakingPoolIndex);
 
-  const stakingPool = await CoverMockStakingPool.at(stakingPoolAddress);
+  const stakingPool = await ethers.getContractAt('CoverMockStakingPool', stakingPoolAddress);
 
-  console.log('##### 2')
   await stakingPool.setStake(productId, capacity);
 
-  console.log('##### 3')
+
   await stakingPool.setTargetPrice(productId, targetPrice);
   await stakingPool.setUsedCapacity(productId, activeCover);
 
-  await stakingPool.setPrice(productId, BigNumber.from(currentPrice).mul(1e16.toString())); // 2.6%
-
-
+  await stakingPool.setPrice(productId, currentPrice); // 2.6%
 
   return stakingPool;
 }

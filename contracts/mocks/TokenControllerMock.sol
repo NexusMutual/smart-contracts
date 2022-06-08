@@ -7,9 +7,16 @@ import "../modules/token/NXMToken.sol";
 
 contract TokenControllerMock is MasterAware {
 
+  struct StakingPoolNXMBalances {
+    uint128 rewards;
+    uint128 deposits;
+  }
+
   NXMToken public token;
   address public addToWhitelistLastCalledWtih;
   address public removeFromWhitelistLastCalledWtih;
+
+  mapping(uint => StakingPoolNXMBalances) stakingPoolNXMBalances;
 
   function mint(address _member, uint256 _amount) public onlyInternal {
     token.mint(_member, _amount);
@@ -39,7 +46,19 @@ contract TokenControllerMock is MasterAware {
     return true;
   }
 
-  /* unused functions */
+  function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
+
+    mint(address(this), amount);
+    stakingPoolNXMBalances[poolId].rewards += uint128(amount);
+  }
+
+  function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
+
+    burnFrom(address(this), amount);
+    stakingPoolNXMBalances[poolId].rewards -= uint128(amount);
+  }
+
+    /* unused functions */
 
   modifier unused {
     require(false, "Unexpected TokenControllerMock call");

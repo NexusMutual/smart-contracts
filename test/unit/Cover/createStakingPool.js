@@ -6,11 +6,8 @@ const {
   ethers,
 } = require('hardhat');
 
-const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
-const IStakingPool = artifacts.require('IStakingPool');
-
 describe('createStakingPool', function () {
-  it.only('should create new pool', async function () {
+  it('should create new pool', async function () {
     const { cover, nxm, memberRoles } = this;
 
     const {

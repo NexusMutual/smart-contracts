@@ -5,28 +5,36 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
+import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 
 import "../../modules/staking/StakingPool.sol";
 
-contract CoverMockStakingPool is StakingPool {
+
+contract CoverMockStakingPool is IStakingPool, ERC721 {
 
   /* immutables */
   address public immutable memberRoles;
 
   mapping (uint => uint) public usedCapacity;
   mapping (uint => uint) public stakedAmount;
-
+  // product id => Product
+  mapping(uint => Product) public products;
   mapping (uint => uint) public mockPrices;
 
-  uint public constant MAX_PRICE_RATIO = 1e20;
+  uint public constant MAX_PRICE_RATIO = 10_000;
+  uint constant REWARDS_DENOMINATOR = 10_000;
+
+  uint public poolId;
+  // erc721 supply
+  uint public totalSupply;
+  address public manager;
 
   constructor (
     address _nxm,
     address _coverContract,
     ITokenController _tokenController,
     address _memberRoles
-  )
-    StakingPool("Nexus Mutual Staking Pool", "NMSPT", _nxm, _coverContract, _tokenController)
+  ) ERC721("Nexus Mutual Staking Pool", "NMSPT")
   {
     memberRoles = _memberRoles;
   }
@@ -35,28 +43,60 @@ contract CoverMockStakingPool is StakingPool {
     return string(abi.encodePacked(super.name(), " ", Strings.toString(poolId)));
   }
 
-  function initialize(address _manager, uint _poolId) external /*override*/ {
+  function initialize(
+    address _manager,
+    bool _isPrivatePool,
+    uint _initialPoolFee,
+    uint _maxPoolFee,
+    ProductInitializationParams[] calldata params,
+    uint _poolId
+  ) external {
+    _isPrivatePool;
+    _initialPoolFee;
+    _maxPoolFee;
+    params;
+    manager = _manager;
     _mint(_manager, totalSupply++);
     poolId = _poolId;
   }
+
 
   function operatorTransferFrom(address from, address to, uint256 amount) external /*override*/ {
     require(msg.sender == memberRoles, "StakingPool: Caller is not MemberRoles");
     _transfer(from, to, amount);
   }
 
-  function allocateCapacity(
+
+  function allocateStake(
+    CoverRequest calldata request
+  ) external override returns (uint allocatedAmount, uint premium, uint rewardsInNXM) {
+
+    usedCapacity[request.productId] += request.amount;
+
+    uint premium = calculatePremium(mockPrices[request.productId], request.amount, request.period);
+
+    return (
+      request.amount,
+      premium,
+      premium * request.rewardRatio / REWARDS_DENOMINATOR
+    );
+  }
+
+  function deallocateStake(
     uint productId,
-    uint amountInNXM,
+    uint start,
     uint period,
-    uint rewardRatio,
-    uint initialPriceRatio
-  ) external /*override*/ returns (uint coveredAmountInNXM, uint premiumInNXM) {
+    uint amount,
+    uint premium,
+    uint globalRewardsRatio
+  ) external {
+
+    // silence compiler warnings
+    productId;
+    start;
     period;
-    rewardRatio;
-    initialPriceRatio;
-    usedCapacity[productId] += amountInNXM;
-    return (amountInNXM, calculatePremium(mockPrices[productId], amountInNXM, period));
+    amount;
+    premium;
   }
 
   function calculatePremium(uint priceRatio, uint coverAmount, uint period) public pure returns (uint) {
@@ -67,15 +107,20 @@ contract CoverMockStakingPool is StakingPool {
     _mint(msg.sender, amount);
   }
 
-  function freeCapacity(
-    uint productId,
-    uint previousPeriod,
-    uint previousStartTime,
-    uint previousRewardAmount,
-    uint periodReduction,
-    uint coveredAmount
-  ) external /*override*/ {
-    // no-op
+  // used to transfer all nfts when a user switches the membership to a new address
+  function operatorTransfer(
+    address from,
+    address to,
+    uint[] calldata tokenIds
+  ) external {
+    uint length = tokenIds.length;
+    for (uint i = 0; i < length; i++) {
+      _safeTransfer(from, to, tokenIds[i], "");
+    }
+  }
+
+  function updateTranches() external {
+    revert("CoverMockStakingPool: not callable");
   }
 
   function getAvailableCapacity(uint productId, uint capacityFactor) external /*override*/ view returns (uint) {
@@ -102,7 +147,7 @@ contract CoverMockStakingPool is StakingPool {
     usedCapacity[productId] = amount;
   }
 
-  function setTargetPrice(uint productId, uint amount) external {
+    function setTargetPrice(uint productId, uint amount) external {
     products[productId].targetPrice = uint96(amount);
   }
 
@@ -120,5 +165,72 @@ contract CoverMockStakingPool is StakingPool {
 
   function changeDependentContractAddress() external {
     // noop
+  }
+
+  function burnStake(uint productId, uint start, uint period, uint amount) external {
+    productId;
+    start;
+    period;
+    amount;
+
+    // no-op
+  }
+
+  function depositTo(DepositRequest[] memory requests) external returns (uint[] memory tokenIds) {
+    revert("CoverMockStakingPool: not callable");
+  }
+
+  function withdraw(WithdrawRequest[] memory params) external {
+    revert("CoverMockStakingPool: not callable");
+
+  }
+
+  function addProducts(ProductParams[] memory params) external {
+    revert("CoverMockStakingPool: not callable");
+  }
+
+  function removeProducts(uint[] memory productIds) external {
+    revert("CoverMockStakingPool: not callable");
+  }
+
+  function setProductDetails(ProductParams[] memory params) external {
+    revert("CoverMockStakingPool: not callable");
+  }
+
+  function setPoolFee(uint newFee) external {
+    revert("CoverMockStakingPool: not callable");
+  }
+
+  function setPoolPrivacy(bool isPrivatePool) external {
+    revert("CoverMockStakingPool: not callable");
+  }
+
+
+  function getActiveStake() external view returns (uint) {
+    revert("CoverMockStakingPool: not callable");
+  }
+
+  function getProductStake(uint productId, uint coverExpirationDate) external view returns (uint) {
+    revert("CoverMockStakingPool: not callable");
+  }
+
+  function getFreeProductStake(uint productId, uint coverExpirationDate) external view returns (uint) {
+    revert("CoverMockStakingPool: not callable");
+  }
+
+  function getAllocatedProductStake(uint productId) external view returns (uint) {
+    revert("CoverMockStakingPool: not callable");
+  }
+
+  function getPriceParameters(
+    uint productId,
+    uint maxCoverPeriod
+  ) external override view returns (
+    uint activeCover,
+    uint[] memory staked,
+    uint lastBasePrice,
+    uint targetPrice
+  ) {
+    revert("CoverMockStakingPool: not callable");
   }
 }

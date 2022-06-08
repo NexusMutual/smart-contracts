@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const setup = require('./setup');
 
-describe.skip('Cover unit tests', function () {
+describe('Cover unit tests', function () {
   before(setup);
 
   beforeEach(async function () {
@@ -15,7 +15,6 @@ describe.skip('Cover unit tests', function () {
   require('./buyCover');
   require('./editCover');
   require('./createStakingPool');
-  require('./getGlobalActiveCoverAmountForAsset');
-  // [todo] This test suite is missing
-  // require('./performPayoutBurn');
+  require('./totalActiveCoverInAsset');
+  require('./performPayoutBurn');
 });

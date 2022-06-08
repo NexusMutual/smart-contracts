@@ -7,7 +7,7 @@ const {
 const { buyCoverOnOnePool } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 
-describe('getGlobalActiveCoverAmountForAsset', function () {
+describe.skip('totalActiveCoverInAsset', function () {
 
   const ethCoverBuyFixture = {
     productId: 0,

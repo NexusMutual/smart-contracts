@@ -10,6 +10,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./MinimalBeaconProxy.sol";
 
+
 library CoverUtilsLib {
 
   struct MigrateParams {
@@ -123,7 +124,6 @@ library CoverUtilsLib {
     stakingPoolAddress = address(
       new MinimalBeaconProxy{ salt: bytes32(poolInitParams.poolId) }(address(this))
     );
-
 
     if (msg.sender != pooledStakingAddress) {
 

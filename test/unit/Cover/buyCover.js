@@ -1,13 +1,11 @@
 const { assert, expect } = require('chai');
-const {
-  ethers: {
-    utils: { parseEther },
-  },
-} = require('hardhat');
+const { ethers } = require('hardhat');
+const { utils: { parseEther } } = ethers;
+
 const {
   constants: { ZERO_ADDRESS },
 } = require('@openzeppelin/test-helpers');
-const { createStakingPool, assertCoverFields } = require('./helpers');
+const { createStakingPool, assertCoverFields, buyCoverOnOnePool, MAX_COVER_PERIOD } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 
 describe('buyCover', function () {
@@ -23,7 +21,7 @@ describe('buyCover', function () {
 
     const productId = 0;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 24 * 30; // 30 days
+    const period = 3600 * 24 * 364; // 30 days
 
     const amount = parseEther('1000');
 
@@ -34,7 +32,7 @@ describe('buyCover', function () {
 
     const capacityFactor = '10000';
 
-    await cover.connect(gv1).setGlobalCapacityRatio(capacityFactor);
+    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
 
     await createStakingPool(
       cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
@@ -54,6 +52,7 @@ describe('buyCover', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
       {
@@ -83,7 +82,7 @@ describe('buyCover', function () {
 
     const productId = 0;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 24 * 30; // 30 days
+    const period = 3600 * 24 * 28; // 30 days
 
     const amount = parseEther('1000');
 
@@ -94,7 +93,7 @@ describe('buyCover', function () {
 
     const capacityFactor = '10000';
 
-    await cover.connect(gv1).setGlobalCapacityRatio(capacityFactor);
+    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
 
     await createStakingPool(
       cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
@@ -119,6 +118,7 @@ describe('buyCover', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
       },
       [
         { poolId: '0', coverAmountInAsset: amount.div(2).toString() },
@@ -157,10 +157,6 @@ describe('buyCover', function () {
 
     const commissionRatio = '500'; // 5%
 
-    const capacityFactor = '10000';
-
-    await cover.connect(gv1).setGlobalCapacityRatio(capacityFactor);
-
     await createStakingPool(
       cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
     );
@@ -188,6 +184,7 @@ describe('buyCover', function () {
         payWithNXM: true,
         commissionRatio: commissionRatio,
         commissionDestination: commissionReceiver.address,
+        ipfsData: ''
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
       {
@@ -234,10 +231,6 @@ describe('buyCover', function () {
 
     const commissionRatio = '500'; // 5%
 
-    const capacityFactor = '10000';
-
-    await cover.connect(gv1).setGlobalCapacityRatio(capacityFactor);
-
     await createStakingPool(
       cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
     );
@@ -265,6 +258,7 @@ describe('buyCover', function () {
         payWithNXM: false,
         commissionRatio: commissionRatio,
         commissionDestination: commissionReceiver.address,
+        ipfsData: ''
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
       {
@@ -313,6 +307,7 @@ describe('buyCover', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
       {
@@ -347,6 +342,7 @@ describe('buyCover', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
       {
@@ -365,7 +361,7 @@ describe('buyCover', function () {
 
     const productId = 0;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 24 * 29; // 29 days
+    const period = 3600 * 24 * 27; // 27 days
 
     const amount = parseEther('1000');
 
@@ -381,6 +377,7 @@ describe('buyCover', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
       {
@@ -415,6 +412,7 @@ describe('buyCover', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
       {
@@ -449,6 +447,7 @@ describe('buyCover', function () {
         payWitNXM: false,
         commissionRatio: '2501',
         commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
       {

@@ -24,13 +24,22 @@ async function setup () {
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
   const QuotationData = await ethers.getContractFactory('CoverMockQuotationData');
-  const Cover = await ethers.getContractFactory('Cover');
   const MemberRolesMock = await ethers.getContractFactory('MemberRolesMock');
   const CoverNFT = await ethers.getContractFactory('CoverNFT');
   const TokenController = await ethers.getContractFactory('TokenControllerMock');
   const NXMToken = await ethers.getContractFactory('NXMTokenMock');
   const MCR = await ethers.getContractFactory('CoverMockMCR');
   const StakingPool = await ethers.getContractFactory('CoverMockStakingPool');
+  const CoverUtilsLib = await ethers.getContractFactory('CoverUtilsLib');
+
+
+  const coverUtilsLib = await CoverUtilsLib.deploy();
+
+  const Cover = await ethers.getContractFactory('Cover', {
+    libraries: {
+      CoverUtilsLib: coverUtilsLib.address
+    }
+  });
 
   const [owner] = await ethers.getSigners();
 
@@ -69,13 +78,12 @@ async function setup () {
 
   const coverAddress = getDeployAddressAfter(1);
 
-  const stakingPool = await StakingPool.deploy(nxm.address, coverAddress, memberRoles.address);
+  const stakingPool = await StakingPool.deploy(nxm.address, coverAddress, memberRoles.address, tokenController.address);
   const cover = await Cover.deploy(
     quotationData.address,
     ethers.constants.AddressZero,
-    stakingPool.address,
     futureCoverNFTAddress,
-    coverAddress,
+    stakingPool.address
   );
   await cover.deployed();
 
@@ -167,6 +175,10 @@ async function setup () {
     },
   ], ['']);
 
+  const capacityFactor = '10000';
+
+  await cover.connect(accounts.governanceContracts[0]).updateUintParameters([0], [capacityFactor]);
+
   this.master = master;
   this.pool = pool;
   this.dai = dai;
@@ -176,6 +188,7 @@ async function setup () {
   this.chainlinkDAI = chainlinkDAI;
   this.cover = cover;
   this.accounts = accounts;
+  this.capacityFactor = capacityFactor;
 }
 
 module.exports = setup;

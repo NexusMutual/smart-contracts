@@ -58,6 +58,7 @@ describe('editCover', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
       },
       [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
       {
@@ -113,6 +114,7 @@ describe('editCover', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
       {
@@ -172,6 +174,7 @@ describe('editCover', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
       },
       [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
       {
@@ -231,6 +234,7 @@ describe('editCover', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
       },
       [{ poolId: '0', coverAmountInAsset: decreasedAmount.toString() }],
       {
@@ -288,6 +292,7 @@ describe('editCover', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
       },
       [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
       {
@@ -334,6 +339,7 @@ describe('editCover', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
       },
       [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
       {
@@ -379,6 +385,7 @@ describe('editCover', function () {
         payWitNXM: false,
         commissionRatio: '2600', // too high
         commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
       },
       [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
       {

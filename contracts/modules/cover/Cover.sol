@@ -165,7 +165,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     Product memory product = _products[params.productId];
     require(product.initialPriceRatio != 0, "Cover: Product not initialized");
 
-    uint32 deprecatedCoverAssetsBitmap = pool().deprecatedCoverAssetsBitmap();
+    IPool _pool = pool();
+    uint32 deprecatedCoverAssetsBitmap = _pool.deprecatedCoverAssetsBitmap();
     require(
       isAssetSupported(_getSupportedCoverAssets(deprecatedCoverAssetsBitmap, product.coverAssets), params.payoutAsset),
       "Cover: Payout asset is not supported"
@@ -182,7 +183,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     uint totalPremiumInNXM = _buyCover(params, _coverData.length, allocationRequests);
 
-    IPool _pool = pool();
     uint tokenPriceInPaymentAsset = _pool.getTokenPrice(params.paymentAsset);
     (, uint8 paymentAssetDecimals) = _pool.coverAssets(params.paymentAsset);
 
@@ -320,6 +320,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(buyCoverParams.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
 
+    IPool _pool = pool();
+    uint32 deprecatedCoverAssetsBitmap = _pool.deprecatedCoverAssetsBitmap();
+    require(
+      !_isDeprecatedCoverAsset(deprecatedCoverAssetsBitmap, buyCoverParams.paymentAsset),
+      "Cover: payment asset deprecated"
+    );
 
     // Override cover specific parameters
     buyCoverParams.payoutAsset = cover.payoutAsset;

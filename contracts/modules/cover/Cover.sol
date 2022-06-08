@@ -182,23 +182,30 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(params.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
     require(params.amount > 0, "Cover: amount = 0");
 
-    uint totalPremiumInNXM = _buyCover(params, _coverData.length, allocationRequests);
+    {
+      (uint totalPremiumInNXM, uint totalCoveredAmountInPayoutAsset) = _buyCover(params, _coverData.length, allocationRequests);
 
-    uint tokenPriceInPaymentAsset = _pool.getTokenPrice(params.paymentAsset);
-    (, uint8 paymentAssetDecimals) = _pool.coverAssets(params.paymentAsset);
+      uint tokenPriceInPaymentAsset = _pool.getTokenPrice(params.paymentAsset);
+      (, uint8 paymentAssetDecimals) = _pool.coverAssets(params.paymentAsset);
 
-    uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
-    require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
+      uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
+      require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
-    if (params.payWithNXM) {
-      retrieveNXMPayment(totalPremiumInNXM, params.commissionRatio, params.commissionDestination);
-    } else {
-      retrievePayment(
-        premiumInPaymentAsset,
-        params.paymentAsset,
-        params.commissionRatio,
-        params.commissionDestination
-      );
+      if (params.payWithNXM) {
+        retrieveNXMPayment(totalPremiumInNXM, params.commissionRatio, params.commissionDestination);
+      } else {
+        retrievePayment(
+          premiumInPaymentAsset,
+          params.paymentAsset,
+          params.commissionRatio,
+          params.commissionDestination
+        );
+      }
+
+      // Enable this when cover amount tracking is necessary
+      if (coverAmountTrackingEnabled) {
+        totalActiveCoverInAsset[params.payoutAsset] += totalCoveredAmountInPayoutAsset;
+      }
     }
 
     // push the newly created cover
@@ -210,12 +217,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     uint coverId = _coverData.length - 1;
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
-
-    // Enable this when cover amount tracking is necessary
-    if (coverAmountTrackingEnabled) {
-      totalActiveCoverInAsset[params.payoutAsset] += params.amount;
-    }
-
+    
     emit CoverBought(coverId, params.productId, 0, msg.sender, params.ipfsData);
     return coverId;
   }
@@ -224,7 +226,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     BuyCoverParams memory params,
     uint coverId,
     PoolAllocationRequest[] memory allocationRequests
-  ) internal returns (uint totalPremiumInNXM) {
+  ) internal returns (uint totalPremiumInNXM, uint) {
 
     // convert to NXM amount
     uint nxmPriceInPayoutAsset = pool().getTokenPrice(params.payoutAsset);
@@ -269,8 +271,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       )
     );
 
+    uint96 totalCoveredAmountInPayoutAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18);
+
     _coverSegments[coverId].push(CoverSegment(
-        SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18), // amount
+        totalCoveredAmountInPayoutAsset, // amount
         uint32(block.timestamp + 1), // start
         SafeUintCast.toUint32(params.period), // period
         priceRatio,
@@ -278,7 +282,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         globalRewardsRatio
       ));
 
-    return totalPremiumInNXM;
+    return (totalPremiumInNXM, totalCoveredAmountInPayoutAsset);
   }
 
   function allocateCapacity(
@@ -375,14 +379,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
     }
 
-    uint totalPremiumInNXM = _buyCover(buyCoverParams, coverId, poolAllocations);
+    (uint totalPremiumInNXM, uint totalCoveredAmountInPayoutAsset) = _buyCover(buyCoverParams, coverId, poolAllocations);
 
     handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset);
 
     // update total cover amount for asset by decreasing the previous amount and adding the new amount
     if (coverAmountTrackingEnabled) {
        totalActiveCoverInAsset[cover.payoutAsset] =
-        totalActiveCoverInAsset[cover.payoutAsset] - lastCoverSegment.amount + buyCoverParams.amount;
+        totalActiveCoverInAsset[cover.payoutAsset] - lastCoverSegment.amount + totalCoveredAmountInPayoutAsset;
     }
 
     emit CoverEdited(coverId, cover.productId, lastCoverSegmentIndex + 1, msg.sender);

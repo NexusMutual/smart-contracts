@@ -164,10 +164,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(_products.length > params.productId, "Cover: Product not found");
     Product memory product = _products[params.productId];
     require(product.initialPriceRatio != 0, "Cover: Product not initialized");
+
+    uint32 deprecatedCoverAssetsBitmap = pool().deprecatedCoverAssetsBitmap();
     require(
-      isAssetSupported(product.coverAssets, params.payoutAsset),
+      isAssetSupported(_getSupportedCoverAssets(deprecatedCoverAssetsBitmap, product.coverAssets), params.payoutAsset),
       "Cover: Payout asset is not supported"
     );
+    require(
+      !_isDeprecatedCoverAsset(deprecatedCoverAssetsBitmap, params.paymentAsset),
+      "Cover: payment asset deprecated"
+    );
+
     require(params.period >= MIN_COVER_PERIOD, "Cover: Cover period is too short");
     require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(params.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
@@ -719,20 +726,32 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   /* ========== HELPERS ========== */
 
-  function isAssetSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) public view override returns (bool) {
+  function isAssetSupported(uint32 assetsBitMap, uint8 payoutAsset) public pure override returns (bool) {
 
-    if (payoutAssetsBitMap == 0) {
-      return (1 << payoutAsset) & coverAssetsFallback > 0;
-    }
-    return (1 << payoutAsset) & payoutAssetsBitMap > 0;
+    return (1 << payoutAsset) & assetsBitMap > 0;
   }
 
-/*  function getSupportedAssets(uint productId) public view returns (uint8) {
-    uint8 coverAssetsBitmap = _products[productId].coverAssets;
-    coverAssetsBitmap = coverAssetsBitmap == 0 ? coverAssetsFallback : coverAssetsBitmap;
-    uint8 deprecatedCoverAssets = pool().deprecatedCoverAssetsBitmap();
-    return coverAssetsBitmap & ~deprecatedCoverAssets;
-  }*/
+  function getSupportedCoverAssets(uint productId) public view returns (uint32) {
+
+    return _getSupportedCoverAssets(pool().deprecatedCoverAssetsBitmap(), _products[productId].coverAssets);
+  }
+
+  function _getSupportedCoverAssets(
+    uint32 deprecatedCoverAssetsBitmap,
+    uint32 coverAssetsBitmapForProduct
+  ) internal view returns (uint32) {
+
+    coverAssetsBitmapForProduct = coverAssetsBitmapForProduct == 0 ? coverAssetsFallback : coverAssetsBitmapForProduct;
+    uint32 deprecatedCoverAssets = deprecatedCoverAssetsBitmap;
+    return coverAssetsBitmapForProduct & ~deprecatedCoverAssets;
+  }
+
+  function _isDeprecatedCoverAsset(
+    uint32 deprecatedCoverAssetsBitmap,
+    uint8 assetId
+  ) internal pure returns (bool) {
+    return deprecatedCoverAssetsBitmap & (1 << assetId) > 0;
+  }
 
   /* ========== CAPACITY CALCULATION ========== */
 

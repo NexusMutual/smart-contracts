@@ -81,5 +81,7 @@ interface IPool {
 
   function getMCRRatio() external view returns (uint);
 
+  function deprecatedCoverAssetsBitmap() external view returns (uint32);
+
   function setSwapValue(uint value) external;
 }

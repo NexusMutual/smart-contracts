@@ -9,6 +9,8 @@ contract CoverMockPool {
   mapping (uint => uint) prices;
   IPool.Asset[] public coverAssets;
 
+  uint32 public deprecatedCoverAssetsBitmap;
+
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   constructor() {
@@ -28,6 +30,10 @@ contract CoverMockPool {
     for (uint i = 0; i < _assets.length; i++) {
       coverAssets.push(IPool.Asset(_assets[i], _decimals[i]));
     }
+  }
+
+  function setDeprecatedCoverAssetsBitmap(uint32 bitmap) external {
+    deprecatedCoverAssetsBitmap = bitmap;
   }
 
   fallback() external payable {}

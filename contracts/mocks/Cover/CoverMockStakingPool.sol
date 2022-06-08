@@ -168,7 +168,12 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
   }
 
   function burnStake(uint productId, uint start, uint period, uint amount) external {
-    revert("CoverMockStakingPool: not callable");
+    productId;
+    start;
+    period;
+    amount;
+
+    // no-op
   }
 
   function depositTo(DepositRequest[] memory requests) external returns (uint[] memory tokenIds) {

@@ -1,12 +1,11 @@
 const { assert, expect } = require('chai');
 const { ethers } = require('hardhat');
-
 const { utils: { parseEther } } = ethers;
 
 const {
   constants: { ZERO_ADDRESS },
 } = require('@openzeppelin/test-helpers');
-const { createStakingPool, assertCoverFields } = require('./helpers');
+const { createStakingPool, assertCoverFields, buyCoverOnOnePool, MAX_COVER_PERIOD } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 
 describe('buyCover', function () {

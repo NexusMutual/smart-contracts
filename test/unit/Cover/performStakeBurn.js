@@ -6,7 +6,7 @@ const { assertCoverFields,
 } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 
-describe.skip('performStakeBurn', function () {
+describe('performStakeBurn', function () {
 
   const coverBuyFixture = {
     productId: 0,
@@ -22,7 +22,7 @@ describe.skip('performStakeBurn', function () {
     capacityFactor: '10000',
   };
 
-  it('should perform a burn a cover with 1 segment and 1 pool allocation', async function () {
+  it.only('should perform a burn a cover with 1 segment and 1 pool allocation', async function () {
     const { cover } = this;
 
     const {
@@ -37,10 +37,11 @@ describe.skip('performStakeBurn', function () {
       targetPriceRatio
     } = coverBuyFixture;
 
-    const { expectedPremium, segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
 
     const burnAmount = coverBuyFixture.amount.div(2);
+    const remainingAmount = amount.sub(burnAmount);
 
     await cover.connect(internal1).performStakeBurn(
       expectedCoverId,
@@ -48,8 +49,18 @@ describe.skip('performStakeBurn', function () {
       burnAmount
     );
 
-    await assertCoverFields(cover, expectedCoverId,
-      { productId, payoutAsset, period: period, amount, targetPriceRatio, segmentId },
+    await assertCoverFields(
+      cover,
+      expectedCoverId,
+      {
+        productId,
+        payoutAsset,
+        period: period,
+        amount: remainingAmount,
+        targetPriceRatio,
+        segmentId,
+        amountPaidOut: burnAmount
+      },
     );
   });
 });

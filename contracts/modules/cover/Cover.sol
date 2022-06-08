@@ -22,6 +22,8 @@ import "../../libraries/SafeUintCast.sol";
 import "./CoverUtilsLib.sol";
 import "./MinimalBeaconProxy.sol";
 
+import "hardhat/console.sol";
+
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   using SafeERC20 for IERC20;
 
@@ -441,6 +443,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     CoverData storage cover = _coverData[coverId];
     cover.amountPaidOut += SafeUintCast.toUint96(burnAmount);
+
+    console.log("cover.amountPaidOut", cover.amountPaidOut);
 
     CoverSegment memory segment = coverSegments(coverId, segmentId);
     PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];

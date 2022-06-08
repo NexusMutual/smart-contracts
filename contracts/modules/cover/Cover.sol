@@ -35,6 +35,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
   uint public constant MAX_COVER_PERIOD = 364 days;
   uint private constant MIN_COVER_PERIOD = 28 days;
+  // this constant is used for calculating the normalized yearly percentage cost of cover
+  uint private constant ONE_YEAR = 365 days;
 
   uint private constant MAX_COMMISSION_RATIO = 2500; // 25%
 
@@ -253,7 +255,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     // priceRatio is normalized on a per year basis (eg. 1.5% per year)
     uint16 priceRatio = SafeUintCast.toUint16(
       divRound(
-        totalPremiumInNXM * PRICE_DENOMINATOR * MAX_COVER_PERIOD / params.period,
+        totalPremiumInNXM * PRICE_DENOMINATOR * ONE_YEAR / params.period,
         totalCoverAmountInNXM
       )
     );
@@ -280,10 +282,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     Product memory product = _products[params.productId];
     uint gracePeriod = _productTypes[product.productType].gracePeriodInDays * 1 days;
 
-    if (true) {
-      // wrapped in if(true) to avoid the compiler warning about unreachable code
-      revert("capacity calculation: not implemented");
-    }
 
     return _stakingPool.allocateStake(
       CoverRequest(
@@ -418,7 +416,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     );
   }
 
-  // TODO: implement properly. we need the staking interface for burning.
   function performPayoutBurn(
     uint coverId,
     uint segmentId,
@@ -533,24 +530,25 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     bool isPrivatePool,
     uint initialPoolFee,
     uint maxPoolFee,
-    ProductInitializationParams[] memory params,
+    ProductInitializationParams[] memory productInitializationParams,
     uint depositAmount,
     uint trancheId
   ) external returns (address stakingPoolAddress) {
 
     emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
 
-    // [todo] handle the creation of NFT 0 which is the default NFT owned by the pool manager
+    CoverUtilsLib.PoolInitializationParams memory poolInitializationParams = CoverUtilsLib.PoolInitializationParams(
+      stakingPoolCount++,
+      manager,
+      isPrivatePool,
+      initialPoolFee,
+      maxPoolFee
+    );
+
     return CoverUtilsLib.createStakingPool(
       _products,
-      CoverUtilsLib.PoolInitializationParams(
-        stakingPoolCount++,
-        manager,
-        isPrivatePool,
-        initialPoolFee,
-        maxPoolFee
-      ),
-      params,
+      poolInitializationParams,
+      productInitializationParams,
       depositAmount,
       trancheId,
       master.getLatestAddress("PS")

@@ -28,6 +28,9 @@ contract CoverViewer {
     uint16 gracePeriodInDays;
   }
 
+  uint private constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
+  uint private constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
+
   INXMMaster internal immutable master;
 
   constructor(address masterAddress) {
@@ -129,7 +132,7 @@ contract CoverViewer {
     params.capacities = new uint[](staked.length);
 
     for (uint i = 0; i < staked.length; i++) {
-      params.capacities[i] = _cover.calculateCapacity(
+      params.capacities[i] = calculateCapacity(
         staked[i],
         product.capacityReductionRatio
       );
@@ -156,4 +159,20 @@ contract CoverViewer {
       params[i] = getPoolAllocationPriceParametersForProduct(poolId, i);
     }
   }
+
+  /* ========== CAPACITY CALCULATION ========== */
+
+  function calculateCapacity(
+    uint staked,
+    uint capacityReductionRatio
+  ) public view returns (uint) {
+
+    ICover _cover = cover();
+    return staked *
+    _cover.globalCapacityRatio() *
+    (CAPACITY_REDUCTION_DENOMINATOR - capacityReductionRatio) /
+    GLOBAL_CAPACITY_DENOMINATOR /
+    CAPACITY_REDUCTION_DENOMINATOR;
+  }
+
 }

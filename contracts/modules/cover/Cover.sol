@@ -762,19 +762,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     return deprecatedCoverAssetsBitmap & (1 << assetId) > 0;
   }
 
-  /* ========== CAPACITY CALCULATION ========== */
-
-  function calculateCapacity(
-    uint staked,
-    uint capacityReductionRatio
-  ) public view returns (uint) {
-    return staked *
-    globalCapacityRatio *
-    (CAPACITY_REDUCTION_DENOMINATOR - capacityReductionRatio) /
-    GLOBAL_CAPACITY_DENOMINATOR /
-    CAPACITY_REDUCTION_DENOMINATOR;
-  }
-
   /* ========== UTILS ========== */
 
   function divRound(uint a, uint b) private pure returns (uint) {

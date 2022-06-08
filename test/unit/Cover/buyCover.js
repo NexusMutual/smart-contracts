@@ -6,6 +6,7 @@ const {
   constants: { ZERO_ADDRESS },
 } = require('@openzeppelin/test-helpers');
 const { createStakingPool, assertCoverFields, buyCoverOnOnePool, MAX_COVER_PERIOD } = require('./helpers');
+const { BigNumber } = require('ethers');
 const { bnEqual } = require('../utils').helpers;
 
 describe('buyCover', function () {
@@ -454,5 +455,54 @@ describe('buyCover', function () {
         value: '0',
       },
     )).to.be.revertedWith('Cover: Commission rate is too high');
+  });
+
+  it('should revert when cover amount is 0', async function () {
+    const { cover } = this;
+
+    const {
+      governanceContracts: [gv1],
+      members: [member1],
+      members: [coverBuyer1, stakingPoolManager],
+    } = this.accounts;
+
+    const productId = 0;
+    const payoutAsset = 0; // ETH
+    const period = 3600 * 24 * 364; // 30 days
+
+    const amount = BigNumber.from('0');
+
+    const targetPriceRatio = '260';
+    const priceDenominator = '10000';
+    const activeCover = parseEther('8000');
+    const capacity = parseEther('10000');
+
+
+    await createStakingPool(
+      cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
+    );
+
+    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+
+    await expect(cover.connect(member1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        productId,
+        payoutAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: payoutAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
+      },
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      {
+        value: expectedPremium,
+      },
+    )).to.be.revertedWith('Cover: amount = 0');
+
   });
 });

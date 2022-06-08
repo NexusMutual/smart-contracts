@@ -171,6 +171,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(params.period >= MIN_COVER_PERIOD, "Cover: Cover period is too short");
     require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(params.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
+    require(params.amount > 0, "Cover: amount = 0");
 
     uint totalPremiumInNXM = _buyCover(params, _coverData.length, allocationRequests);
 
@@ -725,6 +726,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     }
     return (1 << payoutAsset) & payoutAssetsBitMap > 0;
   }
+
+/*  function getSupportedAssets(uint productId) public view returns (uint8) {
+    uint8 coverAssetsBitmap = _products[productId].coverAssets;
+    coverAssetsBitmap = coverAssetsBitmap == 0 ? coverAssetsFallback : coverAssetsBitmap;
+    uint8 deprecatedCoverAssets = pool().deprecatedCoverAssetsBitmap();
+    return coverAssetsBitmap & ~deprecatedCoverAssets;
+  }*/
 
   /* ========== CAPACITY CALCULATION ========== */
 

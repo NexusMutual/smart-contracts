@@ -344,6 +344,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
         // rollback previous cover
         for (uint i = 0; i < originalPoolAllocationsCount; i++) {
+
+          // TODO: pass the coverId as well
           stakingPool(originalPoolAllocations[i].poolId).deallocateStake(
             cover.productId,
             lastCoverSegment.start,

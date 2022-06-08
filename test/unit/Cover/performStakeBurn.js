@@ -22,7 +22,7 @@ describe('performStakeBurn', function () {
     capacityFactor: '10000',
   };
 
-  it.only('should perform a burn a cover with 1 segment and 1 pool allocation', async function () {
+  it('should perform a burn a cover with 1 segment and 1 pool allocation', async function () {
     const { cover } = this;
 
     const {

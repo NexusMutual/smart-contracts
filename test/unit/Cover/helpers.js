@@ -87,12 +87,9 @@ async function buyCoverOnOnePool (
   const { cover } = this;
 
   const {
-    governanceContracts: [gv1],
     members: [member1],
     members: [coverBuyer1, stakingPoolManager],
   } = this.accounts;
-
-  await cover.connect(gv1).setGlobalCapacityRatio(capacityFactor);
 
   await createStakingPool(
     cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
@@ -112,6 +109,7 @@ async function buyCoverOnOnePool (
       payWitNXM: false,
       commissionRatio: parseEther('0'),
       commissionDestination: ZERO_ADDRESS,
+      ipfsData: ''
     },
     [{ poolId: '0', coverAmountInAsset: amount.toString() }],
     {

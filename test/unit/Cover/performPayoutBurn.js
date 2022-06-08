@@ -6,7 +6,7 @@ const { assertCoverFields,
 } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 
-describe.only('performPayoutBurn', function () {
+describe.skip('performPayoutBurn', function () {
 
   const coverBuyFixture = {
     productId: 0,

@@ -22,7 +22,6 @@ import "../../libraries/SafeUintCast.sol";
 import "./CoverUtilsLib.sol";
 import "./MinimalBeaconProxy.sol";
 
-import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   using SafeERC20 for IERC20;
@@ -442,12 +441,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     address owner = coverNFTContract.ownerOf(coverId);
 
     CoverData storage cover = _coverData[coverId];
-    cover.amountPaidOut += SafeUintCast.toUint96(burnAmount);
-
-    console.log("cover.amountPaidOut", cover.amountPaidOut);
 
     CoverSegment memory segment = coverSegments(coverId, segmentId);
     PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];
+
+    // increase amountPaidOut only *after* you read the segment
+    cover.amountPaidOut += SafeUintCast.toUint96(burnAmount);
 
     uint allocationCount = allocations.length;
     for (uint i = 0; i < allocationCount; i++) {

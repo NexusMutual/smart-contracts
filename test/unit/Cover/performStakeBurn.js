@@ -40,8 +40,18 @@ describe('performStakeBurn', function () {
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
 
-    const burnAmount = coverBuyFixture.amount.div(2);
+    const burnAmountDivisor = 2;
+
+    const burnAmount = coverBuyFixture.amount.div(burnAmountDivisor);
     const remainingAmount = amount.sub(burnAmount);
+
+    const segmentAllocation = await cover.coverSegmentAllocations(expectedCoverId, segmentId, '0');
+
+    console.log({
+      coverAmountInNXM: segmentAllocation.coverAmountInNXM.toString()
+    })
+    const expectedBurnAmount = segmentAllocation.coverAmountInNXM.div(burnAmountDivisor);
+
 
     await cover.connect(internal1).performStakeBurn(
       expectedCoverId,
@@ -62,5 +72,13 @@ describe('performStakeBurn', function () {
         amountPaidOut: burnAmount
       },
     );
+
+    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
+
+    const burnStakeCalledWith = await stakingPool.burnStakeCalledWith();
+
+    bnEqual(burnStakeCalledWith.productId, productId);
+    bnEqual(burnStakeCalledWith.period, period);
+    bnEqual(burnStakeCalledWith.amount, expectedBurnAmount);
   });
 });

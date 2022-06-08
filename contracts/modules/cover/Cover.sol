@@ -217,7 +217,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     uint coverId = _coverData.length - 1;
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
-    
+
     emit CoverBought(coverId, params.productId, 0, msg.sender, params.ipfsData);
     return coverId;
   }
@@ -325,16 +325,23 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(buyCoverParams.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
 
+    // Override cover specific parameters
+    buyCoverParams.payoutAsset = cover.payoutAsset;
+    buyCoverParams.productId = cover.productId;
+
     IPool _pool = pool();
+    Product memory product = _products[buyCoverParams.productId];
     uint32 deprecatedCoverAssetsBitmap = _pool.deprecatedCoverAssetsBitmap();
+
+    // check that the payout asset is still supported (it may have been deprecated or disabled in the meantime)
+    require(
+      isAssetSupported(_getSupportedCoverAssets(deprecatedCoverAssetsBitmap, product.coverAssets), buyCoverParams.payoutAsset),
+      "Cover: Payout asset is not supported"
+    );
     require(
       !_isDeprecatedCoverAsset(deprecatedCoverAssetsBitmap, buyCoverParams.paymentAsset),
       "Cover: payment asset deprecated"
     );
-
-    // Override cover specific parameters
-    buyCoverParams.payoutAsset = cover.payoutAsset;
-    buyCoverParams.productId = cover.productId;
 
     uint refundInCoverAsset = 0;
 

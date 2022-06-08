@@ -734,15 +734,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
 
     require(!lastCoverSegment.expired, "Cover: Cover is already expired.");
 
-    if (lastCoverSegment.period + lastCoverSegment.start > block.timestamp) {
+    require(lastCoverSegment.period + lastCoverSegment.start < block.timestamp, "Cover: not expired yet");
 
-      _coverSegments[coverId][lastCoverSegmentIndex].expired = true;
+    _coverSegments[coverId][lastCoverSegmentIndex].expired = true;
 
-      CoverData memory cover = _coverData[coverId];
-      totalActiveCoverInAsset[cover.payoutAsset] -= lastCoverSegment.amount;
+    CoverData memory cover = _coverData[coverId];
+    totalActiveCoverInAsset[cover.payoutAsset] -= lastCoverSegment.amount;
 
-      emit CoverExpired(coverId, lastCoverSegmentIndex);
-    }
+    emit CoverExpired(coverId, lastCoverSegmentIndex);
+
   }
 
   /* ========== HELPERS ========== */

@@ -381,7 +381,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     poolBalances.deposits -= stakeToWithdraw.toUint128();
     poolBalances.rewards -= rewardsToWithdraw.toUint128();
     stakingPoolNXMBalances[poolId] = poolBalances;
-    
+
     token.transfer(to, stakeToWithdraw + rewardsToWithdraw);
   }
 

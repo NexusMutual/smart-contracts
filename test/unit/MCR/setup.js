@@ -16,6 +16,7 @@ async function setup () {
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
   const QuotationData = artifacts.require('MCRMockQuotationData');
+  const Cover = artifacts.require('MCRMockCover');
 
   const master = await MasterMock.new();
   const dai = await ERC20Mock.new();
@@ -36,10 +37,11 @@ async function setup () {
   );
 
   const pool = await Pool.new(priceFeedOracle.address);
-  const quotationData = await QuotationData.new();
+  const cover = await Cover.new();
 
-  await quotationData.setTotalSumAssured(hex('DAI'), '0');
-  await quotationData.setTotalSumAssured(hex('ETH'), '100000');
+
+  await cover.setTotalActiveCoverInAsset(0, ether('100000')); // ETH
+  await cover.setTotalActiveCoverInAsset(1, '0'); // DAI
 
   const mcr = await initMCR({
     mcrValue: ether('150000'),
@@ -54,7 +56,7 @@ async function setup () {
   });
   // set contract addresses
   await master.setLatestAddress(hex('P1'), pool.address);
-  await master.setLatestAddress(hex('QD'), quotationData.address);
+  await master.setLatestAddress(hex('CO'), cover.address);
 
   for (const member of accounts.members) {
     await master.enrollMember(member, Role.Member);
@@ -78,7 +80,7 @@ async function setup () {
   this.dai = dai;
   this.chainlinkDAI = chainlinkDAI;
   this.mcr = mcr;
-  this.quotationData = quotationData;
+  this.cover = cover;
 }
 
 module.exports = setup;

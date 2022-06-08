@@ -115,9 +115,15 @@ interface IGovernance {
   /// @dev Casts vote
   /// @param _proposalId Proposal id
   /// @param _solutionChosen solution chosen while voting. _solutionChosen[0] is the chosen solution
-  function submitVote(uint _proposalId, uint _solutionChosen) external;
+  function submitVote(
+    uint _proposalId,
+    uint _solutionChosen,
+    uint[] calldata managedStakingPoolIds
+  ) external;
 
   function closeProposal(uint _proposalId) external;
+
+  function tokenHoldingTime() external returns (uint);
 
   function claimReward(address _memberAddress, uint _maxRecords) external returns (uint pendingDAppReward);
 
@@ -135,8 +141,6 @@ interface IGovernance {
   function canCloseProposal(uint _proposalId) external view returns (uint closeValue);
 
   function allowedToCatgorize() external view returns (uint roleId);
-
-  function removeDelegation(address _add) external;
 
   function getPendingReward(address _memberAddress) external view returns (uint pendingDAppReward);
 

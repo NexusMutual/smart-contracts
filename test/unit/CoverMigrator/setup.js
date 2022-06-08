@@ -19,7 +19,10 @@ async function setup () {
   const distributor = await Distributor.deploy(coverMigrator.address);
   await distributor.deployed();
 
-  const masterInitTxs = await Promise.all([master.setLatestAddress(hex('CL'), coverMigrator.address)]);
+  const masterInitTxs = await Promise.all([
+    master.setLatestAddress(hex('CL'), coverMigrator.address),
+    master.setLatestAddress(hex('CO'), cover.address),
+  ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
   const changeMasterAddressTxs = await Promise.all([master.callChangeMaster(coverMigrator.address)]);
@@ -34,9 +37,6 @@ async function setup () {
   const accounts = getAccounts(signers);
   await master.enrollGovernance(accounts.governanceContracts[0].address);
 
-  const config = await coverMigrator.config();
-
-  this.config = config;
   this.accounts = accounts;
   this.contracts = {
     coverMigrator,

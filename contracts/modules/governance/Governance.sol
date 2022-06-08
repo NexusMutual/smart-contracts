@@ -8,6 +8,8 @@ import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IProposalCategory.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IMinimalStakingPool.sol";
+import "../../interfaces/IMinimalCover.sol";
 
 contract Governance is IGovernance, LegacyMasterAware {
   using SafeMath for uint;
@@ -78,6 +80,7 @@ contract Governance is IGovernance, LegacyMasterAware {
 
   bool internal actionParamsInitialised;
   uint internal actionWaitingTime;
+  IMinimalCover internal cover;
   uint constant internal AB_MAJ_TO_REJECT_ACTION = 3;
 
   enum ActionStatus {
@@ -151,14 +154,6 @@ contract Governance is IGovernance, LegacyMasterAware {
     address indexed categorizedBy,
     uint categoryId
   );
-
-  /**
-   * @dev Removes delegation of an address.
-   * @param _add address to undelegate.
-   */
-  function removeDelegation(address _add) external onlyInternal {
-    _unDelegate(_add);
-  }
 
   /**
   * @dev Creates a new proposal
@@ -272,12 +267,18 @@ contract Governance is IGovernance, LegacyMasterAware {
     );
   }
 
-  /**
-   * @dev Submit a vote on the proposal.
-   * @param _proposalId to vote upon.
-   * @param _solutionChosen is the chosen vote.
-   */
-  function submitVote(uint _proposalId, uint _solutionChosen) external {
+  /// Submit a vote on the proposal.
+  ///
+  /// @param _proposalId            The id of the proposal that the user votes upon.
+  /// @param _solutionChosen        True if the vote is in favor of the proposal or false otherwise.
+  /// @param managedStakingPoolIds  An array of staking pool ids that the user is a manager of.
+  ///                               The active stake from these pools is added to the user's
+  ///                               voting power.
+  function submitVote(
+    uint _proposalId,
+    uint _solutionChosen,
+    uint[] calldata managedStakingPoolIds
+  ) external {
 
     require(allProposalData[_proposalId].propStatus ==
       uint(Governance.ProposalStatus.VotingStarted), "Not allowed");
@@ -285,7 +286,7 @@ contract Governance is IGovernance, LegacyMasterAware {
     require(_solutionChosen < allProposalSolutions[_proposalId].length);
 
 
-    _submitVote(_proposalId, _solutionChosen);
+    _submitVote(_proposalId, _solutionChosen, managedStakingPoolIds);
   }
 
   /**
@@ -380,51 +381,6 @@ contract Governance is IGovernance, LegacyMasterAware {
   }
 
   /**
-   * @dev Sets delegation acceptance status of individual user
-   * @param _status delegation acceptance status
-   */
-  function setDelegationStatus(bool _status) external isMemberAndcheckPause checkPendingRewards {
-    isOpenForDelegation[msg.sender] = _status;
-  }
-
-  /**
-   * @dev Delegates vote to an address.
-   * @param _add is the address to delegate vote to.
-   */
-  function delegateVote(address _add) external isMemberAndcheckPause checkPendingRewards {
-
-    require(ms.masterInitialized());
-
-    require(allDelegation[followerDelegation[_add]].leader == address(0));
-
-    if (followerDelegation[msg.sender] > 0) {
-      require((allDelegation[followerDelegation[msg.sender]].lastUpd).add(tokenHoldingTime) < now);
-    }
-
-    require(!alreadyDelegated(msg.sender));
-    require(!memberRole.checkRole(msg.sender, uint(IMemberRoles.Role.Owner)));
-    require(!memberRole.checkRole(msg.sender, uint(IMemberRoles.Role.AdvisoryBoard)));
-
-
-    require(followerCount[_add] < maxFollowers);
-
-    if (allVotesByMember[msg.sender].length > 0) {
-      require((allVotes[allVotesByMember[msg.sender][allVotesByMember[msg.sender].length - 1]].dateAdd).add(tokenHoldingTime)
-        < now);
-    }
-
-    require(ms.isMember(_add));
-
-    require(isOpenForDelegation[_add]);
-
-    allDelegation.push(DelegateVote(msg.sender, _add, now));
-    followerDelegation[msg.sender] = allDelegation.length - 1;
-    leaderDelegation[_add].push(allDelegation.length - 1);
-    followerCount[_add]++;
-    lastRewardClaimed[msg.sender] = allVotesByMember[_add].length;
-  }
-
-  /**
    * @dev Undelegates the sender
    */
   function unDelegate() external isMemberAndcheckPause checkPendingRewards {
@@ -463,38 +419,27 @@ contract Governance is IGovernance, LegacyMasterAware {
   }
 
   /**
-   * @dev Sets intial actionWaitingTime value
-   * To be called after governance implementation has been updated
-   */
-  function setInitialActionParameters() external onlyOwner {
-    require(!actionParamsInitialised);
-    actionParamsInitialised = true;
-    actionWaitingTime = 24 * 1 hours;
-  }
-
-  /**
    * @dev Gets Uint Parameters of a code
    * @param code whose details we want
    * @return string value of the code
    * @return associated amount (time or perc or value) to the code
    */
   function getUintParameters(bytes8 code) external view returns (bytes8 codeVal, uint val) {
-
     codeVal = code;
-
     if (code == "GOVHOLD") {
-
-      val = tokenHoldingTime / (1 days);
-
+      val = tokenHoldingTime;
     } else if (code == "MAXFOL") {
-
       val = maxFollowers;
-
     } else if (code == "MAXDRFT") {
-
-      val = maxDraftTime / (1 days);
+      val = maxDraftTime;
     } else if (code == "ACWT") {
-      val = actionWaitingTime / (1 hours);
+      val = actionWaitingTime;
+    } else if (code == "CATROLE") {
+      val = roleIdAllowedToCatgorize;
+    } else if (code == "MAXVTW") {
+      val = maxVoteWeigthPer;
+    } else if (code == "SPRESM") {
+      val = specialResolutionMajPerc;
     }
   }
 
@@ -615,28 +560,23 @@ contract Governance is IGovernance, LegacyMasterAware {
    * @param val value to set
    */
   function updateUintParameters(bytes8 code, uint val) public {
-
     require(ms.checkIsAuthToGoverned(msg.sender));
     if (code == "GOVHOLD") {
-
-      tokenHoldingTime = val * 1 days;
-
+      tokenHoldingTime = val;
     } else if (code == "MAXFOL") {
-
       maxFollowers = val;
-
     } else if (code == "MAXDRFT") {
-
-      maxDraftTime = val * 1 days;
-
+      maxDraftTime  = val;
     } else if (code == "ACWT") {
-
-      actionWaitingTime = val * 1 hours;
-
+      actionWaitingTime  = val;
+    } else if (code == "CATROLE") {
+      roleIdAllowedToCatgorize = val;
+    } else if (code == "MAXVTW") {
+      maxVoteWeigthPer = val;
+    } else if (code == "SPRESM") {
+      specialResolutionMajPerc = val;
     } else {
-
       revert("Invalid code");
-
     }
   }
 
@@ -647,6 +587,7 @@ contract Governance is IGovernance, LegacyMasterAware {
     tokenInstance = ITokenController(ms.getLatestAddress("TC"));
     memberRole = IMemberRoles(ms.getLatestAddress("MR"));
     proposalCategory = IProposalCategory(ms.getLatestAddress("PC"));
+    cover = IMinimalCover(ms.getLatestAddress("CO"));
   }
 
   /**
@@ -660,19 +601,6 @@ contract Governance is IGovernance, LegacyMasterAware {
     for (uint i = 0; i < mrAllowed.length; i++) {
       if (mrAllowed[i] == 0 || memberRole.checkRole(msg.sender, mrAllowed[i]))
         return true;
-    }
-  }
-
-  /**
-   * @dev Checks if an address is already delegated
-   * @param _add in concern
-   * @return bool value if the address is delegated or not
-   */
-  function alreadyDelegated(address _add) public view returns (bool delegated) {
-    for (uint i = 0; i < leaderDelegation[_add].length; i++) {
-      if (allDelegation[leaderDelegation[_add][i]].leader == _add) {
-        return true;
-      }
     }
   }
 
@@ -839,12 +767,18 @@ contract Governance is IGovernance, LegacyMasterAware {
 
   }
 
-  /**
-   * @dev Internal call to submit vote
-   * @param _proposalId of proposal in concern
-   * @param _solution for that proposal
-   */
-  function _submitVote(uint _proposalId, uint _solution) internal {
+  /// @dev Internal call to submit vote
+  ///
+  /// @param _proposalId            The id of the proposal that the user votes upon.
+  /// @param _solution              True if the vote is in favor of the proposal or false otherwise.
+  /// @param managedStakingPoolIds  An array of staking pool ids that the user is a manager of.
+  ///                               The active stake from these pools is added to the user's
+  ///                               voting power.
+  function _submitVote(
+    uint _proposalId,
+    uint _solution,
+    uint[] memory managedStakingPoolIds
+  ) internal {
 
     uint delegationId = followerDelegation[msg.sender];
     uint mrSequence;
@@ -875,7 +809,7 @@ contract Governance is IGovernance, LegacyMasterAware {
 
     } else {
       uint numberOfMembers = memberRole.numberOfMembers(mrSequence);
-      _setVoteTally(_proposalId, _solution, mrSequence);
+      _setVoteTally(_proposalId, _solution, mrSequence, managedStakingPoolIds);
 
       if (mrSequence == uint(IMemberRoles.Role.AdvisoryBoard)) {
         if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(numberOfMembers)
@@ -897,7 +831,12 @@ contract Governance is IGovernance, LegacyMasterAware {
    * @param _solution of proposal in concern
    * @param mrSequence number of members for a role
    */
-  function _setVoteTally(uint _proposalId, uint _solution, uint mrSequence) internal
+  function _setVoteTally(
+    uint _proposalId,
+    uint _solution,
+    uint mrSequence,
+    uint[] memory managedStakingPoolIds
+  ) internal
   {
     uint categoryABReq;
     uint isSpecialResolution;
@@ -908,34 +847,40 @@ contract Governance is IGovernance, LegacyMasterAware {
     }
     tokenInstance.lockForMemberVote(msg.sender, tokenHoldingTime);
     if (mrSequence != uint(IMemberRoles.Role.AdvisoryBoard)) {
-      uint voteWeight;
-      uint voters = 1;
       uint tokenBalance = tokenInstance.totalBalanceOf(msg.sender);
       uint totalSupply = tokenInstance.totalSupply();
-      if (isSpecialResolution == 1) {
-        voteWeight = tokenBalance.add(10 ** 18);
-      } else {
-        voteWeight = (_minOf(tokenBalance, maxVoteWeigthPer.mul(totalSupply).div(100))).add(10 ** 18);
+      uint voteWeight = tokenBalance.add(10 ** 18);
+
+      // Check if the sender is the actual manager of each givern staking pool and add the active
+      // stake to the voting weight.
+      for (uint i = 0; i < managedStakingPoolIds.length; i++) {
+        // Make sure the there are no repeated pool ids in the array. An efficient way to do this
+        // is to expect them in ascending order where each id is greater than the previous.
+        require(
+          i == 0 || managedStakingPoolIds[i] > managedStakingPoolIds[i - 1],
+          "Provide the staking pool ids in ascending order"
+        );
+        IMinimalStakingPool stakingPool = cover.stakingPool(managedStakingPoolIds[i]);
+        require(
+          stakingPool.manager() == msg.sender,
+          "One or more staking pools are not managed by the sender"
+        );
+        (
+          /*uint stakingRewards*/,
+          uint stakingDeposits
+        ) = tokenInstance.stakingPoolNXMBalances(managedStakingPoolIds[i]);
+        voteWeight = voteWeight.add(stakingDeposits);
       }
-      DelegateVote memory delegationData;
-      for (uint i = 0; i < leaderDelegation[msg.sender].length; i++) {
-        delegationData = allDelegation[leaderDelegation[msg.sender][i]];
-        if (delegationData.leader == msg.sender &&
-          _checkLastUpd(delegationData.lastUpd)) {
-          if (memberRole.checkRole(delegationData.follower, mrSequence)) {
-            tokenBalance = tokenInstance.totalBalanceOf(delegationData.follower);
-            tokenInstance.lockForMemberVote(delegationData.follower, tokenHoldingTime);
-            voters++;
-            if (isSpecialResolution == 1) {
-              voteWeight = voteWeight.add(tokenBalance.add(10 ** 18));
-            } else {
-              voteWeight = voteWeight.add((_minOf(tokenBalance, maxVoteWeigthPer.mul(totalSupply).div(100))).add(10 ** 18));
-            }
-          }
-        }
+
+      // If it's not a special resolution, the vote weight is bounded by a percentage out of the total supply
+      // which is defined by maxVoteWeigthPer.
+      if (isSpecialResolution == 0) {
+        uint boundedVoteWeight = _minOf(voteWeight, maxVoteWeigthPer.mul(totalSupply).div(100));
+        voteWeight = boundedVoteWeight;
       }
+
       proposalVoteTally[_proposalId].memberVoteValue[_solution] = proposalVoteTally[_proposalId].memberVoteValue[_solution].add(voteWeight);
-      proposalVoteTally[_proposalId].voters = proposalVoteTally[_proposalId].voters + voters;
+      proposalVoteTally[_proposalId].voters += 1;
     }
   }
 

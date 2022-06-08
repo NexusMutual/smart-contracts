@@ -3,9 +3,9 @@
 pragma solidity ^0.8.0;
 
 import "../../interfaces/ITokenController.sol";
-import "../../modules/staking/PooledStaking.sol";
+import "../../modules/legacy/LegacyPooledStaking.sol";
 
-contract DisposablePooledStaking is PooledStaking {
+contract DisposablePooledStaking is LegacyPooledStaking {
 
   function initialize(
     address _tokenControllerAddress,
@@ -28,7 +28,10 @@ contract DisposablePooledStaking is PooledStaking {
     REWARD_ROUNDS_START = block.timestamp;
   }
 
-  constructor() PooledStaking(0x0000000000000000000000000000000000000000, 0x0000000000000000000000000000000000000000) {
+  constructor() LegacyPooledStaking(
+    0x0000000000000000000000000000000000000000,
+    0x0000000000000000000000000000000000000000
+  ) {
     // noop
   }
 

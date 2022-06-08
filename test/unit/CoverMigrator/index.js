@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const { setup } = require('./setup');
 
-describe('IndividualClaims', function () {
+describe('CoverMigrator', function () {
   before(setup);
 
   beforeEach(async function () {
@@ -13,9 +13,4 @@ describe('IndividualClaims', function () {
   });
 
   require('./submitClaim');
-  require('./redeemClaimPayout');
-  require('./getAssessmentDepositAndReward');
-  require('./updateUintParameters');
-  require('./getClaimsToDisplay');
-  require('./getClaimsCount');
 });

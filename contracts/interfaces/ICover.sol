@@ -166,7 +166,7 @@ interface ICover {
     string[] calldata ipfsMetadata
   ) external;
 
-  function performPayoutBurn(
+  function performStakeBurn(
     uint coverId,
     uint segmentId,
     uint amount

@@ -430,7 +430,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     );
   }
 
-  function performPayoutBurn(
+  function performStakeBurn(
     uint coverId,
     uint segmentId,
     uint burnAmount

@@ -6,7 +6,7 @@ const { assertCoverFields,
 } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 
-describe.skip('performPayoutBurn', function () {
+describe.skip('performStakeBurn', function () {
 
   const coverBuyFixture = {
     productId: 0,
@@ -42,7 +42,7 @@ describe.skip('performPayoutBurn', function () {
 
     const burnAmount = coverBuyFixture.amount.div(2);
 
-    await cover.connect(internal1).performPayoutBurn(
+    await cover.connect(internal1).performStakeBurn(
       expectedCoverId,
       segmentId,
       burnAmount

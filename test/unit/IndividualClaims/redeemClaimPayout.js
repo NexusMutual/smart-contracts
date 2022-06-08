@@ -341,7 +341,7 @@ describe('redeemClaimPayout', function () {
     }
   });
 
-  it('calls performPayoutBurn from Cover.sol with the amount to be burned, cover and segment IDs', async function () {
+  it('calls performStakeBurn from Cover.sol with the amount to be burned, cover and segment IDs', async function () {
     const { individualClaims, cover, assessment, dai } = this.contracts;
     const [coverOwner, otherMember] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
@@ -375,7 +375,7 @@ describe('redeemClaimPayout', function () {
       await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
 
       await individualClaims.connect(coverOwner).redeemClaimPayout(0, { gasPrice: 0 });
-      const { coverId, segmentId, amount } = await cover.performPayoutBurnCalledWith();
+      const { coverId, segmentId, amount } = await cover.performStakeBurnCalledWith();
 
       expect(coverId).to.be.equal(3);
       expect(segmentId).to.be.equal(2);
@@ -401,7 +401,7 @@ describe('redeemClaimPayout', function () {
       await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
 
       await individualClaims.connect(coverOwner).redeemClaimPayout(1, { gasPrice: 0 });
-      const { coverId, amount } = await cover.performPayoutBurnCalledWith();
+      const { coverId, amount } = await cover.performStakeBurnCalledWith();
 
       expect(coverId).to.be.equal(2);
       expect(amount).to.be.equal(coverAmount.div(2));

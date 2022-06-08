@@ -608,35 +608,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     return _products.length;
   }
 
-  /*========== COVER EXPIRATION ========== */
-
-  function expireCovers(uint[] calldata coverIds) external {
-    for (uint i = 0; i < coverIds.length; i++) {
-      expireCover(coverIds[i]);
-    }
-  }
-
-  function expireCover(uint coverId) public {
-
-    require(coverAmountTrackingEnabled, "Cover expiring not enabled");
-
-
-    uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;
-    CoverSegment memory lastCoverSegment = coverSegments(coverId, lastCoverSegmentIndex);
-
-    require(!lastCoverSegment.expired, "Cover: Cover is already expired.");
-
-    if (lastCoverSegment.period + lastCoverSegment.start > block.timestamp) {
-
-      _coverSegments[coverId][lastCoverSegmentIndex].expired = true;
-
-      CoverData memory cover = _coverData[coverId];
-      totalActiveCoverInAsset[cover.payoutAsset] -= lastCoverSegment.amount;
-
-      emit CoverExpired(coverId, lastCoverSegmentIndex);
-    }
-  }
-
   /* ========== PRODUCT CONFIGURATION ========== */
 
   /**
@@ -731,6 +702,34 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function commitActiveCoverAmounts() external onlyEmergencyAdmin {
     require(!activeCoverAmountCommitted, "Cover: activeCoverAmountCommitted = true");
     activeCoverAmountCommitted = true;
+  }
+
+
+  function expireCovers(uint[] calldata coverIds) external {
+    for (uint i = 0; i < coverIds.length; i++) {
+      expireCover(coverIds[i]);
+    }
+  }
+
+  function expireCover(uint coverId) public {
+
+    require(coverAmountTrackingEnabled, "Cover expiring not enabled");
+
+
+    uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;
+    CoverSegment memory lastCoverSegment = coverSegments(coverId, lastCoverSegmentIndex);
+
+    require(!lastCoverSegment.expired, "Cover: Cover is already expired.");
+
+    if (lastCoverSegment.period + lastCoverSegment.start > block.timestamp) {
+
+      _coverSegments[coverId][lastCoverSegmentIndex].expired = true;
+
+      CoverData memory cover = _coverData[coverId];
+      totalActiveCoverInAsset[cover.payoutAsset] -= lastCoverSegment.amount;
+
+      emit CoverExpired(coverId, lastCoverSegmentIndex);
+    }
   }
 
   /* ========== HELPERS ========== */

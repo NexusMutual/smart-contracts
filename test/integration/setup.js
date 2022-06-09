@@ -28,6 +28,7 @@ const web3ToEthers = (x, signers) => {
 };
 
 async function setup () {
+
   // external
   const ERC20BlacklistableMock = artifacts.require('ERC20BlacklistableMock');
   const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
@@ -72,7 +73,7 @@ async function setup () {
   const TokenController = artifacts.require('TokenController');
   const ProposalCategory = artifacts.require('ProposalCategory');
   const Governance = artifacts.require('Governance');
-  const PooledStaking = artifacts.require('PooledStaking');
+  const PooledStaking = artifacts.require('LegacyPooledStaking');
   const Gateway = artifacts.require('Gateway');
   const YieldTokenIncidents = artifacts.require('YieldTokenIncidents');
   const IndividualClaims = artifacts.require('IndividualClaims');

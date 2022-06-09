@@ -282,6 +282,80 @@ describe('buyCover', function () {
       { productId, payoutAsset, period, amount, targetPriceRatio });
   });
 
+
+  it('should purchase new cover using USDC with commission', async function () {
+    const { cover, usdc } = this;
+
+    const {
+      governanceContracts: [gv1],
+      members: [member1],
+      members: [coverBuyer1, stakingPoolManager],
+      generalPurpose: [commissionReceiver],
+    } = this.accounts;
+
+    const productId = 0;
+    const payoutAsset = 2; // USDC
+    const period = 3600 * 24 * 30; // 30 days
+
+    const amount = BigNumber.from(1000e6); // 6 decimals
+
+    const targetPriceRatio = '260';
+    const priceDenominator = '10000';
+    const activeCover = parseEther('8000');
+    const capacity = parseEther('10000');
+
+    const commissionRatio = '500'; // 5%
+
+    await createStakingPool(
+      cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
+    );
+
+    const expectedBasePremium = amount.mul(targetPriceRatio).div(priceDenominator).mul(period).div(3600 * 24 * 365);
+    const expectedCommission = expectedBasePremium.mul(commissionRatio).div(10000);
+    const expectedPremium = expectedBasePremium.add(expectedCommission);
+
+    await usdc.mint(member1.address, parseEther('100000'));
+
+    await usdc.connect(member1).approve(cover.address, parseEther('100000'));
+
+    const daiBalanceBefore = await usdc.balanceOf(member1.address);
+    const commissionDaiBalanceBefore = await usdc.balanceOf(commissionReceiver.address);
+
+    await cover.connect(member1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        productId,
+        payoutAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: payoutAsset,
+        payWithNXM: false,
+        commissionRatio: commissionRatio,
+        commissionDestination: commissionReceiver.address,
+        ipfsData: ''
+      },
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      {
+        value: '0',
+      },
+    );
+
+    const daiBalanceAfter = await usdc.balanceOf(member1.address);
+    const commissionDaiBalanceAfter = await usdc.balanceOf(commissionReceiver.address);
+
+    const difference = daiBalanceBefore.sub(daiBalanceAfter);
+    bnEqual(difference, expectedPremium);
+
+    const commissionDifference = commissionDaiBalanceAfter.sub(commissionDaiBalanceBefore);
+    bnEqual(commissionDifference, expectedCommission);
+
+    const expectedCoverId = '0';
+
+    await assertCoverFields(cover, expectedCoverId,
+      { productId, payoutAsset, period, amount, targetPriceRatio });
+  });
+
   it('should revert for unavailable product', async function () {
     const { cover } = this;
 
@@ -326,7 +400,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const productId = 0;
-    const payoutAsset = 2; // not ETH or DAI
+    const payoutAsset = 10; // not ETH nor DAI nor USDC
     const period = 3600 * 24 * 30; // 30 days
 
     const amount = parseEther('1000');

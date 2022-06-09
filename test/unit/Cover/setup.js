@@ -173,7 +173,7 @@ async function setup () {
     {
       productType: '0',
       productAddress: '0x0000000000000000000000000000000000000000',
-      coverAssets: parseInt('11', 2), // ETH and DAI supported
+      coverAssets: parseInt('111', 2), // ETH DAI and USDC supported
       initialPriceRatio: '1000', // 10%
       capacityReductionRatio: '0',
     },

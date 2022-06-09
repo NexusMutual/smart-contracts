@@ -31,6 +31,7 @@ async function setup () {
   const MCR = await ethers.getContractFactory('CoverMockMCR');
   const StakingPool = await ethers.getContractFactory('CoverMockStakingPool');
   const CoverUtilsLib = await ethers.getContractFactory('CoverUtilsLib');
+  const ERC20CustomDecimalsMock = await ethers.getContractFactory('ERC20CustomDecimalsMock');
 
 
   const coverUtilsLib = await CoverUtilsLib.deploy();
@@ -50,12 +51,18 @@ async function setup () {
 
   const daiAsset = zeroPadRight(Buffer.from('DAI'), 4);
   const ethAsset = zeroPadRight(Buffer.from('ETH'), 4);
+  const usdcAsset = zeroPadRight(Buffer.from('USDC'), 4);
 
   await quotationData.setTotalSumAssured(daiAsset, '0');
   await quotationData.setTotalSumAssured(ethAsset, '100000');
+  await quotationData.setTotalSumAssured(usdcAsset, '0');
 
   const dai = await ERC20Mock.deploy();
   await dai.deployed();
+
+  const usdcDecimals = 6;
+  const usdc = await ERC20CustomDecimalsMock.deploy(usdcDecimals); // 6 decimals
+  await usdc.deployed();
 
   const stETH = await ERC20Mock.deploy();
   await stETH.deployed();
@@ -101,24 +108,29 @@ async function setup () {
   await chainlinkDAI.deployed();
   await chainlinkDAI.setLatestAnswer(daiToEthRate.toString());
 
+  const chainlinkUSDC = await ChainlinkAggregatorMock.deploy();
+  await chainlinkUSDC.deployed();
+  await chainlinkUSDC.setLatestAnswer(daiToEthRate.toString());
+
   const chainlinkSteth = await ChainlinkAggregatorMock.deploy();
   await chainlinkSteth.deployed();
   await chainlinkSteth.setLatestAnswer(parseEther('1'));
 
   const priceFeedOracle = await PriceFeedOracle.deploy(
-    [dai.address, stETH.address],
-    [chainlinkDAI.address, chainlinkSteth.address],
-    [18, 18],
+    [dai.address, stETH.address, usdc.address],
+    [chainlinkDAI.address, chainlinkSteth.address, chainlinkUSDC.address],
+    [18, 18, usdcDecimals],
   );
   await priceFeedOracle.deployed();
 
   const pool = await Pool.deploy();
   await pool.deployed();
 
-  await pool.setAssets([dai.address], [18]);
+  await pool.setAssets([dai.address, usdc.address], [18, usdcDecimals]);
 
   await pool.setTokenPrice('0', parseEther('1'));
   await pool.setTokenPrice('1', parseEther('1'));
+  await pool.setTokenPrice('2', parseEther('1'));
 
   // set contract addresses
   await master.setLatestAddress(hex('P1'), pool.address);
@@ -182,6 +194,7 @@ async function setup () {
   this.master = master;
   this.pool = pool;
   this.dai = dai;
+  this.usdc = usdc;
   this.nxm = nxm;
   this.tokenController = tokenController;
   this.memberRoles = memberRoles;

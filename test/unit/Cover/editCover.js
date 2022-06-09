@@ -253,7 +253,7 @@ describe('editCover', function () {
     );
   });
 
-  it('should revert when cover is expired', async function () {
+  it('should allow editing a cover that is expired offering 0 refund', async function () {
     const { cover } = this;
 
     const {
@@ -272,14 +272,13 @@ describe('editCover', function () {
 
     const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
-    const expectedRefund = segment.amount.mul(segment.priceRatio).mul(segment.period).div(MAX_COVER_PERIOD).div(priceDenominator);
     const increasedAmount = amount.mul(2);
     const expectedEditPremium = expectedPremium.mul(2);
-    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const extraPremium = expectedEditPremium;
     // make cover expire
     await time.increase(period + 3600);
 
-    await expect(cover.connect(member1).editCover(
+    const tx = await cover.connect(member1).editCover(
       expectedCoverId,
       {
         owner: coverBuyer1.address,
@@ -287,7 +286,7 @@ describe('editCover', function () {
         payoutAsset,
         amount: increasedAmount,
         period,
-        maxPremiumInAsset: expectedEditPremium,
+        maxPremiumInAsset: expectedEditPremium.add(10),
         paymentAsset: payoutAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
@@ -296,9 +295,19 @@ describe('editCover', function () {
       },
       [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
       {
-        value: extraPremium,
+        value: extraPremium.add(10),
       },
-    )).to.be.revertedWith('Cover: cover expired');
+    );
+
+    const receipt = await tx.wait();
+
+    console.log({
+      gasUsed: receipt.gasUsed.toString(),
+    });
+
+    await assertCoverFields(cover, expectedCoverId,
+      { productId, payoutAsset, period: period, amount: increasedAmount, targetPriceRatio, segmentId: '1' },
+    );
   });
 
   it('should revert when period is too long', async function () {

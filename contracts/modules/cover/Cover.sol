@@ -23,6 +23,8 @@ import "./CoverUtilsLib.sol";
 import "./MinimalBeaconProxy.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
+import "hardhat/console.sol";
+
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   using SafeERC20 for IERC20;
@@ -323,7 +325,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     CoverSegment memory lastCoverSegment = coverSegments(coverId, lastCoverSegmentIndex);
 
     require(ICoverNFT(coverNFT).isApprovedOrOwner(msg.sender, coverId), "Cover: Only owner or approved can edit");
-    require(lastCoverSegment.start + lastCoverSegment.period > block.timestamp, "Cover: cover expired");
     require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(buyCoverParams.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
 
@@ -346,7 +347,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     uint refundInCoverAsset = 0;
 
-    if (!lastCoverSegment.expired) {
+    if (lastCoverSegment.start + lastCoverSegment.period > uint32(block.timestamp)) { // not expired
       uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
 
       {
@@ -421,6 +422,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     uint premiumInPaymentAsset = totalPremiumInNXM * tokenPriceInPaymentAsset / NXM_IN_WEI;
 
+
+    console.log("premiumInPaymentAsset", premiumInPaymentAsset);
+    console.log("buyCoverParams.maxPremiumInAsset", buyCoverParams.maxPremiumInAsset);
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (buyCoverParams.payWithNXM) {

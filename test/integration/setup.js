@@ -1,7 +1,6 @@
 const { accounts, artifacts, web3, ethers } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { parseEther } = ethers.utils;
-
 const { setupUniswap } = require('../utils');
 const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
@@ -10,6 +9,7 @@ const { enrollMember } = require('./utils/enroll');
 
 const { BN } = web3.utils;
 const { getAccounts, stakingPoolManagers } = require('../utils').accounts;
+
 const { members } = getAccounts(accounts);
 
 // Convert web3 instances to ethers.js
@@ -45,10 +45,9 @@ async function setup () {
   const LegacyClaimsReward = artifacts.require('LegacyClaimsReward');
   const MCR = artifacts.require('DisposableMCR');
   const Pool = artifacts.require('Pool');
-  const QuotationData = artifacts.require('QuotationData');
+  const QuotationData = artifacts.require('LegacyQuotationData');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-  const TwapOracle = artifacts.require('TwapOracle');
-  const SwapOperator = artifacts.require('SwapOperator');
+  const SwapOperator = artifacts.require('CowSwapOperator');
   const CoverNFT = artifacts.require('CoverNFT');
   const Cover = artifacts.require('Cover');
   const StakingPool = artifacts.require('StakingPool');
@@ -74,10 +73,15 @@ async function setup () {
   const ProposalCategory = artifacts.require('ProposalCategory');
   const Governance = artifacts.require('Governance');
   const PooledStaking = artifacts.require('LegacyPooledStaking');
-  const Gateway = artifacts.require('Gateway');
+  const Gateway = artifacts.require('LegacyGateway');
   const YieldTokenIncidents = artifacts.require('YieldTokenIncidents');
   const IndividualClaims = artifacts.require('IndividualClaims');
   const Assessment = artifacts.require('Assessment');
+
+  // external
+  const WETH9 = artifacts.require('WETH9');
+  const CSMockSettlement = artifacts.require('CSMockSettlement');
+  const CSMockVaultRelayer = artifacts.require('CSMockVaultRelayer');
 
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
@@ -103,7 +107,7 @@ async function setup () {
   const [owner, emergencyAdmin] = accounts;
 
   // deploy external contracts
-  const { router, factory, weth } = await setupUniswap();
+  const weth = await WETH9.new();
 
   const dai = await ERC20BlacklistableMock.new();
   await dai.mint(owner, ether('10000000'));
@@ -131,7 +135,6 @@ async function setup () {
   const gateway = await deployProxy(DisposableGateway);
 
   // non-proxy contracts and libraries
-  const twapOracle = await TwapOracle.new(factory.address);
 
   // regular contracts
   // const lcl = await LegacyClaims.new();
@@ -142,7 +145,15 @@ async function setup () {
   const mc = await MCR.new(ZERO_ADDRESS);
 
   const p1 = await Pool.new(master.address, priceFeedOracle.address, ZERO_ADDRESS, dai.address, stETH.address);
-  const swapOperator = await SwapOperator.new(master.address, twapOracle.address, owner, lido.address);
+
+  const cowVaultRelayer = await CSMockVaultRelayer.new();
+  const cowSettlement = await CSMockSettlement.new(cowVaultRelayer.address);
+  const swapOperator = await SwapOperator.new(
+    cowSettlement.address,
+    owner, // _swapController,
+    master.address,
+    weth.address
+  );
 
   const productsV1 = await ProductsV1.new();
 
@@ -368,7 +379,7 @@ async function setup () {
     minUpdateTime,
   );
 
-  const external = { chainlinkDAI, dai, factory, router, weth, productsV1 };
+  const external = { chainlinkDAI, dai, weth, productsV1 };
   const nonUpgradable = { qd };
   const instances = { tk, cl, p1, mcr: mc };
 

@@ -329,7 +329,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     // Override cover specific parameters
     buyCoverParams.payoutAsset = cover.payoutAsset;
     buyCoverParams.productId = cover.productId;
-    
+
     Product memory product = _products[buyCoverParams.productId];
     uint32 deprecatedCoverAssetsBitmap = pool().deprecatedCoverAssetsBitmap();
 
@@ -465,7 +465,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint allocationCount = allocations.length;
     for (uint i = 0; i < allocationCount; i++) {
 
-      PoolAllocation storage allocation = allocations[i];
+      PoolAllocation memory allocation = allocations[i];
       IStakingPool _stakingPool = stakingPool(allocation.poolId);
 
       uint nxmBurned = allocation.coverAmountInNXM

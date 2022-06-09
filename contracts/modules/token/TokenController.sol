@@ -26,7 +26,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   IGovernance public governance;
 
   ICover public cover;
-  mapping(uint => StakingPoolNXMBalances) stakingPoolNXMBalances;
+  mapping(uint => StakingPoolNXMBalances) public override stakingPoolNXMBalances;
 
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
@@ -207,7 +207,6 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
     token.transfer(destination, governanceRewards);
   }
-
 
   /// Function used to claim all pending rewards in one tx. It can be used to selectively withdraw
   /// rewards.

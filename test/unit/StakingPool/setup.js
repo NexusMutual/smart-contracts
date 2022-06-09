@@ -14,9 +14,7 @@ async function setup () {
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
   const QuotationData = await ethers.getContractFactory('CoverMockQuotationData');
-  const Cover = await ethers.getContractFactory('Cover');
   const MemberRolesMock = await ethers.getContractFactory('MemberRolesMock');
-  const CoverNFT = await ethers.getContractFactory('CoverNFT');
   const TokenController = await ethers.getContractFactory('TokenControllerMock');
   const NXMToken = await ethers.getContractFactory('NXMTokenMock');
   const MCR = await ethers.getContractFactory('CoverMockMCR');
@@ -54,7 +52,7 @@ async function setup () {
   await mcr.deployed();
   await mcr.setMCR(parseEther('600000'));
 
-  const stakingPool = await StakingPool.deploy(nxm.address, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS);
+  const stakingPool = await StakingPool.deploy('', '', nxm.address, ZERO_ADDRESS, tokenController.address);
 
   const signers = await ethers.getSigners();
   const accounts = getAccounts(signers);
@@ -78,10 +76,17 @@ async function setup () {
     await master.enrollGovernance(governanceContract.address);
   }
 
+  const REWARD_BONUS_PER_TRANCHE_RATIO = await stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO();
+  const REWARD_BONUS_PER_TRANCHE_DENOMINATOR = await stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR();
+
   this.master = master;
   this.stakingPool = stakingPool;
   this.dai = dai;
   this.accounts = accounts;
+  this.config = {
+    REWARD_BONUS_PER_TRANCHE_DENOMINATOR,
+    REWARD_BONUS_PER_TRANCHE_RATIO,
+  };
 }
 
 module.exports = setup;

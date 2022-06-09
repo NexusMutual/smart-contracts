@@ -5,7 +5,6 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IGovernance.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
@@ -25,7 +24,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   address payable public poolAddress;
   address public kycAuthAddress;
   ICover internal cover;
-  IGovernance internal gv;
+  address internal _unused0;
   address internal _unused1;
   INXMToken public tk;
 
@@ -87,7 +86,6 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     if (kycAuthAddress == 0x1776651F58a17a50098d31ba3C3cD259C1903f7A) {
       kycAuthAddress = IQuotationData(0x1776651F58a17a50098d31ba3C3cD259C1903f7A).kycAuthAddress();
     }
-    gv = IGovernance(ms.getLatestAddress("GV"));
     tk = INXMToken(ms.tokenAddress());
     tc = ITokenController(ms.getLatestAddress("TC"));
     poolAddress = payable(ms.getLatestAddress("P1"));
@@ -198,7 +196,6 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     // No locked tokens for Member/Governance voting
     require(block.timestamp > tk.isLockedForMV(msg.sender));
 
-    gv.removeDelegation(msg.sender);
     tc.burnFrom(msg.sender, tk.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
     tc.removeFromWhitelist(msg.sender); // need clarification on whitelist
@@ -261,7 +258,6 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     require(!isMember(newAddress), "The new address is already a member");
     require(block.timestamp > tk.isLockedForMV(currentAddress), "Locked for governance voting"); // No locked tokens for Governance voting
 
-    gv.removeDelegation(currentAddress);
     tc.addToWhitelist(newAddress);
     _updateRole(currentAddress, uint(Role.Member), false);
     _updateRole(newAddress, uint(Role.Member), true);

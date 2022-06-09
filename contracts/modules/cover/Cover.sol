@@ -21,9 +21,10 @@ import "../../interfaces/ITokenController.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./CoverUtilsLib.sol";
 import "./MinimalBeaconProxy.sol";
+import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
 
-contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
+contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
   /* === CONSTANTS ==== */
@@ -160,7 +161,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function buyCover(
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory allocationRequests
-  ) external payable override onlyMember whenNotPaused returns (uint /*coverId*/) {
+  ) external payable override onlyMember whenNotPaused nonReentrant returns (uint /*coverId*/) {
 
     require(_products.length > params.productId, "Cover: Product not found");
     Product memory product = _products[params.productId];
@@ -314,7 +315,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint coverId,
     BuyCoverParams memory buyCoverParams,
     PoolAllocationRequest[] memory poolAllocations
-  ) external payable onlyMember whenNotPaused {
+  ) external payable onlyMember whenNotPaused nonReentrant {
 
     CoverData memory cover = _coverData[coverId];
     uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;

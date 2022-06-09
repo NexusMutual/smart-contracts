@@ -180,9 +180,8 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
     revert("CoverMockStakingPool: not callable");
   }
 
-  function withdraw(WithdrawRequest[] memory params) external {
+  function withdraw(WithdrawRequest[] memory params) external returns (uint stakeToWithdraw, uint rewardsToWithdraw) {
     revert("CoverMockStakingPool: not callable");
-
   }
 
   function addProducts(ProductParams[] memory params) external {

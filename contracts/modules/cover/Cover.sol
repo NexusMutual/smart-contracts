@@ -23,8 +23,6 @@ import "./CoverUtilsLib.sol";
 import "./MinimalBeaconProxy.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
-import "hardhat/console.sol";
-
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   using SafeERC20 for IERC20;
@@ -421,10 +419,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint tokenPriceInPaymentAsset = _pool.getTokenPrice(buyCoverParams.paymentAsset);
 
     uint premiumInPaymentAsset = totalPremiumInNXM * tokenPriceInPaymentAsset / NXM_IN_WEI;
-
-
-    console.log("premiumInPaymentAsset", premiumInPaymentAsset);
-    console.log("buyCoverParams.maxPremiumInAsset", buyCoverParams.maxPremiumInAsset);
+    
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (buyCoverParams.payWithNXM) {

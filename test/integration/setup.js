@@ -51,6 +51,7 @@ async function setup () {
   const CoverNFT = artifacts.require('CoverNFT');
   const Cover = artifacts.require('Cover');
   const StakingPool = artifacts.require('StakingPool');
+  const CoverUtilsLib = artifacts.require('CoverUtilsLib');
   const IntegrationMockStakingPool = artifacts.require('IntegrationMockStakingPool');
 
   // temporary contracts used for initialization
@@ -320,13 +321,29 @@ async function setup () {
   await upgradeProxy(ic.address, IndividualClaims, [tk.address, coverNFT.address]);
   await upgradeProxy(yt.address, YieldTokenIncidents, [tk.address, coverNFT.address]);
   await upgradeProxy(as.address, Assessment, [master.address]);
+
+  const coverUtilsLib = await CoverUtilsLib.new();
+  await Cover.link(coverUtilsLib);
   await upgradeProxy(cover.address, Cover, [
     qd.address,
     productsV1.address,
     stakingPool.address,
-    coverNFT.address,
-    cover.address, // The proxy contract
+    coverNFT.address
   ]);
+  //
+  // {
+  //   const params = {}
+  //
+  //
+  //   const implementation = await Cover.new(...params, {
+  //
+  //   });
+  //   const proxy = await OwnedUpgradeabilityProxy.at(cover.address);
+  //   await proxy.upgradeTo(implementation.address);
+  //
+  // }
+  //
+  // CoverUtilsLib.
 
   // [todo] We should probably call changeDependentContractAddress on every contract
   await gateway.changeDependentContractAddress();
@@ -341,6 +358,7 @@ async function setup () {
   await transferProxyOwnership(ic.address, master.address);
   await transferProxyOwnership(cl.address, master.address);
   await transferProxyOwnership(as.address, master.address);
+  await transferProxyOwnership(cover.address, gv.address);
   await transferProxyOwnership(master.address, gv.address);
 
   const POOL_ETHER = ether('90000');
@@ -392,7 +410,7 @@ async function setup () {
     mr: await MemberRoles.at(mr.address),
     ps: await PooledStaking.at(ps.address),
     gateway: await Gateway.at(gateway.address),
-    ic: await Incidents.at(ic.address),
+    ic: await YieldTokenIncidents.at(ic.address),
     cl: await CoverMigrator.at(cl.address),
     as: await Assessment.at(as.address),
     cover: await Cover.at(cover.address),

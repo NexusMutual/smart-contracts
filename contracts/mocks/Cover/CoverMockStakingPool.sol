@@ -170,9 +170,8 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
     // noop
   }
 
-  function burnStake(uint /* productId */, uint /* start */, uint /* period */, uint /* amount */) external {
+  function burnStake(uint productId, uint start, uint period, uint amount) external {
     // no-op
-
     burnStakeCalledWith = BurnStakeCalledWith(productId, start, period, amount);
   }
 

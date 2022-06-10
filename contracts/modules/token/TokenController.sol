@@ -44,6 +44,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
     assessment = IAssessment(ms.getLatestAddress("AS"));
     cover = ICover(ms.getLatestAddress("CO"));
+    governance = IGovernance(ms.getLatestAddress("GV"));
   }
 
   /**
@@ -153,14 +154,15 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     return token.totalSupply();
   }
 
-  /**
-  * @dev Returns the total amount of tokens held by an address:
-  *   transferable + locked + staked for pooled staking - pending burns.
-  *   Used by Claims and Governance in member voting to calculate the user's vote weight.
-  *
-  * @param _of The address to query the total balance of
-  * @param _of The address to query the total balance of
-  */
+  /// Returns the base voting power not the balance. It is used in governance voting as well as in
+  /// snapshot voting.
+  ///
+  /// @dev Caution, this function is improperly named because reconfiguring snapshot voting was
+  /// not desired. It accounts for the tokens in the user's wallet as well as tokens locked in
+  /// assessment and legacy staking deposits. V2 staking deposits are excluded because they are
+  /// delegated to the pool managers instead.
+  ///
+  /// @param _of  The member address for which the base voting power is calculated.
   function totalBalanceOf(address _of) public override view returns (uint256 amount) {
 
     amount = token.balanceOf(_of);
@@ -169,8 +171,6 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     for (uint256 i = 0; i < lockReason[_of].length; i++) {
       amount = amount + _tokensLocked(_of, lockReason[_of][i]);
     }
-
-    // [todo] Consider accounting for v2 staking pools
 
     // [todo] Can be removed after PooledStaking is decommissioned
     uint stakerReward = pooledStaking.stakerReward(_of);
@@ -190,7 +190,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   function withdrawGovernanceRewards(
     address memberAddress,
     uint batchSize
-  ) public isMemberAndcheckPause {
+  ) public checkPause {
     uint governanceRewards = governance.claimReward(memberAddress, batchSize);
     require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
     token.transfer(memberAddress, governanceRewards);
@@ -202,7 +202,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   function withdrawGovernanceRewardsTo(
     address destination,
     uint batchSize
-  ) public isMemberAndcheckPause {
+  ) public checkPause {
     uint governanceRewards = governance.claimReward(msg.sender, batchSize);
     require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
     token.transfer(destination, governanceRewards);
@@ -226,7 +226,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     bool fromAssessment,
     uint batchSize,
     WithdrawFromStakingPoolParams[] calldata fromStakingPools
-  ) external isMemberAndcheckPause {
+  ) external checkPause {
     if (fromAssessment) {
       assessment.withdrawRewards(forUser, batchSize.toUint104());
     }

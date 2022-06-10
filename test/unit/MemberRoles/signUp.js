@@ -214,6 +214,24 @@ describe('signUp', function () {
     ).not.to.be.revertedWith('MemberRoles: The joining fee transfer to the pool failed');
   });
 
+  it('transfers the joining fee to the pool', async function () {
+    const { memberRoles, pool } = this.contracts;
+    const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
+
+    const membershipApprovalData0 = await approveMembership({
+      nonce: 0,
+      address: nonMembers[0].address,
+      kycAuthSigner,
+    });
+
+    const balanceBefore = await ethers.provider.getBalance(pool.address);
+    memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+      value: JOINING_FEE,
+    });
+    const balanceAfter = await ethers.provider.getBalance(pool.address);
+    expect(balanceAfter).to.be.equal(balanceBefore.add(JOINING_FEE));
+  });
+
   it('whitelists the address through token controller to allow it to transfer tokens', async function () {
     const { memberRoles, tokenController } = this.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;

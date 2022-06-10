@@ -51,7 +51,7 @@ async function setup () {
   const CoverNFT = artifacts.require('CoverNFT');
   const Cover = artifacts.require('Cover');
   const StakingPool = artifacts.require('StakingPool');
-  const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
+  const IntegrationMockStakingPool = artifacts.require('IntegrationMockStakingPool');
 
   // temporary contracts used for initialization
   const DisposableNXMaster = artifacts.require('DisposableNXMaster');
@@ -168,7 +168,7 @@ async function setup () {
 
   const cover = await deployProxy(DisposableCover, []);
   const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
-  const stakingPool = await CoverMockStakingPool.new(tk.address, cover.address, mr.address);
+  const stakingPool = await IntegrationMockStakingPool.new(tk.address, cover.address, tc.address, mr.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
@@ -237,7 +237,6 @@ async function setup () {
 
   await as.initialize(master.address);
   await ic.initialize(master.address);
-  await cl.initialize(master.address);
 
   const CLAIM_METHOD = {
     INDIVIDUAL_CLAIMS: 0,
@@ -312,13 +311,14 @@ async function setup () {
   await gateway.initialize(master.address, dai.address);
 
   await upgradeProxy(mr.address, MemberRoles);
-  await upgradeProxy(tc.address, TokenController, [qd.address]);
-  await upgradeProxy(ps.address, PooledStaking);
+  await upgradeProxy(tc.address, TokenController, [qd.address, lcr.address]);
+  await upgradeProxy(ps.address, PooledStaking, [cover.address, productsV1.address]);
   await upgradeProxy(pc.address, ProposalCategory);
   await upgradeProxy(master.address, NXMaster);
   await upgradeProxy(gv.address, Governance);
   await upgradeProxy(gateway.address, Gateway);
-  await upgradeProxy(ic.address, Incidents, [master.address, coverNFT.address]);
+  await upgradeProxy(ic.address, IndividualClaims, [tk.address, coverNFT.address]);
+  await upgradeProxy(yt.address, YieldTokenIncidents, [tk.address, coverNFT.address]);
   await upgradeProxy(as.address, Assessment, [master.address]);
   await upgradeProxy(cover.address, Cover, [
     qd.address,
@@ -425,7 +425,7 @@ async function setup () {
     const tx = await this.withEthers.contracts.cover.createStakingPool(stakingPoolManagers[i]);
     const receipt = await tx.wait();
     const { stakingPoolAddress } = receipt.events[0].args;
-    const stakingPoolInstance = await CoverMockStakingPool.at(stakingPoolAddress);
+    const stakingPoolInstance = await IntegrationMockStakingPool.at(stakingPoolAddress);
     await stakingPoolInstance.setPrice(0, 100);
     await stakingPoolInstance.setPrice(1, 100);
     await stakingPoolInstance.setPrice(2, 100);

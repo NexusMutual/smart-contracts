@@ -12,13 +12,17 @@ describe.only('INTEGRATION TESTS', function () {
   afterEach(async function () {
     await revertToSnapshot(this.snapshotId);
   });
-  require('./Master');
-  require('./PooledStaking');
-  require('./Pool');
-  require('./MCR');
-  require('./MemberRoles');
-  require('./Claims');
 
-  require('./Gateway');
-  require('./TokenController');
+  require('./IndividualClaims');
+
+  // TODO: reenable
+  // require('./Master');
+  // require('./PooledStaking');
+  // require('./Pool');
+  // require('./MCR');
+  // require('./MemberRoles');
+  // require('./Claims');
+  //
+  // require('./Gateway');
+  // require('./TokenController');
 });

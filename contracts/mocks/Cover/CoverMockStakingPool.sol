@@ -39,9 +39,9 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
   BurnStakeCalledWith public burnStakeCalledWith;
 
   constructor (
-    address _nxm,
-    address _coverContract,
-    ITokenController _tokenController,
+    address /* _nxm */,
+    address /* _coverContract */,
+    ITokenController /* _tokenController */,
     address _memberRoles
   ) ERC721("Nexus Mutual Staking Pool", "NMSPT")
   {
@@ -82,7 +82,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
 
     usedCapacity[request.productId] += request.amount;
 
-    uint premium = calculatePremium(mockPrices[request.productId], request.amount, request.period);
+    premium = calculatePremium(mockPrices[request.productId], request.amount, request.period);
 
     return (
       request.amount,
@@ -92,20 +92,13 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
   }
 
   function deallocateStake(
-    uint productId,
-    uint start,
-    uint period,
-    uint amount,
-    uint premium,
-    uint globalRewardsRatio
+    uint /* productId */,
+    uint /* start */,
+    uint /* period */,
+    uint /* amount */,
+    uint /* premium */,
+    uint /* globalRewardsRatio */
   ) external {
-
-    // silence compiler warnings
-    productId;
-    start;
-    period;
-    amount;
-    premium;
   }
 
   function calculatePremium(uint priceRatio, uint coverAmount, uint period) public pure returns (uint) {
@@ -129,6 +122,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
   }
 
   function updateTranches() external {
+    totalSupply = totalSupply;
     revert("CoverMockStakingPool: not callable");
   }
 
@@ -176,67 +170,77 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
     // noop
   }
 
-  function burnStake(uint productId, uint start, uint period, uint amount) external {
+  function burnStake(uint /* productId */, uint /* start */, uint /* period */, uint /* amount */) external {
     // no-op
 
     burnStakeCalledWith = BurnStakeCalledWith(productId, start, period, amount);
   }
 
-  function depositTo(DepositRequest[] memory requests) external returns (uint[] memory tokenIds) {
+  function depositTo(DepositRequest[] memory /* requests */) external returns (uint[] memory /* tokenIds */) {
+    totalSupply = totalSupply;
     revert("CoverMockStakingPool: not callable");
   }
 
-  function withdraw(WithdrawRequest[] memory params) external {
-    revert("CoverMockStakingPool: not callable");
-
-  }
-
-  function addProducts(ProductParams[] memory params) external {
+  function withdraw(WithdrawRequest[] memory /* params */) external returns (uint /* stakeToWithdraw */, uint /* rewardsToWithdraw */) {
+    totalSupply = totalSupply;
     revert("CoverMockStakingPool: not callable");
   }
 
-  function removeProducts(uint[] memory productIds) external {
+  function addProducts(ProductParams[] memory /* params */) external {
+    totalSupply = totalSupply;
     revert("CoverMockStakingPool: not callable");
   }
 
-  function setProductDetails(ProductParams[] memory params) external {
+  function removeProducts(uint[] memory /* productIds */) external {
+    totalSupply = totalSupply;
     revert("CoverMockStakingPool: not callable");
   }
 
-  function setPoolFee(uint newFee) external {
+  function setProductDetails(ProductParams[] memory /* params */) external {
+    totalSupply = totalSupply;
     revert("CoverMockStakingPool: not callable");
   }
 
-  function setPoolPrivacy(bool isPrivatePool) external {
+  function setPoolFee(uint /* newFee */) external {
+    totalSupply = totalSupply;
     revert("CoverMockStakingPool: not callable");
   }
 
+  function setPoolPrivacy(bool /* isPrivatePool */) external {
+    totalSupply = totalSupply;
+    revert("CoverMockStakingPool: not callable");
+  }
 
   function getActiveStake() external view returns (uint) {
+    block.timestamp;
     revert("CoverMockStakingPool: not callable");
   }
 
-  function getProductStake(uint productId, uint coverExpirationDate) external view returns (uint) {
+  function getProductStake(uint /* productId */, uint /* coverExpirationDate */) external view returns (uint) {
+    block.timestamp;
     revert("CoverMockStakingPool: not callable");
   }
 
-  function getFreeProductStake(uint productId, uint coverExpirationDate) external view returns (uint) {
+  function getFreeProductStake(uint /* productId */, uint /* coverExpirationDate */) external view returns (uint) {
+    block.timestamp;
     revert("CoverMockStakingPool: not callable");
   }
 
-  function getAllocatedProductStake(uint productId) external view returns (uint) {
+  function getAllocatedProductStake(uint /* productId */) external view returns (uint) {
+    block.timestamp;
     revert("CoverMockStakingPool: not callable");
   }
 
   function getPriceParameters(
-    uint productId,
-    uint maxCoverPeriod
+    uint /* productId */,
+    uint /* maxCoverPeriod */
   ) external override view returns (
-    uint activeCover,
-    uint[] memory staked,
-    uint lastBasePrice,
-    uint targetPrice
+    uint /* activeCover */,
+    uint[] memory /* staked */,
+    uint /* lastBasePrice */,
+    uint /* targetPrice */
   ) {
+    block.timestamp;
     revert("CoverMockStakingPool: not callable");
   }
 }

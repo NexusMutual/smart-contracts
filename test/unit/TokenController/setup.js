@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { getAccounts } = require('../../utils/accounts');
+const { hex } = require('../utils').helpers;
 
 async function setup () {
   const TokenController = await ethers.getContractFactory('TokenController');
@@ -20,27 +21,40 @@ async function setup () {
 
   await master.enrollGovernance(accounts.governanceContracts[0].address);
 
-  const NXM = await ethers.getContractFactory('NXMToken');
-  const token = await NXM.deploy(accounts.defaultSender.address, '0');
-  await token.deployed();
+  const NXM = await ethers.getContractFactory('NXMTokenMock');
+  const nxm = await NXM.deploy();
+  await nxm.deployed();
+
+  const Governance = await ethers.getContractFactory('TCMockGovernance');
+  const governance = await Governance.deploy();
+  await governance.deployed();
 
   await master.enrollInternal(internal.address);
-  await master.setTokenAddress(token.address);
+  await master.setTokenAddress(nxm.address);
+
+  const masterInitTxs = await Promise.all([
+    master.setTokenAddress(nxm.address),
+    master.setLatestAddress(hex('GV'), governance.address),
+  ]);
+  await Promise.all(masterInitTxs.map(x => x.wait()));
 
   await tokenController.changeMasterAddress(master.address);
   await tokenController.changeDependentContractAddress();
   await tokenController.connect(internal).changeOperator(tokenController.address);
+  await nxm.mint(tokenController.address, ethers.utils.parseUnits('1000'));
 
   for (const member of [...members, tokenController]) {
+    await master.enrollMember(member.address, 2);
     await tokenController.connect(internal).addToWhitelist(member.address);
   }
 
-  this.master = master;
-  this.token = token;
-  this.tokenController = tokenController;
-
-  this.members = members;
-  this.internal = internal;
+  this.accounts = accounts;
+  this.contracts = {
+    nxm,
+    master,
+    governance,
+    tokenController,
+  };
 }
 
 module.exports = setup;

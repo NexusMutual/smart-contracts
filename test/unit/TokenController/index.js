@@ -11,4 +11,8 @@ describe('TokenController', function () {
   afterEach(async function () {
     await revertToSnapshot(this.snapshotId);
   });
+
+  require('./withdrawGovernanceRewards');
+  require('./withdrawGovernanceRewardsTo');
+  require('./withdrawPendingRewards');
 });

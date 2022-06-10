@@ -26,7 +26,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   ICover internal cover;
   address internal _unused0;
   address internal _unused1;
-  INXMToken public tk;
+  INXMToken public nxm;
 
   struct MemberRoleDetails {
     uint memberCounter;
@@ -86,7 +86,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     if (kycAuthAddress == 0x1776651F58a17a50098d31ba3C3cD259C1903f7A) {
       kycAuthAddress = IQuotationData(0x1776651F58a17a50098d31ba3C3cD259C1903f7A).kycAuthAddress();
     }
-    tk = INXMToken(ms.tokenAddress());
+    nxm = INXMToken(ms.tokenAddress());
     tc = ITokenController(ms.getLatestAddress("TC"));
     poolAddress = payable(ms.getLatestAddress("P1"));
     cover = ICover(ms.getLatestAddress("CO"));
@@ -194,9 +194,9 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
 
     require(!ms.isPause() && isMember(msg.sender));
     // No locked tokens for Member/Governance voting
-    require(block.timestamp > tk.isLockedForMV(msg.sender));
+    require(block.timestamp > nxm.isLockedForMV(msg.sender));
 
-    tc.burnFrom(msg.sender, tk.balanceOf(msg.sender));
+    tc.burnFrom(msg.sender, nxm.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
     tc.removeFromWhitelist(msg.sender); // need clarification on whitelist
 
@@ -206,7 +206,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   /// @param newAddress  The new address where membership will be switched to.
   function switchMembership(address newAddress) external override {
     _switchMembership(msg.sender, newAddress);
-    tk.transferFrom(msg.sender, newAddress, tk.balanceOf(msg.sender));
+    nxm.transferFrom(msg.sender, newAddress, nxm.balanceOf(msg.sender));
   }
 
   /// Switches the membership from the sender's address to the new address and transfers the
@@ -220,21 +220,19 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   function switchMembershipAndAssets(
     address newAddress,
     uint[] calldata coverIds,
-    address[] calldata stakingPools,
+    uint[] calldata stakingPools,
     uint[][] calldata stakingPoolTokenIds
   ) external override {
     _switchMembership(msg.sender, newAddress);
-    tk.transferFrom(msg.sender, newAddress, tk.balanceOf(msg.sender));
+    nxm.transferFrom(msg.sender, newAddress, nxm.balanceOf(msg.sender));
 
     // Transfer the cover NFTs to the new address, if any were given
     cover.transferCovers(msg.sender, newAddress, coverIds);
 
-    stakingPools;
-
     // Transfer the staking deposits to the new address
     for (uint256 i = 0; i < stakingPools.length; i++) {
-      IStakingPool stakingLPToken = IStakingPool(stakingPools[i]);
-      stakingLPToken.operatorTransfer(msg.sender, newAddress, stakingPoolTokenIds[i]);
+      IStakingPool stakingPool = cover.stakingPool(stakingPools[i]);
+      stakingPool.operatorTransfer(msg.sender, newAddress, stakingPoolTokenIds[i]);
     }
 
   }
@@ -256,7 +254,8 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     require(!ms.isPause(), "System is paused");
     require(isMember(currentAddress), "The current address is not a member");
     require(!isMember(newAddress), "The new address is already a member");
-    require(block.timestamp > tk.isLockedForMV(currentAddress), "Locked for governance voting"); // No locked tokens for Governance voting
+    // No locked tokens for Governance voting
+    require(block.timestamp > nxm.isLockedForMV(currentAddress), "Locked for governance voting");
 
     tc.addToWhitelist(newAddress);
     _updateRole(currentAddress, uint(Role.Member), false);

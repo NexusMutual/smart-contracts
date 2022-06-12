@@ -434,7 +434,8 @@ async function setup () {
 
   this.contractType = contractType;
 
-  await enrollMember(this.contracts, members);
+  const kycAuthSigner = '';
+  await enrollMember(this.contracts, members, kycAuthSigner);
 
   const signers = await ethers.getSigners();
   this.withEthers = web3ToEthers(this, signers);

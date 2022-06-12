@@ -124,7 +124,7 @@ contract DisposableGovernance is IGovernance, LegacyMasterAware {
 
   function createProposalwithSolution(string calldata, string calldata, string calldata, uint, string calldata, bytes calldata) external {}
 
-  function submitVote(uint, uint) external {}
+  function submitVote(uint, uint, uint[] calldata) external {}
 
   function closeProposal(uint) external {}
 

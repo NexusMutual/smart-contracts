@@ -41,7 +41,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   address public swapOperator;
 
   // Binary map where each on bit, starting from the LSB, represents whether the cover asset found
-  // at the same index as the bit's position should be ignored when calulating the value of the pool
+  // at the same index as the bit's position should be ignored when calculating the value of the pool
   // in ETH.
   //
   // Examples:

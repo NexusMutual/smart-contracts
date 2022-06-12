@@ -11,7 +11,7 @@ const { toBN } = web3.utils;
 
 const MCR = artifacts.require('MCR');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
-const PooledStaking = artifacts.require('PooledStaking');
+const PooledStaking = artifacts.require('LegacyPooledStaking');
 const NXMaster = artifacts.require('NXMaster');
 
 const [owner, emergencyAdmin, unknown, member1, member2, member3, coverHolder] = accounts;

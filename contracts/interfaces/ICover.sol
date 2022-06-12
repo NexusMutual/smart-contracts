@@ -133,7 +133,7 @@ interface ICover {
 
   function totalActiveCoverInAsset(uint24 coverAsset) external view returns (uint);
 
-  function calculateCapacity(uint staked, uint capacityReductionRatio) external view returns (uint);
+  function globalCapacityRatio() external view returns (uint24);
 
   /* === MUTATIVE FUNCTIONS ==== */
 
@@ -166,7 +166,7 @@ interface ICover {
     string[] calldata ipfsMetadata
   ) external;
 
-  function performPayoutBurn(
+  function performStakeBurn(
     uint coverId,
     uint segmentId,
     uint amount

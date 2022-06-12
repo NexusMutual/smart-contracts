@@ -12,6 +12,13 @@ import "../../modules/staking/StakingPool.sol";
 
 contract CoverMockStakingPool is IStakingPool, ERC721 {
 
+  struct BurnStakeCalledWith {
+    uint productId;
+    uint start;
+    uint period;
+    uint amount;
+  }
+
   /* immutables */
   address public immutable memberRoles;
 
@@ -28,6 +35,8 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
   // erc721 supply
   uint public totalSupply;
   address public manager;
+
+  BurnStakeCalledWith public burnStakeCalledWith;
 
   constructor (
     address /* _nxm */,
@@ -161,8 +170,9 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
     // noop
   }
 
-  function burnStake(uint /* productId */, uint /* start */, uint /* period */, uint /* amount */) external {
+  function burnStake(uint productId, uint start, uint period, uint amount) external {
     // no-op
+    burnStakeCalledWith = BurnStakeCalledWith(productId, start, period, amount);
   }
 
   function depositTo(DepositRequest[] memory /* requests */) external returns (uint[] memory /* tokenIds */) {

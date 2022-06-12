@@ -10,7 +10,7 @@ contract CLMockCover {
 
   IERC721Mock public immutable coverNFT;
 
-  struct PerformPayoutBurnCalledWith {
+  struct PerformStakeBurnCalledWith {
     uint coverId;
     uint segmentId;
     uint amount;
@@ -22,7 +22,7 @@ contract CLMockCover {
     address toNewOwner;
   }
 
-  PerformPayoutBurnCalledWith public performPayoutBurnCalledWith;
+  PerformStakeBurnCalledWith public performStakeBurnCalledWith;
   MigrateCoverFromOwnerCalledWith public migrateCoverFromOwnerCalledWith;
   CoverData[] public coverData;
   mapping(uint => CoverSegment[]) _coverSegments;
@@ -122,8 +122,8 @@ contract CLMockCover {
     _products.push(product);
   }
 
-  function performPayoutBurn(uint coverId, uint segmentId, uint amount) external returns (address) {
-    performPayoutBurnCalledWith = PerformPayoutBurnCalledWith(coverId, segmentId, amount);
+  function performStakeBurn(uint coverId, uint segmentId, uint amount) external returns (address) {
+    performStakeBurnCalledWith = PerformStakeBurnCalledWith(coverId, segmentId, amount);
     return coverNFT.ownerOf(coverId);
   }
 

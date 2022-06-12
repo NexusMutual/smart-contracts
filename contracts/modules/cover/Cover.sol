@@ -21,8 +21,10 @@ import "../../interfaces/ITokenController.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./CoverUtilsLib.sol";
 import "./MinimalBeaconProxy.sol";
+import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
-contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
+
+contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
   /* === CONSTANTS ==== */
@@ -41,6 +43,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   uint private constant MAX_COMMISSION_RATIO = 2500; // 25%
 
   uint private constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+
+  uint private constant NXM_IN_WEI = 1e18;
 
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
@@ -159,37 +163,51 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
   function buyCover(
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory allocationRequests
-  ) external payable override onlyMember whenNotPaused returns (uint /*coverId*/) {
+  ) external payable override onlyMember whenNotPaused nonReentrant returns (uint /*coverId*/) {
 
     require(_products.length > params.productId, "Cover: Product not found");
     Product memory product = _products[params.productId];
     require(product.initialPriceRatio != 0, "Cover: Product not initialized");
+
+    IPool _pool = pool();
+    uint32 deprecatedCoverAssetsBitmap = _pool.deprecatedCoverAssetsBitmap();
     require(
-      isAssetSupported(product.coverAssets, params.payoutAsset),
+      isAssetSupported(_getSupportedCoverAssets(deprecatedCoverAssetsBitmap, product.coverAssets), params.payoutAsset),
       "Cover: Payout asset is not supported"
     );
+    require(
+      !_isDeprecatedCoverAsset(deprecatedCoverAssetsBitmap, params.paymentAsset),
+      "Cover: payment asset deprecated"
+    );
+
     require(params.period >= MIN_COVER_PERIOD, "Cover: Cover period is too short");
     require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(params.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
+    require(params.amount > 0, "Cover: amount = 0");
 
-    uint totalPremiumInNXM = _buyCover(params, _coverData.length, allocationRequests);
+    {
+      (uint totalPremiumInNXM, uint totalCoveredAmountInPayoutAsset) = _buyCover(params, _coverData.length, allocationRequests);
 
-    IPool _pool = pool();
-    uint tokenPriceInPaymentAsset = _pool.getTokenPrice(params.paymentAsset);
-    (, uint8 paymentAssetDecimals) = _pool.coverAssets(params.paymentAsset);
+      uint tokenPriceInPaymentAsset = _pool.getTokenPrice(params.paymentAsset);
 
-    uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
-    require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
+      uint premiumInPaymentAsset = totalPremiumInNXM * tokenPriceInPaymentAsset / NXM_IN_WEI;
+      require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
-    if (params.payWithNXM) {
-      retrieveNXMPayment(totalPremiumInNXM, params.commissionRatio, params.commissionDestination);
-    } else {
-      retrievePayment(
-        premiumInPaymentAsset,
-        params.paymentAsset,
-        params.commissionRatio,
-        params.commissionDestination
-      );
+      if (params.payWithNXM) {
+        retrieveNXMPayment(totalPremiumInNXM, params.commissionRatio, params.commissionDestination);
+      } else {
+        retrievePayment(
+          premiumInPaymentAsset,
+          params.paymentAsset,
+          params.commissionRatio,
+          params.commissionDestination
+        );
+      }
+
+      // Enable this when cover amount tracking is necessary
+      if (coverAmountTrackingEnabled) {
+        totalActiveCoverInAsset[params.payoutAsset] += totalCoveredAmountInPayoutAsset;
+      }
     }
 
     // push the newly created cover
@@ -202,11 +220,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint coverId = _coverData.length - 1;
     ICoverNFT(coverNFT).safeMint(params.owner, coverId);
 
-    // Enable this when cover amount tracking is necessary
-    if (coverAmountTrackingEnabled) {
-      totalActiveCoverInAsset[params.payoutAsset] += params.amount;
-    }
-
     emit CoverBought(coverId, params.productId, 0, msg.sender, params.ipfsData);
     return coverId;
   }
@@ -215,7 +228,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     BuyCoverParams memory params,
     uint coverId,
     PoolAllocationRequest[] memory allocationRequests
-  ) internal returns (uint totalPremiumInNXM) {
+  ) internal returns (uint totalPremiumInNXM, uint) {
 
     // convert to NXM amount
     uint nxmPriceInPayoutAsset = pool().getTokenPrice(params.payoutAsset);
@@ -227,7 +240,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     for (uint i = 0; i < allocationRequests.length; i++) {
 
       uint requestedCoverAmountInNXM
-        = allocationRequests[i].coverAmountInAsset * 1e18 / nxmPriceInPayoutAsset + remainderAmountInNXM;
+        = allocationRequests[i].coverAmountInAsset * NXM_IN_WEI / nxmPriceInPayoutAsset + remainderAmountInNXM;
 
       (uint coveredAmountInNXM, uint premiumInNXM, uint rewardsInNXM) = allocateCapacity(
         params,
@@ -260,8 +273,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       )
     );
 
+    uint96 totalCoveredAmountInPayoutAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / NXM_IN_WEI);
+
     _coverSegments[coverId].push(CoverSegment(
-        SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / 1e18), // amount
+        totalCoveredAmountInPayoutAsset, // amount
         uint32(block.timestamp + 1), // start
         SafeUintCast.toUint32(params.period), // period
         priceRatio,
@@ -269,7 +284,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
         globalRewardsRatio
       ));
 
-    return totalPremiumInNXM;
+    return (totalPremiumInNXM, totalCoveredAmountInPayoutAsset);
   }
 
   function allocateCapacity(
@@ -301,50 +316,64 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     uint coverId,
     BuyCoverParams memory buyCoverParams,
     PoolAllocationRequest[] memory poolAllocations
-  ) external payable onlyMember whenNotPaused {
+  ) external payable onlyMember whenNotPaused nonReentrant {
 
     CoverData memory cover = _coverData[coverId];
     uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;
     CoverSegment memory lastCoverSegment = coverSegments(coverId, lastCoverSegmentIndex);
 
     require(ICoverNFT(coverNFT).isApprovedOrOwner(msg.sender, coverId), "Cover: Only owner or approved can edit");
-    require(lastCoverSegment.start + lastCoverSegment.period > block.timestamp, "Cover: cover expired");
     require(buyCoverParams.period < MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(buyCoverParams.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
-
 
     // Override cover specific parameters
     buyCoverParams.payoutAsset = cover.payoutAsset;
     buyCoverParams.productId = cover.productId;
 
+    Product memory product = _products[buyCoverParams.productId];
+    uint32 deprecatedCoverAssetsBitmap = pool().deprecatedCoverAssetsBitmap();
+
+    // check that the payout asset is still supported (it may have been deprecated or disabled in the meantime)
+    require(
+      isAssetSupported(_getSupportedCoverAssets(deprecatedCoverAssetsBitmap, product.coverAssets), buyCoverParams.payoutAsset),
+      "Cover: Payout asset is not supported"
+    );
+    require(
+      !_isDeprecatedCoverAsset(deprecatedCoverAssetsBitmap, buyCoverParams.paymentAsset),
+      "Cover: payment asset deprecated"
+    );
+
     uint refundInCoverAsset = 0;
 
-    if (!lastCoverSegment.expired) {
+    if (lastCoverSegment.start + lastCoverSegment.period > uint32(block.timestamp)) { // not expired
       uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
 
-      PoolAllocation[] storage originalPoolAllocations = coverSegmentAllocations[coverId][lastCoverSegmentIndex];
-
       {
-        uint originalPoolAllocationsCount = originalPoolAllocations.length;
+        uint originalPoolAllocationsCount = coverSegmentAllocations[coverId][lastCoverSegmentIndex].length;
 
         // rollback previous cover
         for (uint i = 0; i < originalPoolAllocationsCount; i++) {
-          stakingPool(originalPoolAllocations[i].poolId).deallocateStake(
+
+          PoolAllocation memory allocation = coverSegmentAllocations[coverId][lastCoverSegmentIndex][i];
+
+          // TODO: pass the coverId as well
+          stakingPool(allocation.poolId).deallocateStake(
             cover.productId,
             lastCoverSegment.start,
             lastCoverSegment.period,
-            originalPoolAllocations[i].coverAmountInNXM,
-            originalPoolAllocations[i].premiumInNXM,
+            allocation.coverAmountInNXM,
+            allocation.premiumInNXM,
             lastCoverSegment.globalRewardsRatio
           );
 
-          originalPoolAllocations[i].premiumInNXM *= (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
+          coverSegmentAllocations[coverId][lastCoverSegmentIndex][i].premiumInNXM
+            *= (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
 
           // compute NXM rewards deallocated
-          uint deallocatedRewardsInNXM = originalPoolAllocations[i].premiumInNXM
+          uint deallocatedRewardsInNXM = allocation.premiumInNXM
           * remainingPeriod / lastCoverSegment.period
           * lastCoverSegment.globalRewardsRatio / REWARD_DENOMINATOR;
-          tokenController().burnStakingPoolNXMRewards(deallocatedRewardsInNXM, originalPoolAllocations[i].poolId);
+          tokenController().burnStakingPoolNXMRewards(deallocatedRewardsInNXM, allocation.poolId);
         }
       }
 
@@ -358,14 +387,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
       lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
     }
 
-    uint totalPremiumInNXM = _buyCover(buyCoverParams, coverId, poolAllocations);
+    (uint totalPremiumInNXM, uint totalCoveredAmountInPayoutAsset) = _buyCover(buyCoverParams, coverId, poolAllocations);
 
     handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset);
 
     // update total cover amount for asset by decreasing the previous amount and adding the new amount
     if (coverAmountTrackingEnabled) {
        totalActiveCoverInAsset[cover.payoutAsset] =
-        totalActiveCoverInAsset[cover.payoutAsset] - lastCoverSegment.amount + buyCoverParams.amount;
+        totalActiveCoverInAsset[cover.payoutAsset] - lastCoverSegment.amount + totalCoveredAmountInPayoutAsset;
     }
 
     emit CoverEdited(coverId, cover.productId, lastCoverSegmentIndex + 1, msg.sender);
@@ -380,7 +409,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     IPool _pool = pool();
 
     // calculate refundValue in NXM
-    uint refundInNXM = refundInCoverAsset * 1e18 / _pool.getTokenPrice(buyCoverParams.payoutAsset);
+    uint refundInNXM = refundInCoverAsset * NXM_IN_WEI / _pool.getTokenPrice(buyCoverParams.payoutAsset);
 
     if (refundInNXM >= totalPremiumInNXM) {
       // no extra charge for the user
@@ -388,10 +417,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     }
 
     uint tokenPriceInPaymentAsset = _pool.getTokenPrice(buyCoverParams.paymentAsset);
-    (, uint8 paymentAssetDecimals) = _pool.coverAssets(buyCoverParams.paymentAsset);
 
-    uint premiumInPaymentAsset = totalPremiumInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
-
+    uint premiumInPaymentAsset = totalPremiumInNXM * tokenPriceInPaymentAsset / NXM_IN_WEI;
+    
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (buyCoverParams.payWithNXM) {
@@ -405,7 +433,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     }
 
     // calculate the refund value in the payment asset
-    uint refundInPaymentAsset = refundInNXM * (tokenPriceInPaymentAsset / 10 ** paymentAssetDecimals);
+    uint refundInPaymentAsset = refundInNXM * tokenPriceInPaymentAsset / NXM_IN_WEI;
 
     // retrieve extra required payment
     retrievePayment(
@@ -416,7 +444,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     );
   }
 
-  function performPayoutBurn(
+  function performStakeBurn(
     uint coverId,
     uint segmentId,
     uint burnAmount
@@ -426,15 +454,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     address owner = coverNFTContract.ownerOf(coverId);
 
     CoverData storage cover = _coverData[coverId];
-    cover.amountPaidOut += SafeUintCast.toUint96(burnAmount);
 
     CoverSegment memory segment = coverSegments(coverId, segmentId);
     PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];
 
+    // increase amountPaidOut only *after* you read the segment
+    cover.amountPaidOut += SafeUintCast.toUint96(burnAmount);
+
     uint allocationCount = allocations.length;
     for (uint i = 0; i < allocationCount; i++) {
 
-      PoolAllocation storage allocation = allocations[i];
+      PoolAllocation memory allocation = allocations[i];
       IStakingPool _stakingPool = stakingPool(allocation.poolId);
 
       uint nxmBurned = allocation.coverAmountInNXM
@@ -591,35 +621,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     return _products.length;
   }
 
-  /*========== COVER EXPIRATION ========== */
-
-  function expireCovers(uint[] calldata coverIds) external {
-    for (uint i = 0; i < coverIds.length; i++) {
-      expireCover(coverIds[i]);
-    }
-  }
-
-  function expireCover(uint coverId) public {
-
-    require(coverAmountTrackingEnabled, "Cover expiring not enabled");
-
-
-    uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;
-    CoverSegment memory lastCoverSegment = coverSegments(coverId, lastCoverSegmentIndex);
-
-    require(!lastCoverSegment.expired, "Cover: Cover is already expired.");
-
-    if (lastCoverSegment.period + lastCoverSegment.start > block.timestamp) {
-
-      _coverSegments[coverId][lastCoverSegmentIndex].expired = true;
-
-      CoverData memory cover = _coverData[coverId];
-      totalActiveCoverInAsset[cover.payoutAsset] -= lastCoverSegment.amount;
-
-      emit CoverExpired(coverId, lastCoverSegmentIndex);
-    }
-  }
-
   /* ========== PRODUCT CONFIGURATION ========== */
 
   /**
@@ -716,27 +717,61 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon {
     activeCoverAmountCommitted = true;
   }
 
-  /* ========== HELPERS ========== */
 
-  function isAssetSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) public view override returns (bool) {
-
-    if (payoutAssetsBitMap == 0) {
-      return (1 << payoutAsset) & coverAssetsFallback > 0;
+  function expireCovers(uint[] calldata coverIds) external {
+    for (uint i = 0; i < coverIds.length; i++) {
+      expireCover(coverIds[i]);
     }
-    return (1 << payoutAsset) & payoutAssetsBitMap > 0;
   }
 
-  /* ========== CAPACITY CALCULATION ========== */
+  function expireCover(uint coverId) public {
 
-  function calculateCapacity(
-    uint staked,
-    uint capacityReductionRatio
-  ) public view returns (uint) {
-    return staked *
-    globalCapacityRatio *
-    (CAPACITY_REDUCTION_DENOMINATOR - capacityReductionRatio) /
-    GLOBAL_CAPACITY_DENOMINATOR /
-    CAPACITY_REDUCTION_DENOMINATOR;
+    require(coverAmountTrackingEnabled, "Cover expiring not enabled");
+
+
+    uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;
+    CoverSegment memory lastCoverSegment = coverSegments(coverId, lastCoverSegmentIndex);
+
+    require(!lastCoverSegment.expired, "Cover: Cover is already expired.");
+
+    require(lastCoverSegment.period + lastCoverSegment.start < block.timestamp, "Cover: not expired yet");
+
+    _coverSegments[coverId][lastCoverSegmentIndex].expired = true;
+
+    CoverData memory cover = _coverData[coverId];
+    totalActiveCoverInAsset[cover.payoutAsset] -= lastCoverSegment.amount;
+
+    emit CoverExpired(coverId, lastCoverSegmentIndex);
+
+  }
+
+  /* ========== HELPERS ========== */
+
+  function isAssetSupported(uint32 assetsBitMap, uint8 payoutAsset) public pure override returns (bool) {
+
+    return (1 << payoutAsset) & assetsBitMap > 0;
+  }
+
+  function getSupportedCoverAssets(uint productId) public view returns (uint32) {
+
+    return _getSupportedCoverAssets(pool().deprecatedCoverAssetsBitmap(), _products[productId].coverAssets);
+  }
+
+  function _getSupportedCoverAssets(
+    uint32 deprecatedCoverAssetsBitmap,
+    uint32 coverAssetsBitmapForProduct
+  ) internal view returns (uint32) {
+
+    coverAssetsBitmapForProduct = coverAssetsBitmapForProduct == 0 ? coverAssetsFallback : coverAssetsBitmapForProduct;
+    uint32 deprecatedCoverAssets = deprecatedCoverAssetsBitmap;
+    return coverAssetsBitmapForProduct & ~deprecatedCoverAssets;
+  }
+
+  function _isDeprecatedCoverAsset(
+    uint32 deprecatedCoverAssetsBitmap,
+    uint8 assetId
+  ) internal pure returns (bool) {
+    return deprecatedCoverAssetsBitmap & (1 << assetId) > 0;
   }
 
   /* ========== UTILS ========== */

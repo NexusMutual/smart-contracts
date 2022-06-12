@@ -70,7 +70,7 @@ library CoverUtilsLib {
     params.quotationData.changeCoverStatusNo(params.coverId, uint8(LegacyCoverStatus.Migrated));
 
     {
-      // mint the new cover
+      // Mint the new cover
       uint productId = params.productsV1.getNewProductId(legacyProductId);
       Product memory product = _products[productId];
       ProductType memory productType = _productTypes[product.productType];
@@ -82,7 +82,7 @@ library CoverUtilsLib {
       _coverData.push(
         CoverData(
           uint24(productId),
-          currencyCode == "ETH" ? 0 : 1, //payoutAsset
+          currencyCode == "ETH" ? 0 : 1, // payoutAsset
           0 // amountPaidOut
         )
       );

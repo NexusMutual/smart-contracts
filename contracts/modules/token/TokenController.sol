@@ -161,6 +161,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
   /// not desired. It accounts for the tokens in the user's wallet as well as tokens locked in
   /// assessment and legacy staking deposits. V2 staking deposits are excluded because they are
   /// delegated to the pool managers instead.
+  /// TODO: add stake pool balance for pool operators
   ///
   /// @param _of  The member address for which the base voting power is calculated.
   function totalBalanceOf(address _of) public override view returns (uint256 amount) {

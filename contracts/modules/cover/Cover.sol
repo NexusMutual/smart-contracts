@@ -519,10 +519,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     ProductInitializationParams[] memory productInitializationParams,
     uint depositAmount,
     uint trancheId
-  ) external returns (address stakingPoolAddress) {
-
-    emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
-
+  ) external returns (address) {
     CoverUtilsLib.PoolInitializationParams memory poolInitializationParams = CoverUtilsLib.PoolInitializationParams(
       stakingPoolCount++,
       manager,
@@ -531,7 +528,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       maxPoolFee
     );
 
-    return CoverUtilsLib.createStakingPool(
+    address stakingPoolAddress = CoverUtilsLib.createStakingPool(
       _products,
       poolInitializationParams,
       productInitializationParams,
@@ -539,6 +536,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       trancheId,
       master.getLatestAddress("PS")
     );
+
+    emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
+
+    return stakingPoolAddress;
   }
 
   function performStakeBurn(

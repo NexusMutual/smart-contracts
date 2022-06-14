@@ -92,7 +92,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     IQuotationData _quotationData,
     IProductsV1 _productsV1,
     address _coverNFT,
-    address _stakingPoolImplementation
+    address _stakingPoolImplementation,
+    address coverProxyAddress
   ) {
 
     // initialize immutable fields only
@@ -100,7 +101,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     productsV1 = _productsV1;
     coverNFT = _coverNFT;
 
-    stakingPoolProxyCodeHash = CoverUtilsLib.calculateProxyCodeHash();
+    stakingPoolProxyCodeHash = CoverUtilsLib.calculateProxyCodeHash(coverProxyAddress);
     stakingPoolImplementation = _stakingPoolImplementation;
   }
 

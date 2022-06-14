@@ -33,13 +33,12 @@ async function setup () {
   const CoverUtilsLib = await ethers.getContractFactory('CoverUtilsLib');
   const ERC20CustomDecimalsMock = await ethers.getContractFactory('ERC20CustomDecimalsMock');
 
-
   const coverUtilsLib = await CoverUtilsLib.deploy();
 
   const Cover = await ethers.getContractFactory('Cover', {
     libraries: {
-      CoverUtilsLib: coverUtilsLib.address
-    }
+      CoverUtilsLib: coverUtilsLib.address,
+    },
   });
 
   const [owner] = await ethers.getSigners();
@@ -90,7 +89,8 @@ async function setup () {
     quotationData.address,
     ethers.constants.AddressZero,
     futureCoverNFTAddress,
-    stakingPool.address
+    stakingPool.address,
+    coverAddress,
   );
   await cover.deployed();
 
@@ -169,23 +169,29 @@ async function setup () {
   }
 
   // add products
-  await cover.connect(accounts.advisoryBoardMembers[0]).addProducts([
-    {
-      productType: '0',
-      productAddress: '0x0000000000000000000000000000000000000000',
-      coverAssets: parseInt('111', 2), // ETH DAI and USDC supported
-      initialPriceRatio: '1000', // 10%
-      capacityReductionRatio: '0',
-    },
-  ], ['']);
+  await cover.connect(accounts.advisoryBoardMembers[0]).addProducts(
+    [
+      {
+        productType: '0',
+        productAddress: '0x0000000000000000000000000000000000000000',
+        coverAssets: parseInt('111', 2), // ETH DAI and USDC supported
+        initialPriceRatio: '1000', // 10%
+        capacityReductionRatio: '0',
+      },
+    ],
+    [''],
+  );
 
-  await cover.connect(accounts.advisoryBoardMembers[0]).addProductTypes([
-    {
-      descriptionIpfsHash: 'my ipfs hash',
-      claimMethod: '1',
-      gracePeriodInDays: '120',
-    },
-  ], ['']);
+  await cover.connect(accounts.advisoryBoardMembers[0]).addProductTypes(
+    [
+      {
+        descriptionIpfsHash: 'my ipfs hash',
+        claimMethod: '1',
+        gracePeriodInDays: '120',
+      },
+    ],
+    [''],
+  );
 
   const capacityFactor = '10000';
 

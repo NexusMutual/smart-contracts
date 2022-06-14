@@ -1,7 +1,6 @@
 const { accounts, artifacts, web3, ethers } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { parseEther } = ethers.utils;
-const { setupUniswap } = require('../utils');
 const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
@@ -28,7 +27,6 @@ const web3ToEthers = (x, signers) => {
 };
 
 async function setup () {
-
   // external
   const ERC20BlacklistableMock = artifacts.require('ERC20BlacklistableMock');
   const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
@@ -118,7 +116,7 @@ async function setup () {
 
   const chainlinkDAI = await ChainlinkAggregatorMock.new();
   const chainlinkSteth = await ChainlinkAggregatorMock.new();
-  await chainlinkSteth.setLatestAnswer(new BN(1e18.toString()));
+  await chainlinkSteth.setLatestAnswer(new BN((1e18).toString()));
   const priceFeedOracle = await PriceFeedOracle.new(
     [dai.address, stETH.address],
     [chainlinkDAI.address, chainlinkSteth.address],
@@ -153,7 +151,7 @@ async function setup () {
     cowSettlement.address,
     owner, // _swapController,
     master.address,
-    weth.address
+    weth.address,
   );
 
   const productsV1 = await ProductsV1.new();
@@ -328,7 +326,8 @@ async function setup () {
     qd.address,
     productsV1.address,
     stakingPool.address,
-    coverNFT.address
+    coverNFT.address,
+    cover.address,
   ]);
   //
   // {

@@ -6,32 +6,11 @@ const Decimal = require('decimal.js');
 
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 
-const { PROVIDER_URL } = process.env;
-
-const EVENTS_START_BLOCK = 0;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-const getContractFactory = async providerOrSigner => {
-  const data = await fetch(VERSION_DATA_URL).then(r => r.json());
-  const abis = data.mainnet.abis
-    .map(item => ({ ...item, abi: JSON.parse(item.contractAbi) }))
-    .reduce((data, item) => ({ ...data, [item.code]: item }), {});
-
-  return async code => {
-    const { abi, address } = abis[code];
-    return new ethers.Contract(address, abi, providerOrSigner);
-  };
-};
-
-function onlyUnique (value, index, self) {
-  return self.indexOf(value) === index;
-}
 
 const max = (a, b) => (a.gt(b) ? a : b);
 
-const DAYS_PER_YEAR = Decimal('365.25');
 const SURPLUS = 0.3; // 30%
-const COVER_PRICE_SURPLUS_MARGIN = Decimal(SURPLUS);
 
 const calculateRisk = netStakedNxm => {
   const STAKED_HIGH_RISK_COST = Decimal(100);
@@ -66,13 +45,13 @@ ${Object.keys(priceMap)
       return `
     if (
 ${priceMap[price]
-  .map((address, index) => {
-    const lineEnd = index < priceMap[price].length - 1 ? ' ||\n' : '';
-    const productId = v1ProductIds.findIndex(x => x === address);
-    return `      // ${idToProductName(productId, migratableProducts)}
+        .map((address, index) => {
+          const lineEnd = index < priceMap[price].length - 1 ? ' ||\n' : '';
+          const productId = v1ProductIds.findIndex(x => x === address);
+          return `      // ${idToProductName(productId, migratableProducts)}
       id == ${productId}${lineEnd}`;
-  })
-  .join('')}
+        })
+        .join('')}
     ) {
       return ${price}; // ${price / 1e18}%
     }`;
@@ -88,9 +67,7 @@ ${priceMap[price]
     // {V1_PRICES_HELPER_END}`;
 
 const main = async () => {
-  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL);
-  const factory = await getContractFactory(provider);
-  const products = JSON.parse(fs.readFileSync('./scripts/v2-migration-input/contracts.json'));
+  const products = JSON.parse(fs.readFileSync('./scripts/v2-migration/input/contracts.json'));
   const migratableProducts = JSON.parse(fs.readFileSync('./deploy/migratableProducts.json'));
 
   const priceToProductMap = {};
@@ -130,11 +107,13 @@ const main = async () => {
   console.log({ priceToProductMap, productToPriceMap });
 };
 
-if (!module.parent) {
-  main().catch(e => {
-    console.log('Unhandled error encountered: ', e.stack);
-    process.exit(1);
-  });
+if (require.main === module) {
+  main()
+    .then(() => process.exit(0))
+    .catch(e => {
+      console.log('Unhandled error encountered: ', e.stack);
+      process.exit(1);
+    });
 }
 
 module.exports = { main };

@@ -256,7 +256,7 @@ async function main () {
 
   // [todo] Add ipfs hashes
   await cover.addProducts(addProductsParams, Array(products.length).fill('')); // non-proxy contracts and libraries
-  console.log('Deploying TwapOracle, CowSwapOperator, PriceFeedOracle');
+  console.log('Deploying TwapOracle, SwapOperator, PriceFeedOracle');
   const uniswapV2FactoryAddress = uniswapV2Factory
     ? uniswapV2Factory.address
     : '0x0000000000000000000000000000000000000000';

@@ -1,0 +1,155 @@
+{
+  "0xF5DCe57282A584D2746FaF1593d3121Fcac444dC": {
+    "name": "Compound Sai",
+    "type": "protocol"
+  },
+  "0x5504a1d88005236147EC86C62cfb53043bD1276a": {
+    "name": "Unknown",
+    "type": "protocol"
+  },
+  "0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5": {
+    "name": "Compound ETH",
+    "type": "protocol"
+  },
+  "0x080bf510FCbF18b91105470639e9561022937712": {
+    "name": "0x v2.1",
+    "type": "protocol"
+  },
+  "0x16de59092dAE5CcF4A1E6439D611fd0653f0Bd01": {
+    "name": "iearn yDAI v1",
+    "type": "protocol"
+  },
+  "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643": {
+    "name": "Compound DAI",
+    "type": "protocol"
+  },
+  "0x2157A7894439191e520825fe9399aB8655E0f708": {
+    "name": "Uniswap Exchange Template",
+    "type": "protocol"
+  },
+  "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2": {
+    "name": "Maker Token",
+    "type": "protocol"
+  },
+  "0xb1CD6e4153B2a390Cf00A6556b0fC1458C4A5533": {
+    "name": "Bancor ETHBNT Token",
+    "type": "protocol"
+  },
+  "0x29fe7D60DdF151E5b52e5FAB4f1325da6b2bD958": {
+    "name": "Pool Together DAI",
+    "type": "protocol"
+  },
+  "0x4a57E687b9126435a9B19E4A802113e266AdeBde": {
+    "name": "Flexacoin Token",
+    "type": "protocol"
+  },
+  "0x802275979B020F0ec871c5eC1db6e412b72fF20b": {
+    "name": "Nuo",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "nuo.png"
+  },
+  "0xb7896fce748396EcFC240F5a0d3Cc92ca42D7d84": {
+    "name": "Pool Together SAI",
+    "type": "protocol"
+  },
+  "0x932773aE4B661029704e731722CF8129e1B32494": {
+    "name": "Pool Together v2",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "polygon"
+    ],
+    "logo": "pooltogether.svg"
+  },
+  "0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39": {
+    "name": "Hex Token",
+    "type": "protocol"
+  },
+  "0x2C4Bd064b998838076fa341A83d007FC2FA50957": {
+    "name": "Uniswap v1 MKR Pool",
+    "type": "protocol"
+  },
+  "0x6B175474E89094C44Da98b954EedeAC495271d0F": {
+    "name": "DAI Token",
+    "type": "protocol"
+  },
+  "0xD5D2b9e9bcd172D5fC8521AFd2C98Dd239F5b607": {
+    "name": "Unknown",
+    "type": "protocol"
+  },
+  "0x498b3BfaBE9F73db90D252bCD4Fa9548Cd0Fd981": {
+    "name": "Instadapp Registry",
+    "type": "protocol"
+  },
+  "0x448a5065aeBB8E423F0896E6c5D525C040f59af3": {
+    "name": "Maker SCD",
+    "type": "protocol"
+  },
+  "0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e": {
+    "name": "dydx Margin",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "dydx.svg"
+  },
+  "0x72338b82800400F5488eCa2B5A37270ba3B7A111": {
+    "name": "Paraswap - OLD",
+    "type": "protocol"
+  },
+  "0x10eC0D497824e342bCB0EDcE00959142aAa766dD": {
+    "name": "Idle Finance - OLD",
+    "type": "protocol"
+  },
+  "0x3dfd23A6c5E8BbcFc9581d2E864a68feb6a076d3": {
+    "name": "Aave Lending Core",
+    "type": "protocol"
+  },
+  "0x45F783CCE6B7FF23B2ab2D70e416cdb7D6055f51": {
+    "name": "Curve fi - OLD",
+    "type": "protocol"
+  },
+  "0xF92C1ad75005E6436B4EE84e88cB23Ed8A290988": {
+    "name": "Paraswap OLD",
+    "type": "protocol"
+  },
+  "0x78751B12Da02728F467A44eAc40F5cbc16Bd7934": {
+    "name": "Idle v3",
+    "type": "protocol"
+  },
+  "0x7fC77b5c7614E1533320Ea6DDc2Eb61fa00A9714": {
+    "name": "Curve BTC Pools",
+    "type": "protocol"
+  },
+  "0x0e2298E3B3390e3b945a5456fBf59eCc3f55DA16": {
+    "name": "Yam Finance v1",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "yam.png"
+  },
+  "0x26aaD4D82f6c9FA6E34D8c1067429C986A055872": {
+    "name": "CoFix",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "cofix.jpg"
+  },
+  "0xedfC81Bf63527337cD2193925f9C0cF2D537AccA": {
+    "name": "Cover Protocol v1",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "bsc",
+      "xdai",
+      "fantom",
+      "polygon"
+    ],
+    "logo": "cover.jpg"
+  }
+}

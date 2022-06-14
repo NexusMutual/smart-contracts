@@ -32,7 +32,7 @@ const main = async (coverAddress, abMemberSigner) => {
 
   // Add product types:
   // Protocol
-  const protocolAgreementBuffer = fs.readFileSync('./scripts/v2-migration-input/ProtocolCoverv1.0.pdf');
+  const protocolAgreementBuffer = fs.readFileSync('./scripts/v2-migration/input/ProtocolCoverv1.0.pdf');
   const protocolAgreement = await ipfs.add(protocolAgreementBuffer);
 
   const protocolCover = await ipfs.add(
@@ -48,7 +48,7 @@ const main = async (coverAddress, abMemberSigner) => {
   ipfs.pin.add(protocolCoverHash);
 
   // Custodian
-  const custodianAgreementBuffer = fs.readFileSync('./scripts/v2-migration-input/CustodyCoverWordingv1.0.pdf');
+  const custodianAgreementBuffer = fs.readFileSync('./scripts/v2-migration/input/CustodyCoverWordingv1.0.pdf');
   const custodianAgreement = await ipfs.add(custodianAgreementBuffer);
   const custodianCover = await ipfs.add(
     Buffer.from(
@@ -63,7 +63,7 @@ const main = async (coverAddress, abMemberSigner) => {
   ipfs.pin.add(custodianCoverHash);
 
   // Yield Token
-  const yieldTokenAgreementBuffer = fs.readFileSync('./scripts/v2-migration-input/YieldTokenCoverv1.0.pdf');
+  const yieldTokenAgreementBuffer = fs.readFileSync('./scripts/v2-migration/input/YieldTokenCoverv1.0.pdf');
   const yieldTokenAgreement = await ipfs.add(yieldTokenAgreementBuffer);
   const yieldTokenCover = await ipfs.add(
     Buffer.from(
@@ -132,11 +132,11 @@ const main = async (coverAddress, abMemberSigner) => {
   }
 };
 
-if (!module.parent) {
+if (require.main === module) {
   main(process.argv[1]).catch(e => {
     console.log('Unhandled error encountered: ', e.stack);
     process.exit(1);
   });
 }
 
-module.exports = { main };
+module.exports = main;

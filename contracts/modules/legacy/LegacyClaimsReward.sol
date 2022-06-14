@@ -47,7 +47,7 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
   }
 
   function transferRewards() override external {
-    // {REWARD_TRANSFERS_HELPER_BEGIN}
+    // REWARD_TRANSFERS_HELPER_BEGIN
     tk.transfer(0x8D38C81B7bE9Dbe7440D66B92d4EF529806baAE7, 35760493284880538281);
     tk.transfer(0x87B2a7559d85f4653f13E6546A14189cd5455d45, 55352901017354677134);
     tk.transfer(0xb7FeE4f0e877A348481355FFf757D8A079A2A48b, 833640762734095);
@@ -83,7 +83,7 @@ contract LegacyClaimsReward is ILegacyClaimsReward, LegacyMasterAware {
     tk.transfer(0xf76e252e3c40EEF8A90a4fcD1a34ee8209115074, 210504943489815226);
     tk.transfer(0x2255B4523939045C6F4C42fD0b6d945C52bE98A8, 102063437327263615);
     tk.transfer(0xF7e5Ac6564105980d1c1ECd7a3b4C5a8bAe9982E, 446637592594148042);
-    // {REWARD_TRANSFERS_HELPER_END}
+    // REWARD_TRANSFERS_HELPER_END
 
     uint remainderNMX = tk.balanceOf(address(this));
     tk.approve(address(tc), remainderNMX);

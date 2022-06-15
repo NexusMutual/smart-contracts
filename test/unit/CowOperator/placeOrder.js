@@ -1,7 +1,7 @@
 const { contracts, makeWrongValue } = require('./setup');
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { domain: makeDomain, computeOrderUid } = require('@gnosis.pm/gp-v2-contracts');
+const { domain: makeDomain, computeOrderUid } = require('@cowprotocol/contracts');
 const { setEtherBalance, setNextBlockTime } = require('../../utils/evm');
 const { hex } = require('../utils').helpers;
 

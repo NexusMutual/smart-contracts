@@ -1,8 +1,7 @@
-/* eslint-disable no-unused-expressions */
 const { contracts, makeWrongValue } = require('./setup');
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { domain: makeDomain, computeOrderUid } = require('@gnosis.pm/gp-v2-contracts');
+const { domain: makeDomain, computeOrderUid } = require('@cowprotocol/contracts');
 const { setEtherBalance, setNextBlockTime, revertToSnapshot, takeSnapshot } = require('../../utils/evm');
 const { time } = require('@openzeppelin/test-helpers');
 const _ = require('lodash');

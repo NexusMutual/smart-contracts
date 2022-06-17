@@ -162,7 +162,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   function buyCover(
     BuyCoverParams memory params,
     PoolAllocationRequest[] memory allocationRequests
-  ) external payable override onlyMember whenNotPaused nonReentrant returns (uint /*coverId*/) {
+  ) external payable override onlyMember nonReentrant whenNotPaused returns (uint /*coverId*/) {
 
     require(_products.length > params.productId, "Cover: Product not found");
 
@@ -314,7 +314,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint coverId,
     BuyCoverParams memory buyCoverParams,
     PoolAllocationRequest[] memory poolAllocations
-  ) external payable onlyMember whenNotPaused nonReentrant {
+  ) external payable onlyMember nonReentrant whenNotPaused {
 
     CoverData memory cover = _coverData[coverId];
     uint lastCoverSegmentIndex = _coverSegments[coverId].length - 1;
@@ -512,6 +512,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     }
   }
 
+
   function createStakingPool(
     address manager,
     bool isPrivatePool,
@@ -549,33 +550,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint burnAmount
   ) external onlyInternal override returns (address /* owner */) {
 
-    ICoverNFT coverNFTContract = ICoverNFT(coverNFT);
-    address owner = coverNFTContract.ownerOf(coverId);
-
-    CoverData storage cover = _coverData[coverId];
-    CoverSegment memory segment = coverSegments(coverId, segmentId);
-    PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];
-
-    // increase amountPaidOut only *after* you read the segment
-    cover.amountPaidOut += SafeUintCast.toUint96(burnAmount);
-
-    uint allocationCount = allocations.length;
-    for (uint i = 0; i < allocationCount; i++) {
-
-      PoolAllocation memory allocation = allocations[i];
-      IStakingPool _stakingPool = stakingPool(allocation.poolId);
-
-      uint nxmBurned = allocation.coverAmountInNXM
-      * burnAmount / segment.amount
-      * GLOBAL_CAPACITY_DENOMINATOR / globalCapacityRatio;
-
-      _stakingPool.burnStake(cover.productId, segment.start, segment.period, nxmBurned);
-
-      uint payoutAmountInNXM = allocation.coverAmountInNXM * burnAmount / segment.amount;
-      allocation.coverAmountInNXM -= SafeUintCast.toUint96(payoutAmountInNXM);
-    }
-
-    return owner;
+    return CoverUtilsLib.performStakeBurn(
+      coverId,
+      burnAmount,
+      ICoverNFT(coverNFT),
+      _coverData[coverId],
+      coverSegments(coverId, segmentId),
+      coverSegmentAllocations[coverId][segmentId],
+      stakingPoolProxyCodeHash,
+      globalCapacityRatio
+    );
   }
 
   /* ========== VIEWS ========== */

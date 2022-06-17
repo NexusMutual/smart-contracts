@@ -13,6 +13,8 @@ import "./MinimalBeaconProxy.sol";
 
 library CoverUtilsLib {
 
+  uint private constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
+
   struct MigrateParams {
     uint coverId;
     address fromOwner;
@@ -159,5 +161,37 @@ library CoverUtilsLib {
     );
     // cast last 20 bytes of hash to address
     return IStakingPool(address(uint160(uint(hash))));
+  }
+
+  function performStakeBurn(
+    uint coverId,
+    uint burnAmount,
+    ICoverNFT coverNFT,
+    CoverData storage cover,
+    CoverSegment memory segment,
+    PoolAllocation[] storage allocations,
+    bytes32 stakingPoolProxyCodeHash,
+    uint globalCapacityRatio
+  ) external returns (address /* owner */) {
+
+    // increase amountPaidOut only *after* you read the segment
+    cover.amountPaidOut += SafeUintCast.toUint96(burnAmount);
+
+    uint allocationCount = allocations.length;
+    for (uint i = 0; i < allocationCount; i++) {
+
+      PoolAllocation memory allocation = allocations[i];
+
+      uint nxmBurned = allocation.coverAmountInNXM
+      * burnAmount / segment.amount
+      * GLOBAL_CAPACITY_DENOMINATOR / globalCapacityRatio;
+
+      stakingPool(i, stakingPoolProxyCodeHash).burnStake(cover.productId, segment.start, segment.period, nxmBurned);
+
+      uint payoutAmountInNXM = allocation.coverAmountInNXM * burnAmount / segment.amount;
+      allocations[i].coverAmountInNXM -= SafeUintCast.toUint96(payoutAmountInNXM);
+    }
+
+    return coverNFT.ownerOf(coverId);
   }
 }

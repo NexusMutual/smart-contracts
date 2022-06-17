@@ -95,7 +95,7 @@ interface IStakingPool is IERC721 {
 
   function operatorTransfer(address from, address to, uint[] calldata tokenIds) external;
 
-  function updateTranches() external;
+  function updateTranches(bool updateUntilCurrentTimestamp) external;
 
   function allocateStake(
     CoverRequest calldata request

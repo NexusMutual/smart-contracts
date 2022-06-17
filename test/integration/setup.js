@@ -79,6 +79,9 @@ async function setup () {
   const IndividualClaims = artifacts.require('IndividualClaims');
   const Assessment = artifacts.require('Assessment');
 
+  const signers = await ethers.getSigners();
+  const ethersAccounts = getAccounts(signers);
+
   // external
   const WETH9 = artifacts.require('WETH9');
   const CSMockSettlement = artifacts.require('CSMockSettlement');
@@ -212,6 +215,9 @@ async function setup () {
     [ether('10000')], // initial tokens
     [owner], // advisory board members
   );
+
+  await mr.setKycAuthAddress(ethersAccounts.defaultSender.address);
+
 
   await pc.initialize(mr.address);
 
@@ -432,25 +438,41 @@ async function setup () {
     ethToDaiRate,
   };
 
+
   this.contractType = contractType;
 
-  const kycAuthSigner = '';
-  await enrollMember(this.contracts, members, kycAuthSigner);
-
-  const signers = await ethers.getSigners();
   this.withEthers = web3ToEthers(this, signers);
 
+  await enrollMember(this.contracts, ethersAccounts.members, ethersAccounts.defaultSender);
+
+  const DEFAULT_POOL_FEE = '5'
+
+  const DEFAULT_PRODUCT_INITIALIZATION = [
+    {
+      productId: 0,
+      weight: 100,
+      initialPrice: 1000,
+      targetPrice: 1000
+    }
+  ]
+
   for (let i = 0; i < 3; i++) {
-    const tx = await this.withEthers.contracts.cover.createStakingPool(stakingPoolManagers[i]);
+    const tx = await this.withEthers.contracts.cover.createStakingPool(
+      stakingPoolManagers[i],
+      false, // isPrivatePool,
+      DEFAULT_POOL_FEE, // initialPoolFee
+      DEFAULT_POOL_FEE, // maxPoolFee,
+      DEFAULT_PRODUCT_INITIALIZATION,
+      '0', // depositAmount,
+      '0', // trancheId
+    );
     const receipt = await tx.wait();
     const { stakingPoolAddress } = receipt.events[0].args;
     const stakingPoolInstance = await IntegrationMockStakingPool.at(stakingPoolAddress);
-    await stakingPoolInstance.setPrice(0, 100);
-    await stakingPoolInstance.setPrice(1, 100);
-    await stakingPoolInstance.setPrice(2, 100);
-    await stakingPoolInstance.setPrice(3, 100);
+
     this.contracts['stakingPool' + i] = stakingPoolInstance;
   }
+
 
   this.withEthers = web3ToEthers(this, signers);
 }

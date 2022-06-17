@@ -121,7 +121,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
     }
   }
 
-  function updateTranches() external {
+  function updateTranches(bool) external {
     totalSupply = totalSupply;
     revert("CoverMockStakingPool: not callable");
   }

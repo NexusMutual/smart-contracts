@@ -22,7 +22,7 @@ module.exports = {
 
   mocha: {
     exit: true,
-    bail: false,
+    bail: true,
     recursive: false,
     timeout: 0,
   },

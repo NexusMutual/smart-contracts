@@ -35,7 +35,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAware {
   // pending actions processing
   event PendingActionsProcessed(bool finished);
 
-  // used for logging products not listed in ProductsV1.sol when migrating  to a new pool
+  // used for logging products not listed in ProductsV1.sol when migrating to a new pool
   event ProductNotFound(address oldProductId);
 
   ICover public immutable cover;

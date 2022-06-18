@@ -14,7 +14,6 @@ import "../../external/uniswap/IUniswapV2Router02.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/ITwapOracle.sol";
-import "hardhat/console.sol";
 
 contract SwapOperator is ReentrancyGuard {
   using SafeERC20 for IERC20;

@@ -170,7 +170,11 @@ async function setup () {
   const as = await deployProxy(DisposableAssessment, []);
   const cl = await deployProxy(CoverMigrator, []);
 
-  const cover = await deployProxy(DisposableCover, []);
+  const coverUtilsLib = await CoverUtilsLib.new();
+  await Cover.link(coverUtilsLib);
+
+  let cover = await deployProxy(DisposableCover, []);
+
   const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
   const stakingPool = await IntegrationMockStakingPool.new(tk.address, cover.address, tc.address, mr.address);
 
@@ -328,14 +332,15 @@ async function setup () {
   await upgradeProxy(yt.address, YieldTokenIncidents, [tk.address, coverNFT.address]);
   await upgradeProxy(as.address, Assessment, [master.address]);
 
-  const coverUtilsLib = await CoverUtilsLib.new();
-  await Cover.link(coverUtilsLib);
+
   await upgradeProxy(cover.address, Cover, [
     qd.address,
     productsV1.address,
-    stakingPool.address,
-    coverNFT.address
+    coverNFT.address,
+    stakingPool.address
   ]);
+
+  cover = await Cover.at(cover.address);
   //
   // {
   //   const params = {}
@@ -467,7 +472,7 @@ async function setup () {
       '0', // trancheId
     );
     const receipt = await tx.wait();
-    const { stakingPoolAddress } = receipt.events[0].args;
+    const stakingPoolAddress = await cover.stakingPool(i);
     const stakingPoolInstance = await IntegrationMockStakingPool.at(stakingPoolAddress);
 
     this.contracts['stakingPool' + i] = stakingPoolInstance;

@@ -13,4 +13,7 @@ describe('MemberRoles unit tests', function () {
   });
 
   require('./signUp');
+  require('./switchMembership');
+  require('./withdrawMembership');
+  require('./switchMembershipAndAssets');
 });

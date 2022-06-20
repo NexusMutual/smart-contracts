@@ -54,18 +54,18 @@ contract NXMTokenMock is INXMToken, ERC20 {
   }
 
   function addToWhiteList(address /*_member*/) external returns (bool) {
-    revert("Unsupported");
+    // noop
   }
 
   function removeFromWhiteList(address /*_member*/) external returns (bool) {
-    revert("Unsupported");
+    // noop
   }
 
   function changeOperator(address /*_newOperator*/) external returns (bool) {
-    revert("Unsupported");
+    // noop
   }
 
   function lockForMemberVote(address /*_of*/, uint /*_days*/) external {
-    revert("Unsupported");
+    // noop
   }
 }

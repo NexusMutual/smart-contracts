@@ -15,8 +15,7 @@ contract MCRMockCover {
     sumAssuredByAsset[asset] = amount;
   }
 
-  function activeCoverAmountCommitted() public view returns (bool) {
-    block.timestamp;
+  function activeCoverAmountCommitted() public pure returns (bool) {
     return true;
   }
 }

@@ -7,6 +7,10 @@ pragma solidity ^0.8.9;
  */
 library Math {
 
+  function divRound(uint a, uint b) internal pure returns (uint) {
+    return (a + b / 2) / b;
+  }
+
   function min(uint a, uint b) internal pure returns (uint) {
     return a < b ? a : b;
   }

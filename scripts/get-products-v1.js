@@ -1,8 +1,8 @@
 require('dotenv').config();
 const fs = require('fs');
 
-const outpputDir = './deploy/';
-const getProductsContract = x => `// SPDX-License-Identifier: GPL-3.0-only
+const outputDir = `${__dirname}/v2-migration/output/`;
+const getProductsContract = products => `// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity >=0.5.0;
 
@@ -10,33 +10,31 @@ import "../../interfaces/IProductsV1.sol";
 
 contract ProductsV1 is IProductsV1 {
   function getNewProductId(address legacyProductId) external pure override returns (uint) {
-    ${x.join('')}
+    ${products.map(p => `
+    // Product: ${p.name}
+    // Type: ${p.type}
+    if (legacyProductId == ${p.legacyProductId}) {
+      return ${p.productId};
+    }\n`).join('')}
     revert("Invalid product!");
   }
 }
 `;
 
 const main = async () => {
-  const products = JSON.parse(fs.readFileSync('./scripts/v2-migration-input/contracts.json'));
+  const products = require(`${__dirname}/v2-migration/input/contracts.json`);
   const deprecatedV1Products = Object.keys(products)
     .filter(k => products[k].deprecated)
     .map((k, i) => ({ ...products[k], productId: i, legacyProductId: k }));
+
   const migratable = Object.keys(products)
     .filter(k => !products[k].deprecated)
     .map((k, i) => ({ ...products[k], productId: i, legacyProductId: k }));
-  const ProductsV1 = getProductsContract(
-    migratable.map(
-      x => `
-    // Product: ${x.name}
-    // Type: ${x.type}
-    if (legacyProductId == ${x.legacyProductId}) {
-      return ${x.productId};
-    }
-    `,
-    ),
-  );
+
+  const ProductsV1 = getProductsContract(migratable);
+
   fs.writeFileSync(
-    outpputDir + 'migratableProducts.json',
+    outputDir + 'migratableProducts.json',
     JSON.stringify(
       migratable.map(({ name, type, supportedChains, logo, underlyingToken, coveredToken }) => ({
         name,
@@ -51,8 +49,9 @@ const main = async () => {
     ),
     'utf8',
   );
+
   fs.writeFileSync(
-    outpputDir + 'v1ProductIds.json',
+    outputDir + 'v1ProductIds.json',
     JSON.stringify(
       migratable.map(x => x.legacyProductId),
       null,
@@ -60,8 +59,9 @@ const main = async () => {
     ),
     'utf8',
   );
+
   fs.writeFileSync(
-    outpputDir + 'deprecatedV1Products.json',
+    outputDir + 'deprecatedV1Products.json',
     JSON.stringify(
       deprecatedV1Products
         .map(({ name, type, supportedChains, logo, legacyProductId }) => ({
@@ -85,14 +85,14 @@ const main = async () => {
     ),
     'utf8',
   );
-  fs.writeFileSync('./contracts/modules/cover/ProductsV1.sol', ProductsV1, 'utf8');
+  fs.writeFileSync(`${__dirname}/../contracts/modules/cover/ProductsV1.sol`, ProductsV1, 'utf8');
 };
 
-if (!module.parent) {
+if (require.main === module) {
   main().catch(e => {
     console.log('Unhandled error encountered: ', e.stack);
     process.exit(1);
   });
 }
 
-module.exports = { main };
+module.exports = main;

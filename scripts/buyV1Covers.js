@@ -16,8 +16,10 @@ async function main () {
   const [owner] = await ethers.getSigners();
   const quotationData = await ethers.getContractAt(
     'TestnetQuotationData',
-    '0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0',
+    '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853',
   );
+
+  const coverNft = await ethers.getContractAt('CoverNFT', '0x0B306BF915C4d645ff596e518fAf3F9669b97016');
 
   const now = Math.floor(Date.now() / 1000);
   const ETH = zeroPadRight(Buffer.from('ETH'), 4);

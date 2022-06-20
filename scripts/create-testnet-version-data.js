@@ -57,9 +57,9 @@ fs.writeFileSync(`${deployPath}/${network}-addresses.json`, JSON.stringify(addre
 const artifactPathOfContractCode = {
   // LCD: 'modules/claims/LegacyClaimsData.sol/LegacyClaimsData.json',
   // LCL: 'modules/claims/LegacyClaims.sol/LegacyClaims.json',
-  CR: 'modules/claims/LegacyClaimsReward.sol/LegacyClaimsReward.json',
+  CR: 'modules/legacy/LegacyClaimsReward.sol/LegacyClaimsReward.json',
   // LCP: 'modules/claims/LegacyClaimProofs.sol/LegacyClaimProofs.json',
-  CL: 'modules/v2/CoverMigrator.sol/CoverMigrator.json',
+  CL: 'modules/cover/CoverMigrator.sol/CoverMigrator.json',
   GV: 'modules/governance/Governance.sol/Governance.json',
   MC: 'modules/capital/MCR.sol/MCR.json',
   MR: 'modules/governance/MemberRoles.sol/MemberRoles.json',
@@ -71,14 +71,14 @@ const artifactPathOfContractCode = {
   // QT: 'modules/cover/Quotation.sol/Quotation.json',
   TC: 'modules/token/TokenController.sol/TokenController.json',
   // TD: 'modules/token/TokenData.sol/TokenData.json',
-  PS: 'modules/staking/PooledStaking.sol/PooledStaking.json',
-  GW: 'modules/cover/Gateway.sol/Gateway.json',
-  SO: 'modules/capital/SwapOperator.sol/SwapOperator.json',
+  PS: 'modules/legacy/LegacyPooledStaking.sol/LegacyPooledStaking.json',
+  GW: 'modules/legacy/LegacyGateway.sol/LegacyGateway.json',
+  SO: 'modules/capital/CowSwapOperator.sol/CowSwapOperator.json',
   CO: 'modules/cover/Cover.sol/Cover.json',
-  IC: 'modules/v2/IndividualClaims.sol/IndividualClaims.json',
-  YT: 'modules/v2/YieldTokenIncidents.sol/YieldTokenIncidents.json',
-  AS: 'modules/v2/Assessment.sol/Assessment.json',
-  SP: 'modules/v2/StakingPool.sol/StakingPool.json',
+  IC: 'modules/assessment/IndividualClaims.sol/IndividualClaims.json',
+  YT: 'modules/assessment/YieldTokenIncidents.sol/YieldTokenIncidents.json',
+  AS: 'modules/assessment/Assessment.sol/Assessment.json',
+  SP: 'modules/staking/StakingPool.sol/StakingPool.json',
 };
 
 const contractNameByCode = {
@@ -98,7 +98,7 @@ const contractNameByCode = {
   TD: 'TokenData',
   PS: 'PooledStaking',
   GW: 'Gateway',
-  SO: 'SwapOperator',
+  SO: 'CowSwapOperator',
   CO: 'Cover',
   IC: 'IndividualClaims',
   YT: 'YieldTokenIncidents',
@@ -125,6 +125,7 @@ for (const contract of versionDataTemplate) {
       `${deployPath}/${network}/${contractNameByCode[contract.code]}.json`,
       JSON.stringify(contractAbi, null, 2),
     );
+    console.log({ code: contract.code });
     const address = addresses[contractNameByCode[contract.code]].toLowerCase();
     versionData.push({ ...contract, address, contractAbi });
   }

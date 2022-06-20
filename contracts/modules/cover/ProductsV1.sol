@@ -6,7 +6,7 @@ import "../../interfaces/IProductsV1.sol";
 
 contract ProductsV1 is IProductsV1 {
   function getNewProductId(address legacyProductId) external pure override returns (uint) {
-    
+
     // Product: bZx v1
     // Type: protocol
     if (legacyProductId == 0x8B3d70d628Ebd30D4A2ea82DB95bA2e906c71633) {

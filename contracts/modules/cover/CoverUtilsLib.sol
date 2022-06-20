@@ -9,7 +9,6 @@ import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./MinimalBeaconProxy.sol";
-import "hardhat/console.sol";
 
 
 library CoverUtilsLib {
@@ -73,17 +72,6 @@ library CoverUtilsLib {
     {
       // Mint the new cover
       uint productId = params.productsV1.getNewProductId(legacyProductId);
-      console.log("productId %d", productId);
-      for (uint i = 0; i < 119; i++) {
-        console.log("product index %d", i);
-        Product memory product = _products[i];
-
-        console.log("product productType %d", product.productType);
-        console.log("product productAddress %s", product.productAddress);
-        console.log("product coverAssets %d", product.coverAssets);
-        console.log("product initialPriceRatio %d", product.initialPriceRatio);
-        console.log("product capacityReductionRatio %d", product.capacityReductionRatio);
-      }
       Product memory product = _products[productId];
       ProductType memory productType = _productTypes[product.productType];
       require(

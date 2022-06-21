@@ -102,12 +102,9 @@ interface IStakingPool is IERC721 {
   ) external returns (uint allocatedAmount, uint premium, uint rewardsInNXM);
 
   function deallocateStake(
-    uint productId,
-    uint start,
-    uint period,
-    uint amount,
-    uint premium,
-    uint globalRewardsRatio
+    CoverRequest memory request,
+    uint coverStartTime,
+    uint premium
   ) external;
 
   function burnStake(uint productId, uint start, uint period, uint amount) external;

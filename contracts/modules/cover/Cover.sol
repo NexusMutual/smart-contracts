@@ -341,48 +341,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       "Cover: payment asset deprecated"
     );
 
-    uint refundInCoverAsset = 0;
+    uint refundInCoverAsset;
 
-    if (lastCoverSegment.start + lastCoverSegment.period > uint32(block.timestamp)) { // not expired
-      uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
-
-      {
-        uint originalPoolAllocationsCount = coverSegmentAllocations[coverId][lastCoverSegmentIndex].length;
-
-        // Rollback previous cover
-        for (uint i = 0; i < originalPoolAllocationsCount; i++) {
-
-          PoolAllocation memory allocation = coverSegmentAllocations[coverId][lastCoverSegmentIndex][i];
-
-          stakingPool(allocation.poolId).deallocateStake(
-            cover.productId,
-            lastCoverSegment.start,
-            lastCoverSegment.period,
-            allocation.coverAmountInNXM,
-            allocation.premiumInNXM,
-            lastCoverSegment.globalRewardsRatio
-          );
-
-          coverSegmentAllocations[coverId][lastCoverSegmentIndex][i].premiumInNXM
-            *= (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
-
-          // Compute NXM rewards to be rolled back
-          uint deallocatedRewardsInNXM = allocation.premiumInNXM
-            * remainingPeriod / lastCoverSegment.period
-            * lastCoverSegment.globalRewardsRatio / REWARD_DENOMINATOR;
-
-          tokenController().burnStakingPoolNXMRewards(deallocatedRewardsInNXM, allocation.poolId);
-        }
-      }
-
-      refundInCoverAsset = lastCoverSegment.priceRatio
-        * lastCoverSegment.amount
-        / PRICE_DENOMINATOR
-        * remainingPeriod
-        / MAX_COVER_PERIOD;
-
-      // Edit the last cover segment so it ends at the current block
-      lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
+    // if the last segment is not expired
+    if (lastCoverSegment.start + lastCoverSegment.period > uint32(block.timestamp)) {
+      refundInCoverAsset = deallocateCapacity(
+        coverId,
+        lastCoverSegmentIndex,
+        product,
+        cover,
+        lastCoverSegment
+      );
     }
 
     (uint totalPremiumInNXM, uint totalCoveredAmountInPayoutAsset) = _buyCover(buyCoverParams, coverId, poolAllocations);
@@ -396,6 +365,63 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     }
 
     emit CoverEdited(coverId, cover.productId, lastCoverSegmentIndex + 1, msg.sender);
+  }
+
+  function deallocateCapacity(
+    uint coverId,
+    uint lastCoverSegmentIndex,
+    Product memory product,
+    CoverData memory cover,
+    CoverSegment memory lastCoverSegment
+  ) internal returns (uint refundInCoverAsset) {
+
+    uint32 remainingPeriod = lastCoverSegment.start + lastCoverSegment.period - uint32(block.timestamp);
+    {
+      uint originalPoolAllocationsCount = coverSegmentAllocations[coverId][lastCoverSegmentIndex].length;
+
+      // Rollback previous cover
+      for (uint i = 0; i < originalPoolAllocationsCount; i++) {
+
+        PoolAllocation memory allocation = coverSegmentAllocations[coverId][lastCoverSegmentIndex][i];
+        CoverRequest memory request = CoverRequest(
+          coverId,
+          cover.productId,
+          allocation.coverAmountInNXM,
+          lastCoverSegment.period,
+          _productTypes[product.productType].gracePeriodInDays * 1 days,
+          // TODO globalCapacityRatio and capacityReductionRatio need to be stored at cover buy
+          globalCapacityRatio,
+          product.capacityReductionRatio,
+          lastCoverSegment.globalRewardsRatio
+        );
+
+        stakingPool(allocation.poolId).deallocateStake(
+          request,
+          lastCoverSegment.start,
+          allocation.premiumInNXM
+        );
+
+        coverSegmentAllocations[coverId][lastCoverSegmentIndex][i].premiumInNXM
+          *= (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
+
+        // Compute NXM rewards to be rolled back
+        uint deallocatedRewardsInNXM = allocation.premiumInNXM
+          * remainingPeriod / lastCoverSegment.period
+          * lastCoverSegment.globalRewardsRatio / REWARD_DENOMINATOR;
+
+        tokenController().burnStakingPoolNXMRewards(deallocatedRewardsInNXM, allocation.poolId);
+      }
+    }
+
+    refundInCoverAsset = lastCoverSegment.priceRatio
+      * lastCoverSegment.amount
+      / PRICE_DENOMINATOR
+      * remainingPeriod
+      / MAX_COVER_PERIOD;
+
+    // TODO: write to storage instead of memory
+    // Edit the last cover segment so it ends at the current block
+    lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
   }
 
   function handlePaymentAndRefund(

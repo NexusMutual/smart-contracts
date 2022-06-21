@@ -637,6 +637,90 @@ contract StakingPool is IStakingPool, ERC721 {
     return (allocatedAmount, premium, rewards);
   }
 
+  function deallocateStake(
+    CoverRequest memory request,
+    uint coverStartTime,
+    uint premium
+  ) external onlyCoverContract {
+
+    updateTranches(true);
+
+    uint gracePeriodExpiration = coverStartTime + request.period + request.gracePeriod;
+    uint firstTrancheIdToUse = gracePeriodExpiration / TRANCHE_DURATION;
+    uint trancheCount = (coverStartTime / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES) - firstTrancheIdToUse + 1;
+
+    (
+    uint[] memory trancheAllocatedCapacities,
+    /*uint totalAllocatedCapacity*/
+    ) = getAllocatedCapacities(
+      request.productId,
+      firstTrancheIdToUse,
+      trancheCount
+    );
+
+    uint packedCoverTrancheAllocation = coverTrancheAllocations[request.coverId];
+
+    {
+      uint[] memory coverTrancheAllocation = new uint[](trancheCount);
+
+      for (uint i = 0; i < trancheCount; i++) {
+        uint amountPerTranche = uint32(packedCoverTrancheAllocation >> (i * 8));
+        trancheAllocatedCapacities[i] -= amountPerTranche;
+        coverTrancheAllocation[i] = amountPerTranche;
+      }
+
+      updateAllocatedCapacities(
+        request.productId,
+        firstTrancheIdToUse,
+        trancheCount,
+        trancheAllocatedCapacities
+      );
+
+      updateExpiringCoverAmounts(
+        request.coverId,
+        request.productId,
+        firstTrancheIdToUse,
+        trancheCount,
+        gracePeriodExpiration / BUCKET_DURATION + 1,
+        coverTrancheAllocation,
+        false // isAllocation
+      );
+    }
+
+    {
+      require(request.rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
+
+      uint rewards = premium * request.rewardRatio / REWARDS_DENOMINATOR;
+      uint expireAtBucket = Math.divCeil(coverStartTime + request.period, BUCKET_DURATION);
+      uint _rewardPerSecond = rewards / (expireAtBucket * BUCKET_DURATION - coverStartTime);
+
+      // 1 SLOAD + 1 SSTORE
+      rewardBuckets[expireAtBucket].rewardPerSecondCut -= _rewardPerSecond;
+    }
+  }
+
+  function calculatePremium(
+    uint productId,
+    uint allocatedStake,
+    uint usableStake,
+    uint newAllocation,
+    uint period
+  ) public returns (uint) {
+
+    uint premium;
+
+    // silence compiler warnings
+    allocatedStake;
+    usableStake;
+    newAllocation;
+    period;
+    block.timestamp;
+    uint96 nextPrice = 0;
+    products[productId].lastPrice = nextPrice;
+
+    return premium;
+  }
+
   function getStoredActiveCoverAmounts(
     uint productId,
     uint firstTrancheId,
@@ -1028,88 +1112,6 @@ contract StakingPool is IStakingPool, ERC721 {
     // Update global shares supply
     stakeSharesSupply += newStakeShares;
     rewardsSharesSupply += newRewardsShares;
-  }
-
-  function calculatePremium(
-    uint productId,
-    uint allocatedStake,
-    uint usableStake,
-    uint newAllocation,
-    uint period
-  ) public returns (uint) {
-
-    // silence compiler warnings
-    allocatedStake;
-    usableStake;
-    newAllocation;
-    period;
-    block.timestamp;
-    uint96 nextPrice = 0;
-    products[productId].lastPrice = nextPrice;
-
-    return 0;
-  }
-
-  function deallocateStake(
-    CoverRequest memory request,
-    uint coverStartTime,
-    uint premium
-  ) external onlyCoverContract {
-
-    updateTranches(true);
-
-    uint gracePeriodExpiration = coverStartTime + request.period + request.gracePeriod;
-    uint firstTrancheIdToUse = gracePeriodExpiration / TRANCHE_DURATION;
-    uint trancheCount = (coverStartTime / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES) - firstTrancheIdToUse + 1;
-
-    (
-      uint[] memory trancheAllocatedCapacities,
-      /*uint totalAllocatedCapacity*/
-    ) = getAllocatedCapacities(
-      request.productId,
-      firstTrancheIdToUse,
-      trancheCount
-    );
-
-    uint packedCoverTrancheAllocation = coverTrancheAllocations[request.coverId];
-
-    {
-      uint[] memory coverTrancheAllocation = new uint[](trancheCount);
-
-      for (uint i = 0; i < trancheCount; i++) {
-        uint amountPerTranche = uint32(packedCoverTrancheAllocation >> (i * 8));
-        trancheAllocatedCapacities[i] -= amountPerTranche;
-        coverTrancheAllocation[i] = amountPerTranche;
-      }
-
-      updateAllocatedCapacities(
-        request.productId,
-        firstTrancheIdToUse,
-        trancheCount,
-        trancheAllocatedCapacities
-      );
-
-      updateExpiringCoverAmounts(
-        request.coverId,
-        request.productId,
-        firstTrancheIdToUse,
-        trancheCount,
-        gracePeriodExpiration / BUCKET_DURATION + 1,
-        coverTrancheAllocation,
-        false // isAllocation
-      );
-    }
-
-    {
-      require(request.rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
-
-      uint rewards = premium * request.rewardRatio / REWARDS_DENOMINATOR;
-      uint expireAtBucket = Math.divCeil(coverStartTime + request.period, BUCKET_DURATION);
-      uint _rewardPerSecond = rewards / (expireAtBucket * BUCKET_DURATION - coverStartTime);
-
-      // 1 SLOAD + 1 SSTORE
-      rewardBuckets[expireAtBucket].rewardPerSecondCut -= _rewardPerSecond;
-    }
   }
 
   // O(1)

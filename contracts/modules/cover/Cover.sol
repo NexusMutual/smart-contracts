@@ -539,7 +539,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     }
   }
 
-
   function createStakingPool(
     address manager,
     bool isPrivatePool,

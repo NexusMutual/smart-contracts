@@ -3,9 +3,11 @@ const { accounts, artifacts, web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
 const { setupUniswap } = require('../utils');
+const {impersonateAccount} = require("../../utils/evm");
 
 // actual uniswap addresses on all chains
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
 
 // will be assigned by setup()
 const instances = {};
@@ -22,6 +24,8 @@ async function setup () {
   const Pool = artifacts.require('Pool');
   const SwapOperator = artifacts.require('SwapOperator');
   const MasterMock = artifacts.require('MasterMock');
+  const P1MockEnzymeV4Comptroller = artifacts.require('P1MockEnzymeV4Comptroller');
+  const P1MockEnzymeV4DepositWrapper = artifacts.require('P1MockEnzymeV4DepositWrapper');
 
   const lido = await P1MockLido.new();
 
@@ -55,11 +59,18 @@ async function setup () {
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.enrollGovernance(governance);
 
+
+  /* deploy enzyme */
+  const enzymeV4Comptroller = await P1MockEnzymeV4Comptroller.new(weth.address);
+  const enzymeV4DepositWrapper = await P1MockEnzymeV4DepositWrapper.new();
+
   const swapOperator = await SwapOperator.new(
     master.address,
     twapOracle.address,
     owner,
     lido.address,
+    enzymeV4Comptroller.address,
+    enzymeV4DepositWrapper.address
   );
 
   await pool.updateAddressParameters(hex('SWP_OP'), swapOperator.address, {
@@ -80,6 +91,8 @@ async function setup () {
     router,
     oracle: twapOracle,
     swapOperator,
+    enzymeV4Comptroller,
+    enzymeV4DepositWrapper
   };
   const tokens = { weth, tokenA, tokenB, lido };
   const pairs = { wethAPair, wethBPair };

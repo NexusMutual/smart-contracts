@@ -40,10 +40,13 @@ contract SwapOperator is ReentrancyGuard {
   IUniswapV2Router02 constant public router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
   uint constant public MAX_LIQUIDITY_RATIO = 0.015 ether;
   uint constant public MIN_TIME_BETWEEN_SWAPS = 10 minutes;
-  address constant public enzymeV4VaultProxyAddress = 0x27F23c710dD3d878FE9393d93465FeD1302f2EbD;
-  IEnzymeV4DepositWrapper enzymeV4DepositWrapper  = IEnzymeV4DepositWrapper(0x4Ffd9cb46F129326efCe0BD30064740Bb79dF6DB);
-  
-  /* events */
+//  address constant public enzymeV4VaultProxyAddress = 0x27F23c710dD3d878FE9393d93465FeD1302f2EbD;
+//  IEnzymeV4DepositWrapper enzymeV4DepositWrapper  = IEnzymeV4DepositWrapper(0x4Ffd9cb46F129326efCe0BD30064740Bb79dF6DB);
+
+  address public enzymeV4VaultProxyAddress;
+  IEnzymeV4DepositWrapper enzymeV4DepositWrapper;
+
+/* events */
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
 
   /* logic */
@@ -52,11 +55,20 @@ contract SwapOperator is ReentrancyGuard {
     _;
   }
 
-  constructor(address payable _master, address _twapOracle, address _swapController, address _stETH) {
+  constructor(
+    address payable _master,
+    address _twapOracle,
+    address _swapController,
+    address _stETH,
+    address _enzymeV4VaultProxyAddress,
+    address _enzymeV4DepositWrapper
+  ) {
     master = INXMMaster(_master);
     twapOracle = ITwapOracle(_twapOracle);
     swapController = _swapController;
     stETH = _stETH;
+    enzymeV4VaultProxyAddress = _enzymeV4VaultProxyAddress;
+    enzymeV4DepositWrapper = enzymeV4DepositWrapper;
   }
 
   function swapETHForAsset(
@@ -314,7 +326,7 @@ contract SwapOperator is ReentrancyGuard {
     ) = pool.getAssetDetails(toTokenAddress);
 
     require(!(minAmount == 0 && maxAmount == 0), "SwapOperator: asset is not enabled");
-    
+
     uint balanceBefore = IERC20(toTokenAddress).balanceOf(address(pool));
 
     pool.transferAssetToSwapOperator(ETH, amountIn);
@@ -359,10 +371,10 @@ contract SwapOperator is ReentrancyGuard {
 
     address[] memory payoutAssets = new address[](1);
     uint[] memory payoutAssetsPercentages = new uint[](1);
-    
+
     payoutAssets[0] = address(weth);
     payoutAssetsPercentages[0] = 10000;
-    
+
     comptrollerProxy.redeemSharesForSpecificAssets(address(this), amountIn, payoutAssets, payoutAssetsPercentages);
     uint amountOut = address(this).balance;
 

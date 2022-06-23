@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot, reset } = require('../utils').evm;
 const setup = require('./setup');
 
-describe('SwapOperator unit tests', function () {
+describe.only('SwapOperator unit tests', function () {
 
   before(setup);
 
@@ -16,6 +16,7 @@ describe('SwapOperator unit tests', function () {
   require('./swapETHForAsset');
   require('./swapAssetForETH');
   require('./swapETHForStETH');
+  require('./swapETHForEnzymeVaultShare');
   require('./getSwapQuote');
   require('./transferToCommunityFund');
 

@@ -16,6 +16,7 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IYieldTokenIncidents.sol";
 import "../../libraries/Math.sol";
+import "../../libraries/SafeUintCast.sol";
 
 /// Allows cover owners to redeem payouts from yield token depeg incidents. It is an entry point
 /// to the assessment process where the members of the mutual decides the validity of the
@@ -155,12 +156,6 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     string calldata ipfsMetadata
   ) external override onlyAdvisoryBoard whenNotPaused {
     ICover coverContract = cover();
-    Incident memory incident = Incident(
-      0, // assessmentId
-      productId,
-      date,
-      priceBefore
-    );
     Product memory product = coverContract.products(productId);
     ProductType memory productType = coverContract.productTypes(product.productType);
     require(
@@ -173,14 +168,19 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       uint(config.maxRewardInNXMWad) * PRECISION,
       expectedPayoutInNXM * uint(config.rewardRatio) / REWARD_DENOMINATOR
     );
-    uint assessmentId = assessment().startAssessment(totalReward, 0);
-    incident.assessmentId = uint80(assessmentId);
-    incidents.push(incident);
+    uint incidentId = incidents.length;
+    uint80 assessmentId = SafeUintCast.toUint80(assessment().startAssessment(totalReward, 0));
 
-    emit MetadataSubmitted(incidents.length - 1, expectedPayoutInNXM, ipfsMetadata);
+    incidents.push(Incident(assessmentId, productId, date, priceBefore));
+
+    if (bytes(ipfsMetadata).length > 0) {
+      emit MetadataSubmitted(incidentId, ipfsMetadata);
+    }
+
+    emit IncidentSubmitted(msg.sender, incidentId, productId, expectedPayoutInNXM);
   }
 
-  /// @notice Redeems payouts for eligible covers matching an accepted incident
+  /// Redeems payouts for eligible covers matching an accepted incident
   ///
   /// @dev The function must be called during the redemption period.
   ///
@@ -207,22 +207,73 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     );
 
     ICover coverContract = ICover(getInternalContractAddress(ID.CO));
-    CoverSegment memory coverSegment = coverContract.coverSegments(
-      coverId,
-      segmentId
-    );
     CoverData memory coverData = coverContract.coverData(coverId);
     Product memory product = coverContract.products(coverData.productId);
 
+    uint payoutAmount;
     {
-      ProductType memory productType = coverContract.productTypes(product.productType);
-      require(
-        coverSegment.start + coverSegment.period +
-        productType.gracePeriodInDays * 1 days >= block.timestamp,
-        "Grace period has expired"
+      CoverSegment memory coverSegment = coverContract.coverSegments(
+        coverId,
+        segmentId
       );
+
+      {
+        ProductType memory productType = coverContract.productTypes(product.productType);
+        require(
+          coverSegment.start + coverSegment.period +
+          productType.gracePeriodInDays * 1 days >= block.timestamp,
+          "Grace period has expired"
+        );
+      }
+
+      Incident memory incident =  incidents[incidentId];
+
+      {
+        IAssessment.Poll memory poll = assessment().getPoll(incident.assessmentId);
+
+        require(
+          poll.accepted > poll.denied,
+          "The incident needs to be accepted"
+        );
+
+        (,,uint8 payoutCooldownInDays,) = assessment().config();
+        require(
+          block.timestamp >= poll.end + payoutCooldownInDays * 1 days,
+          "The voting and cooldown periods must end"
+        );
+
+        require(
+          block.timestamp < poll.end +
+          payoutCooldownInDays * 1 days +
+          config.payoutRedemptionPeriodInDays * 1 days,
+          "The redemption period has expired"
+        );
+      }
+
+      require(
+        coverSegment.start + coverSegment.period >= incident.date,
+        "Cover ended before the incident"
+      );
+
+      require(coverSegment.start < incident.date, "Cover started after the incident");
+
+      require(coverData.productId == incident.productId, "Product id mismatch");
+
+      // Calculate the payout amount
+      {
+        uint deductiblePriceBefore = uint(incident.priceBefore) *
+          uint(config.payoutDeductibleRatio) / INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
+        (,uint payoutAssetDecimals) = IPool(
+          internalContracts[uint(IMasterAwareV2.ID.P1)]
+        ).coverAssets(coverData.payoutAsset);
+        payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** uint(payoutAssetDecimals));
+      }
+
+      require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");
     }
 
+
+    coverContract.performStakeBurn(coverId, segmentId, payoutAmount);
 
     if (optionalParams.length > 0) { // Skip the permit call when it is not provided
       (
@@ -240,63 +291,20 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       }
     }
 
-    Incident memory incident =  incidents[incidentId];
-
-    {
-      IAssessment.Poll memory poll = assessment().getPoll(incident.assessmentId);
-
-      require(
-        poll.accepted > poll.denied,
-        "The incident needs to be accepted"
-      );
-
-      (,,uint8 payoutCooldownInDays,) = assessment().config();
-      require(
-        block.timestamp >= poll.end + payoutCooldownInDays * 1 days,
-        "The voting and cooldown periods must end"
-      );
-
-      require(
-        block.timestamp < poll.end +
-        payoutCooldownInDays * 1 days +
-        config.payoutRedemptionPeriodInDays * 1 days,
-        "The redemption period has expired"
-      );
-    }
-
-    require(
-      coverSegment.start + coverSegment.period >= incident.date,
-      "Cover ended before the incident"
-    );
-
-    require(coverSegment.start < incident.date, "Cover started after the incident");
-
-    require(coverData.productId == incident.productId, "Product id mismatch");
-
-    // Calculate the payout amount
-    uint payoutAmount;
-    {
-      uint deductiblePriceBefore = uint(incident.priceBefore) *
-        uint(config.payoutDeductibleRatio) / INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
-      (,uint payoutAssetDecimals) = IPool(
-        internalContracts[uint(IMasterAwareV2.ID.P1)]
-      ).coverAssets(coverData.payoutAsset);
-      payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** uint(payoutAssetDecimals));
-    }
-
-    require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");
-    coverContract.performStakeBurn(coverId, segmentId, payoutAmount);
     SafeERC20.safeTransferFrom(
       IERC20(product.productAddress),
       msg.sender,
       address(this),
       depeggedTokens
     );
+
     IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]).sendPayout(
       coverData.payoutAsset,
       payoutAddress,
       payoutAmount
     );
+
+    emit IncidentPayoutRedeemed(msg.sender, payoutAmount, incidentId, coverId);
 
     return (payoutAmount, coverData.payoutAsset);
   }

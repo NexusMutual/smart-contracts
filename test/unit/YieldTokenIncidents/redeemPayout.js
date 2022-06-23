@@ -621,4 +621,62 @@ describe('redeemPayout', function () {
     const daiBalanceAfter = await dai.balanceOf(nonMember.address);
     expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(parseEther('2970')));
   });
+
+  it('emits IncidentPayoutRedeemed event with owner, payout amount, incident and cover ids', async function () {
+    const { yieldTokenIncidents, cover, assessment, ybEth, ybDai } = this.contracts;
+    const [coverOwner1, coverOwner2] = this.accounts.members;
+    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    await cover.createMockCover(
+      coverOwner1.address,
+      2, // productId using ybEth
+      ASSET.ETH,
+      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
+    );
+
+    await cover.createMockCover(
+      coverOwner1.address,
+      2, // productId using ybEth
+      ASSET.ETH,
+      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
+    );
+
+    await cover.createMockCover(
+      coverOwner2.address,
+      3, // productId using ybDai
+      ASSET.DAI,
+      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
+    );
+
+    await yieldTokenIncidents
+      .connect(advisoryBoard)
+      .submitIncident(2, parseEther('1'), timestamp + 2, parseEther('100'), '');
+
+    await yieldTokenIncidents
+      .connect(advisoryBoard)
+      .submitIncident(3, parseEther('1'), timestamp + 2, parseEther('100'), '');
+
+    await assessment.connect(advisoryBoard).castVote(0, true, parseEther('100'));
+    await assessment.connect(advisoryBoard).castVote(1, true, parseEther('100'));
+
+    {
+      const { payoutCooldownInDays } = await assessment.config();
+      const { end } = await assessment.getPoll(1);
+      await setTime(end + daysToSeconds(payoutCooldownInDays));
+    }
+
+    await ybEth.connect(coverOwner1).approve(yieldTokenIncidents.address, parseEther('10000'));
+    await expect(
+      yieldTokenIncidents.connect(coverOwner1).redeemPayout(0, 0, 0, parseEther('100'), coverOwner1.address, []),
+    )
+      .to.emit(yieldTokenIncidents, 'IncidentPayoutRedeemed')
+      .withArgs(coverOwner1.address, parseEther('90'), 0, 0);
+
+    await ybDai.connect(coverOwner2).approve(yieldTokenIncidents.address, parseEther('10000'));
+    await expect(
+      yieldTokenIncidents.connect(coverOwner2).redeemPayout(1, 2, 0, parseEther('100'), coverOwner2.address, []),
+    )
+      .to.emit(yieldTokenIncidents, 'IncidentPayoutRedeemed')
+      .withArgs(coverOwner2.address, parseEther('90'), 1, 2);
+  });
 });

@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const { setup } = require('./setup');
 
-describe('MemberRoles unit tests', function () {
+describe.only('MemberRoles unit tests', function () {
   before(setup);
 
   beforeEach(async function () {

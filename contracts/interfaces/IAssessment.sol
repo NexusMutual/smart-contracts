@@ -172,6 +172,7 @@ interface IAssessment {
   event StakeWithdrawn(address indexed user, uint96 amount);
   event VoteCast(address indexed user, uint96 stakedAmount, bool accepted);
   event RewardWithdrawn(address user, uint256 amount);
-  event FraudResolution(uint assessmentId, address assessor, Poll poll);
+  event FraudProcessed(uint assessmentId, address assessor, Poll poll);
+  event FraudSubmitted(bytes32 root);
 
 }

@@ -378,7 +378,7 @@ describe('processFraud', function () {
     }
   });
 
-  it('emits a FraudResolution event for every cancelled vote', async function () {
+  it('emits a FraudProcessed event for every cancelled vote', async function () {
     const { assessment, individualClaims } = this.contracts;
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember1, fraudulentMember2] = this.accounts.members;

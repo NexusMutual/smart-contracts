@@ -363,7 +363,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           );
 
           coverSegmentAllocations[coverId][lastCoverSegmentIndex][i].premiumInNXM
-            *= (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
+            = coverSegmentAllocations[coverId][lastCoverSegmentIndex][i].premiumInNXM
+              * lastCoverSegment.period - remainingPeriod
+              / lastCoverSegment.period;
 
           // Compute NXM rewards to be rolled back
           uint deallocatedRewardsInNXM = allocation.premiumInNXM
@@ -380,8 +382,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         * remainingPeriod
         / MAX_COVER_PERIOD;
 
-      // Edit the last cover segment so it ends at the current block
-      lastCoverSegment.period = lastCoverSegment.period - remainingPeriod;
+      // Edit the last cover segment so it ends at the current block by writing to storage directly
+      _coverSegments[coverId][lastCoverSegmentIndex].period = lastCoverSegment.period - remainingPeriod;
     }
 
     (uint totalPremiumInNXM, uint totalCoveredAmountInPayoutAsset) = _buyCover(buyCoverParams, coverId, poolAllocations);

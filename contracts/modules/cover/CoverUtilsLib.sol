@@ -182,11 +182,11 @@ library CoverUtilsLib {
 
       PoolAllocation memory allocation = allocations[i];
 
-      uint nxmBurned = allocation.coverAmountInNXM
+      uint burnAmountInNXM = allocation.coverAmountInNXM
       * burnAmount / segment.amount
       * GLOBAL_CAPACITY_DENOMINATOR / globalCapacityRatio;
 
-      stakingPool(i, stakingPoolProxyCodeHash).burnStake(cover.productId, segment.start, segment.period, nxmBurned);
+      stakingPool(i, stakingPoolProxyCodeHash).burnStake(cover.productId, segment.start, segment.period, burnAmountInNXM);
 
       uint payoutAmountInNXM = allocation.coverAmountInNXM * burnAmount / segment.amount;
       allocations[i].coverAmountInNXM -= SafeUintCast.toUint96(payoutAmountInNXM);

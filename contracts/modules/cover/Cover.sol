@@ -365,7 +365,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
 
           coverSegmentAllocations[coverId][lastCoverSegmentIndex][i].premiumInNXM
-            = allocation.premiumInNXM * lastCoverSegment.period - remainingPeriod / lastCoverSegment.period;
+            = allocation.premiumInNXM * (lastCoverSegment.period - remainingPeriod) / lastCoverSegment.period;
 
           // Compute NXM rewards to be rolled back
           uint deallocatedRewardsInNXM = allocation.premiumInNXM

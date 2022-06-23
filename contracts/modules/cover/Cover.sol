@@ -92,7 +92,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     IQuotationData _quotationData,
     IProductsV1 _productsV1,
     address _coverNFT,
-    address _stakingPoolImplementation
+    address _stakingPoolImplementation,
+    address coverProxyAddress
   ) {
 
     // initialize immutable fields only
@@ -100,7 +101,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     productsV1 = _productsV1;
     coverNFT = _coverNFT;
 
-    stakingPoolProxyCodeHash = CoverUtilsLib.calculateProxyCodeHash();
+    stakingPoolProxyCodeHash = CoverUtilsLib.calculateProxyCodeHash(coverProxyAddress);
     stakingPoolImplementation = _stakingPoolImplementation;
   }
 
@@ -521,19 +522,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     ProductInitializationParams[] memory productInitializationParams,
     uint depositAmount,
     uint trancheId
-  ) external returns (address stakingPoolAddress) {
-
-    emit StakingPoolCreated(stakingPoolAddress, manager, stakingPoolImplementation);
-
+  ) external returns (address) {
     CoverUtilsLib.PoolInitializationParams memory poolInitializationParams = CoverUtilsLib.PoolInitializationParams(
-      stakingPoolCount++,
+      stakingPoolCount,
       manager,
       isPrivatePool,
       initialPoolFee,
       maxPoolFee
     );
 
-    return CoverUtilsLib.createStakingPool(
+    address stakingPoolAddress = CoverUtilsLib.createStakingPool(
       _products,
       poolInitializationParams,
       productInitializationParams,
@@ -541,6 +539,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       trancheId,
       master.getLatestAddress("PS")
     );
+
+    emit StakingPoolCreated(stakingPoolAddress, stakingPoolCount, manager, stakingPoolImplementation);
+
+    stakingPoolCount++;
+
+    return stakingPoolAddress;
   }
 
   function performStakeBurn(

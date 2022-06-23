@@ -1,5 +1,4 @@
 const { artifacts, config, network, run, web3 } = require('hardhat');
-const hre = require('hardhat');
 const {
   ether,
   constants: { ZERO_ADDRESS },
@@ -28,7 +27,6 @@ const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const CowSwapOperator = artifacts.require('CowSwapOperator');
 const CSMockSettlement = artifacts.require('CSMockSettlement');
 const CSMockVaultRelayer = artifacts.require('CSMockVaultRelayer');
-const TwapOracle = artifacts.require('TwapOracle');
 const DisposableMCR = artifacts.require('DisposableMCR');
 const Cover = artifacts.require('Cover');
 const CoverViewer = artifacts.require('CoverViewer');
@@ -45,6 +43,7 @@ const DisposableGateway = artifacts.require('DisposableGateway');
 const DisposableCover = artifacts.require('DisposableCover');
 const CoverNFT = artifacts.require('CoverNFT');
 const CoverMockStakingPool = artifacts.require('CoverMockStakingPool');
+const CoverUtilsLib = artifacts.require('CoverUtilsLib');
 
 // target contracts
 const TestnetNXMaster = artifacts.require('TestnetNXMaster');
@@ -52,19 +51,15 @@ const MemberRoles = artifacts.require('MemberRoles');
 const TokenController = artifacts.require('TokenController');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const Governance = artifacts.require('Governance');
-const PooledStaking = artifacts.require('PooledStaking');
+const PooledStaking = artifacts.require('LegacyPooledStaking');
 const ProductsV1 = artifacts.require('ProductsV1');
-const Gateway = artifacts.require('Gateway');
+const Gateway = artifacts.require('LegacyGateway');
 
 // external contracts
-const DistributorFactory = artifacts.require('DistributorFactory');
 const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
 const INITIAL_SUPPLY = ether('1500000');
 const etherscanApiKey = getEnv('ETHERSCAN_API_KEY');
-
-const UNISWAP_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
-const WETH_ADDRESS = '0xd0a1e359811322d97991e03f863a0c30c2cf029c';
 
 // source: https://docs.chain.link/docs/price-feeds-migration-august-2020
 const CHAINLINK_DAI_ETH_AGGREGATORS = {
@@ -138,14 +133,6 @@ async function main () {
     fullPath: 'contracts/mocks/Tokens/ERC20MintableDetailed.sol:ERC20MintableDetailed',
   });
 
-  let uniswapV2Factory;
-  if (!['hardhat', 'localhost'].includes(network.name)) {
-    console.log('Deploying uniswap pair');
-    const UniswapV2Factory = artifacts.require('UniswapV2Factory');
-    uniswapV2Factory = await UniswapV2Factory.at(UNISWAP_FACTORY);
-    await uniswapV2Factory.createPair(WETH_ADDRESS, dai.address);
-  }
-
   console.log('Deploying token contracts');
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
 
@@ -155,7 +142,7 @@ async function main () {
   const { instance: mr, implementation: mrImpl } = await deployProxy(DisposableMemberRoles);
 
   console.log('Deploying quotation contracts');
-  const qd = await QuotationData.new(owner);
+  const qd = await QuotationData.new(owner, owner);
 
   console.log('Deploying legacy claims reward');
   const lcr = await LegacyClaimsReward.new(master.address, dai.address);
@@ -163,14 +150,14 @@ async function main () {
 
   console.log('Deploying disposable contracts');
   const { instance: cover, implementation: coverImpl } = await deployProxy(DisposableCover, []);
-  const stakingPoolParameters = [tk.address, cover.address, mr.address];
-  const stakingPool = await CoverMockStakingPool.new(...stakingPoolParameters);
-  const coverMigrator = await CoverMigrator.new();
-  const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
   const { instance: tc, implementation: tcImpl } = await deployProxy(DisposableTokenController, [
     qd.address,
     lcr.address,
   ]);
+  const stakingPoolParameters = [tk.address, cover.address, tc.address, mr.address];
+  const stakingPool = await CoverMockStakingPool.new(...stakingPoolParameters);
+  const coverMigrator = await CoverMigrator.new();
+  const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
   const { instance: ps, implementation: psImpl } = await deployProxy(DisposablePooledStaking);
   const { instance: pc, implementation: pcImpl } = await deployProxy(DisposableProposalCategory);
   const { instance: gv, implementation: gvImpl } = await deployProxy(DisposableGovernance, [{ gas: 12e6 }]);
@@ -256,11 +243,7 @@ async function main () {
 
   // [todo] Add ipfs hashes
   await cover.addProducts(addProductsParams, Array(products.length).fill('')); // non-proxy contracts and libraries
-  console.log('Deploying TwapOracle, CowSwapOperator, PriceFeedOracle');
-  const uniswapV2FactoryAddress = uniswapV2Factory
-    ? uniswapV2Factory.address
-    : '0x0000000000000000000000000000000000000000';
-  const twapOracle = await TwapOracle.new(uniswapV2FactoryAddress);
+  console.log('Deploying CowSwapOperator, PriceFeedOracle');
   const cowVaultRelayer = await CSMockVaultRelayer.new();
   const cowSettlement = await CSMockSettlement.new(cowVaultRelayer.address);
   const swapOperator = await CowSwapOperator.new(
@@ -270,8 +253,7 @@ async function main () {
     '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
   );
 
-  verifier.add(twapOracle, { constructorArgs: [uniswapV2FactoryAddress] });
-  verifier.add(swapOperator, { constructorArgs: [master.address, twapOracle.address, owner, stETH.address] });
+  verifier.add(swapOperator, { constructorArgs: [master.address, owner.address, owner, stETH.address] });
 
   let priceFeedOracle;
   if (['hardhat', 'localhost'].includes(network.name)) {
@@ -390,7 +372,7 @@ async function main () {
     600, // unstake lock time
   );
 
-  await yieldTokenIncidents.initialize(master.address);
+  await yieldTokenIncidents.initialize();
 
   await gateway.initialize(master.address, dai.address);
 
@@ -419,11 +401,16 @@ async function main () {
   ]);
   const { implementation: newPcImpl } = await upgradeProxy(pc.address, ProposalCategory);
   const { implementation: newGvImpl } = await upgradeProxy(gv.address, Governance);
+
+  console.log('Deploying and linking CoverUtilsLib in Cover contract');
+  const coverUtilsLib = await CoverUtilsLib.new();
+  await Cover.link(coverUtilsLib);
+
   const { implementation: newCoverImpl } = await upgradeProxy(cover.address, Cover, [
     qd.address,
     productsV1.address,
-    stakingPool.address,
     coverNFT.address,
+    stakingPool.address,
     cover.address,
   ]);
   const { implementation: newGatewayImpl } = await upgradeProxy(gateway.address, Gateway);
@@ -450,12 +437,6 @@ async function main () {
   await transferProxyOwnership(master.address, gv.address);
 
   console.log('Deploying external contracts');
-
-  console.log('Deploying DistributorFactory');
-
-  const distributorFactory = await DistributorFactory.new(master.address);
-
-  verifier.add(distributorFactory, { constructorArgs: [master.address] });
 
   console.log('Deploying CoverViewer');
 

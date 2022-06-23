@@ -2,13 +2,15 @@
 
 pragma solidity ^0.8.9;
 
+import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
+
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/IProductsV1.sol";
 import "../../modules/cover/MinimalBeaconProxy.sol";
 
-contract DisposableCover is MasterAwareV2 {
+contract DisposableCover is MasterAwareV2, ReentrancyGuard {
 
   /* ========== STATE VARIABLES ========== */
 

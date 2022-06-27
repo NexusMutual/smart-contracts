@@ -33,7 +33,7 @@ describe.only('swapETHForEnzymeVaultShare', function () {
     );
   });
 
-  it.only('should revert when called by an address that is not swap controller', async function () {
+  it('should revert when called by an address that is not swap controller', async function () {
 
     const { swapOperator } = contracts();
 
@@ -43,16 +43,11 @@ describe.only('swapETHForEnzymeVaultShare', function () {
     );
   });
 
-  it.only('should revert when asset is not enabled', async function () {
-    const { pool, swapOperator, enzymeV4VaultProxyAddress } = contracts();
-
-    console.log({
-      swapOperator,
-      enzymeV4VaultProxyAddress
-    });
+  it('should revert when asset is not enabled', async function () {
+    const { pool, swapOperator, enzymeV4Vault } = contracts();
 
     await pool.setAssetDetails(
-      enzymeV4VaultProxyAddress.address,
+      enzymeV4Vault.address,
       ether('0'), // asset minimum
       ether('0'), // asset maximum
       ether('0.01'), // max slippage
@@ -68,7 +63,7 @@ describe.only('swapETHForEnzymeVaultShare', function () {
 
   it('should revert if ether left in pool is less than minPoolEth', async function () {
 
-    const { pool, lido, swapOperator } = contracts();
+    const { pool, enzymeV4Vault, swapOperator } = contracts();
 
     // allow to send max 1 ether out of pool
     const maxPoolTradableEther = ether('1');
@@ -77,7 +72,7 @@ describe.only('swapETHForEnzymeVaultShare', function () {
 
     await pool.updateUintParameters(hex('MIN_ETH'), minEther, { from: governance });
     await pool.setAssetDetails(
-      lido.address,
+      enzymeV4Vault.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
       ether('0.01'), // max slippage
@@ -86,12 +81,13 @@ describe.only('swapETHForEnzymeVaultShare', function () {
 
     // should fail with max + 1
     await expectRevert(
-      swapOperator.swapETHForStETH(maxPoolTradableEther.addn(1)),
+      swapOperator.swapETHForEnzymeVaultShare(maxPoolTradableEther.addn(1), '0'),
       'SwapOperator: insufficient ether left',
     );
 
+    // TODO: reenable
     // should work with max
-    await swapOperator.swapETHForStETH(maxPoolTradableEther);
+    // await swapOperator.swapETHForEnzymeVaultShare(maxPoolTradableEther);
   });
 
   it('should revert if amountIn > pool balance', async function () {
@@ -99,20 +95,20 @@ describe.only('swapETHForEnzymeVaultShare', function () {
 
     const poolBalance = toBN(await web3.eth.getBalance(pool.address));
     await expectRevert(
-      swapOperator.swapETHForStETH(poolBalance.addn(1)),
+      swapOperator.swapETHForEnzymeVaultShare(poolBalance.addn(1), '0'),
       'Pool: Eth transfer failed',
     );
   });
 
-  it('should revert if Lido does not sent enough stETH back', async function () {
-    const { swapOperator, pool, lido } = contracts();
+  it('should revert if Enzyme does not sent enough shares back', async function () {
+    const { swapOperator, enzymeV4DepositWrapper } = contracts();
 
     const amountIn = ether('1000');
 
     // lido lowers the rate (incorrect)
-    await lido.setETHToStETHRate('9999');
+    await enzymeV4DepositWrapper.setETHToVaultSharesRate('500');
     await expectRevert(
-      swapOperator.swapETHForStETH(amountIn),
+      swapOperator.swapETHForEnzymeVaultShare(amountIn, amountIn),
       'SwapOperator: amountOut < amountOutMin',
     );
   });

@@ -15,6 +15,8 @@ import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/ITwapOracle.sol";
 
+import "hardhat/console.sol";
+
 contract SwapOperator is ReentrancyGuard {
   using SafeERC20 for IERC20;
 
@@ -61,14 +63,14 @@ contract SwapOperator is ReentrancyGuard {
     address _swapController,
     address _stETH,
     address _enzymeV4VaultProxyAddress,
-    address _enzymeV4DepositWrapper
+    IEnzymeV4DepositWrapper _enzymeV4DepositWrapper
   ) {
     master = INXMMaster(_master);
     twapOracle = ITwapOracle(_twapOracle);
     swapController = _swapController;
     stETH = _stETH;
     enzymeV4VaultProxyAddress = _enzymeV4VaultProxyAddress;
-    enzymeV4DepositWrapper = enzymeV4DepositWrapper;
+    enzymeV4DepositWrapper = _enzymeV4DepositWrapper;
   }
 
   function swapETHForAsset(

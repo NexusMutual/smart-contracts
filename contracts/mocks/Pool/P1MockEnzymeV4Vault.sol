@@ -2,7 +2,9 @@
 
 pragma solidity ^0.5.17;
 
-contract P1MockEnzymeV4Vault {
+import "../../external/enzyme/IEnzymeV4Vault.sol";
+
+contract P1MockEnzymeV4Vault is IEnzymeV4Vault {
 
   address accessor;
 

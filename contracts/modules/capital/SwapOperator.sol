@@ -331,11 +331,20 @@ contract SwapOperator is ReentrancyGuard {
 
     uint balanceBefore = IERC20(toTokenAddress).balanceOf(address(pool));
 
+
+    console.log("transferAssetToSwapOperator");
+
     pool.transferAssetToSwapOperator(ETH, amountIn);
 
     require(comptrollerProxy.getDenominationAsset() == weth, "SwapOperator: invalid denomination asset");
 
+    console.log("exchangeEthAndBuyShares");
+
+    console.log("enzymeV4DepositWrapper", address(enzymeV4DepositWrapper));
+    console.log("comptrollerProxy", address(comptrollerProxy));
     enzymeV4DepositWrapper.exchangeEthAndBuyShares{value: amountIn}(address(comptrollerProxy), weth, 1, address(0), address(0), '0x', 0);
+
+    console.log("post exchangeEthAndBuyShares");
 
     pool.setAssetDataLastSwapTime(toTokenAddress, uint32(block.timestamp));
 

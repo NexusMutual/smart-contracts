@@ -302,6 +302,7 @@ describe('do enzyme investment', function () {
       poolValueInEthBefore: poolValueInEthBefore.toString(),
       poolValueDelta: poolValueDelta.toString()
     });
+
   });
 
 

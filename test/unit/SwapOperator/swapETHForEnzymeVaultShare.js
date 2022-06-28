@@ -113,7 +113,7 @@ describe.only('swapETHForEnzymeVaultShare', function () {
     );
   });
 
-  it('should revert if balanceAfter > max', async function () {
+  it.skip('should revert if balanceAfter > max', async function () {
     const { pool, swapOperator, lido } = contracts();
     const windowStart = await nextWindowStartTime();
 
@@ -137,7 +137,7 @@ describe.only('swapETHForEnzymeVaultShare', function () {
     );
   });
 
-  it('should swap asset for eth and emit a Swapped event with correct values', async function () {
+  it.skip('should swap asset for eth and emit a Swapped event with correct values', async function () {
     const { pool, tokenA, swapOperator, lido } = contracts();
     const windowStart = await nextWindowStartTime();
 
@@ -176,7 +176,7 @@ describe.only('swapETHForEnzymeVaultShare', function () {
     });
   });
 
-  it('should swap asset for eth for a dust amount of wei equal to the precision error tolerance', async function () {
+  it.skip('should swap asset for eth for a dust amount of wei equal to the precision error tolerance', async function () {
     const { pool, tokenA, swapOperator, lido } = contracts();
     const windowStart = await nextWindowStartTime();
 
@@ -204,7 +204,7 @@ describe.only('swapETHForEnzymeVaultShare', function () {
     assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
   });
 
-  it('should swap asset for eth in 3 sequential calls', async function () {
+  it.skip('should swap asset for eth in 3 sequential calls', async function () {
     const { pool, tokenA, swapOperator, lido } = contracts();
 
     const minStEthAmount = ether('100');

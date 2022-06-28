@@ -3,7 +3,7 @@ const { accounts, artifacts, web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
 const { setupUniswap } = require('../utils');
-const {impersonateAccount} = require("../../utils/evm");
+const { impersonateAccount } = require("../../utils/evm");
 
 // actual uniswap addresses on all chains
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -30,7 +30,6 @@ async function setup () {
 
   const lido = await P1MockLido.new();
 
-
   const {
     factory,
     router,
@@ -40,7 +39,7 @@ async function setup () {
     tokenA,
     tokenB,
   } = await setupUniswap();
-
+  
   const twapOracle = await TwapOracle.new(factory.address);
 
   /* deploy enzyme */

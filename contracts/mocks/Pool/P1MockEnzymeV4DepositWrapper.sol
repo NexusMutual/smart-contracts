@@ -24,11 +24,12 @@ contract P1MockEnzymeV4DepositWrapper is IEnzymeV4DepositWrapper {
     address exchange,
     address exchangeApproveTarget,
     bytes calldata exchangeData,
-    uint256 minInvestmentAmount) external payable returns (uint112, uint112, uint32) {
+    uint256 minInvestmentAmount) external payable returns (uint256) {
 
     // require(msg.data.length == 0, "NON_EMPTY_DATA");
-    vault.mint(msg.sender, msg.value * ethToSharesRate / 10000);
-    return (0, 0, 0);
+    uint shares = msg.value * ethToSharesRate / 10000;
+    vault.mint(msg.sender, shares);
+    return shares;
   }
 
   function setETHToVaultSharesRate(uint _ethToSharesRate) public {

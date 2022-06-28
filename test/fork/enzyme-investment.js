@@ -51,6 +51,7 @@ const Address = {
   stETH: '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
   WETH: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
   stETHFEED: '0x86392dC19c0b719886221c78AB11eb8Cf5c52812',
+  ENZYMESHARES: '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD',
   ENZYMESHARESFEED: '0x86392dC19c0b719886221c78AB11eb8Cf5c52812' // TODO: replace with real one
 };
 
@@ -143,9 +144,10 @@ describe('do enzyme investment', function () {
     const { voters, governance } = this;
 
     const priceFeedOracle = await PriceFeedOracle.new(
-      Address.DAIFEED,
-      Address.DAI,
-      Address.stETH
+      [Address.DAI, Address.stETH, Address.ENZYMESHARES],
+      [Address.DAIFEED, Address.stETHFEED, Address.ENZYMESHARESFEED],
+      [18, 18, 18],
+      Address.DAI
     );
 
     const parameters = [
@@ -214,11 +216,18 @@ describe('do enzyme investment', function () {
     );
 
     await submitGovernanceProposal(addAssetCategory, addAsset, voters, governance);
+
+    console.log('Query pool value');
+    const poolValueInEth = await pool.getPoolValueInEth();
+
+    console.log({
+      poolValueInEth: poolValueInEth.toString()
+    })
   });
 
 
   it('upgrade contracts', async function () {
-    const { master, oldSwapOperator, pool, voters, governance, setPoolAddressParameters } = this;
+    const { master, oldSwapOperator, pool, voters, governance } = this;
 
     console.log('Deploying contracts');
 
@@ -248,15 +257,14 @@ describe('do enzyme investment', function () {
       parameters.map(p => p[0]),
       parameters.map(p => p[1]),
     );
-    const poolValueInEthBefore = pool.getPoolValueInEth();
+    const poolValueInEthBefore = await pool.getPoolValueInEth();
 
-    // add new category for sendClaimPayout call
-    await submitGovernanceProposal(setPoolAddressParameters, addSwapOperator, voters, governance);
+    await submitGovernanceProposal(UpdatePoolAddressParametersCategory, addSwapOperator, voters, governance);
 
     const storedSwapOperatorAddress = await pool.swapOperator();
     assert.equal(storedSwapOperatorAddress, swapOperator.address);
 
-    const poolValueInEthAfter = pool.getPoolValueInEth();
+    const poolValueInEthAfter = await pool.getPoolValueInEth();
 
     assert.equal(poolValueInEthAfter.toString(), poolValueInEthBefore.toString());
 

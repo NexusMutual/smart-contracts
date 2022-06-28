@@ -19,16 +19,24 @@ contract PriceFeedOracle is IPriceFeedOracle {
 
   mapping(address => Asset) public assets;
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+  address public daiAddress;
 
   constructor (
     address[] memory assetAddresses,
     address[] memory aggregators,
-    uint8[] memory decimals
+    uint8[] memory decimals,
+    address _daiAddress
   ) public {
+
+    require(assetAddresses.length == aggregators.length, "PriceFeedOracle: length mismatch");
+    require(assetAddresses.length == decimals.length, "PriceFeedOracle: length mismatch");
 
     for (uint i = 0; i < assetAddresses.length; i++) {
       assets[assetAddresses[i]] = Asset(aggregators[i], decimals[i]);
     }
+
+    // This is kept for legacy reasons; still used in MCR.sol
+    daiAddress = _daiAddress;
   }
 
   /**

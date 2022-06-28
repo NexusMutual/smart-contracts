@@ -10,4 +10,10 @@ interface IEnzymeV4Comptroller {
         address[] calldata _payoutAssets,
         uint256[] calldata _payoutAssetPercentages
     ) external returns (uint256[] memory payoutAmounts_);
+
+  function vaultCallOnContract(
+    address _contract,
+    bytes4 _selector,
+    bytes calldata _encodedArgs
+  ) external;
 }

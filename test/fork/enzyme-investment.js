@@ -39,6 +39,9 @@ const Gateway = artifacts.require('Gateway');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 const ProposalCategoryContract = artifacts.require('ProposalCategory');
+const IPolicyManager = artifacts.require('IPolicyManager');
+const IEnzymeV4Comptroller = artifacts.require('IEnzymeV4Comptroller');
+const IEnzymeV4Vault = artifacts.require('IEnzymeV4Vault');
 
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -66,11 +69,22 @@ const DAI_HOLDER = '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503';
 const ybDAIProductId = '0x000000000000000000000000000000000000000d';
 const ybETHProductId = '0x000000000000000000000000000000000000000e';
 
-const enzymeV4VaultProxyAddress = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';
-const enzymeV4DepositWrapperAddress = '0x4Ffd9cb46F129326efCe0BD30064740Bb79dF6DB';
 
 const UpdatePoolAddressParametersCategory = 40;
 const SetAssetDetailsProposalCategory = 41;
+
+
+
+// enzyme constants
+const enzymeV4VaultProxyAddress = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';
+const enzymeV4DepositWrapperAddress = '0x4Ffd9cb46F129326efCe0BD30064740Bb79dF6DB';
+const enzymePolicyManager = '0xadf5a8db090627b153ef0c5726ccfdc1c7aed7bd';
+const enzymeComptrollerProxy = '0xa5bf4350da6193b356ac15a3dbd777a687bc216e';
+
+const ListIdForFund = 217;
+const AddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
+
+const AddToListSelector = 'addToList(uint256,address[])';
 
 
 const ratioScale = toBN('10000');
@@ -272,6 +286,39 @@ describe('do enzyme investment', function () {
     this.swapController = swapController;
     this.enzymeSharesToken = enzymeSharesToken;
   });
+
+  it('Enables SwapOperator as depositor', async function () {
+
+    let { swapOperator, pool } = this;
+
+    const comptroller = await IEnzymeV4Comptroller.at(enzymeComptrollerProxy);
+
+    const vault = await IEnzymeV4Vault.at(enzymeV4VaultProxyAddress);
+
+    const owner = await vault.getOwner();
+
+    console.log({
+      vaultOwner: owner
+    });
+
+    await unlock(owner);
+    await fund(owner);
+
+    const selector = web3.eth.abi.encodeFunctionSignature('addToList(uint256,address[])');
+    const args = web3.eth.abi.encodeParameters(
+      ['uint256', 'address[]'],
+      [ListIdForFund, [swapOperator.address]]
+    );
+
+    await comptroller.vaultCallOnContract(
+      AddressListRegistry,
+      selector,
+      args, {
+        from: owner
+      }
+    );
+  });
+
 
   it('triggers small enzyme investment', async function () {
     const { swapOperator, swapController, enzymeSharesToken, pool } = this;

@@ -340,8 +340,6 @@ contract SwapOperator is ReentrancyGuard {
 
     console.log("exchangeEthAndBuyShares");
 
-    console.log("enzymeV4DepositWrapper", address(enzymeV4DepositWrapper));
-    console.log("comptrollerProxy", address(comptrollerProxy));
     enzymeV4DepositWrapper.exchangeEthAndBuyShares{value: amountIn}(address(comptrollerProxy), weth, 1, address(0), address(0), '', 0);
 
     console.log("post exchangeEthAndBuyShares");

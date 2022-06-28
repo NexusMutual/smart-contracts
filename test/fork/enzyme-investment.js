@@ -50,6 +50,8 @@ const Address = {
   NXMHOLDER: '0xd7cba5b9a0240770cfd9671961dae064136fa240',
   stETH: '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
   WETH: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+  stETHFEED: '0x86392dC19c0b719886221c78AB11eb8Cf5c52812',
+  ENZYMESHARESFEED: '0x86392dC19c0b719886221c78AB11eb8Cf5c52812' // TODO: replace with real one
 };
 
 const UserAddress = {
@@ -66,7 +68,7 @@ const ybETHProductId = '0x000000000000000000000000000000000000000e';
 const enzymeV4VaultProxyAddress = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';
 const enzymeV4DepositWrapperAddress = '0x4Ffd9cb46F129326efCe0BD30064740Bb79dF6DB';
 
-const UpdatePoolAddressCategory = 40;
+const UpdatePoolAddressParametersCategory = 40;
 const SetAssetDetailsProposalCategory = 41;
 
 
@@ -136,7 +138,33 @@ describe('do enzyme investment', function () {
     this.whales = whales;
   });
 
-  it('add Pool category', async function () {
+  it('upgrade PriceFeedOracle', async function () {
+
+    const { voters, governance } = this;
+
+    const priceFeedOracle = await PriceFeedOracle.new(
+      Address.DAIFEED,
+      Address.DAI,
+      Address.stETH
+    );
+
+    const parameters = [
+      ['bytes8', hex('PRC_FEED')],
+      ['address', priceFeedOracle.address],
+    ];
+
+    const addSwapOperator = web3.eth.abi.encodeParameters(
+      parameters.map(p => p[0]),
+      parameters.map(p => p[1]),
+    );
+
+    // add new category for sendClaimPayout call
+    await submitGovernanceProposal(UpdatePoolAddressParametersCategory, addSwapOperator, voters, governance);
+
+    this.priceFeedOracle = priceFeedOracle;
+  });
+
+  it('add Pool addAsset category', async function () {
     const { governance, voters, proposalCategory, pool } = this;
 
     const parameters = [

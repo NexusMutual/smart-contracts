@@ -4,7 +4,6 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/proxy/beacon/UpgradeableBeacon.sol";
 
@@ -93,6 +92,15 @@ contract CoverViewer {
       productType.claimMethod,
       productType.gracePeriodInDays
     );
+  }
+
+  function getPeriods(uint coverId) public view returns (CoverSegment[] memory) {
+    uint segmentCount = cover().coverSegmentsCount(coverId);
+    CoverSegment[] memory segments = new CoverSegment[](segmentCount);
+    for (uint i = 0; i < segmentCount; i++) {
+      segments[i] = cover().coverSegments(coverId, i);
+    }
+    return segments;
   }
 
   function getCovers(uint[] calldata coverIds) external view returns (CoverView[] memory) {

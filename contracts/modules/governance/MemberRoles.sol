@@ -158,7 +158,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     bytes memory signature = data[32:96];
 
     // Reconstruct the original message hash.
-    bytes32 messageHash = keccak256(abi.encode(MEMBERSHIP_APPROVAL, nonce, _userAddress));
+    bytes32 messageHash = keccak256(abi.encode(MEMBERSHIP_APPROVAL, nonce, _userAddress, block.chainid));
 
     // Verify if the message hash hasn't been used before. If it has, it means that the nonce for
     // the given _userAddress needs to be higher and the signature should use the first available

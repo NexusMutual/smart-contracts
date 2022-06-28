@@ -93,6 +93,7 @@ async function setup () {
   const accounts = getAccounts(signers);
   await master.enrollGovernance(accounts.governanceContracts[0].address);
   await memberRoles.setRole(accounts.advisoryBoardMembers[0].address, 1);
+  await memberRoles.setRole(accounts.advisoryBoardMembers[1].address, 1);
   for (const member of accounts.members) {
     await memberRoles.setRole(member.address, 2);
     await nxm.mint(member.address, ethers.utils.parseEther('10000'));

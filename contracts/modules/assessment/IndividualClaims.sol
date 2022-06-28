@@ -12,6 +12,7 @@ import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../libraries/Math.sol";
+import "../../libraries/SafeUintCast.sol";
 
 /// Provides a way for cover owners to submit claims and redeem payouts. It is an entry point to
 /// the assessment process where the members of the mutual decide the outcome of claims.
@@ -112,7 +113,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       MIN_ASSESSMENT_DEPOSIT_DENOMINATOR;
 
     // If dynamicDeposit falls below minDeposit use minDeposit instead
-    uint assessmentDepositInETH = minDeposit > dynamicDeposit ? minDeposit : dynamicDeposit;
+    uint assessmentDepositInETH = Math.max(minDeposit, dynamicDeposit);
 
     return (assessmentDepositInETH, totalRewardInNXM);
   }
@@ -127,16 +128,16 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     Claim memory claim = claims[id];
     (IAssessment.Poll memory poll,,) = assessment().assessments(claim.assessmentId);
 
-    ClaimStatus claimStatus;
-    PayoutStatus payoutStatus;
+    ClaimStatus claimStatus = ClaimStatus.PENDING;
+    PayoutStatus payoutStatus = PayoutStatus.PENDING;
     {
       // Determine the claims status
-      if (block.timestamp < poll.end) {
-        claimStatus = ClaimStatus.PENDING;
-      } else if (poll.accepted > poll.denied) {
-        claimStatus = ClaimStatus.ACCEPTED;
-      } else {
-        claimStatus = ClaimStatus.DENIED;
+      if (block.timestamp >= poll.end) {
+        if (poll.accepted > poll.denied) {
+          claimStatus = ClaimStatus.ACCEPTED;
+        } else {
+          claimStatus = ClaimStatus.DENIED;
+        }
       }
 
       // Determine the payout status
@@ -151,14 +152,10 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
             config.payoutRedemptionPeriodInDays * 1 days
           ) {
             payoutStatus = PayoutStatus.UNCLAIMED;
-          } else {
-            payoutStatus = PayoutStatus.PENDING;
           }
         }
       } else if (claimStatus == ClaimStatus.DENIED) {
         payoutStatus = PayoutStatus.DENIED;
-      } else {
-        payoutStatus = PayoutStatus.PENDING;
       }
     }
 
@@ -245,11 +242,12 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
         uint80 assessmentId = claims[previousSubmission.claimId].assessmentId;
         IAssessment.Poll memory poll = assessment().getPoll(assessmentId);
         (,,uint8 payoutCooldownInDays,) = assessment().config();
-        if (block.timestamp >= poll.end + payoutCooldownInDays * 1 days) {
+        uint payoutCooldown = payoutCooldownInDays * 1 days;
+        if (block.timestamp >= poll.end + payoutCooldown) {
           if (
             poll.accepted > poll.denied &&
             block.timestamp < poll.end +
-            payoutCooldownInDays * 1 days +
+            payoutCooldown+
             config.payoutRedemptionPeriodInDays * 1 days
           ) {
             revert("A payout can still be redeemed");
@@ -279,16 +277,14 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
         segment.start + segment.period + productType.gracePeriodInDays * 1 days > block.timestamp,
         "Cover is outside the grace period"
       );
-    }
 
-    Claim memory claim = Claim(
-      0,
-      coverId,
-      segmentId,
-      requestedAmount,
-      coverData.payoutAsset,
-      false // payoutRedeemed
-    );
+      emit ClaimSubmitted(
+        msg.sender,         // user
+        claims.length,      // claimId
+        coverId,            // coverId
+        coverData.productId // user
+      );
+    }
 
     (uint assessmentDepositInETH, uint totalRewardInNXM) = getAssessmentDepositAndReward(
       requestedAmount,
@@ -296,26 +292,41 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       coverData.payoutAsset
     );
 
-    require(msg.value >= assessmentDepositInETH, "Assessment deposit is insufficient");
-    if (msg.value > assessmentDepositInETH) {
-      // Refund ETH excess back to the sender
-      (bool refunded, /* bytes data */) = msg.sender.call{value: msg.value - assessmentDepositInETH}("");
-      require(refunded, "Assessment deposit excess refund failed");
-    }
-
-    // Transfer the assessment deposit to the pool
-    (bool transferSucceeded, /* bytes data */) =  getInternalContractAddress(ID.P1).call{value: assessmentDepositInETH}("");
-    require(transferSucceeded, "Assessment deposit transfer to pool failed");
-
     uint newAssessmentId = assessment().startAssessment(totalRewardInNXM, assessmentDepositInETH);
-    claim.assessmentId = uint80(newAssessmentId);
+
+    Claim memory claim = Claim({
+      assessmentId: SafeUintCast.toUint80(newAssessmentId),
+      coverId: coverId,
+      segmentId: segmentId,
+      amount: requestedAmount,
+      payoutAsset: coverData.payoutAsset,
+      payoutRedeemed: false
+    });
     claims.push(claim);
 
     if (bytes(ipfsMetadata).length > 0) {
       emit MetadataSubmitted(claims.length - 1, ipfsMetadata);
     }
 
-    return (claim);
+
+    require(msg.value >= assessmentDepositInETH, "Assessment deposit is insufficient");
+    if (msg.value > assessmentDepositInETH) {
+      // Refund ETH excess back to the sender
+      (
+        bool refunded,
+        /* bytes data */
+      ) = msg.sender.call{value: msg.value - assessmentDepositInETH}("");
+      require(refunded, "Assessment deposit excess refund failed");
+    }
+
+    // Transfer the assessment deposit to the pool
+    (
+      bool transferSucceeded,
+      /* bytes data */
+    ) =  getInternalContractAddress(ID.P1).call{value: assessmentDepositInETH}("");
+    require(transferSucceeded, "Assessment deposit transfer to pool failed");
+
+    return claim;
   }
 
   /// Redeems payouts for accepted claims
@@ -336,15 +347,12 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     require(poll.accepted > poll.denied, "The claim needs to be accepted");
 
     (,,uint8 payoutCooldownInDays,) = assessment().config();
-    require(
-      block.timestamp >= poll.end + payoutCooldownInDays * 1 days,
-      "The claim is in cooldown period"
-    );
+    uint payoutCooldown = payoutCooldownInDays * 1 days;
+
+    require(block.timestamp >= poll.end + payoutCooldown, "The claim is in cooldown period");
 
     require(
-      block.timestamp < poll.end +
-      payoutCooldownInDays * 1 days +
-      config.payoutRedemptionPeriodInDays * 1 days,
+      block.timestamp < poll.end + payoutCooldown + config.payoutRedemptionPeriodInDays * 1 days,
       "The redemption period has expired"
     );
 
@@ -369,6 +377,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       poolContract.sendPayout(claim.payoutAsset, coverOwner, claim.amount);
     }
 
+    emit ClaimPayoutRedeemed(coverOwner, claim.amount, claimId, claim.coverId);
   }
 
   /// Updates configurable aprameters through governance

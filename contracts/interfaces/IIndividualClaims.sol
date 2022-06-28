@@ -122,8 +122,8 @@ interface IIndividualClaims {
 
   /* ========== EVENTS ========== */
 
-  event ClaimSubmitted(address user, uint104 claimId, uint32 coverId, uint24 productId);
+  event ClaimSubmitted(address user, uint claimId, uint coverId, uint productId);
   event MetadataSubmitted(uint indexed claimId, string ipfsMetadata);
-  event ClaimPayoutRedeemed(address indexed user, uint256 amount, uint104 claimId);
+  event ClaimPayoutRedeemed(address indexed user, uint amount, uint claimId, uint coverId);
 
 }

@@ -114,7 +114,7 @@ describe('submitIncident', function () {
         .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('10000'), 'ipfsMetadata1'),
     )
       .to.emit(yieldTokenIncidents, 'MetadataSubmitted')
-      .withArgs(0, parseEther('10000'), 'ipfsMetadata1');
+      .withArgs(0, 'ipfsMetadata1');
 
     await expect(
       yieldTokenIncidents
@@ -122,6 +122,29 @@ describe('submitIncident', function () {
         .submitIncident(productId, parseEther('1.2'), currentTime, parseEther('20000'), 'ipfsMetadata2'),
     )
       .to.emit(yieldTokenIncidents, 'MetadataSubmitted')
-      .withArgs(1, parseEther('20000'), 'ipfsMetadata2');
+      .withArgs(1, 'ipfsMetadata2');
+  });
+
+  it('emits IncidentSubmitted event with sender incident and product ids and expected payout in NXM', async function () {
+    const { yieldTokenIncidents } = this.contracts;
+    const [advisoryBoard1, advisoryBoard2] = this.accounts.advisoryBoardMembers;
+    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+    const productId = 2;
+
+    await expect(
+      yieldTokenIncidents
+        .connect(advisoryBoard1)
+        .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('10000'), 'ipfsMetadata1'),
+    )
+      .to.emit(yieldTokenIncidents, 'IncidentSubmitted')
+      .withArgs(advisoryBoard1.address, 0, productId, parseEther('10000'));
+
+    await expect(
+      yieldTokenIncidents
+        .connect(advisoryBoard2)
+        .submitIncident(productId, parseEther('1.2'), currentTime, parseEther('20000'), 'ipfsMetadata2'),
+    )
+      .to.emit(yieldTokenIncidents, 'IncidentSubmitted')
+      .withArgs(advisoryBoard2.address, 1, productId, parseEther('20000'));
   });
 });

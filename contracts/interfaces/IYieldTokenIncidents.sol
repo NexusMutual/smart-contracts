@@ -95,8 +95,8 @@ interface IYieldTokenIncidents {
 
   /* ========== EVENTS ========== */
 
-  event IncidentSubmitted(address user, uint104 incidentId, uint24 productId);
-  event MetadataSubmitted(uint indexed incidentId, uint expectedPayoutInNXM, string ipfsMetadata);
-  event IncidentPayoutRedeemed(address indexed user, uint256 amount, uint104 incidentId, uint24 productId);
+  event IncidentSubmitted(address user, uint incidentId, uint productId, uint expectedPayoutInNXM);
+  event MetadataSubmitted(uint indexed incidentId, string ipfsMetadata);
+  event IncidentPayoutRedeemed(address indexed user, uint amount, uint incidentId, uint coverId);
 
 }

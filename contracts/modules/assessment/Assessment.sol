@@ -10,6 +10,7 @@ import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../libraries/Math.sol";
+import "../../libraries/SafeUintCast.sol";
 
 /// Provides the assessment mechanism for members to decide the outcome of the events that can lead
 /// to payouts. Mints rewards for stakers that act benevolently and allows burning fraudulent ones.
@@ -156,8 +157,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
       );
     }
 
-    nxm.transfer(to, amount);
     stakeOf[msg.sender].amount -= amount;
+    nxm.transfer(to, amount);
   }
 
   /// Withdraws a staker's accumulated rewards to a destination address but only the staker can
@@ -231,7 +232,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
 
     // This is the index where the next withdrawReward call will start iterating from
-    stakeOf[staker].rewardsWithdrawableFromIndex = uint104(withdrawnUntilIndex);
+    stakeOf[staker].rewardsWithdrawableFromIndex = SafeUintCast.toUint104(withdrawnUntilIndex);
     ITokenController(getInternalContractAddress(ID.TC)).mint(destination, withdrawn);
   }
 
@@ -319,8 +320,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
       "At least one accept vote is required to vote deny"
     );
 
-    if (isAcceptVote && poll.accepted == 0) {
-      // Reset the poll end when the first accepted vote
+    if (poll.accepted == 0) {
+      // Reset the poll end date on the first accept vote
       poll.end = uint32(block.timestamp + config.minVotingPeriodInDays * 1 days);
     }
 
@@ -363,6 +364,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param root  The merkle tree root hash
   function submitFraud(bytes32 root) external override onlyGovernance {
     fraudResolution.push(root);
+    emit FraudSubmitted(root);
   }
 
   /// Allows anyone to undo fraudulent votes and burn the fraudulent assessors present in the
@@ -424,11 +426,12 @@ contract Assessment is IAssessment, MasterAwareV2 {
       }
 
       // If the poll ends in less than 24h, extend it to 24h
-      if (poll.end < uint32(block.timestamp) + 1 days) {
-        poll.end = uint32(block.timestamp) + 1 days;
+      uint32 nextDay = uint32(block.timestamp + 1 days);
+      if (poll.end < nextDay) {
+        poll.end = nextDay;
       }
 
-      emit FraudResolution(vote.assessmentId, assessor, poll);
+      emit FraudProcessed(vote.assessmentId, assessor, poll);
       assessments[vote.assessmentId].poll = poll;
     }
 

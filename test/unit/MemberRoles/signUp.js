@@ -1,5 +1,5 @@
 const { expect } = require('chai');
-const { ethers } = require('hardhat');
+const { ethers, network } = require('hardhat');
 const { parseUnits } = require('ethers/lib/utils');
 const {
   formatBytes32String,
@@ -14,8 +14,11 @@ const {
 const JOINING_FEE = parseUnits('0.002');
 const MEMBERSHIP_APPROVAL = formatBytes32String('MEMBERSHIP_APPROVAL');
 
-const approveMembership = async ({ nonce, address, kycAuthSigner }) => {
-  const message = defaultAbiCoder.encode(['bytes32', 'uint256', 'address'], [MEMBERSHIP_APPROVAL, nonce, address]);
+const approveMembership = async ({ nonce, address, chainId, kycAuthSigner }) => {
+  const message = defaultAbiCoder.encode(
+    ['bytes32', 'uint256', 'address', 'uint256'],
+    [MEMBERSHIP_APPROVAL, nonce, address, chainId || network.config.chainId],
+  );
   const hash = keccak256(message);
   const signature = await kycAuthSigner.signMessage(arrayify(hash));
   const { compact: compactSignature } = splitSignature(signature);
@@ -23,6 +26,48 @@ const approveMembership = async ({ nonce, address, kycAuthSigner }) => {
 };
 
 describe('signUp', function () {
+  it('reverts when using a signature from another chain', async function () {
+    const { memberRoles } = this.contracts;
+    const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
+
+    const membershipApprovalData0 = await approveMembership({
+      nonce: 0,
+      address: nonMembers[0].address,
+      kycAuthSigner,
+      chainId: network.config.chainId + 1,
+    });
+
+    await expect(
+      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+        value: JOINING_FEE,
+      }),
+    ).to.be.revertedWith('MemberRoles: Signature is invalid');
+
+    const membershipApprovalData1 = await approveMembership({
+      nonce: 0,
+      address: nonMembers[0].address,
+      kycAuthSigner,
+      chainId: network.config.chainId + 2,
+    });
+    await expect(
+      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData1), {
+        value: JOINING_FEE,
+      }),
+    ).to.be.revertedWith('MemberRoles: Signature is invalid');
+
+    const membershipApprovalData2 = await approveMembership({
+      nonce: 0,
+      address: nonMembers[0].address,
+      kycAuthSigner,
+      chainId: network.config.chainId,
+    });
+    await expect(
+      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData2), {
+        value: JOINING_FEE,
+      }),
+    ).not.to.be.revertedWith('MemberRoles: Signature is invalid');
+  });
+
   it('reverts when reusing the same nonce', async function () {
     const { memberRoles } = this.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
@@ -157,13 +202,7 @@ describe('signUp', function () {
 
   it('reverts when a valid signature is not provided', async function () {
     const { memberRoles } = this.contracts;
-    const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
-
-    const membershipApprovalData0 = await approveMembership({
-      nonce: 0,
-      address: nonMembers[0].address,
-      kycAuthSigner,
-    });
+    const { nonMembers } = this.accounts;
 
     await expect(
       memberRoles.signUp(

@@ -136,9 +136,38 @@ describe('do enzyme investment', function () {
     this.whales = whales;
   });
 
+  it('add Pool category', async function () {
+    const { governance, voters, proposalCategory, pool } = this;
+
+    const parameters = [
+      ['string', 'Add Asset to Pool'], // name
+      ['uint256', Role.AdvisoryBoard], // member role that votes
+      ['uint256', 60], // majority vote percentage
+      ['uint256', 15], // quorum percentage
+      ['uint256[]', [Role.AdvisoryBoard]], // allowed to create proposal
+      ['uint256', 3 * 24 * 3600], // closing time 3 days
+      ['string', ''], // action hash - probably ipfs hash
+      ['address', '0x0000000000000000000000000000000000000000'], // contract address: used only if next is "EX"
+      ['bytes2', hex('P1')], // contract name
+      // "incentives" is [min stake, incentive, ab voting req, special resolution]
+      ['uint256[]', [0, 0, 1, 0]],
+      ['string', 'addAsset(address,uint112,uint112,uint256)'], // function signature
+    ];
+
+    const addCategory = web3.eth.abi.encodeParameters(
+      parameters.map(p => p[0]),
+      parameters.map(p => p[1]),
+    );
+
+    const totalCategories = await proposalCategory.totalCategories();
+    this.addAssetCategory = totalCategories;
+
+    await submitGovernanceProposal(ProposalCategory.addCategory, addCategory, voters, governance);
+  });
+
   it('add new enzyme shares asset', async function () {
 
-    const { pool, voters, governance } = this;
+    const { pool, voters, governance, addAssetCategory } = this;
 
     const asset = enzymeV4VaultProxyAddress;
     const min = '0';
@@ -156,8 +185,7 @@ describe('do enzyme investment', function () {
       parameters.map(p => p[1]),
     );
 
-    // add new category for sendClaimPayout call
-    await submitGovernanceProposal(SetAssetDetailsProposalCategory, addAsset, voters, governance);
+    await submitGovernanceProposal(addAssetCategory, addAsset, voters, governance);
   });
 
 

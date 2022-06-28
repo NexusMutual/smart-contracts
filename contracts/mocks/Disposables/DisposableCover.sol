@@ -14,21 +14,22 @@ contract DisposableCover is MasterAwareV2, ReentrancyGuard {
 
   /* ========== STATE VARIABLES ========== */
 
-  Product[] public products;
-  ProductType[] public productTypes;
+  Product[] internal _products;
+  ProductType[] internal _productTypes;
 
-  CoverData[] private coverData;
+  CoverData[] private _coverData;
   mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
 
   /*
     Each Cover has an array of segments. A new segment is created everytime a cover is edited to
     deliniate the different cover periods.
   */
-  mapping(uint => CoverSegment[]) coverSegments;
+  mapping(uint => CoverSegment[]) private _coverSegments;
+
 
   uint24 public globalCapacityRatio;
   uint24 public globalRewardsRatio;
-  uint64 public stakingPoolCounter;
+  uint64 public stakingPoolCount;
 
   /*
     bit map representing which assets are globally supported for paying for and for paying out covers
@@ -37,13 +38,19 @@ contract DisposableCover is MasterAwareV2, ReentrancyGuard {
   */
   uint32 public coverAssetsFallback;
 
+  // Global active cover amount per asset.
+  mapping(uint24 => uint) public totalActiveCoverInAsset;
+
+  bool public coverAmountTrackingEnabled;
+  bool public activeCoverAmountCommitted;
+
   function addProducts(
     Product[] calldata newProducts,
     string[] calldata ipfsMetadata
   ) external {
-    uint initialProuctsCount = products.length;
+    uint initialProuctsCount = _products.length;
     for (uint i = 0; i < newProducts.length; i++) {
-      products.push(newProducts[i]);
+      _products.push(newProducts[i]);
       emit ProductUpserted(initialProuctsCount + i, ipfsMetadata[i]);
     }
   }
@@ -52,9 +59,9 @@ contract DisposableCover is MasterAwareV2, ReentrancyGuard {
     ProductType[] calldata newProductTypes,
     string[] calldata ipfsMetadata
   ) public {
-    uint initialProuctTypesCount = productTypes.length;
+    uint initialProuctTypesCount = _productTypes.length;
     for (uint i = 0; i < newProductTypes.length; i++) {
-      productTypes.push(newProductTypes[i]);
+      _productTypes.push(newProductTypes[i]);
       emit ProductTypeUpserted(initialProuctTypesCount + i, ipfsMetadata[i]);
     }
   }
@@ -65,7 +72,7 @@ contract DisposableCover is MasterAwareV2, ReentrancyGuard {
   ) public {
     require(productIds.length == initialPriceRatios.length, "Cover: Array lengths must not be different");
     for (uint i = 0; i < productIds.length; i++) {
-      products[productIds[i]].initialPriceRatio = initialPriceRatios[i];
+      _products[productIds[i]].initialPriceRatio = initialPriceRatios[i];
     }
   }
 

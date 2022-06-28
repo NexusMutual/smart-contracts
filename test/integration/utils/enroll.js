@@ -41,9 +41,8 @@ async function enrollMember ({ mr, tk, tc }, members, kycAuthSigner, options = {
       value: JOINING_FEE,
     });
 
-
-    await tk.approve(tc.address, MAX_UINT256, { from: member });
-    await tk.transfer(member, toBN(initialTokens));
+    await tk.approve(tc.address, MAX_UINT256, { from: member.address });
+    await tk.transfer(member.address, toBN(initialTokens));
   }
 }
 

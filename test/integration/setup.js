@@ -77,6 +77,9 @@ async function setup () {
   const IndividualClaims = artifacts.require('IndividualClaims');
   const Assessment = artifacts.require('Assessment');
 
+  const signers = await ethers.getSigners();
+  const ethersAccounts = getAccounts(signers);
+
   // external
   const WETH9 = artifacts.require('WETH9');
   const CSMockSettlement = artifacts.require('CSMockSettlement');
@@ -165,7 +168,11 @@ async function setup () {
   const as = await deployProxy(DisposableAssessment, []);
   const cl = await deployProxy(CoverMigrator, []);
 
-  const cover = await deployProxy(DisposableCover, []);
+  const coverUtilsLib = await CoverUtilsLib.new();
+  await Cover.link(coverUtilsLib);
+
+  let cover = await deployProxy(DisposableCover, []);
+
   const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
   const stakingPool = await IntegrationMockStakingPool.new(tk.address, cover.address, tc.address, mr.address);
 
@@ -210,6 +217,9 @@ async function setup () {
     [ether('10000')], // initial tokens
     [owner], // advisory board members
   );
+
+  await mr.setKycAuthAddress(ethersAccounts.defaultSender.address);
+
 
   await pc.initialize(mr.address);
 
@@ -320,15 +330,16 @@ async function setup () {
   await upgradeProxy(yt.address, YieldTokenIncidents, [tk.address, coverNFT.address]);
   await upgradeProxy(as.address, Assessment, [master.address]);
 
-  const coverUtilsLib = await CoverUtilsLib.new();
-  await Cover.link(coverUtilsLib);
+
   await upgradeProxy(cover.address, Cover, [
     qd.address,
     productsV1.address,
-    stakingPool.address,
     coverNFT.address,
+    stakingPool.address,
     cover.address,
   ]);
+
+  cover = await Cover.at(cover.address);
   //
   // {
   //   const params = {}
@@ -431,25 +442,41 @@ async function setup () {
     ethToDaiRate,
   };
 
+
   this.contractType = contractType;
 
-  const kycAuthSigner = '';
-  await enrollMember(this.contracts, members, kycAuthSigner);
-
-  const signers = await ethers.getSigners();
   this.withEthers = web3ToEthers(this, signers);
 
+  await enrollMember(this.contracts, ethersAccounts.members, ethersAccounts.defaultSender);
+
+  const DEFAULT_POOL_FEE = '5'
+
+  const DEFAULT_PRODUCT_INITIALIZATION = [
+    {
+      productId: 0,
+      weight: 100,
+      initialPrice: 1000,
+      targetPrice: 1000
+    }
+  ]
+
   for (let i = 0; i < 3; i++) {
-    const tx = await this.withEthers.contracts.cover.createStakingPool(stakingPoolManagers[i]);
+    const tx = await this.withEthers.contracts.cover.createStakingPool(
+      stakingPoolManagers[i],
+      false, // isPrivatePool,
+      DEFAULT_POOL_FEE, // initialPoolFee
+      DEFAULT_POOL_FEE, // maxPoolFee,
+      DEFAULT_PRODUCT_INITIALIZATION,
+      '0', // depositAmount,
+      '0', // trancheId
+    );
     const receipt = await tx.wait();
-    const { stakingPoolAddress } = receipt.events[0].args;
+    const stakingPoolAddress = await cover.stakingPool(i);
     const stakingPoolInstance = await IntegrationMockStakingPool.at(stakingPoolAddress);
-    await stakingPoolInstance.setPrice(0, 100);
-    await stakingPoolInstance.setPrice(1, 100);
-    await stakingPoolInstance.setPrice(2, 100);
-    await stakingPoolInstance.setPrice(3, 100);
+
     this.contracts['stakingPool' + i] = stakingPoolInstance;
   }
+
 
   this.withEthers = web3ToEthers(this, signers);
 }

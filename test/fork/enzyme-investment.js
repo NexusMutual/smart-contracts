@@ -43,6 +43,7 @@ const IPolicyManager = artifacts.require('IPolicyManager');
 const IEnzymeV4Comptroller = artifacts.require('IEnzymeV4Comptroller');
 const IEnzymeV4Vault = artifacts.require('IEnzymeV4Vault');
 const IAddressListRegistry = artifacts.require('IAddressListRegistry');
+const IEnzymeV4DepositWrapper = artifacts.require('IEnzymeV4DepositWrapper');
 
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -80,7 +81,7 @@ const SetAssetDetailsProposalCategory = 41;
 const enzymeV4VaultProxyAddress = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';
 const enzymeV4DepositWrapperAddress = '0x4Ffd9cb46F129326efCe0BD30064740Bb79dF6DB';
 const enzymePolicyManager = '0xadf5a8db090627b153ef0c5726ccfdc1c7aed7bd';
-const enzymeComptrollerProxy = '0xa5bf4350da6193b356ac15a3dbd777a687bc216e';
+const enzymeComptrollerProxyAddress = '0xa5bf4350da6193b356ac15a3dbd777a687bc216e';
 const enzymeAddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
 
 const ListIdForDepositors = 217;
@@ -105,6 +106,36 @@ const hardhatRequest = async (...params) => {
   }
 };
 
+
+async function addToDepositor (depositor) {
+  const comptroller = await IEnzymeV4Comptroller.at(enzymeComptrollerProxyAddress);
+
+  const vault = await IEnzymeV4Vault.at(enzymeV4VaultProxyAddress);
+
+  const owner = await vault.getOwner();
+
+  console.log({
+    vaultOwner: owner
+  });
+
+  await unlock(owner);
+  await fund(owner);
+
+  const selector = web3.eth.abi.encodeFunctionSignature('addToList(uint256,address[])');
+  const args = web3.eth.abi.encodeParameters(
+    ['uint256', 'address[]'],
+    [ListIdForDepositors, [depositor]]
+  );
+
+  await comptroller.vaultCallOnContract(
+    AddressListRegistry,
+    selector,
+    args, {
+      from: owner
+    }
+  );
+}
+
 const getAddressByCodeFactory = abis => code => abis.find(abi => abi.code === code).address;
 const fund = async to => web3.eth.sendTransaction({ from: accounts[0], to, value: ether('1000000') });
 const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAccount', params: [member] });
@@ -114,7 +145,7 @@ describe('do enzyme investment', function () {
 
   this.timeout(0);
 
-  it('initializes contracts', async function () {
+  it.only('initializes contracts', async function () {
 
     const versionDataURL = 'https://api.nexusmutual.io/version-data/data.json';
     const { mainnet: { abis } } = await fetch(versionDataURL).then(r => r.json());
@@ -140,7 +171,7 @@ describe('do enzyme investment', function () {
     this.proposalCategory = proposalCategory;
   });
 
-  it('fetches board members and funds accounts', async function () {
+  it.only('fetches board members and funds accounts', async function () {
 
     const { memberArray: boardMembers } = await this.memberRoles.members('1');
     const voters = boardMembers.slice(0, 3);
@@ -154,6 +185,31 @@ describe('do enzyme investment', function () {
 
     this.voters = voters;
     this.whales = whales;
+  });
+
+  it.only('adds enzyme depositor and makes deposit', async function () {
+
+    await addToDepositor(UserAddress.NXM_WHALE_1);
+
+    const enzymeV4DepositWrapper = await IEnzymeV4DepositWrapper.at(enzymeV4DepositWrapperAddress);
+
+    /*
+        address  comptrollerProxy,
+    address denominationAsset,
+    uint256 minSharesQuantity,
+    address exchange,
+    address exchangeApproveTarget,
+    bytes calldata exchangeData,
+    uint256 minInvestmentAmount)
+     */
+
+    const amountIn = ether('100');
+    await enzymeV4DepositWrapper.exchangeEthAndBuyShares(
+      enzymeComptrollerProxyAddress, Address.WETH, 0, ZERO_ADDRESS, ZERO_ADDRESS, '0x', 0, {
+        value: amountIn,
+        from: UserAddress.NXM_WHALE_1
+      }
+    );
   });
 
   it('upgrade PriceFeedOracle', async function () {
@@ -294,7 +350,7 @@ describe('do enzyme investment', function () {
 
     let { swapOperator, pool } = this;
 
-    const comptroller = await IEnzymeV4Comptroller.at(enzymeComptrollerProxy);
+    const comptroller = await IEnzymeV4Comptroller.at(enzymeComptrollerProxyAddress);
 
     const vault = await IEnzymeV4Vault.at(enzymeV4VaultProxyAddress);
 

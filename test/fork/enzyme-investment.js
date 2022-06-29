@@ -344,7 +344,6 @@ describe('do enzyme investment', function () {
     assert.equal(inReceiverList, true);
   });
 
-
   it('triggers small enzyme investment', async function () {
     const { swapOperator, swapController, enzymeSharesToken, pool } = this;
 
@@ -359,10 +358,6 @@ describe('do enzyme investment', function () {
     });
 
     const balanceAfter = await enzymeSharesToken.balanceOf(pool.address);
-
-    const dustDifference = 1;
-    assert.equal(balanceAfter.sub(balanceBefore).toString(), amountIn.subn(dustDifference).toString());
-
     const poolValueInEthAfter = await pool.getPoolValueInEth();
 
     const poolValueDelta = poolValueInEthBefore.sub(poolValueInEthAfter);

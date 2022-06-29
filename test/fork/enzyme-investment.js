@@ -339,6 +339,9 @@ describe('do enzyme investment', function () {
     const inList = await registry.isInList(ListIdForDepositors, swapOperator.address);
 
     assert.equal(inList, true);
+
+    const inReceiverList = await registry.isInList(ListIdForReceivers, swapOperator.address);
+    assert.equal(inReceiverList, true);
   });
 
 

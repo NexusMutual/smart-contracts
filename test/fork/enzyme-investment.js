@@ -42,6 +42,7 @@ const ProposalCategoryContract = artifacts.require('ProposalCategory');
 const IPolicyManager = artifacts.require('IPolicyManager');
 const IEnzymeV4Comptroller = artifacts.require('IEnzymeV4Comptroller');
 const IEnzymeV4Vault = artifacts.require('IEnzymeV4Vault');
+const IAddressListRegistry = artifacts.require('IAddressListRegistry');
 
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -80,8 +81,10 @@ const enzymeV4VaultProxyAddress = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';
 const enzymeV4DepositWrapperAddress = '0x4Ffd9cb46F129326efCe0BD30064740Bb79dF6DB';
 const enzymePolicyManager = '0xadf5a8db090627b153ef0c5726ccfdc1c7aed7bd';
 const enzymeComptrollerProxy = '0xa5bf4350da6193b356ac15a3dbd777a687bc216e';
+const enzymeAddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
 
-const ListIdForFund = 217;
+const ListIdForDepositors = 217;
+const ListIdForReceivers = 218;
 const AddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
 
 const AddToListSelector = 'addToList(uint256,address[])';
@@ -307,7 +310,7 @@ describe('do enzyme investment', function () {
     const selector = web3.eth.abi.encodeFunctionSignature('addToList(uint256,address[])');
     const args = web3.eth.abi.encodeParameters(
       ['uint256', 'address[]'],
-      [ListIdForFund, [swapOperator.address]]
+      [ListIdForDepositors, [swapOperator.address]]
     );
 
     await comptroller.vaultCallOnContract(
@@ -317,6 +320,25 @@ describe('do enzyme investment', function () {
         from: owner
       }
     );
+
+    const receiverArgs = web3.eth.abi.encodeParameters(
+      ['uint256', 'address[]'],
+      [ListIdForReceivers, [swapOperator.address]]
+    );
+
+    await comptroller.vaultCallOnContract(
+      AddressListRegistry,
+      selector,
+      receiverArgs, {
+        from: owner
+      }
+    );
+
+    const registry = await IAddressListRegistry.at(enzymeAddressListRegistry);
+
+    const inList = await registry.isInList(ListIdForDepositors, swapOperator.address);
+
+    assert.equal(inList, true);
   });
 
 

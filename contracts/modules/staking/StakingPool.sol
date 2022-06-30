@@ -96,22 +96,41 @@ contract StakingPool is IStakingPool, ERC721 {
   /* constants */
 
   // 7 * 13 = 91
-  uint constant BUCKET_DURATION = 28 days;
-  uint constant TRANCHE_DURATION = 91 days;
-  uint constant MAX_ACTIVE_TRANCHES = 8; // 7 whole quarters + 1 partial quarter
-  uint constant COVER_TRANCHE_GROUP_SIZE = 4;
-  uint constant BUCKET_TRANCHE_GROUP_SIZE = 8;
+  uint public constant BUCKET_DURATION = 28 days;
+  uint public constant TRANCHE_DURATION = 91 days;
+  uint public constant MAX_ACTIVE_TRANCHES = 8; // 7 whole quarters + 1 partial quarter
+  uint public constant COVER_TRANCHE_GROUP_SIZE = 4;
+  uint public constant BUCKET_TRANCHE_GROUP_SIZE = 8;
 
   uint public constant REWARD_BONUS_PER_TRANCHE_RATIO = 10_00; // 10.00%
   uint public constant REWARD_BONUS_PER_TRANCHE_DENOMINATOR = 100_00;
-  uint constant WEIGHT_DENOMINATOR = 100;
-  uint constant REWARDS_DENOMINATOR = 100;
-  uint constant FEE_DENOMINATOR = 100;
+  uint public constant PRODUCT_WEIGHT_DENOMINATOR = 100_00;
+  uint public constant WEIGHT_DENOMINATOR = 100;
+  uint public constant REWARDS_DENOMINATOR = 100;
+  uint public constant FEE_DENOMINATOR = 100;
 
-  uint public constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
-  uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10_000;
-  uint public constant PRODUCT_WEIGHT_DENOMINATOR = 10_000;
-  uint public constant INITIAL_PRICE_DENOMINATOR = 10_000;
+  // denominators for cover contract parameters
+  uint public constant GLOBAL_CAPACITY_DENOMINATOR = 100_00;
+  uint public constant CAPACITY_REDUCTION_DENOMINATOR = 100_00;
+  uint public constant INITIAL_PRICE_DENOMINATOR = 100_00;
+
+  // next price smoothing
+  uint public constant PRICE_CHANGE_PER_DAY = 0.005 ether; // 0.5%
+
+  uint public constant SURGE_THRESHOLD_RATIO = 80_00; // 80.00%
+  uint public constant SURGE_THRESHOLD_DENOMINATOR = 100_00; // 100.00%
+
+  // +10% for each 1%, ie +1000% for 100%
+  // max will be at +200% at the end of the surge interval
+  uint public constant SURGE_PRICE_RATIO = 1000_00; // 1000.00%
+  uint public constant SURGE_PRICE_DENOMINATOR = 100_00; // 100.00%
+
+  // base price bump by 0.002% for each 1% of capacity used, ie 2% for 100%
+  uint public constant PRICE_BUMP_RATIO = 2_00; // 2.00%
+  uint public constant PRICE_BUMP_DENOMINATOR = 100_00; // 100.00%
+
+  // 1e18
+  uint public constant TOKEN_PRECISION = 1 ether;
 
   modifier onlyCoverContract {
     require(msg.sender == coverContract, "StakingPool: Only Cover contract can call this function");
@@ -546,7 +565,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function allocateStake(
     CoverRequest calldata request
-  ) external onlyCoverContract returns (uint allocatedAmount, uint premium, uint rewardsInNXM) {
+  ) external onlyCoverContract returns (uint allocatedCoverAmount, uint premium, uint rewardsInNXM) {
 
     // passing true because we change the reward per second
     updateTranches(true);
@@ -587,7 +606,7 @@ contract StakingPool is IStakingPool, ERC721 {
         uint allocate = Math.min(availableTrancheCapacity, remainingAmount);
 
         remainingAmount -= allocate;
-        allocatedAmount += allocate;
+        allocatedCoverAmount += allocate;
         trancheAllocatedCapacities[i] += allocate;
         coverTrancheAllocation[i] = allocate;
 
@@ -614,12 +633,12 @@ contract StakingPool is IStakingPool, ERC721 {
       );
     }
 
-    premium = calculatePremium(
+    premium = getPremium(
       request.productId,
+      allocatedCoverAmount,
+      request.period,
       totalAllocatedCapacity,
-      totalCapacity,
-      allocatedAmount,
-      request.period
+      totalCapacity
     );
 
     uint rewards;
@@ -634,7 +653,7 @@ contract StakingPool is IStakingPool, ERC721 {
       rewardBuckets[expireAtBucket].rewardPerSecondCut += _rewardPerSecond;
     }
 
-    return (allocatedAmount, premium, rewards);
+    return (allocatedCoverAmount, premium, rewards);
   }
 
   function deallocateStake(
@@ -697,28 +716,6 @@ contract StakingPool is IStakingPool, ERC721 {
       // 1 SLOAD + 1 SSTORE
       rewardBuckets[expireAtBucket].rewardPerSecondCut -= _rewardPerSecond;
     }
-  }
-
-  function calculatePremium(
-    uint productId,
-    uint allocatedStake,
-    uint usableStake,
-    uint newAllocation,
-    uint period
-  ) public returns (uint) {
-
-    uint premium;
-
-    // silence compiler warnings
-    allocatedStake;
-    usableStake;
-    newAllocation;
-    period;
-    block.timestamp;
-    uint96 nextPrice = 0;
-    products[productId].lastPrice = nextPrice;
-
-    return premium;
   }
 
   function getStoredActiveCoverAmounts(
@@ -1340,7 +1337,141 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     activeCover = getAllocatedProductStake(productId);
-    lastBasePrice = products[productId].lastPrice;
+    lastBasePrice = products[productId].nextPrice;
     targetPrice = products[productId].targetPrice;
+  }
+
+  function getPremium(
+    uint productId,
+    uint coverAmount,
+    uint period,
+    uint allocatedCapacity,
+    uint totalCapacity
+  ) internal returns (uint) {
+
+    Product memory product = products[productId];
+
+    // use previously recorded next price and apply time based smoothing towards target price
+    uint basePrice = calculateBasePrice(
+      product.targetPrice,
+      product.nextPrice,
+      product.nextPriceUpdateTime,
+      block.timestamp
+    );
+
+    // calculate the next price by applying the price bump
+    uint priceBump = coverAmount * PRICE_BUMP_RATIO / totalCapacity / PRICE_BUMP_DENOMINATOR;
+    product.nextPrice = (basePrice + priceBump).toUint96();
+    product.nextPriceUpdateTime = uint32(block.timestamp);
+
+    // sstore
+    products[productId] = product;
+
+    // use calculated base price and apply surge pricing if applicable
+    uint premiumPerYear = calculatePremiumPerYear(
+      basePrice,
+      coverAmount,
+      allocatedCapacity,
+      totalCapacity
+    );
+
+    // calculate the premium for the requested period
+    return premiumPerYear * period / 365 days;
+  }
+
+  function calculateBasePrice(
+    uint targetPrice,
+    uint nextPrice,
+    uint nextPriceUpdateTime,
+    uint currentTime
+  ) public pure returns (uint) {
+
+    uint timeSinceLastUpdate = currentTime - nextPriceUpdateTime;
+    uint priceDrop = PRICE_CHANGE_PER_DAY * timeSinceLastUpdate / 1 days;
+
+    // basePrice = max(targetPrice, nextPrice - priceDrop)
+    // rewritten to avoid underflow
+
+    if (nextPrice < targetPrice + priceDrop) {
+      return targetPrice;
+    }
+
+    return nextPrice - priceDrop;
+  }
+
+  function calculatePremiumPerYear(
+    uint basePrice,
+    uint coverAmount,
+    uint initialCapacityUsed,
+    uint totalCapacity
+  ) public pure returns (uint) {
+
+    uint basePremium = coverAmount * basePrice / TOKEN_PRECISION;
+    uint surgeStartPoint = totalCapacity * SURGE_THRESHOLD_RATIO / SURGE_THRESHOLD_DENOMINATOR;
+    uint finalCapacityUsed = initialCapacityUsed + coverAmount;
+
+    // Capacity and surge pricing
+    //
+    //        i        f                         s
+    //   ▓▓▓▓▓░░░░░░░░░                          ▒▒▒▒▒▒▒▒▒▒
+    //
+    //  i - initial capacity used
+    //  f - final capacity used
+    //  s - surge start point
+
+    // if surge does not apply just return base premium
+    // i < f <= s case
+    if (finalCapacityUsed <= surgeStartPoint) {
+      return basePremium;
+    }
+
+    // calculate the premium amount incurred due to surge pricing
+    uint amountOnSurge = finalCapacityUsed - surgeStartPoint;
+    uint surgePremium = calculateSurgePremium(amountOnSurge, totalCapacity);
+
+    // if the capacity start point is before the surge start point
+    // the surge premium starts at zero, so we just return it
+    // i <= s < f case
+    if (initialCapacityUsed <= surgeStartPoint) {
+      return basePremium + surgePremium;
+    }
+
+    // otherwise we need to subtract the part that was already used by other covers
+    // s < i < f case
+    uint amountOnSurgeSkipped = initialCapacityUsed - surgeStartPoint;
+    uint surgePremiumSkipped = calculateSurgePremium(amountOnSurgeSkipped, totalCapacity);
+
+    return basePremium + surgePremium - surgePremiumSkipped;
+  }
+
+  // Calculates the premium for a given cover amount starting with the surge point
+  function calculateSurgePremium(
+    uint amount,
+    uint totalCapacity
+  ) internal pure returns (uint) {
+
+    // surge price is applied for the capacity used above SURGE_THRESHOLD_RATIO.
+    // the surge price starts at zero and increases linearly.
+    // to simplify things, we're working with fractions/ratios instead of percentages,
+    // ie 0 to 1 instead of 0% to 100%, 100% = 1 (a unit).
+    //
+    // surgeThreshold = SURGE_THRESHOLD_RATIO / SURGE_THRESHOLD_DENOMINATOR
+    //                = 80_00 / 100_00 = 0.8
+    //
+    // for each percent of capacity used, the surge price increases by 10% per annum
+    // which in fractions/ratios terms is a 0.1 increase for each 0.01 of capacity used
+    // meaning an increase by 10 (equivalent of 1000%) for an entire unit
+    //
+    // priceIncreasePerUnit = SURGE_PRICE_RATIO / SURGE_PRICE_DENOMINATOR
+    // coverToCapacityRatio = amount / totalCapacity
+    // surgePriceStart = 0
+    // surgePriceEnd = coverToCapacityRatio * priceIncreasePerUnit
+    //
+    // premium = amount * surgePriceEnd / 2
+    //         = amount * coverToCapacityRatio * priceIncreasePerUnit / 2
+    //         = amount * amount / totalCapacity * SURGE_PRICE_RATIO / SURGE_PRICE_DENOMINATOR / 2
+    //         = amount * amount * SURGE_PRICE_RATIO / totalCapacity / SURGE_PRICE_DENOMINATOR / 2
+
+    return amount * amount * SURGE_PRICE_RATIO / totalCapacity / SURGE_PRICE_DENOMINATOR / 2;
   }
 }

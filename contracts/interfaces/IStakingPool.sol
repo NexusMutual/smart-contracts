@@ -75,8 +75,8 @@ interface IStakingPool is IERC721 {
     uint8 lastWeight;
     uint8 targetWeight;
     uint96 targetPrice;
-    uint96 lastPrice;
-    uint32 lastPriceUpdateTime;
+    uint96 nextPrice;
+    uint32 nextPriceUpdateTime;
   }
 
   struct RewardBucket {

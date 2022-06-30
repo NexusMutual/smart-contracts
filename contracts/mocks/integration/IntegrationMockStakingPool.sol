@@ -18,8 +18,6 @@ contract IntegrationMockStakingPool is StakingPool {
 
   mapping (uint => uint) public mockPrices;
 
-  uint public constant MAX_PRICE_RATIO = 1e20;
-
   constructor (
     address _nxm,
     address _coverContract,
@@ -60,7 +58,7 @@ contract IntegrationMockStakingPool is StakingPool {
   }
 
   function calculatePremium(uint priceRatio, uint coverAmount, uint period) public pure returns (uint) {
-    return priceRatio * coverAmount / MAX_PRICE_RATIO * period / 365 days;
+    return priceRatio * coverAmount / TOKEN_PRECISION * period / 365 days;
   }
 
   function stake(uint amount) external {

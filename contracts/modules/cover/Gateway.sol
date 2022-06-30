@@ -27,25 +27,9 @@ contract Gateway is IGateway, MasterAware {
   IQuotationData public quotationData;
   IClaimsData public claimsData;
   IClaims public claims;
+  IIncidents public incidents;
   IPool public pool;
   IMemberRoles public memberRoles;
-
-  // assigned in initialize
-  address public DAI;
-
-  IIncidents public incidents;
-
-  // constants
-  address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
-  struct CoverData {
-    uint[] coverDetails;
-    uint8 v;
-    bytes32 r;
-    bytes32 s;
-    bool payWithNXM;
-    bytes32 ipfsMetadata;
-  }
 
   event CoverBought(
     uint coverId,
@@ -58,17 +42,17 @@ contract Gateway is IGateway, MasterAware {
     bytes data
   );
 
-  event MetadataSubmitted(
-    uint coverId,
-    bytes32 ipfsMetadata
-  );
-
   event ClaimSubmitted(
     uint indexed claimId,
     uint indexed coverId,
     address indexed submitter,
     bytes data
   );
+
+  // assigned in initialize
+  address public DAI;
+  // constants
+  address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   function changeDependentContractAddress() public {
     quotation = IQuotation(master.getLatestAddress("QT"));
@@ -80,10 +64,6 @@ contract Gateway is IGateway, MasterAware {
     incidents = IIncidents(master.getLatestAddress("IC"));
     pool = IPool(master.getLatestAddress("P1"));
     memberRoles = IMemberRoles(master.getLatestAddress("MR"));
-  }
-
-  function initializeDAI() external {
-    DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
   }
 
   function getCoverPrice (
@@ -122,58 +102,37 @@ contract Gateway is IGateway, MasterAware {
     require(coverType == CoverType.SIGNED_QUOTE_CONTRACT_COVER, "Gateway: Unsupported cover type");
     require(sumAssured % 10 ** assetDecimals(coverAsset) == 0, "Gateway: Only whole unit sumAssured supported");
 
-    bytes32 ipfsMetadata;
     {
-      CoverData memory coverData = getCoverData(sumAssured, data, coverAsset);
+      (
+      uint[] memory coverDetails,
+      uint8 _v,
+      bytes32 _r,
+      bytes32 _s
+      ) = convertToLegacyQuote(sumAssured, data, coverAsset);
 
-      if (coverData.payWithNXM) {
-        {
-          uint premiumAmountInNXM = coverData.coverDetails[2];
-          tokenController.burnFrom(msg.sender, premiumAmountInNXM);
+      {
+        uint premiumAmount = coverDetails[1];
+        if (coverAsset == ETH) {
+          require(msg.value == premiumAmount, "Gateway: ETH amount does not match premium");
+          // solhint-disable-next-line avoid-low-level-calls, avoid-call-value
+          (bool ok, /* data */) = address(pool).call.value(premiumAmount)("");
+          require(ok, "Gateway: Transfer to Pool failed");
+        } else {
+          IERC20 token = IERC20(coverAsset);
+          token.safeTransferFrom(msg.sender, address(pool), premiumAmount);
         }
-        quotation.verifyCoverDetails(
-          msg.sender,
-          contractAddress,
-          getCurrencyFromAssetAddress(coverAsset),
-          coverData.coverDetails,
-          coverPeriod,
-          coverData.v,
-          coverData.r,
-          coverData.s
-        );
-      } else {
-        {
-          uint premiumAmount = coverData.coverDetails[1];
-          if (coverAsset == ETH) {
-            require(msg.value == premiumAmount, "Gateway: ETH amount does not match premium");
-            // solhint-disable-next-line avoid-low-level-calls, avoid-call-value
-            (bool ok, /* data */) = address(pool).call.value(premiumAmount)("");
-            require(ok, "Gateway: Transfer to Pool failed");
-          } else {
-            IERC20 token = IERC20(coverAsset);
-            token.safeTransferFrom(msg.sender, address(pool), premiumAmount);
-          }
-        }
-        quotation.createCover(
-          msg.sender,
-          contractAddress,
-          getCurrencyFromAssetAddress(coverAsset),
-          coverData.coverDetails,
-          coverPeriod,
-          coverData.v,
-          coverData.r,
-          coverData.s
-        );
       }
-      ipfsMetadata = coverData.ipfsMetadata;
+
+      quotation.createCover(
+        msg.sender,
+        contractAddress,
+        getCurrencyFromAssetAddress(coverAsset),
+        coverDetails,
+        coverPeriod, _v, _r, _s
+      );
     }
 
     uint coverId = quotationData.getCoverLength().sub(1);
-
-    if (ipfsMetadata != bytes32(0)) {
-      emit MetadataSubmitted(coverId, ipfsMetadata);
-    }
-
     emit CoverBought(coverId, msg.sender, contractAddress, coverAsset, sumAssured, coverPeriod, coverType, data);
     return coverId;
   }
@@ -265,8 +224,8 @@ contract Gateway is IGateway, MasterAware {
     revert("Gateway: Unsupported action");
   }
 
-  function getCoverData(uint sumAssured, bytes memory data, address asset)
-    internal view returns (CoverData memory) {
+  function convertToLegacyQuote(uint sumAssured, bytes memory data, address asset)
+    internal view returns (uint[] memory coverDetails, uint8, bytes32, bytes32) {
     (
     uint coverPrice,
     uint coverPriceNXM,
@@ -274,38 +233,16 @@ contract Gateway is IGateway, MasterAware {
     uint generatedAt,
     uint8 v,
     bytes32 r,
-    bytes32 s,
-    bool payWithNXM,
-    bytes32 ipfsMetadata
-    ) = abi.decode(
-      data,
-      (
-        uint,
-        uint,
-        uint,
-        uint,
-        uint8,
-        bytes32,
-        bytes32,
-        bool,
-        bytes32
-      )
-    );
-    uint[] memory coverDetails = new uint[](5);
+    bytes32 s
+    ) = abi.decode(data, (uint, uint, uint, uint, uint8, bytes32, bytes32));
+    coverDetails = new uint[](5);
     // convert from wei to units
     coverDetails[0] = sumAssured.div(10 ** assetDecimals(asset));
     coverDetails[1] = coverPrice;
     coverDetails[2] = coverPriceNXM;
     coverDetails[3] = expiresAt;
     coverDetails[4] = generatedAt;
-    return CoverData(
-      coverDetails,
-      v,
-      r,
-      s,
-      payWithNXM,
-      ipfsMetadata
-    );
+    return (coverDetails, v, r, s);
   }
 
   function assetDecimals(address asset) public view returns (uint) {

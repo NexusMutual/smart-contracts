@@ -25,6 +25,7 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
   ITokenController public tc;
   ITokenData public td;
   IIncidents public incidents;
+  mapping(uint => string) public coverMetadata;
 
   /**
    * @dev Iupgradable Interface to update dependent contract address
@@ -140,7 +141,53 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     bytes32 _s
   ) external onlyMember whenNotPaused {
     tc.burnFrom(msg.sender, coverDetails[2]); // needs allowance
-    _verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s, true);
+    _verifyCoverDetails(
+      msg.sender,
+      smartCAdd,
+      coverCurr,
+      coverDetails,
+      coverPeriod,
+      _v,
+      _r,
+      _s,
+      true
+    );
+  }
+
+  /// Creates cover with offchain metadata that can be used as a commitment when claiming.
+  function buyCoverWithMetadata(
+    uint[] calldata coverDetails,
+    uint16 coverPeriod,
+    bytes4 coverCurr,
+    address smartCAdd,
+    uint8 _v,
+    bytes32 _r,
+    bytes32 _s,
+    bool payWithNXM,
+    string calldata ipfsMetadata
+  ) external payable onlyMember whenNotPaused {
+    if (payWithNXM) {
+      tc.burnFrom(msg.sender, coverDetails[2]);
+    } else {
+      if (coverCurr == "ETH") {
+        require(msg.value == coverDetails[1], "Quotation: ETH amount does not match premium");
+      }
+    }
+
+    _verifyCoverDetails(
+      msg.sender,
+      smartCAdd,
+      coverCurr,
+      coverDetails,
+      coverPeriod,
+      _v,
+      _r,
+      _s,
+      payWithNXM
+    );
+
+    uint coverId = qd.getCoverLength().sub(1);
+    coverMetadata[coverId] = ipfsMetadata;
   }
 
   /**

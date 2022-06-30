@@ -9,7 +9,7 @@ const { buyCover, ethCoverTemplate, daiCoverTemplate, getBuyCoverDataParameter }
 
 const [, member1, nonMember1] = accounts;
 
-describe.only('buyCover', function () {
+describe('buyCover', function () {
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1]);
   });

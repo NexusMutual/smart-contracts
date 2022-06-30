@@ -10,7 +10,6 @@ const { hex } = require('../utils').helpers;
 const [, member1, nonMember1] = accounts;
 
 async function buyCover ({ cover, coverHolder, qt, payWithNXM = false, ipfsMetadata = '', value }) {
-  console.log('before');
   const vrsData = await getQuoteSignature(
     coverToCoverDetailsArray(cover),
     cover.currency,
@@ -18,7 +17,6 @@ async function buyCover ({ cover, coverHolder, qt, payWithNXM = false, ipfsMetad
     cover.contractAddress,
     qt.address,
   );
-  console.log('middle');
 
   return qt.buyCoverWithMetadata(
     coverToCoverDetailsArray(cover),

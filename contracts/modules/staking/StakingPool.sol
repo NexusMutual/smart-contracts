@@ -188,7 +188,7 @@ contract StakingPool is IStakingPool, ERC721 {
   ) external onlyCoverContract {
     uint length = tokenIds.length;
     for (uint i = 0; i < length; i++) {
-      _safeTransfer(from, to, tokenIds[i], "");
+      _transfer(from, to, tokenIds[i]);
     }
   }
 

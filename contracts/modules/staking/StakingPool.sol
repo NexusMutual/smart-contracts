@@ -660,16 +660,40 @@ contract StakingPool is IStakingPool, ERC721 {
     uint coverStartTime,
     uint premium
   ) external onlyCoverContract {
-
     updateTranches(true);
+    deallocateStakeForCover(request, coverStartTime);
+    removeCoverReward(coverStartTime, request.period, premium, request.rewardRatio);
+  }
+
+  function removeCoverReward(
+    uint coverStartTime,
+    uint period,
+    uint premium,
+    uint rewardRatio
+  ) internal {
+
+    require(rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
+
+    uint rewards = premium * rewardRatio / REWARDS_DENOMINATOR;
+    uint expireAtBucket = Math.divCeil(coverStartTime + period, BUCKET_DURATION);
+    uint _rewardPerSecond = rewards / (expireAtBucket * BUCKET_DURATION - coverStartTime);
+
+    // 1 SLOAD + 1 SSTORE
+    rewardBuckets[expireAtBucket].rewardPerSecondCut -= _rewardPerSecond;
+  }
+
+  function deallocateStakeForCover(
+    CoverRequest memory request,
+    uint coverStartTime
+  ) internal {
 
     uint gracePeriodExpiration = coverStartTime + request.period + request.gracePeriod;
     uint firstTrancheIdToUse = gracePeriodExpiration / TRANCHE_DURATION;
     uint trancheCount = (coverStartTime / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES) - firstTrancheIdToUse + 1;
 
     (
-    uint[] memory trancheAllocatedCapacities,
-    /*uint totalAllocatedCapacity*/
+      uint[] memory trancheAllocatedCapacities,
+      /*uint totalAllocatedCapacity*/
     ) = getAllocatedCapacities(
       request.productId,
       firstTrancheIdToUse,
@@ -703,17 +727,6 @@ contract StakingPool is IStakingPool, ERC721 {
         coverTrancheAllocation,
         false // isAllocation
       );
-    }
-
-    {
-      require(request.rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
-
-      uint rewards = premium * request.rewardRatio / REWARDS_DENOMINATOR;
-      uint expireAtBucket = Math.divCeil(coverStartTime + request.period, BUCKET_DURATION);
-      uint _rewardPerSecond = rewards / (expireAtBucket * BUCKET_DURATION - coverStartTime);
-
-      // 1 SLOAD + 1 SSTORE
-      rewardBuckets[expireAtBucket].rewardPerSecondCut -= _rewardPerSecond;
     }
   }
 
@@ -1111,7 +1124,12 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   // O(1)
-  function burnStake(uint productId, uint start, uint period, uint amount) external onlyCoverContract {
+  function burnStake(
+    uint productId,
+    uint start,
+    uint period,
+    uint amount
+  ) external onlyCoverContract {
 
     productId;
     start;

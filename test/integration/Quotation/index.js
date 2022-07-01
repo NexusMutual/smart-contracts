@@ -1,4 +1,4 @@
-describe.only('Quotation integration tests', function () {
+describe('Quotation integration tests', function () {
   require('./buyCoverWithMetadata');
   require('./makeCoverUsingNXMTokens');
   require('./withdrawCoverNote');

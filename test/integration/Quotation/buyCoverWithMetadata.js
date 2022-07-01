@@ -45,7 +45,7 @@ const coverTemplate = {
 
 const ipfsMetadata = 'ipfs cid goes here';
 
-describe.only('buyCoverWithMetadata', function () {
+describe('buyCoverWithMetadata', function () {
   beforeEach(async function () {
     const { dai } = this.contracts;
     await enrollMember(this.contracts, [member1]);
@@ -111,11 +111,12 @@ describe.only('buyCoverWithMetadata', function () {
     const member = member1;
 
     const nxmSupplyBefore = await token.totalSupply();
-    const memberNXMBalanceBefore = await token.balanceOf(member);
+    const memberDAIBalanceBefore = await dai.balanceOf(member);
 
     const coversToBuy = 3;
     let generationTime = parseInt(cover.generationTime);
     for (let i = 0; i < coversToBuy; i++) {
+      await dai.approve(pool.address, toBN(cover.price), { from: member });
       const newCover = { ...cover, generationTime: (generationTime++).toString() };
       await buyCover({ ...this.contracts, cover: newCover, coverHolder: member, ipfsMetadata });
     }
@@ -127,18 +128,17 @@ describe.only('buyCoverWithMetadata', function () {
     const expectedTotalSumAsssured = toBN(cover.amount).muln(coversToBuy);
     assert.equal(totalSumAssured.toString(), expectedTotalSumAsssured.toString());
 
-    const memberNXMBalanceAfter = await token.balanceOf(member);
+    const memberDAIBalanceAfter = await dai.balanceOf(member);
     assert.equal(
-      memberNXMBalanceAfter.toString(),
-      memberNXMBalanceBefore.sub(toBN(cover.priceNXM).muln(coversToBuy)).toString(),
+      memberDAIBalanceAfter.toString(),
+      memberDAIBalanceBefore.sub(toBN(cover.price).muln(coversToBuy)).toString(),
     );
 
     const expectedCoverNoteLockedNXM = toBN(cover.priceNXM)
       .divn(10)
       .muln(coversToBuy);
-    const expectedTotalNXMSupply = nxmSupplyBefore
-      .add(expectedCoverNoteLockedNXM)
-      .sub(toBN(cover.priceNXM).muln(coversToBuy));
+
+    const expectedTotalNXMSupply = nxmSupplyBefore.add(expectedCoverNoteLockedNXM);
     const totalNXMSupplyAfter = await token.totalSupply();
     assert.equal(expectedTotalNXMSupply.toString(), totalNXMSupplyAfter.toString());
   });
@@ -170,13 +170,15 @@ describe.only('buyCoverWithMetadata', function () {
   });
 
   it('reverts if approved NXM is less than premium + tokens to be locked', async function () {
-    const { p1: pool, tk: token } = this.contracts;
+    const { tc, tk: token } = this.contracts;
     const cover = { ...coverTemplate };
     const member = member1;
 
-    await token.approve(pool.address, toBN(cover.priceNXM).subn(1), { from: member });
-
+    await token.approve(tc.address, toBN(cover.priceNXM).subn(1), { from: member });
     await expectRevert.unspecified(buyCover({ ...this.contracts, cover, coverHolder: member, payWithNXM: true }));
+
+    await token.approve(tc.address, toBN(cover.priceNXM), { from: member });
+    await buyCover({ ...this.contracts, cover, coverHolder: member, payWithNXM: true });
   });
 
   it('reverts if smart contract address is the 0 address', async function () {
@@ -187,13 +189,14 @@ describe.only('buyCoverWithMetadata', function () {
   it('reverts when tx value does not match the premium when paying in ETH', async function () {
     const cover = { ...coverTemplate, currency: hex('ETH') };
     await expectRevert(
-      buyCover({ ...this.contracts, cover, coverHolder: member1, value: toBN(coverTemplate.price).addn('1') }),
+      buyCover({ ...this.contracts, cover, coverHolder: member1, value: toBN(coverTemplate.price).addn(1) }),
       'Quotation: ETH amount does not match premium',
     );
     await expectRevert(
-      buyCover({ ...this.contracts, cover, coverHolder: member1, value: toBN(coverTemplate.price).subn('1') }),
+      buyCover({ ...this.contracts, cover, coverHolder: member1, value: toBN(coverTemplate.price).subn(1) }),
       'Quotation: ETH amount does not match premium',
     );
+    await buyCover({ ...this.contracts, cover, coverHolder: member1, value: toBN(coverTemplate.price) });
   });
 
   it('reverts if quote validity is expired', async function () {
@@ -203,7 +206,9 @@ describe.only('buyCoverWithMetadata', function () {
   });
 
   it('reverts if quote is reused', async function () {
+    const { dai, p1: pool } = this.contracts;
     const cover = { ...coverTemplate };
+    await dai.approve(pool.address, toBN(cover.price), { from: member1 });
     await buyCover({ ...this.contracts, cover, coverHolder: member1 });
     await expectRevert.unspecified(buyCover({ ...this.contracts, cover, coverHolder: member1 }));
   });
@@ -214,7 +219,7 @@ describe.only('buyCoverWithMetadata', function () {
   });
 
   it('reverts if signed quote does not match quote parameters', async function () {
-    const { qt } = this.contracts;
+    const { qt, dai, p1: pool } = this.contracts;
     const cover = { ...coverTemplate };
 
     // sign a different amount than the one requested.
@@ -225,6 +230,8 @@ describe.only('buyCoverWithMetadata', function () {
       cover.contractAddress,
       qt.address,
     );
+
+    await dai.approve(pool.address, toBN(cover.price), { from: member1 });
 
     await expectRevert.unspecified(
       qt.buyCoverWithMetadata(

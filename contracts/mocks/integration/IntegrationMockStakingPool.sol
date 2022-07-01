@@ -29,18 +29,9 @@ contract IntegrationMockStakingPool is StakingPool {
     memberRoles = _memberRoles;
   }
 
-  function name() public view override returns (string memory) {
-    return string(abi.encodePacked(super.name(), " ", Strings.toString(poolId)));
-  }
-
   function initialize(address _manager, uint _poolId) external /*override*/ {
     _mint(_manager, totalSupply++);
     poolId = _poolId;
-  }
-
-  function operatorTransferFrom(address from, address to, uint256 amount) external /*override*/ {
-    require(msg.sender == memberRoles, "StakingPool: Caller is not MemberRoles");
-    _transfer(from, to, amount);
   }
 
   function allocateCapacity(

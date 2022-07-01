@@ -46,7 +46,7 @@ struct ProductInitializationParams {
   uint96 targetPrice;
 }
 
-interface IStakingPool is IERC721 {
+interface IStakingPool {
 
   /* structs for storage */
 

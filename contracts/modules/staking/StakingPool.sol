@@ -4,7 +4,11 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 // TODO: consider using solmate ERC721 implementation
-import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
+//import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
+import { ERC721 as SolmateERC721 } from "@rari-capital/solmate/src/tokens/ERC721.sol";
+import "@openzeppelin/contracts-v4/utils/Strings.sol";
+
+//import "../../interfaces/ISolmateERC721.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/ICover.sol";
@@ -22,7 +26,7 @@ import "./StakingTypesLib.sol";
 // on cover buys we allocate the available product capacity
 // on cover expiration we deallocate the capacity and it becomes available again
 
-contract StakingPool is IStakingPool, ERC721 {
+contract StakingPool is IStakingPool, SolmateERC721 {
   using StakingTypesLib for CoverAmountGroup;
   using StakingTypesLib for CoverAmount;
   using StakingTypesLib for BucketTrancheGroup;
@@ -147,10 +151,15 @@ contract StakingPool is IStakingPool, ERC721 {
     address _token,
     address _coverContract,
     ITokenController _tokenController
-  ) ERC721(_name, _symbol) {
+  ) SolmateERC721(_name, _symbol) {
     nxm = INXMToken(_token);
     coverContract = _coverContract;
     tokenController = _tokenController;
+  }
+
+  function _isApprovedOrOwner(address spender, uint tokenId) public view returns (bool) {
+    address owner = ownerOf(tokenId);
+    return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[tokenId];
   }
 
   function initialize(
@@ -162,22 +171,27 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _poolId
   ) external onlyCoverContract {
 
-    isPrivatePool = _isPrivatePool;
-
     require(_initialPoolFee <= _maxPoolFee, "StakingPool: Pool fee should not exceed max pool fee");
     require(_maxPoolFee < 100, "StakingPool: Max pool fee cannot be 100%");
 
+    isPrivatePool = _isPrivatePool;
+
     poolFee = uint8(_initialPoolFee);
     maxPoolFee = uint8(_maxPoolFee);
+
+    poolId = _poolId;
+    name = string(abi.encodePacked(name, " ", Strings.toString(poolId)));
 
     // TODO: initialize products
     params;
 
     // create ownership nft
     totalSupply = 1;
-    _safeMint(_manager, 0);
+    _mint(_manager, 0);
+  }
 
-    poolId = _poolId;
+  function tokenURI(uint256 id) public pure override returns (string memory) {
+    return "";
   }
 
   // used to transfer all nfts when a user switches the membership to a new address
@@ -188,7 +202,7 @@ contract StakingPool is IStakingPool, ERC721 {
   ) external onlyCoverContract {
     uint length = tokenIds.length;
     for (uint i = 0; i < length; i++) {
-      _transfer(from, to, tokenIds[i]);
+      transferFrom(from, to, tokenIds[i]);
     }
   }
 
@@ -1147,18 +1161,20 @@ contract StakingPool is IStakingPool, ERC721 {
 
   /* nft */
 
-  function _beforeTokenTransfer(
+  function transferFrom(
     address from,
     address to,
     uint256 tokenId
-  ) internal override {
-    if(tokenId == 0) {
+  ) public override {
+
+    if (tokenId == 0) {
       require(
         nxm.isLockedForMV(from) < block.timestamp,
         "StakingPool: Active pool assets are locked for voting in governance"
       );
     }
-    super._beforeTokenTransfer(from, to, tokenId);
+
+    super.transferFrom(from, to, tokenId);
   }
 
   /* pool management */

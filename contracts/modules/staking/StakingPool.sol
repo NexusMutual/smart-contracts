@@ -117,12 +117,11 @@ contract StakingPool is IStakingPool, ERC721 {
   // next price smoothing
   uint public constant PRICE_CHANGE_PER_DAY = 0.005 ether; // 0.5%
 
-  uint public constant SURGE_THRESHOLD_RATIO = 80_00; // 80.00%
+  uint public constant SURGE_THRESHOLD_RATIO = 90_00; // 80.00%
   uint public constant SURGE_THRESHOLD_DENOMINATOR = 100_00; // 100.00%
 
-  // +10% for each 1%, ie +1000% for 100%
-  // max will be at +200% at the end of the surge interval
-  uint public constant SURGE_PRICE_RATIO = 1000_00; // 1000.00%
+  // +2% for every 1%
+  uint public constant SURGE_PRICE_RATIO = 200_00; // 200.00%
   uint public constant SURGE_PRICE_DENOMINATOR = 100_00; // 100.00%
 
   // base price bump by 0.002% for each 1% of capacity used, ie 2% for 100%

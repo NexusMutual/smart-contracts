@@ -18,8 +18,6 @@ contract IntegrationMockStakingPool is StakingPool {
 
   mapping (uint => uint) public mockPrices;
 
-  uint public constant MAX_PRICE_RATIO = 1e20;
-
   constructor (
     address _nxm,
     address _coverContract,
@@ -31,18 +29,9 @@ contract IntegrationMockStakingPool is StakingPool {
     memberRoles = _memberRoles;
   }
 
-  function name() public view override returns (string memory) {
-    return string(abi.encodePacked(super.name(), " ", Strings.toString(poolId)));
-  }
-
   function initialize(address _manager, uint _poolId) external /*override*/ {
     _mint(_manager, totalSupply++);
     poolId = _poolId;
-  }
-
-  function operatorTransferFrom(address from, address to, uint256 amount) external /*override*/ {
-    require(msg.sender == memberRoles, "StakingPool: Caller is not MemberRoles");
-    _transfer(from, to, amount);
   }
 
   function allocateCapacity(
@@ -60,7 +49,7 @@ contract IntegrationMockStakingPool is StakingPool {
   }
 
   function calculatePremium(uint priceRatio, uint coverAmount, uint period) public pure returns (uint) {
-    return priceRatio * coverAmount / MAX_PRICE_RATIO * period / 365 days;
+    return priceRatio * coverAmount / TOKEN_PRECISION * period / 365 days;
   }
 
   function stake(uint amount) external {

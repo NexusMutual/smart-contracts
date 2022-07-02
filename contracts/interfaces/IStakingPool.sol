@@ -46,7 +46,7 @@ struct ProductInitializationParams {
   uint96 targetPrice;
 }
 
-interface IStakingPool is IERC721 {
+interface IStakingPool {
 
   /* structs for storage */
 
@@ -75,8 +75,8 @@ interface IStakingPool is IERC721 {
     uint8 lastWeight;
     uint8 targetWeight;
     uint96 targetPrice;
-    uint96 lastPrice;
-    uint32 lastPriceUpdateTime;
+    uint96 nextPrice;
+    uint32 nextPriceUpdateTime;
   }
 
   struct RewardBucket {
@@ -95,19 +95,16 @@ interface IStakingPool is IERC721 {
 
   function operatorTransfer(address from, address to, uint[] calldata tokenIds) external;
 
-  function updateTranches() external;
+  function updateTranches(bool updateUntilCurrentTimestamp) external;
 
   function allocateStake(
     CoverRequest calldata request
   ) external returns (uint allocatedAmount, uint premium, uint rewardsInNXM);
 
   function deallocateStake(
-    uint productId,
-    uint start,
-    uint period,
-    uint amount,
-    uint premium,
-    uint globalRewardsRatio
+    CoverRequest memory request,
+    uint coverStartTime,
+    uint premium
   ) external;
 
   function burnStake(uint productId, uint start, uint period, uint amount) external;

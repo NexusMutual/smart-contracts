@@ -4,13 +4,18 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 // TODO: consider using solmate ERC721 implementation
-import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
+//import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
+import { ERC721 as SolmateERC721 } from "@rari-capital/solmate/src/tokens/ERC721.sol";
+import "@openzeppelin/contracts-v4/utils/Strings.sol";
+
+//import "../../interfaces/ISolmateERC721.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../libraries/Math.sol";
+import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
 
@@ -21,11 +26,12 @@ import "./StakingTypesLib.sol";
 // on cover buys we allocate the available product capacity
 // on cover expiration we deallocate the capacity and it becomes available again
 
-contract StakingPool is IStakingPool, ERC721 {
-  using SafeUintCast for uint;
+contract StakingPool is IStakingPool, SolmateERC721 {
   using StakingTypesLib for CoverAmountGroup;
   using StakingTypesLib for CoverAmount;
   using StakingTypesLib for BucketTrancheGroup;
+  using SafeUintCast for uint;
+  using UncheckedMath for uint;
 
   /* storage */
 
@@ -94,22 +100,40 @@ contract StakingPool is IStakingPool, ERC721 {
   /* constants */
 
   // 7 * 13 = 91
-  uint constant BUCKET_DURATION = 28 days;
-  uint constant TRANCHE_DURATION = 91 days;
-  uint constant MAX_ACTIVE_TRANCHES = 8; // 7 whole quarters + 1 partial quarter
-  uint constant COVER_TRANCHE_GROUP_SIZE = 4;
-  uint constant BUCKET_TRANCHE_GROUP_SIZE = 8;
+  uint public constant BUCKET_DURATION = 28 days;
+  uint public constant TRANCHE_DURATION = 91 days;
+  uint public constant MAX_ACTIVE_TRANCHES = 8; // 7 whole quarters + 1 partial quarter
+  uint public constant COVER_TRANCHE_GROUP_SIZE = 4;
+  uint public constant BUCKET_TRANCHE_GROUP_SIZE = 8;
 
   uint public constant REWARD_BONUS_PER_TRANCHE_RATIO = 10_00; // 10.00%
   uint public constant REWARD_BONUS_PER_TRANCHE_DENOMINATOR = 100_00;
-  uint constant WEIGHT_DENOMINATOR = 100;
-  uint constant REWARDS_DENOMINATOR = 100;
-  uint constant FEE_DENOMINATOR = 100;
+  uint public constant PRODUCT_WEIGHT_DENOMINATOR = 100_00;
+  uint public constant WEIGHT_DENOMINATOR = 100;
+  uint public constant REWARDS_DENOMINATOR = 100;
+  uint public constant FEE_DENOMINATOR = 100;
 
-  uint public constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
-  uint public constant CAPACITY_REDUCTION_DENOMINATOR = 10_000;
-  uint public constant PRODUCT_WEIGHT_DENOMINATOR = 10_000;
-  uint public constant INITIAL_PRICE_DENOMINATOR = 10_000;
+  // denominators for cover contract parameters
+  uint public constant GLOBAL_CAPACITY_DENOMINATOR = 100_00;
+  uint public constant CAPACITY_REDUCTION_DENOMINATOR = 100_00;
+  uint public constant INITIAL_PRICE_DENOMINATOR = 100_00;
+
+  // next price smoothing
+  uint public constant PRICE_CHANGE_PER_DAY = 0.005 ether; // 0.5%
+
+  uint public constant SURGE_THRESHOLD_RATIO = 90_00; // 80.00%
+  uint public constant SURGE_THRESHOLD_DENOMINATOR = 100_00; // 100.00%
+
+  // +2% for every 1%
+  uint public constant SURGE_PRICE_RATIO = 200_00; // 200.00%
+  uint public constant SURGE_PRICE_DENOMINATOR = 100_00; // 100.00%
+
+  // base price bump by 0.002% for each 1% of capacity used, ie 2% for 100%
+  uint public constant PRICE_BUMP_RATIO = 2_00; // 2.00%
+  uint public constant PRICE_BUMP_DENOMINATOR = 100_00; // 100.00%
+
+  // 1e18
+  uint public constant TOKEN_PRECISION = 1 ether;
 
   modifier onlyCoverContract {
     require(msg.sender == coverContract, "StakingPool: Only Cover contract can call this function");
@@ -127,10 +151,15 @@ contract StakingPool is IStakingPool, ERC721 {
     address _token,
     address _coverContract,
     ITokenController _tokenController
-  ) ERC721(_name, _symbol) {
+  ) SolmateERC721(_name, _symbol) {
     nxm = INXMToken(_token);
     coverContract = _coverContract;
     tokenController = _tokenController;
+  }
+
+  function _isApprovedOrOwner(address spender, uint tokenId) public view returns (bool) {
+    address owner = ownerOf(tokenId);
+    return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[tokenId];
   }
 
   function initialize(
@@ -142,22 +171,27 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _poolId
   ) external onlyCoverContract {
 
-    isPrivatePool = _isPrivatePool;
-
     require(_initialPoolFee <= _maxPoolFee, "StakingPool: Pool fee should not exceed max pool fee");
     require(_maxPoolFee < 100, "StakingPool: Max pool fee cannot be 100%");
 
+    isPrivatePool = _isPrivatePool;
+
     poolFee = uint8(_initialPoolFee);
     maxPoolFee = uint8(_maxPoolFee);
+
+    poolId = _poolId;
+    name = string(abi.encodePacked(name, " ", Strings.toString(poolId)));
 
     // TODO: initialize products
     params;
 
     // create ownership nft
     totalSupply = 1;
-    _safeMint(_manager, 0);
+    _mint(_manager, 0);
+  }
 
-    poolId = _poolId;
+  function tokenURI(uint256 id) public pure override returns (string memory) {
+    return "";
   }
 
   // used to transfer all nfts when a user switches the membership to a new address
@@ -168,12 +202,13 @@ contract StakingPool is IStakingPool, ERC721 {
   ) external onlyCoverContract {
     uint length = tokenIds.length;
     for (uint i = 0; i < length; i++) {
-      _safeTransfer(from, to, tokenIds[i], "");
+      transferFrom(from, to, tokenIds[i]);
     }
   }
 
-
-  function updateTranches() public {
+  // updateUntilCurrentTimestamp forces rewards update until current timestamp not just until
+  // bucket/tranche expiry timestamps. Must be true when changing shares or reward per second.
+  function updateTranches(bool updateUntilCurrentTimestamp) public {
 
     uint _firstActiveBucketId = firstActiveBucketId;
     uint _firstActiveTrancheId = firstActiveTrancheId;
@@ -181,15 +216,22 @@ contract StakingPool is IStakingPool, ERC721 {
     uint currentBucketId = block.timestamp / BUCKET_DURATION;
     uint currentTrancheId = block.timestamp / TRANCHE_DURATION;
 
-    // populate if the pool is new
+    // skip if the pool is new
     if (_firstActiveBucketId == 0) {
-      firstActiveBucketId = currentBucketId;
-      firstActiveTrancheId = currentTrancheId;
       return;
     }
 
-    if (_firstActiveBucketId == currentBucketId) {
-      return;
+    // if a force update was not requested
+    if (!updateUntilCurrentTimestamp) {
+
+      bool canExpireBuckets = _firstActiveBucketId < currentBucketId;
+      bool canExpireTranches = _firstActiveTrancheId < currentTrancheId;
+
+      // and if there's nothing to expire
+      if (!canExpireBuckets && !canExpireTranches) {
+        // we can exit
+        return;
+      }
     }
 
     // SLOAD
@@ -200,59 +242,85 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
     uint _lastAccNxmUpdate = lastAccNxmUpdate;
 
-    while (_firstActiveBucketId < currentBucketId) {
+    // exit early if we already updated in the current block
+    if (_lastAccNxmUpdate == block.timestamp) {
+      return;
+    }
 
-      ++_firstActiveBucketId;
-      uint bucketEndTime = _firstActiveBucketId * BUCKET_DURATION;
-      uint elapsed = bucketEndTime - _lastAccNxmUpdate;
+    if (_rewardsSharesSupply == 0) {
+      // nothing to do
+      firstActiveBucketId = currentBucketId;
+      firstActiveTrancheId = currentTrancheId;
+      lastAccNxmUpdate = block.timestamp;
+      return;
+    }
 
-      // todo: should be allowed to overflow?
-      // todo: handle division by zero
-      _accNxmPerRewardsShare += elapsed * _rewardPerSecond / _rewardsSharesSupply;
-      _lastAccNxmUpdate = bucketEndTime;
-      // TODO: use _firstActiveBucketId before incrementing it?
-      _rewardPerSecond -= rewardBuckets[_firstActiveBucketId].rewardPerSecondCut;
+    while (_firstActiveBucketId < currentBucketId || _firstActiveTrancheId < currentTrancheId) {
 
-      // should we expire a tranche?
-      // FIXME: this doesn't work with the new bucket size
-      if (
-        bucketEndTime % TRANCHE_DURATION != 0 ||
-        _firstActiveTrancheId == currentTrancheId
-      ) {
+      // what expires first, the bucket or the tranche?
+      bool bucketExpiresFirst;
+      {
+        uint nextBucketStart = (_firstActiveBucketId + 1) * BUCKET_DURATION;
+        uint nextTrancheStart = (_firstActiveTrancheId + 1) * TRANCHE_DURATION;
+        bucketExpiresFirst = nextBucketStart <= nextTrancheStart;
+      }
+
+      if (bucketExpiresFirst) {
+
+        // expire a bucket
+        // each bucket contains a reward reduction - we subtract it when the bucket *starts*!
+
+        ++_firstActiveBucketId;
+        uint bucketStartTime = _firstActiveBucketId * BUCKET_DURATION;
+        uint elapsed = bucketStartTime - _lastAccNxmUpdate;
+
+        uint newAccNxmPerRewardsShare = elapsed * _rewardPerSecond / _rewardsSharesSupply;
+        _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
+
+        _rewardPerSecond -= rewardBuckets[_firstActiveBucketId].rewardPerSecondCut;
+        _lastAccNxmUpdate = bucketStartTime;
+
         continue;
       }
 
-      // todo: handle _firstActiveTrancheId = 0 case
+      // expire a tranche
+      // each tranche contains shares - we expire them when the tranche *ends*
+      // TODO: check if we have to expire the tranche
+      {
+        uint trancheEndTime = (_firstActiveTrancheId + 1) * TRANCHE_DURATION;
+        uint elapsed = trancheEndTime - _lastAccNxmUpdate;
+        uint newAccNxmPerRewardsShare = elapsed * _rewardPerSecond / _rewardsSharesSupply;
+        _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
+        _lastAccNxmUpdate = trancheEndTime;
 
-      // SLOAD
-      Tranche memory expiringTranche = tranches[_firstActiveTrancheId];
+        // SSTORE
+        expiredTranches[_firstActiveTrancheId] = ExpiredTranche(
+          _accNxmPerRewardsShare, // accNxmPerRewardShareAtExpiry
+          _activeStake, // stakeAmountAtExpiry
+          _stakeSharesSupply // stakeShareSupplyAtExpiry
+        );
 
-      // todo: handle division by zero
-      uint expiredStake = _activeStake * expiringTranche.stakeShares / _stakeSharesSupply;
+        // SLOAD and then SSTORE zero to get the gas refund
+        Tranche memory expiringTranche = tranches[_firstActiveTrancheId];
+        delete tranches[_firstActiveTrancheId];
 
-      // the tranche is expired now so we decrease the stake and share supply
-      _activeStake -= expiredStake;
-      _stakeSharesSupply -= expiringTranche.stakeShares;
-      _rewardsSharesSupply -= expiringTranche.rewardsShares;
+        // the tranche is expired now so we decrease the stake and the shares supply
+        uint expiredStake = _activeStake * expiringTranche.stakeShares / _stakeSharesSupply;
+        _activeStake -= expiredStake;
+        _stakeSharesSupply -= expiringTranche.stakeShares;
+        _rewardsSharesSupply -= expiringTranche.rewardsShares;
 
-      // todo: update nft 0
+        // advance to the next tranche
+        _firstActiveTrancheId++;
+      }
 
-      // SSTORE
-      delete tranches[_firstActiveTrancheId];
-      expiredTranches[_firstActiveTrancheId] = ExpiredTranche(
-        _accNxmPerRewardsShare, // accNxmPerRewardShareAtExpiry
-        // TODO: should this be before or after active stake reduction?
-        _activeStake, // stakeAmountAtExpiry
-        _stakeSharesSupply // stakeShareSupplyAtExpiry
-      );
-
-      // advance to the next tranche
-      _firstActiveTrancheId++;
+      // end while
     }
 
-    {
+    if (updateUntilCurrentTimestamp) {
       uint elapsed = block.timestamp - _lastAccNxmUpdate;
-      _accNxmPerRewardsShare += elapsed * _rewardPerSecond / _rewardsSharesSupply;
+      uint newAccNxmPerRewardsShare = elapsed * _rewardPerSecond / _rewardsSharesSupply;
+      _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
       _lastAccNxmUpdate = block.timestamp;
     }
 
@@ -273,7 +341,7 @@ contract StakingPool is IStakingPool, ERC721 {
       require(msg.sender == manager(), "StakingPool: The pool is private");
     }
 
-    updateTranches();
+    updateTranches(true);
 
     // storage reads
     uint _activeStake = activeStake;
@@ -332,7 +400,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
         // if we're increasing an existing deposit
         if (deposit.lastAccNxmPerRewardShare != 0) {
-          uint newEarningsPerShare = _accNxmPerRewardsShare - deposit.lastAccNxmPerRewardShare;
+          uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(deposit.lastAccNxmPerRewardShare);
           deposit.pendingRewards += newEarningsPerShare * deposit.rewardsShares;
         }
 
@@ -354,8 +422,7 @@ contract StakingPool is IStakingPool, ERC721 {
           newRewardsShares += newFeeRewardShares;
 
           // calculate rewards until now
-          uint newRewardPerShare = _accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare;
-
+          uint newRewardPerShare = _accNxmPerRewardsShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
           feeDeposit.pendingRewards += newRewardPerShare * feeDeposit.rewardsShares;
           feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
           feeDeposit.rewardsShares += newFeeRewardShares;
@@ -444,10 +511,10 @@ contract StakingPool is IStakingPool, ERC721 {
 
     uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
 
-    updateTranches();
+    // pass false as it does not modify the share supply nor the reward per second
+    updateTranches(false);
 
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
-
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 
     for (uint i = 0; i < params.length; i++) {
@@ -483,12 +550,12 @@ contract StakingPool is IStakingPool, ERC721 {
         if (params[i].withdrawRewards) {
 
           // if the tranche is expired, use the accumulator value saved at expiration time
-          uint accNxmPerRewardShareInUse = trancheId < _firstActiveTrancheId
+          uint accNxmPerRewardShareToUse = trancheId < _firstActiveTrancheId
             ? expiredTranches[trancheId].accNxmPerRewardShareAtExpiry
             : _accNxmPerRewardsShare;
 
           // calculate reward since checkpoint
-          uint newRewardPerShare = accNxmPerRewardShareInUse - deposit.lastAccNxmPerRewardShare;
+          uint newRewardPerShare = accNxmPerRewardShareToUse.uncheckedSub(deposit.lastAccNxmPerRewardShare);
           rewardsToWithdraw += newRewardPerShare * deposit.rewardsShares + deposit.pendingRewards;
 
           // save checkpoint
@@ -511,9 +578,10 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function allocateStake(
     CoverRequest calldata request
-  ) external onlyCoverContract returns (uint allocatedAmount, uint premium, uint rewardsInNXM) {
+  ) external onlyCoverContract returns (uint allocatedCoverAmount, uint premium, uint rewardsInNXM) {
 
-    updateTranches();
+    // passing true because we change the reward per second
+    updateTranches(true);
 
     // process expirations
     uint gracePeriodExpiration = block.timestamp + request.period + request.gracePeriod;
@@ -551,7 +619,7 @@ contract StakingPool is IStakingPool, ERC721 {
         uint allocate = Math.min(availableTrancheCapacity, remainingAmount);
 
         remainingAmount -= allocate;
-        allocatedAmount += allocate;
+        allocatedCoverAmount += allocate;
         trancheAllocatedCapacities[i] += allocate;
         coverTrancheAllocation[i] = allocate;
 
@@ -560,29 +628,30 @@ contract StakingPool is IStakingPool, ERC721 {
         }
       }
 
-      storeAllocatedCapacities(
+      updateAllocatedCapacities(
         request.productId,
         firstTrancheIdToUse,
         trancheCount,
         trancheAllocatedCapacities
       );
 
-      storeExpiringCoverAmounts(
+      updateExpiringCoverAmounts(
         request.coverId,
         request.productId,
         firstTrancheIdToUse,
         trancheCount,
         gracePeriodExpiration / BUCKET_DURATION + 1,
-        coverTrancheAllocation
+        coverTrancheAllocation,
+        true // isAllocation
       );
     }
 
-    premium = calculatePremium(
+    premium = getPremium(
       request.productId,
+      allocatedCoverAmount,
+      request.period,
       totalAllocatedCapacity,
-      totalCapacity,
-      allocatedAmount,
-      request.period
+      totalCapacity
     );
 
     uint rewards;
@@ -590,15 +659,89 @@ contract StakingPool is IStakingPool, ERC721 {
       require(request.rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
 
       rewards = premium * request.rewardRatio / REWARDS_DENOMINATOR;
-      uint expireAtBucket = (block.timestamp + request.period + BUCKET_DURATION - 1) / BUCKET_DURATION;
-      // divCeil = fn(a, b) => (a + b - 1) / b
+      uint expireAtBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
       uint _rewardPerSecond = rewards / (expireAtBucket * BUCKET_DURATION - block.timestamp);
 
       // 1 SLOAD + 1 SSTORE
       rewardBuckets[expireAtBucket].rewardPerSecondCut += _rewardPerSecond;
     }
 
-    return (allocatedAmount, premium, rewards);
+    return (allocatedCoverAmount, premium, rewards);
+  }
+
+  function deallocateStake(
+    CoverRequest memory request,
+    uint coverStartTime,
+    uint premium
+  ) external onlyCoverContract {
+    updateTranches(true);
+    deallocateStakeForCover(request, coverStartTime);
+    removeCoverReward(coverStartTime, request.period, premium, request.rewardRatio);
+  }
+
+  function removeCoverReward(
+    uint coverStartTime,
+    uint period,
+    uint premium,
+    uint rewardRatio
+  ) internal {
+
+    require(rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
+
+    uint rewards = premium * rewardRatio / REWARDS_DENOMINATOR;
+    uint expireAtBucket = Math.divCeil(coverStartTime + period, BUCKET_DURATION);
+    uint _rewardPerSecond = rewards / (expireAtBucket * BUCKET_DURATION - coverStartTime);
+
+    // 1 SLOAD + 1 SSTORE
+    rewardBuckets[expireAtBucket].rewardPerSecondCut -= _rewardPerSecond;
+  }
+
+  function deallocateStakeForCover(
+    CoverRequest memory request,
+    uint coverStartTime
+  ) internal {
+
+    uint gracePeriodExpiration = coverStartTime + request.period + request.gracePeriod;
+    uint firstTrancheIdToUse = gracePeriodExpiration / TRANCHE_DURATION;
+    uint trancheCount = (coverStartTime / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES) - firstTrancheIdToUse + 1;
+
+    (
+      uint[] memory trancheAllocatedCapacities,
+      /*uint totalAllocatedCapacity*/
+    ) = getAllocatedCapacities(
+      request.productId,
+      firstTrancheIdToUse,
+      trancheCount
+    );
+
+    uint packedCoverTrancheAllocation = coverTrancheAllocations[request.coverId];
+
+    {
+      uint[] memory coverTrancheAllocation = new uint[](trancheCount);
+
+      for (uint i = 0; i < trancheCount; i++) {
+        uint amountPerTranche = uint32(packedCoverTrancheAllocation >> (i * 8));
+        trancheAllocatedCapacities[i] -= amountPerTranche;
+        coverTrancheAllocation[i] = amountPerTranche;
+      }
+
+      updateAllocatedCapacities(
+        request.productId,
+        firstTrancheIdToUse,
+        trancheCount,
+        trancheAllocatedCapacities
+      );
+
+      updateExpiringCoverAmounts(
+        request.coverId,
+        request.productId,
+        firstTrancheIdToUse,
+        trancheCount,
+        gracePeriodExpiration / BUCKET_DURATION + 1,
+        coverTrancheAllocation,
+        false // isAllocation
+      );
+    }
   }
 
   function getStoredActiveCoverAmounts(
@@ -744,7 +887,7 @@ contract StakingPool is IStakingPool, ERC721 {
     return (totalCapacities, totalCapacity);
   }
 
-  function storeAllocatedCapacities(
+  function updateAllocatedCapacities(
     uint productId,
     uint firstTrancheId,
     uint trancheCount,
@@ -781,13 +924,14 @@ contract StakingPool is IStakingPool, ERC721 {
     }
   }
 
-  function storeExpiringCoverAmounts(
+  function updateExpiringCoverAmounts(
     uint coverId,
     uint productId,
     uint firstTrancheId,
     uint trancheCount,
     uint targetBucketId,
-    uint[] memory coverTrancheAllocation
+    uint[] memory coverTrancheAllocation,
+    bool isAllocation
   ) internal {
 
     uint firstGroupId = firstTrancheId / BUCKET_TRANCHE_GROUP_SIZE;
@@ -812,16 +956,25 @@ contract StakingPool is IStakingPool, ERC721 {
       uint32 expiringAmount = bucketTrancheGroups[trancheGroupId].getItemAt(trancheIndexInGroup);
       uint32 trancheAllocation = coverTrancheAllocation[i].toUint32();
 
-      packedCoverTrancheAllocation |= trancheAllocation << uint32(i * 32);
+      if (isAllocation) {
+        expiringAmount += trancheAllocation;
+        packedCoverTrancheAllocation |= trancheAllocation << uint32(i * 32);
+      } else {
+        expiringAmount -= trancheAllocation;
+      }
 
       // setItemAt does not mutate so we have to reassign it
       bucketTrancheGroups[trancheGroupId] = bucketTrancheGroups[trancheGroupId].setItemAt(
         trancheIndexInGroup,
-        expiringAmount + trancheAllocation
+        expiringAmount
       );
     }
 
-    coverTrancheAllocations[coverId] = packedCoverTrancheAllocation;
+    if (isAllocation) {
+      coverTrancheAllocations[coverId] = packedCoverTrancheAllocation;
+    } else {
+      delete coverTrancheAllocations[coverId];
+    }
 
     for (uint i = 0; i < groupCount; i++) {
       expiringCoverBuckets[productId][targetBucketId][firstGroupId + i] = bucketTrancheGroups[i];
@@ -900,11 +1053,12 @@ contract StakingPool is IStakingPool, ERC721 {
       return; // Done! Skip the rest of the function.
     }
 
-    // If the initial tranche is still active, move all the shares and pending rewards to the
+    // if the initial tranche is still active, move all the shares and pending rewards to the
     // newly chosen tranche and its coresponding deopsit.
 
-    // First make sure tranches are up to date in terms of accumulated NXM rewards.
-    updateTranches();
+    // first make sure tranches are up to date in terms of accumulated NXM rewards.
+    // passing true because we mint reward shares
+    updateTranches(true);
 
     Deposit memory initialDeposit = deposits[tokenId][initialTrancheId];
 
@@ -943,9 +1097,8 @@ contract StakingPool is IStakingPool, ERC721 {
     uint rewardsToCarry;
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
     {
-      uint newEarningsPerShare = _accNxmPerRewardsShare - initialDeposit.lastAccNxmPerRewardShare;
-      rewardsToCarry = newEarningsPerShare * initialDeposit.rewardsShares
-        + initialDeposit.pendingRewards;
+      uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(initialDeposit.lastAccNxmPerRewardShare);
+      rewardsToCarry = newEarningsPerShare * initialDeposit.rewardsShares + initialDeposit.pendingRewards;
     }
 
     Deposit memory updatedDeposit = deposits[tokenId][newTrancheId];
@@ -953,7 +1106,7 @@ contract StakingPool is IStakingPool, ERC721 {
     // If a deposit lasting until the new tranche's end date already exists, calculate its pending
     // rewards before carrying over the rewards from the inital deposit.
     if (updatedDeposit.lastAccNxmPerRewardShare != 0) {
-      uint newEarningsPerShare = _accNxmPerRewardsShare - updatedDeposit.lastAccNxmPerRewardShare;
+      uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(updatedDeposit.lastAccNxmPerRewardShare);
       updatedDeposit.pendingRewards += newEarningsPerShare * updatedDeposit.rewardsShares;
     }
 
@@ -984,55 +1137,23 @@ contract StakingPool is IStakingPool, ERC721 {
     rewardsSharesSupply += newRewardsShares;
   }
 
-  function calculatePremium(
-    uint productId,
-    uint allocatedStake,
-    uint usableStake,
-    uint newAllocation,
-    uint period
-  ) public returns (uint) {
-
-    // silence compiler warnings
-    allocatedStake;
-    usableStake;
-    newAllocation;
-    period;
-    block.timestamp;
-    uint96 nextPrice = 0;
-    products[productId].lastPrice = nextPrice;
-
-    return 0;
-  }
-
-  function deallocateStake(
+  // O(1)
+  function burnStake(
     uint productId,
     uint start,
     uint period,
-    uint amount,
-    uint premium,
-    uint /*globalRewardsRatio*/
+    uint amount
   ) external onlyCoverContract {
-
-    // silence compiler warnings
-    productId;
-    start;
-    period;
-    amount;
-    premium;
-    activeStake = activeStake;
-  }
-
-  // O(1)
-  function burnStake(uint productId, uint start, uint period, uint amount) external onlyCoverContract {
 
     productId;
     start;
     period;
 
     // TODO: free up the stake used by the corresponding cover
-    // TODO: check if it's worth restricting the burn to 99% of the active stake
+    // TODO: block the pool if we perform 100% of the stake
 
-    updateTranches();
+    // passing false because neither the amount of shares nor the reward per second are changed
+    updateTranches(false);
 
     uint _activeStake = activeStake;
     activeStake = _activeStake > amount ? _activeStake - amount : 0;
@@ -1040,18 +1161,20 @@ contract StakingPool is IStakingPool, ERC721 {
 
   /* nft */
 
-  function _beforeTokenTransfer(
+  function transferFrom(
     address from,
     address to,
     uint256 tokenId
-  ) internal override {
-    if(tokenId == 0) {
+  ) public override {
+
+    if (tokenId == 0) {
       require(
         nxm.isLockedForMV(from) < block.timestamp,
         "StakingPool: Active pool assets are locked for voting in governance"
       );
     }
-    super._beforeTokenTransfer(from, to, tokenId);
+
+    super.transferFrom(from, to, tokenId);
   }
 
   /* pool management */
@@ -1114,9 +1237,10 @@ contract StakingPool is IStakingPool, ERC721 {
     uint oldFee = poolFee;
     poolFee = uint8(newFee);
 
-    updateTranches();
+    // passing true because the amount of rewards shares changes
+    updateTranches(true);
 
-    uint fromTrancheId = firstActiveTrancheId;
+    uint fromTrancheId = block.timestamp / TRANCHE_DURATION;
     uint toTrancheId = fromTrancheId + MAX_ACTIVE_TRANCHES;
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
 
@@ -1130,7 +1254,7 @@ contract StakingPool is IStakingPool, ERC721 {
       }
 
       // update pending reward and reward shares
-      uint newRewardPerRewardsShare = _accNxmPerRewardsShare - feeDeposit.lastAccNxmPerRewardShare;
+      uint newRewardPerRewardsShare = _accNxmPerRewardsShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
       feeDeposit.pendingRewards += newRewardPerRewardsShare * feeDeposit.rewardsShares;
       // TODO: would using tranche.rewardsShares give a better precision?
       feeDeposit.rewardsShares = feeDeposit.rewardsShares * newFee / oldFee;
@@ -1164,7 +1288,141 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     activeCover = getAllocatedProductStake(productId);
-    lastBasePrice = products[productId].lastPrice;
+    lastBasePrice = products[productId].nextPrice;
     targetPrice = products[productId].targetPrice;
+  }
+
+  function getPremium(
+    uint productId,
+    uint coverAmount,
+    uint period,
+    uint allocatedCapacity,
+    uint totalCapacity
+  ) internal returns (uint) {
+
+    Product memory product = products[productId];
+
+    // use previously recorded next price and apply time based smoothing towards target price
+    uint basePrice = calculateBasePrice(
+      product.targetPrice,
+      product.nextPrice,
+      product.nextPriceUpdateTime,
+      block.timestamp
+    );
+
+    // calculate the next price by applying the price bump
+    uint priceBump = coverAmount * PRICE_BUMP_RATIO / totalCapacity / PRICE_BUMP_DENOMINATOR;
+    product.nextPrice = (basePrice + priceBump).toUint96();
+    product.nextPriceUpdateTime = uint32(block.timestamp);
+
+    // sstore
+    products[productId] = product;
+
+    // use calculated base price and apply surge pricing if applicable
+    uint premiumPerYear = calculatePremiumPerYear(
+      basePrice,
+      coverAmount,
+      allocatedCapacity,
+      totalCapacity
+    );
+
+    // calculate the premium for the requested period
+    return premiumPerYear * period / 365 days;
+  }
+
+  function calculateBasePrice(
+    uint targetPrice,
+    uint nextPrice,
+    uint nextPriceUpdateTime,
+    uint currentTime
+  ) public pure returns (uint) {
+
+    uint timeSinceLastUpdate = currentTime - nextPriceUpdateTime;
+    uint priceDrop = PRICE_CHANGE_PER_DAY * timeSinceLastUpdate / 1 days;
+
+    // basePrice = max(targetPrice, nextPrice - priceDrop)
+    // rewritten to avoid underflow
+
+    if (nextPrice < targetPrice + priceDrop) {
+      return targetPrice;
+    }
+
+    return nextPrice - priceDrop;
+  }
+
+  function calculatePremiumPerYear(
+    uint basePrice,
+    uint coverAmount,
+    uint initialCapacityUsed,
+    uint totalCapacity
+  ) public pure returns (uint) {
+
+    uint basePremium = coverAmount * basePrice / TOKEN_PRECISION;
+    uint surgeStartPoint = totalCapacity * SURGE_THRESHOLD_RATIO / SURGE_THRESHOLD_DENOMINATOR;
+    uint finalCapacityUsed = initialCapacityUsed + coverAmount;
+
+    // Capacity and surge pricing
+    //
+    //        i        f                         s
+    //   ▓▓▓▓▓░░░░░░░░░                          ▒▒▒▒▒▒▒▒▒▒
+    //
+    //  i - initial capacity used
+    //  f - final capacity used
+    //  s - surge start point
+
+    // if surge does not apply just return base premium
+    // i < f <= s case
+    if (finalCapacityUsed <= surgeStartPoint) {
+      return basePremium;
+    }
+
+    // calculate the premium amount incurred due to surge pricing
+    uint amountOnSurge = finalCapacityUsed - surgeStartPoint;
+    uint surgePremium = calculateSurgePremium(amountOnSurge, totalCapacity);
+
+    // if the capacity start point is before the surge start point
+    // the surge premium starts at zero, so we just return it
+    // i <= s < f case
+    if (initialCapacityUsed <= surgeStartPoint) {
+      return basePremium + surgePremium;
+    }
+
+    // otherwise we need to subtract the part that was already used by other covers
+    // s < i < f case
+    uint amountOnSurgeSkipped = initialCapacityUsed - surgeStartPoint;
+    uint surgePremiumSkipped = calculateSurgePremium(amountOnSurgeSkipped, totalCapacity);
+
+    return basePremium + surgePremium - surgePremiumSkipped;
+  }
+
+  // Calculates the premium for a given cover amount starting with the surge point
+  function calculateSurgePremium(
+    uint amount,
+    uint totalCapacity
+  ) internal pure returns (uint) {
+
+    // surge price is applied for the capacity used above SURGE_THRESHOLD_RATIO.
+    // the surge price starts at zero and increases linearly.
+    // to simplify things, we're working with fractions/ratios instead of percentages,
+    // ie 0 to 1 instead of 0% to 100%, 100% = 1 (a unit).
+    //
+    // surgeThreshold = SURGE_THRESHOLD_RATIO / SURGE_THRESHOLD_DENOMINATOR
+    //                = 80_00 / 100_00 = 0.8
+    //
+    // for each percent of capacity used, the surge price increases by 10% per annum
+    // which in fractions/ratios terms is a 0.1 increase for each 0.01 of capacity used
+    // meaning an increase by 10 (equivalent of 1000%) for an entire unit
+    //
+    // priceIncreasePerUnit = SURGE_PRICE_RATIO / SURGE_PRICE_DENOMINATOR
+    // coverToCapacityRatio = amount / totalCapacity
+    // surgePriceStart = 0
+    // surgePriceEnd = coverToCapacityRatio * priceIncreasePerUnit
+    //
+    // premium = amount * surgePriceEnd / 2
+    //         = amount * coverToCapacityRatio * priceIncreasePerUnit / 2
+    //         = amount * amount / totalCapacity * SURGE_PRICE_RATIO / SURGE_PRICE_DENOMINATOR / 2
+    //         = amount * amount * SURGE_PRICE_RATIO / totalCapacity / SURGE_PRICE_DENOMINATOR / 2
+
+    return amount * amount * SURGE_PRICE_RATIO / totalCapacity / SURGE_PRICE_DENOMINATOR / 2;
   }
 }

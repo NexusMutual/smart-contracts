@@ -92,12 +92,9 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
   }
 
   function deallocateStake(
-    uint /* productId */,
-    uint /* start */,
-    uint /* period */,
-    uint /* amount */,
-    uint /* premium */,
-    uint /* globalRewardsRatio */
+    CoverRequest memory /*request*/,
+    uint /*coverStartTime*/,
+    uint /*premium*/
   ) external {
   }
 
@@ -121,7 +118,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
     }
   }
 
-  function updateTranches() external {
+  function updateTranches(bool) external {
     totalSupply = totalSupply;
     revert("CoverMockStakingPool: not callable");
   }

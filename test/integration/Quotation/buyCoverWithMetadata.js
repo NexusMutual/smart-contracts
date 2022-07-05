@@ -54,7 +54,7 @@ describe('buyCoverWithMetadata', function () {
     }
   });
 
-  it('buys DAI cover with NXM for member, premium NXM is burned, NXM is locked and cover fields stored', async function () {
+  it('buys DAI cover with NXM', async function () {
     const { qt, qd, p1: pool, tk: token, tc: tokenController, dai } = this.contracts;
     const cover = { ...coverTemplate };
     const member = member1;
@@ -62,7 +62,14 @@ describe('buyCoverWithMetadata', function () {
     const poolDAIBalanceBefore = await dai.balanceOf(pool.address);
     const nxmSupplyBefore = await token.totalSupply();
     const memberNXMBalanceBefore = await token.balanceOf(member);
-    await buyCover({ ...this.contracts, cover, coverHolder: member, payWithNXM: true, ipfsMetadata });
+
+    const { receipt } = await buyCover({
+      ...this.contracts,
+      cover,
+      coverHolder: member,
+      payWithNXM: true,
+      ipfsMetadata,
+    });
 
     const coverCount = await qd.getCoverLength();
     assert.equal(coverCount.toString(), '2');
@@ -71,7 +78,6 @@ describe('buyCoverWithMetadata', function () {
     const coverFieldsPart1 = await qd.getCoverDetailsByCoverID1(coverId);
     const coverFieldsPart2 = await qd.getCoverDetailsByCoverID2(coverId);
     const storedCover = { ...coverFieldsPart1, ...coverFieldsPart2 };
-    const coverMetadata = await qt.coverMetadata(coverId);
 
     assert.equal(storedCover._memberAddress, member);
     assert.equal(storedCover._scAddress, cover.contractAddress);
@@ -79,9 +85,13 @@ describe('buyCoverWithMetadata', function () {
     assert.equal(storedCover._sumAssured.toString(), cover.amount);
     assert.equal(storedCover.premiumNXM.toString(), cover.priceNXM);
     assert.equal(storedCover.coverPeriod.toString(), cover.period);
+
+    const { timestamp: coverStartTime } = await web3.eth.getBlock(receipt.blockNumber);
+    const coverExpirationTime = coverStartTime + cover.period * 24 * 3600;
+    assert.equal(storedCover.validUntil.toString(), coverExpirationTime.toString());
+
+    const coverMetadata = await qt.coverMetadata(coverId);
     assert.equal(coverMetadata, ipfsMetadata);
-    //  TODO: assert validUntil to be uint expiryDate = now.add(uint(_coverPeriod).mul(1 days));
-    // assert.equal(storedCover.validUntil.toString(), cover.expireTime);
 
     const lockReason = soliditySha3(hex('CN'), member, coverId);
     const expectedCoverNoteLockedNXM = toBN(cover.priceNXM).divn(10);
@@ -106,7 +116,7 @@ describe('buyCoverWithMetadata', function () {
   });
 
   it('buys multiple covers in a row for member', async function () {
-    const { qd, p1: pool, tk: token, tf: tokenFunctions, qd: quotationData, dai } = this.contracts;
+    const { qd, p1: pool, tk: token, dai } = this.contracts;
     const cover = { ...coverTemplate };
     const member = member1;
 

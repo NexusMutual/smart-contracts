@@ -166,12 +166,14 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     bool payWithNXM,
     string calldata ipfsMetadata
   ) external payable onlyMember whenNotPaused {
+
     if (payWithNXM) {
       tc.burnFrom(msg.sender, coverDetails[2]);
-    } else {
-      if (coverCurr == "ETH") {
-        require(msg.value == coverDetails[1], "Quotation: ETH amount does not match premium");
-      }
+    } else if (coverCurr == "ETH") {
+      require(msg.value == coverDetails[1], "Quotation: ETH amount does not match premium");
+      // solhint-disable-next-line avoid-low-level-calls, avoid-call-value
+      (bool ok, /* data */) = address(pool).call.value(msg.value)("");
+      require(ok, "Quotation: Transfer to Pool failed");
     }
 
     _verifyCoverDetails(

@@ -388,37 +388,4 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
   // solhint-disable-next-line no-empty-blocks
   function transferAssetsToNewContract(address) external pure {}
 
-  function freeUpHeldCovers() external nonReentrant {
-
-    IERC20 dai = IERC20(cr.getCurrencyAssetAddress("DAI"));
-    uint membershipFee = td.joiningFee();
-    uint lastCoverId = 106;
-
-    for (uint id = 1; id <= lastCoverId; id++) {
-
-      if (qd.holdedCoverIDStatus(id) != uint(IQuotationData.HCIDStatus.kycPending)) {
-        continue;
-      }
-
-      (/*id*/, /*sc*/, bytes4 currency, /*period*/) = qd.getHoldedCoverDetailsByID1(id);
-      (/*id*/, address payable userAddress, uint[] memory coverDetails) = qd.getHoldedCoverDetailsByID2(id);
-
-      uint refundedETH = membershipFee;
-      uint coverPremium = coverDetails[1];
-
-      if (qd.refundEligible(userAddress)) {
-        qd.setRefundEligible(userAddress, false);
-      }
-
-      qd.setHoldedCoverIDStatus(id, uint(IQuotationData.HCIDStatus.kycFailedOrRefunded));
-
-      if (currency == "ETH") {
-        refundedETH = refundedETH.add(coverPremium);
-      } else {
-        require(dai.transfer(userAddress, coverPremium), "Quotation: DAI refund transfer failed");
-      }
-
-      userAddress.transfer(refundedETH);
-    }
-  }
 }

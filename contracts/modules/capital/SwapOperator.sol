@@ -389,9 +389,9 @@ contract SwapOperator is ReentrancyGuard {
     payoutAssetsPercentages[0] = 10000;
 
     comptrollerProxy.redeemSharesForSpecificAssets(address(this), amountIn, payoutAssets, payoutAssetsPercentages);
-    uint amountOut = address(this).balance;
-
     weth.withdraw(amountOut);
+    
+    uint amountOut = address(this).balance;
 
     require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
 

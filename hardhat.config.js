@@ -41,7 +41,7 @@ const networks = {
     gas: 12e6,
   },
   tenderly: {
-    url: '',
+    url: process.env.TENDERLY_URL,
     // accounts: {
     //   count: 100,
     //   accountsBalance: ether(1000000000),

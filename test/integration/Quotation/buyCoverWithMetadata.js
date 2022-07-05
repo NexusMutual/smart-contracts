@@ -123,6 +123,71 @@ describe('buyCoverWithMetadata', function () {
     assert.equal(expectedTotalNXMSupply.toString(), totalNXMSupplyAfter.toString());
   });
 
+  it('buys ETH cover with NXM', async function () {
+    const { qt, qd, p1: pool, tk: token, tc: tokenController } = this.contracts;
+    const cover = { ...coverTemplate, currency: hex('ETH') };
+    const member = member1;
+
+    const poolBalanceBefore = toBN(await web3.eth.getBalance(pool.address));
+    const nxmSupplyBefore = await token.totalSupply();
+    const memberNXMBalanceBefore = await token.balanceOf(member);
+
+    const { receipt } = await buyCover({
+      ...this.contracts,
+      cover,
+      coverHolder: member,
+      payWithNXM: true,
+      ipfsMetadata,
+    });
+
+    const coverCount = await qd.getCoverLength();
+    assert.equal(coverCount.toString(), '2');
+
+    const coverId = 1;
+    const coverFieldsPart1 = await qd.getCoverDetailsByCoverID1(coverId);
+    const coverFieldsPart2 = await qd.getCoverDetailsByCoverID2(coverId);
+    const storedCover = { ...coverFieldsPart1, ...coverFieldsPart2 };
+
+    assert.equal(storedCover._memberAddress, member);
+    assert.equal(storedCover._scAddress, cover.contractAddress);
+    assert.equal(storedCover._currencyCode, web3.utils.padRight(cover.currency, 8));
+    assert.equal(storedCover._sumAssured.toString(), cover.amount);
+    assert.equal(storedCover.premiumNXM.toString(), cover.priceNXM);
+    assert.equal(storedCover.coverPeriod.toString(), cover.period);
+
+    const { timestamp: coverStartTime } = await web3.eth.getBlock(receipt.blockNumber);
+    const coverExpirationTime = coverStartTime + cover.period * 24 * 3600;
+    assert.equal(storedCover.validUntil.toString(), coverExpirationTime.toString());
+
+    const coverMetadata = await qt.coverMetadata(coverId);
+    assert.equal(coverMetadata, ipfsMetadata);
+
+    const lockReason = soliditySha3(hex('CN'), member, coverId);
+    const expectedCoverNoteLockedNXM = toBN(cover.priceNXM).divn(10);
+    const memberCoverNoteLockedNXM = await tokenController.tokensLocked(member, lockReason);
+    assert.equal(memberCoverNoteLockedNXM.toString(), expectedCoverNoteLockedNXM.toString());
+
+    // no ETH should end up in Quotation contract
+    const qtBalance = toBN(await web3.eth.getBalance(qt.address)).toString();
+    assert.equal(qtBalance, '0');
+
+    // no ETH is added to the pool
+    const poolBalanceAfter = toBN(await web3.eth.getBalance(pool.address));
+    assert.equal(poolBalanceAfter.toString(), poolBalanceBefore.toString());
+
+    const totalSumAssured = await qd.getTotalSumAssured(hex('ETH'));
+    const expectedTotalSumAsssured = toBN(cover.amount);
+    assert.equal(totalSumAssured.toString(), expectedTotalSumAsssured.toString());
+
+    // NXM is burned from the buyer
+    const memberNXMBalanceAfter = await token.balanceOf(member);
+    assert.equal(memberNXMBalanceAfter.toString(), memberNXMBalanceBefore.sub(toBN(cover.priceNXM)).toString());
+
+    const expectedTotalNXMSupply = nxmSupplyBefore.add(expectedCoverNoteLockedNXM).sub(toBN(cover.priceNXM));
+    const totalNXMSupplyAfter = await token.totalSupply();
+    assert.equal(expectedTotalNXMSupply.toString(), totalNXMSupplyAfter.toString());
+  });
+
   it('buys DAI cover with DAI', async function () {
     const { qt, qd, p1: pool, tk: token, tc: tokenController, dai } = this.contracts;
     const cover = { ...coverTemplate };

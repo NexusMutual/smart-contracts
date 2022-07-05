@@ -318,7 +318,7 @@ contract SwapOperator is ReentrancyGuard {
     IPool pool = _pool();
     IEnzymeV4Comptroller comptrollerProxy = IEnzymeV4Comptroller(IEnzymeV4Vault(enzymeV4VaultProxyAddress).getAccessor());
     address toTokenAddress = enzymeV4VaultProxyAddress;
-    address weth = router.WETH();
+    IWETH weth = IWETH(router.WETH());
 
     (
     uint112 minAmount,
@@ -336,12 +336,15 @@ contract SwapOperator is ReentrancyGuard {
 
     pool.transferAssetToSwapOperator(ETH, amountIn);
 
-    require(comptrollerProxy.getDenominationAsset() == weth, "SwapOperator: invalid denomination asset");
+    require(comptrollerProxy.getDenominationAsset() == address(weth), "SwapOperator: invalid denomination asset");
 
     console.log("exchangeEthAndBuyShares");
 
     console.log("bal", address(this).balance);
-    enzymeV4DepositWrapper.exchangeEthAndBuyShares{value: amountIn}(address(comptrollerProxy), weth, 0, address(0), address(0), '', 0);
+
+    weth.deposit{ value: amountIn }();
+    weth.approve(address(enzymeV4DepositWrapper), amountIn);
+    comptrollerProxy.buyShares(amountIn, amountOutMin);
 
     console.log("post exchangeEthAndBuyShares");
 

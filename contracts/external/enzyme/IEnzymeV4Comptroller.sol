@@ -16,4 +16,6 @@ interface IEnzymeV4Comptroller {
     bytes4 _selector,
     bytes calldata _encodedArgs
   ) external;
+
+  function buyShares(uint _investmentAmount, uint _minSharesQuantity) external;
 }

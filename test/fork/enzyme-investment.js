@@ -44,6 +44,7 @@ const IEnzymeV4Comptroller = artifacts.require('IEnzymeV4Comptroller');
 const IEnzymeV4Vault = artifacts.require('IEnzymeV4Vault');
 const IAddressListRegistry = artifacts.require('IAddressListRegistry');
 const IEnzymeV4DepositWrapper = artifacts.require('IEnzymeV4DepositWrapper');
+const IWETH = artifacts.require('contracts/external/enzyme/IWETH.sol:IWETH');
 
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -57,13 +58,14 @@ const Address = {
   WETH: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
   stETHFEED: '0x86392dC19c0b719886221c78AB11eb8Cf5c52812',
   ENZYMESHARES: '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD',
-  ENZYMESHARESFEED: '0x86392dC19c0b719886221c78AB11eb8Cf5c52812' // TODO: replace with real one
+  ENZYMESHARESFEED: '0x86392dC19c0b719886221c78AB11eb8Cf5c52812', // TODO: replace with real one
 };
 
 const UserAddress = {
   NXM_WHALE_1: '0x25783b67b5e29c48449163db19842b8531fdde43',
   NXM_WHALE_2: '0x598dbe6738e0aca4eabc22fed2ac737dbd13fb8f',
   NXM_AB_MEMBER: '0x87B2a7559d85f4653f13E6546A14189cd5455d45',
+  ETH_WHALE: '0x73bceb1cd57c711feac4224d062b0f6ff338501e'
 };
 
 const DAI_HOLDER = '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503';
@@ -137,7 +139,7 @@ async function addToDepositor (depositor) {
 }
 
 const getAddressByCodeFactory = abis => code => abis.find(abi => abi.code === code).address;
-const fund = async to => web3.eth.sendTransaction({ from: accounts[0], to, value: ether('1000000') });
+const fund = async to => web3.eth.sendTransaction({ from: UserAddress.ETH_WHALE, to, value: ether('1000') });
 const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAccount', params: [member] });
 const bnToNumber = bn => parseInt(bn.toString(), 10);
 
@@ -178,6 +180,8 @@ describe('do enzyme investment', function () {
 
     const whales = [UserAddress.NXM_WHALE_1, UserAddress.NXM_WHALE_2];
 
+    await unlock(UserAddress.ETH_WHALE);
+
     for (const member of [...voters, Address.NXMHOLDER, ...whales]) {
       await fund(member);
       await unlock(member);
@@ -203,10 +207,33 @@ describe('do enzyme investment', function () {
     uint256 minInvestmentAmount)
      */
 
-    const amountIn = ether('100');
-    await enzymeV4DepositWrapper.exchangeEthAndBuyShares(
-      enzymeComptrollerProxyAddress, Address.WETH, 0, ZERO_ADDRESS, ZERO_ADDRESS, '0x', 0, {
-        value: amountIn,
+    const amountIn = ether('10');
+
+    const enzymeV4Comptroller = await IEnzymeV4Comptroller.at(enzymeComptrollerProxyAddress);
+
+    const weth = await IWETH.at(Address.WETH);
+
+    const wethBalanceBefore = await weth.balanceOf(UserAddress.NXM_WHALE_1);
+
+    console.log({
+      wethBalanceBefore: wethBalanceBefore.toString()
+    });
+
+    await weth.deposit({
+      value: amountIn,
+      from: UserAddress.NXM_WHALE_1
+    });
+
+    const wethBalance = await weth.balanceOf(UserAddress.NXM_WHALE_1);
+
+    console.log({
+      wethBalance: wethBalance.toString()
+    });
+
+    await weth.approve(enzymeV4Comptroller.address, amountIn);
+
+    await enzymeV4Comptroller.buyShares(
+      amountIn, '1', {
         from: UserAddress.NXM_WHALE_1
       }
     );

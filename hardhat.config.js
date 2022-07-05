@@ -41,11 +41,11 @@ const networks = {
     gas: 12e6,
   },
   tenderly: {
-    url: 'https://rpc.tenderly.co/fork/bb5de1c8-cabe-43b4-972f-efe83fb12dfb',
-/*    accounts: {
-      count: 100,
-      accountsBalance: ether(1000000000),
-    },*/
+    url: '',
+    // accounts: {
+    //   count: 100,
+    //   accountsBalance: ether(1000000000),
+    // },
     allowUnlimitedContractSize: true,
     blockGasLimit: 12e6,
     gas: 12e6,

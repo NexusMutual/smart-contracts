@@ -302,6 +302,7 @@ contract SwapOperator is ReentrancyGuard {
     uint amountOut = IERC20(toTokenAddress).balanceOf(address(this));
 
     require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
+
     require(balanceBefore < minAmount, "SwapOperator: balanceBefore >= min");
     require(balanceBefore + amountOutMin <= maxAmount, "SwapOperator: balanceAfter > max");
     {
@@ -343,15 +344,17 @@ contract SwapOperator is ReentrancyGuard {
     console.log("bal", address(this).balance);
 
     weth.deposit{ value: amountIn }();
-    weth.approve(address(enzymeV4DepositWrapper), amountIn);
+    weth.approve(address(comptrollerProxy), amountIn);
     comptrollerProxy.buyShares(amountIn, amountOutMin);
-
-    console.log("post exchangeEthAndBuyShares");
 
     pool.setAssetDataLastSwapTime(toTokenAddress, uint32(block.timestamp));
 
     uint amountOut = IERC20(toTokenAddress).balanceOf(address(this));
 
+    console.log("post exchangeEthAndBuyShares", amountOut);
+
+    console.log("balanceBefore", balanceBefore);
+    console.log("min", minAmount);
     require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
     require(balanceBefore < minAmount, "SwapOperator: balanceBefore >= min");
     require(balanceBefore + amountOutMin <= maxAmount, "SwapOperator: balanceAfter > max");
@@ -389,9 +392,9 @@ contract SwapOperator is ReentrancyGuard {
     payoutAssetsPercentages[0] = 10000;
 
     comptrollerProxy.redeemSharesForSpecificAssets(address(this), amountIn, payoutAssets, payoutAssetsPercentages);
-    weth.withdraw(amountOut);
-    
+
     uint amountOut = address(this).balance;
+    weth.withdraw(amountOut);
 
     require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
 

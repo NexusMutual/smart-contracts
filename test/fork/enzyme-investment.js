@@ -147,7 +147,7 @@ describe('do enzyme investment', function () {
 
   this.timeout(0);
 
-  it.only('initializes contracts', async function () {
+  it('initializes contracts', async function () {
 
     const versionDataURL = 'https://api.nexusmutual.io/version-data/data.json';
     const { mainnet: { abis } } = await fetch(versionDataURL).then(r => r.json());
@@ -173,7 +173,7 @@ describe('do enzyme investment', function () {
     this.proposalCategory = proposalCategory;
   });
 
-  it.only('fetches board members and funds accounts', async function () {
+  it('fetches board members and funds accounts', async function () {
 
     const { memberArray: boardMembers } = await this.memberRoles.members('1');
     const voters = boardMembers.slice(0, 3);
@@ -191,7 +191,7 @@ describe('do enzyme investment', function () {
     this.whales = whales;
   });
 
-  it.only('adds enzyme depositor and makes deposit', async function () {
+  it.skip('adds enzyme depositor and makes deposit', async function () {
 
     await addToDepositor(UserAddress.NXM_WHALE_1);
 
@@ -230,7 +230,9 @@ describe('do enzyme investment', function () {
       wethBalance: wethBalance.toString()
     });
 
-    await weth.approve(enzymeV4Comptroller.address, amountIn);
+    await weth.approve(enzymeV4Comptroller.address, amountIn, {
+      from: UserAddress.NXM_WHALE_1
+    });
 
     await enzymeV4Comptroller.buyShares(
       amountIn, '1', {
@@ -300,8 +302,8 @@ describe('do enzyme investment', function () {
     const { pool, voters, governance, addAssetCategory } = this;
 
     const asset = enzymeV4VaultProxyAddress;
-    const min = '0';
-    const max = ether('10000'); // TODO: adjust to the right amount of shares
+    const min = ether('15000');
+    const max = ether('16000'); // TODO: adjust to the right amount of shares
     const maxSlippageRatio = 0; // unused when swapping
     const parameters = [
       ['address', asset],
@@ -434,8 +436,8 @@ describe('do enzyme investment', function () {
 
     const balanceBefore = await enzymeSharesToken.balanceOf(pool.address);
 
-    const amountIn = ether('100');
-    const amountOutMin = '0';
+    const amountIn = ether('200');
+    const amountOutMin = '1';
     await swapOperator.swapETHForEnzymeVaultShare(amountIn, amountOutMin, {
       from: swapController,
     });
@@ -452,11 +454,32 @@ describe('do enzyme investment', function () {
       poolValueInEthBefore: poolValueInEthBefore.toString(),
       poolValueDelta: poolValueDelta.toString()
     });
-
   });
 
-
   it('triggers large enzyme investment', async function () {
-    // TODO:
+    const { swapOperator, swapController, enzymeSharesToken, pool } = this;
+
+    const poolValueInEthBefore = await pool.getPoolValueInEth();
+
+    const balanceBefore = await enzymeSharesToken.balanceOf(pool.address);
+
+    const amountIn = ether('15000');
+    const amountOutMin = '1';
+    await swapOperator.swapETHForEnzymeVaultShare(amountIn, amountOutMin, {
+      from: swapController,
+    });
+
+    const balanceAfter = await enzymeSharesToken.balanceOf(pool.address);
+    const poolValueInEthAfter = await pool.getPoolValueInEth();
+
+    const poolValueDelta = poolValueInEthBefore.sub(poolValueInEthAfter);
+
+    console.log({
+      balanceBefore: balanceBefore.toString(),
+      balanceAfter: balanceAfter.toString(),
+      poolValueInEthAfter: poolValueInEthAfter.toString(),
+      poolValueInEthBefore: poolValueInEthBefore.toString(),
+      poolValueDelta: poolValueDelta.toString()
+    });
   });
 });

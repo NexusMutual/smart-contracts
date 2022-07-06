@@ -1,8 +1,6 @@
 const { time, expectEvent, ether } = require('@openzeppelin/test-helpers');
-const { artifacts, web3, accounts, network } = require('hardhat');
+const { web3, accounts, network: { provider } } = require('hardhat');
 
-const { hex } = require('../utils').helpers;
-const { ProposalCategory, CoverStatus } = require('../utils').constants;
 const { toBN } = web3.utils;
 
 const Address = {
@@ -71,7 +69,8 @@ async function submitMemberVoteGovernanceProposal (categoryId, actionData, membe
 
 const getAddressByCodeFactory = abis => code => abis.find(abi => abi.code === code).address;
 const fund = async to => web3.eth.sendTransaction({ from: accounts[0], to, value: ether('1000000') });
-const unlock = async member => network.provider.request({ method: 'hardhat_impersonateAccount', params: [member] });
+const unlock = async member => provider.request({ method: 'hardhat_impersonateAccount', params: [member] });
+const setNextBlockBaseFee = async n => provider.request({ method: 'hardhat_setNextBlockBaseFeePerGas', params: [n] });
 
 module.exports = {
   submitGovernanceProposal,
@@ -81,5 +80,6 @@ module.exports = {
   getAddressByCodeFactory,
   fund,
   unlock,
+  setNextBlockBaseFee,
   ratioScale,
 };

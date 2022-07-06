@@ -1,28 +1,26 @@
 const fetch = require('node-fetch');
-const { artifacts, web3, accounts, network } = require('hardhat');
+const { artifacts, web3, accounts } = require('hardhat');
 const { ether, time } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
-const { hex } = require('../utils').helpers;
+
 const {
   Address,
   UserAddress,
-  getAddressByCodeFactory,
   fund,
   unlock,
+  setNextBlockBaseFee,
   submitGovernanceProposal,
   submitMemberVoteGovernanceProposal,
   ratioScale,
 } = require('./utils');
-const {
-  toDecimal,
-  calculateRelativeError,
-  percentageBN,
-  calculateEthForNXMRelativeError,
-} = require('../utils').tokenPrice;
-const { ProposalCategory, CoverStatus } = require('../utils').constants;
+
+const { hex } = require('../utils').helpers;
+const { toDecimal, percentageBN } = require('../utils').tokenPrice;
+const { ProposalCategory } = require('../utils').constants;
 const { quoteAuthAddress } = require('../utils').getQuote;
-const { toBN } = web3.utils;
 const { buyCover, buyCoverWithDai, buyCoverThroughGateway } = require('../utils').buyCover;
+
+const { toBN } = web3.utils;
 
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const MemberRoles = artifacts.require('MemberRoles');
@@ -49,20 +47,26 @@ describe('basic functionality tests', async function () {
   it('initializes contracts', async function () {
 
     const { mainnet: { abis } } = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
-    const getAddressByCode = getAddressByCodeFactory(abis);
 
-    this.token = this.token || await NXMToken.at(getAddressByCode('NXMTOKEN'));
-    this.memberRoles = this.memberRoles || await MemberRoles.at(getAddressByCode('MR'));
-    this.master = this.master || await NXMaster.at(getAddressByCode(('NXMASTER')));
-    this.governance = this.governance || await Governance.at(getAddressByCode('GV'));
-    this.tokenController = this.tokenController || await TokenController.at(getAddressByCode('TC'));
-    this.quotation = this.quotation || await Quotation.at(getAddressByCode('QT'));
-    this.incidents = this.incidents || await Incidents.at(getAddressByCode('IC'));
-    this.pool = this.pool || await Pool.at(getAddressByCode('P1'));
-    this.quotationData = this.quotationData || await QuotationData.at(getAddressByCode('QD'));
-    this.gateway = this.gateway || await Gateway.at(getAddressByCode('GW'));
-    this.swapOperator = this.swapOperator || await SwapOperator.at(getAddressByCode('SO'));
-    this.mcr = this.mcr || await MCR.at(getAddressByCode('MC'));
+    const masterAddress = abis.find(abi => abi.code === 'NXMASTER').address;
+    const tokenAddress = abis.find(abi => abi.code === 'NXMTOKEN').address;
+
+    this.master = await NXMaster.at(masterAddress);
+    this.token = this.token || await NXMToken.at(tokenAddress);
+
+    const getAddressByCode = async code => await this.master.getLatestAddress(hex(code));
+
+    this.memberRoles = this.memberRoles || await MemberRoles.at(await getAddressByCode('MR'));
+    this.governance = this.governance || await Governance.at(await getAddressByCode('GV'));
+    this.tokenController = this.tokenController || await TokenController.at(await getAddressByCode('TC'));
+    this.quotation = this.quotation || await Quotation.at(await getAddressByCode('QT'));
+    this.incidents = this.incidents || await Incidents.at(await getAddressByCode('IC'));
+    this.pool = this.pool || await Pool.at(await getAddressByCode('P1'));
+    this.quotationData = this.quotationData || await QuotationData.at(await getAddressByCode('QD'));
+    this.gateway = this.gateway || await Gateway.at(await getAddressByCode('GW'));
+    this.mcr = this.mcr || await MCR.at(await getAddressByCode('MC'));
+
+    this.swapOperator = this.swapOperator || await SwapOperator.at(await this.pool.swapOperator());
     this.dai = this.dai || await ERC20MintableDetailed.at(Address.DAI);
   });
 
@@ -201,6 +205,8 @@ describe('basic functionality tests', async function () {
     const coverHolder = UserAddress.NXM_WHALE_1;
     await unlock(UserAddress.DAI_HOLDER);
     await unlock(coverHolder);
+
+    await setNextBlockBaseFee('0x0');
     await dai.transfer(coverHolder, '3000000000000000', { from: UserAddress.DAI_HOLDER, gasPrice: 0 });
 
     await buyCoverWithDai({ ...this, qt: this.quotation, p1: this.pool, cover: ybDAICover, coverHolder, dai });
@@ -247,38 +253,10 @@ describe('basic functionality tests', async function () {
       contractAddress: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
     };
 
+    await setNextBlockBaseFee('0x0');
     await dai.transfer(coverHolder, '3000000000000000', { from: UserAddress.DAI_HOLDER, gasPrice: 0 });
 
     await buyCoverThroughGateway({ coverData, gateway, coverHolder, qt: quotation, dai });
-  });
-
-  it('performs max buy (5% mcrEth) and sells the NXM back (high sell spread expected)', async function () {
-
-    const { mcr, pool, token } = this;
-
-    const mcrEth = await mcr.getMCR();
-    const maxBuy = percentageBN(mcrEth, 4.95);
-
-    const balancePre = await token.balanceOf(Address.NXMHOLDER);
-    await pool.buyNXM('0', { value: maxBuy, from: Address.NXMHOLDER });
-    const balancePost = await token.balanceOf(Address.NXMHOLDER);
-    const nxmOut = balancePost.sub(balancePre);
-
-    const balancePreSell = await web3.eth.getBalance(Address.NXMHOLDER);
-    const sellTx = await pool.sellNXM(nxmOut, '0', { from: Address.NXMHOLDER });
-
-    const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
-    const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
-    const balancePostSell = await web3.eth.getBalance(Address.NXMHOLDER);
-    const ethOut = toDecimal(balancePostSell).sub(toDecimal(balancePreSell)).add(ethSpentOnGas);
-    const ethInDecimal = toDecimal(maxBuy);
-
-    assert(ethOut.lt(ethInDecimal), 'ethOut > ethIn');
-
-    console.log({
-      ethOut: toDecimal(ethOut).div(1e18).toString(),
-      ethIn: ethInDecimal.div(1e18).toString(),
-    });
   });
 
   it('sets DMCI to greater to 1% to allow floor increase', async function () {
@@ -339,5 +317,34 @@ describe('basic functionality tests', async function () {
     assert.equal(mcrFloor.toString(), expectedMCRFloor.toString());
     assert.equal(desiredMCR.toString(), mcrFloor.toString());
     assert.equal(currentMCRBefore.toString(), latestMCR.toString());
+  });
+
+  it('performs max buy (5% mcrEth) and sells the NXM back (high sell spread expected)', async function () {
+
+    const { mcr, pool, token } = this;
+
+    const mcrEth = await mcr.getMCR();
+    const maxBuy = percentageBN(mcrEth, 4.95);
+
+    const balancePre = await token.balanceOf(Address.NXMHOLDER);
+    await pool.buyNXM('0', { value: maxBuy, from: Address.NXMHOLDER });
+    const balancePost = await token.balanceOf(Address.NXMHOLDER);
+    const nxmOut = balancePost.sub(balancePre);
+
+    const balancePreSell = await web3.eth.getBalance(Address.NXMHOLDER);
+    const sellTx = await pool.sellNXM(nxmOut, '0', { from: Address.NXMHOLDER });
+
+    const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
+    const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
+    const balancePostSell = await web3.eth.getBalance(Address.NXMHOLDER);
+    const ethOut = toDecimal(balancePostSell).sub(toDecimal(balancePreSell)).add(ethSpentOnGas);
+    const ethInDecimal = toDecimal(maxBuy);
+
+    assert(ethOut.lt(ethInDecimal), 'ethOut > ethIn');
+
+    console.log({
+      ethOut: toDecimal(ethOut).div(1e18).toString(),
+      ethIn: ethInDecimal.div(1e18).toString(),
+    });
   });
 });

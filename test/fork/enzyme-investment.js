@@ -45,6 +45,7 @@ const IEnzymeV4Vault = artifacts.require('IEnzymeV4Vault');
 const IAddressListRegistry = artifacts.require('IAddressListRegistry');
 const IEnzymeV4DepositWrapper = artifacts.require('IEnzymeV4DepositWrapper');
 const IWETH = artifacts.require('contracts/external/enzyme/IWETH.sol:IWETH');
+const IEnzymeFundValueCalculatorRouter = artifacts.require('contracts/external/enzyme/IEnzymeFundValueCalculatorRouter.sol');
 
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -77,14 +78,13 @@ const ybETHProductId = '0x000000000000000000000000000000000000000e';
 const UpdatePoolAddressParametersCategory = 40;
 const SetAssetDetailsProposalCategory = 41;
 
-
-
 // enzyme constants
 const enzymeV4VaultProxyAddress = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';
 const enzymeV4DepositWrapperAddress = '0x4Ffd9cb46F129326efCe0BD30064740Bb79dF6DB';
 const enzymePolicyManager = '0xadf5a8db090627b153ef0c5726ccfdc1c7aed7bd';
 const enzymeComptrollerProxyAddress = '0xa5bf4350da6193b356ac15a3dbd777a687bc216e';
 const enzymeAddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
+const enzymeFundValueCalulatorRouter = '0x7c728cd0cfa92401e01a4849a01b57ee53f5b2b9';
 
 const ListIdForDepositors = 217;
 const ListIdForReceivers = 218;
@@ -189,6 +189,18 @@ describe('do enzyme investment', function () {
 
     this.voters = voters;
     this.whales = whales;
+  });
+
+  it.skip('reads enzyme values', async function () {
+    const fundValueCalculatorRouter = await IEnzymeFundValueCalculatorRouter.at(enzymeFundValueCalulatorRouter);
+
+    const { grossShareValue_ } = await fundValueCalculatorRouter.callStatic.calcGrossShareValue(enzymeV4VaultProxyAddress);
+
+    console.log({
+      grossShareValue_: grossShareValue_.toString()
+    });
+
+    this.fundValueCalculatorRouter = fundValueCalculatorRouter;
   });
 
   it.skip('adds enzyme depositor and makes deposit', async function () {
@@ -304,7 +316,7 @@ describe('do enzyme investment', function () {
     const asset = enzymeV4VaultProxyAddress;
     const min = ether('15000');
     const max = ether('16000'); // TODO: adjust to the right amount of shares
-    const maxSlippageRatio = 0; // unused when swapping
+    const maxSlippageRatio = ether('0.025'); // 2.5%
     const parameters = [
       ['address', asset],
       ['uint112', min],
@@ -347,7 +359,8 @@ describe('do enzyme investment', function () {
       swapController,
       Address.stETH,
       enzymeV4VaultProxyAddress,
-      enzymeV4DepositWrapperAddress
+      enzymeV4DepositWrapperAddress,
+      enzymeFundValueCalulatorRouter
     );
 
     const parameters = [
@@ -437,7 +450,7 @@ describe('do enzyme investment', function () {
     const balanceBefore = await enzymeSharesToken.balanceOf(pool.address);
 
     const amountIn = ether('200');
-    const amountOutMin = '1';
+    const amountOutMin = amountIn;
     await swapOperator.swapETHForEnzymeVaultShare(amountIn, amountOutMin, {
       from: swapController,
     });
@@ -464,7 +477,7 @@ describe('do enzyme investment', function () {
     const balanceBefore = await enzymeSharesToken.balanceOf(pool.address);
 
     const amountIn = ether('15000');
-    const amountOutMin = '1';
+    const amountOutMin = amountIn.add(ether('0.00000001'));
     await swapOperator.swapETHForEnzymeVaultShare(amountIn, amountOutMin, {
       from: swapController,
     });
@@ -481,5 +494,9 @@ describe('do enzyme investment', function () {
       poolValueInEthBefore: poolValueInEthBefore.toString(),
       poolValueDelta: poolValueDelta.toString()
     });
+  });
+
+  it('triggers enzyme withdrawal', async function () {
+
   });
 });

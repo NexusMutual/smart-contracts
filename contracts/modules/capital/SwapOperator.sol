@@ -14,8 +14,10 @@ import "../../external/uniswap/IUniswapV2Router02.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/ITwapOracle.sol";
+import "../../interfaces/IERC20Detailed.sol";
 
 import "hardhat/console.sol";
+import "../../external/enzyme/IEnzymeFundValueCalculatorRouter.sol";
 
 contract SwapOperator is ReentrancyGuard {
   using SafeERC20 for IERC20;
@@ -47,8 +49,9 @@ contract SwapOperator is ReentrancyGuard {
 
   address public enzymeV4VaultProxyAddress;
   IEnzymeV4DepositWrapper enzymeV4DepositWrapper;
+  IEnzymeFundValueCalculatorRouter enzymeFundValueCalculatorRouter;
 
-/* events */
+  /* events */
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
 
   /* logic */
@@ -63,7 +66,8 @@ contract SwapOperator is ReentrancyGuard {
     address _swapController,
     address _stETH,
     address _enzymeV4VaultProxyAddress,
-    IEnzymeV4DepositWrapper _enzymeV4DepositWrapper
+    IEnzymeV4DepositWrapper _enzymeV4DepositWrapper,
+    IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter
   ) {
     master = INXMMaster(_master);
     twapOracle = ITwapOracle(_twapOracle);
@@ -71,6 +75,7 @@ contract SwapOperator is ReentrancyGuard {
     stETH = _stETH;
     enzymeV4VaultProxyAddress = _enzymeV4VaultProxyAddress;
     enzymeV4DepositWrapper = _enzymeV4DepositWrapper;
+    enzymeFundValueCalculatorRouter = _enzymeFundValueCalculatorRouter;
   }
 
   function swapETHForAsset(
@@ -318,43 +323,41 @@ contract SwapOperator is ReentrancyGuard {
   function swapETHForEnzymeVaultShare(uint amountIn, uint amountOutMin) external onlySwapController {
     IPool pool = _pool();
     IEnzymeV4Comptroller comptrollerProxy = IEnzymeV4Comptroller(IEnzymeV4Vault(enzymeV4VaultProxyAddress).getAccessor());
-    address toTokenAddress = enzymeV4VaultProxyAddress;
+    IERC20Detailed toToken = IERC20Detailed(enzymeV4VaultProxyAddress);
     IWETH weth = IWETH(router.WETH());
 
     (
     uint112 minAmount,
     uint112 maxAmount,
     /* uint32 lastAssetSwapTime */,
-    /* uint maxSlippageRatio */
-    ) = pool.getAssetDetails(toTokenAddress);
+    uint maxSlippageRatio
+    ) = pool.getAssetDetails(address(toToken));
 
     require(!(minAmount == 0 && maxAmount == 0), "SwapOperator: asset is not enabled");
 
-    uint balanceBefore = IERC20(toTokenAddress).balanceOf(address(pool));
+    {
+      (, uint netShareValue) = enzymeFundValueCalculatorRouter.calcNetShareValue(enzymeV4VaultProxyAddress);
 
+      uint avgAmountOut = amountIn * 1e18 / netShareValue;
+      uint maxSlippageAmount = avgAmountOut * maxSlippageRatio / 1e18;
+      uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
-    console.log("transferAssetToSwapOperator");
+      require(amountOutMin >= minOutOnMaxSlippage, "SwapOperator: amountOutMin < minOutOnMaxSlippage");
+    }
 
+    uint balanceBefore = toToken.balanceOf(address(pool));
     pool.transferAssetToSwapOperator(ETH, amountIn);
 
     require(comptrollerProxy.getDenominationAsset() == address(weth), "SwapOperator: invalid denomination asset");
-
-    console.log("exchangeEthAndBuyShares");
-
-    console.log("bal", address(this).balance);
 
     weth.deposit{ value: amountIn }();
     weth.approve(address(comptrollerProxy), amountIn);
     comptrollerProxy.buyShares(amountIn, amountOutMin);
 
-    pool.setAssetDataLastSwapTime(toTokenAddress, uint32(block.timestamp));
+    pool.setAssetDataLastSwapTime(address(toToken), uint32(block.timestamp));
 
-    uint amountOut = IERC20(toTokenAddress).balanceOf(address(this));
+    uint amountOut = toToken.balanceOf(address(this));
 
-    console.log("post exchangeEthAndBuyShares", amountOut);
-
-    console.log("balanceBefore", balanceBefore);
-    console.log("min", minAmount);
     require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
     require(balanceBefore < minAmount, "SwapOperator: balanceBefore >= min");
     require(balanceBefore + amountOutMin <= maxAmount, "SwapOperator: balanceAfter > max");

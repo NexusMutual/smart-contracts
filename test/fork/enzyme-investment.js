@@ -498,5 +498,22 @@ describe('do enzyme investment', function () {
 
   it('triggers enzyme withdrawal', async function () {
 
+    const { swapOperator, swapController, enzymeSharesToken, pool } = this;
+
+    const poolValueInEthBefore = await pool.getPoolValueInEth();
+
+    const balanceBefore = await enzymeSharesToken.balanceOf(pool.address);
+
+    const amountIn = ether('15000');
+    const amountOutMin = amountIn.add(ether('0.00000001'));
+    await swapOperator.swapEnzymeVaultShareForETH(amountIn, amountOutMin, {
+      from: swapController,
+    });
+
+    const balanceAfter = await enzymeSharesToken.balanceOf(pool.address);
+    const poolValueInEthAfter = await pool.getPoolValueInEth();
+
+    const poolValueDelta = poolValueInEthBefore.sub(poolValueInEthAfter);
+
   });
 });

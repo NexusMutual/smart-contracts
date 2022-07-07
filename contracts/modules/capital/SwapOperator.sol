@@ -383,11 +383,13 @@ contract SwapOperator is ReentrancyGuard {
     IERC20Detailed fromToken = IERC20Detailed(enzymeV4VaultProxyAddress);
     IWETH weth = IWETH(router.WETH());
     (
-    /* uint112 minAmount, */,
-    /* uint112 maxAmount, */,
+    uint112 minAmount,
+    uint112 maxAmount,
     uint32 lastAssetSwapTime,
     /* uint maxSlippageRatio */
     ) = pool.getAssetDetails(address(fromToken));
+
+    require(!(minAmount == 0 && maxAmount == 0), "SwapOperator: asset is not enabled");
 
     {
       // scope for swap frequency check

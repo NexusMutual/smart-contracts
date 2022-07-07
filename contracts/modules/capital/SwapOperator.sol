@@ -329,11 +329,17 @@ contract SwapOperator is ReentrancyGuard {
     (
     uint112 minAmount,
     uint112 maxAmount,
-    /* uint32 lastAssetSwapTime */,
+    uint32 lastAssetSwapTime,
     uint maxSlippageRatio
     ) = pool.getAssetDetails(address(toToken));
 
     require(!(minAmount == 0 && maxAmount == 0), "SwapOperator: asset is not enabled");
+
+    {
+      // scope for swap frequency check
+      uint timeSinceLastTrade = block.timestamp - uint(lastAssetSwapTime);
+      require(timeSinceLastTrade > MIN_TIME_BETWEEN_SWAPS, "SwapOperator: too fast");
+    }
 
     {
       // check slippage
@@ -379,40 +385,55 @@ contract SwapOperator is ReentrancyGuard {
   ) external onlySwapController returns (uint) {
 
     IPool pool = _pool();
-    IEnzymeV4Comptroller comptrollerProxy = IEnzymeV4Comptroller(IEnzymeV4Vault(enzymeV4VaultProxyAddress).getAccessor());
     IERC20Detailed fromToken = IERC20Detailed(enzymeV4VaultProxyAddress);
-    IWETH weth = IWETH(router.WETH());
-    (
-    uint112 minAmount,
-    uint112 maxAmount,
-    uint32 lastAssetSwapTime,
-    /* uint maxSlippageRatio */
-    ) = pool.getAssetDetails(address(fromToken));
 
-    require(!(minAmount == 0 && maxAmount == 0), "SwapOperator: asset is not enabled");
-
+    uint balanceBefore = fromToken.balanceOf(address(pool));
     {
+      (
+      uint112 minAmount,
+      uint112 maxAmount,
+      uint32 lastAssetSwapTime,
+      uint maxSlippageRatio
+      ) = pool.getAssetDetails(address(fromToken));
+
+      require(!(minAmount == 0 && maxAmount == 0), "SwapOperator: asset is not enabled");
+
       // scope for swap frequency check
       uint timeSinceLastTrade = block.timestamp - uint(lastAssetSwapTime);
       require(timeSinceLastTrade > MIN_TIME_BETWEEN_SWAPS, "SwapOperator: too fast");
+
+      // scope for slippage check
+      (, uint netShareValue) = enzymeFundValueCalculatorRouter.calcNetShareValue(enzymeV4VaultProxyAddress);
+      // avgAmountOut in ETH
+      uint avgAmountOut = amountIn * netShareValue / (10 ** fromToken.decimals());
+      uint maxSlippageAmount = avgAmountOut * maxSlippageRatio / 1e18;
+      uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
+
+      require(amountOutMin >= minOutOnMaxSlippage, "SwapOperator: amountOutMin < minOutOnMaxSlippage");
+      require(balanceBefore > maxAmount, "SwapOperator: balanceBefore <= max");
+      require(balanceBefore - amountIn >= minAmount, "SwapOperator: tokenBalanceAfter < min");
     }
 
     pool.transferAssetToSwapOperator(address(fromToken), amountIn);
 
+    IEnzymeV4Comptroller comptrollerProxy = IEnzymeV4Comptroller(IEnzymeV4Vault(enzymeV4VaultProxyAddress).getAccessor());
+    fromToken.approve(address(comptrollerProxy), amountIn);
+
     address[] memory payoutAssets = new address[](1);
     uint[] memory payoutAssetsPercentages = new uint[](1);
+
+    IWETH weth = IWETH(router.WETH());
 
     payoutAssets[0] = address(weth);
     payoutAssetsPercentages[0] = 10000;
 
-    fromToken.approve(address(comptrollerProxy), amountIn);
     comptrollerProxy.redeemSharesForSpecificAssets(address(this), amountIn, payoutAssets, payoutAssetsPercentages);
 
     uint amountOut = weth.balanceOf(address(this));
     weth.withdraw(amountOut);
 
     require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
-
+    
     transferAssetTo(ETH, address(pool), amountOut);
 
     return amountOut;

@@ -48,6 +48,7 @@ const networks = {
 
 if (process.env.TEST_ENV_FORK) {
   networks.hardhat.forking = { url: process.env.TEST_ENV_FORK };
+  delete networks.hardhat.hardfork;
 }
 
 const getenv = (network, key, fallback, parser = i => i) => {

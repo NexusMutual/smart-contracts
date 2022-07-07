@@ -1,23 +1,20 @@
 version: 2.1
 
-orbs:
-  node: circleci/node@4.1.0
-
 jobs:
   checkout_and_install:
     docker:
-      - image: cimg/node:14.17.0
+      - image: cimg/node:16.14.0
     working_directory: ~/nexus-mutual-contracts
     steps:
       - checkout
       - restore_cache:
           keys:
-            - dependency-cache-{{ checksum "package.json" }}
+            - dependency-cache-{{ checksum "package.json" }}-{{ checksum "package-lock.json" }}
       - run:
           name: Install Dependencies
           command: npm i
       - save_cache:
-          key: dependency-cache-{{ checksum "package.json" }}
+          key: dependency-cache-{{ checksum "package.json" }}-{{ checksum "package-lock.json" }}
           paths:
             - node_modules
       - run:
@@ -31,7 +28,7 @@ jobs:
   test:
     resource_class: medium+
     docker:
-      - image: cimg/node:14.17.0
+      - image: cimg/node:16.14.0
     working_directory: ~/nexus-mutual-contracts
     steps:
       - restore_cache:
@@ -40,7 +37,7 @@ jobs:
 
   coverage:
     docker:
-      - image: cimg/node:14.17.0
+      - image: cimg/node:16.14.0
     working_directory: ~/nexus-mutual-contracts
     steps:
       - restore_cache:

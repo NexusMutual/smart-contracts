@@ -25,6 +25,7 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
   ITokenController public tc;
   ITokenData public td;
   IIncidents public incidents;
+  mapping(uint => string) public coverMetadata;
 
   /**
    * @dev Iupgradable Interface to update dependent contract address
@@ -140,7 +141,55 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     bytes32 _s
   ) external onlyMember whenNotPaused {
     tc.burnFrom(msg.sender, coverDetails[2]); // needs allowance
-    _verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s, true);
+    _verifyCoverDetails(
+      msg.sender,
+      smartCAdd,
+      coverCurr,
+      coverDetails,
+      coverPeriod,
+      _v,
+      _r,
+      _s,
+      true
+    );
+  }
+
+  /// Creates cover with offchain metadata that can be used as a commitment when claiming.
+  function buyCoverWithMetadata(
+    uint[] calldata coverDetails,
+    uint16 coverPeriod,
+    bytes4 coverCurr,
+    address smartCAdd,
+    uint8 _v,
+    bytes32 _r,
+    bytes32 _s,
+    bool payWithNXM,
+    string calldata ipfsMetadata
+  ) external payable onlyMember whenNotPaused {
+
+    if (payWithNXM) {
+      tc.burnFrom(msg.sender, coverDetails[2]);
+    } else if (coverCurr == "ETH") {
+      require(msg.value == coverDetails[1], "Quotation: ETH amount does not match premium");
+      // solhint-disable-next-line avoid-low-level-calls, avoid-call-value
+      (bool ok, /* data */) = address(pool).call.value(msg.value)("");
+      require(ok, "Quotation: Transfer to Pool failed");
+    }
+
+    _verifyCoverDetails(
+      msg.sender,
+      smartCAdd,
+      coverCurr,
+      coverDetails,
+      coverPeriod,
+      _v,
+      _r,
+      _s,
+      payWithNXM
+    );
+
+    uint coverId = qd.getCoverLength().sub(1);
+    coverMetadata[coverId] = ipfsMetadata;
   }
 
   /**
@@ -341,37 +390,4 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
   // solhint-disable-next-line no-empty-blocks
   function transferAssetsToNewContract(address) external pure {}
 
-  function freeUpHeldCovers() external nonReentrant {
-
-    IERC20 dai = IERC20(cr.getCurrencyAssetAddress("DAI"));
-    uint membershipFee = td.joiningFee();
-    uint lastCoverId = 106;
-
-    for (uint id = 1; id <= lastCoverId; id++) {
-
-      if (qd.holdedCoverIDStatus(id) != uint(IQuotationData.HCIDStatus.kycPending)) {
-        continue;
-      }
-
-      (/*id*/, /*sc*/, bytes4 currency, /*period*/) = qd.getHoldedCoverDetailsByID1(id);
-      (/*id*/, address payable userAddress, uint[] memory coverDetails) = qd.getHoldedCoverDetailsByID2(id);
-
-      uint refundedETH = membershipFee;
-      uint coverPremium = coverDetails[1];
-
-      if (qd.refundEligible(userAddress)) {
-        qd.setRefundEligible(userAddress, false);
-      }
-
-      qd.setHoldedCoverIDStatus(id, uint(IQuotationData.HCIDStatus.kycFailedOrRefunded));
-
-      if (currency == "ETH") {
-        refundedETH = refundedETH.add(coverPremium);
-      } else {
-        require(dai.transfer(userAddress, coverPremium), "Quotation: DAI refund transfer failed");
-      }
-
-      userAddress.transfer(refundedETH);
-    }
-  }
 }

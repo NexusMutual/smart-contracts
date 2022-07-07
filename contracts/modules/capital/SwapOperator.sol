@@ -336,6 +336,7 @@ contract SwapOperator is ReentrancyGuard {
     require(!(minAmount == 0 && maxAmount == 0), "SwapOperator: asset is not enabled");
 
     {
+      // check slippage
       (, uint netShareValue) = enzymeFundValueCalculatorRouter.calcNetShareValue(enzymeV4VaultProxyAddress);
 
       uint avgAmountOut = amountIn * 1e18 / netShareValue;
@@ -372,21 +373,29 @@ contract SwapOperator is ReentrancyGuard {
     emit Swapped(ETH, enzymeV4VaultProxyAddress, amountIn, amountOut);
 }
 
-  function _swapEnzymeVaultShareForETH(
-    AssetData memory assetData,
+  function swapEnzymeVaultShareForETH(
     uint amountIn,
     uint amountOutMin
-  ) internal returns (uint) {
+  ) external onlySwapController returns (uint) {
 
     IPool pool = _pool();
     IEnzymeV4Comptroller comptrollerProxy = IEnzymeV4Comptroller(IEnzymeV4Vault(enzymeV4VaultProxyAddress).getAccessor());
+    IERC20Detailed fromToken = IERC20Detailed(enzymeV4VaultProxyAddress);
     IWETH weth = IWETH(router.WETH());
+    (
+    /* uint112 minAmount, */,
+    /* uint112 maxAmount, */,
+    uint32 lastAssetSwapTime,
+    /* uint maxSlippageRatio */
+    ) = pool.getAssetDetails(address(fromToken));
 
     {
       // scope for swap frequency check
-      uint timeSinceLastTrade = block.timestamp - uint(assetData.lastSwapTime);
+      uint timeSinceLastTrade = block.timestamp - uint(lastAssetSwapTime);
       require(timeSinceLastTrade > MIN_TIME_BETWEEN_SWAPS, "SwapOperator: too fast");
     }
+
+    pool.transferAssetToSwapOperator(address(fromToken), amountIn);
 
     address[] memory payoutAssets = new address[](1);
     uint[] memory payoutAssetsPercentages = new uint[](1);
@@ -394,9 +403,10 @@ contract SwapOperator is ReentrancyGuard {
     payoutAssets[0] = address(weth);
     payoutAssetsPercentages[0] = 10000;
 
+    fromToken.approve(address(comptrollerProxy), amountIn);
     comptrollerProxy.redeemSharesForSpecificAssets(address(this), amountIn, payoutAssets, payoutAssetsPercentages);
 
-    uint amountOut = address(this).balance;
+    uint amountOut = weth.balanceOf(address(this));
     weth.withdraw(amountOut);
 
     require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");

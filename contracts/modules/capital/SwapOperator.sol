@@ -43,8 +43,6 @@ contract SwapOperator is ReentrancyGuard {
   IUniswapV2Router02 constant public router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
   uint constant public MAX_LIQUIDITY_RATIO = 0.015 ether;
   uint constant public MIN_TIME_BETWEEN_SWAPS = 10 minutes;
-//  address constant public enzymeV4VaultProxyAddress = 0x27F23c710dD3d878FE9393d93465FeD1302f2EbD;
-//  IEnzymeV4DepositWrapper enzymeV4DepositWrapper  = IEnzymeV4DepositWrapper(0x4Ffd9cb46F129326efCe0BD30064740Bb79dF6DB);
 
   address public enzymeV4VaultProxyAddress;
   IEnzymeV4DepositWrapper enzymeV4DepositWrapper;

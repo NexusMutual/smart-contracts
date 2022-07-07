@@ -16,7 +16,6 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/ITwapOracle.sol";
 import "../../interfaces/IERC20Detailed.sol";
 
-import "hardhat/console.sol";
 import "../../external/enzyme/IEnzymeFundValueCalculatorRouter.sol";
 
 contract SwapOperator is ReentrancyGuard {
@@ -433,7 +432,7 @@ contract SwapOperator is ReentrancyGuard {
     weth.withdraw(amountOut);
 
     require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
-    
+
     transferAssetTo(ETH, address(pool), amountOut);
 
     return amountOut;

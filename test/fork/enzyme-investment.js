@@ -469,7 +469,7 @@ describe('do enzyme investment', function () {
     });
   });
 
-  it.skip('triggers large enzyme investment', async function () {
+  it('triggers large enzyme investment', async function () {
     const { swapOperator, swapController, enzymeSharesToken, pool } = this;
 
     const poolValueInEthBefore = await pool.getPoolValueInEth();
@@ -498,6 +498,36 @@ describe('do enzyme investment', function () {
     });
   });
 
+  it('sets new enzyme shares asset bounds', async function () {
+
+    const { pool, voters, governance } = this;
+
+    const asset = enzymeV4VaultProxyAddress;
+    const min = ether('14000');
+    const max = ether('15000');
+    const maxSlippageRatio = ether('0.025'); // 2.5%
+    const parameters = [
+      ['address', asset],
+      ['uint112', min],
+      ['uint112', max],
+      ['uint256', maxSlippageRatio]
+    ];
+
+    const setAsset = web3.eth.abi.encodeParameters(
+      parameters.map(p => p[0]),
+      parameters.map(p => p[1]),
+    );
+
+    await submitGovernanceProposal(SetAssetDetailsProposalCategory, setAsset, voters, governance);
+
+    console.log('Query pool value');
+    const poolValueInEth = await pool.getPoolValueInEth();
+
+    console.log({
+      poolValueInEth: poolValueInEth.toString()
+    });
+  });
+
   it('triggers enzyme withdrawal', async function () {
 
     const { swapOperator, swapController, enzymeSharesToken, pool } = this;
@@ -508,8 +538,8 @@ describe('do enzyme investment', function () {
 
     await time.increase(11 * 60 * 60); // increase by 11 minutes
 
-    const amountIn = ether('100');
-    const amountOutMin = amountIn.sub(ether('0.1'));
+    const amountIn = ether('1000');
+    const amountOutMin = amountIn.sub(ether('1'));
     await swapOperator.swapEnzymeVaultShareForETH(amountIn, amountOutMin, {
       from: swapController,
     });

@@ -27,6 +27,7 @@ async function setup () {
   const P1MockEnzymeV4Comptroller = artifacts.require('P1MockEnzymeV4Comptroller');
   const P1MockEnzymeV4DepositWrapper = artifacts.require('P1MockEnzymeV4DepositWrapper');
   const P1MockEnzymeV4Vault = artifacts.require('P1MockEnzymeV4Vault');
+  const P1MockEnzymeFundValueCalculatorRouter = artifacts.require('P1MockEnzymeFundValueCalculatorRouter');
 
   const lido = await P1MockLido.new();
 
@@ -39,7 +40,7 @@ async function setup () {
     tokenA,
     tokenB,
   } = await setupUniswap();
-  
+
   const twapOracle = await TwapOracle.new(factory.address);
 
   /* deploy enzyme */
@@ -51,6 +52,8 @@ async function setup () {
     18
   );
   const enzymeV4DepositWrapper = await P1MockEnzymeV4DepositWrapper.new(enzymeV4Vault.address);
+
+  await enzymeV4Comptroller.setVault(enzymeV4Vault.address);
 
   /* deploy our contracts */
 
@@ -70,13 +73,16 @@ async function setup () {
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.enrollGovernance(governance);
 
+  const enzymeFundValueCalculatorRouter = await P1MockEnzymeFundValueCalculatorRouter.new(weth.address);
+
   const swapOperator = await SwapOperator.new(
     master.address,
     twapOracle.address,
     owner,
     lido.address,
     enzymeV4Vault.address,
-    enzymeV4DepositWrapper.address
+    enzymeV4DepositWrapper.address,
+    enzymeFundValueCalculatorRouter.address
   );
 
   await pool.updateAddressParameters(hex('SWP_OP'), swapOperator.address, {

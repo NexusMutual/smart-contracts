@@ -40,16 +40,6 @@ const networks = {
     blockGasLimit: 12e6,
     gas: 12e6,
   },
-  tenderly: {
-    url: process.env.TENDERLY_URL,
-    // accounts: {
-    //   count: 100,
-    //   accountsBalance: ether(1000000000),
-    // },
-    allowUnlimitedContractSize: true,
-    blockGasLimit: 12e6,
-    gas: 12e6,
-  },
   localhost: {
     blockGasLimit: 12e6,
     gas: 12e6,

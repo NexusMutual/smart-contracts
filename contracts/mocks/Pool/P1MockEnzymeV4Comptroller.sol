@@ -3,10 +3,14 @@
 pragma solidity ^0.5.17;
 
 import "../../external/enzyme/IEnzymeV4Comptroller.sol";
+import "./P1MockEnzymeV4Vault.sol";
 
 contract P1MockEnzymeV4Comptroller is IEnzymeV4Comptroller {
 
   address weth;
+  P1MockEnzymeV4Vault private vault;
+
+  uint public ethToSharesRate = 10000;
 
   constructor(address _weth) public {
     weth = _weth;
@@ -22,5 +26,26 @@ contract P1MockEnzymeV4Comptroller is IEnzymeV4Comptroller {
     uint256[] calldata _payoutAssetPercentages
   ) external returns (uint256[] memory payoutAmounts_) {
     uint256[] memory payoutAmounts_ =  new uint256[](0);
+  }
+
+  function vaultCallOnContract(
+    address _contract,
+    bytes4 _selector,
+    bytes calldata _encodedArgs
+  ) external {
+    // no-op
+  }
+
+  function buyShares(uint _investmentAmount, uint _minSharesQuantity) external {
+    uint shares = _investmentAmount * ethToSharesRate / 10000;
+    vault.mint(msg.sender, shares);
+  }
+
+  function setETHToVaultSharesRate(uint _ethToSharesRate) public {
+    ethToSharesRate = _ethToSharesRate;
+  }
+
+  function setVault(P1MockEnzymeV4Vault _vault) public {
+    vault = _vault;
   }
 }

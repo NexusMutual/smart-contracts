@@ -75,13 +75,13 @@ describe.only('swapETHForEnzymeVaultShare', function () {
       enzymeV4Vault.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
-      ether('0.01'), // max slippage
+      ether('0.05'), // max slippage
       { from: governance },
     );
 
     // should fail with max + 1
     await expectRevert(
-      swapOperator.swapETHForEnzymeVaultShare(maxPoolTradableEther.addn(1), '0'),
+      swapOperator.swapETHForEnzymeVaultShare(maxPoolTradableEther.addn(1), maxPoolTradableEther),
       'SwapOperator: insufficient ether left',
     );
 
@@ -95,34 +95,34 @@ describe.only('swapETHForEnzymeVaultShare', function () {
 
     const poolBalance = toBN(await web3.eth.getBalance(pool.address));
     await expectRevert(
-      swapOperator.swapETHForEnzymeVaultShare(poolBalance.addn(1), '0'),
+      swapOperator.swapETHForEnzymeVaultShare(poolBalance.addn(1), poolBalance),
       'Pool: Eth transfer failed',
     );
   });
 
   it('should revert if Enzyme does not sent enough shares back', async function () {
-    const { swapOperator, enzymeV4DepositWrapper } = contracts();
+    const { swapOperator, enzymeV4Comptroller } = contracts();
 
     const amountIn = ether('1000');
 
-    // lido lowers the rate (incorrect)
-    await enzymeV4DepositWrapper.setETHToVaultSharesRate('500');
+    // enzyme lowers the rate.
+    await enzymeV4Comptroller.setETHToVaultSharesRate('500');
     await expectRevert(
       swapOperator.swapETHForEnzymeVaultShare(amountIn, amountIn),
       'SwapOperator: amountOut < amountOutMin',
     );
   });
 
-  it.skip('should revert if balanceAfter > max', async function () {
-    const { pool, swapOperator, lido } = contracts();
+  it('should revert if balanceAfter > max', async function () {
+    const { pool, swapOperator, enzymeV4Vault } = contracts();
     const windowStart = await nextWindowStartTime();
 
-    const minStEthAmount = ether('100');
-    const maxStEthAmount = ether('1000');
+    const minAmount = ether('100');
+    const maxAmount = ether('1000');
     await pool.setAssetDetails(
-      lido.address,
-      minStEthAmount, // asset minimum
-      maxStEthAmount, // asset maximum
+      enzymeV4Vault.address,
+      minAmount, // asset minimum
+      maxAmount, // asset maximum
       ether('0.01'), // max slippage
       { from: governance },
     );
@@ -130,19 +130,19 @@ describe.only('swapETHForEnzymeVaultShare', function () {
     // should be able to swap only during the last period within the window
     await setNextBlockTime(windowStart + periodSize * 7);
 
-    const etherIn = maxStEthAmount.addn(10001);
+    const etherIn = maxAmount.addn(10001);
     await expectRevert(
-      swapOperator.swapETHForStETH(etherIn),
+      swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn),
       'SwapOperator: balanceAfter > max',
     );
   });
 
-  it.skip('should swap asset for eth and emit a Swapped event with correct values', async function () {
-    const { pool, tokenA, swapOperator, lido } = contracts();
+  it('should swap asset for eth and emit a Swapped event with correct values', async function () {
+    const { pool, tokenA, swapOperator, enzymeV4Vault } = contracts();
     const windowStart = await nextWindowStartTime();
 
     await pool.setAssetDetails(
-      lido.address,
+      enzymeV4Vault.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
       ether('0.01'), // max slippage
@@ -158,10 +158,10 @@ describe.only('swapETHForEnzymeVaultShare', function () {
     // amounts in/out of the trade
     const etherIn = ether('100');
     const minTokenOut = etherIn.subn(1);
-    const swapTx = await swapOperator.swapETHForStETH(etherIn);
+    const swapTx = await swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn);
 
     const etherAfter = toBN(await web3.eth.getBalance(pool.address));
-    const tokensAfter = await lido.balanceOf(pool.address);
+    const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
     const etherSent = etherBefore.sub(etherAfter);
     const tokensReceived = tokensAfter.sub(tokensBefore);
 
@@ -170,18 +170,17 @@ describe.only('swapETHForEnzymeVaultShare', function () {
 
     expectEvent(swapTx, 'Swapped', {
       fromAsset: ETH,
-      toAsset: lido.address,
+      toAsset: enzymeV4Vault.address,
       amountIn: etherIn,
       amountOut: tokensReceived,
     });
   });
 
-  it.skip('should swap asset for eth for a dust amount of wei equal to the precision error tolerance', async function () {
-    const { pool, tokenA, swapOperator, lido } = contracts();
-    const windowStart = await nextWindowStartTime();
+  it('should swap asset for eth for a dust amount of wei equal to the precision error tolerance', async function () {
+    const { pool, tokenA, swapOperator, enzymeV4Vault } = contracts();
 
     await pool.setAssetDetails(
-      lido.address,
+      enzymeV4Vault.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
       ether('0.01'), // max slippage
@@ -194,9 +193,9 @@ describe.only('swapETHForEnzymeVaultShare', function () {
     // amounts in/out of the trade
     const etherIn = toBN('10000');
     const minTokenOut = etherIn.subn(1);
-    await swapOperator.swapETHForStETH(etherIn);
+    await swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn);
     const etherAfter = toBN(await web3.eth.getBalance(pool.address));
-    const tokensAfter = await lido.balanceOf(pool.address);
+    const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
     const etherSent = etherBefore.sub(etherAfter);
     const tokensReceived = tokensAfter.sub(tokensBefore);
 
@@ -205,12 +204,12 @@ describe.only('swapETHForEnzymeVaultShare', function () {
   });
 
   it.skip('should swap asset for eth in 3 sequential calls', async function () {
-    const { pool, tokenA, swapOperator, lido } = contracts();
+    const { pool, tokenA, swapOperator, enzymeV4Vault } = contracts();
 
     const minStEthAmount = ether('100');
 
     await pool.setAssetDetails(
-      lido.address,
+      enzymeV4Vault.address,
       minStEthAmount, // asset minimum
       ether('1000'), // asset maximum
       ether('0.01'), // max slippage
@@ -224,10 +223,10 @@ describe.only('swapETHForEnzymeVaultShare', function () {
       // amounts in/out of the trade
       const etherIn = minStEthAmount.divn(3);
       const minTokenOut = etherIn.subn(1);
-      await swapOperator.swapETHForStETH(etherIn);
+      await swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn);
 
       const etherAfter = toBN(await web3.eth.getBalance(pool.address));
-      const tokensAfter = await lido.balanceOf(pool.address);
+      const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
       const etherSent = etherBefore.sub(etherAfter);
       const tokensReceived = tokensAfter.sub(tokensBefore);
 
@@ -242,10 +241,10 @@ describe.only('swapETHForEnzymeVaultShare', function () {
       // amounts in/out of the trade
       const etherIn = minStEthAmount.divn(3);
       const minTokenOut = etherIn.subn(1);
-      await swapOperator.swapETHForStETH(etherIn);
+      await swapOperator.enzymeV4Vault(etherIn, etherIn);
 
       const etherAfter = toBN(await web3.eth.getBalance(pool.address));
-      const tokensAfter = await lido.balanceOf(pool.address);
+      const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
       const etherSent = etherBefore.sub(etherAfter);
       const tokensReceived = tokensAfter.sub(tokensBefore);
 
@@ -263,7 +262,7 @@ describe.only('swapETHForEnzymeVaultShare', function () {
       await swapOperator.swapETHForStETH(etherIn);
 
       const etherAfter = toBN(await web3.eth.getBalance(pool.address));
-      const tokensAfter = await lido.balanceOf(pool.address);
+      const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
       const etherSent = etherBefore.sub(etherAfter);
       const tokensReceived = tokensAfter.sub(tokensBefore);
 

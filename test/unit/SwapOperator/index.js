@@ -17,6 +17,7 @@ describe.only('SwapOperator unit tests', function () {
   require('./swapAssetForETH');
   require('./swapETHForStETH');
   require('./swapETHForEnzymeVaultShare');
+  require('./swapEnzymeVaultShareForETH');
   require('./getSwapQuote');
   require('./transferToCommunityFund');
 

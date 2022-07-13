@@ -27,4 +27,9 @@ contract P1MockEnzymeV4Vault is IEnzymeV4Vault, ERC20Detailed, ERC20 {
     _mint(account, amount);
     return true;
   }
+
+  function burn(address account, uint256 amount) public returns (bool) {
+    _burn(account, amount);
+    return true;
+  }
 }

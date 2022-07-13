@@ -433,6 +433,8 @@ contract SwapOperator is ReentrancyGuard {
 
     transferAssetTo(ETH, address(pool), amountOut);
 
+    emit Swapped(enzymeV4VaultProxyAddress, ETH, amountIn, amountOut);
+
     return amountOut;
   }
 

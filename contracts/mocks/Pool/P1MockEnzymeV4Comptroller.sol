@@ -4,6 +4,7 @@ pragma solidity ^0.5.17;
 
 import "../../external/enzyme/IEnzymeV4Comptroller.sol";
 import "./P1MockEnzymeV4Vault.sol";
+import "../../external/enzyme/IWETH.sol";
 
 contract P1MockEnzymeV4Comptroller is IEnzymeV4Comptroller {
 
@@ -26,6 +27,9 @@ contract P1MockEnzymeV4Comptroller is IEnzymeV4Comptroller {
     uint256[] calldata _payoutAssetPercentages
   ) external returns (uint256[] memory payoutAmounts_) {
     uint256[] memory payoutAmounts_ =  new uint256[](0);
+
+    vault.burn(_recipient, _sharesQuantity);
+    IWETH(weth).transfer(_recipient, _sharesQuantity * 10000 / ethToSharesRate);
   }
 
   function vaultCallOnContract(

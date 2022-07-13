@@ -45,6 +45,16 @@ async function setup () {
 
   /* deploy enzyme */
   const enzymeV4Comptroller = await P1MockEnzymeV4Comptroller.new(weth.address);
+
+
+  /* move weth to Comptroller */
+
+  const comtrollerWethReserves = ether('10000');
+  await weth.deposit({
+    value: comtrollerWethReserves
+  });
+  await weth.transfer(enzymeV4Comptroller.address, comtrollerWethReserves);
+
   const enzymeV4Vault = await P1MockEnzymeV4Vault.new(
     enzymeV4Comptroller.address,
     'Enzyme V4 Vault Share ETH',

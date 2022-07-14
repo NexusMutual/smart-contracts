@@ -4,7 +4,7 @@ const { hex } = require('../utils').helpers;
 const { setNextBlockTime } = require('../utils').evm;
 const { assert } = require('chai');
 
-const [owner, governance, nobody] = accounts;
+const [ , governance, nobody] = accounts;
 const contracts = require('./setup').contracts;
 
 const { toBN } = web3.utils;

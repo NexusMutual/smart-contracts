@@ -1,10 +1,9 @@
 const { accounts, web3 } = require('hardhat');
 const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
-const { hex } = require('../utils').helpers;
 const { setNextBlockTime } = require('../utils').evm;
 const { assert } = require('chai');
 
-const [owner, governance, nobody] = accounts;
+const [ , governance, nobody] = accounts;
 const contracts = require('./setup').contracts;
 
 const { toBN } = web3.utils;
@@ -26,7 +25,7 @@ describe('swapEnzymeVaultShareForETH', function () {
 
   it('should revert when called while the system is paused', async function () {
 
-    const { master, swapOperator, enzymeV4Vault, pool, tokenA } = contracts();
+    const { master, swapOperator, enzymeV4Vault, pool } = contracts();
 
     await pool.setAssetDetails(
       enzymeV4Vault.address,

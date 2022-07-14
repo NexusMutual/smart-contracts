@@ -44,9 +44,8 @@ contract SwapOperator is ReentrancyGuard {
   uint constant public MAX_LIQUIDITY_RATIO = 0.015 ether;
   uint constant public MIN_TIME_BETWEEN_SWAPS = 10 minutes;
 
-  address public enzymeV4VaultProxyAddress;
-  IEnzymeV4DepositWrapper enzymeV4DepositWrapper;
-  IEnzymeFundValueCalculatorRouter enzymeFundValueCalculatorRouter;
+  address public immutable enzymeV4VaultProxyAddress;
+  IEnzymeFundValueCalculatorRouter immutable enzymeFundValueCalculatorRouter;
 
   /* events */
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
@@ -63,7 +62,6 @@ contract SwapOperator is ReentrancyGuard {
     address _swapController,
     address _stETH,
     address _enzymeV4VaultProxyAddress,
-    IEnzymeV4DepositWrapper _enzymeV4DepositWrapper,
     IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter
   ) {
     master = INXMMaster(_master);
@@ -71,7 +69,6 @@ contract SwapOperator is ReentrancyGuard {
     swapController = _swapController;
     stETH = _stETH;
     enzymeV4VaultProxyAddress = _enzymeV4VaultProxyAddress;
-    enzymeV4DepositWrapper = _enzymeV4DepositWrapper;
     enzymeFundValueCalculatorRouter = _enzymeFundValueCalculatorRouter;
   }
 

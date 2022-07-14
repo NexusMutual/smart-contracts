@@ -25,7 +25,6 @@ async function setup () {
   const SwapOperator = artifacts.require('SwapOperator');
   const MasterMock = artifacts.require('MasterMock');
   const P1MockEnzymeV4Comptroller = artifacts.require('P1MockEnzymeV4Comptroller');
-  const P1MockEnzymeV4DepositWrapper = artifacts.require('P1MockEnzymeV4DepositWrapper');
   const P1MockEnzymeV4Vault = artifacts.require('P1MockEnzymeV4Vault');
   const P1MockEnzymeFundValueCalculatorRouter = artifacts.require('P1MockEnzymeFundValueCalculatorRouter');
 
@@ -61,7 +60,6 @@ async function setup () {
     'EVSE',
     18
   );
-  const enzymeV4DepositWrapper = await P1MockEnzymeV4DepositWrapper.new(enzymeV4Vault.address);
 
   await enzymeV4Comptroller.setVault(enzymeV4Vault.address);
 
@@ -91,7 +89,6 @@ async function setup () {
     owner,
     lido.address,
     enzymeV4Vault.address,
-    enzymeV4DepositWrapper.address,
     enzymeFundValueCalculatorRouter.address
   );
 
@@ -114,7 +111,6 @@ async function setup () {
     oracle: twapOracle,
     swapOperator,
     enzymeV4Comptroller,
-    enzymeV4DepositWrapper,
     enzymeV4Vault
   };
   const tokens = { weth, tokenA, tokenB, lido };

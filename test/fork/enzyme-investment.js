@@ -66,14 +66,13 @@ const UserAddress = {
   NXM_WHALE_1: '0x25783b67b5e29c48449163db19842b8531fdde43',
   NXM_WHALE_2: '0x598dbe6738e0aca4eabc22fed2ac737dbd13fb8f',
   NXM_AB_MEMBER: '0x87B2a7559d85f4653f13E6546A14189cd5455d45',
-  ETH_WHALE: '0x73bceb1cd57c711feac4224d062b0f6ff338501e'
+  ETH_WHALE: '0x73bceb1cd57c711feac4224d062b0f6ff338501e',
 };
 
 const DAI_HOLDER = '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503';
 
 const ybDAIProductId = '0x000000000000000000000000000000000000000d';
 const ybETHProductId = '0x000000000000000000000000000000000000000e';
-
 
 const UpdatePoolAddressParametersCategory = 40;
 const SetAssetDetailsProposalCategory = 41;
@@ -92,7 +91,6 @@ const AddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
 
 const AddToListSelector = 'addToList(uint256,address[])';
 
-
 const ratioScale = toBN('10000');
 
 let isHardhat;
@@ -108,7 +106,6 @@ const hardhatRequest = async (...params) => {
   }
 };
 
-
 async function addToDepositor (depositor) {
   const comptroller = await IEnzymeV4Comptroller.at(enzymeComptrollerProxyAddress);
 
@@ -117,7 +114,7 @@ async function addToDepositor (depositor) {
   const owner = await vault.getOwner();
 
   console.log({
-    vaultOwner: owner
+    vaultOwner: owner,
   });
 
   await unlock(owner);
@@ -126,15 +123,15 @@ async function addToDepositor (depositor) {
   const selector = web3.eth.abi.encodeFunctionSignature('addToList(uint256,address[])');
   const args = web3.eth.abi.encodeParameters(
     ['uint256', 'address[]'],
-    [ListIdForDepositors, [depositor]]
+    [ListIdForDepositors, [depositor]],
   );
 
   await comptroller.vaultCallOnContract(
     AddressListRegistry,
     selector,
     args, {
-      from: owner
-    }
+      from: owner,
+    },
   );
 }
 
@@ -197,7 +194,7 @@ describe('do enzyme investment', function () {
     const { grossShareValue_ } = await fundValueCalculatorRouter.callStatic.calcGrossShareValue(enzymeV4VaultProxyAddress);
 
     console.log({
-      grossShareValue_: grossShareValue_.toString()
+      grossShareValue_: grossShareValue_.toString(),
     });
 
     this.fundValueCalculatorRouter = fundValueCalculatorRouter;
@@ -228,28 +225,28 @@ describe('do enzyme investment', function () {
     const wethBalanceBefore = await weth.balanceOf(UserAddress.NXM_WHALE_1);
 
     console.log({
-      wethBalanceBefore: wethBalanceBefore.toString()
+      wethBalanceBefore: wethBalanceBefore.toString(),
     });
 
     await weth.deposit({
       value: amountIn,
-      from: UserAddress.NXM_WHALE_1
+      from: UserAddress.NXM_WHALE_1,
     });
 
     const wethBalance = await weth.balanceOf(UserAddress.NXM_WHALE_1);
 
     console.log({
-      wethBalance: wethBalance.toString()
+      wethBalance: wethBalance.toString(),
     });
 
     await weth.approve(enzymeV4Comptroller.address, amountIn, {
-      from: UserAddress.NXM_WHALE_1
+      from: UserAddress.NXM_WHALE_1,
     });
 
     await enzymeV4Comptroller.buyShares(
       amountIn, '1', {
-        from: UserAddress.NXM_WHALE_1
-      }
+        from: UserAddress.NXM_WHALE_1,
+      },
     );
   });
 
@@ -261,7 +258,7 @@ describe('do enzyme investment', function () {
       [Address.DAI, Address.stETH, Address.ENZYMESHARES],
       [Address.DAIFEED, Address.stETHFEED, Address.ENZYMESHARESFEED],
       [18, 18, 18],
-      Address.DAI
+      Address.DAI,
     );
 
     const parameters = [
@@ -321,7 +318,7 @@ describe('do enzyme investment', function () {
       ['address', asset],
       ['uint112', min],
       ['uint112', max],
-      ['uint256', maxSlippageRatio]
+      ['uint256', maxSlippageRatio],
     ];
 
     const addAsset = web3.eth.abi.encodeParameters(
@@ -335,10 +332,9 @@ describe('do enzyme investment', function () {
     const poolValueInEth = await pool.getPoolValueInEth();
 
     console.log({
-      poolValueInEth: poolValueInEth.toString()
-    })
+      poolValueInEth: poolValueInEth.toString(),
+    });
   });
-
 
   it('upgrade contracts', async function () {
     const { master, oldSwapOperator, pool, voters, governance } = this;
@@ -360,7 +356,7 @@ describe('do enzyme investment', function () {
       Address.stETH,
       enzymeV4VaultProxyAddress,
       enzymeV4DepositWrapperAddress,
-      enzymeFundValueCalulatorRouter
+      enzymeFundValueCalulatorRouter,
     );
 
     const parameters = [
@@ -390,7 +386,7 @@ describe('do enzyme investment', function () {
 
   it('Enables SwapOperator as depositor', async function () {
 
-    let { swapOperator, pool } = this;
+    const { swapOperator, pool } = this;
 
     const comptroller = await IEnzymeV4Comptroller.at(enzymeComptrollerProxyAddress);
 
@@ -399,7 +395,7 @@ describe('do enzyme investment', function () {
     const owner = await vault.getOwner();
 
     console.log({
-      vaultOwner: owner
+      vaultOwner: owner,
     });
 
     await unlock(owner);
@@ -408,28 +404,28 @@ describe('do enzyme investment', function () {
     const selector = web3.eth.abi.encodeFunctionSignature('addToList(uint256,address[])');
     const args = web3.eth.abi.encodeParameters(
       ['uint256', 'address[]'],
-      [ListIdForDepositors, [swapOperator.address]]
+      [ListIdForDepositors, [swapOperator.address]],
     );
 
     await comptroller.vaultCallOnContract(
       AddressListRegistry,
       selector,
       args, {
-        from: owner
-      }
+        from: owner,
+      },
     );
 
     const receiverArgs = web3.eth.abi.encodeParameters(
       ['uint256', 'address[]'],
-      [ListIdForReceivers, [swapOperator.address]]
+      [ListIdForReceivers, [swapOperator.address]],
     );
 
     await comptroller.vaultCallOnContract(
       AddressListRegistry,
       selector,
       receiverArgs, {
-        from: owner
-      }
+        from: owner,
+      },
     );
 
     const registry = await IAddressListRegistry.at(enzymeAddressListRegistry);
@@ -465,7 +461,7 @@ describe('do enzyme investment', function () {
       balanceAfter: balanceAfter.toString(),
       poolValueInEthAfter: poolValueInEthAfter.toString(),
       poolValueInEthBefore: poolValueInEthBefore.toString(),
-      poolValueDelta: poolValueDelta.toString()
+      poolValueDelta: poolValueDelta.toString(),
     });
   });
 
@@ -494,7 +490,7 @@ describe('do enzyme investment', function () {
       balanceAfter: balanceAfter.toString(),
       poolValueInEthAfter: poolValueInEthAfter.toString(),
       poolValueInEthBefore: poolValueInEthBefore.toString(),
-      poolValueDelta: poolValueDelta.toString()
+      poolValueDelta: poolValueDelta.toString(),
     });
   });
 
@@ -510,7 +506,7 @@ describe('do enzyme investment', function () {
       ['address', asset],
       ['uint112', min],
       ['uint112', max],
-      ['uint256', maxSlippageRatio]
+      ['uint256', maxSlippageRatio],
     ];
 
     const setAsset = web3.eth.abi.encodeParameters(
@@ -524,7 +520,7 @@ describe('do enzyme investment', function () {
     const poolValueInEth = await pool.getPoolValueInEth();
 
     console.log({
-      poolValueInEth: poolValueInEth.toString()
+      poolValueInEth: poolValueInEth.toString(),
     });
   });
 
@@ -554,7 +550,7 @@ describe('do enzyme investment', function () {
       balanceAfter: balanceAfter.toString(),
       poolValueInEthAfter: poolValueInEthAfter.toString(),
       poolValueInEthBefore: poolValueInEthBefore.toString(),
-      poolValueDelta: poolValueDelta.toString()
+      poolValueDelta: poolValueDelta.toString(),
     });
 
   });

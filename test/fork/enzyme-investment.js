@@ -355,7 +355,6 @@ describe('do enzyme investment', function () {
       swapController,
       Address.stETH,
       enzymeV4VaultProxyAddress,
-      enzymeV4DepositWrapperAddress,
       enzymeFundValueCalulatorRouter,
     );
 

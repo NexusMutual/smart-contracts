@@ -426,6 +426,8 @@ contract SwapOperator is ReentrancyGuard {
     uint amountOut = weth.balanceOf(address(this));
     weth.withdraw(amountOut);
 
+    pool.setAssetDataLastSwapTime(address(fromToken), uint32(block.timestamp));
+
     require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
 
     transferAssetTo(ETH, address(pool), amountOut);

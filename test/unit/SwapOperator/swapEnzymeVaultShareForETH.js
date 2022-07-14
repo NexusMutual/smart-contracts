@@ -3,7 +3,7 @@ const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-h
 const { setNextBlockTime } = require('../utils').evm;
 const { assert } = require('chai');
 
-const [ , governance, nobody] = accounts;
+const [, governance, nobody] = accounts;
 const contracts = require('./setup').contracts;
 
 const { toBN } = web3.utils;
@@ -165,5 +165,75 @@ describe('swapEnzymeVaultShareForETH', function () {
       amountIn: sharesIn,
       amountOut: tokensSent,
     });
+  });
+
+  it('should swap asset for eth and emit a Swapped event with correct values', async function () {
+    const { pool, swapOperator, enzymeV4Vault } = contracts();
+    const windowStart = await nextWindowStartTime();
+
+    await pool.setAssetDetails(
+      enzymeV4Vault.address,
+      ether('100'), // asset minimum
+      ether('1000'), // asset maximum
+      ether('0.01'), // max slippage
+      { from: governance },
+    );
+
+    const amountInPool = ether('2000');
+    enzymeV4Vault.mint(pool.address, amountInPool);
+
+    // should be able to swap only during the last period within the window
+    await setNextBlockTime(windowStart + periodSize * 7);
+
+    const etherBefore = toBN(await web3.eth.getBalance(pool.address));
+    const tokensBefore = await enzymeV4Vault.balanceOf(pool.address);
+
+    // amounts in/out of the trade
+    const sharesIn = ether('1500');
+    const minTokenOut = sharesIn.subn(1);
+    const swapTx = await swapOperator.swapEnzymeVaultShareForETH(sharesIn, sharesIn);
+
+    const etherAfter = toBN(await web3.eth.getBalance(pool.address));
+    const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
+    const etherReceived = etherAfter.sub(etherBefore);
+    const tokensSent = tokensBefore.sub(tokensAfter);
+
+    assert.strictEqual(etherReceived.toString(), sharesIn.toString());
+    assert(tokensSent.gte(minTokenOut), 'tokensReceived < minTokenOut');
+
+    expectEvent(swapTx, 'Swapped', {
+      fromAsset: enzymeV4Vault.address,
+      toAsset: ETH,
+      amountIn: sharesIn,
+      amountOut: tokensSent,
+    });
+  });
+
+  it('reverts if another swap is attempted too fast', async function () {
+    const { pool, swapOperator, enzymeV4Vault } = contracts();
+    const windowStart = await nextWindowStartTime();
+
+    await pool.setAssetDetails(
+      enzymeV4Vault.address,
+      ether('100'), // asset minimum
+      ether('1000'), // asset maximum
+      ether('0.01'), // max slippage
+      { from: governance },
+    );
+
+    const amountInPool = ether('2000');
+    enzymeV4Vault.mint(pool.address, amountInPool);
+
+    // should be able to swap only during the last period within the window
+    await setNextBlockTime(windowStart + periodSize * 7);
+
+    // amounts in/out of the trade
+    const sharesIn = ether('400');
+    await swapOperator.swapEnzymeVaultShareForETH(sharesIn, sharesIn);
+
+    await expectRevert(
+      swapOperator.swapEnzymeVaultShareForETH(sharesIn, sharesIn),
+      'SwapOperator: too fast',
+    );
   });
 });

@@ -4,7 +4,7 @@ const { hex } = require('../utils').helpers;
 const { setNextBlockTime } = require('../utils').evm;
 const { assert } = require('chai');
 
-const [ , governance, nobody] = accounts;
+const [, governance, nobody] = accounts;
 const contracts = require('./setup').contracts;
 
 const { toBN } = web3.utils;
@@ -201,6 +201,27 @@ describe('swapETHForEnzymeVaultShare', function () {
 
     assert.strictEqual(etherSent.toString(), etherIn.toString());
     assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
+  });
+
+  it('reverts if another swap is attempted too fast', async function () {
+    const { pool, swapOperator, enzymeV4Vault } = contracts();
+
+    await pool.setAssetDetails(
+      enzymeV4Vault.address,
+      ether('100'), // asset minimum
+      ether('1000'), // asset maximum
+      ether('0.01'), // max slippage
+      { from: governance },
+    );
+
+    // amounts in/out of the trade
+    const etherIn = toBN('500');
+    await swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn);
+
+    await expectRevert(
+      swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn),
+      'SwapOperator: too fast',
+    );
   });
 
   it('should swap asset for eth in 3 sequential calls', async function () {

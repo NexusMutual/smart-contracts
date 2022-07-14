@@ -80,7 +80,6 @@ const SetAssetDetailsProposalCategory = 41;
 // enzyme constants
 const enzymeV4VaultProxyAddress = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';
 const enzymeV4DepositWrapperAddress = '0x4Ffd9cb46F129326efCe0BD30064740Bb79dF6DB';
-const enzymePolicyManager = '0xadf5a8db090627b153ef0c5726ccfdc1c7aed7bd';
 const enzymeComptrollerProxyAddress = '0xa5bf4350da6193b356ac15a3dbd777a687bc216e';
 const enzymeAddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
 const enzymeFundValueCalulatorRouter = '0x7c728cd0cfa92401e01a4849a01b57ee53f5b2b9';

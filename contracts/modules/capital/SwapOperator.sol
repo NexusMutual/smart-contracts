@@ -45,7 +45,7 @@ contract SwapOperator is ReentrancyGuard {
   uint constant public MIN_TIME_BETWEEN_SWAPS = 10 minutes;
 
   address public immutable enzymeV4VaultProxyAddress;
-  IEnzymeFundValueCalculatorRouter immutable enzymeFundValueCalculatorRouter;
+  IEnzymeFundValueCalculatorRouter public immutable enzymeFundValueCalculatorRouter;
 
   /* events */
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);

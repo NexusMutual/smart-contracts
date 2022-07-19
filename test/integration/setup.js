@@ -449,7 +449,7 @@ async function setup () {
 
   await enrollMember(this.contracts, ethersAccounts.members, ethersAccounts.defaultSender);
 
-  const DEFAULT_POOL_FEE = '5'
+  const DEFAULT_POOL_FEE = '5';
 
   const DEFAULT_PRODUCT_INITIALIZATION = [
     {
@@ -458,7 +458,7 @@ async function setup () {
       initialPrice: 1000,
       targetPrice: 1000
     }
-  ]
+  ];
 
   for (let i = 0; i < 3; i++) {
     const tx = await this.withEthers.contracts.cover.createStakingPool(
@@ -477,8 +477,8 @@ async function setup () {
     this.contracts['stakingPool' + i] = stakingPoolInstance;
   }
 
-
   this.withEthers = web3ToEthers(this, signers);
+  this.accounts = ethersAccounts;
 }
 
 module.exports = setup;

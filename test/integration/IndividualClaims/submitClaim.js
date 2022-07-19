@@ -1,18 +1,31 @@
-const { accounts, web3 } = require('hardhat');
+const { accounts, web3,
+  ethers
+} = require('hardhat');
 const { expectEvent, expectRevert, ether, time } = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
+const { assert,
+  expect
+} = require('chai');
 const { ProposalCategory } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 const { submitProposal } = require('../utils').governance;
 const { buyCover, coverToCoverDetailsArray } = require('../utils').buyCover;
 const { getQuoteSignature } = require('../utils').getQuote;
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
+const {
+  ASSET,
+  daysToSeconds
+} = require('../../unit/IndividualClaims/helpers');
 const { toBN } = web3.utils;
 
-const MCR = artifacts.require('MCR');
-const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
-const PooledStaking = artifacts.require('LegacyPooledStaking');
-const NXMaster = artifacts.require('NXMaster');
+const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
+const { assertCoverFields } = require('../../unit/Cover/helpers');
+
+const { parseEther } = ethers.utils;
+
+const setTime = async timestamp => {
+  await setNextBlockTime(timestamp);
+  await mineNextBlock();
+};
 
 const [owner, emergencyAdmin, unknown, member1, member2, member3, coverHolder] = accounts;
 
@@ -31,6 +44,52 @@ const coverTemplate = {
 
 describe('submitClaim', function () {
   it('submits claim and approves claim', async function () {
+    const { individualClaims, cover } = this.withEthers;
+    const [ coverBuyer1 ] = this.accounts.members;
+    const coverAmount = parseEther('100');
 
+    const { timestamp } = await ethers.provider.getBlock('latest');
+
+    const productId = 0;
+    const payoutAsset = 0; // ETH
+    const period = 3600 * 24 * 364; // 30 days
+
+    const amount = parseEther('1000');
+
+    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+
+    const tx = await cover.connect(member1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        productId,
+        payoutAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: payoutAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
+      },
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      {
+        value: expectedPremium,
+      },
+    );
+    const receipt = await tx.wait();
+
+    console.log({
+      gasUsed: receipt.gasUsed.toString(),
+    });
+
+    const expectedCoverId = '0';
+
+    const coverId = 0;
+    await expect(
+      individualClaims.connect(coverOwner).submitClaim(coverId, 0, coverAmount, '', {
+        value: ethers.constants.Zero,
+      }),
+    ).to.be.revertedWith('Assessment deposit is insufficient');
   });
 });

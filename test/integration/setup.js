@@ -453,8 +453,8 @@ async function setup() {
       productId: 0,
       weight: 100,
       initialPrice: 1000,
-      targetPrice: 1000,
-    },
+      targetPrice: 1000
+    }
   ];
 
   for (let i = 0; i < 3; i++) {
@@ -476,6 +476,7 @@ async function setup() {
   }
 
   this.withEthers = web3ToEthers(this, signers);
+  this.accounts = ethersAccounts;
 }
 
 module.exports = setup;

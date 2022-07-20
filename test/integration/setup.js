@@ -479,6 +479,7 @@ async function setup () {
 
   this.withEthers = web3ToEthers(this, signers);
   this.accounts = ethersAccounts;
+  this.DEFAULT_PRODUCT_INITIALIZATION = DEFAULT_PRODUCT_INITIALIZATION;
 }
 
 module.exports = setup;

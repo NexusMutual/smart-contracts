@@ -1,7 +1,8 @@
 const { takeSnapshot, revertToSnapshot } = require('./utils').evm;
 const setup = require('./setup');
 
-describe.skip('INTEGRATION TESTS', function () {
+
+describe('INTEGRATION TESTS', function () {
   before(setup);
 
   beforeEach(async function () {

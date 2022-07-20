@@ -1,7 +1,5 @@
-const { accounts, web3,
-  ethers
-} = require('hardhat');
-const { expectEvent, expectRevert, ether, time } = require('@openzeppelin/test-helpers');
+const { accounts, web3, ethers } = require('hardhat');
+const { constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 const { assert,
   expect
 } = require('chai');
@@ -19,6 +17,7 @@ const { toBN } = web3.utils;
 
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { assertCoverFields } = require('../../unit/Cover/helpers');
+const { BigNumber } = require('ethers');
 
 const { parseEther } = ethers.utils;
 
@@ -42,11 +41,14 @@ const coverTemplate = {
   type: 0,
 };
 
+const priceDenominator = '10000';
+
 describe('submitClaim', function () {
 
 
   it('submits claim and approves claim', async function () {
-    const { individualClaims, cover } = this.withEthers;
+    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { individualClaims, cover } = this.withEthers.contracts;
     const [ coverBuyer1 ] = this.accounts.members;
     const coverAmount = parseEther('100');
 
@@ -58,7 +60,9 @@ describe('submitClaim', function () {
 
     const amount = parseEther('1000');
 
-    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const expectedPremium = amount
+      .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
+      .div(BigNumber.from(priceDenominator));
 
     const tx = await cover.connect(member1).buyCover(
       {

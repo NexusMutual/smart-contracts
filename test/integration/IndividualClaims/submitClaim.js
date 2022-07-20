@@ -43,6 +43,8 @@ const coverTemplate = {
 };
 
 describe('submitClaim', function () {
+
+
   it('submits claim and approves claim', async function () {
     const { individualClaims, cover } = this.withEthers;
     const [ coverBuyer1 ] = this.accounts.members;

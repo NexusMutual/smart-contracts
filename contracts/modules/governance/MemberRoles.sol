@@ -178,6 +178,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
 
     // Verify the signature to see if membership has been approved.
     address recoveredAddress = ECDSA.recover(ethSignedMessageHash, signature);
+
     require(recoveredAddress == kycAuthAddress, "MemberRoles: Signature is invalid");
 
     // Whitelist the address.

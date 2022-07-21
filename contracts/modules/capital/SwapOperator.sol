@@ -371,12 +371,12 @@ contract SwapOperator is ReentrancyGuard {
     transferAssetTo(enzymeV4VaultProxyAddress, address(pool), amountOut);
 
     emit Swapped(ETH, enzymeV4VaultProxyAddress, amountIn, amountOut);
-}
+  }
 
   function swapEnzymeVaultShareForETH(
     uint amountIn,
     uint amountOutMin
-  ) external onlySwapController returns (uint) {
+  ) external onlySwapController {
 
     IPool pool = _pool();
     IERC20Detailed fromToken = IERC20Detailed(enzymeV4VaultProxyAddress);
@@ -392,17 +392,25 @@ contract SwapOperator is ReentrancyGuard {
 
       require(!(minAmount == 0 && maxAmount == 0), "SwapOperator: asset is not enabled");
 
-      // scope for swap frequency check
+      // swap frequency check
       uint timeSinceLastTrade = block.timestamp - uint(lastAssetSwapTime);
       require(timeSinceLastTrade > MIN_TIME_BETWEEN_SWAPS, "SwapOperator: too fast");
 
-      // scope for slippage check
-      (, uint netShareValue) = enzymeFundValueCalculatorRouter.calcNetShareValue(enzymeV4VaultProxyAddress);
+      uint netShareValue;
+      {
+        address denominationAsset;
+        (denominationAsset, netShareValue) =
+        enzymeFundValueCalculatorRouter.calcNetShareValue(enzymeV4VaultProxyAddress);
+
+        require(denominationAsset ==  router.WETH(), "SwapOperator: invalid denomination asset");
+      }
+
       // avgAmountOut in ETH
       uint avgAmountOut = amountIn * netShareValue / (10 ** fromToken.decimals());
       uint maxSlippageAmount = avgAmountOut * maxSlippageRatio / 1e18;
       uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
+      // slippage check
       require(amountOutMin >= minOutOnMaxSlippage, "SwapOperator: amountOutMin < minOutOnMaxSlippage");
       require(balanceBefore > maxAmount, "SwapOperator: balanceBefore <= max");
       require(balanceBefore - amountIn >= minAmount, "SwapOperator: tokenBalanceAfter < min");
@@ -433,8 +441,6 @@ contract SwapOperator is ReentrancyGuard {
     transferAssetTo(ETH, address(pool), amountOut);
 
     emit Swapped(enzymeV4VaultProxyAddress, ETH, amountIn, amountOut);
-
-    return amountOut;
   }
 
   function transferToCommunityFund() external onlySwapController {

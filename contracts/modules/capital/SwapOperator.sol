@@ -37,7 +37,7 @@ contract SwapOperator is ReentrancyGuard {
   address immutable public swapController;
   INXMMaster immutable master;
   address immutable public stETH;
-  IWETH immutable weth;
+  IWETH immutable public weth;
 
   /* constants */
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -467,6 +467,11 @@ contract SwapOperator is ReentrancyGuard {
 
   function _pool() internal view returns (IPool) {
     return IPool(master.getLatestAddress('P1'));
+  }
+
+
+  function recover(address token) public onlySwapController {
+
   }
 
   receive() external payable {}

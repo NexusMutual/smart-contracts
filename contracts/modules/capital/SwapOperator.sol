@@ -470,8 +470,28 @@ contract SwapOperator is ReentrancyGuard {
   }
 
 
-  function recover(address token) public onlySwapController {
+  function recoverAsset(address assetAddress, address receiver) public onlySwapController {
 
+    IERC20 asset = IERC20(assetAddress);
+
+    uint balance = asset.balanceOf(address(this));
+    require(balance > 0, "SwapOperator: Balance = 0");
+
+    IPool pool = _pool();
+    (
+    uint112 min,
+    uint112 max,
+    /* uint32 lastAssetSwapTime */,
+    /* uint maxSlippageRatio */
+    ) = pool.getAssetDetails(assetAddress);
+
+    if (min == 0 && max == 0) {
+      // asset is not supported
+      asset.transfer(receiver, balance);
+      return;
+    }
+
+    asset.transfer(address(pool), balance);
   }
 
   receive() external payable {}

@@ -37,6 +37,7 @@ contract SwapOperator is ReentrancyGuard {
   address immutable public swapController;
   INXMMaster immutable master;
   address immutable public stETH;
+  IWETH immutable weth;
 
   /* constants */
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -62,7 +63,8 @@ contract SwapOperator is ReentrancyGuard {
     address _swapController,
     address _stETH,
     address _enzymeV4VaultProxyAddress,
-    IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter
+    IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter,
+    address _weth
   ) {
     master = INXMMaster(_master);
     twapOracle = ITwapOracle(_twapOracle);
@@ -70,6 +72,7 @@ contract SwapOperator is ReentrancyGuard {
     stETH = _stETH;
     enzymeV4VaultProxyAddress = _enzymeV4VaultProxyAddress;
     enzymeFundValueCalculatorRouter = _enzymeFundValueCalculatorRouter;
+    weth = IWETH(_weth);
   }
 
   function swapETHForAsset(
@@ -156,7 +159,7 @@ contract SwapOperator is ReentrancyGuard {
 
     IPool pool = _pool();
     uint balanceBefore = IERC20(toTokenAddress).balanceOf(address(pool));
-    address WETH = router.WETH();
+    address WETH = address(weth);
 
     {
       // scope for swap frequency check
@@ -215,7 +218,7 @@ contract SwapOperator is ReentrancyGuard {
 
     IPool pool = _pool();
     uint tokenBalanceBefore = IERC20(fromTokenAddress).balanceOf(address(pool)) + amountIn;
-    address WETH = router.WETH();
+    address WETH = address(weth);
 
     {
       // scope for swap frequency check
@@ -251,7 +254,7 @@ contract SwapOperator is ReentrancyGuard {
 
     address[] memory path = new address[](2);
     path[0] = fromTokenAddress;
-    path[1] = router.WETH();
+    path[1] = address(weth);
     IERC20(fromTokenAddress).approve(address(router), amountIn);
     router.swapExactTokensForETH(amountIn, amountOutMin, path, address(this), block.timestamp);
 
@@ -318,7 +321,6 @@ contract SwapOperator is ReentrancyGuard {
     IPool pool = _pool();
     IEnzymeV4Comptroller comptrollerProxy = IEnzymeV4Comptroller(IEnzymeV4Vault(enzymeV4VaultProxyAddress).getAccessor());
     IERC20Detailed toToken = IERC20Detailed(enzymeV4VaultProxyAddress);
-    IWETH weth = IWETH(router.WETH());
 
     (
     uint112 minAmount,
@@ -402,7 +404,7 @@ contract SwapOperator is ReentrancyGuard {
         (denominationAsset, netShareValue) =
         enzymeFundValueCalculatorRouter.calcNetShareValue(enzymeV4VaultProxyAddress);
 
-        require(denominationAsset ==  router.WETH(), "SwapOperator: invalid denomination asset");
+        require(denominationAsset ==  address(weth), "SwapOperator: invalid denomination asset");
       }
 
       // avgAmountOut in ETH
@@ -423,8 +425,6 @@ contract SwapOperator is ReentrancyGuard {
 
     address[] memory payoutAssets = new address[](1);
     uint[] memory payoutAssetsPercentages = new uint[](1);
-
-    IWETH weth = IWETH(router.WETH());
 
     payoutAssets[0] = address(weth);
     payoutAssetsPercentages[0] = 10000;

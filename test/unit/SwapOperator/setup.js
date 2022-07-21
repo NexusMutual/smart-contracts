@@ -87,6 +87,7 @@ async function setup () {
     lido.address,
     enzymeV4Vault.address,
     enzymeFundValueCalculatorRouter.address,
+    weth.address
   );
 
   await pool.updateAddressParameters(hex('SWP_OP'), swapOperator.address, {

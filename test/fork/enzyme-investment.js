@@ -135,7 +135,7 @@ async function addToDepositor (depositor) {
 }
 
 const getAddressByCodeFactory = abis => code => abis.find(abi => abi.code === code).address;
-const fund = async to => web3.eth.sendTransaction({ from: UserAddress.ETH_WHALE, to, value: ether('1000') });
+const fund = async to => web3.eth.sendTransaction({ from: accounts[0], to, value: ether('1000') });
 const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAccount', params: [member] });
 const bnToNumber = bn => parseInt(bn.toString(), 10);
 
@@ -355,6 +355,7 @@ describe('do enzyme investment', function () {
       Address.stETH,
       enzymeV4VaultProxyAddress,
       enzymeFundValueCalulatorRouter,
+      Address.WETH
     );
 
     const parameters = [

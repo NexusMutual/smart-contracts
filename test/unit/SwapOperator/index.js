@@ -20,6 +20,7 @@ describe('SwapOperator unit tests', function () {
   require('./swapEnzymeVaultShareForETH');
   require('./getSwapQuote');
   require('./transferToCommunityFund');
+  require('./recoverAsset');
 
   // TwapOracle
   require('./consult');

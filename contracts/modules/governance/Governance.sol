@@ -393,6 +393,8 @@ contract Governance is IGovernance, LegacyMasterAware {
    */
   function delegateVote(address _add) external isMemberAndcheckPause checkPendingRewards {
 
+    revert("Delegations are not allowed");
+
     require(ms.masterInitialized());
 
     require(allDelegation[followerDelegation[_add]].leader == address(0));

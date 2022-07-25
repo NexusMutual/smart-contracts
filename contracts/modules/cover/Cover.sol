@@ -474,44 +474,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     address commissionDestination
   ) internal {
 
-    // add commission
-    uint commission = premium * commissionRatio / COMMISSION_DENOMINATOR;
-
-    if (paymentAsset == 0) {
-
-      uint premiumWithCommission = premium + commission;
-      require(msg.value >= premiumWithCommission, "Cover: Insufficient ETH sent");
-
-      uint remainder = msg.value - premiumWithCommission;
-
-      if (remainder > 0) {
-        // solhint-disable-next-line avoid-low-level-calls
-        (bool ok, /* data */) = address(msg.sender).call{value: remainder}("");
-        require(ok, "Cover: Returning ETH remainder to sender failed.");
-      }
-
-      // send commission
-      if (commission > 0) {
-        (bool ok, /* data */) = address(commissionDestination).call{value: commission}("");
-        require(ok, "Cover: Sending ETH to commission destination failed.");
-      }
-
-      return;
-    }
-
-    IPool _pool = pool();
-
-    (
-      address payoutAsset,
-      /*uint8 decimals*/
-    ) = _pool.coverAssets(paymentAsset);
-
-    IERC20 token = IERC20(payoutAsset);
-    token.safeTransferFrom(msg.sender, address(_pool), premium);
-
-    if (commission > 0) {
-      token.safeTransferFrom(msg.sender, commissionDestination, commission);
-    }
+    CoverUtilsLib.retrievePayment(premium, paymentAsset, commissionRatio, commissionDestination, pool());
   }
 
   function retrieveNXMPayment(uint price, uint commissionRatio, address commissionDestination) internal {

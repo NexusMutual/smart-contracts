@@ -578,11 +578,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint burnAmount
   ) external onlyInternal override returns (address /* owner */) {
 
-    return CoverUtilsLib.performStakeBurn(
+   CoverData storage cover =_coverData[coverId];
+
+   if (coverAmountTrackingEnabled) {
+     totalActiveCoverInAsset[cover.payoutAsset] -= burnAmount;
+   }
+
+  return CoverUtilsLib.performStakeBurn(
       coverId,
       burnAmount,
       ICoverNFT(coverNFT),
-      _coverData[coverId],
+      cover,
       coverSegments(coverId, segmentId),
       coverSegmentAllocations[coverId][segmentId],
       stakingPoolProxyCodeHash,

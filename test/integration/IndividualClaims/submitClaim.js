@@ -64,7 +64,8 @@ describe('submitClaim', function () {
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    const tx = await cover.connect(member1).buyCover(
+
+    const tx = await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,

@@ -27,10 +27,14 @@ async function setup () {
   const chainlinkDAI = await ChainlinkAggregatorMock.new();
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
+  const chainlinkStETH = await ChainlinkAggregatorMock.new();
+  await chainlinkStETH.setLatestAnswer(ether('1'));
+
   const priceFeedOracle = await PriceFeedOracle.new(
-    chainlinkDAI.address,
-    dai.address,
-    stETH.address,
+    [dai.address, stETH.address],
+    [chainlinkDAI.address, chainlinkStETH.address],
+    [18, 18],
+    dai.address
   );
 
   const pool = await Pool.new(priceFeedOracle.address);

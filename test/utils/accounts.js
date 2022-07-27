@@ -19,7 +19,8 @@ const getAccounts = accounts => {
   const nonInternalContracts = accounts.slice(20, 25);
   const governanceContracts = accounts.slice(25, 30);
   const stakingPoolManagers = accounts.slice(30, 35);
-  const generalPurpose = accounts.slice(35); // 65 general purpose addresses
+  const emergencyAdmin = accounts[35];
+  const generalPurpose = accounts.slice(36); // 65 general purpose addresses
   return {
     defaultSender,
     nonMembers,
@@ -30,6 +31,7 @@ const getAccounts = accounts => {
     governanceContracts,
     stakingPoolManagers,
     generalPurpose,
+    emergencyAdmin
   };
 };
 

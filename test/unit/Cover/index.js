@@ -17,4 +17,5 @@ describe('Cover unit tests', function () {
   require('./createStakingPool');
   require('./totalActiveCoverInAsset');
   require('./performStakeBurn');
+  require('./expireCover');
 });

@@ -2,18 +2,24 @@
 
 pragma solidity ^0.8.9;
 
+import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
+
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../libraries/SafeUintCast.sol";
+import "../../interfaces/IPool.sol";
 import "./MinimalBeaconProxy.sol";
 
 
 library CoverUtilsLib {
+  using SafeERC20 for IERC20;
 
   uint private constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
+  uint private constant COMMISSION_DENOMINATOR = 10_000;
 
   struct MigrateParams {
     uint coverId;
@@ -193,5 +199,51 @@ library CoverUtilsLib {
     }
 
     return coverNFT.ownerOf(coverId);
+  }
+
+  function retrievePayment(
+    uint premium,
+    uint8 paymentAsset,
+    uint16 commissionRatio,
+    address commissionDestination,
+    IPool _pool
+  ) external {
+
+    // add commission
+    uint commission = premium * commissionRatio / COMMISSION_DENOMINATOR;
+
+    if (paymentAsset == 0) {
+
+      uint premiumWithCommission = premium + commission;
+      require(msg.value >= premiumWithCommission, "Cover: Insufficient ETH sent");
+
+      uint remainder = msg.value - premiumWithCommission;
+
+      if (remainder > 0) {
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool ok, /* data */) = address(msg.sender).call{value: remainder}("");
+        require(ok, "Cover: Returning ETH remainder to sender failed.");
+      }
+
+      // send commission
+      if (commission > 0) {
+        (bool ok, /* data */) = address(commissionDestination).call{value: commission}("");
+        require(ok, "Cover: Sending ETH to commission destination failed.");
+      }
+
+      return;
+    }
+
+    (
+    address payoutAsset,
+    /*uint8 decimals*/
+    ) = _pool.coverAssets(paymentAsset);
+
+    IERC20 token = IERC20(payoutAsset);
+    token.safeTransferFrom(msg.sender, address(_pool), premium);
+
+    if (commission > 0) {
+      token.safeTransferFrom(msg.sender, commissionDestination, commission);
+    }
   }
 }

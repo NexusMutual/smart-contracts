@@ -59,7 +59,7 @@ const Address = {
   WETH: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
   stETHFEED: '0x86392dC19c0b719886221c78AB11eb8Cf5c52812',
   ENZYMESHARES: '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD',
-  ENZYMESHARESFEED: '0x86392dC19c0b719886221c78AB11eb8Cf5c52812', // TODO: replace with real one
+  ENZYMESHARESFEED: '0x773616E4d11A78F511299002da57A0a94577F1f4', // TODO: replace with real one
 };
 
 const UserAddress = {
@@ -79,7 +79,6 @@ const SetAssetDetailsProposalCategory = 41;
 
 // enzyme constants
 const enzymeV4VaultProxyAddress = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';
-const enzymeV4DepositWrapperAddress = '0x4Ffd9cb46F129326efCe0BD30064740Bb79dF6DB';
 const enzymeComptrollerProxyAddress = '0xa5bf4350da6193b356ac15a3dbd777a687bc216e';
 const enzymeAddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
 const enzymeFundValueCalulatorRouter = '0x7c728cd0cfa92401e01a4849a01b57ee53f5b2b9';
@@ -190,10 +189,10 @@ describe('do enzyme investment', function () {
   it.skip('reads enzyme values', async function () {
     const fundValueCalculatorRouter = await IEnzymeFundValueCalculatorRouter.at(enzymeFundValueCalulatorRouter);
 
-    const { grossShareValue_ } = await fundValueCalculatorRouter.callStatic.calcGrossShareValue(enzymeV4VaultProxyAddress);
+    const { netShareValue_ } = await fundValueCalculatorRouter.callStatic.calcNetShareValue(enzymeV4VaultProxyAddress);
 
     console.log({
-      grossShareValue_: grossShareValue_.toString(),
+      netShareValue_: netShareValue_.toString(),
     });
 
     this.fundValueCalculatorRouter = fundValueCalculatorRouter;
@@ -202,18 +201,6 @@ describe('do enzyme investment', function () {
   it.skip('adds enzyme depositor and makes deposit', async function () {
 
     await addToDepositor(UserAddress.NXM_WHALE_1);
-
-    const enzymeV4DepositWrapper = await IEnzymeV4DepositWrapper.at(enzymeV4DepositWrapperAddress);
-
-    /*
-        address  comptrollerProxy,
-    address denominationAsset,
-    uint256 minSharesQuantity,
-    address exchange,
-    address exchangeApproveTarget,
-    bytes calldata exchangeData,
-    uint256 minInvestmentAmount)
-     */
 
     const amountIn = ether('10');
 

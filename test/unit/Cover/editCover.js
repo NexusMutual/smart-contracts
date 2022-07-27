@@ -65,11 +65,7 @@ describe('editCover', function () {
         value: extraPremium.add(1),
       },
     );
-    const receipt = await tx.wait();
-
-    console.log({
-      gasUsed: receipt.gasUsed.toString(),
-    });
+    await tx.wait();
 
     await assertCoverFields(cover, expectedCoverId,
       { productId, payoutAsset, period: period, amount: increasedAmount, targetPriceRatio, segmentId: '1' },
@@ -122,11 +118,7 @@ describe('editCover', function () {
       },
     );
 
-    const receipt = await tx.wait();
-
-    console.log({
-      gasUsed: receipt.gasUsed.toString(),
-    });
+    await tx.wait();
 
     await assertCoverFields(cover, expectedCoverId,
       { productId, payoutAsset, period: increasedPeriod, amount: amount, targetPriceRatio, segmentId: '1' },
@@ -182,11 +174,7 @@ describe('editCover', function () {
       },
     );
 
-    const receipt = await tx.wait();
-
-    console.log({
-      gasUsed: receipt.gasUsed.toString(),
-    });
+    await tx.wait();
 
     await assertCoverFields(cover, expectedCoverId,
       { productId, payoutAsset, period: increasedPeriod, amount: increasedAmount, targetPriceRatio, segmentId: '1' },
@@ -242,11 +230,7 @@ describe('editCover', function () {
       },
     );
 
-    const receipt = await tx.wait();
-
-    console.log({
-      gasUsed: receipt.gasUsed.toString(),
-    });
+    await tx.wait();
 
     await assertCoverFields(cover, expectedCoverId,
       { productId, payoutAsset, period: increasedPeriod, amount: decreasedAmount, targetPriceRatio, segmentId: '1' },
@@ -299,11 +283,7 @@ describe('editCover', function () {
       },
     );
 
-    const receipt = await tx.wait();
-
-    console.log({
-      gasUsed: receipt.gasUsed.toString(),
-    });
+    await tx.wait();
 
     await assertCoverFields(cover, expectedCoverId,
       { productId, payoutAsset, period: period, amount: increasedAmount, targetPriceRatio, segmentId: '1' },

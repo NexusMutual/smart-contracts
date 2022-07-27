@@ -23,7 +23,14 @@ contract MasterMock {
   bool paused;
   address public tokenAddress;
 
+  address public emergencyAdmin;
+
   /* utils */
+
+
+  function setEmergencyAdmin(address _emergencyAdmin) external {
+    emergencyAdmin = _emergencyAdmin;
+  }
 
   function enrollGovernance(address newGov) public {
     governanceAddresses[newGov] = true;

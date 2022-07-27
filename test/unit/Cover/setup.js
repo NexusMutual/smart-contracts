@@ -168,6 +168,10 @@ async function setup () {
     await master.enrollInternal(contract.address);
   }
 
+  await master.setEmergencyAdmin(accounts.emergencyAdmin.address);
+
+
+
   // add products
   await cover.connect(accounts.advisoryBoardMembers[0]).addProducts(
     [

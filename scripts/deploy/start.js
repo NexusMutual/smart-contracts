@@ -1,8 +1,10 @@
-const { network, run } = require('hardhat');
-const { task } = require('hardhat/config');
-const deploy = require('./deploy');
-
 const main = async () => {
+
+  process.env.ENABLE_OPTIMIZER = '1';
+
+  const { network, run } = require('hardhat');
+  const { task } = require('hardhat/config');
+  const deploy = require('./deploy');
 
   if (network.name !== 'hardhat') {
     console.log('[>] Starting the deployment');
@@ -29,6 +31,7 @@ const main = async () => {
 
   const { hostname, port } = server._config;
   console.log(`[i] RPC listening at http://${hostname}:${port}`);
+  console.log(`[i] Chain ID ${network.config.chainId}`);
 
   await server.waitUntilClosed();
 };

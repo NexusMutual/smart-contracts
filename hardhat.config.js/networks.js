@@ -2,7 +2,7 @@ const ether = n => `${n}${'0'.repeat(18)}`;
 const networks = {
   hardhat: {
     accounts: {
-      count: 100,
+      count: 10,
       accountsBalance: ether(1000000000),
     },
     // TODO: fix tests with gasPrice = 0 and remove the hardfork param
@@ -26,7 +26,7 @@ const getenv = (network, key, fallback, parser = i => i) => {
   return value ? parser(value) : fallback;
 };
 
-for (const network of ['MAINNET', 'KOVAN', 'RINKEBY', 'TENDERLY', 'LOCALHOST']) {
+for (const network of ['MAINNET', 'GOERLI', 'KOVAN', 'RINKEBY', 'TENDERLY', 'LOCALHOST']) {
   const url = getenv(network, 'PROVIDER_URL', false);
   if (!url) continue;
   const accounts = getenv(network, 'ACCOUNT_KEY', undefined, v => v.split(/[^0-9a-fx]+/i));

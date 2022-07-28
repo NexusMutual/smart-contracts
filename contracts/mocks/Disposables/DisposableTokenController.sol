@@ -21,11 +21,11 @@ contract DisposableTokenController is TokenController {
 
     token = INXMToken(_tokenAddress);
     token.changeOperator(address(this));
+    token.addToWhiteList(address(this));
 
     changeMasterAddress(_masterAddress);
     pooledStaking = IPooledStaking(_pooledStakingAddress);
     assessment = IAssessment(_assessmentAddress);
-
   }
 
   function addToWhitelist(address _member) public override {

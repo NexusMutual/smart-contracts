@@ -9,7 +9,7 @@ const Position = {
   any: 'any',
 };
 
-const create2Worker = (config, batchNumber, size) => {
+const worker = (config, batchNumber, size) => {
 
   const from = batchNumber * size;
   const to = from + size;
@@ -40,4 +40,4 @@ const create2Worker = (config, batchNumber, size) => {
   return results;
 };
 
-workerpool.worker({ worker: create2Worker });
+workerpool.worker({ worker });

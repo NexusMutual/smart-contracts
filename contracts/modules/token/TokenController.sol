@@ -36,6 +36,10 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     claimsReward = claimsRewardAddress;
   }
 
+  function unlistClaimsReward() external {
+    token.removeFromWhiteList(claimsReward);
+  }
+
   /**
   * @dev Just for interface
   */
@@ -384,12 +388,4 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
 
     token.transfer(to, stakeToWithdraw + rewardsToWithdraw);
   }
-
-  function initialize() external {
-    token.addToWhiteList(address(this));
-    token.removeFromWhiteList(claimsReward);
-  }
-
-  event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
-
 }

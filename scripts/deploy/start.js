@@ -13,7 +13,10 @@ const main = async () => {
 
   const getServer = () => {
     return new Promise(resolve => {
-      task('node:server-ready', args => resolve(args.server));
+      task('node:server-ready', (args, _, runSuper) => {
+        runSuper();
+        resolve(args.server);
+      });
     });
   };
 

@@ -94,7 +94,7 @@ describe('submitClaim', function () {
 
     const coverId = 0;
     await expect(
-      individualClaims.connect(coverOwner).submitClaim(coverId, 0, coverAmount, '', {
+      individualClaims.connect(coverBuyer1).submitClaim(coverId, 0, coverAmount, '', {
         value: ethers.constants.Zero,
       }),
     ).to.be.revertedWith('Assessment deposit is insufficient');

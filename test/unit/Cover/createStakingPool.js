@@ -8,7 +8,7 @@ const {
 
 describe('createStakingPool', function () {
   it('should create new pool', async function () {
-    const { cover, nxm, memberRoles } = this;
+    const { cover } = this;
 
     const {
       members: [stakingPoolCreator, stakingPoolManager],

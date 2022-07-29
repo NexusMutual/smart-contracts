@@ -7,7 +7,7 @@ const {
 const { buyCoverOnOnePool } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 
-describe.skip('totalActiveCoverInAsset', function () {
+describe('totalActiveCoverInAsset', function () {
 
   const ethCoverBuyFixture = {
     productId: 0,
@@ -38,16 +38,25 @@ describe.skip('totalActiveCoverInAsset', function () {
   };
 
   it('should compute active cover amount for ETH correctly after cover purchase', async function () {
-    const { cover, coverViewer } = this;
+    const { cover } = this;
+
+    const {
+      emergencyAdmin,
+    } = this.accounts;
+
 
     const {
       payoutAsset,
       amount,
     } = ethCoverBuyFixture;
 
+    await cover.connect(emergencyAdmin).enableActiveCoverAmountTracking([], []);
+
+    await cover.connect(emergencyAdmin).commitActiveCoverAmounts();
+
     await buyCoverOnOnePool.call(this, ethCoverBuyFixture);
 
-    const activeCoverAmount = await cover.totalActiveCoverAmountForAsset(payoutAsset);
+    const activeCoverAmount = await cover.totalActiveCoverInAsset(payoutAsset);
     bnEqual(activeCoverAmount, amount);
   });
 
@@ -56,6 +65,7 @@ describe.skip('totalActiveCoverInAsset', function () {
 
     const {
       members: [member1],
+      emergencyAdmin
     } = this.accounts;
 
     const {
@@ -63,13 +73,18 @@ describe.skip('totalActiveCoverInAsset', function () {
       amount,
     } = daiCoverBuyFixture;
 
+
+    await cover.connect(emergencyAdmin).enableActiveCoverAmountTracking([], []);
+
+    await cover.connect(emergencyAdmin).commitActiveCoverAmounts();
+
     await dai.mint(member1.address, parseEther('100000'));
 
     await dai.connect(member1).approve(cover.address, parseEther('100000'));
 
     await buyCoverOnOnePool.call(this, daiCoverBuyFixture);
 
-    const activeCoverAmount = await cover.totalActiveCoverAmountForAsset(payoutAsset);
+    const activeCoverAmount = await cover.totalActiveCoverInAsset(payoutAsset);
     bnEqual(activeCoverAmount, amount);
   });
 

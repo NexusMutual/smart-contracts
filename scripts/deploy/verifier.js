@@ -5,14 +5,16 @@ module.exports = () => {
 
   const contracts = {};
 
-  // the name argument is not used for verification, it is only used to get the abi
-  const add = (address, name, { alias, constructorArgs, libraries, isProxy = false } = {}) => {
+  // artifact and abiName arguments are not used for verification
+  const add = (address, artifact, options = {}) => {
 
     if (contracts[address]) {
       throw new Error('Contract already added');
     }
 
-    contracts[address] = { address, name, alias, isProxy, constructorArgs, libraries };
+    const { alias, constructorArgs, libraries, isProxy = false } = options;
+    const abiName = options.abiName || artifact.split(':').pop();
+    contracts[address] = { address, artifact, abiName, alias, isProxy, constructorArgs, libraries };
   };
 
   const dump = async () => {
@@ -20,12 +22,11 @@ module.exports = () => {
     const deployData = [];
 
     for (const contract of Object.values(contracts)) {
-      const { name: fullName, address, alias, isProxy, libraries } = contract;
-      const factory = await ethers.getContractFactory(fullName, { libraries });
+      const { abiName, artifact, address, alias, isProxy, libraries } = contract;
+      const factory = await ethers.getContractFactory(artifact, { libraries });
       const abiJson = factory.interface.format(ethers.utils.FormatTypes.json);
       const abi = JSON.parse(abiJson);
-      const name = fullName.split(':').pop();
-      deployData.push({ abi, address, alias: alias || name, name, isProxy });
+      deployData.push({ abi, address, abiName, alias: alias || abiName, isProxy });
     }
 
     return deployData;

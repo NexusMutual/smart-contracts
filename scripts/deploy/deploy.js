@@ -68,21 +68,22 @@ async function main () {
   const OwnedUpgradeabilityProxy = await ethers.getContractFactory('OwnedUpgradeabilityProxy');
 
   const deployImmutable = async (contract, constructorArgs = [], options = {}) => {
-    const { alias, overrides = {}, libraries } = options;
+    const { alias, abiName, overrides = {}, libraries } = options;
     const Contract = await ethers.getContractFactory(contract, { libraries });
     const instance = await Contract.deploy(...constructorArgs, overrides);
     await instance.deployed();
-    verifier.add(instance.address, contract, { constructorArgs, libraries, alias });
+    verifier.add(instance.address, contract, { constructorArgs, libraries, alias, abiName });
     return instance;
   };
 
   const deployProxy = async (contract, constructorArgs = [], options = {}) => {
-    const { alias, overrides = {}, libraries } = options;
+    const { alias, abiName, overrides = {}, libraries } = options;
     const impl = await deployImmutable(contract, constructorArgs, { overrides, libraries });
     const implAddress = impl.address;
     const proxy = await OwnedUpgradeabilityProxy.deploy(implAddress);
     await proxy.deployed();
-    verifier.add(proxy.address, contract, { constructorArgs: [implAddress], alias, isProxy: true });
+    const verifierOptions = { constructorArgs: [implAddress], alias, abiName, isProxy: true };
+    verifier.add(proxy.address, contract, verifierOptions);
     return await ethers.getContractAt(contract, proxy.address);
   };
 
@@ -197,12 +198,16 @@ async function main () {
   if (typeof CHAINLINK_DAI_ETH[network.name] === 'undefined') {
     console.log('Deploying chainlink aggregators');
     const chainlinkDaiMock = await deployImmutable(
-      'ChainlinkAggregatorMock', [], { alias: 'Chainlink-DAI-ETH' },
+      'ChainlinkAggregatorMock',
+      [],
+      { alias: 'Chainlink-DAI-ETH', abiName: 'EACAggregatorProxy' },
     );
     await chainlinkDaiMock.setLatestAnswer(parseEther('0.000357884806717390'));
 
     const chainlinkStEthMock = await deployImmutable(
-      'ChainlinkAggregatorMock', [], { alias: 'Chainlink-STETH-ETH' },
+      'ChainlinkAggregatorMock',
+      [],
+      { alias: 'Chainlink-STETH-ETH', abiName: 'EACAggregatorProxy' },
     );
     await chainlinkStEthMock.setLatestAnswer(parseEther('1.003')); // almost 1:1
 
@@ -378,8 +383,10 @@ async function main () {
 
   for (const contract of contracts) {
 
-    const { abi, address, alias, isProxy } = contract;
-    const abiPath = path.join(abiDir, `${alias}.json`);
+    // abi, address, abiName, alias, isProxy
+
+    const { abi, address, alias, abiName, isProxy } = contract;
+    const abiPath = path.join(abiDir, `${abiName}.json`);
     fs.writeFileSync(abiPath, JSON.stringify(abi, null, 2));
 
     if (!config.CONTRACTS_ADDRESSES[alias] || isProxy) {

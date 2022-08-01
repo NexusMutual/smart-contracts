@@ -358,6 +358,7 @@ async function setup () {
   // [todo] We should probably call changeDependentContractAddress on every contract
   await gateway.changeDependentContractAddress();
   await cover.changeDependentContractAddress();
+  await ic.changeDependentContractAddress();
 
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
@@ -420,7 +421,8 @@ async function setup () {
     mr: await MemberRoles.at(mr.address),
     ps: await PooledStaking.at(ps.address),
     gateway: await Gateway.at(gateway.address),
-    ic: await YieldTokenIncidents.at(ic.address),
+    ic: await IndividualClaims.at(ic.address),
+    yc: await YieldTokenIncidents.at(yt.address),
     cl: await CoverMigrator.at(cl.address),
     as: await Assessment.at(as.address),
     cover: await Cover.at(cover.address),
@@ -428,6 +430,8 @@ async function setup () {
   };
 
   const nonInternal = { priceFeedOracle, swapOperator };
+
+
 
   this.contracts = {
     ...external,

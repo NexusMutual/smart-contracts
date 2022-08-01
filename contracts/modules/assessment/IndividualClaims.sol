@@ -14,6 +14,8 @@ import "../../interfaces/IPool.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
+import "hardhat/console.sol";
+
 /// Provides a way for cover owners to submit claims and redeem payouts. It is an entry point to
 /// the assessment process where the members of the mutual decide the outcome of claims.
 contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
@@ -231,10 +233,15 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint96 requestedAmount,
     string calldata ipfsMetadata
   ) external payable override onlyMember whenNotPaused returns (Claim memory) {
+
+    console.log("magic");
+
     require(
       coverNFT.isApprovedOrOwner(msg.sender, coverId),
       "Only the owner or approved addresses can submit a claim"
     );
+
+
 
     {
       ClaimSubmission memory previousSubmission = lastClaimSubmissionOnCover[coverId];

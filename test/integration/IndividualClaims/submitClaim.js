@@ -48,7 +48,7 @@ describe('submitClaim', function () {
 
   it('submits claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { individualClaims, cover } = this.withEthers.contracts;
+    const { ic, cover } = this.withEthers.contracts;
     const [ coverBuyer1 ] = this.accounts.members;
     const coverAmount = parseEther('100');
 
@@ -93,8 +93,9 @@ describe('submitClaim', function () {
     const expectedCoverId = '0';
 
     const coverId = 0;
+
     await expect(
-      individualClaims.connect(coverBuyer1).submitClaim(coverId, 0, coverAmount, '', {
+      ic.connect(coverBuyer1).submitClaim(coverId, 0, coverAmount, '', {
         value: ethers.constants.Zero,
       }),
     ).to.be.revertedWith('Assessment deposit is insufficient');

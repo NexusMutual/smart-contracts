@@ -772,7 +772,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     // flatten groups
     for (uint i = 0; i < trancheCount; i++) {
       uint trancheId = firstTrancheId + i;
-      uint trancheGroupId = trancheId / COVER_TRANCHE_GROUP_SIZE;
+      uint trancheGroupId = trancheId / COVER_TRANCHE_GROUP_SIZE - firstGroupId;
       uint trancheIndexInGroup = trancheId % COVER_TRANCHE_GROUP_SIZE;
 
       console.log("firstTrancheId", firstTrancheId);
@@ -808,7 +808,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     // flatten groups
     for (uint i = 0; i < trancheCount; i++) {
       uint trancheId = firstTrancheId + i;
-      uint trancheGroupId = trancheId / BUCKET_TRANCHE_GROUP_SIZE;
+      uint trancheGroupId = trancheId / BUCKET_TRANCHE_GROUP_SIZE - firstGroupId;
       uint trancheIndexInGroup = trancheId % BUCKET_TRANCHE_GROUP_SIZE;
       uint32 expiringCoverAmount = bucketTrancheGroups[trancheGroupId].getItemAt(trancheIndexInGroup);
       expiringCoverAmounts[i] = expiringCoverAmount;
@@ -920,7 +920,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     for (uint i = 0; i < trancheCount; i++) {
 
       uint trancheId = firstTrancheId + i;
-      uint trancheGroupId = trancheId / COVER_TRANCHE_GROUP_SIZE;
+      uint trancheGroupId = trancheId / COVER_TRANCHE_GROUP_SIZE - firstGroupId;
       uint trancheIndexInGroup = trancheId % COVER_TRANCHE_GROUP_SIZE;
 
       // setItemAt does not mutate so we have to reassign it
@@ -961,7 +961,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     for (uint i = 0; i < trancheCount; i++) {
 
       uint trancheId = firstTrancheId + i;
-      uint trancheGroupId = trancheId / BUCKET_TRANCHE_GROUP_SIZE;
+      uint trancheGroupId = trancheId / BUCKET_TRANCHE_GROUP_SIZE - firstGroupId;
       uint trancheIndexInGroup = trancheId % BUCKET_TRANCHE_GROUP_SIZE;
 
       uint32 expiringAmount = bucketTrancheGroups[trancheGroupId].getItemAt(trancheIndexInGroup);

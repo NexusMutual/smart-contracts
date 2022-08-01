@@ -90,14 +90,14 @@ describe('submitClaim', function () {
       gasUsed: receipt.gasUsed.toString(),
     });
 
-    const expectedCoverId = '0';
-
     const coverId = 0;
+
+    const [deposit] = await ic.getAssessmentDepositAndReward(coverAmount, period, payoutAsset);
 
     await expect(
       ic.connect(coverBuyer1).submitClaim(coverId, 0, coverAmount, '', {
-        value: ethers.constants.Zero,
+        value: deposit.mul('2'),
       }),
-    ).to.be.revertedWith('Assessment deposit is insufficient');
+    );
   });
 });

@@ -109,14 +109,14 @@ async function main () {
   const dai = await deployImmutable(
     'contracts/mocks/Tokens/ERC20MintableDetailed.sol:ERC20MintableDetailed',
     ['DAI Mock', 'DAI', 18],
-    { alias: 'DAI' },
+    { alias: 'DAI', abiName: 'ERC20' },
   );
 
   console.log('Deploying stETH');
   const stETH = await deployImmutable(
     'contracts/mocks/Tokens/ERC20MintableDetailed.sol:ERC20MintableDetailed',
     ['stETH Mock', 'stETH', 18],
-    { alias: 'stETH' },
+    { alias: 'stETH', abiName: 'ERC20' },
   );
 
   console.log('Deploying token contract');
@@ -383,9 +383,12 @@ async function main () {
 
   for (const contract of contracts) {
 
-    // abi, address, abiName, alias, isProxy
-
     const { abi, address, alias, abiName, isProxy } = contract;
+
+    if (/^(CSMock|CoverMockStakingPool|Disposable)/.test(abiName)) {
+      continue;
+    }
+
     const abiPath = path.join(abiDir, `${abiName}.json`);
     fs.writeFileSync(abiPath, JSON.stringify(abi, null, 2));
 

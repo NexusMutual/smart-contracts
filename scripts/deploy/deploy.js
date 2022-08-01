@@ -2,6 +2,13 @@ const { ethers, network, run, tenderly } = require('hardhat');
 const path = require('path');
 const fs = require('fs');
 
+const { ABI_DIR, CONFIG_FILE } = process.env;
+
+if (!ABI_DIR || !CONFIG_FILE) {
+  console.log('ABI_DIR and CONFIG_FILE env vars are required');
+  process.exit(1);
+}
+
 if (network.name === 'tenderly' && typeof tenderly === 'undefined') {
   console.error('Please enable tenderly plugin using ENABLE_TENDERLY=1 env var');
   process.exit(1);
@@ -72,9 +79,10 @@ async function main () {
   const deployProxy = async (contract, constructorArgs = [], options = {}) => {
     const { alias, overrides = {}, libraries } = options;
     const impl = await deployImmutable(contract, constructorArgs, { overrides, libraries });
-    const proxy = await OwnedUpgradeabilityProxy.deploy(impl.address);
+    const implAddress = impl.address;
+    const proxy = await OwnedUpgradeabilityProxy.deploy(implAddress);
     await proxy.deployed();
-    verifier.add(proxy.address, contract, { constructorArgs: [impl.address], alias });
+    verifier.add(proxy.address, contract, { constructorArgs: [implAddress], alias, isProxy: true });
     return await ethers.getContractAt(contract, proxy.address);
   };
 
@@ -356,24 +364,31 @@ async function main () {
     console.log('Contract verifications skipped');
   }
 
-  const outputDir = path.normalize(`${__dirname}/../deploy/${network.name}`);
-  const abiDir = path.join(outputDir, 'abi');
+  const configFile = path.normalize(CONFIG_FILE);
+  const abiDir = path.resolve(ABI_DIR);
 
-  console.log(`Writing deploy data to ${outputDir}`);
-  const contracts = await verifier.dump();
+  const config = require(configFile);
+  config.CONTRACTS_ADDRESSES = {};
 
-  fs.existsSync(outputDir) && fs.rmSync(outputDir, { recursive: true });
+  fs.existsSync(abiDir) && fs.rmSync(abiDir, { recursive: true });
   fs.mkdirSync(abiDir, { recursive: true });
 
-  const deployData = contracts.map(({ abi, address, alias, name }) => {
-    const abiFilename = `${name}.json`;
-    const abiPath = path.join(abiDir, abiFilename);
-    fs.writeFileSync(abiPath, JSON.stringify(abi, null, 2));
-    return { address, name: alias, abiFilename };
-  });
+  console.log(`Dumping abis to ${abiDir}`);
+  const contracts = await verifier.dump();
 
-  const deployDataFile = path.join(outputDir, 'deploy-data.json');
-  fs.writeFileSync(deployDataFile, JSON.stringify(deployData, null, 2), 'utf8');
+  for (const contract of contracts) {
+
+    const { abi, address, alias, isProxy } = contract;
+    const abiPath = path.join(abiDir, `${alias}.json`);
+    fs.writeFileSync(abiPath, JSON.stringify(abi, null, 2));
+
+    if (!config.CONTRACTS_ADDRESSES[alias] || isProxy) {
+      config.CONTRACTS_ADDRESSES[alias] = address;
+    }
+  }
+
+  console.log(`Updating config file ${configFile}`);
+  fs.writeFileSync(configFile, JSON.stringify(config, null, 2), 'utf8');
 
   console.log('Deploy finished!');
 }

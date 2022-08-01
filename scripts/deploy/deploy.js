@@ -364,7 +364,7 @@ async function main () {
     console.log('Contract verifications skipped');
   }
 
-  const configFile = path.normalize(CONFIG_FILE);
+  const configFile = path.resolve(CONFIG_FILE);
   const abiDir = path.resolve(ABI_DIR);
 
   const config = require(configFile);

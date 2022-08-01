@@ -18,6 +18,7 @@ import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
+import "hardhat/console.sol";
 
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
@@ -589,6 +590,10 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     uint firstTrancheIdToUse = gracePeriodExpiration / TRANCHE_DURATION;
     uint trancheCount = (block.timestamp / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES) - firstTrancheIdToUse + 1;
 
+    console.log("TRANCHE_DURATION", TRANCHE_DURATION);
+    console.log("gracePeriodExpiration", gracePeriodExpiration);
+
+    return ( request.amount, request.amount * 2 / 100,  request.amount * 2 / 100);
     (
       uint[] memory trancheAllocatedCapacities,
       uint totalAllocatedCapacity
@@ -756,6 +761,8 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
     // min 1 and max 3 reads
     uint groupCount = lastGroupId - firstGroupId + 1;
+
+    console.log("groupCount", groupCount);
     CoverAmountGroup[] memory coverAmountGroups = new CoverAmountGroup[](groupCount);
     CoverAmount[] memory coverAmounts = new CoverAmount[](trancheCount);
 
@@ -768,6 +775,10 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       uint trancheId = firstTrancheId + i;
       uint trancheGroupId = trancheId / COVER_TRANCHE_GROUP_SIZE;
       uint trancheIndexInGroup = trancheId % COVER_TRANCHE_GROUP_SIZE;
+
+      console.log("firstTrancheId", firstTrancheId);
+      console.log("trancheId", trancheId);
+      console.log("trancheGroupId", trancheGroupId);
       CoverAmount coverAmount = coverAmountGroups[trancheGroupId].getItemAt(trancheIndexInGroup);
       coverAmounts[i] = coverAmount;
     }

@@ -17,8 +17,6 @@ if (network.name === 'tenderly' && typeof tenderly === 'undefined') {
 const verifier = require('./verifier')();
 const proposalCategories = require('../../lib/proposal-categories');
 const { hex } = require('../../lib/helpers');
-
-const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 const products = require('../v2-migration/output/migratableProducts.json');
@@ -226,18 +224,26 @@ async function main () {
   );
 
   console.log('Deploying capital contracts');
-  const mc = await deployImmutable('DisposableMCR', [AddressZero]);
-  await mc.initialize(
-    parseEther('50000'), // mcrEth
-    parseEther('40000'), // mcrFloor
-    parseEther('50000'), // desiredMCR
-    (await ethers.provider.getBlock('latest')).timestamp - 60, // lastUpdateTime
-    13000, // mcrFloorIncrementThreshold
-    100, // maxMCRFloorIncrement
-    500, // maxMCRIncrement
-    48000, // gearingFactor
-    3600, // minUpdateTime
+  const disposableMCR = await deployImmutable(
+    'DisposableMCR',
+    [
+      parseEther('50000'), // mcrEth
+      parseEther('40000'), // mcrFloor
+      parseEther('50000'), // desiredMCR
+      (await ethers.provider.getBlock('latest')).timestamp - 60, // lastUpdateTime
+      13000, // mcrFloorIncrementThreshold
+      100, // maxMCRFloorIncrement
+      500, // maxMCRIncrement
+      48000, // gearingFactor
+      3600, // minUpdateTime
+    ],
   );
+
+  // deploy MCR with DisposableMCR as a fake master
+  const mcr = await deployImmutable('MCR', [disposableMCR.address]);
+
+  // trigger initialize and update master address
+  await disposableMCR.initializeNextMcr(mcr.address, master.address);
 
   const poolParameters = [master, priceFeedOracle, cowSwapOperator, dai, stETH].map(x => x.address);
   const pool = await deployImmutable('Pool', poolParameters);
@@ -246,7 +252,7 @@ async function main () {
   await dai.mint(pool.address, parseEther('6500000'));
 
   const replaceableContractCodes = ['MC', 'P1', 'SP', 'CL'];
-  const replaceableContractAddresses = [mc, pool, stakingPool, coverMigrator].map(x => x.address);
+  const replaceableContractAddresses = [mcr, pool, stakingPool, coverMigrator].map(x => x.address);
 
   const proxyContractCodes = ['GV', 'MR', 'PC', 'PS', 'TC', 'GW', 'CO', 'YT', 'IC', 'AS'];
   const proxyContractAddresses = [

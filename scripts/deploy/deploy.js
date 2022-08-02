@@ -131,7 +131,8 @@ async function main () {
   const master = await deployProxy('DisposableNXMaster');
   const mr = await deployProxy('DisposableMemberRoles');
 
-  console.log('Deploying legacy claims data contract');
+  console.log('Deploying legacy claims data and claim proofs contract');
+  await deployImmutable('LegacyClaimProofs');
   const cd = await deployImmutable('LegacyClaimsData');
   await cd.changeMasterAddress(master.address);
 

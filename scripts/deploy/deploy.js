@@ -120,12 +120,16 @@ async function main () {
   console.log('Deploying token contract');
   const tk = await deployImmutable('NXMToken', [owner, parseEther('1500000')]);
 
-  console.log('Deploying quotation data contract');
+  console.log('Deploying legacy quotation data contract');
   const qd = await deployImmutable('LegacyQuotationData', [owner, owner]);
 
   console.log('Deploying disposable master and member roles');
   const master = await deployProxy('DisposableNXMaster');
   const mr = await deployProxy('DisposableMemberRoles');
+
+  console.log('Deploying legacy claims data contract');
+  const cd = await deployImmutable('LegacyClaimsData');
+  await cd.changeMasterAddress(master.address);
 
   console.log('Deploying legacy claims reward');
   const cr = await deployImmutable('LegacyClaimsReward', [master.address, dai.address]);
@@ -275,7 +279,7 @@ async function main () {
     ...proxyContractCodes.fill('2'), // proxy
   ];
 
-  console.log('Initialazing master and token controller');
+  console.log('Initialazing contracts');
   await master.initialize(owner, tk.address, owner, codes, types, addresses);
   await tc.initialize(master.address, tk.address, ps.address, assessment.address);
 

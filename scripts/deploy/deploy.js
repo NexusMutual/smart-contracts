@@ -44,13 +44,16 @@ const productTypes = [
 const CHAINLINK_DAI_ETH = {
   mainnet: '0x773616E4d11A78F511299002da57A0a94577F1f4',
   rinkeby: '0x2bA49Aaa16E6afD2a993473cfB70Fa8559B523cF',
-  kovan: '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541',
 };
 
 const CHAINLINK_STETH_ETH = {
   mainnet: '0x716BB759A5f6faCdfF91F0AfB613133d510e1573',
   rinkeby: '0x525cD3ca0601Ab455af06A4c179C26Ad7da34bA9', // mock, returns price = 1 eth
-  kovan: '0x302257dB355951Ee3caa42E9355Ae27C02Ae9422', // mock, returns price = 1 eth
+};
+
+const CHAINLINK_ETH_USD = {
+  mainnet: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
+  rinkeby: '0x0000000000000000000000000000000000000000', // missing
 };
 
 async function main () {
@@ -198,23 +201,37 @@ async function main () {
   );
 
   if (typeof CHAINLINK_DAI_ETH[network.name] === 'undefined') {
-    console.log('Deploying chainlink aggregators');
+    console.log('Deploying chainlink dai-eth aggregator');
     const chainlinkDaiMock = await deployImmutable(
       'ChainlinkAggregatorMock',
       [],
       { alias: 'Chainlink-DAI-ETH', abiName: 'EACAggregatorProxy' },
     );
     await chainlinkDaiMock.setLatestAnswer(parseEther('0.000357884806717390'));
+    CHAINLINK_DAI_ETH[network.name] = chainlinkDaiMock.address;
+  }
 
+  if (typeof CHAINLINK_STETH_ETH[network.name] === 'undefined') {
+    console.log('Deploying chainlink steth-eth aggregator');
     const chainlinkStEthMock = await deployImmutable(
       'ChainlinkAggregatorMock',
       [],
       { alias: 'Chainlink-STETH-ETH', abiName: 'EACAggregatorProxy' },
     );
     await chainlinkStEthMock.setLatestAnswer(parseEther('1.003')); // almost 1:1
-
-    CHAINLINK_DAI_ETH[network.name] = chainlinkDaiMock.address;
     CHAINLINK_STETH_ETH[network.name] = chainlinkStEthMock.address;
+  }
+
+  // only used by frontend
+  if (typeof CHAINLINK_ETH_USD[network.name] === 'undefined') {
+    console.log('Deploying chainlink eth-usd aggregator');
+    const chainlinkEthUsdMock = await deployImmutable(
+      'ChainlinkAggregatorMock',
+      [],
+      { alias: 'Chainlink-ETH-USD', abiName: 'EACAggregatorProxy' },
+    );
+    await chainlinkEthUsdMock.setLatestAnswer(parseEther('1234.56'));
+    CHAINLINK_ETH_USD[network.name] = chainlinkEthUsdMock.address;
   }
 
   console.log('Deploying PriceFeedOracle');

@@ -93,11 +93,12 @@ async function main () {
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
     await proxy.upgradeTo(implementation.address);
     const instance = await ethers.getContractAt(contract, proxyAddress);
-    await instance.changeDependentContractAddress()
-      .catch(e => {
-        console.log(`[WARNING]: changeDependentContractAddress failed on ${contract}`);
-        console.error(e);
-      });
+    try {
+      await instance.changeDependentContractAddress();
+    } catch (e) {
+      console.log(`[WARNING]: changeDependentContractAddress failed on ${contract}`);
+      console.error(e);
+    }
     return instance;
   };
 
@@ -350,6 +351,7 @@ async function main () {
   await upgradeProxy(gv.address, 'Governance');
   await upgradeProxy(gw.address, 'LegacyGateway');
   await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address]);
+  await upgradeProxy(master.address, 'NXMaster');
 
   console.log('Deploying and linking CoverUtilsLib');
   const coverUtilsLib = await deployImmutable('CoverUtilsLib');

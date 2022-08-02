@@ -412,7 +412,8 @@ async function main () {
   fs.mkdirSync(abiDir, { recursive: true });
 
   console.log(`Dumping abis to ${abiDir}`);
-  const contracts = await verifier.dump();
+  const unsortedContracts = await verifier.dump();
+  const contracts = unsortedContracts.sort((a, b) => a.abiName.localeCompare(b.abiName));
 
   for (const contract of contracts) {
 

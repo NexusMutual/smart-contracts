@@ -355,6 +355,9 @@ async function main () {
   const coverUtilsLib = await deployImmutable('CoverUtilsLib');
   const coverLibraries = { CoverUtilsLib: coverUtilsLib.address };
 
+  console.log('Deploying CoverViewer');
+  await deployImmutable('CoverViewer', [master.address]);
+
   await upgradeProxy(
     cover.address,
     'Cover',
@@ -371,9 +374,6 @@ async function main () {
   await transferProxyOwnership(gw.address, master.address);
   await transferProxyOwnership(cover.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
-
-  console.log('Deploying CoverViewer');
-  await deployImmutable('CoverViewer', [master.address]);
 
   const verifyOnEtherscan = !['hardhat', 'localhost', 'tenderly'].includes(network.name);
   const verifyOnTenderly = network.name === 'tenderly';

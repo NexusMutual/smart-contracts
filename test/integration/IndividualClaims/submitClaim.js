@@ -56,7 +56,7 @@ describe('submitClaim', function () {
 
     const productId = 0;
     const payoutAsset = 0; // ETH
-    const period = 3600 * 24 * 364; // 30 days
+    const period = 3600 * 24 * 30; // 30 days
 
     const amount = parseEther('1000');
 
@@ -77,13 +77,17 @@ describe('submitClaim', function () {
     await stakingPool0.connect(staker1).depositTo([{
       amount: stakingAmount,
       trancheId: firstTrancheId,
-      tokenId: 0, // new position
+      tokenId: 1, // new position
       destination: ZERO_ADDRESS
      }]);
 
     const expectedPremium = amount
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
+
+
+
+    console.log(`buyCover #2`);
 
     const tx = await cover.connect(coverBuyer1).buyCover(
       {

@@ -592,6 +592,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
     console.log("TRANCHE_DURATION", TRANCHE_DURATION);
     console.log("gracePeriodExpiration", gracePeriodExpiration);
+    console.log("trancheCount", trancheCount);
     (
       uint[] memory trancheAllocatedCapacities,
       uint totalAllocatedCapacity
@@ -608,6 +609,8 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       request.globalCapacityRatio,
       request.capacityReductionRatio
     );
+
+    // TODO: handle totalCapacity == 0 with a meaningful message
 
     {
       uint[] memory coverTrancheAllocation = new uint[](trancheCount);
@@ -886,21 +889,36 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
     uint weight = products[productId].targetWeight;
 
+    console.log("trancheCount", trancheCount);
     totalCapacities = new uint[](trancheCount);
     totalCapacity = 0;
 
     uint multiplier = capacityRatio * (CAPACITY_REDUCTION_DENOMINATOR - reductionRatio) * weight;
+
+
+    console.log("weight", weight);
+    console.log("reductionRatio", reductionRatio);
     uint denominator = GLOBAL_CAPACITY_DENOMINATOR * CAPACITY_REDUCTION_DENOMINATOR * WEIGHT_DENOMINATOR;
 
-    for (uint i = 0; i <= trancheCount; i++) {
+    for (uint i = 0; i < trancheCount; i++) {
       // SLOAD
       uint trancheStakeShares = tranches[firstTrancheId + i].stakeShares;
 
+      console.log("trancheStakeShares", trancheStakeShares);
+
       uint trancheStake = _activeStake * trancheStakeShares / _stakeSharesSupply;
+
+      console.log("trancheStake", trancheStake);
       uint totalTrancheCapacity = trancheStake * multiplier / denominator;
+
+      console.log("multiplier", multiplier);
+      console.log("totalTrancheCapacity", totalTrancheCapacity);
+
+      console.log("totalCapacities[i]", i);
       totalCapacities[i] = totalTrancheCapacity;
       totalCapacity += totalTrancheCapacity;
     }
+
 
     return (totalCapacities, totalCapacity);
   }

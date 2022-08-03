@@ -174,7 +174,7 @@ async function setup() {
   let cover = await deployProxy(DisposableCover, []);
 
   const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
-  
+
   const stakingPool = await StakingPool.new('Nexus Mutual Staking Pool', 'NXMSP', tk.address, cover.address, tc.address);
 
   const contractType = code => {

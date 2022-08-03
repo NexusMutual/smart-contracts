@@ -49,7 +49,7 @@ async function setup() {
   const Cover = artifacts.require('Cover');
   // const StakingPool = artifacts.require('StakingPool');
   const CoverUtilsLib = artifacts.require('CoverUtilsLib');
-  const IntegrationMockStakingPool = artifacts.require('IntegrationMockStakingPool');
+
 
   // temporary contracts used for initialization
   const DisposableNXMaster = artifacts.require('DisposableNXMaster');
@@ -174,7 +174,8 @@ async function setup() {
   let cover = await deployProxy(DisposableCover, []);
 
   const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
-  const stakingPool = await IntegrationMockStakingPool.new(tk.address, cover.address, tc.address, mr.address);
+  
+  const stakingPool = await StakingPool.new('Nexus Mutual Staking Pool', 'NXMSP', tk.address, cover.address, tc.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
@@ -474,7 +475,7 @@ async function setup() {
 
     await tx.wait();
     const stakingPoolAddress = await cover.stakingPool(i);
-    const stakingPoolInstance = await IntegrationMockStakingPool.at(stakingPoolAddress);
+    const stakingPoolInstance = await StakingPool.at(stakingPoolAddress);
 
     this.contracts['stakingPool' + i] = stakingPoolInstance;
   }

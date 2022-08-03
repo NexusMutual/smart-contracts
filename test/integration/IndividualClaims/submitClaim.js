@@ -48,8 +48,8 @@ describe('submitClaim', function () {
 
   it('submits claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { ic, cover } = this.withEthers.contracts;
-    const [ coverBuyer1 ] = this.accounts.members;
+    const { ic, cover, stakingPool0, tk } = this.withEthers.contracts;
+    const [ coverBuyer1, staker1 ] = this.accounts.members;
     const coverAmount = parseEther('100');
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -60,10 +60,30 @@ describe('submitClaim', function () {
 
     const amount = parseEther('1000');
 
+    const stakingAmount = parseEther('100');
+    await tk.connect(this.accounts.defaultSender).transfer(staker1.address, stakingAmount);
+
+    const lastBlock = await ethers.provider.getBlock('latest');
+
+    const firstTrancheId = Math.floor(lastBlock.timestamp / (91 * 24 * 3600));
+
+
+    console.log({
+      timestamp: lastBlock.timestamp,
+      firstTrancheId
+    })
+
+    console.log('depositTo');
+    await stakingPool0.connect(staker1).depositTo([{
+      amount: stakingAmount,
+      trancheId: firstTrancheId,
+      tokenId: 0, // new position
+      destination: ZERO_ADDRESS
+     }]);
+
     const expectedPremium = amount
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
-
 
     const tx = await cover.connect(coverBuyer1).buyCover(
       {

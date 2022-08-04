@@ -41,7 +41,8 @@ async function setup () {
   // const LegacyIncidents = artifacts.require('LegacyIncidents');
   // const LegacyClaimsData = artifacts.require('LegacyClaimsData');
   const LegacyClaimsReward = artifacts.require('LegacyClaimsReward');
-  const MCR = artifacts.require('DisposableMCR');
+  const DisposableMCR = artifacts.require('DisposableMCR');
+  const MCR = artifacts.require('MCR');
   const Pool = artifacts.require('Pool');
   const QuotationData = artifacts.require('LegacyQuotationData');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
@@ -144,6 +145,7 @@ async function setup () {
   // const lcd = await LegacyClaimsData.new();
   const lcr = await LegacyClaimsReward.new(master.address, dai.address);
 
+  // TODO: implement using DisposableMCR, see /test/unit/MCR/setup.js
   const mc = await MCR.new(ZERO_ADDRESS);
 
   const p1 = await Pool.new(master.address, priceFeedOracle.address, ZERO_ADDRESS, dai.address, stETH.address);

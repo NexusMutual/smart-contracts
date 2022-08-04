@@ -11,7 +11,6 @@ import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ICover.sol";
 
-
 contract MCR is IMCR, MasterAware {
   IPool public pool;
   IQuotationData public qd;
@@ -25,8 +24,8 @@ contract MCR is IMCR, MasterAware {
   uint24 public gearingFactor = 48000;
   // min update between MCR updates in seconds
   uint24 public minUpdateTime = 3600;
-  uint112 public mcrFloor;
 
+  uint112 public mcrFloor;
   uint112 public mcr;
   uint112 public desiredMCR;
   uint32 public lastUpdateTime;
@@ -73,12 +72,18 @@ contract MCR is IMCR, MasterAware {
       return;
     }
 
+    // copy over values
     mcrFloor = previousMCR.mcrFloor();
-
     mcr = previousMCR.mcr();
     desiredMCR = previousMCR.desiredMCR();
     lastUpdateTime = previousMCR.lastUpdateTime();
+
+    // copy over parameters
+    mcrFloorIncrementThreshold = previousMCR.mcrFloorIncrementThreshold();
     maxMCRFloorIncrement = previousMCR.maxMCRFloorIncrement();
+    maxMCRIncrement = previousMCR.maxMCRIncrement();
+    gearingFactor = previousMCR.gearingFactor();
+    minUpdateTime = previousMCR.minUpdateTime();
 
     previousMCR = IMCR(address(0));
   }
@@ -229,8 +234,8 @@ contract MCR is IMCR, MasterAware {
    * @param code parameter code
    * @param val new value
    */
-  function updateUintParameters(bytes8 code, uint val) public {
-    require(master.checkIsAuthToGoverned(msg.sender));
+  function updateUintParameters(bytes8 code, uint val) public onlyGovernance {
+
     if (code == "DMCT") {
 
       require(val <= UINT24_MAX, "MCR: value too large");

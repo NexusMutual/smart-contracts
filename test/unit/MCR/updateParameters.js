@@ -11,7 +11,6 @@ const {
   advisoryBoardMembers: [advisoryBoardMember],
   internalContracts: [internalContract],
   governanceContracts: [governanceContract],
-  generalPurpose: [generalPurpose],
 } = accounts;
 
 describe('updateUintParameters', function () {

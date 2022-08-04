@@ -2,7 +2,7 @@
 .idea/
 .DS_Store
 artifacts/
-deploy/
+/deploy/
 cache/
 build/
 types/

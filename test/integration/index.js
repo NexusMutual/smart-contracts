@@ -1,7 +1,6 @@
 const { takeSnapshot, revertToSnapshot, reset } = require('./utils').evm;
 const setup = require('./setup');
 
-
 describe.skip('INTEGRATION TESTS', function () {
   before(setup);
 
@@ -16,7 +15,7 @@ describe.skip('INTEGRATION TESTS', function () {
   require('./IndividualClaims');
 
   // TODO: reenable
-  // require('./Master');
+  require('./Master');
   // require('./PooledStaking');
   // require('./Pool');
   // require('./MCR');

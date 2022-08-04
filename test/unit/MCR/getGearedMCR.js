@@ -16,8 +16,9 @@ const DEFAULT_MCR_PARAMS = {
   minUpdateTime: '3600',
 };
 
-// MCR gearing is currently unimplemented and will be 0 for the time being
+// TODO: current tests are using quotation data, need rewriting to use Cover instead
 describe.skip('getGearedMCR', function () {
+
   it('should return gearedMCR = 0 if there are no active covers', async function () {
     const { master, quotationData } = this;
 

@@ -938,19 +938,14 @@ contract LegacyPooledStaking is IPooledStaking, MasterAware {
     }
   }
 
-  function initialize() public {
-    require(!initialized, "Contract is already initialized");
-    tokenController.addToWhitelist(address(this));
-    initialized = true;
-  }
-
   function changeDependentContractAddress() public {
 
     token = INXMToken(master.tokenAddress());
     tokenController = ITokenController(master.getLatestAddress("TC"));
 
     if (!initialized) {
-      initialize();
+      tokenController.addToWhitelist(address(this));
+      initialized = true;
     }
   }
 

@@ -8,12 +8,15 @@ module.exports = () => {
   // artifact and abiName arguments are not used for verification
   const add = (address, artifact, options = {}) => {
 
-    if (contracts[address]) {
-      throw new Error('Contract already added');
-    }
-
     const { alias, constructorArgs, libraries, isProxy = false } = options;
     const abiName = options.abiName || artifact.split(':').pop();
+
+    if (contracts[address]) {
+      const previousName = contracts[address].alias || contracts[address].abiName;
+      const newName = alias || abiName;
+      console.log(`Replacing ${previousName} with ${newName} at ${address}`);
+    }
+
     contracts[address] = { address, artifact, abiName, alias, isProxy, constructorArgs, libraries };
   };
 

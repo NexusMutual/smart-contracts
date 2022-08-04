@@ -80,18 +80,20 @@ async function main () {
   const deployProxy = async (contract, constructorArgs = [], options = {}) => {
     const { alias, abiName, overrides = {}, libraries } = options;
     const impl = await deployImmutable(contract, constructorArgs, { overrides, libraries });
-    const implAddress = impl.address;
-    const proxy = await OwnedUpgradeabilityProxy.deploy(implAddress);
+    const proxy = await OwnedUpgradeabilityProxy.deploy(impl.address);
     await proxy.deployed();
-    const verifierOptions = { constructorArgs: [implAddress], alias, abiName, isProxy: true };
-    verifier.add(proxy.address, contract, verifierOptions);
+    const opts = { constructorArgs: [impl.address], alias, abiName, isProxy: true, libraries };
+    verifier.add(proxy.address, contract, opts);
     return await ethers.getContractAt(contract, proxy.address);
   };
 
   const upgradeProxy = async (proxyAddress, contract, constructorArgs = [], options = {}) => {
-    const implementation = await deployImmutable(contract, constructorArgs, options);
+    const { alias, abiName, overrides = {}, libraries } = options;
+    const impl = await deployImmutable(contract, constructorArgs, { overrides, libraries });
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
-    await proxy.upgradeTo(implementation.address);
+    await proxy.upgradeTo(impl.address);
+    const opts = { constructorArgs: [impl.address], alias, abiName, isProxy: true, libraries };
+    verifier.add(proxy.address, contract, opts);
     const instance = await ethers.getContractAt(contract, proxyAddress);
     try {
       await instance.changeDependentContractAddress();
@@ -294,8 +296,8 @@ async function main () {
   const addresses = [...replaceableContractAddresses, ...proxyContractAddresses];
   const codes = [...replaceableContractCodes, ...proxyContractCodes].map(hex);
   const types = [
-    ...replaceableContractCodes.fill('1'), // replaceable aka "upgradable"
-    ...proxyContractCodes.fill('2'), // proxy
+    ...replaceableContractCodes.map(() => '1'), // replaceable aka "upgradable"
+    ...proxyContractCodes.map(() => '2'), // proxy
   ];
 
   console.log('Initialazing contracts');

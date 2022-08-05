@@ -894,9 +894,9 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
     uint multiplier = capacityRatio * (CAPACITY_REDUCTION_DENOMINATOR - reductionRatio) * weight;
 
-
     console.log("weight", weight);
     console.log("reductionRatio", reductionRatio);
+    console.log("capacityRatio", capacityRatio);
     uint denominator = GLOBAL_CAPACITY_DENOMINATOR * CAPACITY_REDUCTION_DENOMINATOR * WEIGHT_DENOMINATOR;
 
     for (uint i = 0; i < trancheCount; i++) {
@@ -947,6 +947,8 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       uint trancheGroupId = trancheId / COVER_TRANCHE_GROUP_SIZE - firstGroupId;
       uint trancheIndexInGroup = trancheId % COVER_TRANCHE_GROUP_SIZE;
 
+
+      console.log("allocatedCapacities[i]", allocatedCapacities[i]);
       // setItemAt does not mutate so we have to reassign it
       coverAmountGroups[trancheGroupId] = coverAmountGroups[trancheGroupId].setItemAt(
         trancheIndexInGroup,

@@ -86,6 +86,8 @@ describe('submitClaim', function () {
       .div(BigNumber.from(priceDenominator));
 
 
+    await stakingPool0.setTargetWeight(productId, 10);
+
 
     console.log(`buyCover #2`);
 

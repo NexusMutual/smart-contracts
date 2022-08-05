@@ -10,23 +10,13 @@ import "../../modules/staking/StakingPool.sol";
 
 contract IntegrationMockStakingPool is StakingPool {
 
-  /* immutables */
-  address public immutable memberRoles;
-
-  mapping (uint => uint) public usedCapacity;
-  mapping (uint => uint) public stakedAmount;
-
-  mapping (uint => uint) public mockPrices;
-
   constructor (
     address _nxm,
     address _coverContract,
-    ITokenController _tokenController,
-    address _memberRoles
+    ITokenController _tokenController
   )
     StakingPool("Nexus Mutual Staking Pool", "NMSPT", _nxm, _coverContract, _tokenController)
   {
-    memberRoles = _memberRoles;
   }
 
   function initialize(address _manager, uint _poolId) external /*override*/ {
@@ -34,23 +24,6 @@ contract IntegrationMockStakingPool is StakingPool {
     poolId = _poolId;
   }
 
-  function allocateCapacity(
-    uint productId,
-    uint amountInNXM,
-    uint period,
-    uint rewardRatio,
-    uint initialPriceRatio
-  ) external /*override*/ returns (uint coveredAmountInNXM, uint premiumInNXM) {
-    period;
-    rewardRatio;
-    initialPriceRatio;
-    usedCapacity[productId] += amountInNXM;
-    return (amountInNXM, calculatePremium(mockPrices[productId], amountInNXM, period));
-  }
-
-  function calculatePremium(uint priceRatio, uint coverAmount, uint period) public pure returns (uint) {
-    return priceRatio * coverAmount / TOKEN_PRECISION * period / 365 days;
-  }
 
   function stake(uint amount) external {
     _mint(msg.sender, amount);
@@ -67,40 +40,12 @@ contract IntegrationMockStakingPool is StakingPool {
     // no-op
   }
 
-  function getAvailableCapacity(uint productId, uint capacityFactor) external /*override*/ view returns (uint) {
-    return stakedAmount[productId] * capacityFactor - usedCapacity[productId];
-  }
-
-  function getCapacity(uint productId, uint capacityFactor) external /*override*/ view returns (uint) {
-    return stakedAmount[productId] * capacityFactor;
-  }
-
-  function getUsedCapacity(uint productId) external /*override*/ view returns (uint) {
-    return usedCapacity[productId];
-  }
-
-  function getTargetPrice(uint productId) external /*override*/ view returns (uint) {
-    return products[productId].targetPrice;
-  }
-
-  function getStake(uint productId) external /*override*/ view returns (uint) {
-    return stakedAmount[productId];
-  }
-
-  function setUsedCapacity(uint productId, uint amount) external {
-    usedCapacity[productId] = amount;
+  function setTargetWeight(uint productId, uint8 weight) external {
+    products[productId].targetWeight = weight;
   }
 
   function setTargetPrice(uint productId, uint amount) external {
     products[productId].targetPrice = uint96(amount);
-  }
-
-  function setStake(uint productId, uint amount) external {
-    stakedAmount[productId] = amount;
-  }
-
-  function setPrice(uint productId, uint price) external {
-    mockPrices[productId] = price;
   }
 
   function changeMasterAddress(address payable _a) external {

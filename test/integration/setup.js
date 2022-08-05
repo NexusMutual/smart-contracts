@@ -34,6 +34,7 @@ async function setup () {
   const Lido = artifacts.require('P1MockLido');
   const ProductsV1 = artifacts.require('ProductsV1');
   const CoverMigrator = artifacts.require('CoverMigrator');
+  const IntegrationMockStakingPool = artifacts.require('IntegrationMockStakingPool');
 
   // nexusmutual
   const NXMToken = artifacts.require('NXMToken');
@@ -175,7 +176,7 @@ async function setup () {
 
   const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
 
-  const stakingPool = await StakingPool.new('Nexus Mutual Staking Pool', 'NXMSP', tk.address, cover.address, tc.address);
+  const stakingPool = await IntegrationMockStakingPool.new(tk.address, cover.address, tc.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
@@ -315,6 +316,12 @@ async function setup () {
 
   await p1.updateAddressParameters(hex('SWP_OP'), swapOperator.address);
 
+
+  await cover.updateUintParameters(
+    [0, 1], // CoverUintParams.globalCapacityRatio, CoverUintParams.globalRewardsRatio
+    [10000, 10000]
+  );
+
   await gv.changeMasterAddress(master.address);
   await master.switchGovernanceAddress(gv.address);
 
@@ -341,20 +348,6 @@ async function setup () {
   ]);
 
   cover = await Cover.at(cover.address);
-  //
-  // {
-  //   const params = {}
-  //
-  //
-  //   const implementation = await Cover.new(...params, {
-  //
-  //   });
-  //   const proxy = await OwnedUpgradeabilityProxy.at(cover.address);
-  //   await proxy.upgradeTo(implementation.address);
-  //
-  // }
-  //
-  // CoverUtilsLib.
 
   // [todo] We should probably call changeDependentContractAddress on every contract
   await gateway.changeDependentContractAddress();
@@ -477,7 +470,7 @@ async function setup () {
     );
     const receipt = await tx.wait();
     const stakingPoolAddress = await cover.stakingPool(i);
-    const stakingPoolInstance = await StakingPool.at(stakingPoolAddress);
+    const stakingPoolInstance = await IntegrationMockStakingPool.at(stakingPoolAddress);
 
     this.contracts['stakingPool' + i] = stakingPoolInstance;
   }

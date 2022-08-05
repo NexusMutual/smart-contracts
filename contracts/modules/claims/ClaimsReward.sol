@@ -540,7 +540,7 @@ contract ClaimsReward is IClaimsReward, LegacyMasterAware {
 
         // and never reduce to less than min lock time
         if (currentExpiration.sub(reduction) < minExpiration) {
-          reduction = currentExpiration - minExpiration;
+          reduction = currentExpiration.sub(minExpiration);
         }
 
         tc.reduceLock(msg.sender, "CLA", reduction);

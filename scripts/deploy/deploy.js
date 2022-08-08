@@ -153,8 +153,14 @@ async function main () {
 
   console.log('Deploying cover and staking pool contracts');
   const cover = await deployProxy('DisposableCover');
+
   const stakingPoolParameters = [tk.address, cover.address, tc.address, mr.address];
-  const stakingPool = await deployImmutable('CoverMockStakingPool', stakingPoolParameters);
+  const stakingPool = await deployImmutable(
+    'CoverMockStakingPool',
+    stakingPoolParameters,
+    { abiName: 'StakingPool' },
+  );
+
   const coverMigrator = await deployImmutable('CoverMigrator');
   const coverNFT = await deployImmutable('CoverNFT', ['Nexus Mutual Cover', 'NMC', cover.address]);
 

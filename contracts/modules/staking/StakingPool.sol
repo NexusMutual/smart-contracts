@@ -834,7 +834,17 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     console.log("lastBucketId", lastBucketId);
     console.log("currentBucket", currentBucket);
     console.log("trancheCount", trancheCount);
-    return (allocatedCapacities, allocatedCapacity);
+
+    /*
+      un-comment the line below to have the tx terminate
+
+      The print-outs are:
+
+      lastBucketId 0
+      currentBucket 686
+      trancheCount 9
+    */
+    // return (allocatedCapacities, allocatedCapacity);
 
     while (lastBucketId < currentBucket) {
 

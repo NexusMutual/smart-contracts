@@ -22,6 +22,9 @@ async function setup () {
   const Pool = artifacts.require('Pool');
   const SwapOperator = artifacts.require('SwapOperator');
   const MasterMock = artifacts.require('MasterMock');
+  const P1MockEnzymeV4Comptroller = artifacts.require('P1MockEnzymeV4Comptroller');
+  const P1MockEnzymeV4Vault = artifacts.require('P1MockEnzymeV4Vault');
+  const P1MockEnzymeFundValueCalculatorRouter = artifacts.require('P1MockEnzymeFundValueCalculatorRouter');
 
   const lido = await P1MockLido.new();
 
@@ -37,16 +40,36 @@ async function setup () {
 
   const twapOracle = await TwapOracle.new(factory.address);
 
+  /* deploy enzyme */
+  const enzymeV4Comptroller = await P1MockEnzymeV4Comptroller.new(weth.address);
+
+  /* move weth to Comptroller */
+
+  const comtrollerWethReserves = ether('10000');
+  await weth.deposit({
+    value: comtrollerWethReserves,
+  });
+  await weth.transfer(enzymeV4Comptroller.address, comtrollerWethReserves);
+
+  const enzymeV4Vault = await P1MockEnzymeV4Vault.new(
+    enzymeV4Comptroller.address,
+    'Enzyme V4 Vault Share ETH',
+    'EVSE',
+    18,
+  );
+
+  await enzymeV4Comptroller.setVault(enzymeV4Vault.address);
+
   /* deploy our contracts */
 
   /** @var {MasterMockInstance} master */
   const master = await MasterMock.new();
 
   const pool = await Pool.new(
-    [tokenA.address, tokenB.address, lido.address], // assets
-    [0, 0, 0], // min
-    [ether('1000'), ether('1000'), ether('1000')], // max
-    [ether('0.05'), ether('0.05'), ether('0.05')], // max slippage ratio [1%, 1%]
+    [tokenA.address, tokenB.address, lido.address, enzymeV4Vault.address], // assets
+    [0, 0, 0, 0], // min
+    [ether('1000'), ether('1000'), ether('1000'), ether('1000')], // max
+    [ether('0.05'), ether('0.05'), ether('0.05'), ether('0.05')], // max slippage ratio [1%, 1%]
     master.address,
     ZERO_ADDRESS, // price feed oracle not used
     ZERO_ADDRESS, // swap operator
@@ -55,11 +78,16 @@ async function setup () {
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.enrollGovernance(governance);
 
+  const enzymeFundValueCalculatorRouter = await P1MockEnzymeFundValueCalculatorRouter.new(weth.address);
+
   const swapOperator = await SwapOperator.new(
     master.address,
     twapOracle.address,
     owner,
     lido.address,
+    enzymeV4Vault.address,
+    enzymeFundValueCalculatorRouter.address,
+    weth.address
   );
 
   await pool.updateAddressParameters(hex('SWP_OP'), swapOperator.address, {
@@ -80,6 +108,8 @@ async function setup () {
     router,
     oracle: twapOracle,
     swapOperator,
+    enzymeV4Comptroller,
+    enzymeV4Vault,
   };
   const tokens = { weth, tokenA, tokenB, lido };
   const pairs = { wethAPair, wethBPair };

@@ -12,19 +12,31 @@ interface Aggregator {
 contract PriceFeedOracle is IPriceFeedOracle {
   using SafeMath for uint;
 
-  mapping(address => address) public aggregators;
-  address public daiAddress;
-  address public stETH;
+  struct Asset {
+    address aggregator;
+    uint8 decimals;
+  }
+
+  mapping(address => Asset) public assets;
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+  address public daiAddress;
 
   constructor (
-    address _daiAggregator,
-    address _daiAddress,
-    address _stEthAddress
+    address[] memory assetAddresses,
+    address[] memory aggregators,
+    uint8[] memory decimals,
+    address _daiAddress
   ) public {
-    aggregators[_daiAddress] = _daiAggregator;
+
+    require(assetAddresses.length == aggregators.length, "PriceFeedOracle: length mismatch");
+    require(assetAddresses.length == decimals.length, "PriceFeedOracle: length mismatch");
+
+    for (uint i = 0; i < assetAddresses.length; i++) {
+      assets[assetAddresses[i]] = Asset(aggregators[i], decimals[i]);
+    }
+
+    // This is kept for legacy reasons; still used in MCR.sol
     daiAddress = _daiAddress;
-    stETH = _stEthAddress;
   }
 
   /**
@@ -34,11 +46,11 @@ contract PriceFeedOracle is IPriceFeedOracle {
    */
   function getAssetToEthRate(address asset) public view returns (uint) {
 
-    if (asset == ETH || asset == stETH) {
+    if (asset == ETH) {
       return 1 ether;
     }
 
-    address aggregatorAddress = aggregators[asset];
+    address aggregatorAddress = assets[asset].aggregator;
 
     if (aggregatorAddress == address(0)) {
       revert("PriceFeedOracle: Oracle asset not found");
@@ -52,21 +64,23 @@ contract PriceFeedOracle is IPriceFeedOracle {
 
   /**
   * @dev Returns the amount of currency that is equivalent to ethIn amount of ether.
-  * @param asset quoted  Supported values: ["DAI", "ETH"]
+  * @param assetAddress quoted asset
   * @param ethIn amount of ether to be converted to the currency
   * @return price in ether
   */
-  function getAssetForEth(address asset, uint ethIn) external view returns (uint) {
+  function getAssetForEth(address assetAddress, uint ethIn) external view returns (uint) {
 
-    if (asset == daiAddress) {
-      return ethIn.mul(1e18).div(getAssetToEthRate(daiAddress));
-    }
-
-    if (asset == ETH || asset == stETH) {
+    if (assetAddress == ETH) {
       return ethIn;
     }
 
-    revert("PriceFeedOracle: Unknown asset");
+    Asset memory asset = assets[assetAddress];
+    require(asset.decimals > 0, "PriceFeedOracle: Unknown asset");
+
+    int rate = Aggregator(asset.aggregator).latestAnswer();
+    require(rate > 0, "PriceFeedOracle: Rate must be > 0");
+
+    return ethIn.mul(10 ** uint(asset.decimals)).div(uint(rate));
   }
 
 }

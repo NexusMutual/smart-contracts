@@ -421,7 +421,7 @@ async function main () {
 
     const { abi, address, alias, abiName, isProxy } = contract;
 
-    if (/^(CSMock|CoverMockStakingPool|Disposable)/.test(abiName)) {
+    if (/^(CSMock|Disposable)/.test(abiName)) {
       continue;
     }
 

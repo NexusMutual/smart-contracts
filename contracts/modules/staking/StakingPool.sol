@@ -589,9 +589,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     uint firstTrancheIdToUse = gracePeriodExpiration / TRANCHE_DURATION;
     uint trancheCount = (block.timestamp / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES) - firstTrancheIdToUse + 1;
 
-    console.log("TRANCHE_DURATION", TRANCHE_DURATION);
-    console.log("gracePeriodExpiration", gracePeriodExpiration);
-    console.log("trancheCount", trancheCount);
+
     (
       uint[] memory trancheAllocatedCapacities,
       uint totalAllocatedCapacity
@@ -762,7 +760,6 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     // min 1 and max 3 reads
     uint groupCount = lastGroupId - firstGroupId + 1;
 
-    console.log("groupCount", groupCount);
     CoverAmountGroup[] memory coverAmountGroups = new CoverAmountGroup[](groupCount);
     CoverAmount[] memory coverAmounts = new CoverAmount[](trancheCount);
 
@@ -776,9 +773,6 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       uint trancheGroupId = trancheId / COVER_TRANCHE_GROUP_SIZE - firstGroupId;
       uint trancheIndexInGroup = trancheId % COVER_TRANCHE_GROUP_SIZE;
 
-      console.log("firstTrancheId", firstTrancheId);
-      console.log("trancheId", trancheId);
-      console.log("trancheGroupId", trancheGroupId);
       CoverAmount coverAmount = coverAmountGroups[trancheGroupId].getItemAt(trancheIndexInGroup);
       coverAmounts[i] = coverAmount;
     }
@@ -826,6 +820,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
     allocatedCapacities = new uint[](trancheCount);
 
+
     CoverAmount[] memory coverAmounts = getStoredActiveCoverAmounts(
       productId,
       firstTrancheIdToUse,
@@ -834,6 +829,11 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
     uint16 lastBucketId = coverAmounts[0].lastBucketId();
     uint currentBucket = block.timestamp / BUCKET_DURATION;
+
+    console.log("lastBucketId", lastBucketId);
+    console.log("currentBucket", currentBucket);
+    console.log("trancheCount", trancheCount);
+    return (allocatedCapacities, allocatedCapacity);
 
     while (lastBucketId < currentBucket) {
 
@@ -888,32 +888,20 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
     uint weight = products[productId].targetWeight;
 
-    console.log("trancheCount", trancheCount);
     totalCapacities = new uint[](trancheCount);
     totalCapacity = 0;
 
     uint multiplier = capacityRatio * (CAPACITY_REDUCTION_DENOMINATOR - reductionRatio) * weight;
 
-    console.log("weight", weight);
-    console.log("reductionRatio", reductionRatio);
-    console.log("capacityRatio", capacityRatio);
+
     uint denominator = GLOBAL_CAPACITY_DENOMINATOR * CAPACITY_REDUCTION_DENOMINATOR * WEIGHT_DENOMINATOR;
 
     for (uint i = 0; i < trancheCount; i++) {
       // SLOAD
       uint trancheStakeShares = tranches[firstTrancheId + i].stakeShares;
-
-      console.log("trancheStakeShares", trancheStakeShares);
-
       uint trancheStake = _activeStake * trancheStakeShares / _stakeSharesSupply;
 
-      console.log("trancheStake", trancheStake);
       uint totalTrancheCapacity = trancheStake * multiplier / denominator;
-
-      console.log("multiplier", multiplier);
-      console.log("totalTrancheCapacity", totalTrancheCapacity);
-
-      console.log("totalCapacities[i]", i);
       totalCapacities[i] = totalTrancheCapacity;
       totalCapacity += totalTrancheCapacity;
     }
@@ -947,12 +935,10 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       uint trancheGroupId = trancheId / COVER_TRANCHE_GROUP_SIZE - firstGroupId;
       uint trancheIndexInGroup = trancheId % COVER_TRANCHE_GROUP_SIZE;
 
-
-      console.log("allocatedCapacities[i]", allocatedCapacities[i]);
       // setItemAt does not mutate so we have to reassign it
       coverAmountGroups[trancheGroupId] = coverAmountGroups[trancheGroupId].setItemAt(
         trancheIndexInGroup,
-        StakingTypesLib.newCoverAmount(allocatedCapacities[i].toUint48(), currentBucket)
+        StakingTypesLib.newCoverAmount((allocatedCapacities[i] / 1e16).toUint48(), currentBucket)
       );
     }
 
@@ -991,7 +977,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       uint trancheIndexInGroup = trancheId % BUCKET_TRANCHE_GROUP_SIZE;
 
       uint32 expiringAmount = bucketTrancheGroups[trancheGroupId].getItemAt(trancheIndexInGroup);
-      uint32 trancheAllocation = coverTrancheAllocation[i].toUint32();
+      uint32 trancheAllocation = (coverTrancheAllocation[i] / 1e16).toUint32();
 
       if (isAllocation) {
         expiringAmount += trancheAllocation;

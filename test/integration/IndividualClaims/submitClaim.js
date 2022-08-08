@@ -110,6 +110,7 @@ describe('submitClaim', function () {
         value: expectedPremium,
       },
     );
+
     const receipt = await tx.wait();
 
     console.log({

@@ -5,11 +5,18 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
+import "../../external/enzyme/IEnzymeV4Comptroller.sol";
+import "../../external/enzyme/IEnzymeV4DepositWrapper.sol";
+import "../../external/enzyme/IEnzymeV4Vault.sol";
+import "../../external/enzyme/IWETH.sol";
 import "../../external/uniswap/IUniswapV2Pair.sol";
 import "../../external/uniswap/IUniswapV2Router02.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/ITwapOracle.sol";
+import "../../interfaces/IERC20Detailed.sol";
+
+import "../../external/enzyme/IEnzymeFundValueCalculatorRouter.sol";
 
 contract SwapOperator is ReentrancyGuard {
   using SafeERC20 for IERC20;
@@ -30,12 +37,16 @@ contract SwapOperator is ReentrancyGuard {
   address immutable public swapController;
   INXMMaster immutable master;
   address immutable public stETH;
+  IWETH immutable public weth;
 
   /* constants */
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   IUniswapV2Router02 constant public router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
   uint constant public MAX_LIQUIDITY_RATIO = 0.015 ether;
   uint constant public MIN_TIME_BETWEEN_SWAPS = 10 minutes;
+
+  address public immutable enzymeV4VaultProxyAddress;
+  IEnzymeFundValueCalculatorRouter public immutable enzymeFundValueCalculatorRouter;
 
   /* events */
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
@@ -46,11 +57,22 @@ contract SwapOperator is ReentrancyGuard {
     _;
   }
 
-  constructor(address payable _master, address _twapOracle, address _swapController, address _stETH) {
+  constructor(
+    address payable _master,
+    address _twapOracle,
+    address _swapController,
+    address _stETH,
+    address _enzymeV4VaultProxyAddress,
+    IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter,
+    address _weth
+  ) {
     master = INXMMaster(_master);
     twapOracle = ITwapOracle(_twapOracle);
     swapController = _swapController;
     stETH = _stETH;
+    enzymeV4VaultProxyAddress = _enzymeV4VaultProxyAddress;
+    enzymeFundValueCalculatorRouter = _enzymeFundValueCalculatorRouter;
+    weth = IWETH(_weth);
   }
 
   function swapETHForAsset(
@@ -137,7 +159,7 @@ contract SwapOperator is ReentrancyGuard {
 
     IPool pool = _pool();
     uint balanceBefore = IERC20(toTokenAddress).balanceOf(address(pool));
-    address WETH = router.WETH();
+    address WETH = address(weth);
 
     {
       // scope for swap frequency check
@@ -196,7 +218,7 @@ contract SwapOperator is ReentrancyGuard {
 
     IPool pool = _pool();
     uint tokenBalanceBefore = IERC20(fromTokenAddress).balanceOf(address(pool)) + amountIn;
-    address WETH = router.WETH();
+    address WETH = address(weth);
 
     {
       // scope for swap frequency check
@@ -232,7 +254,7 @@ contract SwapOperator is ReentrancyGuard {
 
     address[] memory path = new address[](2);
     path[0] = fromTokenAddress;
-    path[1] = router.WETH();
+    path[1] = address(weth);
     IERC20(fromTokenAddress).approve(address(router), amountIn);
     router.swapExactTokensForETH(amountIn, amountOutMin, path, address(this), block.timestamp);
 
@@ -254,7 +276,6 @@ contract SwapOperator is ReentrancyGuard {
   }
 
   function swapETHForStETH(uint amountIn) external onlySwapController {
-
     IPool pool = _pool();
     address toTokenAddress = stETH;
     (
@@ -283,6 +304,7 @@ contract SwapOperator is ReentrancyGuard {
     uint amountOut = IERC20(toTokenAddress).balanceOf(address(this));
 
     require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
+
     require(balanceBefore < minAmount, "SwapOperator: balanceBefore >= min");
     require(balanceBefore + amountOutMin <= maxAmount, "SwapOperator: balanceAfter > max");
     {
@@ -293,6 +315,132 @@ contract SwapOperator is ReentrancyGuard {
     transferAssetTo(stETH, address(pool), amountOut);
 
     emit Swapped(ETH, stETH, amountIn, amountOut);
+  }
+
+  function swapETHForEnzymeVaultShare(uint amountIn, uint amountOutMin) external onlySwapController {
+    IPool pool = _pool();
+    IEnzymeV4Comptroller comptrollerProxy = IEnzymeV4Comptroller(IEnzymeV4Vault(enzymeV4VaultProxyAddress).getAccessor());
+    IERC20Detailed toToken = IERC20Detailed(enzymeV4VaultProxyAddress);
+
+    (
+    uint112 minAmount,
+    uint112 maxAmount,
+    uint32 lastAssetSwapTime,
+    uint maxSlippageRatio
+    ) = pool.getAssetDetails(address(toToken));
+
+    require(!(minAmount == 0 && maxAmount == 0), "SwapOperator: asset is not enabled");
+
+    {
+      // scope for swap frequency check
+      uint timeSinceLastTrade = block.timestamp - uint(lastAssetSwapTime);
+      require(timeSinceLastTrade > MIN_TIME_BETWEEN_SWAPS, "SwapOperator: too fast");
+    }
+
+    {
+      // check slippage
+      (, uint netShareValue) = enzymeFundValueCalculatorRouter.calcNetShareValue(enzymeV4VaultProxyAddress);
+
+      uint avgAmountOut = amountIn * 1e18 / netShareValue;
+      uint maxSlippageAmount = avgAmountOut * maxSlippageRatio / 1e18;
+      uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
+
+      require(amountOutMin >= minOutOnMaxSlippage, "SwapOperator: amountOutMin < minOutOnMaxSlippage");
+    }
+
+    uint balanceBefore = toToken.balanceOf(address(pool));
+    pool.transferAssetToSwapOperator(ETH, amountIn);
+
+    require(comptrollerProxy.getDenominationAsset() == address(weth), "SwapOperator: invalid denomination asset");
+
+    weth.deposit{ value: amountIn }();
+    weth.approve(address(comptrollerProxy), amountIn);
+    comptrollerProxy.buyShares(amountIn, amountOutMin);
+
+    pool.setAssetDataLastSwapTime(address(toToken), uint32(block.timestamp));
+
+    uint amountOut = toToken.balanceOf(address(this));
+
+    require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
+    require(balanceBefore < minAmount, "SwapOperator: balanceBefore >= min");
+    require(balanceBefore + amountOutMin <= maxAmount, "SwapOperator: balanceAfter > max");
+
+    {
+      uint ethBalanceAfter = address(pool).balance;
+      require(ethBalanceAfter >= pool.minPoolEth(), "SwapOperator: insufficient ether left");
+    }
+
+    transferAssetTo(enzymeV4VaultProxyAddress, address(pool), amountOut);
+
+    emit Swapped(ETH, enzymeV4VaultProxyAddress, amountIn, amountOut);
+  }
+
+  function swapEnzymeVaultShareForETH(
+    uint amountIn,
+    uint amountOutMin
+  ) external onlySwapController {
+
+    IPool pool = _pool();
+    IERC20Detailed fromToken = IERC20Detailed(enzymeV4VaultProxyAddress);
+
+    uint balanceBefore = fromToken.balanceOf(address(pool));
+    {
+      (
+      uint112 minAmount,
+      uint112 maxAmount,
+      uint32 lastAssetSwapTime,
+      uint maxSlippageRatio
+      ) = pool.getAssetDetails(address(fromToken));
+
+      require(!(minAmount == 0 && maxAmount == 0), "SwapOperator: asset is not enabled");
+
+      // swap frequency check
+      uint timeSinceLastTrade = block.timestamp - uint(lastAssetSwapTime);
+      require(timeSinceLastTrade > MIN_TIME_BETWEEN_SWAPS, "SwapOperator: too fast");
+
+      uint netShareValue;
+      {
+        address denominationAsset;
+        (denominationAsset, netShareValue) =
+        enzymeFundValueCalculatorRouter.calcNetShareValue(enzymeV4VaultProxyAddress);
+
+        require(denominationAsset ==  address(weth), "SwapOperator: invalid denomination asset");
+      }
+
+      // avgAmountOut in ETH
+      uint avgAmountOut = amountIn * netShareValue / (10 ** fromToken.decimals());
+      uint maxSlippageAmount = avgAmountOut * maxSlippageRatio / 1e18;
+      uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
+
+      // slippage check
+      require(amountOutMin >= minOutOnMaxSlippage, "SwapOperator: amountOutMin < minOutOnMaxSlippage");
+      require(balanceBefore > maxAmount, "SwapOperator: balanceBefore <= max");
+      require(balanceBefore - amountIn >= minAmount, "SwapOperator: tokenBalanceAfter < min");
+    }
+
+    pool.transferAssetToSwapOperator(address(fromToken), amountIn);
+
+    IEnzymeV4Comptroller comptrollerProxy = IEnzymeV4Comptroller(IEnzymeV4Vault(enzymeV4VaultProxyAddress).getAccessor());
+    fromToken.approve(address(comptrollerProxy), amountIn);
+
+    address[] memory payoutAssets = new address[](1);
+    uint[] memory payoutAssetsPercentages = new uint[](1);
+
+    payoutAssets[0] = address(weth);
+    payoutAssetsPercentages[0] = 10000;
+
+    comptrollerProxy.redeemSharesForSpecificAssets(address(this), amountIn, payoutAssets, payoutAssetsPercentages);
+
+    uint amountOut = weth.balanceOf(address(this));
+    weth.withdraw(amountOut);
+
+    pool.setAssetDataLastSwapTime(address(fromToken), uint32(block.timestamp));
+
+    require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
+
+    transferAssetTo(ETH, address(pool), amountOut);
+
+    emit Swapped(enzymeV4VaultProxyAddress, ETH, amountIn, amountOut);
   }
 
   function transferToCommunityFund() external onlySwapController {
@@ -319,6 +467,31 @@ contract SwapOperator is ReentrancyGuard {
 
   function _pool() internal view returns (IPool) {
     return IPool(master.getLatestAddress('P1'));
+  }
+
+
+  function recoverAsset(address assetAddress, address receiver) public onlySwapController {
+
+    IERC20 asset = IERC20(assetAddress);
+
+    uint balance = asset.balanceOf(address(this));
+    require(balance > 0, "SwapOperator: Balance = 0");
+
+    IPool pool = _pool();
+    (
+    uint112 min,
+    uint112 max,
+    /* uint32 lastAssetSwapTime */,
+    /* uint maxSlippageRatio */
+    ) = pool.getAssetDetails(assetAddress);
+
+    if (min == 0 && max == 0) {
+      // asset is not supported
+      asset.transfer(receiver, balance);
+      return;
+    }
+
+    asset.transfer(address(pool), balance);
   }
 
   receive() external payable {}

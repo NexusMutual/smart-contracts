@@ -84,10 +84,14 @@ async function setup () {
   await stETH.mint(owner, ether('10000000'));
 
   const chainlinkDAI = await ChainlinkAggregatorMock.new();
+  const chainlinkStETH = await ChainlinkAggregatorMock.new();
+  await chainlinkStETH.setLatestAnswer(ether('1'));
+
   const priceFeedOracle = await PriceFeedOracle.new(
-    chainlinkDAI.address,
-    dai.address,
-    stETH.address,
+    [dai.address, stETH.address],
+    [chainlinkDAI.address, chainlinkStETH.address],
+    [18, 18],
+    dai.address
   );
 
   const lido = await Lido.new();
@@ -122,7 +126,9 @@ async function setup () {
     priceFeedOracle.address,
     ZERO_ADDRESS,
   );
-  const swapOperator = await SwapOperator.new(master.address, twapOracle.address, owner, lido.address);
+  const swapOperator = await SwapOperator.new(
+    master.address, twapOracle.address, owner, lido.address, ZERO_ADDRESS, ZERO_ADDRESS, weth.address
+  );
 
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
   const td = await TokenData.new(owner);

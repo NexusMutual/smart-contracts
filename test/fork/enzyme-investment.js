@@ -59,7 +59,7 @@ const Address = {
   WETH: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
   stETHFEED: '0x86392dC19c0b719886221c78AB11eb8Cf5c52812',
   ENZYMESHARES: '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD',
-  ENZYMESHARESFEED: '0x773616E4d11A78F511299002da57A0a94577F1f4', // TODO: replace with real one
+  ENZYMESHARESFEED: '0xCc72039A141c6e34a779eF93AEF5eB4C82A893c7',
 };
 
 const UserAddress = {
@@ -298,7 +298,7 @@ describe('do enzyme investment', function () {
 
     const asset = enzymeV4VaultProxyAddress;
     const min = ether('15000');
-    const max = ether('16000'); // TODO: adjust to the right amount of shares
+    const max = ether('16000');
     const maxSlippageRatio = ether('0.025'); // 2.5%
     const parameters = [
       ['address', asset],

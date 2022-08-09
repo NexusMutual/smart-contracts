@@ -234,8 +234,6 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     string calldata ipfsMetadata
   ) external payable override onlyMember whenNotPaused returns (Claim memory) {
 
-    console.log("magic");
-
     require(
       coverNFT.isApprovedOrOwner(msg.sender, coverId),
       "Only the owner or approved addresses can submit a claim"

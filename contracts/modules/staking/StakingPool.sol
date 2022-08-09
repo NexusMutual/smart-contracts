@@ -374,7 +374,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       if (isNewToken) {
         tokenIds[i] = totalSupply++;
         address to = request.destination == address(0) ? msg.sender : request.destination;
-        _mint(to, request.tokenId);
+        _mint(to, tokenIds[i]);
       } else {
         tokenIds[i] = request.tokenId;
       }
@@ -390,7 +390,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
         // conditional read
         Deposit memory deposit = isNewToken
           ? Deposit(_accNxmPerRewardsShare, 0, 0, 0)
-          : deposits[request.tokenId][request.trancheId];
+          : deposits[tokenIds[i]][request.trancheId];
 
         newRewardsShares = calculateNewRewardShares(
           deposit.stakeShares, // initialStakeShares
@@ -411,7 +411,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
         deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
 
         // sstore
-        deposits[request.tokenId][request.trancheId] = deposit;
+        deposits[tokenIds[i]][request.trancheId] = deposit;
       }
 
       // update pool manager's reward shares

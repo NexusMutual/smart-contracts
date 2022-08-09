@@ -589,7 +589,6 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     uint firstTrancheIdToUse = gracePeriodExpiration / TRANCHE_DURATION;
     uint trancheCount = (block.timestamp / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES) - firstTrancheIdToUse + 1;
 
-
     (
       uint[] memory trancheAllocatedCapacities,
       uint totalAllocatedCapacity
@@ -820,30 +819,25 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
     allocatedCapacities = new uint[](trancheCount);
 
-
     CoverAmount[] memory coverAmounts = getStoredActiveCoverAmounts(
       productId,
       firstTrancheIdToUse,
       trancheCount
     );
 
-    uint16 lastBucketId = coverAmounts[0].lastBucketId();
-    uint currentBucket = block.timestamp / BUCKET_DURATION;
+    uint16 currentBucket = (block.timestamp / BUCKET_DURATION).toUint16();
+    uint16 lastBucketId;
 
-    console.log("lastBucketId", lastBucketId);
-    console.log("currentBucket", currentBucket);
-    console.log("trancheCount", trancheCount);
+    for (uint i = 0; i < trancheCount; i++) {
+      lastBucketId = coverAmounts[i].lastBucketId();
+      if (lastBucketId != 0) {
+        break;
+      }
+    }
 
-    /*
-      un-comment the line below to have the tx terminate
-
-      The print-outs are:
-
-      lastBucketId 0
-      currentBucket 686
-      trancheCount 9
-    */
-    return (allocatedCapacities, allocatedCapacity);
+    if (lastBucketId == 0) {
+      lastBucketId = currentBucket;
+    }
 
     while (lastBucketId < currentBucket) {
 

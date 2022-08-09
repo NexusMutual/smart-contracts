@@ -351,6 +351,7 @@ async function setup() {
   await gateway.changeDependentContractAddress();
   await cover.changeDependentContractAddress();
   await ic.changeDependentContractAddress();
+  await as.changeDependentContractAddress();
 
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);

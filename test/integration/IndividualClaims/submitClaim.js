@@ -48,8 +48,8 @@ describe('submitClaim', function () {
 
   it('submits claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { ic, cover, stakingPool0, tk } = this.withEthers.contracts;
-    const [ coverBuyer1, staker1 ] = this.accounts.members;
+    const { ic, cover, stakingPool0, as, tk } = this.withEthers.contracts;
+    const [ coverBuyer1, staker1, staker2 ] = this.accounts.members;
     const coverAmount = parseEther('100');
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -62,6 +62,7 @@ describe('submitClaim', function () {
 
     const stakingAmount = parseEther('100');
     await tk.connect(this.accounts.defaultSender).transfer(staker1.address, stakingAmount);
+    await tk.connect(this.accounts.defaultSender).transfer(staker2.address, stakingAmount);
 
     const lastBlock = await ethers.provider.getBlock('latest');
 
@@ -126,5 +127,14 @@ describe('submitClaim', function () {
         value: deposit.mul('2'),
       }),
     );
+
+
+    const { minVotingPeriodInDays, payoutCooldownInDays } = await as.config();
+    await as.connect(staker2).stake(parseEther('10'));
+
+    await as.connect(staker2).castVotes([0], [true], 0);
+    const { timestamp2 } = await ethers.provider.getBlock('latest');
+    await setTime(timestamp2 + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+
   });
 });

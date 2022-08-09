@@ -844,7 +844,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       currentBucket 686
       trancheCount 9
     */
-    // return (allocatedCapacities, allocatedCapacity);
+    return (allocatedCapacities, allocatedCapacity);
 
     while (lastBucketId < currentBucket) {
 

@@ -458,22 +458,16 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
   function getTimeLeftOfTranche(uint trancheId, uint blockTimestamp) internal pure returns (uint) {
     uint endDate = (trancheId + 1) * TRANCHE_DURATION;
-    if (endDate > blockTimestamp) {
-      return endDate - blockTimestamp;
-    }
-    return 0;
+    return endDate > blockTimestamp ? endDate - blockTimestamp : 0;
   }
 
-  /// Calculates the amount of new reward shares based on the initial and new stake shares and
-  /// tranche.
+  /// Calculates the amount of new reward shares based on the initial and new stake shares
   ///
-  /// @param initialStakeShares   The amount of stake shares that the deposit is already entitled
-  ///                             to.
-  /// @param stakeSharesIncrease  The amount o new stake shares that the deposit will entitled to
-  ///                             on top of the existing ones.
-  /// @param initialTrancheId     The initial id of the tranche that defines the deposit period.
-  /// @param newTrancheId         The new id of the tranche that will define the deposit period.
-  /// @param blockTimestamp       The timestamp of the block when the new shares are recalculated.
+  /// @param initialStakeShares   Amount of stake shares the deposit is already entitled to
+  /// @param stakeSharesIncrease  Amount of additional stake shares the deposit will be entitled to
+  /// @param initialTrancheId     The id of the initial tranche that defines the deposit period
+  /// @param newTrancheId         The new id of the tranche that will define the deposit period
+  /// @param blockTimestamp       The timestamp of the block when the new shares are recalculated
   function calculateNewRewardShares(
     uint initialStakeShares,
     uint stakeSharesIncrease,
@@ -481,29 +475,24 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     uint newTrancheId,
     uint blockTimestamp
   ) public pure returns (uint) {
+
     uint timeLeftOfInitialTranche = getTimeLeftOfTranche(initialTrancheId, blockTimestamp);
     uint timeLeftOfNewTranche = getTimeLeftOfTranche(newTrancheId, blockTimestamp);
 
-    // A new bonus is calculated based on the the time left until the new tranche ends and the
-    // total amount of stake shares (initial + new).
+    // the bonus is based on the the time left and the total amount of stake shares (initial + new)
     uint newBonusShares = (initialStakeShares + stakeSharesIncrease)
       * REWARD_BONUS_PER_TRANCHE_RATIO
       * timeLeftOfNewTranche
       / TRANCHE_DURATION
       / REWARD_BONUS_PER_TRANCHE_DENOMINATOR;
 
-    // In case of existing deposits the previous bonus is deducted from the final amount of new
-    // shares. The new bonus shares are recalculated based on the total stake shares and it
-    // already includes a potentially larger amount of shares (when the deposit is extended to
-    // a tranche ending futher into the future) that account for the initial stake shares.
+    // for existing deposits, the previous bonus is deducted from the final amount
     uint previousBonusSharesDeduction = initialStakeShares
       * REWARD_BONUS_PER_TRANCHE_RATIO
       * timeLeftOfInitialTranche
       / TRANCHE_DURATION
       / REWARD_BONUS_PER_TRANCHE_DENOMINATOR;
 
-    // Return one reward share per stake share, add the newly calculated bonus shares and deduct the
-    // previous ones.
     return stakeSharesIncrease + newBonusShares - previousBonusSharesDeduction;
   }
 

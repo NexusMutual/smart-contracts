@@ -1260,6 +1260,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       // update pending reward and reward shares
       uint newRewardPerRewardsShare = _accNxmPerRewardsShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
       feeDeposit.pendingRewards += newRewardPerRewardsShare * feeDeposit.rewardsShares;
+      feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
       // TODO: would using tranche.rewardsShares give a better precision?
       feeDeposit.rewardsShares = feeDeposit.rewardsShares * newFee / oldFee;
 

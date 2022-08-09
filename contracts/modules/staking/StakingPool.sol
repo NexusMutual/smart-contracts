@@ -496,7 +496,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
   function withdraw(
     WithdrawRequest[] memory params
-  ) public returns (uint stakeToWithdraw, uint rewardsToWithdraw) {
+  ) public returns (uint totalWithdrawnStake, uint totalWithdrawnRewards) {
 
     uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
 
@@ -510,6 +510,8 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
       uint tokenId = params[i].tokenId;
       uint trancheCount = params[i].trancheIds.length;
+      uint stakeToWithdraw;
+      uint rewardsToWithdraw;
 
       for (uint j = 0; j < trancheCount; j++) {
 
@@ -562,6 +564,9 @@ contract StakingPool is IStakingPool, SolmateERC721 {
         rewardsToWithdraw,
         poolId
       );
+
+      totalWithdrawnStake += stakeToWithdraw;
+      totalWithdrawnRewards += rewardsToWithdraw;
     }
   }
 

@@ -369,9 +369,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
       // deposit to token id = 0 is not allowed
       // we treat it as a flag to create a new token
-      bool isNewToken = request.tokenId == 0;
-
-      if (isNewToken) {
+      if (request.tokenId == 0) {
         tokenIds[i] = totalSupply++;
         address to = request.destination == address(0) ? msg.sender : request.destination;
         _mint(to, tokenIds[i]);
@@ -388,7 +386,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       // update deposit and pending reward
       {
         // conditional read
-        Deposit memory deposit = isNewToken
+        Deposit memory deposit = request.tokenId == 0
           ? Deposit(_accNxmPerRewardsShare, 0, 0, 0)
           : deposits[tokenIds[i]][request.trancheId];
 

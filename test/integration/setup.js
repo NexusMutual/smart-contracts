@@ -166,7 +166,7 @@ async function setup () {
   const tc = await deployProxy(DisposableTokenController, [qd.address, lcr.address]);
   const ic = await deployProxy(DisposableIndividualClaims, []);
   const yt = await deployProxy(DisposableYieldTokenIncidents, []);
-  const as = await deployProxy(DisposableAssessment, []);
+  let as = await deployProxy(DisposableAssessment, []);
   const cl = await deployProxy(CoverMigrator, []);
 
   const coverUtilsLib = await CoverUtilsLib.new();
@@ -246,7 +246,6 @@ async function setup () {
     90 * 24 * 3600, // unstake lock time
   );
 
-  await as.initialize(master.address);
   await ic.initialize(master.address);
 
   const CLAIM_METHOD = {
@@ -348,6 +347,7 @@ async function setup () {
   ]);
 
   cover = await Cover.at(cover.address);
+  as = await Assessment.at(as.address);
 
   // [todo] We should probably call changeDependentContractAddress on every contract
   await gateway.changeDependentContractAddress();
@@ -403,6 +403,8 @@ async function setup () {
     minUpdateTime,
   );
 
+  await as.initialize();
+
   const external = { chainlinkDAI, dai, weth, productsV1 };
   const nonUpgradable = { qd };
   const instances = { tk, cl, p1, mcr: mc };
@@ -425,7 +427,6 @@ async function setup () {
   };
 
   const nonInternal = { priceFeedOracle, swapOperator };
-
 
 
   this.contracts = {

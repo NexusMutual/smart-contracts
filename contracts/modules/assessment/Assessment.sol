@@ -62,6 +62,9 @@ contract Assessment is IAssessment, MasterAwareV2 {
     config.payoutCooldownInDays = 1; // days
     config.stakeLockupPeriodInDays = 14; // days
     config.silentEndingPeriodInDays = 1; // days
+
+    // to receive NXM
+    ITokenController(getInternalContractAddress(ID.TC)).addToWhitelist(address(this));
   }
 
   /* ========== VIEWS ========== */
@@ -246,7 +249,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param assessmentDepositInETH  The deposit that covers assessment rewards in case it's denied.
   ///                                If the assessment verdict is positive, the contract that relies
   ///                                on it can send back the deposit at payout.
-  function startAssessment(
+    function startAssessment(
     uint totalAssessmentReward,
     uint assessmentDepositInETH
   ) external override onlyInternal returns (uint) {

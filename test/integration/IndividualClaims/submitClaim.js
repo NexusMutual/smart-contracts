@@ -122,12 +122,9 @@ describe('submitClaim', function () {
 
     const [deposit] = await ic.getAssessmentDepositAndReward(coverAmount, period, payoutAsset);
 
-    await expect(
-      ic.connect(coverBuyer1).submitClaim(coverId, 0, coverAmount, '', {
+    await ic.connect(coverBuyer1).submitClaim(coverId, 0, coverAmount, '', {
         value: deposit.mul('2'),
-      }),
-    );
-
+    });
 
     const { minVotingPeriodInDays, payoutCooldownInDays } = await as.config();
     await as.connect(staker2).stake(parseEther('10'));

@@ -21,10 +21,10 @@ library StakingTypesLib {
   }
 
   function newCoverAmount(
-    uint48 coverAmount,
+    uint48 activeCoverAmount,
     uint16 bucketId
   ) internal pure returns (CoverAmount) {
-    return CoverAmount.wrap((coverAmount << 16) | bucketId);
+    return CoverAmount.wrap((uint64(activeCoverAmount) << 16) | bucketId);
   }
 
   // CoverAmountGroup

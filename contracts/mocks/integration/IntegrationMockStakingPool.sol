@@ -14,16 +14,14 @@ contract IntegrationMockStakingPool is StakingPool {
     address _nxm,
     address _coverContract,
     ITokenController _tokenController
-  )
-    StakingPool("Nexus Mutual Staking Pool", "NMSPT", _nxm, _coverContract, _tokenController)
-  {
+  ) StakingPool(_nxm, _coverContract, _tokenController) {
+    // noop
   }
 
   function initialize(address _manager, uint _poolId) external /*override*/ {
     _mint(_manager, totalSupply++);
     poolId = _poolId;
   }
-
 
   function stake(uint amount) external {
     _mint(msg.sender, amount);

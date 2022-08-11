@@ -148,12 +148,10 @@ contract StakingPool is IStakingPool, SolmateERC721 {
   }
 
   constructor (
-    string memory _name,
-    string memory _symbol,
     address _token,
     address _coverContract,
     ITokenController _tokenController
-  ) SolmateERC721(_name, _symbol) {
+  ) SolmateERC721("", "") {
     nxm = INXMToken(_token);
     coverContract = _coverContract;
     tokenController = _tokenController;
@@ -177,7 +175,8 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     maxPoolFee = uint8(_maxPoolFee);
 
     poolId = _poolId;
-    name = string(abi.encodePacked(name, " ", Strings.toString(poolId)));
+    name = string(abi.encodePacked("Nexus Mutual Staking Pool #", Strings.toString(_poolId)));
+    symbol = string(abi.encodePacked("NMSP-", Strings.toString(_poolId)));
 
     // TODO: initialize products
     params;

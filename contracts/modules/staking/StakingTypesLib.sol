@@ -68,8 +68,9 @@ library StakingTypesLib {
     uint32 value
   ) internal pure returns (BucketTrancheGroup) {
     // applying the mask using binary AND to clear target item's bits
-    uint mask = ~(type(uint32).max << uint32(index * 32));
-    uint groupUnderlying = BucketTrancheGroup.unwrap(items) & mask | value;
+    uint mask = ~(uint(type(uint32).max) << (index * 32));
+    uint itemUnderlying = uint(value) << (index * 32);
+    uint groupUnderlying = BucketTrancheGroup.unwrap(items) & mask | itemUnderlying;
     return BucketTrancheGroup.wrap(groupUnderlying);
   }
 

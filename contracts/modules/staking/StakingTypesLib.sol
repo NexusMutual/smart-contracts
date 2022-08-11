@@ -45,8 +45,8 @@ library StakingTypesLib {
     CoverAmount item
   ) internal pure returns (CoverAmountGroup) {
     // applying the mask using binary AND to clear target item's bits
-    uint mask = ~(type(uint64).max << uint64(index * 64));
-    uint itemUnderlying = uint(CoverAmount.unwrap(item) << uint64(index * 64));
+    uint mask = ~(uint(type(uint64).max) << (index * 64));
+    uint itemUnderlying = uint(CoverAmount.unwrap(item)) << (index * 64);
     uint groupUnderlying = CoverAmountGroup.unwrap(items) & mask | itemUnderlying;
     return CoverAmountGroup.wrap(groupUnderlying);
   }

@@ -340,7 +340,10 @@ contract StakingPool is IStakingPool, SolmateERC721 {
   function depositTo(DepositRequest[] memory requests) public returns (uint[] memory tokenIds) {
 
     if (isPrivatePool) {
-      require(msg.sender == manager(), "StakingPool: The pool is private");
+      require(
+        msg.sender == coverContract || msg.sender == manager(),
+        "StakingPool: The pool is private"
+      );
     }
 
     updateTranches(true);

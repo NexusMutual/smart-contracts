@@ -593,15 +593,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return _products.length;
   }
 
-  function getProducts() external view returns (Product[] memory allProducts) {
-    uint count = _products.length;
-    allProducts = new Product[](count);
-
-    for (uint i = 0; i < count; i++) {
-      allProducts[i] = _products[i];
-    }
-
-    return allProducts;
+  function getProducts() external view returns (Product[] memory) {
+    return _products;
   }
 
   function productTypes(uint id) external override view returns (ProductType memory) {

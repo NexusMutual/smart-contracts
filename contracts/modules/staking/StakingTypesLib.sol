@@ -58,7 +58,7 @@ library StakingTypesLib {
     uint index
   ) internal pure returns (uint32) {
     uint underlying = BucketTrancheGroup.unwrap(items);
-    return uint32(underlying << (index * 32));
+    return uint32(underlying >> (index * 32));
   }
 
   // heads up: does not mutate the BucketTrancheGroup but returns a new one instead

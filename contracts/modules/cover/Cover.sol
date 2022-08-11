@@ -24,6 +24,8 @@ import "./CoverUtilsLib.sol";
 import "./MinimalBeaconProxy.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
+import "hardhat/console.sol";
+
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   using SafeERC20 for IERC20;
@@ -241,12 +243,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       uint requestedCoverAmountInNXM
         = allocationRequests[i].coverAmountInAsset * NXM_IN_WEI / nxmPriceIncoverAsset + remainderAmountInNXM;
 
+      console.log("requestedCoverAmountInNXM", requestedCoverAmountInNXM);
+      console.log("allocationRequests[i].coverAmountInAsset", allocationRequests[i].coverAmountInAsset);
+
       (uint coveredAmountInNXM, uint premiumInNXM, uint rewardsInNXM) = allocateCapacity(
         params,
         coverId,
         stakingPool(allocationRequests[i].poolId),
         requestedCoverAmountInNXM
       );
+
+      console.log("coveredAmountInNXM", coveredAmountInNXM);
 
       // apply the global rewards ratio and the total Rewards in NXM
       tokenController().mintStakingPoolNXMRewards(rewardsInNXM, allocationRequests[i].poolId);
@@ -273,6 +280,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     );
 
     uint96 totalCoveredAmountIncoverAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceIncoverAsset / NXM_IN_WEI);
+
+    console.log("totalCoverAmountInNXM", totalCoverAmountInNXM);
+    console.log("nxmPriceInPayoutAsset", nxmPriceInPayoutAsset);
+    console.log("totalCoveredAmountInPayoutAsset", totalCoveredAmountInPayoutAsset);
 
     _coverSegments[coverId].push(CoverSegment(
         totalCoveredAmountIncoverAsset, // amount

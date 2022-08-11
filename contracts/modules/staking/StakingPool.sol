@@ -186,7 +186,12 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     _mint(_manager, 0);
   }
 
-  function tokenURI(uint256) public pure override returns (string memory) {
+  function isApprovedOrOwner(address spender, uint tokenId) public view returns (bool) {
+    address owner = ownerOf(tokenId);
+    return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[tokenId];
+  }
+
+  function tokenURI(uint) public pure override returns (string memory) {
     return "";
   }
 

@@ -612,6 +612,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       uint[] memory coverTrancheAllocation = new uint[](trancheCount);
       uint remainingAmount = request.amount;
 
+      console.log("remainingAmount", remainingAmount);
       for (uint i = 0; i < trancheCount; i++) {
 
         if (trancheAllocatedCapacities[i] >= totalCapacities[i]) {
@@ -630,6 +631,8 @@ contract StakingPool is IStakingPool, SolmateERC721 {
           break;
         }
       }
+
+      console.log("allocatedCoverAmount", allocatedCoverAmount);
 
       updateAllocatedCapacities(
         request.productId,

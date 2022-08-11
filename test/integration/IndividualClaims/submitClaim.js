@@ -58,7 +58,7 @@ describe('submitClaim', function () {
     const payoutAsset = 0; // ETH
     const period = 3600 * 24 * 30; // 30 days
 
-    const amount = parseEther('1000');
+    const amount = parseEther('1');
 
     const stakingAmount = parseEther('100');
     await tk.connect(this.accounts.defaultSender).transfer(staker1.address, stakingAmount);
@@ -120,9 +120,11 @@ describe('submitClaim', function () {
 
     const coverId = 0;
 
-    const [deposit] = await ic.getAssessmentDepositAndReward(coverAmount, period, payoutAsset);
+    const claimAmount = amount.sub(1);
 
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, coverAmount, '', {
+    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, payoutAsset);
+
+    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
         value: deposit.mul('2'),
     });
 

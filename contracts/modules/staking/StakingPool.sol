@@ -143,7 +143,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
   }
 
   modifier onlyManager {
-    require(_isApprovedOrOwner(msg.sender, 0), "StakingPool: Only pool manager can call this function");
+    require(isApprovedOrOwner(msg.sender, 0), "StakingPool: Only pool manager can call this function");
     _;
   }
 
@@ -157,11 +157,6 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     nxm = INXMToken(_token);
     coverContract = _coverContract;
     tokenController = _tokenController;
-  }
-
-  function _isApprovedOrOwner(address spender, uint tokenId) public view returns (bool) {
-    address owner = ownerOf(tokenId);
-    return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[tokenId];
   }
 
   function initialize(

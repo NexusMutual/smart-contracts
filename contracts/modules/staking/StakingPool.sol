@@ -719,7 +719,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       uint[] memory coverTrancheAllocation = new uint[](trancheCount);
 
       for (uint i = 0; i < trancheCount; i++) {
-        uint amountPerTranche = uint32(packedCoverTrancheAllocation >> (i * 8));
+        uint amountPerTranche = uint32(packedCoverTrancheAllocation >> (i * 32));
         trancheAllocatedCapacities[i] -= amountPerTranche;
         coverTrancheAllocation[i] = amountPerTranche;
       }
@@ -978,7 +978,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
       if (isAllocation) {
         expiringAmount += trancheAllocation;
-        packedCoverTrancheAllocation |= trancheAllocation << uint32(i * 32);
+        packedCoverTrancheAllocation |= uint(trancheAllocation) << (i * 32);
       } else {
         expiringAmount -= trancheAllocation;
       }

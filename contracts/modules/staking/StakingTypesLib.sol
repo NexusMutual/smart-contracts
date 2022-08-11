@@ -34,7 +34,7 @@ library StakingTypesLib {
     uint index
   ) internal pure returns (CoverAmount) {
     uint underlying = CoverAmountGroup.unwrap(items);
-    uint64 item = uint64(underlying << (index * 64));
+    uint64 item = uint64(underlying >> (index * 64));
     return CoverAmount.wrap(item);
   }
 

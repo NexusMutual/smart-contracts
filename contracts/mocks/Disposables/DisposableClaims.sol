@@ -20,6 +20,7 @@ contract DisposableIndividualClaims is MasterAwareV2 {
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
     config.rewardRatio = 52; // 0.52%
     config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH submission flat fee
+    config.payoutRedemptionPeriodInDays = 14; // days until the payout will not be redeemable anymore
     master = INXMMaster(masterAddress);
   }
 

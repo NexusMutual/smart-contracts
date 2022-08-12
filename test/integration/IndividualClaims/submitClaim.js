@@ -50,9 +50,6 @@ describe('submitClaim', function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
     const { ic, cover, stakingPool0, as, tk } = this.withEthers.contracts;
     const [ coverBuyer1, staker1, staker2 ] = this.accounts.members;
-    const coverAmount = parseEther('100');
-
-    const { timestamp } = await ethers.provider.getBlock('latest');
 
     const productId = 0;
     const payoutAsset = 0; // ETH
@@ -60,6 +57,7 @@ describe('submitClaim', function () {
 
     const amount = parseEther('1');
 
+    const assessmentStakingAmount = parseEther('1000');
     const stakingAmount = parseEther('100');
     await tk.connect(this.accounts.defaultSender).transfer(staker1.address, stakingAmount);
     await tk.connect(this.accounts.defaultSender).transfer(staker2.address, stakingAmount);
@@ -67,12 +65,6 @@ describe('submitClaim', function () {
     const lastBlock = await ethers.provider.getBlock('latest');
 
     const firstTrancheId = Math.floor(lastBlock.timestamp / (91 * 24 * 3600));
-
-
-    console.log({
-      timestamp: lastBlock.timestamp,
-      firstTrancheId
-    })
 
     console.log('depositTo');
     await stakingPool0.connect(staker1).depositTo([{
@@ -129,11 +121,20 @@ describe('submitClaim', function () {
     });
 
     const { minVotingPeriodInDays, payoutCooldownInDays } = await as.config();
-    await as.connect(staker2).stake(parseEther('10'));
+    await as.connect(staker2).stake(assessmentStakingAmount);
 
     await as.connect(staker2).castVotes([0], [true], 0);
-    const { timestamp2 } = await ethers.provider.getBlock('latest');
-    await setTime(timestamp2 + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+    const { timestamp: timestamp2 } = await ethers.provider.getBlock('latest');
+    //
+    // await setTime(timestamp2 + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
 
+
+    const { poll } = await as.assessments(0);
+    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
+
+    await setTime(futureTime);
+    await ic.redeemClaimPayout(0);
+    const { payoutRedeemed } = await ic.claims(0);
+    expect(payoutRedeemed).to.be.equal(true);
   });
 });

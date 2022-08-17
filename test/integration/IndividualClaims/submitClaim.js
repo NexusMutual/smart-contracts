@@ -1,22 +1,10 @@
-const { accounts, web3, ethers } = require('hardhat');
+const { ethers } = require('hardhat');
 const { constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
-const { assert,
-  expect
-} = require('chai');
-const { ProposalCategory } = require('../utils').constants;
-const { hex } = require('../utils').helpers;
-const { submitProposal } = require('../utils').governance;
-const { buyCover, coverToCoverDetailsArray } = require('../utils').buyCover;
-const { getQuoteSignature } = require('../utils').getQuote;
-const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
-const {
-  ASSET,
-  daysToSeconds
-} = require('../../unit/IndividualClaims/helpers');
-const { toBN } = web3.utils;
+const { expect } = require('chai');
+
+const { daysToSeconds } = require('../../unit/IndividualClaims/helpers');
 
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
-const { assertCoverFields } = require('../../unit/Cover/helpers');
 const { BigNumber } = require('ethers');
 
 const { parseEther } = ethers.utils;
@@ -25,9 +13,6 @@ const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
   await mineNextBlock();
 };
-
-const [owner] = accounts;
-
 
 const priceDenominator = '10000';
 
@@ -53,7 +38,6 @@ describe('submitClaim', function () {
 
     const firstTrancheId = Math.floor(lastBlock.timestamp / (91 * 24 * 3600));
 
-    console.log('depositTo');
     await stakingPool0.connect(staker1).depositTo([{
       amount: stakingAmount,
       trancheId: firstTrancheId,
@@ -133,7 +117,6 @@ describe('submitClaim', function () {
 
     const firstTrancheId = Math.floor(lastBlock.timestamp / (91 * 24 * 3600));
 
-    console.log('depositTo');
     await stakingPool0.connect(staker1).depositTo([{
       amount: stakingAmount,
       trancheId: firstTrancheId,
@@ -144,7 +127,6 @@ describe('submitClaim', function () {
     const expectedPremium = amount
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
-
 
     await stakingPool0.setTargetWeight(productId, 10);
 

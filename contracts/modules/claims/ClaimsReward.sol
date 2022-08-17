@@ -491,7 +491,6 @@ contract ClaimsReward is IClaimsReward, LegacyMasterAware {
     uint total = 0;
     uint tokenForVoteId = 0;
     bool lastClaimedCheck;
-    uint _days = td.lockCADays();
     bool claimed;
     uint counter = 0;
     uint claimId;
@@ -529,10 +528,25 @@ contract ClaimsReward is IClaimsReward, LegacyMasterAware {
     }
     lengthVote = cd.getVoteAddressMemberLength(msg.sender);
     lastClaimed = lengthVote;
-    _days = _days.mul(counter);
-    if (tc.tokensLockedAtTime(msg.sender, "CLA", now) > 0) {
-      tc.reduceLock(msg.sender, "CLA", _days);
+
+    {
+      uint lockTimePerVote = td.lockCADays();
+      uint reduction = lockTimePerVote.mul(counter);
+      uint minExpiration = block.timestamp.add(lockTimePerVote);
+      uint currentExpiration = tc.getLockedTokensValidity(msg.sender, "CLA");
+
+      // reduce lock time only if current lock time is greater than min lock time
+      if (currentExpiration > minExpiration) {
+
+        // and never reduce to less than min lock time
+        if (currentExpiration.sub(reduction) < minExpiration) {
+          reduction = currentExpiration.sub(minExpiration);
+        }
+
+        tc.reduceLock(msg.sender, "CLA", reduction);
+      }
     }
+
     (, lastIndex) = cd.getRewardDistributedIndex(msg.sender);
     lastClaimed = lengthVote;
     counter = 0;

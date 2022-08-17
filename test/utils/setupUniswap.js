@@ -20,6 +20,7 @@ const uniswapContract = (contractName, repo = 'core') => {
 };
 
 async function setup () {
+
   const uniswapFactoryCode = await web3.eth.getCode(UNISWAP_FACTORY);
   if (uniswapFactoryCode !== '0x') {
     // Already deployed

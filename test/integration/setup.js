@@ -9,6 +9,7 @@ const { enrollMember } = require('./utils/enroll');
 const { BN } = web3.utils;
 const { getAccounts, stakingPoolManagers } = require('../utils').accounts;
 
+
 // Convert web3 instances to ethers.js
 const web3ToEthers = (x, signers) => {
   const { contracts, rates } = x;

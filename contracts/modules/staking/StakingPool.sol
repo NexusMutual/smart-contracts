@@ -136,6 +136,8 @@ contract StakingPool is IStakingPool, SolmateERC721 {
   // 1e18
   uint public constant TOKEN_PRECISION = 1 ether;
 
+  uint public constant ALLOCATIONS_DENOMINATOR = 1e16;
+
   modifier onlyCoverContract {
     require(msg.sender == coverContract, "StakingPool: Only Cover contract can call this function");
     _;
@@ -946,7 +948,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       // setItemAt does not mutate so we have to reassign it
       coverAmountGroups[trancheGroupId] = coverAmountGroups[trancheGroupId].setItemAt(
         trancheIndexInGroup,
-        StakingTypesLib.newCoverAmount((allocatedCapacities[i] / 1e16).toUint48(), currentBucket)
+        StakingTypesLib.newCoverAmount((allocatedCapacities[i] / ALLOCATIONS_DENOMINATOR).toUint48(), currentBucket)
       );
     }
 
@@ -985,7 +987,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       uint trancheIndexInGroup = trancheId % BUCKET_TRANCHE_GROUP_SIZE;
 
       uint32 expiringAmount = bucketTrancheGroups[trancheGroupId].getItemAt(trancheIndexInGroup);
-      uint32 trancheAllocation = (coverTrancheAllocation[i] / 1e16).toUint32();
+      uint32 trancheAllocation = (coverTrancheAllocation[i] / ALLOCATIONS_DENOMINATOR).toUint32();
 
       if (isAllocation) {
         expiringAmount += trancheAllocation;

@@ -20,7 +20,7 @@ describe('submitClaim', function () {
 
   it('submits DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { ic, cover, stakingPool0, as, tk, dai } = this.withEthers.contracts;
+    const { ic, cover, stakingPool0, as, tk, dai, yt } = this.withEthers.contracts;
     const [ coverBuyer1, staker1, staker2 ] = this.accounts.members;
 
     const productId = 0;
@@ -79,27 +79,50 @@ describe('submitClaim', function () {
 
     const coverId = 0;
 
-    // TODO: figure out why this higher precision error
-    const claimAmount = amount.sub(20);
+    {
+      const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+      await yt
+        .connect(advisoryBoard)
+        .submitIncident(2, parseEther('1.1'), currentTime + segmentPeriod / 2, parseEther('100'), '');
+    }
 
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, payoutAsset);
+    await assessment.connect(member1).castVote(0, true, parseEther('100'));
 
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
-      value: deposit.mul('2'),
-    });
+    {
+      const { payoutCooldownInDays } = await assessment.config();
+      const { end } = await assessment.getPoll(0);
+      await setTime(end + daysToSeconds(payoutCooldownInDays));
+    }
 
-    const { payoutCooldownInDays } = await as.config();
-    await as.connect(staker2).stake(assessmentStakingAmount);
+    await ybEth.connect(member1).approve(yieldTokenIncidents.address, parseEther('10000'));
 
-    await as.connect(staker2).castVotes([0], [true], 0);
+    // [warning] Cover mock does not subtract the covered amount
+    {
+      const ethBalanceBefore = await ethers.provider.getBalance(member1.address);
+      await yieldTokenIncidents
+        .connect(member1)
+        .redeemPayout(0, 0, 0, parseEther('100'), member1.address, [], { gasPrice: 0 });
+      const ethBalanceAfter = await ethers.provider.getBalance(member1.address);
+      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('99')));
+    }
 
-    const { poll } = await as.assessments(0);
-    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
+    {
+      const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
+      await yieldTokenIncidents
+        .connect(member1)
+        .redeemPayout(0, 0, 0, parseEther('111'), nonMember1.address, [], { gasPrice: 0 });
+      const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
+      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('109.89')));
+    }
 
-    await setTime(futureTime);
-    await ic.redeemClaimPayout(0);
-    const { payoutRedeemed } = await ic.claims(0);
-    expect(payoutRedeemed).to.be.equal(true);
+    {
+      const ethBalanceBefore = await ethers.provider.getBalance(nonMember2.address);
+      await yieldTokenIncidents
+        .connect(member1)
+        .redeemPayout(0, 0, 0, parseEther('3000'), nonMember2.address, [], { gasPrice: 0 });
+      const ethBalanceAfter = await ethers.provider.getBalance(nonMember2.address);
+      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('2970')));
+    }
   });
 
 

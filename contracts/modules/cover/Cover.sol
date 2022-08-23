@@ -24,8 +24,6 @@ import "./CoverUtilsLib.sol";
 import "./MinimalBeaconProxy.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
-import "hardhat/console.sol";
-
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   using SafeERC20 for IERC20;

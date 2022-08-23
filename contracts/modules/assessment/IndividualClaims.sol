@@ -14,7 +14,6 @@ import "../../interfaces/IPool.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
-import "hardhat/console.sol";
 
 /// Provides a way for cover owners to submit claims and redeem payouts. It is an entry point to
 /// the assessment process where the members of the mutual decide the outcome of claims.
@@ -276,9 +275,6 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
         productType.claimMethod == uint8(ClaimMethod.IndividualClaims),
         "Invalid claim method for this product type"
       );
-
-      console.log("requestedAmount", requestedAmount);
-      console.log("segment.amount", segment.amount);
 
       require(requestedAmount <= segment.amount, "Covered amount exceeded");
       require(segment.start <= block.timestamp, "Cover starts in the future");

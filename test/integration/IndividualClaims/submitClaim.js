@@ -181,7 +181,7 @@ describe('submitClaim', function () {
     expect(payoutRedeemed).to.be.equal(true);
   });
 
-  it.only('submits ETH claim and rejects claim', async function () {
+  it('submits ETH claim and rejects claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
     const { ic, cover, stakingPool0, as, tk } = this.withEthers.contracts;
     const [ coverBuyer1, staker1, staker2, staker3 ] = this.accounts.members;
@@ -264,7 +264,7 @@ describe('submitClaim', function () {
     expect(payoutRedeemed).to.be.equal(false);
   });
 
-  it.only('submits DAI claim and rejects claim', async function () {
+  it('submits DAI claim and rejects claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
     const { ic, cover, stakingPool0, as, tk, dai } = this.withEthers.contracts;
     const [ coverBuyer1, staker1, staker2, staker3 ] = this.accounts.members;

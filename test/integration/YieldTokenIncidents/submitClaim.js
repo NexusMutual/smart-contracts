@@ -16,9 +16,9 @@ const setTime = async timestamp => {
 
 const priceDenominator = '10000';
 
-describe('submitClaim', function () {
+describe.skip('submitClaim', function () {
 
-  it.only('submits DAI claim and approves claim', async function () {
+  it('submits DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
     const { ic, cover, stakingPool0, as, tk, dai, yc } = this.withEthers.contracts;
     const [ coverBuyer1, staker1, staker2, member1 ] = this.accounts.members;

@@ -41,7 +41,8 @@ async function setup () {
   // const LegacyIncidents = artifacts.require('LegacyIncidents');
   // const LegacyClaimsData = artifacts.require('LegacyClaimsData');
   const LegacyClaimsReward = artifacts.require('LegacyClaimsReward');
-  const MCR = artifacts.require('DisposableMCR');
+  const DisposableMCR = artifacts.require('DisposableMCR');
+  const MCR = artifacts.require('MCR');
   const Pool = artifacts.require('Pool');
   const QuotationData = artifacts.require('LegacyQuotationData');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
@@ -144,7 +145,38 @@ async function setup () {
   // const lcd = await LegacyClaimsData.new();
   const lcr = await LegacyClaimsReward.new(master.address, dai.address);
 
-  const mc = await MCR.new(ZERO_ADDRESS);
+  // TODO: implement using DisposableMCR, see /test/unit/MCR/setup.js
+
+  const mcrEth = ether('50000');
+  const mcrFloor = mcrEth.sub(ether('10000'));
+
+  const latestBlock = await web3.eth.getBlock('latest');
+  const lastUpdateTime = latestBlock.timestamp;
+  const mcrFloorIncrementThreshold = 13000;
+  const maxMCRFloorIncrement = 100;
+  const maxMCRIncrement = 500;
+  const gearingFactor = 48000;
+  const minUpdateTime = 3600;
+  const desiredMCR = mcrEth;
+
+  const disposableMCR = await DisposableMCR.new(
+    mcrEth,
+    mcrFloor,
+    desiredMCR,
+    lastUpdateTime,
+    mcrFloorIncrementThreshold,
+    maxMCRFloorIncrement,
+    maxMCRIncrement,
+    gearingFactor,
+    minUpdateTime,
+  );
+
+  // deploy MCR with DisposableMCR as a fake master
+  const mc = await MCR.new(disposableMCR.address);
+
+  // trigger initialize and update master address
+  await disposableMCR.initializeNextMcr(mc.address, master.address);
+
 
   const p1 = await Pool.new(master.address, priceFeedOracle.address, ZERO_ADDRESS, dai.address, stETH.address);
 
@@ -321,6 +353,7 @@ async function setup () {
   );
 
   await gv.changeMasterAddress(master.address);
+
   await master.switchGovernanceAddress(gv.address);
 
   await gateway.initialize(master.address, dai.address);
@@ -377,30 +410,6 @@ async function setup () {
 
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ether((ethToDaiRate / 100).toString()));
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
-
-  const mcrEth = ether('50000');
-  const mcrFloor = mcrEth.sub(ether('10000'));
-
-  const latestBlock = await web3.eth.getBlock('latest');
-  const lastUpdateTime = latestBlock.timestamp;
-  const mcrFloorIncrementThreshold = 13000;
-  const maxMCRFloorIncrement = 100;
-  const maxMCRIncrement = 500;
-  const gearingFactor = 48000;
-  const minUpdateTime = 3600;
-  const desiredMCR = mcrEth;
-
-  await mc.initialize(
-    mcrEth,
-    mcrFloor,
-    desiredMCR,
-    lastUpdateTime,
-    mcrFloorIncrementThreshold,
-    maxMCRFloorIncrement,
-    maxMCRIncrement,
-    gearingFactor,
-    minUpdateTime,
-  );
 
   await as.initialize();
 

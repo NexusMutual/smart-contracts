@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.9;
 
 contract ChainlinkAggregatorMock {
 
-  uint latestAnswerRate;
+  uint public latestAnswer;
+  uint public decimals;
 
-  function setLatestAnswer(uint rate) public {
-    latestAnswerRate = rate;
+  function setDecimals(uint _decimals) public {
+    decimals = _decimals;
   }
 
-  function latestAnswer() public view returns (int) {
-    return int(latestAnswerRate);
+  function setLatestAnswer(uint _latestAnswer) public {
+    latestAnswer = _latestAnswer;
   }
+
 }

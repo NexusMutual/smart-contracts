@@ -89,10 +89,12 @@ const main = async () => {
 };
 
 if (require.main === module) {
-  main().catch(e => {
-    console.log('Unhandled error encountered: ', e.stack);
-    process.exit(1);
-  });
+  main()
+    .then(() => console.log('Done!'))
+    .catch(e => {
+      console.log('Unhandled error encountered: ', e.stack);
+      process.exit(1);
+    });
 }
 
 module.exports = main;

@@ -1,8 +1,8 @@
 const { takeSnapshot, revertToSnapshot, reset } = require('./utils').evm;
 const setup = require('./setup');
 
-
 describe('INTEGRATION TESTS', function () {
+
   before(setup);
 
   beforeEach(async function () {
@@ -17,7 +17,7 @@ describe('INTEGRATION TESTS', function () {
   require('./YieldTokenIncidents');
 
   // TODO: reenable
-  // require('./Master');
+  require('./Master');
   // require('./PooledStaking');
   // require('./Pool');
   // require('./MCR');

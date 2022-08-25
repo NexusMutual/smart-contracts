@@ -1,27 +1,23 @@
 const { artifacts, web3 } = require('hardhat');
-const { ether, time } = require('@openzeppelin/test-helpers');
-
-const { Role } = require('../utils').constants;
-const accounts = require('../utils').accounts;
+const { time } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
 
-const { BN } = web3.utils;
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const MAX_PERCENTAGE_ADJUSTMENT = web3.utils.toBN(100);
 
-const MAX_PERCENTAGE_ADJUSTMENT = new BN(100);
+async function initMCR (params) {
 
-async function initMCR ({
-  mcrValue,
-  mcrFloor,
-  desiredMCR,
-  lastUpdateTime,
-  mcrFloorIncrementThreshold,
-  maxMCRFloorIncrement,
-  maxMCRIncrement,
-  gearingFactor,
-  minUpdateTime,
-  master,
-}) {
+  const {
+    mcrValue,
+    mcrFloor,
+    desiredMCR,
+    lastUpdateTime,
+    mcrFloorIncrementThreshold,
+    maxMCRFloorIncrement,
+    maxMCRIncrement,
+    gearingFactor,
+    minUpdateTime,
+    master,
+  } = params;
 
   const latest = await time.latest();
   const mcrParams = [
@@ -36,14 +32,21 @@ async function initMCR ({
     minUpdateTime,
   ];
 
-  const MCR = artifacts.require('DisposableMCR');
-  const mcr = await MCR.new(ZERO_ADDRESS);
-  await mcr.initialize(...mcrParams);
+  const DisposableMCR = artifacts.require('DisposableMCR');
+  const MCR = artifacts.require('MCR');
 
+  // deploy disposable mcr and initialize values
+  const disposableMCR = await DisposableMCR.new(...mcrParams);
+
+  // deploy mcr with fake master
+  const mcr = await MCR.new(disposableMCR.address);
+
+  // trigger initialize and switch master address
+  await disposableMCR.initializeNextMcr(mcr.address, master.address);
+
+  // set mcr address on master
   await master.setLatestAddress(hex('MC'), mcr.address);
 
-  await mcr.changeMasterAddress(master.address);
-  await mcr.changeDependentContractAddress();
   return mcr;
 }
 

@@ -1,11 +1,9 @@
 const { assert } = require('chai');
-const { artifacts, web3 } = require('hardhat');
-const { ether, time, expectRevert } = require('@openzeppelin/test-helpers');
-const { initMCR, MAX_PERCENTAGE_ADJUSTMENT } = require('./common');
+const { web3 } = require('hardhat');
+const { ether, time } = require('@openzeppelin/test-helpers');
+const { initMCR } = require('./common');
 const { hex } = require('../utils').helpers;
 const { toBN } = web3.utils;
-
-const accounts = require('../utils').accounts;
 
 const DEFAULT_MCR_PARAMS = {
   mcrValue: ether('150000'),

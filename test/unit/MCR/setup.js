@@ -6,7 +6,7 @@ const accounts = require('../utils').accounts;
 const { hex } = require('../utils').helpers;
 const { initMCR } = require('./common');
 
-const { BN } = web3.utils;
+const { toBN } = web3.utils;
 
 async function setup () {
 
@@ -15,7 +15,6 @@ async function setup () {
   const ERC20Mock = artifacts.require('ERC20Mock');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
-  const QuotationData = artifacts.require('MCRMockQuotationData');
   const Cover = artifacts.require('MCRMockCover');
 
   const master = await MasterMock.new();
@@ -23,12 +22,12 @@ async function setup () {
   const stETH = await ERC20Mock.new();
 
   const ethToDaiRate = ether('2000');
-  const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
+  const daiToEthRate = toBN(10).pow(toBN(36)).div(ethToDaiRate);
 
   const chainlinkDAI = await ChainlinkAggregatorMock.new();
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
   const chainlinkSteth = await ChainlinkAggregatorMock.new();
-  await chainlinkSteth.setLatestAnswer(new BN(1e18.toString()));
+  await chainlinkSteth.setLatestAnswer(toBN(1e18.toString()));
 
   const priceFeedOracle = await PriceFeedOracle.new(
     [dai.address, stETH.address],
@@ -38,7 +37,6 @@ async function setup () {
 
   const pool = await Pool.new(priceFeedOracle.address);
   const cover = await Cover.new();
-
 
   await cover.setTotalActiveCoverInAsset(0, ether('100000')); // ETH
   await cover.setTotalActiveCoverInAsset(1, '0'); // DAI
@@ -54,6 +52,7 @@ async function setup () {
     minUpdateTime: '3600',
     master,
   });
+
   // set contract addresses
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('CO'), cover.address);

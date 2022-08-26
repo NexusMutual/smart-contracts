@@ -16,7 +16,7 @@ const setTime = async timestamp => {
 
 const priceDenominator = '10000';
 
-describe.only('submitClaim', function () {
+describe.skip('submitClaim', function () {
 
   it('submits ETH claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;

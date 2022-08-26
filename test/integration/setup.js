@@ -129,6 +129,10 @@ async function setup () {
 
   const lido = await Lido.new();
 
+  const ybDAI = await ERC20BlacklistableMock.new();
+  const ybETH = await ERC20BlacklistableMock.new();
+
+
   // proxy contracts
   const master = await deployProxy(DisposableNXMaster);
   const mr = await deployProxy(DisposableMemberRoles);
@@ -326,14 +330,14 @@ async function setup () {
       },
       {
         productType: 2, // Yield Token Cover
-        productAddress: '0x0000000000000000000000000000000000000001',
+        productAddress: ybETH.address,
         coverAssets: 0b01, // ETH
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
       },
       {
         productType: 2, // Yield Token Cover
-        productAddress: '0x0000000000000000000000000000000000000002',
+        productAddress: ybDAI.address,
         coverAssets: 0b10, // DAI
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
@@ -386,6 +390,7 @@ async function setup () {
   await cover.changeDependentContractAddress();
   await ic.changeDependentContractAddress();
   await as.changeDependentContractAddress();
+  await yt.changeDependentContractAddress();
 
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
@@ -413,7 +418,7 @@ async function setup () {
 
   await as.initialize();
 
-  const external = { chainlinkDAI, dai, weth, productsV1 };
+  const external = { chainlinkDAI, dai, weth, productsV1, ybDAI, ybETH };
   const nonUpgradable = { qd };
   const instances = { tk, cl, p1, mcr: mc };
 

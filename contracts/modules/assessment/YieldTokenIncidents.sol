@@ -17,6 +17,7 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IYieldTokenIncidents.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
+import "hardhat/console.sol";
 
 /// Allows cover owners to redeem payouts from yield token depeg incidents. It is an entry point
 /// to the assessment process where the members of the mutual decides the validity of the
@@ -242,6 +243,10 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
           "The voting and cooldown periods must end"
         );
 
+        console.log("block.timestamp", block.timestamp);
+        console.log("block.timestamp", block.timestamp);
+        console.log("config.payoutRedemptionPeriodInDays", config.payoutRedemptionPeriodInDays);
+        console.log("payoutCooldownInDays", payoutCooldownInDays);
         require(
           block.timestamp < poll.end +
           payoutCooldownInDays * 1 days +

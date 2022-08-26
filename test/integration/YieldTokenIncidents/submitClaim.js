@@ -16,11 +16,11 @@ const setTime = async timestamp => {
 
 const priceDenominator = '10000';
 
-describe.skip('submitClaim', function () {
+describe.only('submitClaim', function () {
 
   it('submits DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { ic, cover, stakingPool0, as, tk, dai, yc } = this.withEthers.contracts;
+    const { ic, cover, stakingPool0, as, tk, dai, yc, ybETH } = this.withEthers.contracts;
     const [ coverBuyer1, staker1, staker2, member1 ] = this.accounts.members;
     const [ nonMember1, nonMember2 ] = this.accounts.nonMembers;
 
@@ -88,43 +88,47 @@ describe.skip('submitClaim', function () {
         .submitIncident(2, parseEther('1.1'), currentTime + segmentPeriod / 2, parseEther('100'), '');
     }
 
-    await as.connect(staker1).castVote(0, true, parseEther('100'));
+    await as.connect(staker1).castVotes([0], [true], parseEther('100'));
 
     {
       const { payoutCooldownInDays } = await as.config();
+
+      console.log({
+        payoutCooldownInDays
+      });
       const { end } = await as.getPoll(0);
       await setTime(end + daysToSeconds(payoutCooldownInDays));
     }
 
-    await ybEth.connect(staker1).approve(yc.address, parseEther('10000'));
+    await ybETH.connect(staker1).approve(yc.address, parseEther('10000'));
 
     // [warning] Cover mock does not subtract the covered amount
     {
       const ethBalanceBefore = await ethers.provider.getBalance(staker1.address);
       await yc
-        .connect(staker1)
-        .redeemPayout(0, 0, 0, parseEther('100'), staker1.address, [], { gasPrice: 0 });
-      const ethBalanceAfter = await ethers.provider.getBalance(staker1.address);
+        .connect(coverBuyer1)
+        .redeemPayout(0, 0, 0, parseEther('100'), coverBuyer1.address, [], { gasPrice: 0 });
+      const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('99')));
     }
 
-    {
-      const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
-      await yc
-        .connect(member1)
-        .redeemPayout(0, 0, 0, parseEther('111'), nonMember1.address, [], { gasPrice: 0 });
-      const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
-      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('109.89')));
-    }
-
-    {
-      const ethBalanceBefore = await ethers.provider.getBalance(nonMember2.address);
-      await yc
-        .connect(member1)
-        .redeemPayout(0, 0, 0, parseEther('3000'), nonMember2.address, [], { gasPrice: 0 });
-      const ethBalanceAfter = await ethers.provider.getBalance(nonMember2.address);
-      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('2970')));
-    }
+    // {
+    //   const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
+    //   await yc
+    //     .connect(member1)
+    //     .redeemPayout(0, 0, 0, parseEther('111'), nonMember1.address, [], { gasPrice: 0 });
+    //   const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
+    //   expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('109.89')));
+    // }
+    //
+    // {
+    //   const ethBalanceBefore = await ethers.provider.getBalance(nonMember2.address);
+    //   await yc
+    //     .connect(member1)
+    //     .redeemPayout(0, 0, 0, parseEther('3000'), nonMember2.address, [], { gasPrice: 0 });
+    //   const ethBalanceAfter = await ethers.provider.getBalance(nonMember2.address);
+    //   expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('2970')));
+    // }
   });
 
 

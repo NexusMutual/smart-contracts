@@ -16,7 +16,7 @@ const setTime = async timestamp => {
 
 const priceDenominator = '10000';
 
-describe.only('submitClaim', function () {
+describe('submitClaim', function () {
 
   function calculateFirstTrancheId (lastBlock, period, gracePeriod) {
     return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));

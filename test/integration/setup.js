@@ -176,8 +176,7 @@ async function setup () {
 
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mc.address, master.address);
-
-
+  
   const p1 = await Pool.new(master.address, priceFeedOracle.address, ZERO_ADDRESS, dai.address, stETH.address);
 
   const cowVaultRelayer = await CSMockVaultRelayer.new();

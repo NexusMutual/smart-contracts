@@ -146,8 +146,37 @@ async function setup() {
   const lcr = await LegacyClaimsReward.new(master.address, dai.address);
 
   // TODO: implement using DisposableMCR, see /test/unit/MCR/setup.js
-  const mc = await MCR.new(ZERO_ADDRESS);
 
+  const mcrEth = ether('50000');
+  const mcrFloor = mcrEth.sub(ether('10000'));
+
+  const latestBlock = await web3.eth.getBlock('latest');
+  const lastUpdateTime = latestBlock.timestamp;
+  const mcrFloorIncrementThreshold = 13000;
+  const maxMCRFloorIncrement = 100;
+  const maxMCRIncrement = 500;
+  const gearingFactor = 48000;
+  const minUpdateTime = 3600;
+  const desiredMCR = mcrEth;
+
+  const disposableMCR = await DisposableMCR.new(
+    mcrEth,
+    mcrFloor,
+    desiredMCR,
+    lastUpdateTime,
+    mcrFloorIncrementThreshold,
+    maxMCRFloorIncrement,
+    maxMCRIncrement,
+    gearingFactor,
+    minUpdateTime,
+  );
+
+  // deploy MCR with DisposableMCR as a fake master
+  const mc = await MCR.new(disposableMCR.address);
+
+  // trigger initialize and update master address
+  await disposableMCR.initializeNextMcr(mc.address, master.address);
+  
   const p1 = await Pool.new(master.address, priceFeedOracle.address, ZERO_ADDRESS, dai.address, stETH.address);
 
   const cowVaultRelayer = await CSMockVaultRelayer.new();

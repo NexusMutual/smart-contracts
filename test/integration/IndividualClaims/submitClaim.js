@@ -16,7 +16,11 @@ const setTime = async timestamp => {
 
 const priceDenominator = '10000';
 
-describe.only('submitClaim', function () {
+describe('submitClaim', function () {
+
+  function calculateFirstTrancheId (lastBlock, period, gracePeriod) {
+    return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
+  }
 
   it('submits ETH claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
@@ -26,6 +30,7 @@ describe.only('submitClaim', function () {
     const productId = 0;
     const payoutAsset = 0; // ETH
     const period = 3600 * 24 * 30; // 30 days
+    const gracePeriod = 3600 * 24 * 30;
 
     const amount = parseEther('1');
 
@@ -35,8 +40,7 @@ describe.only('submitClaim', function () {
     await tk.connect(this.accounts.defaultSender).transfer(staker2.address, stakingAmount);
 
     const lastBlock = await ethers.provider.getBlock('latest');
-
-    const firstTrancheId = Math.floor(lastBlock.timestamp / (91 * 24 * 3600));
+    const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
 
     await stakingPool0.connect(staker1).depositTo([{
       amount: stakingAmount,
@@ -45,12 +49,13 @@ describe.only('submitClaim', function () {
       destination: ZERO_ADDRESS
      }]);
 
+    await stakingPool0.setTargetWeight(productId, 10);
+
     const expectedPremium = amount
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-
-    await stakingPool0.setTargetWeight(productId, 10);
+    const poolAddress = await cover.stakingPool(0);
 
     const tx = await cover.connect(coverBuyer1).buyCover(
       {
@@ -105,6 +110,7 @@ describe.only('submitClaim', function () {
     const productId = 0;
     const payoutAsset = 1; // DAI
     const period = 3600 * 24 * 30; // 30 days
+    const gracePeriod = 3600 * 24 * 30;
 
     const amount = parseEther('1');
 
@@ -114,8 +120,7 @@ describe.only('submitClaim', function () {
     await tk.connect(this.accounts.defaultSender).transfer(staker2.address, stakingAmount);
 
     const lastBlock = await ethers.provider.getBlock('latest');
-
-    const firstTrancheId = Math.floor(lastBlock.timestamp / (91 * 24 * 3600));
+    const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
 
     await stakingPool0.connect(staker1).depositTo([{
       amount: stakingAmount,
@@ -189,6 +194,7 @@ describe.only('submitClaim', function () {
     const productId = 0;
     const payoutAsset = 0; // ETH
     const period = 3600 * 24 * 30; // 30 days
+    const gracePeriod = 3600 * 24 * 30;
 
     const amount = parseEther('1');
 
@@ -199,8 +205,7 @@ describe.only('submitClaim', function () {
     await tk.connect(this.accounts.defaultSender).transfer(staker2.address, stakingAmount);
 
     const lastBlock = await ethers.provider.getBlock('latest');
-
-    const firstTrancheId = Math.floor(lastBlock.timestamp / (91 * 24 * 3600));
+    const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
 
     await stakingPool0.connect(staker1).depositTo([{
       amount: stakingAmount,
@@ -272,6 +277,7 @@ describe.only('submitClaim', function () {
     const productId = 0;
     const payoutAsset = 1; // DAI
     const period = 3600 * 24 * 30; // 30 days
+    const gracePeriod = 3600 * 24 * 30;
 
     const amount = parseEther('1');
 
@@ -283,8 +289,7 @@ describe.only('submitClaim', function () {
     await tk.connect(this.accounts.defaultSender).transfer(staker3.address, stakingAmount);
 
     const lastBlock = await ethers.provider.getBlock('latest');
-
-    const firstTrancheId = Math.floor(lastBlock.timestamp / (91 * 24 * 3600));
+    const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
 
     await stakingPool0.connect(staker1).depositTo([{
       amount: stakingAmount,

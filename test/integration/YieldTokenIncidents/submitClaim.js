@@ -16,7 +16,11 @@ const setTime = async timestamp => {
 
 const priceDenominator = '10000';
 
-describe.skip('submitClaim', function () {
+describe.only('submitClaim', function () {
+
+  function calculateFirstTrancheId (lastBlock, period, gracePeriod) {
+    return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
+  }
 
   it('submits DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
@@ -27,6 +31,7 @@ describe.skip('submitClaim', function () {
     const productId = 0;
     const payoutAsset = 1; // DAI
     const period = 3600 * 24 * 30; // 30 days
+    const gracePeriod = 3600 * 24 * 30;
 
     const amount = parseEther('1');
 
@@ -36,8 +41,7 @@ describe.skip('submitClaim', function () {
     await tk.connect(this.accounts.defaultSender).transfer(staker2.address, stakingAmount);
 
     const lastBlock = await ethers.provider.getBlock('latest');
-
-    const firstTrancheId = Math.floor(lastBlock.timestamp / (91 * 24 * 3600));
+    const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
 
     await stakingPool0.connect(staker1).depositTo([{
       amount: stakingAmount,

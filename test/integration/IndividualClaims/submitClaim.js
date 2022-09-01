@@ -25,7 +25,7 @@ describe('submitClaim', function () {
   it('submits ETH claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
     const { ic, cover, stakingPool0, as, tk } = this.withEthers.contracts;
-    const [ coverBuyer1, staker1, staker2 ] = this.accounts.members;
+    const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     const productId = 0;
     const payoutAsset = 0; // ETH
@@ -46,8 +46,8 @@ describe('submitClaim', function () {
       amount: stakingAmount,
       trancheId: firstTrancheId,
       tokenId: 1, // new position
-      destination: ZERO_ADDRESS
-     }]);
+      destination: ZERO_ADDRESS,
+    }]);
 
     await stakingPool0.setTargetWeight(productId, 10);
 
@@ -69,7 +69,7 @@ describe('submitClaim', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
-        ipfsData: ''
+        ipfsData: '',
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
       {
@@ -85,7 +85,7 @@ describe('submitClaim', function () {
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, payoutAsset);
 
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
-        value: deposit.mul('2'),
+      value: deposit.mul('2'),
     });
 
     const { payoutCooldownInDays } = await as.config();
@@ -105,7 +105,7 @@ describe('submitClaim', function () {
   it('submits DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
     const { ic, cover, stakingPool0, as, tk, dai } = this.withEthers.contracts;
-    const [ coverBuyer1, staker1, staker2 ] = this.accounts.members;
+    const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     const productId = 0;
     const payoutAsset = 1; // DAI
@@ -126,7 +126,7 @@ describe('submitClaim', function () {
       amount: stakingAmount,
       trancheId: firstTrancheId,
       tokenId: 1, // new position
-      destination: ZERO_ADDRESS
+      destination: ZERO_ADDRESS,
     }]);
 
     const expectedPremium = amount
@@ -151,7 +151,7 @@ describe('submitClaim', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
-        ipfsData: ''
+        ipfsData: '',
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
       {
@@ -189,7 +189,7 @@ describe('submitClaim', function () {
   it('submits ETH claim and rejects claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
     const { ic, cover, stakingPool0, as, tk } = this.withEthers.contracts;
-    const [ coverBuyer1, staker1, staker2, staker3 ] = this.accounts.members;
+    const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     const productId = 0;
     const payoutAsset = 0; // ETH
@@ -211,13 +211,12 @@ describe('submitClaim', function () {
       amount: stakingAmount,
       trancheId: firstTrancheId,
       tokenId: 1, // new position
-      destination: ZERO_ADDRESS
+      destination: ZERO_ADDRESS,
     }]);
 
     const expectedPremium = amount
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
-
 
     await stakingPool0.setTargetWeight(productId, 10);
 
@@ -233,7 +232,7 @@ describe('submitClaim', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
-        ipfsData: ''
+        ipfsData: '',
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
       {
@@ -272,7 +271,7 @@ describe('submitClaim', function () {
   it('submits DAI claim and rejects claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
     const { ic, cover, stakingPool0, as, tk, dai } = this.withEthers.contracts;
-    const [ coverBuyer1, staker1, staker2, staker3 ] = this.accounts.members;
+    const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     const productId = 0;
     const payoutAsset = 1; // DAI
@@ -295,7 +294,7 @@ describe('submitClaim', function () {
       amount: stakingAmount,
       trancheId: firstTrancheId,
       tokenId: 1, // new position
-      destination: ZERO_ADDRESS
+      destination: ZERO_ADDRESS,
     }]);
 
     const expectedPremium = amount
@@ -320,7 +319,7 @@ describe('submitClaim', function () {
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
-        ipfsData: ''
+        ipfsData: '',
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
       {

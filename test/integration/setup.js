@@ -130,8 +130,10 @@ async function setup () {
   const lido = await Lido.new();
 
   const ybDAI = await ERC20BlacklistableMock.new();
-  const ybETH = await ERC20BlacklistableMock.new();
+  await ybDAI.mint(owner, ether('10000000'));
 
+  const ybETH = await ERC20BlacklistableMock.new();
+  await ybETH.mint(owner, ether('10000000'));
 
   // proxy contracts
   const master = await deployProxy(DisposableNXMaster);
@@ -180,7 +182,7 @@ async function setup () {
 
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mc.address, master.address);
-  
+
   const p1 = await Pool.new(master.address, priceFeedOracle.address, ZERO_ADDRESS, dai.address, stETH.address);
 
   const cowVaultRelayer = await CSMockVaultRelayer.new();
@@ -360,6 +362,14 @@ async function setup () {
   await master.switchGovernanceAddress(gv.address);
 
   await gateway.initialize(master.address, dai.address);
+
+  await yt.initialize(master.address);
+
+  const ytConfig = await yt.config();
+
+  console.log({
+    payoutRedemptionPeriodInDays: ytConfig.payoutRedemptionPeriodInDays.toString()
+  });
 
   await upgradeProxy(mr.address, MemberRoles);
   await upgradeProxy(tc.address, TokenController, [qd.address, lcr.address]);

@@ -22,7 +22,102 @@ describe.only('submitClaim', function () {
     return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
   }
 
-  it.only('submits DAI claim and approves claim', async function () {
+  it('submits ETH claim and approves claim', async function () {
+    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { cover, stakingPool0, as, tk, dai, yc, ybETH } = this.withEthers.contracts;
+    const [ coverBuyer1, staker1, staker2 ] = this.accounts.members;
+
+    const productId = 2;
+    const payoutAsset = 0; // ETH
+    const period = 3600 * 24 * 30; // 30 days
+    const gracePeriod = 3600 * 24 * 30;
+
+    const amount = parseEther('1');
+
+    const stakingAmount = parseEther('100');
+    await tk.connect(this.accounts.defaultSender).transfer(staker1.address, stakingAmount);
+    await tk.connect(this.accounts.defaultSender).transfer(staker2.address, stakingAmount);
+
+    const lastBlock = await ethers.provider.getBlock('latest');
+    const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
+
+    await stakingPool0.connect(staker1).depositTo([{
+      amount: stakingAmount,
+      trancheId: firstTrancheId,
+      tokenId: 1, // new position
+      destination: ZERO_ADDRESS
+    }]);
+
+    const expectedPremium = amount
+      .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
+      .div(BigNumber.from(priceDenominator));
+
+    await stakingPool0.setTargetWeight(productId, 10);
+
+    await dai.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('1000000'));
+    await ybETH.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('100'));
+
+    await dai.connect(coverBuyer1).approve(cover.address, expectedPremium);
+
+    const tx = await cover.connect(coverBuyer1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        productId,
+        payoutAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: payoutAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: ZERO_ADDRESS,
+        ipfsData: ''
+      },
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      {
+        value: expectedPremium,
+      },
+    );
+
+    await tx.wait();
+
+    const coverId = 0;
+
+    const segmentPeriod = period;
+    {
+      const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+      await yc
+        .connect(this.accounts.defaultSender)
+        .submitIncident(productId, parseEther('1.1'), currentTime + segmentPeriod / 2, parseEther('100'), '');
+    }
+
+    await as.connect(staker1).castVotes([0], [true], parseEther('100'));
+
+    {
+      const { payoutCooldownInDays } = await as.config();
+
+      console.log({
+        payoutCooldownInDays
+      });
+      const { end } = await as.getPoll(0);
+      await setTime(end + daysToSeconds(payoutCooldownInDays));
+    }
+
+    await ybETH.connect(coverBuyer1).approve(yc.address, parseEther('10000'));
+
+    // [warning] Cover mock does not subtract the covered amount
+    {
+
+      const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
+      await yc
+        .connect(coverBuyer1)
+        .redeemPayout(0, 0, 0, parseEther('1'), coverBuyer1.address, [], { gasPrice: 0 });
+      const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
+      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('0.99')));
+    }
+  });
+
+  it('submits DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
     const { ic, cover, stakingPool0, as, tk, dai, yc, ybDAI } = this.withEthers.contracts;
     const [ coverBuyer1, staker1, staker2, member1 ] = this.accounts.members;

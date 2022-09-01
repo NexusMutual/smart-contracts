@@ -365,12 +365,6 @@ async function setup () {
 
   await yt.initialize(master.address);
 
-  const ytConfig = await yt.config();
-
-  console.log({
-    payoutRedemptionPeriodInDays: ytConfig.payoutRedemptionPeriodInDays.toString()
-  });
-
   await upgradeProxy(mr.address, MemberRoles);
   await upgradeProxy(tc.address, TokenController, [qd.address, lcr.address]);
   await upgradeProxy(ps.address, PooledStaking, [cover.address, productsV1.address]);

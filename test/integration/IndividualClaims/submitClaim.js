@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
+const { ZERO_ADDRESS } = require('../../../lib/constants');
 const { expect } = require('chai');
 
 const { daysToSeconds } = require('../../unit/IndividualClaims/helpers');

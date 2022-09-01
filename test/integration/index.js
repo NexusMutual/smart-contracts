@@ -17,7 +17,7 @@ describe('INTEGRATION TESTS', function () {
   require('./YieldTokenIncidents');
 
   // TODO: reenable
-  require('./Master');
+  // require('./Master');
   // require('./PooledStaking');
   // require('./Pool');
   // require('./MCR');

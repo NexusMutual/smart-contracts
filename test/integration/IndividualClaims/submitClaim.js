@@ -22,6 +22,16 @@ describe.only('submitClaim', function () {
     return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
   }
 
+  beforeEach(async function () {
+    const { tk } = this.withEthers.contracts;
+
+    const members = this.accounts.members.slice(0, 5);
+    const amount = parseEther('10000');
+    for (const member of members) {
+      await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
+    }
+  });
+
   async function acceptClaim ({ staker, assessmentStakingAmount, as }) {
     const { payoutCooldownInDays } = await as.config();
     await as.connect(staker).stake(assessmentStakingAmount);
@@ -34,9 +44,10 @@ describe.only('submitClaim', function () {
     await setTime(futureTime);
   }
 
-  async function rejectClaim (
-    { approvingStaker, rejectingStaker, assessmentStakingAmountForApproval, assessmentStakingAmountForRejection, as }
-  ) {
+  async function rejectClaim ({ approvingStaker, rejectingStaker, as }) {
+
+    const assessmentStakingAmountForApproval = parseEther('1000');
+    const assessmentStakingAmountForRejection = parseEther('2000');
     const { payoutCooldownInDays } = await as.config();
     await as.connect(approvingStaker).stake(assessmentStakingAmountForApproval);
 
@@ -51,40 +62,45 @@ describe.only('submitClaim', function () {
     await setTime(futureTime);
   }
 
-  it('submits ETH claim and approves claim', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { ic, cover, stakingPool0, as, tk } = this.withEthers.contracts;
-    const [coverBuyer1, staker1, staker2] = this.accounts.members;
-
-    const productId = 0;
-    const payoutAsset = 0; // ETH
-    const period = 3600 * 24 * 30; // 30 days
-    const gracePeriod = 3600 * 24 * 30;
-
-    const amount = parseEther('1');
-
-    const assessmentStakingAmount = parseEther('1000');
+  async function stake ({ stakingPool, staker, productId, period, gracePeriod }) {
+    // Staking inputs
     const stakingAmount = parseEther('100');
-    await tk.connect(this.accounts.defaultSender).transfer(staker1.address, stakingAmount);
-    await tk.connect(this.accounts.defaultSender).transfer(staker2.address, stakingAmount);
-
     const lastBlock = await ethers.provider.getBlock('latest');
     const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
 
-    await stakingPool0.connect(staker1).depositTo([{
+    // Stake to open up capacity
+    await stakingPool.connect(staker).depositTo([{
       amount: stakingAmount,
       trancheId: firstTrancheId,
       tokenId: 1, // new position
       destination: ZERO_ADDRESS,
     }]);
+    await stakingPool.setTargetWeight(productId, 10);
+  }
 
-    await stakingPool0.setTargetWeight(productId, 10);
+  it('submits ETH claim and approves claim', async function () {
+    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { ic, cover, stakingPool0, as } = this.withEthers.contracts;
+    const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
+    // Cover inputs
+    const productId = 0;
+    const payoutAsset = 0; // ETH
+    const period = 3600 * 24 * 30; // 30 days
+    const gracePeriod = 3600 * 24 * 30;
+    const amount = parseEther('1');
+
+    // Stake to open up capacity
+    await stake(
+      { stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId }
+    );
+
+    // Buy Cover
     const expectedPremium = amount
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    const tx = await cover.connect(coverBuyer1).buyCover(
+    await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
@@ -104,19 +120,18 @@ describe.only('submitClaim', function () {
       },
     );
 
-    await tx.wait();
-
+    // Submit claim
     const coverId = 0;
     const claimAmount = amount.sub(1);
-
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, payoutAsset);
-
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
+    const assessmentStakingAmount = parseEther('1000');
     await acceptClaim({ staker: staker2, assessmentStakingAmount, as });
 
+    // redeem payout
     await ic.redeemClaimPayout(0);
     const { payoutRedeemed } = await ic.claims(0);
     expect(payoutRedeemed).to.be.equal(true);
@@ -127,39 +142,27 @@ describe.only('submitClaim', function () {
     const { ic, cover, stakingPool0, as, tk, dai } = this.withEthers.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
+    // Cover inputs
     const productId = 0;
     const payoutAsset = 1; // DAI
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
-
     const amount = parseEther('1');
 
-    const assessmentStakingAmount = parseEther('1000');
-    const stakingAmount = parseEther('100');
-    await tk.connect(this.accounts.defaultSender).transfer(staker1.address, stakingAmount);
-    await tk.connect(this.accounts.defaultSender).transfer(staker2.address, stakingAmount);
+    // Stake to open up capacity
+    await stake(
+      { stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId }
+    );
 
-    const lastBlock = await ethers.provider.getBlock('latest');
-    const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
-
-    await stakingPool0.connect(staker1).depositTo([{
-      amount: stakingAmount,
-      trancheId: firstTrancheId,
-      tokenId: 1, // new position
-      destination: ZERO_ADDRESS,
-    }]);
-
+    // Buy Cover
     const expectedPremium = amount
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    await stakingPool0.setTargetWeight(productId, 10);
-
     await dai.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('1000000'));
-
     await dai.connect(coverBuyer1).approve(cover.address, expectedPremium);
 
-    const tx = await cover.connect(coverBuyer1).buyCover(
+    await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
@@ -179,19 +182,15 @@ describe.only('submitClaim', function () {
       },
     );
 
-    await tx.wait();
-
+    // Submit claim
     const coverId = 0;
-
-    // TODO: figure out why this higher precision error
     const claimAmount = amount.sub(20);
-
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, payoutAsset);
-
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
 
+    const assessmentStakingAmount = parseEther('1000');
     await acceptClaim({ staker: staker2, assessmentStakingAmount, as });
 
     await ic.redeemClaimPayout(0);
@@ -204,36 +203,24 @@ describe.only('submitClaim', function () {
     const { ic, cover, stakingPool0, as, tk } = this.withEthers.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
+    // Cover inputs
     const productId = 0;
     const payoutAsset = 0; // ETH
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
-
     const amount = parseEther('1');
 
-    const assessmentStakingAmountForApproval = parseEther('1000');
-    const assessmentStakingAmountForRejection = parseEther('2000');
-    const stakingAmount = parseEther('100');
-    await tk.connect(this.accounts.defaultSender).transfer(staker1.address, stakingAmount);
-    await tk.connect(this.accounts.defaultSender).transfer(staker2.address, stakingAmount);
-
-    const lastBlock = await ethers.provider.getBlock('latest');
-    const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
-
-    await stakingPool0.connect(staker1).depositTo([{
-      amount: stakingAmount,
-      trancheId: firstTrancheId,
-      tokenId: 1, // new position
-      destination: ZERO_ADDRESS,
-    }]);
-
+    // Stake to open up capacity
+    await stake(
+      { stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId }
+    );
+    
+    // Buy Cover
     const expectedPremium = amount
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    await stakingPool0.setTargetWeight(productId, 10);
-
-    const tx = await cover.connect(coverBuyer1).buyCover(
+    await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
@@ -253,13 +240,10 @@ describe.only('submitClaim', function () {
       },
     );
 
-    await tx.wait();
-
+    // Submit claim
     const coverId = 0;
     const claimAmount = amount.sub(1);
-
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, payoutAsset);
-
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
@@ -267,11 +251,10 @@ describe.only('submitClaim', function () {
     await rejectClaim({
       approvingStaker: staker2,
       rejectingStaker: staker3,
-      assessmentStakingAmountForApproval,
-      assessmentStakingAmountForRejection,
       as
     });
 
+    // attempt redemption
     await expect(ic.redeemClaimPayout(0)).to.be.revertedWith('The claim needs to be accepted');
     const { payoutRedeemed } = await ic.claims(0);
     expect(payoutRedeemed).to.be.equal(false);
@@ -282,41 +265,27 @@ describe.only('submitClaim', function () {
     const { ic, cover, stakingPool0, as, tk, dai } = this.withEthers.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
+    // Cover inputs
     const productId = 0;
     const payoutAsset = 1; // DAI
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
-
     const amount = parseEther('1');
 
-    const assessmentStakingAmountForApproval = parseEther('1000');
-    const assessmentStakingAmountForRejection = parseEther('2000');
-    const stakingAmount = parseEther('100');
-    await tk.connect(this.accounts.defaultSender).transfer(staker1.address, stakingAmount);
-    await tk.connect(this.accounts.defaultSender).transfer(staker2.address, assessmentStakingAmountForApproval);
-    await tk.connect(this.accounts.defaultSender).transfer(staker3.address, assessmentStakingAmountForRejection);
+    // Stake to open up capacity
+    await stake(
+      { stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId }
+    );
 
-    const lastBlock = await ethers.provider.getBlock('latest');
-    const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
-
-    await stakingPool0.connect(staker1).depositTo([{
-      amount: stakingAmount,
-      trancheId: firstTrancheId,
-      tokenId: 1, // new position
-      destination: ZERO_ADDRESS,
-    }]);
-
+    // Buy Cover
     const expectedPremium = amount
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    await stakingPool0.setTargetWeight(productId, 10);
-
     await dai.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('1000000'));
-
     await dai.connect(coverBuyer1).approve(cover.address, expectedPremium);
 
-    const tx = await cover.connect(coverBuyer1).buyCover(
+    await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
@@ -336,15 +305,11 @@ describe.only('submitClaim', function () {
       },
     );
 
-    await tx.wait();
-
+    // Submit claim
     const coverId = 0;
-
     // TODO: figure out why this higher precision error
     const claimAmount = amount.sub(20);
-
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, payoutAsset);
-
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
@@ -352,11 +317,10 @@ describe.only('submitClaim', function () {
     await rejectClaim({
       approvingStaker: staker2,
       rejectingStaker: staker3,
-      assessmentStakingAmountForApproval,
-      assessmentStakingAmountForRejection,
       as
     });
 
+    // attempt redemption
     await expect(ic.redeemClaimPayout(0)).to.be.revertedWith('The claim needs to be accepted');
     const { payoutRedeemed } = await ic.claims(0);
     expect(payoutRedeemed).to.be.equal(false);

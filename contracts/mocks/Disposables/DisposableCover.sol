@@ -80,7 +80,6 @@ contract DisposableCover is MasterAwareV2, ReentrancyGuard {
     coverAssetsFallback = _coverAssetsFallback;
   }
 
-
    /**
    * @param paramNames  An array of elements from UintParams enum
      * @param values An array of the new values, each one corresponding to the parameter

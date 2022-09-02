@@ -899,19 +899,16 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
     uint multiplier = capacityRatio * (CAPACITY_REDUCTION_DENOMINATOR - reductionRatio) * weight;
 
-
     uint denominator = GLOBAL_CAPACITY_DENOMINATOR * CAPACITY_REDUCTION_DENOMINATOR * WEIGHT_DENOMINATOR;
 
     for (uint i = 0; i < trancheCount; i++) {
       // SLOAD
       uint trancheStakeShares = tranches[firstTrancheId + i].stakeShares;
       uint trancheStake = _activeStake * trancheStakeShares / _stakeSharesSupply;
-
       uint totalTrancheCapacity = trancheStake * multiplier / denominator;
       totalCapacities[i] = totalTrancheCapacity;
       totalCapacity += totalTrancheCapacity;
     }
-
 
     return (totalCapacities, totalCapacity);
   }

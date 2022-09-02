@@ -1,11 +1,10 @@
 const { ethers } = require('hardhat');
-const { ZERO_ADDRESS } = require('../../../lib/constants');
 const { expect } = require('chai');
-
-const { daysToSeconds } = require('../../unit/IndividualClaims/helpers');
-
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { BigNumber } = require('ethers');
+const { AddressZero } = ethers.constants;
+
+const { daysToSeconds } = require('../../utils/helpers');
+const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
 
@@ -73,12 +72,12 @@ describe.only('submitClaim', function () {
       amount: stakingAmount,
       trancheId: firstTrancheId,
       tokenId: 1, // new position
-      destination: ZERO_ADDRESS,
+      destination: AddressZero,
     }]);
     await stakingPool.setTargetWeight(productId, 10);
   }
 
-  it('submits ETH claim and approves claim', async function () {
+  it.only('submits ETH claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
     const { ic, cover, stakingPool0, as } = this.withEthers.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
@@ -111,7 +110,7 @@ describe.only('submitClaim', function () {
         paymentAsset: payoutAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
-        commissionDestination: ZERO_ADDRESS,
+        commissionDestination: AddressZero,
         ipfsData: '',
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
@@ -173,7 +172,7 @@ describe.only('submitClaim', function () {
         paymentAsset: payoutAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
-        commissionDestination: ZERO_ADDRESS,
+        commissionDestination: AddressZero,
         ipfsData: '',
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
@@ -214,7 +213,7 @@ describe.only('submitClaim', function () {
     await stake(
       { stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId }
     );
-    
+
     // Buy Cover
     const expectedPremium = amount
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
@@ -231,7 +230,7 @@ describe.only('submitClaim', function () {
         paymentAsset: payoutAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
-        commissionDestination: ZERO_ADDRESS,
+        commissionDestination: AddressZero,
         ipfsData: '',
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
@@ -296,7 +295,7 @@ describe.only('submitClaim', function () {
         paymentAsset: payoutAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
-        commissionDestination: ZERO_ADDRESS,
+        commissionDestination: AddressZero,
         ipfsData: '',
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],

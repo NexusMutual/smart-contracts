@@ -249,7 +249,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param assessmentDepositInETH  The deposit that covers assessment rewards in case it's denied.
   ///                                If the assessment verdict is positive, the contract that relies
   ///                                on it can send back the deposit at payout.
-    function startAssessment(
+  function startAssessment(
     uint totalAssessmentReward,
     uint assessmentDepositInETH
   ) external override onlyInternal returns (uint) {

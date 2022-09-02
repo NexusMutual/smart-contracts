@@ -21,4 +21,8 @@ contract ASMockTokenController {
     token.mint(_to, _value);
   }
 
+  function addToWhitelist(address) external returns (bool) {
+    // no-op
+  }
+
 }

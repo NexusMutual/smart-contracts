@@ -16,10 +16,39 @@ const setTime = async timestamp => {
 
 const priceDenominator = '10000';
 
-describe('submitClaim', function () {
+describe.only('submitClaim', function () {
 
   function calculateFirstTrancheId (lastBlock, period, gracePeriod) {
     return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
+  }
+
+  async function acceptClaim ({ staker, assessmentStakingAmount, as }) {
+    const { payoutCooldownInDays } = await as.config();
+    await as.connect(staker).stake(assessmentStakingAmount);
+
+    await as.connect(staker).castVotes([0], [true], 0);
+
+    const { poll } = await as.assessments(0);
+    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
+
+    await setTime(futureTime);
+  }
+
+  async function rejectClaim (
+    { approvingStaker, rejectingStaker, assessmentStakingAmountForApproval, assessmentStakingAmountForRejection, as }
+  ) {
+    const { payoutCooldownInDays } = await as.config();
+    await as.connect(approvingStaker).stake(assessmentStakingAmountForApproval);
+
+    await as.connect(approvingStaker).castVotes([0], [true], 0);
+
+    await as.connect(rejectingStaker).stake(assessmentStakingAmountForRejection);
+    await as.connect(rejectingStaker).castVotes([0], [false], 0);
+
+    const { poll } = await as.assessments(0);
+    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
+
+    await setTime(futureTime);
   }
 
   it('submits ETH claim and approves claim', async function () {
@@ -55,8 +84,6 @@ describe('submitClaim', function () {
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    const poolAddress = await cover.stakingPool(0);
-
     const tx = await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
@@ -88,15 +115,8 @@ describe('submitClaim', function () {
       value: deposit.mul('2'),
     });
 
-    const { payoutCooldownInDays } = await as.config();
-    await as.connect(staker2).stake(assessmentStakingAmount);
+    await acceptClaim({ staker: staker2, assessmentStakingAmount, as });
 
-    await as.connect(staker2).castVotes([0], [true], 0);
-
-    const { poll } = await as.assessments(0);
-    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
-
-    await setTime(futureTime);
     await ic.redeemClaimPayout(0);
     const { payoutRedeemed } = await ic.claims(0);
     expect(payoutRedeemed).to.be.equal(true);
@@ -172,15 +192,8 @@ describe('submitClaim', function () {
       value: deposit.mul('2'),
     });
 
-    const { payoutCooldownInDays } = await as.config();
-    await as.connect(staker2).stake(assessmentStakingAmount);
+    await acceptClaim({ staker: staker2, assessmentStakingAmount, as });
 
-    await as.connect(staker2).castVotes([0], [true], 0);
-
-    const { poll } = await as.assessments(0);
-    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
-
-    await setTime(futureTime);
     await ic.redeemClaimPayout(0);
     const { payoutRedeemed } = await ic.claims(0);
     expect(payoutRedeemed).to.be.equal(true);
@@ -251,18 +264,14 @@ describe('submitClaim', function () {
       value: deposit.mul('2'),
     });
 
-    const { payoutCooldownInDays } = await as.config();
-    await as.connect(staker2).stake(assessmentStakingAmountForApproval);
+    await rejectClaim({
+      approvingStaker: staker2,
+      rejectingStaker: staker3,
+      assessmentStakingAmountForApproval,
+      assessmentStakingAmountForRejection,
+      as
+    });
 
-    await as.connect(staker2).castVotes([0], [true], 0);
-
-    await as.connect(staker3).stake(assessmentStakingAmountForRejection);
-    await as.connect(staker3).castVotes([0], [false], 0);
-
-    const { poll } = await as.assessments(0);
-    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
-
-    await setTime(futureTime);
     await expect(ic.redeemClaimPayout(0)).to.be.revertedWith('The claim needs to be accepted');
     const { payoutRedeemed } = await ic.claims(0);
     expect(payoutRedeemed).to.be.equal(false);
@@ -284,8 +293,8 @@ describe('submitClaim', function () {
     const assessmentStakingAmountForRejection = parseEther('2000');
     const stakingAmount = parseEther('100');
     await tk.connect(this.accounts.defaultSender).transfer(staker1.address, stakingAmount);
-    await tk.connect(this.accounts.defaultSender).transfer(staker2.address, stakingAmount);
-    await tk.connect(this.accounts.defaultSender).transfer(staker3.address, stakingAmount);
+    await tk.connect(this.accounts.defaultSender).transfer(staker2.address, assessmentStakingAmountForApproval);
+    await tk.connect(this.accounts.defaultSender).transfer(staker3.address, assessmentStakingAmountForRejection);
 
     const lastBlock = await ethers.provider.getBlock('latest');
     const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
@@ -340,18 +349,14 @@ describe('submitClaim', function () {
       value: deposit.mul('2'),
     });
 
-    const { payoutCooldownInDays } = await as.config();
-    await as.connect(staker2).stake(assessmentStakingAmountForApproval);
+    await rejectClaim({
+      approvingStaker: staker2,
+      rejectingStaker: staker3,
+      assessmentStakingAmountForApproval,
+      assessmentStakingAmountForRejection,
+      as
+    });
 
-    await as.connect(staker2).castVotes([0], [true], 0);
-
-    await as.connect(staker3).stake(assessmentStakingAmountForRejection);
-    await as.connect(staker3).castVotes([0], [false], 0);
-
-    const { poll } = await as.assessments(0);
-    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
-
-    await setTime(futureTime);
     await expect(ic.redeemClaimPayout(0)).to.be.revertedWith('The claim needs to be accepted');
     const { payoutRedeemed } = await ic.claims(0);
     expect(payoutRedeemed).to.be.equal(false);

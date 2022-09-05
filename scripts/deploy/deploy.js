@@ -197,6 +197,10 @@ async function main () {
   const ipfsProductHashes = Array(products.length).fill('');
   await cover.addProducts(addProductsParams, ipfsProductHashes);
 
+  // 0b01 for eth and 0b10 for dai
+  const coverAssetsFallback = 0b11;
+  await cover.setCoverAssetsFallback(coverAssetsFallback);
+
   console.log('Deploying assessment contracts');
   const yt = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
   const ic = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);

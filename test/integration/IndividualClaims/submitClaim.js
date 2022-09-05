@@ -77,7 +77,7 @@ describe('submitClaim', function () {
     await stakingPool.setTargetWeight(productId, 10);
   }
 
-  it.only('submits ETH claim and approves claim', async function () {
+  it('submits ETH claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
     const { ic, cover, stakingPool0, as } = this.withEthers.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;

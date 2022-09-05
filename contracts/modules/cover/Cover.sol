@@ -182,7 +182,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     require(params.period >= MIN_COVER_PERIOD, "Cover: Cover period is too short");
     require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(params.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
-    require(params.amount > 0, "Cover: amount = 0");
 
     {
       (uint totalPremiumInNXM, uint totalCoveredAmountIncoverAsset) = _buyCover(params, _coverData.length, allocationRequests);
@@ -237,6 +236,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     for (uint i = 0; i < allocationRequests.length; i++) {
 
+      require(allocationRequests[i].coverAmountInAsset > 0, "Cover: coverAmountInAsset = 0");
+
       uint requestedCoverAmountInNXM
         = allocationRequests[i].coverAmountInAsset * NXM_IN_WEI / nxmPriceIncoverAsset + remainderAmountInNXM;
 
@@ -272,9 +273,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     );
 
     uint96 totalCoveredAmountIncoverAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceIncoverAsset / NXM_IN_WEI);
+    uint96 totalCoveredAmountInCoverAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / NXM_IN_WEI);
+    require(totalCoveredAmountInCoverAsset >= params.amount, "Cover Insufficient cover amount");
 
     _coverSegments[coverId].push(CoverSegment(
-        totalCoveredAmountIncoverAsset, // amount
+        totalCoveredAmountInCoverAsset, // amount
         uint32(block.timestamp + 1), // start
         SafeUintCast.toUint32(params.period), // period
         priceRatio,

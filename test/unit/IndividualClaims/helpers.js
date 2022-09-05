@@ -31,12 +31,12 @@ const submitClaim = ({ accounts, contracts, config }) => async ({
   segmentId = 0,
   amount = parseEther('1'),
   coverPeriod = 0,
-  payoutAsset = 0,
+  coverAsset = 0,
   ipfsMetadata = '',
   sender,
   value,
 }) => {
-  const [deposit] = await contracts.individualClaims.getAssessmentDepositAndReward(amount, coverPeriod, payoutAsset);
+  const [deposit] = await contracts.individualClaims.getAssessmentDepositAndReward(amount, coverPeriod, coverAsset);
   return await contracts.individualClaims
     .connect(sender || accounts[0])
     .submitClaim(coverId, segmentId, amount, ipfsMetadata, {
@@ -54,20 +54,20 @@ const getClaimDetailsStruct = ({
   amount,
   coverId,
   coverPeriod,
-  payoutAsset,
+  coverAsset,
   nxmPriceSnapshot,
   minAssessmentDepositRatio,
   payoutRedeemed,
-}) => [amount, coverId, coverPeriod, payoutAsset, nxmPriceSnapshot, minAssessmentDepositRatio, payoutRedeemed];
+}) => [amount, coverId, coverPeriod, coverAsset, nxmPriceSnapshot, minAssessmentDepositRatio, payoutRedeemed];
 
 const getIncidentDetailsStruct = ({
   productId,
   date,
-  payoutAsset,
+  coverAsset,
   activeCoverAmount,
   expectedPayoutRatio,
   minAssessmentDepositRatio,
-}) => [productId, date, payoutAsset, activeCoverAmount, expectedPayoutRatio, minAssessmentDepositRatio];
+}) => [productId, date, coverAsset, activeCoverAmount, expectedPayoutRatio, minAssessmentDepositRatio];
 
 module.exports = {
   ASSET,

@@ -138,7 +138,7 @@ describe('submitClaim', function () {
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
-    const payoutAsset = ASSET.ETH;
+    const coverAsset = ASSET.ETH;
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       await cover.createMockCover(
@@ -150,7 +150,7 @@ describe('submitClaim', function () {
     }
     const coverId = 0;
 
-    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, coverAsset);
     await expect(
       individualClaims.connect(coverOwner).submitClaim(coverId, 0, coverAmount, '', {
         value: deposit.div('2'),
@@ -163,9 +163,9 @@ describe('submitClaim', function () {
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
-    const payoutAsset = ASSET.ETH;
+    const coverAsset = ASSET.ETH;
 
-    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, coverAsset);
 
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
@@ -224,7 +224,7 @@ describe('submitClaim', function () {
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
-    const payoutAsset = ASSET.ETH;
+    const coverAsset = ASSET.ETH;
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       await cover.createMockCover(
@@ -239,7 +239,7 @@ describe('submitClaim', function () {
     }
     const coverId = 0;
 
-    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, coverAsset);
 
     await expect(
       individualClaims.connect(coverOwner).submitClaim(coverId, 0, coverAmount.add('1'), '', {
@@ -260,7 +260,7 @@ describe('submitClaim', function () {
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
-    const payoutAsset = ASSET.ETH;
+    const coverAsset = ASSET.ETH;
     const { timestamp } = await ethers.provider.getBlock('latest');
     await cover.createMockCover(
       coverOwner.address,
@@ -273,7 +273,7 @@ describe('submitClaim', function () {
     );
     const coverId = 0;
 
-    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, coverAsset);
 
     await expect(
       individualClaims.connect(coverOwner).submitClaim(coverId, 1, coverAmount, '', {
@@ -292,14 +292,14 @@ describe('submitClaim', function () {
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
-    const payoutAsset = ASSET.ETH;
+    const coverAsset = ASSET.ETH;
     const { gracePeriodInDays } = await cover.productTypes(0);
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       await cover.createMockCover(
         coverOwner.address,
         0, // productId
-        payoutAsset,
+        coverAsset,
         [
           [coverAmount, timestamp + 1, coverPeriod, 0, false, 0],
           [coverAmount, timestamp + coverPeriod + 1, coverPeriod, 0, false, 0],
@@ -312,7 +312,7 @@ describe('submitClaim', function () {
     await setTime(currentTime + coverPeriod + daysToSeconds(gracePeriodInDays) + 1);
     const coverId = 0;
 
-    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, payoutAsset);
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, coverAsset);
 
     await expect(
       individualClaims.connect(coverOwner).submitClaim(coverId, 0, coverAmount, '', {
@@ -332,13 +332,13 @@ describe('submitClaim', function () {
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
-    const payoutAsset = ASSET.ETH;
+    const coverAsset = ASSET.ETH;
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       await cover.createMockCover(
         coverOwner.address,
         0, // productId
-        payoutAsset,
+        coverAsset,
         [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
       );
     }
@@ -348,7 +348,7 @@ describe('submitClaim', function () {
     const [expectedDeposit, expectedTotalReward] = await individualClaims.getAssessmentDepositAndReward(
       coverAmount,
       coverPeriod,
-      payoutAsset,
+      coverAsset,
     );
 
     await individualClaims.connect(coverOwner).submitClaim(coverId, 0, coverAmount, '', { value: expectedDeposit });

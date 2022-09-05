@@ -10,7 +10,7 @@ describe('performStakeBurn', function () {
 
   const coverBuyFixture = {
     productId: 0,
-    payoutAsset: 0, // ETH
+    coverAsset: 0, // ETH
     period: 3600 * 24 * 30, // 30 days
 
     amount: parseEther('1000'),
@@ -32,7 +32,7 @@ describe('performStakeBurn', function () {
 
     const {
       productId,
-      payoutAsset,
+      coverAsset,
       period,
       amount,
       targetPriceRatio
@@ -64,7 +64,7 @@ describe('performStakeBurn', function () {
       expectedCoverId,
       {
         productId,
-        payoutAsset,
+        coverAsset,
         period: period,
         amount: remainingAmount,
         targetPriceRatio,
@@ -81,7 +81,7 @@ describe('performStakeBurn', function () {
     bnEqual(burnStakeCalledWith.period, period);
     bnEqual(burnStakeCalledWith.amount, expectedBurnAmount);
 
-    const activeCoverAmount = await cover.totalActiveCoverInAsset(payoutAsset);
+    const activeCoverAmount = await cover.totalActiveCoverInAsset(coverAsset);
     bnEqual(activeCoverAmount, amount.sub(burnAmount));
   });
 });

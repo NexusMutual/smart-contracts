@@ -79,11 +79,11 @@ const getVoteStruct = ({ accepted, denied, start, end }) => [accepted, denied, s
 const getIncidentStruct = ({
   productId,
   date,
-  payoutAsset,
+  coverAsset,
   activeCoverAmount,
   expectedPayoutRatio,
   assessmentDepositRatio,
-}) => [productId, date, payoutAsset, activeCoverAmount, expectedPayoutRatio, assessmentDepositRatio];
+}) => [productId, date, coverAsset, activeCoverAmount, expectedPayoutRatio, assessmentDepositRatio];
 
 module.exports = {
   ASSET,

@@ -89,7 +89,7 @@ interface IYieldTokenIncidents {
     uint depeggedTokens,
     address payable payoutAddress,
     bytes calldata optionalParams
-  ) external returns (uint payoutAmount, uint8 payoutAsset);
+  ) external returns (uint payoutAmount, uint8 coverAsset);
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values) external;
 

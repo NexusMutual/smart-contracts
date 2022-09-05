@@ -89,18 +89,18 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   ///
   /// @param requestedAmount  The amount that is claimed
   /// @param segmentPeriod    The cover period of the segment in days
-  /// @param payoutAsset      The asset in which the payout would be made
+  /// @param coverAsset      The asset in which the payout would be made
   function getAssessmentDepositAndReward(
     uint requestedAmount,
     uint segmentPeriod,
-    uint payoutAsset
+    uint coverAsset
   ) public view returns (uint, uint) {
     IPool poolContract = pool();
-    uint nxmPriceInPayoutAsset = poolContract.getTokenPrice(payoutAsset);
+    uint nxmPriceIncoverAsset = poolContract.getTokenPrice(coverAsset);
     uint nxmPriceInETH = poolContract.getTokenPrice(0);
 
     // Calculate the expected payout in NXM using the NXM price at cover purchase time
-    uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPriceInPayoutAsset;
+    uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPriceIncoverAsset;
 
     // Determine the total rewards that should be minted for the assessors based on cover period
     uint totalRewardInNXM = Math.min(
@@ -166,18 +166,18 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint segmentEnd = segment.start + segment.period;
 
     string memory assetSymbol;
-    if (claim.payoutAsset == 0) {
+    if (claim.coverAsset == 0) {
       assetSymbol = "ETH";
     } else {
 
       (
-        address payoutAsset,
+        address coverAsset,
         /*uint8 decimals*/
-      ) = pool().coverAssets(claim.payoutAsset);
-      try IERC20Detailed(payoutAsset).symbol() returns (string memory v) {
+      ) = pool().coverAssets(claim.coverAsset);
+      try IERC20Detailed(coverAsset).symbol() returns (string memory v) {
         assetSymbol = v;
       } catch {
-        // return assetSymbol as an empty string and use claim.payoutAsset instead in the UI
+        // return assetSymbol as an empty string and use claim.coverAsset instead in the UI
       }
     }
 
@@ -187,7 +187,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       claim.coverId,
       claim.amount,
       assetSymbol,
-      claim.payoutAsset,
+      claim.coverAsset,
       segment.start,
       segmentEnd,
       poll.start,
@@ -289,7 +289,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     (uint assessmentDepositInETH, uint totalRewardInNXM) = getAssessmentDepositAndReward(
       requestedAmount,
       segment.period,
-      coverData.payoutAsset
+      coverData.coverAsset
     );
 
     uint newAssessmentId = assessment().startAssessment(totalRewardInNXM, assessmentDepositInETH);
@@ -299,7 +299,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       coverId: coverId,
       segmentId: segmentId,
       amount: requestedAmount,
-      payoutAsset: coverData.payoutAsset,
+      coverAsset: coverData.coverAsset,
       payoutRedeemed: false
     });
     claims.push(claim);
@@ -366,15 +366,15 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     ));
 
     IPool poolContract = pool();
-    if (claim.payoutAsset == 0 /* ETH */) {
+    if (claim.coverAsset == 0 /* ETH */) {
       poolContract.sendPayout(
-        claim.payoutAsset,
+        claim.coverAsset,
         coverOwner,
         claim.amount + assessmentDepositInETH
       );
     } else {
       poolContract.sendPayout(0 /* ETH */, coverOwner, assessmentDepositInETH);
-      poolContract.sendPayout(claim.payoutAsset, coverOwner, claim.amount);
+      poolContract.sendPayout(claim.coverAsset, coverOwner, claim.amount);
     }
 
     emit ClaimPayoutRedeemed(coverOwner, claim.amount, claimId, claim.coverId);

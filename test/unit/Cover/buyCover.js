@@ -21,7 +21,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const productId = 0;
-    const payoutAsset = 0; // ETH
+    const coverAsset = 0; // ETH
     const period = 3600 * 24 * 364; // 30 days
 
     const amount = parseEther('1000');
@@ -45,11 +45,11 @@ describe('buyCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
@@ -65,7 +65,7 @@ describe('buyCover', function () {
     const expectedCoverId = '0';
 
     await assertCoverFields(cover, expectedCoverId,
-      { productId, payoutAsset, period, amount, targetPriceRatio });
+      { productId, coverAsset, period, amount, targetPriceRatio });
   });
 
   it('should purchase new cover using 2 staking pools', async function () {
@@ -78,7 +78,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const productId = 0;
-    const payoutAsset = 0; // ETH
+    const coverAsset = 0; // ETH
     const period = 3600 * 24 * 28; // 30 days
 
     const amount = parseEther('1000');
@@ -107,11 +107,11 @@ describe('buyCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
@@ -129,7 +129,7 @@ describe('buyCover', function () {
     const expectedCoverId = '0';
 
     await assertCoverFields(cover, expectedCoverId,
-      { productId, payoutAsset, period, amount, targetPriceRatio });
+      { productId, coverAsset, period, amount, targetPriceRatio });
   });
 
   it('should purchase new cover using NXM with commission', async function () {
@@ -142,7 +142,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const productId = 0;
-    const payoutAsset = 0; // ETH
+    const coverAsset = 0; // ETH
     const period = 3600 * 24 * 30; // 30 days
 
     const amount = parseEther('1000');
@@ -173,11 +173,11 @@ describe('buyCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWithNXM: true,
         commissionRatio: commissionRatio,
         commissionDestination: commissionReceiver.address,
@@ -201,7 +201,7 @@ describe('buyCover', function () {
     const expectedCoverId = '0';
 
     await assertCoverFields(cover, expectedCoverId,
-      { productId, payoutAsset, period, amount, targetPriceRatio });
+      { productId, coverAsset, period, amount, targetPriceRatio });
 
   });
 
@@ -216,7 +216,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const productId = 0;
-    const payoutAsset = 1; // DAI
+    const coverAsset = 1; // DAI
     const period = 3600 * 24 * 30; // 30 days
 
     const amount = parseEther('1000');
@@ -247,11 +247,11 @@ describe('buyCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWithNXM: false,
         commissionRatio: commissionRatio,
         commissionDestination: commissionReceiver.address,
@@ -275,7 +275,7 @@ describe('buyCover', function () {
     const expectedCoverId = '0';
 
     await assertCoverFields(cover, expectedCoverId,
-      { productId, payoutAsset, period, amount, targetPriceRatio });
+      { productId, coverAsset, period, amount, targetPriceRatio });
   });
 
 
@@ -290,7 +290,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const productId = 0;
-    const payoutAsset = 2; // USDC
+    const coverAsset = 2; // USDC
     const period = 3600 * 24 * 30; // 30 days
 
     const amount = BigNumber.from(1000e6); // 6 decimals
@@ -321,11 +321,11 @@ describe('buyCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWithNXM: false,
         commissionRatio: commissionRatio,
         commissionDestination: commissionReceiver.address,
@@ -349,7 +349,7 @@ describe('buyCover', function () {
     const expectedCoverId = '0';
 
     await assertCoverFields(cover, expectedCoverId,
-      { productId, payoutAsset, period, amount, targetPriceRatio });
+      { productId, coverAsset, period, amount, targetPriceRatio });
   });
 
   it('should revert for unavailable product', async function () {
@@ -361,7 +361,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const productId = 1337;
-    const payoutAsset = 0; // ETH
+    const coverAsset = 0; // ETH
     const period = 3600 * 24 * 30; // 30 days
 
     const amount = parseEther('1000');
@@ -370,11 +370,11 @@ describe('buyCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period,
         maxPremiumInAsset: '0',
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
@@ -396,7 +396,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const productId = 0;
-    const payoutAsset = 10; // not ETH nor DAI nor USDC
+    const coverAsset = 10; // not ETH nor DAI nor USDC
     const period = 3600 * 24 * 30; // 30 days
 
     const amount = parseEther('1000');
@@ -405,11 +405,11 @@ describe('buyCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period,
         maxPremiumInAsset: '0',
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
@@ -431,7 +431,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const productId = 0;
-    const payoutAsset = 0; // ETH
+    const coverAsset = 0; // ETH
     const period = 3600 * 24 * 27; // 27 days
 
     const amount = parseEther('1000');
@@ -440,11 +440,11 @@ describe('buyCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period,
         maxPremiumInAsset: '0',
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
@@ -466,7 +466,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const productId = 0;
-    const payoutAsset = 0; // ETH
+    const coverAsset = 0; // ETH
     const period = 3600 * 24 * 366;
 
     const amount = parseEther('1000');
@@ -475,11 +475,11 @@ describe('buyCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period,
         maxPremiumInAsset: '0',
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
@@ -501,7 +501,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const productId = 0;
-    const payoutAsset = 0; // ETH
+    const coverAsset = 0; // ETH
     const period = 3600 * 24 * 30; // 30 days
 
     const amount = parseEther('1000');
@@ -510,11 +510,11 @@ describe('buyCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period,
         maxPremiumInAsset: '0',
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: '2501',
         commissionDestination: ZERO_ADDRESS,
@@ -537,7 +537,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const productId = 0;
-    const payoutAsset = 0; // ETH
+    const coverAsset = 0; // ETH
     const period = 3600 * 24 * 364; // 30 days
 
     const amount = BigNumber.from('0');
@@ -558,11 +558,11 @@ describe('buyCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,

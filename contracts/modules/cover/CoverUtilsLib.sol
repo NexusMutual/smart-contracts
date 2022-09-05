@@ -90,7 +90,7 @@ library CoverUtilsLib {
       _coverData.push(
         CoverData(
           uint24(productId),
-          currencyCode == "ETH" ? 0 : 1, // payoutAsset
+          currencyCode == "ETH" ? 0 : 1, // coverAsset
           0 // amountPaidOut
         )
       );
@@ -235,11 +235,11 @@ library CoverUtilsLib {
     }
 
     (
-    address payoutAsset,
+    address coverAsset,
     /*uint8 decimals*/
     ) = _pool.coverAssets(paymentAsset);
 
-    IERC20 token = IERC20(payoutAsset);
+    IERC20 token = IERC20(coverAsset);
     token.safeTransferFrom(msg.sender, address(_pool), premium);
 
     if (commission > 0) {

@@ -187,7 +187,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
   /// @param incidentId      Index of the incident
   /// @param coverId         Index of the cover to be redeemed
   /// @param segmentId       Index of the cover's segment that's elidgible for redemption
-  /// @param depeggedTokens  The amount of depegged tokens to be swapped for the payoutAsset
+  /// @param depeggedTokens  The amount of depegged tokens to be swapped for the coverAsset
   /// @param payoutAddress   The addres where the payout must be sent to
   /// @param optionalParams  (Optional) Reserved for permit data which is still in draft phase.
   ///                        For tokens that already support it, use it by encoding the following
@@ -263,10 +263,10 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       {
         uint deductiblePriceBefore = uint(incident.priceBefore) *
           uint(config.payoutDeductibleRatio) / INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
-        (,uint payoutAssetDecimals) = IPool(
+        (,uint coverAssetDecimals) = IPool(
           internalContracts[uint(IMasterAwareV2.ID.P1)]
-        ).coverAssets(coverData.payoutAsset);
-        payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** uint(payoutAssetDecimals));
+        ).coverAssets(coverData.coverAsset);
+        payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** uint(coverAssetDecimals));
       }
 
       require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");
@@ -299,14 +299,14 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     );
 
     IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]).sendPayout(
-      coverData.payoutAsset,
+      coverData.coverAsset,
       payoutAddress,
       payoutAmount
     );
 
     emit IncidentPayoutRedeemed(msg.sender, payoutAmount, incidentId, coverId);
 
-    return (payoutAmount, coverData.payoutAsset);
+    return (payoutAmount, coverData.coverAsset);
   }
 
   /// Withdraws an amount of any asset held by this contract to a destination address.

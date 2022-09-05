@@ -137,20 +137,20 @@ const getClaimStruct = ({
   amount,
   coverId,
   coverPeriod,
-  payoutAsset,
+  coverAsset,
   nxmPriceSnapshot,
   assessmentDepositRatio,
   payoutRedeemed,
-}) => [amount, coverId, coverPeriod, payoutAsset, nxmPriceSnapshot, assessmentDepositRatio, payoutRedeemed];
+}) => [amount, coverId, coverPeriod, coverAsset, nxmPriceSnapshot, assessmentDepositRatio, payoutRedeemed];
 
 const getIncidentStruct = ({
   productId,
   date,
-  payoutAsset,
+  coverAsset,
   activeCoverAmount,
   expectedPayoutRatio,
   assessmentDepositRatio,
-}) => [productId, date, payoutAsset, activeCoverAmount, expectedPayoutRatio, assessmentDepositRatio];
+}) => [productId, date, coverAsset, activeCoverAmount, expectedPayoutRatio, assessmentDepositRatio];
 
 module.exports = {
   STATUS,

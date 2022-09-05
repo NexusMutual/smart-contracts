@@ -21,8 +21,8 @@ contract CoverViewer {
     uint amountRemaining;
     uint coverStart;
     uint coverEnd;
-    uint8 payoutAsset;
-    string payoutAssetSymbol;
+    uint8 coverAsset;
+    string coverAssetSymbol;
     uint8 claimMethod;
     uint16 gracePeriodInDays;
   }
@@ -67,15 +67,15 @@ contract CoverViewer {
     Product memory product = cover().products(coverData.productId);
     ProductType memory productType = cover().productTypes(product.productType);
 
-    string memory payoutAssetSymbol;
-    if (coverData.payoutAsset == 0) {
-      payoutAssetSymbol = "ETH";
+    string memory coverAssetSymbol;
+    if (coverData.coverAsset == 0) {
+      coverAssetSymbol = "ETH";
     } else {
-      (address assetAddress,) = pool().coverAssets(coverData.payoutAsset);
+      (address assetAddress,) = pool().coverAssets(coverData.coverAsset);
       try IERC20Detailed(assetAddress).symbol() returns (string memory v) {
-        payoutAssetSymbol = v;
+        coverAssetSymbol = v;
       } catch {
-        // return payoutAssetSymbol as empty string and use coverData.payoutAsset instead in the UI
+        // return coverAssetSymbol as empty string and use coverData.coverAsset instead in the UI
       }
     }
 
@@ -87,8 +87,8 @@ contract CoverViewer {
       amountRemaining,
       coverStart,
       coverEnd,
-      coverData.payoutAsset,
-      payoutAssetSymbol,
+      coverData.coverAsset,
+      coverAssetSymbol,
       productType.claimMethod,
       productType.gracePeriodInDays
     );

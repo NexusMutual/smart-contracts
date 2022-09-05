@@ -51,7 +51,7 @@ struct Claim {
   uint96 amount;
 
   // The index of of the asset address stored at addressOfAsset which is expected at payout.
-  uint8 payoutAsset;
+  uint8 coverAsset;
 
   // True if the payout is already redeemed. Prevents further payouts on the claim if it is
   // accepted.
@@ -94,7 +94,7 @@ interface IIndividualClaims {
     uint32 coverId,
     uint16 segmentId,
     uint96 amount,
-    uint8 payoutAsset,
+    uint8 coverAsset,
     bool payoutRedeemed
   );
 

@@ -7,7 +7,7 @@ describe('editCover', function () {
 
   const coverBuyFixture = {
     productId: 0,
-    payoutAsset: 0, // ETH
+    coverAsset: 0, // ETH
     period: 3600 * 24 * 30, // 30 days
 
     amount: parseEther('1000'),
@@ -29,7 +29,7 @@ describe('editCover', function () {
 
     const {
       productId,
-      payoutAsset,
+      coverAsset,
       period,
       amount,
       priceDenominator,
@@ -50,11 +50,11 @@ describe('editCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount: increasedAmount,
         period,
         maxPremiumInAsset: expectedEditPremium.add(1),
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
@@ -68,7 +68,7 @@ describe('editCover', function () {
     await tx.wait();
 
     await assertCoverFields(cover, expectedCoverId,
-      { productId, payoutAsset, period: period, amount: increasedAmount, targetPriceRatio, segmentId: '1' },
+      { productId, coverAsset, period: period, amount: increasedAmount, targetPriceRatio, segmentId: '1' },
     );
   });
 
@@ -82,7 +82,7 @@ describe('editCover', function () {
 
     const {
       productId,
-      payoutAsset,
+      coverAsset,
       period,
       amount,
       targetPriceRatio,
@@ -102,11 +102,11 @@ describe('editCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period: increasedPeriod,
         maxPremiumInAsset: expectedEditPremium.add(10),
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
@@ -121,7 +121,7 @@ describe('editCover', function () {
     await tx.wait();
 
     await assertCoverFields(cover, expectedCoverId,
-      { productId, payoutAsset, period: increasedPeriod, amount: amount, targetPriceRatio, segmentId: '1' },
+      { productId, coverAsset, period: increasedPeriod, amount: amount, targetPriceRatio, segmentId: '1' },
     );
   });
 
@@ -135,7 +135,7 @@ describe('editCover', function () {
 
     const {
       productId,
-      payoutAsset,
+      coverAsset,
       period,
       amount,
       targetPriceRatio,
@@ -158,11 +158,11 @@ describe('editCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount: increasedAmount,
         period: increasedPeriod,
         maxPremiumInAsset: expectedEditPremium.add(10),
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
@@ -177,7 +177,7 @@ describe('editCover', function () {
     await tx.wait();
 
     await assertCoverFields(cover, expectedCoverId,
-      { productId, payoutAsset, period: increasedPeriod, amount: increasedAmount, targetPriceRatio, segmentId: '1' },
+      { productId, coverAsset, period: increasedPeriod, amount: increasedAmount, targetPriceRatio, segmentId: '1' },
     );
   });
 
@@ -191,7 +191,7 @@ describe('editCover', function () {
 
     const {
       productId,
-      payoutAsset,
+      coverAsset,
       period,
       amount,
       targetPriceRatio,
@@ -214,11 +214,11 @@ describe('editCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount: decreasedAmount,
         period: increasedPeriod,
         maxPremiumInAsset: expectedEditPremium,
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
@@ -233,7 +233,7 @@ describe('editCover', function () {
     await tx.wait();
 
     await assertCoverFields(cover, expectedCoverId,
-      { productId, payoutAsset, period: increasedPeriod, amount: decreasedAmount, targetPriceRatio, segmentId: '1' },
+      { productId, coverAsset, period: increasedPeriod, amount: decreasedAmount, targetPriceRatio, segmentId: '1' },
     );
   });
 
@@ -247,7 +247,7 @@ describe('editCover', function () {
 
     const {
       productId,
-      payoutAsset,
+      coverAsset,
       period,
       amount,
       targetPriceRatio,
@@ -267,11 +267,11 @@ describe('editCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount: increasedAmount,
         period,
         maxPremiumInAsset: expectedEditPremium.add(10),
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
@@ -286,7 +286,7 @@ describe('editCover', function () {
     await tx.wait();
 
     await assertCoverFields(cover, expectedCoverId,
-      { productId, payoutAsset, period: period, amount: increasedAmount, targetPriceRatio, segmentId: '1' },
+      { productId, coverAsset, period: period, amount: increasedAmount, targetPriceRatio, segmentId: '1' },
     );
   });
 
@@ -300,7 +300,7 @@ describe('editCover', function () {
 
     const {
       productId,
-      payoutAsset,
+      coverAsset,
       amount,
       targetPriceRatio,
       priceDenominator,
@@ -320,11 +320,11 @@ describe('editCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount: increasedAmount,
         period: periodTooLong,
         maxPremiumInAsset: expectedEditPremium,
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
@@ -346,7 +346,7 @@ describe('editCover', function () {
 
     const {
       productId,
-      payoutAsset,
+      coverAsset,
       amount,
       period,
       priceDenominator
@@ -366,11 +366,11 @@ describe('editCover', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount: increasedAmount,
         period,
         maxPremiumInAsset: expectedEditPremium,
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: '2600', // too high
         commissionDestination: ZERO_ADDRESS,

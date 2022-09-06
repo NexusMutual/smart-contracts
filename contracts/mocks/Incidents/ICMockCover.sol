@@ -83,7 +83,7 @@ contract ICMockCover {
     }
 
     coverId = coverData.length - 1;
-    coverNFT.safeMint(owner, coverId);
+    coverNFT.mint(owner, coverId);
   }
 
   function coverSegments(

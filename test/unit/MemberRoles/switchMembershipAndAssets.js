@@ -126,15 +126,15 @@ describe('switchMembershipAndAssets', function () {
       nonMembers: [nonMember1],
     } = this.accounts;
 
-    await stakingPool0.connect(member1).safeMint(member1.address, 0);
-    await stakingPool0.connect(member1).safeMint(member1.address, 1);
+    await stakingPool0.connect(member1).mint(member1.address, 0);
+    await stakingPool0.connect(member1).mint(member1.address, 1);
 
-    await stakingPool1.connect(member1).safeMint(member1.address, 0);
-    await stakingPool1.connect(member1).safeMint(member1.address, 1);
-    await stakingPool1.connect(member1).safeMint(member1.address, 2);
+    await stakingPool1.connect(member1).mint(member1.address, 0);
+    await stakingPool1.connect(member1).mint(member1.address, 1);
+    await stakingPool1.connect(member1).mint(member1.address, 2);
 
-    await stakingPool2.connect(member1).safeMint(member1.address, 0);
-    await stakingPool2.connect(member1).safeMint(member1.address, 1);
+    await stakingPool2.connect(member1).mint(member1.address, 0);
+    await stakingPool2.connect(member1).mint(member1.address, 1);
     await nxm.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
 
     const newMemberAddress = nonMember1.address;
@@ -188,10 +188,10 @@ describe('switchMembershipAndAssets', function () {
       nonMembers: [nonMember1],
     } = this.accounts;
 
-    await stakingPool0.connect(member1).safeMint(member2.address, 0);
-    await stakingPool0.connect(member1).safeMint(member2.address, 1);
+    await stakingPool0.connect(member1).mint(member2.address, 0);
+    await stakingPool0.connect(member1).mint(member2.address, 1);
 
-    await stakingPool1.connect(member1).safeMint(member1.address, 0);
+    await stakingPool1.connect(member1).mint(member1.address, 0);
 
     await nxm.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
 

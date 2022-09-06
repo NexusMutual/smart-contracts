@@ -109,7 +109,7 @@ library CoverUtilsLib {
       )
     );
 
-    params.coverNFT.safeMint(params.toNewOwner, newCoverId);
+    params.coverNFT.mint(params.toNewOwner, newCoverId);
   }
 
   function calculateProxyCodeHash(address coverProxyAddress) external pure returns (bytes32) {

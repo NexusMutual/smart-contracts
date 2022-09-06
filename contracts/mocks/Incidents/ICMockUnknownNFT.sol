@@ -9,8 +9,8 @@ contract ICMockUnknownNFT is ERC721 {
   constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_) {
   }
 
-  function safeMint(address to, uint tokenId) external {
-    _safeMint(to, tokenId);
+  function mint(address to, uint tokenId) external {
+    _mint(to, tokenId);
   }
 
 }

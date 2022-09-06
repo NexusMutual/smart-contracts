@@ -10,8 +10,8 @@ contract ERC721Mock is ERC721 {
     /* noop */
   }
 
-  function safeMint(address to, uint tokenId) external {
-    _safeMint(to, tokenId);
+  function mint(address to, uint tokenId) external {
+    _mint(to, tokenId);
   }
 
   function isApprovedOrOwner(address spender, uint256 tokenId) external view returns (bool) {

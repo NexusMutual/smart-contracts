@@ -191,6 +191,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
   }
 
   function tokenURI(uint256 id) public pure override returns (string memory) {
+    id;  // To silence unused param warning. Remove once fn is implemented
     return "";
   }
 
@@ -1224,10 +1225,12 @@ contract StakingPool is IStakingPool, SolmateERC721 {
   /* management */
 
   function addProducts(ProductParams[] memory params) external onlyManager {
+    totalSupply = totalSupply;  // To silence view fn warning. Remove once implemented
     params;
   }
 
   function removeProducts(uint[] memory productIds) external onlyManager {
+    totalSupply = totalSupply;  // To silence view fn warning. Remove once implemented
     productIds;
   }
 

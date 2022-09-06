@@ -11,7 +11,7 @@ describe('totalActiveCoverInAsset', function () {
 
   const ethCoverBuyFixture = {
     productId: 0,
-    payoutAsset: 0, // ETH
+    coverAsset: 0, // ETH
     period: 3600 * 24 * 30, // 30 days
 
     amount: parseEther('1000'),
@@ -25,7 +25,7 @@ describe('totalActiveCoverInAsset', function () {
 
   const daiCoverBuyFixture = {
     productId: 0,
-    payoutAsset: 1, // DAI
+    coverAsset: 1, // DAI
     period: 3600 * 24 * 30, // 30 days
 
     amount: parseEther('1000'),
@@ -46,7 +46,7 @@ describe('totalActiveCoverInAsset', function () {
 
 
     const {
-      payoutAsset,
+      coverAsset,
       amount,
     } = ethCoverBuyFixture;
 
@@ -56,7 +56,7 @@ describe('totalActiveCoverInAsset', function () {
 
     await buyCoverOnOnePool.call(this, ethCoverBuyFixture);
 
-    const activeCoverAmount = await cover.totalActiveCoverInAsset(payoutAsset);
+    const activeCoverAmount = await cover.totalActiveCoverInAsset(coverAsset);
     bnEqual(activeCoverAmount, amount);
   });
 
@@ -69,7 +69,7 @@ describe('totalActiveCoverInAsset', function () {
     } = this.accounts;
 
     const {
-      payoutAsset,
+      coverAsset,
       amount,
     } = daiCoverBuyFixture;
 
@@ -84,7 +84,7 @@ describe('totalActiveCoverInAsset', function () {
 
     await buyCoverOnOnePool.call(this, daiCoverBuyFixture);
 
-    const activeCoverAmount = await cover.totalActiveCoverInAsset(payoutAsset);
+    const activeCoverAmount = await cover.totalActiveCoverInAsset(coverAsset);
     bnEqual(activeCoverAmount, amount);
   });
 

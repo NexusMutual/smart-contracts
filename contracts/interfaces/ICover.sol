@@ -43,7 +43,7 @@ struct PoolAllocation {
 
 struct CoverData {
   uint24 productId;
-  uint8 payoutAsset;
+  uint8 coverAsset;
   uint96 amountPaidOut;
 }
 
@@ -59,7 +59,7 @@ struct CoverSegment {
 struct BuyCoverParams {
   address owner;
   uint24 productId;
-  uint8 payoutAsset;
+  uint8 coverAsset;
   uint96 amount;
   uint32 period;
   uint maxPremiumInAsset;
@@ -119,7 +119,7 @@ interface ICover {
 
   function productTypes(uint id) external view returns (ProductType memory);
 
-  function isAssetSupported(uint32 payoutAssetsBitMap, uint8 payoutAsset) external view returns (bool);
+  function isAssetSupported(uint32 coverAssetsBitMap, uint8 coverAsset) external view returns (bool);
 
   function stakingPool(uint index) external view returns (IStakingPool);
 

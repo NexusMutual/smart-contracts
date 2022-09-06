@@ -12,7 +12,7 @@ describe('expireCover', function () {
 
   const ethCoverBuyFixture = {
     productId: 0,
-    payoutAsset: 0, // ETH
+    coverAsset: 0, // ETH
     period: 3600 * 24 * 30, // 30 days
 
     amount: parseEther('1000'),
@@ -32,7 +32,7 @@ describe('expireCover', function () {
     } = this.accounts;
 
     const {
-      payoutAsset,
+      coverAsset,
     } = ethCoverBuyFixture;
 
     await cover.connect(emergencyAdmin).enableActiveCoverAmountTracking([], []);
@@ -47,7 +47,7 @@ describe('expireCover', function () {
 
     await cover.expireCover(0);
 
-    const activeCoverAmountAfterExpiry = await cover.totalActiveCoverInAsset(payoutAsset);
+    const activeCoverAmountAfterExpiry = await cover.totalActiveCoverInAsset(coverAsset);
     bnEqual(activeCoverAmountAfterExpiry, parseEther('0'));
 
     const segmentId = '0';

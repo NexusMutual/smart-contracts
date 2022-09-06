@@ -57,14 +57,14 @@ async function createStakingPool (
 async function assertCoverFields (
   cover,
   coverId,
-  { productId, payoutAsset, period, amount, targetPriceRatio, segmentId = '0', amountPaidOut = '0' },
+  { productId, coverAsset, period, amount, targetPriceRatio, segmentId = '0', amountPaidOut = '0' },
 ) {
   const storedCoverData = await cover.coverData(coverId);
 
   const segment = await cover.coverSegments(coverId, segmentId);
 
   assert.equal(storedCoverData.productId, productId);
-  assert.equal(storedCoverData.payoutAsset, payoutAsset);
+  assert.equal(storedCoverData.coverAsset, coverAsset);
   bnEqual(storedCoverData.amountPaidOut, amountPaidOut);
   assert.equal(segment.period, period);
   assert.equal(segment.amount.toString(), amount.toString());
@@ -74,7 +74,7 @@ async function assertCoverFields (
 async function buyCoverOnOnePool (
   {
     productId,
-    payoutAsset,
+    coverAsset,
     period,
     amount,
     targetPriceRatio,
@@ -101,11 +101,11 @@ async function buyCoverOnOnePool (
     {
       owner: coverBuyer1.address,
       productId,
-      payoutAsset,
+      coverAsset,
       amount,
       period,
       maxPremiumInAsset: expectedPremium,
-      paymentAsset: payoutAsset,
+      paymentAsset: coverAsset,
       payWitNXM: false,
       commissionRatio: parseEther('0'),
       commissionDestination: ZERO_ADDRESS,

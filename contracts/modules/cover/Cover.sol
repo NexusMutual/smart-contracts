@@ -173,7 +173,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint32 deprecatedCoverAssetsBitmap = _pool.deprecatedCoverAssetsBitmap();
 
     require(
-      isAssetSupported(_getSupportedCoverAssets(deprecatedCoverAssetsBitmap, product.coverAssets), params.payoutAsset),
+      isAssetSupported(_getSupportedCoverAssets(deprecatedCoverAssetsBitmap, product.coverAssets), params.coverAsset),
       "Cover: Payout asset is not supported"
     );
     require(
@@ -186,7 +186,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     require(params.amount > 0, "Cover: amount = 0");
 
     {
-      (uint totalPremiumInNXM, uint totalCoveredAmountInPayoutAsset) = _buyCover(params, _coverData.length, allocationRequests);
+      (uint totalPremiumInNXM, uint totalCoveredAmountIncoverAsset) = _buyCover(params, _coverData.length, allocationRequests);
       uint tokenPriceInPaymentAsset = _pool.getTokenPrice(params.paymentAsset);
 
       uint premiumInPaymentAsset = totalPremiumInNXM * tokenPriceInPaymentAsset / NXM_IN_WEI;
@@ -205,14 +205,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       // Enable this when cover amount tracking is necessary
       if (coverAmountTrackingEnabled) {
-        totalActiveCoverInAsset[params.payoutAsset] += totalCoveredAmountInPayoutAsset;
+        totalActiveCoverInAsset[params.coverAsset] += totalCoveredAmountIncoverAsset;
       }
     }
 
     // push the newly created cover
     _coverData.push(CoverData(
         params.productId,
-        params.payoutAsset,
+        params.coverAsset,
         0 // amountPaidOut
     ));
 
@@ -230,7 +230,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   ) internal returns (uint totalPremiumInNXM, uint) {
 
     // convert to NXM amount
-    uint nxmPriceInPayoutAsset = pool().getTokenPrice(params.payoutAsset);
+    uint nxmPriceIncoverAsset = pool().getTokenPrice(params.coverAsset);
     uint remainderAmountInNXM = 0;
     uint totalCoverAmountInNXM = 0;
 
@@ -239,7 +239,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     for (uint i = 0; i < allocationRequests.length; i++) {
 
       uint requestedCoverAmountInNXM
-        = allocationRequests[i].coverAmountInAsset * NXM_IN_WEI / nxmPriceInPayoutAsset + remainderAmountInNXM;
+        = allocationRequests[i].coverAmountInAsset * NXM_IN_WEI / nxmPriceIncoverAsset + remainderAmountInNXM;
 
       (uint coveredAmountInNXM, uint premiumInNXM, uint rewardsInNXM) = allocateCapacity(
         params,
@@ -272,10 +272,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       )
     );
 
-    uint96 totalCoveredAmountInPayoutAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / NXM_IN_WEI);
+    uint96 totalCoveredAmountIncoverAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceIncoverAsset / NXM_IN_WEI);
 
     _coverSegments[coverId].push(CoverSegment(
-        totalCoveredAmountInPayoutAsset, // amount
+        totalCoveredAmountIncoverAsset, // amount
         uint32(block.timestamp + 1), // start
         SafeUintCast.toUint32(params.period), // period
         priceRatio,
@@ -283,7 +283,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         globalRewardsRatio
       ));
 
-    return (totalPremiumInNXM, totalCoveredAmountInPayoutAsset);
+    return (totalPremiumInNXM, totalCoveredAmountIncoverAsset);
   }
 
   function allocateCapacity(
@@ -325,7 +325,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     require(buyCoverParams.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
 
     // Override cover specific parameters
-    buyCoverParams.payoutAsset = cover.payoutAsset;
+    buyCoverParams.coverAsset = cover.coverAsset;
     buyCoverParams.productId = cover.productId;
 
     Product memory product = _products[buyCoverParams.productId];
@@ -333,7 +333,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     // Check that the payout asset is still supported (it may have been deprecated or disabled in the meantime)
     require(
-      isAssetSupported(_getSupportedCoverAssets(deprecatedCoverAssetsBitmap, product.coverAssets), buyCoverParams.payoutAsset),
+      isAssetSupported(_getSupportedCoverAssets(deprecatedCoverAssetsBitmap, product.coverAssets), buyCoverParams.coverAsset),
       "Cover: Payout asset is not supported"
     );
     require(
@@ -354,14 +354,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       );
     }
 
-    (uint totalPremiumInNXM, uint totalCoveredAmountInPayoutAsset) = _buyCover(buyCoverParams, coverId, poolAllocations);
+    (uint totalPremiumInNXM, uint totalCoveredAmountIncoverAsset) = _buyCover(buyCoverParams, coverId, poolAllocations);
 
     handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset);
 
     // Update total cover amount for asset if cover tracking is enabled
     if (coverAmountTrackingEnabled) {
-       totalActiveCoverInAsset[cover.payoutAsset] =
-        totalActiveCoverInAsset[cover.payoutAsset] - lastCoverSegment.amount + totalCoveredAmountInPayoutAsset;
+       totalActiveCoverInAsset[cover.coverAsset] =
+        totalActiveCoverInAsset[cover.coverAsset] - lastCoverSegment.amount + totalCoveredAmountIncoverAsset;
     }
 
     emit CoverEdited(coverId, cover.productId, lastCoverSegmentIndex + 1, msg.sender);
@@ -434,7 +434,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     IPool _pool = pool();
 
     // calculate refundValue in NXM
-    uint refundInNXM = refundInCoverAsset * NXM_IN_WEI / _pool.getTokenPrice(buyCoverParams.payoutAsset);
+    uint refundInNXM = refundInCoverAsset * NXM_IN_WEI / _pool.getTokenPrice(buyCoverParams.coverAsset);
 
     if (refundInNXM >= totalPremiumInNXM) {
       // no extra charge for the user
@@ -544,7 +544,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
    CoverData storage cover =_coverData[coverId];
 
    if (coverAmountTrackingEnabled) {
-     totalActiveCoverInAsset[cover.payoutAsset] -= burnAmount;
+     totalActiveCoverInAsset[cover.coverAsset] -= burnAmount;
    }
 
   return CoverUtilsLib.performStakeBurn(
@@ -695,7 +695,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     _coverSegments[coverId][lastCoverSegmentIndex].expired = true;
 
     CoverData memory cover = _coverData[coverId];
-    totalActiveCoverInAsset[cover.payoutAsset] -= lastCoverSegment.amount;
+    totalActiveCoverInAsset[cover.coverAsset] -= lastCoverSegment.amount;
 
     emit CoverExpired(coverId, lastCoverSegmentIndex);
   }
@@ -714,8 +714,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return coverAssetsBitmapForProduct & ~deprecatedCoverAssetsBitmap;
   }
 
-  function isAssetSupported(uint32 assetsBitMap, uint8 payoutAsset) public pure override returns (bool) {
-    return (1 << payoutAsset) & assetsBitMap > 0;
+  function isAssetSupported(uint32 assetsBitMap, uint8 coverAsset) public pure override returns (bool) {
+    return (1 << coverAsset) & assetsBitMap > 0;
   }
 
   function _isCoverAssetDeprecated(

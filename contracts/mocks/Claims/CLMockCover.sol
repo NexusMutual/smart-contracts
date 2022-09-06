@@ -89,13 +89,13 @@ contract CLMockCover {
   function createMockCover(
     address owner,
     uint24 productId,
-    uint8 payoutAsset,
+    uint8 coverAsset,
     CoverSegment[] memory segments
   ) external payable returns (uint coverId) {
 
     coverData.push(CoverData(
         productId,
-        payoutAsset,
+        coverAsset,
         0
       ));
 

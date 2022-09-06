@@ -4,7 +4,9 @@ Include relevant motivation and context. A link to the issue is enough if it con
 information.
 
 ## Changes proposed in this pull request
+
 Include a summary of the change.
+
 
 ### Type of change
 
@@ -30,6 +32,7 @@ reproduce.
 - [ ] Didn't generate new warnings
 - [ ] Added tests that prove my fix is effective or that my feature works
 - [ ] New and existing tests pass locally with my changes
+
 
 ## Review
 

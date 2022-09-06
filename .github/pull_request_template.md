@@ -7,15 +7,6 @@ information.
 
 Include a summary of the change.
 
-
-### Type of change
-
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Test (test for an existing functionality)
-- [ ] Chore (i.e. refactor, deprecation, dependency update, etc)
-
-
 ## How Has This Been Tested?
 
 Please describe the tests that you ran to verify your changes. Provide instructions so we can 
@@ -26,6 +17,7 @@ reproduce.
 
 - [ ] Rebased master
 - [ ] Attached corresponding Github issue
+- [ ] Prefixed the name with the type of change (i.e. feat, chore, test)
 - [ ] Performed a self-review of my own code
 - [ ] Followed the style guidelines of this project
 - [ ] Made corresponding changes to the documentation

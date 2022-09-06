@@ -112,7 +112,7 @@ library CoverUtilsLib {
     params.coverNFT.safeMint(params.toNewOwner, newCoverId);
   }
 
-  function calculateProxyCodeHash(address coverProxyAddress) external view returns (bytes32) {
+  function calculateProxyCodeHash(address coverProxyAddress) external pure returns (bytes32) {
     return keccak256(
       abi.encodePacked(
       type(MinimalBeaconProxy).creationCode,

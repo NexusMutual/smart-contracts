@@ -43,7 +43,7 @@ Once the transaction is executed, go to the `eventLog` section for your transact
 
 ### KYC
 
-KYC of the distributor contract must to be completed before any cover purchases can go through. 
+KYC of the distributor contract must be completed before any cover purchases can go through. 
 
 #### Mainnet
 
@@ -103,7 +103,7 @@ Claims for Protocol and Custody cover types require 3 steps:
 Proof of the loss can be submitted by the user by following the steps on the following link:
 https://app.nexusmutual.io/home/proof-of-loss/add-affected-addresses?coverId=<cover_id>&owner=<nft_owner_address>
 
-Direct the user to the page above. Once they followed the steps and submitted the proof, allow the user to submit the claim, as explaine din the next step.
+Direct the user to the page above. Once they followed the steps and submitted the proof, allow the user to submit the claim, as explained in the next step.
 
 
 #### 2.2. Submit Claim
@@ -126,7 +126,7 @@ See this node.js [example code](https://github.com/NexusMutual/smart-contracts/b
 
 #### 2.3. Redeem Claim
 
-The owner of the cover token reedems its claim payout. The claim must have been approved and paid out to the distributor contract for this to succeed. 
+The owner of the cover token redeems its claim payout. The claim must have been approved and paid out to the distributor contract for this to succeed. 
 
 Once redeemed, the NFT token is burned.
 
@@ -145,7 +145,7 @@ To redeem a claim, both the `tokenId` of the cover and the `claimId` to be redee
 ## 3. Claim Flow: Yield Token Cover
 
 #### 3.1. claimTokens
-Claims the underlying tokens in exchange for depegged yield tokens at a price of 90% the price before the depeg incident.
+Claims the underlying tokens in exchange for depegged yield tokens at a price of 90% of the price before the depeg incident.
 
 ```
   function claimTokens(

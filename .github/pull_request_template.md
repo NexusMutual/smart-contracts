@@ -9,7 +9,7 @@ information.
 Include a summary of the change.
 
 
-## How Has This Been Tested?
+## Test plan
 
 Please describe the tests that you ran to verify your changes. Provide instructions so we can 
 reproduce.

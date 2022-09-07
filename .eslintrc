@@ -5,19 +5,25 @@
     "node": true,
     "mocha": true
   },
-  "extends": "semistandard",
+  "extends": [
+    "semistandard",
+    "eslint:recommended",
+    "plugin:prettier/recommended"
+  ],
   "globals" : {
     "artifacts": true,
     "assert": true,
     "contract": true
   },
-  "ignorePatterns": ["node_modules/", "artifacts"],
+  "ignorePatterns": ["node_modules/", "artifacts", "coverage"],
   "parserOptions": {
     "ecmaVersion": 2018
   },
   "rules": {
     "comma-dangle": ["warn", "always-multiline"],
+    "curly": ["error", "all"],
     "max-len": ["error", { "code": 120 }],
+    "no-nested-ternary": "error",
     "no-unused-vars": ["warn", { "varsIgnorePattern": "^_unused" }],
     "padded-blocks": "off"
   }

@@ -11,21 +11,21 @@ Include a summary of the change.
 
 ## Test plan
 
-Please describe the tests that you ran to verify your changes. Provide instructions so we can 
-reproduce.
+Please describe the tests cases that you ran to verify your changes. Add further instructions on 
+how to run them if needed (i.e. migration / deployment scripts, env vars, etc).
 
 
 ## Checklist
 
-- [ ] Rebased master
+- [ ] Rebased the base branch
 - [ ] Attached corresponding Github issue
 - [ ] Prefixed the name with the type of change (i.e. feat, chore, test)
 - [ ] Performed a self-review of my own code
 - [ ] Followed the style guidelines of this project
 - [ ] Made corresponding changes to the documentation
 - [ ] Didn't generate new warnings
+- [ ] Didn't generate failures on existing tests
 - [ ] Added tests that prove my fix is effective or that my feature works
-- [ ] New and existing tests pass locally with my changes
 
 
 ## Review

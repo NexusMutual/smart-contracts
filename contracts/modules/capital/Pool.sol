@@ -128,11 +128,13 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   function getAssetValueInEth(address assetAddress, uint8 assetDecimals) internal view returns (uint) {
     IERC20 token = IERC20(assetAddress);
 
-    uint assetBalance = token.balanceOf(address(this));
-    try token.balanceOf(address(this)) returns (uint balance) {
-      assetBalance = balance;
-    } catch {
-      // If balanceOf reverts consider it 0
+    uint assetBalance;
+    if (assetAddress.code.length != 0){
+      try token.balanceOf(address(this)) returns (uint balance) {
+        assetBalance = balance;
+      } catch{
+        // If balanceOf reverts consider it 0
+      }
     }
 
     // If the assetBalance is 0 skip the oracle call to save gas

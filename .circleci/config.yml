@@ -25,6 +25,16 @@ jobs:
           paths:
             - ~/nexus-mutual-contracts
 
+  lint:
+    resource_class: medium+
+    docker:
+      - image: cimg/node:16.14.0
+    working_directory: ~/nexus-mutual-contracts
+    steps:
+      - restore_cache:
+          key: nexus-mutual-contracts-{{ .Environment.CIRCLE_SHA1 }}
+      - run: npm run lint
+
   test:
     resource_class: medium+
     docker:
@@ -51,6 +61,9 @@ workflows:
     jobs:
       - checkout_and_install
       - test:
+          requires:
+            - checkout_and_install
+      - lint:
           requires:
             - checkout_and_install
       - coverage:

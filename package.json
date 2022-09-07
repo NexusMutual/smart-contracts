@@ -68,6 +68,7 @@
   },
   "scripts": {
     "compile": "hardhat compile",
+    "lint": "eslint --max-warnings 0 .",
     "dev": "nodemon --ext js,sol -x 'hardhat test test/index.js --show-stack-traces'",
     "dev-integration": "nodemon --ext js,sol -x 'hardhat test test/integration/index.js --show-stack-traces'",
     "dev-unit": "nodemon --ext js,sol -x 'hardhat test test/unit/index.js --show-stack-traces'",

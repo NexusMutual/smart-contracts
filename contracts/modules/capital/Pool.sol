@@ -218,6 +218,9 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     require(_max >= _min, "Pool: max < min");
     require(_maxSlippageRatio <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
 
+    (address aggregator, ) = priceFeedOracle.assets(assetAddress);
+    require(aggregator != address(0), "Pool: Asset lacks oracle");
+
     // Check whether the new asset already exists as a cover asset
     uint coverAssetsCount = coverAssets.length;
     for (uint i = 0; i < coverAssetsCount; i++) {

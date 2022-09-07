@@ -48,9 +48,7 @@ describe('getAssessmentDepositAndReward', function () {
   it('returns a deposit of at least config.minAssessmentDepositRatio * 1 ETH', async function () {
     const { individualClaims } = this.contracts;
     const { minAssessmentDepositRatio } = await individualClaims.config();
-    const minDeposit = parseEther('1')
-      .mul(minAssessmentDepositRatio)
-      .div('10000');
+    const minDeposit = parseEther('1').mul(minAssessmentDepositRatio).div('10000');
 
     {
       const [deposit] = await individualClaims.getAssessmentDepositAndReward(1, daysToSeconds(30), ASSET.ETH);

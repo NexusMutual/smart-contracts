@@ -21,7 +21,7 @@ const ethCoverTemplate = {
 
 const daiCoverTemplate = {
   amount: 1000, // 1000 dai
-  price: 1e19.toString(), // 10 dai
+  price: (1e19).toString(), // 10 dai
   priceNXM: '10000000000000000000', // 10 nxm
   expireTime: '8000000000',
   generationTime: '1600000000000',
@@ -31,7 +31,6 @@ const daiCoverTemplate = {
 };
 
 describe('getAllSumAssurance', function () {
-
   beforeEach(async function () {
     const { dai } = this.contracts;
     await enrollMember(this.contracts, [member1]);
@@ -65,7 +64,7 @@ describe('getAllSumAssurance', function () {
 
     await buyCoverWithDai({ ...this.contracts, cover, coverHolder: member });
     const totalAssurance = await mcr.getAllSumAssurance();
-    const expectedTotalAssurance = ether(cover.amount.toString()).mul(daiToEthRate).div(toBN(1e18.toString()));
+    const expectedTotalAssurance = ether(cover.amount.toString()).mul(daiToEthRate).div(toBN((1e18).toString()));
     assert.equal(totalAssurance.toString(), expectedTotalAssurance.toString());
   });
 
@@ -89,9 +88,11 @@ describe('getAllSumAssurance', function () {
     }
 
     const totalAssurance = await mcr.getAllSumAssurance();
-    const expectedTotalAssurance =
-      ether(daiCoverTemplate.amount.toString()).mul(daiToEthRate).div(toBN(1e18.toString())).muln(daiCoversToBuy)
-        .add(ether(ethCoverTemplate.amount.toString()).muln(ethCoversToBuy));
+    const expectedTotalAssurance = ether(daiCoverTemplate.amount.toString())
+      .mul(daiToEthRate)
+      .div(toBN((1e18).toString()))
+      .muln(daiCoversToBuy)
+      .add(ether(ethCoverTemplate.amount.toString()).muln(ethCoversToBuy));
     assert.equal(totalAssurance.toString(), expectedTotalAssurance.toString());
   });
 });

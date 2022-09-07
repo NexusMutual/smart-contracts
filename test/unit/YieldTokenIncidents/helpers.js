@@ -1,12 +1,8 @@
 const { ethers } = require('hardhat');
-const keccak256 = require('keccak256');
-const { MerkleTree } = require('merkletreejs');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
-const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
-const { BigNumber, BigNumberish, Signature, utils, providers, Contract } = ethers;
 
 // this is designed to work with USDC
-async function signPermit (signer, token, chainId, spender, value, deadline, domainVersion) {
+async function signPermit(signer, token, chainId, spender, value, deadline, domainVersion) {
   const address = await signer.getAddress();
   const rawSignature = await signer._signTypedData(
     {
@@ -47,7 +43,7 @@ async function signPermit (signer, token, chainId, spender, value, deadline, dom
       deadline,
     },
   );
-  return utils.splitSignature(rawSignature);
+  return ethers.utils.splitSignature(rawSignature);
 }
 
 const INCIDENT_STATUS = {
@@ -62,8 +58,7 @@ const ASSET = {
   DAI: 1,
 };
 
-// Converts days to seconds
-const daysToSeconds = numberOfDays => numberOfDays * 24 * 60 * 60;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);

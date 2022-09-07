@@ -1,13 +1,10 @@
-const { assert, expect } = require('chai');
 const { ethers } = require('hardhat');
-const { utils: { parseEther } } = ethers;
-const { assertCoverFields,
-  buyCoverOnOnePool
-} = require('./helpers');
+const { assertCoverFields, buyCoverOnOnePool } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 
-describe('performStakeBurn', function () {
+const { parseEther } = ethers.utils;
 
+describe('performStakeBurn', function () {
   const coverBuyFixture = {
     productId: 0,
     coverAsset: 0, // ETH
@@ -27,22 +24,15 @@ describe('performStakeBurn', function () {
 
     const {
       internalContracts: [internal1],
-      emergencyAdmin
+      emergencyAdmin,
     } = this.accounts;
 
-    const {
-      productId,
-      coverAsset,
-      period,
-      amount,
-      targetPriceRatio
-    } = coverBuyFixture;
+    const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
 
     await cover.connect(emergencyAdmin).enableActiveCoverAmountTracking([], []);
     await cover.connect(emergencyAdmin).commitActiveCoverAmounts();
 
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
-
 
     const burnAmountDivisor = 2;
 
@@ -53,25 +43,17 @@ describe('performStakeBurn', function () {
 
     const expectedBurnAmount = segmentAllocation.coverAmountInNXM.div(burnAmountDivisor);
 
-    await cover.connect(internal1).performStakeBurn(
-      expectedCoverId,
-      segmentId,
-      burnAmount
-    );
+    await cover.connect(internal1).performStakeBurn(expectedCoverId, segmentId, burnAmount);
 
-    await assertCoverFields(
-      cover,
-      expectedCoverId,
-      {
-        productId,
-        coverAsset,
-        period: period,
-        amount: remainingAmount,
-        targetPriceRatio,
-        segmentId,
-        amountPaidOut: burnAmount
-      },
-    );
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period,
+      amount: remainingAmount,
+      targetPriceRatio,
+      segmentId,
+      amountPaidOut: burnAmount,
+    });
 
     const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
 

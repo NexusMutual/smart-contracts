@@ -14,17 +14,13 @@ const {
 } = accounts;
 
 describe('updateUintParameters', function () {
-
   it('should revert when called by non governance addresses', async function () {
     const { pool } = this;
     const param = PoolUintParamType.minPoolEth;
     const nonGov = [nonMember, member, advisoryBoardMember, internalContract];
 
     for (const address of nonGov) {
-      await expectRevert(
-        pool.updateUintParameters(param, 0, { from: address }),
-        'Caller is not authorized to govern',
-      );
+      await expectRevert(pool.updateUintParameters(param, 0, { from: address }), 'Caller is not authorized to govern');
     }
   });
 
@@ -45,11 +41,9 @@ describe('updateUintParameters', function () {
       assert.strictEqual(actual.toString(), value.toString());
     }
   });
-
 });
 
 describe('updateAddressParameters', function () {
-
   it('should revert when called by non governance addresses', async function () {
     const { pool } = this;
     const param = PoolAddressParamType.priceFeedOracle;
@@ -78,5 +72,4 @@ describe('updateAddressParameters', function () {
       assert.strictEqual(actual.toString(), generalPurpose);
     }
   });
-
 });

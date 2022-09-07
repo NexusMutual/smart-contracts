@@ -1,16 +1,8 @@
-const { artifacts } = require('hardhat');
-const { constants: { ZERO_ADDRESS }, ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { hex } = require('../utils').helpers;
-const { Role, ContractTypes } = require('../utils').constants;
-
-const MMockNewContract = artifacts.require('MMockNewContract');
-const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 
 describe('getters', function () {
-
   describe('getInternalContracts', async function () {
-
     it('retrieves existing contracts', async function () {
       const { master, governance } = this;
 
@@ -24,7 +16,6 @@ describe('getters', function () {
   });
 
   describe('getLatestAddress', async function () {
-
     it('retrieves existing contracts', async function () {
       const { master, governance } = this;
 

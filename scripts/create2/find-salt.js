@@ -2,6 +2,7 @@ const { artifacts, ethers, run } = require('hardhat');
 const { keccak256 } = require('ethereum-cryptography/keccak');
 const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 const workerpool = require('workerpool');
+const path = require('path');
 
 const Position = {
   start: 'start',
@@ -35,7 +36,6 @@ const usage = () => {
 };
 
 const parseArgs = async args => {
-
   const opts = {
     search: '0000',
     position: Position.start,
@@ -53,7 +53,6 @@ const parseArgs = async args => {
   }
 
   while (argsArray.length) {
-
     const arg = argsArray.shift();
 
     if (['--help', '-h'].includes(arg)) {
@@ -85,9 +84,7 @@ const parseArgs = async args => {
 
     if (['--constructor-args', '-c'].includes(arg)) {
       const value = argsArray.shift();
-      opts.constructorArgs = value.match(/^\[/)
-        ? JSON.parse(value)
-        : [value];
+      opts.constructorArgs = value.match(/^\[/) ? JSON.parse(value) : [value];
       continue;
     }
 
@@ -125,7 +122,6 @@ const parseArgs = async args => {
 };
 
 const getDeploymentBytecode = async options => {
-
   const { abi, bytecode } = await artifacts.readArtifact(options.contract);
 
   // FIXME: implement library linking
@@ -146,36 +142,30 @@ const getDeploymentBytecode = async options => {
   if (constructorAbi.inputs.length !== options.constructorArgs.length) {
     throw new Error(
       `The contract requires ${constructorAbi.inputs.length} constructor argument(s) ` +
-      `but ${options.constructorArgs.length} were provided`,
+        `but ${options.constructorArgs.length} were provided`,
     );
   }
 
-  const constructorArgs = ethers.utils.defaultAbiCoder.encode(
-    constructorAbi.inputs,
-    options.constructorArgs,
-  );
+  const constructorArgs = ethers.utils.defaultAbiCoder.encode(constructorAbi.inputs, options.constructorArgs);
 
   return `${bytecode}${constructorArgs.replace(/^0x/i, '')}`;
 };
 
 // TODO: consider moving the worker function to this file
 
-async function main () {
-
-  const opts = await parseArgs(process.argv)
-    .catch(err => {
-      console.error(`Error: ${err.message}`);
-      process.exit(1);
-    });
+async function main() {
+  const opts = await parseArgs(process.argv).catch(err => {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  });
 
   // make sure the contracts are compiled and we're not deploying an outdated artifact
   await run('compile');
 
-  const deploymentBytecode = await getDeploymentBytecode(opts)
-    .catch(err => {
-      console.error(`Error: ${err.message}`);
-      process.exit(1);
-    });
+  const deploymentBytecode = await getDeploymentBytecode(opts).catch(err => {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  });
 
   const factory = opts.factory.slice(-40);
   const bytecode = hexToBytes(deploymentBytecode.replace(/^0x/i, ''));
@@ -189,16 +179,16 @@ async function main () {
     ignoreCase: opts.ignoreCase,
   };
 
-  const pool = workerpool.pool(`${__dirname}/worker.js`);
+  const pool = workerpool.pool(path.join(__dirname, 'worker.js'));
   const batchSize = 1000;
   let salt = opts.salt;
   let processed = salt;
 
   const crunch = async () => {
-
-    await pool.exec('worker', [config, salt++, batchSize])
+    await pool
+      .exec('worker', [config, salt++, batchSize])
       .then(results => {
-        process.stdout.write(`\rProcessed ${processed += batchSize} salts`);
+        process.stdout.write(`\rProcessed ${(processed += batchSize)} salts`);
         for (const result of results) {
           console.log(`\rAddress: ${result.address}   Salt: ${result.salt}`);
         }

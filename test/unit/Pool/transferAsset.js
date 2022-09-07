@@ -1,11 +1,8 @@
 const { ether } = require('@openzeppelin/test-helpers');
-const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
 const { expectRevert } = require('@openzeppelin/test-helpers');
-const { web3 } = require('hardhat');
 const { assert } = require('chai');
 
 const {
-  defaultSender,
   governanceContracts: [governance],
   generalPurpose: [destination, arbitraryCaller],
 } = require('../utils').accounts;
@@ -14,7 +11,7 @@ const ERC20Mock = artifacts.require('ERC20Mock');
 
 describe('transferAsset', function () {
   it('transfers added ERC20 asset to destination', async function () {
-    const { pool, master, dai } = this;
+    const { pool } = this;
 
     const tokenAmount = ether('100000');
     const otherToken = await ERC20Mock.new();
@@ -34,7 +31,7 @@ describe('transferAsset', function () {
   });
 
   it('transfers arbitrary ERC20 asset in the Pool to destination', async function () {
-    const { pool, master, dai } = this;
+    const { pool } = this;
 
     const tokenAmount = ether('100000');
     const otherToken = await ERC20Mock.new();
@@ -50,7 +47,7 @@ describe('transferAsset', function () {
     assert.equal(poolBalance.toString(), tokenAmount.sub(amountToTransfer).toString());
   });
 
-  it('transfers entire balance of arbitrary ERC20 asset in the Pool to destination if amount < balance', async function () {
+  it('transfers entire balance of arbitrary ERC20 asset in the Pool if amount < balance', async function () {
     const { pool } = this;
 
     const tokenAmount = ether('100000');

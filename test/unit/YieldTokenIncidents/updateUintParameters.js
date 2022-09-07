@@ -84,10 +84,8 @@ describe('updateUintParameters', function () {
         rewardRatio: 5555,
       };
 
-      const {
-        maxRewardInNXMWad: initialMaxRewardInNXMWad,
-        expectedPayoutRatio: initialExpectedPayoutRatio,
-      } = await yieldTokenIncidents.config();
+      const { maxRewardInNXMWad: initialMaxRewardInNXMWad, expectedPayoutRatio: initialExpectedPayoutRatio } =
+        await yieldTokenIncidents.config();
       await yieldTokenIncidents
         .connect(governance)
         .updateUintParameters(

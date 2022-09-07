@@ -12,8 +12,7 @@ const DisposablePooledStaking = artifacts.require('DisposablePooledStaking');
 const TokenMock = artifacts.require('NXMTokenMock');
 const TokenControllerMock = artifacts.require('TokenControllerMock');
 
-async function setup () {
-
+async function setup() {
   const master = await MasterMock.new();
   const memberRoles = await MemberRolesMock.new();
   const staking = await DisposablePooledStaking.new();

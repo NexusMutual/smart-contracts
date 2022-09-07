@@ -55,7 +55,7 @@ describe('updateMCR', function () {
     assert.equal(lastUpdateTimeAfter.toString(), lastUpdateTimeBefore.toString());
   });
 
-  it('buyNXM triggers updateMCR if minUpdateTime has passed, increases mcrFloor and decreases desiredMCR', async function () {
+  it('buyNXM triggers updateMCR if minUpdateTime passes, increases mcrFloor, decreases desiredMCR', async function () {
     const { p1: pool, mcr } = this.contracts;
 
     const buyValue = ether('1000');
@@ -87,7 +87,7 @@ describe('updateMCR', function () {
     );
   });
 
-  it('sellNXM triggers updateMCR if minUpdateTime has passed, increases mcrFloor and decreases desiredMCR', async function () {
+  it('sellNXM triggers updateMCR if minUpdateTime passes, increases mcrFloor, decreases desiredMCR', async function () {
     const { p1: pool, mcr } = this.contracts;
 
     const lastUpdateTimeBefore = await mcr.lastUpdateTime();
@@ -166,9 +166,7 @@ describe('updateMCR', function () {
     const lastUpdateTimeAfter = await mcr.lastUpdateTime();
     const mcrFloorAfter = await mcr.mcrFloor();
     const desireMCRAfter = await mcr.desiredMCR();
-    const expectedDesiredMCR = ether(coverAmount.toString())
-      .div(gearingFactor)
-      .mul(ratioScale);
+    const expectedDesiredMCR = ether(coverAmount.toString()).div(gearingFactor).mul(ratioScale);
 
     assert(lastUpdateTimeBefore.lt(lastUpdateTimeAfter));
     assert.equal(lastUpdateTimeAfter.toString(), block.timestamp.toString());
@@ -179,6 +177,7 @@ describe('updateMCR', function () {
     assert.equal(desireMCRAfter.toString(), expectedDesiredMCR.toString());
   });
 
+  // eslint-disable-next-line max-len
   it('increases desiredMCR if totalSumAssured is high enough and subsequently decreases to mcrFloor it when totalSumAssured falls to 0', async function () {
     const { mcr, qt: quotation } = this.contracts;
 
@@ -284,9 +283,7 @@ describe('updateMCR', function () {
 
     // sumAssured DAI = tokenAmount ybETH @ priceBefore
     // 500 ETH  /  2 ETH/ybETH  =  1000 ybETH
-    const tokenAmount = ether('1')
-      .mul(sumAssured)
-      .div(priceBefore);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);

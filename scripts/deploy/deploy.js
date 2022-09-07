@@ -56,8 +56,7 @@ const CHAINLINK_ETH_USD = {
   rinkeby: '0x0000000000000000000000000000000000000000', // missing
 };
 
-async function main () {
-
+async function main() {
   const [{ address: owner }] = await ethers.getSigners();
 
   console.log(`Using network: ${network.name}`);
@@ -146,7 +145,10 @@ async function main () {
   const pc = await deployProxy('DisposableProposalCategory');
   const gv = await deployProxy('DisposableGovernance', [], { overrides: { gasLimit: 12e6 } });
   const gw = await deployProxy('DisposableGateway');
-  const tc = await deployProxy('DisposableTokenController', [qd, cr].map(c => c.address));
+  const tc = await deployProxy(
+    'DisposableTokenController',
+    [qd, cr].map(c => c.address),
+  );
 
   console.log('Deploying ProductsV1 contract');
   const productsV1 = await deployImmutable('ProductsV1');
@@ -155,11 +157,7 @@ async function main () {
   const cover = await deployProxy('DisposableCover');
 
   const stakingPoolParameters = [tk.address, cover.address, tc.address, mr.address];
-  const stakingPool = await deployImmutable(
-    'CoverMockStakingPool',
-    stakingPoolParameters,
-    { abiName: 'StakingPool' },
-  );
+  const stakingPool = await deployImmutable('CoverMockStakingPool', stakingPoolParameters, { abiName: 'StakingPool' });
 
   const coverMigrator = await deployImmutable('CoverMigrator');
   const coverNFT = await deployImmutable('CoverNFT', ['Nexus Mutual Cover', 'NMC', cover.address]);
@@ -176,9 +174,10 @@ async function main () {
     const productType = { protocol: 0, custodian: 1, token: 2 }[product.type];
     const productAddress = product.coveredToken || '0x0000000000000000000000000000000000000000';
 
-    let coverAssets = underlyingToken === -1
-      ? 0 // when no underlyingToken is present use the global fallback
-      : 1 << underlyingToken; // 0b01 for ETH and 0b10 for DAI
+    let coverAssets =
+      underlyingToken === -1
+        ? 0 // when no underlyingToken is present use the global fallback
+        : 1 << underlyingToken; // 0b01 for ETH and 0b10 for DAI
 
     if (product.legacyProductId === '0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B') {
       coverAssets = 1; // only ETH for MakerDAO
@@ -209,29 +208,29 @@ async function main () {
   console.log('Deploying CowSwapOperator');
   const cowVaultRelayer = await deployImmutable('CSMockVaultRelayer');
   const cowSettlement = await deployImmutable('CSMockSettlement', [cowVaultRelayer.address]);
-  const cowSwapOperator = await deployImmutable(
-    'CowSwapOperator',
-    [cowSettlement.address, owner, master.address, '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'],
-  );
+  const cowSwapOperator = await deployImmutable('CowSwapOperator', [
+    cowSettlement.address,
+    owner,
+    master.address,
+    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+  ]);
 
   if (typeof CHAINLINK_DAI_ETH[network.name] === 'undefined') {
     console.log('Deploying chainlink dai-eth aggregator');
-    const chainlinkDaiMock = await deployImmutable(
-      'ChainlinkAggregatorMock',
-      [],
-      { alias: 'Chainlink-DAI-ETH', abiName: 'EACAggregatorProxy' },
-    );
+    const chainlinkDaiMock = await deployImmutable('ChainlinkAggregatorMock', [], {
+      alias: 'Chainlink-DAI-ETH',
+      abiName: 'EACAggregatorProxy',
+    });
     await chainlinkDaiMock.setLatestAnswer(parseEther('0.000357884806717390'));
     CHAINLINK_DAI_ETH[network.name] = chainlinkDaiMock.address;
   }
 
   if (typeof CHAINLINK_STETH_ETH[network.name] === 'undefined') {
     console.log('Deploying chainlink steth-eth aggregator');
-    const chainlinkStEthMock = await deployImmutable(
-      'ChainlinkAggregatorMock',
-      [],
-      { alias: 'Chainlink-STETH-ETH', abiName: 'EACAggregatorProxy' },
-    );
+    const chainlinkStEthMock = await deployImmutable('ChainlinkAggregatorMock', [], {
+      alias: 'Chainlink-STETH-ETH',
+      abiName: 'EACAggregatorProxy',
+    });
     await chainlinkStEthMock.setLatestAnswer(parseEther('1.003')); // almost 1:1
     CHAINLINK_STETH_ETH[network.name] = chainlinkStEthMock.address;
   }
@@ -239,40 +238,33 @@ async function main () {
   // only used by frontend
   if (typeof CHAINLINK_ETH_USD[network.name] === 'undefined') {
     console.log('Deploying chainlink eth-usd aggregator');
-    const chainlinkEthUsdMock = await deployImmutable(
-      'ChainlinkAggregatorMock',
-      [],
-      { alias: 'Chainlink-ETH-USD', abiName: 'EACAggregatorProxy' },
-    );
+    const chainlinkEthUsdMock = await deployImmutable('ChainlinkAggregatorMock', [], {
+      alias: 'Chainlink-ETH-USD',
+      abiName: 'EACAggregatorProxy',
+    });
     await chainlinkEthUsdMock.setLatestAnswer(parseEther('1234.56'));
     CHAINLINK_ETH_USD[network.name] = chainlinkEthUsdMock.address;
   }
 
   console.log('Deploying PriceFeedOracle');
-  const priceFeedOracle = await deployImmutable(
-    'PriceFeedOracle',
-    [
-      [dai.address, stETH.address],
-      [CHAINLINK_DAI_ETH[network.name], CHAINLINK_STETH_ETH[network.name]],
-      [18, 18],
-    ],
-  );
+  const priceFeedOracle = await deployImmutable('PriceFeedOracle', [
+    [dai.address, stETH.address],
+    [CHAINLINK_DAI_ETH[network.name], CHAINLINK_STETH_ETH[network.name]],
+    [18, 18],
+  ]);
 
   console.log('Deploying capital contracts');
-  const disposableMCR = await deployImmutable(
-    'DisposableMCR',
-    [
-      parseEther('50000'), // mcrEth
-      parseEther('40000'), // mcrFloor
-      parseEther('50000'), // desiredMCR
-      (await ethers.provider.getBlock('latest')).timestamp - 60, // lastUpdateTime
-      13000, // mcrFloorIncrementThreshold
-      100, // maxMCRFloorIncrement
-      500, // maxMCRIncrement
-      48000, // gearingFactor
-      3600, // minUpdateTime
-    ],
-  );
+  const disposableMCR = await deployImmutable('DisposableMCR', [
+    parseEther('50000'), // mcrEth
+    parseEther('40000'), // mcrFloor
+    parseEther('50000'), // desiredMCR
+    (await ethers.provider.getBlock('latest')).timestamp - 60, // lastUpdateTime
+    13000, // mcrFloorIncrementThreshold
+    100, // maxMCRFloorIncrement
+    500, // maxMCRIncrement
+    48000, // gearingFactor
+    3600, // minUpdateTime
+  ]);
 
   // deploy MCR with DisposableMCR as a fake master
   const mcr = await deployImmutable('MCR', [disposableMCR.address]);
@@ -404,9 +396,11 @@ async function main () {
   if (verifyOnTenderly) {
     console.log('Performing tenderly contract verifications');
     const contracts = Object.values(verifier.contracts());
-    const contractList = contracts.map(
-      ({ name, address, libraries }) => ({ name: name.split(':').pop(), address, libraries }),
-    );
+    const contractList = contracts.map(({ name, address, libraries }) => ({
+      name: name.split(':').pop(),
+      address,
+      libraries,
+    }));
     await tenderly.verify(...contractList);
   }
 
@@ -428,7 +422,6 @@ async function main () {
   const contracts = unsortedContracts.sort((a, b) => a.abiName.localeCompare(b.abiName));
 
   for (const contract of contracts) {
-
     const { abi, address, alias, abiName, isProxy } = contract;
 
     if (/^(CSMock|Disposable)/.test(abiName)) {

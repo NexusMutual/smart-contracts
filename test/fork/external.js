@@ -1,7 +1,7 @@
 const abi = require('ethereumjs-abi');
 const { hex } = require('../utils').helpers;
 
-function encode (...args) {
+function encode(...args) {
   const signature = args[0];
   const params = args.slice(1);
   const datatypes = signature
@@ -23,7 +23,7 @@ function encode (...args) {
   return '0x' + encoded.toString('hex');
 }
 
-function encode1 (...args) {
+function encode1(...args) {
   const encoded = abi.rawEncode.apply(this, args);
   return '0x' + encoded.toString('hex');
 }

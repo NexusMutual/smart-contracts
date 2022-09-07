@@ -41,15 +41,13 @@ const coverTemplate = {
 // 14  final      Claim Accepted Payout Done
 
 describe('send claim payout to the payout address', function () {
-
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
     await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
   });
 
   it('[A1, status: 0, 7, 14] CA accept, closed with closeClaim()', async function () {
-
-    const { cd, cl, qd, mr, master, cr } = this.contracts;
+    const { cd, cl, qd, mr, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
     const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
@@ -88,8 +86,7 @@ describe('send claim payout to the payout address', function () {
   });
 
   it('[A1, status: 0, 7, 14] CA accept, closed on the last vote', async function () {
-
-    const { cd, cl, qd, mr, cr } = this.contracts;
+    const { cd, cl, qd, mr } = this.contracts;
     const cover = { ...coverTemplate };
 
     const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
@@ -124,15 +121,15 @@ describe('send claim payout to the payout address', function () {
   });
 
   it('[A2, status: 0, 4, 8, 14] CA no consensus, MV accept, closed with closeClaim()', async function () {
-
-    const { cd, cl, qd, mr, master, cr } = this.contracts;
+    const { cd, cl, qd, mr, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
     const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
 
     await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
     assert.strictEqual(
-      await mr.getClaimPayoutAddress(coverHolder), payoutAddress,
+      await mr.getClaimPayoutAddress(coverHolder),
+      payoutAddress,
       'should have set the claim payout address',
     );
 
@@ -154,10 +151,7 @@ describe('send claim payout to the payout address', function () {
     assert(voteStatusAfter.eqn(0), 'voting should not be closed');
 
     const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
-    assert.strictEqual(
-      claimStatusCA.toNumber(), 4,
-      'claim status should be 4 (ca consensus not reached, pending mv)',
-    );
+    assert.strictEqual(claimStatusCA.toNumber(), 4, 'claim status should be 4 (ca consensus not reached, pending mv)');
 
     await cl.submitMemberVote(claimId, '1', { from: member1 });
     await time.increase(maxVotingTime.addn(1));
@@ -165,7 +159,8 @@ describe('send claim payout to the payout address', function () {
 
     const { statno: claimStatusMV } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(
-      claimStatusMV.toNumber(), 14,
+      claimStatusMV.toNumber(),
+      14,
       'claim status should be 14 (ca consensus not reached, pending mv)',
     );
 
@@ -177,15 +172,15 @@ describe('send claim payout to the payout address', function () {
   });
 
   it('[A2, status: 0, 4, 8, 14] CA no consensus, MV accept, on the last vote', async function () {
-
-    const { cd, cl, qd, mr, master, cr } = this.contracts;
+    const { cd, cl, qd, mr, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
     const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
 
     await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
     assert.strictEqual(
-      await mr.getClaimPayoutAddress(coverHolder), payoutAddress,
+      await mr.getClaimPayoutAddress(coverHolder),
+      payoutAddress,
       'should have set the claim payout address',
     );
 
@@ -207,10 +202,7 @@ describe('send claim payout to the payout address', function () {
     assert(voteStatusAfter.eqn(0), 'voting should not be closed');
 
     const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
-    assert.strictEqual(
-      claimStatusCA.toNumber(), 4,
-      'claim status should be 4 (ca consensus not reached, pending mv)',
-    );
+    assert.strictEqual(claimStatusCA.toNumber(), 4, 'claim status should be 4 (ca consensus not reached, pending mv)');
 
     const minVotingTime = await cd.minVotingTime();
     await time.increase(minVotingTime.addn(1));
@@ -218,7 +210,8 @@ describe('send claim payout to the payout address', function () {
 
     const { statno: claimStatusMV } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(
-      claimStatusMV.toNumber(), 14,
+      claimStatusMV.toNumber(),
+      14,
       'claim status should be 14 (ca consensus not reached, pending mv)',
     );
 
@@ -230,15 +223,15 @@ describe('send claim payout to the payout address', function () {
   });
 
   it('[A3, status: 0, 4, 10, 14] CA no consensus (accept), MV min not reached, use CA result', async function () {
-
-    const { cd, cl, qd, mr, master, cr } = this.contracts;
+    const { cd, cl, qd, mr, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
     const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
 
     await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
     assert.strictEqual(
-      await mr.getClaimPayoutAddress(coverHolder), payoutAddress,
+      await mr.getClaimPayoutAddress(coverHolder),
+      payoutAddress,
       'should have set the claim payout address',
     );
 
@@ -260,19 +253,13 @@ describe('send claim payout to the payout address', function () {
     assert(voteStatusAfter.eqn(0), 'voting should not be closed');
 
     const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
-    assert.strictEqual(
-      claimStatusCA.toNumber(), 4,
-      'claim status should be 4 (ca consensus not reached, pending mv)',
-    );
+    assert.strictEqual(claimStatusCA.toNumber(), 4, 'claim status should be 4 (ca consensus not reached, pending mv)');
 
     await time.increase(maxVotingTime.addn(1));
     await cr.closeClaim(claimId); // trigger changeClaimStatus
 
     const { statno: claimStatusMV } = await cd.getClaimStatusNumber(claimId);
-    assert.strictEqual(
-      claimStatusMV.toNumber(), 14,
-      'claim status should be 14 (payout done)',
-    );
+    assert.strictEqual(claimStatusMV.toNumber(), 14, 'claim status should be 14 (payout done)');
 
     const balanceAfter = toBN(await web3.eth.getBalance(payoutAddress));
     const expectedPayout = ether(cover.amount.toString());
@@ -281,15 +268,13 @@ describe('send claim payout to the payout address', function () {
     assert(actualPayout.eq(expectedPayout), 'should have transfered the cover amount');
   });
 
+  // eslint-disable-next-line max-len
   it('[A1, status: 0, 7, 12, 13] CA accept, closed with closeClaim(), claim payout fails with status 12 and goes to status 13 after 60 retries', async function () {
-
-    const { cd, cl, qd, mr, master, dai, cr } = this.contracts;
+    const { cd, cl, qd, mr, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
     const rejecter = await EtherRejecter.new();
-
     const payoutAddress = rejecter.address;
-    const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
 
     await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
     assert.strictEqual(

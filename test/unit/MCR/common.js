@@ -4,8 +4,7 @@ const { hex } = require('../utils').helpers;
 
 const MAX_PERCENTAGE_ADJUSTMENT = web3.utils.toBN(100);
 
-async function initMCR (params) {
-
+async function initMCR(params) {
   const {
     mcrValue,
     mcrFloor,

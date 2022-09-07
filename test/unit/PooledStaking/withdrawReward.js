@@ -13,7 +13,7 @@ const {
 
 const firstContract = '0x0000000000000000000000000000000000000001';
 
-async function fundAndApprove (token, tokenController, staking, amount, member) {
+async function fundAndApprove(token, tokenController, staking, amount, member) {
   const maxExposure = '2';
   await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
 
@@ -22,7 +22,6 @@ async function fundAndApprove (token, tokenController, staking, amount, member) 
 }
 
 describe('withdrawReward', function () {
-
   it("should properly move tokens from the PooledStaking contract to the member's address", async function () {
     const { token, tokenController, staking } = this;
 
@@ -94,5 +93,4 @@ describe('withdrawReward', function () {
     const finalReward = await staking.stakerReward(memberOne);
     assert(finalReward.eq(ether('0')));
   });
-
 });

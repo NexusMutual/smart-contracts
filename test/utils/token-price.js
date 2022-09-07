@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+
 const Decimal = require('decimal.js');
 const { toBN } = require('web3').utils;
 
@@ -18,36 +20,34 @@ const sellSpread = Decimal(0.025);
  * @param mcrEth value in wei
  * @returns {{tokens: Decimal, price: Decimal | *}}
  */
-function calculatePurchasedTokensWithFullIntegral (initialAssetValue, deltaEth, mcrEth) {
-
+function calculatePurchasedTokensWithFullIntegral(initialAssetValue, deltaEth, mcrEth) {
   const initialAssetValueDecimal = Decimal(initialAssetValue.toString()).div(1e18);
   const deltaEthDecimal = Decimal(deltaEth.toString()).div(1e18);
   const mcrEthDecimal = Decimal(mcrEth.toString()).div(1e18);
   const nextAssetValue = initialAssetValueDecimal.add(deltaEthDecimal);
   const m = Decimal(1).div(C.mul(mcrEthDecimal.pow(3)));
-  function integral (x) {
+  function integral(x) {
     x = Decimal(x);
-    const numeratorTerm1 =
-      Decimal(2).sqrt()
-        .mul(x)
-        .mul((A.mul(m)).pow(1 / 4))
-        .div((A.sqrt().add(m.sqrt().mul(x.pow(2)))))
-        .atanh();
+    const numeratorTerm1 = Decimal(2)
+      .sqrt()
+      .mul(x)
+      .mul(A.mul(m).pow(1 / 4))
+      .div(A.sqrt().add(m.sqrt().mul(x.pow(2))))
+      .atanh();
 
-    const numeratorTerm2 =
-      Decimal(1)
-        .sub(Decimal(2).sqrt().mul(x).mul((m.div(A)).pow(1 / 4)))
-        .atan();
+    const numeratorTerm2 = Decimal(1)
+      .sub(
+        Decimal(2)
+          .sqrt()
+          .mul(x)
+          .mul(m.div(A).pow(1 / 4)),
+      )
+      .atan();
 
-    const numeratorTerm3 =
-      Decimal(2).sqrt()
-        .mul(x)
-        .mul((m.div(A)).pow(0.25))
-        .add(1)
-        .atan();
+    const numeratorTerm3 = Decimal(2).sqrt().mul(x).mul(m.div(A).pow(0.25)).add(1).atan();
 
     const numerator = numeratorTerm1.sub(numeratorTerm2).add(numeratorTerm3);
-    const denominator = Decimal(2).mul(Decimal(2).sqrt()).mul((A.pow(3).mul(m)).pow(0.25));
+    const denominator = Decimal(2).mul(Decimal(2).sqrt()).mul(A.pow(3).mul(m).pow(0.25));
     const result = numerator.div(denominator);
     return result;
   }
@@ -66,8 +66,10 @@ function calculatePurchasedTokensWithFullIntegral (initialAssetValue, deltaEth, 
  * @param mcrEth
  * @returns {Decimal}
  */
-function getTokenSpotPrice (totalAssetValue, mcrEth) {
-  const mcrRatio = Decimal(totalAssetValue.toString()).div(Decimal(mcrEth.toString())).toPrecision(5, Decimal.ROUND_DOWN);
+function getTokenSpotPrice(totalAssetValue, mcrEth) {
+  const mcrRatio = Decimal(totalAssetValue.toString())
+    .div(Decimal(mcrEth.toString()))
+    .toPrecision(5, Decimal.ROUND_DOWN);
   const mcrEthDecimal = Decimal(mcrEth.toString()).div(1e18);
 
   const mcrRatioRaisedToExponent = Decimal(mcrRatio).pow(tokenExponent);
@@ -80,7 +82,7 @@ function getTokenSpotPrice (totalAssetValue, mcrEth) {
  * @param mcrEth
  * @returns {BN}
  */
-function calculateMCRRatio (totalAssetValue, mcrEth) {
+function calculateMCRRatio(totalAssetValue, mcrEth) {
   const MCR_RATIO_DECIMALS = 4;
   return totalAssetValue.mul(toBN(10 ** MCR_RATIO_DECIMALS)).div(mcrEth);
 }
@@ -93,15 +95,18 @@ function calculateMCRRatio (totalAssetValue, mcrEth) {
  * @param tokenValue
  * @returns {{relativeError: Decimal, expectedIdealTokenValue: Decimal}}
  */
-function calculateNXMForEthRelativeError (totalAssetValue, buyValue, mcrEth, tokenValue) {
+function calculateNXMForEthRelativeError(totalAssetValue, buyValue, mcrEth, tokenValue) {
   const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
-    totalAssetValue, buyValue, mcrEth,
+    totalAssetValue,
+    buyValue,
+    mcrEth,
   );
   const tokensReceived = Decimal(tokenValue.toString());
   const relativeError = calculateRelativeError(tokensReceived, expectedIdealTokenValue);
 
   return {
-    relativeError, expectedIdealTokenValue,
+    relativeError,
+    expectedIdealTokenValue,
   };
 }
 
@@ -111,7 +116,7 @@ function calculateNXMForEthRelativeError (totalAssetValue, buyValue, mcrEth, tok
  * @param ethOut
  * @returns {{expectedEthOut: Decimal, relativeError: Decimal}}
  */
-function calculateEthForNXMRelativeError (buyValue, ethOut) {
+function calculateEthForNXMRelativeError(buyValue, ethOut) {
   const expectedEthOut = Decimal(buyValue.toString()).mul(Decimal(1).sub(sellSpread));
 
   const relativeError = calculateRelativeError(ethOut, expectedEthOut);
@@ -127,7 +132,7 @@ function calculateEthForNXMRelativeError (buyValue, ethOut) {
  * @param expected { number | string | BN | Decimal }
  * @returns {Decimal}
  */
-function calculateRelativeError (actual, expected) {
+function calculateRelativeError(actual, expected) {
   const actualDecimal = toDecimal(actual);
   const expectedDecimal = toDecimal(expected);
   return expectedDecimal.sub(actualDecimal).abs().div(expectedDecimal);
@@ -139,11 +144,11 @@ function calculateRelativeError (actual, expected) {
  * @param percentage
  * @returns {BN}
  */
-function percentageBN (x, percentage) {
+function percentageBN(x, percentage) {
   return x.muln(percentage).divn(100);
 }
 
-function toDecimal (x) {
+function toDecimal(x) {
   return new Decimal(x.toString());
 }
 
@@ -157,7 +162,6 @@ module.exports = {
   calculateMCRRatio,
   calculateNXMForEthRelativeError,
   calculateEthForNXMRelativeError,
-  calculateRelativeError,
   percentageBN,
   toDecimal,
 };

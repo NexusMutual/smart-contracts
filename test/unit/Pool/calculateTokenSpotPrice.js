@@ -5,7 +5,6 @@ const { getTokenSpotPrice } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
 
 describe('calculateTokenSpotPrice', function () {
-
   it('calculates token spot price correctly', async function () {
     const { pool } = this;
 
@@ -32,7 +31,6 @@ describe('calculateTokenSpotPrice', function () {
   });
 
   it('should revert when mcrEth = 0', async function () {
-
     const { pool } = this;
     const mcrEth = ether('0');
     const totalAssetValue = ether('200000');

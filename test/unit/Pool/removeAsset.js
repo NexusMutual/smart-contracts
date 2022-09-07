@@ -1,13 +1,7 @@
 const { artifacts } = require('hardhat');
-const {
-  constants: { ZERO_ADDRESS },
-  ether,
-  expectRevert,
-} = require('@openzeppelin/test-helpers');
+const { ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const {
-  governanceContracts: [governance],
-} = require('../utils').accounts;
+const [governance] = require('../utils').accounts.governanceContracts;
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 

@@ -7,7 +7,7 @@ const { hex } = require('../utils').helpers;
 
 const { BN } = web3.utils;
 
-async function setup () {
+async function setup() {
   const MasterMock = artifacts.require('MasterMock');
   const TokenController = artifacts.require('TokenControllerMock');
   const TokenMock = artifacts.require('NXMTokenMock');

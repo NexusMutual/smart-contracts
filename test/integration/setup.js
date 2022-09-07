@@ -9,8 +9,6 @@ const { enrollMember } = require('./utils/enroll');
 const { BN } = web3.utils;
 const { getAccounts, stakingPoolManagers } = require('../utils').accounts;
 
-const { members } = getAccounts(accounts);
-
 // Convert web3 instances to ethers.js
 const web3ToEthers = (x, signers) => {
   const { contracts, rates } = x;
@@ -22,16 +20,16 @@ const web3ToEthers = (x, signers) => {
       .map(x => ({ val: new ethers.Contract(contracts[x].address, contracts[x].abi, accounts.defaultSender), key: x }))
       .reduce((acc, x) => ({ ...acc, [x.key]: x.val }), {}),
     rates: { daiToEthRate: parseEther(daiToEthRate.toString()), ethToDaiRate },
-    accounts: accounts,
+    accounts,
   };
 };
 
-async function setup () {
+async function setup() {
   // external
   const ERC20BlacklistableMock = artifacts.require('ERC20BlacklistableMock');
   const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
-  const Lido = artifacts.require('P1MockLido');
+  // const Lido = artifacts.require('P1MockLido');
   const ProductsV1 = artifacts.require('ProductsV1');
   const CoverMigrator = artifacts.require('CoverMigrator');
 
@@ -41,7 +39,7 @@ async function setup () {
   // const LegacyIncidents = artifacts.require('LegacyIncidents');
   // const LegacyClaimsData = artifacts.require('LegacyClaimsData');
   const LegacyClaimsReward = artifacts.require('LegacyClaimsReward');
-  const DisposableMCR = artifacts.require('DisposableMCR');
+  // const DisposableMCR = artifacts.require('DisposableMCR');
   const MCR = artifacts.require('MCR');
   const Pool = artifacts.require('Pool');
   const QuotationData = artifacts.require('LegacyQuotationData');
@@ -49,7 +47,7 @@ async function setup () {
   const SwapOperator = artifacts.require('CowSwapOperator');
   const CoverNFT = artifacts.require('CoverNFT');
   const Cover = artifacts.require('Cover');
-  const StakingPool = artifacts.require('StakingPool');
+  // const StakingPool = artifacts.require('StakingPool');
   const CoverUtilsLib = artifacts.require('CoverUtilsLib');
   const IntegrationMockStakingPool = artifacts.require('IntegrationMockStakingPool');
 
@@ -127,7 +125,7 @@ async function setup () {
     [18, 18],
   );
 
-  const lido = await Lido.new();
+  // const lido = await Lido.new();
 
   // proxy contracts
   const master = await deployProxy(DisposableNXMaster);
@@ -221,7 +219,6 @@ async function setup () {
   );
 
   await mr.setKycAuthAddress(ethersAccounts.defaultSender.address);
-
 
   await pc.initialize(mr.address);
 
@@ -331,7 +328,6 @@ async function setup () {
   await upgradeProxy(ic.address, IndividualClaims, [tk.address, coverNFT.address]);
   await upgradeProxy(yt.address, YieldTokenIncidents, [tk.address, coverNFT.address]);
   await upgradeProxy(as.address, Assessment, [master.address]);
-
 
   await upgradeProxy(cover.address, Cover, [
     qd.address,
@@ -444,23 +440,22 @@ async function setup () {
     ethToDaiRate,
   };
 
-
   this.contractType = contractType;
 
   this.withEthers = web3ToEthers(this, signers);
 
   await enrollMember(this.contracts, ethersAccounts.members, ethersAccounts.defaultSender);
 
-  const DEFAULT_POOL_FEE = '5'
+  const DEFAULT_POOL_FEE = '5';
 
   const DEFAULT_PRODUCT_INITIALIZATION = [
     {
       productId: 0,
       weight: 100,
       initialPrice: 1000,
-      targetPrice: 1000
-    }
-  ]
+      targetPrice: 1000,
+    },
+  ];
 
   for (let i = 0; i < 3; i++) {
     const tx = await this.withEthers.contracts.cover.createStakingPool(
@@ -472,13 +467,13 @@ async function setup () {
       '0', // depositAmount,
       '0', // trancheId
     );
-    const receipt = await tx.wait();
+
+    await tx.wait();
     const stakingPoolAddress = await cover.stakingPool(i);
     const stakingPoolInstance = await IntegrationMockStakingPool.at(stakingPoolAddress);
 
     this.contracts['stakingPool' + i] = stakingPoolInstance;
   }
-
 
   this.withEthers = web3ToEthers(this, signers);
 }

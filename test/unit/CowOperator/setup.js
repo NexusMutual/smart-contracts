@@ -10,7 +10,7 @@ const {
 // will be assigned by setup()
 const instances = {};
 
-async function setup () {
+async function setup() {
   const [owner, governance] = await ethers.getSigners();
 
   const MasterMock = await ethers.getContractFactory('MasterMock');

@@ -6,7 +6,7 @@ const { addIncident } = require('../utils/incidents');
 const { bnEqual } = require('../utils').helpers;
 const { daiCoverTemplate, ethCoverTemplate, buyCover } = require('./utils');
 const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
-const { toBN } = Web3.utils;
+const { toBN } = web3.utils;
 
 const [owner, coverHolder, member] = accounts;
 
@@ -14,7 +14,7 @@ const productId = daiCoverTemplate.contractAddress;
 let ybDAI;
 const EMPTY_DATA = web3.eth.abi.encodeParameters([], []);
 
-async function voteOnClaim ({ verdict, claimId, cd, cl, cr }) {
+async function voteOnClaim({ verdict, claimId, cd, cl, cr }) {
   await cl.submitCAVote(claimId, verdict, { from: member });
 
   const minVotingTime = await cd.minVotingTime();
@@ -36,7 +36,7 @@ describe('getPayoutOutcome', function () {
     await enrollClaimAssessor(this.contracts, [member]);
 
     const coverData = { ...ethCoverTemplate };
-    await buyCover({ ...this.contracts, coverData, coverHolder: coverHolder });
+    await buyCover({ ...this.contracts, coverData, coverHolder });
     const expectedCoverId = 1;
 
     await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder });
@@ -58,30 +58,18 @@ describe('getPayoutOutcome', function () {
     await buyCover({
       ...this.contracts,
       coverData: { ...daiCoverTemplate, asset: dai.address },
-      coverHolder: coverHolder,
+      coverHolder,
     });
 
     const incidentDate = await time.latest();
     const priceBefore = ether('2'); // 2 DAI per ybDAI
-    await addIncident(
-      this.contracts,
-      [owner],
-      productId,
-      incidentDate,
-      priceBefore,
-    );
+    await addIncident(this.contracts, [owner], productId, incidentDate, priceBefore);
 
     // partial amount of 99 ybDAI out of 500 ybDAI claimable
     const coverAmount = ether('99');
     const expectedCoverId = 1;
 
-    await gateway.claimTokens(
-      expectedCoverId,
-      0,
-      coverAmount,
-      ybDAI.address,
-      { from: coverHolder },
-    );
+    await gateway.claimTokens(expectedCoverId, 0, coverAmount, ybDAI.address, { from: coverHolder });
 
     const { amountPaid } = await gateway.getPayoutOutcome(1);
 

@@ -34,7 +34,7 @@ describe('withdrawRewards', function () {
     expect(stakerBalanceAfter).to.be.equal(stakerBalanceBefore.add(totalRewardInNXM));
   });
 
-  it('withdraws rewards only until the last finalized assessment when an unfinalized assessment follows', async function () {
+  it('withdraws rewards up to the last finalized assessment when an unfinalized assessment follows', async function () {
     const { nxm, assessment, individualClaims } = this.contracts;
     const [user] = this.accounts.members;
     const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
@@ -62,7 +62,7 @@ describe('withdrawRewards', function () {
     expect(balanceAfter).to.be.equal(balanceBefore.add(totalRewardInNXM));
   });
 
-  it("mints rewards pro-rated by the user's stake at vote time, to the total amount staked on that assessment", async function () {
+  it("mints rewards based on user's stake at vote time", async function () {
     const { nxm, assessment, individualClaims } = this.contracts;
     const [user1, user2, user3] = this.accounts.members;
     const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();

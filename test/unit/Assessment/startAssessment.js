@@ -54,11 +54,7 @@ describe('startAssessment', function () {
       const { assessmentDepositInETH, totalRewardInNXM } = await assessment.assessments(0);
       const { rewardRatio } = await individualClaims.config();
       expect(assessmentDepositInETH).to.be.equal(0);
-      expect(totalRewardInNXM).to.be.equal(
-        parseEther('100')
-          .mul(rewardRatio)
-          .div('10000'),
-      );
+      expect(totalRewardInNXM).to.be.equal(parseEther('100').mul(rewardRatio).div('10000'));
     }
 
     {
@@ -70,11 +66,7 @@ describe('startAssessment', function () {
       // For now being AB only, it doesn't require a deposit to submit yieldTokenIncidents
       expect(assessmentDepositInETH).to.be.equal(Zero);
       expect(totalRewardInNXM).to.be.equal(
-        activeCoverAmountInNXM
-          .mul(rewardRatio)
-          .div(10000)
-          .mul(expectedPayoutRatio)
-          .div(10000),
+        activeCoverAmountInNXM.mul(rewardRatio).div(10000).mul(expectedPayoutRatio).div(10000),
       );
     }
   });
@@ -90,11 +82,7 @@ describe('startAssessment', function () {
       const { assessmentDepositInETH, totalRewardInNXM } = await assessment.assessments(0);
       const { rewardRatio } = await individualClaims.config();
       expect(assessmentDepositInETH).to.be.equal(0);
-      expect(totalRewardInNXM).to.be.equal(
-        parseEther('100')
-          .mul(rewardRatio)
-          .div('10000'),
-      );
+      expect(totalRewardInNXM).to.be.equal(parseEther('100').mul(rewardRatio).div('10000'));
     }
 
     {
@@ -102,13 +90,10 @@ describe('startAssessment', function () {
       await yieldTokenIncidents.connect(AB).submitIncident(0, parseEther('1'), timestamp, activeCoverAmountInNXM);
       const { assessmentDepositInETH, totalRewardInNXM } = await assessment.assessments(1);
       const { rewardRatio, expectedPayoutRatio } = await yieldTokenIncidents.config();
-      expect(assessmentDepositInETH).to.be.equal(Zero); // For now AB doesn't require a deposit to submit yieldTokenIncidents
+      // For now AB doesn't require a deposit to submit yieldTokenIncidents
+      expect(assessmentDepositInETH).to.be.equal(Zero);
       expect(totalRewardInNXM).to.be.equal(
-        activeCoverAmountInNXM
-          .mul(rewardRatio)
-          .div(10000)
-          .mul(expectedPayoutRatio)
-          .div(10000),
+        activeCoverAmountInNXM.mul(rewardRatio).div(10000).mul(expectedPayoutRatio).div(10000),
       );
     }
   });

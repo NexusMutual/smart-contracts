@@ -1,8 +1,6 @@
 const { assert } = require('chai');
-const { ether, time, expectRevert } = require('@openzeppelin/test-helpers');
+const { ether, time } = require('@openzeppelin/test-helpers');
 const { initMCR, MAX_PERCENTAGE_ADJUSTMENT } = require('./common');
-
-const accounts = require('../utils').accounts;
 
 const DEFAULT_MCR_PARAMS = {
   mcrValue: ether('150000'),
@@ -16,7 +14,6 @@ const DEFAULT_MCR_PARAMS = {
 };
 
 describe('getMCR', function () {
-
   it('should return the stored MCR value if MCR == desiredMCR', async function () {
     const { master } = this;
 
@@ -173,7 +170,6 @@ describe('getMCR', function () {
     const newestMCR = await mcr.getMCR();
 
     assert.equal(newestMCR.toString(), desiredMCR.toString());
-
   });
 
   it('increases MCR by 1% if desiredMCR is 2% higher than current MCR', async function () {

@@ -3,8 +3,8 @@ const { ether, time, expectRevert } = require('@openzeppelin/test-helpers');
 
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { buyCover, ethCoverTemplate, daiCoverTemplate, getBuyCoverDataParameter, voteOnClaim } = require('./utils');
-const { Assets: { ETH } } = require('../utils').constants;
-const { toBN } = Web3.utils;
+const { ETH } = require('../utils').constants.Assets;
+const { toBN } = web3.utils;
 
 const EtherRejecter = artifacts.require('EtherRejecter');
 
@@ -19,7 +19,6 @@ const [, member1, member2] = accounts;
 const EMPTY_DATA = web3.eth.abi.encodeParameters([], []);
 
 describe('getters', function () {
-
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2]);
     await enrollClaimAssessor(this.contracts, [member2]);
@@ -35,7 +34,6 @@ describe('getters', function () {
   });
 
   describe('getCoverPrice', function () {
-
     it('retrieves the signed quote price', async function () {
       const { gateway } = this.contracts;
       const coverData = { ...ethCoverTemplate };
@@ -57,7 +55,6 @@ describe('getters', function () {
   });
 
   describe('getPayoutOutcome', function () {
-
     it('returns the payout outcome for a cover with a newly opened claim', async function () {
       const { gateway } = this.contracts;
       const member = member1;
@@ -256,9 +253,7 @@ describe('getters', function () {
   });
 
   describe('getClaimCoverId', async function () {
-
     it('returns cover data', async function () {
-
       const { gateway, cl } = this.contracts;
       const member = member1;
       const coverData = { ...ethCoverTemplate };
@@ -276,6 +271,5 @@ describe('getters', function () {
       const coverId = await gateway.getClaimCoverId(expectedClaimId);
       assert.equal(coverId.toString(), expectedCoverId.toString());
     });
-
   });
 });

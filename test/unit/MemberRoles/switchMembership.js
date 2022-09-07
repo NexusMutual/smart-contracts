@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { Role } = require('../utils').constants;
+const { expect } = require('chai');
 
 describe('switchMembership', function () {
   it('grants the member role to the new address', async function () {

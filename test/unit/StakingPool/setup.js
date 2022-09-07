@@ -1,26 +1,19 @@
 const { ethers } = require('hardhat');
-const { getContractAddress } = require('@ethersproject/address');
 const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
-const { hexlify, arrayify, hexValue, hexZeroPad, parseEther } = ethers.utils;
-const { BigNumber } = ethers;
+const { parseEther } = ethers.utils;
 const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../utils').constants;
-const { hex, zeroPadRight } = require('../utils').helpers;
+const { zeroPadRight } = require('../utils').helpers;
 
-async function setup () {
+async function setup() {
   const MasterMock = await ethers.getContractFactory('MasterMock');
-  const Pool = await ethers.getContractFactory('CoverMockPool');
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
-  const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
-  const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
   const QuotationData = await ethers.getContractFactory('CoverMockQuotationData');
   const MemberRolesMock = await ethers.getContractFactory('MemberRolesMock');
   const TokenController = await ethers.getContractFactory('TokenControllerMock');
   const NXMToken = await ethers.getContractFactory('NXMTokenMock');
   const MCR = await ethers.getContractFactory('CoverMockMCR');
   const StakingPool = await ethers.getContractFactory('StakingPool');
-
-  const [owner] = await ethers.getSigners();
 
   const master = await MasterMock.deploy();
   await master.deployed();

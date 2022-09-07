@@ -1,7 +1,7 @@
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { ether, expectRevert } = require('@openzeppelin/test-helpers');
-const { getTokenSpotPrice, calculateMCRRatio } = require('../utils').tokenPrice;
+const { getTokenSpotPrice } = require('../utils').tokenPrice;
 const { accounts, constants } = require('../utils');
 const { PoolAsset } = constants;
 
@@ -26,7 +26,7 @@ describe('getTokenPrice', function () {
   });
 
   it('calculates token price correctly in DAI', async function () {
-    const { pool, chainlinkDAI, dai, mcr } = this;
+    const { pool, chainlinkDAI, mcr } = this;
 
     const initialAssetValue = new BN('210959924071154460525457');
     const mcrEth = new BN('162424730681679380000000');
@@ -45,7 +45,7 @@ describe('getTokenPrice', function () {
   });
 
   it('reverts if asset is unknown', async function () {
-    const { pool, mcr, chainlinkDAI, dai } = this;
+    const { pool, mcr, chainlinkDAI } = this;
 
     const initialAssetValue = new BN('210959924071154460525457');
     const mcrEth = new BN('162424730681679380000000');

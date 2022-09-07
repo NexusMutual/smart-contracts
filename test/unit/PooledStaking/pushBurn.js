@@ -15,21 +15,19 @@ const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
-async function fundAndStake (token, tokenController, staking, amount, contract, member) {
+async function fundAndStake(token, tokenController, staking, amount, contract, member) {
   await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(tokenController.address, amount, { from: member });
   await staking.depositAndStake(amount, [contract], [amount], { from: member });
 }
 
-async function setLockTime (staking, lockTime) {
+async function setLockTime(staking, lockTime) {
   return staking.updateUintParameters(StakingUintParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
 describe('pushBurn', function () {
-
   it('should revert when called by non internal contract', async function () {
-
     const { master, staking } = this;
 
     assert.strictEqual(await master.isInternal(nonInternal), false);
@@ -41,7 +39,6 @@ describe('pushBurn', function () {
   });
 
   it('should revert when called with pending burns', async function () {
-
     const { token, tokenController, staking } = this;
 
     // Set parameters
@@ -64,7 +61,6 @@ describe('pushBurn', function () {
   });
 
   it('should not revert when called with pending unstake requests', async function () {
-
     const { token, tokenController, staking } = this;
 
     // Set parameters
@@ -91,7 +87,6 @@ describe('pushBurn', function () {
   });
 
   it('should update the burned amount', async function () {
-
     const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
     await fundAndStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
@@ -104,7 +99,6 @@ describe('pushBurn', function () {
   });
 
   it('should update the burn timestamp ', async function () {
-
     const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
     await fundAndStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
@@ -117,7 +111,6 @@ describe('pushBurn', function () {
   });
 
   it('should update the burned contract', async function () {
-
     const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
     await fundAndStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
@@ -129,7 +122,6 @@ describe('pushBurn', function () {
   });
 
   it('should emit BurnRequested event', async function () {
-
     const { token, tokenController, staking } = this;
 
     // Set parameters
@@ -149,7 +141,6 @@ describe('pushBurn', function () {
   });
 
   it('should remove and re-add 0-account stakers', async function () {
-
     const { token, tokenController, staking } = this;
 
     await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
@@ -164,12 +155,7 @@ describe('pushBurn', function () {
       const stake = stakes[member];
       await token.transfer(member, ether(stake.amount));
       await token.approve(tokenController.address, ether(stake.amount), { from: member });
-      await staking.depositAndStake(
-        ether(stake.amount),
-        stake.on,
-        stake.amounts.map(ether),
-        { from: member },
-      );
+      await staking.depositAndStake(ether(stake.amount), stake.on, stake.amounts.map(ether), { from: member });
     }
 
     const expectedFirstContractStake = ether('40');
@@ -199,7 +185,9 @@ describe('pushBurn', function () {
     assert.deepEqual(
       secondTestStakers,
       expectedSecondTestStakers,
-      `expected initial stakers to be "${expectedSecondTestStakers.join(',')}" but found "${secondTestStakers.join(',')}"`,
+      `expected initial stakers to be "${expectedSecondTestStakers.join(',')}" but found "${secondTestStakers.join(
+        ',',
+      )}"`,
     );
 
     // push a small burn on secondContract and expect firstStaker to be "removed
@@ -231,5 +219,4 @@ describe('pushBurn', function () {
       `expected initial stakers to be "${newExpectedStakers.join(',')}" but found "${newStakers.join(',')}"`,
     );
   });
-
 });

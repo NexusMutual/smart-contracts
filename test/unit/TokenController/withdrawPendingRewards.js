@@ -1,6 +1,3 @@
-const { ethers } = require('hardhat');
-const { Role } = require('../utils').constants;
-
 // [todo]
 describe.skip('withdrawPendingRewards', function () {
   it('withdraws assessment rewards when fromAssessment param is true', {});

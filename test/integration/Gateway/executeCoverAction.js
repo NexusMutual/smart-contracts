@@ -6,7 +6,6 @@ const { buyCover, ethCoverTemplate } = require('./utils');
 const [, member1] = accounts;
 
 describe('executeCoverAction', function () {
-
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1]);
   });

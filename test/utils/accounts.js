@@ -31,7 +31,7 @@ const getAccounts = accounts => {
     governanceContracts,
     stakingPoolManagers,
     generalPurpose,
-    emergencyAdmin
+    emergencyAdmin,
   };
 };
 

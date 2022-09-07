@@ -2,12 +2,11 @@ const { contracts, makeWrongValue } = require('./setup');
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { domain: makeDomain, computeOrderUid } = require('@cowprotocol/contracts');
+
 const { setEtherBalance, setNextBlockTime } = require('../../utils/evm');
 const { hex } = require('../utils').helpers;
 
-const {
-  utils: { parseEther, hexZeroPad, keccak256, toUtf8Bytes, hexlify, randomBytes },
-} = ethers;
+const { parseEther, hexZeroPad, keccak256, toUtf8Bytes, hexlify, randomBytes } = ethers.utils;
 
 describe('placeOrder', function () {
   let controller, governance;
@@ -260,13 +259,7 @@ describe('placeOrder', function () {
       const { newContractOrder, newOrderUID } = await setupSellDaiForEth({ sellAmount, feeAmount, buyAmount });
 
       // Set balance so that balance - totalAmountOut is 1 wei below asset minAmount
-      await dai.setBalance(
-        pool.address,
-        daiMinAmount
-          .add(sellAmount)
-          .add(feeAmount)
-          .sub(1),
-      );
+      await dai.setBalance(pool.address, daiMinAmount.add(sellAmount).add(feeAmount).sub(1));
       await expect(swapOperator.placeOrder(newContractOrder, newOrderUID)).to.be.revertedWith(
         'SwapOp: swap brings sellToken below min',
       );
@@ -285,13 +278,7 @@ describe('placeOrder', function () {
       const { newContractOrder, newOrderUID } = await setupSellDaiForEth({ sellAmount, feeAmount, buyAmount });
 
       // Set balance so that balance - totalAmountOut is 1 wei above asset maxAmount, should succeed
-      await dai.setBalance(
-        pool.address,
-        daiMaxAmount
-          .add(sellAmount)
-          .add(feeAmount)
-          .add(1),
-      );
+      await dai.setBalance(pool.address, daiMaxAmount.add(sellAmount).add(feeAmount).add(1));
       await swapOperator.placeOrder(newContractOrder, newOrderUID);
     });
   });
@@ -517,7 +504,8 @@ describe('placeOrder', function () {
       });
 
       it('takes slippage into account', async function () {
-        await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100, true); // 1% slippage
+        // 1% slippage
+        await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100, true);
 
         const newOrder = {
           ...order,
@@ -565,15 +553,13 @@ describe('placeOrder', function () {
       });
 
       it('takes slippage into account', async function () {
-        await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100, true); // 1% slippage
+        // 1% slippage
+        await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100, true);
 
         let { newOrder, newContractOrder, newOrderUID } = await setupSellDaiForEth();
 
         // Set buyAmount to be (oracle amount * 0.99) - 1 wei
-        newOrder.buyAmount = newOrder.buyAmount
-          .mul(99)
-          .div(100)
-          .sub(1);
+        newOrder.buyAmount = newOrder.buyAmount.mul(99).div(100).sub(1);
         newContractOrder = makeContractOrder(newOrder);
         newOrderUID = computeOrderUid(domain, newOrder, newOrder.receiver);
 

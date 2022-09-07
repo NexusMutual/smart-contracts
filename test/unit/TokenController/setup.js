@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { getAccounts } = require('../../utils/accounts');
 const { hex } = require('../utils').helpers;
 
-async function setup () {
+async function setup() {
   const TokenController = await ethers.getContractFactory('TokenController');
   const tokenController = await TokenController.deploy(
     '0x0000000000000000000000000000000000000000',

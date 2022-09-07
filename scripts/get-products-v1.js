@@ -1,7 +1,8 @@
 require('dotenv').config();
 const fs = require('fs');
+const path = require('path');
 
-const outputDir = `${__dirname}/v2-migration/output/`;
+const outputDir = path.join(__dirname, 'v2-migration/output');
 const getProductsContract = products => `// SPDX-License-Identifier: GPL-3.0-only
 
 pragma solidity >=0.5.0;
@@ -10,19 +11,23 @@ import "../../interfaces/IProductsV1.sol";
 
 contract ProductsV1 is IProductsV1 {
   function getNewProductId(address legacyProductId) external pure override returns (uint) {
-    ${products.map(p => `
+    ${products
+      .map(
+        p => `
     // Product: ${p.name}
     // Type: ${p.type}
     if (legacyProductId == ${p.legacyProductId}) {
       return ${p.productId};
-    }\n`).join('')}
+    }\n`,
+      )
+      .join('')}
     revert("Invalid product!");
   }
 }
 `;
 
 const main = async () => {
-  const products = require(`${__dirname}/v2-migration/input/contracts.json`);
+  const products = path.join(__dirname, 'v2-migration/input/contracts.json');
   const deprecatedV1Products = Object.keys(products)
     .filter(k => products[k].deprecated)
     .map((k, i) => ({ ...products[k], productId: i, legacyProductId: k }));
@@ -85,7 +90,9 @@ const main = async () => {
     ),
     'utf8',
   );
-  fs.writeFileSync(`${__dirname}/../contracts/modules/cover/ProductsV1.sol`, ProductsV1, 'utf8');
+
+  const contractPath = path.join(__dirname, '../contracts/modules/cover/ProductsV1.sol');
+  fs.writeFileSync(contractPath, ProductsV1, 'utf8');
 };
 
 if (require.main === module) {

@@ -1,17 +1,14 @@
-const { artifacts } = require('hardhat');
-const { constants: { ZERO_ADDRESS }, ether, expectRevert } = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
+const {
+  constants: { ZERO_ADDRESS },
+  expectRevert,
+} = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
 
 describe('upgradeMultipleContracts', function () {
-
   it('reverts when not called by governance', async function () {
     const { master } = this;
 
-    await expectRevert(
-      master.upgradeMultipleContracts([], []),
-      'Not authorized',
-    );
+    await expectRevert(master.upgradeMultipleContracts([], []), 'Not authorized');
   });
 
   it('reverts when contract code does not exist', async function () {

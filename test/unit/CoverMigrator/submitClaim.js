@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 
 describe('submitClaim', function () {
-  it('calls migrateCoverFromOwner with the correct parameters when a legacy coverId is provided as a parameter', async function () {
+  it('calls migrateCoverFromOwner with the correct parameters when a legacy coverId is provided', async function () {
     const { coverMigrator, cover, distributor } = this.contracts;
     const [coverOwner] = this.accounts.members;
 

@@ -4,19 +4,15 @@ const { assert } = require('chai');
 const Decimal = require('decimal.js');
 const { toBN } = web3.utils;
 
-const {
-  calculateEthForNXMRelativeError,
-  calculateNXMForEthRelativeError,
-  calculateMCRRatio,
-  getTokenSpotPrice,
-} = require('../utils').tokenPrice;
+const { calculateEthForNXMRelativeError, calculateNXMForEthRelativeError, getTokenSpotPrice } =
+  require('../utils').tokenPrice;
 
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { buyCover } = require('../utils').buyCover;
 const { hex } = require('../utils').helpers;
 const { PoolAsset } = require('../utils').constants;
 
-const [, member1, member2, member3, member4, member5, coverHolder, nonMember1, payoutAddress] = accounts;
+const [, member1, member2, member3, member4, member5, coverHolder, nonMember1] = accounts;
 
 const coverTemplate = {
   amount: 1, // 1 eth
@@ -45,7 +41,7 @@ describe('Token price functions', function () {
   });
 
   it('getTokenPrice returns spot price for all assets', async function () {
-    const { p1: pool, dai, pd: poolData, mcr } = this.contracts;
+    const { p1: pool, mcr } = this.contracts;
     const { ethToDaiRate } = this.rates;
 
     const ethTokenPrice = await pool.getTokenPrice(PoolAsset.ETH);
@@ -90,7 +86,7 @@ describe('Token price functions', function () {
   });
 
   it('buyNXM mints tokens for member in exchange of ETH', async function () {
-    const { tk: token, p1: pool, pd: poolData, mcr } = this.contracts;
+    const { tk: token, p1: pool, mcr } = this.contracts;
 
     const buyValue = ether('1000');
     const expectedTokensReceived = await pool.getNXMForEth(buyValue);
@@ -153,7 +149,6 @@ describe('Token price functions', function () {
   it('buyNXM token price reflects the latest lower MCR value (lower MCReth -> higher price)', async function () {
     const { p1: pool, mcr } = this.contracts;
 
-    const ETH = await pool.ETH();
     const buyValue = ether('1000');
     const expectedNXMOutPreMCRPosting = await pool.getNXMForEth(buyValue);
     const spotTokenPricePreMCRPosting = await pool.getTokenPrice(PoolAsset.ETH);
@@ -164,7 +159,7 @@ describe('Token price functions', function () {
     await time.increase(minUpdateTime.addn(1));
 
     // perform a buy with a negligible amount of ETH
-    const tx = await pool.buyNXM('0', { from: member1, value: '1' });
+    await pool.buyNXM('0', { from: member1, value: '1' });
     // let time pass so that mcr decreases towards desired MCR
     await time.increase(time.duration.hours(6));
 
@@ -247,7 +242,7 @@ describe('Token price functions', function () {
 
   it.skip('sellNXM reverts for member if tokens are locked for member vote', async function () {
     // [todo] Use new contracts
-    const { cd: claimsData, cl: claims, qd: quotationData, p1: pool, tk: token, master, cr } = this.contracts;
+    const { cd: claimsData, cl: claims, qd: quotationData, p1: pool, tk: token, cr } = this.contracts;
     const cover = { ...coverTemplate };
     await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
 
@@ -284,9 +279,10 @@ describe('Token price functions', function () {
     await cr.closeClaim(claimId);
   });
 
+  // eslint-disable-next-line max-len
   it.skip('computes token price correctly to decide sum of locked tokens value > 10 * sumAssured and close vote immediately', async function () {
     // [todo] Use new contracts
-    const { cd, cl, qd, mr, master, p1, dai, cr } = this.contracts;
+    const { cd, cl, qd, p1, cr } = this.contracts;
 
     const coverUnitAmount = 28;
     const coverAmount = ether(coverUnitAmount.toString());
@@ -296,19 +292,8 @@ describe('Token price functions', function () {
     await enrollClaimAssessor(this.contracts, [member1, member2, member3], { lockTokens });
 
     const tokenPrice = await p1.getTokenPrice(PoolAsset.ETH);
-    assert(
-      tokenPrice
-        .mul(lockTokens)
-        .div(toBN((1e18).toString()))
-        .lt(coverAmount.muln(10)),
-    );
-    assert(
-      tokenPrice
-        .mul(lockTokens)
-        .div(toBN((1e18).toString()))
-        .muln(2)
-        .gt(coverAmount.muln(10)),
-    );
+    assert(tokenPrice.mul(lockTokens).div(toBN((1e18).toString())).lt(coverAmount.muln(10)));
+    assert(tokenPrice.mul(lockTokens).div(toBN((1e18).toString())).muln(2).gt(coverAmount.muln(10)));
 
     await buyCover({ ...this.contracts, cover, coverHolder });
     const [coverId] = await qd.getAllCoversOfUser(coverHolder);
@@ -340,9 +325,10 @@ describe('Token price functions', function () {
     assert.strictEqual(claimStatusCA.toNumber(), 14, 'claim status should be 14 (payout done)');
   });
 
+  // eslint-disable-next-line max-len
   it.skip('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured and value < 10 * sumAssured for CA vote and allow closing after maxVotingTime', async function () {
     // [todo] Use new contracts
-    const { cd, cl, qd, mr, master, p1, dai, cr } = this.contracts;
+    const { cd, cl, qd, p1, cr } = this.contracts;
 
     const coverUnitAmount = 28;
     const coverAmount = ether(coverUnitAmount.toString());
@@ -353,17 +339,11 @@ describe('Token price functions', function () {
 
     const tokenPrice = await p1.getTokenPrice(PoolAsset.ETH);
     assert(
-      tokenPrice
-        .mul(lockTokens)
-        .div(toBN((1e18).toString()))
-        .gt(coverAmount.muln(5)),
+      tokenPrice.mul(lockTokens).div(toBN((1e18).toString())).gt(coverAmount.muln(5)),
       'CA lockedTokens < 5 * sumAssured',
     );
     assert(
-      tokenPrice
-        .mul(lockTokens)
-        .div(toBN((1e18).toString()))
-        .lt(coverAmount.muln(10)),
+      tokenPrice.mul(lockTokens).div(toBN((1e18).toString())).lt(coverAmount.muln(10)),
       'CA lockedTokens < 10 * sumAssured',
     );
 
@@ -388,9 +368,10 @@ describe('Token price functions', function () {
     assert.strictEqual(claimStatusCA.toNumber(), 14, 'claim status should be 14 (payout done)');
   });
 
+  // eslint-disable-next-line max-len
   it.skip('computes token price correctly to decide sum of locked tokens value < 5 * sumAssured for CA vote and go to member vote', async function () {
     // [todo] Use new contracts
-    const { cd, cl, qd, mr, master, p1, dai, cr } = this.contracts;
+    const { cd, cl, qd, p1, cr } = this.contracts;
 
     const coverUnitAmount = 28;
     const coverAmount = ether(coverUnitAmount.toString());
@@ -401,10 +382,7 @@ describe('Token price functions', function () {
 
     const tokenPrice = await p1.getTokenPrice(PoolAsset.ETH);
     assert(
-      tokenPrice
-        .mul(lockTokens)
-        .div(toBN((1e18).toString()))
-        .lt(coverAmount.muln(5)),
+      tokenPrice.mul(lockTokens).div(toBN((1e18).toString())).lt(coverAmount.muln(5)),
       'CA lockedTokens > 5 * sumAssured',
     );
 
@@ -433,9 +411,10 @@ describe('Token price functions', function () {
     );
   });
 
+  // eslint-disable-next-line max-len
   it.skip('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured for MV vote', async function () {
     // [todo] Use new contracts
-    const { cd, cl, qd, mr, master, p1, tk, cr } = this.contracts;
+    const { cd, cl, qd, p1, tk, cr } = this.contracts;
     const coverUnitAmount = 28;
     const coverAmount = ether(coverUnitAmount.toString());
     const cover = { ...coverTemplate, amount: coverUnitAmount };
@@ -446,10 +425,7 @@ describe('Token price functions', function () {
     const tokenPrice = await p1.getTokenPrice(PoolAsset.ETH);
     const memberBalance = await tk.balanceOf(member4);
     assert(
-      tokenPrice
-        .mul(memberBalance)
-        .div(toBN((1e18).toString()))
-        .gt(coverAmount.muln(5)),
+      tokenPrice.mul(memberBalance).div(toBN((1e18).toString())).gt(coverAmount.muln(5)),
       'Balance of member < 5 * sumAssured',
     );
 
@@ -484,9 +460,10 @@ describe('Token price functions', function () {
     assert.strictEqual(claimStatusMV.toNumber(), 9, 'claim status should be 9 (ca consensus not reached, mv rejected)');
   });
 
+  // eslint-disable-next-line max-len
   it.skip('computes token price correctly to decide sum of locked tokens value < 5 * sumAssured for MV vote', async function () {
     // [todo] Use new contracts
-    const { cd, cl, qd, mr, master, p1, tk, cr } = this.contracts;
+    const { cd, cl, qd, p1, tk, cr } = this.contracts;
     const coverUnitAmount = 28;
     const coverAmount = ether(coverUnitAmount.toString());
     const cover = { ...coverTemplate, amount: coverUnitAmount };
@@ -497,10 +474,7 @@ describe('Token price functions', function () {
     const tokenPrice = await p1.getTokenPrice(PoolAsset.ETH);
     const memberBalance = await tk.balanceOf(member5);
     assert(
-      tokenPrice
-        .mul(memberBalance)
-        .div(toBN((1e18).toString()))
-        .lt(coverAmount.muln(5)),
+      tokenPrice.mul(memberBalance).div(toBN((1e18).toString())).lt(coverAmount.muln(5)),
       'Balance of member > 5 * sumAssured',
     );
 

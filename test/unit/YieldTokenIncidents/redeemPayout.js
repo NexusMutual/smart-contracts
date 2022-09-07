@@ -1,4 +1,4 @@
-const { ethers } = require('hardhat');
+const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
 
 const { daysToSeconds, setTime, ASSET, signPermit } = require('./helpers');
@@ -479,7 +479,7 @@ describe('redeemPayout', function () {
     ).to.be.revertedWith('Product id mismatch');
   });
 
-  it('transfers the deductible amount of the payout asset to the payoutAddress, according to the requested amount and priceBefore', async function () {
+  it('transfers payout asset amount to payoutAddress, as per requested amount and priceBefore', async function () {
     const { yieldTokenIncidents, assessment, cover, ybEth } = this.contracts;
     const [member1] = this.accounts.members;
     const [nonMember1, nonMember2] = this.accounts.nonMembers;

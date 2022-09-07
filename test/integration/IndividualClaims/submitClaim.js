@@ -1,3 +1,6 @@
+/* eslint-disable no-unused-vars */
+// TODO: implement tests and remove me ^
+
 const { accounts, web3 } = require('hardhat');
 const { expectEvent, expectRevert, ether, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
@@ -30,7 +33,5 @@ const coverTemplate = {
 };
 
 describe('submitClaim', function () {
-  it('submits claim and approves claim', async function () {
-
-  });
+  it('submits claim and approves claim', async function () {});
 });

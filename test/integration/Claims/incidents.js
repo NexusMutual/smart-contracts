@@ -196,9 +196,7 @@ describe.skip('incidents', function () {
     // sumAssured DAI = tokenAmount ybDAI @ priceBefore
     // 500 DAI  /  2 DAI/ybDAI  =  1000 ybDAI
     const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
-    const tokenAmount = ether('1')
-      .mul(sumAssured)
-      .div(priceBeforeDeductible);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
     const tokenAmountExcess = tokenAmount.addn(1);
 
     const incidentDate = coverStartDate.addn(1);
@@ -228,9 +226,7 @@ describe.skip('incidents', function () {
     // sumAssured DAI = tokenAmount ybDAI @ priceBefore
     // 500 DAI  /  2 DAI/ybDAI  =  1000 ybDAI
     const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
-    const tokenAmount = ether('1')
-      .mul(sumAssured)
-      .div(priceBeforeDeductible);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
@@ -259,9 +255,7 @@ describe.skip('incidents', function () {
     // sumAssured DAI = tokenAmount ybDAI @ priceBefore
     // 500 DAI  /  2 DAI/ybDAI  =  1000 ybDAI
     const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
-    const tokenAmount = ether('1')
-      .mul(sumAssured)
-      .div(priceBeforeDeductible);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
@@ -307,9 +301,7 @@ describe.skip('incidents', function () {
     // sumAssured DAI = tokenAmount ybDAI @ priceBefore
     // 500 DAI  /  2 DAI/ybDAI  =  1000 ybDAI
     const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
-    const tokenAmount = ether('1')
-      .mul(sumAssured)
-      .div(priceBeforeDeductible);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
@@ -339,9 +331,7 @@ describe.skip('incidents', function () {
     // sumAssured DAI = tokenAmount ybDAI @ priceBefore
     // 500 DAI  /  2 DAI/ybDAI  =  1000 ybDAI
     const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
-    const tokenAmount = ether('1')
-      .mul(sumAssured)
-      .div(priceBeforeDeductible);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
@@ -363,9 +353,7 @@ describe.skip('incidents', function () {
 
     const daiPerNXM = await p1.getTokenPrice(PoolAsset.DAI);
     const burnRate = await incidents.BURN_RATIO();
-    const fullBurnAmount = ether('1')
-      .mul(sumAssured)
-      .div(daiPerNXM);
+    const fullBurnAmount = ether('1').mul(sumAssured).div(daiPerNXM);
 
     const expectedBurnAmount = fullBurnAmount.mul(burnRate).divn(basisPrecision);
     const actualAccumulatedBurn = await incidents.accumulatedBurn(cover.contractAddress);
@@ -385,9 +373,7 @@ describe.skip('incidents', function () {
     const priceBefore = ether('2'); // DAI per ybDAI
     const sumAssured = ether('1').muln(cover.amount);
     const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
-    const tokenAmount = ether('1')
-      .mul(sumAssured)
-      .div(priceBeforeDeductible);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
@@ -432,9 +418,7 @@ describe.skip('incidents', function () {
     // sumAssured DAI = tokenAmount ybETH @ priceBefore
     // 500 ETH  /  2 ETH/ybETH  =  1000 ybETH
     const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
-    const tokenAmount = ether('1')
-      .mul(sumAssured)
-      .div(priceBeforeDeductible);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
@@ -460,9 +444,7 @@ describe.skip('incidents', function () {
 
     const ethPerNXM = await p1.getTokenPrice(PoolAsset.ETH);
     const burnRate = await incidents.BURN_RATIO();
-    const fullBurnAmount = ether('1')
-      .mul(sumAssured)
-      .div(ethPerNXM);
+    const fullBurnAmount = ether('1').mul(sumAssured).div(ethPerNXM);
 
     const expectedBurnAmount = fullBurnAmount.mul(burnRate).divn(basisPrecision);
     const actualAccumulatedBurn = await incidents.accumulatedBurn(cover.contractAddress);
@@ -491,9 +473,7 @@ describe.skip('incidents', function () {
     // sumAssured DAI = tokenAmount ybETH @ priceBefore
     // 500 ETH  /  2 ETH/ybETH  =  1000 ybETH
     const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
-    const tokenAmount = ether('1')
-      .mul(sumAssured)
-      .div(priceBeforeDeductible);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
@@ -524,7 +504,7 @@ describe.skip('incidents', function () {
   });
 
   it('increments accumulated burn on second payout', async function () {
-    const { dai, incidents, qd, p1 } = this.contracts;
+    const { incidents, qd, p1 } = this.contracts;
 
     const cover0 = { ...coverTemplate, period: 61 };
     const generationTime = `${Number(cover0.generationTime) + 1}`;
@@ -537,9 +517,7 @@ describe.skip('incidents', function () {
     const priceBefore = ether('2'); // DAI per ybDAI
     const sumAssured = ether('1').muln(cover0.amount);
     const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
-    const tokenAmount = ether('1')
-      .mul(sumAssured)
-      .div(priceBeforeDeductible);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover0.contractAddress, incidentDate, priceBefore);
@@ -556,9 +534,7 @@ describe.skip('incidents', function () {
 
     const daiPerNXM = await p1.getTokenPrice(PoolAsset.DAI);
     const burnRate = await incidents.BURN_RATIO();
-    const fullBurnAmount = ether('1')
-      .mul(sumAssured)
-      .div(daiPerNXM);
+    const fullBurnAmount = ether('1').mul(sumAssured).div(daiPerNXM);
     const expectedBurnAmountPerCover = fullBurnAmount.mul(burnRate).divn(basisPrecision);
 
     const expectedBurnAmountTotal = expectedBurnAmountPerCover.muln(2);
@@ -567,7 +543,7 @@ describe.skip('incidents', function () {
   });
 
   it('pushes burns', async function () {
-    const { dai, incidents, qd, p1, ps } = this.contracts;
+    const { incidents, qd, p1 } = this.contracts;
 
     const cover = { ...coverTemplate };
     await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
@@ -576,9 +552,7 @@ describe.skip('incidents', function () {
     const priceBefore = ether('2'); // DAI per ybDAI
     const sumAssured = ether('1').muln(cover.amount);
     const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
-    const tokenAmount = ether('1')
-      .mul(sumAssured)
-      .div(priceBeforeDeductible);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);
@@ -594,9 +568,7 @@ describe.skip('incidents', function () {
 
     const daiPerNXM = await p1.getTokenPrice(PoolAsset.DAI);
     const burnRate = await incidents.BURN_RATIO();
-    const fullBurnAmount = ether('1')
-      .mul(sumAssured)
-      .div(daiPerNXM);
+    const fullBurnAmount = ether('1').mul(sumAssured).div(daiPerNXM);
     const expectedBurnAmount = fullBurnAmount.mul(burnRate).divn(basisPrecision);
 
     const actualAccumulatedBurn = await incidents.accumulatedBurn(cover.contractAddress);
@@ -683,9 +655,7 @@ describe.skip('incidents', function () {
     const priceBefore = ether('2'); // ETH per ybETH
     const sumAssured = ether('1').muln(cover.amount);
     const priceBeforeDeductible = priceBefore.mul(deductibleRatio).div(basisPrecision);
-    const tokenAmount = ether('1')
-      .mul(sumAssured)
-      .div(priceBeforeDeductible);
+    const tokenAmount = ether('1').mul(sumAssured).div(priceBeforeDeductible);
     const incidentDate = coverStartDate.addn(1);
 
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);

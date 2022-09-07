@@ -15,7 +15,7 @@ const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 const fourthContract = '0x0000000000000000000000000000000000000004';
 
-async function fundAndApprove (token, tokenController, staking, amount, member) {
+async function fundAndApprove(token, tokenController, staking, amount, member) {
   const maxExposure = '2';
   await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
 
@@ -23,14 +23,12 @@ async function fundAndApprove (token, tokenController, staking, amount, member) 
   await token.approve(tokenController.address, amount, { from: member });
 }
 
-async function setLockTime (staking, lockTime) {
+async function setLockTime(staking, lockTime) {
   return staking.updateUintParameters(StakingUintParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
 describe('getters', function () {
-
   it('stakerContractStake', async function () {
-
     const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 

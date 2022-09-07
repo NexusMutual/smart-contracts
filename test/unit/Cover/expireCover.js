@@ -9,7 +9,6 @@ const { bnEqual } = require('../utils').helpers;
 const { time } = require('@openzeppelin/test-helpers');
 
 describe('expireCover', function () {
-
   const ethCoverBuyFixture = {
     productId: 0,
     coverAsset: 0, // ETH
@@ -27,13 +26,9 @@ describe('expireCover', function () {
   it('expires cover and reduces active cover amount', async function () {
     const { cover } = this;
 
-    const {
-      emergencyAdmin,
-    } = this.accounts;
+    const { emergencyAdmin } = this.accounts;
 
-    const {
-      coverAsset,
-    } = ethCoverBuyFixture;
+    const { coverAsset } = ethCoverBuyFixture;
 
     await cover.connect(emergencyAdmin).enableActiveCoverAmountTracking([], []);
 
@@ -58,9 +53,7 @@ describe('expireCover', function () {
   it('reverts when attempting to expire twice', async function () {
     const { cover } = this;
 
-    const {
-      emergencyAdmin,
-    } = this.accounts;
+    const { emergencyAdmin } = this.accounts;
 
     await cover.connect(emergencyAdmin).enableActiveCoverAmountTracking([], []);
 
@@ -88,9 +81,7 @@ describe('expireCover', function () {
   it('reverts when cover is not due to expire', async function () {
     const { cover } = this;
 
-    const {
-      emergencyAdmin,
-    } = this.accounts;
+    const { emergencyAdmin } = this.accounts;
 
     await cover.connect(emergencyAdmin).enableActiveCoverAmountTracking([], []);
 
@@ -98,9 +89,8 @@ describe('expireCover', function () {
 
     await buyCoverOnOnePool.call(this, ethCoverBuyFixture);
 
-    await time.increase((ethCoverBuyFixture.period - 3600));
+    await time.increase(ethCoverBuyFixture.period - 3600);
 
     await expect(cover.expireCover(0)).to.be.revertedWith('Cover: Cover is not due to expire yet');
   });
-
 });

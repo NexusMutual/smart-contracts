@@ -2,7 +2,6 @@ const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const setup = require('./setup');
 
 describe('MCR unit tests', function () {
-
   before(setup);
 
   beforeEach(async function () {
@@ -18,5 +17,4 @@ describe('MCR unit tests', function () {
   require('./getGearedMCR');
   require('./updateMCR');
   require('./updateParameters');
-
 });

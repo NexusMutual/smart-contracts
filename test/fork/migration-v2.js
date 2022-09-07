@@ -3,6 +3,7 @@ require('dotenv').config();
 const fetch = require('node-fetch');
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const path = require('path');
 
 const { setNextBlockTime } = require('../utils/evm');
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
@@ -10,17 +11,6 @@ const getProductsV1 = require('../../scripts/get-products-v1');
 const getLockedInV1ClaimAssessment = require('../../scripts/get-locked-in-v1-claim-assessment');
 const populateV2Products = require('../../scripts/populate-v2-products');
 const proposalCategories = require('../../lib/proposal-categories');
-
-// source: https://docs.chain.link/docs/price-feeds-migration-august-2020
-const CHAINLINK_DAI_ETH_AGGREGATORS = {
-  hardhat: '0x0000000000000000000000000000000000000000',
-  mainnet: '0x773616E4d11A78F511299002da57A0a94577F1f4',
-  rinkeby: '0x2bA49Aaa16E6afD2a993473cfB70Fa8559B523cF',
-  kovan: '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541',
-  tenderly: '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541',
-  // used when running hh node to fork a network, change me if needed
-  localhost: '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541',
-};
 
 const WETH_ADDRESS = '0xd0a1e359811322d97991e03f863a0c30c2cf029c';
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
@@ -144,7 +134,8 @@ describe('v2 migration', function () {
 
   it('edit proposal category 41 (Set Asset Swap Details)', async function () {
     await submitGovernanceProposal(
-      4, // editCategory(uint256,string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
+      // editCategory(uint256,string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
+      4,
       defaultAbiCoder.encode(
         [
           'uint256',
@@ -403,7 +394,7 @@ describe('v2 migration', function () {
   });
 
   it('unlock claim assessment stakes', async function () {
-    const stakesPath = `${__dirname}/../../scripts/v2-migration/output/eligibleForCLAUnlock.json`;
+    const stakesPath = path.join(__dirname, '../../scripts/v2-migration/output/eligibleForCLAUnlock.json');
     const claimAssessors = require(stakesPath).map(x => x.member);
     const tx = await this.tokenController.withdrawClaimAssessmentTokens(claimAssessors);
     await tx.wait();
@@ -537,7 +528,7 @@ describe('v2 migration', function () {
         expect(nxmBalanceAfter).to.be.equal(nxmBalanceBefore.add(withdrawableAmount));
       }
       await expect(this.tokenController.withdrawCoverNote(member.address, coverIds, indexes)).to.be.revertedWith(
-        'VM Exception while processing transaction: reverted with panic code 0x32 (Array accessed at an out-of-bounds or negative index)',
+        'reverted with panic code 0x32 (Array accessed at an out-of-bounds or negative index)',
       );
       const lockReasonsAfter = await this.tokenController.getLockReasons(member.address);
       const expectedLockReasonsAfter = lockReasonsBefore.filter(x => !coverNoteLockReasons.includes(x));

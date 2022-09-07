@@ -11,7 +11,6 @@ require('./tasks');
 
 /** @type import('hardhat/config').HardhatUserConfig */
 const config = {
-
   contractSizer: {
     alphaSort: true,
     runOnCompile: false,
@@ -32,11 +31,9 @@ const config = {
   networks: require('./networks'),
 
   solidity: require('./solidity'),
-
 };
 
 if (process.env.ENABLE_TENDERLY) {
-
   const tenderly = require('@tenderly/hardhat-tenderly');
   tenderly.setup({ automaticVerifications: false });
 

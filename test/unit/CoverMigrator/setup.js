@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
 
-async function setup () {
+async function setup() {
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();
   await master.deployed();

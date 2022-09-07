@@ -1,5 +1,5 @@
 const { accounts, web3 } = require('hardhat');
-const { expectEvent, expectRevert, time, ether } = require('@openzeppelin/test-helpers');
+const { ether } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { ProposalCategory, ContractTypes } = require('../utils').constants;
 const { submitProposal } = require('../utils').governance;
@@ -24,7 +24,7 @@ const ProposalCategoryContract = artifacts.require('ProposalCategory');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-async function assertNewAddresses (master, contractCodes, newAddresses, contractType) {
+async function assertNewAddresses(master, contractCodes, newAddresses, contractType) {
   for (let i = 0; i < contractCodes.length; i++) {
     const code = contractCodes[i];
     const expectedAddress = newAddresses[i];
@@ -83,7 +83,7 @@ describe('master', function () {
   });
 
   it('replace contract', async function () {
-    const { master, gv, qd } = this.contracts;
+    const { master, gv, qd, cr, qt } = this.contracts;
 
     const code = hex('TC');
     const tokenController = await TokenController.new(qd.address, cr.address);
@@ -99,11 +99,11 @@ describe('master', function () {
     await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
 
     const address = await master.getLatestAddress(code);
-    assert.equal(address, quotation.address);
+    assert.equal(address, qt.address);
   });
 
   it('upgrade proxy contract', async function () {
-    const { master, gv, pc, tk } = this.contracts;
+    const { master, gv } = this.contracts;
 
     const code = hex('PS');
     const pooledStaking = await PooledStaking.new();
@@ -125,7 +125,7 @@ describe('master', function () {
   });
 
   it('upgrade proxies and replaceables', async function () {
-    const { master, gv, pc, tk, qd, cr } = this.contracts;
+    const { master, gv, qd, cr } = this.contracts;
 
     const psCode = hex('PS');
     const tcCode = hex('TC');
@@ -147,14 +147,13 @@ describe('master', function () {
     const implementation = await (await OwnedUpgradeabilityProxy.at(psAddress)).implementation();
     assert.equal(implementation, pooledStaking.address);
 
-    const address = await master.getLatestAddress(qtCode);
+    const address = await master.getLatestAddress(tcCode);
     assert.equal(address, tokenController.address);
   });
 
   it('upgrades master', async function () {
     const { master, gv } = this.contracts;
 
-    const code = hex('MS');
     const newMaster = await NXMaster.new();
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(['address'], [newMaster.address]);

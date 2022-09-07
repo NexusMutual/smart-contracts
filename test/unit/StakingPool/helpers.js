@@ -1,11 +1,9 @@
-const {
-  ethers: {
-    BigNumber,
-    utils: { parseUnits },
-  },
-} = require('hardhat');
-const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
+const { ethers } = require('hardhat');
 const Decimal = require('decimal.js');
+const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
+
+const { parseUnits } = ethers.utils;
+const { BigNumber } = ethers;
 
 const SURGE_THRESHOLD = parseUnits('0.8');
 const BASE_SURGE_LOADING = parseUnits('0.1'); // 10%
@@ -23,7 +21,7 @@ const setTime = async timestamp => {
   await mineNextBlock();
 };
 
-function interpolatePrice (lastPriceRatio, targetPriceRatio, lastPriceUpdate, currentTimestamp) {
+function interpolatePrice(lastPriceRatio, targetPriceRatio, lastPriceUpdate, currentTimestamp) {
   const priceChange = BigNumber.from(currentTimestamp - lastPriceUpdate)
     .div(24 * 3600)
     .mul(PRICE_RATIO_CHANGE_PER_DAY);
@@ -41,7 +39,7 @@ function interpolatePrice (lastPriceRatio, targetPriceRatio, lastPriceUpdate, cu
   return nextPrice;
 }
 
-function calculatePrice (amount, basePriceRatio, activeCover, capacity) {
+function calculatePrice(amount, basePriceRatio, activeCover, capacity) {
   amount = BigNumber.from(amount);
   basePriceRatio = BigNumber.from(basePriceRatio);
   activeCover = BigNumber.from(activeCover);
@@ -62,10 +60,7 @@ function calculatePrice (amount, basePriceRatio, activeCover, capacity) {
 
   const startSurgeLoadingRatio = activeCoverRatio.lt(SURGE_THRESHOLD)
     ? BigNumber.from(0)
-    : activeCoverRatio
-      .sub(SURGE_THRESHOLD)
-      .mul(BASE_SURGE_LOADING)
-      .div(BASE_SURGE_CAPACITY_USED);
+    : activeCoverRatio.sub(SURGE_THRESHOLD).mul(BASE_SURGE_LOADING).div(BASE_SURGE_CAPACITY_USED);
   const endSurgeLoadingRatio = newActiveCoverRatio
     .sub(SURGE_THRESHOLD)
     .mul(BASE_SURGE_LOADING)
@@ -79,7 +74,7 @@ function calculatePrice (amount, basePriceRatio, activeCover, capacity) {
   return actualPriceRatio;
 }
 
-function getPrices (amount, activeCover, capacity, initialPrice, lastBasePrice, targetPrice, blockTimestamp) {
+function getPrices(amount, activeCover, capacity, initialPrice, lastBasePrice, targetPrice, blockTimestamp) {
   amount = BigNumber.from(amount);
   activeCover = BigNumber.from(activeCover);
   capacity = BigNumber.from(capacity);
@@ -110,12 +105,8 @@ function getPrices (amount, activeCover, capacity, initialPrice, lastBasePrice, 
   return { basePrice: bumpedBasePrice, actualPrice };
 }
 
-function toDecimal (x) {
+function toDecimal(x) {
   return new Decimal(x.toString());
-}
-
-function assertRoughlyEqual (a, b) {
-  assert(a.eq(b), `${a.toString()} != ${b.toString()}`);
 }
 
 module.exports = {

@@ -1,5 +1,4 @@
 const main = async () => {
-
   process.env.ENABLE_OPTIMIZER = '1';
 
   const { network, run } = require('hardhat');

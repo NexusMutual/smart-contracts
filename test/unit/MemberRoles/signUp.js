@@ -1,15 +1,8 @@
 const { expect } = require('chai');
 const { ethers, network } = require('hardhat');
 const { parseUnits } = require('ethers/lib/utils');
-const {
-  formatBytes32String,
-  defaultAbiCoder,
-  arrayify,
-  hexConcat,
-  hexZeroPad,
-  splitSignature,
-  keccak256,
-} = ethers.utils;
+const { formatBytes32String, defaultAbiCoder, arrayify, hexConcat, hexZeroPad, splitSignature, keccak256 } =
+  ethers.utils;
 
 const JOINING_FEE = parseUnits('0.002');
 const MEMBERSHIP_APPROVAL = formatBytes32String('MEMBERSHIP_APPROVAL');
@@ -200,31 +193,19 @@ describe('signUp', function () {
     ).not.to.be.revertedWith('MemberRoles: The transaction value should equal to the joining fee');
   });
 
-  it('reverts when a valid signature is not provided', async function () {
+  it('reverts when the signature is invalid', async function () {
     const { memberRoles } = this.contracts;
     const { nonMembers } = this.accounts;
 
+    const allZeroesSignature = '0x' + '0'.repeat(192);
+    const allOnesSignature = '0x' + '0'.repeat(64) + '1'.repeat(128);
+
     await expect(
-      memberRoles.signUp(
-        nonMembers[0].address,
-        arrayify(
-          '0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-        ),
-        {
-          value: JOINING_FEE,
-        },
-      ),
+      memberRoles.signUp(nonMembers[0].address, arrayify(allZeroesSignature), { value: JOINING_FEE }),
     ).to.be.revertedWith('ECDSA: invalid signature');
+
     await expect(
-      memberRoles.signUp(
-        nonMembers[0].address,
-        arrayify(
-          '0x000000000000000000000000000000000000000000000000000000000000000011111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111',
-        ),
-        {
-          value: JOINING_FEE,
-        },
-      ),
+      memberRoles.signUp(nonMembers[0].address, arrayify(allOnesSignature), { value: JOINING_FEE }),
     ).to.be.revertedWith('ECDSA: invalid signature');
   });
 

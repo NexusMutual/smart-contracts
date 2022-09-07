@@ -14,7 +14,7 @@ const {
 const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 
-async function fundApproveStake (token, tokenController, staking, amount, contracts, allocations, member) {
+async function fundApproveStake(token, tokenController, staking, amount, contracts, allocations, member) {
   const maxExposure = '10';
   const minAllocation = ether('2');
 
@@ -28,29 +28,24 @@ async function fundApproveStake (token, tokenController, staking, amount, contra
   await staking.depositAndStake(amount, contracts, allocations, { from: member });
 }
 
-async function setUnstakeLockTime (staking, lockTime) {
+async function setUnstakeLockTime(staking, lockTime) {
   return staking.updateUintParameters(StakingUintParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
-async function setMinUnstake (staking, amount) {
+async function setMinUnstake(staking, amount) {
   return staking.updateUintParameters(StakingUintParamType.MIN_UNSTAKE, amount, { from: governanceContract });
 }
 
 describe('requestUnstake', function () {
-
   it('should revert when called by non members', async function () {
     const { master, staking } = this;
 
     assert.strictEqual(await master.isMember(nonMember), false);
 
-    await expectRevert(
-      staking.requestUnstake([firstContract], [1], 0, { from: nonMember }),
-      'Caller is not a member',
-    );
+    await expectRevert(staking.requestUnstake([firstContract], [1], 0, { from: nonMember }), 'Caller is not a member');
   });
 
   it('should revert when contracts and amounts arrays lengths differ', async function () {
-
     const { staking } = this;
 
     await expectRevert(
@@ -60,7 +55,6 @@ describe('requestUnstake', function () {
   });
 
   it('should revert if insertAfter > lastUnstakeRequestId', async function () {
-
     const { staking, token, tokenController } = this;
 
     await fundApproveStake(token, tokenController, staking, ether('10'), [firstContract], [ether('10')], memberOne);
@@ -93,7 +87,6 @@ describe('requestUnstake', function () {
   });
 
   it('should revert when insertAfter index is an empty slot', async function () {
-
     const { staking, token, tokenController } = this;
 
     await fundApproveStake(token, tokenController, staking, ether('10'), [firstContract], [ether('10')], memberOne);
@@ -105,7 +98,7 @@ describe('requestUnstake', function () {
     await staking.requestUnstake([firstContract], [ether('3')], 1, { from: memberOne });
 
     // 91 days pass and process pending actions
-    const targetTime = lockTime + (24 * 3600); // 91 days
+    const targetTime = lockTime + 24 * 3600; // 91 days
     await time.increase(targetTime);
     await staking.processPendingActions('100');
 
@@ -119,8 +112,7 @@ describe('requestUnstake', function () {
     await staking.requestUnstake([firstContract], [ether('5')], 0, { from: memberOne });
   });
 
-  it('should revert when there\'s nothing to unstake on a contract', async function () {
-
+  it("should revert when there's nothing to unstake on a contract", async function () {
     const { staking, token, tokenController } = this;
 
     // Nothing staked on the contract
@@ -130,7 +122,15 @@ describe('requestUnstake', function () {
     );
 
     // deposit 10 and stake [10, 10] on 2 contracts
-    await fundApproveStake(token, tokenController, staking, ether('10'), [firstContract, secondContract], [ether('10'), ether('7')], memberOne);
+    await fundApproveStake(
+      token,
+      tokenController,
+      staking,
+      ether('10'),
+      [firstContract, secondContract],
+      [ether('10'), ether('7')],
+      memberOne,
+    );
 
     const lockTime = 90 * 24 * 3600; // 90 days
     await setUnstakeLockTime(staking, lockTime);
@@ -146,7 +146,6 @@ describe('requestUnstake', function () {
   });
 
   it('should revert when unstaking more than staked', async function () {
-
     const { staking, token, tokenController } = this;
 
     // deposit 10 and stake 10 on firstContract
@@ -172,7 +171,6 @@ describe('requestUnstake', function () {
   });
 
   it('should revert when requested unstake < MIN_UNSTAKE', async function () {
-
     const { staking, token, tokenController } = this;
 
     // deposit 10 and stake 10 on firstContract; MIN_UNSTAKE = 2
@@ -192,7 +190,6 @@ describe('requestUnstake', function () {
   });
 
   it('should revert when remaining stake is less than MIN_STAKE', async function () {
-
     const { staking, token, tokenController } = this;
 
     // deposit 10 and stake 10 on firt contract; MIN_STAKE = 2
@@ -212,7 +209,6 @@ describe('requestUnstake', function () {
   });
 
   it('should revert if requested unstake time < unstake time at insertAfter index', async function () {
-
     const { staking, token, tokenController } = this;
 
     // deposit 20 and stake 20 on firstContract, UNSTAKE_LOCK_TIME = 90 days
@@ -248,7 +244,6 @@ describe('requestUnstake', function () {
   });
 
   it('should revert if requested unstake time >= unstake time at next of insertAfter index', async function () {
-
     const { staking, token, tokenController } = this;
 
     let lastUnstakeRequestId;
@@ -302,7 +297,6 @@ describe('requestUnstake', function () {
   });
 
   it('ensure the unstake request is inserted in the unstakeRequests mapping', async function () {
-
     const { staking, token, tokenController } = this;
 
     await fundApproveStake(token, tokenController, staking, ether('20'), [firstContract], [ether('20')], memberOne);
@@ -346,7 +340,7 @@ describe('requestUnstake', function () {
     }
   });
 
-  it('ensure that next pointer of the new request points to the next of request at index insertAfter', async function () {
+  it('ensure that next pointer of the new request points to the request the insertAfter pointed to', async function () {
     const { staking, token, tokenController } = this;
 
     let lastUnstakeRequestId;
@@ -551,7 +545,15 @@ describe('requestUnstake', function () {
     await setMinUnstake(staking, ether('2'));
 
     await fundApproveStake(token, tokenController, staking, ether('1000'), [firstContract], [ether('1000')], memberOne);
-    await fundApproveStake(token, tokenController, staking, ether('2000'), [secondContract], [ether('2000')], memberTwo);
+    await fundApproveStake(
+      token,
+      tokenController,
+      staking,
+      ether('2000'),
+      [secondContract],
+      [ether('2000')],
+      memberTwo,
+    );
 
     for (let i = 0; i < 80; i += 2) {
       await staking.requestUnstake([firstContract], [ether('3')], i, { from: memberOne });

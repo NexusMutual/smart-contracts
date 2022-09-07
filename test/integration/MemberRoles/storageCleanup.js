@@ -1,7 +1,3 @@
-const { ethers } = require('hardhat');
-const { expectRevert } = require('@openzeppelin/test-helpers');
-const { Role } = require('../utils').constants;
-
 describe('storageCleanup', function () {
   it('cleans up _unused2 mapping', async function () {
     const { contracts } = this.withEthers;

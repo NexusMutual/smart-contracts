@@ -1,11 +1,9 @@
 const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
-const { formatEther } = require('ethers/lib/utils');
-const { BigNumber } = require('ethers');
 const { parseEther } = ethers.utils;
 
-async function setup () {
+async function setup() {
   const NXM = await ethers.getContractFactory('NXMTokenMock');
   const nxm = await NXM.deploy();
   await nxm.deployed();

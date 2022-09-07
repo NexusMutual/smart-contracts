@@ -1,8 +1,5 @@
 const { time, expectEvent, ether } = require('@openzeppelin/test-helpers');
-const { artifacts, web3, accounts, network } = require('hardhat');
-
-const { hex } = require('../utils').helpers;
-const { ProposalCategory, CoverStatus } = require('../utils').constants;
+const { web3, accounts, network } = require('hardhat');
 const { toBN } = web3.utils;
 
 const Address = {
@@ -21,8 +18,7 @@ const UserAddress = {
 
 const ratioScale = toBN('10000');
 
-async function submitGovernanceProposal (categoryId, actionData, members, gv) {
-
+async function submitGovernanceProposal(categoryId, actionData, members, gv) {
   const id = await gv.getProposalLength();
   console.log(`Creating proposal ${id}`);
 
@@ -43,8 +39,7 @@ async function submitGovernanceProposal (categoryId, actionData, members, gv) {
   assert.equal(proposal[2].toNumber(), 3);
 }
 
-async function submitMemberVoteGovernanceProposal (categoryId, actionData, members, gv) {
-
+async function submitMemberVoteGovernanceProposal(categoryId, actionData, members, gv) {
   const id = await gv.getProposalLength();
   console.log(`Creating proposal ${id}`);
 

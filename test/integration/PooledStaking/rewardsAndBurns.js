@@ -29,7 +29,7 @@ const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 const stakers = [staker1, staker2, staker3, staker4, staker5, staker6, staker7, staker8, staker9, staker10];
 const tokensLockedForVoting = ether('200');
 
-async function submitMemberVotes ({ cd, cl, voteValue, maxVotingMembers }) {
+async function submitMemberVotes({ cd, cl, voteValue, maxVotingMembers }) {
   const claimId = (await cd.actualClaimLength()) - 1;
   const initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
   const baseMembers = [member1, member2, member3];
@@ -49,7 +49,7 @@ async function submitMemberVotes ({ cd, cl, voteValue, maxVotingMembers }) {
   assert.equal(voters.length, expectedVotes);
 }
 
-async function closeClaim ({ cl, cd, cr, now, expectedClaimStatusNumber }) {
+async function closeClaim({ cl, cd, cr, now, expectedClaimStatusNumber }) {
   const claimId = (await cd.actualClaimLength()) - 1;
   const minVotingTime = await cd.minVotingTime();
   const minTime = new BN(minVotingTime.toString()).add(new BN(now.toString()));
@@ -75,7 +75,7 @@ describe('burns', function () {
   });
 
   it('claim is accepted for contract whose staker that staked on multiple contracts', async function () {
-    const { ps, tk, td, qd, cl, tc, p1, mcr } = this.contracts;
+    const { ps, tk, qd, cl, tc, p1 } = this.contracts;
 
     const currency = hex('ETH');
     const cover = {
@@ -156,7 +156,7 @@ describe('burns', function () {
     };
 
     const stakeTokens = ether('20');
-    const { ps, tk, td, qd, cl, p1, tc } = this.contracts;
+    const { ps, tk, qd, cl, p1, tc } = this.contracts;
 
     for (const staker of stakers) {
       await tk.approve(tc.address, stakeTokens, {

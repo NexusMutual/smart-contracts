@@ -3,7 +3,7 @@ const { ethers } = require('hardhat');
 // will be assigned by setup()
 const contracts = {};
 
-async function setup () {
+async function setup() {
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');

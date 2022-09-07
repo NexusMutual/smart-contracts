@@ -6,7 +6,7 @@ const quoteAuthPrivateKey = Buffer.from('45571723d6f6fa704623beb284eda724459d76c
 
 const quoteAuthAddress = '0x' + util.privateToAddress(quoteAuthPrivateKey).toString('hex');
 
-async function getQuoteSignature (...args) {
+async function getQuoteSignature(...args) {
   const order = {
     amount: args[0][0],
     curr: args[1],
@@ -38,11 +38,7 @@ async function getQuoteSignature (...args) {
   const msgHash = util.hashPersonalMessage(message);
   const sig = util.ecsign(msgHash, quoteAuthPrivateKey);
 
-  return [
-    sig.v,
-    '0x' + sig.r.toString('hex'),
-    '0x' + sig.s.toString('hex'),
-  ];
+  return [sig.v, '0x' + sig.r.toString('hex'), '0x' + sig.s.toString('hex')];
 }
 
 module.exports = { getQuoteSignature, quoteAuthPrivateKey, quoteAuthAddress };

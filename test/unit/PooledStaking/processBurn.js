@@ -14,21 +14,19 @@ const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
-async function fundAndStake (token, tokenController, staking, amount, contract, member) {
+async function fundAndStake(token, tokenController, staking, amount, contract, member) {
   await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(tokenController.address, amount, { from: member });
   await staking.depositAndStake(amount, [contract], [amount], { from: member });
 }
 
-async function setLockTime (staking, lockTime) {
+async function setLockTime(staking, lockTime) {
   return staking.updateUintParameters(StakingUintParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
 describe('processBurn', function () {
-
   it('should update staker deposit & stake correctly', async function () {
-
     const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
@@ -58,7 +56,6 @@ describe('processBurn', function () {
   });
 
   it('should update staker deposit & stake correctly for multiple stakers', async function () {
-
     const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
@@ -81,13 +78,15 @@ describe('processBurn', function () {
     assert(newStakeTwo.eq(ether('170')), `Expected new stake two to be ${ether('170')}, found ${newStakeTwo}`);
 
     const newDepositThree = await staking.stakerDeposit(memberThree);
-    assert(newDepositThree.eq(ether('255')), `Expected new deposit three to be ${ether('255')}, found ${newDepositThree}`);
+    assert(
+      newDepositThree.eq(ether('255')),
+      `Expected new deposit three to be ${ether('255')}, found ${newDepositThree}`,
+    );
     const newStakeThree = await staking.stakerContractStake(memberThree, firstContract);
     assert(newStakeThree.eq(ether('255')), `Expected new stake three to be ${ether('255')}, found ${newStakeThree}`);
   });
 
   it('should update deposit & stake for multiple stakers when contract stake < burn amount', async function () {
-
     const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
@@ -116,7 +115,6 @@ describe('processBurn', function () {
   });
 
   it('should process burn when staked amount on contract is 0', async function () {
-
     const { staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
@@ -125,7 +123,6 @@ describe('processBurn', function () {
   });
 
   it('should remove and re-add 0-account stakers', async function () {
-
     const { token, tokenController, staking } = this;
 
     await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
@@ -144,12 +141,7 @@ describe('processBurn', function () {
       const stake = stakes[member];
       await token.transfer(member, ether(stake.amount));
       await token.approve(tokenController.address, ether(stake.amount), { from: member });
-      await staking.depositAndStake(
-        ether(stake.amount),
-        stake.on,
-        stake.amounts.map(ether),
-        { from: member },
-      );
+      await staking.depositAndStake(ether(stake.amount), stake.on, stake.amounts.map(ether), { from: member });
     }
 
     const expectedFirstContractStake = ether('40');
@@ -179,7 +171,9 @@ describe('processBurn', function () {
     assert.deepEqual(
       secondTestStakers,
       expectedSecondTestStakers,
-      `expected initial stakers to be "${expectedSecondTestStakers.join(',')}" but found "${secondTestStakers.join(',')}"`,
+      `expected initial stakers to be "${expectedSecondTestStakers.join(',')}" but found "${secondTestStakers.join(
+        ',',
+      )}"`,
     );
 
     // push a small burn on secondContract and expect firstStaker to be "removed
@@ -213,7 +207,6 @@ describe('processBurn', function () {
   });
 
   it('should remove stakers when burning 0-deposit stakers', async function () {
-
     const { token, tokenController, staking } = this;
     await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
@@ -291,12 +284,9 @@ describe('processBurn', function () {
 
     await token.transfer(memberOne, ether('100'));
     await token.approve(tokenController.address, ether('100'), { from: memberOne });
-    await staking.depositAndStake(
-      ether('100'),
-      [firstContract, secondContract],
-      ['0', ether('100')],
-      { from: memberOne },
-    );
+    await staking.depositAndStake(ether('100'), [firstContract, secondContract], ['0', ether('100')], {
+      from: memberOne,
+    });
 
     actualStakers = await staking.contractStakersArray(firstContract);
     expectedStakers = [];
@@ -316,7 +306,6 @@ describe('processBurn', function () {
   });
 
   it('should not add duplicate stakers when staking on non-zero stake but zero deposit', async function () {
-
     const { token, tokenController, staking } = this;
     await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
@@ -364,12 +353,9 @@ describe('processBurn', function () {
 
     await token.transfer(memberOne, ether('100'));
     await token.approve(tokenController.address, ether('100'), { from: memberOne });
-    await staking.depositAndStake(
-      ether('100'),
-      [firstContract, secondContract],
-      ['0', ether('100')],
-      { from: memberOne },
-    );
+    await staking.depositAndStake(ether('100'), [firstContract, secondContract], ['0', ether('100')], {
+      from: memberOne,
+    });
 
     actualStakers = await staking.contractStakersArray(firstContract);
     expectedStakers = [];
@@ -389,7 +375,6 @@ describe('processBurn', function () {
   });
 
   it('should burn the correct amount of tokens', async function () {
-
     const { token, tokenController, staking } = this;
 
     // Set parameters
@@ -413,7 +398,6 @@ describe('processBurn', function () {
   });
 
   it('should burn the correct amount of tokens when processing in batches', async function () {
-
     const { token, tokenController, staking } = this;
 
     // Set parameters
@@ -481,7 +465,6 @@ describe('processBurn', function () {
   });
 
   it('should burn up to contract stake if requested a bigger burn than available', async function () {
-
     const { token, tokenController, staking } = this;
 
     // Set parameters
@@ -505,7 +488,6 @@ describe('processBurn', function () {
   });
 
   it('should delete the burn object after processing it', async function () {
-
     const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
@@ -515,12 +497,14 @@ describe('processBurn', function () {
 
     const { amount: burnAmount, contractAddress: contract, burnedAt: burnTimestamp } = await staking.burn();
     assert(burnAmount.eqn(0), `Expected burned amount to be 0, found ${burnAmount}`);
-    assert(contract === '0x0000000000000000000000000000000000000000', `Expected contractAddress to be 0x, found ${contract}`);
+    assert(
+      contract === '0x0000000000000000000000000000000000000000',
+      `Expected contractAddress to be 0x, found ${contract}`,
+    );
     assert(burnTimestamp.eqn(0), `Expected burn timestamp to be 0, found ${burnTimestamp}`);
   });
 
   it('should reset processedToStakerIndex', async function () {
-
     const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
@@ -533,7 +517,6 @@ describe('processBurn', function () {
   });
 
   it('should reset isContractStakeCalculated', async function () {
-
     const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
@@ -542,11 +525,13 @@ describe('processBurn', function () {
     await staking.processPendingActions('100');
 
     const isContractStakeCalculated = await staking.isContractStakeCalculated();
-    assert.isFalse(isContractStakeCalculated, `Expected isContractStakeCalculated to be false, found ${isContractStakeCalculated}`);
+    assert.isFalse(
+      isContractStakeCalculated,
+      `Expected isContractStakeCalculated to be false, found ${isContractStakeCalculated}`,
+    );
   });
 
   it('should do up to maxIterations and finish in stakers.length * 2 cycles', async function () {
-
     const { token, tokenController, master, staking } = this;
     const iterationsNeeded = accounts.generalPurpose.length * 2;
 
@@ -570,7 +555,6 @@ describe('processBurn', function () {
   });
 
   it('should emit Burned event', async function () {
-
     const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
     await fundAndStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
@@ -585,7 +569,6 @@ describe('processBurn', function () {
   });
 
   it('should properly calculate staked data on a contract when calculating in batches', async function () {
-
     const { master, staking, token, tokenController } = this;
     const numberOfStakers = accounts.generalPurpose.length;
 

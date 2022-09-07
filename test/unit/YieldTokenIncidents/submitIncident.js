@@ -125,7 +125,7 @@ describe('submitIncident', function () {
       .withArgs(1, 'ipfsMetadata2');
   });
 
-  it('emits IncidentSubmitted event with sender incident and product ids and expected payout in NXM', async function () {
+  it('emits IncidentSubmitted event with sender incident and product ids and payout in NXM', async function () {
     const { yieldTokenIncidents } = this.contracts;
     const [advisoryBoard1, advisoryBoard2] = this.accounts.advisoryBoardMembers;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');

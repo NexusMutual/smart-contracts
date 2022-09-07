@@ -1,28 +1,31 @@
 const { artifacts } = require('hardhat');
-const { constants: { ZERO_ADDRESS }, ether, expectRevert, expectEvent } = require('@openzeppelin/test-helpers');
+const {
+  constants: { ZERO_ADDRESS },
+  expectRevert,
+} = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { hex } = require('../utils').helpers;
-const { Role, ContractTypes } = require('../utils').constants;
+const { ContractTypes } = require('../utils').constants;
 
 const MMockNewContract = artifacts.require('MMockNewContract');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 
 describe('addNewInternalContracts', function () {
-
   it('reverts when not called by governance', async function () {
     const { master } = this;
 
-    await expectRevert(
-      master.addNewInternalContracts([], [], []),
-      'Not authorized',
-    );
+    await expectRevert(master.addNewInternalContracts([], [], []), 'Not authorized');
   });
 
   it('reverts when contract code already in use', async function () {
     const { governance } = this;
 
     await expectRevert(
-      governance.addNewInternalContracts([hex('GV')], ['0x0000000000000000000000000000000000000001'], [ContractTypes.Replaceable]),
+      governance.addNewInternalContracts(
+        [hex('GV')],
+        ['0x0000000000000000000000000000000000000001'],
+        [ContractTypes.Replaceable],
+      ),
       'NXMaster: Code already in use',
     );
   });
@@ -77,7 +80,7 @@ describe('addNewInternalContracts', function () {
 
     const { _contractCodes: prevContractCodes } = await master.getInternalContracts();
 
-    const tx = await governance.addNewInternalContracts([code], [newContract.address], [ContractTypes.Proxy]);
+    await governance.addNewInternalContracts([code], [newContract.address], [ContractTypes.Proxy]);
     const proxyAddress = await master.getLatestAddress(code);
     const isInternal = await master.isInternal(proxyAddress);
     assert(isInternal, 'Not internal');
@@ -105,7 +108,7 @@ describe('addNewInternalContracts', function () {
 
     const { _contractCodes: prevContractCodes } = await master.getInternalContracts();
 
-    const tx = await governance.addNewInternalContracts(
+    await governance.addNewInternalContracts(
       [replaceableCode, proxyCode],
       [newReplaceableContract.address, newProxyContract.address],
       [ContractTypes.Replaceable, ContractTypes.Proxy],

@@ -1,8 +1,7 @@
 const { artifacts } = require('hardhat');
 const { to } = require('../lib/helpers');
 
-async function main () {
-
+async function main() {
   const TokenController = artifacts.require('TokenController');
   const MemberRoles = artifacts.require('MemberRoles');
 
@@ -14,7 +13,6 @@ async function main () {
   const reasons = {};
 
   for (let i = 0; i < memberCount; i++) {
-
     const { 0: member, 1: active } = await mr.memberAtIndex(ROLE_MEMBER, i);
 
     if (!active) {
@@ -27,7 +25,6 @@ async function main () {
     reasons[member] = [];
 
     for (let j = 0; j < 3000; j++) {
-
       const [reason, err] = await to(tc.lockReason(member, j));
 
       if (err) {
@@ -38,7 +35,6 @@ async function main () {
       reasons[member].push(reason);
       console.log(`Found reason ${reason}`);
     }
-
   }
 
   require('fs').writeFileSync('reasons.json', JSON.stringify(reasons, null, 2));

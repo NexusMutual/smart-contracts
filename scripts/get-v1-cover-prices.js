@@ -4,8 +4,6 @@ const ethers = require('ethers');
 const fetch = require('node-fetch');
 const Decimal = require('decimal.js');
 
-const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
-
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const max = (a, b) => (a.gt(b) ? a : b);
@@ -45,13 +43,13 @@ ${Object.keys(priceMap)
       return `
     if (
 ${priceMap[price]
-        .map((address, index) => {
-          const lineEnd = index < priceMap[price].length - 1 ? ' ||\n' : '';
-          const productId = v1ProductIds.findIndex(x => x === address);
-          return `      // ${idToProductName(productId, migratableProducts)}
+  .map((address, index) => {
+    const lineEnd = index < priceMap[price].length - 1 ? ' ||\n' : '';
+    const productId = v1ProductIds.findIndex(x => x === address);
+    return `      // ${idToProductName(productId, migratableProducts)}
       id == ${productId}${lineEnd}`;
-        })
-        .join('')}
+  })
+  .join('')}
     ) {
       return ${price}; // ${price / 1e18}%
     }`;

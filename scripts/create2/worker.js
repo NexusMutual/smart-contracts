@@ -10,13 +10,11 @@ const Position = {
 };
 
 const worker = (config, batchNumber, size) => {
-
   const from = batchNumber * size;
   const to = from + size;
   const results = [];
 
   for (let salt = from; salt < to; salt++) {
-
     // assemble input
     const saltHex = salt.toString(16).padStart(64, '0');
     const input = hexToBytes(`ff${config.factory}${saltHex}${config.bytecodeHash}`);
@@ -24,9 +22,7 @@ const worker = (config, batchNumber, size) => {
     const address = bytesToHex(create2Hash.slice(32 - 20));
     const checksumedAddress = toChecksumAddress(`0x${address}`);
 
-    const output = config.ignoreCase
-      ? address.toLowerCase()
-      : checksumedAddress.slice(2);
+    const output = config.ignoreCase ? address.toLowerCase() : checksumedAddress.slice(2);
 
     if (
       (config.position === Position.start && output.startsWith(config.search)) ||

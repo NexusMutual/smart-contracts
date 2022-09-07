@@ -1,11 +1,6 @@
-const {
-  ethers: {
-    utils: { parseEther, parseUnits },
-  },
-} = require('hardhat');
+const { ethers } = require('hardhat');
 const { bnEqual } = require('../utils').helpers;
-
-const { getPrices } = require('./helpers');
+const { parseEther, parseUnits } = ethers.utils;
 
 describe('getPrices', function () {
   it('should calculate price correctly for active cover starting at 0 without surge', async function () {
@@ -36,7 +31,7 @@ describe('getPrices', function () {
     bnEqual(actualPrice, expectedActualPrice);
   });
 
-  it('should calculate price correctly for active cover without surge starting off at base price = target price', async function () {
+  it('should calculate price correctly for active cover without surge at base price = target price', async function () {
     const { stakingPool } = this;
 
     const amount = parseEther('12000');
@@ -64,7 +59,7 @@ describe('getPrices', function () {
     bnEqual(actualPrice, expectedActualPrice);
   });
 
-  it('should calculate price correctly for active cover without surge starting off at base price > target price', async function () {
+  it('should calculate price correctly for active cover without surge at base price > target price', async function () {
     const { stakingPool } = this;
 
     const amount = parseEther('12000');

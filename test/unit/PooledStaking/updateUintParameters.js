@@ -13,9 +13,7 @@ const {
 } = accounts;
 
 describe('updateUintParameters', function () {
-
   it('should revert when called by non governance addresses', async function () {
-
     const { staking } = this;
     const param = StakingUintParamType.MIN_STAKE;
     const nonGov = [nonMember, member, advisoryBoardMember, internalContract];
@@ -26,7 +24,6 @@ describe('updateUintParameters', function () {
         'Caller is not authorized to govern',
       );
     }
-
   });
 
   it('should correctly update the parameters', async function () {
@@ -47,7 +44,5 @@ describe('updateUintParameters', function () {
       const actual = await staking[paramName]();
       assert.strictEqual(actual.toString(), value);
     }
-
   });
-
 });

@@ -12,4 +12,5 @@ describe('UNIT TESTS', function () {
   require('./YieldTokenIncidents');
   require('./StakingPool');
   require('./PriceFeedOracle');
+  require('./CoverViewer');
 });

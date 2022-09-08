@@ -145,8 +145,6 @@ async function setup() {
   // const lcd = await LegacyClaimsData.new();
   const lcr = await LegacyClaimsReward.new(master.address, dai.address);
 
-  // TODO: implement using DisposableMCR, see /test/unit/MCR/setup.js
-
   const mcrEth = ether('50000');
   const mcrFloor = mcrEth.sub(ether('10000'));
 

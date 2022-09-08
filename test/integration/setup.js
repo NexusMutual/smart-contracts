@@ -84,6 +84,9 @@ async function setup() {
   const CSMockSettlement = artifacts.require('CSMockSettlement');
   const CSMockVaultRelayer = artifacts.require('CSMockVaultRelayer');
 
+  const coverUtilsLib = await CoverUtilsLib.new();
+  DisposableCover.link(coverUtilsLib);
+
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
   const INITIAL_SUPPLY = ether('15000000000');
@@ -196,10 +199,17 @@ async function setup() {
   let as = await deployProxy(DisposableAssessment, []);
   const cl = await deployProxy(CoverMigrator, []);
 
-  const coverUtilsLib = await CoverUtilsLib.new();
   await Cover.link(coverUtilsLib);
 
-  let cover = await deployProxy(DisposableCover, []);
+  let cover = await deployProxy(DisposableCover, [
+    qd.address,
+    productsV1.address,
+    ZERO_ADDRESS,
+    ZERO_ADDRESS,
+    ZERO_ADDRESS,
+  ]);
+
+  await cover.changeMasterAddress(master.address);
 
   const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
 
@@ -278,6 +288,8 @@ async function setup() {
     INDIVIDUAL_CLAIMS: 0,
     YIELD_TOKEN_INCIDENTS: 1,
   };
+
+  await cover.changeDependentContractAddress();
 
   await cover.addProductTypes(
     [

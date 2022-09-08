@@ -58,8 +58,6 @@ const ASSET = {
   DAI: 1,
 };
 
-const daysToSeconds = days => days * 24 * 60 * 60;
-
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
   await mineNextBlock();
@@ -83,7 +81,6 @@ const getIncidentStruct = ({
 module.exports = {
   ASSET,
   INCIDENT_STATUS,
-  daysToSeconds,
   getPollStruct,
   getConfigurationStruct,
   getIncidentStruct,

@@ -19,8 +19,6 @@ const ASSET = {
   DAI: 1,
 };
 
-const daysToSeconds = days => days * 24 * 60 * 60;
-
 const submitClaim =
   ({ accounts, contracts }) =>
   async ({
@@ -68,7 +66,6 @@ module.exports = {
   ASSET,
   CLAIM_STATUS,
   PAYOUT_STATUS,
-  daysToSeconds,
   submitClaim,
   getPollStruct,
   getConfigurationStruct,

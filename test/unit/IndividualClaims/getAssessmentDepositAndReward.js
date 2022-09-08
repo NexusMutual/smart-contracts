@@ -1,9 +1,10 @@
 const { ethers } = require('hardhat');
 const { assert } = require('chai');
 
-const { daysToSeconds, ASSET } = require('./helpers');
+const { ASSET } = require('./helpers');
 
 const { parseEther } = ethers.utils;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('getAssessmentDepositAndReward', function () {
   it('returns a total reward in NXM no greater than config.maxRewardInNXMWad', async function () {

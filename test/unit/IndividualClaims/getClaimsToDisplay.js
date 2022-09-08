@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { daysToSeconds, ASSET, CLAIM_STATUS, PAYOUT_STATUS } = require('./helpers');
+const { ASSET, CLAIM_STATUS, PAYOUT_STATUS } = require('./helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
@@ -10,6 +10,8 @@ const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
   await mineNextBlock();
 };
+
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('getClaimsToDisplay', function () {
   it('aggregates and displays claims related data in a human-readable form', async function () {

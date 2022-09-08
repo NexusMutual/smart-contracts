@@ -1,8 +1,9 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { setTime, daysToSeconds } = require('./helpers');
+const { setTime } = require('./helpers');
 
 const { parseEther } = ethers.utils;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('withdrawRewards', function () {
   it('reverts if there are no withdrawable rewards', async function () {

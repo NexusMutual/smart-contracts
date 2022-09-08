@@ -1,8 +1,9 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { setTime, daysToSeconds } = require('./helpers');
+const { setTime } = require('./helpers');
 
 const { parseEther } = ethers.utils;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('getRewards', function () {
   it("returns the pending rewards pro-rated to the user's stake", async function () {

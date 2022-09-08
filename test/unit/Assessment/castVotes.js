@@ -1,7 +1,9 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { setTime, daysToSeconds } = require('./helpers');
+const { setTime } = require('./helpers');
+
 const { parseEther } = ethers.utils;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('castVotes', function () {
   it('reverts if the user has already voted on the same assessment', async function () {

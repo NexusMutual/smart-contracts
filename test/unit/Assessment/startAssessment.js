@@ -1,9 +1,9 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { daysToSeconds } = require('./helpers');
 
 const { parseEther } = ethers.utils;
 const { Zero } = ethers.constants;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('startAssessment', function () {
   it('returns the index of the newly created assessment', async function () {

@@ -1,8 +1,9 @@
 const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
 
-const { daysToSeconds, setTime, ASSET, signPermit } = require('./helpers');
+const { setTime, ASSET, signPermit } = require('./helpers');
 const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('redeemPayout', function () {
   it("reverts if the address is not the cover owner's or approved", async function () {

@@ -1,10 +1,11 @@
 const { ethers } = require('hardhat');
 const { assert, expect } = require('chai');
 
-const { submitClaim, daysToSeconds, ASSET } = require('./helpers');
+const { submitClaim, ASSET } = require('./helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);

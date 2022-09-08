@@ -3,6 +3,7 @@ const { provider } = require('hardhat').network;
 
 const setNextBlockTime = async time => provider.send('evm_setNextBlockTimestamp', [time]);
 const mineNextBlock = async () => provider.send('evm_mine');
+const increaseTime = async time => provider.send('evm_increaseTime', [time]);
 
 const impersonateAccount = async address => provider.send('hardhat_impersonateAccount', [address]);
 const stopImpersonatingAccount = async address => provider.send('hardhat_stopImpersonatingAccount', [address]);

@@ -23,10 +23,6 @@ describe('createStakingPool', function () {
 
     const firstStakingPoolAddress = await cover.stakingPool(0);
 
-    console.log({
-      firstStakingPoolAddress,
-    });
-
     await cover.connect(stakingPoolCreator).createStakingPool(
       stakingPoolManager.address,
       false, // isPrivatePool,

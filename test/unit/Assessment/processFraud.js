@@ -1,8 +1,10 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { submitFraud, getProof } = require('./helpers');
-const { daysToSeconds, setTime } = require('./helpers');
+const { setTime } = require('./helpers');
+
 const { parseEther } = ethers.utils;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('processFraud', function () {
   it('reverts if the proof is invalid', async function () {

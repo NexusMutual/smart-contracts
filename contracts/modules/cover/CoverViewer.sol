@@ -111,6 +111,17 @@ contract CoverViewer {
     return coverViews;
   }
 
+  function getCoverSegments(uint coverId) external view returns (CoverSegment[] memory segments) {
+
+    ICover _cover = cover();
+    uint count = _cover.coverSegmentsCount(coverId);
+    segments = new CoverSegment[](count);
+
+    for (uint i = 0; i < count; i++) {
+      segments[i] = _cover.coverSegments(coverId, i);
+    }
+  }
+
   /* ========== COVER PRICING VIEWS ========== */
 
   function getPoolAllocationPriceParametersForProduct(

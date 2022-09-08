@@ -2,15 +2,13 @@
 
 pragma solidity ^0.8.9;
 
+import "../Tokens/ERC721Mock.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
-import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
-
 import "../../modules/staking/StakingPool.sol";
 
 
-contract CoverMockStakingPool is IStakingPool, ERC721 {
+contract CoverMockStakingPool is IStakingPool, ERC721Mock {
 
   struct BurnStakeCalledWith {
     uint productId;
@@ -43,13 +41,13 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
     address /* _coverContract */,
     ITokenController /* _tokenController */,
     address _memberRoles
-  ) ERC721("Nexus Mutual Staking Pool", "NMSPT")
+  ) ERC721Mock("Nexus Mutual Staking Pool", "NMSPT")
   {
     memberRoles = _memberRoles;
   }
 
-  function name() public view override returns (string memory) {
-    return string(abi.encodePacked(super.name(), " ", Strings.toString(poolId)));
+  function nameWithPoolId() public view returns (string memory) {
+    return string(abi.encodePacked(name, " ", Strings.toString(poolId)));
   }
 
   function initialize(
@@ -72,7 +70,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
 
   function operatorTransferFrom(address from, address to, uint256 amount) external /*override*/ {
     require(msg.sender == memberRoles, "StakingPool: Caller is not MemberRoles");
-    _transfer(from, to, amount);
+    transferFrom(from, to, amount);
   }
 
 
@@ -114,7 +112,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721 {
   ) external {
     uint length = tokenIds.length;
     for (uint i = 0; i < length; i++) {
-      _safeTransfer(from, to, tokenIds[i], "");
+      safeTransferFrom(from, to, tokenIds[i]);
     }
   }
 

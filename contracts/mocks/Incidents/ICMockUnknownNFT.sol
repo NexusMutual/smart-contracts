@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
+import "solmate/src/tokens/ERC721.sol";
 
 
 contract ICMockUnknownNFT is ERC721 {
@@ -11,6 +11,11 @@ contract ICMockUnknownNFT is ERC721 {
 
   function mint(address to, uint tokenId) external {
     _mint(to, tokenId);
+  }
+
+  function tokenURI(uint id) public view override returns (string memory) {
+    id; 
+    return "";
   }
 
 }

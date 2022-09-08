@@ -2,7 +2,7 @@
 
 pragma solidity >=0.8.4;
 
-import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
+import "solmate/src/tokens/ERC721.sol";
 
 contract ERC721Mock is ERC721 {
 
@@ -15,7 +15,14 @@ contract ERC721Mock is ERC721 {
   }
 
   function isApprovedOrOwner(address spender, uint256 tokenId) external view returns (bool) {
-    return _isApprovedOrOwner(spender, tokenId);
+    address owner = ownerOf(tokenId);
+    return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[tokenId];
   }
+
+  function tokenURI(uint id) public view override returns (string memory) {
+    id; 
+    return "";
+  }
+
 
 }

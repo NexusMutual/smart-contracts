@@ -3,7 +3,7 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
+import "solmate/src/tokens/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
 
 import "../../modules/staking/StakingPool.sol";

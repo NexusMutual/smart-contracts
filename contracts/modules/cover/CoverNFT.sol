@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
+import "@rari-capital/solmate/src/tokens/ERC721.sol";
 import "../../interfaces/ICover.sol";
 
 contract CoverNFT is ERC721 {
@@ -19,12 +19,18 @@ contract CoverNFT is ERC721 {
 
   }
 
+  function tokenURI(uint256 id) public pure override returns (string memory) {
+    id;  // To silence unused param warning. Remove once fn is implemented
+    return "";
+  }
+
   function mint(address to, uint tokenId) external onlyOperator {
     _mint(to, tokenId);
   }
 
   function isApprovedOrOwner(address spender, uint tokenId) external view returns (bool) {
-    return _isApprovedOrOwner(spender, tokenId);
+    address owner = ownerOf(tokenId);
+    return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[tokenId];
   }
 
   function burn(uint tokenId) external onlyOperator {
@@ -32,7 +38,7 @@ contract CoverNFT is ERC721 {
   }
 
   function operatorTransferFrom(address from, address to, uint256 tokenId) external onlyOperator {
-    _transfer(from, to, tokenId);
+    super.transferFrom(from, to, tokenId);
   }
 
 

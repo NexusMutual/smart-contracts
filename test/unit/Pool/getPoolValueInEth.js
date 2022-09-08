@@ -35,6 +35,13 @@ describe('getPoolValueInEth', function () {
     assert.equal(poolValue.toString(), expectedPoolValue.toString());
   });
 
+  it('shouldnt fail when sent an EOA address', async function () {
+    const { pool } = this;
+    const asset = '0xCAFE000000000000000000000000000000000000';
+    await pool.addAsset(asset, 18, parseEther('10'), parseEther('100'), 1000, false, { from: governance });
+    await pool.getPoolValueInEth();
+  });
+
   it('includes swapValue in the calculation', async function () {
     const { pool } = this;
 

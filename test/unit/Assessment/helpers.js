@@ -11,8 +11,7 @@ const STATUS = {
   DENIED: 2,
 };
 
-// Converts days to seconds
-const daysToSeconds = numberOfDays => numberOfDays * 24 * 60 * 60;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
@@ -90,38 +89,40 @@ const burnFraud = assessment => async (rootIndex, addresses, amounts, callsPerAd
   return gasUsed;
 };
 
-const getDurationByTokenWeight = ({ config }) => (tokens, payoutImpact) => {
-  const { minVotingPeriodInDays, maxVotingPeriodDays } = config;
-  const MULTIPLIER = '10'; // 10x the cover amount
-  let tokenDrivenStrength = tokens.mul(parseEther('1')).div(payoutImpact.mul(MULTIPLIER));
-  // tokenDrivenStrength is capped at 1 i.e. 100%
-  tokenDrivenStrength = tokenDrivenStrength.gt(parseEther('1')) ? parseEther('1') : tokenDrivenStrength;
-  return BigNumber.from(daysToSeconds(minVotingPeriodInDays).toString())
-    .add(
-      BigNumber.from(daysToSeconds(maxVotingPeriodDays - minVotingPeriodInDays).toString())
-        .mul(parseEther('1').sub(tokenDrivenStrength))
-        .div(parseEther('1')),
-    )
-    .toNumber();
-};
+const getDurationByTokenWeight =
+  ({ config }) =>
+  (tokens, payoutImpact) => {
+    const { minVotingPeriodInDays, maxVotingPeriodDays } = config;
+    const MULTIPLIER = '10'; // 10x the cover amount
+    let tokenDrivenStrength = tokens.mul(parseEther('1')).div(payoutImpact.mul(MULTIPLIER));
+    // tokenDrivenStrength is capped at 1 i.e. 100%
+    tokenDrivenStrength = tokenDrivenStrength.gt(parseEther('1')) ? parseEther('1') : tokenDrivenStrength;
+    return BigNumber.from(daysToSeconds(minVotingPeriodInDays).toString())
+      .add(
+        BigNumber.from(daysToSeconds(maxVotingPeriodDays - minVotingPeriodInDays).toString())
+          .mul(parseEther('1').sub(tokenDrivenStrength))
+          .div(parseEther('1')),
+      )
+      .toNumber();
+  };
 
-const getDurationByConsensus = ({ config }) => ({ accepted, denied }) => {
-  const { minVotingPeriodInDays, maxVotingPeriodDays } = config;
-  if (accepted.isZero()) return daysToSeconds(maxVotingPeriodDays);
-  const consensusStrength = accepted
-    .mul(parseEther('2'))
-    .div(accepted.add(denied))
-    .sub(parseEther('1'))
-    .abs();
-  return parseEther(daysToSeconds(minVotingPeriodInDays).toString())
-    .add(
-      parseEther(daysToSeconds(maxVotingPeriodDays - minVotingPeriodInDays).toString())
-        .mul(parseEther('1').sub(consensusStrength))
-        .div(parseEther('1')),
-    )
-    .div(parseEther('1'))
-    .toNumber();
-};
+const getDurationByConsensus =
+  ({ config }) =>
+  ({ accepted, denied }) => {
+    const { minVotingPeriodInDays, maxVotingPeriodDays } = config;
+    if (accepted.isZero()) {
+      return daysToSeconds(maxVotingPeriodDays);
+    }
+    const consensusStrength = accepted.mul(parseEther('2')).div(accepted.add(denied)).sub(parseEther('1')).abs();
+    return parseEther(daysToSeconds(minVotingPeriodInDays).toString())
+      .add(
+        parseEther(daysToSeconds(maxVotingPeriodDays - minVotingPeriodInDays).toString())
+          .mul(parseEther('1').sub(consensusStrength))
+          .div(parseEther('1')),
+      )
+      .div(parseEther('1'))
+      .toNumber();
+  };
 
 const getConfigurationStruct = ({ minVotingPeriodInDays, stakeLockupPeriodInDays, payoutCooldownInDays }) => [
   minVotingPeriodInDays,

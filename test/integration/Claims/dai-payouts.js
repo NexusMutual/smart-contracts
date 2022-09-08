@@ -3,17 +3,16 @@ const { ether, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { toBN } = web3.utils;
 
-const { buyCoverWithDai, buyCover } = require('../utils').buyCover;
+const { buyCoverWithDai } = require('../utils').buyCover;
 const { hex } = require('../utils').helpers;
 const { CoverStatus } = require('../utils').constants;
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
-const { MAX_UINT256 } = require('@openzeppelin/test-helpers').constants;
 
-const [, member1, member2, member3, coverHolder, payoutAddress] = accounts;
+const [, member1, member2, member3, coverHolder] = accounts;
 
 const daiCoverTemplate = {
   amount: 1000, // 1000 dai
-  price: 1e19.toString(), // 10 dai
+  price: (1e19).toString(), // 10 dai
   priceNXM: '10000000000000000000', // 10 nxm
   expireTime: '8000000000',
   generationTime: '1600000000000',
@@ -23,7 +22,6 @@ const daiCoverTemplate = {
 };
 
 describe('DAI cover claim payouts', function () {
-
   beforeEach(async function () {
     const { dai } = this.contracts;
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
@@ -35,8 +33,7 @@ describe('DAI cover claim payouts', function () {
   });
 
   it('[A1, status: 0, 7, 14] CA accept, closed with closeClaim()', async function () {
-
-    const { cd, cl, qd, mr, master, dai, cr } = this.contracts;
+    const { cd, cl, qd, dai, cr } = this.contracts;
     const cover = { ...daiCoverTemplate };
 
     await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
@@ -68,8 +65,7 @@ describe('DAI cover claim payouts', function () {
   });
 
   it('[A1, status: 0, 7, 14] CA accept, closed on the last vote', async function () {
-
-    const { cd, cl, qd, mr, dai } = this.contracts;
+    const { cd, cl, qd, dai } = this.contracts;
     const cover = { ...daiCoverTemplate };
 
     await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
@@ -97,8 +93,7 @@ describe('DAI cover claim payouts', function () {
   });
 
   it('[A2, status: 0, 4, 8, 14] CA no consensus, MV accept, closed with closeClaim()', async function () {
-
-    const { cd, cl, qd, mr, master, dai, cr } = this.contracts;
+    const { cd, cl, qd, dai, cr } = this.contracts;
     const cover = { ...daiCoverTemplate };
 
     await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
@@ -121,10 +116,7 @@ describe('DAI cover claim payouts', function () {
     assert(voteStatusAfter.eqn(0), 'voting should not be closed');
 
     const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
-    assert.strictEqual(
-      claimStatusCA.toNumber(), 4,
-      'claim status should be 4 (ca consensus not reached, pending mv)',
-    );
+    assert.strictEqual(claimStatusCA.toNumber(), 4, 'claim status should be 4 (ca consensus not reached, pending mv)');
 
     await cl.submitMemberVote(claimId, '1', { from: member1 });
     await time.increase(maxVotingTime.addn(1));
@@ -132,7 +124,8 @@ describe('DAI cover claim payouts', function () {
 
     const { statno: claimStatusMV } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(
-      claimStatusMV.toNumber(), 14,
+      claimStatusMV.toNumber(),
+      14,
       'claim status should be 14 (ca consensus not reached, pending mv)',
     );
 
@@ -144,8 +137,7 @@ describe('DAI cover claim payouts', function () {
   });
 
   it('[A2, status: 0, 4, 8, 14] CA no consensus, MV accept, on the last vote', async function () {
-
-    const { cd, cl, qd, mr, master, dai, cr } = this.contracts;
+    const { cd, cl, qd, dai, cr } = this.contracts;
     const cover = { ...daiCoverTemplate };
 
     await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
@@ -168,10 +160,7 @@ describe('DAI cover claim payouts', function () {
     assert(voteStatusAfter.eqn(0), 'voting should not be closed');
 
     const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
-    assert.strictEqual(
-      claimStatusCA.toNumber(), 4,
-      'claim status should be 4 (ca consensus not reached, pending mv)',
-    );
+    assert.strictEqual(claimStatusCA.toNumber(), 4, 'claim status should be 4 (ca consensus not reached, pending mv)');
 
     const minVotingTime = await cd.minVotingTime();
     await time.increase(minVotingTime.addn(1));
@@ -179,7 +168,8 @@ describe('DAI cover claim payouts', function () {
 
     const { statno: claimStatusMV } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(
-      claimStatusMV.toNumber(), 14,
+      claimStatusMV.toNumber(),
+      14,
       'claim status should be 14 (ca consensus not reached, pending mv)',
     );
 
@@ -191,8 +181,7 @@ describe('DAI cover claim payouts', function () {
   });
 
   it('[A3, status: 0, 4, 10, 14] CA no consensus (accept), MV min not reached, use CA result', async function () {
-
-    const { cd, cl, qd, mr, master, dai, cr } = this.contracts;
+    const { cd, cl, qd, dai, cr } = this.contracts;
     const cover = { ...daiCoverTemplate };
 
     await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
@@ -215,19 +204,13 @@ describe('DAI cover claim payouts', function () {
     assert(voteStatusAfter.eqn(0), 'voting should not be closed');
 
     const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
-    assert.strictEqual(
-      claimStatusCA.toNumber(), 4,
-      'claim status should be 4 (ca consensus not reached, pending mv)',
-    );
+    assert.strictEqual(claimStatusCA.toNumber(), 4, 'claim status should be 4 (ca consensus not reached, pending mv)');
 
     await time.increase(maxVotingTime.addn(1));
     await cr.closeClaim(claimId); // trigger changeClaimStatus
 
     const { statno: claimStatusMV } = await cd.getClaimStatusNumber(claimId);
-    assert.strictEqual(
-      claimStatusMV.toNumber(), 14,
-      'claim status should be 14 (payout done)',
-    );
+    assert.strictEqual(claimStatusMV.toNumber(), 14, 'claim status should be 14 (payout done)');
 
     const balanceAfter = toBN(await dai.balanceOf(coverHolder));
     const expectedPayout = ether(cover.amount.toString());
@@ -236,9 +219,9 @@ describe('DAI cover claim payouts', function () {
     assert(actualPayout.eq(expectedPayout), 'should have transfered the cover amount');
   });
 
+  // eslint-disable-next-line max-len
   it('[A1, status: 0, 7, 12, 13] CA accept, closed with closeClaim(), claim payout fails with status 12 and goes to status 13 after 60 retries', async function () {
-
-    const { cd, cl, qd, master, dai, p1: pool, cr } = this.contracts;
+    const { cd, cl, qd, dai, cr } = this.contracts;
 
     const cover = { ...daiCoverTemplate };
     await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
@@ -276,5 +259,4 @@ describe('DAI cover claim payouts', function () {
     const { statno: finalClaimStatus } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(finalClaimStatus.toNumber(), 13, 'claim status should be 13 (Claim Accepted No Payout)');
   });
-
 });

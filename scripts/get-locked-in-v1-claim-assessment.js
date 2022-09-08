@@ -1,6 +1,8 @@
 const { ethers } = require('hardhat');
 const fs = require('fs');
+const path = require('path');
 const fetch = require('node-fetch');
+
 const { PROVIDER_URL } = process.env;
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 
@@ -18,7 +20,7 @@ const getContractFactory = async providerOrSigner => {
 
 const ROLE_MEMBER = 2;
 
-async function getMemberStake (i, mr, tc) {
+async function getMemberStake(i, mr, tc) {
   const { 0: member, 1: active } = await mr.memberAtIndex(ROLE_MEMBER, i);
 
   if (!active) {
@@ -30,7 +32,7 @@ async function getMemberStake (i, mr, tc) {
   return { member, amount: amount.toString() };
 }
 
-async function main (provider) {
+async function main(provider) {
   const factory = await getContractFactory(provider);
   const tc = await factory('TC');
   const mr = await factory('MR');
@@ -51,7 +53,7 @@ async function main (provider) {
   const nonZeroMemberStakes = memberStakes.filter(x => x.amount !== '0');
 
   fs.writeFileSync(
-    `${__dirname}/v2-migration/output/eligibleForCLAUnlock.json`,
+    path.join(__dirname, 'v2-migration/output/eligibleForCLAUnlock.json'),
     JSON.stringify(nonZeroMemberStakes, null, 2),
   );
 

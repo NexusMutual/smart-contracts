@@ -1,30 +1,25 @@
 const { artifacts } = require('hardhat');
-const { constants: { ZERO_ADDRESS }, ether, expectRevert } = require('@openzeppelin/test-helpers');
+const {
+  constants: { ZERO_ADDRESS },
+  expectRevert,
+} = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { hex } = require('../utils').helpers;
-const { Role, ContractTypes } = require('../utils').constants;
+const { ContractTypes } = require('../utils').constants;
 
 const MMockNewContract = artifacts.require('MMockNewContract');
-const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 
 describe('removeContracts', function () {
-
   it('reverts when not called by governance', async function () {
     const { master } = this;
 
-    await expectRevert(
-      master.removeContracts([]),
-      'Not authorized',
-    );
+    await expectRevert(master.removeContracts([]), 'Not authorized');
   });
 
   it('reverts when contract code does not exist', async function () {
     const { governance } = this;
 
-    await expectRevert(
-      governance.removeContracts([hex('XX')]),
-      'NXMaster: Address is 0',
-    );
+    await expectRevert(governance.removeContracts([hex('XX')]), 'NXMaster: Address is 0');
   });
 
   it('remove newly added contracts', async function () {

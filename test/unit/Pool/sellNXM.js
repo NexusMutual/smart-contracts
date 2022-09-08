@@ -3,13 +3,12 @@ const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { BN } = web3.utils;
 const { Role } = require('../utils').constants;
-const { calculateMCRRatio, percentageBN } = require('../utils').tokenPrice;
-const { members: [memberOne] } = require('../utils').accounts;
+const { percentageBN } = require('../utils').tokenPrice;
+const [memberOne] = require('../utils').accounts.members;
 
 const P1MockMember = artifacts.require('P1MockMember');
 
 describe('sellNXM', function () {
-
   it('reverts on sell that decreases the MCR% below 100%', async function () {
     const { pool, mcr, token } = this;
 
@@ -22,10 +21,7 @@ describe('sellNXM', function () {
     const tokenAmountToSell = ether('1000');
     await token.mint(memberOne, tokenAmountToSell);
 
-    await expectRevert(
-      pool.sellNXM(tokenAmountToSell, '0', { from: memberOne }),
-      'MCR% cannot fall below 100%',
-    );
+    await expectRevert(pool.sellNXM(tokenAmountToSell, '0', { from: memberOne }), 'MCR% cannot fall below 100%');
   });
 
   it('reverts on sell worth more than 5% of MCReth', async function () {
@@ -61,10 +57,7 @@ describe('sellNXM', function () {
     await pool.buyNXM('1', { from: memberOne, value: buyValue });
 
     const entireBalance = await token.balanceOf(memberOne);
-    await expectRevert(
-      pool.sellNXM(entireBalance.addn(1), '0', { from: memberOne }),
-      'Not enough balance',
-    );
+    await expectRevert(pool.sellNXM(entireBalance.addn(1), '0', { from: memberOne }), 'Not enough balance');
   });
 
   it('reverts on sell from member that is a contract whose fallback function reverts', async function () {
@@ -82,10 +75,7 @@ describe('sellNXM', function () {
     const tokensToSell = ether('1');
     await token.mint(contractMember.address, tokensToSell);
 
-    await expectRevert(
-      contractMember.sellNXM(tokensToSell),
-      'Pool: Sell transfer failed',
-    );
+    await expectRevert(contractMember.sellNXM(tokensToSell), 'Pool: Sell transfer failed');
   });
 
   it('reverts on sell from member when ethOut < minEthOut', async function () {

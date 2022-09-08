@@ -6,9 +6,7 @@ const [, member1, member2, member3] = accounts;
 const TOTAL_ROLES = 4;
 
 describe('join', function () {
-
   it('enrolls members by paying joining fee confirming KYC', async function () {
-
     const { mr: memberRoles, tk: token } = this.contracts;
     const members = [member1, member2, member3];
     const { memberArray: membersBefore } = await memberRoles.members(Role.Member);
@@ -39,5 +37,4 @@ describe('join', function () {
     const totalRoles = await memberRoles.totalRoles();
     assert.equal(totalRoles.toString(), TOTAL_ROLES.toString(), 'Initial member roles not created');
   });
-
 });

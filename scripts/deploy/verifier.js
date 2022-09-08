@@ -2,12 +2,10 @@ const { ethers, run, config } = require('hardhat');
 const { sleep, to } = require(`${config.paths.root}/lib/helpers`);
 
 module.exports = () => {
-
   const contracts = {};
 
   // artifact and abiName arguments are not used for verification
   const add = (address, artifact, options = {}) => {
-
     const { alias, constructorArgs, libraries, isProxy = false } = options;
     const abiName = options.abiName || artifact.split(':').pop();
 
@@ -21,7 +19,6 @@ module.exports = () => {
   };
 
   const dump = async () => {
-
     const deployData = [];
 
     for (const contract of Object.values(contracts)) {
@@ -47,17 +44,18 @@ module.exports = () => {
   };
 
   const verify = async (contractAddress, constructorArgs, libraries) => {
-
     let attempts = 5;
 
     console.log(`Verifying ${contractAddress}`);
 
     while (true) {
-      const [, verifyError] = await to(run('verify:verify', {
-        address: contractAddress,
-        constructorArguments: constructorArgs,
-        libraries,
-      }));
+      const [, verifyError] = await to(
+        run('verify:verify', {
+          address: contractAddress,
+          constructorArguments: constructorArgs,
+          libraries,
+        }),
+      );
 
       if (verifyError) {
         break;

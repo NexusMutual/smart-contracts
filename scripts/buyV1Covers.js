@@ -1,15 +1,10 @@
-require('dotenv').config();
-const { config, network, run, ethers } = require('hardhat');
+const { config, network, ethers } = require('hardhat');
 
-const { hex } = require('../lib/helpers');
-const fs = require('fs');
-const { parseUnits } = ethers.utils;
-
-function zeroPadRight (bytes, length) {
+function zeroPadRight(bytes, length) {
   return new Uint8Array(length).fill(0).map((x, i) => bytes[i] || x);
 }
 
-async function main () {
+async function main() {
   console.log(`Using network: ${network.name}`);
   console.log('Network config:', config.networks[network.name]);
 
@@ -19,11 +14,8 @@ async function main () {
     '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853',
   );
 
-  const coverNft = await ethers.getContractAt('CoverNFT', '0x0B306BF915C4d645ff596e518fAf3F9669b97016');
-
   const now = Math.floor(Date.now() / 1000);
   const ETH = zeroPadRight(Buffer.from('ETH'), 4);
-  const DAI = zeroPadRight(Buffer.from('DAI'), 4);
 
   await quotationData.addOldCover(
     now - 365 * 24 * 60 * 60,

@@ -1,10 +1,11 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { submitClaim, daysToSeconds, ASSET } = require('./helpers');
+const { submitClaim, ASSET } = require('./helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
@@ -141,7 +142,7 @@ describe('redeemClaimPayout', function () {
   });
 
   it('reverts if a payout has already been redeemed', async function () {
-    const { individualClaims, cover, assessment, pool } = this.contracts;
+    const { individualClaims, cover, assessment } = this.contracts;
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
@@ -165,7 +166,7 @@ describe('redeemClaimPayout', function () {
   });
 
   it("sets the claim's payoutRedeemed property to true", async function () {
-    const { individualClaims, cover, assessment, pool } = this.contracts;
+    const { individualClaims, cover, assessment } = this.contracts;
     const [coverOwner] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
@@ -188,7 +189,7 @@ describe('redeemClaimPayout', function () {
 
   it('sends the payout amount in ETH and the assessment deposit to the cover owner', async function () {
     // also check after NFT transfer
-    const { individualClaims, cover, coverNFT, assessment, pool } = this.contracts;
+    const { individualClaims, cover, coverNFT, assessment } = this.contracts;
     const [originalOwner, newOwner, otherMember] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');
@@ -342,7 +343,7 @@ describe('redeemClaimPayout', function () {
   });
 
   it('calls performStakeBurn from Cover.sol with the amount to be burned, cover and segment IDs', async function () {
-    const { individualClaims, cover, assessment, dai } = this.contracts;
+    const { individualClaims, cover, assessment } = this.contracts;
     const [coverOwner, otherMember] = this.accounts.members;
     const coverPeriod = daysToSeconds(30);
     const coverAmount = parseEther('100');

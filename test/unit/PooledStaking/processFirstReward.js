@@ -16,7 +16,7 @@ const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
-async function fundApproveDepositStake (token, tokenController, staking, amount, contract, member) {
+async function fundApproveDepositStake(token, tokenController, staking, amount, contract, member) {
   await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(tokenController.address, amount, { from: member });

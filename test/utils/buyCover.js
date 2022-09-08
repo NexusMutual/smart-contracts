@@ -1,16 +1,15 @@
-const { ether, time } = require('@openzeppelin/test-helpers');
+const { ether } = require('@openzeppelin/test-helpers');
 const { getQuoteSignature } = require('./getQuote');
 const { web3 } = require('hardhat');
 const { toBN } = web3.utils;
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-function coverToCoverDetailsArray (cover) {
+function coverToCoverDetailsArray(cover) {
   return [cover.amount, cover.price, cover.priceNXM, cover.expireTime, cover.generationTime];
 }
 
-async function buyCover ({ cover, coverHolder, qt, p1 }) {
-
+async function buyCover({ cover, coverHolder, qt, p1 }) {
   const signature = await getQuoteSignature(
     coverToCoverDetailsArray(cover),
     cover.currency,
@@ -31,8 +30,7 @@ async function buyCover ({ cover, coverHolder, qt, p1 }) {
   );
 }
 
-async function buyCoverWithDai ({ cover, coverHolder, qt, p1, dai }) {
-
+async function buyCoverWithDai({ cover, coverHolder, qt, p1, dai }) {
   const vrsData = await getQuoteSignature(
     coverToCoverDetailsArray(cover),
     cover.currency,
@@ -57,8 +55,7 @@ async function buyCoverWithDai ({ cover, coverHolder, qt, p1, dai }) {
   );
 }
 
-async function getBuyCoverDataParameter ({ qt, coverData }) {
-
+async function getBuyCoverDataParameter({ qt, coverData }) {
   // encoded data and signature uses unit price.
   const unitAmount = toBN(coverData.amount).div(ether('1')).toString();
   const [v, r, s] = await getQuoteSignature(
@@ -74,8 +71,7 @@ async function getBuyCoverDataParameter ({ qt, coverData }) {
   );
 }
 
-async function buyCoverThroughGateway ({ coverData, gateway, coverHolder, qt, dai }) {
-
+async function buyCoverThroughGateway({ coverData, gateway, coverHolder, qt, dai }) {
   const price = toBN(coverData.price);
   // encoded data and signature uses unit price.
   const data = await getBuyCoverDataParameter({ qt, coverData });
@@ -87,10 +83,12 @@ async function buyCoverThroughGateway ({ coverData, gateway, coverHolder, qt, da
       coverData.amount,
       coverData.period,
       coverData.type,
-      data, {
+      data,
+      {
         from: coverHolder,
         value: price,
-      });
+      },
+    );
   } else if (coverData.asset === dai.address) {
     await dai.approve(gateway.address, price, {
       from: coverHolder,
@@ -101,9 +99,11 @@ async function buyCoverThroughGateway ({ coverData, gateway, coverHolder, qt, da
       coverData.amount,
       coverData.period,
       coverData.type,
-      data, {
+      data,
+      {
         from: coverHolder,
-      });
+      },
+    );
   }
 
   throw new Error(`Unknown asset ${coverData.asset}`);

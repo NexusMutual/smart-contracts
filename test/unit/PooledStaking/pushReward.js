@@ -13,7 +13,7 @@ const {
 
 const firstContract = '0x0000000000000000000000000000000000000001';
 
-async function fundApproveDepositStake (token, tokenController, staking, amount, contract, member) {
+async function fundApproveDepositStake(token, tokenController, staking, amount, contract, member) {
   await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(tokenController.address, amount, { from: member });
@@ -21,9 +21,7 @@ async function fundApproveDepositStake (token, tokenController, staking, amount,
 }
 
 describe('pushReward', function () {
-
   it('should revert when called by non internal contract', async function () {
-
     const { master, staking } = this;
 
     assert.strictEqual(await master.isInternal(nonInternal), false);
@@ -35,7 +33,6 @@ describe('pushReward', function () {
   });
 
   it('should emit RewardRequested event', async function () {
-
     const { token, tokenController, staking } = this;
 
     await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
@@ -66,23 +63,16 @@ describe('pushReward', function () {
     // Check the Reward has been pushed to the rewards mapping
     const { amount, rewardedAt, contractAddress } = await staking.rewards(1);
     const now = await time.latest();
-    assert(
-      amount.eq(firstRewardAmount),
-      `Expected first reward amount to be ${firstRewardAmount}, found ${amount}`,
-    );
+    assert(amount.eq(firstRewardAmount), `Expected first reward amount to be ${firstRewardAmount}, found ${amount}`);
     assert.equal(
       contractAddress,
       firstContract,
       `Expected rewarded contract to be ${firstContract}, found ${contractAddress}`,
     );
-    assert(
-      rewardedAt.eq(now),
-      `Expected rewarded time to be ${now}, found ${rewardedAt}`,
-    );
+    assert(rewardedAt.eq(now), `Expected rewarded time to be ${now}, found ${rewardedAt}`);
   });
 
   it('should set lastRewardId correctly', async function () {
-
     const { token, tokenController, staking } = this;
 
     await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
@@ -109,7 +99,6 @@ describe('pushReward', function () {
   });
 
   it('should set firstReward correctly', async function () {
-
     const { token, tokenController, staking } = this;
 
     await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
@@ -133,5 +122,4 @@ describe('pushReward', function () {
     firstReward = await staking.firstReward();
     assert(firstReward.eqn(2), `Expected firstBurn to be 2, found ${firstReward}`);
   });
-
 });

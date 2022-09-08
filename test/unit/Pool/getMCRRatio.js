@@ -1,10 +1,8 @@
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
-const { calculateMCRRatio } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
 
 describe('getMCRRatio', function () {
-
   it('gets MCR ratio value', async function () {
     const { pool, mcr } = this;
 
@@ -19,5 +17,4 @@ describe('getMCRRatio', function () {
 
     assert.equal(calculatedMCRRatio.toString(), expectedMCRRatio.toString());
   });
-
 });

@@ -14,16 +14,13 @@ const {
 } = accounts;
 
 describe('updateUintParameters', function () {
-
   it('should revert when called by non governance addresses', async function () {
     const { mcr } = this;
     const param = MCRUintParamType.mcrFloorIncrementThreshold;
     const nonGov = [nonMember, member, advisoryBoardMember, internalContract];
 
     for (const address of nonGov) {
-      await expectRevert.unspecified(
-        mcr.updateUintParameters(param, 0, { from: address }),
-      );
+      await expectRevert.unspecified(mcr.updateUintParameters(param, 0, { from: address }));
     }
   });
 

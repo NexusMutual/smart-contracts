@@ -1,7 +1,14 @@
 const { expect } = require('chai');
 const { contracts } = require('./setup');
-const { Assets: { ETH } } = require('../../../lib/constants');
-const { ethers: { utils: { parseEther } }, ethers } = require('hardhat');
+const {
+  Assets: { ETH },
+} = require('../../../lib/constants');
+const {
+  ethers: {
+    utils: { parseEther },
+  },
+  ethers,
+} = require('hardhat');
 
 describe('getAssetForEth', function () {
   let dai, wbtc, daiAggregator, wbtcAggregator, priceFeedOracle;
@@ -17,8 +24,9 @@ describe('getAssetForEth', function () {
   it('reverts if the asset is unknown', async function () {
     const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
     const newToken = await ERC20Mock.deploy();
-    await expect(priceFeedOracle.getAssetForEth(newToken.address, 1234))
-      .to.be.revertedWith('PriceFeedOracle: Unknown asset');
+    await expect(priceFeedOracle.getAssetForEth(newToken.address, 1234)).to.be.revertedWith(
+      'PriceFeedOracle: Unknown asset',
+    );
   });
 
   it('returns ethIn if asset is ETH', async function () {

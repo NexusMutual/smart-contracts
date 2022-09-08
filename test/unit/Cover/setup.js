@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 const { getContractAddress } = require('@ethersproject/address');
-const { hexlify, arrayify, hexValue, hexZeroPad, parseEther } = ethers.utils;
+const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../utils').constants;
@@ -17,7 +17,7 @@ const getDeployAddressAfter = async txCount => {
   return nextAddress;
 };
 
-async function setup () {
+async function setup() {
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const Pool = await ethers.getContractFactory('CoverMockPool');
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
@@ -40,8 +40,6 @@ async function setup () {
       CoverUtilsLib: coverUtilsLib.address,
     },
   });
-
-  const [owner] = await ethers.getSigners();
 
   const master = await MasterMock.deploy();
   await master.deployed();
@@ -100,9 +98,7 @@ async function setup () {
   await master.setTokenAddress(nxm.address);
 
   const ethToDaiRate = parseEther('2000');
-  const daiToEthRate = BigNumber.from(10)
-    .pow(BigNumber.from(36))
-    .div(ethToDaiRate);
+  const daiToEthRate = BigNumber.from(10).pow(BigNumber.from(36)).div(ethToDaiRate);
 
   const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
   await chainlinkDAI.deployed();
@@ -169,8 +165,6 @@ async function setup () {
   }
 
   await master.setEmergencyAdmin(accounts.emergencyAdmin.address);
-
-
 
   // add products
   await cover.connect(accounts.advisoryBoardMembers[0]).addProducts(

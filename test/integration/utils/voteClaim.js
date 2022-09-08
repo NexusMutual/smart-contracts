@@ -2,7 +2,7 @@ const { web3 } = require('hardhat');
 const { time } = require('@openzeppelin/test-helpers');
 const { toBN } = web3.utils;
 
-async function voteClaim ({ claimId, verdict, cl, cd, cr, voter }) {
+async function voteClaim({ claimId, verdict, cl, cd, cr, voter }) {
   await cl.submitCAVote(claimId, toBN(verdict), { from: voter });
 
   const minVotingTime = await cd.minVotingTime();

@@ -1,8 +1,10 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { setTime, daysToSeconds, INCIDENT_STATUS } = require('./helpers');
+const { setTime, INCIDENT_STATUS } = require('./helpers');
+
 const { parseEther } = ethers.utils;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('getIncidentsToDisplay', function () {
   it('aggregates and displays claims related data in a human-readable form', async function () {

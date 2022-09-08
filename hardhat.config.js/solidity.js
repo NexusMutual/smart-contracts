@@ -1,6 +1,5 @@
-const compilerSettings = process.env.ENABLE_OPTIMIZER
-  ? { optimizer: { enabled: true, runs: 200 } }
-  : {};
+const optimizer = { enabled: true, runs: 200 };
+const compilerSettings = process.env.ENABLE_OPTIMIZER ? { optimizer } : {};
 
 const compilers = {
   '0.5.7': { settings: compilerSettings, version: '0.5.7' }, // nexus mutual v1

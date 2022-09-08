@@ -70,7 +70,7 @@ const contractCodeByName = {
   Pool: 'P1',
 };
 
-const rootPath = path.normalize(`${__dirname}/../`);
+const rootPath = path.normalize(path.join(__dirname, '..'));
 const addresses = require(`${rootPath}/deploy/mainnet-input.json`);
 
 const getContractAbi = code => {

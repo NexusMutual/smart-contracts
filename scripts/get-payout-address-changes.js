@@ -1,13 +1,8 @@
-require('dotenv').config();
-const fs = require('fs');
-const ethers = require('ethers');
+const { ethers } = require('hardhat');
 const fetch = require('node-fetch');
-const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers/src/constants');
-
-const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 
 const { PROVIDER_URL } = process.env;
-
+const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 const EVENTS_START_BLOCK = 0;
 
 const getContractFactory = async providerOrSigner => {
@@ -21,10 +16,6 @@ const getContractFactory = async providerOrSigner => {
     return new ethers.Contract(address, abi, providerOrSigner);
   };
 };
-
-function onlyUnique (value, index, self) {
-  return self.indexOf(value) === index;
-}
 
 const main = async () => {
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL);
@@ -41,7 +32,7 @@ const main = async () => {
       const { member, payoutAddress } = data.args;
       return { member, payoutAddress };
     })
-    .filter(x => x.payoutAddress !== ZERO_ADDRESS);
+    .filter(x => x.payoutAddress !== ethers.constants.AddressZero);
 
   console.log(addresses);
 };

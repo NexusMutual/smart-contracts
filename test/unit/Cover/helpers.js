@@ -1,30 +1,24 @@
-const { artifacts, ethers: { utils: { parseEther }, BigNumber } } = require('hardhat');
-const { constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
-const Decimal = require('decimal.js');
-const { assert, expect } = require('chai');
-const { bnEqual } = require("../../../lib/helpers");
+const { ethers } = require('hardhat');
+const { assert } = require('chai');
+const { bnEqual } = require('../../../lib/helpers');
 
-const DEFAULT_POOL_FEE = '5'
+const { parseEther } = ethers.utils;
+const { AddressZero } = ethers.constants;
 
-const DEFAULT_PRODUCT_INITIALIZATION = [
-  {
-    productId: 0,
-    weight: 100
-  }
-]
+const DEFAULT_POOL_FEE = '5';
+const DEFAULT_PRODUCT_INITIALIZATION = [{ productId: 0, weight: 100 }];
 
-async function createStakingPool (
-  cover, productId, capacity, targetPrice, activeCover, stakingPoolCreator, stakingPoolManager, currentPrice,
-) {
-
+async function createStakingPool(cover, productId, capacity, targetPrice, activeCover, creator, manager, currentPrice) {
   const productinitializationParams = DEFAULT_PRODUCT_INITIALIZATION.map(p => {
     p.initialPrice = currentPrice;
     p.targetPrice = targetPrice;
     return p;
   });
 
-  const tx = await cover.connect(stakingPoolCreator).createStakingPool(
-    stakingPoolManager.address,
+  const stakingPoolIndex = await cover.stakingPoolCount();
+
+  const tx = await cover.connect(creator).createStakingPool(
+    manager.address,
     false, // isPrivatePool,
     DEFAULT_POOL_FEE, // initialPoolFee
     DEFAULT_POOL_FEE, // maxPoolFee,
@@ -35,26 +29,18 @@ async function createStakingPool (
 
   await tx.wait();
 
-  const stakingPoolCount = await cover.stakingPoolCount();
-
-  const stakingPoolIndex = stakingPoolCount.sub(1);
-
   const stakingPoolAddress = await cover.stakingPool(stakingPoolIndex);
-
   const stakingPool = await ethers.getContractAt('CoverMockStakingPool', stakingPoolAddress);
 
   await stakingPool.setStake(productId, capacity);
-
-
   await stakingPool.setTargetPrice(productId, targetPrice);
   await stakingPool.setUsedCapacity(productId, activeCover);
-
   await stakingPool.setPrice(productId, currentPrice); // 2.6%
 
   return stakingPool;
 }
 
-async function assertCoverFields (
+async function assertCoverFields(
   cover,
   coverId,
   { productId, coverAsset, period, amount, targetPriceRatio, segmentId = '0', amountPaidOut = '0' },
@@ -71,35 +57,39 @@ async function assertCoverFields (
   bnEqual(segment.priceRatio, targetPriceRatio);
 }
 
-async function buyCoverOnOnePool (
-  {
-    productId,
-    coverAsset,
-    period,
-    amount,
-    targetPriceRatio,
-    priceDenominator,
-    activeCover,
-    capacity,
-    capacityFactor,
-  },
-) {
+async function buyCoverOnOnePool({
+  productId,
+  coverAsset,
+  period,
+  amount,
+  targetPriceRatio,
+  priceDenominator,
+  activeCover,
+  capacity,
+}) {
   const { cover } = this;
-
-  const {
-    members: [member1],
-    members: [coverBuyer1, stakingPoolManager],
-  } = this.accounts;
+  const [coverBuyer, stakingPoolManager] = this.accounts.members;
 
   await createStakingPool(
-    cover, productId, capacity, targetPriceRatio, activeCover, stakingPoolManager, stakingPoolManager, targetPriceRatio,
+    cover,
+    productId,
+    capacity,
+    targetPriceRatio,
+    activeCover,
+    stakingPoolManager,
+    stakingPoolManager,
+    targetPriceRatio,
   );
 
-  const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator).mul(period).div(3600 * 24 * 365);
+  const expectedPremium = amount
+    .mul(targetPriceRatio)
+    .div(priceDenominator)
+    .mul(period)
+    .div(3600 * 24 * 365);
 
-  const tx = await cover.connect(member1).buyCover(
+  const tx = await cover.connect(coverBuyer).buyCover(
     {
-      owner: coverBuyer1.address,
+      owner: coverBuyer.address,
       productId,
       coverAsset,
       amount,
@@ -108,13 +98,11 @@ async function buyCoverOnOnePool (
       paymentAsset: coverAsset,
       payWitNXM: false,
       commissionRatio: parseEther('0'),
-      commissionDestination: ZERO_ADDRESS,
-      ipfsData: ''
+      commissionDestination: AddressZero,
+      ipfsData: '',
     },
-    [{ poolId: '0', coverAmountInAsset: amount.toString() }],
-    {
-      value: expectedPremium,
-    },
+    [{ poolId: '0', coverAmountInAsset: amount }],
+    { value: expectedPremium },
   );
 
   const { events } = await tx.wait();
@@ -131,19 +119,15 @@ async function buyCoverOnOnePool (
     storedCoverData,
     segment,
     coverId,
-    segmentId
+    segmentId,
   };
 }
 
 const MAX_COVER_PERIOD = 3600 * 24 * 365;
 
-function toDecimal (x) {
-  return new Decimal(x.toString());
-}
-
 module.exports = {
   assertCoverFields,
   buyCoverOnOnePool,
   MAX_COVER_PERIOD,
-  createStakingPool
+  createStakingPool,
 };

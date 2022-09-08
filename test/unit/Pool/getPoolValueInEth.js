@@ -4,12 +4,17 @@ const { ether } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
 const { BN } = web3.utils;
 
-const { utils: { parseEther } } = ethers;
+const {
+  utils: { parseEther },
+} = ethers;
 
-const { nonMembers: [fundSource], defaultSender, governanceContracts: [governance] } = require('../utils').accounts;
+const {
+  nonMembers: [fundSource],
+  defaultSender,
+  governanceContracts: [governance],
+} = require('../utils').accounts;
 
 describe('getPoolValueInEth', function () {
-
   it('gets total value of ETH and DAI assets in the pool', async function () {
     const { pool, mcr, chainlinkDAI, dai } = this;
 
@@ -45,5 +50,4 @@ describe('getPoolValueInEth', function () {
 
     expect(newPoolValue.toString()).to.eq(oldPoolValue.add(swapValue).toString());
   });
-
 });

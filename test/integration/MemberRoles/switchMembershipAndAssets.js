@@ -3,7 +3,8 @@ const { expectRevert } = require('@openzeppelin/test-helpers');
 const { expect, assert } = require('chai');
 const { Role } = require('../utils').constants;
 const { parseEther } = ethers.utils;
-const { daysToSeconds } = require('../../utils/helpers');
+
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('switchMembershipAndAssets', function () {
   it('switches membership from one address to another', async function () {

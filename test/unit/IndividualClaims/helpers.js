@@ -1,9 +1,5 @@
 const { ethers } = require('hardhat');
-const keccak256 = require('keccak256');
-const { MerkleTree } = require('merkletreejs');
-const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
-const { BigNumber } = ethers;
-const { Zero } = ethers.constants;
+const { parseEther } = ethers.utils;
 
 const CLAIM_STATUS = {
   PENDING: 0,
@@ -23,26 +19,23 @@ const ASSET = {
   DAI: 1,
 };
 
-// Converts days to seconds
-const daysToSeconds = numberOfDays => numberOfDays * 24 * 60 * 60;
-
-const submitClaim = ({ accounts, contracts, config }) => async ({
-  coverId = 0,
-  segmentId = 0,
-  amount = parseEther('1'),
-  coverPeriod = 0,
-  coverAsset = 0,
-  ipfsMetadata = '',
-  sender,
-  value,
-}) => {
-  const [deposit] = await contracts.individualClaims.getAssessmentDepositAndReward(amount, coverPeriod, coverAsset);
-  return await contracts.individualClaims
-    .connect(sender || accounts[0])
-    .submitClaim(coverId, segmentId, amount, ipfsMetadata, {
-      value: value || deposit,
-    });
-};
+const submitClaim =
+  ({ accounts, contracts }) =>
+  async ({
+    coverId = 0,
+    segmentId = 0,
+    amount = parseEther('1'),
+    coverPeriod = 0,
+    coverAsset = 0,
+    ipfsMetadata = '',
+    sender,
+    value,
+  }) => {
+    const [deposit] = await contracts.individualClaims.getAssessmentDepositAndReward(amount, coverPeriod, coverAsset);
+    return await contracts.individualClaims
+      .connect(sender || accounts[0])
+      .submitClaim(coverId, segmentId, amount, ipfsMetadata, { value: value || deposit });
+  };
 
 const getConfigurationStruct = ({ rewardRatio, minAssessmentDepositRatio }) => [rewardRatio, minAssessmentDepositRatio];
 
@@ -73,7 +66,6 @@ module.exports = {
   ASSET,
   CLAIM_STATUS,
   PAYOUT_STATUS,
-  daysToSeconds,
   submitClaim,
   getPollStruct,
   getConfigurationStruct,

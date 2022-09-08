@@ -12,25 +12,23 @@ const {
 
 const firstContract = '0x0000000000000000000000000000000000000001';
 
-async function fundAndStake (token, tokenController, staking, amount, contract, member) {
+async function fundAndStake(token, tokenController, staking, amount, contract, member) {
   await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(tokenController.address, amount, { from: member });
   await staking.depositAndStake(amount, [contract], [amount], { from: member });
 }
 
-async function setMinAllowedUnstake (staking, amount) {
+async function setMinAllowedUnstake(staking, amount) {
   return staking.updateUintParameters(StakingUintParamType.MIN_UNSTAKE, amount, { from: governanceContract });
 }
 
-async function setUnstakeLockTime (staking, lockTime) {
+async function setUnstakeLockTime(staking, lockTime) {
   return staking.updateUintParameters(StakingUintParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
 describe('processUnstakeRequest', function () {
-
   it('should have no pending actions after processing the unstake requests', async function () {
-
     const { token, tokenController, staking } = this;
 
     // Fund account and stake 100
@@ -77,7 +75,6 @@ describe('processUnstakeRequest', function () {
   });
 
   it('should update staker.stakerContractPendingUnstakeTotal correctly', async function () {
-
     const { token, tokenController, staking } = this;
 
     // Fund account and stake 100
@@ -137,7 +134,6 @@ describe('processUnstakeRequest', function () {
   });
 
   it('should update stakes correctly', async function () {
-
     const { token, tokenController, staking } = this;
 
     // Fund account and stake 100
@@ -196,7 +192,6 @@ describe('processUnstakeRequest', function () {
   });
 
   it('should update the next pointer of the first unstake request', async function () {
-
     const { token, tokenController, staking } = this;
 
     // Fund account and stake 100
@@ -224,8 +219,7 @@ describe('processUnstakeRequest', function () {
     assert(secondNext.eqn(0));
   });
 
-  it('should only unstake available amount if a burn occurs after requesting, but before processing', async function () {
-
+  it('should only unstake available amount if a burn occurs after requesting but before processing', async function () {
     const { token, tokenController, staking } = this;
 
     // Fund account and stake 100
@@ -251,24 +245,17 @@ describe('processUnstakeRequest', function () {
       `Expected staker.stakerContractPendingUnstakeTotal to be ${ether('70')},  found ${pendingUnstakeTotal}`,
     );
     let stake = await staking.stakerContractStake(memberOne, firstContract);
-    assert(
-      stake.eq(ether('10')),
-      `Expected stake to be ${ether('10')}, found ${stake}`,
-    );
+    assert(stake.eq(ether('10')), `Expected stake to be ${ether('10')}, found ${stake}`);
 
     await time.increase(81 * 24 * 3600);
     await staking.processPendingActions('100');
 
     // Only unstake the remaining stake (10), although originally requested 70
     stake = await staking.stakerContractStake(memberOne, firstContract);
-    assert(
-      stake.eq(ether('0')),
-      `Expected stake to be ${ether('0')}, found ${stake}`,
-    );
+    assert(stake.eq(ether('0')), `Expected stake to be ${ether('0')}, found ${stake}`);
   });
 
   it('should emit Unstaked event', async function () {
-
     const { token, tokenController, staking } = this;
 
     // Fund account and stake 100

@@ -1,14 +1,10 @@
-const { assert, expect } = require('chai');
-const {
-  ethers: {
-    utils: { parseEther },
-  },
-} = require('hardhat');
+const { ethers } = require('hardhat');
 const { buyCoverOnOnePool } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 
-describe('totalActiveCoverInAsset', function () {
+const { parseEther } = ethers.utils;
 
+describe('totalActiveCoverInAsset', function () {
   const ethCoverBuyFixture = {
     productId: 0,
     coverAsset: 0, // ETH
@@ -40,15 +36,9 @@ describe('totalActiveCoverInAsset', function () {
   it('should compute active cover amount for ETH correctly after cover purchase', async function () {
     const { cover } = this;
 
-    const {
-      emergencyAdmin,
-    } = this.accounts;
+    const { emergencyAdmin } = this.accounts;
 
-
-    const {
-      coverAsset,
-      amount,
-    } = ethCoverBuyFixture;
+    const { coverAsset, amount } = ethCoverBuyFixture;
 
     await cover.connect(emergencyAdmin).enableActiveCoverAmountTracking([], []);
 
@@ -65,14 +55,10 @@ describe('totalActiveCoverInAsset', function () {
 
     const {
       members: [member1],
-      emergencyAdmin
+      emergencyAdmin,
     } = this.accounts;
 
-    const {
-      coverAsset,
-      amount,
-    } = daiCoverBuyFixture;
-
+    const { coverAsset, amount } = daiCoverBuyFixture;
 
     await cover.connect(emergencyAdmin).enableActiveCoverAmountTracking([], []);
 
@@ -87,5 +73,4 @@ describe('totalActiveCoverInAsset', function () {
     const activeCoverAmount = await cover.totalActiveCoverInAsset(coverAsset);
     bnEqual(activeCoverAmount, amount);
   });
-
 });

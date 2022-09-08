@@ -10,7 +10,6 @@ const { buyCover, ethCoverTemplate, daiCoverTemplate, getBuyCoverDataParameter }
 const [, member1, nonMember1] = accounts;
 
 describe('buyCover', function () {
-
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1]);
   });
@@ -45,7 +44,7 @@ describe('buyCover', function () {
     const coverFieldsPart2 = await qd.getCoverDetailsByCoverID2(coverId);
     const storedCover = { ...coverFieldsPart1, ...coverFieldsPart2 };
 
-    const sumAssuredUnit = coverData.amount.div(toBN(1e18.toString()));
+    const sumAssuredUnit = coverData.amount.div(toBN((1e18).toString()));
 
     assert.equal(storedCover._memberAddress, member);
     assert.equal(storedCover._scAddress, coverData.contractAddress);
@@ -78,7 +77,7 @@ describe('buyCover', function () {
   });
 
   it('buy DAI cover for member', async function () {
-    const { qd, p1: pool, tk: token, tf: tokenFunctions, qd: quotationData, dai } = this.contracts;
+    const { qd, p1: pool, dai } = this.contracts;
     const cover = { ...daiCoverTemplate, asset: dai.address };
     const member = member1;
 
@@ -94,7 +93,7 @@ describe('buyCover', function () {
     const coverFieldsPart2 = await qd.getCoverDetailsByCoverID2(coverId);
     const storedCover = { ...coverFieldsPart1, ...coverFieldsPart2 };
 
-    const sumAssuredUnit = cover.amount.div(toBN(1e18.toString()));
+    const sumAssuredUnit = cover.amount.div(toBN((1e18).toString()));
 
     assert.equal(storedCover._currencyCode, web3.utils.padRight(cover.currency, 8));
     assert.equal(storedCover._sumAssured.toString(), sumAssuredUnit.toString());
@@ -126,7 +125,7 @@ describe('buyCover', function () {
 
     const totalSumAssured = await qd.getTotalSumAssured(hex('ETH'));
 
-    const sumAssuredUnit = cover.amount.div(toBN(1e18.toString()));
+    const sumAssuredUnit = cover.amount.div(toBN((1e18).toString()));
     const expectedTotalSumAsssured = toBN(sumAssuredUnit).muln(coversToBuy);
     assert.equal(totalSumAssured.toString(), expectedTotalSumAsssured.toString());
 
@@ -173,10 +172,12 @@ describe('buyCover', function () {
         coverData.amount,
         coverData.period,
         coverData.type,
-        data, {
+        data,
+        {
           from: coverHolder,
           value: price.subn(1),
-        }),
+        },
+      ),
       'Gateway: ETH amount does not match premium',
     );
   });
@@ -200,7 +201,9 @@ describe('buyCover', function () {
         coverData.amount,
         coverData.period,
         coverData.type,
-        data, { from: coverHolder }),
+        data,
+        { from: coverHolder },
+      ),
       'SafeERC20: low-level call failed',
     );
   });
@@ -220,42 +223,36 @@ describe('buyCover', function () {
         coverData.amount,
         coverData.period,
         coverData.type,
-        data, {
+        data,
+        {
           from: coverHolder,
           value: price,
-        }),
+        },
+      ),
       'Gateway: Only whole unit sumAssured supported',
     );
   });
 
   it('reverts if smart contract address is the 0 address', async function () {
     const cover = { ...ethCoverTemplate, contractAddress: '0x0000000000000000000000000000000000000000' };
-    await expectRevert.unspecified(
-      buyCover({ ...this.contracts, coverData: cover, coverHolder: member1 }),
-    );
+    await expectRevert.unspecified(buyCover({ ...this.contracts, coverData: cover, coverHolder: member1 }));
   });
 
   it('reverts if quote validity is expired', async function () {
     const currentTime = await time.latest();
     const cover = { ...ethCoverTemplate, expireTime: currentTime.subn(2) };
-    await expectRevert.unspecified(
-      buyCover({ ...this.contracts, coverData: cover, coverHolder: member1 }),
-    );
+    await expectRevert.unspecified(buyCover({ ...this.contracts, coverData: cover, coverHolder: member1 }));
   });
 
   it('reverts if quote is reused', async function () {
     const cover = { ...ethCoverTemplate };
     await buyCover({ ...this.contracts, coverData: cover, coverHolder: member1 });
-    await expectRevert.unspecified(
-      buyCover({ ...this.contracts, coverData: cover, coverHolder: member1 }),
-    );
+    await expectRevert.unspecified(buyCover({ ...this.contracts, coverData: cover, coverHolder: member1 }));
   });
 
   it('reverts if NXM premium is 0', async function () {
     const cover = { ...ethCoverTemplate, priceNXM: '0' };
-    await expectRevert.unspecified(
-      buyCover({ ...this.contracts, coverData: cover, coverHolder: member1 }),
-    );
+    await expectRevert.unspecified(buyCover({ ...this.contracts, coverData: cover, coverHolder: member1 }));
   });
 
   it('reverts if signed quote does not match quote parameters', async function () {
@@ -278,16 +275,19 @@ describe('buyCover', function () {
       [price, coverData.priceNXM, coverData.expireTime, coverData.generationTime, v, r, s],
     );
 
-    await expectRevert.unspecified(gateway.buyCover(
-      coverData.contractAddress,
-      coverData.asset,
-      coverData.amount,
-      coverData.period,
-      coverData.type,
-      data, {
-        from: member,
-        value: coverData.price,
-      }),
+    await expectRevert.unspecified(
+      gateway.buyCover(
+        coverData.contractAddress,
+        coverData.asset,
+        coverData.amount,
+        coverData.period,
+        coverData.type,
+        data,
+        {
+          from: member,
+          value: coverData.price,
+        },
+      ),
     );
   });
 });

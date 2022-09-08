@@ -1,10 +1,8 @@
 const { assert } = require('chai');
 const { ether } = require('@openzeppelin/test-helpers');
-const { calculateMCRRatio } = require('../utils').tokenPrice;
 const { percentageBN } = require('../utils').tokenPrice;
 
 describe('getters', function () {
-
   describe('getEthForNXM', function () {
     it('returns value as calculated by calculateEthForNXM', async function () {
       const { pool, mcr } = this;
@@ -33,9 +31,7 @@ describe('getters', function () {
       await mcr.setMCR(mcrEth);
       await pool.sendTransaction({ value: totalAssetValue });
 
-      const expectedTokenValue = await pool.calculateNXMForEth(
-        buyValue, totalAssetValue, mcrEth,
-      );
+      const expectedTokenValue = await pool.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
       const tokenValue = await pool.getNXMForEth(buyValue);
       assert.equal(tokenValue.toString(), expectedTokenValue.toString());
     });

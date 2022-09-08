@@ -3,16 +3,8 @@ const { ether } = require('@openzeppelin/test-helpers');
 const { MAX_UINT256 } = require('@openzeppelin/test-helpers').constants;
 const { toBN } = web3.utils;
 const { parseUnits } = require('ethers/lib/utils');
-const {
-  formatBytes32String,
-  defaultAbiCoder,
-  arrayify,
-  hexConcat,
-  hexZeroPad,
-  splitSignature,
-  keccak256,
-} = ethers.utils;
-
+const { formatBytes32String, defaultAbiCoder, arrayify, hexConcat, hexZeroPad, splitSignature, keccak256 } =
+  ethers.utils;
 
 const JOINING_FEE = parseUnits('0.002');
 const MEMBERSHIP_APPROVAL = formatBytes32String('MEMBERSHIP_APPROVAL');
@@ -25,12 +17,10 @@ const approveMembership = async ({ nonce, address, kycAuthSigner }) => {
   return hexConcat([hexZeroPad(nonce, 32), compactSignature]);
 };
 
-
-async function enrollMember ({ mr, tk, tc }, members, kycAuthSigner, options = {}) {
+async function enrollMember({ mr, tk, tc }, members, kycAuthSigner, options = {}) {
   const { initialTokens = ether('2500') } = options;
 
   for (const member of members) {
-
     const membershipApprovalData0 = await approveMembership({
       nonce: 0,
       address: member.address,
@@ -46,9 +36,13 @@ async function enrollMember ({ mr, tk, tc }, members, kycAuthSigner, options = {
   }
 }
 
-async function enrollClaimAssessor ({ tc }, assessors, options = {}) {
+// TODO: remove eslint disable once the function is implemented
+// eslint-disable-next-line no-unused-vars
+async function enrollClaimAssessor({ tc: _unusedTc }, assessors, options = {}) {
+  // eslint-disable-next-line no-unused-vars
   const { lockTokens = ether('2000'), validity = 180 * 24 * 60 * 60 } = options;
 
+  // eslint-disable-next-line no-unused-vars
   for (const member of assessors) {
     // [todo] All assessors will be unlocked
     // await tc.lockClaimAssessmentTokens(toBN(lockTokens), toBN(validity), { from: member });

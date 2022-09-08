@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { Role } = require('../utils').constants;
+const { expect } = require('chai');
 
 describe('withdrawGovernanceRewards', function () {
   it('calls claimReward with the address owning the rewards and the given batchSize', async function () {
@@ -27,18 +27,14 @@ describe('withdrawGovernanceRewards', function () {
     const { tokenController, governance } = this.contracts;
     const { members } = this.accounts;
 
-    {
-      await expect(tokenController.withdrawGovernanceRewards(members[0].address, 1)).to.be.revertedWith(
-        'TokenController: No withdrawable governance rewards',
-      );
-    }
+    await expect(tokenController.withdrawGovernanceRewards(members[0].address, 1)).to.be.revertedWith(
+      'TokenController: No withdrawable governance rewards',
+    );
 
-    {
-      await governance.setUnclaimedGovernanceRewards(members[0].address, ethers.utils.parseUnits('1'));
-      await expect(tokenController.withdrawGovernanceRewards(members[0].address, 0)).not.to.be.revertedWith(
-        'TokenController: No withdrawable governance rewards',
-      );
-    }
+    await governance.setUnclaimedGovernanceRewards(members[0].address, ethers.utils.parseUnits('1'));
+    await expect(tokenController.withdrawGovernanceRewards(members[0].address, 0)).not.to.be.revertedWith(
+      'TokenController: No withdrawable governance rewards',
+    );
   });
 
   it('tranfers the rewards to the destination address', async function () {

@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const fs = require('fs');
+const path = require('path');
 const ethers = require('ethers');
 const fetch = require('node-fetch');
 
@@ -19,20 +20,14 @@ const getContractFactory = async providerOrSigner => {
   };
 };
 
-function onlyUnique (value, index, self) {
+function onlyUnique(value, index, self) {
   return self.indexOf(value) === index;
 }
 
 const getTransferCalls = rewardable => {
+  const transfers = Object.keys(rewardable).map(address => `tk.transfer(${address}, ${rewardable[address]});`);
 
-  const transfers = Object.keys(rewardable)
-    .map(address => `tk.transfer(${address}, ${rewardable[address]});`);
-
-  const items = [
-    '// REWARD_TRANSFERS_HELPER_BEGIN',
-    ...transfers,
-    '// REWARD_TRANSFERS_HELPER_END',
-  ];
+  const items = ['// REWARD_TRANSFERS_HELPER_BEGIN', ...transfers, '// REWARD_TRANSFERS_HELPER_END'];
 
   return items.map(item => `    ${item}`).join('\n');
 };
@@ -42,7 +37,7 @@ const main = async provider => {
   const claimsData = await factory('CD');
   const claimRewards = await factory('CR');
 
-  const contractPath = `${__dirname}/../contracts/modules/legacy/LegacyClaimsReward.sol`;
+  const contractPath = path.join(__dirname, '../contracts/modules/legacy/LegacyClaimsReward.sol');
   const contract = fs.readFileSync(contractPath).toString();
 
   console.log('Collecting vote events');
@@ -61,19 +56,15 @@ const main = async provider => {
     .filter(onlyUnique);
 
   console.log('Fetching reward amounts');
-  const rewards = await Promise.all(
-    addresses.map(address => claimRewards.getRewardToBeDistributedByUser(address)),
-  );
+  const rewards = await Promise.all(addresses.map(address => claimRewards.getRewardToBeDistributedByUser(address)));
   console.log('Rewards fetched');
 
   const rewardable = addresses.map((address, i) => ({ address, reward: rewards[i].toString() }));
-  const rewardablePath = `${__dirname}/rewardable.json`;
+  const rewardablePath = path.join(__dirname, 'rewardable.json');
   fs.writeFileSync(rewardablePath, JSON.stringify(rewardable, null, 2), 'utf8');
 
   // Regex used to replace the transfer operations in LegacyClaimsReward.sol
-  const templateHelperRegex = new RegExp(
-    ' +// REWARD_TRANSFERS_HELPER_BEGIN.*// REWARD_TRANSFERS_HELPER_END',
-  );
+  const templateHelperRegex = / +\/\/ REWARD_TRANSFERS_HELPER_BEGIN.*\/\/ REWARD_TRANSFERS_HELPER_END/;
 
   const transferCalls = getTransferCalls(rewardable);
   const newContract = contract.replace(templateHelperRegex, transferCalls);

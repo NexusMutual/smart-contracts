@@ -23,7 +23,6 @@ const coverTemplate = {
 const ratioScale = toBN(10000);
 
 describe('getMCR', function () {
-
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
 
@@ -45,12 +44,15 @@ describe('getMCR', function () {
     assert.equal(currentMCR.toString(), storageMCR.toString());
   });
 
-  it('increases mcr towards by 0.4% in 2 hours and then decreases by 0.4% in 2 hours it after cover expiry', async function () {
+  it('increases mcr by 0.4% in 2 hours and then decreases by 0.4% in 2 hours it after cover expiry', async function () {
     const { mcr, qt: quotation } = this.contracts;
 
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
-    const coverAmount = gearingFactor.mul(currentMCR.add(ether('300'))).div(ether('1')).div(ratioScale);
+    const coverAmount = gearingFactor
+      .mul(currentMCR.add(ether('300')))
+      .div(ether('1'))
+      .div(ratioScale);
     const cover = { ...coverTemplate, amount: coverAmount };
 
     await buyCover({ ...this.contracts, cover, coverHolder });

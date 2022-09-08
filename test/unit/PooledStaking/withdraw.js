@@ -6,16 +6,15 @@ const { StakingUintParamType } = require('../utils').constants;
 
 const {
   nonMembers: [nonMember],
-  members: [memberOne, memberTwo, memberThree, memberFour],
+  members: [memberOne],
   governanceContracts: [governanceContract],
   internalContracts: [internalContract],
 } = accounts;
 
 const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
-const thirdContract = '0x0000000000000000000000000000000000000003';
 
-async function fundAndApprove (token, tokenController, staking, amount, member) {
+async function fundAndApprove(token, tokenController, staking, amount, member) {
   const maxExposure = '2';
 
   await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });

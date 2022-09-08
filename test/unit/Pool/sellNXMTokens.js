@@ -1,13 +1,11 @@
-const { ether, expectRevert, expectEvent } = require('@openzeppelin/test-helpers');
+const { ether, expectEvent } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { BN } = web3.utils;
-const { Role } = require('../utils').constants;
-const { calculateMCRRatio, percentageBN } = require('../utils').tokenPrice;
-const { members: [memberOne] } = require('../utils').accounts;
+const { percentageBN } = require('../utils').tokenPrice;
+const [memberOne] = require('../utils').accounts.members;
 
 describe('sellNXMTokens', function () {
-
   it('burns tokens from member in exchange for ETH worth 1% of mcrEth', async function () {
     const { pool, mcr, token, tokenController } = this;
 

@@ -1,4 +1,4 @@
-const { takeSnapshot, revertToSnapshot, reset } = require('../utils').evm;
+const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const setup = require('./setup');
 
 describe('PooledStaking unit tests', function () {

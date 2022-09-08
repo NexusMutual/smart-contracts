@@ -3,7 +3,7 @@ const path = require('path');
 const getVersionDataTemplate = require('./version-data-template');
 
 const network = 'localhost';
-const rootPath = path.normalize(`${__dirname}/..`);
+const rootPath = path.normalize(path.join(__dirname, '..'));
 const deployPath = `${rootPath}/deploy`;
 const contractsBasePath = `${rootPath}/artifacts/contracts`;
 

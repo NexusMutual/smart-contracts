@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { expect, assert } = require('chai');
+const { expect } = require('chai');
 const { Role } = require('../utils').constants;
 
 describe('switchMembershipAndAssets', function () {
@@ -210,7 +210,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('reverts when trying to transfer cover nfts of another member', async function () {
-    const { memberRoles, nxm, cover, coverNFT } = this.contracts;
+    const { memberRoles, nxm, cover } = this.contracts;
     const {
       members: [member1, member2],
       nonMembers: [nonMember1],

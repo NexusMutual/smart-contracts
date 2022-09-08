@@ -2,7 +2,9 @@ const { ether, time } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { toBN } = web3.utils;
 const { hex } = require('../utils').helpers;
-const { Assets: { ETH } } = require('../utils').constants;
+const {
+  Assets: { ETH },
+} = require('../utils').constants;
 const { coverToCoverDetailsArray } = require('../utils').buyCover;
 const { getQuoteSignature } = require('../utils').getQuote;
 
@@ -21,7 +23,7 @@ const ethCoverTemplate = {
 
 const daiCoverTemplate = {
   amount: ether('1000'), // 1000 dai
-  price: 1e19.toString(), // 10 dai
+  price: (1e19).toString(), // 10 dai
   priceNXM: '10000000000000000000', // 10 nxm
   expireTime: '8000000000',
   generationTime: '1600000000001',
@@ -31,8 +33,7 @@ const daiCoverTemplate = {
   type: 0,
 };
 
-async function getBuyCoverDataParameter ({ qt, coverData }) {
-
+async function getBuyCoverDataParameter({ qt, coverData }) {
   // encoded data and signature uses unit price.
   const unitAmount = toBN(coverData.amount).div(ether('1')).toString();
   const [v, r, s] = await getQuoteSignature(
@@ -48,8 +49,7 @@ async function getBuyCoverDataParameter ({ qt, coverData }) {
   );
 }
 
-async function buyCover ({ coverData, gateway, coverHolder, qt, dai }) {
-
+async function buyCover({ coverData, gateway, coverHolder, qt, dai }) {
   const price = toBN(coverData.price);
   // encoded data and signature uses unit price.
   const data = await getBuyCoverDataParameter({ qt, coverData });
@@ -61,10 +61,12 @@ async function buyCover ({ coverData, gateway, coverHolder, qt, dai }) {
       coverData.amount,
       coverData.period,
       coverData.type,
-      data, {
+      data,
+      {
         from: coverHolder,
         value: price,
-      });
+      },
+    );
   } else if (coverData.asset === dai.address) {
     await dai.approve(gateway.address, price, {
       from: coverHolder,
@@ -75,15 +77,17 @@ async function buyCover ({ coverData, gateway, coverHolder, qt, dai }) {
       coverData.amount,
       coverData.period,
       coverData.type,
-      data, {
+      data,
+      {
         from: coverHolder,
-      });
+      },
+    );
   }
 
   throw new Error(`Unknown asset ${coverData.asset}`);
 }
 
-async function voteOnClaim ({ claimId, verdict, cl, cd, cr, voter }) {
+async function voteOnClaim({ claimId, verdict, cl, cd, cr, voter }) {
   await cl.submitCAVote(claimId, verdict, { from: voter });
 
   const minVotingTime = await cd.minVotingTime();

@@ -1,21 +1,9 @@
 const { accounts } = require('hardhat');
 const { expectRevert } = require('@openzeppelin/test-helpers');
-const { buyCover } = require('../utils').buyCover;
 const { enrollMember } = require('../utils/enroll');
-const { hex } = require('../utils').helpers;
 const { Role } = require('../utils').constants;
 
 const [, member1, member2, nonMember1] = accounts;
-const coverTemplate = {
-  amount: 1, // 1 eth
-  price: '30000000000000000', // 0.03 eth
-  priceNXM: '10000000000000000000', // 10 nxm
-  expireTime: '8000000000',
-  generationTime: '1600000000000',
-  currency: hex('ETH'),
-  period: 60,
-  contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
-};
 
 describe('withdrawMembership', function () {
   it('withdraws membership for current member', async function () {

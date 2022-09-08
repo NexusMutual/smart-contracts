@@ -1,10 +1,11 @@
 const { ethers } = require('hardhat');
 const { assert, expect } = require('chai');
 
-const { submitClaim, daysToSeconds, ASSET } = require('./helpers');
+const { submitClaim, ASSET } = require('./helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
@@ -112,7 +113,7 @@ describe('submitClaim', function () {
     await expect(submitClaim(this)({ coverId: 2, sender: coverOwner })).not.to.be.revertedWith('Invalid redeem method');
   });
 
-  it('allows to submit a new claim if an accepted claim is not redeemed during the redemption period', async function () {
+  it('allows claim submission if an accepted claim is not redeemed during the redemption period', async function () {
     const { individualClaims, cover, assessment } = this.contracts;
     const [coverOwner] = this.accounts.members;
     {

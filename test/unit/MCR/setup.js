@@ -8,8 +8,7 @@ const { initMCR } = require('./common');
 
 const { toBN } = web3.utils;
 
-async function setup () {
-
+async function setup() {
   const MasterMock = artifacts.require('MasterMock');
   const Pool = artifacts.require('MCRMockPool');
   const ERC20Mock = artifacts.require('ERC20Mock');
@@ -27,7 +26,7 @@ async function setup () {
   const chainlinkDAI = await ChainlinkAggregatorMock.new();
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
   const chainlinkSteth = await ChainlinkAggregatorMock.new();
-  await chainlinkSteth.setLatestAnswer(toBN(1e18.toString()));
+  await chainlinkSteth.setLatestAnswer(toBN((1e18).toString()));
 
   const priceFeedOracle = await PriceFeedOracle.new(
     [dai.address, stETH.address],

@@ -3,7 +3,7 @@ const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
 const { parseEther, defaultAbiCoder, hexZeroPad, toUtf8Bytes } = ethers.utils;
 
-async function setup () {
+async function setup() {
   const NXM = await ethers.getContractFactory('NXMTokenMock');
   const nxm = await NXM.deploy();
   await nxm.deployed();
@@ -85,7 +85,7 @@ async function setup () {
     .connect(accounts.governanceContracts[0])
     .addRole(
       defaultAbiCoder.encode(['bytes32'], [hexZeroPad(toUtf8Bytes('Advisory Board'), 32)]),
-      'Selected few members that are deeply entrusted by the dApp. An ideal advisory board should be a mix of skills of domain, governance, research, technology, consulting etc to improve the performance of the dApp.',
+      'Selected few members that are deeply entrusted by the dApp.',
       '0x0000000000000000000000000000000000000000',
     );
   await memberRoles

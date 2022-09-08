@@ -34,27 +34,15 @@ describe('claimTokens', function () {
     await buyCover({ ...this.contracts, coverData: cover, coverHolder }); // coverId 1
     const incidentDate = await time.latest();
     const priceBefore = ether('2'); // DAI per ybDAI
-    await addIncident(
-      this.contracts,
-      [owner],
-      productId,
-      incidentDate,
-      priceBefore,
-    );
+    await addIncident(this.contracts, [owner], productId, incidentDate, priceBefore);
 
     const nonExistentCoverId = 2;
     const incidentId = 0;
 
     await expectRevert.assertion(
-      gateway.claimTokens(
-        nonExistentCoverId,
-        incidentId,
-        cover.amount,
-        ybDAI.address,
-        {
-          from: coverHolder,
-        },
-      ),
+      gateway.claimTokens(nonExistentCoverId, incidentId, cover.amount, ybDAI.address, {
+        from: coverHolder,
+      }),
     );
   });
 
@@ -64,13 +52,7 @@ describe('claimTokens', function () {
     await buyCover({ ...this.contracts, coverData: cover, coverHolder });
     const incidentDate = await time.latest();
     const priceBefore = ether('2'); // DAI per ybDAI
-    await addIncident(
-      this.contracts,
-      [owner],
-      productId,
-      incidentDate,
-      priceBefore,
-    );
+    await addIncident(this.contracts, [owner], productId, incidentDate, priceBefore);
 
     await ybDAI.mint(stranger, ether('10000000'));
     await ybDAI.approve(gateway.address, ether('10000000'), {
@@ -91,23 +73,15 @@ describe('claimTokens', function () {
     await buyCover({
       ...this.contracts,
       coverData: cover,
-      coverHolder: coverHolder,
+      coverHolder,
     });
     const expectedCoverId = 1;
     const claimSubmissionGracePeriod = await tc.claimSubmissionGracePeriod();
     const incidentDate = await time.latest();
     const priceBefore = ether('2'); // DAI per ybDAI
-    await addIncident(
-      this.contracts,
-      [owner],
-      productId,
-      incidentDate,
-      priceBefore,
-    );
+    await addIncident(this.contracts, [owner], productId, incidentDate, priceBefore);
 
-    await time.increase(
-      (cover.period + claimSubmissionGracePeriod.toNumber() + 1) * 24 * 3600,
-    );
+    await time.increase((cover.period + claimSubmissionGracePeriod.toNumber() + 1) * 24 * 3600);
     await qt.expireCover(expectedCoverId);
 
     await expectRevert(
@@ -137,29 +111,17 @@ describe('claimTokens', function () {
     await buyCover({
       ...this.contracts,
       coverData: cover,
-      coverHolder: coverHolder,
+      coverHolder,
     });
 
     const incidentDate = await time.latest();
     const priceBefore = ether('2'); // DAI per ybDAI
-    await addIncident(
-      this.contracts,
-      [owner],
-      productId,
-      incidentDate,
-      priceBefore,
-    );
+    await addIncident(this.contracts, [owner], productId, incidentDate, priceBefore);
 
     const expectedCoverId = 1;
-    const submitTx = await gateway.claimTokens(
-      expectedCoverId,
-      0,
-      ether('500'),
-      ybDAI.address,
-      {
-        from: coverHolder,
-      },
-    );
+    const submitTx = await gateway.claimTokens(expectedCoverId, 0, ether('500'), ybDAI.address, {
+      from: coverHolder,
+    });
 
     const expectedClaimId = 1;
     const block = await web3.eth.getBlock(submitTx.receipt.blockNumber);
@@ -179,7 +141,7 @@ describe('claimTokens', function () {
     await buyCover({
       ...this.contracts,
       coverData: cover,
-      coverHolder: coverHolder,
+      coverHolder,
     });
 
     const incidentDate = await time.latest();
@@ -189,13 +151,7 @@ describe('claimTokens', function () {
     // maxTokenAmount = 1000 / 2 * 10000 / 9000
     // we can send a maximum of 555.(5) ybDAI an receive a maxium of 1000 DAI.
     const invalidAmount = ether('556'); // ybDAI
-    await addIncident(
-      this.contracts,
-      [owner],
-      productId,
-      incidentDate,
-      priceBefore,
-    );
+    await addIncident(this.contracts, [owner], productId, incidentDate, priceBefore);
 
     const expectedCoverId = 1;
     await expectRevert(

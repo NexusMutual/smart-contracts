@@ -1,4 +1,4 @@
-const { accounts, web3 } = require('hardhat');
+const { accounts } = require('hardhat');
 const { enrollMember } = require('../utils/enroll');
 const { Role } = require('../utils').constants;
 const { MAX_UINT256 } = require('@openzeppelin/test-helpers').constants;
@@ -6,9 +6,8 @@ const { MAX_UINT256 } = require('@openzeppelin/test-helpers').constants;
 const [, member1, nonMember1] = accounts;
 
 describe('membership', function () {
-
   it('switches membership', async function () {
-    const { qd, p1: pool, tk: token, mr: memberRoles, gateway } = this.contracts;
+    const { tk: token, mr: memberRoles, gateway } = this.contracts;
 
     const members = [member1];
     await enrollMember(this.contracts, members);

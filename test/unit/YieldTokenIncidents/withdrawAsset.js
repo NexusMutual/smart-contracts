@@ -1,11 +1,7 @@
 const { ethers } = require('hardhat');
-const { time } = require('@openzeppelin/test-helpers');
-const { assert, expect } = require('chai');
+const { expect } = require('chai');
 
-const { submitClaim, daysToSeconds, ASSET } = require('./helpers');
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
-
-const { parseEther, formatEther } = ethers.utils;
+const { parseEther } = ethers.utils;
 
 describe('withdrawAsset', function () {
   it('transfers the specified amount of a given asset to the destination address', async function () {

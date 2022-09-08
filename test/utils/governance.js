@@ -24,7 +24,6 @@ const submitProposal = async (gv, category, actionData, members) => {
 };
 
 const submitMemberVoteProposal = async (gv, pc, categoryId, actionData, members) => {
-
   const proposalId = await gv.getProposalLength();
 
   const from = members[0];

@@ -1,13 +1,9 @@
-const { artifacts, web3, accounts } = require('hardhat');
-const { ether } = require('@openzeppelin/test-helpers');
+const { artifacts, accounts } = require('hardhat');
 
-const { Role, ContractTypes } = require('../utils').constants;
+const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
-const { BN } = web3.utils;
-
-async function setup () {
-
+async function setup() {
   const DisposableNXMaster = artifacts.require('DisposableNXMaster');
   const MSMockGovernance = artifacts.require('MSMockGovernance');
   const TokenMock = artifacts.require('NXMTokenMock');

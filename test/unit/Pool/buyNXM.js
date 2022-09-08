@@ -1,13 +1,12 @@
 const { ether, expectRevert, expectEvent } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
-const { calculateMCRRatio, percentageBN } = require('../utils').tokenPrice;
+const { percentageBN } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
 
-const { members: [member] } = require('../utils').accounts;
+const [member] = require('../utils').accounts.members;
 
 describe('buyNXM', function () {
-
   it('reverts on purchase with msg.value = 0', async function () {
     const { pool, mcr } = this;
 
@@ -18,10 +17,7 @@ describe('buyNXM', function () {
     await mcr.setMCR(mcrEth);
     await pool.sendTransaction({ value: initialAssetValue });
 
-    await expectRevert(
-      pool.buyNXM('1', { from: member, value: buyValue }),
-      'Pool: ethIn > 0',
-    );
+    await expectRevert(pool.buyNXM('1', { from: member, value: buyValue }), 'Pool: ethIn > 0');
   });
 
   it('reverts on purchase higher than of 5% ETH of mcrEth', async function () {
@@ -61,16 +57,13 @@ describe('buyNXM', function () {
     const { pool, mcr } = this;
 
     const mcrEth = ether('160000');
-    const initialAssetValue = mcrEth.mul(new BN(4)).add(new BN(1e20.toString()));
+    const initialAssetValue = mcrEth.mul(new BN(4)).add(new BN((1e20).toString()));
     const buyValue = mcrEth.div(new BN(20)).add(ether('1000'));
 
     await mcr.setMCR(mcrEth);
     await pool.sendTransaction({ value: initialAssetValue });
 
-    await expectRevert(
-      pool.buyNXM('1', { from: member, value: buyValue }),
-      'Cannot purchase if MCR% > 400%',
-    );
+    await expectRevert(pool.buyNXM('1', { from: member, value: buyValue }), 'Cannot purchase if MCR% > 400%');
   });
 
   it('reverts when MCReth is 0', async function () {
@@ -86,7 +79,7 @@ describe('buyNXM', function () {
     await expectRevert.unspecified(pool.buyNXM('1', { from: member, value: buyValue }));
   });
 
-  it('mints expected number of tokens to member in exchange of 5% of MCReth for mcrEth = 160k and MCR% = 150%', async function () {
+  it('mints expected number of tokens for 5% of MCReth for mcrEth = 160k and MCR% = 150%', async function () {
     const { pool, mcr, token } = this;
     const mcrEth = ether('160000');
     const initialAssetValue = percentageBN(mcrEth, 150);
@@ -95,9 +88,7 @@ describe('buyNXM', function () {
     await mcr.setMCR(mcrEth);
     await pool.sendTransaction({ value: initialAssetValue });
 
-    const expectedTokensReceived = await pool.calculateNXMForEth(
-      buyValue, initialAssetValue, mcrEth,
-    );
+    const expectedTokensReceived = await pool.calculateNXMForEth(buyValue, initialAssetValue, mcrEth);
 
     const preBuyBalance = await token.balanceOf(member);
     const tx = await pool.buyNXM('0', { from: member, value: buyValue });

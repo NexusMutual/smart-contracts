@@ -1,8 +1,9 @@
-const { ethers } = require('hardhat');
+const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
 
-const { daysToSeconds, setTime, ASSET, signPermit } = require('./helpers');
+const { setTime, ASSET, signPermit } = require('./helpers');
 const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('redeemPayout', function () {
   it("reverts if the address is not the cover owner's or approved", async function () {
@@ -479,7 +480,7 @@ describe('redeemPayout', function () {
     ).to.be.revertedWith('Product id mismatch');
   });
 
-  it('transfers the deductible amount of the payout asset to the payoutAddress, according to the requested amount and priceBefore', async function () {
+  it('transfers payout asset amount to payoutAddress, as per requested amount and priceBefore', async function () {
     const { yieldTokenIncidents, assessment, cover, ybEth } = this.contracts;
     const [member1] = this.accounts.members;
     const [nonMember1, nonMember2] = this.accounts.nonMembers;

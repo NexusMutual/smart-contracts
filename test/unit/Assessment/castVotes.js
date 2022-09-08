@@ -1,7 +1,9 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { setTime, daysToSeconds } = require('./helpers');
+const { setTime } = require('./helpers');
+
 const { parseEther } = ethers.utils;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('castVotes', function () {
   it('reverts if the user has already voted on the same assessment', async function () {
@@ -85,7 +87,7 @@ describe('castVotes', function () {
     }
   });
 
-  it("extends the voting period up to 24h pro-rated by the user's stake when the poll ends in less than 24h", async function () {
+  it("extends the voting period up to 24h based on the user's stake if the poll ends in < 24h", async function () {
     const { assessment, individualClaims } = this.contracts;
     const [user1, user2, user3, user4, user5] = this.accounts.members;
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');

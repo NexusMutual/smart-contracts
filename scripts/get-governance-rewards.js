@@ -21,7 +21,7 @@ const getContractFactory = async providerOrSigner => {
   };
 };
 
-function onlyUnique (value, index, self) {
+function onlyUnique(value, index, self) {
   return self.indexOf(value) === index;
 }
 

@@ -2,16 +2,14 @@ const { accounts, web3 } = require('hardhat');
 const { expectRevert, expectEvent, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
-const { hex } = require('../utils').helpers;
-const { buyCover, ethCoverTemplate, daiCoverTemplate } = require('./utils');
-const { toBN } = Web3.utils;
+const { buyCover, ethCoverTemplate } = require('./utils');
+const { toBN } = web3.utils;
 
-const [, member1, member2, member3, coverHolder, nonMember1] = accounts;
+const [, member1, member2, member3, coverHolder] = accounts;
 
 const EMPTY_DATA = web3.eth.abi.encodeParameters([], []);
 
-async function voteOnClaim ({ verdict, claimId, master, cd, cl, cr }) {
-
+async function voteOnClaim({ verdict, claimId, cd, cl, cr }) {
   await cl.submitCAVote(claimId, verdict, { from: member1 });
 
   const minVotingTime = await cd.minVotingTime();
@@ -26,7 +24,6 @@ async function voteOnClaim ({ verdict, claimId, master, cd, cl, cr }) {
 }
 
 describe('submitClaim', function () {
-
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
   });
@@ -122,7 +119,7 @@ describe('submitClaim', function () {
 
     const coverData = { ...ethCoverTemplate };
 
-    await buyCover({ ...this.contracts, coverData, coverHolder: coverHolder });
+    await buyCover({ ...this.contracts, coverData, coverHolder });
     const expectedCoverId = 1;
     {
       await gateway.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder });

@@ -1,5 +1,5 @@
 const { accounts, web3 } = require('hardhat');
-const { expectEvent, expectRevert, ether, time } = require('@openzeppelin/test-helpers');
+const { expectRevert, ether, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { ProposalCategory } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
@@ -7,7 +7,6 @@ const { submitProposal } = require('../utils').governance;
 const { buyCover, coverToCoverDetailsArray } = require('../utils').buyCover;
 const { getQuoteSignature } = require('../utils').getQuote;
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
-const { toBN } = web3.utils;
 
 const MCR = artifacts.require('MCR');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
@@ -60,7 +59,7 @@ describe('emergency pause', function () {
   });
 
   it('should be able to perform proxy and replaceable upgrades during emergency pause', async function () {
-    const { master, gv, productsV1 } = this.contracts;
+    const { master, gv } = this.contracts;
 
     assert.equal(await master.isPause(), false);
 
@@ -99,7 +98,6 @@ describe('emergency pause', function () {
       from: emergencyAdmin,
     });
 
-    const code = hex('MS');
     const newMaster = await NXMaster.new();
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(['address'], [newMaster.address]);
@@ -211,7 +209,7 @@ describe('emergency pause', function () {
   });
 
   it('stops claim voting', async function () {
-    const { cd, cl, qd, master, cr } = this.contracts;
+    const { cd, cl, qd, master } = this.contracts;
     const cover = { ...coverTemplate };
 
     await buyCover({ ...this.contracts, cover, coverHolder });

@@ -1,8 +1,10 @@
 const { ethers } = require('hardhat');
-const { expect, assert } = require('chai');
+const { expect } = require('chai');
 const { submitFraud, getProof } = require('./helpers');
-const { daysToSeconds, setTime } = require('./helpers');
+const { setTime } = require('./helpers');
+
 const { parseEther } = ethers.utils;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('processFraud', function () {
   it('reverts if the proof is invalid', async function () {
@@ -72,7 +74,7 @@ describe('processFraud', function () {
     }
   });
 
-  it("cancels the staker's votes starting from the last vote where the reward was withdrawn until lastFraudulentVoteIndex", async function () {
+  it("cancels staker's votes from last vote where reward was withdrawn to lastFraudulentVoteIndex", async function () {
     const { assessment, individualClaims } = this.contracts;
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember, otherMember1, otherMember2] = this.accounts.members;

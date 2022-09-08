@@ -15,10 +15,7 @@ const addIncident = async (contracts, members, protocolId, incidentDate, priceBe
   await gv.submitProposalWithSolution(
     proposalId,
     'ipfshash',
-    web3.eth.abi.encodeParameters(
-      ['address', 'uint', 'uint'],
-      [protocolId, incidentDate, priceBefore],
-    ),
+    web3.eth.abi.encodeParameters(['address', 'uint', 'uint'], [protocolId, incidentDate, priceBefore]),
   );
 
   for (const member of members) {
@@ -48,10 +45,7 @@ const withdrawAssets = async (contracts, members, asset, destination, amount) =>
   await gv.submitProposalWithSolution(
     proposalId,
     'ipfshash',
-    web3.eth.abi.encodeParameters(
-      ['address', 'address', 'uint'],
-      [asset, destination, amount],
-    ),
+    web3.eth.abi.encodeParameters(['address', 'address', 'uint'], [asset, destination, amount]),
   );
 
   for (const member of members) {

@@ -120,8 +120,8 @@ const main = async (coverAddress, abMemberSigner) => {
         productType[x.type],
         x.type === 'token' ? x.coveredToken : '0x0000000000000000000000000000000000000000',
         (x.name === 'MakerDAO MCD' && 0b01) || // Maker cannot be covered using DAI
-        (x.underlyingToken === 'DAI' && 0b10) || // Yield token cover that uses DAI
-        (x.underlyingToken === 'ETH' && 0b01) || // Yield token cover that uses ETH
+          (x.underlyingToken === 'DAI' && 0b10) || // Yield token cover that uses DAI
+          (x.underlyingToken === 'ETH' && 0b01) || // Yield token cover that uses ETH
           0, // 0 means the fallback is going to be used instead
         1000,
         0,

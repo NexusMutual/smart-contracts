@@ -1,8 +1,9 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { setTime, daysToSeconds } = require('./helpers');
+const { setTime } = require('./helpers');
 
 const { parseEther } = ethers.utils;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('getRewards', function () {
   it("returns the pending rewards pro-rated to the user's stake", async function () {
@@ -148,7 +149,7 @@ describe('getRewards', function () {
     }
   });
 
-  it("returns the index of the first vote on an assessment that hasn't ended or is still in cooldown period", async function () {
+  it('returns the index of the first vote on an assessment that has not ended or still in cooldown', async function () {
     const { assessment, individualClaims } = this.contracts;
     const [user] = this.accounts.members;
     const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();

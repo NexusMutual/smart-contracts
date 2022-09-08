@@ -1,7 +1,9 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { daysToSeconds, setTime } = require('./helpers');
+const { setTime } = require('./helpers');
+
 const { parseEther } = ethers.utils;
+const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('unstake', function () {
   it("decreases the user's stake", async function () {

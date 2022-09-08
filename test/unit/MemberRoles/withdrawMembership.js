@@ -1,7 +1,5 @@
-const { ethers } = require('hardhat');
-const { hex } = require('../utils').helpers;
 const { Role } = require('../utils').constants;
-const { Zero } = ethers.constants;
+const { expect } = require('chai');
 
 describe('withdrawMembership', function () {
   it('reverts when withdrawing membership for non-member', async function () {
@@ -50,7 +48,7 @@ describe('withdrawMembership', function () {
   });
 
   it("removes the role of member from the mebmber's address", async function () {
-    const { memberRoles, nxm } = this.contracts;
+    const { memberRoles } = this.contracts;
     const {
       members: [member1],
     } = this.accounts;

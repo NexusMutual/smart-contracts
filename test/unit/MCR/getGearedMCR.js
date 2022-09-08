@@ -1,9 +1,7 @@
 const { assert } = require('chai');
-const { ether, time, expectRevert } = require('@openzeppelin/test-helpers');
-const { initMCR, MAX_PERCENTAGE_ADJUSTMENT } = require('./common');
+const { ether, time } = require('@openzeppelin/test-helpers');
+const { initMCR } = require('./common');
 const { hex } = require('../utils').helpers;
-
-const accounts = require('../utils').accounts;
 
 const DEFAULT_MCR_PARAMS = {
   mcrValue: ether('150000'),
@@ -18,7 +16,6 @@ const DEFAULT_MCR_PARAMS = {
 
 // TODO: current tests are using quotation data, need rewriting to use Cover instead
 describe.skip('getGearedMCR', function () {
-
   it('should return gearedMCR = 0 if there are no active covers', async function () {
     const { master, quotationData } = this;
 

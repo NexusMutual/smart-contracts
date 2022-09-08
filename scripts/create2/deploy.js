@@ -30,7 +30,6 @@ const usage = () => {
 };
 
 const parseArgs = async args => {
-
   const opts = {
     constructorArgs: [],
     priorityFee: '2',
@@ -45,7 +44,6 @@ const parseArgs = async args => {
   }
 
   while (argsArray.length) {
-
     const arg = argsArray.shift();
 
     if (['--help', '-h'].includes(arg)) {
@@ -71,9 +69,7 @@ const parseArgs = async args => {
 
     if (['--constructor-args', '-c'].includes(arg)) {
       const value = argsArray.shift();
-      opts.constructorArgs = value.match(/^\[/)
-        ? JSON.parse(value)
-        : [value];
+      opts.constructorArgs = value.match(/^\[/) ? JSON.parse(value) : [value];
       continue;
     }
 
@@ -122,7 +118,6 @@ const parseArgs = async args => {
 };
 
 const getDeploymentBytecode = async options => {
-
   const { abi, bytecode } = await artifacts.readArtifact(options.contract);
 
   // FIXME: implement library linking
@@ -143,34 +138,28 @@ const getDeploymentBytecode = async options => {
   if (constructorAbi.inputs.length !== options.constructorArgs.length) {
     throw new Error(
       `The contract requires ${constructorAbi.inputs.length} constructor argument(s) ` +
-      `but ${options.constructorArgs.length} were provided`,
+        `but ${options.constructorArgs.length} were provided`,
     );
   }
 
-  const constructorArgs = ethers.utils.defaultAbiCoder.encode(
-    constructorAbi.inputs,
-    options.constructorArgs,
-  );
+  const constructorArgs = ethers.utils.defaultAbiCoder.encode(constructorAbi.inputs, options.constructorArgs);
 
   return `${bytecode}${constructorArgs.replace(/^0x/i, '')}`;
 };
 
-async function main () {
-
-  const opts = await parseArgs(process.argv)
-    .catch(err => {
-      console.error(`Error: ${err.message}`);
-      process.exit(1);
-    });
+async function main() {
+  const opts = await parseArgs(process.argv).catch(err => {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  });
 
   // make sure the contracts are compiled and we're not deploying an outdated artifact
   await run('compile');
 
-  const deploymentBytecode = await getDeploymentBytecode(opts)
-    .catch(err => {
-      console.error(`Error: ${err.message}`);
-      process.exit(1);
-    });
+  const deploymentBytecode = await getDeploymentBytecode(opts).catch(err => {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  });
 
   const factory = opts.factory.slice(-40);
   const bytecode = hexToBytes(deploymentBytecode.replace(/^0x/i, ''));
@@ -192,12 +181,11 @@ async function main () {
   const maxFeePerGas = baseFee.add(maxPriorityFeePerGas);
 
   const deployer = await ethers.getContractAt('Deployer', opts.factory);
-  const deployTx = await deployer.deployAt(
-    bytecode,
-    opts.salt,
-    opts.address,
-    { maxFeePerGas, maxPriorityFeePerGas, gasLimit: opts.gasLimit },
-  );
+  const deployTx = await deployer.deployAt(bytecode, opts.salt, opts.address, {
+    maxFeePerGas,
+    maxPriorityFeePerGas,
+    gasLimit: opts.gasLimit,
+  });
 
   console.log(`Waiting tx to be mined: https://etherscan.io/tx/${deployTx.hash}`);
   await deployTx.wait();

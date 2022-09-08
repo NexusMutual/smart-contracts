@@ -15,7 +15,7 @@ const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
-async function fundApproveDepositStake (token, tokenController, staking, amount, contract, member) {
+async function fundApproveDepositStake(token, tokenController, staking, amount, contract, member) {
   await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(tokenController.address, amount, { from: member });
@@ -23,9 +23,7 @@ async function fundApproveDepositStake (token, tokenController, staking, amount,
 }
 
 describe('accumulateReward', function () {
-
   it('should revert when called by non internal contract', async function () {
-
     const { master, staking } = this;
 
     assert.strictEqual(await master.isInternal(nonInternal), false);
@@ -37,7 +35,6 @@ describe('accumulateReward', function () {
   });
 
   it('should emit RewardAdded event', async function () {
-
     const { token, tokenController, staking } = this;
 
     await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
@@ -71,19 +68,13 @@ describe('accumulateReward', function () {
     // Check the Reward has been pushed to the rewards mapping
     const { amount, rewardedAt, contractAddress } = await staking.rewards(1);
     const now = await time.latest();
-    assert(
-      amount.eq(pushedRewardAmount),
-      `Expected first reward amount to be ${pushedRewardAmount}, found ${amount}`,
-    );
+    assert(amount.eq(pushedRewardAmount), `Expected first reward amount to be ${pushedRewardAmount}, found ${amount}`);
     assert.equal(
       contractAddress,
       firstContract,
       `Expected rewarded contract to be ${firstContract}, found ${contractAddress}`,
     );
-    assert(
-      rewardedAt.eq(now),
-      `Expected rewarded time to be ${now}, found ${rewardedAt}`,
-    );
+    assert(rewardedAt.eq(now), `Expected rewarded time to be ${now}, found ${rewardedAt}`);
   });
 
   it('should automatically push reward on new round time reached', async function () {
@@ -102,23 +93,16 @@ describe('accumulateReward', function () {
     // Check the Reward has been pushed to the rewards mapping
     const { amount, rewardedAt, contractAddress } = await staking.rewards(1);
     const now = await time.latest();
-    assert(
-      amount.eq(firstRewardAmount),
-      `Expected first reward amount to be ${firstRewardAmount}, found ${amount}`,
-    );
+    assert(amount.eq(firstRewardAmount), `Expected first reward amount to be ${firstRewardAmount}, found ${amount}`);
     assert.equal(
       contractAddress,
       firstContract,
       `Expected rewarded contract to be ${firstContract}, found ${contractAddress}`,
     );
-    assert(
-      rewardedAt.eq(now),
-      `Expected rewarded time to be ${now}, found ${rewardedAt}`,
-    );
+    assert(rewardedAt.eq(now), `Expected rewarded time to be ${now}, found ${rewardedAt}`);
   });
 
   it('should set firstReward and lastRewardId correctly', async function () {
-
     const { token, tokenController, staking } = this;
 
     await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
@@ -144,7 +128,6 @@ describe('accumulateReward', function () {
   });
 
   it('should not push the same contract multiple times in the same round', async function () {
-
     const { token, tokenController, staking } = this;
 
     await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
@@ -167,7 +150,6 @@ describe('accumulateReward', function () {
   });
 
   it('should clear accumulated value of the last round and set lastDistributionRound', async function () {
-
     const { token, tokenController, staking } = this;
     await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
@@ -215,5 +197,4 @@ describe('accumulateReward', function () {
       `Expected lastDistributionRound to be ${currentRound}, found ${accumulated.lastDistributionRound}`,
     );
   });
-
 });

@@ -19,8 +19,8 @@ contract CoverNFT is ERC721 {
 
   }
 
-  function safeMint(address to, uint tokenId) external onlyOperator {
-    _safeMint(to, tokenId);
+  function mint(address to, uint tokenId) external onlyOperator {
+    _mint(to, tokenId);
   }
 
   function isApprovedOrOwner(address spender, uint tokenId) external view returns (bool) {

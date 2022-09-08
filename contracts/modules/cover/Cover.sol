@@ -217,7 +217,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     ));
 
     uint coverId = _coverData.length - 1;
-    ICoverNFT(coverNFT).safeMint(params.owner, coverId);
+    ICoverNFT(coverNFT).mint(params.owner, coverId);
 
     emit CoverBought(coverId, params.productId, 0, msg.sender, params.ipfsData);
     return coverId;

@@ -30,7 +30,7 @@ contract MRMockCover {
   }
 
   function createMockCover(address to, uint tokenId) public {
-    coverNFT.safeMint(to, tokenId);
+    coverNFT.mint(to, tokenId);
   }
 
 }

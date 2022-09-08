@@ -18,6 +18,7 @@ const setEtherBalance = async (address, wei) => {
 module.exports = {
   setNextBlockTime,
   mineNextBlock,
+  increaseTime,
   impersonateAccount,
   stopImpersonatingAccount,
   takeSnapshot,

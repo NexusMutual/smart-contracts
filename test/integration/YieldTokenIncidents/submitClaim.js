@@ -99,7 +99,7 @@ describe.skip('submitClaim', function () {
       await setTime(end + daysToSeconds(payoutCooldownInDays));
     }
 
-    await ybEth.connect(staker1).approve(yc.address, parseEther('10000'));
+    // await ybEth.connect(staker1).approve(yc.address, parseEther('10000'));
 
     // [warning] Cover mock does not subtract the covered amount
     {

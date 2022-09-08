@@ -9,7 +9,6 @@ const { enrollMember } = require('./utils/enroll');
 const { BN } = web3.utils;
 const { getAccounts, stakingPoolManagers } = require('../utils').accounts;
 
-
 // Convert web3 instances to ethers.js
 const web3ToEthers = (x, signers) => {
   const { contracts, rates } = x;
@@ -41,7 +40,7 @@ async function setup() {
   // const LegacyIncidents = artifacts.require('LegacyIncidents');
   // const LegacyClaimsData = artifacts.require('LegacyClaimsData');
   const LegacyClaimsReward = artifacts.require('LegacyClaimsReward');
-  // const DisposableMCR = artifacts.require('DisposableMCR');
+  const DisposableMCR = artifacts.require('DisposableMCR');
   const MCR = artifacts.require('MCR');
   const Pool = artifacts.require('Pool');
   const QuotationData = artifacts.require('LegacyQuotationData');
@@ -51,7 +50,6 @@ async function setup() {
   const Cover = artifacts.require('Cover');
   // const StakingPool = artifacts.require('StakingPool');
   const CoverUtilsLib = artifacts.require('CoverUtilsLib');
-
 
   // temporary contracts used for initialization
   const DisposableNXMaster = artifacts.require('DisposableNXMaster');
@@ -146,6 +144,7 @@ async function setup() {
   const lcr = await LegacyClaimsReward.new(master.address, dai.address);
 
   const mcrEth = ether('50000');
+
   const mcrFloor = mcrEth.sub(ether('10000'));
 
   const latestBlock = await web3.eth.getBlock('latest');
@@ -342,10 +341,9 @@ async function setup() {
 
   await p1.updateAddressParameters(hex('SWP_OP'), swapOperator.address);
 
-
   await cover.updateUintParameters(
     [0, 1], // CoverUintParams.globalCapacityRatio, CoverUintParams.globalRewardsRatio
-    [10000, 50]
+    [10000, 50],
   );
 
   await gv.changeMasterAddress(master.address);
@@ -405,30 +403,6 @@ async function setup() {
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ether((ethToDaiRate / 100).toString()));
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
-  const mcrEth = ether('50000');
-  const mcrFloor = mcrEth.sub(ether('10000'));
-
-  const latestBlock = await web3.eth.getBlock('latest');
-  const lastUpdateTime = latestBlock.timestamp;
-  const mcrFloorIncrementThreshold = 13000;
-  const maxMCRFloorIncrement = 100;
-  const maxMCRIncrement = 500;
-  const gearingFactor = 48000;
-  const minUpdateTime = 3600;
-  const desiredMCR = mcrEth;
-
-  await mc.initialize(
-    mcrEth,
-    mcrFloor,
-    desiredMCR,
-    lastUpdateTime,
-    mcrFloorIncrementThreshold,
-    maxMCRFloorIncrement,
-    maxMCRIncrement,
-    gearingFactor,
-    minUpdateTime,
-  );
-
   await as.initialize();
 
   const external = { chainlinkDAI, dai, weth, productsV1 };
@@ -453,7 +427,6 @@ async function setup() {
   };
 
   const nonInternal = { priceFeedOracle, swapOperator };
-
 
   this.contracts = {
     ...external,
@@ -481,8 +454,8 @@ async function setup() {
       productId: 0,
       weight: 100,
       initialPrice: 1000,
-      targetPrice: 1000
-    }
+      targetPrice: 1000,
+    },
   ];
 
   for (let i = 0; i < 3; i++) {

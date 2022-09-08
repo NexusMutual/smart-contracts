@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { BigNumber } = require('ethers');
 const { AddressZero } = ethers.constants;
 
-const { daysToSeconds } = require('../../utils/helpers');
+const { daysToSeconds } = require('../../../lib/helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
@@ -84,7 +84,7 @@ describe('submitClaim', function () {
 
     // Cover inputs
     const productId = 0;
-    const payoutAsset = 0; // ETH
+    const coverAsset = 0; // ETH
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseEther('1');
@@ -101,11 +101,11 @@ describe('submitClaim', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
@@ -120,7 +120,7 @@ describe('submitClaim', function () {
     // Submit claim
     const coverId = 0;
     const claimAmount = amount.sub(1);
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, payoutAsset);
+    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
@@ -141,7 +141,7 @@ describe('submitClaim', function () {
 
     // Cover inputs
     const productId = 0;
-    const payoutAsset = 1; // DAI
+    const coverAsset = 1; // DAI
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseEther('1');
@@ -161,11 +161,11 @@ describe('submitClaim', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
@@ -180,7 +180,7 @@ describe('submitClaim', function () {
     // Submit claim
     const coverId = 0;
     const claimAmount = amount.sub(20);
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, payoutAsset);
+    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
@@ -200,7 +200,7 @@ describe('submitClaim', function () {
 
     // Cover inputs
     const productId = 0;
-    const payoutAsset = 0; // ETH
+    const coverAsset = 0; // ETH
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseEther('1');
@@ -217,11 +217,11 @@ describe('submitClaim', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
@@ -236,7 +236,7 @@ describe('submitClaim', function () {
     // Submit claim
     const coverId = 0;
     const claimAmount = amount.sub(1);
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, payoutAsset);
+    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });
@@ -260,7 +260,7 @@ describe('submitClaim', function () {
 
     // Cover inputs
     const productId = 0;
-    const payoutAsset = 1; // DAI
+    const coverAsset = 1; // DAI
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
     const amount = parseEther('1');
@@ -280,11 +280,11 @@ describe('submitClaim', function () {
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
+        coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
@@ -298,9 +298,8 @@ describe('submitClaim', function () {
 
     // Submit claim
     const coverId = 0;
-    // TODO: figure out why this higher precision error
     const claimAmount = amount.sub(20);
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, payoutAsset);
+    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
     });

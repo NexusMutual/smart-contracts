@@ -16,8 +16,7 @@ const setTime = async timestamp => {
 const priceDenominator = '10000';
 
 describe('submitClaim', function () {
-
-  function calculateFirstTrancheId (lastBlock, period, gracePeriod) {
+  function calculateFirstTrancheId(lastBlock, period, gracePeriod) {
     return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
   }
 
@@ -31,7 +30,7 @@ describe('submitClaim', function () {
     }
   });
 
-  async function acceptClaim ({ staker, assessmentStakingAmount, as }) {
+  async function acceptClaim({ staker, assessmentStakingAmount, as }) {
     const { payoutCooldownInDays } = await as.config();
     await as.connect(staker).stake(assessmentStakingAmount);
 
@@ -43,8 +42,7 @@ describe('submitClaim', function () {
     await setTime(futureTime);
   }
 
-  async function rejectClaim ({ approvingStaker, rejectingStaker, as }) {
-
+  async function rejectClaim({ approvingStaker, rejectingStaker, as }) {
     const assessmentStakingAmountForApproval = parseEther('1000');
     const assessmentStakingAmountForRejection = parseEther('2000');
     const { payoutCooldownInDays } = await as.config();
@@ -61,19 +59,21 @@ describe('submitClaim', function () {
     await setTime(futureTime);
   }
 
-  async function stake ({ stakingPool, staker, productId, period, gracePeriod }) {
+  async function stake({ stakingPool, staker, productId, period, gracePeriod }) {
     // Staking inputs
     const stakingAmount = parseEther('100');
     const lastBlock = await ethers.provider.getBlock('latest');
     const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
 
     // Stake to open up capacity
-    await stakingPool.connect(staker).depositTo([{
-      amount: stakingAmount,
-      trancheId: firstTrancheId,
-      tokenId: 1, // new position
-      destination: AddressZero,
-    }]);
+    await stakingPool.connect(staker).depositTo([
+      {
+        amount: stakingAmount,
+        trancheId: firstTrancheId,
+        tokenId: 1, // new position
+        destination: AddressZero,
+      },
+    ]);
     await stakingPool.setTargetWeight(productId, 10);
   }
 
@@ -90,9 +90,7 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake(
-      { stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId }
-    );
+    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
 
     // Buy Cover
     const expectedPremium = amount
@@ -149,9 +147,7 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake(
-      { stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId }
-    );
+    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
 
     // Buy Cover
     const expectedPremium = amount
@@ -210,9 +206,7 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake(
-      { stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId }
-    );
+    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
 
     // Buy Cover
     const expectedPremium = amount
@@ -250,7 +244,7 @@ describe('submitClaim', function () {
     await rejectClaim({
       approvingStaker: staker2,
       rejectingStaker: staker3,
-      as
+      as,
     });
 
     // attempt redemption
@@ -272,9 +266,7 @@ describe('submitClaim', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake(
-      { stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId }
-    );
+    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
 
     // Buy Cover
     const expectedPremium = amount
@@ -316,7 +308,7 @@ describe('submitClaim', function () {
     await rejectClaim({
       approvingStaker: staker2,
       rejectingStaker: staker3,
-      as
+      as,
     });
 
     // attempt redemption

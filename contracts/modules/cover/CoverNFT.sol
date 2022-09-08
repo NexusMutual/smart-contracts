@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.9;
 
-import "@rari-capital/solmate/src/tokens/ERC721.sol";
+import "solmate/src/tokens/ERC721.sol";
 import "../../interfaces/ICover.sol";
 
 contract CoverNFT is ERC721 {

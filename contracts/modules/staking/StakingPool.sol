@@ -4,8 +4,8 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 // TODO: consider using solmate ERC721 implementation
-//import "@openzeppelin/contracts-v4/token/ERC721/ERC721.sol";
-import { ERC721 as SolmateERC721 } from "@rari-capital/solmate/src/tokens/ERC721.sol";
+//import "solmate/src/tokens/ERC721.sol";
+import { ERC721 as SolmateERC721 } from "solmate/src/tokens/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
 
 //import "../../interfaces/ISolmateERC721.sol";

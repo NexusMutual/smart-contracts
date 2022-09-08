@@ -108,6 +108,7 @@ describe('switchMembershipAndAssets', function () {
       expect(ownershipArr[1]).to.be.equal(member1.address);
       expect(ownershipArr[2]).to.be.equal(member1.address);
     }
+    await coverNFT.connect(member1).setApprovalForAll(cover.address, true);
 
     const newMemberAddress = nonMember1.address;
     await memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [0, 2], [], []);
@@ -137,6 +138,8 @@ describe('switchMembershipAndAssets', function () {
     await stakingPool2.connect(member1).mint(member1.address, 1);
     await nxm.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
 
+    await stakingPool1.connect(member1).setApprovalForAll(memberRoles.address, true);
+    await stakingPool2.connect(member1).setApprovalForAll(memberRoles.address, true);
     const newMemberAddress = nonMember1.address;
     await memberRoles.connect(member1).switchMembershipAndAssets(
       newMemberAddress,
@@ -206,7 +209,7 @@ describe('switchMembershipAndAssets', function () {
           [0], // NFTs from pool 2
         ],
       ),
-    ).to.be.revertedWith('ERC721: transfer of token that is not own');
+    ).to.be.revertedWith('WRONG_FROM');
   });
 
   it('reverts when trying to transfer cover nfts of another member', async function () {
@@ -224,6 +227,6 @@ describe('switchMembershipAndAssets', function () {
     await nxm.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
     await expect(
       memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [0, 2], [], []),
-    ).to.be.revertedWith('ERC721: transfer of token that is not own');
+    ).to.be.revertedWith('WRONG_FROM');
   });
 });

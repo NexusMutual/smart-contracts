@@ -1,6 +1,4 @@
-const { web3, ethers,
-  network
-} = require('hardhat');
+const { web3, ethers, network } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { MAX_UINT256 } = require('@openzeppelin/test-helpers').constants;
 const { toBN } = web3.utils;
@@ -23,7 +21,7 @@ const approveMembership = async ({ nonce, address, chainId, kycAuthSigner }) => 
   return hexConcat([hexZeroPad(nonce, 32), compactSignature]);
 };
 
-async function enrollMember ({ mr, tk, tc }, members, kycAuthSigner, options = {}) {
+async function enrollMember({ mr, tk, tc }, members, kycAuthSigner, options = {}) {
   const { initialTokens = ether('2500') } = options;
 
   for (const member of members) {

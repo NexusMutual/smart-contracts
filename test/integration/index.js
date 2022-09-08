@@ -1,7 +1,6 @@
 const { takeSnapshot, revertToSnapshot } = require('./utils').evm;
 const setup = require('./setup');
 
-
 describe('INTEGRATION TESTS', function () {
   before(setup);
 

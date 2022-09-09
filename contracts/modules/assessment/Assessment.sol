@@ -62,6 +62,9 @@ contract Assessment is IAssessment, MasterAwareV2 {
     config.payoutCooldownInDays = 1; // days
     config.stakeLockupPeriodInDays = 14; // days
     config.silentEndingPeriodInDays = 1; // days
+
+    // to receive NXM
+    ITokenController(getInternalContractAddress(ID.TC)).addToWhitelist(address(this));
   }
 
   /* ========== VIEWS ========== */

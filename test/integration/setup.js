@@ -32,6 +32,7 @@ async function setup() {
   // const Lido = artifacts.require('P1MockLido');
   const ProductsV1 = artifacts.require('ProductsV1');
   const CoverMigrator = artifacts.require('CoverMigrator');
+  const IntegrationMockStakingPool = artifacts.require('IntegrationMockStakingPool');
 
   // nexusmutual
   const NXMToken = artifacts.require('NXMToken');
@@ -39,7 +40,7 @@ async function setup() {
   // const LegacyIncidents = artifacts.require('LegacyIncidents');
   // const LegacyClaimsData = artifacts.require('LegacyClaimsData');
   const LegacyClaimsReward = artifacts.require('LegacyClaimsReward');
-  // const DisposableMCR = artifacts.require('DisposableMCR');
+  const DisposableMCR = artifacts.require('DisposableMCR');
   const MCR = artifacts.require('MCR');
   const Pool = artifacts.require('Pool');
   const QuotationData = artifacts.require('LegacyQuotationData');
@@ -49,7 +50,6 @@ async function setup() {
   const Cover = artifacts.require('Cover');
   // const StakingPool = artifacts.require('StakingPool');
   const CoverUtilsLib = artifacts.require('CoverUtilsLib');
-  const IntegrationMockStakingPool = artifacts.require('IntegrationMockStakingPool');
 
   // temporary contracts used for initialization
   const DisposableNXMaster = artifacts.require('DisposableNXMaster');
@@ -83,6 +83,9 @@ async function setup() {
   const WETH9 = artifacts.require('WETH9');
   const CSMockSettlement = artifacts.require('CSMockSettlement');
   const CSMockVaultRelayer = artifacts.require('CSMockVaultRelayer');
+
+  const coverUtilsLib = await CoverUtilsLib.new();
+  DisposableCover.link(coverUtilsLib);
 
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
@@ -143,8 +146,36 @@ async function setup() {
   // const lcd = await LegacyClaimsData.new();
   const lcr = await LegacyClaimsReward.new(master.address, dai.address);
 
-  // TODO: implement using DisposableMCR, see /test/unit/MCR/setup.js
-  const mc = await MCR.new(ZERO_ADDRESS);
+  const mcrEth = ether('50000');
+
+  const mcrFloor = mcrEth.sub(ether('10000'));
+
+  const latestBlock = await web3.eth.getBlock('latest');
+  const lastUpdateTime = latestBlock.timestamp;
+  const mcrFloorIncrementThreshold = 13000;
+  const maxMCRFloorIncrement = 100;
+  const maxMCRIncrement = 500;
+  const gearingFactor = 48000;
+  const minUpdateTime = 3600;
+  const desiredMCR = mcrEth;
+
+  const disposableMCR = await DisposableMCR.new(
+    mcrEth,
+    mcrFloor,
+    desiredMCR,
+    lastUpdateTime,
+    mcrFloorIncrementThreshold,
+    maxMCRFloorIncrement,
+    maxMCRIncrement,
+    gearingFactor,
+    minUpdateTime,
+  );
+
+  // deploy MCR with DisposableMCR as a fake master
+  const mc = await MCR.new(disposableMCR.address);
+
+  // trigger initialize and update master address
+  await disposableMCR.initializeNextMcr(mc.address, master.address);
 
   const p1 = await Pool.new(master.address, priceFeedOracle.address, ZERO_ADDRESS, dai.address, stETH.address);
 
@@ -165,16 +196,24 @@ async function setup() {
   const tc = await deployProxy(DisposableTokenController, [qd.address, lcr.address]);
   const ic = await deployProxy(DisposableIndividualClaims, []);
   const yt = await deployProxy(DisposableYieldTokenIncidents, []);
-  const as = await deployProxy(DisposableAssessment, []);
+  let as = await deployProxy(DisposableAssessment, []);
   const cl = await deployProxy(CoverMigrator, []);
 
-  const coverUtilsLib = await CoverUtilsLib.new();
   await Cover.link(coverUtilsLib);
 
-  let cover = await deployProxy(DisposableCover, []);
+  let cover = await deployProxy(DisposableCover, [
+    qd.address,
+    productsV1.address,
+    ZERO_ADDRESS,
+    ZERO_ADDRESS,
+    ZERO_ADDRESS,
+  ]);
+
+  await cover.changeMasterAddress(master.address);
 
   const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
-  const stakingPool = await IntegrationMockStakingPool.new(tk.address, cover.address, tc.address, mr.address);
+
+  const stakingPool = await IntegrationMockStakingPool.new(tk.address, cover.address, tc.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
@@ -243,13 +282,14 @@ async function setup() {
     90 * 24 * 3600, // unstake lock time
   );
 
-  await as.initialize(master.address);
   await ic.initialize(master.address);
 
   const CLAIM_METHOD = {
     INDIVIDUAL_CLAIMS: 0,
     YIELD_TOKEN_INCIDENTS: 1,
   };
+
+  await cover.changeDependentContractAddress();
 
   await cover.addProductTypes(
     [
@@ -313,6 +353,11 @@ async function setup() {
 
   await p1.updateAddressParameters(hex('SWP_OP'), swapOperator.address);
 
+  await cover.updateUintParameters(
+    [0, 1], // CoverUintParams.globalCapacityRatio, CoverUintParams.globalRewardsRatio
+    [10000, 50],
+  );
+
   await gv.changeMasterAddress(master.address);
   await master.switchGovernanceAddress(gv.address);
 
@@ -338,24 +383,13 @@ async function setup() {
   ]);
 
   cover = await Cover.at(cover.address);
-  //
-  // {
-  //   const params = {}
-  //
-  //
-  //   const implementation = await Cover.new(...params, {
-  //
-  //   });
-  //   const proxy = await OwnedUpgradeabilityProxy.at(cover.address);
-  //   await proxy.upgradeTo(implementation.address);
-  //
-  // }
-  //
-  // CoverUtilsLib.
+  as = await Assessment.at(as.address);
 
   // [todo] We should probably call changeDependentContractAddress on every contract
   await gateway.changeDependentContractAddress();
   await cover.changeDependentContractAddress();
+  await ic.changeDependentContractAddress();
+  await as.changeDependentContractAddress();
 
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
@@ -381,29 +415,7 @@ async function setup() {
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ether((ethToDaiRate / 100).toString()));
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
-  const mcrEth = ether('50000');
-  const mcrFloor = mcrEth.sub(ether('10000'));
-
-  const latestBlock = await web3.eth.getBlock('latest');
-  const lastUpdateTime = latestBlock.timestamp;
-  const mcrFloorIncrementThreshold = 13000;
-  const maxMCRFloorIncrement = 100;
-  const maxMCRIncrement = 500;
-  const gearingFactor = 48000;
-  const minUpdateTime = 3600;
-  const desiredMCR = mcrEth;
-
-  await mc.initialize(
-    mcrEth,
-    mcrFloor,
-    desiredMCR,
-    lastUpdateTime,
-    mcrFloorIncrementThreshold,
-    maxMCRFloorIncrement,
-    maxMCRIncrement,
-    gearingFactor,
-    minUpdateTime,
-  );
+  await as.initialize();
 
   const external = { chainlinkDAI, dai, weth, productsV1 };
   const nonUpgradable = { qd };
@@ -418,7 +430,8 @@ async function setup() {
     mr: await MemberRoles.at(mr.address),
     ps: await PooledStaking.at(ps.address),
     gateway: await Gateway.at(gateway.address),
-    ic: await YieldTokenIncidents.at(ic.address),
+    ic: await IndividualClaims.at(ic.address),
+    yc: await YieldTokenIncidents.at(yt.address),
     cl: await CoverMigrator.at(cl.address),
     as: await Assessment.at(as.address),
     cover: await Cover.at(cover.address),
@@ -476,6 +489,8 @@ async function setup() {
   }
 
   this.withEthers = web3ToEthers(this, signers);
+  this.accounts = ethersAccounts;
+  this.DEFAULT_PRODUCT_INITIALIZATION = DEFAULT_PRODUCT_INITIALIZATION;
 }
 
 module.exports = setup;

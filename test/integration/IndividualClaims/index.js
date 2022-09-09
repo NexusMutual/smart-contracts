@@ -1,3 +1,3 @@
-describe.skip('IndividualClaims integration tests', function () {
+describe('IndividualClaims integration tests', function () {
   require('./submitClaim');
 });

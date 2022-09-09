@@ -1,4 +1,4 @@
-const { web3, ethers } = require('hardhat');
+const { web3, ethers, network } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { MAX_UINT256 } = require('@openzeppelin/test-helpers').constants;
 const { toBN } = web3.utils;
@@ -9,11 +9,15 @@ const { formatBytes32String, defaultAbiCoder, arrayify, hexConcat, hexZeroPad, s
 const JOINING_FEE = parseUnits('0.002');
 const MEMBERSHIP_APPROVAL = formatBytes32String('MEMBERSHIP_APPROVAL');
 
-const approveMembership = async ({ nonce, address, kycAuthSigner }) => {
-  const message = defaultAbiCoder.encode(['bytes32', 'uint256', 'address'], [MEMBERSHIP_APPROVAL, nonce, address]);
+const approveMembership = async ({ nonce, address, chainId, kycAuthSigner }) => {
+  const message = defaultAbiCoder.encode(
+    ['bytes32', 'uint256', 'address', 'uint256'],
+    [MEMBERSHIP_APPROVAL, nonce, address, chainId || network.config.chainId],
+  );
   const hash = keccak256(message);
   const signature = await kycAuthSigner.signMessage(arrayify(hash));
   const { compact: compactSignature } = splitSignature(signature);
+
   return hexConcat([hexZeroPad(nonce, 32), compactSignature]);
 };
 
@@ -25,9 +29,10 @@ async function enrollMember({ mr, tk, tc }, members, kycAuthSigner, options = {}
       nonce: 0,
       address: member.address,
       kycAuthSigner,
+      chainId: network.config.chainId,
     });
 
-    await mr.signUp(member.address, arrayify(membershipApprovalData0), {
+    await mr.signUp(member.address, membershipApprovalData0, {
       value: JOINING_FEE,
     });
 

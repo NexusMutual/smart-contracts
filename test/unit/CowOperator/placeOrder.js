@@ -5,7 +5,7 @@ const { domain: makeDomain, computeOrderUid } = require('@cowprotocol/contracts'
 
 const { setEtherBalance, setNextBlockTime } = require('../../utils/evm');
 const { hex } = require('../utils').helpers;
-
+const { BigNumber } = ethers;
 const { parseEther, hexZeroPad, keccak256, toUtf8Bytes, hexlify, randomBytes } = ethers.utils;
 
 describe('placeOrder', function () {
@@ -75,13 +75,13 @@ describe('placeOrder', function () {
     order = {
       sellToken: weth.address,
       buyToken: dai.address,
+      receiver: swapOperator.address,
       sellAmount: parseEther('0.999'),
       buyAmount: parseEther('4995'),
       validTo: (await lastBlockTimestamp()) + 650,
       appData: hexZeroPad(0, 32),
       feeAmount: parseEther('0.001'),
       kind: 'sell',
-      receiver: swapOperator.address,
       partiallyFillable: false,
       sellTokenBalance: 'erc20',
       buyTokenBalance: 'erc20',
@@ -679,7 +679,12 @@ describe('placeOrder', function () {
   it('emits an OrderPlaced event', async function () {
     const tx = await swapOperator.placeOrder(contractOrder, orderUID);
     const rcp = await tx.wait();
-
-    expect(rcp.events[2].args.order).to.deep.include.members(Object.values(contractOrder));
+    // Remove duplicate values
+    const rcpOrder = rcp.events[2].args.order.slice(0,12);
+    // Change from hex to base10 bignumber
+    rcpOrder[3] = BigNumber.from(rcpOrder[3])
+    rcpOrder[4] = BigNumber.from(rcpOrder[4])
+    rcpOrder[7] = BigNumber.from(rcpOrder[7])
+    expect(rcpOrder).to.deep.include.members(Object.values(contractOrder));
   });
 });

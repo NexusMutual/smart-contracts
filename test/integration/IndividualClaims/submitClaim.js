@@ -136,7 +136,7 @@ describe('submitClaim', function () {
 
   it('submits DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { ic, cover, stakingPool0, as, tk, dai } = this.withEthers.contracts;
+    const { ic, cover, stakingPool0, as, dai } = this.withEthers.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs

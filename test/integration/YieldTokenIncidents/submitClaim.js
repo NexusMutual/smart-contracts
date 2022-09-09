@@ -21,7 +21,7 @@ const priceDenominator = '10000';
 describe.skip('submitClaim', function () {
   it('submits DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { ic, cover, stakingPool0, as, tk, dai, yc } = this.withEthers.contracts;
+    const { cover, stakingPool0, as, tk, dai, yc } = this.withEthers.contracts;
     const [coverBuyer1, staker1, staker2, member1] = this.accounts.members;
     const [nonMember1, nonMember2] = this.accounts.nonMembers;
 
@@ -31,7 +31,6 @@ describe.skip('submitClaim', function () {
 
     const amount = parseEther('1');
 
-    const assessmentStakingAmount = parseEther('1000');
     const stakingAmount = parseEther('100');
     await tk.connect(this.accounts.defaultSender).transfer(staker1.address, stakingAmount);
     await tk.connect(this.accounts.defaultSender).transfer(staker2.address, stakingAmount);
@@ -80,8 +79,6 @@ describe.skip('submitClaim', function () {
     );
 
     await tx.wait();
-
-    const coverId = 0;
 
     const segmentPeriod = period;
     {

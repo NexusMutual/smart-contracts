@@ -680,11 +680,11 @@ describe('placeOrder', function () {
     const tx = await swapOperator.placeOrder(contractOrder, orderUID);
     const rcp = await tx.wait();
     // Remove duplicate values
-    const rcpOrder = rcp.events[2].args.order.slice(0,12);
+    const rcpOrder = rcp.events[2].args.order.slice(0, 12);
     // Change from hex to base10 bignumber
-    rcpOrder[3] = BigNumber.from(rcpOrder[3])
-    rcpOrder[4] = BigNumber.from(rcpOrder[4])
-    rcpOrder[7] = BigNumber.from(rcpOrder[7])
+    rcpOrder[3] = BigNumber.from(rcpOrder[3]);
+    rcpOrder[4] = BigNumber.from(rcpOrder[4]);
+    rcpOrder[7] = BigNumber.from(rcpOrder[7]);
     expect(rcpOrder).to.deep.include.members(Object.values(contractOrder));
   });
 });

@@ -195,7 +195,7 @@ describe('submitClaim', function () {
 
   it('submits ETH claim and rejects claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { ic, cover, stakingPool0, as, tk } = this.withEthers.contracts;
+    const { ic, cover, stakingPool0, as } = this.withEthers.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     // Cover inputs
@@ -255,7 +255,7 @@ describe('submitClaim', function () {
 
   it('submits DAI claim and rejects claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { ic, cover, stakingPool0, as, tk, dai } = this.withEthers.contracts;
+    const { ic, cover, stakingPool0, as, dai } = this.withEthers.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     // Cover inputs

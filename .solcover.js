@@ -5,6 +5,7 @@ module.exports = {
     'interfaces/',
     'external/',
     'utils/',
+    'modules/legacy',
     'modules/token/external',
     'modules/governance/external',
     'monitoring',

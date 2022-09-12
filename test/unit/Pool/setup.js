@@ -96,6 +96,7 @@ async function setup() {
   this.tokenController = tokenController;
   this.dai = dai;
   this.chainlinkDAI = chainlinkDAI;
+  this.chainlinkSteth = chainlinkSteth;
   this.swapOperator = swapOperator;
   this.stETH = stETH;
 }

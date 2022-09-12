@@ -1,17 +1,41 @@
-const { artifacts } = require('hardhat');
+const {
+  artifacts,
+  web3,
+} = require('hardhat');
 const {
   constants: { ZERO_ADDRESS },
   ether,
   expectRevert,
 } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
+const { hex } = require('../utils').helpers;
 const {
   governanceContracts: [governance],
 } = require('../utils').accounts;
+const { BN } = web3.utils;
+
+const PriceFeedOracle = artifacts.require('PriceFeedOracle');
+const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
 const assetAddress = '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000';
 
 describe('addAsset', function () {
+
+  before(async function () {
+    const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
+
+    const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
+    await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
+
+    const priceFeedOracle = await PriceFeedOracle.new(
+      [dai.address, stETH.address, assetAddress],
+      [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
+      [18, 18, 18],
+    );
+
+    await pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governance });
+  });
+
   it('reverts when not called by goverance', async function () {
     const { pool } = this;
 
@@ -40,7 +64,7 @@ describe('addAsset', function () {
     await expectRevert(pool.addAsset(assetAddress, 18, '1', '0', '0', false, { from: governance }), 'Pool: max < min');
   });
 
-  it.only('reverts when max slippage ratio > 1', async function () {
+  it('reverts when max slippage ratio > 1', async function () {
     const { pool } = this;
 
     await expectRevert(
@@ -63,10 +87,20 @@ describe('addAsset', function () {
   });
 
   it('should correctly add the asset with its min, max, and slippage ratio', async function () {
-    const { pool } = this;
+    const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
 
     const ERC20Mock = artifacts.require('ERC20Mock');
     const token = await ERC20Mock.new();
+
+    const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
+    await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
+    const priceFeedOracle = await PriceFeedOracle.new(
+      [dai.address, stETH.address, token.address],
+      [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
+      [18, 18, 18],
+    );
+
+    await pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governance });
 
     await pool.addAsset(token.address, 18, '1', '2', '3', true, { from: governance });
     await token.mint(pool.address, ether('100'));
@@ -80,13 +114,27 @@ describe('addAsset', function () {
   });
 
   it('should correctly add the asset to either investment or cover asset arrays', async function () {
-    const { pool } = this;
+    const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
 
     const ERC20Mock = artifacts.require('ERC20Mock');
 
+    const coverAsset = await ERC20Mock.new();
+    const investmentAsset = await ERC20Mock.new();
+
+    const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
+    await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
+
+    const priceFeedOracle = await PriceFeedOracle.new(
+      [dai.address, stETH.address, coverAsset.address, investmentAsset.address],
+      [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address, chainlinkNewAsset.address],
+      [18, 18, 18, 18],
+    );
+
+    await pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governance });
+
     // Cover asset
     {
-      const token = await ERC20Mock.new();
+      const token = coverAsset;
       await pool.addAsset(token.address, 18, '1', '2', '3', true, { from: governance });
       const coverAssets = await pool.getCoverAssets();
       const investmentAssets = await pool.getInvestmentAssets();
@@ -98,7 +146,7 @@ describe('addAsset', function () {
 
     // Investment asset
     {
-      const token = await ERC20Mock.new();
+      const token = investmentAsset;
       await pool.addAsset(token.address, 8, '4', '5', '6', false, { from: governance });
       const coverAssets = await pool.getCoverAssets();
       const investmentAssets = await pool.getInvestmentAssets();

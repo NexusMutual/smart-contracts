@@ -1,27 +1,43 @@
 const { ether } = require('@openzeppelin/test-helpers');
 const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
-const { web3 } = require('hardhat');
+const {
+  web3,
+  artifacts,
+} = require('hardhat');
 const { assert } = require('chai');
 const { expectRevert } = require('@openzeppelin/test-helpers');
+const { hex } = require('../utils').helpers;
 
 const {
   defaultSender,
   governanceContracts: [governance],
 } = require('../utils').accounts;
+const { BN } = web3.utils;
 
+const PriceFeedOracle = artifacts.require('PriceFeedOracle');
+const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 const Pool = artifacts.require('Pool');
 const ERC20Mock = artifacts.require('ERC20Mock');
 const ERC20NonRevertingMock = artifacts.require('ERC20NonRevertingMock');
 
 describe('upgradeCapitalPool', function () {
   it('moves pool funds to new pool', async function () {
-    const { pool, master, dai, stETH } = this;
+    const { pool, master, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
+
+    const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
+    await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
+
+    const coverToken = await ERC20Mock.new();
+    const priceFeedOracle = await PriceFeedOracle.new(
+      [dai.address, stETH.address, coverToken.address],
+      [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
+      [18, 18, 18],
+    );
+    await pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governance });
 
     const ethAmount = ether('10000');
     const tokenAmount = ether('100000');
     await pool.sendTransaction({ value: ethAmount });
-
-    const coverToken = await ERC20Mock.new();
 
     await pool.addAsset(coverToken.address, 18, '0', '0', 100, true, {
       from: governance,
@@ -55,7 +71,7 @@ describe('upgradeCapitalPool', function () {
   });
 
   it('abandons marked assets on pool upgrade', async function () {
-    const { pool, master, dai, stETH } = this;
+    const { pool, master, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
 
     const ethAmount = ether('10000');
     const tokenAmount = ether('100000');
@@ -63,6 +79,16 @@ describe('upgradeCapitalPool', function () {
 
     const coverToken = await ERC20Mock.new();
     const nonRevertingERC20 = await ERC20NonRevertingMock.new();
+
+    const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
+    await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
+
+    const priceFeedOracle = await PriceFeedOracle.new(
+      [dai.address, stETH.address, coverToken.address, nonRevertingERC20.address],
+      [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address, chainlinkNewAsset.address],
+      [18, 18, 18, 18],
+    );
+    await pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governance });
 
     await pool.addAsset(coverToken.address, 18, '0', '0', 100, true, {
       from: governance,

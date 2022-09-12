@@ -1,7 +1,15 @@
-const { artifacts } = require('hardhat');
-const { ether, expectRevert } = require('@openzeppelin/test-helpers');
+const { artifacts, web3 } = require('hardhat');
+const {
+  constants: { ZERO_ADDRESS },
+  ether,
+  expectRevert,
+} = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const [governance] = require('../utils').accounts.governanceContracts;
+const { hex } = require('../utils').helpers;
+const {
+  governanceContracts: [governance],
+} = require('../utils').accounts;
+const { BN } = web3.utils;
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
@@ -28,11 +36,25 @@ describe('removeAsset', function () {
   });
 
   it('should correctly remove the asset with its minAmount, maxAmount, and slippage ratio', async function () {
-    const { pool, dai, stETH } = this;
+    const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
 
     const ERC20Mock = artifacts.require('ERC20Mock');
+    const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
+    const PriceFeedOracle = artifacts.require('PriceFeedOracle');
+
     const coverToken = await ERC20Mock.new();
     const investmentToken = await ERC20Mock.new();
+
+    const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
+    await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
+
+    const priceFeedOracle = await PriceFeedOracle.new(
+      [dai.address, stETH.address, coverToken.address, investmentToken.address],
+      [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address, chainlinkNewAsset.address],
+      [18, 18, 18, 18],
+    );
+
+    await pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governance });
 
     {
       // add token as cover asset

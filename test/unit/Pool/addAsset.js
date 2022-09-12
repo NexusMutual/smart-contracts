@@ -40,7 +40,7 @@ describe('addAsset', function () {
     await expectRevert(pool.addAsset(assetAddress, 18, '1', '0', '0', false, { from: governance }), 'Pool: max < min');
   });
 
-  it('reverts when max slippage ratio > 1', async function () {
+  it.only('reverts when max slippage ratio > 1', async function () {
     const { pool } = this;
 
     await expectRevert(

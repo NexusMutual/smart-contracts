@@ -108,7 +108,6 @@ describe('switchMembershipAndAssets', function () {
       expect(ownershipArr[1]).to.be.equal(member1.address);
       expect(ownershipArr[2]).to.be.equal(member1.address);
     }
-    await coverNFT.connect(member1).setApprovalForAll(cover.address, true);
 
     const newMemberAddress = nonMember1.address;
     await memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [0, 2], [], []);
@@ -138,8 +137,6 @@ describe('switchMembershipAndAssets', function () {
     await stakingPool2.connect(member1).mint(member1.address, 1);
     await nxm.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
 
-    await stakingPool1.connect(member1).setApprovalForAll(memberRoles.address, true);
-    await stakingPool2.connect(member1).setApprovalForAll(memberRoles.address, true);
     const newMemberAddress = nonMember1.address;
     await memberRoles.connect(member1).switchMembershipAndAssets(
       newMemberAddress,

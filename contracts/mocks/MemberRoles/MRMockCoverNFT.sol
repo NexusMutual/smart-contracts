@@ -11,7 +11,6 @@ contract MRMockCoverNFT is ERC721Mock {
   }
 
   function operatorTransferFrom(address from, address to, uint256 tokenId) external {
-    super.transferFrom(from, to, tokenId);
+      _operatorTransferFrom(from, to, tokenId);
   }
-
 }

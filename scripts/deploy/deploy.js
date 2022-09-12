@@ -1,6 +1,7 @@
 const { ethers, network, run, tenderly } = require('hardhat');
 const path = require('path');
 const fs = require('fs');
+const { AddressZero } = ethers.constants;
 
 const { ABI_DIR, CONFIG_FILE } = process.env;
 
@@ -153,52 +154,22 @@ async function main() {
   console.log('Deploying ProductsV1 contract');
   const productsV1 = await deployImmutable('ProductsV1');
 
+  console.log('Deploying and linking CoverUtilsLib');
+  const coverUtilsLib = await deployImmutable('CoverUtilsLib');
+  const coverLibraries = { CoverUtilsLib: coverUtilsLib.address };
+
   console.log('Deploying cover and staking pool contracts');
-  const cover = await deployProxy('DisposableCover');
+  const cover = await deployProxy(
+    'DisposableCover',
+    [qd.address, productsV1.address, AddressZero, AddressZero, AddressZero],
+    { libraries: coverLibraries },
+  );
 
   const stakingPoolParameters = [tk.address, cover.address, tc.address, mr.address];
   const stakingPool = await deployImmutable('CoverMockStakingPool', stakingPoolParameters, { abiName: 'StakingPool' });
 
   const coverMigrator = await deployImmutable('CoverMigrator');
   const coverNFT = await deployImmutable('CoverNFT', ['Nexus Mutual Cover', 'NMC', cover.address]);
-
-  console.log('Add covered products');
-
-  await cover.addProductTypes(
-    productTypes,
-    productTypes.map(() => ''), // ipfs metadata for each product type
-  );
-
-  const addProductsParams = products.map(product => {
-    const underlyingToken = ['ETH', 'DAI'].indexOf(product.underlyingToken);
-    const productType = { protocol: 0, custodian: 1, token: 2 }[product.type];
-    const productAddress = product.coveredToken || '0x0000000000000000000000000000000000000000';
-
-    let coverAssets =
-      underlyingToken === -1
-        ? 0 // when no underlyingToken is present use the global fallback
-        : 1 << underlyingToken; // 0b01 for ETH and 0b10 for DAI
-
-    if (product.legacyProductId === '0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B') {
-      coverAssets = 1; // only ETH for MakerDAO
-    }
-
-    return {
-      productType,
-      productAddress,
-      coverAssets,
-      initialPriceRatio: 100,
-      capacityReductionRatio: 0,
-    };
-  });
-
-  // [todo] Add ipfs hashes
-  const ipfsProductHashes = Array(products.length).fill('');
-  await cover.addProducts(addProductsParams, ipfsProductHashes);
-
-  // 0b01 for eth and 0b10 for dai
-  const coverAssetsFallback = 0b11;
-  await cover.setCoverAssetsFallback(coverAssetsFallback);
 
   console.log('Deploying assessment contracts');
   const yt = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
@@ -335,6 +306,46 @@ async function main() {
   await yt.initialize();
   await gw.initialize(master.address, dai.address);
 
+  console.log('Add covered products');
+  await cover.changeMasterAddress(master.address);
+  await cover.changeDependentContractAddress();
+
+  await cover.addProductTypes(
+    productTypes,
+    productTypes.map(() => ''), // ipfs metadata for each product type
+  );
+
+  const addProductsParams = products.map(product => {
+    const underlyingToken = ['ETH', 'DAI'].indexOf(product.underlyingToken);
+    const productType = { protocol: 0, custodian: 1, token: 2 }[product.type];
+    const productAddress = product.coveredToken || '0x0000000000000000000000000000000000000000';
+
+    let coverAssets =
+      underlyingToken === -1
+        ? 0 // when no underlyingToken is present use the global fallback
+        : 1 << underlyingToken; // 0b01 for ETH and 0b10 for DAI
+
+    if (product.legacyProductId === '0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B') {
+      coverAssets = 1; // only ETH for MakerDAO
+    }
+
+    return {
+      productType,
+      productAddress,
+      coverAssets,
+      initialPriceRatio: 100,
+      capacityReductionRatio: 0,
+    };
+  });
+
+  // [todo] Add ipfs hashes
+  const ipfsProductHashes = Array(products.length).fill('');
+  await cover.addProducts(addProductsParams, ipfsProductHashes);
+
+  // 0b01 for eth and 0b10 for dai
+  const coverAssetsFallback = 0b11;
+  await cover.setCoverAssetsFallback(coverAssetsFallback);
+
   console.log('Adding proposal categories');
 
   await pc.initialize(mr.address);
@@ -357,10 +368,6 @@ async function main() {
   await upgradeProxy(gw.address, 'LegacyGateway');
   await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address]);
   await upgradeProxy(master.address, 'NXMaster');
-
-  console.log('Deploying and linking CoverUtilsLib');
-  const coverUtilsLib = await deployImmutable('CoverUtilsLib');
-  const coverLibraries = { CoverUtilsLib: coverUtilsLib.address };
 
   console.log('Deploying CoverViewer');
   await deployImmutable('CoverViewer', [master.address]);

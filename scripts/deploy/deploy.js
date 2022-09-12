@@ -1,6 +1,7 @@
 const { ethers, network, run, tenderly } = require('hardhat');
 const path = require('path');
 const fs = require('fs');
+const { AddressZero } = ethers.constants;
 
 const { ABI_DIR, CONFIG_FILE } = process.env;
 
@@ -153,8 +154,16 @@ async function main() {
   console.log('Deploying ProductsV1 contract');
   const productsV1 = await deployImmutable('ProductsV1');
 
+  console.log('Deploying and linking CoverUtilsLib');
+  const coverUtilsLib = await deployImmutable('CoverUtilsLib');
+  const coverLibraries = { CoverUtilsLib: coverUtilsLib.address };
+
   console.log('Deploying cover and staking pool contracts');
-  const cover = await deployProxy('DisposableCover');
+  const cover = await deployProxy(
+    'DisposableCover',
+    [qd.address, productsV1.address, AddressZero, AddressZero, AddressZero],
+    { libraries: coverLibraries },
+  );
 
   const stakingPoolParameters = [tk.address, cover.address, tc.address, mr.address];
   const stakingPool = await deployImmutable('CoverMockStakingPool', stakingPoolParameters, { abiName: 'StakingPool' });
@@ -357,10 +366,6 @@ async function main() {
   await upgradeProxy(gw.address, 'LegacyGateway');
   await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address]);
   await upgradeProxy(master.address, 'NXMaster');
-
-  console.log('Deploying and linking CoverUtilsLib');
-  const coverUtilsLib = await deployImmutable('CoverUtilsLib');
-  const coverLibraries = { CoverUtilsLib: coverUtilsLib.address };
 
   console.log('Deploying CoverViewer');
   await deployImmutable('CoverViewer', [master.address]);

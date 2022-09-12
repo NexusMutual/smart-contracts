@@ -173,6 +173,10 @@ async function main() {
 
   console.log('Add covered products');
 
+  console.log('Update Cover contract addresses');
+  await cover.changeMasterAddress(master.address);
+  await cover.changeDependentContractAddress();
+
   await cover.addProductTypes(
     productTypes,
     productTypes.map(() => ''), // ipfs metadata for each product type

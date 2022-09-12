@@ -171,48 +171,6 @@ async function main() {
   const coverMigrator = await deployImmutable('CoverMigrator');
   const coverNFT = await deployImmutable('CoverNFT', ['Nexus Mutual Cover', 'NMC', cover.address]);
 
-  console.log('Add covered products');
-
-  console.log('Update Cover contract addresses');
-  await cover.changeMasterAddress(master.address);
-  await cover.changeDependentContractAddress();
-
-  await cover.addProductTypes(
-    productTypes,
-    productTypes.map(() => ''), // ipfs metadata for each product type
-  );
-
-  const addProductsParams = products.map(product => {
-    const underlyingToken = ['ETH', 'DAI'].indexOf(product.underlyingToken);
-    const productType = { protocol: 0, custodian: 1, token: 2 }[product.type];
-    const productAddress = product.coveredToken || '0x0000000000000000000000000000000000000000';
-
-    let coverAssets =
-      underlyingToken === -1
-        ? 0 // when no underlyingToken is present use the global fallback
-        : 1 << underlyingToken; // 0b01 for ETH and 0b10 for DAI
-
-    if (product.legacyProductId === '0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B') {
-      coverAssets = 1; // only ETH for MakerDAO
-    }
-
-    return {
-      productType,
-      productAddress,
-      coverAssets,
-      initialPriceRatio: 100,
-      capacityReductionRatio: 0,
-    };
-  });
-
-  // [todo] Add ipfs hashes
-  const ipfsProductHashes = Array(products.length).fill('');
-  await cover.addProducts(addProductsParams, ipfsProductHashes);
-
-  // 0b01 for eth and 0b10 for dai
-  const coverAssetsFallback = 0b11;
-  await cover.setCoverAssetsFallback(coverAssetsFallback);
-
   console.log('Deploying assessment contracts');
   const yt = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
   const ic = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
@@ -347,6 +305,46 @@ async function main() {
 
   await yt.initialize();
   await gw.initialize(master.address, dai.address);
+
+  console.log('Add covered products');
+  await cover.changeMasterAddress(master.address);
+  await cover.changeDependentContractAddress();
+
+  await cover.addProductTypes(
+    productTypes,
+    productTypes.map(() => ''), // ipfs metadata for each product type
+  );
+
+  const addProductsParams = products.map(product => {
+    const underlyingToken = ['ETH', 'DAI'].indexOf(product.underlyingToken);
+    const productType = { protocol: 0, custodian: 1, token: 2 }[product.type];
+    const productAddress = product.coveredToken || '0x0000000000000000000000000000000000000000';
+
+    let coverAssets =
+      underlyingToken === -1
+        ? 0 // when no underlyingToken is present use the global fallback
+        : 1 << underlyingToken; // 0b01 for ETH and 0b10 for DAI
+
+    if (product.legacyProductId === '0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B') {
+      coverAssets = 1; // only ETH for MakerDAO
+    }
+
+    return {
+      productType,
+      productAddress,
+      coverAssets,
+      initialPriceRatio: 100,
+      capacityReductionRatio: 0,
+    };
+  });
+
+  // [todo] Add ipfs hashes
+  const ipfsProductHashes = Array(products.length).fill('');
+  await cover.addProducts(addProductsParams, ipfsProductHashes);
+
+  // 0b01 for eth and 0b10 for dai
+  const coverAssetsFallback = 0b11;
+  await cover.setCoverAssetsFallback(coverAssetsFallback);
 
   console.log('Adding proposal categories');
 

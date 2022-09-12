@@ -70,7 +70,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
 
   function operatorTransferFrom(address from, address to, uint256 amount) external /*override*/ {
     require(msg.sender == memberRoles, "StakingPool: Caller is not MemberRoles");
-    transferFrom(from, to, amount);
+    _operatorTransferFrom(from, to, amount);
   }
 
 

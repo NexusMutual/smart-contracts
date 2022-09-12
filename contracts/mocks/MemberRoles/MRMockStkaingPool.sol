@@ -17,7 +17,7 @@ contract MRMockStakingPool is ERC721Mock {
   ) external {
     uint length = tokenIds.length;
     for (uint i = 0; i < length; i++) {
-      super.safeTransferFrom(from, to, tokenIds[i]);
+      _operatorTransferFrom(from, to, tokenIds[i]);
     }
   }
 

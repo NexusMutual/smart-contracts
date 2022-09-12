@@ -25,7 +25,7 @@ async function setup() {
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
   const QuotationData = await ethers.getContractFactory('CoverMockQuotationData');
   const MemberRolesMock = await ethers.getContractFactory('MemberRolesMock');
-  const CoverNFT = await ethers.getContractFactory('CoverNFT');
+  const CoverNFT = await ethers.getContractFactory('CoverMockNFT');
   const TokenController = await ethers.getContractFactory('TokenControllerMock');
   const NXMToken = await ethers.getContractFactory('NXMTokenMock');
   const MCR = await ethers.getContractFactory('CoverMockMCR');
@@ -204,6 +204,7 @@ async function setup() {
   this.memberRoles = memberRoles;
   this.chainlinkDAI = chainlinkDAI;
   this.cover = cover;
+  this.coverNFT = coverNFT;
   this.accounts = accounts;
   this.capacityFactor = capacityFactor;
 }

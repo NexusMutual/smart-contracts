@@ -245,7 +245,7 @@ describe('signUp', function () {
     });
 
     const balanceBefore = await ethers.provider.getBalance(pool.address);
-    memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+    await memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
       value: JOINING_FEE,
     });
     const balanceAfter = await ethers.provider.getBalance(pool.address);

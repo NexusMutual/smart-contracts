@@ -87,7 +87,7 @@ describe('redeemClaimPayout', function () {
     {
       const { poll } = await assessment.assessments(0);
       const latestBlock = await ethers.provider.getBlock('latest');
-      await setTime(poll.end - (poll.end - latestBlock.timestamp) / 3);
+      await setTime(poll.end - parseInt((poll.end - latestBlock.timestamp) / 3));
       await expect(individualClaims.redeemClaimPayout(0)).to.be.revertedWith('The claim is still being assessed');
     }
   });

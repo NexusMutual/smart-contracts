@@ -13,8 +13,7 @@ contract CLMockUnknownNFT is ERC721 {
     _mint(to, tokenId);
   }
 
-  function tokenURI(uint id) public view override returns (string memory) {
-    id; 
+  function tokenURI(uint) public view override returns (string memory) {
     return "";
   }
 

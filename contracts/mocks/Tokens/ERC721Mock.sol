@@ -19,8 +19,7 @@ contract ERC721Mock is ERC721 {
     return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[tokenId];
   }
 
-  function tokenURI(uint id) public view override returns (string memory) {
-    id; 
+  function tokenURI(uint) public view override returns (string memory) {
     return "";
   }
 

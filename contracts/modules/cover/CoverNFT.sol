@@ -19,8 +19,7 @@ contract CoverNFT is ERC721 {
 
   }
 
-  function tokenURI(uint256 id) public pure override returns (string memory) {
-    id;  // To silence unused param warning. Remove once fn is implemented
+  function tokenURI(uint256) public pure override returns (string memory) {
     return "";
   }
 
@@ -39,19 +38,16 @@ contract CoverNFT is ERC721 {
 
   function operatorTransferFrom(address from, address to, uint256 tokenId) external onlyOperator {
         require(from == _ownerOf[tokenId], "WRONG_FROM");
-
         require(to != address(0), "INVALID_RECIPIENT");
 
         // Underflow of the sender's balance is impossible because we check for
         // ownership above and the recipient's balance can't realistically overflow.
         unchecked {
             _balanceOf[from]--;
-
             _balanceOf[to]++;
         }
 
         _ownerOf[tokenId] = to;
-
         delete getApproved[tokenId];
 
         emit Transfer(from, to, tokenId);

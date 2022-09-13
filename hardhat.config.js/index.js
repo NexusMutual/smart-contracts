@@ -1,5 +1,5 @@
 require('dotenv').config();
-
+require('@typechain/hardhat');
 require('@nomiclabs/hardhat-web3');
 require('@nomiclabs/hardhat-truffle5');
 require('@nomiclabs/hardhat-etherscan');
@@ -19,6 +19,13 @@ const config = {
 
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
+  },
+
+  typechain: {
+    target: 'ethers-v5',
+    outDir: 'types',
+    alwaysGenerateOverloads: false,
+    dontOverrideCompile: true, // defaults to false
   },
 
   mocha: {

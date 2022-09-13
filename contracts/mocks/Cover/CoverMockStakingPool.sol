@@ -46,10 +46,6 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     memberRoles = _memberRoles;
   }
 
-  function nameWithPoolId() public view returns (string memory) {
-    return string(abi.encodePacked(name, " ", Strings.toString(poolId)));
-  }
-
   function initialize(
     address _manager,
     bool _isPrivatePool,

@@ -192,8 +192,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     _mint(_manager, 0);
   }
 
-  function tokenURI(uint256 id) public pure override returns (string memory) {
-    id;  // To silence unused param warning. Remove once fn is implemented
+  function tokenURI(uint256) public pure override returns (string memory) {
     return "";
   }
 

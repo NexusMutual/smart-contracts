@@ -5,7 +5,6 @@ const { domain: makeDomain, computeOrderUid } = require('@cowprotocol/contracts'
 
 const { setEtherBalance, setNextBlockTime } = require('../../utils/evm');
 const { hex } = require('../utils').helpers;
-const { BigNumber } = ethers;
 const { parseEther, hexZeroPad, keccak256, toUtf8Bytes, hexlify, randomBytes } = ethers.utils;
 
 describe('placeOrder', function () {
@@ -677,14 +676,8 @@ describe('placeOrder', function () {
   });
 
   it('emits an OrderPlaced event', async function () {
-    const tx = await swapOperator.placeOrder(contractOrder, orderUID);
-    const rcp = await tx.wait();
-    // Remove duplicate values
-    const rcpOrder = rcp.events[2].args.order.slice(0, 12);
-    // Change from hex to base10 bignumber
-    rcpOrder[3] = BigNumber.from(rcpOrder[3]);
-    rcpOrder[4] = BigNumber.from(rcpOrder[4]);
-    rcpOrder[7] = BigNumber.from(rcpOrder[7]);
-    expect(rcpOrder).to.deep.include.members(Object.values(contractOrder));
+    await expect(swapOperator.placeOrder(contractOrder, orderUID))
+      .to.emit(swapOperator, 'OrderPlaced')
+      .withArgs(Object.values(contractOrder));
   });
 });

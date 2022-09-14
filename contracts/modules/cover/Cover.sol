@@ -104,6 +104,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     stakingPoolImplementation = _stakingPoolImplementation;
   }
 
+  function initialize(
+    uint24 _globalCapacityRatio,
+    uint24 _globalRewardsRatio,
+    uint32 coverAssetsFallback
+  ) external {
+
+    require(globalCapacityRatio == 0, "Cover: already initialized");
+
+    globalCapacityRatio = 20000; // x2
+    globalRewardsRatio = 5000; // 50%
+    coverAssetsFallback = 3; // 0x11 - DAI and ETH
+  }
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   /// @dev Migrates covers from V1. Meant to be used by EOA Nexus Mutual members

@@ -1,13 +1,11 @@
 const { ethers } = require('hardhat');
 const { hex } = require('../utils').helpers;
 
-async function setup () {
+async function setup() {
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const Pool = await ethers.getContractFactory('CoverMockPool');
   const Cover = await ethers.getContractFactory('CoverViewerMockCover');
   const CoverViewer = await ethers.getContractFactory('CoverViewer');
-
-  const [owner] = await ethers.getSigners();
 
   const master = await MasterMock.deploy();
   await master.deployed();

@@ -1,15 +1,10 @@
 const { assert, expect } = require('chai');
 const { ethers } = require('hardhat');
-const { utils: { parseEther } } = ethers;
-
 const {
-  constants: { ZERO_ADDRESS },
-} = require('@openzeppelin/test-helpers');
-const { BigNumber } = require('ethers');
-const { bnEqual } = require('../utils').helpers;
+  utils: { parseEther },
+} = ethers;
 
 describe('views', function () {
-
   it('getCoverSegments returns segments', async function () {
     const { cover, coverViewer } = this;
 

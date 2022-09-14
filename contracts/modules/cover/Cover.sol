@@ -272,7 +272,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       )
     );
 
-    uint96 totalCoveredAmountIncoverAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceIncoverAsset / NXM_IN_WEI);
+    uint96 totalCoveredAmountInCoverAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceIncoverAsset / NXM_IN_WEI);
     uint96 totalCoveredAmountInCoverAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / NXM_IN_WEI);
     require(totalCoveredAmountInCoverAsset >= params.amount, "Cover Insufficient cover amount");
 
@@ -285,7 +285,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         globalRewardsRatio
       ));
 
-    return (totalPremiumInNXM, totalCoveredAmountIncoverAsset);
+    return (totalPremiumInNXM, totalCoveredAmountInCoverAsset);
   }
 
   function allocateCapacity(
@@ -356,14 +356,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       );
     }
 
-    (uint totalPremiumInNXM, uint totalCoveredAmountIncoverAsset) = _buyCover(buyCoverParams, coverId, poolAllocations);
+    (uint totalPremiumInNXM, uint totalCoveredAmountInCoverAsset) = _buyCover(buyCoverParams, coverId, poolAllocations);
 
     handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset);
 
     // Update total cover amount for asset if cover tracking is enabled
     if (coverAmountTrackingEnabled) {
        totalActiveCoverInAsset[cover.coverAsset] =
-        totalActiveCoverInAsset[cover.coverAsset] - lastCoverSegment.amount + totalCoveredAmountIncoverAsset;
+        totalActiveCoverInAsset[cover.coverAsset] - lastCoverSegment.amount + totalCoveredAmountInCoverAsset;
     }
 
     emit CoverEdited(coverId, cover.productId, lastCoverSegmentIndex + 1, msg.sender);

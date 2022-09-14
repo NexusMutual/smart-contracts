@@ -1,4 +1,4 @@
-const { assert, expect } = require('chai');
+const { assert } = require('chai');
 const { ethers } = require('hardhat');
 const {
   utils: { parseEther },

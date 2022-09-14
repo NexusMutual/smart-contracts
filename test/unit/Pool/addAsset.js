@@ -1,7 +1,4 @@
-const {
-  artifacts,
-  web3,
-} = require('hardhat');
+const { artifacts, web3 } = require('hardhat');
 const {
   constants: { ZERO_ADDRESS },
   ether,
@@ -20,7 +17,6 @@ const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 const assetAddress = '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000';
 
 describe('addAsset', function () {
-
   before(async function () {
     const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
 

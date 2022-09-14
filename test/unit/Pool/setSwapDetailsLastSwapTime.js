@@ -1,10 +1,7 @@
 const { ether } = require('@openzeppelin/test-helpers');
 const { expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const {
-  web3,
-  artifacts,
-} = require('hardhat');
+const { web3, artifacts } = require('hardhat');
 
 const {
   governanceContracts: [governance],
@@ -18,7 +15,6 @@ const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 const ERC20Mock = artifacts.require('ERC20Mock');
 
 describe('setSwapDetailsLastSwapTime', function () {
-
   before(async function () {
     const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
 

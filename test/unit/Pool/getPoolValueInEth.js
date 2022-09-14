@@ -1,4 +1,4 @@
-const { web3, ethers } = require('hardhat');
+const { web3, ethers, artifacts } = require('hardhat');
 const { assert, expect } = require('chai');
 const { ether } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
@@ -13,6 +13,10 @@ const {
   defaultSender,
   governanceContracts: [governance],
 } = require('../utils').accounts;
+
+const PriceFeedOracle = artifacts.require('PriceFeedOracle');
+const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
+const ERC20Mock = artifacts.require('ERC20Mock');
 
 describe('getPoolValueInEth', function () {
   it('gets total value of ETH and DAI assets in the pool', async function () {
@@ -36,9 +40,21 @@ describe('getPoolValueInEth', function () {
   });
 
   it('shouldnt fail when sent an EOA address', async function () {
-    const { pool } = this;
-    const asset = '0xCAFE000000000000000000000000000000000000';
-    await pool.addAsset(asset, 18, parseEther('10'), parseEther('100'), 1000, false, { from: governance });
+    const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
+
+    const otherToken = await ERC20Mock.new();
+    const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
+    await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
+
+    const priceFeedOracle = await PriceFeedOracle.new(
+      [dai.address, stETH.address, otherToken.address],
+      [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
+      [18, 18, 18],
+    );
+
+    await pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governance });
+
+    await pool.addAsset(otherToken.address, 18, parseEther('10'), parseEther('100'), 1000, false, { from: governance });
     await pool.getPoolValueInEth();
   });
 

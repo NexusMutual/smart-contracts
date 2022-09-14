@@ -1,9 +1,6 @@
 const { ether } = require('@openzeppelin/test-helpers');
 const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
-const {
-  web3,
-  artifacts,
-} = require('hardhat');
+const { web3, artifacts } = require('hardhat');
 const { assert } = require('chai');
 const { expectRevert } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;

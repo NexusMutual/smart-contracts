@@ -1,9 +1,5 @@
 const { artifacts, web3 } = require('hardhat');
-const {
-  constants: { ZERO_ADDRESS },
-  ether,
-  expectRevert,
-} = require('@openzeppelin/test-helpers');
+const { ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { hex } = require('../utils').helpers;
 const {
@@ -12,6 +8,10 @@ const {
 const { BN } = web3.utils;
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+
+const ERC20Mock = artifacts.require('ERC20Mock');
+const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
+const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 
 describe('removeAsset', function () {
   it('reverts when not called by goverance', async function () {
@@ -37,10 +37,6 @@ describe('removeAsset', function () {
 
   it('should correctly remove the asset with its minAmount, maxAmount, and slippage ratio', async function () {
     const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
-
-    const ERC20Mock = artifacts.require('ERC20Mock');
-    const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
-    const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 
     const coverToken = await ERC20Mock.new();
     const investmentToken = await ERC20Mock.new();

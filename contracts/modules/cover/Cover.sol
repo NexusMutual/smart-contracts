@@ -228,7 +228,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   ) internal returns (uint totalPremiumInNXM, uint) {
 
     // convert to NXM amount
-    uint nxmPriceIncoverAsset = pool().getTokenPrice(params.coverAsset);
+    uint nxmPriceInCoverAsset = pool().getTokenPrice(params.coverAsset);
     uint remainderAmountInNXM = 0;
     uint totalCoverAmountInNXM = 0;
 
@@ -239,7 +239,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       require(allocationRequests[i].coverAmountInAsset > 0, "Cover: coverAmountInAsset = 0");
 
       uint requestedCoverAmountInNXM
-        = allocationRequests[i].coverAmountInAsset * NXM_IN_WEI / nxmPriceIncoverAsset + remainderAmountInNXM;
+        = allocationRequests[i].coverAmountInAsset * NXM_IN_WEI / nxmPriceInCoverAsset + remainderAmountInNXM;
 
       (uint coveredAmountInNXM, uint premiumInNXM, uint rewardsInNXM) = allocateCapacity(
         params,
@@ -272,8 +272,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       )
     );
 
-    uint96 totalCoveredAmountInCoverAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceIncoverAsset / NXM_IN_WEI);
-    uint96 totalCoveredAmountInCoverAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInPayoutAsset / NXM_IN_WEI);
+    uint96 totalCoveredAmountInCoverAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInCoverAsset / NXM_IN_WEI);
     require(totalCoveredAmountInCoverAsset >= params.amount, "Cover Insufficient cover amount");
 
     _coverSegments[coverId].push(CoverSegment(

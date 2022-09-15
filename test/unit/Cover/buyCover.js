@@ -674,6 +674,6 @@ describe('buyCover', function () {
           value: expectedPremium,
         },
       ),
-    ).to.be.revertedWith('Cover Insufficient cover amount');
+    ).to.be.revertedWith('Cover: The selected pools ran out of capacity');
   });
 });

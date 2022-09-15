@@ -273,7 +273,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     );
 
     uint96 totalCoveredAmountInCoverAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInCoverAsset / NXM_IN_WEI);
-    require(totalCoveredAmountInCoverAsset >= params.amount, "Cover Insufficient cover amount");
+    require(totalCoveredAmountInCoverAsset >= params.amount, "Cover: The selected pools ran out of capacity");
 
     _coverSegments[coverId].push(CoverSegment(
         totalCoveredAmountInCoverAsset, // amount

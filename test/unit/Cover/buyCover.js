@@ -625,7 +625,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const productId = 0;
-    const payoutAsset = 0; // ETH
+    const coverAsset = 0; // ETH
     const period = 3600 * 24 * 364; // 30 days
 
     const amount = parseEther('1000');
@@ -659,14 +659,14 @@ describe('buyCover', function () {
         {
           owner: coverBuyer1.address,
           productId,
-          payoutAsset,
+          coverAsset,
           amount: tooLargeExpectedAmount,
           period,
           maxPremiumInAsset: expectedPremium,
-          paymentAsset: payoutAsset,
+          paymentAsset: coverAsset,
           payWitNXM: false,
           commissionRatio: parseEther('0'),
-          commissionDestination: ZERO_ADDRESS,
+          commissionDestination: AddressZero,
           ipfsData: '',
         },
         [{ poolId: '0', coverAmountInAsset: amount.toString() }],

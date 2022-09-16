@@ -376,6 +376,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
         address to = request.destination == address(0) ? msg.sender : request.destination;
         _mint(to, tokenIds[i]);
       } else {
+        // TODO: make sure the token is already minted
         tokenIds[i] = request.tokenId;
       }
 

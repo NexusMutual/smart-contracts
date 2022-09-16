@@ -1,29 +1,17 @@
 const { expect } = require('chai');
 const { ethers, network } = require('hardhat');
+const { expectRevert } = require('@openzeppelin/test-helpers');
 const { parseUnits } = require('ethers/lib/utils');
-const { formatBytes32String, defaultAbiCoder, arrayify, hexConcat, hexZeroPad, splitSignature, keccak256 } =
-  ethers.utils;
-
+const { arrayify, splitSignature } = ethers.utils;
+const { signMembershipApproval } = require('../utils').membership;
 const JOINING_FEE = parseUnits('0.002');
-const MEMBERSHIP_APPROVAL = formatBytes32String('MEMBERSHIP_APPROVAL');
 
-const approveMembership = async ({ nonce, address, chainId, kycAuthSigner }) => {
-  const message = defaultAbiCoder.encode(
-    ['bytes32', 'uint256', 'address', 'uint256'],
-    [MEMBERSHIP_APPROVAL, nonce, address, chainId || network.config.chainId],
-  );
-  const hash = keccak256(message);
-  const signature = await kycAuthSigner.signMessage(arrayify(hash));
-  const { compact: compactSignature } = splitSignature(signature);
-  return hexConcat([hexZeroPad(nonce, 32), compactSignature]);
-};
-
-describe('signUp', function () {
+describe('join', function () {
   it('reverts when using a signature from another chain', async function () {
     const { memberRoles } = this.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
 
-    const membershipApprovalData0 = await approveMembership({
+    const membershipApprovalData0 = await signMembershipApproval({
       nonce: 0,
       address: nonMembers[0].address,
       kycAuthSigner,
@@ -31,31 +19,31 @@ describe('signUp', function () {
     });
 
     await expect(
-      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
     ).to.be.revertedWith('MemberRoles: Signature is invalid');
 
-    const membershipApprovalData1 = await approveMembership({
+    const membershipApprovalData1 = await signMembershipApproval({
       nonce: 0,
       address: nonMembers[0].address,
       kycAuthSigner,
       chainId: network.config.chainId + 2,
     });
     await expect(
-      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData1), {
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData1), {
         value: JOINING_FEE,
       }),
     ).to.be.revertedWith('MemberRoles: Signature is invalid');
 
-    const membershipApprovalData2 = await approveMembership({
+    const membershipApprovalData2 = await signMembershipApproval({
       nonce: 0,
       address: nonMembers[0].address,
       kycAuthSigner,
       chainId: network.config.chainId,
     });
     await expect(
-      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData2), {
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData2), {
         value: JOINING_FEE,
       }),
     ).not.to.be.revertedWith('MemberRoles: Signature is invalid');
@@ -65,29 +53,29 @@ describe('signUp', function () {
     const { memberRoles } = this.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
 
-    const membershipApprovalData0 = await approveMembership({
+    const membershipApprovalData0 = await signMembershipApproval({
       nonce: 0,
       address: nonMembers[0].address,
       kycAuthSigner,
     });
 
-    await memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+    await memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
       value: JOINING_FEE,
     });
     await memberRoles.connect(nonMembers[0]).switchMembership(nonMembers[1].address);
     await expect(
-      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
     ).to.be.revertedWith('MemberRoles: Signature already used');
 
-    const membershipApprovalData1 = await approveMembership({
+    const membershipApprovalData1 = await signMembershipApproval({
       nonce: 1,
       address: nonMembers[0].address,
       kycAuthSigner,
     });
     await expect(
-      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData1), {
+      memberRoles.join(nonMembers[0].address, 1, arrayify(membershipApprovalData1), {
         value: JOINING_FEE,
       }),
     ).not.to.be.revertedWith('MemberRoles: Signature already used');
@@ -97,20 +85,20 @@ describe('signUp', function () {
     const { memberRoles } = this.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
 
-    const membershipApprovalData0 = await approveMembership({
+    const membershipApprovalData0 = await signMembershipApproval({
       nonce: 0,
       address: nonMembers[0].address,
       kycAuthSigner,
     });
 
     await expect(
-      memberRoles.signUp(nonMembers[1].address, arrayify(membershipApprovalData0), {
+      memberRoles.join(nonMembers[1].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
     ).to.be.revertedWith('MemberRoles: Signature is invalid');
 
     await expect(
-      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
     ).not.to.be.revertedWith('MemberRoles: Signature is invalid');
@@ -120,20 +108,20 @@ describe('signUp', function () {
     const { memberRoles } = this.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
 
-    const membershipApprovalData0 = await approveMembership({
+    const membershipApprovalData0 = await signMembershipApproval({
       nonce: 0,
       address: nonMembers[0].address,
       kycAuthSigner,
     });
 
     await expect(
-      memberRoles.signUp('0x0000000000000000000000000000000000000000', arrayify(membershipApprovalData0), {
+      memberRoles.join('0x0000000000000000000000000000000000000000', 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
     ).to.be.revertedWith('MemberRoles: Address 0 cannot be used');
 
     await expect(
-      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
     ).not.to.be.revertedWith('MemberRoles: Address 0 cannot be used');
@@ -143,17 +131,17 @@ describe('signUp', function () {
     const { memberRoles } = this.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
 
-    const membershipApprovalData0 = await approveMembership({
+    const membershipApprovalData0 = await signMembershipApproval({
       nonce: 0,
       address: nonMembers[0].address,
       kycAuthSigner,
     });
 
-    await memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+    await memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
       value: JOINING_FEE,
     });
     await expect(
-      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
     ).to.be.revertedWith('MemberRoles: This address is already a member');
@@ -167,27 +155,27 @@ describe('signUp', function () {
     const { memberRoles } = this.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
 
-    const membershipApprovalData0 = await approveMembership({
+    const membershipApprovalData0 = await signMembershipApproval({
       nonce: 0,
       address: nonMembers[0].address,
       kycAuthSigner,
     });
 
     await expect(
-      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE.sub('1'),
       }),
     ).to.be.revertedWith('MemberRoles: The transaction value should equal to the joining fee');
     await expect(
-      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE.add('1'),
       }),
     ).to.be.revertedWith('MemberRoles: The transaction value should equal to the joining fee');
-    await expect(memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0))).to.be.revertedWith(
+    await expect(memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0))).to.be.revertedWith(
       'MemberRoles: The transaction value should equal to the joining fee',
     );
     await expect(
-      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
     ).not.to.be.revertedWith('MemberRoles: The transaction value should equal to the joining fee');
@@ -201,19 +189,39 @@ describe('signUp', function () {
     const allOnesSignature = '0x' + '0'.repeat(64) + '1'.repeat(128);
 
     await expect(
-      memberRoles.signUp(nonMembers[0].address, arrayify(allZeroesSignature), { value: JOINING_FEE }),
+      memberRoles.join(nonMembers[0].address, 0, arrayify(allZeroesSignature), { value: JOINING_FEE }),
     ).to.be.revertedWith('ECDSA: invalid signature');
 
     await expect(
-      memberRoles.signUp(nonMembers[0].address, arrayify(allOnesSignature), { value: JOINING_FEE }),
+      memberRoles.join(nonMembers[0].address, 0, arrayify(allOnesSignature), { value: JOINING_FEE }),
     ).to.be.revertedWith('ECDSA: invalid signature');
+  });
+
+  it('reverts when provided compact signature', async function () {
+    const { memberRoles } = this.contracts;
+    const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
+
+    const membershipApprovalData0 = await signMembershipApproval({
+      nonce: 0,
+      address: nonMembers[0].address,
+      kycAuthSigner,
+    });
+
+    const { compact } = await splitSignature(membershipApprovalData0);
+
+    await expectRevert(
+      memberRoles.join(nonMembers[0].address, 0, arrayify(compact), {
+        value: JOINING_FEE,
+      }),
+      'ECDSA: invalid signature length',
+    );
   });
 
   it('reverts if the transfer of the joining fee to the pool fails', async function () {
     const { memberRoles, pool } = this.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
 
-    const membershipApprovalData0 = await approveMembership({
+    const membershipApprovalData0 = await signMembershipApproval({
       nonce: 0,
       address: nonMembers[0].address,
       kycAuthSigner,
@@ -221,14 +229,14 @@ describe('signUp', function () {
 
     await pool.setRevertOnTransfers(true);
     await expect(
-      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
     ).to.be.revertedWith('MemberRoles: The joining fee transfer to the pool failed');
 
     await pool.setRevertOnTransfers(false);
     await expect(
-      memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
         value: JOINING_FEE,
       }),
     ).not.to.be.revertedWith('MemberRoles: The joining fee transfer to the pool failed');
@@ -238,14 +246,14 @@ describe('signUp', function () {
     const { memberRoles, pool } = this.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
 
-    const membershipApprovalData0 = await approveMembership({
+    const membershipApprovalData0 = await signMembershipApproval({
       nonce: 0,
       address: nonMembers[0].address,
       kycAuthSigner,
     });
 
     const balanceBefore = await ethers.provider.getBalance(pool.address);
-    await memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+    await memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
       value: JOINING_FEE,
     });
     const balanceAfter = await ethers.provider.getBalance(pool.address);
@@ -256,7 +264,7 @@ describe('signUp', function () {
     const { memberRoles, tokenController } = this.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
 
-    const membershipApprovalData0 = await approveMembership({
+    const membershipApprovalData0 = await signMembershipApproval({
       nonce: 0,
       address: nonMembers[0].address,
       kycAuthSigner,
@@ -264,7 +272,7 @@ describe('signUp', function () {
     const addToWhitelistLastCalledWtihBefore = await tokenController.addToWhitelistLastCalledWtih();
     expect(addToWhitelistLastCalledWtihBefore).to.be.equal('0x0000000000000000000000000000000000000000');
 
-    await memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+    await memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
       value: JOINING_FEE,
     });
 
@@ -276,7 +284,7 @@ describe('signUp', function () {
     const { memberRoles } = this.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
 
-    const membershipApprovalData0 = await approveMembership({
+    const membershipApprovalData0 = await signMembershipApproval({
       nonce: 0,
       address: nonMembers[0].address,
       kycAuthSigner,
@@ -284,7 +292,7 @@ describe('signUp', function () {
     const isMemberBefore = await memberRoles.isMember(nonMembers[0].address);
     expect(isMemberBefore).to.be.equal(false);
 
-    await memberRoles.signUp(nonMembers[0].address, arrayify(membershipApprovalData0), {
+    await memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
       value: JOINING_FEE,
     });
 

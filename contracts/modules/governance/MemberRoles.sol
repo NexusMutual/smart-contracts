@@ -139,10 +139,12 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   /// the address and a nonce (incremented if a new signature is required for the same address).
   ///
   /// @param _userAddress  The address of the user for whom the joining fee is paid.
-  /// @param data          Encoded data containing the nonce and signature.
-  function signUp(
+  /// @param nonce        Signers nonce. Increments if new signature needed for the same address
+  /// @param  signature   The signed message hash
+  function join(
     address _userAddress,
-    bytes calldata data
+    uint nonce,
+    bytes calldata signature
   ) public override payable {
     require(_userAddress != address(0), "MemberRoles: Address 0 cannot be used");
     require(!ms.isPause(), "MemberRoles: Emergency pause applied");
@@ -151,11 +153,6 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
       msg.value == joiningFee,
       "MemberRoles: The transaction value should equal to the joining fee"
     );
-
-    // Extract the nonce and the compact signature representation.
-    // See: https://eips.ethereum.org/EIPS/eip-2098
-    (uint nonce) = abi.decode(data[:32], (uint));
-    bytes memory signature = data[32:96];
 
     // Reconstruct the original message hash.
     bytes32 messageHash = keccak256(abi.encode(MEMBERSHIP_APPROVAL, nonce, _userAddress, block.chainid));

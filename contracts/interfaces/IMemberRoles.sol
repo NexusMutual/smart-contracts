@@ -7,7 +7,7 @@ interface IMemberRoles {
 
   enum Role {UnAssigned, AdvisoryBoard, Member, Owner}
 
-  function signUp(address _userAddress, bytes calldata data) external payable;
+  function join(address _userAddress, uint nonce, bytes calldata signature) external payable;
 
   function switchMembership(address _newAddress) external;
 

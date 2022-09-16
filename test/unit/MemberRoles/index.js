@@ -12,7 +12,7 @@ describe('MemberRoles unit tests', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
-  require('./signUp');
+  require('./join');
   require('./switchMembership');
   require('./withdrawMembership');
   require('./switchMembershipAndAssets');

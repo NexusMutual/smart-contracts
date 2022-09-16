@@ -734,6 +734,16 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     }
 
     if (code == "PRC_FEED") {
+
+      uint coverAssetsCount = coverAssets.length;
+
+      for (uint i = 0; i < coverAssetsCount; i++) {
+        Asset memory asset = coverAssets[i];
+
+        (address aggregator, ) = priceFeedOracle.assets(asset.assetAddress);
+        require(aggregator != address(0), "Pool: Asset lacks oracle");
+      }
+
       priceFeedOracle = IPriceFeedOracle(value);
       return;
     }

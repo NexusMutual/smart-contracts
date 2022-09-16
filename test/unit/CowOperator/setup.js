@@ -53,7 +53,7 @@ async function setup() {
   const priceFeedOracle = await PriceFeedOracle.deploy(
     [dai.address, stEth.address, usdc.address],
     [daiAggregator.address, stethAggregator.address, usdcAggregator.address],
-    [18, 18, 18],
+    [18, 18, 6],
   );
 
   // Deploy Pool

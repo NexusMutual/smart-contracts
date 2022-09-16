@@ -229,7 +229,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   ) internal returns (uint totalPremiumInNXM, uint) {
 
     // convert to NXM amount
-    uint nxmPriceIncoverAsset = pool().getTokenPrice(params.coverAsset);
+    uint nxmPriceInCoverAsset = pool().getTokenPrice(params.coverAsset);
     uint remainderAmountInNXM = 0;
     uint totalCoverAmountInNXM = 0;
 
@@ -237,8 +237,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     for (uint i = 0; i < allocationRequests.length; i++) {
 
+      require(allocationRequests[i].coverAmountInAsset > 0, "Cover: coverAmountInAsset = 0");
+
       uint requestedCoverAmountInNXM
-        = allocationRequests[i].coverAmountInAsset * NXM_IN_WEI / nxmPriceIncoverAsset + remainderAmountInNXM;
+        = allocationRequests[i].coverAmountInAsset * NXM_IN_WEI / nxmPriceInCoverAsset + remainderAmountInNXM;
 
       (uint coveredAmountInNXM, uint premiumInNXM, uint rewardsInNXM) = allocateCapacity(
         params,
@@ -271,10 +273,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       )
     );
 
-    uint96 totalCoveredAmountIncoverAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceIncoverAsset / NXM_IN_WEI);
+    uint96 totalCoveredAmountInCoverAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInCoverAsset / NXM_IN_WEI);
+    require(totalCoveredAmountInCoverAsset >= params.amount, "Cover: The selected pools ran out of capacity");
 
     _coverSegments[coverId].push(CoverSegment(
-        totalCoveredAmountIncoverAsset, // amount
+        totalCoveredAmountInCoverAsset, // amount
         uint32(block.timestamp + 1), // start
         SafeUintCast.toUint32(params.period), // period
         priceRatio,
@@ -282,7 +285,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         globalRewardsRatio
       ));
 
-    return (totalPremiumInNXM, totalCoveredAmountIncoverAsset);
+    return (totalPremiumInNXM, totalCoveredAmountInCoverAsset);
   }
 
   function allocateCapacity(
@@ -353,14 +356,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       );
     }
 
-    (uint totalPremiumInNXM, uint totalCoveredAmountIncoverAsset) = _buyCover(buyCoverParams, coverId, poolAllocations);
+    (uint totalPremiumInNXM, uint totalCoveredAmountInCoverAsset) = _buyCover(buyCoverParams, coverId, poolAllocations);
 
     handlePaymentAndRefund(buyCoverParams, totalPremiumInNXM, refundInCoverAsset);
 
     // Update total cover amount for asset if cover tracking is enabled
     if (coverAmountTrackingEnabled) {
        totalActiveCoverInAsset[cover.coverAsset] =
-        totalActiveCoverInAsset[cover.coverAsset] - lastCoverSegment.amount + totalCoveredAmountIncoverAsset;
+        totalActiveCoverInAsset[cover.coverAsset] - lastCoverSegment.amount + totalCoveredAmountInCoverAsset;
     }
 
     emit CoverEdited(coverId, cover.productId, lastCoverSegmentIndex + 1, msg.sender);

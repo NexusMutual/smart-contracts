@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const { ethers, network } = require('hardhat');
-const { expectRevert } = require('@openzeppelin/test-helpers');
+const { expectRevert, expectEvent } = require('@openzeppelin/test-helpers');
 const { parseUnits } = require('ethers/lib/utils');
 const { arrayify, splitSignature } = ethers.utils;
 const { signMembershipApproval } = require('../utils').membership;
@@ -280,7 +280,7 @@ describe('join', function () {
     expect(addToWhitelistLastCalledWtihAfter).to.be.equal(nonMembers[0].address);
   });
 
-  it('assigns the member role to the address', async function () {
+  it('assigns the member role to the address and emits MemberJoined event', async function () {
     const { memberRoles } = this.contracts;
     const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
 
@@ -292,11 +292,16 @@ describe('join', function () {
     const isMemberBefore = await memberRoles.isMember(nonMembers[0].address);
     expect(isMemberBefore).to.be.equal(false);
 
-    await memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
-      value: JOINING_FEE,
-    });
+    await expect(
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
+        value: JOINING_FEE,
+      }),
+    )
+      .to.emit(memberRoles, 'MemberJoined')
+      .withArgs(nonMembers[0].address, 0);
 
     const isMemberAfter = await memberRoles.isMember(nonMembers[0].address);
     expect(isMemberAfter).to.be.equal(true);
+
   });
 });

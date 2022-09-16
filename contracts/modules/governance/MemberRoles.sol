@@ -184,6 +184,8 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     // Transfer the joining fee to the pool.
     (bool ok, /* data */) = poolAddress.call{value: joiningFee}("");
     require(ok, "MemberRoles: The joining fee transfer to the pool failed");
+
+    emit MemberJoined(_userAddress, nonce);
   }
 
   /// Withdraws membership

@@ -44,5 +44,7 @@ interface IMemberRoles {
 
   event MemberRole(uint256 indexed roleId, bytes32 roleName, string roleDescription);
 
+  event MemberJoined(address indexed newMember, uint indexed nonce);
+
   event switchedMembership(address indexed previousMember, address indexed newMember, uint timeStamp);
 }

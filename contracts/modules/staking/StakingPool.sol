@@ -390,7 +390,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       {
         // conditional read
         Deposit memory deposit = request.tokenId == 0
-          ? Deposit(_accNxmPerRewardsShare, 0, 0, 0)
+          ? Deposit(0, 0, 0, 0)
           : deposits[tokenIds[i]][request.trancheId];
 
         newRewardsShares = calculateNewRewardShares(

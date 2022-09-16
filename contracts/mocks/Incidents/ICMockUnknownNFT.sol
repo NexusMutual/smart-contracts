@@ -4,7 +4,6 @@ pragma solidity ^0.8.16;
 
 import "solmate/src/tokens/ERC721.sol";
 
-
 contract ICMockUnknownNFT is ERC721 {
   constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_) {
   }
@@ -13,7 +12,7 @@ contract ICMockUnknownNFT is ERC721 {
     _mint(to, tokenId);
   }
 
-  function tokenURI(uint) public view override returns (string memory) {
+  function tokenURI(uint) public pure override returns (string memory) {
     return "";
   }
 

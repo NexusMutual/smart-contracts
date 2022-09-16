@@ -182,6 +182,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     require(params.period >= MIN_COVER_PERIOD, "Cover: Cover period is too short");
     require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
     require(params.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
+    require(params.amount > 0, "Cover: amount = 0");
 
     {
       (uint totalPremiumInNXM, uint totalCoveredAmountIncoverAsset) = _buyCover(params, _coverData.length, allocationRequests);

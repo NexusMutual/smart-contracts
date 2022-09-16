@@ -7,7 +7,7 @@ interface IMemberRoles {
 
   enum Role {UnAssigned, AdvisoryBoard, Member, Owner}
 
-  function signUp(address _userAddress, bytes calldata data) external payable;
+  function join(address _userAddress, uint nonce, bytes calldata signature) external payable;
 
   function switchMembership(address _newAddress) external;
 
@@ -43,6 +43,8 @@ interface IMemberRoles {
   function membersLength(uint _memberRoleId) external view returns (uint);
 
   event MemberRole(uint256 indexed roleId, bytes32 roleName, string roleDescription);
+
+  event MemberJoined(address indexed newMember, uint indexed nonce);
 
   event switchedMembership(address indexed previousMember, address indexed newMember, uint timeStamp);
 }

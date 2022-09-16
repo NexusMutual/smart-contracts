@@ -21,7 +21,7 @@
   "homepage": "https://github.com/NexusMutual/smart-contracts",
   "dependencies": {
     "@openzeppelin/contracts": "^2.5.1",
-    "@openzeppelin/contracts-v4": "npm:@openzeppelin/contracts@^4.0.0",
+    "@openzeppelin/contracts-v4": "npm:@openzeppelin/contracts@^4.7.3",
     "@openzeppelin/test-helpers": "^0.5.16",
     "dotenv": "^8.2.0",
     "ethereum-cryptography": "^1.0.1",

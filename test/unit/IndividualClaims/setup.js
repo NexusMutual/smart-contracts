@@ -51,10 +51,6 @@ async function setup() {
   const distributor = await Distributor.deploy(individualClaims.address);
   await distributor.deployed();
 
-  const CLMockUnknownNFT = await ethers.getContractFactory('CLMockUnknownNFT');
-  const unkownNFT = await CLMockUnknownNFT.deploy('Unknown NFT', 'UNK');
-  await unkownNFT.deployed();
-
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
     master.setLatestAddress(hex('MR'), memberRoles.address),
@@ -101,7 +97,6 @@ async function setup() {
     cover,
     distributor,
     coverNFT,
-    unkownNFT,
     master,
   };
 }

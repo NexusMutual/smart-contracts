@@ -612,7 +612,7 @@ describe('buyCover', function () {
           value: expectedPremium,
         },
       ),
-    ).to.be.revertedWith('Cover: coverAmountInAsset = 0');
+    ).to.be.revertedWith('Cover: amount = 0');
   });
 
   it('should revert when the allocated cover amount is less than the expected cover amount', async function () {

@@ -3,7 +3,7 @@
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICoverNFT.sol";
 
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.16;
 
 contract MRMockCover {
   ICoverNFT immutable public coverNFT;

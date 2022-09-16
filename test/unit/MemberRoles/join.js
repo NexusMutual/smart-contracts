@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const { ethers, network } = require('hardhat');
-const { expectRevert, expectEvent } = require('@openzeppelin/test-helpers');
+const { expectRevert } = require('@openzeppelin/test-helpers');
 const { parseUnits } = require('ethers/lib/utils');
 const { arrayify, splitSignature } = ethers.utils;
 const { signMembershipApproval } = require('../utils').membership;
@@ -302,6 +302,5 @@ describe('join', function () {
 
     const isMemberAfter = await memberRoles.isMember(nonMembers[0].address);
     expect(isMemberAfter).to.be.equal(true);
-
   });
 });

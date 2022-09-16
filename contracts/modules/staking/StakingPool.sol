@@ -3,12 +3,9 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-// TODO: consider using solmate ERC721 implementation
-//import "solmate/src/tokens/ERC721.sol";
-import { ERC721 as SolmateERC721 } from "solmate/src/tokens/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
+import "solmate/src/tokens/ERC721.sol";
 
-//import "../../interfaces/ISolmateERC721.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/ICover.sol";
@@ -26,7 +23,7 @@ import "./StakingTypesLib.sol";
 // on cover buys we allocate the available product capacity
 // on cover expiration we deallocate the capacity and it becomes available again
 
-contract StakingPool is IStakingPool, SolmateERC721 {
+contract StakingPool is IStakingPool, ERC721 {
   using StakingTypesLib for CoverAmountGroup;
   using StakingTypesLib for CoverAmount;
   using StakingTypesLib for BucketTrancheGroup;
@@ -151,7 +148,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     address _token,
     address _coverContract,
     ITokenController _tokenController
-  ) SolmateERC721("", "") {
+  ) ERC721("", "") {
     nxm = INXMToken(_token);
     coverContract = _coverContract;
     tokenController = _tokenController;

@@ -13,6 +13,7 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IERC20Detailed.sol";
 import "../../libraries/SafeUintCast.sol";
 
 contract Pool is IPool, MasterAware, ReentrancyGuard {
@@ -741,7 +742,13 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
         Asset memory asset = coverAssets[i];
 
         (address aggregator, ) = priceFeedOracle.assets(asset.assetAddress);
-        require(aggregator != address(0), "Pool: Asset lacks oracle");
+
+        IERC20Detailed erc20 = IERC20Detailed(asset.assetAddress);
+
+        if (asset.assetAddress != ETH) {
+          require(aggregator != address(0), "Pool: Asset lacks oracle");
+        }
+
       }
 
       priceFeedOracle = IPriceFeedOracle(value);

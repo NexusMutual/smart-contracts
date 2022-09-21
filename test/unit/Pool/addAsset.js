@@ -14,29 +14,18 @@ const { BN } = web3.utils;
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
-const assetAddress = '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000';
-
 describe('addAsset', function () {
-  before(async function () {
-    const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
-
-    const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
-    await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
-
-    const priceFeedOracle = await PriceFeedOracle.new(
-      [dai.address, stETH.address, assetAddress],
-      [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
-      [18, 18, 18],
-    );
-
-    await pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governance });
-  });
-
   it('reverts when not called by goverance', async function () {
-    const { pool } = this;
+    const { pool, otherAsset } = this;
 
-    await expectRevert(pool.addAsset(assetAddress, 18, '0', '1', '0', false), 'Caller is not authorized to govern');
-    await expectRevert(pool.addAsset(assetAddress, 18, '0', '1', '0', true), 'Caller is not authorized to govern');
+    await expectRevert(
+      pool.addAsset(otherAsset.address, 18, '0', '1', '0', false),
+      'Caller is not authorized to govern',
+    );
+    await expectRevert(
+      pool.addAsset(otherAsset.address, 18, '0', '1', '0', true),
+      'Caller is not authorized to govern',
+    );
   });
 
   it('reverts when asset address is zero address', async function () {
@@ -54,22 +43,28 @@ describe('addAsset', function () {
   });
 
   it('reverts when max < min', async function () {
-    const { pool } = this;
+    const { pool, otherAsset } = this;
 
-    await expectRevert(pool.addAsset(assetAddress, 18, '1', '0', '0', true, { from: governance }), 'Pool: max < min');
-    await expectRevert(pool.addAsset(assetAddress, 18, '1', '0', '0', false, { from: governance }), 'Pool: max < min');
+    await expectRevert(
+      pool.addAsset(otherAsset.address, 18, '1', '0', '0', true, { from: governance }),
+      'Pool: max < min',
+    );
+    await expectRevert(
+      pool.addAsset(otherAsset.address, 18, '1', '0', '0', false, { from: governance }),
+      'Pool: max < min',
+    );
   });
 
   it('reverts when max slippage ratio > 1', async function () {
-    const { pool } = this;
+    const { pool, otherAsset } = this;
 
     await expectRevert(
-      pool.addAsset(assetAddress, 18, '0', '1', 10001 /* 100.01% */, false, { from: governance }),
+      pool.addAsset(otherAsset.address, 18, '0', '1', 10001 /* 100.01% */, false, { from: governance }),
       'Pool: Max slippage ratio > 1',
     );
 
     // should work with slippage rate = 1
-    await pool.addAsset(assetAddress, 18, '0', '1', 10000 /* 100% */, false, { from: governance });
+    await pool.addAsset(otherAsset.address, 18, '0', '1', 10000 /* 100% */, false, { from: governance });
   });
 
   it('reverts when asset exists', async function () {

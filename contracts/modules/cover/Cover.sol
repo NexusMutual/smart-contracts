@@ -105,9 +105,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   }
 
   function initialize(
-    uint24 _globalCapacityRatio,
-    uint24 _globalRewardsRatio,
-    uint32 coverAssetsFallback
   ) external {
 
     require(globalCapacityRatio == 0, "Cover: already initialized");

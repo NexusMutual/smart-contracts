@@ -355,7 +355,7 @@ async function setup() {
 
   await cover.updateUintParameters(
     [0, 1], // CoverUintParams.globalCapacityRatio, CoverUintParams.globalRewardsRatio
-    [10000, 50],
+    [10000, 5000],
   );
 
   await gv.changeMasterAddress(master.address);

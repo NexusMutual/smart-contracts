@@ -1,5 +1,3 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
 const { expectRevert } = require('@openzeppelin/test-helpers');
 
 const { bnEqual } = require('../utils').helpers;
@@ -7,8 +5,6 @@ const { bnEqual } = require('../utils').helpers;
 describe('initialize', function () {
   it('should edit purchased cover and increase amount', async function () {
     const { cover, accounts } = this;
-
-    const [coverBuyer] = this.accounts.members;
 
     // reset initialization
     await cover.connect(accounts.governanceContracts[0]).updateUintParameters([0], ['0']);

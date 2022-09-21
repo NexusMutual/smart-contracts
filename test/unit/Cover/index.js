@@ -19,4 +19,5 @@ describe('Cover unit tests', function () {
   require('./performStakeBurn');
   require('./expireCover');
   require('./coverNFT');
+  require('./initialize');
 });

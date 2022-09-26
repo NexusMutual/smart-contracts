@@ -77,6 +77,17 @@ describe('addAsset', function () {
     await expectRevert(pool.addAsset(dai.address, 18, '0', '1', '0', true, { from: governance }), 'Pool: Asset exists');
   });
 
+  it('reverts when asset lacks an oracle', async function () {
+    const { pool } = this;
+
+    const arbitraryAddress = '0x47ec31abc6b86e49933dC7B2969EBEbE3De662cA';
+
+    await expectRevert(
+      pool.addAsset(arbitraryAddress, 18, '0', '1', '0', true, { from: governance }),
+      'Pool: Asset lacks oracle',
+    );
+  });
+
   it('should correctly add the asset with its min, max, and slippage ratio', async function () {
     const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
 

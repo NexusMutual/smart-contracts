@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/utils/Address.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
@@ -741,14 +740,10 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
       for (uint i = 0; i < coverAssetsCount; i++) {
         Asset memory asset = coverAssets[i];
 
-        (address aggregator, ) = priceFeedOracle.assets(asset.assetAddress);
-
-        IERC20Detailed erc20 = IERC20Detailed(asset.assetAddress);
-
         if (asset.assetAddress != ETH) {
-          require(aggregator != address(0), "Pool: Asset lacks oracle");
+          (address aggregator, ) = priceFeedOracle.assets(asset.assetAddress);
+          require(aggregator != address(0), "Pool: Oracle lacks asset");
         }
-
       }
 
       priceFeedOracle = IPriceFeedOracle(value);

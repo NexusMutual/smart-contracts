@@ -14,6 +14,7 @@ import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IERC20Detailed.sol";
 import "../../libraries/SafeUintCast.sol";
+import "hardhat/console.sol";
 
 contract Pool is IPool, MasterAware, ReentrancyGuard {
   using SafeERC20 for IERC20;
@@ -736,12 +737,20 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     if (code == "PRC_FEED") {
 
       uint coverAssetsCount = coverAssets.length;
-
       for (uint i = 0; i < coverAssetsCount; i++) {
         Asset memory asset = coverAssets[i];
-
         if (asset.assetAddress != ETH) {
-          (address aggregator, ) = priceFeedOracle.assets(asset.assetAddress);
+          (address aggregator, ) = IPriceFeedOracle(value).assets(asset.assetAddress);
+
+          require(aggregator != address(0), "Pool: Oracle lacks asset");
+        }
+      }
+
+      uint investmentAssetsCount = investmentAssets.length;
+      for (uint i = 0; i < investmentAssetsCount; i++) {
+        Asset memory asset = investmentAssets[i];
+        if (asset.assetAddress != ETH) {
+          (address aggregator, ) = IPriceFeedOracle(value).assets(asset.assetAddress);
           require(aggregator != address(0), "Pool: Oracle lacks asset");
         }
       }

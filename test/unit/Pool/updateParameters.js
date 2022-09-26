@@ -1,8 +1,12 @@
 const { assert } = require('chai');
 const { expectRevert } = require('@openzeppelin/test-helpers');
+const { artifacts } = require('hardhat');
 
 const accounts = require('../utils').accounts;
+const { hex } = require('../utils').helpers;
 const { PoolUintParamType, PoolAddressParamType } = require('../utils').constants;
+
+const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 
 const {
   nonMembers: [nonMember],
@@ -22,6 +26,28 @@ describe('updateUintParameters', function () {
     for (const address of nonGov) {
       await expectRevert(pool.updateUintParameters(param, 0, { from: address }), 'Caller is not authorized to govern');
     }
+  });
+
+  it('should revert when updateAddressParameters is called with a PRC_FEED oracle parameter that lacks an investment asset', async function () {
+    const { pool, dai, chainlinkDAI } = this;
+
+    const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], [18]);
+
+    await expectRevert(
+      pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governanceContract }),
+      'Pool: Oracle lacks asset',
+    );
+  });
+
+  it('should revert when updateAddressParameters is called with a PRC_FEED oracle parameter that lacks a cover asset', async function () {
+    const { pool, chainlinkSteth, stETH } = this;
+
+    const priceFeedOracle = await PriceFeedOracle.new([stETH.address], [chainlinkSteth.address], [18]);
+
+    await expectRevert(
+      pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governanceContract }),
+      'Pool: Oracle lacks asset',
+    );
   });
 
   it('should correctly update the uint parameters', async function () {

@@ -24,7 +24,7 @@ library StakingTypesLib {
     uint48 coverAmount,
     uint16 bucketId
   ) internal pure returns (CoverAmount) {
-    return CoverAmount.wrap((coverAmount << 16) | bucketId);
+    return CoverAmount.wrap((uint64(coverAmount) << 16) | bucketId);
   }
 
   // CoverAmountGroup
@@ -34,7 +34,7 @@ library StakingTypesLib {
     uint index
   ) internal pure returns (CoverAmount) {
     uint underlying = CoverAmountGroup.unwrap(items);
-    uint64 item = uint64(underlying << (index * 64));
+    uint64 item = uint64(underlying >> (index * 64));
     return CoverAmount.wrap(item);
   }
 
@@ -45,8 +45,8 @@ library StakingTypesLib {
     CoverAmount item
   ) internal pure returns (CoverAmountGroup) {
     // applying the mask using binary AND to clear target item's bits
-    uint mask = ~(type(uint64).max << uint64(index * 64));
-    uint itemUnderlying = uint(CoverAmount.unwrap(item) << uint64(index * 64));
+    uint mask = ~(uint(type(uint64).max) << (index * 64));
+    uint itemUnderlying = uint(CoverAmount.unwrap(item)) << (index * 64);
     uint groupUnderlying = CoverAmountGroup.unwrap(items) & mask | itemUnderlying;
     return CoverAmountGroup.wrap(groupUnderlying);
   }
@@ -58,7 +58,7 @@ library StakingTypesLib {
     uint index
   ) internal pure returns (uint32) {
     uint underlying = BucketTrancheGroup.unwrap(items);
-    return uint32(underlying << (index * 32));
+    return uint32(underlying >> (index * 32));
   }
 
   // heads up: does not mutate the BucketTrancheGroup but returns a new one instead
@@ -68,8 +68,9 @@ library StakingTypesLib {
     uint32 value
   ) internal pure returns (BucketTrancheGroup) {
     // applying the mask using binary AND to clear target item's bits
-    uint mask = ~(type(uint32).max << uint32(index * 32));
-    uint groupUnderlying = BucketTrancheGroup.unwrap(items) & mask | value;
+    uint mask = ~(uint(type(uint32).max) << (index * 32));
+    uint itemUnderlying = uint(value) << (index * 32);
+    uint groupUnderlying = BucketTrancheGroup.unwrap(items) & mask | itemUnderlying;
     return BucketTrancheGroup.wrap(groupUnderlying);
   }
 

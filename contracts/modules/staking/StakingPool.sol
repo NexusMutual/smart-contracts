@@ -3,12 +3,9 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-// TODO: consider using solmate ERC721 implementation
-//import "solmate/src/tokens/ERC721.sol";
-import { ERC721 as SolmateERC721 } from "solmate/src/tokens/ERC721.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
+import "solmate/src/tokens/ERC721.sol";
 
-//import "../../interfaces/ISolmateERC721.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/ICover.sol";
@@ -26,7 +23,7 @@ import "./StakingTypesLib.sol";
 // on cover buys we allocate the available product capacity
 // on cover expiration we deallocate the capacity and it becomes available again
 
-contract StakingPool is IStakingPool, SolmateERC721 {
+contract StakingPool is IStakingPool, ERC721 {
   using StakingTypesLib for CoverAmountGroup;
   using StakingTypesLib for CoverAmount;
   using StakingTypesLib for BucketTrancheGroup;
@@ -143,25 +140,18 @@ contract StakingPool is IStakingPool, SolmateERC721 {
   }
 
   modifier onlyManager {
-    require(_isApprovedOrOwner(msg.sender, 0), "StakingPool: Only pool manager can call this function");
+    require(isApprovedOrOwner(msg.sender, 0), "StakingPool: Only pool manager can call this function");
     _;
   }
 
   constructor (
-    string memory _name,
-    string memory _symbol,
     address _token,
     address _coverContract,
     ITokenController _tokenController
-  ) SolmateERC721(_name, _symbol) {
+  ) ERC721("", "") {
     nxm = INXMToken(_token);
     coverContract = _coverContract;
     tokenController = _tokenController;
-  }
-
-  function _isApprovedOrOwner(address spender, uint tokenId) public view returns (bool) {
-    address owner = ownerOf(tokenId);
-    return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[tokenId];
   }
 
   function initialize(
@@ -182,7 +172,8 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     maxPoolFee = uint8(_maxPoolFee);
 
     poolId = _poolId;
-    name = string(abi.encodePacked(name, " ", Strings.toString(poolId)));
+    name = string(abi.encodePacked("Nexus Mutual Staking Pool #", Strings.toString(_poolId)));
+    symbol = string(abi.encodePacked("NMSP-", Strings.toString(_poolId)));
 
     // TODO: initialize products
     params;
@@ -192,7 +183,12 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     _mint(_manager, 0);
   }
 
-  function tokenURI(uint256) public pure override returns (string memory) {
+  function isApprovedOrOwner(address spender, uint tokenId) public view returns (bool) {
+    address owner = ownerOf(tokenId);
+    return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[tokenId];
+  }
+
+  function tokenURI(uint) public pure override returns (string memory) {
     return "";
   }
 
@@ -340,7 +336,10 @@ contract StakingPool is IStakingPool, SolmateERC721 {
   function depositTo(DepositRequest[] memory requests) public returns (uint[] memory tokenIds) {
 
     if (isPrivatePool) {
-      require(msg.sender == manager(), "StakingPool: The pool is private");
+      require(
+        msg.sender == coverContract || msg.sender == manager(),
+        "StakingPool: The pool is private"
+      );
     }
 
     updateTranches(true);
@@ -352,7 +351,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
 
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
-    uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES;
+    uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;
 
     uint totalAmount;
     tokenIds = new uint[](requests.length);
@@ -369,13 +368,12 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
       // deposit to token id = 0 is not allowed
       // we treat it as a flag to create a new token
-      bool isNewToken = request.tokenId == 0;
-
-      if (isNewToken) {
+      if (request.tokenId == 0) {
         tokenIds[i] = totalSupply++;
         address to = request.destination == address(0) ? msg.sender : request.destination;
-        _mint(to, request.tokenId);
+        _mint(to, tokenIds[i]);
       } else {
+        // TODO: make sure the token is already minted
         tokenIds[i] = request.tokenId;
       }
 
@@ -388,9 +386,9 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       // update deposit and pending reward
       {
         // conditional read
-        Deposit memory deposit = isNewToken
-          ? Deposit(_accNxmPerRewardsShare, 0, 0, 0)
-          : deposits[request.tokenId][request.trancheId];
+        Deposit memory deposit = request.tokenId == 0
+          ? Deposit(0, 0, 0, 0)
+          : deposits[tokenIds[i]][request.trancheId];
 
         newRewardsShares = calculateNewRewardShares(
           deposit.stakeShares, // initialStakeShares
@@ -411,7 +409,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
         deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
 
         // sstore
-        deposits[request.tokenId][request.trancheId] = deposit;
+        deposits[tokenIds[i]][request.trancheId] = deposit;
       }
 
       // update pool manager's reward shares
@@ -447,7 +445,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       _rewardsSharesSupply += newRewardsShares;
     }
 
-    // transfer nxm from staker and update pool deposit balance
+    // transfer nxm from the staker and update the pool deposit balance
     tokenController.depositStakedNXM(msg.sender, totalAmount, poolId);
 
     // update globals
@@ -458,22 +456,16 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
   function getTimeLeftOfTranche(uint trancheId, uint blockTimestamp) internal pure returns (uint) {
     uint endDate = (trancheId + 1) * TRANCHE_DURATION;
-    if (endDate > blockTimestamp) {
-      return endDate - blockTimestamp;
-    }
-    return 0;
+    return endDate > blockTimestamp ? endDate - blockTimestamp : 0;
   }
 
-  /// Calculates the amount of new reward shares based on the initial and new stake shares and
-  /// tranche.
+  /// Calculates the amount of new reward shares based on the initial and new stake shares
   ///
-  /// @param initialStakeShares   The amount of stake shares that the deposit is already entitled
-  ///                             to.
-  /// @param stakeSharesIncrease  The amount o new stake shares that the deposit will entitled to
-  ///                             on top of the existing ones.
-  /// @param initialTrancheId     The initial id of the tranche that defines the deposit period.
-  /// @param newTrancheId         The new id of the tranche that will define the deposit period.
-  /// @param blockTimestamp       The timestamp of the block when the new shares are recalculated.
+  /// @param initialStakeShares   Amount of stake shares the deposit is already entitled to
+  /// @param stakeSharesIncrease  Amount of additional stake shares the deposit will be entitled to
+  /// @param initialTrancheId     The id of the initial tranche that defines the deposit period
+  /// @param newTrancheId         The new id of the tranche that will define the deposit period
+  /// @param blockTimestamp       The timestamp of the block when the new shares are recalculated
   function calculateNewRewardShares(
     uint initialStakeShares,
     uint stakeSharesIncrease,
@@ -481,35 +473,30 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     uint newTrancheId,
     uint blockTimestamp
   ) public pure returns (uint) {
+
     uint timeLeftOfInitialTranche = getTimeLeftOfTranche(initialTrancheId, blockTimestamp);
     uint timeLeftOfNewTranche = getTimeLeftOfTranche(newTrancheId, blockTimestamp);
 
-    // A new bonus is calculated based on the the time left until the new tranche ends and the
-    // total amount of stake shares (initial + new).
+    // the bonus is based on the the time left and the total amount of stake shares (initial + new)
     uint newBonusShares = (initialStakeShares + stakeSharesIncrease)
       * REWARD_BONUS_PER_TRANCHE_RATIO
       * timeLeftOfNewTranche
       / TRANCHE_DURATION
       / REWARD_BONUS_PER_TRANCHE_DENOMINATOR;
 
-    // In case of existing deposits the previous bonus is deducted from the final amount of new
-    // shares. The new bonus shares are recalculated based on the total stake shares and it
-    // already includes a potentially larger amount of shares (when the deposit is extended to
-    // a tranche ending futher into the future) that account for the initial stake shares.
+    // for existing deposits, the previous bonus is deducted from the final amount
     uint previousBonusSharesDeduction = initialStakeShares
       * REWARD_BONUS_PER_TRANCHE_RATIO
       * timeLeftOfInitialTranche
       / TRANCHE_DURATION
       / REWARD_BONUS_PER_TRANCHE_DENOMINATOR;
 
-    // Return one reward share per stake share, add the newly calculated bonus shares and deduct the
-    // previous ones.
     return stakeSharesIncrease + newBonusShares - previousBonusSharesDeduction;
   }
 
   function withdraw(
     WithdrawRequest[] memory params
-  ) public returns (uint stakeToWithdraw, uint rewardsToWithdraw) {
+  ) public returns (uint totalWithdrawnStake, uint totalWithdrawnRewards) {
 
     uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
 
@@ -523,6 +510,8 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
       uint tokenId = params[i].tokenId;
       uint trancheCount = params[i].trancheIds.length;
+      uint stakeToWithdraw;
+      uint rewardsToWithdraw;
 
       for (uint j = 0; j < trancheCount; j++) {
 
@@ -575,6 +564,9 @@ contract StakingPool is IStakingPool, SolmateERC721 {
         rewardsToWithdraw,
         poolId
       );
+
+      totalWithdrawnStake += stakeToWithdraw;
+      totalWithdrawnRewards += rewardsToWithdraw;
     }
   }
 
@@ -588,7 +580,10 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     // process expirations
     uint gracePeriodExpiration = block.timestamp + request.period + request.gracePeriod;
     uint firstTrancheIdToUse = gracePeriodExpiration / TRANCHE_DURATION;
-    uint trancheCount = (block.timestamp / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES) - firstTrancheIdToUse + 1;
+
+    // maxTrancheId = block.timestamp / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES - 1
+    // trancheCount = maxTrancheId - firstTrancheIdToUse + 1
+    uint trancheCount = block.timestamp / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES - firstTrancheIdToUse;
 
     (
       uint[] memory trancheAllocatedCapacities,
@@ -707,7 +702,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
     uint gracePeriodExpiration = coverStartTime + request.period + request.gracePeriod;
     uint firstTrancheIdToUse = gracePeriodExpiration / TRANCHE_DURATION;
-    uint trancheCount = (coverStartTime / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES) - firstTrancheIdToUse + 1;
+    uint trancheCount = coverStartTime / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES - firstTrancheIdToUse;
 
     (
       uint[] memory trancheAllocatedCapacities,
@@ -724,7 +719,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       uint[] memory coverTrancheAllocation = new uint[](trancheCount);
 
       for (uint i = 0; i < trancheCount; i++) {
-        uint amountPerTranche = uint32(packedCoverTrancheAllocation >> (i * 8));
+        uint amountPerTranche = uint32(packedCoverTrancheAllocation >> (i * 32));
         trancheAllocatedCapacities[i] -= amountPerTranche;
         coverTrancheAllocation[i] = amountPerTranche;
       }
@@ -983,7 +978,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
       if (isAllocation) {
         expiringAmount += trancheAllocation;
-        packedCoverTrancheAllocation |= trancheAllocation << uint32(i * 32);
+        packedCoverTrancheAllocation |= uint(trancheAllocation) << (i * 32);
       } else {
         expiringAmount -= trancheAllocation;
       }
@@ -1008,62 +1003,47 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
   /// Extends the period of an existing deposit until a tranche that ends further into the future
   ///
-  /// @dev Only the NFT owner and the authorized addresses can call this function. Pool manager
-  /// NFTs cannot be extended.
-  ///
   /// @param tokenId           The id of the NFT that proves the ownership of the deposit.
   /// @param initialTrancheId  The id of the tranche the deposit is already a part of.
   /// @param newTrancheId      The id of the new tranche determining the new deposit period.
   /// @param topUpAmount       An optional amount if the user wants to also increase the deposit
-  ///                          amount.
   function extendDeposit(
     uint tokenId,
     uint initialTrancheId,
     uint newTrancheId,
     uint topUpAmount
-  ) public {
+  ) external {
+
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
-    uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES;
 
-    // Token id 0 does not wrap actual deposits but instead it is used to determine who the pool
-    // manager is and to calculate his reward shares according to the pool fee. In other words,
-    // it holds no stake the would expire at the end of a certain tranche, only rewards from fees.
-    // If the manager wishes to make a deposit, he will use the same mechanism like everyone else
-    // by minting a different NFT with id > 0.
-    require(tokenId != 0, "StakingPool: Invalid token id");
+    {
+      // token id 0 is only used for pool manager fee tracking, no deposits allowed
+      require(tokenId != 0, "StakingPool: Invalid token id");
+      require(initialTrancheId < newTrancheId, "StakingPool: The chosen tranche cannot end before the initial one");
 
-    require(
-      _isApprovedOrOwner(msg.sender, tokenId),
-      "StakingPool: Not authorized to extend deposits on this token"
-    );
-    require(
-      initialTrancheId < newTrancheId,
-      "StakingPool: The chosen tranche cannot end before the initial one"
-    );
-    require(newTrancheId <= maxTranche, "StakingPool: The chosen tranche is not available yet");
-    require(
-      newTrancheId >= _firstActiveTrancheId,
-      "StakingPool: The chosen tranche has already reached the maturity date"
-    );
+      uint maxTrancheId = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;
+      require(newTrancheId <= maxTrancheId, "StakingPool: The tranche is not yet available");
+      require(newTrancheId >= _firstActiveTrancheId, "StakingPool: The tranche has already expired");
+    }
 
-    // If the intial tranche is expired, withdraw everything and make a new deposit equal to the
-    // withdrawn stake amount plus a top up amount if applicable. This will require the user to
-    // grant sufficient allowance beforehand.
+    // if the initial tranche is expired, withdraw everything and make a new deposit
+    // this requires the user to have grante sufficient allowance
     if (initialTrancheId < _firstActiveTrancheId) {
+
       uint[] memory trancheIds = new uint[](1);
       trancheIds[0] = initialTrancheId;
 
       WithdrawRequest[] memory withdrawRequests = new WithdrawRequest[](1);
       withdrawRequests[0] = WithdrawRequest(
         tokenId,
-        true, // Withdraw deposit
-        true, // Withdraw rewards
+        true, // withdraw the deposit
+        true, // withdraw the rewards
         trancheIds
       );
 
       (uint withdrawnStake, /* uint rewardsToWithdraw */) = withdraw(withdrawRequests);
 
-      DepositRequest[] memory depositRequests;
+      DepositRequest[] memory depositRequests = new DepositRequest[](1);
       depositRequests[0] = (
         DepositRequest(
           withdrawnStake + topUpAmount, // amount
@@ -1075,26 +1055,34 @@ contract StakingPool is IStakingPool, SolmateERC721 {
 
       depositTo(depositRequests);
 
-      return; // Done! Skip the rest of the function.
+      return;
+      // done! skip the rest of the function.
     }
 
-    // if the initial tranche is still active, move all the shares and pending rewards to the
-    // newly chosen tranche and its coresponding deopsit.
+    // if we got here - the initial tranche is still active. move all the shares to the new tranche
 
-    // first make sure tranches are up to date in terms of accumulated NXM rewards.
     // passing true because we mint reward shares
     updateTranches(true);
 
     Deposit memory initialDeposit = deposits[tokenId][initialTrancheId];
+    Deposit memory updatedDeposit = deposits[tokenId][newTrancheId];
 
-    // Calculate the new stake shares if there's also a deposit top up.
+    uint _activeStake = activeStake;
+    uint _stakeSharesSupply = stakeSharesSupply;
+    uint transferAmount = topUpAmount;
     uint newStakeShares;
-    if (topUpAmount > 0) {
-      newStakeShares = stakeSharesSupply * topUpAmount / activeStake;
-      activeStake += topUpAmount;
+
+    if (updatedDeposit.stakeShares != 0) {
+      transferAmount += _activeStake * initialDeposit.stakeShares / _stakeSharesSupply;
     }
 
-    // Calculate the new reward shares
+    // calculate the new stake shares if there's a deposit top up
+    if (topUpAmount > 0) {
+      newStakeShares = _stakeSharesSupply * topUpAmount / _activeStake;
+      activeStake = _activeStake + topUpAmount;
+    }
+
+    // calculate the new reward shares
     uint newRewardsShares = calculateNewRewardShares(
       initialDeposit.stakeShares,
       newStakeShares,
@@ -1107,59 +1095,48 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       Tranche memory initialTranche = tranches[initialTrancheId];
       Tranche memory newTranche = tranches[newTrancheId];
 
-      // The user's shares are moved from the initial tranche to the new one.
+      // move the shares to the new tranche
       initialTranche.stakeShares -= initialDeposit.stakeShares;
       initialTranche.rewardsShares -= initialDeposit.rewardsShares;
       newTranche.stakeShares += initialDeposit.stakeShares + newStakeShares;
       newTranche.rewardsShares += initialDeposit.rewardsShares + newRewardsShares;
 
-      // Store the updated tranches.
+      // store the updated tranches
       tranches[initialTrancheId] = initialTranche;
       tranches[newTrancheId] = newTranche;
     }
 
-    // Calculate the rewards that will be carried from the initial deposit to the next one.
-    uint rewardsToCarry;
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
-    {
-      uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(initialDeposit.lastAccNxmPerRewardShare);
-      rewardsToCarry = newEarningsPerShare * initialDeposit.rewardsShares + initialDeposit.pendingRewards;
-    }
 
-    Deposit memory updatedDeposit = deposits[tokenId][newTrancheId];
-
-    // If a deposit lasting until the new tranche's end date already exists, calculate its pending
-    // rewards before carrying over the rewards from the inital deposit.
+    // if there already is a deposit on the new tranche, calculate its pending rewards
     if (updatedDeposit.lastAccNxmPerRewardShare != 0) {
       uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(updatedDeposit.lastAccNxmPerRewardShare);
       updatedDeposit.pendingRewards += newEarningsPerShare * updatedDeposit.rewardsShares;
     }
 
-    // The carried rewards are added to the pending rewards of the new depostit.
-    updatedDeposit.pendingRewards += rewardsToCarry;
+    // calculate the rewards for the deposit being extended and move them to the new deposit
+    {
+      uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(initialDeposit.lastAccNxmPerRewardShare);
+      updatedDeposit.pendingRewards += newEarningsPerShare * initialDeposit.rewardsShares;
+      updatedDeposit.pendingRewards += initialDeposit.pendingRewards;
+    }
 
-    // Update the last value of accumulated NXM per share in the new deposit.
     updatedDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
-
-
-    // Move the user's shares from the initial deposit to the new one. The updated deposit can
-    // already exist so the new shares are added on top of the existing ones.
-    updatedDeposit.rewardsShares += initialDeposit.rewardsShares + newRewardsShares;
     updatedDeposit.stakeShares += initialDeposit.stakeShares + newStakeShares;
+    updatedDeposit.rewardsShares += initialDeposit.rewardsShares + newRewardsShares;
 
-    // Reset the initial deposit. This sets the pending rewards and shares from the intial deposit
-    // to zero since at this point they are already carried over to the new one and the last value
-    // of accumulated NXM per share in the initial deposit is also set to 0 in case the user
-    // decides to make another another one until the end of initial tranche, because in that case
-    // it needs to be treated as a new deposit, not as deposit increase.
+    // everything is moved, delete the initial deposit
     delete deposits[tokenId][initialTrancheId];
 
-    // Store the new deposit.
+    // store the new deposit.
     deposits[tokenId][newTrancheId] = updatedDeposit;
 
-    // Update global shares supply
-    stakeSharesSupply += newStakeShares;
+    // update global shares supply
+    stakeSharesSupply = _stakeSharesSupply + newStakeShares;
     rewardsSharesSupply += newRewardsShares;
+
+    // transfer nxm from the staker and update the pool deposit balance
+    tokenController.depositStakedNXM(msg.sender, transferAmount, poolId);
   }
 
   // O(1)
@@ -1268,7 +1245,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
     updateTranches(true);
 
     uint fromTrancheId = block.timestamp / TRANCHE_DURATION;
-    uint toTrancheId = fromTrancheId + MAX_ACTIVE_TRANCHES;
+    uint toTrancheId = fromTrancheId + MAX_ACTIVE_TRANCHES - 1;
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
 
     for (uint trancheId = fromTrancheId; trancheId <= toTrancheId; trancheId++) {
@@ -1283,6 +1260,7 @@ contract StakingPool is IStakingPool, SolmateERC721 {
       // update pending reward and reward shares
       uint newRewardPerRewardsShare = _accNxmPerRewardsShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
       feeDeposit.pendingRewards += newRewardPerRewardsShare * feeDeposit.rewardsShares;
+      feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
       // TODO: would using tranche.rewardsShares give a better precision?
       feeDeposit.rewardsShares = feeDeposit.rewardsShares * newFee / oldFee;
 

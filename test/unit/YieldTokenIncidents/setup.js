@@ -59,10 +59,6 @@ async function setup() {
   const cover = await Cover.deploy(coverNFT.address);
   await cover.deployed();
 
-  const ICMockUnknownNFT = await ethers.getContractFactory('ICMockUnknownNFT');
-  const unkownNFT = await ICMockUnknownNFT.deploy('Unknown NFT', 'UNK');
-  await unkownNFT.deployed();
-
   const masterInitTxs = await Promise.all([
     master.setLatestAddress(hex('TC'), tokenController.address),
     master.setLatestAddress(hex('MR'), memberRoles.address),
@@ -120,7 +116,6 @@ async function setup() {
     yieldTokenIncidents,
     cover,
     coverNFT,
-    unkownNFT,
     master,
   };
 }

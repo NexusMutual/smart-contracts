@@ -19,25 +19,23 @@ contract ERC721Mock is ERC721 {
     return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[tokenId];
   }
 
-  function tokenURI(uint) public view override returns (string memory) {
+  function tokenURI(uint) public pure override returns (string memory) {
     return "";
   }
 
   function _operatorTransferFrom(address from, address to, uint256 tokenId) internal {
-        require(from == _ownerOf[tokenId], "WRONG_FROM");
 
+        require(from == _ownerOf[tokenId], "WRONG_FROM");
         require(to != address(0), "INVALID_RECIPIENT");
 
         // Underflow of the sender's balance is impossible because we check for
         // ownership above and the recipient's balance can't realistically overflow.
         unchecked {
             _balanceOf[from]--;
-
             _balanceOf[to]++;
         }
 
         _ownerOf[tokenId] = to;
-
         delete getApproved[tokenId];
 
         emit Transfer(from, to, tokenId);

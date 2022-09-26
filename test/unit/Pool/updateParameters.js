@@ -28,7 +28,7 @@ describe('updateUintParameters', function () {
     }
   });
 
-  it('should revert when updateAddressParameters is called with a PRC_FEED oracle parameter that lacks an investment asset', async function () {
+  it('should revert when called with a PRC_FEED oracle parameter that lacks an investment asset', async function () {
     const { pool, dai, chainlinkDAI } = this;
 
     const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], [18]);
@@ -39,7 +39,7 @@ describe('updateUintParameters', function () {
     );
   });
 
-  it('should revert when updateAddressParameters is called with a PRC_FEED oracle parameter that lacks a cover asset', async function () {
+  it('should revert when called with a PRC_FEED oracle parameter that lacks a cover asset', async function () {
     const { pool, chainlinkSteth, stETH } = this;
 
     const priceFeedOracle = await PriceFeedOracle.new([stETH.address], [chainlinkSteth.address], [18]);

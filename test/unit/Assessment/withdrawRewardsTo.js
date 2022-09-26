@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { expectRevert } = require('@openzeppelin/test-helpers');
 const { setTime } = require('./helpers');
 
 const { parseEther } = ethers.utils;
@@ -38,7 +39,7 @@ describe('withdrawRewardsTo', function () {
     expect(stakerBalanceAfter).to.be.equal(stakerBalanceBefore.add(totalRewardInNXM));
   });
 
-  it('sends the rewards to any given destination address', async function () {
+  it('sends the rewards to any member address', async function () {
     const { nxm, assessment, individualClaims } = this.contracts;
     const [staker, otherMember] = this.accounts.members;
     const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
@@ -187,6 +188,90 @@ describe('withdrawRewardsTo', function () {
         await assessment.connect(user3).withdrawRewardsTo(user3.address, 0);
         const balanceAfter = await nxm.balanceOf(user3.address);
         expect(balanceAfter).to.be.equal(balanceBefore.add(totalRewardInNXM.mul(43).div(100)));
+      }
+    }
+  });
+
+  it('reverts if the destination address is not a member', async function () {
+    const { assessment, individualClaims } = this.contracts;
+    const [user1] = this.accounts.members;
+    const nonMember = '0xDECAF00000000000000000000000000000000000';
+    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
+    {
+      await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
+      await assessment.connect(user1).stake(parseEther('10'));
+      await assessment.connect(user1).castVotes([0], [true], 0);
+
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+
+      await expectRevert(
+        assessment.connect(user1).withdrawRewardsTo(nonMember, 0),
+        'Destination address is not a member',
+      );
+    }
+  });
+
+  it('should withdraw multiple rewards consecutively', async function () {
+    const { nxm, assessment, individualClaims } = this.contracts;
+    const [user1] = this.accounts.members;
+    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
+
+    {
+      await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
+      await individualClaims.connect(user1).submitClaim(1, 0, parseEther('100'), '');
+      await individualClaims.connect(user1).submitClaim(2, 0, parseEther('100'), '');
+      await assessment.connect(user1).stake(parseEther('10'));
+      await assessment.connect(user1).castVotes([0, 1, 2], [true, true, true], 0);
+
+      const { totalRewardInNXM } = await assessment.assessments(0);
+
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+
+      {
+        const balanceBefore = await nxm.balanceOf(user1.address);
+        await assessment.connect(user1).withdrawRewardsTo(user1.address, 1);
+        const balanceAfter = await nxm.balanceOf(user1.address);
+        expect(balanceAfter.sub(balanceBefore)).to.be.equal(totalRewardInNXM);
+      }
+      {
+        const balanceBefore = await nxm.balanceOf(user1.address);
+        await assessment.connect(user1).withdrawRewardsTo(user1.address, 1);
+        const balanceAfter = await nxm.balanceOf(user1.address);
+        expect(balanceAfter).to.be.equal(balanceBefore.add(totalRewardInNXM));
+      }
+      {
+        const balanceBefore = await nxm.balanceOf(user1.address);
+        await assessment.connect(user1).withdrawRewardsTo(user1.address, 1);
+        const balanceAfter = await nxm.balanceOf(user1.address);
+        expect(balanceAfter).to.be.equal(balanceBefore.add(totalRewardInNXM));
+      }
+    }
+  });
+
+  it('should withdraw multiple rewards in one tx', async function () {
+    const { nxm, assessment, individualClaims } = this.contracts;
+    const [user1] = this.accounts.members;
+    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
+
+    {
+      await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
+      await individualClaims.connect(user1).submitClaim(1, 0, parseEther('100'), '');
+      await individualClaims.connect(user1).submitClaim(2, 0, parseEther('100'), '');
+      await assessment.connect(user1).stake(parseEther('10'));
+      await assessment.connect(user1).castVotes([0, 1, 2], [true, true, true], 0);
+
+      const { totalRewardInNXM } = await assessment.assessments(0);
+
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+
+      {
+        const balanceBefore = await nxm.balanceOf(user1.address);
+        await assessment.connect(user1).withdrawRewardsTo(user1.address, 0);
+        const balanceAfter = await nxm.balanceOf(user1.address);
+        expect(balanceAfter.sub(balanceBefore)).to.be.equal(totalRewardInNXM.mul(3));
       }
     }
   });

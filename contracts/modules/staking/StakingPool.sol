@@ -107,7 +107,7 @@ contract StakingPool is IStakingPool, ERC721 {
   uint public constant REWARD_BONUS_PER_TRANCHE_DENOMINATOR = 100_00;
   uint public constant PRODUCT_WEIGHT_DENOMINATOR = 100_00;
   uint public constant WEIGHT_DENOMINATOR = 100;
-  uint public constant REWARDS_DENOMINATOR = 100;
+  uint public constant REWARDS_DENOMINATOR = 100_00;
   uint public constant FEE_DENOMINATOR = 100;
 
   // denominators for cover contract parameters

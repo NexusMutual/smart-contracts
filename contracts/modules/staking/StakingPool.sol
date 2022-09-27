@@ -132,7 +132,9 @@ contract StakingPool is IStakingPool, ERC721 {
   // 1e18
   uint public constant TOKEN_PRECISION = 1 ether;
 
-  uint public constant ALLOCATIONS_DENOMINATOR = 1e16;
+  // smallest unit we can allocate is 0.01 NXM
+  // allocation will happen in whole increments of this value
+  uint public constant ALLOCATION_UNIT_SIZE = 1e16;
 
   modifier onlyCoverContract {
     require(msg.sender == coverContract, "StakingPool: Only Cover contract can call this function");
@@ -605,7 +607,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
     {
       uint[] memory coverTrancheAllocation = new uint[](trancheCount);
-      uint remainingAmount = request.amount;
+      uint remainingAmount = Math.divCeil(request.amount, ALLOCATION_UNIT_SIZE);
 
       for (uint i = 0; i < trancheCount; i++) {
 
@@ -644,6 +646,9 @@ contract StakingPool is IStakingPool, ERC721 {
       );
     }
 
+    // allocatedCoverAmount, totalAllocatedCapacity and totalCapacity have 2 decimals.
+    // the premium calculation formula works with 18 decimal initial price so the premium
+    // is returned with 18 decimals.
     premium = getPremium(
       request.productId,
       allocatedCoverAmount,
@@ -664,10 +669,15 @@ contract StakingPool is IStakingPool, ERC721 {
       rewardBuckets[expireAtBucket].rewardPerSecondCut += _rewardPerSecond;
     }
 
+    // scale back from 2 to 18 decimals
+    allocatedCoverAmount *= ALLOCATION_UNIT_SIZE;
+
+    // premium and rewards already have 18 decimals
     return (allocatedCoverAmount, premium, rewards);
   }
 
   function deallocateStake(
+    // TODO: use a DeallocationRequest instead as we don't need all the fields
     CoverRequest memory request,
     uint coverStartTime,
     uint premium
@@ -934,7 +944,7 @@ contract StakingPool is IStakingPool, ERC721 {
       // setItemAt does not mutate so we have to reassign it
       coverAmountGroups[trancheGroupId] = coverAmountGroups[trancheGroupId].setItemAt(
         trancheIndexInGroup,
-        StakingTypesLib.newCoverAmount((allocatedCapacities[i] / ALLOCATIONS_DENOMINATOR).toUint48(), currentBucket)
+        StakingTypesLib.newCoverAmount(allocatedCapacities[i].toUint48(), currentBucket)
       );
     }
 
@@ -973,7 +983,7 @@ contract StakingPool is IStakingPool, ERC721 {
       uint trancheIndexInGroup = trancheId % BUCKET_TRANCHE_GROUP_SIZE;
 
       uint32 expiringAmount = bucketTrancheGroups[trancheGroupId].getItemAt(trancheIndexInGroup);
-      uint32 trancheAllocation = (coverTrancheAllocation[i] / ALLOCATIONS_DENOMINATOR).toUint32();
+      uint32 trancheAllocation = coverTrancheAllocation[i].toUint32();
 
       if (isAllocation) {
         expiringAmount += trancheAllocation;

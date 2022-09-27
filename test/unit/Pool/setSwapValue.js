@@ -1,6 +1,8 @@
 const { web3 } = require('hardhat');
 const { expect } = require('chai');
 const { BN } = web3.utils;
+const { expectRevert } = require('@openzeppelin/test-helpers');
+
 const { hex } = require('../utils').helpers;
 
 const {
@@ -13,7 +15,7 @@ describe('setSwapValue', function () {
     const { pool } = this;
 
     // Not calling from swap operator reverts
-    await expect(pool.setSwapValue(new BN('123'))).to.be.revertedWith('Pool: Not swapOperator');
+    await expectRevert(pool.setSwapValue(new BN('123')), 'Pool: Not swapOperator');
 
     // Set current signer as swap operator
     await pool.updateAddressParameters(hex('SWP_OP'), defaultSender, { from: governance });

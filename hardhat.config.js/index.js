@@ -3,7 +3,7 @@ require('@typechain/hardhat');
 require('@nomiclabs/hardhat-web3');
 require('@nomiclabs/hardhat-truffle5');
 require('@nomiclabs/hardhat-etherscan');
-require('@nomiclabs/hardhat-waffle');
+require('@nomicfoundation/hardhat-chai-matchers');
 require('solidity-coverage');
 require('hardhat-contract-sizer');
 

@@ -243,7 +243,7 @@ describe('placeOrder', function () {
       // Try to run when balance is at maxAmount,
       await dai.setBalance(pool.address, daiMaxAmount);
       await expect(swapOperator.placeOrder(newContractOrder, newOrderUID)).to.be.revertedWith(
-        'SwapOp: can only sell asset when > max',
+        'SwapOp: can only sell asset when > maxAmount',
       );
 
       // When balance > maxAmount, should succeed

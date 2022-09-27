@@ -1,8 +1,7 @@
 const { ethers } = require('hardhat');
-const keccak256 = require('keccak256');
 const { MerkleTree } = require('merkletreejs');
 const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
-const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
+const { parseEther, arrayify, hexZeroPad, hexValue, keccak256 } = ethers.utils;
 const { BigNumber } = ethers;
 
 const STATUS = {
@@ -50,8 +49,6 @@ const submitFraud = async ({ assessment, signer, addresses, amounts, lastFraudul
     const input = getLeafInput(address, lastFraudulentVoteIndex, amounts[i], fraudCounts[i]);
     return input;
   });
-  // [warning]: Don't use keccak256 from ethers because it returns a different type than what
-  // merkletreejs expects.
   const merkleTree = new MerkleTree(leaves, keccak256, { hashLeaves: true, sortPairs: true });
   const root = merkleTree.getHexRoot();
   await assessment.connect(signer).submitFraud(root);

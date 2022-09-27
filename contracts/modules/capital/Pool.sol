@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/utils/Address.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
@@ -13,6 +12,7 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IERC20Detailed.sol";
 import "../../libraries/SafeUintCast.sol";
 
 contract Pool is IPool, MasterAware, ReentrancyGuard {
@@ -217,6 +217,9 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     require(assetAddress != address(0), "Pool: Asset is zero address");
     require(_max >= _min, "Pool: max < min");
     require(_maxSlippageRatio <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
+
+    (address aggregator, ) = priceFeedOracle.assets(assetAddress);
+    require(aggregator != address(0), "Pool: Asset lacks oracle");
 
     // Check whether the new asset already exists as a cover asset
     uint coverAssetsCount = coverAssets.length;
@@ -731,6 +734,26 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     }
 
     if (code == "PRC_FEED") {
+
+      uint coverAssetsCount = coverAssets.length;
+      for (uint i = 0; i < coverAssetsCount; i++) {
+        Asset memory asset = coverAssets[i];
+        if (asset.assetAddress != ETH) {
+          (address aggregator, ) = IPriceFeedOracle(value).assets(asset.assetAddress);
+
+          require(aggregator != address(0), "Pool: Oracle lacks asset");
+        }
+      }
+
+      uint investmentAssetsCount = investmentAssets.length;
+      for (uint i = 0; i < investmentAssetsCount; i++) {
+        Asset memory asset = investmentAssets[i];
+        if (asset.assetAddress != ETH) {
+          (address aggregator, ) = IPriceFeedOracle(value).assets(asset.assetAddress);
+          require(aggregator != address(0), "Pool: Oracle lacks asset");
+        }
+      }
+
       priceFeedOracle = IPriceFeedOracle(value);
       return;
     }

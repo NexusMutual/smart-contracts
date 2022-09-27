@@ -1,8 +1,12 @@
 const { assert } = require('chai');
 const { expectRevert } = require('@openzeppelin/test-helpers');
+const { artifacts } = require('hardhat');
 
 const accounts = require('../utils').accounts;
+const { hex } = require('../utils').helpers;
 const { PoolUintParamType, PoolAddressParamType } = require('../utils').constants;
+
+const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 
 const {
   nonMembers: [nonMember],
@@ -57,9 +61,31 @@ describe('updateAddressParameters', function () {
     }
   });
 
+  it('should revert when called with a PRC_FEED oracle parameter that lacks an investment asset', async function () {
+    const { pool, dai, chainlinkDAI } = this;
+
+    const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], [18]);
+
+    await expectRevert(
+      pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governanceContract }),
+      'Pool: Oracle lacks asset',
+    );
+  });
+
+  it('should revert when called with a PRC_FEED oracle parameter that lacks a cover asset', async function () {
+    const { pool, chainlinkSteth, stETH } = this;
+
+    const priceFeedOracle = await PriceFeedOracle.new([stETH.address], [chainlinkSteth.address], [18]);
+
+    await expectRevert(
+      pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governanceContract }),
+      'Pool: Oracle lacks asset',
+    );
+  });
+
   it('should correctly update the address parameters', async function () {
     const { pool } = this;
-    const params = Object.keys(PoolAddressParamType);
+    const params = Object.keys(PoolAddressParamType).filter(param => param !== 'priceFeedOracle');
 
     for (const paramName of params) {
       const before = await pool[paramName]();
@@ -71,5 +97,23 @@ describe('updateAddressParameters', function () {
       const actual = await pool[paramName]();
       assert.strictEqual(actual.toString(), generalPurpose);
     }
+  });
+
+  it('should correctly update the PRC_FEED parameter', async function () {
+    const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
+
+    const newPriceFeedOracle = await PriceFeedOracle.new(
+      [dai.address, stETH.address],
+      [chainlinkDAI.address, chainlinkSteth.address],
+      [18, 18],
+    );
+
+    await pool.updateAddressParameters(PoolAddressParamType.priceFeedOracle, newPriceFeedOracle.address, {
+      from: governanceContract,
+    });
+
+    const storedAddress = await pool.priceFeedOracle();
+
+    assert.equal(storedAddress, newPriceFeedOracle.address);
   });
 });

@@ -5,17 +5,9 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 
-interface Aggregator {
-  function latestAnswer() external view returns (int);
-}
 
 contract PriceFeedOracle is IPriceFeedOracle {
   using SafeMath for uint;
-
-  struct OracleAsset {
-    Aggregator aggregator;
-    uint8 decimals;
-  }
 
   mapping(address => OracleAsset) public assets;
 

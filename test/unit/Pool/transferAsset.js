@@ -1,7 +1,9 @@
 const { ether } = require('@openzeppelin/test-helpers');
 const { expectRevert } = require('@openzeppelin/test-helpers');
+const { web3, artifacts } = require('hardhat');
 const { assert } = require('chai');
-
+const { BN } = web3.utils;
+const { hex } = require('../utils').helpers;
 const {
   governanceContracts: [governance],
   generalPurpose: [destination, arbitraryCaller],
@@ -10,11 +12,31 @@ const {
 const ERC20Mock = artifacts.require('ERC20Mock');
 
 describe('transferAsset', function () {
+  before(async function () {
+    const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
+
+    const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
+    const PriceFeedOracle = artifacts.require('PriceFeedOracle');
+
+    const otherToken = await ERC20Mock.new();
+    const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
+    await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
+
+    const priceFeedOracle = await PriceFeedOracle.new(
+      [dai.address, stETH.address, otherToken.address],
+      [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
+      [18, 18, 18],
+    );
+
+    await pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governance });
+
+    this.otherToken = otherToken;
+  });
+
   it('transfers added ERC20 asset to destination', async function () {
-    const { pool } = this;
+    const { pool, otherToken } = this;
 
     const tokenAmount = ether('100000');
-    const otherToken = await ERC20Mock.new();
     await pool.addAsset(otherToken.address, 18, '0', '0', 100 /* 1% */, true, {
       from: governance,
     });
@@ -66,10 +88,9 @@ describe('transferAsset', function () {
   });
 
   it('reverts on asset transfer if asset maxAmount > 0', async function () {
-    const { pool } = this;
+    const { pool, otherToken } = this;
 
     const tokenAmount = ether('100000');
-    const otherToken = await ERC20Mock.new();
     await pool.addAsset(otherToken.address, 18, '0', '1', 100 /* 1% */, true, {
       from: governance,
     });

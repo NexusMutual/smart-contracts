@@ -46,12 +46,14 @@ async function setup() {
   await daiAggregator.setLatestAnswer(0.0002 * 1e18); // 1 dai = 0.0002 eth, 1 eth = 5000 dai
   const stethAggregator = await ChainlinkAggregatorMock.deploy();
   await stethAggregator.setLatestAnswer(parseEther('1')); // 1 steth = 1 eth
+  const usdcAggregator = await ChainlinkAggregatorMock.deploy();
+  await usdcAggregator.setLatestAnswer(0.0002 * 1e18); // 1 usdc = 0.0002 eth, 1 eth = 5000 dai
 
   // Deploy PriceFeedOracle
   const priceFeedOracle = await PriceFeedOracle.deploy(
-    [dai.address, stEth.address],
-    [daiAggregator.address, stethAggregator.address],
-    [18, 18],
+    [dai.address, stEth.address, usdc.address],
+    [daiAggregator.address, stethAggregator.address, usdcAggregator.address],
+    [18, 18, 6],
   );
 
   // Deploy Pool
@@ -105,7 +107,7 @@ async function setup() {
 const makeWrongValue = value => {
   if (isHexString(value)) {
     return hexlify(randomBytes(hexDataLength(value)));
-  } else if (value instanceof BigNumber) {
+  } else if (BigNumber.isBigNumber(value)) {
     return value.add(1);
   } else if (typeof value === 'number') {
     return value + 1;

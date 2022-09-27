@@ -21,6 +21,7 @@ async function setup() {
   const master = await MasterMock.new();
   const dai = await ERC20Mock.new();
   const stETH = await ERC20BlacklistableMock.new();
+  const otherAsset = await ERC20Mock.new();
 
   const ethToDaiRate = new BN((394.59 * 1e18).toString());
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
@@ -29,11 +30,13 @@ async function setup() {
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
   const chainlinkSteth = await ChainlinkAggregatorMock.new();
   await chainlinkSteth.setLatestAnswer(new BN((1e18).toString()));
+  const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
+  await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
 
   const priceFeedOracle = await PriceFeedOracle.new(
-    [dai.address, stETH.address],
-    [chainlinkDAI.address, chainlinkSteth.address],
-    [18, 18],
+    [dai.address, stETH.address, otherAsset.address],
+    [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
+    [18, 18, 18],
   );
 
   const swapOperator = accounts.generalPurpose[10];
@@ -96,8 +99,10 @@ async function setup() {
   this.tokenController = tokenController;
   this.dai = dai;
   this.chainlinkDAI = chainlinkDAI;
+  this.chainlinkSteth = chainlinkSteth;
   this.swapOperator = swapOperator;
   this.stETH = stETH;
+  this.otherAsset = otherAsset;
 }
 
 module.exports = setup;

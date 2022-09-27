@@ -1,5 +1,4 @@
 const { assert } = require('chai');
-const { ethers } = require('hardhat');
 
 describe('editProducts', function () {
   it('should edit existing product', async function () {

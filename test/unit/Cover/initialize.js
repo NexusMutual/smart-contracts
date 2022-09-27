@@ -1,4 +1,4 @@
-const { assert, expect } = require('chai');
+const { expect } = require('chai');
 
 describe('initialize', function () {
   it('should edit purchased cover and increase amount', async function () {
@@ -13,9 +13,9 @@ describe('initialize', function () {
     const globalRewardsRatio = await cover.globalRewardsRatio();
     const coverAssetsFallback = await cover.coverAssetsFallback();
 
-    assert.equal(globalCapacityRatio, 20000);
-    assert.equal(globalRewardsRatio, 5000);
-    assert.equal(coverAssetsFallback, 3); // 3 = 0x11 - DAI and ETH
+    expect(globalCapacityRatio).to.be.equal(20000);
+    expect(globalRewardsRatio).to.be.equal(5000);
+    expect(coverAssetsFallback).to.be.equal(3); // 3 = 0x11 - DAI and ETH
   });
 
   it('should revert if globalCapacityRatio already set to a non-zero value', async function () {

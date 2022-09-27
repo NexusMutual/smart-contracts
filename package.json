@@ -28,8 +28,6 @@
     "ethereum-waffle": "^3.4.4",
     "ethereumjs-util": "^7.0.1",
     "ethers": "^5.7.1",
-    "hardhat-deploy": "^0.11.15",
-    "keccak256": "^1.0.3",
     "merkletreejs": "^0.2.32",
     "node-fetch": "^2.6.7",
     "solmate": "^6.6.1",
@@ -62,7 +60,6 @@
     "ipfs-http-client": "^47.0.1",
     "nodemon": "^2.0.20",
     "prettier": "^2.7.1",
-    "prompts": "^2.4.2",
     "solidity-coverage": "^0.7.22",
     "typechain": "^8.1.0",
     "web3": "^1.8.0"

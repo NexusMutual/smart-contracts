@@ -14,7 +14,6 @@ import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IERC20Detailed.sol";
 import "../../libraries/SafeUintCast.sol";
-import "hardhat/console.sol";
 
 contract Pool is IPool, MasterAware, ReentrancyGuard {
   using SafeERC20 for IERC20;

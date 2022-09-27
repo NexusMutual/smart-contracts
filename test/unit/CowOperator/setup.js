@@ -107,7 +107,7 @@ async function setup() {
 const makeWrongValue = value => {
   if (isHexString(value)) {
     return hexlify(randomBytes(hexDataLength(value)));
-  } else if (value instanceof BigNumber) {
+  } else if (BigNumber.isBigNumber(value)) {
     return value.add(1);
   } else if (typeof value === 'number') {
     return value + 1;

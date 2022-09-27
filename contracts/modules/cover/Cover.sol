@@ -641,6 +641,18 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       emit ProductTypeUpserted(initialProuctTypesCount + i, ipfsMetadata[i]);
     }
   }
+  
+  function editProductTypes(
+    uint[] calldata productTypeIds,
+    ProductType[] calldata newProductTypes,
+    string[] calldata ipfsMetadata
+  ) external override onlyAdvisoryBoard {
+
+    for (uint i = 0; i < productTypeIds.length; i++) {
+      _productTypes[productTypeIds[i]] = newProductTypes[i];
+      emit ProductTypeUpserted(productTypeIds[i], ipfsMetadata[i]);
+    }
+  }
 
   function editProducts(
     uint[] calldata productIds,

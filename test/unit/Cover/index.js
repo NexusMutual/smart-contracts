@@ -22,4 +22,6 @@ describe('Cover unit tests', function () {
   require('./initialize');
   require('./editProducts');
   require('./addProducts');
+  require('./editProductTypes')
+>>>>>>> 92239dcf (add editProductTypes + test)
 });

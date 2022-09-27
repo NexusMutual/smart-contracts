@@ -12,8 +12,15 @@ describe('setSwapValue', function () {
   it('is only callabe by swap operator', async function () {
     const { pool } = this;
 
-    // Not calling from swap operator reverts
-    await expect(pool.setSwapValue(new BN('123'))).to.be.revertedWith('Pool: Not swapOperator');
+    let revertedWithCorrectMessage = false;
+    try {
+      // Not calling from swap operator reverts
+      await pool.setSwapValue(new BN('123'));
+    } catch (e) {
+      revertedWithCorrectMessage = e.message.includes("'Pool: Not swapOperator'");
+    }
+
+    expect(revertedWithCorrectMessage).to.equal(true);
 
     // Set current signer as swap operator
     await pool.updateAddressParameters(hex('SWP_OP'), defaultSender, { from: governance });

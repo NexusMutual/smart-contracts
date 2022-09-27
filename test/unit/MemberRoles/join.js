@@ -190,11 +190,11 @@ describe('join', function () {
 
     await expect(
       memberRoles.join(nonMembers[0].address, 0, arrayify(allZeroesSignature), { value: JOINING_FEE }),
-    ).to.be.revertedWith('ECDSA: invalid signature');
+    ).to.be.revertedWith('ECDSA: invalid signature length');
 
     await expect(
       memberRoles.join(nonMembers[0].address, 0, arrayify(allOnesSignature), { value: JOINING_FEE }),
-    ).to.be.revertedWith('ECDSA: invalid signature');
+    ).to.be.revertedWith('ECDSA: invalid signature length');
   });
 
   it('reverts when provided compact signature', async function () {

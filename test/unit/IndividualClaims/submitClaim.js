@@ -447,9 +447,7 @@ describe('submitClaim', function () {
       [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
     );
     const coverId = 0;
-    await expect(submitClaim(this)({ coverId, sender: coverOwner }))
-      .not.to.emit(individualClaims, 'MetadataSubmitted')
-      .withArgs(0, '');
+    await expect(submitClaim(this)({ coverId, sender: coverOwner })).not.to.emit(individualClaims, 'MetadataSubmitted');
   });
 
   it('stores the claimId in lastClaimSubmissionOnCover', async function () {

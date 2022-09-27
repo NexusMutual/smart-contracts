@@ -161,14 +161,10 @@ interface ICover {
     string[] calldata ipfsMetadata
   ) external;
 
-  function editProductsIpfsMetadata(
-    uint[] calldata productIds,
-    string[] calldata ipfsMetadata
-  ) external;
-
   function editProducts(
     uint[] calldata productIds,
-    Product[] calldata newProducts
+    Product[] calldata newProducts,
+    string[] calldata ipfsMetadata
   ) external;
 
   function performStakeBurn(

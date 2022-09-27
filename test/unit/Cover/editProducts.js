@@ -14,7 +14,7 @@ describe('editProducts', function () {
       capacityReductionRatio: '500',
     };
 
-    await cover.connect(advisoryBoardMember0).editProducts([0], [newProductValues]);
+    await cover.connect(advisoryBoardMember0).editProducts([0], [newProductValues], ['magic metadata']);
 
     const storedProduct = await cover.products(0);
 

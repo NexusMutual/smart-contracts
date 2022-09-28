@@ -1,27 +1,27 @@
-const { assert } = require('chai');
+const { expect } = require('chai');
 
-describe('editProducts', function () {
+describe.only('editProducts', function () {
   it('should edit existing product', async function () {
     const { cover } = this;
 
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
 
     const newProductValues = {
-      productType: '0',
+      productType: 0,
       productAddress: '0x0000000000000000000000000000000000000032',
       coverAssets: parseInt('111', 2), // ETH DAI and USDC supported
-      initialPriceRatio: '1000', // 10%
-      capacityReductionRatio: '500',
+      initialPriceRatio: 100, // 10%
+      capacityReductionRatio: 500,
     };
 
     await cover.connect(advisoryBoardMember0).editProducts([0], [newProductValues], ['magic metadata']);
 
     const storedProduct = await cover.products(0);
 
-    assert.equal(newProductValues.productType, storedProduct.productType);
-    assert.equal(newProductValues.productAddress, storedProduct.productAddress);
-    assert.equal(newProductValues.coverAssets, storedProduct.coverAssets);
-    assert.equal(newProductValues.initialPriceRatio, storedProduct.initialPriceRatio);
-    assert.equal(newProductValues.capacityReductionRatio, storedProduct.capacityReductionRatio);
+    expect(newProductValues.productType).to.be.equal(storedProduct.productType);
+    expect(newProductValues.productAddress).to.be.equal(storedProduct.productAddress);
+    expect(newProductValues.coverAssets).to.be.equal(storedProduct.coverAssets);
+    expect(newProductValues.initialPriceRatio).to.be.equal(storedProduct.initialPriceRatio);
+    expect(newProductValues.capacityReductionRatio).to.be.equal(storedProduct.capacityReductionRatio);
   });
 });

@@ -44,6 +44,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   uint private constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
+  // TODO: consider renaming to ONE_NXM
   uint private constant NXM_IN_WEI = 1e18;
 
   IQuotationData internal immutable quotationData;

@@ -129,6 +129,7 @@ contract StakingPool is IStakingPool, ERC721 {
   uint public constant PRICE_BUMP_RATIO = 2_00; // 2.00%
   uint public constant PRICE_BUMP_DENOMINATOR = 100_00; // 100.00%
 
+  // TODO: consider renaming to ONE_NXM
   // 1e18
   uint public constant TOKEN_PRECISION = 1 ether;
 

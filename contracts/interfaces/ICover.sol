@@ -166,7 +166,7 @@ interface ICover {
     ProductType[] calldata newProductTypes,
     string[] calldata ipfsMetadata
   ) external;
-  
+
   function editProductTypes(
     uint[] calldata productTypeIds,
     ProductType[] calldata newProductTypes,

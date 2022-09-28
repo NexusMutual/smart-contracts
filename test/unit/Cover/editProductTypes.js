@@ -7,13 +7,13 @@ describe('editProductTypes', function () {
     const productTypeId = 0;
 
     const productTypeData = {
-        claimMethod: 2,
-        gracePeriodInDays: 45,
-      };
+      claimMethod: 2,
+      gracePeriodInDays: 45,
+    };
 
-    await cover.connect(accounts.advisoryBoardMembers[0]).editProductTypes(
-      [productTypeId], [productTypeData], ['my ipfs hash'],
-    );
+    await cover
+      .connect(accounts.advisoryBoardMembers[0])
+      .editProductTypes([productTypeId], [productTypeData], ['my ipfs hash']);
 
     const storedProduct = await cover.productTypes(productTypeId);
 
@@ -25,15 +25,17 @@ describe('editProductTypes', function () {
     const { cover, accounts } = this;
 
     const productTypeId = 0;
-    await expect(cover.connect(accounts.nonMembers[0]).editProductTypes(
-      [productTypeId],
-      [
-        {
-          claimMethod: 1,
-          gracePeriodInDays: 39,
-        },
-      ],
-      ['my ipfs hash'],
-    )).to.be.revertedWith('Caller is not an advisory board member');
+    await expect(
+      cover.connect(accounts.nonMembers[0]).editProductTypes(
+        [productTypeId],
+        [
+          {
+            claimMethod: 1,
+            gracePeriodInDays: 39,
+          },
+        ],
+        ['my ipfs hash'],
+      ),
+    ).to.be.revertedWith('Caller is not an advisory board member');
   });
 });

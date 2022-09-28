@@ -55,7 +55,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
    * @dev to change the operator address
    * @param _newOperator is the new address of operator
    */
-  function changeOperator(address _newOperator) public override onlyInternal {
+  function changeOperator(address _newOperator) public override onlyGovernance {
     token.changeOperator(_newOperator);
   }
 

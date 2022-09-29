@@ -8,7 +8,7 @@ describe('editProducts', function () {
 
     const newProductValues = {
       productType: 0,
-      productAddress: '0x0000000000000000000000000000000000000032',
+      productAddress: '0x0000000000000000000000000000000000000033',
       coverAssets: parseInt('111', 2), // ETH DAI and USDC supported
       initialPriceRatio: 100, // 10%
       capacityReductionRatio: 500,

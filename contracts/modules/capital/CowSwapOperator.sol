@@ -347,4 +347,24 @@ contract CowSwapOperator {
     uint feeInEther = oracle.getEthForAsset(asset, feeAmount);
     require(feeInEther <= maxFee, "SwapOp: Fee amount is higher than configured max fee");
   }
+
+  function recoverAsset(address assetAddress, address receiver) public onlyController {
+
+    IERC20 asset = IERC20(assetAddress);
+
+    uint balance = asset.balanceOf(address(this));
+    require(balance > 0, "SwapOperator: Balance = 0");
+
+    IPool pool = _pool();
+
+    IPool.SwapDetails memory swapDetails = pool.getAssetSwapDetails(assetAddress);
+
+    if (swapDetails.minAmount == 0 && swapDetails.maxAmount == 0) {
+      // asset is not supported
+      asset.transfer(receiver, balance);
+      return;
+    }
+
+    asset.transfer(address(pool), balance);
+  }
 }

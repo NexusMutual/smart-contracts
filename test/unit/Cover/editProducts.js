@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 
-describe.only('editProducts', function () {
+describe('editProducts', function () {
   it('should edit existing product', async function () {
     const { cover } = this;
 

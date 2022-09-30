@@ -60,6 +60,7 @@ contract StakingPool is IStakingPool, ERC721 {
   bool public isPrivatePool;
   uint8 public poolFee;
   uint8 public maxPoolFee;
+  uint32 public targetWeight;
 
   // erc721 supply
   uint public totalSupply;
@@ -175,8 +176,8 @@ contract StakingPool is IStakingPool, ERC721 {
     name = string(abi.encodePacked("Nexus Mutual Staking Pool #", Strings.toString(_poolId)));
     symbol = string(abi.encodePacked("NMSP-", Strings.toString(_poolId)));
 
-    // TODO: initialize products
-    params;
+    ProductParams[] memory productParams = _setInitialPrices(params);
+    _setProducts(productParams);
 
     // create ownership nft
     totalSupply = 1;
@@ -1178,14 +1179,6 @@ contract StakingPool is IStakingPool, ERC721 {
     super.transferFrom(from, to, tokenId);
   }
 
-  /* pool management */
-
-  function setProductDetails(ProductParams[] memory params) external onlyManager {
-    // silence compiler warnings
-    params;
-    activeStake = activeStake;
-    // [todo] Implement
-  }
 
   /* views */
 
@@ -1222,16 +1215,55 @@ contract StakingPool is IStakingPool, ERC721 {
     return ownerOf(0);
   }
 
-  /* management */
+  /* pool management */
 
-  function addProducts(ProductParams[] memory params) external onlyManager {
-    totalSupply = totalSupply;  // To silence view fn warning. Remove once implemented
-    params;
+  function setProducts(ProductParams[] memory params) external onlyManager {
+    // TODO: check if initial price has been set? Otherwise call cover contract?
+    _setProducts(params);
   }
 
-  function removeProducts(uint[] memory productIds) external onlyManager {
-    totalSupply = totalSupply;  // To silence view fn warning. Remove once implemented
-    productIds;
+  function _setProducts(ProductParams[] memory params) internal {
+    uint32 _targetWeight = targetWeight;
+    for (uint i = 0; i < params.length; i++) {
+      ProductParams memory _param = params[i];
+      Product memory _product = products[_param.productId];
+
+      // TODO: check if initial price has been set
+//      if (_product.nextPrice == 0) {
+//        (, , , uint16 initialPriceRatio, ) = ICover(coverContract).products(_param.productId);
+//        require(initialPriceRatio > 0, "Failed to get initial price for product");
+//        _product.nextPrice = initialPriceRatio;
+//      }
+
+      if (_param.setPrice) {
+        require(_param.targetPrice <= SURGE_PRICE_DENOMINATOR, "Target price too high");
+        _product.targetPrice = _param.targetPrice;
+      }
+
+      if (_param.setWeight) {
+          require(_param.targetWeight <= WEIGHT_DENOMINATOR, "Cannot set weight beyond 1");
+
+          if (_product.targetWeight < _param.targetWeight) {
+             _targetWeight += _param.targetWeight - _product.targetWeight;
+          } else {
+            _targetWeight -= _product.targetWeight - _param.targetWeight;
+          }
+          _product.targetWeight = _param.targetWeight;
+      }
+      products[_param.productId] = _product;
+    // End for loop
+    }
+    require(_targetWeight <= 2000, "Target weight above 20");
+    targetWeight = _targetWeight;
+  }
+
+  function _setInitialPrices(ProductInitializationParams[] memory params) internal returns (ProductParams[] memory res) {
+    res = new ProductParams[](params.length);
+    for (uint i = 0; i < params.length; i++) {
+      Product storage _product = products[params[i].productId];
+      _product.nextPrice = params[i].initialPrice;
+      res[i] = ProductParams(params[i].productId, true, params[i].weight, true, params[i].targetPrice);
+    }
   }
 
   function setPoolFee(uint newFee) external onlyManager {

@@ -1,5 +1,4 @@
 const { ethers } = require('hardhat');
-const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
 const { parseEther } = ethers.utils;
 const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../utils').constants;
@@ -45,10 +44,10 @@ async function setup() {
   await mcr.deployed();
   await mcr.setMCR(parseEther('600000'));
 
-  const stakingPool = await StakingPool.deploy(nxm.address, ZERO_ADDRESS, tokenController.address);
-
   const signers = await ethers.getSigners();
   const accounts = getAccounts(signers);
+
+  const stakingPool = await StakingPool.deploy(nxm.address, accounts.defaultSender.address, tokenController.address);
 
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);

@@ -417,6 +417,70 @@ contract CowSwapOperator {
     emit Swapped(ETH, enzymeV4VaultProxyAddress, amountIn, amountOut);
   }
 
+  function swapEnzymeVaultShareForETH(
+    uint amountIn,
+    uint amountOutMin
+  ) external onlyController {
+
+    IPool pool = _pool();
+    IERC20Detailed fromToken = IERC20Detailed(enzymeV4VaultProxyAddress);
+
+    uint balanceBefore = fromToken.balanceOf(address(pool));
+    {
+
+      IPool.SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(fromToken));
+
+      require(!(swapDetails.minAmount == 0 && swapDetails.maxAmount == 0), "SwapOperator: asset is not enabled");
+
+      // swap frequency check
+      uint timeSinceLastTrade = block.timestamp - uint(swapDetails.lastSwapTime);
+      require(timeSinceLastTrade > MIN_TIME_BETWEEN_ORDERS, "SwapOperator: too fast");
+
+      uint netShareValue;
+      {
+        address denominationAsset;
+        (denominationAsset, netShareValue) =
+        enzymeFundValueCalculatorRouter.calcNetShareValue(enzymeV4VaultProxyAddress);
+
+        require(denominationAsset ==  address(weth), "SwapOperator: invalid denomination asset");
+      }
+
+      // avgAmountOut in ETH
+      uint avgAmountOut = amountIn * netShareValue / (10 ** fromToken.decimals());
+      uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / 1e18;
+      uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
+
+      // slippage check
+      require(amountOutMin >= minOutOnMaxSlippage, "SwapOperator: amountOutMin < minOutOnMaxSlippage");
+      require(balanceBefore > swapDetails.maxAmount, "SwapOperator: balanceBefore <= max");
+      require(balanceBefore - amountIn >= swapDetails.minAmount, "SwapOperator: tokenBalanceAfter < min");
+    }
+
+    pool.transferAssetToSwapOperator(address(fromToken), amountIn);
+
+    IEnzymeV4Comptroller comptrollerProxy = IEnzymeV4Comptroller(IEnzymeV4Vault(enzymeV4VaultProxyAddress).getAccessor());
+    fromToken.approve(address(comptrollerProxy), amountIn);
+
+    address[] memory payoutAssets = new address[](1);
+    uint[] memory payoutAssetsPercentages = new uint[](1);
+
+    payoutAssets[0] = address(weth);
+    payoutAssetsPercentages[0] = 10000;
+
+    comptrollerProxy.redeemSharesForSpecificAssets(address(this), amountIn, payoutAssets, payoutAssetsPercentages);
+
+    uint amountOut = weth.balanceOf(address(this));
+    weth.withdraw(amountOut);
+
+    pool.setSwapDetailsLastSwapTime(address(fromToken), uint32(block.timestamp));
+
+    require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
+
+    transferAssetTo(ETH, address(pool), amountOut);
+
+    emit Swapped(enzymeV4VaultProxyAddress, ETH, amountIn, amountOut);
+  }
+
   function transferAssetTo (address asset, address to, uint amount) internal {
 
     if (asset == ETH) {

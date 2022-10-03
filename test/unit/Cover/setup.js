@@ -166,6 +166,24 @@ async function setup() {
 
   await master.setEmergencyAdmin(accounts.emergencyAdmin.address);
 
+  const capacityFactor = '10000';
+  const coverAssetsFallback = 7; // 0x11 ETH, DAI and USDC
+
+  await cover
+    .connect(accounts.governanceContracts[0])
+    .updateUintParameters([0, 2], [capacityFactor, coverAssetsFallback]);
+
+  await cover.connect(accounts.advisoryBoardMembers[0]).addProductTypes(
+    [
+      {
+        descriptionIpfsHash: 'my ipfs hash',
+        claimMethod: '1',
+        gracePeriodInDays: '120',
+      },
+    ],
+    [''],
+  );
+
   // add products
   await cover.connect(accounts.advisoryBoardMembers[0]).addProducts(
     [
@@ -179,21 +197,6 @@ async function setup() {
     ],
     [''],
   );
-
-  await cover.connect(accounts.advisoryBoardMembers[0]).addProductTypes(
-    [
-      {
-        descriptionIpfsHash: 'my ipfs hash',
-        claimMethod: '1',
-        gracePeriodInDays: '120',
-      },
-    ],
-    [''],
-  );
-
-  const capacityFactor = '10000';
-
-  await cover.connect(accounts.governanceContracts[0]).updateUintParameters([0], [capacityFactor]);
 
   this.master = master;
   this.pool = pool;

@@ -668,7 +668,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     Product memory product,
     uint32 _coverAssetsFallback,
     uint productTypesCount
-  ) internal pure {
+  ) internal {
 
     require(product.productType < productTypesCount, "Cover: Invalid productType");
     require(
@@ -679,8 +679,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       "Cover: initialPriceRatio < GLOBAL_MIN_PRICE_RATIO"
     );
     require(
+      product.initialPriceRatio <= PRICE_DENOMINATOR,
+      "Cover: initialPriceRatio > 100%"
+    );
+    require(
       product.capacityReductionRatio <= CAPACITY_REDUCTION_DENOMINATOR,
-      "Cover: capacityReductionRatio must be less than or equal to 100%"
+      "Cover: capacityReductionRatio > 100%"
     );
   }
 
@@ -765,7 +769,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   }
 
   function bitwiseNegate(uint32 value) internal pure returns (uint32) {
-    return value ^ 0xff;
+    return value ^ 0xffffffff;
   }
 
   /* ========== DEPENDENCIES ========== */

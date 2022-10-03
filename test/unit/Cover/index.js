@@ -21,4 +21,5 @@ describe('Cover unit tests', function () {
   require('./coverNFT');
   require('./initialize');
   require('./editProducts');
+  require('./addProducts');
 });

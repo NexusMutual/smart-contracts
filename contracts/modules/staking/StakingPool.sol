@@ -1218,7 +1218,6 @@ contract StakingPool is IStakingPool, ERC721 {
   /* pool management */
 
   function setProducts(ProductParams[] memory params) external onlyManager {
-    // TODO: check if initial price has been set? Otherwise call cover contract?
     _setProducts(params);
   }
 
@@ -1228,12 +1227,15 @@ contract StakingPool is IStakingPool, ERC721 {
       ProductParams memory _param = params[i];
       Product memory _product = products[_param.productId];
 
-      // TODO: check if initial price has been set
-//      if (_product.nextPrice == 0) {
-//        (, , , uint16 initialPriceRatio, ) = ICover(coverContract).products(_param.productId);
-//        require(initialPriceRatio > 0, "Failed to get initial price for product");
-//        _product.nextPrice = initialPriceRatio;
-//      }
+      if (_product.nextPriceUpdateTime == 0) {
+        // TODO: rename structs StakingPool.Product / Cover.Product
+          (bool success, bytes memory data) = coverContract.staticcall(abi.encodeWithSelector(ICover.products.selector, _param.productId));
+        require(success, string(data));
+        (, , , uint16 initialPriceRatio, ) = abi.decode(data, (uint16, address, uint32, uint16, uint16));
+        require(initialPriceRatio > 0, "Failed to get initial price for product");
+        _product.nextPrice = initialPriceRatio;
+        _product.nextPriceUpdateTime = uint32(block.timestamp);
+      }
 
       if (_param.setPrice) {
         require(_param.targetPrice <= SURGE_PRICE_DENOMINATOR, "Target price too high");
@@ -1262,6 +1264,7 @@ contract StakingPool is IStakingPool, ERC721 {
     for (uint i = 0; i < params.length; i++) {
       Product storage _product = products[params[i].productId];
       _product.nextPrice = params[i].initialPrice;
+      _product.nextPriceUpdateTime = uint32(block.timestamp);
       res[i] = ProductParams(params[i].productId, true, params[i].weight, true, params[i].targetPrice);
     }
   }

@@ -8,6 +8,7 @@ async function setup() {
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
   const QuotationData = await ethers.getContractFactory('CoverMockQuotationData');
+  const CoverProductStaking = await ethers.getContractFactory('CoverMockProductStaking');
   const MemberRolesMock = await ethers.getContractFactory('MemberRolesMock');
   const TokenController = await ethers.getContractFactory('TokenControllerMock');
   const NXMToken = await ethers.getContractFactory('NXMTokenMock');
@@ -47,7 +48,10 @@ async function setup() {
   const signers = await ethers.getSigners();
   const accounts = getAccounts(signers);
 
-  const stakingPool = await StakingPool.deploy(nxm.address, accounts.defaultSender.address, tokenController.address);
+  const coverMockProductStaking = await CoverProductStaking.deploy();
+  await coverMockProductStaking.deployed();
+
+  const stakingPool = await StakingPool.deploy(nxm.address, coverMockProductStaking.address, tokenController.address);
 
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);
@@ -73,6 +77,7 @@ async function setup() {
 
   this.master = master;
   this.stakingPool = stakingPool;
+  this.cover = coverMockProductStaking;
   this.dai = dai;
   this.accounts = accounts;
   this.config = {

@@ -6,7 +6,7 @@ contract CoverMockProductStaking {
 
   mapping(uint => Product) internal _products;
 
-  function products(uint id) external returns (Product memory) {
+  function products(uint id) external view returns (Product memory) {
     return _products[id];
   }
 

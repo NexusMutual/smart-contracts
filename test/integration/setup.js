@@ -291,6 +291,8 @@ async function setup() {
 
   await cover.changeDependentContractAddress();
 
+  await cover.setCoverAssetsFallback(0b11); // eth and dai
+
   await cover.addProductTypes(
     [
       // Protocol Cover
@@ -348,8 +350,6 @@ async function setup() {
     ],
     ['', '', '', ''],
   );
-
-  await cover.setCoverAssetsFallback(0b11); // eth and dai
 
   await p1.updateAddressParameters(hex('SWP_OP'), swapOperator.address);
 

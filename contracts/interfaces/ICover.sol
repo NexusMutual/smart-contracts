@@ -100,6 +100,17 @@ struct Product {
   uint16 capacityReductionRatio;
 }
 
+// Updatable fields for an already existing product
+struct ProductUpdates {
+  /*
+    cover assets bitmap. each bit in the base-2 representation represents whether the asset with the index
+    of that bit is enabled as a cover asset for this product.
+  */
+  uint32 coverAssets;
+  uint16 initialPriceRatio;
+  uint16 capacityReductionRatio;
+}
+
 struct ProductType {
   uint8 claimMethod;
   uint16 gracePeriodInDays;
@@ -163,7 +174,7 @@ interface ICover {
 
   function editProducts(
     uint[] calldata productIds,
-    Product[] calldata newProducts,
+    ProductUpdates[] calldata productUpdates,
     string[] calldata ipfsMetadata
   ) external;
 
@@ -191,7 +202,7 @@ interface ICover {
 
   event StakingPoolCreated(address stakingPoolAddress, uint poolId, address manager, address stakingPoolImplementation);
   event ProductTypeUpserted(uint id, string ipfsMetadata);
-  event ProductUpserted(uint id, string ipfsMetadata);
+  event ProductSet(uint id, string ipfsMetadata);
   event CoverBought(uint coverId, uint productId, uint segmentId, address buyer, string ipfsMetadata);
   event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
   event CoverExpired(uint coverId, uint segmentId);

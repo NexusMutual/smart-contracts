@@ -620,9 +620,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     string[] calldata ipfsMetadata
   ) external override onlyAdvisoryBoard {
     uint initialProductsCount = _products.length;
+
+    uint32 _coverAssetsFallback = coverAssetsFallback;
+    uint productTypesCount = _productTypes.length;
+
     for (uint i = 0; i < newProducts.length; i++) {
+      validateProduct(newProducts[i], _coverAssetsFallback, productTypesCount);
       _products.push(newProducts[i]);
-      emit ProductUpserted(initialProductsCount + i, ipfsMetadata[i]);
+      emit ProductSet(initialProductsCount + i, ipfsMetadata[i]);
     }
   }
 
@@ -639,14 +644,44 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   function editProducts(
     uint[] calldata productIds,
-    Product[] calldata newProducts,
+    ProductUpdates[] calldata productUpdates,
     string[] calldata ipfsMetadata
   ) external override onlyAdvisoryBoard {
 
+    uint32 _coverAssetsFallback = coverAssetsFallback;
+    uint productTypesCount = _productTypes.length;
+
     for (uint i = 0; i < productIds.length; i++) {
-      _products[productIds[i]] = newProducts[i];
-      emit ProductUpserted(productIds[i], ipfsMetadata[i]);
+
+      Product memory newProductValue = _products[productIds[i]];
+      newProductValue.coverAssets = productUpdates[i].coverAssets;
+      newProductValue.initialPriceRatio = productUpdates[i].initialPriceRatio;
+      newProductValue.capacityReductionRatio = productUpdates[i].capacityReductionRatio;
+
+      validateProduct(newProductValue, _coverAssetsFallback, productTypesCount);
+      _products[productIds[i]] = newProductValue;
+      emit ProductSet(productIds[i], ipfsMetadata[i]);
     }
+  }
+
+  function validateProduct(
+    Product memory product,
+    uint32 _coverAssetsFallback,
+    uint productTypesCount
+  ) internal view {
+
+    require(product.productType < productTypesCount, "Cover: Invalid productType");
+    require(
+      areAssetsSupported(product.coverAssets, _coverAssetsFallback),
+      "Cover: Unsupported cover assets");
+    require(
+      product.initialPriceRatio >= GLOBAL_MIN_PRICE_RATIO,
+      "Cover: initialPriceRatio < GLOBAL_MIN_PRICE_RATIO"
+    );
+    require(
+      product.capacityReductionRatio <= CAPACITY_REDUCTION_DENOMINATOR,
+      "Cover: capacityReductionRatio must be less than or equal to 100%"
+    );
   }
 
   function setInitialPrices(
@@ -737,6 +772,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint8 assetId
   ) internal pure returns (bool) {
     return deprecatedCoverAssetsBitmap & (1 << assetId) > 0;
+  }
+
+
+  /// @dev Returns true if the assetsBitMap set is included in the coverAssetFallback set
+  ///
+  /// @param assetsBitMap the assets bitmap for a product
+  /// @param coverAssetFallback  The coverAssetFallback as defined for the storage var with the same name
+  function areAssetsSupported(uint32 assetsBitMap, uint32 coverAssetFallback) public pure returns (bool) {
+    return assetsBitMap & bitwiseNegate(coverAssetFallback) == 0;
+  }
+
+  function bitwiseNegate(uint32 value) internal pure returns (uint32) {
+    return value ^ 0xff;
   }
 
   /* ========== DEPENDENCIES ========== */

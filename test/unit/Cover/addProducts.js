@@ -15,8 +15,11 @@ describe('addProducts', function () {
     };
 
     const newProductId = await cover.productsCount();
+    const ipfsHash = 'magic metadata';
 
-    await cover.connect(advisoryBoardMember0).addProducts([newProduct], ['magic metadata']);
+    await expect(cover.connect(advisoryBoardMember0).addProducts([newProduct], [ipfsHash]))
+      .to.emit(cover, 'ProductSet')
+      .withArgs(newProductId, ipfsHash);
 
     const productAfter = await cover.products(newProductId);
 

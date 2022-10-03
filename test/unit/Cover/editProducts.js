@@ -12,11 +12,15 @@ describe('editProducts', function () {
       capacityReductionRatio: 500,
     };
 
-    const productBefore = await cover.products(0);
+    const productId = 0;
+    const productBefore = await cover.products(productId);
+    const ipfsHash = 'magic metadata';
 
-    await cover.connect(advisoryBoardMember0).editProducts([0], [newProductValues], ['magic metadata']);
+    await expect(cover.connect(advisoryBoardMember0).editProducts([0], [newProductValues], [ipfsHash]))
+      .to.emit(cover, 'ProductSet')
+      .withArgs(productId, ipfsHash);
 
-    const productAfter = await cover.products(0);
+    const productAfter = await cover.products(productId);
 
     expect(productBefore.productType).to.be.equal(productAfter.productType);
     expect(productBefore.productAddress).to.be.equal(productAfter.productAddress);

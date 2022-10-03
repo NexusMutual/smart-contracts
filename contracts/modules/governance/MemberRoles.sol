@@ -68,7 +68,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   /// Changes the maximum number of advisory board members.
   ///
   /// @param _val  The new maximum number of advisory board members.
-  function changeMaxABCount(uint _val) external onlyInternal {
+  function changeMaxABCount(uint _val) external onlyGovernance {
     maxABCount = _val;
   }
 

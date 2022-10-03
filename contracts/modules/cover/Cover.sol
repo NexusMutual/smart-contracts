@@ -668,7 +668,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     Product memory product,
     uint32 _coverAssetsFallback,
     uint productTypesCount
-  ) internal view {
+  ) internal pure {
 
     require(product.productType < productTypesCount, "Cover: Invalid productType");
     require(
@@ -682,25 +682,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       product.capacityReductionRatio <= CAPACITY_REDUCTION_DENOMINATOR,
       "Cover: capacityReductionRatio must be less than or equal to 100%"
     );
-  }
-
-  function setInitialPrices(
-    uint[] calldata productIds,
-    uint16[] calldata initialPriceRatios
-  ) external override onlyAdvisoryBoard {
-
-    require(productIds.length == initialPriceRatios.length, "Cover: Array lengths must not be different");
-
-    for (uint i = 0; i < productIds.length; i++) {
-      require(initialPriceRatios[i] >= GLOBAL_MIN_PRICE_RATIO, "Cover: Initial price must be greater than the global min price");
-      _products[productIds[i]].initialPriceRatio = initialPriceRatios[i];
-    }
-  }
-
-  function setCapacityReductionRatio(uint productId, uint16 reduction) external onlyAdvisoryBoard {
-
-    require(reduction <= CAPACITY_REDUCTION_DENOMINATOR, "Cover: LTADeduction must be less than or equal to 100%");
-    _products[productId].capacityReductionRatio = reduction;
   }
 
   /* ========== ACTIVE COVER AMOUNT TRACKING ========== */

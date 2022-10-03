@@ -157,11 +157,6 @@ interface ICover {
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
-  function setInitialPrices(
-    uint[] calldata productId,
-    uint16[] calldata initialPriceRatio
-  ) external;
-
   function addProducts(
     Product[] calldata newProducts,
     string[] calldata ipfsMetadata

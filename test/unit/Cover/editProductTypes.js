@@ -6,19 +6,24 @@ describe('editProductTypes', function () {
 
     const productTypeId = 0;
 
-    const productTypeData = {
-      claimMethod: 2,
-      gracePeriodInDays: 45,
-    };
+    const gracePeriodsInDays = [45];
 
-    await cover
-      .connect(accounts.advisoryBoardMembers[0])
-      .editProductTypes([productTypeId], [productTypeData], ['my ipfs hash']);
+    const productTypeBefore = await cover.productTypes(productTypeId);
 
-    const storedProduct = await cover.productTypes(productTypeId);
+    const ipfsHash = 'my ipfs hash';
 
-    expect(storedProduct.claimMethod).to.be.equal(productTypeData.claimMethod);
-    expect(storedProduct.gracePeriodInDays).to.be.equal(productTypeData.gracePeriodInDays);
+    await expect(
+      cover
+        .connect(accounts.advisoryBoardMembers[0])
+        .editProductTypes([productTypeId], [gracePeriodsInDays], [ipfsHash]),
+    )
+      .to.emit(cover, 'ProductTypeSet')
+      .withArgs(productTypeId, ipfsHash);
+
+    const productTypeAfter = await cover.productTypes(productTypeId);
+
+    expect(productTypeAfter.claimMethod).to.be.equal(productTypeBefore.claimMethod);
+    expect(productTypeAfter.gracePeriodInDays).to.be.equal(gracePeriodsInDays[0]);
   });
 
   it('should revert when called by non-advisory board', async function () {
@@ -26,16 +31,7 @@ describe('editProductTypes', function () {
 
     const productTypeId = 0;
     await expect(
-      cover.connect(accounts.nonMembers[0]).editProductTypes(
-        [productTypeId],
-        [
-          {
-            claimMethod: 1,
-            gracePeriodInDays: 39,
-          },
-        ],
-        ['my ipfs hash'],
-      ),
+      cover.connect(accounts.nonMembers[0]).editProductTypes([productTypeId], [39], ['my ipfs hash']),
     ).to.be.revertedWith('Caller is not an advisory board member');
   });
 });

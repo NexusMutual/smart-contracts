@@ -167,6 +167,12 @@ interface ICover {
     string[] calldata ipfsMetadata
   ) external;
 
+  function editProductTypes(
+    uint[] calldata productTypeIds,
+    uint16[] calldata gracePeriodsInDays,
+    string[] calldata ipfsMetadata
+  ) external;
+
   function editProducts(
     uint[] calldata productIds,
     ProductUpdate[] calldata productUpdates,
@@ -196,8 +202,8 @@ interface ICover {
   /* ========== EVENTS ========== */
 
   event StakingPoolCreated(address stakingPoolAddress, uint poolId, address manager, address stakingPoolImplementation);
-  event ProductTypeUpserted(uint id, string ipfsMetadata);
   event ProductSet(uint id, string ipfsMetadata);
+  event ProductTypeSet(uint id, string ipfsMetadata);
   event CoverBought(uint coverId, uint productId, uint segmentId, address buyer, string ipfsMetadata);
   event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
   event CoverExpired(uint coverId, uint segmentId);

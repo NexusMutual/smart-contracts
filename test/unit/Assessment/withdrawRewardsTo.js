@@ -1,6 +1,5 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { expectRevert } = require('@openzeppelin/test-helpers');
 const { setTime } = require('./helpers');
 
 const { parseEther } = ethers.utils;
@@ -205,8 +204,7 @@ describe('withdrawRewardsTo', function () {
       const { timestamp } = await ethers.provider.getBlock('latest');
       await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
 
-      await expectRevert(
-        assessment.connect(user1).withdrawRewardsTo(nonMember, 0),
+      await expect(assessment.connect(user1).withdrawRewardsTo(nonMember, 0)).to.be.revertedWith(
         'Destination address is not a member',
       );
     }

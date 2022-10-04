@@ -269,14 +269,14 @@ contract StakingPool is IStakingPool, ERC721 {
         // each bucket contains a reward reduction - we subtract it when the bucket *starts*!
 
         ++_firstActiveBucketId;
-        uint bucketStartTime = _firstActiveBucketId * BUCKET_DURATION;
-        uint elapsed = bucketStartTime - _lastAccNxmUpdate;
+        uint bucketEndTime = _firstActiveBucketId * BUCKET_DURATION;
+        uint elapsed = bucketEndTime - _lastAccNxmUpdate;
 
         uint newAccNxmPerRewardsShare = elapsed * _rewardPerSecond / _rewardsSharesSupply;
         _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
 
         _rewardPerSecond -= rewardBuckets[_firstActiveBucketId].rewardPerSecondCut;
-        _lastAccNxmUpdate = bucketStartTime;
+        _lastAccNxmUpdate = bucketEndTime;
 
         continue;
       }

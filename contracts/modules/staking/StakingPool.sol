@@ -214,9 +214,10 @@ contract StakingPool is IStakingPool, ERC721 {
     uint currentBucketId = block.timestamp / BUCKET_DURATION;
     uint currentTrancheId = block.timestamp / TRANCHE_DURATION;
 
-    // skip if the pool is new
+    // if the pool is new
     if (_firstActiveBucketId == 0) {
-      return;
+      _firstActiveBucketId = currentBucketId;
+      _firstActiveTrancheId = currentTrancheId;
     }
 
     // if a force update was not requested
@@ -246,9 +247,7 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     if (_rewardsSharesSupply == 0) {
-      // nothing to do
-      firstActiveBucketId = currentBucketId;
-      firstActiveTrancheId = currentTrancheId;
+      // nothing to do, just update lastAccNxmUpdate
       lastAccNxmUpdate = block.timestamp;
       return;
     }

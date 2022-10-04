@@ -71,7 +71,7 @@ interface IStakingPool {
     uint rewardsShares;
   }
 
-  struct Product {
+  struct StakedProduct {
     uint8 lastWeight;
     uint8 targetWeight;
     uint96 targetPrice;
@@ -118,6 +118,8 @@ interface IStakingPool {
   function setPoolFee(uint newFee) external;
 
   function setPoolPrivacy(bool isPrivatePool) external;
+
+  function setProducts(ProductParams[] memory params) external;
 
   function manager() external view returns (address);
 

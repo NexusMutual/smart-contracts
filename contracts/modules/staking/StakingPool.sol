@@ -84,7 +84,7 @@ contract StakingPool is IStakingPool, ERC721 {
   mapping(uint => uint) public coverTrancheAllocations;
 
   // product id => Product
-  mapping(uint => Product) public products;
+  mapping(uint => StakedProduct) public products;
 
   // token id => tranche id => deposit data
   mapping(uint => mapping(uint => Deposit)) public deposits;
@@ -1225,15 +1225,11 @@ contract StakingPool is IStakingPool, ERC721 {
     uint32 _targetWeight = targetWeight;
     for (uint i = 0; i < params.length; i++) {
       ProductParams memory _param = params[i];
-      Product memory _product = products[_param.productId];
-
+      StakedProduct memory _product = products[_param.productId];
       if (_product.nextPriceUpdateTime == 0) {
-        // TODO: rename structs StakingPool.Product / Cover.Product
-          (bool success, bytes memory data) = coverContract.staticcall(abi.encodeWithSelector(ICover.products.selector, _param.productId));
-        require(success, string(data));
-        (, , , uint16 initialPriceRatio, ) = abi.decode(data, (uint16, address, uint32, uint16, uint16));
-        require(initialPriceRatio > 0, "Failed to get initial price for product");
-        _product.nextPrice = initialPriceRatio;
+        Product memory coverProduct = ICover(coverContract).products(_param.productId);
+        require(coverProduct.initialPriceRatio > 0, "Failed to get initial price for product");
+        _product.nextPrice = coverProduct.initialPriceRatio;
         _product.nextPriceUpdateTime = uint32(block.timestamp);
       }
 
@@ -1262,7 +1258,7 @@ contract StakingPool is IStakingPool, ERC721 {
   function _setInitialPrices(ProductInitializationParams[] memory params) internal returns (ProductParams[] memory res) {
     res = new ProductParams[](params.length);
     for (uint i = 0; i < params.length; i++) {
-      Product storage _product = products[params[i].productId];
+      StakedProduct storage _product = products[params[i].productId];
       _product.nextPrice = params[i].initialPrice;
       _product.nextPriceUpdateTime = uint32(block.timestamp);
       res[i] = ProductParams(params[i].productId, true, params[i].weight, true, params[i].targetPrice);
@@ -1339,7 +1335,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint totalCapacity
   ) internal returns (uint) {
 
-    Product memory product = products[productId];
+    StakedProduct memory product = products[productId];
 
     // use previously recorded next price and apply time based smoothing towards target price
     uint basePrice = calculateBasePrice(

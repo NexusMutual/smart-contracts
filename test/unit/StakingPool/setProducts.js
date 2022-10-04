@@ -21,7 +21,7 @@ describe('setProducts unit tests', function () {
       targetPrice,
     };
   };
-  // Staking.Product
+  // Staking.ProductParam
   const getNewProduct = (weight, price, id) => {
     return {
       productId: id,
@@ -49,9 +49,12 @@ describe('setProducts unit tests', function () {
     return getNewProduct(weight, price, id);
   };
 
-  const verifyProduct = (product, weight, price) => {
+  const verifyProduct = (product, weight, price, initialPrice) => {
     expect(product.targetWeight).to.be.equal(weight);
     expect(product.targetPrice).to.be.equal(price);
+    // TODO: verify exact nextPriceUpdateTime
+    expect(product.nextPriceUpdateTime).to.be.greaterThan(0);
+    expect(product.nextPrice).to.be.equal(initialPrice);
   };
 
   it('should fail to be called by non manager', async function () {
@@ -71,9 +74,7 @@ describe('setProducts unit tests', function () {
     const initialProducts = Array.from({ length: 20 }, () => getInitialProduct(100, 100, 500, i++));
     await initializePool(cover, stakingPool, defaultSender.address, 0, initialProducts);
     const product = await stakingPool.products(0);
-    verifyProduct(product, 100, 100);
-    expect(product.nextPriceUpdateTime).to.be.greaterThan(0);
-    expect(product.nextPrice).to.be.equal(500);
+    verifyProduct(product, 100, 100, 500);
   });
 
   it('should fail to initialize too many products with full weight', async function () {
@@ -93,10 +94,7 @@ describe('setProducts unit tests', function () {
     const product = await initProduct(cover, 50, 100, 100, 0);
     await stakingPool.setProducts([product]);
     const product0 = await stakingPool.products(0);
-    verifyProduct(product, 100, 100);
-    expect(product0.nextPrice).to.be.equal(50);
-    // TODO: verify nextPriceUpdateTime
-    expect(product0.nextPriceUpdateTime).to.be.greaterThan(0);
+    verifyProduct(product0, 100, 100, 50);
   });
 
   it('should add and remove products in same tx', async function () {
@@ -118,10 +116,9 @@ describe('setProducts unit tests', function () {
     const product0 = await stakingPool.products(0);
     const product1 = await stakingPool.products(1);
     const product2 = await stakingPool.products(2);
-    verifyProduct(product1, 50, 50);
-    verifyProduct(product0, 0, 50);
-    verifyProduct(product2, 50, 50);
-    expect(product1.nextPrice).to.equal(initialPriceRatio);
+    verifyProduct(product1, 50, 50, initialPriceRatio);
+    verifyProduct(product0, 0, 50, initialPriceRatio);
+    verifyProduct(product2, 50, 50, initialPriceRatio);
   });
 
   it('should add maximum products with full weight (20)', async function () {
@@ -133,8 +130,7 @@ describe('setProducts unit tests', function () {
     await stakingPool.setProducts(products);
     expect(await stakingPool.targetWeight()).to.be.equal(2000);
     const product19 = await stakingPool.products(19);
-    verifyProduct(product19, 100, 100, 19);
-    expect(product19.nextPrice).to.be.equal(999);
+    verifyProduct(product19, 100, 100, 999);
   });
 
   it('should fail to add weights beyond 20x', async function () {
@@ -148,7 +144,7 @@ describe('setProducts unit tests', function () {
     await expect(stakingPool.setProducts(newProduct)).to.be.revertedWith('Target weight above 20');
     expect(await stakingPool.targetWeight()).to.be.equal(2000);
     const product0 = await stakingPool.products(0);
-    verifyProduct(product0, 100, 100, 19);
+    verifyProduct(product0, 100, 100, 1);
     expect(product0.nextPrice).to.be.equal(1);
   });
 
@@ -169,10 +165,10 @@ describe('setProducts unit tests', function () {
     product.setPrice = false;
     expect(product.targetPrice).to.be.equal(20);
     await stakingPool.setProducts([product]);
-    verifyProduct(await stakingPool.products(0), 0, 0);
+    verifyProduct(await stakingPool.products(0), 0, 0, 1);
     product.targetWeight = 100;
     await stakingPool.setProducts([product]);
-    verifyProduct(await stakingPool.products(0), 100, 0);
+    verifyProduct(await stakingPool.products(0), 100, 0, 1);
   });
 
   it('should edit prices and skip weights', async function () {
@@ -182,10 +178,10 @@ describe('setProducts unit tests', function () {
     const product = await initProduct(cover, 1, 80, 50, 0);
     product.setWeight = false;
     await stakingPool.setProducts([product]);
-    verifyProduct(await stakingPool.products(0), 0, 50);
+    verifyProduct(await stakingPool.products(0), 0, 50, 1);
     product.targetPrice = 100;
     await stakingPool.setProducts([product]);
-    verifyProduct(await stakingPool.products(0), 0, 100);
+    verifyProduct(await stakingPool.products(0), 0, 100, 1);
   });
 
   it('should fail with targetPrice too high', async function () {

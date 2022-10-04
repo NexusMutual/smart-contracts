@@ -6,14 +6,16 @@ describe('editProductTypes', function () {
 
     const productTypeId = 0;
 
-    const gracePeriodsInDays = [46];
+    const gracePeriodInDays = 46;
 
     const productTypeBefore = await cover.productTypes(productTypeId);
 
     const ipfsHash = 'my ipfs hash';
 
     await expect(
-      cover.connect(accounts.advisoryBoardMembers[0]).editProductTypes([productTypeId], gracePeriodsInDays, [ipfsHash]),
+      cover
+        .connect(accounts.advisoryBoardMembers[0])
+        .editProductTypes([productTypeId], [gracePeriodInDays], [ipfsHash]),
     )
       .to.emit(cover, 'ProductTypeSet')
       .withArgs(productTypeId, ipfsHash);
@@ -21,7 +23,7 @@ describe('editProductTypes', function () {
     const productTypeAfter = await cover.productTypes(productTypeId);
 
     expect(productTypeAfter.claimMethod).to.be.equal(productTypeBefore.claimMethod);
-    expect(productTypeAfter.gracePeriodInDays).to.be.equal(gracePeriodsInDays[0]);
+    expect(productTypeAfter.gracePeriodInDays).to.be.equal(gracePeriodInDays);
   });
 
   it('should revert when called by non-advisory board', async function () {

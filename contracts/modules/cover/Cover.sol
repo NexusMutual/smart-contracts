@@ -644,7 +644,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   function editProducts(
     uint[] calldata productIds,
-    ProductUpdates[] calldata productUpdates,
+    ProductUpdate[] calldata productUpdates,
     string[] calldata ipfsMetadata
   ) external override onlyAdvisoryBoard {
 
@@ -673,7 +673,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     require(product.productType < productTypesCount, "Cover: Invalid productType");
     require(
       areAssetsSupported(product.coverAssets, _coverAssetsFallback),
-      "Cover: Unsupported cover assets");
+      "Cover: Unsupported cover assets"
+    );
     require(
       product.initialPriceRatio >= GLOBAL_MIN_PRICE_RATIO,
       "Cover: initialPriceRatio < GLOBAL_MIN_PRICE_RATIO"

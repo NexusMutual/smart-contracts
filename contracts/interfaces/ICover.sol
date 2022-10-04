@@ -101,7 +101,7 @@ struct Product {
 }
 
 // Updatable fields for an already existing product
-struct ProductUpdates {
+struct ProductUpdate {
   /*
     cover assets bitmap. each bit in the base-2 representation represents whether the asset with the index
     of that bit is enabled as a cover asset for this product.
@@ -169,7 +169,7 @@ interface ICover {
 
   function editProducts(
     uint[] calldata productIds,
-    ProductUpdates[] calldata productUpdates,
+    ProductUpdate[] calldata productUpdates,
     string[] calldata ipfsMetadata
   ) external;
 

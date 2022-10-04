@@ -6,16 +6,14 @@ describe('editProductTypes', function () {
 
     const productTypeId = 0;
 
-    const gracePeriodsInDays = [45];
+    const gracePeriodsInDays = [46];
 
     const productTypeBefore = await cover.productTypes(productTypeId);
 
     const ipfsHash = 'my ipfs hash';
 
     await expect(
-      cover
-        .connect(accounts.advisoryBoardMembers[0])
-        .editProductTypes([productTypeId], [gracePeriodsInDays], [ipfsHash]),
+      cover.connect(accounts.advisoryBoardMembers[0]).editProductTypes([productTypeId], gracePeriodsInDays, [ipfsHash]),
     )
       .to.emit(cover, 'ProductTypeSet')
       .withArgs(productTypeId, ipfsHash);

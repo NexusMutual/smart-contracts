@@ -56,6 +56,26 @@ async function setup() {
     [18, 18, 6],
   );
 
+  /* deploy enzyme mocks */
+  const enzymeV4Comptroller = await P1MockEnzymeV4Comptroller.new(weth.address);
+
+  /* move weth to Comptroller */
+
+  const comtrollerWethReserves = ether('10000');
+  await weth.deposit({
+    value: comtrollerWethReserves,
+  });
+  await weth.transfer(enzymeV4Comptroller.address, comtrollerWethReserves);
+
+  const enzymeV4Vault = await P1MockEnzymeV4Vault.new(
+    enzymeV4Comptroller.address,
+    'Enzyme V4 Vault Share ETH',
+    'EVSE',
+    18,
+  );
+
+  await enzymeV4Comptroller.setVault(enzymeV4Vault.address);
+
   // Deploy Pool
   const pool = await Pool.deploy(
     master.address,
@@ -87,6 +107,10 @@ async function setup() {
   // Setup pool's swap operator
   await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), swapOperator.address);
 
+  const accounts = {
+    governanceAccounts: [governance],
+  };
+
   Object.assign(instances, {
     dai,
     weth,
@@ -100,6 +124,7 @@ async function setup() {
     daiAggregator,
     cowSettlement,
     cowVaultRelayer,
+    accounts,
   });
 }
 

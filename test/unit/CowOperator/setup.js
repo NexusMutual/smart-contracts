@@ -25,6 +25,12 @@ async function setup() {
   const CSMockVaultRelayer = await ethers.getContractFactory('CSMockVaultRelayer');
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+  const SOMockEnzymeV4Comptroller = await ethers.getContractFactory('SOMockEnzymeV4Comptroller');
+  const SOMockEnzymeFundValueCalculatorRouter = await ethers.getContractFactory(
+    'SOMockEnzymeFundValueCalculatorRouter',
+  );
+  const SOMockEnzymeV4DepositWrapper = await ethers.getContractFactory('SOMockEnzymeV4DepositWrapper');
+  const SOMockEnzymeV4Vault = await ethers.getContractFactory('SOMockEnzymeV4Vault');
 
   // Deploy WETH + ERC20 test tokens
   const weth = await CSMockWeth.deploy();
@@ -57,17 +63,17 @@ async function setup() {
   );
 
   /* deploy enzyme mocks */
-  const enzymeV4Comptroller = await P1MockEnzymeV4Comptroller.new(weth.address);
+  const enzymeV4Comptroller = await SOMockEnzymeV4Comptroller.deploy(weth.address);
 
   /* move weth to Comptroller */
 
-  const comtrollerWethReserves = ether('10000');
+  const comtrollerWethReserves = parseEther('10000');
   await weth.deposit({
     value: comtrollerWethReserves,
   });
   await weth.transfer(enzymeV4Comptroller.address, comtrollerWethReserves);
 
-  const enzymeV4Vault = await P1MockEnzymeV4Vault.new(
+  const enzymeV4Vault = await SOMockEnzymeV4Vault.deploy(
     enzymeV4Comptroller.address,
     'Enzyme V4 Vault Share ETH',
     'EVSE',
@@ -75,6 +81,8 @@ async function setup() {
   );
 
   await enzymeV4Comptroller.setVault(enzymeV4Vault.address);
+
+  const enzymeFundValueCalculatorRouter = await SOMockEnzymeFundValueCalculatorRouter.deploy(weth.address);
 
   // Deploy Pool
   const pool = await Pool.deploy(
@@ -102,6 +110,8 @@ async function setup() {
     await owner.getAddress(),
     master.address,
     weth.address,
+    enzymeV4Vault.address,
+    enzymeFundValueCalculatorRouter.address,
   );
 
   // Setup pool's swap operator

@@ -105,37 +105,39 @@ contract StakingPool is IStakingPool, ERC721 {
 
   uint public constant REWARD_BONUS_PER_TRANCHE_RATIO = 10_00; // 10.00%
   uint public constant REWARD_BONUS_PER_TRANCHE_DENOMINATOR = 100_00;
-  uint public constant PRODUCT_WEIGHT_DENOMINATOR = 100_00;
   uint public constant WEIGHT_DENOMINATOR = 100;
   uint public constant REWARDS_DENOMINATOR = 100_00;
-  uint public constant FEE_DENOMINATOR = 100;
+  uint public constant POOL_FEE_DENOMINATOR = 100;
 
   // denominators for cover contract parameters
   uint public constant GLOBAL_CAPACITY_DENOMINATOR = 100_00;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 100_00;
   uint public constant INITIAL_PRICE_DENOMINATOR = 100_00;
 
-  // next price smoothing
-  uint public constant PRICE_CHANGE_PER_DAY = 0.005 ether; // 0.5%
+  // base price bump is +0.2% for each 1% of capacity used, ie +20% for 100%
+  // 20% = 0.2
+  uint public constant PRICE_BUMP_RATIO = 0.2 ether;
 
-  uint public constant SURGE_THRESHOLD_RATIO = 90_00; // 80.00%
+  // next price smoothing
+  // 0.005 ether = 0.5% out of 1e18
+  uint public constant PRICE_CHANGE_PER_DAY = 0.005 ether;
+
+  // +2% for every 1%, ie +200% for 100%
+  uint public constant SURGE_PRICE_RATIO = 2 ether;
+
+  uint public constant SURGE_THRESHOLD_RATIO = 90_00; // 90.00%
   uint public constant SURGE_THRESHOLD_DENOMINATOR = 100_00; // 100.00%
 
-  // +2% for every 1%
-  uint public constant SURGE_PRICE_RATIO = 200_00; // 200.00%
-  uint public constant SURGE_PRICE_DENOMINATOR = 100_00; // 100.00%
+  // 1 nxm = 1e18
+  uint public constant ONE_NXM = 1 ether;
 
-  // base price bump by 0.002% for each 1% of capacity used, ie 2% for 100%
-  uint public constant PRICE_BUMP_RATIO = 2_00; // 2.00%
-  uint public constant PRICE_BUMP_DENOMINATOR = 100_00; // 100.00%
+  // internally we store capacity using 2 decimals
+  // 1 nxm of capacity is stored as 100
+  uint public constant ALLOCATION_UNITS_PER_NXM = 100;
 
-  // TODO: consider renaming to ONE_NXM
-  // 1e18
-  uint public constant TOKEN_PRECISION = 1 ether;
-
-  // smallest unit we can allocate is 0.01 NXM
-  // allocation will happen in whole increments of this value
-  uint public constant ALLOCATION_UNIT_SIZE = 1e16;
+  // given capacities have 2 decimals
+  // smallest unit we can allocate is 1e18 / 100 = 1e16 = 0.01 NXM
+  uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
   modifier onlyCoverContract {
     require(msg.sender == coverContract, "StakingPool: Only Cover contract can call this function");
@@ -420,7 +422,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
         {
           // create fee deposit reward shares
-          uint newFeeRewardShares = newRewardsShares * poolFee / FEE_DENOMINATOR;
+          uint newFeeRewardShares = newRewardsShares * poolFee / POOL_FEE_DENOMINATOR;
           newRewardsShares += newFeeRewardShares;
 
           // calculate rewards until now
@@ -589,7 +591,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
     (
       uint[] memory trancheAllocatedCapacities,
-      uint totalAllocatedCapacity
+      uint initialCapacityUsed
     ) = getAllocatedCapacities(
       request.productId,
       firstTrancheIdToUse,
@@ -608,7 +610,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
     {
       uint[] memory coverTrancheAllocation = new uint[](trancheCount);
-      uint remainingAmount = Math.divCeil(request.amount, ALLOCATION_UNIT_SIZE);
+      uint remainingAmount = Math.divCeil(request.amount, NXM_PER_ALLOCATION_UNIT);
 
       for (uint i = 0; i < trancheCount; i++) {
 
@@ -647,14 +649,12 @@ contract StakingPool is IStakingPool, ERC721 {
       );
     }
 
-    // allocatedCoverAmount, totalAllocatedCapacity and totalCapacity have 2 decimals.
-    // the premium calculation formula works with 18 decimal initial price so the premium
-    // is returned with 18 decimals.
+    // the returned premium value has 18 decimals
     premium = getPremium(
       request.productId,
-      allocatedCoverAmount,
       request.period,
-      totalAllocatedCapacity,
+      allocatedCoverAmount,
+      initialCapacityUsed,
       totalCapacity
     );
 
@@ -671,7 +671,7 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     // scale back from 2 to 18 decimals
-    allocatedCoverAmount *= ALLOCATION_UNIT_SIZE;
+    allocatedCoverAmount *= NXM_PER_ALLOCATION_UNIT;
 
     // premium and rewards already have 18 decimals
     return (allocatedCoverAmount, premium, rewards);
@@ -1309,24 +1309,29 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function getPremium(
     uint productId,
-    uint coverAmount,
     uint period,
-    uint allocatedCapacity,
+    uint coverAmount,
+    uint initialCapacityUsed,
     uint totalCapacity
   ) internal returns (uint) {
 
     Product memory product = products[productId];
 
-    // use previously recorded next price and apply time based smoothing towards target price
-    uint basePrice = calculateBasePrice(
-      product.targetPrice,
-      product.nextPrice,
-      product.nextPriceUpdateTime,
-      block.timestamp
-    );
+    uint basePrice;
+    {
+      // use previously recorded next price and apply time based smoothing towards target price
+      uint timeSinceLastUpdate = block.timestamp - product.nextPriceUpdateTime;
+      uint priceDrop = PRICE_CHANGE_PER_DAY * timeSinceLastUpdate / 1 days;
+
+      // basePrice = max(targetPrice, nextPrice - priceDrop)
+      // rewritten to avoid underflow
+      basePrice = product.nextPrice < product.targetPrice + priceDrop
+        ? product.targetPrice
+        : product.nextPrice - priceDrop;
+    }
 
     // calculate the next price by applying the price bump
-    uint priceBump = coverAmount * PRICE_BUMP_RATIO / totalCapacity / PRICE_BUMP_DENOMINATOR;
+    uint priceBump = PRICE_BUMP_RATIO * coverAmount / totalCapacity;
     product.nextPrice = (basePrice + priceBump).toUint96();
     product.nextPriceUpdateTime = uint32(block.timestamp);
 
@@ -1337,32 +1342,12 @@ contract StakingPool is IStakingPool, ERC721 {
     uint premiumPerYear = calculatePremiumPerYear(
       basePrice,
       coverAmount,
-      allocatedCapacity,
+      initialCapacityUsed,
       totalCapacity
     );
 
     // calculate the premium for the requested period
     return premiumPerYear * period / 365 days;
-  }
-
-  function calculateBasePrice(
-    uint targetPrice,
-    uint nextPrice,
-    uint nextPriceUpdateTime,
-    uint currentTime
-  ) public pure returns (uint) {
-
-    uint timeSinceLastUpdate = currentTime - nextPriceUpdateTime;
-    uint priceDrop = PRICE_CHANGE_PER_DAY * timeSinceLastUpdate / 1 days;
-
-    // basePrice = max(targetPrice, nextPrice - priceDrop)
-    // rewritten to avoid underflow
-
-    if (nextPrice < targetPrice + priceDrop) {
-      return targetPrice;
-    }
-
-    return nextPrice - priceDrop;
   }
 
   function calculatePremiumPerYear(
@@ -1372,9 +1357,20 @@ contract StakingPool is IStakingPool, ERC721 {
     uint totalCapacity
   ) public pure returns (uint) {
 
-    uint basePremium = coverAmount * basePrice / TOKEN_PRECISION;
-    uint surgeStartPoint = totalCapacity * SURGE_THRESHOLD_RATIO / SURGE_THRESHOLD_DENOMINATOR;
+    // base price has 18 decimals
+    // cover amount has 2 decimals (100 = 1 unit)
+    // dividing by ALLOCATION_UNITS_PER_NXM (=100) to get the right amount of decimals
+    uint basePremium = basePrice * coverAmount / ALLOCATION_UNITS_PER_NXM;
     uint finalCapacityUsed = initialCapacityUsed + coverAmount;
+
+    // surge price is applied for the capacity used above SURGE_THRESHOLD_RATIO.
+    // the surge price starts at zero and increases linearly.
+    // to simplify things, we're working with fractions/ratios instead of percentages,
+    // ie 0 to 1 instead of 0% to 100%, 100% = 1 (a unit).
+    //
+    // surgeThreshold = SURGE_THRESHOLD_RATIO / SURGE_THRESHOLD_DENOMINATOR
+    //                = 90_00 / 100_00 = 0.9
+    uint surgeStartPoint = totalCapacity * SURGE_THRESHOLD_RATIO / SURGE_THRESHOLD_DENOMINATOR;
 
     // Capacity and surge pricing
     //
@@ -1412,32 +1408,25 @@ contract StakingPool is IStakingPool, ERC721 {
 
   // Calculates the premium for a given cover amount starting with the surge point
   function calculateSurgePremium(
-    uint amount,
+    uint amountOnSurge,
     uint totalCapacity
   ) internal pure returns (uint) {
 
-    // surge price is applied for the capacity used above SURGE_THRESHOLD_RATIO.
-    // the surge price starts at zero and increases linearly.
-    // to simplify things, we're working with fractions/ratios instead of percentages,
-    // ie 0 to 1 instead of 0% to 100%, 100% = 1 (a unit).
+    // for every percent of capacity used, the surge price has a +2% increase per annum
+    // meaning a +200% increase for 100%, ie x2 for a whole unit (100%) of capacity in ratio terms
     //
-    // surgeThreshold = SURGE_THRESHOLD_RATIO / SURGE_THRESHOLD_DENOMINATOR
-    //                = 80_00 / 100_00 = 0.8
-    //
-    // for each percent of capacity used, the surge price increases by 10% per annum
-    // which in fractions/ratios terms is a 0.1 increase for each 0.01 of capacity used
-    // meaning an increase by 10 (equivalent of 1000%) for an entire unit
-    //
-    // priceIncreasePerUnit = SURGE_PRICE_RATIO / SURGE_PRICE_DENOMINATOR
-    // coverToCapacityRatio = amount / totalCapacity
+    // coverToCapacityRatio = amountOnSurge / totalCapacity
     // surgePriceStart = 0
-    // surgePriceEnd = coverToCapacityRatio * priceIncreasePerUnit
+    // surgePriceEnd = SURGE_PRICE_RATIO * coverToCapacityRatio
     //
-    // premium = amount * surgePriceEnd / 2
-    //         = amount * coverToCapacityRatio * priceIncreasePerUnit / 2
-    //         = amount * amount / totalCapacity * SURGE_PRICE_RATIO / SURGE_PRICE_DENOMINATOR / 2
-    //         = amount * amount * SURGE_PRICE_RATIO / totalCapacity / SURGE_PRICE_DENOMINATOR / 2
+    // surgePremium = amountOnSurge * surgePriceEnd / 2
+    //              = amountOnSurge * SURGE_PRICE_RATIO * coverToCapacityRatio / 2
+    //              = amountOnSurge * SURGE_PRICE_RATIO * amountOnSurge / totalCapacity / 2
 
-    return amount * amount * SURGE_PRICE_RATIO / totalCapacity / SURGE_PRICE_DENOMINATOR / 2;
+    uint surgePremium = amountOnSurge * SURGE_PRICE_RATIO * amountOnSurge / totalCapacity / 2;
+
+    // amountOnSurge has two decimals
+    // dividing by ALLOCATION_UNITS_PER_NXM (=100) to normalize the result
+    return surgePremium / ALLOCATION_UNITS_PER_NXM;
   }
 }

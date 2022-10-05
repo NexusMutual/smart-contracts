@@ -45,7 +45,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   uint private constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
   // TODO: consider renaming to ONE_NXM
+  // 1 nxm = 1e18
   uint private constant NXM_IN_WEI = 1e18;
+
+  // internally we store capacity using 2 decimals
+  // 1 nxm of capacity is stored as 100
+  uint private constant ALLOCATION_UNITS_PER_NXM = 100;
+
+  // given capacities have 2 decimals
+  // smallest unit we can allocate is 1e18 / 100 = 1e16 = 0.01 NXM
+  uint private constant NXM_PER_ALLOCATION_UNIT = NXM_IN_WEI / ALLOCATION_UNITS_PER_NXM;
 
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
@@ -241,29 +250,32 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     // convert to NXM amount
     uint nxmPriceInCoverAsset = pool().getTokenPrice(params.coverAsset);
-    uint remainderAmountInNXM = 0;
+    uint requestedAmountInNXM = 0;
     uint totalCoverAmountInNXM = 0;
-
     uint _coverSegmentsCount = _coverSegments[coverId].length;
 
     for (uint i = 0; i < allocationRequests.length; i++) {
 
-      require(allocationRequests[i].coverAmountInAsset > 0, "Cover: coverAmountInAsset = 0");
+      uint poolCapacityRequested = allocationRequests[i].coverAmountInAsset;
+      require(poolCapacityRequested > 0, "Cover: coverAmountInAsset = 0");
 
-      uint requestedCoverAmountInNXM
-        = allocationRequests[i].coverAmountInAsset * NXM_IN_WEI / nxmPriceInCoverAsset + remainderAmountInNXM;
+      // adding capacity unallocated in the last round to the one requested for the current one
+      requestedAmountInNXM += poolCapacityRequested * NXM_IN_WEI / nxmPriceInCoverAsset;
+
+      // rounding up to the nearest NXM_PER_ALLOCATION_UNIT
+      requestedAmountInNXM = Math.divCeil(requestedAmountInNXM, NXM_PER_ALLOCATION_UNIT) * NXM_PER_ALLOCATION_UNIT;
 
       (uint coveredAmountInNXM, uint premiumInNXM, uint rewardsInNXM) = allocateCapacity(
         params,
         coverId,
         stakingPool(allocationRequests[i].poolId),
-        requestedCoverAmountInNXM
+        requestedAmountInNXM
       );
 
       // apply the global rewards ratio and the total Rewards in NXM
       tokenController().mintStakingPoolNXMRewards(rewardsInNXM, allocationRequests[i].poolId);
 
-      remainderAmountInNXM = requestedCoverAmountInNXM - coveredAmountInNXM;
+      requestedAmountInNXM -= coveredAmountInNXM;
       totalCoverAmountInNXM += coveredAmountInNXM;
       totalPremiumInNXM += premiumInNXM;
 
@@ -643,7 +655,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       emit ProductTypeSet(initialProuctTypesCount + i, ipfsMetadata[i]);
     }
   }
-  
+
   function editProductTypes(
     uint[] calldata productTypeIds,
     uint16[] calldata gracePeriodsInDays,

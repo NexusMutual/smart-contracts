@@ -10,16 +10,19 @@ const {
   utils: { parseEther, hexZeroPad, keccak256, toUtf8Bytes },
 } = ethers;
 
-describe('swapETHForEnzymeVaultShare', function () {
+describe.only('swapETHForEnzymeVaultShare', function () {
   it('should revert when called while the system is paused', async function () {
     const { master, swapOperator, enzymeV4Vault, pool } = this.contracts;
-    const governance = this.accounts.governanceContracts[0];
 
-    await pool.connect(governance).setAssetDetails(
+    const governance = this.accounts.governanceAccounts[0];
+
+    await pool.connect(governance).addAsset(
       enzymeV4Vault.address,
+      18, // decimals
       parseEther('100'), // asset minimum
       parseEther('1000'), // asset maximum
-      parseEther('0.01'), // max slippage
+      '100', // 1% max slippage
+      false, // isCoverAsset
     );
 
     const amountInPool = parseEther('2000');

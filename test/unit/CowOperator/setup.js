@@ -55,12 +55,8 @@ async function setup() {
   const usdcAggregator = await ChainlinkAggregatorMock.deploy();
   await usdcAggregator.setLatestAnswer(0.0002 * 1e18); // 1 usdc = 0.0002 eth, 1 eth = 5000 dai
 
-  // Deploy PriceFeedOracle
-  const priceFeedOracle = await PriceFeedOracle.deploy(
-    [dai.address, stEth.address, usdc.address],
-    [daiAggregator.address, stethAggregator.address, usdcAggregator.address],
-    [18, 18, 6],
-  );
+  const enzymeV4VaultAggregator = await ChainlinkAggregatorMock.deploy();
+  await enzymeV4VaultAggregator.setLatestAnswer(parseEther('1')); // 1 ETH = 1 share
 
   /* deploy enzyme mocks */
   const enzymeV4Comptroller = await SOMockEnzymeV4Comptroller.deploy(weth.address);
@@ -83,6 +79,13 @@ async function setup() {
   await enzymeV4Comptroller.setVault(enzymeV4Vault.address);
 
   const enzymeFundValueCalculatorRouter = await SOMockEnzymeFundValueCalculatorRouter.deploy(weth.address);
+
+  // Deploy PriceFeedOracle
+  const priceFeedOracle = await PriceFeedOracle.deploy(
+    [dai.address, stEth.address, usdc.address, enzymeV4Vault.address],
+    [daiAggregator.address, stethAggregator.address, usdcAggregator.address, enzymeV4VaultAggregator.address],
+    [18, 18, 6, 18],
+  );
 
   // Deploy Pool
   const pool = await Pool.deploy(
@@ -134,8 +137,26 @@ async function setup() {
     daiAggregator,
     cowSettlement,
     cowVaultRelayer,
-    accounts,
   });
+
+  this.accounts = accounts;
+  this.contracts = {
+    dai,
+    weth,
+    stEth,
+    usdc,
+    master,
+    pool,
+    mcr,
+    swapOperator,
+    priceFeedOracle,
+    daiAggregator,
+    cowSettlement,
+    cowVaultRelayer,
+    enzymeV4Vault,
+    enzymeV4Comptroller,
+    enzymeFundValueCalculatorRouter,
+  };
 }
 
 // helper function to alter a given value

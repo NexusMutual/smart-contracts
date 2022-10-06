@@ -218,7 +218,6 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       );
 
       {
-        ProductType memory productType = coverContract.productTypes(product.productType);
         require(
           coverSegment.start + coverSegment.period +
           coverSegment.gracePeriodInDays * 1 days >= block.timestamp,

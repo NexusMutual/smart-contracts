@@ -681,7 +681,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     Product memory product,
     uint32 _coverAssetsFallback,
     uint productTypesCount
-  ) internal {
+  ) internal pure {
 
     require(product.productType < productTypesCount, "Cover: Invalid productType");
     require(

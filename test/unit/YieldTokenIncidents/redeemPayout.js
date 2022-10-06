@@ -18,7 +18,7 @@ describe('redeemPayout', function () {
         coverOwner.address,
         2, // productId
         ASSET.ETH,
-        [[parseEther('10000'), timestamp + 1, segmentPeriod, 0, false, 0]],
+        [[parseEther('10000'), timestamp + 1, segmentPeriod, 7, 0, false, 0]],
       );
     }
     {
@@ -27,7 +27,7 @@ describe('redeemPayout', function () {
         coverOwner.address,
         2, // productId
         ASSET.ETH,
-        [[parseEther('10000'), timestamp + 1, segmentPeriod, 0, false, 0]],
+        [[parseEther('10000'), timestamp + 1, segmentPeriod, 7, 0, false, 0]],
       );
     }
     {
@@ -36,7 +36,7 @@ describe('redeemPayout', function () {
         coverOwner.address,
         2, // productId
         ASSET.ETH,
-        [[parseEther('10000'), timestamp + 1, segmentPeriod, 0, false, 0]],
+        [[parseEther('10000'), timestamp + 1, segmentPeriod, 7, 0, false, 0]],
       );
     }
 
@@ -91,7 +91,7 @@ describe('redeemPayout', function () {
         member1.address,
         2, // productId
         ASSET.ETH,
-        [[parseEther('10000'), timestamp + 1, daysToSeconds('30'), 0, false, 0]],
+        [[parseEther('10000'), timestamp + 1, daysToSeconds('30'), 7, 0, false, 0]],
       );
     }
 
@@ -140,7 +140,7 @@ describe('redeemPayout', function () {
         member1.address,
         2, // productId
         ASSET.ETH,
-        [[parseEther('10000'), timestamp + 1, daysToSeconds('30'), 0, false, 0]],
+        [[parseEther('10000'), timestamp + 1, daysToSeconds('30'), 7, 0, false, 0]],
       );
     }
 
@@ -190,7 +190,7 @@ describe('redeemPayout', function () {
         member1.address,
         2, // productId
         ASSET.ETH,
-        [[parseEther('10000'), timestamp + 1, daysToSeconds('30'), 0, false, 0]],
+        [[parseEther('10000'), timestamp + 1, daysToSeconds('30'), 7, 0, false, 0]],
       );
     }
 
@@ -227,7 +227,7 @@ describe('redeemPayout', function () {
         member1.address,
         2, // productId
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, daysToSeconds('30'), 0, false, 0]],
+        [[parseEther('100'), timestamp + 1, daysToSeconds('30'), 7, 0, false, 0]],
       );
     }
 
@@ -273,8 +273,8 @@ describe('redeemPayout', function () {
         2, // productId
         ASSET.ETH,
         [
-          [parseEther('100'), timestamp + 1, daysToSeconds('30'), 0, false, 0],
-          [parseEther('100'), timestamp + 1 + daysToSeconds('30'), daysToSeconds('30'), 0, false, 0],
+          [parseEther('100'), timestamp + 1, daysToSeconds('30'), 7, 0, false, 0],
+          [parseEther('100'), timestamp + 1 + daysToSeconds('30'), daysToSeconds('30'), 7, 0, false, 0],
         ],
       );
     }
@@ -320,8 +320,8 @@ describe('redeemPayout', function () {
         2, // productId
         ASSET.ETH,
         [
-          [parseEther('100'), timestamp + 1, 1, 0, false, 0], // 1s segment
-          [parseEther('100'), timestamp + 2, daysToSeconds('30'), 0, false, 0], // 30d segment
+          [parseEther('100'), timestamp + 1, 1, 7, 0, false, 0], // 1s segment
+          [parseEther('100'), timestamp + 2, daysToSeconds('30'), 7, 0, false, 0], // 30d segment
         ],
       );
 
@@ -336,7 +336,7 @@ describe('redeemPayout', function () {
         member1.address,
         2, // productId
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, daysToSeconds('30'), 0, false, 0]],
+        [[parseEther('100'), timestamp + 1, daysToSeconds('30'), 7, 0, false, 0]],
       );
     }
 
@@ -373,8 +373,8 @@ describe('redeemPayout', function () {
         2, // productId
         ASSET.ETH,
         [
-          [parseEther('100'), timestamp + 1, segmentPeriod, 0, false, 0],
-          [parseEther('100'), timestamp + 1, segmentPeriod + daysToSeconds(gracePeriodInDays), 0, false, 0],
+          [parseEther('100'), timestamp + 1, segmentPeriod, 7, 0, false, 0],
+          [parseEther('100'), timestamp + 1, segmentPeriod + daysToSeconds(gracePeriodInDays), 7, 0, false, 0],
         ],
       );
     }
@@ -414,7 +414,7 @@ describe('redeemPayout', function () {
         member1.address,
         0, // productId
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, segmentPeriod, 0, false, 0]],
+        [[parseEther('100'), timestamp + 1, segmentPeriod, 7, 0, false, 0]],
       );
     }
 
@@ -424,7 +424,7 @@ describe('redeemPayout', function () {
         member1.address,
         1, // productId
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, segmentPeriod, 0, false, 0]],
+        [[parseEther('100'), timestamp + 1, segmentPeriod, 7, 0, false, 0]],
       );
     }
 
@@ -434,7 +434,7 @@ describe('redeemPayout', function () {
         member1.address,
         validProductId, // productId
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, segmentPeriod, 0, false, 0]],
+        [[parseEther('100'), timestamp + 1, segmentPeriod, 7, 0, false, 0]],
       );
     }
 
@@ -444,7 +444,7 @@ describe('redeemPayout', function () {
         member1.address,
         3, // productId
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, segmentPeriod, 0, false, 0]],
+        [[parseEther('100'), timestamp + 1, segmentPeriod, 7, 0, false, 0]],
       );
     }
 
@@ -493,7 +493,7 @@ describe('redeemPayout', function () {
         member1.address,
         2, // productId
         ASSET.ETH,
-        [[parseEther('10000'), timestamp + 1, segmentPeriod, 0, false, 0]],
+        [[parseEther('10000'), timestamp + 1, segmentPeriod, 7, 0, false, 0]],
       );
     }
 
@@ -556,7 +556,7 @@ describe('redeemPayout', function () {
         member1.address,
         4, // productId
         ASSET.DAI,
-        [[parseEther('10000'), timestamp + 1, segmentPeriod, 0, false, 0]],
+        [[parseEther('10000'), timestamp + 1, segmentPeriod, 7, 0, false, 0]],
       );
     }
 
@@ -632,21 +632,21 @@ describe('redeemPayout', function () {
       coverOwner1.address,
       2, // productId using ybEth
       ASSET.ETH,
-      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
+      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 7, 0, false, 0]],
     );
 
     await cover.createMockCover(
       coverOwner1.address,
       2, // productId using ybEth
       ASSET.ETH,
-      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
+      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 7, 0, false, 0]],
     );
 
     await cover.createMockCover(
       coverOwner2.address,
       3, // productId using ybDai
       ASSET.DAI,
-      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
+      [[parseEther('100'), timestamp + 1, daysToSeconds(30), 7, 0, false, 0]],
     );
 
     await yieldTokenIncidents

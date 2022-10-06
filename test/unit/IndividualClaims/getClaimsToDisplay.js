@@ -35,7 +35,7 @@ describe('getClaimsToDisplay', function () {
         coverOwner.address,
         0, // productId
         ASSET.ETH,
-        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+        [[coverAmount, timestamp + 1, coverPeriod, 7, 0, false, 0]],
       );
       expectedCoverStarts[3] = timestamp + 1; // This will be the 4th calim
       await setTime(timestamp + daysToSeconds(1));
@@ -48,7 +48,7 @@ describe('getClaimsToDisplay', function () {
         coverOwner.address,
         0, // productId
         ASSET.DAI,
-        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+        [[coverAmount, timestamp + 1, coverPeriod, 7, 0, false, 0]],
       );
       expectedCoverStarts[1] = timestamp + 1; // This will be the 2nd calim
       await setTime(timestamp + daysToSeconds(2));
@@ -61,7 +61,7 @@ describe('getClaimsToDisplay', function () {
         coverOwner.address,
         1, // productId
         ASSET.ETH,
-        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+        [[coverAmount, timestamp + 1, coverPeriod, 7, 0, false, 0]],
       );
       expectedCoverStarts[2] = timestamp + 1; // This will be the 3rd calim
       await setTime(timestamp + daysToSeconds(4));
@@ -74,7 +74,7 @@ describe('getClaimsToDisplay', function () {
         coverOwner.address,
         1, // productId
         ASSET.DAI,
-        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+        [[coverAmount, timestamp + 1, coverPeriod, 7, 0, false, 0]],
       );
       expectedCoverStarts[0] = timestamp + 1; // This will be the 1st calim
       await setTime(timestamp + daysToSeconds(1));
@@ -87,7 +87,7 @@ describe('getClaimsToDisplay', function () {
         coverOwner.address,
         1, // productId
         ASSET.DAI,
-        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+        [[coverAmount, timestamp + 1, coverPeriod, 7, 0, false, 0]],
       );
       expectedCoverStarts[4] = timestamp + 1; // This will be the 5th calim
     }

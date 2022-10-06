@@ -12,6 +12,7 @@ describe('views', function () {
       amount: parseEther('100'),
       start: 1000,
       period: 3600 * 24 * 30, // seconds
+      gracePeriodInDays: 7,
       priceRatio: 3000,
       expired: false,
       globalRewardsRatio: 5000,

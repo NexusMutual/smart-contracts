@@ -51,6 +51,7 @@ struct CoverSegment {
   uint96 amount;
   uint32 start;
   uint32 period;  // seconds
+  uint16 gracePeriodInDays;
   uint16 priceRatio;
   bool expired;
   uint24 globalRewardsRatio;

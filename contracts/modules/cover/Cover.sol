@@ -256,11 +256,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     for (uint i = 0; i < allocationRequests.length; i++) {
 
-      uint poolCapacityRequested = allocationRequests[i].coverAmountInAsset;
-      require(poolCapacityRequested > 0, "Cover: coverAmountInAsset = 0");
+      uint coverAmountInAsset = allocationRequests[i].coverAmountInAsset;
+      require(coverAmountInAsset > 0, "Cover: coverAmountInAsset = 0");
 
       // adding capacity unallocated in the last round to the one requested for the current one
-      requestedAmountInNXM += poolCapacityRequested * NXM_IN_WEI / nxmPriceInCoverAsset;
+      requestedAmountInNXM += Math.divCeil(coverAmountInAsset * NXM_IN_WEI, nxmPriceInCoverAsset);
 
       // rounding up to the nearest NXM_PER_ALLOCATION_UNIT
       requestedAmountInNXM = Math.roundUp(requestedAmountInNXM, NXM_PER_ALLOCATION_UNIT);

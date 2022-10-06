@@ -263,7 +263,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       requestedAmountInNXM += poolCapacityRequested * NXM_IN_WEI / nxmPriceInCoverAsset;
 
       // rounding up to the nearest NXM_PER_ALLOCATION_UNIT
-      requestedAmountInNXM = Math.divCeil(requestedAmountInNXM, NXM_PER_ALLOCATION_UNIT) * NXM_PER_ALLOCATION_UNIT;
+      requestedAmountInNXM = Math.roundUp(requestedAmountInNXM, NXM_PER_ALLOCATION_UNIT);
 
       (uint coveredAmountInNXM, uint premiumInNXM, uint rewardsInNXM) = allocateCapacity(
         params,

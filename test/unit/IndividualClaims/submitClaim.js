@@ -12,7 +12,7 @@ const setTime = async timestamp => {
   await mineNextBlock();
 };
 
-describe.only('submitClaim', function () {
+describe('submitClaim', function () {
   it('reverts if the submission deposit is not sent', async function () {
     const { individualClaims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
@@ -483,7 +483,7 @@ describe.only('submitClaim', function () {
         coverOwner.address,
         0, // productId
         ASSET.ETH,
-        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 0, false, 0]],
+        [[parseEther('100'), timestamp + 1, daysToSeconds(30), 7, 0, false, 0]],
       );
     }
     const secondCoverId = 1;

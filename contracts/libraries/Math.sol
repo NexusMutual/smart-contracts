@@ -23,6 +23,10 @@ library Math {
     return (a + b - 1) / b;
   }
 
+  function roundUp(uint a, uint b) internal pure returns (uint) {
+    return divCeil(a, b) * b;
+  }
+
   // babylonian method
   function sqrt(uint y) internal pure returns (uint) {
 

@@ -369,4 +369,49 @@ describe('editCover', function () {
       ),
     ).to.be.revertedWith('Cover: Commission rate is too high');
   });
+
+  it('should store new grace period when editing cover', async function () {
+    const { cover } = this;
+    const [boardMember] = this.accounts.advisoryBoardMembers;
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, amount, period } = coverBuyFixture;
+
+    // Buy cover
+    const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    // Edit product gracePeriod
+    const productTypeBefore = await cover.productTypes(productId);
+
+    const newGracePeriodInDays = 1000;
+    await cover.connect(boardMember).editProductTypes([productId], [newGracePeriodInDays], ['ipfs hash']);
+    const productType = await cover.productTypes(productId);
+    expect(newGracePeriodInDays).to.be.equal(productType.gracePeriodInDays);
+
+    const now = await ethers.provider.getBlock('latest').then(block => block.timestamp);
+    await setNextBlockTime(now + period + 3600);
+
+    await cover.connect(coverBuyer).editCover(
+      expectedCoverId,
+      {
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium.add(10),
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: amount }],
+      { value: expectedPremium.add(10) },
+    );
+
+    const secondSegment = await cover.coverSegments(expectedCoverId, 1);
+    expect(secondSegment.gracePeriodInDays).to.be.equal(newGracePeriodInDays);
+    expect(productTypeBefore.gracePeriodInDays).to.be.equal(segment.gracePeriodInDays);
+  });
 });

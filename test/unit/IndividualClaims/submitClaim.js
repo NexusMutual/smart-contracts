@@ -328,6 +328,51 @@ describe('submitClaim', function () {
     ).not.to.be.revertedWith('Cover is outside the grace period');
   });
 
+  it('Assessment should use cover segment grace period and not product.gracePeriod', async function () {
+    const { individualClaims, cover } = this.contracts;
+    const [coverOwner] = this.accounts.members;
+    const [boardMember] = this.accounts.advisoryBoardMembers;
+
+    const coverPeriod = daysToSeconds(30);
+    const coverAmount = parseEther('100');
+    const coverAsset = ASSET.ETH;
+    const { gracePeriodInDays } = await cover.productTypes(0);
+    {
+      const { timestamp } = await ethers.provider.getBlock('latest');
+      await cover.createMockCover(
+        coverOwner.address,
+        0, // productId
+        coverAsset,
+        [
+          [coverAmount, timestamp + 1, coverPeriod, gracePeriodInDays, 0, false, 0],
+          [coverAmount, timestamp + coverPeriod, coverPeriod, gracePeriodInDays + 1, 0, false, 0],
+        ],
+      );
+    }
+
+    const longerGracePeriod = gracePeriodInDays * 100;
+    await cover.connect(boardMember).editProductTypes([0], [longerGracePeriod], ['ipfs hash']);
+
+    const latestBlock = await ethers.provider.getBlock('latest');
+    const currentTime = latestBlock.timestamp;
+    await setTime(currentTime + coverPeriod + daysToSeconds(gracePeriodInDays) + 1);
+    const coverId = 0;
+
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, coverAsset);
+
+    await expect(
+      individualClaims.connect(coverOwner).submitClaim(coverId, 0, coverAmount, '', {
+        value: deposit,
+      }),
+    ).to.be.revertedWith('Cover is outside the grace period');
+
+    await expect(
+      individualClaims.connect(coverOwner).submitClaim(coverId, 1, coverAmount, '', {
+        value: deposit,
+      }),
+    ).not.to.be.revertedWith('Cover is outside the grace period');
+  });
+
   it('calls startAssessment and stores the returned assessmentId in the claim', async function () {
     const { assessment, individualClaims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;

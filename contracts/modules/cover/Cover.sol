@@ -307,7 +307,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   ) internal returns (uint coveredAmountInNXM, uint premiumInNXM, uint rewardsInNXM) {
 
     Product memory product = _products[params.productId];
-    uint gracePeriod = _productTypes[product.productType].gracePeriodInDays * 1 days;
+    uint gracePeriod = uint(_productTypes[product.productType].gracePeriodInDays) * 1 days;
 
     return _stakingPool.allocateStake(
       CoverRequest(
@@ -401,7 +401,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           cover.productId,
           allocation.coverAmountInNXM,
           lastCoverSegment.period,
-          lastCoverSegment.gracePeriodInDays * 1 days,
+          uint(lastCoverSegment.gracePeriodInDays) * 1 days,
           // TODO globalCapacityRatio and capacityReductionRatio need to be stored at cover buy
           globalCapacityRatio,
           product.capacityReductionRatio,

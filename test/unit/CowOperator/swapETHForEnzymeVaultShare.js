@@ -259,87 +259,93 @@ describe.only('swapETHForEnzymeVaultShare', function () {
     assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
   });
 
-  /*
-it('should swap asset for eth in 3 sequential calls', async function () {
-  const { pool, tokenA, swapOperator, enzymeV4Vault } = contracts();
+  it('should swap asset for eth in 3 sequential calls', async function () {
+    const { pool, swapOperator, enzymeV4Vault } = this.contracts;
 
-  const minAssetAmount = ether('100');
+    const governance = this.accounts.governanceAccounts[0];
 
-  await pool.setAssetDetails(
-    enzymeV4Vault.address,
-    minAssetAmount, // asset minimum
-    ether('1000'), // asset maximum
-    ether('0.01'), // max slippage
-    { from: governance },
-  );
+    const minAssetAmount = parseEther('100');
+    const maxAssetAmount = parseEther('1000');
+    await pool.connect(governance).addAsset(
+      enzymeV4Vault.address,
+      18, // decimals
+      minAssetAmount, // asset minimum
+      maxAssetAmount, // asset maximum
+      '100', // 1% max slippage
+      false, // isCoverAsset
+    );
 
-  const TIME_BETWEEN_SWAPS = time.duration.minutes(11);
+    // add ether to pool
+    await this.accounts.defaultSender.sendTransaction({
+      to: pool.address,
+      value: parseEther('10000'),
+    });
 
-  {
-    const etherBefore = toBN(await web3.eth.getBalance(pool.address));
-    const tokensBefore = await tokenA.balanceOf(pool.address);
+    const TIME_BETWEEN_SWAPS = time.duration.minutes(15);
 
-    // amounts in/out of the trade
-    const etherIn = minAssetAmount.divn(3);
-    const minTokenOut = etherIn.subn(1);
-    await swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn);
+    {
+      const etherBefore = await ethers.provider.getBalance(pool.address);
+      const tokensBefore = await enzymeV4Vault.balanceOf(pool.address);
 
-    const etherAfter = toBN(await web3.eth.getBalance(pool.address));
-    const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
-    const etherSent = etherBefore.sub(etherAfter);
-    const tokensReceived = tokensAfter.sub(tokensBefore);
+      // amounts in/out of the trade
+      const etherIn = minAssetAmount.div(3);
+      const minTokenOut = etherIn.sub(1);
+      await swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn);
 
-    assert.strictEqual(etherSent.toString(), etherIn.toString());
-    assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
+      const etherAfter = await ethers.provider.getBalance(pool.address);
+      const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
+      const etherSent = etherBefore.sub(etherAfter);
+      const tokensReceived = tokensAfter.sub(tokensBefore);
 
-    await time.increase(TIME_BETWEEN_SWAPS);
-  }
+      assert.strictEqual(etherSent.toString(), etherIn.toString());
+      assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
 
-  {
-    const etherBefore = toBN(await web3.eth.getBalance(pool.address));
-    const tokensBefore = await tokenA.balanceOf(pool.address);
+      await time.increase(TIME_BETWEEN_SWAPS);
+    }
 
-    // amounts in/out of the trade
-    const etherIn = minAssetAmount.divn(3);
-    const minTokenOut = etherIn.subn(1);
-    await swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn);
+    {
+      const etherBefore = await ethers.provider.getBalance(pool.address);
+      const tokensBefore = await enzymeV4Vault.balanceOf(pool.address);
 
-    const etherAfter = toBN(await web3.eth.getBalance(pool.address));
-    const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
-    const etherSent = etherBefore.sub(etherAfter);
-    const tokensReceived = tokensAfter.sub(tokensBefore);
+      // amounts in/out of the trade
+      const etherIn = minAssetAmount.div(3);
+      const minTokenOut = etherIn.sub(1);
+      await swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn);
 
-    assert.strictEqual(etherSent.toString(), etherIn.toString());
-    assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
+      const etherAfter = await ethers.provider.getBalance(pool.address);
+      const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
+      const etherSent = etherBefore.sub(etherAfter);
+      const tokensReceived = tokensAfter.sub(tokensBefore);
 
-    await time.increase(TIME_BETWEEN_SWAPS);
-  }
+      assert.strictEqual(etherSent.toString(), etherIn.toString());
+      assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
 
-  {
-    const etherBefore = toBN(await web3.eth.getBalance(pool.address));
-    const tokensBefore = await tokenA.balanceOf(pool.address);
+      await time.increase(TIME_BETWEEN_SWAPS);
+    }
 
-    // amounts in/out of the trade
-    const etherIn = minAssetAmount.divn(2);
-    const minTokenOut = etherIn.subn(1);
-    await swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn);
+    {
+      const etherBefore = await ethers.provider.getBalance(pool.address);
+      const tokensBefore = await enzymeV4Vault.balanceOf(pool.address);
 
-    const etherAfter = toBN(await web3.eth.getBalance(pool.address));
-    const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
-    const etherSent = etherBefore.sub(etherAfter);
-    const tokensReceived = tokensAfter.sub(tokensBefore);
+      // amounts in/out of the trade
+      const etherIn = minAssetAmount.div(2);
+      const minTokenOut = etherIn.sub(1);
+      await swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn);
 
-    assert.strictEqual(etherSent.toString(), etherIn.toString());
-    assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
+      const etherAfter = await ethers.provider.getBalance(pool.address);
+      const tokensAfter = await enzymeV4Vault.balanceOf(pool.address);
+      const etherSent = etherBefore.sub(etherAfter);
+      const tokensReceived = tokensAfter.sub(tokensBefore);
 
-    await time.increase(TIME_BETWEEN_SWAPS);
-  }
+      assert.strictEqual(etherSent.toString(), etherIn.toString());
+      assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
 
-  const etherIn = minAssetAmount.divn(2);
-  await expectRevert(
-    swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn),
-    'SwapOperator: balanceBefore >= min',
-  );
-});
- */
+      await time.increase(TIME_BETWEEN_SWAPS);
+    }
+
+    const etherIn = minAssetAmount.div(2);
+    await expect(swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn)).to.be.revertedWith(
+      'SwapOperator: balanceBefore >= min',
+    );
+  });
 });

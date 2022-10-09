@@ -33,7 +33,6 @@ async function setup() {
   const SOMockEnzymeFundValueCalculatorRouter = await ethers.getContractFactory(
     'SOMockEnzymeFundValueCalculatorRouter',
   );
-  const SOMockEnzymeV4DepositWrapper = await ethers.getContractFactory('SOMockEnzymeV4DepositWrapper');
   const SOMockEnzymeV4Vault = await ethers.getContractFactory('SOMockEnzymeV4Vault');
 
   // Deploy WETH + ERC20 test tokens

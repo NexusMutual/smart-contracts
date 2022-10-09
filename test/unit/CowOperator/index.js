@@ -15,5 +15,6 @@ describe('CowSwap unit tests', function () {
   // include your unit tests here
   require('./placeOrder');
   require('./closeOrder');
+  require('./swapEnzymeVaultShareForETH');
   require('./swapETHForEnzymeVaultShare');
 });

@@ -9,7 +9,7 @@ const {
   utils: { parseEther },
 } = ethers;
 
-describe.only('swapETHForEnzymeVaultShare', function () {
+describe('swapETHForEnzymeVaultShare', function () {
   it('should revert when called while the system is paused', async function () {
     const { master, swapOperator, enzymeV4Vault, pool } = this.contracts;
 

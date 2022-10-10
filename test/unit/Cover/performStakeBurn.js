@@ -3,8 +3,9 @@ const { assertCoverFields, buyCoverOnOnePool } = require('./helpers');
 const { bnEqual } = require('../utils').helpers;
 
 const { parseEther } = ethers.utils;
+const gracePeriodInDays = 120;
 
-describe('performStakeBurn', function () {
+describe.only('performStakeBurn', function () {
   const coverBuyFixture = {
     productId: 0,
     coverAsset: 0, // ETH
@@ -51,6 +52,7 @@ describe('performStakeBurn', function () {
       period,
       amount: remainingAmount,
       targetPriceRatio,
+      gracePeriodInDays,
       segmentId,
       amountPaidOut: burnAmount,
     });

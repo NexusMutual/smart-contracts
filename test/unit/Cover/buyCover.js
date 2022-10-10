@@ -7,6 +7,7 @@ const { bnEqual } = require('../utils').helpers;
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
 const { BigNumber } = ethers;
+const gracePeriodInDays = 120;
 
 describe('buyCover', function () {
   it('should purchase new cover using 1 staking pool', async function () {
@@ -66,7 +67,14 @@ describe('buyCover', function () {
 
     const expectedCoverId = '0';
 
-    await assertCoverFields(cover, expectedCoverId, { productId, coverAsset, period, amount, targetPriceRatio });
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period,
+      amount,
+      targetPriceRatio,
+      gracePeriodInDays,
+    });
   });
 
   it('should purchase new cover using 2 staking pools', async function () {
@@ -142,7 +150,14 @@ describe('buyCover', function () {
 
     const expectedCoverId = '0';
 
-    await assertCoverFields(cover, expectedCoverId, { productId, coverAsset, period, amount, targetPriceRatio });
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period,
+      amount,
+      targetPriceRatio,
+      gracePeriodInDays,
+    });
   });
 
   it('should purchase new cover using NXM with commission', async function () {
@@ -218,7 +233,14 @@ describe('buyCover', function () {
 
     const expectedCoverId = '0';
 
-    await assertCoverFields(cover, expectedCoverId, { productId, coverAsset, period, amount, targetPriceRatio });
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period,
+      amount,
+      targetPriceRatio,
+      gracePeriodInDays,
+    });
   });
 
   it('should purchase new cover using DAI with commission', async function () {
@@ -299,7 +321,14 @@ describe('buyCover', function () {
 
     const expectedCoverId = '0';
 
-    await assertCoverFields(cover, expectedCoverId, { productId, coverAsset, period, amount, targetPriceRatio });
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period,
+      amount,
+      targetPriceRatio,
+      gracePeriodInDays,
+    });
   });
 
   it('should purchase new cover using USDC with commission', async function () {
@@ -381,7 +410,14 @@ describe('buyCover', function () {
 
     const expectedCoverId = '0';
 
-    await assertCoverFields(cover, expectedCoverId, { productId, coverAsset, period, amount, targetPriceRatio });
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period,
+      amount,
+      targetPriceRatio,
+      gracePeriodInDays,
+    });
   });
 
   it('should revert for unavailable product', async function () {

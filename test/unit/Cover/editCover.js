@@ -6,6 +6,7 @@ const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
 
 const { assertCoverFields, buyCoverOnOnePool, MAX_COVER_PERIOD } = require('./helpers');
+const gracePeriodInDays = 120;
 
 describe('editCover', function () {
   const coverBuyFixture = {
@@ -70,6 +71,7 @@ describe('editCover', function () {
       period,
       amount: increasedAmount,
       targetPriceRatio,
+      gracePeriodInDays,
       segmentId: '1',
     });
   });
@@ -122,6 +124,7 @@ describe('editCover', function () {
       period: increasedPeriod,
       amount,
       targetPriceRatio,
+      gracePeriodInDays,
       segmentId: '1',
     });
   });
@@ -177,6 +180,7 @@ describe('editCover', function () {
       period: increasedPeriod,
       amount: increasedAmount,
       targetPriceRatio,
+      gracePeriodInDays,
       segmentId: '1',
     });
   });
@@ -232,6 +236,7 @@ describe('editCover', function () {
       period: increasedPeriod,
       amount: decreasedAmount,
       targetPriceRatio,
+      gracePeriodInDays,
       segmentId: '1',
     });
   });
@@ -278,6 +283,7 @@ describe('editCover', function () {
       period,
       amount: increasedAmount,
       targetPriceRatio,
+      gracePeriodInDays,
       segmentId: '1',
     });
   });

@@ -156,6 +156,8 @@ async function setup() {
     owner, // _swapController,
     master.address,
     weth.address,
+    ZERO_ADDRESS,
+    ZERO_ADDRESS,
   );
 
   const productsV1 = await ProductsV1.deploy();

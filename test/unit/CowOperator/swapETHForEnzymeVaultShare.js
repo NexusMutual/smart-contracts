@@ -55,7 +55,7 @@ describe('swapETHForEnzymeVaultShare', function () {
     const etherIn = parseEther('1');
 
     await expect(swapOperator.swapETHForEnzymeVaultShare(etherIn, '0')).to.be.revertedWith(
-      'SwapOperator: asset is not enabled',
+      'SwapOp: asset is not enabled',
     );
   });
 
@@ -89,7 +89,7 @@ describe('swapETHForEnzymeVaultShare', function () {
     // should fail with max + 1
     await expect(
       swapOperator.swapETHForEnzymeVaultShare(maxPoolTradableEther.add(1), maxPoolTradableEther),
-    ).to.be.revertedWith('SwapOperator: insufficient ether left');
+    ).to.be.revertedWith('SwapOp: insufficient ether left');
 
     // TODO: reenable
     // should work with max
@@ -146,7 +146,7 @@ describe('swapETHForEnzymeVaultShare', function () {
     // enzyme lowers the rate.
     await enzymeV4Comptroller.setETHToVaultSharesRate('500');
     await expect(swapOperator.swapETHForEnzymeVaultShare(amountIn, amountIn)).to.be.revertedWith(
-      'SwapOperator: amountOut < amountOutMin',
+      'SwapOp: amountOut < amountOutMin',
     );
   });
 
@@ -173,7 +173,7 @@ describe('swapETHForEnzymeVaultShare', function () {
 
     const etherIn = max.add(10001);
     await expect(swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn)).to.be.revertedWith(
-      'SwapOperator: balanceAfter > max',
+      'SwapOp: balanceAfter > max',
     );
   });
 
@@ -341,7 +341,7 @@ describe('swapETHForEnzymeVaultShare', function () {
 
     const etherIn = minAssetAmount.div(2);
     await expect(swapOperator.swapETHForEnzymeVaultShare(etherIn, etherIn)).to.be.revertedWith(
-      'SwapOperator: balanceBefore >= min',
+      'SwapOp: balanceBefore >= min',
     );
   });
 });

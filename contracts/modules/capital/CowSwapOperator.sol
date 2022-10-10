@@ -375,12 +375,12 @@ contract CowSwapOperator {
 
     IPool.SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(toToken));
 
-    require(!(swapDetails.minAmount == 0 && swapDetails.maxAmount == 0), "SwapOperator: asset is not enabled");
+    require(!(swapDetails.minAmount == 0 && swapDetails.maxAmount == 0), "SwapOp: asset is not enabled");
 
     {
       // scope for swap frequency check
       uint timeSinceLastTrade = block.timestamp - uint(swapDetails.lastSwapTime);
-      require(timeSinceLastTrade > MIN_TIME_BETWEEN_ORDERS, "SwapOperator: too fast");
+      require(timeSinceLastTrade > MIN_TIME_BETWEEN_ORDERS, "SwapOp: too fast");
     }
 
     {
@@ -391,13 +391,13 @@ contract CowSwapOperator {
       uint maxSlippageAmount = avgAmountOut * swapDetails.maxSlippageRatio / 1e18;
       uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
-      require(amountOutMin >= minOutOnMaxSlippage, "SwapOperator: amountOutMin < minOutOnMaxSlippage");
+      require(amountOutMin >= minOutOnMaxSlippage, "SwapOp: amountOutMin < minOutOnMaxSlippage");
     }
 
     uint balanceBefore = toToken.balanceOf(address(pool));
     pool.transferAssetToSwapOperator(ETH, amountIn);
 
-    require(comptrollerProxy.getDenominationAsset() == address(weth), "SwapOperator: invalid denomination asset");
+    require(comptrollerProxy.getDenominationAsset() == address(weth), "SwapOp: invalid denomination asset");
 
     weth.deposit{ value: amountIn }();
     weth.approve(address(comptrollerProxy), amountIn);
@@ -407,13 +407,13 @@ contract CowSwapOperator {
 
     uint amountOut = toToken.balanceOf(address(this));
 
-    require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
-    require(balanceBefore < swapDetails.minAmount, "SwapOperator: balanceBefore >= min");
-    require(balanceBefore + amountOutMin <= swapDetails.maxAmount, "SwapOperator: balanceAfter > max");
+    require(amountOut >= amountOutMin, "SwapOp: amountOut < amountOutMin");
+    require(balanceBefore < swapDetails.minAmount, "SwapOp: balanceBefore >= min");
+    require(balanceBefore + amountOutMin <= swapDetails.maxAmount, "SwapOp: balanceAfter > max");
 
     {
       uint ethBalanceAfter = address(pool).balance;
-      require(ethBalanceAfter >= pool.minPoolEth(), "SwapOperator: insufficient ether left");
+      require(ethBalanceAfter >= pool.minPoolEth(), "SwapOp: insufficient ether left");
     }
 
     transferAssetTo(enzymeV4VaultProxyAddress, address(pool), amountOut);
@@ -437,11 +437,11 @@ contract CowSwapOperator {
 
       IPool.SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(fromToken));
 
-      require(!(swapDetails.minAmount == 0 && swapDetails.maxAmount == 0), "SwapOperator: asset is not enabled");
+      require(!(swapDetails.minAmount == 0 && swapDetails.maxAmount == 0), "SwapOp: asset is not enabled");
 
       // swap frequency check
       uint timeSinceLastTrade = block.timestamp - uint(swapDetails.lastSwapTime);
-      require(timeSinceLastTrade > MIN_TIME_BETWEEN_ORDERS, "SwapOperator: too fast");
+      require(timeSinceLastTrade > MIN_TIME_BETWEEN_ORDERS, "SwapOp: too fast");
 
       uint netShareValue;
       {
@@ -449,7 +449,7 @@ contract CowSwapOperator {
         (denominationAsset, netShareValue) =
         enzymeFundValueCalculatorRouter.calcNetShareValue(enzymeV4VaultProxyAddress);
 
-        require(denominationAsset ==  address(weth), "SwapOperator: invalid denomination asset");
+        require(denominationAsset ==  address(weth), "SwapOp: invalid denomination asset");
       }
 
       // avgAmountOut in ETH
@@ -458,9 +458,9 @@ contract CowSwapOperator {
       uint minOutOnMaxSlippage = avgAmountOut - maxSlippageAmount;
 
       // slippage check
-      require(amountOutMin >= minOutOnMaxSlippage, "SwapOperator: amountOutMin < minOutOnMaxSlippage");
-      require(balanceBefore > swapDetails.maxAmount, "SwapOperator: balanceBefore <= max");
-      require(balanceBefore - amountIn >= swapDetails.minAmount, "SwapOperator: tokenBalanceAfter < min");
+      require(amountOutMin >= minOutOnMaxSlippage, "SwapOp: amountOutMin < minOutOnMaxSlippage");
+      require(balanceBefore > swapDetails.maxAmount, "SwapOp: balanceBefore <= max");
+      require(balanceBefore - amountIn >= swapDetails.minAmount, "SwapOp: tokenBalanceAfter < min");
     }
 
     pool.transferAssetToSwapOperator(address(fromToken), amountIn);
@@ -481,7 +481,7 @@ contract CowSwapOperator {
 
     pool.setSwapDetailsLastSwapTime(address(fromToken), uint32(block.timestamp));
 
-    require(amountOut >= amountOutMin, "SwapOperator: amountOut < amountOutMin");
+    require(amountOut >= amountOutMin, "SwapOp: amountOut < amountOutMin");
 
     transferAssetTo(ETH, address(pool), amountOut);
 
@@ -492,7 +492,7 @@ contract CowSwapOperator {
 
     if (asset == ETH) {
       (bool ok, /* data */) = to.call{ value: amount }("");
-      require(ok, "SwapOperator: Eth transfer failed");
+      require(ok, "SwapOp: Eth transfer failed");
       return;
     }
 
@@ -505,7 +505,7 @@ contract CowSwapOperator {
     IERC20 asset = IERC20(assetAddress);
 
     uint balance = asset.balanceOf(address(this));
-    require(balance > 0, "SwapOperator: Balance = 0");
+    require(balance > 0, "SwapOp: Balance = 0");
 
     IPool pool = _pool();
 

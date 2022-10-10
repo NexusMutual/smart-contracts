@@ -55,7 +55,7 @@ describe('swapEnzymeVaultShareForETH', function () {
     const etherIn = parseEther('1');
 
     await expect(swapOperator.swapEnzymeVaultShareForETH(etherIn, '0')).to.be.revertedWith(
-      'SwapOperator: asset is not enabled',
+      'SwapOp: asset is not enabled',
     );
   });
 
@@ -81,7 +81,7 @@ describe('swapEnzymeVaultShareForETH', function () {
     // enzyme lowers the rate.
     await enzymeV4Comptroller.setETHToVaultSharesRate('20000');
     await expect(swapOperator.swapEnzymeVaultShareForETH(amountIn, amountIn)).to.be.revertedWith(
-      'SwapOperator: amountOut < amountOutMin',
+      'SwapOp: amountOut < amountOutMin',
     );
   });
 
@@ -104,7 +104,7 @@ describe('swapEnzymeVaultShareForETH', function () {
 
     const amountIn = parseEther('1950');
     await expect(swapOperator.swapEnzymeVaultShareForETH(amountIn, amountIn)).to.be.revertedWith(
-      'SwapOperator: tokenBalanceAfter < min',
+      'SwapOp: tokenBalanceAfter < min',
     );
   });
 
@@ -164,7 +164,7 @@ describe('swapEnzymeVaultShareForETH', function () {
     const sharesIn = parseEther('400');
 
     await expect(swapOperator.swapEnzymeVaultShareForETH(sharesIn, sharesIn)).to.be.revertedWith(
-      'SwapOperator: balanceBefore <= max',
+      'SwapOp: balanceBefore <= max',
     );
   });
 });

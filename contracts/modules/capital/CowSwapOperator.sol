@@ -364,6 +364,10 @@ contract CowSwapOperator {
 
 
   function swapETHForEnzymeVaultShare(uint amountIn, uint amountOutMin) external onlyController {
+
+    // Validate there's no current cow swap order going on
+    require(currentOrderUID.length == 0, "SwapOp: an order is already in place");
+
     IPool pool = _pool();
     IEnzymeV4Comptroller comptrollerProxy = IEnzymeV4Comptroller(IEnzymeV4Vault(enzymeV4VaultProxyAddress).getAccessor());
     IERC20Detailed toToken = IERC20Detailed(enzymeV4VaultProxyAddress);
@@ -421,6 +425,9 @@ contract CowSwapOperator {
     uint amountIn,
     uint amountOutMin
   ) external onlyController {
+
+    // Validate there's no current cow swap order going on
+    require(currentOrderUID.length == 0, "SwapOp: an order is already in place");
 
     IPool pool = _pool();
     IERC20Detailed fromToken = IERC20Detailed(enzymeV4VaultProxyAddress);

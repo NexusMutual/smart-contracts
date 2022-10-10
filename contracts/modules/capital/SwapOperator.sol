@@ -21,7 +21,7 @@ import "../../external/enzyme/IEnzymePolicyManager.sol";
   @title A contract for swapping Pool's assets using CoW protocol
   @dev This contract's address is set on the Pool's swapOperator variable via governance
  */
-contract CowSwapOperator {
+contract SwapOperator {
   using SafeERC20 for IERC20;
 
   // Storage

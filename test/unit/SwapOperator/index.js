@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const setup = require('./setup');
 
-describe('CowSwap unit tests', function () {
+describe('SwapOperator unit tests', function () {
   before(setup);
 
   beforeEach(async function () {

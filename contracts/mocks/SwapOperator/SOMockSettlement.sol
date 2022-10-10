@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 pragma solidity ^0.8.16;
 
-import './CSMockVaultRelayer.sol';
+import './SOMockVaultRelayer.sol';
 import '../../external/cow/GPv2Order.sol';
 
-contract CSMockSettlement {
-  CSMockVaultRelayer public immutable vaultRelayer;
+contract SOMockSettlement {
+  SOMockVaultRelayer public immutable vaultRelayer;
   mapping(bytes => uint256) public filledAmount;
   mapping(bytes => bool) public presignatures;
   bytes32 public immutable domainSeparator;
@@ -16,7 +16,7 @@ contract CSMockSettlement {
   bytes32 private constant DOMAIN_VERSION = keccak256('v2');
 
   constructor(address _vault) {
-    vaultRelayer = CSMockVaultRelayer(_vault);
+    vaultRelayer = SOMockVaultRelayer(_vault);
     domainSeparator = keccak256(
       abi.encode(DOMAIN_TYPE_HASH, DOMAIN_NAME, DOMAIN_VERSION, block.chainid, address(this))
     );

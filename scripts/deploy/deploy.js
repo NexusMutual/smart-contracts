@@ -176,10 +176,10 @@ async function main() {
   const ic = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
   const assessment = await deployProxy('Assessment', [tk.address]);
 
-  console.log('Deploying CowSwapOperator');
+  console.log('Deploying SwapOperator');
   const cowVaultRelayer = await deployImmutable('CSMockVaultRelayer');
   const cowSettlement = await deployImmutable('CSMockSettlement', [cowVaultRelayer.address]);
-  const cowSwapOperator = await deployImmutable('CowSwapOperator', [
+  const swapOperator = await deployImmutable('SwapOperator', [
     cowSettlement.address,
     owner,
     master.address,
@@ -243,7 +243,7 @@ async function main() {
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mcr.address, master.address);
 
-  const poolParameters = [master, priceFeedOracle, cowSwapOperator, dai, stETH].map(x => x.address);
+  const poolParameters = [master, priceFeedOracle, swapOperator, dai, stETH].map(x => x.address);
   const pool = await deployImmutable('Pool', poolParameters);
 
   console.log('Minting DAI to pool');

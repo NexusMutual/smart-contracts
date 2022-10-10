@@ -20,13 +20,13 @@ async function setup() {
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const Pool = await ethers.getContractFactory('Pool');
   const MCR = await ethers.getContractFactory('MCR');
-  const CowSwapOperator = await ethers.getContractFactory('CowSwapOperator');
-  const CSMockQuotationData = await ethers.getContractFactory('CSMockQuotationData');
+  const SwapOperator = await ethers.getContractFactory('SwapOperator');
+  const CSMockQuotationData = await ethers.getContractFactory('SOMockQuotationData');
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
   const ERC20CustomDecimalsMock = await ethers.getContractFactory('ERC20CustomDecimalsMock');
-  const CSMockWeth = await ethers.getContractFactory('CSMockWeth');
-  const CSMockSettlement = await ethers.getContractFactory('CSMockSettlement');
-  const CSMockVaultRelayer = await ethers.getContractFactory('CSMockVaultRelayer');
+  const SOMockWeth = await ethers.getContractFactory('SOMockWeth');
+  const SOMockSettlement = await ethers.getContractFactory('SOMockSettlement');
+  const SOMockVaultRelayer = await ethers.getContractFactory('SOMockVaultRelayer');
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
   const SOMockEnzymeV4Comptroller = await ethers.getContractFactory('SOMockEnzymeV4Comptroller');
@@ -36,14 +36,14 @@ async function setup() {
   const SOMockEnzymeV4Vault = await ethers.getContractFactory('SOMockEnzymeV4Vault');
 
   // Deploy WETH + ERC20 test tokens
-  const weth = await CSMockWeth.deploy();
+  const weth = await SOMockWeth.deploy();
   const dai = await ERC20Mock.deploy();
   const usdc = await ERC20CustomDecimalsMock.deploy(6);
   const stEth = await ERC20Mock.deploy();
 
   // Deploy CoW Protocol mocks
-  const cowVaultRelayer = await CSMockVaultRelayer.deploy();
-  const cowSettlement = await CSMockSettlement.deploy(cowVaultRelayer.address);
+  const cowVaultRelayer = await SOMockVaultRelayer.deploy();
+  const cowSettlement = await SOMockSettlement.deploy(cowVaultRelayer.address);
 
   // Deploy Master, QD and MCR
   const master = await MasterMock.deploy();
@@ -110,8 +110,8 @@ async function setup() {
 
   await pool.connect(governance).addAsset(usdc.address, 6, 0, parseEther('1000'), 0, true);
 
-  // Deploy CowSwapOperator
-  const swapOperator = await CowSwapOperator.deploy(
+  // Deploy SwapOperator
+  const swapOperator = await SwapOperator.deploy(
     cowSettlement.address,
     await owner.getAddress(),
     master.address,

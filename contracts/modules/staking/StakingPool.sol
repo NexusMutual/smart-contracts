@@ -1223,23 +1223,25 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function _setProducts(ProductParams[] memory params) internal {
     uint32 _targetWeight = targetWeight;
+
     for (uint i = 0; i < params.length; i++) {
       ProductParams memory _param = params[i];
       StakedProduct memory _product = products[_param.productId];
+
       if (_product.nextPriceUpdateTime == 0) {
         Product memory coverProduct = ICover(coverContract).products(_param.productId);
-        require(coverProduct.initialPriceRatio > 0, "Failed to get initial price for product");
+        require(coverProduct.initialPriceRatio > 0, "StakingPool: Failed to get initial price for product");
         _product.nextPrice = coverProduct.initialPriceRatio;
         _product.nextPriceUpdateTime = uint32(block.timestamp);
       }
 
       if (_param.setPrice) {
-        require(_param.targetPrice <= SURGE_PRICE_DENOMINATOR, "Target price too high");
+        require(_param.targetPrice <= SURGE_PRICE_DENOMINATOR, "StakingPool: Target price too high");
         _product.targetPrice = _param.targetPrice;
       }
 
       if (_param.setWeight) {
-          require(_param.targetWeight <= WEIGHT_DENOMINATOR, "Cannot set weight beyond 1");
+          require(_param.targetWeight <= WEIGHT_DENOMINATOR, "StakingPool: Cannot set weight beyond 1");
 
           if (_product.targetWeight < _param.targetWeight) {
              _targetWeight += _param.targetWeight - _product.targetWeight;
@@ -1251,7 +1253,7 @@ contract StakingPool is IStakingPool, ERC721 {
       products[_param.productId] = _product;
     // End for loop
     }
-    require(_targetWeight <= 2000, "Target weight above 20");
+    require(_targetWeight <= 2000, "StakingPool: Target weight above 20");
     targetWeight = _targetWeight;
   }
 

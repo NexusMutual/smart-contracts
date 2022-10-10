@@ -83,7 +83,7 @@ describe('setProducts unit tests', function () {
     let i = 0;
     const initialProducts = Array.from({ length: 21 }, () => getInitialProduct(100, 100, 500, i++));
     await expect(initializePool(cover, stakingPool, defaultSender.address, 0, initialProducts)).to.be.revertedWith(
-      'Target weight above 20',
+      'StakingPool: Target weight above 20',
     );
   });
 
@@ -141,7 +141,7 @@ describe('setProducts unit tests', function () {
     const products = await Promise.all(Array.from({ length: 20 }, () => initProduct(cover, 1, 100, 100, i++)));
     await stakingPool.setProducts(products);
     const newProduct = [await initProduct(cover, 1, 1, 1, 50)];
-    await expect(stakingPool.setProducts(newProduct)).to.be.revertedWith('Target weight above 20');
+    await expect(stakingPool.setProducts(newProduct)).to.be.revertedWith('StakingPool: Target weight above 20');
     expect(await stakingPool.targetWeight()).to.be.equal(2000);
     const product0 = await stakingPool.products(0);
     verifyProduct(product0, 100, 100, 1);
@@ -153,7 +153,7 @@ describe('setProducts unit tests', function () {
     const { defaultSender } = this.accounts;
     await initializePool(cover, stakingPool, defaultSender.address, 0, []);
     await expect(stakingPool.setProducts([await initProduct(cover, 1, 101, 101, 0)])).to.be.revertedWith(
-      'Cannot set weight beyond 1',
+      'StakingPool: Cannot set weight beyond 1',
     );
   });
 
@@ -189,7 +189,7 @@ describe('setProducts unit tests', function () {
     const { defaultSender } = this.accounts;
     await initializePool(cover, stakingPool, defaultSender.address, 0, []);
     const product = await initProduct(cover, 1, 80, 10001, 0);
-    await expect(stakingPool.setProducts([product])).to.be.revertedWith('Target price too high');
+    await expect(stakingPool.setProducts([product])).to.be.revertedWith('StakingPool: Target price too high');
   });
 
   it('should fail to add non-existing product', async function () {
@@ -197,6 +197,8 @@ describe('setProducts unit tests', function () {
     const { defaultSender } = this.accounts;
     await initializePool(cover, stakingPool, defaultSender.address, 0, []);
     const product = getNewProduct(100, 100, 0);
-    await expect(stakingPool.setProducts([product])).to.be.revertedWith('Failed to get initial price for product');
+    await expect(stakingPool.setProducts([product])).to.be.revertedWith(
+      'StakingPool: Failed to get initial price for product',
+    );
   });
 });

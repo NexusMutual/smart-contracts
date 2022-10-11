@@ -5,7 +5,7 @@ const { bnEqual } = require('../utils').helpers;
 const { parseEther } = ethers.utils;
 const gracePeriodInDays = 120;
 
-describe.only('performStakeBurn', function () {
+describe('performStakeBurn', function () {
   const coverBuyFixture = {
     productId: 0,
     coverAsset: 0, // ETH

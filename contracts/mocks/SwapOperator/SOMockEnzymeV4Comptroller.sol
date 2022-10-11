@@ -23,10 +23,10 @@ contract SOMockEnzymeV4Comptroller is IEnzymeV4Comptroller {
   function redeemSharesForSpecificAssets(
     address _recipient,
     uint256 _sharesQuantity,
-    address[] calldata _payoutAssets,
-    uint256[] calldata _payoutAssetPercentages
+    address[] calldata /* _payoutAssets */,
+    uint256[] calldata /* _payoutAssetPercentages */
   ) external returns (uint256[] memory payoutAmounts_) {
-    uint256[] memory payoutAmounts_ =  new uint256[](0);
+    payoutAmounts_ =  new uint256[](0);
 
     vault.burn(_recipient, _sharesQuantity);
     IWETH(weth).transfer(_recipient, _sharesQuantity * 10000 / ethToSharesRate);
@@ -40,7 +40,7 @@ contract SOMockEnzymeV4Comptroller is IEnzymeV4Comptroller {
     // no-op
   }
 
-  function buyShares(uint _investmentAmount, uint _minSharesQuantity) external {
+  function buyShares(uint _investmentAmount, uint /* _minSharesQuantity */) external {
     uint shares = _investmentAmount * ethToSharesRate / 10000;
     vault.mint(msg.sender, shares);
   }

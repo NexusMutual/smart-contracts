@@ -16,13 +16,13 @@ contract SOMockEnzymeFundValueCalculatorRouter is IEnzymeFundValueCalculatorRout
     weth = _weth;
   }
 
-  function calcGrossShareValue(address _vaultProxy)
+  function calcGrossShareValue(address /* _vaultProxy */)
   external
   returns (address denominationAsset_, uint256 grossShareValue_) {
     return (weth, 1e18);
   }
 
-  function calcNetShareValue(address _vaultProxy)
+  function calcNetShareValue(address /* _vaultProxy */)
   external
   returns (address denominationAsset_, uint256 netShareValue_) {
     return (weth, 1e18);

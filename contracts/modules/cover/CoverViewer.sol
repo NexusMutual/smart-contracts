@@ -24,7 +24,7 @@ contract CoverViewer {
     uint8 coverAsset;
     string coverAssetSymbol;
     uint8 claimMethod;
-    uint16[] gracePeriodInDays;
+    uint16 gracePeriodInDays;
   }
 
   uint private constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
@@ -48,7 +48,7 @@ contract CoverViewer {
     uint coverStart;
     uint coverEnd;
     uint amountRemaining;
-    uint16[] memory gracePeriodInDays;  // grace period for each segment
+    uint16 gracePeriodInDays;  // grace period for each segment
     CoverData memory coverData = cover().coverData(coverId);
 
     {
@@ -58,15 +58,12 @@ contract CoverViewer {
       if (segmentCount == 1) {
         coverEnd = coverStart + firstSegment.period;
         amountRemaining = firstSegment.amount;
+        gracePeriodInDays = firstSegment.gracePeriodInDays;
       } else {
         CoverSegment memory lastSegment = cover().coverSegments(coverId, segmentCount - 1);
         coverEnd = lastSegment.start + lastSegment.period;
         amountRemaining = lastSegment.amount;
-      }
-
-      for (uint i = 0; i < segmentCount; i++){
-        CoverSegment memory segment = cover().coverSegments(coverId, i);
-        gracePeriodInDays[i] = segment.gracePeriodInDays;
+        gracePeriodInDays = lastSegment.gracePeriodInDays;
       }
     }
 

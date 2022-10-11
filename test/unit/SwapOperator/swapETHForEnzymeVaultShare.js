@@ -59,7 +59,7 @@ describe('swapETHForEnzymeVaultShare', function () {
     );
   });
 
-  it.only('should revert if ether left in pool is less than minPoolEth', async function () {
+  it('should revert if ether left in pool is less than minPoolEth', async function () {
     const { pool, swapOperator, enzymeV4Vault } = this.contracts;
 
     const governance = this.accounts.governanceAccounts[0];
@@ -90,7 +90,7 @@ describe('swapETHForEnzymeVaultShare', function () {
     await expect(
       swapOperator.swapETHForEnzymeVaultShare(maxPoolTradableEther.add(1), maxPoolTradableEther),
     ).to.be.revertedWith('SwapOp: insufficient ether left');
-    
+
     // should work with max
     await swapOperator.swapETHForEnzymeVaultShare(maxPoolTradableEther, maxPoolTradableEther);
   });

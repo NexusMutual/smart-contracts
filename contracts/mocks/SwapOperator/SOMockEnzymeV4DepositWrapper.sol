@@ -22,7 +22,8 @@ contract SOMockEnzymeV4DepositWrapper is IEnzymeV4DepositWrapper {
     address /* exchange */,
     address /* exchangeApproveTarget */,
     bytes calldata /* exchangeData */,
-    uint256 /* minInvestmentAmount */) external payable returns (uint256) {
+    uint256 /* minInvestmentAmount */
+  ) external payable returns (uint256) {
 
     // require(msg.data.length == 0, "NON_EMPTY_DATA");
     uint shares = msg.value * ethToSharesRate / 10000;

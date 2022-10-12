@@ -114,7 +114,6 @@ struct ProductUpdate {
 struct ProductType {
   uint8 claimMethod;
   uint16 gracePeriodInDays;
-
 }
 
 interface ICover {

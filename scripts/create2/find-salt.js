@@ -189,7 +189,7 @@ async function main () {
     ignoreCase: opts.ignoreCase,
   };
 
-  const pool = workerpool.pool(`${__dirname}/create2-worker.js`);
+  const pool = workerpool.pool(`${__dirname}/worker.js`);
   const batchSize = 1000;
   let salt = opts.salt;
   let processed = salt;

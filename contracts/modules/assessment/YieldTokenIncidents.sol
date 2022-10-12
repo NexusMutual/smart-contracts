@@ -17,8 +17,9 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IYieldTokenIncidents.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
+import "hardhat/console.sol";
 
-/// Allows cover owners to redeem payouts from yield token depeg incidents. It is an entry point
+/// Allows cover owners to redeem payoutfs from yield token depeg incidents. It is an entry point
 /// to the assessment process where the members of the mutual decides the validity of the
 /// submitted incident. At the moment incidents can only be submitted by the Advisory Board members
 /// while all members are allowed to vote through Assessment.sol.
@@ -236,12 +237,15 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
           "The incident needs to be accepted"
         );
 
-        (,,uint8 payoutCooldownInDays,) = assessment().config();
+        (,,uint8 payoutCooldownInDays,) = assessment().config(
+
+        );
         require(
           block.timestamp >= poll.end + payoutCooldownInDays * 1 days,
           "The voting and cooldown periods must end"
         );
 
+        console.log("config.payoutRedemptionPeriodInDays", config.payoutRedemptionPeriodInDays);
         require(
           block.timestamp < poll.end +
           payoutCooldownInDays * 1 days +
@@ -269,6 +273,8 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
         payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** uint(payoutAssetDecimals));
       }
 
+      console.log("payoutAmount", payoutAmount);
+      console.log("coverSegment.amount,", coverSegment.amount);
       require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");
     }
 

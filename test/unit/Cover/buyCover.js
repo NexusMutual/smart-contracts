@@ -60,11 +60,7 @@ describe('buyCover', function () {
         value: expectedPremium,
       },
     );
-    const receipt = await tx.wait();
-
-    console.log({
-      gasUsed: receipt.gasUsed.toString(),
-    });
+    await tx.wait();
 
     const expectedCoverId = '0';
 

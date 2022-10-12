@@ -15,10 +15,13 @@ import "../../abstract/LegacyMasterAware_sol0_8.sol";
 import "./external/Governed.sol";
 
 contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
-  uint public constant joiningFee = 2000000000000000; // 0.002 Ether
 
-  // Prefixes for ECDSA signatures' scope
-  bytes32 public constant MEMBERSHIP_APPROVAL = bytes32('MEMBERSHIP_APPROVAL');
+  struct MemberRoleDetails {
+    uint memberCounter;
+    mapping(address => bool) memberActive;
+    address[] memberAddress;
+    address authorized;
+  }
 
   ITokenController public tc;
   address payable public poolAddress;
@@ -27,13 +30,6 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   address internal _unused0;
   address internal _unused1;
   INXMToken public nxm;
-
-  struct MemberRoleDetails {
-    uint memberCounter;
-    mapping(address => bool) memberActive;
-    address[] memberAddress;
-    address authorized;
-  }
 
   MemberRoleDetails[] internal memberRoleData;
   bool internal _unused2;
@@ -44,6 +40,10 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   mapping(address => address payable) public _unused3;
   mapping(address => bool) public _unused4;
   mapping(bytes32 => bool) public usedMessageHashes;
+
+  // Prefixes for ECDSA signatures' scope
+  bytes32 public constant MEMBERSHIP_APPROVAL = bytes32('MEMBERSHIP_APPROVAL');
+  uint public constant joiningFee = 0.002 ether;
 
   modifier checkRoleAuthority(uint _memberRoleId) {
     if (memberRoleData[_memberRoleId].authorized != address(0))
@@ -178,6 +178,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
 
     // Verify the signature to see if membership has been approved.
     address recoveredAddress = ECDSA.recover(ethSignedMessageHash, signature);
+
     require(recoveredAddress == kycAuthAddress, "MemberRoles: Signature is invalid");
 
     // Whitelist the address.

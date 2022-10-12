@@ -9,7 +9,9 @@ require('hardhat-contract-sizer');
 
 require('./tasks');
 
-module.exports = {
+/** @type import('hardhat/config').HardhatUserConfig */
+const config = {
+
   contractSizer: {
     alphaSort: true,
     runOnCompile: false,
@@ -22,7 +24,7 @@ module.exports = {
 
   mocha: {
     exit: true,
-    bail: true,
+    bail: false,
     recursive: false,
     timeout: 0,
   },
@@ -30,4 +32,21 @@ module.exports = {
   networks: require('./networks'),
 
   solidity: require('./solidity'),
+
 };
+
+if (process.env.ENABLE_TENDERLY) {
+
+  const tenderly = require('@tenderly/hardhat-tenderly');
+  tenderly.setup({ automaticVerifications: false });
+
+  config.tenderly = {
+    username: 'NexusMutual',
+    project: 'nexusmutual',
+    forkNetwork: 'mainnet',
+    deploymentsDir: 'deployments',
+    // privateVerification: false,
+  };
+}
+
+module.exports = config;

@@ -39,4 +39,20 @@ contract CoverMockMCR is IMCR {
   function lastUpdateTime() external override pure returns (uint32) {
     revert("Unsupported");
   }
+
+  function gearingFactor() external pure returns (uint24) {
+    revert("Unsupported");
+  }
+
+  function maxMCRIncrement() external pure returns (uint24) {
+    revert("Unsupported");
+  }
+
+  function mcrFloorIncrementThreshold() external pure returns (uint24) {
+    revert("Unsupported");
+  }
+
+  function minUpdateTime() external pure returns (uint24) {
+    revert("Unsupported");
+  }
 }

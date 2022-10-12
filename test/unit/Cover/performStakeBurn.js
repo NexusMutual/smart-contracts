@@ -26,7 +26,8 @@ describe('performStakeBurn', function () {
     const { cover } = this;
 
     const {
-      internalContracts: [internal1]
+      internalContracts: [internal1],
+      emergencyAdmin
     } = this.accounts;
 
     const {
@@ -36,6 +37,9 @@ describe('performStakeBurn', function () {
       amount,
       targetPriceRatio
     } = coverBuyFixture;
+
+    await cover.connect(emergencyAdmin).enableActiveCoverAmountTracking([], []);
+    await cover.connect(emergencyAdmin).commitActiveCoverAmounts();
 
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
@@ -47,11 +51,7 @@ describe('performStakeBurn', function () {
 
     const segmentAllocation = await cover.coverSegmentAllocations(expectedCoverId, segmentId, '0');
 
-    console.log({
-      coverAmountInNXM: segmentAllocation.coverAmountInNXM.toString()
-    })
     const expectedBurnAmount = segmentAllocation.coverAmountInNXM.div(burnAmountDivisor);
-
 
     await cover.connect(internal1).performStakeBurn(
       expectedCoverId,
@@ -80,5 +80,8 @@ describe('performStakeBurn', function () {
     bnEqual(burnStakeCalledWith.productId, productId);
     bnEqual(burnStakeCalledWith.period, period);
     bnEqual(burnStakeCalledWith.amount, expectedBurnAmount);
+
+    const activeCoverAmount = await cover.totalActiveCoverInAsset(payoutAsset);
+    bnEqual(activeCoverAmount, amount.sub(burnAmount));
   });
 });

@@ -90,7 +90,7 @@ struct IncreaseAmountParams {
 
 struct Product {
   uint16 productType;
-  address productAddress;
+  address ytcUnderlyingAsset;
   /*
     cover assets bitmap. each bit in the base-2 representation represents whether the asset with the index
     of that bit is enabled as a cover asset for this product.
@@ -114,6 +114,7 @@ struct ProductUpdate {
 struct ProductType {
   uint8 claimMethod;
   uint16 gracePeriodInDays;
+
 }
 
 interface ICover {

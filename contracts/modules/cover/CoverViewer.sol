@@ -16,7 +16,7 @@ contract CoverViewer {
   struct CoverView {
     uint24 productId;
     uint16 productType;
-    address productAddress;
+    address ytcUnderlyingAsset;
     uint96 amountPaidOut;
     uint amountRemaining;
     uint coverStart;
@@ -82,7 +82,7 @@ contract CoverViewer {
     return CoverView(
       coverData.productId,
       product.productType,
-      product.productAddress,
+      product.ytcUnderlyingAsset,
       coverData.amountPaidOut,
       amountRemaining,
       coverStart,

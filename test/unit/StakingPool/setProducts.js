@@ -52,7 +52,6 @@ describe('setProducts unit tests', function () {
   const verifyProduct = (product, weight, price, initialPrice) => {
     expect(product.targetWeight).to.be.equal(weight);
     expect(product.targetPrice).to.be.equal(price);
-    // TODO: verify exact nextPriceUpdateTime
     expect(product.nextPriceUpdateTime).to.be.greaterThan(0);
     expect(product.nextPrice).to.be.equal(initialPrice);
   };
@@ -198,7 +197,18 @@ describe('setProducts unit tests', function () {
     await initializePool(cover, stakingPool, defaultSender.address, 0, []);
     const product = getNewProduct(100, 100, 0);
     await expect(stakingPool.setProducts([product])).to.be.revertedWith(
-      'StakingPool: Failed to get initial price for product',
+      'StakingPool: Product deprecated or not initialized',
+    );
+  });
+
+  it('should fail to add deprecated product', async function () {
+    const { stakingPool, cover } = this;
+    const { defaultSender } = this.accounts;
+    await initializePool(cover, stakingPool, defaultSender.address, 0, []);
+    const product = await initProduct(cover, 50, 100, 100, 0);
+    await cover.deprecateProducts([0]);
+    await expect(stakingPool.setProducts([product])).to.be.revertedWith(
+      'StakingPool: Product deprecated or not initialized',
     );
   });
 });

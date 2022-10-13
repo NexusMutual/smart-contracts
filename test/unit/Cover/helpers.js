@@ -1,6 +1,5 @@
 const { ethers } = require('hardhat');
-const { assert } = require('chai');
-const { bnEqual } = require('../../../lib/helpers');
+const { assert, expect } = require('chai');
 
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
@@ -51,10 +50,10 @@ async function assertCoverFields(
 
   assert.equal(storedCoverData.productId, productId);
   assert.equal(storedCoverData.coverAsset, coverAsset);
-  bnEqual(storedCoverData.amountPaidOut, amountPaidOut);
+  expect(storedCoverData.amountPaidOut).to.be.equal(amountPaidOut);
   assert.equal(segment.period, period);
   assert.equal(segment.amount.toString(), amount.toString());
-  bnEqual(segment.priceRatio, targetPriceRatio);
+  expect(segment.priceRatio.toString()).to.be.equal(targetPriceRatio.toString());
 }
 
 async function buyCoverOnOnePool({

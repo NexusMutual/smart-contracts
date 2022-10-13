@@ -176,7 +176,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     require(_products.length > params.productId, "Cover: Product not found");
 
     Product memory product = _products[params.productId];
-    require(product.initialPriceRatio != 0, "Cover: Product not initialized");
+    require(product.initialPriceRatio != 0, "Cover: Product deprecated or not initialized");
 
     IPool _pool = pool();
     uint32 deprecatedCoverAssetsBitmap = _pool.deprecatedCoverAssetsBitmap();
@@ -352,6 +352,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       !_isCoverAssetDeprecated(deprecatedCoverAssetsBitmap, buyCoverParams.paymentAsset),
       "Cover: payment asset deprecated"
     );
+    require(product.initialPriceRatio != 0, "Cover: Product deprecated or not initialized");
 
     uint refundInCoverAsset;
 
@@ -652,6 +653,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       _productTypes[productTypeIds[i]].gracePeriodInDays = gracePeriodsInDays[i];
       emit ProductTypeSet(productTypeIds[i], ipfsMetadata[i]);
     }
+  }
+
+  function deprecateProducts(uint[] calldata productIds) external override onlyAdvisoryBoard {
+      uint numProducts = productIds.length;
+      for (uint i = 0; i < numProducts; i++){
+        _products[productIds[i]].initialPriceRatio = 0;
+      }
   }
 
   function editProducts(

@@ -179,6 +179,8 @@ interface ICover {
     string[] calldata ipfsMetadata
   ) external;
 
+  function deprecateProducts(uint[] calldata productIds) external;
+
   function performStakeBurn(
     uint coverId,
     uint segmentId,

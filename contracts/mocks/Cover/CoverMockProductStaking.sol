@@ -14,6 +14,13 @@ contract CoverMockProductStaking {
     _products[id] = product_;
   }
 
+  function deprecateProducts(uint[] calldata productIds) external {
+    uint numProducts = productIds.length;
+    for (uint i = 0; i < numProducts; i++){
+      _products[productIds[i]].initialPriceRatio = 0;
+    }
+  }
+
   function initializeStaking(
     address staking_,
     address _manager,

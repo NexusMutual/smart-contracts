@@ -137,7 +137,9 @@ library CoverUtilsLib {
 
       // override with initial price
       for (uint i = 0; i < productInitParams.length; i++) {
-        productInitParams[0].initialPrice = products[productInitParams[i].productId].initialPriceRatio;
+        uint96 initialPriceRatio = products[productInitParams[i].productId].initialPriceRatio;
+        require(initialPriceRatio > 0, "CoverUtils: Product deprecated or uninitialized");
+        productInitParams[0].initialPrice = initialPriceRatio;
       }
     }
 

@@ -1230,7 +1230,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
       if (_product.nextPriceUpdateTime == 0) {
         Product memory coverProduct = ICover(coverContract).products(_param.productId);
-        require(coverProduct.initialPriceRatio > 0, "StakingPool: Failed to get initial price for product");
+        require(coverProduct.initialPriceRatio > 0, "StakingPool: Product deprecated or not initialized");
         _product.nextPrice = coverProduct.initialPriceRatio;
         _product.nextPriceUpdateTime = uint32(block.timestamp);
       }

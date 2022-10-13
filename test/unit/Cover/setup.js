@@ -31,7 +31,11 @@ async function setup() {
   const MCR = await ethers.getContractFactory('CoverMockMCR');
   const StakingPool = await ethers.getContractFactory('CoverMockStakingPool');
   const CoverUtilsLib = await ethers.getContractFactory('CoverUtilsLib');
+  const CoverMigrator = await ethers.getContractFactory('CoverMigrator');
   const ERC20CustomDecimalsMock = await ethers.getContractFactory('ERC20CustomDecimalsMock');
+  const ProductsV1 = await ethers.getContractFactory('ProductsV1');
+
+  const productsV1 = await ProductsV1.deploy();
 
   const coverUtilsLib = await CoverUtilsLib.deploy();
 
@@ -85,7 +89,7 @@ async function setup() {
   const stakingPool = await StakingPool.deploy(nxm.address, coverAddress, memberRoles.address, tokenController.address);
   const cover = await Cover.deploy(
     quotationData.address,
-    ethers.constants.AddressZero,
+    productsV1.address,
     futureCoverNFTAddress,
     stakingPool.address,
     coverAddress,
@@ -94,6 +98,9 @@ async function setup() {
 
   const coverNFT = await CoverNFT.deploy('NexusMutual Cover', 'NXMC', cover.address);
   await coverNFT.deployed();
+
+  const coverMigrator = await CoverMigrator.deploy();
+  await coverMigrator.deployed();
 
   await master.setTokenAddress(nxm.address);
 
@@ -135,6 +142,7 @@ async function setup() {
   await master.setLatestAddress(hex('CO'), cover.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
+  await master.setLatestAddress(hex('CL'), coverMigrator.address);
 
   const signers = await ethers.getSigners();
   const accounts = getAccounts(signers);
@@ -158,7 +166,7 @@ async function setup() {
     await master.enrollGovernance(governanceContract.address);
   }
 
-  for (const contract of [cover, tokenController]) {
+  for (const contract of [cover, tokenController, coverMigrator]) {
     await contract.changeMasterAddress(master.address);
     await contract.changeDependentContractAddress();
     await master.enrollInternal(contract.address);
@@ -208,8 +216,11 @@ async function setup() {
   this.chainlinkDAI = chainlinkDAI;
   this.cover = cover;
   this.coverNFT = coverNFT;
+  this.coverMigrator = coverMigrator;
   this.accounts = accounts;
   this.capacityFactor = capacityFactor;
+  this.quotationData = quotationData;
+  this.productsV1 = productsV1;
 }
 
 module.exports = setup;

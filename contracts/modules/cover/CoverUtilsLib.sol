@@ -81,6 +81,7 @@ library CoverUtilsLib {
       // Mint the new cover
       uint productId = params.productsV1.getNewProductId(legacyProductId);
       Product memory product = _products[productId];
+      require(product.initialPriceRatio != 0, "Product deprecated or not initialized");
       ProductType memory productType = _productTypes[product.productType];
       require(
         block.timestamp < validUntil + productType.gracePeriodInDays * 1 days,

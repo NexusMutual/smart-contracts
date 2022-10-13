@@ -12,11 +12,21 @@ contract TokenControllerMock is MasterAware {
     uint128 deposits;
   }
 
+  struct CoverInfo {
+    uint16 claimCount;
+    bool hasOpenClaim;
+    bool hasAcceptedClaim;
+    // note: still 224 bits available here, can be used later
+  }
+
   NXMToken public token;
   address public addToWhitelistLastCalledWtih;
   address public removeFromWhitelistLastCalledWtih;
 
   mapping(uint => StakingPoolNXMBalances) stakingPoolNXMBalances;
+
+  mapping(uint => CoverInfo) public coverInfo;
+
 
   function mint(address _member, uint256 _amount) public onlyInternal {
     token.mint(_member, _amount);

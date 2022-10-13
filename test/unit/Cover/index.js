@@ -24,4 +24,5 @@ describe('Cover unit tests', function () {
   require('./addProducts');
   require('./editProductTypes');
   require('./deprecateProducts');
+  require('./migrateCovers');
 });

@@ -287,12 +287,12 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       ) = abi.decode(optionalParams, (address, address, uint256, uint256, uint8, bytes32, bytes32));
 
       if (spender != address(0)) {
-        IERC20Permit(product.productAddress).permit(owner, spender, value, deadline, v, r, s);
+        IERC20Permit(product.ytcUnderlyingAsset).permit(owner, spender, value, deadline, v, r, s);
       }
     }
 
     SafeERC20.safeTransferFrom(
-      IERC20(product.productAddress),
+      IERC20(product.ytcUnderlyingAsset),
       msg.sender,
       address(this),
       depeggedTokens

@@ -321,28 +321,28 @@ async function setup() {
     [
       {
         productType: 0, // Protocol Cover
-        productAddress: '0x0000000000000000000000000000000000000000',
+        ytcUnderlyingAsset: '0x0000000000000000000000000000000000000000',
         coverAssets: 0, // Use fallback
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
       },
       {
         productType: 1, // Custody Cover
-        productAddress: '0x0000000000000000000000000000000000000000',
+        ytcUnderlyingAsset: '0x0000000000000000000000000000000000000000',
         coverAssets: 0, // Use fallback
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
       },
       {
         productType: 2, // Yield Token Cover
-        productAddress: '0x0000000000000000000000000000000000000001',
+        ytcUnderlyingAsset: '0x0000000000000000000000000000000000000001',
         coverAssets: 0b01, // ETH
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
       },
       {
         productType: 2, // Yield Token Cover
-        productAddress: '0x0000000000000000000000000000000000000002',
+        ytcUnderlyingAsset: '0x0000000000000000000000000000000000000002',
         coverAssets: 0b10, // DAI
         initialPriceRatio: 100,
         capacityReductionRatio: 0,

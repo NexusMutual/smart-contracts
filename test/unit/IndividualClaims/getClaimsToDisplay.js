@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { ASSET, CLAIM_STATUS, PAYOUT_STATUS } = require('./helpers');
+const { ASSET, CLAIM_STATUS, PAYOUT_STATUS, getCoverSegment } = require('./helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
@@ -17,8 +17,8 @@ describe('getClaimsToDisplay', function () {
   it('aggregates and displays claims related data in a human-readable form', async function () {
     const { individualClaims, cover, assessment } = this.contracts;
     const [coverOwner] = this.accounts.members;
-    const coverPeriod = daysToSeconds(66);
-    const coverAmount = parseEther('100');
+    const segment = await getCoverSegment();
+    segment.period = daysToSeconds('66');
     const expectedProductIds = ['1', '0', '1', '0', '1'];
     const expectedClaimIds = ['0', '1', '2', '3', '4'];
     const expectedCoverIds = ['3', '1', '2', '0', '4'];
@@ -31,11 +31,12 @@ describe('getClaimsToDisplay', function () {
     {
       // 0
       const { timestamp } = await ethers.provider.getBlock('latest');
+      segment.start = timestamp + 1;
       await cover.createMockCover(
         coverOwner.address,
         0, // productId
         ASSET.ETH,
-        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+        [segment],
       );
       expectedCoverStarts[3] = timestamp + 1; // This will be the 4th calim
       await setTime(timestamp + daysToSeconds(1));
@@ -44,11 +45,12 @@ describe('getClaimsToDisplay', function () {
     {
       // 1
       const { timestamp } = await ethers.provider.getBlock('latest');
+      segment.start = timestamp + 1;
       await cover.createMockCover(
         coverOwner.address,
         0, // productId
         ASSET.DAI,
-        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+        [segment],
       );
       expectedCoverStarts[1] = timestamp + 1; // This will be the 2nd calim
       await setTime(timestamp + daysToSeconds(2));
@@ -57,11 +59,12 @@ describe('getClaimsToDisplay', function () {
     {
       // 2
       const { timestamp } = await ethers.provider.getBlock('latest');
+      segment.start = timestamp + 1;
       await cover.createMockCover(
         coverOwner.address,
         1, // productId
         ASSET.ETH,
-        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+        [segment],
       );
       expectedCoverStarts[2] = timestamp + 1; // This will be the 3rd calim
       await setTime(timestamp + daysToSeconds(4));
@@ -70,11 +73,12 @@ describe('getClaimsToDisplay', function () {
     {
       // 3
       const { timestamp } = await ethers.provider.getBlock('latest');
+      segment.start = timestamp + 1;
       await cover.createMockCover(
         coverOwner.address,
         1, // productId
         ASSET.DAI,
-        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+        [segment],
       );
       expectedCoverStarts[0] = timestamp + 1; // This will be the 1st calim
       await setTime(timestamp + daysToSeconds(1));
@@ -83,11 +87,12 @@ describe('getClaimsToDisplay', function () {
     {
       // 4
       const { timestamp } = await ethers.provider.getBlock('latest');
+      segment.start = timestamp + 1;
       await cover.createMockCover(
         coverOwner.address,
         1, // productId
         ASSET.DAI,
-        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+        [segment],
       );
       expectedCoverStarts[4] = timestamp + 1; // This will be the 5th calim
     }
@@ -95,7 +100,7 @@ describe('getClaimsToDisplay', function () {
     {
       const [deposit] = await individualClaims.getAssessmentDepositAndReward(
         expectedAmounts[0],
-        coverPeriod,
+        segment.period,
         ASSET.DAI,
       );
       await individualClaims.connect(coverOwner).submitClaim(3, 0, expectedAmounts[0], '', {
@@ -108,7 +113,7 @@ describe('getClaimsToDisplay', function () {
     {
       const [deposit] = await individualClaims.getAssessmentDepositAndReward(
         expectedAmounts[1],
-        coverPeriod,
+        segment.period,
         ASSET.DAI,
       );
       await individualClaims.connect(coverOwner).submitClaim(1, 0, expectedAmounts[1], '', {
@@ -121,7 +126,7 @@ describe('getClaimsToDisplay', function () {
     {
       const [deposit] = await individualClaims.getAssessmentDepositAndReward(
         expectedAmounts[2],
-        coverPeriod,
+        segment.period,
         ASSET.ETH,
       );
       await individualClaims.connect(coverOwner).submitClaim(2, 0, expectedAmounts[2], '', {
@@ -134,7 +139,7 @@ describe('getClaimsToDisplay', function () {
     {
       const [deposit] = await individualClaims.getAssessmentDepositAndReward(
         expectedAmounts[3],
-        coverPeriod,
+        segment.period,
         ASSET.ETH,
       );
       await individualClaims.connect(coverOwner).submitClaim(0, 0, expectedAmounts[3], '', {
@@ -147,7 +152,7 @@ describe('getClaimsToDisplay', function () {
     {
       const [deposit] = await individualClaims.getAssessmentDepositAndReward(
         expectedAmounts[4],
-        coverPeriod,
+        segment.period,
         ASSET.ETH,
       );
       await individualClaims.connect(coverOwner).submitClaim(4, 0, expectedAmounts[4], '', {
@@ -159,7 +164,7 @@ describe('getClaimsToDisplay', function () {
 
     const { minVotingPeriodInDays } = await assessment.config();
     const expectedPollEnds = expectedPollStarts.map(x => x + daysToSeconds(minVotingPeriodInDays));
-    const expectedCoverEnds = expectedCoverStarts.map(x => x + coverPeriod);
+    const expectedCoverEnds = expectedCoverStarts.map(x => x + segment.period);
 
     const res = await individualClaims.getClaimsToDisplay([0, 1, 2, 3, 4]);
     const actualClaimIds = res.map(x => x.id);

@@ -62,6 +62,23 @@ const getIncidentDetailsStruct = ({
   minAssessmentDepositRatio,
 }) => [productId, date, coverAsset, activeCoverAmount, expectedPayoutRatio, minAssessmentDepositRatio];
 
+const coverSegmentFixture = {
+  amount: parseEther('100'),
+  start: 0,
+  period: 30 * 24 * 60 * 60,
+  gracePeriodInDays: 7,
+  priceRatio: 0,
+  expired: false,
+  globalRewardsRatio: 0,
+};
+
+const getCoverSegment = async () => {
+  const { timestamp } = await ethers.provider.getBlock('latest');
+  const cover = { ...coverSegmentFixture };
+  cover.start = timestamp + 1;
+  return cover;
+};
+
 module.exports = {
   ASSET,
   CLAIM_STATUS,
@@ -72,4 +89,5 @@ module.exports = {
   getClaimDetailsStruct,
   getIncidentDetailsStruct,
   getVoteStruct,
+  getCoverSegment,
 };

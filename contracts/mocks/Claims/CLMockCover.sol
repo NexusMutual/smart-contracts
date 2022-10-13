@@ -122,6 +122,17 @@ contract CLMockCover {
     _products.push(product);
   }
 
+  function editProductTypes(
+    uint[] calldata productTypeIds,
+    uint16[] calldata gracePeriodsInDays,
+    string[] calldata ipfsMetadata
+  ) external {
+    ipfsMetadata;
+    for (uint i = 0; i < productTypeIds.length; i++) {
+      _productTypes[productTypeIds[i]].gracePeriodInDays = gracePeriodsInDays[i];
+    }
+  }
+
   function performStakeBurn(uint coverId, uint segmentId, uint amount) external returns (address) {
     performStakeBurnCalledWith = PerformStakeBurnCalledWith(coverId, segmentId, amount);
     return coverNFT.ownerOf(coverId);

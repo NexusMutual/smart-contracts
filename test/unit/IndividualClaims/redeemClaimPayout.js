@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { submitClaim, ASSET } = require('./helpers');
+const { submitClaim, ASSET, getCoverSegment } = require('./helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
@@ -16,15 +16,13 @@ describe('redeemClaimPayout', function () {
   it('reverts if the claim is not accepted', async function () {
     const { individualClaims, cover, assessment } = this.contracts;
     const [coverOwner] = this.accounts.members;
-    const coverPeriod = daysToSeconds(30);
-    const coverAmount = parseEther('100');
+    const segment = await getCoverSegment();
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
     await cover.createMockCover(
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+      [segment],
     );
 
     {
@@ -58,14 +56,13 @@ describe('redeemClaimPayout', function () {
   it('reverts while the claim is being assessed', async function () {
     const { individualClaims, cover, assessment } = this.contracts;
     const [coverOwner] = this.accounts.members;
-    const coverPeriod = daysToSeconds(30);
-    const coverAmount = parseEther('100');
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const segment = await getCoverSegment();
+
     await cover.createMockCover(
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+      [segment],
     );
 
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
@@ -95,14 +92,13 @@ describe('redeemClaimPayout', function () {
   it('reverts while the claim is in cooldown period', async function () {
     const { individualClaims, cover, assessment } = this.contracts;
     const [coverOwner] = this.accounts.members;
-    const coverPeriod = daysToSeconds(30);
-    const coverAmount = parseEther('100');
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const segment = await getCoverSegment();
+
     await cover.createMockCover(
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+      [segment],
     );
 
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
@@ -120,14 +116,13 @@ describe('redeemClaimPayout', function () {
   it('reverts if the redemption period expired', async function () {
     const { individualClaims, cover, assessment } = this.contracts;
     const [coverOwner] = this.accounts.members;
-    const coverPeriod = daysToSeconds(30);
-    const coverAmount = parseEther('100');
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const segment = await getCoverSegment();
+
     await cover.createMockCover(
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+      [segment],
     );
 
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
@@ -144,14 +139,13 @@ describe('redeemClaimPayout', function () {
   it('reverts if a payout has already been redeemed', async function () {
     const { individualClaims, cover, assessment } = this.contracts;
     const [coverOwner] = this.accounts.members;
-    const coverPeriod = daysToSeconds(30);
-    const coverAmount = parseEther('100');
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const segment = await getCoverSegment();
+
     await cover.createMockCover(
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+      [segment],
     );
 
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
@@ -168,14 +162,13 @@ describe('redeemClaimPayout', function () {
   it("sets the claim's payoutRedeemed property to true", async function () {
     const { individualClaims, cover, assessment } = this.contracts;
     const [coverOwner] = this.accounts.members;
-    const coverPeriod = daysToSeconds(30);
-    const coverAmount = parseEther('100');
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    const segment = await getCoverSegment();
+
     await cover.createMockCover(
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+      [segment],
     );
     await submitClaim(this)({ coverId: 0, sender: coverOwner });
     await assessment.castVote(0, true, parseEther('1'));
@@ -191,8 +184,37 @@ describe('redeemClaimPayout', function () {
     // also check after NFT transfer
     const { individualClaims, cover, coverNFT, assessment } = this.contracts;
     const [originalOwner, newOwner, otherMember] = this.accounts.members;
-    const coverPeriod = daysToSeconds(30);
-    const coverAmount = parseEther('100');
+    const segment = await getCoverSegment();
+
+    await cover.createMockCover(
+      originalOwner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+      { gasPrice: 0 },
+    );
+
+    const ethBalanceBefore = await ethers.provider.getBalance(originalOwner.address);
+    const coverId = 0;
+    const assessmentId = 0;
+    const claimId = 0;
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
+    await individualClaims
+      .connect(originalOwner)
+      ['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, segment.amount, '', {
+        value: deposit,
+        gasPrice: 0,
+      });
+
+    await assessment.connect(otherMember).castVote(assessmentId, true, parseEther('1'));
+    const { poll } = await assessment.assessments(assessmentId);
+    const { payoutCooldownInDays } = await assessment.config();
+    await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
+
+    await individualClaims.connect(originalOwner).redeemClaimPayout(claimId, { gasPrice: 0 });
+    const ethBalanceAfter = await ethers.provider.getBalance(originalOwner.address);
+
+    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(segment.amount));
 
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
@@ -200,50 +222,17 @@ describe('redeemClaimPayout', function () {
         originalOwner.address,
         0, // productId
         ASSET.ETH,
-        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
-        { gasPrice: 0 },
-      );
-
-      const ethBalanceBefore = await ethers.provider.getBalance(originalOwner.address);
-      const coverId = 0;
-      const assessmentId = 0;
-      const claimId = 0;
-      const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, ASSET.ETH);
-      await individualClaims
-        .connect(originalOwner)
-        ['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', {
-          value: deposit,
-          gasPrice: 0,
-        });
-
-      await assessment.connect(otherMember).castVote(assessmentId, true, parseEther('1'));
-      const { poll } = await assessment.assessments(assessmentId);
-      const { payoutCooldownInDays } = await assessment.config();
-      await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
-
-      await individualClaims.connect(originalOwner).redeemClaimPayout(claimId, { gasPrice: 0 });
-      const ethBalanceAfter = await ethers.provider.getBalance(originalOwner.address);
-
-      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(coverAmount));
-    }
-
-    {
-      const { timestamp } = await ethers.provider.getBlock('latest');
-      await cover.createMockCover(
-        originalOwner.address,
-        0, // productId
-        ASSET.ETH,
-        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+        [[segment.amount, timestamp + 1, segment.period, 7, 0, false, 0]],
         { gasPrice: 0 },
       );
 
       const coverId = 1;
       const assessmentId = 1;
       const claimId = 1;
-      const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, ASSET.ETH);
+      const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
       await individualClaims
         .connect(originalOwner)
-        ['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', {
+        ['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, segment.amount, '', {
           value: deposit,
           gasPrice: 0,
         });
@@ -258,7 +247,7 @@ describe('redeemClaimPayout', function () {
       await individualClaims.connect(otherMember).redeemClaimPayout(claimId, { gasPrice: 0 }); // anyone can poke this
       const ethBalanceAfter = await ethers.provider.getBalance(newOwner.address);
 
-      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(coverAmount).add(deposit));
+      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(segment.amount).add(deposit));
     }
   });
 
@@ -266,50 +255,45 @@ describe('redeemClaimPayout', function () {
     // also check after NFT transfer
     const { individualClaims, cover, coverNFT, assessment, dai } = this.contracts;
     const [originalOwner, newOwner, otherMember] = this.accounts.members;
-    const coverPeriod = daysToSeconds(30);
-    const coverAmount = parseEther('100');
+    const segment = await getCoverSegment();
+
+    await cover.createMockCover(
+      originalOwner.address,
+      0, // productId
+      ASSET.DAI,
+      [segment],
+      { gasPrice: 0 },
+    );
+
+    const ethBalanceBefore = await ethers.provider.getBalance(originalOwner.address);
+    const daiBalanceBefore = await dai.balanceOf(originalOwner.address);
+    const coverId = 0;
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.DAI);
+    await individualClaims
+      .connect(originalOwner)
+      ['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, segment.amount, '', {
+        value: deposit,
+        gasPrice: 0,
+      });
+
+    await assessment.connect(otherMember).castVote(0, true, parseEther('1'));
+    const { poll } = await assessment.assessments(0);
+    const { payoutCooldownInDays } = await assessment.config();
+    await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
+
+    await individualClaims.connect(originalOwner).redeemClaimPayout(0, { gasPrice: 0 });
+    const ethBalanceAfter = await ethers.provider.getBalance(originalOwner.address);
+    const daiBalanceAfter = await dai.balanceOf(originalOwner.address);
+
+    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore);
+    expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(segment.amount));
 
     {
-      const { timestamp } = await ethers.provider.getBlock('latest');
       await cover.createMockCover(
         originalOwner.address,
         0, // productId
         ASSET.DAI,
-        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
-        { gasPrice: 0 },
-      );
-
-      const ethBalanceBefore = await ethers.provider.getBalance(originalOwner.address);
-      const daiBalanceBefore = await dai.balanceOf(originalOwner.address);
-      const coverId = 0;
-      const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, ASSET.DAI);
-      await individualClaims
-        .connect(originalOwner)
-        ['submitClaim(uint32,uint16,uint96,string)'](coverId, 0, coverAmount, '', {
-          value: deposit,
-          gasPrice: 0,
-        });
-
-      await assessment.connect(otherMember).castVote(0, true, parseEther('1'));
-      const { poll } = await assessment.assessments(0);
-      const { payoutCooldownInDays } = await assessment.config();
-      await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
-
-      await individualClaims.connect(originalOwner).redeemClaimPayout(0, { gasPrice: 0 });
-      const ethBalanceAfter = await ethers.provider.getBalance(originalOwner.address);
-      const daiBalanceAfter = await dai.balanceOf(originalOwner.address);
-
-      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore);
-      expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(coverAmount));
-    }
-
-    {
-      const { timestamp } = await ethers.provider.getBlock('latest');
-      await cover.createMockCover(
-        originalOwner.address,
-        0, // productId
-        ASSET.DAI,
-        [[coverAmount, timestamp + 1, coverPeriod, 0, false, 0]],
+        [segment],
         { gasPrice: 0 },
       );
 
@@ -319,10 +303,10 @@ describe('redeemClaimPayout', function () {
       const segmentId = 0;
       const assessmentId = 1;
       const claimId = 1;
-      const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, ASSET.DAI);
+      const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.DAI);
       await individualClaims
         .connect(originalOwner)
-        ['submitClaim(uint32,uint16,uint96,string)'](coverId, segmentId, coverAmount, '', {
+        ['submitClaim(uint32,uint16,uint96,string)'](coverId, segmentId, segment.amount, '', {
           value: deposit,
           gasPrice: 0,
         });
@@ -338,34 +322,28 @@ describe('redeemClaimPayout', function () {
       const daiBalanceAfter = await dai.balanceOf(newOwner.address);
 
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(deposit));
-      expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(coverAmount));
+      expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(segment.amount));
     }
   });
 
   it('calls performStakeBurn from Cover.sol with the amount to be burned, cover and segment IDs', async function () {
     const { individualClaims, cover, assessment } = this.contracts;
     const [coverOwner, otherMember] = this.accounts.members;
-    const coverPeriod = daysToSeconds(30);
-    const coverAmount = parseEther('100');
+    const segment = await getCoverSegment();
 
     for (let i = 0; i <= 3; i++) {
-      const { timestamp } = await ethers.provider.getBlock('latest');
       await cover.createMockCover(
         coverOwner.address,
         0, // productId
         ASSET.DAI,
-        [
-          [0, 0, 0, 0, false, 0],
-          [0, 0, 0, 0, false, 0],
-          [coverAmount, timestamp + 1, coverPeriod, 0, false, 0],
-        ],
+        [segment, segment, segment],
         { gasPrice: 0 },
       );
     }
 
     {
-      const [deposit] = await individualClaims.getAssessmentDepositAndReward(coverAmount, coverPeriod, ASSET.ETH);
-      await individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](3, 2, coverAmount, '', {
+      const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
+      await individualClaims.connect(coverOwner)['submitClaim(uint32,uint16,uint96,string)'](3, 2, segment.amount, '', {
         value: deposit,
         gasPrice: 0,
       });
@@ -380,18 +358,18 @@ describe('redeemClaimPayout', function () {
 
       expect(coverId).to.be.equal(3);
       expect(segmentId).to.be.equal(2);
-      expect(amount).to.be.equal(coverAmount);
+      expect(amount).to.be.equal(segment.amount);
     }
 
     {
       const [deposit] = await individualClaims.getAssessmentDepositAndReward(
-        coverAmount.div(2),
-        coverPeriod,
+        segment.amount.div(2),
+        segment.period,
         ASSET.ETH,
       );
       await individualClaims
         .connect(coverOwner)
-        ['submitClaim(uint32,uint16,uint96,string)'](2, 2, coverAmount.div(2), '', {
+        ['submitClaim(uint32,uint16,uint96,string)'](2, 2, segment.amount.div(2), '', {
           value: deposit,
           gasPrice: 0,
         });
@@ -405,7 +383,7 @@ describe('redeemClaimPayout', function () {
       const { coverId, amount } = await cover.performStakeBurnCalledWith();
 
       expect(coverId).to.be.equal(2);
-      expect(amount).to.be.equal(coverAmount.div(2));
+      expect(amount).to.be.equal(segment.amount.div(2));
     }
   });
 });

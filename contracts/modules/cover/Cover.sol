@@ -290,6 +290,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         totalCoveredAmountInCoverAsset, // amount
         uint32(block.timestamp + 1), // start
         SafeUintCast.toUint32(params.period), // period
+        _productTypes[_products[params.productId].productType].gracePeriodInDays,
         priceRatio,
         false, // expired,
         globalRewardsRatio
@@ -306,7 +307,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   ) internal returns (uint coveredAmountInNXM, uint premiumInNXM, uint rewardsInNXM) {
 
     Product memory product = _products[params.productId];
-    uint gracePeriod = _productTypes[product.productType].gracePeriodInDays * 1 days;
+    uint gracePeriod = uint(_productTypes[product.productType].gracePeriodInDays) * 1 days;
 
     return _stakingPool.allocateStake(
       CoverRequest(
@@ -400,7 +401,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           cover.productId,
           allocation.coverAmountInNXM,
           lastCoverSegment.period,
-          _productTypes[product.productType].gracePeriodInDays * 1 days,
+          uint(lastCoverSegment.gracePeriodInDays) * 1 days,
           // TODO globalCapacityRatio and capacityReductionRatio need to be stored at cover buy
           globalCapacityRatio,
           product.capacityReductionRatio,
@@ -680,7 +681,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     Product memory product,
     uint32 _coverAssetsFallback,
     uint productTypesCount
-  ) internal {
+  ) internal pure {
 
     require(product.productType < productTypesCount, "Cover: Invalid productType");
     require(

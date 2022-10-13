@@ -76,12 +76,11 @@ library CoverUtilsLib {
 
     // Mark cover as migrated to prevent future calls on the same cover
     params.quotationData.changeCoverStatusNo(params.coverId, uint8(LegacyCoverStatus.Migrated));
-
+    ProductType memory productType;
     {
       // Mint the new cover
       uint productId = params.productsV1.getNewProductId(legacyProductId);
-      Product memory product = _products[productId];
-      ProductType memory productType = _productTypes[product.productType];
+      productType = _productTypes[_products[productId].productType];
       require(
         block.timestamp < validUntil + productType.gracePeriodInDays * 1 days,
         "Cover outside of the grace period"
@@ -103,6 +102,7 @@ library CoverUtilsLib {
         SafeUintCast.toUint96(sumAssured * 10 ** 18), // amount
         SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days), // start
         SafeUintCast.toUint32(coverPeriodInDays * 1 days), // period
+        productType.gracePeriodInDays,
         uint16(0), // priceRatio
         false, // expired
         0 // global rewards ratio //

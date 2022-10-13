@@ -218,10 +218,9 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       );
 
       {
-        ProductType memory productType = coverContract.productTypes(product.productType);
         require(
           coverSegment.start + coverSegment.period +
-          productType.gracePeriodInDays * 1 days >= block.timestamp,
+          coverSegment.gracePeriodInDays * 1 days >= block.timestamp,
           "Grace period has expired"
         );
       }

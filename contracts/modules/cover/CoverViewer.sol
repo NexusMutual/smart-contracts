@@ -48,6 +48,7 @@ contract CoverViewer {
     uint coverStart;
     uint coverEnd;
     uint amountRemaining;
+    uint16 gracePeriodInDays;  // grace period for each segment
     CoverData memory coverData = cover().coverData(coverId);
 
     {
@@ -57,10 +58,12 @@ contract CoverViewer {
       if (segmentCount == 1) {
         coverEnd = coverStart + firstSegment.period;
         amountRemaining = firstSegment.amount;
+        gracePeriodInDays = firstSegment.gracePeriodInDays;
       } else {
         CoverSegment memory lastSegment = cover().coverSegments(coverId, segmentCount - 1);
         coverEnd = lastSegment.start + lastSegment.period;
         amountRemaining = lastSegment.amount;
+        gracePeriodInDays = lastSegment.gracePeriodInDays;
       }
     }
 
@@ -90,7 +93,7 @@ contract CoverViewer {
       coverData.coverAsset,
       coverAssetSymbol,
       productType.claimMethod,
-      productType.gracePeriodInDays
+      gracePeriodInDays
     );
   }
 

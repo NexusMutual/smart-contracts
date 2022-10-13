@@ -109,6 +109,17 @@ contract ICMockCover {
     ));
   }
 
+  function editProductTypes(
+    uint[] calldata productTypeIds,
+    uint16[] calldata gracePeriodsInDays,
+    string[] calldata ipfsHash
+  ) external {
+    ipfsHash;
+    for (uint i = 0; i < productTypeIds.length; i++) {
+      _productTypes[productTypeIds[i]].gracePeriodInDays = gracePeriodsInDays[i];
+    }
+  }
+
   function addProduct(Product calldata product) external {
     _products.push(product);
   }

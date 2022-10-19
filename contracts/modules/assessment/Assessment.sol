@@ -140,6 +140,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
     stakeOf[msg.sender].amount += amount;
     ITokenController(getInternalContractAddress(ID.TC))
       .operatorTransfer(msg.sender, address(this), amount);
+
+    emit StakeDeposited(msg.sender, amount);
   }
 
   /// Withdraws a portion or all of the user's stake

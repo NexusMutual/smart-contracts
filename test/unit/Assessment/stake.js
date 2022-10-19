@@ -1,4 +1,4 @@
-const { assert } = require('chai');
+const { assert, expect } = require('chai');
 const { ethers } = require('hardhat');
 
 const { parseEther } = ethers.utils;
@@ -39,5 +39,15 @@ describe('stake', function () {
       const balance = await nxm.balanceOf(assessment.address);
       assert(balance.eq(parseEther('200')));
     }
+  });
+
+  it('emits StakeDeposited event with staker and amount', async function () {
+    const { assessment } = this.contracts;
+    const user = this.accounts.members[0];
+
+    const amount = parseEther('100');
+    await expect(assessment.connect(user).stake(amount))
+      .to.emit(assessment, 'StakeDeposited')
+      .withArgs(user.address, amount);
   });
 });

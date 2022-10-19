@@ -4,7 +4,7 @@ const { Role } = require('../utils').constants;
 
 describe('switchMembership', function () {
   it('switches membership from one address to another', async function () {
-    const { contracts, accounts } = this.withEthers;
+    const { contracts, accounts } = this;
     const { mr: memberRoles, tk: token } = contracts;
     const {
       members: [member1],
@@ -40,19 +40,19 @@ describe('switchMembership', function () {
   });
 
   it('reverts when switching membership for non-member', async function () {
-    const { mr: memberRoles } = this.withEthers.contracts;
+    const { mr: memberRoles } = this.contracts;
     const {
       nonMembers: [nonMember1, nonMember2],
-    } = this.withEthers.accounts;
+    } = this.accounts;
 
     await expectRevert.unspecified(memberRoles.connect(nonMember1).switchMembership(nonMember2.address));
   });
 
   it("reverts when switching membership to an address that's already a member", async function () {
-    const { mr: memberRoles } = this.withEthers.contracts;
+    const { mr: memberRoles } = this.contracts;
     const {
       members: [member1, member2],
-    } = this.withEthers.accounts;
+    } = this.accounts;
 
     await expectRevert.unspecified(memberRoles.connect(member1).switchMembership(member2.address));
   });

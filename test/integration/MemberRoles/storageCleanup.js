@@ -1,6 +1,6 @@
 describe('storageCleanup', function () {
   it('cleans up _unused2 mapping', async function () {
-    const { contracts } = this.withEthers;
+    const { contracts } = this;
     const { mr: memberRoles } = contracts;
 
     {

@@ -21,7 +21,7 @@ const priceDenominator = '10000';
 describe.skip('submitClaim', function () {
   it('submits DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { cover, stakingPool0, as, tk, dai, yc } = this.withEthers.contracts;
+    const { cover, stakingPool0, as, tk, dai, yc } = this.contracts;
     const [coverBuyer1, staker1, staker2, member1] = this.accounts.members;
     const [nonMember1, nonMember2] = this.accounts.nonMembers;
 
@@ -123,7 +123,7 @@ describe.skip('submitClaim', function () {
 
   it.skip('submits DAI claim and rejects claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { ic, cover, stakingPool0, as, tk, dai } = this.withEthers.contracts;
+    const { ic, cover, stakingPool0, as, tk, dai } = this.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     const productId = 0;

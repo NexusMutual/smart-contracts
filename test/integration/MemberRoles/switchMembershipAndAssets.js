@@ -8,7 +8,7 @@ const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('switchMembershipAndAssets', function () {
   it('switches membership from one address to another', async function () {
-    const { contracts, accounts } = this.withEthers;
+    const { contracts, accounts } = this;
     const { mr: memberRoles, tk: token } = contracts;
     const {
       members: [member1],
@@ -44,10 +44,10 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('reverts when switching membership for non-member', async function () {
-    const { mr: memberRoles } = this.withEthers.contracts;
+    const { mr: memberRoles } = this.contracts;
     const {
       nonMembers: [nonMember1, nonMember2],
-    } = this.withEthers.accounts;
+    } = this.accounts;
 
     await expectRevert.unspecified(
       memberRoles.connect(nonMember1).switchMembershipAndAssets(nonMember2.address, [], []),
@@ -55,16 +55,16 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it("reverts when switching membership to an address that's already a member", async function () {
-    const { mr: memberRoles } = this.withEthers.contracts;
+    const { mr: memberRoles } = this.contracts;
     const {
       members: [member1, member2],
-    } = this.withEthers.accounts;
+    } = this.accounts;
 
     await expectRevert.unspecified(memberRoles.connect(member1).switchMembershipAndAssets(member2.address, [], []));
   });
 
   it('transfers the provided covers to the new address', async function () {
-    const { contracts, accounts } = this.withEthers;
+    const { contracts, accounts } = this;
     const { mr: memberRoles, tk: token, cover, coverNFT } = contracts;
     const {
       members: [member1],
@@ -107,7 +107,7 @@ describe('switchMembershipAndAssets', function () {
   });
 
   it('transfers all staking LP shares of the provided staking pools', async function () {
-    const { contracts, accounts } = this.withEthers;
+    const { contracts, accounts } = this;
     const { mr: memberRoles, tk: token, stakingPool0, stakingPool1, stakingPool2 } = contracts;
     const {
       members: [member1],

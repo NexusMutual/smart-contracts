@@ -1,4 +1,4 @@
-const { assert } = require('chai');
+const { assert, expect } = require('chai');
 const { ethers } = require('hardhat');
 
 const { parseEther } = ethers.utils;
@@ -39,5 +39,12 @@ describe('stake', function () {
       const balance = await nxm.balanceOf(assessment.address);
       assert(balance.eq(parseEther('200')));
     }
+  });
+
+  it('reverts if system is paused', async function () {
+    const { assessment, master } = this.contracts;
+    await master.setEmergencyPause(true);
+
+    await expect(assessment.stake(parseEther('100'))).to.revertedWith('System is paused');
   });
 });

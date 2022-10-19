@@ -80,4 +80,25 @@ describe('unstake', function () {
       'Stake is in lockup period',
     );
   });
+
+  it('emits StakeWithdrawn event with staker and amount', async function () {
+    const { assessment } = this.contracts;
+    const user = this.accounts.members[0];
+    const user2 = this.accounts.members[1];
+    await assessment.connect(user).stake(parseEther('100'));
+
+    {
+      const amount = parseEther('10');
+      await expect(assessment.connect(user).unstake(amount, user.address))
+        .to.emit(assessment, 'StakeWithdrawn')
+        .withArgs(user.address, amount);
+    }
+
+    {
+      const amount = parseEther('20');
+      await expect(assessment.connect(user).unstake(amount, user2.address))
+        .to.emit(assessment, 'StakeWithdrawn')
+        .withArgs(user.address, amount);
+    }
+  });
 });

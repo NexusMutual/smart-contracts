@@ -164,6 +164,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
     stakeOf[msg.sender].amount -= amount;
     nxm.transfer(to, amount);
+
+    emit StakeWithdrawn(msg.sender, amount);
   }
 
   /// Withdraws a staker's accumulated rewards to a destination address but only the staker can

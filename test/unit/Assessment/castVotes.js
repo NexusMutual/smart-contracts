@@ -292,4 +292,26 @@ describe('castVotes', function () {
       expect(stakedAmount).not.to.be.equal(parseEther('133'));
     }
   });
+
+  it('emits VoteCast event with user, assessment id, stake amount and vote', async function () {
+    const { assessment, individualClaims } = this.contracts;
+    const [user1, user2] = this.accounts.members;
+    await assessment.connect(user1).stake(parseEther('100'));
+    await assessment.connect(user2).stake(parseEther('1000'));
+
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(1, 0, parseEther('100'), '');
+
+    {
+      const tx = await assessment.connect(user1).castVotes([0, 1], [true, true], 0);
+      await expect(tx).to.emit(assessment, 'VoteCast').withArgs(user1.address, 0, parseEther('100'), true);
+      await expect(tx).to.emit(assessment, 'VoteCast').withArgs(user1.address, 1, parseEther('100'), true);
+    }
+
+    {
+      const tx = await assessment.connect(user2).castVotes([0, 1], [true, false], 0);
+      await expect(tx).to.emit(assessment, 'VoteCast').withArgs(user2.address, 0, parseEther('1000'), true);
+      await expect(tx).to.emit(assessment, 'VoteCast').withArgs(user2.address, 1, parseEther('1000'), false);
+    }
+  });
 });

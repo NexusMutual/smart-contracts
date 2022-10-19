@@ -360,6 +360,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
       uint32(block.timestamp),
       stakeAmount
     ));
+
+    emit VoteCast(msg.sender, assessmentId, stakeAmount, isAcceptVote);
   }
 
   /// Allows governance to submit a merkle tree root hash representing fraudulent stakers

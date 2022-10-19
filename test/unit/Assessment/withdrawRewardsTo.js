@@ -273,4 +273,22 @@ describe('withdrawRewardsTo', function () {
       }
     }
   });
+
+  it('emits RewardWithdrawn event with staker and withdrawn amount', async function () {
+    const { assessment, individualClaims } = this.contracts;
+    const [staker, user1] = this.accounts.members;
+    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
+    await assessment.connect(staker).stake(parseEther('10'));
+
+    await individualClaims.connect(staker).submitClaim(0, 0, parseEther('100'), '');
+    await assessment.connect(staker).castVotes([0], [true], 0);
+    const { totalRewardInNXM } = await assessment.assessments(0);
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+
+    await expect(assessment.connect(staker).withdrawRewardsTo(user1.address, 0))
+      .to.emit(assessment, 'RewardWithdrawn')
+      .withArgs(staker.address, totalRewardInNXM);
+  });
 });

@@ -241,6 +241,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
     // This is the index where the next withdrawReward call will start iterating from
     stakeOf[staker].rewardsWithdrawableFromIndex = SafeUintCast.toUint104(withdrawnUntilIndex);
     ITokenController(getInternalContractAddress(ID.TC)).mint(destination, withdrawn);
+
+    emit RewardWithdrawn(staker, withdrawn);
   }
 
 

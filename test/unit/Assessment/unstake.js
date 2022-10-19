@@ -80,4 +80,28 @@ describe('unstake', function () {
       'Stake is in lockup period',
     );
   });
+
+  it('reverts if system is paused', async function () {
+    const { assessment, master } = this.contracts;
+    await master.setEmergencyPause(true);
+
+    await expect(assessment.stake(parseEther('100'))).to.revertedWith('System is paused');
+  });
+
+  it('does not revert if amount is 0', async function () {
+    const { assessment } = this.contracts;
+    const user = this.accounts.members[0];
+    await assessment.connect(user).stake(parseEther('100'));
+
+    await expect(assessment.connect(user).unstake(0, user.address)).to.not.reverted;
+  });
+
+  it('reverts if amount is bigger than the stake', async function () {
+    const { assessment } = this.contracts;
+    const user = this.accounts.members[0];
+    await assessment.connect(user).stake(parseEther('100'));
+
+    // reverts with math underflow check: panic code 0x11
+    await expect(assessment.connect(user).unstake(parseEther('150'), user.address)).to.be.reverted;
+  });
 });

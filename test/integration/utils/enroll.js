@@ -1,7 +1,5 @@
-const { web3, network, ethers } = require('hardhat');
+const { network, ethers } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
-const { MAX_UINT256 } = require('@openzeppelin/test-helpers').constants;
-const { toBN } = web3.utils;
 const { parseUnits } = require('ethers/lib/utils');
 const { signMembershipApproval } = require('../utils').membership;
 

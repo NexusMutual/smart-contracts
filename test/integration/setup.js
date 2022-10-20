@@ -15,7 +15,6 @@ async function setup() {
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
   // const Lido = await ethers.getContractFactory('P1MockLido');
   const ProductsV1 = await ethers.getContractFactory('ProductsV1');
-  const CoverMigrator = await ethers.getContractFactory('CoverMigrator');
   const IntegrationMockStakingPool = await ethers.getContractFactory('IntegrationMockStakingPool');
 
   // nexusmutual
@@ -35,30 +34,6 @@ async function setup() {
 
   const CoverUtilsLib = await ethers.getContractFactory('CoverUtilsLib');
 
-  // temporary contracts used for initialization
-  const DisposableNXMaster = await ethers.getContractFactory('DisposableNXMaster');
-  const DisposableMemberRoles = await ethers.getContractFactory('DisposableMemberRoles');
-  const DisposableTokenController = await ethers.getContractFactory('DisposableTokenController');
-  const DisposableProposalCategory = await ethers.getContractFactory('DisposableProposalCategory');
-  const DisposableGovernance = await ethers.getContractFactory('DisposableGovernance');
-  const DisposablePooledStaking = await ethers.getContractFactory('DisposablePooledStaking');
-  const DisposableGateway = await ethers.getContractFactory('DisposableGateway');
-  const DisposableAssessment = await ethers.getContractFactory('DisposableAssessment');
-  const DisposableYieldTokenIncidents = await ethers.getContractFactory('DisposableYieldTokenIncidents');
-  const DisposableIndividualClaims = await ethers.getContractFactory('DisposableIndividualClaims');
-
-  // target contracts
-  const NXMaster = await ethers.getContractFactory('NXMaster');
-  const MemberRoles = await ethers.getContractFactory('MemberRoles');
-  const TokenController = await ethers.getContractFactory('TokenController');
-  const ProposalCategory = await ethers.getContractFactory('ProposalCategory');
-  const Governance = await ethers.getContractFactory('Governance');
-  const PooledStaking = await ethers.getContractFactory('LegacyPooledStaking');
-  const Gateway = await ethers.getContractFactory('LegacyGateway');
-  const YieldTokenIncidents = await ethers.getContractFactory('YieldTokenIncidents');
-  const IndividualClaims = await ethers.getContractFactory('IndividualClaims');
-  const Assessment = await ethers.getContractFactory('Assessment');
-
   const signers = await ethers.getSigners();
   const ethersAccounts = getAccounts(signers);
 
@@ -74,20 +49,16 @@ async function setup() {
     return instance;
   };
 
-  const deployProxy = async (contract, deployParams = [], options = {}) => {
-    const { libraries } = options;
-
-    const contractFactory = await ethers.getContractFactory(contract, { libraries });
+  const deployProxy = async (contract, deployParams = [], overrides = {}) => {
+    const contractFactory = await ethers.getContractFactory(contract, overrides);
     const implementation = await contractFactory.deploy(...deployParams);
     const proxy = await OwnedUpgradeabilityProxy.deploy(implementation.address);
     await proxy.deployed();
     return await ethers.getContractAt(contract, proxy.address);
   };
 
-  const upgradeProxy = async (proxyAddress, contract, constructorArgs = [], options = {}) => {
-    const { libraries } = options;
-
-    const contractFactory = await ethers.getContractFactory(contract, { libraries });
+  const upgradeProxy = async (proxyAddress, contract, constructorArgs = [], overrides = {}) => {
+    const contractFactory = await ethers.getContractFactory(contract, overrides);
 
     const impl = await deployImmutable(contractFactory, constructorArgs);
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
@@ -105,9 +76,6 @@ async function setup() {
   const coverUtilsLib = await CoverUtilsLib.deploy();
   await coverUtilsLib.deployed();
   const options = { libraries: { CoverUtilsLib: coverUtilsLib.address } };
-
-  const DisposableCover = await ethers.getContractFactory('DisposableCover', options);
-  const Cover = await ethers.getContractFactory('Cover', options);
 
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';

@@ -1,4 +1,4 @@
-const { web3, network } = require('hardhat');
+const { web3, network, ethers } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { MAX_UINT256 } = require('@openzeppelin/test-helpers').constants;
 const { toBN } = web3.utils;
@@ -8,7 +8,7 @@ const { signMembershipApproval } = require('../utils').membership;
 const JOINING_FEE = parseUnits('0.002');
 
 async function enrollMember({ mr, tk, tc }, members, kycAuthSigner, options = {}) {
-  const { initialTokens = ether('2500') } = options;
+  const { initialTokens = ethers.utils.parseEther('2500') } = options;
 
   for (const member of members) {
     const membershipApprovalData0 = await signMembershipApproval({
@@ -22,8 +22,8 @@ async function enrollMember({ mr, tk, tc }, members, kycAuthSigner, options = {}
       value: JOINING_FEE,
     });
 
-    await tk.approve(tc.address, MAX_UINT256, { from: member.address });
-    await tk.transfer(member.address, toBN(initialTokens));
+    await tk.connect(member).approve(tc.address, ethers.constants.MaxUint256);
+    await tk.transfer(member.address, initialTokens);
   }
 }
 

@@ -1,5 +1,5 @@
 const { BigNumber } = require('ethers');
-const { accounts, ethers } = require('hardhat');
+const { ethers } = require('hardhat');
 const { parseEther } = ethers.utils;
 const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
@@ -67,14 +67,8 @@ async function setup() {
   const CSMockSettlement = await ethers.getContractFactory('CSMockSettlement');
   const CSMockVaultRelayer = await ethers.getContractFactory('CSMockVaultRelayer');
 
-  const deployImmutable = async (contractFactory, constructorArgs = [], options = {}) => {
-    const { libraries } = options;
-    let instance = null;
-    if (libraries) {
-      instance = await contractFactory.deploy(...constructorArgs, { libraries });
-    } else {
-      instance = await contractFactory.deploy(...constructorArgs);
-    }
+  const deployImmutable = async (contractFactory, constructorArgs = []) => {
+    const instance = await contractFactory.deploy(...constructorArgs);
     await instance.deployed();
 
     return instance;
@@ -91,20 +85,15 @@ async function setup() {
   };
 
   const upgradeProxy = async (proxyAddress, contract, constructorArgs = [], options = {}) => {
-    const { overrides = {}, libraries } = options;
+    const { libraries } = options;
 
     const contractFactory = await ethers.getContractFactory(contract, { libraries });
 
-    const impl = await deployImmutable(contractFactory, constructorArgs, { overrides });
+    const impl = await deployImmutable(contractFactory, constructorArgs);
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
     await proxy.upgradeTo(impl.address);
     const instance = await ethers.getContractAt(contract, proxyAddress);
-    try {
-      await instance.changeDependentContractAddress();
-    } catch (e) {
-      console.log(`[WARNING]: changeDependentContractAddress failed on ${contract}`);
-      console.error(e);
-    }
+
     return instance;
   };
 
@@ -124,7 +113,10 @@ async function setup() {
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
   const INITIAL_SUPPLY = parseEther('15000000000');
 
-  const [owner, emergencyAdmin] = accounts;
+  const {
+    defaultSender: { address: owner },
+    emergencyAdmin,
+  } = ethersAccounts;
 
   // deploy external contracts
   const weth = await WETH9.deploy();
@@ -263,7 +255,7 @@ async function setup() {
   await master.initialize(
     owner,
     tk.address,
-    emergencyAdmin,
+    emergencyAdmin.address,
     codes.map(hex), // codes
     codes.map(contractType), // types
     addresses, // addresses
@@ -483,11 +475,8 @@ async function setup() {
 
   this.contractType = contractType;
 
-  try {
-    await enrollMember(this.contracts, ethersAccounts.members, ethersAccounts.defaultSender);
-  } catch (e) {
-    console.error(e);
-  }
+  await enrollMember(this.contracts, ethersAccounts.members, ethersAccounts.defaultSender);
+
   const DEFAULT_POOL_FEE = '5';
 
   const DEFAULT_PRODUCT_INITIALIZATION = [

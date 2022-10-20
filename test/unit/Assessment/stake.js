@@ -50,7 +50,7 @@ describe('stake', function () {
 
   it('emits StakeDeposited event with staker and amount', async function () {
     const { assessment } = this.contracts;
-    const user = this.accounts.members[0];
+    const [user] = this.accounts.members;
 
     const amount = parseEther('100');
     await expect(assessment.connect(user).stake(amount))

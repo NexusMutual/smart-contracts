@@ -105,24 +105,23 @@ describe('unstake', function () {
     await expect(assessment.connect(user).unstake(parseEther('150'), user.address)).to.be.reverted;
   });
 
-  it('emits StakeWithdrawn event with staker and amount', async function () {
+  it('emits StakeWithdrawn event with staker, destination and amount', async function () {
     const { assessment } = this.contracts;
-    const user = this.accounts.members[0];
-    const user2 = this.accounts.members[1];
-    await assessment.connect(user).stake(parseEther('100'));
+    const [user1, user2] = this.accounts.members;
+    await assessment.connect(user1).stake(parseEther('100'));
 
     {
       const amount = parseEther('10');
-      await expect(assessment.connect(user).unstake(amount, user.address))
+      await expect(assessment.connect(user1).unstake(amount, user1.address))
         .to.emit(assessment, 'StakeWithdrawn')
-        .withArgs(user.address, amount);
+        .withArgs(user1.address, user1.address, amount);
     }
 
     {
       const amount = parseEther('20');
-      await expect(assessment.connect(user).unstake(amount, user2.address))
+      await expect(assessment.connect(user1).unstake(amount, user2.address))
         .to.emit(assessment, 'StakeWithdrawn')
-        .withArgs(user.address, amount);
+        .withArgs(user1.address, user2.address, amount);
     }
   });
 });

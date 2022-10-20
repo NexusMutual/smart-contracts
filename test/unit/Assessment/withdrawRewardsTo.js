@@ -274,7 +274,7 @@ describe('withdrawRewardsTo', function () {
     }
   });
 
-  it('emits RewardWithdrawn event with staker and withdrawn amount', async function () {
+  it('emits RewardWithdrawn event with staker, destination and withdrawn amount', async function () {
     const { assessment, individualClaims } = this.contracts;
     const [staker, user1] = this.accounts.members;
     const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
@@ -289,6 +289,6 @@ describe('withdrawRewardsTo', function () {
 
     await expect(assessment.connect(staker).withdrawRewardsTo(user1.address, 0))
       .to.emit(assessment, 'RewardWithdrawn')
-      .withArgs(staker.address, totalRewardInNXM);
+      .withArgs(staker.address, user1.address, totalRewardInNXM);
   });
 });

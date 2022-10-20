@@ -165,7 +165,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     stakeOf[msg.sender].amount -= amount;
     nxm.transfer(to, amount);
 
-    emit StakeWithdrawn(msg.sender, amount);
+    emit StakeWithdrawn(msg.sender, to, amount);
   }
 
   /// Withdraws a staker's accumulated rewards to a destination address but only the staker can
@@ -242,7 +242,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     stakeOf[staker].rewardsWithdrawableFromIndex = SafeUintCast.toUint104(withdrawnUntilIndex);
     ITokenController(getInternalContractAddress(ID.TC)).mint(destination, withdrawn);
 
-    emit RewardWithdrawn(staker, withdrawn);
+    emit RewardWithdrawn(staker, destination, withdrawn);
   }
 
 

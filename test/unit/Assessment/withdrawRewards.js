@@ -181,6 +181,6 @@ describe('withdrawRewards', function () {
 
     await expect(assessment.connect(staker).withdrawRewards(staker.address, 0))
       .to.emit(assessment, 'RewardWithdrawn')
-      .withArgs(staker.address, totalRewardInNXM);
+      .withArgs(staker.address, staker.address, totalRewardInNXM);
   });
 });

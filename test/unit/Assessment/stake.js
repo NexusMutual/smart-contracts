@@ -41,6 +41,13 @@ describe('stake', function () {
     }
   });
 
+  it('reverts if system is paused', async function () {
+    const { assessment, master } = this.contracts;
+    await master.setEmergencyPause(true);
+
+    await expect(assessment.stake(parseEther('100'))).to.revertedWith('System is paused');
+  });
+
   it('emits StakeDeposited event with staker and amount', async function () {
     const { assessment } = this.contracts;
     const user = this.accounts.members[0];

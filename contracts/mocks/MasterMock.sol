@@ -32,6 +32,10 @@ contract MasterMock {
     emergencyAdmin = _emergencyAdmin;
   }
 
+  function setEmergencyPause(bool _paused) external {
+    paused = _paused;
+  }
+
   function enrollGovernance(address newGov) public {
     governanceAddresses[newGov] = true;
   }

@@ -43,12 +43,6 @@ async function setup() {
   const CSMockSettlement = await ethers.getContractFactory('CSMockSettlement');
   const CSMockVaultRelayer = await ethers.getContractFactory('CSMockVaultRelayer');
 
-  const deployImmutable = async (contractFactory, constructorArgs = []) => {
-    const instance = await contractFactory.deploy(...constructorArgs);
-
-    return instance;
-  };
-
   const deployProxy = async (contract, deployParams = [], overrides = {}) => {
     const contractFactory = await ethers.getContractFactory(contract, overrides);
     const implementation = await contractFactory.deploy(...deployParams);
@@ -60,7 +54,7 @@ async function setup() {
   const upgradeProxy = async (proxyAddress, contract, constructorArgs = [], overrides = {}) => {
     const contractFactory = await ethers.getContractFactory(contract, overrides);
 
-    const impl = await deployImmutable(contractFactory, constructorArgs);
+    const impl = await contractFactory.deploy(...constructorArgs);
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
     await proxy.upgradeTo(impl.address);
     const instance = await ethers.getContractAt(contract, proxyAddress);
@@ -155,19 +149,19 @@ async function setup() {
 
   const p1 = await Pool.deploy(master.address, priceFeedOracle.address, AddressZero, dai.address, stETH.address);
 
-  const cowVaultRelayer = await deployImmutable(CSMockVaultRelayer);
-  const cowSettlement = await deployImmutable(CSMockSettlement, [cowVaultRelayer.address]);
-  const swapOperator = await deployImmutable(SwapOperator, [
+  const cowVaultRelayer = await CSMockVaultRelayer.deploy();
+  const cowSettlement = await CSMockSettlement.deploy(cowVaultRelayer.address);
+  const swapOperator = await SwapOperator.deploy(
     cowSettlement.address,
     owner, // _swapController,
     master.address,
     weth.address,
-  ]);
+  );
 
-  const productsV1 = await deployImmutable(ProductsV1);
+  const productsV1 = await ProductsV1.deploy();
 
-  const tk = await deployImmutable(NXMToken, [owner, INITIAL_SUPPLY]);
-  const qd = await deployImmutable(QuotationData, [QE, owner]);
+  const tk = await NXMToken.deploy(owner, INITIAL_SUPPLY);
+  const qd = await QuotationData.deploy(QE, owner);
 
   const tc = await deployProxy('DisposableTokenController', [qd.address, lcr.address]);
   const ic = await deployProxy('DisposableIndividualClaims', []);
@@ -183,9 +177,9 @@ async function setup() {
 
   await cover.changeMasterAddress(master.address);
 
-  const coverNFT = await deployImmutable(CoverNFT, ['Nexus Mutual Cover', 'NMC', cover.address]);
+  const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NMC', cover.address);
 
-  const stakingPool = await deployImmutable(IntegrationMockStakingPool, [tk.address, cover.address, tc.address]);
+  const stakingPool = await IntegrationMockStakingPool.deploy(tk.address, cover.address, tc.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];

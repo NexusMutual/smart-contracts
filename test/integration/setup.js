@@ -1,6 +1,7 @@
 const { BigNumber } = require('ethers');
 const { ethers } = require('hardhat');
 const { parseEther } = ethers.utils;
+const { AddressZero } = ethers.constants;
 const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
@@ -44,7 +45,6 @@ async function setup() {
 
   const deployImmutable = async (contractFactory, constructorArgs = []) => {
     const instance = await contractFactory.deploy(...constructorArgs);
-    await instance.deployed();
 
     return instance;
   };
@@ -53,7 +53,7 @@ async function setup() {
     const contractFactory = await ethers.getContractFactory(contract, overrides);
     const implementation = await contractFactory.deploy(...deployParams);
     const proxy = await OwnedUpgradeabilityProxy.deploy(implementation.address);
-    await proxy.deployed();
+
     return await ethers.getContractAt(contract, proxy.address);
   };
 
@@ -74,10 +74,8 @@ async function setup() {
   };
 
   const coverUtilsLib = await CoverUtilsLib.deploy();
-  await coverUtilsLib.deployed();
   const options = { libraries: { CoverUtilsLib: coverUtilsLib.address } };
 
-  const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
   const INITIAL_SUPPLY = parseEther('15000000000');
 
@@ -88,24 +86,17 @@ async function setup() {
 
   // deploy external contracts
   const weth = await WETH9.deploy();
-  await weth.deployed();
-
   const dai = await ERC20BlacklistableMock.deploy();
-  await dai.deployed();
 
   await dai.mint(owner, parseEther('10000000'));
 
   const stETH = await ERC20BlacklistableMock.deploy();
-  await stETH.deployed();
   await stETH.mint(owner, parseEther('10000000'));
 
   const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
 
   const chainlinkSteth = await ChainlinkAggregatorMock.deploy();
   await chainlinkSteth.setLatestAnswer(parseEther('1').toString());
-
-  await chainlinkDAI.deployed();
-  await chainlinkSteth.deployed();
 
   const priceFeedOracle = await PriceFeedOracle.deploy(
     [dai.address, stETH.address],
@@ -130,7 +121,6 @@ async function setup() {
   // const lic = await LegacyIncidents.new();
   // const lcd = await LegacyClaimsData.new();
   const lcr = await LegacyClaimsReward.deploy(master.address, dai.address);
-  await lcr.deployed();
 
   const mcrEth = parseEther('50000');
 
@@ -156,17 +146,14 @@ async function setup() {
     gearingFactor,
     minUpdateTime,
   );
-  await disposableMCR.deployed();
 
   // deploy MCR with DisposableMCR as a fake master
   const mc = await MCR.deploy(disposableMCR.address);
-  mc.deployed();
 
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mc.address, master.address);
 
-  const p1 = await Pool.deploy(master.address, priceFeedOracle.address, ZERO_ADDRESS, dai.address, stETH.address);
-  await p1.deployed();
+  const p1 = await Pool.deploy(master.address, priceFeedOracle.address, AddressZero, dai.address, stETH.address);
 
   const cowVaultRelayer = await deployImmutable(CSMockVaultRelayer);
   const cowSettlement = await deployImmutable(CSMockSettlement, [cowVaultRelayer.address]);
@@ -190,7 +177,7 @@ async function setup() {
 
   let cover = await deployProxy(
     'DisposableCover',
-    [qd.address, productsV1.address, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS],
+    [qd.address, productsV1.address, AddressZero, AddressZero, AddressZero],
     options,
   );
 

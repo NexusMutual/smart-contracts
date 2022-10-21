@@ -314,4 +314,130 @@ describe('castVotes', function () {
       await expect(tx).to.emit(assessment, 'VoteCast').withArgs(user2.address, 1, parseEther('1000'), false);
     }
   });
+
+  it('reverts if system is paused', async function () {
+    const { assessment, master } = this.contracts;
+    const [user] = this.accounts.members;
+
+    await master.setEmergencyPause(true);
+
+    await expect(assessment.connect(user).castVotes([0], [true], 0)).to.revertedWith('System is paused');
+  });
+
+  it('reverts if caller is not a member', async function () {
+    const { assessment } = this.contracts;
+    const [nonMember] = this.accounts.nonMembers;
+
+    await expect(assessment.connect(nonMember).castVotes([0], [true], 0)).to.revertedWith('Caller is not a member');
+  });
+
+  it('reverts if array length of assessments id and votes does not match', async function () {
+    const { assessment } = this.contracts;
+    const [user] = this.accounts.members;
+
+    await expect(assessment.connect(user).castVotes([0], [true, true], 0)).to.revertedWith(
+      'The lengths of the assessment ids and votes arrays mismatch',
+    );
+
+    await expect(assessment.connect(user).castVotes([0, 1], [true], 0)).to.revertedWith(
+      'The lengths of the assessment ids and votes arrays mismatch',
+    );
+
+    await expect(assessment.connect(user).castVotes([], [true], 0)).to.revertedWith(
+      'The lengths of the assessment ids and votes arrays mismatch',
+    );
+
+    await expect(assessment.connect(user).castVotes([0], [], 0)).to.revertedWith(
+      'The lengths of the assessment ids and votes arrays mismatch',
+    );
+  });
+
+  it('does not revert if empty arrays', async function () {
+    const { assessment } = this.contracts;
+    const [user] = this.accounts.members;
+
+    await expect(assessment.connect(user).castVotes([], [], 0)).to.not.be.reverted;
+  });
+
+  it('allows to stake without voting', async function () {
+    const { assessment, individualClaims } = this.contracts;
+    const [user] = this.accounts.members;
+
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
+
+    const stakeAmount = parseEther('100');
+
+    {
+      const { amount } = await assessment.stakeOf(user.address);
+      expect(amount).to.be.equal(0);
+    }
+
+    await assessment.connect(user).castVotes([], [], stakeAmount);
+
+    {
+      const { amount } = await assessment.stakeOf(user.address);
+      expect(amount).to.be.equal(stakeAmount);
+    }
+  });
+
+  it('allows to cast votes on multiple assessments', async function () {
+    const { assessment, individualClaims } = this.contracts;
+    const [user] = this.accounts.members;
+    await assessment.connect(user).stake(parseEther('100'));
+
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(1, 0, parseEther('100'), '');
+
+    await assessment.connect(user).castVotes([0, 1], [true, true], 0);
+    const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
+
+    {
+      const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user.address, 0);
+      expect(assessmentId).to.be.equal(0);
+      expect(accepted).to.be.equal(true);
+      expect(timestamp).to.be.equal(timestampAtVoteTime);
+      expect(stakedAmount).to.be.equal(parseEther('100'));
+
+      const { poll } = await assessment.assessments(0);
+      expect(poll.accepted).to.be.equal(parseEther('100'));
+    }
+
+    {
+      const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user.address, 1);
+      expect(assessmentId).to.be.equal(1);
+      expect(accepted).to.be.equal(true);
+      expect(timestamp).to.be.equal(timestampAtVoteTime);
+      expect(stakedAmount).to.be.equal(parseEther('100'));
+
+      const { poll } = await assessment.assessments(1);
+      expect(poll.accepted).to.be.equal(parseEther('100'));
+    }
+  });
+
+  it('allows a non staker to stake and vote', async function () {
+    const { assessment, individualClaims } = this.contracts;
+    const [user] = this.accounts.members;
+
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
+
+    const stakeAmount = parseEther('100');
+
+    {
+      const { amount } = await assessment.stakeOf(user.address);
+      expect(amount).to.be.equal(0);
+    }
+
+    await assessment.connect(user).castVotes([0], [true], stakeAmount);
+
+    {
+      const { amount } = await assessment.stakeOf(user.address);
+      expect(amount).to.be.equal(stakeAmount);
+    }
+
+    const { stakedAmount } = await assessment.votesOf(user.address, 0);
+    expect(stakedAmount).to.be.equal(stakeAmount);
+
+    const { poll } = await assessment.assessments(0);
+    expect(poll.accepted).to.be.equal(stakeAmount);
+  });
 });

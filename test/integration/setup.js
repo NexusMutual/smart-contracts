@@ -43,16 +43,16 @@ async function setup() {
   const CSMockSettlement = await ethers.getContractFactory('CSMockSettlement');
   const CSMockVaultRelayer = await ethers.getContractFactory('CSMockVaultRelayer');
 
-  const deployProxy = async (contract, deployParams = [], overrides = {}) => {
-    const contractFactory = await ethers.getContractFactory(contract, overrides);
+  const deployProxy = async (contract, deployParams = [], options = {}) => {
+    const contractFactory = await ethers.getContractFactory(contract, options);
     const implementation = await contractFactory.deploy(...deployParams);
     const proxy = await OwnedUpgradeabilityProxy.deploy(implementation.address);
 
     return await ethers.getContractAt(contract, proxy.address);
   };
 
-  const upgradeProxy = async (proxyAddress, contract, constructorArgs = [], overrides = {}) => {
-    const contractFactory = await ethers.getContractFactory(contract, overrides);
+  const upgradeProxy = async (proxyAddress, contract, constructorArgs = [], options = {}) => {
+    const contractFactory = await ethers.getContractFactory(contract, options);
 
     const impl = await contractFactory.deploy(...constructorArgs);
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);

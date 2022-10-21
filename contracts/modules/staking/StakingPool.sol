@@ -606,7 +606,11 @@ contract StakingPool is IStakingPool, ERC721 {
       request.capacityReductionRatio
     );
 
-    // TODO: handle totalCapacity == 0 with a meaningful message
+    // total capacity can get below the used capacity as a result of burns
+    require(
+      totalCapacity > initialCapacityUsed && totalCapacity - initialCapacityUsed >= request.amount,
+      "StakingPool: Insufficient capacity"
+    );
 
     {
       uint[] memory coverTrancheAllocation = new uint[](trancheCount);
@@ -629,6 +633,9 @@ contract StakingPool is IStakingPool, ERC721 {
         if (remainingAmount == 0) {
           break;
         }
+
+        // technically should never happen because of the total-used capacity check
+        require(remainingAmount == 0, "StakingPool: Insufficient capacity");
       }
 
       updateAllocatedCapacities(

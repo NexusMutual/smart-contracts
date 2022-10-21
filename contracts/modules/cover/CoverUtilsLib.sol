@@ -99,7 +99,7 @@ library CoverUtilsLib {
 
     _coverSegments[newCoverId].push(
       CoverSegment(
-        SafeUintCast.toUint96(sumAssured * 10 ** 18), // amount
+        SafeUintCast.toUint96(sumAssured), // amount
         SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days), // start
         SafeUintCast.toUint32(coverPeriodInDays * 1 days), // period
         productType.gracePeriodInDays,

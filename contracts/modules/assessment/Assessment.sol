@@ -140,6 +140,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
     stakeOf[msg.sender].amount += amount;
     ITokenController(getInternalContractAddress(ID.TC))
       .operatorTransfer(msg.sender, address(this), amount);
+
+    emit StakeDeposited(msg.sender, amount);
   }
 
   /// Withdraws a portion or all of the user's stake
@@ -162,6 +164,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
     stakeOf[msg.sender].amount -= amount;
     nxm.transfer(to, amount);
+
+    emit StakeWithdrawn(msg.sender, to, amount);
   }
 
   /// Withdraws a staker's accumulated rewards to a destination address but only the staker can
@@ -237,6 +241,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
     // This is the index where the next withdrawReward call will start iterating from
     stakeOf[staker].rewardsWithdrawableFromIndex = SafeUintCast.toUint104(withdrawnUntilIndex);
     ITokenController(getInternalContractAddress(ID.TC)).mint(destination, withdrawn);
+
+    emit RewardWithdrawn(staker, destination, withdrawn);
   }
 
 
@@ -354,6 +360,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
       uint32(block.timestamp),
       stakeAmount
     ));
+
+    emit VoteCast(msg.sender, assessmentId, stakeAmount, isAcceptVote);
   }
 
   /// Allows governance to submit a merkle tree root hash representing fraudulent stakers

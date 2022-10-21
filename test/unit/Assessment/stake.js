@@ -47,4 +47,14 @@ describe('stake', function () {
 
     await expect(assessment.stake(parseEther('100'))).to.revertedWith('System is paused');
   });
+
+  it('emits StakeDeposited event with staker and amount', async function () {
+    const { assessment } = this.contracts;
+    const [user] = this.accounts.members;
+
+    const amount = parseEther('100');
+    await expect(assessment.connect(user).stake(amount))
+      .to.emit(assessment, 'StakeDeposited')
+      .withArgs(user.address, amount);
+  });
 });

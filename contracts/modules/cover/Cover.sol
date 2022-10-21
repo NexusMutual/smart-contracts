@@ -44,7 +44,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   uint private constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
-  uint private constant NXM_IN_WEI = 1e18;
+  uint private constant ONE_NXM = 1e18;
+
+  // internally we store capacity using 2 decimals
+  // 1 nxm of capacity is stored as 100
+  uint private constant ALLOCATION_UNITS_PER_NXM = 100;
+
+  // given capacities have 2 decimals
+  // smallest unit we can allocate is 1e18 / 100 = 1e16 = 0.01 NXM
+  uint private constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
   IQuotationData internal immutable quotationData;
   IProductsV1 internal immutable productsV1;
@@ -198,7 +206,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       (uint totalPremiumInNXM, uint totalCoveredAmountIncoverAsset) = _buyCover(params, _coverData.length, allocationRequests);
       uint tokenPriceInPaymentAsset = _pool.getTokenPrice(params.paymentAsset);
 
-      uint premiumInPaymentAsset = totalPremiumInNXM * tokenPriceInPaymentAsset / NXM_IN_WEI;
+      uint premiumInPaymentAsset = totalPremiumInNXM * tokenPriceInPaymentAsset / ONE_NXM;
       require(premiumInPaymentAsset <= params.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
       if (params.payWithNXM) {
@@ -240,29 +248,30 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     // convert to NXM amount
     uint nxmPriceInCoverAsset = pool().getTokenPrice(params.coverAsset);
-    uint remainderAmountInNXM = 0;
     uint totalCoverAmountInNXM = 0;
-
     uint _coverSegmentsCount = _coverSegments[coverId].length;
 
     for (uint i = 0; i < allocationRequests.length; i++) {
 
-      require(allocationRequests[i].coverAmountInAsset > 0, "Cover: coverAmountInAsset = 0");
+      uint coverAmountInAsset = allocationRequests[i].coverAmountInAsset;
+      require(coverAmountInAsset > 0, "Cover: coverAmountInAsset = 0");
 
-      uint requestedCoverAmountInNXM
-        = allocationRequests[i].coverAmountInAsset * NXM_IN_WEI / nxmPriceInCoverAsset + remainderAmountInNXM;
+      // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
+      uint requestedAmountInNXM = Math.roundUp(
+        Math.divCeil(coverAmountInAsset * ONE_NXM, nxmPriceInCoverAsset),
+        NXM_PER_ALLOCATION_UNIT
+      );
 
       (uint coveredAmountInNXM, uint premiumInNXM, uint rewardsInNXM) = allocateCapacity(
         params,
         coverId,
         stakingPool(allocationRequests[i].poolId),
-        requestedCoverAmountInNXM
+        requestedAmountInNXM
       );
 
       // apply the global rewards ratio and the total Rewards in NXM
       tokenController().mintStakingPoolNXMRewards(rewardsInNXM, allocationRequests[i].poolId);
 
-      remainderAmountInNXM = requestedCoverAmountInNXM - coveredAmountInNXM;
       totalCoverAmountInNXM += coveredAmountInNXM;
       totalPremiumInNXM += premiumInNXM;
 
@@ -283,7 +292,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       )
     );
 
-    uint96 totalCoveredAmountInCoverAsset = SafeUintCast.toUint96(totalCoverAmountInNXM * nxmPriceInCoverAsset / NXM_IN_WEI);
+    uint96 totalCoveredAmountInCoverAsset = SafeUintCast.toUint96(
+      totalCoverAmountInNXM * nxmPriceInCoverAsset / ONE_NXM
+    );
+
+    // i think this require redundant now because the staking pool would have reverted
     require(totalCoveredAmountInCoverAsset >= params.amount, "Cover: The selected pools ran out of capacity");
 
     _coverSegments[coverId].push(CoverSegment(
@@ -447,7 +460,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     IPool _pool = pool();
 
     // calculate refundValue in NXM
-    uint refundInNXM = refundInCoverAsset * NXM_IN_WEI / _pool.getTokenPrice(buyCoverParams.coverAsset);
+    uint refundInNXM = refundInCoverAsset * ONE_NXM / _pool.getTokenPrice(buyCoverParams.coverAsset);
 
     if (refundInNXM >= totalPremiumInNXM) {
       // no extra charge for the user
@@ -455,7 +468,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     }
 
     uint tokenPriceInPaymentAsset = _pool.getTokenPrice(buyCoverParams.paymentAsset);
-    uint premiumInPaymentAsset = totalPremiumInNXM * tokenPriceInPaymentAsset / NXM_IN_WEI;
+    uint premiumInPaymentAsset = totalPremiumInNXM * tokenPriceInPaymentAsset / ONE_NXM;
     require(premiumInPaymentAsset <= buyCoverParams.maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     if (buyCoverParams.payWithNXM) {
@@ -469,7 +482,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     }
 
     // calculate the refund value in the payment asset
-    uint refundInPaymentAsset = refundInNXM * tokenPriceInPaymentAsset / NXM_IN_WEI;
+    uint refundInPaymentAsset = refundInNXM * tokenPriceInPaymentAsset / ONE_NXM;
 
     // retrieve extra required payment
     retrievePayment(
@@ -642,7 +655,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       emit ProductTypeSet(initialProuctTypesCount + i, ipfsMetadata[i]);
     }
   }
-  
+
   function editProductTypes(
     uint[] calldata productTypeIds,
     uint16[] calldata gracePeriodsInDays,

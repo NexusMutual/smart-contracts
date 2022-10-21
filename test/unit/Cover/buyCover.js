@@ -331,7 +331,7 @@ describe('buyCover', function () {
     });
   });
 
-  it('should purchase new cover using USDC with commission', async function () {
+  it.skip('should purchase new cover using USDC with commission', async function () {
     const { cover, usdc } = this;
 
     const {

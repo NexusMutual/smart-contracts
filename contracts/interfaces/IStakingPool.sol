@@ -34,9 +34,9 @@ struct DepositRequest {
 struct ProductParams {
   uint productId;
   bool setWeight;
-  uint targetWeight;
+  uint8 targetWeight;
   bool setPrice;
-  uint targetPrice;
+  uint96 targetPrice;
 }
 
 struct ProductInitializationParams {
@@ -71,8 +71,8 @@ interface IStakingPool {
     uint rewardsShares;
   }
 
-  struct Product {
-    uint8 lastWeight;
+  struct StakedProduct {
+    uint8 lastEffectiveWeight;
     uint8 targetWeight;
     uint96 targetPrice;
     uint96 nextPrice;
@@ -115,15 +115,11 @@ interface IStakingPool {
     WithdrawRequest[] memory params
   ) external returns (uint stakeToWithdraw, uint rewardsToWithdraw);
 
-  function addProducts(ProductParams[] memory params) external;
-
-  function removeProducts(uint[] memory productIds) external;
-
-  function setProductDetails(ProductParams[] memory params) external;
-
   function setPoolFee(uint newFee) external;
 
   function setPoolPrivacy(bool isPrivatePool) external;
+
+  function setProducts(uint[] calldata productsToUpdate, ProductParams[] memory params) external;
 
   function manager() external view returns (address);
 

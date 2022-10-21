@@ -5,6 +5,10 @@ pragma solidity ^0.5.0;
 import "../abstract/MasterAware.sol";
 import "../modules/token/NXMToken.sol";
 
+interface ICover {
+  function stakingPool(uint poolId) external view returns (address);
+}
+
 contract TokenControllerMock is MasterAware {
 
   struct StakingPoolNXMBalances {
@@ -12,7 +16,9 @@ contract TokenControllerMock is MasterAware {
     uint128 deposits;
   }
 
+
   NXMToken public token;
+  ICover public cover;
   address public addToWhitelistLastCalledWtih;
   address public removeFromWhitelistLastCalledWtih;
 
@@ -36,6 +42,7 @@ contract TokenControllerMock is MasterAware {
 
   function changeDependentContractAddress() public {
     token = NXMToken(master.tokenAddress());
+    cover = ICover(master.getLatestAddress("CO"));
   }
 
   function operatorTransfer(address _from, address _to, uint _value) onlyInternal external returns (bool) {
@@ -56,6 +63,18 @@ contract TokenControllerMock is MasterAware {
 
     burnFrom(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards -= uint128(amount);
+  }
+
+  function setContractAddresses(address coverAddr, address tokenAddr) public {
+    cover = ICover(coverAddr);
+    token = NXMToken(tokenAddr);
+  }
+
+  function depositStakedNXM(address from, uint amount, uint poolId) external {
+    require(msg.sender == address(cover.stakingPool(poolId)), "TokenController: msg.sender not staking pool");
+
+    stakingPoolNXMBalances[poolId].deposits += uint128(amount);
+    token.operatorTransfer(from, amount);
   }
 
     /* unused functions */

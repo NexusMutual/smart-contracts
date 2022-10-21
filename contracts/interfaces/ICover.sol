@@ -147,6 +147,8 @@ interface ICover {
 
   function globalCapacityRatio() external view returns (uint24);
 
+  function getCapacityRatios(uint[] calldata productIds) external view returns (uint24 _globalCapacityRatio, uint16[] memory capacityReductionRatios);
+
   /* === MUTATIVE FUNCTIONS ==== */
 
   function migrateCovers(uint[] calldata coverIds, address newOwner) external returns (uint[] memory newCoverIds);

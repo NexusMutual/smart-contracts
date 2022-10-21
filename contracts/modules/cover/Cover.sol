@@ -787,6 +787,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return (1 << coverAsset) & assetsBitMap > 0;
   }
 
+  function getCapacityRatios(uint[] calldata productIds) public view returns (uint24 _globalCapacityRatio, uint16[] memory capacityReductionRatios) {
+    _globalCapacityRatio = globalCapacityRatio;
+    capacityReductionRatios = new uint16[](productIds.length);
+    for (uint i = 0; i < productIds.length; i++) {
+      capacityReductionRatios[i] = _products[productIds[i]].capacityReductionRatio;
+    }
+  }
+
   function _isCoverAssetDeprecated(
     uint32 deprecatedCoverAssetsBitmap,
     uint8 assetId

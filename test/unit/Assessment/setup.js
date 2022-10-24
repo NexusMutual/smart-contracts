@@ -83,6 +83,8 @@ async function setup() {
     master,
     individualClaims,
     yieldTokenIncidents,
+    memberRoles,
+    tokenController,
   };
 }
 

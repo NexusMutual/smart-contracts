@@ -289,4 +289,38 @@ describe('withdrawRewards', function () {
       expect(balanceAfter).to.be.equal(balanceBefore.add(totalRewardInNXM.mul(3)));
     }
   });
+
+  it('allows multiple members to correctly withdraw their rewards', async function () {
+    const { nxm, assessment, individualClaims, memberRoles, tokenController } = this.contracts;
+    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
+
+    // 5 members + 5 AB
+    const voters = [...this.accounts.members, ...this.accounts.advisoryBoardMembers];
+
+    // Add AB accounts as new members
+    for (const member of this.accounts.advisoryBoardMembers) {
+      await memberRoles.enrollMember(member.address, 2);
+      await nxm.mint(member.address, parseEther('10000'));
+      await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
+    }
+
+    const stakeAmount = parseEther('10');
+
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
+
+    for (const user of voters) {
+      await assessment.connect(user).castVotes([0], [true], stakeAmount);
+    }
+
+    const { totalRewardInNXM } = await assessment.assessments(0);
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+
+    for (const user of voters) {
+      const balanceBefore = await nxm.balanceOf(user.address);
+      await assessment.connect(user).withdrawRewards(user.address, 0);
+      const balanceAfter = await nxm.balanceOf(user.address);
+      expect(balanceAfter).to.be.equal(balanceBefore.add(totalRewardInNXM.div(voters.length)));
+    }
+  });
 });

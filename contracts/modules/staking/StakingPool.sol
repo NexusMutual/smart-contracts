@@ -458,7 +458,7 @@ contract StakingPool is IStakingPool, ERC721 {
     tokenController.depositStakedNXM(msg.sender, totalAmount, poolId);
 
     // update globals
-    activeStake = _activeStake;
+    activeStake = Math.divCeil(_activeStake, 1e12);
     stakeSharesSupply = _stakeSharesSupply;
     rewardsSharesSupply = _rewardsSharesSupply;
   }
@@ -611,15 +611,15 @@ contract StakingPool is IStakingPool, ERC721 {
       request.capacityReductionRatio
     );
 
+    uint remainingAmount = Math.divCeil(request.amount, NXM_PER_ALLOCATION_UNIT);
     // total capacity can get below the used capacity as a result of burns
     require(
-      totalCapacity > initialCapacityUsed && totalCapacity - initialCapacityUsed >= request.amount,
+      totalCapacity > initialCapacityUsed && totalCapacity - initialCapacityUsed >= remainingAmount,
       "StakingPool: Insufficient capacity"
     );
 
     {
       uint[] memory coverTrancheAllocation = new uint[](trancheCount);
-      uint remainingAmount = Math.divCeil(request.amount, NXM_PER_ALLOCATION_UNIT);
 
       for (uint i = 0; i < trancheCount; i++) {
 
@@ -889,6 +889,22 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     return (allocatedCapacities, allocatedCapacity);
+  }
+
+  function getCurrentTotalCapacities(uint productId) public view returns (uint[] memory totalCapacities, uint totalCapacity) {
+    uint firstTrancheIdToUse = block.timestamp / TRANCHE_DURATION;
+
+    uint[] memory productIds = new uint[](1);
+    productIds[0] = productId;
+    (uint24 globalCapacityRatio, uint16[] memory capacityReductionRatio) = ICover(coverContract).getCapacityRatios(productIds);
+
+    (totalCapacities, totalCapacity) = getTotalCapacities(
+      productId,
+      firstTrancheIdToUse,
+      MAX_ACTIVE_TRANCHES,
+      globalCapacityRatio,
+      capacityReductionRatio[0]
+    );
   }
 
   function getTotalCapacities(

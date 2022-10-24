@@ -5,7 +5,7 @@ import "../../interfaces/ICover.sol";
 import "../../modules/cover/CoverUtilsLib.sol";
 
 contract SPMockCoverProducts {
-  uint24 public constant globalCapacityRatio = 1;
+  uint24 public constant globalCapacityRatio = 2;
   uint256 public constant globalRewardsRatio = 1;
 
   mapping(uint => address) public stakingPool;

@@ -53,9 +53,14 @@ async function setup() {
 
   const stakingPool = await StakingPool.deploy(nxm.address, cover.address, tokenController.address);
 
+  await nxm.setOperator(tokenController.address);
+  await tokenController.setContractAddresses(cover.address, nxm.address);
+  await cover.setStakingPool(stakingPool.address, 0);
+
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);
     await memberRoles.setRole(member.address, Role.Member);
+    await nxm.mint(member.address, parseEther('100000'));
   }
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
@@ -74,10 +79,6 @@ async function setup() {
 
   const REWARD_BONUS_PER_TRANCHE_RATIO = await stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO();
   const REWARD_BONUS_PER_TRANCHE_DENOMINATOR = await stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR();
-
-  await nxm.setOperator(tokenController.address);
-  await tokenController.setContractAddresses(cover.address, nxm.address);
-  await cover.setStakingPool(stakingPool.address, 0);
 
   this.tokenController = tokenController;
   this.master = master;

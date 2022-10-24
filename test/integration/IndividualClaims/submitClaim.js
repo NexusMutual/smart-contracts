@@ -23,7 +23,7 @@ describe('submitClaim', function () {
   }
 
   beforeEach(async function () {
-    const { tk } = this.withEthers.contracts;
+    const { tk } = this.contracts;
 
     const members = this.accounts.members.slice(0, 5);
     const amount = parseEther('10000');
@@ -81,7 +81,7 @@ describe('submitClaim', function () {
 
   it('submits ETH claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { ic, cover, stakingPool0, as } = this.withEthers.contracts;
+    const { ic, cover, stakingPool0, as } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -140,7 +140,7 @@ describe('submitClaim', function () {
 
   it('submits DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { ic, cover, stakingPool0, as, dai } = this.withEthers.contracts;
+    const { ic, cover, stakingPool0, as, dai } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -201,7 +201,7 @@ describe('submitClaim', function () {
 
   it('submits ETH claim and rejects claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { ic, cover, stakingPool0, as } = this.withEthers.contracts;
+    const { ic, cover, stakingPool0, as } = this.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     // Cover inputs
@@ -263,7 +263,7 @@ describe('submitClaim', function () {
 
   it('submits DAI claim and rejects claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { ic, cover, stakingPool0, as, dai } = this.withEthers.contracts;
+    const { ic, cover, stakingPool0, as, dai } = this.contracts;
     const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
 
     // Cover inputs

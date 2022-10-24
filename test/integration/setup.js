@@ -1,128 +1,98 @@
-const { accounts, artifacts, web3, ethers } = require('hardhat');
-const { ether } = require('@openzeppelin/test-helpers');
+const { BigNumber } = require('ethers');
+const { ethers } = require('hardhat');
 const { parseEther } = ethers.utils;
+const { AddressZero } = ethers.constants;
 const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
 const { enrollMember } = require('./utils/enroll');
 
-const { BN } = web3.utils;
 const { getAccounts, stakingPoolManagers } = require('../utils').accounts;
-
-// Convert web3 instances to ethers.js
-const web3ToEthers = (x, signers) => {
-  const { contracts, rates } = x;
-  const { daiToEthRate, ethToDaiRate } = rates;
-
-  const accounts = getAccounts(signers);
-  return {
-    contracts: Object.keys(contracts)
-      .map(x => ({ val: new ethers.Contract(contracts[x].address, contracts[x].abi, accounts.defaultSender), key: x }))
-      .reduce((acc, x) => ({ ...acc, [x.key]: x.val }), {}),
-    rates: { daiToEthRate: parseEther(daiToEthRate.toString()), ethToDaiRate },
-    accounts,
-  };
-};
 
 async function setup() {
   // external
-  const ERC20BlacklistableMock = artifacts.require('ERC20BlacklistableMock');
-  const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
-  const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
-  // const Lido = artifacts.require('P1MockLido');
-  const ProductsV1 = artifacts.require('ProductsV1');
-  const CoverMigrator = artifacts.require('CoverMigrator');
-  const IntegrationMockStakingPool = artifacts.require('IntegrationMockStakingPool');
+  const ERC20BlacklistableMock = await ethers.getContractFactory('ERC20BlacklistableMock');
+  const OwnedUpgradeabilityProxy = await ethers.getContractFactory('OwnedUpgradeabilityProxy');
+  const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+  // const Lido = await ethers.getContractFactory('P1MockLido');
+  const ProductsV1 = await ethers.getContractFactory('ProductsV1');
+  const IntegrationMockStakingPool = await ethers.getContractFactory('IntegrationMockStakingPool');
 
   // nexusmutual
-  const NXMToken = artifacts.require('NXMToken');
-  // const LegacyClaims = artifacts.require('LegacyClaims');
-  // const LegacyIncidents = artifacts.require('LegacyIncidents');
-  // const LegacyClaimsData = artifacts.require('LegacyClaimsData');
-  const LegacyClaimsReward = artifacts.require('LegacyClaimsReward');
-  const DisposableMCR = artifacts.require('DisposableMCR');
-  const MCR = artifacts.require('MCR');
-  const Pool = artifacts.require('Pool');
-  const QuotationData = artifacts.require('LegacyQuotationData');
-  const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-  const SwapOperator = artifacts.require('CowSwapOperator');
-  const CoverNFT = artifacts.require('CoverNFT');
-  const Cover = artifacts.require('Cover');
-  // const StakingPool = artifacts.require('StakingPool');
-  const CoverUtilsLib = artifacts.require('CoverUtilsLib');
+  const NXMToken = await ethers.getContractFactory('NXMToken');
+  // const LegacyClaims = await ethers.getContractFactory('LegacyClaims');
+  // const LegacyIncidents = await ethers.getContractFactory('LegacyIncidents');
+  // const LegacyClaimsData = await ethers.getContractFactory('LegacyClaimsData');
+  const LegacyClaimsReward = await ethers.getContractFactory('LegacyClaimsReward');
+  const DisposableMCR = await ethers.getContractFactory('DisposableMCR');
+  const MCR = await ethers.getContractFactory('MCR');
+  const Pool = await ethers.getContractFactory('Pool');
+  const QuotationData = await ethers.getContractFactory('LegacyQuotationData');
+  const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
+  const SwapOperator = await ethers.getContractFactory('CowSwapOperator');
+  const CoverNFT = await ethers.getContractFactory('CoverNFT');
+  // const StakingPool = await ethers.getContractFactory('StakingPool');
 
-  // temporary contracts used for initialization
-  const DisposableNXMaster = artifacts.require('DisposableNXMaster');
-  const DisposableMemberRoles = artifacts.require('DisposableMemberRoles');
-  const DisposableTokenController = artifacts.require('DisposableTokenController');
-  const DisposableProposalCategory = artifacts.require('DisposableProposalCategory');
-  const DisposableGovernance = artifacts.require('DisposableGovernance');
-  const DisposablePooledStaking = artifacts.require('DisposablePooledStaking');
-  const DisposableGateway = artifacts.require('DisposableGateway');
-  const DisposableAssessment = artifacts.require('DisposableAssessment');
-  const DisposableYieldTokenIncidents = artifacts.require('DisposableYieldTokenIncidents');
-  const DisposableIndividualClaims = artifacts.require('DisposableIndividualClaims');
-  const DisposableCover = artifacts.require('DisposableCover');
-
-  // target contracts
-  const NXMaster = artifacts.require('NXMaster');
-  const MemberRoles = artifacts.require('MemberRoles');
-  const TokenController = artifacts.require('TokenController');
-  const ProposalCategory = artifacts.require('ProposalCategory');
-  const Governance = artifacts.require('Governance');
-  const PooledStaking = artifacts.require('LegacyPooledStaking');
-  const Gateway = artifacts.require('LegacyGateway');
-  const YieldTokenIncidents = artifacts.require('YieldTokenIncidents');
-  const IndividualClaims = artifacts.require('IndividualClaims');
-  const Assessment = artifacts.require('Assessment');
+  const CoverUtilsLib = await ethers.getContractFactory('CoverUtilsLib');
 
   const signers = await ethers.getSigners();
   const ethersAccounts = getAccounts(signers);
 
   // external
-  const WETH9 = artifacts.require('WETH9');
-  const CSMockSettlement = artifacts.require('CSMockSettlement');
-  const CSMockVaultRelayer = artifacts.require('CSMockVaultRelayer');
+  const WETH9 = await ethers.getContractFactory('WETH9');
+  const CSMockSettlement = await ethers.getContractFactory('CSMockSettlement');
+  const CSMockVaultRelayer = await ethers.getContractFactory('CSMockVaultRelayer');
 
-  const coverUtilsLib = await CoverUtilsLib.new();
-  DisposableCover.link(coverUtilsLib);
+  const deployProxy = async (contract, deployParams = [], options = {}) => {
+    const contractFactory = await ethers.getContractFactory(contract, options);
+    const implementation = await contractFactory.deploy(...deployParams);
+    const proxy = await OwnedUpgradeabilityProxy.deploy(implementation.address);
 
-  const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-  const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
-  const INITIAL_SUPPLY = ether('15000000000');
-
-  const deployProxy = async (contract, deployParams = []) => {
-    const implementation = await contract.new(...deployParams);
-    const proxy = await OwnedUpgradeabilityProxy.new(implementation.address);
-    return contract.at(proxy.address);
+    return await ethers.getContractAt(contract, proxy.address);
   };
 
-  const upgradeProxy = async (proxyAddress, contract, params = []) => {
-    const implementation = await contract.new(...params);
-    const proxy = await OwnedUpgradeabilityProxy.at(proxyAddress);
-    await proxy.upgradeTo(implementation.address);
+  const upgradeProxy = async (proxyAddress, contract, constructorArgs = [], options = {}) => {
+    const contractFactory = await ethers.getContractFactory(contract, options);
+
+    const impl = await contractFactory.deploy(...constructorArgs);
+    const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
+    await proxy.upgradeTo(impl.address);
+    const instance = await ethers.getContractAt(contract, proxyAddress);
+
+    return instance;
   };
 
   const transferProxyOwnership = async (proxyAddress, newOwner) => {
-    const proxy = await OwnedUpgradeabilityProxy.at(proxyAddress);
+    const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
     await proxy.transferProxyOwnership(newOwner);
   };
 
-  const [owner, emergencyAdmin] = accounts;
+  const coverUtilsLib = await CoverUtilsLib.deploy();
+  const options = { libraries: { CoverUtilsLib: coverUtilsLib.address } };
+
+  const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
+  const INITIAL_SUPPLY = parseEther('15000000000');
+
+  const {
+    defaultSender: { address: owner },
+    emergencyAdmin,
+  } = ethersAccounts;
 
   // deploy external contracts
-  const weth = await WETH9.new();
+  const weth = await WETH9.deploy();
+  const dai = await ERC20BlacklistableMock.deploy();
 
-  const dai = await ERC20BlacklistableMock.new();
-  await dai.mint(owner, ether('10000000'));
+  await dai.mint(owner, parseEther('10000000'));
 
-  const stETH = await ERC20BlacklistableMock.new();
-  await stETH.mint(owner, ether('10000000'));
+  const stETH = await ERC20BlacklistableMock.deploy();
+  await stETH.mint(owner, parseEther('10000000'));
 
-  const chainlinkDAI = await ChainlinkAggregatorMock.new();
-  const chainlinkSteth = await ChainlinkAggregatorMock.new();
-  await chainlinkSteth.setLatestAnswer(new BN((1e18).toString()));
-  const priceFeedOracle = await PriceFeedOracle.new(
+  const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
+
+  const chainlinkSteth = await ChainlinkAggregatorMock.deploy();
+  await chainlinkSteth.setLatestAnswer(parseEther('1').toString());
+
+  const priceFeedOracle = await PriceFeedOracle.deploy(
     [dai.address, stETH.address],
     [chainlinkDAI.address, chainlinkSteth.address],
     [18, 18],
@@ -131,12 +101,12 @@ async function setup() {
   // const lido = await Lido.new();
 
   // proxy contracts
-  const master = await deployProxy(DisposableNXMaster);
-  const mr = await deployProxy(DisposableMemberRoles);
-  const ps = await deployProxy(DisposablePooledStaking);
-  const pc = await deployProxy(DisposableProposalCategory);
-  const gv = await deployProxy(DisposableGovernance);
-  const gateway = await deployProxy(DisposableGateway);
+  const master = await deployProxy('DisposableNXMaster');
+  const mr = await deployProxy('DisposableMemberRoles');
+  const ps = await deployProxy('DisposablePooledStaking');
+  const pc = await deployProxy('DisposableProposalCategory');
+  const gv = await deployProxy('DisposableGovernance');
+  const gateway = await deployProxy('DisposableGateway');
 
   // non-proxy contracts and libraries
 
@@ -144,13 +114,13 @@ async function setup() {
   // const lcl = await LegacyClaims.new();
   // const lic = await LegacyIncidents.new();
   // const lcd = await LegacyClaimsData.new();
-  const lcr = await LegacyClaimsReward.new(master.address, dai.address);
+  const lcr = await LegacyClaimsReward.deploy(master.address, dai.address);
 
-  const mcrEth = ether('50000');
+  const mcrEth = parseEther('50000');
 
-  const mcrFloor = mcrEth.sub(ether('10000'));
+  const mcrFloor = mcrEth.sub(parseEther('10000'));
 
-  const latestBlock = await web3.eth.getBlock('latest');
+  const latestBlock = await ethers.provider.getBlock('latest');
   const lastUpdateTime = latestBlock.timestamp;
   const mcrFloorIncrementThreshold = 13000;
   const maxMCRFloorIncrement = 100;
@@ -159,7 +129,7 @@ async function setup() {
   const minUpdateTime = 3600;
   const desiredMCR = mcrEth;
 
-  const disposableMCR = await DisposableMCR.new(
+  const disposableMCR = await DisposableMCR.deploy(
     mcrEth,
     mcrFloor,
     desiredMCR,
@@ -172,48 +142,44 @@ async function setup() {
   );
 
   // deploy MCR with DisposableMCR as a fake master
-  const mc = await MCR.new(disposableMCR.address);
+  const mc = await MCR.deploy(disposableMCR.address);
 
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mc.address, master.address);
 
-  const p1 = await Pool.new(master.address, priceFeedOracle.address, ZERO_ADDRESS, dai.address, stETH.address);
+  const p1 = await Pool.deploy(master.address, priceFeedOracle.address, AddressZero, dai.address, stETH.address);
 
-  const cowVaultRelayer = await CSMockVaultRelayer.new();
-  const cowSettlement = await CSMockSettlement.new(cowVaultRelayer.address);
-  const swapOperator = await SwapOperator.new(
+  const cowVaultRelayer = await CSMockVaultRelayer.deploy();
+  const cowSettlement = await CSMockSettlement.deploy(cowVaultRelayer.address);
+  const swapOperator = await SwapOperator.deploy(
     cowSettlement.address,
     owner, // _swapController,
     master.address,
     weth.address,
   );
 
-  const productsV1 = await ProductsV1.new();
+  const productsV1 = await ProductsV1.deploy();
 
-  const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
-  const qd = await QuotationData.new(QE, owner);
+  const tk = await NXMToken.deploy(owner, INITIAL_SUPPLY);
+  const qd = await QuotationData.deploy(QE, owner);
 
-  const tc = await deployProxy(DisposableTokenController, [qd.address, lcr.address]);
-  const ic = await deployProxy(DisposableIndividualClaims, []);
-  const yt = await deployProxy(DisposableYieldTokenIncidents, []);
-  let as = await deployProxy(DisposableAssessment, []);
-  const cl = await deployProxy(CoverMigrator, []);
+  const tc = await deployProxy('DisposableTokenController', [qd.address, lcr.address]);
+  const ic = await deployProxy('DisposableIndividualClaims', []);
+  const yt = await deployProxy('DisposableYieldTokenIncidents', []);
+  let as = await deployProxy('DisposableAssessment', []);
+  const cl = await deployProxy('CoverMigrator', []);
 
-  await Cover.link(coverUtilsLib);
-
-  let cover = await deployProxy(DisposableCover, [
-    qd.address,
-    productsV1.address,
-    ZERO_ADDRESS,
-    ZERO_ADDRESS,
-    ZERO_ADDRESS,
-  ]);
+  let cover = await deployProxy(
+    'DisposableCover',
+    [qd.address, productsV1.address, AddressZero, AddressZero, AddressZero],
+    options,
+  );
 
   await cover.changeMasterAddress(master.address);
 
-  const coverNFT = await CoverNFT.new('Nexus Mutual Cover', 'NMC', cover.address);
+  const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NMC', cover.address);
 
-  const stakingPool = await IntegrationMockStakingPool.new(tk.address, cover.address, tc.address);
+  const stakingPool = await IntegrationMockStakingPool.deploy(tk.address, cover.address, tc.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
@@ -238,7 +204,7 @@ async function setup() {
   await master.initialize(
     owner,
     tk.address,
-    emergencyAdmin,
+    emergencyAdmin.address,
     codes.map(hex), // codes
     codes.map(contractType), // types
     addresses, // addresses
@@ -253,7 +219,7 @@ async function setup() {
     master.address,
     tc.address,
     [owner], // initial members
-    [ether('10000')], // initial tokens
+    [parseEther('10000')], // initial tokens
     [owner], // advisory board members
   );
 
@@ -261,8 +227,9 @@ async function setup() {
 
   await pc.initialize(mr.address);
 
+  // FIXME gas override
   for (const category of proposalCategories) {
-    await pc.addInitialCategory(...category, { gas: 10e6 });
+    await pc.addInitialCategory(...category);
   }
 
   await gv.initialize(
@@ -276,8 +243,8 @@ async function setup() {
 
   await ps.initialize(
     tc.address,
-    ether('20'), // min stake
-    ether('20'), // min unstake
+    parseEther('20'), // min stake
+    parseEther('20'), // min unstake
     10, // max exposure
     90 * 24 * 3600, // unstake lock time
   );
@@ -351,7 +318,7 @@ async function setup() {
     ['', '', '', ''],
   );
 
-  await p1.updateAddressParameters(hex('SWP_OP'), swapOperator.address);
+  await p1.updateAddressParameters(hex('SWP_OP').padEnd(2 + 16, '0'), swapOperator.address);
 
   await cover.updateUintParameters(
     [0, 1], // CoverUintParams.globalCapacityRatio, CoverUintParams.globalRewardsRatio
@@ -363,27 +330,27 @@ async function setup() {
 
   await gateway.initialize(master.address, dai.address);
 
-  await upgradeProxy(mr.address, MemberRoles);
-  await upgradeProxy(tc.address, TokenController, [qd.address, lcr.address]);
-  await upgradeProxy(ps.address, PooledStaking, [cover.address, productsV1.address]);
-  await upgradeProxy(pc.address, ProposalCategory);
-  await upgradeProxy(master.address, NXMaster);
-  await upgradeProxy(gv.address, Governance);
-  await upgradeProxy(gateway.address, Gateway);
-  await upgradeProxy(ic.address, IndividualClaims, [tk.address, coverNFT.address]);
-  await upgradeProxy(yt.address, YieldTokenIncidents, [tk.address, coverNFT.address]);
-  await upgradeProxy(as.address, Assessment, [master.address]);
+  await upgradeProxy(mr.address, 'MemberRoles');
+  await upgradeProxy(tc.address, 'TokenController', [qd.address, lcr.address]);
+  await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address]);
+  await upgradeProxy(pc.address, 'ProposalCategory');
+  await upgradeProxy(master.address, 'NXMaster');
+  await upgradeProxy(gv.address, 'Governance');
+  await upgradeProxy(gateway.address, 'LegacyGateway');
+  await upgradeProxy(ic.address, 'IndividualClaims', [tk.address, coverNFT.address]);
+  await upgradeProxy(yt.address, 'YieldTokenIncidents', [tk.address, coverNFT.address]);
+  await upgradeProxy(as.address, 'Assessment', [master.address]);
 
-  await upgradeProxy(cover.address, Cover, [
-    qd.address,
-    productsV1.address,
-    coverNFT.address,
-    stakingPool.address,
+  await upgradeProxy(
     cover.address,
-  ]);
+    'Cover',
+    [qd.address, productsV1.address, coverNFT.address, stakingPool.address, cover.address],
+    options,
+  );
 
-  cover = await Cover.at(cover.address);
-  as = await Assessment.at(as.address);
+  cover = await ethers.getContractAt('Cover', cover.address);
+
+  as = await ethers.getContractAt('Assessment', as.address);
 
   // [todo] We should probably call changeDependentContractAddress on every contract
   await gateway.changeDependentContractAddress();
@@ -403,16 +370,18 @@ async function setup() {
   await transferProxyOwnership(cover.address, gv.address);
   await transferProxyOwnership(master.address, gv.address);
 
-  const POOL_ETHER = ether('90000');
-  const POOL_DAI = ether('2000000');
+  const POOL_ETHER = parseEther('90000');
+  const POOL_DAI = parseEther('2000000');
 
   // fund pool
-  await web3.eth.sendTransaction({ from: owner, to: p1.address, value: POOL_ETHER });
+  await ethers.provider.getSigner().sendTransaction({ from: owner, to: p1.address, value: POOL_ETHER.toString() });
   await dai.transfer(p1.address, POOL_DAI);
 
   const ethToDaiRate = 20000;
 
-  const daiToEthRate = new BN(10).pow(new BN(36)).div(ether((ethToDaiRate / 100).toString()));
+  const daiToEthRate = BigNumber.from('10')
+    .pow(BigNumber.from('36'))
+    .div(parseEther((ethToDaiRate / 100).toString()));
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
   await as.initialize();
@@ -423,19 +392,19 @@ async function setup() {
 
   // we upgraded them, get non-disposable instances because
   const proxies = {
-    master: await NXMaster.at(master.address),
-    tc: await TokenController.at(tc.address),
-    gv: await Governance.at(gv.address),
-    pc: await ProposalCategory.at(pc.address),
-    mr: await MemberRoles.at(mr.address),
-    ps: await PooledStaking.at(ps.address),
-    gateway: await Gateway.at(gateway.address),
-    ic: await IndividualClaims.at(ic.address),
-    yc: await YieldTokenIncidents.at(yt.address),
-    cl: await CoverMigrator.at(cl.address),
-    as: await Assessment.at(as.address),
-    cover: await Cover.at(cover.address),
-    coverNFT: await CoverNFT.at(coverNFT.address),
+    master: await ethers.getContractAt('NXMaster', master.address),
+    tc: await ethers.getContractAt('TokenController', tc.address),
+    gv: await ethers.getContractAt('Governance', gv.address),
+    pc: await ethers.getContractAt('ProposalCategory', pc.address),
+    mr: await ethers.getContractAt('MemberRoles', mr.address),
+    ps: await ethers.getContractAt('LegacyPooledStaking', ps.address),
+    gateway: await ethers.getContractAt('LegacyGateway', gateway.address),
+    ic: await ethers.getContractAt('IndividualClaims', ic.address),
+    yc: await ethers.getContractAt('YieldTokenIncidents', yt.address),
+    cl: await ethers.getContractAt('CoverMigrator', cl.address),
+    as: await ethers.getContractAt('Assessment', as.address),
+    cover: await ethers.getContractAt('Cover', cover.address),
+    coverNFT: await ethers.getContractAt('CoverNFT', coverNFT.address),
   };
 
   const nonInternal = { priceFeedOracle, swapOperator };
@@ -455,8 +424,6 @@ async function setup() {
 
   this.contractType = contractType;
 
-  this.withEthers = web3ToEthers(this, signers);
-
   await enrollMember(this.contracts, ethersAccounts.members, ethersAccounts.defaultSender);
 
   const DEFAULT_POOL_FEE = '5';
@@ -471,7 +438,7 @@ async function setup() {
   ];
 
   for (let i = 0; i < 3; i++) {
-    const tx = await this.withEthers.contracts.cover.createStakingPool(
+    const tx = await this.contracts.cover.createStakingPool(
       stakingPoolManagers[i],
       false, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
@@ -483,12 +450,11 @@ async function setup() {
 
     await tx.wait();
     const stakingPoolAddress = await cover.stakingPool(i);
-    const stakingPoolInstance = await IntegrationMockStakingPool.at(stakingPoolAddress);
+    const stakingPoolInstance = await ethers.getContractAt('IntegrationMockStakingPool', stakingPoolAddress);
 
     this.contracts['stakingPool' + i] = stakingPoolInstance;
   }
 
-  this.withEthers = web3ToEthers(this, signers);
   this.accounts = ethersAccounts;
   this.DEFAULT_PRODUCT_INITIALIZATION = DEFAULT_PRODUCT_INITIALIZATION;
 }

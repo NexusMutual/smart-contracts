@@ -432,14 +432,13 @@ describe('castVotes', function () {
   });
 
   it('accounts votes from multiple members correctly', async function () {
-    const { assessment, individualClaims, master, memberRoles, nxm, tokenController } = this.contracts;
+    const { assessment, individualClaims, memberRoles, nxm, tokenController } = this.contracts;
 
-    // 5 members + 5 AB + 4 nonMembers
-    const voters = [...this.accounts.members, ...this.accounts.advisoryBoardMembers, ...this.accounts.nonMembers];
+    // 5 members + 5 AB
+    const voters = [...this.accounts.members, ...this.accounts.advisoryBoardMembers];
 
     // Add AB and nonMember accounts as new members
-    for (const member of [...this.accounts.advisoryBoardMembers, ...this.accounts.nonMembers]) {
-      await master.enrollMember(member.address, 1);
+    for (const member of this.accounts.advisoryBoardMembers) {
       await memberRoles.enrollMember(member.address, 2);
       await nxm.mint(member.address, parseEther('10000'));
       await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
@@ -455,14 +454,14 @@ describe('castVotes', function () {
     const assessmentId = 0;
 
     // 8 true - 6 false
-    const votes = [true, false, true, false, false, true, true, false, true, true, true, true, false, false, true];
+    const votes = [true, false, true, false, false, true, true, false, true, true, true];
 
     for (let i = 0; i < voters.length; i++) {
       await assessment.connect(voters[i]).castVotes([assessmentId], [votes[i]], 0);
     }
 
     const { poll } = await assessment.assessments(assessmentId);
-    expect(poll.accepted).to.be.equal(stakeAmount.mul(8));
-    expect(poll.denied).to.be.equal(stakeAmount.mul(6));
+    expect(poll.accepted).to.be.equal(stakeAmount.mul(6));
+    expect(poll.denied).to.be.equal(stakeAmount.mul(4));
   });
 });

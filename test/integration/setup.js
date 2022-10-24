@@ -350,8 +350,7 @@ async function setup() {
   await upgradeProxy(ic.address, 'IndividualClaims', [tk.address, coverNFT.address]);
   await upgradeProxy(yt.address, 'YieldTokenIncidents', [tk.address, coverNFT.address]);
   await upgradeProxy(as.address, 'Assessment', [master.address]);
-
-
+  
   await upgradeProxy(
     cover.address,
     'Cover',

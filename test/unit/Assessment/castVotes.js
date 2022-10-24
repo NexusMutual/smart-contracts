@@ -338,21 +338,9 @@ describe('castVotes', function () {
     await expect(assessment.connect(user).castVotes([0], [true, true], 0)).to.revertedWith(
       'The lengths of the assessment ids and votes arrays mismatch',
     );
-
-    await expect(assessment.connect(user).castVotes([0, 1], [true], 0)).to.revertedWith(
-      'The lengths of the assessment ids and votes arrays mismatch',
-    );
-
-    await expect(assessment.connect(user).castVotes([], [true], 0)).to.revertedWith(
-      'The lengths of the assessment ids and votes arrays mismatch',
-    );
-
-    await expect(assessment.connect(user).castVotes([0], [], 0)).to.revertedWith(
-      'The lengths of the assessment ids and votes arrays mismatch',
-    );
   });
 
-  it('does not revert if empty arrays', async function () {
+  it('does not revert on empty arrays', async function () {
     const { assessment } = this.contracts;
     const [user] = this.accounts.members;
 
@@ -392,29 +380,31 @@ describe('castVotes', function () {
     const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
 
     {
-      const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user.address, 0);
+      const voteId = 0;
+      const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user.address, voteId);
       expect(assessmentId).to.be.equal(0);
       expect(accepted).to.be.equal(true);
       expect(timestamp).to.be.equal(timestampAtVoteTime);
       expect(stakedAmount).to.be.equal(parseEther('100'));
 
-      const { poll } = await assessment.assessments(0);
+      const { poll } = await assessment.assessments(assessmentId);
       expect(poll.accepted).to.be.equal(parseEther('100'));
     }
 
     {
-      const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user.address, 1);
+      const voteId = 1;
+      const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user.address, voteId);
       expect(assessmentId).to.be.equal(1);
       expect(accepted).to.be.equal(true);
       expect(timestamp).to.be.equal(timestampAtVoteTime);
       expect(stakedAmount).to.be.equal(parseEther('100'));
 
-      const { poll } = await assessment.assessments(1);
+      const { poll } = await assessment.assessments(assessmentId);
       expect(poll.accepted).to.be.equal(parseEther('100'));
     }
   });
 
-  it('allows a non staker to stake and vote', async function () {
+  it('allows to stake for the first time and vote', async function () {
     const { assessment, individualClaims } = this.contracts;
     const [user] = this.accounts.members;
 

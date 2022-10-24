@@ -271,7 +271,6 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");
     }
 
-
     coverContract.performStakeBurn(coverId, segmentId, payoutAmount);
 
     if (optionalParams.length > 0) { // Skip the permit call when it is not provided

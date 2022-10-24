@@ -3,8 +3,9 @@ const {
   constants: { ZERO_ADDRESS },
 } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
+const { AddressZero } = ethers.constants;
 
-const { daysToSeconds } = require('../../unit/IndividualClaims/helpers');
+const { daysToSeconds } = require('../../../lib/helpers');
 
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { BigNumber } = require('ethers');
@@ -17,59 +18,78 @@ const setTime = async timestamp => {
 };
 
 const priceDenominator = '10000';
+const COVERED_AMOUNT_PRECISION_ERROR_TOLERANCE = '20';
 
-describe.skip('submitClaim', function () {
-  it('submits DAI claim and approves claim', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { cover, stakingPool0, as, tk, dai, yc } = this.contracts;
-    const [coverBuyer1, staker1, staker2, member1] = this.accounts.members;
-    const [nonMember1, nonMember2] = this.accounts.nonMembers;
+describe('submitClaim', function () {
+  beforeEach(async function () {
+    const { tk } = this.contracts;
 
-    const productId = 0;
-    const payoutAsset = 1; // DAI
-    const period = 3600 * 24 * 30; // 30 days
+    const members = this.accounts.members.slice(0, 5);
+    const amount = parseEther('10000');
+    for (const member of members) {
+      await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
+    }
+  });
 
-    const amount = parseEther('1');
+  function calculateFirstTrancheId(lastBlock, period, gracePeriod) {
+    return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
+  }
 
-    const stakingAmount = parseEther('100');
-    await tk.connect(this.accounts.defaultSender).transfer(staker1.address, stakingAmount);
-    await tk.connect(this.accounts.defaultSender).transfer(staker2.address, stakingAmount);
-
+  async function stake({ stakingPool, staker, productId, period, gracePeriod }) {
+    // Staking inputs
+    const stakingAmount = parseEther('6000');
     const lastBlock = await ethers.provider.getBlock('latest');
+    const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
 
-    const firstTrancheId = Math.floor(lastBlock.timestamp / (91 * 24 * 3600));
-
-    await stakingPool0.connect(staker1).depositTo([
+    // Stake to open up capacity
+    await stakingPool.connect(staker).depositTo([
       {
         amount: stakingAmount,
         trancheId: firstTrancheId,
         tokenId: 1, // new position
-        destination: ZERO_ADDRESS,
+        destination: AddressZero,
       },
     ]);
+    await stakingPool.setTargetWeight(productId, 10);
+  }
 
+  it('submits ETH claim and approves claim', async function () {
+    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { cover, stakingPool0, as, yc, ybETH } = this.contracts;
+    const [coverBuyer1, staker1] = this.accounts.members;
+    const [nonMember1] = this.accounts.nonMembers;
+
+    const productId = 2; // ybETH
+    const coverAsset = 0; // ETH
+    const period = 3600 * 24 * 30; // 30 days
+    const gracePeriod = 3600 * 24 * 30;
+
+    const amount = parseEther('10');
+
+    // Stake to open up capacity
+    await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
+
+    // Buy Cover
     const expectedPremium = amount
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    await stakingPool0.setTargetWeight(productId, 10);
+    const expectedMinCoveredAmount = amount.sub(COVERED_AMOUNT_PRECISION_ERROR_TOLERANCE);
 
-    await dai.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('1000000'));
-
-    await dai.connect(coverBuyer1).approve(cover.address, expectedPremium);
+    await ybETH.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('100'));
 
     const tx = await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
-        amount,
+        coverAsset,
+        amount: expectedMinCoveredAmount,
         period,
         maxPremiumInAsset: expectedPremium,
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
-        commissionDestination: ZERO_ADDRESS,
+        commissionDestination: AddressZero,
         ipfsData: '',
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
@@ -82,95 +102,86 @@ describe.skip('submitClaim', function () {
 
     const segmentPeriod = period;
     {
+      // submit incident
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+
       await yc
         .connect(this.accounts.defaultSender)
-        .submitIncident(2, parseEther('1.1'), currentTime + segmentPeriod / 2, parseEther('100'), '');
+        .submitIncident(productId, parseEther('1.1'), currentTime + segmentPeriod / 2, parseEther('100'), '');
     }
 
-    await as.connect(staker1).castVote(0, true, parseEther('100'));
+    // accept incident
+    await as.connect(staker1).castVotes([0], [true], parseEther('100'));
 
     {
+      // advance past payout cooldown
       const { payoutCooldownInDays } = await as.config();
+
       const { end } = await as.getPoll(0);
       await setTime(end + daysToSeconds(payoutCooldownInDays));
     }
 
-    // await ybEth.connect(staker1).approve(yc.address, parseEther('10000'));
+    await ybETH.connect(coverBuyer1).approve(yc.address, parseEther('10000'));
 
-    // [warning] Cover mock does not subtract the covered amount
     {
-      const ethBalanceBefore = await ethers.provider.getBalance(staker1.address);
-      await yc.connect(staker1).redeemPayout(0, 0, 0, parseEther('100'), staker1.address, [], { gasPrice: 0 });
-      const ethBalanceAfter = await ethers.provider.getBalance(staker1.address);
-      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('99')));
+      const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
+
+      await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1'), nonMember1.address, [], { gasPrice: 0 });
+      const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
+      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('0.99')));
+    }
+    {
+      const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
+      await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1.11'), nonMember1.address, [], { gasPrice: 0 });
+      const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
+      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('1.0989')));
     }
 
     {
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
-      await yc.connect(member1).redeemPayout(0, 0, 0, parseEther('111'), nonMember1.address, [], { gasPrice: 0 });
+      await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('3'), nonMember1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
-      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('109.89')));
-    }
-
-    {
-      const ethBalanceBefore = await ethers.provider.getBalance(nonMember2.address);
-      await yc.connect(member1).redeemPayout(0, 0, 0, parseEther('3000'), nonMember2.address, [], { gasPrice: 0 });
-      const ethBalanceAfter = await ethers.provider.getBalance(nonMember2.address);
-      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('2970')));
+      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('2.970')));
     }
   });
 
-  it.skip('submits DAI claim and rejects claim', async function () {
+  it('submits DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { ic, cover, stakingPool0, as, tk, dai } = this.contracts;
-    const [coverBuyer1, staker1, staker2, staker3] = this.accounts.members;
+    const { cover, stakingPool0, as, dai, yc, ybDAI } = this.contracts;
+    const [coverBuyer1, staker1] = this.accounts.members;
+    const [nonMember1] = this.accounts.nonMembers;
 
-    const productId = 0;
-    const payoutAsset = 1; // DAI
+    const productId = 3;
+    const coverAsset = 1; // DAI
     const period = 3600 * 24 * 30; // 30 days
+    const gracePeriod = 3600 * 24 * 30;
 
-    const amount = parseEther('1');
+    const amount = parseEther('10');
 
-    const assessmentStakingAmountForApproval = parseEther('1000');
-    const assessmentStakingAmountForRejection = parseEther('2000');
-    const stakingAmount = parseEther('100');
-    await tk.connect(this.accounts.defaultSender).transfer(staker1.address, stakingAmount);
-    await tk.connect(this.accounts.defaultSender).transfer(staker2.address, stakingAmount);
-    await tk.connect(this.accounts.defaultSender).transfer(staker3.address, stakingAmount);
+    // Stake to open up capacity
+    await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
 
-    const lastBlock = await ethers.provider.getBlock('latest');
-
-    const firstTrancheId = Math.floor(lastBlock.timestamp / (91 * 24 * 3600));
-
-    await stakingPool0.connect(staker1).depositTo([
-      {
-        amount: stakingAmount,
-        trancheId: firstTrancheId,
-        tokenId: 1, // new position
-        destination: ZERO_ADDRESS,
-      },
-    ]);
-
+    // Buy Cover
     const expectedPremium = amount
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    await stakingPool0.setTargetWeight(productId, 10);
+    const expectedMinCoveredAmount = amount.sub(COVERED_AMOUNT_PRECISION_ERROR_TOLERANCE);
 
     await dai.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('1000000'));
+    await ybDAI.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('100'));
 
     await dai.connect(coverBuyer1).approve(cover.address, expectedPremium);
 
-    const tx = await cover.connect(coverBuyer1).buyCover(
+    await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
-        payoutAsset,
-        amount,
+        coverAsset,
+        amount: expectedMinCoveredAmount,
         period,
         maxPremiumInAsset: expectedPremium,
-        paymentAsset: payoutAsset,
+        paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: ZERO_ADDRESS,
@@ -182,33 +193,124 @@ describe.skip('submitClaim', function () {
       },
     );
 
+    const segmentPeriod = period;
+    {
+      // submit incident
+      const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+
+      await yc
+        .connect(this.accounts.defaultSender)
+        .submitIncident(productId, parseEther('1.1'), currentTime + segmentPeriod / 2, parseEther('100'), '');
+    }
+
+    // accept incident
+    await as.connect(staker1).castVotes([0], [true], parseEther('100'));
+
+    {
+      // advance past payout cooldown
+      const { payoutCooldownInDays } = await as.config();
+
+      const { end } = await as.getPoll(0);
+      await setTime(end + daysToSeconds(payoutCooldownInDays));
+    }
+
+    await ybDAI.connect(coverBuyer1).approve(yc.address, parseEther('10000'));
+
+    {
+      const daiBalanceBefore = await dai.balanceOf(nonMember1.address);
+
+      await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1'), nonMember1.address, [], { gasPrice: 0 });
+      const daiBalanceAfter = await dai.balanceOf(nonMember1.address);
+      expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(parseEther('0.99')));
+    }
+    {
+      const daiBalanceBefore = await dai.balanceOf(nonMember1.address);
+      await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1.11'), nonMember1.address, [], { gasPrice: 0 });
+      const daiBalanceAfter = await dai.balanceOf(nonMember1.address);
+      expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(parseEther('1.0989')));
+    }
+
+    {
+      const ethBalanceBefore = await dai.balanceOf(nonMember1.address);
+      await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('3'), nonMember1.address, [], { gasPrice: 0 });
+      const ethBalanceAfter = await dai.balanceOf(nonMember1.address);
+      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('2.970')));
+    }
+  });
+
+  it('submits ETH claim and rejects claim', async function () {
+    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { cover, stakingPool0, as, yc, ybETH } = this.contracts;
+    const [coverBuyer1, staker1, staker2] = this.accounts.members;
+    const [nonMember1] = this.accounts.nonMembers;
+
+    const productId = 2; // ybETH
+    const coverAsset = 0; // ETH
+    const period = 3600 * 24 * 30; // 30 days
+    const gracePeriod = 3600 * 24 * 30;
+
+    const amount = parseEther('10');
+
+    // Stake to open up capacity
+    await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
+
+    // Buy Cover
+    const expectedPremium = amount
+      .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
+      .div(BigNumber.from(priceDenominator));
+
+    const expectedMinCoveredAmount = amount.sub(COVERED_AMOUNT_PRECISION_ERROR_TOLERANCE);
+
+    await ybETH.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('100'));
+
+    const tx = await cover.connect(coverBuyer1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        productId,
+        coverAsset,
+        amount: expectedMinCoveredAmount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      {
+        value: expectedPremium,
+      },
+    );
+
     await tx.wait();
 
-    const coverId = 0;
+    const segmentPeriod = period;
+    {
+      // submit incident
+      const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
 
-    // TODO: figure out why this higher precision error
-    const claimAmount = amount.sub(20);
+      await yc
+        .connect(this.accounts.defaultSender)
+        .submitIncident(productId, parseEther('1.1'), currentTime + segmentPeriod / 2, parseEther('100'), '');
+    }
 
-    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, payoutAsset);
+    // reject incident (requires at least 1 positive vote)
+    await as.connect(staker1).castVotes([0], [true], parseEther('100'));
+    await as.connect(staker2).castVotes([0], [false], parseEther('100'));
 
-    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
-      value: deposit.mul('2'),
-    });
+    {
+      // advance past payout cooldown
+      const { payoutCooldownInDays } = await as.config();
 
-    const { payoutCooldownInDays } = await as.config();
-    await as.connect(staker2).stake(assessmentStakingAmountForApproval);
+      const { end } = await as.getPoll(0);
+      await setTime(end + daysToSeconds(payoutCooldownInDays));
+    }
 
-    await as.connect(staker2).castVotes([0], [true], 0);
+    await ybETH.connect(coverBuyer1).approve(yc.address, parseEther('10000'));
 
-    await as.connect(staker3).stake(assessmentStakingAmountForRejection);
-    await as.connect(staker3).castVotes([0], [false], 0);
-
-    const { poll } = await as.assessments(0);
-    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
-
-    await setTime(futureTime);
-    await expect(ic.redeemClaimPayout(0)).to.be.revertedWith('The claim needs to be accepted');
-    const { payoutRedeemed } = await ic.claims(0);
-    expect(payoutRedeemed).to.be.equal(false);
+    await expect(
+      yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1'), nonMember1.address, [], { gasPrice: 0 }),
+    ).to.be.revertedWith('The incident needs to be accepted');
   });
 });

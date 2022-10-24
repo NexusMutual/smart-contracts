@@ -20,6 +20,7 @@ contract DisposableYieldTokenIncidents is MasterAwareV2 {
     config.payoutDeductibleRatio = 9000; // 90%
     config.rewardRatio = 52; // 0.52%
     config.maxRewardInNXMWad = 59; // 50 NXM
+    config.payoutRedemptionPeriodInDays = 14; // days until the payout will not be redeemable anymore
     master = INXMMaster(masterAddress);
   }
 

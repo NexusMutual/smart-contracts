@@ -128,24 +128,9 @@ describe('startAssessment', function () {
 
   it('reverts if caller is not an internal contract', async function () {
     const { assessment } = this.contracts;
-    const [user] = this.accounts.members;
-    const [AB] = this.accounts.advisoryBoardMembers;
-    const [governance] = this.accounts.governanceContracts;
     const admin = this.accounts.emergencyAdmin;
 
     await expect(assessment.connect(admin).startAssessment(parseEther('100'), parseEther('10'))).to.be.revertedWith(
-      'Caller is not an internal contract',
-    );
-
-    await expect(
-      assessment.connect(governance).startAssessment(parseEther('100'), parseEther('10')),
-    ).to.be.revertedWith('Caller is not an internal contract');
-
-    await expect(assessment.connect(AB).startAssessment(parseEther('100'), parseEther('10'))).to.be.revertedWith(
-      'Caller is not an internal contract',
-    );
-
-    await expect(assessment.connect(user).startAssessment(parseEther('100'), parseEther('10'))).to.be.revertedWith(
       'Caller is not an internal contract',
     );
   });

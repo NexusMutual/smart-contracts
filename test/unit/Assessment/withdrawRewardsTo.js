@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { setTime } = require('./helpers');
+const { setTime, finalizePoll, generateRewards } = require('./helpers');
 
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
@@ -16,13 +16,10 @@ describe('withdrawRewardsTo', function () {
   it('reverts when not called by the owner of the rewards ', async function () {
     const { nxm, assessment, individualClaims } = this.contracts;
     const [staker] = this.accounts.members;
-    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
-    await assessment.connect(staker).stake(parseEther('10'));
 
-    await individualClaims.connect(staker).submitClaim(0, 0, parseEther('100'), '');
-    await assessment.connect(staker).castVotes([0], [true], 0);
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+    await generateRewards({ assessment, individualClaims, staker });
+
+    await finalizePoll(assessment);
 
     const [nonMember] = this.accounts.nonMembers;
     const { totalRewardInNXM } = await assessment.assessments(0);
@@ -41,13 +38,10 @@ describe('withdrawRewardsTo', function () {
   it('sends the rewards to any member address', async function () {
     const { nxm, assessment, individualClaims } = this.contracts;
     const [staker, otherMember] = this.accounts.members;
-    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
-    await assessment.connect(staker).stake(parseEther('10'));
 
-    await individualClaims.connect(staker).submitClaim(0, 0, parseEther('100'), '');
-    await assessment.connect(staker).castVotes([0], [true], 0);
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+    await generateRewards({ assessment, individualClaims, staker });
+
+    await finalizePoll(assessment);
 
     const { totalRewardInNXM } = await assessment.assessments(0);
     const nonMemberBalanceBefore = await nxm.balanceOf(staker.address);
@@ -63,13 +57,13 @@ describe('withdrawRewardsTo', function () {
   it('withdraws rewards up to the last finalized assessment when an unfinalized assessment follows', async function () {
     const { nxm, assessment, individualClaims } = this.contracts;
     const [user] = this.accounts.members;
-    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
+
     await assessment.connect(user).stake(parseEther('10'));
 
     await individualClaims.connect(user).submitClaim(0, 0, parseEther('100'), '');
     await assessment.connect(user).castVotes([0], [true], 0);
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+
+    await finalizePoll(assessment);
 
     await individualClaims.connect(user).submitClaim(1, 0, parseEther('100'), '');
     await assessment.connect(user).castVotes([1], [true], 0);
@@ -91,7 +85,6 @@ describe('withdrawRewardsTo', function () {
   it("mints rewards based on user's stake at vote time", async function () {
     const { nxm, assessment, individualClaims } = this.contracts;
     const [user1, user2, user3] = this.accounts.members;
-    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
     {
       await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
@@ -104,8 +97,7 @@ describe('withdrawRewardsTo', function () {
       await assessment.connect(user3).castVotes([0], [true], 0);
       const { totalRewardInNXM } = await assessment.assessments(0);
 
-      const { timestamp } = await ethers.provider.getBlock('latest');
-      await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+      await finalizePoll(assessment);
 
       {
         const balanceBefore = await nxm.balanceOf(user1.address);
@@ -136,8 +128,7 @@ describe('withdrawRewardsTo', function () {
       await assessment.connect(user2).castVotes([1], [true], 0);
       const { totalRewardInNXM } = await assessment.assessments(1);
 
-      const { timestamp } = await ethers.provider.getBlock('latest');
-      await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+      await finalizePoll(assessment);
 
       {
         const balanceBefore = await nxm.balanceOf(user1.address);
@@ -165,8 +156,7 @@ describe('withdrawRewardsTo', function () {
       await assessment.connect(user3).castVotes([2], [true], 0);
       const { totalRewardInNXM } = await assessment.assessments(2);
 
-      const { timestamp } = await ethers.provider.getBlock('latest');
-      await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+      await finalizePoll(assessment);
 
       {
         const balanceBefore = await nxm.balanceOf(user1.address);
@@ -195,25 +185,21 @@ describe('withdrawRewardsTo', function () {
     const { assessment, individualClaims } = this.contracts;
     const [user1] = this.accounts.members;
     const nonMember = '0xDECAF00000000000000000000000000000000000';
-    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
-    {
-      await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
-      await assessment.connect(user1).stake(parseEther('10'));
-      await assessment.connect(user1).castVotes([0], [true], 0);
 
-      const { timestamp } = await ethers.provider.getBlock('latest');
-      await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+    await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
+    await assessment.connect(user1).stake(parseEther('10'));
+    await assessment.connect(user1).castVotes([0], [true], 0);
 
-      await expect(assessment.connect(user1).withdrawRewardsTo(nonMember, 0)).to.be.revertedWith(
-        'Destination address is not a member',
-      );
-    }
+    await finalizePoll(assessment);
+
+    await expect(assessment.connect(user1).withdrawRewardsTo(nonMember, 0)).to.be.revertedWith(
+      'Destination address is not a member',
+    );
   });
 
   it('should withdraw multiple rewards consecutively', async function () {
     const { nxm, assessment, individualClaims } = this.contracts;
     const [user1] = this.accounts.members;
-    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
     {
       await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
@@ -224,8 +210,7 @@ describe('withdrawRewardsTo', function () {
 
       const { totalRewardInNXM } = await assessment.assessments(0);
 
-      const { timestamp } = await ethers.provider.getBlock('latest');
-      await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+      await finalizePoll(assessment);
 
       {
         const balanceBefore = await nxm.balanceOf(user1.address);
@@ -251,7 +236,6 @@ describe('withdrawRewardsTo', function () {
   it('should withdraw multiple rewards in one tx', async function () {
     const { nxm, assessment, individualClaims } = this.contracts;
     const [user1] = this.accounts.members;
-    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
 
     {
       await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
@@ -262,8 +246,7 @@ describe('withdrawRewardsTo', function () {
 
       const { totalRewardInNXM } = await assessment.assessments(0);
 
-      const { timestamp } = await ethers.provider.getBlock('latest');
-      await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+      await finalizePoll(assessment);
 
       {
         const balanceBefore = await nxm.balanceOf(user1.address);
@@ -277,18 +260,75 @@ describe('withdrawRewardsTo', function () {
   it('emits RewardWithdrawn event with staker, destination and withdrawn amount', async function () {
     const { assessment, individualClaims } = this.contracts;
     const [staker, user1] = this.accounts.members;
-    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
-    await assessment.connect(staker).stake(parseEther('10'));
 
-    await individualClaims.connect(staker).submitClaim(0, 0, parseEther('100'), '');
-    await assessment.connect(staker).castVotes([0], [true], 0);
+    await generateRewards({ assessment, individualClaims, staker });
     const { totalRewardInNXM } = await assessment.assessments(0);
 
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+    await finalizePoll(assessment);
 
     await expect(assessment.connect(staker).withdrawRewardsTo(user1.address, 0))
       .to.emit(assessment, 'RewardWithdrawn')
       .withArgs(staker.address, user1.address, totalRewardInNXM);
+  });
+
+  it('reverts if system is paused', async function () {
+    const { assessment, master, individualClaims } = this.contracts;
+    const [staker] = this.accounts.members;
+
+    await generateRewards({ assessment, individualClaims, staker });
+
+    await master.setEmergencyPause(true);
+
+    await expect(assessment.connect(staker).withdrawRewardsTo(staker.address, 0)).to.be.revertedWith(
+      'System is paused',
+    );
+  });
+
+  it('reverts if assessment rewards already claimed', async function () {
+    const { assessment, individualClaims, nxm } = this.contracts;
+    const [staker] = this.accounts.members;
+
+    await generateRewards({ assessment, individualClaims, staker });
+
+    await finalizePoll(assessment);
+
+    const { totalRewardInNXM } = await assessment.assessments(0);
+
+    const stakerBalanceBefore = await nxm.balanceOf(staker.address);
+    const stakeOfBefore = await assessment.stakeOf(staker.address);
+
+    await assessment.connect(staker).withdrawRewardsTo(staker.address, 0);
+
+    const stakerBalanceAfter = await nxm.balanceOf(staker.address);
+    const stakeOfAfter = await assessment.stakeOf(staker.address);
+
+    expect(stakerBalanceAfter).to.be.equal(stakerBalanceBefore.add(totalRewardInNXM));
+    expect(stakeOfAfter.rewardsWithdrawableFromIndex).to.be.equal(stakeOfBefore.rewardsWithdrawableFromIndex.add(1));
+
+    await expect(assessment.connect(staker).withdrawRewardsTo(staker.address, 0)).to.be.revertedWith(
+      'No withdrawable rewards',
+    );
+  });
+
+  it('withdraws zero amount if poll is not final', async function () {
+    const { assessment, individualClaims, nxm } = this.contracts;
+    const [staker] = this.accounts.members;
+
+    const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
+    await generateRewards({ assessment, individualClaims, staker });
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays - 1));
+
+    const stakerBalanceBefore = await nxm.balanceOf(staker.address);
+    const stakeOfBefore = await assessment.stakeOf(staker.address);
+
+    await assessment.connect(staker).withdrawRewardsTo(staker.address, 0);
+
+    const stakerBalanceAfter = await nxm.balanceOf(staker.address);
+    const stakeOfAfter = await assessment.stakeOf(staker.address);
+
+    expect(stakerBalanceAfter).to.be.equal(stakerBalanceBefore);
+    expect(stakeOfAfter.rewardsWithdrawableFromIndex).to.be.equal(stakeOfBefore.rewardsWithdrawableFromIndex);
   });
 });

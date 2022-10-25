@@ -150,6 +150,20 @@ const getIncidentStruct = ({
   assessmentDepositRatio,
 }) => [productId, date, coverAsset, activeCoverAmount, expectedPayoutRatio, assessmentDepositRatio];
 
+const finalizePoll = async assessment => {
+  const { timestamp } = await ethers.provider.getBlock('latest');
+  const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
+
+  await setTime(timestamp + daysToSeconds(minVotingPeriodInDays + payoutCooldownInDays));
+};
+
+const generateRewards = async ({ assessment, individualClaims, staker }) => {
+  await assessment.connect(staker).stake(parseEther('10'));
+
+  await individualClaims.connect(staker).submitClaim(0, 0, parseEther('100'), '');
+  await assessment.connect(staker).castVotes([0], [true], 0);
+};
+
 module.exports = {
   STATUS,
   daysToSeconds,
@@ -164,4 +178,6 @@ module.exports = {
   getVoteStruct,
   getDurationByTokenWeight,
   getDurationByConsensus,
+  finalizePoll,
+  generateRewards,
 };

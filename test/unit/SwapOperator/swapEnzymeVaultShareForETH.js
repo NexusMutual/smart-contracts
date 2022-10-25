@@ -1,10 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { ETH } = require('../../../lib/constants').Assets;
-
-const {
-  utils: { parseEther },
-} = ethers;
+const { utils: { parseEther } } = ethers;
 
 describe('swapEnzymeVaultShareForETH', function () {
   it('should revert when called while the system is paused', async function () {

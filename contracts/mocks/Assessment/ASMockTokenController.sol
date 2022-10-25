@@ -9,7 +9,6 @@ contract ASMockTokenController {
   INXMToken public token;
 
   address public addToWhitelistLastCalledWith;
-  address public removeFromWhitelistLastCalledWith;
 
   constructor(address tokenAddres) public {
     token = INXMToken(tokenAddres);

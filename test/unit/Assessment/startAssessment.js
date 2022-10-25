@@ -125,4 +125,13 @@ describe('startAssessment', function () {
       expect(poll.denied).to.be.equal(0);
     }
   });
+
+  it('reverts if caller is not an internal contract', async function () {
+    const { assessment } = this.contracts;
+    const admin = this.accounts.emergencyAdmin;
+
+    await expect(assessment.connect(admin).startAssessment(parseEther('100'), parseEther('10'))).to.be.revertedWith(
+      'Caller is not an internal contract',
+    );
+  });
 });

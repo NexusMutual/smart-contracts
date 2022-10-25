@@ -12,6 +12,7 @@ describe('Assessment', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
+  require('./constructor');
   require('./initialize');
   require('./stake');
   require('./unstake');

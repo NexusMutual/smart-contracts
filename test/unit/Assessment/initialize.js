@@ -20,18 +20,18 @@ describe('initialize', function () {
 
     const preInitializeConfig = await assessment.config();
 
-    expect(preInitializeConfig.minVotingPeriodInDays).to.be.equals(0);
-    expect(preInitializeConfig.stakeLockupPeriodInDays).to.be.equals(0);
-    expect(preInitializeConfig.payoutCooldownInDays).to.be.equals(0);
-    expect(preInitializeConfig.silentEndingPeriodInDays).to.be.equals(0);
+    expect(preInitializeConfig.minVotingPeriodInDays).to.be.equal(0);
+    expect(preInitializeConfig.stakeLockupPeriodInDays).to.be.equal(0);
+    expect(preInitializeConfig.payoutCooldownInDays).to.be.equal(0);
+    expect(preInitializeConfig.silentEndingPeriodInDays).to.be.equal(0);
 
     await assessment.initialize();
     const afterInitializeConfig = await assessment.config();
 
-    expect(afterInitializeConfig.minVotingPeriodInDays).to.be.to.be.equals(3);
-    expect(afterInitializeConfig.stakeLockupPeriodInDays).to.be.equals(14);
-    expect(afterInitializeConfig.payoutCooldownInDays).to.be.equals(1);
-    expect(afterInitializeConfig.silentEndingPeriodInDays).to.be.equals(1);
+    expect(afterInitializeConfig.minVotingPeriodInDays).to.be.equal(3);
+    expect(afterInitializeConfig.stakeLockupPeriodInDays).to.be.equal(14);
+    expect(afterInitializeConfig.payoutCooldownInDays).to.be.equal(1);
+    expect(afterInitializeConfig.silentEndingPeriodInDays).to.be.equal(1);
   });
 
   it('should be whitelisted', async function () {

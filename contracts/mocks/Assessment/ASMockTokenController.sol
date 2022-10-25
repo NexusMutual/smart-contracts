@@ -27,9 +27,4 @@ contract ASMockTokenController {
   function addToWhitelist(address _member) public {
     addToWhitelistLastCalledWith = _member;
   }
-
-  function removeFromWhitelist(address _member) public {
-    removeFromWhitelistLastCalledWith = _member;
-  }
-
 }

@@ -8,6 +8,7 @@ const buyCover = require('./buyCover');
 const getQuote = require('./getQuote');
 const governance = require('./governance');
 const membership = require('./membership');
+const time = require('./time');
 
 module.exports = {
   accounts,
@@ -20,4 +21,5 @@ module.exports = {
   getQuote,
   governance,
   membership,
+  time
 };

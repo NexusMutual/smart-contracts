@@ -1,9 +1,9 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { time } = require('@openzeppelin/test-helpers');
 const { BigNumber } = require('ethers');
 const { ETH } = require('../../../lib/constants').Assets;
 const { hex } = require('../utils').helpers;
+const { increaseTime } = require('../utils').time;
 const {
   utils: { parseEther },
 } = ethers;
@@ -275,7 +275,7 @@ describe('swapETHForEnzymeVaultShare', function () {
       value: parseEther('10000'),
     });
 
-    const TIME_BETWEEN_SWAPS = time.duration.minutes(15);
+    const TIME_BETWEEN_SWAPS = 15 * 60; // 15 minutes
 
     {
       const etherBefore = await ethers.provider.getBalance(pool.address);
@@ -294,7 +294,7 @@ describe('swapETHForEnzymeVaultShare', function () {
       assert.strictEqual(etherSent.toString(), etherIn.toString());
       assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
 
-      await time.increase(TIME_BETWEEN_SWAPS);
+      await increaseTime(TIME_BETWEEN_SWAPS);
     }
 
     {
@@ -314,7 +314,7 @@ describe('swapETHForEnzymeVaultShare', function () {
       assert.strictEqual(etherSent.toString(), etherIn.toString());
       assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
 
-      await time.increase(TIME_BETWEEN_SWAPS);
+      await increaseTime(TIME_BETWEEN_SWAPS);
     }
 
     {
@@ -334,7 +334,7 @@ describe('swapETHForEnzymeVaultShare', function () {
       assert.strictEqual(etherSent.toString(), etherIn.toString());
       assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
 
-      await time.increase(TIME_BETWEEN_SWAPS);
+      await increaseTime(TIME_BETWEEN_SWAPS);
     }
 
     const etherIn = minAssetAmount.div(2);

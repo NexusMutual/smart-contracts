@@ -208,4 +208,5 @@ interface ICover {
   event CoverBought(uint coverId, uint productId, uint segmentId, address buyer, string ipfsMetadata);
   event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
   event CoverExpired(uint coverId, uint segmentId);
+  event CoverMigrated(uint oldCoverId, address fromOwner, address toNewOwner, uint newCoverId);
 }

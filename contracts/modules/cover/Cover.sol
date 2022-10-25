@@ -174,6 +174,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       _coverData,
       _coverSegments
     );
+
+    emit CoverMigrated(coverId, fromOwner, toNewOwner, _coverData.length - 1);
   }
 
   function buyCover(

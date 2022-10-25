@@ -36,7 +36,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   // fraud attempt by one or multiple addresses. Once the root is submitted by adivsory board
   // members through governance, burnFraud uses this root to burn the fraudulent assessors' stakes
   // and correct the outcome of the poll.
-  bytes32[] internal fraudResolution;
+  bytes32[] public fraudResolution;
 
   Assessment[] public override assessments;
 

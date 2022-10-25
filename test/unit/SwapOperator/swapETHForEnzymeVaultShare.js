@@ -4,7 +4,9 @@ const { time } = require('@openzeppelin/test-helpers');
 const { BigNumber } = require('ethers');
 const { ETH } = require('../../../lib/constants').Assets;
 const { hex } = require('../utils').helpers;
-const { utils: { parseEther } } = ethers;
+const {
+  utils: { parseEther },
+} = ethers;
 
 describe('swapETHForEnzymeVaultShare', function () {
   it('should revert when called while the system is paused', async function () {

@@ -8,9 +8,9 @@ const setTime = async timestamp => {
 const increaseTime = async timeIncrease => {
   await increaseTimeBy(timeIncrease);
   await mineNextBlock();
-}
+};
 
 module.exports = {
   increaseTime,
-  setTime
-}
+  setTime,
+};

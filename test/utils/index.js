@@ -21,5 +21,5 @@ module.exports = {
   getQuote,
   governance,
   membership,
-  time
+  time,
 };

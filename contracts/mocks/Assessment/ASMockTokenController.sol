@@ -8,6 +8,9 @@ contract ASMockTokenController {
 
   INXMToken public token;
 
+  address public addToWhitelistLastCalledWith;
+  address public removeFromWhitelistLastCalledWith;
+
   constructor(address tokenAddres) public {
     token = INXMToken(tokenAddres);
   }
@@ -21,8 +24,12 @@ contract ASMockTokenController {
     token.mint(_to, _value);
   }
 
-  function addToWhitelist(address) external returns (bool) {
-    // no-op
+  function addToWhitelist(address _member) public {
+    addToWhitelistLastCalledWith = _member;
+  }
+
+  function removeFromWhitelist(address _member) public {
+    removeFromWhitelistLastCalledWith = _member;
   }
 
 }

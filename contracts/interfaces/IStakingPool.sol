@@ -33,7 +33,8 @@ struct DepositRequest {
 
 struct ProductParams {
   uint productId;
-  bool setWeight;
+  bool setTargetWeight;
+  bool recalculateEffectiveWeight;
   uint8 targetWeight;
   bool setPrice;
   uint96 targetPrice;
@@ -119,7 +120,7 @@ interface IStakingPool {
 
   function setPoolPrivacy(bool isPrivatePool) external;
 
-  function setProducts(uint[] calldata productsToUpdate, ProductParams[] memory params) external;
+  function setProducts(ProductParams[] memory params) external;
 
   function manager() external view returns (address);
 

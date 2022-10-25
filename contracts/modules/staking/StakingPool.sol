@@ -15,7 +15,6 @@ import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
-import "../../interfaces/IStakingPool.sol";
 
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
@@ -458,7 +457,7 @@ contract StakingPool is IStakingPool, ERC721 {
     tokenController.depositStakedNXM(msg.sender, totalAmount, poolId);
 
     // update globals
-    activeStake = Math.divCeil(_activeStake, 1e12);
+    activeStake = _activeStake;
     stakeSharesSupply = _stakeSharesSupply;
     rewardsSharesSupply = _rewardsSharesSupply;
   }
@@ -603,7 +602,7 @@ contract StakingPool is IStakingPool, ERC721 {
       trancheCount
     );
 
-    (uint[] memory totalCapacities, uint totalCapacity) = getTotalCapacities(
+    (uint[] memory totalCapacities, uint totalCapacity) = getTotalCapacitiesForTranches(
       request.productId,
       firstTrancheIdToUse,
       trancheCount,
@@ -891,23 +890,19 @@ contract StakingPool is IStakingPool, ERC721 {
     return (allocatedCapacities, allocatedCapacity);
   }
 
-  function getCurrentTotalCapacities(uint productId) public view returns (uint[] memory totalCapacities, uint totalCapacity) {
+  function getTotalCapacitiesForActiveTranches(uint productId, uint24 globalCapacityRatio, uint16 capacityReductionRatio) public view returns (uint[] memory totalCapacities, uint totalCapacity) {
     uint firstTrancheIdToUse = block.timestamp / TRANCHE_DURATION;
 
-    uint[] memory productIds = new uint[](1);
-    productIds[0] = productId;
-    (uint24 globalCapacityRatio, uint16[] memory capacityReductionRatio) = ICover(coverContract).getCapacityRatios(productIds);
-
-    (totalCapacities, totalCapacity) = getTotalCapacities(
+    (totalCapacities, totalCapacity) = getTotalCapacitiesForTranches(
       productId,
       firstTrancheIdToUse,
       MAX_ACTIVE_TRANCHES,
       globalCapacityRatio,
-      capacityReductionRatio[0]
+      capacityReductionRatio
     );
   }
 
-  function getTotalCapacities(
+  function getTotalCapacitiesForTranches(
     uint productId,
     uint firstTrancheId,
     uint trancheCount,
@@ -915,7 +910,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint reductionRatio
   ) internal view returns (uint[] memory totalCapacities, uint totalCapacity) {
 
-    uint _activeStake = activeStake;
+    uint _activeStake = Math.divCeil(activeStake, 1e12);
     uint _stakeSharesSupply = stakeSharesSupply;
 
     if (_stakeSharesSupply == 0) {
@@ -1255,27 +1250,26 @@ contract StakingPool is IStakingPool, ERC721 {
 
   /* pool management */
 
-  function setProducts(uint[] calldata productsToUpdate, ProductParams[] memory params) external onlyManager {
-    _setProducts(productsToUpdate, params);
-  }
+  function setProducts(ProductParams[] memory params) external onlyManager {
+    uint[] memory productIds = new uint[](params.length);
 
-  function _setProducts(uint[] calldata productsToUpdate, ProductParams[] memory params) internal {
+    for (uint i = 0; i < params.length; i++) {
+      if (params[i].recalculateEffectiveWeight) {
+        productIds[i] = params[i].productId;
+      }
+    }
 
-    (uint24 globalCapacityRatio, uint16[] memory capacityReductionRatios) = ICover(coverContract).getCapacityRatios(productsToUpdate);
+    (uint globalCapacityRatio, uint[] memory initialPriceRatios, uint[] memory capacityReductionRatios) = ICover(coverContract).getCapacityRatios(productIds);
 
-    uint32 _totalTargetWeight = totalTargetWeight;
-    uint32 _totalEffectiveWeight = totalEffectiveWeight;
-
-    uint numProductsUpdated;
+    uint _totalTargetWeight = totalTargetWeight;
+    uint _totalEffectiveWeight = totalEffectiveWeight;
 
     for (uint i = 0; i < params.length; i++) {
       ProductParams memory _param = params[i];
       StakedProduct memory _product = products[_param.productId];
 
       if (_product.nextPriceUpdateTime == 0) {
-        Product memory coverProduct = ICover(coverContract).products(_param.productId);
-        require(coverProduct.initialPriceRatio > 0, "StakingPool: Product deprecated or not initialized");
-        _product.nextPrice = coverProduct.initialPriceRatio;
+        _product.nextPrice = initialPriceRatios[i].toUint96();
         _product.nextPriceUpdateTime = uint32(block.timestamp);
       }
 
@@ -1284,32 +1278,27 @@ contract StakingPool is IStakingPool, ERC721 {
         _product.targetPrice = _param.targetPrice;
       }
 
-      if (_param.setWeight) {
-          require(_param.targetWeight <= WEIGHT_DENOMINATOR, "StakingPool: Cannot set weight beyond 1");
-          require(numProductsUpdated < productsToUpdate.length, "StakingPool: Must update product to adjust weights");
-          require(productsToUpdate[numProductsUpdated] == _param.productId, "StakingPool: Must update product to adjust weights");
+      // Must recalculate effectiveWeight if target weight is changed
+      if (_param.setTargetWeight && _param.recalculateEffectiveWeight) {
+        require(_param.targetWeight <= WEIGHT_DENOMINATOR, "StakingPool: Cannot set weight beyond 1");
 
-          uint8 previousEffectiveWeight = _product.lastEffectiveWeight;
-          _product.lastEffectiveWeight = _getEffectiveWeight(_param.productId, _param.targetWeight, globalCapacityRatio, capacityReductionRatios[numProductsUpdated++]);
-          _totalEffectiveWeight -= previousEffectiveWeight;
-          _totalEffectiveWeight += _product.lastEffectiveWeight;
-
-          if (_product.targetWeight < _param.targetWeight) {
-             _totalTargetWeight += _param.targetWeight - _product.targetWeight;
-          } else {
-            _totalTargetWeight -= _product.targetWeight - _param.targetWeight;
-          }
-          _product.targetWeight = _param.targetWeight;
-
+        uint8 previousEffectiveWeight = _product.lastEffectiveWeight;
+        _product.lastEffectiveWeight = _getEffectiveWeight(
+          _param.productId,
+          _param.targetWeight,
+          globalCapacityRatio,
+          capacityReductionRatios[i]
+        );
+        _totalEffectiveWeight = _totalEffectiveWeight - previousEffectiveWeight + _product.lastEffectiveWeight;
+        _totalTargetWeight = _totalTargetWeight - _product.targetWeight + _param.targetWeight;
+        _product.targetWeight = _param.targetWeight;
       }
       products[_param.productId] = _product;
     }
 
-
-    require(_totalTargetWeight <= MAX_TOTAL_WEIGHT, "StakingPool: Total max target weight exceeded");
     require(_totalEffectiveWeight <= MAX_TOTAL_WEIGHT, "StakingPool: Total max effective weight exceeded");
-    totalTargetWeight = _totalTargetWeight;
-    totalEffectiveWeight = _totalEffectiveWeight;
+    totalTargetWeight = _totalTargetWeight.toUint32();
+    totalEffectiveWeight = _totalEffectiveWeight.toUint32();
   }
 
   function _setInitialProducts(ProductInitializationParams[] memory params) internal {
@@ -1322,7 +1311,6 @@ contract StakingPool is IStakingPool, ERC721 {
       _product.nextPriceUpdateTime = uint32(block.timestamp);
       _product.targetPrice = param.targetPrice;
       _product.targetWeight = param.weight;
-      _product.lastEffectiveWeight = param.weight;
       _totalTargetWeight += param.weight;
     }
     require(_totalTargetWeight <= MAX_TOTAL_WEIGHT, "StakingPool: Total max target weight exceeded");
@@ -1516,7 +1504,7 @@ contract StakingPool is IStakingPool, ERC721 {
     return surgePremium / ALLOCATION_UNITS_PER_NXM;
   }
 
-  function _getEffectiveWeight(uint productId, uint targetWeight, uint24 globalCapacityRatio, uint16 capacityReductionRatio) internal returns (uint8 effectiveWeight) {
+  function _getEffectiveWeight(uint productId, uint targetWeight, uint globalCapacityRatio, uint capacityReductionRatio) internal returns (uint8 effectiveWeight) {
     uint firstTrancheIdToUse = block.timestamp / TRANCHE_DURATION;
 
     (, uint totalAllocatedCapacity) = getAllocatedCapacities(
@@ -1525,7 +1513,7 @@ contract StakingPool is IStakingPool, ERC721 {
       MAX_ACTIVE_TRANCHES
     );
 
-    (, uint totalCapacity) = getTotalCapacities(
+    (, uint totalCapacity) = getTotalCapacitiesForTranches(
       productId,
       firstTrancheIdToUse,
       MAX_ACTIVE_TRANCHES,

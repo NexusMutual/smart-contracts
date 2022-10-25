@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.16;
 
-import "../Tokens/ERC721Mock.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
-import "../../modules/staking/StakingPool.sol";
 import "../../interfaces/IStakingPool.sol";
+import "../../modules/staking/StakingPool.sol";
+import "../Tokens/ERC721Mock.sol";
 
 
 contract CoverMockStakingPool is IStakingPool, ERC721Mock {
@@ -93,8 +93,8 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
   ) external {
   }
 
-  function setProducts(uint[] calldata ids, ProductParams[] memory params) external {
-    ids;
+  function setProducts(ProductParams[] memory params) external {
+    totalSupply = totalSupply;
     params;
   }
 

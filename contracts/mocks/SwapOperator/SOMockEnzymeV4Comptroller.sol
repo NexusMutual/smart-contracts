@@ -4,7 +4,6 @@ pragma solidity ^0.5.17;
 
 import "../../external/enzyme/IEnzymeV4Comptroller.sol";
 import "./SOMockEnzymeV4Vault.sol";
-import "../../external/enzyme/IWETH.sol";
 
 contract SOMockEnzymeV4Comptroller is IEnzymeV4Comptroller {
 
@@ -29,7 +28,7 @@ contract SOMockEnzymeV4Comptroller is IEnzymeV4Comptroller {
     payoutAmounts_ =  new uint256[](0);
 
     vault.burn(_recipient, _sharesQuantity);
-    IWETH(weth).transfer(_recipient, _sharesQuantity * 10000 / ethToSharesRate);
+    IERC20(weth).transfer(_recipient, _sharesQuantity * 10000 / ethToSharesRate);
   }
 
   function vaultCallOnContract(

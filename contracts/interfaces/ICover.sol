@@ -151,7 +151,7 @@ interface ICover {
 
   function migrateCovers(uint[] calldata coverIds, address toNewOwner) external returns (uint[] memory newCoverIds);
 
-  function migrateCoverFromOwner(uint coverId, address fromOwner, address toNewOwner) external returns (uint);
+  function migrateCoverFromOwner(uint coverId, address fromOwner, address toNewOwner) external;
 
   function buyCover(
     BuyCoverParams calldata params,

@@ -148,8 +148,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint coverId,
     address fromOwner,
     address toNewOwner
-  ) external override onlyInternal returns (uint) {
-    return _migrateCoverFromOwner(coverId, fromOwner, toNewOwner);
+  ) external override onlyInternal {
+    _migrateCoverFromOwner(coverId, fromOwner, toNewOwner);
   }
 
   /// @dev Migrates covers from V1
@@ -163,7 +163,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     address toNewOwner
   ) internal returns (uint) {
 
-     CoverUtilsLib.migrateCoverFromOwner(
+    CoverUtilsLib.migrateCoverFromOwner(
       CoverUtilsLib.MigrateParams(
         coverId,
         fromOwner,

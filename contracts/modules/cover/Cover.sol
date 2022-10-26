@@ -550,7 +550,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       manager,
       isPrivatePool,
       initialPoolFee,
-      maxPoolFee
+      maxPoolFee,
+      GLOBAL_MIN_PRICE_RATIO
     );
 
     address stakingPoolAddress = CoverUtilsLib.createStakingPool(
@@ -787,10 +788,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return (1 << coverAsset) & assetsBitMap > 0;
   }
 
-  function getCapacityRatios(uint[] calldata productIds) public view returns (uint _globalCapacityRatio, uint[] memory initialPrices, uint[] memory capacityReductionRatios) {
+  function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (
+    uint _globalCapacityRatio,
+    uint globalMinPriceRatio,
+    uint[] memory initialPrices,
+    uint[] memory capacityReductionRatios
+  ) {
+    globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
     _globalCapacityRatio = uint(globalCapacityRatio);
     capacityReductionRatios = new uint[](productIds.length);
     initialPrices  = new uint[](productIds.length);
+
     for (uint i = 0; i < productIds.length; i++) {
       Product memory product = _products[productIds[i]];
       require(product.initialPriceRatio > 0, "Cover: Product deprecated or not initialized");
@@ -798,7 +806,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       capacityReductionRatios[i] = uint(product.capacityReductionRatio);
     }
   }
-
 
   function _isCoverAssetDeprecated(
     uint32 deprecatedCoverAssetsBitmap,

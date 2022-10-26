@@ -37,6 +37,7 @@ library CoverUtilsLib {
     bool isPrivatePool;
     uint initialPoolFee;
     uint maxPoolFee;
+    uint globalMinPriceRatio;
   }
 
   function migrateCoverFromOwner(
@@ -137,7 +138,7 @@ library CoverUtilsLib {
 
       // override with initial price
       for (uint i = 0; i < productInitParams.length; i++) {
-        productInitParams[0].initialPrice = products[productInitParams[i].productId].initialPriceRatio;
+        productInitParams[i].initialPrice = products[productInitParams[i].productId].initialPriceRatio;
       }
     }
 
@@ -148,6 +149,7 @@ library CoverUtilsLib {
       poolInitParams.isPrivatePool,
       poolInitParams.initialPoolFee,
       poolInitParams.maxPoolFee,
+      poolInitParams.globalMinPriceRatio,
       productInitParams,
       poolInitParams.poolId
     );

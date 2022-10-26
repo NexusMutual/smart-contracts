@@ -29,6 +29,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
 
   uint public constant MAX_PRICE_RATIO = 10_000;
   uint constant REWARDS_DENOMINATOR = 10_000;
+  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
   uint public poolId;
   // erc721 supply
@@ -52,12 +53,14 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     bool _isPrivatePool,
     uint _initialPoolFee,
     uint _maxPoolFee,
+    uint _globalMinPriceRatio,
     ProductInitializationParams[] calldata params,
     uint _poolId
   ) external {
     _isPrivatePool;
     _initialPoolFee;
     _maxPoolFee;
+    _globalMinPriceRatio;
     params;
     manager = _manager;
     _mint(_manager, totalSupply++);

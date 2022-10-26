@@ -10,6 +10,8 @@ contract SPMockCoverProducts {
   uint24 public constant globalCapacityRatio = 2;
   uint256 public constant globalRewardsRatio = 1;
 
+  uint private constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+
   mapping(uint => address) public stakingPool;
   mapping(uint256 => Product) public products;
   mapping(uint256 => ProductType) public productTypes;
@@ -26,8 +28,9 @@ contract SPMockCoverProducts {
     productTypes[id] = product;
   }
 
-  function getCapacityRatios(uint[] calldata productIds) public view returns (uint _globalCapacityRatio, uint[] memory initialPrices, uint[] memory capacityReductionRatios) {
+  function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (uint _globalCapacityRatio, uint globalMinPriceRatio, uint[] memory initialPrices, uint[] memory capacityReductionRatios) {
     _globalCapacityRatio = uint(globalCapacityRatio);
+    globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
     capacityReductionRatios = new uint[](productIds.length);
     initialPrices  = new uint[](productIds.length);
     for (uint i = 0; i < productIds.length; i++) {
@@ -69,6 +72,6 @@ contract SPMockCoverProducts {
     ProductInitializationParams[] calldata params,
     uint256 _poolId
   ) external {
-    IStakingPool(staking_).initialize(_manager, _isPrivatePool, _initialPoolFee, _maxPoolFee, params, _poolId);
+    IStakingPool(staking_).initialize(_manager, _isPrivatePool, _initialPoolFee, _maxPoolFee, GLOBAL_MIN_PRICE_RATIO, params, _poolId);
   }
 }

@@ -8,11 +8,9 @@ const buyCover = require('./buyCover');
 const getQuote = require('./getQuote');
 const governance = require('./governance');
 const membership = require('./membership');
-const address = require('./address');
 
 module.exports = {
   accounts,
-  address,
   constants,
   evm,
   helpers,

@@ -169,6 +169,7 @@ contract StakingPool is IStakingPool, ERC721 {
     bool _isPrivatePool,
     uint _initialPoolFee,
     uint _maxPoolFee,
+    uint globalMinPriceRatio,
     ProductInitializationParams[] calldata params,
     uint _poolId
   ) external onlyCoverContract {
@@ -185,7 +186,7 @@ contract StakingPool is IStakingPool, ERC721 {
     name = string(abi.encodePacked("Nexus Mutual Staking Pool #", Strings.toString(_poolId)));
     symbol = string(abi.encodePacked("NMSP-", Strings.toString(_poolId)));
 
-    _setInitialProducts(params);
+    _setInitialProducts(params, globalMinPriceRatio);
 
     // create ownership nft
     totalSupply = 1;
@@ -1254,12 +1255,15 @@ contract StakingPool is IStakingPool, ERC721 {
     uint[] memory productIds = new uint[](params.length);
 
     for (uint i = 0; i < params.length; i++) {
-      if (params[i].recalculateEffectiveWeight) {
-        productIds[i] = params[i].productId;
-      }
+      productIds[i] = params[i].productId;
     }
 
-    (uint globalCapacityRatio, uint[] memory initialPriceRatios, uint[] memory capacityReductionRatios) = ICover(coverContract).getCapacityRatios(productIds);
+    (
+      uint globalCapacityRatio,
+      uint globalMinPriceRatio,
+      uint[] memory initialPriceRatios,
+      uint[] memory capacityReductionRatios
+    ) = ICover(coverContract).getPriceAndCapacityRatios(productIds);
 
     uint _totalTargetWeight = totalTargetWeight;
     uint _totalEffectiveWeight = totalEffectiveWeight;
@@ -1271,27 +1275,31 @@ contract StakingPool is IStakingPool, ERC721 {
       if (_product.nextPriceUpdateTime == 0) {
         _product.nextPrice = initialPriceRatios[i].toUint96();
         _product.nextPriceUpdateTime = uint32(block.timestamp);
+        require(_param.setPrice, "StakingPool: Must set price for new products");
       }
 
       if (_param.setPrice) {
-        require(_param.targetPrice <= TARGET_PRICE_DENOMINATOR, "StakingPool: Target price too high");
+        validateTargetPrice(_param.targetPrice, globalMinPriceRatio);
         _product.targetPrice = _param.targetPrice;
       }
 
-      // Must recalculate effectiveWeight if target weight is changed
-      if (_param.setTargetWeight && _param.recalculateEffectiveWeight) {
-        require(_param.targetWeight <= WEIGHT_DENOMINATOR, "StakingPool: Cannot set weight beyond 1");
+      // Must recalculate effectiveWeight to adjust targetWeight
+      if (_param.recalculateEffectiveWeight) {
+
+        if (_param.setTargetWeight) {
+          require(_param.targetWeight <= WEIGHT_DENOMINATOR, "StakingPool: Cannot set weight beyond 1");
+          _totalTargetWeight = _totalTargetWeight - _product.targetWeight + _param.targetWeight;
+          _product.targetWeight = _param.targetWeight;
+        }
 
         uint8 previousEffectiveWeight = _product.lastEffectiveWeight;
         _product.lastEffectiveWeight = _getEffectiveWeight(
           _param.productId,
-          _param.targetWeight,
+          _product.targetWeight,
           globalCapacityRatio,
           capacityReductionRatios[i]
         );
         _totalEffectiveWeight = _totalEffectiveWeight - previousEffectiveWeight + _product.lastEffectiveWeight;
-        _totalTargetWeight = _totalTargetWeight - _product.targetWeight + _param.targetWeight;
-        _product.targetWeight = _param.targetWeight;
       }
       products[_param.productId] = _product;
     }
@@ -1301,7 +1309,7 @@ contract StakingPool is IStakingPool, ERC721 {
     totalEffectiveWeight = _totalEffectiveWeight.toUint32();
   }
 
-  function _setInitialProducts(ProductInitializationParams[] memory params) internal {
+  function _setInitialProducts(ProductInitializationParams[] memory params, uint globalMinPriceRatio) internal {
 
     uint32 _totalTargetWeight = totalTargetWeight;
     for (uint i = 0; i < params.length; i++) {
@@ -1309,6 +1317,7 @@ contract StakingPool is IStakingPool, ERC721 {
       StakedProduct storage _product = products[param.productId];
       _product.nextPrice = param.initialPrice;
       _product.nextPriceUpdateTime = uint32(block.timestamp);
+      validateTargetPrice(param.targetPrice, globalMinPriceRatio);
       _product.targetPrice = param.targetPrice;
       _product.targetWeight = param.weight;
       _totalTargetWeight += param.weight;
@@ -1318,6 +1327,10 @@ contract StakingPool is IStakingPool, ERC721 {
     totalEffectiveWeight = totalTargetWeight;
   }
 
+  function validateTargetPrice(uint96 targetPrice, uint globalMinPriceRatio) public view {
+    require(targetPrice <= TARGET_PRICE_DENOMINATOR, "StakingPool: Target price too high");
+    require(targetPrice >= globalMinPriceRatio, "StakingPool: Target price below GLOBAL_MIN_PRICE_RATIO");
+  }
 
   function setPoolFee(uint newFee) external onlyManager {
 
@@ -1504,7 +1517,7 @@ contract StakingPool is IStakingPool, ERC721 {
     return surgePremium / ALLOCATION_UNITS_PER_NXM;
   }
 
-  function _getEffectiveWeight(uint productId, uint targetWeight, uint globalCapacityRatio, uint capacityReductionRatio) internal returns (uint8 effectiveWeight) {
+  function _getEffectiveWeight(uint productId, uint targetWeight, uint globalCapacityRatio, uint capacityReductionRatio) internal view returns (uint8 effectiveWeight) {
     uint firstTrancheIdToUse = block.timestamp / TRANCHE_DURATION;
 
     (, uint totalAllocatedCapacity) = getAllocatedCapacities(

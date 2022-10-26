@@ -90,6 +90,7 @@ interface IStakingPool {
     bool isPrivatePool,
     uint initialPoolFee,
     uint maxPoolFee,
+    uint globalMinPriceRatio,
     ProductInitializationParams[] calldata params,
     uint _poolId
   ) external;

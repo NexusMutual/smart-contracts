@@ -128,9 +128,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   ///
   /// @param coverIds    Legacy (V1) cover identifiers
   /// @param toNewOwner  The address for which the V2 cover NFT is minted
-  function migrateCovers(uint[] calldata coverIds, address toNewOwner) external override {
+  function migrateCovers(
+    uint[] calldata coverIds,
+    address toNewOwner
+  ) external override returns (uint[] memory newCoverIds) {
+    newCoverIds = new uint[](coverIds.length);
     for (uint i = 0; i < coverIds.length; i++) {
-      _migrateCoverFromOwner(coverIds[i], msg.sender, toNewOwner);
+      newCoverIds[i] = _migrateCoverFromOwner(coverIds[i], msg.sender, toNewOwner);
     }
   }
 
@@ -144,8 +148,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint coverId,
     address fromOwner,
     address toNewOwner
-  ) external override onlyInternal {
-    _migrateCoverFromOwner(coverId, fromOwner, toNewOwner);
+  ) external override onlyInternal returns (uint) {
+    return _migrateCoverFromOwner(coverId, fromOwner, toNewOwner);
   }
 
   /// @dev Migrates covers from V1
@@ -157,9 +161,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint coverId,
     address fromOwner,
     address toNewOwner
-  ) internal {
+  ) internal returns (uint) {
 
-    CoverUtilsLib.migrateCoverFromOwner(
+     CoverUtilsLib.migrateCoverFromOwner(
       CoverUtilsLib.MigrateParams(
         coverId,
         fromOwner,
@@ -175,7 +179,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       _coverSegments
     );
 
-    emit CoverMigrated(coverId, fromOwner, toNewOwner, _coverData.length - 1);
+    uint newCoverId = _coverData.length - 1;
+    emit CoverMigrated(coverId, fromOwner, toNewOwner, newCoverId);
+    return newCoverId;
   }
 
   function buyCover(

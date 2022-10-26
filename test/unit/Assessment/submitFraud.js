@@ -16,7 +16,7 @@ describe('submitFraud', function () {
     );
   });
 
-  it('Should store the merkle tree root', async function () {
+  it('should store the merkle tree root', async function () {
     const { assessment } = this.contracts;
     const [governance] = this.accounts.governanceContracts;
     const merkleTreeRoot = '0x1111111111111111111111111111111111111111111111111111111111111111';
@@ -26,7 +26,7 @@ describe('submitFraud', function () {
     expect(await assessment.fraudResolution(0)).to.be.equal(merkleTreeRoot);
   });
 
-  it('Should emit the event FraudSubmitted', async function () {
+  it('should emit the event FraudSubmitted', async function () {
     const { assessment } = this.contracts;
     const [governance] = this.accounts.governanceContracts;
     const merkleTreeRoot = '0x1111111111111111111111111111111111111111111111111111111111111111';
@@ -36,7 +36,7 @@ describe('submitFraud', function () {
       .withArgs(merkleTreeRoot);
   });
 
-  it("Should allow adding another root even if the existing fraud tree hasn't been processed", async function () {
+  it("should allow adding another root even if the existing fraud tree hasn't been processed", async function () {
     const { assessment } = this.contracts;
     const [governance] = this.accounts.governanceContracts;
     const merkleTreeRoot1 = '0x1111111111111111111111111111111111111111111111111111111111111111';

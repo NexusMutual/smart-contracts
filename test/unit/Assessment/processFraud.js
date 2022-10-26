@@ -479,7 +479,8 @@ describe('processFraud', function () {
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember] = this.accounts.members;
 
-    await assessment.connect(fraudulentMember).stake(parseEther('100'));
+    const stakeAmount = parseEther('100');
+    await assessment.connect(fraudulentMember).stake(stakeAmount);
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
@@ -495,7 +496,7 @@ describe('processFraud', function () {
 
     {
       const stake = await assessment.stakeOf(fraudulentMember.address);
-      expect(stake.amount).to.be.equal(parseEther('100'));
+      expect(stake.amount).to.be.equal(stakeAmount);
     }
 
     await assessment.processFraud(
@@ -510,7 +511,7 @@ describe('processFraud', function () {
 
     {
       const stake = await assessment.stakeOf(fraudulentMember.address);
-      expect(stake.amount).to.be.equal(parseEther('67'));
+      expect(stake.amount).to.be.equal(stakeAmount.sub(burnAmount));
       expect(stake.rewardsWithdrawableFromIndex).to.be.equal(1);
     }
   });
@@ -804,7 +805,8 @@ describe('processFraud', function () {
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember] = this.accounts.members;
 
-    await assessment.connect(fraudulentMember).stake(parseEther('100'));
+    const stakeAmount = parseEther('100');
+    await assessment.connect(fraudulentMember).stake(stakeAmount);
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
@@ -820,7 +822,7 @@ describe('processFraud', function () {
 
     {
       const stake = await assessment.stakeOf(fraudulentMember.address);
-      expect(stake.amount).to.be.equal(parseEther('100'));
+      expect(stake.amount).to.be.equal(stakeAmount);
     }
 
     {
@@ -840,7 +842,7 @@ describe('processFraud', function () {
 
     {
       const stake = await assessment.stakeOf(fraudulentMember.address);
-      expect(stake.amount).to.be.equal(parseEther('67'));
+      expect(stake.amount).to.be.equal(stakeAmount.sub(burnAmount));
       expect(stake.rewardsWithdrawableFromIndex).to.be.equal(1);
     }
 
@@ -855,7 +857,8 @@ describe('processFraud', function () {
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember] = this.accounts.members;
 
-    await assessment.connect(fraudulentMember).stake(parseEther('100'));
+    const stakeAmount = parseEther('100');
+    await assessment.connect(fraudulentMember).stake(stakeAmount);
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
@@ -871,7 +874,7 @@ describe('processFraud', function () {
 
     {
       const stake = await assessment.stakeOf(fraudulentMember.address);
-      expect(stake.amount).to.be.equal(parseEther('100'));
+      expect(stake.amount).to.be.equal(stakeAmount);
     }
 
     {
@@ -891,7 +894,7 @@ describe('processFraud', function () {
 
     {
       const stake = await assessment.stakeOf(fraudulentMember.address);
-      expect(stake.amount).to.be.equal(parseEther('67'));
+      expect(stake.amount).to.be.equal(stakeAmount.sub(burnAmount));
       expect(stake.rewardsWithdrawableFromIndex).to.be.equal(1);
     }
 
@@ -912,7 +915,7 @@ describe('processFraud', function () {
 
     {
       const stake = await assessment.stakeOf(fraudulentMember.address);
-      expect(stake.amount).to.be.equal(parseEther('67'));
+      expect(stake.amount).to.be.equal(stakeAmount.sub(burnAmount));
       expect(stake.rewardsWithdrawableFromIndex).to.be.equal(1);
     }
 

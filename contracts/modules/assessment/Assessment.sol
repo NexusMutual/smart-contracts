@@ -16,7 +16,7 @@ import "../../libraries/SafeUintCast.sol";
 /// to payouts. Mints rewards for stakers that act benevolently and allows burning fraudulent ones.
 contract Assessment is IAssessment, MasterAwareV2 {
 
-  INXMToken internal immutable nxm;
+  INXMToken public immutable nxm;
 
   /* ========== STATE VARIABLES ========== */
 

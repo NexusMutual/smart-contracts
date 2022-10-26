@@ -8,7 +8,7 @@ describe('addProducts', function () {
 
     const newProduct = {
       productType: 0,
-      ytcUnderlyingAsset: '0x0000000000000000000000000000000000000001',
+      yieldTokenAddress: '0x0000000000000000000000000000000000000001',
       coverAssets: parseInt('110', 2), // DAI and USDC supported
       initialPriceRatio: 1000, // 10%
       capacityReductionRatio: 0,
@@ -24,7 +24,7 @@ describe('addProducts', function () {
     const productAfter = await cover.products(newProductId);
 
     expect(newProduct.productType).to.be.equal(productAfter.productType);
-    expect(newProduct.ytcUnderlyingAsset).to.be.equal(productAfter.ytcUnderlyingAsset);
+    expect(newProduct.yieldTokenAddress).to.be.equal(productAfter.yieldTokenAddress);
     expect(newProduct.coverAssets).to.be.equal(productAfter.coverAssets);
     expect(newProduct.initialPriceRatio).to.be.equal(productAfter.initialPriceRatio);
     expect(newProduct.capacityReductionRatio).to.be.equal(productAfter.capacityReductionRatio);
@@ -37,7 +37,7 @@ describe('addProducts', function () {
 
     const newProduct = {
       productType: '0',
-      ytcUnderlyingAsset: '0x0000000000000000000000000000000000000001',
+      yieldTokenAddress: '0x0000000000000000000000000000000000000001',
       coverAssets: parseInt('1110', 2), // DAI, USDC and WBTC supported
       initialPriceRatio: '1000', // 10%
       capacityReductionRatio: '0',
@@ -55,7 +55,7 @@ describe('addProducts', function () {
 
     const newProduct = {
       productType: 0,
-      ytcUnderlyingAsset: '0x0000000000000000000000000000000000000001',
+      yieldTokenAddress: '0x0000000000000000000000000000000000000001',
       coverAssets: parseInt('110', 2), // DAI and USDC supported
       initialPriceRatio: 50, // 0.5%
       capacityReductionRatio: 0,
@@ -73,7 +73,7 @@ describe('addProducts', function () {
 
     const newProduct = {
       productType: 0,
-      ytcUnderlyingAsset: '0x0000000000000000000000000000000000000001',
+      yieldTokenAddress: '0x0000000000000000000000000000000000000001',
       coverAssets: parseInt('110', 2), // DAI and USDC supported
       initialPriceRatio: 10100, // 101%
       capacityReductionRatio: 0,
@@ -91,7 +91,7 @@ describe('addProducts', function () {
 
     const newProduct = {
       productType: 0,
-      ytcUnderlyingAsset: '0x0000000000000000000000000000000000000001',
+      yieldTokenAddress: '0x0000000000000000000000000000000000000001',
       coverAssets: parseInt('110', 2), // DAI and USDC supported
       initialPriceRatio: 1000, // 101%
       capacityReductionRatio: 10100,

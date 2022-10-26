@@ -34,7 +34,7 @@ contract SwapOperator {
   address public immutable swapController;
   IWeth public immutable weth;
   bytes32 public immutable domainSeparator;
-  
+
   address public immutable enzymeV4VaultProxyAddress;
   IEnzymeFundValueCalculatorRouter public immutable enzymeFundValueCalculatorRouter;
 
@@ -501,6 +501,9 @@ contract SwapOperator {
   }
 
   function recoverAsset(address assetAddress, address receiver) public onlyController {
+
+    // Validate there's no current cow swap order going on
+    require(currentOrderUID.length == 0, "SwapOp: an order is already in place");
 
     IERC20 asset = IERC20(assetAddress);
 

@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { submitFraud, getProof } = require('./helpers');
+const { submitFraud, getProof, finalizePoll } = require('./helpers');
 const { setTime } = require('./helpers');
 
 const { parseEther } = ethers.utils;
@@ -479,7 +479,8 @@ describe('processFraud', function () {
     const governance = this.accounts.governanceContracts[0];
     const [fraudulentMember] = this.accounts.members;
 
-    await assessment.connect(fraudulentMember).stake(parseEther('100'));
+    const stakeAmount = parseEther('100');
+    await assessment.connect(fraudulentMember).stake(stakeAmount);
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
@@ -495,7 +496,7 @@ describe('processFraud', function () {
 
     {
       const stake = await assessment.stakeOf(fraudulentMember.address);
-      expect(stake.amount).to.be.equal(parseEther('100'));
+      expect(stake.amount).to.be.equal(stakeAmount);
     }
 
     await assessment.processFraud(
@@ -510,7 +511,7 @@ describe('processFraud', function () {
 
     {
       const stake = await assessment.stakeOf(fraudulentMember.address);
-      expect(stake.amount).to.be.equal(parseEther('67'));
+      expect(stake.amount).to.be.equal(stakeAmount.sub(burnAmount));
       expect(stake.rewardsWithdrawableFromIndex).to.be.equal(1);
     }
   });
@@ -778,5 +779,206 @@ describe('processFraud', function () {
 
   it.skip('consumes less gas to process than the summed fees of the fraudulent voting transactions', async function () {
     // [todo] Move this to integration tests instead
+  });
+
+  it('reverts if system is paused', async function () {
+    const { assessment, master } = this.contracts;
+    const [fraudulentMember] = this.accounts.members;
+
+    await master.setEmergencyPause(true);
+
+    await expect(
+      assessment.processFraud(
+        0, // Index of the merkle tree root hash
+        [],
+        fraudulentMember.address, // The address of the fraudulent assessor
+        1, // The index of the last vote that is considered to be fraudulent
+        parseEther('100'), // The amount of stake to be burned
+        0, // The count of previous fraud attempts by this assessor
+        100, // Maximum iterations per tx
+      ),
+    ).to.be.revertedWith('System is paused');
+  });
+
+  it('allows to set voteBatchSize to 0', async function () {
+    const { assessment, individualClaims } = this.contracts;
+    const governance = this.accounts.governanceContracts[0];
+    const [fraudulentMember] = this.accounts.members;
+
+    const stakeAmount = parseEther('100');
+    await assessment.connect(fraudulentMember).stake(stakeAmount);
+
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
+
+    await assessment.connect(fraudulentMember).castVotes([0], [true], 0);
+
+    const burnAmount = parseEther('33');
+    await submitFraud({
+      assessment,
+      signer: governance,
+      addresses: [fraudulentMember.address],
+      amounts: [burnAmount],
+    });
+
+    {
+      const stake = await assessment.stakeOf(fraudulentMember.address);
+      expect(stake.amount).to.be.equal(stakeAmount);
+    }
+
+    {
+      const fraudulentAssessment = await assessment.assessments(0);
+      expect(fraudulentAssessment.poll.accepted).to.be.equal(parseEther('100'));
+    }
+
+    const voteBatchSize = 0;
+    await assessment.processFraud(
+      0, // Index of the merkle tree root hash
+      [],
+      fraudulentMember.address, // The address of the fraudulent assessor
+      0, // The index of the last vote that is considered to be fraudulent
+      burnAmount, // The amount of stake to be burned
+      0, // The count of previous fraud attempts by this assessor
+      voteBatchSize, // Maximum iterations per tx
+    );
+
+    {
+      const stake = await assessment.stakeOf(fraudulentMember.address);
+      expect(stake.amount).to.be.equal(stakeAmount.sub(burnAmount));
+      expect(stake.rewardsWithdrawableFromIndex).to.be.equal(1);
+    }
+
+    {
+      const fraudulentAssessment = await assessment.assessments(0);
+      expect(fraudulentAssessment.poll.accepted).to.be.equal(0);
+    }
+  });
+
+  it('should do nothing when trying to process an already processed fraud', async function () {
+    const { assessment, individualClaims } = this.contracts;
+    const governance = this.accounts.governanceContracts[0];
+    const [fraudulentMember] = this.accounts.members;
+
+    const stakeAmount = parseEther('100');
+    await assessment.connect(fraudulentMember).stake(stakeAmount);
+
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
+
+    await assessment.connect(fraudulentMember).castVotes([0], [true], 0);
+
+    const burnAmount = parseEther('33');
+    await submitFraud({
+      assessment,
+      signer: governance,
+      addresses: [fraudulentMember.address],
+      amounts: [burnAmount],
+    });
+
+    {
+      const stake = await assessment.stakeOf(fraudulentMember.address);
+      expect(stake.amount).to.be.equal(stakeAmount);
+    }
+
+    {
+      const fraudulentAssessment = await assessment.assessments(0);
+      expect(fraudulentAssessment.poll.accepted).to.be.equal(parseEther('100'));
+    }
+
+    await assessment.processFraud(
+      0, // Index of the merkle tree root hash
+      [],
+      fraudulentMember.address, // The address of the fraudulent assessor
+      0, // The index of the last vote that is considered to be fraudulent
+      burnAmount, // The amount of stake to be burned
+      0, // The count of previous fraud attempts by this assessor
+      100, // Maximum iterations per tx
+    );
+
+    {
+      const stake = await assessment.stakeOf(fraudulentMember.address);
+      expect(stake.amount).to.be.equal(stakeAmount.sub(burnAmount));
+      expect(stake.rewardsWithdrawableFromIndex).to.be.equal(1);
+    }
+
+    {
+      const fraudulentAssessment = await assessment.assessments(0);
+      expect(fraudulentAssessment.poll.accepted).to.be.equal(0);
+    }
+
+    const tx = await assessment.processFraud(
+      0, // Index of the merkle tree root hash
+      [],
+      fraudulentMember.address, // The address of the fraudulent assessor
+      0, // The index of the last vote that is considered to be fraudulent
+      burnAmount, // The amount of stake to be burned
+      0, // The count of previous fraud attempts by this assessor
+      100, // Maximum iterations per tx
+    );
+
+    {
+      const stake = await assessment.stakeOf(fraudulentMember.address);
+      expect(stake.amount).to.be.equal(stakeAmount.sub(burnAmount));
+      expect(stake.rewardsWithdrawableFromIndex).to.be.equal(1);
+    }
+
+    {
+      const fraudulentAssessment = await assessment.assessments(0);
+      expect(fraudulentAssessment.poll.accepted).to.be.equal(0);
+    }
+
+    const { events } = await tx.wait();
+    expect(events.length).to.be.equal(0);
+  });
+
+  it('burn all fraudulent member rewards not claimed up to the latest assessment revoked', async function () {
+    const { assessment, individualClaims } = this.contracts;
+    const governance = this.accounts.governanceContracts[0];
+    const [fraudulentMember] = this.accounts.members;
+
+    await assessment.connect(fraudulentMember).stake(parseEther('100'));
+
+    await individualClaims.submitClaim(0, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(1, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(2, 0, parseEther('100'), '');
+    await individualClaims.submitClaim(3, 0, parseEther('100'), '');
+
+    await assessment.connect(fraudulentMember).castVotes([0], [true], 0);
+    await assessment.connect(fraudulentMember).castVotes([1], [true], 0);
+    await assessment.connect(fraudulentMember).castVotes([2], [true], 0);
+    await assessment.connect(fraudulentMember).castVotes([3], [true], 0);
+
+    await finalizePoll(assessment);
+
+    {
+      const rewards = await assessment.getRewards(fraudulentMember.address);
+      expect(rewards.withdrawableAmountInNXM).to.be.gt(0);
+    }
+
+    // Fraudulent claim
+    await individualClaims.submitClaim(4, 0, parseEther('100'), '');
+    await assessment.connect(fraudulentMember).castVotes([4], [true], 0);
+
+    const burnAmount = parseEther('100');
+    await submitFraud({
+      assessment,
+      signer: governance,
+      addresses: [fraudulentMember.address],
+      lastFraudulentVoteIndexes: [4],
+      amounts: [burnAmount],
+    });
+
+    await assessment.processFraud(
+      0, // Index of the merkle tree root hash
+      [], // Proof, empty beacuse the root is also the only leaf
+      fraudulentMember.address, // The address of the fraudulent assessor
+      4, // The index of the last vote that is considered to be fraudulent
+      burnAmount, // The amount of stake to be burned
+      0, // The count of previous fraud attempts by this assessor
+      100, // Maximum iterations per tx
+    );
+
+    {
+      const rewards = await assessment.getRewards(fraudulentMember.address);
+      expect(rewards.withdrawableAmountInNXM).to.be.equal(0);
+    }
   });
 });

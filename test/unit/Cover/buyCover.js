@@ -712,4 +712,373 @@ describe('buyCover', function () {
       ),
     ).to.be.revertedWith('Cover: The selected pools ran out of capacity');
   });
+
+  it('reverts if system is paused', async function () {
+    const { cover, master } = this;
+
+    const {
+      governanceContracts: [gv1],
+      members: [coverBuyer, stakingPoolManager],
+    } = this.accounts;
+
+    const productId = 0;
+    const coverAsset = 0; // ETH
+    const period = 3600 * 24 * 364; // 30 days
+
+    const amount = parseEther('1000');
+    const targetPriceRatio = '260';
+    const priceDenominator = '10000';
+    const activeCover = parseEther('8000');
+    const capacity = parseEther('10000');
+    const capacityFactor = '10000';
+
+    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
+
+    await createStakingPool(
+      cover,
+      productId,
+      capacity,
+      targetPriceRatio,
+      activeCover,
+      stakingPoolManager,
+      stakingPoolManager,
+      targetPriceRatio,
+    );
+
+    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+
+    await master.setEmergencyPause(true);
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: expectedPremium,
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', coverAmountInAsset: amount }],
+        {
+          value: expectedPremium,
+        },
+      ),
+    ).to.be.revertedWith('System is paused');
+  });
+
+  it('reverts if caller is not member', async function () {
+    const { cover } = this;
+
+    const {
+      governanceContracts: [gv1],
+      members: [stakingPoolManager],
+      nonMembers: [nonMember],
+    } = this.accounts;
+
+    const productId = 0;
+    const coverAsset = 0; // ETH
+    const period = 3600 * 24 * 364; // 30 days
+
+    const amount = parseEther('1000');
+    const targetPriceRatio = '260';
+    const priceDenominator = '10000';
+    const activeCover = parseEther('8000');
+    const capacity = parseEther('10000');
+    const capacityFactor = '10000';
+
+    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
+
+    await createStakingPool(
+      cover,
+      productId,
+      capacity,
+      targetPriceRatio,
+      activeCover,
+      stakingPoolManager,
+      stakingPoolManager,
+      targetPriceRatio,
+    );
+
+    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+
+    await expect(
+      cover.connect(nonMember).buyCover(
+        {
+          owner: nonMember.address,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: expectedPremium,
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', coverAmountInAsset: amount }],
+        {
+          value: expectedPremium,
+        },
+      ),
+    ).to.be.revertedWith('Caller is not a member');
+  });
+
+  it('reverts if owner is address zero', async function () {
+    const { cover } = this;
+
+    const {
+      governanceContracts: [gv1],
+      members: [coverBuyer, stakingPoolManager],
+    } = this.accounts;
+
+    const productId = 0;
+    const coverAsset = 0; // ETH
+    const period = 3600 * 24 * 364; // 30 days
+
+    const amount = parseEther('1000');
+    const targetPriceRatio = '260';
+    const priceDenominator = '10000';
+    const activeCover = parseEther('8000');
+    const capacity = parseEther('10000');
+    const capacityFactor = '10000';
+
+    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
+
+    await createStakingPool(
+      cover,
+      productId,
+      capacity,
+      targetPriceRatio,
+      activeCover,
+      stakingPoolManager,
+      stakingPoolManager,
+      targetPriceRatio,
+    );
+
+    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          owner: AddressZero,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: expectedPremium,
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', coverAmountInAsset: amount }],
+        {
+          value: expectedPremium,
+        },
+      ),
+    ).to.be.revertedWith('INVALID_RECIPIENT');
+  });
+
+  it('reverts if not supported payment asset', async function () {
+    const { cover } = this;
+
+    const {
+      members: [coverBuyer],
+    } = this.accounts;
+
+    const productId = 0;
+    const coverAsset = 0; // ETH
+    const paymentAsset = 10; // not ETH nor DAI nor USDC
+    const period = 3600 * 24 * 30; // 30 days
+
+    const amount = parseEther('1000');
+
+    // reverts without a reason
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: '0',
+          paymentAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', coverAmountInAsset: amount }],
+        {
+          value: '0',
+        },
+      ),
+    ).to.be.reverted;
+  });
+
+  it('reverts if deprecated payment asset', async function () {
+    const { cover, pool } = this;
+
+    const {
+      members: [coverBuyer],
+      governanceContracts: [gv1],
+    } = this.accounts;
+
+    const productId = 0;
+    const coverAsset = 0; // ETH
+    const paymentAsset = 1; // DAI
+    const period = 3600 * 24 * 30; // 30 days
+
+    const amount = parseEther('1000');
+
+    // Deprecate DAI
+    const daiCoverAssetBitmap = 0b10;
+    await pool.setDeprecatedCoverAssetsBitmap(daiCoverAssetBitmap);
+
+    // reverts without a reason
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: '0',
+          paymentAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', coverAmountInAsset: amount }],
+        {
+          value: '0',
+        },
+      ),
+    ).to.be.revertedWith('Cover: Payment asset deprecated');
+  });
+
+  it('reverts if calculated premium is bigger than maxPremiumInAsset', async function () {
+    const { cover } = this;
+
+    const {
+      governanceContracts: [gv1],
+      members: [coverBuyer, stakingPoolManager],
+    } = this.accounts;
+
+    const productId = 0;
+    const coverAsset = 0; // ETH
+    const period = 3600 * 24 * 364; // 30 days
+
+    const amount = parseEther('1000');
+    const targetPriceRatio = '260';
+    const priceDenominator = '10000';
+    const activeCover = parseEther('8000');
+    const capacity = parseEther('10000');
+    const capacityFactor = '10000';
+
+    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
+
+    await createStakingPool(
+      cover,
+      productId,
+      capacity,
+      targetPriceRatio,
+      activeCover,
+      stakingPoolManager,
+      stakingPoolManager,
+      targetPriceRatio,
+    );
+
+    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: expectedPremium.div(2),
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', coverAmountInAsset: amount }],
+        {
+          value: expectedPremium,
+        },
+      ),
+    ).to.be.revertedWith('Cover: Price exceeds maxPremiumInAsset');
+  });
+
+  it('reverts if empty array of allocationRequests', async function () {
+    const { cover } = this;
+
+    const {
+      governanceContracts: [gv1],
+      members: [coverBuyer, stakingPoolManager],
+    } = this.accounts;
+
+    const productId = 0;
+    const coverAsset = 0; // ETH
+    const period = 3600 * 24 * 364; // 30 days
+
+    const amount = parseEther('1000');
+    const targetPriceRatio = '260';
+    const priceDenominator = '10000';
+    const activeCover = parseEther('8000');
+    const capacity = parseEther('10000');
+    const capacityFactor = '10000';
+
+    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
+
+    await createStakingPool(
+      cover,
+      productId,
+      capacity,
+      targetPriceRatio,
+      activeCover,
+      stakingPoolManager,
+      stakingPoolManager,
+      targetPriceRatio,
+    );
+
+    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: expectedPremium,
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [],
+        {
+          value: expectedPremium,
+        },
+      ),
+    ).to.be.revertedWithPanic('0x12'); // (Division or modulo division by zero)
+  });
 });

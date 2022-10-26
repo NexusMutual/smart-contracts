@@ -24,7 +24,7 @@ library CoverUtilsLib {
   struct MigrateParams {
     uint coverId;
     address fromOwner;
-    address toNewOwner;
+    address newOwner;
     ICoverNFT coverNFT;
     IQuotationData quotationData;
     ITokenController tokenController;
@@ -109,7 +109,7 @@ library CoverUtilsLib {
       )
     );
 
-    params.coverNFT.mint(params.toNewOwner, newCoverId);
+    params.coverNFT.mint(params.newOwner, newCoverId);
   }
 
   function calculateProxyCodeHash(address coverProxyAddress) external pure returns (bytes32) {

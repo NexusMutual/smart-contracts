@@ -19,7 +19,7 @@ contract CLMockCover {
   struct MigrateCoverFromOwnerCalledWith {
     uint coverId;
     address fromOwner;
-    address toNewOwner;
+    address newOwner;
   }
 
   PerformStakeBurnCalledWith public performStakeBurnCalledWith;
@@ -141,9 +141,9 @@ contract CLMockCover {
   function migrateCoverFromOwner(
     uint coverId,
     address fromOwner,
-    address toNewOwner
+    address newOwner
   ) external returns (address) {
-    migrateCoverFromOwnerCalledWith = MigrateCoverFromOwnerCalledWith(coverId, fromOwner, toNewOwner);
+    migrateCoverFromOwnerCalledWith = MigrateCoverFromOwnerCalledWith(coverId, fromOwner, newOwner);
     // silence compiler warning:
     return address(0);
   }

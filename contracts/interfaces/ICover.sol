@@ -149,9 +149,9 @@ interface ICover {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function migrateCovers(uint[] calldata coverIds, address toNewOwner) external;
+  function migrateCovers(uint[] calldata coverIds, address newOwner) external returns (uint[] memory newCoverIds);
 
-  function migrateCoverFromOwner(uint coverId, address fromOwner, address toNewOwner) external;
+  function migrateCoverFromOwner(uint coverId, address fromOwner, address newOwner) external;
 
   function buyCover(
     BuyCoverParams calldata params,
@@ -208,4 +208,5 @@ interface ICover {
   event CoverBought(uint coverId, uint productId, uint segmentId, address buyer, string ipfsMetadata);
   event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
   event CoverExpired(uint coverId, uint segmentId);
+  event CoverMigrated(uint oldCoverId, address fromOwner, address newOwner, uint newCoverId);
 }

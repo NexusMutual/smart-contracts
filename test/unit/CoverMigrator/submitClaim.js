@@ -10,7 +10,7 @@ describe('submitClaim', function () {
       const migrateCoverFromOwnerCalledWith = await cover.migrateCoverFromOwnerCalledWith();
       expect(migrateCoverFromOwnerCalledWith.coverId).to.be.equal(123);
       expect(migrateCoverFromOwnerCalledWith.fromOwner).to.be.equal(coverOwner.address);
-      expect(migrateCoverFromOwnerCalledWith.toNewOwner).to.be.equal(coverOwner.address);
+      expect(migrateCoverFromOwnerCalledWith.newOwner).to.be.equal(coverOwner.address);
     }
 
     {
@@ -18,7 +18,7 @@ describe('submitClaim', function () {
       const migrateCoverFromOwnerCalledWith = await cover.migrateCoverFromOwnerCalledWith();
       expect(migrateCoverFromOwnerCalledWith.coverId).to.be.equal(444);
       expect(migrateCoverFromOwnerCalledWith.fromOwner).to.be.equal(distributor.address);
-      expect(migrateCoverFromOwnerCalledWith.toNewOwner).to.be.equal(coverOwner.address);
+      expect(migrateCoverFromOwnerCalledWith.newOwner).to.be.equal(coverOwner.address);
     }
   });
 });

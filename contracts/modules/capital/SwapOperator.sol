@@ -34,6 +34,9 @@ contract SwapOperator {
   address public immutable swapController;
   IWeth public immutable weth;
   bytes32 public immutable domainSeparator;
+  
+  address public immutable enzymeV4VaultProxyAddress;
+  IEnzymeFundValueCalculatorRouter public immutable enzymeFundValueCalculatorRouter;
 
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -42,9 +45,6 @@ contract SwapOperator {
   uint public constant MAX_VALID_TO_PERIOD = 3600; // 60 minutes
   uint public constant MIN_TIME_BETWEEN_ORDERS = 900; // 15 minutes
   uint public constant maxFee = 0.3 ether;
-
-  address public immutable enzymeV4VaultProxyAddress;
-  IEnzymeFundValueCalculatorRouter public immutable enzymeFundValueCalculatorRouter;
 
   // Events
   event OrderPlaced(GPv2Order.Data order);

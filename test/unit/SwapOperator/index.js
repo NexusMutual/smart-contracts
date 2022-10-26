@@ -17,4 +17,5 @@ describe('SwapOperator unit tests', function () {
   require('./closeOrder');
   require('./swapEnzymeVaultShareForETH');
   require('./swapETHForEnzymeVaultShare');
+  require('./recoverAsset');
 });

@@ -830,6 +830,7 @@ describe('processFraud', function () {
       expect(fraudulentAssessment.poll.accepted).to.be.equal(parseEther('100'));
     }
 
+    const voteBatchSize = 0;
     await assessment.processFraud(
       0, // Index of the merkle tree root hash
       [],
@@ -837,7 +838,7 @@ describe('processFraud', function () {
       0, // The index of the last vote that is considered to be fraudulent
       burnAmount, // The amount of stake to be burned
       0, // The count of previous fraud attempts by this assessor
-      0, // Maximum iterations per tx
+      voteBatchSize, // Maximum iterations per tx
     );
 
     {

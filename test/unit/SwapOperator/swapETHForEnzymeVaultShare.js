@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const { BigNumber } = require('ethers');
 const { ETH } = require('../../../lib/constants').Assets;
 const { hex } = require('../utils').helpers;
-const { increaseTime } = require('../utils').time;
+const { mineNextBlock, increaseTime } = require('../../utils/evm');
 const {
   utils: { parseEther },
 } = ethers;
@@ -295,6 +295,7 @@ describe('swapETHForEnzymeVaultShare', function () {
       assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
 
       await increaseTime(TIME_BETWEEN_SWAPS);
+      await mineNextBlock();
     }
 
     {
@@ -315,6 +316,7 @@ describe('swapETHForEnzymeVaultShare', function () {
       assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
 
       await increaseTime(TIME_BETWEEN_SWAPS);
+      await mineNextBlock();
     }
 
     {
@@ -335,6 +337,7 @@ describe('swapETHForEnzymeVaultShare', function () {
       assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
 
       await increaseTime(TIME_BETWEEN_SWAPS);
+      await mineNextBlock();
     }
 
     const etherIn = minAssetAmount.div(2);

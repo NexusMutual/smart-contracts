@@ -929,7 +929,6 @@ describe('buyCover', function () {
 
     const {
       members: [coverBuyer],
-      governanceContracts: [gv1],
     } = this.accounts;
 
     const productId = 0;

@@ -2,7 +2,6 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 
 const { createStakingPool, assertCoverFields } = require('./helpers');
-const { bnEqual } = require('../utils').helpers;
 
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
@@ -226,10 +225,10 @@ describe('buyCover', function () {
     const commissionNxmBalanceAfter = await nxm.balanceOf(stakingPoolManager.address);
 
     const difference = nxmBalanceBefore.sub(nxmBalanceAfter);
-    bnEqual(difference, expectedPremium);
+    expect(difference).to.be.equal(expectedPremium);
 
     const commissionDifference = commissionNxmBalanceAfter.sub(commissionNxmBalanceBefore);
-    bnEqual(commissionDifference, expectedCommission);
+    expect(commissionDifference).to.be.equal(expectedCommission);
 
     const expectedCoverId = '0';
 
@@ -314,10 +313,10 @@ describe('buyCover', function () {
     const commissionDaiBalanceAfter = await dai.balanceOf(commissionReceiver.address);
 
     const difference = daiBalanceBefore.sub(daiBalanceAfter);
-    bnEqual(difference, expectedPremium);
+    expect(difference).to.be.equal(expectedPremium);
 
     const commissionDifference = commissionDaiBalanceAfter.sub(commissionDaiBalanceBefore);
-    bnEqual(commissionDifference, expectedCommission);
+    expect(commissionDifference).to.be.equal(expectedCommission);
 
     const expectedCoverId = '0';
 
@@ -403,10 +402,10 @@ describe('buyCover', function () {
     const commissionDaiBalanceAfter = await usdc.balanceOf(commissionReceiver.address);
 
     const difference = daiBalanceBefore.sub(daiBalanceAfter);
-    bnEqual(difference, expectedPremium);
+    expect(difference).to.be.equal(expectedPremium);
 
     const commissionDifference = commissionDaiBalanceAfter.sub(commissionDaiBalanceBefore);
-    bnEqual(commissionDifference, expectedCommission);
+    expect(commissionDifference).to.be.equal(expectedCommission);
 
     const expectedCoverId = '0';
 

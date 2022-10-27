@@ -9,13 +9,21 @@ const ProductTypeFixture = {
   gracePeriodInDays: 7,
 };
 
+const coverProductTemplate = {
+  productType: 1,
+  yieldTokenAddress: AddressZero,
+  coverAssets: 1111,
+  initialPriceRatio: 500,
+  capacityReductionRatio: 0,
+};
+
 describe('setProducts unit tests', function () {
   const initializePool = async function (cover, stakingPool, manager, poolId, productInitParams) {
     // Set products in mock cover contract
     await Promise.all(
-      productInitParams.map(p => [
-        cover.setProduct(getCoverProduct(p.initialPrice), p.productId),
-        cover.setProductType(ProductTypeFixture, p.productId),
+      productInitParams.map(({ productId, initialPrice: initialPriceRatio }) => [
+        cover.setProduct({ ...coverProductTemplate, initialPriceRatio }, productId),
+        cover.setProductType(ProductTypeFixture, productId),
       ]),
     );
     await cover.initializeStaking(stakingPool.address, manager, false, 5, 5, productInitParams, poolId);
@@ -51,16 +59,6 @@ describe('setProducts unit tests', function () {
       targetPrice: price,
     };
   };
-  // Cover.Product
-  const getCoverProduct = initialPriceRatio => {
-    return {
-      productType: 1,
-      yieldTokenAddress: AddressZero,
-      coverAssets: 1111,
-      initialPriceRatio,
-      capacityReductionRatio: 0,
-    };
-  };
   const buyCoverParams = (owner, productId, period, amount) => {
     return {
       owner,
@@ -79,7 +77,7 @@ describe('setProducts unit tests', function () {
 
   // Get product and set in cover contract
   const initProduct = async (cover, initialPriceRatio, weight, price, id) => {
-    const coverProduct = getCoverProduct(initialPriceRatio);
+    const coverProduct = { ...coverProductTemplate, initialPriceRatio };
     await cover.setProduct(coverProduct, id);
     return getNewProduct(weight, price, id);
   };

@@ -94,9 +94,8 @@ describe('setProducts unit tests', function () {
 
   it('should fail to be called by non manager', async function () {
     const { stakingPool, cover } = this;
-    const {
-      members: [manager, nonManager],
-    } = this.accounts;
+    const [manager, nonManager] = this.accounts.members;
+
     await initializePool(cover, stakingPool, manager.address, 0, []);
     const product = await initProduct(cover, 100, 100, 100, 0);
     await expect(stakingPool.connect(nonManager).setProducts([product])).to.be.revertedWith(
@@ -106,9 +105,8 @@ describe('setProducts unit tests', function () {
 
   it('should initialize products successfully', async function () {
     const { stakingPool, cover } = this;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     let i = 0;
     const initialProducts = Array.from({ length: 20 }, () => getInitialProduct(100, 100, 500, i++));
     await initializePool(cover, stakingPool, manager.address, 0, initialProducts);
@@ -119,9 +117,8 @@ describe('setProducts unit tests', function () {
 
   it('should fail to initialize too many products with full weight', async function () {
     const { stakingPool, cover } = this;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     let i = 0;
     const initialProducts = Array.from({ length: 21 }, () => getInitialProduct(100, 100, 500, i++));
     await expect(initializePool(cover, stakingPool, manager.address, 0, initialProducts)).to.be.revertedWith(
@@ -131,9 +128,8 @@ describe('setProducts unit tests', function () {
 
   it('should set products and store values correctly', async function () {
     const { stakingPool, cover } = this;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     await initializePool(cover, stakingPool, manager.address, 0, []);
     const product = await initProduct(cover, 50, 100, 100, 0);
     await stakingPool.connect(manager).setProducts([product]);
@@ -156,9 +152,8 @@ describe('setProducts unit tests', function () {
 
   it('should revert if adding a product without setting the targetPrice', async function () {
     const { stakingPool, cover } = this;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     await initializePool(cover, stakingPool, manager.address, 0, []);
     const product = await initProduct(cover, 50, 100, 100, 0);
     product.setTargetPrice = false;
@@ -169,9 +164,8 @@ describe('setProducts unit tests', function () {
 
   it('should add and remove products in same tx', async function () {
     const { stakingPool, cover } = this;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     const initialPriceRatio = 1000;
     await initializePool(cover, stakingPool, manager.address, 0, []);
     const products = [
@@ -195,9 +189,8 @@ describe('setProducts unit tests', function () {
 
   it('should add maximum products with full weight (20)', async function () {
     const { stakingPool, cover } = this;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     await initializePool(cover, stakingPool, manager.address, 0, []);
     let i = 0;
     const products = await Promise.all(Array.from({ length: 20 }, () => initProduct(cover, 999, 100, 100, i++)));
@@ -209,9 +202,8 @@ describe('setProducts unit tests', function () {
 
   it('should fail to add weights beyond 20x', async function () {
     const { stakingPool, cover } = this;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     await initializePool(cover, stakingPool, manager.address, 0, []);
     let i = 0;
     const products = await Promise.all(Array.from({ length: 20 }, () => initProduct(cover, 1, 100, 100, i++)));
@@ -230,9 +222,8 @@ describe('setProducts unit tests', function () {
   it('should fail to initialize product with targetWeight greater that 1', async function () {
     const { stakingPool, cover } = this;
     const { GLOBAL_MIN_PRICE_RATIO } = this.config;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     const initialProduct = getInitialProduct(101, GLOBAL_MIN_PRICE_RATIO, 1, 1);
     await expect(initializePool(cover, stakingPool, manager.address, 0, [initialProduct])).to.be.revertedWith(
       'StakingPool: Cannot set weight beyond 1',
@@ -241,9 +232,8 @@ describe('setProducts unit tests', function () {
 
   it('should fail to make product weight higher than 1', async function () {
     const { stakingPool, cover } = this;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     await initializePool(cover, stakingPool, manager.address, 0, []);
     await expect(
       stakingPool.connect(manager).setProducts([await initProduct(cover, 1, 101, 500, 0)]),
@@ -252,9 +242,8 @@ describe('setProducts unit tests', function () {
 
   it('should edit weights, and skip price', async function () {
     const { stakingPool, cover } = this;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     await initializePool(cover, stakingPool, manager.address, 0, []);
     const product = await initProduct(cover, 1, 100, 500, 0);
     await stakingPool.connect(manager).setProducts([product]);
@@ -268,9 +257,8 @@ describe('setProducts unit tests', function () {
 
   it('should not be able to change targetWeight without recalculating effectiveWeight ', async function () {
     const { stakingPool, cover } = this;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     await initializePool(cover, stakingPool, manager.address, 0, []);
     const product = await initProduct(cover, 1, 0, 500, 0);
     await stakingPool.connect(manager).setProducts([product]);
@@ -284,9 +272,8 @@ describe('setProducts unit tests', function () {
 
   it('should not use param.targetWeight if not explicityly setting targetWeight', async function () {
     const { stakingPool, cover } = this;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     await initializePool(cover, stakingPool, manager.address, 0, []);
     const products = [await initProduct(cover, 1, 0, 200, 0), await initProduct(cover, 1, 100, 200, 1)];
     await stakingPool.connect(manager).setProducts(products);
@@ -306,10 +293,8 @@ describe('setProducts unit tests', function () {
   it('should edit prices and skip weights', async function () {
     const { stakingPool, cover } = this;
     const { GLOBAL_MIN_PRICE_RATIO } = this.config;
-    const {
-      members: [manager],
-    } = this.accounts;
-    const { GLOBAL_MIN_PRICE_RATIO } = this.config;
+    const [manager] = this.accounts.members;
+
     await initializePool(cover, stakingPool, manager.address, 0, []);
     const product = await initProduct(cover, 1, 80, 500, 0);
     product.setTargetWeight = false;
@@ -322,9 +307,8 @@ describe('setProducts unit tests', function () {
 
   it('should fail with targetPrice too high', async function () {
     const { stakingPool, cover } = this;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     await initializePool(cover, stakingPool, manager.address, 0, []);
     const product = await initProduct(cover, 1, 80, 10001, 0);
     await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith(
@@ -334,9 +318,8 @@ describe('setProducts unit tests', function () {
 
   it('should fail to initialize products with targetPrice below global minimum', async function () {
     const { stakingPool, cover } = this;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     const product = getInitialProduct(100, 1, 10, 0);
     await expect(initializePool(cover, stakingPool, manager.address, 0, [product])).to.be.revertedWith(
       'CoverUtilsLib: Target price below GLOBAL_MIN_PRICE_RATIO',
@@ -346,9 +329,8 @@ describe('setProducts unit tests', function () {
   it('should fail with targetPrice below global min price ratio', async function () {
     const { stakingPool, cover } = this;
     const { GLOBAL_MIN_PRICE_RATIO } = this.config;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     await initializePool(cover, stakingPool, manager.address, 0, []);
     const product = await initProduct(cover, 1, 80, GLOBAL_MIN_PRICE_RATIO - 1, 0);
     await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith(
@@ -358,9 +340,8 @@ describe('setProducts unit tests', function () {
 
   it('should fail to add non-existing product', async function () {
     const { stakingPool, cover } = this;
-    const {
-      members: [manager],
-    } = this.accounts;
+    const [manager] = this.accounts.members;
+
     await initializePool(cover, stakingPool, manager.address, 0, []);
     const product = getNewProduct(100, 100, 10);
     await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith(
@@ -370,9 +351,8 @@ describe('setProducts unit tests', function () {
 
   it('should fail to change product weights when fully allocated', async function () {
     const { stakingPool, cover, nxm, tokenController } = this;
-    const {
-      members: [manager, staker, coverBuyer],
-    } = this.accounts;
+    const [manager, staker, coverBuyer] = this.accounts.members;
+
     const amount = parseEther('1');
     await initializePool(cover, stakingPool, manager.address, 0, []);
 
@@ -407,9 +387,7 @@ describe('setProducts unit tests', function () {
 
   it('should fail to change products when fully allocated after initializing', async function () {
     const { stakingPool, cover, nxm, tokenController } = this;
-    const {
-      members: [manager, staker, coverBuyer],
-    } = this.accounts;
+    const [manager, staker, coverBuyer] = this.accounts.members;
     const amount = parseEther('1');
 
     let i = 0;

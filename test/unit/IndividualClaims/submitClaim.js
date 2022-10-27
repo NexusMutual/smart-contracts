@@ -2,7 +2,8 @@ const { ethers } = require('hardhat');
 const { assert, expect } = require('chai');
 
 const { submitClaim, ASSET, getCoverSegment } = require('./helpers');
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
+const { mineNextBlock, setNextBlockTime, setEtherBalance } = require('../../utils/evm');
+const { hex } = require('../../../lib/helpers');
 
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
@@ -608,5 +609,62 @@ describe('submitClaim', function () {
     expect(
       await individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit }),
     ).to.emit(individualClaims, 'ClaimSubmitted');
+  });
+
+  it('should revert if ETH refund fails', async function () {
+    const { individualClaims, memberRoles, cover, nxm: fallbackWillFailContract } = this.contracts;
+    const coverAsset = ASSET.ETH;
+    const segment = await getCoverSegment();
+
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, coverAsset);
+
+    const fallbackWillFailSigner = await ethers.getImpersonatedSigner(fallbackWillFailContract.address);
+
+    await memberRoles.setRole(fallbackWillFailSigner.address, 2);
+
+    await setEtherBalance(fallbackWillFailSigner.address, ethers.utils.parseEther('1'));
+
+    await cover.createMockCover(
+      fallbackWillFailSigner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    await expect(
+      individualClaims.connect(fallbackWillFailSigner).submitClaim(0, 0, segment.amount, '', {
+        value: deposit.mul('2'),
+        gasPrice: 0,
+      }),
+    ).to.be.revertedWith('Assessment deposit excess refund failed');
+  });
+
+  it('should revert if assessment deposit to pool fails', async function () {
+    const { individualClaims, cover, master } = this.contracts;
+    const coverAsset = ASSET.ETH;
+    const segment = await getCoverSegment();
+    const [coverOwner] = this.accounts.members;
+
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, coverAsset);
+
+    const CLMockPoolEtherRejecter = await ethers.getContractFactory('CLMockPoolEtherRejecter');
+
+    const fallbackWillFailContractPool = await CLMockPoolEtherRejecter.deploy();
+    await master.setLatestAddress(hex('P1'), fallbackWillFailContractPool.address);
+    await individualClaims.changeDependentContractAddress();
+
+    await cover.createMockCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    await expect(
+      individualClaims.connect(coverOwner).submitClaim(0, 0, segment.amount, '', {
+        value: deposit,
+        gasPrice: 0,
+      }),
+    ).to.be.revertedWith('Assessment deposit transfer to pool failed');
   });
 });

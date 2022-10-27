@@ -45,8 +45,8 @@ contract CLMockPool {
     }
   }
 
-  fallback() external payable {}
+  fallback() external payable virtual {}
 
-  receive() external payable {}
+  receive() external payable virtual {}
 
 }

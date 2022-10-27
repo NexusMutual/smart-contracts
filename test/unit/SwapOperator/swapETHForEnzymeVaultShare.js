@@ -209,7 +209,7 @@ describe('swapETHForEnzymeVaultShare', function () {
     const etherSent = etherBefore.sub(etherAfter);
     const tokensReceived = tokensAfter.sub(tokensBefore);
 
-    assert.strictEqual(etherSent.toString(), etherIn.toString());
+    expect(etherSent).to.be.equal(etherIn);
     assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
 
     await expect(swapTx).to.emit(swapOperator, 'Swapped').withArgs(ETH, enzymeV4Vault.address, etherIn, tokensReceived);
@@ -249,7 +249,7 @@ describe('swapETHForEnzymeVaultShare', function () {
 
     const etherSent = etherBefore.sub(etherAfter);
     const tokensReceived = tokensAfter.sub(tokensBefore);
-    assert.strictEqual(etherSent.toString(), etherIn.toString());
+    expect(etherSent).to.be.equal(etherIn);
     assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
   });
 
@@ -291,7 +291,7 @@ describe('swapETHForEnzymeVaultShare', function () {
       const etherSent = etherBefore.sub(etherAfter);
       const tokensReceived = tokensAfter.sub(tokensBefore);
 
-      assert.strictEqual(etherSent.toString(), etherIn.toString());
+      expect(etherSent).to.be.equal(etherIn);
       assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
 
       await increaseTime(TIME_BETWEEN_SWAPS);
@@ -312,7 +312,7 @@ describe('swapETHForEnzymeVaultShare', function () {
       const etherSent = etherBefore.sub(etherAfter);
       const tokensReceived = tokensAfter.sub(tokensBefore);
 
-      assert.strictEqual(etherSent.toString(), etherIn.toString());
+      expect(etherSent).to.be.equal(etherIn);
       assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
 
       await increaseTime(TIME_BETWEEN_SWAPS);
@@ -333,7 +333,7 @@ describe('swapETHForEnzymeVaultShare', function () {
       const etherSent = etherBefore.sub(etherAfter);
       const tokensReceived = tokensAfter.sub(tokensBefore);
 
-      assert.strictEqual(etherSent.toString(), etherIn.toString());
+      expect(etherSent).to.be.equal(etherIn);
       assert(tokensReceived.gte(minTokenOut), 'tokensReceived < minTokenOut');
 
       await increaseTime(TIME_BETWEEN_SWAPS);

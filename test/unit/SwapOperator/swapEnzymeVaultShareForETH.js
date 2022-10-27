@@ -138,7 +138,7 @@ describe('swapEnzymeVaultShareForETH', function () {
 
     await expect(swapTx).to.emit(swapOperator, 'Swapped').withArgs(enzymeV4Vault.address, ETH, sharesIn, tokensSent);
 
-    assert.strictEqual(etherReceived.toString(), sharesIn.toString());
+    expect(etherReceived).to.be.equal(sharesIn);
     assert(tokensSent.gte(minTokenOut), 'tokensReceived < minTokenOut');
   });
 

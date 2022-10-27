@@ -70,8 +70,6 @@ describe('submitClaim', function () {
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    const expectedMinCoveredAmount = amount;
-
     await ybETH.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('100'));
 
     const tx = await cover.connect(coverBuyer1).buyCover(

@@ -1253,8 +1253,9 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function setProducts(ProductParams[] memory params) external onlyManager {
     uint[] memory productIds = new uint[](params.length);
+    uint numProducts = params.length;
 
-    for (uint i = 0; i < params.length; i++) {
+    for (uint i = 0; i < numProducts; i++) {
       productIds[i] = params[i].productId;
     }
 
@@ -1268,17 +1269,17 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _totalTargetWeight = totalTargetWeight;
     uint _totalEffectiveWeight = totalEffectiveWeight;
 
-    for (uint i = 0; i < params.length; i++) {
+    for (uint i = 0; i < numProducts; i++) {
       ProductParams memory _param = params[i];
       StakedProduct memory _product = products[_param.productId];
 
       if (_product.nextPriceUpdateTime == 0) {
         _product.nextPrice = initialPriceRatios[i].toUint96();
         _product.nextPriceUpdateTime = uint32(block.timestamp);
-        require(_param.setPrice, "StakingPool: Must set price for new products");
+        require(_param.setTargetPrice, "StakingPool: Must set price for new products");
       }
 
-      if (_param.setPrice) {
+      if (_param.setTargetPrice) {
         validateTargetPrice(_param.targetPrice, globalMinPriceRatio);
         _product.targetPrice = _param.targetPrice;
       }
@@ -1310,18 +1311,20 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   function _setInitialProducts(ProductInitializationParams[] memory params, uint globalMinPriceRatio) internal {
-
     uint32 _totalTargetWeight = totalTargetWeight;
+
     for (uint i = 0; i < params.length; i++) {
       ProductInitializationParams memory param = params[i];
       StakedProduct storage _product = products[param.productId];
+      validateTargetPrice(param.targetPrice, globalMinPriceRatio);
+      require(param.weight <= WEIGHT_DENOMINATOR, "StakingPool: Cannot set weight beyond 1");
       _product.nextPrice = param.initialPrice;
       _product.nextPriceUpdateTime = uint32(block.timestamp);
-      validateTargetPrice(param.targetPrice, globalMinPriceRatio);
       _product.targetPrice = param.targetPrice;
       _product.targetWeight = param.weight;
       _totalTargetWeight += param.weight;
     }
+
     require(_totalTargetWeight <= MAX_TOTAL_WEIGHT, "StakingPool: Total max target weight exceeded");
     totalTargetWeight = _totalTargetWeight;
     totalEffectiveWeight = totalTargetWeight;

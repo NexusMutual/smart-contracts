@@ -33,10 +33,10 @@ struct DepositRequest {
 
 struct ProductParams {
   uint productId;
-  bool setTargetWeight;
   bool recalculateEffectiveWeight;
+  bool setTargetWeight;
   uint8 targetWeight;
-  bool setPrice;
+  bool setTargetPrice;
   uint96 targetPrice;
 }
 

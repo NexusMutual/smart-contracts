@@ -50,7 +50,7 @@ describe('setProducts unit tests', function () {
       setTargetWeight: true,
       recalculateEffectiveWeight: true,
       targetWeight: weight,
-      setPrice: true,
+      setTargetPrice: true,
       targetPrice: price,
     };
   };
@@ -151,7 +151,7 @@ describe('setProducts unit tests', function () {
     } = this.accounts;
     await initializePool(cover, stakingPool, manager.address, 0, []);
     const product = await initProduct(cover, 50, 100, 100, 0);
-    product.setPrice = false;
+    product.setTargetPrice = false;
     await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith(
       'StakingPool: Must set price for new products',
     );
@@ -217,6 +217,17 @@ describe('setProducts unit tests', function () {
     expect(product0.nextPrice).to.be.equal(1);
   });
 
+  it('should fail to initialize product with targetWeight greater that 1', async function () {
+    const { stakingPool, cover } = this;
+    const {
+      members: [manager],
+    } = this.accounts;
+    const initialProduct = getInitialProduct(101, GLOBAL_MIN_PRICE_RATIO, 1, 1);
+    await expect(initializePool(cover, stakingPool, manager.address, 0, [initialProduct])).to.be.revertedWith(
+      'StakingPool: Cannot set weight beyond 1',
+    );
+  });
+
   it('should fail to make product weight higher than 1', async function () {
     const { stakingPool, cover } = this;
     const {
@@ -237,7 +248,7 @@ describe('setProducts unit tests', function () {
     const product = await initProduct(cover, 1, 100, 500, 0);
     await stakingPool.connect(manager).setProducts([product]);
     verifyProduct(await stakingPool.products(0), 100, 500, 1);
-    product.setPrice = false;
+    product.setTargetPrice = false;
     product.targetPrice = 0;
     product.targetWeight = 50;
     await stakingPool.connect(manager).setProducts([product]);
@@ -396,7 +407,7 @@ describe('setProducts unit tests', function () {
     const request = await depositRequest(stakingPool, amount, 0, manager.address);
     await stakingPool.connect(staker).depositTo([request]);
 
-    const ratio = await cover.getCapacityRatios([0]);
+    const ratio = await cover.getPriceAndCapacityRatios([0]);
     const { totalCapacity } = await stakingPool.getTotalCapacitiesForActiveTranches(
       0,
       ratio._globalCapacityRatio,

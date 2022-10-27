@@ -645,7 +645,7 @@ describe('placeOrder', function () {
 
       await swapOperator.placeOrder(newContractOrder, newOrderUID);
 
-      expect((await pool.swapValue()).toString()).to.eq(parseEther('2.0002')); // (10000 + 1) / 5000
+      expect(await pool.swapValue()).to.be.equal(parseEther('2.0002')); // (10000 + 1) / 5000
     });
   });
 

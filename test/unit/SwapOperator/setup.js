@@ -1,4 +1,5 @@
 const { ethers } = require('hardhat');
+const { getAccounts } = require('../../utils/accounts');
 const { hex } = require('../utils').helpers;
 
 const {
@@ -13,28 +14,36 @@ const instances = {};
 async function setup() {
   const [owner, governance] = await ethers.getSigners();
 
+  const signers = await ethers.getSigners();
+  let accounts = getAccounts(signers);
+
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const Pool = await ethers.getContractFactory('Pool');
   const MCR = await ethers.getContractFactory('MCR');
-  const CowSwapOperator = await ethers.getContractFactory('CowSwapOperator');
-  const CSMockQuotationData = await ethers.getContractFactory('CSMockQuotationData');
+  const SwapOperator = await ethers.getContractFactory('SwapOperator');
+  const CSMockQuotationData = await ethers.getContractFactory('SOMockQuotationData');
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
   const ERC20CustomDecimalsMock = await ethers.getContractFactory('ERC20CustomDecimalsMock');
-  const CSMockWeth = await ethers.getContractFactory('CSMockWeth');
-  const CSMockSettlement = await ethers.getContractFactory('CSMockSettlement');
-  const CSMockVaultRelayer = await ethers.getContractFactory('CSMockVaultRelayer');
+  const SOMockWeth = await ethers.getContractFactory('SOMockWeth');
+  const SOMockSettlement = await ethers.getContractFactory('SOMockSettlement');
+  const SOMockVaultRelayer = await ethers.getContractFactory('SOMockVaultRelayer');
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+  const SOMockEnzymeV4Comptroller = await ethers.getContractFactory('SOMockEnzymeV4Comptroller');
+  const SOMockEnzymeFundValueCalculatorRouter = await ethers.getContractFactory(
+    'SOMockEnzymeFundValueCalculatorRouter',
+  );
+  const SOMockEnzymeV4Vault = await ethers.getContractFactory('SOMockEnzymeV4Vault');
 
   // Deploy WETH + ERC20 test tokens
-  const weth = await CSMockWeth.deploy();
+  const weth = await SOMockWeth.deploy();
   const dai = await ERC20Mock.deploy();
   const usdc = await ERC20CustomDecimalsMock.deploy(6);
   const stEth = await ERC20Mock.deploy();
 
   // Deploy CoW Protocol mocks
-  const cowVaultRelayer = await CSMockVaultRelayer.deploy();
-  const cowSettlement = await CSMockSettlement.deploy(cowVaultRelayer.address);
+  const cowVaultRelayer = await SOMockVaultRelayer.deploy();
+  const cowSettlement = await SOMockSettlement.deploy(cowVaultRelayer.address);
 
   // Deploy Master, QD and MCR
   const master = await MasterMock.deploy();
@@ -49,11 +58,36 @@ async function setup() {
   const usdcAggregator = await ChainlinkAggregatorMock.deploy();
   await usdcAggregator.setLatestAnswer(0.0002 * 1e18); // 1 usdc = 0.0002 eth, 1 eth = 5000 dai
 
+  const enzymeV4VaultAggregator = await ChainlinkAggregatorMock.deploy();
+  await enzymeV4VaultAggregator.setLatestAnswer(parseEther('1')); // 1 ETH = 1 share
+
+  /* deploy enzyme mocks */
+  const enzymeV4Comptroller = await SOMockEnzymeV4Comptroller.deploy(weth.address);
+
+  /* move weth to Comptroller */
+
+  const comtrollerWethReserves = parseEther('10000');
+  await weth.deposit({
+    value: comtrollerWethReserves,
+  });
+  await weth.transfer(enzymeV4Comptroller.address, comtrollerWethReserves);
+
+  const enzymeV4Vault = await SOMockEnzymeV4Vault.deploy(
+    enzymeV4Comptroller.address,
+    'Enzyme V4 Vault Share ETH',
+    'EVSE',
+    18,
+  );
+
+  await enzymeV4Comptroller.setVault(enzymeV4Vault.address);
+
+  const enzymeFundValueCalculatorRouter = await SOMockEnzymeFundValueCalculatorRouter.deploy(weth.address);
+
   // Deploy PriceFeedOracle
   const priceFeedOracle = await PriceFeedOracle.deploy(
-    [dai.address, stEth.address, usdc.address],
-    [daiAggregator.address, stethAggregator.address, usdcAggregator.address],
-    [18, 18, 6],
+    [dai.address, stEth.address, usdc.address, enzymeV4Vault.address],
+    [daiAggregator.address, stethAggregator.address, usdcAggregator.address, enzymeV4VaultAggregator.address],
+    [18, 18, 6, 18],
   );
 
   // Deploy Pool
@@ -76,16 +110,23 @@ async function setup() {
 
   await pool.connect(governance).addAsset(usdc.address, 6, 0, parseEther('1000'), 0, true);
 
-  // Deploy CowSwapOperator
-  const swapOperator = await CowSwapOperator.deploy(
+  // Deploy SwapOperator
+  const swapOperator = await SwapOperator.deploy(
     cowSettlement.address,
     await owner.getAddress(),
     master.address,
     weth.address,
+    enzymeV4Vault.address,
+    enzymeFundValueCalculatorRouter.address,
   );
 
   // Setup pool's swap operator
   await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), swapOperator.address);
+
+  accounts = {
+    ...accounts,
+    governanceAccounts: [governance],
+  };
 
   Object.assign(instances, {
     dai,
@@ -101,6 +142,25 @@ async function setup() {
     cowSettlement,
     cowVaultRelayer,
   });
+
+  this.accounts = accounts;
+  this.contracts = {
+    dai,
+    weth,
+    stEth,
+    usdc,
+    master,
+    pool,
+    mcr,
+    swapOperator,
+    priceFeedOracle,
+    daiAggregator,
+    cowSettlement,
+    cowVaultRelayer,
+    enzymeV4Vault,
+    enzymeV4Comptroller,
+    enzymeFundValueCalculatorRouter,
+  };
 }
 
 // helper function to alter a given value

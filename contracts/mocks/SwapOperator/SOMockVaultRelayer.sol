@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 import '@openzeppelin/contracts-v4/token/ERC20/IERC20.sol';
 
-contract CSMockVaultRelayer {
+contract SOMockVaultRelayer {
   constructor() {}
 
   function transfer(

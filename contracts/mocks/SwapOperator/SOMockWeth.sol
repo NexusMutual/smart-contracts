@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 
 import '@openzeppelin/contracts-v4/token/ERC20/ERC20.sol';
 
-contract CSMockWeth is ERC20 {
+contract SOMockWeth is ERC20 {
   constructor() ERC20('WETH', 'WETH') {}
 
   function deposit() public payable {

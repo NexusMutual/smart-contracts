@@ -29,7 +29,7 @@ async function setup() {
   const Pool = await ethers.getContractFactory('Pool');
   const QuotationData = await ethers.getContractFactory('LegacyQuotationData');
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
-  const SwapOperator = await ethers.getContractFactory('CowSwapOperator');
+  const SwapOperator = await ethers.getContractFactory('SwapOperator');
   const CoverNFT = await ethers.getContractFactory('CoverNFT');
   // const StakingPool = await ethers.getContractFactory('StakingPool');
 
@@ -40,8 +40,8 @@ async function setup() {
 
   // external
   const WETH9 = await ethers.getContractFactory('WETH9');
-  const CSMockSettlement = await ethers.getContractFactory('CSMockSettlement');
-  const CSMockVaultRelayer = await ethers.getContractFactory('CSMockVaultRelayer');
+  const SOMockSettlement = await ethers.getContractFactory('SOMockSettlement');
+  const SOMockVaultRelayer = await ethers.getContractFactory('SOMockVaultRelayer');
 
   const deployProxy = async (contract, deployParams = [], options = {}) => {
     const contractFactory = await ethers.getContractFactory(contract, options);
@@ -149,13 +149,15 @@ async function setup() {
 
   const p1 = await Pool.deploy(master.address, priceFeedOracle.address, AddressZero, dai.address, stETH.address);
 
-  const cowVaultRelayer = await CSMockVaultRelayer.deploy();
-  const cowSettlement = await CSMockSettlement.deploy(cowVaultRelayer.address);
+  const cowVaultRelayer = await SOMockVaultRelayer.deploy();
+  const cowSettlement = await SOMockSettlement.deploy(cowVaultRelayer.address);
   const swapOperator = await SwapOperator.deploy(
     cowSettlement.address,
     owner, // _swapController,
     master.address,
     weth.address,
+    AddressZero,
+    AddressZero,
   );
 
   const productsV1 = await ProductsV1.deploy();

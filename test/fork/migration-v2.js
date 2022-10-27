@@ -244,7 +244,7 @@ describe('v2 migration', function () {
   });
 
   it('deploy SwapOperator', async function () {
-    const SwapOperator = await ethers.getContractFactory('CowSwapOperator');
+    const SwapOperator = await ethers.getContractFactory('SwapOperator');
     const swapOperator = await SwapOperator.deploy(
       COWSWAP_SETTLEMENT, // _cowSettlement
       SWAP_CONTROLLER, // _swapController

@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const setup = require('./setup');
 
-describe('CowSwap unit tests', function () {
+describe('SwapOperator unit tests', function () {
   before(setup);
 
   beforeEach(async function () {
@@ -15,4 +15,7 @@ describe('CowSwap unit tests', function () {
   // include your unit tests here
   require('./placeOrder');
   require('./closeOrder');
+  require('./swapEnzymeVaultShareForETH');
+  require('./swapETHForEnzymeVaultShare');
+  require('./recoverAsset');
 });

@@ -5,43 +5,53 @@ const { createStakingPool, assertCoverFields } = require('./helpers');
 
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
-const { BigNumber } = ethers;
 const gracePeriodInDays = 120;
 
+const buyCoverFixture = {
+  productId: 0,
+  coverAsset: 0, // ETH
+  coverId: 0,
+  period: 3600 * 24 * 30, // 30 days
+  amount: parseEther('1000'),
+  targetPriceRatio: 260,
+  priceDenominator: 10000,
+  activeCover: parseEther('8000'),
+  capacity: parseEther('10000'),
+  capacityFactor: 10000,
+  expectedPremium: parseEther('1000').mul(260).div(10000), // amount * targetPriceRatio / priceDenominator
+};
+
 describe('buyCover', function () {
-  it('should purchase new cover using 1 staking pool', async function () {
+  beforeEach(async function () {
     const { cover } = this;
 
     const {
       governanceContracts: [gv1],
-      members: [coverBuyer, stakingPoolManager],
+      members: [stakingPoolManager],
     } = this.accounts;
 
-    const productId = 0;
-    const coverAsset = 0; // ETH
-    const period = 3600 * 24 * 364; // 30 days
-
-    const amount = parseEther('1000');
-    const targetPriceRatio = '260';
-    const priceDenominator = '10000';
-    const activeCover = parseEther('8000');
-    const capacity = parseEther('10000');
-    const capacityFactor = '10000';
-
-    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
+    await cover.connect(gv1).updateUintParameters([0], [buyCoverFixture.capacityFactor]);
 
     await createStakingPool(
       cover,
-      productId,
-      capacity,
-      targetPriceRatio,
-      activeCover,
+      buyCoverFixture.productId,
+      buyCoverFixture.capacity,
+      buyCoverFixture.targetPriceRatio,
+      buyCoverFixture.activeCover,
       stakingPoolManager,
       stakingPoolManager,
-      targetPriceRatio,
+      buyCoverFixture.targetPriceRatio,
     );
+  });
 
-    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+  it('should purchase new cover using 1 staking pool', async function () {
+    const { cover } = this;
+
+    const {
+      members: [coverBuyer],
+    } = this.accounts;
+
+    const { amount, targetPriceRatio, productId, coverAsset, period, expectedPremium, coverId } = buyCoverFixture;
 
     const tx = await cover.connect(coverBuyer).buyCover(
       {
@@ -64,9 +74,7 @@ describe('buyCover', function () {
     );
     await tx.wait();
 
-    const expectedCoverId = '0';
-
-    await assertCoverFields(cover, expectedCoverId, {
+    await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
       period,
@@ -80,35 +88,11 @@ describe('buyCover', function () {
     const { cover } = this;
 
     const {
-      governanceContracts: [gv1],
       members: [coverBuyer, stakingPoolManager],
     } = this.accounts;
 
-    const productId = 0;
-    const coverAsset = 0; // ETH
-    const period = 3600 * 24 * 28; // 30 days
-
-    const amount = parseEther('1000');
-
-    const targetPriceRatio = '260';
-    const priceDenominator = '10000';
-    const activeCover = parseEther('8000');
-    const capacity = parseEther('10000');
-
-    const capacityFactor = '10000';
-
-    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
-
-    await createStakingPool(
-      cover,
-      productId,
-      capacity,
-      targetPriceRatio,
-      activeCover,
-      stakingPoolManager,
-      stakingPoolManager,
-      targetPriceRatio,
-    );
+    const { amount, targetPriceRatio, productId, coverAsset, period, expectedPremium, coverId, capacity, activeCover } =
+      buyCoverFixture;
 
     // create a 2nd pool
     await createStakingPool(
@@ -121,8 +105,6 @@ describe('buyCover', function () {
       stakingPoolManager,
       targetPriceRatio,
     );
-
-    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -147,9 +129,7 @@ describe('buyCover', function () {
       },
     );
 
-    const expectedCoverId = '0';
-
-    await assertCoverFields(cover, expectedCoverId, {
+    await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
       period,
@@ -164,29 +144,8 @@ describe('buyCover', function () {
 
     const [coverBuyer, stakingPoolManager] = this.accounts.members;
 
-    const productId = 0;
-    const coverAsset = 0; // ETH
-    const period = 3600 * 24 * 30; // 30 days
-
-    const amount = parseEther('1000');
-
-    const targetPriceRatio = '260';
-    const priceDenominator = '10000';
-    const activeCover = parseEther('8000');
-    const capacity = parseEther('10000');
-
+    const { amount, targetPriceRatio, productId, coverAsset, period, priceDenominator, coverId } = buyCoverFixture;
     const commissionRatio = '500'; // 5%
-
-    await createStakingPool(
-      cover,
-      productId,
-      capacity,
-      targetPriceRatio,
-      activeCover,
-      stakingPoolManager,
-      stakingPoolManager,
-      targetPriceRatio,
-    );
 
     const expectedBasePremium = amount
       .mul(targetPriceRatio)
@@ -230,9 +189,7 @@ describe('buyCover', function () {
     const commissionDifference = commissionNxmBalanceAfter.sub(commissionNxmBalanceBefore);
     expect(commissionDifference).to.be.equal(expectedCommission);
 
-    const expectedCoverId = '0';
-
-    await assertCoverFields(cover, expectedCoverId, {
+    await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
       period,
@@ -246,39 +203,21 @@ describe('buyCover', function () {
     const { cover, dai } = this;
 
     const {
-      members: [coverBuyer, stakingPoolManager],
+      members: [coverBuyer],
       generalPurpose: [commissionReceiver],
     } = this.accounts;
 
-    const productId = 0;
     const coverAsset = 1; // DAI
-    const period = 3600 * 24 * 30; // 30 days
 
-    const amount = parseEther('1000');
-
-    const targetPriceRatio = '260';
-    const priceDenominator = '10000';
-    const activeCover = parseEther('8000');
-    const capacity = parseEther('10000');
-
+    const { amount, targetPriceRatio, productId, period, priceDenominator, coverId } = buyCoverFixture;
     const commissionRatio = '500'; // 5%
-
-    await createStakingPool(
-      cover,
-      productId,
-      capacity,
-      targetPriceRatio,
-      activeCover,
-      stakingPoolManager,
-      stakingPoolManager,
-      targetPriceRatio,
-    );
 
     const expectedBasePremium = amount
       .mul(targetPriceRatio)
       .div(priceDenominator)
       .mul(period)
       .div(3600 * 24 * 365);
+
     const expectedCommission = expectedBasePremium.mul(commissionRatio).div(10000);
     const expectedPremium = expectedBasePremium.add(expectedCommission);
 
@@ -318,9 +257,7 @@ describe('buyCover', function () {
     const commissionDifference = commissionDaiBalanceAfter.sub(commissionDaiBalanceBefore);
     expect(commissionDifference).to.be.equal(expectedCommission);
 
-    const expectedCoverId = '0';
-
-    await assertCoverFields(cover, expectedCoverId, {
+    await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
       period,
@@ -334,33 +271,13 @@ describe('buyCover', function () {
     const { cover, usdc } = this;
 
     const {
-      members: [coverBuyer, stakingPoolManager],
+      members: [coverBuyer],
       generalPurpose: [commissionReceiver],
     } = this.accounts;
 
-    const productId = 0;
     const coverAsset = 2; // USDC
-    const period = 3600 * 24 * 30; // 30 days
-
-    const amount = BigNumber.from(1000e6); // 6 decimals
-
-    const targetPriceRatio = '260';
-    const priceDenominator = '10000';
-    const activeCover = parseEther('8000');
-    const capacity = parseEther('10000');
-
+    const { amount, targetPriceRatio, productId, period, priceDenominator, coverId } = buyCoverFixture;
     const commissionRatio = '500'; // 5%
-
-    await createStakingPool(
-      cover,
-      productId,
-      capacity,
-      targetPriceRatio,
-      activeCover,
-      stakingPoolManager,
-      stakingPoolManager,
-      targetPriceRatio,
-    );
 
     const expectedBasePremium = amount
       .mul(targetPriceRatio)
@@ -407,9 +324,7 @@ describe('buyCover', function () {
     const commissionDifference = commissionDaiBalanceAfter.sub(commissionDaiBalanceBefore);
     expect(commissionDifference).to.be.equal(expectedCommission);
 
-    const expectedCoverId = '0';
-
-    await assertCoverFields(cover, expectedCoverId, {
+    await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
       period,
@@ -427,10 +342,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const productId = 1337;
-    const coverAsset = 0; // ETH
-    const period = 3600 * 24 * 30; // 30 days
-
-    const amount = parseEther('1000');
+    const { amount, coverAsset, period } = buyCoverFixture;
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -462,11 +374,8 @@ describe('buyCover', function () {
       members: [coverBuyer],
     } = this.accounts;
 
-    const productId = 0;
     const coverAsset = 10; // not ETH nor DAI nor USDC
-    const period = 3600 * 24 * 30; // 30 days
-
-    const amount = parseEther('1000');
+    const { amount, productId, period } = buyCoverFixture;
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -498,11 +407,9 @@ describe('buyCover', function () {
       members: [coverBuyer],
     } = this.accounts;
 
-    const productId = 0;
-    const coverAsset = 0; // ETH
     const period = 3600 * 24 * 27; // 27 days
 
-    const amount = parseEther('1000');
+    const { amount, productId, coverAsset } = buyCoverFixture;
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -534,11 +441,8 @@ describe('buyCover', function () {
       members: [coverBuyer],
     } = this.accounts;
 
-    const productId = 0;
-    const coverAsset = 0; // ETH
     const period = 3600 * 24 * 366;
-
-    const amount = parseEther('1000');
+    const { amount, productId, coverAsset } = buyCoverFixture;
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -570,11 +474,7 @@ describe('buyCover', function () {
       members: [coverBuyer],
     } = this.accounts;
 
-    const productId = 0;
-    const coverAsset = 0; // ETH
-    const period = 3600 * 24 * 30; // 30 days
-
-    const amount = parseEther('1000');
+    const { amount, productId, coverAsset, period } = buyCoverFixture;
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -601,31 +501,10 @@ describe('buyCover', function () {
 
   it('should revert when cover amount is 0', async function () {
     const { cover } = this;
-    const [coverBuyer, stakingPoolManager] = this.accounts.members;
+    const [coverBuyer] = this.accounts.members;
 
-    const productId = 0;
-    const coverAsset = 0; // ETH
-    const period = 3600 * 24 * 364; // 30 days
-
-    const amount = BigNumber.from('0');
-
-    const targetPriceRatio = '260';
-    const priceDenominator = '10000';
-    const activeCover = parseEther('8000');
-    const capacity = parseEther('10000');
-
-    await createStakingPool(
-      cover,
-      productId,
-      capacity,
-      targetPriceRatio,
-      activeCover,
-      stakingPoolManager,
-      stakingPoolManager,
-      targetPriceRatio,
-    );
-
-    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const amount = 0;
+    const { productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -654,39 +533,11 @@ describe('buyCover', function () {
     const { cover } = this;
 
     const {
-      governanceContracts: [gv1],
       members: [member1],
-      members: [coverBuyer1, stakingPoolManager],
+      members: [coverBuyer1],
     } = this.accounts;
 
-    const productId = 0;
-    const coverAsset = 0; // ETH
-    const period = 3600 * 24 * 364; // 30 days
-
-    const amount = parseEther('1000');
-
-    const targetPriceRatio = '260';
-    const priceDenominator = '10000';
-    const activeCover = parseEther('8000');
-    const capacity = parseEther('10000');
-
-    const capacityFactor = '10000';
-
-    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
-
-    await createStakingPool(
-      cover,
-      productId,
-      capacity,
-      targetPriceRatio,
-      activeCover,
-      stakingPoolManager,
-      stakingPoolManager,
-      targetPriceRatio,
-    );
-
-    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
-
+    const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
     const tooLargeExpectedAmount = amount.add(10);
 
     await expect(
@@ -716,35 +567,10 @@ describe('buyCover', function () {
     const { cover, master } = this;
 
     const {
-      governanceContracts: [gv1],
-      members: [coverBuyer, stakingPoolManager],
+      members: [coverBuyer],
     } = this.accounts;
 
-    const productId = 0;
-    const coverAsset = 0; // ETH
-    const period = 3600 * 24 * 364; // 30 days
-
-    const amount = parseEther('1000');
-    const targetPriceRatio = '260';
-    const priceDenominator = '10000';
-    const activeCover = parseEther('8000');
-    const capacity = parseEther('10000');
-    const capacityFactor = '10000';
-
-    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
-
-    await createStakingPool(
-      cover,
-      productId,
-      capacity,
-      targetPriceRatio,
-      activeCover,
-      stakingPoolManager,
-      stakingPoolManager,
-      targetPriceRatio,
-    );
-
-    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     await master.setEmergencyPause(true);
 
@@ -775,36 +601,10 @@ describe('buyCover', function () {
     const { cover } = this;
 
     const {
-      governanceContracts: [gv1],
-      members: [stakingPoolManager],
       nonMembers: [nonMember],
     } = this.accounts;
 
-    const productId = 0;
-    const coverAsset = 0; // ETH
-    const period = 3600 * 24 * 364; // 30 days
-
-    const amount = parseEther('1000');
-    const targetPriceRatio = '260';
-    const priceDenominator = '10000';
-    const activeCover = parseEther('8000');
-    const capacity = parseEther('10000');
-    const capacityFactor = '10000';
-
-    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
-
-    await createStakingPool(
-      cover,
-      productId,
-      capacity,
-      targetPriceRatio,
-      activeCover,
-      stakingPoolManager,
-      stakingPoolManager,
-      targetPriceRatio,
-    );
-
-    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     await expect(
       cover.connect(nonMember).buyCover(
@@ -833,35 +633,10 @@ describe('buyCover', function () {
     const { cover } = this;
 
     const {
-      governanceContracts: [gv1],
-      members: [coverBuyer, stakingPoolManager],
+      members: [coverBuyer],
     } = this.accounts;
 
-    const productId = 0;
-    const coverAsset = 0; // ETH
-    const period = 3600 * 24 * 364; // 30 days
-
-    const amount = parseEther('1000');
-    const targetPriceRatio = '260';
-    const priceDenominator = '10000';
-    const activeCover = parseEther('8000');
-    const capacity = parseEther('10000');
-    const capacityFactor = '10000';
-
-    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
-
-    await createStakingPool(
-      cover,
-      productId,
-      capacity,
-      targetPriceRatio,
-      activeCover,
-      stakingPoolManager,
-      stakingPoolManager,
-      targetPriceRatio,
-    );
-
-    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -893,12 +668,8 @@ describe('buyCover', function () {
       members: [coverBuyer],
     } = this.accounts;
 
-    const productId = 0;
-    const coverAsset = 0; // ETH
     const paymentAsset = 10; // not ETH nor DAI nor USDC
-    const period = 3600 * 24 * 30; // 30 days
-
-    const amount = parseEther('1000');
+    const { amount, productId, coverAsset, period } = buyCoverFixture;
 
     // reverts without a reason
     await expect(
@@ -931,12 +702,8 @@ describe('buyCover', function () {
       members: [coverBuyer],
     } = this.accounts;
 
-    const productId = 0;
-    const coverAsset = 0; // ETH
     const paymentAsset = 1; // DAI
-    const period = 3600 * 24 * 30; // 30 days
-
-    const amount = parseEther('1000');
+    const { amount, productId, coverAsset, period } = buyCoverFixture;
 
     // Deprecate DAI
     const daiCoverAssetBitmap = 0b10;
@@ -970,35 +737,16 @@ describe('buyCover', function () {
     const { cover } = this;
 
     const {
-      governanceContracts: [gv1],
-      members: [coverBuyer, stakingPoolManager],
+      members: [coverBuyer],
     } = this.accounts;
 
-    const productId = 0;
-    const coverAsset = 0; // ETH
-    const period = 3600 * 24 * 364; // 30 days
-
-    const amount = parseEther('1000');
-    const targetPriceRatio = '260';
-    const priceDenominator = '10000';
-    const activeCover = parseEther('8000');
-    const capacity = parseEther('10000');
-    const capacityFactor = '10000';
-
-    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
-
-    await createStakingPool(
-      cover,
-      productId,
-      capacity,
-      targetPriceRatio,
-      activeCover,
-      stakingPoolManager,
-      stakingPoolManager,
-      targetPriceRatio,
-    );
-
-    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator } = buyCoverFixture;
+    const expectedPremium = amount
+      .mul(targetPriceRatio)
+      .div(priceDenominator)
+      .mul(period)
+      .div(3600 * 24 * 365);
+    const maxPremiumInAsset = expectedPremium.div(2);
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -1008,7 +756,7 @@ describe('buyCover', function () {
           coverAsset,
           amount,
           period,
-          maxPremiumInAsset: expectedPremium.div(2),
+          maxPremiumInAsset,
           paymentAsset: coverAsset,
           payWitNXM: false,
           commissionRatio: parseEther('0'),
@@ -1027,35 +775,10 @@ describe('buyCover', function () {
     const { cover } = this;
 
     const {
-      governanceContracts: [gv1],
-      members: [coverBuyer, stakingPoolManager],
+      members: [coverBuyer],
     } = this.accounts;
 
-    const productId = 0;
-    const coverAsset = 0; // ETH
-    const period = 3600 * 24 * 364; // 30 days
-
-    const amount = parseEther('1000');
-    const targetPriceRatio = '260';
-    const priceDenominator = '10000';
-    const activeCover = parseEther('8000');
-    const capacity = parseEther('10000');
-    const capacityFactor = '10000';
-
-    await cover.connect(gv1).updateUintParameters([0], [capacityFactor]);
-
-    await createStakingPool(
-      cover,
-      productId,
-      capacity,
-      targetPriceRatio,
-      activeCover,
-      stakingPoolManager,
-      stakingPoolManager,
-      targetPriceRatio,
-    );
-
-    const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
+    const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     await expect(
       cover.connect(coverBuyer).buyCover(

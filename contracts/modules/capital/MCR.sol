@@ -102,12 +102,8 @@ contract MCR is IMCR, MasterAware {
 
       // the first asset is ETH. skip it, it's already counted
       for (uint i = 1; i < assets.length; i++) {
-
-        IPool.Asset memory asset = assets[i];
         uint activeCoverAmount = cover.totalActiveCoverInAsset(uint24(i));
-
-        uint assetRate = priceFeed.getAssetToEthRate(assets[i].assetAddress);
-        uint assetAmountInEth = activeCoverAmount * assetRate / 10 ** asset.decimals;
+        uint assetAmountInEth = priceFeed.getEthForAsset(assets[i].assetAddress, activeCoverAmount);
 
         totalActiveCoverAmountInEth += assetAmountInEth;
       }

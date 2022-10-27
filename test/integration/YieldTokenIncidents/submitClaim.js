@@ -1,7 +1,4 @@
 const { ethers } = require('hardhat');
-const {
-  constants: { ZERO_ADDRESS },
-} = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
 const { AddressZero } = ethers.constants;
 
@@ -184,7 +181,7 @@ describe('submitClaim', function () {
         paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
-        commissionDestination: ZERO_ADDRESS,
+        commissionDestination: AddressZero,
         ipfsData: '',
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],

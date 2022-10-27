@@ -42,7 +42,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   uint private constant MAX_COMMISSION_RATIO = 2500; // 25%
 
-  uint private constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
   uint private constant ONE_NXM = 1e18;
 
@@ -790,20 +790,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (
     uint _globalCapacityRatio,
-    uint globalMinPriceRatio,
-    uint[] memory initialPrices,
-    uint[] memory capacityReductionRatios
+    uint _globalMinPriceRatio,
+    uint[] memory _initialPrices,
+    uint[] memory _capacityReductionRatios
   ) {
-    globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
+    _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
     _globalCapacityRatio = uint(globalCapacityRatio);
-    capacityReductionRatios = new uint[](productIds.length);
-    initialPrices  = new uint[](productIds.length);
+    _capacityReductionRatios = new uint[](productIds.length);
+    _initialPrices  = new uint[](productIds.length);
 
     for (uint i = 0; i < productIds.length; i++) {
       Product memory product = _products[productIds[i]];
       require(product.initialPriceRatio > 0, "Cover: Product deprecated or not initialized");
-      initialPrices[i] = uint(product.initialPriceRatio);
-      capacityReductionRatios[i] = uint(product.capacityReductionRatio);
+      _initialPrices[i] = uint(product.initialPriceRatio);
+      _capacityReductionRatios[i] = uint(product.capacityReductionRatio);
     }
   }
 

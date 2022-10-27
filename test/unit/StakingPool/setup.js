@@ -79,6 +79,7 @@ async function setup() {
 
   const REWARD_BONUS_PER_TRANCHE_RATIO = await stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO();
   const REWARD_BONUS_PER_TRANCHE_DENOMINATOR = await stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR();
+  const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
 
   this.tokenController = tokenController;
   this.master = master;
@@ -90,6 +91,7 @@ async function setup() {
   this.config = {
     REWARD_BONUS_PER_TRANCHE_DENOMINATOR,
     REWARD_BONUS_PER_TRANCHE_RATIO,
+    GLOBAL_MIN_PRICE_RATIO
   };
 }
 

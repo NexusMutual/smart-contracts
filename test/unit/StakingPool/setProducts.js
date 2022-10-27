@@ -8,7 +8,6 @@ const ProductTypeFixture = {
   claimMethod: 1,
   gracePeriodInDays: 7,
 };
-const GLOBAL_MIN_PRICE_RATIO = 100;
 
 describe('setProducts unit tests', function () {
   const initializePool = async function (cover, stakingPool, manager, poolId, productInitParams) {
@@ -144,6 +143,17 @@ describe('setProducts unit tests', function () {
     verifyProduct(product0, 100, 100, 50);
   });
 
+  it('should revert if user tries to set targetWeight without recalculating effectiveWeight', async function () {
+    const { stakingPool, cover } = this;
+    const {
+      members: [manager],
+    } = this.accounts;
+    await initializePool(cover, stakingPool, manager.address, 0, []);
+    const product = await initProduct(cover, 50, 100, 100, 0);
+    product.recalculateEffectiveWeight = false;
+    await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith('StakingPool: Must recalculate effectiveWeight to edit targetWeight')
+  });
+
   it('should revert if adding a product without setting the targetPrice', async function () {
     const { stakingPool, cover } = this;
     const {
@@ -219,6 +229,7 @@ describe('setProducts unit tests', function () {
 
   it('should fail to initialize product with targetWeight greater that 1', async function () {
     const { stakingPool, cover } = this;
+    const { GLOBAL_MIN_PRICE_RATIO } = this.config;
     const {
       members: [manager],
     } = this.accounts;
@@ -297,6 +308,7 @@ describe('setProducts unit tests', function () {
     const {
       members: [manager],
     } = this.accounts;
+    const { GLOBAL_MIN_PRICE_RATIO } = this.config;
     await initializePool(cover, stakingPool, manager.address, 0, []);
     const product = await initProduct(cover, 1, 80, 500, 0);
     product.setTargetWeight = false;
@@ -326,12 +338,13 @@ describe('setProducts unit tests', function () {
     } = this.accounts;
     const product = getInitialProduct(100, 1, 10, 0);
     await expect(initializePool(cover, stakingPool, manager.address, 0, [product])).to.be.revertedWith(
-      'StakingPool: Target price below GLOBAL_MIN_PRICE_RATIO',
+      'CoverUtilsLib: Target price below GLOBAL_MIN_PRICE_RATIO',
     );
   });
 
   it('should fail with targetPrice below global min price ratio', async function () {
     const { stakingPool, cover } = this;
+    const { GLOBAL_MIN_PRICE_RATIO } = this.config;
     const {
       members: [manager],
     } = this.accounts;
@@ -411,7 +424,7 @@ describe('setProducts unit tests', function () {
     const { totalCapacity } = await stakingPool.getTotalCapacitiesForActiveTranches(
       0,
       ratio._globalCapacityRatio,
-      ratio.capacityReductionRatios[0],
+      ratio._capacityReductionRatios[0],
     );
     expect(totalCapacity).to.be.equal(200);
 

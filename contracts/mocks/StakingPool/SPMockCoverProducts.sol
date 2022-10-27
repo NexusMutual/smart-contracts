@@ -10,7 +10,7 @@ contract SPMockCoverProducts {
   uint24 public constant globalCapacityRatio = 2;
   uint256 public constant globalRewardsRatio = 1;
 
-  uint private constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
   mapping(uint => address) public stakingPool;
   mapping(uint256 => Product) public products;
@@ -28,16 +28,22 @@ contract SPMockCoverProducts {
     productTypes[id] = product;
   }
 
-  function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (uint _globalCapacityRatio, uint globalMinPriceRatio, uint[] memory initialPrices, uint[] memory capacityReductionRatios) {
+
+  function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (
+    uint _globalCapacityRatio,
+    uint _globalMinPriceRatio,
+    uint[] memory _initialPrices,
+    uint[] memory _capacityReductionRatios
+  ) {
     _globalCapacityRatio = uint(globalCapacityRatio);
-    globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
-    capacityReductionRatios = new uint[](productIds.length);
-    initialPrices  = new uint[](productIds.length);
+    _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
+    _capacityReductionRatios = new uint[](productIds.length);
+    _initialPrices  = new uint[](productIds.length);
     for (uint i = 0; i < productIds.length; i++) {
       Product memory product = products[productIds[i]];
       require(product.initialPriceRatio > 0, "Cover: Product deprecated or not initialized");
-      initialPrices[i] = uint(product.initialPriceRatio);
-      capacityReductionRatios[i] = uint(product.capacityReductionRatio);
+      _initialPrices[i] = uint(product.initialPriceRatio);
+      _capacityReductionRatios[i] = uint(product.capacityReductionRatio);
     }
   }
 
@@ -69,9 +75,14 @@ contract SPMockCoverProducts {
     bool _isPrivatePool,
     uint256 _initialPoolFee,
     uint256 _maxPoolFee,
-    ProductInitializationParams[] calldata params,
+    ProductInitializationParams[] memory params,
     uint256 _poolId
   ) external {
-    IStakingPool(staking_).initialize(_manager, _isPrivatePool, _initialPoolFee, _maxPoolFee, GLOBAL_MIN_PRICE_RATIO, params, _poolId);
+
+    for (uint i = 0; i < params.length; i++) {
+      params[i].initialPrice = products[params[i].productId].initialPriceRatio;
+      require(params[i].targetPrice >= GLOBAL_MIN_PRICE_RATIO, "CoverUtilsLib: Target price below GLOBAL_MIN_PRICE_RATIO");
+    }
+    IStakingPool(staking_).initialize(_manager, _isPrivatePool, _initialPoolFee, _maxPoolFee, params, _poolId);
   }
 }

@@ -149,9 +149,9 @@ interface ICover {
 
   function getPriceAndCapacityRatios(uint[] calldata productIds) external view returns (
     uint _globalCapacityRatio,
-    uint globalMinPriceRatio,
-    uint[] memory initialPriceRatios,
-    uint[] memory capacityReductionRatios
+    uint _globalMinPriceRatio,
+    uint[] memory _initialPriceRatios,
+    uint[] memory _capacityReductionRatios
   );
 
   /* === MUTATIVE FUNCTIONS ==== */

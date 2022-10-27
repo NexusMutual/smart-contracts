@@ -414,7 +414,7 @@ describe('submitClaim', function () {
     );
     const coverId = 0;
     coverNFT.connect(coverOwner).transferFrom(coverOwner.address, nonMemberOwner.address, coverId);
-    await expect(submitClaim(this)({ coverId, sender: nonMemberOwner })).to.be.reverted;
+    await expect(submitClaim(this)({ coverId, sender: nonMemberOwner })).to.be.revertedWith('Caller is not a member');
   });
 
   it('reverts if it is not called by cover owner or an approved address', async function () {
@@ -529,5 +529,84 @@ describe('submitClaim', function () {
       assert.equal(exists, true);
       expect(claimId).to.be.equal(ethers.constants.One);
     }
+  });
+
+  it('reverts if the system is paused', async function () {
+    const { individualClaims, cover, master } = this.contracts;
+    const [coverOwner] = this.accounts.members;
+    const segment = await getCoverSegment();
+
+    await master.pause();
+
+    await cover.createMockCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    const coverId = 0;
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
+    await expect(
+      individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit }),
+    ).to.be.revertedWith('System is paused');
+  });
+
+  it('Should revert if the sender is not the NFT owner or an approved contract', async function () {
+    const { individualClaims, cover } = this.contracts;
+    const [coverOwner, coverNonOwner] = this.accounts.members;
+    const segment = await getCoverSegment();
+
+    await cover.createMockCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    const coverId = 0;
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
+    await expect(
+      individualClaims.connect(coverNonOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit }),
+    ).to.be.revertedWith('Only the owner or approved addresses can submit a claim');
+  });
+
+  it('Should transfer assessment deposit to pool', async function () {
+    const { individualClaims, cover, pool } = this.contracts;
+    const [coverOwner] = this.accounts.members;
+    const segment = await getCoverSegment();
+
+    await cover.createMockCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    const balanceBefore = await ethers.provider.getBalance(pool.address);
+
+    const coverId = 0;
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
+    await individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit });
+    await expect(await ethers.provider.getBalance(pool.address)).to.be.equal(balanceBefore.add(deposit));
+  });
+
+  it('Should emit ClaimSubmitted event', async function () {
+    const { individualClaims, cover } = this.contracts;
+    const [coverOwner] = this.accounts.members;
+    const segment = await getCoverSegment();
+
+    await cover.createMockCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    const coverId = 0;
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
+    expect(
+      await individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit }),
+    ).to.emit(individualClaims, 'ClaimSubmitted');
   });
 });

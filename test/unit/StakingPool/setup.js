@@ -91,7 +91,7 @@ async function setup() {
   this.config = {
     REWARD_BONUS_PER_TRANCHE_DENOMINATOR,
     REWARD_BONUS_PER_TRANCHE_RATIO,
-    GLOBAL_MIN_PRICE_RATIO
+    GLOBAL_MIN_PRICE_RATIO,
   };
 }
 

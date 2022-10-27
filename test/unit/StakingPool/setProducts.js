@@ -151,7 +151,9 @@ describe('setProducts unit tests', function () {
     await initializePool(cover, stakingPool, manager.address, 0, []);
     const product = await initProduct(cover, 50, 100, 100, 0);
     product.recalculateEffectiveWeight = false;
-    await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith('StakingPool: Must recalculate effectiveWeight to edit targetWeight')
+    await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith(
+      'StakingPool: Must recalculate effectiveWeight to edit targetWeight',
+    );
   });
 
   it('should revert if adding a product without setting the targetPrice', async function () {

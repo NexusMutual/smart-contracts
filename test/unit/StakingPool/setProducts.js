@@ -18,14 +18,13 @@ describe('setProducts unit tests', function () {
           cover.setProduct(getCoverProduct(p.initialPrice), p.productId),
           cover.setProductType(ProductTypeFixture, p.productId),
         ];
-      }),
     );
     await cover.initializeStaking(stakingPool.address, manager, false, 5, 5, productInitParams, poolId);
   };
 
   const depositRequest = async (stakingPool, amount, tokenId, destination) => {
     const block = await ethers.provider.getBlock('latest');
-    const currentTrancheId = parseInt(block.timestamp / daysToSeconds(91));
+    const currentTrancheId = Math.floor(block.timestamp / daysToSeconds(91));
     return {
       amount,
       trancheId: currentTrancheId + 2,
@@ -307,6 +306,7 @@ describe('setProducts unit tests', function () {
 
   it('should edit prices and skip weights', async function () {
     const { stakingPool, cover } = this;
+    const { GLOBAL_MIN_PRICE_RATIO } = this.config;
     const {
       members: [manager],
     } = this.accounts;

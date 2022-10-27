@@ -1,4 +1,5 @@
 const { ethers } = require('hardhat');
+const { expect } = require('chai');
 const {
   utils: { parseEther },
 } = ethers;

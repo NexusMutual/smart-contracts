@@ -13,11 +13,10 @@ describe('setProducts unit tests', function () {
   const initializePool = async function (cover, stakingPool, manager, poolId, productInitParams) {
     // Set products in mock cover contract
     await Promise.all(
-      productInitParams.map(p => {
-        return [
-          cover.setProduct(getCoverProduct(p.initialPrice), p.productId),
-          cover.setProductType(ProductTypeFixture, p.productId),
-        ];
+      productInitParams.map(p => [
+        cover.setProduct(getCoverProduct(p.initialPrice), p.productId),
+        cover.setProductType(ProductTypeFixture, p.productId),
+      ]),
     );
     await cover.initializeStaking(stakingPool.address, manager, false, 5, 5, productInitParams, poolId);
   };

@@ -16,8 +16,8 @@ describe('editCover', function () {
 
     amount: parseEther('1000'),
 
-    targetPriceRatio: '260',
-    priceDenominator: '10000',
+    targetPriceRatio: 260,
+    priceDenominator: 10000,
     activeCover: parseEther('5000'),
     capacity: parseEther('10000'),
     capacityFactor: '10000',

@@ -6,7 +6,7 @@ import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICover.sol";
 import "../../modules/cover/CoverUtilsLib.sol";
 
-contract SPMockCoverProducts {
+contract SPMockCover {
   uint24 public constant globalCapacityRatio = 2;
   uint256 public constant globalRewardsRatio = 1;
 

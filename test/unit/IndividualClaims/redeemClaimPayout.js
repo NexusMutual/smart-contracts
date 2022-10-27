@@ -159,6 +159,53 @@ describe('redeemClaimPayout', function () {
     );
   });
 
+  it('reverts if system is paused', async function () {
+    const { individualClaims, cover, assessment, master } = this.contracts;
+    const [coverOwner] = this.accounts.members;
+    const segment = await getCoverSegment();
+
+    await cover.createMockCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    await submitClaim(this)({ coverId: 0, sender: coverOwner });
+    await assessment.castVote(0, true, parseEther('1'));
+    const { poll } = await assessment.assessments(0);
+    const { payoutCooldownInDays } = await assessment.config();
+    await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
+
+    await master.pause();
+
+    await expect(individualClaims.connect(coverOwner).redeemClaimPayout(0)).to.be.revertedWith('System is paused');
+  });
+
+  it('Should emit ClaimPayoutRedeemed event', async function () {
+    const { individualClaims, cover, assessment } = this.contracts;
+    const [coverOwner] = this.accounts.members;
+    const segment = await getCoverSegment();
+
+    await cover.createMockCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    await submitClaim(this)({ coverId: 0, sender: coverOwner });
+    await assessment.castVote(0, true, parseEther('1'));
+    const { poll } = await assessment.assessments(0);
+    const { payoutCooldownInDays } = await assessment.config();
+    await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
+
+    await expect(individualClaims.connect(coverOwner).redeemClaimPayout(0)).to.emit(
+      individualClaims,
+      'ClaimPayoutRedeemed',
+    );
+  });
+
   it("sets the claim's payoutRedeemed property to true", async function () {
     const { individualClaims, cover, assessment } = this.contracts;
     const [coverOwner] = this.accounts.members;

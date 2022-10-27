@@ -23,7 +23,7 @@ describe('editProducts', function () {
     const productAfter = await cover.products(productId);
 
     expect(productBefore.productType).to.be.equal(productAfter.productType);
-    expect(productBefore.ytcUnderlyingAsset).to.be.equal(productAfter.ytcUnderlyingAsset);
+    expect(productBefore.yieldTokenAddress).to.be.equal(productAfter.yieldTokenAddress);
     expect(newProductValues.coverAssets).to.be.equal(productAfter.coverAssets);
     expect(newProductValues.initialPriceRatio).to.be.equal(productAfter.initialPriceRatio);
     expect(newProductValues.capacityReductionRatio).to.be.equal(productAfter.capacityReductionRatio);

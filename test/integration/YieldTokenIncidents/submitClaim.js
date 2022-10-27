@@ -15,7 +15,6 @@ const setTime = async timestamp => {
 };
 
 const priceDenominator = '10000';
-const COVERED_AMOUNT_PRECISION_ERROR_TOLERANCE = '20';
 
 describe('submitClaim', function () {
   beforeEach(async function () {
@@ -71,7 +70,7 @@ describe('submitClaim', function () {
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    const expectedMinCoveredAmount = amount.sub(COVERED_AMOUNT_PRECISION_ERROR_TOLERANCE);
+    const expectedMinCoveredAmount = amount;
 
     await ybETH.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('100'));
 
@@ -80,7 +79,7 @@ describe('submitClaim', function () {
         owner: coverBuyer1.address,
         productId,
         coverAsset,
-        amount: expectedMinCoveredAmount,
+        amount,
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
@@ -163,8 +162,6 @@ describe('submitClaim', function () {
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    const expectedMinCoveredAmount = amount.sub(COVERED_AMOUNT_PRECISION_ERROR_TOLERANCE);
-
     await dai.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('1000000'));
     await ybDAI.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('100'));
 
@@ -175,7 +172,7 @@ describe('submitClaim', function () {
         owner: coverBuyer1.address,
         productId,
         coverAsset,
-        amount: expectedMinCoveredAmount,
+        amount,
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
@@ -256,8 +253,6 @@ describe('submitClaim', function () {
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    const expectedMinCoveredAmount = amount.sub(COVERED_AMOUNT_PRECISION_ERROR_TOLERANCE);
-
     await ybETH.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('100'));
 
     const tx = await cover.connect(coverBuyer1).buyCover(
@@ -265,7 +260,7 @@ describe('submitClaim', function () {
         owner: coverBuyer1.address,
         productId,
         coverAsset,
-        amount: expectedMinCoveredAmount,
+        amount,
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,

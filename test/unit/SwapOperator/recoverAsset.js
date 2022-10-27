@@ -29,7 +29,7 @@ describe('recoverAsset', function () {
 
     const balanceAfter = await enzymeV4Vault.balanceOf(pool.address);
 
-    assert.equal(balanceAfter.sub(amountInPool).toString(), amountInSwapOperator);
+    expect(balanceAfter.sub(amountInPool)).to.be.equal(amountInSwapOperator);
   });
 
   it('recovers arbitrary unknown asset', async function () {
@@ -47,6 +47,6 @@ describe('recoverAsset', function () {
 
     const balanceAfter = await arbitraryAsset.balanceOf(receiver.address);
 
-    assert.equal(balanceAfter.toString(), amountInSwapOperator.toString());
+    expect(balanceAfter).to.be.equal(amountInSwapOperator);
   });
 });

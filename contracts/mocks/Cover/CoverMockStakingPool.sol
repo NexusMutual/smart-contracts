@@ -2,10 +2,11 @@
 
 pragma solidity ^0.8.16;
 
-import "../Tokens/ERC721Mock.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/utils/Strings.sol";
+import "../../interfaces/IStakingPool.sol";
 import "../../modules/staking/StakingPool.sol";
+import "../Tokens/ERC721Mock.sol";
 
 
 contract CoverMockStakingPool is IStakingPool, ERC721Mock {
@@ -22,12 +23,13 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
 
   mapping (uint => uint) public usedCapacity;
   mapping (uint => uint) public stakedAmount;
-  // product id => Product
-  mapping(uint => Product) public products;
+  // product id => StakedProduct
+  mapping(uint => StakedProduct) public products;
   mapping (uint => uint) public mockPrices;
 
   uint public constant MAX_PRICE_RATIO = 10_000;
   uint constant REWARDS_DENOMINATOR = 10_000;
+  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
   uint public poolId;
   // erc721 supply
@@ -90,6 +92,11 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     uint /*coverStartTime*/,
     uint /*premium*/
   ) external {
+  }
+
+  function setProducts(ProductParams[] memory params) external {
+    totalSupply = totalSupply;
+    params;
   }
 
   function calculatePremium(uint priceRatio, uint coverAmount, uint period) public pure returns (uint) {

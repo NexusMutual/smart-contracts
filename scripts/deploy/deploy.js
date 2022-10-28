@@ -318,7 +318,7 @@ async function main() {
   const addProductsParams = products.map(product => {
     const underlyingToken = ['ETH', 'DAI'].indexOf(product.underlyingToken);
     const productType = { protocol: 0, custodian: 1, token: 2 }[product.type];
-    const ytcUnderlyingAsset = product.coveredToken || '0x0000000000000000000000000000000000000000';
+    const yieldTokenAddress = product.coveredToken || '0x0000000000000000000000000000000000000000';
 
     let coverAssets =
       underlyingToken === -1
@@ -331,7 +331,7 @@ async function main() {
 
     return {
       productType,
-      ytcUnderlyingAsset,
+      yieldTokenAddress,
       coverAssets,
       initialPriceRatio: 100,
       capacityReductionRatio: 0,

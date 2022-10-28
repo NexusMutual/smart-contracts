@@ -15,8 +15,6 @@ const setTime = async timestamp => {
 
 const priceDenominator = '10000';
 
-const COVERED_AMOUNT_PRECISION_ERROR_TOLERANCE = '20';
-
 describe('submitClaim', function () {
   function calculateFirstTrancheId(lastBlock, period, gracePeriod) {
     return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
@@ -99,14 +97,12 @@ describe('submitClaim', function () {
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    const expectedMinCoveredAmount = amount.sub(COVERED_AMOUNT_PRECISION_ERROR_TOLERANCE);
-
     await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
         coverAsset,
-        amount: expectedMinCoveredAmount,
+        amount,
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
@@ -123,7 +119,7 @@ describe('submitClaim', function () {
 
     // Submit claim
     const coverId = 0;
-    const claimAmount = expectedMinCoveredAmount;
+    const claimAmount = amount;
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
@@ -158,8 +154,6 @@ describe('submitClaim', function () {
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    const expectedMinCoveredAmount = amount.sub(COVERED_AMOUNT_PRECISION_ERROR_TOLERANCE);
-
     await dai.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('1000000'));
     await dai.connect(coverBuyer1).approve(cover.address, expectedPremium);
 
@@ -168,7 +162,7 @@ describe('submitClaim', function () {
         owner: coverBuyer1.address,
         productId,
         coverAsset,
-        amount: expectedMinCoveredAmount,
+        amount,
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
@@ -185,7 +179,7 @@ describe('submitClaim', function () {
 
     // Submit claim
     const coverId = 0;
-    const claimAmount = expectedMinCoveredAmount;
+    const claimAmount = amount;
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
@@ -219,14 +213,12 @@ describe('submitClaim', function () {
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    const expectedMinCoveredAmount = amount.sub(COVERED_AMOUNT_PRECISION_ERROR_TOLERANCE);
-
     await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
         coverAsset,
-        amount: expectedMinCoveredAmount,
+        amount,
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
@@ -243,7 +235,7 @@ describe('submitClaim', function () {
 
     // Submit claim
     const coverId = 0;
-    const claimAmount = expectedMinCoveredAmount;
+    const claimAmount = amount;
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),
@@ -281,8 +273,6 @@ describe('submitClaim', function () {
       .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
-    const expectedMinCoveredAmount = amount.sub(COVERED_AMOUNT_PRECISION_ERROR_TOLERANCE);
-
     await dai.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('1000000'));
     await dai.connect(coverBuyer1).approve(cover.address, expectedPremium);
 
@@ -291,7 +281,7 @@ describe('submitClaim', function () {
         owner: coverBuyer1.address,
         productId,
         coverAsset,
-        amount: expectedMinCoveredAmount,
+        amount,
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
@@ -308,7 +298,7 @@ describe('submitClaim', function () {
 
     // Submit claim
     const coverId = 0;
-    const claimAmount = expectedMinCoveredAmount;
+    const claimAmount = amount;
     const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
     await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
       value: deposit.mul('2'),

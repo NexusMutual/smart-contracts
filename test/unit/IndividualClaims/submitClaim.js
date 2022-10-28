@@ -2,7 +2,8 @@ const { ethers } = require('hardhat');
 const { assert, expect } = require('chai');
 
 const { submitClaim, ASSET, getCoverSegment } = require('./helpers');
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
+const { mineNextBlock, setNextBlockTime, setEtherBalance } = require('../../utils/evm');
+const { hex } = require('../../../lib/helpers');
 
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
@@ -414,7 +415,7 @@ describe('submitClaim', function () {
     );
     const coverId = 0;
     coverNFT.connect(coverOwner).transferFrom(coverOwner.address, nonMemberOwner.address, coverId);
-    await expect(submitClaim(this)({ coverId, sender: nonMemberOwner })).to.be.reverted;
+    await expect(submitClaim(this)({ coverId, sender: nonMemberOwner })).to.be.revertedWith('Caller is not a member');
   });
 
   it('reverts if it is not called by cover owner or an approved address', async function () {
@@ -529,5 +530,141 @@ describe('submitClaim', function () {
       assert.equal(exists, true);
       expect(claimId).to.be.equal(ethers.constants.One);
     }
+  });
+
+  it('reverts if the system is paused', async function () {
+    const { individualClaims, cover, master } = this.contracts;
+    const [coverOwner] = this.accounts.members;
+    const segment = await getCoverSegment();
+
+    await master.pause();
+
+    await cover.createMockCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    const coverId = 0;
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
+    await expect(
+      individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit }),
+    ).to.be.revertedWith('System is paused');
+  });
+
+  it('Should revert if the sender is not the NFT owner or an approved contract', async function () {
+    const { individualClaims, cover } = this.contracts;
+    const [coverOwner, coverNonOwner] = this.accounts.members;
+    const segment = await getCoverSegment();
+
+    await cover.createMockCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    const coverId = 0;
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
+    await expect(
+      individualClaims.connect(coverNonOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit }),
+    ).to.be.revertedWith('Only the owner or approved addresses can submit a claim');
+  });
+
+  it('Should transfer assessment deposit to pool', async function () {
+    const { individualClaims, cover, pool } = this.contracts;
+    const [coverOwner] = this.accounts.members;
+    const segment = await getCoverSegment();
+
+    await cover.createMockCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    const balanceBefore = await ethers.provider.getBalance(pool.address);
+
+    const coverId = 0;
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
+    await individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit });
+    await expect(await ethers.provider.getBalance(pool.address)).to.be.equal(balanceBefore.add(deposit));
+  });
+
+  it('Should emit ClaimSubmitted event', async function () {
+    const { individualClaims, cover } = this.contracts;
+    const [coverOwner] = this.accounts.members;
+    const segment = await getCoverSegment();
+
+    await cover.createMockCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    const coverId = 0;
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
+    await expect(individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit }))
+      .to.emit(individualClaims, 'ClaimSubmitted')
+      .withArgs(coverOwner.address, 0, coverId, 0);
+  });
+
+  it('should revert if ETH refund fails', async function () {
+    const { individualClaims, memberRoles, cover, nxm: fallbackWillFailContract } = this.contracts;
+    const coverAsset = ASSET.ETH;
+    const segment = await getCoverSegment();
+
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, coverAsset);
+
+    const fallbackWillFailSigner = await ethers.getImpersonatedSigner(fallbackWillFailContract.address);
+
+    await memberRoles.setRole(fallbackWillFailSigner.address, 2);
+
+    await setEtherBalance(fallbackWillFailSigner.address, ethers.utils.parseEther('1'));
+
+    await cover.createMockCover(
+      fallbackWillFailSigner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    await expect(
+      individualClaims.connect(fallbackWillFailSigner).submitClaim(0, 0, segment.amount, '', {
+        value: deposit.mul('2'),
+        gasPrice: 0,
+      }),
+    ).to.be.revertedWith('Assessment deposit excess refund failed');
+  });
+
+  it('should revert if assessment deposit to pool fails', async function () {
+    const { individualClaims, cover, master } = this.contracts;
+    const coverAsset = ASSET.ETH;
+    const segment = await getCoverSegment();
+    const [coverOwner] = this.accounts.members;
+
+    const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, coverAsset);
+
+    const CLMockPoolEtherRejecter = await ethers.getContractFactory('CLMockPoolEtherRejecter');
+
+    const fallbackWillFailContractPool = await CLMockPoolEtherRejecter.deploy();
+    await master.setLatestAddress(hex('P1'), fallbackWillFailContractPool.address);
+    await individualClaims.changeDependentContractAddress();
+
+    await cover.createMockCover(
+      coverOwner.address,
+      0, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    await expect(
+      individualClaims.connect(coverOwner).submitClaim(0, 0, segment.amount, '', {
+        value: deposit,
+        gasPrice: 0,
+      }),
+    ).to.be.revertedWith('Assessment deposit transfer to pool failed');
   });
 });

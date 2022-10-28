@@ -91,7 +91,7 @@ struct IncreaseAmountParams {
 
 struct Product {
   uint16 productType;
-  address ytcUnderlyingAsset;
+  address yieldTokenAddress;
   /*
     cover assets bitmap. each bit in the base-2 representation represents whether the asset with the index
     of that bit is enabled as a cover asset for this product.
@@ -146,6 +146,13 @@ interface ICover {
   function totalActiveCoverInAsset(uint24 coverAsset) external view returns (uint);
 
   function globalCapacityRatio() external view returns (uint24);
+
+  function getPriceAndCapacityRatios(uint[] calldata productIds) external view returns (
+    uint _globalCapacityRatio,
+    uint _globalMinPriceRatio,
+    uint[] memory _initialPriceRatios,
+    uint[] memory _capacityReductionRatios
+  );
 
   /* === MUTATIVE FUNCTIONS ==== */
 

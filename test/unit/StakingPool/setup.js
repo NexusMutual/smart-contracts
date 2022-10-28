@@ -1,5 +1,4 @@
 const { ethers } = require('hardhat');
-const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
 const { parseEther } = ethers.utils;
 const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../utils').constants;
@@ -9,6 +8,7 @@ async function setup() {
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
   const QuotationData = await ethers.getContractFactory('CoverMockQuotationData');
+  const SPCoverProducts = await ethers.getContractFactory('SPMockCoverProducts');
   const MemberRolesMock = await ethers.getContractFactory('MemberRolesMock');
   const TokenController = await ethers.getContractFactory('TokenControllerMock');
   const NXMToken = await ethers.getContractFactory('NXMTokenMock');
@@ -45,14 +45,22 @@ async function setup() {
   await mcr.deployed();
   await mcr.setMCR(parseEther('600000'));
 
-  const stakingPool = await StakingPool.deploy(nxm.address, ZERO_ADDRESS, tokenController.address);
-
   const signers = await ethers.getSigners();
   const accounts = getAccounts(signers);
+
+  const cover = await SPCoverProducts.deploy();
+  await cover.deployed();
+
+  const stakingPool = await StakingPool.deploy(nxm.address, cover.address, tokenController.address);
+
+  await nxm.setOperator(tokenController.address);
+  await tokenController.setContractAddresses(cover.address, nxm.address);
+  await cover.setStakingPool(stakingPool.address, 0);
 
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);
     await memberRoles.setRole(member.address, Role.Member);
+    await nxm.mint(member.address, parseEther('100000'));
   }
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
@@ -71,14 +79,19 @@ async function setup() {
 
   const REWARD_BONUS_PER_TRANCHE_RATIO = await stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO();
   const REWARD_BONUS_PER_TRANCHE_DENOMINATOR = await stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR();
+  const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
 
+  this.tokenController = tokenController;
   this.master = master;
+  this.nxm = nxm;
   this.stakingPool = stakingPool;
+  this.cover = cover;
   this.dai = dai;
   this.accounts = accounts;
   this.config = {
     REWARD_BONUS_PER_TRANCHE_DENOMINATOR,
     REWARD_BONUS_PER_TRANCHE_RATIO,
+    GLOBAL_MIN_PRICE_RATIO,
   };
 }
 

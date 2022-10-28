@@ -271,7 +271,6 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");
     }
 
-
     coverContract.performStakeBurn(coverId, segmentId, payoutAmount);
 
     if (optionalParams.length > 0) { // Skip the permit call when it is not provided
@@ -286,12 +285,12 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       ) = abi.decode(optionalParams, (address, address, uint256, uint256, uint8, bytes32, bytes32));
 
       if (spender != address(0)) {
-        IERC20Permit(product.ytcUnderlyingAsset).permit(owner, spender, value, deadline, v, r, s);
+        IERC20Permit(product.yieldTokenAddress).permit(owner, spender, value, deadline, v, r, s);
       }
     }
 
     SafeERC20.safeTransferFrom(
-      IERC20(product.ytcUnderlyingAsset),
+      IERC20(product.yieldTokenAddress),
       msg.sender,
       address(this),
       depeggedTokens

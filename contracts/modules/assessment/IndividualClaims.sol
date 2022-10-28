@@ -25,8 +25,8 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   // Used in operations involving NXM tokens and divisions
   uint internal constant PRECISION = 10 ** 18;
 
-  INXMToken internal immutable nxm;
-  ICoverNFT internal immutable coverNFT;
+  INXMToken public immutable nxm;
+  ICoverNFT public immutable coverNFT;
 
   /* ========== STATE VARIABLES ========== */
 

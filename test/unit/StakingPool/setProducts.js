@@ -490,7 +490,7 @@ describe('setProducts unit tests', function () {
     await stakingPool.connect(staker).depositTo([request]);
 
     const ratio = await cover.getPriceAndCapacityRatios([0]);
-    const { totalCapacity } = await stakingPool.getTotalCapacitiesForActiveTranches(
+    const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
       0,
       ratio._globalCapacityRatio,
       ratio._capacityReductionRatios[0],

@@ -606,9 +606,9 @@ describe('submitClaim', function () {
 
     const coverId = 0;
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
-    expect(
-      await individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit }),
-    ).to.emit(individualClaims, 'ClaimSubmitted');
+    await expect(individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit }))
+      .to.emit(individualClaims, 'ClaimSubmitted')
+      .withArgs(coverOwner.address, 0, coverId, 0);
   });
 
   it('should revert if ETH refund fails', async function () {

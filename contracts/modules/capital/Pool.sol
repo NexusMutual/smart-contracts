@@ -13,6 +13,7 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IERC20Detailed.sol";
+import "../../interfaces/ISwapOperator.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
@@ -717,8 +718,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
     if (code == "SWP_OP") {
-      // TODO: consider checking if swapValue is zero
-      // require(swapValue == 0, 'Pool: Cancel all swaps before changing swapOperator');
+      require(!ISwapOperator(swapOperator).orderInProgress(), 'Pool: Cancel all swaps before changing swapOperator');
       swapOperator = value;
       return;
     }

@@ -112,7 +112,7 @@ contract SwapOperator {
    */
   function placeOrder(GPv2Order.Data calldata order, bytes calldata orderUID) public onlyController {
     // Validate there's no current order going on
-    require(currentOrderUID.length == 0, "SwapOp: an order is already in place");
+    require(!orderInProgress(), "SwapOp: an order is already in place");
 
     // Order UID verification
     validateUID(order, orderUID);
@@ -207,7 +207,7 @@ contract SwapOperator {
    */
   function closeOrder(GPv2Order.Data calldata order) external {
     // Validate there is an order in place
-    require(currentOrderUID.length > 0, "SwapOp: No order in place");
+    require(!orderInProgress(), "SwapOp: No order in place");
 
     // Before validTo, only controller can call this. After it, everyone can call
     if (block.timestamp <= order.validTo) {
@@ -366,7 +366,7 @@ contract SwapOperator {
   function swapETHForEnzymeVaultShare(uint amountIn, uint amountOutMin) external onlyController {
 
     // Validate there's no current cow swap order going on
-    require(currentOrderUID.length == 0, "SwapOp: an order is already in place");
+    require(!orderInProgress(), "SwapOp: an order is already in place");
 
     IPool pool = _pool();
     IEnzymeV4Comptroller comptrollerProxy = IEnzymeV4Comptroller(IEnzymeV4Vault(enzymeV4VaultProxyAddress).getAccessor());
@@ -427,7 +427,7 @@ contract SwapOperator {
   ) external onlyController {
 
     // Validate there's no current cow swap order going on
-    require(currentOrderUID.length == 0, "SwapOp: an order is already in place");
+    require(!orderInProgress(), "SwapOp: an order is already in place");
 
     IPool pool = _pool();
     IERC20Detailed fromToken = IERC20Detailed(enzymeV4VaultProxyAddress);
@@ -503,7 +503,7 @@ contract SwapOperator {
   function recoverAsset(address assetAddress, address receiver) public onlyController {
 
     // Validate there's no current cow swap order going on
-    require(currentOrderUID.length == 0, "SwapOp: an order is already in place");
+    require(!orderInProgress(), "SwapOp: an order is already in place");
 
     IERC20 asset = IERC20(assetAddress);
 
@@ -521,5 +521,9 @@ contract SwapOperator {
     }
 
     asset.transfer(address(pool), balance);
+  }
+
+  function orderInProgress() public returns (bool) {
+    return currentOrderUID.length > 0;
   }
 }

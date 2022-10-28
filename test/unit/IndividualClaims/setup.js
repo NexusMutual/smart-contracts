@@ -98,6 +98,7 @@ async function setup() {
     distributor,
     coverNFT,
     master,
+    memberRoles,
   };
 }
 

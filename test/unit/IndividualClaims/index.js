@@ -12,6 +12,7 @@ describe('IndividualClaims', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
+  require('./constructor');
   require('./initialize');
   require('./submitClaim');
   require('./redeemClaimPayout');

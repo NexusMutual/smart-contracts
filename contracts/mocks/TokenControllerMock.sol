@@ -22,7 +22,7 @@ contract TokenControllerMock is MasterAware {
   address public addToWhitelistLastCalledWtih;
   address public removeFromWhitelistLastCalledWtih;
 
-  mapping(uint => StakingPoolNXMBalances) stakingPoolNXMBalances;
+  mapping(uint => StakingPoolNXMBalances) public stakingPoolNXMBalances;
 
   function mint(address _member, uint256 _amount) public onlyInternal {
     token.mint(_member, _amount);

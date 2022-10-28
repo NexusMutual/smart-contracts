@@ -890,7 +890,12 @@ contract StakingPool is IStakingPool, ERC721 {
     return (allocatedCapacities, allocatedCapacity);
   }
 
-  function getTotalCapacitiesForActiveTranches(uint productId, uint24 globalCapacityRatio, uint16 capacityReductionRatio) public view returns (uint[] memory totalCapacities, uint totalCapacity) {
+  function getTotalCapacitiesForActiveTranches(
+    uint productId,
+    uint globalCapacityRatio,
+    uint capacityReductionRatio
+  ) public view returns (uint[] memory totalCapacities, uint totalCapacity) {
+
     uint firstTrancheIdToUse = block.timestamp / TRANCHE_DURATION;
 
     (totalCapacities, totalCapacity) = getTotalCapacitiesForTranches(

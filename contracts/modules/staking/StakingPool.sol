@@ -60,6 +60,8 @@ contract StakingPool is IStakingPool, ERC721 {
   bool public isPrivatePool;
   uint8 public poolFee;
   uint8 public maxPoolFee;
+  uint32 public totalEffectiveWeight;
+  uint32 public totalTargetWeight;
 
   // erc721 supply
   uint public totalSupply;
@@ -83,7 +85,7 @@ contract StakingPool is IStakingPool, ERC721 {
   mapping(uint => uint) public coverTrancheAllocations;
 
   // product id => Product
-  mapping(uint => Product) public products;
+  mapping(uint => StakedProduct) public products;
 
   // token id => tranche id => deposit data
   mapping(uint => mapping(uint => Deposit)) public deposits;
@@ -102,10 +104,12 @@ contract StakingPool is IStakingPool, ERC721 {
   uint public constant MAX_ACTIVE_TRANCHES = 8; // 7 whole quarters + 1 partial quarter
   uint public constant COVER_TRANCHE_GROUP_SIZE = 4;
   uint public constant BUCKET_TRANCHE_GROUP_SIZE = 8;
+  uint public constant MAX_WEIGHT_MULTIPLIER = 20;
 
   uint public constant REWARD_BONUS_PER_TRANCHE_RATIO = 10_00; // 10.00%
   uint public constant REWARD_BONUS_PER_TRANCHE_DENOMINATOR = 100_00;
   uint public constant WEIGHT_DENOMINATOR = 100;
+  uint public constant MAX_TOTAL_WEIGHT = WEIGHT_DENOMINATOR * MAX_WEIGHT_MULTIPLIER;
   uint public constant REWARDS_DENOMINATOR = 100_00;
   uint public constant POOL_FEE_DENOMINATOR = 100;
 
@@ -113,6 +117,7 @@ contract StakingPool is IStakingPool, ERC721 {
   uint public constant GLOBAL_CAPACITY_DENOMINATOR = 100_00;
   uint public constant CAPACITY_REDUCTION_DENOMINATOR = 100_00;
   uint public constant INITIAL_PRICE_DENOMINATOR = 100_00;
+  uint public constant TARGET_PRICE_DENOMINATOR = 100_00;
 
   // base price bump is +0.2% for each 1% of capacity used, ie +20% for 100%
   // 20% = 0.2
@@ -180,8 +185,7 @@ contract StakingPool is IStakingPool, ERC721 {
     name = string(abi.encodePacked("Nexus Mutual Staking Pool #", Strings.toString(_poolId)));
     symbol = string(abi.encodePacked("NMSP-", Strings.toString(_poolId)));
 
-    // TODO: initialize products
-    params;
+    _setInitialProducts(params);
 
     // create ownership nft
     totalSupply = 1;
@@ -598,7 +602,7 @@ contract StakingPool is IStakingPool, ERC721 {
       trancheCount
     );
 
-    (uint[] memory totalCapacities, uint totalCapacity) = getTotalCapacities(
+    (uint[] memory totalCapacities, uint totalCapacity) = getTotalCapacitiesForTranches(
       request.productId,
       firstTrancheIdToUse,
       trancheCount,
@@ -606,15 +610,15 @@ contract StakingPool is IStakingPool, ERC721 {
       request.capacityReductionRatio
     );
 
+    uint remainingAmount = Math.divCeil(request.amount, NXM_PER_ALLOCATION_UNIT);
     // total capacity can get below the used capacity as a result of burns
     require(
-      totalCapacity > initialCapacityUsed && totalCapacity - initialCapacityUsed >= request.amount,
+      totalCapacity > initialCapacityUsed && totalCapacity - initialCapacityUsed >= remainingAmount,
       "StakingPool: Insufficient capacity"
     );
 
     {
       uint[] memory coverTrancheAllocation = new uint[](trancheCount);
-      uint remainingAmount = Math.divCeil(request.amount, NXM_PER_ALLOCATION_UNIT);
 
       for (uint i = 0; i < trancheCount; i++) {
 
@@ -886,7 +890,19 @@ contract StakingPool is IStakingPool, ERC721 {
     return (allocatedCapacities, allocatedCapacity);
   }
 
-  function getTotalCapacities(
+  function getTotalCapacitiesForActiveTranches(uint productId, uint24 globalCapacityRatio, uint16 capacityReductionRatio) public view returns (uint[] memory totalCapacities, uint totalCapacity) {
+    uint firstTrancheIdToUse = block.timestamp / TRANCHE_DURATION;
+
+    (totalCapacities, totalCapacity) = getTotalCapacitiesForTranches(
+      productId,
+      firstTrancheIdToUse,
+      MAX_ACTIVE_TRANCHES,
+      globalCapacityRatio,
+      capacityReductionRatio
+    );
+  }
+
+  function getTotalCapacitiesForTranches(
     uint productId,
     uint firstTrancheId,
     uint trancheCount,
@@ -894,7 +910,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint reductionRatio
   ) internal view returns (uint[] memory totalCapacities, uint totalCapacity) {
 
-    uint _activeStake = activeStake;
+    uint _activeStake = Math.divCeil(activeStake, 1e12);
     uint _stakeSharesSupply = stakeSharesSupply;
 
     if (_stakeSharesSupply == 0) {
@@ -1196,14 +1212,6 @@ contract StakingPool is IStakingPool, ERC721 {
     super.transferFrom(from, to, tokenId);
   }
 
-  /* pool management */
-
-  function setProductDetails(ProductParams[] memory params) external onlyManager {
-    // silence compiler warnings
-    params;
-    activeStake = activeStake;
-    // [todo] Implement
-  }
 
   /* views */
 
@@ -1240,16 +1248,95 @@ contract StakingPool is IStakingPool, ERC721 {
     return ownerOf(0);
   }
 
-  /* management */
+  /* pool management */
 
-  function addProducts(ProductParams[] memory params) external onlyManager {
-    totalSupply = totalSupply;  // To silence view fn warning. Remove once implemented
-    params;
+  function setProducts(ProductParams[] memory params) external onlyManager {
+    uint[] memory productIds = new uint[](params.length);
+    uint numProducts = params.length;
+
+    for (uint i = 0; i < numProducts; i++) {
+      productIds[i] = params[i].productId;
+    }
+
+    (
+      uint globalCapacityRatio,
+      uint globalMinPriceRatio,
+      uint[] memory initialPriceRatios,
+      uint[] memory capacityReductionRatios
+    ) = ICover(coverContract).getPriceAndCapacityRatios(productIds);
+
+    uint _totalTargetWeight = totalTargetWeight;
+    uint _totalEffectiveWeight = totalEffectiveWeight;
+
+    for (uint i = 0; i < numProducts; i++) {
+      ProductParams memory _param = params[i];
+      StakedProduct memory _product = products[_param.productId];
+
+      if (_product.nextPriceUpdateTime == 0) {
+        _product.nextPrice = initialPriceRatios[i].toUint96();
+        _product.nextPriceUpdateTime = uint32(block.timestamp);
+        require(_param.setTargetPrice, "StakingPool: Must set price for new products");
+      }
+
+      if (_param.setTargetPrice) {
+        validateTargetPrice(_param.targetPrice, globalMinPriceRatio);
+        _product.targetPrice = _param.targetPrice;
+      }
+
+      require(
+        !_param.setTargetWeight || _param.recalculateEffectiveWeight,
+        "StakingPool: Must recalculate effectiveWeight to edit targetWeight"
+      );
+
+      // Must recalculate effectiveWeight to adjust targetWeight
+      if (_param.recalculateEffectiveWeight) {
+
+        if (_param.setTargetWeight) {
+          require(_param.targetWeight <= WEIGHT_DENOMINATOR, "StakingPool: Cannot set weight beyond 1");
+          _totalTargetWeight = _totalTargetWeight - _product.targetWeight + _param.targetWeight;
+          _product.targetWeight = _param.targetWeight;
+        }
+
+        uint8 previousEffectiveWeight = _product.lastEffectiveWeight;
+        _product.lastEffectiveWeight = _getEffectiveWeight(
+          _param.productId,
+          _product.targetWeight,
+          globalCapacityRatio,
+          capacityReductionRatios[i]
+        );
+        _totalEffectiveWeight = _totalEffectiveWeight - previousEffectiveWeight + _product.lastEffectiveWeight;
+      }
+      products[_param.productId] = _product;
+    }
+
+    require(_totalEffectiveWeight <= MAX_TOTAL_WEIGHT, "StakingPool: Total max effective weight exceeded");
+    totalTargetWeight = _totalTargetWeight.toUint32();
+    totalEffectiveWeight = _totalEffectiveWeight.toUint32();
   }
 
-  function removeProducts(uint[] memory productIds) external onlyManager {
-    totalSupply = totalSupply;  // To silence view fn warning. Remove once implemented
-    productIds;
+  function _setInitialProducts(ProductInitializationParams[] memory params) internal {
+    uint32 _totalTargetWeight = totalTargetWeight;
+
+    for (uint i = 0; i < params.length; i++) {
+      ProductInitializationParams memory param = params[i];
+      StakedProduct storage _product = products[param.productId];
+      require(param.targetPrice <= TARGET_PRICE_DENOMINATOR, "StakingPool: Target price too high");
+      require(param.weight <= WEIGHT_DENOMINATOR, "StakingPool: Cannot set weight beyond 1");
+      _product.nextPrice = param.initialPrice;
+      _product.nextPriceUpdateTime = uint32(block.timestamp);
+      _product.targetPrice = param.targetPrice;
+      _product.targetWeight = param.weight;
+      _totalTargetWeight += param.weight;
+    }
+
+    require(_totalTargetWeight <= MAX_TOTAL_WEIGHT, "StakingPool: Total max target weight exceeded");
+    totalTargetWeight = _totalTargetWeight;
+    totalEffectiveWeight = totalTargetWeight;
+  }
+
+  function validateTargetPrice(uint96 targetPrice, uint globalMinPriceRatio) public view {
+    require(targetPrice <= TARGET_PRICE_DENOMINATOR, "StakingPool: Target price too high");
+    require(targetPrice >= globalMinPriceRatio, "StakingPool: Target price below GLOBAL_MIN_PRICE_RATIO");
   }
 
   function setPoolFee(uint newFee) external onlyManager {
@@ -1322,7 +1409,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint totalCapacity
   ) internal returns (uint) {
 
-    Product memory product = products[productId];
+    StakedProduct memory product = products[productId];
 
     uint basePrice;
     {
@@ -1435,5 +1522,30 @@ contract StakingPool is IStakingPool, ERC721 {
     // amountOnSurge has two decimals
     // dividing by ALLOCATION_UNITS_PER_NXM (=100) to normalize the result
     return surgePremium / ALLOCATION_UNITS_PER_NXM;
+  }
+
+  function _getEffectiveWeight(
+    uint productId,
+    uint targetWeight,
+    uint globalCapacityRatio,
+    uint capacityReductionRatio
+  ) internal view returns (uint8 effectiveWeight) {
+    uint firstTrancheIdToUse = block.timestamp / TRANCHE_DURATION;
+
+    (, uint totalAllocatedCapacity) = getAllocatedCapacities(
+      productId,
+      firstTrancheIdToUse,
+      MAX_ACTIVE_TRANCHES
+    );
+
+    (, uint totalCapacity) = getTotalCapacitiesForTranches(
+      productId,
+      firstTrancheIdToUse,
+      MAX_ACTIVE_TRANCHES,
+      globalCapacityRatio,
+      capacityReductionRatio
+    );
+    uint actualWeight = totalCapacity > 0 ? (totalAllocatedCapacity * WEIGHT_DENOMINATOR / totalCapacity) : 0;
+    effectiveWeight = (Math.max(targetWeight, actualWeight)).toUint8();
   }
 }

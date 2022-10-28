@@ -42,7 +42,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   uint private constant MAX_COMMISSION_RATIO = 2500; // 25%
 
-  uint private constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
   uint private constant ONE_NXM = 1e18;
 
@@ -550,7 +550,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       manager,
       isPrivatePool,
       initialPoolFee,
-      maxPoolFee
+      maxPoolFee,
+      GLOBAL_MIN_PRICE_RATIO
     );
 
     address stakingPoolAddress = CoverUtilsLib.createStakingPool(
@@ -785,6 +786,25 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   function isAssetSupported(uint32 assetsBitMap, uint8 coverAsset) public pure override returns (bool) {
     return (1 << coverAsset) & assetsBitMap > 0;
+  }
+
+  function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (
+    uint _globalCapacityRatio,
+    uint _globalMinPriceRatio,
+    uint[] memory _initialPrices,
+    uint[] memory _capacityReductionRatios
+  ) {
+    _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
+    _globalCapacityRatio = uint(globalCapacityRatio);
+    _capacityReductionRatios = new uint[](productIds.length);
+    _initialPrices  = new uint[](productIds.length);
+
+    for (uint i = 0; i < productIds.length; i++) {
+      Product memory product = _products[productIds[i]];
+      require(product.initialPriceRatio > 0, "Cover: Product deprecated or not initialized");
+      _initialPrices[i] = uint(product.initialPriceRatio);
+      _capacityReductionRatios[i] = uint(product.capacityReductionRatio);
+    }
   }
 
   function _isCoverAssetDeprecated(

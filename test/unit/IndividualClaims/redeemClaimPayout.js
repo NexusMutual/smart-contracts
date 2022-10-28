@@ -200,10 +200,9 @@ describe('redeemClaimPayout', function () {
     const { payoutCooldownInDays } = await assessment.config();
     await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
 
-    await expect(individualClaims.connect(coverOwner).redeemClaimPayout(0)).to.emit(
-      individualClaims,
-      'ClaimPayoutRedeemed',
-    );
+    await expect(individualClaims.connect(coverOwner).redeemClaimPayout(0))
+      .to.emit(individualClaims, 'ClaimPayoutRedeemed')
+      .withArgs(coverOwner.address, parseEther('1'), 0, 0);
   });
 
   it("sets the claim's payoutRedeemed property to true", async function () {

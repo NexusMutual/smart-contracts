@@ -462,17 +462,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     return true;
   }
 
-
-  /// @dev DEPRECATED, use calculateNXMForEth function instead! Returns the amount of wei a seller
-  /// will get for selling NXM
-  ///
-  /// @param amount     Amount of NXM to sell
-  /// @return weiToPay  Amount of wei the seller will get
-  /// [todo] Is it safe to remove this?
-  function getWei(uint amount) external view returns (uint weiToPay) {
-    return getEthForNXM(amount);
-  }
-
   /// Buys NXM tokens with ETH.
   ///
   /// @param minTokensOut  Minimum amount of tokens to be bought. Revert if boughtTokens falls below

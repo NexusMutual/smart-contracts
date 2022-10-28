@@ -57,7 +57,7 @@ describe('setProducts unit tests', function () {
   const getCoverProduct = initialPriceRatio => {
     return {
       productType: 1,
-      ytcUnderlyingAsset: AddressZero,
+      yieldTokenAddress: AddressZero,
       coverAssets: 1111,
       initialPriceRatio,
       capacityReductionRatio: 0,

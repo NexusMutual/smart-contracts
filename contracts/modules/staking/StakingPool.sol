@@ -945,24 +945,26 @@ contract StakingPool is IStakingPool, ERC721 {
       * CAPACITY_REDUCTION_DENOMINATOR
       * WEIGHT_DENOMINATOR;
 
-    uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+    uint lastTrancheId = (block.timestamp / TRANCHE_DURATION) + MAX_ACTIVE_TRANCHES - 1;
 
-    for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
-      // SLOAD
-      uint trancheId = _firstActiveTrancheId + i;
-      uint trancheStakeShares = tranches[trancheId].stakeShares;
+    for (
+      uint trancheId = block.timestamp / TRANCHE_DURATION;
+      trancheId <= lastTrancheId;
+      trancheId++
+    ) {
+
       uint trancheCapacity =
-        (_activeStake * trancheStakeShares / _stakeSharesSupply) // tranche stake
+        (_activeStake * tranches[trancheId].stakeShares / _stakeSharesSupply) // tranche stake
         * multiplier
         / denominator
         / NXM_PER_ALLOCATION_UNIT;
 
       if (trancheId >= firstTrancheId) {
+        trancheCapacities[trancheId - firstTrancheId] = trancheCapacity;
         requestedTranchesCapacity += trancheCapacity;
       }
 
       totalCapacity += trancheCapacity;
-      trancheCapacities[i] = trancheCapacity;
     }
 
     return (trancheCapacities, requestedTranchesCapacity, totalCapacity);

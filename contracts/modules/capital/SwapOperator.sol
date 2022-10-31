@@ -45,6 +45,7 @@ contract SwapOperator {
   uint public constant MAX_VALID_TO_PERIOD = 3600; // 60 minutes
   uint public constant MIN_TIME_BETWEEN_ORDERS = 900; // 15 minutes
   uint public constant maxFee = 0.3 ether;
+  uint public constant minPoolEth = 0;
 
   // Events
   event OrderPlaced(GPv2Order.Data order);
@@ -137,7 +138,7 @@ contract SwapOperator {
       validateMaxFee(priceFeedOracle, ETH, order.feeAmount);
 
       // Validate minimum pool eth reserve
-      require(address(pool).balance - totalOutAmount >= pool.minPoolEth(), "SwapOp: Pool eth balance below min");
+      require(address(pool).balance - totalOutAmount >= minPoolEth, "SwapOp: Pool eth balance below min");
 
       // Ask oracle how much of the other asset we should get
       uint oracleBuyAmount = priceFeedOracle.getAssetForEth(address(order.buyToken), order.sellAmount);
@@ -413,7 +414,7 @@ contract SwapOperator {
 
     {
       uint ethBalanceAfter = address(pool).balance;
-      require(ethBalanceAfter >= pool.minPoolEth(), "SwapOp: insufficient ether left");
+      require(ethBalanceAfter >= minPoolEth, "SwapOp: insufficient ether left");
     }
 
     transferAssetTo(enzymeV4VaultProxyAddress, address(pool), amountOut);

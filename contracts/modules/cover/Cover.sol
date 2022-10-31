@@ -261,7 +261,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     for (uint i = 0; i < allocationRequests.length; i++) {
 
       uint coverAmountInAsset = allocationRequests[i].coverAmountInAsset;
-      require(coverAmountInAsset > 0, "Cover: coverAmountInAsset = 0");
+      require(coverAmountInAsset > 0, "retCover: coverAmountInAsset = 0");
 
       // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
       uint requestedAmountInNXM = Math.roundUp(

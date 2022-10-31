@@ -21,8 +21,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   using SafeERC20 for IERC20;
   using Address for address;
 
-  uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
-
   /* storage */
   Asset[] public override coverAssets;
   Asset[] public override investmentAssets;
@@ -37,8 +35,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   // parameters
   address public swapController;
-  // TODO: pack minPoolEth
-  uint public override minPoolEth;
   IPriceFeedOracle public override priceFeedOracle;
   address public swapOperator;
 
@@ -71,6 +67,8 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   uint internal constant CONSTANT_C = 5800000;
   uint internal constant CONSTANT_A = 1028 * 1e13;
   uint internal constant TOKEN_EXPONENT = 4;
+
+  uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
   /* events */
   event Payout(address indexed to, address indexed assetAddress, uint amount);
@@ -690,11 +688,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   }
 
   function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
-    if (code == "MIN_ETH") {
-      minPoolEth = value;
-      return;
-    }
-
     revert("Pool: Unknown parameter");
   }
 

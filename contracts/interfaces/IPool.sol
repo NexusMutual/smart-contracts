@@ -41,8 +41,6 @@ interface IPool {
 
   function sellNXMTokens(uint tokenAmount) external returns (bool);
 
-  function minPoolEth() external returns (uint);
-
   function transferAssetToSwapOperator(address asset, uint amount) external;
 
   function setSwapDetailsLastSwapTime(address asset, uint32 lastSwapTime) external;

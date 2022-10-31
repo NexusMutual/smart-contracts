@@ -711,7 +711,9 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
     if (code == "SWP_OP") {
-      require(!ISwapOperator(swapOperator).orderInProgress(), 'Pool: Cancel all swaps before changing swapOperator');
+      if (swapOperator != address(0)) {
+        require(!ISwapOperator(swapOperator).orderInProgress(), 'Pool: Cancel all swaps before changing swapOperator');
+      }
       swapOperator = value;
       return;
     }

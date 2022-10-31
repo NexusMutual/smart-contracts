@@ -6,6 +6,7 @@ const { web3, artifacts } = require('hardhat');
 const {
   governanceContracts: [governance],
   generalPurpose: [arbitraryCaller],
+  defaultSender,
 } = require('../utils').accounts;
 const { hex } = require('../utils').helpers;
 const { BN } = web3.utils;
@@ -45,7 +46,9 @@ describe('transferAssetToSwapOperator', function () {
 
     const amountToTransfer = tokenAmount.divn(2);
 
-    await pool.transferAssetToSwapOperator(otherToken.address, amountToTransfer, { from: swapOperator });
+    await pool.updateAddressParameters(hex('SWP_OP'), defaultSender, { from: governance });
+
+    await pool.transferAssetToSwapOperator(otherToken.address, amountToTransfer);
     const destinationBalance = await otherToken.balanceOf(swapOperator);
     assert.equal(destinationBalance.toString(), amountToTransfer.toString());
 

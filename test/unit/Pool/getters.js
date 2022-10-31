@@ -36,21 +36,4 @@ describe('getters', function () {
       assert.equal(tokenValue.toString(), expectedTokenValue.toString());
     });
   });
-
-  describe('getWei', function () {
-    it('returns value as calculated by calculateEthForNXM', async function () {
-      const { pool, mcr } = this;
-
-      const mcrEth = ether('160000');
-      const totalAssetValue = percentageBN(mcrEth, 150);
-      const tokenValue = ether('1');
-
-      await mcr.setMCR(mcrEth);
-      await pool.sendTransaction({ value: totalAssetValue });
-
-      const expectedEthOut = await pool.calculateEthForNXM(tokenValue, totalAssetValue, mcrEth);
-      const ethOut = await pool.getWei(tokenValue);
-      assert.equal(ethOut.toString(), expectedEthOut.toString());
-    });
-  });
 });

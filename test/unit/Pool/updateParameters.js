@@ -27,24 +27,6 @@ describe('updateUintParameters', function () {
       await expectRevert(pool.updateUintParameters(param, 0, { from: address }), 'Caller is not authorized to govern');
     }
   });
-
-  it('should correctly update the uint parameters', async function () {
-    const { pool } = this;
-    const params = Object.keys(PoolUintParamType);
-
-    const value = 42;
-
-    for (const paramName of params) {
-      const before = await pool[paramName]();
-      assert.notStrictEqual(before.toString(), value);
-
-      const param = PoolUintParamType[paramName];
-      await pool.updateUintParameters(param, value, { from: governanceContract });
-
-      const actual = await pool[paramName]();
-      assert.strictEqual(actual.toString(), value.toString());
-    }
-  });
 });
 
 describe('updateAddressParameters', function () {

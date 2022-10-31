@@ -17,6 +17,7 @@ async function setup() {
   const ERC20BlacklistableMock = artifacts.require('ERC20BlacklistableMock');
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
+  const P1MockSwapOperator = artifacts.require('P1MockSwapOperator');
 
   const master = await MasterMock.new();
   const dai = await ERC20Mock.new();
@@ -39,12 +40,12 @@ async function setup() {
     [18, 18, 18],
   );
 
-  const swapOperator = accounts.generalPurpose[10];
+  const swapOperator = await P1MockSwapOperator.new();
 
   const pool = await Pool.new(
     accounts.defaultSender, // master: it is changed a few lines below
     priceFeedOracle.address,
-    swapOperator, // we do not test swaps here
+    swapOperator.address, // we do not test swaps here
     dai.address,
     stETH.address,
   );

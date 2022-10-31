@@ -1032,13 +1032,22 @@ describe('buyCover', function () {
       members: [coverBuyer, coverReceiver],
     } = this.accounts;
 
-    const { amount, productId, coverAsset, period, poolId, expectedPremium } = buyCoverFixture;
+    const { amount, productId, coverAsset, period, poolId, targetPriceRatio, priceDenominator } = buyCoverFixture;
 
     const globalRewardsRatio = 5000;
+    const rewardDenominator = 10000;
 
     await cover.connect(gv1).updateUintParameters([1], [globalRewardsRatio]);
 
     const stakingPoolRewardBefore = await tokenController.stakingPoolNXMBalances(poolId);
+
+    const expectedPremium = amount
+      .mul(targetPriceRatio)
+      .div(priceDenominator)
+      .mul(period)
+      .div(3600 * 24 * 365);
+
+    const expectedReward = expectedPremium.mul(globalRewardsRatio).div(rewardDenominator);
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -1062,7 +1071,7 @@ describe('buyCover', function () {
 
     const stakingPoolRewardAfter = await tokenController.stakingPoolNXMBalances(poolId);
     // validate that rewards increased
-    expect(stakingPoolRewardAfter.rewards).to.be.gt(stakingPoolRewardBefore.rewards);
+    expect(stakingPoolRewardAfter.rewards).to.be.equal(stakingPoolRewardBefore.rewards.add(expectedReward));
   });
 
   it('allows to buy against multiple staking pool', async function () {
@@ -1074,16 +1083,15 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const {
-      amount,
       productId,
       coverAsset,
       period,
-      expectedPremium,
       capacity,
       targetPriceRatio,
       activeCover,
       coverId,
       segmentId,
+      priceDenominator,
     } = buyCoverFixture;
 
     // create a 2nd pool
@@ -1098,31 +1106,7 @@ describe('buyCover', function () {
       targetPriceRatio,
     );
 
-    // create a 3er pool
-    await createStakingPool(
-      cover,
-      productId,
-      capacity,
-      targetPriceRatio,
-      activeCover,
-      stakingPoolManager,
-      stakingPoolManager,
-      targetPriceRatio,
-    );
-
-    // create a 4th pool
-    await createStakingPool(
-      cover,
-      productId,
-      capacity,
-      targetPriceRatio,
-      activeCover,
-      stakingPoolManager,
-      stakingPoolManager,
-      targetPriceRatio,
-    );
-
-    // create a 5th pool
+    // create a 3rd pool
     await createStakingPool(
       cover,
       productId,
@@ -1135,15 +1119,25 @@ describe('buyCover', function () {
     );
 
     const globalRewardsRatio = 5000;
+    const rewardDenominator = 10000;
+
     await cover.connect(gv1).updateUintParameters([1], [globalRewardsRatio]);
 
-    const coverAmountInAsset = amount.div(5);
+    const amount = parseEther('900');
+    const coverAmountAllocationPerPool = amount.div(3);
+
+    const expectedPremiumPerPool = coverAmountAllocationPerPool
+      .mul(targetPriceRatio)
+      .div(priceDenominator)
+      .mul(period)
+      .div(3600 * 24 * 365);
+
+    const expectedRewardPerPool = expectedPremiumPerPool.mul(globalRewardsRatio).div(rewardDenominator);
+    const expectedPremium = expectedPremiumPerPool.mul(3);
 
     const stakingPool1Before = await tokenController.stakingPoolNXMBalances(0);
     const stakingPool2Before = await tokenController.stakingPoolNXMBalances(1);
     const stakingPool3Before = await tokenController.stakingPoolNXMBalances(2);
-    const stakingPool4Before = await tokenController.stakingPoolNXMBalances(3);
-    const stakingPool5Before = await tokenController.stakingPoolNXMBalances(4);
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -1160,11 +1154,9 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       [
-        { poolId: 0, coverAmountInAsset },
-        { poolId: 1, coverAmountInAsset },
-        { poolId: 2, coverAmountInAsset },
-        { poolId: 3, coverAmountInAsset },
-        { poolId: 4, coverAmountInAsset },
+        { poolId: 0, coverAmountInAsset: coverAmountAllocationPerPool },
+        { poolId: 1, coverAmountInAsset: coverAmountAllocationPerPool },
+        { poolId: 2, coverAmountInAsset: coverAmountAllocationPerPool },
       ],
       {
         value: expectedPremium,
@@ -1174,20 +1166,16 @@ describe('buyCover', function () {
     const stakingPool1After = await tokenController.stakingPoolNXMBalances(0);
     const stakingPool2After = await tokenController.stakingPoolNXMBalances(1);
     const stakingPool3After = await tokenController.stakingPoolNXMBalances(2);
-    const stakingPool4After = await tokenController.stakingPoolNXMBalances(3);
-    const stakingPool5After = await tokenController.stakingPoolNXMBalances(4);
 
     // validate that rewards increased
-    expect(stakingPool1After.rewards).to.be.gt(stakingPool1Before.rewards);
-    expect(stakingPool2After.rewards).to.be.gt(stakingPool2Before.rewards);
-    expect(stakingPool3After.rewards).to.be.gt(stakingPool3Before.rewards);
-    expect(stakingPool4After.rewards).to.be.gt(stakingPool4Before.rewards);
-    expect(stakingPool5After.rewards).to.be.gt(stakingPool5Before.rewards);
+    expect(stakingPool1After.rewards).to.be.equal(stakingPool1Before.rewards.add(expectedRewardPerPool));
+    expect(stakingPool2After.rewards).to.be.equal(stakingPool2Before.rewards.add(expectedRewardPerPool));
+    expect(stakingPool3After.rewards).to.be.equal(stakingPool3Before.rewards.add(expectedRewardPerPool));
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 3; i++) {
       const segmentAllocation = await cover.coverSegmentAllocations(coverId, segmentId, i);
       expect(segmentAllocation.poolId).to.be.equal(i);
-      expect(segmentAllocation.coverAmountInNXM).to.be.equal(coverAmountInAsset);
+      expect(segmentAllocation.coverAmountInNXM).to.be.equal(coverAmountAllocationPerPool);
     }
   });
 

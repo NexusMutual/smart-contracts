@@ -1,5 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { setEtherBalance } = require('../../utils/evm');
 
 const { createStakingPool, assertCoverFields } = require('./helpers');
 
@@ -11,6 +12,8 @@ const buyCoverFixture = {
   productId: 0,
   coverAsset: 0, // ETH
   coverId: 0,
+  poolId: 0,
+  segmentId: 0,
   period: 3600 * 24 * 30, // 30 days
   amount: parseEther('1000'),
   targetPriceRatio: 260,
@@ -801,5 +804,457 @@ describe('buyCover', function () {
         },
       ),
     ).to.be.revertedWithPanic('0x12'); // (Division or modulo division by zero)
+  });
+
+  it('reverts if allocationRequest coverAmountInAsset is 0', async function () {
+    const { cover } = this;
+
+    const {
+      members: [coverBuyer],
+    } = this.accounts;
+
+    const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: expectedPremium,
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', coverAmountInAsset: 0 }],
+        {
+          value: expectedPremium,
+        },
+      ),
+    ).to.be.revertedWith('Cover: coverAmountInAsset = 0'); // (Division or modulo division by zero)
+  });
+
+  it('retrieves ERC20 payment from caller and transfers it to the Pool', async function () {
+    const { cover, dai, pool } = this;
+
+    const {
+      members: [coverBuyer, coverReceiver],
+    } = this.accounts;
+
+    const coverAsset = 1; // DAI
+    const { amount, productId, period, targetPriceRatio, priceDenominator } = buyCoverFixture;
+
+    const expectedPremium = amount
+      .mul(targetPriceRatio)
+      .div(priceDenominator)
+      .mul(period)
+      .div(3600 * 24 * 365);
+
+    await dai.mint(coverBuyer.address, parseEther('100000'));
+    await dai.connect(coverBuyer).approve(cover.address, parseEther('100000'));
+
+    const userDaiBalanceBefore = await dai.balanceOf(coverBuyer.address);
+    const poolDaiBalanceBefore = await dai.balanceOf(pool.address);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        owner: coverReceiver.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        payWithNXM: false,
+        commissionRatio: 0,
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: amount }],
+      {
+        value: '0',
+      },
+    );
+
+    const userDaiBalanceAfter = await dai.balanceOf(coverBuyer.address);
+    expect(userDaiBalanceAfter).to.be.equal(userDaiBalanceBefore.sub(expectedPremium));
+
+    const poolDaiBalanceAfter = await dai.balanceOf(pool.address);
+    expect(poolDaiBalanceAfter).to.be.equal(poolDaiBalanceBefore.add(expectedPremium));
+  });
+
+  it('store cover and segment data', async function () {
+    const { cover } = this;
+
+    const {
+      members: [coverBuyer],
+    } = this.accounts;
+
+    const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator, coverId, poolId, segmentId } =
+      buyCoverFixture;
+    const expectedPremium = amount
+      .mul(targetPriceRatio)
+      .div(priceDenominator)
+      .mul(period)
+      .div(3600 * 24 * 365);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+      {
+        value: expectedPremium,
+      },
+    );
+
+    const globalRewardsRatio = await cover.globalRewardsRatio();
+    const { timestamp } = await ethers.provider.getBlock('latest');
+
+    const storedCoverData = await cover.coverData(coverId);
+    expect(storedCoverData.productId).to.be.equal(productId);
+    expect(storedCoverData.coverAsset).to.be.equal(coverAsset);
+    expect(storedCoverData.amountPaidOut).to.be.equal(0);
+
+    const coverSegmentsCount = await cover.coverSegmentsCount(coverId);
+    expect(coverSegmentsCount).to.be.equal(1);
+
+    const segment = await cover.coverSegments(coverId, segmentId);
+    expect(segment.gracePeriodInDays).to.be.equal(gracePeriodInDays);
+    expect(segment.period).to.be.equal(period);
+    expect(segment.amount).to.be.equal(amount);
+    expect(segment.priceRatio).to.be.equal(targetPriceRatio);
+    expect(segment.expired).to.be.equal(false);
+    expect(segment.start).to.be.equal(timestamp + 1);
+    expect(segment.globalRewardsRatio).to.be.equal(globalRewardsRatio);
+
+    const segmentPoolAllocationIndex = 0;
+    const segmentAllocations = await cover.coverSegmentAllocations(coverId, segmentId, segmentPoolAllocationIndex);
+    expect(segmentAllocations.poolId).to.be.equal(poolId);
+    expect(segmentAllocations.coverAmountInNXM).to.be.equal(amount);
+    expect(segmentAllocations.premiumInNXM).to.be.equal(expectedPremium);
+  });
+
+  it('mints NFT to owner', async function () {
+    const { cover, coverNFT } = this;
+
+    const {
+      members: [coverBuyer, coverReceiver],
+    } = this.accounts;
+
+    const { amount, productId, coverAsset, period, coverId, expectedPremium } = buyCoverFixture;
+
+    const nftBalanceBefore = await coverNFT.balanceOf(coverReceiver.address);
+    expect(nftBalanceBefore).to.be.equal(0);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        owner: coverReceiver.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: amount }],
+      {
+        value: expectedPremium,
+      },
+    );
+
+    const nftBalanceAfter = await coverNFT.balanceOf(coverReceiver.address);
+    expect(nftBalanceAfter).to.be.equal(1);
+
+    const ownerOfCoverId = await coverNFT.ownerOf(coverId);
+    expect(ownerOfCoverId).to.be.equal(coverReceiver.address);
+  });
+
+  it('allows to set a non member as owner', async function () {
+    const { cover, coverNFT } = this;
+
+    const {
+      members: [coverBuyer],
+      nonMembers: [nonMemberCoverReceiver],
+    } = this.accounts;
+
+    const { amount, productId, coverAsset, period, coverId, expectedPremium } = buyCoverFixture;
+
+    const nftBalanceBefore = await coverNFT.balanceOf(nonMemberCoverReceiver.address);
+    expect(nftBalanceBefore).to.be.equal(0);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        owner: nonMemberCoverReceiver.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: amount }],
+      {
+        value: expectedPremium,
+      },
+    );
+
+    const nftBalanceAfter = await coverNFT.balanceOf(nonMemberCoverReceiver.address);
+    expect(nftBalanceAfter).to.be.equal(1);
+
+    const ownerOfCoverId = await coverNFT.ownerOf(coverId);
+    expect(ownerOfCoverId).to.be.equal(nonMemberCoverReceiver.address);
+  });
+
+  it('mints rewards to staking pool', async function () {
+    const { cover, tokenController } = this;
+
+    const {
+      governanceContracts: [gv1],
+      members: [coverBuyer, coverReceiver],
+    } = this.accounts;
+
+    const { amount, productId, coverAsset, period, poolId, targetPriceRatio, priceDenominator } = buyCoverFixture;
+
+    const globalRewardsRatio = 5000;
+    const rewardDenominator = 10000;
+
+    await cover.connect(gv1).updateUintParameters([1], [globalRewardsRatio]);
+
+    const stakingPoolRewardBefore = await tokenController.stakingPoolNXMBalances(poolId);
+
+    const expectedPremium = amount
+      .mul(targetPriceRatio)
+      .div(priceDenominator)
+      .mul(period)
+      .div(3600 * 24 * 365);
+
+    const expectedReward = expectedPremium.mul(globalRewardsRatio).div(rewardDenominator);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        owner: coverReceiver.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+      {
+        value: expectedPremium,
+      },
+    );
+
+    const stakingPoolRewardAfter = await tokenController.stakingPoolNXMBalances(poolId);
+    // validate that rewards increased
+    expect(stakingPoolRewardAfter.rewards).to.be.equal(stakingPoolRewardBefore.rewards.add(expectedReward));
+  });
+
+  it('allows to buy against multiple staking pool', async function () {
+    const { cover, tokenController } = this;
+
+    const {
+      governanceContracts: [gv1],
+      members: [coverBuyer, coverReceiver, stakingPoolManager],
+    } = this.accounts;
+
+    const {
+      productId,
+      coverAsset,
+      period,
+      capacity,
+      targetPriceRatio,
+      activeCover,
+      coverId,
+      segmentId,
+      priceDenominator,
+    } = buyCoverFixture;
+
+    // create a 2nd pool
+    await createStakingPool(
+      cover,
+      productId,
+      capacity,
+      targetPriceRatio,
+      activeCover,
+      stakingPoolManager,
+      stakingPoolManager,
+      targetPriceRatio,
+    );
+
+    // create a 3rd pool
+    await createStakingPool(
+      cover,
+      productId,
+      capacity,
+      targetPriceRatio,
+      activeCover,
+      stakingPoolManager,
+      stakingPoolManager,
+      targetPriceRatio,
+    );
+
+    const globalRewardsRatio = 5000;
+    const rewardDenominator = 10000;
+
+    await cover.connect(gv1).updateUintParameters([1], [globalRewardsRatio]);
+
+    const amount = parseEther('900');
+    const coverAmountAllocationPerPool = amount.div(3);
+
+    const expectedPremiumPerPool = coverAmountAllocationPerPool
+      .mul(targetPriceRatio)
+      .div(priceDenominator)
+      .mul(period)
+      .div(3600 * 24 * 365);
+
+    const expectedRewardPerPool = expectedPremiumPerPool.mul(globalRewardsRatio).div(rewardDenominator);
+    const expectedPremium = expectedPremiumPerPool.mul(3);
+
+    const stakingPool1Before = await tokenController.stakingPoolNXMBalances(0);
+    const stakingPool2Before = await tokenController.stakingPoolNXMBalances(1);
+    const stakingPool3Before = await tokenController.stakingPoolNXMBalances(2);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        owner: coverReceiver.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [
+        { poolId: 0, coverAmountInAsset: coverAmountAllocationPerPool },
+        { poolId: 1, coverAmountInAsset: coverAmountAllocationPerPool },
+        { poolId: 2, coverAmountInAsset: coverAmountAllocationPerPool },
+      ],
+      {
+        value: expectedPremium,
+      },
+    );
+
+    const stakingPool1After = await tokenController.stakingPoolNXMBalances(0);
+    const stakingPool2After = await tokenController.stakingPoolNXMBalances(1);
+    const stakingPool3After = await tokenController.stakingPoolNXMBalances(2);
+
+    // validate that rewards increased
+    expect(stakingPool1After.rewards).to.be.equal(stakingPool1Before.rewards.add(expectedRewardPerPool));
+    expect(stakingPool2After.rewards).to.be.equal(stakingPool2Before.rewards.add(expectedRewardPerPool));
+    expect(stakingPool3After.rewards).to.be.equal(stakingPool3Before.rewards.add(expectedRewardPerPool));
+
+    for (let i = 0; i < 3; i++) {
+      const segmentAllocation = await cover.coverSegmentAllocations(coverId, segmentId, i);
+      expect(segmentAllocation.poolId).to.be.equal(i);
+      expect(segmentAllocation.coverAmountInNXM).to.be.equal(coverAmountAllocationPerPool);
+    }
+  });
+
+  it('reverts if reentrant', async function () {
+    const { cover, memberRoles } = this;
+
+    const {
+      members: [coverBuyer, coverReceiver],
+    } = this.accounts;
+
+    const ReentrantExploiter = await ethers.getContractFactory('ReentrancyExploiter');
+    const reentrantExploiter = await ReentrantExploiter.deploy();
+    await memberRoles.setRole(reentrantExploiter.address, 2);
+
+    const { amount, productId, coverAsset, period, poolId, targetPriceRatio, priceDenominator } = buyCoverFixture;
+
+    const commissionRatio = 500; // 5%
+    const expectedBasePremium = amount
+      .mul(targetPriceRatio)
+      .div(priceDenominator)
+      .mul(period)
+      .div(3600 * 24 * 365);
+    const expectedCommission = expectedBasePremium.mul(commissionRatio).div(priceDenominator);
+    const expectedPremium = expectedBasePremium.add(expectedCommission);
+
+    const txData = await cover.connect(coverBuyer).populateTransaction.buyCover(
+      {
+        owner: coverReceiver.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+      {
+        value: expectedPremium,
+      },
+    );
+
+    await setEtherBalance(reentrantExploiter.address, expectedBasePremium.mul(2));
+    await reentrantExploiter.setFallbackParams([cover.address], [expectedBasePremium], [txData.data]);
+
+    // The test uses the payment to the commission destination to trigger reentrancy for the buyCover call.
+    // The nonReentrant protection will make the new call revert, making the payment to the commission address to fail.
+    // The expected revert message is 'Cover: Sending ETH to commission destination failed.'
+    // because the commission payment fails thanks to the nonReentrant guard.
+    // Even if we can't verify that the transaction reverts with the "ReentrancyGuard: reentrant call" message
+    // if the nonReentrant guard is removed from the buyCover() method this test will fail because the following
+    // transaction won't revert
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          owner: coverReceiver.address,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: expectedPremium,
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio,
+          commissionDestination: reentrantExploiter.address,
+          ipfsData: '',
+        },
+        [{ poolId, coverAmountInAsset: amount }],
+        {
+          value: expectedPremium,
+        },
+      ),
+    ).to.be.revertedWith('Cover: Sending ETH to commission destination failed.');
   });
 });

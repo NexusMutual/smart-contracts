@@ -589,8 +589,7 @@ contract StakingPool is IStakingPool, ERC721 {
     // passing true because we change the reward per second
     updateTranches(true);
 
-    uint gracePeriodExpiration = block.timestamp + request.period + request.gracePeriod;
-    uint firstTrancheIdToUse = gracePeriodExpiration / TRANCHE_DURATION;
+    uint firstTrancheIdToUse = (block.timestamp + request.period + request.gracePeriod) / TRANCHE_DURATION;
     uint trancheCount = block.timestamp / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES - firstTrancheIdToUse;
 
     (
@@ -614,16 +613,14 @@ contract StakingPool is IStakingPool, ERC721 {
       request.capacityReductionRatio
     );
 
-    uint remainingAmount = Math.divCeil(request.amount, NXM_PER_ALLOCATION_UNIT);
-
-    // total capacity can get below the used capacity as a result of burns
-    require(
-      totalCapacity > initialCapacityUsed && totalCapacity - initialCapacityUsed >= remainingAmount,
-      "StakingPool: Insufficient capacity"
-    );
-
     {
       uint[] memory coverTrancheAllocation = new uint[](trancheCount);
+      uint remainingAmount = Math.divCeil(request.amount, NXM_PER_ALLOCATION_UNIT);
+
+      require(
+        initialCapacityUsed + remainingAmount <= requestedTranchesCapacity,
+        "StakingPool: Insufficient capacity"
+      );
 
       for (uint i = 0; i < trancheCount; i++) {
 
@@ -631,8 +628,7 @@ contract StakingPool is IStakingPool, ERC721 {
           continue;
         }
 
-        uint availableTrancheCapacity = trancheCapacities[i] - trancheAllocations[i];
-        uint allocate = Math.min(availableTrancheCapacity, remainingAmount);
+        uint allocate = Math.min(trancheCapacities[i] - trancheAllocations[i], remainingAmount);
 
         remainingAmount -= allocate;
         allocatedCoverAmount += allocate;
@@ -642,10 +638,10 @@ contract StakingPool is IStakingPool, ERC721 {
         if (remainingAmount == 0) {
           break;
         }
-
-        // technically should never happen because of the total-used capacity check
-        require(remainingAmount == 0, "StakingPool: Insufficient capacity");
       }
+
+      // technically should never happen because of the total-used capacity check
+      require(remainingAmount == 0, "StakingPool: Insufficient capacity");
 
       updateAllocations(
         request.productId,
@@ -654,12 +650,14 @@ contract StakingPool is IStakingPool, ERC721 {
         trancheAllocations
       );
 
+      uint targetBucketId = (block.timestamp + request.period + request.gracePeriod) / BUCKET_DURATION + 1;
+
       updateExpiringCoverAmounts(
         request.coverId,
         request.productId,
         firstTrancheIdToUse,
         trancheCount,
-        gracePeriodExpiration / BUCKET_DURATION + 1,
+        targetBucketId,
         coverTrancheAllocation,
         true // isAllocation
       );
@@ -931,27 +929,33 @@ contract StakingPool is IStakingPool, ERC721 {
 
     uint _activeStake = activeStake;
     uint _stakeSharesSupply = stakeSharesSupply;
+    trancheCapacities = new uint[](trancheCount);
 
     if (_stakeSharesSupply == 0) {
-      trancheCapacities = new uint[](trancheCount);
       return (trancheCapacities, 0, 0);
     }
 
-    uint weight = products[productId].targetWeight;
+    uint multiplier =
+      capacityRatio
+      * (CAPACITY_REDUCTION_DENOMINATOR - reductionRatio)
+      * products[productId].targetWeight;
 
-    trancheCapacities = new uint[](trancheCount);
-    totalCapacity = 0;
+    uint denominator =
+      GLOBAL_CAPACITY_DENOMINATOR
+      * CAPACITY_REDUCTION_DENOMINATOR
+      * WEIGHT_DENOMINATOR;
 
-    uint multiplier = capacityRatio * (CAPACITY_REDUCTION_DENOMINATOR - reductionRatio) * weight;
-    uint denominator = GLOBAL_CAPACITY_DENOMINATOR * CAPACITY_REDUCTION_DENOMINATOR * WEIGHT_DENOMINATOR;
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 
     for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
       // SLOAD
       uint trancheId = _firstActiveTrancheId + i;
       uint trancheStakeShares = tranches[trancheId].stakeShares;
-      uint trancheStake = _activeStake * trancheStakeShares / _stakeSharesSupply;
-      uint trancheCapacity = trancheStake * multiplier / denominator / NXM_PER_ALLOCATION_UNIT;
+      uint trancheCapacity =
+        (_activeStake * trancheStakeShares / _stakeSharesSupply) // tranche stake
+        * multiplier
+        / denominator
+        / NXM_PER_ALLOCATION_UNIT;
 
       if (trancheId >= firstTrancheId) {
         requestedTranchesCapacity += trancheCapacity;
@@ -1303,7 +1307,8 @@ contract StakingPool is IStakingPool, ERC721 {
       }
 
       if (_param.setTargetPrice) {
-        validateTargetPrice(_param.targetPrice, globalMinPriceRatio);
+        require(_param.targetPrice <= TARGET_PRICE_DENOMINATOR, "StakingPool: Target price too high");
+        require(_param.targetPrice >= globalMinPriceRatio, "StakingPool: Target price below GLOBAL_MIN_PRICE_RATIO");
         _product.targetPrice = _param.targetPrice;
       }
 
@@ -1356,11 +1361,6 @@ contract StakingPool is IStakingPool, ERC721 {
     require(_totalTargetWeight <= MAX_TOTAL_WEIGHT, "StakingPool: Total max target weight exceeded");
     totalTargetWeight = _totalTargetWeight;
     totalEffectiveWeight = totalTargetWeight;
-  }
-
-  function validateTargetPrice(uint96 targetPrice, uint globalMinPriceRatio) public view {
-    require(targetPrice <= TARGET_PRICE_DENOMINATOR, "StakingPool: Target price too high");
-    require(targetPrice >= globalMinPriceRatio, "StakingPool: Target price below GLOBAL_MIN_PRICE_RATIO");
   }
 
   function setPoolFee(uint newFee) external onlyManager {

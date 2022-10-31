@@ -838,8 +838,8 @@ describe('buyCover', function () {
     ).to.be.revertedWith('Cover: coverAmountInAsset = 0'); // (Division or modulo division by zero)
   });
 
-  it('retrieves ERC20 payment from caller', async function () {
-    const { cover, dai } = this;
+  it('retrieves ERC20 payment from caller and transfers it to the Pool', async function () {
+    const { cover, dai, pool } = this;
 
     const {
       members: [coverBuyer, coverReceiver],
@@ -857,7 +857,8 @@ describe('buyCover', function () {
     await dai.mint(coverBuyer.address, parseEther('100000'));
     await dai.connect(coverBuyer).approve(cover.address, parseEther('100000'));
 
-    const daiBalanceBefore = await dai.balanceOf(coverBuyer.address);
+    const userDaiBalanceBefore = await dai.balanceOf(coverBuyer.address);
+    const poolDaiBalanceBefore = await dai.balanceOf(pool.address);
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -879,8 +880,11 @@ describe('buyCover', function () {
       },
     );
 
-    const daiBalanceAfter = await dai.balanceOf(coverBuyer.address);
-    expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.sub(expectedPremium));
+    const userDaiBalanceAfter = await dai.balanceOf(coverBuyer.address);
+    expect(userDaiBalanceAfter).to.be.equal(userDaiBalanceBefore.sub(expectedPremium));
+
+    const poolDaiBalanceAfter = await dai.balanceOf(pool.address);
+    expect(poolDaiBalanceAfter).to.be.equal(poolDaiBalanceBefore.add(expectedPremium));
   });
 
   it('store cover and segment data', async function () {

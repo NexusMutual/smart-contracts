@@ -1,7 +1,7 @@
 const { BigNumber } = require('ethers');
 const { ethers } = require('hardhat');
 const { parseEther } = ethers.utils;
-const { AddressZero } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
 const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
@@ -292,39 +292,52 @@ async function setup() {
     ['', '', ''],
   );
 
-  await cover.addProducts(
-    [
-      {
+  await cover.setProducts([
+    {
+      productId: MaxUint256,
+      ipfsMetadata: 'product 0 metadata',
+      product: {
         productType: 0, // Protocol Cover
         yieldTokenAddress: '0x0000000000000000000000000000000000000000',
         coverAssets: 0, // Use fallback
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
       },
-      {
+    },
+    {
+      productId: MaxUint256,
+      ipfsMetadata: 'product 0 metadata',
+      product: {
         productType: 1, // Custody Cover
         yieldTokenAddress: '0x0000000000000000000000000000000000000000',
         coverAssets: 0, // Use fallback
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
       },
-      {
+    },
+    {
+      productId: MaxUint256,
+      ipfsMetadata: 'product 0 metadata',
+      product: {
         productType: 2, // Yield Token Cover
         yieldTokenAddress: ybETH.address,
         coverAssets: 0b01, // ETH
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
       },
-      {
+    },
+    {
+      productId: MaxUint256,
+      ipfsMetadata: 'product 0 metadata',
+      product: {
         productType: 2, // Yield Token Cover
         yieldTokenAddress: ybDAI.address,
         coverAssets: 0b10, // DAI
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
       },
-    ],
-    ['', '', '', ''],
-  );
+    },
+  ]);
 
   await p1.updateAddressParameters(hex('SWP_OP').padEnd(2 + 16, '0'), swapOperator.address);
 

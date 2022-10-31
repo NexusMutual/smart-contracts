@@ -5,6 +5,7 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/proxy/beacon/UpgradeableBeacon.sol";
+import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ICover.sol";
@@ -21,7 +22,6 @@ import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./CoverUtilsLib.sol";
 import "./MinimalBeaconProxy.sol";
-import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
@@ -192,7 +192,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     require(_products.length > params.productId, "Cover: Product not found");
 
     Product memory product = _products[params.productId];
-    require(product.initialPriceRatio != 0, "Cover: Product not initialized");
+    require(!product.isDeprecated, "Cover: Product is deprecated");
 
     IPool _pool = pool();
     uint32 deprecatedCoverAssetsBitmap = _pool.deprecatedCoverAssetsBitmap();
@@ -363,6 +363,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     buyCoverParams.productId = cover.productId;
 
     Product memory product = _products[buyCoverParams.productId];
+    require(!product.isDeprecated, "Cover: Product is deprecated");
+
     uint32 deprecatedCoverAssetsBitmap = pool().deprecatedCoverAssetsBitmap();
 
     // Check that the payout asset is still supported (it may have been deprecated or disabled in the meantime)
@@ -638,19 +640,28 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   /* ========== PRODUCT CONFIGURATION ========== */
 
-  function addProducts(
-    Product[] calldata newProducts,
-    string[] calldata ipfsMetadata
-  ) external override onlyAdvisoryBoard {
-    uint initialProductsCount = _products.length;
-
+  function setProducts(ProductParam[] calldata productParams) external override onlyAdvisoryBoard {
     uint32 _coverAssetsFallback = coverAssetsFallback;
     uint productTypesCount = _productTypes.length;
 
-    for (uint i = 0; i < newProducts.length; i++) {
-      validateProduct(newProducts[i], _coverAssetsFallback, productTypesCount);
-      _products.push(newProducts[i]);
-      emit ProductSet(initialProductsCount + i, ipfsMetadata[i]);
+    for (uint i = 0; i < productParams.length; i++) {
+      ProductParam calldata param = productParams[i];
+      // New product has id == uint256.max
+      if (param.productId == type(uint256).max) {
+        validateProduct(param.product, _coverAssetsFallback, productTypesCount);
+        _products.push(param.product);
+        emit ProductSet(_products.length, param.ipfsMetadata);
+      } else {
+        // existing product
+        require(param.productId < _products.length, "Cover: Product doesnt exist. Set id to uint256.max to add it");
+        Product storage newProductValue = _products[param.productId];
+        newProductValue.isDeprecated = param.product.isDeprecated;
+        newProductValue.coverAssets = param.product.coverAssets;
+        newProductValue.initialPriceRatio = param.product.initialPriceRatio;
+        newProductValue.capacityReductionRatio = param.product.capacityReductionRatio;
+        validateProduct(newProductValue, _coverAssetsFallback, productTypesCount);
+        emit ProductSet(param.productId, param.ipfsMetadata);
+      }
     }
   }
 
@@ -674,28 +685,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     for (uint i = 0; i < productTypeIds.length; i++) {
       _productTypes[productTypeIds[i]].gracePeriodInDays = gracePeriodsInDays[i];
       emit ProductTypeSet(productTypeIds[i], ipfsMetadata[i]);
-    }
-  }
-
-  function editProducts(
-    uint[] calldata productIds,
-    ProductUpdate[] calldata productUpdates,
-    string[] calldata ipfsMetadata
-  ) external override onlyAdvisoryBoard {
-
-    uint32 _coverAssetsFallback = coverAssetsFallback;
-    uint productTypesCount = _productTypes.length;
-
-    for (uint i = 0; i < productIds.length; i++) {
-
-      Product memory newProductValue = _products[productIds[i]];
-      newProductValue.coverAssets = productUpdates[i].coverAssets;
-      newProductValue.initialPriceRatio = productUpdates[i].initialPriceRatio;
-      newProductValue.capacityReductionRatio = productUpdates[i].capacityReductionRatio;
-
-      validateProduct(newProductValue, _coverAssetsFallback, productTypesCount);
-      _products[productIds[i]] = newProductValue;
-      emit ProductSet(productIds[i], ipfsMetadata[i]);
     }
   }
 

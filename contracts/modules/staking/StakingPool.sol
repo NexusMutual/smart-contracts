@@ -1250,7 +1250,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
   /* pool management */
 
-  function setProducts(ProductParams[] memory params) external onlyManager {
+  function setProducts(StakedProductParams[] memory params) external onlyManager {
     uint[] memory productIds = new uint[](params.length);
     uint numProducts = params.length;
 
@@ -1269,7 +1269,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _totalEffectiveWeight = totalEffectiveWeight;
 
     for (uint i = 0; i < numProducts; i++) {
-      ProductParams memory _param = params[i];
+      StakedProductParams memory _param = params[i];
       StakedProduct memory _product = products[_param.productId];
 
       if (_product.nextPriceUpdateTime == 0) {

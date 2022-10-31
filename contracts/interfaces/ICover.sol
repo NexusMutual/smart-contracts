@@ -99,6 +99,13 @@ struct Product {
   uint32 coverAssets;
   uint16 initialPriceRatio;
   uint16 capacityReductionRatio;
+  bool isDeprecated;
+}
+
+struct ProductParam {
+  uint productId;
+  string ipfsMetadata;
+  Product product;
 }
 
 // Updatable fields for an already existing product
@@ -165,11 +172,6 @@ interface ICover {
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
-  function addProducts(
-    Product[] calldata newProducts,
-    string[] calldata ipfsMetadata
-  ) external;
-
   function addProductTypes(
     ProductType[] calldata newProductTypes,
     string[] calldata ipfsMetadata
@@ -181,10 +183,8 @@ interface ICover {
     string[] calldata ipfsMetadata
   ) external;
 
-  function editProducts(
-    uint[] calldata productIds,
-    ProductUpdate[] calldata productUpdates,
-    string[] calldata ipfsMetadata
+  function setProducts(
+    ProductParam[] calldata params
   ) external;
 
   function performStakeBurn(

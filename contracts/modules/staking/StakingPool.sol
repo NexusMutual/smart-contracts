@@ -650,7 +650,11 @@ contract StakingPool is IStakingPool, ERC721 {
         trancheAllocations
       );
 
-      uint targetBucketId = (block.timestamp + request.period + request.gracePeriod) / BUCKET_DURATION + 1;
+      uint targetBucketId;
+      {
+        uint gracePeriodExpiration = block.timestamp + request.period + request.gracePeriod;
+        targetBucketId = gracePeriodExpiration / BUCKET_DURATION + 1;
+      }
 
       updateExpiringCoverAmounts(
         request.coverId,

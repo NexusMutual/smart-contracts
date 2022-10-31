@@ -7,8 +7,9 @@ import "../../interfaces/ICover.sol";
 import "../../modules/cover/CoverUtilsLib.sol";
 
 contract SPMockCover {
-  uint24 public constant globalCapacityRatio = 2;
-  uint256 public constant globalRewardsRatio = 1;
+
+  uint public constant globalCapacityRatio = 20000;
+  uint public constant globalRewardsRatio = 5000;
 
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
@@ -28,17 +29,18 @@ contract SPMockCover {
     productTypes[id] = product;
   }
 
-
   function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (
     uint _globalCapacityRatio,
     uint _globalMinPriceRatio,
     uint[] memory _initialPrices,
     uint[] memory _capacityReductionRatios
   ) {
-    _globalCapacityRatio = uint(globalCapacityRatio);
+
+    _globalCapacityRatio = globalCapacityRatio;
     _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
     _capacityReductionRatios = new uint[](productIds.length);
     _initialPrices  = new uint[](productIds.length);
+
     for (uint i = 0; i < productIds.length; i++) {
       Product memory product = products[productIds[i]];
       require(product.initialPriceRatio > 0, "Cover: Product deprecated or not initialized");

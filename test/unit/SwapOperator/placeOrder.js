@@ -286,9 +286,6 @@ describe('placeOrder', function () {
     // Set pool balance to 2 eth - 1 wei
     await setEtherBalance(pool.address, parseEther('2').sub(1));
 
-    // Set min pool eth to 1 eth
-    await pool.connect(governance).updateUintParameters(hex('MIN_ETH'.padEnd(8, '\0')), parseEther('1'));
-
     // Execute trade for 1 eth, should fail
     expect(contractOrder.sellAmount.add(contractOrder.feeAmount)).to.eq(parseEther('1'));
     await expect(

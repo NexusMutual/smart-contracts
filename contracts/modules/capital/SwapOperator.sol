@@ -37,6 +37,7 @@ contract SwapOperator {
 
   address public immutable enzymeV4VaultProxyAddress;
   IEnzymeFundValueCalculatorRouter public immutable enzymeFundValueCalculatorRouter;
+  uint public immutable minPoolEth;
 
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -45,7 +46,6 @@ contract SwapOperator {
   uint public constant MAX_VALID_TO_PERIOD = 3600; // 60 minutes
   uint public constant MIN_TIME_BETWEEN_ORDERS = 900; // 15 minutes
   uint public constant maxFee = 0.3 ether;
-  uint public constant minPoolEth = 0;
 
   // Events
   event OrderPlaced(GPv2Order.Data order);
@@ -69,7 +69,8 @@ contract SwapOperator {
     address _master,
     address _weth,
     address _enzymeV4VaultProxyAddress,
-    IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter
+    IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter,
+    uint _minPoolEth
   ) {
     cowSettlement = ICowSettlement(_cowSettlement);
     cowVaultRelayer = cowSettlement.vaultRelayer();
@@ -79,6 +80,7 @@ contract SwapOperator {
     domainSeparator = cowSettlement.domainSeparator();
     enzymeV4VaultProxyAddress = _enzymeV4VaultProxyAddress;
     enzymeFundValueCalculatorRouter = _enzymeFundValueCalculatorRouter;
+    minPoolEth = _minPoolEth;
   }
 
   receive() external payable {}
@@ -208,7 +210,7 @@ contract SwapOperator {
    */
   function closeOrder(GPv2Order.Data calldata order) external {
     // Validate there is an order in place
-    require(!orderInProgress(), "SwapOp: No order in place");
+    require(orderInProgress(), "SwapOp: No order in place");
 
     // Before validTo, only controller can call this. After it, everyone can call
     if (block.timestamp <= order.validTo) {

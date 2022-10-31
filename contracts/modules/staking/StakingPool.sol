@@ -929,7 +929,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint totalCapacity
   ) {
 
-    uint _activeStake = Math.divCeil(activeStake, 1e12);
+    uint _activeStake = activeStake;
     uint _stakeSharesSupply = stakeSharesSupply;
 
     if (_stakeSharesSupply == 0) {
@@ -951,7 +951,7 @@ contract StakingPool is IStakingPool, ERC721 {
       uint trancheId = _firstActiveTrancheId + i;
       uint trancheStakeShares = tranches[trancheId].stakeShares;
       uint trancheStake = _activeStake * trancheStakeShares / _stakeSharesSupply;
-      uint trancheCapacity = trancheStake * multiplier / denominator;
+      uint trancheCapacity = trancheStake * multiplier / denominator / NXM_PER_ALLOCATION_UNIT;
 
       if (trancheId >= firstTrancheId) {
         requestedTranchesCapacity += trancheCapacity;

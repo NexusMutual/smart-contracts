@@ -25,8 +25,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   Asset[] public override coverAssets;
   Asset[] public override investmentAssets;
   mapping(address => SwapDetails) public swapDetails;
-  // TODO: pack swapValue
-  uint public swapValue;
 
   // contracts
   INXMToken public nxmToken;
@@ -52,6 +50,8 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   //                                      coverAssets[0] and coverAssets[3] are both deprecated
   //
   uint32 public deprecatedCoverAssetsBitmap;
+
+  uint96 public swapValue;
 
   // When an asset transfer reverts it can be abandoned by flagging the address. This allows pool
   // upgrades if the upgrade reverts due to one or more failed transfers to the new address.
@@ -745,6 +745,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   }
 
   function setSwapValue(uint newValue) external onlySwapOperator whenNotPaused {
-    swapValue = newValue;
+    swapValue = SafeUintCast.toUint96(newValue);
   }
 }

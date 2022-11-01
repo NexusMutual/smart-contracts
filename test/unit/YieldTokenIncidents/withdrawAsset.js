@@ -36,4 +36,15 @@ describe('withdrawAsset', function () {
     const yieldTokenIncidentsBalance = await ybDai.balanceOf(yieldTokenIncidents.address);
     expect(yieldTokenIncidentsBalance).to.be.equal(parseEther('0'));
   });
+
+  it('should revert if caller is not governance', async function () {
+    const { yieldTokenIncidents, ybDai } = this.contracts;
+    const [nonMember1, nonMember2] = this.accounts.nonMembers;
+
+    ybDai.mint(yieldTokenIncidents.address, parseEther('10'));
+
+    await expect(
+      yieldTokenIncidents.connect(nonMember1).withdrawAsset(ybDai.address, nonMember2.address, parseEther('1000')),
+    ).to.be.revertedWith('Caller is not authorized to govern');
+  });
 });

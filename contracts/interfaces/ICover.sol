@@ -29,7 +29,6 @@ enum CoverUintParams {
   coverAssetsFallback
 }
 
-
 struct PoolAllocationRequest {
   uint40 poolId;
   uint coverAmountInAsset;
@@ -71,31 +70,15 @@ struct BuyCoverParams {
   string ipfsData;
 }
 
-struct IncreaseAmountAndReducePeriodParams {
-  uint coverId;
-  uint32 periodReduction;
-  uint96 amount;
-  uint8 paymentAsset;
-  uint maxPremiumInAsset;
-}
-
 struct ProductBucket {
   uint96 coverAmountExpiring;
-}
-
-struct IncreaseAmountParams {
-  uint coverId;
-  uint8 paymentAsset;
-  PoolAllocationRequest[] coverChunkRequests;
 }
 
 struct Product {
   uint16 productType;
   address yieldTokenAddress;
-  /*
-    cover assets bitmap. each bit in the base-2 representation represents whether the asset with the index
-    of that bit is enabled as a cover asset for this product.
-  */
+  // cover assets bitmap. each bit represents whether the asset with
+  // the index of that bit is enabled as a cover asset for this product
   uint32 coverAssets;
   uint16 initialPriceRatio;
   uint16 capacityReductionRatio;

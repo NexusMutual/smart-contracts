@@ -6,7 +6,6 @@ const { web3, artifacts } = require('hardhat');
 const {
   governanceContracts: [governance],
   generalPurpose: [arbitraryCaller],
-  defaultSender,
 } = require('../utils').accounts;
 const { hex } = require('../utils').helpers;
 const { BN } = web3.utils;

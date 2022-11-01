@@ -4,7 +4,6 @@ const { expect } = require('chai');
 const { domain: makeDomain, computeOrderUid } = require('@cowprotocol/contracts');
 
 const { setEtherBalance, setNextBlockTime } = require('../../utils/evm');
-const { hex } = require('../utils').helpers;
 const { parseEther, hexZeroPad, keccak256, toUtf8Bytes, hexlify, randomBytes } = ethers.utils;
 
 describe('placeOrder', function () {

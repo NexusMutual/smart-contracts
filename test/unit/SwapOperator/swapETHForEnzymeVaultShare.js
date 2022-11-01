@@ -2,7 +2,6 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { BigNumber } = require('ethers');
 const { ETH } = require('../../../lib/constants').Assets;
-const { hex } = require('../utils').helpers;
 const { mineNextBlock, increaseTime } = require('../../utils/evm');
 const {
   utils: { parseEther },

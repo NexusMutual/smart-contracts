@@ -93,9 +93,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     priceFeedOracle = IPriceFeedOracle(_priceOracle);
     swapOperator = _swapOperator;
 
-    // [todo] After this contract is deployed it might be worth modifying upgradeCapitalPool to
-    // copy the assets on future upgrades instead of having them hardcoded in the constructor.
-
     // The order of coverAssets should never change between updates. Do not remove the following
     // lines!
     coverAssets.push(Asset(ETH, 18));

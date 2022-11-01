@@ -147,4 +147,32 @@ describe('submitIncident', function () {
       .to.emit(yieldTokenIncidents, 'IncidentSubmitted')
       .withArgs(advisoryBoard2.address, 1, productId, parseEther('20000'));
   });
+
+  it('reverts if system is paused', async function () {
+    const { yieldTokenIncidents, master } = this.contracts;
+    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+
+    await master.pause();
+
+    const productId = 2;
+    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+    await expect(
+      yieldTokenIncidents
+        .connect(advisoryBoard)
+        .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), ''),
+    ).to.be.revertedWith('System is paused');
+  });
+
+  it('reverts if caller is not advisory board', async function () {
+    const { yieldTokenIncidents } = this.contracts;
+    const [nonAdvisoryBoard] = this.accounts.members;
+
+    const productId = 2;
+    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+    await expect(
+      yieldTokenIncidents
+        .connect(nonAdvisoryBoard)
+        .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), ''),
+    ).to.be.revertedWith('Caller is not an advisory board member');
+  });
 });

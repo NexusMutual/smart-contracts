@@ -174,16 +174,16 @@ async function setup() {
     .connect(accounts.governanceContracts[0])
     .updateUintParameters([0, 2], [capacityFactor, coverAssetsFallback]);
 
-  await cover.connect(accounts.advisoryBoardMembers[0]).addProductTypes(
-    [
-      {
-        descriptionIpfsHash: 'my ipfs hash',
+  await cover.connect(accounts.advisoryBoardMembers[0]).setProductTypes([
+    {
+      productTypeId: MaxUint256,
+      ipfsMetadata: 'ipfs metadata',
+      productType: {
         claimMethod: '1',
         gracePeriodInDays: '120',
       },
-    ],
-    [''],
-  );
+    },
+  ]);
 
   // add products
   await cover.connect(accounts.advisoryBoardMembers[0]).setProducts([

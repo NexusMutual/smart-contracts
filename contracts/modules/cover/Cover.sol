@@ -23,7 +23,6 @@ import "../../libraries/SafeUintCast.sol";
 import "./CoverUtilsLib.sol";
 import "./MinimalBeaconProxy.sol";
 
-
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
@@ -646,11 +645,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     for (uint i = 0; i < productParams.length; i++) {
       ProductParam calldata param = productParams[i];
+      validateProduct(param.product, _coverAssetsFallback, productTypesCount);
       // New product has id == uint256.max
       if (param.productId == type(uint256).max) {
-        validateProduct(param.product, _coverAssetsFallback, productTypesCount);
-        _products.push(param.product);
         emit ProductSet(_products.length, param.ipfsMetadata);
+        _products.push(param.product);
       } else {
         // existing product
         require(param.productId < _products.length, "Cover: Product doesnt exist. Set id to uint256.max to add it");
@@ -659,32 +658,25 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         newProductValue.coverAssets = param.product.coverAssets;
         newProductValue.initialPriceRatio = param.product.initialPriceRatio;
         newProductValue.capacityReductionRatio = param.product.capacityReductionRatio;
-        validateProduct(newProductValue, _coverAssetsFallback, productTypesCount);
         emit ProductSet(param.productId, param.ipfsMetadata);
       }
     }
   }
 
-  function addProductTypes(
-    ProductType[] calldata newProductTypes,
-    string[] calldata ipfsMetadata
-  ) external override onlyAdvisoryBoard {
-    uint initialProductTypesCount = _productTypes.length;
-    for (uint i = 0; i < newProductTypes.length; i++) {
-      _productTypes.push(newProductTypes[i]);
-      emit ProductTypeSet(initialProductTypesCount + i, ipfsMetadata[i]);
-    }
-  }
+  function setProductTypes(ProductTypeParam[] calldata productTypeParams) external onlyAdvisoryBoard {
 
-  function editProductTypes(
-    uint[] calldata productTypeIds,
-    uint16[] calldata gracePeriodsInDays,
-    string[] calldata ipfsMetadata
-  ) external override onlyAdvisoryBoard {
+    for (uint i = 0; i < productTypeParams.length; i++) {
+      ProductTypeParam calldata param = productTypeParams[i];
 
-    for (uint i = 0; i < productTypeIds.length; i++) {
-      _productTypes[productTypeIds[i]].gracePeriodInDays = gracePeriodsInDays[i];
-      emit ProductTypeSet(productTypeIds[i], ipfsMetadata[i]);
+      // New product has id == uint256.max
+      if (param.productTypeId == type(uint256).max) {
+        emit ProductTypeSet(_productTypes.length, param.ipfsMetadata);
+        _productTypes.push(param.productType);
+      } else {
+        require(param.productTypeId < _productTypes.length, "Cover: ProductType doesnt exist. Set id to uint256.max to add it");
+        _productTypes[param.productTypeId].gracePeriodInDays = param.productType.gracePeriodInDays;
+        emit ProductTypeSet(param.productTypeId, param.ipfsMetadata);
+      }
     }
   }
 

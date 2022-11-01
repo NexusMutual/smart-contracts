@@ -390,7 +390,8 @@ describe('editCover', function () {
     const productTypeBefore = await cover.productTypes(productId);
 
     const newGracePeriodInDays = 1000;
-    await cover.connect(boardMember).editProductTypes([productId], [newGracePeriodInDays], ['ipfs hash']);
+
+    await cover.connect(boardMember).setProductTypes([[productId, 'ipfs hash', [1, newGracePeriodInDays]]]);
     const productType = await cover.productTypes(productId);
     expect(newGracePeriodInDays).to.be.equal(productType.gracePeriodInDays);
 

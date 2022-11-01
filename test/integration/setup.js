@@ -268,29 +268,35 @@ async function setup() {
 
   await cover.setCoverAssetsFallback(0b11); // eth and dai
 
-  await cover.addProductTypes(
-    [
+  await cover.setProductTypes([
+    {
       // Protocol Cover
-      {
-        descriptionIpfsHash: 'protocolCoverIPFSHash',
+      productTypeId: MaxUint256,
+      ipfsMetadata: 'protocolCoverIPFSHash',
+      productType: {
         claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
         gracePeriodInDays: 30,
       },
+    },
+    {
       // Custody Cover
-      {
-        descriptionIpfsHash: 'custodyCoverIPFSHash',
+      productTypeId: MaxUint256,
+      ipfsMetadata: 'custodyCoverIPFSHash',
+      productType: {
         claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
         gracePeriodInDays: 90,
       },
-      // Yield Token Cover
-      {
-        descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
+    },
+    // Yield Token Cover
+    {
+      productTypeId: MaxUint256,
+      ipfsMetadata: 'yieldTokenCoverIPFSHash',
+      productType: {
         claimMethod: CLAIM_METHOD.YIELD_TOKEN_INCIDENTS,
         gracePeriodInDays: 14,
       },
-    ],
-    ['', '', ''],
-  );
+    },
+  ]);
 
   await cover.setProducts([
     {

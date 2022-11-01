@@ -20,8 +20,8 @@ describe('Cover unit tests', function () {
   require('./expireCover');
   require('./coverNFT');
   require('./initialize');
-  require('./editProductTypes');
   require('./setProducts');
+  require('./setProductTypes');
   require('./enableActiveCoverAmountTracking');
   require('./commitActiveCoverAmounts');
 });

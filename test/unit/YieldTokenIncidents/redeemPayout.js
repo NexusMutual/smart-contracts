@@ -512,7 +512,7 @@ describe('redeemPayout', function () {
     ).to.be.revertedWith('Product id mismatch');
   });
 
-  it('transfers payout asset amount to payoutAddress, as per requested amount and priceBefore', async function () {
+  it('transfers ETH amount to payoutAddress, as per requested amount and priceBefore', async function () {
     const { yieldTokenIncidents, assessment, cover, ybEth } = this.contracts;
     const [member1] = this.accounts.members;
     const [nonMember1, nonMember2] = this.accounts.nonMembers;
@@ -570,6 +570,67 @@ describe('redeemPayout', function () {
         .redeemPayout(0, 0, 0, parseEther('3000'), nonMember2.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember2.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('2970')));
+    }
+  });
+
+  it('transfers DAI amount to payoutAddress, as per requested amount and priceBefore', async function () {
+    const { yieldTokenIncidents, assessment, cover, ybEth, dai } = this.contracts;
+    const [member1] = this.accounts.members;
+    const [nonMember1, nonMember2] = this.accounts.nonMembers;
+    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const segment = await getCoverSegment();
+    segment.amount = parseEther('10000');
+
+    await cover.createMockCover(
+      member1.address,
+      2, // productId
+      ASSET.DAI,
+      [segment],
+    );
+
+    {
+      const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+      await yieldTokenIncidents
+        .connect(advisoryBoard)
+        .submitIncident(2, parseEther('1.1'), currentTime + segment.period / 2, parseEther('100'), '');
+    }
+
+    await assessment.connect(member1).castVote(0, true, parseEther('100'));
+
+    {
+      const { payoutCooldownInDays } = await assessment.config();
+      const { end } = await assessment.getPoll(0);
+      await setTime(end + daysToSeconds(payoutCooldownInDays));
+    }
+
+    await ybEth.connect(member1).approve(yieldTokenIncidents.address, parseEther('10000'));
+
+    // [warning] Cover mock does not subtract the covered amount
+    {
+      const daiBalanceBefore = await dai.balanceOf(member1.address);
+      await yieldTokenIncidents
+        .connect(member1)
+        .redeemPayout(0, 0, 0, parseEther('100'), member1.address, [], { gasPrice: 0 });
+      const daiBalanceAfter = await dai.balanceOf(member1.address);
+      expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(parseEther('99')));
+    }
+
+    {
+      const daiBalanceBefore = await dai.balanceOf(nonMember1.address);
+      await yieldTokenIncidents
+        .connect(member1)
+        .redeemPayout(0, 0, 0, parseEther('111'), nonMember1.address, [], { gasPrice: 0 });
+      const daiBalanceAfter = await dai.balanceOf(nonMember1.address);
+      expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(parseEther('109.89')));
+    }
+
+    {
+      const daiBalanceBefore = await dai.balanceOf(nonMember2.address);
+      await yieldTokenIncidents
+        .connect(member1)
+        .redeemPayout(0, 0, 0, parseEther('3000'), nonMember2.address, [], { gasPrice: 0 });
+      const daiBalanceAfter = await dai.balanceOf(nonMember2.address);
+      expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(parseEther('2970')));
     }
   });
 
@@ -708,5 +769,160 @@ describe('redeemPayout', function () {
     )
       .to.emit(yieldTokenIncidents, 'IncidentPayoutRedeemed')
       .withArgs(coverOwner2.address, parseEther('90'), 1, 2);
+  });
+
+  it('reverts if system is paused', async function () {
+    const { yieldTokenIncidents, cover, assessment, ybEth, master } = this.contracts;
+    const [coverOwner1] = this.accounts.members;
+    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const segment = await getCoverSegment();
+    await cover.createMockCover(
+      coverOwner1.address,
+      2, // productId using ybEth
+      ASSET.ETH,
+      [segment],
+    );
+
+    await yieldTokenIncidents
+      .connect(advisoryBoard)
+      .submitIncident(2, parseEther('1'), timestamp + 2, parseEther('100'), '');
+
+    await assessment.connect(advisoryBoard).castVote(0, true, parseEther('100'));
+
+    {
+      const { payoutCooldownInDays } = await assessment.config();
+      const { end } = await assessment.getPoll(0);
+      await setTime(end + daysToSeconds(payoutCooldownInDays));
+    }
+
+    await master.pause();
+
+    await ybEth.connect(coverOwner1).approve(yieldTokenIncidents.address, parseEther('10000'));
+    await expect(
+      yieldTokenIncidents.connect(coverOwner1).redeemPayout(0, 0, 0, parseEther('100'), coverOwner1.address, []),
+    ).to.be.revertedWith('System is paused');
+  });
+
+  it('reverts if caller is not a member', async function () {
+    const { yieldTokenIncidents, cover, assessment, ybEth } = this.contracts;
+    const [coverOwner1, coverOwner2] = this.accounts.members;
+    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const segment = await getCoverSegment();
+    await cover.createMockCover(
+      coverOwner1.address,
+      2, // productId using ybEth
+      ASSET.ETH,
+      [segment],
+    );
+
+    await yieldTokenIncidents
+      .connect(advisoryBoard)
+      .submitIncident(2, parseEther('1'), timestamp + 2, parseEther('100'), '');
+
+    await assessment.connect(advisoryBoard).castVote(0, true, parseEther('100'));
+
+    {
+      const { payoutCooldownInDays } = await assessment.config();
+      const { end } = await assessment.getPoll(0);
+      await setTime(end + daysToSeconds(payoutCooldownInDays));
+    }
+
+    await ybEth.connect(coverOwner1).approve(yieldTokenIncidents.address, parseEther('10000'));
+    await expect(
+      yieldTokenIncidents.connect(coverOwner2).redeemPayout(0, 0, 0, parseEther('100'), coverOwner1.address, []),
+    ).to.be.revertedWith('Only the cover owner or approved addresses can redeem');
+  });
+
+  it('should transfer product underlying asset amount to the contract', async function () {
+    const { yieldTokenIncidents, assessment, cover, ybEth } = this.contracts;
+    const [member1] = this.accounts.members;
+    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const segment = await getCoverSegment();
+    segment.amount = parseEther('10000');
+
+    await cover.createMockCover(
+      member1.address,
+      2, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    const depeggedTokensAmount = parseEther('100');
+    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+    await yieldTokenIncidents
+      .connect(advisoryBoard)
+      .submitIncident(2, parseEther('1.1'), currentTime + segment.period / 2, depeggedTokensAmount, '');
+
+    await assessment.connect(member1).castVote(0, true, depeggedTokensAmount);
+
+    const { payoutCooldownInDays } = await assessment.config();
+    const { end } = await assessment.getPoll(0);
+    await setTime(end + daysToSeconds(payoutCooldownInDays));
+
+    await ybEth.connect(member1).approve(yieldTokenIncidents.address, parseEther('10000'));
+
+    const ybEthContractBalanceBefore = await ybEth.balanceOf(yieldTokenIncidents.address);
+    const ybEthMemberBalanceBefore = await ybEth.balanceOf(member1.address);
+
+    await yieldTokenIncidents
+      .connect(member1)
+      .redeemPayout(0, 0, 0, depeggedTokensAmount, member1.address, [], { gasPrice: 0 });
+    const ybEthContractBalanceAfter = await ybEth.balanceOf(yieldTokenIncidents.address);
+    const ybEthMemberBalanceAfter = await ybEth.balanceOf(member1.address);
+
+    expect(ybEthContractBalanceAfter).to.be.equal(ybEthContractBalanceBefore.add(depeggedTokensAmount));
+    expect(ybEthMemberBalanceAfter).to.be.equal(ybEthMemberBalanceBefore.sub(depeggedTokensAmount));
+  });
+
+  it('should burn the stake of associated staking pools', async function () {
+    const { yieldTokenIncidents, assessment, cover, ybEth } = this.contracts;
+    const [member1] = this.accounts.members;
+    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const segment = await getCoverSegment();
+    segment.amount = parseEther('10000');
+
+    await cover.createMockCover(
+      member1.address,
+      2, // productId
+      ASSET.ETH,
+      [segment],
+    );
+
+    const depeggedTokensAmount = parseEther('100');
+    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+
+    const priceBefore = parseEther('1.1');
+    const { payoutDeductibleRatio } = await yieldTokenIncidents.config();
+    const INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR = '10000';
+    const coverAssetDecimals = parseEther('1');
+
+    await yieldTokenIncidents
+      .connect(advisoryBoard)
+      .submitIncident(2, priceBefore, currentTime + segment.period / 2, depeggedTokensAmount, '');
+
+    await assessment.connect(member1).castVote(0, true, depeggedTokensAmount);
+
+    const { payoutCooldownInDays } = await assessment.config();
+    const { end } = await assessment.getPoll(0);
+    await setTime(end + daysToSeconds(payoutCooldownInDays));
+
+    await ybEth.connect(member1).approve(yieldTokenIncidents.address, parseEther('10000'));
+
+    await yieldTokenIncidents
+      .connect(member1)
+      .redeemPayout(0, 0, 0, depeggedTokensAmount, member1.address, [], { gasPrice: 0 });
+
+    const { coverId, segmentId, amount } = await cover.performStakeBurnCalledWith();
+
+    expect(coverId).to.be.equal(0);
+    expect(segmentId).to.be.equal(0);
+
+    const ratio = priceBefore.mul(payoutDeductibleRatio);
+    expect(amount).to.be.equal(
+      depeggedTokensAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals),
+    );
   });
 });

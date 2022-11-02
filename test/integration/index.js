@@ -14,6 +14,7 @@ describe('INTEGRATION TESTS', function () {
 
   require('./IndividualClaims');
   require('./YieldTokenIncidents');
+  require('./Cover');
 
   // TODO: reenable
   // require('./Master');

@@ -23,4 +23,6 @@ describe('Cover unit tests', function () {
   require('./editProducts');
   require('./addProducts');
   require('./editProductTypes');
+  require('./enableActiveCoverAmountTracking');
+  require('./commitActiveCoverAmounts');
 });

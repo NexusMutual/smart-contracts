@@ -806,7 +806,8 @@ describe('redeemPayout', function () {
 
   it('reverts if caller is not a member', async function () {
     const { yieldTokenIncidents, cover, assessment, ybEth } = this.contracts;
-    const [coverOwner1, coverOwner2] = this.accounts.members;
+    const [coverOwner1] = this.accounts.members;
+    const [nonMember] = this.accounts.nonMembers;
     const [advisoryBoard] = this.accounts.advisoryBoardMembers;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -832,8 +833,8 @@ describe('redeemPayout', function () {
 
     await ybEth.connect(coverOwner1).approve(yieldTokenIncidents.address, parseEther('10000'));
     await expect(
-      yieldTokenIncidents.connect(coverOwner2).redeemPayout(0, 0, 0, parseEther('100'), coverOwner1.address, []),
-    ).to.be.revertedWith('Only the cover owner or approved addresses can redeem');
+      yieldTokenIncidents.connect(nonMember).redeemPayout(0, 0, 0, parseEther('100'), coverOwner1.address, []),
+    ).to.be.revertedWith('Caller is not a member');
   });
 
   it('should transfer product underlying asset amount to the contract', async function () {

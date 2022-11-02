@@ -102,13 +102,14 @@ contract StakingPool is IStakingPool, ERC721 {
   uint public constant BUCKET_DURATION = 28 days;
   uint public constant TRANCHE_DURATION = 91 days;
   uint public constant MAX_ACTIVE_TRANCHES = 8; // 7 whole quarters + 1 partial quarter
+
   uint public constant COVER_TRANCHE_GROUP_SIZE = 4;
   uint public constant BUCKET_TRANCHE_GROUP_SIZE = 8;
-  uint public constant MAX_WEIGHT_MULTIPLIER = 20;
 
   uint public constant REWARD_BONUS_PER_TRANCHE_RATIO = 10_00; // 10.00%
   uint public constant REWARD_BONUS_PER_TRANCHE_DENOMINATOR = 100_00;
   uint public constant WEIGHT_DENOMINATOR = 100;
+  uint public constant MAX_WEIGHT_MULTIPLIER = 20;
   uint public constant MAX_TOTAL_WEIGHT = WEIGHT_DENOMINATOR * MAX_WEIGHT_MULTIPLIER;
   uint public constant REWARDS_DENOMINATOR = 100_00;
   uint public constant POOL_FEE_DENOMINATOR = 100;

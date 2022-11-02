@@ -13,7 +13,7 @@ describe('setProducts', function () {
   const capacity = parseEther('10000');
   const priceDenominator = 10000;
   const capacityFactor = 10000;
-  const defaultIpfsData = 'ipfs metadata';
+  const defaultIpfsData = 'QmRmkky7qQBjCAU3gFUqfy3NXD6CPq8YVLPM7GHXBz7b5P';
 
   // Cover.PoolAllocationRequest
   const PoolAllocationRequestTemplate = {

@@ -645,19 +645,41 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     for (uint i = 0; i < productParams.length; i++) {
       ProductParam calldata param = productParams[i];
-      validateProduct(param.product, _coverAssetsFallback, productTypesCount);
+      Product calldata product = param.product;
+      require(product.productType < productTypesCount, "Cover: Invalid productType");
+      require(
+        areAssetsSupported(product.coverAssets, _coverAssetsFallback),
+        "Cover: Unsupported cover assets"
+      );
+      require(
+        product.initialPriceRatio >= GLOBAL_MIN_PRICE_RATIO,
+        "Cover: initialPriceRatio < GLOBAL_MIN_PRICE_RATIO"
+      );
+      require(
+        product.initialPriceRatio <= PRICE_DENOMINATOR,
+        "Cover: initialPriceRatio > 100%"
+      );
+      require(
+        product.capacityReductionRatio <= CAPACITY_REDUCTION_DENOMINATOR,
+        "Cover: capacityReductionRatio > 100%"
+      );
+
       // New product has id == uint256.max
       if (param.productId == type(uint256).max) {
         emit ProductSet(_products.length, param.ipfsMetadata);
-        _products.push(param.product);
-      } else {
-        // existing product
-        require(param.productId < _products.length, "Cover: Product doesnt exist. Set id to uint256.max to add it");
-        Product storage newProductValue = _products[param.productId];
-        newProductValue.isDeprecated = param.product.isDeprecated;
-        newProductValue.coverAssets = param.product.coverAssets;
-        newProductValue.initialPriceRatio = param.product.initialPriceRatio;
-        newProductValue.capacityReductionRatio = param.product.capacityReductionRatio;
+        _products.push(product);
+        continue;
+      }
+
+      // existing product
+      require(param.productId < _products.length, "Cover: Product doesnt exist. Set id to uint256.max to add it");
+      Product storage newProductValue = _products[param.productId];
+      newProductValue.isDeprecated = product.isDeprecated;
+      newProductValue.coverAssets = product.coverAssets;
+      newProductValue.initialPriceRatio = product.initialPriceRatio;
+      newProductValue.capacityReductionRatio = product.capacityReductionRatio;
+
+      if (bytes(param.ipfsMetadata).length > 0) {
         emit ProductSet(param.productId, param.ipfsMetadata);
       }
     }
@@ -672,11 +694,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       if (param.productTypeId == type(uint256).max) {
         emit ProductTypeSet(_productTypes.length, param.ipfsMetadata);
         _productTypes.push(param.productType);
-      } else {
-        require(param.productTypeId < _productTypes.length, "Cover: ProductType doesnt exist. Set id to uint256.max to add it");
-        _productTypes[param.productTypeId].gracePeriodInDays = param.productType.gracePeriodInDays;
-        emit ProductTypeSet(param.productTypeId, param.ipfsMetadata);
+        continue;
       }
+
+      require(param.productTypeId < _productTypes.length, "Cover: ProductType doesnt exist. Set id to uint256.max to add it");
+      _productTypes[param.productTypeId].gracePeriodInDays = param.productType.gracePeriodInDays;
+      emit ProductTypeSet(param.productTypeId, param.ipfsMetadata);
     }
   }
 
@@ -686,23 +709,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint productTypesCount
   ) internal pure {
 
-    require(product.productType < productTypesCount, "Cover: Invalid productType");
-    require(
-      areAssetsSupported(product.coverAssets, _coverAssetsFallback),
-      "Cover: Unsupported cover assets"
-    );
-    require(
-      product.initialPriceRatio >= GLOBAL_MIN_PRICE_RATIO,
-      "Cover: initialPriceRatio < GLOBAL_MIN_PRICE_RATIO"
-    );
-    require(
-      product.initialPriceRatio <= PRICE_DENOMINATOR,
-      "Cover: initialPriceRatio > 100%"
-    );
-    require(
-      product.capacityReductionRatio <= CAPACITY_REDUCTION_DENOMINATOR,
-      "Cover: capacityReductionRatio > 100%"
-    );
+
   }
 
   /* ========== ACTIVE COVER AMOUNT TRACKING ========== */

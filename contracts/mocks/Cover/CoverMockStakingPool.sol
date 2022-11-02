@@ -94,7 +94,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
   ) external {
   }
 
-  function setProducts(StakedProductParams[] memory params) external {
+  function setProducts(StakedProductParam[] memory params) external {
     totalSupply = totalSupply;
     params;
   }
@@ -183,7 +183,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     revert("CoverMockStakingPool: not callable");
   }
 
-  function addProducts(StakedProductParams[] memory /* params */) external {
+  function addProducts(StakedProductParam[] memory /* params */) external {
     totalSupply = totalSupply;
     revert("CoverMockStakingPool: not callable");
   }
@@ -193,7 +193,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     revert("CoverMockStakingPool: not callable");
   }
 
-  function setProductDetails(StakedProductParams[] memory /* params */) external {
+  function setProductDetails(StakedProductParam[] memory /* params */) external {
     totalSupply = totalSupply;
     revert("CoverMockStakingPool: not callable");
   }

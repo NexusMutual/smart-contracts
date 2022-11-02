@@ -591,36 +591,24 @@ contract StakingPool is IStakingPool, ERC721 {
 
     uint firstTrancheIdToUse = (block.timestamp + request.period + request.gracePeriod) / TRANCHE_DURATION;
     uint trancheCount = block.timestamp / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES - firstTrancheIdToUse;
+    uint remainingAmount = Math.divCeil(request.amount, NXM_PER_ALLOCATION_UNIT);
 
     (
       uint[] memory trancheAllocations,
-      uint initialCapacityUsed
-    ) = getAllocations(
-      request.productId,
-      firstTrancheIdToUse,
-      trancheCount
-    );
-
-    (
       uint[] memory trancheCapacities,
-      uint requestedTranchesCapacity,
-      uint totalCapacity
-    ) = getTrancheCapacities(
+      uint requestedTranchesCapacityUsed,
+      uint requestedTranchesCapacity
+    ) = getTrancheAllocationsAndCapacities(
       request.productId,
       firstTrancheIdToUse,
       trancheCount,
       request.globalCapacityRatio,
-      request.capacityReductionRatio
+      request.capacityReductionRatio,
+      remainingAmount
     );
 
     {
       uint[] memory coverTrancheAllocation = new uint[](trancheCount);
-      uint remainingAmount = Math.divCeil(request.amount, NXM_PER_ALLOCATION_UNIT);
-
-      require(
-        initialCapacityUsed + remainingAmount <= requestedTranchesCapacity,
-        "StakingPool: Insufficient capacity"
-      );
 
       for (uint i = 0; i < trancheCount; i++) {
 
@@ -640,7 +628,7 @@ contract StakingPool is IStakingPool, ERC721 {
         }
       }
 
-      // technically should never happen because of the total-used capacity check
+      // technically should never happen because of the initial capacity check
       require(remainingAmount == 0, "StakingPool: Insufficient capacity");
 
       updateAllocations(
@@ -650,11 +638,10 @@ contract StakingPool is IStakingPool, ERC721 {
         trancheAllocations
       );
 
-      uint targetBucketId;
-      {
-        uint gracePeriodExpiration = block.timestamp + request.period + request.gracePeriod;
-        targetBucketId = gracePeriodExpiration / BUCKET_DURATION + 1;
-      }
+      uint targetBucketId =
+        (block.timestamp + request.period + request.gracePeriod)
+        / BUCKET_DURATION
+        + 1;
 
       updateExpiringCoverAmounts(
         request.coverId,
@@ -672,8 +659,8 @@ contract StakingPool is IStakingPool, ERC721 {
       request.productId,
       request.period,
       allocatedCoverAmount,
-      initialCapacityUsed,
-      totalCapacity
+      requestedTranchesCapacityUsed,
+      requestedTranchesCapacity
     );
 
     {
@@ -733,7 +720,8 @@ contract StakingPool is IStakingPool, ERC721 {
 
     (
       uint[] memory trancheAllocations,
-      /*uint totalAllocatedCapacity*/
+      /*uint requestedTranchesCapacityUsed*/,
+      /*uint totalCapacityUsed*/
     ) = getAllocations(
       request.productId,
       firstTrancheIdToUse,
@@ -770,32 +758,32 @@ contract StakingPool is IStakingPool, ERC721 {
     }
   }
 
-  function getStoredActiveCoverAmounts(
+  function getStoredCoverAmounts(
     uint productId,
-    uint firstTrancheId,
-    uint trancheCount
-  ) internal view returns (CoverAmount[] memory) {
+    uint firstTrancheId
+  ) internal view returns (CoverAmount[] memory coverAmounts) {
+
+    coverAmounts = new CoverAmount[](MAX_ACTIVE_TRANCHES);
 
     uint firstGroupId = firstTrancheId / COVER_TRANCHE_GROUP_SIZE;
-    uint lastGroupId = (firstTrancheId + trancheCount - 1) / COVER_TRANCHE_GROUP_SIZE;
+    uint lastGroupId = (firstTrancheId + MAX_ACTIVE_TRANCHES - 1) / COVER_TRANCHE_GROUP_SIZE;
 
-    // min 1 and max 3 reads
+    // min 2 and max 3 groups
     uint groupCount = lastGroupId - firstGroupId + 1;
 
     CoverAmountGroup[] memory coverAmountGroups = new CoverAmountGroup[](groupCount);
-    CoverAmount[] memory coverAmounts = new CoverAmount[](trancheCount);
 
     for (uint i = 0; i < groupCount; i++) {
       coverAmountGroups[i] = activeCoverAmounts[productId][firstGroupId + i];
     }
 
     // flatten groups
-    for (uint i = 0; i < trancheCount; i++) {
+    for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
       uint trancheId = firstTrancheId + i;
-      uint trancheGroupId = trancheId / COVER_TRANCHE_GROUP_SIZE - firstGroupId;
+      uint trancheGroupIndex = trancheId / COVER_TRANCHE_GROUP_SIZE - firstGroupId;
       uint trancheIndexInGroup = trancheId % COVER_TRANCHE_GROUP_SIZE;
 
-      CoverAmount coverAmount = coverAmountGroups[trancheGroupId].getItemAt(trancheIndexInGroup);
+      CoverAmount coverAmount = coverAmountGroups[trancheGroupIndex].getItemAt(trancheIndexInGroup);
       coverAmounts[i] = coverAmount;
     }
 
@@ -805,29 +793,29 @@ contract StakingPool is IStakingPool, ERC721 {
   function getExpiringCoverAmounts(
     uint productId,
     uint bucketId,
-    uint firstTrancheId,
-    uint trancheCount
+    uint firstTrancheId
   ) internal view returns (uint32[] memory expiringCoverAmounts) {
 
-    uint firstGroupId = firstTrancheId / BUCKET_TRANCHE_GROUP_SIZE;
-    uint lastGroupId = (firstTrancheId + trancheCount - 1) / BUCKET_TRANCHE_GROUP_SIZE;
+    expiringCoverAmounts = new uint32[](MAX_ACTIVE_TRANCHES);
 
-    // min 1, max 2
+    uint firstGroupId = firstTrancheId / BUCKET_TRANCHE_GROUP_SIZE;
+    uint lastGroupId = (firstTrancheId + MAX_ACTIVE_TRANCHES - 1) / BUCKET_TRANCHE_GROUP_SIZE;
+
+    // min 2, max 2
     uint groupCount = lastGroupId - firstGroupId + 1;
     BucketTrancheGroup[] memory bucketTrancheGroups = new BucketTrancheGroup[](groupCount);
-    expiringCoverAmounts = new uint32[](trancheCount);
 
     // min 1 and max 3 reads
     for (uint i = 0; i < groupCount; i++) {
       bucketTrancheGroups[i] = expiringCoverBuckets[productId][bucketId][firstGroupId + i];
     }
 
-    // flatten groups
-    for (uint i = 0; i < trancheCount; i++) {
+    // flatten bucket tranche groups
+    for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
       uint trancheId = firstTrancheId + i;
-      uint trancheGroupId = trancheId / BUCKET_TRANCHE_GROUP_SIZE - firstGroupId;
+      uint trancheGroupIndex = trancheId / BUCKET_TRANCHE_GROUP_SIZE - firstGroupId;
       uint trancheIndexInGroup = trancheId % BUCKET_TRANCHE_GROUP_SIZE;
-      uint32 expiringCoverAmount = bucketTrancheGroups[trancheGroupId].getItemAt(trancheIndexInGroup);
+      uint32 expiringCoverAmount = bucketTrancheGroups[trancheGroupIndex].getItemAt(trancheIndexInGroup);
       expiringCoverAmounts[i] = expiringCoverAmount;
     }
 
@@ -840,26 +828,17 @@ contract StakingPool is IStakingPool, ERC721 {
     uint trancheCount
   ) internal view returns (
     uint[] memory trancheAllocations,
-    uint allocatedCapacity
+    uint requestedTranchesCapacityUsed,
+    uint totalCapacityUsed
   ) {
 
     trancheAllocations = new uint[](trancheCount);
 
-    CoverAmount[] memory coverAmounts = getStoredActiveCoverAmounts(
-      productId,
-      firstTrancheIdToUse,
-      trancheCount
-    );
+    uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+    uint currentBucket = (block.timestamp / BUCKET_DURATION).toUint16();
 
-    uint16 currentBucket = (block.timestamp / BUCKET_DURATION).toUint16();
-    uint16 lastBucketId;
-
-    for (uint i = 0; i < trancheCount; i++) {
-      lastBucketId = coverAmounts[i].lastBucketId();
-      if (lastBucketId != 0) {
-        break;
-      }
-    }
+    CoverAmount[] memory coverAmounts = getStoredCoverAmounts(productId, _firstActiveTrancheId);
+    uint lastBucketId = coverAmounts[0].lastBucketId();
 
     if (lastBucketId == 0) {
       lastBucketId = currentBucket;
@@ -872,31 +851,37 @@ contract StakingPool is IStakingPool, ERC721 {
       uint32[] memory coverExpirations = getExpiringCoverAmounts(
         productId,
         lastBucketId,
-        firstTrancheIdToUse,
-        trancheCount
+        firstTrancheIdToUse
       );
 
-      for (uint i = 0; i < trancheCount; i++) {
+      for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
 
-        uint16 storedLastBucketId = coverAmounts[i].lastBucketId();
-        if (storedLastBucketId == 0 || storedLastBucketId >= lastBucketId) {
+        if (coverAmounts[i].lastBucketId() == 0) {
+          // we never stored any allocation here so there's nothing to expire
           continue;
         }
 
         coverAmounts[i] = StakingTypesLib.newCoverAmount(
           coverAmounts[i].activeCoverAmount() - coverExpirations[i],
-          lastBucketId
+          lastBucketId.toUint16()
         );
       }
     }
 
-    for (uint i = 0; i < trancheCount; i++) {
+    for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
+
+      uint trancheId = _firstActiveTrancheId + i;
       uint activeCoverAmount = coverAmounts[i].activeCoverAmount();
-      trancheAllocations[i] = activeCoverAmount;
-      allocatedCapacity += activeCoverAmount;
+
+      if (trancheId >= firstTrancheIdToUse) {
+        trancheAllocations[trancheId - firstTrancheIdToUse] = activeCoverAmount;
+        requestedTranchesCapacityUsed += activeCoverAmount;
+      }
+
+      totalCapacityUsed += activeCoverAmount;
     }
 
-    return (trancheAllocations, allocatedCapacity);
+    return (trancheAllocations, requestedTranchesCapacityUsed, totalCapacityUsed);
   }
 
   function getActiveTrancheCapacities(
@@ -917,6 +902,8 @@ contract StakingPool is IStakingPool, ERC721 {
       globalCapacityRatio,
       capacityReductionRatio
     );
+
+    return (trancheCapacities, totalCapacity);
   }
 
   function getTrancheCapacities(
@@ -972,6 +959,54 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     return (trancheCapacities, requestedTranchesCapacity, totalCapacity);
+  }
+
+  function getTrancheAllocationsAndCapacities(
+    uint productId,
+    uint firstTrancheIdToUse,
+    uint trancheCount,
+    uint globalCapacityRatio,
+    uint capacityReductionRatio,
+    uint requiredCapacity
+  ) internal view returns (
+    uint[] memory trancheAllocations,
+    uint[] memory trancheCapacities,
+    uint requestedTranchesCapacityUsed,
+    uint requestedTranchesCapacity
+  ) {
+
+    uint totalInitialCapacityUsed;
+    uint totalCapacity;
+
+    (
+      trancheAllocations,
+      requestedTranchesCapacityUsed,
+      totalInitialCapacityUsed
+    ) = getAllocations(
+      productId,
+      firstTrancheIdToUse,
+      trancheCount
+    );
+
+    (
+      trancheCapacities,
+      requestedTranchesCapacity,
+      totalCapacity
+    ) = getTrancheCapacities(
+      productId,
+      firstTrancheIdToUse,
+      trancheCount,
+      globalCapacityRatio,
+      capacityReductionRatio
+    );
+
+    require(
+      // capacity check
+      requestedTranchesCapacityUsed + requiredCapacity <= requestedTranchesCapacity
+      // weight check
+      && totalInitialCapacityUsed + requiredCapacity <= totalCapacity,
+      "StakingPool: Insufficient capacity"
+    );
   }
 
   function updateAllocations(
@@ -1562,7 +1597,7 @@ contract StakingPool is IStakingPool, ERC721 {
   ) internal view returns (uint8 effectiveWeight) {
     uint firstTrancheIdToUse = block.timestamp / TRANCHE_DURATION;
 
-    (, uint totalAllocation) = getAllocations(
+    (, , uint totalAllocation) = getAllocations(
       productId,
       firstTrancheIdToUse,
       MAX_ACTIVE_TRANCHES

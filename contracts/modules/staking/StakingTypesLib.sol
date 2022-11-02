@@ -2,9 +2,12 @@
 
 pragma solidity ^0.8.9;
 
-// 4 x (uint48 activeCoverAmount, uint16 lastBucketId)
-type CoverAmountGroup is uint;
+// 1 x (uint48 activeCoverAmount, uint16 lastBucketId)
 type CoverAmount is uint64;
+
+// 4 x CoverAmount
+type CoverAmountGroup is uint;
+
 // 8 x (uint32 expiringCoverAmount)
 type BucketTrancheGroup is uint;
 

@@ -47,7 +47,6 @@ contract StakingPool is IStakingPool, ERC721 {
   // applies to active stake only and does not need update on deposits
   uint public rewardPerSecond;
 
-  // TODO: this should be allowed to overflow (similar to uniswapv2 twap)
   // accumulated rewarded nxm per reward share
   uint public accNxmPerRewardsShare;
 

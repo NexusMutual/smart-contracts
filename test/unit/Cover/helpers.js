@@ -57,32 +57,38 @@ async function assertCoverFields(
 }
 
 async function buyCoverOnOnePool(params) {
-  return buyCoverOnMultiplePools.call(this, params, 1);
+  const { cover } = this;
+  const [, stakingPoolManager] = this.accounts.members;
+
+  const { productId, capacity, activeCover, targetPriceRatio, amount } = params;
+
+  await createStakingPool(
+    cover,
+    productId,
+    capacity,
+    targetPriceRatio,
+    activeCover,
+    stakingPoolManager,
+    stakingPoolManager,
+    targetPriceRatio,
+  );
+
+  const allocationRequest = [{ poolId: 0, coverAmountInAsset: amount }];
+
+  return buyCoverOnMultiplePools.call(this, { ...params, allocationRequest });
 }
 
-async function buyCoverOnMultiplePools(
-  { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator, activeCover, capacity },
-  amountOfPools,
-) {
+async function buyCoverOnMultiplePools({
+  productId,
+  coverAsset,
+  period,
+  amount,
+  targetPriceRatio,
+  priceDenominator,
+  allocationRequest,
+}) {
   const { cover } = this;
-  const [coverBuyer, stakingPoolManager] = this.accounts.members;
-
-  const amountPerPool = amount.div(amountOfPools);
-  const allocationRequest = [];
-
-  for (let i = 0; i < amountOfPools; i++) {
-    await createStakingPool(
-      cover,
-      productId,
-      capacity,
-      targetPriceRatio,
-      activeCover,
-      stakingPoolManager,
-      stakingPoolManager,
-      targetPriceRatio,
-    );
-    allocationRequest.push({ poolId: i, coverAmountInAsset: amountPerPool });
-  }
+  const [coverBuyer] = this.accounts.members;
 
   const expectedPremium = amount
     .mul(targetPriceRatio)

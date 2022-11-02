@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { assertCoverFields, buyCoverOnOnePool, buyCoverOnMultiplePools } = require('./helpers');
+const { assertCoverFields, buyCoverOnOnePool, buyCoverOnMultiplePools, createStakingPool } = require('./helpers');
 const { expect } = require('chai');
 
 const { parseEther } = ethers.utils;
@@ -143,20 +143,38 @@ describe('performStakeBurn', function () {
 
     const {
       internalContracts: [internal1],
+      members: [, stakingPoolManager],
       emergencyAdmin,
     } = this.accounts;
 
-    const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
+    const { productId, coverAsset, period, amount, targetPriceRatio, capacity, activeCover } = coverBuyFixture;
 
     await cover.connect(emergencyAdmin).enableActiveCoverAmountTracking([], []);
     await cover.connect(emergencyAdmin).commitActiveCoverAmounts();
 
     const amountOfPools = 4;
-    const { segmentId, coverId: expectedCoverId } = await buyCoverOnMultiplePools.call(
-      this,
-      coverBuyFixture,
-      amountOfPools,
-    );
+
+    const amountPerPool = amount.div(amountOfPools);
+    const allocationRequest = [];
+
+    for (let i = 0; i < amountOfPools; i++) {
+      await createStakingPool(
+        cover,
+        productId,
+        capacity,
+        targetPriceRatio,
+        activeCover,
+        stakingPoolManager,
+        stakingPoolManager,
+        targetPriceRatio,
+      );
+      allocationRequest.push({ poolId: i, coverAmountInAsset: amountPerPool });
+    }
+
+    const { segmentId, coverId: expectedCoverId } = await buyCoverOnMultiplePools.call(this, {
+      ...coverBuyFixture,
+      allocationRequest,
+    });
 
     const burnAmountDivisor = 2;
 

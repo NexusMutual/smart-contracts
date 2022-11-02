@@ -13,6 +13,7 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IERC20Detailed.sol";
+import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
 contract Pool is IPool, MasterAware, ReentrancyGuard {
@@ -646,7 +647,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     // Step 3. Min [average[Price(0), Price(1)] x ( 1 - Sell Spread), Price(1) ]
     // Sell Spread = 2.5%
     uint averagePriceWithSpread = (spotPrice0 + spotPrice1) / 2 * 975 / 1000;
-    uint finalPrice = averagePriceWithSpread < spotPrice1 ? averagePriceWithSpread : spotPrice1;
+    uint finalPrice = Math.min(averagePriceWithSpread, spotPrice1);
     uint ethAmount = finalPrice * nxmAmount / 1e18;
 
     require(

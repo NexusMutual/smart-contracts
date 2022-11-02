@@ -460,7 +460,7 @@ contract Governance is IGovernance, LegacyMasterAware {
     uint category,
     uint status,
     uint finalVerdict,
-    uint totalRewar
+    uint totalReward
   )
   {
     return (

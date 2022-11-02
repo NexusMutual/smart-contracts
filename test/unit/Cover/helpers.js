@@ -56,18 +56,11 @@ async function assertCoverFields(
   expect(segment.priceRatio).to.be.equal(targetPriceRatio);
 }
 
-async function buyCoverOnOnePool({
-  productId,
-  coverAsset,
-  period,
-  amount,
-  targetPriceRatio,
-  priceDenominator,
-  activeCover,
-  capacity,
-}) {
+async function buyCoverOnOnePool(params) {
   const { cover } = this;
-  const [coverBuyer, stakingPoolManager] = this.accounts.members;
+  const [, stakingPoolManager] = this.accounts.members;
+
+  const { productId, capacity, activeCover, targetPriceRatio, amount } = params;
 
   await createStakingPool(
     cover,
@@ -79,6 +72,23 @@ async function buyCoverOnOnePool({
     stakingPoolManager,
     targetPriceRatio,
   );
+
+  const allocationRequest = [{ poolId: 0, coverAmountInAsset: amount }];
+
+  return buyCoverOnMultiplePools.call(this, { ...params, allocationRequest });
+}
+
+async function buyCoverOnMultiplePools({
+  productId,
+  coverAsset,
+  period,
+  amount,
+  targetPriceRatio,
+  priceDenominator,
+  allocationRequest,
+}) {
+  const { cover } = this;
+  const [coverBuyer] = this.accounts.members;
 
   const expectedPremium = amount
     .mul(targetPriceRatio)
@@ -100,7 +110,7 @@ async function buyCoverOnOnePool({
       commissionDestination: AddressZero,
       ipfsData: '',
     },
-    [{ poolId: '0', coverAmountInAsset: amount }],
+    allocationRequest,
     { value: expectedPremium },
   );
 
@@ -129,4 +139,5 @@ module.exports = {
   buyCoverOnOnePool,
   MAX_COVER_PERIOD,
   createStakingPool,
+  buyCoverOnMultiplePools,
 };

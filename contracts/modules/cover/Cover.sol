@@ -5,6 +5,7 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/proxy/beacon/UpgradeableBeacon.sol";
+import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ICover.sol";
@@ -21,8 +22,6 @@ import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./CoverUtilsLib.sol";
 import "./MinimalBeaconProxy.sol";
-import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
-
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   using SafeERC20 for IERC20;
@@ -192,7 +191,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     require(_products.length > params.productId, "Cover: Product not found");
 
     Product memory product = _products[params.productId];
-    require(product.initialPriceRatio != 0, "Cover: Product not initialized");
+    require(!product.isDeprecated, "Cover: Product is deprecated");
 
     IPool _pool = pool();
     uint32 deprecatedCoverAssetsBitmap = _pool.deprecatedCoverAssetsBitmap();
@@ -363,6 +362,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     buyCoverParams.productId = cover.productId;
 
     Product memory product = _products[buyCoverParams.productId];
+    require(!product.isDeprecated, "Cover: Product is deprecated");
+
     uint32 deprecatedCoverAssetsBitmap = pool().deprecatedCoverAssetsBitmap();
 
     // Check that the payout asset is still supported (it may have been deprecated or disabled in the meantime)
@@ -638,90 +639,68 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   /* ========== PRODUCT CONFIGURATION ========== */
 
-  function addProducts(
-    Product[] calldata newProducts,
-    string[] calldata ipfsMetadata
-  ) external override onlyAdvisoryBoard {
-    uint initialProductsCount = _products.length;
-
+  function setProducts(ProductParam[] calldata productParams) external override onlyAdvisoryBoard {
     uint32 _coverAssetsFallback = coverAssetsFallback;
     uint productTypesCount = _productTypes.length;
 
-    for (uint i = 0; i < newProducts.length; i++) {
-      validateProduct(newProducts[i], _coverAssetsFallback, productTypesCount);
-      _products.push(newProducts[i]);
-      emit ProductSet(initialProductsCount + i, ipfsMetadata[i]);
+    for (uint i = 0; i < productParams.length; i++) {
+      ProductParam calldata param = productParams[i];
+      Product calldata product = param.product;
+      require(product.productType < productTypesCount, "Cover: Invalid productType");
+      require(
+        areAssetsSupported(product.coverAssets, _coverAssetsFallback),
+        "Cover: Unsupported cover assets"
+      );
+      require(
+        product.initialPriceRatio >= GLOBAL_MIN_PRICE_RATIO,
+        "Cover: initialPriceRatio < GLOBAL_MIN_PRICE_RATIO"
+      );
+      require(
+        product.initialPriceRatio <= PRICE_DENOMINATOR,
+        "Cover: initialPriceRatio > 100%"
+      );
+      require(
+        product.capacityReductionRatio <= CAPACITY_REDUCTION_DENOMINATOR,
+        "Cover: capacityReductionRatio > 100%"
+      );
+
+      // New product has id == uint256.max
+      if (param.productId == type(uint256).max) {
+        emit ProductSet(_products.length, param.ipfsMetadata);
+        _products.push(product);
+        continue;
+      }
+
+      // existing product
+      require(param.productId < _products.length, "Cover: Product doesnt exist. Set id to uint256.max to add it");
+      Product storage newProductValue = _products[param.productId];
+      newProductValue.isDeprecated = product.isDeprecated;
+      newProductValue.coverAssets = product.coverAssets;
+      newProductValue.initialPriceRatio = product.initialPriceRatio;
+      newProductValue.capacityReductionRatio = product.capacityReductionRatio;
+
+      if (bytes(param.ipfsMetadata).length > 0) {
+        emit ProductSet(param.productId, param.ipfsMetadata);
+      }
     }
   }
 
-  function addProductTypes(
-    ProductType[] calldata newProductTypes,
-    string[] calldata ipfsMetadata
-  ) external override onlyAdvisoryBoard {
-    uint initialProductTypesCount = _productTypes.length;
-    for (uint i = 0; i < newProductTypes.length; i++) {
-      _productTypes.push(newProductTypes[i]);
-      emit ProductTypeSet(initialProductTypesCount + i, ipfsMetadata[i]);
+  function setProductTypes(ProductTypeParam[] calldata productTypeParams) external onlyAdvisoryBoard {
+
+    for (uint i = 0; i < productTypeParams.length; i++) {
+      ProductTypeParam calldata param = productTypeParams[i];
+
+      // New product has id == uint256.max
+      if (param.productTypeId == type(uint256).max) {
+        emit ProductTypeSet(_productTypes.length, param.ipfsMetadata);
+        _productTypes.push(param.productType);
+        continue;
+      }
+
+      require(param.productTypeId < _productTypes.length, "Cover: ProductType doesnt exist. Set id to uint256.max to add it");
+      _productTypes[param.productTypeId].gracePeriodInDays = param.productType.gracePeriodInDays;
+      emit ProductTypeSet(param.productTypeId, param.ipfsMetadata);
     }
-  }
-
-  function editProductTypes(
-    uint[] calldata productTypeIds,
-    uint16[] calldata gracePeriodsInDays,
-    string[] calldata ipfsMetadata
-  ) external override onlyAdvisoryBoard {
-
-    for (uint i = 0; i < productTypeIds.length; i++) {
-      _productTypes[productTypeIds[i]].gracePeriodInDays = gracePeriodsInDays[i];
-      emit ProductTypeSet(productTypeIds[i], ipfsMetadata[i]);
-    }
-  }
-
-  function editProducts(
-    uint[] calldata productIds,
-    ProductUpdate[] calldata productUpdates,
-    string[] calldata ipfsMetadata
-  ) external override onlyAdvisoryBoard {
-
-    uint32 _coverAssetsFallback = coverAssetsFallback;
-    uint productTypesCount = _productTypes.length;
-
-    for (uint i = 0; i < productIds.length; i++) {
-
-      Product memory newProductValue = _products[productIds[i]];
-      newProductValue.coverAssets = productUpdates[i].coverAssets;
-      newProductValue.initialPriceRatio = productUpdates[i].initialPriceRatio;
-      newProductValue.capacityReductionRatio = productUpdates[i].capacityReductionRatio;
-
-      validateProduct(newProductValue, _coverAssetsFallback, productTypesCount);
-      _products[productIds[i]] = newProductValue;
-      emit ProductSet(productIds[i], ipfsMetadata[i]);
-    }
-  }
-
-  function validateProduct(
-    Product memory product,
-    uint32 _coverAssetsFallback,
-    uint productTypesCount
-  ) internal pure {
-
-    require(product.productType < productTypesCount, "Cover: Invalid productType");
-    require(
-      areAssetsSupported(product.coverAssets, _coverAssetsFallback),
-      "Cover: Unsupported cover assets"
-    );
-    require(
-      product.initialPriceRatio >= GLOBAL_MIN_PRICE_RATIO,
-      "Cover: initialPriceRatio < GLOBAL_MIN_PRICE_RATIO"
-    );
-    require(
-      product.initialPriceRatio <= PRICE_DENOMINATOR,
-      "Cover: initialPriceRatio > 100%"
-    );
-    require(
-      product.capacityReductionRatio <= CAPACITY_REDUCTION_DENOMINATOR,
-      "Cover: capacityReductionRatio > 100%"
-    );
   }
 
   /* ========== ACTIVE COVER AMOUNT TRACKING ========== */

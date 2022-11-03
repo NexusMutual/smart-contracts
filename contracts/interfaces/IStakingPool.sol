@@ -31,7 +31,7 @@ struct DepositRequest {
   address destination;
 }
 
-struct ProductParams {
+struct StakedProductParam {
   uint productId;
   bool recalculateEffectiveWeight;
   bool setTargetWeight;
@@ -120,7 +120,7 @@ interface IStakingPool {
 
   function setPoolPrivacy(bool isPrivatePool) external;
 
-  function setProducts(ProductParams[] memory params) external;
+  function setProducts(StakedProductParam[] memory params) external;
 
   function manager() external view returns (address);
 

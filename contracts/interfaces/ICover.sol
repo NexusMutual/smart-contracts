@@ -99,22 +99,24 @@ struct Product {
   uint32 coverAssets;
   uint16 initialPriceRatio;
   uint16 capacityReductionRatio;
+  bool isDeprecated;
 }
 
-// Updatable fields for an already existing product
-struct ProductUpdate {
-  /*
-    cover assets bitmap. each bit in the base-2 representation represents whether the asset with the index
-    of that bit is enabled as a cover asset for this product.
-  */
-  uint32 coverAssets;
-  uint16 initialPriceRatio;
-  uint16 capacityReductionRatio;
+struct ProductParam {
+  uint productId;
+  string ipfsMetadata;
+  Product product;
 }
 
 struct ProductType {
   uint8 claimMethod;
   uint16 gracePeriodInDays;
+}
+
+struct ProductTypeParam {
+  uint productTypeId;
+  string ipfsMetadata;
+  ProductType productType;
 }
 
 interface ICover {
@@ -165,27 +167,9 @@ interface ICover {
     PoolAllocationRequest[] calldata coverChunkRequests
   ) external payable returns (uint /*coverId*/);
 
-  function addProducts(
-    Product[] calldata newProducts,
-    string[] calldata ipfsMetadata
-  ) external;
+  function setProductTypes(ProductTypeParam[] calldata productTypes) external;
 
-  function addProductTypes(
-    ProductType[] calldata newProductTypes,
-    string[] calldata ipfsMetadata
-  ) external;
-
-  function editProductTypes(
-    uint[] calldata productTypeIds,
-    uint16[] calldata gracePeriodsInDays,
-    string[] calldata ipfsMetadata
-  ) external;
-
-  function editProducts(
-    uint[] calldata productIds,
-    ProductUpdate[] calldata productUpdates,
-    string[] calldata ipfsMetadata
-  ) external;
+  function setProducts(ProductParam[] calldata params) external;
 
   function performStakeBurn(
     uint coverId,

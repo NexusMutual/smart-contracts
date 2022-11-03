@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const { getContractAddress } = require('@ethersproject/address');
 const { parseEther } = ethers.utils;
+const { MaxUint256 } = ethers.constants;
 const { BigNumber } = ethers;
 const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../utils').constants;
@@ -173,30 +174,34 @@ async function setup() {
     .connect(accounts.governanceContracts[0])
     .updateUintParameters([0, 2], [capacityFactor, coverAssetsFallback]);
 
-  await cover.connect(accounts.advisoryBoardMembers[0]).addProductTypes(
-    [
-      {
-        descriptionIpfsHash: 'my ipfs hash',
+  await cover.connect(accounts.advisoryBoardMembers[0]).setProductTypes([
+    {
+      productTypeId: MaxUint256,
+      ipfsMetadata: 'ipfs metadata',
+      productType: {
         claimMethod: '1',
         gracePeriodInDays: '120',
       },
-    ],
-    [''],
-  );
+    },
+  ]);
 
   // add products
-  await cover.connect(accounts.advisoryBoardMembers[0]).addProducts(
-    [
-      {
+  await cover.connect(accounts.advisoryBoardMembers[0]).setProducts([
+    {
+      productId: MaxUint256,
+      ipfsMetadata: 'ipfs metadata',
+      product: {
         productType: '0',
         yieldTokenAddress: '0x0000000000000000000000000000000000000000',
         coverAssets: parseInt('111', 2), // ETH DAI and USDC supported
         initialPriceRatio: '1000', // 10%
         capacityReductionRatio: '0',
+        isDeprecated: false,
       },
-    ],
-    [''],
-  );
+    },
+  ]);
+
+  const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
 
   this.master = master;
   this.pool = pool;
@@ -210,6 +215,9 @@ async function setup() {
   this.coverNFT = coverNFT;
   this.accounts = accounts;
   this.capacityFactor = capacityFactor;
+  this.config = {
+    GLOBAL_MIN_PRICE_RATIO,
+  };
 }
 
 module.exports = setup;

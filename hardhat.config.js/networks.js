@@ -1,19 +1,12 @@
 const ether = n => `${n}${'0'.repeat(18)}`;
 const networks = {
   hardhat: {
-    accounts: {
-      count: 100,
-      accountsBalance: ether(1000000000),
-    },
-    // TODO: fix tests with gasPrice = 0 and remove the hardfork param
+    accounts: { count: 100, accountsBalance: ether(1000000000) },
     allowUnlimitedContractSize: true,
     blockGasLimit: 30e6,
-    gas: 15e6,
+    gas: 30e6,
   },
-  localhost: {
-    blockGasLimit: 30e6,
-    gas: 21e6,
-  },
+  localhost: { blockGasLimit: 30e6, gas: 30e6 },
 };
 
 if (process.env.TEST_ENV_FORK) {

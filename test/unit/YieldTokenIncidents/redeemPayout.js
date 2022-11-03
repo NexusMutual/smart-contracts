@@ -49,11 +49,13 @@ describe('redeemPayout', function () {
       [segment],
     );
 
+    const priceBefore = parseEther('1.1');
+
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
         .connect(advisoryBoard)
-        .submitIncident(2, parseEther('1.1'), currentTime + segment.period / 2, parseEther('100'), '');
+        .submitIncident(2, priceBefore, currentTime + segment.period / 2, parseEther('100'), '');
     }
 
     await assessment.connect(coverOwner).castVote(0, true, parseEther('100'));
@@ -103,12 +105,13 @@ describe('redeemPayout', function () {
       [segment],
     );
 
+    const priceBefore = parseEther('1.1');
     {
       const productId = 2;
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
         .connect(advisoryBoard)
-        .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100'), '');
+        .submitIncident(productId, priceBefore, currentTime, parseEther('100'), '');
     }
 
     await expect(
@@ -150,12 +153,14 @@ describe('redeemPayout', function () {
       ASSET.ETH,
       [segment],
     );
+
+    const priceBefore = parseEther('1.1');
     {
       const productId = 2;
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
         .connect(advisoryBoard)
-        .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100'), '');
+        .submitIncident(productId, priceBefore, currentTime, parseEther('100'), '');
     }
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
@@ -199,12 +204,13 @@ describe('redeemPayout', function () {
       [segment],
     );
 
+    const priceBefore = parseEther('1.1');
     {
       const productId = 2;
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
         .connect(advisoryBoard)
-        .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100'), '');
+        .submitIncident(productId, priceBefore, currentTime, parseEther('100'), '');
     }
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
@@ -238,11 +244,12 @@ describe('redeemPayout', function () {
       await setTime(currentTime + daysToSeconds(1));
     }
 
+    const priceBefore = parseEther('1.1');
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
         .connect(advisoryBoard)
-        .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100'), '');
+        .submitIncident(productId, priceBefore, currentTime, parseEther('100'), '');
     }
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
@@ -284,11 +291,13 @@ describe('redeemPayout', function () {
       await setTime(currentTime + daysToSeconds(31));
     }
 
+    const priceBefore = parseEther('1.1');
+
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
         .connect(advisoryBoard)
-        .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100'), '');
+        .submitIncident(productId, priceBefore, currentTime, parseEther('100'), '');
     }
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
@@ -326,9 +335,11 @@ describe('redeemPayout', function () {
       [segment0, segment1],
     );
 
+    const priceBefore = parseEther('1.1');
+
     await yieldTokenIncidents
       .connect(advisoryBoard)
-      .submitIncident(productId, parseEther('1.1'), timestamp + 2, parseEther('100'), '');
+      .submitIncident(productId, priceBefore, timestamp + 2, parseEther('100'), '');
 
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
@@ -376,11 +387,12 @@ describe('redeemPayout', function () {
       [segment0, segment1],
     );
 
+    const priceBefore = parseEther('1.1');
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     await setTime(currentTime + segment0.period + daysToSeconds(gracePeriodInDays));
     await yieldTokenIncidents
       .connect(advisoryBoard)
-      .submitIncident(productId, parseEther('1.1'), currentTime + segment0.period - 1, parseEther('100'), '');
+      .submitIncident(productId, priceBefore, currentTime + segment0.period - 1, parseEther('100'), '');
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
 
@@ -428,9 +440,10 @@ describe('redeemPayout', function () {
       expect(currentTime + segment0.period).to.be.lessThan(daysToSeconds(gracePeriodInDays));
     }
 
+    const priceBefore = parseEther('1.1');
     await yieldTokenIncidents
       .connect(advisoryBoard)
-      .submitIncident(productId, parseEther('1.1'), currentTime + segment0.period - 1, parseEther('100'), '');
+      .submitIncident(productId, priceBefore, currentTime + segment0.period - 1, parseEther('100'), '');
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
 
@@ -480,11 +493,12 @@ describe('redeemPayout', function () {
       [segment],
     );
 
+    const priceBefore = parseEther('1.1');
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
         .connect(advisoryBoard)
-        .submitIncident(validProductId, parseEther('1.1'), currentTime + segment.period / 2, parseEther('100'), '');
+        .submitIncident(validProductId, priceBefore, currentTime + segment.period / 2, parseEther('100'), '');
     }
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
@@ -527,11 +541,17 @@ describe('redeemPayout', function () {
       [segment],
     );
 
+    const priceBefore = parseEther('1.1');
+    const { payoutDeductibleRatio } = await yieldTokenIncidents.config();
+    const INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR = '10000';
+    const coverAssetDecimals = parseEther('1');
+
+    const ratio = priceBefore.mul(payoutDeductibleRatio);
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
         .connect(advisoryBoard)
-        .submitIncident(2, parseEther('1.1'), currentTime + segment.period / 2, parseEther('100'), '');
+        .submitIncident(2, priceBefore, currentTime + segment.period / 2, parseEther('100'), '');
     }
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
@@ -546,30 +566,45 @@ describe('redeemPayout', function () {
 
     // [warning] Cover mock does not subtract the covered amount
     {
+      const claimedAmount = parseEther('100');
       const ethBalanceBefore = await ethers.provider.getBalance(member1.address);
       await yieldTokenIncidents
         .connect(member1)
-        .redeemPayout(0, 0, 0, parseEther('100'), member1.address, [], { gasPrice: 0 });
+        .redeemPayout(0, 0, 0, claimedAmount, member1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(member1.address);
-      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('99')));
+      expect(ethBalanceAfter).to.be.equal(
+        ethBalanceBefore.add(
+          claimedAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals),
+        ),
+      );
     }
 
     {
+      const claimedAmount = parseEther('111');
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
       await yieldTokenIncidents
         .connect(member1)
-        .redeemPayout(0, 0, 0, parseEther('111'), nonMember1.address, [], { gasPrice: 0 });
+        .redeemPayout(0, 0, 0, claimedAmount, nonMember1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
-      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('109.89')));
+      expect(ethBalanceAfter).to.be.equal(
+        ethBalanceBefore.add(
+          claimedAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals),
+        ),
+      );
     }
 
     {
+      const claimedAmount = parseEther('3000');
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember2.address);
       await yieldTokenIncidents
         .connect(member1)
-        .redeemPayout(0, 0, 0, parseEther('3000'), nonMember2.address, [], { gasPrice: 0 });
+        .redeemPayout(0, 0, 0, claimedAmount, nonMember2.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember2.address);
-      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('2970')));
+      expect(ethBalanceAfter).to.be.equal(
+        ethBalanceBefore.add(
+          claimedAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals),
+        ),
+      );
     }
   });
 
@@ -588,11 +623,17 @@ describe('redeemPayout', function () {
       [segment],
     );
 
+    const priceBefore = parseEther('1.1');
+    const { payoutDeductibleRatio } = await yieldTokenIncidents.config();
+    const INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR = '10000';
+    const coverAssetDecimals = ethers.BigNumber.from('10').pow(await dai.decimals());
+
+    const ratio = priceBefore.mul(payoutDeductibleRatio);
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
         .connect(advisoryBoard)
-        .submitIncident(2, parseEther('1.1'), currentTime + segment.period / 2, parseEther('100'), '');
+        .submitIncident(2, priceBefore, currentTime + segment.period / 2, parseEther('100'), '');
     }
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
@@ -607,30 +648,45 @@ describe('redeemPayout', function () {
 
     // [warning] Cover mock does not subtract the covered amount
     {
+      const claimedAmount = parseEther('100');
       const daiBalanceBefore = await dai.balanceOf(member1.address);
       await yieldTokenIncidents
         .connect(member1)
-        .redeemPayout(0, 0, 0, parseEther('100'), member1.address, [], { gasPrice: 0 });
+        .redeemPayout(0, 0, 0, claimedAmount, member1.address, [], { gasPrice: 0 });
       const daiBalanceAfter = await dai.balanceOf(member1.address);
-      expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(parseEther('99')));
+      expect(daiBalanceAfter).to.be.equal(
+        daiBalanceBefore.add(
+          claimedAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals),
+        ),
+      );
     }
 
     {
+      const claimedAmount = parseEther('111');
       const daiBalanceBefore = await dai.balanceOf(nonMember1.address);
       await yieldTokenIncidents
         .connect(member1)
-        .redeemPayout(0, 0, 0, parseEther('111'), nonMember1.address, [], { gasPrice: 0 });
+        .redeemPayout(0, 0, 0, claimedAmount, nonMember1.address, [], { gasPrice: 0 });
       const daiBalanceAfter = await dai.balanceOf(nonMember1.address);
-      expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(parseEther('109.89')));
+      expect(daiBalanceAfter).to.be.equal(
+        daiBalanceBefore.add(
+          claimedAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals),
+        ),
+      );
     }
 
     {
+      const claimedAmount = parseEther('3000');
       const daiBalanceBefore = await dai.balanceOf(nonMember2.address);
       await yieldTokenIncidents
         .connect(member1)
-        .redeemPayout(0, 0, 0, parseEther('3000'), nonMember2.address, [], { gasPrice: 0 });
+        .redeemPayout(0, 0, 0, claimedAmount, nonMember2.address, [], { gasPrice: 0 });
       const daiBalanceAfter = await dai.balanceOf(nonMember2.address);
-      expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(parseEther('2970')));
+      expect(daiBalanceAfter).to.be.equal(
+        daiBalanceBefore.add(
+          claimedAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals),
+        ),
+      );
     }
   });
 
@@ -649,11 +705,12 @@ describe('redeemPayout', function () {
       [segment],
     );
 
+    const priceBefore = parseEther('1.1');
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
         .connect(advisoryBoard)
-        .submitIncident(4, parseEther('1.1'), currentTime + segment.period / 2, parseEther('100'), '');
+        .submitIncident(4, priceBefore, currentTime + segment.period / 2, parseEther('100'), '');
     }
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
@@ -851,11 +908,13 @@ describe('redeemPayout', function () {
       [segment],
     );
 
+    const priceBefore = parseEther('1.1');
+
     const depeggedTokensAmount = parseEther('100');
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     await yieldTokenIncidents
       .connect(advisoryBoard)
-      .submitIncident(2, parseEther('1.1'), currentTime + segment.period / 2, depeggedTokensAmount, '');
+      .submitIncident(2, priceBefore, currentTime + segment.period / 2, depeggedTokensAmount, '');
 
     await assessment.connect(member1).castVote(0, true, depeggedTokensAmount);
 

@@ -526,7 +526,7 @@ contract SwapOperator {
     asset.transfer(address(pool), balance);
   }
 
-  function orderInProgress() public returns (bool) {
+  function orderInProgress() public view returns (bool) {
     return currentOrderUID.length > 0;
   }
 }

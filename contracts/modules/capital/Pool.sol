@@ -32,7 +32,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   IMCR public mcr;
 
   // parameters
-  address public swapController;
   IPriceFeedOracle public override priceFeedOracle;
   address public swapOperator;
 
@@ -92,6 +91,9 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     master = INXMMaster(_master);
     priceFeedOracle = IPriceFeedOracle(_priceOracle);
     swapOperator = _swapOperator;
+
+    // [todo] After this contract is deployed it might be worth modifying upgradeCapitalPool to
+    // copy the assets on future upgrades instead of having them hardcoded in the constructor.
 
     // The order of coverAssets should never change between updates. Do not remove the following
     // lines!

@@ -113,7 +113,7 @@ contract NXMaster is INXMMaster, Governed {
   function upgradeMultipleContracts(
     bytes2[] calldata _contractCodes,
     address payable[] calldata newAddresses
-  ) external onlyAuthorizedToGovern {
+  ) external {
     require(_contractCodes.length == newAddresses.length, "NXMaster: _contractCodes.length != newAddresses.length");
 
     for (uint i = 0; i < _contractCodes.length; i++) {

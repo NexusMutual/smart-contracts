@@ -45,8 +45,7 @@ async function setup() {
   await mcr.deployed();
   await mcr.setMCR(parseEther('600000'));
 
-  const signers = await ethers.getSigners();
-  const accounts = getAccounts(signers);
+  const accounts = await getAccounts();
 
   const cover = await SPCoverProducts.deploy();
   await cover.deployed();

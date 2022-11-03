@@ -14,8 +14,7 @@ async function setup() {
   const master = await MasterMock.deploy();
   await master.deployed();
 
-  const signers = await ethers.getSigners();
-  const accounts = getAccounts(signers);
+  const accounts = await getAccounts();
   const { internalContracts, members } = accounts;
   const internal = internalContracts[0];
 

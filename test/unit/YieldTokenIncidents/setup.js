@@ -85,8 +85,7 @@ async function setup() {
   await yieldTokenIncidents.changeDependentContractAddress();
   await yieldTokenIncidents.initialize();
 
-  const signers = await ethers.getSigners();
-  const accounts = getAccounts(signers);
+  const accounts = await getAccounts();
   await master.enrollGovernance(accounts.governanceContracts[0].address);
   await memberRoles.setRole(accounts.advisoryBoardMembers[0].address, 1);
   await memberRoles.setRole(accounts.advisoryBoardMembers[1].address, 1);

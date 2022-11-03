@@ -16,13 +16,13 @@ describe('setProducts', function () {
   const defaultIpfsData = 'QmRmkky7qQBjCAU3gFUqfy3NXD6CPq8YVLPM7GHXBz7b5P';
 
   // Cover.PoolAllocationRequest
-  const PoolAllocationRequestTemplate = {
+  const poolAllocationRequestTemplate = {
     poolId: '0',
     coverAmountInAsset: amount,
   };
 
   // Cover.BuyCoverParams
-  const BuyCoverTemplate = {
+  const buyCoverTemplate = {
     owner: AddressZero,
     productId: 0,
     coverAsset: 0,
@@ -37,7 +37,7 @@ describe('setProducts', function () {
   };
 
   // Cover.Product
-  const ProductTemplate = {
+  const productTemplate = {
     productType: 0,
     yieldTokenAddress: AddressZero,
     coverAssets: parseInt('111', 2), // ETH/DAI/USDC
@@ -47,16 +47,16 @@ describe('setProducts', function () {
   };
 
   // Cover.ProductParams
-  const ProductParamsTemplate = {
+  const productParamsTemplate = {
     productId: MaxUint256,
     ipfsMetadata: defaultIpfsData,
-    product: { ...ProductTemplate },
+    product: { ...productTemplate },
   };
 
   it('should add a single product and emit ProductSet event', async function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
-    const productParams = { ...ProductParamsTemplate };
+    const productParams = { ...productParamsTemplate };
     const expectedProductId = 1;
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams]))
       .to.emit(cover, 'ProductSet')
@@ -69,7 +69,7 @@ describe('setProducts', function () {
   it('should edit a single product and emit ProductSet event with updated args', async function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
-    const productParams = { ...ProductParamsTemplate };
+    const productParams = { ...productParamsTemplate };
     // add product
     await cover.connect(advisoryBoardMember0).setProducts([productParams]);
     // edit product
@@ -81,19 +81,15 @@ describe('setProducts', function () {
     await expect(cover.connect(advisoryBoardMember0).setProducts([editParams]))
       .to.emit(cover, 'ProductSet')
       .withArgs(productId, ipfsMetadata);
-    {
-      const product = resultAsObject(await cover.products(productId));
-      const expectedProduct = editParams.product;
-      expect(product).to.deep.equal(expectedProduct);
-    }
+    const actualProduct = resultAsObject(await cover.products(productId));
+    const expectedProduct = editParams.product;
+    expect(actualProduct).to.deep.equal(expectedProduct);
   });
 
   it('should revert if called by address not on advisory board', async function () {
     const { cover } = this;
     const [member] = this.accounts.members;
-    const productParams = Array.from({ length: 20 }, () => {
-      return { ...ProductParamsTemplate };
-    });
+    const productParams = Array.from({ length: 20 }, () => ({ ...productParamsTemplate }));
     await expect(cover.connect(member).setProducts(productParams)).to.be.revertedWith(
       'Caller is not an advisory board member',
     );
@@ -102,9 +98,7 @@ describe('setProducts', function () {
   it('should add many products', async function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
-    const productParams = Array.from({ length: 40 }, () => {
-      return { ...ProductParamsTemplate };
-    });
+    const productParams = Array.from({ length: 40 }, () => ({ ...productParamsTemplate }));
     await expect(cover.connect(advisoryBoardMember0).setProducts(productParams))
       .to.emit(cover, 'ProductSet')
       .withArgs(40, defaultIpfsData);
@@ -116,7 +110,7 @@ describe('setProducts', function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
     const productId = 1;
-    const productParams = { ...ProductParamsTemplate, productId };
+    const productParams = { ...productParamsTemplate, productId };
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
       'Cover: Product doesnt exist. Set id to uint256.max to add it',
     );
@@ -126,8 +120,8 @@ describe('setProducts', function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
     const coverAssets = parseInt('1111', 2); // ETH DAI, USDC and WBTC supported
-    const product = { ...ProductTemplate, coverAssets };
-    const productParams = { ...ProductParamsTemplate, product };
+    const product = { ...productTemplate, coverAssets };
+    const productParams = { ...productParamsTemplate, product };
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
       'Cover: Unsupported cover assets',
     );
@@ -137,14 +131,14 @@ describe('setProducts', function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
     const productId = 1;
-    const productParams = { ...ProductParamsTemplate };
+    const productParams = { ...productParamsTemplate };
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams]))
       .to.emit(cover, 'ProductSet')
       .withArgs(productId, defaultIpfsData);
     {
       const coverAssets = parseInt('1111', 2); // ETH DAI, USDC and WBTC supported
-      const product = { ...ProductTemplate, coverAssets };
-      const productParams = { ...ProductParamsTemplate, product, productId };
+      const product = { ...productTemplate, coverAssets };
+      const productParams = { ...productParamsTemplate, product, productId };
       await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
         'Cover: Unsupported cover assets',
       );
@@ -155,8 +149,8 @@ describe('setProducts', function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
     const initialPriceRatio = priceDenominator + 1;
-    const product = { ...ProductTemplate, initialPriceRatio };
-    const productParams = { ...ProductParamsTemplate, product };
+    const product = { ...productTemplate, initialPriceRatio };
+    const productParams = { ...productParamsTemplate, product };
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
       'Cover: initialPriceRatio > 100%',
     );
@@ -166,14 +160,14 @@ describe('setProducts', function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
     const productId = 1;
-    const productParams = { ...ProductParamsTemplate };
+    const productParams = { ...productParamsTemplate };
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams]))
       .to.emit(cover, 'ProductSet')
       .withArgs(productId, defaultIpfsData);
     {
       const initialPriceRatio = priceDenominator + 1;
-      const product = { ...ProductTemplate, initialPriceRatio };
-      const productParams = { ...ProductParamsTemplate, product, productId };
+      const product = { ...productTemplate, initialPriceRatio };
+      const productParams = { ...productParamsTemplate, product, productId };
       await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
         'Cover: initialPriceRatio > 100%',
       );
@@ -185,8 +179,8 @@ describe('setProducts', function () {
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
     const { GLOBAL_MIN_PRICE_RATIO } = this.config;
     const initialPriceRatio = GLOBAL_MIN_PRICE_RATIO - 1;
-    const product = { ...ProductTemplate, initialPriceRatio };
-    const productParams = { ...ProductParamsTemplate, product };
+    const product = { ...productTemplate, initialPriceRatio };
+    const productParams = { ...productParamsTemplate, product };
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
       'Cover: initialPriceRatio < GLOBAL_MIN_PRICE_RATIO',
     );
@@ -197,12 +191,12 @@ describe('setProducts', function () {
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
     const productId = 1;
     const { GLOBAL_MIN_PRICE_RATIO } = this.config;
-    const productParams = { ...ProductParamsTemplate };
+    const productParams = { ...productParamsTemplate };
     await cover.connect(advisoryBoardMember0).setProducts([productParams]);
     {
       const initialPriceRatio = GLOBAL_MIN_PRICE_RATIO - 1;
-      const product = { ...ProductTemplate, initialPriceRatio };
-      const productParams = { ...ProductParamsTemplate, product, productId };
+      const product = { ...productTemplate, initialPriceRatio };
+      const productParams = { ...productParamsTemplate, product, productId };
       await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
         'Cover: initialPriceRatio < GLOBAL_MIN_PRICE_RATIO',
       );
@@ -213,8 +207,8 @@ describe('setProducts', function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
     const capacityReductionRatio = capacityFactor + 1; // 100.01 %
-    const product = { ...ProductTemplate, capacityReductionRatio };
-    const productParams = { ...ProductParamsTemplate, product };
+    const product = { ...productTemplate, capacityReductionRatio };
+    const productParams = { ...productParamsTemplate, product };
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
       'Cover: capacityReductionRatio > 100%',
     );
@@ -224,14 +218,14 @@ describe('setProducts', function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
     const productId = 1;
-    const productParams = { ...ProductParamsTemplate };
+    const productParams = { ...productParamsTemplate };
     expect(await cover.connect(advisoryBoardMember0).setProducts([productParams]))
       .to.emit(cover, 'ProductSet')
       .withArgs(productId, defaultIpfsData);
     {
       const capacityReductionRatio = capacityFactor + 1; // 100.01 %
-      const product = { ...ProductTemplate, capacityReductionRatio };
-      const productParams = { ...ProductParamsTemplate, product, productId };
+      const product = { ...productTemplate, capacityReductionRatio };
+      const productParams = { ...productParamsTemplate, product, productId };
       await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
         'Cover: capacityReductionRatio > 100%',
       );
@@ -262,7 +256,7 @@ describe('setProducts', function () {
     );
 
     const productParams = {
-      ...ProductParamsTemplate,
+      ...productParamsTemplate,
     };
     // Add new product
     await cover.connect(advisoryBoardMember0).setProducts([productParams]);
@@ -270,15 +264,15 @@ describe('setProducts', function () {
     // deprecate product
     const isDeprecated = true;
     const product = { ...productParams.product, isDeprecated };
-    const deprecateProductParams = { ...ProductParamsTemplate, productId, product };
+    const deprecateProductParams = { ...productParamsTemplate, productId, product };
     await cover.connect(advisoryBoardMember0).setProducts([deprecateProductParams]);
 
     // buy cover
     const owner = coverBuyer.address;
     const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
-    const buyCoverParams = { ...BuyCoverTemplate, owner, expectedPremium, productId };
+    const buyCoverParams = { ...buyCoverTemplate, owner, expectedPremium, productId };
     await expect(
-      cover.connect(coverBuyer).buyCover(buyCoverParams, [PoolAllocationRequestTemplate], {
+      cover.connect(coverBuyer).buyCover(buyCoverParams, [poolAllocationRequestTemplate], {
         value: expectedPremium,
       }),
     ).to.be.revertedWith('Cover: Product is deprecated');
@@ -308,7 +302,7 @@ describe('setProducts', function () {
     );
 
     const productParams = {
-      ...ProductParamsTemplate,
+      ...productParamsTemplate,
     };
     // Add new product
     await cover.connect(advisoryBoardMember0).setProducts([productParams]);
@@ -316,21 +310,21 @@ describe('setProducts', function () {
     // buy cover
     const owner = coverBuyer.address;
     const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
-    const buyCoverParams = { ...BuyCoverTemplate, owner, expectedPremium, productId };
-    await cover.connect(coverBuyer).buyCover(buyCoverParams, [PoolAllocationRequestTemplate], {
+    const buyCoverParams = { ...buyCoverTemplate, owner, expectedPremium, productId };
+    await cover.connect(coverBuyer).buyCover(buyCoverParams, [poolAllocationRequestTemplate], {
       value: expectedPremium,
     });
 
     // deprecate product
     const isDeprecated = true;
     const product = { ...productParams.product, isDeprecated };
-    const deprecateProductParams = { ...ProductParamsTemplate, productId, product };
+    const deprecateProductParams = { ...productParamsTemplate, productId, product };
     await cover.connect(advisoryBoardMember0).setProducts([deprecateProductParams]);
 
     const editCoverParams = { ...buyCoverParams };
     // edit cover
     await expect(
-      cover.connect(coverBuyer).editCover(0, editCoverParams, [PoolAllocationRequestTemplate], {
+      cover.connect(coverBuyer).editCover(0, editCoverParams, [poolAllocationRequestTemplate], {
         value: expectedPremium,
       }),
     ).to.be.revertedWith('Cover: Product is deprecated');
@@ -360,7 +354,7 @@ describe('setProducts', function () {
     );
 
     const productParams = {
-      ...ProductParamsTemplate,
+      ...productParamsTemplate,
     };
     // Add new product
     await cover.connect(advisoryBoardMember0).setProducts([productParams]);
@@ -368,7 +362,7 @@ describe('setProducts', function () {
     // deprecate product
     const isDeprecated = true;
     const product = { ...productParams.product, isDeprecated };
-    const deprecateProductParams = { ...ProductParamsTemplate, productId, product };
+    const deprecateProductParams = { ...productParamsTemplate, productId, product };
     await cover.connect(advisoryBoardMember0).setProducts([deprecateProductParams]);
 
     {
@@ -382,8 +376,8 @@ describe('setProducts', function () {
     // buy cover
     const owner = coverBuyer.address;
     const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
-    const buyCoverParams = { ...BuyCoverTemplate, owner, expectedPremium, productId };
-    await cover.connect(coverBuyer).buyCover(buyCoverParams, [PoolAllocationRequestTemplate], {
+    const buyCoverParams = { ...buyCoverTemplate, owner, expectedPremium, productId };
+    await cover.connect(coverBuyer).buyCover(buyCoverParams, [poolAllocationRequestTemplate], {
       value: expectedPremium,
     });
   });

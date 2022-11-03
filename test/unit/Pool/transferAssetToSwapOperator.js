@@ -35,7 +35,7 @@ describe('transferAssetToSwapOperator', function () {
   });
 
   it('transfers added ERC20 asset to swap operator', async function () {
-    const { pool, swapOperator, otherToken } = this;
+    const { pool, otherToken } = this;
 
     const tokenAmount = ether('100000');
     await pool.addAsset(otherToken.address, 18, '0', '0', 100 /* 1% */, true, {
@@ -45,8 +45,11 @@ describe('transferAssetToSwapOperator', function () {
 
     const amountToTransfer = tokenAmount.divn(2);
 
-    await pool.transferAssetToSwapOperator(otherToken.address, amountToTransfer, { from: swapOperator });
-    const destinationBalance = await otherToken.balanceOf(swapOperator);
+    const tempSwapOperator = arbitraryCaller;
+    await pool.updateAddressParameters(hex('SWP_OP'), tempSwapOperator, { from: governance });
+
+    await pool.transferAssetToSwapOperator(otherToken.address, amountToTransfer, { from: tempSwapOperator });
+    const destinationBalance = await otherToken.balanceOf(tempSwapOperator);
     assert.equal(destinationBalance.toString(), amountToTransfer.toString());
 
     const poolBalance = await otherToken.balanceOf(pool.address);

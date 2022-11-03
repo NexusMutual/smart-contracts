@@ -6,6 +6,7 @@ const { web3, artifacts } = require('hardhat');
 const {
   governanceContracts: [governance],
   generalPurpose: [arbitraryCaller],
+  defaultSender,
 } = require('../utils').accounts;
 const { hex } = require('../utils').helpers;
 const { BN } = web3.utils;
@@ -35,7 +36,7 @@ describe('setSwapDetailsLastSwapTime', function () {
   });
 
   it('set last swap time for asset', async function () {
-    const { pool, swapOperator, otherToken } = this;
+    const { pool, otherToken } = this;
 
     const tokenAmount = ether('100000');
     await pool.addAsset(otherToken.address, 18, '0', '0', 100, true, {
@@ -45,7 +46,9 @@ describe('setSwapDetailsLastSwapTime', function () {
 
     const lastSwapTime = '11512651';
 
-    await pool.setSwapDetailsLastSwapTime(otherToken.address, lastSwapTime, { from: swapOperator });
+    await pool.updateAddressParameters(hex('SWP_OP'), defaultSender, { from: governance });
+
+    await pool.setSwapDetailsLastSwapTime(otherToken.address, lastSwapTime);
 
     const swapDetails = await pool.swapDetails(otherToken.address);
     assert.equal(swapDetails.lastSwapTime.toString(), lastSwapTime);

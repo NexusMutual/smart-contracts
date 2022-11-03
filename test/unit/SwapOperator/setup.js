@@ -118,6 +118,7 @@ async function setup() {
     weth.address,
     enzymeV4Vault.address,
     enzymeFundValueCalculatorRouter.address,
+    parseEther('1'),
   );
 
   // Setup pool's swap operator

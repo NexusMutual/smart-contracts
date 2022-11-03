@@ -37,6 +37,7 @@ contract SwapOperator {
 
   address public immutable enzymeV4VaultProxyAddress;
   IEnzymeFundValueCalculatorRouter public immutable enzymeFundValueCalculatorRouter;
+  uint public immutable minPoolEth;
 
   // Constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -68,7 +69,8 @@ contract SwapOperator {
     address _master,
     address _weth,
     address _enzymeV4VaultProxyAddress,
-    IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter
+    IEnzymeFundValueCalculatorRouter _enzymeFundValueCalculatorRouter,
+    uint _minPoolEth
   ) {
     cowSettlement = ICowSettlement(_cowSettlement);
     cowVaultRelayer = cowSettlement.vaultRelayer();
@@ -78,6 +80,7 @@ contract SwapOperator {
     domainSeparator = cowSettlement.domainSeparator();
     enzymeV4VaultProxyAddress = _enzymeV4VaultProxyAddress;
     enzymeFundValueCalculatorRouter = _enzymeFundValueCalculatorRouter;
+    minPoolEth = _minPoolEth;
   }
 
   receive() external payable {}
@@ -112,7 +115,7 @@ contract SwapOperator {
    */
   function placeOrder(GPv2Order.Data calldata order, bytes calldata orderUID) public onlyController {
     // Validate there's no current order going on
-    require(currentOrderUID.length == 0, "SwapOp: an order is already in place");
+    require(!orderInProgress(), "SwapOp: an order is already in place");
 
     // Order UID verification
     validateUID(order, orderUID);
@@ -137,7 +140,7 @@ contract SwapOperator {
       validateMaxFee(priceFeedOracle, ETH, order.feeAmount);
 
       // Validate minimum pool eth reserve
-      require(address(pool).balance - totalOutAmount >= pool.minPoolEth(), "SwapOp: Pool eth balance below min");
+      require(address(pool).balance - totalOutAmount >= minPoolEth, "SwapOp: Pool eth balance below min");
 
       // Ask oracle how much of the other asset we should get
       uint oracleBuyAmount = priceFeedOracle.getAssetForEth(address(order.buyToken), order.sellAmount);
@@ -207,7 +210,7 @@ contract SwapOperator {
    */
   function closeOrder(GPv2Order.Data calldata order) external {
     // Validate there is an order in place
-    require(currentOrderUID.length > 0, "SwapOp: No order in place");
+    require(orderInProgress(), "SwapOp: No order in place");
 
     // Before validTo, only controller can call this. After it, everyone can call
     if (block.timestamp <= order.validTo) {
@@ -366,7 +369,7 @@ contract SwapOperator {
   function swapETHForEnzymeVaultShare(uint amountIn, uint amountOutMin) external onlyController {
 
     // Validate there's no current cow swap order going on
-    require(currentOrderUID.length == 0, "SwapOp: an order is already in place");
+    require(!orderInProgress(), "SwapOp: an order is already in place");
 
     IPool pool = _pool();
     IEnzymeV4Comptroller comptrollerProxy = IEnzymeV4Comptroller(IEnzymeV4Vault(enzymeV4VaultProxyAddress).getAccessor());
@@ -413,7 +416,7 @@ contract SwapOperator {
 
     {
       uint ethBalanceAfter = address(pool).balance;
-      require(ethBalanceAfter >= pool.minPoolEth(), "SwapOp: insufficient ether left");
+      require(ethBalanceAfter >= minPoolEth, "SwapOp: insufficient ether left");
     }
 
     transferAssetTo(enzymeV4VaultProxyAddress, address(pool), amountOut);
@@ -427,7 +430,7 @@ contract SwapOperator {
   ) external onlyController {
 
     // Validate there's no current cow swap order going on
-    require(currentOrderUID.length == 0, "SwapOp: an order is already in place");
+    require(!orderInProgress(), "SwapOp: an order is already in place");
 
     IPool pool = _pool();
     IERC20Detailed fromToken = IERC20Detailed(enzymeV4VaultProxyAddress);
@@ -503,7 +506,7 @@ contract SwapOperator {
   function recoverAsset(address assetAddress, address receiver) public onlyController {
 
     // Validate there's no current cow swap order going on
-    require(currentOrderUID.length == 0, "SwapOp: an order is already in place");
+    require(!orderInProgress(), "SwapOp: an order is already in place");
 
     IERC20 asset = IERC20(assetAddress);
 
@@ -521,5 +524,9 @@ contract SwapOperator {
     }
 
     asset.transfer(address(pool), balance);
+  }
+
+  function orderInProgress() public view returns (bool) {
+    return currentOrderUID.length > 0;
   }
 }

@@ -164,6 +164,7 @@ async function setup() {
     weth.address,
     AddressZero,
     AddressZero,
+    '0',
   );
 
   const productsV1 = await ProductsV1.deploy();

@@ -21,7 +21,7 @@ describe('sellNXMTokens', function () {
     await pool.buyNXM('1', { from: member, value: buyValue });
     const tokensToSell = await token.balanceOf(member);
 
-    const expectedEthValue = await pool.getWei(tokensToSell);
+    const expectedEthValue = await pool.getEthForNXM(tokensToSell);
 
     await token.approve(tokenController.address, tokensToSell, { from: member });
     const balancePreSell = await web3.eth.getBalance(member);

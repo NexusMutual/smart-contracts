@@ -13,6 +13,7 @@ import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IERC20Detailed.sol";
+import "../../interfaces/ISwapOperator.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
@@ -20,14 +21,10 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   using SafeERC20 for IERC20;
   using Address for address;
 
-  uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
-
   /* storage */
   Asset[] public override coverAssets;
   Asset[] public override investmentAssets;
   mapping(address => SwapDetails) public swapDetails;
-  // TODO: pack swapValue
-  uint public swapValue;
 
   // contracts
   INXMToken public nxmToken;
@@ -35,9 +32,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   IMCR public mcr;
 
   // parameters
-  address public swapController;
-  // TODO: pack minPoolEth
-  uint public override minPoolEth;
   IPriceFeedOracle public override priceFeedOracle;
   address public swapOperator;
 
@@ -56,6 +50,8 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   //
   uint32 public deprecatedCoverAssetsBitmap;
 
+  uint96 public swapValue;
+
   // When an asset transfer reverts it can be abandoned by flagging the address. This allows pool
   // upgrades if the upgrade reverts due to one or more failed transfers to the new address.
   mapping(address => bool) public abandonAssets;
@@ -70,6 +66,8 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   uint internal constant CONSTANT_C = 5800000;
   uint internal constant CONSTANT_A = 1028 * 1e13;
   uint internal constant TOKEN_EXPONENT = 4;
+
+  uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
   /* events */
   event Payout(address indexed to, address indexed assetAddress, uint amount);
@@ -96,6 +94,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
     // [todo] After this contract is deployed it might be worth modifying upgradeCapitalPool to
     // copy the assets on future upgrades instead of having them hardcoded in the constructor.
+    // issue: https://github.com/NexusMutual/smart-contracts/issues/473
 
     // The order of coverAssets should never change between updates. Do not remove the following
     // lines!
@@ -462,17 +461,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     return true;
   }
 
-
-  /// @dev DEPRECATED, use calculateNXMForEth function instead! Returns the amount of wei a seller
-  /// will get for selling NXM
-  ///
-  /// @param amount     Amount of NXM to sell
-  /// @return weiToPay  Amount of wei the seller will get
-  /// [todo] Is it safe to remove this?
-  function getWei(uint amount) external view returns (uint weiToPay) {
-    return getEthForNXM(amount);
-  }
-
   /// Buys NXM tokens with ETH.
   ///
   /// @param minTokensOut  Minimum amount of tokens to be bought. Revert if boughtTokens falls below
@@ -700,11 +688,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   }
 
   function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
-    if (code == "MIN_ETH") {
-      minPoolEth = value;
-      return;
-    }
-
     revert("Pool: Unknown parameter");
   }
 
@@ -728,8 +711,9 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
     if (code == "SWP_OP") {
-      // TODO: consider checking if swapValue is zero
-      // require(swapValue == 0, 'Pool: Cancel all swaps before changing swapOperator');
+      if (swapOperator != address(0)) {
+        require(!ISwapOperator(swapOperator).orderInProgress(), 'Pool: Cancel all swaps before changing swapOperator');
+      }
       swapOperator = value;
       return;
     }
@@ -763,6 +747,6 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
   }
 
   function setSwapValue(uint newValue) external onlySwapOperator whenNotPaused {
-    swapValue = newValue;
+    swapValue = SafeUintCast.toUint96(newValue);
   }
 }

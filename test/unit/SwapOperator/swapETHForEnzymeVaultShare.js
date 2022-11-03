@@ -2,7 +2,6 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { BigNumber } = require('ethers');
 const { ETH } = require('../../../lib/constants').Assets;
-const { hex } = require('../utils').helpers;
 const { mineNextBlock, increaseTime } = require('../../utils/evm');
 const {
   utils: { parseEther },
@@ -67,7 +66,7 @@ describe('swapETHForEnzymeVaultShare', function () {
       enzymeV4Vault.address,
       18, // decimals
       parseEther('100'), // asset minimum
-      parseEther('1000'), // asset maximum
+      parseEther('10000000'), // asset maximum
       '500', // 1% max slippage
       false, // isCoverAsset
     );
@@ -80,15 +79,14 @@ describe('swapETHForEnzymeVaultShare', function () {
     });
 
     // allow to send max 1 ether out of pool
-    const maxPoolTradableEther = parseEther('1');
-    const minEther = currentEther.sub(maxPoolTradableEther);
 
-    await pool.connect(governance).updateUintParameters(hex('MIN_ETH'.padEnd(8, '\0')), minEther);
+    const minPoolEth = await swapOperator.minPoolEth();
+    const maxPoolTradableEther = currentEther.sub(minPoolEth);
 
     // should fail with max + 1
-    await expect(
-      swapOperator.swapETHForEnzymeVaultShare(maxPoolTradableEther.add(1), maxPoolTradableEther),
-    ).to.be.revertedWith('SwapOp: insufficient ether left');
+    await expect(swapOperator.swapETHForEnzymeVaultShare(currentEther, currentEther)).to.be.revertedWith(
+      'SwapOp: insufficient ether left',
+    );
 
     // should work with max
     await swapOperator.swapETHForEnzymeVaultShare(maxPoolTradableEther, maxPoolTradableEther);

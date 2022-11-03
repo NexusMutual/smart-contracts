@@ -1,12 +1,11 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { AddressZero } = ethers.constants;
 
 const { daysToSeconds } = require('../../../lib/helpers');
+const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee } = require('../../utils/evm');
 
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
-const { BigNumber } = require('ethers');
-
+const { BigNumber } = ethers;
+const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 const setTime = async timestamp => {
@@ -72,7 +71,7 @@ describe('submitClaim', function () {
 
     await ybETH.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('100'));
 
-    const tx = await cover.connect(coverBuyer1).buyCover(
+    await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
@@ -87,21 +86,15 @@ describe('submitClaim', function () {
         ipfsData: '',
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
-      {
-        value: expectedPremium,
-      },
+      { value: expectedPremium },
     );
 
-    await tx.wait();
-
-    const segmentPeriod = period;
     {
       // submit incident
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-
       await yc
         .connect(this.accounts.defaultSender)
-        .submitIncident(productId, parseEther('1.1'), currentTime + segmentPeriod / 2, parseEther('100'), '');
+        .submitIncident(productId, parseEther('1.1'), currentTime + period / 2, parseEther('100'), '');
     }
 
     // accept incident
@@ -110,7 +103,6 @@ describe('submitClaim', function () {
     {
       // advance past payout cooldown
       const { payoutCooldownInDays } = await as.config();
-
       const { end } = await as.getPoll(0);
       await setTime(end + daysToSeconds(payoutCooldownInDays));
     }
@@ -119,13 +111,14 @@ describe('submitClaim', function () {
 
     {
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
-
+      await setNextBlockBaseFee('0');
       await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1'), nonMember1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('0.99')));
     }
     {
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
+      await setNextBlockBaseFee('0');
       await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1.11'), nonMember1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('1.0989')));
@@ -133,6 +126,7 @@ describe('submitClaim', function () {
 
     {
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
+      await setNextBlockBaseFee('0');
       await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('3'), nonMember1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await ethers.provider.getBalance(nonMember1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('2.970')));
@@ -180,19 +174,15 @@ describe('submitClaim', function () {
         ipfsData: '',
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
-      {
-        value: expectedPremium,
-      },
+      { value: expectedPremium },
     );
 
-    const segmentPeriod = period;
     {
       // submit incident
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-
       await yc
         .connect(this.accounts.defaultSender)
-        .submitIncident(productId, parseEther('1.1'), currentTime + segmentPeriod / 2, parseEther('100'), '');
+        .submitIncident(productId, parseEther('1.1'), currentTime + period / 2, parseEther('100'), '');
     }
 
     // accept incident
@@ -201,7 +191,6 @@ describe('submitClaim', function () {
     {
       // advance past payout cooldown
       const { payoutCooldownInDays } = await as.config();
-
       const { end } = await as.getPoll(0);
       await setTime(end + daysToSeconds(payoutCooldownInDays));
     }
@@ -210,13 +199,14 @@ describe('submitClaim', function () {
 
     {
       const daiBalanceBefore = await dai.balanceOf(nonMember1.address);
-
+      await setNextBlockBaseFee('0');
       await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1'), nonMember1.address, [], { gasPrice: 0 });
       const daiBalanceAfter = await dai.balanceOf(nonMember1.address);
       expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(parseEther('0.99')));
     }
     {
       const daiBalanceBefore = await dai.balanceOf(nonMember1.address);
+      await setNextBlockBaseFee('0');
       await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1.11'), nonMember1.address, [], { gasPrice: 0 });
       const daiBalanceAfter = await dai.balanceOf(nonMember1.address);
       expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(parseEther('1.0989')));
@@ -224,6 +214,7 @@ describe('submitClaim', function () {
 
     {
       const ethBalanceBefore = await dai.balanceOf(nonMember1.address);
+      await setNextBlockBaseFee('0');
       await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('3'), nonMember1.address, [], { gasPrice: 0 });
       const ethBalanceAfter = await dai.balanceOf(nonMember1.address);
       expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(parseEther('2.970')));
@@ -253,7 +244,7 @@ describe('submitClaim', function () {
 
     await ybETH.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('100'));
 
-    const tx = await cover.connect(coverBuyer1).buyCover(
+    await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
         productId,
@@ -268,21 +259,15 @@ describe('submitClaim', function () {
         ipfsData: '',
       },
       [{ poolId: '0', coverAmountInAsset: amount.toString() }],
-      {
-        value: expectedPremium,
-      },
+      { value: expectedPremium },
     );
 
-    await tx.wait();
-
-    const segmentPeriod = period;
     {
       // submit incident
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-
       await yc
         .connect(this.accounts.defaultSender)
-        .submitIncident(productId, parseEther('1.1'), currentTime + segmentPeriod / 2, parseEther('100'), '');
+        .submitIncident(productId, parseEther('1.1'), currentTime + period / 2, parseEther('100'), '');
     }
 
     // reject incident (requires at least 1 positive vote)
@@ -292,13 +277,13 @@ describe('submitClaim', function () {
     {
       // advance past payout cooldown
       const { payoutCooldownInDays } = await as.config();
-
       const { end } = await as.getPoll(0);
       await setTime(end + daysToSeconds(payoutCooldownInDays));
     }
 
     await ybETH.connect(coverBuyer1).approve(yc.address, parseEther('10000'));
 
+    await setNextBlockBaseFee('0');
     await expect(
       yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1'), nonMember1.address, [], { gasPrice: 0 }),
     ).to.be.revertedWith('The incident needs to be accepted');

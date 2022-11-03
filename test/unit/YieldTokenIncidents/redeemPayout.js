@@ -1,6 +1,7 @@
 const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
 
+const { setNextBlockBaseFee } = require('../utils').evm;
 const { setTime, ASSET, signPermit } = require('./helpers');
 const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
@@ -487,6 +488,7 @@ describe('redeemPayout', function () {
     {
       const claimedAmount = parseEther('100');
       const ethBalanceBefore = await ethers.provider.getBalance(member1.address);
+      await setNextBlockBaseFee('0');
       await yieldTokenIncidents
         .connect(member1)
         .redeemPayout(0, 0, 0, claimedAmount, member1.address, [], { gasPrice: 0 });
@@ -501,6 +503,7 @@ describe('redeemPayout', function () {
     {
       const claimedAmount = parseEther('111');
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember1.address);
+      await setNextBlockBaseFee('0');
       await yieldTokenIncidents
         .connect(member1)
         .redeemPayout(0, 0, 0, claimedAmount, nonMember1.address, [], { gasPrice: 0 });
@@ -515,6 +518,7 @@ describe('redeemPayout', function () {
     {
       const claimedAmount = parseEther('3000');
       const ethBalanceBefore = await ethers.provider.getBalance(nonMember2.address);
+      await setNextBlockBaseFee('0');
       await yieldTokenIncidents
         .connect(member1)
         .redeemPayout(0, 0, 0, claimedAmount, nonMember2.address, [], { gasPrice: 0 });
@@ -656,6 +660,7 @@ describe('redeemPayout', function () {
       ...arrayify(hexZeroPad(s, 32)),
     ];
 
+    await setNextBlockBaseFee('0');
     await yieldTokenIncidents.connect(member1).redeemPayout(
       0,
       0,

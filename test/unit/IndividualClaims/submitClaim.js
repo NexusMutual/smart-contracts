@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { assert, expect } = require('chai');
 
 const { submitClaim, ASSET, getCoverSegment } = require('./helpers');
-const { mineNextBlock, setNextBlockTime, setEtherBalance } = require('../../utils/evm');
+const { mineNextBlock, setNextBlockTime, setEtherBalance, setNextBlockBaseFee } = require('../../utils/evm');
 const { hex } = require('../../../lib/helpers');
 
 const { parseEther } = ethers.utils;
@@ -169,10 +169,10 @@ describe('submitClaim', function () {
       [segment],
     );
     const balanceBefore = await ethers.provider.getBalance(coverOwner.address);
-    await individualClaims.connect(coverOwner).submitClaim(0, 0, segment.amount, '', {
-      value: deposit.mul('2'),
-      gasPrice: 0,
-    });
+    await setNextBlockBaseFee('0');
+    await individualClaims
+      .connect(coverOwner)
+      .submitClaim(0, 0, segment.amount, '', { value: deposit.mul('2'), gasPrice: 0 });
     const balanceAfter = await ethers.provider.getBalance(coverOwner.address);
     expect(balanceAfter).to.be.equal(balanceBefore.sub(deposit));
 
@@ -186,10 +186,10 @@ describe('submitClaim', function () {
         [segment],
       );
       const balanceBefore = await ethers.provider.getBalance(coverOwner.address);
-      await individualClaims.connect(coverOwner).submitClaim(1, 0, segment.amount, '', {
-        value: deposit.mul('3'),
-        gasPrice: 0,
-      });
+      await setNextBlockBaseFee('0');
+      await individualClaims
+        .connect(coverOwner)
+        .submitClaim(1, 0, segment.amount, '', { value: deposit.mul('3'), gasPrice: 0 });
       const balanceAfter = await ethers.provider.getBalance(coverOwner.address);
       expect(balanceAfter).to.be.equal(balanceBefore.sub(deposit));
     }
@@ -204,10 +204,10 @@ describe('submitClaim', function () {
         [segment],
       );
       const balanceBefore = await ethers.provider.getBalance(coverOwner.address);
-      await individualClaims.connect(coverOwner).submitClaim(2, 0, segment.amount, '', {
-        value: deposit.mul('10'),
-        gasPrice: 0,
-      });
+      await setNextBlockBaseFee('0');
+      await individualClaims
+        .connect(coverOwner)
+        .submitClaim(2, 0, segment.amount, '', { value: deposit.mul('10'), gasPrice: 0 });
       const balanceAfter = await ethers.provider.getBalance(coverOwner.address);
       expect(balanceAfter).to.be.equal(balanceBefore.sub(deposit));
     }
@@ -236,16 +236,10 @@ describe('submitClaim', function () {
     );
 
     await expect(
-      individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment0.amount.add('1'), '', {
-        value: deposit,
-        gasPrice: 0,
-      }),
+      individualClaims.connect(coverOwner).submitClaim(coverId, 0, segment0.amount.add('1'), '', { value: deposit }),
     ).to.be.revertedWith('Covered amount exceeded');
     await expect(
-      individualClaims.connect(coverOwner).submitClaim(coverId, 1, segment0.amount.add('1'), '', {
-        value: deposit,
-        gasPrice: 0,
-      }),
+      individualClaims.connect(coverOwner).submitClaim(coverId, 1, segment0.amount.add('1'), '', { value: deposit }),
     ).not.to.be.revertedWith('Covered amount exceeded');
   });
 
@@ -632,10 +626,9 @@ describe('submitClaim', function () {
     );
 
     await expect(
-      individualClaims.connect(fallbackWillFailSigner).submitClaim(0, 0, segment.amount, '', {
-        value: deposit.mul('2'),
-        gasPrice: 0,
-      }),
+      individualClaims
+        .connect(fallbackWillFailSigner)
+        .submitClaim(0, 0, segment.amount, '', { value: deposit.mul('2') }),
     ).to.be.revertedWith('Assessment deposit excess refund failed');
   });
 
@@ -661,10 +654,7 @@ describe('submitClaim', function () {
     );
 
     await expect(
-      individualClaims.connect(coverOwner).submitClaim(0, 0, segment.amount, '', {
-        value: deposit,
-        gasPrice: 0,
-      }),
+      individualClaims.connect(coverOwner).submitClaim(0, 0, segment.amount, '', { value: deposit }),
     ).to.be.revertedWith('Assessment deposit transfer to pool failed');
   });
 });

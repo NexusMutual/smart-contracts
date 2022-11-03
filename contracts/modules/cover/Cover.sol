@@ -703,15 +703,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     }
   }
 
-  function validateProduct(
-    Product memory product,
-    uint32 _coverAssetsFallback,
-    uint productTypesCount
-  ) internal pure {
-
-
-  }
-
   /* ========== ACTIVE COVER AMOUNT TRACKING ========== */
 
   function enableActiveCoverAmountTracking(uint24[] memory assetIds, uint[] memory activeCoverAmountsForAssets) external onlyEmergencyAdmin {

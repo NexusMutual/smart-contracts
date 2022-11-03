@@ -94,6 +94,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
     // [todo] After this contract is deployed it might be worth modifying upgradeCapitalPool to
     // copy the assets on future upgrades instead of having them hardcoded in the constructor.
+    // issue: https://github.com/NexusMutual/smart-contracts/issues/473
 
     // The order of coverAssets should never change between updates. Do not remove the following
     // lines!

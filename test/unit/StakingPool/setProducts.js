@@ -447,4 +447,34 @@ describe('setProducts unit tests', function () {
       'StakingPool: Total max effective weight exceeded',
     );
   });
+
+  it('any address should be able to recalculate effective weight', async function () {
+    const { stakingPool, cover, nxm, tokenController } = this;
+    const {
+      members: [manager, staker, coverBuyer],
+    } = this.accounts;
+    const amount = parseEther('1');
+
+    let i = 0;
+    const initialProducts = Array.from({ length: 20 }, () => getInitialProduct(50, 100, 500, i++));
+    await initializePool(cover, stakingPool, manager.address, 0, initialProducts);
+
+    // Get capacity in staking pool
+    await nxm.connect(staker).approve(tokenController.address, amount);
+    const request = await depositRequest(stakingPool, amount, 0, manager.address);
+    await stakingPool.connect(staker).depositTo([request]);
+
+    // Initialize Products and CoverBuy requests
+    const coverId = 1;
+    const coverBuy = Array.from({ length: 20 }, () => {
+      return buyCoverParams(coverBuyer.address, --i, daysToSeconds('150'), parseEther('1'));
+    });
+    await Promise.all(
+      coverBuy.map(cb => {
+        return cover.connect(coverBuyer).allocateCapacity(cb, coverId, stakingPool.address);
+      }),
+    );
+    // TODO: test effective weight after a burn
+    await stakingPool.recalculateEffectiveWeights(initialProducts.map(p => p.productId));
+  });
 });

@@ -368,4 +368,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
   }
 
+  function usedInternalContracts() internal pure override returns (uint) {
+    return TC | MR | P1 | CO | AS;
+  }
 }

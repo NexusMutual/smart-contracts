@@ -420,4 +420,8 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
   }
+
+  function usedInternalContracts() internal override pure returns (uint) {
+    return TC | MR | P1 | CO | AS;
+  }
 }

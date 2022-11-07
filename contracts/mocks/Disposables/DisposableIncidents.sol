@@ -26,4 +26,7 @@ contract DisposableYieldTokenIncidents is MasterAwareV2 {
 
   function changeDependentContractAddress() external override {}
 
+  function usedInternalContracts() internal override pure returns (uint) {
+    return 0;
+  }
 }

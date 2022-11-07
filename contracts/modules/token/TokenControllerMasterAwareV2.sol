@@ -56,6 +56,10 @@ contract TokenControllerMasterAwareV2 is ITokenController, LockHandler, MasterAw
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
   }
 
+  function usedInternalContracts() internal override pure returns (uint) {
+    return CO | GV | AS;
+  }
+
   /**
    * @dev to change the operator address
    * @param _newOperator is the new address of operator

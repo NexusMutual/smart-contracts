@@ -52,4 +52,7 @@ contract ASMockIndividualClaims is MasterAwareV2 {
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
   }
 
+  function usedInternalContracts() internal override pure returns (uint) {
+    return AS;
+  }
 }

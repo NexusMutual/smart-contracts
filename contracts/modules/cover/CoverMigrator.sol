@@ -32,4 +32,8 @@ contract CoverMigrator is MasterAwareV2 {
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
   }
+
+  function usedInternalContracts() internal override pure returns (uint) {
+    return CO;
+  }
 }

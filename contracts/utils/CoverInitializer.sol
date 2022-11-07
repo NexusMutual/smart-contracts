@@ -12,5 +12,7 @@ contract CoverInitializer is MasterAwareV2 {
   function changeDependentContractAddress() external override {
     //noop
   }
-
+  function usedInternalContracts() internal override pure returns (uint) {
+    return 0;
+  }
 }

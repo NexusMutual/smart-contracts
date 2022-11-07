@@ -853,6 +853,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
   }
 
+  function usedInternalContracts() internal override pure returns (uint) {
+    return P1 | TC | MR | MC;
+  }
+
   /**
      * @param paramNames  An array of elements from UintParams enum
      * @param values An array of the new values, each one corresponding to the parameter

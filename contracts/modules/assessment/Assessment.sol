@@ -503,4 +503,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
   }
 
+
+  function usedInternalContracts() internal override pure returns (uint) {
+    return TC | MR;
+  }
 }

@@ -41,7 +41,7 @@ describe('submitClaim', function () {
       {
         amount: stakingAmount,
         trancheId: firstTrancheId,
-        tokenId: 1, // new position
+        tokenId: 0, // new position
         destination: AddressZero,
       },
     ]);

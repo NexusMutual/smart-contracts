@@ -3,7 +3,7 @@ const { ethers } = require('hardhat');
 
 describe('constructor', function () {
   it('should set variables correctly', async function () {
-    const { quotationData, stakingPool, futureCoverNFTAddress, coverAddress, coverUtilsLib } = this;
+    const { productsV1, quotationData, stakingPool, futureCoverNFTAddress, coverAddress, coverUtilsLib } = this;
 
     const Cover = await ethers.getContractFactory('Cover', {
       libraries: {
@@ -13,7 +13,7 @@ describe('constructor', function () {
 
     const cover = await Cover.deploy(
       quotationData.address,
-      ethers.constants.AddressZero,
+      productsV1,
       futureCoverNFTAddress,
       stakingPool.address,
       coverAddress,

@@ -220,6 +220,7 @@ async function setup() {
   this.stakingPool = stakingPool;
   this.coverAddress = coverAddress;
   this.futureCoverNFTAddress = futureCoverNFTAddress;
+  this.productsV1 = ethers.constants.AddressZero;
   this.config = {
     GLOBAL_MIN_PRICE_RATIO,
   };

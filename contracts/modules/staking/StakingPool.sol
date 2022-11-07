@@ -1315,8 +1315,8 @@ contract StakingPool is IStakingPool, ERC721 {
   function recalculateEffectiveWeights(uint[] calldata productIds) external {
     (
     uint globalCapacityRatio,
-    uint globalMinPriceRatio,
-    uint[] memory initialPriceRatios,
+    /* globalMinPriceRatio */,
+    /* initialPriceRatios */,
     uint[] memory capacityReductionRatios
     ) = ICover(coverContract).getPriceAndCapacityRatios(productIds);
 

@@ -525,6 +525,7 @@ describe('setProducts unit tests', function () {
     const { stakingPool, cover, nxm, tokenController } = this;
     const {
       members: [manager, staker, coverBuyer],
+      nonMembers: [anybody],
     } = this.accounts;
     const amount = parseEther('1');
 
@@ -547,7 +548,6 @@ describe('setProducts unit tests', function () {
         return cover.connect(coverBuyer).allocateCapacity(cb, coverId, stakingPool.address);
       }),
     );
-    // TODO: test effective weight after a burn
-    await stakingPool.recalculateEffectiveWeights(initialProducts.map(p => p.productId));
+    await stakingPool.connect(anybody).recalculateEffectiveWeights(initialProducts.map(p => p.productId));
   });
 });

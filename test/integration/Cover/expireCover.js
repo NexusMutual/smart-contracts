@@ -21,6 +21,8 @@ describe('expireCover', function () {
     priceDenominator: 10000,
     coverId: 0,
     segmentId: 0,
+    incidentId: 0,
+    assessmentId: 0,
   };
 
   beforeEach(async function () {
@@ -102,14 +104,15 @@ describe('expireCover', function () {
       .submitIncident(productId, parseEther('1.1'), currentTime + period / 2, parseEther('100'), '');
   }
 
-  it('expire a cover that had a claim paid out fully', async function () {
+  it('expire a cover that had a claim paid out fully, cover tracking enabled before cover buy', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
     const { cover, stakingPool0, as, yc, ybETH } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
     const { emergencyAdmin } = this.accounts;
 
-    const { productId, coverAsset, period, gracePeriod, amount, coverId, segmentId } = expireCoverFixture;
+    const { productId, coverAsset, period, gracePeriod, amount, coverId, segmentId, incidentId, assessmentId } =
+      expireCoverFixture;
 
     // Stake to open up capacity
     await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
@@ -133,18 +136,18 @@ describe('expireCover', function () {
     await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
 
     // accept incident
-    await as.connect(staker1).castVotes([0], [true], parseEther('100'));
+    await as.connect(staker1).castVotes([assessmentId], [true], parseEther('100'));
 
     {
       // advance past payout cooldown
       const { payoutCooldownInDays } = await as.config();
 
-      const { end } = await as.getPoll(0);
+      const { end } = await as.getPoll(assessmentId);
       await setTime(end + daysToSeconds(payoutCooldownInDays));
     }
 
     // fully paid cover
-    await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, amount, nonMember1.address, []);
+    await yc.connect(coverBuyer1).redeemPayout(incidentId, coverId, segmentId, amount, nonMember1.address, []);
 
     {
       // advance past expire time
@@ -178,7 +181,8 @@ describe('expireCover', function () {
     const [nonMember1] = this.accounts.nonMembers;
     const { emergencyAdmin } = this.accounts;
 
-    const { productId, coverAsset, period, gracePeriod, amount, coverId, segmentId } = expireCoverFixture;
+    const { productId, coverAsset, period, gracePeriod, amount, coverId, segmentId, incidentId, assessmentId } =
+      expireCoverFixture;
 
     // Stake to open up capacity
     await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
@@ -206,18 +210,18 @@ describe('expireCover', function () {
     await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
 
     // accept incident
-    await as.connect(staker1).castVotes([0], [true], parseEther('100'));
+    await as.connect(staker1).castVotes([assessmentId], [true], parseEther('100'));
 
     {
       // advance past payout cooldown
       const { payoutCooldownInDays } = await as.config();
 
-      const { end } = await as.getPoll(0);
+      const { end } = await as.getPoll(assessmentId);
       await setTime(end + daysToSeconds(payoutCooldownInDays));
     }
 
     // fully paid cover
-    await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, amount, nonMember1.address, []);
+    await yc.connect(coverBuyer1).redeemPayout(incidentId, coverId, segmentId, amount, nonMember1.address, []);
 
     {
       // advance past expire time
@@ -244,14 +248,15 @@ describe('expireCover', function () {
     }
   });
 
-  it('expire a cover that had a partial claim paid out', async function () {
+  it('expire a cover that had a partial claim paid out, cover tracking enabled before cover buy', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
     const { cover, stakingPool0, as, yc, ybETH } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
     const { emergencyAdmin } = this.accounts;
 
-    const { productId, coverAsset, period, gracePeriod, amount, coverId, segmentId } = expireCoverFixture;
+    const { productId, coverAsset, period, gracePeriod, amount, coverId, segmentId, incidentId, assessmentId } =
+      expireCoverFixture;
 
     // Stake to open up capacity
     await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
@@ -275,19 +280,19 @@ describe('expireCover', function () {
     await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
 
     // accept incident
-    await as.connect(staker1).castVotes([0], [true], parseEther('100'));
+    await as.connect(staker1).castVotes([assessmentId], [true], parseEther('100'));
 
     {
       // advance past payout cooldown
       const { payoutCooldownInDays } = await as.config();
 
-      const { end } = await as.getPoll(0);
+      const { end } = await as.getPoll(assessmentId);
       await setTime(end + daysToSeconds(payoutCooldownInDays));
     }
 
     // partial paid cover
     const claimAmount = amount.div(2);
-    await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, claimAmount, nonMember1.address, []);
+    await yc.connect(coverBuyer1).redeemPayout(incidentId, coverId, segmentId, claimAmount, nonMember1.address, []);
 
     {
       // advance past expire time
@@ -321,7 +326,8 @@ describe('expireCover', function () {
     const [nonMember1] = this.accounts.nonMembers;
     const { emergencyAdmin } = this.accounts;
 
-    const { productId, coverAsset, period, gracePeriod, amount, coverId, segmentId } = expireCoverFixture;
+    const { productId, coverAsset, period, gracePeriod, amount, coverId, segmentId, incidentId, assessmentId } =
+      expireCoverFixture;
 
     // Stake to open up capacity
     await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
@@ -349,13 +355,13 @@ describe('expireCover', function () {
     await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
 
     // accept incident
-    await as.connect(staker1).castVotes([0], [true], parseEther('100'));
+    await as.connect(staker1).castVotes([assessmentId], [true], parseEther('100'));
 
     {
       // advance past payout cooldown
       const { payoutCooldownInDays } = await as.config();
 
-      const { end } = await as.getPoll(0);
+      const { end } = await as.getPoll(assessmentId);
       await setTime(end + daysToSeconds(payoutCooldownInDays));
     }
 
@@ -363,7 +369,7 @@ describe('expireCover', function () {
 
     // partial paid cover
     const claimAmount = amount.div(2);
-    await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, claimAmount, nonMember1.address, []);
+    await yc.connect(coverBuyer1).redeemPayout(incidentId, coverId, segmentId, claimAmount, nonMember1.address, []);
 
     {
       // advance past expire time
@@ -397,7 +403,8 @@ describe('expireCover', function () {
     const [nonMember1] = this.accounts.nonMembers;
     const { emergencyAdmin } = this.accounts;
 
-    const { productId, coverAsset, period, gracePeriod, amount, coverId, segmentId } = expireCoverFixture;
+    const { productId, coverAsset, period, gracePeriod, amount, coverId, segmentId, incidentId, assessmentId } =
+      expireCoverFixture;
 
     // Stake to open up capacity
     await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
@@ -417,19 +424,19 @@ describe('expireCover', function () {
     await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
 
     // accept incident
-    await as.connect(staker1).castVotes([0], [true], parseEther('100'));
+    await as.connect(staker1).castVotes([assessmentId], [true], parseEther('100'));
 
     {
       // advance past payout cooldown
       const { payoutCooldownInDays } = await as.config();
 
-      const { end } = await as.getPoll(0);
+      const { end } = await as.getPoll(assessmentId);
       await setTime(end + daysToSeconds(payoutCooldownInDays));
     }
 
     // partial paid cover
     const claimAmount = amount.div(2);
-    await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, claimAmount, nonMember1.address, []);
+    await yc.connect(coverBuyer1).redeemPayout(incidentId, coverId, segmentId, claimAmount, nonMember1.address, []);
 
     {
       const segment = await cover.coverSegments(coverId, segmentId);
@@ -471,7 +478,8 @@ describe('expireCover', function () {
     const [nonMember1] = this.accounts.nonMembers;
     const { emergencyAdmin } = this.accounts;
 
-    const { productId, coverAsset, period, gracePeriod, coverId, segmentId } = expireCoverFixture;
+    const { productId, coverAsset, period, gracePeriod, coverId, segmentId, incidentId, assessmentId } =
+      expireCoverFixture;
 
     // Stake to open up capacity
     await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
@@ -495,19 +503,19 @@ describe('expireCover', function () {
     await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
 
     // reject incident (requires at least 1 positive vote)
-    await as.connect(staker1).castVotes([0], [true], parseEther('100'));
-    await as.connect(staker2).castVotes([0], [false], parseEther('100'));
+    await as.connect(staker1).castVotes([assessmentId], [true], parseEther('100'));
+    await as.connect(staker2).castVotes([assessmentId], [false], parseEther('100'));
 
     {
       // advance past payout cooldown
       const { payoutCooldownInDays } = await as.config();
 
-      const { end } = await as.getPoll(0);
+      const { end } = await as.getPoll(assessmentId);
       await setTime(end + daysToSeconds(payoutCooldownInDays));
     }
 
     await expect(
-      yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1'), nonMember1.address, []),
+      yc.connect(coverBuyer1).redeemPayout(incidentId, coverId, segmentId, parseEther('1'), nonMember1.address, []),
     ).to.be.revertedWith('The incident needs to be accepted');
 
     {
@@ -542,7 +550,8 @@ describe('expireCover', function () {
     const [nonMember1] = this.accounts.nonMembers;
     const { emergencyAdmin } = this.accounts;
 
-    const { productId, coverAsset, period, gracePeriod, coverId, segmentId } = expireCoverFixture;
+    const { productId, coverAsset, period, gracePeriod, coverId, segmentId, incidentId, assessmentId } =
+      expireCoverFixture;
 
     // Stake to open up capacity
     await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
@@ -570,19 +579,19 @@ describe('expireCover', function () {
     await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
 
     // reject incident (requires at least 1 positive vote)
-    await as.connect(staker1).castVotes([0], [true], parseEther('100'));
-    await as.connect(staker2).castVotes([0], [false], parseEther('100'));
+    await as.connect(staker1).castVotes([assessmentId], [true], parseEther('100'));
+    await as.connect(staker2).castVotes([assessmentId], [false], parseEther('100'));
 
     {
       // advance past payout cooldown
       const { payoutCooldownInDays } = await as.config();
 
-      const { end } = await as.getPoll(0);
+      const { end } = await as.getPoll(assessmentId);
       await setTime(end + daysToSeconds(payoutCooldownInDays));
     }
 
     await expect(
-      yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1'), nonMember1.address, []),
+      yc.connect(coverBuyer1).redeemPayout(incidentId, coverId, segmentId, parseEther('1'), nonMember1.address, []),
     ).to.be.revertedWith('The incident needs to be accepted');
 
     {

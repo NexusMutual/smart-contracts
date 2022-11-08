@@ -562,11 +562,11 @@ describe('redeemPayout', function () {
     // [warning] Cover mock does not subtract the covered amount
     {
       const claimedAmount = parseEther('100');
-      const daiBalanceBefore = await dai.balanceOf(member1.address);
+      const daiBalanceBefore = await dai.balanceOf(nonMember1.address);
       await yieldTokenIncidents
         .connect(member1)
-        .redeemPayout(0, 0, 0, claimedAmount, member1.address, [], { gasPrice: 0 });
-      const daiBalanceAfter = await dai.balanceOf(member1.address);
+        .redeemPayout(0, 0, 0, claimedAmount, nonMember1.address, [], { gasPrice: 0 });
+      const daiBalanceAfter = await dai.balanceOf(nonMember1.address);
       expect(daiBalanceAfter).to.be.equal(
         daiBalanceBefore.add(
           claimedAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals),

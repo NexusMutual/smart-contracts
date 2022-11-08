@@ -30,6 +30,9 @@ contract NXMaster is INXMMaster, Governed {
   address public emergencyAdmin;
   bool public paused;
 
+  mapping (uint => bytes2) public contractIds;
+  uint lastContractId;
+
   enum ContractType { Undefined, Replaceable, Proxy }
 
   event InternalContractAdded(bytes2 indexed code, address contractAddress, ContractType indexed contractType);
@@ -37,6 +40,17 @@ contract NXMaster is INXMMaster, Governed {
   event ContractRemoved(bytes2 indexed code, address contractAddress);
   event PauseConfigured(bool paused);
 
+  function initializeContractIds() external {
+
+    require(lastContractId == 0, "NXMaster: Contract IDs already initialized");
+    uint _lastContractId;
+    for (uint i = 0; i < contractCodes.length; i++) {
+      contractIds[i] = contractCodes[i];
+      _lastContractId++;
+    }
+
+    lastContractId = _lastContractId;
+  }
 
   function initializeEmergencyAdmin() external {
     if (emergencyAdmin == address(0)) {
@@ -85,6 +99,7 @@ contract NXMaster is INXMMaster, Governed {
     require(contractAddress != address(0), "NXMaster: Contract address is 0");
 
     contractCodes.push(contractCode);
+    contractIds[lastContractId++] = contractCode;
 
     address newInternalContract;
     if (_type == uint(ContractType.Replaceable)) {

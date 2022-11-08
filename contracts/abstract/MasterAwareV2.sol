@@ -43,7 +43,6 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
 
   function usedInternalContracts() internal pure virtual returns (uint);
 
-
   modifier onlyMember {
     require(
       IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(
@@ -109,7 +108,11 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
     return internalContracts[uint(id)];
   }
 
-  function changeDependentContractAddress() external virtual;
+  function changeDependentContractAddress() external virtual {
+
+    uint bitmap = usedInternalContracts();
+    // master.getInternalContractAddresses();
+  }
 
   function changeMasterAddress(address masterAddress) public onlyMaster {
     master = INXMMaster(masterAddress);

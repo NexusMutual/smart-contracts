@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { parseEther } = ethers.utils;
+const { MaxUint256 } = ethers.constants;
 const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../utils').constants;
 const { zeroPadRight } = require('../utils').helpers;
@@ -60,7 +61,7 @@ async function setup() {
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);
     await memberRoles.setRole(member.address, Role.Member);
-    await nxm.mint(member.address, parseEther('100000'));
+    await nxm.mint(member.address, MaxUint256.div(100));
   }
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {

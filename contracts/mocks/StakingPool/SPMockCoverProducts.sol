@@ -7,8 +7,8 @@ import "../../interfaces/ICover.sol";
 import "../../modules/cover/CoverUtilsLib.sol";
 
 contract SPMockCoverProducts {
-  uint24 public constant globalCapacityRatio = 2;
-  uint256 public constant globalRewardsRatio = 1;
+  uint24 public constant globalCapacityRatio = 20000;
+  uint256 public constant globalRewardsRatio = 5000;
 
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
@@ -70,7 +70,7 @@ contract SPMockCoverProducts {
   }
 
   function initializeStaking(
-    address staking_,
+    address _stakingPool,
     address _manager,
     bool _isPrivatePool,
     uint256 _initialPoolFee,
@@ -83,6 +83,10 @@ contract SPMockCoverProducts {
       params[i].initialPrice = products[params[i].productId].initialPriceRatio;
       require(params[i].targetPrice >= GLOBAL_MIN_PRICE_RATIO, "CoverUtilsLib: Target price below GLOBAL_MIN_PRICE_RATIO");
     }
-    IStakingPool(staking_).initialize(_manager, _isPrivatePool, _initialPoolFee, _maxPoolFee, params, _poolId);
+    IStakingPool(_stakingPool).initialize(_manager, _isPrivatePool, _initialPoolFee, _maxPoolFee, params, _poolId);
+  }
+
+  function performStakeBurn(address _stakingPool, uint productId, uint start, uint period, uint burnAmountInNXM) external {
+    IStakingPool(_stakingPool).burnStake(productId, start, period, burnAmountInNXM);
   }
 }

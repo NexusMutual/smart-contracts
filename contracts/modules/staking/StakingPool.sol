@@ -890,7 +890,11 @@ contract StakingPool is IStakingPool, ERC721 {
     return (allocatedCapacities, allocatedCapacity);
   }
 
-  function getTotalCapacitiesForActiveTranches(uint productId, uint24 globalCapacityRatio, uint16 capacityReductionRatio) public view returns (uint[] memory totalCapacities, uint totalCapacity) {
+  function getTotalCapacitiesForActiveTranches(
+    uint productId,
+    uint24 globalCapacityRatio,
+    uint16 capacityReductionRatio
+  ) public view returns (uint[] memory totalCapacities, uint totalCapacity) {
     uint firstTrancheIdToUse = block.timestamp / TRANCHE_DURATION;
 
     (totalCapacities, totalCapacity) = getTotalCapacitiesForTranches(
@@ -910,7 +914,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint reductionRatio
   ) internal view returns (uint[] memory totalCapacities, uint totalCapacity) {
 
-    uint _activeStake = Math.divCeil(activeStake, 1e12);
+    uint _activeStake = Math.divCeil(activeStake, 1e16);
     uint _stakeSharesSupply = stakeSharesSupply;
 
     if (_stakeSharesSupply == 0) {
@@ -1184,7 +1188,6 @@ contract StakingPool is IStakingPool, ERC721 {
     start;
     period;
 
-    // TODO: free up the stake used by the corresponding cover
     // TODO: block the pool if we perform 100% of the stake
 
     // passing false because neither the amount of shares nor the reward per second are changed
@@ -1361,6 +1364,7 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
       _product.nextPriceUpdateTime = uint32(block.timestamp);
       _product.targetPrice = param.targetPrice;
       _product.targetWeight = param.weight;
+      _product.lastEffectiveWeight = param.weight;
       _totalTargetWeight += param.weight;
     }
 

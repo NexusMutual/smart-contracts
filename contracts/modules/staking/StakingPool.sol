@@ -1645,7 +1645,7 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
       : 0;
 
     effectiveWeight = actualWeight > type(uint16).max
-      ? uint16(WEIGHT_DENOMINATOR)
-      : (Math.max(targetWeight, actualWeight)).toUint16();
+      ? uint16(type(uint16).max)
+      : Math.max(targetWeight, actualWeight).toUint16();
   }
 }

@@ -2,56 +2,50 @@
 
 pragma solidity ^0.8.9;
 
-// 1 x (uint48 activeCoverAmount, uint16 lastBucketId)
-type CoverAmount is uint64;
+// 5 x uint48 activeAllocation + 1 x uint16 lastBucketId
+// 5 * 48 + 16 = 256
+type TrancheAllocationGroup is uint;
 
-// 4 x CoverAmount
-type CoverAmountGroup is uint;
-
-// 8 x (uint32 expiringCoverAmount)
+// 8 x (uint32 expiringAllocation)
 type BucketTrancheGroup is uint;
 
 library StakingTypesLib {
 
-  // CoverAmount
+  // TrancheAllocationGroup
 
-  function lastBucketId(CoverAmount item) internal pure returns (uint16) {
-    return uint16(CoverAmount.unwrap(item));
+  function getLastBucketId(TrancheAllocationGroup items) internal pure returns (uint16) {
+    return uint16(TrancheAllocationGroup.unwrap(items));
   }
 
-  function activeCoverAmount(CoverAmount item) internal pure returns (uint48) {
-    return uint48(CoverAmount.unwrap(item) >> 16);
+  function setLastBucketId(
+    TrancheAllocationGroup items,
+    uint16 lastBucketId
+  ) internal pure returns (TrancheAllocationGroup) {
+    // applying the mask using binary AND to clear target item's bits
+    uint mask = ~(uint(type(uint16).max));
+    uint underlying = TrancheAllocationGroup.unwrap(items);
+    return TrancheAllocationGroup.wrap(underlying & mask | uint(lastBucketId));
   }
-
-  function newCoverAmount(
-    uint48 coverAmount,
-    uint16 bucketId
-  ) internal pure returns (CoverAmount) {
-    return CoverAmount.wrap((uint64(coverAmount) << 16) | bucketId);
-  }
-
-  // CoverAmountGroup
 
   function getItemAt(
-    CoverAmountGroup items,
+    TrancheAllocationGroup items,
     uint index
-  ) internal pure returns (CoverAmount) {
-    uint underlying = CoverAmountGroup.unwrap(items);
-    uint64 item = uint64(underlying >> (index * 64));
-    return CoverAmount.wrap(item);
+  ) internal pure returns (uint48 allocation) {
+    uint underlying = TrancheAllocationGroup.unwrap(items);
+    return uint48(underlying >> (index * 48 + 16));
   }
 
-  // heads up: does not mutate the CoverAmountGroup but returns a new one instead
+  // heads up: does not mutate the TrancheAllocationGroup but returns a new one instead
   function setItemAt(
-    CoverAmountGroup items,
+    TrancheAllocationGroup items,
     uint index,
-    CoverAmount item
-  ) internal pure returns (CoverAmountGroup) {
+    uint48 allocation
+  ) internal pure returns (TrancheAllocationGroup) {
     // applying the mask using binary AND to clear target item's bits
-    uint mask = ~(uint(type(uint64).max) << (index * 64));
-    uint itemUnderlying = uint(CoverAmount.unwrap(item)) << (index * 64);
-    uint groupUnderlying = CoverAmountGroup.unwrap(items) & mask | itemUnderlying;
-    return CoverAmountGroup.wrap(groupUnderlying);
+    uint mask = ~(uint(type(uint64).max) << (index * 48 + 16));
+    uint item = uint(allocation) << (index * 48 + 16);
+    uint underlying = TrancheAllocationGroup.unwrap(items) & mask | item;
+    return TrancheAllocationGroup.wrap(underlying);
   }
 
   // BucketTrancheGroup

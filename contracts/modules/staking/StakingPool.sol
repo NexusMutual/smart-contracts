@@ -1326,7 +1326,7 @@ contract StakingPool is IStakingPool, ERC721 {
       uint productId = productIds[i];
       StakedProduct memory _product = products[productId];
 
-      uint8 previousEffectiveWeight = _product.lastEffectiveWeight;
+      uint16 previousEffectiveWeight = _product.lastEffectiveWeight;
       _product.lastEffectiveWeight = _getEffectiveWeight(
         productId,
         _product.targetWeight,
@@ -1393,7 +1393,7 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
           _product.targetWeight = _param.targetWeight;
         }
 
-        uint8 previousEffectiveWeight = _product.lastEffectiveWeight;
+        uint16 previousEffectiveWeight = _product.lastEffectiveWeight;
         _product.lastEffectiveWeight = _getEffectiveWeight(
           _param.productId,
           _product.targetWeight,
@@ -1405,8 +1405,8 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
       products[_param.productId] = _product;
     }
 
-    if (_totalEffectiveWeight > MAX_TOTAL_WEIGHT) {
-      require(!targetWeightIncreased, "StakingPool: Total max effective weight exceeded");
+    if (targetWeightIncreased) {
+      require(_totalEffectiveWeight <= MAX_TOTAL_WEIGHT, "StakingPool: Total max effective weight exceeded");
     }
     totalTargetWeight = _totalTargetWeight.toUint32();
     totalEffectiveWeight = _totalEffectiveWeight.toUint32();
@@ -1623,7 +1623,7 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
     uint targetWeight,
     uint globalCapacityRatio,
     uint capacityReductionRatio
-  ) internal view returns (uint8 effectiveWeight) {
+  ) internal view returns (uint16 effectiveWeight) {
     uint firstTrancheIdToUse = block.timestamp / TRANCHE_DURATION;
 
     (, , uint totalAllocation) = getAllocations(
@@ -1640,7 +1640,12 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
       capacityReductionRatio
     );
 
-    uint actualWeight = totalCapacity > 0 ? (totalAllocation * WEIGHT_DENOMINATOR / totalCapacity) : 0;
-    effectiveWeight = (Math.max(targetWeight, actualWeight)).toUint8();
+    uint actualWeight = totalCapacity > 0
+      ? (totalAllocation * WEIGHT_DENOMINATOR / totalCapacity)
+      : 0;
+
+    effectiveWeight = actualWeight > type(uint16).max
+      ? uint16(WEIGHT_DENOMINATOR)
+      : (Math.max(targetWeight, actualWeight)).toUint16();
   }
 }

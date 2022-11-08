@@ -73,7 +73,7 @@ interface IStakingPool {
   }
 
   struct StakedProduct {
-    uint8 lastEffectiveWeight;
+    uint16 lastEffectiveWeight;
     uint8 targetWeight;
     uint96 targetPrice;
     uint96 nextPrice;

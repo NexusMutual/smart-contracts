@@ -329,7 +329,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     Product memory product = _products[params.productId];
     uint gracePeriod = uint(_productTypes[product.productType].gracePeriodInDays) * 1 days;
 
-    return _stakingPool.allocateStake(
+    return _stakingPool.allocateCapacity(
       CoverRequest(
         coverId,
         params.productId,
@@ -430,7 +430,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           lastCoverSegment.globalRewardsRatio
         );
 
-        stakingPool(allocation.poolId).deallocateStake(
+        stakingPool(allocation.poolId).deallocateCapacity(
           request,
           lastCoverSegment.start,
           allocation.premiumInNXM

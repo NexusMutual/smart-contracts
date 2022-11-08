@@ -71,8 +71,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     _operatorTransferFrom(from, to, amount);
   }
 
-
-  function allocateStake(
+  function allocateCapacity(
     CoverRequest calldata request
   ) external override returns (uint allocatedAmount, uint premium, uint rewardsInNXM) {
 
@@ -87,7 +86,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     );
   }
 
-  function deallocateStake(
+  function deallocateCapacity(
     CoverRequest memory /*request*/,
     uint /*coverStartTime*/,
     uint /*premium*/

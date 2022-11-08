@@ -57,7 +57,7 @@ contract SPMockCover {
     Product memory product = products[params.productId];
     uint256 gracePeriod = uint256(productTypes[product.productType].gracePeriodInDays) * 1 days;
 
-    return _stakingPool.allocateStake(
+    return _stakingPool.allocateCapacity(
       CoverRequest(
         coverId,
         params.productId,

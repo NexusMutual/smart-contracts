@@ -596,7 +596,7 @@ contract StakingPool is IStakingPool, ERC721 {
     }
   }
 
-  function allocateStake(
+  function allocateCapacity(
     CoverRequest calldata request
   ) external onlyCoverContract returns (
     uint allocatedCoverAmount,
@@ -705,14 +705,14 @@ contract StakingPool is IStakingPool, ERC721 {
     }
   }
 
-  function deallocateStake(
+  function deallocateCapacity(
     // TODO: use a DeallocationRequest instead as we don't need all the fields
     CoverRequest memory request,
     uint coverStartTime,
     uint premium
   ) external onlyCoverContract {
     updateTranches(true);
-    deallocateStakeForCover(request, coverStartTime);
+    deallocateCapacityForCover(request, coverStartTime);
     removeCoverReward(coverStartTime, request.period, premium, request.rewardRatio);
   }
 
@@ -733,7 +733,7 @@ contract StakingPool is IStakingPool, ERC721 {
     rewardBuckets[expireAtBucket].rewardPerSecondCut -= _rewardPerSecond;
   }
 
-  function deallocateStakeForCover(
+  function deallocateCapacityForCover(
     CoverRequest memory request,
     uint coverStartTime
   ) internal {

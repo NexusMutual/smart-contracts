@@ -98,11 +98,11 @@ interface IStakingPool {
 
   function updateTranches(bool updateUntilCurrentTimestamp) external;
 
-  function allocateStake(
+  function allocateCapacity(
     CoverRequest calldata request
   ) external returns (uint allocatedAmount, uint premium, uint rewardsInNXM);
 
-  function deallocateStake(
+  function deallocateCapacity(
     CoverRequest memory request,
     uint coverStartTime,
     uint premium

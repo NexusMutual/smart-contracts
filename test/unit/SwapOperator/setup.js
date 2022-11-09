@@ -3,9 +3,8 @@ const { getAccounts } = require('../../utils/accounts');
 const { hex } = require('../utils').helpers;
 
 const {
-  BigNumber,
   constants: { AddressZero },
-  utils: { parseEther, hexlify, randomBytes, isHexString, hexDataLength },
+  utils: { parseEther },
 } = ethers;
 
 // will be assigned by setup()
@@ -163,21 +162,5 @@ async function setup() {
   };
 }
 
-// helper function to alter a given value
-const makeWrongValue = value => {
-  if (isHexString(value)) {
-    return hexlify(randomBytes(hexDataLength(value)));
-  } else if (BigNumber.isBigNumber(value)) {
-    return value.add(1);
-  } else if (typeof value === 'number') {
-    return value + 1;
-  } else if (typeof value === 'boolean') {
-    return !value;
-  } else {
-    throw new Error(`Unsupported value while fuzzing order: ${value}`);
-  }
-};
-
 module.exports = setup;
 module.exports.contracts = instances;
-module.exports.makeWrongValue = makeWrongValue;

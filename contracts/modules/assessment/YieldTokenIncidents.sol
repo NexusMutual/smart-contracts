@@ -73,11 +73,11 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
   /* ========== VIEWS ========== */
 
   function assessment() internal view returns (IAssessment) {
-    return IAssessment(getInternalContractAddress(ID.AS));
+    return IAssessment(getInternalContractAddress(AS));
   }
 
   function cover() internal view returns (ICover) {
-    return ICover(internalContracts[uint(IMasterAwareV2.ID.CO)]);
+    return ICover(getInternalContractAddress(CO));
   }
 
   /// @dev Returns the number of incidents.
@@ -206,7 +206,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       "Only the cover owner or approved addresses can redeem"
     );
 
-    ICover coverContract = ICover(getInternalContractAddress(ID.CO));
+    ICover coverContract = ICover(getInternalContractAddress(CO));
     CoverData memory coverData = coverContract.coverData(coverId);
     Product memory product = coverContract.products(coverData.productId);
 
@@ -263,7 +263,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
         uint deductiblePriceBefore = uint(incident.priceBefore) *
           uint(config.payoutDeductibleRatio) / INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
         (,uint coverAssetDecimals) = IPool(
-          internalContracts[uint(IMasterAwareV2.ID.P1)]
+          getInternalContractAddress(P1)
         ).coverAssets(coverData.coverAsset);
         payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** uint(coverAssetDecimals));
       }
@@ -296,7 +296,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       depeggedTokens
     );
 
-    IPool(internalContracts[uint(IMasterAwareV2.ID.P1)]).sendPayout(
+    IPool(getInternalContractAddress(P1)).sendPayout(
       coverData.coverAsset,
       payoutAddress,
       payoutAmount
@@ -356,16 +356,6 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       }
     }
     config = newConfig;
-  }
-
-  /// @dev Updates internal contract addresses to the ones stored in master. This function is
-  /// automatically called by the master contract when a contract is added or upgraded.
-  function changeDependentContractAddress() external override {
-    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
-    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
-    internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
-    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
-    internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
   }
 
   function usedInternalContracts() internal pure override returns (uint) {

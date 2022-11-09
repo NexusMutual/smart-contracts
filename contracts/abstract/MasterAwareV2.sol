@@ -102,10 +102,12 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
   }
 
 
-  function getInternalContractAddress(ID id) internal view returns (address payable) {
-    return internalContracts[uint(id)];
+  function getInternalContractAddress(uint id) internal view returns (address payable) {
+    return internalContracts[id];
   }
 
+  /// @dev Updates internal contract addresses to the ones stored in master. This function is
+  /// automatically called by the master contract when a contract is added or upgraded.
   function changeDependentContractAddress() external virtual {
 
     uint bitmap = usedInternalContracts();

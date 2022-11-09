@@ -17,7 +17,7 @@ import "../../interfaces/IPool.sol";
 contract CoverMigrator is MasterAwareV2 {
 
   function cover() internal view returns (ICover) {
-    return ICover(getInternalContractAddress(ID.CO));
+    return ICover(getInternalContractAddress(CO));
   }
 
   /// @dev Migrates covers for arNFT-like contracts that don't use Gateway.sol
@@ -25,12 +25,6 @@ contract CoverMigrator is MasterAwareV2 {
   /// @param coverId          Legacy (V1) cover identifier
   function submitClaim(uint coverId) external whenNotPaused {
     cover().migrateCoverFromOwner(coverId, msg.sender, tx.origin);
-  }
-
-  /// @dev Updates internal contract addresses to the ones stored in master. This function is
-  /// automatically called by the master contract when a contract is added or upgraded.
-  function changeDependentContractAddress() external override {
-    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
   }
 
   function usedInternalContracts() internal override pure returns (uint) {

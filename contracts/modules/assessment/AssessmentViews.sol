@@ -14,7 +14,7 @@ contract AssessmentViews is MasterAwareV2 {
   }
 
   function assessment() internal view returns (IAssessment) {
-    return IAssessment(getInternalContractAddress(ID.AS));
+    return IAssessment(getInternalContractAddress(AS));
   }
 
   function changeDependentContractAddress() external override {

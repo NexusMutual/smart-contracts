@@ -27,7 +27,7 @@ contract ASMockYieldTokenIncidents is MasterAwareV2 {
   }
 
   function assessment() internal view returns (IAssessment) {
-    return IAssessment(getInternalContractAddress(ID.AS));
+    return IAssessment(getInternalContractAddress(AS));
   }
 
   function submitIncident(
@@ -51,10 +51,6 @@ contract ASMockYieldTokenIncidents is MasterAwareV2 {
     uint assessmentId = assessment().startAssessment(totalReward, 0);
     incident.assessmentId = uint80(assessmentId);
     incidents.push(incident);
-  }
-
-  function changeDependentContractAddress() external override {
-    internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
   }
 
   function usedInternalContracts() internal override pure returns (uint) {

@@ -25,7 +25,7 @@ contract ASMockIndividualClaims is MasterAwareV2 {
   }
 
   function assessment() internal view returns (IAssessment) {
-    return IAssessment(getInternalContractAddress(ID.AS));
+    return IAssessment(getInternalContractAddress(AS));
   }
 
   function submitClaim(
@@ -46,10 +46,6 @@ contract ASMockIndividualClaims is MasterAwareV2 {
     uint assessmentId = assessment().startAssessment(config.rewardRatio * requestedAmount / 10000, 0);
     claim.assessmentId = uint80(assessmentId);
     claims.push(claim);
-  }
-
-  function changeDependentContractAddress() external override {
-    internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
   }
 
   function usedInternalContracts() internal override pure returns (uint) {

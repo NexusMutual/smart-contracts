@@ -67,15 +67,15 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   /* ========== VIEWS ========== */
 
   function cover() internal view returns (ICover) {
-    return ICover(getInternalContractAddress(ID.CO));
+    return ICover(getInternalContractAddress(CO));
   }
 
   function assessment() internal view returns (IAssessment) {
-    return IAssessment(getInternalContractAddress(ID.AS));
+    return IAssessment(getInternalContractAddress(AS));
   }
 
   function pool() internal view returns (IPool) {
-    return IPool(getInternalContractAddress(ID.P1));
+    return IPool(getInternalContractAddress(P1));
   }
 
   function getClaimsCount() external override view returns (uint) {
@@ -323,7 +323,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     (
       bool transferSucceeded,
       /* bytes data */
-    ) =  getInternalContractAddress(ID.P1).call{value: assessmentDepositInETH}("");
+    ) =  getInternalContractAddress(P1).call{value: assessmentDepositInETH}("");
     require(transferSucceeded, "Assessment deposit transfer to pool failed");
 
     return claim;
@@ -409,16 +409,6 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       }
     }
     config = newConfig;
-  }
-
-  /// @dev Updates internal contract addresses to the ones stored in master. This function is
-  /// automatically called by the master contract when a contract is added or upgraded.
-  function changeDependentContractAddress() external override {
-    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
-    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
-    internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
-    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
-    internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
   }
 
   function usedInternalContracts() internal override pure returns (uint) {

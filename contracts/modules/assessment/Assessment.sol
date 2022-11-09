@@ -64,7 +64,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     config.silentEndingPeriodInDays = 1; // days
 
     // to receive NXM
-    ITokenController(getInternalContractAddress(ID.TC)).addToWhitelist(address(this));
+    ITokenController(getInternalContractAddress(TC)).addToWhitelist(address(this));
   }
 
   /* ========== VIEWS ========== */
@@ -138,7 +138,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param amount  The amount of nxm to stake
   function stake(uint96 amount) public whenNotPaused {
     stakeOf[msg.sender].amount += amount;
-    ITokenController(getInternalContractAddress(ID.TC))
+    ITokenController(getInternalContractAddress(TC))
       .operatorTransfer(msg.sender, address(this), amount);
 
     emit StakeDeposited(msg.sender, amount);
@@ -205,7 +205,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     uint104 batchSize
   ) internal returns (uint withdrawn, uint withdrawnUntilIndex) {
     require(
-      IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(
+      IMemberRoles(internalContracts[uint(MR)]).checkRole(
         destination,
         uint(IMemberRoles.Role.Member)
       ),
@@ -240,7 +240,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
     // This is the index where the next withdrawReward call will start iterating from
     stakeOf[staker].rewardsWithdrawableFromIndex = SafeUintCast.toUint104(withdrawnUntilIndex);
-    ITokenController(getInternalContractAddress(ID.TC)).mint(destination, withdrawn);
+    ITokenController(getInternalContractAddress(TC)).mint(destination, withdrawn);
 
     emit RewardWithdrawn(staker, destination, withdrawn);
   }
@@ -495,14 +495,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
     config = newConfig;
   }
-
-  /// @dev Updates internal contract addresses to the ones stored in master. This function is
-  /// automatically called by the master contract when a contract is added or upgraded.
-  function changeDependentContractAddress() external override {
-    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
-    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
-  }
-
 
   function usedInternalContracts() internal override pure returns (uint) {
     return TC | MR;

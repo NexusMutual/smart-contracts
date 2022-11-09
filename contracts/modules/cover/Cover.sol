@@ -845,14 +845,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return IMCR(internalContracts[uint(ID.MC)]);
   }
 
-  function changeDependentContractAddress() external override {
-    master = INXMMaster(master);
-    internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
-    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
-    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
-    internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
-  }
-
   function usedInternalContracts() internal override pure returns (uint) {
     return P1 | TC | MR | MC;
   }

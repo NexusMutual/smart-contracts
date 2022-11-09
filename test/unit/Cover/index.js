@@ -12,6 +12,7 @@ describe('Cover unit tests', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
+  require('./constructor');
   require('./buyCover');
   require('./editCover');
   require('./createStakingPool');

@@ -79,9 +79,9 @@ async function setup() {
   await mcr.deployed();
   await mcr.setMCR(parseEther('600000'));
 
-  const futureCoverNFTAddress = getDeployAddressAfter(2);
+  const futureCoverNFTAddress = await getDeployAddressAfter(2);
 
-  const coverAddress = getDeployAddressAfter(1);
+  const coverAddress = await getDeployAddressAfter(1);
 
   const stakingPool = await StakingPool.deploy(nxm.address, coverAddress, memberRoles.address, tokenController.address);
   const cover = await Cover.deploy(
@@ -215,6 +215,12 @@ async function setup() {
   this.coverNFT = coverNFT;
   this.accounts = accounts;
   this.capacityFactor = capacityFactor;
+  this.coverUtilsLib = coverUtilsLib;
+  this.quotationData = quotationData;
+  this.stakingPool = stakingPool;
+  this.coverAddress = coverAddress;
+  this.futureCoverNFTAddress = futureCoverNFTAddress;
+  this.productsV1 = ethers.constants.AddressZero;
   this.config = {
     GLOBAL_MIN_PRICE_RATIO,
   };

@@ -32,9 +32,9 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
   // Used in operations involving NXM tokens and divisions
   uint internal constant PRECISION = 10 ** 18;
 
-  INXMToken internal immutable nxm;
+  INXMToken public immutable nxm;
 
-  ICoverNFT internal immutable coverNFT;
+  ICoverNFT public immutable coverNFT;
 
   /* ========== STATE VARIABLES ========== */
 

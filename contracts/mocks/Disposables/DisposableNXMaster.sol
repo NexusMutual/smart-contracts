@@ -38,7 +38,7 @@ contract DisposableNXMaster is NXMaster {
       contractCodes.push(name);
       contractAddresses[name] = contractAddress;
       contractsActive[contractAddress] = true;
-      contractIds[lastContractId++] = name;
+      contractNames[lastContractId++] = name;
 
       if (_contractTypes[i] == 1) {
         isReplaceable[name] = true;

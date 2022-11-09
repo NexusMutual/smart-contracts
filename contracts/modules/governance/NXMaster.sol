@@ -30,7 +30,7 @@ contract NXMaster is INXMMaster, Governed {
   address public emergencyAdmin;
   bool public paused;
 
-  mapping (uint => bytes2) public contractIds;
+  mapping (uint => bytes2) public contractNames;
   uint lastContractId;
 
   enum ContractType { Undefined, Replaceable, Proxy }
@@ -45,7 +45,7 @@ contract NXMaster is INXMMaster, Governed {
     require(lastContractId == 0, "NXMaster: Contract IDs already initialized");
     uint _lastContractId;
     for (uint i = 0; i < contractCodes.length; i++) {
-      contractIds[i] = contractCodes[i];
+      contractNames[i] = contractCodes[i];
       _lastContractId++;
     }
 
@@ -99,7 +99,7 @@ contract NXMaster is INXMMaster, Governed {
     require(contractAddress != address(0), "NXMaster: Contract address is 0");
 
     contractCodes.push(contractCode);
-    contractIds[lastContractId++] = contractCode;
+    contractNames[lastContractId++] = contractCode;
 
     address newInternalContract;
     if (_type == uint(ContractType.Replaceable)) {
@@ -264,6 +264,10 @@ contract NXMaster is INXMMaster, Governed {
   /// @param _contractName Contract name to fetch
   function getLatestAddress(bytes2 _contractName) public view returns (address payable contractAddress) {
     contractAddress = contractAddresses[_contractName];
+  }
+
+  function getLatestAddressById(uint id) public view returns (address payable) {
+    return contractAddresses[contractNames[id]];
   }
 
   /**

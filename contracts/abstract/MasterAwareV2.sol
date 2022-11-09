@@ -109,7 +109,11 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
   function changeDependentContractAddress() external virtual {
 
     uint bitmap = usedInternalContracts();
-    // master.getInternalContractAddresses();
+
+    while (bitmap > 0) {
+      uint id = bitmap & 1;
+      internalContracts[id] = master.getLatestAddressById(id);
+    }
   }
 
   function changeMasterAddress(address masterAddress) public onlyMaster {

@@ -38,4 +38,6 @@ interface INXMMaster {
   ) external;
 
   function updateOwnerParameters(bytes8 code, address payable val) external;
+
+  function getLatestAddressById(uint id) external view returns (address payable);
 }

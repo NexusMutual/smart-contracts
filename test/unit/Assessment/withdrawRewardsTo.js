@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { setNextBlockBaseFee } = require('../utils').evm;
 const { setTime, finalizePoll, generateRewards } = require('./helpers');
 
 const { parseEther } = ethers.utils;
@@ -25,9 +26,11 @@ describe('withdrawRewardsTo', function () {
     const { totalRewardInNXM } = await assessment.assessments(0);
     const nonMemberBalanceBefore = await nxm.balanceOf(nonMember.address);
     const stakerBalanceBefore = await nxm.balanceOf(staker.address);
+    await setNextBlockBaseFee('0');
     await expect(
       assessment.connect(nonMember).withdrawRewardsTo(staker.address, 0, { gasPrice: 0 }),
     ).to.be.revertedWith('No withdrawable rewards');
+    await setNextBlockBaseFee('0');
     await expect(assessment.connect(staker).withdrawRewardsTo(staker.address, 0, { gasPrice: 0 })).not.to.be.reverted;
     const nonMemberBalanceAfter = await nxm.balanceOf(nonMember.address);
     const stakerBalanceAfter = await nxm.balanceOf(staker.address);
@@ -46,6 +49,7 @@ describe('withdrawRewardsTo', function () {
     const { totalRewardInNXM } = await assessment.assessments(0);
     const nonMemberBalanceBefore = await nxm.balanceOf(staker.address);
     const stakerBalanceBefore = await nxm.balanceOf(otherMember.address);
+    await setNextBlockBaseFee('0');
     await expect(assessment.connect(staker).withdrawRewardsTo(otherMember.address, 0, { gasPrice: 0 })).not.to.be
       .reverted;
     const nonMemberBalanceAfter = await nxm.balanceOf(staker.address);

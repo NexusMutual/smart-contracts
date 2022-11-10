@@ -14,8 +14,7 @@ const instances = {};
 async function setup() {
   const [owner, governance] = await ethers.getSigners();
 
-  const signers = await ethers.getSigners();
-  let accounts = getAccounts(signers);
+  let accounts = await getAccounts();
 
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const Pool = await ethers.getContractFactory('Pool');

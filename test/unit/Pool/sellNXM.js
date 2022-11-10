@@ -3,6 +3,7 @@ const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { BN } = web3.utils;
 const { Role } = require('../utils').constants;
+const { setNextBlockBaseFee } = require('../utils').evm;
 const { percentageBN } = require('../utils').tokenPrice;
 const [memberOne] = require('../utils').accounts.members;
 
@@ -124,6 +125,7 @@ describe('sellNXM', function () {
     const balancePreSell = await web3.eth.getBalance(member);
     const nxmBalancePreSell = await token.balanceOf(member);
 
+    await setNextBlockBaseFee('0');
     const sellTx = await pool.sellNXM(tokensToSell, expectedEthValue, { from: member, gasPrice: 0 });
     const nxmBalancePostSell = await token.balanceOf(member);
     const balancePostSell = await web3.eth.getBalance(member);

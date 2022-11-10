@@ -1,5 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+
+const { setNextBlockBaseFee } = require('../utils').evm;
 const { setTime, finalizePoll, generateRewards } = require('./helpers');
 
 const { parseEther } = ethers.utils;
@@ -25,6 +27,7 @@ describe('withdrawRewards', function () {
     const { totalRewardInNXM } = await assessment.assessments(0);
     const nonMemberBalanceBefore = await nxm.balanceOf(nonMember.address);
     const stakerBalanceBefore = await nxm.balanceOf(staker.address);
+    await setNextBlockBaseFee('0');
     await expect(assessment.connect(nonMember).withdrawRewards(staker.address, 0, { gasPrice: 0 })).not.to.be.reverted;
     const nonMemberBalanceAfter = await nxm.balanceOf(nonMember.address);
     const stakerBalanceAfter = await nxm.balanceOf(staker.address);

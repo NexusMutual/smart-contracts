@@ -63,8 +63,7 @@ async function setup() {
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
-  const signers = await ethers.getSigners();
-  const accounts = getAccounts(signers);
+  const accounts = await getAccounts();
   await master.enrollGovernance(accounts.governanceContracts[0].address);
 
   await memberRoles.changeMasterAddress(master.address);

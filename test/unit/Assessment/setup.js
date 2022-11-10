@@ -62,8 +62,7 @@ async function setup() {
   await individualClaims.initialize();
   await yieldTokenIncidents.initialize();
 
-  const signers = await ethers.getSigners();
-  const accounts = getAccounts(signers);
+  const accounts = await getAccounts();
   await master.enrollGovernance(accounts.governanceContracts[0].address);
   for (const member of accounts.members) {
     await master.enrollMember(member.address, 1); // Uses a different role value than IMemberRoles

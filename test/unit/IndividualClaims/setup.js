@@ -72,8 +72,7 @@ async function setup() {
   await individualClaims.changeDependentContractAddress();
   await individualClaims.initialize();
 
-  const signers = await ethers.getSigners();
-  const accounts = getAccounts(signers);
+  const accounts = await getAccounts();
   await master.enrollGovernance(accounts.governanceContracts[0].address);
   for (const member of accounts.members) {
     await memberRoles.setRole(member.address, 2);

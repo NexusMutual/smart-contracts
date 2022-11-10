@@ -8,8 +8,7 @@ const { Role } = require('../utils').constants;
 const { hex, zeroPadRight } = require('../utils').helpers;
 
 const getDeployAddressAfter = async txCount => {
-  const signers = await ethers.getSigners();
-  const { defaultSender } = getAccounts(signers);
+  const { defaultSender } = await getAccounts();
   const transactionCount = await defaultSender.getTransactionCount();
   const nextAddress = getContractAddress({
     from: defaultSender.address,
@@ -137,8 +136,7 @@ async function setup() {
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
 
-  const signers = await ethers.getSigners();
-  const accounts = getAccounts(signers);
+  const accounts = await getAccounts();
 
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);

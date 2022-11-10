@@ -35,8 +35,7 @@ async function setup() {
 
   const CoverUtilsLib = await ethers.getContractFactory('CoverUtilsLib');
 
-  const signers = await ethers.getSigners();
-  const ethersAccounts = getAccounts(signers);
+  const ethersAccounts = await getAccounts();
 
   // external
   const WETH9 = await ethers.getContractFactory('WETH9');

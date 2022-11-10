@@ -33,8 +33,7 @@ async function setup() {
     await tx.wait();
   }
 
-  const signers = await ethers.getSigners();
-  const accounts = getAccounts(signers);
+  const accounts = await getAccounts();
   await master.enrollGovernance(accounts.governanceContracts[0].address);
 
   this.accounts = accounts;

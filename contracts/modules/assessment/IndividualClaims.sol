@@ -67,15 +67,15 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   /* ========== VIEWS ========== */
 
   function cover() internal view returns (ICover) {
-    return ICover(getInternalContractAddress(CO));
+    return ICover(getInternalContractAddress(ID.CO));
   }
 
   function assessment() internal view returns (IAssessment) {
-    return IAssessment(getInternalContractAddress(AS));
+    return IAssessment(getInternalContractAddress(ID.AS));
   }
 
   function pool() internal view returns (IPool) {
-    return IPool(getInternalContractAddress(P1));
+    return IPool(getInternalContractAddress(ID.P1));
   }
 
   function getClaimsCount() external override view returns (uint) {
@@ -323,7 +323,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     (
       bool transferSucceeded,
       /* bytes data */
-    ) =  getInternalContractAddress(P1).call{value: assessmentDepositInETH}("");
+    ) =  getInternalContractAddress(ID.P1).call{value: assessmentDepositInETH}("");
     require(transferSucceeded, "Assessment deposit transfer to pool failed");
 
     return claim;

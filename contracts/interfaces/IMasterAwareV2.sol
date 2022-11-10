@@ -5,13 +5,21 @@ pragma solidity >=0.5.0;
 interface IMasterAwareV2 {
 
   enum ID {
-    TC, // TokenController.sol
-    P1, // Pool.sol
-    MR, // MemberRoles.sol
-    MC, // MCR.sol
-    CO, // Cover.sol
-    AS, // Assessment.sol
-    GV  // Governance.sol
+    QD,
+    TC,
+    P1,
+    MC,
+    GV,
+    PC,
+    MR,
+    PS,
+    GW,
+    IC,
+    CL,
+    YT,
+    AS,
+    CO,
+    CR
   }
 
   function changeMasterAddress(address masterAddress) external;

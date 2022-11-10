@@ -27,7 +27,7 @@ contract ASMockYieldTokenIncidents is MasterAwareV2 {
   }
 
   function assessment() internal view returns (IAssessment) {
-    return IAssessment(getInternalContractAddress(AS));
+    return IAssessment(getInternalContractAddress(ID.AS));
   }
 
   function submitIncident(

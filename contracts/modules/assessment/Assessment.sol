@@ -64,7 +64,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     config.silentEndingPeriodInDays = 1; // days
 
     // to receive NXM
-    ITokenController(getInternalContractAddress(TC)).addToWhitelist(address(this));
+    ITokenController(getInternalContractAddress(ID.TC)).addToWhitelist(address(this));
   }
 
   /* ========== VIEWS ========== */
@@ -138,7 +138,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param amount  The amount of nxm to stake
   function stake(uint96 amount) public whenNotPaused {
     stakeOf[msg.sender].amount += amount;
-    ITokenController(getInternalContractAddress(TC))
+    ITokenController(getInternalContractAddress(ID.TC))
       .operatorTransfer(msg.sender, address(this), amount);
 
     emit StakeDeposited(msg.sender, amount);
@@ -240,7 +240,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
     // This is the index where the next withdrawReward call will start iterating from
     stakeOf[staker].rewardsWithdrawableFromIndex = SafeUintCast.toUint104(withdrawnUntilIndex);
-    ITokenController(getInternalContractAddress(TC)).mint(destination, withdrawn);
+    ITokenController(getInternalContractAddress(ID.TC)).mint(destination, withdrawn);
 
     emit RewardWithdrawn(staker, destination, withdrawn);
   }

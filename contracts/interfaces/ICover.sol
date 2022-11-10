@@ -193,7 +193,7 @@ interface ICover {
     uint amount
   ) external returns (address /*owner*/);
 
-  function coverNFT() external returns (address);
+  function coverNFT() external view returns (address);
 
   function transferCovers(address from, address to, uint256[] calldata coverIds) external;
 

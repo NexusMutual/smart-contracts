@@ -5,7 +5,6 @@ pragma solidity ^0.8.16;
 import "../interfaces/INXMMaster.sol";
 import "../interfaces/IMasterAwareV2.sol";
 import "../interfaces/IMemberRoles.sol";
-import "hardhat/console.sol";
 
 abstract contract MasterAwareV2 is IMasterAwareV2 {
 
@@ -20,25 +19,20 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
   uint internal constant GV = 1 << 4;
   uint internal constant PC = 1 << 5;
   uint internal constant MR = 1 << 6;
-  uint internal constant GW = 1 << 7;
-  uint internal constant IC = 1 << 8;
-  uint internal constant CL = 1 << 9;
-  uint internal constant YT = 1 << 10;
-  uint internal constant AS = 1 << 11;
-  uint internal constant CO = 1 << 12;
-  uint internal constant CR = 1 << 13;
-
-
-  function addressOf(uint id) internal view returns (address payable) {
-    require((usedInternalContracts() & id) != 0, "Contract not in use");
-    return internalContracts[id];
-  }
+  uint internal constant PS = 1 << 7;
+  uint internal constant GW = 1 << 8;
+  uint internal constant IC = 1 << 9;
+  uint internal constant CL = 1 << 10;
+  uint internal constant YT = 1 << 11;
+  uint internal constant AS = 1 << 12;
+  uint internal constant CO = 1 << 13;
+  uint internal constant CR = 1 << 14;
 
   function usedInternalContracts() internal pure virtual returns (uint);
 
   modifier onlyMember {
     require(
-      IMemberRoles(getInternalContractAddress(MR)).checkRole(
+      IMemberRoles(getInternalContractAddress(ID.MR)).checkRole(
         msg.sender,
         uint(IMemberRoles.Role.Member)
       ),
@@ -49,7 +43,7 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
 
   modifier onlyAdvisoryBoard {
     require(
-      IMemberRoles(getInternalContractAddress(MR)).checkRole(
+      IMemberRoles(getInternalContractAddress(ID.MR)).checkRole(
         msg.sender,
         uint(IMemberRoles.Role.AdvisoryBoard)
       ),
@@ -96,9 +90,11 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
     _;
   }
 
+  function getInternalContractAddress(ID id) internal view returns (address payable) {
 
-  function getInternalContractAddress(uint id) internal view returns (address payable) {
-    return internalContracts[id];
+    uint idBitmask = 1 << uint(id);
+    require((usedInternalContracts() & idBitmask) != 0, "Contract not in use");
+    return internalContracts[uint(id)];
   }
 
   /// @dev Updates internal contract addresses to the ones stored in master. This function is
@@ -106,12 +102,17 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
   function changeDependentContractAddress() external virtual {
 
     uint bitmap = usedInternalContracts();
+    uint id = 0;
 
-    console.log("bitmap", bitmap);
+    // go through each bit and load the appropriate contract
     while (bitmap > 0) {
-      uint id = bitmap & 1;
-      internalContracts[id] = master.getLatestAddressById(id);
+
+      // if the current bit in line is 1 load the address otherwise skip it
+      if (bitmap & 1 > 0) {
+        internalContracts[id] = master.getLatestAddressById(id);
+      }
       bitmap >>= 1;
+      id++;
     }
   }
 

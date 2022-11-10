@@ -17,7 +17,7 @@ import "../../interfaces/IPool.sol";
 contract CoverMigrator is MasterAwareV2 {
 
   function cover() internal view returns (ICover) {
-    return ICover(getInternalContractAddress(CO));
+    return ICover(getInternalContractAddress(ID.CO));
   }
 
   /// @dev Migrates covers for arNFT-like contracts that don't use Gateway.sol

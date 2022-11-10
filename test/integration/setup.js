@@ -31,7 +31,6 @@ async function setup() {
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
   const SwapOperator = await ethers.getContractFactory('SwapOperator');
   const CoverNFT = await ethers.getContractFactory('CoverNFT');
-  const TokenControllerMasterAwareV2 = await ethers.getContractFactory('TokenControllerMasterAwareV2');
   // const StakingPool = await ethers.getContractFactory('StakingPool');
 
   const CoverUtilsLib = await ethers.getContractFactory('CoverUtilsLib');
@@ -421,8 +420,6 @@ async function setup() {
 
   const nonInternal = { priceFeedOracle, swapOperator };
 
-  const tokenControllerMasterAwareV2 = await TokenControllerMasterAwareV2.deploy(qd.address, lcr.address);
-
   let quotationData;
   quotationData = await tc.quotationData();
 
@@ -431,18 +428,6 @@ async function setup() {
   console.log({
     quotationData: quotationData.toString(),
     ms,
-  });
-
-  await master.upgradeMultipleContracts([hex('TC')], [tokenControllerMasterAwareV2.address]);
-
-  quotationData = await tc.quotationData();
-  let masterAddress;
-
-  const tcNew = await ethers.getContractAt('MasterAwareV2', tc.address);
-  masterAddress = await tcNew.master();
-  console.log({
-    quotationData: quotationData.toString(),
-    masterAddress,
   });
 
   this.contracts = {

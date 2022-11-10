@@ -9,6 +9,7 @@ import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IPool.sol";
 import "./external/Governed.sol";
 import "./external/OwnedUpgradeabilityProxy.sol";
+import "hardhat/console.sol";
 
 contract NXMaster is INXMMaster, Governed {
   using SafeMath for uint;
@@ -267,6 +268,7 @@ contract NXMaster is INXMMaster, Governed {
   }
 
   function getLatestAddressById(uint id) public view returns (address payable) {
+    console.log("id", id);
     return contractAddresses[contractNames[id]];
   }
 

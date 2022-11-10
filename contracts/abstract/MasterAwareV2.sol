@@ -5,6 +5,7 @@ pragma solidity ^0.8.16;
 import "../interfaces/INXMMaster.sol";
 import "../interfaces/IMasterAwareV2.sol";
 import "../interfaces/IMemberRoles.sol";
+import "hardhat/console.sol";
 
 abstract contract MasterAwareV2 is IMasterAwareV2 {
 
@@ -43,7 +44,7 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
 
   modifier onlyMember {
     require(
-      IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(
+      IMemberRoles(getInternalContractAddress(MR)).checkRole(
         msg.sender,
         uint(IMemberRoles.Role.Member)
       ),
@@ -54,7 +55,7 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
 
   modifier onlyAdvisoryBoard {
     require(
-      IMemberRoles(internalContracts[uint(ID.MR)]).checkRole(
+      IMemberRoles(getInternalContractAddress(MR)).checkRole(
         msg.sender,
         uint(IMemberRoles.Role.AdvisoryBoard)
       ),
@@ -112,9 +113,11 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
 
     uint bitmap = usedInternalContracts();
 
+    console.log("bitmap", bitmap);
     while (bitmap > 0) {
       uint id = bitmap & 1;
       internalContracts[id] = master.getLatestAddressById(id);
+      bitmap >>= 1;
     }
   }
 

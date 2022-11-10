@@ -15,6 +15,10 @@ const networks = {
     blockGasLimit: 30e6,
     gas: 21e6,
   },
+  mainnet: {
+    url: `https://mainnet.infura.io/v3/4b81af1c169b4ae598d7c8dae5104ae5`,
+    accounts: [],
+  },
 };
 
 if (process.env.TEST_ENV_FORK) {

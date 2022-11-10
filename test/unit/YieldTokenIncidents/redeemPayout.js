@@ -4,6 +4,7 @@ const { expect } = require('chai');
 const { setNextBlockBaseFee } = require('../utils').evm;
 const { setTime, ASSET, signPermit } = require('./helpers');
 const { parseEther, arrayify, hexZeroPad, hexValue } = ethers.utils;
+
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 const coverSegmentFixture = {
@@ -567,6 +568,7 @@ describe('redeemPayout', function () {
     {
       const claimedAmount = parseEther('100');
       const daiBalanceBefore = await dai.balanceOf(nonMember1.address);
+      await setNextBlockBaseFee('0');
       await yieldTokenIncidents
         .connect(member1)
         .redeemPayout(0, 0, 0, claimedAmount, nonMember1.address, [], { gasPrice: 0 });
@@ -581,6 +583,7 @@ describe('redeemPayout', function () {
     {
       const claimedAmount = parseEther('111');
       const daiBalanceBefore = await dai.balanceOf(nonMember1.address);
+      await setNextBlockBaseFee('0');
       await yieldTokenIncidents
         .connect(member1)
         .redeemPayout(0, 0, 0, claimedAmount, nonMember1.address, [], { gasPrice: 0 });
@@ -595,6 +598,7 @@ describe('redeemPayout', function () {
     {
       const claimedAmount = parseEther('3000');
       const daiBalanceBefore = await dai.balanceOf(nonMember2.address);
+      await setNextBlockBaseFee('0');
       await yieldTokenIncidents
         .connect(member1)
         .redeemPayout(0, 0, 0, claimedAmount, nonMember2.address, [], { gasPrice: 0 });
@@ -809,6 +813,7 @@ describe('redeemPayout', function () {
     const ybEthContractBalanceBefore = await ybEth.balanceOf(yieldTokenIncidents.address);
     const ybEthMemberBalanceBefore = await ybEth.balanceOf(member1.address);
 
+    await setNextBlockBaseFee('0');
     await yieldTokenIncidents
       .connect(member1)
       .redeemPayout(0, 0, 0, depeggedTokensAmount, member1.address, [], { gasPrice: 0 });
@@ -847,6 +852,7 @@ describe('redeemPayout', function () {
 
     await ybEth.connect(member1).approve(yieldTokenIncidents.address, parseEther('10000'));
 
+    await setNextBlockBaseFee('0');
     await yieldTokenIncidents
       .connect(member1)
       .redeemPayout(0, 0, 0, depeggedTokensAmount, member1.address, [], { gasPrice: 0 });

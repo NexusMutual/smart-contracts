@@ -44,13 +44,24 @@ contract NXMaster is INXMMaster, Governed {
   function initializeContractIds() external {
 
     require(lastContractId == 0, "NXMaster: Contract IDs already initialized");
-    uint _lastContractId;
-    for (uint i = 0; i < contractCodes.length; i++) {
-      contractNames[i] = contractCodes[i];
-      _lastContractId++;
-    }
 
-    lastContractId = _lastContractId;
+    contractNames[0] = 'QD';
+    contractNames[1] = 'TC';
+    contractNames[2] = 'P1';
+    contractNames[3] = 'MC';
+    contractNames[4] = 'GV';
+    contractNames[5] = 'PC';
+    contractNames[6] = 'MR';
+    contractNames[7] = 'PS';
+    contractNames[8] = 'GW';
+    contractNames[9] = 'IC';
+    contractNames[10] = 'CL';
+    contractNames[11] = 'YT';
+    contractNames[12] = 'AS';
+    contractNames[13] = 'CO';
+    contractNames[14] = 'CR';
+
+    lastContractId = 15;
   }
 
   function initializeEmergencyAdmin() external {

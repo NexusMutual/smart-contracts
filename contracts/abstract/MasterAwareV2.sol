@@ -14,25 +14,19 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
   INXMMaster public master;
 
   uint internal constant QD = 1 << 0;
-  uint internal constant TD = 1 << 1;
-  uint internal constant CD = 1 << 2;
-  uint internal constant PD = 1 << 3;
-  uint internal constant QT = 1 << 4;
-  uint internal constant TF = 1 << 5;
-  uint internal constant TC = 1 << 6;
-  uint internal constant CL = 1 << 7;
-  uint internal constant CR = 1 << 8;
-  uint internal constant P1 = 1 << 9;
-  uint internal constant P2 = 1 << 10;
-  uint internal constant MC = 1 << 11;
-  uint internal constant GV = 1 << 12;
-  uint internal constant PC = 1 << 13;
-  uint internal constant MR = 1 << 14;
-  uint internal constant PS = 1 << 15;
-  uint internal constant GW = 1 << 16;
-  uint internal constant IC = 1 << 17;
-  uint internal constant AS = 1 << 18;
-  uint internal constant CO = 1 << 19;
+  uint internal constant TC = 1 << 1;
+  uint internal constant P1 = 1 << 2;
+  uint internal constant MC = 1 << 3;
+  uint internal constant GV = 1 << 4;
+  uint internal constant PC = 1 << 5;
+  uint internal constant MR = 1 << 6;
+  uint internal constant GW = 1 << 7;
+  uint internal constant IC = 1 << 8;
+  uint internal constant CL = 1 << 9;
+  uint internal constant YT = 1 << 10;
+  uint internal constant AS = 1 << 11;
+  uint internal constant CO = 1 << 12;
+  uint internal constant CR = 1 << 13;
 
 
   function addressOf(uint id) internal view returns (address payable) {

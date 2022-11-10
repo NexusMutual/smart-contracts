@@ -31,7 +31,7 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
   uint internal constant GW = 1 << 16;
   uint internal constant IC = 1 << 17;
   uint internal constant AS = 1 << 18;
-  uint internal constant CO = 1 << 18;
+  uint internal constant CO = 1 << 19;
 
 
   function addressOf(uint id) internal view returns (address payable) {

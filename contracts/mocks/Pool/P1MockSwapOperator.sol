@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20Mintable.sol";
 
 contract P1MockSwapOperator {
 
-  function orderInProgress() public returns (bool) {
+  function orderInProgress() public pure returns (bool) {
     return false;
   }
 }

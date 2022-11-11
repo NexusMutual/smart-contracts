@@ -16,7 +16,7 @@ contract ICMockCover {
   IERC721Mock public immutable coverNFT;
 
   CoverData[] public coverData;
-  PerformStakeBurnCalledWith public performStakeBurnCalledWith;
+  PerformStakeBurnCalledWith public burnStakeCalledWith;
   mapping(uint => CoverSegment[]) _coverSegments;
 
   mapping(uint => PoolAllocation[]) poolAllocations;
@@ -132,8 +132,8 @@ contract ICMockCover {
   }
 
 
-  function performStakeBurn(uint coverId, uint segmentId, uint amount) external returns (address) {
-    performStakeBurnCalledWith = PerformStakeBurnCalledWith(coverId, segmentId, amount);
+  function burnStake(uint coverId, uint segmentId, uint amount) external returns (address) {
+    burnStakeCalledWith = PerformStakeBurnCalledWith(coverId, segmentId, amount);
     return coverNFT.ownerOf(coverId);
   }
 }

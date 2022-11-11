@@ -6,14 +6,29 @@ import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 
 /* structs for io */
 
-struct CoverRequest {
-  uint coverId;
+struct AllocationRequest {
   uint productId;
+  uint coverId;
   uint amount;
   uint period;
+}
+
+struct AllocationRequestConfig {
   uint gracePeriod;
   uint globalCapacityRatio;
   uint capacityReductionRatio;
+  uint rewardRatio;
+  uint globalMinPrice;
+}
+
+struct DeallocationRequest {
+  uint productId;
+  uint coverId;
+  uint amount;
+  uint coverStartTime;
+  uint period;
+  uint gracePeriod;
+  uint premium;
   uint rewardRatio;
 }
 
@@ -99,14 +114,11 @@ interface IStakingPool {
   function updateTranches(bool updateUntilCurrentTimestamp) external;
 
   function allocateCapacity(
-    CoverRequest calldata request
-  ) external returns (uint allocatedAmount, uint premium, uint rewardsInNXM);
+    AllocationRequest calldata request,
+    AllocationRequestConfig calldata config
+  ) external returns (uint premium);
 
-  function deallocateCapacity(
-    CoverRequest memory request,
-    uint coverStartTime,
-    uint premium
-  ) external;
+  function deallocateCapacity(DeallocationRequest calldata request) external;
 
   function burnStake(uint productId, uint start, uint period, uint amount) external;
 

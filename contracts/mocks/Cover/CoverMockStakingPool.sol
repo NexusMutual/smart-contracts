@@ -65,33 +65,20 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     poolId = _poolId;
   }
 
-
   function operatorTransferFrom(address from, address to, uint256 amount) external /*override*/ {
     require(msg.sender == memberRoles, "StakingPool: Caller is not MemberRoles");
     _operatorTransferFrom(from, to, amount);
   }
 
   function allocateCapacity(
-    CoverRequest calldata request
-  ) external override returns (uint allocatedAmount, uint premium, uint rewardsInNXM) {
-
+    AllocationRequest calldata request,
+    AllocationRequestConfig calldata /*config*/
+  ) external override returns (uint premium) {
     usedCapacity[request.productId] += request.amount;
-
-    premium = calculatePremium(mockPrices[request.productId], request.amount, request.period);
-
-    return (
-      request.amount,
-      premium,
-      premium * request.rewardRatio / REWARDS_DENOMINATOR
-    );
+    return calculatePremium(mockPrices[request.productId], request.amount, request.period);
   }
 
-  function deallocateCapacity(
-    CoverRequest memory /*request*/,
-    uint /*coverStartTime*/,
-    uint /*premium*/
-  ) external {
-  }
+  function deallocateCapacity(DeallocationRequest memory /*request*/) external {}
 
   function setProducts(StakedProductParam[] memory params) external {
     totalSupply = totalSupply;

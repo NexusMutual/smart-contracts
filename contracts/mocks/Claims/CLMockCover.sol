@@ -22,7 +22,7 @@ contract CLMockCover {
     address newOwner;
   }
 
-  PerformStakeBurnCalledWith public performStakeBurnCalledWith;
+  PerformStakeBurnCalledWith public burnStakeCalledWith;
   MigrateCoverFromOwnerCalledWith public migrateCoverFromOwnerCalledWith;
   CoverData[] public coverData;
   mapping(uint => CoverSegment[]) _coverSegments;
@@ -133,8 +133,8 @@ contract CLMockCover {
     }
   }
 
-  function performStakeBurn(uint coverId, uint segmentId, uint amount) external returns (address) {
-    performStakeBurnCalledWith = PerformStakeBurnCalledWith(coverId, segmentId, amount);
+  function burnStake(uint coverId, uint segmentId, uint amount) external returns (address) {
+    burnStakeCalledWith = PerformStakeBurnCalledWith(coverId, segmentId, amount);
     return coverNFT.ownerOf(coverId);
   }
 

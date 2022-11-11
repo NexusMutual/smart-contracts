@@ -104,8 +104,6 @@ library CoverUtilsLib {
         SafeUintCast.toUint32(validUntil - coverPeriodInDays * 1 days), // start
         SafeUintCast.toUint32(coverPeriodInDays * 1 days), // period
         productType.gracePeriodInDays,
-        uint16(0), // priceRatio
-        false, // expired
         0 // global rewards ratio //
       )
     );
@@ -116,9 +114,13 @@ library CoverUtilsLib {
   function calculateProxyCodeHash(address coverProxyAddress) external pure returns (bytes32) {
     return keccak256(
       abi.encodePacked(
-      type(MinimalBeaconProxy).creationCode,
-      abi.encode(coverProxyAddress)
-    ));
+        // TODO: compiler version - investigate
+        //       I suspect that MinimalBeaconProxy might get compiled using
+        //       the compiler version specified by the current contract
+        type(MinimalBeaconProxy).creationCode,
+        abi.encode(coverProxyAddress)
+      )
+    );
   }
 
   function createStakingPool(
@@ -162,90 +164,4 @@ library CoverUtilsLib {
     }
   }
 
-  function stakingPool(uint index, bytes32 stakingPoolProxyCodeHash) public view returns (IStakingPool) {
-
-    bytes32 hash = keccak256(
-      abi.encodePacked(bytes1(0xff), address(this), index, stakingPoolProxyCodeHash)
-    );
-    // cast last 20 bytes of hash to address
-    return IStakingPool(address(uint160(uint(hash))));
-  }
-
-  function performStakeBurn(
-    uint coverId,
-    uint burnAmount,
-    ICoverNFT coverNFT,
-    CoverData storage cover,
-    CoverSegment memory segment,
-    PoolAllocation[] storage allocations,
-    bytes32 stakingPoolProxyCodeHash,
-    uint globalCapacityRatio
-  ) external returns (address /* owner */) {
-
-    // increase amountPaidOut only *after* you read the segment
-    cover.amountPaidOut += SafeUintCast.toUint96(burnAmount);
-
-    uint allocationCount = allocations.length;
-    for (uint i = 0; i < allocationCount; i++) {
-
-      PoolAllocation memory allocation = allocations[i];
-
-      uint burnAmountInNXM = allocation.coverAmountInNXM
-      * burnAmount / segment.amount
-      * GLOBAL_CAPACITY_DENOMINATOR / globalCapacityRatio;
-
-      stakingPool(i, stakingPoolProxyCodeHash).burnStake(cover.productId, segment.start, segment.period, burnAmountInNXM);
-
-      uint payoutAmountInNXM = allocation.coverAmountInNXM * burnAmount / segment.amount;
-      allocations[i].coverAmountInNXM -= SafeUintCast.toUint96(payoutAmountInNXM);
-    }
-
-    return coverNFT.ownerOf(coverId);
-  }
-
-  function retrievePayment(
-    uint premium,
-    uint8 paymentAsset,
-    uint16 commissionRatio,
-    address commissionDestination,
-    IPool _pool
-  ) external {
-
-    // add commission
-    uint commission = premium * commissionRatio / COMMISSION_DENOMINATOR;
-
-    if (paymentAsset == 0) {
-
-      uint premiumWithCommission = premium + commission;
-      require(msg.value >= premiumWithCommission, "Cover: Insufficient ETH sent");
-
-      uint remainder = msg.value - premiumWithCommission;
-
-      if (remainder > 0) {
-        // solhint-disable-next-line avoid-low-level-calls
-        (bool ok, /* data */) = address(msg.sender).call{value: remainder}("");
-        require(ok, "Cover: Returning ETH remainder to sender failed.");
-      }
-
-      // send commission
-      if (commission > 0) {
-        (bool ok, /* data */) = address(commissionDestination).call{value: commission}("");
-        require(ok, "Cover: Sending ETH to commission destination failed.");
-      }
-
-      return;
-    }
-
-    (
-    address coverAsset,
-    /*uint8 decimals*/
-    ) = _pool.coverAssets(paymentAsset);
-
-    IERC20 token = IERC20(coverAsset);
-    token.safeTransferFrom(msg.sender, address(_pool), premium);
-
-    if (commission > 0) {
-      token.safeTransferFrom(msg.sender, commissionDestination, commission);
-    }
-  }
 }

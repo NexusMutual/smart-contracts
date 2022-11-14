@@ -113,10 +113,11 @@ describe('closeOrder', function () {
   it('after deadline, its callable by anyone', async function () {
     const deadline = order.validTo;
     const snapshot = await takeSnapshot();
+    const { 36: generalPurposeAddress } = await ethers.getSigners();
 
     // Executing as non-controller should succeed
     await setNextBlockTime(deadline + 1);
-    await swapOperator.connect(governance).closeOrder(contractOrder);
+    await swapOperator.connect(generalPurposeAddress).closeOrder(contractOrder);
 
     // Executing as controller should succeed
     await revertToSnapshot(snapshot);

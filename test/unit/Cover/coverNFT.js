@@ -61,11 +61,12 @@ describe('CoverNFT', function () {
     const { coverNFT } = this;
     const {
       members: [operator, nftOwner],
+      generalPurpose: [randomAccount],
     } = this.accounts;
     await coverNFT.setMockOperator(operator.address);
     await coverNFT.connect(operator).mint(nftOwner.address, 0);
-    await coverNFT.connect(nftOwner).setApprovalForAll(operator.address, true);
-    expect(await coverNFT.isApprovedOrOwner(operator.address, 0)).to.be.equal(true);
+    await coverNFT.connect(nftOwner).setApprovalForAll(randomAccount.address, true);
+    expect(await coverNFT.isApprovedOrOwner(randomAccount.address, 0)).to.be.equal(true);
     expect(await coverNFT.isApprovedOrOwner(nftOwner.address, 0)).to.be.equal(true);
   });
 
@@ -73,11 +74,12 @@ describe('CoverNFT', function () {
     const { coverNFT } = this;
     const {
       members: [operator, nftOwner],
+      generalPurpose: [randomAccount],
     } = this.accounts;
     await coverNFT.setMockOperator(operator.address);
     await coverNFT.connect(operator).mint(nftOwner.address, 0);
-    await coverNFT.connect(nftOwner).approve(operator.address, 0);
-    expect(await coverNFT.isApprovedOrOwner(operator.address, 0)).to.be.equal(true);
+    await coverNFT.connect(nftOwner).approve(randomAccount.address, 0);
+    expect(await coverNFT.isApprovedOrOwner(randomAccount.address, 0)).to.be.equal(true);
     expect(await coverNFT.isApprovedOrOwner(nftOwner.address, 0)).to.be.equal(true);
   });
 

@@ -637,10 +637,10 @@ contract StakingPool is IStakingPool, ERC721 {
         trancheAllocations
       );
 
-      uint targetBucketId =
-        (block.timestamp + request.period + request.gracePeriod)
-        / BUCKET_DURATION
-        + 1;
+      uint targetBucketId = Math.divCeil(
+        block.timestamp + request.period + request.gracePeriod,
+        BUCKET_DURATION
+      );
 
       updateExpiringCoverAmounts(
         request.coverId,
@@ -750,7 +750,7 @@ contract StakingPool is IStakingPool, ERC721 {
         request.productId,
         firstTrancheIdToUse,
         trancheCount,
-        gracePeriodExpiration / BUCKET_DURATION + 1,
+        Math.divCeil(gracePeriodExpiration, BUCKET_DURATION),
         coverTrancheAllocation,
         false // isAllocation
       );
@@ -1447,6 +1447,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint targetPrice
   ) {
 
+    // TODO: this is probably wrong, needs to be reimplemented
     uint maxTranches = maxCoverPeriod / TRANCHE_DURATION + 1;
     staked = new uint[](maxTranches);
 

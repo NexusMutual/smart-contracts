@@ -291,7 +291,7 @@ describe('placeOrder', function () {
     await swapOperator.placeOrder(newContractOrder, newOrderUID);
   });
 
-  it('performs the validation assets details when buyToken is not WETH', async function () {
+  it('validates asset details when buyToken is not WETH', async function () {
     // Since DAI was already registered on setup, set its details to 0
     await pool.connect(governance).setSwapDetails(dai.address, 0, 0, 0, true); // otherSigner is governant
 
@@ -570,7 +570,7 @@ describe('placeOrder', function () {
     expect(swapOpDaiAfter.sub(swapOpDaiBefore)).to.eq(newOrder.sellAmount.add(newOrder.feeAmount));
   });
 
-  it('setting lastSwapDate: sets it on buyAsset when selling ETH', async function () {
+  it('sets lastSwapDate on buyAsset when selling ETH', async function () {
     let lastSwapTime = (await pool.getAssetSwapDetails(dai.address)).lastSwapTime;
     expect(lastSwapTime).to.not.eq(await lastBlockTimestamp());
 
@@ -580,7 +580,7 @@ describe('placeOrder', function () {
     expect(lastSwapTime).to.eq(await lastBlockTimestamp());
   });
 
-  it('setting lastSwapDate: sets it on sellAsset when buying ETH', async function () {
+  it('sets lastSwapDate on sellAsset when buying ETH', async function () {
     const { newContractOrder, newOrderUID } = await setupSellDaiForEth();
     let lastSwapTime = (await pool.getAssetSwapDetails(dai.address)).lastSwapTime;
     expect(lastSwapTime).to.not.eq(await lastBlockTimestamp());

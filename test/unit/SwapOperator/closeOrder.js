@@ -148,7 +148,7 @@ describe('closeOrder', function () {
     await expect(swapOperator.closeOrder(contractOrder)).to.be.revertedWith('SwapOp: No order in place');
   });
 
-  it('canceling the presignature and allowance: does so if the order was not filled at all', async function () {
+  it('presignature is false and allowance is 0 when order was not filled at all', async function () {
     expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
     expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(
       order.sellAmount.add(order.feeAmount),
@@ -160,7 +160,7 @@ describe('closeOrder', function () {
     expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(0);
   });
 
-  it('canceling the presignature and allowance: does so if the order is partially filled', async function () {
+  it('cancels presignature and allowance when the order is partially filled', async function () {
     // intially there is some sellToken, no buyToken
     expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
     expect(await weth.balanceOf(swapOperator.address)).to.gt(0);
@@ -191,7 +191,7 @@ describe('closeOrder', function () {
     expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(0);
   });
 
-  it('canceling the presignature and allowance: does so if the order was fully filled', async function () {
+  it('cancels presignature and allowance when the order is fully filled', async function () {
     expect(await cowSettlement.presignatures(orderUID)).to.equal(true);
     expect(await weth.allowance(swapOperator.address, cowVaultRelayer.address)).to.eq(
       order.sellAmount.add(order.feeAmount),
@@ -221,7 +221,7 @@ describe('closeOrder', function () {
     expect(await swapOperator.currentOrderUID()).to.eq('0x');
   });
 
-  it('withdrawing buyToken to pool withdraws and unwraps ether if buyToken is weth', async function () {
+  it('withdraws buyToken to pool and unwraps ether if buyToken is weth', async function () {
     // Cancel current order
     await swapOperator.closeOrder(contractOrder);
 
@@ -250,7 +250,7 @@ describe('closeOrder', function () {
     expect(await ethers.provider.getBalance(pool.address)).to.eq(initialPoolEth.add(order.buyAmount));
   });
 
-  it('withdrawing buyToken to pool transfer the erc20 token if its not weth', async function () {
+  it('withdraws buyToken to pool when buyToken is an erc20 token', async function () {
     expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
     expect(await dai.balanceOf(pool.address)).to.eq(0);
 
@@ -269,7 +269,7 @@ describe('closeOrder', function () {
     expect(await dai.balanceOf(pool.address)).to.eq(order.buyAmount.add(extraAmount));
   });
 
-  it('returning sellToken to pool withdraws and unwraps ether if sellToken is weth', async function () {
+  it('returns sellToken to pool and unwraps ether if sellToken is weth', async function () {
     const initialPoolEth = await ethers.provider.getBalance(pool.address);
     const initialOperatorWeth = await weth.balanceOf(swapOperator.address);
 
@@ -282,7 +282,7 @@ describe('closeOrder', function () {
     expect(await weth.balanceOf(swapOperator.address)).to.eq(0);
   });
 
-  it('returning sellToken to pool transfers the erc20 token to pool if its not weth', async function () {
+  it('returns sellToken to pool when sellToken is an erc20 token', async function () {
     // Cancel current order
     await swapOperator.closeOrder(contractOrder);
 
@@ -310,13 +310,13 @@ describe('closeOrder', function () {
     expect(await dai.balanceOf(swapOperator.address)).to.eq(0);
   });
 
-  it('when order was not filled', async function () {
+  it('emits OrderClosed event when order was not filled', async function () {
     await expect(swapOperator.closeOrder(contractOrder))
       .to.emit(swapOperator, 'OrderClosed')
       .withArgs(makeOrderTuple(contractOrder), 0);
   });
 
-  it('emitting OrderClosed event when order was partially filled', async function () {
+  it('emits OrderClosed event when order was partially filled', async function () {
     await cowSettlement.fill(
       contractOrder,
       orderUID,
@@ -329,7 +329,7 @@ describe('closeOrder', function () {
       .withArgs(makeOrderTuple(contractOrder), order.sellAmount.div(2));
   });
 
-  it('emitting OrderClosed event when order was fully filled', async function () {
+  it('emits OrderClosed event when order was fully filled', async function () {
     await cowSettlement.fill(contractOrder, orderUID, order.sellAmount, order.feeAmount, order.buyAmount);
 
     await expect(swapOperator.closeOrder(contractOrder))

@@ -4,12 +4,7 @@ const {
     utils: { parseUnits },
   },
 } = require('hardhat');
-
-const TRANCHE_DURATION =
-  91 * // days
-  24 * // hourss
-  60 * // minutes
-  60; // seconds
+const { TRANCHE_DURATION } = require('./helpers');
 
 describe('calculateNewRewardShares', function () {
   it('grants bonus shares proportionally to the time left of the first active tranche', async function () {

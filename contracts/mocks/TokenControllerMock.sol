@@ -77,6 +77,8 @@ contract TokenControllerMock is MasterAware {
     token.operatorTransfer(from, amount);
   }
 
+  function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {}
+
     /* unused functions */
 
   modifier unused {

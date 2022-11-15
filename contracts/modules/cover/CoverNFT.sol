@@ -55,6 +55,8 @@ contract CoverNFT is ERC721 {
 
 
   function changeOperator(address _newOperator) public onlyOperator returns (bool) {
+    require(_newOperator != address(0), "CoverNFT: Invalid newOperator address");
+
     operator = _newOperator;
     return true;
   }

@@ -279,7 +279,10 @@ contract StakingPool is IStakingPool, ERC721 {
         uint bucketStartTime = _firstActiveBucketId * BUCKET_DURATION;
         uint elapsed = bucketStartTime - _lastAccNxmUpdate;
 
-        uint newAccNxmPerRewardsShare = elapsed * _rewardPerSecond / _rewardsSharesSupply;
+        uint newAccNxmPerRewardsShare = _rewardsSharesSupply != 0
+          ? elapsed * _rewardPerSecond / _rewardsSharesSupply
+          : 0;
+
         _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
 
         _rewardPerSecond -= rewardBuckets[_firstActiveBucketId].rewardPerSecondCut;
@@ -294,7 +297,9 @@ contract StakingPool is IStakingPool, ERC721 {
       {
         uint trancheEndTime = (_firstActiveTrancheId + 1) * TRANCHE_DURATION;
         uint elapsed = trancheEndTime - _lastAccNxmUpdate;
-        uint newAccNxmPerRewardsShare = elapsed * _rewardPerSecond / _rewardsSharesSupply;
+        uint newAccNxmPerRewardsShare = _rewardsSharesSupply != 0
+          ? elapsed * _rewardPerSecond / _rewardsSharesSupply
+          : 0;
         _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
         _lastAccNxmUpdate = trancheEndTime;
 
@@ -324,7 +329,9 @@ contract StakingPool is IStakingPool, ERC721 {
 
     if (updateUntilCurrentTimestamp) {
       uint elapsed = block.timestamp - _lastAccNxmUpdate;
-      uint newAccNxmPerRewardsShare = elapsed * _rewardPerSecond / _rewardsSharesSupply;
+      uint newAccNxmPerRewardsShare = _rewardsSharesSupply != 0
+        ? elapsed * _rewardPerSecond / _rewardsSharesSupply
+        : 0;
       _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
       _lastAccNxmUpdate = block.timestamp;
     }

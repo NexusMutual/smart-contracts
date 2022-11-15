@@ -192,6 +192,18 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     require(params.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
     require(params.amount > 0, "Cover: amount = 0");
 
+    {
+      require(_products.length > params.productId, "Cover: Product not found");
+
+      Product memory product = _products[params.productId];
+      require(!product.isDeprecated, "Cover: Product is deprecated");
+
+      uint32 deprecatedCoverAssets = pool().deprecatedCoverAssetsBitmap();
+      uint32 supportedCoverAssets = _getSupportedCoverAssets(deprecatedCoverAssets, product.coverAssets);
+      require(isAssetSupported(supportedCoverAssets, params.coverAsset), "Cover: Payout asset is not supported");
+      require(!_isCoverAssetDeprecated(deprecatedCoverAssets, params.paymentAsset), "Cover: Payment asset deprecated");
+    }
+
     if (params.coverId == type(uint).max) {
 
       // new cover
@@ -218,18 +230,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         // TODO: figure out how/where should we handle this
         // tokenController().burnStakingPoolNXMRewards(deallocatedRewardsInNXM, allocation.poolId);
       }
-    }
-
-    {
-      require(_products.length > params.productId, "Cover: Product not found");
-
-      Product memory product = _products[params.productId];
-      require(!product.isDeprecated, "Cover: Product is deprecated");
-
-      uint32 deprecatedCoverAssets = pool().deprecatedCoverAssetsBitmap();
-      uint32 supportedCoverAssets = _getSupportedCoverAssets(deprecatedCoverAssets, product.coverAssets);
-      require(isAssetSupported(supportedCoverAssets, params.coverAsset), "Cover: Payout asset is not supported");
-      require(!_isCoverAssetDeprecated(deprecatedCoverAssets, params.paymentAsset), "Cover: Payment asset deprecated");
     }
 
     {

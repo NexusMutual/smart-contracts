@@ -47,18 +47,18 @@ const buyCoverParamsTemplate = {
   ipfsData: 'ipfs data',
 };
 
+const depositRequestTemplate = {
+  tokenId: 0,
+  destination: AddressZero, // needs to be set
+  trancheId: 0, // needs to be set
+  amount: parseEther('100'),
+};
+
 describe('setProducts unit tests', function () {
   // Create a default deposit request to the staking pool
-  const depositRequest = async (stakingPool, amount, destination) => {
-    const tokenId = 0;
-    const block = await ethers.provider.getBlock('latest');
-    const currentTrancheId = Math.floor(block.timestamp / daysToSeconds(91));
-    return {
-      amount,
-      trancheId: currentTrancheId + 2,
-      tokenId,
-      destination,
-    };
+  const getCurrentTrancheId = async () => {
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    return Math.floor(timestamp / daysToSeconds(91));
   };
 
   const verifyProduct = (product, productParam) => {
@@ -424,7 +424,12 @@ describe('setProducts unit tests', function () {
 
     // Get capacity in staking pool
     await nxm.connect(staker).approve(tokenController.address, amount);
-    const request = await depositRequest(stakingPool, amount, staker.address);
+    const request = {
+      ...depositRequestTemplate,
+      amount,
+      destination: staker.address,
+      trancheId: (await getCurrentTrancheId()) + 2,
+    };
     await stakingPool.connect(staker).depositTo([request]);
 
     let i = 0;
@@ -486,7 +491,12 @@ describe('setProducts unit tests', function () {
 
     // Get capacity in staking pool
     await nxm.connect(staker).approve(tokenController.address, amount);
-    const request = await depositRequest(stakingPool, amount, manager.address);
+    const request = {
+      ...depositRequestTemplate,
+      amount,
+      destination: manager.address,
+      trancheId: (await getCurrentTrancheId()) + 2,
+    };
     await stakingPool.connect(staker).depositTo([request]);
 
     const ratio = await cover.getPriceAndCapacityRatios([0]);
@@ -519,5 +529,59 @@ describe('setProducts unit tests', function () {
     await expect(stakingPool.connect(manager).setProducts(newProducts)).to.be.revertedWith(
       'StakingPool: Total max effective weight exceeded',
     );
+  });
+
+  it('any address should be able to recalculate effective weight', async function () {
+    const { stakingPool, cover, nxm, tokenController } = this;
+    const {
+      members: [manager, staker, coverBuyer],
+      nonMembers: [anybody],
+    } = this.accounts;
+    const amount = parseEther('1');
+
+    let i = 0;
+    const initialProducts = Array(20)
+      .fill('')
+      .map(() => ({ ...initialProductTemplate, productId: i++ }));
+
+    // Add products to cover contract
+    await Promise.all(
+      initialProducts.map(({ productId, initialPrice: initialPriceRatio }) => [
+        cover.setProduct({ ...coverProductTemplate, initialPriceRatio }, productId),
+        cover.setProductType(ProductTypeFixture, productId),
+      ]),
+    );
+
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, initialProducts, 0);
+
+    // Get capacity in staking pool
+    await nxm.connect(staker).approve(tokenController.address, amount);
+    const request = {
+      ...depositRequestTemplate,
+      amount,
+      destination: manager.address,
+      trancheId: (await getCurrentTrancheId()) + 2,
+    };
+    await stakingPool.connect(staker).depositTo([request]);
+
+    // Initialize Products and CoverBuy requests
+    const coverBuyParams = Array(20)
+      .fill('')
+      .map((_, productId) => ({
+        ...buyCoverParamsTemplate,
+        owner: coverBuyer.address,
+        productId,
+        period: daysToSeconds('150'),
+        amount: parseEther('1'),
+      }));
+
+    const coverId = 1;
+    await Promise.all(
+      coverBuyParams.map(cb => {
+        return cover.connect(coverBuyer).allocateCapacity(cb, coverId, stakingPool.address);
+      }),
+    );
+
+    await stakingPool.connect(anybody).recalculateEffectiveWeights(initialProducts.map(p => p.productId));
   });
 });

@@ -1312,9 +1312,36 @@ contract StakingPool is IStakingPool, ERC721 {
 
   /* pool management */
 
-  function setProducts(StakedProductParam[] memory params) external onlyManager {
-    uint[] memory productIds = new uint[](params.length);
+  function recalculateEffectiveWeights(uint[] calldata productIds) external {
+    (
+    uint globalCapacityRatio,
+    /* globalMinPriceRatio */,
+    /* initialPriceRatios */,
+    uint[] memory capacityReductionRatios
+    ) = ICover(coverContract).getPriceAndCapacityRatios(productIds);
+
+    uint _totalEffectiveWeight = totalEffectiveWeight;
+
+    for (uint i = 0; i < productIds.length; i++) {
+      uint productId = productIds[i];
+      StakedProduct memory _product = products[productId];
+
+      uint16 previousEffectiveWeight = _product.lastEffectiveWeight;
+      _product.lastEffectiveWeight = _getEffectiveWeight(
+        productId,
+        _product.targetWeight,
+        globalCapacityRatio,
+        capacityReductionRatios[i]
+      );
+      _totalEffectiveWeight = _totalEffectiveWeight - previousEffectiveWeight + _product.lastEffectiveWeight;
+      products[productId] = _product;
+    }
+    totalEffectiveWeight = _totalEffectiveWeight.toUint32();
+  }
+
+function setProducts(StakedProductParam[] memory params) external onlyManager {
     uint numProducts = params.length;
+    uint[] memory productIds = new uint[](numProducts);
 
     for (uint i = 0; i < numProducts; i++) {
       productIds[i] = params[i].productId;
@@ -1329,6 +1356,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
     uint _totalTargetWeight = totalTargetWeight;
     uint _totalEffectiveWeight = totalEffectiveWeight;
+    bool targetWeightIncreased;
 
     for (uint i = 0; i < numProducts; i++) {
       StakedProductParam memory _param = params[i];
@@ -1356,11 +1384,16 @@ contract StakingPool is IStakingPool, ERC721 {
 
         if (_param.setTargetWeight) {
           require(_param.targetWeight <= WEIGHT_DENOMINATOR, "StakingPool: Cannot set weight beyond 1");
+
+          // totalEffectiveWeight cannot be above the max unless target  weight is not increased
+          if (!targetWeightIncreased) {
+            targetWeightIncreased = _param.targetWeight > _product.targetWeight;
+          }
           _totalTargetWeight = _totalTargetWeight - _product.targetWeight + _param.targetWeight;
           _product.targetWeight = _param.targetWeight;
         }
 
-        uint8 previousEffectiveWeight = _product.lastEffectiveWeight;
+        uint16 previousEffectiveWeight = _product.lastEffectiveWeight;
         _product.lastEffectiveWeight = _getEffectiveWeight(
           _param.productId,
           _product.targetWeight,
@@ -1372,7 +1405,9 @@ contract StakingPool is IStakingPool, ERC721 {
       products[_param.productId] = _product;
     }
 
-    require(_totalEffectiveWeight <= MAX_TOTAL_WEIGHT, "StakingPool: Total max effective weight exceeded");
+    if (targetWeightIncreased) {
+      require(_totalEffectiveWeight <= MAX_TOTAL_WEIGHT, "StakingPool: Total max effective weight exceeded");
+    }
     totalTargetWeight = _totalTargetWeight.toUint32();
     totalEffectiveWeight = _totalEffectiveWeight.toUint32();
   }
@@ -1588,7 +1623,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint targetWeight,
     uint globalCapacityRatio,
     uint capacityReductionRatio
-  ) internal view returns (uint8 effectiveWeight) {
+  ) internal view returns (uint16 effectiveWeight) {
     uint firstTrancheIdToUse = block.timestamp / TRANCHE_DURATION;
 
     (, , uint totalAllocation) = getAllocations(
@@ -1605,7 +1640,12 @@ contract StakingPool is IStakingPool, ERC721 {
       capacityReductionRatio
     );
 
-    uint actualWeight = totalCapacity > 0 ? (totalAllocation * WEIGHT_DENOMINATOR / totalCapacity) : 0;
-    effectiveWeight = (Math.max(targetWeight, actualWeight)).toUint8();
+    uint actualWeight = totalCapacity > 0
+      ? (totalAllocation * WEIGHT_DENOMINATOR / totalCapacity)
+      : 0;
+
+    effectiveWeight = actualWeight > type(uint16).max
+      ? uint16(type(uint16).max)
+      : Math.max(targetWeight, actualWeight).toUint16();
   }
 }

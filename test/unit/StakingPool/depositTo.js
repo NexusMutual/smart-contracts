@@ -1,7 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { getTranches, getNewRewardShares, estimateStakeShares } = require('./helpers');
+const { getTranches, getNewRewardShares, estimateStakeShares, POOL_FEE_DENOMINATOR } = require('./helpers');
 const { setEtherBalance, increaseTime } = require('../../utils/evm');
+const { BigNumber } = require('ethers');
 
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
@@ -401,7 +402,6 @@ describe('depositTo', function () {
     };
     await stakingPool.connect(this.coverSigner).allocateStake(coverRequest);
 
-    // Multiple buckets/tranches expired?
     await increaseTime(
       150 * // days
         24 * // hours
@@ -409,17 +409,277 @@ describe('depositTo', function () {
         60, // seconds
     );
 
-    // Reverts with Error: VM Exception while processing transaction:
-    // reverted with panic code 0x12 (Division or modulo division by zero)
-    // at StakingPool.updateTranches (contracts/modules/staking/StakingPool.sol:283)
-    // at StakingPool.depositTo (contracts/modules/staking/StakingPool.sol:353)
+    await expect(
+      stakingPool.connect(user).depositTo([
+        {
+          amount,
+          trancheId: firstActiveTrancheId,
+          tokenId: depositNftId,
+          destination,
+        },
+      ]),
+    ).to.not.revertedWithPanic('0x12'); // (Division or modulo division by zero)
+  });
+
+  it('updates global variables activeStake, stakeSharesSupply and rewardsSharesSupply', async function () {
+    const { stakingPool } = this;
+    const {
+      members: [user],
+    } = this.accounts;
+
+    const { amount, tokenId, destination, depositNftId } = depositToFixture;
+
+    const { firstActiveTrancheId } = await getTranches();
+
+    {
+      const activeStake = await stakingPool.activeStake();
+      const stakeSharesSupply = await stakingPool.stakeSharesSupply();
+      const rewardsSharesSupply = await stakingPool.rewardsSharesSupply();
+
+      expect(activeStake).to.equal(0);
+      expect(stakeSharesSupply).to.equal(0);
+      expect(rewardsSharesSupply).to.equal(0);
+    }
+
     await stakingPool.connect(user).depositTo([
       {
         amount,
         trancheId: firstActiveTrancheId,
-        tokenId: depositNftId,
+        tokenId,
         destination,
       },
     ]);
+
+    {
+      const userDeposit = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
+      const managerDeposit = await stakingPool.deposits(0, firstActiveTrancheId);
+
+      const activeStake = await stakingPool.activeStake();
+      const stakeSharesSupply = await stakingPool.stakeSharesSupply();
+      const rewardsSharesSupply = await stakingPool.rewardsSharesSupply();
+
+      expect(activeStake).to.equal(amount);
+      expect(stakeSharesSupply).to.equal(userDeposit.stakeShares);
+      expect(rewardsSharesSupply).to.equal(userDeposit.rewardsShares.add(managerDeposit.rewardsShares));
+    }
+  });
+
+  it('updates updates pool manager rewards shares', async function () {
+    const { stakingPool } = this;
+    const {
+      members: [user],
+    } = this.accounts;
+
+    const { amount, tokenId, destination, depositNftId, initialPoolFee } = depositToFixture;
+
+    const { firstActiveTrancheId } = await getTranches();
+
+    {
+      const managerDeposit = await stakingPool.deposits(0, firstActiveTrancheId);
+
+      expect(managerDeposit.rewardsShares).to.equal(0);
+    }
+
+    await stakingPool.connect(user).depositTo([
+      {
+        amount,
+        trancheId: firstActiveTrancheId,
+        tokenId,
+        destination,
+      },
+    ]);
+
+    {
+      const userDeposit = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
+      const managerDeposit = await stakingPool.deposits(0, firstActiveTrancheId);
+
+      expect(managerDeposit.rewardsShares).to.equal(
+        userDeposit.rewardsShares.mul(initialPoolFee).div(POOL_FEE_DENOMINATOR),
+      );
+    }
+  });
+
+  it('updates tranche stake and reward shares', async function () {
+    const { stakingPool } = this;
+    const {
+      members: [user],
+    } = this.accounts;
+
+    const { amount, tokenId, destination, depositNftId } = depositToFixture;
+
+    const { firstActiveTrancheId } = await getTranches();
+
+    {
+      const tranche = await stakingPool.tranches(firstActiveTrancheId);
+      expect(tranche.stakeShares).to.equal(0);
+      expect(tranche.rewardsShares).to.equal(0);
+    }
+
+    await stakingPool.connect(user).depositTo([
+      {
+        amount,
+        trancheId: firstActiveTrancheId,
+        tokenId,
+        destination,
+      },
+    ]);
+
+    {
+      const userDeposit = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
+      const managerDeposit = await stakingPool.deposits(0, firstActiveTrancheId);
+
+      const tranche = await stakingPool.tranches(firstActiveTrancheId);
+      expect(tranche.stakeShares).to.equal(userDeposit.stakeShares);
+      expect(tranche.rewardsShares).to.equal(userDeposit.rewardsShares.add(managerDeposit.rewardsShares));
+    }
+  });
+
+  it('transfer staked nxm to token controller contract', async function () {
+    const { stakingPool, nxm, tokenController } = this;
+    const {
+      members: [user],
+    } = this.accounts;
+
+    const { amount, tokenId, destination } = depositToFixture;
+
+    const { firstActiveTrancheId } = await getTranches();
+
+    const userBalanceBefore = await nxm.balanceOf(user.address);
+    const tokenControllerBalanceBefore = await nxm.balanceOf(tokenController.address);
+
+    await stakingPool.connect(user).depositTo([
+      {
+        amount,
+        trancheId: firstActiveTrancheId,
+        tokenId,
+        destination,
+      },
+    ]);
+
+    const userBalanceAfter = await nxm.balanceOf(user.address);
+    const tokenControllerBalanceAfter = await nxm.balanceOf(tokenController.address);
+    expect(userBalanceAfter).to.equal(userBalanceBefore.sub(amount));
+    expect(tokenControllerBalanceAfter).to.equal(tokenControllerBalanceBefore.add(amount));
+  });
+
+  it('allows to deposit to multiple tranches', async function () {
+    const { stakingPool, nxm, tokenController } = this;
+    const {
+      members: [user],
+    } = this.accounts;
+
+    const { amount, tokenId, destination, initialPoolFee } = depositToFixture;
+
+    const { firstActiveTrancheId, maxTranche } = await getTranches();
+
+    const tranches = Array(maxTranche - firstActiveTrancheId + 1)
+      .fill(0)
+      .map((e, i) => firstActiveTrancheId + i);
+
+    const userBalanceBefore = await nxm.balanceOf(user.address);
+    const tokenControllerBalanceBefore = await nxm.balanceOf(tokenController.address);
+
+    const depositToParams = tranches.map(e => {
+      return {
+        amount,
+        trancheId: e,
+        tokenId,
+        destination,
+      };
+    });
+
+    await stakingPool.connect(user).depositTo(depositToParams);
+
+    const totalAmount = amount.mul(tranches.length);
+
+    const userBalanceAfter = await nxm.balanceOf(user.address);
+    const tokenControllerBalanceAfter = await nxm.balanceOf(tokenController.address);
+    expect(userBalanceAfter).to.equal(userBalanceBefore.sub(totalAmount));
+    expect(tokenControllerBalanceAfter).to.equal(tokenControllerBalanceBefore.add(totalAmount));
+
+    let totalStakeShares = BigNumber.from(0);
+    for (let depositNftId = 1; depositNftId <= tranches.length; depositNftId++) {
+      const trancheId = tranches[depositNftId - 1];
+      const deposit = await stakingPool.deposits(depositNftId, trancheId);
+
+      const newRewardShares = await getNewRewardShares({
+        stakingPool,
+        initialStakeShares: totalStakeShares,
+        stakeSharesIncrease: deposit.stakeShares,
+        initialTrancheId: trancheId,
+        newTrancheId: trancheId,
+      });
+      const newStakeShares =
+        depositNftId === 1 ? Math.sqrt(amount) : amount.mul(totalStakeShares).div(amount.mul(depositNftId - 1));
+
+      expect(deposit.pendingRewards).to.equal(0);
+      expect(deposit.lastAccNxmPerRewardShare).to.equal(0);
+      expect(deposit.stakeShares).to.equal(newStakeShares);
+      expect(deposit.rewardsShares).to.be.approximately(newRewardShares.toNumber(), 1);
+
+      const managerDeposit = await stakingPool.deposits(0, trancheId);
+      expect(managerDeposit.rewardsShares).to.equal(
+        deposit.rewardsShares.mul(initialPoolFee).div(POOL_FEE_DENOMINATOR),
+      );
+
+      const tranche = await stakingPool.tranches(trancheId);
+      expect(tranche.stakeShares).to.equal(deposit.stakeShares);
+      expect(tranche.rewardsShares).to.equal(deposit.rewardsShares.add(managerDeposit.rewardsShares));
+
+      totalStakeShares = totalStakeShares.add(deposit.stakeShares);
+    }
+  });
+
+  it('emits StakeDeposited event', async function () {
+    const { stakingPool } = this;
+    const {
+      members: [user],
+    } = this.accounts;
+
+    const { amount, tokenId, destination, depositNftId } = depositToFixture;
+
+    const { firstActiveTrancheId } = await getTranches();
+
+    await expect(
+      stakingPool.connect(user).depositTo([
+        {
+          amount,
+          trancheId: firstActiveTrancheId,
+          tokenId,
+          destination,
+        },
+      ]),
+    )
+      .to.emit(stakingPool, 'StakeDeposited')
+      .withArgs(user.address, amount, firstActiveTrancheId, depositNftId);
+  });
+
+  it.skip('reverts if provided tokenId is not valid', async function () {
+    const { stakingPool } = this;
+    const {
+      members: [user],
+    } = this.accounts;
+
+    const { amount, destination } = depositToFixture;
+
+    const invalidTokenId = 127;
+    const { firstActiveTrancheId } = await getTranches();
+
+    {
+      const tranche = await stakingPool.tranches(firstActiveTrancheId);
+      expect(tranche.stakeShares).to.equal(0);
+      expect(tranche.rewardsShares).to.equal(0);
+    }
+
+    await expect(
+      stakingPool.connect(user).depositTo([
+        {
+          amount,
+          trancheId: firstActiveTrancheId,
+          tokenId: invalidTokenId,
+          destination,
+        },
+      ]),
+    ).to.be.reverted;
   });
 });

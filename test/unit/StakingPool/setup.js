@@ -8,7 +8,7 @@ async function setup() {
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
   const QuotationData = await ethers.getContractFactory('CoverMockQuotationData');
-  const SPCoverProducts = await ethers.getContractFactory('SPMockCoverProducts');
+  const SPCoverProducts = await ethers.getContractFactory('SPMockCover');
   const MemberRolesMock = await ethers.getContractFactory('MemberRolesMock');
   const TokenController = await ethers.getContractFactory('TokenControllerMock');
   const NXMToken = await ethers.getContractFactory('NXMTokenMock');

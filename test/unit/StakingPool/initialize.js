@@ -3,19 +3,19 @@ const { ethers } = require('hardhat');
 const { impersonateAccount, setEtherBalance } = require('../../utils/evm');
 
 describe.only('initialize', function () {
+  const product0 = {
+    productId: 0,
+    weight: 100,
+    initialPrice: '500',
+    targetPrice: '500',
+  };
+
   const initializeParams = {
     poolId: 0,
     isPrivatePool: false,
     initialPoolFee: 5, // 5%
     maxPoolFee: 5, // 5%
-    productInitializationParams: [
-      {
-        productId: 0,
-        weight: 100,
-        initialPrice: '500',
-        targetPrice: '500',
-      },
-    ],
+    productInitializationParams: [product0],
   };
 
   it('reverts if cover contract is not the caller', async function () {
@@ -124,6 +124,87 @@ describe.only('initialize', function () {
           [{ ...productInitializationParams[0], targetPrice: TARGET_PRICE_DENOMINATOR.toString() }],
           poolId,
         ),
+    ).to.not.be.reverted;
+  });
+
+  it('reverts if product weight bigger than 1', async function () {
+    const {
+      stakingPool,
+      cover,
+      accounts: { defaultSender: manager },
+    } = this;
+
+    const { poolId, initialPoolFee, maxPoolFee, productInitializationParams, isPrivatePool } = initializeParams;
+
+    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
+    await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
+
+    const WEIGHT_DENOMINATOR = (await stakingPool.WEIGHT_DENOMINATOR()).toNumber();
+
+    await expect(
+      stakingPool
+        .connect(coverSigner)
+        .initialize(
+          manager.address,
+          isPrivatePool,
+          initialPoolFee,
+          maxPoolFee,
+          [{ ...productInitializationParams[0], weight: WEIGHT_DENOMINATOR + 1 }],
+          poolId,
+        ),
+    ).to.be.revertedWith('StakingPool: Cannot set weight beyond 1');
+
+    await expect(
+      stakingPool
+        .connect(coverSigner)
+        .initialize(
+          manager.address,
+          isPrivatePool,
+          initialPoolFee,
+          maxPoolFee,
+          [{ ...productInitializationParams[0], weight: WEIGHT_DENOMINATOR }],
+          poolId,
+        ),
+    ).to.not.be.reverted;
+  });
+
+  it('reverts if products total target exceeds max total weight', async function () {
+    const {
+      stakingPool,
+      cover,
+      accounts: { defaultSender: manager },
+    } = this;
+
+    const { poolId, initialPoolFee, maxPoolFee, isPrivatePool } = initializeParams;
+
+    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
+    await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
+
+    const MAX_TOTAL_WEIGHT = (await stakingPool.MAX_TOTAL_WEIGHT()).toNumber();
+
+    const validProducts = Array(Math.floor(MAX_TOTAL_WEIGHT / product0.weight))
+      .fill(product0)
+      .map((value, index) => {
+        return { ...value, productId: index };
+      });
+
+    await expect(
+      stakingPool
+        .connect(coverSigner)
+        .initialize(
+          manager.address,
+          isPrivatePool,
+          initialPoolFee,
+          maxPoolFee,
+          [...validProducts, { ...product0, productId: validProducts.length }],
+          poolId,
+        ),
+    ).to.be.revertedWith('StakingPool: Total max target weight exceeded');
+
+    await expect(
+      stakingPool
+        .connect(coverSigner)
+        .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, [...validProducts], poolId),
     ).to.not.be.reverted;
   });
 });

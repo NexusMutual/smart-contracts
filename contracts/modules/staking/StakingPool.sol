@@ -279,7 +279,7 @@ contract StakingPool is IStakingPool, ERC721 {
         uint bucketStartTime = _firstActiveBucketId * BUCKET_DURATION;
         uint elapsed = bucketStartTime - _lastAccNxmUpdate;
 
-        uint newAccNxmPerRewardsShare = elapsed * _rewardPerSecond / _rewardsSharesSupply;
+        uint newAccNxmPerRewardsShare = _rewardsSharesSupply > 0 ? (elapsed * _rewardPerSecond) / _rewardsSharesSupply : 0;
         _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
 
         _rewardPerSecond -= rewardBuckets[_firstActiveBucketId].rewardPerSecondCut;
@@ -294,7 +294,7 @@ contract StakingPool is IStakingPool, ERC721 {
       {
         uint trancheEndTime = (_firstActiveTrancheId + 1) * TRANCHE_DURATION;
         uint elapsed = trancheEndTime - _lastAccNxmUpdate;
-        uint newAccNxmPerRewardsShare = elapsed * _rewardPerSecond / _rewardsSharesSupply;
+        uint newAccNxmPerRewardsShare = _rewardsSharesSupply > 0 ? elapsed * _rewardPerSecond / _rewardsSharesSupply : 0;
         _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
         _lastAccNxmUpdate = trancheEndTime;
 
@@ -310,7 +310,7 @@ contract StakingPool is IStakingPool, ERC721 {
         delete tranches[_firstActiveTrancheId];
 
         // the tranche is expired now so we decrease the stake and the shares supply
-        uint expiredStake = _activeStake * expiringTranche.stakeShares / _stakeSharesSupply;
+        uint expiredStake = _stakeSharesSupply > 0 ? _activeStake * expiringTranche.stakeShares / _stakeSharesSupply : 0;
         _activeStake -= expiredStake;
         _stakeSharesSupply -= expiringTranche.stakeShares;
         _rewardsSharesSupply -= expiringTranche.rewardsShares;
@@ -1235,20 +1235,9 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   // O(1)
-  function burnStake(
-    uint productId,
-    uint start,
-    uint period,
-    uint amount
-  ) external onlyCoverContract {
+  function burnStake(uint amount) external onlyCoverContract {
 
-    productId;
-    start;
-    period;
-
-    // TODO: free up the stake used by the corresponding cover
-    // TODO: block the pool if we perform 100% of the stake
-
+    // TODO: block the pool if we perform 100% of the stake?
     // passing false because neither the amount of shares nor the reward per second are changed
     updateTranches(false);
 
@@ -1424,6 +1413,7 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
       _product.nextPriceUpdateTime = uint32(block.timestamp);
       _product.targetPrice = param.targetPrice;
       _product.targetWeight = param.weight;
+      _product.lastEffectiveWeight = param.weight;
       _totalTargetWeight += param.weight;
     }
 
@@ -1640,12 +1630,11 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
       capacityReductionRatio
     );
 
-    uint actualWeight = totalCapacity > 0
-      ? (totalAllocation * WEIGHT_DENOMINATOR / totalCapacity)
-      : 0;
-
-    effectiveWeight = actualWeight > type(uint16).max
-      ? uint16(type(uint16).max)
-      : Math.max(targetWeight, actualWeight).toUint16();
+    uint actualWeight;
+    // If stake is allocated, but capacity is 0, set weight to uint16.max
+    if (totalAllocation > 0) {
+      actualWeight = totalCapacity > 0 ? (totalAllocation * WEIGHT_DENOMINATOR / totalCapacity): type(uint16).max;
+    }
+    effectiveWeight = actualWeight > type(uint16).max ? uint16(type(uint16).max) : (Math.max(targetWeight, actualWeight)).toUint16();
   }
 }

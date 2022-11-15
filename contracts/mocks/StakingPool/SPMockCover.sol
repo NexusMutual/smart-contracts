@@ -72,7 +72,7 @@ contract SPMockCover {
   }
 
   function initializeStaking(
-    address staking_,
+    address _stakingPool,
     address _manager,
     bool _isPrivatePool,
     uint256 _initialPoolFee,
@@ -85,6 +85,10 @@ contract SPMockCover {
       params[i].initialPrice = products[params[i].productId].initialPriceRatio;
       require(params[i].targetPrice >= GLOBAL_MIN_PRICE_RATIO, "CoverUtilsLib: Target price below GLOBAL_MIN_PRICE_RATIO");
     }
-    IStakingPool(staking_).initialize(_manager, _isPrivatePool, _initialPoolFee, _maxPoolFee, params, _poolId);
+    IStakingPool(_stakingPool).initialize(_manager, _isPrivatePool, _initialPoolFee, _maxPoolFee, params, _poolId);
+  }
+
+  function performStakeBurn(address _stakingPool, uint burnAmountInNXM) external {
+    IStakingPool(_stakingPool).burnStake(burnAmountInNXM);
   }
 }

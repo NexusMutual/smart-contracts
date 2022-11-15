@@ -194,7 +194,7 @@ library CoverUtilsLib {
       * burnAmount / segment.amount
       * GLOBAL_CAPACITY_DENOMINATOR / globalCapacityRatio;
 
-      stakingPool(i, stakingPoolProxyCodeHash).burnStake(cover.productId, segment.start, segment.period, burnAmountInNXM);
+      stakingPool(i, stakingPoolProxyCodeHash).burnStake(burnAmountInNXM);
 
       uint payoutAmountInNXM = allocation.coverAmountInNXM * burnAmount / segment.amount;
       allocations[i].coverAmountInNXM -= SafeUintCast.toUint96(payoutAmountInNXM);

@@ -108,7 +108,7 @@ interface IStakingPool {
     uint premium
   ) external;
 
-  function burnStake(uint productId, uint start, uint period, uint amount) external;
+  function burnStake(uint amount) external;
 
   function depositTo(DepositRequest[] memory requests) external returns (uint[] memory tokenIds);
 

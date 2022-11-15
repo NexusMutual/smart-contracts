@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { parseEther } = ethers.utils;
+const { MaxUint256 } = ethers.constants;
 const { getAccounts } = require('../../utils/accounts');
 const { Role } = require('../utils').constants;
 const { zeroPadRight } = require('../utils').helpers;
@@ -59,7 +60,7 @@ async function setup() {
   for (const member of accounts.members) {
     await master.enrollMember(member.address, Role.Member);
     await memberRoles.setRole(member.address, Role.Member);
-    await nxm.mint(member.address, parseEther('100000'));
+    await nxm.mint(member.address, MaxUint256.div(100));
   }
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
@@ -79,6 +80,9 @@ async function setup() {
   const REWARD_BONUS_PER_TRANCHE_RATIO = await stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO();
   const REWARD_BONUS_PER_TRANCHE_DENOMINATOR = await stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR();
   const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
+  const GLOBAL_CAPACITY_RATIO = await cover.globalCapacityRatio();
+  const BUCKET_DURATION = await stakingPool.BUCKET_DURATION();
+  const TRANCHE_DURATION = await stakingPool.TRANCHE_DURATION();
 
   this.tokenController = tokenController;
   this.master = master;
@@ -91,6 +95,9 @@ async function setup() {
     REWARD_BONUS_PER_TRANCHE_DENOMINATOR,
     REWARD_BONUS_PER_TRANCHE_RATIO,
     GLOBAL_MIN_PRICE_RATIO,
+    GLOBAL_CAPACITY_RATIO,
+    BUCKET_DURATION,
+    TRANCHE_DURATION,
   };
 }
 

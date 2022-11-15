@@ -16,8 +16,8 @@ describe('depositTo', function () {
       {
         productId: 0,
         weight: 100,
-        initialPrice: '500',
-        targetPrice: '500',
+        initialPrice: 500,
+        targetPrice: 500,
       },
     ],
     amount: parseEther('100'),
@@ -301,7 +301,7 @@ describe('depositTo', function () {
     expect(updatedDepositData.rewardsShares).to.equal(firstDepositData.rewardsShares.add(newRewardShares));
   });
 
-  it('updates deposit stakeShares, rewardShares, pendingRewards and lastAccNxmPerRewardShare', async function () {
+  it.skip('updates deposit pendingRewards and lastAccNxmPerRewardShare', async function () {
     const { stakingPool } = this;
     const {
       members: [user],
@@ -325,12 +325,12 @@ describe('depositTo', function () {
     const coverRequest = {
       coverId: 0,
       productId: 0,
-      amount: parseEther('1'),
+      amount: parseEther('1000000'),
       period: 3600 * 24 * 30, // 30 days
       gracePeriod: 3600 * 24 * 30,
       globalCapacityRatio: 20000,
       capacityReductionRatio: 0,
-      rewardRatio: 5000,
+      rewardRatio: 10000,
     };
     await stakingPool.connect(this.coverSigner).allocateStake(coverRequest);
 
@@ -341,33 +341,155 @@ describe('depositTo', function () {
         60, // seconds
     );
 
-    const firstDepositData = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
-    const newStakeShares = await estimateStakeShares({ amount, stakingPool });
+    await increaseTime(
+      100 * // days
+        24 * // hours
+        60 * // minutes
+        60, // seconds
+    );
+
+    await stakingPool.connect(user).updateTranches(true);
 
     // deposit to the same tokenId
     await stakingPool.connect(user).depositTo([
       {
         amount,
-        trancheId: firstActiveTrancheId,
+        trancheId: firstActiveTrancheId + 3,
         tokenId: depositNftId,
         destination,
       },
     ]);
 
-    const updatedDepositData = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
-    const newRewardShares = await getNewRewardShares({
-      stakingPool,
-      initialStakeShares: firstDepositData.stakeShares,
-      stakeSharesIncrease: newStakeShares,
-      initialTrancheId: firstActiveTrancheId,
-      newTrancheId: firstActiveTrancheId,
-    });
+    await stakingPool.connect(this.coverSigner).allocateStake(coverRequest);
 
-    // TODO: How can I make pendingRewards and lastAccNxmPerRewardShare to not be 0?
-    expect(updatedDepositData.pendingRewards).to.equal(0);
-    expect(updatedDepositData.lastAccNxmPerRewardShare).to.equal(0);
-    expect(updatedDepositData.stakeShares).to.equal(firstDepositData.stakeShares.add(newStakeShares));
-    expect(updatedDepositData.rewardsShares).to.equal(firstDepositData.rewardsShares.add(newRewardShares));
+    // deposit to the same tokenId
+    await stakingPool.connect(user).depositTo([
+      {
+        amount,
+        trancheId: firstActiveTrancheId + 3,
+        tokenId: depositNftId,
+        destination,
+      },
+    ]);
+
+    await increaseTime(
+      29 * // days
+        24 * // hours
+        60 * // minutes
+        60, // seconds
+    );
+
+    // deposit to the same tokenId
+    await stakingPool.connect(user).depositTo([
+      {
+        amount,
+        trancheId: firstActiveTrancheId + 3,
+        tokenId: depositNftId,
+        destination,
+      },
+    ]);
+
+    const updatedDepositData = await stakingPool.deposits(depositNftId, firstActiveTrancheId + 3);
+
+    // TODO: Assert correct values
+    expect(updatedDepositData.lastAccNxmPerRewardShare).to.not.equal(0);
+    expect(updatedDepositData.pendingRewards).to.not.equal(0);
+  });
+
+  it.skip('updates global variables accNxmPerRewardsShare and lastAccNxmUpdate', async function () {
+    const { stakingPool } = this;
+    const {
+      members: [user],
+    } = this.accounts;
+
+    const { amount, tokenId, destination, depositNftId } = depositToFixture;
+
+    const { firstActiveTrancheId } = await getTranches();
+
+    // first deposit
+    await stakingPool.connect(user).depositTo([
+      {
+        amount,
+        trancheId: firstActiveTrancheId,
+        tokenId,
+        destination,
+      },
+    ]);
+
+    // Generate rewards
+    const coverRequest = {
+      coverId: 0,
+      productId: 0,
+      amount: parseEther('1000000'),
+      period: 3600 * 24 * 30, // 30 days
+      gracePeriod: 3600 * 24 * 30,
+      globalCapacityRatio: 20000,
+      capacityReductionRatio: 0,
+      rewardRatio: 10000,
+    };
+    await stakingPool.connect(this.coverSigner).allocateStake(coverRequest);
+
+    await increaseTime(
+      25 * // days
+        24 * // hours
+        60 * // minutes
+        60, // seconds
+    );
+
+    await increaseTime(
+      100 * // days
+        24 * // hours
+        60 * // minutes
+        60, // seconds
+    );
+
+    await stakingPool.connect(user).updateTranches(true);
+
+    // deposit to the same tokenId
+    await stakingPool.connect(user).depositTo([
+      {
+        amount,
+        trancheId: firstActiveTrancheId + 3,
+        tokenId: depositNftId,
+        destination,
+      },
+    ]);
+
+    await stakingPool.connect(this.coverSigner).allocateStake(coverRequest);
+
+    // deposit to the same tokenId
+    await stakingPool.connect(user).depositTo([
+      {
+        amount,
+        trancheId: firstActiveTrancheId + 3,
+        tokenId: depositNftId,
+        destination,
+      },
+    ]);
+
+    await increaseTime(
+      29 * // days
+        24 * // hours
+        60 * // minutes
+        60, // seconds
+    );
+
+    // deposit to the same tokenId
+    await stakingPool.connect(user).depositTo([
+      {
+        amount,
+        trancheId: firstActiveTrancheId + 3,
+        tokenId: depositNftId,
+        destination,
+      },
+    ]);
+
+    const accNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
+    const lastAccNxmUpdate = await stakingPool.lastAccNxmUpdate();
+
+    // TODO: Assert correct values
+    expect(accNxmPerRewardsShare).to.not.equal(0);
+    expect(lastAccNxmUpdate).to.not.equal(0);
   });
 
   it('should not revert with division by zero', async function () {

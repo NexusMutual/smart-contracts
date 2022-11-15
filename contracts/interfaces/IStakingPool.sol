@@ -141,4 +141,8 @@ interface IStakingPool {
     uint lastBasePrice,
     uint targetPrice
   );
+
+    /* ========== EVENTS ========== */
+
+    event StakeDeposited(address indexed user, uint256 amount, uint256 trancheId, uint256 tokenId);
 }

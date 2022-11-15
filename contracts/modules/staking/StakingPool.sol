@@ -656,7 +656,7 @@ contract StakingPool is IStakingPool, ERC721 {
       );
 
       uint targetBucketId = Math.divCeil(
-        block.timestamp + request.period + request.gracePeriod,
+        block.timestamp + request.period + config.gracePeriod,
         BUCKET_DURATION
       );
 

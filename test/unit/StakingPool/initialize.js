@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { impersonateAccount, setEtherBalance } = require('../../utils/evm');
+const { setEtherBalance } = require('../../utils/evm');
 
 describe('initialize', function () {
   const product0 = {

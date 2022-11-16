@@ -273,7 +273,7 @@ describe.only('buyCover', function () {
     });
   });
 
-  it.skip('should purchase new cover using USDC with commission', async function () {
+  it('should purchase new cover using USDC with commission', async function () {
     const { cover, usdc } = this;
 
     const {
@@ -778,7 +778,7 @@ describe.only('buyCover', function () {
     ).to.be.revertedWith('Cover: Price exceeds maxPremiumInAsset');
   });
 
-  it('reverts if empty array of allocationRequests', async function () {
+  it.skip('reverts if empty array of allocationRequests', async function () {
     const { cover } = this;
 
     const {
@@ -1030,7 +1030,9 @@ describe.only('buyCover', function () {
     expect(ownerOfCoverId).to.be.equal(nonMemberCoverReceiver.address);
   });
 
-  it('mints rewards to staking pool', async function () {
+  // TODO: To be reenabled after rewards minting is reintroduced either in the Cover contract,
+  //  or in the StakingPool contract
+  it.skip('mints rewards to staking pool', async function () {
     const { cover, tokenController } = this;
 
     const {
@@ -1080,7 +1082,9 @@ describe.only('buyCover', function () {
     expect(stakingPoolRewardAfter.rewards).to.be.equal(stakingPoolRewardBefore.rewards.add(expectedReward));
   });
 
-  it('allows to buy against multiple staking pool', async function () {
+  // TODO: To be reenabled after rewards minting is reintroduced either in the Cover contract,
+  //  or in the StakingPool contract
+  it.skip('allows to buy against multiple staking pool', async function () {
     const { cover, tokenController } = this;
 
     const {

@@ -10,7 +10,10 @@ interface IMasterAwareV2 {
     MR, // MemberRoles.sol
     MC, // MCR.sol
     CO, // Cover.sol
-    AS  // Assessment.sol
+    AS, // Assessment.sol
+    TK,
+    PS,
+    GV
   }
 
   function changeMasterAddress(address masterAddress) external;

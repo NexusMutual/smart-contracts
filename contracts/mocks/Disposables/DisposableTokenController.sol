@@ -13,23 +13,24 @@ contract DisposableTokenController is TokenController {
   ) TokenController(quotationDataAddress, claimsRewardAddress) {}
 
   function initialize(
-    address _masterAddress,
-    address _tokenAddress,
-    address _pooledStakingAddress,
-    address _assessmentAddress
+    address payable _masterAddress,
+    address payable _tokenAddress,
+    address payable _pooledStakingAddress,
+    address payable _assessmentAddress
   ) external {
 
-    token = INXMToken(_tokenAddress);
+    INXMToken token = INXMToken(_tokenAddress);
     token.changeOperator(address(this));
     token.addToWhiteList(address(this));
 
     changeMasterAddress(_masterAddress);
-    pooledStaking = IPooledStaking(_pooledStakingAddress);
-    assessment = IAssessment(_assessmentAddress);
+    internalContracts[uint(ID.PS)] = _pooledStakingAddress;
+    internalContracts[uint(ID.AS)] = _assessmentAddress;
+    internalContracts[uint(ID.TK)] = _tokenAddress;
   }
 
   function addToWhitelist(address _member) public override {
-    token.addToWhiteList(_member);
+    token().addToWhiteList(_member);
   }
 
   function lock(
@@ -60,7 +61,7 @@ contract DisposableTokenController is TokenController {
       lockReason[_of].push(_reason);
     }
 
-    token.operatorTransfer(_of, _amount);
+    token().operatorTransfer(_of, _amount);
 
     uint256 validUntil = block.timestamp + _time;
     locked[_of][_reason] = LockToken(_amount, validUntil, false);

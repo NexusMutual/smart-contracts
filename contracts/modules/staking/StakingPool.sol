@@ -1557,11 +1557,9 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
     uint initialCapacityUsed,
     uint totalCapacity
   ) public pure returns (uint) {
-
-    // base price has 18 decimals
     // cover amount has 2 decimals (100 = 1 unit)
-    // dividing by ALLOCATION_UNITS_PER_NXM (=100) to get the right amount of decimals
-    uint basePremium = basePrice * coverAmount / ALLOCATION_UNITS_PER_NXM;
+    // scale coverAmount to 18 decimals and apply price percentage
+    uint basePremium = (coverAmount * NXM_PER_ALLOCATION_UNIT) * basePrice / TARGET_PRICE_DENOMINATOR;
     uint finalCapacityUsed = initialCapacityUsed + coverAmount;
 
     // surge price is applied for the capacity used above SURGE_THRESHOLD_RATIO.

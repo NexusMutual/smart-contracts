@@ -301,7 +301,7 @@ describe('depositTo', function () {
     expect(updatedDepositData.rewardsShares).to.equal(firstDepositData.rewardsShares.add(newRewardShares));
   });
 
-  it.skip('updates deposit pendingRewards and lastAccNxmPerRewardShare', async function () {
+  it('updates deposit pendingRewards and lastAccNxmPerRewardShare', async function () {
     const { stakingPool } = this;
     const {
       members: [user],
@@ -321,6 +321,11 @@ describe('depositTo', function () {
       },
     ]);
 
+    const depositData = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
+
+    expect(depositData.lastAccNxmPerRewardShare).to.equal(0);
+    expect(depositData.pendingRewards).to.equal(0);
+
     // Generate rewards
     const coverRequest = {
       coverId: 0,
@@ -335,68 +340,51 @@ describe('depositTo', function () {
     await stakingPool.connect(this.coverSigner).allocateStake(coverRequest);
 
     await increaseTime(
-      25 * // days
+      20 * // days
         24 * // hours
         60 * // minutes
         60, // seconds
     );
 
-    await increaseTime(
-      100 * // days
-        24 * // hours
-        60 * // minutes
-        60, // seconds
+    // Second deposit
+    await stakingPool.connect(user).depositTo([
+      {
+        amount,
+        trancheId: firstActiveTrancheId,
+        tokenId: depositNftId,
+        destination,
+      },
+    ]);
+
+    const secondDepositData = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
+    const secondAccNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
+
+    expect(secondDepositData.lastAccNxmPerRewardShare).to.equal(secondAccNxmPerRewardsShare);
+    // TODO: Shouldn't pendingRewards also be updated?
+    expect(secondDepositData.pendingRewards).to.equal(0);
+
+    // Last deposit
+    await stakingPool.connect(user).depositTo([
+      {
+        amount,
+        trancheId: firstActiveTrancheId,
+        tokenId: depositNftId,
+        destination,
+      },
+    ]);
+
+    const lastDepositData = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
+    const lastAccNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
+
+    expect(lastDepositData.lastAccNxmPerRewardShare).to.equal(lastAccNxmPerRewardsShare);
+    expect(lastDepositData.pendingRewards).to.equal(
+      secondDepositData.rewardsShares.mul(
+        lastDepositData.lastAccNxmPerRewardShare.sub(secondDepositData.lastAccNxmPerRewardShare),
+      ),
     );
-
-    await stakingPool.connect(user).updateTranches(true);
-
-    // deposit to the same tokenId
-    await stakingPool.connect(user).depositTo([
-      {
-        amount,
-        trancheId: firstActiveTrancheId + 3,
-        tokenId: depositNftId,
-        destination,
-      },
-    ]);
-
-    await stakingPool.connect(this.coverSigner).allocateStake(coverRequest);
-
-    // deposit to the same tokenId
-    await stakingPool.connect(user).depositTo([
-      {
-        amount,
-        trancheId: firstActiveTrancheId + 3,
-        tokenId: depositNftId,
-        destination,
-      },
-    ]);
-
-    await increaseTime(
-      29 * // days
-        24 * // hours
-        60 * // minutes
-        60, // seconds
-    );
-
-    // deposit to the same tokenId
-    await stakingPool.connect(user).depositTo([
-      {
-        amount,
-        trancheId: firstActiveTrancheId + 3,
-        tokenId: depositNftId,
-        destination,
-      },
-    ]);
-
-    const updatedDepositData = await stakingPool.deposits(depositNftId, firstActiveTrancheId + 3);
-
-    // TODO: Assert correct values
-    expect(updatedDepositData.lastAccNxmPerRewardShare).to.not.equal(0);
-    expect(updatedDepositData.pendingRewards).to.not.equal(0);
   });
 
-  it.skip('updates global variables accNxmPerRewardsShare and lastAccNxmUpdate', async function () {
+  it('updates global variables accNxmPerRewardsShare and lastAccNxmUpdate', async function () {
     const { stakingPool } = this;
     const {
       members: [user],
@@ -416,6 +404,15 @@ describe('depositTo', function () {
       },
     ]);
 
+    {
+      const accNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
+      const lastAccNxmUpdate = await stakingPool.lastAccNxmUpdate();
+      const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+
+      expect(accNxmPerRewardsShare).to.equal(0);
+      expect(lastAccNxmUpdate).to.equal(currentTime);
+    }
+
     // Generate rewards
     const coverRequest = {
       coverId: 0,
@@ -430,66 +427,33 @@ describe('depositTo', function () {
     await stakingPool.connect(this.coverSigner).allocateStake(coverRequest);
 
     await increaseTime(
-      25 * // days
+      20 * // days
         24 * // hours
         60 * // minutes
         60, // seconds
     );
 
-    await increaseTime(
-      100 * // days
-        24 * // hours
-        60 * // minutes
-        60, // seconds
-    );
-
-    await stakingPool.connect(user).updateTranches(true);
-
-    // deposit to the same tokenId
+    // Second deposit
     await stakingPool.connect(user).depositTo([
       {
         amount,
-        trancheId: firstActiveTrancheId + 3,
+        trancheId: firstActiveTrancheId,
         tokenId: depositNftId,
         destination,
       },
     ]);
 
-    await stakingPool.connect(this.coverSigner).allocateStake(coverRequest);
+    {
+      const accNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
+      const lastAccNxmUpdate = await stakingPool.lastAccNxmUpdate();
+      const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
 
-    // deposit to the same tokenId
-    await stakingPool.connect(user).depositTo([
-      {
-        amount,
-        trancheId: firstActiveTrancheId + 3,
-        tokenId: depositNftId,
-        destination,
-      },
-    ]);
+      const depositData = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
 
-    await increaseTime(
-      29 * // days
-        24 * // hours
-        60 * // minutes
-        60, // seconds
-    );
-
-    // deposit to the same tokenId
-    await stakingPool.connect(user).depositTo([
-      {
-        amount,
-        trancheId: firstActiveTrancheId + 3,
-        tokenId: depositNftId,
-        destination,
-      },
-    ]);
-
-    const accNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
-    const lastAccNxmUpdate = await stakingPool.lastAccNxmUpdate();
-
-    // TODO: Assert correct values
-    expect(accNxmPerRewardsShare).to.not.equal(0);
-    expect(lastAccNxmUpdate).to.not.equal(0);
+      expect(accNxmPerRewardsShare).to.not.equal(0);
+      expect(accNxmPerRewardsShare).to.equal(depositData.lastAccNxmPerRewardShare);
+      expect(lastAccNxmUpdate).to.equal(currentTime);
+    }
   });
 
   it('should not revert with division by zero', async function () {

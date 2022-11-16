@@ -683,8 +683,7 @@ contract StakingPool is IStakingPool, ERC721 {
       // 1 SLOAD + 1 SSTORE
       rewardBuckets[expireAtBucket].rewardPerSecondCut += _rewardPerSecond;
 
-      // TODO Temporary fix while debugging rewardPerSecond assignation
-      // rewardPerSecond += _rewardPerSecond;
+      rewardPerSecond += _rewardPerSecond;
 
       // scale back from 2 to 18 decimals
       allocatedCoverAmount *= NXM_PER_ALLOCATION_UNIT;

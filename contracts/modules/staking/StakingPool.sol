@@ -676,9 +676,9 @@ contract StakingPool is IStakingPool, ERC721 {
 
       uint rewards = premium * request.rewardRatio / REWARDS_DENOMINATOR;
       uint expireAtBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
-      // TODO UNDO the following change. Amplified the rewards given that this calculation was always 0 given that 
-      // rewards are too small compared to the denominator result
-      uint _rewardPerSecond = rewards * 10000 / (expireAtBucket * BUCKET_DURATION - block.timestamp);
+      uint rewardStreamPeriod = expireAtBucket * BUCKET_DURATION - block.timestamp;
+      uint _rewardPerSecond = rewards / rewardStreamPeriod;
+      rewards = _rewardPerSecond * rewardStreamPeriod;
 
       // 1 SLOAD + 1 SSTORE
       rewardBuckets[expireAtBucket].rewardPerSecondCut += _rewardPerSecond;

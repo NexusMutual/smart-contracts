@@ -140,7 +140,7 @@ describe('burnStake', function () {
         console.log('number of burns: ', totalBurns);
         console.log('total Burned: ', totalBurned);
         console.log('total staked: ', stakeAmountInNxm.mul(totalDeposits));
-        const { totalCapacity } = await stakingPool.getTotalCapacitiesForActiveTranches(
+        const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
           0,
           GLOBAL_CAPACITY_RATIO,
           GLOBAL_MIN_PRICE_RATIO,
@@ -176,8 +176,16 @@ describe('burnStake', function () {
     const request = await depositRequest(stakingPool, stakeAmount, manager.address);
     await stakingPool.connect(staker).depositTo([request]);
 
+    const ratio = await cover.getPriceAndCapacityRatios([0]);
+    const { requestedTranchesCapacity } = await stakingPool.getTrancheCapacities(
+      0,
+      request.trancheId,
+      8,
+      ratio._globalCapacityRatio,
+      ratio._capacityReductionRatios[0],
+    );
     // Build CoverBuy parameters
-    const coverageAmount = stakeAmount.mul(2);
+    const coverageAmount = requestedTranchesCapacity.mul(BigNumber.from(10).pow(16));
     const coverId = 1;
     const coverBuyParams = Array(20)
       .fill('')
@@ -338,7 +346,7 @@ describe('burnStake', function () {
     await stakingPool.connect(staker).depositTo([request]);
 
     const ratio = await cover.getPriceAndCapacityRatios([0]);
-    const { totalCapacity } = await stakingPool.getTotalCapacitiesForActiveTranches(
+    const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
       0,
       ratio._globalCapacityRatio,
       ratio._capacityReductionRatios[0],
@@ -369,7 +377,7 @@ describe('burnStake', function () {
     expect(await stakingPool.activeStake()).to.be.equal(0);
 
     {
-      const { totalCapacity } = await stakingPool.getTotalCapacitiesForActiveTranches(
+      const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
         productIdCounter,
         ratio._globalCapacityRatio,
         ratio._capacityReductionRatios[0],

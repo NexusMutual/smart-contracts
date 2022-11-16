@@ -905,7 +905,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint trancheCount,
     uint capacityRatio,
     uint reductionRatio
-  ) internal view returns (
+  ) public view returns (
     uint[] memory trancheCapacities,
     uint requestedTranchesCapacity,
     uint totalCapacity
@@ -1633,7 +1633,7 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
     uint actualWeight;
     // If stake is allocated, but capacity is 0, set weight to uint16.max
     if (totalAllocation > 0) {
-      actualWeight = totalCapacity > 0 ? (totalAllocation * WEIGHT_DENOMINATOR / totalCapacity): type(uint16).max;
+      actualWeight = totalCapacity > 0 ? (totalAllocation * WEIGHT_DENOMINATOR / totalCapacity) : type(uint16).max;
     }
     effectiveWeight = actualWeight > type(uint16).max ? uint16(type(uint16).max) : (Math.max(targetWeight, actualWeight)).toUint16();
   }

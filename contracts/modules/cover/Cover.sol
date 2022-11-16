@@ -315,7 +315,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     // NXM payment
     if (paymentAsset == NXM_ASSET_ID) {
-
       require(premiumInNxm <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
       ITokenController _tokenController = tokenController();
@@ -333,6 +332,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     IPool _pool = pool();
     uint premiumInPaymentAsset = _pool.getTokenPrice(paymentAsset) * premiumInNxm / ONE_NXM;
     uint commission = premiumInPaymentAsset * commissionRatio / COMMISSION_DENOMINATOR;
+
+    require(premiumInPaymentAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     // ETH payment
     if (paymentAsset == 0) {

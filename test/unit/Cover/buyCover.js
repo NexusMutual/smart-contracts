@@ -5,8 +5,10 @@ const { setEtherBalance } = require('../../utils/evm');
 const { createStakingPool, assertCoverFields } = require('./helpers');
 
 const { parseEther } = ethers.utils;
-const { AddressZero } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
+
 const gracePeriodInDays = 120;
+const NXM_ASSET_ID = 255;
 
 const buyCoverFixture = {
   productId: 0,
@@ -24,7 +26,7 @@ const buyCoverFixture = {
   expectedPremium: parseEther('1000').mul(260).div(10000), // amount * targetPriceRatio / priceDenominator
 };
 
-describe('buyCover', function () {
+describe.only('buyCover', function () {
   beforeEach(async function () {
     const { cover } = this;
 
@@ -58,6 +60,7 @@ describe('buyCover', function () {
 
     const tx = await cover.connect(coverBuyer).buyCover(
       {
+        coverId: MaxUint256,
         owner: coverBuyer.address,
         productId,
         coverAsset,
@@ -65,7 +68,6 @@ describe('buyCover', function () {
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
@@ -82,7 +84,6 @@ describe('buyCover', function () {
       coverAsset,
       period,
       amount,
-      targetPriceRatio,
       gracePeriodInDays,
     });
   });
@@ -111,6 +112,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
+        coverId: MaxUint256,
         owner: coverBuyer.address,
         productId,
         coverAsset,
@@ -118,7 +120,6 @@ describe('buyCover', function () {
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
@@ -167,13 +168,14 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
+        coverId: MaxUint256,
         owner: coverBuyer.address,
         productId,
         coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
-        paymentAsset: coverAsset,
+        paymentAsset: NXM_ASSET_ID,
         payWithNXM: true,
         commissionRatio,
         commissionDestination: stakingPoolManager.address,
@@ -233,6 +235,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
+        coverId: MaxUint256,
         owner: coverBuyer.address,
         productId,
         coverAsset,
@@ -300,6 +303,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
+        coverId: MaxUint256,
         owner: coverBuyer.address,
         productId,
         coverAsset,
@@ -350,6 +354,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
+          coverId: MaxUint256,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -357,7 +362,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: '0',
           paymentAsset: coverAsset,
-          payWitNXM: false,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
@@ -383,6 +387,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
+          coverId: MaxUint256,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -390,7 +395,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: '0',
           paymentAsset: coverAsset,
-          payWitNXM: false,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
@@ -417,6 +421,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
+          coverId: MaxUint256,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -424,7 +429,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: '0',
           paymentAsset: coverAsset,
-          payWitNXM: false,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
@@ -450,6 +454,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
+          coverId: MaxUint256,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -457,7 +462,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: '0',
           paymentAsset: coverAsset,
-          payWitNXM: false,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
@@ -482,6 +486,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
+          coverId: MaxUint256,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -489,7 +494,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: '0',
           paymentAsset: coverAsset,
-          payWitNXM: false,
           commissionRatio: '2501',
           commissionDestination: AddressZero,
           ipfsData: '',
@@ -512,6 +516,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
+          coverId: MaxUint256,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -519,7 +524,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
-          payWitNXM: false,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
@@ -532,7 +536,8 @@ describe('buyCover', function () {
     ).to.be.revertedWith('Cover: amount = 0');
   });
 
-  it('should revert when the allocated cover amount is less than the expected cover amount', async function () {
+  // The logic has been moved in StakingPool.sol and this test will have to be moved as well.
+  it.skip('should revert when the allocated cover amount is less than the expected cover amount', async function () {
     const { cover } = this;
 
     const {
@@ -546,6 +551,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(member1).buyCover(
         {
+          coverId: MaxUint256,
           owner: coverBuyer1.address,
           productId,
           coverAsset,
@@ -553,7 +559,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
-          payWitNXM: false,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
@@ -580,6 +585,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
+          coverId: MaxUint256,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -587,7 +593,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
-          payWitNXM: false,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
@@ -612,6 +617,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(nonMember).buyCover(
         {
+          coverId: MaxUint256,
           owner: nonMember.address,
           productId,
           coverAsset,
@@ -619,7 +625,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
-          payWitNXM: false,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
@@ -644,6 +649,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
+          coverId: MaxUint256,
           owner: AddressZero,
           productId,
           coverAsset,
@@ -651,7 +657,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
-          payWitNXM: false,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
@@ -678,6 +683,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
+          coverId: MaxUint256,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -685,7 +691,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: '0',
           paymentAsset,
-          payWitNXM: false,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
@@ -716,6 +721,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
+          coverId: MaxUint256,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -723,7 +729,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: '0',
           paymentAsset,
-          payWitNXM: false,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
@@ -750,10 +755,10 @@ describe('buyCover', function () {
       .mul(period)
       .div(3600 * 24 * 365);
     const maxPremiumInAsset = expectedPremium.div(2);
-
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
+          coverId: MaxUint256,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -761,7 +766,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset,
           paymentAsset: coverAsset,
-          payWitNXM: false,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
@@ -786,6 +790,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
+          coverId: MaxUint256,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -793,7 +798,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
-          payWitNXM: false,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
@@ -818,6 +822,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
+          coverId: MaxUint256,
           owner: coverBuyer.address,
           productId,
           coverAsset,
@@ -825,7 +830,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
-          payWitNXM: false,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
@@ -862,6 +866,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
+        coverId: MaxUint256,
         owner: coverReceiver.address,
         productId,
         coverAsset,
@@ -904,6 +909,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
+        coverId: MaxUint256,
         owner: coverBuyer.address,
         productId,
         coverAsset,
@@ -911,7 +917,6 @@ describe('buyCover', function () {
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
@@ -937,8 +942,6 @@ describe('buyCover', function () {
     expect(segment.gracePeriodInDays).to.be.equal(gracePeriodInDays);
     expect(segment.period).to.be.equal(period);
     expect(segment.amount).to.be.equal(amount);
-    expect(segment.priceRatio).to.be.equal(targetPriceRatio);
-    expect(segment.expired).to.be.equal(false);
     expect(segment.start).to.be.equal(timestamp + 1);
     expect(segment.globalRewardsRatio).to.be.equal(globalRewardsRatio);
 
@@ -946,7 +949,6 @@ describe('buyCover', function () {
     const segmentAllocations = await cover.coverSegmentAllocations(coverId, segmentId, segmentPoolAllocationIndex);
     expect(segmentAllocations.poolId).to.be.equal(poolId);
     expect(segmentAllocations.coverAmountInNXM).to.be.equal(amount);
-    expect(segmentAllocations.premiumInNXM).to.be.equal(expectedPremium);
   });
 
   it('mints NFT to owner', async function () {
@@ -963,6 +965,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
+        coverId: MaxUint256,
         owner: coverReceiver.address,
         productId,
         coverAsset,
@@ -970,7 +973,6 @@ describe('buyCover', function () {
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
@@ -1003,6 +1005,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
+        coverId: MaxUint256,
         owner: nonMemberCoverReceiver.address,
         productId,
         coverAsset,
@@ -1010,7 +1013,6 @@ describe('buyCover', function () {
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
@@ -1055,6 +1057,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
+        coverId: MaxUint256,
         owner: coverReceiver.address,
         productId,
         coverAsset,
@@ -1062,7 +1065,6 @@ describe('buyCover', function () {
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
@@ -1145,6 +1147,7 @@ describe('buyCover', function () {
 
     await cover.connect(coverBuyer).buyCover(
       {
+        coverId: MaxUint256,
         owner: coverReceiver.address,
         productId,
         coverAsset,
@@ -1152,7 +1155,6 @@ describe('buyCover', function () {
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
@@ -1207,6 +1209,7 @@ describe('buyCover', function () {
 
     const txData = await cover.connect(coverBuyer).populateTransaction.buyCover(
       {
+        coverId: MaxUint256,
         owner: coverReceiver.address,
         productId,
         coverAsset,
@@ -1214,7 +1217,6 @@ describe('buyCover', function () {
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
@@ -1238,6 +1240,7 @@ describe('buyCover', function () {
     await expect(
       cover.connect(coverBuyer).buyCover(
         {
+          coverId: MaxUint256,
           owner: coverReceiver.address,
           productId,
           coverAsset,
@@ -1245,7 +1248,6 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
-          payWitNXM: false,
           commissionRatio,
           commissionDestination: reentrantExploiter.address,
           ipfsData: '',

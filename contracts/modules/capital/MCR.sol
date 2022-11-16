@@ -3,17 +3,15 @@
 pragma solidity ^0.8.16;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-import "../../abstract/MasterAware.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ICover.sol";
+import "../../abstract/MasterAwareV2.sol";
 
-contract MCR is IMCR, MasterAware {
-  IPool public pool;
-  IQuotationData public qd;
+contract MCR is IMCR, MasterAwareV2 {
   // sizeof(qd) + 96 = 160 + 96 = 256 (occupies entire slot)
   uint96 _unused;
 
@@ -31,7 +29,6 @@ contract MCR is IMCR, MasterAware {
   uint32 public lastUpdateTime;
 
   IMCR public previousMCR;
-  ICover public cover;
 
   event MCRUpdated(
     uint mcr,
@@ -53,13 +50,24 @@ contract MCR is IMCR, MasterAware {
     }
   }
 
-  /**
-   * @dev Iupgradable Interface to update dependent contract address
-   */
-  function changeDependentContractAddress() public {
-    qd = IQuotationData(master.getLatestAddress("QD"));
-    pool = IPool(master.getLatestAddress("P1"));
-    cover = ICover(master.getLatestAddress("CO"));
+  /* ========== DEPENDENCIES ========== */
+
+  function pool() internal view returns (IPool) {
+    return IPool(internalContracts[uint(ID.P1)]);
+  }
+
+  function memberRoles() internal view returns (IMemberRoles) {
+    return IMemberRoles(internalContracts[uint(ID.MR)]);
+  }
+
+  function cover() internal view returns (ICover) {
+    return ICover(internalContracts[uint(ID.CO)]);
+  }
+
+  function changeDependentContractAddress() external override {
+    internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
+    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     initialize();
   }
 
@@ -94,15 +102,17 @@ contract MCR is IMCR, MasterAware {
    */
   function getAllSumAssurance() public view returns (uint) {
 
-    IPriceFeedOracle priceFeed = pool.priceFeedOracle();
-    if (cover.activeCoverAmountCommitted()) {
-      uint totalActiveCoverAmountInEth = cover.totalActiveCoverInAsset(0);
+    IPool _pool = pool();
+    IPriceFeedOracle priceFeed = _pool.priceFeedOracle();
+    ICover _cover = cover();
+    if (_cover.activeCoverAmountCommitted()) {
+      uint totalActiveCoverAmountInEth = _cover.totalActiveCoverInAsset(0);
 
-      IPool.Asset[] memory assets = pool.getCoverAssets();
+      IPool.Asset[] memory assets = _pool.getCoverAssets();
 
       // the first asset is ETH. skip it, it's already counted
       for (uint i = 1; i < assets.length; i++) {
-        uint activeCoverAmount = cover.totalActiveCoverInAsset(uint24(i));
+        uint activeCoverAmount = _cover.totalActiveCoverInAsset(uint24(i));
         uint assetAmountInEth = priceFeed.getEthForAsset(assets[i].assetAddress, activeCoverAmount);
 
         totalActiveCoverAmountInEth += assetAmountInEth;
@@ -119,7 +129,7 @@ contract MCR is IMCR, MasterAware {
   *
   */
   function updateMCR() whenNotPaused public {
-    _updateMCR(pool.getPoolValueInEth(), false);
+    _updateMCR(pool().getPoolValueInEth(), false);
   }
 
   function updateMCRInternal(uint poolValueInEth, bool forceUpdate) public onlyInternal {
@@ -144,7 +154,7 @@ contract MCR is IMCR, MasterAware {
       return;
     }
 
-    if (block.timestamp > _lastUpdateTime && pool.calculateMCRRatio(poolValueInEth, _mcr) >= _mcrFloorIncrementThreshold) {
+    if (block.timestamp > _lastUpdateTime && pool().calculateMCRRatio(poolValueInEth, _mcr) >= _mcrFloorIncrementThreshold) {
         // MCR floor updates by up to maxMCRFloorIncrement percentage per day whenever the MCR ratio exceeds 1.3
         // MCR floor is monotonically increasing.
       uint basisPointsAdjustment = min(

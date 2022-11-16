@@ -359,6 +359,7 @@ describe('depositTo', function () {
     const secondDepositData = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
     const secondAccNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
 
+    expect(secondAccNxmPerRewardsShare).to.not.equal(0);
     expect(secondDepositData.lastAccNxmPerRewardShare).to.equal(secondAccNxmPerRewardsShare);
     // TODO: Shouldn't pendingRewards also be updated?
     expect(secondDepositData.pendingRewards).to.equal(0);
@@ -376,7 +377,9 @@ describe('depositTo', function () {
     const lastDepositData = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
     const lastAccNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
 
+    expect(lastDepositData).to.not.equal(0);
     expect(lastDepositData.lastAccNxmPerRewardShare).to.equal(lastAccNxmPerRewardsShare);
+    expect(lastDepositData.pendingRewards).to.not.equal(0);
     expect(lastDepositData.pendingRewards).to.equal(
       secondDepositData.rewardsShares.mul(
         lastDepositData.lastAccNxmPerRewardShare.sub(secondDepositData.lastAccNxmPerRewardShare),

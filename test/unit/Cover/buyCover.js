@@ -26,7 +26,7 @@ const buyCoverFixture = {
   expectedPremium: parseEther('1000').mul(260).div(10000), // amount * targetPriceRatio / priceDenominator
 };
 
-describe.only('buyCover', function () {
+describe('buyCover', function () {
   beforeEach(async function () {
     const { cover } = this;
 
@@ -56,7 +56,7 @@ describe.only('buyCover', function () {
       members: [coverBuyer],
     } = this.accounts;
 
-    const { amount, targetPriceRatio, productId, coverAsset, period, expectedPremium, coverId } = buyCoverFixture;
+    const { amount, productId, coverAsset, period, expectedPremium, coverId } = buyCoverFixture;
 
     const tx = await cover.connect(coverBuyer).buyCover(
       {

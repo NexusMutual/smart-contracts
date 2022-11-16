@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { setEtherBalance } = require('../../utils/evm');
 
-describe.only('initialize', function () {
+describe('initialize', function () {
   const product0 = {
     productId: 0,
     weight: 100,

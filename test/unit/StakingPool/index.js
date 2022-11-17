@@ -15,6 +15,8 @@ describe('StakingPool unit tests', function () {
   // require('./calculatePrice');
   // require('./interpolatePrice');
   // require('./getPrices');
+  require('./constructor');
+  require('./initialize');
   require('./calculateNewRewardShares');
   require('./setProducts');
 });

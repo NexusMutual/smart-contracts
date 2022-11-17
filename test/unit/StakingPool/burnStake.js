@@ -90,10 +90,9 @@ describe('burnStake', function () {
   it.skip('Should burn and deposit until stakeShares overflows', async function () {
     const { stakingPool, cover, nxm, tokenController } = this;
     const [manager, staker] = this.accounts.members;
-    const { GLOBAL_MIN_PRICE_RATIO, GLOBAL_CAPACITY_RATIO } = this.config;
     // const stakeAmount = BigNumber.from(2).pow(64).sub(1);
     const DECIMALS_18 = BigNumber.from(10).pow(18);
-    const stakeAmountInNxm = BigNumber.from(100000);
+    const stakeAmountInNxm = BigNumber.from(100);
     const stakeAmount = stakeAmountInNxm.mul(DECIMALS_18);
 
     // Initialize pool and set products
@@ -101,7 +100,6 @@ describe('burnStake', function () {
     await cover.setProduct({ ...coverProductTemplate }, 0);
     await stakingPool.connect(manager).setProducts([{ ...newProductTemplate }]);
     let { timestamp } = await ethers.provider.getBlock('latest');
-
     let totalBurns = 0;
     let totalDeposits = 0;
     let totalBurned = BigNumber.from(0);
@@ -109,8 +107,6 @@ describe('burnStake', function () {
     let failed;
     while (!failed) {
       try {
-        // console.log('depositing: ', stakeAmount.div(DECIMALS_18), ' nxm');
-        // Burn stake
         for (let i = 0; i < depositsBetweenBurns; i++) {
           // Deposit into staking pool
           await nxm.connect(staker).approve(tokenController.address, stakeAmount);
@@ -118,34 +114,27 @@ describe('burnStake', function () {
           await stakingPool.connect(staker).depositTo([request]);
           // const { rewardsShares } = await stakingPool.deposits(request.tokenId, request.trancheId);
           // console.log('rewards shares: ', rewardsShares);
-          timestamp += daysToSeconds('10');
-          await setNextBlockTime(timestamp);
-          await mineNextBlock();
+
           ++totalDeposits;
         }
 
-        const activeStake = await stakingPool.activeStake();
-        const stakeShares = await stakingPool.stakeSharesSupply();
-        const amountToBurn = activeStake.div(10);
-        await cover.performStakeBurn(stakingPool.address, amountToBurn);
+        let activeStake = BigNumber.from(0);
+        const activeTranches = await stakingPool.getActiveTranches();
+        activeTranches.map(t => (activeStake = activeStake.add(t.activeStake)));
+        const amountToBurn = activeStake.mul(5).div(10);
         totalBurns++;
         totalBurned = totalBurned.add(amountToBurn);
-        console.log('active stake: ', activeStake);
-        console.log('stake shares: ', stakeShares);
-        // burn 98%
+
+        // Burn
+        await cover.performStakeBurn(stakingPool.address, amountToBurn);
+        timestamp += daysToSeconds('1');
+        await setNextBlockTime(timestamp);
+        await mineNextBlock();
       } catch (e) {
         console.log(e);
         failed = true;
         console.log('number of deposits: ', totalDeposits);
         console.log('number of burns: ', totalBurns);
-        console.log('total Burned: ', totalBurned);
-        console.log('total staked: ', stakeAmountInNxm.mul(totalDeposits));
-        const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
-          0,
-          GLOBAL_CAPACITY_RATIO,
-          GLOBAL_MIN_PRICE_RATIO,
-        );
-        console.log('total capacity: ', totalCapacity);
       }
     }
   });
@@ -153,7 +142,7 @@ describe('burnStake', function () {
   it('Should burn 99.99% of a large stake and not cause rounding issues', async function () {
     const { stakingPool, cover, nxm, tokenController } = this;
     const [manager, staker, coverBuyer] = this.accounts.members;
-    const stakeAmount = BigNumber.from(2).pow(64).sub(1);
+    const stakeAmount = BigNumber.from(9).pow(18);
     const UINT16_MAX = BigNumber.from(2).pow(16).sub(1);
     let productIdCounter = 0;
     // Initialize Products
@@ -374,7 +363,7 @@ describe('burnStake', function () {
 
     // Burn all stake
     await cover.performStakeBurn(stakingPool.address, stakeAmount);
-    expect(await stakingPool.activeStake()).to.be.equal(0);
+    expect(await stakingPool.totalActiveStake()).to.be.equal(0);
 
     {
       const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
@@ -422,8 +411,33 @@ describe('burnStake', function () {
     await stakingPool.connect(staker).depositTo([request]);
 
     await cover.performStakeBurn(stakingPool.address, stakeAmount.add(1));
-    expect(await stakingPool.activeStake()).to.be.equal(0);
+    expect(await stakingPool.totalActiveStake()).to.be.equal(0);
     await cover.performStakeBurn(stakingPool.address, stakeAmount);
+  });
+
+  it('Should revert depositing into a pool with all of its stake burned', async function () {
+    const { stakingPool, cover, nxm, tokenController } = this;
+    const [manager, staker] = this.accounts.members;
+    const DECIMALS_18 = BigNumber.from(10).pow(18);
+    const stakeAmountInNxm = BigNumber.from(100000);
+    const stakeAmount = stakeAmountInNxm.mul(DECIMALS_18);
+
+    // Initialize pool and set products
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.setProduct({ ...coverProductTemplate }, 0);
+    await stakingPool.connect(manager).setProducts([{ ...newProductTemplate }]);
+
+    // Deposit into pool
+    await nxm.connect(staker).approve(tokenController.address, stakeAmount);
+    const request = await depositRequest(stakingPool, stakeAmount, manager.address);
+    await stakingPool.connect(staker).depositTo([request]);
+
+    await cover.performStakeBurn(stakingPool.address, stakeAmount.add(1));
+    expect(await stakingPool.totalActiveStake()).to.be.equal(0);
+
+    // Deposit
+    await nxm.connect(staker).approve(tokenController.address, stakeAmount);
+    await expect(stakingPool.connect(staker).depositTo([request])).to.be.revertedWithPanic(0x12);
   });
 
   it('Should expire burned stake, resetting stakeShare values', async function () {
@@ -450,7 +464,7 @@ describe('burnStake', function () {
 
     // Burn stake
     await cover.performStakeBurn(stakingPool.address, stakeAmount);
-    expect(await stakingPool.activeStake()).to.be.equal(0);
+    expect(await stakingPool.totalActiveStake()).to.be.equal(0);
     const firstActiveBucketId = await stakingPool.firstActiveBucketId();
     const firstActiveTrancheId = await stakingPool.firstActiveTrancheId();
 
@@ -467,17 +481,18 @@ describe('burnStake', function () {
     );
     expect(await stakingPool.firstActiveTrancheId()).to.be.equal(firstActiveTrancheId.add(numTranches));
 
+    const { stakeShares, activeStake } = await stakingPool.tranches(request.trancheId);
+    expect(activeStake).to.be.equal(0);
+    expect(stakeShares).to.be.equal(0);
     {
       // Deposit into pool
-      expect(await stakingPool.activeStake()).to.be.equal(0);
-      expect(await stakingPool.stakeSharesSupply()).to.be.equal(0);
       await nxm.connect(staker).approve(tokenController.address, stakeAmount);
       const request = await depositRequest(stakingPool, stakeAmount, manager.address);
       await stakingPool.connect(staker).depositTo([request]);
-      const activeStake = await stakingPool.activeStake();
+      const { stakeShares, activeStake } = await stakingPool.tranches(request.trancheId);
       expect(activeStake).to.be.equal(stakeAmount);
+      expect(stakeShares).to.be.gt(0);
       // TODO: sqrt value off by small fraction..
-      // const stakeShares = await stakingPool.stakeSharesSupply();
       // expect(activeStake).to.be.equal(stakeShares.mul(stakeShares));
     }
 

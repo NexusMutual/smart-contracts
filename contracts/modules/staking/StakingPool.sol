@@ -34,10 +34,7 @@ contract StakingPool is IStakingPool, ERC721 {
   uint poolId;
 
   // currently active staked nxm amount
-  uint public activeStake;
-
-  // supply of pool stake shares used by tranches
-  uint public stakeSharesSupply;
+  uint public totalActiveStake;
 
   // supply of pool rewards shares used by tranches
   uint public rewardsSharesSupply;
@@ -242,9 +239,7 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     // SLOAD
-    uint _activeStake = activeStake;
     uint _rewardPerSecond = rewardPerSecond;
-    uint _stakeSharesSupply = stakeSharesSupply;
     uint _rewardsSharesSupply = rewardsSharesSupply;
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
     uint _lastAccNxmUpdate = lastAccNxmUpdate;
@@ -298,21 +293,19 @@ contract StakingPool is IStakingPool, ERC721 {
         _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
         _lastAccNxmUpdate = trancheEndTime;
 
+        Tranche memory expiringTranche = tranches[_firstActiveTrancheId];
         // SSTORE
         expiredTranches[_firstActiveTrancheId] = ExpiredTranche(
           _accNxmPerRewardsShare, // accNxmPerRewardShareAtExpiry
-          _activeStake, // stakeAmountAtExpiry
-          _stakeSharesSupply // stakeShareSupplyAtExpiry
+          expiringTranche.activeStake, // stakeAmountAtExpiry
+          expiringTranche.stakeShares// stakeShareSupplyAtExpiry
         );
 
         // SLOAD and then SSTORE zero to get the gas refund
-        Tranche memory expiringTranche = tranches[_firstActiveTrancheId];
         delete tranches[_firstActiveTrancheId];
 
         // the tranche is expired now so we decrease the stake and the shares supply
-        uint expiredStake = _stakeSharesSupply > 0 ? _activeStake * expiringTranche.stakeShares / _stakeSharesSupply : 0;
-        _activeStake -= expiredStake;
-        _stakeSharesSupply -= expiringTranche.stakeShares;
+        totalActiveStake -= expiringTranche.activeStake;
         _rewardsSharesSupply -= expiringTranche.rewardsShares;
 
         // advance to the next tranche
@@ -332,11 +325,9 @@ contract StakingPool is IStakingPool, ERC721 {
     firstActiveTrancheId = _firstActiveTrancheId;
     firstActiveBucketId = _firstActiveBucketId;
 
-    activeStake = _activeStake;
     rewardPerSecond = _rewardPerSecond;
     accNxmPerRewardsShare = _accNxmPerRewardsShare;
     lastAccNxmUpdate = _lastAccNxmUpdate;
-    stakeSharesSupply = _stakeSharesSupply;
     rewardsSharesSupply = _rewardsSharesSupply;
   }
 
@@ -352,8 +343,6 @@ contract StakingPool is IStakingPool, ERC721 {
     updateTranches(true);
 
     // storage reads
-    uint _activeStake = activeStake;
-    uint _stakeSharesSupply = stakeSharesSupply;
     uint _rewardsSharesSupply = rewardsSharesSupply;
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
 
@@ -384,9 +373,12 @@ contract StakingPool is IStakingPool, ERC721 {
         tokenIds[i] = request.tokenId;
       }
 
-      uint newStakeShares = _stakeSharesSupply == 0
+      uint stakeSharesSupply = tranches[request.trancheId].stakeShares;
+      uint activeStake = tranches[request.trancheId].activeStake;
+
+      uint newStakeShares = stakeSharesSupply == 0
         ? Math.sqrt(request.amount)
-        : _stakeSharesSupply * request.amount / _activeStake;
+        : stakeSharesSupply * request.amount / activeStake;
 
       uint newRewardsShares;
 
@@ -442,22 +434,20 @@ contract StakingPool is IStakingPool, ERC721 {
       {
         Tranche memory tranche = tranches[request.trancheId];
         tranche.stakeShares += newStakeShares;
+        tranche.activeStake += request.amount;
         tranche.rewardsShares += newRewardsShares;
         tranches[request.trancheId] = tranche;
       }
-
       totalAmount += request.amount;
-      _activeStake += request.amount;
-      _stakeSharesSupply += newStakeShares;
       _rewardsSharesSupply += newRewardsShares;
     }
+
+    totalActiveStake += totalAmount;
     address source = msg.sender == coverContract ? manager() : msg.sender;
     // transfer nxm from the staker and update the pool deposit balance
     tokenController.depositStakedNXM(source, totalAmount, poolId);
 
     // update globals
-    activeStake = _activeStake;
-    stakeSharesSupply = _stakeSharesSupply;
     rewardsSharesSupply = _rewardsSharesSupply;
   }
 
@@ -911,13 +901,8 @@ contract StakingPool is IStakingPool, ERC721 {
     uint totalCapacity
   ) {
 
-    uint _activeStake = activeStake;
-    uint _stakeSharesSupply = stakeSharesSupply;
     trancheCapacities = new uint[](trancheCount);
 
-    if (_stakeSharesSupply == 0) {
-      return (trancheCapacities, 0, 0);
-    }
 
     uint multiplier =
       capacityRatio
@@ -938,7 +923,7 @@ contract StakingPool is IStakingPool, ERC721 {
     ) {
 
       uint trancheCapacity =
-        (_activeStake * tranches[trancheId].stakeShares / _stakeSharesSupply) // tranche stake
+        tranches[trancheId].activeStake  // tranche stake
         * multiplier
         / denominator
         / NXM_PER_ALLOCATION_UNIT;
@@ -1162,19 +1147,20 @@ contract StakingPool is IStakingPool, ERC721 {
     Deposit memory initialDeposit = deposits[tokenId][initialTrancheId];
     Deposit memory updatedDeposit = deposits[tokenId][newTrancheId];
 
-    uint _activeStake = activeStake;
-    uint _stakeSharesSupply = stakeSharesSupply;
+    Tranche memory initialTranche = tranches[initialTrancheId];
+    Tranche memory newTranche = tranches[newTrancheId];
+
     uint transferAmount = topUpAmount;
     uint newStakeShares;
 
     if (updatedDeposit.stakeShares != 0) {
-      transferAmount += _activeStake * initialDeposit.stakeShares / _stakeSharesSupply;
+      transferAmount += initialTranche.activeStake * initialDeposit.stakeShares / initialTranche.stakeShares;
     }
 
     // calculate the new stake shares if there's a deposit top up
     if (topUpAmount > 0) {
-      newStakeShares = _stakeSharesSupply * topUpAmount / _activeStake;
-      activeStake = _activeStake + topUpAmount;
+      newStakeShares = newTranche.stakeShares * topUpAmount / newTranche.activeStake;
+      newTranche.activeStake += topUpAmount;
     }
 
     // calculate the new reward shares
@@ -1187,8 +1173,6 @@ contract StakingPool is IStakingPool, ERC721 {
     );
 
     {
-      Tranche memory initialTranche = tranches[initialTrancheId];
-      Tranche memory newTranche = tranches[newTrancheId];
 
       // move the shares to the new tranche
       initialTranche.stakeShares -= initialDeposit.stakeShares;
@@ -1227,7 +1211,6 @@ contract StakingPool is IStakingPool, ERC721 {
     deposits[tokenId][newTrancheId] = updatedDeposit;
 
     // update global shares supply
-    stakeSharesSupply = _stakeSharesSupply + newStakeShares;
     rewardsSharesSupply += newRewardsShares;
 
     // transfer nxm from the staker and update the pool deposit balance
@@ -1237,12 +1220,36 @@ contract StakingPool is IStakingPool, ERC721 {
   // O(1)
   function burnStake(uint amount) external onlyCoverContract {
 
-    // TODO: block the pool if we perform 100% of the stake?
     // passing false because neither the amount of shares nor the reward per second are changed
     updateTranches(false);
+    uint trancheId = block.timestamp / TRANCHE_DURATION;
+    uint lastActiveTranche = trancheId + MAX_ACTIVE_TRANCHES;
 
-    uint _activeStake = activeStake;
-    activeStake = _activeStake > amount ? _activeStake - amount : 0;
+    // If 100% burn, remove stake from all tranches
+    // TODO: block the pool if we perform 100% of the stake?
+    if (amount >= totalActiveStake) {
+
+      delete totalActiveStake;
+      for (trancheId; trancheId < lastActiveTranche; trancheId++) {
+        delete tranches[trancheId].activeStake;
+      }
+      return;
+    }
+
+    uint reductionFactor = totalActiveStake * ONE_NXM / amount;
+    uint _totalActiveStake = totalActiveStake;
+
+    for (trancheId; trancheId < lastActiveTranche; trancheId++) {
+      uint activeStake = tranches[trancheId].activeStake;
+
+      if (activeStake > 0) {
+        uint amountToBurn = activeStake * ONE_NXM / reductionFactor;
+        uint newActiveStake = activeStake >= amountToBurn ? activeStake - amountToBurn : 0;
+        tranches[trancheId].activeStake = newActiveStake;
+        _totalActiveStake -= activeStake - newActiveStake;
+      }
+    }
+    totalActiveStake = _totalActiveStake;
   }
 
   /* nft */
@@ -1608,6 +1615,14 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
     return surgePremium / ALLOCATION_UNITS_PER_NXM;
   }
 
+  function getActiveTranches() public view returns (Tranche[] memory _tranches) {
+    uint currentTrancheId = block.timestamp / TRANCHE_DURATION;
+    _tranches = new Tranche[](MAX_ACTIVE_TRANCHES);
+    for (uint i; i < _tranches.length; i ++){
+      _tranches[i] = tranches[currentTrancheId + i];
+    }
+  }
+
   function _getEffectiveWeight(
     uint productId,
     uint targetWeight,
@@ -1635,6 +1650,6 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
     if (totalAllocation > 0) {
       actualWeight = totalCapacity > 0 ? (totalAllocation * WEIGHT_DENOMINATOR / totalCapacity) : type(uint16).max;
     }
-    effectiveWeight = actualWeight > type(uint16).max ? uint16(type(uint16).max) : (Math.max(targetWeight, actualWeight)).toUint16();
+    effectiveWeight = actualWeight >= type(uint16).max ? uint16(type(uint16).max) : (Math.max(targetWeight, actualWeight)).toUint16();
   }
 }

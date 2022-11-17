@@ -57,6 +57,7 @@ interface IStakingPool {
   struct Tranche {
     uint /* uint128 */ stakeShares;
     uint /* uint128 */ rewardsShares;
+    uint activeStake;
   }
 
   struct ExpiredTranche {

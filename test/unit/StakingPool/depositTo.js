@@ -743,7 +743,7 @@ describe('depositTo', function () {
       .withArgs(user.address, amount, firstActiveTrancheId, depositNftId);
   });
 
-  it.skip('reverts if provided tokenId is not valid', async function () {
+  it('reverts if provided tokenId is not valid', async function () {
     const { stakingPool } = this;
     const {
       members: [user],
@@ -769,6 +769,6 @@ describe('depositTo', function () {
           destination,
         },
       ]),
-    ).to.be.reverted;
+    ).to.be.revertedWith('NOT_MINTED');
   });
 });

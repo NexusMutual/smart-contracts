@@ -245,8 +245,8 @@ describe('initialize', function () {
       .connect(coverSigner)
       .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, [], poolId);
 
-    const ownerNft = await stakingPool.ownerOf(0);
-    expect(ownerNft).to.be.eq(manager.address);
+    const ownerOfNFT = await stakingPool.ownerOf(0);
+    expect(ownerOfNFT).to.be.eq(manager.address);
   });
 
   it('correctly initializes the list of products', async function () {

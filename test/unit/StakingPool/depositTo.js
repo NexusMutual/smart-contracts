@@ -330,7 +330,7 @@ describe('depositTo', function () {
     const coverRequest = {
       coverId: 0,
       productId: 0,
-      amount: parseEther('1000000'),
+      amount: parseEther('100'),
       period: 3600 * 24 * 30, // 30 days
       gracePeriod: 3600 * 24 * 30,
       globalCapacityRatio: 20000,
@@ -420,7 +420,7 @@ describe('depositTo', function () {
     const coverRequest = {
       coverId: 0,
       productId: 0,
-      amount: parseEther('1000000'),
+      amount: parseEther('100'),
       period: 3600 * 24 * 30, // 30 days
       gracePeriod: 3600 * 24 * 30,
       globalCapacityRatio: 20000,

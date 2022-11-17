@@ -49,6 +49,13 @@ const buyCoverParamsTemplate = {
   ipfsData: 'ipfs data',
 };
 
+const withdrawRequestTemplate = {
+  tokenId: 1,
+  withdrawStake: true,
+  withdrawRewards: true,
+  trancheIds: [],
+};
+
 describe('burnStake', function () {
   // Create a default deposit request to the staking pool
   const depositRequest = async (stakingPool, amount, destination) => {
@@ -62,6 +69,85 @@ describe('burnStake', function () {
       destination,
     };
   };
+
+  it('Should burn half of stake and update shares properly', async function () {
+    const { stakingPool, cover, nxm, tokenController } = this;
+    const [manager, staker, stakerTwo, coverBuyer] = this.accounts.members;
+    const DECIMALS_18 = BigNumber.from(10).pow(18);
+    const stakeAmountInNxm = BigNumber.from(100000);
+    const stakeAmount = stakeAmountInNxm.mul(DECIMALS_18);
+
+    // Initialize pool and set products
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.setProduct({ ...coverProductTemplate }, 0);
+    await stakingPool.connect(manager).setProducts([{ ...newProductTemplate }]);
+
+    // Deposit into pool
+    await nxm.connect(staker).approve(tokenController.address, stakeAmount);
+    const request = await depositRequest(stakingPool, stakeAmount, staker.address);
+    await stakingPool.connect(staker).depositTo([request]);
+
+    // Buy coverage
+    const coverBuyParams = { ...buyCoverParamsTemplate, owner: coverBuyer.address, amount: stakeAmount };
+    await cover.connect(coverBuyer).allocateCapacity(coverBuyParams, 1, stakingPool.address);
+
+    // Burn stake
+    const amountToBurn = stakeAmount.div(2);
+    await cover.performStakeBurn(stakingPool.address, amountToBurn);
+    expect(await stakingPool.totalActiveStake()).to.be.equal(amountToBurn);
+
+    {
+      // 2nd deposit
+      await nxm.connect(stakerTwo).approve(tokenController.address, stakeAmount);
+      const request = await depositRequest(stakingPool, stakeAmount, stakerTwo.address);
+      await stakingPool.connect(stakerTwo).depositTo([request]);
+    }
+
+    // Expire all activeTranches
+    let { timestamp } = await ethers.provider.getBlock('latest');
+    timestamp += daysToSeconds('728');
+    await setNextBlockTime(timestamp);
+    await mineNextBlock();
+    await stakingPool.updateTranches(true);
+
+    {
+      // 1st staker withdraw
+      const depositId = 1;
+      const deposit = await stakingPool.deposits(depositId, request.trancheId);
+      const expiredTranche = await stakingPool.expiredTranches(request.trancheId);
+      const stakeToWithdraw = expiredTranche.stakeAmountAtExpiry
+        .mul(deposit.stakeShares)
+        .div(expiredTranche.stakeShareSupplyAtExpiry);
+
+      // Withdraw nxm
+      const balanceBefore = await nxm.balanceOf(staker.address);
+      await expect(
+        stakingPool.connect(staker).withdraw([{ ...withdrawRequestTemplate, trancheIds: [request.trancheId] }]),
+      )
+        .to.emit(nxm, 'Transfer')
+        .withArgs(tokenController.address, staker.address, stakeToWithdraw);
+      const balanceAfter = await nxm.balanceOf(staker.address);
+      expect(balanceAfter).to.be.equal(balanceBefore.add(stakeToWithdraw));
+    }
+
+    {
+      // 2nd staker withdraw
+      const depositId = 2;
+      const deposit = await stakingPool.deposits(depositId, request.trancheId);
+      const expiredTranche = await stakingPool.expiredTranches(request.trancheId);
+      const stakeToWithdraw = expiredTranche.stakeAmountAtExpiry
+        .mul(deposit.stakeShares)
+        .div(expiredTranche.stakeShareSupplyAtExpiry);
+
+      // Withdraw nxm
+      const balanceBefore = await nxm.balanceOf(stakerTwo.address);
+      await stakingPool
+        .connect(stakerTwo)
+        .withdraw([{ ...withdrawRequestTemplate, tokenId: depositId, trancheIds: [request.trancheId] }]);
+      const balanceAfter = await nxm.balanceOf(stakerTwo.address);
+      expect(balanceAfter).to.be.equal(balanceBefore.add(stakeToWithdraw));
+    }
+  });
 
   it('Should revert if burn is not called from Cover contract', async function () {
     const { stakingPool, cover, nxm, tokenController } = this;
@@ -112,8 +198,6 @@ describe('burnStake', function () {
           await nxm.connect(staker).approve(tokenController.address, stakeAmount);
           const request = await depositRequest(stakingPool, stakeAmount, manager.address);
           await stakingPool.connect(staker).depositTo([request]);
-          // const { rewardsShares } = await stakingPool.deposits(request.tokenId, request.trancheId);
-          // console.log('rewards shares: ', rewardsShares);
 
           ++totalDeposits;
         }

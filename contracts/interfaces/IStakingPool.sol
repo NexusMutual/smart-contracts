@@ -58,12 +58,16 @@ interface IStakingPool {
     uint /* uint128 */ stakeShares;
     uint /* uint128 */ rewardsShares;
     uint activeStake;
+    uint accNxmPerRewardShare;
+    uint lastAccNxmUpdate;
+    uint rewardPerSecond;
   }
 
   struct ExpiredTranche {
     uint accNxmPerRewardShareAtExpiry;
     uint stakeAmountAtExpiry;
     uint stakeShareSupplyAtExpiry;
+    uint rewardSharesAtExpiry;
   }
 
   struct Deposit {

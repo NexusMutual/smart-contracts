@@ -36,15 +36,9 @@ contract StakingPool is IStakingPool, ERC721 {
   // currently active staked nxm amount
   uint public totalActiveStake;
 
-  // supply of pool rewards shares used by tranches
-  uint public rewardsSharesSupply;
-
   // current nxm reward per second for the entire pool
   // applies to active stake only and does not need update on deposits
   uint public rewardPerSecond;
-
-  // accumulated rewarded nxm per reward share
-  uint public accNxmPerRewardsShare;
 
   // timestamp when accNxmPerRewardsShare was last updated
   uint public lastAccNxmUpdate;
@@ -238,23 +232,6 @@ contract StakingPool is IStakingPool, ERC721 {
       }
     }
 
-    // SLOAD
-    uint _rewardPerSecond = rewardPerSecond;
-    uint _rewardsSharesSupply = rewardsSharesSupply;
-    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
-    uint _lastAccNxmUpdate = lastAccNxmUpdate;
-
-    // exit early if we already updated in the current block
-    if (_lastAccNxmUpdate == block.timestamp) {
-      return;
-    }
-
-    if (_rewardsSharesSupply == 0) {
-      // nothing to do, just update lastAccNxmUpdate
-      lastAccNxmUpdate = block.timestamp;
-      return;
-    }
-
     while (_firstActiveBucketId < currentBucketId || _firstActiveTrancheId < currentTrancheId) {
 
       // what expires first, the bucket or the tranche?
@@ -265,6 +242,8 @@ contract StakingPool is IStakingPool, ERC721 {
         bucketExpiresFirst = nextBucketStart <= nextTrancheStart;
       }
 
+      Tranche memory expiringTranche = tranches[_firstActiveTrancheId];
+
       if (bucketExpiresFirst) {
 
         // expire a bucket
@@ -272,13 +251,14 @@ contract StakingPool is IStakingPool, ERC721 {
 
         ++_firstActiveBucketId;
         uint bucketStartTime = _firstActiveBucketId * BUCKET_DURATION;
-        uint elapsed = bucketStartTime - _lastAccNxmUpdate;
+        uint elapsed = bucketStartTime - expiringTranche.lastAccNxmUpdate;
 
-        uint newAccNxmPerRewardsShare = _rewardsSharesSupply > 0 ? (elapsed * _rewardPerSecond) / _rewardsSharesSupply : 0;
-        _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
+        uint newAccNxmPerRewardsShare = expiringTranche.rewardsShares > 0 ? (elapsed * expiringTranche.rewardPerSecond) / expiringTranche.rewardsShares : 0;
+        expiringTranche.accNxmPerRewardShare = expiringTranche.accNxmPerRewardShare.uncheckedAdd(newAccNxmPerRewardsShare);
 
-        _rewardPerSecond -= rewardBuckets[_firstActiveBucketId].rewardPerSecondCut;
-        _lastAccNxmUpdate = bucketStartTime;
+        expiringTranche.rewardPerSecond -= rewardBuckets[_firstActiveBucketId].rewardPerSecondCut;
+        expiringTranche.lastAccNxmUpdate = bucketStartTime;
+
 
         continue;
       }
@@ -287,18 +267,18 @@ contract StakingPool is IStakingPool, ERC721 {
       // each tranche contains shares - we expire them when the tranche *ends*
       // TODO: check if we have to expire the tranche
       {
-        uint trancheEndTime = (_firstActiveTrancheId + 1) * TRANCHE_DURATION;
-        uint elapsed = trancheEndTime - _lastAccNxmUpdate;
-        uint newAccNxmPerRewardsShare = _rewardsSharesSupply > 0 ? elapsed * _rewardPerSecond / _rewardsSharesSupply : 0;
-        _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
-        _lastAccNxmUpdate = trancheEndTime;
 
-        Tranche memory expiringTranche = tranches[_firstActiveTrancheId];
+        uint trancheEndTime = (_firstActiveTrancheId + 1) * TRANCHE_DURATION;
+        uint elapsed = trancheEndTime - expiringTranche.lastAccNxmUpdate;
+        uint newAccNxmPerRewardsShare = expiringTranche.rewardsShares > 0 ? elapsed * expiringTranche.rewardPerSecond / expiringTranche.rewardsShares : 0;
+        expiringTranche.accNxmPerRewardShare = expiringTranche.accNxmPerRewardShare.uncheckedAdd(newAccNxmPerRewardsShare);
+
         // SSTORE
         expiredTranches[_firstActiveTrancheId] = ExpiredTranche(
-          _accNxmPerRewardsShare, // accNxmPerRewardShareAtExpiry
+          expiringTranche.accNxmPerRewardShare, // accNxmPerRewardShareAtExpiry
           expiringTranche.activeStake, // stakeAmountAtExpiry
-          expiringTranche.stakeShares// stakeShareSupplyAtExpiry
+          expiringTranche.stakeShares, // stakeShareSupplyAtExpiry
+          expiringTranche.rewardsShares  // rewardSharesAtExpiry
         );
 
         // SLOAD and then SSTORE zero to get the gas refund
@@ -306,7 +286,6 @@ contract StakingPool is IStakingPool, ERC721 {
 
         // the tranche is expired now so we decrease the stake and the shares supply
         totalActiveStake -= expiringTranche.activeStake;
-        _rewardsSharesSupply -= expiringTranche.rewardsShares;
 
         // advance to the next tranche
         _firstActiveTrancheId++;
@@ -316,19 +295,17 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     if (updateUntilCurrentTimestamp) {
-      uint elapsed = block.timestamp - _lastAccNxmUpdate;
-      uint newAccNxmPerRewardsShare = elapsed * _rewardPerSecond / _rewardsSharesSupply;
-      _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
-      _lastAccNxmUpdate = block.timestamp;
+      Tranche memory tranche = tranches[_firstActiveTrancheId];
+      uint rewardsSharesSupply = tranche.rewardsShares;
+      uint elapsed = block.timestamp - tranche.lastAccNxmUpdate;
+      uint newAccNxmPerRewardsShare = rewardsSharesSupply > 0 ? elapsed * tranche.rewardPerSecond / rewardsSharesSupply : 0;
+      tranche.accNxmPerRewardShare = tranche.accNxmPerRewardShare.uncheckedAdd(newAccNxmPerRewardsShare);
+      tranche.lastAccNxmUpdate = block.timestamp;
+      tranches[_firstActiveTrancheId] = tranche;
     }
 
     firstActiveTrancheId = _firstActiveTrancheId;
     firstActiveBucketId = _firstActiveBucketId;
-
-    rewardPerSecond = _rewardPerSecond;
-    accNxmPerRewardsShare = _accNxmPerRewardsShare;
-    lastAccNxmUpdate = _lastAccNxmUpdate;
-    rewardsSharesSupply = _rewardsSharesSupply;
   }
 
   function depositTo(DepositRequest[] memory requests) public returns (uint[] memory tokenIds) {
@@ -343,8 +320,6 @@ contract StakingPool is IStakingPool, ERC721 {
     updateTranches(true);
 
     // storage reads
-    uint _rewardsSharesSupply = rewardsSharesSupply;
-    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
 
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;
@@ -373,12 +348,12 @@ contract StakingPool is IStakingPool, ERC721 {
         tokenIds[i] = request.tokenId;
       }
 
-      uint stakeSharesSupply = tranches[request.trancheId].stakeShares;
-      uint activeStake = tranches[request.trancheId].activeStake;
+//      uint stakeSharesSupply = tranches[request.trancheId].stakeShares;
+      Tranche memory tranche = tranches[request.trancheId];
 
-      uint newStakeShares = stakeSharesSupply == 0
+      uint newStakeShares = tranche.stakeShares == 0
         ? Math.sqrt(request.amount)
-        : stakeSharesSupply * request.amount / activeStake;
+        : tranche.stakeShares * request.amount / tranche.activeStake;
 
       uint newRewardsShares;
 
@@ -399,13 +374,13 @@ contract StakingPool is IStakingPool, ERC721 {
 
         // if we're increasing an existing deposit
         if (deposit.lastAccNxmPerRewardShare != 0) {
-          uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(deposit.lastAccNxmPerRewardShare);
+          uint newEarningsPerShare = tranche.accNxmPerRewardShare.uncheckedSub(deposit.lastAccNxmPerRewardShare);
           deposit.pendingRewards += newEarningsPerShare * deposit.rewardsShares;
         }
 
         deposit.stakeShares += newStakeShares;
         deposit.rewardsShares += newRewardsShares;
-        deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+        deposit.lastAccNxmPerRewardShare = tranche.accNxmPerRewardShare;
 
         // sstore
         deposits[tokenIds[i]][request.trancheId] = deposit;
@@ -421,9 +396,9 @@ contract StakingPool is IStakingPool, ERC721 {
           newRewardsShares += newFeeRewardShares;
 
           // calculate rewards until now
-          uint newRewardPerShare = _accNxmPerRewardsShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
+          uint newRewardPerShare = tranche.accNxmPerRewardShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
           feeDeposit.pendingRewards += newRewardPerShare * feeDeposit.rewardsShares;
-          feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+          feeDeposit.lastAccNxmPerRewardShare = tranche.accNxmPerRewardShare;
           feeDeposit.rewardsShares += newFeeRewardShares;
         }
 
@@ -432,23 +407,18 @@ contract StakingPool is IStakingPool, ERC721 {
 
       // update tranche
       {
-        Tranche memory tranche = tranches[request.trancheId];
         tranche.stakeShares += newStakeShares;
         tranche.activeStake += request.amount;
         tranche.rewardsShares += newRewardsShares;
         tranches[request.trancheId] = tranche;
       }
       totalAmount += request.amount;
-      _rewardsSharesSupply += newRewardsShares;
     }
 
     totalActiveStake += totalAmount;
     address source = msg.sender == coverContract ? manager() : msg.sender;
     // transfer nxm from the staker and update the pool deposit balance
     tokenController.depositStakedNXM(source, totalAmount, poolId);
-
-    // update globals
-    rewardsSharesSupply = _rewardsSharesSupply;
   }
 
   function getTimeLeftOfTranche(uint trancheId, uint blockTimestamp) internal pure returns (uint) {
@@ -500,7 +470,6 @@ contract StakingPool is IStakingPool, ERC721 {
     // pass false as it does not modify the share supply nor the reward per second
     updateTranches(false);
 
-    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 
     for (uint i = 0; i < params.length; i++) {
@@ -540,14 +509,14 @@ contract StakingPool is IStakingPool, ERC721 {
           // if the tranche is expired, use the accumulator value saved at expiration time
           uint accNxmPerRewardShareToUse = trancheId < _firstActiveTrancheId
             ? expiredTranches[trancheId].accNxmPerRewardShareAtExpiry
-            : _accNxmPerRewardsShare;
+            : tranches[trancheId].accNxmPerRewardShare;
 
           // calculate reward since checkpoint
           uint newRewardPerShare = accNxmPerRewardShareToUse.uncheckedSub(deposit.lastAccNxmPerRewardShare);
           rewardsToWithdraw += newRewardPerShare * deposit.rewardsShares + deposit.pendingRewards;
 
           // save checkpoint
-          deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+          deposit.lastAccNxmPerRewardShare = tranches[trancheId].accNxmPerRewardShare;
           deposit.pendingRewards = 0;
           deposit.rewardsShares = 0;
         }
@@ -1185,22 +1154,20 @@ contract StakingPool is IStakingPool, ERC721 {
       tranches[newTrancheId] = newTranche;
     }
 
-    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
-
     // if there already is a deposit on the new tranche, calculate its pending rewards
     if (updatedDeposit.lastAccNxmPerRewardShare != 0) {
-      uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(updatedDeposit.lastAccNxmPerRewardShare);
+      uint newEarningsPerShare = newTranche.accNxmPerRewardShare.uncheckedSub(updatedDeposit.lastAccNxmPerRewardShare);
       updatedDeposit.pendingRewards += newEarningsPerShare * updatedDeposit.rewardsShares;
     }
 
     // calculate the rewards for the deposit being extended and move them to the new deposit
     {
-      uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(initialDeposit.lastAccNxmPerRewardShare);
+      uint newEarningsPerShare = tranches[initialTrancheId].accNxmPerRewardShare.uncheckedSub(initialDeposit.lastAccNxmPerRewardShare);
       updatedDeposit.pendingRewards += newEarningsPerShare * initialDeposit.rewardsShares;
       updatedDeposit.pendingRewards += initialDeposit.pendingRewards;
     }
 
-    updatedDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+    updatedDeposit.lastAccNxmPerRewardShare = newTranche.accNxmPerRewardShare;
     updatedDeposit.stakeShares += initialDeposit.stakeShares + newStakeShares;
     updatedDeposit.rewardsShares += initialDeposit.rewardsShares + newRewardsShares;
 
@@ -1209,9 +1176,6 @@ contract StakingPool is IStakingPool, ERC721 {
 
     // store the new deposit.
     deposits[tokenId][newTrancheId] = updatedDeposit;
-
-    // update global shares supply
-    rewardsSharesSupply += newRewardsShares;
 
     // transfer nxm from the staker and update the pool deposit balance
     tokenController.depositStakedNXM(msg.sender, transferAmount, poolId);
@@ -1440,7 +1404,6 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
 
     uint fromTrancheId = block.timestamp / TRANCHE_DURATION;
     uint toTrancheId = fromTrancheId + MAX_ACTIVE_TRANCHES - 1;
-    uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
 
     for (uint trancheId = fromTrancheId; trancheId <= toTrancheId; trancheId++) {
 
@@ -1451,10 +1414,12 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
         continue;
       }
 
+      uint accNxmPerRewardsShare = tranches[trancheId].accNxmPerRewardShare;
+
       // update pending reward and reward shares
-      uint newRewardPerRewardsShare = _accNxmPerRewardsShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
+      uint newRewardPerRewardsShare = accNxmPerRewardsShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
       feeDeposit.pendingRewards += newRewardPerRewardsShare * feeDeposit.rewardsShares;
-      feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+      feeDeposit.lastAccNxmPerRewardShare = accNxmPerRewardsShare;
       // TODO: would using tranche.rewardsShares give a better precision?
       feeDeposit.rewardsShares = feeDeposit.rewardsShares * newFee / oldFee;
 

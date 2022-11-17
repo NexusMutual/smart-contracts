@@ -77,6 +77,16 @@ contract TokenControllerMock is MasterAware {
     token.operatorTransfer(from, amount);
   }
 
+  function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {
+//    require(msg.sender == address(cover.stakingPool(poolId)), "TokenController: msg.sender not staking pool");
+    StakingPoolNXMBalances memory poolBalances = stakingPoolNXMBalances[poolId];
+    poolBalances.deposits -= uint128(stakeToWithdraw);
+    poolBalances.rewards -= uint128(rewardsToWithdraw);
+    stakingPoolNXMBalances[poolId] = poolBalances;
+
+    token.transfer(to, stakeToWithdraw + rewardsToWithdraw);
+  }
+
     /* unused functions */
 
   modifier unused {

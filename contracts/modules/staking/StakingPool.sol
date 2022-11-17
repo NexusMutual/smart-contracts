@@ -64,6 +64,10 @@ contract StakingPool is IStakingPool, ERC721 {
   // erc721 supply
   uint public totalSupply;
 
+ /* events */
+  event PoolPrivacyChanged(address indexed src, bool isPrivate);
+  event PoolFeeChanged(address indexed src, uint newFee);
+
   // tranche id => tranche data
   mapping(uint => Tranche) public tranches;
 
@@ -1480,10 +1484,14 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
       // sstore
       deposits[0][trancheId] = feeDeposit;
     }
+
+    emit PoolFeeChanged(msg.sender, newFee);
   }
 
   function setPoolPrivacy(bool _isPrivatePool) external onlyManager {
     isPrivatePool = _isPrivatePool;
+
+    emit PoolPrivacyChanged(msg.sender, _isPrivatePool);
   }
 
   /* utils */

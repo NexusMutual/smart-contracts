@@ -47,10 +47,12 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
   uint public constant joiningFee = 0.002 ether;
 
   modifier checkRoleAuthority(uint _memberRoleId) {
-    if (memberRoleData[_memberRoleId].authorized != address(0))
+    if (memberRoleData[_memberRoleId].authorized != address(0)) {
       require(msg.sender == memberRoleData[_memberRoleId].authorized);
-    else
-      require(isAuthorizedToGovern(msg.sender), "Not Authorized");
+    }
+    else {
+      require(master.checkIsAuthToGoverned(msg.sender), "Not Authorized");
+    }
     _;
   }
 
@@ -120,7 +122,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     bytes32 _roleName,
     string memory _roleDescription,
     address _authorized
-  ) public onlyAuthorizedToGovern {
+  ) public onlyGovernance {
     _addRole(_roleName, _roleDescription, _authorized);
   }
 

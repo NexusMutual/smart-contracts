@@ -43,13 +43,15 @@ describe('depositTo', function () {
   });
 
   it('reverts if caller is not cover contract or manager when pool is private', async function () {
-    const { stakingPool, cover } = this;
+    const { stakingPool, cover, nxm, tokenController } = this;
     const {
       members: [user],
       defaultSender: manager,
     } = this.accounts;
 
-    const { amount, trancheId, tokenId, destination } = depositToFixture;
+    const { amount, tokenId, destination } = depositToFixture;
+
+    const { firstActiveTrancheId } = await getTranches();
 
     await stakingPool.connect(manager).setPoolPrivacy(true);
 
@@ -57,7 +59,7 @@ describe('depositTo', function () {
       stakingPool.connect(user).depositTo([
         {
           amount,
-          trancheId,
+          trancheId: firstActiveTrancheId,
           tokenId,
           destination,
         },
@@ -66,27 +68,33 @@ describe('depositTo', function () {
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
 
+    await nxm.mint(cover.address, amount);
+    await nxm.connect(coverSigner).approve(tokenController.address, amount);
+
     await expect(
       stakingPool.connect(coverSigner).depositTo([
         {
           amount,
-          trancheId,
+          trancheId: firstActiveTrancheId,
           tokenId,
           destination,
         },
       ]),
-    ).to.not.be.revertedWith('StakingPool: The pool is private');
+    ).to.not.be.reverted;
+
+    await nxm.mint(manager.address, amount);
+    await nxm.connect(manager).approve(tokenController.address, amount);
 
     await expect(
       stakingPool.connect(manager).depositTo([
         {
           amount,
-          trancheId,
+          trancheId: firstActiveTrancheId,
           tokenId,
           destination,
         },
       ]),
-    ).to.not.be.revertedWith('StakingPool: The pool is private');
+    ).to.not.be.reverted;
   });
 
   it('reverts if deposit amount is 0', async function () {

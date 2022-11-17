@@ -3,6 +3,7 @@ const { expect } = require('chai');
 const { getTranches, getNewRewardShares, estimateStakeShares, POOL_FEE_DENOMINATOR } = require('./helpers');
 const { setEtherBalance, increaseTime } = require('../../utils/evm');
 const { BigNumber } = require('ethers');
+const { daysToSeconds } = require('../../../lib/helpers');
 
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
@@ -339,20 +340,15 @@ describe('depositTo', function () {
       coverId: 0,
       productId: 0,
       amount: parseEther('100'),
-      period: 3600 * 24 * 30, // 30 days
-      gracePeriod: 3600 * 24 * 30,
+      period: daysToSeconds(30),
+      gracePeriod: daysToSeconds(30),
       globalCapacityRatio: 20000,
       capacityReductionRatio: 0,
       rewardRatio: 10000,
     };
     await stakingPool.connect(this.coverSigner).allocateStake(coverRequest);
 
-    await increaseTime(
-      20 * // days
-        24 * // hours
-        60 * // minutes
-        60, // seconds
-    );
+    await increaseTime(daysToSeconds(20));
 
     // Second deposit
     await stakingPool.connect(user).depositTo([
@@ -429,20 +425,15 @@ describe('depositTo', function () {
       coverId: 0,
       productId: 0,
       amount: parseEther('100'),
-      period: 3600 * 24 * 30, // 30 days
-      gracePeriod: 3600 * 24 * 30,
+      period: daysToSeconds(30),
+      gracePeriod: daysToSeconds(30),
       globalCapacityRatio: 20000,
       capacityReductionRatio: 0,
       rewardRatio: 10000,
     };
     await stakingPool.connect(this.coverSigner).allocateStake(coverRequest);
 
-    await increaseTime(
-      20 * // days
-        24 * // hours
-        60 * // minutes
-        60, // seconds
-    );
+    await increaseTime(daysToSeconds(20));
 
     // Second deposit
     await stakingPool.connect(user).depositTo([
@@ -491,20 +482,15 @@ describe('depositTo', function () {
       coverId: 0,
       productId: 0,
       amount: parseEther('1'),
-      period: 3600 * 24 * 30, // 30 days
-      gracePeriod: 3600 * 24 * 30,
+      period: daysToSeconds(30),
+      gracePeriod: daysToSeconds(30),
       globalCapacityRatio: 20000,
       capacityReductionRatio: 0,
       rewardRatio: 5000,
     };
     await stakingPool.connect(this.coverSigner).allocateStake(coverRequest);
 
-    await increaseTime(
-      150 * // days
-        24 * // hours
-        60 * // minutes
-        60, // seconds
-    );
+    await increaseTime(daysToSeconds(150));
 
     await expect(
       stakingPool.connect(user).depositTo([

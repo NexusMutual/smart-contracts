@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
-const { AddressZero } = ethers.constants;
+const { AddressZero, WeiPerEther } = ethers.constants;
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
@@ -73,9 +73,8 @@ describe('burnStake', function () {
   it('Should burn half of stake and update shares properly', async function () {
     const { stakingPool, cover, nxm, tokenController } = this;
     const [manager, staker, stakerTwo, coverBuyer] = this.accounts.members;
-    const DECIMALS_18 = BigNumber.from(10).pow(18);
     const stakeAmountInNxm = BigNumber.from(100000);
-    const stakeAmount = stakeAmountInNxm.mul(DECIMALS_18);
+    const stakeAmount = stakeAmountInNxm.mul(WeiPerEther);
 
     // Initialize pool and set products
     await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
@@ -152,9 +151,8 @@ describe('burnStake', function () {
   it('Should revert if burn is not called from Cover contract', async function () {
     const { stakingPool, cover, nxm, tokenController } = this;
     const [manager, staker] = this.accounts.members;
-    const DECIMALS_18 = BigNumber.from(10).pow(18);
     const stakeAmountInNxm = BigNumber.from(100000);
-    const stakeAmount = stakeAmountInNxm.mul(DECIMALS_18);
+    const stakeAmount = stakeAmountInNxm.mul(WeiPerEther);
 
     // Initialize pool and set products
     await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
@@ -177,9 +175,8 @@ describe('burnStake', function () {
     const { stakingPool, cover, nxm, tokenController } = this;
     const [manager, staker] = this.accounts.members;
     // const stakeAmount = BigNumber.from(2).pow(64).sub(1);
-    const DECIMALS_18 = BigNumber.from(10).pow(18);
     const stakeAmountInNxm = BigNumber.from(100);
-    const stakeAmount = stakeAmountInNxm.mul(DECIMALS_18);
+    const stakeAmount = stakeAmountInNxm.mul(WeiPerEther);
 
     // Initialize pool and set products
     await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
@@ -480,9 +477,8 @@ describe('burnStake', function () {
   it('Should not revert if burning more stake than exists in pool', async function () {
     const { stakingPool, cover, nxm, tokenController } = this;
     const [manager, staker] = this.accounts.members;
-    const DECIMALS_18 = BigNumber.from(10).pow(18);
     const stakeAmountInNxm = BigNumber.from(100000);
-    const stakeAmount = stakeAmountInNxm.mul(DECIMALS_18);
+    const stakeAmount = stakeAmountInNxm.mul(WeiPerEther);
 
     // Initialize pool and set products
     await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
@@ -502,9 +498,8 @@ describe('burnStake', function () {
   it('Should revert depositing into a pool with all of its stake burned', async function () {
     const { stakingPool, cover, nxm, tokenController } = this;
     const [manager, staker] = this.accounts.members;
-    const DECIMALS_18 = BigNumber.from(10).pow(18);
     const stakeAmountInNxm = BigNumber.from(100000);
-    const stakeAmount = stakeAmountInNxm.mul(DECIMALS_18);
+    const stakeAmount = stakeAmountInNxm.mul(WeiPerEther);
 
     // Initialize pool and set products
     await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
@@ -528,9 +523,8 @@ describe('burnStake', function () {
     const { stakingPool, cover, nxm, tokenController } = this;
     const [manager, staker, coverBuyer] = this.accounts.members;
     const { BUCKET_DURATION, TRANCHE_DURATION } = this.config;
-    const DECIMALS_18 = BigNumber.from(10).pow(18);
     const stakeAmountInNxm = BigNumber.from(100000);
-    const stakeAmount = stakeAmountInNxm.mul(DECIMALS_18);
+    const stakeAmount = stakeAmountInNxm.mul(WeiPerEther);
 
     // Initialize pool and set products
     await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);

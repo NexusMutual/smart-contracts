@@ -284,7 +284,7 @@ describe('initialize', function () {
       expect(targetPrice.toString()).to.be.eq(product.targetPrice);
       expect(nextPrice.toString()).to.be.eq(product.initialPrice);
       expect(nextPriceUpdateTime).to.not.be.eq(0);
-      expect(lastEffectiveWeight).to.be.eq(0);
+      expect(lastEffectiveWeight).to.be.eq(product.weight);
     }
   });
 

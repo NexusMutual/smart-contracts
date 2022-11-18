@@ -364,8 +364,12 @@ describe('depositTo', function () {
 
     expect(secondDepositData.lastAccNxmPerRewardShare).to.not.equal(0);
     expect(secondDepositData.lastAccNxmPerRewardShare).to.equal(secondAccNxmPerRewardsShare);
-    // TODO: Shouldn't pendingRewards also be updated?
-    expect(secondDepositData.pendingRewards).to.equal(0);
+    expect(secondDepositData.pendingRewards).to.not.equal(0);
+    expect(secondDepositData.pendingRewards).to.equal(
+      depositData.rewardsShares.mul(
+        secondDepositData.lastAccNxmPerRewardShare.sub(depositData.lastAccNxmPerRewardShare),
+      ),
+    );
 
     // Last deposit
     await stakingPool.connect(user).depositTo([
@@ -384,8 +388,10 @@ describe('depositTo', function () {
     expect(lastDepositData.lastAccNxmPerRewardShare).to.equal(lastAccNxmPerRewardsShare);
     expect(lastDepositData.pendingRewards).to.not.equal(0);
     expect(lastDepositData.pendingRewards).to.equal(
-      secondDepositData.rewardsShares.mul(
-        lastDepositData.lastAccNxmPerRewardShare.sub(secondDepositData.lastAccNxmPerRewardShare),
+      secondDepositData.pendingRewards.add(
+        secondDepositData.rewardsShares.mul(
+          lastDepositData.lastAccNxmPerRewardShare.sub(secondDepositData.lastAccNxmPerRewardShare),
+        ),
       ),
     );
   });

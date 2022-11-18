@@ -414,7 +414,7 @@ contract StakingPool is IStakingPool, ERC721 {
         );
 
         // if we're increasing an existing deposit
-        if (deposit.lastAccNxmPerRewardShare != 0) {
+        if (deposit.rewardsShares != 0) {
           uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(deposit.lastAccNxmPerRewardShare);
           deposit.pendingRewards += newEarningsPerShare * deposit.rewardsShares;
         }

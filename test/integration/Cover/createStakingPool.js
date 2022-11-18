@@ -1,6 +1,5 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { expectRevert } = require('@openzeppelin/test-helpers');
 const { AddressZero } = ethers.constants;
 
 const { parseEther } = ethers.utils;
@@ -56,7 +55,7 @@ describe('createStakingPool', function () {
     expect(tokenControllerBalanceAfterCreation).to.be.equal(tokenControllerBalanceBefore.add(deposit));
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
 
-    const stakingPoolAddress = await cover.stakingPool(stakingPoolCountAfter - 1);
+    const stakingPoolAddress = await cover.stakingPool(stakingPoolCountAfter.sub(1));
     const stakingPool = await ethers.getContractAt('IntegrationMockStakingPool', stakingPoolAddress);
 
     const managerStakingPoolNFTBalanceBefore = await stakingPool.balanceOf(manager.address);
@@ -66,7 +65,7 @@ describe('createStakingPool', function () {
       {
         amount: deposit,
         trancheId,
-        tokenId: 0, // new position
+        tokenId: 0,
         destination: AddressZero,
       },
     ]);
@@ -79,17 +78,16 @@ describe('createStakingPool', function () {
     expect(tokenControllerBalanceAfterDeposit).to.be.equal(tokenControllerBalanceAfterCreation.add(deposit));
     expect(managerStakingPoolNFTBalanceAfter).to.be.equal(managerStakingPoolNFTBalanceBefore.add(1));
 
-    await expectRevert(
+    await expect(
       stakingPool.connect(staker).depositTo([
         {
           amount: deposit,
           trancheId,
-          tokenId: 0, // new position
+          tokenId: 0,
           destination: AddressZero,
         },
       ]),
-      'StakingPool: The pool is private',
-    );
+    ).to.be.revertedWith('StakingPool: The pool is private');
   });
 
   it('should create a public staking pool with an initial deposit', async function () {
@@ -123,7 +121,7 @@ describe('createStakingPool', function () {
     expect(tokenControllerBalanceAfterCreation).to.be.equal(tokenControllerBalanceBefore.add(deposit));
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
 
-    const stakingPoolAddress = await cover.stakingPool(stakingPoolCountAfter - 1);
+    const stakingPoolAddress = await cover.stakingPool(stakingPoolCountAfter.sub(1));
     const stakingPool = await ethers.getContractAt('IntegrationMockStakingPool', stakingPoolAddress);
 
     const managerStakingPoolNFTBalanceBefore = await stakingPool.balanceOf(manager.address);
@@ -133,7 +131,7 @@ describe('createStakingPool', function () {
       {
         amount: deposit,
         trancheId,
-        tokenId: 0, // new position
+        tokenId: 0,
         destination: AddressZero,
       },
     ]);
@@ -151,7 +149,7 @@ describe('createStakingPool', function () {
       {
         amount: deposit,
         trancheId,
-        tokenId: 0, // new position
+        tokenId: 0,
         destination: AddressZero,
       },
     ]);

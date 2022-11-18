@@ -39,7 +39,7 @@ describe('createStakingPool', function () {
     const tokenControllerBalanceBefore = await tk.balanceOf(tc.address);
     const stakingPoolCountBefore = await cover.stakingPoolCount();
 
-    const tx = await cover.connect(manager).createStakingPool(
+    await cover.connect(manager).createStakingPool(
       manager.address,
       true, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
@@ -48,8 +48,6 @@ describe('createStakingPool', function () {
       deposit, // depositAmount,
       trancheId, // trancheId
     );
-    const txResult = await tx.wait();
-
     const managerNXMBalanceAfterCreation = await tk.balanceOf(manager.address);
     const tokenControllerBalanceAfterCreation = await tk.balanceOf(tc.address);
     const stakingPoolCountAfter = await cover.stakingPoolCount();
@@ -58,7 +56,7 @@ describe('createStakingPool', function () {
     expect(tokenControllerBalanceAfterCreation).to.be.equal(tokenControllerBalanceBefore.add(deposit));
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
 
-    const { stakingPoolAddress } = txResult.events.pop().args;
+    const stakingPoolAddress = await cover.stakingPool(stakingPoolCountAfter - 1);
     const stakingPool = await ethers.getContractAt('IntegrationMockStakingPool', stakingPoolAddress);
 
     const managerStakingPoolNFTBalanceBefore = await stakingPool.balanceOf(manager.address);
@@ -107,7 +105,7 @@ describe('createStakingPool', function () {
     const tokenControllerBalanceBefore = await tk.balanceOf(tc.address);
     const stakingPoolCountBefore = await cover.stakingPoolCount();
 
-    const tx = await cover.connect(manager).createStakingPool(
+    await cover.connect(manager).createStakingPool(
       manager.address,
       false, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
@@ -116,7 +114,6 @@ describe('createStakingPool', function () {
       deposit, // depositAmount,
       trancheId, // trancheId
     );
-    const txResult = await tx.wait();
 
     const managerNXMBalanceAfterCreation = await tk.balanceOf(manager.address);
     const tokenControllerBalanceAfterCreation = await tk.balanceOf(tc.address);
@@ -126,7 +123,7 @@ describe('createStakingPool', function () {
     expect(tokenControllerBalanceAfterCreation).to.be.equal(tokenControllerBalanceBefore.add(deposit));
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
 
-    const { stakingPoolAddress } = txResult.events.pop().args;
+    const stakingPoolAddress = await cover.stakingPool(stakingPoolCountAfter - 1);
     const stakingPool = await ethers.getContractAt('IntegrationMockStakingPool', stakingPoolAddress);
 
     const managerStakingPoolNFTBalanceBefore = await stakingPool.balanceOf(manager.address);

@@ -118,13 +118,13 @@ contract StakingPool is IStakingPool, ERC721 {
   uint public constant INITIAL_PRICE_DENOMINATOR = 100_00;
   uint public constant TARGET_PRICE_DENOMINATOR = 100_00;
 
-  // base price bump is +0.2% for each 1% of capacity used, ie +20% for 100%
-  // 20% = 0.2
-  uint public constant PRICE_BUMP_RATIO = 0.2 ether;
+  // base price bump
+  // +0.2% for each 1% of capacity used, ie +20% for 100%
+  uint public constant PRICE_BUMP_RATIO = 20_00; // 20%
 
   // next price smoothing
-  // 0.005 ether = 0.5% out of 1e18
-  uint public constant PRICE_CHANGE_PER_DAY = 0.005 ether;
+  // 0.5% per day
+  uint public constant PRICE_CHANGE_PER_DAY = 50; // 0.5%
 
   // +2% for every 1%, ie +200% for 100%
   uint public constant SURGE_PRICE_RATIO = 2 ether;

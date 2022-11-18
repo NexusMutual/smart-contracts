@@ -387,7 +387,8 @@ contract StakingPool is IStakingPool, ERC721 {
         address to = request.destination == address(0) ? msg.sender : request.destination;
         _mint(to, tokenIds[i]);
       } else {
-        require(ownerOf(request.tokenId) != address(0), "StakingPool: Token does not exist");
+        // validate token id exists. ownerOf() reverts if owner is address 0
+        ownerOf(request.tokenId);
         tokenIds[i] = request.tokenId;
       }
 

@@ -7,11 +7,11 @@ import "../interfaces/INXMToken.sol";
 
 contract NXMTokenMock is INXMToken, ERC20 {
 
-  mapping(address => bool) public isLockedForMV;
+  mapping(address => uint) public isLockedForMV;
   address public operator;
 
-  function setLock(address _member, bool _lock) public {
-    isLockedForMV[_member] = _lock;
+  function setLock(address _member, uint lockTime) public {
+    isLockedForMV[_member] = block.timestamp + lockTime;
   }
 
   function setOperator(address _operator) public {
@@ -26,13 +26,13 @@ contract NXMTokenMock is INXMToken, ERC20 {
   }
 
   function transfer(address to, uint256 amount) public returns (bool) {
-    require(!isLockedForMV[msg.sender], "Member should not be locked for member voting");
+    require(isLockedForMV[msg.sender] < block.timestamp, "Member should not be locked for member voting");
     _transfer(msg.sender, to, amount);
     return true;
   }
 
   function transferFrom(address from, address to, uint256 amount) public returns (bool) {
-    require(!isLockedForMV[from], "Member should not be locked for member voting");
+    require(isLockedForMV[msg.sender] < block.timestamp, "Member should not be locked for member voting");
     _approve(from, msg.sender, allowance(from, msg.sender).sub(amount, "ERC20: transfer amount exceeds allowance"));
     _transfer(from, to, amount);
     return true;

@@ -138,6 +138,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param amount  The amount of nxm to stake
   function stake(uint96 amount) public whenNotPaused {
     stakeOf[msg.sender].amount += amount;
+    require(block.timestamp > nxm.isLockedForMV(msg.sender), "Assessment: Nxm locked for voting");
     ITokenController(getInternalContractAddress(ID.TC))
       .operatorTransfer(msg.sender, address(this), amount);
 

@@ -25,19 +25,31 @@ const claimMethod = { claim: 0, incident: 1 };
 
 const productTypes = [
   {
-    descriptionIpfsHash: 'protocolCoverIPFSHash',
-    claimMethod: claimMethod.claim,
-    gracePeriodInDays: 30,
+    productTypeId: MaxUint256,
+    ipfsMetadata: 'protocolCoverIPFSHash',
+    productType: {
+      descriptionIpfsHash: 'protocolCoverIPFSHash',
+      claimMethod: claimMethod.claim,
+      gracePeriodInDays: 30,
+    },
   },
   {
-    descriptionIpfsHash: 'custodyCoverIPFSHash',
-    claimMethod: claimMethod.claim,
-    gracePeriodInDays: 90,
+    productTypeId: MaxUint256,
+    ipfsMetadata: 'custodyCoverIPFSHash',
+    productType: {
+      descriptionIpfsHash: 'custodyCoverIPFSHash',
+      claimMethod: claimMethod.claim,
+      gracePeriodInDays: 90,
+    },
   },
   {
-    descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
-    claimMethod: claimMethod.incident,
-    gracePeriodInDays: 14,
+    productTypeId: MaxUint256,
+    ipfsMetadata: 'yieldTokenCoverIPFSHash',
+    productType: {
+      descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
+      claimMethod: claimMethod.incident,
+      gracePeriodInDays: 14,
+    },
   },
 ];
 
@@ -313,13 +325,7 @@ async function main() {
   await cover.changeMasterAddress(master.address);
   await cover.changeDependentContractAddress();
 
-  await cover.setProductTypes(
-    productTypes.map(productType => ({
-      productType,
-      productTypeId: MaxUint256,
-      ipfsMetadata: productType.descriptionIpfsHash,
-    })),
-  );
+  await cover.setProductTypes(productTypes);
 
   const addProductsParams = products.map(product => {
     const underlyingToken = ['ETH', 'DAI'].indexOf(product.underlyingToken);
@@ -399,19 +405,19 @@ async function main() {
     {
       productId,
       weight: '40',
-      currentPrice: initialPrice,
+      initialPrice,
       targetPrice,
     },
     {
       productId: 1,
       weight: '40',
-      currentPrice: initialPrice,
+      initialPrice,
       targetPrice,
     },
     {
       productId: 2,
       weight: '20',
-      currentPrice: initialPrice,
+      initialPrice,
       targetPrice,
     },
   ];

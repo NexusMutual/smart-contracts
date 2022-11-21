@@ -218,7 +218,7 @@ contract NXMToken is OZIERC20 {
   * @param value The amount to be transferred.
   */
   function operatorTransfer(address from, uint256 value) public onlyOperator returns (bool) {
-    require(value <= _balances[from], "Insufficient funds to allow transfer");
+    require(value <= _balances[from]);
     _transferFrom(from, operator, value);
     return true;
   }

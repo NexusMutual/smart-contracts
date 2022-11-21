@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.16;
 
-import "../../abstract/LegacyMasterAware.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IGovernance.sol";
@@ -13,11 +12,12 @@ import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../libraries/SafeUintCast.sol";
-import "./external/LockHandler.sol";
 import "../../abstract/MasterAwareV2.sol";
+import "./external/LockHandler.sol";
 
 contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   using SafeUintCast for uint;
+
   IQuotationData public immutable quotationData;
   address public immutable claimsReward;
 
@@ -25,8 +25,8 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   address public _unused1;
   address public _unused2;
   address public _unused3;
-
   address public _unused4;
+
   mapping(uint => StakingPoolNXMBalances) public override stakingPoolNXMBalances;
 
   // coverId => CoverInfo

@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { config, network, ethers } = require('hardhat');
 
 function zeroPadRight(bytes, length) {
@@ -9,10 +10,18 @@ async function main() {
   console.log('Network config:', config.networks[network.name]);
 
   const [owner] = await ethers.getSigners();
-  const quotationData = await ethers.getContractAt(
-    'TestnetQuotationData',
-    '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853',
-  );
+
+  // const quotationData = await ethers.getContractAt(
+  //   'TestnetQuotationData',
+  //   '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853',
+  // );
+
+  /**
+   * For local testing we need to add the `addOldCover` function
+   * from the `TestnetQuotationData` contract to the `LegacyQuotationData` contract.
+   * Then we can use this script to add old v1 covers
+   */
+  const quotationData = await ethers.getContractAt('LegacyQuotationData', '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9');
 
   const now = Math.floor(Date.now() / 1000);
   const ETH = zeroPadRight(Buffer.from('ETH'), 4);
@@ -34,7 +43,7 @@ async function main() {
     123,
     owner.address, // owner
     ETH,
-    '0x6354e79f21b56c11f48bcd7c451be456d7102a36', // scAddress
+    '0x575409F8d77c12B05feD8B455815f0e54797381c', // scAddress
     0,
     0,
   );
@@ -45,7 +54,7 @@ async function main() {
     123,
     owner.address, // owner
     ETH,
-    '0x6354e79f21b56c11f48bcd7c451be456d7102a36', // scAddress
+    '0x8B3d70d628Ebd30D4A2ea82DB95bA2e906c71633', // scAddress
     0,
     0,
   );

@@ -195,7 +195,7 @@ async function main() {
     cowSettlement.address,
     owner,
     master.address,
-    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+    AddressZero,
     AddressZero,
     AddressZero,
     '0',

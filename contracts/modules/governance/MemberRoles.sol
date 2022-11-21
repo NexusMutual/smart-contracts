@@ -103,9 +103,13 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
   ///
   /// @dev Iupgradable Interface to update dependent contract address
   function changeDependentContractAddress() public override {
+    // qd storage variable was renamed to kycAuthAddress hence this check handles the migration
+    // 0x1776651F58a17a50098d31ba3C3cD259C1903f7A is the address of QuotationData
+
     if (kycAuthAddress == 0x1776651F58a17a50098d31ba3C3cD259C1903f7A) {
       kycAuthAddress = IQuotationData(0x1776651F58a17a50098d31ba3C3cD259C1903f7A).kycAuthAddress();
     }
+
     internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");

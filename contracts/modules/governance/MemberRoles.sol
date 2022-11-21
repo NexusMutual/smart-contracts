@@ -11,7 +11,6 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IStakingPool.sol";
-import "../../abstract/LegacyMasterAware_sol0_8.sol";
 import "./external/Governed.sol";
 import "../../abstract/MasterAwareV2.sol";
 

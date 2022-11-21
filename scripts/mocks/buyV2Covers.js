@@ -1,7 +1,6 @@
-require('dotenv').config();
 const { BigNumber } = require('ethers');
 const { config, network, ethers } = require('hardhat');
-const { ZERO_ADDRESS } = require('../lib/constants');
+const { ZERO_ADDRESS } = require('../../lib/constants');
 
 const {
   utils: { parseEther },

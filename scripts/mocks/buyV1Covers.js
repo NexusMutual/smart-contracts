@@ -1,4 +1,3 @@
-require('dotenv').config();
 const { config, network, ethers } = require('hardhat');
 
 function zeroPadRight(bytes, length) {
@@ -11,17 +10,10 @@ async function main() {
 
   const [owner] = await ethers.getSigners();
 
-  // const quotationData = await ethers.getContractAt(
-  //   'TestnetQuotationData',
-  //   '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853',
-  // );
-
-  /**
-   * For local testing we need to add the `addOldCover` function
-   * from the `TestnetQuotationData` contract to the `LegacyQuotationData` contract.
-   * Then we can use this script to add old v1 covers
-   */
-  const quotationData = await ethers.getContractAt('LegacyQuotationData', '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9');
+  const quotationData = await ethers.getContractAt(
+    'TestnetQuotationData',
+    '0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9',
+  );
 
   const now = Math.floor(Date.now() / 1000);
   const ETH = zeroPadRight(Buffer.from('ETH'), 4);

@@ -139,7 +139,8 @@ async function main() {
   const tk = await deployImmutable('NXMToken', [owner, parseEther('1500000')]);
 
   console.log('Deploying legacy quotation data contract');
-  const qd = await deployImmutable('LegacyQuotationData', [owner, owner]);
+  // Replaced LegacyQuotationData with TestnetQuotationData for ability to create old v1 covers locally
+  const qd = await deployImmutable('TestnetQuotationData', [owner, owner]);
 
   console.log('Deploying disposable master and member roles');
   const master = await deployProxy('DisposableNXMaster');
@@ -494,7 +495,12 @@ async function main() {
       continue;
     }
 
-    const abiPath = path.join(abiDir, `${abiName}.json`);
+    let legacyContractName;
+    if (/^(Testnet)/.test(abiName)) {
+      legacyContractName = abiName.replace('Testnet', 'Legacy');
+    }
+
+    const abiPath = path.join(abiDir, `${legacyContractName || abiName}.json`);
     fs.writeFileSync(abiPath, JSON.stringify(abi, null, 2));
 
     if (!config.CONTRACTS_ADDRESSES[alias] || isProxy) {

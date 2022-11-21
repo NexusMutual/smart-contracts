@@ -661,7 +661,7 @@ describe('depositAndStake', function () {
     await staking.updateUintParameters(StakingUintParamType.MIN_STAKE, ether('1'), { from: governanceContract });
     await fundAndApprove(token, tokenController, staking, ether('100'), memberOne); // MAX_EXPOSURE = 2;
 
-    await token.setLock(memberOne, true);
+    await token.setLock(memberOne, 100000);
     await expectRevert(
       token.transfer(memberTwo, ether('1'), { from: memberOne }),
       'Member should not be locked for member voting',

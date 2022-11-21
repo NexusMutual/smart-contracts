@@ -453,6 +453,7 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     // transfer nxm from the staker and update the pool deposit balance
+    require(block.timestamp > nxm.isLockedForMV(msg.sender), "Staking: Senders NXM is locked while voting");
     tokenController.depositStakedNXM(msg.sender, totalAmount, poolId);
 
     // update globals

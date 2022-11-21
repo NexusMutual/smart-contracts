@@ -57,4 +57,13 @@ describe('stake', function () {
       .to.emit(assessment, 'StakeDeposited')
       .withArgs(user.address, amount);
   });
+
+  it('reverts if attempting to stake while NXM is locked for governance proposal', async function () {
+    const { nxm, assessment } = this.contracts;
+    const [user] = this.accounts.members;
+    await nxm.setLock(user.address, 100);
+    await expect(assessment.connect(user).stake(parseEther('100'))).to.be.revertedWith(
+      'Assessment: Nxm locked while voting',
+    );
+  });
 });

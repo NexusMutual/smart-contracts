@@ -390,7 +390,7 @@ async function main() {
   console.log('Creating a staking pool');
   const productId = 0;
   const targetPrice = '1000';
-  const currentPrice = '10000';
+  const initialPrice = '10000';
 
   const isPrivatePool = false;
   const initialPoolFee = '5';
@@ -399,19 +399,19 @@ async function main() {
     {
       productId,
       weight: '40',
-      initialPrice: currentPrice,
+      currentPrice: initialPrice,
       targetPrice,
     },
     {
       productId: 1,
       weight: '40',
-      initialPrice: currentPrice,
+      currentPrice: initialPrice,
       targetPrice,
     },
     {
       productId: 2,
       weight: '20',
-      initialPrice: currentPrice,
+      currentPrice: initialPrice,
       targetPrice,
     },
   ];

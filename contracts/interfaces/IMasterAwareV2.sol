@@ -18,4 +18,6 @@ interface IMasterAwareV2 {
 
   function changeMasterAddress(address masterAddress) external;
 
+  function changeDependentContractAddress() external;
+
 }

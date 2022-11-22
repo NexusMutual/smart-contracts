@@ -77,8 +77,6 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
     return internalContracts[uint(id)];
   }
 
-  function changeDependentContractAddress() external virtual;
-
   function changeMasterAddress(address masterAddress) public onlyMaster {
     master = INXMMaster(masterAddress);
   }

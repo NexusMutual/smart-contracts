@@ -123,17 +123,15 @@ describe('setPoolFee', function () {
 
     await increaseTime(daysToSeconds(25));
 
-    await stakingPool.updateTranches(true);
-    const accNxmPerRewardsShareBefore = await stakingPool.accNxmPerRewardsShare();
-
     const managerDepositBefore = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
 
     await stakingPool.connect(manager).setPoolFee(newPoolFee);
+    const accNxmPerRewardsShareBefore = await stakingPool.accNxmPerRewardsShare();
 
     const managerDepositAfter = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
 
     const newLastAccNxmPerRewardShare = accNxmPerRewardsShareBefore.sub(managerDepositBefore.lastAccNxmPerRewardShare);
-    expect(managerDepositAfter.lastAccNxmPerRewardShare).to.not.equal(newLastAccNxmPerRewardShare);
+    expect(managerDepositAfter.lastAccNxmPerRewardShare).to.equal(newLastAccNxmPerRewardShare);
     expect(managerDepositAfter.pendingRewards).to.equal(
       managerDepositAfter.lastAccNxmPerRewardShare.mul(managerDepositBefore.rewardsShares),
     );

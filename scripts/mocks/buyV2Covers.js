@@ -1,10 +1,7 @@
-const { BigNumber } = require('ethers');
 const { config, network, ethers } = require('hardhat');
-const { ZERO_ADDRESS } = require('../../lib/constants');
-
-const {
-  utils: { parseEther },
-} = ethers;
+const { BigNumber } = ethers;
+const { AddressZero } = ethers.constants;
+const { parseEther } = ethers.utils;
 
 async function main() {
   console.log(`Using network: ${network.name}`);
@@ -37,7 +34,7 @@ async function main() {
       paymentAsset: payoutAsset,
       payWitNXM: false,
       commissionRatio: parseEther('0'),
-      commissionDestination: ZERO_ADDRESS,
+      commissionDestination: AddressZero,
       ipfsData: '',
     },
     [{ poolId: '0', coverAmountInAsset: amount.toString() }],
@@ -57,7 +54,7 @@ async function main() {
       paymentAsset: payoutAsset,
       payWitNXM: false,
       commissionRatio: parseEther('0'),
-      commissionDestination: ZERO_ADDRESS,
+      commissionDestination: AddressZero,
       ipfsData: '',
     },
     [{ poolId: '0', coverAmountInAsset: amount.toString() }],
@@ -77,7 +74,7 @@ async function main() {
       paymentAsset: payoutAsset,
       payWitNXM: false,
       commissionRatio: parseEther('0'),
-      commissionDestination: ZERO_ADDRESS,
+      commissionDestination: AddressZero,
       ipfsData: '',
     },
     [{ poolId: '0', coverAmountInAsset: amount.toString() }],

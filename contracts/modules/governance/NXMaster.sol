@@ -2,17 +2,15 @@
 
 pragma solidity ^0.5.0;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../../abstract/MasterAware.sol";
-import "../../interfaces/IMasterAware.sol";
+import "../../interfaces/IMasterAwareV2.sol";
 import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
-import "./external/Governed.sol";
 import "./external/OwnedUpgradeabilityProxy.sol";
 
-contract NXMaster is INXMMaster, Governed {
-  using SafeMath for uint;
+contract NXMaster is INXMMaster {
 
+  address public _unusedM; // Governed contract masterAddress slot
   uint public _unused0;
 
   bytes2[] public contractCodes;
@@ -37,11 +35,9 @@ contract NXMaster is INXMMaster, Governed {
   event ContractRemoved(bytes2 indexed code, address contractAddress);
   event PauseConfigured(bool paused);
 
-
-  function initializeEmergencyAdmin() external {
-    if (emergencyAdmin == address(0)) {
-      emergencyAdmin = 0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D;
-    }
+  modifier onlyAuthorizedToGovern() {
+    require(getLatestAddress("GV") == msg.sender, "Not authorized");
+    _;
   }
 
   modifier noReentrancy() {
@@ -56,14 +52,17 @@ contract NXMaster is INXMMaster, Governed {
     _;
   }
 
+  function initializeEmergencyAdmin() external {
+    if (emergencyAdmin == address(0)) {
+      emergencyAdmin = 0x422D71fb8040aBEF53f3a05d21A9B85eebB2995D;
+    }
+  }
+
   function addNewInternalContracts(
     bytes2[] calldata newContractCodes,
     address payable[] calldata newAddresses,
     uint[] calldata _types
-  )
-  external
-  onlyAuthorizedToGovern
-  {
+  ) external onlyAuthorizedToGovern {
     require(newContractCodes.length == newAddresses.length, "NXMaster: newContractCodes.length != newAddresses.length.");
     require(newContractCodes.length == _types.length, "NXMaster: newContractCodes.length != _types.length");
     for (uint i = 0; i < newContractCodes.length; i++) {
@@ -86,7 +85,7 @@ contract NXMaster is INXMMaster, Governed {
 
     contractCodes.push(contractCode);
 
-    address newInternalContract;
+    address payable newInternalContract;
     if (_type == uint(ContractType.Replaceable)) {
 
       newInternalContract = contractAddress;
@@ -99,10 +98,10 @@ contract NXMaster is INXMMaster, Governed {
       revert("NXMaster: Unsupported contract type");
     }
 
-    contractAddresses[contractCode] = address(uint160(newInternalContract));
+    contractAddresses[contractCode] = newInternalContract;
     contractsActive[newInternalContract] = true;
 
-    IMasterAware up = IMasterAware(newInternalContract);
+    IMasterAwareV2 up = IMasterAwareV2(newInternalContract);
     up.changeMasterAddress(address(this));
     up.changeDependentContractAddress();
 
@@ -153,14 +152,11 @@ contract NXMaster is INXMMaster, Governed {
     contractAddresses[code] = newAddress;
     contractsActive[newAddress] = true;
 
-    IMasterAware up = IMasterAware(contractAddresses[code]);
+    IMasterAwareV2 up = IMasterAwareV2(contractAddresses[code]);
     up.changeMasterAddress(address(this));
   }
 
-  function removeContracts(bytes2[] calldata contractCodesToRemove)
-  external
-  onlyAuthorizedToGovern
-  {
+  function removeContracts(bytes2[] calldata contractCodesToRemove) external onlyAuthorizedToGovern {
 
     for (uint i = 0; i < contractCodesToRemove.length; i++) {
       bytes2 code = contractCodesToRemove[i];
@@ -196,7 +192,7 @@ contract NXMaster is INXMMaster, Governed {
 
   function updateAllDependencies() internal {
     for (uint i = 0; i < contractCodes.length; i++) {
-      IMasterAware up = IMasterAware(contractAddresses[contractCodes[i]]);
+      IMasterAwareV2 up = IMasterAwareV2(contractAddresses[contractCodes[i]]);
       up.changeDependentContractAddress();
     }
   }
@@ -229,14 +225,10 @@ contract NXMaster is INXMMaster, Governed {
   /// @dev Gets current contract codes and their addresses
   /// @return contractCodes
   /// @return contractAddresses
-  function getInternalContracts()
-  public
-  view
-  returns (
+  function getInternalContracts() public view returns (
     bytes2[] memory _contractCodes,
     address[] memory _contractAddresses
-  )
-  {
+  ) {
     _contractCodes = contractCodes;
     _contractAddresses = new address[](contractCodes.length);
 
@@ -257,7 +249,7 @@ contract NXMaster is INXMMaster, Governed {
    * @return the boolean status status for the check
    */
   function checkIsAuthToGoverned(address _add) public view returns (bool) {
-    return isAuthorizedToGovern(_add);
+    return getLatestAddress("GV") == _add;
   }
 
   /**
@@ -267,9 +259,7 @@ contract NXMaster is INXMMaster, Governed {
    */
   function updateOwnerParameters(bytes8 code, address payable val) public onlyAuthorizedToGovern {
     if (code == "EMADMIN") {
-
       emergencyAdmin = val;
-
     } else {
       revert("Invalid param code");
     }

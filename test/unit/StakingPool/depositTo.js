@@ -51,7 +51,6 @@ describe('depositTo', function () {
     } = this.accounts;
 
     const { amount, tokenId, destination } = depositToFixture;
-
     const { firstActiveTrancheId } = await getTranches();
 
     await stakingPool.connect(manager).setPoolPrivacy(true);
@@ -67,13 +66,13 @@ describe('depositTo', function () {
       ]),
     ).to.be.revertedWith('StakingPool: The pool is private');
 
-    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
+    const coverContractAsSigner = await ethers.getImpersonatedSigner(cover.address);
 
-    await nxm.mint(cover.address, amount);
-    await nxm.connect(coverSigner).approve(tokenController.address, amount);
+    await nxm.mint(manager.address, amount);
+    await nxm.connect(manager).approve(tokenController.address, amount);
 
     await expect(
-      stakingPool.connect(coverSigner).depositTo([
+      stakingPool.connect(coverContractAsSigner).depositTo([
         {
           amount,
           trancheId: firstActiveTrancheId,

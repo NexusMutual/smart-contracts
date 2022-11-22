@@ -679,6 +679,8 @@ contract StakingPool is IStakingPool, ERC721 {
       uint expireAtBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
       uint rewardStreamPeriod = expireAtBucket * BUCKET_DURATION - block.timestamp;
       uint _rewardPerSecond = rewards / rewardStreamPeriod;
+
+      // recalculating rewards to avoid minting dust that will not be streamed
       rewards = _rewardPerSecond * rewardStreamPeriod;
 
       // 1 SLOAD + 1 SSTORE

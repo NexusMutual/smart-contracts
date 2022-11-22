@@ -32,7 +32,7 @@ contract NXMTokenMock is INXMToken, ERC20 {
   }
 
   function transferFrom(address from, address to, uint256 amount) public returns (bool) {
-    require(isLockedForMV[msg.sender] < block.timestamp, "Member should not be locked for member voting");
+    require(isLockedForMV[from] < block.timestamp, "Member should not be locked for member voting");
     _approve(from, msg.sender, allowance(from, msg.sender).sub(amount, "ERC20: transfer amount exceeds allowance"));
     _transfer(from, to, amount);
     return true;

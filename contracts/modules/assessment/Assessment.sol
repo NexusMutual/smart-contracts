@@ -138,7 +138,6 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /// @param amount  The amount of nxm to stake
   function stake(uint96 amount) public whenNotPaused {
     stakeOf[msg.sender].amount += amount;
-    require(block.timestamp > nxm.isLockedForMV(msg.sender), "Assessment: Nxm locked for voting");
     ITokenController(getInternalContractAddress(ID.TC))
       .operatorTransfer(msg.sender, address(this), amount);
 
@@ -154,6 +153,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///                membership during stake lockup period and thus allowing the user to withdraw
   ///                their staked amount to the new address when possible.
   function unstake(uint96 amount, address to) external whenNotPaused override {
+    require(block.timestamp > nxm.isLockedForMV(msg.sender), "Assessment: Nxm locked for voting");
     uint voteCount = votesOf[msg.sender].length;
     if (voteCount > 0) {
       Vote memory vote = votesOf[msg.sender][voteCount - 1];

@@ -124,4 +124,13 @@ describe('unstake', function () {
         .withArgs(user1.address, user2.address, amount);
     }
   });
+
+  it('reverts if attempting to stake while NXM is locked for governance proposal', async function () {
+    const { nxm, assessment } = this.contracts;
+    const [user] = this.accounts.members;
+    await nxm.setLock(user.address, 100);
+    await expect(assessment.connect(user).unstake(parseEther('100'), user.address)).to.be.revertedWith(
+      'Assessment: Nxm locked for voting',
+    );
+  });
 });

@@ -314,7 +314,9 @@ contract StakingPool is IStakingPool, ERC721 {
         delete tranches[_firstActiveTrancheId];
 
         // the tranche is expired now so we decrease the stake and the shares supply
-        uint expiredStake = _activeStake * expiringTranche.stakeShares / _stakeSharesSupply;
+        uint expiredStake = _stakeSharesSupply != 0
+          ? (_activeStake * expiringTranche.stakeShares) / _stakeSharesSupply
+          : 0;
         _activeStake -= expiredStake;
         _stakeSharesSupply -= expiringTranche.stakeShares;
         _rewardsSharesSupply -= expiringTranche.rewardsShares;

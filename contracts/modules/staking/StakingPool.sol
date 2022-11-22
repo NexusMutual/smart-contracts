@@ -215,18 +215,17 @@ contract StakingPool is IStakingPool, ERC721 {
   // updateUntilCurrentTimestamp forces rewards update until current timestamp not just until
   // bucket/tranche expiry timestamps. Must be true when changing shares or reward per second.
   function updateTranches(bool updateUntilCurrentTimestamp) public {
-
-    uint _firstActiveBucketId = firstActiveBucketId;
-    uint _firstActiveTrancheId = firstActiveTrancheId;
-
     uint currentBucketId = block.timestamp / BUCKET_DURATION;
     uint currentTrancheId = block.timestamp / TRANCHE_DURATION;
 
     // if the pool is new
-    if (_firstActiveBucketId == 0) {
-      _firstActiveBucketId = currentBucketId;
-      _firstActiveTrancheId = currentTrancheId;
+    if (firstActiveBucketId == 0) {
+      firstActiveBucketId = currentBucketId;
+      firstActiveTrancheId = currentTrancheId;
     }
+
+    uint _firstActiveBucketId = firstActiveBucketId;
+    uint _firstActiveTrancheId = firstActiveTrancheId;
 
     // if a force update was not requested
     if (!updateUntilCurrentTimestamp) {

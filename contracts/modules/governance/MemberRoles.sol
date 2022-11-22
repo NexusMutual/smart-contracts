@@ -4,6 +4,8 @@ pragma solidity ^0.8.16;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
+
+import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IQuotationData.sol";
@@ -12,7 +14,6 @@ import "../../interfaces/ICover.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IStakingPool.sol";
 import "./external/Governed.sol";
-import "../../abstract/MasterAwareV2.sol";
 
 contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
 
@@ -91,6 +92,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     return ITokenController(internalContracts[uint(ID.TC)]);
   }
 
+  // TODO: make immutable?
   function token() internal view returns (INXMToken) {
     return INXMToken(internalContracts[uint(ID.TK)]);
   }

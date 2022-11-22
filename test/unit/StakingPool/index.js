@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const setup = require('./setup');
 
-describe('StakingPool unit tests', function () {
+describe.only('StakingPool unit tests', function () {
   before(setup);
 
   beforeEach(async function () {
@@ -17,9 +17,9 @@ describe('StakingPool unit tests', function () {
   // require('./getPrices');
   require('./constructor');
   require('./initialize');
+  require('./setPoolFee');
+  require('./setPoolPrivacy');
   require('./calculateNewRewardShares');
   require('./setProducts');
   require('./depositTo');
-  require('./setPoolFee');
-  require('./setPoolPrivacy');
 });

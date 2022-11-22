@@ -5,6 +5,12 @@ const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
 const { parseUnits } = ethers.utils;
 const { BigNumber } = ethers;
 
+const TRANCHE_DURATION =
+  91 * // days
+  24 * // hourss
+  60 * // minutes
+  60; // seconds
+const MAX_ACTIVE_TRANCHES = 8;
 const SURGE_THRESHOLD = parseUnits('0.8');
 const BASE_SURGE_LOADING = parseUnits('0.1'); // 10%
 const BASE_SURGE_CAPACITY_USED = parseUnits('0.01'); // 1%
@@ -13,6 +19,7 @@ const PRICE_RATIO_CHANGE_PER_DAY = parseUnits('0.005'); // 0.5%
 const BASE_PRICE_BUMP_RATIO = 200; // 2%
 const BASE_PRICE_BUMP_INTERVAL = 1000; // 10%
 const BASE_PRICE_BUMP_DENOMINATOR = 10000;
+const POOL_FEE_DENOMINATOR = 100;
 
 const PRICE_DENOMINATOR = parseUnits('1');
 
@@ -109,10 +116,56 @@ function toDecimal(x) {
   return new Decimal(x.toString());
 }
 
+async function getTranches() {
+  const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+  const firstActiveTrancheId = Math.floor(currentTime / TRANCHE_DURATION);
+  const maxTranche = firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;
+
+  return {
+    firstActiveTrancheId,
+    maxTranche,
+  };
+}
+
+async function estimateStakeShares({ amount, stakingPool }) {
+  const stakeShareSupply = await stakingPool.stakeSharesSupply();
+
+  if (stakeShareSupply.isZero()) {
+    return Math.sqrt(amount);
+  }
+
+  const activeStake = await stakingPool.activeStake();
+  return amount.mul(stakeShareSupply).div(activeStake);
+}
+
+async function getNewRewardShares({
+  stakingPool,
+  initialStakeShares,
+  stakeSharesIncrease,
+  initialTrancheId,
+  newTrancheId,
+}) {
+  const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+
+  return stakingPool.calculateNewRewardShares(
+    initialStakeShares,
+    stakeSharesIncrease,
+    initialTrancheId,
+    newTrancheId,
+    currentTime,
+  );
+}
+
 module.exports = {
   setTime,
   getPrices,
   calculatePrice,
   toDecimal,
+  getTranches,
+  getNewRewardShares,
+  estimateStakeShares,
   PRICE_RATIO_CHANGE_PER_DAY,
+  TRANCHE_DURATION,
+  MAX_ACTIVE_TRANCHES,
+  POOL_FEE_DENOMINATOR,
 };

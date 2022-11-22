@@ -118,13 +118,13 @@ contract StakingPool is IStakingPool, ERC721 {
   uint public constant INITIAL_PRICE_DENOMINATOR = 100_00;
   uint public constant TARGET_PRICE_DENOMINATOR = 100_00;
 
-  // base price bump is +0.2% for each 1% of capacity used, ie +20% for 100%
-  // 20% = 0.2
-  uint public constant PRICE_BUMP_RATIO = 0.2 ether;
+  // base price bump
+  // +0.2% for each 1% of capacity used, ie +20% for 100%
+  uint public constant PRICE_BUMP_RATIO = 20_00; // 20%
 
   // next price smoothing
-  // 0.005 ether = 0.5% out of 1e18
-  uint public constant PRICE_CHANGE_PER_DAY = 0.005 ether;
+  // 0.5% per day
+  uint public constant PRICE_CHANGE_PER_DAY = 50; // 0.5%
 
   // +2% for every 1%, ie +200% for 100%
   uint public constant SURGE_PRICE_RATIO = 2 ether;
@@ -279,7 +279,10 @@ contract StakingPool is IStakingPool, ERC721 {
         uint bucketStartTime = _firstActiveBucketId * BUCKET_DURATION;
         uint elapsed = bucketStartTime - _lastAccNxmUpdate;
 
-        uint newAccNxmPerRewardsShare = elapsed * _rewardPerSecond / _rewardsSharesSupply;
+        uint newAccNxmPerRewardsShare = _rewardsSharesSupply != 0
+          ? elapsed * _rewardPerSecond / _rewardsSharesSupply
+          : 0;
+
         _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
 
         _rewardPerSecond -= rewardBuckets[_firstActiveBucketId].rewardPerSecondCut;
@@ -294,7 +297,9 @@ contract StakingPool is IStakingPool, ERC721 {
       {
         uint trancheEndTime = (_firstActiveTrancheId + 1) * TRANCHE_DURATION;
         uint elapsed = trancheEndTime - _lastAccNxmUpdate;
-        uint newAccNxmPerRewardsShare = elapsed * _rewardPerSecond / _rewardsSharesSupply;
+        uint newAccNxmPerRewardsShare = _rewardsSharesSupply != 0
+          ? elapsed * _rewardPerSecond / _rewardsSharesSupply
+          : 0;
         _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
         _lastAccNxmUpdate = trancheEndTime;
 
@@ -324,7 +329,9 @@ contract StakingPool is IStakingPool, ERC721 {
 
     if (updateUntilCurrentTimestamp) {
       uint elapsed = block.timestamp - _lastAccNxmUpdate;
-      uint newAccNxmPerRewardsShare = elapsed * _rewardPerSecond / _rewardsSharesSupply;
+      uint newAccNxmPerRewardsShare = _rewardsSharesSupply != 0
+        ? elapsed * _rewardPerSecond / _rewardsSharesSupply
+        : 0;
       _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
       _lastAccNxmUpdate = block.timestamp;
     }
@@ -380,7 +387,8 @@ contract StakingPool is IStakingPool, ERC721 {
         address to = request.destination == address(0) ? msg.sender : request.destination;
         _mint(to, tokenIds[i]);
       } else {
-        require(ownerOf(request.tokenId) != address(0), "StakingPool: Token does not exist");
+        // validate token id exists. ownerOf() reverts if owner is address 0
+        ownerOf(request.tokenId);
         tokenIds[i] = request.tokenId;
       }
 
@@ -406,7 +414,7 @@ contract StakingPool is IStakingPool, ERC721 {
         );
 
         // if we're increasing an existing deposit
-        if (deposit.lastAccNxmPerRewardShare != 0) {
+        if (deposit.rewardsShares != 0) {
           uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(deposit.lastAccNxmPerRewardShare);
           deposit.pendingRewards += newEarningsPerShare * deposit.rewardsShares;
         }
@@ -450,6 +458,8 @@ contract StakingPool is IStakingPool, ERC721 {
       _activeStake += request.amount;
       _stakeSharesSupply += newStakeShares;
       _rewardsSharesSupply += newRewardsShares;
+
+      emit StakeDeposited(msg.sender, request.amount, request.trancheId, tokenIds[i]);
     }
     address source = msg.sender == coverContract ? manager() : msg.sender;
     // transfer nxm from the staker and update the pool deposit balance
@@ -667,10 +677,16 @@ contract StakingPool is IStakingPool, ERC721 {
 
       uint rewards = premium * request.rewardRatio / REWARDS_DENOMINATOR;
       uint expireAtBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
-      uint _rewardPerSecond = rewards / (expireAtBucket * BUCKET_DURATION - block.timestamp);
+      uint rewardStreamPeriod = expireAtBucket * BUCKET_DURATION - block.timestamp;
+      uint _rewardPerSecond = rewards / rewardStreamPeriod;
+
+      // recalculating rewards to avoid minting dust that will not be streamed
+      rewards = _rewardPerSecond * rewardStreamPeriod;
 
       // 1 SLOAD + 1 SSTORE
       rewardBuckets[expireAtBucket].rewardPerSecondCut += _rewardPerSecond;
+
+      rewardPerSecond += _rewardPerSecond;
 
       // scale back from 2 to 18 decimals
       allocatedCoverAmount *= NXM_PER_ALLOCATION_UNIT;
@@ -1544,11 +1560,9 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
     uint initialCapacityUsed,
     uint totalCapacity
   ) public pure returns (uint) {
-
-    // base price has 18 decimals
     // cover amount has 2 decimals (100 = 1 unit)
-    // dividing by ALLOCATION_UNITS_PER_NXM (=100) to get the right amount of decimals
-    uint basePremium = basePrice * coverAmount / ALLOCATION_UNITS_PER_NXM;
+    // scale coverAmount to 18 decimals and apply price percentage
+    uint basePremium = (coverAmount * NXM_PER_ALLOCATION_UNIT) * basePrice / TARGET_PRICE_DENOMINATOR;
     uint finalCapacityUsed = initialCapacityUsed + coverAmount;
 
     // surge price is applied for the capacity used above SURGE_THRESHOLD_RATIO.

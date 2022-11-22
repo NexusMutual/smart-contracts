@@ -60,6 +60,7 @@ async function setup() {
     await master.enrollMember(member.address, Role.Member);
     await memberRoles.setRole(member.address, Role.Member);
     await nxm.mint(member.address, parseEther('100000'));
+    await nxm.connect(member).approve(tokenController.address, parseEther('100000'));
   }
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {

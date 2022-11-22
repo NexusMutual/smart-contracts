@@ -451,9 +451,9 @@ contract StakingPool is IStakingPool, ERC721 {
       _stakeSharesSupply += newStakeShares;
       _rewardsSharesSupply += newRewardsShares;
     }
-
+    address source = msg.sender == coverContract ? manager() : msg.sender;
     // transfer nxm from the staker and update the pool deposit balance
-    tokenController.depositStakedNXM(msg.sender, totalAmount, poolId);
+    tokenController.depositStakedNXM(source, totalAmount, poolId);
 
     // update globals
     activeStake = _activeStake;

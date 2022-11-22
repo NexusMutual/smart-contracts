@@ -28,7 +28,7 @@ describe('depositTo', function () {
     depositNftId: 1,
   };
 
-  before(async function () {
+  beforeEach(async function () {
     const { stakingPool, cover } = this;
     const { defaultSender: manager } = this.accounts;
 

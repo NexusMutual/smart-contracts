@@ -220,7 +220,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       {
         require(
           coverSegment.start + coverSegment.period +
-          coverSegment.gracePeriodInDays * 1 days >= block.timestamp,
+          uint(coverSegment.gracePeriodInDays) * 1 days >= block.timestamp,
           "Grace period has expired"
         );
       }

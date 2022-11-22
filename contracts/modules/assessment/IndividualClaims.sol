@@ -148,8 +148,8 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
           (,,uint8 payoutCooldownInDays,) = assessment().config();
           if (
             block.timestamp >= poll.end +
-            payoutCooldownInDays * 1 days +
-            config.payoutRedemptionPeriodInDays * 1 days
+            uint(payoutCooldownInDays) * 1 days +
+            uint(config.payoutRedemptionPeriodInDays) * 1 days
           ) {
             payoutStatus = PayoutStatus.UNCLAIMED;
           }
@@ -242,13 +242,13 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
         uint80 assessmentId = claims[previousSubmission.claimId].assessmentId;
         IAssessment.Poll memory poll = assessment().getPoll(assessmentId);
         (,,uint8 payoutCooldownInDays,) = assessment().config();
-        uint payoutCooldown = payoutCooldownInDays * 1 days;
+        uint payoutCooldown = uint(payoutCooldownInDays) * 1 days;
         if (block.timestamp >= poll.end + payoutCooldown) {
           if (
             poll.accepted > poll.denied &&
-            block.timestamp < poll.end +
-            payoutCooldown+
-            config.payoutRedemptionPeriodInDays * 1 days
+            block.timestamp < uint(poll.end) +
+            payoutCooldown +
+            uint(config.payoutRedemptionPeriodInDays) * 1 days
           ) {
             revert("A payout can still be redeemed");
           }
@@ -274,7 +274,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       require(requestedAmount <= segment.amount, "Covered amount exceeded");
       require(segment.start <= block.timestamp, "Cover starts in the future");
       require(
-        segment.start + segment.period + segment.gracePeriodInDays * 1 days > block.timestamp,
+        uint(segment.start) + uint(segment.period) + uint(segment.gracePeriodInDays) * 1 days > block.timestamp,
         "Cover is outside the grace period"
       );
 
@@ -347,12 +347,12 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     require(poll.accepted > poll.denied, "The claim needs to be accepted");
 
     (,,uint8 payoutCooldownInDays,) = assessment().config();
-    uint payoutCooldown = payoutCooldownInDays * 1 days;
+    uint payoutCooldown = uint(payoutCooldownInDays) * 1 days;
 
     require(block.timestamp >= poll.end + payoutCooldown, "The claim is in cooldown period");
 
     require(
-      block.timestamp < poll.end + payoutCooldown + config.payoutRedemptionPeriodInDays * 1 days,
+      block.timestamp < uint(poll.end) + payoutCooldown + uint(config.payoutRedemptionPeriodInDays) * 1 days,
       "The redemption period has expired"
     );
 

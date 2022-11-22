@@ -1,7 +1,7 @@
 const { ethers, network, run, tenderly } = require('hardhat');
 const path = require('path');
 const fs = require('fs');
-const { AddressZero } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
 
 const { ABI_DIR, CONFIG_FILE } = process.env;
 
@@ -25,19 +25,31 @@ const claimMethod = { claim: 0, incident: 1 };
 
 const productTypes = [
   {
-    descriptionIpfsHash: 'protocolCoverIPFSHash',
-    claimMethod: claimMethod.claim,
-    gracePeriodInDays: 30,
+    productTypeId: MaxUint256,
+    ipfsMetadata: 'protocolCoverIPFSHash',
+    productType: {
+      descriptionIpfsHash: 'protocolCoverIPFSHash',
+      claimMethod: claimMethod.claim,
+      gracePeriodInDays: 30,
+    },
   },
   {
-    descriptionIpfsHash: 'custodyCoverIPFSHash',
-    claimMethod: claimMethod.claim,
-    gracePeriodInDays: 90,
+    productTypeId: MaxUint256,
+    ipfsMetadata: 'custodyCoverIPFSHash',
+    productType: {
+      descriptionIpfsHash: 'custodyCoverIPFSHash',
+      claimMethod: claimMethod.claim,
+      gracePeriodInDays: 90,
+    },
   },
   {
-    descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
-    claimMethod: claimMethod.incident,
-    gracePeriodInDays: 14,
+    productTypeId: MaxUint256,
+    ipfsMetadata: 'yieldTokenCoverIPFSHash',
+    productType: {
+      descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
+      claimMethod: claimMethod.incident,
+      gracePeriodInDays: 14,
+    },
   },
 ];
 
@@ -127,7 +139,8 @@ async function main() {
   const tk = await deployImmutable('NXMToken', [owner, parseEther('1500000')]);
 
   console.log('Deploying legacy quotation data contract');
-  const qd = await deployImmutable('LegacyQuotationData', [owner, owner]);
+  // Replaced LegacyQuotationData with TestnetQuotationData for ability to create old v1 covers locally
+  const qd = await deployImmutable('TestnetQuotationData', [owner, owner]);
 
   console.log('Deploying disposable master and member roles');
   const master = await deployProxy('DisposableNXMaster');
@@ -177,13 +190,16 @@ async function main() {
   const assessment = await deployProxy('Assessment', [tk.address]);
 
   console.log('Deploying SwapOperator');
-  const cowVaultRelayer = await deployImmutable('CSMockVaultRelayer');
-  const cowSettlement = await deployImmutable('CSMockSettlement', [cowVaultRelayer.address]);
+  const cowVaultRelayer = await deployImmutable('SOMockVaultRelayer');
+  const cowSettlement = await deployImmutable('SOMockSettlement', [cowVaultRelayer.address]);
   const swapOperator = await deployImmutable('SwapOperator', [
     cowSettlement.address,
     owner,
     master.address,
-    '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+    AddressZero,
+    AddressZero,
+    AddressZero,
+    '0',
   ]);
 
   if (typeof CHAINLINK_DAI_ETH[network.name] === 'undefined') {
@@ -310,10 +326,7 @@ async function main() {
   await cover.changeMasterAddress(master.address);
   await cover.changeDependentContractAddress();
 
-  await cover.addProductTypes(
-    productTypes,
-    productTypes.map(() => ''), // ipfs metadata for each product type
-  );
+  await cover.setProductTypes(productTypes);
 
   const addProductsParams = products.map(product => {
     const underlyingToken = ['ETH', 'DAI'].indexOf(product.underlyingToken);
@@ -330,21 +343,23 @@ async function main() {
     }
 
     return {
-      productType,
-      yieldTokenAddress,
-      coverAssets,
-      initialPriceRatio: 100,
-      capacityReductionRatio: 0,
+      productId: MaxUint256,
+      product: {
+        productType,
+        yieldTokenAddress,
+        coverAssets,
+        initialPriceRatio: 100,
+        capacityReductionRatio: 0,
+      },
+      ipfsMetadata: '',
     };
   });
-
-  // [todo] Add ipfs hashes
-  const ipfsProductHashes = Array(products.length).fill('');
-  await cover.addProducts(addProductsParams, ipfsProductHashes);
 
   // 0b01 for eth and 0b10 for dai
   const coverAssetsFallback = 0b11;
   await cover.setCoverAssetsFallback(coverAssetsFallback);
+
+  await cover.setProducts(addProductsParams);
 
   console.log('Adding proposal categories');
 
@@ -372,12 +387,57 @@ async function main() {
   console.log('Deploying CoverViewer');
   await deployImmutable('CoverViewer', [master.address]);
 
-  await upgradeProxy(
+  const upgradedCover = await upgradeProxy(
     cover.address,
     'Cover',
     [qd, productsV1, coverNFT, stakingPool, cover].map(c => c.address),
     { libraries: coverLibraries },
   );
+
+  console.log('Creating a staking pool');
+  const productId = 0;
+  const targetPrice = '1000';
+  const initialPrice = '10000';
+
+  const isPrivatePool = false;
+  const initialPoolFee = '5';
+  const maxPoolFee = '5';
+  const productInitializationParams = [
+    {
+      productId,
+      weight: '40',
+      initialPrice,
+      targetPrice,
+    },
+    {
+      productId: 1,
+      weight: '40',
+      initialPrice,
+      targetPrice,
+    },
+    {
+      productId: 2,
+      weight: '20',
+      initialPrice,
+      targetPrice,
+    },
+  ];
+  const depositAmount = '0';
+  const trancheId = '0';
+  const stakingPoolManager = { address: owner };
+  await upgradedCover.createStakingPool(
+    stakingPoolManager.address,
+    isPrivatePool,
+    initialPoolFee,
+    maxPoolFee,
+    productInitializationParams,
+    depositAmount,
+    trancheId,
+  );
+
+  await stakingPool.setStake(productId, parseEther('10000'));
+  await stakingPool.setStake(1, parseEther('10000'));
+  await stakingPool.setStake(2, parseEther('10000'));
 
   console.log('Transfering ownership of proxy contracts');
   await transferProxyOwnership(mr.address, master.address);
@@ -435,7 +495,12 @@ async function main() {
       continue;
     }
 
-    const abiPath = path.join(abiDir, `${abiName}.json`);
+    let legacyContractName;
+    if (/^(Testnet)/.test(abiName)) {
+      legacyContractName = abiName.replace('Testnet', 'Legacy');
+    }
+
+    const abiPath = path.join(abiDir, `${legacyContractName || abiName}.json`);
     fs.writeFileSync(abiPath, JSON.stringify(abi, null, 2));
 
     if (!config.CONTRACTS_ADDRESSES[alias] || isProxy) {

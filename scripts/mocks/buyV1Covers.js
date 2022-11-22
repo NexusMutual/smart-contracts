@@ -9,9 +9,10 @@ async function main() {
   console.log('Network config:', config.networks[network.name]);
 
   const [owner] = await ethers.getSigners();
+
   const quotationData = await ethers.getContractAt(
     'TestnetQuotationData',
-    '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853',
+    '0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9',
   );
 
   const now = Math.floor(Date.now() / 1000);
@@ -34,7 +35,7 @@ async function main() {
     123,
     owner.address, // owner
     ETH,
-    '0x6354e79f21b56c11f48bcd7c451be456d7102a36', // scAddress
+    '0x575409F8d77c12B05feD8B455815f0e54797381c', // scAddress
     0,
     0,
   );
@@ -45,7 +46,7 @@ async function main() {
     123,
     owner.address, // owner
     ETH,
-    '0x6354e79f21b56c11f48bcd7c451be456d7102a36', // scAddress
+    '0x8B3d70d628Ebd30D4A2ea82DB95bA2e906c71633', // scAddress
     0,
     0,
   );

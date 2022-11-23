@@ -40,7 +40,7 @@ const ybDAIProductId = '0x000000000000000000000000000000000000000d';
 const ybETHProductId = '0x000000000000000000000000000000000000000e';
 let ybDAI, ybETH;
 
-describe('basic functionality tests', async function () {
+describe('basic functionality tests', function () {
   it('initializes contracts', async function () {
     const {
       mainnet: { abis },

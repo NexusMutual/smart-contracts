@@ -144,5 +144,10 @@ interface IStakingPool {
 
     /* ========== EVENTS ========== */
 
-    event StakeDeposited(address indexed user, uint256 amount, uint256 trancheId, uint256 tokenId);
+  event StakeDeposited(address indexed user, uint256 amount, uint256 trancheId, uint256 tokenId);
+
+  event PoolPrivacyChanged(address indexed manager, bool isPrivate);
+
+  event PoolFeeChanged(address indexed manager, uint newFee);
+
 }

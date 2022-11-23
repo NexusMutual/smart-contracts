@@ -64,10 +64,6 @@ contract StakingPool is IStakingPool, ERC721 {
   // erc721 supply
   uint public totalSupply;
 
- /* events */
-  event PoolPrivacyChanged(address indexed src, bool isPrivate);
-  event PoolFeeChanged(address indexed src, uint newFee);
-
   // tranche id => tranche data
   mapping(uint => Tranche) public tranches;
 

@@ -45,6 +45,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   uint private constant ONE_NXM = 1e18;
 
+  uint public constant ETH_ASSET_ID = 0;
   uint public constant NXM_ASSET_ID = type(uint8).max;
 
   // internally we store capacity using 2 decimals
@@ -336,7 +337,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     require(premiumInPaymentAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
 
     // ETH payment
-    if (paymentAsset == 0) {
+    if (paymentAsset == ETH_ASSET_ID) {
 
       uint premiumWithCommission = premiumInPaymentAsset + commission;
       require(msg.value >= premiumWithCommission, "Cover: Insufficient ETH sent");

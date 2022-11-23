@@ -232,7 +232,7 @@ describe('getters', function () {
     });
   });
 
-  describe('getCover', async function () {
+  describe('getCover', function () {
     it('returns cover data', async function () {
       const { gateway } = this.contracts;
       const member = member1;
@@ -252,7 +252,7 @@ describe('getters', function () {
     });
   });
 
-  describe('getClaimCoverId', async function () {
+  describe('getClaimCoverId', function () {
     it('returns cover data', async function () {
       const { gateway, cl } = this.contracts;
       const member = member1;

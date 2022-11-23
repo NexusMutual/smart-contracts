@@ -687,7 +687,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     return calculateMCRRatio(totalAssetValue, mcrEth);
   }
 
-  function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
+  function updateUintParameters(bytes8 /* code */, uint /* value */) external onlyGovernance {
     revert("Pool: Unknown parameter");
   }
 

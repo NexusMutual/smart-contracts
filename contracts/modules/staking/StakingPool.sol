@@ -367,9 +367,10 @@ contract StakingPool is IStakingPool, ERC721 {
 
       firstActiveBucketId = currentBucketId;
       firstActiveTrancheId = _firstActiveTrancheId;
+      lastAccNxmUpdate = block.timestamp;
+    } else {
+      updateTranches(true);
     }
-
-    updateTranches(true);
 
     // storage reads
     uint _activeStake = activeStake;

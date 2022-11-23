@@ -215,17 +215,18 @@ contract StakingPool is IStakingPool, ERC721 {
   // updateUntilCurrentTimestamp forces rewards update until current timestamp not just until
   // bucket/tranche expiry timestamps. Must be true when changing shares or reward per second.
   function updateTranches(bool updateUntilCurrentTimestamp) public {
+
+    uint _firstActiveBucketId = firstActiveBucketId;
+    uint _firstActiveTrancheId = firstActiveTrancheId;
+
     uint currentBucketId = block.timestamp / BUCKET_DURATION;
     uint currentTrancheId = block.timestamp / TRANCHE_DURATION;
 
     // if the pool is new
-    if (firstActiveBucketId == 0) {
-      firstActiveBucketId = currentBucketId;
-      firstActiveTrancheId = currentTrancheId;
+    if (_firstActiveBucketId == 0) {
+      _firstActiveBucketId = currentBucketId;
+      _firstActiveTrancheId = currentTrancheId;
     }
-
-    uint _firstActiveBucketId = firstActiveBucketId;
-    uint _firstActiveTrancheId = firstActiveTrancheId;
 
     // if a force update was not requested
     if (!updateUntilCurrentTimestamp) {
@@ -357,6 +358,17 @@ contract StakingPool is IStakingPool, ERC721 {
       );
     }
 
+    uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+    uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;
+
+    // if the pool has no previous deposits
+    if (firstActiveTrancheId == 0) {
+      uint currentBucketId = block.timestamp / BUCKET_DURATION;
+
+      firstActiveBucketId = currentBucketId;
+      firstActiveTrancheId = _firstActiveTrancheId;
+    }
+
     updateTranches(true);
 
     // storage reads
@@ -364,9 +376,6 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _stakeSharesSupply = stakeSharesSupply;
     uint _rewardsSharesSupply = rewardsSharesSupply;
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
-
-    uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
-    uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;
 
     uint totalAmount;
     tokenIds = new uint[](requests.length);

@@ -17,7 +17,6 @@ contract DisposablePooledStaking is LegacyPooledStaking {
 
     tokenController = ITokenController(_tokenControllerAddress);
     tokenController.addToWhitelist(address(this));
-    initialized = true;
 
     MIN_STAKE = minStake;
     MIN_UNSTAKE = minUnstake;
@@ -29,6 +28,7 @@ contract DisposablePooledStaking is LegacyPooledStaking {
   }
 
   constructor() LegacyPooledStaking(
+    0x0000000000000000000000000000000000000000,
     0x0000000000000000000000000000000000000000,
     0x0000000000000000000000000000000000000000
   ) {

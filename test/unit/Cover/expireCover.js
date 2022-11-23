@@ -7,7 +7,7 @@ const {
 const { buyCoverOnOnePool } = require('./helpers');
 const { time } = require('@openzeppelin/test-helpers');
 
-describe('expireCover', function () {
+describe.skip('expireCover', function () {
   const ethCoverBuyFixture = {
     productId: 0,
     coverAsset: 0, // ETH

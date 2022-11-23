@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 
-describe('commitActiveCoverAmounts', function () {
+describe.skip('commitActiveCoverAmounts', function () {
   it('sets active cover amount commited to true', async function () {
     const { cover } = this;
 

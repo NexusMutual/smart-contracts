@@ -357,6 +357,7 @@ contract StakingPool is IStakingPool, ERC721 {
         "StakingPool: The pool is private"
       );
     }
+    require(block.timestamp > nxm.isLockedForMV(msg.sender), "Staking: Senders NXM is locked for member vote");
 
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;
@@ -471,7 +472,6 @@ contract StakingPool is IStakingPool, ERC721 {
       emit StakeDeposited(msg.sender, request.amount, request.trancheId, tokenIds[i]);
     }
     address source = msg.sender == coverContract ? manager() : msg.sender;
-    require(block.timestamp > nxm.isLockedForMV(msg.sender), "Staking: Senders NXM is locked while voting");
     // transfer nxm from the staker and update the pool deposit balance
     tokenController.depositStakedNXM(source, totalAmount, poolId);
 

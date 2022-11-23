@@ -1187,33 +1187,37 @@ contract StakingPool is IStakingPool, ERC721 {
 
     // passing false because neither the amount of shares nor the reward per second are changed
     updateTranches(false);
+
     uint trancheId = block.timestamp / TRANCHE_DURATION;
-    uint lastActiveTranche = trancheId + MAX_ACTIVE_TRANCHES;
+    uint lastActiveTranche = trancheId + MAX_ACTIVE_TRANCHES - 1;
+    uint _totalActiveStake = totalActiveStake;
 
     // If 100% burn, remove stake from all tranches
     // TODO: block the pool if we perform 100% of the stake?
-    if (amount >= totalActiveStake) {
+    if (amount >= _totalActiveStake) {
 
-      delete totalActiveStake;
-      for (trancheId; trancheId < lastActiveTranche; trancheId++) {
-        delete tranches[trancheId].activeStake;
+      for (; trancheId <= lastActiveTranche; trancheId++) {
+        tranches[trancheId].activeStake = 0;
       }
+
+      totalActiveStake = 0;
       return;
     }
 
-    uint reductionFactor = totalActiveStake * ONE_NXM / amount;
-    uint _totalActiveStake = totalActiveStake;
+    for (; trancheId <= lastActiveTranche; trancheId++) {
 
-    for (trancheId; trancheId < lastActiveTranche; trancheId++) {
+      // tranche active stake
       uint activeStake = tranches[trancheId].activeStake;
 
-      if (activeStake > 0) {
-        uint amountToBurn = activeStake * ONE_NXM / reductionFactor;
-        uint newActiveStake = activeStake >= amountToBurn ? activeStake - amountToBurn : 0;
-        tranches[trancheId].activeStake = newActiveStake;
-        _totalActiveStake -= activeStake - newActiveStake;
+      if (activeStake == 0) {
+        continue;
       }
+
+      uint amountToBurn = amount * activeStake / _totalActiveStake;
+      tranches[trancheId].activeStake = activeStake - amountToBurn;
+      _totalActiveStake -= amountToBurn;
     }
+
     totalActiveStake = _totalActiveStake;
   }
 

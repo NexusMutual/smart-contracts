@@ -10,6 +10,7 @@
     "eslint:recommended",
     "plugin:prettier/recommended"
   ],
+  "plugins": ["mocha"],
   "globals" : {
     "artifacts": true,
     "assert": true,
@@ -23,6 +24,7 @@
     "comma-dangle": ["warn", "always-multiline"],
     "curly": ["error", "all"],
     "max-len": ["error", { "code": 120 }],
+    "mocha/no-async-describe": "error",
     "no-nested-ternary": "error",
     "no-unused-vars": ["warn", { "varsIgnorePattern": "^_unused" }],
     "padded-blocks": "off"

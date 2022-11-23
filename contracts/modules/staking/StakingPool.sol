@@ -1480,10 +1480,14 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
       // sstore
       deposits[0][trancheId] = feeDeposit;
     }
+
+    emit PoolFeeChanged(msg.sender, newFee);
   }
 
   function setPoolPrivacy(bool _isPrivatePool) external onlyManager {
     isPrivatePool = _isPrivatePool;
+
+    emit PoolPrivacyChanged(msg.sender, _isPrivatePool);
   }
 
   /* utils */

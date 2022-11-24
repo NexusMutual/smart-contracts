@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { AddressZero } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
@@ -38,7 +38,7 @@ const newProductTemplate = {
 
 const buyCoverParamsTemplate = {
   owner: AddressZero,
-  coverId: 0,
+  coverId: MaxUint256,
   productId: 0,
   coverAsset: 0, // ETH
   amount: parseEther('100'),

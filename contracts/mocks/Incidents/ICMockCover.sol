@@ -7,7 +7,7 @@ import "../../interfaces/IERC721Mock.sol";
 
 contract ICMockCover {
 
-  struct PerformStakeBurnCalledWith {
+  struct BurnStakeCalledWith {
     uint coverId;
     uint segmentId;
     uint amount;
@@ -16,7 +16,7 @@ contract ICMockCover {
   IERC721Mock public immutable coverNFT;
 
   CoverData[] public coverData;
-  PerformStakeBurnCalledWith public burnStakeCalledWith;
+  BurnStakeCalledWith public burnStakeCalledWith;
   mapping(uint => CoverSegment[]) _coverSegments;
 
   mapping(uint => PoolAllocation[]) poolAllocations;
@@ -133,7 +133,7 @@ contract ICMockCover {
 
 
   function burnStake(uint coverId, uint segmentId, uint amount) external returns (address) {
-    burnStakeCalledWith = PerformStakeBurnCalledWith(coverId, segmentId, amount);
+    burnStakeCalledWith = BurnStakeCalledWith(coverId, segmentId, amount);
     return coverNFT.ownerOf(coverId);
   }
 }

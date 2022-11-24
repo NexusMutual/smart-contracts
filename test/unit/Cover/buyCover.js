@@ -11,9 +11,9 @@ const gracePeriodInDays = 120;
 const NXM_ASSET_ID = 255;
 
 const buyCoverFixture = {
+  coverId: 0,
   productId: 0,
   coverAsset: 0, // ETH
-  coverId: 0,
   poolId: 0,
   segmentId: 0,
   period: 3600 * 24 * 30, // 30 days
@@ -26,7 +26,7 @@ const buyCoverFixture = {
   expectedPremium: parseEther('1000').mul(260).div(10000), // amount * targetPriceRatio / priceDenominator
 };
 
-describe('buyCover', function () {
+describe.only('buyCover', function () {
   beforeEach(async function () {
     const { cover } = this;
 

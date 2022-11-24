@@ -1,5 +1,7 @@
-const { parseEther } = require('ethers/lib/utils');
 const { ethers, expect } = require('hardhat');
+const { MaxUint256 } = ethers.constants;
+const { parseEther } = ethers.utils;
+
 const { daysToSeconds } = require('../../../lib/helpers');
 const { setEtherBalance, increaseTime } = require('../../utils/evm');
 const { getTranches } = require('./helpers');
@@ -100,7 +102,7 @@ describe('setPoolFee', function () {
 
     const allocationRequest = {
       productId: 0,
-      coverId: 0,
+      coverId: MaxUint256,
       amount: parseEther('1'),
       period: daysToSeconds(30),
     };
@@ -123,7 +125,6 @@ describe('setPoolFee', function () {
     ]);
 
     // Generate rewards
-
     const allocationConfig = {
       gracePeriod: daysToSeconds(30),
       globalCapacityRatio: 20000,

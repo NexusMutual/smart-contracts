@@ -2,17 +2,17 @@
 
 pragma solidity ^0.8.16;
 
-import "../../abstract/MasterAware.sol";
+import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ITokenController.sol";
 
-contract MMockNewContract is MasterAware {
+contract MMockNewContract is MasterAwareV2 {
 
   ITokenController tc;
 
   constructor() { }
 
   function changeDependentContractAddress() external {
-    tc = ITokenController(master.getLatestAddress("TC"));
+    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
   }
 
   function mint(address _member, uint _amount) public {

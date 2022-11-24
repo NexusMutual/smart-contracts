@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "../abstract/MasterAware.sol";
-import "../modules/token/NXMToken.sol";
+import "../abstract/MasterAwareV2.sol";
+import "../interfaces/INXMToken.sol";
 
 interface ICover {
   function stakingPool(uint poolId) external view returns (address);
 }
 
-contract TokenControllerMock is MasterAware {
+contract TokenControllerMock is MasterAwareV2 {
 
   struct StakingPoolNXMBalances {
     uint128 rewards;
@@ -17,7 +17,7 @@ contract TokenControllerMock is MasterAware {
   }
 
 
-  NXMToken public token;
+  INXMToken public token;
   ICover public cover;
   address public addToWhitelistLastCalledWtih;
   address public removeFromWhitelistLastCalledWtih;
@@ -41,8 +41,8 @@ contract TokenControllerMock is MasterAware {
   }
 
   function changeDependentContractAddress() public {
-    token = NXMToken(master.tokenAddress());
-    cover = ICover(master.getLatestAddress("CO"));
+    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
+    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
   }
 
   function operatorTransfer(address _from, address _to, uint _value) onlyInternal external returns (bool) {
@@ -65,9 +65,9 @@ contract TokenControllerMock is MasterAware {
     stakingPoolNXMBalances[poolId].rewards -= uint128(amount);
   }
 
-  function setContractAddresses(address coverAddr, address tokenAddr) public {
-    cover = ICover(coverAddr);
-    token = NXMToken(tokenAddr);
+  function setContractAddresses(address payable coverAddr, address payable tokenAddr) public {
+    internalContracts[uint(ID.TK)] = tokenAddr;
+    internalContracts[uint(ID.CO)] = coverAddr;
   }
 
   function depositStakedNXM(address from, uint amount, uint poolId) external {

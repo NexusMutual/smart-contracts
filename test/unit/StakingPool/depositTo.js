@@ -802,6 +802,6 @@ describe('depositTo', function () {
           destination,
         },
       ]),
-    ).to.be.revertedWith('Staking: Senders NXM is locked for member vote');
+    ).to.be.revertedWith('Staking: NXM is locked for voting in governance');
   });
 });

@@ -357,7 +357,7 @@ contract StakingPool is IStakingPool, ERC721 {
         "StakingPool: The pool is private"
       );
     }
-    require(block.timestamp > nxm.isLockedForMV(msg.sender), "Staking: Senders NXM is locked for member vote");
+    require(block.timestamp > nxm.isLockedForMV(msg.sender), "Staking: NXM is locked for voting in governance");
 
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;

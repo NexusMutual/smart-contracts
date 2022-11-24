@@ -16,7 +16,7 @@ import "../../libraries/SafeUintCast.sol";
 /// to payouts. Mints rewards for stakers that act benevolently and allows burning fraudulent ones.
 contract Assessment is IAssessment, MasterAwareV2 {
 
-  INXMToken public immutable nxm;
+  INXMToken public immutable NXM;
 
   /* ========== STATE VARIABLES ========== */
 
@@ -43,7 +43,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /* ========== CONSTRUCTOR ========== */
 
   constructor(address nxmAddress) {
-    nxm = INXMToken(nxmAddress);
+    NXM = INXMToken(nxmAddress);
   }
 
   function initialize () external {
@@ -153,7 +153,11 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///                membership during stake lockup period and thus allowing the user to withdraw
   ///                their staked amount to the new address when possible.
   function unstake(uint96 amount, address to) external whenNotPaused override {
-    require(block.timestamp > nxm.isLockedForMV(msg.sender), "Assessment: Nxm locked for voting");
+    // Restrict unstaking to a different account if still locked for member vote
+    if (block.timestamp < NXM.isLockedForMV(msg.sender)) {
+      require(to == msg.sender, "Assessment: Nxm is locked for voting in governance");
+    }
+
     uint voteCount = votesOf[msg.sender].length;
     if (voteCount > 0) {
       Vote memory vote = votesOf[msg.sender][voteCount - 1];
@@ -164,7 +168,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
 
     stakeOf[msg.sender].amount -= amount;
-    nxm.transfer(to, amount);
+    NXM.transfer(to, amount);
 
     emit StakeWithdrawn(msg.sender, to, amount);
   }
@@ -457,7 +461,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       // burn from a different merkle tree.
       burnAmount = burnAmount > _stake.amount ? _stake.amount : burnAmount;
       _stake.amount -= burnAmount;
-      nxm.burn(burnAmount);
+      NXM.burn(burnAmount);
       _stake.fraudCount++;
     }
 

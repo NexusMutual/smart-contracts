@@ -127,10 +127,10 @@ describe('unstake', function () {
 
   it('reverts if attempting to stake while NXM is locked for governance proposal', async function () {
     const { nxm, assessment } = this.contracts;
-    const [user] = this.accounts.members;
+    const [user, otherUser] = this.accounts.members;
     await nxm.setLock(user.address, 100);
-    await expect(assessment.connect(user).unstake(parseEther('100'), user.address)).to.be.revertedWith(
-      'Assessment: Nxm locked for voting',
+    await expect(assessment.connect(user).unstake(parseEther('100'), otherUser.address)).to.be.revertedWith(
+      'Assessment: Nxm is locked for voting in governance',
     );
   });
 });

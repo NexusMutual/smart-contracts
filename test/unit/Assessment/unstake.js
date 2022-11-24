@@ -130,7 +130,7 @@ describe('unstake', function () {
     const [user, otherUser] = this.accounts.members;
     await nxm.setLock(user.address, 100);
     await expect(assessment.connect(user).unstake(parseEther('100'), otherUser.address)).to.be.revertedWith(
-      'Assessment: Nxm is locked for voting in governance',
+      'Assessment: NXM is locked for voting in governance',
     );
   });
 });

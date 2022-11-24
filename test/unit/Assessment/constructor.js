@@ -7,7 +7,7 @@ describe('constructor', function () {
 
     const Assessment = await ethers.getContractFactory('Assessment');
     const assessment = await Assessment.deploy(nxm.address);
-    const nxmAddress = await assessment.NXM();
+    const nxmAddress = await assessment.nxm();
 
     expect(nxmAddress).to.be.equal(nxm.address);
   });

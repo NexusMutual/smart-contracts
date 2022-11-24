@@ -16,7 +16,7 @@ import "../../libraries/SafeUintCast.sol";
 /// to payouts. Mints rewards for stakers that act benevolently and allows burning fraudulent ones.
 contract Assessment is IAssessment, MasterAwareV2 {
 
-  INXMToken public immutable NXM;
+  INXMToken public immutable nxm;
 
   /* ========== STATE VARIABLES ========== */
 
@@ -43,7 +43,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   /* ========== CONSTRUCTOR ========== */
 
   constructor(address nxmAddress) {
-    NXM = INXMToken(nxmAddress);
+    nxm = INXMToken(nxmAddress);
   }
 
   function initialize () external {
@@ -63,7 +63,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     config.stakeLockupPeriodInDays = 14; // days
     config.silentEndingPeriodInDays = 1; // days
 
-    // to receive NXM
+    // to receive nxm
     ITokenController(getInternalContractAddress(ID.TC)).addToWhitelist(address(this));
   }
 
@@ -154,8 +154,8 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///                their staked amount to the new address when possible.
   function unstake(uint96 amount, address to) external whenNotPaused override {
     // Restrict unstaking to a different account if still locked for member vote
-    if (block.timestamp < NXM.isLockedForMV(msg.sender)) {
-      require(to == msg.sender, "Assessment: Nxm is locked for voting in governance");
+    if (block.timestamp < nxm.isLockedForMV(msg.sender)) {
+      require(to == msg.sender, "Assessment: NXM is locked for voting in governance");
     }
 
     uint voteCount = votesOf[msg.sender].length;
@@ -168,7 +168,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
 
     stakeOf[msg.sender].amount -= amount;
-    NXM.transfer(to, amount);
+    nxm.transfer(to, amount);
 
     emit StakeWithdrawn(msg.sender, to, amount);
   }
@@ -461,7 +461,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       // burn from a different merkle tree.
       burnAmount = burnAmount > _stake.amount ? _stake.amount : burnAmount;
       _stake.amount -= burnAmount;
-      NXM.burn(burnAmount);
+      nxm.burn(burnAmount);
       _stake.fraudCount++;
     }
 

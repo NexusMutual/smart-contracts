@@ -243,7 +243,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
 
     ICover _cover = cover();
     // Transfer the cover NFTs to the new address, if any were given
-    cover().transferCovers(msg.sender, newAddress, coverIds);
+    _cover.transferCovers(msg.sender, newAddress, coverIds);
 
     // Transfer the staking deposits to the new address
     for (uint256 i = 0; i < stakingPools.length; i++) {

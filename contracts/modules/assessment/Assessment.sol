@@ -112,7 +112,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       // rewards.
       if (
         !hasReachedUnwithdrawableReward &&
-        assessment.poll.end + config.payoutCooldownInDays * 1 days >= block.timestamp
+        uint(assessment.poll.end) + uint(config.payoutCooldownInDays) * 1 days >= block.timestamp
       ) {
         hasReachedUnwithdrawableReward = true;
         // Store the index of the vote until which rewards can be withdrawn.
@@ -157,7 +157,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     if (voteCount > 0) {
       Vote memory vote = votesOf[msg.sender][voteCount - 1];
       require(
-        block.timestamp > vote.timestamp + config.stakeLockupPeriodInDays * 1 days,
+        block.timestamp > vote.timestamp + uint(config.stakeLockupPeriodInDays) * 1 days,
         "Stake is in lockup period"
       );
     }
@@ -228,7 +228,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     for (uint i = rewardsWithdrawableFromIndex; i < withdrawnUntilIndex; i++) {
       vote = votesOf[staker][i];
       assessment = assessments[vote.assessmentId];
-      if (assessment.poll.end + config.payoutCooldownInDays * 1 days >= block.timestamp) {
+      if (uint(assessment.poll.end) + uint(config.payoutCooldownInDays) * 1 days >= block.timestamp) {
         // Poll is not final
         withdrawnUntilIndex = i;
         break;
@@ -264,7 +264,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
         0, // accepted
         0, // denied
         uint32(block.timestamp), // start
-        uint32(block.timestamp + config.minVotingPeriodInDays * 1 days) // end
+        uint32(block.timestamp + uint32(config.minVotingPeriodInDays) * 1 days) // end
       ),
       uint128(totalAssessmentReward),
       uint128(assessmentDepositInETH)
@@ -331,17 +331,17 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
     if (poll.accepted == 0) {
       // Reset the poll end date on the first accept vote
-      poll.end = uint32(block.timestamp + config.minVotingPeriodInDays * 1 days);
+      poll.end = uint32(block.timestamp + uint(config.minVotingPeriodInDays) * 1 days);
     }
 
     // Check if poll ends in less than 24 hours
-    uint silentEndingPeriod = config.silentEndingPeriodInDays * 1 days;
+    uint silentEndingPeriod = uint(config.silentEndingPeriodInDays) * 1 days;
     if (poll.end - block.timestamp < silentEndingPeriod) {
       // Extend proportionally to the user's stake but up to 1 day maximum
       poll.end += uint32(
         Math.min(
           silentEndingPeriod,
-          silentEndingPeriod * uint(stakeAmount) / (uint(poll.accepted) + uint(poll.denied))
+          silentEndingPeriod * uint(stakeAmount) / (uint(poll.accepted + poll.denied))
         )
       );
     }
@@ -423,7 +423,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       IAssessment.Poll memory poll = assessments[vote.assessmentId].poll;
 
       {
-        if (uint32(block.timestamp) >= poll.end + config.payoutCooldownInDays * 1 days) {
+        if (uint32(block.timestamp) >= uint(poll.end) + uint(config.payoutCooldownInDays) * 1 days) {
           // Once the cooldown period ends the poll result is final, thus skip
           continue;
         }

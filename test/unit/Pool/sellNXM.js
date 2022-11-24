@@ -62,7 +62,7 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sell from member that is a contract whose fallback function reverts', async function () {
-    const { pool, mcr, token, master, tokenController } = this;
+    const { pool, mcr, token, master, tokenController, memberRoles } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = percentageBN(mcrEth, 150);
@@ -71,7 +71,7 @@ describe('sellNXM', function () {
     await pool.sendTransaction({ value: initialAssetValue });
 
     const contractMember = await P1MockMember.new(pool.address, token.address, tokenController.address);
-    await master.enrollMember(contractMember.address, Role.Member);
+    await memberRoles.setRole(contractMember.address, Role.Member);
 
     const tokensToSell = ether('1');
     await token.mint(contractMember.address, tokensToSell);

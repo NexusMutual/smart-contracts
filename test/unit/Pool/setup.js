@@ -1,4 +1,6 @@
-const { artifacts, web3 } = require('hardhat');
+const { artifacts, web3,
+  ethers
+} = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 
 const { Role } = require('../utils').constants;
@@ -18,11 +20,13 @@ async function setup() {
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
   const P1MockSwapOperator = artifacts.require('P1MockSwapOperator');
+  const MemberRolesMock = await artifacts.require('MemberRolesMock');
 
   const master = await MasterMock.new();
   const dai = await ERC20Mock.new();
   const stETH = await ERC20BlacklistableMock.new();
   const otherAsset = await ERC20Mock.new();
+  const memberRoles = await MemberRolesMock.new();
 
   const ethToDaiRate = new BN((394.59 * 1e18).toString());
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
@@ -62,6 +66,7 @@ async function setup() {
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
+  await master.setLatestAddress(hex('MR'), memberRoles.address);
 
   const contractsToUpdate = [mcr, pool, tokenController];
 
@@ -75,10 +80,12 @@ async function setup() {
 
   for (const member of accounts.members) {
     await master.enrollMember(member, Role.Member);
+    await memberRoles.setRole(member, Role.Member);
   }
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
     await master.enrollMember(advisoryBoardMember, Role.AdvisoryBoard);
+    await memberRoles.setRole(advisoryBoardMember, Role.AdvisoryBoard);
   }
 
   for (const internalContract of accounts.internalContracts) {
@@ -98,6 +105,7 @@ async function setup() {
   this.pool = pool;
   this.mcr = mcr;
   this.tokenController = tokenController;
+  this.memberRoles = memberRoles;
   this.dai = dai;
   this.chainlinkDAI = chainlinkDAI;
   this.chainlinkSteth = chainlinkSteth;

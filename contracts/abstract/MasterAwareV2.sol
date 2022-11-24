@@ -5,10 +5,11 @@ pragma solidity ^0.8.16;
 import "../interfaces/INXMMaster.sol";
 import "../interfaces/IMasterAwareV2.sol";
 import "../interfaces/IMemberRoles.sol";
+import "hardhat/console.sol";
 
 abstract contract MasterAwareV2 is IMasterAwareV2 {
 
-  mapping(uint => address payable) internal internalContracts;
+  mapping(uint => address payable) public internalContracts;
 
   INXMMaster public master;
 
@@ -71,7 +72,6 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
     require(!master.isPause(), "System is paused");
     _;
   }
-
 
   function getInternalContractAddress(ID id) internal view returns (address payable) {
     return internalContracts[uint(id)];

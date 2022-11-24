@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-v4/utils/Address.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
-import "../../abstract/MasterAware.sol";
+import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IMCR.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
@@ -17,19 +17,15 @@ import "../../interfaces/ISwapOperator.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 
-contract Pool is IPool, MasterAware, ReentrancyGuard {
+contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   using SafeERC20 for IERC20;
   using Address for address;
+
 
   /* storage */
   Asset[] public override coverAssets;
   Asset[] public override investmentAssets;
   mapping(address => SwapDetails) public swapDetails;
-
-  // contracts
-  INXMToken public nxmToken;
-  ITokenController public tokenController;
-  IMCR public mcr;
 
   // parameters
   IPriceFeedOracle public override priceFeedOracle;
@@ -353,7 +349,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     emit Payout(payoutAddress, asset.assetAddress, amount);
     uint totalAssetValue = getPoolValueInEth();
 
-    mcr.updateMCRInternal(totalAssetValue, true);
+    mcr().updateMCRInternal(totalAssetValue, true);
   }
 
   /* pool lifecycle functions */
@@ -405,14 +401,29 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     }
   }
 
+  /* ========== DEPENDENCIES ========== */
+
+  function nxmToken() internal view returns (INXMToken) {
+    return INXMToken(internalContracts[uint(ID.TK)]);
+  }
+
+  function tokenController() internal view returns (ITokenController) {
+    return ITokenController(internalContracts[uint(ID.TC)]);
+  }
+
+  function mcr() internal view returns (IMCR) {
+    return IMCR(internalContracts[uint(ID.MC)]);
+  }
+
   /**
    * @dev Update dependent contract address
    * @dev Implements MasterAware interface function
    */
   function changeDependentContractAddress() public {
-    nxmToken = INXMToken(master.tokenAddress());
-    tokenController = ITokenController(master.getLatestAddress("TC"));
-    mcr = IMCR(master.getLatestAddress("MC"));
+    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
+    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
+    internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
   }
 
   function transferAssetFrom (
@@ -471,16 +482,17 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     require(ethIn > 0, "Pool: ethIn > 0");
 
     uint totalAssetValue = getPoolValueInEth() - ethIn;
-    uint mcrEth = mcr.getMCR();
+    IMCR _mcr = mcr();
+    uint mcrEth = _mcr.getMCR();
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
 
     require(mcrRatio <= MAX_MCR_RATIO, "Pool: Cannot purchase if MCR% > 400%");
     uint tokensOut = calculateNXMForEth(ethIn, totalAssetValue, mcrEth);
     require(tokensOut >= minTokensOut, "Pool: tokensOut is less than minTokensOut");
-    tokenController.mint(msg.sender, tokensOut);
+    tokenController().mint(msg.sender, tokensOut);
 
     // evaluate the new MCR for the current asset value including the ETH paid in
-    mcr.updateMCRInternal(totalAssetValue + ethIn, false);
+    _mcr.updateMCRInternal(totalAssetValue + ethIn, false);
     emit NXMBought(msg.sender, ethIn, tokensOut);
   }
 
@@ -493,21 +505,23 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint tokenAmount,
     uint minEthOut
   ) public override onlyMember nonReentrant whenNotPaused {
-    require(nxmToken.balanceOf(msg.sender) >= tokenAmount, "Pool: Not enough balance");
-    require(nxmToken.isLockedForMV(msg.sender) <= block.timestamp, "Pool: NXM tokens are locked for voting");
+    INXMToken _nxmToken = nxmToken();
+    require(_nxmToken.balanceOf(msg.sender) >= tokenAmount, "Pool: Not enough balance");
+    require(_nxmToken.isLockedForMV(msg.sender) <= block.timestamp, "Pool: NXM tokens are locked for voting");
 
+    IMCR _mcr = mcr();
     uint currentTotalAssetValue = getPoolValueInEth();
-    uint mcrEth = mcr.getMCR();
+    uint mcrEth = _mcr.getMCR();
     uint ethOut = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
     require(currentTotalAssetValue - ethOut >= mcrEth, "Pool: MCR% cannot fall below 100%");
     require(ethOut >= minEthOut, "Pool: ethOut < minEthOut");
 
-    tokenController.burnFrom(msg.sender, tokenAmount);
+    tokenController().burnFrom(msg.sender, tokenAmount);
     (bool ok, /* data */) = msg.sender.call{value: ethOut}("");
     require(ok, "Pool: Sell transfer failed");
 
     // evaluate the new MCR for the current asset value excluding the paid out ETH
-    mcr.updateMCRInternal(currentTotalAssetValue - ethOut, false);
+    _mcr.updateMCRInternal(currentTotalAssetValue - ethOut, false);
     emit NXMSold(msg.sender, tokenAmount, ethOut);
   }
 
@@ -520,7 +534,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     uint ethAmount
   ) public override view returns (uint) {
     uint totalAssetValue = getPoolValueInEth();
-    uint mcrEth = mcr.getMCR();
+    uint mcrEth = mcr().getMCR();
     return calculateNXMForEth(ethAmount, totalAssetValue, mcrEth);
   }
 
@@ -608,7 +622,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   function getEthForNXM(uint nxmAmount) public override view returns (uint ethAmount) {
     uint currentTotalAssetValue = getPoolValueInEth();
-    uint mcrEth = mcr.getMCR();
+    uint mcrEth = mcr().getMCR();
     return calculateEthForNXM(nxmAmount, currentTotalAssetValue, mcrEth);
   }
 
@@ -675,7 +689,7 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
     require(assetId < coverAssets.length, "Pool: Unknown cover asset");
     address assetAddress = coverAssets[assetId].assetAddress;
     uint totalAssetValue = getPoolValueInEth();
-    uint mcrEth = mcr.getMCR();
+    uint mcrEth = mcr().getMCR();
     uint tokenSpotPriceEth = calculateTokenSpotPrice(totalAssetValue, mcrEth);
 
     return priceFeedOracle.getAssetForEth(assetAddress, tokenSpotPriceEth);
@@ -683,11 +697,11 @@ contract Pool is IPool, MasterAware, ReentrancyGuard {
 
   function getMCRRatio() public override view returns (uint) {
     uint totalAssetValue = getPoolValueInEth();
-    uint mcrEth = mcr.getMCR();
+    uint mcrEth = mcr().getMCR();
     return calculateMCRRatio(totalAssetValue, mcrEth);
   }
 
-  function updateUintParameters(bytes8 /* code */, uint /* value */) external onlyGovernance {
+  function updateUintParameters(bytes8 /* code */, uint /* value */) external view onlyGovernance {
     revert("Pool: Unknown parameter");
   }
 

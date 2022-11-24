@@ -8,15 +8,15 @@ import "../../modules/legacy/LegacyPooledStaking.sol";
 contract DisposablePooledStaking is LegacyPooledStaking {
 
   function initialize(
-    address _tokenControllerAddress,
+    address payable _tokenControllerAddress,
     uint minStake,
     uint minUnstake,
     uint maxExposure,
     uint unstakeLockTime
   ) external {
 
-    tokenController = ITokenController(_tokenControllerAddress);
-    tokenController.addToWhitelist(address(this));
+    internalContracts[uint(ID.TC)] = _tokenControllerAddress;
+    ITokenController(_tokenControllerAddress).addToWhitelist(address(this));
 
     MIN_STAKE = minStake;
     MIN_UNSTAKE = minUnstake;
@@ -28,7 +28,6 @@ contract DisposablePooledStaking is LegacyPooledStaking {
   }
 
   constructor() LegacyPooledStaking(
-    0x0000000000000000000000000000000000000000,
     0x0000000000000000000000000000000000000000,
     0x0000000000000000000000000000000000000000
   ) {

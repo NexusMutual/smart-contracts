@@ -35,6 +35,7 @@ const newProductTemplate = {
 
 const buyCoverParamsTemplate = {
   owner: AddressZero,
+  coverId: 0,
   productId: 0,
   coverAsset: 0, // ETH
   amount: parseEther('100'),

@@ -37,7 +37,6 @@ struct PoolAllocationRequest {
 struct PoolAllocation {
   uint40 poolId;
   uint96 coverAmountInNXM;
-  uint96 premiumInNXM;
 }
 
 struct CoverData {
@@ -51,12 +50,11 @@ struct CoverSegment {
   uint32 start;
   uint32 period;  // seconds
   uint16 gracePeriodInDays;
-  uint16 priceRatio;
-  bool expired;
   uint24 globalRewardsRatio;
 }
 
 struct BuyCoverParams {
+  uint coverId;
   address owner;
   uint24 productId;
   uint8 coverAsset;
@@ -64,7 +62,6 @@ struct BuyCoverParams {
   uint32 period;
   uint maxPremiumInAsset;
   uint8 paymentAsset;
-  bool payWithNXM;
   uint16 commissionRatio;
   address commissionDestination;
   string ipfsData;
@@ -106,7 +103,7 @@ interface ICover {
 
   /* ========== VIEWS ========== */
 
-  function coverData(uint id) external view returns (CoverData memory);
+  function coverData(uint coverId) external view returns (CoverData memory);
 
   function coverSegmentsCount(uint coverId) external view returns (uint);
 
@@ -154,7 +151,7 @@ interface ICover {
 
   function setProducts(ProductParam[] calldata params) external;
 
-  function performStakeBurn(
+  function burnStake(
     uint coverId,
     uint segmentId,
     uint amount
@@ -179,8 +176,6 @@ interface ICover {
   event StakingPoolCreated(address stakingPoolAddress, uint poolId, address manager, address stakingPoolImplementation);
   event ProductSet(uint id, string ipfsMetadata);
   event ProductTypeSet(uint id, string ipfsMetadata);
-  event CoverBought(uint coverId, uint productId, uint segmentId, address buyer, string ipfsMetadata);
-  event CoverEdited(uint coverId, uint productId, uint segmentId, address buyer);
-  event CoverExpired(uint coverId, uint segmentId);
+  event CoverEdited(uint indexed coverId, uint indexed productId, uint indexed segmentId, address buyer, string ipfsMetadata);
   event CoverMigrated(uint oldCoverId, address fromOwner, address newOwner, uint newCoverId);
 }

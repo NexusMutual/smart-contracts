@@ -14,18 +14,18 @@ contract SPMockCover {
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
   mapping(uint => address) public stakingPool;
-  mapping(uint256 => Product) public products;
-  mapping(uint256 => ProductType) public productTypes;
+  mapping(uint => Product) public products;
+  mapping(uint => ProductType) public productTypes;
 
   function setStakingPool(address addr, uint id) public {
     stakingPool[id] = addr;
   }
 
-  function setProduct(Product memory product, uint256 id) public {
+  function setProduct(Product memory product, uint id) public {
     products[id] = product;
   }
 
-  function setProductType(ProductType calldata product, uint256 id) public {
+  function setProductType(ProductType calldata product, uint id) public {
     productTypes[id] = product;
   }
 
@@ -51,22 +51,26 @@ contract SPMockCover {
 
   function allocateCapacity(
     BuyCoverParams memory params,
-    uint256 coverId,
+    uint coverId,
     IStakingPool _stakingPool
-  ) public returns (uint256 coveredAmountInNXM, uint256 premiumInNXM, uint256 rewardsInNXM) {
-    Product memory product = products[params.productId];
-    uint256 gracePeriod = uint256(productTypes[product.productType].gracePeriodInDays) * 1 days;
+  ) public returns (uint premium) {
 
-    return _stakingPool.allocateStake(
-      CoverRequest(
-        coverId,
+    Product memory product = products[params.productId];
+    uint gracePeriod = uint(productTypes[product.productType].gracePeriodInDays) * 1 days;
+
+    return _stakingPool.allocateCapacity(
+      AllocationRequest(
         params.productId,
+        coverId,
         params.amount,
-        params.period,
+        params.period
+      ),
+      AllocationRequestConfig(
         gracePeriod,
         globalCapacityRatio,
         product.capacityReductionRatio,
-        globalRewardsRatio
+        globalRewardsRatio,
+        GLOBAL_MIN_PRICE_RATIO
       )
     );
   }
@@ -75,10 +79,10 @@ contract SPMockCover {
     address staking_,
     address _manager,
     bool _isPrivatePool,
-    uint256 _initialPoolFee,
-    uint256 _maxPoolFee,
+    uint _initialPoolFee,
+    uint _maxPoolFee,
     ProductInitializationParams[] memory params,
-    uint256 _poolId
+    uint _poolId
   ) external {
 
     for (uint i = 0; i < params.length; i++) {

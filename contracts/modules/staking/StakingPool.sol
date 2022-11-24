@@ -596,19 +596,18 @@ contract StakingPool is IStakingPool, ERC721 {
     }
   }
 
-  function allocateStake(
-    CoverRequest calldata request
-  ) external onlyCoverContract returns (
-    uint allocatedCoverAmount,
-    uint premium,
-    uint rewardsInNXM
-  ) {
+  function allocateCapacity(
+    AllocationRequest calldata request,
+    AllocationRequestConfig calldata config
+  ) external onlyCoverContract returns (uint premium) {
 
     // passing true because we change the reward per second
     updateTranches(true);
 
-    uint firstTrancheIdToUse = (block.timestamp + request.period + request.gracePeriod) / TRANCHE_DURATION;
+    uint firstTrancheIdToUse = (block.timestamp + request.period + config.gracePeriod) / TRANCHE_DURATION;
     uint trancheCount = block.timestamp / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES - firstTrancheIdToUse;
+
+    uint allocatedCoverAmount;
     uint remainingAmount = Math.divCeil(request.amount, NXM_PER_ALLOCATION_UNIT);
 
     (
@@ -620,8 +619,8 @@ contract StakingPool is IStakingPool, ERC721 {
       request.productId,
       firstTrancheIdToUse,
       trancheCount,
-      request.globalCapacityRatio,
-      request.capacityReductionRatio,
+      config.globalCapacityRatio,
+      config.capacityReductionRatio,
       remainingAmount
     );
 
@@ -657,7 +656,7 @@ contract StakingPool is IStakingPool, ERC721 {
       );
 
       uint targetBucketId = Math.divCeil(
-        block.timestamp + request.period + request.gracePeriod,
+        block.timestamp + request.period + config.gracePeriod,
         BUCKET_DURATION
       );
 
@@ -682,9 +681,9 @@ contract StakingPool is IStakingPool, ERC721 {
     );
 
     {
-      require(request.rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
+      require(config.rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
 
-      uint rewards = premium * request.rewardRatio / REWARDS_DENOMINATOR;
+      uint rewards = premium * config.rewardRatio / REWARDS_DENOMINATOR;
       uint expireAtBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
       uint rewardStreamPeriod = expireAtBucket * BUCKET_DURATION - block.timestamp;
       uint _rewardPerSecond = rewards / rewardStreamPeriod;
@@ -697,23 +696,33 @@ contract StakingPool is IStakingPool, ERC721 {
 
       rewardPerSecond += _rewardPerSecond;
 
-      // scale back from 2 to 18 decimals
-      allocatedCoverAmount *= NXM_PER_ALLOCATION_UNIT;
-
-      // premium and rewards already have 18 decimals
-      return (allocatedCoverAmount, premium, rewards);
+      // apply the global rewards ratio and the total Rewards in NXM
+      // TODO: implement me
+      // tokenController().mintStakingPoolNXMRewards(rewardsInNXM, allocationRequests[i].poolId);
     }
+
+    // premium has 18 decimals
+    return premium;
   }
 
-  function deallocateStake(
-    // TODO: use a DeallocationRequest instead as we don't need all the fields
-    CoverRequest memory request,
-    uint coverStartTime,
-    uint premium
-  ) external onlyCoverContract {
+  function deallocateCapacity(DeallocationRequest memory request) external onlyCoverContract {
+
     updateTranches(true);
-    deallocateStakeForCover(request, coverStartTime);
-    removeCoverReward(coverStartTime, request.period, premium, request.rewardRatio);
+
+    deallocateCapacityForCover(
+      request.coverId,
+      request.productId,
+      request.coverStartTime,
+      request.period,
+      request.gracePeriod
+    );
+
+    removeCoverReward(
+      request.coverStartTime,
+      request.period,
+      request.premium,
+      request.rewardRatio
+    );
   }
 
   function removeCoverReward(
@@ -733,12 +742,15 @@ contract StakingPool is IStakingPool, ERC721 {
     rewardBuckets[expireAtBucket].rewardPerSecondCut -= _rewardPerSecond;
   }
 
-  function deallocateStakeForCover(
-    CoverRequest memory request,
-    uint coverStartTime
+  function deallocateCapacityForCover(
+    uint coverId,
+    uint productId,
+    uint coverStartTime,
+    uint period,
+    uint gracePeriod
   ) internal {
 
-    uint gracePeriodExpiration = coverStartTime + request.period + request.gracePeriod;
+    uint gracePeriodExpiration = coverStartTime + period + gracePeriod;
     uint firstTrancheIdToUse = gracePeriodExpiration / TRANCHE_DURATION;
     uint trancheCount = coverStartTime / TRANCHE_DURATION + MAX_ACTIVE_TRANCHES - firstTrancheIdToUse;
 
@@ -747,12 +759,12 @@ contract StakingPool is IStakingPool, ERC721 {
       /*uint requestedTranchesCapacityUsed*/,
       /*uint totalCapacityUsed*/
     ) = getAllocations(
-      request.productId,
+      productId,
       firstTrancheIdToUse,
       trancheCount
     );
 
-    uint packedCoverTrancheAllocation = coverTrancheAllocations[request.coverId];
+    uint packedCoverTrancheAllocation = coverTrancheAllocations[coverId];
 
     {
       uint[] memory coverTrancheAllocation = new uint[](trancheCount);
@@ -764,15 +776,15 @@ contract StakingPool is IStakingPool, ERC721 {
       }
 
       updateAllocations(
-        request.productId,
+        productId,
         firstTrancheIdToUse,
         trancheCount,
         trancheAllocations
       );
 
       updateExpiringCoverAmounts(
-        request.coverId,
-        request.productId,
+        coverId,
+        productId,
         firstTrancheIdToUse,
         trancheCount,
         Math.divCeil(gracePeriodExpiration, BUCKET_DURATION),

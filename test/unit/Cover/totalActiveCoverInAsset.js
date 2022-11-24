@@ -4,7 +4,7 @@ const { bnEqual } = require('../utils').helpers;
 
 const { parseEther } = ethers.utils;
 
-describe('totalActiveCoverInAsset', function () {
+describe.skip('totalActiveCoverInAsset', function () {
   const ethCoverBuyFixture = {
     productId: 0,
     coverAsset: 0, // ETH

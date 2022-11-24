@@ -335,17 +335,20 @@ describe('depositTo', function () {
     expect(depositData.pendingRewards).to.equal(0);
 
     // Generate rewards
-    const coverRequest = {
-      coverId: 0,
+    const allocationRequest = {
       productId: 0,
-      amount: parseEther('100'),
+      coverId: 0,
+      amount: parseEther('1'),
       period: daysToSeconds(30),
+    };
+    const allocationConfig = {
       gracePeriod: daysToSeconds(30),
       globalCapacityRatio: 20000,
       capacityReductionRatio: 0,
-      rewardRatio: 10000,
+      rewardRatio: 5000,
+      globalMinPrice: 10000,
     };
-    await stakingPool.connect(this.coverSigner).allocateStake(coverRequest);
+    await stakingPool.connect(this.coverSigner).allocateCapacity(allocationRequest, allocationConfig);
 
     await increaseTime(daysToSeconds(20));
 
@@ -426,17 +429,20 @@ describe('depositTo', function () {
     }
 
     // Generate rewards
-    const coverRequest = {
-      coverId: 0,
+    const allocationRequest = {
       productId: 0,
-      amount: parseEther('100'),
+      coverId: 0,
+      amount: parseEther('1'),
       period: daysToSeconds(30),
+    };
+    const allocationConfig = {
       gracePeriod: daysToSeconds(30),
       globalCapacityRatio: 20000,
       capacityReductionRatio: 0,
-      rewardRatio: 10000,
+      rewardRatio: 5000,
+      globalMinPrice: 10000,
     };
-    await stakingPool.connect(this.coverSigner).allocateStake(coverRequest);
+    await stakingPool.connect(this.coverSigner).allocateCapacity(allocationRequest, allocationConfig);
 
     await increaseTime(daysToSeconds(20));
 
@@ -483,17 +489,20 @@ describe('depositTo', function () {
     ]);
 
     // Generate rewards
-    const coverRequest = {
-      coverId: 0,
+    const allocationRequest = {
       productId: 0,
+      coverId: 0,
       amount: parseEther('1'),
       period: daysToSeconds(30),
+    };
+    const allocationConfig = {
       gracePeriod: daysToSeconds(30),
       globalCapacityRatio: 20000,
       capacityReductionRatio: 0,
       rewardRatio: 5000,
+      globalMinPrice: 10000,
     };
-    await stakingPool.connect(this.coverSigner).allocateStake(coverRequest);
+    await stakingPool.connect(this.coverSigner).allocateCapacity(allocationRequest, allocationConfig);
 
     await increaseTime(daysToSeconds(150));
 

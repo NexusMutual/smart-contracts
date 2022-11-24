@@ -291,11 +291,16 @@ contract Assessment is IAssessment, MasterAwareV2 {
   function castVotes(
     uint[] calldata assessmentIds,
     bool[] calldata votes,
+    string[] calldata ipfsAssessmentDataHashes,
     uint96 stakeIncrease
   ) external override onlyMember whenNotPaused {
     require(
       assessmentIds.length == votes.length,
       "The lengths of the assessment ids and votes arrays mismatch"
+    );
+    require(
+      assessmentIds.length == votes.length,
+      "The lengths of the assessment ids and ipfs assessment data hashes arrays mismatch"
     );
 
     if (stakeIncrease > 0) {
@@ -303,7 +308,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     }
 
     for (uint i = 0; i < assessmentIds.length; i++) {
-      castVote(assessmentIds[i], votes[i]);
+      castVote(assessmentIds[i], votes[i], ipfsAssessmentDataHashes[i]);
     }
   }
 
@@ -318,7 +323,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///
   /// @param assessmentId  The index of the assessment for which the vote is cast
   /// @param isAcceptVote  True to accept, false to deny
-  function castVote(uint assessmentId, bool isAcceptVote) internal {
+  function castVote(uint assessmentId, bool isAcceptVote, string memory ipfsAssessmentDataHash) internal {
     {
       require(!hasAlreadyVotedOn[msg.sender][assessmentId], "Already voted");
       hasAlreadyVotedOn[msg.sender][assessmentId] = true;
@@ -365,8 +370,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       uint32(block.timestamp),
       stakeAmount
     ));
-
-    emit VoteCast(msg.sender, assessmentId, stakeAmount, isAcceptVote);
+    emit VoteCast(msg.sender, assessmentId, stakeAmount, isAcceptVote, ipfsAssessmentDataHash);
   }
 
   /// Allows governance to submit a merkle tree root hash representing fraudulent stakers

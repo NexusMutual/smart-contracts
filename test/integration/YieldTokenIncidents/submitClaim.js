@@ -98,7 +98,7 @@ describe.skip('submitClaim', function () {
     }
 
     // accept incident
-    await as.connect(staker1).castVotes([0], [true], parseEther('100'));
+    await as.connect(staker1).castVotes([0], [true], ['ipfsAssessmentDataHash'], parseEther('100'));
 
     {
       // advance past payout cooldown
@@ -186,7 +186,7 @@ describe.skip('submitClaim', function () {
     }
 
     // accept incident
-    await as.connect(staker1).castVotes([0], [true], parseEther('100'));
+    await as.connect(staker1).castVotes([0], [true], ['ipfsAssessmentDataHash'], parseEther('100'));
 
     {
       // advance past payout cooldown
@@ -271,8 +271,8 @@ describe.skip('submitClaim', function () {
     }
 
     // reject incident (requires at least 1 positive vote)
-    await as.connect(staker1).castVotes([0], [true], parseEther('100'));
-    await as.connect(staker2).castVotes([0], [false], parseEther('100'));
+    await as.connect(staker1).castVotes([0], [true], ['ipfsAssessmentDataHash'], parseEther('100'));
+    await as.connect(staker2).castVotes([0], [false], ['ipfsAssessmentDataHash'], parseEther('100'));
 
     {
       // advance past payout cooldown

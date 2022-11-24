@@ -149,6 +149,7 @@ interface IAssessment {
   function castVotes(
     uint[] calldata assessmentIds,
     bool[] calldata votes,
+    string[] calldata ipfsAssessmentDataHashes,
     uint96 stakeIncrease
   ) external;
 
@@ -170,7 +171,7 @@ interface IAssessment {
 
   event StakeDeposited(address user, uint104 amount);
   event StakeWithdrawn(address indexed user, address to, uint96 amount);
-  event VoteCast(address indexed user, uint256 assessmentId, uint96 stakedAmount, bool accepted);
+  event VoteCast(address indexed user, uint256 assessmentId, uint96 stakedAmount, bool accepted, string ipfsAssessmentDataHash);
   event RewardWithdrawn(address user, address to, uint256 amount);
   event FraudProcessed(uint assessmentId, address assessor, Poll poll);
   event FraudSubmitted(bytes32 root);

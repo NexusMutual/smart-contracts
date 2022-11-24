@@ -26,7 +26,7 @@ const buyCoverFixture = {
   expectedPremium: parseEther('1000').mul(260).div(10000), // amount * targetPriceRatio / priceDenominator
 };
 
-describe('buyCover', function () {
+describe.only('buyCover', function () {
   beforeEach(async function () {
     const { cover } = this;
 

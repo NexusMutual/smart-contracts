@@ -41,11 +41,10 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
   ICover public immutable cover;
   IProductsV1 public immutable productsV1;
   uint public immutable migrationDeadline;
-  INXMToken public immutable token;
 
   /* Storage variables */
 
-  ITokenController public tokenController;
+  ITokenController public _unused0;
 
   uint public MIN_STAKE;         // Minimum allowed stake per contract
   uint public MAX_EXPOSURE;      // Stakes sum must be less than the deposit amount times this
@@ -109,11 +108,10 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     _;
   }
 
-  constructor(address coverAddress, address productsV1Address, address tokenAddress) {
+  constructor(address coverAddress, address productsV1Address) {
     productsV1 = IProductsV1(productsV1Address);
     cover = ICover(coverAddress);
     migrationDeadline = block.timestamp + 90 days;
-    token = INXMToken(tokenAddress);
   }
 
   function min(uint x, uint y) pure internal returns (uint) {
@@ -276,7 +274,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     uint newDeposit = oldDeposit + amount;
 
     staker.deposit = newDeposit;
-    tokenController.operatorTransfer(msg.sender, address(this), amount);
+    tokenController().operatorTransfer(msg.sender, address(this), amount);
 
     for (uint i = 0; i < _contracts.length; i++) {
 
@@ -351,7 +349,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
   function withdraw(uint /*ignoredParam*/) external override whenNotPaused onlyMember noPendingBurns {
     uint amount = stakers[msg.sender].deposit;
     stakers[msg.sender].deposit = 0;
-    token.transfer(msg.sender, amount);
+    token().transfer(msg.sender, amount);
     emit Withdrawn(msg.sender, amount);
   }
 
@@ -359,7 +357,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     require(block.timestamp > migrationDeadline, "Migration period hasn't ended");
     uint amount = stakers[user].deposit;
     stakers[user].deposit = 0;
-    token.transfer(user, amount);
+    token().transfer(user, amount);
     emit Withdrawn(user, amount);
   }
 
@@ -460,7 +458,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     uint amount = stakers[stakerAddress].reward;
     stakers[stakerAddress].reward = 0;
 
-    token.transfer(stakerAddress, amount);
+    token().transfer(stakerAddress, amount);
 
     emit RewardWithdrawn(stakerAddress, amount);
   }
@@ -698,7 +696,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     processedToStakerIndex = 0;
     isContractStakeCalculated = false;
 
-    token.burn(_actualBurnAmount);
+    token().burn(_actualBurnAmount);
     emit Burned(_contractAddress, _actualBurnAmount, _stakedOnContract);
 
     return (true, iterationsLeft);
@@ -880,7 +878,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       firstReward = 0;
     }
 
-    tokenController.mint(address(this), _actualRewardAmount);
+    tokenController().mint(address(this), _actualRewardAmount);
     emit Rewarded(_contractAddress, _actualRewardAmount, _stakedOnContract);
 
     return (true, iterationsLeft);
@@ -931,9 +929,22 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     }
   }
 
-  function changeDependentContractAddress() public {
-    tokenController = ITokenController(master.getLatestAddress("TC"));
+  function token() internal view returns (INXMToken) {
+    return INXMToken(internalContracts[uint(ID.TK)]);
+  }
 
+  function tokenController() internal view returns (ITokenController) {
+    return ITokenController(internalContracts[uint(ID.TC)]);
+  }
+
+  function memberRoles() internal view returns (IMemberRoles) {
+    return IMemberRoles(internalContracts[uint(ID.MR)]);
+  }
+
+  function changeDependentContractAddress() public {
+    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
+    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
   }
 
   function getV1PriceForProduct(uint id) pure internal returns (uint96) {
@@ -1455,7 +1466,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
   function migrateToExistingV2Pool(IStakingPool stakingPool, uint trancheId) external {
     uint deposit = stakers[msg.sender].deposit;
     stakers[msg.sender].deposit = 0;
-    token.approve(address(tokenController), deposit);
+    token().approve(address(tokenController()), deposit);
     DepositRequest[] memory requests = new DepositRequest[](1);
     requests[0] = DepositRequest(deposit, trancheId, 0, msg.sender);
     stakingPool.depositTo(requests);

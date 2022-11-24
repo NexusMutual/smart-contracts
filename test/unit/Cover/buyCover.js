@@ -26,7 +26,7 @@ const buyCoverFixture = {
   expectedPremium: parseEther('1000').mul(260).div(10000), // amount * targetPriceRatio / priceDenominator
 };
 
-describe.only('buyCover', function () {
+describe('buyCover', function () {
   beforeEach(async function () {
     const { cover } = this;
 
@@ -822,7 +822,7 @@ describe.only('buyCover', function () {
     ).to.be.revertedWith('Cover: Price exceeds maxPremiumInAsset');
   });
 
-  it.skip('reverts if empty array of allocationRequests', async function () {
+  it('reverts if empty array of allocationRequests', async function () {
     const { cover } = this;
 
     const {
@@ -851,7 +851,7 @@ describe.only('buyCover', function () {
           value: expectedPremium,
         },
       ),
-    ).to.be.revertedWithPanic('0x12'); // (Division or modulo division by zero)
+    ).to.be.revertedWith('Cover: Amount should be greater than 0');
   });
 
   it('reverts if allocationRequest coverAmountInAsset is 0', async function () {
@@ -1074,8 +1074,8 @@ describe.only('buyCover', function () {
     expect(ownerOfCoverId).to.be.equal(nonMemberCoverReceiver.address);
   });
 
-  // TODO: To be reenabled after rewards minting is reintroduced either in the Cover contract,
-  //  or in the StakingPool contract
+  // TODO: To be reenabled after rewards minting is reintroduced either in the
+  //  Cover contract, or in the StakingPool contract
   it.skip('mints rewards to staking pool', async function () {
     const { cover, tokenController } = this;
 

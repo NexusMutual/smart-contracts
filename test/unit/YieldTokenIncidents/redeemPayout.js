@@ -857,7 +857,7 @@ describe('redeemPayout', function () {
       .connect(member1)
       .redeemPayout(0, 0, 0, depeggedTokensAmount, member1.address, [], { gasPrice: 0 });
 
-    const { coverId, segmentId, amount } = await cover.performStakeBurnCalledWith();
+    const { coverId, segmentId, amount } = await cover.burnStakeCalledWith();
 
     expect(coverId).to.be.equal(0);
     expect(segmentId).to.be.equal(0);

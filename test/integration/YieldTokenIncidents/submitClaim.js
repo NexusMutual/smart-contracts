@@ -15,7 +15,7 @@ const setTime = async timestamp => {
 
 const priceDenominator = '10000';
 
-describe('submitClaim', function () {
+describe.skip('submitClaim', function () {
   beforeEach(async function () {
     const { tk } = this.contracts;
 

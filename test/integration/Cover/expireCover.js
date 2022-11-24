@@ -11,7 +11,7 @@ const setTime = async timestamp => {
   await mineNextBlock();
 };
 
-describe('expireCover', function () {
+describe.skip('expireCover', function () {
   const expireCoverFixture = {
     productId: 2, // ybETH
     coverAsset: 0, // ETH

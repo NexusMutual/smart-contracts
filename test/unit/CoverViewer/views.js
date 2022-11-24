@@ -4,7 +4,7 @@ const {
   utils: { parseEther },
 } = ethers;
 
-describe('views', function () {
+describe.skip('views', function () {
   it('getCoverSegments returns segments', async function () {
     const { cover, coverViewer } = this;
 

@@ -779,4 +779,29 @@ describe('depositTo', function () {
       ]),
     ).to.be.revertedWith('NOT_MINTED');
   });
+
+  it('should revert if trying to deposit, while nxm is locked for governance vote', async function () {
+    const { stakingPool, nxm } = this;
+    const {
+      members: [user],
+    } = this.accounts;
+
+    const { amount, tokenId, destination } = depositToFixture;
+
+    const { firstActiveTrancheId } = await getTranches();
+
+    // Simulate member vote lock
+    await nxm.setLock(user.address, 1e6);
+
+    await expect(
+      stakingPool.connect(user).depositTo([
+        {
+          amount,
+          trancheId: firstActiveTrancheId,
+          tokenId,
+          destination,
+        },
+      ]),
+    ).to.be.revertedWith('Staking: NXM is locked for voting in governance');
+  });
 });

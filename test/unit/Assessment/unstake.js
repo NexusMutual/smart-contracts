@@ -124,4 +124,28 @@ describe('unstake', function () {
         .withArgs(user1.address, user2.address, amount);
     }
   });
+
+  it('reverts if attempting to stake while NXM is locked for voting in governance', async function () {
+    const { nxm, assessment } = this.contracts;
+    const [user, otherUser] = this.accounts.members;
+    await nxm.setLock(user.address, 100);
+    await expect(assessment.connect(user).unstake(parseEther('100'), otherUser.address)).to.be.revertedWith(
+      'Assessment: NXM is locked for voting in governance',
+    );
+  });
+
+  it('allows to unstake to own address while NXM is locked for voting in governance', async function () {
+    const { nxm, assessment } = this.contracts;
+    const [user] = this.accounts.members;
+    const amount = parseEther('100');
+
+    await assessment.connect(user).stake(amount);
+    const balanceBefore = await nxm.balanceOf(user.address);
+
+    await nxm.setLock(user.address, 100);
+    await assessment.connect(user).unstake(amount, user.address);
+
+    const balanceAfter = await nxm.balanceOf(user.address);
+    expect(balanceAfter).to.be.equal(balanceBefore.add(amount));
+  });
 });

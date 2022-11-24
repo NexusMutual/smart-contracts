@@ -63,7 +63,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
     config.stakeLockupPeriodInDays = 14; // days
     config.silentEndingPeriodInDays = 1; // days
 
-    // to receive NXM
+    // to receive nxm
     ITokenController(getInternalContractAddress(ID.TC)).addToWhitelist(address(this));
   }
 
@@ -153,6 +153,11 @@ contract Assessment is IAssessment, MasterAwareV2 {
   ///                membership during stake lockup period and thus allowing the user to withdraw
   ///                their staked amount to the new address when possible.
   function unstake(uint96 amount, address to) external whenNotPaused override {
+    // Restrict unstaking to a different account if still locked for member vote
+    if (block.timestamp < nxm.isLockedForMV(msg.sender)) {
+      require(to == msg.sender, "Assessment: NXM is locked for voting in governance");
+    }
+
     uint voteCount = votesOf[msg.sender].length;
     if (voteCount > 0) {
       Vote memory vote = votesOf[msg.sender][voteCount - 1];

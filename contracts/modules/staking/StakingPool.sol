@@ -363,10 +363,8 @@ contract StakingPool is IStakingPool, ERC721 {
 
     // if the pool has no previous deposits
     if (firstActiveTrancheId == 0) {
-      uint currentBucketId = block.timestamp / BUCKET_DURATION;
-
-      firstActiveBucketId = currentBucketId;
       firstActiveTrancheId = _firstActiveTrancheId;
+      firstActiveBucketId = block.timestamp / BUCKET_DURATION;
       lastAccNxmUpdate = block.timestamp;
     } else {
       updateTranches(true);

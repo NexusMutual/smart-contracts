@@ -1,6 +1,5 @@
 const { artifacts } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
 
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;

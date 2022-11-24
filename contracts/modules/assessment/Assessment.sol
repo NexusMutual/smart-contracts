@@ -331,7 +331,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
 
     if (poll.accepted == 0) {
       // Reset the poll end date on the first accept vote
-      poll.end = uint32(block.timestamp + config.minVotingPeriodInDays * 1 days);
+      poll.end = uint32(block.timestamp + uint(config.minVotingPeriodInDays) * 1 days);
     }
 
     // Check if poll ends in less than 24 hours
@@ -341,7 +341,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       poll.end += uint32(
         Math.min(
           silentEndingPeriod,
-          silentEndingPeriod * uint(stakeAmount) / (uint(poll.accepted) + uint(poll.denied))
+          silentEndingPeriod * uint(stakeAmount) / (uint(poll.accepted + poll.denied))
         )
       );
     }

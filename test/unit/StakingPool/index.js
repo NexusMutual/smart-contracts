@@ -21,6 +21,7 @@ describe('StakingPool unit tests', function () {
   require('./setPoolPrivacy');
   require('./calculateNewRewardShares');
   require('./setProducts');
+  require('./setDescriptionIpfsHash');
   require('./depositTo');
   require('./updateTranches');
 });

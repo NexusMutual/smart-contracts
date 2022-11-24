@@ -475,6 +475,7 @@ async function setup() {
       DEFAULT_PRODUCT_INITIALIZATION,
       '0', // depositAmount,
       '0', // trancheId
+      '',
     );
 
     await tx.wait();

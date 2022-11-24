@@ -46,6 +46,7 @@ describe('createStakingPool', function () {
       DEFAULT_PRODUCT_INITIALIZATION,
       deposit, // depositAmount,
       trancheId, // trancheId
+      '', // ipfsDescriptionHash
     );
     const managerNXMBalanceAfterCreation = await tk.balanceOf(manager.address);
     const tokenControllerBalanceAfterCreation = await tk.balanceOf(tc.address);
@@ -111,6 +112,7 @@ describe('createStakingPool', function () {
       DEFAULT_PRODUCT_INITIALIZATION,
       deposit, // depositAmount,
       trancheId, // trancheId
+      '', // ipfsDescriptionHash
     );
 
     const managerNXMBalanceAfterCreation = await tk.balanceOf(manager.address);

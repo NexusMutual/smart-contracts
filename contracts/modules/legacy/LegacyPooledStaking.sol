@@ -1469,7 +1469,8 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       maxPoolFee,
       params,
       deposit,
-      trancheIdInEffect
+      trancheIdInEffect,
+      ''
     );
   }
 

@@ -162,4 +162,5 @@ interface IStakingPool {
 
   event PoolFeeChanged(address indexed manager, uint newFee);
 
+  event PoolDescriptionChanged(uint poolId, string ipfsDescriptionHash);
 }

@@ -168,12 +168,19 @@ interface ICover {
     uint maxPoolFee,
     ProductInitializationParams[] calldata params,
     uint depositAmount,
-    uint trancheId
+    uint trancheId,
+    string memory ipfsDescriptionHash
   ) external returns (address stakingPoolAddress);
 
   /* ========== EVENTS ========== */
 
-  event StakingPoolCreated(address stakingPoolAddress, uint poolId, address manager, address stakingPoolImplementation);
+  event StakingPoolCreated(
+    address stakingPoolAddress,
+    uint poolId,
+    address manager,
+    address stakingPoolImplementation,
+    string ipfsDescriptionHash
+  );
   event ProductSet(uint id, string ipfsMetadata);
   event ProductTypeSet(uint id, string ipfsMetadata);
   event CoverEdited(uint indexed coverId, uint indexed productId, uint indexed segmentId, address buyer, string ipfsMetadata);

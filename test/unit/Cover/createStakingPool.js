@@ -36,6 +36,7 @@ describe('createStakingPool', function () {
       productInitializationParams,
       depositAmount,
       trancheId,
+      '', // ipfsDescriptionHash
     );
 
     const stakingPoolInstance = await ethers.getContractAt('CoverMockStakingPool', firstStakingPoolAddress);
@@ -70,6 +71,7 @@ describe('createStakingPool', function () {
       productInitializationParams,
       depositAmount,
       trancheId,
+      '', // ipfsDescriptionHash
     );
 
     const stakingPoolInstance = await ethers.getContractAt('IStakingPool', firstStakingPoolAddress);
@@ -98,10 +100,17 @@ describe('createStakingPool', function () {
         productInitializationParams,
         depositAmount,
         trancheId,
+        'ipfsDescriptionHash', // ipfsDescriptionHash
       ),
     )
       .to.emit(cover, 'StakingPoolCreated')
-      .withArgs(firstStakingPoolAddress, poolId, stakingPoolManager.address, stakingPoolImplementation);
+      .withArgs(
+        firstStakingPoolAddress,
+        poolId,
+        stakingPoolManager.address,
+        stakingPoolImplementation,
+        'ipfsDescriptionHash',
+      );
   });
 
   it('increments staking pool count', async function () {
@@ -121,6 +130,7 @@ describe('createStakingPool', function () {
       productInitializationParams,
       depositAmount,
       trancheId,
+      '', // ipfsDescriptionHash
     );
 
     const stakingPoolCountAfter = await cover.stakingPoolCount();

@@ -1377,7 +1377,7 @@ contract StakingPool is IStakingPool, ERC721 {
     totalEffectiveWeight = _totalEffectiveWeight.toUint32();
   }
 
-function setProducts(StakedProductParam[] memory params) external onlyManager {
+  function setProducts(StakedProductParam[] memory params) external onlyManager {
     uint numProducts = params.length;
     uint[] memory productIds = new uint[](numProducts);
 
@@ -1510,6 +1510,10 @@ function setProducts(StakedProductParam[] memory params) external onlyManager {
     isPrivatePool = _isPrivatePool;
 
     emit PoolPrivacyChanged(msg.sender, _isPrivatePool);
+  }
+
+  function setPoolDescription(string memory ipfsDescriptionHash) external onlyManager {
+    emit PoolDescriptionChanged(poolId, ipfsDescriptionHash);
   }
 
   /* utils */

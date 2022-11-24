@@ -24,6 +24,7 @@ async function createStakingPool(cover, productId, capacity, targetPrice, active
     productinitializationParams,
     '0', // depositAmount,
     '0', // trancheId
+    '', // ipfsDescriptionHash
   );
 
   await tx.wait();

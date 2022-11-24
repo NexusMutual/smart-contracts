@@ -62,7 +62,7 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sell from member that is a contract whose fallback function reverts', async function () {
-    const { pool, mcr, token, master, tokenController, memberRoles } = this;
+    const { pool, mcr, token, tokenController, memberRoles } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = percentageBN(mcrEth, 150);

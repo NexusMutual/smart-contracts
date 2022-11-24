@@ -16,20 +16,17 @@ contract TokenControllerMock is MasterAwareV2 {
     uint128 deposits;
   }
 
-
-  INXMToken public token;
-  ICover public cover;
   address public addToWhitelistLastCalledWtih;
   address public removeFromWhitelistLastCalledWtih;
 
   mapping(uint => StakingPoolNXMBalances) public stakingPoolNXMBalances;
 
   function mint(address _member, uint256 _amount) public onlyInternal {
-    token.mint(_member, _amount);
+    token().mint(_member, _amount);
   }
 
   function burnFrom(address _of, uint amount) public onlyInternal returns (bool) {
-    return token.burnFrom(_of, amount);
+    return token().burnFrom(_of, amount);
   }
 
   function addToWhitelist(address _member) public onlyInternal {
@@ -40,6 +37,16 @@ contract TokenControllerMock is MasterAwareV2 {
     removeFromWhitelistLastCalledWtih = _member;
   }
 
+  /* ========== DEPENDENCIES ========== */
+
+  function token() public view returns (INXMToken) {
+    return INXMToken(internalContracts[uint(ID.TK)]);
+  }
+
+  function cover() internal view returns (ICover) {
+    return ICover(internalContracts[uint(ID.CO)]);
+  }
+
   function changeDependentContractAddress() public {
     internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
@@ -48,8 +55,8 @@ contract TokenControllerMock is MasterAwareV2 {
   function operatorTransfer(address _from, address _to, uint _value) onlyInternal external returns (bool) {
     require(msg.sender == master.getLatestAddress("PS") || msg.sender == master.getLatestAddress("CO"),
       "Call is only allowed from PooledStaking or Cover address");
-    require(token.operatorTransfer(_from, _value), "Operator transfer failed");
-    require(token.transfer(_to, _value), "Internal transfer failed");
+    require(token().operatorTransfer(_from, _value), "Operator transfer failed");
+    require(token().transfer(_to, _value), "Internal transfer failed");
     return true;
   }
 
@@ -71,10 +78,10 @@ contract TokenControllerMock is MasterAwareV2 {
   }
 
   function depositStakedNXM(address from, uint amount, uint poolId) external {
-    require(msg.sender == address(cover.stakingPool(poolId)), "TokenController: msg.sender not staking pool");
+    require(msg.sender == address(cover().stakingPool(poolId)), "TokenController: msg.sender not staking pool");
 
     stakingPoolNXMBalances[poolId].deposits += uint128(amount);
-    token.operatorTransfer(from, amount);
+    token().operatorTransfer(from, amount);
   }
 
   function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {}

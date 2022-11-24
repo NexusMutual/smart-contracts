@@ -315,7 +315,9 @@ contract StakingPool is IStakingPool, ERC721 {
         delete tranches[_firstActiveTrancheId];
 
         // the tranche is expired now so we decrease the stake and the shares supply
-        uint expiredStake = _activeStake * expiringTranche.stakeShares / _stakeSharesSupply;
+        uint expiredStake = _stakeSharesSupply != 0
+          ? (_activeStake * expiringTranche.stakeShares) / _stakeSharesSupply
+          : 0;
         _activeStake -= expiredStake;
         _stakeSharesSupply -= expiringTranche.stakeShares;
         _rewardsSharesSupply -= expiringTranche.rewardsShares;
@@ -356,16 +358,23 @@ contract StakingPool is IStakingPool, ERC721 {
       );
     }
 
-    updateTranches(true);
+    uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+    uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;
+
+    // if the pool has no previous deposits
+    if (firstActiveTrancheId == 0) {
+      firstActiveTrancheId = _firstActiveTrancheId;
+      firstActiveBucketId = block.timestamp / BUCKET_DURATION;
+      lastAccNxmUpdate = block.timestamp;
+    } else {
+      updateTranches(true);
+    }
 
     // storage reads
     uint _activeStake = activeStake;
     uint _stakeSharesSupply = stakeSharesSupply;
     uint _rewardsSharesSupply = rewardsSharesSupply;
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
-
-    uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
-    uint maxTranche = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;
 
     uint totalAmount;
     tokenIds = new uint[](requests.length);

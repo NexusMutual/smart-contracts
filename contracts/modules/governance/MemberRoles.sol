@@ -24,22 +24,27 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     address authorized;
   }
 
-  ITokenController public _unused0;
-  address payable public _unused1;
+  address internal _unused0;
+  address internal _unused1;
+
   address public kycAuthAddress;
+
   address internal _unused2;
   address internal _unused3;
   address internal _unused4;
-  address public _unused5;
+  address internal _unused5;
 
   MemberRoleDetails[] internal memberRoleData;
+
   bool internal _unused6;
+
   uint public maxABCount;
   bool public launched;
   uint public launchedOn;
 
-  mapping(address => address payable) public _unused7;
-  mapping(address => bool) public _unused8;
+  mapping(address => address) internal _unused7;
+  mapping(address => bool) internal _unused8;
+
   mapping(bytes32 => bool) public usedMessageHashes;
 
   // Prefixes for ECDSA signatures' scope
@@ -49,8 +54,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
   modifier checkRoleAuthority(uint _memberRoleId) {
     if (memberRoleData[_memberRoleId].authorized != address(0)) {
       require(msg.sender == memberRoleData[_memberRoleId].authorized);
-    }
-    else {
+    } else {
       require(master.checkIsAuthToGoverned(msg.sender), "Not Authorized");
     }
     _;

@@ -44,7 +44,16 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
   /* Storage variables */
 
-  ITokenController public _unused0;
+  /*
+    Deleted storage variables
+    bool public initialized;
+    INXMToken public token;
+
+    These 2 variables occupied 1 slot. The MasterAwareV2 interface has 1 extra slot more
+    compared to MasterAware. MasterAware.master storage variable is now overwriting initialized and token.
+  */
+
+  address public _unused0;
 
   uint public MIN_STAKE;         // Minimum allowed stake per contract
   uint public MAX_EXPOSURE;      // Stakes sum must be less than the deposit amount times this

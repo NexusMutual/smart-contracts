@@ -2,6 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { getTranches, TRANCHE_DURATION } = require('./helpers');
 const { setEtherBalance, increaseTime } = require('../../utils/evm');
+const { daysToSeconds } = require('../../../lib/helpers');
 
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
@@ -49,7 +50,7 @@ describe('updateTranches', function () {
 
     const { amount, tokenId, destination } = depositToFixture;
 
-    const { firstActiveTrancheId } = await getTranches();
+    const { firstActiveTrancheId } = await getTranches(daysToSeconds(0), daysToSeconds(0));
 
     // Deposit. In this internal call to updateTranches _rewardsSharesSupply is 0
     // so it only updates lastAccNxmUpdate and return
@@ -81,7 +82,7 @@ describe('updateTranches', function () {
 
     const { amount, tokenId, destination } = depositToFixture;
 
-    const { firstActiveTrancheId } = await getTranches();
+    const { firstActiveTrancheId } = await getTranches(daysToSeconds('0'), daysToSeconds('0'));
 
     // deposit
     await stakingPool.connect(user).depositTo([

@@ -24,26 +24,28 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     address authorized;
   }
 
-  address internal _unused0;
-  address internal _unused1;
+  // used to be ITokenController public tc;
+  address internal _unused5;
+  // used to be address payable public poolAddress;
+  address internal _unused6;
 
   address public kycAuthAddress;
-
-  address internal _unused2;
-  address internal _unused3;
-  address internal _unused4;
-  address internal _unused5;
+  // used to be ICover internal cover;
+  address internal _unused7;
+  address internal _unused0;
+  address internal _unused1;
+  // used to be INXMToken public nxm;
+  address internal _unused8;
 
   MemberRoleDetails[] internal memberRoleData;
-
-  bool internal _unused6;
+  bool internal _unused2;
 
   uint public maxABCount;
   bool public launched;
   uint public launchedOn;
 
-  mapping(address => address) internal _unused7;
-  mapping(address => bool) internal _unused8;
+  mapping(address => address) internal _unused3;
+  mapping(address => bool) internal _unused4;
 
   mapping(bytes32 => bool) public usedMessageHashes;
 
@@ -259,6 +261,17 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
 
   function switchMembershipOf(address member, address newAddress) external override onlyInternal {
     _switchMembership(member, newAddress);
+  }
+
+  function storageCleanup() external {
+    _unused0 = 0x0000000000000000000000000000000000000000;
+    _unused1 = 0x0000000000000000000000000000000000000000;
+    _unused2 = false;
+    _unused3[0x181Aea6936B407514ebFC0754A37704eB8d98F91] = payable(0x0000000000000000000000000000000000000000);
+    _unused5 = 0x0000000000000000000000000000000000000000;
+    _unused6 = 0x0000000000000000000000000000000000000000;
+    _unused7 = 0x0000000000000000000000000000000000000000;
+    _unused8 = 0x0000000000000000000000000000000000000000;
   }
 
   function isMember(address member) public view returns (bool) {

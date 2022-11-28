@@ -13,7 +13,7 @@ describe('processFraud', function () {
     const [fraudulentMember, honestMember] = this.accounts.members;
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
-    await assessment.connect(fraudulentMember).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([0], [true], ['Assessment data hash'], 0);
     const merkleTree = await submitFraud({
       assessment,
       signer: governance,
@@ -84,10 +84,10 @@ describe('processFraud', function () {
     await assessment.connect(otherMember2).stake(parseEther('10'));
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
-    await assessment.connect(fraudulentMember).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([0], [true], ['Assessment data hash'], 0);
 
     await individualClaims.submitClaim(1, 0, parseEther('100'), '');
-    await assessment.connect(fraudulentMember).castVotes([1], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([1], [true], ['Assessment data hash'], 0);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     await setTime(timestamp + daysToSeconds(30));
@@ -95,19 +95,19 @@ describe('processFraud', function () {
 
     // Fraudulent claim
     await individualClaims.submitClaim(2, 0, parseEther('100'), '');
-    await assessment.connect(fraudulentMember).castVotes([2], [true], ['ipfsAssessmentDataHash'], 0);
-    await assessment.connect(otherMember1).castVotes([2], [false], ['ipfsAssessmentDataHash'], 0);
-    await assessment.connect(otherMember2).castVotes([2], [false], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([2], [true], ['Assessment data hash'], 0);
+    await assessment.connect(otherMember1).castVotes([2], [false], ['Assessment data hash'], 0);
+    await assessment.connect(otherMember2).castVotes([2], [false], ['Assessment data hash'], 0);
 
     await individualClaims.submitClaim(3, 0, parseEther('100'), '');
-    await assessment.connect(otherMember1).castVotes([3], [true], ['ipfsAssessmentDataHash'], 0);
-    await assessment.connect(otherMember2).castVotes([3], [true], ['ipfsAssessmentDataHash'], 0);
-    await assessment.connect(fraudulentMember).castVotes([3], [false], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(otherMember1).castVotes([3], [true], ['Assessment data hash'], 0);
+    await assessment.connect(otherMember2).castVotes([3], [true], ['Assessment data hash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([3], [false], ['Assessment data hash'], 0);
 
     await individualClaims.submitClaim(4, 0, parseEther('100'), '');
-    await assessment.connect(fraudulentMember).castVotes([4], [true], ['ipfsAssessmentDataHash'], 0);
-    await assessment.connect(otherMember1).castVotes([4], [true], ['ipfsAssessmentDataHash'], 0);
-    await assessment.connect(otherMember2).castVotes([4], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([4], [true], ['Assessment data hash'], 0);
+    await assessment.connect(otherMember1).castVotes([4], [true], ['Assessment data hash'], 0);
+    await assessment.connect(otherMember2).castVotes([4], [true], ['Assessment data hash'], 0);
 
     const stake = await assessment.stakeOf(fraudulentMember.address);
     expect(stake.rewardsWithdrawableFromIndex).to.be.equal(2);
@@ -187,7 +187,7 @@ describe('processFraud', function () {
     await Promise.all(
       Array(10)
         .fill('')
-        .map((_, i) => assessment.connect(fraudulentMember).castVotes([i], [true], ['ipfsAssessmentDataHash'], 0)),
+        .map((_, i) => assessment.connect(fraudulentMember).castVotes([i], [true], ['Assessment data hash'], 0)),
     );
 
     const burnAmount = parseEther('50');
@@ -285,10 +285,10 @@ describe('processFraud', function () {
     await assessment.connect(otherMember2).stake(parseEther('200'));
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
-    await assessment.connect(fraudulentMember).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([0], [true], ['Assessment data hash'], 0);
 
     await individualClaims.submitClaim(1, 0, parseEther('100'), '');
-    await assessment.connect(fraudulentMember).castVotes([1], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([1], [true], ['Assessment data hash'], 0);
 
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
@@ -296,14 +296,14 @@ describe('processFraud', function () {
     }
 
     // Increases the poll end by 1 day
-    await assessment.connect(otherMember1).castVotes([1], [false], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(otherMember1).castVotes([1], [false], ['Assessment data hash'], 0);
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       await setTime(timestamp + daysToSeconds(1) - 2);
     }
 
     // Increases the poll end by 1 day
-    await assessment.connect(otherMember2).castVotes([1], [false], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(otherMember2).castVotes([1], [false], ['Assessment data hash'], 0);
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       await setTime(timestamp + daysToSeconds(2) - 2);
@@ -348,7 +348,7 @@ describe('processFraud', function () {
     await assessment.connect(fraudulentMember).stake(parseEther('100'));
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
-    await assessment.connect(fraudulentMember).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([0], [true], ['Assessment data hash'], 0);
 
     {
       const fraudulentAssessment = await assessment.assessments(0);
@@ -391,11 +391,11 @@ describe('processFraud', function () {
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
     await individualClaims.submitClaim(1, 0, parseEther('1000'), '');
 
-    await assessment.connect(fraudulentMember1).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
-    await assessment.connect(fraudulentMember1).castVotes([1], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember1).castVotes([0], [true], ['Assessment data hash'], 0);
+    await assessment.connect(fraudulentMember1).castVotes([1], [true], ['Assessment data hash'], 0);
 
-    await assessment.connect(fraudulentMember2).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
-    await assessment.connect(fraudulentMember2).castVotes([1], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember2).castVotes([0], [true], ['Assessment data hash'], 0);
+    await assessment.connect(fraudulentMember2).castVotes([1], [true], ['Assessment data hash'], 0);
 
     const { poll: poll1 } = await assessment.assessments(0);
     const { poll: poll2 } = await assessment.assessments(1);
@@ -484,7 +484,7 @@ describe('processFraud', function () {
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
-    await assessment.connect(fraudulentMember).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([0], [true], ['Assessment data hash'], 0);
 
     const burnAmount = parseEther('33');
     await submitFraud({
@@ -525,7 +525,7 @@ describe('processFraud', function () {
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
-    await assessment.connect(fraudulentMember).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([0], [true], ['Assessment data hash'], 0);
 
     await submitFraud({
       assessment,
@@ -574,7 +574,7 @@ describe('processFraud', function () {
     await Promise.all(
       Array(10)
         .fill('')
-        .map((_, i) => assessment.connect(fraudulentMember).castVotes([i], [true], ['ipfsAssessmentDataHash'], 0)),
+        .map((_, i) => assessment.connect(fraudulentMember).castVotes([i], [true], ['Assessment data hash'], 0)),
     );
 
     const burnAmount = parseEther('50');
@@ -666,7 +666,7 @@ describe('processFraud', function () {
     await Promise.all(
       Array(2)
         .fill('')
-        .map((_, i) => assessment.connect(fraudulentMember).castVotes([i], [true], ['ipfsAssessmentDataHash'], 0)),
+        .map((_, i) => assessment.connect(fraudulentMember).castVotes([i], [true], ['Assessment data hash'], 0)),
     );
 
     const burnAmount = parseEther('50');
@@ -729,7 +729,7 @@ describe('processFraud', function () {
     await Promise.all(
       Array(2)
         .fill('')
-        .map((_, i) => assessment.connect(fraudulentMember).castVotes([i], [true], ['ipfsAssessmentDataHash'], 0)),
+        .map((_, i) => assessment.connect(fraudulentMember).castVotes([i], [true], ['Assessment data hash'], 0)),
     );
 
     const burnAmount = parseEther('50');
@@ -810,7 +810,7 @@ describe('processFraud', function () {
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
-    await assessment.connect(fraudulentMember).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([0], [true], ['Assessment data hash'], 0);
 
     const burnAmount = parseEther('33');
     await submitFraud({
@@ -863,7 +863,7 @@ describe('processFraud', function () {
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
-    await assessment.connect(fraudulentMember).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([0], [true], ['Assessment data hash'], 0);
 
     const burnAmount = parseEther('33');
     await submitFraud({
@@ -941,10 +941,10 @@ describe('processFraud', function () {
     await individualClaims.submitClaim(2, 0, parseEther('100'), '');
     await individualClaims.submitClaim(3, 0, parseEther('100'), '');
 
-    await assessment.connect(fraudulentMember).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
-    await assessment.connect(fraudulentMember).castVotes([1], [true], ['ipfsAssessmentDataHash'], 0);
-    await assessment.connect(fraudulentMember).castVotes([2], [true], ['ipfsAssessmentDataHash'], 0);
-    await assessment.connect(fraudulentMember).castVotes([3], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([0], [true], ['Assessment data hash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([1], [true], ['Assessment data hash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([2], [true], ['Assessment data hash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([3], [true], ['Assessment data hash'], 0);
 
     await finalizePoll(assessment);
 
@@ -955,7 +955,7 @@ describe('processFraud', function () {
 
     // Fraudulent claim
     await individualClaims.submitClaim(4, 0, parseEther('100'), '');
-    await assessment.connect(fraudulentMember).castVotes([4], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(fraudulentMember).castVotes([4], [true], ['Assessment data hash'], 0);
 
     const burnAmount = parseEther('100');
     await submitFraud({

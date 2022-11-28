@@ -161,7 +161,7 @@ const generateRewards = async ({ assessment, individualClaims, staker }) => {
   await assessment.connect(staker).stake(parseEther('10'));
 
   await individualClaims.connect(staker).submitClaim(0, 0, parseEther('100'), '');
-  await assessment.connect(staker).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+  await assessment.connect(staker).castVotes([0], [true], ['Assessment data hash'], 0);
 };
 
 module.exports = {

@@ -5,17 +5,19 @@ const { setTime } = require('./helpers');
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
+const ASSESSMENT_DATA_HASH = 'Assessment data ipfs hash';
+
 describe('castVotes', function () {
   it('reverts if the user has already voted on the same assessment', async function () {
     const { assessment, individualClaims } = this.contracts;
     const user = this.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
-    await assessment.connect(user).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
-    await expect(assessment.connect(user).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0)).to.be.revertedWith(
+    await assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
+    await expect(assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
       'Already voted',
     );
-    await expect(assessment.connect(user).castVotes([0], [false], ['ipfsAssessmentDataHash'], 0)).to.be.revertedWith(
+    await expect(assessment.connect(user).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
       'Already voted',
     );
   });
@@ -24,10 +26,10 @@ describe('castVotes', function () {
     const { assessment, individualClaims } = this.contracts;
     const user = this.accounts.members[0];
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
-    await expect(assessment.connect(user).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0)).to.be.revertedWith(
+    await expect(assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
       'A stake is required to cast votes',
     );
-    await expect(assessment.connect(user).castVotes([0], [false], ['ipfsAssessmentDataHash'], 0)).to.be.revertedWith(
+    await expect(assessment.connect(user).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
       'A stake is required to cast votes',
     );
   });
@@ -42,25 +44,25 @@ describe('castVotes', function () {
       const { poll } = await assessment.assessments(0);
       await setTime(poll.end);
     }
-    await expect(assessment.connect(user1).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0)).to.be.revertedWith(
+    await expect(assessment.connect(user1).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
       'Voting is closed',
     );
-    await expect(assessment.connect(user1).castVotes([0], ['ipfsAssessmentDataHash'], [false], 0)).to.be.revertedWith(
+    await expect(assessment.connect(user1).castVotes([0], [ASSESSMENT_DATA_HASH], [false], 0)).to.be.revertedWith(
       'Voting is closed',
     );
 
     await individualClaims.submitClaim(1, 0, parseEther('100'), '');
     const { timestamp } = await ethers.provider.getBlock('latest');
     await setTime(timestamp + daysToSeconds(1));
-    await assessment.connect(user1).castVotes([1], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(user1).castVotes([1], [true], [ASSESSMENT_DATA_HASH], 0);
     {
       const { poll } = await assessment.assessments(1);
       await setTime(poll.end);
     }
-    await expect(assessment.connect(user2).castVotes([1], [true], ['ipfsAssessmentDataHash'], 0)).to.be.revertedWith(
+    await expect(assessment.connect(user2).castVotes([1], [true], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
       'Voting is closed',
     );
-    await expect(assessment.connect(user2).castVotes([1], [false], ['ipfsAssessmentDataHash'], 0)).to.be.revertedWith(
+    await expect(assessment.connect(user2).castVotes([1], [false], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
       'Voting is closed',
     );
   });
@@ -70,7 +72,7 @@ describe('castVotes', function () {
     const user = this.accounts.members[0];
     await assessment.connect(user).stake(parseEther('100'));
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
-    await expect(assessment.connect(user).castVotes([0], [false], ['ipfsAssessmentDataHash'], 0)).to.be.revertedWith(
+    await expect(assessment.connect(user).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0)).to.be.revertedWith(
       'At least one accept vote is required to vote deny',
     );
   });
@@ -85,7 +87,7 @@ describe('castVotes', function () {
       await setTime(timestamp + daysToSeconds(1));
     }
 
-    await assessment.connect(user).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
     let expectedEnd;
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
@@ -110,7 +112,7 @@ describe('castVotes', function () {
     await assessment.connect(user4).stake(parseEther('800'));
     await assessment.connect(user5).stake(parseEther('300'));
 
-    await assessment.connect(user1).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(user1).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
 
     {
       const { poll } = await assessment.assessments(0);
@@ -119,7 +121,7 @@ describe('castVotes', function () {
       await setTime(poll.end - 2);
     }
 
-    await assessment.connect(user2).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(user2).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       const { poll } = await assessment.assessments(0);
@@ -129,7 +131,7 @@ describe('castVotes', function () {
       await setTime(timestamp + daysToSeconds(1) - 1);
     }
 
-    await assessment.connect(user3).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(user3).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       const { poll } = await assessment.assessments(0);
@@ -137,7 +139,7 @@ describe('castVotes', function () {
       await setTime(timestamp + daysToSeconds(1) - 1);
     }
 
-    await assessment.connect(user4).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(user4).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       const { poll } = await assessment.assessments(0);
@@ -145,7 +147,7 @@ describe('castVotes', function () {
       await setTime(timestamp + daysToSeconds(1) - 1);
     }
 
-    await assessment.connect(user5).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(user5).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       const { poll } = await assessment.assessments(0);
@@ -165,19 +167,19 @@ describe('castVotes', function () {
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
     {
-      await assessment.connect(user1).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(user1).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
       const { poll } = await assessment.assessments(0);
       expect(poll.accepted).to.be.equal(parseEther('100'));
     }
 
     {
-      await assessment.connect(user2).castVotes([0], [false], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(user2).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0);
       const { poll } = await assessment.assessments(0);
       expect(poll.accepted).to.be.equal(parseEther('100'));
     }
 
     {
-      await assessment.connect(user3).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(user3).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
       const { poll } = await assessment.assessments(0);
       expect(poll.accepted).to.be.equal(parseEther('200'));
     }
@@ -194,25 +196,25 @@ describe('castVotes', function () {
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
     {
-      await assessment.connect(user1).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(user1).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
       const { poll } = await assessment.assessments(0);
       expect(poll.denied).to.be.equal(parseEther('0'));
     }
 
     {
-      await assessment.connect(user2).castVotes([0], [false], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(user2).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0);
       const { poll } = await assessment.assessments(0);
       expect(poll.denied).to.be.equal(parseEther('100'));
     }
 
     {
-      await assessment.connect(user3).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(user3).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
       const { poll } = await assessment.assessments(0);
       expect(poll.denied).to.be.equal(parseEther('100'));
     }
 
     {
-      await assessment.connect(user4).castVotes([0], [false], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(user4).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0);
       const { poll } = await assessment.assessments(0);
       expect(poll.denied).to.be.equal(parseEther('200'));
     }
@@ -228,7 +230,7 @@ describe('castVotes', function () {
     await individualClaims.submitClaim(1, 0, parseEther('100'), '');
 
     {
-      await assessment.connect(user1).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(user1).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
       const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
       const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user1.address, 0);
       expect(assessmentId).to.be.equal(0);
@@ -238,7 +240,7 @@ describe('castVotes', function () {
     }
 
     {
-      await assessment.connect(user1).castVotes([1], [true], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(user1).castVotes([1], [true], [ASSESSMENT_DATA_HASH], 0);
       const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
       const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user1.address, 1);
       expect(assessmentId).to.be.equal(1);
@@ -248,7 +250,7 @@ describe('castVotes', function () {
     }
 
     {
-      await assessment.connect(user2).castVotes([0], [false], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(user2).castVotes([0], [false], [ASSESSMENT_DATA_HASH], 0);
       const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
       const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user2.address, 0);
       expect(assessmentId).to.be.equal(0);
@@ -258,7 +260,7 @@ describe('castVotes', function () {
     }
 
     {
-      await assessment.connect(user2).castVotes([1], [false], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(user2).castVotes([1], [false], [ASSESSMENT_DATA_HASH], 0);
       const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
       const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user2.address, 1);
       expect(assessmentId).to.be.equal(1);
@@ -277,7 +279,7 @@ describe('castVotes', function () {
     await individualClaims.submitClaim(1, 0, parseEther('100'), '');
 
     {
-      await assessment.connect(user1).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(user1).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0);
       const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
       const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user1.address, 0);
       expect(assessmentId).to.be.equal(0);
@@ -287,7 +289,7 @@ describe('castVotes', function () {
     }
 
     {
-      await assessment.connect(user1).castVotes([1], [true], ['ipfsAssessmentDataHash'], parseEther('33'));
+      await assessment.connect(user1).castVotes([1], [true], [ASSESSMENT_DATA_HASH], parseEther('33'));
       const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
       const { assessmentId, accepted, timestamp, stakedAmount } = await assessment.votesOf(user1.address, 1);
       expect(assessmentId).to.be.equal(1);
@@ -313,29 +315,25 @@ describe('castVotes', function () {
 
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
     await individualClaims.submitClaim(1, 0, parseEther('100'), '');
-
+    const assessmentDataIpfsHashes = ['1st Assessment data ipfs hash', '2nd Assessment data ipfs hash'];
     {
-      const tx = await assessment
-        .connect(user1)
-        .castVotes([0, 1], [true, true], ['ipfsAssessmentDataHash', 'ipfsAssessmentDataHash'], 0);
+      const tx = await assessment.connect(user1).castVotes([0, 1], [true, true], assessmentDataIpfsHashes, 0);
       await expect(tx)
         .to.emit(assessment, 'VoteCast')
-        .withArgs(user1.address, 0, parseEther('100'), true, 'ipfsAssessmentDataHash');
+        .withArgs(user1.address, 0, parseEther('100'), true, assessmentDataIpfsHashes[0]);
       await expect(tx)
         .to.emit(assessment, 'VoteCast')
-        .withArgs(user1.address, 1, parseEther('100'), true, 'ipfsAssessmentDataHash');
+        .withArgs(user1.address, 1, parseEther('100'), true, assessmentDataIpfsHashes[1]);
     }
 
     {
-      const tx = await assessment
-        .connect(user2)
-        .castVotes([0, 1], [true, false], ['ipfsAssessmentDataHash', 'ipfsAssessmentDataHash'], 0);
+      const tx = await assessment.connect(user2).castVotes([0, 1], [true, false], assessmentDataIpfsHashes, 0);
       await expect(tx)
         .to.emit(assessment, 'VoteCast')
-        .withArgs(user2.address, 0, parseEther('1000'), true, 'ipfsAssessmentDataHash');
+        .withArgs(user2.address, 0, parseEther('1000'), true, assessmentDataIpfsHashes[0]);
       await expect(tx)
         .to.emit(assessment, 'VoteCast')
-        .withArgs(user2.address, 1, parseEther('1000'), false, 'ipfsAssessmentDataHash');
+        .withArgs(user2.address, 1, parseEther('1000'), false, assessmentDataIpfsHashes[1]);
     }
   });
 
@@ -345,7 +343,7 @@ describe('castVotes', function () {
 
     await master.setEmergencyPause(true);
 
-    await expect(assessment.connect(user).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0)).to.revertedWith(
+    await expect(assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0)).to.revertedWith(
       'System is paused',
     );
   });
@@ -354,7 +352,7 @@ describe('castVotes', function () {
     const { assessment } = this.contracts;
     const [nonMember] = this.accounts.nonMembers;
 
-    await expect(assessment.connect(nonMember).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0)).to.revertedWith(
+    await expect(assessment.connect(nonMember).castVotes([0], [true], [ASSESSMENT_DATA_HASH], 0)).to.revertedWith(
       'Caller is not a member',
     );
   });
@@ -364,8 +362,17 @@ describe('castVotes', function () {
     const [user] = this.accounts.members;
 
     await expect(
-      assessment.connect(user).castVotes([0], [true, true], ['ipfsAssessmentDataHash', 'ipfsAssessmentDataHash'], 0),
+      assessment.connect(user).castVotes([0], [true, true], [ASSESSMENT_DATA_HASH, ASSESSMENT_DATA_HASH], 0),
     ).to.revertedWith('The lengths of the assessment ids and votes arrays mismatch');
+  });
+
+  it('reverts if array length of assessments id and ipfsHashes does not match', async function () {
+    const { assessment } = this.contracts;
+    const [user] = this.accounts.members;
+
+    await expect(
+      assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH, ASSESSMENT_DATA_HASH], 0),
+    ).to.revertedWith('The lengths of the assessment ids and ipfs assessment data hashes arrays mismatch');
   });
 
   it('does not revert on empty arrays', async function () {
@@ -404,9 +411,7 @@ describe('castVotes', function () {
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
     await individualClaims.submitClaim(1, 0, parseEther('100'), '');
 
-    await assessment
-      .connect(user)
-      .castVotes([0, 1], [true, true], ['ipfsAssessmentDataHash', 'ipfsAssessmentDataHash'], 0);
+    await assessment.connect(user).castVotes([0, 1], [true, true], [ASSESSMENT_DATA_HASH, ASSESSMENT_DATA_HASH], 0);
     const { timestamp: timestampAtVoteTime } = await ethers.provider.getBlock('latest');
 
     {
@@ -447,7 +452,7 @@ describe('castVotes', function () {
       expect(amount).to.be.equal(0);
     }
 
-    await assessment.connect(user).castVotes([0], [true], ['ipfsAssessmentDataHash'], stakeAmount);
+    await assessment.connect(user).castVotes([0], [true], [ASSESSMENT_DATA_HASH], stakeAmount);
 
     {
       const { amount } = await assessment.stakeOf(user.address);
@@ -487,7 +492,7 @@ describe('castVotes', function () {
     const votes = [true, false, true, false, false, true, true, false, true, true, true];
 
     for (let i = 0; i < voters.length; i++) {
-      await assessment.connect(voters[i]).castVotes([assessmentId], [votes[i]], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(voters[i]).castVotes([assessmentId], [votes[i]], [ASSESSMENT_DATA_HASH], 0);
     }
 
     const { poll } = await assessment.assessments(assessmentId);

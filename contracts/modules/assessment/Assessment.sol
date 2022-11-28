@@ -299,7 +299,7 @@ contract Assessment is IAssessment, MasterAwareV2 {
       "The lengths of the assessment ids and votes arrays mismatch"
     );
     require(
-      assessmentIds.length == votes.length,
+      assessmentIds.length == ipfsAssessmentDataHashes.length,
       "The lengths of the assessment ids and ipfs assessment data hashes arrays mismatch"
     );
 

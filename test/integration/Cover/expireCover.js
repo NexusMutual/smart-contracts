@@ -136,7 +136,7 @@ describe.skip('expireCover', function () {
     await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
 
     // accept incident
-    await as.connect(staker1).castVotes([assessmentId], [true], ['ipfsAssessmentDataHash'], parseEther('100'));
+    await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
 
     {
       // advance past payout cooldown
@@ -210,7 +210,7 @@ describe.skip('expireCover', function () {
     await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
 
     // accept incident
-    await as.connect(staker1).castVotes([assessmentId], [true], ['ipfsAssessmentDataHash'], parseEther('100'));
+    await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
 
     {
       // advance past payout cooldown
@@ -280,7 +280,7 @@ describe.skip('expireCover', function () {
     await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
 
     // accept incident
-    await as.connect(staker1).castVotes([assessmentId], [true], ['ipfsAssessmentDataHash'], parseEther('100'));
+    await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
 
     {
       // advance past payout cooldown
@@ -355,7 +355,7 @@ describe.skip('expireCover', function () {
     await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
 
     // accept incident
-    await as.connect(staker1).castVotes([assessmentId], [true], ['ipfsAssessmentDataHash'], parseEther('100'));
+    await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
 
     {
       // advance past payout cooldown
@@ -424,7 +424,7 @@ describe.skip('expireCover', function () {
     await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
 
     // accept incident
-    await as.connect(staker1).castVotes([assessmentId], [true], ['ipfsAssessmentDataHash'], parseEther('100'));
+    await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
 
     {
       // advance past payout cooldown
@@ -503,8 +503,8 @@ describe.skip('expireCover', function () {
     await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
 
     // reject incident (requires at least 1 positive vote)
-    await as.connect(staker1).castVotes([assessmentId], [true], ['ipfsAssessmentDataHash'], parseEther('100'));
-    await as.connect(staker2).castVotes([assessmentId], [false], ['ipfsAssessmentDataHash'], parseEther('100'));
+    await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
+    await as.connect(staker2).castVotes([assessmentId], [false], ['Assessment data hash'], parseEther('100'));
 
     {
       // advance past payout cooldown
@@ -579,8 +579,8 @@ describe.skip('expireCover', function () {
     await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
 
     // reject incident (requires at least 1 positive vote)
-    await as.connect(staker1).castVotes([assessmentId], [true], ['ipfsAssessmentDataHash'], parseEther('100'));
-    await as.connect(staker2).castVotes([assessmentId], [false], ['ipfsAssessmentDataHash'], parseEther('100'));
+    await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
+    await as.connect(staker2).castVotes([assessmentId], [false], ['Assessment data hash'], parseEther('100'));
 
     {
       // advance past payout cooldown

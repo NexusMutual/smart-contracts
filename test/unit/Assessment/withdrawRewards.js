@@ -42,15 +42,15 @@ describe('withdrawRewards', function () {
     await assessment.connect(user).stake(parseEther('10'));
 
     await individualClaims.connect(user).submitClaim(0, 0, parseEther('100'), '');
-    await assessment.connect(user).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(user).castVotes([0], [true], ['Assessment data hash'], 0);
 
     await finalizePoll(assessment);
 
     await individualClaims.connect(user).submitClaim(1, 0, parseEther('100'), '');
-    await assessment.connect(user).castVotes([1], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(user).castVotes([1], [true], ['Assessment data hash'], 0);
 
     await individualClaims.connect(user).submitClaim(2, 0, parseEther('100'), '');
-    await assessment.connect(user).castVotes([2], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(user).castVotes([2], [true], ['Assessment data hash'], 0);
 
     const balanceBefore = await nxm.balanceOf(user.address);
 
@@ -73,9 +73,9 @@ describe('withdrawRewards', function () {
       await assessment.connect(user2).stake(parseEther('10'));
       await assessment.connect(user3).stake(parseEther('10'));
 
-      await assessment.connect(user1).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
-      await assessment.connect(user2).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
-      await assessment.connect(user3).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(user1).castVotes([0], [true], ['Assessment data hash'], 0);
+      await assessment.connect(user2).castVotes([0], [true], ['Assessment data hash'], 0);
+      await assessment.connect(user3).castVotes([0], [true], ['Assessment data hash'], 0);
       const { totalRewardInNXM } = await assessment.assessments(0);
 
       await finalizePoll(assessment);
@@ -105,8 +105,8 @@ describe('withdrawRewards', function () {
     {
       await individualClaims.connect(user1).submitClaim(1, 0, parseEther('100'), '');
 
-      await assessment.connect(user1).castVotes([1], [true], ['ipfsAssessmentDataHash'], 0);
-      await assessment.connect(user2).castVotes([1], [true], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(user1).castVotes([1], [true], ['Assessment data hash'], 0);
+      await assessment.connect(user2).castVotes([1], [true], ['Assessment data hash'], 0);
       const { totalRewardInNXM } = await assessment.assessments(1);
 
       await finalizePoll(assessment);
@@ -132,9 +132,9 @@ describe('withdrawRewards', function () {
       await assessment.connect(user2).stake(parseEther('27'));
       await assessment.connect(user3).stake(parseEther('33'));
 
-      await assessment.connect(user1).castVotes([2], [true], ['ipfsAssessmentDataHash'], 0);
-      await assessment.connect(user2).castVotes([2], [true], ['ipfsAssessmentDataHash'], 0);
-      await assessment.connect(user3).castVotes([2], [true], ['ipfsAssessmentDataHash'], 0);
+      await assessment.connect(user1).castVotes([2], [true], ['Assessment data hash'], 0);
+      await assessment.connect(user2).castVotes([2], [true], ['Assessment data hash'], 0);
+      await assessment.connect(user3).castVotes([2], [true], ['Assessment data hash'], 0);
       const { totalRewardInNXM } = await assessment.assessments(2);
 
       await finalizePoll(assessment);
@@ -261,7 +261,7 @@ describe('withdrawRewards', function () {
         .castVotes(
           [0, 1, 2],
           [true, true, true],
-          ['ipfsAssessmentDataHash', 'ipfsAssessmentDataHash', 'ipfsAssessmentDataHash'],
+          ['Assessment data hash', 'Assessment data hash', 'Assessment data hash'],
           0,
         );
 
@@ -294,7 +294,7 @@ describe('withdrawRewards', function () {
     await individualClaims.submitClaim(0, 0, parseEther('100'), '');
 
     for (const user of voters) {
-      await assessment.connect(user).castVotes([0], [true], ['ipfsAssessmentDataHash'], stakeAmount);
+      await assessment.connect(user).castVotes([0], [true], ['Assessment data hash'], stakeAmount);
     }
 
     const { totalRewardInNXM } = await assessment.assessments(0);

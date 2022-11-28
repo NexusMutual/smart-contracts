@@ -34,7 +34,7 @@ describe.skip('submitClaim', function () {
     const { payoutCooldownInDays } = await as.config();
     await as.connect(staker).stake(assessmentStakingAmount);
 
-    await as.connect(staker).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await as.connect(staker).castVotes([0], [true], ['Assessment data hash'], 0);
 
     const { poll } = await as.assessments(0);
     const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
@@ -48,10 +48,10 @@ describe.skip('submitClaim', function () {
     const { payoutCooldownInDays } = await as.config();
     await as.connect(approvingStaker).stake(assessmentStakingAmountForApproval);
 
-    await as.connect(approvingStaker).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await as.connect(approvingStaker).castVotes([0], [true], ['Assessment data hash'], 0);
 
     await as.connect(rejectingStaker).stake(assessmentStakingAmountForRejection);
-    await as.connect(rejectingStaker).castVotes([0], [false], ['ipfsAssessmentDataHash'], 0);
+    await as.connect(rejectingStaker).castVotes([0], [false], ['Assessment data hash'], 0);
 
     const { poll } = await as.assessments(0);
     const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);

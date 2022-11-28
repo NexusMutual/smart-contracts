@@ -16,7 +16,7 @@ describe('getPoll', function () {
       expect(poll.start).to.be.equal(targetAssessment.poll.start);
       expect(poll.end).to.be.equal(targetAssessment.poll.end);
     }
-    await assessment.connect(user).castVotes([0], [true], ['ipfsAssessmentDataHash'], 0);
+    await assessment.connect(user).castVotes([0], [true], ['Assessment data hash'], 0);
     {
       const targetAssessment = await assessment.assessments(0);
       const poll = await assessment.getPoll(0);

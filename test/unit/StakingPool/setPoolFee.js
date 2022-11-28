@@ -88,7 +88,15 @@ describe('setPoolFee', function () {
       },
     } = this;
 
-    const { firstActiveTrancheId } = await getTranches();
+    const allocationRequest = {
+      productId: 0,
+      coverId: 0,
+      amount: parseEther('1'),
+      period: daysToSeconds(30),
+    };
+
+    const gracePeriod = daysToSeconds(30);
+    const { firstActiveTrancheId } = await getTranches(allocationRequest.period, gracePeriod);
     const amount = parseEther('100');
     const tokenId = 0;
     const managerDepositId = 0;
@@ -105,12 +113,7 @@ describe('setPoolFee', function () {
     ]);
 
     // Generate rewards
-    const allocationRequest = {
-      productId: 0,
-      coverId: 0,
-      amount: parseEther('1'),
-      period: daysToSeconds(30),
-    };
+
     const allocationConfig = {
       gracePeriod: daysToSeconds(30),
       globalCapacityRatio: 20000,

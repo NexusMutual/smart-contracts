@@ -362,7 +362,6 @@ describe('depositTo', function () {
     expect(depositData.lastAccNxmPerRewardShare).to.equal(0);
     expect(depositData.pendingRewards).to.equal(0);
 
-    // Generate rewards
     await stakingPool.connect(this.coverSigner).allocateCapacity(allocationRequest, allocationConfig);
     await increaseTime(daysToSeconds(20));
 

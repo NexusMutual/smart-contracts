@@ -53,7 +53,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     compared to MasterAware. MasterAware.master storage variable is now overwriting initialized and token.
   */
 
-  address public _unused0;
+  address internal _unused0;
 
   uint public MIN_STAKE;         // Minimum allowed stake per contract
   uint public MAX_EXPOSURE;      // Stakes sum must be less than the deposit amount times this

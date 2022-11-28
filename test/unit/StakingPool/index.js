@@ -23,4 +23,5 @@ describe('StakingPool unit tests', function () {
   require('./setPoolFee');
   require('./setPoolPrivacy');
   require('./setProducts');
+  require('./withdraw');
 });

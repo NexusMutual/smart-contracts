@@ -328,11 +328,12 @@ describe('processFirstReward', function () {
   });
 
   it('should do up to maxIterations and finish in stakers.length * 2 cycles', async function () {
-    const { token, tokenController, master, staking } = this;
+    const { token, tokenController, master, staking, memberRoles } = this;
     const iterationsNeeded = accounts.generalPurpose.length * 2;
 
     for (const account of accounts.generalPurpose) {
       await master.enrollMember(account, Role.Member);
+      await memberRoles.setRole(account, Role.Member);
       await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, account);
     }
 

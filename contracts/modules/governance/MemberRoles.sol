@@ -4,6 +4,8 @@ pragma solidity ^0.8.16;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
+
+import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/IQuotationData.sol";
@@ -11,10 +13,9 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IStakingPool.sol";
-import "../../abstract/LegacyMasterAware_sol0_8.sol";
 import "./external/Governed.sol";
 
-contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
+contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
 
   struct MemberRoleDetails {
     uint memberCounter;
@@ -23,22 +24,29 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     address authorized;
   }
 
-  ITokenController public tc;
-  address payable public poolAddress;
+  // used to be ITokenController public tc;
+  address internal _unused5;
+  // used to be address payable public poolAddress;
+  address internal _unused6;
+
   address public kycAuthAddress;
-  ICover internal cover;
+  // used to be ICover internal cover;
+  address internal _unused7;
   address internal _unused0;
   address internal _unused1;
-  INXMToken public nxm;
+  // used to be INXMToken public nxm;
+  address internal _unused8;
 
   MemberRoleDetails[] internal memberRoleData;
   bool internal _unused2;
+
   uint public maxABCount;
   bool public launched;
   uint public launchedOn;
 
-  mapping(address => address payable) public _unused3;
-  mapping(address => bool) public _unused4;
+  mapping(address => address) internal _unused3;
+  mapping(address => bool) internal _unused4;
+
   mapping(bytes32 => bool) public usedMessageHashes;
 
   // Prefixes for ECDSA signatures' scope
@@ -46,10 +54,11 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   uint public constant joiningFee = 0.002 ether;
 
   modifier checkRoleAuthority(uint _memberRoleId) {
-    if (memberRoleData[_memberRoleId].authorized != address(0))
+    if (memberRoleData[_memberRoleId].authorized != address(0)) {
       require(msg.sender == memberRoleData[_memberRoleId].authorized);
-    else
-      require(isAuthorizedToGovern(msg.sender), "Not Authorized");
+    } else {
+      require(master.checkIsAuthToGoverned(msg.sender), "Not Authorized");
+    }
     _;
   }
 
@@ -79,31 +88,40 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     kycAuthAddress = _add;
   }
 
+  /* ========== DEPENDENCIES ========== */
+
+  function pool() internal view returns (IPool) {
+    return IPool(internalContracts[uint(ID.P1)]);
+  }
+
+  function tokenController() internal view returns (ITokenController) {
+    return ITokenController(internalContracts[uint(ID.TC)]);
+  }
+
+  // TODO: make immutable?
+  function token() internal view returns (INXMToken) {
+    return INXMToken(internalContracts[uint(ID.TK)]);
+  }
+
+  function cover() internal view returns (ICover) {
+    return ICover(internalContracts[uint(ID.CO)]);
+  }
+
   /// Updates contracts dependencies.
   ///
   /// @dev Iupgradable Interface to update dependent contract address
-  function changeDependentContractAddress() public {
+  function changeDependentContractAddress() public override {
+    // qd storage variable was renamed to kycAuthAddress hence this check handles the migration
+    // 0x1776651F58a17a50098d31ba3C3cD259C1903f7A is the address of QuotationData
+
     if (kycAuthAddress == 0x1776651F58a17a50098d31ba3C3cD259C1903f7A) {
       kycAuthAddress = IQuotationData(0x1776651F58a17a50098d31ba3C3cD259C1903f7A).kycAuthAddress();
     }
-    nxm = INXMToken(ms.tokenAddress());
-    tc = ITokenController(ms.getLatestAddress("TC"));
-    poolAddress = payable(ms.getLatestAddress("P1"));
-    cover = ICover(ms.getLatestAddress("CO"));
-  }
 
-  /// Changes the master address.
-  ///
-  /// @param _masterAddress  The new master address
-  function changeMasterAddress(address _masterAddress) public override {
-
-    if (masterAddress != address(0)) {
-      require(masterAddress == msg.sender);
-    }
-
-    masterAddress = _masterAddress;
-    ms = INXMMaster(_masterAddress);
-    nxMasterAddress = _masterAddress;
+    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
+    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
+    internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
+    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
   }
 
   /// Adds a new member role.
@@ -115,7 +133,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     bytes32 _roleName,
     string memory _roleDescription,
     address _authorized
-  ) public onlyAuthorizedToGovern {
+  ) public onlyGovernance {
     _addRole(_roleName, _roleDescription, _authorized);
   }
 
@@ -147,7 +165,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     bytes calldata signature
   ) public override payable {
     require(_userAddress != address(0), "MemberRoles: Address 0 cannot be used");
-    require(!ms.isPause(), "MemberRoles: Emergency pause applied");
+    require(!master.isPause(), "MemberRoles: Emergency pause applied");
     require(!isMember(_userAddress), "MemberRoles: This address is already a member");
     require(
       msg.value == joiningFee,
@@ -178,11 +196,11 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     require(recoveredAddress == kycAuthAddress, "MemberRoles: Signature is invalid");
 
     // Whitelist the address.
-    tc.addToWhitelist(_userAddress);
+    tokenController().addToWhitelist(_userAddress);
     _updateRole(_userAddress, uint(Role.Member), true);
 
     // Transfer the joining fee to the pool.
-    (bool ok, /* data */) = poolAddress.call{value: joiningFee}("");
+    (bool ok, /* data */) = address(pool()).call{value: joiningFee}("");
     require(ok, "MemberRoles: The joining fee transfer to the pool failed");
 
     emit MemberJoined(_userAddress, nonce);
@@ -191,13 +209,15 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   /// Withdraws membership
   function withdrawMembership() public {
 
-    require(!ms.isPause() && isMember(msg.sender));
+    INXMToken _token = token();
+    ITokenController _tokenController = tokenController();
+    require(!master.isPause() && isMember(msg.sender));
     // No locked tokens for Member/Governance voting
-    require(block.timestamp > nxm.isLockedForMV(msg.sender));
+    require(block.timestamp > _token.isLockedForMV(msg.sender));
 
-    tc.burnFrom(msg.sender, nxm.balanceOf(msg.sender));
+    _tokenController.burnFrom(msg.sender, _token.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
-    tc.removeFromWhitelist(msg.sender); // need clarification on whitelist
+    _tokenController.removeFromWhitelist(msg.sender); // need clarification on whitelist
 
   }
 
@@ -205,7 +225,8 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   /// @param newAddress  The new address where membership will be switched to.
   function switchMembership(address newAddress) external override {
     _switchMembership(msg.sender, newAddress);
-    nxm.transferFrom(msg.sender, newAddress, nxm.balanceOf(msg.sender));
+    INXMToken _token = token();
+    _token.transferFrom(msg.sender, newAddress, _token.balanceOf(msg.sender));
   }
 
   /// Switches the membership from the sender's address to the new address and transfers the
@@ -223,14 +244,16 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
     uint[][] calldata stakingPoolTokenIds
   ) external override {
     _switchMembership(msg.sender, newAddress);
-    nxm.transferFrom(msg.sender, newAddress, nxm.balanceOf(msg.sender));
+    INXMToken _token = token();
+    _token.transferFrom(msg.sender, newAddress, _token.balanceOf(msg.sender));
 
+    ICover _cover = cover();
     // Transfer the cover NFTs to the new address, if any were given
-    cover.transferCovers(msg.sender, newAddress, coverIds);
+    _cover.transferCovers(msg.sender, newAddress, coverIds);
 
     // Transfer the staking deposits to the new address
     for (uint256 i = 0; i < stakingPools.length; i++) {
-      IStakingPool stakingPool = cover.stakingPool(stakingPools[i]);
+      IStakingPool stakingPool = _cover.stakingPool(stakingPools[i]);
       stakingPool.operatorTransfer(msg.sender, newAddress, stakingPoolTokenIds[i]);
     }
 
@@ -241,8 +264,14 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   }
 
   function storageCleanup() external {
+    _unused0 = 0x0000000000000000000000000000000000000000;
     _unused1 = 0x0000000000000000000000000000000000000000;
+    _unused2 = false;
     _unused3[0x181Aea6936B407514ebFC0754A37704eB8d98F91] = payable(0x0000000000000000000000000000000000000000);
+    _unused5 = 0x0000000000000000000000000000000000000000;
+    _unused6 = 0x0000000000000000000000000000000000000000;
+    _unused7 = 0x0000000000000000000000000000000000000000;
+    _unused8 = 0x0000000000000000000000000000000000000000;
   }
 
   function isMember(address member) public view returns (bool) {
@@ -250,13 +279,14 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
   }
 
   function _switchMembership(address currentAddress, address newAddress) internal {
-    require(!ms.isPause(), "System is paused");
+    require(!master.isPause(), "System is paused");
     require(isMember(currentAddress), "The current address is not a member");
     require(!isMember(newAddress), "The new address is already a member");
     // No locked tokens for Governance voting
-    require(block.timestamp > nxm.isLockedForMV(currentAddress), "Locked for governance voting");
+    require(block.timestamp > token().isLockedForMV(currentAddress), "Locked for governance voting");
 
-    tc.addToWhitelist(newAddress);
+    ITokenController _tokenController = tokenController();
+    _tokenController.addToWhitelist(newAddress);
     _updateRole(currentAddress, uint(Role.Member), false);
     _updateRole(newAddress, uint(Role.Member), true);
 
@@ -265,7 +295,7 @@ contract MemberRoles is IMemberRoles, Governed, LegacyMasterAware {
       _updateRole(newAddress, uint(Role.AdvisoryBoard), true);
     }
 
-    tc.removeFromWhitelist(currentAddress);
+    _tokenController.removeFromWhitelist(currentAddress);
 
     emit switchedMembership(currentAddress, newAddress, block.timestamp);
   }

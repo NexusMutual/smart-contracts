@@ -24,15 +24,16 @@ contract DisposableMemberRoles is MemberRoles {
       "initial members and member tokens arrays should have the same length"
     );
 
-    tc = ITokenController(_tokenControllerAddress);
+    ITokenController _tokenController = ITokenController(_tokenControllerAddress);
+    internalContracts[uint(ID.TC)] = payable(_tokenControllerAddress);
     changeMasterAddress(_masterAddress);
 
     _addInitialMemberRoles(_owner, _owner);
 
     for (uint i = 0; i < _initialMembers.length; i++) {
       _updateRole(_initialMembers[i], uint(Role.Member), true);
-      tc.addToWhitelist(_initialMembers[i]);
-      tc.mint(_initialMembers[i], _initialMemberTokens[i]);
+      _tokenController.addToWhitelist(_initialMembers[i]);
+      _tokenController.mint(_initialMembers[i], _initialMemberTokens[i]);
     }
 
     require(_initialABMembers.length <= maxABCount);
@@ -40,11 +41,6 @@ contract DisposableMemberRoles is MemberRoles {
     for (uint i = 0; i < _initialABMembers.length; i++) {
       _updateRole(_initialABMembers[i], uint(Role.AdvisoryBoard), true);
     }
-
-    // _unused3 was previously used by the claimPayoutAddress mapping which is only used by armor.
-    // The purpose of this initialization is to be able to check the storage cleanup in integration
-    // tests.
-    _unused3[0x181Aea6936B407514ebFC0754A37704eB8d98F91] = payable(0x1337DEF18C680aF1f9f45cBcab6309562975b1dD);
   }
 
   /**

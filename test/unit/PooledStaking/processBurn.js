@@ -532,13 +532,14 @@ describe('processBurn', function () {
   });
 
   it('should do up to maxIterations and finish in stakers.length * 2 cycles', async function () {
-    const { token, tokenController, master, staking } = this;
+    const { token, tokenController, master, staking, memberRoles } = this;
     const iterationsNeeded = accounts.generalPurpose.length * 2;
 
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
     for (const account of accounts.generalPurpose) {
       await master.enrollMember(account, Role.Member);
+      await memberRoles.setRole(account, Role.Member);
       await fundAndStake(token, tokenController, staking, ether('10'), firstContract, account);
     }
 
@@ -569,13 +570,14 @@ describe('processBurn', function () {
   });
 
   it('should properly calculate staked data on a contract when calculating in batches', async function () {
-    const { master, staking, token, tokenController } = this;
+    const { master, staking, token, tokenController, memberRoles } = this;
     const numberOfStakers = accounts.generalPurpose.length;
 
     assert(numberOfStakers > 50, `expected to have at least 50 general purpose accounts, got ${numberOfStakers}`);
 
     for (const account of accounts.generalPurpose) {
       await master.enrollMember(account, Role.Member);
+      await memberRoles.setRole(account, Role.Member);
       await fundAndStake(token, tokenController, staking, ether('10'), firstContract, account);
     }
 

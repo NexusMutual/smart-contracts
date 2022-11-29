@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
-import "../../abstract/MasterAware.sol";
+import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/ITokenController.sol";
@@ -10,7 +10,7 @@ import "../../interfaces/ICover.sol";
 import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IStakingPool.sol";
 
-contract LegacyPooledStaking is IPooledStaking, MasterAware {
+contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
   /* Events */
 
   // deposits
@@ -44,10 +44,17 @@ contract LegacyPooledStaking is IPooledStaking, MasterAware {
 
   /* Storage variables */
 
-  bool public initialized;
+  /*
+    Deleted storage variables
+    bool public initialized;
+    INXMToken public token;
 
-  INXMToken public token;
-  ITokenController public tokenController;
+    These 2 variables occupied 1 slot. The MasterAwareV2 interface has 1 extra slot more
+    compared to MasterAware. MasterAware.master storage variable is now overwriting initialized and token.
+  */
+
+  // was tokenController
+  address internal _unused0;
 
   uint public MIN_STAKE;         // Minimum allowed stake per contract
   uint public MAX_EXPOSURE;      // Stakes sum must be less than the deposit amount times this
@@ -108,12 +115,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAware {
 
   modifier noPendingRewards {
     require(!hasPendingRewards(), "Unable to execute request with unprocessed rewards");
-    _;
-  }
-
-  modifier whenNotPausedAndInitialized {
-    require(!master.isPause(), "System is paused");
-    require(initialized, "Contract is not initialized");
     _;
   }
 
@@ -260,7 +261,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAware {
     uint amount,
     address[] calldata _contracts,
     uint[] calldata _stakes
-  ) external whenNotPausedAndInitialized onlyMember noPendingActions {
+  ) external whenNotPaused onlyMember noPendingActions {
     require(!v1Blocked, "Migrate to v2");
 
     Staker storage staker = stakers[msg.sender];
@@ -283,7 +284,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAware {
     uint newDeposit = oldDeposit + amount;
 
     staker.deposit = newDeposit;
-    tokenController.operatorTransfer(msg.sender, address(this), amount);
+    tokenController().operatorTransfer(msg.sender, address(this), amount);
 
     for (uint i = 0; i < _contracts.length; i++) {
 
@@ -355,18 +356,18 @@ contract LegacyPooledStaking is IPooledStaking, MasterAware {
     }
   }
 
-  function withdraw(uint /*ignoredParam*/) external override whenNotPausedAndInitialized onlyMember noPendingBurns {
+  function withdraw(uint /*ignoredParam*/) external override whenNotPaused onlyMember noPendingBurns {
     uint amount = stakers[msg.sender].deposit;
     stakers[msg.sender].deposit = 0;
-    token.transfer(msg.sender, amount);
+    token().transfer(msg.sender, amount);
     emit Withdrawn(msg.sender, amount);
   }
 
-  function withdrawForUser(address user) external override whenNotPausedAndInitialized onlyMember noPendingBurns {
+  function withdrawForUser(address user) external override whenNotPaused onlyMember noPendingBurns {
     require(block.timestamp > migrationDeadline, "Migration period hasn't ended");
     uint amount = stakers[user].deposit;
     stakers[user].deposit = 0;
-    token.transfer(user, amount);
+    token().transfer(user, amount);
     emit Withdrawn(user, amount);
   }
 
@@ -374,7 +375,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAware {
     address[] calldata _contracts,
     uint[] calldata _amounts,
     uint _insertAfter // unstake request id after which the new unstake request will be inserted
-  ) external whenNotPausedAndInitialized onlyMember {
+  ) external whenNotPaused onlyMember {
     require(!v1Blocked, "Migrate to v2");
 
     require(
@@ -462,19 +463,19 @@ contract LegacyPooledStaking is IPooledStaking, MasterAware {
     }
   }
 
-  function withdrawReward(address stakerAddress) external override whenNotPausedAndInitialized {
+  function withdrawReward(address stakerAddress) external override whenNotPaused {
 
     uint amount = stakers[stakerAddress].reward;
     stakers[stakerAddress].reward = 0;
 
-    token.transfer(stakerAddress, amount);
+    token().transfer(stakerAddress, amount);
 
     emit RewardWithdrawn(stakerAddress, amount);
   }
 
   function pushBurn(
     address contractAddress, uint amount
-  ) public override onlyInternal whenNotPausedAndInitialized noPendingBurns {
+  ) public override onlyInternal whenNotPaused noPendingBurns {
 
     address[] memory contractAddresses = new address[](1);
     contractAddresses[0] = contractAddress;
@@ -548,14 +549,14 @@ contract LegacyPooledStaking is IPooledStaking, MasterAware {
    * @dev External function for pushing accumulated rewards in the processing queue.
    * @dev `_pushRewards` checks the current round and will only push if rewards can be distributed.
    */
-  function pushRewards(address[] calldata contractAddresses) external whenNotPausedAndInitialized {
+  function pushRewards(address[] calldata contractAddresses) external whenNotPaused {
     _pushRewards(contractAddresses, false);
   }
 
   /**
    * @dev Add reward for contract. Automatically triggers distribution if enough time has passed.
    */
-  function accumulateReward(address contractAddress, uint amount) external override onlyInternal whenNotPausedAndInitialized {
+  function accumulateReward(address contractAddress, uint amount) external override onlyInternal whenNotPaused {
 
     // will push rewards if needed
     address[] memory contractAddresses = new address[](1);
@@ -567,15 +568,15 @@ contract LegacyPooledStaking is IPooledStaking, MasterAware {
     emit RewardAdded(contractAddress, amount);
   }
 
-  function processPendingActions(uint maxIterations) public override whenNotPausedAndInitialized returns (bool finished) {
+  function processPendingActions(uint maxIterations) public override whenNotPaused returns (bool finished) {
     (finished,) = _processPendingActions(maxIterations);
   }
 
-  function processPendingActionsReturnLeft(uint maxIterations) public whenNotPausedAndInitialized returns (bool finished, uint iterationsLeft) {
+  function processPendingActionsReturnLeft(uint maxIterations) public whenNotPaused returns (bool finished, uint iterationsLeft) {
     (finished, iterationsLeft) = _processPendingActions(maxIterations);
   }
 
-  function _processPendingActions(uint maxIterations) public whenNotPausedAndInitialized returns (bool finished, uint iterationsLeft) {
+  function _processPendingActions(uint maxIterations) public whenNotPaused returns (bool finished, uint iterationsLeft) {
 
     iterationsLeft = maxIterations;
 
@@ -705,7 +706,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAware {
     processedToStakerIndex = 0;
     isContractStakeCalculated = false;
 
-    token.burn(_actualBurnAmount);
+    token().burn(_actualBurnAmount);
     emit Burned(_contractAddress, _actualBurnAmount, _stakedOnContract);
 
     return (true, iterationsLeft);
@@ -887,7 +888,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAware {
       firstReward = 0;
     }
 
-    tokenController.mint(address(this), _actualRewardAmount);
+    tokenController().mint(address(this), _actualRewardAmount);
     emit Rewarded(_contractAddress, _actualRewardAmount, _stakedOnContract);
 
     return (true, iterationsLeft);
@@ -938,15 +939,22 @@ contract LegacyPooledStaking is IPooledStaking, MasterAware {
     }
   }
 
+  function token() internal view returns (INXMToken) {
+    return INXMToken(internalContracts[uint(ID.TK)]);
+  }
+
+  function tokenController() internal view returns (ITokenController) {
+    return ITokenController(internalContracts[uint(ID.TC)]);
+  }
+
+  function memberRoles() internal view returns (IMemberRoles) {
+    return IMemberRoles(internalContracts[uint(ID.MR)]);
+  }
+
   function changeDependentContractAddress() public {
-
-    token = INXMToken(master.tokenAddress());
-    tokenController = ITokenController(master.getLatestAddress("TC"));
-
-    if (!initialized) {
-      tokenController.addToWhitelist(address(this));
-      initialized = true;
-    }
+    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
+    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
   }
 
   function getV1PriceForProduct(uint id) pure internal returns (uint96) {
@@ -1468,7 +1476,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAware {
   function migrateToExistingV2Pool(IStakingPool stakingPool, uint trancheId) external {
     uint deposit = stakers[msg.sender].deposit;
     stakers[msg.sender].deposit = 0;
-    token.approve(address(tokenController), deposit);
+    token().approve(address(tokenController()), deposit);
     DepositRequest[] memory requests = new DepositRequest[](1);
     requests[0] = DepositRequest(deposit, trancheId, 0, msg.sender);
     stakingPool.depositTo(requests);

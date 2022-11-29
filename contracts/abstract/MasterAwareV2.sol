@@ -8,7 +8,7 @@ import "../interfaces/IMemberRoles.sol";
 
 abstract contract MasterAwareV2 is IMasterAwareV2 {
 
-  mapping(uint => address payable) internal internalContracts;
+  mapping(uint => address payable) public internalContracts;
 
   INXMMaster public master;
 
@@ -72,12 +72,9 @@ abstract contract MasterAwareV2 is IMasterAwareV2 {
     _;
   }
 
-
   function getInternalContractAddress(ID id) internal view returns (address payable) {
     return internalContracts[uint(id)];
   }
-
-  function changeDependentContractAddress() external virtual;
 
   function changeMasterAddress(address masterAddress) public onlyMaster {
     master = INXMMaster(masterAddress);

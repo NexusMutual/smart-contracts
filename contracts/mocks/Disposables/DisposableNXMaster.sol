@@ -22,7 +22,6 @@ contract DisposableNXMaster is NXMaster {
     tokenAddress = _tokenAddress;
     emergencyAdmin = _emergencyAdmin;
 
-    masterAddress = address(this);
     contractsActive[address(this)] = true;
 
     require(
@@ -59,7 +58,7 @@ contract DisposableNXMaster is NXMaster {
     // notify all contracts about address change
     for (uint i = 0; i < contractCodes.length; i++) {
       address _address = contractAddresses[contractCodes[i]];
-      IMasterAware up = IMasterAware(_address);
+      IMasterAwareV2 up = IMasterAwareV2(_address);
       up.changeMasterAddress(address(this));
       up.changeDependentContractAddress();
     }

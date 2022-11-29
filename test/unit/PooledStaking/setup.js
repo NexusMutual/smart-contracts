@@ -1,6 +1,5 @@
 const { artifacts } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
 
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
@@ -40,10 +39,12 @@ async function setup() {
 
   for (const member of accounts.members) {
     await master.enrollMember(member, Role.Member);
+    await memberRoles.setRole(member, Role.Member);
   }
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
     await master.enrollMember(advisoryBoardMember, Role.AdvisoryBoard);
+    await memberRoles.setRole(advisoryBoardMember, Role.AdvisoryBoard);
   }
 
   for (const internalContract of accounts.internalContracts) {
@@ -60,7 +61,6 @@ async function setup() {
 
   // initialize then migrate
   await staking.changeDependentContractAddress();
-  assert(await staking.initialized(), 'Pooled staking contract should have been initialized');
 
   // revert initialized values for unit tests
   await staking.initialize(
@@ -75,6 +75,7 @@ async function setup() {
   this.token = token;
   this.tokenController = tokenController;
   this.staking = staking;
+  this.memberRoles = memberRoles;
 }
 
 module.exports = setup;

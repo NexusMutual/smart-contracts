@@ -4,7 +4,7 @@ const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
-const IPFS_DESCRIPTION_HASH = 'Descriprion Hash';
+const IPFS_DESCRIPTION_HASH = 'Description Hash';
 
 const ProductTypeFixture = {
   claimMethod: 1,

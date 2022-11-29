@@ -120,7 +120,7 @@ describe('createStakingPool', function () {
       .to.emit(cover, 'StakingPoolCreated')
       .withArgs(firstStakingPoolAddress, poolId, stakingPoolManager.address, stakingPoolImplementation);
 
-    expect(tx).to.emit(cover, 'PoolDescriptionSet').withArgs(poolId, 'Description Hash');
+    expect(tx).to.emit(cover, 'PoolDescriptionSet').withArgs(poolId, ipfsDescriptionHash);
   });
 
   it('increments staking pool count', async function () {

@@ -323,7 +323,7 @@ async function setup() {
         capacityReductionRatio: 0,
         fixedPricing: false,
       },
-      allowedPools: []
+      allowedPools: [],
     },
     {
       productId: MaxUint256,

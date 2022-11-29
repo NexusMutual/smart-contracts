@@ -72,7 +72,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   CoverData[] private _coverData;
   mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
 
-  mapping(uint => uint[]) public fixedPricingAllowedPools;
+  mapping(uint => uint[]) public allowedPools;
 
   // Each cover has an array of segments. A new segment is created
   // every time a cover is edited to deliniate the different cover periods.
@@ -310,22 +310,22 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   }
 
 
-  function isValidFixedPricingPool(uint productId, uint poolId) external returns (bool) {
+  function isAllowedPool(uint productId, uint poolId) external returns (bool) {
 
     if (!_products[productId].fixedPricing) {
       // no pool id restrictions
       return true;
     }
-    bool poolIsValid;
-    uint[] memory allowedPools = fixedPricingAllowedPools[productId];
-    for (uint i = 0; i < allowedPools.length; i++) {
-      if (allowedPools[i] == poolId) {
-        poolIsValid = true;
+    bool poolIsAllowed;
+    uint[] memory allowedPoolsForProduct = allowedPools[productId];
+    for (uint i = 0; i < allowedPoolsForProduct.length; i++) {
+      if (allowedPoolsForProduct[i] == poolId) {
+        poolIsAllowed = true;
         break;
       }
     }
 
-    return poolIsValid;
+    return poolIsAllowed;
   }
 
   function retrievePayment(
@@ -553,7 +553,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       if (product.fixedPricing) {
 
         uint productId = param.productId == type(uint256).max ? _products.length : param.productId;
-        fixedPricingAllowedPools[productId] = param.allowedPools;
+        allowedPools[productId] = param.allowedPools;
       }
 
       // New product has id == uint256.max

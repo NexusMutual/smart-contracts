@@ -1389,7 +1389,7 @@ contract StakingPool is IStakingPool, ERC721 {
     for (uint i = 0; i < numProducts; i++) {
       productIds[i] = params[i].productId;
 
-      require(ICover(coverContract).isValidFixedPricingPool(params[i].productId, poolId), "");
+      require(ICover(coverContract).isAllowedPool(params[i].productId, poolId), "");
     }
 
     (

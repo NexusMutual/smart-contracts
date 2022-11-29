@@ -174,7 +174,7 @@ interface ICover {
     string calldata ipfsDescriptionHash
   ) external returns (address stakingPoolAddress);
 
-  function isValidFixedPricingPool(uint productId, uint poolId) external returns (bool);
+  function isAllowedPool(uint productId, uint poolId) external returns (bool);
 
   /* ========== EVENTS ========== */
 

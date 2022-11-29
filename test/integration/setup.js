@@ -308,7 +308,9 @@ async function setup() {
         coverAssets: 0, // Use fallback
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
+        fixedPricing: false,
       },
+      allowedPools: [],
     },
     {
       productId: MaxUint256,
@@ -319,7 +321,9 @@ async function setup() {
         coverAssets: 0, // Use fallback
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
+        fixedPricing: false,
       },
+      allowedPools: []
     },
     {
       productId: MaxUint256,
@@ -330,7 +334,9 @@ async function setup() {
         coverAssets: 0b01, // ETH
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
+        fixedPricing: false,
       },
+      allowedPools: [],
     },
     {
       productId: MaxUint256,
@@ -341,7 +347,9 @@ async function setup() {
         coverAssets: 0b10, // DAI
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
+        fixedPricing: false,
       },
+      allowedPools: [],
     },
   ]);
 

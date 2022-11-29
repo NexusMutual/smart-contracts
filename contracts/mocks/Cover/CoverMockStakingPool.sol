@@ -8,7 +8,6 @@ import "../../interfaces/IStakingPool.sol";
 import "../../modules/staking/StakingPool.sol";
 import "../Tokens/ERC721Mock.sol";
 
-
 contract CoverMockStakingPool is IStakingPool, ERC721Mock {
 
   struct BurnStakeCalledWith {
@@ -71,8 +70,9 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     _operatorTransferFrom(from, to, amount);
   }
 
-  function allocateCapacity(
+  function requestAllocation(
     AllocationRequest calldata request,
+    PreviousAllocationInfo calldata /*previous*/,
     AllocationRequestConfig calldata /*config*/
   ) external override returns (uint premium) {
     usedCapacity[request.productId] += request.amount;
@@ -106,7 +106,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     }
   }
 
-  function updateTranches(bool) external {
+  function processExpirations(bool) external {
     totalSupply = totalSupply;
     revert("CoverMockStakingPool: not callable");
   }

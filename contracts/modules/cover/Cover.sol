@@ -261,26 +261,47 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           coverId,
           coveredAmountInNXM,
           params.period,
+          block.timestamp + uint(_productTypes[product.productType].gracePeriodInDays) * 1 days,
           product.useFixedPrice
         );
 
+        CoverSegment memory previousSegment = _coverSegments[coverId][segmentId - 1];
+
+        PreviousAllocationInfo memory previousAllocation = segmentId == 0
+          ? PreviousAllocationInfo(0, 0, 0)
+          : PreviousAllocationInfo(
+              previousSegment.start,
+              previousSegment.period,
+              previousSegment.gracePeriodInDays * 1 days
+            );
+
         AllocationRequestConfig memory config = AllocationRequestConfig(
-          uint(_productTypes[product.productType].gracePeriodInDays) * 1 days,
           globalCapacityRatio,
           product.capacityReductionRatio,
           globalRewardsRatio,
           GLOBAL_MIN_PRICE_RATIO
         );
 
-        premiumInNXM += stakingPool(allocationRequests[i].poolId).allocateCapacity(allocationRequest, config);
-        totalCoverAmountInNXM += coveredAmountInNXM;
-
-        coverSegmentAllocations[coverId][segmentId].push(
-          PoolAllocation(
-            allocationRequests[i].poolId,
-            SafeUintCast.toUint96(coveredAmountInNXM)
-          )
+        // TODO: handle refunds using PoolAllocation.premiumInNXM and left period from previousSegment
+        premiumInNXM += stakingPool(allocationRequests[i].poolId).requestAllocation(
+          allocationRequest,
+          previousAllocation,
+          config
         );
+
+        // allocation request with zero amount moves out from the pool: do not store it
+        if (coveredAmountInNXM != 0) {
+          coverSegmentAllocations[coverId][segmentId].push(
+            PoolAllocation(
+              allocationRequests[i].poolId,
+              SafeUintCast.toUint96(coveredAmountInNXM),
+              // TODO: update premium here
+              0
+            )
+          );
+        }
+
+        totalCoverAmountInNXM += coveredAmountInNXM;
       }
 
       uint coverAmountInCoverAsset = totalCoverAmountInNXM * nxmPriceInCoverAsset / ONE_NXM;

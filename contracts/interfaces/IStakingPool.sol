@@ -11,11 +11,17 @@ struct AllocationRequest {
   uint coverId;
   uint amount;
   uint period;
+  uint gracePeriodExpiration;
   bool useFixedPrice;
 }
 
+struct PreviousAllocationInfo {
+  uint start;
+  uint period;
+  uint gracePeriodExpiration;
+}
+
 struct AllocationRequestConfig {
-  uint gracePeriod;
   uint globalCapacityRatio;
   uint capacityReductionRatio;
   uint rewardRatio;
@@ -122,14 +128,13 @@ interface IStakingPool {
 
   function operatorTransfer(address from, address to, uint[] calldata tokenIds) external;
 
-  function updateTranches(bool updateUntilCurrentTimestamp) external;
+  function processExpirations(bool updateUntilCurrentTimestamp) external;
 
-  function allocateCapacity(
+  function requestAllocation(
     AllocationRequest calldata request,
+    PreviousAllocationInfo calldata previous,
     AllocationRequestConfig calldata config
   ) external returns (uint premium);
-
-  function deallocateCapacity(DeallocationRequest calldata request) external;
 
   function burnStake(uint productId, uint start, uint period, uint amount) external;
 

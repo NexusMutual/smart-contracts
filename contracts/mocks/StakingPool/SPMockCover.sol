@@ -58,16 +58,18 @@ contract SPMockCover {
     Product memory product = products[params.productId];
     uint gracePeriod = uint(productTypes[product.productType].gracePeriodInDays) * 1 days;
 
-    return _stakingPool.allocateCapacity(
+    return _stakingPool.requestAllocation(
       AllocationRequest(
         params.productId,
         coverId,
         params.amount,
         params.period,
+        block.timestamp + params.period + gracePeriod,
         product.useFixedPrice
       ),
+      // TODO: figure out if this needs to be populated
+      PreviousAllocationInfo(0, 0, 0),
       AllocationRequestConfig(
-        gracePeriod,
         globalCapacityRatio,
         product.capacityReductionRatio,
         globalRewardsRatio,

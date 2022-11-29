@@ -1,6 +1,8 @@
 const { ethers } = require('hardhat');
 const Decimal = require('decimal.js');
 const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
+const { parseEther } = require('ethers/lib/utils');
+const { daysToSeconds } = require('../../../lib/helpers');
 
 const { parseUnits } = ethers.utils;
 const { BigNumber } = ethers;
@@ -160,6 +162,23 @@ async function getNewRewardShares({
   );
 }
 
+async function generateRewards(stakingPool, signer) {
+  const allocationRequest = {
+    productId: 0,
+    coverId: 0,
+    amount: parseEther('1'),
+    period: daysToSeconds(10),
+  };
+  const allocationConfig = {
+    gracePeriod: daysToSeconds(10),
+    globalCapacityRatio: 20000,
+    capacityReductionRatio: 0,
+    rewardRatio: 5000,
+    globalMinPrice: 10000,
+  };
+  await stakingPool.connect(signer).allocateCapacity(allocationRequest, allocationConfig);
+}
+
 module.exports = {
   setTime,
   getPrices,
@@ -168,6 +187,7 @@ module.exports = {
   getTranches,
   getNewRewardShares,
   estimateStakeShares,
+  generateRewards,
   PRICE_RATIO_CHANGE_PER_DAY,
   TRANCHE_DURATION,
   MAX_ACTIVE_TRANCHES,

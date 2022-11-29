@@ -285,7 +285,7 @@ describe('updateMCR', function () {
     assert.equal(desiredMCR.toString(), expectedDesiredMCR.toString());
   });
 
-  it.skip('decreases desiredMCR towards mcrFloor when poolValueInEth = 0 and totalSumAssured = 0', async function () {
+  it('decreases desiredMCR towards mcrFloor when poolValueInEth = 0 and totalSumAssured = 0', async function () {
     const { master, pool } = this;
 
     const poolValueInEth = ether('120000');

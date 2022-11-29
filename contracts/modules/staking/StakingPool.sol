@@ -1094,12 +1094,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
     uint _activeStake = activeStake;
     uint _stakeSharesSupply = stakeSharesSupply;
-    uint transferAmount = topUpAmount;
     uint newStakeShares;
-
-    if (updatedDeposit.stakeShares != 0) {
-      transferAmount += _activeStake * initialDeposit.stakeShares / _stakeSharesSupply;
-    }
 
     // calculate the new stake shares if there's a deposit top up
     if (topUpAmount > 0) {
@@ -1161,7 +1156,9 @@ contract StakingPool is IStakingPool, ERC721 {
     rewardsSharesSupply += newRewardsShares;
 
     // transfer nxm from the staker and update the pool deposit balance
-    tokenController.depositStakedNXM(msg.sender, transferAmount, poolId);
+    tokenController.depositStakedNXM(msg.sender, topUpAmount, poolId);
+
+    emit DepositExtended(msg.sender, tokenId, initialTrancheId, newTrancheId, topUpAmount);
   }
 
   function burnStake(uint amount) external onlyCoverContract {

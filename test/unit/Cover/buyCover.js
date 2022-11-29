@@ -88,7 +88,7 @@ describe('buyCover', function () {
     });
   });
 
-  it.skip('should purchase new cove with fixed price using 1 staking pool', async function () {
+  it('should purchase new cover with fixed price using 1 staking pool', async function () {
     const { cover } = this;
 
     const {
@@ -101,6 +101,7 @@ describe('buyCover', function () {
 
     const tx = await cover.connect(coverBuyer).buyCover(
       {
+        coverId: MaxUint256,
         owner: coverBuyer.address,
         productId,
         coverAsset,

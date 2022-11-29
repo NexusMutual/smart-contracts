@@ -94,7 +94,7 @@ contract SPMockCover {
     IStakingPool(staking_).initialize(_manager, _isPrivatePool, _initialPoolFee, _maxPoolFee, params, _poolId, ipfsDescriptionHash);
   }
 
-  function isAllowedPool(uint productId, uint poolId) external returns (bool) {
+  function isAllowedPool(uint productId, uint poolId) external pure returns (bool) {
     productId;
     poolId;
     return true;

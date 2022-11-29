@@ -95,7 +95,7 @@ describe('buyCover', function () {
       members: [coverBuyer],
     } = this.accounts;
 
-    const { amount, targetPriceRatio, coverAsset, period, expectedPremium, coverId } = buyCoverFixture;
+    const { amount, targetPriceRatio, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     const productId = 1;
 
@@ -119,6 +119,8 @@ describe('buyCover', function () {
       },
     );
     await tx.wait();
+
+    const coverId = (await cover.coverDataCount()).sub(1);
 
     await assertCoverFields(cover, coverId, {
       productId,

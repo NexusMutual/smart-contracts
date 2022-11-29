@@ -107,6 +107,8 @@ interface ICover {
 
   function coverData(uint coverId) external view returns (CoverData memory);
 
+  function coverDataCount() external view returns (uint);
+
   function coverSegmentsCount(uint coverId) external view returns (uint);
 
   function coverSegments(uint coverId, uint segmentId) external view returns (CoverSegment memory);

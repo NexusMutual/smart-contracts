@@ -310,7 +310,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   }
 
 
-  function isAllowedPool(uint productId, uint poolId) external returns (bool) {
+  function isAllowedPool(uint productId, uint poolId) external view returns (bool) {
 
     if (!_products[productId].useFixedPrice) {
       // no pool id restrictions
@@ -505,6 +505,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   function coverSegmentsCount(uint coverId) external override view returns (uint) {
     return _coverSegments[coverId].length;
+  }
+
+  function coverDataCount() external override view returns (uint) {
+    return _coverData.length;
   }
 
   function products(uint id) external override view returns (Product memory) {

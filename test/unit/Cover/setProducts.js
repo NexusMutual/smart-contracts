@@ -45,6 +45,7 @@ describe('setProducts', function () {
     initialPriceRatio: 1000, // 10%
     capacityReductionRatio: capacityFactor, // 100%
     isDeprecated: false,
+    fixedPricing: false,
   };
 
   // Cover.ProductParams
@@ -52,13 +53,14 @@ describe('setProducts', function () {
     productId: MaxUint256,
     ipfsMetadata: defaultIpfsData,
     product: { ...productTemplate },
+    allowedPools: [],
   };
 
   it('should add a single product and emit ProductSet event', async function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
     const productParams = { ...productParamsTemplate };
-    const expectedProductId = 1;
+    const expectedProductId = await cover.productsCount();
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams]))
       .to.emit(cover, 'ProductSet')
       .withArgs(expectedProductId, defaultIpfsData);
@@ -76,7 +78,7 @@ describe('setProducts', function () {
     // edit product
     const capacityReductionRatio = 500;
     const product = { ...productParams.product, capacityReductionRatio };
-    const productId = 1;
+    const productId = (await cover.productsCount()).sub(1);
     const ipfsMetadata = 'new ipfs hash';
     const editParams = { ...productParams, ipfsMetadata, productId, product };
     await expect(cover.connect(advisoryBoardMember0).setProducts([editParams]))
@@ -99,18 +101,21 @@ describe('setProducts', function () {
   it('should add many products', async function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
-    const productParams = Array.from({ length: 40 }, () => ({ ...productParamsTemplate }));
+
+    const previousProductsCount = await cover.productsCount();
+    const newProductsCount = 40;
+    const productParams = Array.from({ length: newProductsCount }, () => ({ ...productParamsTemplate }));
     await expect(cover.connect(advisoryBoardMember0).setProducts(productParams))
       .to.emit(cover, 'ProductSet')
       .withArgs(40, defaultIpfsData);
     const products = await cover.getProducts();
-    expect(products.length).to.be.equal(41);
+    expect(products.length).to.be.equal(previousProductsCount.add(newProductsCount).toNumber());
   });
 
   it('should revert if trying to edit a non-existing product', async function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
-    const productId = 1;
+    const productId = await cover.productsCount();
     const productParams = { ...productParamsTemplate, productId };
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
       'Cover: Product doesnt exist. Set id to uint256.max to add it',
@@ -131,7 +136,7 @@ describe('setProducts', function () {
   it('should revert if updated coverAssets are unsupported when editing a product', async function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
-    const productId = 1;
+    const productId = await cover.productsCount();
     const productParams = { ...productParamsTemplate };
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams]))
       .to.emit(cover, 'ProductSet')
@@ -160,7 +165,7 @@ describe('setProducts', function () {
   it('should revert if initialPriceRatio > 100 when editing a product', async function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
-    const productId = 1;
+    const productId = await cover.productsCount();
     const productParams = { ...productParamsTemplate };
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams]))
       .to.emit(cover, 'ProductSet')

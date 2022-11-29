@@ -63,7 +63,8 @@ contract SPMockCover {
         params.productId,
         coverId,
         params.amount,
-        params.period
+        params.period,
+        product.fixedPricing
       ),
       AllocationRequestConfig(
         gracePeriod,
@@ -91,5 +92,11 @@ contract SPMockCover {
       require(params[i].targetPrice >= GLOBAL_MIN_PRICE_RATIO, "CoverUtilsLib: Target price below GLOBAL_MIN_PRICE_RATIO");
     }
     IStakingPool(staking_).initialize(_manager, _isPrivatePool, _initialPoolFee, _maxPoolFee, params, _poolId, ipfsDescriptionHash);
+  }
+
+  function isValidFixedPricingPool(uint productId, uint poolId) external returns (bool) {
+    productId;
+    poolId;
+    return true;
   }
 }

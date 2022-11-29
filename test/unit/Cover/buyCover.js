@@ -88,6 +88,48 @@ describe('buyCover', function () {
     });
   });
 
+  it.skip('should purchase new cove with fixed price using 1 staking pool', async function () {
+    const { cover } = this;
+
+    const {
+      members: [coverBuyer],
+    } = this.accounts;
+
+    const { amount, targetPriceRatio, coverAsset, period, expectedPremium, coverId } = buyCoverFixture;
+
+    const productId = 1;
+
+    const tx = await cover.connect(coverBuyer).buyCover(
+      {
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: amount }],
+      {
+        value: expectedPremium,
+      },
+    );
+    await tx.wait();
+
+    await assertCoverFields(cover, coverId, {
+      productId,
+      coverAsset,
+      period,
+      amount,
+      targetPriceRatio,
+      gracePeriodInDays,
+    });
+  });
+
   it('should purchase new cover using 2 staking pools', async function () {
     const { cover } = this;
 

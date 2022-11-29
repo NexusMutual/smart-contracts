@@ -80,12 +80,14 @@ struct Product {
   uint16 initialPriceRatio;
   uint16 capacityReductionRatio;
   bool isDeprecated;
+  bool fixedPricing;
 }
 
 struct ProductParam {
   uint productId;
   string ipfsMetadata;
   Product product;
+  uint[] allowedPools;
 }
 
 struct ProductType {
@@ -171,6 +173,8 @@ interface ICover {
     uint trancheId,
     string calldata ipfsDescriptionHash
   ) external returns (address stakingPoolAddress);
+
+  function isValidFixedPricingPool(uint productId, uint poolId) external returns (bool);
 
   /* ========== EVENTS ========== */
 

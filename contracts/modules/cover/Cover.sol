@@ -72,6 +72,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   CoverData[] private _coverData;
   mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
 
+  mapping(uint => uint[]) public fixedPricingAllowedPools;
+
   // Each cover has an array of segments. A new segment is created
   // every time a cover is edited to deliniate the different cover periods.
   mapping(uint => CoverSegment[]) private _coverSegments;
@@ -257,7 +259,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           params.productId,
           coverId,
           coveredAmountInNXM,
-          params.period
+          params.period,
+          product.fixedPricing
         );
 
         AllocationRequestConfig memory config = AllocationRequestConfig(
@@ -304,6 +307,25 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       emit CoverEdited(coverId, params.productId, segmentId, msg.sender, params.ipfsData);
     }
+  }
+
+
+  function isValidFixedPricingPool(uint productId, uint poolId) external returns (bool) {
+
+    if (!_products[productId].fixedPricing) {
+      // no pool id restrictions
+      return true;
+    }
+    bool poolIsValid;
+    uint[] memory allowedPools = fixedPricingAllowedPools[productId];
+    for (uint i = 0; i < allowedPools.length; i++) {
+      if (allowedPools[i] == poolId) {
+        poolIsValid = true;
+        break;
+      }
+    }
+
+    return poolIsValid;
   }
 
   function retrievePayment(
@@ -527,6 +549,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         product.capacityReductionRatio <= CAPACITY_REDUCTION_DENOMINATOR,
         "Cover: capacityReductionRatio > 100%"
       );
+
+      if (product.fixedPricing) {
+
+        uint productId = param.productId == type(uint256).max ? _products.length : param.productId;
+        fixedPricingAllowedPools[productId] = param.allowedPools;
+      }
 
       // New product has id == uint256.max
       if (param.productId == type(uint256).max) {

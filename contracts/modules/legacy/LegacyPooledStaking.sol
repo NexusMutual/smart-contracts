@@ -11,6 +11,13 @@ import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IStakingPool.sol";
 
 contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
+  /* Structs */
+
+  struct MigrationData {
+    address stakerAddress;
+    uint trancheId;
+    string ipfsDescriptionHash;
+  }
   /* Events */
 
   // deposits
@@ -1426,7 +1433,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     }
   }
 
-  function migrateToNewV2Pool(address stakerAddress, uint trancheId) external noPendingActions {
+  function migrateToNewV2Pool(MigrationData memory migrationData) external noPendingActions {
 
     require(block.timestamp <= migrationDeadline, "Migration period has ended");
 
@@ -1434,21 +1441,21 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     // Addresses who are not can only be migrated by calling this function themselves.
     // [todo] Check these addresses before deploy
     require(
-      stakerAddress == msg.sender ||
-      stakerAddress == 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4 || // Armor 48%
-      stakerAddress == 0x87B2a7559d85f4653f13E6546A14189cd5455d45 || // Hugh 16.3%
-      stakerAddress == 0x4a9fA34da6d2378c8f3B9F6b83532B169beaEDFc || // 6.6%
-      stakerAddress == 0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2 || // 4.5%
-      stakerAddress == 0xE1Ad30971b83c17E2A24c0334CB45f808AbEBc87 || // 2.5%
-      stakerAddress == 0x5FAdEA9d64FFbe0b8A6799B8f0c72250F92E2B1d || // 1.7%
-      stakerAddress == 0x9c657DB2B697846BE13Ca0B2bB5a6D17f860a395 || // 1.5%
-      stakerAddress == 0xF99b3a13d46A04735BF3828eB3030cfED5Ea0087 || // 1.4%
-      stakerAddress == 0x8C878B8f805472C0b70eD66a71c0B33da3d233c8 || // 1.4%
-      stakerAddress == 0x4544e2Fae244eA4Ca20d075bb760561Ce5990DC3, // 0.7%
+      migrationData.stakerAddress == msg.sender ||
+      migrationData.stakerAddress == 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4 || // Armor 48%
+      migrationData.stakerAddress == 0x87B2a7559d85f4653f13E6546A14189cd5455d45 || // Hugh 16.3%
+      migrationData.stakerAddress == 0x4a9fA34da6d2378c8f3B9F6b83532B169beaEDFc || // 6.6%
+      migrationData.stakerAddress == 0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2 || // 4.5%
+      migrationData.stakerAddress == 0xE1Ad30971b83c17E2A24c0334CB45f808AbEBc87 || // 2.5%
+      migrationData.stakerAddress == 0x5FAdEA9d64FFbe0b8A6799B8f0c72250F92E2B1d || // 1.7%
+      migrationData.stakerAddress == 0x9c657DB2B697846BE13Ca0B2bB5a6D17f860a395 || // 1.5%
+      migrationData.stakerAddress == 0xF99b3a13d46A04735BF3828eB3030cfED5Ea0087 || // 1.4%
+      migrationData.stakerAddress == 0x8C878B8f805472C0b70eD66a71c0B33da3d233c8 || // 1.4%
+      migrationData.stakerAddress == 0x4544e2Fae244eA4Ca20d075bb760561Ce5990DC3, // 0.7%
       "You are not authorized to migrate this staker"
     );
 
-    (ProductInitializationParams[] memory params, uint deposit) = getStakerConfig(stakerAddress);
+    (ProductInitializationParams[] memory params, uint deposit) = getStakerConfig(migrationData.stakerAddress);
 
     // TODO: how do we get these values?
     bool isPrivatePool = false;
@@ -1457,19 +1464,19 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     // Use the trancheId provided as a parameter if the user is migrating to v2 himself
     // Use next id after the first active group id for those in the initial migration list
-    uint GROUP_SIZE = 91 days;
-    uint trancheIdInEffect = stakerAddress == msg.sender
-      ? trancheId
-      : block.timestamp / GROUP_SIZE + 1;
+    uint trancheIdInEffect = migrationData.stakerAddress == msg.sender
+      ? migrationData.trancheId
+      : block.timestamp / 91 days + 1; // GROUP_SIZE = 91 days;
 
     cover.createStakingPool(
-      stakerAddress,
+      migrationData.stakerAddress,
       isPrivatePool,
       initialPoolFee,
       maxPoolFee,
       params,
       deposit,
-      trancheIdInEffect
+      trancheIdInEffect,
+      migrationData.ipfsDescriptionHash
     );
   }
 

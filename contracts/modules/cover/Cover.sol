@@ -387,7 +387,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint maxPoolFee,
     ProductInitializationParams[] memory productInitializationParams,
     uint depositAmount,
-    uint trancheId
+    uint trancheId,
+    string calldata ipfsDescriptionHash
   ) external returns (address) {
     CoverUtilsLib.PoolInitializationParams memory poolInitializationParams = CoverUtilsLib.PoolInitializationParams(
       stakingPoolCount,
@@ -404,10 +405,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       productInitializationParams,
       depositAmount,
       trancheId,
-      master.getLatestAddress("PS")
+      master.getLatestAddress("PS"),
+      ipfsDescriptionHash
     );
 
-    emit StakingPoolCreated(stakingPoolAddress, stakingPoolCount, manager, stakingPoolImplementation);
+    emit StakingPoolCreated(
+      stakingPoolAddress,
+      stakingPoolCount,
+      manager,
+      stakingPoolImplementation
+    );
 
     stakingPoolCount++;
 

@@ -4,6 +4,8 @@ const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
 
+const IPFS_DESCRIPTION_HASH = 'Description Hash';
+
 const ProductTypeFixture = {
   claimMethod: 1,
   gracePeriodInDays: 7,
@@ -72,7 +74,7 @@ describe('setProducts unit tests', function () {
     const { stakingPool, cover } = this;
     const [manager, nonManager] = this.accounts.members;
 
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const product = { ...newProductTemplate };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
     await expect(stakingPool.connect(nonManager).setProducts([product])).to.be.revertedWith(
@@ -98,7 +100,16 @@ describe('setProducts unit tests', function () {
         cover.setProductType(ProductTypeFixture, productId),
       ]),
     );
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, initialProducts, 0);
+    await cover.initializeStaking(
+      stakingPool.address,
+      manager.address,
+      false,
+      5,
+      5,
+      initialProducts,
+      0,
+      IPFS_DESCRIPTION_HASH,
+    );
     const block = await ethers.provider.getBlock('latest');
 
     const product = await stakingPool.products(0);
@@ -127,7 +138,16 @@ describe('setProducts unit tests', function () {
     );
     // 21 products at full weight will set exceed max target weight
     await expect(
-      cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, initialProducts, 0),
+      cover.initializeStaking(
+        stakingPool.address,
+        manager.address,
+        false,
+        5,
+        5,
+        initialProducts,
+        0,
+        IPFS_DESCRIPTION_HASH,
+      ),
     ).to.be.revertedWith('StakingPool: Total max target weight exceeded');
   });
 
@@ -135,7 +155,7 @@ describe('setProducts unit tests', function () {
     const { stakingPool, cover } = this;
     const [manager] = this.accounts.members;
 
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const product = { ...newProductTemplate };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
 
@@ -150,7 +170,7 @@ describe('setProducts unit tests', function () {
     const { stakingPool, cover } = this;
     const [manager] = this.accounts.members;
 
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const product = { ...newProductTemplate };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
 
@@ -164,7 +184,7 @@ describe('setProducts unit tests', function () {
     const { stakingPool, cover } = this;
     const [manager] = this.accounts.members;
 
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const product = { ...newProductTemplate, setTargetPrice: false };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
 
@@ -177,7 +197,7 @@ describe('setProducts unit tests', function () {
     const { stakingPool, cover } = this;
     const [manager] = this.accounts.members;
 
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const products = [{ ...newProductTemplate }, { ...newProductTemplate, productId: 1 }];
     await Promise.all([
       cover.setProduct({ ...coverProductTemplate }, products[0].productId),
@@ -211,7 +231,7 @@ describe('setProducts unit tests', function () {
     const { stakingPool, cover } = this;
     const [manager] = this.accounts.members;
     // initialize with 0 products
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
 
     let i = 0;
     const products = await Promise.all(
@@ -235,7 +255,7 @@ describe('setProducts unit tests', function () {
     const { stakingPool, cover } = this;
     const [manager] = this.accounts.members;
 
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     let i = 0;
     const products = await Promise.all(
       Array.from({ length: 20 }, () => {
@@ -265,7 +285,16 @@ describe('setProducts unit tests', function () {
     const initialProduct = { ...initialProductTemplate, weight: 101 };
 
     await expect(
-      cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [initialProduct], 0),
+      cover.initializeStaking(
+        stakingPool.address,
+        manager.address,
+        false,
+        5,
+        5,
+        [initialProduct],
+        0,
+        IPFS_DESCRIPTION_HASH,
+      ),
     ).to.be.revertedWith('StakingPool: Cannot set weight beyond 1');
   });
 
@@ -273,7 +302,7 @@ describe('setProducts unit tests', function () {
     const { stakingPool, cover } = this;
     const [manager] = this.accounts.members;
 
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const product = { ...newProductTemplate, targetWeight: 101 };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
     await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith(
@@ -285,7 +314,7 @@ describe('setProducts unit tests', function () {
     const { stakingPool, cover } = this;
     const [manager] = this.accounts.members;
 
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const product = { ...newProductTemplate };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
     await stakingPool.connect(manager).setProducts([product]);
@@ -310,7 +339,7 @@ describe('setProducts unit tests', function () {
     const { stakingPool, cover } = this;
     const [manager] = this.accounts.members;
 
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const product = { ...newProductTemplate, targetWeight: 0 };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
     await stakingPool.connect(manager).setProducts([product]);
@@ -325,7 +354,7 @@ describe('setProducts unit tests', function () {
     const { stakingPool, cover } = this;
     const [manager] = this.accounts.members;
 
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const products = [{ ...newProductTemplate }, { ...newProductTemplate, productId: 1 }];
     await Promise.all([
       cover.setProduct({ ...coverProductTemplate }, products[0].productId),
@@ -352,7 +381,7 @@ describe('setProducts unit tests', function () {
     const { GLOBAL_MIN_PRICE_RATIO } = this.config;
     const [manager] = this.accounts.members;
 
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const product = { ...newProductTemplate };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
     await stakingPool.connect(manager).setProducts([product]);
@@ -373,7 +402,7 @@ describe('setProducts unit tests', function () {
     const { stakingPool, cover } = this;
     const [manager] = this.accounts.members;
 
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const product = { ...newProductTemplate, targetPrice: 10001 };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
     await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith(
@@ -388,7 +417,7 @@ describe('setProducts unit tests', function () {
 
     const product = { ...initialProductTemplate, targetPrice: GLOBAL_MIN_PRICE_RATIO - 1 };
     await expect(
-      cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [product], 0),
+      cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [product], 0, IPFS_DESCRIPTION_HASH),
     ).to.be.revertedWith('CoverUtilsLib: Target price below GLOBAL_MIN_PRICE_RATIO');
   });
 
@@ -397,7 +426,7 @@ describe('setProducts unit tests', function () {
     const { GLOBAL_MIN_PRICE_RATIO } = this.config;
     const [manager] = this.accounts.members;
 
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const product = { ...newProductTemplate, targetPrice: GLOBAL_MIN_PRICE_RATIO - 1 };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
     await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith(
@@ -409,7 +438,7 @@ describe('setProducts unit tests', function () {
     const { stakingPool, cover } = this;
     const [manager] = this.accounts.members;
 
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const product = { ...newProductTemplate, productId: 1000 };
     await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith(
       'Cover: Product deprecated or not initialized',
@@ -421,7 +450,7 @@ describe('setProducts unit tests', function () {
     const [manager, staker, coverBuyer] = this.accounts.members;
 
     const amount = parseEther('1');
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0);
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
 
     // Get capacity in staking pool
     await nxm.connect(staker).approve(tokenController.address, amount);
@@ -488,7 +517,16 @@ describe('setProducts unit tests', function () {
         cover.setProductType(ProductTypeFixture, productId),
       ]),
     );
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, initialProducts, 0);
+    await cover.initializeStaking(
+      stakingPool.address,
+      manager.address,
+      false,
+      5,
+      5,
+      initialProducts,
+      0,
+      IPFS_DESCRIPTION_HASH,
+    );
 
     // Get capacity in staking pool
     await nxm.connect(staker).approve(tokenController.address, amount);
@@ -553,7 +591,16 @@ describe('setProducts unit tests', function () {
       ]),
     );
 
-    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, initialProducts, 0);
+    await cover.initializeStaking(
+      stakingPool.address,
+      manager.address,
+      false,
+      5,
+      5,
+      initialProducts,
+      0,
+      IPFS_DESCRIPTION_HASH,
+    );
 
     // Get capacity in staking pool
     await nxm.connect(staker).approve(tokenController.address, amount);

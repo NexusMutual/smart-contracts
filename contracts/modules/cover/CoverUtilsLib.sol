@@ -129,7 +129,8 @@ library CoverUtilsLib {
     ProductInitializationParams[] memory productInitParams,
     uint depositAmount,
     uint trancheId,
-    address pooledStakingAddress
+    address pooledStakingAddress,
+    string calldata ipfsDescriptionHash
   ) external returns (address stakingPoolAddress) {
 
     stakingPoolAddress = address(
@@ -153,7 +154,8 @@ library CoverUtilsLib {
       poolInitParams.initialPoolFee,
       poolInitParams.maxPoolFee,
       productInitParams,
-      poolInitParams.poolId
+      poolInitParams.poolId,
+      ipfsDescriptionHash
     );
 
     // will create nft with a position in the desired tranche id

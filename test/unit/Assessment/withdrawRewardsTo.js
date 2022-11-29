@@ -65,15 +65,15 @@ describe('withdrawRewardsTo', function () {
     await assessment.connect(user).stake(parseEther('10'));
 
     await individualClaims.connect(user).submitClaim(0, 0, parseEther('100'), '');
-    await assessment.connect(user).castVotes([0], [true], 0);
+    await assessment.connect(user).castVotes([0], [true], ['Assessment data hash'], 0);
 
     await finalizePoll(assessment);
 
     await individualClaims.connect(user).submitClaim(1, 0, parseEther('100'), '');
-    await assessment.connect(user).castVotes([1], [true], 0);
+    await assessment.connect(user).castVotes([1], [true], ['Assessment data hash'], 0);
 
     await individualClaims.connect(user).submitClaim(2, 0, parseEther('100'), '');
-    await assessment.connect(user).castVotes([2], [true], 0);
+    await assessment.connect(user).castVotes([2], [true], ['Assessment data hash'], 0);
 
     const balanceBefore = await nxm.balanceOf(user.address);
 
@@ -96,9 +96,9 @@ describe('withdrawRewardsTo', function () {
       await assessment.connect(user2).stake(parseEther('10'));
       await assessment.connect(user3).stake(parseEther('10'));
 
-      await assessment.connect(user1).castVotes([0], [true], 0);
-      await assessment.connect(user2).castVotes([0], [true], 0);
-      await assessment.connect(user3).castVotes([0], [true], 0);
+      await assessment.connect(user1).castVotes([0], [true], ['Assessment data hash'], 0);
+      await assessment.connect(user2).castVotes([0], [true], ['Assessment data hash'], 0);
+      await assessment.connect(user3).castVotes([0], [true], ['Assessment data hash'], 0);
       const { totalRewardInNXM } = await assessment.assessments(0);
 
       await finalizePoll(assessment);
@@ -128,8 +128,8 @@ describe('withdrawRewardsTo', function () {
     {
       await individualClaims.connect(user1).submitClaim(1, 0, parseEther('100'), '');
 
-      await assessment.connect(user1).castVotes([1], [true], 0);
-      await assessment.connect(user2).castVotes([1], [true], 0);
+      await assessment.connect(user1).castVotes([1], [true], ['Assessment data hash'], 0);
+      await assessment.connect(user2).castVotes([1], [true], ['Assessment data hash'], 0);
       const { totalRewardInNXM } = await assessment.assessments(1);
 
       await finalizePoll(assessment);
@@ -155,9 +155,9 @@ describe('withdrawRewardsTo', function () {
       await assessment.connect(user2).stake(parseEther('27'));
       await assessment.connect(user3).stake(parseEther('33'));
 
-      await assessment.connect(user1).castVotes([2], [true], 0);
-      await assessment.connect(user2).castVotes([2], [true], 0);
-      await assessment.connect(user3).castVotes([2], [true], 0);
+      await assessment.connect(user1).castVotes([2], [true], ['Assessment data hash'], 0);
+      await assessment.connect(user2).castVotes([2], [true], ['Assessment data hash'], 0);
+      await assessment.connect(user3).castVotes([2], [true], ['Assessment data hash'], 0);
       const { totalRewardInNXM } = await assessment.assessments(2);
 
       await finalizePoll(assessment);
@@ -192,7 +192,7 @@ describe('withdrawRewardsTo', function () {
 
     await individualClaims.connect(user1).submitClaim(0, 0, parseEther('100'), '');
     await assessment.connect(user1).stake(parseEther('10'));
-    await assessment.connect(user1).castVotes([0], [true], 0);
+    await assessment.connect(user1).castVotes([0], [true], ['Assessment data hash'], 0);
 
     await finalizePoll(assessment);
 
@@ -210,7 +210,14 @@ describe('withdrawRewardsTo', function () {
       await individualClaims.connect(user1).submitClaim(1, 0, parseEther('100'), '');
       await individualClaims.connect(user1).submitClaim(2, 0, parseEther('100'), '');
       await assessment.connect(user1).stake(parseEther('10'));
-      await assessment.connect(user1).castVotes([0, 1, 2], [true, true, true], 0);
+      await assessment
+        .connect(user1)
+        .castVotes(
+          [0, 1, 2],
+          [true, true, true],
+          ['Assessment data hash', 'Assessment data hash', 'Assessment data hash'],
+          0,
+        );
 
       const { totalRewardInNXM } = await assessment.assessments(0);
 
@@ -246,7 +253,14 @@ describe('withdrawRewardsTo', function () {
       await individualClaims.connect(user1).submitClaim(1, 0, parseEther('100'), '');
       await individualClaims.connect(user1).submitClaim(2, 0, parseEther('100'), '');
       await assessment.connect(user1).stake(parseEther('10'));
-      await assessment.connect(user1).castVotes([0, 1, 2], [true, true, true], 0);
+      await assessment
+        .connect(user1)
+        .castVotes(
+          [0, 1, 2],
+          [true, true, true],
+          ['Assessment data hash', 'Assessment data hash', 'Assessment data hash'],
+          0,
+        );
 
       const { totalRewardInNXM } = await assessment.assessments(0);
 

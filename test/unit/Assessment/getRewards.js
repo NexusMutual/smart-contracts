@@ -17,12 +17,12 @@ describe('getRewards', function () {
     await individualClaims.submitClaim(1, 0, parseEther('100'), '');
     await individualClaims.submitClaim(2, 0, parseEther('1000'), '');
 
-    await assessment.connect(user1).castVotes([0], [true], 0);
-    await assessment.connect(user2).castVotes([0], [true], 0);
-    await assessment.connect(user1).castVotes([1], [true], 0);
-    await assessment.connect(user2).castVotes([1], [true], 0);
-    await assessment.connect(user1).castVotes([2], [true], 0);
-    await assessment.connect(user2).castVotes([2], [true], 0);
+    await assessment.connect(user1).castVotes([0], [true], ['Assessment data hash'], 0);
+    await assessment.connect(user2).castVotes([0], [true], ['Assessment data hash'], 0);
+    await assessment.connect(user1).castVotes([1], [true], ['Assessment data hash'], 0);
+    await assessment.connect(user2).castVotes([1], [true], ['Assessment data hash'], 0);
+    await assessment.connect(user1).castVotes([2], [true], ['Assessment data hash'], 0);
+    await assessment.connect(user2).castVotes([2], [true], ['Assessment data hash'], 0);
 
     let expectedUser1Reward = ethers.constants.Zero;
     let expectedUser2Reward = ethers.constants.Zero;
@@ -92,8 +92,8 @@ describe('getRewards', function () {
     await individualClaims.submitClaim(0, 0, parseEther('10'), '');
     await individualClaims.submitClaim(1, 0, parseEther('100'), '');
 
-    await assessment.connect(user).castVotes([0], [true], 0);
-    await assessment.connect(user).castVotes([1], [true], 0);
+    await assessment.connect(user).castVotes([0], [true], ['Assessment data hash'], 0);
+    await assessment.connect(user).castVotes([1], [true], ['Assessment data hash'], 0);
 
     let expectedReward = ethers.constants.Zero;
 
@@ -135,7 +135,7 @@ describe('getRewards', function () {
 
     {
       await individualClaims.submitClaim(0, 0, parseEther('1000'), '');
-      await assessment.connect(user).castVotes([2], [true], 0);
+      await assessment.connect(user).castVotes([2], [true], ['Assessment data hash'], 0);
       const { withdrawableAmountInNXM } = await assessment.getRewards(user.address);
       expect(withdrawableAmountInNXM).to.be.equal(0);
     }
@@ -158,8 +158,8 @@ describe('getRewards', function () {
     await individualClaims.submitClaim(0, 0, parseEther('10'), '');
     await individualClaims.submitClaim(0, 1, parseEther('100'), '');
 
-    await assessment.connect(user).castVotes([0], [true], 0);
-    await assessment.connect(user).castVotes([1], [true], 0);
+    await assessment.connect(user).castVotes([0], [true], ['Assessment data hash'], 0);
+    await assessment.connect(user).castVotes([1], [true], ['Assessment data hash'], 0);
 
     {
       const { withdrawableUntilIndex } = await assessment.getRewards(user.address);
@@ -175,7 +175,7 @@ describe('getRewards', function () {
 
     {
       await individualClaims.submitClaim(0, 0, parseEther('1000'), '');
-      await assessment.connect(user).castVotes([2], [true], 0);
+      await assessment.connect(user).castVotes([2], [true], ['Assessment data hash'], 0);
       const { withdrawableUntilIndex } = await assessment.getRewards(user.address);
       expect(withdrawableUntilIndex).to.be.equal(2);
     }

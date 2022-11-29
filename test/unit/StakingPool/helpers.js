@@ -116,13 +116,13 @@ function toDecimal(x) {
   return new Decimal(x.toString());
 }
 
-function calculateFirstTrancheId(lastBlock, period, gracePeriod) {
-  return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
+function calculateFirstTrancheId(timestamp, period, gracePeriod) {
+  return Math.floor((timestamp + period + gracePeriod) / (91 * 24 * 3600));
 }
 
 async function getTranches(period, gracePeriod) {
   const lastBlock = await ethers.provider.getBlock('latest');
-  const firstActiveTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
+  const firstActiveTrancheId = calculateFirstTrancheId(lastBlock.timestamp, period, gracePeriod);
   const maxTranche = firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;
 
   return {

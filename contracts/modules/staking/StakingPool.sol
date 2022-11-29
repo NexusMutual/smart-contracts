@@ -1084,6 +1084,13 @@ contract StakingPool is IStakingPool, ERC721 {
       // done! skip the rest of the function.
     }
 
+    if (isPrivatePool) {
+      require(
+        msg.sender == coverContract || msg.sender == manager(),
+        "StakingPool: The pool is private"
+      );
+    }
+
     // if we got here - the initial tranche is still active. move all the shares to the new tranche
 
     // passing true because we mint reward shares

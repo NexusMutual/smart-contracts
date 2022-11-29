@@ -5,7 +5,7 @@ const { daysToSeconds } = require('../../../lib/helpers');
 const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee } = require('../../utils/evm');
 
 const { BigNumber } = ethers;
-const { AddressZero } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 const setTime = async timestamp => {
@@ -15,7 +15,7 @@ const setTime = async timestamp => {
 
 const priceDenominator = '10000';
 
-describe.skip('submitClaim', function () {
+describe('submitClaim', function () {
   beforeEach(async function () {
     const { tk } = this.contracts;
 
@@ -74,13 +74,13 @@ describe.skip('submitClaim', function () {
     await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
+        coverId: MaxUint256,
         productId,
         coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
@@ -162,13 +162,13 @@ describe.skip('submitClaim', function () {
     await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
+        coverId: MaxUint256,
         productId,
         coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
@@ -247,13 +247,13 @@ describe.skip('submitClaim', function () {
     await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
+        coverId: MaxUint256,
         productId,
         coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',

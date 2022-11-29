@@ -88,6 +88,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   uint32 public coverAssetsFallback;
 
   // TODO: implement using buckets
+  // TODO: implement using buckets
   // Global active cover amount per asset.
   mapping(uint24 => uint) public override totalActiveCoverInAsset;
 

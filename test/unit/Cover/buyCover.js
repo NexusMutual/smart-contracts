@@ -580,7 +580,7 @@ describe.only('buyCover', function () {
     ).to.be.revertedWith('Cover: amount = 0');
   });
 
-  // The logic has been moved in StakingPool.sol and this test will have to be moved as well.
+  // TODO: The logic has been moved in StakingPool.sol and this test will have to be moved as well.
   it.skip('should revert when the allocated cover amount is less than the expected cover amount', async function () {
     const { cover } = this;
 
@@ -1137,13 +1137,13 @@ describe.only('buyCover', function () {
     } = this.accounts;
 
     const {
+      coverId,
       productId,
       coverAsset,
       period,
       capacity,
       targetPriceRatio,
       activeCover,
-      coverId,
       segmentId,
       priceDenominator,
     } = buyCoverFixture;

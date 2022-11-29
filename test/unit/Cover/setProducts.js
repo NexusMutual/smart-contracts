@@ -283,7 +283,7 @@ describe('setProducts', function () {
     ).to.be.revertedWith('Cover: Product is deprecated');
   });
 
-  it.skip('should fail to edit cover for deprecated product', async function () {
+  it('should fail to edit cover for deprecated product', async function () {
     const { cover } = this;
     const {
       governanceContracts: [gv1],
@@ -316,9 +316,9 @@ describe('setProducts', function () {
     const owner = coverBuyer.address;
     const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
     const buyCoverParams = { ...buyCoverTemplate, owner, expectedPremium, productId };
-    await cover.connect(coverBuyer).buyCover(buyCoverParams, [poolAllocationRequestTemplate], {
-      value: expectedPremium,
-    });
+    await cover
+      .connect(coverBuyer)
+      .buyCover(buyCoverParams, [poolAllocationRequestTemplate], { value: expectedPremium });
 
     // deprecate product
     const isDeprecated = true;
@@ -326,12 +326,12 @@ describe('setProducts', function () {
     const deprecateProductParams = { ...productParamsTemplate, productId, product };
     await cover.connect(advisoryBoardMember0).setProducts([deprecateProductParams]);
 
-    const editCoverParams = { ...buyCoverParams };
+    const coverId = await cover.coverData.length;
+    const editCoverParams = { ...buyCoverParams, coverId };
+
     // edit cover
     await expect(
-      cover.connect(coverBuyer).editCover(0, editCoverParams, [poolAllocationRequestTemplate], {
-        value: expectedPremium,
-      }),
+      cover.connect(coverBuyer).buyCover(editCoverParams, [poolAllocationRequestTemplate], { value: expectedPremium }),
     ).to.be.revertedWith('Cover: Product is deprecated');
   });
 
@@ -382,10 +382,8 @@ describe('setProducts', function () {
     const owner = coverBuyer.address;
     const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
     const buyCoverParams = { ...buyCoverTemplate, owner, expectedPremium, productId };
-    console.log('hello1');
     await cover
       .connect(coverBuyer)
       .buyCover(buyCoverParams, [poolAllocationRequestTemplate], { value: expectedPremium });
-    console.log('hello2');
   });
 });

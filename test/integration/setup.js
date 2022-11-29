@@ -308,7 +308,7 @@ async function setup() {
         coverAssets: 0, // Use fallback
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
-        fixedPricing: false,
+        useFixedPrice: false,
       },
       allowedPools: [],
     },

@@ -55,7 +55,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     uint _maxPoolFee,
     ProductInitializationParams[] calldata params,
     uint _poolId,
-    string calldata ipfsDescriptionHash
+    string calldata /* ipfsDescriptionHash */
   ) external {
     _isPrivatePool;
     _initialPoolFee;

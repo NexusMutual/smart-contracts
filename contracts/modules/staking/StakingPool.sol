@@ -1553,7 +1553,9 @@ contract StakingPool is IStakingPool, ERC721 {
     StakedProduct memory product = products[params.productId];
 
     if (params.useFixedPrice) {
-      return product.targetPrice * params.period / 365 days;
+      uint fixedPricePremiumPerYear =
+        (params.coverAmount * NXM_PER_ALLOCATION_UNIT) * product.targetPrice / TARGET_PRICE_DENOMINATOR;
+      return fixedPricePremiumPerYear * uint(params.period) / 365 days;
     }
 
     uint basePrice;

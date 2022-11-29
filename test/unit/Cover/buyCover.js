@@ -109,7 +109,6 @@ describe('buyCover', function () {
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',

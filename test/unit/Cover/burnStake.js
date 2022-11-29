@@ -26,18 +26,12 @@ describe('burnStake', function () {
 
     const {
       internalContracts: [internal1],
-      // emergencyAdmin,
     } = this.accounts;
 
     const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
-
-    // await cover.connect(emergencyAdmin).enableActiveCoverAmountTracking([], []);
-    // await cover.connect(emergencyAdmin).commitActiveCoverAmounts();
-
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const burnAmountDivisor = 2;
-
     const burnAmount = amount.div(burnAmountDivisor);
     const remainingAmount = amount.sub(burnAmount);
 
@@ -62,9 +56,6 @@ describe('burnStake', function () {
     expect(burnStakeCalledWith.productId).to.be.equal(productId);
     expect(burnStakeCalledWith.period).to.be.equal(period);
     expect(burnStakeCalledWith.amount).to.be.equal(expectedBurnAmount);
-
-    // const activeCoverAmount = await cover.totalActiveCoverInAsset(coverAsset);
-    // expect(activeCoverAmount).to.be.equal(amount.sub(burnAmount));
   });
 
   it('reverts if caller is not an internal contract', async function () {
@@ -127,17 +118,12 @@ describe('burnStake', function () {
     const {
       internalContracts: [internal1],
       members: [, stakingPoolManager],
-      // emergencyAdmin,
     } = this.accounts;
     const { productId, coverAsset, period, amount, targetPriceRatio, capacity, activeCover } = coverBuyFixture;
-
-    // await cover.connect(emergencyAdmin).enableActiveCoverAmountTracking([], []);
-    // await cover.connect(emergencyAdmin).commitActiveCoverAmounts();
-
     const amountOfPools = 4;
     const amountPerPool = amount.div(amountOfPools);
-    const allocationRequest = [];
 
+    const allocationRequest = [];
     for (let i = 0; i < amountOfPools; i++) {
       await createStakingPool(
         cover,
@@ -179,9 +165,6 @@ describe('burnStake', function () {
       segmentId,
       amountPaidOut: burnAmount,
     });
-
-    // const activeCoverAmount = await cover.totalActiveCoverInAsset(coverAsset);
-    // expect(activeCoverAmount).to.be.equal(amount.sub(burnAmount));
 
     for (let i = 0; i < amountOfPools; i++) {
       const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(i));

@@ -260,7 +260,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           coverId,
           coveredAmountInNXM,
           params.period,
-          product.fixedPricing
+          product.useFixedPrice
         );
 
         AllocationRequestConfig memory config = AllocationRequestConfig(
@@ -312,7 +312,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   function isAllowedPool(uint productId, uint poolId) external returns (bool) {
 
-    if (!_products[productId].fixedPricing) {
+    if (!_products[productId].useFixedPrice) {
       // no pool id restrictions
       return true;
     }
@@ -550,7 +550,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         "Cover: capacityReductionRatio > 100%"
       );
 
-      if (product.fixedPricing) {
+      if (product.useFixedPrice) {
 
         uint productId = param.productId == type(uint256).max ? _products.length : param.productId;
         allowedPools[productId] = param.allowedPools;

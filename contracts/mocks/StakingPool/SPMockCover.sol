@@ -64,7 +64,7 @@ contract SPMockCover {
         coverId,
         params.amount,
         params.period,
-        product.fixedPricing
+        product.useFixedPrice
       ),
       AllocationRequestConfig(
         gracePeriod,

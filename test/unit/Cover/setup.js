@@ -195,7 +195,7 @@ async function setup() {
         initialPriceRatio: '1000', // 10%
         capacityReductionRatio: '0',
         isDeprecated: false,
-        fixedPricing: false,
+        useFixedPrice: false,
       },
       allowedPools: [],
     },
@@ -209,7 +209,7 @@ async function setup() {
         initialPriceRatio: '1000', // 10%
         capacityReductionRatio: '0',
         isDeprecated: false,
-        fixedPricing: true,
+        useFixedPrice: true,
       },
       allowedPools: [0],
     },

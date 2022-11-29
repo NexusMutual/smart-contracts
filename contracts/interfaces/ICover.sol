@@ -80,7 +80,7 @@ struct Product {
   uint16 initialPriceRatio;
   uint16 capacityReductionRatio;
   bool isDeprecated;
-  bool fixedPricing;
+  bool useFixedPrice;
 }
 
 struct ProductParam {

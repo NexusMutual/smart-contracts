@@ -45,7 +45,7 @@ describe('setProducts', function () {
     initialPriceRatio: 1000, // 10%
     capacityReductionRatio: capacityFactor, // 100%
     isDeprecated: false,
-    fixedPricing: false,
+    useFixedPrice: false,
   };
 
   // Cover.ProductParams

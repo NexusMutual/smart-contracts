@@ -18,6 +18,7 @@ describe('setPoolFee', function () {
     initialPoolFee: 5, // 5%
     maxPoolFee: 5, // 5%
     productInitializationParams: [product0],
+    ipfsDescriptionHash: 'Description Hash',
   };
 
   beforeEach(async function () {
@@ -26,13 +27,22 @@ describe('setPoolFee', function () {
       cover,
       accounts: { defaultSender: manager },
     } = this;
-    const { poolId, initialPoolFee, maxPoolFee, productInitializationParams, isPrivatePool } = initializeParams;
+    const { poolId, initialPoolFee, maxPoolFee, productInitializationParams, isPrivatePool, ipfsDescriptionHash } =
+      initializeParams;
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
 
     await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
     await stakingPool
       .connect(coverSigner)
-      .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, productInitializationParams, poolId);
+      .initialize(
+        manager.address,
+        isPrivatePool,
+        initialPoolFee,
+        maxPoolFee,
+        productInitializationParams,
+        poolId,
+        ipfsDescriptionHash,
+      );
   });
 
   it('reverts if manager is not the caller', async function () {

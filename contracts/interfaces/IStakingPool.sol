@@ -106,7 +106,8 @@ interface IStakingPool {
     uint initialPoolFee,
     uint maxPoolFee,
     ProductInitializationParams[] calldata params,
-    uint _poolId
+    uint _poolId,
+    string memory ipfsDescriptionHash
   ) external;
 
   function operatorTransfer(address from, address to, uint[] calldata tokenIds) external;
@@ -162,5 +163,5 @@ interface IStakingPool {
 
   event PoolFeeChanged(address indexed manager, uint newFee);
 
-  event PoolDescriptionChanged(uint poolId, string ipfsDescriptionHash);
+  event PoolDescriptionSet(uint poolId, string ipfsDescriptionHash);
 }

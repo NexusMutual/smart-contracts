@@ -25,13 +25,14 @@ describe('updateTranches', function () {
     tokenId: 0,
     destination: AddressZero,
     depositNftId: 1,
+    ipfsDescriptionHash: 'Description Hash',
   };
 
   beforeEach(async function () {
     const { stakingPool, cover } = this;
     const { defaultSender: manager } = this.accounts;
 
-    const { poolId, initialPoolFee, maxPoolFee, productInitializationParams } = depositToFixture;
+    const { poolId, initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = depositToFixture;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
     await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
@@ -39,7 +40,15 @@ describe('updateTranches', function () {
 
     await stakingPool
       .connect(coverSigner)
-      .initialize(manager.address, false, initialPoolFee, maxPoolFee, productInitializationParams, poolId);
+      .initialize(
+        manager.address,
+        false,
+        initialPoolFee,
+        maxPoolFee,
+        productInitializationParams,
+        poolId,
+        ipfsDescriptionHash,
+      );
   });
 
   it('expires tranche with no previous updates', async function () {

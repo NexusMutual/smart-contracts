@@ -26,6 +26,7 @@ describe('depositTo', function () {
     tokenId: 0,
     destination: AddressZero,
     depositNftId: 1,
+    ipfsDescriptionHash: 'Description Hash',
   };
 
   const DEFAULT_PERIOD = daysToSeconds(30);
@@ -35,7 +36,7 @@ describe('depositTo', function () {
     const { stakingPool, cover } = this;
     const { defaultSender: manager } = this.accounts;
 
-    const { poolId, initialPoolFee, maxPoolFee, productInitializationParams } = depositToFixture;
+    const { poolId, initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = depositToFixture;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
     await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
@@ -43,7 +44,15 @@ describe('depositTo', function () {
 
     await stakingPool
       .connect(coverSigner)
-      .initialize(manager.address, false, initialPoolFee, maxPoolFee, productInitializationParams, poolId);
+      .initialize(
+        manager.address,
+        false,
+        initialPoolFee,
+        maxPoolFee,
+        productInitializationParams,
+        poolId,
+        ipfsDescriptionHash,
+      );
   });
 
   it('reverts if caller is not cover contract or manager when pool is private', async function () {

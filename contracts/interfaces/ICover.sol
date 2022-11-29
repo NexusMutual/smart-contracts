@@ -169,7 +169,7 @@ interface ICover {
     ProductInitializationParams[] calldata params,
     uint depositAmount,
     uint trancheId,
-    string memory ipfsDescriptionHash
+    string calldata ipfsDescriptionHash
   ) external returns (address stakingPoolAddress);
 
   /* ========== EVENTS ========== */
@@ -178,8 +178,7 @@ interface ICover {
     address stakingPoolAddress,
     uint poolId,
     address manager,
-    address stakingPoolImplementation,
-    string ipfsDescriptionHash
+    address stakingPoolImplementation
   );
   event ProductSet(uint id, string ipfsMetadata);
   event ProductTypeSet(uint id, string ipfsMetadata);

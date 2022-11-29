@@ -82,13 +82,14 @@ contract SPMockCover {
     uint _initialPoolFee,
     uint _maxPoolFee,
     ProductInitializationParams[] memory params,
-    uint _poolId
+    uint _poolId,
+    string calldata ipfsDescriptionHash
   ) external {
 
     for (uint i = 0; i < params.length; i++) {
       params[i].initialPrice = products[params[i].productId].initialPriceRatio;
       require(params[i].targetPrice >= GLOBAL_MIN_PRICE_RATIO, "CoverUtilsLib: Target price below GLOBAL_MIN_PRICE_RATIO");
     }
-    IStakingPool(staking_).initialize(_manager, _isPrivatePool, _initialPoolFee, _maxPoolFee, params, _poolId);
+    IStakingPool(staking_).initialize(_manager, _isPrivatePool, _initialPoolFee, _maxPoolFee, params, _poolId, ipfsDescriptionHash);
   }
 }

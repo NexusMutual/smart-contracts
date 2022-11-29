@@ -16,6 +16,7 @@ describe('createStakingPool', function () {
         targetPrice: '500',
       },
     ],
+    ipfsDescriptionHash: 'Description Hash',
   };
 
   it('should create and initialize a new pool minimal beacon proxy pool', async function () {
@@ -23,8 +24,15 @@ describe('createStakingPool', function () {
 
     const [stakingPoolCreator, stakingPoolManager] = this.accounts.members;
 
-    const { initialPoolFee, maxPoolFee, productInitializationParams, depositAmount, trancheId, poolId } =
-      newPoolFixture;
+    const {
+      initialPoolFee,
+      maxPoolFee,
+      productInitializationParams,
+      depositAmount,
+      trancheId,
+      poolId,
+      ipfsDescriptionHash,
+    } = newPoolFixture;
 
     const firstStakingPoolAddress = await cover.stakingPool(poolId);
 
@@ -36,7 +44,7 @@ describe('createStakingPool', function () {
       productInitializationParams,
       depositAmount,
       trancheId,
-      '', // ipfsDescriptionHash
+      ipfsDescriptionHash,
     );
 
     const stakingPoolInstance = await ethers.getContractAt('CoverMockStakingPool', firstStakingPoolAddress);
@@ -84,33 +92,35 @@ describe('createStakingPool', function () {
 
     const [stakingPoolCreator, stakingPoolManager] = this.accounts.members;
 
-    const { initialPoolFee, maxPoolFee, productInitializationParams, depositAmount, trancheId, poolId } =
-      newPoolFixture;
+    const {
+      initialPoolFee,
+      maxPoolFee,
+      productInitializationParams,
+      depositAmount,
+      trancheId,
+      poolId,
+      ipfsDescriptionHash,
+    } = newPoolFixture;
 
     const stakingPoolImplementation = await cover.stakingPoolImplementation();
 
     const firstStakingPoolAddress = await cover.stakingPool(poolId);
 
-    await expect(
-      cover.connect(stakingPoolCreator).createStakingPool(
-        stakingPoolManager.address,
-        false, // isPrivatePool,
-        initialPoolFee,
-        maxPoolFee,
-        productInitializationParams,
-        depositAmount,
-        trancheId,
-        'ipfsDescriptionHash', // ipfsDescriptionHash
-      ),
-    )
+    const tx = await cover.connect(stakingPoolCreator).createStakingPool(
+      stakingPoolManager.address,
+      false, // isPrivatePool,
+      initialPoolFee,
+      maxPoolFee,
+      productInitializationParams,
+      depositAmount,
+      trancheId,
+      ipfsDescriptionHash,
+    );
+    expect(tx)
       .to.emit(cover, 'StakingPoolCreated')
-      .withArgs(
-        firstStakingPoolAddress,
-        poolId,
-        stakingPoolManager.address,
-        stakingPoolImplementation,
-        'ipfsDescriptionHash',
-      );
+      .withArgs(firstStakingPoolAddress, poolId, stakingPoolManager.address, stakingPoolImplementation);
+
+    expect(tx).to.emit(cover, 'PoolDescriptionSet').withArgs(poolId, 'Description Hash');
   });
 
   it('increments staking pool count', async function () {

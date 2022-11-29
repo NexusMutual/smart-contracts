@@ -169,7 +169,8 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _initialPoolFee,
     uint _maxPoolFee,
     ProductInitializationParams[] calldata params,
-    uint _poolId
+    uint _poolId,
+    string  calldata ipfsDescriptionHash
   ) external onlyCoverContract {
 
     require(_initialPoolFee <= _maxPoolFee, "StakingPool: Pool fee should not exceed max pool fee");
@@ -189,6 +190,7 @@ contract StakingPool is IStakingPool, ERC721 {
     // create ownership nft
     totalSupply = 1;
     _mint(_manager, 0);
+    emit PoolDescriptionSet(poolId, ipfsDescriptionHash);
   }
 
   function isApprovedOrOwner(address spender, uint tokenId) public view returns (bool) {
@@ -1513,7 +1515,7 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   function setPoolDescription(string memory ipfsDescriptionHash) external onlyManager {
-    emit PoolDescriptionChanged(poolId, ipfsDescriptionHash);
+    emit PoolDescriptionSet(poolId, ipfsDescriptionHash);(poolId, ipfsDescriptionHash);
   }
 
   /* utils */

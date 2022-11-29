@@ -122,7 +122,7 @@ function calculateFirstTrancheId(timestamp, period, gracePeriod) {
   return Math.floor((timestamp + period + gracePeriod) / (91 * 24 * 3600));
 }
 
-async function getTranches(period, gracePeriod) {
+async function getTranches(period = 0, gracePeriod = 0) {
   const lastBlock = await ethers.provider.getBlock('latest');
   const firstActiveTrancheId = calculateFirstTrancheId(lastBlock.timestamp, period, gracePeriod);
   const maxTranche = firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;

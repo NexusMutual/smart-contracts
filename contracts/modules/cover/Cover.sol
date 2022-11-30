@@ -199,20 +199,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     require(params.amount > 0, "Cover: amount = 0");
 
     uint segmentId = _coverSegments[coverId].length;
-    bool useFixedPrice;
     uint gracePeriod;
 
     AllocationRequestConfig memory config;
-
-    AllocationRequest memory allocationRequest = AllocationRequest(
-      params.productId,
-      coverId,
-      params.period,
-      block.timestamp + params.period + gracePeriod,
-      useFixedPrice,
-      0,
-      0
-    );
+    AllocationRequest memory allocationRequest;
 
     {
       require(_products.length > params.productId, "Cover: Product not found");
@@ -220,19 +210,29 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       Product memory product = _products[params.productId];
       require(!product.isDeprecated, "Cover: Product is deprecated");
 
-      useFixedPrice = product.useFixedPrice;
+      uint32 deprecatedCoverAssets = pool().deprecatedCoverAssetsBitmap();
+      uint32 supportedCoverAssets = _getSupportedCoverAssets(deprecatedCoverAssets, product.coverAssets);
+      require(isAssetSupported(supportedCoverAssets, params.coverAsset), "Cover: Payout asset is not supported");
+      require(!_isCoverAssetDeprecated(deprecatedCoverAssets, params.paymentAsset), "Cover: Payment asset deprecated");
+
       gracePeriod = _productTypes[product.productType].gracePeriod;
+
+      allocationRequest = AllocationRequest(
+        params.productId,
+        coverId,
+        params.period,
+        gracePeriod,
+        product.useFixedPrice,
+        0, // previous cover start
+        0  // previous cover expiration
+      );
+
       config = AllocationRequestConfig(
         globalCapacityRatio,
         product.capacityReductionRatio,
         globalRewardsRatio,
         GLOBAL_MIN_PRICE_RATIO
       );
-
-      uint32 deprecatedCoverAssets = pool().deprecatedCoverAssetsBitmap();
-      uint32 supportedCoverAssets = _getSupportedCoverAssets(deprecatedCoverAssets, product.coverAssets);
-      require(isAssetSupported(supportedCoverAssets, params.coverAsset), "Cover: Payout asset is not supported");
-      require(!_isCoverAssetDeprecated(deprecatedCoverAssets, params.paymentAsset), "Cover: Payment asset deprecated");
     }
 
     if (params.coverId == type(uint).max) {

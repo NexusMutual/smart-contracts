@@ -891,7 +891,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
     coverAllocationAmount = Math.divCeil(amount, NXM_PER_ALLOCATION_UNIT);
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
-    uint firstTrancheIdToUse = request.gracePeriodExpiration / TRANCHE_DURATION;
+    uint firstTrancheIdToUse = (block.timestamp + request.period + request.gracePeriod) / TRANCHE_DURATION;
 
     uint[] memory coverAllocations = new uint[](MAX_ACTIVE_TRANCHES);
     uint[] memory trancheCapacities = getTrancheCapacities(

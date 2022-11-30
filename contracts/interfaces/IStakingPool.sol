@@ -10,7 +10,7 @@ struct AllocationRequest {
   uint productId;
   uint coverId;
   uint period;
-  uint gracePeriodExpiration;
+  uint gracePeriod;
   bool useFixedPrice;
   uint previousStart;
   uint previousExpiration;

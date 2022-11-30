@@ -315,7 +315,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       (
         bool refunded,
         /* bytes data */
-      ) = msg.sender.call{value: msg.value - assessmentDepositInETH}("");
+      ) = tx.origin.call{value: msg.value - assessmentDepositInETH}("");
       require(refunded, "Assessment deposit excess refund failed");
     }
 

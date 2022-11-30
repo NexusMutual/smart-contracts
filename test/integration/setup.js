@@ -27,7 +27,7 @@ async function setup() {
   const DisposableMCR = await ethers.getContractFactory('DisposableMCR');
   const MCR = await ethers.getContractFactory('MCR');
   const Pool = await ethers.getContractFactory('Pool');
-  const QuotationData = await ethers.getContractFactory('LegacyQuotationData');
+  const QuotationData = await ethers.getContractFactory('MockLegacyQuotationData');
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
   const SwapOperator = await ethers.getContractFactory('SwapOperator');
   const CoverNFT = await ethers.getContractFactory('CoverNFT');

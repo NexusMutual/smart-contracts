@@ -13,7 +13,8 @@ interface IMasterAwareV2 {
     AS, // Assessment.sol
     TK, // NXMToken.sol
     PS, // LegacyPooledStaking.sol
-    GV  // Governance.sol
+    GV,  // Governance.sol
+    IC  // IndividualClaims.sol
   }
 
   function changeMasterAddress(address masterAddress) external;

@@ -5,7 +5,7 @@ const { signMembershipApproval } = require('../utils').membership;
 
 const JOINING_FEE = parseUnits('0.002');
 
-async function enrollMember({ mr, tk, tc }, members, kycAuthSigner, options = {}) {
+async function enrollMember({ mr, tk, tc, cl }, members, kycAuthSigner, options = {}) {
   const { initialTokens = ethers.utils.parseEther('2500') } = options;
 
   for (const member of members) {
@@ -23,6 +23,16 @@ async function enrollMember({ mr, tk, tc }, members, kycAuthSigner, options = {}
     await tk.connect(member).approve(tc.address, ethers.constants.MaxUint256);
     await tk.transfer(member.address, initialTokens);
   }
+  const membershipApprovalData0 = await signMembershipApproval({
+    nonce: 0,
+    address: cl.address,
+    kycAuthSigner,
+    chainId: network.config.chainId,
+  });
+
+  await mr.join(cl.address, 0, membershipApprovalData0, {
+    value: JOINING_FEE,
+  });
 }
 
 // TODO: remove eslint disable once the function is implemented

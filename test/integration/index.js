@@ -21,7 +21,7 @@ describe('INTEGRATION TESTS', function () {
   // require('./PooledStaking');
   require('./Pool');
   // require('./MCR');
-  // require('./MemberRoles');
+  require('./MemberRoles');
   // require('./Claims');
   //
   // require('./Gateway');

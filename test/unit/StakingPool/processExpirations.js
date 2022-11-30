@@ -7,7 +7,7 @@ const { daysToSeconds } = require('../../../lib/helpers');
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
-describe('updateTranches', function () {
+describe('processExpirations', function () {
   const depositToFixture = {
     poolId: 0,
     initialPoolFee: 5, // 5%
@@ -61,7 +61,7 @@ describe('updateTranches', function () {
 
     const { firstActiveTrancheId } = await getTranches(daysToSeconds(0), daysToSeconds(0));
 
-    // Deposit. In this internal call to updateTranches _rewardsSharesSupply is 0
+    // Deposit. In this internal call to processExpirations _rewardsSharesSupply is 0
     // so it only updates lastAccNxmUpdate and return
     await stakingPool.connect(user).depositTo([
       {
@@ -75,7 +75,7 @@ describe('updateTranches', function () {
     // increase time to expire the first active tranche
     await increaseTime(TRANCHE_DURATION);
 
-    await expect(stakingPool.updateTranches(true));
+    await expect(stakingPool.processExpirations(true));
 
     const expiredTranche = await stakingPool.expiredTranches(firstActiveTrancheId);
     expect(expiredTranche.accNxmPerRewardShareAtExpiry).to.equal(0);
@@ -106,6 +106,6 @@ describe('updateTranches', function () {
     // increase time to expire a couple of tranches
     await increaseTime(TRANCHE_DURATION * 2);
 
-    await expect(stakingPool.updateTranches(true)).to.not.reverted;
+    await expect(stakingPool.processExpirations(true)).to.not.reverted;
   });
 });

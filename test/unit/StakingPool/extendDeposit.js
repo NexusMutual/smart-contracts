@@ -21,6 +21,7 @@ describe('extendDeposit', function () {
     ],
     amount: parseEther('90'),
     depositNftId: 1,
+    ipfsDescriptionHash: 'Description Hash',
   };
 
   beforeEach(async function () {
@@ -30,7 +31,8 @@ describe('extendDeposit', function () {
       members: [user],
     } = this.accounts;
 
-    const { poolId, initialPoolFee, maxPoolFee, productInitializationParams, amount } = depositToFixture;
+    const { poolId, initialPoolFee, maxPoolFee, productInitializationParams, amount, ipfsDescriptionHash } =
+      depositToFixture;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
     await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
@@ -38,7 +40,15 @@ describe('extendDeposit', function () {
 
     await stakingPool
       .connect(coverSigner)
-      .initialize(manager.address, false, initialPoolFee, maxPoolFee, productInitializationParams, poolId);
+      .initialize(
+        manager.address,
+        false,
+        initialPoolFee,
+        maxPoolFee,
+        productInitializationParams,
+        poolId,
+        ipfsDescriptionHash,
+      );
 
     const { firstActiveTrancheId } = await getTranches();
 

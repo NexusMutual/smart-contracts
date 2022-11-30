@@ -326,7 +326,7 @@ describe('setProducts', function () {
     const deprecateProductParams = { ...productParamsTemplate, productId, product };
     await cover.connect(advisoryBoardMember0).setProducts([deprecateProductParams]);
 
-    const coverId = await cover.coverData.length;
+    const coverId = (await cover.coverDataCount()).sub(1);
     const editCoverParams = { ...buyCoverParams, coverId };
 
     // edit cover

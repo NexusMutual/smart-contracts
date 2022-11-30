@@ -19,7 +19,7 @@ describe('INTEGRATION TESTS', function () {
   // TODO: reenable
   // require('./Master');
   // require('./PooledStaking');
-  // require('./Pool');
+  require('./Pool');
   // require('./MCR');
   // require('./MemberRoles');
   // require('./Claims');

@@ -70,6 +70,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   ProductType[] internal _productTypes;
 
   CoverData[] private _coverData;
+
+  // cover id => segment id => pool allocations array
   mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
 
   mapping(uint => uint[]) public allowedPools;
@@ -188,7 +190,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   function buyCover(
     BuyCoverParams memory params,
-    PoolAllocationRequest[] memory allocationRequests
+    PoolAllocationRequest[] memory poolAllocationRequests
   ) external payable onlyMember nonReentrant whenNotPaused returns (uint coverId) {
 
     require(params.period >= MIN_COVER_PERIOD, "Cover: Cover period is too short");
@@ -196,11 +198,27 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     require(params.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
     require(params.amount > 0, "Cover: amount = 0");
 
+    PreviousAllocationInfo memory previousAllocationInfo;
+    AllocationRequestConfig memory config;
+
+    uint segmentId = _coverSegments[coverId].length;
+    bool useFixedPrice;
+    uint gracePeriodInDays;
+
     {
       require(_products.length > params.productId, "Cover: Product not found");
 
       Product memory product = _products[params.productId];
       require(!product.isDeprecated, "Cover: Product is deprecated");
+
+      useFixedPrice = product.useFixedPrice;
+      gracePeriodInDays = _productTypes[product.productType].gracePeriodInDays;
+      config = AllocationRequestConfig(
+        globalCapacityRatio,
+        product.capacityReductionRatio,
+        globalRewardsRatio,
+        GLOBAL_MIN_PRICE_RATIO
+      );
 
       uint32 deprecatedCoverAssets = pool().deprecatedCoverAssetsBitmap();
       uint32 supportedCoverAssets = _getSupportedCoverAssets(deprecatedCoverAssets, product.coverAssets);
@@ -215,6 +233,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       _coverData.push(CoverData(params.productId, params.coverAsset, 0 /* amountPaidOut */));
       ICoverNFT(coverNFT).mint(params.owner, coverId);
 
+      previousAllocationInfo = PreviousAllocationInfo(0, 0, 0);
+
     } else {
 
       // existing cover
@@ -225,111 +245,137 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       require(params.coverAsset == cover.coverAsset, "Cover: Unexpected coverAsset requested");
       require(params.productId == cover.productId, "Cover: Unexpected productId requested");
 
-      uint lastSegmentIndex = _coverSegments[coverId].length - 1;
-      CoverSegment memory lastSegment = coverSegments(coverId, lastSegmentIndex);
+      CoverSegment memory lastSegment = coverSegments(coverId, segmentId - 1);
 
       // if the last segment is not expired - make it end at the current block
       if (lastSegment.start + lastSegment.period > block.timestamp) {
-        _coverSegments[coverId][lastSegmentIndex].period = (block.timestamp - lastSegment.start).toUint32();
-        // TODO: figure out how/where should we handle this
-        // tokenController().burnStakingPoolNXMRewards(deallocatedRewardsInNXM, allocation.poolId);
+        _coverSegments[coverId][segmentId - 1].period = (block.timestamp - lastSegment.start).toUint32();
       }
+
+      previousAllocationInfo = PreviousAllocationInfo(
+        lastSegment.start,
+        lastSegment.period,
+        lastSegment.gracePeriodInDays * 1 days
+      );
     }
 
-    {
-      // convert to NXM amount
-      uint nxmPriceInCoverAsset = pool().getTokenPrice(params.coverAsset);
-      uint segmentId = _coverSegments[coverId].length;
+    // convert to NXM amount
+    uint nxmPriceInCoverAsset = pool().getTokenPrice(params.coverAsset);
 
-      uint totalCoverAmountInNXM;
-      uint premiumInNXM;
+    (
+      uint totalCoverAmountInNXM,
+      uint amountDueInNXM
+    ) = requestAllocations(
+      poolAllocationRequests,
+      previousAllocationInfo,
+      config,
+      nxmPriceInCoverAsset,
+      params.productId,
+      coverId,
+      segmentId,
+      params.period,
+      gracePeriodInDays
+    );
 
-      for (uint i = 0; i < allocationRequests.length; i++) {
+    uint coverAmountInCoverAsset = totalCoverAmountInNXM * nxmPriceInCoverAsset / ONE_NXM;
+    require(coverAmountInCoverAsset > 0, "Cover: Amount should be greater than 0");
 
-        require(allocationRequests[i].coverAmountInAsset > 0, "Cover: coverAmountInAsset = 0");
+    _coverSegments[coverId].push(
+      CoverSegment(
+        coverAmountInCoverAsset.toUint96(), // cover amount in cover asset
+        uint32(block.timestamp + 1), // start
+        SafeUintCast.toUint32(params.period), // period
+        gracePeriodInDays.toUint16(),
+        globalRewardsRatio
+      )
+    );
 
-        // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
-        uint coveredAmountInNXM = Math.roundUp(
-          Math.divCeil(allocationRequests[i].coverAmountInAsset * ONE_NXM, nxmPriceInCoverAsset),
-          NXM_PER_ALLOCATION_UNIT
-        );
-
-        Product memory product = _products[params.productId];
-
-        AllocationRequest memory allocationRequest = AllocationRequest(
-          params.productId,
-          coverId,
-          coveredAmountInNXM,
-          params.period,
-          block.timestamp + uint(_productTypes[product.productType].gracePeriodInDays) * 1 days,
-          product.useFixedPrice
-        );
-
-        CoverSegment memory previousSegment = _coverSegments[coverId][segmentId - 1];
-
-        PreviousAllocationInfo memory previousAllocation = segmentId == 0
-          ? PreviousAllocationInfo(0, 0, 0)
-          : PreviousAllocationInfo(
-              previousSegment.start,
-              previousSegment.period,
-              previousSegment.gracePeriodInDays * 1 days
-            );
-
-        AllocationRequestConfig memory config = AllocationRequestConfig(
-          globalCapacityRatio,
-          product.capacityReductionRatio,
-          globalRewardsRatio,
-          GLOBAL_MIN_PRICE_RATIO
-        );
-
-        // TODO: handle refunds using PoolAllocation.premiumInNXM and left period from previousSegment
-        premiumInNXM += stakingPool(allocationRequests[i].poolId).requestAllocation(
-          allocationRequest,
-          previousAllocation,
-          config
-        );
-
-        // allocation request with zero amount moves out from the pool: do not store it
-        if (coveredAmountInNXM != 0) {
-          coverSegmentAllocations[coverId][segmentId].push(
-            PoolAllocation(
-              allocationRequests[i].poolId,
-              SafeUintCast.toUint96(coveredAmountInNXM),
-              // TODO: update premium here
-              0
-            )
-          );
-        }
-
-        totalCoverAmountInNXM += coveredAmountInNXM;
-      }
-
-      uint coverAmountInCoverAsset = totalCoverAmountInNXM * nxmPriceInCoverAsset / ONE_NXM;
-      require(coverAmountInCoverAsset > 0, "Cover: Amount should be greater than 0");
-
-      _coverSegments[coverId].push(
-        CoverSegment(
-          coverAmountInCoverAsset.toUint96(), // amount
-          uint32(block.timestamp + 1), // start
-          SafeUintCast.toUint32(params.period), // period
-          _productTypes[_products[params.productId].productType].gracePeriodInDays,
-          globalRewardsRatio
-        )
-      );
-
+    if (amountDueInNXM > 0) {
       retrievePayment(
-        premiumInNXM,
+        amountDueInNXM,
         params.paymentAsset,
         params.maxPremiumInAsset,
         params.commissionRatio,
         params.commissionDestination
       );
-
-      // TODO: implement using buckets
-      totalActiveCoverInAsset[params.coverAsset] += coverAmountInCoverAsset;
-
-      emit CoverEdited(coverId, params.productId, segmentId, msg.sender, params.ipfsData);
     }
+
+    // TODO: implement using buckets
+    totalActiveCoverInAsset[params.coverAsset] += coverAmountInCoverAsset;
+
+    emit CoverEdited(coverId, params.productId, segmentId, msg.sender, params.ipfsData);
+  }
+
+  function requestAllocations(
+    PoolAllocationRequest[] memory poolAllocationRequests,
+    PreviousAllocationInfo memory previousInfo,
+    AllocationRequestConfig memory config,
+    uint nxmPriceInCoverAsset,
+    uint productId,
+    uint coverId,
+    uint segmentId,
+    uint period,
+    uint gracePeriodExpiration
+  ) internal returns (
+    uint totalCoverAmountInNXM,
+    uint totalAmountDueInNXM
+  ) {
+
+    PoolAllocation[] memory previousPoolAllocations;
+    uint previousPoolAllocationCount;
+
+    if (segmentId > 0) {
+      previousPoolAllocations = coverSegmentAllocations[coverId][segmentId - 1];
+      previousPoolAllocationCount = previousPoolAllocations.length;
+    }
+
+    for (uint i = 0; i < poolAllocationRequests.length; i++) {
+
+      // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
+      uint coveredAmountInNXM = Math.roundUp(
+        Math.divCeil(poolAllocationRequests[i].coverAmountInAsset * ONE_NXM, nxmPriceInCoverAsset),
+        NXM_PER_ALLOCATION_UNIT
+      );
+
+      AllocationRequest memory allocationRequest = AllocationRequest(
+        productId,
+        coverId,
+        coveredAmountInNXM,
+        period,
+        gracePeriodExpiration
+      );
+
+      uint premium = stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
+        allocationRequest,
+        previousInfo,
+        config
+      );
+
+      // allocation request with zero amount-  do not store it
+      if (coveredAmountInNXM != 0) {
+        coverSegmentAllocations[coverId][segmentId].push(
+          PoolAllocation(
+            poolAllocationRequests[i].poolId,
+            SafeUintCast.toUint96(coveredAmountInNXM),
+            premium.toUint96()
+          )
+        );
+      }
+
+      uint amountDue = premium;
+
+      if (previousPoolAllocationCount > i) {
+        require(previousPoolAllocations[i].poolId == poolAllocationRequests[i].poolId, "Cover: Unexpected pool id");
+        uint remainingPeriod = (previousInfo.start + previousInfo.period) - block.timestamp;
+        uint refund = previousPoolAllocations[i].premiumInNXM * remainingPeriod / previousInfo.period;
+        amountDue -= Math.min(premium, refund);
+      }
+
+      totalAmountDueInNXM += amountDue;
+      totalCoverAmountInNXM += coveredAmountInNXM;
+    }
+
+    return (totalCoverAmountInNXM, totalAmountDueInNXM);
   }
 
 

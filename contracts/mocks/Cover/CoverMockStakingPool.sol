@@ -79,8 +79,6 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     return calculatePremium(mockPrices[request.productId], request.amount, request.period);
   }
 
-  function deallocateCapacity(DeallocationRequest memory /*request*/) external {}
-
   function setProducts(StakedProductParam[] memory params) external {
     totalSupply = totalSupply;
     params;

@@ -28,17 +28,6 @@ struct AllocationRequestConfig {
   uint globalMinPrice;
 }
 
-struct DeallocationRequest {
-  uint productId;
-  uint coverId;
-  uint amount;
-  uint coverStartTime;
-  uint period;
-  uint gracePeriod;
-  uint premium;
-  uint rewardRatio;
-}
-
 struct WithdrawRequest {
   uint tokenId;
   bool withdrawStake;

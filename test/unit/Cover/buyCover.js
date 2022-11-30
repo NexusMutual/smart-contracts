@@ -78,7 +78,7 @@ describe('buyCover', function () {
     );
     await tx.wait();
 
-    const coverId = await cover.coverData.length;
+    const coverId = (await cover.coverDataCount()).sub(1);
     await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
@@ -177,7 +177,7 @@ describe('buyCover', function () {
       },
     );
 
-    const coverId = await cover.coverData.length;
+    const coverId = (await cover.coverDataCount()).sub(1);
     await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
@@ -239,7 +239,7 @@ describe('buyCover', function () {
     const commissionDifference = commissionNxmBalanceAfter.sub(commissionNxmBalanceBefore);
     expect(commissionDifference).to.be.equal(expectedCommission);
 
-    const coverId = await cover.coverData.length;
+    const coverId = (await cover.coverDataCount()).sub(1);
     await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
@@ -309,7 +309,7 @@ describe('buyCover', function () {
     const commissionDifference = commissionDaiBalanceAfter.sub(commissionDaiBalanceBefore);
     expect(commissionDifference).to.be.equal(expectedCommission);
 
-    const coverId = await cover.coverData.length;
+    const coverId = (await cover.coverDataCount()).sub(1);
     await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
@@ -378,7 +378,7 @@ describe('buyCover', function () {
     const commissionDifference = commissionDaiBalanceAfter.sub(commissionDaiBalanceBefore);
     expect(commissionDifference).to.be.equal(expectedCommission);
 
-    const coverId = await cover.coverData.length;
+    const coverId = (await cover.coverDataCount()).sub(1);
     await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
@@ -978,7 +978,7 @@ describe('buyCover', function () {
     const globalRewardsRatio = await cover.globalRewardsRatio();
     const { timestamp } = await ethers.provider.getBlock('latest');
 
-    const coverId = await cover.coverData.length;
+    const coverId = (await cover.coverDataCount()).sub(1);
     const storedCoverData = await cover.coverData(coverId);
     expect(storedCoverData.productId).to.be.equal(productId);
     expect(storedCoverData.coverAsset).to.be.equal(coverAsset);
@@ -1035,7 +1035,7 @@ describe('buyCover', function () {
     const nftBalanceAfter = await coverNFT.balanceOf(coverReceiver.address);
     expect(nftBalanceAfter).to.be.equal(1);
 
-    const coverId = await cover.coverData.length;
+    const coverId = (await cover.coverDataCount()).sub(1);
     const ownerOfCoverId = await coverNFT.ownerOf(coverId);
     expect(ownerOfCoverId).to.be.equal(coverReceiver.address);
   });
@@ -1076,7 +1076,7 @@ describe('buyCover', function () {
     const nftBalanceAfter = await coverNFT.balanceOf(nonMemberCoverReceiver.address);
     expect(nftBalanceAfter).to.be.equal(1);
 
-    const coverId = await cover.coverData.length;
+    const coverId = (await cover.coverDataCount()).sub(1);
     const ownerOfCoverId = await coverNFT.ownerOf(coverId);
     expect(ownerOfCoverId).to.be.equal(nonMemberCoverReceiver.address);
   });
@@ -1224,7 +1224,7 @@ describe('buyCover', function () {
     expect(stakingPool2After.rewards).to.be.equal(stakingPool2Before.rewards.add(expectedRewardPerPool));
     expect(stakingPool3After.rewards).to.be.equal(stakingPool3Before.rewards.add(expectedRewardPerPool));
 
-    const coverId = await cover.coverData.length;
+    const coverId = (await cover.coverDataCount()).sub(1);
 
     for (let i = 0; i < 3; i++) {
       const segmentAllocation = await cover.coverSegmentAllocations(coverId, segmentId, i);

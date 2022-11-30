@@ -7,7 +7,7 @@ const { createStakingPool, assertCoverFields } = require('./helpers');
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 
-const gracePeriodInDays = 120;
+const gracePeriod = 120 * 24 * 3600; // 120 days
 const NXM_ASSET_ID = 255;
 
 const buyCoverFixture = {
@@ -128,7 +128,7 @@ describe('buyCover', function () {
       period,
       amount,
       targetPriceRatio,
-      gracePeriodInDays,
+      gracePeriod,
     });
   });
 
@@ -184,7 +184,7 @@ describe('buyCover', function () {
       period,
       amount,
       targetPriceRatio,
-      gracePeriodInDays,
+      gracePeriod,
     });
   });
 
@@ -246,7 +246,7 @@ describe('buyCover', function () {
       period,
       amount,
       targetPriceRatio,
-      gracePeriodInDays,
+      gracePeriod,
     });
   });
 
@@ -316,7 +316,7 @@ describe('buyCover', function () {
       period,
       amount,
       targetPriceRatio,
-      gracePeriodInDays,
+      gracePeriod,
     });
   });
 
@@ -385,7 +385,7 @@ describe('buyCover', function () {
       period,
       amount,
       targetPriceRatio,
-      gracePeriodInDays,
+      gracePeriod,
     });
   });
 
@@ -988,7 +988,7 @@ describe('buyCover', function () {
     expect(coverSegmentsCount).to.be.equal(1);
 
     const segment = await cover.coverSegments(coverId, segmentId);
-    expect(segment.gracePeriodInDays).to.be.equal(gracePeriodInDays);
+    expect(segment.gracePeriod).to.be.equal(gracePeriod);
     expect(segment.period).to.be.equal(period);
     expect(segment.amount).to.be.equal(amount);
     expect(segment.start).to.be.equal(timestamp + 1);

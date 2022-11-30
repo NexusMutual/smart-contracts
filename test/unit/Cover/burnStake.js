@@ -5,7 +5,7 @@ const { expect } = require('chai');
 const { MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
-const gracePeriodInDays = 120;
+const gracePeriod = 120 * 24 * 3600; // 120 days
 
 describe('burnStake', function () {
   const coverBuyFixture = {
@@ -45,7 +45,7 @@ describe('burnStake', function () {
       period,
       amount: remainingAmount,
       targetPriceRatio,
-      gracePeriodInDays,
+      gracePeriod,
       segmentId,
       amountPaidOut: burnAmount,
     });
@@ -161,7 +161,7 @@ describe('burnStake', function () {
       period,
       amount: remainingAmount,
       targetPriceRatio,
-      gracePeriodInDays,
+      gracePeriod,
       segmentId,
       amountPaidOut: burnAmount,
     });

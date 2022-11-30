@@ -275,7 +275,7 @@ async function setup() {
       ipfsMetadata: 'protocolCoverIPFSHash',
       productType: {
         claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
-        gracePeriodInDays: 30,
+        gracePeriod: 30 * 24 * 3600, // 30 days
       },
     },
     {
@@ -284,7 +284,7 @@ async function setup() {
       ipfsMetadata: 'custodyCoverIPFSHash',
       productType: {
         claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
-        gracePeriodInDays: 90,
+        gracePeriod: 90 * 24 * 3600, // 90 days
       },
     },
     // Yield Token Cover
@@ -293,7 +293,7 @@ async function setup() {
       ipfsMetadata: 'yieldTokenCoverIPFSHash',
       productType: {
         claimMethod: CLAIM_METHOD.YIELD_TOKEN_INCIDENTS,
-        gracePeriodInDays: 14,
+        gracePeriod: 14 * 24 * 3600, // 14 days
       },
     },
   ]);

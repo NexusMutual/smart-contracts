@@ -8,7 +8,7 @@ const IPFS_DESCRIPTION_HASH = 'Description Hash';
 
 const ProductTypeFixture = {
   claimMethod: 1,
-  gracePeriodInDays: 7,
+  gracePeriod: 7 * 24 * 3600, // 7 days
 };
 
 const coverProductTemplate = {

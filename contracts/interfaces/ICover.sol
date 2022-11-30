@@ -49,8 +49,8 @@ struct CoverData {
 struct CoverSegment {
   uint96 amount;
   uint32 start;
-  uint32 period;  // seconds
-  uint16 gracePeriodInDays;
+  uint32 period; // seconds
+  uint32 gracePeriod; // seconds
   uint24 globalRewardsRatio;
 }
 
@@ -93,7 +93,7 @@ struct ProductParam {
 
 struct ProductType {
   uint8 claimMethod;
-  uint16 gracePeriodInDays;
+  uint32 gracePeriod;
 }
 
 struct ProductTypeParam {

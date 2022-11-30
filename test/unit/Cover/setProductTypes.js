@@ -8,7 +8,7 @@ const ipfsMetadata = 'ipfs metadata';
 // Cover.ProductType
 const ProductTypeTemplate = {
   claimMethod: 1,
-  gracePeriodInDays: 30,
+  gracePeriod: 30 * 24 * 3600, // 30 days
 };
 
 // Cover.ProductTypeParam
@@ -47,17 +47,17 @@ describe('setProductTypes', function () {
       .to.emit(cover, 'ProductTypeSet')
       .withArgs(productTypeId, ipfsMetadata);
     {
-      const gracePeriodInDays = 10;
+      const gracePeriod = 10 * 24 * 3600; // 10 days
       // claim method should not get updated
       const claimMethod = 10;
       const ipfsMetadata = 'new ipfs metadata';
-      const productType = { ...ProductTypeTemplate, claimMethod, gracePeriodInDays };
+      const productType = { ...ProductTypeTemplate, claimMethod, gracePeriod };
       const productEditParams = { ...ProductTypeParamTemplate, productTypeId, ipfsMetadata, productType };
       await expect(cover.connect(advisoryBoardMember0).setProductTypes([productEditParams]))
         .to.emit(cover, 'ProductTypeSet')
         .withArgs(productTypeId, ipfsMetadata);
       const productTypeActual = resultAsObject(await cover.productTypes(productTypeId));
-      expect(productTypeActual.gracePeriodInDays).to.be.equal(gracePeriodInDays);
+      expect(productTypeActual.gracePeriod).to.be.equal(gracePeriod);
       expect(productTypeActual.claimMethod).to.be.equal(ProductTypeTemplate.claimMethod);
     }
   });

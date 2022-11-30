@@ -203,7 +203,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     uint segmentId = _coverSegments[coverId].length;
     bool useFixedPrice;
-    uint gracePeriodInDays;
+    uint gracePeriod;
 
     {
       require(_products.length > params.productId, "Cover: Product not found");
@@ -212,7 +212,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       require(!product.isDeprecated, "Cover: Product is deprecated");
 
       useFixedPrice = product.useFixedPrice;
-      gracePeriodInDays = _productTypes[product.productType].gracePeriodInDays;
+      gracePeriod = _productTypes[product.productType].gracePeriod;
       config = AllocationRequestConfig(
         globalCapacityRatio,
         product.capacityReductionRatio,
@@ -256,7 +256,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       previousAllocationInfo = PreviousAllocationInfo(
         lastSegment.start,
         lastSegment.period,
-        lastSegment.gracePeriodInDays * 1 days
+        lastSegment.gracePeriod
       );
     }
 
@@ -270,7 +270,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         params.productId,
         coverId,
         params.period,
-        block.timestamp + params.period + gracePeriodInDays * 1 days,
+        block.timestamp + params.period + gracePeriod,
         useFixedPrice
       );
 
@@ -295,8 +295,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         CoverSegment(
           coverAmountInCoverAsset.toUint96(), // cover amount in cover asset
           uint32(block.timestamp + 1), // start
-          SafeUintCast.toUint32(params.period), // period
-          gracePeriodInDays.toUint16(),
+          params.period, // period
+          gracePeriod.toUint32(),
           globalRewardsRatio
         )
       );
@@ -665,7 +665,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       }
 
       require(param.productTypeId < _productTypes.length, "Cover: ProductType doesnt exist. Set id to uint256.max to add it");
-      _productTypes[param.productTypeId].gracePeriodInDays = param.productType.gracePeriodInDays;
+      _productTypes[param.productTypeId].gracePeriod = param.productType.gracePeriod;
       emit ProductTypeSet(param.productTypeId, param.ipfsMetadata);
     }
   }

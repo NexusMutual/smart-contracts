@@ -6,7 +6,7 @@ const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
 
 const { assertCoverFields, buyCoverOnOnePool, MAX_COVER_PERIOD } = require('./helpers');
-const gracePeriodInDays = 120;
+const gracePeriod = 120;
 
 describe.skip('editCover', function () {
   const coverBuyFixture = {
@@ -71,7 +71,7 @@ describe.skip('editCover', function () {
       period,
       amount: increasedAmount,
       targetPriceRatio,
-      gracePeriodInDays,
+      gracePeriod,
       segmentId: '1',
     });
   });
@@ -124,7 +124,7 @@ describe.skip('editCover', function () {
       period: increasedPeriod,
       amount,
       targetPriceRatio,
-      gracePeriodInDays,
+      gracePeriod,
       segmentId: '1',
     });
   });
@@ -180,7 +180,7 @@ describe.skip('editCover', function () {
       period: increasedPeriod,
       amount: increasedAmount,
       targetPriceRatio,
-      gracePeriodInDays,
+      gracePeriod,
       segmentId: '1',
     });
   });
@@ -236,7 +236,7 @@ describe.skip('editCover', function () {
       period: increasedPeriod,
       amount: decreasedAmount,
       targetPriceRatio,
-      gracePeriodInDays,
+      gracePeriod,
       segmentId: '1',
     });
   });
@@ -283,7 +283,7 @@ describe.skip('editCover', function () {
       period,
       amount: increasedAmount,
       targetPriceRatio,
-      gracePeriodInDays,
+      gracePeriod,
       segmentId: '1',
     });
   });
@@ -388,12 +388,11 @@ describe.skip('editCover', function () {
 
     // Edit product gracePeriod
     const productTypeBefore = await cover.productTypes(productId);
+    const newGracePeriod = 1000 * 24 * 3600; // 1000 days
 
-    const newGracePeriodInDays = 1000;
-
-    await cover.connect(boardMember).setProductTypes([[productId, 'ipfs hash', [1, newGracePeriodInDays]]]);
+    await cover.connect(boardMember).setProductTypes([[productId, 'ipfs hash', [1, newGracePeriod]]]);
     const productType = await cover.productTypes(productId);
-    expect(newGracePeriodInDays).to.be.equal(productType.gracePeriodInDays);
+    expect(newGracePeriod).to.be.equal(productType.gracePeriod);
 
     const now = await ethers.provider.getBlock('latest').then(block => block.timestamp);
     await setNextBlockTime(now + period + 3600);
@@ -418,7 +417,7 @@ describe.skip('editCover', function () {
     );
 
     const secondSegment = await cover.coverSegments(expectedCoverId, 1);
-    expect(secondSegment.gracePeriodInDays).to.be.equal(newGracePeriodInDays);
-    expect(productTypeBefore.gracePeriodInDays).to.be.equal(segment.gracePeriodInDays);
+    expect(secondSegment.gracePeriod).to.be.equal(newGracePeriod);
+    expect(productTypeBefore.gracePeriod).to.be.equal(segment.gracePeriod);
   });
 });

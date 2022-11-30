@@ -166,7 +166,7 @@ async function setup() {
   await master.setEmergencyAdmin(accounts.emergencyAdmin.address);
 
   const capacityFactor = '10000';
-  const coverAssetsFallback = 7; // 0x11 ETH, DAI and USDC
+  const coverAssetsFallback = 0b111; // ETH, DAI and USDC
 
   await cover
     .connect(accounts.governanceContracts[0])
@@ -178,7 +178,7 @@ async function setup() {
       ipfsMetadata: 'ipfs metadata',
       productType: {
         claimMethod: '1',
-        gracePeriodInDays: '120',
+        gracePeriod: 120 * 24 * 3600, // 120 days
       },
     },
   ]);

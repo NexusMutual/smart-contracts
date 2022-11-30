@@ -274,7 +274,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       require(requestedAmount <= segment.amount, "Covered amount exceeded");
       require(segment.start <= block.timestamp, "Cover starts in the future");
       require(
-        uint(segment.start) + uint(segment.period) + uint(segment.gracePeriodInDays) * 1 days > block.timestamp,
+        uint(segment.start) + uint(segment.period) + uint(segment.gracePeriod) > block.timestamp,
         "Cover is outside the grace period"
       );
 

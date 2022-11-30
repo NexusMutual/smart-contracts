@@ -83,7 +83,7 @@ library CoverUtilsLib {
       uint productId = params.productsV1.getNewProductId(legacyProductId);
       productType = _productTypes[_products[productId].productType];
       require(
-        block.timestamp < validUntil + uint(productType.gracePeriodInDays) * 1 days,
+        block.timestamp < validUntil + productType.gracePeriod,
         "Cover outside of the grace period"
       );
 
@@ -103,7 +103,7 @@ library CoverUtilsLib {
         SafeUintCast.toUint96(sumAssured * 10 ** 18), // amount
         SafeUintCast.toUint32(validUntil - uint(coverPeriodInDays) * 1 days), // start
         SafeUintCast.toUint32(uint(coverPeriodInDays) * 1 days), // period
-        productType.gracePeriodInDays,
+        productType.gracePeriod,
         0 // global rewards ratio //
       )
     );

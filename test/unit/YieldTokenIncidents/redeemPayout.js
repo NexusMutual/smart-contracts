@@ -11,7 +11,7 @@ const coverSegmentFixture = {
   amount: parseEther('100'),
   start: 0,
   period: daysToSeconds(30),
-  gracePeriodInDays: 7,
+  gracePeriod: 7 * 24 * 3600, // 7 days
   priceRatio: 0,
   expired: false,
   globalRewardsRatio: 0,
@@ -315,16 +315,16 @@ describe('redeemPayout', function () {
     const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
     const [governance] = this.accounts.governanceContracts;
-    const { gracePeriodInDays } = await cover.productTypes(2);
+    const { gracePeriod } = await cover.productTypes(2);
     const segment0 = await getCoverSegment();
-    segment0.gracePeriodInDays = gracePeriodInDays;
+    segment0.gracePeriod = gracePeriod;
     const segment1 = { ...segment0 };
-    segment1.period += daysToSeconds(gracePeriodInDays);
+    segment1.period += gracePeriod;
 
     await cover.createMockCover(member1.address, productIdYbEth, ASSET.ETH, [segment0, segment1]);
 
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-    await setTime(currentTime + segment0.period + daysToSeconds(gracePeriodInDays));
+    await setTime(currentTime + segment0.period + gracePeriod);
     await yieldTokenIncidents
       .connect(governance)
       .submitIncident(productIdYbEth, priceBefore, currentTime + segment0.period - 1, parseEther('100'), '');
@@ -349,24 +349,24 @@ describe('redeemPayout', function () {
     const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
     const [governance] = this.accounts.governanceContracts;
-    const { gracePeriodInDays } = await cover.productTypes(2);
+    const { gracePeriod } = await cover.productTypes(2);
     const segment0 = await getCoverSegment();
     const segment1 = await getCoverSegment();
-    segment0.gracePeriodInDays = gracePeriodInDays;
-    segment1.gracePeriodInDays = gracePeriodInDays * 1000;
+    segment0.gracePeriod = gracePeriod;
+    segment1.gracePeriod = gracePeriod * 1000;
 
     await cover.createMockCover(member1.address, productIdYbEth, ASSET.ETH, [segment0, segment1]);
 
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-    await setTime(currentTime + segment0.period + daysToSeconds(gracePeriodInDays));
+    await setTime(currentTime + segment0.period + gracePeriod);
 
     // Change product grace period
-    const newGracePeriod = gracePeriodInDays * 1000;
+    const newGracePeriod = gracePeriod * 1000;
     await cover.connect(governance).editProductTypes([2], [newGracePeriod], ['ipfs hash']);
     {
-      const { gracePeriodInDays } = await cover.productTypes(2);
-      expect(gracePeriodInDays).to.equal(newGracePeriod);
-      expect(currentTime + segment0.period).to.be.lessThan(daysToSeconds(gracePeriodInDays));
+      const { gracePeriod } = await cover.productTypes(2);
+      expect(gracePeriod).to.equal(newGracePeriod);
+      expect(currentTime + segment0.period).to.be.lessThan(gracePeriod);
     }
 
     await yieldTokenIncidents

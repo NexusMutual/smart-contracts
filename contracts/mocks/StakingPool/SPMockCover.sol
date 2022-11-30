@@ -56,7 +56,7 @@ contract SPMockCover {
   ) public returns (uint premium) {
 
     Product memory product = products[params.productId];
-    uint gracePeriod = uint(productTypes[product.productType].gracePeriodInDays) * 1 days;
+    uint gracePeriod = productTypes[product.productType].gracePeriod;
 
     return _stakingPool.requestAllocation(
       params.amount,

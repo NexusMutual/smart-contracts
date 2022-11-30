@@ -676,11 +676,14 @@ contract StakingPool is IStakingPool, ERC721 {
 
     // the returned premium value has 18 decimals
     premium = getPremium(
-      request.productId,
-      request.period,
-      allocatedCoverAmount,
-      requestedTranchesCapacityUsed,
-      requestedTranchesCapacity
+      PremiumParameters(
+        request.productId,
+        request.period,
+        allocatedCoverAmount,
+        requestedTranchesCapacityUsed,
+        requestedTranchesCapacity,
+        request.useFixedPrice
+      )
     );
 
     {
@@ -1385,6 +1388,8 @@ contract StakingPool is IStakingPool, ERC721 {
 
     for (uint i = 0; i < numProducts; i++) {
       productIds[i] = params[i].productId;
+
+      require(ICover(coverContract).isAllowedPool(params[i].productId, poolId), "");
     }
 
     (
@@ -1543,15 +1548,15 @@ contract StakingPool is IStakingPool, ERC721 {
     targetPrice = products[productId].targetPrice;
   }
 
-  function getPremium(
-    uint productId,
-    uint period,
-    uint coverAmount,
-    uint initialCapacityUsed,
-    uint totalCapacity
-  ) internal returns (uint) {
+  function getPremium(PremiumParameters memory params) internal returns (uint) {
 
-    StakedProduct memory product = products[productId];
+    StakedProduct memory product = products[params.productId];
+
+    if (params.useFixedPrice) {
+      uint fixedPricePremiumPerYear =
+        (params.coverAmount * NXM_PER_ALLOCATION_UNIT) * product.targetPrice / TARGET_PRICE_DENOMINATOR;
+      return fixedPricePremiumPerYear * uint(params.period) / 365 days;
+    }
 
     uint basePrice;
     {
@@ -1567,23 +1572,23 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     // calculate the next price by applying the price bump
-    uint priceBump = PRICE_BUMP_RATIO * coverAmount / totalCapacity;
+    uint priceBump = PRICE_BUMP_RATIO * params.coverAmount / params.totalCapacity;
     product.nextPrice = (basePrice + priceBump).toUint96();
     product.nextPriceUpdateTime = uint32(block.timestamp);
 
     // sstore
-    products[productId] = product;
+    products[params.productId] = product;
 
     // use calculated base price and apply surge pricing if applicable
     uint premiumPerYear = calculatePremiumPerYear(
       basePrice,
-      coverAmount,
-      initialCapacityUsed,
-      totalCapacity
+      params.coverAmount,
+      params.initialCapacityUsed,
+      params.totalCapacity
     );
 
     // calculate the premium for the requested period
-    return premiumPerYear * period / 365 days;
+    return premiumPerYear * params.period / 365 days;
   }
 
   function calculatePremiumPerYear(

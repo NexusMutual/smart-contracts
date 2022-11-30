@@ -11,6 +11,7 @@ struct AllocationRequest {
   uint coverId;
   uint amount;
   uint period;
+  bool useFixedPrice;
 }
 
 struct AllocationRequestConfig {
@@ -60,6 +61,15 @@ struct ProductInitializationParams {
   uint8 weight;
   uint96 initialPrice;
   uint96 targetPrice;
+}
+
+struct PremiumParameters {
+  uint productId;
+  uint period;
+  uint coverAmount;
+  uint initialCapacityUsed;
+  uint totalCapacity;
+  bool useFixedPrice;
 }
 
 interface IStakingPool {

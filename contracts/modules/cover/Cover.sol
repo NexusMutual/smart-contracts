@@ -72,6 +72,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   CoverData[] private _coverData;
   mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
 
+  mapping(uint => uint[]) public allowedPools;
+
   // Each cover has an array of segments. A new segment is created
   // every time a cover is edited to deliniate the different cover periods.
   mapping(uint => CoverSegment[]) private _coverSegments;
@@ -257,7 +259,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           params.productId,
           coverId,
           coveredAmountInNXM,
-          params.period
+          params.period,
+          product.useFixedPrice
         );
 
         AllocationRequestConfig memory config = AllocationRequestConfig(
@@ -304,6 +307,25 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       emit CoverEdited(coverId, params.productId, segmentId, msg.sender, params.ipfsData);
     }
+  }
+
+
+  function isAllowedPool(uint productId, uint poolId) external view returns (bool) {
+
+    if (!_products[productId].useFixedPrice) {
+      // no pool id restrictions
+      return true;
+    }
+    bool poolIsAllowed;
+    uint[] memory allowedPoolsForProduct = allowedPools[productId];
+    for (uint i = 0; i < allowedPoolsForProduct.length; i++) {
+      if (allowedPoolsForProduct[i] == poolId) {
+        poolIsAllowed = true;
+        break;
+      }
+    }
+
+    return poolIsAllowed;
   }
 
   function retrievePayment(
@@ -485,6 +507,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return _coverSegments[coverId].length;
   }
 
+  function coverDataCount() external override view returns (uint) {
+    return _coverData.length;
+  }
+
   function products(uint id) external override view returns (Product memory) {
     return _products[id];
   }
@@ -527,6 +553,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         product.capacityReductionRatio <= CAPACITY_REDUCTION_DENOMINATOR,
         "Cover: capacityReductionRatio > 100%"
       );
+
+      if (product.useFixedPrice) {
+
+        uint productId = param.productId == type(uint256).max ? _products.length : param.productId;
+        allowedPools[productId] = param.allowedPools;
+      }
 
       // New product has id == uint256.max
       if (param.productId == type(uint256).max) {

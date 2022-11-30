@@ -195,7 +195,23 @@ async function setup() {
         initialPriceRatio: '1000', // 10%
         capacityReductionRatio: '0',
         isDeprecated: false,
+        useFixedPrice: false,
       },
+      allowedPools: [],
+    },
+    {
+      productId: MaxUint256,
+      ipfsMetadata: 'ipfs metadata',
+      product: {
+        productType: '0',
+        yieldTokenAddress: '0x0000000000000000000000000000000000000001',
+        coverAssets: parseInt('111', 2), // ETH DAI and USDC supported
+        initialPriceRatio: '1000', // 10%
+        capacityReductionRatio: '0',
+        isDeprecated: false,
+        useFixedPrice: true,
+      },
+      allowedPools: [0],
     },
   ]);
 

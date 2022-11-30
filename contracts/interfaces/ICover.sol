@@ -80,12 +80,14 @@ struct Product {
   uint16 initialPriceRatio;
   uint16 capacityReductionRatio;
   bool isDeprecated;
+  bool useFixedPrice;
 }
 
 struct ProductParam {
   uint productId;
   string ipfsMetadata;
   Product product;
+  uint[] allowedPools;
 }
 
 struct ProductType {
@@ -104,6 +106,8 @@ interface ICover {
   /* ========== VIEWS ========== */
 
   function coverData(uint coverId) external view returns (CoverData memory);
+
+  function coverDataCount() external view returns (uint);
 
   function coverSegmentsCount(uint coverId) external view returns (uint);
 
@@ -171,6 +175,8 @@ interface ICover {
     uint trancheId,
     string calldata ipfsDescriptionHash
   ) external returns (address stakingPoolAddress);
+
+  function isAllowedPool(uint productId, uint poolId) external returns (bool);
 
   /* ========== EVENTS ========== */
 

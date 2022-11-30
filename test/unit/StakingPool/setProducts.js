@@ -17,6 +17,7 @@ const coverProductTemplate = {
   coverAssets: 1111,
   initialPriceRatio: 500,
   capacityReductionRatio: 0,
+  useFixedPrice: false,
 };
 
 const initialProductTemplate = {

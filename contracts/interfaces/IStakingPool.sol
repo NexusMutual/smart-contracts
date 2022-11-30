@@ -12,12 +12,8 @@ struct AllocationRequest {
   uint period;
   uint gracePeriodExpiration;
   bool useFixedPrice;
-}
-
-struct PreviousAllocationInfo {
-  uint start;
-  uint period;
-  uint gracePeriodExpiration;
+  uint previousStart;
+  uint previousExpiration;
 }
 
 struct AllocationRequestConfig {
@@ -121,7 +117,6 @@ interface IStakingPool {
   function requestAllocation(
     uint amount,
     AllocationRequest calldata request,
-    PreviousAllocationInfo calldata previous,
     AllocationRequestConfig calldata config
   ) external returns (uint premium);
 

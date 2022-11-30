@@ -65,10 +65,11 @@ contract SPMockCover {
         coverId,
         params.period,
         block.timestamp + params.period + gracePeriod,
-        product.useFixedPrice
+        product.useFixedPrice,
+        // TODO: figure out if these need to be populated
+        0, // previous cover start
+        0  // previous cover expiration
       ),
-      // TODO: figure out if this needs to be populated
-      PreviousAllocationInfo(0, 0, 0),
       AllocationRequestConfig(
         globalCapacityRatio,
         product.capacityReductionRatio,

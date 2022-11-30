@@ -603,7 +603,6 @@ contract StakingPool is IStakingPool, ERC721 {
   function requestAllocation(
     uint amount,
     AllocationRequest calldata request,
-    PreviousAllocationInfo calldata previous,
     AllocationRequestConfig calldata config
   ) external onlyCoverContract returns (uint premium) {
 
@@ -612,9 +611,9 @@ contract StakingPool is IStakingPool, ERC721 {
 
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 
-    uint[] memory trancheAllocations = previous.start == 0
+    uint[] memory trancheAllocations = request.previousStart == 0
       ? getActiveAllocations(request.productId)
-      : getActiveAllocationsWithoutCover(request.productId, request.coverId, previous.start, previous.start + previous.period);
+      : getActiveAllocationsWithoutCover(request.productId, request.coverId, request.previousStart, request.previousExpiration);
 
     // are we only deallocating?
     // note: rewards streaming is left as is

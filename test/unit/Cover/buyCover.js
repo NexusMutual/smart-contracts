@@ -84,7 +84,7 @@ describe('buyCover', function () {
       coverAsset,
       period,
       amount,
-      gracePeriodInDays,
+      gracePeriod,
     });
   });
 
@@ -887,7 +887,7 @@ describe('buyCover', function () {
           value: expectedPremium,
         },
       ),
-    ).to.be.revertedWith('Cover: coverAmountInAsset = 0'); // (Division or modulo division by zero)
+    ).to.be.revertedWith('Cover: Amount should be greater than 0');
   });
 
   it('retrieves ERC20 payment from caller and transfers it to the Pool', async function () {

@@ -64,7 +64,7 @@ contract SPMockCover {
         params.productId,
         coverId,
         params.period,
-        block.timestamp + params.period + gracePeriod,
+        gracePeriod,
         product.useFixedPrice,
         // TODO: figure out if these need to be populated
         0, // previous cover start

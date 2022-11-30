@@ -1,12 +1,11 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { BigNumber } = require('ethers');
-const { AddressZero } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
+const { parseEther } = ethers.utils;
 
 const { daysToSeconds } = require('../../../lib/helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
-
-const { parseEther } = ethers.utils;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
@@ -15,7 +14,7 @@ const setTime = async timestamp => {
 
 const priceDenominator = '10000';
 
-describe.skip('submitClaim', function () {
+describe('submitClaim', function () {
   function calculateFirstTrancheId(lastBlock, period, gracePeriod) {
     return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
   }
@@ -100,13 +99,13 @@ describe.skip('submitClaim', function () {
     await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
+        coverId: MaxUint256,
         productId,
         coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
@@ -160,13 +159,13 @@ describe.skip('submitClaim', function () {
     await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
+        coverId: MaxUint256,
         productId,
         coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
@@ -216,13 +215,13 @@ describe.skip('submitClaim', function () {
     await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
+        coverId: MaxUint256,
         productId,
         coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
@@ -279,13 +278,13 @@ describe.skip('submitClaim', function () {
     await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
+        coverId: MaxUint256,
         productId,
         coverAsset,
         amount,
         period,
         maxPremiumInAsset: expectedPremium,
         paymentAsset: coverAsset,
-        payWitNXM: false,
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',

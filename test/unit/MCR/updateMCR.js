@@ -39,7 +39,7 @@ describe('updateMCR', function () {
     assert(lastUpdateTime.toString(), previousLastUpdateTime.toString());
   });
 
-  it.skip('keeps values the same if MCR = MCR floor and mcrWithGear is too low', async function () {
+  it('keeps values the same if MCR = MCR floor and mcrWithGear is too low', async function () {
     const { master, quotationData, pool } = this;
 
     const poolValueInEth = ether('160000');

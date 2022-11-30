@@ -5,7 +5,7 @@ const { setEtherBalance, increaseTime } = require('../../utils/evm');
 const { BigNumber } = require('ethers');
 const { daysToSeconds } = require('../../../lib/helpers');
 
-const { AddressZero } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 describe('depositTo', function () {
@@ -332,7 +332,7 @@ describe('depositTo', function () {
     // Generate rewards
     const allocationRequest = {
       productId: 0,
-      coverId: 0,
+      coverId: MaxUint256,
       amount: parseEther('1'),
       period: daysToSeconds(30),
     };
@@ -363,7 +363,6 @@ describe('depositTo', function () {
     expect(depositData.pendingRewards).to.equal(0);
 
     await stakingPool.connect(this.coverSigner).allocateCapacity(allocationRequest, allocationConfig);
-
     await increaseTime(daysToSeconds(20));
 
     // Second deposit
@@ -423,7 +422,7 @@ describe('depositTo', function () {
 
     const allocationRequest = {
       productId: 0,
-      coverId: 0,
+      coverId: MaxUint256,
       amount: parseEther('1'),
       period: daysToSeconds(30),
     };
@@ -458,7 +457,6 @@ describe('depositTo', function () {
 
     // Generate rewards
     await stakingPool.connect(this.coverSigner).allocateCapacity(allocationRequest, allocationConfig);
-
     await increaseTime(daysToSeconds(20));
 
     // Second deposit
@@ -495,7 +493,7 @@ describe('depositTo', function () {
     // Generate rewards
     const allocationRequest = {
       productId: 0,
-      coverId: 0,
+      coverId: MaxUint256,
       amount: parseEther('1'),
       period: daysToSeconds(30),
     };

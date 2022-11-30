@@ -88,6 +88,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   uint32 public coverAssetsFallback;
 
   // TODO: implement using buckets
+  // TODO: implement using buckets
   // Global active cover amount per asset.
   mapping(uint24 => uint) public override totalActiveCoverInAsset;
 
@@ -221,8 +222,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       require(ICoverNFT(coverNFT).isApprovedOrOwner(msg.sender, coverId), "Cover: Only owner or approved can edit");
 
       CoverData memory cover = _coverData[coverId];
-      require(params.coverAsset == cover.coverAsset, "Cover: unexpected coverAsset requested");
-      require(params.productId == cover.productId, "Cover: unexpected productId requested");
+      require(params.coverAsset == cover.coverAsset, "Cover: Unexpected coverAsset requested");
+      require(params.productId == cover.productId, "Cover: Unexpected productId requested");
 
       uint lastSegmentIndex = _coverSegments[coverId].length - 1;
       CoverSegment memory lastSegment = coverSegments(coverId, lastSegmentIndex);
@@ -283,6 +284,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       }
 
       uint coverAmountInCoverAsset = totalCoverAmountInNXM * nxmPriceInCoverAsset / ONE_NXM;
+      require(coverAmountInCoverAsset > 0, "Cover: Amount should be greater than 0");
 
       _coverSegments[coverId].push(
         CoverSegment(

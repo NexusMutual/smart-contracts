@@ -24,14 +24,13 @@ describe('setProducts', function () {
   // Cover.BuyCoverParams
   const buyCoverTemplate = {
     owner: AddressZero,
-    coverId: 0,
+    coverId: MaxUint256,
     productId: 0,
     coverAsset: 0,
     amount,
     period: daysToSeconds(50),
     maxPremiumInAsset: parseEther('100'),
     paymentAsset: 0,
-    payWitNXM: false,
     commissionRatio: parseEther('0'),
     commissionDestination: AddressZero,
     ipfsData: defaultIpfsData,
@@ -284,7 +283,7 @@ describe('setProducts', function () {
     ).to.be.revertedWith('Cover: Product is deprecated');
   });
 
-  it.skip('should fail to edit cover for deprecated product', async function () {
+  it('should fail to edit cover for deprecated product', async function () {
     const { cover } = this;
     const {
       governanceContracts: [gv1],
@@ -317,9 +316,9 @@ describe('setProducts', function () {
     const owner = coverBuyer.address;
     const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
     const buyCoverParams = { ...buyCoverTemplate, owner, expectedPremium, productId };
-    await cover.connect(coverBuyer).buyCover(buyCoverParams, [poolAllocationRequestTemplate], {
-      value: expectedPremium,
-    });
+    await cover
+      .connect(coverBuyer)
+      .buyCover(buyCoverParams, [poolAllocationRequestTemplate], { value: expectedPremium });
 
     // deprecate product
     const isDeprecated = true;
@@ -327,16 +326,16 @@ describe('setProducts', function () {
     const deprecateProductParams = { ...productParamsTemplate, productId, product };
     await cover.connect(advisoryBoardMember0).setProducts([deprecateProductParams]);
 
-    const editCoverParams = { ...buyCoverParams };
+    const coverId = (await cover.coverDataCount()).sub(1);
+    const editCoverParams = { ...buyCoverParams, coverId };
+
     // edit cover
     await expect(
-      cover.connect(coverBuyer).editCover(0, editCoverParams, [poolAllocationRequestTemplate], {
-        value: expectedPremium,
-      }),
+      cover.connect(coverBuyer).buyCover(editCoverParams, [poolAllocationRequestTemplate], { value: expectedPremium }),
     ).to.be.revertedWith('Cover: Product is deprecated');
   });
 
-  it.skip('should be able to buy cover on a previously deprecated product', async function () {
+  it('should be able to buy cover on a previously deprecated product', async function () {
     const { cover } = this;
     const {
       governanceContracts: [gv1],
@@ -383,8 +382,8 @@ describe('setProducts', function () {
     const owner = coverBuyer.address;
     const expectedPremium = amount.mul(targetPriceRatio).div(priceDenominator);
     const buyCoverParams = { ...buyCoverTemplate, owner, expectedPremium, productId };
-    await cover.connect(coverBuyer).buyCover(buyCoverParams, [poolAllocationRequestTemplate], {
-      value: expectedPremium,
-    });
+    await cover
+      .connect(coverBuyer)
+      .buyCover(buyCoverParams, [poolAllocationRequestTemplate], { value: expectedPremium });
   });
 });

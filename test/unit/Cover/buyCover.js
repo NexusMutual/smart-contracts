@@ -13,7 +13,6 @@ const NXM_ASSET_ID = 255;
 const buyCoverFixture = {
   productId: 0,
   coverAsset: 0, // ETH
-  coverId: 0,
   poolId: 0,
   segmentId: 0,
   period: 3600 * 24 * 30, // 30 days
@@ -56,7 +55,7 @@ describe('buyCover', function () {
       members: [coverBuyer],
     } = this.accounts;
 
-    const { amount, productId, coverAsset, period, expectedPremium, coverId } = buyCoverFixture;
+    const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     const tx = await cover.connect(coverBuyer).buyCover(
       {
@@ -79,6 +78,7 @@ describe('buyCover', function () {
     );
     await tx.wait();
 
+    const coverId = (await cover.coverDataCount()).sub(1);
     await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
@@ -139,7 +139,7 @@ describe('buyCover', function () {
       members: [coverBuyer, stakingPoolManager],
     } = this.accounts;
 
-    const { amount, targetPriceRatio, productId, coverAsset, period, expectedPremium, coverId, capacity, activeCover } =
+    const { amount, targetPriceRatio, productId, coverAsset, period, expectedPremium, capacity, activeCover } =
       buyCoverFixture;
 
     // create a 2nd pool
@@ -177,6 +177,7 @@ describe('buyCover', function () {
       },
     );
 
+    const coverId = (await cover.coverDataCount()).sub(1);
     await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
@@ -192,7 +193,7 @@ describe('buyCover', function () {
 
     const [coverBuyer, stakingPoolManager] = this.accounts.members;
 
-    const { amount, targetPriceRatio, productId, coverAsset, period, priceDenominator, coverId } = buyCoverFixture;
+    const { amount, targetPriceRatio, productId, coverAsset, period, priceDenominator } = buyCoverFixture;
     const commissionRatio = '500'; // 5%
 
     const expectedBasePremium = amount
@@ -238,6 +239,7 @@ describe('buyCover', function () {
     const commissionDifference = commissionNxmBalanceAfter.sub(commissionNxmBalanceBefore);
     expect(commissionDifference).to.be.equal(expectedCommission);
 
+    const coverId = (await cover.coverDataCount()).sub(1);
     await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
@@ -258,7 +260,7 @@ describe('buyCover', function () {
 
     const coverAsset = 1; // DAI
 
-    const { amount, targetPriceRatio, productId, period, priceDenominator, coverId } = buyCoverFixture;
+    const { amount, targetPriceRatio, productId, period, priceDenominator } = buyCoverFixture;
     const commissionRatio = '500'; // 5%
 
     const expectedBasePremium = amount
@@ -307,6 +309,7 @@ describe('buyCover', function () {
     const commissionDifference = commissionDaiBalanceAfter.sub(commissionDaiBalanceBefore);
     expect(commissionDifference).to.be.equal(expectedCommission);
 
+    const coverId = (await cover.coverDataCount()).sub(1);
     await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
@@ -326,7 +329,7 @@ describe('buyCover', function () {
     } = this.accounts;
 
     const coverAsset = 2; // USDC
-    const { amount, targetPriceRatio, productId, period, priceDenominator, coverId } = buyCoverFixture;
+    const { amount, targetPriceRatio, productId, period, priceDenominator } = buyCoverFixture;
     const commissionRatio = '500'; // 5%
 
     const expectedBasePremium = amount
@@ -375,6 +378,7 @@ describe('buyCover', function () {
     const commissionDifference = commissionDaiBalanceAfter.sub(commissionDaiBalanceBefore);
     expect(commissionDifference).to.be.equal(expectedCommission);
 
+    const coverId = (await cover.coverDataCount()).sub(1);
     await assertCoverFields(cover, coverId, {
       productId,
       coverAsset,
@@ -580,7 +584,7 @@ describe('buyCover', function () {
     ).to.be.revertedWith('Cover: amount = 0');
   });
 
-  // The logic has been moved in StakingPool.sol and this test will have to be moved as well.
+  // TODO: The logic has been moved in StakingPool.sol and this test will have to be moved as well.
   it.skip('should revert when the allocated cover amount is less than the expected cover amount', async function () {
     const { cover } = this;
 
@@ -822,7 +826,7 @@ describe('buyCover', function () {
     ).to.be.revertedWith('Cover: Price exceeds maxPremiumInAsset');
   });
 
-  it.skip('reverts if empty array of allocationRequests', async function () {
+  it('reverts if empty array of allocationRequests', async function () {
     const { cover } = this;
 
     const {
@@ -851,7 +855,7 @@ describe('buyCover', function () {
           value: expectedPremium,
         },
       ),
-    ).to.be.revertedWithPanic('0x12'); // (Division or modulo division by zero)
+    ).to.be.revertedWith('Cover: Amount should be greater than 0');
   });
 
   it('reverts if allocationRequest coverAmountInAsset is 0', async function () {
@@ -943,7 +947,7 @@ describe('buyCover', function () {
       members: [coverBuyer],
     } = this.accounts;
 
-    const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator, coverId, poolId, segmentId } =
+    const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator, poolId, segmentId } =
       buyCoverFixture;
     const expectedPremium = amount
       .mul(targetPriceRatio)
@@ -974,6 +978,7 @@ describe('buyCover', function () {
     const globalRewardsRatio = await cover.globalRewardsRatio();
     const { timestamp } = await ethers.provider.getBlock('latest');
 
+    const coverId = (await cover.coverDataCount()).sub(1);
     const storedCoverData = await cover.coverData(coverId);
     expect(storedCoverData.productId).to.be.equal(productId);
     expect(storedCoverData.coverAsset).to.be.equal(coverAsset);
@@ -1002,7 +1007,7 @@ describe('buyCover', function () {
       members: [coverBuyer, coverReceiver],
     } = this.accounts;
 
-    const { amount, productId, coverAsset, period, coverId, expectedPremium } = buyCoverFixture;
+    const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     const nftBalanceBefore = await coverNFT.balanceOf(coverReceiver.address);
     expect(nftBalanceBefore).to.be.equal(0);
@@ -1030,6 +1035,7 @@ describe('buyCover', function () {
     const nftBalanceAfter = await coverNFT.balanceOf(coverReceiver.address);
     expect(nftBalanceAfter).to.be.equal(1);
 
+    const coverId = (await cover.coverDataCount()).sub(1);
     const ownerOfCoverId = await coverNFT.ownerOf(coverId);
     expect(ownerOfCoverId).to.be.equal(coverReceiver.address);
   });
@@ -1042,7 +1048,7 @@ describe('buyCover', function () {
       nonMembers: [nonMemberCoverReceiver],
     } = this.accounts;
 
-    const { amount, productId, coverAsset, period, coverId, expectedPremium } = buyCoverFixture;
+    const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     const nftBalanceBefore = await coverNFT.balanceOf(nonMemberCoverReceiver.address);
     expect(nftBalanceBefore).to.be.equal(0);
@@ -1070,12 +1076,13 @@ describe('buyCover', function () {
     const nftBalanceAfter = await coverNFT.balanceOf(nonMemberCoverReceiver.address);
     expect(nftBalanceAfter).to.be.equal(1);
 
+    const coverId = (await cover.coverDataCount()).sub(1);
     const ownerOfCoverId = await coverNFT.ownerOf(coverId);
     expect(ownerOfCoverId).to.be.equal(nonMemberCoverReceiver.address);
   });
 
-  // TODO: To be reenabled after rewards minting is reintroduced either in the Cover contract,
-  //  or in the StakingPool contract
+  // TODO: To be reenabled after rewards minting is reintroduced either in the
+  //  Cover contract, or in the StakingPool contract
   it.skip('mints rewards to staking pool', async function () {
     const { cover, tokenController } = this;
 
@@ -1136,17 +1143,8 @@ describe('buyCover', function () {
       members: [coverBuyer, coverReceiver, stakingPoolManager],
     } = this.accounts;
 
-    const {
-      productId,
-      coverAsset,
-      period,
-      capacity,
-      targetPriceRatio,
-      activeCover,
-      coverId,
-      segmentId,
-      priceDenominator,
-    } = buyCoverFixture;
+    const { productId, coverAsset, period, capacity, targetPriceRatio, activeCover, segmentId, priceDenominator } =
+      buyCoverFixture;
 
     // create a 2nd pool
     await createStakingPool(
@@ -1225,6 +1223,8 @@ describe('buyCover', function () {
     expect(stakingPool1After.rewards).to.be.equal(stakingPool1Before.rewards.add(expectedRewardPerPool));
     expect(stakingPool2After.rewards).to.be.equal(stakingPool2Before.rewards.add(expectedRewardPerPool));
     expect(stakingPool3After.rewards).to.be.equal(stakingPool3Before.rewards.add(expectedRewardPerPool));
+
+    const coverId = (await cover.coverDataCount()).sub(1);
 
     for (let i = 0; i < 3; i++) {
       const segmentAllocation = await cover.coverSegmentAllocations(coverId, segmentId, i);

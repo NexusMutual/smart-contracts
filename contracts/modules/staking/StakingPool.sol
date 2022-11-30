@@ -601,6 +601,7 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   function requestAllocation(
+    uint amount,
     AllocationRequest calldata request,
     PreviousAllocationInfo calldata previous,
     AllocationRequestConfig calldata config
@@ -617,7 +618,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
     // are we only deallocating?
     // note: rewards streaming is left as is
-    if (request.amount == 0) {
+    if (amount == 0) {
 
       // store deallocated amount
       updateStoredAllocations(
@@ -634,7 +635,7 @@ contract StakingPool is IStakingPool, ERC721 {
       uint coverAllocationAmount,
       uint initialCapacityUsed,
       uint totalCapacity
-    ) = allocate(request, config, trancheAllocations);
+    ) = allocate(amount, request, config, trancheAllocations);
 
     // the returned premium value has 18 decimals
     premium = getPremium(
@@ -879,6 +880,7 @@ contract StakingPool is IStakingPool, ERC721 {
   }
 
   function allocate(
+    uint amount,
     AllocationRequest calldata request,
     AllocationRequestConfig calldata config,
     uint[] memory trancheAllocations
@@ -888,7 +890,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint totalCapacity
   ) {
 
-    coverAllocationAmount = Math.divCeil(request.amount, NXM_PER_ALLOCATION_UNIT);
+    coverAllocationAmount = Math.divCeil(amount, NXM_PER_ALLOCATION_UNIT);
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint firstTrancheIdToUse = request.gracePeriodExpiration / TRANCHE_DURATION;
 

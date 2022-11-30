@@ -9,7 +9,6 @@ import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 struct AllocationRequest {
   uint productId;
   uint coverId;
-  uint amount;
   uint period;
   uint gracePeriodExpiration;
   bool useFixedPrice;
@@ -120,6 +119,7 @@ interface IStakingPool {
   function processExpirations(bool updateUntilCurrentTimestamp) external;
 
   function requestAllocation(
+    uint amount,
     AllocationRequest calldata request,
     PreviousAllocationInfo calldata previous,
     AllocationRequestConfig calldata config

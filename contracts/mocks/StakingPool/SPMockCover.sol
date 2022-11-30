@@ -59,10 +59,10 @@ contract SPMockCover {
     uint gracePeriod = uint(productTypes[product.productType].gracePeriodInDays) * 1 days;
 
     return _stakingPool.requestAllocation(
+      params.amount,
       AllocationRequest(
         params.productId,
         coverId,
-        params.amount,
         params.period,
         block.timestamp + params.period + gracePeriod,
         product.useFixedPrice
@@ -93,6 +93,7 @@ contract SPMockCover {
       params[i].initialPrice = products[params[i].productId].initialPriceRatio;
       require(params[i].targetPrice >= GLOBAL_MIN_PRICE_RATIO, "CoverUtilsLib: Target price below GLOBAL_MIN_PRICE_RATIO");
     }
+
     IStakingPool(staking_).initialize(_manager, _isPrivatePool, _initialPoolFee, _maxPoolFee, params, _poolId, ipfsDescriptionHash);
   }
 

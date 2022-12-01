@@ -808,11 +808,11 @@ contract StakingPool is IStakingPool, ERC721 {
     uint firstGroupId = firstTrancheId / BUCKET_TRANCHE_GROUP_SIZE;
     uint lastGroupId = (firstTrancheId + MAX_ACTIVE_TRANCHES - 1) / BUCKET_TRANCHE_GROUP_SIZE;
 
-    // min 2, max 2
+    // min 1, max 2
     uint groupCount = lastGroupId - firstGroupId + 1;
     TrancheGroupBucket[] memory trancheGroupBuckets = new TrancheGroupBucket[](groupCount);
 
-    // min 1 and max 3 reads
+    // min 1 and max 2 reads
     for (uint i = 0; i < groupCount; i++) {
       trancheGroupBuckets[i] = expiringCoverBuckets[productId][bucketId][firstGroupId + i];
     }
@@ -859,6 +859,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint reductionRatio
   ) internal view returns (uint[] memory trancheCapacities) {
 
+    // TODO: this require statement seems redundant
     require(
       firstTrancheId >= block.timestamp / TRANCHE_DURATION,
       "StakingPool: requested tranche has expired"
@@ -914,22 +915,27 @@ contract StakingPool is IStakingPool, ERC721 {
     );
 
     uint remainingAmount = coverAllocationAmount;
+    uint startIndex = firstTrancheIdToUse - _firstActiveTrancheId;
 
-    for (uint i = firstTrancheIdToUse - _firstActiveTrancheId; i < MAX_ACTIVE_TRANCHES; i++) {
+    for (uint i = startIndex; i < MAX_ACTIVE_TRANCHES; i++) {
 
       initialCapacityUsed += trancheAllocations[i];
-      totalCapacity += trancheCapacities[i];
+      totalCapacity += trancheCapacities[i - startIndex];
 
-      if (trancheAllocations[i] >= trancheCapacities[i] || remainingAmount == 0) {
+      if (trancheAllocations[i] >= trancheCapacities[i - startIndex]) {
         // no capacity left in this tranche
         continue;
       }
 
-      uint allocatedAmount = Math.min(trancheCapacities[i] - trancheAllocations[i], remainingAmount);
+      uint allocatedAmount = Math.min(trancheCapacities[i - startIndex] - trancheAllocations[i], remainingAmount);
 
       coverAllocations[i] = allocatedAmount;
       trancheAllocations[i] += allocatedAmount;
       remainingAmount -= allocatedAmount;
+
+      if (remainingAmount == 0) {
+        break;
+      }
     }
 
     require(remainingAmount == 0, "StakingPool: Insufficient capacity");

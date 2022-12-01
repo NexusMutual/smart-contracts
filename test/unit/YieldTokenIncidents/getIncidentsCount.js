@@ -6,7 +6,7 @@ const { parseEther } = ethers.utils;
 describe('getIncidentsCount', function () {
   it('returns the total number of incidents', async function () {
     const { yieldTokenIncidents } = this.contracts;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const [governance] = this.accounts.governanceContracts;
 
     {
       const count = await yieldTokenIncidents.getIncidentsCount();
@@ -16,7 +16,7 @@ describe('getIncidentsCount', function () {
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const productId = 2;
     await yieldTokenIncidents
-      .connect(advisoryBoard)
+      .connect(governance)
       .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), '');
 
     {
@@ -26,7 +26,7 @@ describe('getIncidentsCount', function () {
 
     for (let i = 0; i < 6; i++) {
       await yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), '');
     }
 

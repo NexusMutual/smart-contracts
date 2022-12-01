@@ -25,9 +25,7 @@ describe('updateUintParameters', function () {
 
   it('sets each parameter to the given new values', async function () {
     const { yieldTokenIncidents } = this.contracts;
-    const {
-      governanceContracts: [governance],
-    } = this.accounts;
+    const [governance] = this.accounts.governanceContracts;
     const newValues = {
       payoutRedemptionPeriodInDays: 111,
       expectedPayoutRatio: 2222,
@@ -73,9 +71,7 @@ describe('updateUintParameters', function () {
 
   it('sets only the given parameters to the new values', async function () {
     const { yieldTokenIncidents } = this.contracts;
-    const {
-      governanceContracts: [governance],
-    } = this.accounts;
+    const [governance] = this.accounts.governanceContracts;
 
     {
       const newValues = {
@@ -141,9 +137,7 @@ describe('updateUintParameters', function () {
 
   it('allows parameters to be given in any order', async function () {
     const { yieldTokenIncidents } = this.contracts;
-    const {
-      governanceContracts: [governance],
-    } = this.accounts;
+    const [governance] = this.accounts.governanceContracts;
 
     {
       const newValues = {

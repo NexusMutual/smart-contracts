@@ -6,14 +6,14 @@ const { parseEther } = ethers.utils;
 describe('submitIncident', function () {
   it('reverts if the product uses a different claim method', async function () {
     const { yieldTokenIncidents } = this.contracts;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const [governance] = this.accounts.governanceContracts;
 
     {
       const productId = 0;
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await expect(
         yieldTokenIncidents
-          .connect(advisoryBoard)
+          .connect(governance)
           .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), ''),
       ).to.be.revertedWith('Invalid claim method for this product type');
     }
@@ -23,7 +23,7 @@ describe('submitIncident', function () {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await expect(
         yieldTokenIncidents
-          .connect(advisoryBoard)
+          .connect(governance)
           .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), ''),
       ).to.be.revertedWith('Invalid claim method for this product type');
     }
@@ -31,13 +31,13 @@ describe('submitIncident', function () {
 
   it('calls startAssessment and stores the returned assessmentId in the incident', async function () {
     const { yieldTokenIncidents } = this.contracts;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const [governance] = this.accounts.governanceContracts;
 
     {
       const productId = 2;
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), '');
       const expectedAssessmentId = 0;
       const { assessmentId } = await yieldTokenIncidents.incidents(0);
@@ -48,7 +48,7 @@ describe('submitIncident', function () {
       const productId = 2;
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), '');
       const expectedAssessmentId = 1;
       const { assessmentId } = await yieldTokenIncidents.incidents(1);
@@ -58,13 +58,13 @@ describe('submitIncident', function () {
 
   it('pushes an incident with productId, date and priceBefore to incidents', async function () {
     const { yieldTokenIncidents } = this.contracts;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const [governance] = this.accounts.governanceContracts;
 
     const expectedProductId = 2;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const expectedPriceBefore = parseEther('1.1');
     await yieldTokenIncidents
-      .connect(advisoryBoard)
+      .connect(governance)
       .submitIncident(expectedProductId, expectedPriceBefore, currentTime, parseEther('20000'), '');
     const { productId, date, priceBefore } = await yieldTokenIncidents.incidents(0);
     expect(productId).to.be.equal(expectedProductId);
@@ -74,13 +74,13 @@ describe('submitIncident', function () {
 
   it('calculates the total reward using the expected payout amount parameter provided', async function () {
     const { assessment, yieldTokenIncidents } = this.contracts;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const [governance] = this.accounts.governanceContracts;
 
     const productId = 2;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const expectedPayoutAmount = parseEther('100');
     await yieldTokenIncidents
-      .connect(advisoryBoard)
+      .connect(governance)
       .submitIncident(productId, parseEther('1.1'), currentTime, expectedPayoutAmount, '');
     const expectedTotalReward = expectedPayoutAmount.mul(this.config.rewardRatio).div(10000);
     const { totalRewardInNXM } = await assessment.assessments(0);
@@ -89,12 +89,12 @@ describe('submitIncident', function () {
 
   it('calculates the totalRewardInNXM capped at config.maxRewardInNXMWad', async function () {
     const { assessment, yieldTokenIncidents } = this.contracts;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const [governance] = this.accounts.governanceContracts;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const productId = 2;
 
     await yieldTokenIncidents
-      .connect(advisoryBoard)
+      .connect(governance)
       .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('100000000'), '');
     const expectedTotalReward = parseEther(this.config.maxRewardInNXMWad.toString());
 
@@ -104,13 +104,13 @@ describe('submitIncident', function () {
 
   it('emits MetadataSubmitted event with the provided ipfsMetadata when it is not empty string', async function () {
     const { yieldTokenIncidents } = this.contracts;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const [governance] = this.accounts.governanceContracts;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const productId = 2;
 
     await expect(
       yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('10000'), 'ipfsMetadata1'),
     )
       .to.emit(yieldTokenIncidents, 'MetadataSubmitted')
@@ -118,7 +118,7 @@ describe('submitIncident', function () {
 
     await expect(
       yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(productId, parseEther('1.2'), currentTime, parseEther('20000'), 'ipfsMetadata2'),
     )
       .to.emit(yieldTokenIncidents, 'MetadataSubmitted')
@@ -127,30 +127,30 @@ describe('submitIncident', function () {
 
   it('emits IncidentSubmitted event with sender incident and product ids and payout in NXM', async function () {
     const { yieldTokenIncidents } = this.contracts;
-    const [advisoryBoard1, advisoryBoard2] = this.accounts.advisoryBoardMembers;
+    const [governance] = this.accounts.governanceContracts;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     const productId = 2;
 
     await expect(
       yieldTokenIncidents
-        .connect(advisoryBoard1)
+        .connect(governance)
         .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('10000'), 'ipfsMetadata1'),
     )
       .to.emit(yieldTokenIncidents, 'IncidentSubmitted')
-      .withArgs(advisoryBoard1.address, 0, productId, parseEther('10000'));
+      .withArgs(governance.address, 0, productId, parseEther('10000'));
 
     await expect(
       yieldTokenIncidents
-        .connect(advisoryBoard2)
+        .connect(governance)
         .submitIncident(productId, parseEther('1.2'), currentTime, parseEther('20000'), 'ipfsMetadata2'),
     )
       .to.emit(yieldTokenIncidents, 'IncidentSubmitted')
-      .withArgs(advisoryBoard2.address, 1, productId, parseEther('20000'));
+      .withArgs(governance.address, 1, productId, parseEther('20000'));
   });
 
   it('reverts if system is paused', async function () {
     const { yieldTokenIncidents, master } = this.contracts;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const [governance] = this.accounts.governanceContracts;
 
     await master.pause();
 
@@ -158,21 +158,21 @@ describe('submitIncident', function () {
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     await expect(
       yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), ''),
     ).to.be.revertedWith('System is paused');
   });
 
   it('reverts if caller is not advisory board', async function () {
     const { yieldTokenIncidents } = this.contracts;
-    const [nonAdvisoryBoard] = this.accounts.members;
+    const [nonGovernance] = this.accounts.members;
 
     const productId = 2;
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     await expect(
       yieldTokenIncidents
-        .connect(nonAdvisoryBoard)
+        .connect(nonGovernance)
         .submitIncident(productId, parseEther('1.1'), currentTime, parseEther('20000'), ''),
-    ).to.be.revertedWith('Caller is not an advisory board member');
+    ).to.be.revertedWith('Caller is not authorized to govern');
   });
 });

@@ -154,7 +154,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     uint32 date,
     uint expectedPayoutInNXM,
     string calldata ipfsMetadata
-  ) external override onlyAdvisoryBoard whenNotPaused {
+  ) external override onlyGovernance whenNotPaused {
     ICover coverContract = cover();
     Product memory product = coverContract.products(productId);
     ProductType memory productType = coverContract.productTypes(product.productType);

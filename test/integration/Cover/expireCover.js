@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { daysToSeconds } = require('../../../lib/helpers');
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
+const { mineNextBlock, setNextBlockTime, setEtherBalance } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
@@ -95,12 +95,15 @@ describe.skip('expireCover', function () {
     );
   }
 
-  async function submitIncident({ yc, productId, period, signer }) {
-    // submit incident
+  async function submitIncident({ yc, productId, period }) {
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
 
+    const { gv } = this.contracts;
+    const gvSigner = await ethers.getImpersonatedSigner(gv.address);
+    await setEtherBalance(gvSigner.address, ethers.utils.parseEther('1'));
+
     await yc
-      .connect(signer)
+      .connect(gvSigner)
       .submitIncident(productId, parseEther('1.1'), currentTime + period / 2, parseEther('100'), '');
   }
 
@@ -133,7 +136,7 @@ describe.skip('expireCover', function () {
     });
 
     // submit incident
-    await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
+    await submitIncident({ yc, productId, period });
 
     // accept incident
     await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
@@ -207,7 +210,7 @@ describe.skip('expireCover', function () {
     }
 
     // submit incident
-    await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
+    await submitIncident({ yc, productId, period });
 
     // accept incident
     await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
@@ -277,7 +280,7 @@ describe.skip('expireCover', function () {
     });
 
     // submit incident
-    await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
+    await submitIncident({ yc, productId, period });
 
     // accept incident
     await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
@@ -352,7 +355,7 @@ describe.skip('expireCover', function () {
     }
 
     // submit incident
-    await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
+    await submitIncident({ yc, productId, period });
 
     // accept incident
     await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
@@ -421,7 +424,7 @@ describe.skip('expireCover', function () {
     });
 
     // submit incident
-    await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
+    await submitIncident({ yc, productId, period });
 
     // accept incident
     await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
@@ -500,7 +503,7 @@ describe.skip('expireCover', function () {
     });
 
     // submit incident
-    await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
+    await submitIncident({ yc, productId, period });
 
     // reject incident (requires at least 1 positive vote)
     await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));
@@ -576,7 +579,7 @@ describe.skip('expireCover', function () {
     }
 
     // submit incident
-    await submitIncident({ yc, productId, period, signer: this.accounts.defaultSender });
+    await submitIncident({ yc, productId, period });
 
     // reject incident (requires at least 1 positive vote)
     await as.connect(staker1).castVotes([assessmentId], [true], ['Assessment data hash'], parseEther('100'));

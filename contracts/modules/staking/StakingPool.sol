@@ -652,6 +652,16 @@ contract StakingPool is IStakingPool, ERC721 {
       request.useFixedPrice
     );
 
+    if (previousRewardsPerSecond > 0) {
+
+      uint expireAtBucket = Math.divCeil(request.previousExpiration, BUCKET_DURATION);
+      rewardBuckets[expireAtBucket].rewardPerSecondCut -= previousRewardsPerSecond;
+      rewardPerSecond -= previousRewardsPerSecond;
+
+      // TODO: implement me
+      // tokenController().mintStakingPoolNXMRewards(rewardsInNXM, allocationRequests[i].poolId);
+    }
+
     {
       require(request.rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
 
@@ -667,7 +677,6 @@ contract StakingPool is IStakingPool, ERC721 {
       rewardBuckets[expireAtBucket].rewardPerSecondCut += rewardsPerSecond;
       rewardPerSecond += rewardsPerSecond;
 
-      // apply the global rewards ratio and the total Rewards in NXM
       // TODO: implement me
       // tokenController().mintStakingPoolNXMRewards(rewardsInNXM, allocationRequests[i].poolId);
     }

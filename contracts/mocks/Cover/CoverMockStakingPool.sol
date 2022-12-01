@@ -72,7 +72,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
 
   function requestAllocation(
     uint amount,
-    uint previousRewardsPerSecond,
+    uint /*previousRewardsPerSecond*/,
     AllocationRequest calldata request
   ) external override returns (uint premium, uint rewardsPerSecond) {
     usedCapacity[request.productId] += amount;

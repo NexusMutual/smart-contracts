@@ -126,8 +126,6 @@ interface ICover {
 
   function productsCount() external view returns (uint);
 
-  function activeCoverAmountCommitted() external view returns (bool);
-
   function MAX_COVER_PERIOD() external view returns (uint);
 
   function totalActiveCoverInAsset(uint24 coverAsset) external view returns (uint);

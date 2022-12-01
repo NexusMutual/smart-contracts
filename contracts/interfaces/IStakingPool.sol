@@ -14,9 +14,6 @@ struct AllocationRequest {
   bool useFixedPrice;
   uint previousStart;
   uint previousExpiration;
-}
-
-struct AllocationRequestConfig {
   uint globalCapacityRatio;
   uint capacityReductionRatio;
   uint rewardRatio;
@@ -107,9 +104,9 @@ interface IStakingPool {
 
   function requestAllocation(
     uint amount,
-    AllocationRequest calldata request,
-    AllocationRequestConfig calldata config
-  ) external returns (uint premium);
+    uint previousRewardsPerSecond,
+    AllocationRequest calldata request
+  ) external returns (uint premium, uint rewardsPerSecond);
 
   function burnStake(uint productId, uint start, uint period, uint amount) external;
 

@@ -38,6 +38,8 @@ struct PoolAllocation {
   uint40 poolId;
   uint96 coverAmountInNXM;
   uint96 premiumInNXM;
+  // TODO: check if 24 bits are enough
+  uint24 rewardsPerSecond;
 }
 
 struct CoverData {

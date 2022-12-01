@@ -602,9 +602,9 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function requestAllocation(
     uint amount,
-    AllocationRequest calldata request,
-    AllocationRequestConfig calldata config
-  ) external onlyCoverContract returns (uint premium) {
+    uint previousRewardsPerSecond,
+    AllocationRequest calldata request
+  ) external onlyCoverContract returns (uint premium, uint rewardsPerSecond) {
 
     // passing true because we change the reward per second
     processExpirations(true);
@@ -632,14 +632,14 @@ contract StakingPool is IStakingPool, ERC721 {
       );
 
       // no need to charge any premium
-      return 0;
+      return (0, 0);
     }
 
     (
       uint coverAllocationAmount,
       uint initialCapacityUsed,
       uint totalCapacity
-    ) = allocate(amount, request, config, trancheAllocations);
+    ) = allocate(amount, request, trancheAllocations);
 
     // the returned premium value has 18 decimals
     premium = getPremium(
@@ -648,31 +648,31 @@ contract StakingPool is IStakingPool, ERC721 {
       coverAllocationAmount,
       initialCapacityUsed,
       totalCapacity,
-      config.globalMinPrice,
+      request.globalMinPrice,
       request.useFixedPrice
     );
 
     {
-      require(config.rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
+      require(request.rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
 
-      uint rewards = premium * config.rewardRatio / REWARDS_DENOMINATOR;
+      uint rewards = premium * request.rewardRatio / REWARDS_DENOMINATOR;
       uint expireAtBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
       uint rewardStreamPeriod = expireAtBucket * BUCKET_DURATION - block.timestamp;
-      uint _rewardPerSecond = rewards / rewardStreamPeriod;
+      rewardsPerSecond = rewards / rewardStreamPeriod;
 
       // recalculating rewards to avoid minting dust that will not be streamed
-      rewards = _rewardPerSecond * rewardStreamPeriod;
+      rewards = rewardsPerSecond * rewardStreamPeriod;
 
       // 1 SLOAD + 1 SSTORE
-      rewardBuckets[expireAtBucket].rewardPerSecondCut += _rewardPerSecond;
-      rewardPerSecond += _rewardPerSecond;
+      rewardBuckets[expireAtBucket].rewardPerSecondCut += rewardsPerSecond;
+      rewardPerSecond += rewardsPerSecond;
 
       // apply the global rewards ratio and the total Rewards in NXM
       // TODO: implement me
       // tokenController().mintStakingPoolNXMRewards(rewardsInNXM, allocationRequests[i].poolId);
     }
 
-    return premium;
+    return (premium, rewardsPerSecond);
   }
 
   function getActiveAllocationsWithoutCover(
@@ -883,7 +883,6 @@ contract StakingPool is IStakingPool, ERC721 {
   function allocate(
     uint amount,
     AllocationRequest calldata request,
-    AllocationRequestConfig calldata config,
     uint[] memory trancheAllocations
   ) internal returns (
     uint coverAllocationAmount,
@@ -900,8 +899,8 @@ contract StakingPool is IStakingPool, ERC721 {
       request.productId,
       firstTrancheIdToUse,
       MAX_ACTIVE_TRANCHES + _firstActiveTrancheId - firstTrancheIdToUse, // count
-      config.globalCapacityRatio,
-      config.capacityReductionRatio
+      request.globalCapacityRatio,
+      request.capacityReductionRatio
     );
 
     uint remainingAmount = coverAllocationAmount;

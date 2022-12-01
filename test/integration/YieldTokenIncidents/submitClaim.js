@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
 const { daysToSeconds } = require('../../../lib/helpers');
-const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee } = require('../../utils/evm');
+const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee, setEtherBalance } = require('../../utils/evm');
 
 const { BigNumber } = ethers;
 const { AddressZero, MaxUint256 } = ethers.constants;
@@ -17,7 +17,7 @@ const priceDenominator = '10000';
 
 describe('submitClaim', function () {
   beforeEach(async function () {
-    const { tk } = this.contracts;
+    const { tk, gv } = this.contracts;
 
     const members = this.accounts.members.slice(0, 5);
     const amount = parseEther('10000');
@@ -50,7 +50,7 @@ describe('submitClaim', function () {
 
   it('submits ETH claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { cover, stakingPool0, as, yc, ybETH } = this.contracts;
+    const { cover, stakingPool0, as, yc, ybETH, gv } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
 
@@ -58,7 +58,6 @@ describe('submitClaim', function () {
     const coverAsset = 0; // ETH
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
-
     const amount = parseEther('10');
 
     // Stake to open up capacity
@@ -70,7 +69,6 @@ describe('submitClaim', function () {
       .div(BigNumber.from(priceDenominator));
 
     await ybETH.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('100'));
-
     await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
@@ -92,8 +90,10 @@ describe('submitClaim', function () {
     {
       // submit incident
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+      const gvSigner = await ethers.getImpersonatedSigner(gv.address);
+      await setEtherBalance(gvSigner.address, ethers.utils.parseEther('1'));
       await yc
-        .connect(this.accounts.defaultSender)
+        .connect(gvSigner)
         .submitIncident(productId, parseEther('1.1'), currentTime + period / 2, parseEther('100'), '');
     }
 
@@ -135,7 +135,7 @@ describe('submitClaim', function () {
 
   it('submits DAI claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { cover, stakingPool0, as, dai, yc, ybDAI } = this.contracts;
+    const { cover, stakingPool0, as, dai, yc, ybDAI, gv } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
 
@@ -143,7 +143,6 @@ describe('submitClaim', function () {
     const coverAsset = 1; // DAI
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
-
     const amount = parseEther('10');
 
     // Stake to open up capacity
@@ -156,9 +155,7 @@ describe('submitClaim', function () {
 
     await dai.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('1000000'));
     await ybDAI.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('100'));
-
     await dai.connect(coverBuyer1).approve(cover.address, expectedPremium);
-
     await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
@@ -180,8 +177,10 @@ describe('submitClaim', function () {
     {
       // submit incident
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+      const gvSigner = await ethers.getImpersonatedSigner(gv.address);
+      await setEtherBalance(gvSigner.address, ethers.utils.parseEther('1'));
       await yc
-        .connect(this.accounts.defaultSender)
+        .connect(gvSigner)
         .submitIncident(productId, parseEther('1.1'), currentTime + period / 2, parseEther('100'), '');
     }
 
@@ -223,7 +222,7 @@ describe('submitClaim', function () {
 
   it('submits ETH claim and rejects claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;
-    const { cover, stakingPool0, as, yc, ybETH } = this.contracts;
+    const { cover, stakingPool0, as, yc, ybETH, gv } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
 
@@ -231,7 +230,6 @@ describe('submitClaim', function () {
     const coverAsset = 0; // ETH
     const period = 3600 * 24 * 30; // 30 days
     const gracePeriod = 3600 * 24 * 30;
-
     const amount = parseEther('10');
 
     // Stake to open up capacity
@@ -243,7 +241,6 @@ describe('submitClaim', function () {
       .div(BigNumber.from(priceDenominator));
 
     await ybETH.connect(this.accounts.defaultSender).transfer(coverBuyer1.address, parseEther('100'));
-
     await cover.connect(coverBuyer1).buyCover(
       {
         owner: coverBuyer1.address,
@@ -265,8 +262,10 @@ describe('submitClaim', function () {
     {
       // submit incident
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+      const gvSigner = await ethers.getImpersonatedSigner(gv.address);
+      await setEtherBalance(gvSigner.address, ethers.utils.parseEther('1'));
       await yc
-        .connect(this.accounts.defaultSender)
+        .connect(gvSigner)
         .submitIncident(productId, parseEther('1.1'), currentTime + period / 2, parseEther('100'), '');
     }
 
@@ -282,7 +281,6 @@ describe('submitClaim', function () {
     }
 
     await ybETH.connect(coverBuyer1).approve(yc.address, parseEther('10000'));
-
     await setNextBlockBaseFee('0');
     await expect(
       yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseEther('1'), nonMember1.address, [], { gasPrice: 0 }),

@@ -9,7 +9,9 @@ const daysToSeconds = days => days * 24 * 60 * 60;
 describe('getIncidentsToDisplay', function () {
   it('aggregates and displays claims related data in a human-readable form', async function () {
     const { yieldTokenIncidents, assessment } = this.contracts;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
 
     const expectedIncidentIds = ['0', '1', '2', '3', '4'];
     const expectedProductIds = ['2', '3', '2', '2', '3'];
@@ -33,7 +35,7 @@ describe('getIncidentsToDisplay', function () {
         const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
         expectedIncidentDates.push(currentTime);
         await yieldTokenIncidents
-          .connect(advisoryBoard)
+          .connect(governance)
           .submitIncident(expectedProductIds[i], expectedPriceBefore[i], currentTime, parseEther('100'), '');
       }
 

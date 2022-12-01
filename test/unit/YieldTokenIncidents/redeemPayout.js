@@ -32,7 +32,9 @@ describe('redeemPayout', function () {
   it("reverts if the address is not the cover owner's or approved", async function () {
     const { yieldTokenIncidents, assessment, cover, coverNFT } = this.contracts;
     const [coverOwner, nonCoverOwner] = this.accounts.members;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
 
@@ -43,7 +45,7 @@ describe('redeemPayout', function () {
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(productIdYbEth, priceBefore, currentTime + segment.period / 2, parseEther('100'), '');
     }
 
@@ -83,7 +85,9 @@ describe('redeemPayout', function () {
   it('reverts if the incident is not accepted', async function () {
     const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1, member2] = this.accounts.members;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
 
@@ -92,7 +96,7 @@ describe('redeemPayout', function () {
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(productIdYbEth, priceBefore, currentTime, parseEther('100'), '');
     }
 
@@ -125,7 +129,9 @@ describe('redeemPayout', function () {
   it("reverts if the voting and cooldown period haven't ended", async function () {
     const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
 
@@ -134,7 +140,7 @@ describe('redeemPayout', function () {
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(productIdYbEth, priceBefore, currentTime, parseEther('100'), '');
     }
 
@@ -166,7 +172,9 @@ describe('redeemPayout', function () {
   it('reverts if the redemption period expired', async function () {
     const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const { payoutRedemptionPeriodInDays } = await yieldTokenIncidents.config();
     const { payoutCooldownInDays } = await assessment.config();
     const segment = await getCoverSegment();
@@ -177,7 +185,7 @@ describe('redeemPayout', function () {
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(productIdYbEth, priceBefore, currentTime, parseEther('100'), '');
     }
 
@@ -196,7 +204,9 @@ describe('redeemPayout', function () {
   it('reverts if the payout exceeds the covered amount', async function () {
     const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const { payoutCooldownInDays } = await assessment.config();
     const segment = await getCoverSegment();
     await cover.createMockCover(member1.address, productIdYbEth, ASSET.ETH, [segment]);
@@ -209,7 +219,7 @@ describe('redeemPayout', function () {
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(productIdYbEth, priceBefore, currentTime, parseEther('100'), '');
     }
 
@@ -232,7 +242,9 @@ describe('redeemPayout', function () {
   it('reverts if the cover segment ends before the incident occured', async function () {
     const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const { payoutCooldownInDays } = await assessment.config();
 
     const segment0 = await getCoverSegment();
@@ -249,7 +261,7 @@ describe('redeemPayout', function () {
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(productIdYbEth, priceBefore, currentTime, parseEther('100'), '');
     }
 
@@ -271,7 +283,9 @@ describe('redeemPayout', function () {
   it('reverts if the cover segment starts after or when the incident occured', async function () {
     const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const { payoutCooldownInDays } = await assessment.config();
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -283,7 +297,7 @@ describe('redeemPayout', function () {
     await cover.createMockCover(member1.address, productIdYbEth, ASSET.ETH, [segment0, segment1]);
 
     await yieldTokenIncidents
-      .connect(advisoryBoard)
+      .connect(governance)
       .submitIncident(productIdYbEth, priceBefore, timestamp + 2, parseEther('100'), '');
 
     {
@@ -314,7 +328,9 @@ describe('redeemPayout', function () {
   it('reverts if the cover segment is outside the grace period', async function () {
     const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const { gracePeriodInDays } = await cover.productTypes(2);
     const segment0 = await getCoverSegment();
     segment0.gracePeriodInDays = gracePeriodInDays;
@@ -326,7 +342,7 @@ describe('redeemPayout', function () {
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     await setTime(currentTime + segment0.period + daysToSeconds(gracePeriodInDays));
     await yieldTokenIncidents
-      .connect(advisoryBoard)
+      .connect(governance)
       .submitIncident(productIdYbEth, priceBefore, currentTime + segment0.period - 1, parseEther('100'), '');
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
@@ -348,7 +364,9 @@ describe('redeemPayout', function () {
   it('should use coverSegment grace period and not product level grace period', async function () {
     const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const { gracePeriodInDays } = await cover.productTypes(2);
     const segment0 = await getCoverSegment();
     const segment1 = await getCoverSegment();
@@ -362,7 +380,7 @@ describe('redeemPayout', function () {
 
     // Change product grace period
     const newGracePeriod = gracePeriodInDays * 1000;
-    await cover.connect(advisoryBoard).editProductTypes([2], [newGracePeriod], ['ipfs hash']);
+    await cover.connect(governance).editProductTypes([2], [newGracePeriod], ['ipfs hash']);
     {
       const { gracePeriodInDays } = await cover.productTypes(2);
       expect(gracePeriodInDays).to.equal(newGracePeriod);
@@ -370,7 +388,7 @@ describe('redeemPayout', function () {
     }
 
     await yieldTokenIncidents
-      .connect(advisoryBoard)
+      .connect(governance)
       .submitIncident(productIdYbEth, priceBefore, currentTime + segment0.period - 1, parseEther('100'), '');
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
@@ -392,7 +410,9 @@ describe('redeemPayout', function () {
   it("reverts if the cover's productId mismatches the incident's productId", async function () {
     const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const validProductId = 2;
     const segment = await getCoverSegment();
     await cover.createMockCover(
@@ -424,7 +444,7 @@ describe('redeemPayout', function () {
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(validProductId, priceBefore, currentTime + segment.period / 2, parseEther('100'), '');
     }
 
@@ -457,7 +477,9 @@ describe('redeemPayout', function () {
     const { yieldTokenIncidents, assessment, cover, ybEth } = this.contracts;
     const [member1] = this.accounts.members;
     const [nonMember1, nonMember2] = this.accounts.nonMembers;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
 
@@ -471,7 +493,7 @@ describe('redeemPayout', function () {
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(productIdYbEth, priceBefore, currentTime + segment.period / 2, parseEther('100'), '');
     }
 
@@ -536,7 +558,9 @@ describe('redeemPayout', function () {
     const { yieldTokenIncidents, assessment, cover, ybEth, dai } = this.contracts;
     const [member1] = this.accounts.members;
     const [nonMember1, nonMember2] = this.accounts.nonMembers;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
 
@@ -550,7 +574,7 @@ describe('redeemPayout', function () {
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(productIdYbEth, priceBefore, currentTime + segment.period / 2, parseEther('100'), '');
     }
 
@@ -615,7 +639,9 @@ describe('redeemPayout', function () {
     const { yieldTokenIncidents, assessment, cover, ybPermitDai, dai } = this.contracts;
     const [member1] = this.accounts.members;
     const [nonMember] = this.accounts.nonMembers;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
     const productId = 4;
@@ -625,7 +651,7 @@ describe('redeemPayout', function () {
     {
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
       await yieldTokenIncidents
-        .connect(advisoryBoard)
+        .connect(governance)
         .submitIncident(productId, priceBefore, currentTime + segment.period / 2, parseEther('100'), '');
     }
 
@@ -688,27 +714,27 @@ describe('redeemPayout', function () {
 
   it('emits IncidentPayoutRedeemed event with owner, payout amount, incident and cover ids', async function () {
     const { yieldTokenIncidents, cover, assessment, ybEth, ybDai } = this.contracts;
-    const [coverOwner1, coverOwner2] = this.accounts.members;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const [coverOwner1, coverOwner2, member] = this.accounts.members;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const { timestamp } = await ethers.provider.getBlock('latest');
     const segment = await getCoverSegment();
 
     await cover.createMockCover(coverOwner1.address, productIdYbEth, ASSET.ETH, [segment]);
-
     await cover.createMockCover(coverOwner1.address, productIdYbEth, ASSET.ETH, [segment]);
-
     await cover.createMockCover(coverOwner2.address, productIdYbDai, ASSET.DAI, [segment]);
 
     await yieldTokenIncidents
-      .connect(advisoryBoard)
+      .connect(governance)
       .submitIncident(productIdYbEth, parseEther('1'), timestamp + 2, parseEther('100'), '');
 
     await yieldTokenIncidents
-      .connect(advisoryBoard)
+      .connect(governance)
       .submitIncident(productIdYbDai, parseEther('1'), timestamp + 2, parseEther('100'), '');
 
-    await assessment.connect(advisoryBoard).castVote(0, true, parseEther('100'));
-    await assessment.connect(advisoryBoard).castVote(1, true, parseEther('100'));
+    await assessment.connect(member).castVote(0, true, parseEther('100'));
+    await assessment.connect(member).castVote(1, true, parseEther('100'));
 
     {
       const { payoutCooldownInDays } = await assessment.config();
@@ -733,17 +759,19 @@ describe('redeemPayout', function () {
 
   it('reverts if system is paused', async function () {
     const { yieldTokenIncidents, cover, assessment, ybEth, master } = this.contracts;
-    const [coverOwner1] = this.accounts.members;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const [coverOwner1, member] = this.accounts.members;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const { timestamp } = await ethers.provider.getBlock('latest');
     const segment = await getCoverSegment();
     await cover.createMockCover(coverOwner1.address, productIdYbEth, ASSET.ETH, [segment]);
 
     await yieldTokenIncidents
-      .connect(advisoryBoard)
+      .connect(governance)
       .submitIncident(productIdYbEth, parseEther('1'), timestamp + 2, parseEther('100'), '');
 
-    await assessment.connect(advisoryBoard).castVote(0, true, parseEther('100'));
+    await assessment.connect(member).castVote(0, true, parseEther('100'));
 
     {
       const { payoutCooldownInDays } = await assessment.config();
@@ -761,19 +789,21 @@ describe('redeemPayout', function () {
 
   it('reverts if caller is not a member', async function () {
     const { yieldTokenIncidents, cover, assessment, ybEth } = this.contracts;
-    const [coverOwner1] = this.accounts.members;
+    const [coverOwner1, member] = this.accounts.members;
     const [nonMember] = this.accounts.nonMembers;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const segment = await getCoverSegment();
     await cover.createMockCover(coverOwner1.address, productIdYbEth, ASSET.ETH, [segment]);
 
     await yieldTokenIncidents
-      .connect(advisoryBoard)
+      .connect(governance)
       .submitIncident(productIdYbEth, parseEther('1'), timestamp + 2, parseEther('100'), '');
 
-    await assessment.connect(advisoryBoard).castVote(0, true, parseEther('100'));
+    await assessment.connect(member).castVote(0, true, parseEther('100'));
 
     {
       const { payoutCooldownInDays } = await assessment.config();
@@ -790,7 +820,9 @@ describe('redeemPayout', function () {
   it('should transfer product underlying asset amount to the contract', async function () {
     const { yieldTokenIncidents, assessment, cover, ybEth } = this.contracts;
     const [member1] = this.accounts.members;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
 
@@ -799,7 +831,7 @@ describe('redeemPayout', function () {
     const depeggedTokensAmount = parseEther('100');
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
     await yieldTokenIncidents
-      .connect(advisoryBoard)
+      .connect(governance)
       .submitIncident(productIdYbEth, priceBefore, currentTime + segment.period / 2, depeggedTokensAmount, '');
 
     await assessment.connect(member1).castVote(0, true, depeggedTokensAmount);
@@ -827,7 +859,9 @@ describe('redeemPayout', function () {
   it('should burn the stake of associated staking pools', async function () {
     const { yieldTokenIncidents, assessment, cover, ybEth } = this.contracts;
     const [member1] = this.accounts.members;
-    const [advisoryBoard] = this.accounts.advisoryBoardMembers;
+    const {
+      governanceContracts: [governance],
+    } = this.accounts;
     const segment = await getCoverSegment();
     segment.amount = parseEther('10000');
 
@@ -841,7 +875,7 @@ describe('redeemPayout', function () {
     const coverAssetDecimals = parseEther('1');
 
     await yieldTokenIncidents
-      .connect(advisoryBoard)
+      .connect(governance)
       .submitIncident(productIdYbEth, priceBefore, currentTime + segment.period / 2, depeggedTokensAmount, '');
 
     await assessment.connect(member1).castVote(0, true, depeggedTokensAmount);

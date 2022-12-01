@@ -301,8 +301,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint totalAmountDueInNXM
   ) {
 
-    uint previousPoolAllocationsLength = coverSegmentAllocations[allocationRequest.coverId][segmentId - 1].length;
     uint totalCoverAmountInNXM;
+    uint previousPoolAllocationsLength = segmentId > 0
+      ? coverSegmentAllocations[allocationRequest.coverId][segmentId - 1].length
+      : 0;
 
     for (uint i = 0; i < poolAllocationRequests.length; i++) {
 

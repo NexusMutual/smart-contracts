@@ -604,7 +604,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint amount,
     uint previousRewardsPerSecond,
     AllocationRequest calldata request
-  ) external onlyCoverContract returns (uint premium, uint rewardsPerSecond) {
+  ) external onlyCoverContract returns (uint premium, uint _rewardPerSecond) {
 
     // passing true because we change the reward per second
     processExpirations(true);
@@ -652,36 +652,37 @@ contract StakingPool is IStakingPool, ERC721 {
       request.useFixedPrice
     );
 
-    if (previousRewardsPerSecond > 0) {
-
-      uint expireAtBucket = Math.divCeil(request.previousExpiration, BUCKET_DURATION);
-      rewardBuckets[expireAtBucket].rewardPerSecondCut -= previousRewardsPerSecond;
-      rewardPerSecond -= previousRewardsPerSecond;
-
-      // TODO: implement me
-      // tokenController().mintStakingPoolNXMRewards(rewardsInNXM, allocationRequests[i].poolId);
-    }
-
+    // add new rewards
     {
       require(request.rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
 
-      uint rewards = premium * request.rewardRatio / REWARDS_DENOMINATOR;
-      uint expireAtBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
-      uint rewardStreamPeriod = expireAtBucket * BUCKET_DURATION - block.timestamp;
-      rewardsPerSecond = rewards / rewardStreamPeriod;
+      uint expirationBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
+      uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
+      _rewardPerSecond = (premium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
 
-      // recalculating rewards to avoid minting dust that will not be streamed
-      rewards = rewardsPerSecond * rewardStreamPeriod;
+      // sstore
+      rewardBuckets[expirationBucket].rewardPerSecondCut += _rewardPerSecond;
+      rewardPerSecond += _rewardPerSecond;
 
-      // 1 SLOAD + 1 SSTORE
-      rewardBuckets[expireAtBucket].rewardPerSecondCut += rewardsPerSecond;
-      rewardPerSecond += rewardsPerSecond;
-
-      // TODO: implement me
-      // tokenController().mintStakingPoolNXMRewards(rewardsInNXM, allocationRequests[i].poolId);
+      uint rewardsToMint = _rewardPerSecond * rewardStreamPeriod;
+      tokenController.mintStakingPoolNXMRewards(rewardsToMint, poolId);
     }
 
-    return (premium, rewardsPerSecond);
+    // remove previous rewards
+    if (previousRewardsPerSecond > 0) {
+
+      uint previousExpirationBucket = Math.divCeil(request.previousExpiration, BUCKET_DURATION);
+      uint rewardStreamPeriod = previousExpirationBucket * BUCKET_DURATION - request.previousStart;
+
+      // sstore
+      rewardBuckets[previousExpirationBucket].rewardPerSecondCut -= previousRewardsPerSecond;
+      rewardPerSecond -= previousRewardsPerSecond;
+
+      uint rewardsToBurn = previousRewardsPerSecond * rewardStreamPeriod;
+      tokenController.burnStakingPoolNXMRewards(rewardsToBurn, poolId);
+    }
+
+    return (premium, _rewardPerSecond);
   }
 
   function getActiveAllocationsWithoutCover(

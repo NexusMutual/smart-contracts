@@ -735,7 +735,7 @@ contract StakingPool is IStakingPool, ERC721 {
       lastBucketId = currentBucket;
     }
 
-    for (uint bucketId = lastBucketId + 1; bucketId < currentBucket; bucketId++) {
+    for (uint bucketId = lastBucketId + 1; bucketId <= currentBucket; bucketId++) {
 
       uint32[] memory expirations = getExpiringCoverAmounts(productId, bucketId, _firstActiveTrancheId);
 

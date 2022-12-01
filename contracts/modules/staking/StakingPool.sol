@@ -1274,8 +1274,10 @@ contract StakingPool is IStakingPool, ERC721 {
 
     for (uint i = 0; i < numProducts; i++) {
       productIds[i] = params[i].productId;
-
-      require(ICover(coverContract).isAllowedPool(params[i].productId, poolId), "");
+      require(
+        ICover(coverContract).isPoolAllowed(params[i].productId, poolId),
+        "StakingPool: Pool is not allowed for this product"
+      );
     }
 
     (

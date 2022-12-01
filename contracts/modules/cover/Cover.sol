@@ -74,6 +74,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   // cover id => segment id => pool allocations array
   mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
 
+  // product id => allowed pool ids
   mapping(uint => uint[]) public allowedPools;
 
   // Each cover has an array of segments. A new segment is created
@@ -372,23 +373,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return (totalCoverAmountInNXM, totalAmountDueInNXM);
   }
 
+  function isPoolAllowed(uint productId, uint poolId) external view returns (bool) {
 
-  function isAllowedPool(uint productId, uint poolId) external view returns (bool) {
+    uint poolCount = allowedPools[productId].length;
 
-    if (!_products[productId].useFixedPrice) {
-      // no pool id restrictions
-      return true;
-    }
-    bool poolIsAllowed;
-    uint[] memory allowedPoolsForProduct = allowedPools[productId];
-    for (uint i = 0; i < allowedPoolsForProduct.length; i++) {
-      if (allowedPoolsForProduct[i] == poolId) {
-        poolIsAllowed = true;
-        break;
+    for (uint i = 0; i < poolCount; i++) {
+      if (allowedPools[productId][i] == poolId) {
+        return true;
       }
     }
 
-    return poolIsAllowed;
+    return false;
   }
 
   function retrievePayment(

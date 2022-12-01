@@ -613,7 +613,12 @@ contract StakingPool is IStakingPool, ERC721 {
 
     uint[] memory trancheAllocations = request.previousStart == 0
       ? getActiveAllocations(request.productId)
-      : getActiveAllocationsWithoutCover(request.productId, request.coverId, request.previousStart, request.previousExpiration);
+      : getActiveAllocationsWithoutCover(
+          request.productId,
+          request.coverId,
+          request.previousStart,
+          request.previousExpiration
+        );
 
     // are we only deallocating?
     // note: rewards streaming is left as is
@@ -638,14 +643,12 @@ contract StakingPool is IStakingPool, ERC721 {
 
     // the returned premium value has 18 decimals
     premium = getPremium(
-      PremiumParameters(
-        request.productId,
-        request.period,
-        coverAllocationAmount,
-        initialCapacityUsed,
-        totalCapacity,
-        request.useFixedPrice
-      )
+      request.productId,
+      request.period,
+      coverAllocationAmount,
+      initialCapacityUsed,
+      totalCapacity,
+      request.useFixedPrice
     );
 
     {
@@ -661,7 +664,6 @@ contract StakingPool is IStakingPool, ERC721 {
 
       // 1 SLOAD + 1 SSTORE
       rewardBuckets[expireAtBucket].rewardPerSecondCut += _rewardPerSecond;
-
       rewardPerSecond += _rewardPerSecond;
 
       // apply the global rewards ratio and the total Rewards in NXM
@@ -669,7 +671,6 @@ contract StakingPool is IStakingPool, ERC721 {
       // tokenController().mintStakingPoolNXMRewards(rewardsInNXM, allocationRequests[i].poolId);
     }
 
-    // premium has 18 decimals
     return premium;
   }
 
@@ -1436,40 +1437,28 @@ contract StakingPool is IStakingPool, ERC721 {
     emit PoolDescriptionSet(poolId, ipfsDescriptionHash);(poolId, ipfsDescriptionHash);
   }
 
-  /* utils */
+  /* pricing code */
 
-  // todo: might get rid of this one
-  function getPriceParameters(
+  function getPremium(
     uint productId,
-    uint maxCoverPeriod
-  ) external override view returns (
-    uint activeCover,
-    uint[] memory staked,
-    uint lastBasePrice,
-    uint targetPrice
-  ) {
+    uint period,
+    uint coverAmount,
+    uint initialCapacityUsed,
+    uint totalCapacity,
+    bool useFixedPrice
+  ) internal returns (uint) {
 
-    // TODO: this is probably wrong, needs to be reimplemented
-    uint maxTranches = maxCoverPeriod / TRANCHE_DURATION + 1;
-    staked = new uint[](maxTranches);
+    StakedProduct memory product = products[productId];
 
-    for (uint i = 0; i < maxTranches; i++) {
-      staked[i] = getProductStake(productId, block.timestamp + i * TRANCHE_DURATION);
-    }
+    if (useFixedPrice) {
 
-    activeCover = getAllocatedProductStake(productId);
-    lastBasePrice = products[productId].nextPrice;
-    targetPrice = products[productId].targetPrice;
-  }
-
-  function getPremium(PremiumParameters memory params) internal returns (uint) {
-
-    StakedProduct memory product = products[params.productId];
-
-    if (params.useFixedPrice) {
       uint fixedPricePremiumPerYear =
-        (params.coverAmount * NXM_PER_ALLOCATION_UNIT) * product.targetPrice / TARGET_PRICE_DENOMINATOR;
-      return fixedPricePremiumPerYear * uint(params.period) / 365 days;
+        coverAmount
+        * NXM_PER_ALLOCATION_UNIT
+        * product.targetPrice
+        / TARGET_PRICE_DENOMINATOR;
+
+      return fixedPricePremiumPerYear * period / 365 days;
     }
 
     uint basePrice;
@@ -1486,23 +1475,23 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     // calculate the next price by applying the price bump
-    uint priceBump = PRICE_BUMP_RATIO * params.coverAmount / params.totalCapacity;
+    uint priceBump = PRICE_BUMP_RATIO * coverAmount / totalCapacity;
     product.nextPrice = (basePrice + priceBump).toUint96();
     product.nextPriceUpdateTime = uint32(block.timestamp);
 
     // sstore
-    products[params.productId] = product;
+    products[productId] = product;
 
     // use calculated base price and apply surge pricing if applicable
     uint premiumPerYear = calculatePremiumPerYear(
       basePrice,
-      params.coverAmount,
-      params.initialCapacityUsed,
-      params.totalCapacity
+      coverAmount,
+      initialCapacityUsed,
+      totalCapacity
     );
 
     // calculate the premium for the requested period
-    return premiumPerYear * params.period / 365 days;
+    return premiumPerYear * period / 365 days;
   }
 
   function calculatePremiumPerYear(
@@ -1513,7 +1502,7 @@ contract StakingPool is IStakingPool, ERC721 {
   ) public pure returns (uint) {
     // cover amount has 2 decimals (100 = 1 unit)
     // scale coverAmount to 18 decimals and apply price percentage
-    uint basePremium = (coverAmount * NXM_PER_ALLOCATION_UNIT) * basePrice / TARGET_PRICE_DENOMINATOR;
+    uint basePremium = coverAmount * NXM_PER_ALLOCATION_UNIT * basePrice / TARGET_PRICE_DENOMINATOR;
     uint finalCapacityUsed = initialCapacityUsed + coverAmount;
 
     // surge price is applied for the capacity used above SURGE_THRESHOLD_RATIO.

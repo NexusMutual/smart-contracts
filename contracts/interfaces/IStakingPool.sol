@@ -53,15 +53,6 @@ struct ProductInitializationParams {
   uint96 targetPrice;
 }
 
-struct PremiumParameters {
-  uint productId;
-  uint period;
-  uint coverAmount;
-  uint initialCapacityUsed;
-  uint totalCapacity;
-  bool useFixedPrice;
-}
-
 interface IStakingPool {
 
   /* structs for storage */
@@ -143,16 +134,6 @@ interface IStakingPool {
   function getFreeProductStake(uint productId, uint coverExpirationDate) external view returns (uint);
 
   function getAllocatedProductStake(uint productId) external view returns (uint);
-
-  function getPriceParameters(
-    uint productId,
-    uint maxCoverPeriod
-  ) external view returns (
-    uint activeCover,
-    uint[] memory capacities,
-    uint lastBasePrice,
-    uint targetPrice
-  );
 
     /* ========== EVENTS ========== */
 

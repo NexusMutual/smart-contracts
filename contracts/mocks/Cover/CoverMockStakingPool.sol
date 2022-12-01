@@ -213,16 +213,4 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     revert("CoverMockStakingPool: not callable");
   }
 
-  function getPriceParameters(
-    uint /* productId */,
-    uint /* maxCoverPeriod */
-  ) external override view returns (
-    uint /* activeCover */,
-    uint[] memory /* staked */,
-    uint /* lastBasePrice */,
-    uint /* targetPrice */
-  ) {
-    block.timestamp;
-    revert("CoverMockStakingPool: not callable");
-  }
 }

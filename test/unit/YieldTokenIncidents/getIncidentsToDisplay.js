@@ -9,9 +9,7 @@ const daysToSeconds = days => days * 24 * 60 * 60;
 describe('getIncidentsToDisplay', function () {
   it('aggregates and displays claims related data in a human-readable form', async function () {
     const { yieldTokenIncidents, assessment } = this.contracts;
-    const {
-      governanceContracts: [governance],
-    } = this.accounts;
+    const [governance] = this.accounts.governanceContracts;
 
     const expectedIncidentIds = ['0', '1', '2', '3', '4'];
     const expectedProductIds = ['2', '3', '2', '2', '3'];

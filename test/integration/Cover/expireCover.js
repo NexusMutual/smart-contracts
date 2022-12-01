@@ -97,9 +97,7 @@ describe.skip('expireCover', function () {
 
   async function submitIncident({ yc, productId, period }) {
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-    const {
-      governanceContracts: [governance],
-    } = this.accounts;
+    const [governance] = this.accounts.governanceContracts;
 
     await yc
       .connect(governance)

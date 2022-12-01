@@ -9,9 +9,8 @@ describe('startAssessment', function () {
   it('returns the index of the newly created assessment', async function () {
     const { individualClaims, yieldTokenIncidents } = this.contracts;
     const [member] = this.accounts.members;
-    const {
-      governanceContracts: [governance],
-    } = this.accounts;
+    const [governance] = this.accounts.governanceContracts;
+
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     {
@@ -48,9 +47,7 @@ describe('startAssessment', function () {
   it('stores assessmentDepositInETH and totalRewardInNXM', async function () {
     const { individualClaims, yieldTokenIncidents, assessment } = this.contracts;
     const [member] = this.accounts.members;
-    const {
-      governanceContracts: [governance],
-    } = this.accounts;
+    const [governance] = this.accounts.governanceContracts;
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     {
@@ -80,9 +77,7 @@ describe('startAssessment', function () {
   it('stores assessmentDepositInETH and totalRewardInNXM', async function () {
     const { individualClaims, yieldTokenIncidents, assessment } = this.contracts;
     const [member] = this.accounts.members;
-    const {
-      governanceContracts: [governance],
-    } = this.accounts;
+    const [governance] = this.accounts.governanceContracts;
     const { timestamp } = await ethers.provider.getBlock('latest');
 
     {
@@ -111,9 +106,7 @@ describe('startAssessment', function () {
   it('stores a poll that starts at the block timestamp and ends after minVotingPeriodInDays', async function () {
     const { individualClaims, yieldTokenIncidents, assessment } = this.contracts;
     const [member] = this.accounts.members;
-    const {
-      governanceContracts: [governance],
-    } = this.accounts;
+    const [governance] = this.accounts.governanceContracts;
 
     {
       await individualClaims.connect(member).submitClaim(0, 0, parseEther('100'), '');

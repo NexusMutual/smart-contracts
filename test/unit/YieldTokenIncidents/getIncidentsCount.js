@@ -6,9 +6,7 @@ const { parseEther } = ethers.utils;
 describe('getIncidentsCount', function () {
   it('returns the total number of incidents', async function () {
     const { yieldTokenIncidents } = this.contracts;
-    const {
-      governanceContracts: [governance],
-    } = this.accounts;
+    const [governance] = this.accounts.governanceContracts;
 
     {
       const count = await yieldTokenIncidents.getIncidentsCount();

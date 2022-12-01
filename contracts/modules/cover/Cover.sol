@@ -373,19 +373,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return (totalCoverAmountInNXM, totalAmountDueInNXM);
   }
 
-  function isPoolAllowed(uint productId, uint poolId) external view returns (bool) {
-
-    uint poolCount = allowedPools[productId].length;
-
-    for (uint i = 0; i < poolCount; i++) {
-      if (allowedPools[productId][i] == poolId) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
   function retrievePayment(
     uint premiumInNxm,
     uint8 paymentAsset,
@@ -673,6 +660,19 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   function isAssetSupported(uint32 assetsBitMap, uint8 coverAsset) public pure override returns (bool) {
     return (1 << coverAsset) & assetsBitMap > 0;
+  }
+
+  function isPoolAllowed(uint productId, uint poolId) external view returns (bool) {
+
+    uint poolCount = allowedPools[productId].length;
+
+    for (uint i = 0; i < poolCount; i++) {
+      if (allowedPools[productId][i] == poolId) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   function getPriceAndCapacityRatios(uint[] calldata productIds) public view returns (

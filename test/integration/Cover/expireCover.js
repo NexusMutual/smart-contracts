@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { daysToSeconds } = require('../../../lib/helpers');
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
+const { mineNextBlock, setNextBlockTime, setEtherBalance } = require('../../utils/evm');
 
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
@@ -97,10 +97,13 @@ describe.skip('expireCover', function () {
 
   async function submitIncident({ yc, productId, period }) {
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-    const [governance] = this.accounts.governanceContracts;
+
+    const { gv } = this.contracts;
+    const gvSigner = await ethers.getImpersonatedSigner(gv.address);
+    await setEtherBalance(gvSigner.address, ethers.utils.parseEther('1'));
 
     await yc
-      .connect(governance)
+      .connect(gvSigner)
       .submitIncident(productId, parseEther('1.1'), currentTime + period / 2, parseEther('100'), '');
   }
 

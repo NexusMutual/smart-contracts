@@ -648,6 +648,7 @@ contract StakingPool is IStakingPool, ERC721 {
       coverAllocationAmount,
       initialCapacityUsed,
       totalCapacity,
+      config.globalMinPrice,
       request.useFixedPrice
     );
 
@@ -1447,17 +1448,19 @@ contract StakingPool is IStakingPool, ERC721 {
     uint coverAmount,
     uint initialCapacityUsed,
     uint totalCapacity,
+    uint globalMinPrice,
     bool useFixedPrice
   ) internal returns (uint) {
 
     StakedProduct memory product = products[productId];
+    uint targetPrice = Math.max(product.targetPrice, globalMinPrice);
 
     if (useFixedPrice) {
 
       uint fixedPricePremiumPerYear =
         coverAmount
         * NXM_PER_ALLOCATION_UNIT
-        * product.targetPrice
+        * targetPrice
         / TARGET_PRICE_DENOMINATOR;
 
       return fixedPricePremiumPerYear * period / 365 days;
@@ -1471,8 +1474,8 @@ contract StakingPool is IStakingPool, ERC721 {
 
       // basePrice = max(targetPrice, nextPrice - priceDrop)
       // rewritten to avoid underflow
-      basePrice = product.nextPrice < product.targetPrice + priceDrop
-        ? product.targetPrice
+      basePrice = product.nextPrice < targetPrice + priceDrop
+        ? targetPrice
         : product.nextPrice - priceDrop;
     }
 

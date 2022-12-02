@@ -741,7 +741,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
     for (uint bucketId = lastBucketId + 1; bucketId <= currentBucket; bucketId++) {
 
-      uint32[] memory expirations = getExpiringCoverAmounts(productId, bucketId, _firstActiveTrancheId);
+      uint[] memory expirations = getExpiringCoverAmounts(productId, bucketId, _firstActiveTrancheId);
 
       for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
         trancheAllocations[i] -= expirations[i];
@@ -788,9 +788,9 @@ contract StakingPool is IStakingPool, ERC721 {
     uint productId,
     uint bucketId,
     uint firstTrancheId
-  ) internal view returns (uint32[] memory expiringCoverAmounts) {
+  ) internal view returns (uint[] memory expiringCoverAmounts) {
 
-    expiringCoverAmounts = new uint32[](MAX_ACTIVE_TRANCHES);
+    expiringCoverAmounts = new uint[](MAX_ACTIVE_TRANCHES);
 
     uint firstGroupId = firstTrancheId / BUCKET_TRANCHE_GROUP_SIZE;
     uint lastGroupId = (firstTrancheId + MAX_ACTIVE_TRANCHES - 1) / BUCKET_TRANCHE_GROUP_SIZE;
@@ -809,8 +809,7 @@ contract StakingPool is IStakingPool, ERC721 {
       uint trancheId = firstTrancheId + i;
       uint trancheGroupIndex = trancheId / BUCKET_TRANCHE_GROUP_SIZE - firstGroupId;
       uint trancheIndexInGroup = trancheId % BUCKET_TRANCHE_GROUP_SIZE;
-      uint32 expiringCoverAmount = trancheGroupBuckets[trancheGroupIndex].getItemAt(trancheIndexInGroup);
-      expiringCoverAmounts[i] = expiringCoverAmount;
+      expiringCoverAmounts[i] = trancheGroupBuckets[trancheGroupIndex].getItemAt(trancheIndexInGroup);
     }
 
     return expiringCoverAmounts;

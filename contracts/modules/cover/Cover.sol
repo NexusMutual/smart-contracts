@@ -268,7 +268,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     _coverSegments[coverId].push(
       CoverSegment(
         coverAmountInCoverAsset.toUint96(), // cover amount in cover asset
-        uint32(block.timestamp + 1), // start
+        (block.timestamp + 1).toUint32(), // start
         params.period, // period
         allocationRequest.gracePeriod.toUint32(),
         globalRewardsRatio
@@ -307,6 +307,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       : 0;
 
     for (uint i = 0; i < poolAllocationRequests.length; i++) {
+
+      // TODO: add a flag in PoolAllocationRequest to skip certain pools to avoid repricing
 
       uint refund;
       uint previousRewardsPerSecond;

@@ -702,6 +702,7 @@ contract StakingPool is IStakingPool, ERC721 {
     // number of already expired tranches to skip
     uint skippedTranches = currentFirstActiveTrancheId - previousFirstActiveTrancheId;
 
+    // TODO: index seems off
     for (uint i = skippedTranches; i < MAX_ACTIVE_TRANCHES; i++) {
       uint currentTrancheIdx = skippedTranches + i;
       uint allocated = uint32(packedCoverTrancheAllocation >> (i * 32));

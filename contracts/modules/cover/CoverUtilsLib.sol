@@ -142,7 +142,10 @@ library CoverUtilsLib {
       // override with initial price
       for (uint i = 0; i < productInitParams.length; i++) {
         productInitParams[i].initialPrice = products[productInitParams[i].productId].initialPriceRatio;
-        require(productInitParams[i].targetPrice >= poolInitParams.globalMinPriceRatio, "CoverUtilsLib: Target price below GLOBAL_MIN_PRICE_RATIO");
+        require(
+          productInitParams[i].targetPrice >= poolInitParams.globalMinPriceRatio,
+          "CoverUtilsLib: Target price below GLOBAL_MIN_PRICE_RATIO"
+        );
       }
     }
 

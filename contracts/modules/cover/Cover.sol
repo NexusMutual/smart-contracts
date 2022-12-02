@@ -249,13 +249,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       // require last segment not to be expired
       require(lastSegment.start + lastSegment.period > block.timestamp, "Cover: Expired covers cannot be edited");
 
-      // mark previous cover as ending now
-      _coverSegments[coverId][segmentId - 1].period = (block.timestamp - lastSegment.start).toUint32();
-
       allocationRequest.previousStart = lastSegment.start;
       allocationRequest.previousExpiration = lastSegment.start + lastSegment.period;
 
       previousRewardsRatio = lastSegment.globalRewardsRatio;
+
+      // mark previous cover as ending now
+      _coverSegments[coverId][segmentId - 1].period = (block.timestamp - lastSegment.start).toUint32();
     }
 
     (uint coverAmountInCoverAsset, uint amountDueInNXM) = requestAllocations(

@@ -620,8 +620,8 @@ contract StakingPool is IStakingPool, ERC721 {
           request.previousExpiration
         );
 
-    // are we only deallocating?
-    // note: rewards streaming is left as is
+    // we are only deallocating
+    // rewards streaming is left as is
     if (amount == 0) {
 
       // store deallocated amount
@@ -672,13 +672,13 @@ contract StakingPool is IStakingPool, ERC721 {
     if (previousRewardsPerSecond > 0) {
 
       uint previousExpirationBucket = Math.divCeil(request.previousExpiration, BUCKET_DURATION);
-      uint rewardStreamPeriod = previousExpirationBucket * BUCKET_DURATION - request.previousStart;
+      uint rewardStreamPeriodLeft = previousExpirationBucket * BUCKET_DURATION - block.timestamp;
 
       // sstore
       rewardBuckets[previousExpirationBucket].rewardPerSecondCut -= previousRewardsPerSecond;
       rewardPerSecond -= previousRewardsPerSecond;
 
-      uint rewardsToBurn = previousRewardsPerSecond * rewardStreamPeriod;
+      uint rewardsToBurn = previousRewardsPerSecond * rewardStreamPeriodLeft;
       tokenController.burnStakingPoolNXMRewards(rewardsToBurn, poolId);
     }
 
@@ -745,23 +745,6 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     return trancheAllocations;
-  }
-
-  function removeCoverReward(
-    uint coverStartTime,
-    uint period,
-    uint premium,
-    uint rewardRatio
-  ) internal {
-
-    require(rewardRatio <= REWARDS_DENOMINATOR, "StakingPool: reward ratio exceeds denominator");
-
-    uint rewards = premium * rewardRatio / REWARDS_DENOMINATOR;
-    uint expireAtBucket = Math.divCeil(coverStartTime + period, BUCKET_DURATION);
-    uint _rewardPerSecond = rewards / (expireAtBucket * BUCKET_DURATION - coverStartTime);
-
-    // 1 SLOAD + 1 SSTORE
-    rewardBuckets[expireAtBucket].rewardPerSecondCut -= _rewardPerSecond;
   }
 
   function getStoredAllocations(
@@ -970,7 +953,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
     TrancheAllocationGroup[] memory allocationGroups = new TrancheAllocationGroup[](groupCount);
 
-    // min 1 and max 3 reads
+    // min 2 and max 3 reads
     for (uint i = 0; i < groupCount; i++) {
       allocationGroups[i] = trancheAllocationGroups[productId][firstGroupId + i];
     }

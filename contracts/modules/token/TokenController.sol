@@ -106,8 +106,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
    * @return the boolean status of the burning process
    */
   function burnFrom(address _of, uint amount) public override onlyInternal returns (bool) {
-    // [todo] Check if conracts can call token.burnFrom directly instead of
-    // calling through TokenController
     return token().burnFrom(_of, amount);
   }
 
@@ -382,14 +380,14 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
   function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
     require(msg.sender == address(cover().stakingPool(poolId)), "TokenController: msg.sender not staking pool");
-    mint(address(this), amount);
+    token().mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
 
   function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
     require(msg.sender == address(cover().stakingPool(poolId)), "TokenController: msg.sender not staking pool");
-    burnFrom(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
+    token().burn(amount);
   }
 
   function depositStakedNXM(address from, uint amount, uint poolId) external {
@@ -400,18 +398,16 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
   function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {
     require(msg.sender == address(cover().stakingPool(poolId)), "TokenController: msg.sender not staking pool");
-
     StakingPoolNXMBalances memory poolBalances = stakingPoolNXMBalances[poolId];
     poolBalances.deposits -= stakeToWithdraw.toUint128();
     poolBalances.rewards -= rewardsToWithdraw.toUint128();
     stakingPoolNXMBalances[poolId] = poolBalances;
-
     token().transfer(to, stakeToWithdraw + rewardsToWithdraw);
   }
 
   function burnStakedNXM(uint amount, uint poolId) external {
     require(msg.sender == address(cover().stakingPool(poolId)), "TokenController: msg.sender not staking pool");
     stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();
-    burnFrom(address(this), amount);
+    token().burn(amount);
   }
 }

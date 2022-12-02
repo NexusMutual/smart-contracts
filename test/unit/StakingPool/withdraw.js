@@ -1,8 +1,14 @@
+const { BigNumber } = require('ethers');
 const { parseEther } = require('ethers/lib/utils');
 const { ethers, expect } = require('hardhat');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { setEtherBalance, increaseTime, mineNextBlock } = require('../../utils/evm');
-const { getTranches, TRANCHE_DURATION, getNewRewardShares } = require('./helpers');
+const {
+  getTranches,
+  TRANCHE_DURATION,
+  getNewRewardShares,
+  calculateStakeAndRewardsWithdrawAmounts,
+} = require('./helpers');
 
 describe('withdraw', function () {
   const product0 = {
@@ -18,20 +24,13 @@ describe('withdraw', function () {
     initialPoolFee: 5, // 5%
     maxPoolFee: 5, // 5%
     productInitializationParams: [product0],
+    ipfsDescriptionHash: 'Description Hash',
   };
 
+  const tempRewardsAmount = parseEther('10');
+
   const depositToFixture = {
-    poolId: 0,
-    initialPoolFee: 5, // 5%
-    maxPoolFee: 5, // 5%
-    productInitializationParams: [
-      {
-        productId: 0,
-        weight: 100,
-        initialPrice: 500,
-        targetPrice: 500,
-      },
-    ],
+    ...initializeParams,
     amount: parseEther('100'),
     trancheId: 0,
     tokenId: 0,
@@ -59,17 +58,34 @@ describe('withdraw', function () {
     const {
       stakingPool,
       cover,
-      accounts: { defaultSender: manager },
+      tokenController,
+      accounts: {
+        defaultSender: manager,
+        internalContracts: [internal],
+      },
     } = this;
 
-    const { poolId, initialPoolFee, maxPoolFee, productInitializationParams, isPrivatePool } = initializeParams;
+    const { poolId, initialPoolFee, maxPoolFee, productInitializationParams, isPrivatePool, ipfsDescriptionHash } =
+      initializeParams;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
     await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
 
     await stakingPool
       .connect(coverSigner)
-      .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, productInitializationParams, poolId);
+      .initialize(
+        manager.address,
+        isPrivatePool,
+        initialPoolFee,
+        maxPoolFee,
+        productInitializationParams,
+        poolId,
+        ipfsDescriptionHash,
+      );
+
+    const internalSigner = await ethers.getImpersonatedSigner(internal.address);
+
+    await tokenController.connect(internalSigner).mintStakingPoolNXMRewards(tempRewardsAmount, initializeParams.poolId);
   });
 
   it('reverts if trying to withdraw stake locked in governance', async function () {
@@ -116,6 +132,51 @@ describe('withdraw', function () {
       nxm,
       cover,
       stakingPool,
+      accounts: {
+        members: [user],
+      },
+    } = this;
+
+    const { amount, tokenId, destination, depositNftId } = depositToFixture;
+
+    const { firstActiveTrancheId } = await getTranches();
+
+    await stakingPool.connect(user).depositTo([
+      {
+        amount,
+        trancheId: firstActiveTrancheId,
+        tokenId,
+        destination,
+      },
+    ]);
+
+    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
+    await stakingPool.connect(coverSigner).allocateCapacity(allocationRequest, allocationConfig);
+
+    await increaseTime(TRANCHE_DURATION);
+
+    const withdrawStake = true;
+    const withdrawRewards = false;
+    const trancheIds = [firstActiveTrancheId];
+
+    const depositBefore = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
+    const userBalanceBefore = await nxm.balanceOf(user.address);
+
+    await stakingPool.connect(user).withdraw([{ tokenId: depositNftId, withdrawStake, withdrawRewards, trancheIds }]);
+
+    const depositAfter = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
+    const userBalanceAfter = await nxm.balanceOf(user.address);
+
+    expect(depositBefore.stakeShares).to.be.eq(Math.sqrt(amount));
+    expect(depositAfter.stakeShares).to.be.eq(0);
+    expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(amount));
+  });
+
+  it('transfers nxm stake and rewards from token controller to nft owner', async function () {
+    const {
+      nxm,
+      cover,
+      stakingPool,
       tokenController,
       accounts: {
         members: [user],
@@ -136,32 +197,29 @@ describe('withdraw', function () {
     ]);
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
-
     await stakingPool.connect(coverSigner).allocateCapacity(allocationRequest, allocationConfig);
 
     await increaseTime(TRANCHE_DURATION);
 
     const withdrawStake = true;
-    const withdrawRewards = false;
+    const withdrawRewards = true;
     const trancheIds = [firstActiveTrancheId];
 
-    const depositBefore = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
-    const userBalanceBefore = await nxm.balanceOf(user.address);
     const TCbalanceBefore = await nxm.balanceOf(tokenController.address);
+    const deposit = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
 
     await stakingPool.connect(user).withdraw([{ tokenId: depositNftId, withdrawStake, withdrawRewards, trancheIds }]);
 
-    const depositAfter = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
-    const userBalanceAfter = await nxm.balanceOf(user.address);
     const TCbalanceAfter = await nxm.balanceOf(tokenController.address);
 
-    expect(depositBefore.stakeShares).to.be.eq(Math.sqrt(amount));
-    expect(depositAfter.stakeShares).to.be.eq(0);
+    expect(TCbalanceBefore).to.be.eq(amount.add(tempRewardsAmount));
 
-    expect(TCbalanceBefore).to.be.eq(amount);
-    expect(TCbalanceAfter).to.be.eq(0);
+    const { accNxmPerRewardShareAtExpiry } = await stakingPool.expiredTranches(firstActiveTrancheId);
+    const rewardsWithdrawn = deposit.rewardsShares
+      .mul(accNxmPerRewardShareAtExpiry.sub(deposit.lastAccNxmPerRewardShare))
+      .add(deposit.pendingRewards);
 
-    expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(amount));
+    expect(TCbalanceAfter).to.be.eq(TCbalanceBefore.sub(rewardsWithdrawn).sub(amount));
   });
 
   it('allows to withdraw only rewards', async function () {
@@ -169,7 +227,6 @@ describe('withdraw', function () {
       nxm,
       cover,
       stakingPool,
-      tokenController,
       accounts: {
         members: [user],
       },
@@ -196,7 +253,6 @@ describe('withdraw', function () {
 
     const depositBefore = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
     const userBalanceBefore = await nxm.balanceOf(user.address);
-    const TCbalanceBefore = await nxm.balanceOf(tokenController.address);
 
     const rewardShares = await getNewRewardShares({
       stakingPool,
@@ -213,17 +269,14 @@ describe('withdraw', function () {
 
     const depositAfter = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
     const userBalanceAfter = await nxm.balanceOf(user.address);
-    const TCbalanceAfter = await nxm.balanceOf(tokenController.address);
 
     expect(depositBefore.rewardsShares).to.be.eq(rewardShares);
     expect(depositAfter.rewardsShares).to.be.eq(0);
 
-    expect(TCbalanceBefore).to.be.eq(amount);
     const { accNxmPerRewardShareAtExpiry } = await stakingPool.expiredTranches(firstActiveTrancheId);
     const rewardsWithdrawn = depositBefore.rewardsShares
       .mul(accNxmPerRewardShareAtExpiry.sub(depositBefore.lastAccNxmPerRewardShare))
       .add(depositBefore.pendingRewards);
-    expect(TCbalanceAfter).to.be.eq(TCbalanceBefore.sub(rewardsWithdrawn));
 
     expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(rewardsWithdrawn));
   });
@@ -252,19 +305,22 @@ describe('withdraw', function () {
     ]);
 
     const withdrawStake = true;
-    const withdrawRewards = false;
+    const withdrawRewards = true;
     const trancheIds = [firstActiveTrancheId];
 
     const depositBefore = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
     const userBalanceBefore = await nxm.balanceOf(user.address);
     const TCbalanceBefore = await nxm.balanceOf(tokenController.address);
 
-    await stakingPool.connect(user).withdraw([{ tokenId: depositNftId, withdrawStake, withdrawRewards, trancheIds }]);
+    await expect(
+      stakingPool.connect(user).withdraw([{ tokenId: depositNftId, withdrawStake, withdrawRewards, trancheIds }]),
+    ).to.not.be.reverted;
 
     const depositAfter = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
     const userBalanceAfter = await nxm.balanceOf(user.address);
     const TCbalanceAfter = await nxm.balanceOf(tokenController.address);
 
+    // Nothing changes
     expect(depositBefore.stakeShares).to.be.eq(depositAfter.stakeShares);
     expect(userBalanceBefore).to.be.eq(userBalanceAfter);
     expect(TCbalanceBefore).to.be.eq(TCbalanceAfter);
@@ -280,18 +336,15 @@ describe('withdraw', function () {
         members: [user],
       },
     } = this;
-
     const { amount, tokenId, destination, depositNftId } = depositToFixture;
-    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
-    const TRANCHES_NUMBER = 5;
 
-    const withdrawStake = false;
-    const withdrawRewards = true;
+    const TRANCHES_NUMBER = 5;
     const trancheIds = [];
 
-    const userBalanceBefore = await nxm.balanceOf(user.address);
-    const TCbalanceBefore = await nxm.balanceOf(tokenController.address);
+    const withdrawStake = true;
+    const withdrawRewards = true;
 
+    const coverSigner = await ethers.getImpersonatedSigner(cover.address);
     for (let i = 0; i < TRANCHES_NUMBER; i++) {
       const { firstActiveTrancheId: currentTranche } = await getTranches();
 
@@ -310,26 +363,38 @@ describe('withdraw', function () {
       await mineNextBlock();
     }
 
-    await increaseTime(TRANCHE_DURATION);
-    await mineNextBlock();
+    const depositsBeforeWithdraw = {};
+    for (const tranche of trancheIds) {
+      depositsBeforeWithdraw[tranche] = await stakingPool.deposits(depositNftId, tranche);
+    }
 
-    const lastTranche = trancheIds[TRANCHES_NUMBER - 1];
-    const depositBefore = await stakingPool.deposits(depositNftId, trancheIds[0]);
+    const userBalanceBefore = await nxm.balanceOf(user.address);
+    const TCbalanceBefore = await nxm.balanceOf(tokenController.address);
 
     await stakingPool.connect(user).withdraw([{ tokenId: depositNftId, withdrawStake, withdrawRewards, trancheIds }]);
 
+    const lastTranche = trancheIds[TRANCHES_NUMBER - 1];
     const depositAfter = await stakingPool.deposits(depositNftId, lastTranche);
     const userBalanceAfter = await nxm.balanceOf(user.address);
+    const TCbalanceAfter = await nxm.balanceOf(tokenController.address);
 
     expect(depositAfter.rewardsShares).to.be.eq(0);
 
-    expect(TCbalanceBefore).to.be.eq(0);
-    const { accNxmPerRewardShareAtExpiry } = await stakingPool.expiredTranches(lastTranche);
-    // const rewardsWithdrawn = depositBefore.rewardsShares
-    //   .mul(accNxmPerRewardShareAtExpiry.sub(depositBefore.lastAccNxmPerRewardShare))
-    //   .add(depositBefore.pendingRewards);
+    let rewardsWithdrawn = BigNumber.from(0);
+    let stakeWithdrawn = BigNumber.from(0);
+    for (const tranche of trancheIds) {
+      const { rewards, stake } = await calculateStakeAndRewardsWithdrawAmounts(
+        stakingPool,
+        depositsBeforeWithdraw[tranche],
+        tranche,
+      );
 
-    // expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(rewardsWithdrawn));
+      rewardsWithdrawn = rewardsWithdrawn.add(rewards);
+      stakeWithdrawn = stakeWithdrawn.add(stake);
+    }
+
+    expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(rewardsWithdrawn).add(stakeWithdrawn));
+    expect(TCbalanceAfter).to.be.eq(TCbalanceBefore.sub(rewardsWithdrawn).sub(stakeWithdrawn));
   });
 
   it('update tranches', async function () {
@@ -390,6 +455,7 @@ describe('withdraw', function () {
     const {
       cover,
       stakingPool,
+      nxm,
       accounts: {
         members: [user],
         nonMembers: [randomUser],
@@ -417,18 +483,29 @@ describe('withdraw', function () {
 
     await stakingPool.connect(coverSigner).allocateCapacity(allocationRequest, allocationConfig);
 
+    const deposit = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
     await increaseTime(TRANCHE_DURATION);
+
+    const userBalanceBefore = await nxm.balanceOf(user.address);
+    const randomUserBalanceBefore = await nxm.balanceOf(randomUser.address);
 
     expect(
       await stakingPool
         .connect(randomUser)
         .withdraw([{ tokenId: depositNftId, withdrawStake, withdrawRewards, trancheIds }]),
     ).to.not.be.reverted;
+
+    const { stake } = await calculateStakeAndRewardsWithdrawAmounts(stakingPool, deposit, firstActiveTrancheId);
+
+    const userBalanceAfter = await nxm.balanceOf(user.address);
+    const randomUserBalanceAfter = await nxm.balanceOf(randomUser.address);
+
+    expect(randomUserBalanceAfter).to.eq(randomUserBalanceBefore);
+    expect(userBalanceAfter).to.eq(userBalanceBefore.add(stake));
   });
 
   it('should emit some event', async function () {
     const {
-      nxm,
       cover,
       stakingPool,
       accounts: {
@@ -438,11 +515,12 @@ describe('withdraw', function () {
 
     const { amount, tokenId, destination, depositNftId } = depositToFixture;
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
+
     const TRANCHES_NUMBER = 3;
+    const trancheIds = [];
 
     const withdrawStake = true;
     const withdrawRewards = true;
-    const trancheIds = [];
 
     for (let i = 0; i < TRANCHES_NUMBER; i++) {
       const { firstActiveTrancheId: currentTranche } = await getTranches();
@@ -462,28 +540,34 @@ describe('withdraw', function () {
       await mineNextBlock();
     }
 
-    await increaseTime(TRANCHE_DURATION);
-    await mineNextBlock();
+    const depositsBeforeWithdraw = {};
+    for (const tranche of trancheIds) {
+      depositsBeforeWithdraw[tranche] = await stakingPool.deposits(depositNftId, tranche);
+    }
 
-    const lastTranche = trancheIds[TRANCHES_NUMBER - 1];
-    const depositBefore = await stakingPool.deposits(depositNftId, trancheIds[0]);
+    await stakingPool.connect(user).withdraw([{ tokenId: depositNftId, withdrawStake, withdrawRewards, trancheIds }]);
 
-    const rewardShares = await getNewRewardShares({
-      stakingPool,
-      initialStakeShares: 0,
-      stakeSharesIncrease: depositBefore.stakeShares,
-      initialTrancheId: trancheIds[0],
-      newTrancheId: lastTranche,
-    });
+    const stakes = [];
+    const rewards = [];
+    for (const tranche of trancheIds) {
+      const { rewards: currentReward, stake } = await calculateStakeAndRewardsWithdrawAmounts(
+        stakingPool,
+        depositsBeforeWithdraw[tranche],
+        tranche,
+      );
+
+      stakes.push(stake);
+      rewards.push(currentReward);
+    }
 
     await expect(
       stakingPool.connect(user).withdraw([{ tokenId: depositNftId, withdrawStake, withdrawRewards, trancheIds }]),
     )
       .to.emit(stakingPool, 'Withdraw')
-      //.withArgs(user.address, depositNftId, trancheIds[0], 0, 0)
-      .emit(stakingPool, 'Withdraw')
-      //.withArgs(user.address, depositNftId, trancheIds[1], 0, 0)
-      .emit(stakingPool, 'Withdraw');
-    //.withArgs(user.address, depositNftId, trancheIds[2], 0, 0);
+      .withArgs(user.address, depositNftId, trancheIds[1], stakes[1], rewards[1])
+      .to.emit(stakingPool, 'Withdraw')
+      .withArgs(user.address, depositNftId, trancheIds[2], stakes[2], rewards[2])
+      .to.emit(stakingPool, 'Withdraw')
+      .withArgs(user.address, depositNftId, trancheIds[2], stakes[2], rewards[2]);
   });
 });

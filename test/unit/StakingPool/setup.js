@@ -78,6 +78,8 @@ async function setup() {
     await master.enrollGovernance(governanceContract.address);
   }
 
+  await tokenController.changeMasterAddress(master.address);
+
   const config = {
     REWARD_BONUS_PER_TRANCHE_RATIO: await stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO(),
     REWARD_BONUS_PER_TRANCHE_DENOMINATOR: await stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR(),

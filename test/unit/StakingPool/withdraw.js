@@ -352,7 +352,7 @@ describe('withdraw', function () {
         {
           amount,
           trancheId: currentTranche,
-          tokenId: i == 0 ? tokenId : depositNftId,
+          tokenId: i === 0 ? tokenId : depositNftId,
           destination,
         },
       ]);
@@ -489,10 +489,8 @@ describe('withdraw', function () {
     const userBalanceBefore = await nxm.balanceOf(user.address);
     const randomUserBalanceBefore = await nxm.balanceOf(randomUser.address);
 
-    expect(
-      await stakingPool
-        .connect(randomUser)
-        .withdraw([{ tokenId: depositNftId, withdrawStake, withdrawRewards, trancheIds }]),
+    await expect(
+      stakingPool.connect(randomUser).withdraw([{ tokenId: depositNftId, withdrawStake, withdrawRewards, trancheIds }]),
     ).to.not.be.reverted;
 
     const { stake } = await calculateStakeAndRewardsWithdrawAmounts(stakingPool, deposit, firstActiveTrancheId);
@@ -529,7 +527,7 @@ describe('withdraw', function () {
         {
           amount: amount.mul(i * 5 + 1),
           trancheId: currentTranche,
-          tokenId: i == 0 ? tokenId : depositNftId,
+          tokenId: i === 0 ? tokenId : depositNftId,
           destination,
         },
       ]);

@@ -575,7 +575,7 @@ describe('depositTo', function () {
     }
   });
 
-  it('updates updates pool manager rewards shares', async function () {
+  it('updates pool manager rewards shares', async function () {
     const { stakingPool } = this;
     const {
       members: [user],

@@ -527,7 +527,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         * burnAmount / segment.amount
         * GLOBAL_CAPACITY_DENOMINATOR / globalCapacityRatio;
 
-      stakingPool(i).burnStake(cover.productId, segment.start, segment.period, burnAmountInNXM);
+      stakingPool(i).burnStake(burnAmountInNXM);
 
       uint payoutAmountInNXM = allocation.coverAmountInNXM * burnAmount / segment.amount;
       allocations[i].coverAmountInNXM -= SafeUintCast.toUint96(payoutAmountInNXM);

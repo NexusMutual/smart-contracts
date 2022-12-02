@@ -855,14 +855,14 @@ describe('redeemPayout', function () {
       .connect(member1)
       .redeemPayout(0, 0, 0, depeggedTokensAmount, member1.address, [], { gasPrice: 0 });
 
-    const { coverId, segmentId, amount } = await cover.burnStakeCalledWith();
-
-    expect(coverId).to.be.equal(0);
-    expect(segmentId).to.be.equal(0);
+    const { amount } = await cover.burnStakeCalledWith();
 
     const ratio = priceBefore.mul(payoutDeductibleRatio);
-    expect(amount).to.be.equal(
-      depeggedTokensAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals),
-    );
+    const expectedAmount = depeggedTokensAmount
+      .mul(ratio)
+      .div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR)
+      .div(coverAssetDecimals);
+
+    expect(amount).to.be.equal(expectedAmount);
   });
 });

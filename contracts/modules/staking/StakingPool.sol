@@ -1178,26 +1178,22 @@ contract StakingPool is IStakingPool, ERC721 {
     tokenController.depositStakedNXM(msg.sender, transferAmount, poolId);
   }
 
-  // O(1)
-  function burnStake(
-    uint productId,
-    uint start,
-    uint period,
-    uint amount
-  ) external onlyCoverContract {
+  function burnStake(uint amount) external onlyCoverContract {
 
-    productId;
-    start;
-    period;
-
-    // TODO: free up the stake used by the corresponding cover
     // TODO: block the pool if we perform 100% of the stake
 
     // passing false because neither the amount of shares nor the reward per second are changed
     processExpirations(false);
 
-    uint _activeStake = activeStake;
-    activeStake = _activeStake > amount ? _activeStake - amount : 0;
+    // sload
+    uint initialStake = activeStake;
+
+    // leaving 1 wei to avoid division by zero
+    uint burnAmount = amount >= initialStake ? initialStake - 1 : amount;
+    tokenController.burnStakedNXM(burnAmount, poolId);
+
+    // sstore
+    activeStake = initialStake - burnAmount;
   }
 
   /* nft */

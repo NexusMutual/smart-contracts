@@ -382,14 +382,12 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
 
   function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
-
     require(msg.sender == address(cover()), "TokenController: only Cover allowed");
     mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
 
   function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
-
     require(msg.sender == address(cover()), "TokenController: only Cover allowed");
     burnFrom(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
@@ -397,7 +395,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
   function depositStakedNXM(address from, uint amount, uint poolId) external {
     require(msg.sender == address(cover().stakingPool(poolId)), "TokenController: msg.sender not staking pool");
-
     stakingPoolNXMBalances[poolId].deposits += amount.toUint128();
     token().operatorTransfer(from, amount);
   }
@@ -411,5 +408,11 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     stakingPoolNXMBalances[poolId] = poolBalances;
 
     token().transfer(to, stakeToWithdraw + rewardsToWithdraw);
+  }
+
+  function burnStakedNXM(uint amount, uint poolId) external {
+    require(msg.sender == address(cover().stakingPool(poolId)), "TokenController: msg.sender not staking pool");
+    stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();
+    burnFrom(address(this), amount);
   }
 }

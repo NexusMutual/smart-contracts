@@ -52,9 +52,6 @@ describe('burnStake', function () {
 
     const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
     const burnStakeCalledWith = await stakingPool.burnStakeCalledWith();
-
-    expect(burnStakeCalledWith.productId).to.be.equal(productId);
-    expect(burnStakeCalledWith.period).to.be.equal(period);
     expect(burnStakeCalledWith.amount).to.be.equal(expectedBurnAmount);
   });
 
@@ -168,10 +165,8 @@ describe('burnStake', function () {
 
     for (let i = 0; i < amountOfPools; i++) {
       const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(i));
-      const burnStakeCalledWith = await stakingPool.burnStakeCalledWith();
 
-      expect(burnStakeCalledWith.productId).to.be.equal(productId);
-      expect(burnStakeCalledWith.period).to.be.equal(period);
+      const burnStakeCalledWith = await stakingPool.burnStakeCalledWith();
       expect(burnStakeCalledWith.amount).to.be.equal(expectedBurnAmountPerPool);
 
       const segmentAllocationAfter = await cover.coverSegmentAllocations(expectedCoverId, segmentId, i);

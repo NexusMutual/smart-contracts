@@ -11,9 +11,6 @@ import "../Tokens/ERC721Mock.sol";
 contract CoverMockStakingPool is IStakingPool, ERC721Mock {
 
   struct BurnStakeCalledWith {
-    uint productId;
-    uint start;
-    uint period;
     uint amount;
   }
 
@@ -155,9 +152,9 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     // noop
   }
 
-  function burnStake(uint productId, uint start, uint period, uint amount) external {
+  function burnStake(uint amount) external {
     // no-op
-    burnStakeCalledWith = BurnStakeCalledWith(productId, start, period, amount);
+    burnStakeCalledWith = BurnStakeCalledWith(amount);
   }
 
   function depositTo(DepositRequest[] memory /* requests */) external returns (uint[] memory /* tokenIds */) {

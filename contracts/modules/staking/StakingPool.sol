@@ -602,9 +602,9 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function requestAllocation(
     uint amount,
-    uint previousRewardsPerSecond,
+    uint previousPremium,
     AllocationRequest calldata request
-  ) external onlyCoverContract returns (uint premium, uint _rewardPerSecond) {
+  ) external onlyCoverContract returns (uint premium) {
 
     // passing true because we change the reward per second
     processExpirations(true);
@@ -632,7 +632,7 @@ contract StakingPool is IStakingPool, ERC721 {
       );
 
       // no need to charge any premium
-      return (0, 0);
+      return 0;
     }
 
     (
@@ -658,7 +658,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
       uint expirationBucket = Math.divCeil(block.timestamp + request.period, BUCKET_DURATION);
       uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
-      _rewardPerSecond = (premium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
+      uint _rewardPerSecond = (premium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
 
       // sstore
       rewardBuckets[expirationBucket].rewardPerSecondCut += _rewardPerSecond;
@@ -669,20 +669,23 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     // remove previous rewards
-    if (previousRewardsPerSecond > 0) {
+    if (previousPremium > 0) {
 
-      uint previousExpirationBucket = Math.divCeil(request.previousExpiration, BUCKET_DURATION);
-      uint rewardStreamPeriodLeft = previousExpirationBucket * BUCKET_DURATION - block.timestamp;
+      uint prevRewards = previousPremium * request.previousRewardsRatio / REWARDS_DENOMINATOR;
+      uint prevExpirationBucket = Math.divCeil(request.previousExpiration, BUCKET_DURATION);
+      uint rewardStreamPeriod = prevExpirationBucket * BUCKET_DURATION - request.previousStart;
+      uint prevRewardsPerSecond = prevRewards / rewardStreamPeriod;
 
       // sstore
-      rewardBuckets[previousExpirationBucket].rewardPerSecondCut -= previousRewardsPerSecond;
-      rewardPerSecond -= previousRewardsPerSecond;
+      rewardBuckets[prevExpirationBucket].rewardPerSecondCut -= prevRewardsPerSecond;
+      rewardPerSecond -= prevRewardsPerSecond;
 
-      uint rewardsToBurn = previousRewardsPerSecond * rewardStreamPeriodLeft;
+      // prevRewardsPerSecond * rewardStreamPeriodLeft
+      uint rewardsToBurn = prevRewardsPerSecond * (prevExpirationBucket * BUCKET_DURATION - block.timestamp);
       tokenController.burnStakingPoolNXMRewards(rewardsToBurn, poolId);
     }
 
-    return (premium, _rewardPerSecond);
+    return premium;
   }
 
   function getActiveAllocationsWithoutCover(

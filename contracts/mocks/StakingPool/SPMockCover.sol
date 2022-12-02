@@ -53,7 +53,7 @@ contract SPMockCover {
     BuyCoverParams memory params,
     uint coverId,
     IStakingPool _stakingPool
-  ) public returns (uint premium, uint rewardsPerSecond) {
+  ) public returns (uint premium) {
 
     Product memory product = products[params.productId];
     uint gracePeriod = productTypes[product.productType].gracePeriod;
@@ -61,7 +61,7 @@ contract SPMockCover {
     return _stakingPool.requestAllocation(
       params.amount,
       // TODO: figure out if these need to be populated
-      0, // previousRewardsPerSecond
+      0, // previousPremium
       AllocationRequest(
         params.productId,
         coverId,
@@ -71,6 +71,7 @@ contract SPMockCover {
         // TODO: figure out if these need to be populated
         0, // previous cover start
         0,  // previous cover expiration
+        0,  // previous rewards ratio
         globalCapacityRatio,
         product.capacityReductionRatio,
         globalRewardsRatio,

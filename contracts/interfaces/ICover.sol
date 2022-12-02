@@ -29,31 +29,18 @@ enum CoverUintParams {
   coverAssetsFallback
 }
 
+/* io structs */
+
 struct PoolAllocationRequest {
   uint40 poolId;
   uint coverAmountInAsset;
 }
 
-struct PoolAllocation {
-  uint40 poolId;
-  uint96 coverAmountInNXM;
-  uint96 premiumInNXM;
-  // TODO: check if 24 bits are enough
-  uint24 rewardsPerSecond;
-}
-
-struct CoverData {
-  uint24 productId;
-  uint8 coverAsset;
-  uint96 amountPaidOut;
-}
-
-struct CoverSegment {
-  uint96 amount;
-  uint32 start;
-  uint32 period; // seconds
-  uint32 gracePeriod; // seconds
-  uint24 globalRewardsRatio;
+struct RequestAllocationVariables {
+  uint previousPoolAllocationsLength;
+  uint previousPremiumInNXM;
+  uint refund;
+  uint coverAmountInNXM;
 }
 
 struct BuyCoverParams {
@@ -68,6 +55,41 @@ struct BuyCoverParams {
   uint16 commissionRatio;
   address commissionDestination;
   string ipfsData;
+}
+
+struct ProductParam {
+  uint productId;
+  string ipfsMetadata;
+  Product product;
+  uint[] allowedPools;
+}
+
+struct ProductTypeParam {
+  uint productTypeId;
+  string ipfsMetadata;
+  ProductType productType;
+}
+
+/* storage structs */
+
+struct PoolAllocation {
+  uint40 poolId;
+  uint96 coverAmountInNXM;
+  uint96 premiumInNXM;
+}
+
+struct CoverData {
+  uint24 productId;
+  uint8 coverAsset;
+  uint96 amountPaidOut;
+}
+
+struct CoverSegment {
+  uint96 amount;
+  uint32 start;
+  uint32 period; // seconds
+  uint32 gracePeriod; // seconds
+  uint24 globalRewardsRatio;
 }
 
 struct ProductBucket {
@@ -86,22 +108,9 @@ struct Product {
   bool useFixedPrice;
 }
 
-struct ProductParam {
-  uint productId;
-  string ipfsMetadata;
-  Product product;
-  uint[] allowedPools;
-}
-
 struct ProductType {
   uint8 claimMethod;
   uint32 gracePeriod;
-}
-
-struct ProductTypeParam {
-  uint productTypeId;
-  string ipfsMetadata;
-  ProductType productType;
 }
 
 interface ICover {

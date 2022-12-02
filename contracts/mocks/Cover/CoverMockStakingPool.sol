@@ -69,13 +69,11 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
 
   function requestAllocation(
     uint amount,
-    uint /*previousRewardsPerSecond*/,
+    uint /*previousPremium*/,
     AllocationRequest calldata request
-  ) external override returns (uint premium, uint rewardsPerSecond) {
+  ) external override returns (uint premium) {
     usedCapacity[request.productId] += amount;
-    premium = calculatePremium(mockPrices[request.productId], amount, request.period);
-    rewardsPerSecond = premium * request.rewardRatio / REWARDS_DENOMINATOR / request.period;
-    return (premium, rewardsPerSecond);
+    return calculatePremium(mockPrices[request.productId], amount, request.period);
   }
 
   function setProducts(StakedProductParam[] memory params) external {

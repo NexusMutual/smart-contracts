@@ -869,7 +869,7 @@ contract StakingPool is IStakingPool, ERC721 {
       * CAPACITY_REDUCTION_DENOMINATOR
       * WEIGHT_DENOMINATOR;
 
-    for (uint i = firstTrancheId; i <= trancheCount; i++) {
+    for (uint i = 0; i < trancheCount; i++) {
       uint trancheStake = (_activeStake * tranches[firstTrancheId + i].stakeShares / _stakeSharesSupply);
       trancheCapacities[i] = trancheStake * multiplier / denominator / NXM_PER_ALLOCATION_UNIT;
     }
@@ -990,7 +990,7 @@ contract StakingPool is IStakingPool, ERC721 {
   ) internal {
 
     uint firstGroupId = firstTrancheId / BUCKET_TRANCHE_GROUP_SIZE;
-    uint lastGroupId = (firstTrancheId + MAX_ACTIVE_TRANCHES - 1) / BUCKET_TRANCHE_GROUP_SIZE - firstGroupId + 1;
+    uint lastGroupId = (firstTrancheId + MAX_ACTIVE_TRANCHES - 1) / BUCKET_TRANCHE_GROUP_SIZE;
     uint groupCount = lastGroupId - firstGroupId + 1;
 
     TrancheGroupBucket[] memory trancheGroupBuckets = new TrancheGroupBucket[](groupCount);

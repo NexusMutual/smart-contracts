@@ -159,7 +159,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint16 segmentId,
     uint96 requestedAmount,
     string calldata ipfsMetadata
-  ) payable external whenNotPaused returns (uint newCoverId){
+  ) payable external whenNotPaused returns (uint newCoverId) {
     newCoverId =  _migrateCoverFromOwner(coverId, msg.sender, address(this));
     individualClaims().submitClaimOf{value: msg.value}(uint32(newCoverId), segmentId, requestedAmount, ipfsMetadata, msg.sender);
     ICoverNFT(coverNFT).transferFrom(address(this), msg.sender, newCoverId);

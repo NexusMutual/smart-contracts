@@ -231,8 +231,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint96 requestedAmount,
     string calldata ipfsMetadata
   ) external payable override onlyMember whenNotPaused returns (Claim memory claim) {
-    claim = _submitClaim(coverId, segmentId, requestedAmount, ipfsMetadata, msg.sender);
-    return claim;
+    return _submitClaim(coverId, segmentId, requestedAmount, ipfsMetadata, msg.sender);
   }
   function submitClaimOf(
     uint32 coverId,
@@ -240,8 +239,8 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint96 requestedAmount,
     string calldata ipfsMetadata,
     address owner
-  ) external payable override onlyInternal whenNotPaused {
-    _submitClaim(coverId, segmentId, requestedAmount, ipfsMetadata, owner);
+  ) external payable override onlyInternal whenNotPaused returns (Claim memory claim){
+    return _submitClaim(coverId, segmentId, requestedAmount, ipfsMetadata, owner);
   }
 
   function _submitClaim(
@@ -250,10 +249,10 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint96 requestedAmount,
     string calldata ipfsMetadata,
     address owner
-  ) internal whenNotPaused returns (Claim memory) {
+  ) internal returns (Claim memory) {
   require(
       coverNFT.isApprovedOrOwner(msg.sender, coverId),
-      "The owner or approved address can submit a claim"
+      "Only the owner or approved addresses can submit a claim"
     );
     {
       ClaimSubmission memory previousSubmission = lastClaimSubmissionOnCover[coverId];
@@ -334,7 +333,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
         bool refunded,
         /* bytes data */
       ) = owner.call{value: msg.value - assessmentDepositInETH}("");
-      require(refunded, "Deposit excess refund failed");
+      require(refunded, "Assessment deposit excess refund failed");
     }
 
     // Transfer the assessment deposit to the pool
@@ -342,7 +341,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       bool transferSucceeded,
       /* bytes data */
     ) =  getInternalContractAddress(ID.P1).call{value: assessmentDepositInETH}("");
-    require(transferSucceeded, "Deposit transfer to pool failed");
+    require(transferSucceeded, "Assessment deposit transfer to pool failed");
 
     return claim;
   }

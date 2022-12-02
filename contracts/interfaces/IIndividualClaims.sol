@@ -122,7 +122,7 @@ interface IIndividualClaims {
     uint96 requestedAmount,
     string calldata ipfsMetadata,
     address owner
-  ) external payable;
+  ) external payable returns (Claim memory);
 
   function redeemClaimPayout(uint104 id) external;
 

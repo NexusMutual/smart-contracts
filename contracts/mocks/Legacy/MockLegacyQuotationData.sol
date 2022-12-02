@@ -22,14 +22,13 @@ contract MockLegacyQuotationData is LegacyQuotationData {
     address _scAddress,
     uint premium,
     uint premiumNXM
-  )
-  external
-  {
+  ) external {
     uint expiryDate = now.add(uint(_coverPeriod).mul(1 days));
-    allCovers.push(Cover(_userAddress, _currencyCode,
-      _sumAssured, _coverPeriod, expiryDate, _scAddress, premiumNXM));
+
+    allCovers.push(Cover(_userAddress, _currencyCode, _sumAssured, _coverPeriod, expiryDate, _scAddress, premiumNXM));
     uint cid = allCovers.length.sub(1);
     userCover[_userAddress].push(cid);
+
     emit CoverDetailsEvent(cid, _scAddress, _sumAssured, expiryDate, premium, premiumNXM, _currencyCode);
   }
 }

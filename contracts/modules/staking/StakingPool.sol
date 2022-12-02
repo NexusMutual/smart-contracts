@@ -107,9 +107,8 @@ contract StakingPool is IStakingPool, ERC721 {
 
   uint public constant REWARD_BONUS_PER_TRANCHE_RATIO = 10_00; // 10.00%
   uint public constant REWARD_BONUS_PER_TRANCHE_DENOMINATOR = 100_00;
+  uint public constant MAX_TOTAL_WEIGHT = 20_00; // 20x
   uint public constant WEIGHT_DENOMINATOR = 100;
-  uint public constant MAX_WEIGHT_MULTIPLIER = 20;
-  uint public constant MAX_TOTAL_WEIGHT = WEIGHT_DENOMINATOR * MAX_WEIGHT_MULTIPLIER;
   uint public constant REWARDS_DENOMINATOR = 100_00;
   uint public constant POOL_FEE_DENOMINATOR = 100;
 
@@ -1294,10 +1293,14 @@ contract StakingPool is IStakingPool, ERC721 {
       StakedProductParam memory _param = params[i];
       StakedProduct memory _product = products[_param.productId];
 
+      // if this is a new product
       if (_product.nextPriceUpdateTime == 0) {
+        // initialize the nextPrice
         _product.nextPrice = initialPriceRatios[i].toUint96();
         _product.nextPriceUpdateTime = uint32(block.timestamp);
+        // and make sure we set the price and the target weight
         require(_param.setTargetPrice, "StakingPool: Must set price for new products");
+        require(_param.setTargetWeight, "StakingPool: Must set weight for new products");
       }
 
       if (_param.setTargetPrice) {
@@ -1307,6 +1310,7 @@ contract StakingPool is IStakingPool, ERC721 {
       }
 
       require(
+        // if setTargetWeight is set - effective weight must be recalculated
         !_param.setTargetWeight || _param.recalculateEffectiveWeight,
         "StakingPool: Must recalculate effectiveWeight to edit targetWeight"
       );
@@ -1325,21 +1329,30 @@ contract StakingPool is IStakingPool, ERC721 {
           _product.targetWeight = _param.targetWeight;
         }
 
-        uint16 previousEffectiveWeight = _product.lastEffectiveWeight;
+        // subtract the previous effective weight
+        _totalEffectiveWeight -= _product.lastEffectiveWeight;
+
         _product.lastEffectiveWeight = getEffectiveWeight(
           _param.productId,
           _product.targetWeight,
           globalCapacityRatio,
           capacityReductionRatios[i]
         );
-        _totalEffectiveWeight = _totalEffectiveWeight - previousEffectiveWeight + _product.lastEffectiveWeight;
+
+        // add the new effective weight
+        _totalEffectiveWeight += _product.lastEffectiveWeight;
       }
+
+      // sstore
       products[_param.productId] = _product;
     }
+
+    require(_totalTargetWeight <= MAX_TOTAL_WEIGHT, "StakingPool: Max total target weight exceeded");
 
     if (targetWeightIncreased) {
       require(_totalEffectiveWeight <= MAX_TOTAL_WEIGHT, "StakingPool: Total max effective weight exceeded");
     }
+
     totalTargetWeight = _totalTargetWeight.toUint32();
     totalEffectiveWeight = _totalEffectiveWeight.toUint32();
   }
@@ -1362,7 +1375,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint totalCapacity = Math.sum(trancheCapacities);
 
     if (totalCapacity == 0) {
-      return 0;
+      return targetWeight.toUint16();
     }
 
     uint[] memory activeAllocations = getActiveAllocations(productId);

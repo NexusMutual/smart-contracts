@@ -657,6 +657,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     uint poolCount = allowedPools[productId].length;
 
+    if (poolCount == 0) {
+      return true;
+    }
+
     for (uint i = 0; i < poolCount; i++) {
       if (allowedPools[productId][i] == poolId) {
         return true;

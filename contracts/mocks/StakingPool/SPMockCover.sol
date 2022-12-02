@@ -21,8 +21,14 @@ contract SPMockCover {
     stakingPool[id] = addr;
   }
 
-  function setProduct(Product memory product, uint id) public {
-    products[id] = product;
+  function setProduct(Product memory _product, uint id) public {
+    products[id] = _product;
+  }
+
+  function setProducts(Product[] memory _products, uint[] memory productIds) public {
+    for (uint i = 0; i < _products.length; i++) {
+      products[productIds[i]] = _products[i];
+    }
   }
 
   function setProductType(ProductType calldata product, uint id) public {

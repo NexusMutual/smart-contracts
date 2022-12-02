@@ -357,29 +357,24 @@ describe('redeemPayout', function () {
 
     await cover.createMockCover(member1.address, productIdYbEth, ASSET.ETH, [segment0, segment1]);
 
-    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-    await setTime(currentTime + segment0.period + gracePeriod);
+    const { timestamp: coverStartTime } = await ethers.provider.getBlock('latest');
+    await setTime(coverStartTime + segment0.period + gracePeriod);
 
     // Change product grace period
     const newGracePeriod = gracePeriod * 1000;
     await cover.connect(governance).editProductTypes([2], [newGracePeriod], ['ipfs hash']);
-    {
-      const { gracePeriod } = await cover.productTypes(2);
-      expect(gracePeriod).to.equal(newGracePeriod);
-      expect(currentTime + segment0.period).to.be.lessThan(gracePeriod);
-    }
+    const { gracePeriod: actualNewGracePeriod } = await cover.productTypes(2);
+    expect(actualNewGracePeriod).to.equal(newGracePeriod);
 
     await yieldTokenIncidents
       .connect(governance)
-      .submitIncident(productIdYbEth, priceBefore, currentTime + segment0.period - 1, parseEther('100'), '');
+      .submitIncident(productIdYbEth, priceBefore, coverStartTime + segment0.period - 1, parseEther('100'), '');
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
 
-    {
-      const { payoutCooldownInDays } = await assessment.config();
-      const { end } = await assessment.getPoll(0);
-      await setTime(end + daysToSeconds(payoutCooldownInDays));
-    }
+    const { payoutCooldownInDays } = await assessment.config();
+    const { end } = await assessment.getPoll(0);
+    await setTime(end + daysToSeconds(payoutCooldownInDays));
 
     await expect(
       yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),

@@ -52,7 +52,7 @@ describe('burnStake', function () {
 
     const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
     const burnStakeCalledWith = await stakingPool.burnStakeCalledWith();
-    expect(burnStakeCalledWith.amount).to.be.equal(expectedBurnAmount);
+    expect(burnStakeCalledWith).to.be.equal(expectedBurnAmount);
   });
 
   it('reverts if caller is not an internal contract', async function () {
@@ -167,7 +167,7 @@ describe('burnStake', function () {
       const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(i));
 
       const burnStakeCalledWith = await stakingPool.burnStakeCalledWith();
-      expect(burnStakeCalledWith.amount).to.be.equal(expectedBurnAmountPerPool);
+      expect(burnStakeCalledWith).to.be.equal(expectedBurnAmountPerPool);
 
       const segmentAllocationAfter = await cover.coverSegmentAllocations(expectedCoverId, segmentId, i);
 

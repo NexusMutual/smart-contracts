@@ -57,7 +57,7 @@ describe('createStakingPool', function () {
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
 
     const stakingPoolAddress = await cover.stakingPool(stakingPoolCountAfter.sub(1));
-    const stakingPool = await ethers.getContractAt('IntegrationMockStakingPool', stakingPoolAddress);
+    const stakingPool = await ethers.getContractAt('StakingPool', stakingPoolAddress);
 
     const managerStakingPoolNFTBalanceBefore = await stakingPool.balanceOf(manager.address);
     assert.equal(managerStakingPoolNFTBalanceBefore.toNumber(), 2);
@@ -124,7 +124,7 @@ describe('createStakingPool', function () {
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
 
     const stakingPoolAddress = await cover.stakingPool(stakingPoolCountAfter.sub(1));
-    const stakingPool = await ethers.getContractAt('IntegrationMockStakingPool', stakingPoolAddress);
+    const stakingPool = await ethers.getContractAt('StakingPool', stakingPoolAddress);
 
     const managerStakingPoolNFTBalanceBefore = await stakingPool.balanceOf(manager.address);
     expect(managerStakingPoolNFTBalanceBefore).to.be.equal(2);

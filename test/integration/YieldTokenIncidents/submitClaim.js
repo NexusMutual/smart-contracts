@@ -45,7 +45,18 @@ describe('submitClaim', function () {
         destination: AddressZero,
       },
     ]);
-    await stakingPool.setTargetWeight(productId, 10);
+
+    const stakingProductParams = {
+      productId,
+      recalculateEffectiveWeight: true,
+      setTargetWeight: true,
+      targetWeight: 100, // 1
+      setTargetPrice: true,
+      targetPrice: 100, // 1%
+    };
+
+    const managerSigner = await ethers.getSigner(await stakingPool.manager());
+    await stakingPool.connect(managerSigner).setProducts([stakingProductParams]);
   }
 
   it('submits ETH claim and approves claim', async function () {

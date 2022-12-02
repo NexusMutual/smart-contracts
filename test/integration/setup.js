@@ -16,7 +16,7 @@ async function setup() {
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
   // const Lido = await ethers.getContractFactory('P1MockLido');
   const ProductsV1 = await ethers.getContractFactory('ProductsV1');
-  const IntegrationMockStakingPool = await ethers.getContractFactory('IntegrationMockStakingPool');
+  const StakingPool = await ethers.getContractFactory('StakingPool');
 
   // nexusmutual
   const NXMToken = await ethers.getContractFactory('NXMToken');
@@ -187,7 +187,7 @@ async function setup() {
 
   const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NMC', cover.address);
 
-  const stakingPool = await IntegrationMockStakingPool.deploy(tk.address, cover.address, tc.address);
+  const stakingPool = await StakingPool.deploy(tk.address, cover.address, tc.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
@@ -488,7 +488,7 @@ async function setup() {
   ];
 
   for (let i = 0; i < 3; i++) {
-    const tx = await this.contracts.cover.createStakingPool(
+    await this.contracts.cover.createStakingPool(
       stakingPoolManagers[i],
       false, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
@@ -499,9 +499,8 @@ async function setup() {
       '',
     );
 
-    await tx.wait();
     const stakingPoolAddress = await cover.stakingPool(i);
-    const stakingPoolInstance = await ethers.getContractAt('IntegrationMockStakingPool', stakingPoolAddress);
+    const stakingPoolInstance = await ethers.getContractAt('StakingPool', stakingPoolAddress);
 
     this.contracts['stakingPool' + i] = stakingPoolInstance;
   }

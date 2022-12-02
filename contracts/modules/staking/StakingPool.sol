@@ -922,6 +922,11 @@ contract StakingPool is IStakingPool, ERC721 {
       initialCapacityUsed += trancheAllocations[i];
       totalCapacity += trancheCapacities[i - startIndex];
 
+      if (remainingAmount == 0) {
+        // not breaking out of the for loop because we need the total capacity calculated above
+        continue;
+      }
+
       if (trancheAllocations[i] >= trancheCapacities[i - startIndex]) {
         // no capacity left in this tranche
         continue;
@@ -932,10 +937,6 @@ contract StakingPool is IStakingPool, ERC721 {
       coverAllocations[i] = allocatedAmount;
       trancheAllocations[i] += allocatedAmount;
       remainingAmount -= allocatedAmount;
-
-      if (remainingAmount == 0) {
-        break;
-      }
     }
 
     require(remainingAmount == 0, "StakingPool: Insufficient capacity");

@@ -1,10 +1,25 @@
 const { ethers, expect } = require('hardhat');
-const { MaxUint256 } = ethers.constants;
+const { MaxUint256, AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 const { daysToSeconds } = require('../../../lib/helpers');
 const { setEtherBalance, increaseTime } = require('../../utils/evm');
 const { getTranches } = require('./helpers');
+
+const allocationRequestTemplate = {
+  productId: 0,
+  coverId: MaxUint256,
+  period: daysToSeconds(30),
+  gracePeriod: daysToSeconds(30),
+  previousStart: 0,
+  previousExpiration: 0,
+  previousRewardsRatio: 5000,
+  useFixedPrice: false,
+  globalCapacityRatio: 20000,
+  capacityReductionRatio: 0,
+  rewardRatio: 5000,
+  globalMinPrice: 10000,
+};
 
 describe('setPoolFee', function () {
   const product0 = {
@@ -100,49 +115,34 @@ describe('setPoolFee', function () {
       },
     } = this;
 
-    const allocationRequest = {
-      productId: 0,
-      coverId: MaxUint256,
-      amount: parseEther('1'),
-      period: daysToSeconds(30),
-    };
+    const allocationRequest = { ...allocationRequestTemplate };
 
-    const gracePeriod = daysToSeconds(30);
-    const { firstActiveTrancheId } = await getTranches(allocationRequest.period, gracePeriod);
-    const amount = parseEther('100');
+    const { firstActiveTrancheId } = await getTranches(allocationRequest.period, allocationRequest.gracePeriod);
+    const trancheId = firstActiveTrancheId + 1;
+
+    const depositAmount = parseEther('100');
     const tokenId = 0;
     const managerDepositId = 0;
     const { initialPoolFee } = initializeParams;
     const newPoolFee = initialPoolFee - 2;
 
-    await stakingPool.connect(user).depositTo([
-      {
-        amount,
-        trancheId: firstActiveTrancheId,
-        tokenId,
-        destination: ethers.constants.AddressZero,
-      },
-    ]);
+    const depositRequest = { amount: depositAmount, trancheId, tokenId, destination: AddressZero };
+    await stakingPool.connect(user).depositTo([depositRequest]);
 
     // Generate rewards
-    const allocationConfig = {
-      gracePeriod: daysToSeconds(30),
-      globalCapacityRatio: 20000,
-      capacityReductionRatio: 0,
-      rewardRatio: 5000,
-      globalMinPrice: 10000,
-    };
+    const coverAmount = parseEther('1');
+    const previousPremium = 0;
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
 
-    await stakingPool.connect(coverSigner).allocateCapacity(allocationRequest, allocationConfig);
+    await stakingPool.connect(coverSigner).requestAllocation(coverAmount, previousPremium, allocationRequest);
     await increaseTime(daysToSeconds(25));
 
-    const managerDepositBefore = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
+    const managerDepositBefore = await stakingPool.deposits(managerDepositId, trancheId);
 
     await stakingPool.connect(manager).setPoolFee(newPoolFee);
 
     const accNxmPerRewardsShareBefore = await stakingPool.accNxmPerRewardsShare();
-    const managerDepositAfter = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
+    const managerDepositAfter = await stakingPool.deposits(managerDepositId, trancheId);
     const newLastAccNxmPerRewardShare = accNxmPerRewardsShareBefore.sub(managerDepositBefore.lastAccNxmPerRewardShare);
 
     expect(managerDepositAfter.lastAccNxmPerRewardShare).to.equal(newLastAccNxmPerRewardShare);

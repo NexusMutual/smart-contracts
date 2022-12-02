@@ -352,7 +352,7 @@ describe('withdraw', function () {
         {
           amount,
           trancheId: currentTranche,
-          tokenId,
+          tokenId: i == 0 ? tokenId : depositNftId,
           destination,
         },
       ]);
@@ -527,9 +527,9 @@ describe('withdraw', function () {
 
       await stakingPool.connect(user).depositTo([
         {
-          amount,
+          amount: amount.mul(i * 5 + 1),
           trancheId: currentTranche,
-          tokenId,
+          tokenId: i == 0 ? tokenId : depositNftId,
           destination,
         },
       ]);
@@ -545,7 +545,8 @@ describe('withdraw', function () {
       depositsBeforeWithdraw[tranche] = await stakingPool.deposits(depositNftId, tranche);
     }
 
-    await stakingPool.connect(user).withdraw([{ tokenId: depositNftId, withdrawStake, withdrawRewards, trancheIds }]);
+    // Update expiredTranches
+    await stakingPool.updateTranches(true);
 
     const stakes = [];
     const rewards = [];
@@ -564,9 +565,9 @@ describe('withdraw', function () {
       stakingPool.connect(user).withdraw([{ tokenId: depositNftId, withdrawStake, withdrawRewards, trancheIds }]),
     )
       .to.emit(stakingPool, 'Withdraw')
-      .withArgs(user.address, depositNftId, trancheIds[1], stakes[1], rewards[1])
+      .withArgs(user.address, depositNftId, trancheIds[0], stakes[0], rewards[0])
       .to.emit(stakingPool, 'Withdraw')
-      .withArgs(user.address, depositNftId, trancheIds[2], stakes[2], rewards[2])
+      .withArgs(user.address, depositNftId, trancheIds[1], stakes[1], rewards[1])
       .to.emit(stakingPool, 'Withdraw')
       .withArgs(user.address, depositNftId, trancheIds[2], stakes[2], rewards[2]);
   });

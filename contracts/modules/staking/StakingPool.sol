@@ -546,46 +546,53 @@ contract StakingPool is IStakingPool, ERC721 {
 
       Deposit memory deposit = deposits[tokenId][trancheId];
 
-      // can withdraw stake only if the tranche is expired
-      if (withdrawStake && trancheId < _firstActiveTrancheId) {
+      {
+        uint trancheRewardsToWithdraw;
+        uint trancheStakeToWithdraw;
 
-        // Deposit withdrawals are not permitted while the manager is locked in governance to
-        // prevent double voting.
-        require(
-          managerLockedInGovernanceUntil < block.timestamp,
-          "StakingPool: While the pool manager is locked for governance voting only rewards can be withdrawn"
-        );
+        // can withdraw stake only if the tranche is expired
+        if (withdrawStake && trancheId < _firstActiveTrancheId) {
 
-        // calculate the amount of nxm for this deposit
-        uint stake = expiredTranches[trancheId].stakeAmountAtExpiry;
-        uint stakeShareSupply = expiredTranches[trancheId].stakeShareSupplyAtExpiry;
-        withdrawnStake += stake * deposit.stakeShares / stakeShareSupply;
+          // Deposit withdrawals are not permitted while the manager is locked in governance to
+          // prevent double voting.
+          require(
+            managerLockedInGovernanceUntil < block.timestamp,
+            "StakingPool: While the pool manager is locked for governance voting only rewards can be withdrawn"
+          );
 
-        // mark as withdrawn
-        deposit.stakeShares = 0;
+          // calculate the amount of nxm for this deposit
+          uint stake = expiredTranches[trancheId].stakeAmountAtExpiry;
+          uint stakeShareSupply = expiredTranches[trancheId].stakeShareSupplyAtExpiry;
+          trancheStakeToWithdraw = stake * deposit.stakeShares / stakeShareSupply;
+          withdrawnStake += trancheStakeToWithdraw;
+
+          // mark as withdrawn
+          deposit.stakeShares = 0;
+        }
+
+        if (withdrawRewards) {
+
+          // if the tranche is expired, use the accumulator value saved at expiration time
+          uint accNxmPerRewardShareToUse = trancheId < _firstActiveTrancheId
+            ? expiredTranches[trancheId].accNxmPerRewardShareAtExpiry
+            : _accNxmPerRewardsShare;
+
+          // calculate reward since checkpoint
+          uint newRewardPerShare = accNxmPerRewardShareToUse.uncheckedSub(deposit.lastAccNxmPerRewardShare);
+          trancheRewardsToWithdraw = newRewardPerShare * deposit.rewardsShares + deposit.pendingRewards;
+          withdrawnRewards += trancheRewardsToWithdraw;
+
+          // save checkpoint
+          deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+          deposit.pendingRewards = 0;
+          deposit.rewardsShares = 0;
+        }
+
+        emit Withdraw(msg.sender, tokenId, trancheId, trancheStakeToWithdraw, trancheRewardsToWithdraw);
       }
 
-      if (withdrawRewards) {
-
-        // if the tranche is expired, use the accumulator value saved at expiration time
-        uint accNxmPerRewardShareToUse = trancheId < _firstActiveTrancheId
-          ? expiredTranches[trancheId].accNxmPerRewardShareAtExpiry
-          : _accNxmPerRewardsShare;
-
-        // calculate reward since checkpoint
-        uint newRewardPerShare = accNxmPerRewardShareToUse.uncheckedSub(deposit.lastAccNxmPerRewardShare);
-        withdrawnRewards += newRewardPerShare * deposit.rewardsShares + deposit.pendingRewards;
-
-        // save checkpoint
-        deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
-        deposit.pendingRewards = 0;
-        deposit.rewardsShares = 0;
-      }
-
-        deposits[tokenId][trancheId] = deposit;
-
-        emit Withdraw(msg.sender, tokenId, trancheId, withdrawnStake, withdrawnRewards);
-      }
+      deposits[tokenId][trancheId] = deposit;
+    }
 
 
     tokenController.withdrawNXMStakeAndRewards(

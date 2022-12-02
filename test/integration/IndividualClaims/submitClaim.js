@@ -6,6 +6,7 @@ const { parseEther } = ethers.utils;
 
 const { daysToSeconds } = require('../../../lib/helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
+const { } = require('../utils/staking')
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
@@ -15,9 +16,6 @@ const setTime = async timestamp => {
 const priceDenominator = '10000';
 
 describe('submitClaim', function () {
-  function calculateFirstTrancheId(lastBlock, period, gracePeriod) {
-    return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
-  }
 
   beforeEach(async function () {
     const { tk } = this.contracts;
@@ -54,7 +52,7 @@ describe('submitClaim', function () {
 
     await setTime(futureTime);
   }
-
+  
   async function stake({ stakingPool, staker, productId, period, gracePeriod }) {
     // Staking inputs
     const stakingAmount = parseEther('6000');

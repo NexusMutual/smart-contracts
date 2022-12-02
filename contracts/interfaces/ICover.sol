@@ -188,6 +188,10 @@ interface ICover {
 
   function isPoolAllowed(uint productId, uint poolId) external returns (bool);
 
+  function stakingPoolTransferTokens(uint stakingPoolId, address from, address to, uint[] calldata tokenIds) external;
+
+  function isAllowedPool(uint productId, uint poolId) external returns (bool);
+
   /* ========== EVENTS ========== */
 
   event StakingPoolCreated(

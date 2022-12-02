@@ -1,27 +1,39 @@
 const { ethers } = require('hardhat');
-const { expectRevert } = require('@openzeppelin/test-helpers');
 const { expect, assert } = require('chai');
+const { stake } = require('../utils/staking');
 const { Role } = require('../utils').constants;
 const { parseEther } = ethers.utils;
+const { MaxUint256 } = ethers.constants;
 
 const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('switchMembershipAndAssets', function () {
+
+  beforeEach(async function () {
+    const { tk } = this.contracts;
+
+    const members = this.accounts.members.slice(0, 5);
+    const amount = parseEther('10000');
+    for (const member of members) {
+      await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
+    }
+  });
+
   it('switches membership from one address to another', async function () {
-    const { contracts, accounts } = this;
-    const { mr: memberRoles, tk: token } = contracts;
+    const { mr: memberRoles, tk: token } = this.contracts;
     const {
       members: [member1],
       nonMembers: [nonMember1],
-    } = accounts;
+    } = this.accounts;
 
     {
       const { memberArray: membersBefore } = await memberRoles.members(Role.Member);
       const nxmBalanceBefore = await token.balanceOf(member1.address);
 
       const newMemberAddress = nonMember1.address;
+
       await token.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
-      await memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [], []);
+      await memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [], [], []);
       const oldAddressHasRole = await memberRoles.checkRole(member1.address, Role.Member);
       assert(!oldAddressHasRole);
       const newAddressHasRole = await memberRoles.checkRole(newMemberAddress, Role.Member);
@@ -49,9 +61,9 @@ describe('switchMembershipAndAssets', function () {
       nonMembers: [nonMember1, nonMember2],
     } = this.accounts;
 
-    await expectRevert.unspecified(
-      memberRoles.connect(nonMember1).switchMembershipAndAssets(nonMember2.address, [], []),
-    );
+    await expect(
+      memberRoles.connect(nonMember1).switchMembershipAndAssets(nonMember2.address, [], [], []),
+    ).to.be.reverted;
   });
 
   it("reverts when switching membership to an address that's already a member", async function () {
@@ -60,33 +72,47 @@ describe('switchMembershipAndAssets', function () {
       members: [member1, member2],
     } = this.accounts;
 
-    await expectRevert.unspecified(memberRoles.connect(member1).switchMembershipAndAssets(member2.address, [], []));
+    await expect(
+      memberRoles.connect(member1).switchMembershipAndAssets(member2.address, [], [], [])
+    ).to.be.reverted;
   });
 
   it('transfers the provided covers to the new address', async function () {
-    const { contracts, accounts } = this;
-    const { mr: memberRoles, tk: token, cover, coverNFT } = contracts;
+    const { contracts } = this;
+    const { mr: memberRoles, tk: token, cover, coverNFT, stakingPool0 } = contracts;
     const {
-      members: [member1],
+      members: [member1, staker1],
       nonMembers: [nonMember1],
-    } = accounts;
+    } = this.accounts;
+
+    // Cover inputs
+    const productId = 0;
+    const coverAsset = 0; // ETH
+    const period = daysToSeconds(30);
+    const gracePeriod = 3600 * 24 * 30;
+    const amount = parseEther('1');
+
+    // Stake to open up capacity
+    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
 
     for (let i = 0; i < 3; i++) {
+      const expectedPremium = parseEther('1');
       await cover.buyCover(
-        [
-          member1.address,
-          0,
-          0,
-          parseEther('100'),
-          daysToSeconds(30),
-          parseEther('1'),
-          0,
-          false,
-          0,
-          ethers.constants.AddressZero,
-        ],
-        [[0, parseEther('100')]],
-        { value: parseEther('1') },
+        {
+          coverId: MaxUint256,
+          owner: member1.address,
+          productId,
+          coverAsset: 0,
+          amount: parseEther('100'),
+          period,
+          maxPremiumInAsset: expectedPremium,
+          paymentAsset: coverAsset,
+          commissionRatio: parseEther('0'),
+          commissionDestination: ethers.constants.AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', coverAmountInAsset: amount }],
+        { value: expectedPremium },
       );
     }
 
@@ -97,7 +123,7 @@ describe('switchMembershipAndAssets', function () {
     }
 
     const newMemberAddress = nonMember1.address;
-    await memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [0, 2], []);
+    await memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [0, 2], [], []);
     {
       const ownershipArr = await Promise.all([0, 1, 2].map(x => coverNFT.ownerOf(x)));
       assert(ownershipArr[1] === member1.address);
@@ -106,13 +132,12 @@ describe('switchMembershipAndAssets', function () {
     }
   });
 
-  it('transfers all staking LP shares of the provided staking pools', async function () {
-    const { contracts, accounts } = this;
-    const { mr: memberRoles, tk: token, stakingPool0, stakingPool1, stakingPool2 } = contracts;
+  it.only('transfers all staking LP shares of the provided staking pools', async function () {
+    const { mr: memberRoles, tk: token, stakingPool0, stakingPool1, stakingPool2 } = this.contracts;
     const {
       members: [member1],
       nonMembers: [nonMember1],
-    } = accounts;
+    } = this.accounts;
 
     await stakingPool0.connect(member1).stake(parseEther('1000'));
     await stakingPool1.connect(member1).stake(parseEther('10'));
@@ -122,7 +147,7 @@ describe('switchMembershipAndAssets', function () {
     const newMemberAddress = nonMember1.address;
     await memberRoles
       .connect(member1)
-      .switchMembershipAndAssets(newMemberAddress, [], [stakingPool0.address, stakingPool2.address]);
+      .switchMembershipAndAssets(newMemberAddress, [], [0, 2], [[0], [0]]);
 
     {
       const balance = await stakingPool0.balanceOf(member1.address);

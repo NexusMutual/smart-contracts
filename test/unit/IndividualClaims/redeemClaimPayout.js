@@ -371,8 +371,8 @@ describe('redeemClaimPayout', function () {
       await setTime(poll.end + daysToSeconds(payoutCooldownInDays));
 
       await individualClaims.connect(coverOwner).redeemClaimPayout(0, { gasPrice: 0 });
-      const amount = await cover.burnStakeCalledWith();
-      expect(amount).to.be.equal(segment.amount);
+      const burnStakeCalledWith = await cover.burnStakeCalledWith();
+      expect(burnStakeCalledWith.amount).to.be.equal(segment.amount);
     }
 
     {
@@ -395,8 +395,8 @@ describe('redeemClaimPayout', function () {
       await setNextBlockBaseFee('0');
       await individualClaims.connect(coverOwner).redeemClaimPayout(1, { gasPrice: 0 });
 
-      const amount = await cover.burnStakeCalledWith();
-      expect(amount).to.be.equal(segment.amount.div(2));
+      const burnStakeCalledWith = await cover.burnStakeCalledWith();
+      expect(burnStakeCalledWith.amount).to.be.equal(segment.amount.div(2));
     }
   });
 });

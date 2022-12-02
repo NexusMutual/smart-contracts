@@ -140,4 +140,6 @@ interface IStakingPool {
   event PoolFeeChanged(address indexed manager, uint newFee);
 
   event PoolDescriptionSet(uint poolId, string ipfsDescriptionHash);
+
+  event Withdraw(address indexed src, uint indexed tokenId, uint tranche, uint amountStakeWithdrawn, uint amountRewardsWithdrawn);
 }

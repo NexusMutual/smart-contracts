@@ -380,15 +380,14 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token().transfer(user, totalAmount);
   }
 
-
   function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
-    require(msg.sender == address(cover()), "TokenController: only Cover allowed");
+    require(msg.sender == address(cover().stakingPool(poolId)), "TokenController: msg.sender not staking pool");
     mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
 
   function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
-    require(msg.sender == address(cover()), "TokenController: only Cover allowed");
+    require(msg.sender == address(cover().stakingPool(poolId)), "TokenController: msg.sender not staking pool");
     burnFrom(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
   }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.9;
 
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IAssessment.sol";
@@ -20,33 +20,18 @@ contract CoverMigrator is MasterAwareV2 {
     return ICover(getInternalContractAddress(ID.CO));
   }
 
-  function individualClaims() internal view returns (IIndividualClaims) {
-    return IIndividualClaims(getInternalContractAddress(ID.IC));
-  }
-
-  function coverNFT() internal returns (ICoverNFT) {
-    return ICoverNFT(cover().coverNFT());
-  }
-
   /// @dev Migrates covers for arNFT-like contracts that don't use Gateway.sol
+  ///      The function should not be changed in anyway, because it is being used instead of the old Claims.sol method
+  ///      and the signature must stay the same as it was in Claims.sol
   ///
   /// @param coverId          Legacy (V1) cover identifier
-  function submitClaim(
-    uint32 coverId,
-    uint16 segmentId,
-    uint96 requestedAmount,
-    string calldata ipfsMetadata
-  ) payable external whenNotPaused returns (uint newCoverId){
-    newCoverId =  cover().migrateCoverFromOwner(coverId, msg.sender, address(this));
-    individualClaims().submitClaim{value: msg.value}(uint32(newCoverId), segmentId, requestedAmount, ipfsMetadata);
-    coverNFT().transferFrom(address(this), msg.sender, newCoverId);
-    return newCoverId;
+  function submitClaim(uint coverId) external whenNotPaused {
+    cover().migrateCoverFromOwner(coverId, msg.sender, tx.origin);
   }
 
   /// @dev Updates internal contract addresses to the ones stored in master. This function is
   /// automatically called by the master contract when a contract is added or upgraded.
   function changeDependentContractAddress() external override {
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
-    internalContracts[uint(ID.IC)] = master.getLatestAddress("IC");
   }
 }

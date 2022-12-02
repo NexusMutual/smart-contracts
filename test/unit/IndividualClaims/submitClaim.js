@@ -425,10 +425,10 @@ describe('submitClaim', function () {
     );
     const coverId = 0;
     await expect(submitClaim(this)({ coverId, sender: otherMember })).to.be.revertedWith(
-      'Only the owner or approved addresses can submit a claim',
+      'The owner or approved address can submit a claim',
     );
     await expect(submitClaim(this)({ coverId, sender: coverOwner })).not.to.be.revertedWith(
-      'Only the owner or approved addresses can submit a claim',
+      'The owner or approved address can submit a claim',
     );
 
     {
@@ -443,7 +443,7 @@ describe('submitClaim', function () {
       const coverId = 1;
       await coverNFT.connect(coverOwner).approve(otherMember.address, coverId);
       await expect(submitClaim(this)({ coverId, sender: otherMember })).not.to.be.revertedWith(
-        'Only the owner or approved addresses can submit a claim',
+        'The owner or approved address can submit a claim',
       );
     }
   });
@@ -563,7 +563,7 @@ describe('submitClaim', function () {
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(segment.amount, segment.period, ASSET.ETH);
     await expect(
       individualClaims.connect(coverNonOwner).submitClaim(coverId, 0, segment.amount, '', { value: deposit }),
-    ).to.be.revertedWith('Only the owner or approved addresses can submit a claim');
+    ).to.be.revertedWith('The owner or approved address can submit a claim');
   });
 
   it('Should transfer assessment deposit to pool', async function () {
@@ -629,7 +629,7 @@ describe('submitClaim', function () {
       individualClaims
         .connect(fallbackWillFailSigner)
         .submitClaim(0, 0, segment.amount, '', { value: deposit.mul('2') }),
-    ).to.be.revertedWith('Assessment deposit excess refund failed');
+    ).to.be.revertedWith('Deposit excess refund failed');
   });
 
   it('should revert if assessment deposit to pool fails', async function () {
@@ -655,6 +655,6 @@ describe('submitClaim', function () {
 
     await expect(
       individualClaims.connect(coverOwner).submitClaim(0, 0, segment.amount, '', { value: deposit }),
-    ).to.be.revertedWith('Assessment deposit transfer to pool failed');
+    ).to.be.revertedWith('Deposit transfer to pool failed');
   });
 });

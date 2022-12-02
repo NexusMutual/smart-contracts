@@ -46,7 +46,7 @@ library CoverUtilsLib {
     ProductType[] storage _productTypes,
     CoverData[] storage _coverData,
     mapping(uint => CoverSegment[]) storage _coverSegments
-  ) external returns(uint newCoverId){
+  ) external returns (uint newCoverId) {
 
     address legacyProductId;
     bytes4 currencyCode;

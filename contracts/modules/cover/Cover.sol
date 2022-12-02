@@ -18,6 +18,7 @@ import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IIndividualClaims.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./CoverUtilsLib.sol";
@@ -151,6 +152,18 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     address newOwner
   ) external override onlyInternal returns (uint newCoverId) {
     newCoverId = _migrateCoverFromOwner(coverId, fromOwner, newOwner);
+  }
+
+  function migrateAndSubmitClaim(
+    uint32 coverId,
+    uint16 segmentId,
+    uint96 requestedAmount,
+    string calldata ipfsMetadata
+  ) payable external whenNotPaused returns (uint newCoverId){
+    newCoverId =  _migrateCoverFromOwner(coverId, msg.sender, address(this));
+    individualClaims().submitClaimOf{value: msg.value}(uint32(newCoverId), segmentId, requestedAmount, ipfsMetadata, msg.sender);
+    ICoverNFT(coverNFT).transferFrom(address(this), msg.sender, newCoverId);
+    return newCoverId;
   }
 
   /// @dev Migrates covers from V1
@@ -723,6 +736,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return IMemberRoles(internalContracts[uint(ID.MR)]);
   }
 
+  function individualClaims() internal view returns (IIndividualClaims) {
+    return IIndividualClaims(getInternalContractAddress(ID.IC));
+  }
+
   function mcr() internal view returns (IMCR) {
     return IMCR(internalContracts[uint(ID.MC)]);
   }
@@ -733,6 +750,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
+    internalContracts[uint(ID.IC)] = master.getLatestAddress("IC");
   }
 
   /**

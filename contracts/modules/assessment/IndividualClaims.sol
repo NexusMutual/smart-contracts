@@ -230,12 +230,31 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint16 segmentId,
     uint96 requestedAmount,
     string calldata ipfsMetadata
-  ) external payable override onlyMember whenNotPaused returns (Claim memory) {
-    require(
-      coverNFT.isApprovedOrOwner(msg.sender, coverId),
-      "Only the owner or approved addresses can submit a claim"
-    );
+  ) external payable override onlyMember whenNotPaused returns (Claim memory claim) {
+    claim = _submitClaim(coverId, segmentId, requestedAmount, ipfsMetadata, msg.sender);
+    return claim;
+  }
+  function submitClaimOf(
+    uint32 coverId,
+    uint16 segmentId,
+    uint96 requestedAmount,
+    string calldata ipfsMetadata,
+    address owner
+  ) external payable override onlyInternal whenNotPaused {
+    _submitClaim(coverId, segmentId, requestedAmount, ipfsMetadata, owner);
+  }
 
+  function _submitClaim(
+    uint32 coverId,
+    uint16 segmentId,
+    uint96 requestedAmount,
+    string calldata ipfsMetadata,
+    address owner
+  ) internal whenNotPaused returns (Claim memory) {
+  require(
+      coverNFT.isApprovedOrOwner(msg.sender, coverId),
+      "The owner or approved address can submit a claim"
+    );
     {
       ClaimSubmission memory previousSubmission = lastClaimSubmissionOnCover[coverId];
       if (previousSubmission.exists) {
@@ -308,15 +327,14 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       emit MetadataSubmitted(claims.length - 1, ipfsMetadata);
     }
 
-
     require(msg.value >= assessmentDepositInETH, "Assessment deposit is insufficient");
     if (msg.value > assessmentDepositInETH) {
       // Refund ETH excess back to the sender
       (
         bool refunded,
         /* bytes data */
-      ) = tx.origin.call{value: msg.value - assessmentDepositInETH}("");
-      require(refunded, "Assessment deposit excess refund failed");
+      ) = owner.call{value: msg.value - assessmentDepositInETH}("");
+      require(refunded, "Deposit excess refund failed");
     }
 
     // Transfer the assessment deposit to the pool
@@ -324,7 +342,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       bool transferSucceeded,
       /* bytes data */
     ) =  getInternalContractAddress(ID.P1).call{value: assessmentDepositInETH}("");
-    require(transferSucceeded, "Assessment deposit transfer to pool failed");
+    require(transferSucceeded, "Deposit transfer to pool failed");
 
     return claim;
   }
@@ -335,6 +353,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   /// When the tokens are transfered the assessment deposit is also sent back.
   ///
   /// @param claimId  Claim identifier
+
   function redeemClaimPayout(uint104 claimId) external override whenNotPaused {
     Claim memory claim = claims[claimId];
     (

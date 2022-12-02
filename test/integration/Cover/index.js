@@ -1,5 +1,5 @@
 describe('Cover integration tests', function () {
   require('./expireCover');
   require('./createStakingPool');
-  require('./migrateCoverAndSubmit');
+  require('./migrateAndSubmitClaim');
 });

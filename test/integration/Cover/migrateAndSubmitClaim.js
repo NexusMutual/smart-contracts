@@ -8,20 +8,22 @@ function zeroPadRight(bytes, length) {
   return new Uint8Array(length).fill(0).map((x, i) => bytes[i] || x);
 }
 
-describe('createStakingPool', function () {
+describe('migrateAndSubmitClaim', function () {
   let coverOwner;
   let coverId;
   before(async function () {
-    const ETH = zeroPadRight(Buffer.from('ETH'), 4);
     const { qd, tk: token } = this.contracts;
     coverOwner = this.accounts.members[1];
+
+    const ETH = zeroPadRight(Buffer.from('ETH'), 4);
     const amountNXM = parseEther('10000');
-    await token.connect(this.accounts.defaultSender).transfer(coverOwner.address, amountNXM);
     const period = 30;
     const amount = 100;
     const scAddress = '0x8B3d70d628Ebd30D4A2ea82DB95bA2e906c71633';
     const premium = 0;
     const premiumNXM = 0;
+
+    await token.connect(this.accounts.defaultSender).transfer(coverOwner.address, amountNXM);
 
     const tx = await qd
       .connect(coverOwner)
@@ -42,10 +44,10 @@ describe('createStakingPool', function () {
   });
 
   it('should migrate cover from v1 to v2 and submit claim', async function () {
-    const { cl: coverMigrator, coverNFT, cover } = this.contracts;
+    const { coverNFT, cover } = this.contracts;
     const segment = await getCoverSegment();
 
-    const tx = await coverMigrator.connect(coverOwner).submitClaim(coverId, 0, segment.amount, '', {
+    const tx = await cover.connect(coverOwner).migrateAndSubmitClaim(coverId, 0, segment.amount, '', {
       value: parseEther('1'),
     });
     expect(tx).to.emit(coverNFT, 'Transfer');
@@ -55,12 +57,12 @@ describe('createStakingPool', function () {
     const {
       args: [from, to, newCoverId],
     } = (await coverNFT.queryFilter(eventFilterTransfer)).pop();
-    expect(from).to.be.equal(coverMigrator.address);
+    expect(from).to.be.equal(cover.address);
     expect(to).to.be.equal(coverOwner.address);
 
     const newCoverOwner = await coverNFT.ownerOf(newCoverId);
     expect(newCoverOwner).to.be.equal(coverOwner.address);
-    const balanceCoverMigrator = await coverNFT.balanceOf(coverMigrator.address);
+    const balanceCoverMigrator = await coverNFT.balanceOf(cover.address);
     expect(balanceCoverMigrator).to.be.equal(0);
   });
 });

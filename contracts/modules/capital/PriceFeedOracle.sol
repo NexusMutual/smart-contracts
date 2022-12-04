@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 
 
 contract PriceFeedOracle is IPriceFeedOracle {
-  using SafeMath for uint;
 
   mapping(address => OracleAsset) public assets;
 
@@ -17,7 +15,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
     address[] memory _assetAddresses,
     address[] memory _assetAggregators,
     uint8[] memory _assetDecimals
-  ) public {
+  ) {
     require(
       _assetAddresses.length == _assetAggregators.length && _assetAggregators.length == _assetDecimals.length,
       "PriceFeedOracle: different args length"
@@ -56,7 +54,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
     OracleAsset memory asset = assets[assetAddress];
     uint price = _getAssetToEthRate(asset.aggregator);
 
-    return ethIn.mul(10**uint(asset.decimals)).div(price);
+    return ethIn * (10**uint(asset.decimals)) / price;
   }
 
   /**
@@ -73,7 +71,7 @@ contract PriceFeedOracle is IPriceFeedOracle {
     OracleAsset memory asset = assets[assetAddress];
     uint price = _getAssetToEthRate(asset.aggregator);
 
-    return amount.mul(price).div(10**uint(asset.decimals));
+    return amount * (price) / 10**uint(asset.decimals);
   }
 
   /**

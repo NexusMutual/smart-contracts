@@ -132,7 +132,7 @@ describe('switchMembershipAndAssets', function () {
     }
   });
 
-  it.only('transfers all staking LP shares of the provided staking pools', async function () {
+  it('transfers all staking LP shares of the provided staking pools', async function () {
     const { mr: memberRoles, tk: token, stakingPool0, stakingPool1, stakingPool2 } = this.contracts;
     const {
       members: [member1],

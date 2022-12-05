@@ -161,7 +161,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     string calldata ipfsMetadata
   ) payable external whenNotPaused returns (uint newCoverId) {
     newCoverId =  _migrateCoverFromOwner(coverId, msg.sender, msg.sender);
-    individualClaims().submitClaimOf{value: msg.value}(uint32(newCoverId), segmentId, requestedAmount, ipfsMetadata, msg.sender);
+    individualClaims().submitClaimFor{value: msg.value}(uint32(newCoverId), segmentId, requestedAmount, ipfsMetadata, msg.sender);
     return newCoverId;
   }
 

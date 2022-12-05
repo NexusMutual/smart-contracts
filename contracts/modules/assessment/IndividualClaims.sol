@@ -238,7 +238,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     return _submitClaim(coverId, segmentId, requestedAmount, ipfsMetadata, msg.sender);
   }
 
-  function submitClaimOf(
+  function submitClaimFor(
     uint32 coverId,
     uint16 segmentId,
     uint96 requestedAmount,

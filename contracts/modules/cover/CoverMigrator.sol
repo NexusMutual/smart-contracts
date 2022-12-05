@@ -21,8 +21,7 @@ contract CoverMigrator is MasterAwareV2 {
   }
 
   /// @dev Migrates covers for arNFT-like contracts that don't use Gateway.sol
-  ///      The function should not be changed in any way, because it is being used instead of the old Claims.sol method
-  ///      and the signature must stay the same as it was in Claims.sol
+  ///      The function should not change in any way, since it is being used instead of V1 Claims `submitClaim`
   ///
   /// @param coverId          Legacy (V1) cover identifier
   function submitClaim(uint coverId) external whenNotPaused {

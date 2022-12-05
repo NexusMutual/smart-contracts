@@ -77,7 +77,7 @@ contract TokenControllerMock is MasterAwareV2 {
     token().operatorTransfer(from, amount);
   }
 
-  function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {
+  function withdrawNXMStakeAndRewards(address /*to*/, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {
     stakingPoolNXMBalances[poolId].deposits -= uint128(stakeToWithdraw);
     stakingPoolNXMBalances[poolId].rewards -= uint128(rewardsToWithdraw);
   }
@@ -101,7 +101,7 @@ contract TokenControllerMock is MasterAwareV2 {
 
   function burnLockedTokens(address, bytes32, uint256) unused external {}
 
-  function tokensLocked(address, bytes32) unused external view returns (uint256) { return 0; }
+  function tokensLocked(address, bytes32) unused external view returns (uint256) { }
 
   function releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount) unused external {}
 }

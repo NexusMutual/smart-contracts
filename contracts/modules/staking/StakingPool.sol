@@ -1039,6 +1039,8 @@ contract StakingPool is IStakingPool, ERC721 {
     uint topUpAmount
   ) external {
 
+    require(isApprovedOrOwner(msg.sender, tokenId), "StakingPool: Not token owner or approved");
+
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 
     {
@@ -1084,6 +1086,13 @@ contract StakingPool is IStakingPool, ERC721 {
       // done! skip the rest of the function.
     }
 
+    if (isPrivatePool) {
+      require(
+        msg.sender == coverContract || msg.sender == manager(),
+        "StakingPool: The pool is private"
+      );
+    }
+
     // if we got here - the initial tranche is still active. move all the shares to the new tranche
 
     // passing true because we mint reward shares
@@ -1094,12 +1103,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
     uint _activeStake = activeStake;
     uint _stakeSharesSupply = stakeSharesSupply;
-    uint transferAmount = topUpAmount;
     uint newStakeShares;
-
-    if (updatedDeposit.stakeShares != 0) {
-      transferAmount += _activeStake * initialDeposit.stakeShares / _stakeSharesSupply;
-    }
 
     // calculate the new stake shares if there's a deposit top up
     if (topUpAmount > 0) {
@@ -1161,7 +1165,9 @@ contract StakingPool is IStakingPool, ERC721 {
     rewardsSharesSupply += newRewardsShares;
 
     // transfer nxm from the staker and update the pool deposit balance
-    tokenController.depositStakedNXM(msg.sender, transferAmount, poolId);
+    tokenController.depositStakedNXM(msg.sender, topUpAmount, poolId);
+
+    emit DepositExtended(msg.sender, tokenId, initialTrancheId, newTrancheId, topUpAmount);
   }
 
   function burnStake(uint amount) external onlyCoverContract {

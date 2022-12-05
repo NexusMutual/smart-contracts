@@ -137,6 +137,8 @@ interface IStakingPool {
 
   event StakeDeposited(address indexed user, uint256 amount, uint256 trancheId, uint256 tokenId);
 
+  event DepositExtended(address indexed user, uint256 tokenId, uint256 initialTrancheId, uint256 newTrancheId, uint256 topUpAmount);
+
   event PoolPrivacyChanged(address indexed manager, bool isPrivate);
 
   event PoolFeeChanged(address indexed manager, uint newFee);

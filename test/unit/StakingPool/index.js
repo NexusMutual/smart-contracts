@@ -23,4 +23,5 @@ describe('StakingPool unit tests', function () {
   require('./setProducts');
   require('./depositTo');
   require('./processExpirations');
+  require('./extendDeposit');
 });

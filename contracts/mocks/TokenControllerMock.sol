@@ -53,23 +53,38 @@ contract TokenControllerMock is MasterAwareV2 {
   }
 
   function operatorTransfer(address _from, address _to, uint _value) onlyInternal external returns (bool) {
-    require(msg.sender == master.getLatestAddress("PS") || msg.sender == master.getLatestAddress("CO"),
-      "Call is only allowed from PooledStaking or Cover address");
+    require(
+      msg.sender == master.getLatestAddress("PS") || msg.sender == master.getLatestAddress("CO"),
+      "Call is only allowed from PooledStaking or Cover address"
+    );
     require(token().operatorTransfer(_from, _value), "Operator transfer failed");
     require(token().transfer(_to, _value), "Internal transfer failed");
     return true;
   }
 
   function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
-
-    mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += uint128(amount);
+    token().mint(address(this), amount);
   }
 
   function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
-
-    burnFrom(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards -= uint128(amount);
+    token().burnFrom(address(this), amount);
+  }
+
+  function depositStakedNXM(address from, uint amount, uint poolId) external {
+    stakingPoolNXMBalances[poolId].deposits += uint128(amount);
+    token().operatorTransfer(from, amount);
+  }
+
+  function withdrawNXMStakeAndRewards(address /*to*/, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {
+    stakingPoolNXMBalances[poolId].deposits -= uint128(stakeToWithdraw);
+    stakingPoolNXMBalances[poolId].rewards -= uint128(rewardsToWithdraw);
+  }
+
+  function burnStakedNXM(uint amount, uint poolId) external {
+    stakingPoolNXMBalances[poolId].deposits -= uint128(amount);
+    token().burnFrom(address(this), amount);
   }
 
   function setContractAddresses(address payable coverAddr, address payable tokenAddr) public {
@@ -77,16 +92,7 @@ contract TokenControllerMock is MasterAwareV2 {
     internalContracts[uint(ID.CO)] = coverAddr;
   }
 
-  function depositStakedNXM(address from, uint amount, uint poolId) external {
-    require(msg.sender == address(cover().stakingPool(poolId)), "TokenController: msg.sender not staking pool");
-
-    stakingPoolNXMBalances[poolId].deposits += uint128(amount);
-    token().operatorTransfer(from, amount);
-  }
-
-  function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {}
-
-    /* unused functions */
+  /* unused functions */
 
   modifier unused {
     require(false, "Unexpected TokenControllerMock call");
@@ -95,7 +101,7 @@ contract TokenControllerMock is MasterAwareV2 {
 
   function burnLockedTokens(address, bytes32, uint256) unused external {}
 
-  function tokensLocked(address, bytes32) unused external view returns (uint256) {}
+  function tokensLocked(address, bytes32) unused external view returns (uint256) { }
 
   function releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount) unused external {}
 }

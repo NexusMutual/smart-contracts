@@ -22,5 +22,5 @@ describe('StakingPool unit tests', function () {
   require('./calculateNewRewardShares');
   require('./setProducts');
   require('./depositTo');
-  require('./updateTranches');
+  require('./processExpirations');
 });

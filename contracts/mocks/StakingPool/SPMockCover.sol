@@ -21,8 +21,14 @@ contract SPMockCover {
     stakingPool[id] = addr;
   }
 
-  function setProduct(Product memory product, uint id) public {
-    products[id] = product;
+  function setProduct(Product memory _product, uint id) public {
+    products[id] = _product;
+  }
+
+  function setProducts(Product[] memory _products, uint[] memory productIds) public {
+    for (uint i = 0; i < _products.length; i++) {
+      products[productIds[i]] = _products[i];
+    }
   }
 
   function setProductType(ProductType calldata product, uint id) public {
@@ -56,18 +62,22 @@ contract SPMockCover {
   ) public returns (uint premium) {
 
     Product memory product = products[params.productId];
-    uint gracePeriod = uint(productTypes[product.productType].gracePeriodInDays) * 1 days;
+    uint gracePeriod = productTypes[product.productType].gracePeriod;
 
-    return _stakingPool.allocateCapacity(
+    return _stakingPool.requestAllocation(
+      params.amount,
+      // TODO: figure out if these need to be populated
+      0, // previousPremium
       AllocationRequest(
         params.productId,
         coverId,
-        params.amount,
         params.period,
-        product.useFixedPrice
-      ),
-      AllocationRequestConfig(
         gracePeriod,
+        product.useFixedPrice,
+        // TODO: figure out if these need to be populated
+        0, // previous cover start
+        0,  // previous cover expiration
+        0,  // previous rewards ratio
         globalCapacityRatio,
         product.capacityReductionRatio,
         globalRewardsRatio,
@@ -91,12 +101,11 @@ contract SPMockCover {
       params[i].initialPrice = products[params[i].productId].initialPriceRatio;
       require(params[i].targetPrice >= GLOBAL_MIN_PRICE_RATIO, "CoverUtilsLib: Target price below GLOBAL_MIN_PRICE_RATIO");
     }
+
     IStakingPool(staking_).initialize(_manager, _isPrivatePool, _initialPoolFee, _maxPoolFee, params, _poolId, ipfsDescriptionHash);
   }
 
-  function isAllowedPool(uint productId, uint poolId) external pure returns (bool) {
-    productId;
-    poolId;
+  function isPoolAllowed(uint /*productId*/, uint /*poolId*/) external pure returns (bool) {
     return true;
   }
 }

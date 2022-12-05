@@ -55,7 +55,7 @@ contract CLMockAssessment {
         0, // accepted
         0, // denied
         uint32(block.timestamp), // start
-        uint32(block.timestamp + config.minVotingPeriodInDays * 1 days) // end
+        uint32(block.timestamp + uint(config.minVotingPeriodInDays) * 1 days) // end
       ),
       uint128(totalAssessmentReward),
       uint128(assessmentDeposit)
@@ -73,7 +73,7 @@ contract CLMockAssessment {
 
     if (isAcceptVote && poll.accepted == 0) {
       // Reset the poll end when the first accepted vote
-      poll.end = uint32(block.timestamp + config.minVotingPeriodInDays * 1 days);
+      poll.end = uint32(block.timestamp + uint(config.minVotingPeriodInDays) * 1 days);
     }
 
     // Check if poll ends in less than 24 hours

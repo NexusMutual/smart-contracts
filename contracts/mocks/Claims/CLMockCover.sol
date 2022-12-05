@@ -109,12 +109,12 @@ contract CLMockCover {
 
   function addProductType(
     uint8 claimMethod,
-    uint16 gracePeriodInDays,
+    uint32 gracePeriod,
     uint16 /*burnRatio*/
   ) external {
     _productTypes.push(ProductType(
       claimMethod,
-      gracePeriodInDays
+      gracePeriod
     ));
   }
 
@@ -124,12 +124,12 @@ contract CLMockCover {
 
   function editProductTypes(
     uint[] calldata productTypeIds,
-    uint16[] calldata gracePeriodsInDays,
+    uint32[] calldata gracePeriods,
     string[] calldata ipfsMetadata
   ) external {
     ipfsMetadata;
     for (uint i = 0; i < productTypeIds.length; i++) {
-      _productTypes[productTypeIds[i]].gracePeriodInDays = gracePeriodsInDays[i];
+      _productTypes[productTypeIds[i]].gracePeriod = gracePeriods[i];
     }
   }
 

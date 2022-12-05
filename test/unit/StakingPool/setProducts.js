@@ -8,7 +8,7 @@ const IPFS_DESCRIPTION_HASH = 'Description Hash';
 
 const ProductTypeFixture = {
   claimMethod: 1,
-  gracePeriodInDays: 7,
+  gracePeriod: 7 * 24 * 3600, // 7 days
 };
 
 const coverProductTemplate = {
@@ -257,25 +257,28 @@ describe('setProducts unit tests', function () {
     const [manager] = this.accounts.members;
 
     await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
-    let i = 0;
-    const products = await Promise.all(
-      Array.from({ length: 20 }, () => {
-        const product = { ...newProductTemplate, productId: i++ };
-        cover.setProduct({ ...coverProductTemplate }, product.productId);
-        return product;
-      }),
-    );
-    await stakingPool.connect(manager).setProducts(products);
-    const { timestamp: nextPriceUpdateTime } = await ethers.provider.getBlock('latest');
 
+    // define staking products
+    const initialStakingProducts = Array.from({ length: 20 }, (_, id) => ({ ...newProductTemplate, productId: id }));
+    const newStakingProduct = { ...newProductTemplate, productId: 20 };
+
+    // list all products in Cover
+    const coverProducts = initialStakingProducts.map(() => ({ ...coverProductTemplate }));
+    const coverProductIds = initialStakingProducts.map(p => p.productId);
+    await cover.setProducts(coverProducts, coverProductIds);
+
+    // add all except the first product to the staking pool
+    await stakingPool.connect(manager).setProducts(initialStakingProducts);
     expect(await stakingPool.totalTargetWeight()).to.be.equal(2000);
-    const product0 = await stakingPool.products(0);
-    verifyProduct(product0, { ...products[0], nextPriceUpdateTime });
 
-    const newProduct = { ...newProductTemplate, productId: 50 };
-    await cover.setProduct({ ...coverProductTemplate }, newProduct.productId);
-    await expect(stakingPool.connect(manager).setProducts([newProduct])).to.be.revertedWith(
-      'StakingPool: Total max effective weight exceeded',
+    const { timestamp: nextPriceUpdateTime } = await ethers.provider.getBlock('latest');
+    const stakingProduct = await stakingPool.products(0);
+    verifyProduct(stakingProduct, { ...newStakingProduct, nextPriceUpdateTime });
+
+    await cover.setProduct({ ...coverProductTemplate }, newStakingProduct.productId);
+
+    await expect(stakingPool.connect(manager).setProducts([newStakingProduct])).to.be.revertedWith(
+      'StakingPool: Max total target weight exceeded',
     );
   });
 
@@ -498,7 +501,7 @@ describe('setProducts unit tests', function () {
     const newProducts = [products[10], { ...newProductTemplate, productId: 50 }];
     await cover.setProduct({ ...coverProductTemplate }, newProducts[1].productId);
     await expect(stakingPool.connect(manager).setProducts(newProducts)).to.be.revertedWith(
-      'StakingPool: Total max effective weight exceeded',
+      'StakingPool: Max total target weight exceeded',
     );
   });
 
@@ -567,7 +570,7 @@ describe('setProducts unit tests', function () {
     ];
     await cover.setProduct({ ...coverProductTemplate }, newProducts[1].productId);
     await expect(stakingPool.connect(manager).setProducts(newProducts)).to.be.revertedWith(
-      'StakingPool: Total max effective weight exceeded',
+      'StakingPool: Max total target weight exceeded',
     );
   });
 

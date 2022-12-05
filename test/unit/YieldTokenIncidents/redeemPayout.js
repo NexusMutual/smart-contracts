@@ -11,7 +11,7 @@ const coverSegmentFixture = {
   amount: parseEther('100'),
   start: 0,
   period: daysToSeconds(30),
-  gracePeriodInDays: 7,
+  gracePeriod: 7 * 24 * 3600, // 7 days
   priceRatio: 0,
   expired: false,
   globalRewardsRatio: 0,
@@ -315,16 +315,16 @@ describe('redeemPayout', function () {
     const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
     const [governance] = this.accounts.governanceContracts;
-    const { gracePeriodInDays } = await cover.productTypes(2);
+    const { gracePeriod } = await cover.productTypes(2);
     const segment0 = await getCoverSegment();
-    segment0.gracePeriodInDays = gracePeriodInDays;
+    segment0.gracePeriod = gracePeriod;
     const segment1 = { ...segment0 };
-    segment1.period += daysToSeconds(gracePeriodInDays);
+    segment1.period += gracePeriod;
 
     await cover.createMockCover(member1.address, productIdYbEth, ASSET.ETH, [segment0, segment1]);
 
     const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-    await setTime(currentTime + segment0.period + daysToSeconds(gracePeriodInDays));
+    await setTime(currentTime + segment0.period + gracePeriod);
     await yieldTokenIncidents
       .connect(governance)
       .submitIncident(productIdYbEth, priceBefore, currentTime + segment0.period - 1, parseEther('100'), '');
@@ -349,37 +349,32 @@ describe('redeemPayout', function () {
     const { yieldTokenIncidents, assessment, cover } = this.contracts;
     const [member1] = this.accounts.members;
     const [governance] = this.accounts.governanceContracts;
-    const { gracePeriodInDays } = await cover.productTypes(2);
+    const { gracePeriod } = await cover.productTypes(2);
     const segment0 = await getCoverSegment();
     const segment1 = await getCoverSegment();
-    segment0.gracePeriodInDays = gracePeriodInDays;
-    segment1.gracePeriodInDays = gracePeriodInDays * 1000;
+    segment0.gracePeriod = gracePeriod;
+    segment1.gracePeriod = gracePeriod * 1000;
 
     await cover.createMockCover(member1.address, productIdYbEth, ASSET.ETH, [segment0, segment1]);
 
-    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-    await setTime(currentTime + segment0.period + daysToSeconds(gracePeriodInDays));
+    const { timestamp: coverStartTime } = await ethers.provider.getBlock('latest');
+    await setTime(coverStartTime + segment0.period + gracePeriod);
 
     // Change product grace period
-    const newGracePeriod = gracePeriodInDays * 1000;
+    const newGracePeriod = gracePeriod * 1000;
     await cover.connect(governance).editProductTypes([2], [newGracePeriod], ['ipfs hash']);
-    {
-      const { gracePeriodInDays } = await cover.productTypes(2);
-      expect(gracePeriodInDays).to.equal(newGracePeriod);
-      expect(currentTime + segment0.period).to.be.lessThan(daysToSeconds(gracePeriodInDays));
-    }
+    const { gracePeriod: actualNewGracePeriod } = await cover.productTypes(2);
+    expect(actualNewGracePeriod).to.equal(newGracePeriod);
 
     await yieldTokenIncidents
       .connect(governance)
-      .submitIncident(productIdYbEth, priceBefore, currentTime + segment0.period - 1, parseEther('100'), '');
+      .submitIncident(productIdYbEth, priceBefore, coverStartTime + segment0.period - 1, parseEther('100'), '');
 
     await assessment.connect(member1).castVote(0, true, parseEther('100'));
 
-    {
-      const { payoutCooldownInDays } = await assessment.config();
-      const { end } = await assessment.getPoll(0);
-      await setTime(end + daysToSeconds(payoutCooldownInDays));
-    }
+    const { payoutCooldownInDays } = await assessment.config();
+    const { end } = await assessment.getPoll(0);
+    await setTime(end + daysToSeconds(payoutCooldownInDays));
 
     await expect(
       yieldTokenIncidents.connect(member1).redeemPayout(0, 0, 0, parseEther('100'), member1.address, []),
@@ -855,14 +850,14 @@ describe('redeemPayout', function () {
       .connect(member1)
       .redeemPayout(0, 0, 0, depeggedTokensAmount, member1.address, [], { gasPrice: 0 });
 
-    const { coverId, segmentId, amount } = await cover.burnStakeCalledWith();
-
-    expect(coverId).to.be.equal(0);
-    expect(segmentId).to.be.equal(0);
+    const { amount } = await cover.burnStakeCalledWith();
 
     const ratio = priceBefore.mul(payoutDeductibleRatio);
-    expect(amount).to.be.equal(
-      depeggedTokensAmount.mul(ratio).div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR).div(coverAssetDecimals),
-    );
+    const expectedAmount = depeggedTokensAmount
+      .mul(ratio)
+      .div(INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR)
+      .div(coverAssetDecimals);
+
+    expect(amount).to.be.equal(expectedAmount);
   });
 });

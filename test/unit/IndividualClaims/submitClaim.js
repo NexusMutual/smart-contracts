@@ -281,9 +281,9 @@ describe('submitClaim', function () {
     const { individualClaims, cover } = this.contracts;
     const [coverOwner] = this.accounts.members;
     const coverAsset = ASSET.ETH;
-    const { gracePeriodInDays } = await cover.productTypes(0);
+    const { gracePeriod } = await cover.productTypes(0);
     const segment0 = await getCoverSegment();
-    segment0.gracePeriodInDays = gracePeriodInDays;
+    segment0.gracePeriod = gracePeriod;
     const segment1 = { ...segment0 };
     segment1.start += segment1.period;
 
@@ -296,7 +296,7 @@ describe('submitClaim', function () {
 
     const latestBlock = await ethers.provider.getBlock('latest');
     const currentTime = latestBlock.timestamp;
-    await setTime(currentTime + segment0.period + daysToSeconds(gracePeriodInDays) + 1);
+    await setTime(currentTime + segment0.period + gracePeriod + 1);
     const coverId = 0;
 
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(
@@ -323,11 +323,11 @@ describe('submitClaim', function () {
     const [coverOwner] = this.accounts.members;
     const [boardMember] = this.accounts.advisoryBoardMembers;
     const coverAsset = ASSET.ETH;
-    const { gracePeriodInDays } = await cover.productTypes(0);
+    const { gracePeriod } = await cover.productTypes(0);
     const segment0 = await getCoverSegment();
     const segment1 = await getCoverSegment();
-    segment0.gracePeriodInDays = gracePeriodInDays;
-    segment1.gracePeriodInDays = gracePeriodInDays + 1;
+    segment0.gracePeriod = gracePeriod;
+    segment1.gracePeriod = gracePeriod + 1;
     segment1.start += segment1.period;
     await cover.createMockCover(
       coverOwner.address,
@@ -336,12 +336,12 @@ describe('submitClaim', function () {
       [segment0, segment1],
     );
 
-    const longerGracePeriod = gracePeriodInDays * 100;
+    const longerGracePeriod = gracePeriod * 100;
     await cover.connect(boardMember).editProductTypes([0], [longerGracePeriod], ['ipfs hash']);
 
     const latestBlock = await ethers.provider.getBlock('latest');
     const currentTime = latestBlock.timestamp;
-    await setTime(currentTime + segment0.period + daysToSeconds(gracePeriodInDays) + 1);
+    await setTime(currentTime + segment0.period + gracePeriod + 1);
     const coverId = 0;
 
     const [deposit] = await individualClaims.getAssessmentDepositAndReward(

@@ -1,8 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const {
-  utils: { parseEther },
-} = ethers;
+const { parseEther } = ethers.utils;
 
 describe('views', function () {
   it('getCoverSegments returns segments', async function () {
@@ -10,8 +8,8 @@ describe('views', function () {
     const coverSegment1 = {
       amount: parseEther('100'),
       start: 1000,
-      period: 3600 * 24 * 30, // seconds
-      gracePeriodInDays: 7,
+      period: 30 * 24 * 3600, // 30 days
+      gracePeriod: 7 * 24 * 3600, // 7 days
       globalRewardsRatio: 5000,
     };
     const coverId = 0;
@@ -24,7 +22,7 @@ describe('views', function () {
     expect(segments[0].amount.toString()).to.be.equal(coverSegment1.amount.toString());
     expect(segments[0].start).to.be.equal(coverSegment1.start);
     expect(segments[0].period).to.be.equal(coverSegment1.period);
-    expect(segments[0].gracePeriodInDays).to.be.equal(coverSegment1.gracePeriodInDays);
+    expect(segments[0].gracePeriod).to.be.equal(coverSegment1.gracePeriod);
     expect(segments[0].globalRewardsRatio).to.be.equal(coverSegment1.globalRewardsRatio);
   });
 });

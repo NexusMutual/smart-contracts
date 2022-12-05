@@ -212,18 +212,12 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
 
     uint payoutAmount;
     {
-      CoverSegment memory coverSegment = coverContract.coverSegments(
-        coverId,
-        segmentId
-      );
+      CoverSegment memory coverSegment = coverContract.coverSegments(coverId, segmentId);
 
-      {
-        require(
-          coverSegment.start + coverSegment.period +
-          uint(coverSegment.gracePeriodInDays) * 1 days >= block.timestamp,
-          "Grace period has expired"
-        );
-      }
+      require(
+        coverSegment.start + coverSegment.period + coverSegment.gracePeriod >= block.timestamp,
+        "Grace period has expired"
+      );
 
       Incident memory incident =  incidents[incidentId];
 

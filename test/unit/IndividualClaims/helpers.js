@@ -65,8 +65,8 @@ const getIncidentDetailsStruct = ({
 const coverSegmentFixture = {
   amount: parseEther('100'),
   start: 0,
-  period: 30 * 24 * 60 * 60,
-  gracePeriodInDays: 7,
+  period: 30 * 24 * 3600, // 30 days
+  gracePeriod: 7 * 24 * 3600, // 7 days
   priceRatio: 0,
   expired: false,
   globalRewardsRatio: 0,

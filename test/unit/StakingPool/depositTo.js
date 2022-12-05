@@ -111,10 +111,7 @@ describe('depositTo', function () {
 
   it('reverts if deposit amount is 0', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { trancheId, tokenId, destination } = depositToFixture;
 
     await expect(
@@ -131,10 +128,7 @@ describe('depositTo', function () {
 
   it('reverts if tranche id is not active', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
 
     const { maxTranche } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
@@ -153,10 +147,7 @@ describe('depositTo', function () {
 
   it('reverts if requested tranche expired', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
@@ -175,10 +166,7 @@ describe('depositTo', function () {
 
   it('mints a new nft if token is 0', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination, depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
@@ -241,10 +229,7 @@ describe('depositTo', function () {
 
   it('register deposit to the new nft', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination, depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
@@ -275,10 +260,7 @@ describe('depositTo', function () {
 
   it('register deposit to an existing nft', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination, depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
@@ -323,29 +305,26 @@ describe('depositTo', function () {
 
   it('updates deposit pendingRewards and lastAccNxmPerRewardShare', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination, depositNftId } = depositToFixture;
 
     // Generate rewards
     const allocationRequest = {
       productId: 0,
       coverId: MaxUint256,
-      amount: parseEther('1'),
       period: daysToSeconds(30),
-    };
-
-    const allocationConfig = {
       gracePeriod: daysToSeconds(30),
+      previousStart: 0,
+      previousExpiration: 0,
+      previousRewardsRatio: 5000,
+      useFixedPrice: false,
       globalCapacityRatio: 20000,
       capacityReductionRatio: 0,
       rewardRatio: 5000,
       globalMinPrice: 10000,
     };
 
-    const { firstActiveTrancheId } = await getTranches(allocationRequest.period, allocationConfig.gracePeriod);
+    const { firstActiveTrancheId } = await getTranches(allocationRequest.period, allocationRequest.gracePeriod);
 
     // first deposit
     await stakingPool.connect(user).depositTo([
@@ -362,7 +341,9 @@ describe('depositTo', function () {
     expect(depositData.lastAccNxmPerRewardShare).to.equal(0);
     expect(depositData.pendingRewards).to.equal(0);
 
-    await stakingPool.connect(this.coverSigner).allocateCapacity(allocationRequest, allocationConfig);
+    const coverAmount = parseEther('1');
+    const previousPremium = 0;
+    await stakingPool.connect(this.coverSigner).requestAllocation(coverAmount, previousPremium, allocationRequest);
     await increaseTime(daysToSeconds(20));
 
     // Second deposit
@@ -414,27 +395,25 @@ describe('depositTo', function () {
 
   it('updates global variables accNxmPerRewardsShare and lastAccNxmUpdate', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination, depositNftId } = depositToFixture;
 
     const allocationRequest = {
       productId: 0,
       coverId: MaxUint256,
-      amount: parseEther('1'),
       period: daysToSeconds(30),
-    };
-    const allocationConfig = {
       gracePeriod: daysToSeconds(30),
+      previousStart: 0,
+      previousExpiration: 0,
+      previousRewardsRatio: 5000,
+      useFixedPrice: false,
       globalCapacityRatio: 20000,
       capacityReductionRatio: 0,
       rewardRatio: 5000,
       globalMinPrice: 10000,
     };
 
-    const { firstActiveTrancheId } = await getTranches(allocationRequest.period, allocationConfig.gracePeriod);
+    const { firstActiveTrancheId } = await getTranches(allocationRequest.period, allocationRequest.gracePeriod);
 
     // first deposit
     await stakingPool.connect(user).depositTo([
@@ -456,7 +435,9 @@ describe('depositTo', function () {
     }
 
     // Generate rewards
-    await stakingPool.connect(this.coverSigner).allocateCapacity(allocationRequest, allocationConfig);
+    const coverAmount = parseEther('1');
+    const previousPremium = 0;
+    await stakingPool.connect(this.coverSigner).requestAllocation(coverAmount, previousPremium, allocationRequest);
     await increaseTime(daysToSeconds(20));
 
     // Second deposit
@@ -484,28 +465,25 @@ describe('depositTo', function () {
 
   it('should not revert with division by zero', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination, depositNftId } = depositToFixture;
 
-    // Generate rewards
     const allocationRequest = {
       productId: 0,
       coverId: MaxUint256,
-      amount: parseEther('1'),
       period: daysToSeconds(30),
-    };
-    const allocationConfig = {
       gracePeriod: daysToSeconds(30),
+      previousStart: 0,
+      previousExpiration: 0,
+      previousRewardsRatio: 5000,
+      useFixedPrice: false,
       globalCapacityRatio: 20000,
       capacityReductionRatio: 0,
       rewardRatio: 5000,
       globalMinPrice: 10000,
     };
 
-    const { firstActiveTrancheId } = await getTranches(allocationRequest.period, allocationConfig.gracePeriod);
+    const { firstActiveTrancheId } = await getTranches(allocationRequest.period, allocationRequest.gracePeriod);
 
     await stakingPool.connect(user).depositTo([
       {
@@ -516,7 +494,9 @@ describe('depositTo', function () {
       },
     ]);
 
-    await stakingPool.connect(this.coverSigner).allocateCapacity(allocationRequest, allocationConfig);
+    const coverAmount = parseEther('1');
+    const previousPremium = 0;
+    await stakingPool.connect(this.coverSigner).requestAllocation(coverAmount, previousPremium, allocationRequest);
 
     await increaseTime(daysToSeconds(150));
 
@@ -534,10 +514,7 @@ describe('depositTo', function () {
 
   it('updates global variables activeStake, stakeSharesSupply and rewardsSharesSupply', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination, depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
@@ -575,12 +552,9 @@ describe('depositTo', function () {
     }
   });
 
-  it('updates updates pool manager rewards shares', async function () {
+  it('updates pool manager rewards shares', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination, depositNftId, initialPoolFee } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
@@ -612,10 +586,7 @@ describe('depositTo', function () {
 
   it('updates tranche stake and reward shares', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination, depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
@@ -647,10 +618,7 @@ describe('depositTo', function () {
 
   it('transfer staked nxm to token controller contract', async function () {
     const { stakingPool, nxm, tokenController } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
@@ -675,10 +643,7 @@ describe('depositTo', function () {
 
   it('allows to deposit to multiple tranches', async function () {
     const { stakingPool, nxm, tokenController } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination, initialPoolFee } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches(daysToSeconds(0), DEFAULT_GRACE_PERIOD);
@@ -743,10 +708,7 @@ describe('depositTo', function () {
 
   it('emits StakeDeposited event', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination, depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
@@ -767,10 +729,7 @@ describe('depositTo', function () {
 
   it('reverts if provided tokenId is not valid', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, destination } = depositToFixture;
 
     const invalidTokenId = 127;
@@ -796,10 +755,7 @@ describe('depositTo', function () {
 
   it('should revert if trying to deposit, while nxm is locked for governance vote', async function () {
     const { stakingPool, nxm } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);

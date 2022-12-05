@@ -29,28 +29,18 @@ enum CoverUintParams {
   coverAssetsFallback
 }
 
+/* io structs */
+
 struct PoolAllocationRequest {
   uint40 poolId;
   uint coverAmountInAsset;
 }
 
-struct PoolAllocation {
-  uint40 poolId;
-  uint96 coverAmountInNXM;
-}
-
-struct CoverData {
-  uint24 productId;
-  uint8 coverAsset;
-  uint96 amountPaidOut;
-}
-
-struct CoverSegment {
-  uint96 amount;
-  uint32 start;
-  uint32 period;  // seconds
-  uint16 gracePeriodInDays;
-  uint24 globalRewardsRatio;
+struct RequestAllocationVariables {
+  uint previousPoolAllocationsLength;
+  uint previousPremiumInNXM;
+  uint refund;
+  uint coverAmountInNXM;
 }
 
 struct BuyCoverParams {
@@ -65,6 +55,41 @@ struct BuyCoverParams {
   uint16 commissionRatio;
   address commissionDestination;
   string ipfsData;
+}
+
+struct ProductParam {
+  uint productId;
+  string ipfsMetadata;
+  Product product;
+  uint[] allowedPools;
+}
+
+struct ProductTypeParam {
+  uint productTypeId;
+  string ipfsMetadata;
+  ProductType productType;
+}
+
+/* storage structs */
+
+struct PoolAllocation {
+  uint40 poolId;
+  uint96 coverAmountInNXM;
+  uint96 premiumInNXM;
+}
+
+struct CoverData {
+  uint24 productId;
+  uint8 coverAsset;
+  uint96 amountPaidOut;
+}
+
+struct CoverSegment {
+  uint96 amount;
+  uint32 start;
+  uint32 period; // seconds
+  uint32 gracePeriod; // seconds
+  uint24 globalRewardsRatio;
 }
 
 struct ProductBucket {
@@ -83,22 +108,9 @@ struct Product {
   bool useFixedPrice;
 }
 
-struct ProductParam {
-  uint productId;
-  string ipfsMetadata;
-  Product product;
-  uint[] allowedPools;
-}
-
 struct ProductType {
   uint8 claimMethod;
-  uint16 gracePeriodInDays;
-}
-
-struct ProductTypeParam {
-  uint productTypeId;
-  string ipfsMetadata;
-  ProductType productType;
+  uint32 gracePeriod;
 }
 
 interface ICover {
@@ -124,8 +136,6 @@ interface ICover {
   function stakingPoolCount() external view returns (uint64);
 
   function productsCount() external view returns (uint);
-
-  function activeCoverAmountCommitted() external view returns (bool);
 
   function MAX_COVER_PERIOD() external view returns (uint);
 
@@ -176,7 +186,7 @@ interface ICover {
     string calldata ipfsDescriptionHash
   ) external returns (address stakingPoolAddress);
 
-  function isAllowedPool(uint productId, uint poolId) external returns (bool);
+  function isPoolAllowed(uint productId, uint poolId) external returns (bool);
 
   /* ========== EVENTS ========== */
 

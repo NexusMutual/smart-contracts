@@ -15,6 +15,17 @@ library Math {
     return a > b ? a : b;
   }
 
+  function sum(uint[] memory items) internal pure returns (uint) {
+    uint count = items.length;
+    uint total;
+
+    for (uint i = 0; i < count; i++) {
+      total += items[i];
+    }
+
+    return total;
+  }
+
   function divRound(uint a, uint b) internal pure returns (uint) {
     return (a + b / 2) / b;
   }

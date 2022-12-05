@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.16;
 
 // 5 x uint48 activeAllocation + 1 x uint16 lastBucketId
 // 5 * 48 + 16 = 256
 type TrancheAllocationGroup is uint;
 
 // 8 x (uint32 expiringAllocation)
-type BucketTrancheGroup is uint;
+type TrancheGroupBucket is uint;
 
 library StakingTypesLib {
 
@@ -48,27 +48,27 @@ library StakingTypesLib {
     return TrancheAllocationGroup.wrap(underlying);
   }
 
-  // BucketTrancheGroup
+  // TrancheGroupBucket
 
   function getItemAt(
-    BucketTrancheGroup items,
+    TrancheGroupBucket items,
     uint index
   ) internal pure returns (uint32) {
-    uint underlying = BucketTrancheGroup.unwrap(items);
+    uint underlying = TrancheGroupBucket.unwrap(items);
     return uint32(underlying >> (index * 32));
   }
 
-  // heads up: does not mutate the BucketTrancheGroup but returns a new one instead
+  // heads up: does not mutate the TrancheGroupBucket but returns a new one instead
   function setItemAt(
-    BucketTrancheGroup items,
+    TrancheGroupBucket items,
     uint index,
     uint32 value
-  ) internal pure returns (BucketTrancheGroup) {
+  ) internal pure returns (TrancheGroupBucket) {
     // applying the mask using binary AND to clear target item's bits
     uint mask = ~(uint(type(uint32).max) << (index * 32));
     uint itemUnderlying = uint(value) << (index * 32);
-    uint groupUnderlying = BucketTrancheGroup.unwrap(items) & mask | itemUnderlying;
-    return BucketTrancheGroup.wrap(groupUnderlying);
+    uint groupUnderlying = TrancheGroupBucket.unwrap(items) & mask | itemUnderlying;
+    return TrancheGroupBucket.wrap(groupUnderlying);
   }
 
 }

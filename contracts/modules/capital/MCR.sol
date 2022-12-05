@@ -105,22 +105,19 @@ contract MCR is IMCR, MasterAwareV2 {
     IPool _pool = pool();
     IPriceFeedOracle priceFeed = _pool.priceFeedOracle();
     ICover _cover = cover();
-    if (_cover.activeCoverAmountCommitted()) {
-      uint totalActiveCoverAmountInEth = _cover.totalActiveCoverInAsset(0);
 
-      IPool.Asset[] memory assets = _pool.getCoverAssets();
+    uint totalActiveCoverAmountInEth = _cover.totalActiveCoverInAsset(0);
 
-      // the first asset is ETH. skip it, it's already counted
-      for (uint i = 1; i < assets.length; i++) {
-        uint activeCoverAmount = _cover.totalActiveCoverInAsset(uint24(i));
-        uint assetAmountInEth = priceFeed.getEthForAsset(assets[i].assetAddress, activeCoverAmount);
+    IPool.Asset[] memory assets = _pool.getCoverAssets();
 
-        totalActiveCoverAmountInEth += assetAmountInEth;
-      }
-
-      return totalActiveCoverAmountInEth;
+    // the first asset is ETH. skip it, it's already counted
+    for (uint i = 1; i < assets.length; i++) {
+      uint activeCoverAmount = _cover.totalActiveCoverInAsset(uint24(i));
+      uint assetAmountInEth = priceFeed.getEthForAsset(assets[i].assetAddress, activeCoverAmount);
+      totalActiveCoverAmountInEth += assetAmountInEth;
     }
-    return 0;
+
+    return totalActiveCoverAmountInEth;
   }
 
   /*
@@ -204,7 +201,6 @@ contract MCR is IMCR, MasterAwareV2 {
     uint _mcr = mcr;
     uint _desiredMCR = desiredMCR;
     uint _lastUpdateTime = lastUpdateTime;
-
 
     if (block.timestamp == _lastUpdateTime) {
       return _mcr;

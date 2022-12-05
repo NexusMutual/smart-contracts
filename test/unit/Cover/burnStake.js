@@ -5,7 +5,7 @@ const { expect } = require('chai');
 const { MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
-const gracePeriodInDays = 120;
+const gracePeriod = 120 * 24 * 3600; // 120 days
 
 describe('burnStake', function () {
   const coverBuyFixture = {
@@ -45,17 +45,14 @@ describe('burnStake', function () {
       period,
       amount: remainingAmount,
       targetPriceRatio,
-      gracePeriodInDays,
+      gracePeriod,
       segmentId,
       amountPaidOut: burnAmount,
     });
 
     const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
     const burnStakeCalledWith = await stakingPool.burnStakeCalledWith();
-
-    expect(burnStakeCalledWith.productId).to.be.equal(productId);
-    expect(burnStakeCalledWith.period).to.be.equal(period);
-    expect(burnStakeCalledWith.amount).to.be.equal(expectedBurnAmount);
+    expect(burnStakeCalledWith).to.be.equal(expectedBurnAmount);
   });
 
   it('reverts if caller is not an internal contract', async function () {
@@ -161,18 +158,16 @@ describe('burnStake', function () {
       period,
       amount: remainingAmount,
       targetPriceRatio,
-      gracePeriodInDays,
+      gracePeriod,
       segmentId,
       amountPaidOut: burnAmount,
     });
 
     for (let i = 0; i < amountOfPools; i++) {
       const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(i));
-      const burnStakeCalledWith = await stakingPool.burnStakeCalledWith();
 
-      expect(burnStakeCalledWith.productId).to.be.equal(productId);
-      expect(burnStakeCalledWith.period).to.be.equal(period);
-      expect(burnStakeCalledWith.amount).to.be.equal(expectedBurnAmountPerPool);
+      const burnStakeCalledWith = await stakingPool.burnStakeCalledWith();
+      expect(burnStakeCalledWith).to.be.equal(expectedBurnAmountPerPool);
 
       const segmentAllocationAfter = await cover.coverSegmentAllocations(expectedCoverId, segmentId, i);
 

@@ -8,15 +8,7 @@ import "../../interfaces/IStakingPool.sol";
 import "../../modules/staking/StakingPool.sol";
 import "../Tokens/ERC721Mock.sol";
 
-
 contract CoverMockStakingPool is IStakingPool, ERC721Mock {
-
-  struct BurnStakeCalledWith {
-    uint productId;
-    uint start;
-    uint period;
-    uint amount;
-  }
 
   /* immutables */
   address public immutable memberRoles;
@@ -36,7 +28,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
   uint public totalSupply;
   address public manager;
 
-  BurnStakeCalledWith public burnStakeCalledWith;
+  uint public burnStakeCalledWith;
 
   constructor (
     address /* _nxm */,
@@ -71,15 +63,14 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     _operatorTransferFrom(from, to, amount);
   }
 
-  function allocateCapacity(
-    AllocationRequest calldata request,
-    AllocationRequestConfig calldata /*config*/
+  function requestAllocation(
+    uint amount,
+    uint /*previousPremium*/,
+    AllocationRequest calldata request
   ) external override returns (uint premium) {
-    usedCapacity[request.productId] += request.amount;
-    return calculatePremium(mockPrices[request.productId], request.amount, request.period);
+    usedCapacity[request.productId] += amount;
+    return calculatePremium(mockPrices[request.productId], amount, request.period);
   }
-
-  function deallocateCapacity(DeallocationRequest memory /*request*/) external {}
 
   function setProducts(StakedProductParam[] memory params) external {
     totalSupply = totalSupply;
@@ -106,7 +97,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     }
   }
 
-  function updateTranches(bool) external {
+  function processExpirations(bool) external {
     totalSupply = totalSupply;
     revert("CoverMockStakingPool: not callable");
   }
@@ -155,9 +146,9 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     // noop
   }
 
-  function burnStake(uint productId, uint start, uint period, uint amount) external {
+  function burnStake(uint amount) external {
     // no-op
-    burnStakeCalledWith = BurnStakeCalledWith(productId, start, period, amount);
+    burnStakeCalledWith = amount;
   }
 
   function depositTo(DepositRequest[] memory /* requests */) external returns (uint[] memory /* tokenIds */) {
@@ -215,16 +206,4 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     revert("CoverMockStakingPool: not callable");
   }
 
-  function getPriceParameters(
-    uint /* productId */,
-    uint /* maxCoverPeriod */
-  ) external override view returns (
-    uint /* activeCover */,
-    uint[] memory /* staked */,
-    uint /* lastBasePrice */,
-    uint /* targetPrice */
-  ) {
-    block.timestamp;
-    revert("CoverMockStakingPool: not callable");
-  }
 }

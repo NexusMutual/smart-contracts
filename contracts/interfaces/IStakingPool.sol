@@ -9,28 +9,16 @@ import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 struct AllocationRequest {
   uint productId;
   uint coverId;
-  uint amount;
   uint period;
-  bool useFixedPrice;
-}
-
-struct AllocationRequestConfig {
   uint gracePeriod;
+  bool useFixedPrice;
+  uint previousStart;
+  uint previousExpiration;
+  uint previousRewardsRatio;
   uint globalCapacityRatio;
   uint capacityReductionRatio;
   uint rewardRatio;
   uint globalMinPrice;
-}
-
-struct DeallocationRequest {
-  uint productId;
-  uint coverId;
-  uint amount;
-  uint coverStartTime;
-  uint period;
-  uint gracePeriod;
-  uint premium;
-  uint rewardRatio;
 }
 
 struct WithdrawRequest {
@@ -61,15 +49,6 @@ struct ProductInitializationParams {
   uint8 weight;
   uint96 initialPrice;
   uint96 targetPrice;
-}
-
-struct PremiumParameters {
-  uint productId;
-  uint period;
-  uint coverAmount;
-  uint initialCapacityUsed;
-  uint totalCapacity;
-  bool useFixedPrice;
 }
 
 interface IStakingPool {
@@ -122,16 +101,15 @@ interface IStakingPool {
 
   function operatorTransfer(address from, address to, uint[] calldata tokenIds) external;
 
-  function updateTranches(bool updateUntilCurrentTimestamp) external;
+  function processExpirations(bool updateUntilCurrentTimestamp) external;
 
-  function allocateCapacity(
-    AllocationRequest calldata request,
-    AllocationRequestConfig calldata config
+  function requestAllocation(
+    uint amount,
+    uint previousPremium,
+    AllocationRequest calldata request
   ) external returns (uint premium);
 
-  function deallocateCapacity(DeallocationRequest calldata request) external;
-
-  function burnStake(uint productId, uint start, uint period, uint amount) external;
+  function burnStake(uint amount) external;
 
   function depositTo(DepositRequest[] memory requests) external returns (uint[] memory tokenIds);
 
@@ -154,16 +132,6 @@ interface IStakingPool {
   function getFreeProductStake(uint productId, uint coverExpirationDate) external view returns (uint);
 
   function getAllocatedProductStake(uint productId) external view returns (uint);
-
-  function getPriceParameters(
-    uint productId,
-    uint maxCoverPeriod
-  ) external view returns (
-    uint activeCover,
-    uint[] memory capacities,
-    uint lastBasePrice,
-    uint targetPrice
-  );
 
     /* ========== EVENTS ========== */
 

@@ -230,12 +230,31 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint16 segmentId,
     uint96 requestedAmount,
     string calldata ipfsMetadata
-  ) external payable override onlyMember whenNotPaused returns (Claim memory) {
+  ) external payable override onlyMember whenNotPaused returns (Claim memory claim) {
     require(
       coverNFT.isApprovedOrOwner(msg.sender, coverId),
       "Only the owner or approved addresses can submit a claim"
     );
+    return _submitClaim(coverId, segmentId, requestedAmount, ipfsMetadata, msg.sender);
+  }
 
+  function submitClaimFor(
+    uint32 coverId,
+    uint16 segmentId,
+    uint96 requestedAmount,
+    string calldata ipfsMetadata,
+    address owner
+  ) external payable override onlyInternal whenNotPaused returns (Claim memory claim){
+    return _submitClaim(coverId, segmentId, requestedAmount, ipfsMetadata, owner);
+  }
+
+  function _submitClaim(
+    uint32 coverId,
+    uint16 segmentId,
+    uint96 requestedAmount,
+    string calldata ipfsMetadata,
+    address owner
+  ) internal returns (Claim memory) {
     {
       ClaimSubmission memory previousSubmission = lastClaimSubmissionOnCover[coverId];
       if (previousSubmission.exists) {
@@ -279,7 +298,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       );
 
       emit ClaimSubmitted(
-        msg.sender,         // user
+        owner,         // user
         claims.length,      // claimId
         coverId,            // coverId
         coverData.productId // user
@@ -308,14 +327,13 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       emit MetadataSubmitted(claims.length - 1, ipfsMetadata);
     }
 
-
     require(msg.value >= assessmentDepositInETH, "Assessment deposit is insufficient");
     if (msg.value > assessmentDepositInETH) {
       // Refund ETH excess back to the sender
       (
         bool refunded,
         /* bytes data */
-      ) = msg.sender.call{value: msg.value - assessmentDepositInETH}("");
+      ) = owner.call{value: msg.value - assessmentDepositInETH}("");
       require(refunded, "Assessment deposit excess refund failed");
     }
 

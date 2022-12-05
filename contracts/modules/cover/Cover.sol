@@ -18,6 +18,7 @@ import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IIndividualClaims.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./CoverUtilsLib.sol";
@@ -149,15 +150,26 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint coverId,
     address fromOwner,
     address newOwner
-  ) external override onlyInternal {
-    _migrateCoverFromOwner(coverId, fromOwner, newOwner);
+  ) external override onlyInternal returns (uint newCoverId) {
+    newCoverId = _migrateCoverFromOwner(coverId, fromOwner, newOwner);
+  }
+
+  function migrateAndSubmitClaim(
+    uint32 coverId,
+    uint16 segmentId,
+    uint96 requestedAmount,
+    string calldata ipfsMetadata
+  ) payable external whenNotPaused returns (uint newCoverId) {
+    newCoverId =  _migrateCoverFromOwner(coverId, msg.sender, msg.sender);
+    individualClaims().submitClaimFor{value: msg.value}(uint32(newCoverId), segmentId, requestedAmount, ipfsMetadata, msg.sender);
+    return newCoverId;
   }
 
   /// @dev Migrates covers from V1
   ///
   /// @param coverId     V1 cover identifier
   /// @param fromOwner   The address from where this function is called that needs to match the
-  /// @param newOwner  The address for which the V2 cover NFT is minted
+  /// @param newOwner    The address for which the V2 cover NFT is minted
   function _migrateCoverFromOwner(
     uint coverId,
     address fromOwner,
@@ -723,6 +735,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return IMemberRoles(internalContracts[uint(ID.MR)]);
   }
 
+  function individualClaims() internal view returns (IIndividualClaims) {
+    return IIndividualClaims(getInternalContractAddress(ID.IC));
+  }
+
   function mcr() internal view returns (IMCR) {
     return IMCR(internalContracts[uint(ID.MC)]);
   }
@@ -733,6 +749,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
+    internalContracts[uint(ID.IC)] = master.getLatestAddress("IC");
   }
 
   /**

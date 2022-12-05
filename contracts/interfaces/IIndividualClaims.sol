@@ -116,6 +116,14 @@ interface IIndividualClaims {
     string calldata ipfsMetadata
   ) external payable returns (Claim memory);
 
+  function submitClaimFor(
+    uint32 coverId,
+    uint16 segmentId,
+    uint96 requestedAmount,
+    string calldata ipfsMetadata,
+    address owner
+  ) external payable returns (Claim memory);
+
   function redeemClaimPayout(uint104 id) external;
 
   function updateUintParameters(UintParams[] calldata paramNames, uint[] calldata values) external;

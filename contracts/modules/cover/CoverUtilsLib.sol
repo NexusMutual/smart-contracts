@@ -46,17 +46,23 @@ library CoverUtilsLib {
     ProductType[] storage _productTypes,
     CoverData[] storage _coverData,
     mapping(uint => CoverSegment[]) storage _coverSegments
-  ) external {
+  ) external returns (uint newCoverId) {
 
-    (
+    address legacyProductId;
+    bytes4 currencyCode;
+
+    {
+      address coverOwner;
+      (
       /*uint coverId*/,
-      address coverOwner,
-      address legacyProductId,
-      bytes4 currencyCode,
+      coverOwner,
+      legacyProductId,
+      currencyCode,
       /*uint sumAssured*/,
       /*uint premiumNXM*/
-    ) = params.quotationData.getCoverDetailsByCoverID1(params.coverId);
-
+      ) = params.quotationData.getCoverDetailsByCoverID1(params.coverId);
+      require(params.fromOwner == coverOwner, "Cover can only be migrated by its owner");
+    }
     (
       /*uint coverId*/,
       uint8 status,
@@ -65,9 +71,10 @@ library CoverUtilsLib {
       uint validUntil
     ) = params.quotationData.getCoverDetailsByCoverID2(params.coverId);
 
-    require(params.fromOwner == coverOwner, "Cover can only be migrated by its owner");
-    require(LegacyCoverStatus(status) != LegacyCoverStatus.Migrated, "Cover has already been migrated");
-    require(LegacyCoverStatus(status) != LegacyCoverStatus.ClaimAccepted, "A claim has already been accepted");
+    {
+      require(LegacyCoverStatus(status) != LegacyCoverStatus.Migrated, "Cover has already been migrated");
+      require(LegacyCoverStatus(status) != LegacyCoverStatus.ClaimAccepted, "A claim has already been accepted");
+    }
 
     {
       (uint claimCount , bool hasOpenClaim,  /*hasAcceptedClaim*/) = params.tokenController.coverInfo(params.coverId);
@@ -96,7 +103,7 @@ library CoverUtilsLib {
       );
     }
 
-    uint newCoverId = _coverData.length - 1;
+    newCoverId = _coverData.length - 1;
 
     _coverSegments[newCoverId].push(
       CoverSegment(
@@ -109,6 +116,7 @@ library CoverUtilsLib {
     );
 
     params.coverNFT.mint(params.newOwner, newCoverId);
+    return newCoverId;
   }
 
   function calculateProxyCodeHash(address coverProxyAddress) external pure returns (bytes32) {

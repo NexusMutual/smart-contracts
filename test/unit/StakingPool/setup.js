@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const { parseEther } = ethers.utils;
 const { getAccounts } = require('../../utils/accounts');
+const { setEtherBalance } = require('../../utils/evm');
 const { Role } = require('../utils').constants;
 const { zeroPadRight } = require('../utils').helpers;
 
@@ -98,11 +99,15 @@ async function setup() {
     GLOBAL_MIN_PRICE_RATIO: await cover.GLOBAL_MIN_PRICE_RATIO(),
   };
 
+  const coverSigner = await ethers.getImpersonatedSigner(cover.address);
+  await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
+
   this.tokenController = tokenController;
   this.master = master;
   this.nxm = nxm;
   this.stakingPool = stakingPool;
   this.cover = cover;
+  this.coverSigner = coverSigner;
   this.dai = dai;
   this.accounts = accounts;
   this.config = config;

@@ -8,6 +8,7 @@ const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 
 const TRANCHE_DURATION = daysToSeconds(91);
+const BUCKET_DURATION = daysToSeconds(28);
 const ONE_YEAR = daysToSeconds(365);
 const MAX_ACTIVE_TRANCHES = 8;
 
@@ -140,6 +141,11 @@ async function getTranches(period = 0, gracePeriod = 0) {
   return { firstActiveTrancheId, maxTranche };
 }
 
+async function getCurrentBucket() {
+  const lastBlock = await ethers.provider.getBlock('latest');
+  return Math.floor(lastBlock.timestamp / BUCKET_DURATION);
+}
+
 async function estimateStakeShares({ amount, stakingPool }) {
   const stakeShareSupply = await stakingPool.stakeSharesSupply();
 
@@ -164,14 +170,14 @@ async function getNewRewardShares(params) {
   );
 }
 
-async function generateRewards(stakingPool, signer) {
+async function generateRewards(stakingPool, signer, period = daysToSeconds(10), gracePeriod = daysToSeconds(10)) {
   const amount = parseEther('1');
   const previousPremium = 0;
   const allocationRequest = {
     productId: 0,
     coverId: 0,
-    period: daysToSeconds(10),
-    gracePeriod: daysToSeconds(10),
+    period,
+    gracePeriod,
     previousStart: 0,
     previousExpiration: 0,
     previousRewardsRatio: 5000,
@@ -196,9 +202,11 @@ module.exports = {
   roundUpToNearestAllocationUnit,
   getTranches,
   getCurrentTrancheId,
+  getCurrentBucket,
   getNewRewardShares,
   estimateStakeShares,
   generateRewards,
   TRANCHE_DURATION,
+  BUCKET_DURATION,
   MAX_ACTIVE_TRANCHES,
 };

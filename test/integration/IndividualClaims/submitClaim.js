@@ -6,7 +6,7 @@ const { parseEther } = ethers.utils;
 
 const { daysToSeconds } = require('../../../lib/helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
-const { } = require('../utils/staking')
+const { stake } = require('../utils/staking')
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);

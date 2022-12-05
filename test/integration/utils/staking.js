@@ -21,7 +21,18 @@ async function stake({ stakingPool, staker, productId, period, gracePeriod }) {
       destination: AddressZero,
     },
   ]);
-  await stakingPool.setTargetWeight(productId, 10);
+
+  const stakingProductParams = {
+    productId,
+    recalculateEffectiveWeight: true,
+    setTargetWeight: true,
+    targetWeight: 100, // 1
+    setTargetPrice: true,
+    targetPrice: 100, // 1%
+  };
+
+  const managerSigner = await ethers.getSigner(await stakingPool.manager());
+  await stakingPool.connect(managerSigner).setProducts([stakingProductParams]);
 }
 
 module.exports = {

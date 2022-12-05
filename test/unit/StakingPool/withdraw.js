@@ -1,7 +1,6 @@
 const { BigNumber } = require('ethers');
 const { parseEther } = require('ethers/lib/utils');
 const { ethers, expect } = require('hardhat');
-const { daysToSeconds } = require('../../../lib/helpers');
 const { increaseTime, mineNextBlock } = require('../../utils/evm');
 const {
   getTranches,
@@ -35,22 +34,6 @@ describe('withdraw', function () {
     trancheId: 0,
     tokenId: 1,
     destination: ethers.constants.AddressZero,
-  };
-
-  // Rewards allocation
-  const allocationRequest = {
-    productId: 0,
-    coverId: 0,
-    period: daysToSeconds(10),
-    gracePeriod: daysToSeconds(10),
-    previousStart: 0,
-    previousExpiration: 0,
-    previousRewardsRatio: 5000,
-    useFixedPrice: false,
-    globalCapacityRatio: 20000,
-    capacityReductionRatio: 0,
-    rewardRatio: 5000,
-    globalMinPrice: 10000,
   };
 
   beforeEach(async function () {

@@ -1039,6 +1039,8 @@ contract StakingPool is IStakingPool, ERC721 {
     uint topUpAmount
   ) external {
 
+    require(isApprovedOrOwner(msg.sender, tokenId), "StakingPool: Not token owner or approved");
+
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 
     {

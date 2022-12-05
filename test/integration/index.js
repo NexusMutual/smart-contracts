@@ -20,7 +20,7 @@ describe('INTEGRATION TESTS', function () {
   // require('./Master');
   // require('./PooledStaking');
   require('./Pool');
-  // require('./MCR');
+  require('./MCR');
   require('./MemberRoles');
   // require('./Claims');
   //

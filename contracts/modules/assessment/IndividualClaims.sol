@@ -231,8 +231,13 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint96 requestedAmount,
     string calldata ipfsMetadata
   ) external payable override onlyMember whenNotPaused returns (Claim memory claim) {
+    require(
+      coverNFT.isApprovedOrOwner(msg.sender, coverId),
+      "Only the owner or approved addresses can submit a claim"
+    );
     return _submitClaim(coverId, segmentId, requestedAmount, ipfsMetadata, msg.sender);
   }
+
   function submitClaimOf(
     uint32 coverId,
     uint16 segmentId,
@@ -250,10 +255,6 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     string calldata ipfsMetadata,
     address owner
   ) internal returns (Claim memory) {
-  require(
-      coverNFT.isApprovedOrOwner(msg.sender, coverId),
-      "Only the owner or approved addresses can submit a claim"
-    );
     {
       ClaimSubmission memory previousSubmission = lastClaimSubmissionOnCover[coverId];
       if (previousSubmission.exists) {
@@ -297,7 +298,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       );
 
       emit ClaimSubmitted(
-        msg.sender,         // user
+        owner,         // user
         claims.length,      // claimId
         coverId,            // coverId
         coverData.productId // user
@@ -352,7 +353,6 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   /// When the tokens are transfered the assessment deposit is also sent back.
   ///
   /// @param claimId  Claim identifier
-
   function redeemClaimPayout(uint104 claimId) external override whenNotPaused {
     Claim memory claim = claims[claimId];
     (

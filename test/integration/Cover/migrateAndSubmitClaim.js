@@ -55,14 +55,11 @@ describe('migrateAndSubmitClaim', function () {
 
     const eventFilterTransfer = coverNFT.filters.Transfer();
     const {
-      args: [from, to, newCoverId],
+      args: [, to, newCoverId],
     } = (await coverNFT.queryFilter(eventFilterTransfer)).pop();
-    expect(from).to.be.equal(cover.address);
     expect(to).to.be.equal(coverOwner.address);
 
     const newCoverOwner = await coverNFT.ownerOf(newCoverId);
     expect(newCoverOwner).to.be.equal(coverOwner.address);
-    const balanceCoverMigrator = await coverNFT.balanceOf(cover.address);
-    expect(balanceCoverMigrator).to.be.equal(0);
   });
 });

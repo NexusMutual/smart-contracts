@@ -160,9 +160,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint96 requestedAmount,
     string calldata ipfsMetadata
   ) payable external whenNotPaused returns (uint newCoverId) {
-    newCoverId =  _migrateCoverFromOwner(coverId, msg.sender, address(this));
+    newCoverId =  _migrateCoverFromOwner(coverId, msg.sender, msg.sender);
     individualClaims().submitClaimOf{value: msg.value}(uint32(newCoverId), segmentId, requestedAmount, ipfsMetadata, msg.sender);
-    ICoverNFT(coverNFT).transferFrom(address(this), msg.sender, newCoverId);
     return newCoverId;
   }
 
@@ -170,7 +169,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   ///
   /// @param coverId     V1 cover identifier
   /// @param fromOwner   The address from where this function is called that needs to match the
-  /// @param newOwner  The address for which the V2 cover NFT is minted
+  /// @param newOwner    The address for which the V2 cover NFT is minted
   function _migrateCoverFromOwner(
     uint coverId,
     address fromOwner,

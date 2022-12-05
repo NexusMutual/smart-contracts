@@ -1,5 +1,4 @@
 const { ethers } = require('hardhat');
-const Decimal = require('decimal.js');
 const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
 const { parseEther } = require('ethers/lib/utils');
 const { daysToSeconds } = require('../../../lib/helpers');
@@ -114,10 +113,6 @@ function getPrices(amount, activeCover, capacity, initialPrice, lastBasePrice, t
   return { basePrice: bumpedBasePrice, actualPrice };
 }
 
-function toDecimal(x) {
-  return new Decimal(x.toString());
-}
-
 function calculateFirstTrancheId(timestamp, period, gracePeriod) {
   return Math.floor((timestamp + period + gracePeriod) / (91 * 24 * 3600));
 }
@@ -144,13 +139,8 @@ async function estimateStakeShares({ amount, stakingPool }) {
   return amount.mul(stakeShareSupply).div(activeStake);
 }
 
-async function getNewRewardShares({
-  stakingPool,
-  initialStakeShares,
-  stakeSharesIncrease,
-  initialTrancheId,
-  newTrancheId,
-}) {
+async function getNewRewardShares(params) {
+  const { stakingPool, initialStakeShares, stakeSharesIncrease, initialTrancheId, newTrancheId } = params;
   const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
 
   return stakingPool.calculateNewRewardShares(
@@ -163,27 +153,29 @@ async function getNewRewardShares({
 }
 
 async function generateRewards(stakingPool, signer) {
+  const amount = parseEther('1');
+  const previousPremium = 0;
   const allocationRequest = {
     productId: 0,
     coverId: 0,
-    amount: parseEther('1'),
     period: daysToSeconds(10),
-  };
-  const allocationConfig = {
     gracePeriod: daysToSeconds(10),
+    previousStart: 0,
+    previousExpiration: 0,
+    previousRewardsRatio: 5000,
+    useFixedPrice: false,
     globalCapacityRatio: 20000,
     capacityReductionRatio: 0,
     rewardRatio: 5000,
     globalMinPrice: 10000,
   };
-  await stakingPool.connect(signer).allocateCapacity(allocationRequest, allocationConfig);
+  await stakingPool.connect(signer).requestAllocation(amount, previousPremium, allocationRequest);
 }
 
 module.exports = {
   setTime,
   getPrices,
   calculatePrice,
-  toDecimal,
   getTranches,
   getNewRewardShares,
   estimateStakeShares,

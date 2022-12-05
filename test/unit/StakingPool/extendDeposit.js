@@ -69,15 +69,14 @@ describe('extendDeposit', function () {
 
   it('reverts if token id is 0', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
-    await expect(stakingPool.connect(user).extendDeposit(0, firstActiveTrancheId, maxTranche, 0)).to.be.revertedWith(
-      'StakingPool: Invalid token id',
-    );
+    const managerAddress = await stakingPool.manager();
+    const managerSigner = await ethers.getImpersonatedSigner(managerAddress);
+
+    await expect(
+      stakingPool.connect(managerSigner).extendDeposit(0, firstActiveTrancheId, maxTranche, 0),
+    ).to.be.revertedWith('StakingPool: Invalid token id');
   });
 
   it('reverts if new tranche ends before the initial tranche', async function () {
@@ -127,19 +126,17 @@ describe('extendDeposit', function () {
     ).to.be.revertedWith('StakingPool: The tranche has already expired');
   });
 
-  it('any user can extend the deposit for a token id', async function () {
+  it('reverts when the user is not token owner nor approved tries to extend the deposit', async function () {
     const { stakingPool } = this;
-    const {
-      nonMembers: [notNFTOwnerNorApproved],
-    } = this.accounts;
-
+    const [notNFTOwnerNorApproved] = this.accounts.nonMembers;
     const { depositNftId } = depositToFixture;
-
     const { firstActiveTrancheId } = await getTranches();
 
-    await stakingPool
-      .connect(notNFTOwnerNorApproved)
-      .extendDeposit(depositNftId, firstActiveTrancheId, firstActiveTrancheId + 1, 0);
+    await expect(
+      stakingPool
+        .connect(notNFTOwnerNorApproved)
+        .extendDeposit(depositNftId, firstActiveTrancheId, firstActiveTrancheId + 1, 0),
+    ).to.be.revertedWith('StakingPool: Not token owner or approved');
   });
 
   it('withdraws and make a new deposit if initial tranche is expired', async function () {

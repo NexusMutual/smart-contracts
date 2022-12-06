@@ -720,7 +720,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function getActiveAllocations(
     uint productId
-  ) internal view returns (uint[] memory trancheAllocations) {
+  ) public view returns (uint[] memory trancheAllocations) {
 
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint currentBucket = (block.timestamp / BUCKET_DURATION).toUint16();

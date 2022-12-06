@@ -79,7 +79,9 @@ async function setup() {
 
   const REWARD_BONUS_PER_TRANCHE_RATIO = await stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO();
   const REWARD_BONUS_PER_TRANCHE_DENOMINATOR = await stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR();
+  const PRICE_CHANGE_PER_DAY = await stakingPool.PRICE_CHANGE_PER_DAY();
   const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
+  const GLOBAL_CAPACITY_RATIO = await cover.globalCapacityRatio();
 
   this.tokenController = tokenController;
   this.master = master;
@@ -92,6 +94,8 @@ async function setup() {
     REWARD_BONUS_PER_TRANCHE_DENOMINATOR,
     REWARD_BONUS_PER_TRANCHE_RATIO,
     GLOBAL_MIN_PRICE_RATIO,
+    GLOBAL_CAPACITY_RATIO,
+    PRICE_CHANGE_PER_DAY,
   };
 }
 

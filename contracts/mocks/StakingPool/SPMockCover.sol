@@ -13,6 +13,8 @@ contract SPMockCover {
 
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
+  uint public lastPremium;
+
   mapping(uint => address) public stakingPool;
   mapping(uint => Product) public products;
   mapping(uint => ProductType) public productTypes;
@@ -64,7 +66,7 @@ contract SPMockCover {
     Product memory product = products[params.productId];
     uint gracePeriod = productTypes[product.productType].gracePeriod;
 
-    return _stakingPool.requestAllocation(
+    premium = _stakingPool.requestAllocation(
       params.amount,
       // TODO: figure out if these need to be populated
       0, // previousPremium
@@ -84,6 +86,7 @@ contract SPMockCover {
         GLOBAL_MIN_PRICE_RATIO
       )
     );
+    lastPremium = premium;
   }
 
   function initializeStaking(

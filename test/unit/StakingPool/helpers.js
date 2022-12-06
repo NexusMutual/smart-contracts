@@ -29,6 +29,16 @@ const setTime = async timestamp => {
   await mineNextBlock();
 };
 
+async function calculateBasePrice(stakingPool, product, priceChangePerDay) {
+  const { timestamp } = await ethers.provider.getBlock('latest');
+  const timeSinceLastUpdate = BigNumber.from(timestamp).sub(product.nextPriceUpdateTime);
+  const priceDrop = timeSinceLastUpdate.mul(priceChangePerDay).div(daysToSeconds('1'));
+  const basePrice = product.nextPrice.lt(product.targetPrice.add(priceDrop))
+    ? product.targetPrice
+    : product.nextPrice.sub(priceDrop);
+  return basePrice;
+}
+
 function interpolatePrice(lastPriceRatio, targetPriceRatio, lastPriceUpdate, currentTimestamp) {
   const priceChange = BigNumber.from(currentTimestamp - lastPriceUpdate)
     .div(24 * 3600)
@@ -117,6 +127,11 @@ function calculateFirstTrancheId(timestamp, period, gracePeriod) {
   return Math.floor((timestamp + period + gracePeriod) / (91 * 24 * 3600));
 }
 
+async function getCurrentTrancheId() {
+  const { timestamp } = await ethers.provider.getBlock('latest');
+  return Math.floor(timestamp / daysToSeconds(91));
+}
+
 async function getTranches(period = 0, gracePeriod = 0) {
   const lastBlock = await ethers.provider.getBlock('latest');
   const firstActiveTrancheId = calculateFirstTrancheId(lastBlock.timestamp, period, gracePeriod);
@@ -176,7 +191,9 @@ module.exports = {
   setTime,
   getPrices,
   calculatePrice,
+  calculateBasePrice,
   getTranches,
+  getCurrentTrancheId,
   getNewRewardShares,
   estimateStakeShares,
   generateRewards,

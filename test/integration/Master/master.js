@@ -1,11 +1,12 @@
-const { accounts, web3 } = require('hardhat');
+const { web3,
+  ethers
+} = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { ProposalCategory, ContractTypes } = require('../utils').constants;
 const { submitProposal } = require('../utils').governance;
 const { hex, bnEqual } = require('../utils').helpers;
-
-const [owner] = accounts;
+const { parseEther } = ethers.utils;
 
 const CoverMigrator = artifacts.require('CoverMigrator');
 const ClaimsReward = artifacts.require('LegacyClaimsReward');
@@ -48,18 +49,22 @@ describe('master', function () {
     const { master, gv } = this.contracts;
 
     const code = hex('XX');
-    const newContract = await MMockNewContract.new();
+
+    const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
+    const newContract = await MMockNewContract.deploy();
+
     const actionData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]', 'uint[]'],
       [[code], [newContract.address], [ContractTypes.Replaceable]],
     );
-    await submitProposal(gv, ProposalCategory.newContracts, actionData, [owner]);
+
+    await submitProposal(gv, ProposalCategory.newContracts, actionData, [this.accounts.defaultSender]);
 
     const address = await master.getLatestAddress(code);
     assert.equal(address, newContract.address);
 
     // can perform onlyInternal action
-    await newContract.mint(owner, ether('1'));
+    await newContract.mint(this.accounts.defaultSender.address, parseEther('1'));
   });
 
   it('adds new proxy contract which can execute internal functions', async function () {

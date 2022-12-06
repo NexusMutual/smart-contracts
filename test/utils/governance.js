@@ -1,5 +1,6 @@
 const { expectEvent, time } = require('@openzeppelin/test-helpers');
-const { hex } = require('../../lib').helpers;
+const { hex, daysToSeconds } = require('../../lib').helpers;
+const { increaseTime } = require('./evm');
 
 const submitProposal = async (gv, category, actionData, members) => {
   const proposalId = await gv.getProposalLength();
@@ -8,13 +9,13 @@ const submitProposal = async (gv, category, actionData, members) => {
   await gv.submitProposalWithSolution(proposalId, '', actionData);
 
   for (const member of members) {
-    await gv.submitVote(proposalId, 1, { from: member });
+    await gv.connect(member).submitVote(proposalId, 1, []);
   }
 
-  await time.increase(time.duration.days(7));
+  await increaseTime(daysToSeconds(7));
 
   const closeTx = await gv.closeProposal(proposalId);
-  expectEvent(closeTx, 'ActionSuccess', { proposalId });
+  expect(closeTx).to.emit(gv, 'ActionSuccess').withArgs(proposalId);
 
   const proposal = await gv.proposal(proposalId);
 

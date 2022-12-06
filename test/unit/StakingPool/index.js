@@ -12,7 +12,7 @@ describe('StakingPool unit tests', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
-  // require('./calculatePrice');
+  require('./calculatePrice');
   // require('./interpolatePrice');
   // require('./getPrices');
   require('./constructor');

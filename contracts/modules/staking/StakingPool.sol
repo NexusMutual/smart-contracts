@@ -737,6 +737,7 @@ contract StakingPool is IStakingPool, ERC721 {
       uint[] memory expirations = getExpiringCoverAmounts(productId, bucketId, _firstActiveTrancheId);
 
       for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
+        // TODO: this is underflowing
         trancheAllocations[i] -= expirations[i];
       }
     }
@@ -1585,7 +1586,7 @@ contract StakingPool is IStakingPool, ERC721 {
   function calculateSurgePremium(
     uint amountOnSurge,
     uint totalCapacity
-  ) internal pure returns (uint) {
+  ) public pure returns (uint) {
 
     // for every percent of capacity used, the surge price has a +2% increase per annum
     // meaning a +200% increase for 100%, ie x2 for a whole unit (100%) of capacity in ratio terms

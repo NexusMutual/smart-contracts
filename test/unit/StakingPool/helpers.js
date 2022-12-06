@@ -39,6 +39,51 @@ async function calculateBasePrice(stakingPool, product, priceChangePerDay) {
   return basePrice;
 }
 
+async function calculateSurgePremium(stakingPool, coverAmount, initialCapacityUsed, totalCapacity, config) {
+  const amountOnSurge = calculateAmountOnSurge(coverAmount, initialCapacityUsed, totalCapacity, config);
+  const surgePremium = await stakingPool.calculateSurgePremium(amountOnSurge, totalCapacity);
+  const amountOnSurgeSkipped = calculateAmountOnSurgeSkipped(coverAmount, initialCapacityUsed, totalCapacity, config);
+  const surgePremiumSkipped = await stakingPool.calculateSurgePremium(amountOnSurgeSkipped, totalCapacity);
+  return { surgePremium, surgePremiumSkipped };
+}
+
+// config is from StakingPool/unit/setup.js
+function calculateAmountOnSurge(coverAmount, initialCapacityUsed, totalCapacity, config) {
+  coverAmount = BigNumber.from(coverAmount).div(config.NXM_PER_ALLOCATION_UNIT);
+  initialCapacityUsed = BigNumber.from(initialCapacityUsed);
+  totalCapacity = BigNumber.from(totalCapacity);
+  const finalCapacityUsed = initialCapacityUsed.add(coverAmount);
+  const surgeStartPoint = totalCapacity.mul(config.SURGE_THRESHOLD_RATIO) / config.SURGE_THRESHOLD_DENOMINATOR;
+  const amountOnSurge = finalCapacityUsed.sub(surgeStartPoint);
+  return amountOnSurge;
+}
+
+// This function should calculate the amount on surge skipped
+function calculateAmountOnSurgeSkipped(coverAmount, initialCapacityUsed, totalCapacity, config) {
+  coverAmount = BigNumber.from(coverAmount).div(config.NXM_PER_ALLOCATION_UNIT);
+  initialCapacityUsed = BigNumber.from(initialCapacityUsed);
+  totalCapacity = BigNumber.from(totalCapacity);
+  const surgeStartPoint = totalCapacity.mul(config.SURGE_THRESHOLD_RATIO).div(config.SURGE_THRESHOLD_DENOMINATOR);
+
+  const finalCapacityUsed = initialCapacityUsed.add(coverAmount);
+
+  if (finalCapacityUsed.lte(surgeStartPoint)) {
+    return BigNumber.from(0);
+  }
+
+  if (initialCapacityUsed.lte(surgeStartPoint)) {
+    return BigNumber.from(0);
+  }
+
+  return initialCapacityUsed.sub(surgeStartPoint);
+}
+
+// Note fn expects coverAmount is rounded down by NXM_PER_ALLOCATION_UNIT
+function calculatePriceBump(coverAmount, priceBumpRatio, totalCapacity) {
+  const priceBump = BigNumber.from(priceBumpRatio).mul(coverAmount).div(totalCapacity);
+  return priceBump;
+}
+
 function interpolatePrice(lastPriceRatio, targetPriceRatio, lastPriceUpdate, currentTimestamp) {
   const priceChange = BigNumber.from(currentTimestamp - lastPriceUpdate)
     .div(24 * 3600)
@@ -192,6 +237,10 @@ module.exports = {
   getPrices,
   calculatePrice,
   calculateBasePrice,
+  calculateSurgePremium,
+  calculatePriceBump,
+  calculateAmountOnSurge,
+  calculateAmountOnSurgeSkipped,
   getTranches,
   getCurrentTrancheId,
   getNewRewardShares,

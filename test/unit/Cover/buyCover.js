@@ -1307,4 +1307,86 @@ describe('buyCover', function () {
       ),
     ).to.be.revertedWith('Cover: Sending ETH to commission destination failed.');
   });
+
+  it('correctly store cover, segment and allocation data', async function () {
+    const { cover } = this;
+
+    const {
+      members: [coverBuyer1, coverBuyer2],
+    } = this.accounts;
+
+    const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator, poolId, segmentId } =
+      buyCoverFixture;
+
+    const expectedPremium = amount
+      .mul(targetPriceRatio)
+      .div(priceDenominator)
+      .mul(period)
+      .div(3600 * 24 * 365);
+
+    await cover.connect(coverBuyer1).buyCover(
+      {
+        coverId: MaxUint256,
+        owner: coverBuyer1.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+      {
+        value: expectedPremium,
+      },
+    );
+
+    await cover.connect(coverBuyer2).buyCover(
+      {
+        coverId: MaxUint256,
+        owner: coverBuyer2.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId, coverAmountInAsset: amount }],
+      {
+        value: expectedPremium,
+      },
+    );
+
+    const globalRewardsRatio = await cover.globalRewardsRatio();
+    const { timestamp } = await ethers.provider.getBlock('latest');
+
+    // Validate data for second cover
+    const coverId = (await cover.coverDataCount()).sub(1);
+    const storedCoverData = await cover.coverData(coverId);
+    expect(storedCoverData.productId).to.be.equal(productId);
+    expect(storedCoverData.coverAsset).to.be.equal(coverAsset);
+    expect(storedCoverData.amountPaidOut).to.be.equal(0);
+
+    const coverSegmentsCount = await cover.coverSegmentsCount(coverId);
+    expect(coverSegmentsCount).to.be.equal(1);
+
+    const segment = await cover.coverSegments(coverId, segmentId);
+    expect(segment.gracePeriod).to.be.equal(gracePeriod);
+    expect(segment.period).to.be.equal(period);
+    expect(segment.amount).to.be.equal(amount);
+    expect(segment.start).to.be.equal(timestamp + 1);
+    expect(segment.globalRewardsRatio).to.be.equal(globalRewardsRatio);
+
+    const segmentPoolAllocationIndex = 0;
+    const segmentAllocations = await cover.coverSegmentAllocations(coverId, segmentId, segmentPoolAllocationIndex);
+    expect(segmentAllocations.poolId).to.be.equal(poolId);
+    expect(segmentAllocations.coverAmountInNXM).to.be.equal(amount);
+  });
 });

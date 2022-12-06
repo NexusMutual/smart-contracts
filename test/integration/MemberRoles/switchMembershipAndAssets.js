@@ -3,7 +3,8 @@ const { expect, assert } = require('chai');
 const { stake } = require('../utils/staking');
 const { Role } = require('../utils').constants;
 const { parseEther } = ethers.utils;
-const { MaxUint256 } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
+const { calculateFirstTrancheId } = require('../utils/staking')
 
 const daysToSeconds = days => days * 24 * 60 * 60;
 
@@ -139,15 +140,33 @@ describe('switchMembershipAndAssets', function () {
       nonMembers: [nonMember1],
     } = this.accounts;
 
-    await stakingPool0.connect(member1).stake(parseEther('1000'));
-    await stakingPool1.connect(member1).stake(parseEther('10'));
-    await stakingPool2.connect(member1).stake(parseEther('100'));
+    const stakingPoolsAndAmounts = [
+      [stakingPool0,parseEther('1000')],
+      [stakingPool1, parseEther('10')],
+      [stakingPool2, parseEther('10')]
+    ];
+
+    const lastBlock = await ethers.provider.getBlock('latest');
+    const firstTrancheId = calculateFirstTrancheId(lastBlock, daysToSeconds(30), daysToSeconds(30));
+
+    for (const [stakingPool, stakingAmount] of stakingPoolsAndAmounts) {
+      // Stake to open up capacity
+      await stakingPool.connect(member1).depositTo([
+        {
+          amount: stakingAmount,
+          trancheId: firstTrancheId,
+          tokenId: 0, // new position
+          destination: AddressZero,
+        },
+      ]);
+    }
+
     await token.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
 
     const newMemberAddress = nonMember1.address;
     await memberRoles
       .connect(member1)
-      .switchMembershipAndAssets(newMemberAddress, [], [0, 2], [[0], [0]]);
+      .switchMembershipAndAssets(newMemberAddress, [], [0, 2], [[1], [1]]);
 
     {
       const balance = await stakingPool0.balanceOf(member1.address);
@@ -155,7 +174,7 @@ describe('switchMembershipAndAssets', function () {
     }
     {
       const balance = await stakingPool1.balanceOf(member1.address);
-      expect(balance).to.be.equal(parseEther('10'));
+      expect(balance).to.be.equal(1);
     }
     {
       const balance = await stakingPool2.balanceOf(member1.address);
@@ -164,7 +183,7 @@ describe('switchMembershipAndAssets', function () {
 
     {
       const balance = await stakingPool0.balanceOf(newMemberAddress);
-      expect(balance).to.be.equal(parseEther('1000'));
+      expect(balance).to.be.equal(1);
     }
     {
       const balance = await stakingPool1.balanceOf(newMemberAddress);
@@ -172,7 +191,7 @@ describe('switchMembershipAndAssets', function () {
     }
     {
       const balance = await stakingPool2.balanceOf(newMemberAddress);
-      expect(balance).to.be.equal(parseEther('100'));
+      expect(balance).to.be.equal(1);
     }
   });
 });

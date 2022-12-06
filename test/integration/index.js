@@ -22,8 +22,6 @@ describe('INTEGRATION TESTS', function () {
   require('./Pool');
   require('./MCR');
   require('./MemberRoles');
-  // require('./Claims');
-  //
   // require('./Gateway');
   // require('./TokenController');
 });

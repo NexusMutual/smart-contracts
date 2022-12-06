@@ -44,7 +44,7 @@ async function assertNewAddresses(master, contractCodes, newAddresses, contractT
   }
 }
 
-describe('master', function () {
+describe.only('master', function () {
   it('adds new replaceable contract which can execute internal functions', async function () {
     const { master, gv } = this.contracts;
 
@@ -70,31 +70,35 @@ describe('master', function () {
   it('adds new proxy contract which can execute internal functions', async function () {
     const { master, gv } = this.contracts;
 
+    const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
+    const newContract = await MMockNewContract.deploy();
+
     const code = hex('XX');
-    const newContract = await MMockNewContract.new();
     const actionData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]', 'uint[]'],
       [[code], [newContract.address], [ContractTypes.Proxy]],
     );
-    await submitProposal(gv, ProposalCategory.newContracts, actionData, [owner]);
+    await submitProposal(gv, ProposalCategory.newContracts, actionData, [this.accounts.defaultSender]);
 
     const address = await master.getLatestAddress(code);
     const implementation = await (await OwnedUpgradeabilityProxy.at(address)).implementation();
     assert.equal(implementation, newContract.address);
 
-    const newContractInstance = await MMockNewContract.at(address);
+    const newContractInstance = await ethers.getContractAt('MMockNewContract', address);
     // can perform onlyInternal action
-    await newContractInstance.mint(owner, ether('1'));
+    await newContractInstance.mint(this.accounts.defaultSender.address, parseEther('1'));
   });
 
   it('replace contract', async function () {
-    const { master, gv, qd, cr, qt } = this.contracts;
+    const { master, gv } = this.contracts;
+    const owner = this.accounts.defaultSender;
 
-    const code = hex('TC');
-    const tokenController = await TokenController.new(qd.address, cr.address);
+    const code = hex('MC');
+    const MCR = await ethers.getContractFactory('MCR');
+    const newMCR = await MCR.deploy(master.address);
 
     const contractCodes = [code];
-    const newAddresses = [tokenController.address];
+    const newAddresses = [newMCR.address];
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
@@ -104,17 +108,19 @@ describe('master', function () {
     await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
 
     const address = await master.getLatestAddress(code);
-    assert.equal(address, qt.address);
+    assert.equal(address, newMCR.address);
   });
 
   it('upgrade proxy contract', async function () {
-    const { master, gv } = this.contracts;
+    const { master, gv, qd, lcr } = this.contracts;
+    const owner = this.accounts.defaultSender;
 
-    const code = hex('PS');
-    const pooledStaking = await PooledStaking.new();
+    const code = hex('TC');
+    const TokenController = await ethers.getContractFactory('TokenController');
+    const newTokenControllerImplementation = await TokenController.deploy(qd.address, lcr.address);
 
     const contractCodes = [code];
-    const newAddresses = [pooledStaking.address];
+    const newAddresses = [newTokenControllerImplementation.address];
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
@@ -125,20 +131,25 @@ describe('master', function () {
 
     const address = await master.getLatestAddress(code);
 
-    const implementation = await (await OwnedUpgradeabilityProxy.at(address)).implementation();
-    assert.equal(implementation, pooledStaking.address);
+    const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', address);
+    const implementation = await proxy.implementation();
+    assert.equal(implementation, newTokenControllerImplementation.address);
   });
 
   it('upgrade proxies and replaceables', async function () {
-    const { master, gv, qd, cr } = this.contracts;
+    const { master, gv, qd, lcr } = this.contracts;
+    const owner = this.accounts.defaultSender;
 
-    const psCode = hex('PS');
+    const mcrCode = hex('MC');
     const tcCode = hex('TC');
-    const pooledStaking = await PooledStaking.new();
-    const tokenController = await TokenController.new(qd.address, cr.address);
 
-    const contractCodes = [psCode, tcCode];
-    const newAddresses = [pooledStaking.address, tokenController.address];
+    const MCR = await ethers.getContractFactory('MCR');
+    const newMCR = await MCR.deploy(master.address);
+    const TokenController = await ethers.getContractFactory('TokenController');
+    const newTokenControllerImplementation = await TokenController.deploy(qd.address, lcr.address);
+
+    const contractCodes = [mcrCode, tcCode];
+    const newAddresses = [newMCR.address, newTokenControllerImplementation.address];
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
@@ -147,25 +158,28 @@ describe('master', function () {
 
     await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
 
-    const psAddress = await master.getLatestAddress(psCode);
+    const tcAddress = await master.getLatestAddress(tcCode);
+    const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', tcAddress);
+    const implementation = await proxy.implementation();
+    assert.equal(implementation, newTokenControllerImplementation.address);
 
-    const implementation = await (await OwnedUpgradeabilityProxy.at(psAddress)).implementation();
-    assert.equal(implementation, pooledStaking.address);
-
-    const address = await master.getLatestAddress(tcCode);
-    assert.equal(address, tokenController.address);
+    const address = await master.getLatestAddress(mcrCode);
+    assert.equal(address, newMCR.address);
   });
 
   it('upgrades master', async function () {
     const { master, gv } = this.contracts;
+    const owner = this.accounts.defaultSender;
 
-    const newMaster = await NXMaster.new();
+    const NXMaster = await ethers.getContractFactory('NXMaster');
+    const newMaster = await NXMaster.deploy();
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(['address'], [newMaster.address]);
 
     await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [owner]);
 
-    const implementation = await (await OwnedUpgradeabilityProxy.at(master.address)).implementation();
+    const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', master.address);
+    const implementation = await proxy.implementation();
     assert.equal(implementation, newMaster.address);
   });
 

@@ -493,6 +493,7 @@ async function setup() {
     as: await ethers.getContractAt('Assessment', as.address),
     cover: await ethers.getContractAt('Cover', cover.address),
     coverNFT: await ethers.getContractAt('CoverNFT', coverNFT.address),
+    lcr: lcr
   };
 
   const nonInternal = { priceFeedOracle, swapOperator };

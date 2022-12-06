@@ -1,7 +1,6 @@
 const { web3,
   ethers
 } = require('hardhat');
-const { ether } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { ProposalCategory, ContractTypes } = require('../utils').constants;
 const { submitProposal } = require('../utils').governance;

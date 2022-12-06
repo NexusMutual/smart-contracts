@@ -1,19 +1,13 @@
-const { accounts, web3 } = require('hardhat');
-const { expectRevert, ether, time } = require('@openzeppelin/test-helpers');
+const { web3, ethers } = require('hardhat');
+const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { ProposalCategory } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 const { submitProposal } = require('../utils').governance;
 const { buyCover, coverToCoverDetailsArray } = require('../utils').buyCover;
 const { getQuoteSignature } = require('../utils').getQuote;
-const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
-
-const MCR = artifacts.require('MCR');
-const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
-const PooledStaking = artifacts.require('LegacyPooledStaking');
-const NXMaster = artifacts.require('NXMaster');
-
-const [owner, emergencyAdmin, unknown, member1, member2, member3, coverHolder] = accounts;
+const { enrollClaimAssessor } = require('../utils/enroll');
+const { parseEther } = ethers.utils;
 
 const coverTemplate = {
   amount: 1, // 1 eth
@@ -30,50 +24,51 @@ const coverTemplate = {
 
 describe('emergency pause', function () {
   beforeEach(async function () {
-    await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
+    const [member1, member2, member3] = this.accounts.members;
     await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
   });
 
   it('should revert when not called by emergency admin', async function () {
     const { master } = this.contracts;
+    const [unknown] = this.accounts.nonMembers;
 
-    await expectRevert(master.setEmergencyPause(true, { from: unknown }), 'NXMaster: Not emergencyAdmin');
+    await expect(master.connect(unknown).setEmergencyPause(true), 'NXMaster: Not emergencyAdmin');
   });
 
   it('should be able to start and end emergency pause', async function () {
     const { master } = this.contracts;
+    const emergencyAdmin = this.accounts.emergencyAdmin;
 
     assert.equal(await master.isPause(), false);
 
-    await master.setEmergencyPause(true, {
-      from: emergencyAdmin,
-    });
+    await master.connect(emergencyAdmin).setEmergencyPause(true);
 
     assert.equal(await master.isPause(), true);
 
-    await master.setEmergencyPause(false, {
-      from: emergencyAdmin,
-    });
+    await master.connect(emergencyAdmin).setEmergencyPause(false);
 
     assert.equal(await master.isPause(), false);
   });
 
   it('should be able to perform proxy and replaceable upgrades during emergency pause', async function () {
-    const { master, gv } = this.contracts;
+    const { master, gv, qd, lcr } = this.contracts;
+    const emergencyAdmin = this.accounts.emergencyAdmin;
+    const owner = this.accounts.defaultSender;
 
     assert.equal(await master.isPause(), false);
 
-    await master.setEmergencyPause(true, {
-      from: emergencyAdmin,
-    });
+    await master.connect(emergencyAdmin).setEmergencyPause(true);
 
-    const psCode = hex('PS');
-    const mcCode = hex('MC');
-    const pooledStaking = await PooledStaking.new();
-    const mcr = await MCR.new(master.address);
+    const mcrCode = hex('MC');
+    const tcCode = hex('TC');
 
-    const contractCodes = [psCode, mcCode];
-    const newAddresses = [pooledStaking.address, mcr.address];
+    const MCR = await ethers.getContractFactory('MCR');
+    const newMCR = await MCR.deploy(master.address);
+    const TokenController = await ethers.getContractFactory('TokenController');
+    const newTokenControllerImplementation = await TokenController.deploy(qd.address, lcr.address);
+
+    const contractCodes = [mcrCode, tcCode];
+    const newAddresses = [newMCR.address, newTokenControllerImplementation.address];
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
@@ -82,41 +77,39 @@ describe('emergency pause', function () {
 
     await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
 
-    const psAddress = await master.getLatestAddress(psCode);
-
-    const implementation = await (await OwnedUpgradeabilityProxy.at(psAddress)).implementation();
-    assert.equal(implementation, pooledStaking.address);
-
-    const address = await master.getLatestAddress(mcCode);
-    assert.equal(address, mcr.address);
+    const tcAddress = await master.getLatestAddress(tcCode);
+    const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', tcAddress);
+    const implementation = await proxy.implementation();
+    assert.equal(implementation, newTokenControllerImplementation.address);
   });
 
   it('should be able to perform master upgrade during emergency pause', async function () {
     const { master, gv } = this.contracts;
+    const emergencyAdmin = this.accounts.emergencyAdmin;
+    const owner = this.accounts.defaultSender;
 
-    await master.setEmergencyPause(true, {
-      from: emergencyAdmin,
-    });
+    await master.connect(emergencyAdmin).setEmergencyPause(true);
 
-    const newMaster = await NXMaster.new();
+    const NXMaster = await ethers.getContractFactory('NXMaster');
+    const newMaster = await NXMaster.deploy();
 
     const upgradeContractsData = web3.eth.abi.encodeParameters(['address'], [newMaster.address]);
 
     await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [owner]);
 
-    const implementation = await (await OwnedUpgradeabilityProxy.at(master.address)).implementation();
+    const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', master.address);
+    const implementation = await proxy.implementation();
     assert.equal(implementation, newMaster.address);
   });
 
   it('stops token buys and sells', async function () {
     const { master, p1: pool } = this.contracts;
+    const emergencyAdmin = this.accounts.emergencyAdmin;
 
-    await master.setEmergencyPause(true, {
-      from: emergencyAdmin,
-    });
+    await master.connect(emergencyAdmin).setEmergencyPause(true);
 
-    await expectRevert(pool.buyNXM('0', { value: ether('1') }), 'System is paused');
-    await expectRevert(pool.sellNXM(ether('1'), '0'), 'System is paused');
+    await expect(pool.buyNXM('0', { value: parseEther('1') })).to.be.revertedWith('System is paused');
+    await expect(pool.sellNXM(parseEther('1'), '0')).to.be.revertedWith('System is paused');
   });
 
   it('stops cover purchases', async function () {

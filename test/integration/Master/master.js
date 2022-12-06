@@ -5,23 +5,8 @@ const { ether } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { ProposalCategory, ContractTypes } = require('../utils').constants;
 const { submitProposal } = require('../utils').governance;
-const { hex, bnEqual } = require('../utils').helpers;
+const { hex } = require('../utils').helpers;
 const { parseEther } = ethers.utils;
-
-const CoverMigrator = artifacts.require('CoverMigrator');
-const ClaimsReward = artifacts.require('LegacyClaimsReward');
-const MCR = artifacts.require('DisposableMCR');
-const Pool = artifacts.require('Pool');
-const NXMaster = artifacts.require('NXMaster');
-const MemberRoles = artifacts.require('MemberRoles');
-const TokenController = artifacts.require('TokenController');
-const Governance = artifacts.require('Governance');
-const PooledStaking = artifacts.require('LegacyPooledStaking');
-const Gateway = artifacts.require('LegacyGateway');
-const IndividualClaims = artifacts.require('IndividualClaims');
-const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
-const MMockNewContract = artifacts.require('MMockNewContract');
-const ProposalCategoryContract = artifacts.require('ProposalCategory');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -45,7 +30,7 @@ async function assertNewAddresses(master, contractCodes, newAddresses, contractT
   }
 }
 
-describe.only('master', function () {
+describe('master', function () {
   it('adds new replaceable contract which can execute internal functions', async function () {
     const { master, gv } = this.contracts;
 
@@ -82,7 +67,8 @@ describe.only('master', function () {
     await submitProposal(gv, ProposalCategory.newContracts, actionData, [this.accounts.defaultSender]);
 
     const address = await master.getLatestAddress(code);
-    const implementation = await (await OwnedUpgradeabilityProxy.at(address)).implementation();
+    const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', address);
+    const implementation = await proxy.implementation();
     assert.equal(implementation, newContract.address);
 
     const newContractInstance = await ethers.getContractAt('MMockNewContract', address);
@@ -199,13 +185,6 @@ describe.only('master', function () {
     const LegacyGateway = await ethers.getContractFactory('LegacyGateway');
     const IndividualClaims = await ethers.getContractFactory('IndividualClaims');
     const LegacyPooledStaking = await ethers.getContractFactory('LegacyPooledStaking');
-    /*
-        address _master,
-    address _priceOracle,
-    address _swapOperator,
-    address DAIAddress,
-    address stETHAddress
-     */
 
     const contractCodes = ['TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC'];
     const newAddresses = [
@@ -259,10 +238,19 @@ describe.only('master', function () {
   });
 
   it('upgrades Governance, TokenController and MemberRoles 2 times in a row', async function () {
-    const { master, gv, qd } = this.contracts;
+    const { master, gv, qd, lcr } = this.contracts;
+    const owner = this.accounts.defaultSender;
+
+    const TokenController = await ethers.getContractFactory('TokenController');
+    const MemberRoles = await ethers.getContractFactory('MemberRoles');
+    const Governance = await ethers.getContractFactory('Governance');
+
     {
       const contractCodes = ['TC', 'GV', 'MR'];
-      const newAddresses = [await TokenController.new(qd.address), await Governance.new(), await MemberRoles.new()].map(
+      const newAddresses = [
+        await TokenController.deploy(qd.address, lcr.address),
+        await Governance.deploy(),
+        await MemberRoles.deploy()].map(
         c => c.address,
       );
 
@@ -277,7 +265,10 @@ describe.only('master', function () {
 
     {
       const contractCodes = ['TC', 'GV', 'MR'];
-      const newAddresses = [await TokenController.new(), await Governance.new(), await MemberRoles.new()].map(
+      const newAddresses = [
+        await TokenController.deploy(qd.address, lcr.address),
+        await Governance.deploy(),
+        await MemberRoles.deploy()].map(
         c => c.address,
       );
 
@@ -293,10 +284,12 @@ describe.only('master', function () {
 
   it('removes newly added replaceable contract and existing contract', async function () {
     const { master, gv } = this.contracts;
+    const owner = this.accounts.defaultSender;
 
     const code = hex('RE');
     const existingCode = hex('GW');
-    const newContract = await MMockNewContract.new();
+    const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
+    const newContract = await MMockNewContract.deploy();
     const actionData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]', 'uint[]'],
       [[code], [newContract.address], [ContractTypes.Replaceable]],

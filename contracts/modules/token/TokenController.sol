@@ -254,6 +254,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     uint batchSize,
     WithdrawFromStakingPoolParams[] calldata fromStakingPools
   ) external whenNotPaused {
+
     if (fromAssessment) {
       assessment().withdrawRewards(forUser, batchSize.toUint104());
     }
@@ -261,28 +262,24 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     if (fromGovernance) {
       uint governanceRewards = governance().claimReward(forUser, batchSize);
       require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
-      require(
-        token().transfer(forUser, governanceRewards),
-        "TokenController: Governance rewards transfer failed"
-      );
+      token().transfer(forUser, governanceRewards);
     }
 
     for (uint i = 0; i < fromStakingPools.length; i++) {
-      WithdrawRequest[] memory withdrawParams = new WithdrawRequest[](
-        fromStakingPools[i].nfts.length
-      );
+
+      // TODO: external call to user-controlled address (vuln)
+      IStakingPool stakingPool = IStakingPool(fromStakingPools[i].poolAddress);
+
       for (uint j = 0; j < fromStakingPools[i].nfts.length; j++) {
-        withdrawParams[j] = WithdrawRequest(
+        stakingPool.withdraw(
           fromStakingPools[i].nfts[j].id,
           false, // withdrawStake
           true,  // withdrawRewards
           fromStakingPools[i].nfts[j].trancheIds
         );
       }
-      IStakingPool(fromStakingPools[i].poolAddress).withdraw(withdrawParams);
     }
   }
-
 
   /**
   * @dev Returns tokens locked for a specified address for a

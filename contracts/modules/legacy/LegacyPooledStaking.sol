@@ -1484,8 +1484,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     uint deposit = stakers[msg.sender].deposit;
     stakers[msg.sender].deposit = 0;
     token().approve(address(tokenController()), deposit);
-    DepositRequest[] memory requests = new DepositRequest[](1);
-    requests[0] = DepositRequest(deposit, trancheId, 0, msg.sender);
-    stakingPool.depositTo(requests);
+    stakingPool.depositTo(deposit, trancheId, 0, msg.sender);
   }
 }

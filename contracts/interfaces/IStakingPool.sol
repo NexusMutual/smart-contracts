@@ -21,20 +21,6 @@ struct AllocationRequest {
   uint globalMinPrice;
 }
 
-struct WithdrawRequest {
-  uint tokenId;
-  bool withdrawStake;
-  bool withdrawRewards;
-  uint[] trancheIds;
-}
-
-struct DepositRequest {
-  uint amount;
-  uint trancheId;
-  uint tokenId;
-  address destination;
-}
-
 struct StakedProductParam {
   uint productId;
   bool recalculateEffectiveWeight;
@@ -111,11 +97,19 @@ interface IStakingPool {
 
   function burnStake(uint amount) external;
 
-  function depositTo(DepositRequest[] memory requests) external returns (uint[] memory tokenIds);
+  function depositTo(
+    uint amount,
+    uint trancheId,
+    uint requestTokenId,
+    address destination
+  ) external returns (uint tokenId);
 
   function withdraw(
-    WithdrawRequest[] memory params
-  ) external returns (uint stakeToWithdraw, uint rewardsToWithdraw);
+    uint tokenId,
+    bool withdrawStake,
+    bool withdrawRewards,
+    uint[] memory trancheIds
+  ) external returns (uint withdrawnStake, uint withdrawnRewards);
 
   function setPoolFee(uint newFee) external;
 

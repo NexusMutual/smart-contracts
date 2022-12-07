@@ -171,9 +171,7 @@ library CoverUtilsLib {
 
     // will create nft with a position in the desired tranche id
     if (depositAmount > 0) {
-      DepositRequest[] memory requests = new DepositRequest[](1);
-      requests[0] = DepositRequest(depositAmount, trancheId, 0, poolInitParams.manager);
-      newStakingPool.depositTo(requests);
+      newStakingPool.depositTo(depositAmount, trancheId, 0, poolInitParams.manager);
     }
   }
 

@@ -151,27 +151,22 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     burnStakeCalledWith = amount;
   }
 
-  function depositTo(DepositRequest[] memory /* requests */) external returns (uint[] memory /* tokenIds */) {
+  function depositTo(
+    uint /*amount*/,
+    uint /*trancheId*/,
+    uint /*requestTokenId*/,
+    address /*destination*/
+  ) external returns (uint /* tokenId */) {
     totalSupply = totalSupply;
     revert("CoverMockStakingPool: not callable");
   }
 
-  function withdraw(WithdrawRequest[] memory /* params */) external returns (uint /* stakeToWithdraw */, uint /* rewardsToWithdraw */) {
-    totalSupply = totalSupply;
-    revert("CoverMockStakingPool: not callable");
-  }
-
-  function addProducts(StakedProductParam[] memory /* params */) external {
-    totalSupply = totalSupply;
-    revert("CoverMockStakingPool: not callable");
-  }
-
-  function removeProducts(uint[] memory /* productIds */) external {
-    totalSupply = totalSupply;
-    revert("CoverMockStakingPool: not callable");
-  }
-
-  function setProductDetails(StakedProductParam[] memory /* params */) external {
+  function withdraw(
+    uint /*tokenId*/,
+    bool /*withdrawStake*/,
+    bool /*withdrawRewards*/,
+    uint[] memory /*trancheIds*/
+  ) public returns (uint /*withdrawnStake*/, uint /*withdrawnRewards*/) {
     totalSupply = totalSupply;
     revert("CoverMockStakingPool: not callable");
   }

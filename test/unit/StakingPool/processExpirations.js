@@ -146,7 +146,7 @@ describe('processExpirations', function () {
       expect(trancheData.rewardsShares).to.equal(deposit.rewardsShares.add(feesRewardShares));
     }
 
-    const baseStakeShares = Math.sqrt(amount);
+    const baseStakeShares = BigNumber.from(Math.sqrt(amount));
     const depositsCount = 8;
 
     {
@@ -155,7 +155,7 @@ describe('processExpirations', function () {
       const rewardsSharesSupply = await stakingPool.rewardsSharesSupply();
 
       expect(activeStake).to.equal(amount.mul(depositsCount));
-      expect(stakeSharesSupply).to.equal(baseStakeShares * depositsCount);
+      expect(stakeSharesSupply).to.equal(baseStakeShares.mul(depositsCount));
       expect(rewardsSharesSupply).to.equal(stakeSharesTotalSupply);
     }
 
@@ -177,7 +177,7 @@ describe('processExpirations', function () {
 
       expect(expiredTranche.accNxmPerRewardShareAtExpiry).to.gt(0);
       expect(expiredTranche.stakeAmountAtExpiry).to.equal(amount.mul(activeDepositsAtTranche));
-      expect(expiredTranche.stakeShareSupplyAtExpiry).to.equal(baseStakeShares * activeDepositsAtTranche);
+      expect(expiredTranche.stakeShareSupplyAtExpiry).to.equal(baseStakeShares.mul(activeDepositsAtTranche));
 
       const trancheData = await stakingPool.tranches(tranche);
       expect(trancheData.stakeShares).to.equal(0);

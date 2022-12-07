@@ -228,7 +228,7 @@ describe('processExpirations', function () {
     const bucketStartTime = firstActiveBucketId.mul(BUCKET_DURATION);
     const elapsed = bucketStartTime.sub(lastAccNxmUpdateBefore);
 
-    expect(expiredBucketRewards).to.gt(0);
+    expect(expiredBucketRewards).to.equal(rewardPerSecondBefore);
     expect(rewardPerSecondAfter).to.equal(rewardPerSecondBefore.sub(expiredBucketRewards));
     expect(accNxmPerRewardsShareAfter).to.equal(
       accNxmPerRewardsShareBefore.add(elapsed.mul(rewardPerSecondBefore).div(rewardsSharesSupply)),

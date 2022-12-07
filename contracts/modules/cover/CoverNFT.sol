@@ -7,6 +7,8 @@ import "solmate/src/tokens/ERC721.sol";
 
 contract CoverNFT is ERC721 {
 
+  // TODO: consider adding totalSupply()
+
   address public operator;
 
   modifier onlyOperator {
@@ -23,13 +25,13 @@ contract CoverNFT is ERC721 {
     return "";
   }
 
-  function mint(address to, uint tokenId) external onlyOperator {
-    _mint(to, tokenId);
-  }
-
   function isApprovedOrOwner(address spender, uint tokenId) external view returns (bool) {
     address owner = ownerOf(tokenId);
     return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[tokenId];
+  }
+
+  function mint(address to, uint tokenId) external onlyOperator {
+    _mint(to, tokenId);
   }
 
   function burn(uint tokenId) external onlyOperator {

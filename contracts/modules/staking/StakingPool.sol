@@ -2,13 +2,10 @@
 
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-v4/utils/Strings.sol";
-import "solmate/src/tokens/ERC721.sol";
-
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/ICover.sol";
+import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../libraries/Math.sol";
@@ -23,7 +20,7 @@ import "./StakingTypesLib.sol";
 // on cover buys we allocate the available product capacity
 // on cover expiration we deallocate the capacity and it becomes available again
 
-contract StakingPool is IStakingPool, ERC721 {
+contract StakingPool is IStakingPool {
   using StakingTypesLib for TrancheAllocationGroup;
   using StakingTypesLib for TrancheGroupBucket;
   using SafeUintCast for uint;
@@ -61,9 +58,6 @@ contract StakingPool is IStakingPool, ERC721 {
   uint32 public totalEffectiveWeight;
   uint32 public totalTargetWeight;
 
-  // erc721 supply
-  uint public totalSupply;
-
   // tranche id => tranche data
   mapping(uint => Tranche) public tranches;
 
@@ -93,6 +87,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
   INXMToken public immutable nxm;
   ITokenController public  immutable tokenController;
+  IStakingNFT public immutable stakingNFT;
   address public immutable coverContract;
 
   /* constants */
@@ -156,11 +151,14 @@ contract StakingPool is IStakingPool, ERC721 {
   constructor (
     address _token,
     address _coverContract,
-    ITokenController _tokenController
-  ) ERC721("", "") {
+    address _stakingNFT,
+    address _tokenController
+  ) {
     nxm = INXMToken(_token);
+    tokenController = ITokenController(_tokenController);
     coverContract = _coverContract;
-    tokenController = _tokenController;
+    stakingNFT = IStakingNFT(_stakingNFT);
+    // IStakingNFT(_stakingNFT).mint();
   }
 
   function initialize(
@@ -177,41 +175,25 @@ contract StakingPool is IStakingPool, ERC721 {
     require(_maxPoolFee < 100, "StakingPool: Max pool fee cannot be 100%");
 
     isPrivatePool = _isPrivatePool;
-
     poolFee = uint8(_initialPoolFee);
     maxPoolFee = uint8(_maxPoolFee);
-
     poolId = _poolId;
-    name = string(abi.encodePacked("Nexus Mutual Staking Pool #", Strings.toString(_poolId)));
-    symbol = string(abi.encodePacked("NMSP-", Strings.toString(_poolId)));
 
     _setInitialProducts(params);
 
-    // create ownership nft
-    totalSupply = 1;
-    _mint(_manager, 0);
     emit PoolDescriptionSet(poolId, ipfsDescriptionHash);
   }
 
-  function isApprovedOrOwner(address spender, uint tokenId) public view returns (bool) {
-    address owner = ownerOf(tokenId);
-    return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[tokenId];
+  function isApprovedOrOwner(address spender, uint tokenId) internal view returns (bool) {
+    address owner = stakingNFT.ownerOf(tokenId);
+    return spender == owner
+      || stakingNFT.isApprovedForAll(owner, spender)
+      || spender == stakingNFT.getApproved(tokenId);
   }
 
-  function tokenURI(uint) public pure override returns (string memory) {
-    return "";
-  }
-
-  // used to transfer all nfts when a user switches the membership to a new address
-  function operatorTransfer(
-    address from,
-    address to,
-    uint[] calldata tokenIds
-  ) external onlyCoverContract {
-    uint length = tokenIds.length;
-    for (uint i = 0; i < length; i++) {
-      transferFrom(from, to, tokenIds[i]);
-    }
+  function manager() public view returns (address) {
+    // TODO: change to manager's token id
+    return stakingNFT.ownerOf(0);
   }
 
   // updateUntilCurrentTimestamp forces rewards update until current timestamp not just until
@@ -392,16 +374,14 @@ contract StakingPool is IStakingPool, ERC721 {
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
     uint totalAmount;
 
-
     // deposit to token id = 0 is not allowed
     // we treat it as a flag to create a new token
-    if (requestTokenId == 0) {
-      tokenId = totalSupply++;
+    if (requestTokenId == type(uint).max) {
       address to = destination == address(0) ? msg.sender : destination;
-      _mint(to, tokenId);
+      tokenId = stakingNFT.mint(to);
     } else {
       // validate token id exists. ownerOf() reverts if owner is address 0
-      ownerOf(requestTokenId);
+      stakingNFT.ownerOf(requestTokenId);
       tokenId = requestTokenId;
     }
 
@@ -595,7 +575,7 @@ contract StakingPool is IStakingPool, ERC721 {
     }
 
     tokenController.withdrawNXMStakeAndRewards(
-      ownerOf(tokenId),
+      stakingNFT.ownerOf(tokenId),
       withdrawnStake,
       withdrawnRewards,
       poolId
@@ -1180,24 +1160,6 @@ contract StakingPool is IStakingPool, ERC721 {
     activeStake = initialStake - burnAmount;
   }
 
-  /* nft */
-
-  function transferFrom(
-    address from,
-    address to,
-    uint256 tokenId
-  ) public override {
-
-    if (tokenId == 0) {
-      require(
-        nxm.isLockedForMV(from) < block.timestamp,
-        "StakingPool: Active pool assets are locked for voting in governance"
-      );
-    }
-
-    super.transferFrom(from, to, tokenId);
-  }
-
   /* views */
 
   function getActiveStake() external view returns (uint) {
@@ -1227,10 +1189,6 @@ contract StakingPool is IStakingPool, ERC721 {
     coverExpirationDate;
     block.timestamp;
     return 0;
-  }
-
-  function manager() public view returns (address) {
-    return ownerOf(0);
   }
 
   /* pool management */

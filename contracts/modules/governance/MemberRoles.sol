@@ -254,9 +254,9 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     // Transfer the staking deposits to the new address
     for (uint256 i = 0; i < stakingPools.length; i++) {
       IStakingPool stakingPool = _cover.stakingPool(stakingPools[i]);
-      stakingPool.operatorTransfer(msg.sender, newAddress, stakingPoolTokenIds[i]);
+      stakingPool;
+      // stakingPool.operatorTransfer(msg.sender, newAddress, stakingPoolTokenIds[i]);
     }
-
   }
 
   function switchMembershipOf(address member, address newAddress) external override onlyInternal {

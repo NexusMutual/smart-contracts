@@ -694,20 +694,19 @@ contract StakingPool is IStakingPool, ERC721 {
     uint expiration
   ) internal returns (uint[] memory activeAllocations) {
 
-    uint previousFirstActiveTrancheId = start / TRANCHE_DURATION;
-    uint currentFirstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
-
     uint packedCoverTrancheAllocation = coverTrancheAllocations[coverId];
     activeAllocations = getActiveAllocations(productId);
+
+    uint currentFirstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint[] memory coverAllocations = new uint[](MAX_ACTIVE_TRANCHES);
 
     // number of already expired tranches to skip
-    uint skippedTranches = currentFirstActiveTrancheId - previousFirstActiveTrancheId;
+    // currentFirstActiveTranche - previousFirstActiveTranche
+    uint offset = currentFirstActiveTrancheId - (start / TRANCHE_DURATION);
 
-    // TODO: index seems off
-    for (uint i = skippedTranches; i < MAX_ACTIVE_TRANCHES; i++) {
-      uint currentTrancheIdx = skippedTranches + i;
+    for (uint i = offset; i < MAX_ACTIVE_TRANCHES; i++) {
       uint allocated = uint32(packedCoverTrancheAllocation >> (i * 32));
+      uint currentTrancheIdx = i - offset;
       activeAllocations[currentTrancheIdx] -= allocated;
       coverAllocations[currentTrancheIdx] = allocated;
     }
@@ -715,7 +714,7 @@ contract StakingPool is IStakingPool, ERC721 {
     // remove expiring cover amounts from buckets
     updateExpiringCoverAmounts(
       productId,
-      previousFirstActiveTrancheId,
+      currentFirstActiveTrancheId,
       Math.divCeil(expiration, BUCKET_DURATION), // targetBucketId
       coverAllocations,
       false // isAllocation
@@ -889,18 +888,18 @@ contract StakingPool is IStakingPool, ERC721 {
     coverAllocationAmount = Math.divCeil(amount, NXM_PER_ALLOCATION_UNIT);
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint firstTrancheIdToUse = (block.timestamp + request.period + request.gracePeriod) / TRANCHE_DURATION;
+    uint startIndex = firstTrancheIdToUse - _firstActiveTrancheId;
 
     uint[] memory coverAllocations = new uint[](MAX_ACTIVE_TRANCHES);
     uint[] memory trancheCapacities = getTrancheCapacities(
       request.productId,
       firstTrancheIdToUse,
-      MAX_ACTIVE_TRANCHES + _firstActiveTrancheId - firstTrancheIdToUse, // count
+      MAX_ACTIVE_TRANCHES - startIndex, // count
       request.globalCapacityRatio,
       request.capacityReductionRatio
     );
 
     uint remainingAmount = coverAllocationAmount;
-    uint startIndex = firstTrancheIdToUse - _firstActiveTrancheId;
 
     for (uint i = startIndex; i < MAX_ACTIVE_TRANCHES; i++) {
 
@@ -928,7 +927,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
     updateExpiringCoverAmounts(
       request.productId,
-      firstTrancheIdToUse,
+      _firstActiveTrancheId,
       Math.divCeil(block.timestamp + request.period, BUCKET_DURATION), // targetBucketId
       coverAllocations,
       true // isAllocation

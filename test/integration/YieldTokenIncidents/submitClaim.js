@@ -13,6 +13,7 @@ const setTime = async timestamp => {
 };
 
 const ETH_ASSET_ID = 0;
+const usdcDecimals = 6;
 
 describe('submitClaim', function () {
   const submitClaimFixture = {
@@ -443,7 +444,7 @@ describe('submitClaim', function () {
     }
 
     const daiBalanceBefore = await dai.balanceOf(nonMember1.address);
-    const exactAmountToRedeemFullCover = parseUnits('11.111111111111111112');
+    const exactAmountToRedeemFullCover = parseEther('11.111111111111111112');
     await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, exactAmountToRedeemFullCover, nonMember1.address, []);
     const daiBalanceAfter = await dai.balanceOf(nonMember1.address);
     expect(daiBalanceAfter).to.be.equal(daiBalanceBefore.add(amount));
@@ -663,7 +664,7 @@ describe('submitClaim', function () {
 
     const { period, gracePeriod, priceDenominator } = submitClaimFixture;
 
-    const amount = parseUnits('10', 6);
+    const amount = parseUnits('10', usdcDecimals);
 
     const productId = 5;
     const coverAsset = 2; // usdc
@@ -690,7 +691,7 @@ describe('submitClaim', function () {
     });
 
     // submit incident
-    await submitIncident({ gv, yc, productId, period, priceBefore: parseUnits('1', 6) });
+    await submitIncident({ gv, yc, productId, period, priceBefore: parseUnits('1', usdcDecimals) });
 
     // accept incident
     await as.connect(staker1).castVotes([0], [true], ['Assessment data hash'], parseEther('100'));
@@ -703,9 +704,9 @@ describe('submitClaim', function () {
     }
 
     const usdcBalanceBefore = await usdc.balanceOf(nonMember1.address);
-    await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseUnits('1', 6), nonMember1.address, []);
+    await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseUnits('1', usdcDecimals), nonMember1.address, []);
     const usdcBalanceAfter = await usdc.balanceOf(nonMember1.address);
-    expect(usdcBalanceAfter).to.be.equal(usdcBalanceBefore.add(parseUnits('0.9', 6)));
+    expect(usdcBalanceAfter).to.be.equal(usdcBalanceBefore.add(parseUnits('0.9', usdcDecimals)));
   });
 
   it('submits and redeems full amount of USDC claim', async function () {
@@ -716,7 +717,7 @@ describe('submitClaim', function () {
 
     const { period, gracePeriod, priceDenominator } = submitClaimFixture;
 
-    const amount = parseUnits('10', 6);
+    const amount = parseUnits('10', usdcDecimals);
 
     const productId = 5;
     const coverAsset = 2; // usdc
@@ -743,7 +744,7 @@ describe('submitClaim', function () {
     });
 
     // submit incident
-    await submitIncident({ gv, yc, productId, period, priceBefore: parseUnits('1', 6) });
+    await submitIncident({ gv, yc, productId, period, priceBefore: parseUnits('1', usdcDecimals) });
 
     // accept incident
     await as.connect(staker1).castVotes([0], [true], ['Assessment data hash'], parseEther('100'));
@@ -756,7 +757,7 @@ describe('submitClaim', function () {
     }
 
     const usdcBalanceBefore = await usdc.balanceOf(nonMember1.address);
-    const exactAmountToRedeemFullCover = parseUnits('11.111112', 6);
+    const exactAmountToRedeemFullCover = parseUnits('11.111112', usdcDecimals);
     await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, exactAmountToRedeemFullCover, nonMember1.address, []);
     const usdcBalanceAfter = await usdc.balanceOf(nonMember1.address);
     expect(usdcBalanceAfter).to.be.equal(usdcBalanceBefore.add(amount));

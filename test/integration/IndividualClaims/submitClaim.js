@@ -7,7 +7,7 @@ const { stake } = require('../utils/staking');
 const { rejectClaim, acceptClaim } = require('../utils/voteClaim');
 
 const { daysToSeconds } = require('../../../lib/helpers');
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
+const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee } = require('../../utils/evm');
 const { parseUnits } = require('ethers/lib/utils');
 
 const setTime = async timestamp => {
@@ -19,7 +19,7 @@ const priceDenominator = '10000';
 const ETH_ASSET_ID = 0;
 const DAI_ASSET_ID = 1;
 
-describe.only('submitClaim', function () {
+describe('submitClaim', function () {
   function calculateFirstTrancheId(lastBlock, period, gracePeriod) {
     return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
   }
@@ -351,6 +351,9 @@ describe.only('submitClaim', function () {
     await dai.connect(this.accounts.defaultSender).transfer(coverBuyer2.address, parseEther('1000000'));
     await dai.connect(coverBuyer2).approve(cover.address, MaxUint256);
 
+    const buyer1BalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
+    const buyer2BalanceBefore = await dai.balanceOf(coverBuyer2.address);
+
     // Stake to open up capacity
     await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
 
@@ -362,6 +365,7 @@ describe.only('submitClaim', function () {
     // Buy Cover buyer1 (ETH)
     {
       const coverAsset = ETH_ASSET_ID;
+      await setNextBlockBaseFee('0');
       await cover.connect(coverBuyer1).buyCover(
         {
           owner: coverBuyer1.address,
@@ -379,6 +383,7 @@ describe.only('submitClaim', function () {
         [{ poolId: '0', coverAmountInAsset: amount.toString() }],
         {
           value: coverAsset === ETH_ASSET_ID ? expectedPremium : 0,
+          gasPrice: 0,
         },
       );
     }
@@ -412,11 +417,13 @@ describe.only('submitClaim', function () {
     const coverIdBuyer2 = 1;
 
     const claimAmount = amount;
-    const [depositDai] = await ic.getAssessmentDepositAndReward(claimAmount, period, DAI_ASSET_ID);
     const [depositEth] = await ic.getAssessmentDepositAndReward(claimAmount, period, ETH_ASSET_ID);
+    const [depositDai] = await ic.getAssessmentDepositAndReward(claimAmount, period, DAI_ASSET_ID);
 
+    await setNextBlockBaseFee('0');
     await ic.connect(coverBuyer1).submitClaim(coverIdBuyer1, 0, claimAmount, '', {
-      value: depositEth.mul(2),
+      value: depositEth,
+      gasPrice: 0,
     });
 
     await ic.connect(coverBuyer2).submitClaim(coverIdBuyer2, 0, claimAmount, '', {
@@ -426,11 +433,17 @@ describe.only('submitClaim', function () {
     const assessmentStakingAmount = parseEther('1000');
     await acceptClaim({ staker: staker2, assessmentStakingAmount, as });
 
-    // TODO Complete with acceptance
-    // reedeem & validadBalances
-    // await ic.redeemClaimPayout(0);
-    // const { payoutRedeemed } = await ic.claims(1);
-    // expect(payoutRedeemed).to.be.equal(true);
+    // Redeem payouts
+    await ic.redeemClaimPayout(0);
+    const { payoutRedeemed } = await ic.claims(0);
+    expect(payoutRedeemed).to.be.equal(true);
+
+    // TODO Check balances
+    const buyer1BalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
+    const buyer2BalanceAfter = await dai.balanceOf(coverBuyer2.address);
+
+    expect(buyer1BalanceAfter).to.be.eq(buyer1BalanceBefore);
+    expect(buyer2BalanceAfter).to.be.eq(buyer2BalanceBefore);
   });
 
   it.skip('submits partial ETH | DAI claim and rejects claim', async function () {

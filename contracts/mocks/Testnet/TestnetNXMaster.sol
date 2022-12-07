@@ -26,40 +26,4 @@ contract TestnetNXMaster is NXMaster {
     contractsActive[currentGV] = false;
     contractsActive[newGV] = true;
   }
-
-  /// @dev upgrades multiple contracts at a time
-  function upgradeMultipleContracts(
-    bytes2[] memory _contractCodes,
-    address payable[] memory newAddresses
-  ) public override {
-
-    require(getLatestAddress("GV") == msg.sender || governanceOwner == msg.sender, "Not authorized");
-
-    require(_contractCodes.length == newAddresses.length, "NXMaster: _contractCodes.length != newAddresses.length");
-
-    for (uint i = 0; i < _contractCodes.length; i++) {
-      address payable newAddress = newAddresses[i];
-      bytes2 code = _contractCodes[i];
-      require(newAddress != address(0), "NXMaster: contract address is 0");
-
-      if (isProxy[code]) {
-        OwnedUpgradeabilityProxy proxy = OwnedUpgradeabilityProxy(contractAddresses[code]);
-        address previousAddress = proxy.implementation();
-        proxy.upgradeTo(newAddress);
-        emit ContractUpgraded(code, newAddress, previousAddress, ContractType.Proxy);
-        continue;
-      }
-
-      if (isReplaceable[code]) {
-        address previousAddress = getLatestAddress(code);
-        replaceContract(code, newAddress);
-        emit ContractUpgraded(code, newAddress, previousAddress, ContractType.Replaceable);
-        continue;
-      }
-
-      revert("NXMaster: non-existant or non-upgradeable contract code");
-    }
-
-    updateAllDependencies();
-  }
 }

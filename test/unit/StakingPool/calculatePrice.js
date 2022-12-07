@@ -48,7 +48,7 @@ describe('calculatePrice', function () {
   ];
 
   beforeEach(async function () {
-    const { stakingPool, cover, nxm, tokenController } = this;
+    const { stakingPool, cover } = this;
     const { defaultSender: manager } = this.accounts;
     const [staker] = this.accounts.members;
     const productId = 0;
@@ -76,13 +76,12 @@ describe('calculatePrice', function () {
 
     // Deposit into pool
     const amount = stakedNxmAmount;
-    await nxm.connect(staker).approve(tokenController.address, amount);
     await stakingPool.connect(staker).depositTo([
       {
         tokenId: 0,
         amount,
         destination: staker.address,
-        trancheId: (await getCurrentTrancheId()) + 3,
+        trancheId: (await getCurrentTrancheId()) + 4,
       },
     ]);
   });
@@ -99,6 +98,70 @@ describe('calculatePrice', function () {
     timestamp += daysToSeconds(days);
     await setNextBlockTime(timestamp);
   }
+
+  it('should correctly calculate the premium and price for year long cover', async function () {
+    const { stakingPool, cover } = this;
+    const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = this.config;
+
+    const product = await stakingPool.products(productId);
+    const initialPrice = BigNumber.from(coverProductTemplate.initialPriceRatio);
+    expect(product.nextPrice).to.be.equal(initialPrice);
+
+    const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
+      buyCoverParamsTemplate.productId,
+      GLOBAL_CAPACITY_RATIO,
+      coverProductTemplate.capacityReductionRatio,
+    );
+    const expectedPremium = buyCoverParamsTemplate.amount.mul(initialPrice).div(INITIAL_PRICE_DENOMINATOR);
+    const priceBump = await calculatePriceBump(
+      buyCoverParamsTemplate.amount.div(NXM_PER_ALLOCATION_UNIT),
+      this.config.PRICE_BUMP_RATIO,
+      totalCapacity,
+    );
+
+    {
+      // buy cover and check premium + new price
+      const buyCoverParams = { ...buyCoverParamsTemplate, period: daysToSeconds(365) };
+      await cover.allocateCapacity(buyCoverParams, coverId, stakingPool.address);
+
+      const product = await stakingPool.products(productId);
+      expect(await cover.lastPremium()).to.be.equal(expectedPremium);
+      expect(product.nextPrice).to.be.equal(initialPrice.add(priceBump));
+    }
+  });
+
+  it('should correctly calculate the premium and price for a very small cover', async function () {
+    const { stakingPool, cover } = this;
+    const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT, INITIAL_PRICE_DENOMINATOR } = this.config;
+
+    const amount = BigNumber.from(1);
+    const initialPrice = BigNumber.from(coverProductTemplate.initialPriceRatio);
+
+    const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
+      buyCoverParamsTemplate.productId,
+      GLOBAL_CAPACITY_RATIO,
+      coverProductTemplate.capacityReductionRatio,
+    );
+    const priceBump = await calculatePriceBump(
+      amount.div(NXM_PER_ALLOCATION_UNIT),
+      this.config.PRICE_BUMP_RATIO,
+      totalCapacity,
+    );
+
+    {
+      // buy cover and check premium + new price
+      const buyCoverParams = { ...buyCoverParamsTemplate, amount };
+      await cover.allocateCapacity(buyCoverParams, coverId, stakingPool.address);
+
+      const product = await stakingPool.products(productId);
+
+      // cover purchases below NXM_PER_ALLOCATION_UNIT are charged at NXM_PER_ALLOCATION_UNIT rate
+      expect(await cover.lastPremium()).to.be.equal(
+        amount.mul(NXM_PER_ALLOCATION_UNIT).mul(initialPrice).div(INITIAL_PRICE_DENOMINATOR).div(periodsInYear),
+      );
+      expect(product.nextPrice).to.be.equal(initialPrice.add(priceBump));
+    }
+  });
 
   it('should correctly calculate the premium using the initial price', async function () {
     const { stakingPool, cover } = this;
@@ -145,7 +208,7 @@ describe('calculatePrice', function () {
       .mul(expectedPrice)
       .div(INITIAL_PRICE_DENOMINATOR)
       .div(periodsInYear);
-    expect(expectedPremium).to.be.equal(await cover.lastPremium());
+    expect(await cover.lastPremium()).to.be.equal(expectedPremium);
     {
       const product = await stakingPool.products(productId);
       const daysToMove = 50;
@@ -155,11 +218,11 @@ describe('calculatePrice', function () {
         .mul(product.targetPrice)
         .div(INITIAL_PRICE_DENOMINATOR)
         .div(periodsInYear);
-      expect(expectedPremium).to.be.equal(await cover.lastPremium());
+      expect(await cover.lastPremium()).to.be.equal(expectedPremium);
     }
   });
 
-  it.skip('shouldnt be underflowing during allocate capacity', async function () {
+  it('shouldnt underflow while expiring cover during allocate capacity', async function () {
     const { stakingPool, cover } = this;
     const { PRICE_CHANGE_PER_DAY, INITIAL_PRICE_DENOMINATOR } = this.config;
     const initialPrice = coverProductTemplate.initialPriceRatio;
@@ -171,26 +234,25 @@ describe('calculatePrice', function () {
       .mul(expectedPrice)
       .div(INITIAL_PRICE_DENOMINATOR)
       .div(periodsInYear);
-    expect(expectedPremium).to.be.equal(await cover.lastPremium());
+    expect(await cover.lastPremium()).to.be.equal(expectedPremium);
     {
       const product = await stakingPool.products(productId);
       const daysToMove = 100;
       await setNextBlockDaysForward(daysToMove);
-      // TODO: StakingPool:751 is underflowing (expirations/allocations array are mismatched)
       await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, stakingPool.address);
       const expectedPremium = buyCoverParamsTemplate.amount
         .mul(product.targetPrice)
         .div(INITIAL_PRICE_DENOMINATOR)
         .div(periodsInYear);
-      expect(expectedPremium).to.be.equal(await cover.lastPremium());
+      expect(await cover.lastPremium()).to.be.equal(expectedPremium);
     }
   });
 
-  it('should correctly calculate price and premium when all coverage is bought in single purchase', async function () {
+  it('should correctly calculate price and premium when all coverage is bought in a single purchase', async function () {
     const { stakingPool, cover } = this;
     const [coverBuyer] = this.accounts.members;
     const { GLOBAL_CAPACITY_RATIO, INITIAL_PRICE_DENOMINATOR, PRICE_CHANGE_PER_DAY } = this.config;
-    const amount = stakedNxmAmount.mul(2);
+    const amount = stakedNxmAmount.mul(2 /* capacityRatio */);
     const buyCoverParams = { ...buyCoverParamsTemplate, amount };
     const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
       buyCoverParamsTemplate.productId,
@@ -218,12 +280,10 @@ describe('calculatePrice', function () {
       BigNumber.from(0),
     );
     expect(totalActiveAllocations).to.be.equal(totalCapacity);
-    expect(expectedPremium).to.be.equal(await cover.lastPremium());
+    expect(await cover.lastPremium()).to.be.equal(expectedPremium);
   });
 
   it('should should overflow uint32 tranche allocation when cover amount is too large', async function () {
-    // this test should purchase a cover with a large amount of NXM near uint256 max
-    // and check that the premium is calculated correctly
     const { stakingPool, cover } = this;
     const [coverBuyer, staker] = this.accounts.members;
     const amount = BigNumber.from(2).pow(96).sub(1);
@@ -398,7 +458,7 @@ describe('calculatePrice', function () {
       const expectedPremium = basePremium.add(surgePremium).sub(surgePremiumSkipped).div(periodsInYear);
       // surge premium shouldn't exceed 20%
       expect(surgePremium).to.be.lt(amount.mul(20).div(100));
-      expect(expectedPremium).to.be.equal(await cover.lastPremium());
+      expect(await cover.lastPremium()).to.be.equal(expectedPremium);
       expect(await cover.lastPremium()).to.be.equal(premiumPerYear.div(periodsInYear));
     }
     // final calculations

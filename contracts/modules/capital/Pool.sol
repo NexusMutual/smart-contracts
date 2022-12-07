@@ -214,8 +214,8 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     require(_max >= _min, "Pool: max < min");
     require(_maxSlippageRatio <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
 
-    (address aggregator, ) = priceFeedOracle.assets(assetAddress);
-    require(aggregator != address(0), "Pool: Asset lacks oracle");
+    (Aggregator aggregator, ) = priceFeedOracle.assets(assetAddress);
+    require(address(aggregator) != address(0), "Pool: Asset lacks oracle");
 
     // Check whether the new asset already exists as a cover asset
     uint coverAssetsCount = coverAssets.length;
@@ -738,9 +738,9 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       for (uint i = 0; i < coverAssetsCount; i++) {
         Asset memory asset = coverAssets[i];
         if (asset.assetAddress != ETH) {
-          (address aggregator, ) = IPriceFeedOracle(value).assets(asset.assetAddress);
+          (Aggregator aggregator, ) = IPriceFeedOracle(value).assets(asset.assetAddress);
 
-          require(aggregator != address(0), "Pool: Oracle lacks asset");
+          require(address(aggregator) != address(0), "Pool: Oracle lacks asset");
         }
       }
 
@@ -748,8 +748,8 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       for (uint i = 0; i < investmentAssetsCount; i++) {
         Asset memory asset = investmentAssets[i];
         if (asset.assetAddress != ETH) {
-          (address aggregator, ) = IPriceFeedOracle(value).assets(asset.assetAddress);
-          require(aggregator != address(0), "Pool: Oracle lacks asset");
+          (Aggregator aggregator, ) = IPriceFeedOracle(value).assets(asset.assetAddress);
+          require(address(aggregator) != address(0), "Pool: Oracle lacks asset");
         }
       }
 

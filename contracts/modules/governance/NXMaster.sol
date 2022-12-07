@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.16;
 
 import "../../interfaces/IMasterAwareV2.sol";
 import "../../interfaces/IMemberRoles.sol";
@@ -92,7 +92,7 @@ contract NXMaster is INXMMaster {
       isReplaceable[contractCode] = true;
     } else if (_type == uint(ContractType.Proxy)) {
 
-      newInternalContract = address(new OwnedUpgradeabilityProxy(contractAddress));
+      newInternalContract = payable(new OwnedUpgradeabilityProxy(contractAddress));
       isProxy[contractCode] = true;
     } else {
       revert("NXMaster: Unsupported contract type");
@@ -164,7 +164,7 @@ contract NXMaster is INXMMaster {
       require(contractAddress != address(0), "NXMaster: Address is 0");
       require(isInternal(contractAddress), "NXMaster: Contract not internal");
       contractsActive[contractAddress] = false;
-      contractAddresses[code] = address(0);
+      contractAddresses[code] = payable(0);
 
       if (isProxy[code]) {
         isProxy[code] = false;
@@ -223,8 +223,8 @@ contract NXMaster is INXMMaster {
   }
 
   /// @dev Gets current contract codes and their addresses
-  /// @return contractCodes
-  /// @return contractAddresses
+  /// @return _contractCodes - all stored contract codes
+  /// @return _contractAddresses - all stored contract addresses
   function getInternalContracts() public view returns (
     bytes2[] memory _contractCodes,
     address[] memory _contractAddresses

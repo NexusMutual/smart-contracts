@@ -694,20 +694,19 @@ contract StakingPool is IStakingPool, ERC721 {
     uint expiration
   ) internal returns (uint[] memory activeAllocations) {
 
-    uint previousFirstActiveTrancheId = start / TRANCHE_DURATION;
-    uint currentFirstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
-
     uint packedCoverTrancheAllocation = coverTrancheAllocations[coverId];
     activeAllocations = getActiveAllocations(productId);
+
+    uint currentFirstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint[] memory coverAllocations = new uint[](MAX_ACTIVE_TRANCHES);
 
     // number of already expired tranches to skip
-    uint skippedTranches = currentFirstActiveTrancheId - previousFirstActiveTrancheId;
+    // currentFirstActiveTranche - previousFirstActiveTranche
+    uint offset = currentFirstActiveTrancheId - (start / TRANCHE_DURATION);
 
-    // TODO: index seems off
-    for (uint i = skippedTranches; i < MAX_ACTIVE_TRANCHES; i++) {
-      uint currentTrancheIdx = skippedTranches + i;
+    for (uint i = offset; i < MAX_ACTIVE_TRANCHES; i++) {
       uint allocated = uint32(packedCoverTrancheAllocation >> (i * 32));
+      uint currentTrancheIdx = i - offset;
       activeAllocations[currentTrancheIdx] -= allocated;
       coverAllocations[currentTrancheIdx] = allocated;
     }
@@ -715,7 +714,7 @@ contract StakingPool is IStakingPool, ERC721 {
     // remove expiring cover amounts from buckets
     updateExpiringCoverAmounts(
       productId,
-      previousFirstActiveTrancheId,
+      currentFirstActiveTrancheId,
       Math.divCeil(expiration, BUCKET_DURATION), // targetBucketId
       coverAllocations,
       false // isAllocation
@@ -889,18 +888,18 @@ contract StakingPool is IStakingPool, ERC721 {
     coverAllocationAmount = Math.divCeil(amount, NXM_PER_ALLOCATION_UNIT);
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint firstTrancheIdToUse = (block.timestamp + request.period + request.gracePeriod) / TRANCHE_DURATION;
+    uint startIndex = firstTrancheIdToUse - _firstActiveTrancheId;
 
     uint[] memory coverAllocations = new uint[](MAX_ACTIVE_TRANCHES);
     uint[] memory trancheCapacities = getTrancheCapacities(
       request.productId,
       firstTrancheIdToUse,
-      MAX_ACTIVE_TRANCHES + _firstActiveTrancheId - firstTrancheIdToUse, // count
+      MAX_ACTIVE_TRANCHES - startIndex, // count
       request.globalCapacityRatio,
       request.capacityReductionRatio
     );
 
     uint remainingAmount = coverAllocationAmount;
-    uint startIndex = firstTrancheIdToUse - _firstActiveTrancheId;
 
     for (uint i = startIndex; i < MAX_ACTIVE_TRANCHES; i++) {
 
@@ -928,7 +927,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
     updateExpiringCoverAmounts(
       request.productId,
-      firstTrancheIdToUse,
+      _firstActiveTrancheId,
       Math.divCeil(block.timestamp + request.period, BUCKET_DURATION), // targetBucketId
       coverAllocations,
       true // isAllocation
@@ -1467,26 +1466,60 @@ contract StakingPool is IStakingPool, ERC721 {
     uint totalCapacity,
     uint globalMinPrice,
     bool useFixedPrice
-  ) internal returns (uint) {
+  ) internal returns (uint premium) {
 
     StakedProduct memory product = products[productId];
     uint targetPrice = Math.max(product.targetPrice, globalMinPrice);
 
     if (useFixedPrice) {
-
-      uint fixedPricePremiumPerYear =
-        coverAmount
-        * NXM_PER_ALLOCATION_UNIT
-        * targetPrice
-        / TARGET_PRICE_DENOMINATOR;
-
-      return fixedPricePremiumPerYear * period / 365 days;
+      return calculateFixedPricePremium(period, coverAmount, targetPrice);
     }
+
+    (premium, product) = calculatePremium(
+      product,
+      period,
+      coverAmount,
+      initialCapacityUsed,
+      totalCapacity,
+      targetPrice,
+      block.timestamp
+    );
+
+    // sstore
+    products[productId] = product;
+
+    return premium;
+  }
+
+  function calculateFixedPricePremium(
+    uint coverAmount,
+    uint period,
+    uint fixedPrice
+  ) public pure returns (uint) {
+
+    uint premiumPerYear =
+      coverAmount
+      * NXM_PER_ALLOCATION_UNIT
+      * fixedPrice
+      / TARGET_PRICE_DENOMINATOR;
+
+    return premiumPerYear * period / 365 days;
+  }
+
+  function calculatePremium(
+    StakedProduct memory product,
+    uint period,
+    uint coverAmount,
+    uint initialCapacityUsed,
+    uint totalCapacity,
+    uint targetPrice,
+    uint currentBlockTimestamp
+  ) public pure returns (uint premium, StakedProduct memory) {
 
     uint basePrice;
     {
       // use previously recorded next price and apply time based smoothing towards target price
-      uint timeSinceLastUpdate = block.timestamp - product.nextPriceUpdateTime;
+      uint timeSinceLastUpdate = currentBlockTimestamp - product.nextPriceUpdateTime;
       uint priceDrop = PRICE_CHANGE_PER_DAY * timeSinceLastUpdate / 1 days;
 
       // basePrice = max(targetPrice, nextPrice - priceDrop)
@@ -1499,10 +1532,7 @@ contract StakingPool is IStakingPool, ERC721 {
     // calculate the next price by applying the price bump
     uint priceBump = PRICE_BUMP_RATIO * coverAmount / totalCapacity;
     product.nextPrice = (basePrice + priceBump).toUint96();
-    product.nextPriceUpdateTime = uint32(block.timestamp);
-
-    // sstore
-    products[productId] = product;
+    product.nextPriceUpdateTime = uint32(currentBlockTimestamp);
 
     // use calculated base price and apply surge pricing if applicable
     uint premiumPerYear = calculatePremiumPerYear(
@@ -1513,7 +1543,7 @@ contract StakingPool is IStakingPool, ERC721 {
     );
 
     // calculate the premium for the requested period
-    return premiumPerYear * period / 365 days;
+    return (premiumPerYear * period / 365 days, product);
   }
 
   function calculatePremiumPerYear(

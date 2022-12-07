@@ -251,7 +251,8 @@ describe('calculatePremium', function () {
   it('should correctly calculate price when all coverage is bought in a single purchase', async function () {
     const { stakingPool, cover } = this;
     const [coverBuyer] = this.accounts.members;
-    const { GLOBAL_CAPACITY_RATIO, INITIAL_PRICE_DENOMINATOR, PRICE_CHANGE_PER_DAY } = this.config;
+    const { GLOBAL_CAPACITY_RATIO, INITIAL_PRICE_DENOMINATOR, PRICE_CHANGE_PER_DAY, NXM_PER_ALLOCATION_UNIT } =
+      this.config;
     const amount = stakedNxmAmount.mul(2 /* capacityRatio */);
     const buyCoverParams = { ...buyCoverParamsTemplate, amount };
     const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
@@ -270,7 +271,18 @@ describe('calculatePremium', function () {
       totalCapacity,
       this.config,
     );
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const calculatedPremium = await stakingPool.calculatePremium(
+      product,
+      buyCoverParams.period,
+      amount.div(NXM_PER_ALLOCATION_UNIT), // cover amount
+      0, // initialCapacityUsed
+      totalCapacity,
+      product.targetPrice, // targetPrice
+      timestamp, // current block timestamp
+    );
     const expectedPremium = basePremium.add(surgePremium).sub(surgePremiumSkipped).div(periodsInYear);
+    expect(calculatedPremium.premium).to.be.equal(expectedPremium);
     await cover.connect(coverBuyer).allocateCapacity(buyCoverParams, coverId, stakingPool.address);
 
     // get active allocations

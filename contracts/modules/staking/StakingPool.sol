@@ -1467,26 +1467,60 @@ contract StakingPool is IStakingPool, ERC721 {
     uint totalCapacity,
     uint globalMinPrice,
     bool useFixedPrice
-  ) internal returns (uint) {
+  ) internal returns (uint premium) {
 
     StakedProduct memory product = products[productId];
     uint targetPrice = Math.max(product.targetPrice, globalMinPrice);
 
     if (useFixedPrice) {
-
-      uint fixedPricePremiumPerYear =
-        coverAmount
-        * NXM_PER_ALLOCATION_UNIT
-        * targetPrice
-        / TARGET_PRICE_DENOMINATOR;
-
-      return fixedPricePremiumPerYear * period / 365 days;
+      return calculateFixedPricePremium(period, coverAmount, targetPrice);
     }
+
+    (premium, product) = calculatePremium(
+      product,
+      period,
+      coverAmount,
+      initialCapacityUsed,
+      totalCapacity,
+      targetPrice,
+      block.timestamp
+    );
+
+    // sstore
+    products[productId] = product;
+
+    return premium;
+  }
+
+  function calculateFixedPricePremium(
+    uint coverAmount,
+    uint period,
+    uint fixedPrice
+  ) public pure returns (uint) {
+
+    uint premiumPerYear =
+      coverAmount
+      * NXM_PER_ALLOCATION_UNIT
+      * fixedPrice
+      / TARGET_PRICE_DENOMINATOR;
+
+    return premiumPerYear * period / 365 days;
+  }
+
+  function calculatePremium(
+    StakedProduct memory product,
+    uint period,
+    uint coverAmount,
+    uint initialCapacityUsed,
+    uint totalCapacity,
+    uint targetPrice,
+    uint currentBlockTimestamp
+  ) public pure returns (uint premium, StakedProduct memory) {
 
     uint basePrice;
     {
       // use previously recorded next price and apply time based smoothing towards target price
-      uint timeSinceLastUpdate = block.timestamp - product.nextPriceUpdateTime;
+      uint timeSinceLastUpdate = currentBlockTimestamp - product.nextPriceUpdateTime;
       uint priceDrop = PRICE_CHANGE_PER_DAY * timeSinceLastUpdate / 1 days;
 
       // basePrice = max(targetPrice, nextPrice - priceDrop)
@@ -1499,10 +1533,7 @@ contract StakingPool is IStakingPool, ERC721 {
     // calculate the next price by applying the price bump
     uint priceBump = PRICE_BUMP_RATIO * coverAmount / totalCapacity;
     product.nextPrice = (basePrice + priceBump).toUint96();
-    product.nextPriceUpdateTime = uint32(block.timestamp);
-
-    // sstore
-    products[productId] = product;
+    product.nextPriceUpdateTime = uint32(currentBlockTimestamp);
 
     // use calculated base price and apply surge pricing if applicable
     uint premiumPerYear = calculatePremiumPerYear(
@@ -1513,7 +1544,7 @@ contract StakingPool is IStakingPool, ERC721 {
     );
 
     // calculate the premium for the requested period
-    return premiumPerYear * period / 365 days;
+    return (premiumPerYear * period / 365 days, product);
   }
 
   function calculatePremiumPerYear(

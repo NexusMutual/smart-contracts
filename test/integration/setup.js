@@ -387,6 +387,19 @@ async function setup() {
       },
       allowedPools: [],
     },
+    {
+      productId: MaxUint256,
+      ipfsMetadata: 'product 6 metadata',
+      product: {
+        productType: 0, // Protocol Cover
+        yieldTokenAddress: ybUSDC.address,
+        coverAssets: 0b100, // use usdc
+        initialPriceRatio: 100,
+        capacityReductionRatio: 0,
+        useFixedPrice: false,
+      },
+      allowedPools: [],
+    },
   ]);
 
   await p1.updateAddressParameters(hex('SWP_OP').padEnd(2 + 16, '0'), swapOperator.address);

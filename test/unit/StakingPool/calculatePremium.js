@@ -7,7 +7,7 @@ const { AddressZero, MaxUint256, WeiPerEther } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 
-describe('calculatePrice', function () {
+describe('calculatePremium', function () {
   const periodInDays = 91.25;
   const periodsInYear = 365 / periodInDays;
   const coverId = 0;
@@ -248,7 +248,7 @@ describe('calculatePrice', function () {
     }
   });
 
-  it('should correctly calculate price and premium when all coverage is bought in a single purchase', async function () {
+  it('should correctly calculate price when all coverage is bought in a single purchase', async function () {
     const { stakingPool, cover } = this;
     const [coverBuyer] = this.accounts.members;
     const { GLOBAL_CAPACITY_RATIO, INITIAL_PRICE_DENOMINATOR, PRICE_CHANGE_PER_DAY } = this.config;

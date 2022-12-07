@@ -1,6 +1,6 @@
 const { BigNumber } = require('ethers');
 const { ethers } = require('hardhat');
-const { parseEther } = ethers.utils;
+const { parseEther, parseUnits } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
@@ -12,6 +12,7 @@ const { getAccounts, stakingPoolManagers } = require('../utils').accounts;
 async function setup() {
   // external
   const ERC20BlacklistableMock = await ethers.getContractFactory('ERC20BlacklistableMock');
+  const ERC20CustomDecimalsMock = await ethers.getContractFactory('ERC20CustomDecimalsMock');
   const OwnedUpgradeabilityProxy = await ethers.getContractFactory('OwnedUpgradeabilityProxy');
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
   // const Lido = await ethers.getContractFactory('P1MockLido');
@@ -79,22 +80,27 @@ async function setup() {
 
   // deploy external contracts
   const weth = await WETH9.deploy();
-  const dai = await ERC20BlacklistableMock.deploy();
 
+  const dai = await ERC20BlacklistableMock.deploy();
   await dai.mint(owner, parseEther('10000000'));
 
   const stETH = await ERC20BlacklistableMock.deploy();
   await stETH.mint(owner, parseEther('10000000'));
 
+  const usdcDecimals = 6;
+  const usdc = await ERC20CustomDecimalsMock.deploy(usdcDecimals);
+  await usdc.mint(owner, parseUnits('10000000', usdcDecimals));
+
   const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
+  const chainlinkUSDC = await ChainlinkAggregatorMock.deploy();
 
   const chainlinkSteth = await ChainlinkAggregatorMock.deploy();
   await chainlinkSteth.setLatestAnswer(parseEther('1').toString());
 
   const priceFeedOracle = await PriceFeedOracle.deploy(
-    [dai.address, stETH.address],
-    [chainlinkDAI.address, chainlinkSteth.address],
-    [18, 18],
+    [dai.address, stETH.address, usdc.address],
+    [chainlinkDAI.address, chainlinkSteth.address, chainlinkUSDC.address],
+    [18, 18, 6],
   );
 
   // const lido = await Lido.new();
@@ -104,6 +110,9 @@ async function setup() {
 
   const ybETH = await ERC20BlacklistableMock.deploy();
   await ybETH.mint(owner, parseEther('10000000'));
+
+  const ybUSDC = await ERC20CustomDecimalsMock.deploy(usdcDecimals);
+  await ybUSDC.mint(owner, parseEther('10000000'));
 
   // proxy contracts
   const master = await deployProxy('DisposableNXMaster');
@@ -266,7 +275,8 @@ async function setup() {
 
   await cover.changeDependentContractAddress();
 
-  await cover.setCoverAssetsFallback(0b11); // eth and dai
+  const coverAssetsFallback = 0b111; // ETH, DAI and USDC
+  await cover.setCoverAssetsFallback(coverAssetsFallback);
 
   await cover.setProductTypes([
     {
@@ -364,9 +374,30 @@ async function setup() {
       },
       allowedPools: [1],
     },
+    {
+      productId: MaxUint256,
+      ipfsMetadata: 'product 5 metadata',
+      product: {
+        productType: 2, // Yield Token Cover
+        yieldTokenAddress: ybUSDC.address,
+        coverAssets: 0b100, // USDC
+        initialPriceRatio: 100,
+        capacityReductionRatio: 0,
+        useFixedPrice: false,
+      },
+      allowedPools: [],
+    },
   ]);
 
   await p1.updateAddressParameters(hex('SWP_OP').padEnd(2 + 16, '0'), swapOperator.address);
+  await p1.addAsset(
+    usdc.address,
+    usdcDecimals,
+    parseUnits('1000000', usdcDecimals),
+    parseUnits('2000000', usdcDecimals),
+    250,
+    true,
+  );
 
   await cover.updateUintParametersDisposable(
     [0, 1], // CoverUintParams.globalCapacityRatio, CoverUintParams.globalRewardsRatio
@@ -422,10 +453,12 @@ async function setup() {
 
   const POOL_ETHER = parseEther('90000');
   const POOL_DAI = parseEther('2000000');
+  const POOL_USDC = parseUnits('2000000', usdcDecimals);
 
   // fund pool
   await ethers.provider.getSigner().sendTransaction({ from: owner, to: p1.address, value: POOL_ETHER.toString() });
   await dai.transfer(p1.address, POOL_DAI);
+  await usdc.transfer(p1.address, POOL_USDC);
 
   const ethToDaiRate = 20000;
 
@@ -434,9 +467,14 @@ async function setup() {
     .div(parseEther((ethToDaiRate / 100).toString()));
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
+  const ethToUsdcRate = parseUnits('200', usdcDecimals);
+
+  const usdcToEthRate = BigNumber.from('10').pow(BigNumber.from('24')).div(ethToUsdcRate);
+  await chainlinkUSDC.setLatestAnswer(usdcToEthRate);
+
   await as.initialize();
 
-  const external = { chainlinkDAI, dai, weth, productsV1, ybDAI, ybETH };
+  const external = { chainlinkDAI, dai, usdc, weth, productsV1, ybDAI, ybETH, ybUSDC };
   const nonUpgradable = { qd };
   const instances = { tk, cl, p1, mcr: mc };
 

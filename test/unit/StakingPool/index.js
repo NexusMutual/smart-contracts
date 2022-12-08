@@ -13,6 +13,7 @@ describe('StakingPool unit tests', function () {
   });
 
   require('./calculatePremium');
+  require('./requestAllocation');
   require('./constructor');
   require('./initialize');
   require('./setPoolFee');

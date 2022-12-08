@@ -3,21 +3,19 @@ const { accounts, web3,
 } = require('hardhat');
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
-const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
+const {  time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const Decimal = require('decimal.js');
+const { ProposalCategory } = require('../utils').constants;
 
 const toBN = BigNumber.from
 
 const { calculateEthForNXMRelativeError, calculateNXMForEthRelativeError, getTokenSpotPrice } =
   require('../utils').tokenPrice;
 
-const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { buyCover } = require('../utils').buyCover;
 const { hex } = require('../utils').helpers;
 const { PoolAsset } = require('../utils').constants;
-
-const [, member1, member2, member3, member4, member5, coverHolder, nonMember1] = accounts;
 
 const coverTemplate = {
   amount: 1, // 1 eth
@@ -121,34 +119,34 @@ describe('Token price functions', function () {
     );
   });
 
-  it.skip('sellNXM burns tokens for member and returns ETH', async function () {
+  it('sellNXM burns tokens for member and returns ETH', async function () {
     const { tk: token, p1: pool } = this.contracts;
 
-    const [member1] = this.accounts.members;
+    const [member] = this.accounts.members;
     const ethIn = parseEther('500');
     const nxmAmount = await pool.getNXMForEth(ethIn);
 
     // buy tokens first
-    await pool.buyNXM(nxmAmount, { from: member1, value: ethIn });
+    await pool.connect(member).buyNXM(nxmAmount, { value: ethIn });
 
     // sell them back
-    const preNXMSellBalance = await token.balanceOf(member1.address);
+    const preNXMSellBalance = await token.balanceOf(member.address);
     const preSellTokenSupply = await token.totalSupply();
-    const preSellEthBalance = await web3.eth.getBalance(member1.address);
+    const preSellEthBalance = await web3.eth.getBalance(member.address);
 
-    await pool.sellNXM(nxmAmount, '0', { from: member1, gasPrice: 0 });
+    await pool.connect(member).sellNXM(nxmAmount, '0');
 
-    const postSellEthBalance = await web3.eth.getBalance(member1.address);
-    const postSellNXMBalance = await token.balanceOf(member1.address);
+    const postSellEthBalance = await ethers.provider.getBalance(member.address);
+    const postSellNXMBalance = await token.balanceOf(member.address);
     const postSellTokenSupply = await token.totalSupply();
 
     const tokensTakenAway = preNXMSellBalance.sub(postSellNXMBalance);
     const tokensBurned = preSellTokenSupply.sub(postSellTokenSupply);
 
-    assert(tokensTakenAway.toString(), nxmAmount.toString());
-    assert(tokensBurned.toString(), nxmAmount.toString());
+    expect(tokensTakenAway).to.be.equal(nxmAmount);
+    expect(tokensBurned).to.be.equal(nxmAmount);
 
-    const ethOut = toBN(postSellEthBalance).sub(toBN(preSellEthBalance));
+    const ethOut = postSellEthBalance.sub(preSellEthBalance);
 
     const maxRelativeError = new Decimal(0.0002);
     const { relativeError } = calculateEthForNXMRelativeError(ethIn, ethOut);
@@ -194,6 +192,7 @@ describe('Token price functions', function () {
     );
   });
 
+  // [todo]: enable with issue https://github.com/NexusMutual/smart-contracts/issues/387
   it.skip('buyNXM token price reflects the latest higher MCR value (higher MCReth -> lower price)', async function () {
     const { p1: pool, mcr } = this.contracts;
 
@@ -253,45 +252,37 @@ describe('Token price functions', function () {
   it('getMCRRatio calculates MCR ratio correctly', async function () {
     const { p1: pool } = this.contracts;
     const mcrRatio = await pool.getMCRRatio();
-    assert.equal(mcrRatio.toString(), '20000');
+    assert.equal(mcrRatio.toString(), '22000'); // ETH + DAI + USDC
   });
 
-  it.skip('sellNXM reverts for member if tokens are locked for member vote', async function () {
+  it('sellNXM reverts for member if tokens are locked for member vote', async function () {
     // [todo] Use new contracts
-    const { cd: claimsData, cl: claims, qd: quotationData, p1: pool, tk: token, cr } = this.contracts;
-    const cover = { ...coverTemplate };
-    await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
+    const { gv, master, p1: pool } = this.contracts;
 
-    const buyValue = ether('1000');
-    await pool.buyNXM('0', { from: member1, value: buyValue });
-    const boughtTokenAmount = await token.balanceOf(member1);
+    const [member] = this.accounts.members;
+    const owner = this.accounts.defaultSender;
 
-    await buyCover({ ...this.contracts, cover, coverHolder });
-    const [coverId] = await quotationData.getAllCoversOfUser(coverHolder);
-    await claims.submitClaim(coverId, { from: coverHolder });
-    const claimId = (await claimsData.actualClaimLength()).subn(1);
+    const mcrCode = hex('MC');
+    const MCR = await ethers.getContractFactory('MCR');
+    const newMCR = await MCR.deploy(master.address);
 
-    // create a consensus not reached situation, 66% accept vs 33% deny
-    await claims.submitCAVote(claimId, '1', { from: member1 });
-    await claims.submitCAVote(claimId, toBN('-1'), { from: member2 });
-    await claims.submitCAVote(claimId, '1', { from: member3 });
+    const contractCodes = [mcrCode];
+    const newAddresses = [newMCR.address];
 
-    const maxVotingTime = await claimsData.maxVotingTime();
-    await time.increase(maxVotingTime.addn(1));
-
-    await cr.closeClaim(claimId); // trigger changeClaimStatus
-    const voteStatusAfter = await claims.checkVoteClosing(claimId);
-    assert(voteStatusAfter.eqn(0), 'voting should not be closed');
-
-    const { statno: claimStatusCA } = await claimsData.getClaimStatusNumber(claimId);
-    assert.strictEqual(claimStatusCA.toNumber(), 4, 'claim status should be 4 (ca consensus not reached, pending mv)');
-
-    await claims.submitMemberVote(claimId, '1', { from: member1 });
-    await expectRevert(
-      pool.sellNXM(boughtTokenAmount, '0', { from: member1 }),
-      'Pool: NXM tokens are locked for voting',
+    const upgradeContractsData = web3.eth.abi.encodeParameters(
+      ['bytes2[]', 'address[]'],
+      [contractCodes, newAddresses],
     );
-    await time.increase(maxVotingTime.addn(1));
-    await cr.closeClaim(claimId);
+
+    const proposalId = await gv.getProposalLength();
+    await gv.createProposal('', '', '', '0');
+    await gv.categorizeProposal(proposalId, ProposalCategory.upgradeProxy, 0);
+    await gv.submitProposalWithSolution(proposalId, '', upgradeContractsData);
+
+    await gv.connect(member).submitVote(proposalId, 1, []);
+
+    await expect(
+      pool.connect(member).sellNXM('1', '0')
+    ).to.be.revertedWith( 'Pool: NXM tokens are locked for voting');
   });
 });

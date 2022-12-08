@@ -1,13 +1,17 @@
 const { web3, ethers } = require('hardhat');
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
+const { assert,
+  expect
+} = require('chai');
 const { ProposalCategory } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 const { submitProposal } = require('../utils').governance;
-const { buyCover, coverToCoverDetailsArray } = require('../utils').buyCover;
-const { getQuoteSignature } = require('../utils').getQuote;
 const { enrollClaimAssessor } = require('../utils/enroll');
+const { stake } = require('../utils/staking');
+const { BigNumber } = require('ethers');
 const { parseEther } = ethers.utils;
+const { MaxUint256, AddressZero } = ethers.constants;
+const { acceptClaim } = require('../utils/voteClaim');
 
 const coverTemplate = {
   amount: 1, // 1 eth
@@ -22,10 +26,19 @@ const coverTemplate = {
   type: 0,
 };
 
+const priceDenominator = '10000';
+
 describe('emergency pause', function () {
   beforeEach(async function () {
+    const { tk } = this.contracts;
     const [member1, member2, member3] = this.accounts.members;
     await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
+
+    const members = this.accounts.members.slice(0, 5);
+    const amount = parseEther('10000');
+    for (const member of members) {
+      await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
+    }
   });
 
   it('should revert when not called by emergency admin', async function () {
@@ -113,116 +126,155 @@ describe('emergency pause', function () {
   });
 
   it('stops cover purchases', async function () {
-    const { p1, qt, master, gateway } = this.contracts;
+    const { master, cover } = this.contracts;
+    const emergencyAdmin = this.accounts.emergencyAdmin;
+    const [member] = this.accounts.members;
 
-    await master.setEmergencyPause(true, {
-      from: emergencyAdmin,
-    });
+    // Cover inputs
+    const productId = 0;
+    const coverAsset = 0; // ETH
+    const period = 3600 * 24 * 30; // 30 days
+    const gracePeriod = 3600 * 24 * 30;
+    const amount = parseEther('1');
+    const expectedPremium = amount.div(10);
 
-    const cover = { ...coverTemplate };
-    const member = member1;
+    await master.connect(emergencyAdmin).setEmergencyPause(true);
 
-    // sign a different amount than the one requested.
-    const signature = await getQuoteSignature(
-      coverToCoverDetailsArray({ ...cover, amount: cover.amount + 1 }),
-      cover.currency,
-      cover.period,
-      cover.contractAddress,
-      qt.address,
-    );
-
-    await expectRevert(
-      p1.makeCoverBegin(
-        cover.contractAddress,
-        cover.currency,
-        coverToCoverDetailsArray(cover),
-        cover.period,
-        signature[0],
-        signature[1],
-        signature[2],
-        { from: member, value: cover.price },
-      ),
-      'System is paused',
-    );
-
-    const data = web3.eth.abi.encodeParameters([], []);
-
-    await expectRevert(
-      gateway.buyCover(cover.contractAddress, cover.asset, cover.amount, cover.period, cover.type, data, {
-        from: member,
-        value: cover.price,
-      }),
-      'System is paused',
-    );
-
-    await expectRevert(
-      qt.makeCoverUsingNXMTokens(
-        coverToCoverDetailsArray(cover),
-        cover.period,
-        cover.currency,
-        cover.contractAddress,
-        signature[0],
-        signature[1],
-        signature[2],
-        { from: member },
-      ),
-      'System is paused',
-    );
+    await expect(cover.connect(member).buyCover(
+      {
+        owner: member.address,
+        coverId: MaxUint256,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      {
+        value: expectedPremium,
+      },
+    )).to.be.revertedWith('System is paused');
   });
 
-  it('stops claim payouts on closeClaim', async function () {
-    const { cd, cl, qd, master, cr } = this.contracts;
-    const cover = { ...coverTemplate };
+  it('stops claim payouts on redeemPayout', async function () {
+    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { ic, cover, stakingPool0, as, master } = this.contracts;
+    const [coverBuyer1, staker1, staker2] = this.accounts.members;
+    const emergencyAdmin = this.accounts.emergencyAdmin;
 
-    const coverHolder = member1;
+    // Cover inputs
+    const productId = 0;
+    const coverAsset = 0; // ETH
+    const period = 3600 * 24 * 30; // 30 days
+    const gracePeriod = 3600 * 24 * 30;
+    const amount = parseEther('1');
 
-    await buyCover({ ...this.contracts, cover, coverHolder });
-    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
-    await cl.submitClaim(coverId, { from: coverHolder });
-    const claimId = (await cd.actualClaimLength()).subn(1);
-    await cl.submitCAVote(claimId, '1', { from: member1 });
+    // Stake to open up capacity
+    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
 
-    const minVotingTime = await cd.minVotingTime();
-    await time.increase(minVotingTime.addn(1));
+    // Buy Cover
+    const expectedPremium = amount
+      .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
+      .div(BigNumber.from(priceDenominator));
 
-    const voteStatusBefore = await cl.checkVoteClosing(claimId);
-    assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
+    await cover.connect(coverBuyer1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        coverId: MaxUint256,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      {
+        value: expectedPremium,
+      },
+    );
 
-    await master.setEmergencyPause(true, {
-      from: emergencyAdmin,
+    // Submit claim
+    const coverId = 0;
+    const claimAmount = amount;
+    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      value: deposit.mul('2'),
     });
-    await expectRevert(cr.closeClaim(claimId), 'System is paused');
 
-    await master.setEmergencyPause(false, {
-      from: emergencyAdmin,
-    });
+    const assessmentStakingAmount = parseEther('1000');
+    await acceptClaim({ staker: staker2, assessmentStakingAmount, as });
 
-    // succeeds when unpaused
-    await cr.closeClaim(claimId);
+    await master.connect(emergencyAdmin).setEmergencyPause(true);
+
+    // redeem payout
+    await expect(ic.redeemClaimPayout(0)).to.be.revertedWith('System is paused');
   });
 
   it('stops claim voting', async function () {
-    const { cd, cl, qd, master } = this.contracts;
-    const cover = { ...coverTemplate };
+    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { ic, cover, stakingPool0, as, master } = this.contracts;
+    const [coverBuyer1, staker1] = this.accounts.members;
+    const emergencyAdmin = this.accounts.emergencyAdmin;
 
-    await buyCover({ ...this.contracts, cover, coverHolder });
-    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
-    await cl.submitClaim(coverId, { from: coverHolder });
-    const claimId = (await cd.actualClaimLength()).subn(1);
+    // Cover inputs
+    const productId = 0;
+    const coverAsset = 0; // ETH
+    const period = 3600 * 24 * 30; // 30 days
+    const gracePeriod = 3600 * 24 * 30;
+    const amount = parseEther('1');
 
-    const minVotingTime = await cd.minVotingTime();
-    await time.increase(minVotingTime.addn(1));
+    // Stake to open up capacity
+    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
 
-    await master.setEmergencyPause(true, {
-      from: emergencyAdmin,
+    // Buy Cover
+    const expectedPremium = amount
+      .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
+      .div(BigNumber.from(priceDenominator));
+
+    await cover.connect(coverBuyer1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        coverId: MaxUint256,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      {
+        value: expectedPremium,
+      },
+    );
+
+    // Submit claim
+    const coverId = 0;
+    const claimAmount = amount;
+    const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+    await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+      value: deposit.mul('2'),
     });
 
-    await expectRevert.unspecified(cl.submitCAVote(claimId, '1', { from: member1 }));
+    const assessmentStakingAmount = parseEther('1000');
+    await as.connect(staker1).stake(assessmentStakingAmount);
 
-    await master.setEmergencyPause(false, {
-      from: emergencyAdmin,
-    });
+    await master.connect(emergencyAdmin).setEmergencyPause(true);
 
-    await cl.submitCAVote(claimId, '1', { from: member1 });
+    await expect(
+      as.connect(staker1).castVotes([0], [true], ['Assessment data hash'], 0)
+    ).to.be.revertedWith('System is paused');
   });
 });

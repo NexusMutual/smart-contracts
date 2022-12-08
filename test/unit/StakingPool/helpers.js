@@ -29,8 +29,7 @@ const setTime = async timestamp => {
   await mineNextBlock();
 };
 
-async function calculateBasePrice(stakingPool, product, priceChangePerDay) {
-  const { timestamp } = await ethers.provider.getBlock('latest');
+function calculateBasePrice(timestamp, product, priceChangePerDay) {
   const timeSinceLastUpdate = BigNumber.from(timestamp).sub(product.nextPriceUpdateTime);
   const priceDrop = timeSinceLastUpdate.mul(priceChangePerDay).div(daysToSeconds('1'));
   const basePrice = product.nextPrice.lt(product.targetPrice.add(priceDrop))
@@ -39,17 +38,33 @@ async function calculateBasePrice(stakingPool, product, priceChangePerDay) {
   return basePrice;
 }
 
-async function calculateSurgePremium(stakingPool, coverAmount, initialCapacityUsed, totalCapacity, config) {
+function calculateSurgePremium(amountOnSurge, totalCapacity, surgePriceRatio, allocationUnitsPerNxm) {
+  amountOnSurge = BigNumber.from(amountOnSurge);
+  const surgePremium = amountOnSurge.mul(surgePriceRatio.mul(amountOnSurge)).div(totalCapacity).div(2);
+  return surgePremium.div(allocationUnitsPerNxm);
+}
+
+function calculateSurgePremiums(coverAmount, initialCapacityUsed, totalCapacity, config) {
   const amountOnSurge = calculateAmountOnSurge(coverAmount, initialCapacityUsed, totalCapacity, config);
-  const surgePremium = await stakingPool.calculateSurgePremium(amountOnSurge, totalCapacity);
+  const surgePremium = calculateSurgePremium(
+    amountOnSurge,
+    totalCapacity,
+    config.SURGE_PRICE_RATIO,
+    config.ALLOCATION_UNITS_PER_NXM,
+  );
   const amountOnSurgeSkipped = calculateAmountOnSurgeSkipped(coverAmount, initialCapacityUsed, totalCapacity, config);
-  const surgePremiumSkipped = await stakingPool.calculateSurgePremium(amountOnSurgeSkipped, totalCapacity);
+  const surgePremiumSkipped = calculateSurgePremium(
+    amountOnSurgeSkipped,
+    totalCapacity,
+    config.SURGE_PRICE_RATIO,
+    config.ALLOCATION_UNITS_PER_NXM,
+  );
   return { surgePremium, surgePremiumSkipped };
 }
 
 // config is from StakingPool/unit/setup.js
 function calculateAmountOnSurge(coverAmount, initialCapacityUsed, totalCapacity, config) {
-  coverAmount = BigNumber.from(coverAmount).div(config.NXM_PER_ALLOCATION_UNIT);
+  coverAmount = divCeil(coverAmount, config.NXM_PER_ALLOCATION_UNIT);
   initialCapacityUsed = BigNumber.from(initialCapacityUsed);
   totalCapacity = BigNumber.from(totalCapacity);
   const finalCapacityUsed = initialCapacityUsed.add(coverAmount);
@@ -60,7 +75,7 @@ function calculateAmountOnSurge(coverAmount, initialCapacityUsed, totalCapacity,
 
 // This function should calculate the amount on surge skipped
 function calculateAmountOnSurgeSkipped(coverAmount, initialCapacityUsed, totalCapacity, config) {
-  coverAmount = BigNumber.from(coverAmount).div(config.NXM_PER_ALLOCATION_UNIT);
+  coverAmount = divCeil(coverAmount, config.NXM_PER_ALLOCATION_UNIT);
   initialCapacityUsed = BigNumber.from(initialCapacityUsed);
   totalCapacity = BigNumber.from(totalCapacity);
   const surgeStartPoint = totalCapacity.mul(config.SURGE_THRESHOLD_RATIO).div(config.SURGE_THRESHOLD_DENOMINATOR);
@@ -78,10 +93,25 @@ function calculateAmountOnSurgeSkipped(coverAmount, initialCapacityUsed, totalCa
   return initialCapacityUsed.sub(surgeStartPoint);
 }
 
-// Note fn expects coverAmount is rounded down by NXM_PER_ALLOCATION_UNIT
+// Note fn expects coverAmount is rounded up to the nearest NXM_PER_ALLOCATION_UNIT
 function calculatePriceBump(coverAmount, priceBumpRatio, totalCapacity) {
   const priceBump = BigNumber.from(priceBumpRatio).mul(coverAmount).div(totalCapacity);
   return priceBump;
+}
+
+// Rounds an integer up to the nearest multiple of NXM_PER_ALLOCATION_UNIT
+function roundUpToNearestAllocationUnit(amount, nxmPerAllocationUnit) {
+  amount = BigNumber.from(amount);
+  return divCeil(amount, nxmPerAllocationUnit).mul(nxmPerAllocationUnit);
+}
+
+function divCeil(a, b) {
+  a = BigNumber.from(a);
+  let result = a.div(b);
+  if (!a.mod(b).isZero()) {
+    result = result.add(1);
+  }
+  return result;
 }
 
 function interpolatePrice(lastPriceRatio, targetPriceRatio, lastPriceUpdate, currentTimestamp) {
@@ -237,10 +267,12 @@ module.exports = {
   getPrices,
   calculatePrice,
   calculateBasePrice,
-  calculateSurgePremium,
+  calculateSurgePremiums,
   calculatePriceBump,
   calculateAmountOnSurge,
   calculateAmountOnSurgeSkipped,
+  divCeil,
+  roundUpToNearestAllocationUnit,
   getTranches,
   getCurrentTrancheId,
   getNewRewardShares,

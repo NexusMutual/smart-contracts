@@ -1,9 +1,11 @@
-const { accounts, web3 } = require('hardhat');
+const { accounts, web3,
+  ethers
+} = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { toBN } = web3.utils;
 const { buyCover, buyCoverWithDai } = require('../utils').buyCover;
-const { enrollMember } = require('../utils/enroll');
+const { parseEther } = ethers.utils;
 const { hex } = require('../utils').helpers;
 
 const [, member1, nonMember1] = accounts;
@@ -30,12 +32,14 @@ const daiCoverTemplate = {
   contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
 };
 
-describe('getAllSumAssurance', function () {
+// [todo] reenable with issue https://github.com/NexusMutual/smart-contracts/issues/387
+describe.skip('getAllSumAssurance', function () {
   beforeEach(async function () {
     const { dai } = this.contracts;
-    await enrollMember(this.contracts, [member1]);
+    const [member1] = this.accounts.members;
+    const [nonMember1] = this.accounts.nonMembers;
     for (const daiHolder of [member1, nonMember1]) {
-      await dai.mint(daiHolder, ether('10000000'));
+      await dai.mint(daiHolder.address, parseEther('10000000'));
     }
   });
 

@@ -33,4 +33,8 @@ contract MRMockCover {
     coverNFT.mint(to, tokenId);
   }
 
+  function stakingPoolTransferTokens(uint stakingPoolId, address from, address to, uint[] calldata tokenIds) external {
+    IStakingPool _stakingPool = IStakingPool(stakingPools[stakingPoolId]);
+    _stakingPool.operatorTransfer(from, to, tokenIds);
+  }
 }

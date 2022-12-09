@@ -1,6 +1,4 @@
-const { web3,
-  ethers
-} = require('hardhat');
+const { ethers } = require('hardhat');
 const { assert } = require('chai');
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
@@ -312,7 +310,8 @@ describe('updateMCR', function () {
     });
     await enrollClaimAssessor(this.contracts, [member1], { lockTokens });
     await voteClaim({ ...this.contracts, claimId: expectedClaimId, verdict: '1', voter: member1 });
-    const block = await web3.eth.getBlock('latest');
+
+    const block = await ethers.provider.getBlock('latest');
     const expectedUpdateTime = block.timestamp;
 
     const lastUpdateTime = await mcr.lastUpdateTime();
@@ -358,7 +357,7 @@ describe('updateMCR', function () {
       // gas price set to 0 so we can know the payout exactly
       { from: coverHolder, gasPrice: 0 },
     );
-    const block = await web3.eth.getBlock('latest');
+    const block = await ethers.provider.getBlock('latest');
     const expectedUpdateTime = block.timestamp;
     const lastUpdateTime = await mcr.lastUpdateTime();
     assert.equal(lastUpdateTime.toString(), expectedUpdateTime.toString());

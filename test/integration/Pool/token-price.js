@@ -1,14 +1,13 @@
-const { accounts, web3,
-  ethers
-} = require('hardhat');
-const { parseEther } = ethers.utils;
+const { ethers } = require('hardhat');
+const { parseEther, defaultAbiCoder } = ethers.utils;
 const { BigNumber } = ethers;
-const {  time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const Decimal = require('decimal.js');
+const {
+  setNextBlockTime,
+  mineNextBlock
+} = require('../../utils/evm');
 const { ProposalCategory } = require('../utils').constants;
-
-const toBN = BigNumber.from
 
 const { calculateEthForNXMRelativeError, calculateNXMForEthRelativeError, getTokenSpotPrice } =
   require('../utils').tokenPrice;
@@ -17,18 +16,14 @@ const { buyCover } = require('../utils').buyCover;
 const { hex } = require('../utils').helpers;
 const { PoolAsset } = require('../utils').constants;
 
-const coverTemplate = {
-  amount: 1, // 1 eth
-  price: '3000000000000000', // 0.003 eth
-  priceNXM: '1000000000000000000', // 1 nxm
-  expireTime: '8000000000',
-  generationTime: '1600000000000',
-  currency: hex('ETH'),
-  period: 60,
-  contractAddress: '0xc0ffeec0ffeec0ffeec0ffeec0ffeec0ffee0000',
+const increaseTime = async interval => {
+  const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+  const timestamp = currentTime + interval;
+  await setNextBlockTime(timestamp);
+  await mineNextBlock();
 };
 
-const ratioScale = toBN(10000);
+const ratioScale = BigNumber.from(10000);
 
 describe('Token price functions', function () {
   beforeEach(async function () {
@@ -50,18 +45,18 @@ describe('Token price functions', function () {
 
     const totalAssetValue = await pool.getPoolValueInEth();
     const mcrEth = await mcr.getMCR();
-    const expectedEthTokenPrice = toBN(getTokenSpotPrice(totalAssetValue, mcrEth).toString());
+    const expectedEthTokenPrice = BigNumber.from(getTokenSpotPrice(totalAssetValue, mcrEth).toString());
 
     const ethPriceDiff = ethTokenPrice.sub(expectedEthTokenPrice).abs();
     assert(
-      ethPriceDiff.lte(toBN(1)),
+      ethPriceDiff.lte(BigNumber.from(1)),
       `token price ${ethTokenPrice.toString()} not close enough to ${expectedEthTokenPrice.toString()}`,
     );
 
-    const expectedDaiPrice = toBN(ethToDaiRate / 100).mul(expectedEthTokenPrice);
+    const expectedDaiPrice = BigNumber.from(ethToDaiRate / 100).mul(expectedEthTokenPrice);
     const daiPriceDiff = daiTokenPrice.sub(expectedDaiPrice);
     assert(
-      daiPriceDiff.lte(toBN(10000)), // negligible amount of wei
+      daiPriceDiff.lte(BigNumber.from(10000)), // negligible amount of wei
       `DAI token price ${daiTokenPrice.toString()} not close enough to ${expectedDaiPrice.toString()}`,
     );
   });
@@ -132,7 +127,7 @@ describe('Token price functions', function () {
     // sell them back
     const preNXMSellBalance = await token.balanceOf(member.address);
     const preSellTokenSupply = await token.totalSupply();
-    const preSellEthBalance = await web3.eth.getBalance(member.address);
+    const preSellEthBalance = await ethers.provider.getBalance(member.address);
 
     await pool.connect(member).sellNXM(nxmAmount, '0');
 
@@ -170,12 +165,12 @@ describe('Token price functions', function () {
     // trigger an MCR update and post a lower MCR since lowering the price (higher MCR percentage)
     const minUpdateTime = await mcr.minUpdateTime();
 
-    await time.increase(minUpdateTime + 1);
+    await increaseTime(minUpdateTime + 1);
 
     // perform a buy with a negligible amount of ETH
     await pool.connect(member1).buyNXM('0', { value: '1' });
     // let time pass so that mcr decreases towards desired MCR
-    await time.increase(time.duration.hours(6));
+    await increaseTime(6 * 3600);
 
     const spotTokenPricePostMCRPosting = await pool.getTokenPrice(PoolAsset.ETH);
     const expectedNXMOutPostMCRPosting = await pool.getNXMForEth(buyValue);
@@ -202,9 +197,20 @@ describe('Token price functions', function () {
     const spotTokenPricePreMCRPosting = await pool.getTokenPrice(PoolAsset.ETH);
     await pool.getPoolValueInEth();
 
+    const coverTemplate = {
+      amount: 1, // 1 eth
+      price: '3000000000000000', // 0.003 eth
+      priceNXM: '1000000000000000000', // 1 nxm
+      expireTime: '8000000000',
+      generationTime: '1600000000000',
+      currency: hex('ETH'),
+      period: 60,
+      contractAddress: '0xc0ffeec0ffeec0ffeec0ffeec0ffeec0ffee0000',
+    };
+
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
-    const coverAmount = toBN(gearingFactor)
+    const coverAmount = BigNumber.from(gearingFactor)
       .mul(currentMCR.add(parseEther('300')))
       .div(parseEther('1'))
       .div(ratioScale);
@@ -215,12 +221,12 @@ describe('Token price functions', function () {
 
     // trigger an MCR update and post a lower MCR since lowering the price (higher MCR percentage)
     const minUpdateTime = await mcr.minUpdateTime();
-    await time.increase(minUpdateTime + 1);
+    await increaseTime(minUpdateTime + 1);
 
     // perform a buy with a negligible amount of ETH
     await pool.connect(member1).buyNXM('0', { value: '1' });
     // let time pass so that mcr increases towards desired MCR
-    await time.increase(time.duration.hours(6));
+    await increaseTime(time.duration.hours(6));
 
     const spotTokenPricePostMCRPosting = await pool.getTokenPrice(ETH);
     const expectedNXMOutPostMCRPosting = await pool.getNXMForEth(buyValue);
@@ -241,7 +247,7 @@ describe('Token price functions', function () {
     const { p1: pool, dai } = this.contracts;
     const { daiToEthRate } = this.rates;
 
-    const poolBalance = toBN(await web3.eth.getBalance(pool.address));
+    const poolBalance = BigNumber.from(await ethers.provider.getBalance(pool.address));
     const daiBalance = await dai.balanceOf(pool.address);
     const expectedDAiValueInEth = daiToEthRate.mul(daiBalance).div(parseEther('1'));
     const expectedTotalAssetValue = poolBalance.add(expectedDAiValueInEth);
@@ -260,7 +266,6 @@ describe('Token price functions', function () {
     const { gv, master, p1: pool } = this.contracts;
 
     const [member] = this.accounts.members;
-    const owner = this.accounts.defaultSender;
 
     const mcrCode = hex('MC');
     const MCR = await ethers.getContractFactory('MCR');
@@ -269,7 +274,7 @@ describe('Token price functions', function () {
     const contractCodes = [mcrCode];
     const newAddresses = [newMCR.address];
 
-    const upgradeContractsData = web3.eth.abi.encodeParameters(
+    const upgradeContractsData = defaultAbiCoder.encode(
       ['bytes2[]', 'address[]'],
       [contractCodes, newAddresses],
     );

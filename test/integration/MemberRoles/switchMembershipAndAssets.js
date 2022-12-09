@@ -2,11 +2,10 @@ const { ethers } = require('hardhat');
 const { expect, assert } = require('chai');
 const { stake } = require('../utils/staking');
 const { Role } = require('../utils').constants;
+const { daysToSeconds } = require('../../../lib/helpers');
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { calculateFirstTrancheId } = require('../utils/staking')
-
-const daysToSeconds = days => days * 24 * 60 * 60;
 
 describe('switchMembershipAndAssets', function () {
 

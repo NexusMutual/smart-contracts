@@ -1,5 +1,4 @@
 const { ethers } = require('hardhat');
-const { expectRevert } = require('@openzeppelin/test-helpers');
 const { Role } = require('../utils').constants;
 
 describe('switchMembership', function () {
@@ -45,7 +44,7 @@ describe('switchMembership', function () {
       nonMembers: [nonMember1, nonMember2],
     } = this.accounts;
 
-    await expectRevert.unspecified(memberRoles.connect(nonMember1).switchMembership(nonMember2.address));
+    await expect(memberRoles.connect(nonMember1).switchMembership(nonMember2.address)).to.be.reverted;
   });
 
   it("reverts when switching membership to an address that's already a member", async function () {
@@ -54,6 +53,6 @@ describe('switchMembership', function () {
       members: [member1, member2],
     } = this.accounts;
 
-    await expectRevert.unspecified(memberRoles.connect(member1).switchMembership(member2.address));
+    await expect(memberRoles.connect(member1).switchMembership(member2.address)).to.be.reverted;
   });
 });

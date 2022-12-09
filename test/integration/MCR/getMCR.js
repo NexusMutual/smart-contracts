@@ -1,25 +1,22 @@
-const { accounts, web3,
-  ethers
-} = require('hardhat');
-const { ether, time } = require('@openzeppelin/test-helpers');
+const { ethers } = require('hardhat');
 const { assert } = require('chai');
-const { toBN } = web3.utils;
+const {
+  setNextBlockTime,
+  mineNextBlock
+} = require('../../utils/evm');
+const { BigNumber } = require('ethers');
 const { parseEther } = ethers.utils;
 const { buyCover } = require('../utils').buyCover;
 const { hex } = require('../utils').helpers;
 
-const coverTemplate = {
-  amount: 1, // 1 eth
-  price: '3000000000000000', // 0.003 eth
-  priceNXM: '1000000000000000000', // 1 nxm
-  expireTime: '8000000000',
-  generationTime: '1600000000000',
-  currency: hex('ETH'),
-  period: 30,
-  contractAddress: '0xc0ffeec0ffeec0ffeec0ffeec0ffeec0ffee0000',
+const increaseTime = async interval => {
+  const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+  const timestamp = currentTime + interval;
+  await setNextBlockTime(timestamp);
+  await mineNextBlock();
 };
 
-const ratioScale = toBN(10000);
+const ratioScale = BigNumber.from(10000);
 
 describe('getMCR', function () {
   beforeEach(async function () {
@@ -45,6 +42,17 @@ describe('getMCR', function () {
   it.skip('increases mcr by 0.4% in 2 hours and then decreases by 0.4% in 2 hours it after cover expiry', async function () {
     const { mcr, qt: quotation } = this.contracts;
 
+    const coverTemplate = {
+      amount: 1, // 1 eth
+      price: '3000000000000000', // 0.003 eth
+      priceNXM: '1000000000000000000', // 1 nxm
+      expireTime: '8000000000',
+      generationTime: '1600000000000',
+      currency: hex('ETH'),
+      period: 30,
+      contractAddress: '0xc0ffeec0ffeec0ffeec0ffeec0ffeec0ffee0000',
+    };
+
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
     const coverAmount = gearingFactor
@@ -56,12 +64,12 @@ describe('getMCR', function () {
     await buyCover({ ...this.contracts, cover, coverHolder });
     const expectedCoverId = 1;
 
-    await time.increase(await mcr.minUpdateTime());
+    await increaseTime(await mcr.minUpdateTime());
     await mcr.updateMCR();
 
     {
       const passedTime = time.duration.hours(2);
-      await time.increase(passedTime);
+      await increaseTime(passedTime);
 
       const storedMCR = await mcr.mcr();
       const latestMCR = await mcr.getMCR();
@@ -73,14 +81,14 @@ describe('getMCR', function () {
       assert.equal(latestMCR.toString(), expectedMCR.toString());
     }
 
-    await time.increase(time.duration.days(cover.period));
+    await increaseTime(time.duration.days(cover.period));
 
     await quotation.expireCover(expectedCoverId);
     await mcr.updateMCR();
 
     {
       const passedTime = time.duration.hours(2);
-      await time.increase(passedTime);
+      await increaseTime(passedTime);
 
       const storedMCR = await mcr.mcr();
       const latestMCR = await mcr.getMCR();

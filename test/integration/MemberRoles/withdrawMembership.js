@@ -1,8 +1,5 @@
-const { accounts } = require('hardhat');
-const { expectRevert } = require('@openzeppelin/test-helpers');
 const { enrollMember } = require('../utils/enroll');
 const { Role } = require('../utils').constants;
-
 
 describe('withdrawMembership', function () {
   it('withdraws membership for current member', async function () {
@@ -29,6 +26,6 @@ describe('withdrawMembership', function () {
   it('reverts when withdrawing membership for non-member', async function () {
     const { mr: memberRoles } = this.contracts;
     const [nonMember1] = this.accounts.nonMembers;
-    await expectRevert.unspecified(memberRoles.connect(nonMember1).withdrawMembership());
+    await expect(memberRoles.connect(nonMember1).withdrawMembership()).to.be.reverted;
   });
 });

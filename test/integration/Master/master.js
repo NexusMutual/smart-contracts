@@ -1,13 +1,10 @@
-const { web3,
-  ethers
-} = require('hardhat');
+const { ethers } = require('hardhat');
 const { assert } = require('chai');
 const { ProposalCategory, ContractTypes } = require('../utils').constants;
 const { submitProposal } = require('../utils').governance;
 const { hex } = require('../utils').helpers;
-const { parseEther } = ethers.utils;
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const { parseEther, defaultAbiCoder } = ethers.utils;
+const { AddressZero } = ethers.constants;
 
 async function assertNewAddresses(master, contractCodes, newAddresses, contractType) {
   for (let i = 0; i < contractCodes.length; i++) {
@@ -38,7 +35,7 @@ describe('master', function () {
     const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
     const newContract = await MMockNewContract.deploy();
 
-    const actionData = web3.eth.abi.encodeParameters(
+    const actionData = defaultAbiCoder.encode(
       ['bytes2[]', 'address[]', 'uint[]'],
       [[code], [newContract.address], [ContractTypes.Replaceable]],
     );
@@ -59,7 +56,7 @@ describe('master', function () {
     const newContract = await MMockNewContract.deploy();
 
     const code = hex('XX');
-    const actionData = web3.eth.abi.encodeParameters(
+    const actionData = defaultAbiCoder.encode(
       ['bytes2[]', 'address[]', 'uint[]'],
       [[code], [newContract.address], [ContractTypes.Proxy]],
     );
@@ -86,7 +83,7 @@ describe('master', function () {
     const contractCodes = [code];
     const newAddresses = [newMCR.address];
 
-    const upgradeContractsData = web3.eth.abi.encodeParameters(
+    const upgradeContractsData = defaultAbiCoder.encode(
       ['bytes2[]', 'address[]'],
       [contractCodes, newAddresses],
     );
@@ -108,7 +105,7 @@ describe('master', function () {
     const contractCodes = [code];
     const newAddresses = [newTokenControllerImplementation.address];
 
-    const upgradeContractsData = web3.eth.abi.encodeParameters(
+    const upgradeContractsData = defaultAbiCoder.encode(
       ['bytes2[]', 'address[]'],
       [contractCodes, newAddresses],
     );
@@ -137,7 +134,7 @@ describe('master', function () {
     const contractCodes = [mcrCode, tcCode];
     const newAddresses = [newMCR.address, newTokenControllerImplementation.address];
 
-    const upgradeContractsData = web3.eth.abi.encodeParameters(
+    const upgradeContractsData = defaultAbiCoder.encode(
       ['bytes2[]', 'address[]'],
       [contractCodes, newAddresses],
     );
@@ -160,7 +157,7 @@ describe('master', function () {
     const NXMaster = await ethers.getContractFactory('NXMaster');
     const newMaster = await NXMaster.deploy();
 
-    const upgradeContractsData = web3.eth.abi.encodeParameters(['address'], [newMaster.address]);
+    const upgradeContractsData = defaultAbiCoder.encode(['address'], [newMaster.address]);
 
     await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [owner]);
 
@@ -193,9 +190,9 @@ describe('master', function () {
       await Pool.deploy(
         master.address,
         priceFeedOracle.address,
-        ZERO_ADDRESS,
+        AddressZero,
         dai.address,
-        ZERO_ADDRESS,
+        AddressZero,
       ),
       await MCR.deploy(master.address),
       await Governance.deploy(),
@@ -206,7 +203,7 @@ describe('master', function () {
       await IndividualClaims.deploy(token.address, coverNFT.address),
     ].map(c => c.address);
 
-    const upgradeContractsData = web3.eth.abi.encodeParameters(
+    const upgradeContractsData = defaultAbiCoder.encode(
       ['bytes2[]', 'address[]'],
       [contractCodes.map(code => hex(code)), newAddresses],
     );
@@ -253,7 +250,7 @@ describe('master', function () {
         c => c.address,
       );
 
-      const upgradeContractsData = web3.eth.abi.encodeParameters(
+      const upgradeContractsData = defaultAbiCoder.encode(
         ['bytes2[]', 'address[]'],
         [contractCodes.map(code => hex(code)), newAddresses],
       );
@@ -271,7 +268,7 @@ describe('master', function () {
         c => c.address,
       );
 
-      const upgradeContractsData = web3.eth.abi.encodeParameters(
+      const upgradeContractsData = defaultAbiCoder.encode(
         ['bytes2[]', 'address[]'],
         [contractCodes.map(code => hex(code)), newAddresses],
       );
@@ -289,7 +286,7 @@ describe('master', function () {
     const existingCode = hex('GW');
     const MMockNewContract = await ethers.getContractFactory('MMockNewContract');
     const newContract = await MMockNewContract.deploy();
-    const actionData = web3.eth.abi.encodeParameters(
+    const actionData = defaultAbiCoder.encode(
       ['bytes2[]', 'address[]', 'uint[]'],
       [[code], [newContract.address], [ContractTypes.Replaceable]],
     );
@@ -298,19 +295,19 @@ describe('master', function () {
     const address = await master.getLatestAddress(code);
     assert.equal(address, newContract.address);
 
-    const actionDataRemove = web3.eth.abi.encodeParameters(['bytes2[]'], [[code, existingCode]]);
+    const actionDataRemove = defaultAbiCoder.encode(['bytes2[]'], [[code, existingCode]]);
     await submitProposal(gv, ProposalCategory.removeContracts, actionDataRemove, [owner]);
 
     {
       const addressAfterDeletion = await master.getLatestAddress(code);
-      assert.equal(addressAfterDeletion, ZERO_ADDRESS);
+      assert.equal(addressAfterDeletion, AddressZero);
       const isInternal = await master.isInternal(newContract.address);
       assert.equal(isInternal, false);
     }
 
     {
       const addressAfterDeletion = await master.getLatestAddress(existingCode);
-      assert.equal(addressAfterDeletion, ZERO_ADDRESS);
+      assert.equal(addressAfterDeletion, AddressZero);
       const isInternal = await master.isInternal(newContract.address);
       assert.equal(isInternal, false);
     }

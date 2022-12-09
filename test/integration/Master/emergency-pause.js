@@ -1,5 +1,4 @@
-const { web3, ethers } = require('hardhat');
-const { expectRevert, time } = require('@openzeppelin/test-helpers');
+const { ethers } = require('hardhat');
 const { assert,
   expect
 } = require('chai');
@@ -9,22 +8,9 @@ const { submitProposal } = require('../utils').governance;
 const { enrollClaimAssessor } = require('../utils/enroll');
 const { stake } = require('../utils/staking');
 const { BigNumber } = require('ethers');
-const { parseEther } = ethers.utils;
+const { parseEther, defaultAbiCoder } = ethers.utils;
 const { MaxUint256, AddressZero } = ethers.constants;
 const { acceptClaim } = require('../utils/voteClaim');
-
-const coverTemplate = {
-  amount: 1, // 1 eth
-  price: '30000000000000000', // 0.03 eth
-  priceNXM: '10000000000000000000', // 10 nxm
-  expireTime: '8000000000',
-  generationTime: '1600000000000',
-  currency: hex('ETH'),
-  period: 60,
-  contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
-  asset: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-  type: 0,
-};
 
 const priceDenominator = '10000';
 
@@ -83,7 +69,7 @@ describe('emergency pause', function () {
     const contractCodes = [mcrCode, tcCode];
     const newAddresses = [newMCR.address, newTokenControllerImplementation.address];
 
-    const upgradeContractsData = web3.eth.abi.encodeParameters(
+    const upgradeContractsData = defaultAbiCoder.encode(
       ['bytes2[]', 'address[]'],
       [contractCodes, newAddresses],
     );
@@ -106,7 +92,7 @@ describe('emergency pause', function () {
     const NXMaster = await ethers.getContractFactory('NXMaster');
     const newMaster = await NXMaster.deploy();
 
-    const upgradeContractsData = web3.eth.abi.encodeParameters(['address'], [newMaster.address]);
+    const upgradeContractsData = defaultAbiCoder.encode(['address'], [newMaster.address]);
 
     await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [owner]);
 

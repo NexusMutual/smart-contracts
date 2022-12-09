@@ -5,9 +5,9 @@ module.exports = () => {
   const contracts = {};
 
   // name and abiName arguments are not used for verification
-  const add = (address, fqNname, options = {}) => {
+  const add = (address, fqName, options = {}) => {
     const { alias, constructorArgs, libraries, isProxy = false } = options;
-    const abiName = options.abiName || fqNname.split(':').pop();
+    const abiName = options.abiName || fqName.split(':').pop();
 
     if (contracts[address]) {
       const previousName = contracts[address].alias || contracts[address].abiName;
@@ -15,15 +15,15 @@ module.exports = () => {
       console.log(`Replacing ${previousName} with ${newName} at ${address}`);
     }
 
-    contracts[address] = { address, fqNname, abiName, alias, isProxy, constructorArgs, libraries };
+    contracts[address] = { address, fqName, abiName, alias, isProxy, constructorArgs, libraries };
   };
 
   const dump = async () => {
     const deployData = [];
 
     for (const contract of Object.values(contracts)) {
-      const { abiName, fqNname, address, alias, isProxy, libraries } = contract;
-      const factory = await ethers.getContractFactory(fqNname, { libraries });
+      const { abiName, fqName, address, alias, isProxy, libraries } = contract;
+      const factory = await ethers.getContractFactory(fqName, { libraries });
       const abiJson = factory.interface.format(ethers.utils.FormatTypes.json);
       const abi = JSON.parse(abiJson);
       deployData.push({ abi, address, abiName, alias: alias || abiName, isProxy });

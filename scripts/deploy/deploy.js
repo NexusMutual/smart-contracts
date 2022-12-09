@@ -146,6 +146,24 @@ async function main() {
   const master = await deployProxy('DisposableNXMaster');
   const mr = await deployProxy('DisposableMemberRoles');
 
+  // TODO: start move this down below
+
+  console.log('Performing tenderly contract verifications');
+  const contractList = await verifier.getContractList();
+  console.log({ contractList });
+
+  const data = JSON.stringify(contractList, null, 2);
+  fs.writeFileSync('/tmp/contractList.json', data);
+
+  for (const contract of contractList) {
+    console.log('---------------------');
+    const libraries = Object.entries(contract.libraries || {}).map(([name, address]) => ({ name, address }));
+    console.log('Verifying: ', [...libraries, contract]);
+    await tenderly.verify(...libraries, contract);
+  }
+
+  // TODO: end move this down below
+
   console.log('Deploying legacy claims data and claim proofs contract');
   await deployImmutable('LegacyClaimProofs');
   const cd = await deployImmutable('LegacyClaimsData');
@@ -474,16 +492,18 @@ async function main() {
       address,
       libraries,
     }));
+
+    // TODO: modifed
     const data = JSON.stringify(contractList, null, 2);
     fs.writeFileSync('/tmp/contractList.json', data);
-    for (const i in contractList) {
-      const contracts = [contractList[i]];
-      if (contracts[0].libraries) {
-        contracts.unshift(...contracts[0].libraries);
-      }
-      await tenderly.verify(...contracts);
+
+    for (const contract of contractList) {
+      console.log('---------------------');
+      const libraries = Object.entries(contract.libraries || {}).map(([name, address]) => ({ name, address }));
+      console.log('Verifying: ', [...libraries, contract]);
+      await tenderly.verify(...libraries, contract);
     }
-    await Promise.all(contractList.map(contract => tenderly.verify(contract)));
+    // TODO: end modifed
   }
 
   if (!verifyOnTenderly && !verifyOnEtherscan) {

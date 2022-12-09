@@ -4,10 +4,10 @@ const { sleep, to } = require(`${config.paths.root}/lib/helpers`);
 module.exports = () => {
   const contracts = {};
 
-  // artifact and abiName arguments are not used for verification
-  const add = (address, artifact, options = {}) => {
+  // name and abiName arguments are not used for verification
+  const add = (address, fqNname, options = {}) => {
     const { alias, constructorArgs, libraries, isProxy = false } = options;
-    const abiName = options.abiName || artifact.split(':').pop();
+    const abiName = options.abiName || fqNname.split(':').pop();
 
     if (contracts[address]) {
       const previousName = contracts[address].alias || contracts[address].abiName;
@@ -15,21 +15,40 @@ module.exports = () => {
       console.log(`Replacing ${previousName} with ${newName} at ${address}`);
     }
 
-    contracts[address] = { address, artifact, abiName, alias, isProxy, constructorArgs, libraries };
+    contracts[address] = { address, fqNname, abiName, alias, isProxy, constructorArgs, libraries };
   };
 
   const dump = async () => {
     const deployData = [];
 
     for (const contract of Object.values(contracts)) {
-      const { abiName, artifact, address, alias, isProxy, libraries } = contract;
-      const factory = await ethers.getContractFactory(artifact, { libraries });
+      const { abiName, fqNname, address, alias, isProxy, libraries } = contract;
+      const factory = await ethers.getContractFactory(fqNname, { libraries });
       const abiJson = factory.interface.format(ethers.utils.FormatTypes.json);
       const abi = JSON.parse(abiJson);
       deployData.push({ abi, address, abiName, alias: alias || abiName, isProxy });
     }
 
     return deployData;
+  };
+
+  const getContractList = async () => {
+    const contractList = [];
+    const sourcePaths = await run('compile:solidity:get-source-paths');
+    const sourceNames = await run('compile:solidity:get-source-names', { sourcePaths });
+
+    for (const contract of Object.values(contracts)) {
+      const { address, fqName } = contract;
+      const shortName = fqName.split(':').pop();
+
+      const sourcePath = fqName.includes(':')
+        ? fqName.split(':').shift()
+        : sourceNames.find(filepath => filepath.split('/').pop().split('.', 2).shift() === fqName);
+
+      contractList.push({ address, name: shortName, sourcePath });
+    }
+
+    return contractList;
   };
 
   const submit = async () => {
@@ -74,5 +93,5 @@ module.exports = () => {
     }
   };
 
-  return { add, dump, submit, contracts: () => contracts };
+  return { add, dump, submit, contracts: () => contracts, getContractList };
 };

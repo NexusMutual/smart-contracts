@@ -470,11 +470,20 @@ async function main() {
     console.log('Performing tenderly contract verifications');
     const contracts = Object.values(verifier.contracts());
     const contractList = contracts.map(({ name, address, libraries }) => ({
-      name: name.split(':').pop(),
+      name,
       address,
       libraries,
     }));
-    await tenderly.verify(...contractList);
+    const data = JSON.stringify(contractList, null, 2);
+    fs.writeFileSync('/tmp/contractList.json', data);
+    for (const i in contractList) {
+      const contracts = [contractList[i]];
+      if (contracts[0].libraries) {
+        contracts.unshift(...contracts[0].libraries);
+      }
+      await tenderly.verify(...contracts);
+    }
+    await Promise.all(contractList.map(contract => tenderly.verify(contract)));
   }
 
   if (!verifyOnTenderly && !verifyOnEtherscan) {

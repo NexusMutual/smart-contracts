@@ -76,7 +76,7 @@
     "test-integration": "hardhat test test/integration/index.js",
     "test-unit": "hardhat test test/unit/index.js",
     "test-fuzzing": "hardhat test test/fuzzing/index.js",
-    "deploy": "hardhat run scripts/deploy.js",
+    "deploy": "hardhat run scripts/deploy/deploy.js",
     "deploy-local": "hardhat run scripts/deploy.js --network localhost",
     "test-fork": "TEST_ENV_FORK=http://localhost:8545 hardhat test test/fork/index.js",
     "typechain": "hardhat typechain",

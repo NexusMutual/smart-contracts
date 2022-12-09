@@ -68,9 +68,10 @@ function calculateAmountOnSurge(coverAmount, initialCapacityUsed, totalCapacity,
   initialCapacityUsed = BigNumber.from(initialCapacityUsed);
   totalCapacity = BigNumber.from(totalCapacity);
   const finalCapacityUsed = initialCapacityUsed.add(coverAmount);
-  const surgeStartPoint = totalCapacity.mul(config.SURGE_THRESHOLD_RATIO) / config.SURGE_THRESHOLD_DENOMINATOR;
+  const surgeStartPoint = totalCapacity.mul(config.SURGE_THRESHOLD_RATIO).div(config.SURGE_THRESHOLD_DENOMINATOR);
   const amountOnSurge = finalCapacityUsed.sub(surgeStartPoint);
-  return amountOnSurge;
+
+  return Math.max(amountOnSurge, 0);
 }
 
 // This function should calculate the amount on surge skipped

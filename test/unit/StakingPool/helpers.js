@@ -31,7 +31,7 @@ const setTime = async timestamp => {
 
 function calculateBasePrice(timestamp, product, priceChangePerDay) {
   const timeSinceLastUpdate = BigNumber.from(timestamp).sub(product.nextPriceUpdateTime);
-  const priceDrop = timeSinceLastUpdate.mul(priceChangePerDay).div(daysToSeconds('1'));
+  const priceDrop = timeSinceLastUpdate.mul(priceChangePerDay).div(daysToSeconds(1));
   const basePrice = product.nextPrice.lt(product.targetPrice.add(priceDrop))
     ? product.targetPrice
     : product.nextPrice.sub(priceDrop);
@@ -46,7 +46,7 @@ function calculateSurgePremium(amountOnSurge, totalCapacity, surgePriceRatio, al
 
 function calculateSurgePremiums(coverAmount, initialCapacityUsed, totalCapacity, config) {
   const amountOnSurge = calculateAmountOnSurge(coverAmount, initialCapacityUsed, totalCapacity, config);
-  const surgePremium = calculateSurgePremium(
+  const surgePremiumPerYear = calculateSurgePremium(
     amountOnSurge,
     totalCapacity,
     config.SURGE_PRICE_RATIO,
@@ -59,7 +59,7 @@ function calculateSurgePremiums(coverAmount, initialCapacityUsed, totalCapacity,
     config.SURGE_PRICE_RATIO,
     config.ALLOCATION_UNITS_PER_NXM,
   );
-  return { surgePremium, surgePremiumSkipped };
+  return { surgePremiumPerYear, surgePremiumSkipped };
 }
 
 // config is from StakingPool/unit/setup.js
@@ -113,6 +113,22 @@ function divCeil(a, b) {
     result = result.add(1);
   }
   return result;
+}
+
+function calculateFixedPricePremium(
+  coverAmount,
+  coverPeriod,
+  fixedPrice,
+  nxmPerAllocationUnit,
+  targetPriceDenominator,
+) {
+  const premiumPerYear = BigNumber.from(coverAmount)
+    .mul(nxmPerAllocationUnit)
+    .mul(fixedPrice)
+    .div(targetPriceDenominator);
+  // premiumPerPeriod in BigNumber
+  const premium = premiumPerYear.mul(coverPeriod).div(daysToSeconds(365));
+  return premium;
 }
 
 function interpolatePrice(lastPriceRatio, targetPriceRatio, lastPriceUpdate, currentTimestamp) {
@@ -272,6 +288,7 @@ module.exports = {
   calculatePriceBump,
   calculateAmountOnSurge,
   calculateAmountOnSurgeSkipped,
+  calculateFixedPricePremium,
   divCeil,
   roundUpToNearestAllocationUnit,
   getTranches,

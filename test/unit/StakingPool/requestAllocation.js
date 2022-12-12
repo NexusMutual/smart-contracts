@@ -275,7 +275,7 @@ describe('requestAllocation', function () {
     // calculate premiums
     const basePrice = calculateBasePrice(timestamp, product, PRICE_CHANGE_PER_DAY);
     const basePremium = amount.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR);
-    const { surgePremium, surgePremiumSkipped } = calculateSurgePremiums(
+    const { surgePremiumPerYear, surgePremiumSkipped } = calculateSurgePremiums(
       amount,
       0 /* activeAllocations */,
       totalCapacity,
@@ -290,7 +290,7 @@ describe('requestAllocation', function () {
       product.targetPrice, // targetPrice
       timestamp, // current block timestamp
     );
-    const expectedPremium = basePremium.add(surgePremium).div(periodsInYear);
+    const expectedPremium = basePremium.add(surgePremiumPerYear).div(periodsInYear);
     expect(surgePremiumSkipped).to.be.equal(0);
     expect(calculatedPremium.premium).to.be.equal(expectedPremium);
     await cover.connect(coverBuyer).allocateCapacity(buyCoverParams, coverId, stakingPool.address);
@@ -435,7 +435,7 @@ describe('requestAllocation', function () {
       const { timestamp } = await ethers.provider.getBlock('latest');
       const basePrice = calculateBasePrice(timestamp, product, PRICE_CHANGE_PER_DAY);
       const basePremium = amount.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR);
-      const { surgePremium, surgePremiumSkipped } = calculateSurgePremiums(
+      const { surgePremiumPerYear, surgePremiumSkipped } = calculateSurgePremiums(
         amount,
         activeAllocations,
         totalCapacity,
@@ -443,9 +443,9 @@ describe('requestAllocation', function () {
       );
       // buy cover
       await cover.allocateCapacity(buyCoverParams, coverId, stakingPool.address);
-      const expectedPremium = basePremium.add(surgePremium).sub(surgePremiumSkipped).div(periodsInYear);
+      const expectedPremium = basePremium.add(surgePremiumPerYear).sub(surgePremiumSkipped).div(periodsInYear);
       // surge premium shouldn't exceed 20%
-      expect(surgePremium).to.be.lt(amount.mul(20).div(100));
+      expect(surgePremiumPerYear).to.be.lt(amount.mul(20).div(100));
       expect(basePrice).to.be.equal(390);
       expect(await cover.lastPremium()).to.be.equal(expectedPremium);
     }
@@ -474,7 +474,7 @@ describe('requestAllocation', function () {
 
       // calculate premiums
       const basePremium = amount.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR);
-      const { surgePremium, surgePremiumSkipped } = calculateSurgePremiums(
+      const { surgePremiumPerYear, surgePremiumSkipped } = calculateSurgePremiums(
         amount,
         activeAllocations,
         totalCapacity,
@@ -484,9 +484,9 @@ describe('requestAllocation', function () {
       // buy cover
       await cover.allocateCapacity(buyCoverParams, coverId, stakingPool.address);
 
-      const expectedPremium = basePremium.add(surgePremium).sub(surgePremiumSkipped).div(periodsInYear);
+      const expectedPremium = basePremium.add(surgePremiumPerYear).sub(surgePremiumSkipped).div(periodsInYear);
       // surge premium shouldn't exceed 20%
-      expect(surgePremium).to.be.lt(amount.mul(20).div(100));
+      expect(surgePremiumPerYear).to.be.lt(amount.mul(20).div(100));
       expect(await cover.lastPremium()).to.be.equal(expectedPremium);
       expect(await cover.lastPremium()).to.be.equal(premiumPerYear.div(periodsInYear));
     }

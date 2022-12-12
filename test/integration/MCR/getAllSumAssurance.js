@@ -65,7 +65,9 @@ describe.skip('getAllSumAssurance', function () {
 
     await buyCoverWithDai({ ...this.contracts, cover, coverHolder: member });
     const totalAssurance = await mcr.getAllSumAssurance();
-    const expectedTotalAssurance = parseEther(cover.amount.toString()).mul(daiToEthRate).div(BigNumber.from((1e18).toString()));
+    const expectedTotalAssurance = parseEther(cover.amount.toString())
+      .mul(daiToEthRate)
+      .div(BigNumber.from((1e18).toString()));
     assert.equal(totalAssurance.toString(), expectedTotalAssurance.toString());
   });
 

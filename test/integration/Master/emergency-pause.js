@@ -1,7 +1,5 @@
 const { ethers } = require('hardhat');
-const { assert,
-  expect
-} = require('chai');
+const { assert, expect } = require('chai');
 const { ProposalCategory } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 const { submitProposal } = require('../utils').governance;
@@ -14,7 +12,7 @@ const { acceptClaim } = require('../utils/voteClaim');
 
 const priceDenominator = '10000';
 
-describe('emergency pause', function () {
+describe.only('emergency pause', function () {
   beforeEach(async function () {
     const { tk } = this.contracts;
     const [member1, member2, member3] = this.accounts.members;
@@ -69,10 +67,7 @@ describe('emergency pause', function () {
     const contractCodes = [mcrCode, tcCode];
     const newAddresses = [newMCR.address, newTokenControllerImplementation.address];
 
-    const upgradeContractsData = defaultAbiCoder.encode(
-      ['bytes2[]', 'address[]'],
-      [contractCodes, newAddresses],
-    );
+    const upgradeContractsData = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, newAddresses]);
 
     await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
 
@@ -120,31 +115,32 @@ describe('emergency pause', function () {
     const productId = 0;
     const coverAsset = 0; // ETH
     const period = 3600 * 24 * 30; // 30 days
-    const gracePeriod = 3600 * 24 * 30;
     const amount = parseEther('1');
     const expectedPremium = amount.div(10);
 
     await master.connect(emergencyAdmin).setEmergencyPause(true);
 
-    await expect(cover.connect(member).buyCover(
-      {
-        owner: member.address,
-        coverId: MaxUint256,
-        productId,
-        coverAsset,
-        amount,
-        period,
-        maxPremiumInAsset: expectedPremium,
-        paymentAsset: coverAsset,
-        commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
-        ipfsData: '',
-      },
-      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
-      {
-        value: expectedPremium,
-      },
-    )).to.be.revertedWith('System is paused');
+    await expect(
+      cover.connect(member).buyCover(
+        {
+          owner: member.address,
+          coverId: MaxUint256,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: expectedPremium,
+          paymentAsset: coverAsset,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+        {
+          value: expectedPremium,
+        },
+      ),
+    ).to.be.revertedWith('System is paused');
   });
 
   it('stops claim payouts on redeemPayout', async function () {
@@ -259,8 +255,8 @@ describe('emergency pause', function () {
 
     await master.connect(emergencyAdmin).setEmergencyPause(true);
 
-    await expect(
-      as.connect(staker1).castVotes([0], [true], ['Assessment data hash'], 0)
-    ).to.be.revertedWith('System is paused');
+    await expect(as.connect(staker1).castVotes([0], [true], ['Assessment data hash'], 0)).to.be.revertedWith(
+      'System is paused',
+    );
   });
 });

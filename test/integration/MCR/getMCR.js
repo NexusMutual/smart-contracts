@@ -1,13 +1,11 @@
 const { ethers } = require('hardhat');
-const { assert } = require('chai');
-const {
-  setNextBlockTime,
-  mineNextBlock
-} = require('../../utils/evm');
+const { assert, expect } = require('chai');
+const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
 const { BigNumber } = require('ethers');
 const { parseEther } = ethers.utils;
 const { buyCover } = require('../utils').buyCover;
 const { hex } = require('../utils').helpers;
+const { daysToSeconds } = require('../../../lib/helpers');
 
 const increaseTime = async interval => {
   const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
@@ -39,8 +37,9 @@ describe('getMCR', function () {
   });
 
   // [todo]: enable with issue https://github.com/NexusMutual/smart-contracts/issues/387
-  it.skip('increases mcr by 0.4% in 2 hours and then decreases by 0.4% in 2 hours it after cover expiry', async function () {
+  it.skip('increases mcr by 0.4% in 2 hours and decreases by 0.4% in 2 hours it after cover expiry', async function () {
     const { mcr, qt: quotation } = this.contracts;
+    const [coverHolder] = this.accounts;
 
     const coverTemplate = {
       amount: 1, // 1 eth
@@ -68,33 +67,33 @@ describe('getMCR', function () {
     await mcr.updateMCR();
 
     {
-      const passedTime = time.duration.hours(2);
+      const passedTime = 2 * 3600; // 2 hours
       await increaseTime(passedTime);
 
       const storedMCR = await mcr.mcr();
       const latestMCR = await mcr.getMCR();
 
       const maxMCRIncrement = await mcr.maxMCRIncrement();
-      const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(time.duration.days(1));
+      const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(daysToSeconds(1));
 
       const expectedMCR = storedMCR.mul(expectedPercentageIncrease).divn(10000).add(storedMCR);
       assert.equal(latestMCR.toString(), expectedMCR.toString());
     }
 
-    await increaseTime(time.duration.days(cover.period));
+    await increaseTime(daysToSeconds(cover.period));
 
     await quotation.expireCover(expectedCoverId);
     await mcr.updateMCR();
 
     {
-      const passedTime = time.duration.hours(2);
+      const passedTime = 2 * 3600;
       await increaseTime(passedTime);
 
       const storedMCR = await mcr.mcr();
       const latestMCR = await mcr.getMCR();
 
       const maxMCRIncrement = await mcr.maxMCRIncrement();
-      const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(time.duration.days(1));
+      const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(daysToSeconds(1));
 
       const expectedMCR = storedMCR.sub(storedMCR.mul(expectedPercentageIncrease).divn(10000));
       assert.equal(latestMCR.toString(), expectedMCR.toString());

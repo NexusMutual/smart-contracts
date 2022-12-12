@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { assert } = require('chai');
+const { assert, expect } = require('chai');
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 const { MaxUint256 } = ethers.constants;
@@ -11,12 +11,8 @@ const { enrollClaimAssessor } = require('../utils/enroll');
 const { buyCover } = require('../utils').buyCover;
 const { addIncident } = require('../utils/incidents');
 const { voteClaim } = require('../utils/voteClaim');
-const {
-  setNextBlockTime,
-  mineNextBlock
-} = require('../../utils/evm');
+const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
 const { stake } = require('../utils/staking');
-
 
 const ERC20MintableDetailed = artifacts.require('ERC20MintableDetailed');
 
@@ -40,9 +36,7 @@ const increaseTime = async interval => {
   await mineNextBlock();
 };
 
-
 describe('updateMCR', function () {
-
   beforeEach(async function () {
     const { tk } = this.contracts;
 
@@ -55,7 +49,7 @@ describe('updateMCR', function () {
 
   it('buyNXM does not trigger updateMCR if minUpdateTime has not passed', async function () {
     const { p1: pool, mcr } = this.contracts;
-    const [member,] = this.accounts.members;
+    const [member] = this.accounts.members;
 
     const buyValue = parseEther('1000');
 
@@ -68,7 +62,7 @@ describe('updateMCR', function () {
 
   it('sellNXM does not trigger updateMCR if minUpdateTime has not passed', async function () {
     const { p1: pool, mcr } = this.contracts;
-    const [member,] = this.accounts.members;
+    const [member] = this.accounts.members;
 
     const lastUpdateTimeBefore = await mcr.lastUpdateTime();
     await pool.connect(member).sellNXM('0', '0');
@@ -79,7 +73,7 @@ describe('updateMCR', function () {
 
   it('buyNXM triggers updateMCR if minUpdateTime passes, increases mcrFloor, decreases desiredMCR', async function () {
     const { p1: pool, mcr } = this.contracts;
-    const [member,] = this.accounts.members;
+    const [member] = this.accounts.members;
 
     const buyValue = parseEther('1000');
 
@@ -111,7 +105,7 @@ describe('updateMCR', function () {
 
   it('sellNXM triggers updateMCR if minUpdateTime passes, increases mcrFloor, decreases desiredMCR', async function () {
     const { p1: pool, mcr } = this.contracts;
-    const [member,] = this.accounts.members;
+    const [member] = this.accounts.members;
 
     const lastUpdateTimeBefore = await mcr.lastUpdateTime();
 
@@ -192,23 +186,22 @@ describe('updateMCR', function () {
 
     const expectedPremium = parseEther('1');
     await cover.connect(coverHolder).buyCover(
-        {
-          coverId: MaxUint256,
-          owner: coverHolder.address,
-          productId,
-          coverAsset: 0,
-          amount,
-          period,
-          maxPremiumInAsset: expectedPremium,
-          paymentAsset: coverAsset,
-          commissionRatio: parseEther('0'),
-          commissionDestination: ethers.constants.AddressZero,
-          ipfsData: '',
-        },
-        [{ poolId: '0', coverAmountInAsset: amount }],
-        { value: expectedPremium },
+      {
+        coverId: MaxUint256,
+        owner: coverHolder.address,
+        productId,
+        coverAsset: 0,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: ethers.constants.AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: amount }],
+      { value: expectedPremium },
     );
-
 
     const lastUpdateTimeBefore = await mcr.lastUpdateTime();
     await increaseTime(await mcr.minUpdateTime());
@@ -235,23 +228,24 @@ describe('updateMCR', function () {
   // eslint-disable-next-line max-len
   it.skip('increases desiredMCR if totalSumAssured is high enough and subsequently decreases to mcrFloor it when totalSumAssured falls to 0', async function () {
     const { mcr, qt: quotation } = this.contracts;
+    const [coverHolder] = this.accounts;
 
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
     const coverAmount = gearingFactor
-      .mul(currentMCR.add(ether('300')))
-      .div(ether('1'))
+      .mul(currentMCR.add(parseEther('300')))
+      .div(parseEther('1'))
       .div(ratioScale);
     const cover = { ...coverTemplate, amount: coverAmount };
 
     await buyCover({ ...this.contracts, cover, coverHolder });
     const expectedCoverId = 1;
 
-    await time.increase(await mcr.minUpdateTime());
+    await increaseTime(await mcr.minUpdateTime());
 
     await mcr.updateMCR();
 
-    await time.increase(time.duration.days(cover.period));
+    await increaseTime(daysToSeconds(cover.period));
 
     await quotation.expireCover(expectedCoverId);
 
@@ -280,23 +274,25 @@ describe('updateMCR', function () {
   it.skip('claim payout triggers updateMCR and sets desiredMCR to mcrFloor (sumAssured = 0)', async function () {
     // [todo] test with new contracts that call sendPayout
     const { mcr, cl: claims, tk: token, p1: pool } = this.contracts;
+    const owner = this.accounts.defaultSender;
+    const [coverHolder, member1] = this.accounts;
 
     const gearingFactor = await mcr.gearingFactor();
     const currentMCR = await mcr.getMCR();
     const coverAmount = gearingFactor
-      .mul(currentMCR.add(ether('300')))
-      .div(ether('1'))
+      .mul(currentMCR.add(parseEther('300')))
+      .div(parseEther('1'))
       .div(ratioScale);
 
     // fund pool to pay for cover
-    await pool.sendEther({ from: owner, value: coverAmount.mul(ether('1')) });
+    await pool.sendEther({ from: owner, value: coverAmount.mul(parseEther('1')) });
 
     const cover = { ...coverTemplate, amount: coverAmount };
     await buyCover({ ...this.contracts, cover, coverHolder });
     const expectedCoverId = 1;
     const expectedClaimId = 1;
 
-    await time.increase(await mcr.minUpdateTime());
+    await increaseTime(await mcr.minUpdateTime());
 
     await mcr.updateMCR();
 
@@ -304,7 +300,7 @@ describe('updateMCR', function () {
       from: coverHolder,
     });
 
-    const lockTokens = ether('1000000000');
+    const lockTokens = parseEther('1000000000');
     await token.transfer(member1, lockTokens, {
       from: owner,
     });
@@ -324,6 +320,8 @@ describe('updateMCR', function () {
   it.skip('incidents.redeemPayout triggers updateMCR', async function () {
     // [todo] test with new contracts that call sendPayout
     const { incidents, qd, p1, mcr } = this.contracts;
+    const owner = this.accounts.defaultSender;
+    const [coverHolder] = this.accounts;
 
     const ETH = await p1.ETH();
     const productId = '0x000000000000000000000000000000000000000e';
@@ -333,13 +331,13 @@ describe('updateMCR', function () {
     const cover = { ...coverTemplate, amount: 20, currency: hex('ETH'), contractAddress: productId };
     await buyCover({ ...this.contracts, cover, coverHolder });
 
-    const coverStartDate = await time.latest();
-    const priceBefore = ether('2.5'); // ETH per ybETH
-    const sumAssured = ether('1').muln(cover.amount);
+    const { blockTimestamp: coverStartDate } = await ethers.provider.getBlock('latest');
+    const priceBefore = parseEther('2.5'); // ETH per ybETH
+    const sumAssured = parseEther('1').muln(cover.amount);
 
     // sumAssured DAI = tokenAmount ybETH @ priceBefore
     // 500 ETH  /  2 ETH/ybETH  =  1000 ybETH
-    const tokenAmount = ether('1').mul(sumAssured).div(priceBefore);
+    const tokenAmount = parseEther('1').mul(sumAssured).div(priceBefore);
 
     const incidentDate = coverStartDate.addn(1);
     await addIncident(this.contracts, [owner], cover.contractAddress, incidentDate, priceBefore);

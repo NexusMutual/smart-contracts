@@ -12,7 +12,7 @@ const { acceptClaim } = require('../utils/voteClaim');
 
 const priceDenominator = '10000';
 
-describe.only('emergency pause', function () {
+describe('emergency pause', function () {
   beforeEach(async function () {
     const { tk } = this.contracts;
     const [member1, member2, member3] = this.accounts.members;

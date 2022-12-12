@@ -37,5 +37,5 @@ async function stake({ stakingPool, staker, productId, period, gracePeriod }) {
 
 module.exports = {
   calculateFirstTrancheId,
-  stake
-}
+  stake,
+};

@@ -1,6 +1,7 @@
 const { expectEvent, time } = require('@openzeppelin/test-helpers');
 const { hex, daysToSeconds } = require('../../lib').helpers;
 const { increaseTime } = require('./evm');
+const { expect } = require('chai');
 
 const submitProposal = async (gv, category, actionData, members) => {
   const proposalId = await gv.getProposalLength();

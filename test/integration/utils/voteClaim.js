@@ -1,13 +1,8 @@
-const { web3,
-  ethers
-} = require('hardhat');
+const { web3, ethers } = require('hardhat');
 const { time } = require('@openzeppelin/test-helpers');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { parseEther } = ethers.utils;
-const {
-  setNextBlockTime,
-  mineNextBlock
-} = require('../../utils/evm');
+const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
 const { toBN } = web3.utils;
 
 const setTime = async timestamp => {
@@ -28,7 +23,6 @@ async function voteClaim({ claimId, verdict, cl, cd, cr, voter }) {
   const voteStatusAfter = await cl.checkVoteClosing(claimId);
   assert.equal(voteStatusAfter.toString(), '-1', 'voting should be closed');
 }
-
 
 async function acceptClaim({ staker, assessmentStakingAmount, as }) {
   const { payoutCooldownInDays } = await as.config();

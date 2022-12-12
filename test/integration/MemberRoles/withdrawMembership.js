@@ -1,4 +1,5 @@
 const { enrollMember } = require('../utils/enroll');
+const { expect } = require('chai');
 const { Role } = require('../utils').constants;
 
 describe('withdrawMembership', function () {

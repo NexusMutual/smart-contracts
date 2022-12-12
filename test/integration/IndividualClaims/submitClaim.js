@@ -3,16 +3,12 @@ const { expect } = require('chai');
 const { BigNumber } = require('ethers');
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
-
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
 const { stake } = require('../utils/staking');
 const { rejectClaim, acceptClaim } = require('../utils/voteClaim');
-
 
 const priceDenominator = '10000';
 
 describe('submitClaim', function () {
-
   beforeEach(async function () {
     const { tk } = this.contracts;
 

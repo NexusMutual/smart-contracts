@@ -1,6 +1,6 @@
-const { accounts } = require('hardhat');
 const { enrollMember } = require('../utils/enroll');
 const { Role } = require('../utils').constants;
+const { expect } = require('chai');
 
 const TOTAL_ROLES = 4;
 

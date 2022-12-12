@@ -1,4 +1,5 @@
 const { ethers } = require('hardhat');
+const { expect } = require('chai');
 const { Role } = require('../utils').constants;
 
 describe('switchMembership', function () {

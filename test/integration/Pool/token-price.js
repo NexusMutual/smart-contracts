@@ -1,12 +1,9 @@
 const { ethers } = require('hardhat');
 const { parseEther, defaultAbiCoder } = ethers.utils;
 const { BigNumber } = ethers;
-const { assert } = require('chai');
+const { assert, expect } = require('chai');
 const Decimal = require('decimal.js');
-const {
-  setNextBlockTime,
-  mineNextBlock
-} = require('../../utils/evm');
+const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
 const { ProposalCategory } = require('../utils').constants;
 
 const { calculateEthForNXMRelativeError, calculateNXMForEthRelativeError, getTokenSpotPrice } =
@@ -27,10 +24,8 @@ const ratioScale = BigNumber.from(10000);
 
 describe('Token price functions', function () {
   beforeEach(async function () {
-
     const { tc, tk } = this.contracts;
-    const [, , , , member4, member5] = this.accounts.members;
-
+    const [, , , , member4] = this.accounts.members;
 
     await tk.connect(member4).approve(tc.address, ethers.constants.MaxUint256);
     await tk.transfer(member4.address, parseEther('1000'));
@@ -66,16 +61,16 @@ describe('Token price functions', function () {
     const [nonMember1] = this.accounts.nonMembers;
 
     const buyValue = parseEther('10');
-    await expect(
-      pool.connect(nonMember1).buyNXM('0', { value: buyValue })
-    ).to.be.revertedWith( 'Caller is not a member');
+    await expect(pool.connect(nonMember1).buyNXM('0', { value: buyValue })).to.be.revertedWith(
+      'Caller is not a member',
+    );
   });
 
   it('sellNXM reverts for non-member', async function () {
     const { p1: pool } = this.contracts;
     const [nonMember1] = this.accounts.nonMembers;
 
-    await expect(pool.connect(nonMember1).sellNXM('1', '0')).to.be.revertedWith( 'Caller is not a member');
+    await expect(pool.connect(nonMember1).sellNXM('1', '0')).to.be.revertedWith('Caller is not a member');
   });
 
   it('sellNXM reverts if member does not have enough NXM balance', async function () {
@@ -84,9 +79,9 @@ describe('Token price functions', function () {
     const [member1] = this.accounts.members;
     const memberBalance = await token.balanceOf(member1.address);
 
-    await expect(
-      pool.connect(member1).sellNXM(memberBalance.add(1), '0')
-    ).to.be.revertedWith( 'Pool: Not enough balance');
+    await expect(pool.connect(member1).sellNXM(memberBalance.add(1), '0')).to.be.revertedWith(
+      'Pool: Not enough balance',
+    );
   });
 
   it('buyNXM mints tokens for member in exchange of ETH', async function () {
@@ -190,6 +185,7 @@ describe('Token price functions', function () {
   // [todo]: enable with issue https://github.com/NexusMutual/smart-contracts/issues/387
   it.skip('buyNXM token price reflects the latest higher MCR value (higher MCReth -> lower price)', async function () {
     const { p1: pool, mcr } = this.contracts;
+    const [member1, coverHolder] = this.accounts.members;
 
     const ETH = await pool.ETH();
     const buyValue = parseEther('1000');
@@ -226,7 +222,7 @@ describe('Token price functions', function () {
     // perform a buy with a negligible amount of ETH
     await pool.connect(member1).buyNXM('0', { value: '1' });
     // let time pass so that mcr increases towards desired MCR
-    await increaseTime(time.duration.hours(6));
+    await increaseTime(6 * 3600); // 6 hours
 
     const spotTokenPricePostMCRPosting = await pool.getTokenPrice(ETH);
     const expectedNXMOutPostMCRPosting = await pool.getNXMForEth(buyValue);
@@ -274,10 +270,7 @@ describe('Token price functions', function () {
     const contractCodes = [mcrCode];
     const newAddresses = [newMCR.address];
 
-    const upgradeContractsData = defaultAbiCoder.encode(
-      ['bytes2[]', 'address[]'],
-      [contractCodes, newAddresses],
-    );
+    const upgradeContractsData = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, newAddresses]);
 
     const proposalId = await gv.getProposalLength();
     await gv.createProposal('', '', '', '0');
@@ -286,8 +279,6 @@ describe('Token price functions', function () {
 
     await gv.connect(member).submitVote(proposalId, 1, []);
 
-    await expect(
-      pool.connect(member).sellNXM('1', '0')
-    ).to.be.revertedWith( 'Pool: NXM tokens are locked for voting');
+    await expect(pool.connect(member).sellNXM('1', '0')).to.be.revertedWith('Pool: NXM tokens are locked for voting');
   });
 });

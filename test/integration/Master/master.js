@@ -203,7 +203,7 @@ describe('master', function () {
     // store tokens in ClaimsReward
     await token.connect(owner).transfer(lcr.address, parseEther('10'));
 
-    // const claimsRewardNXMBalanceBefore = await token.balanceOf(lcr.address);
+    const claimsRewardNXMBalanceBefore = await token.balanceOf(lcr.address);
 
     await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
 
@@ -217,9 +217,8 @@ describe('master', function () {
     expect(poolEthBalanceBefore).to.be.equal(poolEthBalanceAfter);
     expect(poolDaiBalanceBefore).to.be.equal(poolDaiBalanceAfter);
 
-    // TODO: fix balances
-    // const claimsRewardNXMBalanceAfter = await token.balanceOf(await master.getLatestAddress(hex('CR')));
-    // expect(claimsRewardNXMBalanceAfter).to.be.equal(claimsRewardNXMBalanceBefore);
+    const claimsRewardNXMBalanceAfter = await token.balanceOf(await master.getLatestAddress(hex('CR')));
+    expect(claimsRewardNXMBalanceAfter).to.be.equal(claimsRewardNXMBalanceBefore);
   });
 
   it('upgrades Governance, TokenController and MemberRoles 2 times in a row', async function () {

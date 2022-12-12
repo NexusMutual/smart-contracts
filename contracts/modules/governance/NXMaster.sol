@@ -7,6 +7,8 @@ import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IPool.sol";
 import "./external/OwnedUpgradeabilityProxy.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/ILegacyClaimsReward.sol";
 
 contract NXMaster is INXMMaster {
 
@@ -142,11 +144,16 @@ contract NXMaster is INXMMaster {
   }
 
   function replaceContract(bytes2 code, address payable newAddress) internal {
-    if (code == "P1") {
+    if (code == "CR") {
+      ITokenController tc = ITokenController(getLatestAddress("TC"));
+      tc.addToWhitelist(newAddress);
+      tc.removeFromWhitelist(contractAddresses["CR"]);
+      ILegacyClaimsReward cr = ILegacyClaimsReward(contractAddresses["CR"]);
+      cr.upgrade(newAddress);
+    } else if (code == "P1") {
       IPool p1 = IPool(contractAddresses["P1"]);
       p1.upgradeCapitalPool(newAddress);
     }
-
     address payable oldAddress = contractAddresses[code];
     contractsActive[oldAddress] = false;
     contractAddresses[code] = newAddress;

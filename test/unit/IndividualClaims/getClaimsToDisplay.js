@@ -22,6 +22,7 @@ describe('getClaimsToDisplay', function () {
     const expectedProductIds = ['1', '0', '1', '0', '1'];
     const expectedClaimIds = ['0', '1', '2', '3', '4'];
     const expectedCoverIds = ['3', '1', '2', '0', '4'];
+    const expectedAssessmentIds = ['0', '1', '2', '3', '4'];
     const expectedAssetSymbols = ['MOCK', 'MOCK', 'ETH', 'ETH', 'MOCK']; // MOCk is the symbol for the DAI mock
     const expectedAssetIndexes = ['1', '1', '0', '0', '1'];
     const expectedAmounts = [parseEther('10'), parseEther('20'), parseEther('30'), parseEther('40'), parseEther('40')];
@@ -170,6 +171,7 @@ describe('getClaimsToDisplay', function () {
     const actualClaimIds = res.map(x => x.id);
     const actualProductIds = res.map(x => x.productId);
     const actualCoverIds = res.map(x => x.coverId);
+    const actualAssessmentIds = res.map(x => x.assessmentId);
     const actualAssetSymbols = res.map(x => x.assetSymbol);
     const actualAssetIndexes = res.map(x => x.assetIndex);
     const actualAmounts = res.map(x => x.amount);
@@ -182,6 +184,7 @@ describe('getClaimsToDisplay', function () {
       expect(actualClaimIds[i]).to.be.equal(expectedClaimIds[i]);
       expect(actualProductIds[i]).to.be.equal(expectedProductIds[i]);
       expect(actualCoverIds[i]).to.be.equal(expectedCoverIds[i]);
+      expect(actualAssessmentIds[i]).to.be.equal(expectedAssessmentIds[i]);
       expect(actualAssetSymbols[i]).to.be.equal(expectedAssetSymbols[i]);
       expect(actualAssetIndexes[i]).to.be.equal(expectedAssetIndexes[i]);
       expect(actualAmounts[i]).to.be.equal(expectedAmounts[i]);

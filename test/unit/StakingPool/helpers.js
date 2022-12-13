@@ -66,7 +66,7 @@ function calculateAmountOnSurge(coverAmount, initialCapacityUsed, totalCapacity,
   initialCapacityUsed = BigNumber.from(initialCapacityUsed);
   totalCapacity = BigNumber.from(totalCapacity);
   const finalCapacityUsed = initialCapacityUsed.add(coverAmount);
-  if (finalCapacityUsed > totalCapacity) {
+  if (finalCapacityUsed.gt(totalCapacity)) {
     throw Error('calculateAmountOnSurge: finalCapacityUsed > totalCapacity');
   }
   const surgeStartPoint = totalCapacity.mul(config.SURGE_THRESHOLD_RATIO).div(config.SURGE_THRESHOLD_DENOMINATOR);
@@ -82,10 +82,9 @@ function calculateAmountOnSurgeSkipped(coverAmount, initialCapacityUsed, totalCa
   const surgeStartPoint = totalCapacity.mul(config.SURGE_THRESHOLD_RATIO).div(config.SURGE_THRESHOLD_DENOMINATOR);
 
   const finalCapacityUsed = initialCapacityUsed.add(coverAmount);
-  if (finalCapacityUsed > totalCapacity) {
+  if (finalCapacityUsed.gt(totalCapacity)) {
     throw Error('calculateAmountOnSurge: finalCapacityUsed > totalCapacity');
   }
-
 
   return Math.max(initialCapacityUsed.sub(surgeStartPoint), 0);
 }

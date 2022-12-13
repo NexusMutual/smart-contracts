@@ -148,7 +148,22 @@ describe('join', function () {
   });
 
   it('reverts when the system is paused', async function () {
-    // [todo]
+    const { memberRoles, master } = this.contracts;
+
+    await master.pause();
+    const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
+
+    const membershipApprovalData0 = await signMembershipApproval({
+      nonce: 0,
+      address: nonMembers[0].address,
+      kycAuthSigner,
+    });
+
+    await expect(
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
+        value: JOINING_FEE,
+      }),
+    ).to.be.revertedWith('MemberRoles: Emergency pause applied');
   });
 
   it('reverts when the value sent is different than the joining fee', async function () {

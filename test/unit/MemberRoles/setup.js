@@ -31,7 +31,7 @@ async function setup() {
   await coverNFT.deployed();
 
   const Cover = await ethers.getContractFactory('MRMockCover');
-  const cover = await Cover.deploy(coverNFT.address);
+  const cover = await Cover.deploy(coverNFT.address, memberRoles.address);
   await cover.deployed();
 
   const Governance = await ethers.getContractFactory('MRMockGovernance');
@@ -94,13 +94,19 @@ async function setup() {
       'Represents all users of Mutual.',
       '0x0000000000000000000000000000000000000000',
     );
-
+  // Setting Members
   for (const member of accounts.members) {
     await master.enrollMember(member.address, 1);
     await memberRoles.connect(accounts.governanceContracts[0]).updateRole(member.address, 2, true);
     await nxm.mint(member.address, parseEther('10000'));
     await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
   }
+  // Setting AB Member
+  const [abMember] = accounts.advisoryBoardMembers;
+  await master.enrollMember(abMember.address, 2);
+  await memberRoles.connect(accounts.governanceContracts[0]).updateRole(abMember.address, 1, true);
+  await master.enrollMember(abMember.address, 1);
+  await memberRoles.connect(accounts.governanceContracts[0]).updateRole(abMember.address, 2, true);
 
   this.accounts = accounts;
   this.contracts = {

@@ -13,7 +13,13 @@ describe('MemberRoles unit tests', function () {
   });
 
   require('./join');
+  require('./updateRole');
   require('./switchMembership');
+  require('./switchMembershipOf');
   require('./withdrawMembership');
   require('./switchMembershipAndAssets');
+  require('./swapABMember');
+  require('./changeAuthorized');
+  require('./stateManagement');
+  require('./changeMaxABCount');
 });

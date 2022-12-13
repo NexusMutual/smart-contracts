@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import "../../interfaces/IStakingPool.sol";
+import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/ICoverNFT.sol";
 
 pragma solidity ^0.8.16;
 
 contract MRMockCover {
   ICoverNFT immutable public coverNFT;
+  IMemberRoles immutable public memberRoles;
   address[] public stakingPools;
 
-  constructor(address coverNFTAddress) {
+  constructor(address coverNFTAddress, address memberRolesAddress) {
     coverNFT = ICoverNFT(coverNFTAddress);
+    memberRoles = IMemberRoles(memberRolesAddress);
   }
 
   function transferCovers(address from, address to, uint256[] calldata coverIds) external {
@@ -31,6 +34,9 @@ contract MRMockCover {
 
   function createMockCover(address to, uint tokenId) public {
     coverNFT.mint(to, tokenId);
+  }
+  function switchMembershipOf(address member, address newAddress) external {
+    memberRoles.switchMembershipOf(member, newAddress);
   }
 
   function stakingPoolTransferTokens(uint stakingPoolId, address from, address to, uint[] calldata tokenIds) external {

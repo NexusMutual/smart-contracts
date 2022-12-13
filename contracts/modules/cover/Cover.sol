@@ -208,7 +208,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     require(params.amount > 0, "Cover: amount = 0");
 
     uint segmentId;
-    uint previousRewardsRatio;
 
     AllocationRequest memory allocationRequest;
 
@@ -265,8 +264,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       allocationRequest.previousStart = lastSegment.start;
       allocationRequest.previousExpiration = lastSegment.start + lastSegment.period;
       allocationRequest.previousRewardsRatio = lastSegment.globalRewardsRatio;
-
-      previousRewardsRatio = lastSegment.globalRewardsRatio;
 
       // mark previous cover as ending now
       _coverSegments[coverId][segmentId - 1].period = (block.timestamp - lastSegment.start).toUint32();

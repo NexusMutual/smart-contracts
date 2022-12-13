@@ -65,6 +65,8 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
+  address immutable public previousPool;
+
   /* events */
   event Payout(address indexed to, address indexed assetAddress, uint amount);
   event NXMSold (address indexed member, uint nxmIn, uint ethOut);
@@ -81,12 +83,12 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     address _master,
     address _priceOracle,
     address _swapOperator,
-    address DAIAddress,
-    address stETHAddress
+    address _previousPool
   ) {
     master = INXMMaster(_master);
     priceFeedOracle = IPriceFeedOracle(_priceOracle);
     swapOperator = _swapOperator;
+    previousPool = _previousPool;
 
     // [todo] After this contract is deployed it might be worth modifying upgradeCapitalPool to
     // copy the assets on future upgrades instead of having them hardcoded in the constructor.
@@ -95,26 +97,26 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     // The order of coverAssets should never change between updates. Do not remove the following
     // lines!
     coverAssets.push(Asset(ETH, 18));
-    coverAssets.push(Asset(DAIAddress, 18));
-
-    // Add investment assets
-    investmentAssets.push(Asset(stETHAddress, 18));
-
-    // Set DAI swap details
-    swapDetails[DAIAddress] = SwapDetails(
-      1000000 ether, // minAmount (1 mil)
-      2000000 ether, // maxAmount (2 mil)
-      0,             // lastSwapTime
-      250            // maxSlippageRatio (0.25%)
-    );
-
-    // Set stETH swap details
-    swapDetails[stETHAddress] = SwapDetails(
-      24360 ether,   // minAmount (~24k)
-      32500 ether,   // maxAmount (~32k)
-      1633425218,    // lastSwapTime
-      0              // maxSlippageRatio (0%)
-    );
+//    coverAssets.push(Asset(DAIAddress, 18));
+//
+//    // Add investment assets
+//    investmentAssets.push(Asset(stETHAddress, 18));
+//
+//    // Set DAI swap details
+//    swapDetails[DAIAddress] = SwapDetails(
+//      1000000 ether, // minAmount (1 mil)
+//      2000000 ether, // maxAmount (2 mil)
+//      0,             // lastSwapTime
+//      250            // maxSlippageRatio (0.25%)
+//    );
+//
+//    // Set stETH swap details
+//    swapDetails[stETHAddress] = SwapDetails(
+//      24360 ether,   // minAmount (~24k)
+//      32500 ether,   // maxAmount (~32k)
+//      1633425218,    // lastSwapTime
+//      0              // maxSlippageRatio (0%)
+//    );
   }
 
   fallback() external payable {}
@@ -202,6 +204,24 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     return swapDetails[assetAddress];
   }
 
+  function receiveAssets(
+    Asset[] calldata assets,
+    SwapDetails[] calldata swapDetails,
+    bool[] calldata isCoverAsset
+  ) external  {
+    require(msg.sender == previousPool, "Pool: Not previousPool");
+
+    uint assetsLength = assets.length;
+    require(assetsLength == swapDetails.length, "Pool: provided arrays are not same length");
+    require(assetsLength == isCoverAsset.length, "Pool: provided arrays are not same length");
+
+    for (uint i = 0; i < assetsLength; i++) {
+      Asset calldata asset = assets[i];
+      SwapDetails calldata details = swapDetails[i];
+      _addAsset(asset.assetAddress, asset.decimals, details.minAmount, details.maxAmount, details.maxSlippageRatio, isCoverAsset[i]);
+    }
+  }
+
   function addAsset(
     address assetAddress,
     uint8 decimals,
@@ -210,6 +230,17 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     uint16 _maxSlippageRatio,
     bool isCoverAsset
   ) external onlyGovernance {
+    _addAsset(assetAddress, decimals, _min, _max, _maxSlippageRatio, isCoverAsset);
+  }
+
+  function _addAsset(
+    address assetAddress,
+    uint8 decimals,
+    uint104 _min,
+    uint104 _max,
+    uint16 _maxSlippageRatio,
+    bool isCoverAsset
+  ) internal {
     require(assetAddress != address(0), "Pool: Asset is zero address");
     require(_max >= _min, "Pool: max < min");
     require(_maxSlippageRatio <= MAX_SLIPPAGE_DENOMINATOR, "Pool: Max slippage ratio > 1");
@@ -389,16 +420,32 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     require(ok, "Pool: Transfer failed");
 
     // Transfer cover assets. Start from 1 (0 is ETH)
-    uint coverAssetsCount = coverAssets.length;
-    for (uint i = 1; i < coverAssetsCount; i++) {
+    uint coverAssetsCount = coverAssets.length - 1;  // substract 1 as ETH is skiped
+    uint investmentAssetsCount = investmentAssets.length;
+    uint totalAssetCount = coverAssetsCount + investmentAssetsCount;
+
+    SwapDetails[] memory _swapDetails = new SwapDetails[](totalAssetCount);
+    Asset[] memory _assets = new Asset[](totalAssetCount);
+    bool[] memory isCoverAsset = new bool[](totalAssetCount);
+
+    // Skip ETH
+    for (uint i = 1; i < coverAssetsCount + 1; i++) {
       _transferEntireAssetBalance(coverAssets[i].assetAddress, newPoolAddress);
+      _swapDetails[i - 1] = swapDetails[coverAssets[i].assetAddress];
+      _assets[i - 1] = coverAssets[i];
+      isCoverAsset[i - 1] = true;
     }
 
     // Transfer investment assets.
-    uint investmentAssetsCount = investmentAssets.length;
     for (uint i = 0; i < investmentAssetsCount; i++) {
       _transferEntireAssetBalance(investmentAssets[i].assetAddress, newPoolAddress);
+      _swapDetails[i + coverAssetsCount] = swapDetails[investmentAssets[i].assetAddress];
+      _assets[i + coverAssetsCount] = investmentAssets[i];
+      isCoverAsset[i + coverAssetsCount] = false;
     }
+
+    IPool(newPoolAddress).receiveAssets(_assets, _swapDetails, isCoverAsset);
+
   }
 
   /* ========== DEPENDENCIES ========== */

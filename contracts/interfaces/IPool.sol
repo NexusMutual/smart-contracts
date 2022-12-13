@@ -82,4 +82,6 @@ interface IPool {
   function deprecatedCoverAssetsBitmap() external view returns (uint32);
 
   function setSwapValue(uint value) external;
+
+  function receiveAssets(Asset[] calldata assets, SwapDetails[] calldata swapDetails, bool[] calldata isCoverAsset) external;
 }

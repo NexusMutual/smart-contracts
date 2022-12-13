@@ -342,7 +342,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         vars.refund =
           previousPoolAllocation.premiumInNXM
           * (allocationRequest.previousExpiration - block.timestamp) // remaining period
-          / allocationRequest.previousExpiration - allocationRequest.previousStart; // previous period
+          / (allocationRequest.previousExpiration - allocationRequest.previousStart); // previous period
       }
 
       // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT

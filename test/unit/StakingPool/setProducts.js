@@ -51,13 +51,6 @@ const buyCoverParamsTemplate = {
   ipfsData: 'ipfs data',
 };
 
-const depositRequestTemplate = {
-  tokenId: 0,
-  destination: AddressZero, // needs to be set
-  trancheId: 0, // needs to be set
-  amount: parseEther('100'),
-};
-
 describe('setProducts unit tests', function () {
   // Create a default deposit request to the staking pool
   const getCurrentTrancheId = async () => {
@@ -458,13 +451,8 @@ describe('setProducts unit tests', function () {
 
     // Get capacity in staking pool
     await nxm.connect(staker).approve(tokenController.address, amount);
-    const request = {
-      ...depositRequestTemplate,
-      amount,
-      destination: staker.address,
-      trancheId: (await getCurrentTrancheId()) + 2,
-    };
-    await stakingPool.connect(staker).depositTo([request]);
+    const trancheId = (await getCurrentTrancheId()) + 2;
+    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ 0, staker.address);
 
     let i = 0;
     const coverId = 1;
@@ -534,13 +522,8 @@ describe('setProducts unit tests', function () {
 
     // Get capacity in staking pool
     await nxm.connect(staker).approve(tokenController.address, amount);
-    const request = {
-      ...depositRequestTemplate,
-      amount,
-      destination: manager.address,
-      trancheId: (await getCurrentTrancheId()) + 2,
-    };
-    await stakingPool.connect(staker).depositTo([request]);
+    const trancheId = (await getCurrentTrancheId()) + 2;
+    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ 0, manager.address);
 
     const ratio = await cover.getPriceAndCapacityRatios([0]);
     const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
@@ -608,13 +591,8 @@ describe('setProducts unit tests', function () {
 
     // Get capacity in staking pool
     await nxm.connect(staker).approve(tokenController.address, amount);
-    const request = {
-      ...depositRequestTemplate,
-      amount,
-      destination: manager.address,
-      trancheId: (await getCurrentTrancheId()) + 2,
-    };
-    await stakingPool.connect(staker).depositTo([request]);
+    const trancheId = (await getCurrentTrancheId()) + 2;
+    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ 0, manager.address);
 
     // Initialize Products and CoverBuy requests
     const coverBuyParams = Array(20)

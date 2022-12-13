@@ -425,6 +425,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         require(ok, "Cover: Sending ETH to commission destination failed.");
       }
 
+      // TODO: send eth to pool
+
       return;
     }
 
@@ -511,9 +513,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       PoolAllocation memory allocation = allocations[i];
 
+      // TODO: use the global capacity ratio that we had at cover buy time
       uint burnAmountInNXM = allocation.coverAmountInNXM
-        * burnAmount / segment.amount
-        * GLOBAL_CAPACITY_DENOMINATOR / globalCapacityRatio;
+        * burnAmount
+        * GLOBAL_CAPACITY_DENOMINATOR
+        / segment.amount
+        / globalCapacityRatio;
 
       stakingPool(i).burnStake(burnAmountInNXM);
 

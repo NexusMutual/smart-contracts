@@ -1,5 +1,7 @@
-const { artifacts, web3 } = require('hardhat');
+const { artifacts, web3, ethers } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
+const { ZERO_ADDRESS } = require('../../../lib/constants');
+const { parseEther } = ethers.utils;
 
 const { Role } = require('../utils').constants;
 const accounts = require('../utils').accounts;
@@ -48,10 +50,15 @@ async function setup() {
     accounts.defaultSender, // master: it is changed a few lines below
     priceFeedOracle.address,
     swapOperator.address, // we do not test swaps here
-    dai.address,
-    stETH.address,
+    ZERO_ADDRESS,
   );
 
+  const pool2 = await Pool.new(
+    accounts.defaultSender, // master: it is changed a few lines below
+    priceFeedOracle.address,
+    swapOperator.address, // we do not test swaps here
+    pool.address,
+  );
   await master.setLatestAddress(hex('P1'), pool.address);
 
   const token = await TokenMock.new();
@@ -95,6 +102,28 @@ async function setup() {
     await master.enrollGovernance(governanceContract);
   }
 
+  const decimals = 18;
+
+  {
+    // Set DAI asset
+    const minAmount = parseEther('1000000');
+    const maxAmount = parseEther('2000000');
+    const maxSlippageRatio = 250; // maxSlippageRatio (0.25%)
+
+    await pool.addAsset(dai.address, decimals, minAmount, maxAmount, maxSlippageRatio, true, {
+      from: accounts.governanceContracts[0],
+    });
+  }
+  {
+    // Set stEth asset
+    const minAmount = parseEther('24360');
+    const maxAmount = parseEther('32500');
+    const maxSlippageRatio = 0;
+    await pool.addAsset(stETH.address, decimals, minAmount, maxAmount, maxSlippageRatio, false, {
+      from: accounts.governanceContracts[0],
+    });
+  }
+
   // initialize token
   await token.setOperator(tokenController.address);
 
@@ -108,6 +137,7 @@ async function setup() {
   this.chainlinkDAI = chainlinkDAI;
   this.chainlinkSteth = chainlinkSteth;
   this.swapOperator = swapOperator;
+  this.priceFeedOracle = priceFeedOracle;
   this.stETH = stETH;
   this.otherAsset = otherAsset;
 }

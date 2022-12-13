@@ -4,6 +4,7 @@ const { parseEther, parseUnits } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
+const { setEtherBalance } = require('../utils').evm;
 const { proposalCategories } = require('../utils');
 const { enrollMember } = require('./utils/enroll');
 
@@ -161,7 +162,9 @@ async function setup() {
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mc.address, master.address);
 
-  const p1 = await Pool.deploy(master.address, priceFeedOracle.address, AddressZero, dai.address, stETH.address);
+  const p1 = await Pool.deploy(master.address, priceFeedOracle.address, AddressZero, AddressZero);
+
+
 
   const cowVaultRelayer = await SOMockVaultRelayer.deploy();
   const cowSettlement = await SOMockSettlement.deploy(cowVaultRelayer.address);
@@ -463,6 +466,25 @@ async function setup() {
   await transferProxyOwnership(as.address, master.address);
   await transferProxyOwnership(cover.address, gv.address);
   await transferProxyOwnership(master.address, gv.address);
+
+  const decimals = 18;
+  const governance = await ethers.getImpersonatedSigner(gv.address);
+  await setEtherBalance(governance.address, ethers.utils.parseEther('1'));
+
+  {
+    // Set DAI asset
+    const minAmount = parseEther('1000000');
+    const maxAmount = parseEther('2000000');
+    const maxSlippageRatio = 250; // maxSlippageRatio (0.25%)
+    await p1.connect(governance).addAsset(dai.address, decimals, minAmount, maxAmount, maxSlippageRatio, true);
+  }
+  {
+    // Set stEth asset
+    const minAmount = parseEther('24360');
+    const maxAmount = parseEther('32500');
+    const maxSlippageRatio = 0;
+    await p1.connect(governance).addAsset(stETH.address, decimals, minAmount, maxAmount, maxSlippageRatio, false);
+  }
 
   const POOL_ETHER = parseEther('90000');
   const POOL_DAI = parseEther('2000000');

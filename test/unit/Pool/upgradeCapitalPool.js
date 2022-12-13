@@ -1,7 +1,7 @@
 const { ether } = require('@openzeppelin/test-helpers');
 const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
 const { web3, artifacts } = require('hardhat');
-const { assert } = require('chai');
+const { assert, expect } = require('chai');
 const { expectRevert } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
 
@@ -46,13 +46,28 @@ describe('upgradeCapitalPool', function () {
 
     const newPool = await Pool.new(
       defaultSender,
-      ZERO_ADDRESS,
+      priceFeedOracle.address,
       ZERO_ADDRESS, // we do not test swaps here
-      dai.address,
-      stETH.address,
+      pool.address,
     );
-
+    //
     await master.upgradeCapitalPool(pool.address, newPool.address);
+
+    const coverAssets = await pool.getCoverAssets();
+    const investmentAssets = await pool.getInvestmentAssets();
+    const newCoverAssets = await newPool.getCoverAssets();
+    const newInvestmentAssets = await newPool.getInvestmentAssets();
+
+    const ETH = await pool.ETH();
+    for (let i; i < coverAssets.length; i++) {
+      expect(investmentAssets[i]).to.be.equal(newInvestmentAssets[i]);
+      expect(coverAssets[i]).to.be.equal(newCoverAssets[i]);
+      if (coverAssets[i].assetAddress !== ETH) {
+        expect(await pool.swapDetails(coverAssets[i].assetAddress)).to.be.equal(
+          await newPool.swapDetails(coverAssets[i].assetAddress),
+        );
+      }
+    }
 
     for (const token of tokens) {
       const oldPoolBalance = await token.balanceOf(pool.address);
@@ -102,10 +117,9 @@ describe('upgradeCapitalPool', function () {
 
     const newPool = await Pool.new(
       defaultSender,
-      ZERO_ADDRESS,
+      priceFeedOracle.address,
       ZERO_ADDRESS, // we do not test swaps here
-      dai.address,
-      stETH.address,
+      pool.address,
     );
 
     await stETH.blacklistSender(pool.address);
@@ -120,6 +134,22 @@ describe('upgradeCapitalPool', function () {
     });
 
     await master.upgradeCapitalPool(pool.address, newPool.address);
+
+    const coverAssets = await pool.getCoverAssets();
+    const investmentAssets = await pool.getInvestmentAssets();
+    const newCoverAssets = await newPool.getCoverAssets();
+    const newInvestmentAssets = await newPool.getInvestmentAssets();
+
+    const ETH = await pool.ETH();
+    for (let i; i < coverAssets.length; i++) {
+      expect(investmentAssets[i]).to.be.equal(newInvestmentAssets[i]);
+      expect(coverAssets[i]).to.be.equal(newCoverAssets[i]);
+      if (coverAssets[i].assetAddress != ETH) {
+        expect(await pool.swapDetails(coverAssets[i].assetAddress)).to.be.equal(
+          await newPool.swapDetails(coverAssets[i].assetAddress),
+        );
+      }
+    }
 
     for (const token of tokens) {
       const oldPoolBalance = await token.balanceOf(pool.address);

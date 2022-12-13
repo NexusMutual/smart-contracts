@@ -93,8 +93,7 @@ async function setup() {
     master.address,
     priceFeedOracle.address, // price feed oracle, add to setup if needed
     AddressZero, // swap operator
-    dai.address,
-    stEth.address,
+    AddressZero, // previousPool
   );
 
   // Setup master, pool and mcr connections
@@ -105,6 +104,23 @@ async function setup() {
 
   await pool.changeDependentContractAddress();
   await mcr.changeDependentContractAddress();
+
+  const decimals = 18;
+
+  {
+    // Set DAI asset
+    const minAmount = parseEther('1000000');
+    const maxAmount = parseEther('2000000');
+    const maxSlippageRatio = 250; // maxSlippageRatio (0.25%)
+    await pool.connect(governance).addAsset(dai.address, decimals, minAmount, maxAmount, maxSlippageRatio, true);
+  }
+  {
+    // Set stEth asset
+    const minAmount = parseEther('24360');
+    const maxAmount = parseEther('32500');
+    const maxSlippageRatio = 0;
+    await pool.connect(governance).addAsset(stEth.address, decimals, minAmount, maxAmount, maxSlippageRatio, false);
+  }
 
   await pool.connect(governance).addAsset(usdc.address, 6, 0, parseEther('1000'), 0, true);
 

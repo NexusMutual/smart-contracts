@@ -91,6 +91,7 @@ async function setup() {
     GLOBAL_MIN_PRICE_RATIO,
     GLOBAL_CAPACITY_RATIO,
     INITIAL_PRICE_DENOMINATOR,
+    TARGET_PRICE_DENOMINATOR,
   ] = await Promise.all([
     stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO(),
     stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR(),
@@ -104,6 +105,7 @@ async function setup() {
     cover.GLOBAL_MIN_PRICE_RATIO(),
     cover.globalCapacityRatio(),
     stakingPool.INITIAL_PRICE_DENOMINATOR(),
+    stakingPool.TARGET_PRICE_DENOMINATOR(),
   ]);
 
   this.tokenController = tokenController;
@@ -126,6 +128,7 @@ async function setup() {
     NXM_PER_ALLOCATION_UNIT,
     ALLOCATION_UNITS_PER_NXM,
     INITIAL_PRICE_DENOMINATOR,
+    TARGET_PRICE_DENOMINATOR,
   };
 }
 

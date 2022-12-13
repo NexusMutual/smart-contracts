@@ -42,7 +42,6 @@ describe('calculatePremium', function () {
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
       expect(basePrice).to.be.equal(200);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
-      expect(priceBump).to.be.equal(96);
 
       const expectedPremiun = calculateFixedPricePremium(
         coverAmount,
@@ -57,10 +56,9 @@ describe('calculatePremium', function () {
         coverAmount,
         initialCapacityUsed,
         totalCapacity,
-        basePrice,
+        stakedProduct.targetPrice,
         timestamp,
       );
-
       expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365));
       expect(premium).to.be.equal(expectedPremiun);
       expect(product.nextPrice).to.be.equal(basePrice.add(priceBump));
@@ -76,7 +74,6 @@ describe('calculatePremium', function () {
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
       expect(basePrice).to.be.equal(200);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
-      expect(priceBump).to.be.equal(480);
 
       const expectedPremiun = calculateFixedPricePremium(
         coverAmount,
@@ -91,7 +88,7 @@ describe('calculatePremium', function () {
         coverAmount,
         initialCapacityUsed,
         totalCapacity,
-        basePrice,
+        stakedProduct.targetPrice,
         timestamp,
       );
       expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365));
@@ -109,7 +106,6 @@ describe('calculatePremium', function () {
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
       expect(basePrice).to.be.equal(430);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
-      expect(priceBump).to.be.equal(480);
 
       const expectedPremiun = calculateFixedPricePremium(
         coverAmount,
@@ -124,7 +120,7 @@ describe('calculatePremium', function () {
         coverAmount,
         initialCapacityUsed,
         totalCapacity,
-        basePrice,
+        stakedProduct.targetPrice,
         timestamp,
       );
       expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365));
@@ -157,7 +153,7 @@ describe('calculatePremium', function () {
         coverAmount,
         initialCapacityUsed,
         totalCapacity,
-        basePrice,
+        stakedProduct.targetPrice,
         timestamp,
       );
       expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365));
@@ -190,7 +186,7 @@ describe('calculatePremium', function () {
         coverAmount,
         initialCapacityUsed,
         totalCapacity,
-        basePrice,
+        stakedProduct.targetPrice,
         timestamp,
       );
       const expectedPremium = coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365);
@@ -224,7 +220,7 @@ describe('calculatePremium', function () {
         coverAmount,
         initialCapacityUsed,
         totalCapacity,
-        basePrice,
+        stakedProduct.targetPrice,
         timestamp,
       );
       const expectedPremium = coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365);
@@ -272,7 +268,6 @@ describe('calculatePremium', function () {
 
     const totalCapacity = BigNumber.from(2).pow(255);
     const initialCapacityUsed = BigNumber.from(0);
-    const basePrice = calculateBasePrice(timestamp, stakedProduct, this.config.PRICE_CHANGE_PER_DAY);
 
     await expect(
       stakingPool.calculatePremium(
@@ -285,24 +280,20 @@ describe('calculatePremium', function () {
         timestamp,
       ),
     ).to.be.revertedWithPanic(UNDER_OR_OVERFLOW);
-    await expect(
-      stakingPool.calculatePremiumPerYear(basePrice, coverAmount, initialCapacityUsed, totalCapacity),
-    ).to.be.revertedWithPanic(UNDER_OR_OVERFLOW);
   });
 
   it('should calculate the premium correctly when cover amount is equal to total capacity', async function () {
     const { stakingPool } = this;
     const { timestamp } = await ethers.provider.getBlock('latest');
     const { INITIAL_PRICE_DENOMINATOR, NXM_PER_ALLOCATION_UNIT } = this.config;
-    // call staking pool and calculate premium
     const stakedProduct = { ...stakedProductTemplate, nextPriceUpdateTime: timestamp };
     const period = daysToSeconds(365);
     const coverAmountRaw = BigNumber.from(2).pow(96);
     const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
     const initialCapacityUsed = 0;
     const totalCapacity = coverAmount;
-    const basePrice = calculateBasePrice(timestamp, stakedProduct, this.config.PRICE_CHANGE_PER_DAY);
-    const { premium: expectedPremium } = await stakingPool.calculatePremium(
+
+    const { premium: actualPremium } = await stakingPool.calculatePremium(
       stakedProduct,
       period,
       coverAmount,
@@ -318,10 +309,11 @@ describe('calculatePremium', function () {
       this.config,
     );
 
+    const basePrice = calculateBasePrice(timestamp, stakedProduct, this.config.PRICE_CHANGE_PER_DAY);
     const basePremium = BigNumber.from(coverAmount.mul(NXM_PER_ALLOCATION_UNIT))
       .mul(basePrice)
       .div(INITIAL_PRICE_DENOMINATOR);
-    const actualPremium = basePremium.add(surgePremiumPerYear);
+    const expectedPremium = basePremium.add(surgePremiumPerYear);
     expect(surgePremiumSkipped).to.be.eq(0);
     expect(actualPremium).to.be.equal(expectedPremium);
   });
@@ -335,13 +327,13 @@ describe('calculatePremium', function () {
     const coverAmountRaw = parseEther('1234');
     const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
 
-    const totalCapacity = coverAmount;
+    const totalCapacity = coverAmount.mul(10);
     const surgeStartPoint = totalCapacity
       .mul(this.config.SURGE_THRESHOLD_RATIO)
       .div(this.config.SURGE_THRESHOLD_DENOMINATOR);
     const initialCapacityUsed = surgeStartPoint;
-    const basePrice = calculateBasePrice(timestamp, stakedProduct, this.config.PRICE_CHANGE_PER_DAY);
-    const { premium: expectedPremium } = await stakingPool.calculatePremium(
+
+    const { premium: actualPremium } = await stakingPool.calculatePremium(
       stakedProduct,
       period,
       coverAmount,
@@ -356,10 +348,12 @@ describe('calculatePremium', function () {
       totalCapacity,
       this.config,
     );
+
+    const basePrice = calculateBasePrice(timestamp, stakedProduct, this.config.PRICE_CHANGE_PER_DAY);
     const basePremium = BigNumber.from(coverAmount.mul(NXM_PER_ALLOCATION_UNIT))
       .mul(basePrice)
       .div(INITIAL_PRICE_DENOMINATOR);
-    const actualPremium = basePremium.add(surgePremiumPerYear);
+    const expectedPremium = basePremium.add(surgePremiumPerYear);
     expect(surgePremiumSkipped).to.be.eq(0);
     expect(actualPremium).to.be.equal(expectedPremium);
   });
@@ -373,13 +367,13 @@ describe('calculatePremium', function () {
     const coverAmountRaw = parseEther('1234');
     const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
 
-    const totalCapacity = coverAmount;
+    const totalCapacity = coverAmount.mul(11);
     const surgeStartPoint = totalCapacity
       .mul(this.config.SURGE_THRESHOLD_RATIO)
       .div(this.config.SURGE_THRESHOLD_DENOMINATOR);
     const initialCapacityUsed = surgeStartPoint.add(10);
-    const basePrice = calculateBasePrice(timestamp, stakedProduct, this.config.PRICE_CHANGE_PER_DAY);
-    const { premium: expectedPremium } = await stakingPool.calculatePremium(
+
+    const { premium: actualPremium } = await stakingPool.calculatePremium(
       stakedProduct,
       period,
       coverAmount,
@@ -394,10 +388,11 @@ describe('calculatePremium', function () {
       totalCapacity,
       this.config,
     );
+    const basePrice = calculateBasePrice(timestamp, stakedProduct, this.config.PRICE_CHANGE_PER_DAY);
     const basePremium = BigNumber.from(coverAmount.mul(NXM_PER_ALLOCATION_UNIT))
       .mul(basePrice)
       .div(INITIAL_PRICE_DENOMINATOR);
-    const actualPremium = basePremium.add(surgePremiumPerYear).sub(surgePremiumSkipped);
+    const expectedPremium = basePremium.add(surgePremiumPerYear).sub(surgePremiumSkipped);
     expect(actualPremium).to.be.equal(expectedPremium);
   });
 
@@ -435,7 +430,7 @@ describe('calculatePremium', function () {
     const totalCapacity = coverAmount.mul(100);
     const initialCapacityUsed = 0;
     const basePrice = calculateBasePrice(timestamp, stakedProduct, this.config.PRICE_CHANGE_PER_DAY);
-    const { premium: expectedPremium } = await stakingPool.calculatePremium(
+    const { premium: actualPremium } = await stakingPool.calculatePremium(
       stakedProduct,
       period,
       coverAmount,
@@ -453,7 +448,7 @@ describe('calculatePremium', function () {
     const basePremium = BigNumber.from(coverAmount.mul(NXM_PER_ALLOCATION_UNIT))
       .mul(basePrice)
       .div(INITIAL_PRICE_DENOMINATOR);
-    const actualPremium = basePremium.add(surgePremiumPerYear);
+    const expectedPremium = basePremium.add(surgePremiumPerYear);
     expect(surgePremiumPerYear).to.be.eq(0);
     expect(surgePremiumSkipped).to.be.eq(0);
     expect(actualPremium).to.be.equal(expectedPremium);
@@ -471,7 +466,7 @@ describe('calculatePremium', function () {
     const totalCapacity = coverAmount.mul(100);
     const initialCapacityUsed = 0;
     const basePrice = calculateBasePrice(timestamp, stakedProduct, this.config.PRICE_CHANGE_PER_DAY);
-    const { premium: expectedPremium } = await stakingPool.calculatePremium(
+    const { premium: actualPremium } = await stakingPool.calculatePremium(
       stakedProduct,
       period,
       coverAmount,
@@ -489,7 +484,7 @@ describe('calculatePremium', function () {
     const basePremium = BigNumber.from(coverAmount.mul(NXM_PER_ALLOCATION_UNIT))
       .mul(basePrice)
       .div(INITIAL_PRICE_DENOMINATOR);
-    const actualPremium = basePremium.add(surgePremiumPerYear);
+    const expectedPremium = basePremium.add(surgePremiumPerYear);
     expect(surgePremiumPerYear).to.be.eq(0);
     expect(surgePremiumSkipped).to.be.eq(0);
     expect(actualPremium).to.be.equal(expectedPremium);
@@ -510,7 +505,7 @@ describe('calculatePremium', function () {
       .div(this.config.SURGE_THRESHOLD_DENOMINATOR);
     const initialCapacityUsed = surgeStartPoint.sub(100);
     const basePrice = calculateBasePrice(timestamp, stakedProduct, this.config.PRICE_CHANGE_PER_DAY);
-    const { premium: expectedPremium } = await stakingPool.calculatePremium(
+    const { premium: actualPremium } = await stakingPool.calculatePremium(
       stakedProduct,
       period,
       coverAmount,
@@ -528,7 +523,7 @@ describe('calculatePremium', function () {
     const basePremium = BigNumber.from(coverAmount.mul(NXM_PER_ALLOCATION_UNIT))
       .mul(basePrice)
       .div(INITIAL_PRICE_DENOMINATOR);
-    const actualPremium = basePremium.add(surgePremiumPerYear);
+    const expectedPremium = basePremium.add(surgePremiumPerYear);
     expect(surgePremiumPerYear).to.be.lt(coverAmountRaw.mul(20).div(100));
     expect(surgePremiumSkipped).to.be.eq(0);
     expect(actualPremium).to.be.equal(expectedPremium);
@@ -574,7 +569,7 @@ describe('calculatePremium', function () {
     const totalCapacity = coverAmount.mul(1e6);
     const initialCapacityUsed = 0;
     const basePrice = calculateBasePrice(timestamp, stakedProduct, this.config.PRICE_CHANGE_PER_DAY);
-    const { premium: expectedPremium } = await stakingPool.calculatePremium(
+    const { premium: actualPremium } = await stakingPool.calculatePremium(
       stakedProduct,
       period,
       coverAmount,
@@ -593,7 +588,7 @@ describe('calculatePremium', function () {
     const basePremium = BigNumber.from(coverAmount.mul(NXM_PER_ALLOCATION_UNIT))
       .mul(basePrice)
       .div(INITIAL_PRICE_DENOMINATOR);
-    const actualPremium = basePremium.add(surgePremiumPerYear).mul(period).div(daysToSeconds(365));
+    const expectedPremium = basePremium.add(surgePremiumPerYear).mul(period).div(daysToSeconds(365));
 
     const fixedPricePremium = await stakingPool.calculateFixedPricePremium(coverAmount, period, basePrice);
     const expectedFixedPricePremium = calculateFixedPricePremium(
@@ -604,7 +599,7 @@ describe('calculatePremium', function () {
       INITIAL_PRICE_DENOMINATOR,
     );
     expect(fixedPricePremium, expectedFixedPricePremium);
-    expect(fixedPricePremium).to.be.equal(expectedPremium);
+    expect(fixedPricePremium).to.be.equal(actualPremium);
     expect(surgePremiumPerYear).to.be.equal(0);
     expect(actualPremium).to.be.equal(expectedPremium);
   });

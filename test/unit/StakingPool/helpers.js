@@ -32,10 +32,8 @@ const setTime = async timestamp => {
 function calculateBasePrice(timestamp, product, priceChangePerDay) {
   const timeSinceLastUpdate = BigNumber.from(timestamp).sub(product.nextPriceUpdateTime);
   const priceDrop = timeSinceLastUpdate.mul(priceChangePerDay).div(daysToSeconds(1));
-  const basePrice = product.nextPrice.lt(product.targetPrice.add(priceDrop))
-    ? product.targetPrice
-    : product.nextPrice.sub(priceDrop);
-  return basePrice;
+  const basePrice = product.nextPrice.sub(priceDrop);
+  return BigNumber.from(Math.max(basePrice, product.targetPrice));
 }
 
 function calculateSurgePremium(amountOnSurge, totalCapacity, surgePriceRatio, allocationUnitsPerNxm) {
@@ -68,9 +66,11 @@ function calculateAmountOnSurge(coverAmount, initialCapacityUsed, totalCapacity,
   initialCapacityUsed = BigNumber.from(initialCapacityUsed);
   totalCapacity = BigNumber.from(totalCapacity);
   const finalCapacityUsed = initialCapacityUsed.add(coverAmount);
+  if (finalCapacityUsed > totalCapacity) {
+    throw Error('calculateAmountOnSurge: finalCapacityUsed > totalCapacity');
+  }
   const surgeStartPoint = totalCapacity.mul(config.SURGE_THRESHOLD_RATIO).div(config.SURGE_THRESHOLD_DENOMINATOR);
   const amountOnSurge = finalCapacityUsed.sub(surgeStartPoint);
-
   return Math.max(amountOnSurge, 0);
 }
 
@@ -82,16 +82,12 @@ function calculateAmountOnSurgeSkipped(coverAmount, initialCapacityUsed, totalCa
   const surgeStartPoint = totalCapacity.mul(config.SURGE_THRESHOLD_RATIO).div(config.SURGE_THRESHOLD_DENOMINATOR);
 
   const finalCapacityUsed = initialCapacityUsed.add(coverAmount);
-
-  if (finalCapacityUsed.lte(surgeStartPoint)) {
-    return BigNumber.from(0);
+  if (finalCapacityUsed > totalCapacity) {
+    throw Error('calculateAmountOnSurge: finalCapacityUsed > totalCapacity');
   }
 
-  if (initialCapacityUsed.lte(surgeStartPoint)) {
-    return BigNumber.from(0);
-  }
 
-  return initialCapacityUsed.sub(surgeStartPoint);
+  return Math.max(initialCapacityUsed.sub(surgeStartPoint), 0);
 }
 
 // Note fn expects coverAmount is rounded up to the nearest NXM_PER_ALLOCATION_UNIT
@@ -126,7 +122,6 @@ function calculateFixedPricePremium(
     .mul(nxmPerAllocationUnit)
     .mul(fixedPrice)
     .div(targetPriceDenominator);
-  // premiumPerPeriod in BigNumber
   const premium = premiumPerYear.mul(coverPeriod).div(daysToSeconds(365));
   return premium;
 }

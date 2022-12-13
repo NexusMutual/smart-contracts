@@ -1,6 +1,6 @@
 const { config, network, ethers } = require('hardhat');
 const { BigNumber } = ethers;
-const { AddressZero } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 async function main() {
@@ -36,6 +36,7 @@ async function main() {
       commissionRatio: parseEther('0'),
       commissionDestination: AddressZero,
       ipfsData: '',
+      coverId: MaxUint256.toString(),
     },
     [{ poolId: '0', coverAmountInAsset: amount.toString() }],
     {
@@ -56,6 +57,7 @@ async function main() {
       commissionRatio: parseEther('0'),
       commissionDestination: AddressZero,
       ipfsData: '',
+      coverId: MaxUint256.toString(),
     },
     [{ poolId: '0', coverAmountInAsset: amount.toString() }],
     {
@@ -76,6 +78,7 @@ async function main() {
       commissionRatio: parseEther('0'),
       commissionDestination: AddressZero,
       ipfsData: '',
+      coverId: MaxUint256.toString(),
     },
     [{ poolId: '0', coverAmountInAsset: amount.toString() }],
     {

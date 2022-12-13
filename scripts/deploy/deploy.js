@@ -30,7 +30,7 @@ const productTypes = [
     productType: {
       descriptionIpfsHash: 'protocolCoverIPFSHash',
       claimMethod: claimMethod.claim,
-      gracePeriodInDays: 30,
+      gracePeriod: 30,
     },
   },
   {
@@ -39,7 +39,7 @@ const productTypes = [
     productType: {
       descriptionIpfsHash: 'custodyCoverIPFSHash',
       claimMethod: claimMethod.claim,
-      gracePeriodInDays: 90,
+      gracePeriod: 90,
     },
   },
   {
@@ -48,7 +48,7 @@ const productTypes = [
     productType: {
       descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
       claimMethod: claimMethod.incident,
-      gracePeriodInDays: 14,
+      gracePeriod: 14,
     },
   },
 ];
@@ -344,14 +344,16 @@ async function main() {
 
     return {
       productId: MaxUint256,
+      ipfsMetadata: '',
       product: {
         productType,
         yieldTokenAddress,
         coverAssets,
         initialPriceRatio: 100,
         capacityReductionRatio: 0,
+        useFixedPrice: false,
       },
-      ipfsMetadata: '',
+      allowedPools: [],
     };
   });
 
@@ -433,6 +435,7 @@ async function main() {
     productInitializationParams,
     depositAmount,
     trancheId,
+    '', // ipfsDescriptionHash
   );
 
   await stakingPool.setStake(productId, parseEther('10000'));
@@ -503,8 +506,8 @@ async function main() {
     const abiPath = path.join(abiDir, `${legacyContractName || abiName}.json`);
     fs.writeFileSync(abiPath, JSON.stringify(abi, null, 2));
 
-    if (!config.CONTRACTS_ADDRESSES[alias] || isProxy) {
-      config.CONTRACTS_ADDRESSES[alias] = address;
+    if (!config.CONTRACTS_ADDRESSES[legacyContractName || alias] || isProxy) {
+      config.CONTRACTS_ADDRESSES[legacyContractName || alias] = address;
     }
   }
 

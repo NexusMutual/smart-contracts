@@ -185,6 +185,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       id,
       coverData.productId,
       claim.coverId,
+      claim.assessmentId,
       claim.amount,
       assetSymbol,
       claim.coverAsset,

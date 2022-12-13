@@ -74,6 +74,7 @@ struct ClaimDisplay {
   uint id;
   uint productId;
   uint coverId;
+  uint assessmentId;
   uint amount;
   string assetSymbol;
   uint assetIndex;

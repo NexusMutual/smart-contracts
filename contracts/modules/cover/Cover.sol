@@ -27,6 +27,36 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   using SafeERC20 for IERC20;
   using SafeUintCast for uint;
 
+  /* ========== STATE VARIABLES ========== */
+
+  Product[] internal _products;
+  ProductType[] internal _productTypes;
+
+  CoverData[] private _coverData;
+
+  // cover id => segment id => pool allocations array
+  mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
+
+  // product id => allowed pool ids
+  mapping(uint => uint[]) public allowedPools;
+
+  // Each cover has an array of segments. A new segment is created
+  // every time a cover is edited to deliniate the different cover periods.
+  mapping(uint => CoverSegment[]) private _coverSegments;
+
+  uint24 public globalCapacityRatio;
+  uint24 public globalRewardsRatio;
+  uint64 public override stakingPoolCount;
+
+  // Bitmap representing which assets are globally supported for buying and for paying out covers
+  // If the the bit at position N is 1 it means asset with index N is supported.this
+  // Eg. coverAssetsFallback = 3 (in binary 11) means assets at index 0 and 1 are supported.
+  uint32 public coverAssetsFallback;
+
+  // TODO: implement using buckets
+  // Global active cover amount per asset.
+  mapping(uint24 => uint) public override totalActiveCoverInAsset;
+
   /* ========== CONSTANTS ========== */
 
   uint private constant PRICE_DENOMINATOR = 10000;
@@ -64,36 +94,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   /* Staking pool creation */
   bytes32 public immutable stakingPoolProxyCodeHash;
   address public immutable stakingPoolImplementation;
-
-  /* ========== STATE VARIABLES ========== */
-
-  Product[] internal _products;
-  ProductType[] internal _productTypes;
-
-  CoverData[] private _coverData;
-
-  // cover id => segment id => pool allocations array
-  mapping(uint => mapping(uint => PoolAllocation[])) public coverSegmentAllocations;
-
-  // product id => allowed pool ids
-  mapping(uint => uint[]) public allowedPools;
-
-  // Each cover has an array of segments. A new segment is created
-  // every time a cover is edited to deliniate the different cover periods.
-  mapping(uint => CoverSegment[]) private _coverSegments;
-
-  uint24 public globalCapacityRatio;
-  uint24 public globalRewardsRatio;
-  uint64 public override stakingPoolCount;
-
-  // Bitmap representing which assets are globally supported for buying and for paying out covers
-  // If the the bit at position N is 1 it means asset with index N is supported.this
-  // Eg. coverAssetsFallback = 3 (in binary 11) means assets at index 0 and 1 are supported.
-  uint32 public coverAssetsFallback;
-
-  // TODO: implement using buckets
-  // Global active cover amount per asset.
-  mapping(uint24 => uint) public override totalActiveCoverInAsset;
 
   /* ========== CONSTRUCTOR ========== */
 

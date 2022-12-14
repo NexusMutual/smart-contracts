@@ -12,14 +12,12 @@ import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../libraries/SafeUintCast.sol";
+import "../../libraries/StakingPoolLibrary.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "./external/LockHandler.sol";
 
 contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   using SafeUintCast for uint;
-
-  IQuotationData public immutable quotationData;
-  address public immutable claimsReward;
 
   address public _unused0;
   address public _unused1;
@@ -32,9 +30,18 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
 
-  constructor(address quotationDataAddress, address claimsRewardAddress) {
+  IQuotationData public immutable quotationData;
+  address public immutable claimsReward;
+  address public immutable stakingPoolFactory;
+
+  constructor(
+    address quotationDataAddress,
+    address claimsRewardAddress,
+    address stakingPoolFactoryAddress
+  ) {
     quotationData = IQuotationData(quotationDataAddress);
     claimsReward = claimsRewardAddress;
+    stakingPoolFactory = stakingPoolFactoryAddress;
   }
 
   function unlistClaimsReward() external {
@@ -375,26 +382,30 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token().transfer(user, totalAmount);
   }
 
+  function _stakingPool(uint poolId) internal view returns (address) {
+    return StakingPoolLibrary.getAddress(stakingPoolFactory, poolId);
+  }
+
   function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
-    require(msg.sender == address(cover().stakingPool(poolId)), "TokenController: msg.sender not staking pool");
+    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     token().mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
 
   function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
-    require(msg.sender == address(cover().stakingPool(poolId)), "TokenController: msg.sender not staking pool");
+    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
     token().burn(amount);
   }
 
   function depositStakedNXM(address from, uint amount, uint poolId) external {
-    require(msg.sender == address(cover().stakingPool(poolId)), "TokenController: msg.sender not staking pool");
+    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     stakingPoolNXMBalances[poolId].deposits += amount.toUint128();
     token().operatorTransfer(from, amount);
   }
 
   function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {
-    require(msg.sender == address(cover().stakingPool(poolId)), "TokenController: msg.sender not staking pool");
+    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     StakingPoolNXMBalances memory poolBalances = stakingPoolNXMBalances[poolId];
     poolBalances.deposits -= stakeToWithdraw.toUint128();
     poolBalances.rewards -= rewardsToWithdraw.toUint128();
@@ -403,7 +414,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   }
 
   function burnStakedNXM(uint amount, uint poolId) external {
-    require(msg.sender == address(cover().stakingPool(poolId)), "TokenController: msg.sender not staking pool");
+    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();
     token().burn(amount);
   }

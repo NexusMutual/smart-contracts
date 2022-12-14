@@ -16,6 +16,8 @@ import "../../interfaces/IQuotation.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
+// TODO: decide if we want to use an interface
+import "../cover/CoverMigrator.sol";
 
 contract LegacyGateway is IGateway, MasterAware {
 
@@ -38,8 +40,7 @@ contract LegacyGateway is IGateway, MasterAware {
   address public DAI;
 
   ILegacyIncidents public incidents;
-  ICover public cover;
-
+  CoverMigrator public coverMigrator;
 
   function changeDependentContractAddress() external {
     quotation = IQuotation(master.getLatestAddress("QT"));
@@ -51,7 +52,8 @@ contract LegacyGateway is IGateway, MasterAware {
     incidents = ILegacyIncidents(master.getLatestAddress("IC"));
     pool = IPool(master.getLatestAddress("P1"));
     memberRoles = IMemberRoles(master.getLatestAddress("MR"));
-    cover = ICover(master.getLatestAddress("CO"));
+    // TODO: check contract code
+    coverMigrator = CoverMigrator(master.getLatestAddress("CL"));
   }
 
   function initializeDAI() external {
@@ -136,7 +138,7 @@ contract LegacyGateway is IGateway, MasterAware {
   function submitClaim(uint coverId, bytes calldata data) external override returns (uint) {
     // [todo] Maybe we could use data to specify other addresses and only use tx.origin if empty,
     // thus allowing multisigs to migrate a cover in one tx without an EOA being involved.
-    cover.migrateCoverFromOwner(coverId, msg.sender, tx.origin);
+    coverMigrator.migrateCoverFrom(coverId, msg.sender, tx.origin);
     // silence compiler warnings
     data;
     return 0;

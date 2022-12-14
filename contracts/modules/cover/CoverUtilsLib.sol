@@ -7,23 +7,19 @@ import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
+import "../../interfaces/IPool.sol";
 import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../libraries/SafeUintCast.sol";
-import "../../interfaces/IPool.sol";
-import "./MinimalBeaconProxy.sol";
 
 
 library CoverUtilsLib {
   using SafeERC20 for IERC20;
 
-  uint private constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
-  uint private constant COMMISSION_DENOMINATOR = 10_000;
-
   struct MigrateParams {
     uint coverId;
-    address fromOwner;
+    address from;
     address newOwner;
     ICoverNFT coverNFT;
     IQuotationData quotationData;
@@ -31,16 +27,7 @@ library CoverUtilsLib {
     IProductsV1 productsV1;
   }
 
-  struct PoolInitializationParams {
-    uint poolId;
-    address manager;
-    bool isPrivatePool;
-    uint initialPoolFee;
-    uint maxPoolFee;
-    uint globalMinPriceRatio;
-  }
-
-  function migrateCoverFromOwner(
+  function migrateCoverFrom(
     MigrateParams memory params,
     Product[] storage _products,
     ProductType[] storage _productTypes,
@@ -61,7 +48,7 @@ library CoverUtilsLib {
       /*uint sumAssured*/,
       /*uint premiumNXM*/
       ) = params.quotationData.getCoverDetailsByCoverID1(params.coverId);
-      require(params.fromOwner == coverOwner, "Cover can only be migrated by its owner");
+      require(params.from == coverOwner, "Cover can only be migrated by its owner");
     }
     (
       /*uint coverId*/,
@@ -117,62 +104,6 @@ library CoverUtilsLib {
 
     params.coverNFT.mint(params.newOwner, newCoverId);
     return newCoverId;
-  }
-
-  function calculateProxyCodeHash(address coverProxyAddress) external pure returns (bytes32) {
-    return keccak256(
-      abi.encodePacked(
-        // TODO: compiler version - investigate
-        //       I suspect that MinimalBeaconProxy might get compiled using
-        //       the compiler version specified by the current contract
-        type(MinimalBeaconProxy).creationCode,
-        abi.encode(coverProxyAddress)
-      )
-    );
-  }
-
-  function createStakingPool(
-    Product[] storage products,
-    PoolInitializationParams memory poolInitParams,
-    ProductInitializationParams[] memory productInitParams,
-    uint depositAmount,
-    uint trancheId,
-    address pooledStakingAddress,
-    string calldata ipfsDescriptionHash
-  ) external returns (address stakingPoolAddress) {
-
-    stakingPoolAddress = address(
-      new MinimalBeaconProxy{ salt: bytes32(poolInitParams.poolId) }(address(this))
-    );
-
-    if (msg.sender != pooledStakingAddress) {
-
-      // override with initial price
-      for (uint i = 0; i < productInitParams.length; i++) {
-        productInitParams[i].initialPrice = products[productInitParams[i].productId].initialPriceRatio;
-        require(
-          productInitParams[i].targetPrice >= poolInitParams.globalMinPriceRatio,
-          "CoverUtilsLib: Target price below GLOBAL_MIN_PRICE_RATIO"
-        );
-      }
-    }
-
-    // will create the ownership nft
-    IStakingPool newStakingPool = IStakingPool(stakingPoolAddress);
-    newStakingPool.initialize(
-      poolInitParams.manager,
-      poolInitParams.isPrivatePool,
-      poolInitParams.initialPoolFee,
-      poolInitParams.maxPoolFee,
-      productInitParams,
-      poolInitParams.poolId,
-      ipfsDescriptionHash
-    );
-
-    // will create nft with a position in the desired tranche id
-    if (depositAmount > 0) {
-      newStakingPool.depositTo(depositAmount, trancheId, 0, poolInitParams.manager);
-    }
   }
 
 }

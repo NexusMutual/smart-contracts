@@ -19,6 +19,12 @@ for (const version in contracts) {
   }
 }
 
+// override version AND optimizer for MinimalBeaconProxy to always get the same bytecode
+overrides['contracts/modules/staking/MinimalBeaconProxy.sol'] = {
+  version: '0.8.16',
+  settings: { optimizer: { enabled: true, runs: 200 } },
+};
+
 module.exports = {
   compilers: Object.values(compilers),
   overrides,

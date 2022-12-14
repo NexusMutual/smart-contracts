@@ -2,7 +2,9 @@
 
 pragma solidity >=0.5.0;
 
+import "./ICoverNFT.sol";
 import "./IStakingPool.sol";
+import "./IStakingPoolFactory.sol";
 
 /* ========== DATA STRUCTURES ========== */
 
@@ -113,6 +115,15 @@ struct ProductType {
   uint32 gracePeriod;
 }
 
+struct PoolInitializationParams {
+  uint poolId;
+  address manager;
+  bool isPrivatePool;
+  uint initialPoolFee;
+  uint maxPoolFee;
+  uint globalMinPriceRatio;
+}
+
 interface ICover {
 
   /* ========== VIEWS ========== */
@@ -133,8 +144,6 @@ interface ICover {
 
   function stakingPool(uint index) external view returns (IStakingPool);
 
-  function stakingPoolCount() external view returns (uint64);
-
   function productsCount() external view returns (uint);
 
   function MAX_COVER_PERIOD() external view returns (uint);
@@ -152,14 +161,19 @@ interface ICover {
 
   /* === MUTATIVE FUNCTIONS ==== */
 
-  function migrateCovers(uint[] calldata coverIds, address newOwner) external returns (uint[] memory newCoverIds);
-
-  function migrateCoverFromOwner(uint coverId, address fromOwner, address newOwner) external returns (uint newCoverId);
+  function addLegacyCover(
+    uint productId,
+    uint coverAsset,
+    uint amount,
+    uint start,
+    uint period,
+    address newOwner
+  ) external returns (uint coverId);
 
   function buyCover(
     BuyCoverParams calldata params,
     PoolAllocationRequest[] calldata coverChunkRequests
-  ) external payable returns (uint /*coverId*/);
+  ) external payable returns (uint coverId);
 
   function setProductTypes(ProductTypeParam[] calldata productTypes) external;
 
@@ -169,9 +183,11 @@ interface ICover {
     uint coverId,
     uint segmentId,
     uint amount
-  ) external returns (address /*owner*/);
+  ) external returns (address coverOwner);
 
-  function coverNFT() external returns (address);
+  function coverNFT() external returns (ICoverNFT);
+
+  function stakingPoolFactory() external returns (IStakingPoolFactory);
 
   function transferCovers(address from, address to, uint256[] calldata coverIds) external;
 
@@ -180,9 +196,7 @@ interface ICover {
     bool isPrivatePool,
     uint initialPoolFee,
     uint maxPoolFee,
-    ProductInitializationParams[] calldata params,
-    uint depositAmount,
-    uint trancheId,
+    ProductInitializationParams[] calldata productInitParams,
     string calldata ipfsDescriptionHash
   ) external returns (address stakingPoolAddress);
 
@@ -190,14 +204,7 @@ interface ICover {
 
   /* ========== EVENTS ========== */
 
-  event StakingPoolCreated(
-    address stakingPoolAddress,
-    uint poolId,
-    address manager,
-    address stakingPoolImplementation
-  );
   event ProductSet(uint id, string ipfsMetadata);
   event ProductTypeSet(uint id, string ipfsMetadata);
   event CoverEdited(uint indexed coverId, uint indexed productId, uint indexed segmentId, address buyer, string ipfsMetadata);
-  event CoverMigrated(uint oldCoverId, address fromOwner, address newOwner, uint newCoverId);
 }

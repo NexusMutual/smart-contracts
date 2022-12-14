@@ -5,7 +5,7 @@ module.exports = () => {
   const contracts = {};
 
   // name and abiName arguments are not used for verification
-  const add = (address, fqName, options = {}) => {
+  const add = (address, fqName, name, options = {}) => {
     const { alias, constructorArgs, libraries, isProxy = false } = options;
     const abiName = options.abiName || fqName.split(':').pop();
 
@@ -15,15 +15,15 @@ module.exports = () => {
       console.log(`Replacing ${previousName} with ${newName} at ${address}`);
     }
 
-    contracts[address] = { address, fqName, abiName, alias, isProxy, constructorArgs, libraries };
+    contracts[address] = { address, fqName, abiName, name, alias, isProxy, constructorArgs, libraries };
   };
 
   const dump = async () => {
     const deployData = [];
 
     for (const contract of Object.values(contracts)) {
-      const { abiName, fqName, address, alias, isProxy, libraries } = contract;
-      const factory = await ethers.getContractFactory(fqName, { libraries });
+      const { abiName, name, address, alias, isProxy, libraries } = contract;
+      const factory = await ethers.getContractFactory(name, { libraries });
       const abiJson = factory.interface.format(ethers.utils.FormatTypes.json);
       const abi = JSON.parse(abiJson);
       deployData.push({ abi, address, abiName, alias: alias || abiName, isProxy });
@@ -38,14 +38,14 @@ module.exports = () => {
     const sourceNames = await run('compile:solidity:get-source-names', { sourcePaths });
 
     for (const contract of Object.values(contracts)) {
-      const { address, fqName } = contract;
+      const { address, fqName, libraries } = contract;
       const shortName = fqName.split(':').pop();
 
       const sourcePath = fqName.includes(':')
         ? fqName.split(':').shift()
         : sourceNames.find(filepath => filepath.split('/').pop().split('.', 2).shift() === fqName);
 
-      contractList.push({ address, name: shortName, sourcePath });
+      contractList.push({ address, name: shortName, sourcePath, libraries });
     }
 
     return contractList;

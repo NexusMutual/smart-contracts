@@ -4,6 +4,7 @@ const fs = require('fs');
 const { AddressZero, MaxUint256 } = ethers.constants;
 
 const { ABI_DIR, CONFIG_FILE } = process.env;
+const PROXY_CONTRACT = 'contracts/modules/governance/external/OwnedUpgradeabilityProxy.sol:OwnedUpgradeabilityProxy';
 
 if (!ABI_DIR || !CONFIG_FILE) {
   console.log('ABI_DIR and CONFIG_FILE env vars are required');
@@ -85,7 +86,7 @@ async function main() {
     const Contract = await ethers.getContractFactory(contract, { libraries });
     const instance = await Contract.deploy(...constructorArgs, overrides);
     await instance.deployed();
-    verifier.add(instance.address, contract, { constructorArgs, libraries, alias, abiName });
+    verifier.add(instance.address, contract, contract, { constructorArgs, libraries, alias, abiName });
     return instance;
   };
 
@@ -95,7 +96,7 @@ async function main() {
     const proxy = await OwnedUpgradeabilityProxy.deploy(impl.address);
     await proxy.deployed();
     const opts = { constructorArgs: [impl.address], alias, abiName, isProxy: true, libraries };
-    verifier.add(proxy.address, contract, opts);
+    verifier.add(proxy.address, PROXY_CONTRACT, contract, opts);
     return await ethers.getContractAt(contract, proxy.address);
   };
 
@@ -105,7 +106,7 @@ async function main() {
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
     await proxy.upgradeTo(impl.address);
     const opts = { constructorArgs: [impl.address], alias, abiName, isProxy: true, libraries };
-    verifier.add(proxy.address, contract, opts);
+    verifier.add(proxy.address, PROXY_CONTRACT, contract, opts);
     const instance = await ethers.getContractAt(contract, proxyAddress);
     try {
       await instance.changeDependentContractAddress();
@@ -474,9 +475,8 @@ async function main() {
 
     for (const contract of contractList) {
       console.log('---------------------');
-      const libraries = Object.entries(contract.libraries || {}).map(([name, address]) => ({ name, address }));
-      console.log('Verifying: ', [...libraries, contract]);
-      await tenderly.verify(...libraries, contract);
+      console.log('Verifying: ', contract);
+      await tenderly.verify(contract);
     }
   }
 

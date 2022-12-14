@@ -694,6 +694,7 @@ contract StakingPool is IStakingPool, ERC721 {
     uint expiration
   ) internal returns (uint[] memory activeAllocations) {
 
+    // TODO: coverTrancheAllocations is never set
     uint packedCoverTrancheAllocation = coverTrancheAllocations[coverId];
     activeAllocations = getActiveAllocations(productId);
 

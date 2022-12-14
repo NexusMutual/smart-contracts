@@ -208,7 +208,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     require(params.amount > 0, "Cover: amount = 0");
 
     uint segmentId;
-    uint previousRewardsRatio;
 
     AllocationRequest memory allocationRequest;
 
@@ -265,8 +264,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       allocationRequest.previousStart = lastSegment.start;
       allocationRequest.previousExpiration = lastSegment.start + lastSegment.period;
       allocationRequest.previousRewardsRatio = lastSegment.globalRewardsRatio;
-
-      previousRewardsRatio = lastSegment.globalRewardsRatio;
 
       // mark previous cover as ending now
       _coverSegments[coverId][segmentId - 1].period = (block.timestamp - lastSegment.start).toUint32();
@@ -342,7 +339,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         vars.refund =
           previousPoolAllocation.premiumInNXM
           * (allocationRequest.previousExpiration - block.timestamp) // remaining period
-          / allocationRequest.previousExpiration - allocationRequest.previousStart; // previous period
+          / (allocationRequest.previousExpiration - allocationRequest.previousStart); // previous period
       }
 
       // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
@@ -427,6 +424,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         (bool ok, /* data */) = address(commissionDestination).call{value: commission}("");
         require(ok, "Cover: Sending ETH to commission destination failed.");
       }
+
+      // TODO: send eth to pool
 
       return;
     }
@@ -514,9 +513,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       PoolAllocation memory allocation = allocations[i];
 
+      // TODO: use the global capacity ratio that we had at cover buy time
       uint burnAmountInNXM = allocation.coverAmountInNXM
-        * burnAmount / segment.amount
-        * GLOBAL_CAPACITY_DENOMINATOR / globalCapacityRatio;
+        * burnAmount
+        * GLOBAL_CAPACITY_DENOMINATOR
+        / segment.amount
+        / globalCapacityRatio;
 
       stakingPool(i).burnStake(burnAmountInNXM);
 

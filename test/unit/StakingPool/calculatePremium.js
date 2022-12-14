@@ -61,6 +61,7 @@ describe('calculatePremium', function () {
       );
       expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365));
       expect(premium).to.be.equal(expectedPremiun);
+      expect(premium).to.be.equal(parseEther('48').div(365));
       expect(product.nextPrice).to.be.equal(basePrice.add(priceBump));
       expect(product.nextPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
@@ -94,6 +95,7 @@ describe('calculatePremium', function () {
       expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365));
       expect(premium).to.be.equal(expectedPremiun);
       expect(product.nextPrice).to.be.equal(basePrice.add(priceBump));
+      expect(premium).to.be.equal(parseEther('240').div(365));
       expect(product.nextPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
     }
@@ -125,6 +127,7 @@ describe('calculatePremium', function () {
       );
       expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365));
       expect(premium).to.be.equal(expectedPremiun);
+      expect(premium).to.be.equal(parseEther('516').div(365));
       expect(product.nextPrice).to.be.equal(basePrice.add(priceBump));
       expect(product.nextPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
@@ -158,6 +161,7 @@ describe('calculatePremium', function () {
       );
       expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365));
       expect(premium).to.be.equal(expectedPremiun);
+      expect(premium).to.be.equal(parseEther('792').div(365));
       expect(product.nextPrice).to.be.equal(basePrice.add(priceBump));
       expect(product.nextPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
@@ -192,6 +196,7 @@ describe('calculatePremium', function () {
       const expectedPremium = coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365);
       expect(surgePremiumSkipped).to.be.equal(0);
       expect(premium).to.be.equal(expectedPremium.add(divCeil(surgePremiumPerYear, 365)));
+      expect(expectedPremium).to.be.equal(parseEther('312').div(365));
       expect(product.nextPrice).to.be.equal(basePrice.add(priceBump));
       expect(product.nextPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
@@ -225,6 +230,7 @@ describe('calculatePremium', function () {
       );
       const expectedPremium = coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365);
       expect(surgePremiumSkipped).to.be.gt(0);
+      expect(expectedPremium).to.be.equal(parseEther('5040').div(100).div(365));
       expect(premium).to.be.equal(
         expectedPremium.add(divCeil(surgePremiumPerYear, 365).sub(divCeil(surgePremiumSkipped, 365))),
       );

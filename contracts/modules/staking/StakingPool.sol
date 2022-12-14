@@ -28,7 +28,7 @@ contract StakingPool is IStakingPool {
 
   /* storage */
 
-  uint poolId;
+  uint40 poolId;
 
   // currently active staked nxm amount
   uint public activeStake;
@@ -177,7 +177,7 @@ contract StakingPool is IStakingPool {
     isPrivatePool = _isPrivatePool;
     poolFee = uint8(_initialPoolFee);
     maxPoolFee = uint8(_maxPoolFee);
-    poolId = _poolId;
+    poolId = _poolId.toUint40();
 
     _setInitialProducts(params);
 
@@ -378,7 +378,7 @@ contract StakingPool is IStakingPool {
     // we treat it as a flag to create a new token
     if (requestTokenId == type(uint).max) {
       address to = destination == address(0) ? msg.sender : destination;
-      tokenId = stakingNFT.mint(to);
+      tokenId = stakingNFT.mint(poolId, to);
     } else {
       // validate token id exists. ownerOf() reverts if owner is address 0
       stakingNFT.ownerOf(requestTokenId);

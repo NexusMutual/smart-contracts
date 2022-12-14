@@ -1,107 +1,181 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.16;
 
-import "../../interfaces/ICover.sol";
-import "../../interfaces/INXMToken.sol";
-import "solmate/src/tokens/ERC721.sol";
+import "../../interfaces/IStakingNFT.sol";
 
-contract StakingNFT is ERC721 {
+/// @dev Based on Solmate https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol
+contract StakingNFT is IStakingNFT {
 
-  /* storage */
+  struct TokenInfo {
+    uint96 poolId;
+    address owner;
+  }
 
-  uint public totalSupply;
+  string public name;
+  string public symbol;
   address public operator;
-  mapping(uint => address) public tokenStakingPool;
+  uint96 public totalSupply;
 
-  /* immutables */
-
-  INXMToken public immutable nxm;
-
-  modifier onlyOperator {
-    require(msg.sender == operator, "StakingNFT: Not operator");
-    _;
-  }
-
-  modifier onlyStakingPool {
-    // TODO: check if msg.sender is token's staking pool
-    require(msg.sender == operator, "StakingNFT: Not token staking pool");
-    _;
-  }
+  mapping(uint => TokenInfo) internal _tokenInfo;
+  mapping(address => uint) internal _balanceOf;
+  mapping(uint => address) public getApproved;
+  mapping(address => mapping(address => bool)) public isApprovedForAll;
 
   constructor(
-    string memory name_,
-    string memory symbol_,
-    address _nxm,
+    string memory _name,
+    string memory _symbol,
     address _operator
-  ) ERC721(name_, symbol_) {
-    nxm = INXMToken(_nxm);
+  ) {
+    name = _name;
+    symbol = _symbol;
     operator = _operator;
   }
 
-  function tokenURI(uint256) public pure override returns (string memory) {
-    // TODO: implement me
-    return "";
-  }
+  // operator functions
 
-  function isApprovedOrOwner(address spender, uint tokenId) external view returns (bool) {
-    address owner = ownerOf(tokenId);
-    return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[tokenId];
-  }
-
-  function mint(address to, uint tokenId) external onlyStakingPool {
-    _mint(to, tokenId);
-  }
-
-  function mint(address to) external onlyStakingPool returns (uint tokenId) {
-    tokenId = totalSupply++;
-    _mint(to, tokenId);
-  }
-
-  function burn(uint tokenId) external onlyStakingPool {
-    _burn(tokenId);
-  }
-
-  function transferFrom(
-    address from,
-    address to,
-    uint256 tokenId
-  ) public override {
-
-    // TODO: check if this is the manager's token
-    // TODO: this is unneeded if the pool manager is not tracked using an NFT
-    if (tokenId == 0) {
-      require(
-        nxm.isLockedForMV(from) < block.timestamp,
-        "StakingPool: Active pool assets are locked for voting in governance"
-      );
-    }
-
-    super.transferFrom(from, to, tokenId);
-  }
-
-  function operatorTransferFrom(address from, address to, uint256 tokenId) external onlyOperator {
-
-    require(from == _ownerOf[tokenId], "WRONG_FROM");
+  function operatorTransferFrom(address from, address to, uint id) external {
+    require(msg.sender == operator, "NOT_OPERATOR");
+    require(from == ownerOf(id), "WRONG_FROM");
     require(to != address(0), "INVALID_RECIPIENT");
 
-    // Underflow of the sender's balance is impossible because we check for
-    // ownership above and the recipient's balance can't realistically overflow.
+    // underflow of the sender's balance is impossible because we check for
+    // ownership above and the recipient's balance can't realistically overflow
     unchecked {
       _balanceOf[from]--;
       _balanceOf[to]++;
     }
 
-    _ownerOf[tokenId] = to;
-    delete getApproved[tokenId];
+    _tokenInfo[id].owner = to;
+    delete getApproved[id];
 
-    emit Transfer(from, to, tokenId);
+    emit Transfer(from, to, id);
   }
 
-  function changeOperator(address _newOperator) public onlyOperator returns (bool) {
-    require(_newOperator != address(0), "StakingNFT: Invalid newOperator address");
+  function changeOperator(address newOperator) public {
+    require(msg.sender == operator, "NOT_OPERATOR");
+    require(newOperator != address(0), "INVALID_OPERATOR");
+    operator = newOperator;
+  }
 
-    operator = _newOperator;
-    return true;
+  // ERC165
+
+  function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+    return
+      interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
+      interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
+      interfaceId == 0x5b5e139f;   // ERC165 Interface ID for ERC721Metadata
+  }
+
+  // ERC721
+
+  function tokenURI(uint id) public view virtual returns (string memory) {
+    // TODO: implement token uri
+    id;
+    return "NOT IMPLEMENTED";
+  }
+
+  function ownerOf(uint id) public view returns (address owner) {
+    require((owner = _tokenInfo[id].owner) != address(0), "NOT_MINTED");
+  }
+
+  function balanceOf(address owner) public view returns (uint) {
+    require(owner != address(0), "ZERO_ADDRESS");
+    return _balanceOf[owner];
+  }
+
+  function approve(address spender, uint id) public {
+    address owner = ownerOf(id);
+    require(msg.sender == owner || isApprovedForAll[owner][msg.sender], "NOT_AUTHORIZED");
+    getApproved[id] = spender;
+    emit Approval(owner, spender, id);
+  }
+
+  function setApprovalForAll(address spender, bool approved) public {
+    isApprovedForAll[msg.sender][spender] = approved;
+    emit ApprovalForAll(msg.sender, spender, approved);
+  }
+
+  function isApprovedOrOwner(address spender, uint id) external view returns (bool) {
+    address owner = ownerOf(id);
+    return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[id];
+  }
+
+  function transferFrom(address from, address to, uint id) public {
+
+    require(from == ownerOf(id), "WRONG_FROM");
+    require(to != address(0), "INVALID_RECIPIENT");
+
+    require(
+      msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id],
+      "NOT_AUTHORIZED"
+    );
+
+    // underflow of the sender's balance is impossible because we check for
+    // ownership above and the recipient's balance can't realistically overflow
+    unchecked {
+      _balanceOf[from]--;
+      _balanceOf[to]++;
+    }
+
+    _tokenInfo[id].owner = to;
+    delete getApproved[id];
+
+    emit Transfer(from, to, id);
+  }
+
+  function safeTransferFrom(address from, address to, uint id) public {
+    transferFrom(from, to, id);
+    require(
+      to.code.length == 0 ||
+      ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "")
+        == ERC721TokenReceiver.onERC721Received.selector,
+      "UNSAFE_RECIPIENT"
+    );
+  }
+
+  function safeTransferFrom(
+    address from,
+    address to,
+    uint id,
+    bytes calldata data
+  ) public {
+    transferFrom(from, to, id);
+    require(
+      to.code.length == 0 ||
+      ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data)
+        == ERC721TokenReceiver.onERC721Received.selector,
+      "UNSAFE_RECIPIENT"
+    );
+  }
+
+  function mint(uint96 poolId, address to) public returns (uint id) {
+
+    // TODO: make sure msg.sender is a staking pool
+    require(to != address(0), "INVALID_RECIPIENT");
+
+    // counter overflow is incredibly unrealistic
+    unchecked {
+      id = totalSupply++;
+      _balanceOf[to]++;
+    }
+
+    _tokenInfo[id].owner = to;
+    _tokenInfo[id].poolId = poolId;
+
+    emit Transfer(address(0), to, id);
+  }
+}
+
+/// @notice A generic interface for a contract which properly accepts ERC721 tokens.
+/// @dev Based on Solmate https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol
+abstract contract ERC721TokenReceiver {
+  function onERC721Received(
+    address,
+    address,
+    uint,
+    bytes calldata
+  ) external pure returns (bytes4) {
+    return ERC721TokenReceiver.onERC721Received.selector;
   }
 }

@@ -387,6 +387,7 @@ async function main() {
   await upgradeProxy(gw.address, 'LegacyGateway');
   await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address]);
   await upgradeProxy(master.address, 'NXMaster');
+  await upgradeProxy(assessment.address, 'Assessment', [tk.address]);
 
   console.log('Deploying CoverViewer');
   await deployImmutable('CoverViewer', [master.address]);

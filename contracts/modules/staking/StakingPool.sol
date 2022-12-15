@@ -1605,18 +1605,22 @@ contract StakingPool is IStakingPool, ERC721 {
     return surgePremium / ALLOCATION_UNITS_PER_NXM;
   }
 
-  function multicall(
-    bytes[] calldata data
-  ) external returns (bytes[] memory results, bool[] memory statuses) {
+  function multicall(bytes[] calldata data) external returns (bytes[] memory results) {
 
     uint callCount = data.length;
     results = new bytes[](callCount);
-    statuses = new bool[](callCount);
 
     for (uint i = 0; i < callCount; i++) {
       (bool ok, bytes memory result) = address(this).delegatecall(data[i]);
+
+      if (!ok) {
+        // https://ethereum.stackexchange.com/a/83577
+        if (result.length < 68) revert();
+        assembly { result := add(result, 0x04) }
+        revert(abi.decode(result, (string)));
+      }
+
       results[i] = result;
-      statuses[i] = ok;
     }
   }
 

@@ -82,30 +82,44 @@ async function main() {
   const OwnedUpgradeabilityProxy = await ethers.getContractFactory('OwnedUpgradeabilityProxy');
 
   const deployImmutable = async (contract, constructorArgs = [], options = {}) => {
-    const { alias, abiName, overrides = {}, libraries } = options;
+    const { alias, abiFilename, overrides = {}, libraries } = options;
     const Contract = await ethers.getContractFactory(contract, { libraries });
     const instance = await Contract.deploy(...constructorArgs, overrides);
     await instance.deployed();
-    verifier.add(instance.address, contract, contract, { constructorArgs, libraries, alias, abiName });
+    verifier.add(instance.address, contract, contract, { constructorArgs, libraries, alias, abiFilename });
     return instance;
   };
 
   const deployProxy = async (contract, constructorArgs = [], options = {}) => {
-    const { alias, abiName, overrides = {}, libraries } = options;
+    const { alias, abiFilename, overrides = {}, libraries } = options;
     const impl = await deployImmutable(contract, constructorArgs, { overrides, libraries });
     const proxy = await OwnedUpgradeabilityProxy.deploy(impl.address);
     await proxy.deployed();
-    const opts = { constructorArgs: [impl.address], alias, abiName, isProxy: true, libraries };
+    const opts = {
+      constructorArgs: [impl.address],
+      abiFilename,
+      alias,
+      isProxy: true,
+      libraries,
+      implFqName: contract,
+    };
     verifier.add(proxy.address, PROXY_CONTRACT, contract, opts);
     return await ethers.getContractAt(contract, proxy.address);
   };
 
   const upgradeProxy = async (proxyAddress, contract, constructorArgs = [], options = {}) => {
-    const { alias, abiName, overrides = {}, libraries } = options;
+    const { alias, abiFilename, overrides = {}, libraries } = options;
     const impl = await deployImmutable(contract, constructorArgs, { overrides, libraries });
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
     await proxy.upgradeTo(impl.address);
-    const opts = { constructorArgs: [impl.address], alias, abiName, isProxy: true, libraries };
+    const opts = {
+      constructorArgs: [impl.address],
+      alias,
+      abiFilename,
+      isProxy: true,
+      libraries,
+      implFqName: contract,
+    };
     verifier.add(proxy.address, PROXY_CONTRACT, contract, opts);
     const instance = await ethers.getContractAt(contract, proxyAddress);
     try {
@@ -126,14 +140,14 @@ async function main() {
   const dai = await deployImmutable(
     'contracts/mocks/Tokens/ERC20MintableDetailed.sol:ERC20MintableDetailed',
     ['DAI Mock', 'DAI', 18],
-    { alias: 'DAI', abiName: 'ERC20' },
+    { alias: 'DAI', abiFilename: 'ERC20' },
   );
 
   console.log('Deploying stETH');
   const stETH = await deployImmutable(
     'contracts/mocks/Tokens/ERC20MintableDetailed.sol:ERC20MintableDetailed',
     ['stETH Mock', 'stETH', 18],
-    { alias: 'stETH', abiName: 'ERC20' },
+    { alias: 'stETH', abiFilename: 'ERC20' },
   );
 
   console.log('Deploying token contract');
@@ -180,7 +194,9 @@ async function main() {
   );
 
   const stakingPoolParameters = [tk.address, cover.address, tc.address, mr.address];
-  const stakingPool = await deployImmutable('CoverMockStakingPool', stakingPoolParameters, { abiName: 'StakingPool' });
+  const stakingPool = await deployImmutable('CoverMockStakingPool', stakingPoolParameters, {
+    abiFilename: 'StakingPool',
+  });
 
   const coverMigrator = await deployImmutable('CoverMigrator');
   const coverNFT = await deployImmutable('CoverNFT', ['Nexus Mutual Cover', 'NMC', cover.address]);
@@ -207,7 +223,7 @@ async function main() {
     console.log('Deploying chainlink dai-eth aggregator');
     const chainlinkDaiMock = await deployImmutable('ChainlinkAggregatorMock', [], {
       alias: 'Chainlink-DAI-ETH',
-      abiName: 'EACAggregatorProxy',
+      abiFilename: 'EACAggregatorProxy',
     });
     await chainlinkDaiMock.setLatestAnswer(parseEther('0.000357884806717390'));
     CHAINLINK_DAI_ETH[network.name] = chainlinkDaiMock.address;
@@ -217,7 +233,7 @@ async function main() {
     console.log('Deploying chainlink steth-eth aggregator');
     const chainlinkStEthMock = await deployImmutable('ChainlinkAggregatorMock', [], {
       alias: 'Chainlink-STETH-ETH',
-      abiName: 'EACAggregatorProxy',
+      abiFilename: 'EACAggregatorProxy',
     });
     await chainlinkStEthMock.setLatestAnswer(parseEther('1.003')); // almost 1:1
     CHAINLINK_STETH_ETH[network.name] = chainlinkStEthMock.address;
@@ -228,7 +244,7 @@ async function main() {
     console.log('Deploying chainlink eth-usd aggregator');
     const chainlinkEthUsdMock = await deployImmutable('ChainlinkAggregatorMock', [], {
       alias: 'Chainlink-ETH-USD',
-      abiName: 'EACAggregatorProxy',
+      abiFilename: 'EACAggregatorProxy',
     });
     await chainlinkEthUsdMock.setLatestAnswer(parseEther('1234.56'));
     CHAINLINK_ETH_USD[network.name] = chainlinkEthUsdMock.address;
@@ -363,9 +379,11 @@ async function main() {
   // 0b01 for eth and 0b10 for dai
   const coverAssetsFallback = 0b11;
   await cover.setCoverAssetsFallback(coverAssetsFallback);
-
+  console.log('Setting Products.');
   await cover.setProducts(addProductsParams);
-
+  const productsStored = await cover.getProducts();
+  console.log(`${productsStored.length} products added.`);
+  // fs.writeFileSync('products.json', JSON.stringify(productsStored, null, 2));
   console.log('Adding proposal categories');
 
   await pc.initialize(mr.address);
@@ -495,21 +513,21 @@ async function main() {
 
   console.log(`Dumping abis to ${abiDir}`);
   const unsortedContracts = await verifier.dump();
-  const contracts = unsortedContracts.sort((a, b) => a.abiName.localeCompare(b.abiName));
+  const contracts = unsortedContracts.sort((a, b) => a.abiFilename.localeCompare(b.abiFilename));
 
   for (const contract of contracts) {
-    const { abi, address, alias, abiName, isProxy } = contract;
+    const { abi, address, alias, abiFilename, isProxy } = contract;
 
-    if (/^(CSMock|Disposable)/.test(abiName)) {
+    if (/^(CSMock|Disposable)/.test(abiFilename)) {
       continue;
     }
 
     let legacyContractName;
-    if (/^(Testnet)/.test(abiName)) {
-      legacyContractName = abiName.replace('Testnet', 'Legacy');
+    if (/^(Testnet)/.test(abiFilename)) {
+      legacyContractName = abiFilename.replace('Testnet', 'Legacy');
     }
 
-    const abiPath = path.join(abiDir, `${legacyContractName || abiName}.json`);
+    const abiPath = path.join(abiDir, `${legacyContractName || abiFilename}.json`);
     fs.writeFileSync(abiPath, JSON.stringify(abi, null, 2));
 
     if (!config.CONTRACTS_ADDRESSES[legacyContractName || alias] || isProxy) {

@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.9;
 
+import "../../interfaces/ITokenController.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../abstract/MasterAwareV2.sol";
 
 contract DisposableAssessment is MasterAwareV2 {
-
   /* ========== STATE VARIABLES ========== */
 
   IAssessment.Configuration public config;
@@ -23,12 +23,15 @@ contract DisposableAssessment is MasterAwareV2 {
 
   /* ========== CONSTRUCTOR ========== */
 
-  function initialize (address masterAddress) external {
+  function initialize(address masterAddress, address payable _tokenControllerAddress) external {
     config.minVotingPeriodInDays = 3; // days
     config.payoutCooldownInDays = 1; //days
     master = INXMMaster(masterAddress);
+
+    // to receive nxm
+    internalContracts[uint(ID.TC)] = _tokenControllerAddress;
+    ITokenController(_tokenControllerAddress).addToWhitelist(address(this));
   }
 
   function changeDependentContractAddress() external override {}
-
 }

@@ -187,7 +187,7 @@ async function main() {
   console.log('Deploying assessment contracts');
   const yt = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
   const ic = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
-  const assessment = await deployProxy('Assessment', [tk.address]);
+  const assessment = await deployProxy('DisposableAssessment', []);
 
   console.log('Deploying SwapOperator');
   const cowVaultRelayer = await deployImmutable('SOMockVaultRelayer');
@@ -289,9 +289,11 @@ async function main() {
     ...proxyContractCodes.map(() => '2'), // proxy
   ];
 
-  console.log('Initialazing contracts');
+  console.log('Initializing contracts');
   await master.initialize(owner, tk.address, owner, codes, types, addresses);
   await tc.initialize(master.address, tk.address, ps.address, assessment.address);
+
+  await assessment.initialize(master.address, tc.address);
 
   await mr.initialize(
     owner,
@@ -385,6 +387,7 @@ async function main() {
   await upgradeProxy(gw.address, 'LegacyGateway');
   await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address]);
   await upgradeProxy(master.address, 'NXMaster');
+  await upgradeProxy(assessment.address, 'Assessment', [tk.address]);
 
   console.log('Deploying CoverViewer');
   await deployImmutable('CoverViewer', [master.address]);

@@ -5,6 +5,7 @@ const { AddressZero } = ethers.constants;
 
 describe('state management', function () {
   let membersCount;
+  const rolesCount = 3;
   before(function () {
     const { members } = this.accounts;
     membersCount = members.length + 1; // additional AB member
@@ -31,6 +32,7 @@ describe('state management', function () {
 
     const assignedRolesMember = await memberRoles.roles(member.address);
     expect(assignedRolesMember[0]).to.be.equal(Role.Member);
+    expect(assignedRolesMember.length).to.be.equal(rolesCount);
   });
 
   it('should return authorized address for role', async function () {
@@ -64,14 +66,14 @@ describe('state management', function () {
     } = this.accounts;
 
     const [memberAddress, isActive] = await memberRoles.memberAtIndex(Role.Member, 0);
-    expect(member.address).to.be.equal(memberAddress);
+    expect(memberAddress).to.be.equal(member.address);
     expect(isActive).to.be.equal(true);
   });
 
   it('should clear storage', async function () {
     const { memberRoles } = this.contracts;
 
-    await expect(memberRoles.storageCleanup()).to.not.reverted;
+    await expect(memberRoles.storageCleanup()).to.not.be.reverted;
   });
 
   it('should check the role of a member', async function () {
@@ -82,6 +84,7 @@ describe('state management', function () {
       advisoryBoardMembers: [advisoryBoardMember],
     } = this.accounts;
 
+    // checkRole automatically returns true when the target role is NonMember/UnAssigned
     const isMemberMember = await memberRoles.checkRole(member.address, Role.Member);
     const isMemberNonMember = await memberRoles.checkRole(member.address, Role.NonMember);
     const isMemberABMember = await memberRoles.checkRole(member.address, Role.AdvisoryBoard);

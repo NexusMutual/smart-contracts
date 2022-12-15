@@ -13,6 +13,7 @@ describe('MemberRoles unit tests', function () {
   });
 
   require('./join');
+  require('./changeDependentContractAddress');
   require('./updateRole');
   require('./switchMembership');
   require('./switchMembershipOf');

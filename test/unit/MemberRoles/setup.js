@@ -112,16 +112,16 @@ async function setup() {
     );
   // Setting Members
   for (const member of accounts.members) {
-    await master.enrollMember(member.address, 1);
+    await master.enrollMember(member.address, Role.Member);
     await memberRoles.connect(accounts.governanceContracts[0]).updateRole(member.address, Role.Member, true);
     await nxm.mint(member.address, parseEther('10000'));
     await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
   }
   // Setting AB Member
   const [abMember] = accounts.advisoryBoardMembers;
-  await master.enrollMember(abMember.address, 2);
+  await master.enrollMember(abMember.address, Role.AdvisoryBoard);
   await memberRoles.connect(accounts.governanceContracts[0]).updateRole(abMember.address, Role.AdvisoryBoard, true);
-  await master.enrollMember(abMember.address, 1);
+  await master.enrollMember(abMember.address, Role.Member);
   await memberRoles.connect(accounts.governanceContracts[0]).updateRole(abMember.address, Role.Member, true);
 
   this.accounts = accounts;

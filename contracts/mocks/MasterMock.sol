@@ -10,8 +10,8 @@ contract MasterMock {
 
   enum Role {
     NonMember,
-    Member,
     AdvisoryBord,
+    Member,
     Owner
   }
 

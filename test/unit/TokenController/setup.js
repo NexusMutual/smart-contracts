@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat');
 const { getAccounts } = require('../../utils/accounts');
+const { Role } = require('../../../lib/constants');
 const { hex } = require('../utils').helpers;
 
 async function setup() {
@@ -36,7 +37,7 @@ async function setup() {
   await nxm.mint(tokenController.address, ethers.utils.parseUnits('1000'));
 
   for (const member of [...members, tokenController]) {
-    await master.enrollMember(member.address, 2);
+    await master.enrollMember(member.address, Role.Member);
     await tokenController.connect(internal).addToWhitelist(member.address);
   }
 

@@ -126,8 +126,7 @@ describe('setPoolFee', function () {
     const { initialPoolFee } = initializeParams;
     const newPoolFee = initialPoolFee - 2;
 
-    const depositRequest = { amount: depositAmount, trancheId, tokenId, destination: AddressZero };
-    await stakingPool.connect(user).depositTo([depositRequest]);
+    await stakingPool.connect(user).depositTo(depositAmount, trancheId, tokenId, AddressZero);
 
     // Generate rewards
     const coverAmount = parseEther('1');

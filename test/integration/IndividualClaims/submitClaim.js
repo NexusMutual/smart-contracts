@@ -32,7 +32,6 @@ describe('submitClaim', function () {
   async function acceptClaim({ staker, assessmentStakingAmount, as }) {
     const { payoutCooldownInDays } = await as.config();
     await as.connect(staker).stake(assessmentStakingAmount);
-
     await as.connect(staker).castVotes([0], [true], ['Assessment data hash'], 0);
 
     const { poll } = await as.assessments(0);
@@ -46,9 +45,7 @@ describe('submitClaim', function () {
     const assessmentStakingAmountForRejection = parseEther('2000');
     const { payoutCooldownInDays } = await as.config();
     await as.connect(approvingStaker).stake(assessmentStakingAmountForApproval);
-
     await as.connect(approvingStaker).castVotes([0], [true], ['Assessment data hash'], 0);
-
     await as.connect(rejectingStaker).stake(assessmentStakingAmountForRejection);
     await as.connect(rejectingStaker).castVotes([0], [false], ['Assessment data hash'], 0);
 
@@ -65,14 +62,12 @@ describe('submitClaim', function () {
     const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
 
     // Stake to open up capacity
-    await stakingPool.connect(staker).depositTo([
-      {
-        amount: stakingAmount,
-        trancheId: firstTrancheId,
-        tokenId: 0, // new position
-        destination: AddressZero,
-      },
-    ]);
+    await stakingPool.connect(staker).depositTo(
+      stakingAmount,
+      firstTrancheId,
+      0, // new position
+      AddressZero,
+    );
 
     const stakingProductParams = {
       productId,

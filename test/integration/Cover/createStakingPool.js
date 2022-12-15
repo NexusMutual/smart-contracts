@@ -62,14 +62,7 @@ describe('createStakingPool', function () {
     const managerStakingPoolNFTBalanceBefore = await stakingPool.balanceOf(manager.address);
     assert.equal(managerStakingPoolNFTBalanceBefore.toNumber(), 2);
 
-    await stakingPool.connect(manager).depositTo([
-      {
-        amount: deposit,
-        trancheId,
-        tokenId: 0,
-        destination: AddressZero,
-      },
-    ]);
+    await stakingPool.connect(manager).depositTo(deposit, trancheId, 0, AddressZero);
 
     const managerNXMBalanceAfterDeposit = await tk.balanceOf(manager.address);
     const tokenControllerBalanceAfterDeposit = await tk.balanceOf(tc.address);
@@ -79,16 +72,9 @@ describe('createStakingPool', function () {
     expect(tokenControllerBalanceAfterDeposit).to.be.equal(tokenControllerBalanceAfterCreation.add(deposit));
     expect(managerStakingPoolNFTBalanceAfter).to.be.equal(managerStakingPoolNFTBalanceBefore.add(1));
 
-    await expect(
-      stakingPool.connect(staker).depositTo([
-        {
-          amount: deposit,
-          trancheId,
-          tokenId: 0,
-          destination: AddressZero,
-        },
-      ]),
-    ).to.be.revertedWith('StakingPool: The pool is private');
+    await expect(stakingPool.connect(staker).depositTo(deposit, trancheId, 0, AddressZero)).to.be.revertedWith(
+      'StakingPool: The pool is private',
+    );
   });
 
   it('should create a public staking pool with an initial deposit', async function () {
@@ -129,14 +115,7 @@ describe('createStakingPool', function () {
     const managerStakingPoolNFTBalanceBefore = await stakingPool.balanceOf(manager.address);
     expect(managerStakingPoolNFTBalanceBefore).to.be.equal(2);
 
-    await stakingPool.connect(manager).depositTo([
-      {
-        amount: deposit,
-        trancheId,
-        tokenId: 0,
-        destination: AddressZero,
-      },
-    ]);
+    await stakingPool.connect(manager).depositTo(deposit, trancheId, 0, AddressZero);
 
     const managerNXMBalanceAfterDeposit = await tk.balanceOf(manager.address);
     const tokenControllerBalanceAfterManagerDeposit = await tk.balanceOf(tc.address);
@@ -147,14 +126,7 @@ describe('createStakingPool', function () {
     expect(managerStakingPoolNFTBalanceAfter).to.be.equal(managerStakingPoolNFTBalanceBefore.add(1));
 
     const stakerNXMBalanceBefore = await tk.balanceOf(staker.address);
-    await stakingPool.connect(staker).depositTo([
-      {
-        amount: deposit,
-        trancheId,
-        tokenId: 0,
-        destination: AddressZero,
-      },
-    ]);
+    await stakingPool.connect(staker).depositTo(deposit, trancheId, 0, AddressZero);
 
     const stakerNXMBalanceAfter = await tk.balanceOf(staker.address);
     const tokenControllerBalanceAfterStakerDeposit = await tk.balanceOf(tc.address);

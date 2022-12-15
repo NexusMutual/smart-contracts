@@ -46,14 +46,12 @@ describe.skip('expireCover', function () {
     const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
 
     // Stake to open up capacity
-    await stakingPool.connect(staker).depositTo([
-      {
-        amount: stakingAmount,
-        trancheId: firstTrancheId,
-        tokenId: 0, // new position
-        destination: AddressZero,
-      },
-    ]);
+    await stakingPool.connect(staker).depositTo(
+      stakingAmount,
+      firstTrancheId,
+      0, // new position
+      AddressZero,
+    );
     await stakingPool.setTargetWeight(productId, 10);
   }
 

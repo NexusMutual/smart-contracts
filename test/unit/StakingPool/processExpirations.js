@@ -53,24 +53,14 @@ describe('processExpirations', function () {
 
   it('expires tranche with no previous updates', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches(daysToSeconds(0), daysToSeconds(0));
 
     // Deposit. In this internal call to processExpirations _rewardsSharesSupply is 0
     // so it only updates lastAccNxmUpdate and return
-    await stakingPool.connect(user).depositTo([
-      {
-        amount,
-        trancheId: firstActiveTrancheId,
-        tokenId,
-        destination,
-      },
-    ]);
+    await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
 
     // increase time to expire the first active tranche
     await increaseTime(TRANCHE_DURATION);
@@ -85,23 +75,13 @@ describe('processExpirations', function () {
 
   it('does not revert when expires multiple tranches', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
-
+    const [user] = this.accounts.members;
     const { amount, tokenId, destination } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches(daysToSeconds('0'), daysToSeconds('0'));
 
     // deposit
-    await stakingPool.connect(user).depositTo([
-      {
-        amount,
-        trancheId: firstActiveTrancheId,
-        tokenId,
-        destination,
-      },
-    ]);
+    await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
 
     // increase time to expire a couple of tranches
     await increaseTime(TRANCHE_DURATION * 2);

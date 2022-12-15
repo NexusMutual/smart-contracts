@@ -122,7 +122,7 @@ contract StakingPool is IStakingPool, ERC721 {
   // +0.2% for each 1% of capacity used, ie +20% for 100%
   uint public constant PRICE_BUMP_RATIO = 20_00; // 20%
 
-  // next price smoothing
+  // bumped price smoothing
   // 0.5% per day
   uint public constant PRICE_CHANGE_PER_DAY = 50; // 0.5%
 
@@ -1280,10 +1280,10 @@ contract StakingPool is IStakingPool, ERC721 {
       StakedProduct memory _product = products[_param.productId];
 
       // if this is a new product
-      if (_product.nextPriceUpdateTime == 0) {
-        // initialize the nextPrice
-        _product.nextPrice = initialPriceRatios[i].toUint96();
-        _product.nextPriceUpdateTime = uint32(block.timestamp);
+      if (_product.bumpedPriceUpdateTime == 0) {
+        // initialize the bumpedPrice
+        _product.bumpedPrice = initialPriceRatios[i].toUint96();
+        _product.bumpedPriceUpdateTime = uint32(block.timestamp);
         // and make sure we set the price and the target weight
         require(_param.setTargetPrice, "StakingPool: Must set price for new products");
         require(_param.setTargetWeight, "StakingPool: Must set weight for new products");
@@ -1379,8 +1379,8 @@ contract StakingPool is IStakingPool, ERC721 {
       StakedProduct storage _product = products[param.productId];
       require(param.targetPrice <= TARGET_PRICE_DENOMINATOR, "StakingPool: Target price too high");
       require(param.weight <= WEIGHT_DENOMINATOR, "StakingPool: Cannot set weight beyond 1");
-      _product.nextPrice = param.initialPrice;
-      _product.nextPriceUpdateTime = uint32(block.timestamp);
+      _product.bumpedPrice = param.initialPrice;
+      _product.bumpedPriceUpdateTime = uint32(block.timestamp);
       _product.targetPrice = param.targetPrice;
       _product.targetWeight = param.weight;
       _totalTargetWeight += param.weight;
@@ -1499,21 +1499,21 @@ contract StakingPool is IStakingPool, ERC721 {
 
     uint basePrice;
     {
-      // use previously recorded next price and apply time based smoothing towards target price
-      uint timeSinceLastUpdate = currentBlockTimestamp - product.nextPriceUpdateTime;
+      // use previously recorded bumped price and apply time based smoothing towards target price
+      uint timeSinceLastUpdate = currentBlockTimestamp - product.bumpedPriceUpdateTime;
       uint priceDrop = PRICE_CHANGE_PER_DAY * timeSinceLastUpdate / 1 days;
 
-      // basePrice = max(targetPrice, nextPrice - priceDrop)
+      // basePrice = max(targetPrice, bumpedPrice - priceDrop)
       // rewritten to avoid underflow
-      basePrice = product.nextPrice < targetPrice + priceDrop
+      basePrice = product.bumpedPrice < targetPrice + priceDrop
         ? targetPrice
-        : product.nextPrice - priceDrop;
+        : product.bumpedPrice - priceDrop;
     }
 
-    // calculate the next price by applying the price bump
+    // calculate the bumped price by applying the price bump
     uint priceBump = PRICE_BUMP_RATIO * coverAmount / totalCapacity;
-    product.nextPrice = (basePrice + priceBump).toUint96();
-    product.nextPriceUpdateTime = uint32(currentBlockTimestamp);
+    product.bumpedPrice = (basePrice + priceBump).toUint96();
+    product.bumpedPriceUpdateTime = uint32(currentBlockTimestamp);
 
     // use calculated base price and apply surge pricing if applicable
     uint premiumPerYear = calculatePremiumPerYear(

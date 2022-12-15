@@ -329,12 +329,12 @@ describe('initialize', function () {
       );
 
     for (const [index, product] of validProducts.entries()) {
-      const [lastEffectiveWeight, targetWeight, targetPrice, nextPrice, nextPriceUpdateTime] =
+      const [lastEffectiveWeight, targetWeight, targetPrice, bumpedPrice, bumpedPriceUpdateTime] =
         await stakingPool.products(index);
       expect(targetWeight).to.be.eq(product.weight);
       expect(targetPrice.toString()).to.be.eq(product.targetPrice);
-      expect(nextPrice.toString()).to.be.eq(product.initialPrice);
-      expect(nextPriceUpdateTime).to.not.be.eq(0);
+      expect(bumpedPrice.toString()).to.be.eq(product.initialPrice);
+      expect(bumpedPriceUpdateTime).to.not.be.eq(0);
       expect(lastEffectiveWeight).to.be.eq(0);
     }
   });

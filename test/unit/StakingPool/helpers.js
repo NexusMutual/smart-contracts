@@ -38,13 +38,13 @@ function interpolatePrice(lastPriceRatio, targetPriceRatio, lastPriceUpdate, cur
     return targetPriceRatio;
   }
 
-  const nextPrice = lastPriceRatio.sub(priceChange);
+  const bumpedPrice = lastPriceRatio.sub(priceChange);
 
-  if (nextPrice.lt(targetPriceRatio)) {
+  if (bumpedPrice.lt(targetPriceRatio)) {
     return targetPriceRatio;
   }
 
-  return nextPrice;
+  return bumpedPrice;
 }
 
 function calculatePrice(amount, basePriceRatio, activeCover, capacity) {

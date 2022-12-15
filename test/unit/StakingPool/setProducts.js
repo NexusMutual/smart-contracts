@@ -61,7 +61,7 @@ describe('setProducts unit tests', function () {
   const verifyProduct = (product, productParam) => {
     expect(product.targetWeight).to.be.equal(productParam.targetWeight);
     expect(product.targetPrice).to.be.equal(productParam.targetPrice);
-    expect(product.nextPriceUpdateTime).to.be.equal(productParam.nextPriceUpdateTime);
+    expect(product.bumpedPriceUpdateTime).to.be.equal(productParam.bumpedPriceUpdateTime);
   };
 
   it('should fail to be called by non manager', async function () {
@@ -109,8 +109,8 @@ describe('setProducts unit tests', function () {
     const product = await stakingPool.products(0);
     expect(product.targetWeight).to.be.equal(initialProducts[0].weight);
     expect(product.targetPrice).to.be.equal(initialProducts[0].targetPrice);
-    expect(product.nextPriceUpdateTime).to.be.equal(block.timestamp);
-    expect(product.nextPrice).to.be.equal(initialProducts[0].initialPrice);
+    expect(product.bumpedPriceUpdateTime).to.be.equal(block.timestamp);
+    expect(product.bumpedPrice).to.be.equal(initialProducts[0].initialPrice);
     expect(await stakingPool.totalTargetWeight()).to.be.equal(2000);
     expect(await stakingPool.totalEffectiveWeight()).to.be.equal(2000);
   });
@@ -154,10 +154,10 @@ describe('setProducts unit tests', function () {
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
 
     await stakingPool.connect(manager).setProducts([product]);
-    const { timestamp: nextPriceUpdateTime } = await ethers.provider.getBlock('latest');
+    const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
 
     const product0 = await stakingPool.products(0);
-    verifyProduct(product0, { ...product, nextPriceUpdateTime });
+    verifyProduct(product0, { ...product, bumpedPriceUpdateTime });
   });
 
   it('should revert if user tries to set targetWeight without recalculating effectiveWeight', async function () {
@@ -214,11 +214,11 @@ describe('setProducts unit tests', function () {
     const product2 = await stakingPool.products(2);
 
     // product 0 should now have targetWegiht == 0
-    verifyProduct(product0, { ...productEditParams[0], nextPriceUpdateTime: initialTimestamp });
+    verifyProduct(product0, { ...productEditParams[0], bumpedPriceUpdateTime: initialTimestamp });
     // product 1 stays the same
-    verifyProduct(product1, { ...products[1], nextPriceUpdateTime: initialTimestamp });
+    verifyProduct(product1, { ...products[1], bumpedPriceUpdateTime: initialTimestamp });
     // product 2 should be added as a supported product
-    verifyProduct(product2, { ...productEditParams[1], nextPriceUpdateTime: latestTimestamp });
+    verifyProduct(product2, { ...productEditParams[1], bumpedPriceUpdateTime: latestTimestamp });
   });
 
   it('should add maximum products with full weight (20)', async function () {
@@ -238,11 +238,11 @@ describe('setProducts unit tests', function () {
         }),
     );
     await stakingPool.connect(manager).setProducts(products);
-    const { timestamp: nextPriceUpdateTime } = await ethers.provider.getBlock('latest');
+    const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
 
     expect(await stakingPool.totalTargetWeight()).to.be.equal(2000);
     const product19 = await stakingPool.products(19);
-    verifyProduct(product19, { ...products[19], nextPriceUpdateTime });
+    verifyProduct(product19, { ...products[19], bumpedPriceUpdateTime });
   });
 
   it('should fail to add weights beyond 20x', async function () {
@@ -264,9 +264,9 @@ describe('setProducts unit tests', function () {
     await stakingPool.connect(manager).setProducts(initialStakingProducts);
     expect(await stakingPool.totalTargetWeight()).to.be.equal(2000);
 
-    const { timestamp: nextPriceUpdateTime } = await ethers.provider.getBlock('latest');
+    const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
     const stakingProduct = await stakingPool.products(0);
-    verifyProduct(stakingProduct, { ...newStakingProduct, nextPriceUpdateTime });
+    verifyProduct(stakingProduct, { ...newStakingProduct, bumpedPriceUpdateTime });
 
     await cover.setProduct({ ...coverProductTemplate }, newStakingProduct.productId);
 
@@ -315,19 +315,19 @@ describe('setProducts unit tests', function () {
     const product = { ...newProductTemplate };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
     await stakingPool.connect(manager).setProducts([product]);
-    const { timestamp: nextPriceUpdateTime } = await ethers.provider.getBlock('latest');
+    const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
 
-    verifyProduct(await stakingPool.products(0), { ...product, nextPriceUpdateTime });
+    verifyProduct(await stakingPool.products(0), { ...product, bumpedPriceUpdateTime });
     product.setTargetPrice = false;
     product.targetPrice = 0;
     product.targetWeight = 50;
     {
-      const { timestamp: nextPriceUpdateTime } = await ethers.provider.getBlock('latest');
+      const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
       await stakingPool.connect(manager).setProducts([product]);
       verifyProduct(await stakingPool.products(0), {
         ...newProductTemplate,
         targetWeight: 50,
-        nextPriceUpdateTime,
+        bumpedPriceUpdateTime,
       });
     }
   });
@@ -358,7 +358,7 @@ describe('setProducts unit tests', function () {
       cover.setProduct({ ...coverProductTemplate }, products[1].productId),
     ]);
     await stakingPool.connect(manager).setProducts(products);
-    const { timestamp: nextPriceUpdateTime } = await ethers.provider.getBlock('latest');
+    const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
     // lowering targetWeight should reduce effective weight
     products[0].targetWeight = 0;
     // product1 target and effective weight  should remain at 100
@@ -367,8 +367,8 @@ describe('setProducts unit tests', function () {
     await stakingPool.connect(manager).setProducts(products);
     const product0 = await stakingPool.products(0);
     const product1 = await stakingPool.products(1);
-    verifyProduct(product0, { ...products[0], nextPriceUpdateTime });
-    verifyProduct(product1, { ...newProductTemplate, productId: 1, nextPriceUpdateTime });
+    verifyProduct(product0, { ...products[0], bumpedPriceUpdateTime });
+    verifyProduct(product1, { ...newProductTemplate, productId: 1, bumpedPriceUpdateTime });
     expect(product0.lastEffectiveWeight).to.be.equal(0);
     expect(product1.lastEffectiveWeight).to.be.equal(100);
   });
@@ -382,8 +382,8 @@ describe('setProducts unit tests', function () {
     const product = { ...newProductTemplate };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
     await stakingPool.connect(manager).setProducts([product]);
-    const { timestamp: nextPriceUpdateTime } = await ethers.provider.getBlock('latest');
-    verifyProduct(await stakingPool.products(0), { ...product, nextPriceUpdateTime });
+    const { timestamp: bumpedPriceUpdateTime } = await ethers.provider.getBlock('latest');
+    verifyProduct(await stakingPool.products(0), { ...product, bumpedPriceUpdateTime });
     // Weight calculation should be skipped
     await stakingPool
       .connect(manager)
@@ -391,7 +391,7 @@ describe('setProducts unit tests', function () {
     verifyProduct(await stakingPool.products(0), {
       ...newProductTemplate,
       targetPrice: GLOBAL_MIN_PRICE_RATIO,
-      nextPriceUpdateTime,
+      bumpedPriceUpdateTime,
     });
   });
 

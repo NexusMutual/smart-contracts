@@ -66,8 +66,8 @@ interface IStakingPool {
     uint16 lastEffectiveWeight;
     uint8 targetWeight;
     uint96 targetPrice;
-    uint96 nextPrice;
-    uint32 nextPriceUpdateTime;
+    uint96 bumpedPrice;
+    uint32 bumpedPriceUpdateTime;
   }
 
   struct RewardBucket {

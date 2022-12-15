@@ -171,7 +171,7 @@ describe('calculatePremium', function () {
       timestamp = timestamp.add(daysToSeconds(15));
       const coverAmountRaw = parseEther('8000');
       const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
-      const initialCapacityUsed = BigNumber.from(totalCapacity.mul(768).div(1000)); // 52.8% used
+      const initialCapacityUsed = BigNumber.from(totalCapacity.mul(768).div(1000)); // 76.8% used
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
       expect(basePrice).to.be.equal(390);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
@@ -197,6 +197,7 @@ describe('calculatePremium', function () {
       expect(surgePremiumSkipped).to.be.equal(0);
       expect(premium).to.be.equal(expectedPremium.add(divCeil(surgePremiumPerYear, 365)));
       expect(expectedPremium).to.be.equal(parseEther('312').div(365));
+      expect(surgePremiumPerYear).to.be.equal(parseEther('392').div(10));
       expect(product.nextPrice).to.be.equal(basePrice.add(priceBump));
       expect(product.nextPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
@@ -206,7 +207,7 @@ describe('calculatePremium', function () {
       timestamp = timestamp.add(daysToSeconds(10));
       const coverAmountRaw = parseEther('2400');
       const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
-      const initialCapacityUsed = BigNumber.from(totalCapacity.mul(928).div(1000)); // 52.8% used
+      const initialCapacityUsed = BigNumber.from(totalCapacity.mul(928).div(1000)); // 92.8% used
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
       expect(basePrice).to.be.equal(210);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
@@ -229,8 +230,10 @@ describe('calculatePremium', function () {
         timestamp,
       );
       const expectedPremium = coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365);
-      expect(surgePremiumSkipped).to.be.gt(0);
-      expect(expectedPremium).to.be.equal(parseEther('5040').div(100).div(365));
+      expect(surgePremiumSkipped).to.be.eq(parseEther('3920').div(100)); // 39.2 NXM
+      expect(surgePremiumPerYear).to.be.equal(parseEther('2888').div(10)); // 288.8 NXM
+      expect(expectedPremium).to.be.equal(parseEther('5040').div(100).div(365)); // 50.4 NXM
+      expect(premium).to.be.equal(parseEther('300').div(365));
       expect(premium).to.be.equal(
         expectedPremium.add(divCeil(surgePremiumPerYear, 365).sub(divCeil(surgePremiumSkipped, 365))),
       );

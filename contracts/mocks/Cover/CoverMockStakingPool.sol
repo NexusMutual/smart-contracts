@@ -201,4 +201,9 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     revert("CoverMockStakingPool: not callable");
   }
 
+  function multicall(bytes[] calldata) external returns (bytes[] memory) {
+    totalSupply = totalSupply;
+    revert("CoverMockStakingPool: not callable");
+  }
+
 }

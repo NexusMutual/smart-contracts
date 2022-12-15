@@ -62,10 +62,9 @@ function calculateSurgePremiums(coverAmount, initialCapacityUsed, totalCapacity,
 
 // config is from StakingPool/unit/setup.js
 function calculateAmountOnSurge(coverAmount, initialCapacityUsed, totalCapacity, config) {
-  coverAmount = divCeil(coverAmount, config.NXM_PER_ALLOCATION_UNIT);
   initialCapacityUsed = BigNumber.from(initialCapacityUsed);
   totalCapacity = BigNumber.from(totalCapacity);
-  const finalCapacityUsed = initialCapacityUsed.add(coverAmount);
+  const finalCapacityUsed = initialCapacityUsed.add(divCeil(coverAmount, config.NXM_PER_ALLOCATION_UNIT));
   if (finalCapacityUsed.gt(totalCapacity)) {
     throw Error('calculateAmountOnSurge: finalCapacityUsed > totalCapacity');
   }

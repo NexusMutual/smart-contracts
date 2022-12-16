@@ -93,7 +93,6 @@ async function setup() {
     master.address,
     priceFeedOracle.address, // price feed oracle, add to setup if needed
     AddressZero, // swap operator
-    AddressZero, // previousPool
   );
 
   // Setup master, pool and mcr connections

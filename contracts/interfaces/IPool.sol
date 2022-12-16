@@ -83,5 +83,10 @@ interface IPool {
 
   function setSwapValue(uint value) external;
 
-  function receiveAssets(Asset[] calldata assets, SwapDetails[] calldata swapDetails, bool[] calldata isCoverAsset) external;
+  function getAssetsAndSwapDetails() external view returns (
+    Asset[] memory _coverAssets,
+    Asset[] memory _investmentAssets,
+    SwapDetails[] memory _coverAssetSwapDetails,
+    SwapDetails[] memory _investmentAssetSwapDetails
+  );
 }

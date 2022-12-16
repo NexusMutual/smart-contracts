@@ -21,8 +21,8 @@ describe('calculatePremium', function () {
     lastEffectiveWeight: BigNumber.from(50),
     targetWeight: BigNumber.from(70), // 70%
     targetPrice: BigNumber.from(200), // 2%
-    nextPrice: BigNumber.from(200), // 2%
-    nextPriceUpdateTime: BigNumber.from(0),
+    bumpedPrice: BigNumber.from(200), // 2%
+    bumpedPriceUpdateTime: BigNumber.from(0),
   };
 
   it('should calculate premium on multiple cover buys over time, based on pre-defined numbers', async function () {
@@ -30,8 +30,8 @@ describe('calculatePremium', function () {
     let { timestamp } = await ethers.provider.getBlock('latest');
     timestamp = BigNumber.from(timestamp);
     const { NXM_PER_ALLOCATION_UNIT, PRICE_BUMP_RATIO, PRICE_CHANGE_PER_DAY, INITIAL_PRICE_DENOMINATOR } = this.config;
-    let stakedProduct = { ...stakedProductTemplate, nextPriceUpdateTime: timestamp };
-    const period = daysToSeconds(1);
+    let stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
+    const period = daysToSeconds(365);
     const totalCapacity = divCeil(parseEther('50000'), NXM_PER_ALLOCATION_UNIT);
 
     // 1st cover buy
@@ -42,6 +42,8 @@ describe('calculatePremium', function () {
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
       expect(basePrice).to.be.equal(200);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
+      const expectedNextPrice = basePrice.add(priceBump);
+      expect(296).to.be.equal(expectedNextPrice);
 
       const expectedPremiun = calculateFixedPricePremium(
         coverAmount,
@@ -59,22 +61,24 @@ describe('calculatePremium', function () {
         stakedProduct.targetPrice,
         timestamp,
       );
-      expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365));
+      expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR));
       expect(premium).to.be.equal(expectedPremiun);
-      expect(premium).to.be.equal(parseEther('48').div(365));
-      expect(product.nextPrice).to.be.equal(basePrice.add(priceBump));
-      expect(product.nextPriceUpdateTime).to.be.equal(timestamp);
+      expect(premium).to.be.equal(parseEther('48'));
+      expect(product.bumpedPrice).to.be.equal(expectedNextPrice);
+      expect(product.bumpedPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
     }
     // 2nd cover buy
     {
-      timestamp = timestamp.add(daysToSeconds(3));
+      timestamp = timestamp.add(daysToSeconds(1));
       const coverAmountRaw = parseEther('12000');
       const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
       const initialCapacityUsed = BigNumber.from(totalCapacity.mul(48).div(1000)); // 4.8% used
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
-      expect(basePrice).to.be.equal(200);
+      expect(basePrice).to.be.equal(246);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
+      const expectedNextPrice = basePrice.add(priceBump);
+      expect(726).to.be.equal(expectedNextPrice);
 
       const expectedPremiun = calculateFixedPricePremium(
         coverAmount,
@@ -92,22 +96,24 @@ describe('calculatePremium', function () {
         stakedProduct.targetPrice,
         timestamp,
       );
-      expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365));
+      expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR));
       expect(premium).to.be.equal(expectedPremiun);
-      expect(product.nextPrice).to.be.equal(basePrice.add(priceBump));
-      expect(premium).to.be.equal(parseEther('240').div(365));
-      expect(product.nextPriceUpdateTime).to.be.equal(timestamp);
+      expect(product.bumpedPrice).to.be.equal(expectedNextPrice);
+      expect(premium).to.be.equal(parseEther('29520').div(100));
+      expect(product.bumpedPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
     }
     // 3rd cover buy
     {
-      timestamp = timestamp.add(daysToSeconds(5));
+      timestamp = timestamp.add(daysToSeconds(2));
       const coverAmountRaw = parseEther('12000');
       const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
       const initialCapacityUsed = BigNumber.from(totalCapacity.mul(288).div(1000)); // 28.8% used
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
-      expect(basePrice).to.be.equal(430);
+      expect(basePrice).to.be.equal(626);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
+      const expectedNextPrice = basePrice.add(priceBump);
+      expect(1106).to.be.equal(expectedNextPrice);
 
       const expectedPremiun = calculateFixedPricePremium(
         coverAmount,
@@ -125,11 +131,11 @@ describe('calculatePremium', function () {
         stakedProduct.targetPrice,
         timestamp,
       );
-      expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365));
+      expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR));
       expect(premium).to.be.equal(expectedPremiun);
-      expect(premium).to.be.equal(parseEther('516').div(365));
-      expect(product.nextPrice).to.be.equal(basePrice.add(priceBump));
-      expect(product.nextPriceUpdateTime).to.be.equal(timestamp);
+      expect(premium).to.be.equal(parseEther('75120').div(100));
+      expect(product.bumpedPrice).to.be.equal(expectedNextPrice);
+      expect(product.bumpedPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
     }
     // 4th cover buy
@@ -139,9 +145,10 @@ describe('calculatePremium', function () {
       const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
       const initialCapacityUsed = BigNumber.from(totalCapacity.mul(528).div(1000)); // 52.8% used
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
-      expect(basePrice).to.be.equal(660);
+      expect(basePrice).to.be.equal(856);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
-      expect(priceBump.add(basePrice)).to.be.equal(1140);
+      const expectedNextPrice = basePrice.add(priceBump);
+      expect(1336).to.be.equal(expectedNextPrice); // 13.36%
 
       const expectedPremiun = calculateFixedPricePremium(
         coverAmount,
@@ -159,23 +166,24 @@ describe('calculatePremium', function () {
         stakedProduct.targetPrice,
         timestamp,
       );
-      expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365));
+      expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR));
       expect(premium).to.be.equal(expectedPremiun);
-      expect(premium).to.be.equal(parseEther('792').div(365));
-      expect(product.nextPrice).to.be.equal(basePrice.add(priceBump));
-      expect(product.nextPriceUpdateTime).to.be.equal(timestamp);
+      expect(premium).to.be.equal(parseEther('10272').div(10)); // 1027.2
+      expect(product.bumpedPrice).to.be.equal(expectedNextPrice);
+      expect(product.bumpedPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
     }
     // 5th cover buy
     {
-      timestamp = timestamp.add(daysToSeconds(15));
+      timestamp = timestamp.add(daysToSeconds(2));
       const coverAmountRaw = parseEther('8000');
       const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
       const initialCapacityUsed = BigNumber.from(totalCapacity.mul(768).div(1000)); // 76.8% used
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
-      expect(basePrice).to.be.equal(390);
+      expect(basePrice).to.be.equal(1236);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
-      expect(priceBump.add(basePrice)).to.be.equal(710);
+      const expectedNextPrice = basePrice.add(priceBump);
+      expect(1556).to.be.equal(expectedNextPrice);
 
       // calculate surge premium
       const { surgePremiumPerYear, surgePremiumSkipped } = calculateSurgePremiums(
@@ -193,25 +201,26 @@ describe('calculatePremium', function () {
         stakedProduct.targetPrice,
         timestamp,
       );
-      const expectedPremium = coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365);
+      const basePremium = coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR);
       expect(surgePremiumSkipped).to.be.equal(0);
-      expect(premium).to.be.equal(expectedPremium.add(divCeil(surgePremiumPerYear, 365)));
-      expect(expectedPremium).to.be.equal(parseEther('312').div(365));
+      expect(premium).to.be.equal(parseEther('1028'));
+      expect(basePremium).to.be.equal(parseEther('98880').div(100));
       expect(surgePremiumPerYear).to.be.equal(parseEther('392').div(10));
-      expect(product.nextPrice).to.be.equal(basePrice.add(priceBump));
-      expect(product.nextPriceUpdateTime).to.be.equal(timestamp);
+      expect(product.bumpedPrice).to.be.equal(expectedNextPrice);
+      expect(product.bumpedPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
     }
     // 6th cover buy
     {
-      timestamp = timestamp.add(daysToSeconds(10));
+      timestamp = timestamp.add(daysToSeconds(4));
       const coverAmountRaw = parseEther('2400');
       const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
       const initialCapacityUsed = BigNumber.from(totalCapacity.mul(928).div(1000)); // 92.8% used
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
-      expect(basePrice).to.be.equal(210);
+      expect(basePrice).to.be.equal(1356);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
-      expect(priceBump.add(basePrice)).to.be.equal(306);
+      const expectedNextPrice = basePrice.add(priceBump);
+      expect(1452).to.be.equal(expectedNextPrice);
 
       // calculate surge premium
       const { surgePremiumPerYear, surgePremiumSkipped } = calculateSurgePremiums(
@@ -229,25 +238,24 @@ describe('calculatePremium', function () {
         stakedProduct.targetPrice,
         timestamp,
       );
-      const expectedPremium = coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR).div(365);
+      const basePremium = coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR);
       expect(surgePremiumSkipped).to.be.eq(parseEther('3920').div(100)); // 39.2 NXM
       expect(surgePremiumPerYear).to.be.equal(parseEther('2888').div(10)); // 288.8 NXM
-      expect(expectedPremium).to.be.equal(parseEther('5040').div(100).div(365)); // 50.4 NXM
-      expect(premium).to.be.equal(parseEther('300').div(365));
-      expect(premium).to.be.equal(
-        expectedPremium.add(divCeil(surgePremiumPerYear, 365).sub(divCeil(surgePremiumSkipped, 365))),
-      );
-      expect(product.nextPrice).to.be.equal(basePrice.add(priceBump));
-      expect(product.nextPriceUpdateTime).to.be.equal(timestamp);
+      expect(basePremium).to.be.equal(parseEther('32544').div(100)); // 325.44 NXM
+      expect(premium).to.be.equal(parseEther('57504').div(100));
+      expect(premium).to.be.equal(basePremium.add(surgePremiumPerYear).sub(surgePremiumSkipped));
+      expect(product.bumpedPrice).to.be.equal(expectedNextPrice);
+      expect(product.bumpedPriceUpdateTime).to.be.equal(timestamp);
     }
   });
 
   it('should return 0 premium when period is 0', async function () {
     const { stakingPool } = this;
-    const { timestamp } = await ethers.provider.getBlock('latest');
+    let { timestamp } = await ethers.provider.getBlock('latest');
+    timestamp = BigNumber.from(timestamp);
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
-    const stakedProduct = { ...stakedProductTemplate, nextPriceUpdateTime: timestamp };
-    const period = 0;
+    const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
+    const period = BigNumber.from(0);
     const coverAmountRaw = parseEther('100');
     const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
 
@@ -263,6 +271,7 @@ describe('calculatePremium', function () {
       stakedProduct.targetPrice,
       timestamp,
     );
+
     expect(premium).to.be.equal(0);
   });
 
@@ -270,7 +279,7 @@ describe('calculatePremium', function () {
     const { stakingPool } = this;
     const { timestamp } = await ethers.provider.getBlock('latest');
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
-    const stakedProduct = { ...stakedProductTemplate, nextPriceUpdateTime: timestamp };
+    const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
     const period = daysToSeconds(365);
     const coverAmountRaw = parseEther('100');
     const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
@@ -295,7 +304,7 @@ describe('calculatePremium', function () {
     const { stakingPool } = this;
     const { timestamp } = await ethers.provider.getBlock('latest');
     const { INITIAL_PRICE_DENOMINATOR, NXM_PER_ALLOCATION_UNIT } = this.config;
-    const stakedProduct = { ...stakedProductTemplate, nextPriceUpdateTime: timestamp };
+    const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
     const period = daysToSeconds(365);
     const coverAmountRaw = BigNumber.from(2).pow(96);
     const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
@@ -331,7 +340,7 @@ describe('calculatePremium', function () {
     const { stakingPool } = this;
     const { timestamp } = await ethers.provider.getBlock('latest');
     const { INITIAL_PRICE_DENOMINATOR, NXM_PER_ALLOCATION_UNIT } = this.config;
-    const stakedProduct = { ...stakedProductTemplate, nextPriceUpdateTime: timestamp };
+    const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
     const period = daysToSeconds(365);
     const coverAmountRaw = parseEther('1234');
     const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
@@ -371,7 +380,7 @@ describe('calculatePremium', function () {
     const { stakingPool } = this;
     const { timestamp } = await ethers.provider.getBlock('latest');
     const { INITIAL_PRICE_DENOMINATOR, NXM_PER_ALLOCATION_UNIT } = this.config;
-    const stakedProduct = { ...stakedProductTemplate, nextPriceUpdateTime: timestamp };
+    const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
     const period = daysToSeconds(365);
     const coverAmountRaw = parseEther('1234');
     const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
@@ -409,7 +418,7 @@ describe('calculatePremium', function () {
   it('should calculate 0 premium for 0 cover amount', async function () {
     const { stakingPool } = this;
     const { timestamp } = await ethers.provider.getBlock('latest');
-    const stakedProduct = { ...stakedProductTemplate, nextPriceUpdateTime: timestamp };
+    const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
     const period = daysToSeconds(365);
     const coverAmount = 0;
 
@@ -431,7 +440,7 @@ describe('calculatePremium', function () {
     const { stakingPool } = this;
     const { timestamp } = await ethers.provider.getBlock('latest');
     const { INITIAL_PRICE_DENOMINATOR, NXM_PER_ALLOCATION_UNIT } = this.config;
-    const stakedProduct = { ...stakedProductTemplate, nextPriceUpdateTime: timestamp };
+    const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
     const period = daysToSeconds(365);
     const coverAmountRaw = 1;
     const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
@@ -467,7 +476,7 @@ describe('calculatePremium', function () {
     const { stakingPool } = this;
     const { timestamp } = await ethers.provider.getBlock('latest');
     const { INITIAL_PRICE_DENOMINATOR, NXM_PER_ALLOCATION_UNIT } = this.config;
-    const stakedProduct = { ...stakedProductTemplate, nextPriceUpdateTime: timestamp };
+    const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
     const period = daysToSeconds(365);
     const coverAmountRaw = parseEther('1');
     const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
@@ -503,7 +512,7 @@ describe('calculatePremium', function () {
     const { stakingPool } = this;
     const { timestamp } = await ethers.provider.getBlock('latest');
     const { INITIAL_PRICE_DENOMINATOR, NXM_PER_ALLOCATION_UNIT } = this.config;
-    const stakedProduct = { ...stakedProductTemplate, nextPriceUpdateTime: timestamp };
+    const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
     const period = daysToSeconds(365);
     const coverAmountRaw = parseEther('4321');
     const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
@@ -542,7 +551,7 @@ describe('calculatePremium', function () {
     const { stakingPool } = this;
     const { timestamp } = await ethers.provider.getBlock('latest');
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
-    const stakedProduct = { ...stakedProductTemplate, nextPriceUpdateTime: timestamp };
+    const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
     const period = daysToSeconds(365);
     const coverAmountRaw = parseEther('4321');
     const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
@@ -570,7 +579,7 @@ describe('calculatePremium', function () {
     const { stakingPool } = this;
     const { timestamp } = await ethers.provider.getBlock('latest');
     const { INITIAL_PRICE_DENOMINATOR, NXM_PER_ALLOCATION_UNIT } = this.config;
-    const stakedProduct = { ...stakedProductTemplate, nextPriceUpdateTime: timestamp };
+    const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
     const period = daysToSeconds(182.5);
     const coverAmountRaw = parseEther('4321');
     const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);

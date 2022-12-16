@@ -30,9 +30,9 @@ const setTime = async timestamp => {
 };
 
 function calculateBasePrice(timestamp, product, priceChangePerDay) {
-  const timeSinceLastUpdate = BigNumber.from(timestamp).sub(product.nextPriceUpdateTime);
+  const timeSinceLastUpdate = BigNumber.from(timestamp).sub(product.bumpedPriceUpdateTime);
   const priceDrop = timeSinceLastUpdate.mul(priceChangePerDay).div(daysToSeconds(1));
-  const basePrice = product.nextPrice.sub(priceDrop);
+  const basePrice = product.bumpedPrice.sub(priceDrop);
   return BigNumber.from(Math.max(basePrice, product.targetPrice));
 }
 

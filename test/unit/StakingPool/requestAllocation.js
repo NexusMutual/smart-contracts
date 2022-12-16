@@ -83,14 +83,7 @@ describe('requestAllocation', function () {
 
     // Deposit into pool
     const amount = stakedNxmAmount;
-    await stakingPool.connect(staker).depositTo([
-      {
-        tokenId: 0,
-        amount,
-        destination: staker.address,
-        trancheId: (await getCurrentTrancheId()) + 4,
-      },
-    ]);
+    await stakingPool.connect(staker).depositTo(amount, (await getCurrentTrancheId()) + 4, poolId, staker.address);
   });
 
   async function moveDaysForward(days) {
@@ -112,7 +105,7 @@ describe('requestAllocation', function () {
 
     const product = await stakingPool.products(productId);
     const initialPrice = BigNumber.from(coverProductTemplate.initialPriceRatio);
-    expect(product.nextPrice).to.be.equal(initialPrice);
+    expect(product.bumpedPrice).to.be.equal(initialPrice);
 
     const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
       buyCoverParamsTemplate.productId,
@@ -133,7 +126,7 @@ describe('requestAllocation', function () {
 
       const product = await stakingPool.products(productId);
       expect(await cover.lastPremium()).to.be.equal(expectedPremium);
-      expect(product.nextPrice).to.be.equal(initialPrice.add(priceBump));
+      expect(product.bumpedPrice).to.be.equal(initialPrice.add(priceBump));
     }
   });
 
@@ -169,7 +162,7 @@ describe('requestAllocation', function () {
           .div(INITIAL_PRICE_DENOMINATOR)
           .div(periodsInYear),
       );
-      expect(product.nextPrice).to.be.equal(initialPrice.add(priceBump));
+      expect(product.bumpedPrice).to.be.equal(initialPrice.add(priceBump));
     }
   });
 
@@ -179,7 +172,7 @@ describe('requestAllocation', function () {
 
     const product = await stakingPool.products(productId);
     const initialPrice = BigNumber.from(coverProductTemplate.initialPriceRatio);
-    expect(product.nextPrice).to.be.equal(initialPrice);
+    expect(product.bumpedPrice).to.be.equal(initialPrice);
 
     const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
       buyCoverParamsTemplate.productId,
@@ -202,7 +195,7 @@ describe('requestAllocation', function () {
 
       const product = await stakingPool.products(productId);
       expect(await cover.lastPremium()).to.be.equal(expectedPremium);
-      expect(product.nextPrice).to.be.equal(initialPrice.add(priceBump));
+      expect(product.bumpedPrice).to.be.equal(initialPrice.add(priceBump));
     }
   });
 
@@ -311,14 +304,12 @@ describe('requestAllocation', function () {
     const amount = BigNumber.from(2).pow(96).sub(1);
     const buyCoverParams = { ...buyCoverParamsTemplate, amount };
 
-    await stakingPool.connect(staker).depositTo([
-      {
-        tokenId: 0,
-        amount,
-        destination: staker.address,
-        trancheId: (await getCurrentTrancheId()) + 3,
-      },
-    ]);
+    await stakingPool.connect(staker).depositTo(
+      amount,
+      (await getCurrentTrancheId()) + 3, // trancheId
+      0, // tokenID
+      staker.address, // destination
+    );
 
     await expect(
       cover.connect(coverBuyer).allocateCapacity(buyCoverParams, coverId, stakingPool.address),
@@ -378,7 +369,7 @@ describe('requestAllocation', function () {
       const buyCoverParams = { ...buyCoverParamsTemplate, amount };
       await cover.allocateCapacity(buyCoverParams, coverId + 1, stakingPool.address);
 
-      expect(product.nextPrice).to.be.equal(296);
+      expect(product.bumpedPrice).to.be.equal(296);
       expect(await cover.lastPremium()).to.be.equal(
         amount.div(periodsInYear).mul(basePrice).div(INITIAL_PRICE_DENOMINATOR),
       );
@@ -395,7 +386,7 @@ describe('requestAllocation', function () {
       const buyCoverParams = { ...buyCoverParamsTemplate, amount };
       await cover.allocateCapacity(buyCoverParams, coverId, stakingPool.address);
       expect(basePrice).to.be.equal(430);
-      expect(product.nextPrice).to.be.equal(680);
+      expect(product.bumpedPrice).to.be.equal(680);
       expect(await cover.lastPremium()).to.be.equal(
         amount.div(periodsInYear).mul(basePrice).div(INITIAL_PRICE_DENOMINATOR),
       );
@@ -410,7 +401,7 @@ describe('requestAllocation', function () {
       const basePrice = calculateBasePrice(timestamp, product, PRICE_CHANGE_PER_DAY);
       const buyCoverParams = { ...buyCoverParamsTemplate, amount };
       await cover.allocateCapacity(buyCoverParams, coverId, stakingPool.address);
-      expect(product.nextPrice).to.be.equal(910);
+      expect(product.bumpedPrice).to.be.equal(910);
       expect(basePrice).to.be.equal(660);
       expect(await cover.lastPremium()).to.be.equal(
         amount.div(periodsInYear).mul(basePrice).div(INITIAL_PRICE_DENOMINATOR),
@@ -421,7 +412,7 @@ describe('requestAllocation', function () {
     {
       await moveDaysForward(15);
       const product = await stakingPool.products(productId);
-      expect(product.nextPrice).to.be.equal(1140);
+      expect(product.bumpedPrice).to.be.equal(1140);
       const amount = parseEther('16000');
       const buyCoverParams = { ...buyCoverParamsTemplate, amount };
 
@@ -453,7 +444,7 @@ describe('requestAllocation', function () {
     {
       await moveDaysForward(10);
       const product = await stakingPool.products(productId);
-      expect(product.nextPrice).to.be.equal(710);
+      expect(product.bumpedPrice).to.be.equal(710);
 
       const activeAllocationsArray = await stakingPool.getActiveAllocations(productId);
       const activeAllocations = activeAllocationsArray.reduce((x, y) => {
@@ -492,6 +483,6 @@ describe('requestAllocation', function () {
     }
     // final calculations
     const product = await stakingPool.products(productId);
-    expect(product.nextPrice).to.be.equal(306);
+    expect(product.bumpedPrice).to.be.equal(306);
   });
 });

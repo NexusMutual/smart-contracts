@@ -1598,13 +1598,10 @@ contract StakingPool is IStakingPool, ERC721 {
     //              = amountOnSurge * SURGE_PRICE_RATIO * coverToCapacityRatio / 2
     //              = amountOnSurge * SURGE_PRICE_RATIO * amountOnSurge / totalCapacity / 2
 
-    // amountOnSurge has two decimals
-    // dividing by ALLOCATION_UNITS_PER_NXM (=100) to normalize the result
-    uint surgePremiumOriginal = amountOnSurge * SURGE_PRICE_RATIO * amountOnSurge / totalCapacity / 2 / ALLOCATION_UNITS_PER_NXM;
-    uint surgePremium = amountOnSurge * amountOnSurge * NXM_PER_ALLOCATION_UNIT / totalCapacity;
-    assert(surgePremiumOriginal == surgePremium);
+    uint surgePremium = amountOnSurge * SURGE_PRICE_RATIO * amountOnSurge / totalCapacity / 2;
 
-    return surgePremium;
+    // dividing by ALLOCATION_UNITS_PER_NXM (=100) to normalize the result
+    return surgePremium / ALLOCATION_UNITS_PER_NXM;
   }
 
   function multicall(bytes[] calldata data) external returns (bytes[] memory results) {

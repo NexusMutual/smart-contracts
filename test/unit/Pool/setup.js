@@ -1,6 +1,5 @@
 const { artifacts, web3, ethers } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
-const { ZERO_ADDRESS } = require('../../../lib/constants');
 const { parseEther } = ethers.utils;
 
 const { Role } = require('../utils').constants;
@@ -47,19 +46,10 @@ async function setup() {
   const swapOperator = await P1MockSwapOperator.new();
 
   const pool = await Pool.new(
-    accounts.defaultSender, // master: it is changed a few lines below
+    master.address,
     priceFeedOracle.address,
     swapOperator.address, // we do not test swaps here
-    ZERO_ADDRESS,
   );
-
-  const pool2 = await Pool.new(
-    accounts.defaultSender, // master: it is changed a few lines below
-    priceFeedOracle.address,
-    swapOperator.address, // we do not test swaps here
-    pool.address,
-  );
-  await master.setLatestAddress(hex('P1'), pool.address);
 
   const token = await TokenMock.new();
   const mcr = await MCR.new();
@@ -73,7 +63,8 @@ async function setup() {
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('MR'), memberRoles.address);
 
-  const contractsToUpdate = [mcr, pool, tokenController];
+  await pool.changeDependentContractAddress();
+  const contractsToUpdate = [mcr, tokenController];
 
   for (const contract of contractsToUpdate) {
     await contract.changeMasterAddress(master.address);

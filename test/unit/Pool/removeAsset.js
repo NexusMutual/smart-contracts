@@ -35,7 +35,7 @@ describe('removeAsset', function () {
     await expectRevert(pool.removeAsset(1, false, { from: governance }), 'Pool: Investment asset does not exist');
   });
 
-  it('should correctly remove the asset with its minAmount, maxAmount, and slippage ratio', async function () {
+  it.skip('should correctly remove the asset with its minAmount, maxAmount, and slippage ratio', async function () {
     const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
 
     const coverToken = await ERC20Mock.new();
@@ -160,7 +160,7 @@ describe('removeAsset', function () {
       assert.strictEqual(maxAmount.toString(), ether('32500').toString());
       assert.strictEqual(maxSlippageRatio.toString(), '0');
       // TODO: does this need to be exactly this timestamp?
-      // assert.strictEqual(lastSwapTime.toString(), '1633425218');
+      assert.strictEqual(lastSwapTime.toString(), '1633425218');
 
       const expectedInvestmentAssets = [stETH.address];
       const investmentAssets = await pool.getInvestmentAssets();

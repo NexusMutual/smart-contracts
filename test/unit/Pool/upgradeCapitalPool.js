@@ -6,7 +6,6 @@ const { expectRevert } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
 
 const {
-  defaultSender,
   governanceContracts: [governance],
 } = require('../utils').accounts;
 const { BN } = web3.utils;
@@ -45,12 +44,11 @@ describe('upgradeCapitalPool', function () {
     }
 
     const newPool = await Pool.new(
-      defaultSender,
+      master.address,
       priceFeedOracle.address,
       ZERO_ADDRESS, // we do not test swaps here
-      pool.address,
     );
-    //
+
     await master.upgradeCapitalPool(pool.address, newPool.address);
 
     const coverAssets = await pool.getCoverAssets();
@@ -116,10 +114,9 @@ describe('upgradeCapitalPool', function () {
     }
 
     const newPool = await Pool.new(
-      defaultSender,
+      master.address,
       priceFeedOracle.address,
       ZERO_ADDRESS, // we do not test swaps here
-      pool.address,
     );
 
     await stETH.blacklistSender(pool.address);
@@ -144,7 +141,7 @@ describe('upgradeCapitalPool', function () {
     for (let i; i < coverAssets.length; i++) {
       expect(investmentAssets[i]).to.be.equal(newInvestmentAssets[i]);
       expect(coverAssets[i]).to.be.equal(newCoverAssets[i]);
-      if (coverAssets[i].assetAddress != ETH) {
+      if (coverAssets[i].assetAddress !== ETH) {
         expect(await pool.swapDetails(coverAssets[i].assetAddress)).to.be.equal(
           await newPool.swapDetails(coverAssets[i].assetAddress),
         );

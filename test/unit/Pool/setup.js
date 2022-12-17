@@ -45,10 +45,48 @@ async function setup() {
 
   const swapOperator = await P1MockSwapOperator.new();
 
+  const coverAssets = {
+    assets: [
+      {
+        decimals: 18,
+        assetAddress: dai.address,
+      },
+    ],
+    swapDetails: [
+      {
+        // dai
+        minAmount: parseEther('1000000'),
+        maxAmount: parseEther('2000000'),
+        maxSlippageRatio: 250,
+        lastSwapTime: 0,
+      },
+    ],
+  };
+
+  const investmentAssets = {
+    assets: [
+      {
+        decimals: 18,
+        assetAddress: stETH.address,
+      },
+    ],
+    swapDetails: [
+      {
+        // stEth
+        minAmount: parseEther('24360'),
+        maxAmount: parseEther('32500'),
+        maxSlippageRatio: 0,
+        lastSwapTime: 0,
+      },
+    ],
+  };
+
   const pool = await Pool.new(
     master.address,
     priceFeedOracle.address,
     swapOperator.address, // we do not test swaps here
+    coverAssets,
+    investmentAssets,
   );
 
   const token = await TokenMock.new();
@@ -91,28 +129,6 @@ async function setup() {
   // there is only one in reality, but it doesn't matter
   for (const governanceContract of accounts.governanceContracts) {
     await master.enrollGovernance(governanceContract);
-  }
-
-  const decimals = 18;
-
-  {
-    // Set DAI asset
-    const minAmount = parseEther('1000000');
-    const maxAmount = parseEther('2000000');
-    const maxSlippageRatio = 250; // maxSlippageRatio (0.25%)
-
-    await pool.addAsset(dai.address, decimals, minAmount, maxAmount, maxSlippageRatio, true, {
-      from: accounts.governanceContracts[0],
-    });
-  }
-  {
-    // Set stEth asset
-    const minAmount = parseEther('24360');
-    const maxAmount = parseEther('32500');
-    const maxSlippageRatio = 0;
-    await pool.addAsset(stETH.address, decimals, minAmount, maxAmount, maxSlippageRatio, false, {
-      from: accounts.governanceContracts[0],
-    });
   }
 
   // initialize token

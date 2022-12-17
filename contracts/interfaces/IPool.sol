@@ -21,6 +21,11 @@ interface IPool {
     uint8 decimals;
   }
 
+  struct NewPoolAssets {
+    Asset[] assets;
+    SwapDetails[] swapDetails;
+  }
+
   function investmentAssets(uint index) external view returns (
     address assetAddress,
     uint8 decimals
@@ -84,9 +89,7 @@ interface IPool {
   function setSwapValue(uint value) external;
 
   function getAssetsAndSwapDetails() external view returns (
-    Asset[] memory _coverAssets,
-    Asset[] memory _investmentAssets,
-    SwapDetails[] memory _coverAssetSwapDetails,
-    SwapDetails[] memory _investmentAssetSwapDetails
+    NewPoolAssets memory _coverAssets,
+    NewPoolAssets memory _investmentAssets
   );
 }

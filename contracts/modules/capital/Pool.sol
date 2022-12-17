@@ -78,35 +78,44 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     _;
   }
 
+
   constructor (
     address _master,
     address _priceOracle,
-    address _swapOperator
+    address _swapOperator,
+    NewPoolAssets memory _newCoverAssets,
+    NewPoolAssets memory _newInvestmentAssets
   ) {
     master = INXMMaster(_master);
     priceFeedOracle = IPriceFeedOracle(_priceOracle);
     swapOperator = _swapOperator;
+    // Push ETH as cover asset (no swap details)
     coverAssets.push(Asset(ETH, 18));
 
     IPool previousPool = IPool(master.getLatestAddress("P1"));
 
+    // If this is an upgrade, copy existing cover and investment assets
     if (address(previousPool) != address(0)) {
-      // Get cover and investmentAssets from previous pool, along with their SwapDetails
       (
-      Asset[] memory _coverAssets,
-      Asset[] memory _investmentAssets,
-      SwapDetails[] memory _coverAssetSwapDetails,
-      SwapDetails[] memory _investmentAssetSwapDetails
+      NewPoolAssets memory _coverAssets,
+      NewPoolAssets memory _investmentAssets
       ) = previousPool.getAssetsAndSwapDetails();
 
       // Make sure first asset is ETH and add it manually
-      require(_coverAssets[0].assetAddress == ETH, "Pool: First cover asset must be ETH");
-      coverAssets.push(Asset(ETH, 18));
+      require(_coverAssets.assets[0].assetAddress == ETH, "Pool: First cover asset must be ETH");
 
       // Add cover assets, skipping the first cover asset (ETH)
-      _addAssets(_coverAssets, _coverAssetSwapDetails, true, 1);
+      _addAssets(_coverAssets, true, 1);
       // Add all investment assets
-      _addAssets(_investmentAssets, _investmentAssetSwapDetails, false, 0);
+      _addAssets(_investmentAssets, false, 0);
+    }
+
+    if (_newCoverAssets.assets.length > 0) {
+      _addAssets(_newCoverAssets, true, 0);
+    }
+
+    if (_newInvestmentAssets.assets.length > 0) {
+      _addAssets(_newInvestmentAssets, false, 0);
     }
   }
 
@@ -195,29 +204,28 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     return swapDetails[assetAddress];
   }
 
-  function getAssetsAndSwapDetails() public view returns (
-    Asset[] memory _coverAssets,
-    Asset[] memory _investmentAssets,
-    SwapDetails[] memory _coverAssetSwapDetails,
-    SwapDetails[] memory _investmentAssetSwapDetails
+  function getAssetsAndSwapDetails() external view returns (
+    NewPoolAssets memory _coverAssets,
+    NewPoolAssets memory _investmentAssets
   )
   {
-    _coverAssets = coverAssets;
-    uint count = _coverAssets.length;
-    _coverAssetSwapDetails = new SwapDetails[](count);
+    _coverAssets.assets = coverAssets;
+    uint count = _coverAssets.assets.length;
+    _coverAssets.swapDetails = new SwapDetails[](count);
 
     for (uint i = 0; i < count; i++) {
-      _coverAssetSwapDetails[i] = swapDetails[_coverAssets[i].assetAddress];
+      _coverAssets.swapDetails[i] = swapDetails[_coverAssets.assets[i].assetAddress];
     }
 
-    _investmentAssets = investmentAssets;
-    count = _investmentAssets.length;
-    _investmentAssetSwapDetails = new SwapDetails[](count);
+    _investmentAssets.assets = investmentAssets;
+    count = _investmentAssets.assets.length;
+    _investmentAssets.swapDetails = new SwapDetails[](count);
 
-    // write another for loop getting the swap details for each investment asset
     for (uint i = 0; i < count; i++) {
-      _investmentAssetSwapDetails[i] = swapDetails[_coverAssets[i].assetAddress];
+      _investmentAssets.swapDetails[i] = swapDetails[_coverAssets.assets[i].assetAddress];
     }
+
+    return (_coverAssets, _investmentAssets);
 
   }
 
@@ -233,22 +241,22 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   }
 
   function _addAssets(
-    Asset[] memory assets,
-    SwapDetails[] memory swapDetails,
-    bool isCoverAsset,
+    NewPoolAssets memory assets,
+    bool areCoverAssets,
     uint startIndex
   ) internal {
-    uint assetCount = assets.length;
-    for (uint i = startIndex; i < assetCount; i++) {
-      Asset memory asset = assets[i];
-      SwapDetails memory details = swapDetails[i];
+    uint assetCount = assets.assets.length;
+    require(assets.swapDetails.length == assetCount, "Pool: Assets and SwapDetails mismatch");
+    for (;startIndex < assetCount; startIndex++) {
+      Asset memory asset = assets.assets[startIndex];
+      SwapDetails memory details = assets.swapDetails[startIndex];
       _addAsset(
         asset.assetAddress,
         asset.decimals,
         details.minAmount,
         details.maxAmount,
         details.maxSlippageRatio,
-        isCoverAsset
+        areCoverAssets
       );
     }
   }

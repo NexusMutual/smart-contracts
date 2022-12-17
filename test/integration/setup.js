@@ -161,7 +161,68 @@ async function setup() {
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mc.address, master.address);
 
-  const p1 = await Pool.deploy(master.address, priceFeedOracle.address, AddressZero);
+  // // Set DAI asset
+  // await p1.addAsset(dai.address, 18, parseEther('1000000'), parseEther('2000000'), 250, true);
+  // // Set stEth asset
+  // await p1.addAsset(stETH.address, 18, parseEther('24360'), parseEther('32500'), 0, false);
+  // // Set usdc
+  // await p1.addAsset(
+  //   usdc.address,
+  //   usdcDecimals,
+  //   parseUnits('1000000', usdcDecimals),
+  //   parseUnits('2000000', usdcDecimals),
+  //   250,
+  //   true,
+  // );
+
+  const coverAssets = {
+    assets: [
+      {
+        decimals: 18,
+        assetAddress: dai.address,
+      },
+      {
+        decimals: usdcDecimals,
+        assetAddress: usdc.address,
+      },
+    ],
+    swapDetails: [
+      {
+        // dai
+        minAmount: parseEther('1000000'),
+        maxAmount: parseEther('2000000'),
+        maxSlippageRatio: 250,
+        lastSwapTime: 0,
+      },
+      // usdc
+      {
+        minAmount: parseUnits('1000000', usdcDecimals),
+        maxAmount: parseUnits('2000000', usdcDecimals),
+        maxSlippageRatio: 250,
+        lastSwapTime: 0,
+      },
+    ],
+  };
+
+  const investmentAssets = {
+    assets: [
+      {
+        decimals: 18,
+        assetAddress: stETH.address,
+      },
+    ],
+    swapDetails: [
+      {
+        // stEth
+        minAmount: parseEther('24360'),
+        maxAmount: parseEther('32500'),
+        maxSlippageRatio: 0,
+        lastSwapTime: 0,
+      },
+    ],
+  };
+
+  const p1 = await Pool.deploy(master.address, priceFeedOracle.address, AddressZero, coverAssets, investmentAssets);
 
   const cowVaultRelayer = await SOMockVaultRelayer.deploy();
   const cowSettlement = await SOMockSettlement.deploy(cowVaultRelayer.address);
@@ -403,20 +464,6 @@ async function setup() {
   ]);
 
   await p1.updateAddressParameters(hex('SWP_OP').padEnd(2 + 16, '0'), swapOperator.address);
-
-  // Set DAI asset
-  await p1.addAsset(dai.address, 18, parseEther('1000000'), parseEther('2000000'), 250, true);
-  // Set stEth asset
-  await p1.addAsset(stETH.address, 18, parseEther('24360'), parseEther('32500'), 0, false);
-  // Set usdc
-  await p1.addAsset(
-    usdc.address,
-    usdcDecimals,
-    parseUnits('1000000', usdcDecimals),
-    parseUnits('2000000', usdcDecimals),
-    250,
-    true,
-  );
 
   await cover.updateUintParametersDisposable(
     [0, 1], // CoverUintParams.globalCapacityRatio, CoverUintParams.globalRewardsRatio

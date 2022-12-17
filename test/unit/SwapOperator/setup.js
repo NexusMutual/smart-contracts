@@ -4,7 +4,7 @@ const { hex } = require('../utils').helpers;
 
 const {
   constants: { AddressZero },
-  utils: { parseEther },
+  utils: { parseEther, parseUnits },
 } = ethers;
 
 // will be assigned by setup()
@@ -88,11 +88,62 @@ async function setup() {
     [18, 18, 6, 18],
   );
 
+  const usdcDecimals = 6;
+
+  const coverAssets = {
+    assets: [
+      {
+        decimals: 18,
+        assetAddress: dai.address,
+      },
+      {
+        decimals: usdcDecimals,
+        assetAddress: usdc.address,
+      },
+    ],
+    swapDetails: [
+      {
+        // dai
+        minAmount: parseEther('1000000'),
+        maxAmount: parseEther('2000000'),
+        maxSlippageRatio: 250,
+        lastSwapTime: 0,
+      },
+      // usdc
+      {
+        minAmount: parseUnits('1000000', usdcDecimals),
+        maxAmount: parseUnits('2000000', usdcDecimals),
+        maxSlippageRatio: 0,
+        lastSwapTime: 0,
+      },
+    ],
+  };
+
+  const investmentAssets = {
+    assets: [
+      {
+        decimals: 18,
+        assetAddress: stEth.address,
+      },
+    ],
+    swapDetails: [
+      {
+        // stEth
+        minAmount: parseEther('24360'),
+        maxAmount: parseEther('32500'),
+        maxSlippageRatio: 0,
+        lastSwapTime: 0,
+      },
+    ],
+  };
+
   // Deploy Pool
   const pool = await Pool.deploy(
     master.address,
     priceFeedOracle.address, // price feed oracle, add to setup if needed
     AddressZero, // swap operator
+    coverAssets,
+    investmentAssets,
   );
 
   // Setup master, pool and mcr connections
@@ -103,25 +154,6 @@ async function setup() {
 
   await pool.changeDependentContractAddress();
   await mcr.changeDependentContractAddress();
-
-  const decimals = 18;
-
-  {
-    // Set DAI asset
-    const minAmount = parseEther('1000000');
-    const maxAmount = parseEther('2000000');
-    const maxSlippageRatio = 250; // maxSlippageRatio (0.25%)
-    await pool.connect(governance).addAsset(dai.address, decimals, minAmount, maxAmount, maxSlippageRatio, true);
-  }
-  {
-    // Set stEth asset
-    const minAmount = parseEther('24360');
-    const maxAmount = parseEther('32500');
-    const maxSlippageRatio = 0;
-    await pool.connect(governance).addAsset(stEth.address, decimals, minAmount, maxAmount, maxSlippageRatio, false);
-  }
-
-  await pool.connect(governance).addAsset(usdc.address, 6, 0, parseEther('1000'), 0, true);
 
   // Deploy SwapOperator
   const swapOperator = await SwapOperator.deploy(

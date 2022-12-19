@@ -161,27 +161,15 @@ async function setup() {
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mc.address, master.address);
 
-  // // Set DAI asset
-  // await p1.addAsset(dai.address, 18, parseEther('1000000'), parseEther('2000000'), 250, true);
-  // // Set stEth asset
-  // await p1.addAsset(stETH.address, 18, parseEther('24360'), parseEther('32500'), 0, false);
-  // // Set usdc
-  // await p1.addAsset(
-  //   usdc.address,
-  //   usdcDecimals,
-  //   parseUnits('1000000', usdcDecimals),
-  //   parseUnits('2000000', usdcDecimals),
-  //   250,
-  //   true,
-  // );
-
   const coverAssets = {
     assets: [
       {
+        // dai
         decimals: 18,
         assetAddress: dai.address,
       },
       {
+        // usdc
         decimals: usdcDecimals,
         assetAddress: usdc.address,
       },
@@ -207,6 +195,7 @@ async function setup() {
   const investmentAssets = {
     assets: [
       {
+        // stETH
         decimals: 18,
         assetAddress: stETH.address,
       },
@@ -222,6 +211,7 @@ async function setup() {
     ],
   };
 
+  // Deploy pool and set cover assets above
   const p1 = await Pool.deploy(master.address, priceFeedOracle.address, AddressZero, coverAssets, investmentAssets);
 
   const cowVaultRelayer = await SOMockVaultRelayer.deploy();

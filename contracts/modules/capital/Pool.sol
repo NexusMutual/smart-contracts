@@ -94,14 +94,14 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
     IPool previousPool = IPool(master.getLatestAddress("P1"));
 
-    // If this is an upgrade, copy existing cover and investment assets
+    // If this is an upgrade, copy cover and investment assets from previous pool
     if (address(previousPool) != address(0)) {
       (
       NewPoolAssets memory _coverAssets,
       NewPoolAssets memory _investmentAssets
       ) = previousPool.getAssetsAndSwapDetails();
 
-      // Make sure first asset is ETH and add it manually
+      // Make sure first asset is ETH
       require(_coverAssets.assets[0].assetAddress == ETH, "Pool: First cover asset must be ETH");
 
       // Add cover assets, skipping the first cover asset (ETH)
@@ -246,7 +246,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     uint startIndex
   ) internal {
     uint assetCount = assets.assets.length;
-    require(assets.swapDetails.length == assetCount, "Pool: Assets and SwapDetails mismatch");
+    require(assets.swapDetails.length == assetCount, "Pool: Assets and SwapDetails length mismatch");
     for (;startIndex < assetCount; startIndex++) {
       Asset memory asset = assets.assets[startIndex];
       SwapDetails memory details = assets.swapDetails[startIndex];
@@ -449,7 +449,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
     // Transfer cover assets. Start from 1 (0 is ETH)
     uint coverAssetsCount = coverAssets.length;  // substract 1 as ETH is skiped
-    uint investmentAssetsCount = investmentAssets.length;
 
     // Skip ETH
     for (uint i = 1; i < coverAssetsCount; i++) {
@@ -457,6 +456,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     }
 
     // Transfer investment assets.
+    uint investmentAssetsCount = investmentAssets.length;
     for (uint i = 0; i < investmentAssetsCount; i++) {
       _transferEntireAssetBalance(investmentAssets[i].assetAddress, newPoolAddress);
     }

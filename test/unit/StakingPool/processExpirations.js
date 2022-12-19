@@ -196,6 +196,57 @@ describe('processExpirations', function () {
     }
   });
 
+  it('Expires tranches correctly storing expiredTranches struct', async function () {
+    const { stakingPool } = this;
+    const {
+      members: [user],
+    } = this.accounts;
+
+    const { amount, tokenId, destination } = processExpirationsFixture;
+
+    const { firstActiveTrancheId, maxTranche } = await getTranches();
+
+    const tranchesAmount = maxTranche - firstActiveTrancheId + 1;
+
+    const tranches = Array(tranchesAmount)
+      .fill(0)
+      .map((e, i) => firstActiveTrancheId + i);
+
+    for (let i = 0; i < tranches.length; i++) {
+      await stakingPool.connect(user).depositTo(amount, tranches[i], tokenId, destination);
+    }
+
+    const baseStakeShares = BigNumber.from(Math.sqrt(amount));
+
+    await generateRewards(stakingPool, this.coverSigner, TRANCHE_DURATION * 7, 0);
+
+    await stakingPool.processExpirations(true);
+
+    const accNxmPerRewardShareAtExpiry = Array(tranchesAmount).fill(0);
+
+    for (let i = 0; i < tranches.length; i++) {
+      await increaseTime(TRANCHE_DURATION);
+
+      // expire one tranche
+      await stakingPool.processExpirations(false);
+
+      const accNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
+      accNxmPerRewardShareAtExpiry[i] = accNxmPerRewardsShare;
+    }
+
+    // Validate tranches are expired
+    for (let i = 0; i < tranches.length; i++) {
+      const tranche = tranches[i];
+      const expiredTranche = await stakingPool.expiredTranches(tranche);
+
+      const activeDepositsAtTranche = maxTranche - tranche + 1;
+
+      expect(expiredTranche.accNxmPerRewardShareAtExpiry).to.equal(accNxmPerRewardShareAtExpiry[i]);
+      expect(expiredTranche.stakeAmountAtExpiry).to.equal(amount.mul(activeDepositsAtTranche));
+      expect(expiredTranche.stakeShareSupplyAtExpiry).to.equal(baseStakeShares.mul(activeDepositsAtTranche));
+    }
+  });
+
   it('Expires buckets updating rewards per second and lastAccNxmUpdate', async function () {
     const { stakingPool } = this;
     const {

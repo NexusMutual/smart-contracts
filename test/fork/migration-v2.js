@@ -95,7 +95,7 @@ describe('v2 migration', function () {
   });
 
   // generates the eligibleForCLAUnlock.json file
-  it.skip('run get-products-v1 script', async function () {
+  it.skip('run get-locked-in-v1-claim-assessment script', async function () {
     const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
     await getLockedInV1ClaimAssessment(directProvider);
   });
@@ -156,7 +156,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it('add proposal category 42 (Add new contracts)', async function () {
+  it.skip('add proposal category 42 (Add new contracts)', async function () {
     await submitGovernanceProposal(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
@@ -180,7 +180,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it('add proposal category 43 (Remove contracts)', async function () {
+  it.skip('add proposal category 43 (Remove contracts)', async function () {
     await submitGovernanceProposal(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
@@ -204,7 +204,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it('add empty internal contract for Cover', async function () {
+  it.skip('add empty internal contract for Cover', async function () {
     const CoverInitializer = await ethers.getContractFactory('CoverInitializer');
     const coverInitializer = await CoverInitializer.deploy();
     await coverInitializer.deployed();
@@ -220,7 +220,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it('deploy master contract', async function () {
+  it.skip('deploy master contract', async function () {
     const NXMaster = await ethers.getContractFactory('NXMaster');
     const master = await NXMaster.deploy();
     await master.deployed();
@@ -233,7 +233,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it('deploy CoverNFT contract', async function () {
+  it.skip('deploy CoverNFT contract', async function () {
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const CoverNFT = await ethers.getContractFactory('CoverNFT');
     const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NXC', coverProxyAddress);
@@ -241,7 +241,7 @@ describe('v2 migration', function () {
     this.coverNFT = coverNFT;
   });
 
-  it('deploy SwapOperator', async function () {
+  it.skip('deploy SwapOperator', async function () {
     const SwapOperator = await ethers.getContractFactory('SwapOperator');
     const swapOperator = await SwapOperator.deploy(
       COWSWAP_SETTLEMENT, // _cowSettlement
@@ -253,7 +253,7 @@ describe('v2 migration', function () {
     this.swapOperator = swapOperator;
   });
 
-  it('deploy & upgrade contracts: CR, TC, MCR, MR, CO, PS, P1, GW, CoverMigrator', async function () {
+  it.skip('deploy & upgrade contracts: CR, TC, MCR, MR, CO, PS, P1, GW, CoverMigrator', async function () {
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const ClaimsReward = await ethers.getContractFactory('LegacyClaimsReward');
     const newClaimsReward = await ClaimsReward.deploy(this.master.address, DAI_ADDRESS);
@@ -359,7 +359,7 @@ describe('v2 migration', function () {
     this.gateway = await ethers.getContractAt('LegacyGateway', gatewayAddress);
   });
 
-  it('deploy staking pool', async function () {
+  it.skip('deploy staking pool', async function () {
     const StakingPool = await ethers.getContractFactory('StakingPool');
     const stakingPool = await StakingPool.deploy(
       'Nexus Mutual Staking Pool', // name
@@ -372,12 +372,12 @@ describe('v2 migration', function () {
     this.stakingPool = stakingPool;
   });
 
-  it('block V1 staking', async function () {
+  it.skip('block V1 staking', async function () {
     const tx = await this.pooledStaking.blockV1();
     await tx.wait();
   });
 
-  it('process all PooledStaking pending actions', async function () {
+  it.skip('process all PooledStaking pending actions', async function () {
     let hasPendingActions = await this.pooledStaking.hasPendingActions();
     while (hasPendingActions) {
       const tx = await this.pooledStaking.processPendingActions(100);
@@ -386,19 +386,19 @@ describe('v2 migration', function () {
     }
   });
 
-  it('initialize TokenController', async function () {
+  it.skip('initialize TokenController', async function () {
     const tx = await this.tokenController.initialize();
     await tx.wait();
   });
 
-  it('unlock claim assessment stakes', async function () {
+  it.skip('unlock claim assessment stakes', async function () {
     const stakesPath = path.join(__dirname, '../../scripts/v2-migration/output/eligibleForCLAUnlock.json');
     const claimAssessors = require(stakesPath).map(x => x.member);
     const tx = await this.tokenController.withdrawClaimAssessmentTokens(claimAssessors);
     await tx.wait();
   });
 
-  it('transfer v1 assessment rewrds to assessors', async function () {
+  it.skip('transfer v1 assessment rewrds to assessors', async function () {
     await this.claimsReward.transferRewards();
   });
 
@@ -406,7 +406,7 @@ describe('v2 migration', function () {
     // [todo]
   });
 
-  it('remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {
+  it.skip('remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {
     await submitGovernanceProposal(
       43, // removeContracts(bytes2[])
       defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
@@ -415,7 +415,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it('run populate-v2-products script', async function () {
+  it.skip('run populate-v2-products script', async function () {
     await populateV2Products(this.cover.address, this.abMembers[0]);
   });
 
@@ -436,7 +436,7 @@ describe('v2 migration', function () {
     await Promise.all(txs.map(x => x.wait()));
   });
 
-  it('deploy & add contracts: Assessment, IndividualClaims, YieldTokenIncidents', async function () {
+  it.skip('deploy & add contracts: Assessment, IndividualClaims, YieldTokenIncidents', async function () {
     const IndividualClaims = await ethers.getContractFactory('IndividualClaims');
     const individualClaims = await IndividualClaims.deploy(this.nxm.address, this.coverNFT.address);
     await individualClaims.deployed();
@@ -464,7 +464,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it('deploy CoverViewer', async function () {
+  it.skip('deploy CoverViewer', async function () {
     const CoverViewer = await ethers.getContractFactory('CoverViewer');
     const coverViewer = await CoverViewer.deploy(this.master.address);
     await coverViewer.deployed();
@@ -486,14 +486,14 @@ describe('v2 migration', function () {
   // this.quotation = await ethers.getContractAt('Quotation', quotation.address);
   // });
 
-  it('MemberRoles is initialized with kycAuthAddress from QuotationData', async function () {
+  it.skip('MemberRoles is initialized with kycAuthAddress from QuotationData', async function () {
     const kycAuthAddressQD = await this.quotationData.kycAuthAddress();
     const kycAuthAddressMR = await this.memberRoles.kycAuthAddress();
     console.log({ kycAuthAddressMR, kycAuthAddressQD });
     expect(kycAuthAddressMR).to.be.equal(kycAuthAddressQD);
   });
 
-  it('withdrawCoverNote withdraws notes only once and removes the lock reasons', async function () {
+  it.skip('withdrawCoverNote withdraws notes only once and removes the lock reasons', async function () {
     // Using AB members to test for cover notes but other addresses could be added as well
     for (const member of this.abMembers) {
       const {

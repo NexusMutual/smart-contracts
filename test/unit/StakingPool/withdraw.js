@@ -28,7 +28,7 @@ describe.only('withdraw', function () {
     ipfsDescriptionHash: 'Description Hash',
   };
 
-  const depositToFixture = {
+  const withdrawFixture = {
     ...initializeParams,
     amount: parseEther('100'),
     trancheId: 0,
@@ -68,18 +68,16 @@ describe.only('withdraw', function () {
     const manager = this.accounts.defaultSender;
     const [user] = this.accounts.members;
 
-    const { amount, tokenId, destination } = depositToFixture;
+    const { amount, tokenId, destination } = withdrawFixture;
 
     const { firstActiveTrancheId } = await getTranches();
 
-    await stakingPool.connect(user).depositTo([
-      {
-        amount,
-        trancheId: firstActiveTrancheId,
-        tokenId: 0, // new position,
-        destination,
-      },
-    ]);
+    await stakingPool.connect(user).depositTo(
+      amount,
+      firstActiveTrancheId,
+      0, // new position,
+      destination,
+    );
 
     await increaseTime(TRANCHE_DURATION);
 
@@ -91,7 +89,7 @@ describe.only('withdraw', function () {
     const trancheIds = [firstActiveTrancheId];
 
     await expect(
-      stakingPool.connect(user).withdraw([{ tokenId, withdrawStake, withdrawRewards, trancheIds }]),
+      stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds),
     ).to.be.revertedWith(
       'StakingPool: While the pool manager is locked for governance voting only rewards can be withdrawn',
     );
@@ -101,17 +99,15 @@ describe.only('withdraw', function () {
     const { nxm, coverSigner, stakingPool, tokenController } = this;
     const [user] = this.accounts.members;
 
-    const { amount: depositAmount, tokenId, destination } = depositToFixture;
+    const { amount: depositAmount, tokenId, destination } = withdrawFixture;
     const { firstActiveTrancheId } = await getTranches();
 
-    await stakingPool.connect(user).depositTo([
-      {
-        amount: depositAmount,
-        trancheId: firstActiveTrancheId,
-        tokenId: 0, // new position
-        destination,
-      },
-    ]);
+    await stakingPool.connect(user).depositTo(
+      depositAmount,
+      firstActiveTrancheId,
+      0, // new position
+      destination,
+    );
 
     await generateRewards(stakingPool, coverSigner);
     await increaseTime(TRANCHE_DURATION);
@@ -124,7 +120,7 @@ describe.only('withdraw', function () {
     const userBalanceBefore = await nxm.balanceOf(user.address);
     const tcBalanceBefore = await nxm.balanceOf(tokenController.address);
 
-    await stakingPool.connect(user).withdraw([{ tokenId, withdrawStake, withdrawRewards, trancheIds }]);
+    await stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds);
 
     const depositAfter = await stakingPool.deposits(tokenId, firstActiveTrancheId);
     const userBalanceAfter = await nxm.balanceOf(user.address);
@@ -142,18 +138,16 @@ describe.only('withdraw', function () {
     const { nxm, coverSigner, stakingPool, tokenController } = this;
     const [user] = this.accounts.members;
 
-    const { amount, tokenId, destination } = depositToFixture;
+    const { amount, tokenId, destination } = withdrawFixture;
 
     const { firstActiveTrancheId } = await getTranches();
 
-    await stakingPool.connect(user).depositTo([
-      {
-        amount,
-        trancheId: firstActiveTrancheId,
-        tokenId: 0, // new position,
-        destination,
-      },
-    ]);
+    await stakingPool.connect(user).depositTo(
+      amount,
+      firstActiveTrancheId,
+      0, // new position,
+      destination,
+    );
 
     await generateRewards(stakingPool, coverSigner);
 
@@ -168,7 +162,7 @@ describe.only('withdraw', function () {
     const userBalanceBefore = await nxm.balanceOf(user.address);
     const deposit = await stakingPool.deposits(tokenId, firstActiveTrancheId);
 
-    await stakingPool.connect(user).withdraw([{ tokenId, withdrawStake, withdrawRewards, trancheIds }]);
+    await stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds);
 
     const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
     const userBalanceAfter = await nxm.balanceOf(user.address);
@@ -186,17 +180,15 @@ describe.only('withdraw', function () {
     const { nxm, coverSigner, stakingPool, tokenController } = this;
     const [user] = this.accounts.members;
 
-    const { amount, tokenId, destination } = depositToFixture;
+    const { amount, tokenId, destination } = withdrawFixture;
     const { firstActiveTrancheId } = await getTranches();
 
-    await stakingPool.connect(user).depositTo([
-      {
-        amount,
-        trancheId: firstActiveTrancheId,
-        tokenId: 0, // new position
-        destination,
-      },
-    ]);
+    await stakingPool.connect(user).depositTo(
+      amount,
+      firstActiveTrancheId,
+      0, // new position
+      destination,
+    );
 
     const expectedStakeShares = Math.sqrt(amount);
     const expectedRewardShares = await getNewRewardShares({
@@ -219,7 +211,7 @@ describe.only('withdraw', function () {
     const tcBalanceBefore = await nxm.balanceOf(tokenController.address);
 
     await increaseTime(TRANCHE_DURATION);
-    await stakingPool.connect(user).withdraw([{ tokenId, withdrawStake, withdrawRewards, trancheIds }]);
+    await stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds);
 
     const depositAfter = await stakingPool.deposits(tokenId, firstActiveTrancheId);
     const userBalanceAfter = await nxm.balanceOf(user.address);
@@ -253,18 +245,16 @@ describe.only('withdraw', function () {
     const { tokenController, nxm, stakingPool } = this;
     const [user] = this.accounts.members;
 
-    const { amount, tokenId, destination } = depositToFixture;
+    const { amount, tokenId, destination } = withdrawFixture;
 
     const { firstActiveTrancheId } = await getTranches();
 
-    await stakingPool.connect(user).depositTo([
-      {
-        amount,
-        trancheId: firstActiveTrancheId,
-        tokenId: 0, // new position
-        destination,
-      },
-    ]);
+    await stakingPool.connect(user).depositTo(
+      amount,
+      firstActiveTrancheId,
+      0, // new position
+      destination,
+    );
 
     const withdrawStake = true;
     const withdrawRewards = true;
@@ -274,8 +264,8 @@ describe.only('withdraw', function () {
     const userBalanceBefore = await nxm.balanceOf(user.address);
     const tcBalanceBefore = await nxm.balanceOf(tokenController.address);
 
-    await expect(stakingPool.connect(user).withdraw([{ tokenId, withdrawStake, withdrawRewards, trancheIds }])).to.not
-      .be.reverted;
+    await expect(stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds)).to.not.be
+      .reverted;
 
     const depositAfter = await stakingPool.deposits(tokenId, firstActiveTrancheId);
     const userBalanceAfter = await nxm.balanceOf(user.address);
@@ -290,7 +280,7 @@ describe.only('withdraw', function () {
   it('allows to withdraw stake and rewards from multiple tranches', async function () {
     const { nxm, coverSigner, stakingPool, tokenController } = this;
     const [user] = this.accounts.members;
-    const { amount, tokenId, destination } = depositToFixture;
+    const { amount, tokenId, destination } = withdrawFixture;
 
     const TRANCHES_NUMBER = 5;
     const trancheIds = [];
@@ -301,14 +291,12 @@ describe.only('withdraw', function () {
     for (let i = 0; i < TRANCHES_NUMBER; i++) {
       const { firstActiveTrancheId: currentTranche } = await getTranches();
 
-      await stakingPool.connect(user).depositTo([
-        {
-          amount,
-          trancheId: currentTranche,
-          tokenId: i === 0 ? 0 : tokenId, // Only create new position for the first tranche
-          destination,
-        },
-      ]);
+      await stakingPool.connect(user).depositTo(
+        amount,
+        currentTranche,
+        i === 0 ? 0 : tokenId, // Only create new position for the first tranche
+        destination,
+      );
 
       trancheIds.push(currentTranche);
       await generateRewards(stakingPool, coverSigner);
@@ -324,7 +312,7 @@ describe.only('withdraw', function () {
     const userBalanceBefore = await nxm.balanceOf(user.address);
     const tcBalanceBefore = await nxm.balanceOf(tokenController.address);
 
-    await stakingPool.connect(user).withdraw([{ tokenId, withdrawStake, withdrawRewards, trancheIds }]);
+    await stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds);
 
     const lastTranche = trancheIds[TRANCHES_NUMBER - 1];
     const depositAfter = await stakingPool.deposits(tokenId, lastTranche);
@@ -354,18 +342,16 @@ describe.only('withdraw', function () {
     const { coverSigner, stakingPool } = this;
     const [user] = this.accounts.members;
 
-    const { amount, tokenId, destination } = depositToFixture;
+    const { amount, tokenId, destination } = withdrawFixture;
 
     const { firstActiveTrancheId } = await getTranches();
 
-    await stakingPool.connect(user).depositTo([
-      {
-        amount,
-        trancheId: firstActiveTrancheId,
-        tokenId: 0, // new position,
-        destination,
-      },
-    ]);
+    await stakingPool.connect(user).depositTo(
+      amount,
+      firstActiveTrancheId,
+      0, // new position,
+      destination,
+    );
 
     const withdrawStake = false;
     const withdrawRewards = true;
@@ -382,7 +368,7 @@ describe.only('withdraw', function () {
     await increaseTime(TRANCHE_DURATION);
     await mineNextBlock();
 
-    await stakingPool.connect(user).withdraw([{ tokenId, withdrawStake, withdrawRewards, trancheIds }]);
+    await stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds);
 
     const activeStakeAfter = await stakingPool.activeStake();
     const accNxmPerRewardsShareAfter = await stakingPool.accNxmPerRewardsShare();
@@ -402,18 +388,16 @@ describe.only('withdraw', function () {
     const [user] = this.accounts.members;
     const [randomUser] = this.accounts.nonMembers;
 
-    const { amount, tokenId, destination } = depositToFixture;
+    const { amount, tokenId, destination } = withdrawFixture;
 
     const { firstActiveTrancheId } = await getTranches();
 
-    await stakingPool.connect(user).depositTo([
-      {
-        amount,
-        trancheId: firstActiveTrancheId,
-        tokenId: 0, // new position
-        destination,
-      },
-    ]);
+    await stakingPool.connect(user).depositTo(
+      amount,
+      firstActiveTrancheId,
+      0, // new position
+      destination,
+    );
 
     const withdrawStake = true;
     const withdrawRewards = false;
@@ -427,8 +411,8 @@ describe.only('withdraw', function () {
     const userBalanceBefore = await nxm.balanceOf(user.address);
     const randomUserBalanceBefore = await nxm.balanceOf(randomUser.address);
 
-    await expect(stakingPool.connect(randomUser).withdraw([{ tokenId, withdrawStake, withdrawRewards, trancheIds }])).to
-      .not.be.reverted;
+    await expect(stakingPool.connect(randomUser).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds)).to.not
+      .be.reverted;
 
     const { stake } = await calculateStakeAndRewardsWithdrawAmounts(stakingPool, deposit, firstActiveTrancheId);
 
@@ -443,7 +427,7 @@ describe.only('withdraw', function () {
     const { coverSigner, stakingPool } = this;
     const [user] = this.accounts.members;
 
-    const { amount, tokenId, destination } = depositToFixture;
+    const { amount, tokenId, destination } = withdrawFixture;
 
     const TRANCHES_NUMBER = 3;
     const trancheIds = [];
@@ -454,14 +438,12 @@ describe.only('withdraw', function () {
     for (let i = 0; i < TRANCHES_NUMBER; i++) {
       const { firstActiveTrancheId: currentTranche } = await getTranches();
 
-      await stakingPool.connect(user).depositTo([
-        {
-          amount: amount.mul(i * 5 + 1),
-          trancheId: currentTranche,
-          tokenId: i === 0 ? 0 : tokenId, // Only create new position for the first tranche
-          destination,
-        },
-      ]);
+      await stakingPool.connect(user).depositTo(
+        amount.mul(i * 5 + 1),
+        currentTranche,
+        i === 0 ? 0 : tokenId, // Only create new position for the first tranche
+        destination,
+      );
 
       trancheIds.push(currentTranche);
       await generateRewards(stakingPool, coverSigner);
@@ -490,7 +472,7 @@ describe.only('withdraw', function () {
       rewards.push(currentReward);
     }
 
-    await expect(stakingPool.connect(user).withdraw([{ tokenId, withdrawStake, withdrawRewards, trancheIds }]))
+    await expect(stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds))
       .to.emit(stakingPool, 'Withdraw')
       .withArgs(user.address, tokenId, trancheIds[0], stakes[0], rewards[0])
       .to.emit(stakingPool, 'Withdraw')

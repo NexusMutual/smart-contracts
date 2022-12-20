@@ -19,6 +19,10 @@ const SWAP_CONTROLLER = '0x551D5500F613a4beC77BA8B834b5eEd52ad5764f';
 const PRICE_FEED_ORACLE_ADDRESS = '0xcafea55b2d62399DcFe3DfA3CFc71E4076B14b71';
 const COWSWAP_SETTLEMENT = '0x9008D19f58AAbD9eD0D60971565AA8510560ab41';
 
+const ENZYMEV4_VAULT_PROXY_ADDRESS = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';
+const ENZYME_FUND_VALUE_CALCULATOR_ROUTER = '0x7c728cd0CfA92401E01A4849a01b57EE53F5b2b9';
+const MIN_POOL_ETH = 0;
+
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 const { defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 
@@ -39,16 +43,22 @@ const submitGovernanceProposal = async (categoryId, actionData, signers, gv) => 
   console.log(`Creating proposal ${id}`);
 
   await gv.connect(signers[0]).createProposal('', '', '', 0);
+  console.log('debug #0');
   await gv.connect(signers[0]).categorizeProposal(id, categoryId, 0);
+  console.log('debug #1');
   await gv.connect(signers[0]).submitProposalWithSolution(id, '', actionData);
 
+  console.log('debug #2');
+
   for (let i = 0; i < signers.length; i++) {
+    console.log(`debug #3.${i}`);
     await gv.connect(signers[i]).submitVote(id, 1);
   }
 
   const { timestamp } = await ethers.provider.getBlock('latest');
   await setNextBlockTime(timestamp + 7 * 24 * 3600); // +7 days
 
+  console.log(`debug #4`);
   const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
   const receipt = await tx.wait();
   assert.equal(
@@ -117,7 +127,7 @@ describe('v2 migration', function () {
     }
   });
 
-  it('deploy and upgrade Governance contract', async function () {
+  it.skip('deploy and upgrade Governance contract', async function () {
     const Governance = await ethers.getContractFactory('Governance');
     const newGovernance = await Governance.deploy();
     await newGovernance.deployed();
@@ -156,7 +166,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it.skip('add proposal category 42 (Add new contracts)', async function () {
+  it('add proposal category 42 (Add new contracts)', async function () {
     await submitGovernanceProposal(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
@@ -180,7 +190,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it.skip('add proposal category 43 (Remove contracts)', async function () {
+  it('add proposal category 43 (Remove contracts)', async function () {
     await submitGovernanceProposal(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
@@ -204,7 +214,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it.skip('add empty internal contract for Cover', async function () {
+  it('add empty internal contract for Cover', async function () {
     const CoverInitializer = await ethers.getContractFactory('CoverInitializer');
     const coverInitializer = await CoverInitializer.deploy();
     await coverInitializer.deployed();
@@ -220,7 +230,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it.skip('deploy master contract', async function () {
+  it('deploy master contract', async function () {
     const NXMaster = await ethers.getContractFactory('NXMaster');
     const master = await NXMaster.deploy();
     await master.deployed();
@@ -233,7 +243,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it.skip('deploy CoverNFT contract', async function () {
+  it('deploy CoverNFT contract', async function () {
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const CoverNFT = await ethers.getContractFactory('CoverNFT');
     const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NXC', coverProxyAddress);
@@ -241,19 +251,22 @@ describe('v2 migration', function () {
     this.coverNFT = coverNFT;
   });
 
-  it.skip('deploy SwapOperator', async function () {
+  it('deploy SwapOperator', async function () {
     const SwapOperator = await ethers.getContractFactory('SwapOperator');
     const swapOperator = await SwapOperator.deploy(
       COWSWAP_SETTLEMENT, // _cowSettlement
       SWAP_CONTROLLER, // _swapController
       this.master.address, // _master
       WETH_ADDRESS, // _weth
+      ENZYMEV4_VAULT_PROXY_ADDRESS,
+      ENZYME_FUND_VALUE_CALCULATOR_ROUTER,
+      MIN_POOL_ETH,
     );
     await swapOperator.deployed();
     this.swapOperator = swapOperator;
   });
 
-  it.skip('deploy & upgrade contracts: CR, TC, MCR, MR, CO, PS, P1, GW, CoverMigrator', async function () {
+  it('deploy & upgrade contracts: CR, TC, MCR, MR, CO, PS, P1, GW, CoverMigrator', async function () {
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const ClaimsReward = await ethers.getContractFactory('LegacyClaimsReward');
     const newClaimsReward = await ClaimsReward.deploy(this.master.address, DAI_ADDRESS);
@@ -283,6 +296,7 @@ describe('v2 migration', function () {
       this.productsV1.address,
       this.coverNFT.address,
       ethers.constants.AddressZero, // staking pool implementation address
+      coverProxyAddress,
     );
     await cover.deployed();
 

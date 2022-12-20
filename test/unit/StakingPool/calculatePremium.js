@@ -10,13 +10,9 @@ const {
   calculatePriceBump,
 } = require('./helpers');
 const { daysToSeconds } = require('../../../lib/helpers');
+const { UNDER_OR_OVERFLOW, DIVIDE_BY_ZERO } = require('../../utils/errors');
 
 describe('calculatePremium', function () {
-  // If an arithmetic operation results in underflow or overflow outside of an unchecked { ... } block.
-  const UNDER_OR_OVERFLOW = 0x11;
-  // If you divide or modulo by zero (e.g. 5 / 0 or 23 % 0).
-  const DIVIDE_BY_ZERO = 0x12;
-
   const stakedProductTemplate = {
     lastEffectiveWeight: BigNumber.from(50),
     targetWeight: BigNumber.from(70), // 70%
@@ -42,8 +38,8 @@ describe('calculatePremium', function () {
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
       expect(basePrice).to.be.equal(200);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
-      const expectedNextPrice = basePrice.add(priceBump);
-      expect(296).to.be.equal(expectedNextPrice);
+      const bumpedPrice = basePrice.add(priceBump);
+      expect(296).to.be.equal(bumpedPrice);
 
       const expectedPremiun = calculateFixedPricePremium(
         coverAmount,
@@ -64,7 +60,7 @@ describe('calculatePremium', function () {
       expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR));
       expect(premium).to.be.equal(expectedPremiun);
       expect(premium).to.be.equal(parseEther('48'));
-      expect(product.bumpedPrice).to.be.equal(expectedNextPrice);
+      expect(product.bumpedPrice).to.be.equal(bumpedPrice);
       expect(product.bumpedPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
     }
@@ -77,8 +73,8 @@ describe('calculatePremium', function () {
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
       expect(basePrice).to.be.equal(246);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
-      const expectedNextPrice = basePrice.add(priceBump);
-      expect(726).to.be.equal(expectedNextPrice);
+      const bumpedPrice = basePrice.add(priceBump);
+      expect(bumpedPrice).to.be.equal(726);
 
       const expectedPremiun = calculateFixedPricePremium(
         coverAmount,
@@ -98,7 +94,7 @@ describe('calculatePremium', function () {
       );
       expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR));
       expect(premium).to.be.equal(expectedPremiun);
-      expect(product.bumpedPrice).to.be.equal(expectedNextPrice);
+      expect(product.bumpedPrice).to.be.equal(bumpedPrice);
       expect(premium).to.be.equal(parseEther('29520').div(100));
       expect(product.bumpedPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
@@ -112,8 +108,8 @@ describe('calculatePremium', function () {
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
       expect(basePrice).to.be.equal(626);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
-      const expectedNextPrice = basePrice.add(priceBump);
-      expect(1106).to.be.equal(expectedNextPrice);
+      const bumpedPrice = basePrice.add(priceBump);
+      expect(bumpedPrice).to.be.equal(1106);
 
       const expectedPremiun = calculateFixedPricePremium(
         coverAmount,
@@ -134,7 +130,7 @@ describe('calculatePremium', function () {
       expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR));
       expect(premium).to.be.equal(expectedPremiun);
       expect(premium).to.be.equal(parseEther('75120').div(100));
-      expect(product.bumpedPrice).to.be.equal(expectedNextPrice);
+      expect(product.bumpedPrice).to.be.equal(bumpedPrice);
       expect(product.bumpedPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
     }
@@ -147,8 +143,8 @@ describe('calculatePremium', function () {
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
       expect(basePrice).to.be.equal(856);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
-      const expectedNextPrice = basePrice.add(priceBump);
-      expect(1336).to.be.equal(expectedNextPrice); // 13.36%
+      const bumpedPrice = basePrice.add(priceBump);
+      expect(bumpedPrice).to.be.equal(1336); // 13.36%
 
       const expectedPremiun = calculateFixedPricePremium(
         coverAmount,
@@ -169,7 +165,7 @@ describe('calculatePremium', function () {
       expect(premium).to.be.equal(coverAmountRaw.mul(basePrice).div(INITIAL_PRICE_DENOMINATOR));
       expect(premium).to.be.equal(expectedPremiun);
       expect(premium).to.be.equal(parseEther('10272').div(10)); // 1027.2
-      expect(product.bumpedPrice).to.be.equal(expectedNextPrice);
+      expect(product.bumpedPrice).to.be.equal(bumpedPrice);
       expect(product.bumpedPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
     }
@@ -182,8 +178,8 @@ describe('calculatePremium', function () {
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
       expect(basePrice).to.be.equal(1236);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
-      const expectedNextPrice = basePrice.add(priceBump);
-      expect(1556).to.be.equal(expectedNextPrice);
+      const bumpedPrice = basePrice.add(priceBump);
+      expect(bumpedPrice).to.be.equal(1556); // 15.56%
 
       // calculate surge premium
       const { surgePremiumPerYear, surgePremiumSkipped } = calculateSurgePremiums(
@@ -206,7 +202,7 @@ describe('calculatePremium', function () {
       expect(premium).to.be.equal(parseEther('1028'));
       expect(basePremium).to.be.equal(parseEther('98880').div(100));
       expect(surgePremiumPerYear).to.be.equal(parseEther('392').div(10));
-      expect(product.bumpedPrice).to.be.equal(expectedNextPrice);
+      expect(product.bumpedPrice).to.be.equal(bumpedPrice);
       expect(product.bumpedPriceUpdateTime).to.be.equal(timestamp);
       stakedProduct = product;
     }
@@ -219,8 +215,8 @@ describe('calculatePremium', function () {
       const basePrice = calculateBasePrice(timestamp, stakedProduct, PRICE_CHANGE_PER_DAY);
       expect(basePrice).to.be.equal(1356);
       const priceBump = calculatePriceBump(coverAmount, PRICE_BUMP_RATIO, totalCapacity);
-      const expectedNextPrice = basePrice.add(priceBump);
-      expect(1452).to.be.equal(expectedNextPrice);
+      const bumpedPrice = basePrice.add(priceBump);
+      expect(bumpedPrice).to.be.equal(1452); // 14.52%
 
       // calculate surge premium
       const { surgePremiumPerYear, surgePremiumSkipped } = calculateSurgePremiums(
@@ -244,7 +240,7 @@ describe('calculatePremium', function () {
       expect(basePremium).to.be.equal(parseEther('32544').div(100)); // 325.44 NXM
       expect(premium).to.be.equal(parseEther('57504').div(100));
       expect(premium).to.be.equal(basePremium.add(surgePremiumPerYear).sub(surgePremiumSkipped));
-      expect(product.bumpedPrice).to.be.equal(expectedNextPrice);
+      expect(product.bumpedPrice).to.be.equal(bumpedPrice);
       expect(product.bumpedPriceUpdateTime).to.be.equal(timestamp);
     }
   });

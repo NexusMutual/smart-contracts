@@ -22,6 +22,10 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
   uint public constant MAX_PRICE_RATIO = 10_000;
   uint constant REWARDS_DENOMINATOR = 10_000;
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+  uint public constant ONE_NXM = 1 ether;
+  uint public constant ALLOCATION_UNITS_PER_NXM = 100;
+  uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
+  uint public constant TARGET_PRICE_DENOMINATOR = 100_00;
 
   uint public poolId;
   // erc721 supply
@@ -69,7 +73,28 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     AllocationRequest calldata request
   ) external override returns (uint premium) {
     usedCapacity[request.productId] += amount;
+    if (request.useFixedPrice) {
+      return calculateFixedPricePremium(amount, request.period, mockPrices[request.productId]);
+    }
     return calculatePremium(mockPrices[request.productId], amount, request.period);
+  }
+
+
+  function calculateFixedPricePremium(
+    uint coverAmount,
+    uint period,
+    uint fixedPrice
+  ) public pure returns (uint) {
+    // NOTE: the actual function takes coverAmount scaled down by NXM_PER_ALLOCATION_UNIT as an argument
+    coverAmount = Math.divCeil(coverAmount, NXM_PER_ALLOCATION_UNIT);
+
+    uint premiumPerYear =
+    coverAmount
+    * NXM_PER_ALLOCATION_UNIT
+    * fixedPrice
+    / TARGET_PRICE_DENOMINATOR;
+
+    return premiumPerYear * period / 365 days;
   }
 
   function setProducts(StakedProductParam[] memory params) external {

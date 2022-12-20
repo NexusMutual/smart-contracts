@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { setEtherBalance } = require('../../utils/evm');
+const { daysToSeconds } = require('../../../lib/helpers');
 
 const { createStakingPool, assertCoverFields } = require('./helpers');
 
@@ -49,7 +50,7 @@ describe('buyCover', function () {
   });
 
   it('should purchase new cover using 1 staking pool', async function () {
-    const { cover } = this;
+    const { cover, pool } = this;
 
     const {
       members: [coverBuyer],
@@ -57,6 +58,7 @@ describe('buyCover', function () {
 
     const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
+    const poolEthBalanceBefore = await ethers.provider.getBalance(pool.address);
     const tx = await cover.connect(coverBuyer).buyCover(
       {
         coverId: MaxUint256,
@@ -78,6 +80,10 @@ describe('buyCover', function () {
     );
     await tx.wait();
 
+    // no eth should be left in the cover contract
+    expect(await ethers.provider.getBalance(cover.address)).to.be.equal(0);
+    const premium = expectedPremium.mul(period).div(daysToSeconds(365));
+    expect(await ethers.provider.getBalance(pool.address)).to.equal(poolEthBalanceBefore.add(premium));
     const coverId = (await cover.coverDataCount()).sub(1);
     await assertCoverFields(cover, coverId, {
       productId,
@@ -89,7 +95,7 @@ describe('buyCover', function () {
   });
 
   it('should purchase new cover with fixed price using 1 staking pool', async function () {
-    const { cover } = this;
+    const { cover, pool } = this;
 
     const {
       members: [coverBuyer],
@@ -98,6 +104,10 @@ describe('buyCover', function () {
     const { amount, targetPriceRatio, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     const productId = 1;
+    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
+    await stakingPool.setPrice(productId, targetPriceRatio);
+
+    const poolEthBalanceBefore = await ethers.provider.getBalance(pool.address);
 
     const tx = await cover.connect(coverBuyer).buyCover(
       {
@@ -120,6 +130,10 @@ describe('buyCover', function () {
     );
     await tx.wait();
 
+    // no eth should be left in the cover contract
+    expect(await ethers.provider.getBalance(cover.address)).to.be.equal(0);
+    const premium = expectedPremium.mul(period).div(daysToSeconds(365));
+    expect(await ethers.provider.getBalance(pool.address)).to.equal(poolEthBalanceBefore.add(premium));
     const coverId = (await cover.coverDataCount()).sub(1);
 
     await assertCoverFields(cover, coverId, {
@@ -133,7 +147,7 @@ describe('buyCover', function () {
   });
 
   it('should purchase new cover using 2 staking pools', async function () {
-    const { cover } = this;
+    const { cover, pool } = this;
 
     const {
       members: [coverBuyer, stakingPoolManager],
@@ -177,6 +191,10 @@ describe('buyCover', function () {
       },
     );
 
+    expect(await ethers.provider.getBalance(pool.address)).to.equal(
+      expectedPremium.mul(period).div(daysToSeconds(365)).sub(1), // Contract is rounding up by 1 wei
+    );
+
     const coverId = (await cover.coverDataCount()).sub(1);
     await assertCoverFields(cover, coverId, {
       productId,
@@ -189,7 +207,7 @@ describe('buyCover', function () {
   });
 
   it('should purchase new cover using NXM with commission', async function () {
-    const { cover, nxm, tokenController } = this;
+    const { cover, nxm, tokenController, pool } = this;
 
     const [coverBuyer, stakingPoolManager] = this.accounts.members;
 
@@ -211,30 +229,37 @@ describe('buyCover', function () {
     const nxmBalanceBefore = await nxm.balanceOf(coverBuyer.address);
     const commissionNxmBalanceBefore = await nxm.balanceOf(stakingPoolManager.address);
 
-    await cover.connect(coverBuyer).buyCover(
-      {
-        coverId: MaxUint256,
-        owner: coverBuyer.address,
-        productId,
-        coverAsset,
-        amount,
-        period,
-        maxPremiumInAsset: expectedPremium,
-        paymentAsset: NXM_ASSET_ID,
-        payWithNXM: true,
-        commissionRatio,
-        commissionDestination: stakingPoolManager.address,
-        ipfsData: '',
-      },
-      [{ poolId: '0', coverAmountInAsset: amount }],
-      { value: '0' },
-    );
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: MaxUint256,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: expectedPremium,
+          paymentAsset: NXM_ASSET_ID,
+          payWithNXM: true,
+          commissionRatio,
+          commissionDestination: stakingPoolManager.address,
+          ipfsData: '',
+        },
+        [{ poolId: '0', coverAmountInAsset: amount }],
+        { value: '0' },
+      ),
+    )
+      .to.emit(nxm, 'Transfer')
+      .withArgs(coverBuyer.address, AddressZero, expectedBasePremium);
 
     const nxmBalanceAfter = await nxm.balanceOf(coverBuyer.address);
     const commissionNxmBalanceAfter = await nxm.balanceOf(stakingPoolManager.address);
 
     const difference = nxmBalanceBefore.sub(nxmBalanceAfter);
     expect(difference).to.be.equal(expectedPremium);
+
+    // nxm is burned
+    expect(await nxm.balanceOf(pool.address)).to.be.equal(0);
 
     const commissionDifference = commissionNxmBalanceAfter.sub(commissionNxmBalanceBefore);
     expect(commissionDifference).to.be.equal(expectedCommission);
@@ -251,7 +276,7 @@ describe('buyCover', function () {
   });
 
   it('should purchase new cover using DAI with commission', async function () {
-    const { cover, dai } = this;
+    const { cover, dai, pool } = this;
 
     const {
       members: [coverBuyer],
@@ -278,6 +303,7 @@ describe('buyCover', function () {
 
     const daiBalanceBefore = await dai.balanceOf(coverBuyer.address);
     const commissionDaiBalanceBefore = await dai.balanceOf(commissionReceiver.address);
+    expect(await dai.balanceOf(pool.address)).to.be.equal(0);
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -300,6 +326,8 @@ describe('buyCover', function () {
       },
     );
 
+    expect(await dai.balanceOf(pool.address)).to.equal(expectedBasePremium);
+
     const daiBalanceAfter = await dai.balanceOf(coverBuyer.address);
     const commissionDaiBalanceAfter = await dai.balanceOf(commissionReceiver.address);
 
@@ -321,7 +349,7 @@ describe('buyCover', function () {
   });
 
   it('should purchase new cover using USDC with commission', async function () {
-    const { cover, usdc } = this;
+    const { cover, usdc, pool } = this;
 
     const {
       members: [coverBuyer],
@@ -348,26 +376,30 @@ describe('buyCover', function () {
     const daiBalanceBefore = await usdc.balanceOf(coverBuyer.address);
     const commissionDaiBalanceBefore = await usdc.balanceOf(commissionReceiver.address);
 
-    await cover.connect(coverBuyer).buyCover(
-      {
-        coverId: MaxUint256,
-        owner: coverBuyer.address,
-        productId,
-        coverAsset,
-        amount,
-        period,
-        maxPremiumInAsset: expectedPremium,
-        paymentAsset: coverAsset,
-        payWithNXM: false,
-        commissionRatio,
-        commissionDestination: commissionReceiver.address,
-        ipfsData: '',
-      },
-      [{ poolId: '0', coverAmountInAsset: amount }],
-      {
-        value: '0',
-      },
-    );
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: MaxUint256,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: expectedPremium,
+          paymentAsset: coverAsset,
+          payWithNXM: false,
+          commissionRatio,
+          commissionDestination: commissionReceiver.address,
+          ipfsData: '',
+        },
+        [{ poolId: '0', coverAmountInAsset: amount }],
+        {
+          value: '0',
+        },
+      ),
+    )
+      .to.emit(usdc, 'Transfer') // Verify usdc is transferred to pool
+      .withArgs(coverBuyer.address, pool.address, expectedBasePremium);
 
     const daiBalanceAfter = await usdc.balanceOf(coverBuyer.address);
     const commissionDaiBalanceAfter = await usdc.balanceOf(commissionReceiver.address);

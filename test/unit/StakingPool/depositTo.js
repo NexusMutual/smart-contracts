@@ -258,9 +258,9 @@ describe('depositTo', function () {
     expect(secondDepositData.lastAccNxmPerRewardShare).to.equal(secondAccNxmPerRewardsShare);
     expect(secondDepositData.pendingRewards).to.not.equal(0);
     expect(secondDepositData.pendingRewards).to.equal(
-      depositData.rewardsShares.mul(
-        secondDepositData.lastAccNxmPerRewardShare.sub(depositData.lastAccNxmPerRewardShare),
-      ),
+      depositData.rewardsShares
+        .mul(secondDepositData.lastAccNxmPerRewardShare.sub(depositData.lastAccNxmPerRewardShare))
+        .div(parseEther('1')),
     );
 
     // Last deposit
@@ -273,9 +273,9 @@ describe('depositTo', function () {
     expect(lastDepositData.pendingRewards).to.not.equal(0);
     expect(lastDepositData.pendingRewards).to.equal(
       secondDepositData.pendingRewards.add(
-        secondDepositData.rewardsShares.mul(
-          lastDepositData.lastAccNxmPerRewardShare.sub(secondDepositData.lastAccNxmPerRewardShare),
-        ),
+        secondDepositData.rewardsShares
+          .mul(lastDepositData.lastAccNxmPerRewardShare.sub(secondDepositData.lastAccNxmPerRewardShare))
+          .div(parseEther('1')),
       ),
     );
   });

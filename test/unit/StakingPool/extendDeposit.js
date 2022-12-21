@@ -200,9 +200,9 @@ describe('extendDeposit', function () {
     expect(newTrancheDeposit.stakeShares).to.equal(initialDeposit.stakeShares);
     expect(newTrancheDeposit.rewardsShares).to.equal(initialDeposit.rewardsShares.add(newRewardsIncrease));
     expect(newTrancheDeposit.pendingRewards).to.equal(
-      initialDeposit.rewardsShares.mul(
-        newTrancheDeposit.lastAccNxmPerRewardShare.sub(initialDeposit.lastAccNxmPerRewardShare),
-      ),
+      initialDeposit.rewardsShares
+        .mul(newTrancheDeposit.lastAccNxmPerRewardShare.sub(initialDeposit.lastAccNxmPerRewardShare))
+        .div(parseEther('1')),
     );
     expect(newTrancheDeposit.lastAccNxmPerRewardShare).to.equal(accNxmPerRewardsShare);
   });
@@ -239,9 +239,9 @@ describe('extendDeposit', function () {
     );
     expect(updatedDeposit.rewardsShares).to.equal(initialDeposit.rewardsShares.add(newRewardsIncrease));
     expect(updatedDeposit.pendingRewards).to.equal(
-      initialDeposit.rewardsShares.mul(
-        updatedDeposit.lastAccNxmPerRewardShare.sub(initialDeposit.lastAccNxmPerRewardShare),
-      ),
+      initialDeposit.rewardsShares
+        .mul(updatedDeposit.lastAccNxmPerRewardShare.sub(initialDeposit.lastAccNxmPerRewardShare))
+        .div(parseEther('1')),
     );
     expect(updatedDeposit.lastAccNxmPerRewardShare).to.equal(accNxmPerRewardsShare);
   });

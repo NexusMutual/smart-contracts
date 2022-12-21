@@ -146,7 +146,7 @@ describe('setPoolFee', function () {
 
     expect(managerDepositAfter.lastAccNxmPerRewardShare).to.equal(newLastAccNxmPerRewardShare);
     expect(managerDepositAfter.pendingRewards).to.equal(
-      managerDepositAfter.lastAccNxmPerRewardShare.mul(managerDepositBefore.rewardsShares),
+      managerDepositAfter.lastAccNxmPerRewardShare.mul(managerDepositBefore.rewardsShares).div(parseEther('1')),
     );
     expect(managerDepositAfter.rewardsShares).to.equal(
       managerDepositBefore.rewardsShares.mul(newPoolFee).div(initialPoolFee),

@@ -197,6 +197,7 @@ async function calculateStakeAndRewardsWithdrawAmounts(stakingPool, deposit, tra
   return {
     rewards: deposit.rewardsShares
       .mul(accNxmPerRewardShareAtExpiry.sub(deposit.lastAccNxmPerRewardShare))
+      .div(parseEther('1'))
       .add(deposit.pendingRewards),
     stake: stakeAmountAtExpiry.mul(deposit.stakeShares).div(stakeShareSupplyAtExpiry),
   };

@@ -218,7 +218,7 @@ describe('withdraw', function () {
     const withdrawRewards = true;
     const trancheIds = [firstActiveTrancheId];
 
-    // user withdraw
+    // User withdraw
     await stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds);
 
     // Manager withdraw
@@ -251,14 +251,12 @@ describe('withdraw', function () {
       .add(managerDepositBefore.pendingRewards);
 
     const expectedRewardsWithdrawn = expectedUserRewardsWithdrawn.add(expectedManagerRewardsWithdrawn);
-
     const rewardsMinted = tcBalanceBefore.sub(tcBalanceInitial);
 
     expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(expectedUserRewardsWithdrawn));
     expect(managerBalanceAfter).to.be.eq(managerBalanceBefore.add(expectedManagerRewardsWithdrawn));
-
-    expect(tcBalanceAfter).to.be.eq(tcBalanceInitial.add(1)); // add 1 because of dust
-    expect(expectedRewardsWithdrawn).to.be.eq(rewardsMinted.sub(1)); // sub 1 because of dust
+    expect(tcBalanceAfter).to.be.eq(tcBalanceInitial.add(1)); // add 1 because of round error
+    expect(expectedRewardsWithdrawn).to.be.eq(rewardsMinted.sub(1)); // sub 1 because of round error
   });
 
   it('allows to withdraw stake only if tranche is expired', async function () {

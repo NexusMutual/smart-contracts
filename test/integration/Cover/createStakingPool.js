@@ -27,7 +27,7 @@ describe('createStakingPool', function () {
 
   it('should create a private staking pool with an initial deposit', async function () {
     const {
-      DEFAULT_PRODUCT_INITIALIZATION,
+      DEFAULT_PRODUCTS,
       contracts: { cover, tk, tc },
     } = this;
     const [manager, staker] = this.accounts.members;
@@ -43,7 +43,7 @@ describe('createStakingPool', function () {
       true, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
       DEFAULT_POOL_FEE, // maxPoolFee,
-      DEFAULT_PRODUCT_INITIALIZATION,
+      DEFAULT_PRODUCTS,
       deposit, // depositAmount,
       trancheId, // trancheId
       '', // ipfsDescriptionHash
@@ -79,7 +79,7 @@ describe('createStakingPool', function () {
 
   it('should create a public staking pool with an initial deposit', async function () {
     const {
-      DEFAULT_PRODUCT_INITIALIZATION,
+      DEFAULT_PRODUCTS,
       contracts: { cover, tk, tc },
     } = this;
     const [manager, staker] = this.accounts.members;
@@ -95,7 +95,7 @@ describe('createStakingPool', function () {
       false, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
       DEFAULT_POOL_FEE, // maxPoolFee,
-      DEFAULT_PRODUCT_INITIALIZATION,
+      DEFAULT_PRODUCTS,
       deposit, // depositAmount,
       trancheId, // trancheId
       '', // ipfsDescriptionHash

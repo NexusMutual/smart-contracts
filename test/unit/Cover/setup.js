@@ -1,5 +1,4 @@
 const { ethers } = require('hardhat');
-const { getContractAddress } = require('@ethersproject/address');
 const { expect } = require('chai');
 
 const { getAccounts } = require('../utils').accounts;
@@ -8,7 +7,7 @@ const { hex } = require('../utils').helpers;
 
 const { BigNumber } = ethers;
 const { MaxUint256 } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { getContractAddress, parseEther } = ethers.utils;
 
 const getDeployAddressAfter = async (account, txCount) => {
   const from = account.address;

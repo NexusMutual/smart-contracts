@@ -84,9 +84,9 @@ describe('state management', function () {
       advisoryBoardMembers: [advisoryBoardMember],
     } = this.accounts;
 
-    // checkRole automatically returns true when the target role is NonMember/UnAssigned
+    // checkRole automatically returns true when the target role is UnAssigned
     const isMemberMember = await memberRoles.checkRole(member.address, Role.Member);
-    const isMemberNonMember = await memberRoles.checkRole(member.address, Role.NonMember);
+    const isMemberNonMember = await memberRoles.checkRole(member.address, Role.UnAssigned);
     const isMemberABMember = await memberRoles.checkRole(member.address, Role.AdvisoryBoard);
 
     expect(isMemberMember).to.be.equal(true);
@@ -94,7 +94,7 @@ describe('state management', function () {
     expect(isMemberABMember).to.be.equal(false);
 
     const isNonMemberMember = await memberRoles.checkRole(nonMember.address, Role.Member);
-    const isNonMemberNonMember = await memberRoles.checkRole(nonMember.address, Role.NonMember);
+    const isNonMemberNonMember = await memberRoles.checkRole(nonMember.address, Role.UnAssigned);
     const isNonMemberABMember = await memberRoles.checkRole(nonMember.address, Role.AdvisoryBoard);
 
     expect(isNonMemberMember).to.be.equal(false);
@@ -102,7 +102,7 @@ describe('state management', function () {
     expect(isNonMemberABMember).to.be.equal(false);
 
     const isABMemberMember = await memberRoles.checkRole(advisoryBoardMember.address, Role.Member);
-    const isABMemberNonMember = await memberRoles.checkRole(advisoryBoardMember.address, Role.NonMember);
+    const isABMemberNonMember = await memberRoles.checkRole(advisoryBoardMember.address, Role.UnAssigned);
     const isABMemberABMember = await memberRoles.checkRole(advisoryBoardMember.address, Role.AdvisoryBoard);
 
     expect(isABMemberMember).to.be.equal(true);

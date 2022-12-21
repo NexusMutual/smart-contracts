@@ -4,6 +4,8 @@ const fetch = require('node-fetch');
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const path = require('path');
+const { AddressZero } = ethers.constants;
+const { parseEther } = ethers.utils;
 
 const { setNextBlockTime } = require('../utils/evm');
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
@@ -71,6 +73,39 @@ const submitGovernanceProposal = async (categoryId, actionData, signers, gv) => 
   assert.equal(proposal[2].toNumber(), 3);
 };
 
+const submitGovernanceProposalV2 = async (categoryId, actionData, signers, gv) => {
+  const id = await gv.getProposalLength();
+  console.log(`Creating proposal ${id}`);
+
+  await gv.connect(signers[0]).createProposal('', '', '', 0);
+  console.log('debug #0');
+  await gv.connect(signers[0]).categorizeProposal(id, categoryId, 0);
+  console.log('debug #1');
+  await gv.connect(signers[0]).submitProposalWithSolution(id, '', actionData);
+
+  console.log('debug #2');
+
+  for (let i = 0; i < signers.length; i++) {
+    console.log(`debug #3.${i}`);
+    await gv.connect(signers[i]).submitVote(id, 1, []);
+  }
+
+  const { timestamp } = await ethers.provider.getBlock('latest');
+  await setNextBlockTime(timestamp + 7 * 24 * 3600); // +7 days
+
+  console.log(`debug #4`);
+  const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
+  const receipt = await tx.wait();
+  assert.equal(
+    receipt.events.some(x => x.event === 'ActionSuccess' && x.address === gv.address),
+    true,
+    'ActionSuccess was expected',
+  );
+
+  const proposal = await gv.proposal(id);
+  assert.equal(proposal[2].toNumber(), 3);
+};
+
 describe('v2 migration', function () {
   it('initialize old contracts', async function () {
     const [deployer] = await ethers.getSigners();
@@ -119,15 +154,26 @@ describe('v2 migration', function () {
 
   it('impersonate AB members', async function () {
     const { memberArray: abMembers } = await this.memberRoles.members(1);
+
+    await ethers.provider.send('hardhat_impersonateAccount', [AddressZero]);
+    const addressZero = await ethers.getSigner(AddressZero);
+
     this.abMembers = [];
     for (const address of abMembers) {
       await ethers.provider.send('hardhat_impersonateAccount', [address]);
       const signer = await ethers.getSigner(address);
       this.abMembers.push(signer);
+
+      addressZero.sendTransaction({
+        to: address,
+        value: parseEther('1000'),
+      });
     }
+
+    this.addressZero = addressZero;
   });
 
-  it.skip('deploy and upgrade Governance contract', async function () {
+  it('deploy and upgrade Governance contract', async function () {
     const Governance = await ethers.getContractFactory('Governance');
     const newGovernance = await Governance.deploy();
     await newGovernance.deployed();
@@ -138,10 +184,12 @@ describe('v2 migration', function () {
       this.abMembers,
       this.governance,
     );
+
+    this.governance = await ethers.getContractAt('Governance', this.governance.address);
   });
 
   it('edit proposal category 41 (Set Asset Swap Details)', async function () {
-    await submitGovernanceProposal(
+    await submitGovernanceProposalV2(
       // editCategory(uint256,string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       4,
       defaultAbiCoder.encode(

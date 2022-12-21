@@ -11,7 +11,7 @@ const {
   generateRewards,
 } = require('./helpers');
 
-describe.only('withdraw', function () {
+describe('withdraw', function () {
   const product0 = {
     productId: 0,
     weight: 100,
@@ -170,6 +170,7 @@ describe.only('withdraw', function () {
     const { accNxmPerRewardShareAtExpiry } = await stakingPool.expiredTranches(firstActiveTrancheId);
     const rewardsWithdrawn = deposit.rewardsShares
       .mul(accNxmPerRewardShareAtExpiry.sub(deposit.lastAccNxmPerRewardShare))
+      .div(parseEther('1'))
       .add(deposit.pendingRewards);
 
     expect(tcBalanceAfter).to.be.eq(tcBalanceBefore.sub(rewardsWithdrawn).sub(amount));
@@ -179,6 +180,7 @@ describe.only('withdraw', function () {
   it('allows to withdraw only rewards', async function () {
     const { nxm, coverSigner, stakingPool, tokenController } = this;
     const [user] = this.accounts.members;
+    const { defaultSender: manager } = this.accounts;
 
     const { amount, tokenId, destination } = withdrawFixture;
     const { firstActiveTrancheId } = await getTranches();
@@ -199,22 +201,35 @@ describe.only('withdraw', function () {
       newTrancheId: firstActiveTrancheId,
     });
 
-    const withdrawStake = false;
-    const withdrawRewards = true;
-    const trancheIds = [firstActiveTrancheId];
-
     const tcBalanceInitial = await nxm.balanceOf(tokenController.address);
     await generateRewards(stakingPool, coverSigner);
 
     const depositBefore = await stakingPool.deposits(tokenId, firstActiveTrancheId);
     const userBalanceBefore = await nxm.balanceOf(user.address);
+    const managerBalanceBefore = await nxm.balanceOf(manager.address);
     const tcBalanceBefore = await nxm.balanceOf(tokenController.address);
 
+    const managerTokenId = 0;
+    const managerDepositBefore = await stakingPool.deposits(managerTokenId, firstActiveTrancheId);
+
     await increaseTime(TRANCHE_DURATION);
+
+    const withdrawStake = false;
+    const withdrawRewards = true;
+    const trancheIds = [firstActiveTrancheId];
+
+    // user withdraw
     await stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds);
+
+    // Manager withdraw
+    await stakingPool.connect(manager).withdraw(managerTokenId, withdrawStake, withdrawRewards, trancheIds);
+
+    const rewardPerSecondAfter = await stakingPool.rewardPerSecond();
+    expect(rewardPerSecondAfter).to.equal(0);
 
     const depositAfter = await stakingPool.deposits(tokenId, firstActiveTrancheId);
     const userBalanceAfter = await nxm.balanceOf(user.address);
+    const managerBalanceAfter = await nxm.balanceOf(manager.address);
     const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
 
     expect(depositBefore.stakeShares).to.be.eq(expectedStakeShares);
@@ -224,21 +239,26 @@ describe.only('withdraw', function () {
     expect(depositAfter.rewardsShares).to.be.eq(0);
 
     const { accNxmPerRewardShareAtExpiry } = await stakingPool.expiredTranches(firstActiveTrancheId);
-    const expectedRewardsWithdrawn = depositBefore.rewardsShares
+
+    const expectedUserRewardsWithdrawn = depositBefore.rewardsShares
       .mul(accNxmPerRewardShareAtExpiry.sub(depositBefore.lastAccNxmPerRewardShare))
+      .div(parseEther('1'))
       .add(depositBefore.pendingRewards);
+
+    const expectedManagerRewardsWithdrawn = managerDepositBefore.rewardsShares
+      .mul(accNxmPerRewardShareAtExpiry.sub(depositBefore.lastAccNxmPerRewardShare))
+      .div(parseEther('1'))
+      .add(managerDepositBefore.pendingRewards);
+
+    const expectedRewardsWithdrawn = expectedUserRewardsWithdrawn.add(expectedManagerRewardsWithdrawn);
 
     const rewardsMinted = tcBalanceBefore.sub(tcBalanceInitial);
 
-    // TODO: figure out which of the values is wrong
-    console.log({
-      rewardsMinted: rewardsMinted.toString(),
-      expectedRewardsWithdrawn: expectedRewardsWithdrawn.toString(),
-    });
+    expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(expectedUserRewardsWithdrawn));
+    expect(managerBalanceAfter).to.be.eq(managerBalanceBefore.add(expectedManagerRewardsWithdrawn));
 
-    expect(expectedRewardsWithdrawn).to.be.eq(rewardsMinted);
-    expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(expectedRewardsWithdrawn));
-    expect(tcBalanceAfter).to.be.eq(tcBalanceBefore);
+    expect(tcBalanceAfter).to.be.eq(tcBalanceInitial.add(1)); // add 1 because of dust
+    expect(expectedRewardsWithdrawn).to.be.eq(rewardsMinted.sub(1)); // sub 1 because of dust
   });
 
   it('allows to withdraw stake only if tranche is expired', async function () {

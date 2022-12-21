@@ -215,7 +215,7 @@ describe('v2 migration', function () {
   });
 
   it('add proposal category 42 (Add new contracts)', async function () {
-    await submitGovernanceProposal(
+    await submitGovernanceProposalV2(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
         [
@@ -239,7 +239,7 @@ describe('v2 migration', function () {
   });
 
   it('add proposal category 43 (Remove contracts)', async function () {
-    await submitGovernanceProposal(
+    await submitGovernanceProposalV2(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
         [
@@ -267,7 +267,7 @@ describe('v2 migration', function () {
     const coverInitializer = await CoverInitializer.deploy();
     await coverInitializer.deployed();
 
-    await submitGovernanceProposal(
+    await submitGovernanceProposalV2(
       42, // addNewInternalContracts(bytes2[],address[],uint256[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]', 'uint256[]'],
@@ -283,7 +283,7 @@ describe('v2 migration', function () {
     const master = await NXMaster.deploy();
     await master.deployed();
 
-    await submitGovernanceProposal(
+    await submitGovernanceProposalV2(
       37, // upgradeTo(address)
       defaultAbiCoder.encode(['address'], [master.address]),
       this.abMembers,
@@ -370,7 +370,7 @@ describe('v2 migration', function () {
     const gateway = await Gateway.deploy();
     await gateway.deployed();
 
-    await submitGovernanceProposal(
+    await submitGovernanceProposalV2(
       29, // upgradeMultipleContracts(bytes2[],address[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]'],

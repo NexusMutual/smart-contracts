@@ -5,29 +5,27 @@ const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 
 const DEFAULT_POOL_FEE = '5';
-const DEFAULT_PRODUCT_INITIALIZATION = [{ productId: 0, weight: 100 }];
+const DEFAULT_PRODUCTS = [{ productId: 0, weight: 100 }];
 
 async function createStakingPool(cover, productId, capacity, targetPrice, activeCover, creator, manager, currentPrice) {
-  const productInitializationParams = DEFAULT_PRODUCT_INITIALIZATION.map(p => {
+  const productInitializationParams = DEFAULT_PRODUCTS.map(p => {
     p.initialPrice = currentPrice;
     p.targetPrice = targetPrice;
     return p;
   });
 
-  const stakingPoolIndex = await cover.stakingPoolCount();
+  const factoryAddress = await cover.stakingPoolFactory();
+  const stakingPoolFactory = await ethers.getContractAt('StakingPoolFactory', factoryAddress);
+  const stakingPoolIndex = await stakingPoolFactory.stakingPoolCount();
 
-  const tx = await cover.connect(creator).createStakingPool(
+  await cover.connect(creator).createStakingPool(
     manager.address,
     false, // isPrivatePool,
     DEFAULT_POOL_FEE, // initialPoolFee
     DEFAULT_POOL_FEE, // maxPoolFee,
     productInitializationParams,
-    '0', // depositAmount,
-    '0', // trancheId
     '', // ipfsDescriptionHash
   );
-
-  await tx.wait();
 
   const stakingPoolAddress = await cover.stakingPool(stakingPoolIndex);
   const stakingPool = await ethers.getContractAt('CoverMockStakingPool', stakingPoolAddress);
@@ -114,10 +112,7 @@ async function buyCoverOnMultiplePools({
   );
 
   const { events } = await tx.wait();
-  const coverEditedEvent = events.filter(e => e.event === 'CoverEdited')[0];
-
-  const coverId = coverEditedEvent.args.coverId;
-  const segmentId = coverEditedEvent.args.segmentId;
+  const { coverId, segmentId } = events.find(e => e.event === 'CoverEdited').args;
 
   const storedCoverData = await cover.coverData(coverId);
   const segment = await cover.coverSegments(coverId, segmentId);

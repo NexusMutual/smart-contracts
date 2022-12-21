@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ICover.sol";
-import "../../modules/cover/CoverUtilsLib.sol";
 
 contract SPMockCover {
 
@@ -102,10 +101,18 @@ contract SPMockCover {
 
     for (uint i = 0; i < params.length; i++) {
       params[i].initialPrice = products[params[i].productId].initialPriceRatio;
-      require(params[i].targetPrice >= GLOBAL_MIN_PRICE_RATIO, "CoverUtilsLib: Target price below GLOBAL_MIN_PRICE_RATIO");
+      require(params[i].targetPrice >= GLOBAL_MIN_PRICE_RATIO, "Cover: Target price below GLOBAL_MIN_PRICE_RATIO");
     }
 
-    IStakingPool(staking_).initialize(_manager, _isPrivatePool, _initialPoolFee, _maxPoolFee, params, _poolId, ipfsDescriptionHash);
+    IStakingPool(staking_).initialize(
+      _manager,
+      _isPrivatePool,
+      _initialPoolFee,
+      _maxPoolFee,
+      params,
+      _poolId,
+      ipfsDescriptionHash
+    );
   }
 
   function isPoolAllowed(uint /*productId*/, uint /*poolId*/) external pure returns (bool) {

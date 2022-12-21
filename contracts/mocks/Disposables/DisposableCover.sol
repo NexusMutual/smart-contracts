@@ -8,9 +8,15 @@ contract DisposableCover is Cover {
 
   constructor(
     ICoverNFT _coverNFT,
+    IStakingNFT _stakingNFT,
     IStakingPoolFactory _stakingPoolFactory,
     address _stakingPoolImplementation
-  ) Cover(_coverNFT, _stakingPoolFactory, _stakingPoolImplementation) {
+  ) Cover(
+    _coverNFT,
+    _stakingNFT,
+    _stakingPoolFactory,
+    _stakingPoolImplementation
+  ) {
     // noop
   }
 

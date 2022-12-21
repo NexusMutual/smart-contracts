@@ -3,18 +3,15 @@
 pragma solidity ^0.8.16;
 
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-v4/utils/Strings.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../modules/staking/StakingPool.sol";
 import "../Tokens/ERC721Mock.sol";
 
-contract CoverMockStakingPool is IStakingPool, ERC721Mock {
-
-  /* immutables */
-  address public immutable memberRoles;
+contract CoverMockStakingPool is IStakingPool {
 
   mapping (uint => uint) public usedCapacity;
   mapping (uint => uint) public stakedAmount;
+
   // product id => StakedProduct
   mapping(uint => StakedProduct) public products;
   mapping (uint => uint) public mockPrices;
@@ -28,21 +25,9 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
   uint public constant TARGET_PRICE_DENOMINATOR = 100_00;
 
   uint public poolId;
-  // erc721 supply
-  uint public totalSupply;
   address public manager;
 
   uint public burnStakeCalledWith;
-
-  constructor (
-    address /* _nxm */,
-    address /* _coverContract */,
-    ITokenController /* _tokenController */,
-    address _memberRoles
-  ) ERC721Mock("Nexus Mutual Staking Pool", "NMSPT")
-  {
-    memberRoles = _memberRoles;
-  }
 
   function initialize(
     address _manager,
@@ -58,13 +43,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     _maxPoolFee;
     params;
     manager = _manager;
-    _mint(_manager, totalSupply++);
     poolId = _poolId;
-  }
-
-  function operatorTransferFrom(address from, address to, uint256 amount) external /*override*/ {
-    require(msg.sender == memberRoles, "StakingPool: Caller is not MemberRoles");
-    _operatorTransferFrom(from, to, amount);
   }
 
   function requestAllocation(
@@ -98,7 +77,9 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
   }
 
   function setProducts(StakedProductParam[] memory params) external {
-    totalSupply = totalSupply;
+    totalSupply = totalSupply;  function setProducts(StakedProductParam[] memory /*params*/) external {
+    manager = manager;
+  }
     params;
   }
 
@@ -106,24 +87,12 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     return priceRatio * coverAmount / MAX_PRICE_RATIO * period / 365 days;
   }
 
-  function stake(uint amount) external {
-    _mint(msg.sender, amount);
-  }
-
-  // used to transfer all nfts when a user switches the membership to a new address
-  function operatorTransfer(
-    address from,
-    address to,
-    uint[] calldata tokenIds
-  ) external {
-    uint length = tokenIds.length;
-    for (uint i = 0; i < length; i++) {
-      safeTransferFrom(from, to, tokenIds[i]);
-    }
+  function stake(uint /*amount*/) external {
+    manager = manager;
   }
 
   function processExpirations(bool) external {
-    totalSupply = totalSupply;
+    manager = manager;
     revert("CoverMockStakingPool: not callable");
   }
 
@@ -138,7 +107,9 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
   function getUsedCapacity(uint productId) external /*override*/ view returns (uint) {
     return usedCapacity[productId];
   }
-
+  function setProducts(StakedProductParam[] memory /*params*/) external {
+    manager = manager;
+  }
   function getTargetPrice(uint productId) external /*override*/ view returns (uint) {
     return products[productId].targetPrice;
   }
@@ -182,27 +153,29 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
     uint /*requestTokenId*/,
     address /*destination*/
   ) external returns (uint /* tokenId */) {
-    totalSupply = totalSupply;
+    manager = manager;
     revert("CoverMockStakingPool: not callable");
   }
 
   function withdraw(
     uint /*tokenId*/,
-    bool /*withdrawStake*/,
+    bool /*withdrawStake*/,  function setProducts(StakedProductParam[] memory /*params*/) external {
+    manager = manager;
+  }
     bool /*withdrawRewards*/,
     uint[] memory /*trancheIds*/
   ) public returns (uint /*withdrawnStake*/, uint /*withdrawnRewards*/) {
-    totalSupply = totalSupply;
+    manager = manager;
     revert("CoverMockStakingPool: not callable");
   }
 
   function setPoolFee(uint /* newFee */) external {
-    totalSupply = totalSupply;
+    manager = manager;
     revert("CoverMockStakingPool: not callable");
   }
 
   function setPoolPrivacy(bool /* isPrivatePool */) external {
-    totalSupply = totalSupply;
+    manager = manager;
     revert("CoverMockStakingPool: not callable");
   }
 
@@ -227,7 +200,7 @@ contract CoverMockStakingPool is IStakingPool, ERC721Mock {
   }
 
   function multicall(bytes[] calldata) external returns (bytes[] memory) {
-    totalSupply = totalSupply;
+    manager = manager;
     revert("CoverMockStakingPool: not callable");
   }
 

@@ -9,6 +9,8 @@ import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 
+import "hardhat/console.sol";
+
 /// Provides a way for contracts which don't use the Gateway.sol contract to migrate covers to V2
 /// using the submitClaim claim function.
 contract CoverMigrator is MasterAwareV2 {
@@ -50,7 +52,7 @@ contract CoverMigrator is MasterAwareV2 {
   /// users of distributor contracts to migrate their NFTs.
   ///
   /// @param coverId   V1 cover identifier
-  /// @param msgSender The address from where this function is called
+  /// @param msgSender The address which called the migration function
   /// @param newOwner  The address for which the V2 cover NFT is minted
   function migrateCoverFrom(
     uint coverId,
@@ -74,7 +76,7 @@ contract CoverMigrator is MasterAwareV2 {
   /// @dev Migrates covers from V1
   ///
   /// @param coverId   V1 cover identifier
-  /// @param msgSender The address from where this function is called
+  /// @param msgSender The address which called the migration function
   /// @param newOwner  The address for which the V2 cover NFT is minted
   function _migrateCoverFrom(
     uint coverId,

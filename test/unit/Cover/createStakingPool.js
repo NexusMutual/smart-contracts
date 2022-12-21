@@ -1,60 +1,59 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 
+const newPoolFixture = {
+  initialPoolFee: 5, // 5%
+  maxPoolFee: 5, // 5%
+  productInitializationParams: [
+    {
+      productId: 0,
+      weight: 100,
+      initialPrice: '500',
+      targetPrice: '500',
+    },
+  ],
+  ipfsDescriptionHash: 'Description Hash',
+};
+
+// beacon proxy init code hash
+const INIT_CODE_HASH = '203b477dc328f1ceb7187b20e5b1b0f0bc871114ada7e9020c9ac112bbfb6920';
+
 describe('createStakingPool', function () {
-  const newPoolFixture = {
-    initialPoolFee: 5, // 5%
-    maxPoolFee: 5, // 5%
-    depositAmount: 0,
-    trancheId: 0,
-    poolId: 0,
-    productInitializationParams: [
-      {
-        productId: 0,
-        weight: 100,
-        initialPrice: '500',
-        targetPrice: '500',
-      },
-    ],
-    ipfsDescriptionHash: 'Description Hash',
-  };
-
   it('should create and initialize a new pool minimal beacon proxy pool', async function () {
-    const { cover } = this;
-
+    const { cover, stakingPoolFactory } = this;
     const [stakingPoolCreator, stakingPoolManager] = this.accounts.members;
+    const { initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = newPoolFixture;
 
-    const {
-      initialPoolFee,
-      maxPoolFee,
-      productInitializationParams,
-      depositAmount,
-      trancheId,
-      poolId,
-      ipfsDescriptionHash,
-    } = newPoolFixture;
+    const poolId = 0;
 
-    const firstStakingPoolAddress = await cover.stakingPool(poolId);
+    const salt = Buffer.from(poolId.toString(16).padStart(64, '0'), 'hex');
+    const initCodeHash = Buffer.from(INIT_CODE_HASH, 'hex');
+    const expectedAddress = ethers.utils.getCreate2Address(stakingPoolFactory.address, salt, initCodeHash);
 
-    await cover.connect(stakingPoolCreator).createStakingPool(
+    // calculated address check
+    const reportedAddress = await cover.stakingPool(poolId);
+    expect(reportedAddress).to.be.equal(expectedAddress);
+
+    const tx = await cover.connect(stakingPoolCreator).createStakingPool(
       stakingPoolManager.address,
       false, // isPrivatePool,
       initialPoolFee,
       maxPoolFee,
       productInitializationParams,
-      depositAmount,
-      trancheId,
       ipfsDescriptionHash,
     );
 
-    const stakingPoolInstance = await ethers.getContractAt('CoverMockStakingPool', firstStakingPoolAddress);
-    const proxyInstance = await ethers.getContractAt('MinimalBeaconProxy', firstStakingPoolAddress);
+    // actual address check
+    await expect(tx).to.emit(stakingPoolFactory, 'StakingPoolCreated').withArgs(poolId, expectedAddress);
+
+    const proxyInstance = await ethers.getContractAt('MinimalBeaconProxy', expectedAddress);
+    const beacon = await proxyInstance.beacon();
+    expect(beacon).to.be.equal(cover.address);
+
+    const stakingPoolInstance = await ethers.getContractAt('CoverMockStakingPool', expectedAddress);
 
     const storedManager = await stakingPoolInstance.manager();
     expect(storedManager).to.be.equal(stakingPoolManager.address);
-
-    const beacon = await proxyInstance.beacon();
-    expect(beacon).to.be.equal(cover.address);
 
     // validate variable is initialized
     const contractPoolId = await stakingPoolInstance.poolId();
@@ -63,11 +62,9 @@ describe('createStakingPool', function () {
 
   it('allows anyone to create a new pool', async function () {
     const { cover } = this;
-
     const [stakingPoolCreator, stakingPoolManager] = this.accounts.generalPurpose;
-
-    const { initialPoolFee, maxPoolFee, productInitializationParams, depositAmount, trancheId, poolId } =
-      newPoolFixture;
+    const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
+    const poolId = 0;
 
     const firstStakingPoolAddress = await cover.stakingPool(poolId);
 
@@ -77,8 +74,6 @@ describe('createStakingPool', function () {
       initialPoolFee,
       maxPoolFee,
       productInitializationParams,
-      depositAmount,
-      trancheId,
       '', // ipfsDescriptionHash
     );
 
@@ -89,21 +84,12 @@ describe('createStakingPool', function () {
 
   it('emits StakingPoolCreated event', async function () {
     const { cover } = this;
-
     const [stakingPoolCreator, stakingPoolManager] = this.accounts.members;
-
-    const {
-      initialPoolFee,
-      maxPoolFee,
-      productInitializationParams,
-      depositAmount,
-      trancheId,
-      poolId,
-      ipfsDescriptionHash,
-    } = newPoolFixture;
+    const { initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = newPoolFixture;
 
     const stakingPoolImplementation = await cover.stakingPoolImplementation();
 
+    const poolId = 0;
     const firstStakingPoolAddress = await cover.stakingPool(poolId);
 
     const tx = await cover.connect(stakingPoolCreator).createStakingPool(
@@ -112,25 +98,22 @@ describe('createStakingPool', function () {
       initialPoolFee,
       maxPoolFee,
       productInitializationParams,
-      depositAmount,
-      trancheId,
       ipfsDescriptionHash,
     );
+
     expect(tx)
       .to.emit(cover, 'StakingPoolCreated')
-      .withArgs(firstStakingPoolAddress, poolId, stakingPoolManager.address, stakingPoolImplementation);
+      .withArgs(firstStakingPoolAddress, stakingPoolManager.address, poolId, stakingPoolImplementation);
 
     expect(tx).to.emit(cover, 'PoolDescriptionSet').withArgs(poolId, ipfsDescriptionHash);
   });
 
   it('increments staking pool count', async function () {
-    const { cover } = this;
-
+    const { cover, stakingPoolFactory } = this;
     const [stakingPoolCreator, stakingPoolManager] = this.accounts.members;
+    const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
 
-    const { initialPoolFee, maxPoolFee, productInitializationParams, depositAmount, trancheId } = newPoolFixture;
-
-    const stakingPoolCountBefore = await cover.stakingPoolCount();
+    const stakingPoolCountBefore = await stakingPoolFactory.stakingPoolCount();
 
     await cover.connect(stakingPoolCreator).createStakingPool(
       stakingPoolManager.address,
@@ -138,12 +121,10 @@ describe('createStakingPool', function () {
       initialPoolFee,
       maxPoolFee,
       productInitializationParams,
-      depositAmount,
-      trancheId,
       '', // ipfsDescriptionHash
     );
 
-    const stakingPoolCountAfter = await cover.stakingPoolCount();
+    const stakingPoolCountAfter = await stakingPoolFactory.stakingPoolCount();
     expect(stakingPoolCountAfter).to.be.equal(stakingPoolCountBefore.add(1));
   });
 });

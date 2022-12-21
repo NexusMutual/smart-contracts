@@ -13,37 +13,37 @@ const {
   MAX_ACTIVE_TRANCHES,
 } = require('./helpers');
 
-const { AddressZero } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 
-describe('processExpirations', function () {
-  const processExpirationsFixture = {
-    poolId: 0,
-    initialPoolFee: 5, // 5%
-    maxPoolFee: 5, // 5%
-    productInitializationParams: [
-      {
-        productId: 0,
-        weight: 100,
-        initialPrice: 500,
-        targetPrice: 500,
-      },
-    ],
-    amount: parseEther('100'),
-    trancheId: 0,
-    tokenId: 0,
-    destination: AddressZero,
-    depositNftId: 1,
-    ipfsDescriptionHash: 'Description Hash',
-  };
+const depositToFixture = {
+  amount: parseEther('100'),
+  trancheId: 0,
+  tokenId: MaxUint256,
+  destination: AddressZero,
+};
 
+const productParams = {
+  productId: 0,
+  weight: 100,
+  initialPrice: 500,
+  targetPrice: 500,
+};
+
+const poolInitParams = {
+  poolId: 0,
+  initialPoolFee: 5, // 5%
+  maxPoolFee: 5, // 5%
+  products: [productParams],
+  ipfsDescriptionHash: 'Description Hash',
+};
+
+describe('processExpirations', function () {
   beforeEach(async function () {
     const { stakingPool, cover } = this;
     const { defaultSender: manager } = this.accounts;
-
-    const { poolId, initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } =
-      processExpirationsFixture;
+    const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
     await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
@@ -51,15 +51,7 @@ describe('processExpirations', function () {
 
     await stakingPool
       .connect(coverSigner)
-      .initialize(
-        manager.address,
-        false,
-        initialPoolFee,
-        maxPoolFee,
-        productInitializationParams,
-        poolId,
-        ipfsDescriptionHash,
-      );
+      .initialize(manager.address, false, initialPoolFee, maxPoolFee, products, poolId, ipfsDescriptionHash);
 
     // Move to the beginning of the next tranche
     const { firstActiveTrancheId: trancheId } = await getTranches();
@@ -72,7 +64,7 @@ describe('processExpirations', function () {
       members: [user],
     } = this.accounts;
 
-    const { amount, tokenId, destination } = processExpirationsFixture;
+    const { amount, tokenId, destination } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches();
 
@@ -94,7 +86,7 @@ describe('processExpirations', function () {
   it('does not revert when expires multiple tranches', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
-    const { amount, tokenId, destination } = processExpirationsFixture;
+    const { amount, tokenId, destination } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches();
 
@@ -121,7 +113,7 @@ describe('processExpirations', function () {
     const { POOL_FEE_DENOMINATOR } = this.config;
     const [user] = this.accounts.members;
 
-    const { amount, tokenId, destination, initialPoolFee } = processExpirationsFixture;
+    const { amount, tokenId, destination, initialPoolFee } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -201,7 +193,7 @@ describe('processExpirations', function () {
       members: [user],
     } = this.accounts;
 
-    const { amount, tokenId, destination } = processExpirationsFixture;
+    const { amount, tokenId, destination } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -250,7 +242,7 @@ describe('processExpirations', function () {
       members: [user],
     } = this.accounts;
 
-    const { amount, tokenId, destination } = processExpirationsFixture;
+    const { amount, tokenId, destination } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches();
 
@@ -340,7 +332,7 @@ describe('processExpirations', function () {
       members: [user],
     } = this.accounts;
 
-    const { amount, tokenId, destination } = processExpirationsFixture;
+    const { amount, tokenId, destination } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches();
 
@@ -380,7 +372,7 @@ describe('processExpirations', function () {
       members: [user],
     } = this.accounts;
 
-    const { amount, tokenId, destination } = processExpirationsFixture;
+    const { amount, tokenId, destination } = depositToFixture;
 
     const { firstActiveTrancheId: initialFirstActiveTrancheId } = await getTranches();
 
@@ -408,7 +400,7 @@ describe('processExpirations', function () {
       members: [user],
     } = this.accounts;
 
-    const { amount, tokenId, destination } = processExpirationsFixture;
+    const { amount, tokenId, destination } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches();
 
@@ -438,7 +430,7 @@ describe('processExpirations', function () {
       members: [user],
     } = this.accounts;
 
-    const { amount, tokenId, destination } = processExpirationsFixture;
+    const { amount, tokenId, destination } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches();
 

@@ -3,6 +3,7 @@
 pragma solidity >=0.5.0;
 
 import "./ICoverNFT.sol";
+import "./IStakingNFT.sol";
 import "./IStakingPool.sol";
 import "./IStakingPoolFactory.sol";
 
@@ -187,9 +188,13 @@ interface ICover {
 
   function coverNFT() external returns (ICoverNFT);
 
+  function stakingNFT() external returns (IStakingNFT);
+
   function stakingPoolFactory() external returns (IStakingPoolFactory);
 
-  function transferCovers(address from, address to, uint256[] calldata coverIds) external;
+  function transferCovers(address from, address to, uint256[] calldata tokenIds) external;
+
+  function transferStakingPoolTokens(address from, address to, uint256[] calldata tokenIds) external;
 
   function createStakingPool(
     address manager,

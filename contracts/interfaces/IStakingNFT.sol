@@ -8,9 +8,11 @@ interface IStakingNFT is IERC721 {
 
   function isApprovedOrOwner(address spender, uint tokenId) external returns (bool);
 
-  function mint(uint96 poolId, address to) external returns (uint tokenId);
+  function mint(uint poolId, address to) external returns (uint tokenId);
 
   function operatorTransferFrom(address from, address to, uint256 tokenId) external;
 
   function changeOperator(address newOperator) external;
+
+  function totalSupply() external returns (uint);
 }

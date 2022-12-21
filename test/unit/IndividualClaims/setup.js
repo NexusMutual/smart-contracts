@@ -35,8 +35,8 @@ async function setup() {
   const assessment = await Assessment.deploy();
   await assessment.deployed();
 
-  const CoverNFT = await ethers.getContractFactory('ERC721Mock');
-  const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NXC');
+  const CoverNFT = await ethers.getContractFactory('CLMockCoverNFT');
+  const coverNFT = await CoverNFT.deploy();
   await coverNFT.deployed();
 
   const IndividualClaims = await ethers.getContractFactory('IndividualClaims');

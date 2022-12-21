@@ -12,9 +12,8 @@ const main = async () => {
   const targetContract = 'MinimalBeaconProxy';
   const targetLibrary = 'StakingPoolLibrary';
 
-  const { bytecode: deploymentBytecode } = await artifacts.readArtifact(targetContract);
-  const bytecode = hexToBytes(deploymentBytecode.replace(/^0x/i, ''));
-  const bytecodeHash = bytesToHex(keccak256(bytecode)).toString('hex').replace(/^0x/i, '');
+  const { bytecode } = await artifacts.readArtifact(targetContract);
+  const bytecodeHash = bytesToHex(keccak256(hexToBytes(bytecode.replace(/^0x/i, ''))));
 
   // @fvictorio: source names are not paths but this works so who cares
   const { sourceName } = await artifacts.readArtifact(targetLibrary);

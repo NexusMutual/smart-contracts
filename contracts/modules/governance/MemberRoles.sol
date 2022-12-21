@@ -234,28 +234,27 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
   ///
   /// @param newAddress           Address of user to forward membership.
   /// @param coverIds             Array of cover ids to transfer to the new address.
-  /// @param stakingPools         Array of staking pool addresses where the user has LP tokens.
-  /// @param stakingPoolTokenIds  Arrays of token ids each belonging to each staking pool given
+  /// @param stakingTokenIds      Arrays of staking nft token ids to transfer to the new address.
   ///                             through stakingPool parameter.
   function switchMembershipAndAssets(
     address newAddress,
     uint[] calldata coverIds,
-    uint[] calldata stakingPools,
-    uint[][] calldata stakingPoolTokenIds
+    uint[] calldata stakingTokenIds
   ) external override {
     _switchMembership(msg.sender, newAddress);
     INXMToken _token = token();
     _token.transferFrom(msg.sender, newAddress, _token.balanceOf(msg.sender));
 
     ICover _cover = cover();
-    // Transfer the cover NFTs to the new address, if any were given
-    _cover.transferCovers(msg.sender, newAddress, coverIds);
 
-    // Transfer the staking deposits to the new address
-    for (uint256 i = 0; i < stakingPools.length; i++) {
-      IStakingPool stakingPool = _cover.stakingPool(stakingPools[i]);
-      stakingPool;
-      // stakingPool.operatorTransfer(msg.sender, newAddress, stakingPoolTokenIds[i]);
+    // Transfer the cover NFTs to the new address, if any were given
+    if (coverIds.length > 0) {
+      _cover.transferCovers(msg.sender, newAddress, coverIds);
+    }
+
+    // Transfer the staking pool NFTs to the new address, if any were given
+    if (stakingTokenIds.length > 0) {
+      _cover.transferStakingPoolTokens(msg.sender, newAddress, stakingTokenIds);
     }
   }
 

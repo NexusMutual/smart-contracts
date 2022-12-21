@@ -15,7 +15,7 @@ contract StakingNFT is IStakingNFT {
   string public name;
   string public symbol;
   address public operator;
-  uint96 public totalSupply;
+  uint96 internal _totalSupply;
 
   mapping(uint => TokenInfo) internal _tokenInfo;
   mapping(address => uint) internal _balanceOf;
@@ -56,6 +56,29 @@ contract StakingNFT is IStakingNFT {
     require(msg.sender == operator, "NOT_OPERATOR");
     require(newOperator != address(0), "INVALID_OPERATOR");
     operator = newOperator;
+  }
+
+  // minting and supply
+
+  function mint(uint poolId, address to) public returns (uint id) {
+
+    // TODO: make sure msg.sender is a staking pool
+    require(to != address(0), "INVALID_RECIPIENT");
+
+    // counter overflow is incredibly unrealistic
+    unchecked {
+      id = _totalSupply++;
+      _balanceOf[to]++;
+    }
+
+    _tokenInfo[id].owner = to;
+    _tokenInfo[id].poolId = uint96(poolId);
+
+    emit Transfer(address(0), to, id);
+  }
+
+  function totalSupply() public view returns (uint) {
+    return _totalSupply;
   }
 
   // ERC165
@@ -147,23 +170,6 @@ contract StakingNFT is IStakingNFT {
         == ERC721TokenReceiver.onERC721Received.selector,
       "UNSAFE_RECIPIENT"
     );
-  }
-
-  function mint(uint96 poolId, address to) public returns (uint id) {
-
-    // TODO: make sure msg.sender is a staking pool
-    require(to != address(0), "INVALID_RECIPIENT");
-
-    // counter overflow is incredibly unrealistic
-    unchecked {
-      id = totalSupply++;
-      _balanceOf[to]++;
-    }
-
-    _tokenInfo[id].owner = to;
-    _tokenInfo[id].poolId = poolId;
-
-    emit Transfer(address(0), to, id);
   }
 }
 

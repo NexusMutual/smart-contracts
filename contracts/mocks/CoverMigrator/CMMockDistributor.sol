@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 
 import "../../interfaces/ICoverMigrator.sol";
 
-contract CLMockDistributor {
+contract CMMockDistributor {
 
   ICoverMigrator internal claims;
 

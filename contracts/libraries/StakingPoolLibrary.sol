@@ -19,7 +19,7 @@ library StakingPoolLibrary {
     );
 
     // cast last 20 bytes of hash to address
-    return address(bytes20(hash));
+    return address(uint160(uint(hash)));
   }
 
 }

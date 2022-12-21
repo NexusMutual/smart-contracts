@@ -28,8 +28,12 @@ async function setup() {
   const CoverNFT = await ethers.getContractFactory('MRMockCoverNFT');
   const coverNFT = await CoverNFT.deploy('', '');
 
+  const StakingNFT = await ethers.getContractFactory('MRMockStakingNFT');
+  const stakingNFT = await StakingNFT.deploy('', '');
+  await stakingNFT.deployed();
+
   const Cover = await ethers.getContractFactory('MRMockCover');
-  const cover = await Cover.deploy(coverNFT.address, memberRoles.address);
+  const cover = await Cover.deploy(coverNFT.address, memberRoles.address, stakingNFT.address);
 
   const Governance = await ethers.getContractFactory('MRMockGovernance');
   const governance = await Governance.deploy();
@@ -40,13 +44,6 @@ async function setup() {
   const quotationDataArtifact = await artifacts.readArtifact('MRMockQuotationData');
   await setCode(quotationDataAddress, quotationDataArtifact.deployedBytecode);
   const quotationData = await ethers.getContractAt('MRMockQuotationData', quotationDataAddress);
-
-  const StakingPool = await ethers.getContractFactory('MRMockStakingPool');
-  const stakingPool0 = await StakingPool.deploy('', '');
-  const stakingPool1 = await StakingPool.deploy('', '');
-  const stakingPool2 = await StakingPool.deploy('', '');
-
-  await cover.addStakingPools([stakingPool0.address, stakingPool1.address, stakingPool2.address]);
 
   await master.setLatestAddress(hex('CO'), cover.address);
   await master.setTokenAddress(nxm.address);
@@ -109,14 +106,10 @@ async function setup() {
     memberRoles,
     cover,
     coverNFT,
+    stakingNFT,
     tokenController,
-    stakingPool0,
-    stakingPool1,
-    stakingPool2,
     quotationData,
   };
 }
 
-module.exports = {
-  setup,
-};
+module.exports = { setup };

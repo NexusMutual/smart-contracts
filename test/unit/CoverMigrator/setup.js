@@ -2,36 +2,40 @@ const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
 
+const { AddressZero } = ethers.constants;
+
 async function setup() {
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();
   await master.deployed();
 
+  const ProductsV1 = await ethers.getContractFactory('ProductsV1');
+  const productsV1 = await ProductsV1.deploy();
+
+  const QuotationData = await ethers.getContractFactory('MockLegacyQuotationData');
+  const quotationData = await QuotationData.deploy(AddressZero, AddressZero);
+
   const CoverMigrator = await ethers.getContractFactory('CoverMigrator');
-  const coverMigrator = await CoverMigrator.deploy();
-  await coverMigrator.deployed();
+  const coverMigrator = await CoverMigrator.deploy(quotationData.address, productsV1.address);
 
-  const Cover = await ethers.getContractFactory('CLMockCover');
-  const cover = await Cover.deploy('0x0000000000000000000000000000000000000000');
-  await cover.deployed();
+  const Cover = await ethers.getContractFactory('CMMockCover');
+  const cover = await Cover.deploy();
 
-  const Distributor = await ethers.getContractFactory('CLMockDistributor');
+  const Distributor = await ethers.getContractFactory('CMMockDistributor');
   const distributor = await Distributor.deploy(coverMigrator.address);
-  await distributor.deployed();
 
-  const masterInitTxs = await Promise.all([
-    master.setLatestAddress(hex('CL'), coverMigrator.address),
-    master.setLatestAddress(hex('CO'), cover.address),
-  ]);
-  await Promise.all(masterInitTxs.map(x => x.wait()));
+  const TokenController = await ethers.getContractFactory('CMMockTokenController');
+  const tokenController = await TokenController.deploy();
 
-  const changeMasterAddressTxs = await Promise.all([master.callChangeMaster(coverMigrator.address)]);
-  await Promise.all(changeMasterAddressTxs.map(x => x.wait()));
+  await master.setLatestAddress(hex('CL'), coverMigrator.address);
+  await master.setLatestAddress(hex('CO'), cover.address);
+  await master.setLatestAddress(hex('TC'), tokenController.address);
 
-  {
-    const tx = await coverMigrator.changeDependentContractAddress();
-    await tx.wait();
-  }
+  await master.enrollInternal(coverMigrator.address);
+
+  await master.callChangeMaster(quotationData.address);
+  await master.callChangeMaster(coverMigrator.address);
+  await coverMigrator.changeDependentContractAddress();
 
   const accounts = await getAccounts();
   await master.enrollGovernance(accounts.governanceContracts[0].address);
@@ -42,9 +46,10 @@ async function setup() {
     cover,
     distributor,
     master,
+    quotationData,
+    tokenController,
+    productsV1,
   };
 }
 
-module.exports = {
-  setup,
-};
+module.exports = { setup };

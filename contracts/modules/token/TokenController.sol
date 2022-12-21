@@ -44,6 +44,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     stakingPoolFactory = stakingPoolFactoryAddress;
   }
 
+  // TODO: probably better to move this to master
   function unlistClaimsReward() external {
     token().removeFromWhiteList(claimsReward);
   }

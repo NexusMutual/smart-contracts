@@ -57,6 +57,7 @@ contract StakingPool is IStakingPool {
   uint8 public maxPoolFee;
   uint32 public totalEffectiveWeight;
   uint32 public totalTargetWeight;
+  address public manager;
 
   // tranche id => tranche data
   mapping(uint => Tranche) public tranches;
@@ -85,9 +86,9 @@ contract StakingPool is IStakingPool {
 
   /* immutables */
 
+  IStakingNFT public immutable stakingNFT;
   INXMToken public immutable nxm;
   ITokenController public  immutable tokenController;
-  IStakingNFT public immutable stakingNFT;
   address public immutable coverContract;
 
   /* constants */
@@ -138,27 +139,28 @@ contract StakingPool is IStakingPool {
   // smallest unit we can allocate is 1e18 / 100 = 1e16 = 0.01 NXM
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
+  uint public constant MAX_UINT = type(uint).max;
+
   modifier onlyCoverContract {
     require(msg.sender == coverContract, "StakingPool: Only Cover contract can call this function");
     _;
   }
 
   modifier onlyManager {
-    require(isApprovedOrOwner(msg.sender, 0), "StakingPool: Only pool manager can call this function");
+    require(msg.sender == manager, "StakingPool: Only pool manager can call this function");
     _;
   }
 
   constructor (
+    address _stakingNFT,
     address _token,
     address _coverContract,
-    address _stakingNFT,
     address _tokenController
   ) {
-    nxm = INXMToken(_token);
-    tokenController = ITokenController(_tokenController);
-    coverContract = _coverContract;
     stakingNFT = IStakingNFT(_stakingNFT);
-    // IStakingNFT(_stakingNFT).mint();
+    nxm = INXMToken(_token);
+    coverContract = _coverContract;
+    tokenController = ITokenController(_tokenController);
   }
 
   function initialize(
@@ -174,6 +176,7 @@ contract StakingPool is IStakingPool {
     require(_initialPoolFee <= _maxPoolFee, "StakingPool: Pool fee should not exceed max pool fee");
     require(_maxPoolFee < 100, "StakingPool: Max pool fee cannot be 100%");
 
+    manager = _manager;
     isPrivatePool = _isPrivatePool;
     poolFee = uint8(_initialPoolFee);
     maxPoolFee = uint8(_maxPoolFee);
@@ -185,15 +188,11 @@ contract StakingPool is IStakingPool {
   }
 
   function isApprovedOrOwner(address spender, uint tokenId) internal view returns (bool) {
+    // TODO: will revert for inexistent token
     address owner = stakingNFT.ownerOf(tokenId);
     return spender == owner
       || stakingNFT.isApprovedForAll(owner, spender)
       || spender == stakingNFT.getApproved(tokenId);
-  }
-
-  function manager() public view returns (address) {
-    // TODO: change to manager's token id
-    return stakingNFT.ownerOf(0);
   }
 
   // updateUntilCurrentTimestamp forces rewards update until current timestamp not just until
@@ -341,10 +340,7 @@ contract StakingPool is IStakingPool {
   ) public returns (uint tokenId) {
 
     if (isPrivatePool) {
-      require(
-        msg.sender == coverContract || msg.sender == manager(),
-        "StakingPool: The pool is private"
-      );
+      require(msg.sender == manager, "StakingPool: The pool is private");
     }
 
     require(block.timestamp > nxm.isLockedForMV(msg.sender), "Staking: NXM is locked for voting in governance");
@@ -374,9 +370,9 @@ contract StakingPool is IStakingPool {
     uint _accNxmPerRewardsShare = accNxmPerRewardsShare;
     uint totalAmount;
 
-    // deposit to token id = 0 is not allowed
+    // deposit to token id = MAX_UINT is not allowed
     // we treat it as a flag to create a new token
-    if (requestTokenId == type(uint).max) {
+    if (requestTokenId == MAX_UINT) {
       address to = destination == address(0) ? msg.sender : destination;
       tokenId = stakingNFT.mint(poolId, to);
     } else {
@@ -394,7 +390,7 @@ contract StakingPool is IStakingPool {
     // update deposit and pending reward
     {
       // conditional read
-      Deposit memory deposit = requestTokenId == 0
+      Deposit memory deposit = requestTokenId == MAX_UINT
         ? Deposit(0, 0, 0, 0)
         : deposits[tokenId][trancheId];
 
@@ -422,11 +418,11 @@ contract StakingPool is IStakingPool {
 
     // update pool manager's reward shares
     {
-      Deposit memory feeDeposit = deposits[0][trancheId];
+      Deposit memory feeDeposit = deposits[MAX_UINT][trancheId];
 
       {
         // create fee deposit reward shares
-        uint newFeeRewardShares = newRewardsShares * poolFee / POOL_FEE_DENOMINATOR;
+        uint newFeeRewardShares = newRewardsShares * poolFee / (POOL_FEE_DENOMINATOR - poolFee);
         newRewardsShares += newFeeRewardShares;
 
         // calculate rewards until now
@@ -436,7 +432,7 @@ contract StakingPool is IStakingPool {
         feeDeposit.rewardsShares += newFeeRewardShares;
       }
 
-      deposits[0][trancheId] = feeDeposit;
+      deposits[MAX_UINT][trancheId] = feeDeposit;
     }
 
     // update tranche
@@ -452,9 +448,8 @@ contract StakingPool is IStakingPool {
     _stakeSharesSupply += newStakeShares;
     _rewardsSharesSupply += newRewardsShares;
 
-    address source = msg.sender == coverContract ? manager() : msg.sender;
     // transfer nxm from the staker and update the pool deposit balance
-    tokenController.depositStakedNXM(source, totalAmount, poolId);
+    tokenController.depositStakedNXM(msg.sender, totalAmount, poolId);
 
     // update globals
     activeStake = _activeStake;
@@ -511,7 +506,7 @@ contract StakingPool is IStakingPool {
     uint[] memory trancheIds
   ) public returns (uint withdrawnStake, uint withdrawnRewards) {
 
-    uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager());
+    uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager);
 
     // pass false as it does not modify the share supply nor the reward per second
     processExpirations(false);
@@ -574,8 +569,12 @@ contract StakingPool is IStakingPool {
       deposits[tokenId][trancheId] = deposit;
     }
 
+    address destination = tokenId == MAX_UINT
+      ? manager
+      : stakingNFT.ownerOf(tokenId);
+
     tokenController.withdrawNXMStakeAndRewards(
-      stakingNFT.ownerOf(tokenId),
+      destination,
       withdrawnStake,
       withdrawnRewards,
       poolId
@@ -1024,13 +1023,13 @@ contract StakingPool is IStakingPool {
     uint topUpAmount
   ) external {
 
+    // token id MAX_UINT is only used for pool manager fee tracking, no deposits allowed
+    require(tokenId != MAX_UINT, "StakingPool: Invalid token id");
     require(isApprovedOrOwner(msg.sender, tokenId), "StakingPool: Not token owner or approved");
 
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 
     {
-      // token id 0 is only used for pool manager fee tracking, no deposits allowed
-      require(tokenId != 0, "StakingPool: Invalid token id");
       require(initialTrancheId < newTrancheId, "StakingPool: The chosen tranche cannot end before the initial one");
 
       uint maxTrancheId = _firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;
@@ -1059,10 +1058,7 @@ contract StakingPool is IStakingPool {
     }
 
     if (isPrivatePool) {
-      require(
-        msg.sender == coverContract || msg.sender == manager(),
-        "StakingPool: The pool is private"
-      );
+      require(msg.sender == manager, "StakingPool: The pool is private");
     }
 
     // if we got here - the initial tranche is still active. move all the shares to the new tranche
@@ -1376,7 +1372,7 @@ contract StakingPool is IStakingPool {
     for (uint trancheId = fromTrancheId; trancheId <= toTrancheId; trancheId++) {
 
       // sload
-      Deposit memory feeDeposit = deposits[0][trancheId];
+      Deposit memory feeDeposit = deposits[MAX_UINT][trancheId];
 
       if (feeDeposit.rewardsShares == 0) {
         continue;
@@ -1390,7 +1386,7 @@ contract StakingPool is IStakingPool {
       feeDeposit.rewardsShares = feeDeposit.rewardsShares * newFee / oldFee;
 
       // sstore
-      deposits[0][trancheId] = feeDeposit;
+      deposits[MAX_UINT][trancheId] = feeDeposit;
     }
 
     emit PoolFeeChanged(msg.sender, newFee);

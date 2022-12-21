@@ -12,6 +12,7 @@ import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
 import "../../interfaces/IIndividualClaims.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
@@ -19,6 +20,8 @@ import "../../interfaces/ITokenController.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
 import "../../libraries/StakingPoolLibrary.sol";
+
+import "hardhat/console.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   using SafeERC20 for IERC20;
@@ -84,6 +87,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   uint private constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
 
   ICoverNFT public immutable override coverNFT;
+  IStakingNFT public immutable override stakingNFT;
   IStakingPoolFactory public immutable override stakingPoolFactory;
   address public immutable stakingPoolImplementation;
 
@@ -91,11 +95,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   constructor(
     ICoverNFT _coverNFT,
+    IStakingNFT _stakingNFT,
     IStakingPoolFactory _stakingPoolFactory,
     address _stakingPoolImplementation
   ) {
     // in constructor we only initialize immutable fields
     coverNFT = _coverNFT;
+    stakingNFT = _stakingNFT;
     stakingPoolFactory = _stakingPoolFactory;
     stakingPoolImplementation = _stakingPoolImplementation;
   }
@@ -394,16 +400,25 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return coverId;
   }
 
-  // TODO: consider removing
-  function transferCovers(address from, address to, uint256[] calldata coverIds) external override {
+  function transferCovers(address from, address to, uint256[] calldata tokenIds) external override {
     require(
-      msg.sender == internalContracts[uint(ID.MR)],
+      msg.sender == address(memberRoles()),
       "Cover: Only MemberRoles is permitted to use operator transfer"
     );
 
-    ICoverNFT coverNFTContract = coverNFT;
-    for (uint256 i = 0; i < coverIds.length; i++) {
-      coverNFTContract.operatorTransferFrom(from, to, coverIds[i]);
+    for (uint256 i = 0; i < tokenIds.length; i++) {
+      ICoverNFT(coverNFT).operatorTransferFrom(from, to, tokenIds[i]);
+    }
+  }
+
+  function transferStakingPoolTokens(address from, address to, uint256[] calldata tokenIds) external override {
+    require(
+      msg.sender == address(memberRoles()),
+      "Cover: Only MemberRoles is permitted to use operator transfer"
+    );
+
+    for (uint256 i = 0; i < tokenIds.length; i++) {
+      stakingNFT.operatorTransferFrom(from, to, tokenIds[i]);
     }
   }
 
@@ -686,6 +701,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return ITokenController(internalContracts[uint(ID.TC)]);
   }
 
+  function memberRoles() internal view returns (IMemberRoles) {
+    return IMemberRoles(internalContracts[uint(ID.MR)]);
+  }
+
   function individualClaims() internal view returns (IIndividualClaims) {
     return IIndividualClaims(getInternalContractAddress(ID.IC));
   }
@@ -695,6 +714,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.IC)] = master.getLatestAddress("IC");
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
   }
 
   /**

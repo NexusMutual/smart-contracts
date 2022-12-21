@@ -3,60 +3,63 @@ const { expect } = require('chai');
 const { getTranches, getNewRewardShares, TRANCHE_DURATION, generateRewards, setTime } = require('./helpers');
 const { setEtherBalance, increaseTime } = require('../utils').evm;
 
-const { AddressZero } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
-describe('extendDeposit', function () {
-  const depositToFixture = {
-    poolId: 0,
-    initialPoolFee: 5, // 5%
-    maxPoolFee: 5, // 5%
-    productInitializationParams: [
-      {
-        productId: 0,
-        weight: 100,
-        initialPrice: 500,
-        targetPrice: 500,
-      },
-    ],
-    amount: parseEther('90'),
-    depositNftId: 1,
-    ipfsDescriptionHash: 'Description Hash',
-  };
+const depositToFixture = {
+  amount: parseEther('100'),
+  trancheId: 0,
+  tokenId: MaxUint256,
+  destination: AddressZero,
+};
 
+const productParams = {
+  productId: 0,
+  weight: 100,
+  initialPrice: 500,
+  targetPrice: 500,
+};
+
+const poolInitParams = {
+  poolId: 0,
+  initialPoolFee: 5, // 5%
+  maxPoolFee: 5, // 5%
+  products: [productParams],
+  ipfsDescriptionHash: 'Description Hash',
+};
+
+const depositNftId = 0;
+const managerDepositId = MaxUint256;
+
+describe('extendDeposit', function () {
   beforeEach(async function () {
-    const { stakingPool, cover } = this;
+    const { stakingPool, stakingNFT, cover } = this;
     const manager = this.accounts.defaultSender;
     const [user] = this.accounts.members;
-
-    const { poolId, initialPoolFee, maxPoolFee, productInitializationParams, amount, ipfsDescriptionHash } =
-      depositToFixture;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
     await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
     this.coverSigner = coverSigner;
 
+    const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
     await stakingPool
       .connect(coverSigner)
-      .initialize(
-        manager.address,
-        false,
-        initialPoolFee,
-        maxPoolFee,
-        productInitializationParams,
-        poolId,
-        ipfsDescriptionHash,
-      );
+      .initialize(manager.address, false, initialPoolFee, maxPoolFee, products, poolId, ipfsDescriptionHash);
 
     // Move to the beginning of the next tranche
     const { firstActiveTrancheId: trancheId } = await getTranches();
     await setTime((trancheId + 1) * TRANCHE_DURATION);
 
     expect(await stakingPool.totalSupply()).to.equal(1);
-    await stakingPool.connect(user).depositTo(amount, trancheId + 1, 0, AddressZero);
+
+    const { amount, tokenId } = depositToFixture;
+    const tx = await stakingPool.connect(user).depositTo(amount, trancheId + 1, tokenId, AddressZero);
+    await expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, user.address, depositNftId);
+
+    expect(await stakingNFT.totalSupply()).to.equal(1);
   });
 
-  it('reverts if token id is 0', async function () {
+  it('reverts if token id is max uint', async function () {
     const { stakingPool } = this;
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -64,14 +67,13 @@ describe('extendDeposit', function () {
     const managerSigner = await ethers.getImpersonatedSigner(managerAddress);
 
     await expect(
-      stakingPool.connect(managerSigner).extendDeposit(0, firstActiveTrancheId, maxTranche, 0),
+      stakingPool.connect(managerSigner).extendDeposit(MaxUint256, firstActiveTrancheId, maxTranche, 0),
     ).to.be.revertedWith('StakingPool: Invalid token id');
   });
 
   it('reverts if new tranche ends before the initial tranche', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
-    const { depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -83,7 +85,6 @@ describe('extendDeposit', function () {
   it('reverts if new tranche is not yet available', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
-    const { depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -95,7 +96,6 @@ describe('extendDeposit', function () {
   it('reverts if the new tranche already expired', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
-    const { depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId } = await getTranches();
 
@@ -109,7 +109,6 @@ describe('extendDeposit', function () {
   it('reverts when the user is not token owner nor approved tries to extend the deposit', async function () {
     const { stakingPool } = this;
     const [notNFTOwnerNorApproved] = this.accounts.nonMembers;
-    const { depositNftId } = depositToFixture;
     const { firstActiveTrancheId } = await getTranches();
 
     await expect(
@@ -122,7 +121,6 @@ describe('extendDeposit', function () {
   it('withdraws and make a new deposit if initial tranche is expired', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
-    const { depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -138,7 +136,6 @@ describe('extendDeposit', function () {
   it('updates tranches including accNxmPerRewardsShare and lastAccNxmUpdate', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
-    const { depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -165,7 +162,6 @@ describe('extendDeposit', function () {
   it('removes the initial tranche deposit and stores the new tranche deposit', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
-    const { depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -208,7 +204,6 @@ describe('extendDeposit', function () {
   it('allows to increase the deposit', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
-    const { depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -247,7 +242,7 @@ describe('extendDeposit', function () {
   it('allows to increase the deposit in expired tranche', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
-    const { depositNftId, amount } = depositToFixture;
+    const { amount } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -279,13 +274,12 @@ describe('extendDeposit', function () {
   it('updates the initial and new tranche stake shares and reward shares', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
-    const { depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
     await generateRewards(stakingPool, this.coverSigner);
 
-    const managerDeposit = await stakingPool.deposits(0, firstActiveTrancheId);
+    const managerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
     const initialDeposit = await stakingPool.deposits(depositNftId, firstActiveTrancheId);
     const initialTranche = await stakingPool.tranches(firstActiveTrancheId);
 
@@ -308,7 +302,6 @@ describe('extendDeposit', function () {
   it('updates global stake and reward shares supply', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
-    const { depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -341,7 +334,6 @@ describe('extendDeposit', function () {
   it('transfers increased deposit amount to token controller', async function () {
     const { stakingPool, nxm, tokenController } = this;
     const [user] = this.accounts.members;
-    const { depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -362,7 +354,7 @@ describe('extendDeposit', function () {
   it('transfers correctly increased deposit amount if previous deposit exists', async function () {
     const { stakingPool, nxm, tokenController } = this;
     const [user] = this.accounts.members;
-    const { depositNftId, amount } = depositToFixture;
+    const { amount } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -386,7 +378,6 @@ describe('extendDeposit', function () {
   it('emits DepositExtended event', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
-    const { depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -399,8 +390,6 @@ describe('extendDeposit', function () {
   it('does not emit DepositExtended if initial tranche is expired', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
-
-    const { depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -417,8 +406,6 @@ describe('extendDeposit', function () {
     const [user] = this.accounts.members;
     const manager = this.accounts.defaultSender;
 
-    const { depositNftId } = depositToFixture;
-
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
     await stakingPool.connect(manager).setPoolPrivacy(true);
@@ -433,8 +420,6 @@ describe('extendDeposit', function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
     const manager = this.accounts.defaultSender;
-
-    const { depositNftId } = depositToFixture;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 

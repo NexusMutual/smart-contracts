@@ -4,18 +4,18 @@ pragma solidity ^0.8.16;
 
 import "../Tokens/ERC721Mock.sol";
 
-contract MRMockCoverNFT is ERC721Mock {
+contract MRMockStakingNFT is ERC721Mock {
 
   constructor(string memory name, string memory symbol) ERC721Mock(name, symbol) {
     /* noop */
   }
 
-  function mint(address to, uint tokenId) external {
-    totalSupply++;
-    _mint(to, tokenId);
+  function mint(address to) external {
+    _mint(to, totalSupply++);
   }
 
   function operatorTransferFrom(address from, address to, uint256 tokenId) external {
       _operatorTransferFrom(from, to, tokenId);
   }
+
 }

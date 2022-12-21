@@ -25,7 +25,7 @@ contract StakingPoolFactory is IStakingPoolFactory {
 
     require(
       msg.sender == operator,
-      "StakingPoolFactory: Only cover contract can create staking pools"
+      "StakingPoolFactory: Only operator can create staking pools"
     );
 
     beacon = _beacon;
@@ -33,6 +33,11 @@ contract StakingPoolFactory is IStakingPoolFactory {
 
     stakingPoolAddress = address(
       new MinimalBeaconProxy{salt : bytes32(poolId)}()
+    );
+
+    require(
+      stakingPoolAddress != address(0),
+      "StakingPoolFactory: Failed to create staking pool"
     );
 
     emit StakingPoolCreated(poolId, stakingPoolAddress);

@@ -33,6 +33,7 @@ const config = {
     bail: false,
     recursive: false,
     timeout: 0,
+    slow: 5000,
   },
 
   networks: require('./networks'),

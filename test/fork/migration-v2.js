@@ -62,8 +62,6 @@ const submitGovernanceProposal = async (categoryId, actionData, signers, gv) => 
 };
 
 describe('v2 migration', function () {
-  this.timeout(0);
-
   it('initialize old contracts', async function () {
     const [deployer] = await ethers.getSigners();
     this.deployer = deployer;

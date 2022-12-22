@@ -7,7 +7,7 @@ const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { calculateFirstTrancheId } = require('../utils/staking');
 
-describe.only('switchMembershipAndAssets', function () {
+describe('switchMembershipAndAssets', function () {
   beforeEach(async function () {
     const { tk } = this.contracts;
 
@@ -74,12 +74,9 @@ describe.only('switchMembershipAndAssets', function () {
   });
 
   it('transfers the provided covers to the new address', async function () {
-    const { contracts } = this;
-    const { mr: memberRoles, tk: token, cover, coverNFT, stakingPool0 } = contracts;
-    const {
-      members: [member1, staker1],
-      nonMembers: [nonMember1],
-    } = this.accounts;
+    const { mr: memberRoles, tk: token, cover, coverNFT, stakingPool0 } = this.contracts;
+    const [member, staker] = this.accounts.members;
+    const [nonMember] = this.accounts.nonMembers;
 
     // Cover inputs
     const productId = 0;
@@ -89,14 +86,14 @@ describe.only('switchMembershipAndAssets', function () {
     const amount = parseEther('1');
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stake({ stakingPool: stakingPool0, staker, gracePeriod, period, productId });
 
     for (let i = 0; i < 3; i++) {
       const expectedPremium = parseEther('1');
       await cover.buyCover(
         {
           coverId: MaxUint256,
-          owner: member1.address,
+          owner: member.address,
           productId,
           coverAsset: 0,
           amount: parseEther('100'),
@@ -112,17 +109,17 @@ describe.only('switchMembershipAndAssets', function () {
       );
     }
 
-    await token.connect(member1).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await token.connect(member).approve(memberRoles.address, ethers.constants.MaxUint256);
     {
       const ownershipArr = await Promise.all([0, 1, 2].map(x => coverNFT.ownerOf(x)));
-      assert(ownershipArr.every(x => x === member1.address));
+      assert(ownershipArr.every(x => x === member.address));
     }
 
-    const newMemberAddress = nonMember1.address;
-    await memberRoles.connect(member1).switchMembershipAndAssets(newMemberAddress, [0, 2], [], []);
+    const newMemberAddress = nonMember.address;
+    await memberRoles.connect(member).switchMembershipAndAssets(newMemberAddress, [0, 2], [], []);
     {
       const ownershipArr = await Promise.all([0, 1, 2].map(x => coverNFT.ownerOf(x)));
-      assert(ownershipArr[1] === member1.address);
+      assert(ownershipArr[1] === member.address);
       assert(ownershipArr[0] === newMemberAddress);
       assert(ownershipArr[2] === newMemberAddress);
     }

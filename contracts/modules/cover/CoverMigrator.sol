@@ -9,8 +9,6 @@ import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 
-import "hardhat/console.sol";
-
 /// Provides a way for contracts which don't use the Gateway.sol contract to migrate covers to V2
 /// using the submitClaim claim function.
 contract CoverMigrator is MasterAwareV2 {

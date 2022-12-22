@@ -238,7 +238,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it('add proposal category 43 (Remove contracts)', async function () {
+  it.skip('add proposal category 43 (Remove contracts)', async function () {
     await submitGovernanceProposalV2(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
@@ -276,9 +276,19 @@ describe('v2 migration', function () {
       this.abMembers,
       this.governance,
     );
+
+    const cover = await ethers.getContractAt('Cover', await this.master.getLatestAddress('CO'));
+
+    const storedMaster = await cover.master();
+
+    console.log({
+      storedMaster,
+    });
+
+    expect(storedMaster).to.be.equal(this.master.address);
   });
 
-  it('deploy master contract', async function () {
+  it.skip('deploy master contract', async function () {
     const NXMaster = await ethers.getContractFactory('NXMaster');
     const master = await NXMaster.deploy();
     await master.deployed();
@@ -291,7 +301,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it('deploy CoverNFT contract', async function () {
+  it.skip('deploy CoverNFT contract', async function () {
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const CoverNFT = await ethers.getContractFactory('CoverNFT');
     const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NXC', coverProxyAddress);
@@ -299,7 +309,7 @@ describe('v2 migration', function () {
     this.coverNFT = coverNFT;
   });
 
-  it('deploy SwapOperator', async function () {
+  it.skip('deploy SwapOperator', async function () {
     const SwapOperator = await ethers.getContractFactory('SwapOperator');
     const swapOperator = await SwapOperator.deploy(
       COWSWAP_SETTLEMENT, // _cowSettlement
@@ -342,8 +352,8 @@ describe('v2 migration', function () {
     const cover = await Cover.deploy(
       this.quotationData.address,
       this.productsV1.address,
-      this.coverNFT.address,
-      ethers.constants.AddressZero, // staking pool implementation address
+      AddressZero, // this.coverNFT.address,
+      AddressZero, // staking pool implementation address
       coverProxyAddress,
     );
     await cover.deployed();
@@ -356,7 +366,7 @@ describe('v2 migration', function () {
     const pool = await Pool.deploy(
       this.master.address,
       PRICE_FEED_ORACLE_ADDRESS,
-      this.swapOperator.address,
+      AddressZero, // this.swapOperator.address,
       DAI_ADDRESS,
       STETH_ADDRESS,
     );
@@ -380,9 +390,9 @@ describe('v2 migration', function () {
             toUtf8Bytes('MC'),
             toUtf8Bytes('CO'),
             toUtf8Bytes('TC'),
-            toUtf8Bytes('CR'),
+            // toUtf8Bytes('CR'),
             toUtf8Bytes('PS'),
-            toUtf8Bytes('P1'),
+            // toUtf8Bytes('P1'),
             toUtf8Bytes('CL'),
             toUtf8Bytes('GW'),
           ],
@@ -391,9 +401,9 @@ describe('v2 migration', function () {
             mcr.address,
             cover.address,
             tokenController.address,
-            newClaimsReward.address,
+            // newClaimsReward.address,
             pooledStaking.address,
-            pool.address,
+            // pool.address,
             coverMigrator.address,
             gateway.address,
           ],

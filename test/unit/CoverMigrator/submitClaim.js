@@ -21,7 +21,6 @@ describe('submitClaim', function () {
     const premiumNXM = 10;
 
     const v2ProductId = await productsV1.getNewProductId(product);
-    const expectedSegmentId = 0;
 
     // cover id 1 & 2
     await quotationData.addCoverMock(period, amount, coverOwner.address, ETH, product, premium, premiumNXM);

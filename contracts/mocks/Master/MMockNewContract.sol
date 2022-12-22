@@ -7,8 +7,6 @@ import "../../interfaces/ITokenController.sol";
 
 contract MMockNewContract is MasterAwareV2 {
 
-  ITokenController tc;
-
   constructor() { }
 
   function changeDependentContractAddress() external {
@@ -16,6 +14,6 @@ contract MMockNewContract is MasterAwareV2 {
   }
 
   function mint(address _member, uint _amount) public {
-    tc.mint(_member, _amount);
+    ITokenController(internalContracts[uint(ID.TC)]).mint(_member, _amount);
   }
 }

@@ -11,6 +11,8 @@ const setTime = async timestamp => {
   await mineNextBlock();
 };
 
+// [todo] remove if expireCover is no longer useful
+//  enable with issue https://github.com/NexusMutual/smart-contracts/issues/387
 describe.skip('expireCover', function () {
   const expireCoverFixture = {
     productId: 2, // ybETH

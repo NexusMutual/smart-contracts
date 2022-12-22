@@ -1,12 +1,11 @@
-const { accounts, web3 } = require('hardhat');
-const { ether } = require('@openzeppelin/test-helpers');
+const { accounts, ethers } = require('hardhat');
 const { assert } = require('chai');
-const { toBN } = web3.utils;
+const { BigNumber } = ethers;
 const { buyCover, buyCoverWithDai } = require('../utils').buyCover;
-const { enrollMember } = require('../utils/enroll');
+const { parseEther } = ethers.utils;
 const { hex } = require('../utils').helpers;
 
-const [, member1, nonMember1] = accounts;
+const [, member1] = accounts;
 
 const ethCoverTemplate = {
   amount: 1, // 1 eth
@@ -30,12 +29,14 @@ const daiCoverTemplate = {
   contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
 };
 
-describe('getAllSumAssurance', function () {
+// [todo] reenable with issue https://github.com/NexusMutual/smart-contracts/issues/387
+describe.skip('getAllSumAssurance', function () {
   beforeEach(async function () {
     const { dai } = this.contracts;
-    await enrollMember(this.contracts, [member1]);
+    const [member1] = this.accounts.members;
+    const [nonMember1] = this.accounts.nonMembers;
     for (const daiHolder of [member1, nonMember1]) {
-      await dai.mint(daiHolder, ether('10000000'));
+      await dai.mint(daiHolder.address, parseEther('10000000'));
     }
   });
 
@@ -53,7 +54,7 @@ describe('getAllSumAssurance', function () {
 
     await buyCover({ ...this.contracts, cover, coverHolder: member });
     const totalAssurance = await mcr.getAllSumAssurance();
-    assert.equal(totalAssurance.toString(), ether(cover.amount.toString()).toString());
+    assert.equal(totalAssurance.toString(), parseEther(cover.amount.toString()).toString());
   });
 
   it('returns total value of DAI purchased cover', async function () {
@@ -64,7 +65,9 @@ describe('getAllSumAssurance', function () {
 
     await buyCoverWithDai({ ...this.contracts, cover, coverHolder: member });
     const totalAssurance = await mcr.getAllSumAssurance();
-    const expectedTotalAssurance = ether(cover.amount.toString()).mul(daiToEthRate).div(toBN((1e18).toString()));
+    const expectedTotalAssurance = parseEther(cover.amount.toString())
+      .mul(daiToEthRate)
+      .div(BigNumber.from((1e18).toString()));
     assert.equal(totalAssurance.toString(), expectedTotalAssurance.toString());
   });
 
@@ -88,11 +91,11 @@ describe('getAllSumAssurance', function () {
     }
 
     const totalAssurance = await mcr.getAllSumAssurance();
-    const expectedTotalAssurance = ether(daiCoverTemplate.amount.toString())
+    const expectedTotalAssurance = parseEther(daiCoverTemplate.amount.toString())
       .mul(daiToEthRate)
-      .div(toBN((1e18).toString()))
-      .muln(daiCoversToBuy)
-      .add(ether(ethCoverTemplate.amount.toString()).muln(ethCoversToBuy));
+      .div(BigNumber.from((1e18).toString()))
+      .mul(daiCoversToBuy)
+      .add(parseEther(ethCoverTemplate.amount.toString()).mul(ethCoversToBuy));
     assert.equal(totalAssurance.toString(), expectedTotalAssurance.toString());
   });
 });

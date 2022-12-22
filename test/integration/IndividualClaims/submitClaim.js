@@ -3,22 +3,12 @@ const { expect } = require('chai');
 const { BigNumber } = require('ethers');
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
-
-const { daysToSeconds } = require('../../../lib/helpers');
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
-
-const setTime = async timestamp => {
-  await setNextBlockTime(timestamp);
-  await mineNextBlock();
-};
+const { stake } = require('../utils/staking');
+const { rejectClaim, acceptClaim } = require('../utils/voteClaim');
 
 const priceDenominator = '10000';
 
 describe('submitClaim', function () {
-  function calculateFirstTrancheId(lastBlock, period, gracePeriod) {
-    return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
-  }
-
   beforeEach(async function () {
     const { tk } = this.contracts;
 
@@ -28,59 +18,6 @@ describe('submitClaim', function () {
       await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
     }
   });
-
-  async function acceptClaim({ staker, assessmentStakingAmount, as }) {
-    const { payoutCooldownInDays } = await as.config();
-    await as.connect(staker).stake(assessmentStakingAmount);
-    await as.connect(staker).castVotes([0], [true], ['Assessment data hash'], 0);
-
-    const { poll } = await as.assessments(0);
-    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
-
-    await setTime(futureTime);
-  }
-
-  async function rejectClaim({ approvingStaker, rejectingStaker, as }) {
-    const assessmentStakingAmountForApproval = parseEther('1000');
-    const assessmentStakingAmountForRejection = parseEther('2000');
-    const { payoutCooldownInDays } = await as.config();
-    await as.connect(approvingStaker).stake(assessmentStakingAmountForApproval);
-    await as.connect(approvingStaker).castVotes([0], [true], ['Assessment data hash'], 0);
-    await as.connect(rejectingStaker).stake(assessmentStakingAmountForRejection);
-    await as.connect(rejectingStaker).castVotes([0], [false], ['Assessment data hash'], 0);
-
-    const { poll } = await as.assessments(0);
-    const futureTime = poll.end + daysToSeconds(payoutCooldownInDays);
-
-    await setTime(futureTime);
-  }
-
-  async function stake({ stakingPool, staker, productId, period, gracePeriod }) {
-    // Staking inputs
-    const stakingAmount = parseEther('6000');
-    const lastBlock = await ethers.provider.getBlock('latest');
-    const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
-
-    // Stake to open up capacity
-    await stakingPool.connect(staker).depositTo(
-      stakingAmount,
-      firstTrancheId,
-      0, // new position
-      AddressZero,
-    );
-
-    const stakingProductParams = {
-      productId,
-      recalculateEffectiveWeight: true,
-      setTargetWeight: true,
-      targetWeight: 100, // 1
-      setTargetPrice: true,
-      targetPrice: 100, // 1%
-    };
-
-    const managerSigner = await ethers.getSigner(await stakingPool.manager());
-    await stakingPool.connect(managerSigner).setProducts([stakingProductParams]);
-  }
 
   it('submits ETH claim and approves claim', async function () {
     const { DEFAULT_PRODUCT_INITIALIZATION } = this;

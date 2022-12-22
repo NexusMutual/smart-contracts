@@ -15,15 +15,10 @@ describe('INTEGRATION TESTS', function () {
   require('./IndividualClaims');
   require('./YieldTokenIncidents');
   require('./Cover');
-
-  // TODO: reenable
-  // require('./Master');
+  require('./Master');
   // require('./PooledStaking');
-  // require('./Pool');
-  // require('./MCR');
-  // require('./MemberRoles');
-  // require('./Claims');
-  //
-  // require('./Gateway');
+  require('./Pool');
+  require('./MCR');
+  require('./MemberRoles');
   // require('./TokenController');
 });

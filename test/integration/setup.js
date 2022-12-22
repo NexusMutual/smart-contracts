@@ -476,7 +476,7 @@ async function setup() {
 
   const external = { chainlinkDAI, dai, usdc, weth, productsV1, ybDAI, ybETH, ybUSDC };
   const nonUpgradable = { qd };
-  const instances = { tk, cl, p1, mcr: mc };
+  const instances = { tk, cl, p1, mcr: mc, productsV1, lcr };
 
   // we upgraded them, get non-disposable instances because
   const proxies = {

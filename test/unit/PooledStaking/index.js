@@ -2,7 +2,6 @@ const { takeSnapshot, revertToSnapshot } = require('../utils').evm;
 const setup = require('./setup');
 
 describe('PooledStaking unit tests', function () {
-  this.timeout(0);
   before(setup);
 
   beforeEach(async function () {

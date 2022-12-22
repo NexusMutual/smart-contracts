@@ -3,5 +3,4 @@ describe('MemberRoles integration tests', function () {
   require('./withdrawMembership');
   require('./switchMembership');
   require('./switchMembershipAndAssets');
-  require('./storageCleanup');
 });

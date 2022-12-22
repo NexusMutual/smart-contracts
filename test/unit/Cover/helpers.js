@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat');
-const { assert, expect } = require('chai');
+const { expect } = require('chai');
 
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
@@ -46,14 +46,13 @@ async function assertCoverFields(
   { productId, coverAsset, period, amount, gracePeriod, segmentId = 0, amountPaidOut = 0 },
 ) {
   const storedCoverData = await cover.coverData(coverId);
-
   const segment = await cover.coverSegments(coverId, segmentId);
-  assert.equal(storedCoverData.productId, productId);
-  assert.equal(storedCoverData.coverAsset, coverAsset);
+  expect(storedCoverData.productId).to.equal(productId);
+  expect(storedCoverData.coverAsset).to.equal(coverAsset);
   expect(storedCoverData.amountPaidOut).to.be.equal(amountPaidOut);
-  assert.equal(segment.gracePeriod, gracePeriod);
-  assert.equal(segment.period, period);
-  assert.equal(segment.amount.toString(), amount.toString());
+  expect(segment.gracePeriod).to.equal(gracePeriod);
+  expect(segment.period).to.equal(period);
+  expect(segment.amount).to.equal(amount);
 }
 
 async function buyCoverOnOnePool(params) {

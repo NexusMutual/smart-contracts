@@ -191,9 +191,8 @@ describe('buyCover', function () {
       },
     );
 
-    expect(await ethers.provider.getBalance(pool.address)).to.equal(
-      expectedPremium.mul(period).div(daysToSeconds(365)).sub(1), // Contract is rounding up by 1 wei
-    );
+    const expectedPremiumPerPool = expectedPremium.div(2).mul(period).div(daysToSeconds(365));
+    expect(await ethers.provider.getBalance(pool.address)).to.equal(expectedPremiumPerPool.mul(2));
 
     const coverId = (await cover.coverDataCount()).sub(1);
     await assertCoverFields(cover, coverId, {

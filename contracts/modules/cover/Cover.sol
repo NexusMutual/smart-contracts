@@ -414,11 +414,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       uint remainder = msg.value - premiumWithCommission;
 
-      if (remainder > 0) {
-        // solhint-disable-next-line avoid-low-level-calls
-        (bool ok, /* data */) = address(msg.sender).call{value: remainder}("");
-        require(ok, "Cover: Returning ETH remainder to sender failed.");
-      }
+      // send premium in eth to the pool
+      // solhint-disable-next-line avoid-low-level-calls
+      (bool ok, /* data */) = address(_pool).call{value: premiumInPaymentAsset}("");
+      require(ok, "Cover: Sending ETH to pool failed.");
 
       // send commission
       if (commission > 0) {
@@ -426,11 +425,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         require(ok, "Cover: Sending ETH to commission destination failed.");
       }
 
-      // send premium in eth to the pool
-      if (premiumInPaymentAsset > 0) {
+      if (remainder > 0) {
         // solhint-disable-next-line avoid-low-level-calls
-        (bool ok, /* data */) = address(_pool).call{value: premiumInPaymentAsset}("");
-        require(ok, "Cover: Sending ETH to pool failed.");
+        (bool ok, /* data */) = address(msg.sender).call{value: remainder}("");
+        require(ok, "Cover: Returning ETH remainder to sender failed.");
       }
 
       return;

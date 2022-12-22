@@ -7,7 +7,7 @@ const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { calculateFirstTrancheId } = require('../utils/staking');
 
-describe('switchMembershipAndAssets', function () {
+describe.only('switchMembershipAndAssets', function () {
   beforeEach(async function () {
     const { tk } = this.contracts;
 
@@ -128,7 +128,7 @@ describe('switchMembershipAndAssets', function () {
     }
   });
 
-  it('transfers all staking LP shares of the provided staking pools', async function () {
+  it.skip('transfers all staking LP shares of the provided staking pools', async function () {
     const { mr: memberRoles, tk: token, stakingPool0, stakingPool1, stakingPool2 } = this.contracts;
     const {
       members: [member1],

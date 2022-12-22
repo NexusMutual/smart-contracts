@@ -210,26 +210,8 @@ contract StakingPool is IStakingPool, ERC721 {
   ) external onlyCoverContract {
     uint length = tokenIds.length;
     for (uint i = 0; i < length; i++) {
-      operatorTransferFrom(from, to, tokenIds[i]);
+      transferFrom(from, to, tokenIds[i]);
     }
-  }
-
-  function operatorTransferFrom(address from, address to, uint256 tokenId) internal {
-
-    require(from == _ownerOf[tokenId], "WRONG_FROM");
-    require(to != address(0), "INVALID_RECIPIENT");
-
-    // Underflow of the sender's balance is impossible because we check for
-    // ownership above and the recipient's balance can't realistically overflow.
-    unchecked {
-      _balanceOf[from]--;
-      _balanceOf[to]++;
-    }
-
-    _ownerOf[tokenId] = to;
-    delete getApproved[tokenId];
-
-    emit Transfer(from, to, tokenId);
   }
 
   // updateUntilCurrentTimestamp forces rewards update until current timestamp not just until

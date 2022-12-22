@@ -481,8 +481,8 @@ async function setup() {
   await as.initialize();
 
   const external = { chainlinkDAI, dai, usdc, weth, productsV1, ybDAI, ybETH, ybUSDC };
-  const nonUpgradable = { qd, spf };
-  const instances = { tk, cl, p1, mcr: mc, productsV1, lcr };
+  const nonUpgradable = { qd, productsV1, spf, coverNFT, stakingNFT };
+  const instances = { tk, cl, p1, mcr: mc, lcr };
 
   // we upgraded them, get non-disposable instances because
   const proxies = {
@@ -498,7 +498,6 @@ async function setup() {
     cl: await ethers.getContractAt('CoverMigrator', cl.address),
     as: await ethers.getContractAt('Assessment', as.address),
     cover: await ethers.getContractAt('Cover', cover.address),
-    coverNFT: await ethers.getContractAt('CoverNFT', coverNFT.address),
   };
 
   const nonInternal = { priceFeedOracle, swapOperator };
@@ -537,7 +536,7 @@ async function setup() {
       DEFAULT_POOL_FEE, // initialPoolFee
       DEFAULT_POOL_FEE, // maxPoolFee,
       DEFAULT_PRODUCTS,
-      '',
+      '', // ipfs hash
     );
 
     const stakingPoolAddress = await cover.stakingPool(i);

@@ -154,7 +154,7 @@ describe('depositTo', function () {
     const tx = await stakingPool.connect(user1).depositTo(amount, firstActiveTrancheId, tokenId, user2.address);
 
     const expectedMintedTokenId = 0;
-    expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, user2.address, expectedMintedTokenId);
+    await expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, user2.address, expectedMintedTokenId);
 
     const totalSupplyAfter = await stakingNFT.totalSupply();
     expect(totalSupplyAfter).to.equal(1);
@@ -173,7 +173,7 @@ describe('depositTo', function () {
 
     const expectedTokenId = 0;
     const tx = await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
-    expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, user.address, expectedTokenId);
+    await expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, user.address, expectedTokenId);
 
     const deposit = await stakingPool.deposits(expectedTokenId, firstActiveTrancheId);
     const newRewardShares = await getNewRewardShares({
@@ -200,7 +200,7 @@ describe('depositTo', function () {
     const tx = await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
 
     const expectedTokenId = 0;
-    expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, user.address, expectedTokenId);
+    await expect(tx).to.emit(stakingNFT, 'Transfer').withArgs(AddressZero, user.address, expectedTokenId);
 
     const firstDepositData = await stakingPool.deposits(expectedTokenId, firstActiveTrancheId);
     const newStakeShares = await estimateStakeShares({ amount, stakingPool });

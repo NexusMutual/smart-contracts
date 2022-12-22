@@ -83,14 +83,9 @@ describe('createStakingPool', function () {
   });
 
   it('emits StakingPoolCreated event', async function () {
-    const { cover } = this;
+    const { cover, stakingPoolFactory } = this;
     const [stakingPoolCreator, stakingPoolManager] = this.accounts.members;
     const { initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = newPoolFixture;
-
-    const stakingPoolImplementation = await cover.stakingPoolImplementation();
-
-    const poolId = 0;
-    const firstStakingPoolAddress = await cover.stakingPool(poolId);
 
     const tx = await cover.connect(stakingPoolCreator).createStakingPool(
       stakingPoolManager.address,
@@ -101,11 +96,9 @@ describe('createStakingPool', function () {
       ipfsDescriptionHash,
     );
 
-    expect(tx)
-      .to.emit(cover, 'StakingPoolCreated')
-      .withArgs(firstStakingPoolAddress, stakingPoolManager.address, poolId, stakingPoolImplementation);
-
-    expect(tx).to.emit(cover, 'PoolDescriptionSet').withArgs(poolId, ipfsDescriptionHash);
+    const poolId = 0;
+    const expectedSPAddress = await cover.stakingPool(poolId);
+    await expect(tx).to.emit(stakingPoolFactory, 'StakingPoolCreated').withArgs(poolId, expectedSPAddress);
   });
 
   it('increments staking pool count', async function () {

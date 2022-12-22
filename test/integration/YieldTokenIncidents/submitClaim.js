@@ -16,37 +16,37 @@ const setTime = async timestamp => {
 
 const usdcDecimals = 6;
 
-describe('submitClaim', function () {
-  const submitClaimFixture = {
-    period: 3600 * 24 * 30, // 30 days
-    gracePeriod: 3600 * 24 * 30,
-    amount: parseEther('10'),
-    priceDenominator: 10000,
-  };
+const submitClaimFixture = {
+  period: 3600 * 24 * 30, // 30 days
+  gracePeriod: 3600 * 24 * 30,
+  amount: parseEther('10'),
+  priceDenominator: 10000,
+};
 
+async function transferYieldToken({ tokenOwner, coverBuyer, yToken, yc }) {
+  await yToken.connect(tokenOwner).transfer(coverBuyer.address, parseEther('100'));
+  await yToken.connect(coverBuyer).approve(yc.address, parseEther('100'));
+}
+
+async function submitIncident({ gv, yc, productId, period, priceBefore }) {
+  const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+
+  const gvSigner = await ethers.getImpersonatedSigner(gv.address);
+  await setEtherBalance(gvSigner.address, ethers.utils.parseEther('1'));
+
+  await yc.connect(gvSigner).submitIncident(productId, priceBefore, currentTime + period / 2, parseEther('100'), '');
+}
+
+describe('submitClaim', function () {
   beforeEach(async function () {
     const { tk } = this.contracts;
-
     const members = this.accounts.members.slice(0, 5);
     const amount = parseEther('30000');
+
     for (const member of members) {
       await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
     }
   });
-
-  async function transferYieldToken({ tokenOwner, coverBuyer, yToken, yc }) {
-    await yToken.connect(tokenOwner).transfer(coverBuyer.address, parseEther('100'));
-    await yToken.connect(coverBuyer).approve(yc.address, parseEther('100'));
-  }
-
-  async function submitIncident({ gv, yc, productId, period, priceBefore }) {
-    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-
-    const gvSigner = await ethers.getImpersonatedSigner(gv.address);
-    await setEtherBalance(gvSigner.address, ethers.utils.parseEther('1'));
-
-    await yc.connect(gvSigner).submitIncident(productId, priceBefore, currentTime + period / 2, parseEther('100'), '');
-  }
 
   it('submits ETH claim and approves claim', async function () {
     const { DEFAULT_PRODUCTS } = this;

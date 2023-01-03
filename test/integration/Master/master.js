@@ -173,7 +173,7 @@ describe('master', function () {
     const IndividualClaims = await ethers.getContractFactory('IndividualClaims');
     const LegacyPooledStaking = await ethers.getContractFactory('LegacyPooledStaking');
 
-    const pool = await Pool.deploy(master.address, priceFeedOracle.address, AddressZero, dai.address, AddressZero);
+    const pool = await Pool.deploy(master.address, priceFeedOracle.address, AddressZero, [[], []], [[], []]);
 
     const contractCodes = ['TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC'];
     const newAddresses = [

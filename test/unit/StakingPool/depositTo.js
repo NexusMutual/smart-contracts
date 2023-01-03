@@ -480,7 +480,7 @@ describe('depositTo', function () {
 
     const { firstActiveTrancheId, maxTranche } = await getTranches(daysToSeconds(0), DEFAULT_GRACE_PERIOD);
 
-    const tranches = Array(maxTranche - firstActiveTrancheId + 1)
+    const tranches = Array(maxTranche - firstActiveTrancheId)
       .fill(0)
       .map((e, i) => firstActiveTrancheId + i);
 

@@ -448,7 +448,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     require(ok, "Pool: Transfer failed");
 
     // Transfer cover assets. Start from 1 (0 is ETH)
-    uint coverAssetsCount = coverAssets.length;  // substract 1 as ETH is skiped
+    uint coverAssetsCount = coverAssets.length;
 
     // Skip ETH
     for (uint i = 1; i < coverAssetsCount; i++) {

@@ -15,6 +15,7 @@ module.exports = {
   accounts,
   constants,
   evm,
+  errors,
   helpers,
   proposalCategories,
   tokenPrice,

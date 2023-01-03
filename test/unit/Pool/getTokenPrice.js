@@ -1,24 +1,23 @@
-const { web3 } = require('hardhat');
-const { assert } = require('chai');
-const { ether, expectRevert } = require('@openzeppelin/test-helpers');
+const { ethers } = require('hardhat');
+const { expect } = require('chai');
+const { BigNumber } = ethers;
+const { parseEther } = ethers.utils;
 const { getTokenSpotPrice } = require('../utils').tokenPrice;
-const { accounts, constants } = require('../utils');
+const { constants } = require('../utils');
 const { PoolAsset } = constants;
-
-const { BN } = web3.utils;
-const {
-  nonMembers: [fundSource],
-} = accounts;
 
 describe('getTokenPrice', function () {
   it('calculates token price correctly in ETH', async function () {
     const { pool, mcr } = this;
+    const {
+      nonMembers: [fundSource],
+    } = this.accounts;
 
-    const initialAssetValue = new BN('210959924071154460525457');
-    const mcrEth = new BN('162424730681679380000000');
+    const initialAssetValue = BigNumber.from('210959924071154460525457');
+    const mcrEth = BigNumber.from('162424730681679380000000');
 
     await mcr.setMCR(mcrEth);
-    await pool.sendTransaction({ from: fundSource, value: initialAssetValue });
+    await fundSource.sendTransaction({ to: pool.address, value: initialAssetValue });
 
     const expectedPrice = getTokenSpotPrice(initialAssetValue, mcrEth);
     const price = await pool.getTokenPrice(PoolAsset.ETH);
@@ -27,36 +26,42 @@ describe('getTokenPrice', function () {
 
   it('calculates token price correctly in DAI', async function () {
     const { pool, chainlinkDAI, mcr } = this;
+    const {
+      nonMembers: [fundSource],
+    } = this.accounts;
 
-    const initialAssetValue = new BN('210959924071154460525457');
-    const mcrEth = new BN('162424730681679380000000');
-    const ethToDaiRate = new BN((394.59 * 1e18).toString());
-    const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
+    const initialAssetValue = BigNumber.from('210959924071154460525457');
+    const mcrEth = BigNumber.from('162424730681679380000000');
+    const ethToDaiRate = BigNumber.from((394.59 * 1e18).toString());
+    const daiToEthRate = BigNumber.from(10).pow(BigNumber.from(36)).div(ethToDaiRate);
 
     await mcr.setMCR(mcrEth);
-    await pool.sendTransaction({ from: fundSource, value: initialAssetValue });
+    await fundSource.sendTransaction({ to: pool.address, value: initialAssetValue });
 
     await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
     const expectedEthPrice = getTokenSpotPrice(initialAssetValue, mcrEth);
-    const expectedPrice = new BN(expectedEthPrice.toFixed()).mul(ether('1')).div(daiToEthRate);
+    const expectedPrice = BigNumber.from(expectedEthPrice.toFixed()).mul(parseEther('1')).div(daiToEthRate);
     const price = await pool.getTokenPrice(PoolAsset.DAI);
-    assert.equal(price.toString(), expectedPrice.toString());
+    expect(price).to.equal(expectedPrice);
   });
 
   it('reverts if asset is unknown', async function () {
     const { pool, mcr, chainlinkDAI } = this;
+    const {
+      nonMembers: [fundSource],
+    } = this.accounts;
 
-    const initialAssetValue = new BN('210959924071154460525457');
-    const mcrEth = new BN('162424730681679380000000');
-    const ethToDaiRate = new BN((394.59 * 1e18).toString());
-    const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
+    const initialAssetValue = BigNumber.from('210959924071154460525457');
+    const mcrEth = BigNumber.from('162424730681679380000000');
+    const ethToDaiRate = BigNumber.from((394.59 * 1e18).toString());
+    const daiToEthRate = BigNumber.from(10).pow(BigNumber.from(36)).div(ethToDaiRate);
 
     await mcr.setMCR(mcrEth);
-    await pool.sendTransaction({ from: fundSource, value: initialAssetValue });
+    await fundSource.sendTransaction({ to: pool.address, value: initialAssetValue });
 
     await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
-    await expectRevert(pool.getTokenPrice(PoolAsset.unknown), 'Pool: Unknown cover asset');
+    await expect(pool.getTokenPrice(PoolAsset.unknown)).to.be.revertedWith('Pool: Unknown cover asset');
   });
 });

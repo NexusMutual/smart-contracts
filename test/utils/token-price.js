@@ -148,6 +148,11 @@ function percentageBN(x, percentage) {
   return x.muln(percentage).divn(100);
 }
 
+// Uses ethers.BigNumber
+function percentageBigNumber(x, percentage) {
+  return x.mul(percentage).div(100);
+}
+
 function toDecimal(x) {
   return new Decimal(x.toString());
 }
@@ -163,5 +168,6 @@ module.exports = {
   calculateNXMForEthRelativeError,
   calculateEthForNXMRelativeError,
   percentageBN,
+  percentageBigNumber,
   toDecimal,
 };

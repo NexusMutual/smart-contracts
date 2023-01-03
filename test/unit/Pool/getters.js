@@ -1,39 +1,42 @@
-const { assert } = require('chai');
-const { ether } = require('@openzeppelin/test-helpers');
-const { percentageBN } = require('../utils').tokenPrice;
+const { ethers } = require('hardhat');
+const { expect } = require('chai');
+const { parseEther } = ethers.utils;
+const { percentageBigNumber } = require('../utils').tokenPrice;
 
 describe('getters', function () {
   describe('getEthForNXM', function () {
     it('returns value as calculated by calculateEthForNXM', async function () {
       const { pool, mcr } = this;
+      const [member] = this.accounts.members;
 
-      const mcrEth = ether('160000');
-      const totalAssetValue = percentageBN(mcrEth, 150);
-      const tokenValue = ether('1');
+      const mcrEth = parseEther('160000');
+      const totalAssetValue = percentageBigNumber(mcrEth, 150);
+      const tokenValue = parseEther('1');
 
       await mcr.setMCR(mcrEth);
-      await pool.sendTransaction({ value: totalAssetValue });
+      await member.sendTransaction({ to: pool.address, value: totalAssetValue });
 
       const expectedEthOut = await pool.calculateEthForNXM(tokenValue, totalAssetValue, mcrEth);
       const ethOut = await pool.getEthForNXM(tokenValue);
-      assert.equal(ethOut.toString(), expectedEthOut.toString());
+      expect(ethOut).to.equal(expectedEthOut);
     });
   });
 
   describe('getNXMForEth', function () {
     it('returns value as calculated by calculateNXMForEth', async function () {
       const { pool, mcr } = this;
+      const [member] = this.accounts.members;
 
-      const mcrEth = ether('160000');
-      const totalAssetValue = percentageBN(mcrEth, 150);
-      const buyValue = ether('10');
+      const mcrEth = parseEther('160000');
+      const totalAssetValue = percentageBigNumber(mcrEth, 150);
+      const buyValue = parseEther('10');
 
       await mcr.setMCR(mcrEth);
-      await pool.sendTransaction({ value: totalAssetValue });
+      await member.sendTransaction({ to: pool.address, value: totalAssetValue });
 
       const expectedTokenValue = await pool.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
       const tokenValue = await pool.getNXMForEth(buyValue);
-      assert.equal(tokenValue.toString(), expectedTokenValue.toString());
+      expect(tokenValue).to.equal(expectedTokenValue);
     });
   });
 });

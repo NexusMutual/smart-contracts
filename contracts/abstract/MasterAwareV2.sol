@@ -8,9 +8,9 @@ import "../interfaces/IMemberRoles.sol";
 
 abstract contract MasterAwareV2 is IMasterAwareV2 {
 
-  mapping(uint => address payable) public internalContracts;
-
   INXMMaster public master;
+
+  mapping(uint => address payable) public internalContracts;
 
   modifier onlyMember {
     require(

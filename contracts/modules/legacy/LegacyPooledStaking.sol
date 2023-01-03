@@ -9,7 +9,6 @@ import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IProductsV1.sol";
 import "../../interfaces/IStakingPool.sol";
-import "hardhat/console.sol";
 
 contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
   /* Structs */
@@ -960,7 +959,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
   }
 
   function changeDependentContractAddress() public {
-    master = INXMMaster(readInternalContractsSlot());
+    // master = INXMMaster(readInternalContractsSlot());
 
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");

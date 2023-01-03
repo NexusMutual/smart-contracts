@@ -855,7 +855,7 @@ describe('buyCover', function () {
           value: expectedPremium,
         },
       ),
-    ).to.be.revertedWith('Cover: Amount should be greater than 0');
+    ).to.be.revertedWith('Cover: Insufficient cover amount allocated');
   });
 
   it('reverts if allocationRequest coverAmountInAsset is 0', async function () {
@@ -882,12 +882,12 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: 0 }],
+        [{ poolId: '0', coverAmountInAsset: 1 }],
         {
           value: expectedPremium,
         },
       ),
-    ).to.be.revertedWith('Cover: Amount should be greater than 0');
+    ).to.be.revertedWith('Cover: Insufficient cover amount allocated');
   });
 
   it('retrieves ERC20 payment from caller and transfers it to the Pool', async function () {

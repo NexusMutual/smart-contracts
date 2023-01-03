@@ -11,6 +11,7 @@ const {
   POOL_FEE_DENOMINATOR,
   generateRewards,
   setTime,
+  MAX_ACTIVE_TRANCHES,
 } = require('./helpers');
 
 const { AddressZero } = ethers.constants;
@@ -116,7 +117,7 @@ describe('processExpirations', function () {
     await expect(stakingPool.connect(anyone).processExpirations(true)).to.not.be.reverted;
   });
 
-  it('Expires tranches updating active stake, stake shares and rewards shares supply', async function () {
+  it('expires tranches updating active stake, stake shares and rewards shares supply', async function () {
     const { stakingPool } = this;
     const {
       members: [user],
@@ -126,11 +127,11 @@ describe('processExpirations', function () {
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
-    const tranches = Array(maxTranche - firstActiveTrancheId + 1)
+    const tranches = Array(MAX_ACTIVE_TRANCHES)
       .fill(0)
       .map((e, i) => firstActiveTrancheId + i);
 
-    let stakeSharesTotalSupply = parseEther('0');
+    let rewardsSharesTotalSupply = parseEther('0');
     for (let i = 0; i < tranches.length; i++) {
       const tranche = tranches[i];
       await stakingPool.connect(user).depositTo(amount, tranche, tokenId, destination);
@@ -139,7 +140,7 @@ describe('processExpirations', function () {
 
       const feesRewardShares = deposit.rewardsShares.mul(initialPoolFee).div(POOL_FEE_DENOMINATOR);
 
-      stakeSharesTotalSupply = stakeSharesTotalSupply.add(deposit.rewardsShares.add(feesRewardShares));
+      rewardsSharesTotalSupply = rewardsSharesTotalSupply.add(deposit.rewardsShares.add(feesRewardShares));
 
       const trancheData = await stakingPool.tranches(tranche);
       expect(trancheData.stakeShares).to.equal(deposit.stakeShares);
@@ -156,7 +157,7 @@ describe('processExpirations', function () {
 
       expect(activeStake).to.equal(amount.mul(depositsCount));
       expect(stakeSharesSupply).to.equal(baseStakeShares.mul(depositsCount));
-      expect(rewardsSharesSupply).to.equal(stakeSharesTotalSupply);
+      expect(rewardsSharesSupply).to.equal(rewardsSharesTotalSupply);
     }
 
     await generateRewards(stakingPool, this.coverSigner, TRANCHE_DURATION * 7, 0);
@@ -196,7 +197,7 @@ describe('processExpirations', function () {
     }
   });
 
-  it('Expires tranches correctly storing expiredTranches struct', async function () {
+  it('expires tranches correctly storing expiredTranches struct', async function () {
     const { stakingPool } = this;
     const {
       members: [user],
@@ -206,9 +207,7 @@ describe('processExpirations', function () {
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
-    const tranchesAmount = maxTranche - firstActiveTrancheId + 1;
-
-    const tranches = Array(tranchesAmount)
+    const tranches = Array(MAX_ACTIVE_TRANCHES)
       .fill(0)
       .map((e, i) => firstActiveTrancheId + i);
 
@@ -222,7 +221,7 @@ describe('processExpirations', function () {
 
     await stakingPool.processExpirations(true);
 
-    const accNxmPerRewardShareAtExpiry = Array(tranchesAmount).fill(0);
+    const accNxmPerRewardShareAtExpiry = Array(MAX_ACTIVE_TRANCHES).fill(0);
 
     for (let i = 0; i < tranches.length; i++) {
       await increaseTime(TRANCHE_DURATION);
@@ -247,7 +246,7 @@ describe('processExpirations', function () {
     }
   });
 
-  it('Expires buckets updating rewards per second and lastAccNxmUpdate', async function () {
+  it('expires buckets updating rewards per second and lastAccNxmUpdate', async function () {
     const { stakingPool } = this;
     const {
       members: [user],
@@ -287,7 +286,7 @@ describe('processExpirations', function () {
     expect(lastAccNxmUpdateAfter).to.equal(bucketStartTime);
   });
 
-  it('Updates first active tranche id', async function () {
+  it('updates first active tranche id', async function () {
     const { stakingPool } = this;
     const {
       members: [user],
@@ -315,7 +314,7 @@ describe('processExpirations', function () {
     expect(firstActiveTrancheIdAfter).to.equal(newFirstActiveTrancheId);
   });
 
-  it('Updates first active bucket id', async function () {
+  it('updates first active bucket id', async function () {
     const { stakingPool } = this;
     const {
       members: [user],
@@ -345,7 +344,7 @@ describe('processExpirations', function () {
     expect(firstActiveBucketIdAfter).to.equal(newCurrentBucket);
   });
 
-  it('Updates accNxmPerRewardsShare and lastAccNxmUpdate up to date when forced by param', async function () {
+  it('updates accNxmPerRewardsShare and lastAccNxmUpdate up to date when forced by param', async function () {
     const { stakingPool } = this;
     const {
       members: [user],

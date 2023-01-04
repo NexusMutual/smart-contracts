@@ -1,9 +1,10 @@
 const { ethers } = require('hardhat');
-const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
-const { parseEther } = require('ethers/lib/utils');
-const { daysToSeconds } = require('../../../lib/helpers');
+const { expect } = require('chai');
 
-const { parseUnits } = ethers.utils;
+const { setNextBlockTime, mineNextBlock } = require('../utils').evm;
+const { daysToSeconds } = require('../utils').helpers;
+
+const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 
 const TRANCHE_DURATION =

@@ -246,6 +246,92 @@ describe('processExpirations', function () {
     }
   });
 
+  it('correctly calculates accNxmPerRewardShare', async function () {
+    const { stakingPool } = this;
+    const {
+      members: [user],
+    } = this.accounts;
+
+    const { amount, tokenId, destination } = processExpirationsFixture;
+
+    const { firstActiveTrancheId } = await getTranches();
+
+    const tranches = Array(MAX_ACTIVE_TRANCHES)
+      .fill(0)
+      .map((e, i) => firstActiveTrancheId + i);
+
+    for (let i = 0; i < tranches.length; i++) {
+      const tranche = tranches[i];
+      await stakingPool.connect(user).depositTo(amount, tranche, tokenId, destination);
+    }
+
+    await generateRewards(stakingPool, this.coverSigner, TRANCHE_DURATION * 3, 0);
+
+    await increaseTime(TRANCHE_DURATION - BUCKET_DURATION);
+
+    await stakingPool.processExpirations(true);
+
+    const accNxmPerRewardsShareBefore = await stakingPool.accNxmPerRewardsShare();
+    const lastAccNxmUpdateBefore = await stakingPool.lastAccNxmUpdate();
+    const rewardPerSecondBefore = await stakingPool.rewardPerSecond();
+    const rewardsSharesSupply = await stakingPool.rewardsSharesSupply();
+
+    await increaseTime(BUCKET_DURATION * 2);
+
+    const bucketId = await stakingPool.firstActiveBucketId();
+    const trancheId = await stakingPool.firstActiveTrancheId();
+    const tranche = await stakingPool.tranches(trancheId);
+
+    // expire 1 bucket + 1 tranche + 1 bucket
+    await stakingPool.processExpirations(true);
+
+    const expiredTranche = await stakingPool.expiredTranches(trancheId);
+
+    const nextBucketId = bucketId.add(1);
+    const nextBucketStartTime = nextBucketId.mul(BUCKET_DURATION);
+    const nextBucketRewardPerSecondCut = await stakingPool.rewardBuckets(nextBucketId);
+    const trancheEndTime = trancheId.add(1).mul(TRANCHE_DURATION);
+
+    const accFromBeforeToBucketExpiration = nextBucketStartTime
+      .sub(lastAccNxmUpdateBefore)
+      .mul(rewardPerSecondBefore)
+      .div(rewardsSharesSupply);
+
+    const accFromBucketExpirationToTrancheExpiration = trancheEndTime
+      .sub(nextBucketStartTime)
+      .mul(rewardPerSecondBefore.sub(nextBucketRewardPerSecondCut))
+      .div(rewardsSharesSupply);
+
+    expect(expiredTranche.accNxmPerRewardShareAtExpiry).to.equal(
+      accNxmPerRewardsShareBefore.add(accFromBeforeToBucketExpiration).add(accFromBucketExpirationToTrancheExpiration),
+    );
+
+    const accNxmPerRewardsShareAfter = await stakingPool.accNxmPerRewardsShare();
+    const { timestamp } = await ethers.provider.getBlock('latest');
+
+    const secondNextBucketId = nextBucketId.add(1);
+    const secondNextBucketStartTime = secondNextBucketId.mul(BUCKET_DURATION);
+    const secondBucketRewardPerSecondCut = await stakingPool.rewardBuckets(secondNextBucketId);
+
+    const accFromTrancheExpirationToSecondBucketExpiration = secondNextBucketStartTime
+      .sub(trancheEndTime)
+      .mul(rewardPerSecondBefore.sub(nextBucketRewardPerSecondCut))
+      .div(rewardsSharesSupply.sub(tranche.rewardsShares));
+
+    const accFromSecondBucketExpirationToCurrentTime = BigNumber.from(timestamp)
+      .sub(secondNextBucketStartTime)
+      .mul(rewardPerSecondBefore.sub(nextBucketRewardPerSecondCut).sub(secondBucketRewardPerSecondCut))
+      .div(rewardsSharesSupply.sub(tranche.rewardsShares));
+
+    expect(accNxmPerRewardsShareAfter).to.equal(
+      accNxmPerRewardsShareBefore
+        .add(accFromBeforeToBucketExpiration)
+        .add(accFromBucketExpirationToTrancheExpiration)
+        .add(accFromTrancheExpirationToSecondBucketExpiration)
+        .add(accFromSecondBucketExpirationToCurrentTime),
+    );
+  });
+
   it('expires buckets updating rewards per second and lastAccNxmUpdate', async function () {
     const { stakingPool } = this;
     const {

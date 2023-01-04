@@ -9,8 +9,8 @@ import "../modules/capital/Pool.sol";
 contract MasterMock {
 
   enum Role {
-    UnAssigned,
-    AdvisoryBord,
+    Unassigned,
+    AdvisoryBoard,
     Member,
     Owner
   }

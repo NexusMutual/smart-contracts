@@ -1,18 +1,16 @@
 const { InternalContractsIDs } = require('../utils').constants;
 const { expect } = require('chai');
 const { hex } = require('../../../lib/helpers');
-const { ZERO_ADDRESS } = require('../../../lib/constants');
+const {
+  constants: { AddressZero },
+} = require('ethers');
 
 describe('changeDependentContractAddress', function () {
-  before(async function () {
-    const { quotationData, memberRoles } = this.contracts;
+  it('should change authorized address for the role', async function () {
+    const { quotationData, memberRoles, master } = this.contracts;
     const { governanceContracts, defaultSender } = this.accounts;
     await quotationData.connect(governanceContracts[0]).setKycAuthAddress(defaultSender.address);
     await memberRoles.connect(governanceContracts[0]).setKycAuthAddress(quotationData.address);
-  });
-
-  it('should change authorized address for the role', async function () {
-    const { memberRoles, master } = this.contracts;
 
     const tkAddressBefore = await memberRoles.internalContracts(InternalContractsIDs.TK);
     const tcAddressBefore = await memberRoles.internalContracts(InternalContractsIDs.TC);
@@ -20,10 +18,10 @@ describe('changeDependentContractAddress', function () {
     const coAddressBefore = await memberRoles.internalContracts(InternalContractsIDs.CO);
 
     await Promise.all([
-      master.setLatestAddress(hex('CO'), ZERO_ADDRESS),
-      master.setTokenAddress(ZERO_ADDRESS),
-      master.setLatestAddress(hex('TC'), ZERO_ADDRESS),
-      master.setLatestAddress(hex('P1'), ZERO_ADDRESS),
+      master.setLatestAddress(hex('CO'), AddressZero),
+      master.setTokenAddress(AddressZero),
+      master.setLatestAddress(hex('TC'), AddressZero),
+      master.setLatestAddress(hex('P1'), AddressZero),
     ]);
 
     await memberRoles.changeDependentContractAddress();
@@ -37,9 +35,9 @@ describe('changeDependentContractAddress', function () {
     expect(tcAddressAfter).not.to.be.equal(p1AddressBefore);
     expect(coAddressAfter).not.to.be.equal(coAddressBefore);
 
-    expect(tkAddressAfter).to.be.equal(ZERO_ADDRESS);
-    expect(tcAddressAfter).to.be.equal(ZERO_ADDRESS);
-    expect(p1AddressAfter).to.be.equal(ZERO_ADDRESS);
-    expect(coAddressAfter).to.be.equal(ZERO_ADDRESS);
+    expect(tkAddressAfter).to.be.equal(AddressZero);
+    expect(tcAddressAfter).to.be.equal(AddressZero);
+    expect(p1AddressAfter).to.be.equal(AddressZero);
+    expect(coAddressAfter).to.be.equal(AddressZero);
   });
 });

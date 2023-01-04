@@ -6,7 +6,7 @@ const FALSE_ASSERT = 0x01;
 
 // If an arithmetic operation results in underflow
 // or overflow outside of an unchecked { ... } block.
-const UNDER_OROVERFLOW = 0x11;
+const UNDER_OR_OVERFLOW = 0x11;
 
 // If you divide or modulo by zero (e.g. 5 / 0 or 23 % 0).
 const DIVIDE_BY_ZERO = 0x12;
@@ -34,7 +34,7 @@ const ZERO_INITIALIZED_VARIABLE = 0x51;
 module.exports = {
   COMPILER,
   FALSE_ASSERT,
-  UNDER_OROVERFLOW,
+  UNDER_OR_OVERFLOW,
   DIVIDE_BY_ZERO,
   INVALID_CONVERSION,
   INCORRECT_STORAGE_ENCODING,

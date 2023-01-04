@@ -1,41 +1,41 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { getTranches, getNewRewardShares, estimateStakeShares, POOL_FEE_DENOMINATOR } = require('./helpers');
-const { setEtherBalance, increaseTime } = require('../../utils/evm');
-const { BigNumber } = require('ethers');
-const { daysToSeconds } = require('../../../lib/helpers');
 
+const { getTranches, getNewRewardShares, estimateStakeShares, TRANCHE_DURATION } = require('./helpers');
+const { setEtherBalance, increaseTime, setNextBlockTime, mineNextBlock } = require('../utils').evm;
+const { daysToSeconds } = require('../utils').helpers;
+
+const { BigNumber } = ethers;
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
+const productFixture = {
+  productId: 0,
+  weight: 100,
+  initialPrice: 500,
+  targetPrice: 500,
+};
+
+const depositToFixture = {
+  poolId: 0,
+  initialPoolFee: 5, // 5%
+  maxPoolFee: 5, // 5%
+  productInitializationParams: [productFixture],
+  amount: parseEther('100'),
+  trancheId: 0,
+  tokenId: 0,
+  destination: AddressZero,
+  depositNftId: 1,
+  ipfsDescriptionHash: 'Description Hash',
+};
+
+const DEFAULT_PERIOD = daysToSeconds(30);
+const DEFAULT_GRACE_PERIOD = daysToSeconds(30);
+
 describe('depositTo', function () {
-  const depositToFixture = {
-    poolId: 0,
-    initialPoolFee: 5, // 5%
-    maxPoolFee: 5, // 5%
-    productInitializationParams: [
-      {
-        productId: 0,
-        weight: 100,
-        initialPrice: 500,
-        targetPrice: 500,
-      },
-    ],
-    amount: parseEther('100'),
-    trancheId: 0,
-    tokenId: 0,
-    destination: AddressZero,
-    depositNftId: 1,
-    ipfsDescriptionHash: 'Description Hash',
-  };
-
-  const DEFAULT_PERIOD = daysToSeconds(30);
-  const DEFAULT_GRACE_PERIOD = daysToSeconds(30);
-
   beforeEach(async function () {
     const { stakingPool, cover } = this;
     const { defaultSender: manager } = this.accounts;
-
     const { poolId, initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = depositToFixture;
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
@@ -53,6 +53,11 @@ describe('depositTo', function () {
         poolId,
         ipfsDescriptionHash,
       );
+
+    // Move to the beginning of the next tranche
+    const { firstActiveTrancheId: trancheId } = await getTranches();
+    await setNextBlockTime((trancheId + 1) * TRANCHE_DURATION);
+    await mineNextBlock();
   });
 
   it('reverts if caller is not cover contract or manager when pool is private', async function () {
@@ -401,6 +406,7 @@ describe('depositTo', function () {
 
   it('updates pool manager rewards shares', async function () {
     const { stakingPool } = this;
+    const { POOL_FEE_DENOMINATOR } = this.config;
     const [user] = this.accounts.members;
     const { amount, tokenId, destination, depositNftId, initialPoolFee } = depositToFixture;
 
@@ -469,6 +475,7 @@ describe('depositTo', function () {
 
   it('allows to deposit to multiple tranches', async function () {
     const { stakingPool, nxm, tokenController } = this;
+    const { POOL_FEE_DENOMINATOR } = this.config;
     const [user] = this.accounts.members;
     const { amount, tokenId, destination, initialPoolFee } = depositToFixture;
 

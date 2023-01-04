@@ -12,15 +12,15 @@ describe('StakingPool unit tests', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
+  require('./calculateNewRewardShares');
   require('./calculatePremium');
-  require('./requestAllocation');
   require('./constructor');
+  require('./depositTo');
+  require('./extendDeposit');
   require('./initialize');
+  require('./processExpirations');
+  require('./requestAllocation');
   require('./setPoolFee');
   require('./setPoolPrivacy');
-  require('./calculateNewRewardShares');
   require('./setProducts');
-  require('./depositTo');
-  require('./processExpirations');
-  require('./extendDeposit');
 });

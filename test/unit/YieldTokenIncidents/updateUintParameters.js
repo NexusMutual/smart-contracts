@@ -2,12 +2,10 @@ const { expect } = require('chai');
 
 const uintParams = {
   payoutRedemptionPeriodInDays: 0,
-  expectedPayoutRatio: 1,
   payoutDeductibleRatio: 2,
   maxRewardInNXMWad: 3,
   rewardRatio: 4,
 };
-
 describe('updateUintParameters', function () {
   it('can only be called by governance', async function () {
     const { yieldTokenIncidents } = this.contracts;
@@ -28,7 +26,6 @@ describe('updateUintParameters', function () {
     const [governance] = this.accounts.governanceContracts;
     const newValues = {
       payoutRedemptionPeriodInDays: 111,
-      expectedPayoutRatio: 2222,
       payoutDeductibleRatio: 3333,
       maxRewardInNXMWad: 4444,
       rewardRatio: 5555,
@@ -40,29 +37,21 @@ describe('updateUintParameters', function () {
         .updateUintParameters(
           [
             uintParams.payoutRedemptionPeriodInDays,
-            uintParams.expectedPayoutRatio,
             uintParams.payoutDeductibleRatio,
             uintParams.maxRewardInNXMWad,
             uintParams.rewardRatio,
           ],
           [
             newValues.payoutRedemptionPeriodInDays,
-            newValues.expectedPayoutRatio,
             newValues.payoutDeductibleRatio,
             newValues.maxRewardInNXMWad,
             newValues.rewardRatio,
           ],
         );
-      const {
-        payoutRedemptionPeriodInDays,
-        expectedPayoutRatio,
-        payoutDeductibleRatio,
-        maxRewardInNXMWad,
-        rewardRatio,
-      } = await yieldTokenIncidents.config();
+      const { payoutRedemptionPeriodInDays, payoutDeductibleRatio, maxRewardInNXMWad, rewardRatio } =
+        await yieldTokenIncidents.config();
 
       expect(payoutRedemptionPeriodInDays).to.be.equal(newValues.payoutRedemptionPeriodInDays);
-      expect(expectedPayoutRatio).to.be.equal(newValues.expectedPayoutRatio);
       expect(payoutDeductibleRatio).to.be.equal(newValues.payoutDeductibleRatio);
       expect(maxRewardInNXMWad).to.be.equal(newValues.maxRewardInNXMWad);
       expect(rewardRatio).to.be.equal(newValues.rewardRatio);
@@ -80,34 +69,24 @@ describe('updateUintParameters', function () {
         rewardRatio: 5555,
       };
 
-      const { maxRewardInNXMWad: initialMaxRewardInNXMWad, expectedPayoutRatio: initialExpectedPayoutRatio } =
-        await yieldTokenIncidents.config();
+      const { maxRewardInNXMWad: initialMaxRewardInNXMWad } = await yieldTokenIncidents.config();
       await yieldTokenIncidents
         .connect(governance)
         .updateUintParameters(
           [uintParams.payoutRedemptionPeriodInDays, uintParams.payoutDeductibleRatio, uintParams.rewardRatio],
           [newValues.payoutRedemptionPeriodInDays, newValues.payoutDeductibleRatio, newValues.rewardRatio],
         );
-      const {
-        payoutRedemptionPeriodInDays,
-        expectedPayoutRatio,
-        payoutDeductibleRatio,
-        maxRewardInNXMWad,
-        rewardRatio,
-      } = await yieldTokenIncidents.config();
+      const { payoutRedemptionPeriodInDays, payoutDeductibleRatio, maxRewardInNXMWad, rewardRatio } =
+        await yieldTokenIncidents.config();
 
       expect(payoutRedemptionPeriodInDays).to.be.equal(newValues.payoutRedemptionPeriodInDays);
-      expect(expectedPayoutRatio).to.be.equal(initialExpectedPayoutRatio);
       expect(payoutDeductibleRatio).to.be.equal(newValues.payoutDeductibleRatio);
       expect(maxRewardInNXMWad).to.be.equal(initialMaxRewardInNXMWad);
       expect(rewardRatio).to.be.equal(newValues.rewardRatio);
     }
 
     {
-      const newValues = {
-        maxRewardInNXMWad: 666,
-        expectedPayoutRatio: 777,
-      };
+      const newValues = { maxRewardInNXMWad: 666 };
       const {
         payoutRedemptionPeriodInDays: initialPayoutRedemptionPeriodInDays,
         payoutDeductibleRatio: initialPayoutDeductibleRatio,
@@ -115,20 +94,11 @@ describe('updateUintParameters', function () {
       } = await yieldTokenIncidents.config();
       await yieldTokenIncidents
         .connect(governance)
-        .updateUintParameters(
-          [uintParams.maxRewardInNXMWad, uintParams.expectedPayoutRatio],
-          [newValues.maxRewardInNXMWad, newValues.expectedPayoutRatio],
-        );
-      const {
-        payoutRedemptionPeriodInDays,
-        expectedPayoutRatio,
-        payoutDeductibleRatio,
-        maxRewardInNXMWad,
-        rewardRatio,
-      } = await yieldTokenIncidents.config();
+        .updateUintParameters([uintParams.maxRewardInNXMWad], [newValues.maxRewardInNXMWad]);
+      const { payoutRedemptionPeriodInDays, payoutDeductibleRatio, maxRewardInNXMWad, rewardRatio } =
+        await yieldTokenIncidents.config();
 
       expect(payoutRedemptionPeriodInDays).to.be.equal(initialPayoutRedemptionPeriodInDays);
-      expect(expectedPayoutRatio).to.be.equal(newValues.expectedPayoutRatio);
       expect(payoutDeductibleRatio).to.be.equal(initialPayoutDeductibleRatio);
       expect(maxRewardInNXMWad).to.be.equal(newValues.maxRewardInNXMWad);
       expect(rewardRatio).to.be.equal(initialRewardRatio);
@@ -145,7 +115,6 @@ describe('updateUintParameters', function () {
         payoutDeductibleRatio: 2,
         maxRewardInNXMWad: 3,
         payoutRedemptionPeriodInDays: 4,
-        expectedPayoutRatio: 5,
       };
       await yieldTokenIncidents
         .connect(governance)
@@ -155,26 +124,18 @@ describe('updateUintParameters', function () {
             uintParams.payoutDeductibleRatio,
             uintParams.maxRewardInNXMWad,
             uintParams.payoutRedemptionPeriodInDays,
-            uintParams.expectedPayoutRatio,
           ],
           [
             newValues.rewardRatio,
             newValues.payoutDeductibleRatio,
             newValues.maxRewardInNXMWad,
             newValues.payoutRedemptionPeriodInDays,
-            newValues.expectedPayoutRatio,
           ],
         );
-      const {
-        rewardRatio,
-        payoutDeductibleRatio,
-        maxRewardInNXMWad,
-        payoutRedemptionPeriodInDays,
-        expectedPayoutRatio,
-      } = await yieldTokenIncidents.config();
+      const { rewardRatio, payoutDeductibleRatio, maxRewardInNXMWad, payoutRedemptionPeriodInDays } =
+        await yieldTokenIncidents.config();
 
       expect(payoutRedemptionPeriodInDays).to.be.equal(newValues.payoutRedemptionPeriodInDays);
-      expect(expectedPayoutRatio).to.be.equal(newValues.expectedPayoutRatio);
       expect(payoutDeductibleRatio).to.be.equal(newValues.payoutDeductibleRatio);
       expect(maxRewardInNXMWad).to.be.equal(newValues.maxRewardInNXMWad);
       expect(rewardRatio).to.be.equal(newValues.rewardRatio);

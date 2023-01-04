@@ -16,7 +16,6 @@ describe('initialize', function () {
     const beforeInitializeConfig = await yieldTokenIncidents.config();
 
     expect(beforeInitializeConfig.rewardRatio).to.be.equal(0);
-    expect(beforeInitializeConfig.expectedPayoutRatio).to.be.equal(0);
     expect(beforeInitializeConfig.payoutDeductibleRatio).to.be.equal(0);
     expect(beforeInitializeConfig.payoutRedemptionPeriodInDays).to.be.equal(0);
     expect(beforeInitializeConfig.maxRewardInNXMWad).to.be.equal(0);
@@ -26,7 +25,6 @@ describe('initialize', function () {
     const afterInitializeConfig = await yieldTokenIncidents.config();
 
     expect(afterInitializeConfig.rewardRatio).to.be.equal(130);
-    expect(afterInitializeConfig.expectedPayoutRatio).to.be.equal(3000);
     expect(afterInitializeConfig.payoutDeductibleRatio).to.be.equal(9000);
     expect(afterInitializeConfig.payoutRedemptionPeriodInDays).to.be.equal(14);
     expect(afterInitializeConfig.maxRewardInNXMWad).to.be.equal(50);

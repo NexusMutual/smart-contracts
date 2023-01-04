@@ -20,7 +20,9 @@ describe('startAssessment', function () {
     }
 
     {
-      await yieldTokenIncidents.connect(governance).submitIncident(0, parseEther('1'), timestamp, parseEther('1000'));
+      await yieldTokenIncidents
+        .connect(governance)
+        .submitIncident(0, parseEther('1'), timestamp, parseEther('1000'), '');
       const { assessmentId } = await yieldTokenIncidents.incidents(0);
       expect(assessmentId).to.be.equal(1);
     }
@@ -38,7 +40,9 @@ describe('startAssessment', function () {
     }
 
     {
-      await yieldTokenIncidents.connect(governance).submitIncident(0, parseEther('1'), timestamp, parseEther('1000'));
+      await yieldTokenIncidents
+        .connect(governance)
+        .submitIncident(0, parseEther('1'), timestamp, parseEther('1000'), '');
       const { assessmentId } = await yieldTokenIncidents.incidents(1);
       expect(assessmentId).to.be.equal(4);
     }
@@ -59,47 +63,15 @@ describe('startAssessment', function () {
     }
 
     {
-      const activeCoverAmountInNXM = parseEther('1000');
+      const expectedPayoutInNXM = parseEther('1000');
       await yieldTokenIncidents
         .connect(governance)
-        .submitIncident(0, parseEther('1'), timestamp, activeCoverAmountInNXM);
+        .submitIncident(0, parseEther('1'), timestamp, expectedPayoutInNXM, '');
       const { assessmentDepositInETH, totalRewardInNXM } = await assessment.assessments(1);
-      const { rewardRatio, expectedPayoutRatio } = await yieldTokenIncidents.config();
-
-      // For now being AB only, it doesn't require a deposit to submit yieldTokenIncidents
-      expect(assessmentDepositInETH).to.be.equal(Zero);
-      expect(totalRewardInNXM).to.be.equal(
-        activeCoverAmountInNXM.mul(rewardRatio).div(10000).mul(expectedPayoutRatio).div(10000),
-      );
-    }
-  });
-
-  it('stores assessmentDepositInETH and totalRewardInNXM', async function () {
-    const { individualClaims, yieldTokenIncidents, assessment } = this.contracts;
-    const [member] = this.accounts.members;
-    const [governance] = this.accounts.governanceContracts;
-    const { timestamp } = await ethers.provider.getBlock('latest');
-
-    {
-      await individualClaims.connect(member).submitClaim(0, 0, parseEther('100'), '');
-      const { assessmentDepositInETH, totalRewardInNXM } = await assessment.assessments(0);
-      const { rewardRatio } = await individualClaims.config();
-      expect(assessmentDepositInETH).to.be.equal(0);
-      expect(totalRewardInNXM).to.be.equal(parseEther('100').mul(rewardRatio).div('10000'));
-    }
-
-    {
-      const activeCoverAmountInNXM = parseEther('1000');
-      await yieldTokenIncidents
-        .connect(governance)
-        .submitIncident(0, parseEther('1'), timestamp, activeCoverAmountInNXM);
-      const { assessmentDepositInETH, totalRewardInNXM } = await assessment.assessments(1);
-      const { rewardRatio, expectedPayoutRatio } = await yieldTokenIncidents.config();
+      const { rewardRatio } = await yieldTokenIncidents.config();
       // For now AB doesn't require a deposit to submit yieldTokenIncidents
       expect(assessmentDepositInETH).to.be.equal(Zero);
-      expect(totalRewardInNXM).to.be.equal(
-        activeCoverAmountInNXM.mul(rewardRatio).div(10000).mul(expectedPayoutRatio).div(10000),
-      );
+      expect(totalRewardInNXM).to.be.equal(expectedPayoutInNXM.mul(rewardRatio).div(10000));
     }
   });
 
@@ -121,7 +93,7 @@ describe('startAssessment', function () {
 
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
-      await yieldTokenIncidents.connect(governance).submitIncident(0, parseEther('1'), timestamp, Zero);
+      await yieldTokenIncidents.connect(governance).submitIncident(0, parseEther('1'), timestamp, Zero, '');
       const { poll } = await assessment.assessments(0);
       const { minVotingPeriodInDays } = await assessment.config();
       expect(poll.start).to.be.equal(timestamp);

@@ -53,14 +53,13 @@ const getClaimDetailsStruct = ({
   payoutRedeemed,
 }) => [amount, coverId, coverPeriod, coverAsset, nxmPriceSnapshot, minAssessmentDepositRatio, payoutRedeemed];
 
-const getIncidentDetailsStruct = ({
+const getIncidentDetailsStruct = ({ productId, date, coverAsset, activeCoverAmount, minAssessmentDepositRatio }) => [
   productId,
   date,
   coverAsset,
   activeCoverAmount,
-  expectedPayoutRatio,
   minAssessmentDepositRatio,
-}) => [productId, date, coverAsset, activeCoverAmount, expectedPayoutRatio, minAssessmentDepositRatio];
+];
 
 const coverSegmentFixture = {
   amount: parseEther('100'),

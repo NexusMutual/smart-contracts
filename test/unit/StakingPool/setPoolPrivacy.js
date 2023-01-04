@@ -1,5 +1,5 @@
 const { ethers, expect } = require('hardhat');
-const { setEtherBalance } = require('../../utils/evm');
+const { setEtherBalance } = require('../utils').evm;
 
 describe('setPoolPrivacy', function () {
   const product0 = {

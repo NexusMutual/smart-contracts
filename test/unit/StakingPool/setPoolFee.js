@@ -2,8 +2,8 @@ const { ethers, expect } = require('hardhat');
 const { MaxUint256, AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
-const { daysToSeconds } = require('../../../lib/helpers');
-const { setEtherBalance, increaseTime } = require('../../utils/evm');
+const { daysToSeconds } = require('../utils').helpers;
+const { setEtherBalance, increaseTime } = require('../utils').evm;
 const { getTranches } = require('./helpers');
 
 const allocationRequestTemplate = {

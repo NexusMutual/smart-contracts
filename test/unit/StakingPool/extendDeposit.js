@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { getTranches, getNewRewardShares, TRANCHE_DURATION, generateRewards } = require('./helpers');
-const { setEtherBalance, increaseTime } = require('../../utils/evm');
+const { setEtherBalance, increaseTime } = require('../utils').evm;
 
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;

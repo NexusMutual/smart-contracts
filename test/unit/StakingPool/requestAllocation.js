@@ -10,7 +10,7 @@ const {
   calculateBasePremium,
 } = require('./helpers');
 
-const { mineNextBlock, setNextBlockTime } = require('../utils').evm;
+const { setNextBlockTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
 const { AddressZero, MaxUint256 } = ethers.constants;
@@ -88,13 +88,6 @@ describe('requestAllocation', function () {
     const amount = stakedNxmAmount;
     await stakingPool.connect(staker).depositTo(amount, (await getCurrentTrancheId()) + 4, poolId, staker.address);
   });
-
-  async function moveDaysForward(days) {
-    let { timestamp } = await ethers.provider.getBlock('latest');
-    timestamp += daysToSeconds(days);
-    await setNextBlockTime(timestamp);
-    await mineNextBlock();
-  }
 
   async function setNextBlockDaysForward(days) {
     let { timestamp } = await ethers.provider.getBlock('latest');

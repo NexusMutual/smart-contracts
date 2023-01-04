@@ -8,7 +8,7 @@ function calculateFirstTrancheId(lastBlock, period, gracePeriod) {
 
 async function stake({ stakingPool, staker, productId, period, gracePeriod }) {
   // Staking inputs
-  const stakingAmount = parseEther('6000');
+  const stakingAmount = parseEther('10000');
   const lastBlock = await ethers.provider.getBlock('latest');
   const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
 

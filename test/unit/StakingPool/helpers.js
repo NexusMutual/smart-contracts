@@ -170,8 +170,13 @@ async function getNewRewardShares(params) {
   );
 }
 
-async function generateRewards(stakingPool, signer, period = daysToSeconds(10), gracePeriod = daysToSeconds(10)) {
-  const amount = parseEther('1');
+async function generateRewards(
+  stakingPool,
+  signer,
+  period = daysToSeconds(10),
+  gracePeriod = daysToSeconds(10),
+  amount = parseEther('1'),
+) {
   const previousPremium = 0;
   const allocationRequest = {
     productId: 0,

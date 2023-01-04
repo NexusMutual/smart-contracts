@@ -1,47 +1,46 @@
-const { BigNumber } = require('ethers');
-const { parseEther } = require('ethers/lib/utils');
 const { ethers, expect } = require('hardhat');
-const { increaseTime, mineNextBlock } = require('../../utils/evm');
+const { increaseTime, mineNextBlock } = require('../utils').evm;
 const {
   getTranches,
-  TRANCHE_DURATION,
   getNewRewardShares,
+  estimateStakeShares,
   calculateStakeAndRewardsWithdrawAmounts,
   setTime,
   generateRewards,
+  TRANCHE_DURATION,
 } = require('./helpers');
 
+const { BigNumber } = ethers;
+const { parseEther } = ethers.utils;
+
+const product0 = {
+  productId: 0,
+  weight: 100,
+  initialPrice: '500',
+  targetPrice: '500',
+};
+
+const initializeParams = {
+  poolId: 0,
+  isPrivatePool: false,
+  initialPoolFee: 5, // 5%
+  maxPoolFee: 5, // 5%
+  productInitializationParams: [product0],
+  ipfsDescriptionHash: 'Description Hash',
+};
+
+const withdrawFixture = {
+  ...initializeParams,
+  amount: parseEther('100'),
+  trancheId: 0,
+  tokenId: 1,
+  destination: ethers.constants.AddressZero,
+};
+
 describe('withdraw', function () {
-  const product0 = {
-    productId: 0,
-    weight: 100,
-    initialPrice: '500',
-    targetPrice: '500',
-  };
-
-  const initializeParams = {
-    poolId: 0,
-    isPrivatePool: false,
-    initialPoolFee: 5, // 5%
-    maxPoolFee: 5, // 5%
-    productInitializationParams: [product0],
-    ipfsDescriptionHash: 'Description Hash',
-  };
-
-  const withdrawFixture = {
-    ...initializeParams,
-    amount: parseEther('100'),
-    trancheId: 0,
-    tokenId: 1,
-    destination: ethers.constants.AddressZero,
-  };
-
   beforeEach(async function () {
-    const {
-      stakingPool,
-      coverSigner,
-      accounts: { defaultSender: manager },
-    } = this;
+    const { stakingPool, coverSigner } = this;
+    const manager = this.accounts.defaultSender;
 
     const { poolId, initialPoolFee, maxPoolFee, productInitializationParams, isPrivatePool, ipfsDescriptionHash } =
       initializeParams;
@@ -502,71 +501,154 @@ describe('withdraw', function () {
   it('allow multiple users to withdraw stake and rewards from multiple tranches', async function () {
     const { nxm, coverSigner, stakingPool, tokenController } = this;
     const [user1, user2, user3] = this.accounts.members;
-    const { amount, destination } = withdrawFixture;
+    const { defaultSender: manager } = this.accounts;
+    const { destination } = withdrawFixture;
 
     const users = [user1, user2, user3];
+    const depositAmounts = [
+      [parseEther('100'), parseEther('300'), parseEther('200')],
+      [parseEther('150'), parseEther('225'), parseEther('333')],
+      [parseEther('600'), parseEther('100'), parseEther('100')],
+      [parseEther('120'), parseEther('75'), parseEther('1')],
+      [parseEther('13'), parseEther('100'), parseEther('100')],
+    ];
+
     const tokenIds = [1, 2, 3];
-    const TRANCHES_NUMBER = 5;
+    const TRANCHE_COUNT = 5;
     const trancheIds = [];
 
     const withdrawStake = true;
     const withdrawRewards = true;
 
-    for (let i = 0; i < TRANCHES_NUMBER; i++) {
-      const { firstActiveTrancheId: currentTranche } = await getTranches();
+    const { firstActiveTrancheId: currentTranche } = await getTranches();
+    const userShares = {};
 
-      for (let j = 0; j < users.length; j++) {
-        const user = users[j];
+    let activeStake = BigNumber.from(0);
+    let stakeSharesSupply = BigNumber.from(0);
+
+    for (let t = 0; t < TRANCHE_COUNT; t++) {
+      userShares[t] = {};
+
+      for (let uid = 0; uid < users.length; uid++) {
+        const user = users[uid];
+        const amount = depositAmounts[t][uid];
+
+        const stakeShares = await estimateStakeShares({ amount, stakingPool });
+        userShares[t][uid] = { amount, stakeShares };
 
         await stakingPool.connect(user).depositTo(
           amount,
-          currentTranche,
-          i === 0 ? 0 : tokenIds[j], // Only create new position for the first tranche
+          currentTranche + t,
+          t === 0 ? 0 : tokenIds[uid], // Only create new position for the first tranche
           destination,
         );
+
+        stakeSharesSupply = stakeSharesSupply.add(stakeShares);
+        activeStake = activeStake.add(amount);
       }
 
-      trancheIds.push(currentTranche);
-      await generateRewards(stakingPool, coverSigner);
-      await increaseTime(TRANCHE_DURATION);
-      await mineNextBlock();
+      trancheIds.push(currentTranche + t);
     }
+
+    const tcBalanceBeforeRewards = await nxm.balanceOf(tokenController.address);
+
+    const allocationAmount = parseEther('100');
+    await generateRewards(stakingPool, coverSigner, allocationAmount);
+
+    const tcBalanceAfterRewards = await nxm.balanceOf(tokenController.address);
+    const rewardedAmount = tcBalanceAfterRewards.sub(tcBalanceBeforeRewards);
+
+    await increaseTime(TRANCHE_DURATION * TRANCHE_COUNT);
+    await mineNextBlock();
 
     const depositsBeforeWithdraw = {};
-    for (const tranche of trancheIds) {
+
+    for (let t = 0; t < TRANCHE_COUNT; t++) {
+      const tranche = trancheIds[t];
       depositsBeforeWithdraw[tranche] = {};
 
-      for (let i = 0; i < users.length; i++) {
-        depositsBeforeWithdraw[tranche][i] = await stakingPool.deposits(tokenIds[i], tranche);
+      for (let uid = 0; uid < users.length; uid++) {
+        const deposit = await stakingPool.deposits(tokenIds[uid], tranche);
+        depositsBeforeWithdraw[tranche][uid] = deposit;
+
+        const { stakeShares } = deposit;
+        expect(stakeShares).to.eq(userShares[t][uid].stakeShares);
       }
     }
 
-    for (let i = 0; i < users.length; i++) {
-      const user = users[i];
+    let totalRewardsWithdrawn = BigNumber.from(0);
+
+    for (let uid = 0; uid < users.length; uid++) {
+      const user = users[uid];
 
       const userBalanceBefore = await nxm.balanceOf(user.address);
       const tcBalanceBefore = await nxm.balanceOf(tokenController.address);
 
-      await stakingPool.connect(user).withdraw(tokenIds[i], withdrawStake, withdrawRewards, trancheIds);
+      await stakingPool.connect(user).withdraw(tokenIds[uid], withdrawStake, withdrawRewards, trancheIds);
 
       const userBalanceAfter = await nxm.balanceOf(user.address);
       const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
 
       let rewardsWithdrawn = BigNumber.from(0);
       let stakeWithdrawn = BigNumber.from(0);
-      for (const tranche of trancheIds) {
+
+      for (let t = 0; t < TRANCHE_COUNT; t++) {
+        const tranche = trancheIds[t];
+
         const { rewards, stake } = await calculateStakeAndRewardsWithdrawAmounts(
           stakingPool,
-          depositsBeforeWithdraw[tranche][i],
+          depositsBeforeWithdraw[tranche][uid],
           tranche,
         );
 
-        rewardsWithdrawn = rewardsWithdrawn.add(rewards);
         stakeWithdrawn = stakeWithdrawn.add(stake);
+        rewardsWithdrawn = rewardsWithdrawn.add(rewards);
+        totalRewardsWithdrawn = totalRewardsWithdrawn.add(rewards);
       }
 
       expect(userBalanceAfter).to.be.eq(userBalanceBefore.add(rewardsWithdrawn).add(stakeWithdrawn));
       expect(tcBalanceAfter).to.be.eq(tcBalanceBefore.sub(rewardsWithdrawn).sub(stakeWithdrawn));
     }
+
+    // withdraw manager rewards
+    const managerTokenId = 0;
+    const managerDepositsBeforeWithdraw = {};
+    for (let t = 0; t < TRANCHE_COUNT; t++) {
+      const tranche = trancheIds[t];
+      const deposit = await stakingPool.deposits(managerTokenId, tranche);
+      managerDepositsBeforeWithdraw[tranche] = deposit;
+    }
+
+    const managerBalanceBefore = await nxm.balanceOf(manager.address);
+    const tcBalanceBefore = await nxm.balanceOf(tokenController.address);
+
+    await stakingPool.connect(manager).withdraw(managerTokenId, withdrawStake, withdrawRewards, trancheIds);
+
+    const managerBalanceAfter = await nxm.balanceOf(manager.address);
+    const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
+
+    let rewardsWithdrawn = BigNumber.from(0);
+    let stakeWithdrawn = BigNumber.from(0);
+
+    for (let t = 0; t < TRANCHE_COUNT; t++) {
+      const tranche = trancheIds[t];
+
+      const { rewards, stake } = await calculateStakeAndRewardsWithdrawAmounts(
+        stakingPool,
+        managerDepositsBeforeWithdraw[tranche],
+        tranche,
+      );
+
+      stakeWithdrawn = stakeWithdrawn.add(stake);
+      rewardsWithdrawn = rewardsWithdrawn.add(rewards);
+      totalRewardsWithdrawn = totalRewardsWithdrawn.add(rewards);
+    }
+
+    expect(managerBalanceAfter).to.be.eq(managerBalanceBefore.add(rewardsWithdrawn).add(stakeWithdrawn));
+    expect(tcBalanceAfter).to.be.eq(tcBalanceBefore.sub(rewardsWithdrawn).sub(stakeWithdrawn));
+
+    // Consider 10 wei of accumulated round error
+    expect(totalRewardsWithdrawn).to.be.gte(rewardedAmount.sub(10));
+    expect(totalRewardsWithdrawn).to.be.lte(rewardedAmount);
   });
 });

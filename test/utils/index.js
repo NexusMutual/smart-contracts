@@ -24,5 +24,4 @@ module.exports = {
   governance,
   membership,
   results,
-  errors,
 };

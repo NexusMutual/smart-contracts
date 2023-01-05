@@ -9,7 +9,7 @@ const {
 } = require('./helpers');
 
 const { daysToSeconds } = require('../utils').helpers;
-const { UNDER_OR_OVERFLOW, DIVIDE_BY_ZERO } = require('../utils').errors;
+const { DIVIDE_BY_ZERO } = require('../utils').errors;
 
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
@@ -189,7 +189,7 @@ describe('calculatePremium', function () {
 
     const coverAmount = BigNumber.from(2).pow(64);
     const allocationAmount = divCeil(coverAmount, NXM_PER_ALLOCATION_UNIT);
-    
+
     const initialCapacity = BigNumber.from(0);
     const totalCapacity = allocationAmount;
 

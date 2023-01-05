@@ -525,11 +525,25 @@ async function setup() {
 
     this.contracts['stakingPool' + i] = stakingPoolInstance;
   }
-  const config = {
+  this.config = {
+    REWARD_BONUS_PER_TRANCHE_RATIO: await stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO(),
+    REWARD_BONUS_PER_TRANCHE_DENOMINATOR: await stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR(),
     BUCKET_SIZE: await cover.BUCKET_SIZE(),
+    PRICE_CHANGE_PER_DAY: await stakingPool.PRICE_CHANGE_PER_DAY(),
+    PRICE_BUMP_RATIO: await stakingPool.PRICE_BUMP_RATIO(),
+    SURGE_PRICE_RATIO: await stakingPool.SURGE_PRICE_RATIO(),
+    SURGE_THRESHOLD_DENOMINATOR: await stakingPool.SURGE_THRESHOLD_DENOMINATOR(),
+    SURGE_THRESHOLD_RATIO: await stakingPool.SURGE_THRESHOLD_RATIO(),
+    ONE_NXM: await stakingPool.ONE_NXM(),
+    NXM_PER_ALLOCATION_UNIT: await stakingPool.NXM_PER_ALLOCATION_UNIT(),
+    ALLOCATION_UNITS_PER_NXM: await stakingPool.ALLOCATION_UNITS_PER_NXM(),
+    INITIAL_PRICE_DENOMINATOR: await stakingPool.INITIAL_PRICE_DENOMINATOR(),
+    TARGET_PRICE_DENOMINATOR: await stakingPool.TARGET_PRICE_DENOMINATOR(),
+    POOL_FEE_DENOMINATOR: await stakingPool.POOL_FEE_DENOMINATOR(),
+    GLOBAL_CAPACITY_DENOMINATOR: await stakingPool.GLOBAL_CAPACITY_DENOMINATOR(),
+    GLOBAL_CAPACITY_RATIO: await cover.globalCapacityRatio(),
+    GLOBAL_MIN_PRICE_RATIO: await cover.GLOBAL_MIN_PRICE_RATIO(),
   };
-
-  this.config = config;
   this.accounts = ethersAccounts;
   this.DEFAULT_PRODUCTS = DEFAULT_PRODUCTS;
 }

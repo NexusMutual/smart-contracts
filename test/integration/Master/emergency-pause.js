@@ -192,8 +192,9 @@ describe('emergency pause', function () {
       value: deposit.mul('2'),
     });
 
+    const assessmentId = 0;
     const assessmentStakingAmount = parseEther('1000');
-    await acceptClaim({ staker: staker2, assessmentStakingAmount, as });
+    await acceptClaim({ staker: staker2, assessmentStakingAmount, as, assessmentId });
 
     await master.connect(emergencyAdmin).setEmergencyPause(true);
 

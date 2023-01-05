@@ -1,10 +1,12 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
+const { stake } = require('../utils/staking');
+const { buyCover, transferCoverAsset } = require('../utils/cover');
+
 const { daysToSeconds } = require('../../../lib/helpers');
 const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee, setEtherBalance } = require('../../utils/evm');
 
-const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther, parseUnits } = ethers.utils;
 
 const setTime = async timestamp => {
@@ -12,7 +14,6 @@ const setTime = async timestamp => {
   await mineNextBlock();
 };
 
-const ETH_ASSET_ID = 0;
 const usdcDecimals = 6;
 
 describe('submitClaim', function () {
@@ -33,71 +34,9 @@ describe('submitClaim', function () {
     }
   });
 
-  function calculateFirstTrancheId(lastBlock, period, gracePeriod) {
-    return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
-  }
-
-  async function stake({ stakingPool, staker, productId, period, gracePeriod }) {
-    // Staking inputs
-    const stakingAmount = parseEther('6000');
-    const lastBlock = await ethers.provider.getBlock('latest');
-    const firstTrancheId = calculateFirstTrancheId(lastBlock, period, gracePeriod);
-
-    // Stake to open up capacity
-    await stakingPool.connect(staker).depositTo(
-      stakingAmount,
-      firstTrancheId,
-      0, // new position
-      AddressZero,
-    );
-
-    const stakingProductParams = {
-      productId,
-      recalculateEffectiveWeight: true,
-      setTargetWeight: true,
-      targetWeight: 100, // 1
-      setTargetPrice: true,
-      targetPrice: 100, // 1%
-    };
-
-    const managerSigner = await ethers.getSigner(await stakingPool.manager());
-    await stakingPool.connect(managerSigner).setProducts([stakingProductParams]);
-  }
-
-  async function buyCover({ amount, productId, coverAsset, period, cover, coverBuyer, targetPrice, priceDenominator }) {
-    // Buy Cover
-    const expectedPremium = amount.mul(targetPrice).div(priceDenominator);
-
-    await cover.connect(coverBuyer).buyCover(
-      {
-        owner: coverBuyer.address,
-        coverId: MaxUint256,
-        productId,
-        coverAsset,
-        amount,
-        period,
-        maxPremiumInAsset: expectedPremium,
-        paymentAsset: coverAsset,
-        commissionRatio: parseEther('0'),
-        commissionDestination: AddressZero,
-        ipfsData: '',
-      },
-      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
-      { value: coverAsset === ETH_ASSET_ID ? expectedPremium : 0 },
-    );
-  }
-
   async function transferYieldToken({ tokenOwner, coverBuyer, yToken, yc }) {
     await yToken.connect(tokenOwner).transfer(coverBuyer.address, parseEther('100'));
     await yToken.connect(coverBuyer).approve(yc.address, parseEther('100'));
-  }
-
-  async function transferCoverAsset({ tokenOwner, coverBuyer, asset, cover }) {
-    const decimals = await asset.decimals();
-    const amount = parseUnits('100', decimals);
-
-    await asset.connect(tokenOwner).transfer(coverBuyer.address, amount);
-    await asset.connect(coverBuyer).approve(cover.address, amount);
   }
 
   async function submitIncident({ gv, yc, productId, period, priceBefore }) {

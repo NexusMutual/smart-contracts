@@ -121,35 +121,6 @@ const getDurationByConsensus =
       .toNumber();
   };
 
-const getConfigurationStruct = ({ minVotingPeriodInDays, stakeLockupPeriodInDays, payoutCooldownInDays }) => [
-  minVotingPeriodInDays,
-  stakeLockupPeriodInDays,
-  payoutCooldownInDays,
-];
-
-const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
-
-const getVoteStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
-
-const getClaimStruct = ({
-  amount,
-  coverId,
-  coverPeriod,
-  coverAsset,
-  nxmPriceSnapshot,
-  assessmentDepositRatio,
-  payoutRedeemed,
-}) => [amount, coverId, coverPeriod, coverAsset, nxmPriceSnapshot, assessmentDepositRatio, payoutRedeemed];
-
-const getIncidentStruct = ({
-  productId,
-  date,
-  coverAsset,
-  activeCoverAmount,
-  expectedPayoutRatio,
-  assessmentDepositRatio,
-}) => [productId, date, coverAsset, activeCoverAmount, expectedPayoutRatio, assessmentDepositRatio];
-
 const finalizePoll = async assessment => {
   const { timestamp } = await ethers.provider.getBlock('latest');
   const { minVotingPeriodInDays, payoutCooldownInDays } = await assessment.config();
@@ -170,12 +141,7 @@ module.exports = {
   setTime,
   submitFraud,
   burnFraud,
-  getPollStruct,
-  getConfigurationStruct,
-  getClaimStruct,
-  getIncidentStruct,
   getProof,
-  getVoteStruct,
   getDurationByTokenWeight,
   getDurationByConsensus,
   finalizePoll,

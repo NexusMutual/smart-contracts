@@ -54,7 +54,6 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     bool notInitialized = bytes32(
       abi.encodePacked(
         currentConfig.rewardRatio,
-        currentConfig.expectedPayoutRatio,
         currentConfig.payoutDeductibleRatio,
         currentConfig.payoutRedemptionPeriodInDays,
         currentConfig.maxRewardInNXMWad
@@ -64,7 +63,6 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
 
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 50% = 1.30%
     config.rewardRatio = 130; // 1.3%
-    config.expectedPayoutRatio = 3000; // 30%
     config.payoutDeductibleRatio = 9000; // 90%
     config.payoutRedemptionPeriodInDays = 14; // days
     config.maxRewardInNXMWad = 50; // 50 NXM
@@ -330,10 +328,6 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     for (uint i = 0; i < paramNames.length; i++) {
       if (paramNames[i] == UintParams.payoutRedemptionPeriodInDays) {
         newConfig.payoutRedemptionPeriodInDays = uint8(values[i]);
-        continue;
-      }
-      if (paramNames[i] == UintParams.expectedPayoutRatio) {
-        newConfig.expectedPayoutRatio = uint16(values[i]);
         continue;
       }
       if (paramNames[i] == UintParams.payoutDeductibleRatio) {

@@ -63,28 +63,9 @@ const setTime = async timestamp => {
   await mineNextBlock();
 };
 
-const getConfigurationStruct = ({ rewardRatio, expectedPayoutRatio }) => [rewardRatio, expectedPayoutRatio];
-
-const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
-
-const getVoteStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
-
-const getIncidentStruct = ({
-  productId,
-  date,
-  coverAsset,
-  activeCoverAmount,
-  expectedPayoutRatio,
-  assessmentDepositRatio,
-}) => [productId, date, coverAsset, activeCoverAmount, expectedPayoutRatio, assessmentDepositRatio];
-
 module.exports = {
   ASSET,
   INCIDENT_STATUS,
-  getPollStruct,
-  getConfigurationStruct,
-  getIncidentStruct,
-  getVoteStruct,
   setTime,
   signPermit,
 };

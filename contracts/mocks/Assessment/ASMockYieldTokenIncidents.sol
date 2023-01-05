@@ -22,8 +22,7 @@ contract ASMockYieldTokenIncidents is MasterAwareV2 {
 
   function initialize() external {
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 20% = 0.52%
-    config.rewardRatio = 52; // 0.52%
-    config.expectedPayoutRatio = 3000; // 30%
+    config.rewardRatio = 130; // 0.52%
   }
 
   function assessment() internal view returns (IAssessment) {
@@ -34,7 +33,8 @@ contract ASMockYieldTokenIncidents is MasterAwareV2 {
     uint24 productId,
     uint96 priceBefore,
     uint32 date,
-    uint96 activeCoverAmountInNXM
+    uint96 expectedPayoutInNXM,
+    string calldata ipfsMetadata
   ) external {
     Incident memory incident = Incident(
       0, // assessmentId
@@ -42,10 +42,6 @@ contract ASMockYieldTokenIncidents is MasterAwareV2 {
       date,
       priceBefore
     );
-
-    uint expectedPayoutInNXM = activeCoverAmountInNXM * config.expectedPayoutRatio /
-      INCIDENT_EXPECTED_PAYOUT_DENOMINATOR;
-
     // Determine the total rewards that should be minted for the assessors based on cover period
     uint totalReward = expectedPayoutInNXM * config.rewardRatio / REWARD_DENOMINATOR;
     uint assessmentId = assessment().startAssessment(totalReward, 0);

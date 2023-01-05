@@ -179,32 +179,6 @@ describe('calculatePremium', function () {
     expect(premium).to.be.equal(0);
   });
 
-  // TODO: this test is mostly pointless as it reverts in calculatePremiumPerYear fn when calculating surgeStartPoint
-  it('should overflow when calculating premium for very large capacity', async function () {
-    const { stakingPool } = this;
-    const timestamp = 0;
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
-    const stakedProduct = { ...stakedProductTemplate, bumpedPriceUpdateTime: timestamp };
-    const period = daysToSeconds(365);
-    const coverAmountRaw = parseEther('100');
-    const coverAmount = divCeil(coverAmountRaw, NXM_PER_ALLOCATION_UNIT);
-
-    const totalCapacity = BigNumber.from(2).pow(255);
-    const initialCapacityUsed = BigNumber.from(0);
-
-    await expect(
-      stakingPool.calculatePremium(
-        stakedProduct,
-        period,
-        coverAmount,
-        initialCapacityUsed,
-        totalCapacity,
-        stakedProduct.targetPrice,
-        timestamp,
-      ),
-    ).to.be.revertedWithPanic(UNDER_OR_OVERFLOW);
-  });
-
   it('should calculate the premium correctly when cover amount is equal to total capacity', async function () {
     const { stakingPool } = this;
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
@@ -215,8 +189,7 @@ describe('calculatePremium', function () {
 
     const coverAmount = BigNumber.from(2).pow(64);
     const allocationAmount = divCeil(coverAmount, NXM_PER_ALLOCATION_UNIT);
-    // const coverAmount = allocationAmount.mul(NXM_PER_ALLOCATION_UNIT);
-
+    
     const initialCapacity = BigNumber.from(0);
     const totalCapacity = allocationAmount;
 

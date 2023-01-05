@@ -28,7 +28,7 @@ describe('submitClaim', function () {
     const { tk } = this.contracts;
 
     const members = this.accounts.members.slice(0, 5);
-    const amount = parseEther('10000');
+    const amount = parseEther('30000');
     for (const member of members) {
       await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
     }

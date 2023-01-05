@@ -1,19 +1,9 @@
 const { ethers } = require('hardhat');
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
-const { BigNumber } = ethers;
 
 function calculateFirstTrancheId(lastBlock, period, gracePeriod) {
   return Math.floor((lastBlock.timestamp + period + gracePeriod) / (91 * 24 * 3600));
-}
-
-function divCeil(a, b) {
-  a = BigNumber.from(a);
-  let result = a.div(b);
-  if (!a.mod(b).isZero()) {
-    result = result.add(1);
-  }
-  return result;
 }
 
 async function stake({ stakingPool, staker, productId, period, gracePeriod }) {
@@ -46,5 +36,4 @@ async function stake({ stakingPool, staker, productId, period, gracePeriod }) {
 module.exports = {
   calculateFirstTrancheId,
   stake,
-  divCeil,
 };

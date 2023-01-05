@@ -1,7 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { daysToSeconds } = require('../../../lib/helpers');
-const { stake, divCeil } = require('../utils/staking');
+const { stake } = require('../utils/staking');
+const { divCeil } = require('../../unit/StakingPool/helpers');
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
@@ -17,7 +18,8 @@ describe('buyCover', function () {
     }
   });
 
-  // TODO: The expected premium and the actual premium forwarded are off by 1 decimal place. The js value has 1 extra decimal place.
+  // TODO: The expected premium and the actual premium forwarded are off by 1 decimal place.
+  // The js value has 1 extra decimal place.
   it.skip('should buy cover using ETH and forward correct premium to capital pool', async function () {
     const { NXM_PER_ALLOCATION_UNIT, TARGET_PRICE_DENOMINATOR, ONE_NXM } = this.config;
     const { cover, stakingPool0, p1 } = this.contracts;

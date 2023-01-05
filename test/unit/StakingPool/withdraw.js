@@ -553,7 +553,7 @@ describe('withdraw', function () {
     const tcBalanceBeforeRewards = await nxm.balanceOf(tokenController.address);
 
     const allocationAmount = parseEther('100');
-    await generateRewards(stakingPool, coverSigner, allocationAmount);
+    await generateRewards(stakingPool, coverSigner, undefined, undefined, allocationAmount);
 
     const tcBalanceAfterRewards = await nxm.balanceOf(tokenController.address);
     const rewardedAmount = tcBalanceAfterRewards.sub(tcBalanceBeforeRewards);

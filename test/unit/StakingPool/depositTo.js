@@ -1,14 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const {
-  getTranches,
-  getNewRewardShares,
-  estimateStakeShares,
-  POOL_FEE_DENOMINATOR,
-  setTime,
-  TRANCHE_DURATION,
-} = require('./helpers');
+const { getTranches, getNewRewardShares, estimateStakeShares, setTime, TRANCHE_DURATION } = require('./helpers');
 const { setEtherBalance, increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 

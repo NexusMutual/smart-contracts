@@ -293,11 +293,13 @@ describe('processExpirations', function () {
     const accFromBeforeToBucketExpiration = nextBucketStartTime
       .sub(lastAccNxmUpdateBefore)
       .mul(rewardPerSecondBefore)
+      .mul(parseEther('1'))
       .div(rewardsSharesSupply);
 
     const accFromBucketExpirationToTrancheExpiration = trancheEndTime
       .sub(nextBucketStartTime)
       .mul(rewardPerSecondBefore.sub(nextBucketRewardPerSecondCut))
+      .mul(parseEther('1'))
       .div(rewardsSharesSupply);
 
     expect(expiredTranche.accNxmPerRewardShareAtExpiry).to.equal(
@@ -314,11 +316,13 @@ describe('processExpirations', function () {
     const accFromTrancheExpirationToSecondBucketExpiration = secondNextBucketStartTime
       .sub(trancheEndTime)
       .mul(rewardPerSecondBefore.sub(nextBucketRewardPerSecondCut))
+      .mul(parseEther('1'))
       .div(rewardsSharesSupply.sub(tranche.rewardsShares));
 
     const accFromSecondBucketExpirationToCurrentTime = BigNumber.from(timestamp)
       .sub(secondNextBucketStartTime)
       .mul(rewardPerSecondBefore.sub(nextBucketRewardPerSecondCut).sub(secondBucketRewardPerSecondCut))
+      .mul(parseEther('1'))
       .div(rewardsSharesSupply.sub(tranche.rewardsShares));
 
     expect(accNxmPerRewardsShareAfter).to.equal(
@@ -365,7 +369,7 @@ describe('processExpirations', function () {
     expect(expiredBucketRewards).to.equal(rewardPerSecondBefore);
     expect(rewardPerSecondAfter).to.equal(rewardPerSecondBefore.sub(expiredBucketRewards));
     expect(accNxmPerRewardsShareAfter).to.equal(
-      accNxmPerRewardsShareBefore.add(elapsed.mul(rewardPerSecondBefore).div(rewardsSharesSupply)),
+      accNxmPerRewardsShareBefore.add(elapsed.mul(rewardPerSecondBefore).mul(parseEther('1')).div(rewardsSharesSupply)),
     );
     expect(lastAccNxmUpdateAfter).to.equal(bucketStartTime);
   });
@@ -463,10 +467,12 @@ describe('processExpirations', function () {
     const elapsedAfterBucket = BigNumber.from(lastBlock.timestamp).sub(lastAccNxmUpdateBefore);
 
     const accNxmPerRewardsAtBucketEnd = accNxmPerRewardsShareBefore.add(
-      elapsedInBucket.mul(rewardPerSecondBefore).div(rewardsSharesSupply),
+      elapsedInBucket.mul(rewardPerSecondBefore).mul(parseEther('1')).div(rewardsSharesSupply),
     );
     expect(accNxmPerRewardsShareAfter).to.equal(
-      accNxmPerRewardsAtBucketEnd.add(elapsedAfterBucket.mul(rewardPerSecondAfter).div(rewardsSharesSupply)),
+      accNxmPerRewardsAtBucketEnd.add(
+        elapsedAfterBucket.mul(rewardPerSecondAfter).mul(parseEther('1')).div(rewardsSharesSupply),
+      ),
     );
     expect(lastAccNxmUpdateAfter).to.equal(lastBlock.timestamp);
   });

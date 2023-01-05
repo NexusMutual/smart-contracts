@@ -8,7 +8,6 @@ const {
   TRANCHE_DURATION,
   getCurrentBucket,
   BUCKET_DURATION,
-  POOL_FEE_DENOMINATOR,
   generateRewards,
   setTime,
   MAX_ACTIVE_TRANCHES,
@@ -119,9 +118,8 @@ describe('processExpirations', function () {
 
   it('expires tranches updating active stake, stake shares and rewards shares supply', async function () {
     const { stakingPool } = this;
-    const {
-      members: [user],
-    } = this.accounts;
+    const { POOL_FEE_DENOMINATOR } = this.config;
+    const [user] = this.accounts.members;
 
     const { amount, tokenId, destination, initialPoolFee } = processExpirationsFixture;
 

@@ -96,7 +96,7 @@ describe('switchMembershipAndAssets', function () {
           owner: member.address,
           productId,
           coverAsset: 0,
-          amount: parseEther('100'),
+          amount: parseEther('1'),
           period,
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,

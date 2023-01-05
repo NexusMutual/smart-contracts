@@ -278,6 +278,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       segmentId
     );
 
+    require(coverAmountInCoverAsset >= params.amount, "Cover: Insufficient cover amount allocated");
+
     _coverSegments[coverId].push(
       CoverSegment(
         coverAmountInCoverAsset.toUint96(), // cover amount in cover asset
@@ -370,7 +372,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     }
 
     totalCoverAmountInCoverAsset = totalCoverAmountInNXM * nxmPriceInCoverAsset / ONE_NXM;
-    require(totalCoverAmountInCoverAsset > 0, "Cover: Amount should be greater than 0");
 
     return (totalCoverAmountInCoverAsset, totalAmountDueInNXM);
   }

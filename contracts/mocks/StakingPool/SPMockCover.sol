@@ -59,19 +59,21 @@ contract SPMockCover {
   function allocateCapacity(
     BuyCoverParams memory params,
     uint coverId,
+    uint allocationId,
     IStakingPool _stakingPool
-  ) public returns (uint premium) {
+  ) public returns (uint premium, uint) {
 
     Product memory product = products[params.productId];
     uint gracePeriod = productTypes[product.productType].gracePeriod;
 
-    premium = _stakingPool.requestAllocation(
+    (premium, allocationId) = _stakingPool.requestAllocation(
       params.amount,
       // TODO: figure out if these need to be populated
       0, // previousPremium
       AllocationRequest(
         params.productId,
         coverId,
+        allocationId,
         params.period,
         gracePeriod,
         product.useFixedPrice,
@@ -86,6 +88,8 @@ contract SPMockCover {
       )
     );
     lastPremium = premium;
+    lastPremium = premium;
+    return (premium, allocationId);
   }
 
   function initializeStaking(

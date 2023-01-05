@@ -13,6 +13,7 @@ import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
 import "../../libraries/SafeUintCast.sol";
 import "./StakingTypesLib.sol";
+import "hardhat/console.sol";
 
 // total stake = active stake + expired stake
 // total capacity = active stake * global capacity factor
@@ -50,6 +51,7 @@ contract StakingPool is IStakingPool {
   // timestamp when accNxmPerRewardsShare was last updated
   uint public lastAccNxmUpdate;
 
+  uint public nextAllocationId;
   uint public firstActiveTrancheId;
   uint public firstActiveBucketId;
 
@@ -413,7 +415,7 @@ contract StakingPool is IStakingPool {
       deposit.rewardsShares += newRewardsShares;
       deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
 
-      // sstore
+      // store
       deposits[tokenId][trancheId] = deposit;
     }
 
@@ -588,18 +590,18 @@ contract StakingPool is IStakingPool {
     uint amount,
     uint previousPremium,
     AllocationRequest calldata request
-  ) external onlyCoverContract returns (uint premium) {
+  ) external onlyCoverContract returns (uint premium, uint allocationId) {
 
     // passing true because we change the reward per second
     processExpirations(true);
 
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 
-    uint[] memory trancheAllocations = request.previousStart == 0
+    uint[] memory trancheAllocations = request.allocationId == type(uint).max
       ? getActiveAllocations(request.productId)
       : getActiveAllocationsWithoutCover(
           request.productId,
-          request.coverId,
+          request.allocationId,
           request.previousStart,
           request.previousExpiration
         );
@@ -616,13 +618,16 @@ contract StakingPool is IStakingPool {
       );
 
       // no need to charge any premium
-      return 0;
+      return (0, request.allocationId);
     }
-
+    uint coverAllocationAmount;
+    uint initialCapacityUsed;
+    uint totalCapacity;
     (
-      uint coverAllocationAmount,
-      uint initialCapacityUsed,
-      uint totalCapacity
+      coverAllocationAmount,
+      initialCapacityUsed,
+      totalCapacity,
+      allocationId
     ) = allocate(amount, request, trancheAllocations);
 
     // the returned premium value has 18 decimals
@@ -644,7 +649,7 @@ contract StakingPool is IStakingPool {
       uint rewardStreamPeriod = expirationBucket * BUCKET_DURATION - block.timestamp;
       uint _rewardPerSecond = (premium * request.rewardRatio / REWARDS_DENOMINATOR) / rewardStreamPeriod;
 
-      // sstore
+      // store
       rewardBuckets[expirationBucket].rewardPerSecondCut += _rewardPerSecond;
       rewardPerSecond += _rewardPerSecond;
 
@@ -660,7 +665,7 @@ contract StakingPool is IStakingPool {
       uint rewardStreamPeriod = prevExpirationBucket * BUCKET_DURATION - request.previousStart;
       uint prevRewardsPerSecond = prevRewards / rewardStreamPeriod;
 
-      // sstore
+      // store
       rewardBuckets[prevExpirationBucket].rewardPerSecondCut -= prevRewardsPerSecond;
       rewardPerSecond -= prevRewardsPerSecond;
 
@@ -669,18 +674,17 @@ contract StakingPool is IStakingPool {
       tokenController.burnStakingPoolNXMRewards(rewardsToBurn, poolId);
     }
 
-    return premium;
+    return (premium, allocationId);
   }
 
   function getActiveAllocationsWithoutCover(
     uint productId,
-    uint coverId,
+    uint allocationId,
     uint start,
     uint expiration
   ) internal returns (uint[] memory activeAllocations) {
 
-    // TODO: coverTrancheAllocations is never set
-    uint packedCoverTrancheAllocation = coverTrancheAllocations[coverId];
+    uint packedCoverTrancheAllocation = coverTrancheAllocations[allocationId];
     activeAllocations = getActiveAllocations(productId);
 
     uint currentFirstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
@@ -868,10 +872,16 @@ contract StakingPool is IStakingPool {
   ) internal returns (
     uint coverAllocationAmount,
     uint initialCapacityUsed,
-    uint totalCapacity
+    uint totalCapacity,
+    uint allocationId
   ) {
 
+    if (request.allocationId == type(uint).max) {
+      allocationId = nextAllocationId;
+      nextAllocationId += 1;
+    }
     coverAllocationAmount = Math.divCeil(amount, NXM_PER_ALLOCATION_UNIT);
+
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint firstTrancheIdToUse = (block.timestamp + request.period + request.gracePeriod) / TRANCHE_DURATION;
     uint startIndex = firstTrancheIdToUse - _firstActiveTrancheId;
@@ -884,33 +894,35 @@ contract StakingPool is IStakingPool {
       request.globalCapacityRatio,
       request.capacityReductionRatio
     );
+    {
+      uint remainingAmount = coverAllocationAmount;
+      uint packedCoverAllocations;
+      for (uint i = startIndex; i < MAX_ACTIVE_TRANCHES; i++) {
 
-    uint remainingAmount = coverAllocationAmount;
+        initialCapacityUsed += trancheAllocations[i];
+        totalCapacity += trancheCapacities[i - startIndex];
+        if (remainingAmount == 0) {
+          // not breaking out of the for loop because we need the total capacity calculated above
+          continue;
+        }
 
-    for (uint i = startIndex; i < MAX_ACTIVE_TRANCHES; i++) {
+        if (trancheAllocations[i] >= trancheCapacities[i - startIndex]) {
+          // no capacity left in this tranche
+          continue;
+        }
 
-      initialCapacityUsed += trancheAllocations[i];
-      totalCapacity += trancheCapacities[i - startIndex];
+        uint allocatedAmount = Math.min(trancheCapacities[i - startIndex] - trancheAllocations[i], remainingAmount);
 
-      if (remainingAmount == 0) {
-        // not breaking out of the for loop because we need the total capacity calculated above
-        continue;
+        coverAllocations[i] = allocatedAmount;
+        trancheAllocations[i] += allocatedAmount;
+        remainingAmount -= allocatedAmount;
+        packedCoverAllocations &= allocatedAmount << (i * 32);
       }
 
-      if (trancheAllocations[i] >= trancheCapacities[i - startIndex]) {
-        // no capacity left in this tranche
-        continue;
-      }
+      coverTrancheAllocations[allocationId] = packedCoverAllocations;
 
-      uint allocatedAmount = Math.min(trancheCapacities[i - startIndex] - trancheAllocations[i], remainingAmount);
-
-      coverAllocations[i] = allocatedAmount;
-      trancheAllocations[i] += allocatedAmount;
-      remainingAmount -= allocatedAmount;
+      require(remainingAmount == 0, "StakingPool: Insufficient capacity");
     }
-
-    require(remainingAmount == 0, "StakingPool: Insufficient capacity");
-
     updateExpiringCoverAmounts(
       request.productId,
       _firstActiveTrancheId,
@@ -925,7 +937,7 @@ contract StakingPool is IStakingPool {
       trancheAllocations
     );
 
-    return (coverAllocationAmount, initialCapacityUsed, totalCapacity);
+    return (coverAllocationAmount, initialCapacityUsed, totalCapacity, allocationId);
   }
 
   function updateStoredAllocations(

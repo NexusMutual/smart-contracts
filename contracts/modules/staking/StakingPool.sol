@@ -282,7 +282,7 @@ contract StakingPool is IStakingPool, ERC721 {
         uint elapsed = bucketStartTime - _lastAccNxmUpdate;
 
         uint newAccNxmPerRewardsShare = _rewardsSharesSupply != 0
-          ? elapsed * _rewardPerSecond / _rewardsSharesSupply
+          ? elapsed * _rewardPerSecond * ONE_NXM / _rewardsSharesSupply
           : 0;
 
         _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
@@ -300,7 +300,7 @@ contract StakingPool is IStakingPool, ERC721 {
         uint trancheEndTime = (_firstActiveTrancheId + 1) * TRANCHE_DURATION;
         uint elapsed = trancheEndTime - _lastAccNxmUpdate;
         uint newAccNxmPerRewardsShare = _rewardsSharesSupply != 0
-          ? elapsed * _rewardPerSecond / _rewardsSharesSupply
+          ? elapsed * _rewardPerSecond * ONE_NXM / _rewardsSharesSupply
           : 0;
         _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
         _lastAccNxmUpdate = trancheEndTime;
@@ -334,7 +334,7 @@ contract StakingPool is IStakingPool, ERC721 {
     if (updateUntilCurrentTimestamp) {
       uint elapsed = block.timestamp - _lastAccNxmUpdate;
       uint newAccNxmPerRewardsShare = _rewardsSharesSupply != 0
-        ? elapsed * _rewardPerSecond / _rewardsSharesSupply
+        ? elapsed * _rewardPerSecond * ONE_NXM / _rewardsSharesSupply
         : 0;
       _accNxmPerRewardsShare = _accNxmPerRewardsShare.uncheckedAdd(newAccNxmPerRewardsShare);
       _lastAccNxmUpdate = block.timestamp;
@@ -429,7 +429,7 @@ contract StakingPool is IStakingPool, ERC721 {
       // if we're increasing an existing deposit
       if (deposit.rewardsShares != 0) {
         uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(deposit.lastAccNxmPerRewardShare);
-        deposit.pendingRewards += newEarningsPerShare * deposit.rewardsShares;
+        deposit.pendingRewards += newEarningsPerShare * deposit.rewardsShares / ONE_NXM;
       }
 
       deposit.stakeShares += newStakeShares;
@@ -451,7 +451,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
         // calculate rewards until now
         uint newRewardPerShare = _accNxmPerRewardsShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
-        feeDeposit.pendingRewards += newRewardPerShare * feeDeposit.rewardsShares;
+        feeDeposit.pendingRewards += newRewardPerShare * feeDeposit.rewardsShares / ONE_NXM;
         feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
         feeDeposit.rewardsShares += newFeeRewardShares;
       }
@@ -546,40 +546,49 @@ contract StakingPool is IStakingPool, ERC721 {
 
       Deposit memory deposit = deposits[tokenId][trancheId];
 
-      // can withdraw stake only if the tranche is expired
-      if (withdrawStake && trancheId < _firstActiveTrancheId) {
+      {
+        uint trancheRewardsToWithdraw;
+        uint trancheStakeToWithdraw;
 
-        // Deposit withdrawals are not permitted while the manager is locked in governance to
-        // prevent double voting.
-        require(
-          managerLockedInGovernanceUntil < block.timestamp,
-          "StakingPool: While the pool manager is locked for governance voting only rewards can be withdrawn"
-        );
+        // can withdraw stake only if the tranche is expired
+        if (withdrawStake && trancheId < _firstActiveTrancheId) {
 
-        // calculate the amount of nxm for this deposit
-        uint stake = expiredTranches[trancheId].stakeAmountAtExpiry;
-        uint stakeShareSupply = expiredTranches[trancheId].stakeShareSupplyAtExpiry;
-        withdrawnStake += stake * deposit.stakeShares / stakeShareSupply;
+          // Deposit withdrawals are not permitted while the manager is locked in governance to
+          // prevent double voting.
+          require(
+            managerLockedInGovernanceUntil < block.timestamp,
+            "StakingPool: While the pool manager is locked for governance voting only rewards can be withdrawn"
+          );
 
-        // mark as withdrawn
-        deposit.stakeShares = 0;
-      }
+          // calculate the amount of nxm for this deposit
+          uint stake = expiredTranches[trancheId].stakeAmountAtExpiry;
+          uint stakeShareSupply = expiredTranches[trancheId].stakeShareSupplyAtExpiry;
+          trancheStakeToWithdraw = stake * deposit.stakeShares / stakeShareSupply;
+          withdrawnStake += trancheStakeToWithdraw;
 
-      if (withdrawRewards) {
+          // mark as withdrawn
+          deposit.stakeShares = 0;
+        }
 
-        // if the tranche is expired, use the accumulator value saved at expiration time
-        uint accNxmPerRewardShareToUse = trancheId < _firstActiveTrancheId
-          ? expiredTranches[trancheId].accNxmPerRewardShareAtExpiry
-          : _accNxmPerRewardsShare;
+        if (withdrawRewards) {
 
-        // calculate reward since checkpoint
-        uint newRewardPerShare = accNxmPerRewardShareToUse.uncheckedSub(deposit.lastAccNxmPerRewardShare);
-        withdrawnRewards += newRewardPerShare * deposit.rewardsShares + deposit.pendingRewards;
+          // if the tranche is expired, use the accumulator value saved at expiration time
+          uint accNxmPerRewardShareToUse = trancheId < _firstActiveTrancheId
+            ? expiredTranches[trancheId].accNxmPerRewardShareAtExpiry
+            : _accNxmPerRewardsShare;
 
-        // save checkpoint
-        deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
-        deposit.pendingRewards = 0;
-        deposit.rewardsShares = 0;
+          // calculate reward since checkpoint
+          uint newRewardPerShare = accNxmPerRewardShareToUse.uncheckedSub(deposit.lastAccNxmPerRewardShare);
+          trancheRewardsToWithdraw = newRewardPerShare * deposit.rewardsShares / ONE_NXM + deposit.pendingRewards;
+          withdrawnRewards += trancheRewardsToWithdraw;
+
+          // save checkpoint
+          deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
+          deposit.pendingRewards = 0;
+          deposit.rewardsShares = 0;
+        }
+
+        emit Withdraw(msg.sender, tokenId, trancheId, trancheStakeToWithdraw, trancheRewardsToWithdraw);
       }
 
       deposits[tokenId][trancheId] = deposit;
@@ -591,6 +600,8 @@ contract StakingPool is IStakingPool, ERC721 {
       withdrawnRewards,
       poolId
     );
+
+    return (withdrawnStake, withdrawnRewards);
   }
 
   function requestAllocation(
@@ -1121,13 +1132,13 @@ contract StakingPool is IStakingPool, ERC721 {
     // if there already is a deposit on the new tranche, calculate its pending rewards
     if (updatedDeposit.lastAccNxmPerRewardShare != 0) {
       uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(updatedDeposit.lastAccNxmPerRewardShare);
-      updatedDeposit.pendingRewards += newEarningsPerShare * updatedDeposit.rewardsShares;
+      updatedDeposit.pendingRewards += newEarningsPerShare * updatedDeposit.rewardsShares / ONE_NXM;
     }
 
     // calculate the rewards for the deposit being extended and move them to the new deposit
     {
       uint newEarningsPerShare = _accNxmPerRewardsShare.uncheckedSub(initialDeposit.lastAccNxmPerRewardShare);
-      updatedDeposit.pendingRewards += newEarningsPerShare * initialDeposit.rewardsShares;
+      updatedDeposit.pendingRewards += newEarningsPerShare * initialDeposit.rewardsShares / ONE_NXM;
       updatedDeposit.pendingRewards += initialDeposit.pendingRewards;
     }
 
@@ -1415,7 +1426,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
       // update pending reward and reward shares
       uint newRewardPerRewardsShare = _accNxmPerRewardsShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
-      feeDeposit.pendingRewards += newRewardPerRewardsShare * feeDeposit.rewardsShares;
+      feeDeposit.pendingRewards += newRewardPerRewardsShare * feeDeposit.rewardsShares / ONE_NXM;
       feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare;
       // TODO: would using tranche.rewardsShares give a better precision?
       feeDeposit.rewardsShares = feeDeposit.rewardsShares * newFee / oldFee;

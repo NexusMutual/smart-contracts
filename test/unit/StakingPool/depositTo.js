@@ -1,8 +1,8 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { getTranches, getNewRewardShares, estimateStakeShares, TRANCHE_DURATION } = require('./helpers');
-const { setEtherBalance, increaseTime, setNextBlockTime, mineNextBlock } = require('../utils').evm;
+const { getTranches, getNewRewardShares, estimateStakeShares, setTime, TRANCHE_DURATION } = require('./helpers');
+const { setEtherBalance, increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
 const { BigNumber } = ethers;
@@ -56,8 +56,7 @@ describe('depositTo', function () {
 
     // Move to the beginning of the next tranche
     const { firstActiveTrancheId: trancheId } = await getTranches();
-    await setNextBlockTime((trancheId + 1) * TRANCHE_DURATION);
-    await mineNextBlock();
+    await setTime((trancheId + 1) * TRANCHE_DURATION);
   });
 
   it('reverts if caller is not cover contract or manager when pool is private', async function () {
@@ -258,9 +257,9 @@ describe('depositTo', function () {
     expect(secondDepositData.lastAccNxmPerRewardShare).to.equal(secondAccNxmPerRewardsShare);
     expect(secondDepositData.pendingRewards).to.not.equal(0);
     expect(secondDepositData.pendingRewards).to.equal(
-      depositData.rewardsShares.mul(
-        secondDepositData.lastAccNxmPerRewardShare.sub(depositData.lastAccNxmPerRewardShare),
-      ),
+      depositData.rewardsShares
+        .mul(secondDepositData.lastAccNxmPerRewardShare.sub(depositData.lastAccNxmPerRewardShare))
+        .div(parseEther('1')),
     );
 
     // Last deposit
@@ -273,9 +272,9 @@ describe('depositTo', function () {
     expect(lastDepositData.pendingRewards).to.not.equal(0);
     expect(lastDepositData.pendingRewards).to.equal(
       secondDepositData.pendingRewards.add(
-        secondDepositData.rewardsShares.mul(
-          lastDepositData.lastAccNxmPerRewardShare.sub(secondDepositData.lastAccNxmPerRewardShare),
-        ),
+        secondDepositData.rewardsShares
+          .mul(lastDepositData.lastAccNxmPerRewardShare.sub(secondDepositData.lastAccNxmPerRewardShare))
+          .div(parseEther('1')),
       ),
     );
   });

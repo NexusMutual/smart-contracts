@@ -170,8 +170,13 @@ async function getNewRewardShares(params) {
   );
 }
 
-async function generateRewards(stakingPool, signer, period = daysToSeconds(10), gracePeriod = daysToSeconds(10)) {
-  const amount = parseEther('1');
+async function generateRewards(
+  stakingPool,
+  signer,
+  period = daysToSeconds(10),
+  gracePeriod = daysToSeconds(10),
+  amount = parseEther('1'),
+) {
   const previousPremium = 0;
   const allocationRequest = {
     productId: 0,
@@ -190,6 +195,19 @@ async function generateRewards(stakingPool, signer, period = daysToSeconds(10), 
   await stakingPool.connect(signer).requestAllocation(amount, previousPremium, allocationRequest);
 }
 
+async function calculateStakeAndRewardsWithdrawAmounts(stakingPool, deposit, trancheId) {
+  const { accNxmPerRewardShareAtExpiry, stakeAmountAtExpiry, stakeShareSupplyAtExpiry } =
+    await stakingPool.expiredTranches(trancheId);
+
+  return {
+    rewards: deposit.rewardsShares
+      .mul(accNxmPerRewardShareAtExpiry.sub(deposit.lastAccNxmPerRewardShare))
+      .div(parseEther('1'))
+      .add(deposit.pendingRewards),
+    stake: stakeAmountAtExpiry.mul(deposit.stakeShares).div(stakeShareSupplyAtExpiry),
+  };
+}
+
 module.exports = {
   setTime,
   calculateBasePrice,
@@ -206,6 +224,7 @@ module.exports = {
   getNewRewardShares,
   estimateStakeShares,
   generateRewards,
+  calculateStakeAndRewardsWithdrawAmounts,
   TRANCHE_DURATION,
   BUCKET_DURATION,
   MAX_ACTIVE_TRANCHES,

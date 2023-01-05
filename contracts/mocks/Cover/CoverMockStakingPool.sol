@@ -76,11 +76,8 @@ contract CoverMockStakingPool is IStakingPool {
     return premiumPerYear * period / 365 days;
   }
 
-  function setProducts(StakedProductParam[] memory params) external {
-    totalSupply = totalSupply;  function setProducts(StakedProductParam[] memory /*params*/) external {
+  function setProducts(StakedProductParam[] memory /*params*/) external {
     manager = manager;
-  }
-    params;
   }
 
   function calculatePremium(uint priceRatio, uint coverAmount, uint period) public pure returns (uint) {
@@ -107,9 +104,7 @@ contract CoverMockStakingPool is IStakingPool {
   function getUsedCapacity(uint productId) external /*override*/ view returns (uint) {
     return usedCapacity[productId];
   }
-  function setProducts(StakedProductParam[] memory /*params*/) external {
-    manager = manager;
-  }
+
   function getTargetPrice(uint productId) external /*override*/ view returns (uint) {
     return products[productId].targetPrice;
   }
@@ -159,9 +154,7 @@ contract CoverMockStakingPool is IStakingPool {
 
   function withdraw(
     uint /*tokenId*/,
-    bool /*withdrawStake*/,  function setProducts(StakedProductParam[] memory /*params*/) external {
-    manager = manager;
-  }
+    bool /*withdrawStake*/,
     bool /*withdrawRewards*/,
     uint[] memory /*trancheIds*/
   ) public returns (uint /*withdrawnStake*/, uint /*withdrawnRewards*/) {

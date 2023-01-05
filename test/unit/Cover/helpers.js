@@ -6,6 +6,7 @@ const { AddressZero, MaxUint256 } = ethers.constants;
 
 const DEFAULT_POOL_FEE = '5';
 const DEFAULT_PRODUCTS = [{ productId: 0, weight: 100 }];
+const MAX_COVER_PERIOD = 3600 * 24 * 365;
 
 async function createStakingPool(cover, productId, capacity, targetPrice, activeCover, creator, manager, currentPrice) {
   const productInitializationParams = DEFAULT_PRODUCTS.map(p => {
@@ -125,8 +126,6 @@ async function buyCoverOnMultiplePools({
     segmentId,
   };
 }
-
-const MAX_COVER_PERIOD = 3600 * 24 * 365;
 
 module.exports = {
   assertCoverFields,

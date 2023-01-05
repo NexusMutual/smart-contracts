@@ -2,7 +2,8 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 
 const { setEtherBalance } = require('../../utils/evm');
-const { createStakingPool, assertCoverFields, daysToSeconds } = require('./helpers');
+const { createStakingPool, assertCoverFields } = require('./helpers');
+const { daysToSeconds } = require('../../utils').helpers;
 
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;

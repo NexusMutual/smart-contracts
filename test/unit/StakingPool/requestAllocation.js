@@ -10,58 +10,59 @@ const {
   calculateBasePremium,
 } = require('./helpers');
 
-const { setNextBlockTime } = require('../utils').evm;
+const { increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 
+// TODO: get rid of these two and just use `period` for calculation
+const periodInDays = 91.25;
+const periodsInYear = 365 / periodInDays;
+
+const coverId = 0;
+const productId = 0;
+const stakedNxmAmount = parseEther('50000');
+
+const buyCoverParamsTemplate = {
+  owner: AddressZero,
+  coverId: MaxUint256,
+  productId: 0,
+  coverAsset: 0, // ETH
+  amount: parseEther('4800'),
+  period: daysToSeconds(periodInDays),
+  maxPremiumInAsset: parseEther('100'),
+  paymentAsset: 0,
+  payWithNXM: false,
+  commissionRatio: 1,
+  commissionDestination: AddressZero,
+  ipfsData: 'ipfs data',
+};
+
+const coverProductTemplate = {
+  productType: 1,
+  yieldTokenAddress: AddressZero,
+  coverAssets: 1111,
+  initialPriceRatio: 2000, // 20%
+  capacityReductionRatio: 0,
+  useFixedPrice: false,
+};
+
+const defaultProduct = {
+  productId: 0,
+  weight: 100, // 1.00
+  initialPrice: coverProductTemplate.initialPriceRatio,
+  targetPrice: 200, // 2%}
+};
+
 describe('requestAllocation', function () {
-  const periodInDays = 91.25;
-  const periodsInYear = 365 / periodInDays;
-  const coverId = 0;
-  const productId = 0;
-  const stakedNxmAmount = parseEther('50000');
-
-  const buyCoverParamsTemplate = {
-    owner: AddressZero,
-    coverId: MaxUint256,
-    productId: 0,
-    coverAsset: 0, // ETH
-    amount: parseEther('4800'),
-    period: daysToSeconds(periodInDays),
-    maxPremiumInAsset: parseEther('100'),
-    paymentAsset: 0,
-    payWithNXM: false,
-    commissionRatio: 1,
-    commissionDestination: AddressZero,
-    ipfsData: 'ipfs data',
-  };
-
-  const coverProductTemplate = {
-    productType: 1,
-    yieldTokenAddress: AddressZero,
-    coverAssets: 1111,
-    initialPriceRatio: 2000, // 20%
-    capacityReductionRatio: 0,
-    useFixedPrice: false,
-  };
-
-  const productInitializationParams = [
-    {
-      productId: 0,
-      weight: 100, // 1.00
-      initialPrice: coverProductTemplate.initialPriceRatio,
-      targetPrice: 200, // 2%}
-    },
-  ];
-
   beforeEach(async function () {
     const { stakingPool, cover } = this;
     const { defaultSender: manager } = this.accounts;
     const [staker] = this.accounts.members;
     const productId = 0;
+
     // Set global product and product type
     await cover.setProduct(coverProductTemplate, productId);
     await cover.setProductType({ claimMethod: 1, gracePeriod: daysToSeconds(7) }, productId);
@@ -79,21 +80,15 @@ describe('requestAllocation', function () {
       isPrivatePool,
       initialPoolFee,
       maxPoolFee,
-      productInitializationParams,
+      [defaultProduct],
       poolId,
       ipfsDescriptionHash,
     );
 
     // Deposit into pool
     const amount = stakedNxmAmount;
-    await stakingPool.connect(staker).depositTo(amount, (await getCurrentTrancheId()) + 4, poolId, staker.address);
+    await stakingPool.connect(staker).depositTo(amount, (await getCurrentTrancheId()) + 4, MaxUint256, staker.address);
   });
-
-  async function setNextBlockDaysForward(days) {
-    let { timestamp } = await ethers.provider.getBlock('latest');
-    timestamp += daysToSeconds(days);
-    await setNextBlockTime(timestamp);
-  }
 
   it('should correctly calculate the premium and price for year long cover', async function () {
     const { stakingPool, cover } = this;
@@ -195,9 +190,9 @@ describe('requestAllocation', function () {
     const { stakingPool, cover } = this;
     const { PRICE_CHANGE_PER_DAY, INITIAL_PRICE_DENOMINATOR } = this.config;
     const initialPrice = coverProductTemplate.initialPriceRatio;
-    const daysToMove = 1;
-    const expectedPrice = initialPrice - PRICE_CHANGE_PER_DAY * daysToMove;
-    await setNextBlockDaysForward(daysToMove);
+    const daysForward = 1;
+    const expectedPrice = initialPrice - PRICE_CHANGE_PER_DAY * daysForward;
+    await increaseTime(daysToSeconds(daysForward));
     await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, stakingPool.address);
     const expectedPremium = buyCoverParamsTemplate.amount
       .mul(expectedPrice)
@@ -206,8 +201,8 @@ describe('requestAllocation', function () {
     expect(await cover.lastPremium()).to.be.equal(expectedPremium);
     {
       const product = await stakingPool.products(productId);
-      const daysToMove = 50;
-      await setNextBlockDaysForward(daysToMove);
+      const daysForward = 50;
+      await increaseTime(daysToSeconds(daysForward));
       await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, stakingPool.address);
       const expectedPremium = buyCoverParamsTemplate.amount
         .mul(product.targetPrice)
@@ -221,9 +216,9 @@ describe('requestAllocation', function () {
     const { stakingPool, cover } = this;
     const { PRICE_CHANGE_PER_DAY, INITIAL_PRICE_DENOMINATOR } = this.config;
     const initialPrice = coverProductTemplate.initialPriceRatio;
-    const daysToMove = 1;
-    const expectedPrice = initialPrice - PRICE_CHANGE_PER_DAY * daysToMove;
-    await setNextBlockDaysForward(daysToMove);
+    const daysForward = 1;
+    const expectedPrice = initialPrice - PRICE_CHANGE_PER_DAY * daysForward;
+    await increaseTime(daysToSeconds(daysForward));
     await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, stakingPool.address);
     const expectedPremium = buyCoverParamsTemplate.amount
       .mul(expectedPrice)
@@ -232,8 +227,8 @@ describe('requestAllocation', function () {
     expect(await cover.lastPremium()).to.be.equal(expectedPremium);
     {
       const product = await stakingPool.products(productId);
-      const daysToMove = 100;
-      await setNextBlockDaysForward(daysToMove);
+      const daysForward = 100;
+      await increaseTime(daysToSeconds(daysForward));
       await cover.allocateCapacity({ ...buyCoverParamsTemplate }, coverId, stakingPool.address);
       const expectedPremium = buyCoverParamsTemplate.amount
         .mul(product.targetPrice)

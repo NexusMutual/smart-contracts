@@ -113,7 +113,8 @@ describe('processExpirations', function () {
     const { POOL_FEE_DENOMINATOR } = this.config;
     const [user] = this.accounts.members;
 
-    const { amount, tokenId, destination, initialPoolFee } = depositToFixture;
+    const { amount, tokenId, destination } = depositToFixture;
+    const { initialPoolFee } = poolInitParams;
 
     const { firstActiveTrancheId, maxTranche } = await getTranches();
 
@@ -125,10 +126,14 @@ describe('processExpirations', function () {
     for (let i = 0; i < tranches.length; i++) {
       const tranche = tranches[i];
       await stakingPool.connect(user).depositTo(amount, tranche, tokenId, destination);
-      const nftId = i + 1;
+      const nftId = i;
       const deposit = await stakingPool.deposits(nftId, tranche);
 
-      const feesRewardShares = deposit.rewardsShares.mul(initialPoolFee).div(POOL_FEE_DENOMINATOR);
+      const feesRewardShares = deposit.rewardsShares.mul(initialPoolFee).div(POOL_FEE_DENOMINATOR.sub(initialPoolFee));
+
+      // double check
+      const feesRewardSharesPercentage = feesRewardShares.mul(POOL_FEE_DENOMINATOR).div(deposit.rewardsShares);
+      expect(feesRewardSharesPercentage).to.equal(initialPoolFee);
 
       rewardsSharesTotalSupply = rewardsSharesTotalSupply.add(deposit.rewardsShares.add(feesRewardShares));
 

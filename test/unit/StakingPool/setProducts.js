@@ -1,5 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { getCurrentTrancheId } = require('./helpers');
 const { AddressZero, MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
@@ -53,10 +54,6 @@ const buyCoverParamsTemplate = {
 
 describe('setProducts unit tests', function () {
   // Create a default deposit request to the staking pool
-  const getCurrentTrancheId = async () => {
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    return Math.floor(timestamp / daysToSeconds(91));
-  };
 
   const verifyProduct = (product, productParam) => {
     expect(product.targetWeight).to.be.equal(productParam.targetWeight);

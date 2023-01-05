@@ -1,131 +1,143 @@
 const { ethers } = require('hardhat');
-const { setNextBlockTime, mineNextBlock } = require('../../utils/evm');
-const { parseEther } = require('ethers/lib/utils');
-const { daysToSeconds } = require('../../../lib/helpers');
+const { expect } = require('chai');
 
-const { parseUnits } = ethers.utils;
+const { setNextBlockTime, mineNextBlock } = require('../utils').evm;
+const { daysToSeconds } = require('../utils').helpers;
+
+const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 
-const TRANCHE_DURATION =
-  91 * // days
-  24 * // hourss
-  60 * // minutes
-  60; // seconds
+const TRANCHE_DURATION = daysToSeconds(91);
+const ONE_YEAR = daysToSeconds(365);
 const MAX_ACTIVE_TRANCHES = 8;
-const SURGE_THRESHOLD = parseUnits('0.8');
-const BASE_SURGE_LOADING = parseUnits('0.1'); // 10%
-const BASE_SURGE_CAPACITY_USED = parseUnits('0.01'); // 1%
-
-const PRICE_RATIO_CHANGE_PER_DAY = parseUnits('0.005'); // 0.5%
-const BASE_PRICE_BUMP_RATIO = 200; // 2%
-const BASE_PRICE_BUMP_INTERVAL = 1000; // 10%
-const BASE_PRICE_BUMP_DENOMINATOR = 10000;
-const POOL_FEE_DENOMINATOR = 100;
-
-const PRICE_DENOMINATOR = parseUnits('1');
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
   await mineNextBlock();
 };
 
-function interpolatePrice(lastPriceRatio, targetPriceRatio, lastPriceUpdate, currentTimestamp) {
-  const priceChange = BigNumber.from(currentTimestamp - lastPriceUpdate)
-    .div(24 * 3600)
-    .mul(PRICE_RATIO_CHANGE_PER_DAY);
-
-  if (targetPriceRatio.gt(lastPriceRatio)) {
-    return targetPriceRatio;
-  }
-
-  const bumpedPrice = lastPriceRatio.sub(priceChange);
-
-  if (bumpedPrice.lt(targetPriceRatio)) {
-    return targetPriceRatio;
-  }
-
-  return bumpedPrice;
+function calculateBasePrice(timestamp, product, priceChangePerDay) {
+  const timeSinceLastUpdate = BigNumber.from(timestamp).sub(product.bumpedPriceUpdateTime);
+  const priceDrop = timeSinceLastUpdate.mul(priceChangePerDay).div(daysToSeconds(1));
+  const basePrice = product.bumpedPrice.sub(priceDrop);
+  return BigNumber.from(Math.max(basePrice, product.targetPrice));
 }
 
-function calculatePrice(amount, basePriceRatio, activeCover, capacity) {
-  amount = BigNumber.from(amount);
-  basePriceRatio = BigNumber.from(basePriceRatio);
-  activeCover = BigNumber.from(activeCover);
-  capacity = BigNumber.from(capacity);
-
-  const newActiveCoverAmount = amount.add(activeCover);
-  const activeCoverRatio = activeCover.mul((1e18).toString()).div(capacity);
-  const newActiveCoverRatio = newActiveCoverAmount.mul((1e18).toString()).div(capacity);
-
-  if (newActiveCoverRatio.lt(SURGE_THRESHOLD)) {
-    return basePriceRatio;
-  }
-
-  const capacityUsedSteepRatio = activeCoverRatio.gte(SURGE_THRESHOLD)
-    ? newActiveCoverRatio.sub(activeCoverRatio)
-    : newActiveCoverRatio.sub(SURGE_THRESHOLD);
-  const capacityUsedRatio = newActiveCoverRatio.sub(activeCoverRatio);
-
-  const startSurgeLoadingRatio = activeCoverRatio.lt(SURGE_THRESHOLD)
-    ? BigNumber.from(0)
-    : activeCoverRatio.sub(SURGE_THRESHOLD).mul(BASE_SURGE_LOADING).div(BASE_SURGE_CAPACITY_USED);
-  const endSurgeLoadingRatio = newActiveCoverRatio
-    .sub(SURGE_THRESHOLD)
-    .mul(BASE_SURGE_LOADING)
-    .div(BASE_SURGE_CAPACITY_USED);
-
-  const surgeLoadingRatio = capacityUsedSteepRatio
-    .mul(endSurgeLoadingRatio.add(startSurgeLoadingRatio).div(2))
-    .div(capacityUsedRatio);
-
-  const actualPriceRatio = basePriceRatio.mul(surgeLoadingRatio.add(PRICE_DENOMINATOR)).div(PRICE_DENOMINATOR);
-  return actualPriceRatio;
+function calculateBasePremiumPerYear(coverAmount, basePrice, config) {
+  expect(BigNumber.isBigNumber(coverAmount)).to.be.equal(true);
+  expect(BigNumber.isBigNumber(basePrice)).to.be.equal(true);
+  const allocationAmount = divCeil(coverAmount, config.NXM_PER_ALLOCATION_UNIT);
+  return basePrice.mul(allocationAmount).mul(config.NXM_PER_ALLOCATION_UNIT).div(config.INITIAL_PRICE_DENOMINATOR);
 }
 
-function getPrices(amount, activeCover, capacity, initialPrice, lastBasePrice, targetPrice, blockTimestamp) {
+function calculateBasePremium(coverAmount, basePrice, period, config) {
+  // validate inputs
+  expect(BigNumber.isBigNumber(coverAmount)).to.be.equal(true);
+  expect(BigNumber.isBigNumber(basePrice)).to.be.equal(true);
+
+  const allocationAmount = divCeil(coverAmount, config.NXM_PER_ALLOCATION_UNIT);
+  const basePremiumPerYear = basePrice
+    .mul(allocationAmount)
+    .mul(config.NXM_PER_ALLOCATION_UNIT)
+    .div(config.INITIAL_PRICE_DENOMINATOR);
+
+  return basePremiumPerYear.mul(period).div(ONE_YEAR);
+}
+
+// config is from StakingPool/unit/setup.js
+function calculateSurgePremiumPerYear(coverAmount, initialCapacity, totalCapacity, config) {
+  // validate inputs
+  expect(BigNumber.isBigNumber(coverAmount)).to.be.equal(true);
+  expect(BigNumber.isBigNumber(initialCapacity)).to.be.equal(true);
+  expect(BigNumber.isBigNumber(totalCapacity)).to.be.equal(true);
+
+  const surgeStartPoint = totalCapacity.mul(config.SURGE_THRESHOLD_RATIO).div(config.SURGE_THRESHOLD_DENOMINATOR);
+  const allocationAmount = divCeil(coverAmount, config.NXM_PER_ALLOCATION_UNIT);
+  const finalCapacity = initialCapacity.add(allocationAmount);
+  expect(finalCapacity).to.be.lte(totalCapacity, 'Allocation exceeds available capacity');
+
+  if (finalCapacity.lte(surgeStartPoint)) {
+    return {
+      surgePremiumSkipped: BigNumber.from(0),
+      surgePremium: BigNumber.from(0),
+      amountOnSurge: BigNumber.from(0),
+    };
+  }
+
+  // total amount on surge sold for this product
+  const totalAmountOnSurge = finalCapacity.sub(surgeStartPoint);
+
+  // amount on surge sold before this cover
+  const amountOnSurgeSkipped = initialCapacity.gt(surgeStartPoint)
+    ? initialCapacity.sub(surgeStartPoint) // when initialCapacity is above surgeStartPoint
+    : BigNumber.from(0);
+
+  const surgePremiumTotal = totalAmountOnSurge
+    .mul(totalAmountOnSurge)
+    .mul(config.SURGE_PRICE_RATIO)
+    .div(totalCapacity)
+    .div(2);
+
+  const surgePremiumSkipped = amountOnSurgeSkipped
+    .mul(amountOnSurgeSkipped)
+    .mul(config.SURGE_PRICE_RATIO)
+    .div(totalCapacity)
+    .div(2);
+
+  const surgePremium = surgePremiumTotal.sub(surgePremiumSkipped);
+  const amountOnSurge = totalAmountOnSurge.sub(amountOnSurgeSkipped);
+
+  return {
+    surgePremiumSkipped: surgePremiumSkipped.div(config.ALLOCATION_UNITS_PER_NXM),
+    surgePremium: surgePremium.div(config.ALLOCATION_UNITS_PER_NXM),
+    amountOnSurge,
+  };
+}
+
+// config is from StakingPool/unit/setup.js
+function calculateSurgePremium(coverAmount, initialCapacity, totalCapacity, period, config) {
+  const surgePremiumPerYear = calculateSurgePremiumPerYear(coverAmount, initialCapacity, totalCapacity, config);
+  return {
+    surgePremiumSkipped: surgePremiumPerYear.surgePremiumSkipped.mul(period).div(ONE_YEAR),
+    surgePremium: surgePremiumPerYear.surgePremium.mul(period).div(ONE_YEAR),
+    amountOnSurge: surgePremiumPerYear.amountOnSurge,
+  };
+}
+
+function calculatePriceBump(coverAmount, priceBumpRatio, totalCapacity, NXM_PER_ALLOCATION_UNIT) {
+  const allocationAmount = divCeil(coverAmount, NXM_PER_ALLOCATION_UNIT);
+  return BigNumber.from(priceBumpRatio).mul(allocationAmount).div(totalCapacity);
+}
+
+// Rounds an integer up to the nearest multiple of NXM_PER_ALLOCATION_UNIT
+function roundUpToNearestAllocationUnit(amount, nxmPerAllocationUnit) {
   amount = BigNumber.from(amount);
-  activeCover = BigNumber.from(activeCover);
-  capacity = BigNumber.from(capacity);
-  initialPrice = BigNumber.from(initialPrice);
-  targetPrice = BigNumber.from(targetPrice);
-  const lastBasePriceValue = BigNumber.from(lastBasePrice.value);
-  const lastUpdateTime = BigNumber.from(lastBasePrice.lastUpdateTime);
+  return divCeil(amount, nxmPerAllocationUnit).mul(nxmPerAllocationUnit);
+}
 
-  const basePrice = interpolatePrice(
-    lastBasePriceValue.gt(0) ? lastBasePriceValue : initialPrice,
-    targetPrice,
-    lastUpdateTime,
-    blockTimestamp,
-  );
-
-  // calculate actualPrice using the current basePrice
-  const actualPrice = calculatePrice(amount, basePrice, activeCover, capacity);
-
-  // Bump base price by 2% (200 basis points) per 10% (1000 basis points) of capacity used
-  const priceBump = amount
-    .mul(BASE_PRICE_BUMP_DENOMINATOR)
-    .div(capacity)
-    .div(BASE_PRICE_BUMP_INTERVAL)
-    .mul(BASE_PRICE_BUMP_RATIO);
-
-  const bumpedBasePrice = basePrice.add(priceBump);
-
-  return { basePrice: bumpedBasePrice, actualPrice };
+function divCeil(a, b) {
+  a = BigNumber.from(a);
+  let result = a.div(b);
+  if (!a.mod(b).isZero()) {
+    result = result.add(1);
+  }
+  return result;
 }
 
 function calculateFirstTrancheId(timestamp, period, gracePeriod) {
   return Math.floor((timestamp + period + gracePeriod) / (91 * 24 * 3600));
 }
 
+async function getCurrentTrancheId() {
+  const { timestamp } = await ethers.provider.getBlock('latest');
+  return Math.floor(timestamp / TRANCHE_DURATION);
+}
+
 async function getTranches(period = 0, gracePeriod = 0) {
   const lastBlock = await ethers.provider.getBlock('latest');
   const firstActiveTrancheId = calculateFirstTrancheId(lastBlock.timestamp, period, gracePeriod);
   const maxTranche = firstActiveTrancheId + MAX_ACTIVE_TRANCHES - 1;
-
-  return {
-    firstActiveTrancheId,
-    maxTranche,
-  };
+  return { firstActiveTrancheId, maxTranche };
 }
 
 async function estimateStakeShares({ amount, stakingPool }) {
@@ -174,14 +186,19 @@ async function generateRewards(stakingPool, signer) {
 
 module.exports = {
   setTime,
-  getPrices,
-  calculatePrice,
+  calculateBasePrice,
+  calculateBasePremium,
+  calculateBasePremiumPerYear,
+  calculatePriceBump,
+  calculateSurgePremium,
+  calculateSurgePremiumPerYear,
+  divCeil,
+  roundUpToNearestAllocationUnit,
   getTranches,
+  getCurrentTrancheId,
   getNewRewardShares,
   estimateStakeShares,
   generateRewards,
-  PRICE_RATIO_CHANGE_PER_DAY,
   TRANCHE_DURATION,
   MAX_ACTIVE_TRANCHES,
-  POOL_FEE_DENOMINATOR,
 };

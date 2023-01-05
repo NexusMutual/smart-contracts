@@ -9,6 +9,7 @@ const getQuote = require('./getQuote');
 const governance = require('./governance');
 const membership = require('./membership');
 const results = require('./results');
+const errors = require('./errors');
 
 module.exports = {
   accounts,
@@ -22,4 +23,5 @@ module.exports = {
   governance,
   membership,
   results,
+  errors,
 };

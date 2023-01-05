@@ -720,7 +720,7 @@ contract StakingPool is IStakingPool, ERC721 {
 
   function getActiveAllocations(
     uint productId
-  ) internal view returns (uint[] memory trancheAllocations) {
+  ) public view returns (uint[] memory trancheAllocations) {
 
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint currentBucket = (block.timestamp / BUCKET_DURATION).toUint16();
@@ -1585,7 +1585,7 @@ contract StakingPool is IStakingPool, ERC721 {
   function calculateSurgePremium(
     uint amountOnSurge,
     uint totalCapacity
-  ) internal pure returns (uint) {
+  ) public pure returns (uint) {
 
     // for every percent of capacity used, the surge price has a +2% increase per annum
     // meaning a +200% increase for 100%, ie x2 for a whole unit (100%) of capacity in ratio terms

@@ -57,10 +57,11 @@ async function setup() {
   await cover.setStakingPool(stakingPool.address, 0);
 
   for (const member of accounts.members) {
+    const amount = ethers.constants.MaxUint256.div(100);
     await master.enrollMember(member.address, Role.Member);
     await memberRoles.setRole(member.address, Role.Member);
-    await nxm.mint(member.address, parseEther('100000'));
-    await nxm.connect(member).approve(tokenController.address, parseEther('100000'));
+    await nxm.mint(member.address, amount);
+    await nxm.connect(member).approve(tokenController.address, amount);
   }
 
   for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
@@ -77,9 +78,23 @@ async function setup() {
     await master.enrollGovernance(governanceContract.address);
   }
 
-  const REWARD_BONUS_PER_TRANCHE_RATIO = await stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO();
-  const REWARD_BONUS_PER_TRANCHE_DENOMINATOR = await stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR();
-  const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
+  const config = {
+    REWARD_BONUS_PER_TRANCHE_RATIO: await stakingPool.REWARD_BONUS_PER_TRANCHE_RATIO(),
+    REWARD_BONUS_PER_TRANCHE_DENOMINATOR: await stakingPool.REWARD_BONUS_PER_TRANCHE_DENOMINATOR(),
+    PRICE_CHANGE_PER_DAY: await stakingPool.PRICE_CHANGE_PER_DAY(),
+    PRICE_BUMP_RATIO: await stakingPool.PRICE_BUMP_RATIO(),
+    SURGE_PRICE_RATIO: await stakingPool.SURGE_PRICE_RATIO(),
+    SURGE_THRESHOLD_DENOMINATOR: await stakingPool.SURGE_THRESHOLD_DENOMINATOR(),
+    SURGE_THRESHOLD_RATIO: await stakingPool.SURGE_THRESHOLD_RATIO(),
+    NXM_PER_ALLOCATION_UNIT: await stakingPool.NXM_PER_ALLOCATION_UNIT(),
+    ALLOCATION_UNITS_PER_NXM: await stakingPool.ALLOCATION_UNITS_PER_NXM(),
+    INITIAL_PRICE_DENOMINATOR: await stakingPool.INITIAL_PRICE_DENOMINATOR(),
+    TARGET_PRICE_DENOMINATOR: await stakingPool.TARGET_PRICE_DENOMINATOR(),
+    POOL_FEE_DENOMINATOR: await stakingPool.POOL_FEE_DENOMINATOR(),
+    GLOBAL_CAPACITY_DENOMINATOR: await stakingPool.GLOBAL_CAPACITY_DENOMINATOR(),
+    GLOBAL_CAPACITY_RATIO: await cover.globalCapacityRatio(),
+    GLOBAL_MIN_PRICE_RATIO: await cover.GLOBAL_MIN_PRICE_RATIO(),
+  };
 
   this.tokenController = tokenController;
   this.master = master;
@@ -88,11 +103,7 @@ async function setup() {
   this.cover = cover;
   this.dai = dai;
   this.accounts = accounts;
-  this.config = {
-    REWARD_BONUS_PER_TRANCHE_DENOMINATOR,
-    REWARD_BONUS_PER_TRANCHE_RATIO,
-    GLOBAL_MIN_PRICE_RATIO,
-  };
+  this.config = config;
 }
 
 module.exports = setup;

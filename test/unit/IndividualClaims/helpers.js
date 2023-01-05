@@ -37,30 +37,6 @@ const submitClaim =
       .submitClaim(coverId, segmentId, amount, ipfsMetadata, { value: value || deposit });
   };
 
-const getConfigurationStruct = ({ rewardRatio, minAssessmentDepositRatio }) => [rewardRatio, minAssessmentDepositRatio];
-
-const getPollStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
-
-const getVoteStruct = ({ accepted, denied, start, end }) => [accepted, denied, start, end];
-
-const getClaimDetailsStruct = ({
-  amount,
-  coverId,
-  coverPeriod,
-  coverAsset,
-  nxmPriceSnapshot,
-  minAssessmentDepositRatio,
-  payoutRedeemed,
-}) => [amount, coverId, coverPeriod, coverAsset, nxmPriceSnapshot, minAssessmentDepositRatio, payoutRedeemed];
-
-const getIncidentDetailsStruct = ({ productId, date, coverAsset, activeCoverAmount, minAssessmentDepositRatio }) => [
-  productId,
-  date,
-  coverAsset,
-  activeCoverAmount,
-  minAssessmentDepositRatio,
-];
-
 const coverSegmentFixture = {
   amount: parseEther('100'),
   start: 0,
@@ -83,10 +59,5 @@ module.exports = {
   CLAIM_STATUS,
   PAYOUT_STATUS,
   submitClaim,
-  getPollStruct,
-  getConfigurationStruct,
-  getClaimDetailsStruct,
-  getIncidentDetailsStruct,
-  getVoteStruct,
   getCoverSegment,
 };

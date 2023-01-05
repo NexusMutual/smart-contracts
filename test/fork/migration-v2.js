@@ -6,6 +6,7 @@ const { expect } = require('chai');
 const path = require('path');
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
+const { hex } = require('../../lib/helpers');
 
 const { setNextBlockTime } = require('../utils/evm');
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
@@ -27,6 +28,9 @@ const MIN_POOL_ETH = 0;
 
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 const { defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+
+let ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID = 0;
+let REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID = 0;
 
 const getContractFactory = async providerOrSigner => {
   const data = await fetch(VERSION_DATA_URL).then(r => r.json());
@@ -214,7 +218,9 @@ describe('v2 migration', function () {
     );
   });
 
-  it('add proposal category 42 (Add new contracts)', async function () {
+  it('add proposal category (Add new contracts)', async function () {
+    ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID = await this.proposalCategory.totalCategories();
+
     await submitGovernanceProposalV2(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
@@ -239,6 +245,7 @@ describe('v2 migration', function () {
   });
 
   it.skip('add proposal category 43 (Remove contracts)', async function () {
+    REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID = await this.proposalCategory.totalCategories();
     await submitGovernanceProposalV2(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
@@ -268,7 +275,7 @@ describe('v2 migration', function () {
     await coverInitializer.deployed();
 
     await submitGovernanceProposalV2(
-      42, // addNewInternalContracts(bytes2[],address[],uint256[])
+      ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID, // addNewInternalContracts(bytes2[],address[],uint256[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]', 'uint256[]'],
         [[toUtf8Bytes('CO')], [coverInitializer.address], [2]],
@@ -277,18 +284,15 @@ describe('v2 migration', function () {
       this.governance,
     );
 
-    const cover = await ethers.getContractAt('Cover', await this.master.getLatestAddress('CO'));
+    const coverAddress = await this.master.getLatestAddress(hex('CO'));
+    const cover = await ethers.getContractAt('CoverInitializer', coverAddress);
 
     const storedMaster = await cover.master();
-
-    console.log({
-      storedMaster,
-    });
 
     expect(storedMaster).to.be.equal(this.master.address);
   });
 
-  it.skip('deploy master contract', async function () {
+  it('deploy master contract', async function () {
     const NXMaster = await ethers.getContractFactory('NXMaster');
     const master = await NXMaster.deploy();
     await master.deployed();
@@ -301,7 +305,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it.skip('deploy CoverNFT contract', async function () {
+  it('deploy CoverNFT contract', async function () {
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const CoverNFT = await ethers.getContractFactory('CoverNFT');
     const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NXC', coverProxyAddress);
@@ -309,7 +313,7 @@ describe('v2 migration', function () {
     this.coverNFT = coverNFT;
   });
 
-  it.skip('deploy SwapOperator', async function () {
+  it('deploy SwapOperator', async function () {
     const SwapOperator = await ethers.getContractFactory('SwapOperator');
     const swapOperator = await SwapOperator.deploy(
       COWSWAP_SETTLEMENT, // _cowSettlement
@@ -352,7 +356,7 @@ describe('v2 migration', function () {
     const cover = await Cover.deploy(
       this.quotationData.address,
       this.productsV1.address,
-      AddressZero, // this.coverNFT.address,
+      this.coverNFT.address,
       AddressZero, // staking pool implementation address
       coverProxyAddress,
     );

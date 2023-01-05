@@ -1,20 +1,21 @@
-const { web3 } = require('hardhat');
-const { assert } = require('chai');
-const { BN } = web3.utils;
+const { ethers } = require('hardhat');
+const { expect } = require('chai');
+const { BigNumber } = ethers;
 
 describe('getMCRRatio', function () {
   it('gets MCR ratio value', async function () {
     const { pool, mcr } = this;
+    const [member] = this.accounts.members;
 
-    const initialAssetValue = new BN('210959924071154460525457');
-    const mcrEth = new BN('162424730681679380000000');
+    const initialAssetValue = BigNumber.from('210959924071154460525457');
+    const mcrEth = BigNumber.from('162424730681679380000000');
 
     await mcr.setMCR(mcrEth);
-    await pool.sendTransaction({ value: initialAssetValue });
+    await member.sendTransaction({ to: pool.address, value: initialAssetValue });
 
-    const expectedMCRRatio = initialAssetValue.muln(10000).div(mcrEth);
+    const expectedMCRRatio = initialAssetValue.mul(10000).div(mcrEth);
     const calculatedMCRRatio = await pool.getMCRRatio();
 
-    assert.equal(calculatedMCRRatio.toString(), expectedMCRRatio.toString());
+    expect(calculatedMCRRatio).to.be.equal(expectedMCRRatio);
   });
 });

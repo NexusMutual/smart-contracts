@@ -1,48 +1,47 @@
-const { ether, expectEvent } = require('@openzeppelin/test-helpers');
-const { web3 } = require('hardhat');
-const { assert } = require('chai');
-const { BN } = web3.utils;
+const { ethers } = require('hardhat');
+const { expect } = require('chai');
+const { BigNumber } = ethers;
+const { parseEther } = ethers.utils;
 const { setNextBlockBaseFee } = require('../utils').evm;
-const { percentageBN } = require('../utils').tokenPrice;
-const [memberOne] = require('../utils').accounts.members;
+const { percentageBigNumber } = require('../utils').tokenPrice;
 
 describe('sellNXMTokens', function () {
   it('burns tokens from member in exchange for ETH worth 1% of mcrEth', async function () {
     const { pool, mcr, token, tokenController } = this;
+    const {
+      members: [member],
+      nonMembers: [fundSource],
+    } = this.accounts;
 
-    const mcrEth = ether('160000');
+    const mcrEth = parseEther('160000');
     const initialAssetValue = mcrEth;
 
     await mcr.setMCR(mcrEth);
-    await pool.sendTransaction({ value: initialAssetValue });
+    await fundSource.sendTransaction({ value: initialAssetValue, to: pool.address });
 
-    const member = memberOne;
-
-    const buyValue = percentageBN(mcrEth, 1);
-    await pool.buyNXM('1', { from: member, value: buyValue });
-    const tokensToSell = await token.balanceOf(member);
+    const buyValue = percentageBigNumber(mcrEth, 1);
+    await pool.connect(member).buyNXM('1', { value: buyValue });
+    const tokensToSell = await token.balanceOf(member.address);
 
     const expectedEthValue = await pool.getEthForNXM(tokensToSell);
 
-    await token.approve(tokenController.address, tokensToSell, { from: member });
-    const balancePreSell = await web3.eth.getBalance(member);
-    const nxmBalancePreSell = await token.balanceOf(member);
+    await token.connect(member).approve(tokenController.address, tokensToSell);
+    const balancePreSell = await ethers.provider.getBalance(member.address);
+    const nxmBalancePreSell = await token.balanceOf(member.address);
 
     await setNextBlockBaseFee('0');
-    const sellTx = await pool.sellNXMTokens(tokensToSell, { from: member, gasPrice: 0 });
-    const nxmBalancePostSell = await token.balanceOf(member);
-    const balancePostSell = await web3.eth.getBalance(member);
+
+    await expect(pool.connect(member).sellNXMTokens(tokensToSell, { gasPrice: 0 }))
+      .to.emit(pool, 'NXMSold')
+      .withArgs(member.address, tokensToSell, expectedEthValue);
+
+    const nxmBalancePostSell = await token.balanceOf(member.address);
+    const balancePostSell = await ethers.provider.getBalance(member.address);
 
     const nxmBalanceDecrease = nxmBalancePreSell.sub(nxmBalancePostSell);
-    assert(nxmBalanceDecrease.toString(), tokensToSell.toString());
+    expect(nxmBalanceDecrease).to.equal(tokensToSell);
 
-    const ethOut = new BN(balancePostSell).sub(new BN(balancePreSell));
-    assert(ethOut.toString(), expectedEthValue.toString());
-
-    await expectEvent(sellTx, 'NXMSold', {
-      member,
-      nxmIn: tokensToSell.toString(),
-      ethOut: expectedEthValue.toString(),
-    });
+    const ethOut = BigNumber.from(balancePostSell).sub(BigNumber.from(balancePreSell));
+    expect(ethOut).to.equal(expectedEthValue);
   });
 });

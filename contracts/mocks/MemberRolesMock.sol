@@ -6,7 +6,7 @@ import "../interfaces/IMemberRoles.sol";
 
 contract MemberRolesMock {
 
-  enum Role { UnAssigned, AdvisoryBoard, Member, Owner }
+  enum Role { Unassigned, AdvisoryBoard, Member, Owner }
 
   mapping(address => Role) roles;
 

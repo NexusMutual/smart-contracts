@@ -16,7 +16,7 @@ contract VotePower {
 
   INXMMaster immutable public master;
 
-  enum Role {UnAssigned, AdvisoryBoard, Member}
+  enum Role {Unassigned, AdvisoryBoard, Member}
 
   constructor(INXMMaster _master) {
     master = _master;

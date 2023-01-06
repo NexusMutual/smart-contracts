@@ -370,7 +370,7 @@ describe('v2 migration', function () {
     const pool = await Pool.deploy(
       this.master.address,
       PRICE_FEED_ORACLE_ADDRESS,
-      AddressZero, // this.swapOperator.address,
+      this.swapOperator.address,
       DAI_ADDRESS,
       STETH_ADDRESS,
     );
@@ -404,7 +404,7 @@ describe('v2 migration', function () {
             toUtf8Bytes('CO'),
             toUtf8Bytes('CR'),
             toUtf8Bytes('PS'),
-            // toUtf8Bytes('P1'),
+            toUtf8Bytes('P1'),
             toUtf8Bytes('CL'),
             toUtf8Bytes('GW'),
           ],
@@ -414,7 +414,7 @@ describe('v2 migration', function () {
             cover.address,
             newClaimsReward.address,
             pooledStaking.address,
-            // pool.address,
+            pool.address,
             coverMigrator.address,
             gateway.address,
           ],

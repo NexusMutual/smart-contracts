@@ -21,7 +21,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   using SafeERC20 for IERC20;
   using Address for address;
 
-
   /* storage */
   Asset[] public override coverAssets;
   Asset[] public override investmentAssets;
@@ -77,6 +76,8 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     _;
   }
 
+  /* ========== CONSTRUCTOR ========== */
+
   constructor (
     address _master,
     address _priceOracle,
@@ -120,6 +121,8 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   fallback() external payable {}
 
   receive() external payable {}
+
+  /* ========== ASSET RELATED VIEW FUNCTIONS ========== */
 
   function getAssetValueInEth(address assetAddress, uint8 assetDecimals) internal view returns (uint) {
     IERC20 token = IERC20(assetAddress);
@@ -171,8 +174,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     return total;
   }
 
-  /* asset related functions */
-
   function getCoverAssets() external override view returns (Asset[] memory assets) {
     uint count = coverAssets.length;
     assets = new Asset[](count);
@@ -198,6 +199,8 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   function getAssetSwapDetails(address assetAddress) external view returns (SwapDetails memory) {
     return swapDetails[assetAddress];
   }
+
+  /* ========== ASSET RELATED MUTATIVE FUNCTIONS ========== */
 
   function addAsset(
     address assetAddress,
@@ -262,7 +265,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       assetAddress = investmentAssets[assetId].assetAddress;
     }
 
-
     uint assetBalance;
     try IERC20(assetAddress).balanceOf(address(this)) returns (uint balance) {
       assetBalance = balance;
@@ -320,7 +322,68 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     revert("Pool: Asset not found");
   }
 
-  /* claim related functions */
+  /// Sets the given asset addresses as abandoned when shouldAbandon is true and back to their
+  /// initial state when it's false.
+  ///
+  /// @param assetsToAbandon  Array of addresses that represnt tokens which need to be left behind.
+  ///                         This can be desired when one or more tokens revert, which would
+  ///                         prevent the pool to be upgraded.
+  /// @param shouldAbandon    True when the tokens passed in the assetsToAbandon array should be
+  ///                         marked as abandoned. If a token is accidentally marked it can be
+  ///                         unmarked by passing false instead.
+  function setAssetsToAbandon(
+    address[] calldata assetsToAbandon,
+    bool shouldAbandon
+  ) external onlyGovernance {
+    for (uint i = 0; i < assetsToAbandon.length; i++) {
+      abandonAssets[assetsToAbandon[i]] = shouldAbandon;
+    }
+  }
+
+  function transferAsset(
+    address assetAddress,
+    address payable destination,
+    uint amount
+  ) external onlyGovernance nonReentrant {
+
+    require(swapDetails[assetAddress].maxAmount == 0, "Pool: Max not zero");
+    require(destination != address(0), "Pool: Dest zero");
+
+    IERC20 token = IERC20(assetAddress);
+    uint balance = token.balanceOf(address(this));
+    uint transferableAmount = amount > balance ? balance : amount;
+
+    token.safeTransfer(destination, transferableAmount);
+  }
+
+  /* ========== SWAPOPERATOR RELATED MUTATIVE FUNCTIONS ========== */
+
+  function transferAssetToSwapOperator (
+    address assetAddress,
+    uint amount
+  ) public override onlySwapOperator nonReentrant whenNotPaused {
+    if (assetAddress == ETH) {
+      (bool ok, /* data */) = swapOperator.call{value: amount}("");
+      require(ok, "Pool: ETH transfer failed");
+      return;
+    }
+
+    IERC20 token = IERC20(assetAddress);
+    token.safeTransfer(swapOperator, amount);
+  }
+
+  function setSwapDetailsLastSwapTime(
+    address assetAddress,
+    uint32 lastSwapTime
+  ) public override onlySwapOperator whenNotPaused {
+    swapDetails[assetAddress].lastSwapTime = lastSwapTime;
+  }
+
+  function setSwapValue(uint newValue) external onlySwapOperator whenNotPaused {
+    swapValue = SafeUintCast.toUint96(newValue);
+  }
+
+  /* ========== CLAIMS RELATED MUTATIVE FUNCTIONS ========== */
 
   /**
    * @dev Executes a payout
@@ -349,102 +412,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     mcr().updateMCRInternal(totalAssetValue, true);
   }
 
-  /* pool lifecycle functions */
-
-  function transferAsset(
-    address assetAddress,
-    address payable destination,
-    uint amount
-  ) external onlyGovernance nonReentrant {
-
-    require(swapDetails[assetAddress].maxAmount == 0, "Pool: Max not zero");
-    require(destination != address(0), "Pool: Dest zero");
-
-    IERC20 token = IERC20(assetAddress);
-    uint balance = token.balanceOf(address(this));
-    uint transferableAmount = amount > balance ? balance : amount;
-
-    token.safeTransfer(destination, transferableAmount);
-  }
-
-
-  function _transferEntireAssetBalance(address assetAddress, address destination) internal {
-    if (!abandonAssets[assetAddress]) {
-      IERC20 asset = IERC20(assetAddress);
-      uint balance = asset.balanceOf(address(this));
-      asset.safeTransfer(destination, balance);
-    }
-  }
-
-  // Revert if any of the asset functions revert while not being marked for getting abandoned.
-  // Otherwise, continue without reverting while the marked asset will remain stuck in the
-  // previous pool contract.
-  function upgradeCapitalPool(address payable newPoolAddress) external override onlyMaster nonReentrant {
-    // Transfer ETH
-    uint ethBalance = address(this).balance;
-    (bool ok, /* data */) = newPoolAddress.call{value: ethBalance}("");
-    require(ok, "Pool: Transfer failed");
-
-    // Transfer cover assets. Start from 1 (0 is ETH)
-    uint coverAssetsCount = coverAssets.length;
-    for (uint i = 1; i < coverAssetsCount; i++) {
-      _transferEntireAssetBalance(coverAssets[i].assetAddress, newPoolAddress);
-    }
-
-    // Transfer investment assets.
-    uint investmentAssetsCount = investmentAssets.length;
-    for (uint i = 0; i < investmentAssetsCount; i++) {
-      _transferEntireAssetBalance(investmentAssets[i].assetAddress, newPoolAddress);
-    }
-  }
-
-  /* ========== DEPENDENCIES ========== */
-
-  function nxmToken() internal view returns (INXMToken) {
-    return INXMToken(internalContracts[uint(ID.TK)]);
-  }
-
-  function tokenController() internal view returns (ITokenController) {
-    return ITokenController(internalContracts[uint(ID.TC)]);
-  }
-
-  function mcr() internal view returns (IMCR) {
-    return IMCR(internalContracts[uint(ID.MC)]);
-  }
-
-  /**
-   * @dev Update dependent contract address
-   * @dev Implements MasterAware interface function
-   */
-  function changeDependentContractAddress() public {
-    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
-    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
-    internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
-    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
-  }
-
-  function transferAssetToSwapOperator (
-    address assetAddress,
-    uint amount
-  ) public override onlySwapOperator nonReentrant whenNotPaused {
-    if (assetAddress == ETH) {
-      (bool ok, /* data */) = swapOperator.call{value: amount}("");
-      require(ok, "Pool: ETH transfer failed");
-      return;
-    }
-
-    IERC20 token = IERC20(assetAddress);
-    token.safeTransfer(swapOperator, amount);
-  }
-
-  function setSwapDetailsLastSwapTime(
-    address assetAddress,
-    uint32 lastSwapTime
-  ) public override onlySwapOperator whenNotPaused {
-    swapDetails[assetAddress].lastSwapTime = lastSwapTime;
-  }
-
-  /* token sale functions */
+  /* ========== TOKEN RELATED MUTATIVE FUNCTIONS ========== */
 
   /**
    * @dev (DEPRECATED, use sellTokens function instead) Allows selling of NXM for ether.
@@ -512,6 +480,8 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     _mcr.updateMCRInternal(currentTotalAssetValue - ethOut, false);
     emit NXMSold(msg.sender, tokenAmount, ethOut);
   }
+
+  /* ========== TOKEN RELATED VIEW FUNCTIONS ========== */
 
   /// Get value in tokens for an ethAmount purchase.
   ///
@@ -689,26 +659,40 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     return calculateMCRRatio(totalAssetValue, mcrEth);
   }
 
-  function updateUintParameters(bytes8 /* code */, uint /* value */) external view onlyGovernance {
-    revert("Pool: Unknown parameter");
+  /* ========== POOL UPGRADE RELATED MUTATIVE FUNCTIONS ========== */
+
+  function _transferEntireAssetBalance(address assetAddress, address destination) internal {
+    if (!abandonAssets[assetAddress]) {
+      IERC20 asset = IERC20(assetAddress);
+      uint balance = asset.balanceOf(address(this));
+      asset.safeTransfer(destination, balance);
+    }
   }
 
-  /// Sets the given asset addresses as abandoned when shouldAbandon is true and back to their
-  /// initial state when it's false.
-  ///
-  /// @param assetsToAbandon  Array of addresses that represnt tokens which need to be left behind.
-  ///                         This can be desired when one or more tokens revert, which would
-  ///                         prevent the pool to be upgraded.
-  /// @param shouldAbandon    True when the tokens passed in the assetsToAbandon array should be
-  ///                         marked as abandoned. If a token is accidentally marked it can be
-  ///                         unmarked by passing false instead.
-  function setAssetsToAbandon(
-    address[] calldata assetsToAbandon,
-    bool shouldAbandon
-  ) external onlyGovernance {
-    for (uint i = 0; i < assetsToAbandon.length; i++) {
-      abandonAssets[assetsToAbandon[i]] = shouldAbandon;
+  // Revert if any of the asset functions revert while not being marked for getting abandoned.
+  // Otherwise, continue without reverting while the marked asset will remain stuck in the
+  // previous pool contract.
+  function upgradeCapitalPool(address payable newPoolAddress) external override onlyMaster nonReentrant {
+    // Transfer ETH
+    uint ethBalance = address(this).balance;
+    (bool ok, /* data */) = newPoolAddress.call{value: ethBalance}("");
+    require(ok, "Pool: Transfer failed");
+
+    // Transfer cover assets. Start from 1 (0 is ETH)
+    uint coverAssetsCount = coverAssets.length;
+    for (uint i = 1; i < coverAssetsCount; i++) {
+      _transferEntireAssetBalance(coverAssets[i].assetAddress, newPoolAddress);
     }
+
+    // Transfer investment assets.
+    uint investmentAssetsCount = investmentAssets.length;
+    for (uint i = 0; i < investmentAssetsCount; i++) {
+      _transferEntireAssetBalance(investmentAssets[i].assetAddress, newPoolAddress);
+    }
+  }
+
+  function updateUintParameters(bytes8 /* code */, uint /* value */) external view onlyGovernance {
+    revert("Pool: Unknown parameter");
   }
 
   function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
@@ -748,7 +732,28 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     revert("Pool: Unknown parameter");
   }
 
-  function setSwapValue(uint newValue) external onlySwapOperator whenNotPaused {
-    swapValue = SafeUintCast.toUint96(newValue);
+  /* ========== DEPENDENCIES ========== */
+
+  function nxmToken() internal view returns (INXMToken) {
+    return INXMToken(internalContracts[uint(ID.TK)]);
+  }
+
+  function tokenController() internal view returns (ITokenController) {
+    return ITokenController(internalContracts[uint(ID.TC)]);
+  }
+
+  function mcr() internal view returns (IMCR) {
+    return IMCR(internalContracts[uint(ID.MC)]);
+  }
+
+  /**
+   * @dev Update dependent contract address
+   * @dev Implements MasterAware interface function
+   */
+  function changeDependentContractAddress() public {
+    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
+    internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
+    internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
   }
 }

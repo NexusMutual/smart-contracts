@@ -11,12 +11,10 @@ describe('upgradeCapitalPool', function () {
     const [governance] = this.accounts.governanceContracts;
     const { defaultSender } = this.accounts;
 
-    const [ChainlinkAggregatorMock, ERC20Mock, PriceFeedOracle, Pool] = await Promise.all([
-      ethers.getContractFactory('ChainlinkAggregatorMock'),
-      ethers.getContractFactory('ERC20Mock'),
-      ethers.getContractFactory('PriceFeedOracle'),
-      ethers.getContractFactory('Pool'),
-    ]);
+    const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+    const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+    const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
+    const Pool = await ethers.getContractFactory('Pool');
 
     const chainlinkNewAsset = await ChainlinkAggregatorMock.deploy();
     await chainlinkNewAsset.setLatestAnswer(parseEther('1'));
@@ -71,13 +69,11 @@ describe('upgradeCapitalPool', function () {
     const tokenAmount = parseEther('100000');
     await governance.sendTransaction({ value: ethAmount, to: pool.address });
 
-    const [ChainlinkAggregatorMock, ERC20Mock, ERC20NonRevertingMock, PriceFeedOracle, Pool] = await Promise.all([
-      ethers.getContractFactory('ChainlinkAggregatorMock'),
-      ethers.getContractFactory('ERC20Mock'),
-      ethers.getContractFactory('ERC20NonRevertingMock'),
-      ethers.getContractFactory('PriceFeedOracle'),
-      ethers.getContractFactory('Pool'),
-    ]);
+    const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+    const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+    const ERC20NonRevertingMock = await ethers.getContractFactory('ERC20NonRevertingMock');
+    const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
+    const Pool = await ethers.getContractFactory('Pool');
 
     const coverToken = await ERC20Mock.deploy();
     const nonRevertingERC20 = await ERC20NonRevertingMock.deploy();

@@ -11,12 +11,9 @@ describe('transferAssetToSwapOperator', function () {
       governanceContracts: [governance],
     } = this.accounts;
 
-    // import factories using ethers and Promise.all()
-    const [ERC20Mock, ChainlinkAggregatorMock, PriceFeedOracle] = await Promise.all([
-      ethers.getContractFactory('ERC20Mock'),
-      ethers.getContractFactory('ChainlinkAggregatorMock'),
-      ethers.getContractFactory('PriceFeedOracle'),
-    ]);
+    const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+    const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+    const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
 
     const otherToken = await ERC20Mock.deploy();
 

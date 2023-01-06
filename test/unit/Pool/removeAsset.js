@@ -34,12 +34,9 @@ describe('removeAsset', function () {
     const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
     const [governance] = this.accounts.governanceContracts;
 
-    // get contract factories using await promise.all()
-    const [ERC20Mock, ChainlinkAggregatorMock, PriceFeedOracle] = await Promise.all([
-      ethers.getContractFactory('ERC20Mock'),
-      ethers.getContractFactory('ChainlinkAggregatorMock'),
-      ethers.getContractFactory('PriceFeedOracle'),
-    ]);
+    const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+    const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+    const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
 
     const coverToken = await ERC20Mock.deploy();
     const investmentToken = await ERC20Mock.deploy();

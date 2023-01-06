@@ -12,7 +12,6 @@ import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPool.sol";
 import "../../interfaces/IPriceFeedOracle.sol";
 import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IERC20Detailed.sol";
 import "../../interfaces/ISwapOperator.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
@@ -754,6 +753,5 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
-    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
   }
 }

@@ -17,9 +17,6 @@ import "./external/LockHandler.sol";
 contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   using SafeUintCast for uint;
 
-  IQuotationData public immutable quotationData;
-  address public immutable claimsReward;
-
   address public _unused0;
   address public _unused1;
   address public _unused2;
@@ -30,6 +27,9 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
+
+  IQuotationData public immutable quotationData;
+  address public immutable claimsReward;
 
   /* ========== CONSTRUCTOR ========== */
 

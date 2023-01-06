@@ -138,10 +138,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       return 0; // ETH
     }
 
-    uint rate = priceFeedOracle.getAssetToEthRate(assetAddress);
-    require(rate > 0, "Pool: Zero rate");
-
-    return assetBalance * rate / (10 ** uint(assetDecimals)); // ETH
+    return priceFeedOracle.getEthForAsset(assetAddress, assetBalance);
   }
 
   /**

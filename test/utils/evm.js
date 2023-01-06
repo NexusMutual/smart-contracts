@@ -20,6 +20,8 @@ const revertToSnapshot = async id => provider.send('evm_revert', [id]);
 
 const setEtherBalance = async (address, wei) => provider.send('hardhat_setBalance', [address, toEvmHex(wei)]);
 const setNextBlockBaseFee = async fee => provider.send('hardhat_setNextBlockBaseFeePerGas', [toEvmHex(fee)]);
+const setCode = async (address, code) => provider.send('hardhat_setCode', [address, code]);
+const setNonce = async (address, nonce) => provider.send('hardhat_setNonce', [address, toEvmHex(nonce)]);
 
 module.exports = {
   setNextBlockTime,
@@ -31,4 +33,6 @@ module.exports = {
   revertToSnapshot,
   setEtherBalance,
   setNextBlockBaseFee,
+  setCode,
+  setNonce,
 };

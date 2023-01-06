@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { getTranches, getNewRewardShares, TRANCHE_DURATION, generateRewards } = require('./helpers');
+const { getTranches, getNewRewardShares, TRANCHE_DURATION, generateRewards, setTime } = require('./helpers');
 const { setEtherBalance, increaseTime } = require('../utils').evm;
 
 const { AddressZero } = ethers.constants;
@@ -48,8 +48,11 @@ describe('extendDeposit', function () {
         ipfsDescriptionHash,
       );
 
-    const { firstActiveTrancheId } = await getTranches();
+    // Move to the beginning of the next tranche
+    const { firstActiveTrancheId: trancheId } = await getTranches();
+    await setTime((trancheId + 1) * TRANCHE_DURATION);
 
+    const { firstActiveTrancheId } = await getTranches();
     {
       const totalSupply = await stakingPool.totalSupply();
       expect(totalSupply).to.equal(1);

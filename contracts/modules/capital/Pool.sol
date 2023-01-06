@@ -123,7 +123,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   /* ========== ASSET RELATED VIEW FUNCTIONS ========== */
 
-  function getAssetValueInEth(address assetAddress, uint8 assetDecimals) internal view returns (uint) {
+  function getAssetValueInEth(address assetAddress) internal view returns (uint) {
     IERC20 token = IERC20(assetAddress);
 
     uint assetBalance;
@@ -153,20 +153,19 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     uint coverAssetsCount = coverAssets.length;
 
     for (uint i = 0; i < investmentAssetsCount; i++) {
-      Asset memory asset = investmentAssets[i];
-      uint assetValue = getAssetValueInEth(asset.assetAddress, asset.decimals);
+      uint assetValue = getAssetValueInEth(investmentAssets[i].assetAddress);
       total = total + assetValue;
     }
 
     uint deprecatedCoverAssets = deprecatedCoverAssetsBitmap;
+
     // Skip ETH (index 0)
     for (uint i = 1; i < coverAssetsCount; i++) {
       // Skip deprecated assets by looking at the bits that are on in deprecatedCoverAssetsBitmap
       if ((1 << i) & deprecatedCoverAssets != 0) {
         continue;
       }
-      Asset memory asset = coverAssets[i];
-      uint assetValue = getAssetValueInEth(asset.assetAddress, asset.decimals);
+      uint assetValue = getAssetValueInEth(coverAssets[i].assetAddress);
       total = total + assetValue;
     }
 
@@ -753,5 +752,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
+    // needed for onlyMember modifier
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
   }
 }

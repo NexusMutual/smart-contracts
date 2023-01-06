@@ -16,6 +16,7 @@ interface IPool {
     uint16 maxSlippageRatio;
   }
 
+  // decimals are redundant as we have them stored in PriceFeedOracle
   struct Asset {
     address assetAddress;
     uint8 decimals;

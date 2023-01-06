@@ -5,7 +5,7 @@ const { WeiPerEther } = ethers.constants;
 
 const { Role } = require('../utils').constants;
 const { getAccounts } = require('../../utils/accounts');
-const { hex } = require('../utils').helpers;
+const { toBytes2 } = require('../utils').helpers;
 
 async function setup() {
   // rewrite above artifact imports using ethers.js
@@ -54,7 +54,7 @@ async function setup() {
     stETH.address,
   );
 
-  await master.setLatestAddress(hex('P1'), pool.address);
+  await master.setLatestAddress(toBytes2('P1'), pool.address);
 
   const token = await TokenMock.deploy();
   const mcr = await MCR.deploy();
@@ -63,10 +63,10 @@ async function setup() {
 
   // set contract addresses
   await master.setTokenAddress(token.address);
-  await master.setLatestAddress(hex('P1'), pool.address);
-  await master.setLatestAddress(hex('MC'), mcr.address);
-  await master.setLatestAddress(hex('TC'), tokenController.address);
-  await master.setLatestAddress(hex('MR'), memberRoles.address);
+  await master.setLatestAddress(toBytes2('P1'), pool.address);
+  await master.setLatestAddress(toBytes2('MC'), mcr.address);
+  await master.setLatestAddress(toBytes2('TC'), tokenController.address);
+  await master.setLatestAddress(toBytes2('MR'), memberRoles.address);
 
   const contractsToUpdate = [mcr, pool, tokenController];
 

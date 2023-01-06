@@ -1,7 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { hex } = require('../utils').helpers;
-const { BigNumber } = ethers;
+const { toBytes8 } = require('../utils').helpers;
 const { parseEther } = ethers.utils;
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
@@ -46,7 +45,7 @@ describe('removeAsset', function () {
     const investmentToken = await ERC20Mock.deploy();
 
     const chainlinkNewAsset = await ChainlinkAggregatorMock.deploy();
-    await chainlinkNewAsset.setLatestAnswer(BigNumber.from((1e18).toString()));
+    await chainlinkNewAsset.setLatestAnswer(parseEther('1'));
 
     const priceFeedOracle = await PriceFeedOracle.deploy(
       [dai.address, stETH.address, coverToken.address, investmentToken.address],
@@ -54,7 +53,7 @@ describe('removeAsset', function () {
       [18, 18, 18, 18],
     );
 
-    await pool.connect(governance).updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address);
+    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
     {
       // add token as cover asset

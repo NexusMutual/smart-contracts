@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
-const { hex } = require('../utils').helpers;
+const { toBytes8 } = require('../utils').helpers;
 
 describe('transferAssetToSwapOperator', function () {
   before(async function () {
@@ -29,7 +29,7 @@ describe('transferAssetToSwapOperator', function () {
       [18, 18, 18],
     );
 
-    await pool.connect(governance).updateAddressParameters(hex('PRC_FEED'.padEnd(8, '\0')), priceFeedOracle.address);
+    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
     this.otherToken = otherToken;
   });
@@ -48,7 +48,7 @@ describe('transferAssetToSwapOperator', function () {
     const amountToTransfer = tokenAmount.div(2);
 
     const tempSwapOperator = arbitraryCaller;
-    await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), tempSwapOperator.address);
+    await pool.connect(governance).updateAddressParameters(toBytes8('SWP_OP'), tempSwapOperator.address);
 
     await pool.connect(tempSwapOperator).transferAssetToSwapOperator(otherToken.address, amountToTransfer);
     const destinationBalance = await otherToken.balanceOf(tempSwapOperator.address);

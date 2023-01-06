@@ -1,17 +1,15 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { hex } = require('../utils').helpers;
-const { BigNumber } = ethers;
+const { toBytes8 } = require('../utils').helpers;
+
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
 
 describe('upgradeCapitalPool', function () {
   it('moves pool funds to new pool', async function () {
     const { pool, master, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
-    const {
-      defaultSender: admin,
-      governanceContracts: [governance],
-    } = this.accounts;
+    const [governance] = this.accounts.governanceContracts;
+    const { defaultSender } = this.accounts;
 
     const [ChainlinkAggregatorMock, ERC20Mock, PriceFeedOracle, Pool] = await Promise.all([
       ethers.getContractFactory('ChainlinkAggregatorMock'),
@@ -21,7 +19,7 @@ describe('upgradeCapitalPool', function () {
     ]);
 
     const chainlinkNewAsset = await ChainlinkAggregatorMock.deploy();
-    await chainlinkNewAsset.setLatestAnswer(BigNumber.from((1e18).toString()));
+    await chainlinkNewAsset.setLatestAnswer(parseEther('1'));
 
     const coverToken = await ERC20Mock.deploy();
     const priceFeedOracle = await PriceFeedOracle.deploy(
@@ -29,7 +27,7 @@ describe('upgradeCapitalPool', function () {
       [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
       [18, 18, 18],
     );
-    await pool.connect(governance).updateAddressParameters(hex('PRC_FEED'.padEnd(8, '\0')), priceFeedOracle.address);
+    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
     const ethAmount = parseEther('10000');
     const tokenAmount = parseEther('100000');
@@ -42,7 +40,7 @@ describe('upgradeCapitalPool', function () {
     }
 
     const newPool = await Pool.deploy(
-      admin.address,
+      defaultSender.address,
       AddressZero,
       AddressZero, // we do not test swaps here
       dai.address,
@@ -66,10 +64,8 @@ describe('upgradeCapitalPool', function () {
 
   it('abandons marked assets on pool upgrade', async function () {
     const { pool, master, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
-    const {
-      defaultSender: admin,
-      governanceContracts: [governance],
-    } = this.accounts;
+    const [governance] = this.accounts.governanceContracts;
+    const { defaultSender } = this.accounts;
 
     const ethAmount = parseEther('10000');
     const tokenAmount = parseEther('100000');
@@ -87,14 +83,14 @@ describe('upgradeCapitalPool', function () {
     const nonRevertingERC20 = await ERC20NonRevertingMock.deploy();
 
     const chainlinkNewAsset = await ChainlinkAggregatorMock.deploy();
-    await chainlinkNewAsset.setLatestAnswer(BigNumber.from((1e18).toString()));
+    await chainlinkNewAsset.setLatestAnswer(parseEther('1'));
 
     const priceFeedOracle = await PriceFeedOracle.deploy(
       [dai.address, stETH.address, coverToken.address, nonRevertingERC20.address],
       [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address, chainlinkNewAsset.address],
       [18, 18, 18, 18],
     );
-    await pool.connect(governance).updateAddressParameters(hex('PRC_FEED'.padEnd(8, '\0')), priceFeedOracle.address);
+    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
     await pool.connect(governance).addAsset(coverToken.address, 18, '0', '0', 100, true);
 
@@ -106,7 +102,7 @@ describe('upgradeCapitalPool', function () {
     }
 
     const newPool = await Pool.deploy(
-      admin.address,
+      defaultSender.address,
       AddressZero,
       AddressZero, // we do not test swaps here
       dai.address,

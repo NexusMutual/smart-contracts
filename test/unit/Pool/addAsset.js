@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { AddressZero, WeiPerEther } = ethers.constants;
 const { parseEther } = ethers.utils;
-const { hex } = require('../utils').helpers;
+const { toBytes8 } = require('../utils').helpers;
 
 describe('addAsset', function () {
   it('reverts when not called by goverance', async function () {
@@ -92,7 +92,7 @@ describe('addAsset', function () {
       [18, 18, 18],
     );
 
-    await pool.connect(governance).updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address);
+    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
     await pool.connect(governance).addAsset(token.address, 18, '1', '2', '3', true);
     await token.mint(pool.address, parseEther('100'));
@@ -125,7 +125,7 @@ describe('addAsset', function () {
       [18, 18, 18, 18],
     );
 
-    await pool.connect(governance).updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address);
+    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
     // Cover asset
     {

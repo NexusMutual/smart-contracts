@@ -3,7 +3,7 @@ const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 
-const { hex } = require('../utils').helpers;
+const { toBytes8 } = require('../utils').helpers;
 
 describe('setSwapDetailsLastSwapTime', function () {
   before(async function () {
@@ -27,7 +27,7 @@ describe('setSwapDetailsLastSwapTime', function () {
       [18, 18, 18],
     );
 
-    await pool.connect(governance).updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address);
+    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
     this.otherToken = otherToken;
   });
@@ -45,7 +45,7 @@ describe('setSwapDetailsLastSwapTime', function () {
 
     const lastSwapTime = 11512651;
 
-    await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), member.address);
+    await pool.connect(governance).updateAddressParameters(toBytes8('SWP_OP'), member.address);
 
     await pool.connect(member).setSwapDetailsLastSwapTime(otherToken.address, lastSwapTime);
 

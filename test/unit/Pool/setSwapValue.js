@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { BigNumber } = ethers;
-const { hex } = require('../utils').helpers;
+const { toBytes8 } = require('../utils').helpers;
 
 describe('setSwapValue', function () {
   it('is only callabe by swap operator', async function () {
@@ -15,7 +15,7 @@ describe('setSwapValue', function () {
     await expect(pool.setSwapValue(BigNumber.from('123'))).to.be.revertedWith('Pool: Not swapOperator');
 
     // Set swap operator
-    await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), swapOperator.address);
+    await pool.connect(governance).updateAddressParameters(toBytes8('SWP_OP'), swapOperator.address);
 
     // Call should succeed
     await pool.connect(swapOperator).setSwapValue(BigNumber.from('123'));
@@ -30,7 +30,7 @@ describe('setSwapValue', function () {
 
     expect(await pool.swapValue()).to.eq(0);
     // Set swap operator and set swap value
-    await pool.connect(governance).updateAddressParameters(hex('SWP_OP'.padEnd(8, '\0')), swapOperator.address);
+    await pool.connect(governance).updateAddressParameters(toBytes8('SWP_OP'), swapOperator.address);
     await pool.connect(swapOperator).setSwapValue(123);
 
     expect(await pool.swapValue()).to.eq(123);

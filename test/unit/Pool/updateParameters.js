@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { hex } = require('../utils').helpers;
+
+const { toBytes8 } = require('../utils').helpers;
 const { PoolUintParamType, PoolAddressParamType } = require('../utils').constants;
 
 describe('updateUintParameters', function () {
@@ -53,9 +54,7 @@ describe('updateAddressParameters', function () {
     const priceFeedOracle = await PriceFeedOracle.deploy([dai.address], [chainlinkDAI.address], [18]);
 
     await expect(
-      pool
-        .connect(governanceContract)
-        .updateAddressParameters(hex('PRC_FEED'.padEnd(8, '\0')), priceFeedOracle.address),
+      pool.connect(governanceContract).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address),
     ).to.be.revertedWith('Pool: Oracle lacks asset');
   });
 
@@ -69,9 +68,7 @@ describe('updateAddressParameters', function () {
     const priceFeedOracle = await PriceFeedOracle.deploy([stETH.address], [chainlinkSteth.address], [18]);
 
     await expect(
-      pool
-        .connect(governanceContract)
-        .updateAddressParameters(hex('PRC_FEED'.padEnd(8, '\0')), priceFeedOracle.address),
+      pool.connect(governanceContract).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address),
     ).to.be.revertedWith('Pool: Oracle lacks asset');
   });
 

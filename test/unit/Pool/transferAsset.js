@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
-const { hex } = require('../utils').helpers;
+const { toBytes8 } = require('../utils').helpers;
 
 describe('transferAsset', function () {
   before(async function () {
@@ -25,7 +25,7 @@ describe('transferAsset', function () {
       [18, 18, 18],
     );
 
-    await pool.connect(governance).updateAddressParameters(hex('PRC_FEED'.padEnd(8, '\0')), priceFeedOracle.address);
+    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
     this.otherToken = otherToken;
   });

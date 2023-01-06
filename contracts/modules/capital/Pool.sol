@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts-v4/utils/Address.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 
@@ -18,7 +17,6 @@ import "../../libraries/SafeUintCast.sol";
 
 contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   using SafeERC20 for IERC20;
-  using Address for address;
 
   /* storage */
   Asset[] public override coverAssets;

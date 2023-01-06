@@ -16,6 +16,7 @@ interface IPool {
     uint16 maxSlippageRatio;
   }
 
+  // decimals are redundant as we have them stored in PriceFeedOracle
   struct Asset {
     address assetAddress;
     uint8 decimals;
@@ -60,8 +61,6 @@ interface IPool {
   function priceFeedOracle() external view returns (IPriceFeedOracle);
 
   function getPoolValueInEth() external view returns (uint);
-
-  function transferAssetFrom(address asset, address from, uint amount) external;
 
   function getEthForNXM(uint nxmAmount) external view returns (uint ethAmount);
 

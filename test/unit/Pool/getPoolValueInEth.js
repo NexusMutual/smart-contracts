@@ -1,69 +1,64 @@
-const { web3, ethers, artifacts } = require('hardhat');
-const { assert, expect } = require('chai');
-const { ether } = require('@openzeppelin/test-helpers');
-const { hex } = require('../utils').helpers;
-const { BN } = web3.utils;
+const { ethers } = require('hardhat');
+const { expect } = require('chai');
 
-const {
-  utils: { parseEther },
-} = ethers;
+const { toBytes8 } = require('../utils').helpers;
 
-const {
-  nonMembers: [fundSource],
-  defaultSender,
-  governanceContracts: [governance],
-} = require('../utils').accounts;
-
-const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
-const ERC20Mock = artifacts.require('ERC20Mock');
+const { BigNumber } = ethers;
+const { parseEther } = ethers.utils;
 
 describe('getPoolValueInEth', function () {
   it('gets total value of ETH and DAI assets in the pool', async function () {
     const { pool, mcr, chainlinkDAI, dai } = this;
+    const [nonMember] = this.accounts.nonMembers;
 
-    const initialAssetValue = new BN('210959924071154460525457');
-    const mcrEth = new BN('162424730681679380000000');
-    const ethToDaiRate = new BN((394.59 * 1e18).toString());
-    const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
+    const initialAssetValue = BigNumber.from('210959924071154460525457');
+    const mcrEth = BigNumber.from('162424730681679380000000');
+    const ethToDaiRate = parseEther('394.59');
+    const daiToEthRate = BigNumber.from(10).pow(36).div(ethToDaiRate);
     await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
     await mcr.setMCR(mcrEth);
-    await pool.sendTransaction({ from: fundSource, value: initialAssetValue });
+    await nonMember.sendTransaction({ to: pool.address, value: initialAssetValue });
 
-    const daiAmount = ether('10000');
+    const daiAmount = parseEther('10000');
     await dai.mint(pool.address, daiAmount);
 
-    const expectedPoolValue = initialAssetValue.add(daiAmount.mul(daiToEthRate).div(ether('1')));
+    const expectedPoolValue = initialAssetValue.add(daiAmount.mul(daiToEthRate).div(parseEther('1')));
     const poolValue = await pool.getPoolValueInEth();
-    assert.equal(poolValue.toString(), expectedPoolValue.toString());
+    expect(poolValue).to.equal(expectedPoolValue);
   });
 
   it('shouldnt fail when sent an EOA address', async function () {
     const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
+    const [governance] = this.accounts.governanceContracts;
 
-    const otherToken = await ERC20Mock.new();
-    const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
-    await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
+    const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+    const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+    const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
 
-    const priceFeedOracle = await PriceFeedOracle.new(
+    const otherToken = await ERC20Mock.deploy();
+    const chainlinkNewAsset = await ChainlinkAggregatorMock.deploy();
+    await chainlinkNewAsset.setLatestAnswer(parseEther('1'));
+
+    const priceFeedOracle = await PriceFeedOracle.deploy(
       [dai.address, stETH.address, otherToken.address],
       [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
       [18, 18, 18],
     );
 
-    await pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governance });
-
-    await pool.addAsset(otherToken.address, 18, parseEther('10'), parseEther('100'), 1000, false, { from: governance });
+    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
+    await pool.connect(governance).addAsset(otherToken.address, 18, parseEther('10'), parseEther('100'), 1000, false);
     await pool.getPoolValueInEth();
   });
 
   it('includes swapValue in the calculation', async function () {
     const { pool } = this;
+    const [governance] = this.accounts.governanceContracts;
+    const { defaultSender } = this.accounts;
 
     const oldPoolValue = await pool.getPoolValueInEth();
 
-    await pool.updateAddressParameters(hex('SWP_OP'), defaultSender, { from: governance });
+    await pool.connect(governance).updateAddressParameters(toBytes8('SWP_OP'), defaultSender.address);
     await pool.setSwapValue(parseEther('1'));
 
     const swapValue = await pool.swapValue();
@@ -71,6 +66,6 @@ describe('getPoolValueInEth', function () {
 
     const newPoolValue = await pool.getPoolValueInEth();
 
-    expect(newPoolValue.toString()).to.eq(oldPoolValue.add(swapValue).toString());
+    expect(newPoolValue).to.eq(oldPoolValue.add(swapValue));
   });
 });

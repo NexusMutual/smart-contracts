@@ -1,161 +1,154 @@
-const { artifacts, web3 } = require('hardhat');
-const {
-  constants: { ZERO_ADDRESS },
-  ether,
-  expectRevert,
-} = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
-const { hex } = require('../utils').helpers;
-const {
-  governanceContracts: [governance],
-} = require('../utils').accounts;
-const { BN } = web3.utils;
-
-const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
+const { ethers } = require('hardhat');
+const { expect } = require('chai');
+const { AddressZero, WeiPerEther } = ethers.constants;
+const { parseEther } = ethers.utils;
+const { toBytes8 } = require('../utils').helpers;
 
 describe('addAsset', function () {
   it('reverts when not called by goverance', async function () {
     const { pool, otherAsset } = this;
 
-    await expectRevert(
-      pool.addAsset(otherAsset.address, 18, '0', '1', '0', false),
+    await expect(pool.addAsset(otherAsset.address, 18, '0', '1', '0', false)).to.be.revertedWith(
       'Caller is not authorized to govern',
     );
-    await expectRevert(
-      pool.addAsset(otherAsset.address, 18, '0', '1', '0', true),
+    await expect(pool.addAsset(otherAsset.address, 18, '0', '1', '0', true)).to.be.revertedWith(
       'Caller is not authorized to govern',
     );
   });
 
   it('reverts when asset address is zero address', async function () {
     const { pool } = this;
+    const [governance] = this.accounts.governanceContracts;
 
-    await expectRevert(
-      pool.addAsset(ZERO_ADDRESS, 18, '0', '1', '0', false, { from: governance }),
+    await expect(pool.connect(governance).addAsset(AddressZero, 18, '0', '1', '0', false)).to.be.revertedWith(
       'Pool: Asset is zero address',
     );
 
-    await expectRevert(
-      pool.addAsset(ZERO_ADDRESS, 18, '0', '1', '0', true, { from: governance }),
+    await expect(pool.connect(governance).addAsset(AddressZero, 18, '0', '1', '0', true)).to.be.revertedWith(
       'Pool: Asset is zero address',
     );
   });
 
   it('reverts when max < min', async function () {
     const { pool, otherAsset } = this;
+    const [governance] = this.accounts.governanceContracts;
 
-    await expectRevert(
-      pool.addAsset(otherAsset.address, 18, '1', '0', '0', true, { from: governance }),
+    await expect(pool.connect(governance).addAsset(otherAsset.address, 18, '1', '0', '0', true)).to.be.revertedWith(
       'Pool: max < min',
     );
-    await expectRevert(
-      pool.addAsset(otherAsset.address, 18, '1', '0', '0', false, { from: governance }),
+    await expect(pool.connect(governance).addAsset(otherAsset.address, 18, '1', '0', '0', false)).to.be.revertedWith(
       'Pool: max < min',
     );
   });
 
   it('reverts when max slippage ratio > 1', async function () {
     const { pool, otherAsset } = this;
-
-    await expectRevert(
-      pool.addAsset(otherAsset.address, 18, '0', '1', 10001 /* 100.01% */, false, { from: governance }),
-      'Pool: Max slippage ratio > 1',
-    );
+    const [governance] = this.accounts.governanceContracts;
+    await expect(
+      pool.connect(governance).addAsset(otherAsset.address, 18, '0', '1', '10001' /* 100.01% */, false),
+    ).to.be.revertedWith('Pool: Max slippage ratio > 1');
 
     // should work with slippage rate = 1
-    await pool.addAsset(otherAsset.address, 18, '0', '1', 10000 /* 100% */, false, { from: governance });
+    await pool.connect(governance).addAsset(otherAsset.address, 18, '0', '1', '10000', false);
   });
 
   it('reverts when asset exists', async function () {
     const { pool, dai } = this;
+    const [governance] = this.accounts.governanceContracts;
 
-    await expectRevert(
-      pool.addAsset(dai.address, 18, '0', '1', '0', false, { from: governance }),
+    await expect(pool.connect(governance).addAsset(dai.address, 18, '0', '1', '0', false)).to.be.revertedWith(
       'Pool: Asset exists',
     );
-    await expectRevert(pool.addAsset(dai.address, 18, '0', '1', '0', true, { from: governance }), 'Pool: Asset exists');
+    await expect(pool.connect(governance).addAsset(dai.address, 18, '0', '1', '0', true)).to.be.revertedWith(
+      'Pool: Asset exists',
+    );
   });
 
   it('reverts when asset lacks an oracle', async function () {
     const { pool } = this;
+    const [governance] = this.accounts.governanceContracts;
 
     const arbitraryAddress = '0x47ec31abc6b86e49933dC7B2969EBEbE3De662cA';
 
-    await expectRevert(
-      pool.addAsset(arbitraryAddress, 18, '0', '1', '0', true, { from: governance }),
+    await expect(pool.connect(governance).addAsset(arbitraryAddress, 18, '0', '1', '0', true)).to.be.revertedWith(
       'Pool: Asset lacks oracle',
     );
   });
 
   it('should correctly add the asset with its min, max, and slippage ratio', async function () {
     const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
+    const [governance] = this.accounts.governanceContracts;
 
-    const ERC20Mock = artifacts.require('ERC20Mock');
-    const token = await ERC20Mock.new();
+    const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+    const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
+    const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+    const token = await ERC20Mock.deploy();
 
-    const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
-    await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
-    const priceFeedOracle = await PriceFeedOracle.new(
+    const chainlinkNewAsset = await ChainlinkAggregatorMock.deploy();
+    await chainlinkNewAsset.setLatestAnswer(WeiPerEther);
+    const priceFeedOracle = await PriceFeedOracle.deploy(
       [dai.address, stETH.address, token.address],
       [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
       [18, 18, 18],
     );
 
-    await pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governance });
+    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
-    await pool.addAsset(token.address, 18, '1', '2', '3', true, { from: governance });
-    await token.mint(pool.address, ether('100'));
+    await pool.connect(governance).addAsset(token.address, 18, '1', '2', '3', true);
+    await token.mint(pool.address, parseEther('100'));
 
     const assetDetails = await pool.getAssetSwapDetails(token.address);
     const { minAmount, maxAmount, maxSlippageRatio } = assetDetails;
 
-    assert.strictEqual(minAmount.toString(), '1');
-    assert.strictEqual(maxAmount.toString(), '2');
-    assert.strictEqual(maxSlippageRatio.toString(), '3');
+    expect(minAmount).to.be.equal(1);
+    expect(maxAmount).to.be.equal(2);
+    expect(maxSlippageRatio).to.be.equal(3);
   });
 
   it('should correctly add the asset to either investment or cover asset arrays', async function () {
     const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
+    const [governance] = this.accounts.governanceContracts;
 
-    const ERC20Mock = artifacts.require('ERC20Mock');
+    const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+    const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
+    const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
 
-    const coverAsset = await ERC20Mock.new();
-    const investmentAsset = await ERC20Mock.new();
+    const coverAsset = await ERC20Mock.deploy();
+    const investmentAsset = await ERC20Mock.deploy();
 
-    const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
-    await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
+    const chainlinkNewAsset = await ChainlinkAggregatorMock.deploy();
+    await chainlinkNewAsset.setLatestAnswer(WeiPerEther);
 
-    const priceFeedOracle = await PriceFeedOracle.new(
+    const priceFeedOracle = await PriceFeedOracle.deploy(
       [dai.address, stETH.address, coverAsset.address, investmentAsset.address],
       [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address, chainlinkNewAsset.address],
       [18, 18, 18, 18],
     );
 
-    await pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governance });
+    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
     // Cover asset
     {
       const token = coverAsset;
-      await pool.addAsset(token.address, 18, '1', '2', '3', true, { from: governance });
+      await pool.connect(governance).addAsset(token.address, 18, '1', '2', '3', true);
       const coverAssets = await pool.getCoverAssets();
       const investmentAssets = await pool.getInvestmentAssets();
-      assert.strictEqual(coverAssets[coverAssets.length - 1].assetAddress, token.address);
-      assert.strictEqual(coverAssets[coverAssets.length - 1].decimals, '18');
+      expect(coverAssets[coverAssets.length - 1].assetAddress).to.be.equal(token.address);
+      expect(coverAssets[coverAssets.length - 1].decimals).to.be.equal(18);
       const insertedInInvestmentAssets = !!investmentAssets.find(x => x.assetAddress === token.address);
-      assert.strictEqual(insertedInInvestmentAssets, false);
+      expect(insertedInInvestmentAssets).to.be.equal(false);
     }
 
     // Investment asset
     {
       const token = investmentAsset;
-      await pool.addAsset(token.address, 8, '4', '5', '6', false, { from: governance });
+      await pool.connect(governance).addAsset(token.address, 8, '4', '5', '6', false);
       const coverAssets = await pool.getCoverAssets();
       const investmentAssets = await pool.getInvestmentAssets();
-      assert.strictEqual(investmentAssets[investmentAssets.length - 1].assetAddress, token.address);
-      assert.strictEqual(investmentAssets[investmentAssets.length - 1].decimals, '8');
+      expect(investmentAssets[investmentAssets.length - 1].assetAddress).to.be.equal(token.address);
+      expect(investmentAssets[investmentAssets.length - 1].decimals).to.be.equal(8);
       const insertedInCoverAssets = !!coverAssets.find(x => x.assetAddress === token.address);
-      assert.strictEqual(insertedInCoverAssets, false);
+      expect(insertedInCoverAssets).to.be.equal(false);
     }
   });
 });

@@ -1,53 +1,46 @@
-const { ether } = require('@openzeppelin/test-helpers');
-const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
-const { web3, artifacts } = require('hardhat');
-const { assert } = require('chai');
-const { expectRevert } = require('@openzeppelin/test-helpers');
-const { hex } = require('../utils').helpers;
+const { ethers } = require('hardhat');
+const { expect } = require('chai');
+const { toBytes8 } = require('../utils').helpers;
 
-const {
-  defaultSender,
-  governanceContracts: [governance],
-} = require('../utils').accounts;
-const { BN } = web3.utils;
-
-const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
-const Pool = artifacts.require('Pool');
-const ERC20Mock = artifacts.require('ERC20Mock');
-const ERC20NonRevertingMock = artifacts.require('ERC20NonRevertingMock');
+const { parseEther } = ethers.utils;
+const { AddressZero } = ethers.constants;
 
 describe('upgradeCapitalPool', function () {
   it('moves pool funds to new pool', async function () {
     const { pool, master, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
+    const [governance] = this.accounts.governanceContracts;
+    const { defaultSender } = this.accounts;
 
-    const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
-    await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
+    const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+    const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+    const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
+    const Pool = await ethers.getContractFactory('Pool');
 
-    const coverToken = await ERC20Mock.new();
-    const priceFeedOracle = await PriceFeedOracle.new(
+    const chainlinkNewAsset = await ChainlinkAggregatorMock.deploy();
+    await chainlinkNewAsset.setLatestAnswer(parseEther('1'));
+
+    const coverToken = await ERC20Mock.deploy();
+    const priceFeedOracle = await PriceFeedOracle.deploy(
       [dai.address, stETH.address, coverToken.address],
       [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
       [18, 18, 18],
     );
-    await pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governance });
+    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
-    const ethAmount = ether('10000');
-    const tokenAmount = ether('100000');
-    await pool.sendTransaction({ value: ethAmount });
+    const ethAmount = parseEther('10000');
+    const tokenAmount = parseEther('100000');
+    await governance.sendTransaction({ value: ethAmount, to: pool.address });
 
-    await pool.addAsset(coverToken.address, 18, '0', '0', 100, true, {
-      from: governance,
-    });
+    await pool.connect(governance).addAsset(coverToken.address, 18, '0', '0', 100, true);
     const tokens = [dai, stETH, coverToken];
     for (const token of tokens) {
       await token.mint(pool.address, tokenAmount);
     }
 
-    const newPool = await Pool.new(
-      defaultSender,
-      ZERO_ADDRESS,
-      ZERO_ADDRESS, // we do not test swaps here
+    const newPool = await Pool.deploy(
+      defaultSender.address,
+      AddressZero,
+      AddressZero, // we do not test swaps here
       dai.address,
       stETH.address,
     );
@@ -57,67 +50,69 @@ describe('upgradeCapitalPool', function () {
     for (const token of tokens) {
       const oldPoolBalance = await token.balanceOf(pool.address);
       const newPoolBalance = await token.balanceOf(newPool.address);
-      assert.equal(oldPoolBalance.toString(), '0');
-      assert.equal(newPoolBalance.toString(), tokenAmount.toString());
+      expect(oldPoolBalance).to.equal(0);
+      expect(newPoolBalance).to.equal(tokenAmount);
     }
 
-    const oldPoolBalance = await web3.eth.getBalance(pool.address);
-    const newPoolBalance = await web3.eth.getBalance(newPool.address);
-    assert.equal(oldPoolBalance.toString(), '0');
-    assert.equal(newPoolBalance.toString(), ethAmount.toString());
+    const oldPoolBalance = await ethers.provider.getBalance(pool.address);
+    const newPoolBalance = await ethers.provider.getBalance(newPool.address);
+    expect(oldPoolBalance).to.equal(0);
+    expect(newPoolBalance).to.equal(ethAmount);
   });
 
   it('abandons marked assets on pool upgrade', async function () {
     const { pool, master, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
+    const [governance] = this.accounts.governanceContracts;
+    const { defaultSender } = this.accounts;
 
-    const ethAmount = ether('10000');
-    const tokenAmount = ether('100000');
-    await pool.sendTransaction({ value: ethAmount });
+    const ethAmount = parseEther('10000');
+    const tokenAmount = parseEther('100000');
+    await governance.sendTransaction({ value: ethAmount, to: pool.address });
 
-    const coverToken = await ERC20Mock.new();
-    const nonRevertingERC20 = await ERC20NonRevertingMock.new();
+    const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+    const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+    const ERC20NonRevertingMock = await ethers.getContractFactory('ERC20NonRevertingMock');
+    const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
+    const Pool = await ethers.getContractFactory('Pool');
 
-    const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
-    await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
+    const coverToken = await ERC20Mock.deploy();
+    const nonRevertingERC20 = await ERC20NonRevertingMock.deploy();
 
-    const priceFeedOracle = await PriceFeedOracle.new(
+    const chainlinkNewAsset = await ChainlinkAggregatorMock.deploy();
+    await chainlinkNewAsset.setLatestAnswer(parseEther('1'));
+
+    const priceFeedOracle = await PriceFeedOracle.deploy(
       [dai.address, stETH.address, coverToken.address, nonRevertingERC20.address],
       [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address, chainlinkNewAsset.address],
       [18, 18, 18, 18],
     );
-    await pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governance });
+    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
-    await pool.addAsset(coverToken.address, 18, '0', '0', 100, true, {
-      from: governance,
-    });
+    await pool.connect(governance).addAsset(coverToken.address, 18, '0', '0', 100, true);
 
-    await pool.addAsset(nonRevertingERC20.address, 18, '0', '0', 100, true, {
-      from: governance,
-    });
+    await pool.connect(governance).addAsset(nonRevertingERC20.address, 18, '0', '0', 100, true);
 
     const tokens = [dai, stETH, coverToken];
     for (const token of tokens) {
       await token.mint(pool.address, tokenAmount);
     }
 
-    const newPool = await Pool.new(
-      defaultSender,
-      ZERO_ADDRESS,
-      ZERO_ADDRESS, // we do not test swaps here
+    const newPool = await Pool.deploy(
+      defaultSender.address,
+      AddressZero,
+      AddressZero, // we do not test swaps here
       dai.address,
       stETH.address,
     );
 
     await stETH.blacklistSender(pool.address);
 
-    await expectRevert(master.upgradeCapitalPool(pool.address, newPool.address), 'ERC20Mock: sender is blacklisted');
+    await expect(master.upgradeCapitalPool(pool.address, newPool.address)).to.be.revertedWith(
+      'ERC20Mock: sender is blacklisted',
+    );
 
-    await pool.setAssetsToAbandon([nonRevertingERC20.address], true, {
-      from: governance,
-    });
-    await pool.setAssetsToAbandon([stETH.address], true, {
-      from: governance,
-    });
+    await pool.connect(governance).setAssetsToAbandon([nonRevertingERC20.address], true);
+    await pool.connect(governance).setAssetsToAbandon([stETH.address], true);
 
     await master.upgradeCapitalPool(pool.address, newPool.address);
 
@@ -126,17 +121,17 @@ describe('upgradeCapitalPool', function () {
       const newPoolBalance = await token.balanceOf(newPool.address);
       if (token.address === stETH.address) {
         // stETH is blacklisted and abandoned
-        assert.equal(oldPoolBalance.toString(), tokenAmount.toString());
-        assert.equal(newPoolBalance.toString(), '0');
+        expect(oldPoolBalance).to.be.equal(tokenAmount);
+        expect(newPoolBalance).to.be.equal(0);
       } else {
-        assert.equal(oldPoolBalance.toString(), '0');
-        assert.equal(newPoolBalance.toString(), tokenAmount.toString());
+        expect(oldPoolBalance).to.be.equal(0);
+        expect(newPoolBalance).to.be.equal(tokenAmount);
       }
     }
 
-    const oldPoolBalance = await web3.eth.getBalance(pool.address);
-    const newPoolBalance = await web3.eth.getBalance(newPool.address);
-    assert.equal(oldPoolBalance.toString(), '0');
-    assert.equal(newPoolBalance.toString(), ethAmount.toString());
+    const oldPoolBalance = await ethers.provider.getBalance(pool.address);
+    const newPoolBalance = await ethers.provider.getBalance(newPool.address);
+    expect(oldPoolBalance).to.be.equal(0);
+    expect(newPoolBalance).to.be.equal(ethAmount);
   });
 });

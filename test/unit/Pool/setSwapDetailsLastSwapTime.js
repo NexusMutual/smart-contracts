@@ -1,73 +1,71 @@
-const { ether } = require('@openzeppelin/test-helpers');
-const { expectRevert } = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
-const { web3, artifacts } = require('hardhat');
+const { expect } = require('chai');
+const { ethers } = require('hardhat');
+const { BigNumber } = ethers;
+const { parseEther } = ethers.utils;
 
-const {
-  governanceContracts: [governance],
-  generalPurpose: [arbitraryCaller],
-  defaultSender,
-} = require('../utils').accounts;
-const { hex } = require('../utils').helpers;
-const { BN } = web3.utils;
-
-const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
-const ERC20Mock = artifacts.require('ERC20Mock');
+const { toBytes8 } = require('../utils').helpers;
 
 describe('setSwapDetailsLastSwapTime', function () {
   before(async function () {
     const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
+    const [governance] = this.accounts.governanceContracts;
 
-    const otherToken = await ERC20Mock.new();
+    const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+    const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+    const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
 
-    const chainlinkNewAsset = await ChainlinkAggregatorMock.new();
-    await chainlinkNewAsset.setLatestAnswer(new BN((1e18).toString()));
+    const otherToken = await ERC20Mock.deploy();
 
-    const priceFeedOracle = await PriceFeedOracle.new(
+    const chainlinkNewAsset = await ChainlinkAggregatorMock.deploy();
+    await chainlinkNewAsset.setLatestAnswer(BigNumber.from((1e18).toString()));
+
+    const priceFeedOracle = await PriceFeedOracle.deploy(
       [dai.address, stETH.address, otherToken.address],
       [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
       [18, 18, 18],
     );
 
-    await pool.updateAddressParameters(hex('PRC_FEED'), priceFeedOracle.address, { from: governance });
+    await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
     this.otherToken = otherToken;
   });
 
   it('set last swap time for asset', async function () {
     const { pool, otherToken } = this;
+    const {
+      governanceContracts: [governance],
+      members: [member],
+    } = this.accounts;
 
-    const tokenAmount = ether('100000');
-    await pool.addAsset(otherToken.address, 18, '0', '0', 100, true, {
-      from: governance,
-    });
+    const tokenAmount = parseEther('100000');
+    await pool.connect(governance).addAsset(otherToken.address, 18, '0', '0', 100, true);
     await otherToken.mint(pool.address, tokenAmount);
 
-    const lastSwapTime = '11512651';
+    const lastSwapTime = 11512651;
 
-    await pool.updateAddressParameters(hex('SWP_OP'), defaultSender, { from: governance });
+    await pool.connect(governance).updateAddressParameters(toBytes8('SWP_OP'), member.address);
 
-    await pool.setSwapDetailsLastSwapTime(otherToken.address, lastSwapTime);
+    await pool.connect(member).setSwapDetailsLastSwapTime(otherToken.address, lastSwapTime);
 
     const swapDetails = await pool.swapDetails(otherToken.address);
-    assert.equal(swapDetails.lastSwapTime.toString(), lastSwapTime);
+    expect(swapDetails.lastSwapTime).to.equal(lastSwapTime);
   });
 
   it('revers if not called by swap operator', async function () {
     const { pool, otherToken } = this;
+    const {
+      governanceContracts: [governance],
+      members: [arbitraryCaller],
+    } = this.accounts;
 
-    const tokenAmount = ether('100000');
-    await pool.addAsset(otherToken.address, 18, '0', '0', 100, true, {
-      from: governance,
-    });
+    const tokenAmount = parseEther('100000');
+    await pool.connect(governance).addAsset(otherToken.address, 18, '0', '0', 100, true);
     await otherToken.mint(pool.address, tokenAmount);
 
     const lastSwapTime = '11512651';
 
-    await expectRevert(
-      pool.setSwapDetailsLastSwapTime(otherToken.address, lastSwapTime, { from: arbitraryCaller }),
-      'Pool: Not swapOperator',
-    );
+    await expect(
+      pool.connect(arbitraryCaller).setSwapDetailsLastSwapTime(otherToken.address, lastSwapTime),
+    ).to.be.revertedWith('Pool: Not swapOperator');
   });
 });

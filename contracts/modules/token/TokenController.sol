@@ -75,18 +75,11 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   * @dev Just for interface
   */
   function changeDependentContractAddress() public override {
-
     internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
     internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.GV)] = master.getLatestAddress("GV");
-  }
-
-  function readInternalContractsSlot() public view returns (address asAddress) {
-    assembly {
-      asAddress := sload(internalContracts.slot)
-    }
   }
 
   /**

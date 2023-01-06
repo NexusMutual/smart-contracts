@@ -95,6 +95,23 @@ contract SPMockCover {
     return (premium, allocationId);
   }
 
+  function requestAllocation (
+    uint amount,
+    uint previousPremium,
+    AllocationRequest calldata allocationRequest,
+    IStakingPool _stakingPool
+  ) public returns (uint premium, uint allocationId)  {
+    (premium, allocationId) = _stakingPool.requestAllocation(
+      amount,
+      previousPremium,
+      allocationRequest
+    );
+
+    lastPremium = premium;
+
+    return (premium, allocationId);
+  }
+
   function callAllocateCapacity(IStakingPool _stakingPool, bytes memory data) public {
     // low level call to avoid stack too deep
     (bool ok, bytes memory result) = address(_stakingPool).call(data);

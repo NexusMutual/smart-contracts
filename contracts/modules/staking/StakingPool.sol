@@ -693,7 +693,6 @@ contract StakingPool is IStakingPool {
     // number of already expired tranches to skip
     // currentFirstActiveTranche - previousFirstActiveTranche
     uint offset = currentFirstActiveTrancheId - (start / TRANCHE_DURATION);
-
     for (uint i = offset; i < MAX_ACTIVE_TRANCHES; i++) {
       uint allocated = uint32(packedCoverTrancheAllocation >> (i * 32));
       uint currentTrancheIdx = i - offset;
@@ -916,7 +915,8 @@ contract StakingPool is IStakingPool {
         coverAllocations[i] = allocatedAmount;
         trancheAllocations[i] += allocatedAmount;
         remainingAmount -= allocatedAmount;
-        packedCoverAllocations &= allocatedAmount << (i * 32);
+        packedCoverAllocations &= uint32(allocatedAmount) << i * 32;
+        console.log(packedCoverAllocations);
       }
 
       coverTrancheAllocations[allocationId] = packedCoverAllocations;

@@ -26,6 +26,8 @@ const buyCoverFixture = {
   expectedPremium: parseEther('1000').mul(260).div(10000), // amount * targetPriceRatio / priceDenominator
 };
 
+const poolAllocationRequest = [{ poolId: '0', coverAmountInAsset: buyCoverFixture.amount, allocationId: MaxUint256 }];
+
 describe('buyCover', function () {
   beforeEach(async function () {
     const { cover } = this;
@@ -68,7 +70,7 @@ describe('buyCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount }],
+      poolAllocationRequest,
       { value: expectedPremium },
     );
 
@@ -111,7 +113,7 @@ describe('buyCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount }],
+      poolAllocationRequest,
       { value: expectedPremium },
     );
 
@@ -164,8 +166,8 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       [
-        { poolId: '0', coverAmountInAsset: amount.div(2) },
-        { poolId: '1', coverAmountInAsset: amount.div(2) },
+        { poolId: '1', coverAmountInAsset: amount.div(2), allocationId: MaxUint256 },
+        { poolId: '0', coverAmountInAsset: amount.div(2), allocationId: MaxUint256 },
       ],
       { value: expectedPremium },
     );
@@ -221,7 +223,7 @@ describe('buyCover', function () {
           commissionDestination: stakingPoolManager.address,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        poolAllocationRequest,
         { value: '0' },
       ),
     )
@@ -295,7 +297,7 @@ describe('buyCover', function () {
         commissionDestination: commissionReceiver.address,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount }],
+      poolAllocationRequest,
       {
         value: '0',
       },
@@ -367,7 +369,7 @@ describe('buyCover', function () {
           commissionDestination: commissionReceiver.address,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        poolAllocationRequest,
         {
           value: '0',
         },
@@ -417,7 +419,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        poolAllocationRequest,
         {
           value: '0',
         },
@@ -446,7 +448,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        poolAllocationRequest,
         {
           value: '0',
         },
@@ -476,7 +478,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        poolAllocationRequest,
         {
           value: '0',
         },
@@ -505,7 +507,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        poolAllocationRequest,
         {
           value: '0',
         },
@@ -533,7 +535,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        poolAllocationRequest,
         {
           value: '0',
         },
@@ -563,7 +565,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        poolAllocationRequest,
         {
           value: expectedPremium,
         },
@@ -598,7 +600,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        poolAllocationRequest,
         {
           value: expectedPremium,
         },
@@ -628,7 +630,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        poolAllocationRequest,
         {
           value: expectedPremium,
         },
@@ -660,7 +662,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        poolAllocationRequest,
         {
           value: expectedPremium,
         },
@@ -688,7 +690,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        poolAllocationRequest,
         {
           value: expectedPremium,
         },
@@ -718,7 +720,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        poolAllocationRequest,
         {
           value: '0',
         },
@@ -752,7 +754,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        poolAllocationRequest,
         {
           value: '0',
         },
@@ -785,7 +787,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount }],
+        poolAllocationRequest,
         {
           value: expectedPremium,
         },
@@ -841,7 +843,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: 1 }],
+        [{ poolId: '0', coverAmountInAsset: 0, allocationId: MaxUint256 }],
         {
           value: expectedPremium,
         },
@@ -886,7 +888,7 @@ describe('buyCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount }],
+      poolAllocationRequest,
       {
         value: '0',
       },
@@ -924,7 +926,7 @@ describe('buyCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId, coverAmountInAsset: amount }],
+      poolAllocationRequest,
       {
         value: expectedPremium,
       },
@@ -981,7 +983,7 @@ describe('buyCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount }],
+      poolAllocationRequest,
       {
         value: expectedPremium,
       },
@@ -1022,7 +1024,7 @@ describe('buyCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount }],
+      poolAllocationRequest,
       {
         value: expectedPremium,
       },
@@ -1077,7 +1079,7 @@ describe('buyCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId, coverAmountInAsset: amount }],
+      poolAllocationRequest,
       {
         value: expectedPremium,
       },
@@ -1161,9 +1163,9 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       [
-        { poolId: 0, coverAmountInAsset: coverAmountAllocationPerPool },
-        { poolId: 1, coverAmountInAsset: coverAmountAllocationPerPool },
-        { poolId: 2, coverAmountInAsset: coverAmountAllocationPerPool },
+        { poolId: 0, coverAmountInAsset: coverAmountAllocationPerPool, allocationId: MaxUint256 },
+        { poolId: 1, coverAmountInAsset: coverAmountAllocationPerPool, allocationId: MaxUint256 },
+        { poolId: 2, coverAmountInAsset: coverAmountAllocationPerPool, allocationId: MaxUint256 },
       ],
       {
         value: expectedPremium,
@@ -1199,7 +1201,7 @@ describe('buyCover', function () {
     const reentrantExploiter = await ReentrantExploiter.deploy();
     await memberRoles.setRole(reentrantExploiter.address, 2);
 
-    const { amount, productId, coverAsset, period, poolId, targetPriceRatio, priceDenominator } = buyCoverFixture;
+    const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator } = buyCoverFixture;
 
     const commissionRatio = 500; // 5%
     const expectedBasePremium = amount
@@ -1224,7 +1226,7 @@ describe('buyCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId, coverAmountInAsset: amount }],
+      poolAllocationRequest,
       {
         value: expectedPremium,
       },
@@ -1255,7 +1257,7 @@ describe('buyCover', function () {
           commissionDestination: reentrantExploiter.address,
           ipfsData: '',
         },
-        [{ poolId, coverAmountInAsset: amount }],
+        poolAllocationRequest,
         {
           value: expectedPremium,
         },
@@ -1293,7 +1295,7 @@ describe('buyCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId, coverAmountInAsset: amount }],
+      poolAllocationRequest,
       {
         value: expectedPremium,
       },
@@ -1313,7 +1315,7 @@ describe('buyCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId, coverAmountInAsset: amount }],
+      poolAllocationRequest,
       {
         value: expectedPremium,
       },

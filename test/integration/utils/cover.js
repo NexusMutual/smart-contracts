@@ -25,7 +25,7 @@ async function buyCover({ amount, productId, coverAsset, period, cover, coverBuy
       commissionDestination: AddressZero,
       ipfsData: '',
     },
-    [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+    [{ poolId: '0', coverAmountInAsset: amount.toString(), allocationId: MaxUint256 }],
     { value: coverAsset === ETH_ASSET_ID ? expectedPremium : 0 },
   );
 }

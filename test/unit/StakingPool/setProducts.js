@@ -478,7 +478,7 @@ describe('setProducts unit tests', function () {
 
     await Promise.all(
       coverBuyParams.map(cb => {
-        return cover.allocateCapacity(cb, coverId, stakingPool.address);
+        return cover.allocateCapacity(cb, coverId, MaxUint256, stakingPool.address);
       }),
     );
 
@@ -539,7 +539,7 @@ describe('setProducts unit tests', function () {
       });
     await Promise.all(
       coverBuyParams.map(cb => {
-        return cover.connect(coverBuyer).allocateCapacity(cb, coverId, stakingPool.address);
+        return cover.connect(coverBuyer).allocateCapacity(cb, coverId, MaxUint256, stakingPool.address);
       }),
     );
 
@@ -605,7 +605,7 @@ describe('setProducts unit tests', function () {
     const coverId = 1;
     await Promise.all(
       coverBuyParams.map(cb => {
-        return cover.connect(coverBuyer).allocateCapacity(cb, coverId, stakingPool.address);
+        return cover.connect(coverBuyer).allocateCapacity(cb, coverId, MaxUint256, stakingPool.address);
       }),
     );
 

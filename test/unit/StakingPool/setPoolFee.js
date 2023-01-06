@@ -9,6 +9,7 @@ const { getTranches } = require('./helpers');
 const allocationRequestTemplate = {
   productId: 0,
   coverId: MaxUint256,
+  allocationId: MaxUint256,
   period: daysToSeconds(30),
   gracePeriod: daysToSeconds(30),
   previousStart: 0,

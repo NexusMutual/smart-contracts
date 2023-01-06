@@ -135,7 +135,7 @@ describe('emergency pause', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+        [{ poolId: '0', coverAmountInAsset: amount.toString(), allocationId: MaxUint256 }],
         {
           value: expectedPremium,
         },
@@ -178,7 +178,7 @@ describe('emergency pause', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      [{ poolId: '0', coverAmountInAsset: amount.toString(), allocationId: MaxUint256 }],
       {
         value: expectedPremium,
       },
@@ -237,7 +237,7 @@ describe('emergency pause', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      [{ poolId: '0', coverAmountInAsset: amount.toString(), allocationId: MaxUint256 }],
       {
         value: expectedPremium,
       },

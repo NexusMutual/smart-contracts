@@ -199,7 +199,7 @@ describe('updateMCR', function () {
         commissionDestination: ethers.constants.AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount }],
+      [{ poolId: '0', coverAmountInAsset: amount, allocationId: MaxUint256 }],
       { value: expectedPremium },
     );
 

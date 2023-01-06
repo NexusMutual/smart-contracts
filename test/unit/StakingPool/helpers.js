@@ -6,6 +6,7 @@ const { daysToSeconds } = require('../utils').helpers;
 
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
+const { MaxUint256 } = ethers.constants;
 
 const TRANCHE_DURATION = daysToSeconds(91);
 const BUCKET_DURATION = daysToSeconds(28);
@@ -181,6 +182,7 @@ async function generateRewards(
   const allocationRequest = {
     productId: 0,
     coverId: 0,
+    allocationId: MaxUint256,
     period,
     gracePeriod,
     previousStart: 0,

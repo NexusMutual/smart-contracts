@@ -151,7 +151,7 @@ describe('removeAsset', function () {
       expect(minAmount).to.be.equal(parseEther('24360'));
       expect(maxAmount).to.be.equal(parseEther('32500'));
       expect(maxSlippageRatio).to.be.equal(0);
-      // TODO: does this need to be exactly this timestamp?
+      // this value is currently hardcoded in the Pool's constructor
       expect(lastSwapTime).to.be.equal(1633425218);
 
       const expectedInvestmentAssets = [stETH.address];

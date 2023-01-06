@@ -52,13 +52,8 @@ describe('extendDeposit', function () {
     const { firstActiveTrancheId: trancheId } = await getTranches();
     await setTime((trancheId + 1) * TRANCHE_DURATION);
 
-    const { firstActiveTrancheId } = await getTranches();
-    {
-      const totalSupply = await stakingPool.totalSupply();
-      expect(totalSupply).to.equal(1);
-    }
-
-    await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, 0, AddressZero);
+    expect(await stakingPool.totalSupply()).to.equal(1);
+    await stakingPool.connect(user).depositTo(amount, trancheId + 1, 0, AddressZero);
   });
 
   it('reverts if token id is 0', async function () {

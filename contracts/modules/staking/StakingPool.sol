@@ -893,13 +893,16 @@ contract StakingPool is IStakingPool {
       request.globalCapacityRatio,
       request.capacityReductionRatio
     );
+
     {
       uint remainingAmount = coverAllocationAmount;
       uint packedCoverAllocations;
+
       for (uint i = startIndex; i < MAX_ACTIVE_TRANCHES; i++) {
 
         initialCapacityUsed += trancheAllocations[i];
         totalCapacity += trancheCapacities[i - startIndex];
+
         if (remainingAmount == 0) {
           // not breaking out of the for loop because we need the total capacity calculated above
           continue;
@@ -915,14 +918,17 @@ contract StakingPool is IStakingPool {
         coverAllocations[i] = allocatedAmount;
         trancheAllocations[i] += allocatedAmount;
         remainingAmount -= allocatedAmount;
-        packedCoverAllocations &= uint32(allocatedAmount) << i * 32;
-        console.log(packedCoverAllocations);
+
+        console.log("adding allocatedAmount %s for i = %s", allocatedAmount, i);
+        packedCoverAllocations |= allocatedAmount << i * 32;
       }
 
+      console.log(packedCoverAllocations);
       coverTrancheAllocations[allocationId] = packedCoverAllocations;
 
       require(remainingAmount == 0, "StakingPool: Insufficient capacity");
     }
+
     updateExpiringCoverAmounts(
       request.productId,
       _firstActiveTrancheId,

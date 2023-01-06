@@ -1,11 +1,14 @@
-const { Role } = require('../utils').constants;
-const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { expect } = require('chai');
+
+const { Role } = require('../utils').constants;
+
+const { BigNumber } = ethers;
 const { AddressZero } = ethers.constants;
 
 describe('state management', function () {
   let membersCount;
-  const rolesCount = 3;
+
   before(function () {
     const { members } = this.accounts;
     membersCount = members.length + 1; // additional AB member
@@ -20,9 +23,7 @@ describe('state management', function () {
 
     const { memberArray } = await memberRoles.members(Role.Member);
     expect(memberArray.length).to.be.equal(membersCount);
-    members.forEach(member => {
-      expect(memberArray).to.include(member.address);
-    });
+    members.forEach(member => expect(memberArray).to.include(member.address));
     expect(memberArray).to.include(abMember.address);
   });
 
@@ -30,9 +31,13 @@ describe('state management', function () {
     const { memberRoles } = this.contracts;
     const [member] = this.accounts.members;
 
-    const assignedRolesMember = await memberRoles.roles(member.address);
-    expect(assignedRolesMember[0]).to.be.equal(Role.Member);
-    expect(assignedRolesMember.length).to.be.equal(rolesCount);
+    // functions returns an array of the same length as the number of roles
+    // non-zero elements represent the role id
+    // for a member, it will return the role id Member (2) and two additional zero items
+    const expectedRolesArray = [Role.Member, 0, 0];
+    const actualRoles = await memberRoles.roles(member.address);
+
+    expect(actualRoles).to.be.deep.equal(expectedRolesArray);
   });
 
   it('should return authorized address for role', async function () {
@@ -44,17 +49,16 @@ describe('state management', function () {
 
   it('should return length of all roles', async function () {
     const { memberRoles } = this.contracts;
+    const actualLengths = await memberRoles.getMemberLengthForAllRoles();
 
-    const [unAssignedMembersLength, advisoryBoardMembersLength, membersMembersLength] =
-      await memberRoles.getMemberLengthForAllRoles();
-    expect(unAssignedMembersLength).to.be.equal(0);
-    expect(advisoryBoardMembersLength).to.be.equal(1);
-    expect(membersMembersLength).to.be.equal(membersCount);
+    // unassigned length (0), ab array length, member array length
+    const expectedLengths = [0, 1, membersCount];
+
+    expect(actualLengths).to.be.deep.equal(expectedLengths);
   });
 
   it('should return members length', async function () {
     const { memberRoles } = this.contracts;
-
     const membersLength = await memberRoles.membersLength(Role.Member);
     expect(membersLength).to.be.equal(membersCount);
   });

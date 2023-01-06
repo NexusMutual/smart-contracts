@@ -1,14 +1,16 @@
-const { InternalContractsIDs } = require('../utils').constants;
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { hex } = require('../../../lib/helpers');
-const {
-  constants: { AddressZero },
-} = require('ethers');
+
+const { InternalContractsIDs } = require('../utils').constants;
+const { hex } = require('../utils').helpers;
+
+const { AddressZero } = ethers.constants;
 
 describe('changeDependentContractAddress', function () {
   it('should change authorized address for the role', async function () {
     const { quotationData, memberRoles, master } = this.contracts;
     const { governanceContracts, defaultSender } = this.accounts;
+
     await quotationData.connect(governanceContracts[0]).setKycAuthAddress(defaultSender.address);
     await memberRoles.connect(governanceContracts[0]).setKycAuthAddress(quotationData.address);
 
@@ -17,12 +19,10 @@ describe('changeDependentContractAddress', function () {
     const p1AddressBefore = await memberRoles.internalContracts(InternalContractsIDs.P1);
     const coAddressBefore = await memberRoles.internalContracts(InternalContractsIDs.CO);
 
-    await Promise.all([
-      master.setLatestAddress(hex('CO'), AddressZero),
-      master.setTokenAddress(AddressZero),
-      master.setLatestAddress(hex('TC'), AddressZero),
-      master.setLatestAddress(hex('P1'), AddressZero),
-    ]);
+    await master.setLatestAddress(hex('CO'), AddressZero);
+    await master.setTokenAddress(AddressZero);
+    await master.setLatestAddress(hex('TC'), AddressZero);
+    await master.setLatestAddress(hex('P1'), AddressZero);
 
     await memberRoles.changeDependentContractAddress();
     const tkAddressAfter = await memberRoles.internalContracts(InternalContractsIDs.TK);

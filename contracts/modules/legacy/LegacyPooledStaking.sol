@@ -959,17 +959,9 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
   }
 
   function changeDependentContractAddress() public {
-    // master = INXMMaster(readInternalContractsSlot());
-
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
     internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
-  }
-
-  function readInternalContractsSlot() public view returns (address asAddress) {
-    assembly {
-      asAddress := sload(internalContracts.slot)
-    }
   }
 
   function getV1PriceForProduct(uint id) pure internal returns (uint96) {

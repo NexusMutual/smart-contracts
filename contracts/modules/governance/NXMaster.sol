@@ -67,7 +67,6 @@ contract NXMaster is INXMMaster {
   ) external onlyAuthorizedToGovern {
     require(newContractCodes.length == newAddresses.length, "NXMaster: newContractCodes.length != newAddresses.length.");
     require(newContractCodes.length == _types.length, "NXMaster: newContractCodes.length != _types.length");
-
     for (uint i = 0; i < newContractCodes.length; i++) {
       addNewInternalContract(newContractCodes[i], newAddresses[i], _types[i]);
     }
@@ -96,7 +95,6 @@ contract NXMaster is INXMMaster {
     } else if (_type == uint(ContractType.Proxy)) {
 
       newInternalContract = payable(new OwnedUpgradeabilityProxy(contractAddress));
-
       isProxy[contractCode] = true;
     } else {
       revert("NXMaster: Unsupported contract type");

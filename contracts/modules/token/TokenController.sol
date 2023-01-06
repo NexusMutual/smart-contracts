@@ -2,17 +2,16 @@
 
 pragma solidity ^0.8.16;
 
+import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IGovernance.sol";
-import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../libraries/SafeUintCast.sol";
-import "../../abstract/MasterAwareV2.sol";
 import "./external/LockHandler.sol";
 
 contract TokenController is ITokenController, LockHandler, MasterAwareV2 {

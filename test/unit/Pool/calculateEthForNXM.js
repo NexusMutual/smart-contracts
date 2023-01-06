@@ -1,13 +1,13 @@
 const { ethers } = require('hardhat');
-const { BigNumber } = ethers;
-const { parseEther } = ethers.utils;
 const { expect } = require('chai');
-const { calculateEthForNXMRelativeError, percentageBigNumber, calculatePurchasedTokensWithFullIntegral } =
+
+const { toDecimal, calculateEthForNXMRelativeError, percentageBigNumber, calculatePurchasedTokensWithFullIntegral } =
   require('../utils').tokenPrice;
 const { DIVISION_BY_ZERO } = require('../utils').errors;
-const Decimal = require('decimal.js');
 
-const maxRelativeError = Decimal(0.0006);
+const { BigNumber } = ethers;
+const { parseEther } = ethers.utils;
+const maxRelativeError = toDecimal(0.0006);
 
 function errorMessage({ ethOut, expectedEthOut, relativeError }) {
   return `Resulting eth value ${ethOut.toString()} is not close enough to expected ${expectedEthOut.toFixed()}
@@ -140,8 +140,8 @@ describe('calculateEthForNXM', function () {
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
 
     // spread increases for high purchases
-    const maxRelativeError = Decimal(0.05);
-    expect(Decimal(ethOut.toString()).lte(expectedEthOut)).to.be.equal(
+    const maxRelativeError = toDecimal(0.05);
+    expect(toDecimal(ethOut.toString()).lte(expectedEthOut)).to.be.equal(
       true,
       `${ethOut.toString()} > ${expectedEthOut.toFixed()}`,
     );
@@ -198,8 +198,8 @@ describe('calculateEthForNXM', function () {
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
 
     // spread increases for high purchases
-    const maxRelativeError = Decimal(0.05);
-    expect(Decimal(ethOut.toString()).lte(expectedEthOut)).to.be.equal(
+    const maxRelativeError = toDecimal(0.05);
+    expect(toDecimal(ethOut.toString()).lte(expectedEthOut)).to.be.equal(
       true,
       `${ethOut.toString()} > ${expectedEthOut.toFixed()}`,
     );

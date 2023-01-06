@@ -3,7 +3,6 @@ const { expect } = require('chai');
 
 const { Role } = require('../utils').constants;
 
-const { BigNumber } = ethers;
 const { AddressZero } = ethers.constants;
 
 describe('state management', function () {

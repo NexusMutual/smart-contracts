@@ -14,6 +14,17 @@ describe('switchMembership', function () {
     expect(hasMemberRole).to.be.equal(true);
   });
 
+  it('grants the AB member role to the new address', async function () {
+    const { memberRoles, nxm } = this.contracts;
+    const { nonMembers, advisoryBoardMembers } = this.accounts;
+
+    await nxm.connect(advisoryBoardMembers[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
+    await memberRoles.connect(advisoryBoardMembers[0]).switchMembership(nonMembers[0].address);
+    const hasABMemberRole = await memberRoles.checkRole(nonMembers[0].address, Role.AdvisoryBoard);
+
+    expect(hasABMemberRole).to.be.equal(true);
+  });
+
   it('removes the member role from the initial address', async function () {
     const { memberRoles, nxm } = this.contracts;
     const { members, nonMembers } = this.accounts;
@@ -76,6 +87,33 @@ describe('switchMembership', function () {
     await nxm.connect(members[0]).approve(memberRoles.address, ethers.constants.MaxUint256);
     await expect(memberRoles.connect(nonMembers[0]).switchMembership(nonMembers[1].address)).to.be.revertedWith(
       'The current address is not a member',
+    );
+  });
+
+  it('reverts when member tokens are locked', async function () {
+    const { memberRoles, nxm } = this.contracts;
+    const {
+      members: [member],
+      nonMembers: [nonMember],
+    } = this.accounts;
+
+    await nxm.setLock(member.address, 1000);
+    await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
+      'Locked for governance voting',
+    );
+  });
+
+  it('reverts when member system is paused', async function () {
+    const { memberRoles, master } = this.contracts;
+    const {
+      members: [member],
+      nonMembers: [nonMember],
+    } = this.accounts;
+
+    await master.pause();
+
+    await expect(memberRoles.connect(member).switchMembership(nonMember.address)).to.be.revertedWith(
+      'System is paused',
     );
   });
 

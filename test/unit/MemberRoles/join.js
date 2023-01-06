@@ -1,9 +1,9 @@
-const { expect } = require('chai');
 const { ethers, network } = require('hardhat');
-const { expectRevert } = require('@openzeppelin/test-helpers');
-const { parseUnits } = require('ethers/lib/utils');
-const { arrayify, splitSignature } = ethers.utils;
+const { expect } = require('chai');
+
 const { signMembershipApproval } = require('../utils').membership;
+
+const { arrayify, parseUnits, splitSignature } = ethers.utils;
 const JOINING_FEE = parseUnits('0.002');
 
 describe('join', function () {
@@ -148,7 +148,22 @@ describe('join', function () {
   });
 
   it('reverts when the system is paused', async function () {
-    // [todo]
+    const { memberRoles, master } = this.contracts;
+
+    await master.pause();
+    const { nonMembers, defaultSender: kycAuthSigner } = this.accounts;
+
+    const membershipApprovalData0 = await signMembershipApproval({
+      nonce: 0,
+      address: nonMembers[0].address,
+      kycAuthSigner,
+    });
+
+    await expect(
+      memberRoles.join(nonMembers[0].address, 0, arrayify(membershipApprovalData0), {
+        value: JOINING_FEE,
+      }),
+    ).to.be.revertedWith('MemberRoles: Emergency pause applied');
   });
 
   it('reverts when the value sent is different than the joining fee', async function () {
@@ -209,12 +224,9 @@ describe('join', function () {
 
     const { compact } = await splitSignature(membershipApprovalData0);
 
-    await expectRevert(
-      memberRoles.join(nonMembers[0].address, 0, arrayify(compact), {
-        value: JOINING_FEE,
-      }),
-      'ECDSA: invalid signature length',
-    );
+    await expect(
+      memberRoles.join(nonMembers[0].address, 0, arrayify(compact), { value: JOINING_FEE }),
+    ).to.be.revertedWith('ECDSA: invalid signature length');
   });
 
   it('reverts if the transfer of the joining fee to the pool fails', async function () {

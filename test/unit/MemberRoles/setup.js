@@ -1,67 +1,64 @@
-const { ethers } = require('hardhat');
-const { hex } = require('../../../lib/helpers');
-const { getAccounts } = require('../../utils/accounts');
-const { parseEther, defaultAbiCoder, hexZeroPad, toUtf8Bytes } = ethers.utils;
+const { ethers, artifacts } = require('hardhat');
+
+const { hex } = require('../utils').helpers;
+const { getAccounts } = require('../utils').accounts;
+const { setCode } = require('../utils').evm;
+const { Role } = require('../utils').constants;
+
+const { AddressZero } = ethers.constants;
+const { parseEther, formatBytes32String } = ethers.utils;
 
 async function setup() {
+  const TokenControllerMock = await ethers.getContractFactory('TokenControllerMock');
+  const tokenController = await TokenControllerMock.deploy();
+
   const NXM = await ethers.getContractFactory('NXMTokenMock');
   const nxm = await NXM.deploy();
-  await nxm.deployed();
+  await nxm.setOperator(tokenController.address);
 
   const MemberRoles = await ethers.getContractFactory('MemberRoles');
   const memberRoles = await MemberRoles.deploy();
-  await memberRoles.deployed();
-
-  const TokenControllerMock = await ethers.getContractFactory('TokenControllerMock');
-  const tokenController = await TokenControllerMock.deploy();
-  await tokenController.deployed();
-
-  nxm.setOperator(tokenController.address);
 
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();
-  await master.deployed();
 
   const Pool = await ethers.getContractFactory('MRMockPool');
   const pool = await Pool.deploy();
-  await pool.deployed();
 
   const CoverNFT = await ethers.getContractFactory('MRMockCoverNFT');
   const coverNFT = await CoverNFT.deploy('', '');
-  await coverNFT.deployed();
 
   const Cover = await ethers.getContractFactory('MRMockCover');
-  const cover = await Cover.deploy(coverNFT.address);
-  await cover.deployed();
+  const cover = await Cover.deploy(coverNFT.address, memberRoles.address);
 
   const Governance = await ethers.getContractFactory('MRMockGovernance');
   const governance = await Governance.deploy();
-  await governance.deployed();
+
+  // quotation data is currently hardcoded in the MemberRoles contract
+  // using setCode to deploy the QD mock at that specific address
+  const quotationDataAddress = '0x1776651F58a17a50098d31ba3C3cD259C1903f7A';
+  const quotationDataArtifact = await artifacts.readArtifact('MRMockQuotationData');
+  await setCode(quotationDataAddress, quotationDataArtifact.deployedBytecode);
+  const quotationData = await ethers.getContractAt('MRMockQuotationData', quotationDataAddress);
 
   const StakingPool = await ethers.getContractFactory('MRMockStakingPool');
   const stakingPool0 = await StakingPool.deploy('', '');
-  await stakingPool0.deployed();
   const stakingPool1 = await StakingPool.deploy('', '');
-  await stakingPool1.deployed();
   const stakingPool2 = await StakingPool.deploy('', '');
-  await stakingPool2.deployed();
 
   await cover.addStakingPools([stakingPool0.address, stakingPool1.address, stakingPool2.address]);
 
-  const masterInitTxs = await Promise.all([
-    master.setLatestAddress(hex('CO'), cover.address),
-    master.setTokenAddress(nxm.address),
-    master.setLatestAddress(hex('TC'), tokenController.address),
-    master.setLatestAddress(hex('P1'), pool.address),
-    master.setLatestAddress(hex('MR'), memberRoles.address),
-    master.setLatestAddress(hex('GV'), governance.address),
-    master.enrollInternal(tokenController.address),
-    master.enrollInternal(pool.address),
-    master.enrollInternal(nxm.address),
-    master.enrollInternal(cover.address),
-    master.enrollInternal(memberRoles.address),
-  ]);
-  await Promise.all(masterInitTxs.map(x => x.wait()));
+  await master.setLatestAddress(hex('CO'), cover.address);
+  await master.setTokenAddress(nxm.address);
+  await master.setLatestAddress(hex('TC'), tokenController.address);
+  await master.setLatestAddress(hex('P1'), pool.address);
+  await master.setLatestAddress(hex('MR'), memberRoles.address);
+  await master.setLatestAddress(hex('GV'), governance.address);
+  await master.enrollInternal(tokenController.address);
+  await master.enrollInternal(pool.address);
+  await master.enrollInternal(nxm.address);
+  await master.enrollInternal(cover.address);
+  await master.enrollInternal(memberRoles.address);
 
   const accounts = await getAccounts();
   await master.enrollGovernance(accounts.governanceContracts[0].address);
@@ -75,32 +72,34 @@ async function setup() {
 
   await memberRoles
     .connect(accounts.governanceContracts[0])
-    .addRole(
-      defaultAbiCoder.encode(['bytes32'], [hexZeroPad(toUtf8Bytes('Unassigned'), 32)]),
-      'Unassigned',
-      '0x0000000000000000000000000000000000000000',
-    );
+    .addRole(formatBytes32String('Unassigned'), 'Unassigned', AddressZero);
+
   await memberRoles
     .connect(accounts.governanceContracts[0])
     .addRole(
-      defaultAbiCoder.encode(['bytes32'], [hexZeroPad(toUtf8Bytes('Advisory Board'), 32)]),
-      'Selected few members that are deeply entrusted by the dApp.',
-      '0x0000000000000000000000000000000000000000',
-    );
-  await memberRoles
-    .connect(accounts.governanceContracts[0])
-    .addRole(
-      defaultAbiCoder.encode(['bytes32'], [hexZeroPad(toUtf8Bytes('Member'), 32)]),
-      'Represents all users of Mutual.',
-      '0x0000000000000000000000000000000000000000',
+      formatBytes32String('Advisory Board'),
+      'Selected few members that are deeply entrusted by the dApp',
+      AddressZero,
     );
 
+  await memberRoles
+    .connect(accounts.governanceContracts[0])
+    .addRole(formatBytes32String('Member'), 'Represents all users of Mutual', AddressZero);
+
+  // Setting Members
   for (const member of accounts.members) {
-    await master.enrollMember(member.address, 1);
-    await memberRoles.connect(accounts.governanceContracts[0]).updateRole(member.address, 2, true);
+    await master.enrollMember(member.address, Role.Member);
+    await memberRoles.connect(accounts.governanceContracts[0]).updateRole(member.address, Role.Member, true);
     await nxm.mint(member.address, parseEther('10000'));
     await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
   }
+
+  // Setting AB Member
+  const [abMember] = accounts.advisoryBoardMembers;
+  await master.enrollMember(abMember.address, Role.AdvisoryBoard);
+  await memberRoles.connect(accounts.governanceContracts[0]).updateRole(abMember.address, Role.AdvisoryBoard, true);
+  await master.enrollMember(abMember.address, Role.Member);
+  await memberRoles.connect(accounts.governanceContracts[0]).updateRole(abMember.address, Role.Member, true);
 
   this.accounts = accounts;
   this.contracts = {
@@ -114,6 +113,7 @@ async function setup() {
     stakingPool0,
     stakingPool1,
     stakingPool2,
+    quotationData,
   };
 }
 

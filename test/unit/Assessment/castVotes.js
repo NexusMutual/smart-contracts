@@ -1,6 +1,7 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { setTime } = require('./helpers');
+const { Role } = require('../../../lib/constants');
 
 const { parseEther } = ethers.utils;
 const daysToSeconds = days => days * 24 * 60 * 60;
@@ -474,7 +475,7 @@ describe('castVotes', function () {
 
     // Add AB and nonMember accounts as new members
     for (const member of this.accounts.advisoryBoardMembers) {
-      await memberRoles.enrollMember(member.address, 2);
+      await memberRoles.enrollMember(member.address, Role.Member);
       await nxm.mint(member.address, parseEther('10000'));
       await nxm.connect(member).approve(tokenController.address, parseEther('10000'));
     }

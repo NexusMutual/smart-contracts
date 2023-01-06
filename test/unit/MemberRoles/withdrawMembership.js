@@ -10,7 +10,17 @@ describe('withdrawMembership', function () {
     await expect(memberRoles.connect(nonMember1).withdrawMembership()).to.be.reverted;
   });
 
-  it("removes member's the adress from the whitelist", async function () {
+  it('reverts when token is locked', async function () {
+    const { memberRoles, nxm } = this.contracts;
+    const {
+      members: [member],
+    } = this.accounts;
+
+    await nxm.setLock(member.address, 1000);
+    await expect(memberRoles.connect(member).withdrawMembership()).to.be.reverted;
+  });
+
+  it("removes member's the address from the whitelist", async function () {
     const { memberRoles, tokenController } = this.contracts;
     const {
       members: [member1],

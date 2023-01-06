@@ -383,7 +383,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     address _memberAddress,
     uint _roleId
   ) public override view returns (bool) {//solhint-disable-line
-    if (_roleId == uint(Role.UnAssigned))
+    if (_roleId == uint(Role.Unassigned))
       return true;
     else
       if (memberRoleData[_roleId].memberActive[_memberAddress]) //solhint-disable-line

@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 
 interface IMemberRoles {
 
-  enum Role {UnAssigned, AdvisoryBoard, Member, Owner}
+  enum Role {Unassigned, AdvisoryBoard, Member, Owner}
 
   function join(address _userAddress, uint nonce, bytes calldata signature) external payable;
 

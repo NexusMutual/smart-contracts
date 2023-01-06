@@ -61,8 +61,6 @@ interface IPool {
 
   function getPoolValueInEth() external view returns (uint);
 
-  function transferAssetFrom(address asset, address from, uint amount) external;
-
   function getEthForNXM(uint nxmAmount) external view returns (uint ethAmount);
 
   function calculateEthForNXM(

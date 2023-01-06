@@ -423,15 +423,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
   }
 
-  function transferAssetFrom (
-    address assetAddress,
-    address from,
-    uint amount
-  ) public override onlyInternal whenNotPaused {
-    IERC20 token = IERC20(assetAddress);
-    token.safeTransferFrom(from, address(this), amount);
-  }
-
   function transferAssetToSwapOperator (
     address assetAddress,
     uint amount

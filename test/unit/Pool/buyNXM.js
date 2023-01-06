@@ -1,6 +1,5 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 
 describe('buyNXM', function () {
@@ -10,13 +9,11 @@ describe('buyNXM', function () {
 
     const mcrEth = parseEther('160000');
     const initialAssetValue = mcrEth;
-    const buyValue = BigNumber.from(0);
 
     await mcr.setMCR(mcrEth);
-
     await member.sendTransaction({ to: pool.address, value: initialAssetValue });
 
-    await expect(pool.connect(member).buyNXM('1', { value: buyValue })).to.be.revertedWith('Pool: ethIn > 0');
+    await expect(pool.connect(member).buyNXM('1')).to.be.revertedWith('Pool: ethIn > 0');
   });
 
   it('reverts on purchase higher than of 5% ETH of mcrEth', async function () {
@@ -25,7 +22,7 @@ describe('buyNXM', function () {
 
     const mcrEth = parseEther('160000');
     const initialAssetValue = mcrEth;
-    const buyValue = mcrEth.div(BigNumber.from(20)).add(parseEther('1000'));
+    const buyValue = mcrEth.div(20).add(parseEther('1000'));
 
     await mcr.setMCR(mcrEth);
     await member.sendTransaction({ to: pool.address, value: initialAssetValue });
@@ -47,9 +44,9 @@ describe('buyNXM', function () {
     await member.sendTransaction({ to: pool.address, value: initialAssetValue });
 
     const preEstimatedTokenBuyValue = await pool.getNXMForEth(buyValue);
-    await expect(
-      pool.connect(member).buyNXM(preEstimatedTokenBuyValue.add(BigNumber.from(1)), { value: buyValue }),
-    ).to.be.revertedWith('Pool: tokensOut is less than minTokensOut');
+    await expect(pool.connect(member).buyNXM(preEstimatedTokenBuyValue.add(1), { value: buyValue })).to.be.revertedWith(
+      'Pool: tokensOut is less than minTokensOut',
+    );
   });
 
   it('reverts on purchase if current MCR% exceeds 400%', async function () {
@@ -57,8 +54,8 @@ describe('buyNXM', function () {
     const [member] = this.accounts.members;
 
     const mcrEth = parseEther('160000');
-    const initialAssetValue = mcrEth.mul(BigNumber.from(4)).add(BigNumber.from((1e20).toString()));
-    const buyValue = mcrEth.div(BigNumber.from(20)).add(parseEther('1000'));
+    const initialAssetValue = mcrEth.mul(4).add(parseEther('100'));
+    const buyValue = mcrEth.div(20).add(parseEther('1000'));
 
     await mcr.setMCR(mcrEth);
     await member.sendTransaction({ to: pool.address, value: initialAssetValue });
@@ -74,7 +71,7 @@ describe('buyNXM', function () {
 
     const mcrEth = parseEther('0');
     const initialAssetValue = parseEther('160000');
-    const buyValue = mcrEth.div(BigNumber.from(20));
+    const buyValue = mcrEth.div(20);
 
     await mcr.setMCR(mcrEth);
     await member.sendTransaction({ to: pool.address, value: initialAssetValue });
@@ -88,7 +85,7 @@ describe('buyNXM', function () {
 
     const mcrEth = parseEther('160000');
     const initialAssetValue = mcrEth.mul(150).div(100);
-    const buyValue = mcrEth.div(BigNumber.from(20));
+    const buyValue = mcrEth.div(20);
 
     await mcr.setMCR(mcrEth);
     await member.sendTransaction({ to: pool.address, value: initialAssetValue });

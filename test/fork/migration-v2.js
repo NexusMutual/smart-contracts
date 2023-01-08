@@ -241,8 +241,10 @@ describe('v2 migration', function () {
     );
   });
 
-  it('add proposal category 43 (Remove contracts)', async function () {
+  it('add proposal category (Remove contracts)', async function () {
     REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID = await this.proposalCategory.totalCategories();
+    console.log(`Remove contracts Category Id = ${REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID}`);
+
     await submitGovernanceProposalV2(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(

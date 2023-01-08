@@ -7,7 +7,7 @@ const path = require('path');
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { hex } = require('../../lib/helpers');
-const { unlock, fund } = require('./utils');
+const { unlock } = require('./utils');
 
 const { setNextBlockTime } = require('../utils/evm');
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
@@ -28,10 +28,8 @@ const ENZYME_FUND_VALUE_CALCULATOR_ROUTER = '0x7c728cd0CfA92401E01A4849a01b57EE5
 const ENZYME_COMPTROLLER_PROXY_ADDRESS = '0xa5bf4350da6193b356ac15a3dbd777a687bc216e';
 const ENZYME_ADDRESS_LIST_REGISTRY = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
 
-const ListIdForDepositors = 217;
 const ListIdForReceivers = 218;
 const AddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
-const AddToListSelector = 'addToList(uint256,address[])';
 
 const MIN_POOL_ETH = 0;
 
@@ -243,7 +241,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it.skip('add proposal category 43 (Remove contracts)', async function () {
+  it('add proposal category 43 (Remove contracts)', async function () {
     REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID = await this.proposalCategory.totalCategories();
     await submitGovernanceProposalV2(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)

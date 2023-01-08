@@ -21,7 +21,7 @@
   "homepage": "https://github.com/NexusMutual/smart-contracts",
   "dependencies": {
     "@openzeppelin/contracts": "^2.5.1",
-    "@openzeppelin/contracts-v4": "npm:@openzeppelin/contracts@4.7.3",
+    "@openzeppelin/contracts-v4": "npm:@openzeppelin/contracts@^4.7.3",
     "@openzeppelin/test-helpers": "^0.5.16",
     "dotenv": "^8.6.0",
     "ethereum-cryptography": "^1.0.1",
@@ -78,7 +78,7 @@
     "test-fuzzing": "hardhat test test/fuzzing/index.js",
     "deploy": "hardhat run scripts/deploy.js",
     "deploy-local": "hardhat run scripts/deploy.js --network localhost",
-    "test-fork": "TEST_ENV_FORK=https://mainnet.infura.io/v3/0755a63409454181863b2938a61d2210 hardhat test test/fork/index.js",
+    "test-fork": "TEST_ENV_FORK=http://localhost:8545 hardhat test test/fork/index.js",
     "typechain": "hardhat typechain",
     "distributor-deploy-kovan": "hardhat run --network kovan scripts/distributor/deploy-distributor.js",
     "self-kyc-kovan": "hardhat run --network kovan scripts/distributor/self-kyc.js"

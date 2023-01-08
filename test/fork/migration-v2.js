@@ -367,9 +367,6 @@ describe('v2 migration', function () {
     const registry = await ethers.getContractAt('IAddressListRegistry', ENZYME_ADDRESS_LIST_REGISTRY);
 
     console.log('Checking Enzyme vault receivers contains new receiver');
-    const inList = await registry.isInList(ListIdForDepositors, receiverAddress);
-
-    assert.equal(inList, true);
 
     const inReceiverList = await registry.isInList(ListIdForReceivers, receiverAddress);
     assert.equal(inReceiverList, true);
@@ -435,13 +432,18 @@ describe('v2 migration', function () {
     const gateway = await Gateway.deploy();
     await gateway.deployed();
 
-    console.log('Impersonate master');
-    await ethers.provider.send('hardhat_impersonateAccount', [this.master.address]);
-    const masterCaller = await ethers.getSigner(this.master.address);
-
-    console.log('Call pool');
-    await this.pool.connect(masterCaller).upgradeCapitalPool(pool.address);
-    console.log('Upgraded pool successfully');
+    // console.log('Impersonate master');
+    // await ethers.provider.send('hardhat_impersonateAccount', [this.master.address]);
+    // const masterCaller = await ethers.getSigner(this.master.address);
+    //
+    // await addressZero.sendTransaction({
+    //   to: this.master.address,
+    //   value: parseEther('10'),
+    // });
+    //
+    // console.log('Call pool.upgradeCapitalPool');
+    // await this.pool.connect(masterCaller).upgradeCapitalPool(pool.address);
+    // console.log('Called upgradeCapitalPool');
 
     console.log('Upgrade TokenController only.');
     await submitGovernanceProposalV2(

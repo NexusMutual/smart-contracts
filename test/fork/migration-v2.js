@@ -54,27 +54,22 @@ const getContractFactory = async providerOrSigner => {
   };
 };
 
+// This works with the legacy V1 version of Governance.sol
 const submitGovernanceProposal = async (categoryId, actionData, signers, gv) => {
   const id = await gv.getProposalLength();
   console.log(`Creating proposal ${id}`);
 
   await gv.connect(signers[0]).createProposal('', '', '', 0);
-  console.log('debug #0');
   await gv.connect(signers[0]).categorizeProposal(id, categoryId, 0);
-  console.log('debug #1');
   await gv.connect(signers[0]).submitProposalWithSolution(id, '', actionData);
 
-  console.log('debug #2');
-
   for (let i = 0; i < signers.length; i++) {
-    console.log(`debug #3.${i}`);
     await gv.connect(signers[i]).submitVote(id, 1);
   }
 
   const { timestamp } = await ethers.provider.getBlock('latest');
   await setNextBlockTime(timestamp + 7 * 24 * 3600); // +7 days
 
-  console.log(`debug #4`);
   const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
   const receipt = await tx.wait();
   assert.equal(
@@ -87,27 +82,21 @@ const submitGovernanceProposal = async (categoryId, actionData, signers, gv) => 
   assert.equal(proposal[2].toNumber(), 3);
 };
 
+// This works with the V2 version of Governance.sol
 const submitGovernanceProposalV2 = async (categoryId, actionData, signers, gv) => {
   const id = await gv.getProposalLength();
-  console.log(`Creating proposal ${id}`);
 
   await gv.connect(signers[0]).createProposal('', '', '', 0);
-  console.log('debug #0');
   await gv.connect(signers[0]).categorizeProposal(id, categoryId, 0);
-  console.log('debug #1');
   await gv.connect(signers[0]).submitProposalWithSolution(id, '', actionData);
 
-  console.log('debug #2');
-
   for (let i = 0; i < signers.length; i++) {
-    console.log(`debug #3.${i}`);
     await gv.connect(signers[i]).submitVote(id, 1, []);
   }
 
   const { timestamp } = await ethers.provider.getBlock('latest');
   await setNextBlockTime(timestamp + 7 * 24 * 3600); // +7 days
 
-  console.log(`debug #4`);
   const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
   const receipt = await tx.wait();
   assert.equal(

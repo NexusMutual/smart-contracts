@@ -1,12 +1,13 @@
 require('dotenv').config();
 
 const fetch = require('node-fetch');
-const { ethers } = require('hardhat');
+const { ethers, web3 } = require('hardhat');
 const { expect } = require('chai');
 const path = require('path');
 const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { hex } = require('../../lib/helpers');
+const { unlock, fund } = require('./utils');
 
 const { setNextBlockTime } = require('../utils/evm');
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
@@ -24,11 +25,20 @@ const COWSWAP_SETTLEMENT = '0x9008D19f58AAbD9eD0D60971565AA8510560ab41';
 
 const ENZYMEV4_VAULT_PROXY_ADDRESS = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';
 const ENZYME_FUND_VALUE_CALCULATOR_ROUTER = '0x7c728cd0CfA92401E01A4849a01b57EE53F5b2b9';
+const ENZYME_COMPTROLLER_PROXY_ADDRESS = '0xa5bf4350da6193b356ac15a3dbd777a687bc216e';
+const ENZYME_ADDRESS_LIST_REGISTRY = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
+
+const ListIdForDepositors = 217;
+const ListIdForReceivers = 218;
+const AddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
+const AddToListSelector = 'addToList(uint256,address[])';
+
 const MIN_POOL_ETH = 0;
 
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 const { defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 
+// will be updated when categories are created.
 let ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID = 0;
 let REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID = 0;
 
@@ -328,6 +338,43 @@ describe('v2 migration', function () {
     this.swapOperator = swapOperator;
   });
 
+  async function enableAsEnzymeReceiver(receiverAddress, funder) {
+    const comptroller = await ethers.getContractAt('IEnzymeV4Comptroller', ENZYME_COMPTROLLER_PROXY_ADDRESS);
+    const vault = await ethers.getContractAt('IEnzymeV4Vault', ENZYMEV4_VAULT_PROXY_ADDRESS);
+
+    const ownerAddress = await vault.getOwner();
+
+    console.log({
+      vaultOwner: ownerAddress,
+    });
+
+    console.log('Unlocking and funding vault owner');
+    const owner = await unlock(ownerAddress);
+    await funder.sendTransaction({
+      to: owner.address,
+      value: parseEther('1000'),
+    });
+
+    const selector = web3.eth.abi.encodeFunctionSignature('addToList(uint256,address[])');
+    const receiverArgs = web3.eth.abi.encodeParameters(
+      ['uint256', 'address[]'],
+      [ListIdForReceivers, [receiverAddress]],
+    );
+
+    console.log('Updating Enzyme vault receivers');
+    await comptroller.connect(owner).vaultCallOnContract(AddressListRegistry, selector, receiverArgs);
+
+    const registry = await ethers.getContractAt('IAddressListRegistry', ENZYME_ADDRESS_LIST_REGISTRY);
+
+    console.log('Checking Enzyme vault receivers contains new receiver');
+    const inList = await registry.isInList(ListIdForDepositors, receiverAddress);
+
+    assert.equal(inList, true);
+
+    const inReceiverList = await registry.isInList(ListIdForReceivers, receiverAddress);
+    assert.equal(inReceiverList, true);
+  }
+
   it('deploy & upgrade contracts: CR, TC, MCR, MR, CO, PS, P1, GW, CoverMigrator', async function () {
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const ClaimsReward = await ethers.getContractFactory('LegacyClaimsReward');
@@ -376,6 +423,10 @@ describe('v2 migration', function () {
     );
     await pool.deployed();
 
+    await ethers.provider.send('hardhat_impersonateAccount', [AddressZero]);
+    const addressZero = await ethers.getSigner(AddressZero);
+    await enableAsEnzymeReceiver(pool.address, addressZero);
+
     const CoverMigrator = await ethers.getContractFactory('CoverMigrator');
     const coverMigrator = await CoverMigrator.deploy();
     await coverMigrator.deployed();
@@ -383,6 +434,14 @@ describe('v2 migration', function () {
     const Gateway = await ethers.getContractFactory('LegacyGateway');
     const gateway = await Gateway.deploy();
     await gateway.deployed();
+
+    console.log('Impersonate master');
+    await ethers.provider.send('hardhat_impersonateAccount', [this.master.address]);
+    const masterCaller = await ethers.getSigner(this.master.address);
+
+    console.log('Call pool');
+    await this.pool.connect(masterCaller).upgradeCapitalPool(pool.address);
+    console.log('Upgraded pool successfully');
 
     console.log('Upgrade TokenController only.');
     await submitGovernanceProposalV2(

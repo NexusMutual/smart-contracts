@@ -432,28 +432,7 @@ describe('v2 migration', function () {
     const gateway = await Gateway.deploy();
     await gateway.deployed();
 
-    // console.log('Impersonate master');
-    // await ethers.provider.send('hardhat_impersonateAccount', [this.master.address]);
-    // const masterCaller = await ethers.getSigner(this.master.address);
-    //
-    // await addressZero.sendTransaction({
-    //   to: this.master.address,
-    //   value: parseEther('10'),
-    // });
-    //
-    // console.log('Call pool.upgradeCapitalPool');
-    // await this.pool.connect(masterCaller).upgradeCapitalPool(pool.address);
-    // console.log('Called upgradeCapitalPool');
-
-    console.log('Upgrade TokenController only.');
-    await submitGovernanceProposalV2(
-      29,
-      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('TC')], [tokenController.address]]),
-      this.abMembers,
-      this.governance,
-    );
-
-    console.log('Upgrade the rest.');
+    console.log('Upgrade the first batch.');
     await submitGovernanceProposalV2(
       29, // upgradeMultipleContracts(bytes2[],address[])
       defaultAbiCoder.encode(
@@ -463,7 +442,7 @@ describe('v2 migration', function () {
             toUtf8Bytes('MR'),
             toUtf8Bytes('MC'),
             toUtf8Bytes('CO'),
-            toUtf8Bytes('CR'),
+            toUtf8Bytes('TC'),
             toUtf8Bytes('PS'),
             toUtf8Bytes('P1'),
             toUtf8Bytes('CL'),
@@ -473,7 +452,7 @@ describe('v2 migration', function () {
             memberRoles.address,
             mcr.address,
             cover.address,
-            newClaimsReward.address,
+            tokenController.address,
             pooledStaking.address,
             pool.address,
             coverMigrator.address,
@@ -481,6 +460,14 @@ describe('v2 migration', function () {
           ],
         ],
       ),
+      this.abMembers,
+      this.governance,
+    );
+
+    console.log('Upgrade ClaimsReward only. (depends on TokenController)');
+    await submitGovernanceProposalV2(
+      29,
+      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('CR')], [newClaimsReward.address]]),
       this.abMembers,
       this.governance,
     );

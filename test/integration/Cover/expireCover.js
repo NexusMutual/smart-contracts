@@ -108,7 +108,7 @@ describe.skip('expireCover', function () {
   }
 
   it('expire a cover that had a claim paid out fully, cover tracking enabled before cover buy', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, yc, ybETH } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
@@ -130,7 +130,7 @@ describe.skip('expireCover', function () {
     // Buy Cover
     await buyCover({
       ...expireCoverFixture,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       cover,
       coverBuyer1,
     });
@@ -178,7 +178,7 @@ describe.skip('expireCover', function () {
   });
 
   it('expire a cover that had a claim paid out fully, cover tracking enabled after cover buy', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, yc, ybETH } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
@@ -196,7 +196,7 @@ describe.skip('expireCover', function () {
     // Buy Cover
     await buyCover({
       ...expireCoverFixture,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       cover,
       coverBuyer1,
     });
@@ -252,7 +252,7 @@ describe.skip('expireCover', function () {
   });
 
   it('expire a cover that had a partial claim paid out, cover tracking enabled before cover buy', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, yc, ybETH } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
@@ -274,7 +274,7 @@ describe.skip('expireCover', function () {
     // Buy Cover
     await buyCover({
       ...expireCoverFixture,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       cover,
       coverBuyer1,
     });
@@ -323,7 +323,7 @@ describe.skip('expireCover', function () {
   });
 
   it('expire a cover that had a partial claim paid out, cover tracking enabled after cover buy', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, yc, ybETH } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
@@ -341,7 +341,7 @@ describe.skip('expireCover', function () {
     // Buy Cover
     await buyCover({
       ...expireCoverFixture,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       cover,
       coverBuyer1,
     });
@@ -400,7 +400,7 @@ describe.skip('expireCover', function () {
   });
 
   it('expire a cover that had a partial claim paid out, cover tracking enabled after payout', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, yc, ybETH } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
@@ -418,7 +418,7 @@ describe.skip('expireCover', function () {
     // Buy Cover
     await buyCover({
       ...expireCoverFixture,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       cover,
       coverBuyer1,
     });
@@ -475,7 +475,7 @@ describe.skip('expireCover', function () {
   });
 
   it('expire a cover that had rejected claim', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, yc, ybETH } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
@@ -497,7 +497,7 @@ describe.skip('expireCover', function () {
     // Buy Cover
     await buyCover({
       ...expireCoverFixture,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       cover,
       coverBuyer1,
     });
@@ -547,7 +547,7 @@ describe.skip('expireCover', function () {
   });
 
   it('expire a cover that had rejected claim, cover tracking enabled after cover buy', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, yc, ybETH } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
@@ -565,7 +565,7 @@ describe.skip('expireCover', function () {
     // Buy Cover
     await buyCover({
       ...expireCoverFixture,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       cover,
       coverBuyer1,
     });

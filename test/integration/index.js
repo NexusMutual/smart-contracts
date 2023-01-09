@@ -15,6 +15,7 @@ describe('INTEGRATION TESTS', function () {
   require('./IndividualClaims');
   require('./YieldTokenIncidents');
   require('./Cover');
+  require('./CoverMigrator');
   require('./Master');
   // require('./PooledStaking');
   require('./Pool');

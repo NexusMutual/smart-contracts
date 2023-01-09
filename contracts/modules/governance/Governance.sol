@@ -267,6 +267,19 @@ contract Governance is IGovernance, LegacyMasterAware {
     );
   }
 
+  /// Submit a vote on the proposal. This function signature is provided to be compatible with the legacy UI
+  ///
+  /// @param _proposalId            The id of the proposal that the user votes upon.
+  /// @param _solutionChosen        True if the vote is in favor of the proposal or false otherwise.
+  function submitVote(
+    uint _proposalId,
+    uint _solutionChosen
+  ) external {
+
+    uint[] memory managedStakingPoolIds = new uint[](0);
+    _submitVote(_proposalId, _solutionChosen, managedStakingPoolIds);
+  }
+
   /// Submit a vote on the proposal.
   ///
   /// @param _proposalId            The id of the proposal that the user votes upon.
@@ -274,18 +287,11 @@ contract Governance is IGovernance, LegacyMasterAware {
   /// @param managedStakingPoolIds  An array of staking pool ids that the user is a manager of.
   ///                               The active stake from these pools is added to the user's
   ///                               voting power.
-  function submitVote(
+  function submitVoteWithStakingPoolIds(
     uint _proposalId,
     uint _solutionChosen,
     uint[] calldata managedStakingPoolIds
   ) external {
-
-    require(allProposalData[_proposalId].propStatus ==
-      uint(Governance.ProposalStatus.VotingStarted), "Not allowed");
-
-    require(_solutionChosen < allProposalSolutions[_proposalId].length);
-
-
     _submitVote(_proposalId, _solutionChosen, managedStakingPoolIds);
   }
 
@@ -779,6 +785,11 @@ contract Governance is IGovernance, LegacyMasterAware {
     uint _solution,
     uint[] memory managedStakingPoolIds
   ) internal {
+
+    require(allProposalData[_proposalId].propStatus ==
+      uint(Governance.ProposalStatus.VotingStarted), "Not allowed");
+
+    require(_solution < allProposalSolutions[_proposalId].length);
 
     uint delegationId = followerDelegation[msg.sender];
     uint mrSequence;

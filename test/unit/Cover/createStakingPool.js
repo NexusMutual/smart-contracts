@@ -1,5 +1,8 @@
+const fs = require('fs');
+const { artifacts, ethers } = require('hardhat');
 const { expect } = require('chai');
-const { ethers } = require('hardhat');
+const { keccak256 } = require('ethereum-cryptography/keccak');
+const { bytesToHex, hexToBytes } = require('ethereum-cryptography/utils');
 
 const newPoolFixture = {
   initialPoolFee: 5, // 5%
@@ -15,19 +18,36 @@ const newPoolFixture = {
   ipfsDescriptionHash: 'Description Hash',
 };
 
-// beacon proxy init code hash
-const INIT_CODE_HASH = '203b477dc328f1ceb7187b20e5b1b0f0bc871114ada7e9020c9ac112bbfb6920';
-
 describe('createStakingPool', function () {
   it('should create and initialize a new pool minimal beacon proxy pool', async function () {
     const { cover, stakingPoolFactory } = this;
     const [stakingPoolCreator, stakingPoolManager] = this.accounts.members;
     const { initialPoolFee, maxPoolFee, productInitializationParams, ipfsDescriptionHash } = newPoolFixture;
 
-    const poolId = 0;
+    // beacon proxy init code hash
+    const stakingLibraryPath = 'contracts/libraries/StakingPoolLibrary.sol';
+    const stakingLibrary = fs.readFileSync(stakingLibraryPath, 'utf8').toString();
+    const hardcodedInitCodeHash = stakingLibrary.match(/hex'([0-9a-f]+)' \/\/ init code hash/i)[1];
 
+    const { bytecode: proxyBytecode } = await artifacts.readArtifact('MinimalBeaconProxy');
+    const requiredHash = bytesToHex(keccak256(hexToBytes(proxyBytecode.replace(/^0x/i, ''))));
+
+    // we're skipping this expect test when running the coverage
+    // solidity-coverage instrumentation modifies the contract code so we manually patched the
+    // bytecode of the contracts that are using the library. if the cover bytecode contains the
+    // hardcoded init code hash (i.e. not patched) - we're not in coverage
+    const { bytecode: coverBytecode } = await artifacts.readArtifact('Cover');
+
+    if (coverBytecode.includes(hardcodedInitCodeHash)) {
+      expect(hardcodedInitCodeHash).to.equal(
+        requiredHash,
+        'StakingPoolLibrary does not contain the actual MinimalBeaconProxy init code hash',
+      );
+    }
+
+    const poolId = 0;
     const salt = Buffer.from(poolId.toString(16).padStart(64, '0'), 'hex');
-    const initCodeHash = Buffer.from(INIT_CODE_HASH, 'hex');
+    const initCodeHash = Buffer.from(requiredHash, 'hex');
     const expectedAddress = ethers.utils.getCreate2Address(stakingPoolFactory.address, salt, initCodeHash);
 
     // calculated address check

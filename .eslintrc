@@ -16,7 +16,7 @@
     "assert": true,
     "contract": true
   },
-  "ignorePatterns": ["node_modules/", "artifacts", "coverage"],
+  "ignorePatterns": ["node_modules/", "artifacts", "coverage", "!.solcover.js"],
   "parserOptions": {
     "ecmaVersion": 2018
   },

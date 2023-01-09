@@ -93,6 +93,7 @@ struct CoverSegment {
   uint32 period; // seconds
   uint32 gracePeriod; // seconds
   uint24 globalRewardsRatio;
+  uint24 globalCapacityRatio;
 }
 
 struct ProductBucket {

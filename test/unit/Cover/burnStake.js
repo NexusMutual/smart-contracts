@@ -165,4 +165,37 @@ describe('burnStake', function () {
       );
     }
   });
+
+  it('should perform a burn with globalCapacityRatio when the cover was bought', async function () {
+    const GLOBAL_CAPACITY_RATIO = 3;
+    const { cover, accounts } = this;
+    const [internal] = this.accounts.internalContracts;
+    const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
+    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    await cover.connect(accounts.governanceContracts[0]).updateUintParameters([0], [GLOBAL_CAPACITY_RATIO]);
+
+    const burnAmountDivisor = 2;
+    const burnAmount = amount.div(burnAmountDivisor);
+    const remainingAmount = amount.sub(burnAmount);
+
+    const segmentAllocation = await cover.coverSegmentAllocations(expectedCoverId, segmentId, '0');
+    const expectedBurnAmount = segmentAllocation.coverAmountInNXM.div(burnAmountDivisor);
+
+    await cover.connect(internal).burnStake(expectedCoverId, segmentId, burnAmount);
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period,
+      amount: remainingAmount,
+      targetPriceRatio,
+      gracePeriod,
+      segmentId,
+      amountPaidOut: burnAmount,
+    });
+
+    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
+    const burnStakeCalledWith = await stakingPool.burnStakeCalledWith();
+    expect(burnStakeCalledWith).to.be.equal(expectedBurnAmount);
+  });
 });

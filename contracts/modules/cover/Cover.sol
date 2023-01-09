@@ -202,7 +202,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         (block.timestamp + 1).toUint32(), // start
         params.period, // period
         allocationRequest.gracePeriod.toUint32(),
-        globalRewardsRatio
+        globalRewardsRatio,
+        globalCapacityRatio
       )
     );
 
@@ -390,7 +391,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         start.toUint32(),
         period.toUint32(),
         productType.gracePeriod,
-        0 // global rewards ratio
+        0, // global rewards ratio
+        globalCapacityRatio
       )
     );
 
@@ -487,7 +489,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         * burnAmount
         * GLOBAL_CAPACITY_DENOMINATOR
         / segment.amount
-        / globalCapacityRatio;
+        / segment.globalCapacityRatio;
 
       stakingPool(i).burnStake(burnAmountInNXM);
 

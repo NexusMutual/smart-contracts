@@ -4,6 +4,7 @@ pragma solidity =0.8.16;
 
 import "@openzeppelin/contracts-v4/proxy/Proxy.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
+import "../../interfaces/IStakingPoolFactory.sol";
 
 /**
  * @dev This contract implements a proxy that gets the implementation address for each call from a {UpgradeableBeacon}.
@@ -22,8 +23,8 @@ contract MinimalBeaconProxy is Proxy {
    * @dev Initializes the proxy with `beacon`.
    *
    */
-  constructor(address beaconAddress) {
-    beacon = beaconAddress;
+  constructor() {
+    beacon = IStakingPoolFactory(msg.sender).beacon();
   }
 
   /**

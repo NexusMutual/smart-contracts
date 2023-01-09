@@ -4,13 +4,15 @@ pragma solidity >=0.5.0;
 
 import "@openzeppelin/contracts-v4/token/ERC721/IERC721.sol";
 
-interface ICoverNFT is IERC721 {
+interface IStakingNFT is IERC721 {
 
   function isApprovedOrOwner(address spender, uint tokenId) external returns (bool);
 
-  function mint(address to, uint tokenId) external;
-
-  function burn(uint tokenId) external;
+  function mint(uint poolId, address to) external returns (uint tokenId);
 
   function operatorTransferFrom(address from, address to, uint256 tokenId) external;
+
+  function changeOperator(address newOperator) external;
+
+  function totalSupply() external returns (uint);
 }

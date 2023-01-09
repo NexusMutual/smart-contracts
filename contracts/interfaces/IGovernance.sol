@@ -112,10 +112,16 @@ interface IGovernance {
   )
   external;
 
+  function submitVote(
+    uint _proposalId,
+    uint _solutionChosen
+  ) external;
+
   /// @dev Casts vote
   /// @param _proposalId Proposal id
   /// @param _solutionChosen solution chosen while voting. _solutionChosen[0] is the chosen solution
-  function submitVote(
+  /// @param managedStakingPoolIds An array of staking pool ids that the user is a manager of.
+  function submitVoteWithStakingPoolIds(
     uint _proposalId,
     uint _solutionChosen,
     uint[] calldata managedStakingPoolIds

@@ -25,7 +25,18 @@ contract MockLegacyQuotationData is LegacyQuotationData {
   ) external {
     uint expiryDate = now.add(uint(_coverPeriod).mul(1 days));
 
-    allCovers.push(Cover(_userAddress, _currencyCode, _sumAssured, _coverPeriod, expiryDate, _scAddress, premiumNXM));
+    allCovers.push(
+      Cover(
+        _userAddress,
+        _currencyCode,
+        _sumAssured,
+        _coverPeriod,
+        expiryDate,
+        _scAddress,
+        premiumNXM
+      )
+    );
+
     uint cid = allCovers.length.sub(1);
     userCover[_userAddress].push(cid);
 

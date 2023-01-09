@@ -1,9 +1,9 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { setEtherBalance } = require('../../utils/evm');
-const { daysToSeconds } = require('../../../lib/helpers');
 
+const { setEtherBalance } = require('../../utils/evm');
 const { createStakingPool, assertCoverFields } = require('./helpers');
+const { daysToSeconds } = require('../../utils').helpers;
 
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
@@ -29,7 +29,6 @@ const buyCoverFixture = {
 describe('buyCover', function () {
   beforeEach(async function () {
     const { cover } = this;
-
     const {
       governanceContracts: [gv1],
       members: [stakingPoolManager],
@@ -51,15 +50,11 @@ describe('buyCover', function () {
 
   it('should purchase new cover using 1 staking pool', async function () {
     const { cover, pool } = this;
-
-    const {
-      members: [coverBuyer],
-    } = this.accounts;
-
+    const [coverBuyer] = this.accounts.members;
     const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     const poolEthBalanceBefore = await ethers.provider.getBalance(pool.address);
-    const tx = await cover.connect(coverBuyer).buyCover(
+    await cover.connect(coverBuyer).buyCover(
       {
         coverId: MaxUint256,
         owner: coverBuyer.address,
@@ -74,11 +69,8 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       [{ poolId: '0', coverAmountInAsset: amount }],
-      {
-        value: expectedPremium,
-      },
+      { value: expectedPremium },
     );
-    await tx.wait();
 
     // no eth should be left in the cover contract
     expect(await ethers.provider.getBalance(cover.address)).to.be.equal(0);
@@ -96,11 +88,7 @@ describe('buyCover', function () {
 
   it('should purchase new cover with fixed price using 1 staking pool', async function () {
     const { cover, pool } = this;
-
-    const {
-      members: [coverBuyer],
-    } = this.accounts;
-
+    const [coverBuyer] = this.accounts.members;
     const { amount, targetPriceRatio, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     const productId = 1;
@@ -109,7 +97,7 @@ describe('buyCover', function () {
 
     const poolEthBalanceBefore = await ethers.provider.getBalance(pool.address);
 
-    const tx = await cover.connect(coverBuyer).buyCover(
+    await cover.connect(coverBuyer).buyCover(
       {
         coverId: MaxUint256,
         owner: coverBuyer.address,
@@ -124,11 +112,8 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       [{ poolId: '0', coverAmountInAsset: amount }],
-      {
-        value: expectedPremium,
-      },
+      { value: expectedPremium },
     );
-    await tx.wait();
 
     // no eth should be left in the cover contract
     expect(await ethers.provider.getBalance(cover.address)).to.be.equal(0);
@@ -148,11 +133,7 @@ describe('buyCover', function () {
 
   it('should purchase new cover using 2 staking pools', async function () {
     const { cover, pool } = this;
-
-    const {
-      members: [coverBuyer, stakingPoolManager],
-    } = this.accounts;
-
+    const [coverBuyer, stakingPoolManager] = this.accounts.members;
     const { amount, targetPriceRatio, productId, coverAsset, period, expectedPremium, capacity, activeCover } =
       buyCoverFixture;
 
@@ -186,9 +167,7 @@ describe('buyCover', function () {
         { poolId: '0', coverAmountInAsset: amount.div(2) },
         { poolId: '1', coverAmountInAsset: amount.div(2) },
       ],
-      {
-        value: expectedPremium,
-      },
+      { value: expectedPremium },
     );
 
     const expectedPremiumPerPool = expectedPremium.div(2).mul(period).div(daysToSeconds(365));
@@ -207,9 +186,7 @@ describe('buyCover', function () {
 
   it('should purchase new cover using NXM with commission', async function () {
     const { cover, nxm, tokenController, pool } = this;
-
     const [coverBuyer, stakingPoolManager] = this.accounts.members;
-
     const { amount, targetPriceRatio, productId, coverAsset, period, priceDenominator } = buyCoverFixture;
     const commissionRatio = '500'; // 5%
 
@@ -297,7 +274,6 @@ describe('buyCover', function () {
     const expectedPremium = expectedBasePremium.add(expectedCommission);
 
     await dai.mint(coverBuyer.address, parseEther('100000'));
-
     await dai.connect(coverBuyer).approve(cover.address, parseEther('100000'));
 
     const daiBalanceBefore = await dai.balanceOf(coverBuyer.address);
@@ -422,11 +398,7 @@ describe('buyCover', function () {
 
   it('should revert for unavailable product', async function () {
     const { cover } = this;
-
-    const {
-      members: [coverBuyer],
-    } = this.accounts;
-
+    const [coverBuyer] = this.accounts.members;
     const productId = 1337;
     const { amount, coverAsset, period } = buyCoverFixture;
 
@@ -455,11 +427,7 @@ describe('buyCover', function () {
 
   it('should revert for unsupported payout asset', async function () {
     const { cover } = this;
-
-    const {
-      members: [coverBuyer],
-    } = this.accounts;
-
+    const [coverBuyer] = this.accounts.members;
     const coverAsset = 10; // not ETH nor DAI nor USDC
     const { amount, productId, period } = buyCoverFixture;
 
@@ -488,11 +456,7 @@ describe('buyCover', function () {
 
   it('should revert for period too short', async function () {
     const { cover } = this;
-
-    const {
-      members: [coverBuyer],
-    } = this.accounts;
-
+    const [coverBuyer] = this.accounts.members;
     const period = 3600 * 24 * 27; // 27 days
 
     const { amount, productId, coverAsset } = buyCoverFixture;
@@ -522,11 +486,7 @@ describe('buyCover', function () {
 
   it('should revert for period too long', async function () {
     const { cover } = this;
-
-    const {
-      members: [coverBuyer],
-    } = this.accounts;
-
+    const [coverBuyer] = this.accounts.members;
     const period = 3600 * 24 * 366;
     const { amount, productId, coverAsset } = buyCoverFixture;
 
@@ -555,11 +515,7 @@ describe('buyCover', function () {
 
   it('should revert for commission rate too high', async function () {
     const { cover } = this;
-
-    const {
-      members: [coverBuyer],
-    } = this.accounts;
-
+    const [coverBuyer] = this.accounts.members;
     const { amount, productId, coverAsset, period } = buyCoverFixture;
 
     await expect(
@@ -652,11 +608,7 @@ describe('buyCover', function () {
 
   it('reverts if system is paused', async function () {
     const { cover, master } = this;
-
-    const {
-      members: [coverBuyer],
-    } = this.accounts;
-
+    const [coverBuyer] = this.accounts.members;
     const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     await master.setEmergencyPause(true);
@@ -718,11 +670,7 @@ describe('buyCover', function () {
 
   it('reverts if owner is address zero', async function () {
     const { cover } = this;
-
-    const {
-      members: [coverBuyer],
-    } = this.accounts;
-
+    const [coverBuyer] = this.accounts.members;
     const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     await expect(
@@ -750,11 +698,7 @@ describe('buyCover', function () {
 
   it('reverts if not supported payment asset', async function () {
     const { cover } = this;
-
-    const {
-      members: [coverBuyer],
-    } = this.accounts;
-
+    const [coverBuyer] = this.accounts.members;
     const paymentAsset = 10; // not ETH nor DAI nor USDC
     const { amount, productId, coverAsset, period } = buyCoverFixture;
 
@@ -784,11 +728,7 @@ describe('buyCover', function () {
 
   it('reverts if deprecated payment asset', async function () {
     const { cover, pool } = this;
-
-    const {
-      members: [coverBuyer],
-    } = this.accounts;
-
+    const [coverBuyer] = this.accounts.members;
     const paymentAsset = 1; // DAI
     const { amount, productId, coverAsset, period } = buyCoverFixture;
 
@@ -822,11 +762,7 @@ describe('buyCover', function () {
 
   it('reverts if calculated premium is bigger than maxPremiumInAsset', async function () {
     const { cover } = this;
-
-    const {
-      members: [coverBuyer],
-    } = this.accounts;
-
+    const [coverBuyer] = this.accounts.members;
     const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator } = buyCoverFixture;
     const expectedPremium = amount
       .mul(targetPriceRatio)
@@ -859,11 +795,7 @@ describe('buyCover', function () {
 
   it('reverts if empty array of allocationRequests', async function () {
     const { cover } = this;
-
-    const {
-      members: [coverBuyer],
-    } = this.accounts;
-
+    const [coverBuyer] = this.accounts.members;
     const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     await expect(
@@ -891,11 +823,7 @@ describe('buyCover', function () {
 
   it('reverts if allocationRequest coverAmountInAsset is 0', async function () {
     const { cover } = this;
-
-    const {
-      members: [coverBuyer],
-    } = this.accounts;
-
+    const [coverBuyer] = this.accounts.members;
     const { amount, productId, coverAsset, period, expectedPremium } = buyCoverFixture;
 
     await expect(
@@ -973,11 +901,7 @@ describe('buyCover', function () {
 
   it('store cover and segment data', async function () {
     const { cover } = this;
-
-    const {
-      members: [coverBuyer],
-    } = this.accounts;
-
+    const [coverBuyer] = this.accounts.members;
     const { amount, productId, coverAsset, period, targetPriceRatio, priceDenominator, poolId, segmentId } =
       buyCoverFixture;
     const expectedPremium = amount

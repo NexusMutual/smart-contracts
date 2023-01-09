@@ -330,10 +330,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       uint remainder = msg.value - premiumWithCommission;
 
-      // send premium in eth to the pool
-      // solhint-disable-next-line avoid-low-level-calls
-      (bool ok, /* data */) = address(_pool).call{value: premiumInPaymentAsset}("");
-      require(ok, "Cover: Sending ETH to pool failed.");
+      {
+        // send premium in eth to the pool
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool ok, /* data */) = address(_pool).call{value: premiumInPaymentAsset}("");
+        require(ok, "Cover: Sending ETH to pool failed.");
+      }
 
       // send commission
       if (commission > 0) {

@@ -34,6 +34,8 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   address public immutable claimsReward;
   address public immutable stakingPoolFactory;
 
+  /* ========== CONSTRUCTOR ========== */
+
   constructor(
     address quotationDataAddress,
     address claimsRewardAddress,
@@ -44,145 +46,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     stakingPoolFactory = stakingPoolFactoryAddress;
   }
 
-  // TODO: probably better to move this to master
-  function unlistClaimsReward() external {
-    token().removeFromWhiteList(claimsReward);
-  }
-
-  /* ========== DEPENDENCIES ========== */
-
-  function token() public view returns (INXMToken) {
-    return INXMToken(internalContracts[uint(ID.TK)]);
-  }
-
-  function pooledStaking() internal view returns (IPooledStaking) {
-    return IPooledStaking(internalContracts[uint(ID.PS)]);
-  }
-
-  function assessment() internal view returns (IAssessment) {
-    return IAssessment(internalContracts[uint(ID.AS)]);
-  }
-
-  function cover() internal view returns (ICover) {
-    return ICover(internalContracts[uint(ID.CO)]);
-  }
-
-  function governance() internal view returns (IGovernance) {
-    return IGovernance(internalContracts[uint(ID.GV)]);
-  }
-
-  /**
-  * @dev Just for interface
-  */
-  function changeDependentContractAddress() public override {
-    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
-    internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
-    internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
-    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
-    internalContracts[uint(ID.GV)] = master.getLatestAddress("GV");
-  }
-
-  /**
-   * @dev to change the operator address
-   * @param _newOperator is the new address of operator
-   */
-  function changeOperator(address _newOperator) public override onlyGovernance {
-    token().changeOperator(_newOperator);
-  }
-
-  /**
-   * @dev Proxies token transfer through this contract to allow staking when members are locked for voting
-   * @param _from   Source address
-   * @param _to     Destination address
-   * @param _value  Amount to transfer
-   */
-  function operatorTransfer(
-    address _from,
-    address _to,
-    uint _value
-  ) external override onlyInternal returns (bool) {
-    INXMToken _token = token();
-    _token.operatorTransfer(_from, _value);
-    _token.transfer(_to, _value);
-    return true;
-  }
-
-  /**
-   * @dev burns tokens of an address
-   * @param _of is the address to burn tokens of
-   * @param amount is the amount to burn
-   * @return the boolean status of the burning process
-   */
-  function burnFrom(address _of, uint amount) public override onlyInternal returns (bool) {
-    return token().burnFrom(_of, amount);
-  }
-
-  /**
-  * @dev Adds an address to whitelist maintained in the contract
-  * @param _member address to add to whitelist
-  */
-  function addToWhitelist(address _member) public virtual override onlyInternal {
-    token().addToWhiteList(_member);
-  }
-
-  /**
-  * @dev Removes an address from the whitelist in the token
-  * @param _member address to remove
-  */
-  function removeFromWhitelist(address _member) public override onlyInternal {
-    token().removeFromWhiteList(_member);
-  }
-
-  /**
-  * @dev Mints new token for an address
-  * @param _member address to reward the minted tokens
-  * @param _amount number of tokens to mint
-  */
-  function mint(address _member, uint _amount) public override onlyInternal {
-    token().mint(_member, _amount);
-  }
-
-  /**
-   * @dev Lock the user's tokens
-   * @param _of user's address.
-   */
-  function lockForMemberVote(address _of, uint _days) public override onlyInternal {
-    token().lockForMemberVote(_of, _days);
-  }
-
-  /**
-  * @dev Unlocks the withdrawable tokens against CLA of a specified addresses
-  * @param users  Addresses of users for whom the tokens are unlocked
-  */
-  function withdrawClaimAssessmentTokens(address[] calldata users) external {
-    for (uint256 i = 0; i < users.length; i++) {
-      if (locked[users[i]]["CLA"].claimed) {
-        continue;
-      }
-      uint256 amount = locked[users[i]]["CLA"].amount;
-      if (amount > 0) {
-        locked[users[i]]["CLA"].claimed = true;
-        emit Unlocked(users[i], "CLA", amount);
-        token().transfer(users[i], amount);
-      }
-    }
-  }
-
-  /**
-   * @dev Updates Uint Parameters of a code
-   * @param code whose details we want to update
-   * @param value value to set
-   */
-  function updateUintParameters(bytes8 code, uint value) external view onlyGovernance {
-    // silence compiler warnings
-    code;
-    value;
-    revert("TokenController: invalid param code");
-  }
-
-  function getLockReasons(address _of) external override view returns (bytes32[] memory reasons) {
-    return lockReason[_of];
-  }
+  /* ========== TOKEN RELATED VIEW FUNCTIONS ========== */
 
   function totalSupply() public override view returns (uint256) {
     return token().totalSupply();
@@ -212,13 +76,121 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     uint stakerDeposit = pooledStaking().stakerDeposit(_of);
 
     (
-      uint assessmentStake,
-      /*uint104 rewardsWithdrawableFromIndex*/,
-      /*uint16 fraudCount*/
+    uint assessmentStake,
+    /*uint104 rewardsWithdrawableFromIndex*/,
+    /*uint16 fraudCount*/
     ) = assessment().stakeOf(_of);
 
     amount += stakerDeposit + stakerReward + assessmentStake;
   }
+
+  /* ========== INTERNAL OPERATOR RELATED MUTATIVE FUNCTIONS ========== */
+
+  /**
+   * @dev Proxies token transfer through this contract to allow staking when members are locked for voting
+   * @param _from   Source address
+   * @param _to     Destination address
+   * @param _value  Amount to transfer
+   */
+  function operatorTransfer(
+    address _from,
+    address _to,
+    uint _value
+  ) external override onlyInternal returns (bool) {
+    INXMToken _token = token();
+    _token.operatorTransfer(_from, _value);
+    _token.transfer(_to, _value);
+    return true;
+  }
+
+  /**
+   * @dev Lock the user's tokens
+   * @param _of user's address.
+   */
+  function lockForMemberVote(address _of, uint _days) public override onlyInternal {
+    token().lockForMemberVote(_of, _days);
+  }
+
+  /**
+  * @dev Mints new token for an address
+  * @param _member address to reward the minted tokens
+  * @param _amount number of tokens to mint
+  */
+  function mint(address _member, uint _amount) public override onlyInternal {
+    token().mint(_member, _amount);
+  }
+
+  /**
+   * @dev burns tokens of an address
+   * @param _of is the address to burn tokens of
+   * @param amount is the amount to burn
+   * @return the boolean status of the burning process
+   */
+  function burnFrom(address _of, uint amount) public override onlyInternal returns (bool) {
+    return token().burnFrom(_of, amount);
+  }
+
+  function _stakingPool(uint poolId) internal view returns (address) {
+    return StakingPoolLibrary.getAddress(stakingPoolFactory, poolId);
+  }
+
+  function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
+    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
+    token().mint(address(this), amount);
+    stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
+  }
+
+  function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
+    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
+    stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
+    token().burn(amount);
+  }
+
+  function depositStakedNXM(address from, uint amount, uint poolId) external {
+    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
+    stakingPoolNXMBalances[poolId].deposits += amount.toUint128();
+    token().operatorTransfer(from, amount);
+  }
+
+  function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {
+    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
+    StakingPoolNXMBalances memory poolBalances = stakingPoolNXMBalances[poolId];
+    poolBalances.deposits -= stakeToWithdraw.toUint128();
+    poolBalances.rewards -= rewardsToWithdraw.toUint128();
+    stakingPoolNXMBalances[poolId] = poolBalances;
+    token().transfer(to, stakeToWithdraw + rewardsToWithdraw);
+  }
+
+  function burnStakedNXM(uint amount, uint poolId) external {
+    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
+    stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();
+    token().burn(amount);
+  }
+
+  /* ========== WHITELIST RELATED MUTATIVE FUNCTIONS ========== */
+
+  /**
+  * @dev Adds an address to whitelist maintained in the contract
+  * @param _member address to add to whitelist
+  */
+  function addToWhitelist(address _member) public virtual override onlyInternal {
+    token().addToWhiteList(_member);
+  }
+
+  /**
+  * @dev Removes an address from the whitelist in the token
+  * @param _member address to remove
+  */
+  function removeFromWhitelist(address _member) public override onlyInternal {
+    token().removeFromWhiteList(_member);
+  }
+
+  // TODO: probably better to move this to master
+  function unlistClaimsReward() external {
+    token().removeFromWhiteList(claimsReward);
+  }
+
+  /* ========== USER REWARDS RELATED MUTATIVE FUNCTIONS ========== */
 
   /// Withdraws governance rewards for the given member address
   /// @dev This function requires a batchSize that fits in one block. It cannot be 0.
@@ -289,8 +261,14 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     }
   }
 
+  /* ========== V1 RELATED VIEW FUNCTIONS ========== */
+
+  function getLockReasons(address _of) external override view returns (bytes32[] memory reasons) {
+    return lockReason[_of];
+  }
+
   /**
-  * @dev Returns tokens locked for a specified address for a
+ * @dev Returns tokens locked for a specified address for a
   *    specified reason
   *
   * @param _of The address whose tokens are locked
@@ -341,6 +319,8 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     }
   }
 
+  /* ========== V1 RELATED MUTATIVE FUNCTIONS ========== */
+
   // Can be removed once all cover notes are withdrawn
   function withdrawCoverNote(
     address user,
@@ -383,40 +363,74 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token().transfer(user, totalAmount);
   }
 
-  function _stakingPool(uint poolId) internal view returns (address) {
-    return StakingPoolLibrary.getAddress(stakingPoolFactory, poolId);
+  /**
+  * @dev Unlocks the withdrawable tokens against CLA of a specified addresses
+  * @param users  Addresses of users for whom the tokens are unlocked
+  */
+  function withdrawClaimAssessmentTokens(address[] calldata users) external {
+    for (uint256 i = 0; i < users.length; i++) {
+      if (locked[users[i]]["CLA"].claimed) {
+        continue;
+      }
+      uint256 amount = locked[users[i]]["CLA"].amount;
+      if (amount > 0) {
+        locked[users[i]]["CLA"].claimed = true;
+        emit Unlocked(users[i], "CLA", amount);
+        token().transfer(users[i], amount);
+      }
+    }
   }
 
-  function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
-    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
-    token().mint(address(this), amount);
-    stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
+  /* ========== DEPENDENCIES ========== */
+
+  function token() public view returns (INXMToken) {
+    return INXMToken(internalContracts[uint(ID.TK)]);
   }
 
-  function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
-    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
-    stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
-    token().burn(amount);
+  function pooledStaking() internal view returns (IPooledStaking) {
+    return IPooledStaking(internalContracts[uint(ID.PS)]);
   }
 
-  function depositStakedNXM(address from, uint amount, uint poolId) external {
-    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
-    stakingPoolNXMBalances[poolId].deposits += amount.toUint128();
-    token().operatorTransfer(from, amount);
+  function assessment() internal view returns (IAssessment) {
+    return IAssessment(internalContracts[uint(ID.AS)]);
   }
 
-  function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {
-    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
-    StakingPoolNXMBalances memory poolBalances = stakingPoolNXMBalances[poolId];
-    poolBalances.deposits -= stakeToWithdraw.toUint128();
-    poolBalances.rewards -= rewardsToWithdraw.toUint128();
-    stakingPoolNXMBalances[poolId] = poolBalances;
-    token().transfer(to, stakeToWithdraw + rewardsToWithdraw);
+  function cover() internal view returns (ICover) {
+    return ICover(internalContracts[uint(ID.CO)]);
   }
 
-  function burnStakedNXM(uint amount, uint poolId) external {
-    require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
-    stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();
-    token().burn(amount);
+  function governance() internal view returns (IGovernance) {
+    return IGovernance(internalContracts[uint(ID.GV)]);
+  }
+
+  /**
+  * @dev Just for interface
+  */
+  function changeDependentContractAddress() public override {
+    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
+    internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
+    internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
+    internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
+    internalContracts[uint(ID.GV)] = master.getLatestAddress("GV");
+  }
+
+  /**
+   * @dev Updates Uint Parameters of a code
+   * @param code whose details we want to update
+   * @param value value to set
+   */
+  function updateUintParameters(bytes8 code, uint value) external view onlyGovernance {
+    // silence compiler warnings
+    code;
+    value;
+    revert("TokenController: invalid param code");
+  }
+
+  /**
+   * @dev to change the operator address
+   * @param _newOperator is the new address of operator
+   */
+  function changeOperator(address _newOperator) public override onlyGovernance {
+    token().changeOperator(_newOperator);
   }
 }

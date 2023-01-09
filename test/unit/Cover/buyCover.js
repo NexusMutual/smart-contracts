@@ -529,7 +529,7 @@ describe('buyCover', function () {
           period,
           maxPremiumInAsset: '0',
           paymentAsset: coverAsset,
-          commissionRatio: '2501',
+          commissionRatio: '3001',
           commissionDestination: AddressZero,
           ipfsData: '',
         },

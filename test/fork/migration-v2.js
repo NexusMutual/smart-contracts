@@ -80,33 +80,6 @@ const submitGovernanceProposal = async (categoryId, actionData, signers, gv) => 
   assert.equal(proposal[2].toNumber(), 3);
 };
 
-// This works with the V2 version of Governance.sol
-const submitGovernanceProposalV2 = async (categoryId, actionData, signers, gv) => {
-  const id = await gv.getProposalLength();
-
-  await gv.connect(signers[0]).createProposal('', '', '', 0);
-  await gv.connect(signers[0]).categorizeProposal(id, categoryId, 0);
-  await gv.connect(signers[0]).submitProposalWithSolution(id, '', actionData);
-
-  for (let i = 0; i < signers.length; i++) {
-    await gv.connect(signers[i]).submitVote(id, 1, []);
-  }
-
-  const { timestamp } = await ethers.provider.getBlock('latest');
-  await setNextBlockTime(timestamp + 7 * 24 * 3600); // +7 days
-
-  const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
-  const receipt = await tx.wait();
-  assert.equal(
-    receipt.events.some(x => x.event === 'ActionSuccess' && x.address === gv.address),
-    true,
-    'ActionSuccess was expected',
-  );
-
-  const proposal = await gv.proposal(id);
-  assert.equal(proposal[2].toNumber(), 3);
-};
-
 describe('v2 migration', function () {
   it('initialize old contracts', async function () {
     const [deployer] = await ethers.getSigners();
@@ -190,7 +163,7 @@ describe('v2 migration', function () {
   });
 
   it('edit proposal category 41 (Set Asset Swap Details)', async function () {
-    await submitGovernanceProposalV2(
+    await submitGovernanceProposal(
       // editCategory(uint256,string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       4,
       defaultAbiCoder.encode(
@@ -218,7 +191,7 @@ describe('v2 migration', function () {
   it('add proposal category (Add new contracts)', async function () {
     ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID = await this.proposalCategory.totalCategories();
 
-    await submitGovernanceProposalV2(
+    await submitGovernanceProposal(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
         [
@@ -245,7 +218,7 @@ describe('v2 migration', function () {
     REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID = await this.proposalCategory.totalCategories();
     console.log(`Remove contracts Category Id = ${REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID}`);
 
-    await submitGovernanceProposalV2(
+    await submitGovernanceProposal(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
         [
@@ -273,7 +246,7 @@ describe('v2 migration', function () {
     const coverInitializer = await CoverInitializer.deploy();
     await coverInitializer.deployed();
 
-    await submitGovernanceProposalV2(
+    await submitGovernanceProposal(
       ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID, // addNewInternalContracts(bytes2[],address[],uint256[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]', 'uint256[]'],
@@ -296,7 +269,7 @@ describe('v2 migration', function () {
     const master = await NXMaster.deploy();
     await master.deployed();
 
-    await submitGovernanceProposalV2(
+    await submitGovernanceProposal(
       37, // upgradeTo(address)
       defaultAbiCoder.encode(['address'], [master.address]),
       this.abMembers,
@@ -422,7 +395,7 @@ describe('v2 migration', function () {
     await gateway.deployed();
 
     console.log('Upgrade the first batch.');
-    await submitGovernanceProposalV2(
+    await submitGovernanceProposal(
       29, // upgradeMultipleContracts(bytes2[],address[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]'],
@@ -454,7 +427,7 @@ describe('v2 migration', function () {
     );
 
     console.log('Upgrade ClaimsReward only. (depends on TokenController)');
-    await submitGovernanceProposalV2(
+    await submitGovernanceProposal(
       29,
       defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('CR')], [newClaimsReward.address]]),
       this.abMembers,

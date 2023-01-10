@@ -492,37 +492,40 @@ describe('v2 migration', function () {
     this.stakingPool = stakingPool;
   });
 
-  it.skip('block V1 staking', async function () {
+  it('block V1 staking', async function () {
     const tx = await this.pooledStaking.blockV1();
     await tx.wait();
   });
 
-  it.skip('process all PooledStaking pending actions', async function () {
+  it('process all PooledStaking pending actions', async function () {
     let hasPendingActions = await this.pooledStaking.hasPendingActions();
+    let i = 0;
     while (hasPendingActions) {
+      console.log(`Calling processPendingActions. iteration ${i++}`);
       const tx = await this.pooledStaking.processPendingActions(100);
       await tx.wait();
       hasPendingActions = await this.pooledStaking.hasPendingActions();
     }
+    console.log('Done');
   });
 
-  it.skip('initialize TokenController', async function () {
+  it('initialize TokenController', async function () {
     const tx = await this.tokenController.initialize();
     await tx.wait();
   });
 
-  it.skip('unlock claim assessment stakes', async function () {
+  it('unlock claim assessment stakes', async function () {
     const stakesPath = path.join(__dirname, '../../scripts/v2-migration/output/eligibleForCLAUnlock.json');
     const claimAssessors = require(stakesPath).map(x => x.member);
     const tx = await this.tokenController.withdrawClaimAssessmentTokens(claimAssessors);
     await tx.wait();
   });
 
-  it.skip('transfer v1 assessment rewrds to assessors', async function () {
+  it('transfer v1 assessment rewrds to assessors', async function () {
     await this.claimsReward.transferRewards();
   });
 
-  it.skip('check if TokenController balance checks out with Governance rewards', async function () {
+  it('check if TokenController balance checks out with Governance rewards', async function () {
     // [todo]
   });
 

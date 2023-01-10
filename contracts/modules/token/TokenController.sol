@@ -387,25 +387,30 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     return StakingPoolLibrary.getAddress(stakingPoolFactory, poolId);
   }
 
-  function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
+  function mintStakingPoolNXMRewards(uint amount, uint poolId) external whenNotPaused {
     require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     token().mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
 
-  function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
+  function burnStakingPoolNXMRewards(uint amount, uint poolId) external whenNotPaused {
     require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
     token().burn(amount);
   }
 
-  function depositStakedNXM(address from, uint amount, uint poolId) external {
+  function depositStakedNXM(address from, uint amount, uint poolId) external whenNotPaused {
     require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     stakingPoolNXMBalances[poolId].deposits += amount.toUint128();
     token().operatorTransfer(from, amount);
   }
 
-  function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {
+  function withdrawNXMStakeAndRewards(
+    address to,
+    uint stakeToWithdraw,
+    uint rewardsToWithdraw,
+    uint poolId
+  ) external whenNotPaused {
     require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     StakingPoolNXMBalances memory poolBalances = stakingPoolNXMBalances[poolId];
     poolBalances.deposits -= stakeToWithdraw.toUint128();
@@ -414,7 +419,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token().transfer(to, stakeToWithdraw + rewardsToWithdraw);
   }
 
-  function burnStakedNXM(uint amount, uint poolId) external {
+  function burnStakedNXM(uint amount, uint poolId) external whenNotPaused {
     require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();
     token().burn(amount);

@@ -39,7 +39,7 @@ contract CoverMigrator is MasterAwareV2 {
   function migrateCovers(
     uint[] calldata coverIds,
     address newOwner
-  ) external returns (uint[] memory newCoverIds) {
+  ) external whenNotPaused returns (uint[] memory newCoverIds) {
     newCoverIds = new uint[](coverIds.length);
     for (uint i = 0; i < coverIds.length; i++) {
       newCoverIds[i] = _migrateCoverFrom(coverIds[i], msg.sender, newOwner);
@@ -56,7 +56,7 @@ contract CoverMigrator is MasterAwareV2 {
     uint coverId,
     address msgSender,
     address newOwner
-  ) external onlyInternal returns (uint newCoverId) {
+  ) external onlyInternal whenNotPaused returns (uint newCoverId) {
     return _migrateCoverFrom(coverId, msgSender, newOwner);
   }
 

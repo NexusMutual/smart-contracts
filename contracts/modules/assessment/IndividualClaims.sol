@@ -386,13 +386,16 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
 
     IPool poolContract = pool();
     if (claim.coverAsset == 0 /* ETH */) {
+      // Send payout and deposit in ETH
       poolContract.sendPayout(
         claim.coverAsset,
         coverOwner,
         claim.amount + assessmentDepositInETH
       );
     } else {
+      // Send deposit in ETH
       poolContract.sendPayout(0 /* ETH */, coverOwner, assessmentDepositInETH);
+      // Send payout in cover asset
       poolContract.sendPayout(claim.coverAsset, coverOwner, claim.amount);
     }
 

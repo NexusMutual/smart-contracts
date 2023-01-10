@@ -7,6 +7,7 @@ import "../../interfaces/IGovernance.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/ITokenController.sol";
+import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/UncheckedMath.sol";
@@ -20,7 +21,7 @@ import "./StakingTypesLib.sol";
 // on cover buys we allocate the available product capacity
 // on cover expiration we deallocate the capacity and it becomes available again
 
-contract StakingPool is IStakingPool {
+contract StakingPool is IStakingPool  {
   using StakingTypesLib for TrancheAllocationGroup;
   using StakingTypesLib for TrancheGroupBucket;
   using SafeUintCast for uint;
@@ -90,6 +91,7 @@ contract StakingPool is IStakingPool {
   INXMToken public immutable nxm;
   ITokenController public  immutable tokenController;
   address public immutable coverContract;
+  INXMMaster public immutable masterContract;
 
   /* constants */
 
@@ -151,16 +153,23 @@ contract StakingPool is IStakingPool {
     _;
   }
 
+  modifier whenNotPaused {
+    require(!masterContract.isPause(), "System is paused");
+    _;
+  }
+
   constructor (
     address _stakingNFT,
     address _token,
     address _coverContract,
-    address _tokenController
+    address _tokenController,
+    address _master
   ) {
     stakingNFT = IStakingNFT(_stakingNFT);
     nxm = INXMToken(_token);
     coverContract = _coverContract;
     tokenController = ITokenController(_tokenController);
+    masterContract = INXMMaster(_master);
   }
 
   function initialize(
@@ -496,7 +505,7 @@ contract StakingPool is IStakingPool {
     bool withdrawStake,
     bool withdrawRewards,
     uint[] memory trancheIds
-  ) public returns (uint withdrawnStake, uint withdrawnRewards) {
+  ) public whenNotPaused returns (uint withdrawnStake, uint withdrawnRewards) {
 
     uint managerLockedInGovernanceUntil = nxm.isLockedForMV(manager);
 
@@ -1013,7 +1022,7 @@ contract StakingPool is IStakingPool {
     uint initialTrancheId,
     uint newTrancheId,
     uint topUpAmount
-  ) external {
+  ) external whenNotPaused {
 
     // token id MAX_UINT is only used for pool manager fee tracking, no deposits allowed
     require(tokenId != MAX_UINT, "StakingPool: Invalid token id");

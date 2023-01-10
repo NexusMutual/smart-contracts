@@ -19,6 +19,25 @@ const newPoolFixture = {
 };
 
 describe('createStakingPool', function () {
+
+  it('reverts if system is paused', async function () {
+    const { cover, master } = this;
+    const [stakingPoolCreator, stakingPoolManager] = this.accounts.members;
+    const { initialPoolFee, maxPoolFee, productInitializationParams } = newPoolFixture;
+
+    await master.setEmergencyPause(true);
+
+    await expect(
+      cover.connect(stakingPoolCreator).createStakingPool(
+        stakingPoolManager.address,
+        false, // isPrivatePool,
+        initialPoolFee,
+        maxPoolFee,
+        productInitializationParams,
+        '', // ipfsDescriptionHash
+      )).to.be.revertedWith('System is paused');
+  });
+
   it('should create and initialize a new pool minimal beacon proxy pool', async function () {
     const { cover, stakingPoolFactory } = this;
     const [stakingPoolCreator, stakingPoolManager] = this.accounts.members;

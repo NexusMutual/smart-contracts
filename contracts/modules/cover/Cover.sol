@@ -67,7 +67,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   // this constant is used for calculating the normalized yearly percentage cost of cover
   uint private constant ONE_YEAR = 365 days;
 
-  uint private constant MAX_COMMISSION_RATIO = 3000; // 30%
+  uint public constant MAX_COMMISSION_RATIO = 3000; // 30%
 
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 

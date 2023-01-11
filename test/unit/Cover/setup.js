@@ -204,6 +204,7 @@ async function setup() {
   ]);
 
   const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
+  const MAX_COMMISSION_RATIO = await cover.MAX_COMMISSION_RATIO();
 
   this.master = master;
   this.pool = pool;
@@ -219,7 +220,7 @@ async function setup() {
   this.capacityFactor = capacityFactor;
   this.stakingPoolImplementation = stakingPoolImplementation;
   this.stakingPoolFactory = stakingPoolFactory;
-  this.config = { GLOBAL_MIN_PRICE_RATIO };
+  this.config = { GLOBAL_MIN_PRICE_RATIO, MAX_COMMISSION_RATIO };
 }
 
 module.exports = setup;

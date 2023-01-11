@@ -19,7 +19,6 @@ const newPoolFixture = {
 };
 
 describe('createStakingPool', function () {
-
   it('reverts if system is paused', async function () {
     const { cover, master } = this;
     const [stakingPoolCreator, stakingPoolManager] = this.accounts.members;
@@ -35,7 +34,8 @@ describe('createStakingPool', function () {
         maxPoolFee,
         productInitializationParams,
         '', // ipfsDescriptionHash
-      )).to.be.revertedWith('System is paused');
+      ),
+    ).to.be.revertedWith('System is paused');
   });
 
   it('should create and initialize a new pool minimal beacon proxy pool', async function () {

@@ -44,7 +44,13 @@ async function setup() {
   const StakingNFT = await ethers.getContractFactory('SPMockStakingNFT');
   const stakingNFT = await StakingNFT.deploy();
 
-  const stakingPool = await StakingPool.deploy(stakingNFT.address, nxm.address, cover.address, tokenController.address, master.address);
+  const stakingPool = await StakingPool.deploy(
+    stakingNFT.address,
+    nxm.address,
+    cover.address,
+    tokenController.address,
+    master.address,
+  );
 
   await nxm.setOperator(tokenController.address);
   await tokenController.setContractAddresses(cover.address, nxm.address);

@@ -186,7 +186,13 @@ async function setup() {
   const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NMC', expectedCoverAddress);
 
   const tc = await deployProxy('DisposableTokenController', [qd.address, lcr.address, spf.address]);
-  const stakingPool = await StakingPool.deploy(stakingNFT.address, tk.address, expectedCoverAddress, tc.address, master.address);
+  const stakingPool = await StakingPool.deploy(
+    stakingNFT.address,
+    tk.address,
+    expectedCoverAddress,
+    tc.address,
+    master.address,
+  );
 
   let cover = await deployProxy('DisposableCover', [
     coverNFT.address,

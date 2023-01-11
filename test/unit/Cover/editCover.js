@@ -13,7 +13,7 @@ describe('editCover', function () {
   const coverBuyFixture = {
     productId: 0,
     coverAsset: 0, // ETH
-    period: 3600 * 24 * 30, // 30 days
+    period: daysToSeconds(30), // 30 days
 
     amount: parseEther('1000'),
 
@@ -71,8 +71,7 @@ describe('editCover', function () {
       period,
       amount: increasedAmount,
       gracePeriod,
-      segmentId: '1',
-      amountPaidOut: 0,
+      segmentId: 1,
     });
   });
 
@@ -139,8 +138,7 @@ describe('editCover', function () {
       period,
       amount,
       gracePeriod,
-      segmentId: '1',
-      amountPaidOut: 0,
+      segmentId: 1,
     });
   });
 
@@ -162,7 +160,6 @@ describe('editCover', function () {
     const expectedEditPremium = expectedPremium.mul(2);
     const extraPremium = expectedEditPremium.sub(expectedRefund);
     const increasedPeriod = period * 2;
-    const amountPaidOut = 0;
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -178,7 +175,6 @@ describe('editCover', function () {
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
-        amountPaidOut,
       },
       [{ poolId: '0', skip: false, coverAmountInAsset: amount.toString() }],
       {
@@ -193,7 +189,6 @@ describe('editCover', function () {
       amount,
       gracePeriod,
       segmentId: 1,
-      amountPaidOut,
     });
   });
 
@@ -218,7 +213,6 @@ describe('editCover', function () {
     const extraPremium = expectedEditPremium.sub(expectedRefund);
     const increasedAmount = amount.mul(2);
     const increasedPeriod = period * 2;
-    const amountPaidOut = 0;
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -234,7 +228,6 @@ describe('editCover', function () {
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
-        amountPaidOut,
       },
       [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount.toString() }],
       {
@@ -249,7 +242,6 @@ describe('editCover', function () {
       amount: increasedAmount,
       gracePeriod,
       segmentId: 1,
-      amountPaidOut,
     });
   });
 
@@ -274,7 +266,6 @@ describe('editCover', function () {
     const extraPremium = expectedEditPremium.sub(expectedRefund);
     const decreasedAmount = amount.div(2);
     const increasedPeriod = period * 2;
-    const amountPaidOut = 0;
 
     await cover.connect(coverBuyer).buyCover(
       {
@@ -290,7 +281,6 @@ describe('editCover', function () {
         commissionRatio: parseEther('0'),
         commissionDestination: AddressZero,
         ipfsData: '',
-        amountPaidOut,
       },
       [{ poolId: '0', skip: false, coverAmountInAsset: decreasedAmount.toString() }],
       {
@@ -305,7 +295,6 @@ describe('editCover', function () {
       amount: decreasedAmount,
       gracePeriod,
       segmentId: '1',
-      amountPaidOut,
     });
   });
 
@@ -320,7 +309,6 @@ describe('editCover', function () {
     const increasedAmount = amount.mul(2);
     const expectedEditPremium = expectedPremium.mul(2);
     const extraPremium = expectedEditPremium;
-    const amountPaidOut = 0;
 
     const now = await ethers.provider.getBlock('latest').then(block => block.timestamp);
     await setNextBlockTime(now + period + 3600);
@@ -340,7 +328,6 @@ describe('editCover', function () {
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
-          amountPaidOut,
         },
         [{ poolId: '0', skip: true, coverAmountInAsset: increasedAmount }],
         { value: extraPremium.add(10) },
@@ -365,9 +352,8 @@ describe('editCover', function () {
     const increasedAmount = amount.mul(2);
     const expectedEditPremium = expectedPremium.mul(2);
     const extraPremium = expectedEditPremium.sub(expectedRefund);
-    const amountPaidOut = 0;
 
-    const periodTooLong = 366 * 24 * 3600; // 366 days
+    const periodTooLong = daysToSeconds(366);
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -384,7 +370,6 @@ describe('editCover', function () {
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
-          amountPaidOut,
         },
         [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount.toString() }],
         {
@@ -414,7 +399,6 @@ describe('editCover', function () {
     const increasedAmount = amount.mul(2);
     const expectedEditPremium = expectedPremium.mul(2);
     const extraPremium = expectedEditPremium.sub(expectedRefund);
-    const amountPaidOut = 0;
 
     await expect(
       cover.connect(coverBuyer).buyCover(
@@ -431,7 +415,6 @@ describe('editCover', function () {
           commissionRatio: MAX_COMMISSION_RATIO.add(1), // too high
           commissionDestination: AddressZero,
           ipfsData: '',
-          amountPaidOut,
         },
         [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount.toString() }],
         {

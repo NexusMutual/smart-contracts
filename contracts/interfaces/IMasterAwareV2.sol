@@ -15,7 +15,9 @@ interface IMasterAwareV2 {
     PS, // LegacyPooledStaking.sol
     GV, // Governance.sol
     IC, // IndividualClaims.sol
-    GW  // LegacyGateway.sol
+    GW, // LegacyGateway.sol
+    QD, // LegacyQuotationData.sol
+    CL  // CoverMigrator.sol
   }
 
   function changeMasterAddress(address masterAddress) external;

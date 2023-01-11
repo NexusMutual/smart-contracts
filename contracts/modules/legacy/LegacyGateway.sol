@@ -20,21 +20,23 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
 
   /* ========== STATE VARIABLES ========== */
 
-  address public _unused_quotation;
-  INXMToken public nxmToken;
+  // Removed the `quotation` state variable as we replaced MasterAware with MasterAwareV2,
+  // which occupies 2 slots instead of 1
+  // address public _unused_quotation;
+
+  address public _unused_nxmToken;
   address public _unused_tokenController;
-  IQuotationData public quotationData;
+  address public _unused_quotationData;
   address public _unused_claimsData;
   address public _unused_claims;
   address public _unused_pool;
-  IMemberRoles public memberRoles;
+  address public _unused_memberRoles;
 
   // assigned in initialize
   address public DAI;
 
   address public _unused_incidents;
-
-  CoverMigrator public coverMigrator;
+  address public _unused_coverMigrator;
 
   event ClaimSubmitted(
     uint indexed claimId,
@@ -43,11 +45,27 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
     bytes data
   );
 
+  function nxmToken() internal view returns (INXMToken) {
+    return INXMToken(internalContracts[uint(ID.TK)]);
+  }
+
+  function quotationData() internal view returns (IQuotationData) {
+    return IQuotationData(internalContracts[uint(ID.QD)]);
+  }
+
+  function memberRoles() internal view returns (IMemberRoles) {
+    return IMemberRoles(internalContracts[uint(ID.MR)]);
+  }
+
+  function coverMigrator() internal view returns (address) {
+    return address(internalContracts[uint(ID.MR)]);
+  }
+
   function changeDependentContractAddress() external {
-    nxmToken = INXMToken(master.tokenAddress());
-    quotationData = IQuotationData(master.getLatestAddress("QD"));
-    memberRoles = IMemberRoles(master.getLatestAddress("MR"));
-    coverMigrator = CoverMigrator(master.getLatestAddress("CL"));
+    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
+    internalContracts[uint(ID.QD)] = master.getLatestAddress("QD");
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
+    internalContracts[uint(ID.CL)] = master.getLatestAddress("CL");
   }
 
   function initializeDAI() external {
@@ -65,8 +83,8 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
     address memberAddress
   ) {
     bytes4 currency;
-    (/*cid*/, memberAddress, contractAddress, currency, /*sumAssured*/, premiumInNXM) = quotationData.getCoverDetailsByCoverID1(coverId);
-    (/*cid*/, status, sumAssured, coverPeriod, validUntil) = quotationData.getCoverDetailsByCoverID2(coverId);
+    (/*cid*/, memberAddress, contractAddress, currency, /*sumAssured*/, premiumInNXM) = quotationData().getCoverDetailsByCoverID1(coverId);
+    (/*cid*/, status, sumAssured, coverPeriod, validUntil) = quotationData().getCoverDetailsByCoverID2(coverId);
 
     coverAsset = getCurrencyAssetAddress(currency);
     sumAssured = sumAssured * 10 ** assetDecimals(coverAsset);
@@ -108,8 +126,8 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
   }
 
   function switchMembership(address newAddress) external override {
-    memberRoles.switchMembershipOf(msg.sender, newAddress);
-    nxmToken.transferFrom(msg.sender, newAddress, nxmToken.balanceOf(msg.sender));
+    memberRoles().switchMembershipOf(msg.sender, newAddress);
+    nxmToken().transferFrom(msg.sender, newAddress, nxmToken().balanceOf(msg.sender));
   }
 
   /* ===== DEPRECATED ===== */

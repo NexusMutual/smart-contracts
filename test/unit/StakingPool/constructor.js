@@ -18,11 +18,12 @@ describe('constructor', function () {
     const nxmAddress = await stakingPool.nxm();
     const coverAddress = await stakingPool.coverContract();
     const tokenControllerAddress = await stakingPool.tokenController();
-    const masterAddress = await stakingPool.masterContract()
+    const masterAddress = await stakingPool.masterContract();
 
     expect(stakingNFTAddress).to.be.equal(stakingNFT.address);
     expect(nxmAddress).to.be.equal(nxm.address);
     expect(coverAddress).to.be.equal(cover.address);
     expect(tokenControllerAddress).to.be.equal(tokenController.address);
+    expect(masterAddress).to.be.equal(master.address);
   });
 });

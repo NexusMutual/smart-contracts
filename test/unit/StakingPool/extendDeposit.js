@@ -68,12 +68,7 @@ describe('extendDeposit', function () {
     await master.setEmergencyPause(true);
 
     await expect(
-      stakingPool.connect(user).extendDeposit(
-        depositNftId,
-        maxTranche,
-        firstActiveTrancheId,
-        0,
-      ),
+      stakingPool.connect(user).extendDeposit(depositNftId, maxTranche, firstActiveTrancheId, 0),
     ).to.be.revertedWith('System is paused');
   });
 

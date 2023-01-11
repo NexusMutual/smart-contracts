@@ -20,9 +20,8 @@ describe('migrateCovers', function () {
     // enable emergency pause
     await master.setEmergencyPause(true);
 
-    await expect(coverMigrator.connect(coverOwner).migrateCovers(
-      [1],
-      coverOwner.address,
-    )).to.be.revertedWith('System is paused');
-  })
+    await expect(coverMigrator.connect(coverOwner).migrateCovers([1], coverOwner.address)).to.be.revertedWith(
+      'System is paused',
+    );
+  });
 });

@@ -2,7 +2,7 @@ const { expect } = require('chai');
 
 describe('migrateCovers', function () {
   it('reverts if system is paused', async function () {
-    const { coverMigrator, quotationData, master,  } = this.contracts;
+    const { coverMigrator, quotationData, master } = this.contracts;
     const [coverOwner] = this.accounts.members;
     const ETH = '0x45544800';
 
@@ -20,9 +20,6 @@ describe('migrateCovers', function () {
     // enable emergency pause
     await master.setEmergencyPause(true);
 
-    await expect(coverMigrator.migrateCovers(
-      [1],
-      coverOwner.address,
-    )).to.be.revertedWith('System is paused');
-  })
+    await expect(coverMigrator.migrateCovers([1], coverOwner.address)).to.be.revertedWith('System is paused');
+  });
 });

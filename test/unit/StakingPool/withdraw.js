@@ -83,11 +83,10 @@ describe('withdraw', function () {
     // enable emergency pause
     await master.setEmergencyPause(true);
 
-    await expect(
-      stakingPool.connect(user).withdraw(tokenId, true, false, [firstActiveTrancheId])
-    ).to.be.revertedWith('System is paused');
+    await expect(stakingPool.connect(user).withdraw(tokenId, true, false, [firstActiveTrancheId])).to.be.revertedWith(
+      'System is paused',
+    );
   });
-
 
   it('reverts if trying to withdraw stake locked in governance', async function () {
     const { nxm, stakingPool } = this;

@@ -3,14 +3,13 @@ const { expect } = require('chai');
 
 describe('withdrawGovernanceRewardsTo', function () {
   it('reverts if the system is paused', async function () {
-    const { tokenController, governance, master } = this.contracts;
+    const { tokenController, master } = this.contracts;
     const { members } = this.accounts;
 
-    await governance.setUnclaimedGovernanceRewards(members[2].address, ethers.utils.parseUnits('1'));
     await master.setEmergencyPause(true);
 
     await expect(
-      tokenController.connect(members[0]).withdrawGovernanceRewardsTo(members[1].address, 1),
+      tokenController.connect(members[0]).withdrawGovernanceRewardsTo(members[0].address, 1),
     ).to.be.revertedWith('System is paused');
   });
 

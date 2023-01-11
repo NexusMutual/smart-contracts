@@ -64,21 +64,11 @@ describe('withdraw', function () {
   });
 
   it('reverts if system is paused', async function () {
-    const { coverSigner, stakingPool, master } = this;
+    const { stakingPool, master } = this;
     const [user] = this.accounts.members;
 
-    const { amount: depositAmount, tokenId, destination } = withdrawFixture;
+    const { tokenId } = withdrawFixture;
     const { firstActiveTrancheId } = await getTranches();
-
-    await stakingPool.connect(user).depositTo(
-      depositAmount,
-      firstActiveTrancheId,
-      MaxUint256, // new position
-      destination,
-    );
-
-    await generateRewards(stakingPool, coverSigner);
-    await increaseTime(TRANCHE_DURATION);
 
     // enable emergency pause
     await master.setEmergencyPause(true);

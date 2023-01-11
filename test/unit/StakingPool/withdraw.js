@@ -63,6 +63,32 @@ describe('withdraw', function () {
     await setTime((trancheId + 1) * TRANCHE_DURATION);
   });
 
+  it('reverts if system is paused', async function () {
+    const { coverSigner, stakingPool, master } = this;
+    const [user] = this.accounts.members;
+
+    const { amount: depositAmount, tokenId, destination } = withdrawFixture;
+    const { firstActiveTrancheId } = await getTranches();
+
+    await stakingPool.connect(user).depositTo(
+      depositAmount,
+      firstActiveTrancheId,
+      MaxUint256, // new position
+      destination,
+    );
+
+    await generateRewards(stakingPool, coverSigner);
+    await increaseTime(TRANCHE_DURATION);
+
+    // enable emergency pause
+    await master.setEmergencyPause(true);
+
+    await expect(
+      stakingPool.connect(user).withdraw(tokenId, true, false, [firstActiveTrancheId])
+    ).to.be.revertedWith('System is paused');
+  });
+
+
   it('reverts if trying to withdraw stake locked in governance', async function () {
     const { nxm, stakingPool } = this;
     const manager = this.accounts.defaultSender;

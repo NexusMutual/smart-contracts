@@ -338,7 +338,7 @@ contract StakingPool is IStakingPool  {
     uint trancheId,
     uint requestTokenId,
     address destination
-  ) public returns (uint tokenId) {
+  ) public whenNotPaused returns (uint tokenId) {
 
     if (isPrivatePool) {
       require(msg.sender == manager, "StakingPool: The pool is private");

@@ -10,8 +10,8 @@ describe('withdrawGovernanceRewardsTo', function () {
     await master.setEmergencyPause(true);
 
     await expect(
-      tokenController.connect(members[0]).withdrawGovernanceRewardsTo(members[1].address, 1)
-    ).to.be.revertedWith("System is paused");
+      tokenController.connect(members[0]).withdrawGovernanceRewardsTo(members[1].address, 1),
+    ).to.be.revertedWith('System is paused');
   });
 
   it("calls claimReward with the sender's address and the given batchSize", async function () {

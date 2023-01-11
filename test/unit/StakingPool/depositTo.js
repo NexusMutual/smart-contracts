@@ -61,7 +61,7 @@ describe('depositTo', function () {
     await setTime((trancheId + 1) * TRANCHE_DURATION);
   });
 
-  it('reverts system is paused', async function () {
+  it('reverts if system is paused', async function () {
     const { stakingPool, master } = this;
     const [user] = this.accounts.members;
 

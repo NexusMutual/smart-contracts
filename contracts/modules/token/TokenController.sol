@@ -154,7 +154,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   * @dev Unlocks the withdrawable tokens against CLA of a specified addresses
   * @param users  Addresses of users for whom the tokens are unlocked
   */
-  function withdrawClaimAssessmentTokens(address[] calldata users) external {
+  function withdrawClaimAssessmentTokens(address[] calldata users) external whenNotPaused {
     for (uint256 i = 0; i < users.length; i++) {
       if (locked[users[i]]["CLA"].claimed) {
         continue;
@@ -346,7 +346,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     address user,
     uint[] calldata coverIds,
     uint[] calldata indexes
-  ) external override {
+  ) external whenNotPaused override {
 
     uint reasonCount = lockReason[user].length;
     require(reasonCount > 0, "TokenController: No locked cover notes found");
@@ -387,19 +387,19 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     return StakingPoolLibrary.getAddress(stakingPoolFactory, poolId);
   }
 
-  function mintStakingPoolNXMRewards(uint amount, uint poolId) external whenNotPaused {
+  function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     token().mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
 
-  function burnStakingPoolNXMRewards(uint amount, uint poolId) external whenNotPaused {
+  function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
     token().burn(amount);
   }
 
-  function depositStakedNXM(address from, uint amount, uint poolId) external whenNotPaused {
+  function depositStakedNXM(address from, uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     stakingPoolNXMBalances[poolId].deposits += amount.toUint128();
     token().operatorTransfer(from, amount);
@@ -410,7 +410,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     uint stakeToWithdraw,
     uint rewardsToWithdraw,
     uint poolId
-  ) external whenNotPaused {
+  ) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     StakingPoolNXMBalances memory poolBalances = stakingPoolNXMBalances[poolId];
     poolBalances.deposits -= stakeToWithdraw.toUint128();
@@ -419,7 +419,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token().transfer(to, stakeToWithdraw + rewardsToWithdraw);
   }
 
-  function burnStakedNXM(uint amount, uint poolId) external whenNotPaused {
+  function burnStakedNXM(uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();
     token().burn(amount);

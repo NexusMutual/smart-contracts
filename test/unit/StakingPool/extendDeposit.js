@@ -59,7 +59,7 @@ describe('extendDeposit', function () {
     expect(await stakingNFT.totalSupply()).to.equal(1);
   });
 
-  it('reverts if caller is not manager when pool is private', async function () {
+  it('reverts if system is paused', async function () {
     const { stakingPool, master } = this;
     const [user] = this.accounts.members;
     const { firstActiveTrancheId, maxTranche } = await getTranches();

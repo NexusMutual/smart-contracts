@@ -21,7 +21,7 @@ import "./StakingTypesLib.sol";
 // on cover buys we allocate the available product capacity
 // on cover expiration we deallocate the capacity and it becomes available again
 
-contract StakingPool is IStakingPool  {
+contract StakingPool is IStakingPool {
   using StakingTypesLib for TrancheAllocationGroup;
   using StakingTypesLib for TrancheGroupBucket;
   using SafeUintCast for uint;

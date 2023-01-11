@@ -1,3 +1,8 @@
+// Script to patch the StakingPoolLibrary with the correct init code hash of the MinimalBeaconProxy.
+// This is required in order to make sure that the library calculates the correct address of the
+// deployed staking pools. Technically this script will be no longer needed after V2 launch as it
+// should not be changed anymore.
+
 const fs = require('fs');
 const path = require('path');
 

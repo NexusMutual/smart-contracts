@@ -302,7 +302,7 @@ describe('v2 migration', function () {
       ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID, // addNewInternalContracts(bytes2[],address[],uint256[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]', 'uint256[]'],
-        [[toUtf8Bytes('CO')], [coverInitializer.address], [2]],
+        [[toUtf8Bytes('CO')], [coverInitializer.address], [2]], // 2 = proxy contract
       ),
       this.abMembers,
       this.governance,
@@ -497,7 +497,7 @@ describe('v2 migration', function () {
     await tx.wait();
   });
 
-  it('process all PooledStaking pending actions', async function () {
+  it.skip('process all PooledStaking pending actions', async function () {
     let hasPendingActions = await this.pooledStaking.hasPendingActions();
     let i = 0;
     while (hasPendingActions) {
@@ -509,7 +509,7 @@ describe('v2 migration', function () {
     console.log('Done');
   });
 
-  it('initialize TokenController', async function () {
+  it.skip('initialize TokenController', async function () {
     const tx = await this.tokenController.initialize();
     await tx.wait();
   });

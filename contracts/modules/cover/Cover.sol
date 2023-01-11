@@ -372,7 +372,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     ProductType memory productType = _productTypes[_products[productId].productType];
 
-    // TODO: consider using v1 grace period
+    // uses the current v2 grace period
     require(
       block.timestamp < start + period + productType.gracePeriod,
       "Cover outside of the grace period"

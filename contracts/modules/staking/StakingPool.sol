@@ -187,14 +187,6 @@ contract StakingPool is IStakingPool {
     emit PoolDescriptionSet(poolId, ipfsDescriptionHash);
   }
 
-  function isApprovedOrOwner(address spender, uint tokenId) internal view returns (bool) {
-    // TODO: will revert for inexistent token
-    address owner = stakingNFT.ownerOf(tokenId);
-    return spender == owner
-      || stakingNFT.isApprovedForAll(owner, spender)
-      || spender == stakingNFT.getApproved(tokenId);
-  }
-
   // updateUntilCurrentTimestamp forces rewards update until current timestamp not just until
   // bucket/tranche expiry timestamps. Must be true when changing shares or reward per second.
   function processExpirations(bool updateUntilCurrentTimestamp) public {
@@ -1025,7 +1017,7 @@ contract StakingPool is IStakingPool {
 
     // token id MAX_UINT is only used for pool manager fee tracking, no deposits allowed
     require(tokenId != MAX_UINT, "StakingPool: Invalid token id");
-    require(isApprovedOrOwner(msg.sender, tokenId), "StakingPool: Not token owner or approved");
+    require(stakingNFT.isApprovedOrOwner(msg.sender, tokenId), "StakingPool: Not token owner or approved");
 
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
 

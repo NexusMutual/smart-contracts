@@ -128,6 +128,8 @@ contract StakingNFT is IStakingNFT {
     emit ApprovalForAll(msg.sender, spender, approved);
   }
 
+  /// @dev `ownerOf` and `getApproved` throw if the token doesn't exist as per ERC721 spec
+  /// @dev as a consequence this function will throw as well in that case
   function isApprovedOrOwner(address spender, uint id) external view returns (bool) {
     address owner = ownerOf(id);
     return spender == owner || isApprovedForAll[owner][spender] || spender == getApproved[id];

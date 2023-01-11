@@ -80,11 +80,9 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
     if (asset == ETH) {
       return "ETH";
     }
-
     if (asset == DAI) {
       return "DAI";
     }
-
     revert("Gateway: unknown asset");
   }
 
@@ -92,11 +90,9 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
     if (currency == "ETH") {
       return ETH;
     }
-
     if (currency == "DAI") {
       return DAI;
     }
-
     revert("Gateway: unknown currency");
   }
 
@@ -126,6 +122,8 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
     CoverType /* coverType */,
     bytes calldata /* data */
   ) external override view returns (uint /* coverPrice */) {
+
+    DAI;
     revert("Gateway: Unsupported action");
   }
 
@@ -137,6 +135,7 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
     CoverType /* coverType */,
     bytes calldata /* data */
   ) external override payable onlyMember whenNotPaused returns (uint) {
+
     revert("Gateway: Unsupported action");
   }
 
@@ -145,19 +144,31 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
     uint /* incidentId */,
     uint /* coveredTokenAmount */,
     address /* coveredToken */
-  ) external override returns (uint claimId, uint payoutAmount, address payoutToken) {
+  ) external override returns (
+    uint /* claimId */,
+    uint /* payoutAmount */,
+    address /* payoutToken */
+  ){
+    // silence compiler warning
+    DAI = DAI;
+
     revert("Gateway: Unsupported action");
   }
 
   function getClaimCoverId(uint /* claimId */) public override view returns (uint) {
+    // silence compiler warning
+    DAI;
     revert("Gateway: Unsupported action");
   }
 
   function getPayoutOutcome(uint /* claimId */) external override view returns (
-    ClaimStatus status,
-    uint amountPaid,
-    address coverAsset
+    ClaimStatus /* status */,
+    uint /* amountPaid */,
+    address /* coverAsset */
   ) {
+    // silence compiler warning
+    DAI;
+
     revert("Gateway: Unsupported action");
   }
 
@@ -166,6 +177,7 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
     uint8 /* action */,
     bytes calldata /* data */
   ) external override payable returns (bytes memory, uint) {
+
     revert("Gateway: Unsupported action");
   }
 }

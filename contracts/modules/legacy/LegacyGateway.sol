@@ -68,10 +68,6 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
     internalContracts[uint(ID.CL)] = master.getLatestAddress("CL");
   }
 
-  function initializeDAI() external {
-    DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-  }
-
   function getCover(uint coverId) public override view returns (
     uint8 status,
     uint sumAssured,

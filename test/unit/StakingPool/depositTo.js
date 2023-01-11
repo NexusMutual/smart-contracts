@@ -61,6 +61,21 @@ describe('depositTo', function () {
     await setTime((trancheId + 1) * TRANCHE_DURATION);
   });
 
+  it('reverts if system is paused', async function () {
+    const { stakingPool, master } = this;
+    const [user] = this.accounts.members;
+
+    const { amount, tokenId, destination } = depositToFixture;
+    const { firstActiveTrancheId: trancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
+
+    // enable emergency pause
+    await master.setEmergencyPause(true);
+
+    await expect(stakingPool.connect(user).depositTo(amount, trancheId, tokenId, destination)).to.be.revertedWith(
+      'System is paused',
+    );
+  });
+
   it('reverts if caller is not manager when pool is private', async function () {
     const { stakingPool, nxm, tokenController } = this;
     const manager = this.accounts.defaultSender;

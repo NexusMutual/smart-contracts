@@ -59,6 +59,19 @@ describe('extendDeposit', function () {
     expect(await stakingNFT.totalSupply()).to.equal(1);
   });
 
+  it('reverts if system is paused', async function () {
+    const { stakingPool, master } = this;
+    const [user] = this.accounts.members;
+    const { firstActiveTrancheId, maxTranche } = await getTranches();
+
+    // enable emergency pause
+    await master.setEmergencyPause(true);
+
+    await expect(
+      stakingPool.connect(user).extendDeposit(depositNftId, maxTranche, firstActiveTrancheId, 0),
+    ).to.be.revertedWith('System is paused');
+  });
+
   it('reverts if token id is max uint', async function () {
     const { stakingPool } = this;
     const { firstActiveTrancheId, maxTranche } = await getTranches();

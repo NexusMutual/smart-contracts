@@ -154,7 +154,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   * @dev Unlocks the withdrawable tokens against CLA of a specified addresses
   * @param users  Addresses of users for whom the tokens are unlocked
   */
-  function withdrawClaimAssessmentTokens(address[] calldata users) external {
+  function withdrawClaimAssessmentTokens(address[] calldata users) external whenNotPaused {
     for (uint256 i = 0; i < users.length; i++) {
       if (locked[users[i]]["CLA"].claimed) {
         continue;
@@ -346,7 +346,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     address user,
     uint[] calldata coverIds,
     uint[] calldata indexes
-  ) external override {
+  ) external whenNotPaused override {
 
     uint reasonCount = lockReason[user].length;
     require(reasonCount > 0, "TokenController: No locked cover notes found");
@@ -405,7 +405,12 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     token().operatorTransfer(from, amount);
   }
 
-  function withdrawNXMStakeAndRewards(address to, uint stakeToWithdraw, uint rewardsToWithdraw, uint poolId) external {
+  function withdrawNXMStakeAndRewards(
+    address to,
+    uint stakeToWithdraw,
+    uint rewardsToWithdraw,
+    uint poolId
+  ) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     StakingPoolNXMBalances memory poolBalances = stakingPoolNXMBalances[poolId];
     poolBalances.deposits -= stakeToWithdraw.toUint128();

@@ -429,7 +429,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint maxPoolFee,
     ProductInitializationParams[] memory productInitParams,
     string calldata ipfsDescriptionHash
-  ) external returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+  ) external whenNotPaused returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
 
     if (msg.sender != master.getLatestAddress("PS")) {
 

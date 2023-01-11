@@ -340,8 +340,15 @@ describe('v2 migration', function () {
     const newClaimsReward = await ClaimsReward.deploy(this.master.address, DAI_ADDRESS);
     await newClaimsReward.deployed();
 
+    const StakingPoolFactory = await ethers.getContractFactory('StakingPoolFactory');
+    const stakingPoolFactory = await StakingPoolFactory.deploy(coverProxyAddress);
+
     const TokenController = await ethers.getContractFactory('TokenController');
-    const tokenController = await TokenController.deploy(this.quotationData.address, newClaimsReward.address);
+    const tokenController = await TokenController.deploy(
+      this.quotationData.address,
+      newClaimsReward.address,
+      stakingPoolFactory.address,
+    );
     await tokenController.deployed();
 
     const MCR = await ethers.getContractFactory('MCR');
@@ -352,15 +359,8 @@ describe('v2 migration', function () {
     const memberRoles = await MemberRoles.deploy();
     await memberRoles.deployed();
 
-    const CoverUtils = await ethers.getContractFactory('CoverUtilsLib');
-    const coverUtils = await CoverUtils.deploy();
-    await coverUtils.deployed();
-
-    const libraries = { CoverUtilsLib: coverUtils.address };
-
-    const Cover = await ethers.getContractFactory('Cover', { libraries });
+    const Cover = await ethers.getContractFactory('Cover');
     const cover = await Cover.deploy(
-      this.quotationData.address,
       this.productsV1.address,
       this.coverNFT.address,
       AddressZero, // staking pool implementation address
@@ -387,7 +387,7 @@ describe('v2 migration', function () {
     await enableAsEnzymeReceiver(pool.address, addressZero);
 
     const CoverMigrator = await ethers.getContractFactory('CoverMigrator');
-    const coverMigrator = await CoverMigrator.deploy();
+    const coverMigrator = await CoverMigrator.deploy(this.quotationData.address, this.productsV1.address);
     await coverMigrator.deployed();
 
     const Gateway = await ethers.getContractFactory('LegacyGateway');

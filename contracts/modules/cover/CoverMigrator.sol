@@ -90,12 +90,12 @@ contract CoverMigrator is MasterAwareV2 {
 
     {
       (
-      /*uint coverId*/,
-      address coverOwner,
-      address legacyProductId,
-      bytes4 currencyCode,
-      /*uint sumAssured*/,
-      /*uint premiumNXM*/
+        /*uint coverId*/,
+        address coverOwner,
+        address legacyProductId,
+        bytes4 currencyCode,
+        /*uint sumAssured*/,
+        /*uint premiumNXM*/
       ) = quotationData.getCoverDetailsByCoverID1(coverId);
 
       require(msgSender == coverOwner, "Cover can only be migrated by its owner");

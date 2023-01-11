@@ -203,7 +203,7 @@ interface ICover {
     uint maxPoolFee,
     ProductInitializationParams[] calldata productInitParams,
     string calldata ipfsDescriptionHash
-  ) external returns (address stakingPoolAddress);
+  ) external returns (uint poolId, address stakingPoolAddress);
 
   function isPoolAllowed(uint productId, uint poolId) external returns (bool);
 

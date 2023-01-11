@@ -429,7 +429,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint maxPoolFee,
     ProductInitializationParams[] memory productInitParams,
     string calldata ipfsDescriptionHash
-  ) external returns (address) {
+  ) external returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
 
     if (msg.sender != master.getLatestAddress("PS")) {
 
@@ -458,8 +458,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       ipfsDescriptionHash
     );
 
-    // TODO: consider returning the pool id as well
-    return stakingPoolAddress;
+    return (poolId, stakingPoolAddress);
   }
 
   function burnStake(

@@ -16,7 +16,6 @@ import "../../interfaces/IQuotation.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ITokenController.sol";
 import "../../interfaces/ICover.sol";
-// TODO: decide if we want to use an interface
 import "../cover/CoverMigrator.sol";
 
 contract LegacyGateway is IGateway, MasterAware {
@@ -52,7 +51,6 @@ contract LegacyGateway is IGateway, MasterAware {
     incidents = ILegacyIncidents(master.getLatestAddress("IC"));
     pool = IPool(master.getLatestAddress("P1"));
     memberRoles = IMemberRoles(master.getLatestAddress("MR"));
-    // TODO: check contract code
     coverMigrator = CoverMigrator(master.getLatestAddress("CL"));
   }
 
@@ -60,7 +58,7 @@ contract LegacyGateway is IGateway, MasterAware {
     DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
   }
 
-  function getCoverPrice (
+  function getCoverPrice(
     address /* contractAddress */,
     address /* coverAsset */,
     uint /* sumAssured */,
@@ -73,17 +71,17 @@ contract LegacyGateway is IGateway, MasterAware {
     this;
 
     (
-    coverPrice,
-    /* coverPriceNXM */,
-    /* generatedAt */,
-    /* expiresAt */,
-    /* _v */,
-    /* _r */,
-    /* _s */
+      coverPrice,
+      /* coverPriceNXM */,
+      /* generatedAt */,
+      /* expiresAt */,
+      /* _v */,
+      /* _r */,
+      /* _s */
     ) = abi.decode(data, (uint, uint, uint, uint, uint8, bytes32, bytes32));
   }
 
-  function buyCover (
+  function buyCover(
     address contractAddress,
     address coverAsset,
     uint sumAssured,
@@ -135,12 +133,8 @@ contract LegacyGateway is IGateway, MasterAware {
   ///
   /// @param coverId     V1 cover identifier
   /// @param data        Additional data that can be passed by Distributor.sol callers
-  function submitClaim(uint coverId, bytes calldata data) external override returns (uint) {
-    // [todo] Maybe we could use data to specify other addresses and only use tx.origin if empty,
-    // thus allowing multisigs to migrate a cover in one tx without an EOA being involved.
+  function submitClaim(uint coverId, bytes calldata /*data*/) external override returns (uint) {
     coverMigrator.migrateCoverFrom(coverId, msg.sender, tx.origin);
-    // silence compiler warnings
-    data;
     return 0;
   }
 

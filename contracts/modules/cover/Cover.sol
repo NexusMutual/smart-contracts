@@ -271,7 +271,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     for (uint i = 0; i < poolAllocationRequests.length; i++) {
 
-      // TODO: add a flag in PoolAllocationRequest to skip certain pools to avoid repricing
       // TODO: poolAllocationRequests might have repeated pools, is this gameable?
 
       // if there is a previous segment and this index is present on it
@@ -283,6 +282,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         // poolAllocationRequests must match the pools in the previous segment
         if (previousPoolAllocation.poolId != poolAllocationRequests[i].poolId) {
           revert UnexpectedPoolId();
+        }
+
+        // check if this request should be skipped, keeping the previous allocation
+        if (poolAllocationRequests[i].skip) {
+          coverSegmentAllocations[allocationRequest.coverId][segmentId].push(previousPoolAllocation);
+          continue;
         }
 
         vars.previousPremiumInNXM = previousPoolAllocation.premiumInNXM;

@@ -4,9 +4,10 @@ const { setNextBlockTime } = require('../utils').evm;
 
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
+const { daysToSeconds } = require('../../../lib/helpers');
+const { assertCoverFields, buyCoverOnOnePool, MAX_COVER_PERIOD, createStakingPool } = require('./helpers');
 
-const { assertCoverFields, buyCoverOnOnePool, MAX_COVER_PERIOD } = require('./helpers');
-const gracePeriod = 120;
+const gracePeriod = daysToSeconds(120);
 
 describe.skip('editCover', function () {
   const coverBuyFixture = {
@@ -46,6 +47,7 @@ describe.skip('editCover', function () {
     await cover.connect(coverBuyer).editCover(
       expectedCoverId,
       {
+        coverId: expectedCoverId,
         owner: coverBuyer.address,
         productId,
         coverAsset,
@@ -69,13 +71,82 @@ describe.skip('editCover', function () {
       coverAsset,
       period,
       amount: increasedAmount,
-      targetPriceRatio,
       gracePeriod,
       segmentId: '1',
+      amountPaidOut: 0,
     });
   });
 
-  it('should edit purchased cover and increase period', async function () {
+  it('should edit purchased cover and add coverage from a new staking pool', async function () {
+    const { cover } = this;
+
+    const [coverBuyer, manager] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+
+    const { expectedPremium, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    await createStakingPool(
+      cover,
+      productId,
+      parseEther('10000'), // capacity
+      coverBuyFixture.targetPriceRatio, // targetPrice
+      0, // activeCover
+      manager, // creator
+      manager, // manager
+      coverBuyFixture.targetPriceRatio, // currentPrice
+    );
+
+    const buyerBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
+
+    const tx = await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: expectedCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium.add(1),
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [
+        { poolId: 0, skip: true, coverAmountInAsset: 0 },
+        { poolId: 1, skip: false, coverAmountInAsset: amount },
+      ],
+      {
+        value: expectedPremium.add(1),
+      },
+    );
+    await tx.wait();
+
+    const buyerBalanceAfter = await ethers.provider.getBalance(coverBuyer.address);
+    expect(buyerBalanceAfter).to.be.lt(buyerBalanceBefore.sub(expectedPremium));
+
+    const pool0Allocation = await cover.coverSegmentAllocations(expectedCoverId, 1, 0);
+    expect(pool0Allocation.poolId).to.be.equal(0);
+    const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, 1, 1);
+    expect(pool1Allocation.poolId).to.be.equal(1);
+
+    expect(pool0Allocation.coverAmountInNXM).to.be.equal(amount);
+    expect(pool1Allocation.coverAmountInNXM).to.be.equal(amount);
+
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period,
+      amount,
+      gracePeriod,
+      segmentId: '1',
+      amountPaidOut: 0,
+    });
+  });
+
+  it.skip('should edit purchased cover and increase period', async function () {
     const { cover } = this;
 
     const [coverBuyer] = this.accounts.members;
@@ -126,7 +197,7 @@ describe.skip('editCover', function () {
     });
   });
 
-  it('should edit purchased cover and increase period and amount', async function () {
+  it.skip('should edit purchased cover and increase period and amount', async function () {
     const { cover } = this;
 
     const [coverBuyer] = this.accounts.members;
@@ -180,7 +251,7 @@ describe.skip('editCover', function () {
     });
   });
 
-  it('should edit purchased cover and increase period and decrease amount', async function () {
+  it.skip('should edit purchased cover and increase period and decrease amount', async function () {
     const { cover } = this;
 
     const [coverBuyer] = this.accounts.members;
@@ -234,7 +305,7 @@ describe.skip('editCover', function () {
     });
   });
 
-  it('should allow editing a cover that is expired offering 0 refund', async function () {
+  it.skip('should allow editing a cover that is expired offering 0 refund', async function () {
     const { cover } = this;
 
     const [coverBuyer] = this.accounts.members;
@@ -279,7 +350,7 @@ describe.skip('editCover', function () {
     });
   });
 
-  it('should revert when period is too long', async function () {
+  it.skip('should revert when period is too long', async function () {
     const { cover } = this;
 
     const [coverBuyer] = this.accounts.members;
@@ -323,7 +394,7 @@ describe.skip('editCover', function () {
     ).to.be.revertedWithCustomError(cover, 'CoverPeriodTooLong');
   });
 
-  it('should revert when commission rate too high', async function () {
+  it.skip('should revert when commission rate too high', async function () {
     const { cover } = this;
 
     const [coverBuyer] = this.accounts.members;
@@ -367,7 +438,7 @@ describe.skip('editCover', function () {
     ).to.be.revertedWithCustomError(cover, 'CommissionRateTooHigh');
   });
 
-  it('should store new grace period when editing cover', async function () {
+  it.skip('should store new grace period when editing cover', async function () {
     const { cover } = this;
     const [boardMember] = this.accounts.advisoryBoardMembers;
     const [coverBuyer] = this.accounts.members;

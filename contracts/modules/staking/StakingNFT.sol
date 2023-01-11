@@ -3,6 +3,7 @@
 pragma solidity ^0.8.16;
 
 import "../../interfaces/IStakingNFT.sol";
+import "../../libraries/StakingPoolLibrary.sol";
 
 /// @dev Based on Solmate https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol
 contract StakingNFT is IStakingNFT {
@@ -14,21 +15,25 @@ contract StakingNFT is IStakingNFT {
 
   string public name;
   string public symbol;
-  address public operator;
-  uint96 internal _totalSupply;
 
   mapping(uint => TokenInfo) internal _tokenInfo;
   mapping(address => uint) internal _balanceOf;
   mapping(uint => address) public getApproved;
   mapping(address => mapping(address => bool)) public isApprovedForAll;
 
+  uint96 internal _totalSupply;
+  address public stakingPoolFactory;
+  address public operator;
+
   constructor(
     string memory _name,
     string memory _symbol,
+    address _stakingPoolFactory,
     address _operator
   ) {
     name = _name;
     symbol = _symbol;
+    stakingPoolFactory = _stakingPoolFactory;
     operator = _operator;
   }
 
@@ -62,7 +67,11 @@ contract StakingNFT is IStakingNFT {
 
   function mint(uint poolId, address to) public returns (uint id) {
 
-    // TODO: make sure msg.sender is a staking pool
+    require(
+      msg.sender == StakingPoolLibrary.getAddress(stakingPoolFactory, poolId),
+      'NOT_STAKING_POOL'
+    );
+
     require(to != address(0), "INVALID_RECIPIENT");
 
     // counter overflow is incredibly unrealistic

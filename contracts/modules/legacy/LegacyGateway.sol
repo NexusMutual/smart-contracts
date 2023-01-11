@@ -132,7 +132,7 @@ contract LegacyGateway is IGateway, MasterAware {
   /// @dev Migrates covers from V1 to V2
   ///
   /// @param coverId     V1 cover identifier
-  /// @param data        Additional data that can be passed by Distributor.sol callers
+  /// @param {bytes}     Additional data that can be passed by Distributor.sol callers
   function submitClaim(uint coverId, bytes calldata /*data*/) external override returns (uint) {
     coverMigrator.migrateCoverFrom(coverId, msg.sender, tx.origin);
     return 0;

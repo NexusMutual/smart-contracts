@@ -10,7 +10,7 @@ import "../../interfaces/IMemberRoles.sol";
 import "../../interfaces/INXMToken.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/ICover.sol";
-import "../cover/CoverMigrator.sol";
+import "../../interfaces/ICoverMigrator.sol";
 
 contract LegacyGateway is IGateway, MasterAwareV2 {
 
@@ -21,7 +21,7 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
   /* ========== STATE VARIABLES ========== */
 
   // Removed the `quotation` state variable as we replaced MasterAware with MasterAwareV2,
-  // which occupies 2 slots instead of 1
+  // which occupies 2 slots instead of 1.
   // address public _unused_quotation;
 
   address public _unused_nxmToken;
@@ -57,8 +57,8 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
     return IMemberRoles(internalContracts[uint(ID.MR)]);
   }
 
-  function coverMigrator() internal view returns (address) {
-    return address(internalContracts[uint(ID.MR)]);
+  function coverMigrator() internal view returns (ICoverMigrator) {
+    return ICoverMigrator(internalContracts[uint(ID.CL)]);
   }
 
   function changeDependentContractAddress() external {
@@ -120,7 +120,7 @@ contract LegacyGateway is IGateway, MasterAwareV2 {
   function submitClaim(uint coverId, bytes calldata /* data */) external override returns (uint) {
     // [todo] Maybe we could use data to specify other addresses and only use tx.origin if empty,
     // thus allowing multisigs to migrate a cover in one tx without an EOA being involved.
-    coverMigrator.migrateCoverFrom(coverId, msg.sender, tx.origin);
+    coverMigrator().migrateCoverFrom(coverId, msg.sender, tx.origin);
 
     return 0;
   }

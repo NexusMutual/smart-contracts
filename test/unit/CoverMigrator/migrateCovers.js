@@ -2,7 +2,7 @@ const { expect } = require('chai');
 
 describe('migrateCoversFrom', function () {
   it('reverts if system is paused', async function () {
-    const { coverMigrator, quotationData, master } = this.contracts;
+    const { coverMigrator, master } = this.contracts;
     const [coverOwner] = this.accounts.members;
 
     // enable emergency pause

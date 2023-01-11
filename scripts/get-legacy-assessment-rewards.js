@@ -24,8 +24,8 @@ function onlyUnique(value, index, self) {
   return self.indexOf(value) === index;
 }
 
-const getTransferCalls = rewardable => {
-  const transfers = Object.keys(rewardable).map(address => `tk.transfer(${address}, ${rewardable[address]});`);
+const getTransferCalls = rewardables => {
+  const transfers = rewardables.map(rewardable => `tk.transfer(${rewardable.address}, ${rewardable.reward});`);
 
   const items = ['// REWARD_TRANSFERS_HELPER_BEGIN', ...transfers, '// REWARD_TRANSFERS_HELPER_END'];
 
@@ -38,6 +38,7 @@ const main = async provider => {
   const claimRewards = await factory('CR');
 
   const contractPath = path.join(__dirname, '../contracts/modules/legacy/LegacyClaimsReward.sol');
+
   const contract = fs.readFileSync(contractPath).toString();
 
   console.log('Collecting vote events');
@@ -59,16 +60,21 @@ const main = async provider => {
   const rewards = await Promise.all(addresses.map(address => claimRewards.getRewardToBeDistributedByUser(address)));
   console.log('Rewards fetched');
 
-  const rewardable = addresses.map((address, i) => ({ address, reward: rewards[i].toString() }));
+  const rewardable = addresses
+    .map((address, i) => ({ address, reward: rewards[i].toString() }))
+    .filter(rewardable => rewardable.reward !== '0');
+
   const rewardablePath = path.join(__dirname, 'rewardable.json');
   fs.writeFileSync(rewardablePath, JSON.stringify(rewardable, null, 2), 'utf8');
 
   // Regex used to replace the transfer operations in LegacyClaimsReward.sol
-  const templateHelperRegex = / +\/\/ REWARD_TRANSFERS_HELPER_BEGIN.*\/\/ REWARD_TRANSFERS_HELPER_END/;
+  const templateHelperRegex = / +\/\/ REWARD_TRANSFERS_HELPER_BEGIN.*\/\/ REWARD_TRANSFERS_HELPER_END/s;
 
   const transferCalls = getTransferCalls(rewardable);
+
   const newContract = contract.replace(templateHelperRegex, transferCalls);
 
+  console.log(`Write new contract to path ${contractPath}`);
   fs.writeFileSync(contractPath, newContract);
 };
 

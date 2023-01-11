@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.16;
 
-contract CoverMockQuotationData {
+contract CMMockQuotationData {
 
   mapping(bytes4 => uint) public sumAssuredByCurrency;
 

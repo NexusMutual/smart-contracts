@@ -267,12 +267,12 @@ describe('initialize', function () {
       .connect(coverSigner)
       .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, [], poolId, ipfsDescriptionHash);
 
-    expect(await stakingPool.poolFee()).to.be.eq(initialPoolFee);
-    expect(await stakingPool.maxPoolFee()).to.be.eq(maxPoolFee);
-    expect(await stakingPool.isPrivatePool()).to.be.eq(isPrivatePool);
+    expect(await stakingPool.poolFee()).to.be.equal(initialPoolFee);
+    expect(await stakingPool.maxPoolFee()).to.be.equal(maxPoolFee);
+    expect(await stakingPool.isPrivatePool()).to.be.equal(isPrivatePool);
   });
 
-  it('mints the ownership nft to manager', async function () {
+  it('correctly sets the manager', async function () {
     const {
       stakingPool,
       cover,
@@ -288,8 +288,8 @@ describe('initialize', function () {
       .connect(coverSigner)
       .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, [], poolId, ipfsDescriptionHash);
 
-    const ownerOfNFT = await stakingPool.ownerOf(0);
-    expect(ownerOfNFT).to.be.eq(manager.address);
+    const actualManager = await stakingPool.manager();
+    expect(actualManager).to.be.equal(manager.address);
   });
 
   it('correctly initializes the list of products', async function () {
@@ -331,11 +331,11 @@ describe('initialize', function () {
     for (const [index, product] of validProducts.entries()) {
       const [lastEffectiveWeight, targetWeight, targetPrice, bumpedPrice, bumpedPriceUpdateTime] =
         await stakingPool.products(index);
-      expect(targetWeight).to.be.eq(product.weight);
-      expect(targetPrice.toString()).to.be.eq(product.targetPrice);
-      expect(bumpedPrice.toString()).to.be.eq(product.initialPrice);
+      expect(targetWeight).to.be.equal(product.weight);
+      expect(targetPrice.toString()).to.be.equal(product.targetPrice);
+      expect(bumpedPrice.toString()).to.be.equal(product.initialPrice);
       expect(bumpedPriceUpdateTime).to.not.be.eq(0);
-      expect(lastEffectiveWeight).to.be.eq(0);
+      expect(lastEffectiveWeight).to.be.equal(0);
     }
   });
 

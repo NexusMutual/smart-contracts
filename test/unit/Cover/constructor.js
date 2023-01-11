@@ -3,28 +3,17 @@ const { ethers } = require('hardhat');
 
 describe('constructor', function () {
   it('should set variables correctly', async function () {
-    const { productsV1, quotationData, stakingPool, futureCoverNFTAddress, coverAddress, coverUtilsLib } = this;
+    const coverNFT = '0x0000000000000000000000000000000000000001';
+    const stakingNFT = '0x0000000000000000000000000000000000000002';
+    const stakingPoolFactory = '0x0000000000000000000000000000000000000003';
+    const stakingPoolImplementation = '0x0000000000000000000000000000000000000004';
 
-    const Cover = await ethers.getContractFactory('Cover', {
-      libraries: {
-        CoverUtilsLib: coverUtilsLib.address,
-      },
-    });
+    const Cover = await ethers.getContractFactory('Cover');
+    const cover = await Cover.deploy(coverNFT, stakingNFT, stakingPoolFactory, stakingPoolImplementation);
 
-    const cover = await Cover.deploy(
-      quotationData.address,
-      productsV1,
-      futureCoverNFTAddress,
-      stakingPool.address,
-      coverAddress,
-    );
-
-    const coverNFT = await cover.coverNFT();
-    const stakingPoolProxyCodeHash = await cover.stakingPoolProxyCodeHash();
-    const stakingPoolImplementation = await cover.stakingPoolImplementation();
-
-    expect(coverNFT).to.be.equal(futureCoverNFTAddress);
-    expect(stakingPoolImplementation).to.be.equal(stakingPool.address);
-    expect(stakingPoolProxyCodeHash).to.be.equal(await coverUtilsLib.calculateProxyCodeHash(coverAddress));
+    expect(await cover.coverNFT()).to.equal(coverNFT);
+    expect(await cover.stakingNFT()).to.equal(stakingNFT);
+    expect(await cover.stakingPoolFactory()).to.equal(stakingPoolFactory);
+    expect(await cover.stakingPoolImplementation()).to.equal(stakingPoolImplementation);
   });
 });

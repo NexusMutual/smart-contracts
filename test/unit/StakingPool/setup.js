@@ -3,12 +3,10 @@ const { parseEther } = ethers.utils;
 const { getAccounts } = require('../../utils/accounts');
 const { setEtherBalance } = require('../../utils/evm');
 const { Role } = require('../utils').constants;
-const { zeroPadRight } = require('../utils').helpers;
 
 async function setup() {
   const MasterMock = await ethers.getContractFactory('MasterMock');
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
-  const QuotationData = await ethers.getContractFactory('CoverMockQuotationData');
   const SPCoverProducts = await ethers.getContractFactory('SPMockCover');
   const MemberRolesMock = await ethers.getContractFactory('MemberRolesMock');
   const TokenController = await ethers.getContractFactory('TokenControllerMock');
@@ -18,14 +16,6 @@ async function setup() {
 
   const master = await MasterMock.deploy();
   await master.deployed();
-
-  const quotationData = await QuotationData.deploy();
-
-  const daiAsset = zeroPadRight(Buffer.from('DAI'), 4);
-  const ethAsset = zeroPadRight(Buffer.from('ETH'), 4);
-
-  await quotationData.setTotalSumAssured(daiAsset, '0');
-  await quotationData.setTotalSumAssured(ethAsset, '100000');
 
   const dai = await ERC20Mock.deploy();
   await dai.deployed();
@@ -51,7 +41,10 @@ async function setup() {
   const cover = await SPCoverProducts.deploy();
   await cover.deployed();
 
-  const stakingPool = await StakingPool.deploy(nxm.address, cover.address, tokenController.address);
+  const StakingNFT = await ethers.getContractFactory('SPMockStakingNFT');
+  const stakingNFT = await StakingNFT.deploy();
+
+  const stakingPool = await StakingPool.deploy(stakingNFT.address, nxm.address, cover.address, tokenController.address);
 
   await nxm.setOperator(tokenController.address);
   await tokenController.setContractAddresses(cover.address, nxm.address);
@@ -105,6 +98,7 @@ async function setup() {
   this.tokenController = tokenController;
   this.master = master;
   this.nxm = nxm;
+  this.stakingNFT = stakingNFT;
   this.stakingPool = stakingPool;
   this.cover = cover;
   this.coverSigner = coverSigner;

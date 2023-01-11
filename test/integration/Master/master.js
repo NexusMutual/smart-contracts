@@ -92,12 +92,12 @@ describe('master', function () {
   });
 
   it('upgrade proxy contract', async function () {
-    const { master, gv, qd, lcr } = this.contracts;
+    const { master, gv, qd, lcr, spf } = this.contracts;
     const owner = this.accounts.defaultSender;
 
     const code = hex('TC');
     const TokenController = await ethers.getContractFactory('TokenController');
-    const newTokenControllerImplementation = await TokenController.deploy(qd.address, lcr.address);
+    const newTokenControllerImplementation = await TokenController.deploy(qd.address, lcr.address, spf.address);
 
     const contractCodes = [code];
     const newAddresses = [newTokenControllerImplementation.address];
@@ -114,7 +114,7 @@ describe('master', function () {
   });
 
   it('upgrade proxies and replaceables', async function () {
-    const { master, gv, qd, lcr } = this.contracts;
+    const { master, gv, qd, lcr, spf } = this.contracts;
     const owner = this.accounts.defaultSender;
 
     const mcrCode = hex('MC');
@@ -123,7 +123,7 @@ describe('master', function () {
     const MCR = await ethers.getContractFactory('MCR');
     const newMCR = await MCR.deploy(master.address);
     const TokenController = await ethers.getContractFactory('TokenController');
-    const newTokenControllerImplementation = await TokenController.deploy(qd.address, lcr.address);
+    const newTokenControllerImplementation = await TokenController.deploy(qd.address, lcr.address, spf.address);
 
     const contractCodes = [mcrCode, tcCode];
     const newAddresses = [newMCR.address, newTokenControllerImplementation.address];
@@ -158,7 +158,7 @@ describe('master', function () {
   });
 
   it('upgrades all contracts', async function () {
-    const { master, gv, dai, priceFeedOracle, p1, tk: token, qd, lcr, cover, productsV1, coverNFT } = this.contracts;
+    const { master, gv, dai, priceFeedOracle, p1, tk, qd, lcr, spf, cover, productsV1, coverNFT } = this.contracts;
     const owner = this.accounts.defaultSender;
 
     const TokenController = await ethers.getContractFactory('TokenController');
@@ -177,8 +177,8 @@ describe('master', function () {
 
     const contractCodes = ['TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC'];
     const newAddresses = [
-      await TokenController.deploy(qd.address, lcr.address),
-      await CoverMigrator.deploy(),
+      await TokenController.deploy(qd.address, lcr.address, spf.address),
+      await CoverMigrator.deploy(qd.address, productsV1.address),
       await LegacyClaimsReward.deploy(master.address, dai.address),
       pool,
       await MCR.deploy(master.address),
@@ -187,7 +187,7 @@ describe('master', function () {
       await MemberRoles.deploy(),
       await LegacyPooledStaking.deploy(cover.address, productsV1.address),
       await LegacyGateway.deploy(),
-      await IndividualClaims.deploy(token.address, coverNFT.address),
+      await IndividualClaims.deploy(tk.address, coverNFT.address),
     ].map(c => {
       return c.address;
     });
@@ -201,9 +201,9 @@ describe('master', function () {
     const poolDaiBalanceBefore = await dai.balanceOf(p1.address);
 
     // store tokens in ClaimsReward
-    await token.connect(owner).transfer(lcr.address, parseEther('10'));
+    await tk.connect(owner).transfer(lcr.address, parseEther('10'));
 
-    const claimsRewardNXMBalanceBefore = await token.balanceOf(lcr.address);
+    const claimsRewardNXMBalanceBefore = await tk.balanceOf(lcr.address);
 
     await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
 
@@ -217,12 +217,12 @@ describe('master', function () {
     expect(poolEthBalanceBefore).to.be.equal(poolEthBalanceAfter);
     expect(poolDaiBalanceBefore).to.be.equal(poolDaiBalanceAfter);
 
-    const claimsRewardNXMBalanceAfter = await token.balanceOf(await master.getLatestAddress(hex('CR')));
+    const claimsRewardNXMBalanceAfter = await tk.balanceOf(await master.getLatestAddress(hex('CR')));
     expect(claimsRewardNXMBalanceAfter).to.be.equal(claimsRewardNXMBalanceBefore);
   });
 
   it('upgrades Governance, TokenController and MemberRoles 2 times in a row', async function () {
-    const { master, gv, qd, lcr } = this.contracts;
+    const { master, gv, qd, lcr, spf } = this.contracts;
     const owner = this.accounts.defaultSender;
 
     const TokenController = await ethers.getContractFactory('TokenController');
@@ -232,7 +232,7 @@ describe('master', function () {
     {
       const contractCodes = ['TC', 'GV', 'MR'];
       const newAddresses = [
-        await TokenController.deploy(qd.address, lcr.address),
+        await TokenController.deploy(qd.address, lcr.address, spf.address),
         await Governance.deploy(),
         await MemberRoles.deploy(),
       ].map(c => c.address);
@@ -249,7 +249,7 @@ describe('master', function () {
     {
       const contractCodes = ['TC', 'GV', 'MR'];
       const newAddresses = [
-        await TokenController.deploy(qd.address, lcr.address),
+        await TokenController.deploy(qd.address, lcr.address, spf.address),
         await Governance.deploy(),
         await MemberRoles.deploy(),
       ].map(c => c.address);

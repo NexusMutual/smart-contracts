@@ -6,12 +6,10 @@ import "solmate/src/tokens/ERC721.sol";
 
 contract ERC721Mock is ERC721 {
 
+  uint public totalSupply;
+
   constructor(string memory name, string memory symbol) ERC721(name, symbol) {
     /* noop */
-  }
-
-  function mint(address to, uint tokenId) external {
-    _mint(to, tokenId);
   }
 
   function isApprovedOrOwner(address spender, uint256 tokenId) external view returns (bool) {

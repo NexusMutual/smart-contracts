@@ -23,11 +23,7 @@ describe('burnStake', function () {
 
   it('should perform a burn a cover with 1 segment and 1 pool allocation', async function () {
     const { cover } = this;
-
-    const {
-      internalContracts: [internal1],
-    } = this.accounts;
-
+    const [internal] = this.accounts.internalContracts;
     const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
@@ -38,7 +34,7 @@ describe('burnStake', function () {
     const segmentAllocation = await cover.coverSegmentAllocations(expectedCoverId, segmentId, '0');
     const expectedBurnAmount = segmentAllocation.coverAmountInNXM.div(burnAmountDivisor);
 
-    await cover.connect(internal1).burnStake(expectedCoverId, segmentId, burnAmount);
+    await cover.connect(internal).burnStake(expectedCoverId, segmentId, burnAmount);
     await assertCoverFields(cover, expectedCoverId, {
       productId,
       coverAsset,
@@ -57,9 +53,7 @@ describe('burnStake', function () {
 
   it('reverts if caller is not an internal contract', async function () {
     const { cover } = this;
-    const {
-      members: [member],
-    } = this.accounts;
+    const [member] = this.accounts.members;
     const { amount } = coverBuyFixture;
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
@@ -73,9 +67,7 @@ describe('burnStake', function () {
 
   it.skip('does not update total active cover if tracking is not enabled', async function () {
     const { cover } = this;
-    const {
-      internalContracts: [internal1],
-    } = this.accounts;
+    const [internal] = this.accounts.internalContracts;
     const { coverAsset, amount } = coverBuyFixture;
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
@@ -83,7 +75,7 @@ describe('burnStake', function () {
     const burnAmount = amount.div(burnAmountDivisor);
 
     const activeCoverAmountBefore = await cover.totalActiveCoverInAsset(coverAsset);
-    await cover.connect(internal1).burnStake(expectedCoverId, segmentId, burnAmount);
+    await cover.connect(internal).burnStake(expectedCoverId, segmentId, burnAmount);
     const activeCoverAmountAfter = await cover.totalActiveCoverInAsset(coverAsset);
 
     expect(activeCoverAmountAfter).to.be.equal(activeCoverAmountBefore);
@@ -91,9 +83,7 @@ describe('burnStake', function () {
 
   it('updates segment allocation cover amount in nxm', async function () {
     const { cover } = this;
-    const {
-      internalContracts: [internal1],
-    } = this.accounts;
+    const [internal] = this.accounts.internalContracts;
     const { amount } = coverBuyFixture;
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
@@ -102,7 +92,7 @@ describe('burnStake', function () {
     const segmentAllocationBefore = await cover.coverSegmentAllocations(expectedCoverId, segmentId, 0);
     const expectedBurnAmount = segmentAllocationBefore.coverAmountInNXM.div(burnAmountDivisor);
 
-    await cover.connect(internal1).burnStake(expectedCoverId, segmentId, burnAmount);
+    await cover.connect(internal).burnStake(expectedCoverId, segmentId, burnAmount);
 
     const segmentAllocationAfter = await cover.coverSegmentAllocations(expectedCoverId, segmentId, 0);
     expect(segmentAllocationAfter.coverAmountInNXM).to.be.equal(
@@ -112,10 +102,9 @@ describe('burnStake', function () {
 
   it('should perform a burn on a cover with 1 segment and 2 pool allocations', async function () {
     const { cover } = this;
-    const {
-      internalContracts: [internal1],
-      members: [, stakingPoolManager],
-    } = this.accounts;
+    const [internal] = this.accounts.internalContracts;
+    const [, stakingPoolManager] = this.accounts.members;
+
     const { productId, coverAsset, period, amount, targetPriceRatio, capacity, activeCover } = coverBuyFixture;
     const amountOfPools = 4;
     const amountPerPool = amount.div(amountOfPools);
@@ -151,7 +140,7 @@ describe('burnStake', function () {
     }
 
     const expectedBurnAmountPerPool = segmentAllocationsBefore[0].coverAmountInNXM.div(burnAmountDivisor);
-    await cover.connect(internal1).burnStake(expectedCoverId, segmentId, burnAmount);
+    await cover.connect(internal).burnStake(expectedCoverId, segmentId, burnAmount);
     await assertCoverFields(cover, expectedCoverId, {
       productId,
       coverAsset,

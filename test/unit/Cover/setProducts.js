@@ -222,19 +222,18 @@ describe('setProducts', function () {
   it('should revert if capacityReductionRatio > 100% when editing a product', async function () {
     const { cover } = this;
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
-    const productId = 1;
+    const productId = await cover.productsCount();
     const productParams = { ...productParamsTemplate };
-    expect(await cover.connect(advisoryBoardMember0).setProducts([productParams]))
+    await expect(cover.connect(advisoryBoardMember0).setProducts([productParams]))
       .to.emit(cover, 'ProductSet')
       .withArgs(productId, defaultIpfsData);
-    {
-      const capacityReductionRatio = capacityFactor + 1; // 100.01 %
-      const product = { ...productTemplate, capacityReductionRatio };
-      const productParams = { ...productParamsTemplate, product, productId };
-      await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
-        'Cover: capacityReductionRatio > 100%',
-      );
-    }
+
+    const capacityReductionRatio = capacityFactor + 1; // 100.01 %
+    const product = { ...productTemplate, capacityReductionRatio };
+    const productParamsOverCapacity = { ...productParamsTemplate, product, productId };
+    await expect(
+      cover.connect(advisoryBoardMember0).setProducts([productParamsOverCapacity]), // should revert
+    ).to.be.revertedWith('Cover: capacityReductionRatio > 100%');
   });
 
   it('should fail to buy cover for deprecated product', async function () {

@@ -43,7 +43,7 @@ describe.skip('editCover', function () {
     const expectedEditPremium = expectedPremium.mul(2);
     const extraPremium = expectedEditPremium.sub(expectedRefund);
 
-    const tx = await cover.connect(coverBuyer).editCover(
+    await cover.connect(coverBuyer).editCover(
       expectedCoverId,
       {
         owner: coverBuyer.address,
@@ -63,7 +63,6 @@ describe.skip('editCover', function () {
         value: extraPremium.add(1),
       },
     );
-    await tx.wait();
 
     await assertCoverFields(cover, expectedCoverId, {
       productId,
@@ -95,7 +94,7 @@ describe.skip('editCover', function () {
     const extraPremium = expectedEditPremium.sub(expectedRefund);
     const increasedPeriod = period * 2;
 
-    const tx = await cover.connect(coverBuyer).editCover(
+    await cover.connect(coverBuyer).editCover(
       expectedCoverId,
       {
         owner: coverBuyer.address,
@@ -115,8 +114,6 @@ describe.skip('editCover', function () {
         value: extraPremium.add(10),
       },
     );
-
-    await tx.wait();
 
     await assertCoverFields(cover, expectedCoverId, {
       productId,
@@ -151,7 +148,7 @@ describe.skip('editCover', function () {
     const increasedAmount = amount.mul(2);
     const increasedPeriod = period * 2;
 
-    const tx = await cover.connect(coverBuyer).editCover(
+    await cover.connect(coverBuyer).editCover(
       expectedCoverId,
       {
         owner: coverBuyer.address,
@@ -171,8 +168,6 @@ describe.skip('editCover', function () {
         value: extraPremium.add(10),
       },
     );
-
-    await tx.wait();
 
     await assertCoverFields(cover, expectedCoverId, {
       productId,
@@ -207,7 +202,7 @@ describe.skip('editCover', function () {
     const decreasedAmount = amount.div(2);
     const increasedPeriod = period * 2;
 
-    const tx = await cover.connect(coverBuyer).editCover(
+    await cover.connect(coverBuyer).editCover(
       expectedCoverId,
       {
         owner: coverBuyer.address,
@@ -227,8 +222,6 @@ describe.skip('editCover', function () {
         value: extraPremium,
       },
     );
-
-    await tx.wait();
 
     await assertCoverFields(cover, expectedCoverId, {
       productId,
@@ -256,7 +249,7 @@ describe.skip('editCover', function () {
     const now = await ethers.provider.getBlock('latest').then(block => block.timestamp);
     await setNextBlockTime(now + period + 3600);
 
-    const tx = await cover.connect(coverBuyer).editCover(
+    await cover.connect(coverBuyer).editCover(
       expectedCoverId,
       {
         owner: coverBuyer.address,
@@ -274,8 +267,6 @@ describe.skip('editCover', function () {
       [{ poolId: '0', coverAmountInAsset: increasedAmount }],
       { value: extraPremium.add(10) },
     );
-
-    await tx.wait();
 
     await assertCoverFields(cover, expectedCoverId, {
       productId,

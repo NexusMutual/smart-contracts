@@ -392,7 +392,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         period.toUint32(),
         productType.gracePeriod,
         0, // global rewards ratio
-        globalCapacityRatio
+        1
       )
     );
 

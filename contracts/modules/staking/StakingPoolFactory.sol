@@ -17,16 +17,19 @@ contract StakingPoolFactory is IStakingPoolFactory {
     operator = _operator;
   }
 
+  function changeOperator(address newOperator) public {
+    require(msg.sender == operator, "StakingPoolFactory: Not operator");
+    require(newOperator != address(0), "StakingPoolFactory: Invalid operator");
+    operator = newOperator;
+  }
+
   function stakingPoolCount() external view returns (uint) {
     return _stakingPoolCount;
   }
 
   function create(address _beacon) external returns (uint poolId, address stakingPoolAddress) {
 
-    require(
-      msg.sender == operator,
-      "StakingPoolFactory: Only operator can create staking pools"
-    );
+    require(msg.sender == operator, "StakingPoolFactory: Not operator");
 
     beacon = _beacon;
     poolId = _stakingPoolCount++;

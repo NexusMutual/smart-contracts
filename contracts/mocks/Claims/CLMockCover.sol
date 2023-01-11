@@ -16,14 +16,14 @@ contract CLMockCover {
     uint amount;
   }
 
-  struct MigrateCoverFromOwnerCalledWith {
+  struct MigrateCoverFromCalledWith {
     uint coverId;
-    address fromOwner;
+    address from;
     address newOwner;
   }
 
   BurnStakeCalledWith public burnStakeCalledWith;
-  MigrateCoverFromOwnerCalledWith public migrateCoverFromOwnerCalledWith;
+  MigrateCoverFromCalledWith public migrateCoverFromCalledWith;
   CoverData[] public coverData;
   mapping(uint => CoverSegment[]) _coverSegments;
   mapping(uint => PoolAllocation[]) stakingPoolsForCover;
@@ -138,12 +138,12 @@ contract CLMockCover {
     return coverNFT.ownerOf(coverId);
   }
 
-  function migrateCoverFromOwner(
+  function migrateCoverFrom(
     uint coverId,
-    address fromOwner,
+    address from,
     address newOwner
   ) external returns (address) {
-    migrateCoverFromOwnerCalledWith = MigrateCoverFromOwnerCalledWith(coverId, fromOwner, newOwner);
+    migrateCoverFromCalledWith = MigrateCoverFromCalledWith(coverId, from, newOwner);
     // silence compiler warning:
     return address(0);
   }

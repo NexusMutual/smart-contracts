@@ -10,6 +10,11 @@ contract MRMockCoverNFT is ERC721Mock {
     /* noop */
   }
 
+  function mint(address to, uint tokenId) external {
+    totalSupply++;
+    _mint(to, tokenId);
+  }
+
   function operatorTransferFrom(address from, address to, uint256 tokenId) external {
       _operatorTransferFrom(from, to, tokenId);
   }

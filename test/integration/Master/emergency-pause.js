@@ -20,6 +20,7 @@ describe('emergency pause', function () {
 
     const members = this.accounts.members.slice(0, 5);
     const amount = parseEther('10000');
+
     for (const member of members) {
       await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
     }
@@ -48,7 +49,7 @@ describe('emergency pause', function () {
   });
 
   it('should be able to perform proxy and replaceable upgrades during emergency pause', async function () {
-    const { master, gv, qd, lcr } = this.contracts;
+    const { master, gv, qd, lcr, spf } = this.contracts;
     const emergencyAdmin = this.accounts.emergencyAdmin;
     const owner = this.accounts.defaultSender;
 
@@ -62,13 +63,12 @@ describe('emergency pause', function () {
     const MCR = await ethers.getContractFactory('MCR');
     const newMCR = await MCR.deploy(master.address);
     const TokenController = await ethers.getContractFactory('TokenController');
-    const newTokenControllerImplementation = await TokenController.deploy(qd.address, lcr.address);
+    const newTokenControllerImplementation = await TokenController.deploy(qd.address, lcr.address, spf.address);
 
     const contractCodes = [mcrCode, tcCode];
     const newAddresses = [newMCR.address, newTokenControllerImplementation.address];
 
     const upgradeContractsData = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, newAddresses]);
-
     await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
 
     const tcAddress = await master.getLatestAddress(tcCode);
@@ -144,7 +144,7 @@ describe('emergency pause', function () {
   });
 
   it('stops claim payouts on redeemPayout', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { ic, cover, stakingPool0, as, master } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
     const emergencyAdmin = this.accounts.emergencyAdmin;
@@ -161,7 +161,7 @@ describe('emergency pause', function () {
 
     // Buy Cover
     const expectedPremium = amount
-      .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
+      .mul(BigNumber.from(DEFAULT_PRODUCTS[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
     await cover.connect(coverBuyer1).buyCover(
@@ -203,7 +203,7 @@ describe('emergency pause', function () {
   });
 
   it('stops claim voting', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { ic, cover, stakingPool0, as, master } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const emergencyAdmin = this.accounts.emergencyAdmin;
@@ -220,7 +220,7 @@ describe('emergency pause', function () {
 
     // Buy Cover
     const expectedPremium = amount
-      .mul(BigNumber.from(DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice))
+      .mul(BigNumber.from(DEFAULT_PRODUCTS[0].targetPrice))
       .div(BigNumber.from(priceDenominator));
 
     await cover.connect(coverBuyer1).buyCover(

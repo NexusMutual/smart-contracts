@@ -1,20 +1,18 @@
 const { ethers } = require('hardhat');
-const { getContractAddress } = require('@ethersproject/address');
-const { parseEther } = ethers.utils;
-const { MaxUint256 } = ethers.constants;
-const { BigNumber } = ethers;
-const { getAccounts } = require('../../utils/accounts');
-const { Role } = require('../utils').constants;
-const { hex, zeroPadRight } = require('../utils').helpers;
+const { expect } = require('chai');
 
-const getDeployAddressAfter = async txCount => {
-  const { defaultSender } = await getAccounts();
-  const transactionCount = await defaultSender.getTransactionCount();
-  const nextAddress = getContractAddress({
-    from: defaultSender.address,
-    nonce: transactionCount + txCount,
-  });
-  return nextAddress;
+const { getAccounts } = require('../utils').accounts;
+const { Role } = require('../utils').constants;
+const { hex } = require('../utils').helpers;
+
+const { BigNumber } = ethers;
+const { MaxUint256 } = ethers.constants;
+const { getContractAddress, parseEther } = ethers.utils;
+
+const getDeployAddressAfter = async (account, txCount) => {
+  const from = account.address;
+  const nonce = (await account.getTransactionCount()) + txCount;
+  return getContractAddress({ from, nonce });
 };
 
 async function setup() {
@@ -23,36 +21,19 @@ async function setup() {
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
   const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
-  const QuotationData = await ethers.getContractFactory('CoverMockQuotationData');
   const MemberRolesMock = await ethers.getContractFactory('MemberRolesMock');
-  const CoverNFT = await ethers.getContractFactory('CoverMockNFT');
+  const CoverNFT = await ethers.getContractFactory('CoverMockCoverNFT');
+  const StakingNFT = await ethers.getContractFactory('CoverMockStakingNFT');
   const TokenController = await ethers.getContractFactory('TokenControllerMock');
   const NXMToken = await ethers.getContractFactory('NXMTokenMock');
   const MCR = await ethers.getContractFactory('CoverMockMCR');
   const StakingPool = await ethers.getContractFactory('CoverMockStakingPool');
-  const CoverUtilsLib = await ethers.getContractFactory('CoverUtilsLib');
+  const StakingPoolFactory = await ethers.getContractFactory('StakingPoolFactory');
   const ERC20CustomDecimalsMock = await ethers.getContractFactory('ERC20CustomDecimalsMock');
-
-  const coverUtilsLib = await CoverUtilsLib.deploy();
-
-  const Cover = await ethers.getContractFactory('Cover', {
-    libraries: {
-      CoverUtilsLib: coverUtilsLib.address,
-    },
-  });
+  const Cover = await ethers.getContractFactory('Cover');
 
   const master = await MasterMock.deploy();
   await master.deployed();
-
-  const quotationData = await QuotationData.deploy();
-
-  const daiAsset = zeroPadRight(Buffer.from('DAI'), 4);
-  const ethAsset = zeroPadRight(Buffer.from('ETH'), 4);
-  const usdcAsset = zeroPadRight(Buffer.from('USDC'), 4);
-
-  await quotationData.setTotalSumAssured(daiAsset, '0');
-  await quotationData.setTotalSumAssured(ethAsset, '100000');
-  await quotationData.setTotalSumAssured(usdcAsset, '0');
 
   const dai = await ERC20Mock.deploy();
   await dai.deployed();
@@ -72,28 +53,36 @@ async function setup() {
 
   const nxm = await NXMToken.deploy();
   await nxm.deployed();
-  nxm.setOperator(tokenController.address);
+  await nxm.setOperator(tokenController.address);
 
   const mcr = await MCR.deploy();
   await mcr.deployed();
   await mcr.setMCR(parseEther('600000'));
 
-  const futureCoverNFTAddress = await getDeployAddressAfter(2);
+  const stakingPoolImplementation = await StakingPool.deploy();
+  await stakingPoolImplementation.deployed();
 
-  const coverAddress = await getDeployAddressAfter(1);
+  const coverNFT = await CoverNFT.deploy();
+  await coverNFT.deployed();
 
-  const stakingPool = await StakingPool.deploy(nxm.address, coverAddress, memberRoles.address, tokenController.address);
+  const stakingNFT = await StakingNFT.deploy();
+  await stakingNFT.deployed();
+
+  const { defaultSender } = await getAccounts();
+  const expectedCoverAddress = await getDeployAddressAfter(defaultSender, 1);
+
+  const stakingPoolFactory = await StakingPoolFactory.deploy(expectedCoverAddress);
+  await stakingPoolFactory.deployed();
+
   const cover = await Cover.deploy(
-    quotationData.address,
-    ethers.constants.AddressZero,
-    futureCoverNFTAddress,
-    stakingPool.address,
-    coverAddress,
+    coverNFT.address,
+    stakingNFT.address,
+    stakingPoolFactory.address,
+    stakingPoolImplementation.address,
   );
   await cover.deployed();
 
-  const coverNFT = await CoverNFT.deploy('NexusMutual Cover', 'NXMC', cover.address);
-  await coverNFT.deployed();
+  expect(expectedCoverAddress).to.equal(cover.address);
 
   await master.setTokenAddress(nxm.address);
 
@@ -130,7 +119,6 @@ async function setup() {
 
   // set contract addresses
   await master.setLatestAddress(hex('P1'), pool.address);
-  await master.setLatestAddress(hex('QD'), quotationData.address);
   await master.setLatestAddress(hex('MR'), memberRoles.address);
   await master.setLatestAddress(hex('CO'), cover.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
@@ -229,15 +217,9 @@ async function setup() {
   this.coverNFT = coverNFT;
   this.accounts = accounts;
   this.capacityFactor = capacityFactor;
-  this.coverUtilsLib = coverUtilsLib;
-  this.quotationData = quotationData;
-  this.stakingPool = stakingPool;
-  this.coverAddress = coverAddress;
-  this.futureCoverNFTAddress = futureCoverNFTAddress;
-  this.productsV1 = ethers.constants.AddressZero;
-  this.config = {
-    GLOBAL_MIN_PRICE_RATIO,
-  };
+  this.stakingPoolImplementation = stakingPoolImplementation;
+  this.stakingPoolFactory = stakingPoolFactory;
+  this.config = { GLOBAL_MIN_PRICE_RATIO };
 }
 
 module.exports = setup;

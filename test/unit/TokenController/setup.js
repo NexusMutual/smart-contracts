@@ -8,6 +8,7 @@ async function setup() {
   const tokenController = await TokenController.deploy(
     '0x0000000000000000000000000000000000000000',
     '0x0000000000000000000000000000000000000000',
+    '0x0000000000000000000000000000000000000000',
   );
   await tokenController.deployed();
 

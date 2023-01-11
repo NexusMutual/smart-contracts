@@ -26,6 +26,6 @@ describe('initialize', function () {
     expect(afterInitializeConfig.rewardRatio).to.be.equal(130);
     expect(afterInitializeConfig.maxRewardInNXMWad).to.be.equal(50);
     expect(afterInitializeConfig.minAssessmentDepositRatio).to.be.equal(500);
-    expect(afterInitializeConfig.payoutRedemptionPeriodInDays).to.be.equal(14);
+    expect(afterInitializeConfig.payoutRedemptionPeriodInDays).to.be.equal(30);
   });
 });

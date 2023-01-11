@@ -64,7 +64,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
     // The minimum cover premium per year is 2.6%. 20% of the cover premium is: 2.6% * 50% = 1.30%
     config.rewardRatio = 130; // 1.3%
     config.payoutDeductibleRatio = 9000; // 90%
-    config.payoutRedemptionPeriodInDays = 14; // days
+    config.payoutRedemptionPeriodInDays = 30; // days to redeem the payout
     config.maxRewardInNXMWad = 50; // 50 NXM
   }
 

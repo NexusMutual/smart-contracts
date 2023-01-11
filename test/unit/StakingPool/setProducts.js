@@ -412,7 +412,7 @@ describe('setProducts unit tests', function () {
     const product = { ...initialProductTemplate, targetPrice: GLOBAL_MIN_PRICE_RATIO - 1 };
     await expect(
       cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [product], 0, IPFS_DESCRIPTION_HASH),
-    ).to.be.revertedWith('CoverUtilsLib: Target price below GLOBAL_MIN_PRICE_RATIO');
+    ).to.be.revertedWith('Cover: Target price below GLOBAL_MIN_PRICE_RATIO');
   });
 
   it('should fail with targetPrice below global min price ratio', async function () {
@@ -449,7 +449,7 @@ describe('setProducts unit tests', function () {
     // Get capacity in staking pool
     await nxm.connect(staker).approve(tokenController.address, amount);
     const trancheId = (await getCurrentTrancheId()) + 2;
-    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ 0, staker.address);
+    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ MaxUint256, staker.address);
 
     let i = 0;
     const coverId = 1;
@@ -520,7 +520,7 @@ describe('setProducts unit tests', function () {
     // Get capacity in staking pool
     await nxm.connect(staker).approve(tokenController.address, amount);
     const trancheId = (await getCurrentTrancheId()) + 2;
-    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ 0, manager.address);
+    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ MaxUint256, manager.address);
 
     const ratio = await cover.getPriceAndCapacityRatios([0]);
     const { totalCapacity } = await stakingPool.getActiveTrancheCapacities(
@@ -589,7 +589,7 @@ describe('setProducts unit tests', function () {
     // Get capacity in staking pool
     await nxm.connect(staker).approve(tokenController.address, amount);
     const trancheId = (await getCurrentTrancheId()) + 2;
-    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ 0, manager.address);
+    await stakingPool.connect(staker).depositTo(amount, trancheId, /* token id: */ MaxUint256, manager.address);
 
     // Initialize Products and CoverBuy requests
     const coverBuyParams = Array(20)

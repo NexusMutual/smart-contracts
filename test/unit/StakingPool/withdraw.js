@@ -11,6 +11,7 @@ const {
 } = require('./helpers');
 
 const { BigNumber } = ethers;
+const { MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 const product0 = {
@@ -33,7 +34,7 @@ const withdrawFixture = {
   ...initializeParams,
   amount: parseEther('100'),
   trancheId: 0,
-  tokenId: 1,
+  tokenId: 0,
   destination: ethers.constants.AddressZero,
 };
 
@@ -74,7 +75,7 @@ describe('withdraw', function () {
     await stakingPool.connect(user).depositTo(
       amount,
       firstActiveTrancheId,
-      0, // new position,
+      MaxUint256, // new position,
       destination,
     );
 
@@ -104,7 +105,7 @@ describe('withdraw', function () {
     await stakingPool.connect(user).depositTo(
       depositAmount,
       firstActiveTrancheId,
-      0, // new position
+      MaxUint256, // new position
       destination,
     );
 
@@ -144,7 +145,7 @@ describe('withdraw', function () {
     await stakingPool.connect(user).depositTo(
       amount,
       firstActiveTrancheId,
-      0, // new position,
+      MaxUint256, // new position,
       destination,
     );
 
@@ -187,7 +188,7 @@ describe('withdraw', function () {
     await stakingPool.connect(user).depositTo(
       amount,
       firstActiveTrancheId,
-      0, // new position
+      MaxUint256, // new position
       destination,
     );
 
@@ -208,7 +209,7 @@ describe('withdraw', function () {
     const managerBalanceBefore = await nxm.balanceOf(manager.address);
     const tcBalanceBefore = await nxm.balanceOf(tokenController.address);
 
-    const managerTokenId = 0;
+    const managerTokenId = MaxUint256;
     const managerDepositBefore = await stakingPool.deposits(managerTokenId, firstActiveTrancheId);
 
     await increaseTime(TRANCHE_DURATION);
@@ -269,7 +270,7 @@ describe('withdraw', function () {
     await stakingPool.connect(user).depositTo(
       amount,
       firstActiveTrancheId,
-      0, // new position
+      MaxUint256, // new position
       destination,
     );
 
@@ -311,7 +312,7 @@ describe('withdraw', function () {
       await stakingPool.connect(user).depositTo(
         amount,
         currentTranche,
-        i === 0 ? 0 : tokenId, // Only create new position for the first tranche
+        i === 0 ? MaxUint256 : tokenId, // Only create new position for the first tranche
         destination,
       );
 
@@ -366,7 +367,7 @@ describe('withdraw', function () {
     await stakingPool.connect(user).depositTo(
       amount,
       firstActiveTrancheId,
-      0, // new position,
+      MaxUint256, // new position,
       destination,
     );
 
@@ -412,7 +413,7 @@ describe('withdraw', function () {
     await stakingPool.connect(user).depositTo(
       amount,
       firstActiveTrancheId,
-      0, // new position
+      MaxUint256, // new position
       destination,
     );
 
@@ -458,7 +459,7 @@ describe('withdraw', function () {
       await stakingPool.connect(user).depositTo(
         amount.mul(i * 5 + 1),
         currentTranche,
-        i === 0 ? 0 : tokenId, // Only create new position for the first tranche
+        i === 0 ? MaxUint256 : tokenId, // Only create new position for the first tranche
         destination,
       );
 
@@ -513,7 +514,7 @@ describe('withdraw', function () {
       [parseEther('13'), parseEther('100'), parseEther('100')],
     ];
 
-    const tokenIds = [1, 2, 3];
+    const tokenIds = [0, 1, 2];
     const TRANCHE_COUNT = 5;
     const trancheIds = [];
 
@@ -539,7 +540,7 @@ describe('withdraw', function () {
         await stakingPool.connect(user).depositTo(
           amount,
           currentTranche + t,
-          t === 0 ? 0 : tokenIds[uid], // Only create new position for the first tranche
+          t === 0 ? MaxUint256 : tokenIds[uid], // Only create new position for the first tranche
           destination,
         );
 
@@ -611,7 +612,7 @@ describe('withdraw', function () {
     }
 
     // withdraw manager rewards
-    const managerTokenId = 0;
+    const managerTokenId = MaxUint256;
     const managerDepositsBeforeWithdraw = {};
     for (let t = 0; t < TRANCHE_COUNT; t++) {
       const tranche = trancheIds[t];

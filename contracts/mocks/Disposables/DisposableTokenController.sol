@@ -9,8 +9,9 @@ contract DisposableTokenController is TokenController {
 
   constructor(
     address quotationDataAddress,
-    address claimsRewardAddress
-  ) TokenController(quotationDataAddress, claimsRewardAddress) {}
+    address claimsRewardAddress,
+    address stakingPoolFactoryAddress
+  ) TokenController(quotationDataAddress, claimsRewardAddress, stakingPoolFactoryAddress) {}
 
   function initialize(
     address payable _masterAddress,

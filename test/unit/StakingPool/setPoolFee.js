@@ -21,23 +21,23 @@ const allocationRequestTemplate = {
   globalMinPrice: 10000,
 };
 
+const product = {
+  productId: 0,
+  weight: 100,
+  initialPrice: '500',
+  targetPrice: '500',
+};
+
+const initializeParams = {
+  poolId: 0,
+  isPrivatePool: false,
+  initialPoolFee: 5, // 5%
+  maxPoolFee: 5, // 5%
+  productInitializationParams: [product],
+  ipfsDescriptionHash: 'Description Hash',
+};
+
 describe('setPoolFee', function () {
-  const product0 = {
-    productId: 0,
-    weight: 100,
-    initialPrice: '500',
-    targetPrice: '500',
-  };
-
-  const initializeParams = {
-    poolId: 0,
-    isPrivatePool: false,
-    initialPoolFee: 5, // 5%
-    maxPoolFee: 5, // 5%
-    productInitializationParams: [product0],
-    ipfsDescriptionHash: 'Description Hash',
-  };
-
   beforeEach(async function () {
     const {
       stakingPool,
@@ -121,8 +121,8 @@ describe('setPoolFee', function () {
     const trancheId = firstActiveTrancheId + 1;
 
     const depositAmount = parseEther('100');
-    const tokenId = 0;
-    const managerDepositId = 0;
+    const tokenId = MaxUint256; // new deposit
+    const managerDepositId = MaxUint256; // manager position id
     const { initialPoolFee } = initializeParams;
     const newPoolFee = initialPoolFee - 2;
 
@@ -136,21 +136,23 @@ describe('setPoolFee', function () {
     await stakingPool.connect(coverSigner).requestAllocation(coverAmount, previousPremium, allocationRequest);
     await increaseTime(daysToSeconds(25));
 
-    const managerDepositBefore = await stakingPool.deposits(managerDepositId, trancheId);
+    const depositBefore = await stakingPool.deposits(managerDepositId, trancheId);
 
     await stakingPool.connect(manager).setPoolFee(newPoolFee);
 
-    const accNxmPerRewardsShareBefore = await stakingPool.accNxmPerRewardsShare();
-    const managerDepositAfter = await stakingPool.deposits(managerDepositId, trancheId);
-    const newLastAccNxmPerRewardShare = accNxmPerRewardsShareBefore.sub(managerDepositBefore.lastAccNxmPerRewardShare);
+    const accNxmPerRewardsShareAfter = await stakingPool.accNxmPerRewardsShare();
+    const depositAfter = await stakingPool.deposits(managerDepositId, trancheId);
 
-    expect(managerDepositAfter.lastAccNxmPerRewardShare).to.equal(newLastAccNxmPerRewardShare);
-    expect(managerDepositAfter.pendingRewards).to.equal(
-      managerDepositAfter.lastAccNxmPerRewardShare.mul(managerDepositBefore.rewardsShares).div(parseEther('1')),
-    );
-    expect(managerDepositAfter.rewardsShares).to.equal(
-      managerDepositBefore.rewardsShares.mul(newPoolFee).div(initialPoolFee),
-    );
+    const expectedLastAccNxmPerRewardShare = accNxmPerRewardsShareAfter.sub(depositBefore.lastAccNxmPerRewardShare);
+    expect(depositAfter.lastAccNxmPerRewardShare).to.equal(expectedLastAccNxmPerRewardShare);
+
+    const expectedPendingRewards = depositAfter.lastAccNxmPerRewardShare
+      .mul(depositBefore.rewardsShares)
+      .div(parseEther('1'));
+    expect(depositAfter.pendingRewards).to.equal(expectedPendingRewards);
+
+    const expectedRewardsShares = depositBefore.rewardsShares.mul(newPoolFee).div(initialPoolFee);
+    expect(depositAfter.rewardsShares).to.equal(expectedRewardsShares);
   });
 
   it('emits and PoolFeeChanged', async function () {

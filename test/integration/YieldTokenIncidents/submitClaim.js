@@ -16,40 +16,40 @@ const setTime = async timestamp => {
 
 const usdcDecimals = 6;
 
-describe('submitClaim', function () {
-  const submitClaimFixture = {
-    period: 3600 * 24 * 30, // 30 days
-    gracePeriod: 3600 * 24 * 30,
-    amount: parseEther('10'),
-    priceDenominator: 10000,
-  };
+const submitClaimFixture = {
+  period: 3600 * 24 * 30, // 30 days
+  gracePeriod: 3600 * 24 * 30,
+  amount: parseEther('10'),
+  priceDenominator: 10000,
+};
 
+async function transferYieldToken({ tokenOwner, coverBuyer, yToken, yc }) {
+  await yToken.connect(tokenOwner).transfer(coverBuyer.address, parseEther('100'));
+  await yToken.connect(coverBuyer).approve(yc.address, parseEther('100'));
+}
+
+async function submitIncident({ gv, yc, productId, period, priceBefore }) {
+  const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+
+  const gvSigner = await ethers.getImpersonatedSigner(gv.address);
+  await setEtherBalance(gvSigner.address, ethers.utils.parseEther('1'));
+
+  await yc.connect(gvSigner).submitIncident(productId, priceBefore, currentTime + period / 2, parseEther('100'), '');
+}
+
+describe('submitClaim', function () {
   beforeEach(async function () {
     const { tk } = this.contracts;
-
     const members = this.accounts.members.slice(0, 5);
     const amount = parseEther('30000');
+
     for (const member of members) {
       await tk.connect(this.accounts.defaultSender).transfer(member.address, amount);
     }
   });
 
-  async function transferYieldToken({ tokenOwner, coverBuyer, yToken, yc }) {
-    await yToken.connect(tokenOwner).transfer(coverBuyer.address, parseEther('100'));
-    await yToken.connect(coverBuyer).approve(yc.address, parseEther('100'));
-  }
-
-  async function submitIncident({ gv, yc, productId, period, priceBefore }) {
-    const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
-
-    const gvSigner = await ethers.getImpersonatedSigner(gv.address);
-    await setEtherBalance(gvSigner.address, ethers.utils.parseEther('1'));
-
-    await yc.connect(gvSigner).submitIncident(productId, priceBefore, currentTime + period / 2, parseEther('100'), '');
-  }
-
   it('submits ETH claim and approves claim', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, yc, ybETH, gv } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
@@ -73,7 +73,7 @@ describe('submitClaim', function () {
       period,
       cover,
       coverBuyer: coverBuyer1,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       priceDenominator,
     });
 
@@ -115,7 +115,7 @@ describe('submitClaim', function () {
   });
 
   it('submits DAI claim and approves claim', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, dai, yc, ybDAI, gv } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
@@ -142,7 +142,7 @@ describe('submitClaim', function () {
       period,
       cover,
       coverBuyer: coverBuyer1,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       priceDenominator,
     });
 
@@ -184,7 +184,7 @@ describe('submitClaim', function () {
   });
 
   it('submits ETH claim and rejects claim', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, yc, ybETH, gv } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
@@ -208,7 +208,7 @@ describe('submitClaim', function () {
       period,
       cover,
       coverBuyer: coverBuyer1,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       priceDenominator,
     });
 
@@ -233,7 +233,7 @@ describe('submitClaim', function () {
   });
 
   it('submits DAI claim and rejects claim', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, dai, yc, ybDAI, gv } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
@@ -260,7 +260,7 @@ describe('submitClaim', function () {
       period,
       cover,
       coverBuyer: coverBuyer1,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       priceDenominator,
     });
 
@@ -284,7 +284,7 @@ describe('submitClaim', function () {
   });
 
   it('submits and redeems full amount of ETH claim', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, yc, ybETH, gv } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
@@ -308,7 +308,7 @@ describe('submitClaim', function () {
       period,
       cover,
       coverBuyer: coverBuyer1,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       priceDenominator,
     });
 
@@ -336,7 +336,7 @@ describe('submitClaim', function () {
   });
 
   it('submits and redeems full amount of DAI claim', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, dai, yc, ybDAI, gv } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
@@ -363,7 +363,7 @@ describe('submitClaim', function () {
       period,
       cover,
       coverBuyer: coverBuyer1,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       priceDenominator,
     });
 
@@ -388,7 +388,7 @@ describe('submitClaim', function () {
   });
 
   it('submits and redeems claims from multiple users', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, yc, ybETH, gv } = this.contracts;
     const [coverBuyer1, coverBuyer2, coverBuyer3, staker1] = this.accounts.members;
     const [nonMember1, nonMember2, nonMember3] = this.accounts.nonMembers;
@@ -418,7 +418,7 @@ describe('submitClaim', function () {
       period,
       cover,
       coverBuyer: coverBuyer1,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       priceDenominator,
     });
 
@@ -430,7 +430,7 @@ describe('submitClaim', function () {
       period,
       cover,
       coverBuyer: coverBuyer2,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       priceDenominator,
     });
 
@@ -442,7 +442,7 @@ describe('submitClaim', function () {
       period,
       cover,
       coverBuyer: coverBuyer3,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       priceDenominator,
     });
 
@@ -496,7 +496,7 @@ describe('submitClaim', function () {
   });
 
   it('submits and redeems claims from multiple products', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, yc, ybETH, gv, dai, ybDAI } = this.contracts;
     const [coverBuyer1, coverBuyer2, staker1] = this.accounts.members;
     const [nonMember1, nonMember2] = this.accounts.nonMembers;
@@ -522,7 +522,7 @@ describe('submitClaim', function () {
         period,
         cover,
         coverBuyer: coverBuyer1,
-        targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+        targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
         priceDenominator,
       });
 
@@ -555,7 +555,7 @@ describe('submitClaim', function () {
         period,
         cover,
         coverBuyer: coverBuyer2,
-        targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+        targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
         priceDenominator,
       });
 
@@ -594,7 +594,7 @@ describe('submitClaim', function () {
   });
 
   it('submits USDC claim and approves claim', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, usdc, yc, ybUSDC, gv } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
@@ -623,7 +623,7 @@ describe('submitClaim', function () {
       period,
       cover,
       coverBuyer: coverBuyer1,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       priceDenominator,
     });
 
@@ -647,7 +647,7 @@ describe('submitClaim', function () {
   });
 
   it('submits and redeems full amount of USDC claim', async function () {
-    const { DEFAULT_PRODUCT_INITIALIZATION } = this;
+    const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, usdc, yc, ybUSDC, gv } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
     const [nonMember1] = this.accounts.nonMembers;
@@ -676,7 +676,7 @@ describe('submitClaim', function () {
       period,
       cover,
       coverBuyer: coverBuyer1,
-      targetPrice: DEFAULT_PRODUCT_INITIALIZATION[0].targetPrice,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       priceDenominator,
     });
 

@@ -1,6 +1,5 @@
 const { ethers } = require('ethers');
 const { expect } = require('chai');
-const { expectRevert } = require('@openzeppelin/test-helpers');
 const { AddressZero } = ethers.constants;
 
 describe('CoverNFT', function () {
@@ -17,41 +16,32 @@ describe('CoverNFT', function () {
 
   it('should fail to mint - onlyOperator()', async function () {
     const { coverNFT } = this;
-    await expectRevert(coverNFT.mint(coverNFT.address, 10), 'CoverNFT: Not operator');
+    await expect(coverNFT.mint(coverNFT.address, 10)).to.be.revertedWith('CoverNFT: Not operator');
   });
 
   it('should successfully mint', async function () {
     const { coverNFT } = this;
-    const {
-      members: [operator, nftOwner],
-    } = this.accounts;
-    await coverNFT.setMockOperator(operator.address);
+    const [operator, nftOwner] = this.accounts.members;
     await coverNFT.connect(operator).mint(nftOwner.address, 0);
     expect(await coverNFT.ownerOf(0)).to.be.equal(nftOwner.address);
   });
 
   it('should fail to burn - onlyOperator()', async function () {
     const { coverNFT } = this;
-    await expectRevert(coverNFT.burn(0), 'CoverNFT: Not operator');
+    await expect(coverNFT.burn(0)).to.be.revertedWith('CoverNFT: Not operator');
   });
 
   it('should successfully burn', async function () {
     const { coverNFT } = this;
-    const {
-      members: [operator, nftOwner],
-    } = this.accounts;
-    await coverNFT.setMockOperator(operator.address);
+    const [operator, nftOwner] = this.accounts.members;
     await coverNFT.connect(operator).mint(nftOwner.address, 0);
     await coverNFT.connect(operator).burn(0);
-    await expectRevert(coverNFT.ownerOf(0), 'NOT_MINTED');
+    await expect(coverNFT.ownerOf(0)).to.be.revertedWith('NOT_MINTED');
   });
 
   it('should return success for isApproveOrOwner() - owner == sender', async function () {
     const { coverNFT } = this;
-    const {
-      members: [operator, nftOwner],
-    } = this.accounts;
-    await coverNFT.setMockOperator(operator.address);
+    const [operator, nftOwner] = this.accounts.members;
     await coverNFT.connect(operator).mint(nftOwner.address, 0);
     expect(await coverNFT.isApprovedOrOwner(nftOwner.address, 0)).to.be.equal(true);
     expect(await coverNFT.isApprovedOrOwner(operator.address, 0)).to.be.equal(false);
@@ -59,11 +49,8 @@ describe('CoverNFT', function () {
 
   it('should return success for isApproveOrOwner() - isApprovedForAll', async function () {
     const { coverNFT } = this;
-    const {
-      members: [operator, nftOwner],
-      generalPurpose: [randomAccount],
-    } = this.accounts;
-    await coverNFT.setMockOperator(operator.address);
+    const [operator, nftOwner] = this.accounts.members;
+    const [randomAccount] = this.accounts.generalPurpose;
     await coverNFT.connect(operator).mint(nftOwner.address, 0);
     await coverNFT.connect(nftOwner).setApprovalForAll(randomAccount.address, true);
     expect(await coverNFT.isApprovedOrOwner(randomAccount.address, 0)).to.be.equal(true);
@@ -72,11 +59,8 @@ describe('CoverNFT', function () {
 
   it('should return success for isApproveOrOwner() - isApproved', async function () {
     const { coverNFT } = this;
-    const {
-      members: [operator, nftOwner],
-      generalPurpose: [randomAccount],
-    } = this.accounts;
-    await coverNFT.setMockOperator(operator.address);
+    const [operator, nftOwner] = this.accounts.members;
+    const [randomAccount] = this.accounts.generalPurpose;
     await coverNFT.connect(operator).mint(nftOwner.address, 0);
     await coverNFT.connect(nftOwner).approve(randomAccount.address, 0);
     expect(await coverNFT.isApprovedOrOwner(randomAccount.address, 0)).to.be.equal(true);
@@ -85,52 +69,39 @@ describe('CoverNFT', function () {
 
   it('should revert when calling isApproveOrOwner() for non-existing tokenId', async function () {
     const { coverNFT } = this;
-    const {
-      members: [account],
-    } = this.accounts;
-    await expectRevert(coverNFT.isApprovedOrOwner(account.address, 0), 'NOT_MINTED');
+    const [, account] = this.accounts.members;
+    await expect(coverNFT.isApprovedOrOwner(account.address, 0)).to.be.revertedWith('NOT_MINTED');
   });
 
   it('should fail to transfer from operator - onlyOperator()', async function () {
     const { coverNFT } = this;
-    const {
-      members: [account],
-    } = this.accounts;
-    await expectRevert(coverNFT.operatorTransferFrom(coverNFT.address, account.address, 0), 'CoverNFT: Not operator');
+    const [account] = this.accounts.members;
+    await expect(coverNFT.operatorTransferFrom(coverNFT.address, account.address, 0)).to.be.revertedWith(
+      'CoverNFT: Not operator',
+    );
   });
 
   it('should fail to transfer from operator - wrong from address', async function () {
     const { coverNFT } = this;
-    const {
-      members: [operator, nftOwner, otherAddress],
-    } = this.accounts;
-    await coverNFT.setMockOperator(operator.address);
+    const [operator, nftOwner, otherAddress] = this.accounts.members;
     await coverNFT.connect(operator).mint(nftOwner.address, 0);
-    await expectRevert(
+    await expect(
       coverNFT.connect(operator).operatorTransferFrom(otherAddress.address, operator.address, 0),
-      'WRONG_FROM',
-    );
+    ).to.be.revertedWith('WRONG_FROM');
   });
 
   it('should fail to transfer from operator - send to 0 address', async function () {
     const { coverNFT } = this;
-    const {
-      members: [operator, nftOwner],
-    } = this.accounts;
-    await coverNFT.setMockOperator(operator.address);
+    const [operator, nftOwner] = this.accounts.members;
     await coverNFT.connect(operator).mint(nftOwner.address, 0);
-    await expectRevert(
-      coverNFT.connect(operator).operatorTransferFrom(nftOwner.address, AddressZero, 0),
+    await expect(coverNFT.connect(operator).operatorTransferFrom(nftOwner.address, AddressZero, 0)).to.be.revertedWith(
       'INVALID_RECIPIENT',
     );
   });
 
   it('should successfully transfer from the operator', async function () {
     const { coverNFT } = this;
-    const {
-      members: [operator, coverNFTReceiver],
-    } = this.accounts;
-    await coverNFT.setMockOperator(operator.address);
+    const [operator, coverNFTReceiver] = this.accounts.members;
     await coverNFT.connect(operator).mint(coverNFTReceiver.address, 0);
     await coverNFT.connect(operator).operatorTransferFrom(coverNFTReceiver.address, operator.address, 0);
     expect(await coverNFT.ownerOf(0)).to.be.equal(operator.address);
@@ -138,30 +109,23 @@ describe('CoverNFT', function () {
 
   it('should revert if caller is not operator', async function () {
     const { coverNFT } = this;
-    const {
-      members: [oldOperator, newOperator],
-    } = this.accounts;
-    await coverNFT.setMockOperator(oldOperator.address);
-    await expectRevert(coverNFT.connect(newOperator).changeOperator(newOperator.address), 'CoverNFT: Not operator');
+    const [, notOperator] = this.accounts.members;
+    await expect(coverNFT.connect(notOperator).changeOperator(notOperator.address)).to.be.revertedWith(
+      'CoverNFT: Not operator',
+    );
   });
 
   it('should revert if new operator is address zero', async function () {
     const { coverNFT } = this;
-    const {
-      members: [operator],
-    } = this.accounts;
-    await coverNFT.setMockOperator(operator.address);
-    await expectRevert(coverNFT.connect(operator).changeOperator(AddressZero), 'CoverNFT: Invalid newOperator address');
+    const [operator] = this.accounts.members;
+    await expect(coverNFT.connect(operator).changeOperator(AddressZero)).to.be.revertedWith(
+      'CoverNFT: Invalid newOperator address',
+    );
   });
 
   it('should set the new operator address', async function () {
     const { coverNFT } = this;
-    const {
-      members: [oldOperator, newOperator],
-    } = this.accounts;
-
-    await coverNFT.setMockOperator(oldOperator.address);
-
+    const [oldOperator, newOperator] = this.accounts.members;
     expect(await coverNFT.operator()).to.not.be.equal(newOperator.address);
     await coverNFT.connect(oldOperator).changeOperator(newOperator.address);
     expect(await coverNFT.operator()).to.be.equal(newOperator.address);

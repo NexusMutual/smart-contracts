@@ -61,7 +61,7 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     config.rewardRatio = 130; // 1.3%
     config.maxRewardInNXMWad = 50; // 50 NXM
     config.minAssessmentDepositRatio = 500; // 5% i.e. 0.05 ETH assessment minimum flat fee
-    config.payoutRedemptionPeriodInDays = 14; // days until the payout will not be redeemable anymore
+    config.payoutRedemptionPeriodInDays = 30; // days to redeem the payout
   }
 
   /* ========== VIEWS ========== */

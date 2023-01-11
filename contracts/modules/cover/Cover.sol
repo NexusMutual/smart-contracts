@@ -10,60 +10,20 @@ import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "../../abstract/MasterAwareV2.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/ICoverNFT.sol";
-import "../../interfaces/IMCR.sol";
-import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/IIndividualClaims.sol";
 import "../../interfaces/IPool.sol";
-import "../../interfaces/IProductsV1.sol";
-import "../../interfaces/IQuotationData.sol";
+import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingPoolBeacon.sol";
+import "../../interfaces/IStakingPoolFactory.sol";
 import "../../interfaces/ITokenController.sol";
-import "../../interfaces/IIndividualClaims.sol";
 import "../../libraries/Math.sol";
 import "../../libraries/SafeUintCast.sol";
-import "./CoverUtilsLib.sol";
+import "../../libraries/StakingPoolLibrary.sol";
 
 contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   using SafeERC20 for IERC20;
   using SafeUintCast for uint;
-
-  /* ========== CONSTANTS ========== */
-
-  uint private constant PRICE_DENOMINATOR = 10000;
-  uint private constant COMMISSION_DENOMINATOR = 10000;
-  uint private constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
-  uint private constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
-  uint private constant REWARD_DENOMINATOR = 10_000;
-
-  uint public constant MAX_COVER_PERIOD = 364 days;
-  uint private constant MIN_COVER_PERIOD = 28 days;
-  // this constant is used for calculating the normalized yearly percentage cost of cover
-  uint private constant ONE_YEAR = 365 days;
-
-  uint private constant MAX_COMMISSION_RATIO = 2500; // 25%
-
-  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
-
-  uint private constant ONE_NXM = 1e18;
-
-  uint public constant ETH_ASSET_ID = 0;
-  uint public constant NXM_ASSET_ID = type(uint8).max;
-
-  // internally we store capacity using 2 decimals
-  // 1 nxm of capacity is stored as 100
-  uint private constant ALLOCATION_UNITS_PER_NXM = 100;
-
-  // given capacities have 2 decimals
-  // smallest unit we can allocate is 1e18 / 100 = 1e16 = 0.01 NXM
-  uint private constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
-
-  IQuotationData internal immutable quotationData;
-  IProductsV1 internal immutable productsV1;
-  address public immutable override coverNFT;
-
-  /* Staking pool creation */
-  bytes32 public immutable stakingPoolProxyCodeHash;
-  address public immutable stakingPoolImplementation;
 
   /* ========== STATE VARIABLES ========== */
 
@@ -84,7 +44,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   uint24 public globalCapacityRatio;
   uint24 public globalRewardsRatio;
-  uint64 public override stakingPoolCount;
 
   // Bitmap representing which assets are globally supported for buying and for paying out covers
   // If the the bit at position N is 1 it means asset with index N is supported.this
@@ -95,107 +54,64 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   // Global active cover amount per asset.
   mapping(uint24 => uint) public override totalActiveCoverInAsset;
 
+  /* ========== CONSTANTS ========== */
+
+  uint private constant PRICE_DENOMINATOR = 10000;
+  uint private constant COMMISSION_DENOMINATOR = 10000;
+  uint private constant CAPACITY_REDUCTION_DENOMINATOR = 10000;
+  uint private constant GLOBAL_CAPACITY_DENOMINATOR = 10_000;
+  uint private constant REWARD_DENOMINATOR = 10_000;
+
+  uint public constant MAX_COVER_PERIOD = 364 days;
+  uint private constant MIN_COVER_PERIOD = 28 days;
+  // this constant is used for calculating the normalized yearly percentage cost of cover
+  uint private constant ONE_YEAR = 365 days;
+
+  uint private constant MAX_COMMISSION_RATIO = 3000; // 30%
+
+  uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
+
+  uint private constant ONE_NXM = 1e18;
+
+  uint public constant ETH_ASSET_ID = 0;
+  uint public constant NXM_ASSET_ID = type(uint8).max;
+
+  // internally we store capacity using 2 decimals
+  // 1 nxm of capacity is stored as 100
+  uint private constant ALLOCATION_UNITS_PER_NXM = 100;
+
+  // given capacities have 2 decimals
+  // smallest unit we can allocate is 1e18 / 100 = 1e16 = 0.01 NXM
+  uint private constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
+
+  ICoverNFT public immutable override coverNFT;
+  IStakingNFT public immutable override stakingNFT;
+  IStakingPoolFactory public immutable override stakingPoolFactory;
+  address public immutable stakingPoolImplementation;
+
   /* ========== CONSTRUCTOR ========== */
 
   constructor(
-    IQuotationData _quotationData,
-    IProductsV1 _productsV1,
-    address _coverNFT,
-    address _stakingPoolImplementation,
-    address coverProxyAddress
+    ICoverNFT _coverNFT,
+    IStakingNFT _stakingNFT,
+    IStakingPoolFactory _stakingPoolFactory,
+    address _stakingPoolImplementation
   ) {
-
-    // initialize immutable fields only
-    quotationData = _quotationData;
-    productsV1 = _productsV1;
+    // in constructor we only initialize immutable fields
     coverNFT = _coverNFT;
-
-    stakingPoolProxyCodeHash = CoverUtilsLib.calculateProxyCodeHash(coverProxyAddress);
+    stakingNFT = _stakingNFT;
+    stakingPoolFactory = _stakingPoolFactory;
     stakingPoolImplementation = _stakingPoolImplementation;
   }
 
-  function initialize(
-  ) external {
-
+  function initialize() external {
     require(globalCapacityRatio == 0, "Cover: already initialized");
-
     globalCapacityRatio = 20000; // x2
     globalRewardsRatio = 5000; // 50%
     coverAssetsFallback = 3; // 0x11 - DAI and ETH
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
-
-  /// @dev Migrates covers from V1. Meant to be used by EOA Nexus Mutual members
-  ///
-  /// @param coverIds    Legacy (V1) cover identifiers
-  /// @param newOwner  The address for which the V2 cover NFT is minted
-  function migrateCovers(
-    uint[] calldata coverIds,
-    address newOwner
-  ) external override returns (uint[] memory newCoverIds) {
-    newCoverIds = new uint[](coverIds.length);
-    for (uint i = 0; i < coverIds.length; i++) {
-      newCoverIds[i] = _migrateCoverFromOwner(coverIds[i], msg.sender, newOwner);
-    }
-  }
-
-  /// @dev Migrates covers from V1. Meant to be used by Claims.sol and Gateway.sol to allow the
-  /// users of distributor contracts to migrate their NFTs.
-  ///
-  /// @param coverId     V1 cover identifier
-  /// @param fromOwner   The address from where this function is called that needs to match the
-  /// @param newOwner  The address for which the V2 cover NFT is minted
-  function migrateCoverFromOwner(
-    uint coverId,
-    address fromOwner,
-    address newOwner
-  ) external override onlyInternal returns (uint newCoverId) {
-    newCoverId = _migrateCoverFromOwner(coverId, fromOwner, newOwner);
-  }
-
-  function migrateAndSubmitClaim(
-    uint32 coverId,
-    uint16 segmentId,
-    uint96 requestedAmount,
-    string calldata ipfsMetadata
-  ) payable external whenNotPaused returns (uint newCoverId) {
-    newCoverId =  _migrateCoverFromOwner(coverId, msg.sender, msg.sender);
-    individualClaims().submitClaimFor{value: msg.value}(uint32(newCoverId), segmentId, requestedAmount, ipfsMetadata, msg.sender);
-    return newCoverId;
-  }
-
-  /// @dev Migrates covers from V1
-  ///
-  /// @param coverId     V1 cover identifier
-  /// @param fromOwner   The address from where this function is called that needs to match the
-  /// @param newOwner    The address for which the V2 cover NFT is minted
-  function _migrateCoverFromOwner(
-    uint coverId,
-    address fromOwner,
-    address newOwner
-  ) internal returns (uint) {
-
-    CoverUtilsLib.migrateCoverFromOwner(
-      CoverUtilsLib.MigrateParams(
-        coverId,
-        fromOwner,
-        newOwner,
-        ICoverNFT(coverNFT),
-        quotationData,
-        tokenController(),
-        productsV1
-      ),
-      _products,
-      _productTypes,
-      _coverData,
-      _coverSegments
-    );
-
-    uint newCoverId = _coverData.length - 1;
-    emit CoverMigrated(coverId, fromOwner, newOwner, newCoverId);
-    return newCoverId;
-  }
 
   function buyCover(
     BuyCoverParams memory params,
@@ -229,8 +145,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         _productTypes[product.productType].gracePeriod,
         product.useFixedPrice,
         0, // previous cover start
-        0,  // previous cover expiration
-        0,  // previous rewards ratio
+        0, // previous cover expiration
+        0, // previous rewards ratio
         globalCapacityRatio,
         product.capacityReductionRatio,
         globalRewardsRatio,
@@ -243,13 +159,13 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       // new cover
       coverId = _coverData.length;
       _coverData.push(CoverData(params.productId, params.coverAsset, 0 /* amountPaidOut */));
-      ICoverNFT(coverNFT).mint(params.owner, coverId);
+      coverNFT.mint(params.owner, coverId);
 
     } else {
 
       // existing cover
       coverId = params.coverId;
-      require(ICoverNFT(coverNFT).isApprovedOrOwner(msg.sender, coverId), "Cover: Only owner or approved can edit");
+      require(coverNFT.isApprovedOrOwner(msg.sender, coverId), "Cover: Only owner or approved can edit");
 
       CoverData memory cover = _coverData[coverId];
       require(params.coverAsset == cover.coverAsset, "Cover: Unexpected coverAsset requested");
@@ -414,10 +330,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       uint remainder = msg.value - premiumWithCommission;
 
-      // send premium in eth to the pool
-      // solhint-disable-next-line avoid-low-level-calls
-      (bool ok, /* data */) = address(_pool).call{value: premiumInPaymentAsset}("");
-      require(ok, "Cover: Sending ETH to pool failed.");
+      {
+        // send premium in eth to the pool
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool ok, /* data */) = address(_pool).call{value: premiumInPaymentAsset}("");
+        require(ok, "Cover: Sending ETH to pool failed.");
+      }
 
       // send commission
       if (commission > 0) {
@@ -443,15 +361,64 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     }
   }
 
-  function transferCovers(address from, address to, uint256[] calldata coverIds) external override {
+  function addLegacyCover(
+    uint productId,
+    uint coverAsset,
+    uint amount,
+    uint start,
+    uint period,
+    address newOwner
+  ) external onlyInternal returns (uint coverId) {
+
+    ProductType memory productType = _productTypes[_products[productId].productType];
+
+    // uses the current v2 grace period
     require(
-      msg.sender == internalContracts[uint(ID.MR)],
+      block.timestamp < start + period + productType.gracePeriod,
+      "Cover outside of the grace period"
+    );
+
+    _coverData.push(
+      CoverData(productId.toUint24(), coverAsset.toUint8(), 0 /* amountPaidOut */)
+    );
+
+    coverId = _coverData.length - 1;
+
+    _coverSegments[coverId].push(
+      CoverSegment(
+        amount.toUint96(),
+        start.toUint32(),
+        period.toUint32(),
+        productType.gracePeriod,
+        0 // global rewards ratio
+      )
+    );
+
+    coverNFT.mint(newOwner, coverId);
+    emit CoverEdited(coverId, productId, 0, msg.sender, "");
+
+    return coverId;
+  }
+
+  function transferCovers(address from, address to, uint256[] calldata tokenIds) external override {
+    require(
+      msg.sender == address(memberRoles()),
       "Cover: Only MemberRoles is permitted to use operator transfer"
     );
 
-    ICoverNFT coverNFTContract = ICoverNFT(coverNFT);
-    for (uint256 i = 0; i < coverIds.length; i++) {
-      coverNFTContract.operatorTransferFrom(from, to, coverIds[i]);
+    for (uint256 i = 0; i < tokenIds.length; i++) {
+      ICoverNFT(coverNFT).operatorTransferFrom(from, to, tokenIds[i]);
+    }
+  }
+
+  function transferStakingPoolTokens(address from, address to, uint256[] calldata tokenIds) external override {
+    require(
+      msg.sender == address(memberRoles()),
+      "Cover: Only MemberRoles is permitted to use operator transfer"
+    );
+
+    for (uint256 i = 0; i < tokenIds.length; i++) {
+      stakingNFT.operatorTransferFrom(from, to, tokenIds[i]);
     }
   }
 
@@ -460,40 +427,38 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     bool isPrivatePool,
     uint initialPoolFee,
     uint maxPoolFee,
-    ProductInitializationParams[] memory productInitializationParams,
-    uint depositAmount,
-    uint trancheId,
+    ProductInitializationParams[] memory productInitParams,
     string calldata ipfsDescriptionHash
-  ) external returns (address) {
-    CoverUtilsLib.PoolInitializationParams memory poolInitializationParams = CoverUtilsLib.PoolInitializationParams(
-      stakingPoolCount,
+  ) external returns (uint /*poolId*/, address /*stakingPoolAddress*/) {
+
+    if (msg.sender != master.getLatestAddress("PS")) {
+
+      // override with initial price
+      for (uint i = 0; i < productInitParams.length; i++) {
+
+        uint productId = productInitParams[i].productId;
+        productInitParams[i].initialPrice = _products[productId].initialPriceRatio;
+
+        require(
+          productInitParams[i].targetPrice >= GLOBAL_MIN_PRICE_RATIO,
+          "Cover: Target price below GLOBAL_MIN_PRICE_RATIO"
+        );
+      }
+    }
+
+    (uint poolId, address stakingPoolAddress) = stakingPoolFactory.create(address(this));
+
+    IStakingPool(stakingPoolAddress).initialize(
       manager,
       isPrivatePool,
       initialPoolFee,
       maxPoolFee,
-      GLOBAL_MIN_PRICE_RATIO
-    );
-
-    address stakingPoolAddress = CoverUtilsLib.createStakingPool(
-      _products,
-      poolInitializationParams,
-      productInitializationParams,
-      depositAmount,
-      trancheId,
-      master.getLatestAddress("PS"),
+      productInitParams,
+      poolId,
       ipfsDescriptionHash
     );
 
-    emit StakingPoolCreated(
-      stakingPoolAddress,
-      stakingPoolCount,
-      manager,
-      stakingPoolImplementation
-    );
-
-    stakingPoolCount++;
-
-    return stakingPoolAddress;
+    return (poolId, stakingPoolAddress);
   }
 
   function burnStake(
@@ -502,7 +467,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint burnAmount
   ) external onlyInternal override returns (address /* owner */) {
 
-    CoverData storage cover =_coverData[coverId];
+    CoverData storage cover = _coverData[coverId];
     CoverSegment memory segment = coverSegments(coverId, segmentId);
     PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];
 
@@ -530,17 +495,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       allocations[i].coverAmountInNXM -= SafeUintCast.toUint96(payoutAmountInNXM);
     }
 
-    return ICoverNFT(coverNFT).ownerOf(coverId);
+    return coverNFT.ownerOf(coverId);
   }
 
   /* ========== VIEWS ========== */
 
-  function stakingPool(uint index) public view returns (IStakingPool) {
-    bytes32 hash = keccak256(
-      abi.encodePacked(bytes1(0xff), address(this), index, stakingPoolProxyCodeHash)
+  function stakingPool(uint poolId) public view returns (IStakingPool) {
+    return IStakingPool(
+      StakingPoolLibrary.getAddress(address(stakingPoolFactory), poolId)
     );
-    // cast last 20 bytes of hash to address
-    return IStakingPool(address(uint160(uint(hash))));
   }
 
   function coverData(uint coverId) external override view returns (CoverData memory) {
@@ -699,7 +662,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     _globalMinPriceRatio = GLOBAL_MIN_PRICE_RATIO;
     _globalCapacityRatio = uint(globalCapacityRatio);
     _capacityReductionRatios = new uint[](productIds.length);
-    _initialPrices  = new uint[](productIds.length);
+    _initialPrices = new uint[](productIds.length);
 
     for (uint i = 0; i < productIds.length; i++) {
       Product memory product = _products[productIds[i]];
@@ -716,9 +679,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return deprecatedCoverAssetsBitmap & (1 << assetId) > 0;
   }
 
-
   /// @dev Returns true if the assetsBitMap set is included in the coverAssetFallback set
-  ///
   /// @param assetsBitMap the assets bitmap for a product
   /// @param coverAssetFallback  The coverAssetFallback as defined for the storage var with the same name
   function areAssetsSupported(uint32 assetsBitMap, uint32 coverAssetFallback) public pure returns (bool) {
@@ -747,17 +708,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return IIndividualClaims(getInternalContractAddress(ID.IC));
   }
 
-  function mcr() internal view returns (IMCR) {
-    return IMCR(internalContracts[uint(ID.MC)]);
-  }
-
   function changeDependentContractAddress() external override {
     master = INXMMaster(master);
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
-    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
-    internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
     internalContracts[uint(ID.IC)] = master.getLatestAddress("IC");
+    internalContracts[uint(ID.MR)] = master.getLatestAddress("MR");
   }
 
   /**

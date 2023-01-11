@@ -1,15 +1,21 @@
 const { BigNumber } = require('ethers');
 const { ethers } = require('hardhat');
-const { parseEther, parseUnits } = ethers.utils;
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { expect } = require('chai');
+
 const { ContractTypes } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 const { proposalCategories } = require('../utils');
 const { enrollMember } = require('./utils/enroll');
-
 const { getAccounts, stakingPoolManagers } = require('../utils').accounts;
 
+const { getContractAddress, parseEther, parseUnits } = ethers.utils;
+const { AddressZero, MaxUint256 } = ethers.constants;
+
 async function setup() {
+  const ethersAccounts = await getAccounts();
+  const { members, emergencyAdmin } = ethersAccounts;
+  const owner = ethersAccounts.defaultSender;
+
   // external
   const ERC20BlacklistableMock = await ethers.getContractFactory('ERC20BlacklistableMock');
   const ERC20CustomDecimalsMock = await ethers.getContractFactory('ERC20CustomDecimalsMock');
@@ -18,6 +24,8 @@ async function setup() {
   // const Lido = await ethers.getContractFactory('P1MockLido');
   const ProductsV1 = await ethers.getContractFactory('ProductsV1');
   const StakingPool = await ethers.getContractFactory('StakingPool');
+  const StakingPoolFactory = await ethers.getContractFactory('StakingPoolFactory');
+  const StakingNFT = await ethers.getContractFactory('StakingNFT');
 
   // nexusmutual
   const NXMToken = await ethers.getContractFactory('NXMToken');
@@ -32,11 +40,6 @@ async function setup() {
   const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
   const SwapOperator = await ethers.getContractFactory('SwapOperator');
   const CoverNFT = await ethers.getContractFactory('CoverNFT');
-  // const StakingPool = await ethers.getContractFactory('StakingPool');
-
-  const CoverUtilsLib = await ethers.getContractFactory('CoverUtilsLib');
-
-  const ethersAccounts = await getAccounts();
 
   // external
   const WETH9 = await ethers.getContractFactory('WETH9');
@@ -47,18 +50,15 @@ async function setup() {
     const contractFactory = await ethers.getContractFactory(contract, options);
     const implementation = await contractFactory.deploy(...deployParams);
     const proxy = await OwnedUpgradeabilityProxy.deploy(implementation.address);
-
     return await ethers.getContractAt(contract, proxy.address);
   };
 
   const upgradeProxy = async (proxyAddress, contract, constructorArgs = [], options = {}) => {
     const contractFactory = await ethers.getContractFactory(contract, options);
-
     const impl = await contractFactory.deploy(...constructorArgs);
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
     await proxy.upgradeTo(impl.address);
     const instance = await ethers.getContractAt(contract, proxyAddress);
-
     return instance;
   };
 
@@ -67,29 +67,21 @@ async function setup() {
     await proxy.transferProxyOwnership(newOwner);
   };
 
-  const coverUtilsLib = await CoverUtilsLib.deploy();
-  const options = { libraries: { CoverUtilsLib: coverUtilsLib.address } };
-
   const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
   const INITIAL_SUPPLY = parseEther('15000000000');
-
-  const {
-    defaultSender: { address: owner },
-    emergencyAdmin,
-  } = ethersAccounts;
 
   // deploy external contracts
   const weth = await WETH9.deploy();
 
   const dai = await ERC20BlacklistableMock.deploy();
-  await dai.mint(owner, parseEther('10000000'));
+  await dai.mint(owner.address, parseEther('10000000'));
 
   const stETH = await ERC20BlacklistableMock.deploy();
-  await stETH.mint(owner, parseEther('10000000'));
+  await stETH.mint(owner.address, parseEther('10000000'));
 
   const usdcDecimals = 6;
   const usdc = await ERC20CustomDecimalsMock.deploy(usdcDecimals);
-  await usdc.mint(owner, parseUnits('10000000', usdcDecimals));
+  await usdc.mint(owner.address, parseUnits('10000000', usdcDecimals));
 
   const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
   const chainlinkUSDC = await ChainlinkAggregatorMock.deploy();
@@ -106,13 +98,13 @@ async function setup() {
   // const lido = await Lido.new();
 
   const ybDAI = await ERC20BlacklistableMock.deploy();
-  await ybDAI.mint(owner, parseEther('10000000'));
+  await ybDAI.mint(owner.address, parseEther('10000000'));
 
   const ybETH = await ERC20BlacklistableMock.deploy();
-  await ybETH.mint(owner, parseEther('10000000'));
+  await ybETH.mint(owner.address, parseEther('10000000'));
 
   const ybUSDC = await ERC20CustomDecimalsMock.deploy(usdcDecimals);
-  await ybUSDC.mint(owner, parseEther('10000000'));
+  await ybUSDC.mint(owner.address, parseEther('10000000'));
 
   // proxy contracts
   const master = await deployProxy('DisposableNXMaster');
@@ -167,7 +159,7 @@ async function setup() {
   const cowSettlement = await SOMockSettlement.deploy(cowVaultRelayer.address);
   const swapOperator = await SwapOperator.deploy(
     cowSettlement.address,
-    owner, // _swapController,
+    owner.address, // _swapController,
     master.address,
     weth.address,
     AddressZero,
@@ -175,28 +167,37 @@ async function setup() {
     '0',
   );
 
+  const tk = await NXMToken.deploy(owner.address, INITIAL_SUPPLY);
+  const qd = await QuotationData.deploy(QE, owner.address);
   const productsV1 = await ProductsV1.deploy();
 
-  const tk = await NXMToken.deploy(owner, INITIAL_SUPPLY);
-  const qd = await QuotationData.deploy(QE, owner);
-
-  const tc = await deployProxy('DisposableTokenController', [qd.address, lcr.address]);
   const ic = await deployProxy('DisposableIndividualClaims', []);
   const yt = await deployProxy('DisposableYieldTokenIncidents', []);
   let as = await deployProxy('DisposableAssessment', []);
-  const cl = await deployProxy('CoverMigrator', []);
+  const cl = await deployProxy('CoverMigrator', [qd.address, productsV1.address]);
 
-  let cover = await deployProxy(
-    'DisposableCover',
-    [qd.address, productsV1.address, AddressZero, AddressZero, AddressZero],
-    options,
-  );
+  const expectedCoverAddress = getContractAddress({
+    from: owner.address,
+    nonce: (await owner.getTransactionCount()) + 7,
+  });
+
+  const spf = await StakingPoolFactory.deploy(expectedCoverAddress);
+  const stakingNFT = await StakingNFT.deploy('Nexus Mutual Deposit', 'NMD', spf.address, expectedCoverAddress);
+  const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NMC', expectedCoverAddress);
+
+  const tc = await deployProxy('DisposableTokenController', [qd.address, lcr.address, spf.address]);
+  const stakingPool = await StakingPool.deploy(stakingNFT.address, tk.address, expectedCoverAddress, tc.address);
+
+  let cover = await deployProxy('DisposableCover', [
+    coverNFT.address,
+    stakingNFT.address,
+    spf.address,
+    stakingPool.address,
+  ]);
+
+  expect(cover.address).to.equal(expectedCoverAddress);
 
   await cover.changeMasterAddress(master.address);
-
-  const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NMC', cover.address);
-
-  const stakingPool = await StakingPool.deploy(tk.address, cover.address, tc.address);
 
   const contractType = code => {
     const upgradable = ['MC', 'P1', 'CR'];
@@ -214,12 +215,10 @@ async function setup() {
   };
 
   const codes = ['QD', 'TC', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC', 'CL', 'YT', 'AS', 'CO', 'CR'];
-  const addresses = [qd, tc, p1, mc, { address: owner }, pc, mr, ps, gateway, ic, cl, yt, as, cover, lcr].map(
-    c => c.address,
-  );
+  const addresses = [qd, tc, p1, mc, owner, pc, mr, ps, gateway, ic, cl, yt, as, cover, lcr].map(c => c.address);
 
   await master.initialize(
-    owner,
+    owner.address,
     tk.address,
     emergencyAdmin.address,
     codes.map(hex), // codes
@@ -232,15 +231,15 @@ async function setup() {
   await tc.addToWhitelist(lcr.address);
 
   await mr.initialize(
-    owner,
+    owner.address,
     master.address,
     tc.address,
-    [owner], // initial members
+    [owner.address], // initial members
     [parseEther('10000')], // initial tokens
-    [owner], // advisory board members
+    [owner.address], // advisory board members
   );
 
-  await mr.setKycAuthAddress(ethersAccounts.defaultSender.address);
+  await mr.setKycAuthAddress(owner.address);
 
   await pc.initialize(mr.address);
 
@@ -425,7 +424,7 @@ async function setup() {
   await yt.initialize(master.address);
 
   await upgradeProxy(mr.address, 'MemberRoles');
-  await upgradeProxy(tc.address, 'TokenController', [qd.address, lcr.address]);
+  await upgradeProxy(tc.address, 'TokenController', [qd.address, lcr.address, spf.address]);
   await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address]);
   await upgradeProxy(pc.address, 'ProposalCategory');
   await upgradeProxy(master.address, 'NXMaster');
@@ -434,15 +433,9 @@ async function setup() {
   await upgradeProxy(ic.address, 'IndividualClaims', [tk.address, coverNFT.address]);
   await upgradeProxy(yt.address, 'YieldTokenIncidents', [tk.address, coverNFT.address]);
   await upgradeProxy(as.address, 'Assessment', [tk.address]);
-  await upgradeProxy(
-    cover.address,
-    'Cover',
-    [qd.address, productsV1.address, coverNFT.address, stakingPool.address, cover.address],
-    options,
-  );
+  await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
 
   cover = await ethers.getContractAt('Cover', cover.address);
-
   as = await ethers.getContractAt('Assessment', as.address);
 
   // [todo] We should probably call changeDependentContractAddress on every contract
@@ -469,7 +462,7 @@ async function setup() {
   const POOL_USDC = parseUnits('2000000', usdcDecimals);
 
   // fund pool
-  await ethers.provider.getSigner().sendTransaction({ from: owner, to: p1.address, value: POOL_ETHER.toString() });
+  await owner.sendTransaction({ to: p1.address, value: POOL_ETHER.toString() });
   await dai.transfer(p1.address, POOL_DAI);
   await usdc.transfer(p1.address, POOL_USDC);
 
@@ -488,8 +481,8 @@ async function setup() {
   await as.initialize();
 
   const external = { chainlinkDAI, dai, usdc, weth, productsV1, ybDAI, ybETH, ybUSDC };
-  const nonUpgradable = { qd };
-  const instances = { tk, cl, p1, mcr: mc, productsV1, lcr };
+  const nonUpgradable = { qd, productsV1, spf, coverNFT, stakingNFT };
+  const instances = { tk, cl, p1, mcr: mc, lcr };
 
   // we upgraded them, get non-disposable instances because
   const proxies = {
@@ -505,7 +498,6 @@ async function setup() {
     cl: await ethers.getContractAt('CoverMigrator', cl.address),
     as: await ethers.getContractAt('Assessment', as.address),
     cover: await ethers.getContractAt('Cover', cover.address),
-    coverNFT: await ethers.getContractAt('CoverNFT', coverNFT.address),
   };
 
   const nonInternal = { priceFeedOracle, swapOperator };
@@ -525,18 +517,17 @@ async function setup() {
 
   this.contractType = contractType;
 
-  await enrollMember(this.contracts, ethersAccounts.members, ethersAccounts.defaultSender);
+  await enrollMember(this.contracts, members, owner);
 
+  const product = {
+    productId: 0,
+    weight: 100,
+    initialPrice: 1000,
+    targetPrice: 1000,
+  };
+
+  const DEFAULT_PRODUCTS = [product];
   const DEFAULT_POOL_FEE = '5';
-
-  const DEFAULT_PRODUCT_INITIALIZATION = [
-    {
-      productId: 0,
-      weight: 100,
-      initialPrice: 1000,
-      targetPrice: 1000,
-    },
-  ];
 
   for (let i = 0; i < 3; i++) {
     await this.contracts.cover.createStakingPool(
@@ -544,10 +535,8 @@ async function setup() {
       false, // isPrivatePool,
       DEFAULT_POOL_FEE, // initialPoolFee
       DEFAULT_POOL_FEE, // maxPoolFee,
-      DEFAULT_PRODUCT_INITIALIZATION,
-      '0', // depositAmount,
-      '0', // trancheId
-      '',
+      DEFAULT_PRODUCTS,
+      '', // ipfs hash
     );
 
     const stakingPoolAddress = await cover.stakingPool(i);
@@ -557,7 +546,7 @@ async function setup() {
   }
 
   this.accounts = ethersAccounts;
-  this.DEFAULT_PRODUCT_INITIALIZATION = DEFAULT_PRODUCT_INITIALIZATION;
+  this.DEFAULT_PRODUCTS = DEFAULT_PRODUCTS;
 }
 
 module.exports = setup;

@@ -1474,10 +1474,12 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       initialPoolFee,
       maxPoolFee,
       params,
-      deposit,
-      trancheIdInEffect,
       migrationData.ipfsDescriptionHash
     );
+
+    // TODO: create the first deposit
+    deposit;
+    trancheIdInEffect;
   }
 
   function migrateToExistingV2Pool(IStakingPool stakingPool, uint trancheId) external {

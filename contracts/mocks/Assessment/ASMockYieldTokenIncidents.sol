@@ -34,7 +34,7 @@ contract ASMockYieldTokenIncidents is MasterAwareV2 {
     uint96 priceBefore,
     uint32 date,
     uint96 expectedPayoutInNXM,
-    string calldata ipfsMetadata
+    string calldata /*ipfsMetadata*/
   ) external {
     Incident memory incident = Incident(
       0, // assessmentId

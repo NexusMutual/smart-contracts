@@ -11,6 +11,7 @@ describe('views', function () {
       period: 30 * 24 * 3600, // 30 days
       gracePeriod: 7 * 24 * 3600, // 7 days
       globalRewardsRatio: 5000,
+      globalCapacityRatio: 2000,
     };
     const coverId = 0;
 

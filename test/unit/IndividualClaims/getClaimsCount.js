@@ -22,7 +22,18 @@ describe('getClaimsCount', function () {
       coverOwner.address,
       0, // productId
       ASSET.ETH,
-      [[parseEther('100'), timestamp + 1, daysToSeconds(365), 30, 0, false, 0]],
+      [
+        {
+          amount: parseEther('100'),
+          start: timestamp + 1,
+          period: daysToSeconds(365),
+          gracePeriod: 30,
+          priceRatio: 0,
+          expired: false,
+          globalRewardsRatio: 0,
+          globalCapacityRatio: 20000,
+        },
+      ],
     );
 
     {

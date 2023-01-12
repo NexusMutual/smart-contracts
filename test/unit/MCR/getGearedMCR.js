@@ -14,7 +14,7 @@ const DEFAULT_MCR_PARAMS = {
   minUpdateTime: '3600',
 };
 
-describe.only('getGearedMCR', function () {
+describe('getGearedMCR', function () {
   it('should return gearedMCR = 0 if there are no active covers', async function () {
     const { master, cover } = this;
 
@@ -32,11 +32,9 @@ describe.only('getGearedMCR', function () {
 
     const GEARING_FACTOR = 48000;
     const BASIS_PRECISION = 10000;
+    const activeCoverAmount = ether('10000');
 
-    const activeCoverAmountETH = '10000';
-    const activeCoverAmount = ether(activeCoverAmountETH);
-
-    await cover.setTotalActiveCoverInAsset(0, activeCoverAmountETH); // ETH
+    await cover.setTotalActiveCoverInAsset(0, activeCoverAmount); // ETH
     await cover.setTotalActiveCoverInAsset(1, '0'); // DAI
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });

@@ -40,18 +40,16 @@ describe('updateMCR', function () {
   });
 
   it('keeps values the same if MCR = MCR floor and mcrWithGear is too low', async function () {
-    const { master, quotationData, pool } = this;
+    const { master, cover, pool } = this;
 
-    const poolValueInEth = ether('160000');
-    await pool.setPoolValueInEth(poolValueInEth);
-    await quotationData.setTotalSumAssured(hex('ETH'), '100000');
+    await pool.setPoolValueInEth(ether('160000'));
+    await cover.setTotalActiveCoverInAsset(0, '100000');
+
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
-
     const minUpdateTime = await mcr.minUpdateTime();
     await time.increase(minUpdateTime.addn(1));
 
     const tx = await mcr.updateMCR();
-
     const block = await web3.eth.getBlock(tx.receipt.blockNumber);
 
     const storedMCR = await mcr.mcr();
@@ -63,14 +61,13 @@ describe('updateMCR', function () {
     assert.equal(lastUpdateTime.toString(), block.timestamp.toString());
   });
 
-  it.skip('increases desiredMCR when mcrWithGear exceeds current MCR', async function () {
-    const { master, quotationData, pool } = this;
+  it('increases desiredMCR when mcrWithGear exceeds current MCR', async function () {
+    const { master, cover, pool } = this;
 
-    const poolValueInEth = ether('160000');
-    await pool.setPoolValueInEth(poolValueInEth);
-    await quotationData.setTotalSumAssured(hex('ETH'), '800000');
+    await pool.setPoolValueInEth(ether('160000'));
+    await cover.setTotalActiveCoverInAsset(0, ether('800000'));
+
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
-
     const minUpdateTime = await mcr.minUpdateTime();
     await time.increase(minUpdateTime.addn(1));
 
@@ -96,8 +93,8 @@ describe('updateMCR', function () {
     const poolValueInEth = DEFAULT_MCR_PARAMS.mcrValue.muln(131).divn(100);
     await pool.setPoolValueInEth(poolValueInEth);
     await cover.setTotalActiveCoverInAsset(0, ether('100000'));
-    const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
 
+    const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
     await time.increase(time.duration.days(1));
 
     const tx = await mcr.updateMCR();
@@ -107,7 +104,6 @@ describe('updateMCR', function () {
     const desiredMCR = await mcr.desiredMCR();
     const mcrFloor = await mcr.mcrFloor();
     const lastUpdateTime = await mcr.lastUpdateTime();
-
     const expectedMCRFloor = DEFAULT_MCR_PARAMS.mcrFloor.muln(101).divn(100);
 
     assert.equal(mcrFloor.toString(), expectedMCRFloor.toString());
@@ -117,18 +113,18 @@ describe('updateMCR', function () {
   });
 
   it.skip('increases desiredMCR when both mcrFloor and mcrWithGear increase', async function () {
-    const { master, quotationData, pool } = this;
+    const { master, cover, pool } = this;
 
     const poolValueInEth = DEFAULT_MCR_PARAMS.mcrValue.muln(131).divn(100);
     await pool.setPoolValueInEth(poolValueInEth);
 
     const totalSumAssured = toBN('800000');
-    await quotationData.setTotalSumAssured(hex('ETH'), totalSumAssured);
+    await cover.setTotalActiveCoverInAsset(0, totalSumAssured);
+
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
-
     const gearingFactor = await mcr.gearingFactor();
-    await time.increase(time.duration.days(1));
 
+    await time.increase(time.duration.days(1));
     const tx = await mcr.updateMCR();
     const block = await web3.eth.getBlock(tx.receipt.blockNumber);
 
@@ -146,7 +142,7 @@ describe('updateMCR', function () {
   });
 
   it.skip('increases/decreases desiredMCR when mcrWithGear increases/decreases', async function () {
-    const { master, quotationData, pool } = this;
+    const { master, cover, pool } = this;
 
     const poolValueInEth = ether('160000');
     await pool.setPoolValueInEth(poolValueInEth);
@@ -156,7 +152,7 @@ describe('updateMCR', function () {
     const minUpdateTime = await mcr.minUpdateTime();
     {
       const totalSumAssured = toBN('900000');
-      await quotationData.setTotalSumAssured(hex('ETH'), totalSumAssured);
+      await cover.setTotalActiveCoverInAsset(0, totalSumAssured);
       await time.increase(minUpdateTime.addn(1));
 
       await mcr.updateMCR();
@@ -170,7 +166,7 @@ describe('updateMCR', function () {
 
     {
       const totalSumAssured = toBN('800000');
-      await quotationData.setTotalSumAssured(hex('ETH'), totalSumAssured);
+      await cover.setTotalActiveCoverInAsset(0, totalSumAssured);
       await time.increase(minUpdateTime.addn(1));
 
       await mcr.updateMCR();
@@ -181,7 +177,7 @@ describe('updateMCR', function () {
   });
 
   it.skip('increases desiredMCR when mcrWithGear increases and then decreases down to mcrFloor', async function () {
-    const { master, quotationData, pool } = this;
+    const { master, cover, pool } = this;
 
     const poolValueInEth = ether('160000');
     await pool.setPoolValueInEth(poolValueInEth);
@@ -191,7 +187,7 @@ describe('updateMCR', function () {
     const minUpdateTime = await mcr.minUpdateTime();
     {
       const totalSumAssured = toBN('900000');
-      await quotationData.setTotalSumAssured(hex('ETH'), totalSumAssured);
+      await cover.setTotalActiveCoverInAsset(0, totalSumAssured);
       await time.increase(minUpdateTime.addn(1));
 
       await mcr.updateMCR();
@@ -205,7 +201,7 @@ describe('updateMCR', function () {
 
     {
       const totalSumAssured = toBN('700000');
-      await quotationData.setTotalSumAssured(hex('ETH'), totalSumAssured);
+      await cover.setTotalActiveCoverInAsset(0, totalSumAssured);
       await time.increase(minUpdateTime.addn(1));
 
       await mcr.updateMCR();
@@ -264,21 +260,18 @@ describe('updateMCR', function () {
     }
   });
 
-  it.skip('increases desiredMCR when mcrWithGear exceeds current MCR if MCR% < 100%', async function () {
-    const { master, quotationData, pool } = this;
+  it('increases desiredMCR when mcrWithGear exceeds current MCR if MCR% < 100%', async function () {
+    const { master, cover, pool } = this;
+    ;
+    await pool.setPoolValueInEth(ether('120000'));
+    await cover.setTotalActiveCoverInAsset(0, ether('800000'));
 
-    const poolValueInEth = ether('120000');
-    await pool.setPoolValueInEth(poolValueInEth);
-    await quotationData.setTotalSumAssured(hex('ETH'), '800000');
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
-
     const minUpdateTime = await mcr.minUpdateTime();
     await time.increase(minUpdateTime.addn(1));
-
     await mcr.updateMCR();
 
     const desiredMCR = await mcr.desiredMCR();
-
     const totalSumAssured = await mcr.getAllSumAssurance();
     const gearingFactor = await mcr.gearingFactor();
     const expectedDesiredMCR = totalSumAssured.muln(10000).div(gearingFactor);

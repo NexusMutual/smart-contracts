@@ -509,11 +509,6 @@ describe('v2 migration', function () {
     console.log('Done');
   });
 
-  it.skip('initialize TokenController', async function () {
-    const tx = await this.tokenController.initialize();
-    await tx.wait();
-  });
-
   it('unlock claim assessment stakes', async function () {
     const stakesPath = path.join(__dirname, '../../scripts/v2-migration/output/eligibleForCLAUnlock.json');
     const claimAssessors = require(stakesPath).map(x => x.member);

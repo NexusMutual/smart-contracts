@@ -66,15 +66,11 @@ async function submitMemberVoteGovernanceProposal(categoryId, actionData, member
 }
 
 const getAddressByCodeFactory = abis => code => abis.find(abi => abi.code === code).address;
-const fund = async (from, to) => {
-  await from.sendTransaction({
-    to,
-    value: parseEther('1000'),
-  });
-};
+
+const fund = async (from, to) => from.sendTransaction({ to, value: parseEther('1000') });
+
 const unlock = async address => {
   await ethers.provider.send('hardhat_impersonateAccount', [address]);
-
   return await ethers.getSigner(address);
 };
 

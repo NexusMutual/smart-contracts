@@ -1,15 +1,14 @@
 require('dotenv').config();
 
 const fetch = require('node-fetch');
-const { ethers, web3 } = require('hardhat');
+const { ethers, web3, network } = require('hardhat');
 const { expect } = require('chai');
 const path = require('path');
 const { AddressZero } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { parseEther, formatEther } = ethers.utils;
 const { hex } = require('../../lib/helpers');
-const { unlock } = require('./utils');
+const evm = require('./evm')();
 
-const { setNextBlockTime } = require('../utils/evm');
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
 const getProductsV1 = require('../../scripts/get-products-v1');
 const getLockedInV1ClaimAssessment = require('../../scripts/get-locked-in-v1-claim-assessment');
@@ -40,6 +39,15 @@ const { defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 let ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID = 0;
 let REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID = 0;
 
+const getSigner = async address => {
+  const provider =
+    network.name !== 'hardhat' // ethers errors out when using non-local accounts
+      ? new ethers.providers.JsonRpcProvider(network.config.url)
+      : ethers.provider;
+
+  return provider.getSigner(address);
+};
+
 const getContractFactory = async providerOrSigner => {
   const data = await fetch(VERSION_DATA_URL).then(r => r.json());
   const abis = data.mainnet.abis
@@ -65,11 +73,11 @@ const submitGovernanceProposal = async (categoryId, actionData, signers, gv) => 
     await gv.connect(signers[i]).submitVote(id, 1);
   }
 
-  const { timestamp } = await ethers.provider.getBlock('latest');
-  await setNextBlockTime(timestamp + 7 * 24 * 3600); // +7 days
+  await evm.increaseTime(7 * 24 * 3600); // +7 days
 
   const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
   const receipt = await tx.wait();
+
   assert.equal(
     receipt.events.some(x => x.event === 'ActionSuccess' && x.address === gv.address),
     true,
@@ -80,7 +88,57 @@ const submitGovernanceProposal = async (categoryId, actionData, signers, gv) => 
   assert.equal(proposal[2].toNumber(), 3);
 };
 
+async function enableAsEnzymeReceiver(receiverAddress) {
+  const comptroller = await ethers.getContractAt('IEnzymeV4Comptroller', ENZYME_COMPTROLLER_PROXY_ADDRESS);
+  const vault = await ethers.getContractAt('IEnzymeV4Vault', ENZYMEV4_VAULT_PROXY_ADDRESS);
+
+  const ownerAddress = await vault.getOwner();
+
+  console.log({
+    vaultOwner: ownerAddress,
+  });
+
+  console.log('Unlocking and funding vault owner');
+
+  const owner = await getSigner(ownerAddress);
+  await evm.impersonate(ownerAddress);
+  await evm.setBalance(ownerAddress, parseEther('1000'));
+
+  const selector = web3.eth.abi.encodeFunctionSignature('addToList(uint256,address[])');
+  const receiverArgs = web3.eth.abi.encodeParameters(['uint256', 'address[]'], [ListIdForReceivers, [receiverAddress]]);
+
+  console.log('Updating Enzyme vault receivers');
+  await comptroller.connect(owner).vaultCallOnContract(AddressListRegistry, selector, receiverArgs);
+
+  const registry = await ethers.getContractAt('IAddressListRegistry', ENZYME_ADDRESS_LIST_REGISTRY);
+
+  console.log('Checking Enzyme vault receivers contains new receiver');
+
+  const inReceiverList = await registry.isInList(ListIdForReceivers, receiverAddress);
+  assert.equal(inReceiverList, true);
+}
+
+let poolValueBefore;
+
 describe('v2 migration', function () {
+  before(async function () {
+    // initialize evm helper
+    await evm.connect(ethers.provider);
+    await getSigner('0x1eE3ECa7aEF17D1e74eD7C447CcBA61aC76aDbA9');
+
+    // get or reset snapshot if network is tenderly
+    if (network.name === 'tenderly') {
+      const { TENDERLY_SNAPSHOT_ID } = process.env;
+
+      if (TENDERLY_SNAPSHOT_ID) {
+        await evm.revert(TENDERLY_SNAPSHOT_ID);
+        console.log(`Reverted to snapshot ${TENDERLY_SNAPSHOT_ID}`);
+      } else {
+        console.log('Snapshot ID: ', await evm.snapshot());
+      }
+    }
+  });
+
   it('initialize old contracts', async function () {
     const [deployer] = await ethers.getSigners();
     this.deployer = deployer;
@@ -101,6 +159,8 @@ describe('v2 migration', function () {
     this.claims = await factory('CL');
     this.claimsReward = await factory('CR');
     this.claimsData = await factory('CD');
+
+    poolValueBefore = await this.pool.getPoolValueInEth();
   });
 
   // generates the LegacyClaimsReward contract with the transfer calls
@@ -128,23 +188,12 @@ describe('v2 migration', function () {
 
   it('impersonate AB members', async function () {
     const { memberArray: abMembers } = await this.memberRoles.members(1);
-
-    await ethers.provider.send('hardhat_impersonateAccount', [AddressZero]);
-    const addressZero = await ethers.getSigner(AddressZero);
-
     this.abMembers = [];
     for (const address of abMembers) {
-      await ethers.provider.send('hardhat_impersonateAccount', [address]);
-      const signer = await ethers.getSigner(address);
-      this.abMembers.push(signer);
-
-      addressZero.sendTransaction({
-        to: address,
-        value: parseEther('1000'),
-      });
+      await evm.impersonate(address);
+      await evm.setBalance(address, parseEther('1000'));
+      this.abMembers.push(await getSigner(address));
     }
-
-    this.addressZero = addressZero;
   });
 
   it('deploy and upgrade Governance contract', async function () {
@@ -300,40 +349,6 @@ describe('v2 migration', function () {
     this.swapOperator = swapOperator;
   });
 
-  async function enableAsEnzymeReceiver(receiverAddress, funder) {
-    const comptroller = await ethers.getContractAt('IEnzymeV4Comptroller', ENZYME_COMPTROLLER_PROXY_ADDRESS);
-    const vault = await ethers.getContractAt('IEnzymeV4Vault', ENZYMEV4_VAULT_PROXY_ADDRESS);
-
-    const ownerAddress = await vault.getOwner();
-
-    console.log({
-      vaultOwner: ownerAddress,
-    });
-
-    console.log('Unlocking and funding vault owner');
-    const owner = await unlock(ownerAddress);
-    await funder.sendTransaction({
-      to: owner.address,
-      value: parseEther('1000'),
-    });
-
-    const selector = web3.eth.abi.encodeFunctionSignature('addToList(uint256,address[])');
-    const receiverArgs = web3.eth.abi.encodeParameters(
-      ['uint256', 'address[]'],
-      [ListIdForReceivers, [receiverAddress]],
-    );
-
-    console.log('Updating Enzyme vault receivers');
-    await comptroller.connect(owner).vaultCallOnContract(AddressListRegistry, selector, receiverArgs);
-
-    const registry = await ethers.getContractAt('IAddressListRegistry', ENZYME_ADDRESS_LIST_REGISTRY);
-
-    console.log('Checking Enzyme vault receivers contains new receiver');
-
-    const inReceiverList = await registry.isInList(ListIdForReceivers, receiverAddress);
-    assert.equal(inReceiverList, true);
-  }
-
   it('deploy & upgrade contracts: CR, TC, MCR, MR, CO, PS, P1, GW, CoverMigrator', async function () {
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const ClaimsReward = await ethers.getContractFactory('LegacyClaimsReward');
@@ -382,9 +397,7 @@ describe('v2 migration', function () {
     );
     await pool.deployed();
 
-    await ethers.provider.send('hardhat_impersonateAccount', [AddressZero]);
-    const addressZero = await ethers.getSigner(AddressZero);
-    await enableAsEnzymeReceiver(pool.address, addressZero);
+    await enableAsEnzymeReceiver(pool.address);
 
     const CoverMigrator = await ethers.getContractFactory('CoverMigrator');
     const coverMigrator = await CoverMigrator.deploy(this.quotationData.address, this.productsV1.address);
@@ -637,5 +650,19 @@ describe('v2 migration', function () {
 
   it.skip('withdrawCoverNote reverts after one rejected and one an accepted claim', async function () {
     // [todo]
+  });
+
+  it('pool value check', async function () {
+    const poolValueAfter = await this.pool.getPoolValueInEth();
+    const poolValueDiff = poolValueAfter.sub(poolValueBefore).abs();
+
+    expect(
+      poolValueDiff.isZero(),
+      [
+        `Pool value before: ${formatEther(poolValueBefore)} `,
+        `Pool value after:  ${formatEther(poolValueAfter)}`,
+        `Current diff: ${formatEther(poolValueDiff)}`,
+      ].join('\n'),
+    );
   });
 });

@@ -2,7 +2,6 @@ const { assert } = require('chai');
 const { web3 } = require('hardhat');
 const { ether, time } = require('@openzeppelin/test-helpers');
 const { initMCR } = require('./common');
-const { hex } = require('../utils').helpers;
 const { toBN } = web3.utils;
 
 const DEFAULT_MCR_PARAMS = {
@@ -262,7 +261,6 @@ describe('updateMCR', function () {
 
   it('increases desiredMCR when mcrWithGear exceeds current MCR if MCR% < 100%', async function () {
     const { master, cover, pool } = this;
-    ;
     await pool.setPoolValueInEth(ether('120000'));
     await cover.setTotalActiveCoverInAsset(0, ether('800000'));
 

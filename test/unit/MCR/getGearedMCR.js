@@ -1,7 +1,6 @@
 const { assert } = require('chai');
 const { ether, time } = require('@openzeppelin/test-helpers');
 const { initMCR } = require('./common');
-const { hex } = require('../utils').helpers;
 
 const DEFAULT_MCR_PARAMS = {
   mcrValue: ether('150000'),

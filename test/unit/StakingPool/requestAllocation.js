@@ -8,12 +8,10 @@ const {
   divCeil,
   roundUpToNearestAllocationUnit,
   calculateBasePremium,
-  getTranches,
-  setTime,
-  TRANCHE_DURATION,
   getCurrentBucket,
   MAX_ACTIVE_TRANCHES,
   BUCKET_DURATION,
+  moveTimeToNextTranche,
 } = require('./helpers');
 
 const { increaseTime } = require('../utils').evm;
@@ -419,12 +417,6 @@ describe('requestAllocation', function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
 
-    // Move to the beginning of the next tranche
-    const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-    const nextTranche = currentTrancheId + 1;
-    await setTime(nextTranche * TRANCHE_DURATION);
-    await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche, MaxUint256, AddressZero);
-
     const amount = parseEther('1');
     const previousPremium = 0;
 
@@ -439,19 +431,12 @@ describe('requestAllocation', function () {
 
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 1;
-      await setTime(nextTranche * TRANCHE_DURATION);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche, MaxUint256, AddressZero);
-    }
+    const currentTrancheId = await moveTimeToNextTranche(1);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
 
     const amount = parseEther('100');
     const previousPremium = 0;
     const { productId } = allocationRequestParams;
-
-    const { firstActiveTrancheId: currentTrancheId } = await getTranches();
 
     const groupId = Math.floor(currentTrancheId / COVER_TRANCHE_GROUP_SIZE);
     const currentTrancheIndexInGroup = currentTrancheId % COVER_TRANCHE_GROUP_SIZE;
@@ -477,19 +462,13 @@ describe('requestAllocation', function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
 
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 1;
-      await setTime(nextTranche * TRANCHE_DURATION);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche, MaxUint256, AddressZero);
-    }
+    const currentTrancheId = await moveTimeToNextTranche(1);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
 
     const amount = parseEther('100');
     const previousPremium = 0;
     const { productId } = allocationRequestParams;
 
-    const { firstActiveTrancheId: currentTrancheId } = await getTranches();
     const currentBucketId = await getCurrentBucket();
 
     const firstGroupId = Math.floor(currentTrancheId / COVER_TRANCHE_GROUP_SIZE);
@@ -515,19 +494,13 @@ describe('requestAllocation', function () {
 
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 1;
-      await setTime(nextTranche * TRANCHE_DURATION);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche, MaxUint256, AddressZero);
-    }
+    const currentTrancheId = await moveTimeToNextTranche(1);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
 
     const amount = parseEther('100');
     const previousPremium = 0;
     const { productId, period } = allocationRequestParams;
 
-    const { firstActiveTrancheId: currentTrancheId } = await getTranches();
     const lastBlock = await ethers.provider.getBlock('latest');
     const targetBucketId = Math.ceil((lastBlock.timestamp + period) / BUCKET_DURATION);
 
@@ -555,19 +528,13 @@ describe('requestAllocation', function () {
 
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 1;
-      await setTime(nextTranche * TRANCHE_DURATION);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche, MaxUint256, AddressZero);
-    }
+    const currentTrancheId = await moveTimeToNextTranche(1);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
 
     const amount = parseEther('100');
     const previousPremium = 0;
     const { productId, period } = allocationRequestParams;
 
-    const { firstActiveTrancheId: currentTrancheId } = await getTranches();
     const currentBucketId = await getCurrentBucket();
 
     const trancheGroupId = Math.floor(currentTrancheId / COVER_TRANCHE_GROUP_SIZE);
@@ -644,14 +611,7 @@ describe('requestAllocation', function () {
     const { GLOBAL_CAPACITY_RATIO, NXM_PER_ALLOCATION_UNIT } = this.config;
     const GLOBAL_CAPACITY_DENOMINATOR = BigNumber.from(10000);
 
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 8;
-      await setTime(nextTranche * TRANCHE_DURATION);
-    }
-
-    const { firstActiveTrancheId: currentTrancheId } = await getTranches();
+    const currentTrancheId = await moveTimeToNextTranche(8);
 
     const tranches = Array(3)
       .fill(0)
@@ -715,14 +675,7 @@ describe('requestAllocation', function () {
 
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 8;
-      await setTime(nextTranche * TRANCHE_DURATION);
-    }
-
-    const { firstActiveTrancheId: currentTrancheId } = await getTranches();
+    const currentTrancheId = await moveTimeToNextTranche(8);
 
     const depositAmount = parseEther('10');
 
@@ -800,13 +753,8 @@ describe('requestAllocation', function () {
 
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 1;
-      await setTime(nextTranche * TRANCHE_DURATION);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche, MaxUint256, AddressZero);
-    }
+    const currentTrancheId = await moveTimeToNextTranche(1);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
 
     const amountProduct1 = parseEther('10');
     const amountProduct2 = parseEther('20');
@@ -814,7 +762,6 @@ describe('requestAllocation', function () {
     const { productId: productId1, period } = allocationRequestParams;
     const { productId: productId2 } = product2;
 
-    const { firstActiveTrancheId: currentTrancheId } = await getTranches();
     const lastBlock = await ethers.provider.getBlock('latest');
     const targetBucketId = Math.ceil((lastBlock.timestamp + period) / BUCKET_DURATION);
 
@@ -871,13 +818,8 @@ describe('requestAllocation', function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
 
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 1;
-      await setTime(nextTranche * TRANCHE_DURATION);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche, MaxUint256, AddressZero);
-    }
+    const currentTrancheId = await moveTimeToNextTranche(1);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
 
     const amount = parseEther('100');
     const previousPremium = 0;
@@ -903,13 +845,8 @@ describe('requestAllocation', function () {
     const { REWARDS_DENOMINATOR } = this.config;
     const { rewardRatio } = allocationRequestParams;
 
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 1;
-      await setTime(nextTranche * TRANCHE_DURATION);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche, MaxUint256, AddressZero);
-    }
+    const currentTrancheId = await moveTimeToNextTranche(1);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
 
     const amount = parseEther('100');
     const previousPremium = 0;
@@ -985,13 +922,8 @@ describe('requestAllocation', function () {
     const { REWARDS_DENOMINATOR } = this.config;
     const { rewardRatio } = allocationRequestParams;
 
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 1;
-      await setTime(nextTranche * TRANCHE_DURATION);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche, MaxUint256, AddressZero);
-    }
+    const currentTrancheId = await moveTimeToNextTranche(1);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
 
     const amount = parseEther('100');
     const previousPremium = 0;
@@ -1066,14 +998,7 @@ describe('requestAllocation', function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
 
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 8;
-      await setTime(nextTranche * TRANCHE_DURATION);
-    }
-
-    const { firstActiveTrancheId: currentTrancheId } = await getTranches();
+    const currentTrancheId = await moveTimeToNextTranche(8);
 
     const depositAmount = parseEther('10');
 
@@ -1148,20 +1073,14 @@ describe('requestAllocation', function () {
 
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 1;
-      await setTime(nextTranche * TRANCHE_DURATION);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche, MaxUint256, AddressZero);
-    }
+    const currentTrancheId = await moveTimeToNextTranche(1);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
 
     const amount = parseEther('10');
     const previousPremium = 0;
     const nextAllocationId = await stakingPool.nextAllocationId();
     const { productId, period } = allocationRequestParams;
 
-    const { firstActiveTrancheId: currentTrancheId } = await getTranches();
     const lastBlock = await ethers.provider.getBlock('latest');
     const targetBucketId = Math.ceil((lastBlock.timestamp + period) / BUCKET_DURATION);
 
@@ -1239,15 +1158,11 @@ describe('requestAllocation', function () {
 
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 8;
-      await setTime(nextTranche * TRANCHE_DURATION);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche, MaxUint256, AddressZero);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche + 1, MaxUint256, AddressZero);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche + 2, MaxUint256, AddressZero);
-    }
+    const currentTrancheId = await moveTimeToNextTranche(8);
+
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 1, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 2, MaxUint256, AddressZero);
 
     const amount = parseEther('200');
     const previousPremium = 0;
@@ -1334,15 +1249,11 @@ describe('requestAllocation', function () {
 
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 8;
-      await setTime(nextTranche * TRANCHE_DURATION);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche, MaxUint256, AddressZero);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche + 1, MaxUint256, AddressZero);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche + 2, MaxUint256, AddressZero);
-    }
+    const currentTrancheId = await moveTimeToNextTranche(8);
+
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 1, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 2, MaxUint256, AddressZero);
 
     const amount = parseEther('200');
     const previousPremium = 0;
@@ -1440,14 +1351,8 @@ describe('requestAllocation', function () {
     const [user] = this.accounts.members;
 
     const { GLOBAL_CAPACITY_RATIO, GLOBAL_CAPACITY_DENOMINATOR } = this.config;
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 8;
-      await setTime(nextTranche * TRANCHE_DURATION);
-    }
 
-    const { firstActiveTrancheId: currentTrancheId } = await getTranches();
+    const currentTrancheId = await moveTimeToNextTranche(8);
 
     const depositAmount = parseEther('100');
 
@@ -1491,14 +1396,7 @@ describe('requestAllocation', function () {
     const { weight: product1Weight } = defaultProduct;
     const { weight: product3Weight, productId: productId3 } = product3;
 
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 8;
-      await setTime(nextTranche * TRANCHE_DURATION);
-    }
-
-    const { firstActiveTrancheId: currentTrancheId } = await getTranches();
+    const currentTrancheId = await moveTimeToNextTranche(8);
 
     const depositAmount = parseEther('100');
 
@@ -1540,14 +1438,8 @@ describe('requestAllocation', function () {
     const [user] = this.accounts.members;
 
     const { GLOBAL_CAPACITY_RATIO, GLOBAL_CAPACITY_DENOMINATOR, CAPACITY_REDUCTION_DENOMINATOR } = this.config;
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 8;
-      await setTime(nextTranche * TRANCHE_DURATION);
-    }
 
-    const { firstActiveTrancheId: currentTrancheId } = await getTranches();
+    const currentTrancheId = await moveTimeToNextTranche(8);
 
     const depositAmount = parseEther('100');
     const capacityReductionRatio = 1000;

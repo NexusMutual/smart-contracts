@@ -14,15 +14,13 @@ const DEFAULT_MCR_PARAMS = {
   minUpdateTime: '3600',
 };
 
-// TODO: current tests are using quotation data, need rewriting to use Cover instead
-describe.skip('getGearedMCR', function () {
+describe.only('getGearedMCR', function () {
   it('should return gearedMCR = 0 if there are no active covers', async function () {
-    const { master, quotationData } = this;
+    const { master, cover } = this;
 
-    await quotationData.setTotalSumAssured(hex('ETH'), '0');
+    await cover.setTotalActiveCoverInAsset(0, '0'); // ETH
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
-
     await time.increase(time.duration.hours(2));
 
     const gearedMCR = await mcr.getGearedMCR();
@@ -30,17 +28,21 @@ describe.skip('getGearedMCR', function () {
   });
 
   it('should return correct geared MCR value', async function () {
-    const { master, quotationData } = this;
+    const { master, cover } = this;
 
-    const sumAssuredEther = '10000';
-    const sumAssured = ether(sumAssuredEther);
-    await quotationData.setTotalSumAssured(hex('ETH'), sumAssuredEther);
+    const GEARING_FACTOR = 48000;
+    const BASIS_PRECISION = 10000;
+
+    const activeCoverAmountETH = '10000';
+    const activeCoverAmount = ether(activeCoverAmountETH);
+
+    await cover.setTotalActiveCoverInAsset(0, activeCoverAmountETH); // ETH
+    await cover.setTotalActiveCoverInAsset(1, '0'); // DAI
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
-
     await time.increase(time.duration.hours(2));
 
-    const expectedGearedMCR = sumAssured.muln(10000).divn(48000);
+    const expectedGearedMCR = activeCoverAmount.muln(BASIS_PRECISION).divn(GEARING_FACTOR);
     const gearedMCR = await mcr.getGearedMCR();
     assert.equal(gearedMCR.toString(), expectedGearedMCR.toString());
   });

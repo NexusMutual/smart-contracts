@@ -15,7 +15,6 @@ async function setup() {
   const PriceFeedOracle = artifacts.require('PriceFeedOracle');
   const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
   const Cover = artifacts.require('MCRMockCover');
-  const QuotationData = artifacts.require('MCRMockQuotationData');
 
   const master = await MasterMock.new();
   const dai = await ERC20Mock.new();
@@ -37,7 +36,6 @@ async function setup() {
 
   const pool = await Pool.new(priceFeedOracle.address);
   const cover = await Cover.new();
-  const quotationData = await QuotationData.new();
 
   await cover.setTotalActiveCoverInAsset(0, ether('100000')); // ETH
   await cover.setTotalActiveCoverInAsset(1, '0'); // DAI
@@ -81,7 +79,6 @@ async function setup() {
   this.chainlinkDAI = chainlinkDAI;
   this.mcr = mcr;
   this.cover = cover;
-  this.quotationData = quotationData;
 }
 
 module.exports = setup;

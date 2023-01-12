@@ -37,7 +37,6 @@ enum CoverUintParams {
 struct PoolAllocationRequest {
   uint40 poolId;
   uint coverAmountInAsset;
-  uint allocationId;
 }
 
 struct RequestAllocationVariables {

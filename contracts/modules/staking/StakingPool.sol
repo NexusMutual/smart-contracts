@@ -617,8 +617,10 @@ contract StakingPool is IStakingPool {
       );
 
       // no need to charge any premium
-      return (0, request.allocationId);
+      // returning maxUint as allocationId since there was no allocation and since amount is 0 allocation will not be saved in the segment
+      return (0, type(uint).max);
     }
+
     uint coverAllocationAmount;
     uint initialCapacityUsed;
     uint totalCapacity;

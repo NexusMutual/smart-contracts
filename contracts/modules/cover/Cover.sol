@@ -126,7 +126,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint segmentId;
 
     AllocationRequest memory allocationRequest;
-    uint maxUint = type(uint).max;
     {
       require(_products.length > params.productId, "Cover: Product not found");
 
@@ -155,7 +154,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       );
     }
 
-    if (params.coverId == maxUint) {
+    if (params.coverId == type(uint).max) {
 
       // new cover
       coverId = _coverData.length;
@@ -260,40 +259,35 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           previousPoolAllocation.premiumInNXM
           * (allocationRequest.previousExpiration - block.timestamp) // remaining period
           / (allocationRequest.previousExpiration - allocationRequest.previousStart); // previous period
+        allocationRequest.allocationId = previousPoolAllocation.allocationId;
+      } else {
+        allocationRequest.allocationId = type(uint).max;
+      }
+      // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
+      uint coverAmountInNXM = Math.roundUp(
+        Math.divCeil(poolAllocationRequests[i].coverAmountInAsset * ONE_NXM, nxmPriceInCoverAsset),
+        NXM_PER_ALLOCATION_UNIT
+      );
+      (uint premiumInNXM, uint allocationId) = stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
+        coverAmountInNXM,
+        vars.previousPremiumInNXM,
+        allocationRequest
+      );
+
+      // omit deallocated pools from the segment
+      if (coverAmountInNXM != 0) {
+        coverSegmentAllocations[allocationRequest.coverId][segmentId].push(
+          PoolAllocation(
+            poolAllocationRequests[i].poolId,
+            coverAmountInNXM.toUint96(),
+            premiumInNXM.toUint96(),
+            allocationId
+          )
+        );
       }
 
-      {
-        // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
-        uint coverAmountInNXM = Math.roundUp(
-          Math.divCeil(poolAllocationRequests[i].coverAmountInAsset * ONE_NXM, nxmPriceInCoverAsset),
-          NXM_PER_ALLOCATION_UNIT
-        );
-        if (poolAllocationRequests[i].allocationId == type(uint).max) {
-          allocationRequest.allocationId = type(uint).max;
-        } else {
-          allocationRequest.allocationId = poolAllocationRequests[i].allocationId;
-        }
-        (uint premiumInNXM, uint allocationId) = stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
-          coverAmountInNXM,
-          vars.previousPremiumInNXM,
-          allocationRequest
-        );
-
-        // omit deallocated pools from the segment
-        if (coverAmountInNXM != 0) {
-          coverSegmentAllocations[allocationRequest.coverId][segmentId].push(
-            PoolAllocation(
-              poolAllocationRequests[i].poolId,
-              coverAmountInNXM.toUint96(),
-              premiumInNXM.toUint96(),
-              allocationId
-            )
-          );
-        }
-
-        totalAmountDueInNXM += (vars.refund >= premiumInNXM ? 0 : premiumInNXM - vars.refund);
-        totalCoverAmountInNXM += coverAmountInNXM;
-      }
+      totalAmountDueInNXM += (vars.refund >= premiumInNXM ? 0 : premiumInNXM - vars.refund);
+      totalCoverAmountInNXM += coverAmountInNXM;
     }
     totalCoverAmountInCoverAsset = totalCoverAmountInNXM * nxmPriceInCoverAsset / ONE_NXM;
 

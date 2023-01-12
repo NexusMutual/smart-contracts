@@ -124,7 +124,7 @@ describe('burnStake', function () {
         stakingPoolManager,
         targetPriceRatio,
       );
-      allocationRequest.push({ poolId: i, coverAmountInAsset: amountPerPool, allocationId: MaxUint256 });
+      allocationRequest.push({ poolId: i, coverAmountInAsset: amountPerPool });
     }
 
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnMultiplePools.call(this, {

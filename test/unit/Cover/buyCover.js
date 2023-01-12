@@ -26,7 +26,7 @@ const buyCoverFixture = {
   expectedPremium: parseEther('1000').mul(260).div(10000), // amount * targetPriceRatio / priceDenominator
 };
 
-const poolAllocationRequest = [{ poolId: '0', coverAmountInAsset: buyCoverFixture.amount, allocationId: MaxUint256 }];
+const poolAllocationRequest = [{ poolId: '0', coverAmountInAsset: buyCoverFixture.amount }];
 
 describe('buyCover', function () {
   beforeEach(async function () {
@@ -166,8 +166,8 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       [
-        { poolId: '1', coverAmountInAsset: amount.div(2), allocationId: MaxUint256 },
-        { poolId: '0', coverAmountInAsset: amount.div(2), allocationId: MaxUint256 },
+        { poolId: '1', coverAmountInAsset: amount.div(2) },
+        { poolId: '0', coverAmountInAsset: amount.div(2) },
       ],
       { value: expectedPremium },
     );
@@ -843,7 +843,7 @@ describe('buyCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [{ poolId: '0', coverAmountInAsset: 0, allocationId: MaxUint256 }],
+        [{ poolId: '0', coverAmountInAsset: 0 }],
         {
           value: expectedPremium,
         },
@@ -1163,9 +1163,9 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       [
-        { poolId: 0, coverAmountInAsset: coverAmountAllocationPerPool, allocationId: MaxUint256 },
-        { poolId: 1, coverAmountInAsset: coverAmountAllocationPerPool, allocationId: MaxUint256 },
-        { poolId: 2, coverAmountInAsset: coverAmountAllocationPerPool, allocationId: MaxUint256 },
+        { poolId: 0, coverAmountInAsset: coverAmountAllocationPerPool },
+        { poolId: 1, coverAmountInAsset: coverAmountAllocationPerPool },
+        { poolId: 2, coverAmountInAsset: coverAmountAllocationPerPool },
       ],
       {
         value: expectedPremium,

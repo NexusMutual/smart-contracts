@@ -19,7 +19,6 @@ describe('setProducts', function () {
   const poolAllocationRequestTemplate = {
     poolId: '0',
     coverAmountInAsset: amount,
-    allocationId: MaxUint256,
   };
 
   // Cover.BuyCoverParams

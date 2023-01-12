@@ -5,7 +5,6 @@ const { mineNextBlock, setNextBlockTime, setEtherBalance } = require('../../util
 
 const { parseEther } = ethers.utils;
 const { AddressZero } = ethers.constants;
-const { MaxUint256 } = ethers.constants;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
@@ -89,7 +88,7 @@ describe.skip('expireCover', function () {
         commissionDestination: AddressZero,
         ipfsData: '',
       },
-      [{ poolId: '0', coverAmountInAsset: amount.toString(), allocationId: MaxUint256 }],
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
       {
         value: expectedPremium,
       },

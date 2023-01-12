@@ -71,7 +71,7 @@ async function buyCoverOnOnePool(params) {
     targetPriceRatio,
   );
 
-  const allocationRequest = [{ poolId: 0, coverAmountInAsset: amount, allocationId: MaxUint256 }];
+  const allocationRequest = [{ poolId: 0, coverAmountInAsset: amount }];
 
   return buyCoverOnMultiplePools.call(this, { ...params, allocationRequest });
 }

@@ -100,9 +100,12 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     address _to,
     uint _value
   ) external override onlyInternal returns (bool) {
+
     INXMToken _token = token();
     _token.operatorTransfer(_from, _value);
-    _token.transfer(_to, _value);
+    if (_to != address(this)) {
+      _token.transfer(_to, _value);
+    }
     return true;
   }
 

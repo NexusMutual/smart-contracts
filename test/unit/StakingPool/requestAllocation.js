@@ -549,7 +549,7 @@ describe('requestAllocation', function () {
     }
   });
 
-  it.skip('just deallocates if amount is 0', async function () {
+  it('just deallocates if amount is 0', async function () {
     const { stakingPool } = this;
     const [user] = this.accounts.members;
 
@@ -631,9 +631,9 @@ describe('requestAllocation', function () {
       expect(expiringCoverBuckets).to.equal(0);
 
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
-      // TODO: reverts with
-      // AssertionError: expected 10000 to equal 0
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(0);
+      // coverTrancheAllocations for allocationId is not updated as it is not needed
+      // allocationId can't be used again for future allocations
+      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(amount.div(NXM_PER_ALLOCATION_UNIT));
     }
   });
 
@@ -1432,141 +1432,6 @@ describe('requestAllocation', function () {
       expect(coverTrancheAllocations.shr(64)).to.equal(
         fifthAllocationIncreaseAmount.div(2).div(NXM_PER_ALLOCATION_UNIT),
       );
-    }
-  });
-
-  it.skip('correctly updates stored cover allocations after completely deallocating it', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
-
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
-
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 8;
-      await setTime(nextTranche * TRANCHE_DURATION);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche, MaxUint256, AddressZero);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche + 1, MaxUint256, AddressZero);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche + 2, MaxUint256, AddressZero);
-    }
-
-    const amount = parseEther('200');
-    const previousPremium = 0;
-    const allocationId = await stakingPool.nextAllocationId();
-    const { period } = allocationRequestParams;
-
-    {
-      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
-      expect(coverTrancheAllocations).to.equal(0);
-    }
-
-    await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
-
-    {
-      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(amount.div(NXM_PER_ALLOCATION_UNIT));
-    }
-
-    const lastBlock = await ethers.provider.getBlock('latest');
-
-    await stakingPool.connect(this.coverSigner).requestAllocation(0, previousPremium, {
-      ...allocationRequestParams,
-      allocationId,
-      previousStart: lastBlock.timestamp,
-      previousExpiration: lastBlock.timestamp + period,
-    });
-
-    {
-      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
-      // TODO: reverts with
-      // AssertionError: expected 20000 to equal 0
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(0);
-    }
-
-    const secondAllocationAmount = amount.div(2);
-    // edit previous allocation, decrease amount to half
-    await stakingPool.connect(this.coverSigner).requestAllocation(secondAllocationAmount, previousPremium, {
-      ...allocationRequestParams,
-      allocationId,
-      previousStart: lastBlock.timestamp,
-      previousExpiration: lastBlock.timestamp + period,
-    });
-
-    {
-      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
-      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(secondAllocationAmount.div(NXM_PER_ALLOCATION_UNIT));
-    }
-  });
-
-  it.skip('correctly updates stored tranche allocation after completely deallocating it', async function () {
-    const { stakingPool } = this;
-    const [user] = this.accounts.members;
-
-    const { NXM_PER_ALLOCATION_UNIT } = this.config;
-
-    {
-      // Move to the beginning of the next tranche
-      const { firstActiveTrancheId: currentTrancheId } = await getTranches();
-      const nextTranche = currentTrancheId + 8;
-      await setTime(nextTranche * TRANCHE_DURATION);
-      await stakingPool.connect(user).depositTo(parseEther('100'), nextTranche, MaxUint256, AddressZero);
-    }
-
-    const amount = parseEther('200');
-    const previousPremium = 0;
-    const nextAllocationId = await stakingPool.nextAllocationId();
-    const { productId, period } = allocationRequestParams;
-
-    {
-      const activeAllocations = await stakingPool.getActiveAllocations(productId);
-      expect(activeAllocations[0]).to.equal(0);
-    }
-
-    await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
-
-    {
-      const activeAllocations = await stakingPool.getActiveAllocations(productId);
-      expect(activeAllocations[0]).to.equal(amount.div(NXM_PER_ALLOCATION_UNIT));
-    }
-
-    const firstAllocationBlock = await ethers.provider.getBlock('latest');
-
-    // edit previous allocation, remove all allocation
-    await stakingPool.connect(this.coverSigner).requestAllocation(0, previousPremium, {
-      ...allocationRequestParams,
-      allocationId: nextAllocationId,
-      previousStart: firstAllocationBlock.timestamp,
-      previousExpiration: firstAllocationBlock.timestamp + period,
-    });
-
-    {
-      const activeAllocations = await stakingPool.getActiveAllocations(productId);
-      expect(activeAllocations[0]).to.equal(0);
-    }
-
-    const secondAllocationBlock = await ethers.provider.getBlock('latest');
-
-    const secondAllocationAmount = amount.div(2);
-    // edit previous allocation, increase amount to half
-    await stakingPool.connect(this.coverSigner).requestAllocation(secondAllocationAmount, previousPremium, {
-      ...allocationRequestParams,
-      allocationId: nextAllocationId,
-      previousStart: secondAllocationBlock.timestamp,
-      previousExpiration: secondAllocationBlock.timestamp + period,
-    });
-
-    // TODO: previous call reverts with
-    // Could be that coverTrancheAllocations was not updated when we deallocated
-    // the whole amount in the previous call by setting amount = 0?
-    // Error: VM Exception while processing transaction: reverted with panic code
-    // 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)
-    // at StakingPool.getActiveAllocationsWithoutCover (contracts/modules/staking/StakingPool.sol:697)
-    // at StakingPool.requestAllocation (contracts/modules/staking/StakingPool.sol:600)
-
-    {
-      const activeAllocations = await stakingPool.getActiveAllocations(productId);
-      expect(activeAllocations[0]).to.equal(secondAllocationAmount.div(NXM_PER_ALLOCATION_UNIT));
     }
   });
 

@@ -90,6 +90,19 @@ contract StakingNFT is IStakingNFT {
     return _totalSupply;
   }
 
+  // info
+
+  function tokenInfo(uint tokenId) public view returns (uint poolId, address owner) {
+    poolId = _tokenInfo[tokenId].poolId;
+    owner = _tokenInfo[tokenId].owner;
+    require(owner != address(0), "NOT_MINTED");
+  }
+
+  function stakingPoolOf(uint tokenId) public view returns (uint poolId) {
+    poolId = _tokenInfo[tokenId].poolId;
+    require(poolId != 0, "NOT_MINTED");
+  }
+
   // ERC165
 
   function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
@@ -108,7 +121,8 @@ contract StakingNFT is IStakingNFT {
   }
 
   function ownerOf(uint id) public view returns (address owner) {
-    require((owner = _tokenInfo[id].owner) != address(0), "NOT_MINTED");
+    owner = _tokenInfo[id].owner;
+    require(owner != address(0), "NOT_MINTED");
   }
 
   function balanceOf(address owner) public view returns (uint) {

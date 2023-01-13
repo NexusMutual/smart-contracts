@@ -3,7 +3,13 @@ const { ethers } = require('hardhat');
 // https://hardhat.org/hardhat-network/docs/reference
 // https://tenderlydev.notion.site/Custom-RPC-API-83a89eae23524faa9853371c21088173
 
-const hex = ethers.utils.hexValue;
+const { BigNumber } = ethers;
+const { hexValue } = ethers.utils;
+
+// this hex function produces evm-compatible hex strings:
+// - strips leading zeroes (0x01 -> 0x1)
+// - keeps one zero if the value is zero (0x00 -> 0x0)
+const hex = n => hexValue(BigNumber.from(n));
 
 const methods = {
   common: send => ({

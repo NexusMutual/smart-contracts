@@ -156,48 +156,61 @@ async function main() {
     { alias: 'stETH', abiFilename: 'ERC20' },
   );
 
-  console.log('Deploying disposable master');
+  console.log('Deploying disposable NXMaster');
   const master = await deployProxy('DisposableNXMaster');
-  console.log('Deploying disposable member roles');
+
+  console.log('Deploying disposable MemberRoles');
   const mr = await deployProxy('DisposableMemberRoles');
-  console.log('Deploying disposable pooled staking');
+
+  console.log('Deploying disposable PooledStaking');
   const ps = await deployProxy('DisposablePooledStaking');
-  console.log('Deploying disposable proposal category');
+
+  console.log('Deploying disposable PproposalCategory');
   const pc = await deployProxy('DisposableProposalCategory');
-  console.log('Deploying disposable governance');
+
+  console.log('Deploying disposable Governance');
   const gv = await deployProxy('DisposableGovernance', [], { overrides: { gasLimit: 12e6 } });
-  console.log('Deploying disposable gateway');
+
+  console.log('Deploying disposable LegacyGateway');
   const gw = await deployProxy('DisposableGateway');
 
-  console.log('Deploying legacy claims reward');
+  console.log('Deploying LegacyClaimsReward');
   const cr = await deployImmutable('LegacyClaimsReward', [master.address, dai.address]);
-  console.log('Deploying token contract');
+
+  console.log('Deploying NXMToken');
   const tk = await deployImmutable('NXMToken', [owner, parseEther('1500000')]);
-  console.log('Deploying legacy quotation data contract');
+
+  console.log('Deploying testnet LegacyQuotationData');
   // Replaced LegacyQuotationData with TestnetQuotationData for ability to create old v1 covers locally
   const qd = await deployImmutable('TestnetQuotationData', [owner, owner]);
-  console.log('Deploying ProductsV1 contract');
+
+  console.log('Deploying ProductsV1');
   const productsV1 = await deployImmutable('ProductsV1');
 
-  console.log('Deploying disposable staking pool factory');
+  console.log('Deploying StakingPoolFactory');
   const expectedCoverAddress = getContractAddress({
     from: ownerSigner.address,
     nonce: (await ownerSigner.getTransactionCount()) + 7,
   });
-
   const spf = await deployImmutable('StakingPoolFactory', [expectedCoverAddress]);
 
-  console.log('Deploy cover and staking NFT contracts');
+  console.log('Deploying StakingNFT');
   const stakingNFT = await deployImmutable('StakingNFT', [
     'Nexus Mutual Deposit',
     'NMD',
     spf.address,
     expectedCoverAddress,
   ]);
+
+  console.log('Deploying CoverNFT');
   const coverNFT = await deployImmutable('CoverNFT', ['Nexus Mutual Cover', 'NMC', expectedCoverAddress]);
+
+  console.log('Deploying CoverViewer');
+  await deployImmutable('CoverViewer', [master.address]);
 
   console.log('Deploying disposable TokenController');
   const tc = await deployProxy('DisposableTokenController', [qd.address, cr.address, spf.address]);
+
   console.log('Deploying StakingPool');
   const stakingPool = await deployImmutable('StakingPool', [
     stakingNFT.address,
@@ -221,11 +234,6 @@ async function main() {
   const ic = await deployProxy('IndividualClaims', [tk.address, coverNFT.address]);
   const assessment = await deployProxy('DisposableAssessment', []);
   const coverMigrator = await deployProxy('CoverMigrator', [qd.address, productsV1.address]);
-
-  console.log('Deploying legacy claims data and claim proofs contract');
-  await deployImmutable('LegacyClaimProofs');
-  const cd = await deployImmutable('LegacyClaimsData');
-  // await cd.changeMasterAddress(master.address);
 
   console.log('Deploying SwapOperator');
   const cowVaultRelayer = await deployImmutable('SOMockVaultRelayer');
@@ -278,7 +286,7 @@ async function main() {
     [18, 18],
   ]);
 
-  console.log('Deploying capital contracts');
+  console.log('Deploying disposable MCR');
   const disposableMCR = await deployImmutable('DisposableMCR', [
     parseEther('50000'), // mcrEth
     parseEther('40000'), // mcrFloor
@@ -290,19 +298,19 @@ async function main() {
     48000, // gearingFactor
     3600, // minUpdateTime
   ]);
-
   // deploy MCR with DisposableMCR as a fake master
   const mcr = await deployImmutable('MCR', [disposableMCR.address]);
-
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mcr.address, master.address);
 
+  console.log('Deploying Pool')
   const poolParameters = [master, priceFeedOracle, swapOperator, dai, stETH].map(x => x.address);
   const pool = await deployImmutable('Pool', poolParameters);
 
-  console.log('Minting DAI to pool');
+  console.log('Minting DAI to Pool');
   await dai.mint(pool.address, parseEther('6500000'));
 
+  console.log('Initializing contracts');
   const replaceableContractCodes = ['MC', 'P1', 'CL'];
   const replaceableContractAddresses = [mcr, pool, coverMigrator].map(x => x.address);
 
@@ -327,8 +335,7 @@ async function main() {
     ...proxyContractCodes.map(() => '2'), // proxy
   ];
 
-  console.log('Initializing contracts');
-  console.log('Initializing master');
+  console.log('Initializing NXMaster');
   await master.initialize(
     ownerSigner.address,
     tk.address,
@@ -337,11 +344,14 @@ async function main() {
     types, // types
     addresses, // addresses
   );
-  console.log('Initializing tc');
+
+  console.log('Initializing TokenController');
   await tc.initialize(master.address, tk.address, ps.address, assessment.address);
-  console.log('Initializing assessment');
+
+  console.log('Initializing Assessment');
   await assessment.initialize(master.address, tc.address);
-  console.log('Initializing mr');
+
+  console.log('Initializing MemberRoles');
   await mr.initialize(
     owner,
     master.address,
@@ -350,7 +360,8 @@ async function main() {
     [parseEther('10000')], // initial tokens
     [owner], // advisory board members
   );
-  console.log('Initializing gv');
+
+  console.log('Initializing Governance');
   await gv.initialize(
     600, // 10 minutes
     600, // 10 minutes
@@ -359,7 +370,8 @@ async function main() {
     75,
     300, // 5 minutes
   );
-  console.log('Initializing ps');
+
+  console.log('Initializing PooledStaking');
   await ps.initialize(
     tc.address,
     parseEther('2'), // min stake
@@ -367,13 +379,14 @@ async function main() {
     10, // max exposure
     600, // unstake lock time
   );
-  console.log('Initializing yt');
+
+  console.log('Initializing YieldTokenIncidents');
   await yt.initialize();
-  console.log('Initializing gw');
+
+  console.log('Initializing LegacyGateway');
   await gw.initialize(master.address, dai.address);
 
   console.log('Add covered products');
-
   await cover.changeMasterAddress(master.address);
   await cover.changeDependentContractAddress();
   await cover.setProductTypes(productTypes);
@@ -406,28 +419,24 @@ async function main() {
       allowedPools: [],
     };
   });
-
   // 0b01 for eth and 0b10 for dai
   const coverAssetsFallback = 0b11;
   await cover.setCoverAssetsFallback(coverAssetsFallback);
-  console.log('Setting Products.');
+
+  console.log('Setting Cover products.');
   await cover.setProducts(addProductsParams);
   const productsStored = await cover.getProducts();
   console.log(`${productsStored.length} products added.`);
   // fs.writeFileSync('products.json', JSON.stringify(productsStored, null, 2));
+
   console.log('Adding proposal categories');
-
   await pc.initialize(mr.address);
-
   for (const category of proposalCategories) {
     await pc.addInitialCategory(...category);
   }
 
-  console.log('Setting parameters');
-
-  // console.log('Setting QuotationData parameters');
-  await gv.changeMasterAddress(master.address);
   console.log('Switching governance address');
+  await gv.changeMasterAddress(master.address);
   await master.switchGovernanceAddress(gv.address);
 
   console.log('Upgrading to non-disposable contracts');
@@ -443,51 +452,7 @@ async function main() {
   await upgradeProxy(assessment.address, 'Assessment', [tk.address]);
   await upgradeProxy(cover.address, 'Cover', [coverNFT.address, stakingNFT.address, spf.address, stakingPool.address]);
 
-  console.log('Deploying CoverViewer');
-  await deployImmutable('CoverViewer', [master.address]);
-
-  console.log('Creating a staking pool');
-  const productId = 0;
-  const targetPrice = '1000';
-  const initialPrice = '10000';
-
-  const initialPoolFee = '5';
-  const maxPoolFee = '5';
-  const productInitializationParams = [
-    {
-      productId,
-      weight: '40',
-      initialPrice,
-      targetPrice,
-    },
-    {
-      productId: 1,
-      weight: '40',
-      initialPrice,
-      targetPrice,
-    },
-    {
-      productId: 2,
-      weight: '20',
-      initialPrice,
-      targetPrice,
-    },
-  ];
-
-  await cover.createStakingPool(
-    ownerSigner.address,
-    false, // isPrivatePool
-    initialPoolFee,
-    maxPoolFee,
-    productInitializationParams,
-    '', // ipfsDescriptionHash
-  );
-
-  // await stakingPool.setStake(productId, parseEther('10000'));
-  // await stakingPool.setStake(1, parseEther('10000'));
-  // await stakingPool.setStake(2, parseEther('10000'));
-
-  console.log('Transfering ownership of proxy contracts');
+  console.log('Transferring ownership of proxy contracts');
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
   await transferProxyOwnership(ps.address, master.address);

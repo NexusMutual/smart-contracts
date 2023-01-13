@@ -92,7 +92,7 @@ async function main() {
     const Contract = await ethers.getContractFactory(contract, { libraries });
     const instance = await Contract.deploy(...constructorArgs, overrides);
     await instance.deployed();
-    verifier.add(instance.address, contract, contract, { constructorArgs, libraries, alias, abiFilename });
+    verifier.add(instance.address, contract, { constructorArgs, libraries, alias, abiFilename });
     return instance;
   };
 
@@ -101,15 +101,9 @@ async function main() {
     const impl = await deployImmutable(contract, constructorArgs, { overrides, libraries });
     const proxy = await OwnedUpgradeabilityProxy.deploy(impl.address);
     await proxy.deployed();
-    const opts = {
-      constructorArgs: [impl.address],
-      abiFilename,
-      alias,
-      isProxy: true,
-      libraries,
-      implFqName: contract,
-    };
-    verifier.add(proxy.address, PROXY_CONTRACT, contract, opts);
+    const implFqName = contract;
+    const opts = { constructorArgs: [impl.address], abiFilename, alias, isProxy: true, libraries, implFqName };
+    verifier.add(proxy.address, PROXY_CONTRACT, opts);
     return await ethers.getContractAt(contract, proxy.address);
   };
 
@@ -118,22 +112,11 @@ async function main() {
     const impl = await deployImmutable(contract, constructorArgs, { overrides, libraries });
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', proxyAddress);
     await proxy.upgradeTo(impl.address);
-    const opts = {
-      constructorArgs: [impl.address],
-      alias,
-      abiFilename,
-      isProxy: true,
-      libraries,
-      implFqName: contract,
-    };
-    verifier.add(proxy.address, PROXY_CONTRACT, contract, opts);
+    const implFqName = contract;
+    const opts = { constructorArgs: [impl.address], alias, abiFilename, isProxy: true, libraries, implFqName };
+    verifier.add(proxy.address, PROXY_CONTRACT, opts);
     const instance = await ethers.getContractAt(contract, proxyAddress);
-    try {
-      await instance.changeDependentContractAddress();
-    } catch (e) {
-      console.log(`[WARNING]: changeDependentContractAddress failed on ${contract}`);
-      console.error(e);
-    }
+    instance.changeDependentContractAddress && (await instance.changeDependentContractAddress());
     return instance;
   };
 
@@ -205,9 +188,6 @@ async function main() {
   console.log('Deploying CoverNFT');
   const coverNFT = await deployImmutable('CoverNFT', ['Nexus Mutual Cover', 'NMC', expectedCoverAddress]);
 
-  console.log('Deploying CoverViewer');
-  await deployImmutable('CoverViewer', [master.address]);
-
   console.log('Deploying disposable TokenController');
   const tc = await deployProxy('DisposableTokenController', [qd.address, cr.address, spf.address]);
 
@@ -228,6 +208,9 @@ async function main() {
     stakingPool.address,
   ]);
   expect(cover.address).to.equal(expectedCoverAddress);
+
+  console.log('Deploying CoverViewer');
+  await deployImmutable('CoverViewer', [master.address]);
 
   console.log('Deploying assessment contracts');
   const yt = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);
@@ -303,7 +286,7 @@ async function main() {
   // trigger initialize and update master address
   await disposableMCR.initializeNextMcr(mcr.address, master.address);
 
-  console.log('Deploying Pool')
+  console.log('Deploying Pool');
   const poolParameters = [master, priceFeedOracle, swapOperator, dai, stETH].map(x => x.address);
   const pool = await deployImmutable('Pool', poolParameters);
 
@@ -504,22 +487,27 @@ async function main() {
   const contracts = unsortedContracts.sort((a, b) => a.abiFilename.localeCompare(b.abiFilename));
 
   for (const contract of contracts) {
-    const { abi, address, alias, abiFilename, isProxy } = contract;
+    const { abi, address, abiFilename, isProxy } = contract;
+    const alias = contract.alias || contract.abiFilename;
 
     if (/^(CSMock|Disposable)/.test(abiFilename)) {
       continue;
     }
 
-    let legacyContractName;
-    if (/^(Testnet)/.test(abiFilename)) {
-      legacyContractName = abiFilename.replace('Testnet', 'Legacy');
-    }
+    const contractName = /^(Testnet)/.test(abiFilename)
+      ? abiFilename.replace('Testnet', 'Legacy') // TestnetQuotationData -> LegacyQuotationData
+      : abiFilename;
 
-    const abiPath = path.join(abiDir, `${legacyContractName || abiFilename}.json`);
+    const abiPath = path.join(abiDir, `${contractName}.json`);
     fs.writeFileSync(abiPath, JSON.stringify(abi, null, 2));
 
-    if (!config.CONTRACTS_ADDRESSES[legacyContractName || alias] || isProxy) {
-      config.CONTRACTS_ADDRESSES[legacyContractName || alias] = address;
+    if (contractName === 'StakingPool') {
+      // for the StakingPool we only want the abi
+      continue;
+    }
+
+    if (!config.CONTRACTS_ADDRESSES[alias] || isProxy) {
+      config.CONTRACTS_ADDRESSES[alias] = address;
     }
   }
 

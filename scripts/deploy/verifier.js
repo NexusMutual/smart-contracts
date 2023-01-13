@@ -8,9 +8,9 @@ module.exports = () => {
   // implFqName - if proxy, the name of the implementation contract (for ui). ex: ERC20
   // abiFilename - will append ".json" and dump the abi there (for ui). ex: ERC20
   // alias - same contract can be deployed multiple times and refered to differently. ex: DAI
-  const add = (address, fqName, name, options = {}) => {
+  const add = (address, fqName, options = {}) => {
     const { constructorArgs, libraries, isProxy } = options;
-    const implFqName = options.implFqName || (contracts[address] && contracts[address].implFqName) || fqName;
+    const implFqName = options.implFqName || fqName;
     const shortImplName = implFqName.split(':').pop();
     const alias = options.alias || shortImplName;
     const abiFilename = options.abiFilename || shortImplName;
@@ -19,6 +19,7 @@ module.exports = () => {
       const previousName = contracts[address].alias;
       console.log(`Replacing ${previousName} with ${alias} at ${address}`);
     }
+
     contracts[address] = { address, fqName, implFqName, abiFilename, alias, constructorArgs, libraries, isProxy };
   };
 
@@ -26,11 +27,11 @@ module.exports = () => {
     const deployData = [];
 
     for (const contract of Object.values(contracts)) {
-      const { abiFilename, implFqName, address, alias, libraries, isProxy } = contract;
+      const { implFqName, libraries } = contract;
       const factory = await ethers.getContractFactory(implFqName, { libraries });
       const abiJson = factory.interface.format(ethers.utils.FormatTypes.json);
       const abi = JSON.parse(abiJson);
-      deployData.push({ address, abi, abiFilename, alias: isProxy ? `${alias}Proxy` : alias, isProxy });
+      deployData.push({ ...contract, abi });
     }
 
     return deployData;

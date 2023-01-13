@@ -27,6 +27,10 @@ const ENZYME_FUND_VALUE_CALCULATOR_ROUTER = '0x7c728cd0CfA92401E01A4849a01b57EE5
 const ENZYME_COMPTROLLER_PROXY_ADDRESS = '0xa5bf4350da6193b356ac15a3dbd777a687bc216e';
 const ENZYME_ADDRESS_LIST_REGISTRY = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
 
+const DAI_PRICE_FEED_ORACLE_AGGREGATOR = '0x773616E4d11A78F511299002da57A0a94577F1f4';
+const STETH_PRICE_FEED_ORACLE_AGGREGATOR = '0x86392dC19c0b719886221c78AB11eb8Cf5c52812';
+const ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR = '0xCc72039A141c6e34a779eF93AEF5eB4C82A893c7';
+
 const ListIdForReceivers = 218;
 const AddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
 
@@ -387,10 +391,21 @@ describe('v2 migration', function () {
     const pooledStaking = await PooledStaking.deploy(coverProxyAddress, this.productsV1.address);
     await pooledStaking.deployed();
 
+    const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
+
+    const assetAddresses = [DAI_ADDRESS, STETH_ADDRESS, ENZYMEV4_VAULT_PROXY_ADDRESS];
+    const assetAggregators = [
+      DAI_PRICE_FEED_ORACLE_AGGREGATOR,
+      STETH_PRICE_FEED_ORACLE_AGGREGATOR,
+      ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR,
+    ];
+    const assetDecimals = [18, 18, 18];
+    const priceFeedOracle = await PriceFeedOracle.deploy(assetAddresses, assetAggregators, assetDecimals);
+
     const Pool = await ethers.getContractFactory('Pool');
     const pool = await Pool.deploy(
       this.master.address,
-      PRICE_FEED_ORACLE_ADDRESS,
+      priceFeedOracle.address,
       this.swapOperator.address,
       DAI_ADDRESS,
       STETH_ADDRESS,

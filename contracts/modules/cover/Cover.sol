@@ -466,7 +466,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   function burnStake(
     uint coverId,
     uint segmentId,
-    uint burnAmount
+    uint payoutAmountInAsset
   ) external onlyInternal override returns (address /* owner */) {
 
     CoverData storage cover = _coverData[coverId];
@@ -474,27 +474,21 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];
 
     // TODO: implement using buckets
-    // totalActiveCoverInAsset[cover.coverAsset] -= burnAmount;
+    // totalActiveCoverInAsset[cover.coverAsset] -= payoutAmountInAsset;
 
     // increase amountPaidOut only *after* you read the segment
-    cover.amountPaidOut += SafeUintCast.toUint96(burnAmount);
+    cover.amountPaidOut += SafeUintCast.toUint96(payoutAmountInAsset);
 
     uint allocationCount = allocations.length;
     for (uint i = 0; i < allocationCount; i++) {
 
       PoolAllocation memory allocation = allocations[i];
 
-      // TODO: use the global capacity ratio that we had at cover buy time
-      uint burnAmountInNXM = allocation.coverAmountInNXM
-        * burnAmount
-        * GLOBAL_CAPACITY_DENOMINATOR
-        / segment.amount
-        / segment.globalCapacityRatio;
-
-      stakingPool(i).burnStake(burnAmountInNXM);
-
-      uint payoutAmountInNXM = allocation.coverAmountInNXM * burnAmount / segment.amount;
+      uint payoutAmountInNXM = allocation.coverAmountInNXM * payoutAmountInAsset / segment.amount;
       allocations[i].coverAmountInNXM -= SafeUintCast.toUint96(payoutAmountInNXM);
+
+      uint burnAmountInNxm = payoutAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / segment.globalCapacityRatio;
+      stakingPool(i).burnStake(burnAmountInNxm);
     }
 
     return coverNFT.ownerOf(coverId);

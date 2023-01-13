@@ -436,9 +436,7 @@ async function main() {
   await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address]);
   await upgradeProxy(pc.address, 'ProposalCategory');
   await upgradeProxy(master.address, 'NXMaster');
-  console.log('hai');
   await upgradeProxy(gv.address, 'Governance');
-  console.log('hai2');
   await upgradeProxy(gw.address, 'LegacyGateway');
   await upgradeProxy(ic.address, 'IndividualClaims', [tk.address, coverNFT.address]);
   await upgradeProxy(yt.address, 'YieldTokenIncidents', [tk.address, coverNFT.address]);
@@ -530,7 +528,7 @@ async function main() {
   const configFile = path.resolve(CONFIG_FILE);
   const abiDir = path.resolve(ABI_DIR);
 
-  const config = require(configFile);
+  const config = {};
   config.CONTRACTS_ADDRESSES = {};
 
   fs.existsSync(abiDir) && fs.rmSync(abiDir, { recursive: true });

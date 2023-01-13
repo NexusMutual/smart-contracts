@@ -153,7 +153,7 @@ async function setup() {
 
   await master.setEmergencyAdmin(accounts.emergencyAdmin.address);
 
-  const capacityFactor = '10000';
+  const capacityFactor = '20000';
   const coverAssetsFallback = 0b111; // ETH, DAI and USDC
 
   await cover

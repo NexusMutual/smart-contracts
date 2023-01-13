@@ -4,32 +4,49 @@ const { sleep, to } = require(`${config.paths.root}/lib/helpers`);
 module.exports = () => {
   const contracts = {};
 
-  // artifact and abiName arguments are not used for verification
-  const add = (address, artifact, options = {}) => {
-    const { alias, constructorArgs, libraries, isProxy = false } = options;
-    const abiName = options.abiName || artifact.split(':').pop();
+  // fqName - actual deployed contract name (for verification). ex: OwnedUpgradeabilityProxy
+  // implFqName - if proxy, the name of the implementation contract (for ui). ex: ERC20
+  // abiFilename - will append ".json" and dump the abi there (for ui). ex: ERC20
+  // alias - same contract can be deployed multiple times and refered to differently. ex: DAI
+  const add = (address, fqName, options = {}) => {
+    const { constructorArgs, libraries, isProxy } = options;
+    const implFqName = options.implFqName || fqName;
+    const shortImplName = implFqName.split(':').pop();
+    const alias = options.alias || shortImplName;
+    const abiFilename = options.abiFilename || shortImplName;
 
     if (contracts[address]) {
-      const previousName = contracts[address].alias || contracts[address].abiName;
-      const newName = alias || abiName;
-      console.log(`Replacing ${previousName} with ${newName} at ${address}`);
+      const previousName = contracts[address].alias;
+      console.log(`Replacing ${previousName} with ${alias} at ${address}`);
     }
 
-    contracts[address] = { address, artifact, abiName, alias, isProxy, constructorArgs, libraries };
+    contracts[address] = { address, fqName, implFqName, abiFilename, alias, constructorArgs, libraries, isProxy };
   };
 
   const dump = async () => {
     const deployData = [];
 
     for (const contract of Object.values(contracts)) {
-      const { abiName, artifact, address, alias, isProxy, libraries } = contract;
-      const factory = await ethers.getContractFactory(artifact, { libraries });
+      const { implFqName, libraries } = contract;
+      const factory = await ethers.getContractFactory(implFqName, { libraries });
       const abiJson = factory.interface.format(ethers.utils.FormatTypes.json);
       const abi = JSON.parse(abiJson);
-      deployData.push({ abi, address, abiName, alias: alias || abiName, isProxy });
+      deployData.push({ ...contract, abi });
     }
 
     return deployData;
+  };
+
+  const getContractList = async () => {
+    const contractList = [];
+
+    for (const contract of Object.values(contracts)) {
+      const { address, fqName, libraries } = contract;
+      const shortName = fqName.split(':').pop();
+      contractList.push({ address, name: shortName, libraries });
+    }
+
+    return contractList;
   };
 
   const submit = async () => {
@@ -74,5 +91,5 @@ module.exports = () => {
     }
   };
 
-  return { add, dump, submit, contracts: () => contracts };
+  return { add, dump, submit, contracts: () => contracts, getContractList };
 };

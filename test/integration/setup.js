@@ -289,6 +289,7 @@ async function setup() {
       productTypeId: MaxUint256,
       ipfsMetadata: 'protocolCoverIPFSHash',
       productType: {
+        descriptionIpfsHash: 'protocolCoverIPFSHash',
         claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
         gracePeriod: 30 * 24 * 3600, // 30 days
       },
@@ -298,6 +299,7 @@ async function setup() {
       productTypeId: MaxUint256,
       ipfsMetadata: 'custodyCoverIPFSHash',
       productType: {
+        descriptionIpfsHash: 'custodyCoverIPFSHash',
         claimMethod: CLAIM_METHOD.INDIVIDUAL_CLAIMS,
         gracePeriod: 90 * 24 * 3600, // 90 days
       },
@@ -307,6 +309,7 @@ async function setup() {
       productTypeId: MaxUint256,
       ipfsMetadata: 'yieldTokenCoverIPFSHash',
       productType: {
+        descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
         claimMethod: CLAIM_METHOD.YIELD_TOKEN_INCIDENTS,
         gracePeriod: 14 * 24 * 3600, // 14 days
       },

@@ -9,3 +9,4 @@ types/
 node_modules/
 coverage/
 coverage.json
+tenderly.yaml

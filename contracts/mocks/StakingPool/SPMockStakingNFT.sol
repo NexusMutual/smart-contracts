@@ -8,10 +8,19 @@ contract SPMockStakingNFT is ERC721Mock {
 
   constructor() ERC721Mock("", "") {}
 
-  function mint(uint /*poolId*/, address to) external returns (uint) {
+  mapping(uint => uint) public _stakingPoolOf;
+
+  function mint(uint poolId, address to) external returns (uint) {
     uint tokenId = totalSupply++;
     _mint(to, tokenId);
+    _stakingPoolOf[tokenId] = poolId;
     return tokenId;
+  }
+
+  function stakingPoolOf(uint tokenId) external view returns (uint) {
+    // ownerOf will revert for non-existing tokens which is what we want here
+    ownerOf(tokenId);
+    return _stakingPoolOf[tokenId];
   }
 
 }

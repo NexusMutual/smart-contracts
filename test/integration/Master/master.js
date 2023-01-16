@@ -85,7 +85,7 @@ describe('master', function () {
 
     const upgradeContractsData = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, newAddresses]);
 
-    await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
+    await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [owner]);
 
     const address = await master.getLatestAddress(code);
     assert.equal(address, newMCR.address);
@@ -104,7 +104,7 @@ describe('master', function () {
 
     const upgradeContractsData = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, newAddresses]);
 
-    await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
+    await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [owner]);
 
     const address = await master.getLatestAddress(code);
 
@@ -130,7 +130,7 @@ describe('master', function () {
 
     const upgradeContractsData = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, newAddresses]);
 
-    await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
+    await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [owner]);
 
     const tcAddress = await master.getLatestAddress(tcCode);
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', tcAddress);
@@ -150,7 +150,7 @@ describe('master', function () {
 
     const upgradeContractsData = defaultAbiCoder.encode(['address'], [newMaster.address]);
 
-    await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [owner]);
+    await submitProposal(gv, ProposalCategory.upgradeMasterAddress, upgradeContractsData, [owner]);
 
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', master.address);
     const implementation = await proxy.implementation();
@@ -205,7 +205,7 @@ describe('master', function () {
 
     const claimsRewardNXMBalanceBefore = await tk.balanceOf(lcr.address);
 
-    await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
+    await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [owner]);
 
     await assertNewAddresses(master, contractCodes, newAddresses, this.contractType);
 
@@ -242,7 +242,7 @@ describe('master', function () {
         [contractCodes.map(code => hex(code)), newAddresses],
       );
 
-      await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
+      await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [owner]);
       await assertNewAddresses(master, contractCodes, newAddresses, this.contractType);
     }
 
@@ -259,7 +259,7 @@ describe('master', function () {
         [contractCodes.map(code => hex(code)), newAddresses],
       );
 
-      await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
+      await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [owner]);
       await assertNewAddresses(master, contractCodes, newAddresses, this.contractType);
     }
   });

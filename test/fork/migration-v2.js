@@ -17,6 +17,7 @@ const getLockedInV1ClaimAssessment = require('../../scripts/get-locked-in-v1-cla
 const getWithdrawableCoverNotes = require('../../scripts/get-withdrawable-cover-notes');
 const getGovernanceRewards = require('../../scripts/get-governance-rewards');
 const populateV2Products = require('../../scripts/populate-v2-products');
+const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 
 const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
@@ -257,7 +258,7 @@ describe('v2 migration', function () {
     await newGovernance.deployed();
 
     await submitGovernanceProposal(
-      29, // upgradeMultipleContracts(bytes2[],address[])
+      PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
       defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('GV')], [newGovernance.address]]),
       this.abMembers,
       this.governance,
@@ -269,7 +270,7 @@ describe('v2 migration', function () {
   it('edit proposal category 41 (Set Asset Swap Details)', async function () {
     await submitGovernanceProposal(
       // editCategory(uint256,string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
-      4,
+      PROPOSAL_CATEGORIES.editCategory,
       defaultAbiCoder.encode(
         [
           'uint256',
@@ -296,7 +297,8 @@ describe('v2 migration', function () {
     ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID = await this.proposalCategory.totalCategories();
 
     await submitGovernanceProposal(
-      3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
+      // addCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
+      PROPOSAL_CATEGORIES.addCategory,
       defaultAbiCoder.encode(
         [
           'string',
@@ -323,7 +325,8 @@ describe('v2 migration', function () {
     console.log(`Remove contracts Category Id = ${REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID}`);
 
     await submitGovernanceProposal(
-      3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
+      // addCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
+      PROPOSAL_CATEGORIES.addCategory,
       defaultAbiCoder.encode(
         [
           'string',
@@ -374,7 +377,7 @@ describe('v2 migration', function () {
     await master.deployed();
 
     await submitGovernanceProposal(
-      37, // upgradeTo(address)
+      PROPOSAL_CATEGORIES.upgradeMasterAddress, // upgradeMasterAddress(address)
       defaultAbiCoder.encode(['address'], [master.address]),
       this.abMembers,
       this.governance,
@@ -475,7 +478,7 @@ describe('v2 migration', function () {
 
     console.log('Upgrade the first batch.');
     await submitGovernanceProposal(
-      29, // upgradeMultipleContracts(bytes2[],address[])
+      PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]'],
         [
@@ -507,7 +510,7 @@ describe('v2 migration', function () {
 
     console.log('Upgrade ClaimsReward only. (depends on TokenController)');
     await submitGovernanceProposal(
-      29,
+      PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
       defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('CR')], [newClaimsReward.address]]),
       this.abMembers,
       this.governance,
@@ -641,7 +644,7 @@ describe('v2 migration', function () {
 
   it.skip('remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {
     await submitGovernanceProposal(
-      43, // removeContracts(bytes2[])
+      PROPOSAL_CATEGORIES.removeContracts, // removeContracts(bytes2[])
       defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
       this.abMembers,
       this.governance,
@@ -683,6 +686,7 @@ describe('v2 migration', function () {
     await assessment.deployed();
 
     await submitGovernanceProposal(
+      // TODO: change the categoryId when proposal is added
       42, // addNewInternalContracts(bytes2[],address[],uint256[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]', 'uint256[]'],

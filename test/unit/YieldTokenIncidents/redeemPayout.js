@@ -15,6 +15,7 @@ const coverSegmentFixture = {
   priceRatio: 0,
   expired: false,
   globalRewardsRatio: 0,
+  globalCapacityRatio: 2000,
 };
 
 describe('redeemPayout', function () {
@@ -289,7 +290,16 @@ describe('redeemPayout', function () {
     {
       const { timestamp } = await ethers.provider.getBlock('latest');
       await cover.createMockCover(member1.address, productIdYbEth, ASSET.ETH, [
-        [parseEther('100'), timestamp + 1, daysToSeconds('30'), 7, 0, false, 0],
+        {
+          amount: parseEther('100'),
+          start: timestamp + 1,
+          period: daysToSeconds('30'),
+          gracePeriod: 7,
+          priceRatio: 0,
+          expired: false,
+          globalRewardsRatio: 0,
+          globalCapacityRatio: 20000,
+        },
       ]);
     }
 

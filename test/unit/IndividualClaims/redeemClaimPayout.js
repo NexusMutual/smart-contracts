@@ -267,7 +267,18 @@ describe('redeemClaimPayout', function () {
         originalOwner.address,
         0, // productId
         ASSET.ETH,
-        [[segment.amount, timestamp + 1, segment.period, 7, 0, false, 0]],
+        [
+          {
+            amount: segment.amount,
+            start: timestamp + 1,
+            period: segment.period,
+            gracePeriod: 7,
+            priceRatio: 0,
+            expired: false,
+            globalRewardsRatio: 0,
+            globalCapacityRatio: 20000,
+          },
+        ],
       );
 
       const coverId = 1;

@@ -6,6 +6,7 @@ const { MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 const gracePeriod = 120 * 24 * 3600; // 120 days
+const GLOBAL_CAPACITY_DENOMINATOR = 10000;
 
 describe('burnStake', function () {
   const coverBuyFixture = {
@@ -27,14 +28,16 @@ describe('burnStake', function () {
     const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
-    const burnAmountDivisor = 2;
-    const burnAmount = amount.div(burnAmountDivisor);
-    const remainingAmount = amount.sub(burnAmount);
+    const payoutAmountInAsset = amount.div(2);
+    const remainingAmount = amount.sub(payoutAmountInAsset);
 
+    const segment = await cover.coverSegments(expectedCoverId, segmentId);
     const segmentAllocation = await cover.coverSegmentAllocations(expectedCoverId, segmentId, '0');
-    const expectedBurnAmount = segmentAllocation.coverAmountInNXM.div(burnAmountDivisor);
 
-    await cover.connect(internal).burnStake(expectedCoverId, segmentId, burnAmount);
+    const payoutAmountInNXM = segmentAllocation.coverAmountInNXM.mul(payoutAmountInAsset).div(segment.amount);
+    const expectedBurnAmount = payoutAmountInNXM.mul(GLOBAL_CAPACITY_DENOMINATOR).div(segment.globalCapacityRatio);
+
+    await cover.connect(internal).burnStake(expectedCoverId, segmentId, payoutAmountInAsset);
     await assertCoverFields(cover, expectedCoverId, {
       productId,
       coverAsset,
@@ -43,7 +46,7 @@ describe('burnStake', function () {
       targetPriceRatio,
       gracePeriod,
       segmentId,
-      amountPaidOut: burnAmount,
+      amountPaidOut: payoutAmountInAsset,
     });
 
     const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
@@ -90,13 +93,13 @@ describe('burnStake', function () {
     const burnAmountDivisor = 2;
     const burnAmount = amount.div(burnAmountDivisor);
     const segmentAllocationBefore = await cover.coverSegmentAllocations(expectedCoverId, segmentId, 0);
-    const expectedBurnAmount = segmentAllocationBefore.coverAmountInNXM.div(burnAmountDivisor);
+    const payoutAmountInNXM = segmentAllocationBefore.coverAmountInNXM.div(burnAmountDivisor);
 
     await cover.connect(internal).burnStake(expectedCoverId, segmentId, burnAmount);
 
     const segmentAllocationAfter = await cover.coverSegmentAllocations(expectedCoverId, segmentId, 0);
     expect(segmentAllocationAfter.coverAmountInNXM).to.be.equal(
-      segmentAllocationBefore.coverAmountInNXM.sub(expectedBurnAmount),
+      segmentAllocationBefore.coverAmountInNXM.sub(payoutAmountInNXM),
     );
   });
 
@@ -130,17 +133,22 @@ describe('burnStake', function () {
     });
 
     const burnAmountDivisor = 2;
-    const burnAmount = amount.div(burnAmountDivisor);
-    const remainingAmount = amount.sub(burnAmount);
+    const payoutAmountInAsset = amount.div(burnAmountDivisor);
+    const remainingAmount = amount.sub(payoutAmountInAsset);
     const segmentAllocationsBefore = [];
+    const expectedBurnAmount = [];
+
+    const segment = await cover.coverSegments(expectedCoverId, segmentId);
 
     for (let i = 0; i < amountOfPools; i++) {
       const segmentAllocationBefore = await cover.coverSegmentAllocations(expectedCoverId, segmentId, i);
       segmentAllocationsBefore.push(segmentAllocationBefore);
+
+      const payoutAmountInNXM = segmentAllocationBefore.coverAmountInNXM.mul(payoutAmountInAsset).div(segment.amount);
+      expectedBurnAmount.push(payoutAmountInNXM.mul(GLOBAL_CAPACITY_DENOMINATOR).div(segment.globalCapacityRatio));
     }
 
-    const expectedBurnAmountPerPool = segmentAllocationsBefore[0].coverAmountInNXM.div(burnAmountDivisor);
-    await cover.connect(internal).burnStake(expectedCoverId, segmentId, burnAmount);
+    await cover.connect(internal).burnStake(expectedCoverId, segmentId, payoutAmountInAsset);
     await assertCoverFields(cover, expectedCoverId, {
       productId,
       coverAsset,
@@ -149,20 +157,56 @@ describe('burnStake', function () {
       targetPriceRatio,
       gracePeriod,
       segmentId,
-      amountPaidOut: burnAmount,
+      amountPaidOut: payoutAmountInAsset,
     });
 
     for (let i = 0; i < amountOfPools; i++) {
       const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(i));
 
       const burnStakeCalledWith = await stakingPool.burnStakeCalledWith();
-      expect(burnStakeCalledWith).to.be.equal(expectedBurnAmountPerPool);
+      expect(burnStakeCalledWith).to.be.equal(expectedBurnAmount[i]);
 
       const segmentAllocationAfter = await cover.coverSegmentAllocations(expectedCoverId, segmentId, i);
+      const payoutAmountInNXM = segmentAllocationsBefore[i].coverAmountInNXM.div(burnAmountDivisor);
 
       expect(segmentAllocationAfter.coverAmountInNXM).to.be.equal(
-        segmentAllocationsBefore[i].coverAmountInNXM.sub(expectedBurnAmountPerPool),
+        segmentAllocationsBefore[i].coverAmountInNXM.sub(payoutAmountInNXM),
       );
     }
+  });
+
+  it('should perform a burn with globalCapacityRatio when the cover was bought', async function () {
+    const GLOBAL_CAPACITY_RATIO = 30000;
+    const { cover, accounts } = this;
+    const [internal] = this.accounts.internalContracts;
+    const { productId, coverAsset, period, amount, targetPriceRatio } = coverBuyFixture;
+    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    await cover.connect(accounts.governanceContracts[0]).updateUintParameters([0], [GLOBAL_CAPACITY_RATIO]);
+
+    const payoutAmountInAsset = amount.div(2);
+    const remainingAmount = amount.sub(payoutAmountInAsset);
+
+    const segment = await cover.coverSegments(expectedCoverId, segmentId);
+    const segmentAllocation = await cover.coverSegmentAllocations(expectedCoverId, segmentId, '0');
+
+    const payoutAmountInNXM = segmentAllocation.coverAmountInNXM.mul(payoutAmountInAsset).div(segment.amount);
+    const expectedBurnAmount = payoutAmountInNXM.mul(GLOBAL_CAPACITY_DENOMINATOR).div(segment.globalCapacityRatio);
+
+    await cover.connect(internal).burnStake(expectedCoverId, segmentId, payoutAmountInAsset);
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period,
+      amount: remainingAmount,
+      targetPriceRatio,
+      gracePeriod,
+      segmentId,
+      amountPaidOut: payoutAmountInAsset,
+    });
+
+    const stakingPool = await ethers.getContractAt('CoverMockStakingPool', await cover.stakingPool(0));
+    const burnStakeCalledWith = await stakingPool.burnStakeCalledWith();
+    expect(burnStakeCalledWith).to.be.equal(expectedBurnAmount);
   });
 });

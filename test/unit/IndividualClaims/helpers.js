@@ -45,6 +45,7 @@ const coverSegmentFixture = {
   priceRatio: 0,
   expired: false,
   globalRewardsRatio: 0,
+  globalCapacityRatio: 20000,
 };
 
 const getCoverSegment = async () => {

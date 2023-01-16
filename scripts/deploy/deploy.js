@@ -480,7 +480,7 @@ async function main() {
   const configFile = path.resolve(CONFIG_FILE);
   const abiDir = path.resolve(ABI_DIR);
 
-  const config = {};
+  const config = fs.existsSync(configFile) ? require(configFile) : {};
   config.CONTRACTS_ADDRESSES = {};
 
   fs.existsSync(abiDir) && fs.rmSync(abiDir, { recursive: true });

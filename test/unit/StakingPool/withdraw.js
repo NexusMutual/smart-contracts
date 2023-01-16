@@ -105,9 +105,7 @@ describe('withdraw', function () {
 
     await expect(
       stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds),
-    ).to.be.revertedWith(
-      'StakingPool: While the pool manager is locked for governance voting only rewards can be withdrawn',
-    );
+    ).to.be.revertedWithCustomError(stakingPool, 'ManagerNxmIsLockedForGovernanceVote');
   });
 
   it('allows to withdraw only stake', async function () {

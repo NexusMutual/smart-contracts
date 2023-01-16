@@ -36,6 +36,39 @@ struct ProductInitializationParams {
   uint96 targetPrice;
 }
 
+// Auth
+error OnlyCoverContract();
+error OnlyManager();
+error PrivatePool();
+error SystemPaused();
+// Fees
+error PoolFeeExceedsMax();
+error MaxPoolFeeAbove100();
+// Voting
+error NxmIsLockedForGovernanceVote();
+error ManagerNxmIsLockedForGovernanceVote();
+// Deposit
+error InsufficientDepositAmount();
+error RewardRatioTooHigh();
+// Staking NFTs
+error InvalidTokenId();
+error NotTokenOwnerOrApproved();
+// Tranche & capacity
+error NewTrancheEndsBeforeInitialTranche();
+error RequestedTrancheIsNotYetActive();
+error RequestedTrancheIsExpired();
+error InsufficientCapacity();
+// Products & weights
+error PoolNotAllowedForThisProduct();
+error MustSetPriceForNewProducts();
+error MustSetWeightForNewProducts();
+error TargetPriceTooHigh();
+error TargetPriceBelowMin();
+error TargetWeightTooHigh();
+error MustRecalculateEffectiveWeight();
+error TotalTargetWeightExceeded();
+error TotalEffectiveWeightExceeded();
+
 interface IStakingPool {
 
   /* structs for storage */

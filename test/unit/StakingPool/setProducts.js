@@ -68,8 +68,9 @@ describe('setProducts unit tests', function () {
     await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const product = { ...newProductTemplate };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
-    await expect(stakingPool.connect(nonManager).setProducts([product])).to.be.revertedWith(
-      'StakingPool: Only pool manager can call this function',
+    await expect(stakingPool.connect(nonManager).setProducts([product])).to.be.revertedWithCustomError(
+      stakingPool,
+      'OnlyManager',
     );
   });
 
@@ -139,7 +140,7 @@ describe('setProducts unit tests', function () {
         0,
         IPFS_DESCRIPTION_HASH,
       ),
-    ).to.be.revertedWith('StakingPool: Total max target weight exceeded');
+    ).to.be.revertedWithCustomError(stakingPool, 'TotalTargetWeightExceeded');
   });
 
   it('should set products and store values correctly', async function () {
@@ -166,8 +167,9 @@ describe('setProducts unit tests', function () {
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
 
     product.recalculateEffectiveWeight = false;
-    await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith(
-      'StakingPool: Must recalculate effectiveWeight to edit targetWeight',
+    await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWithCustomError(
+      stakingPool,
+      'MustRecalculateEffectiveWeight',
     );
   });
 
@@ -179,8 +181,9 @@ describe('setProducts unit tests', function () {
     const product = { ...newProductTemplate, setTargetPrice: false };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
 
-    await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith(
-      'StakingPool: Must set price for new products',
+    await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWithCustomError(
+      stakingPool,
+      'MustSetPriceForNewProducts',
     );
   });
 
@@ -267,8 +270,9 @@ describe('setProducts unit tests', function () {
 
     await cover.setProduct({ ...coverProductTemplate }, newStakingProduct.productId);
 
-    await expect(stakingPool.connect(manager).setProducts([newStakingProduct])).to.be.revertedWith(
-      'StakingPool: Max total target weight exceeded',
+    await expect(stakingPool.connect(manager).setProducts([newStakingProduct])).to.be.revertedWithCustomError(
+      stakingPool,
+      'TotalTargetWeightExceeded',
     );
   });
 
@@ -289,7 +293,7 @@ describe('setProducts unit tests', function () {
         0,
         IPFS_DESCRIPTION_HASH,
       ),
-    ).to.be.revertedWith('StakingPool: Cannot set weight beyond 1');
+    ).to.be.revertedWithCustomError(stakingPool, 'TargetWeightTooHigh');
   });
 
   it('should fail to make product weight higher than 1', async function () {
@@ -299,8 +303,9 @@ describe('setProducts unit tests', function () {
     await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const product = { ...newProductTemplate, targetWeight: 101 };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
-    await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith(
-      'StakingPool: Cannot set weight beyond 1',
+    await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWithCustomError(
+      stakingPool,
+      'TargetWeightTooHigh',
     );
   });
 
@@ -339,8 +344,9 @@ describe('setProducts unit tests', function () {
     await stakingPool.connect(manager).setProducts([product]);
     product.recalculateEffectiveWeight = false;
     product.targetWeight = 100;
-    await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith(
-      'StakingPool: Must recalculate effectiveWeight to edit targetWeight',
+    await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWithCustomError(
+      stakingPool,
+      'MustRecalculateEffectiveWeight',
     );
   });
 
@@ -399,8 +405,9 @@ describe('setProducts unit tests', function () {
     await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const product = { ...newProductTemplate, targetPrice: 10001 };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
-    await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith(
-      'StakingPool: Target price too high',
+    await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWithCustomError(
+      stakingPool,
+      'TargetPriceTooHigh',
     );
   });
 
@@ -423,8 +430,9 @@ describe('setProducts unit tests', function () {
     await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
     const product = { ...newProductTemplate, targetPrice: GLOBAL_MIN_PRICE_RATIO - 1 };
     await cover.setProduct({ ...coverProductTemplate }, product.productId);
-    await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWith(
-      'StakingPool: Target price below GLOBAL_MIN_PRICE_RATIO',
+    await expect(stakingPool.connect(manager).setProducts([product])).to.be.revertedWithCustomError(
+      stakingPool,
+      'TargetPriceBelowMin',
     );
   });
 
@@ -485,8 +493,9 @@ describe('setProducts unit tests', function () {
     products[10].targetWeight = 50;
     const newProducts = [products[10], { ...newProductTemplate, productId: 50 }];
     await cover.setProduct({ ...coverProductTemplate }, newProducts[1].productId);
-    await expect(stakingPool.connect(manager).setProducts(newProducts)).to.be.revertedWith(
-      'StakingPool: Max total target weight exceeded',
+    await expect(stakingPool.connect(manager).setProducts(newProducts)).to.be.revertedWithCustomError(
+      stakingPool,
+      'TotalTargetWeightExceeded',
     );
   });
 
@@ -549,8 +558,9 @@ describe('setProducts unit tests', function () {
       { ...newProductTemplate, productId: 50 },
     ];
     await cover.setProduct({ ...coverProductTemplate }, newProducts[1].productId);
-    await expect(stakingPool.connect(manager).setProducts(newProducts)).to.be.revertedWith(
-      'StakingPool: Max total target weight exceeded',
+    await expect(stakingPool.connect(manager).setProducts(newProducts)).to.be.revertedWithCustomError(
+      stakingPool,
+      'TotalTargetWeightExceeded',
     );
   });
 

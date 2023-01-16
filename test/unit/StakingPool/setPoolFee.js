@@ -72,8 +72,9 @@ describe('setPoolFee', function () {
       },
     } = this;
 
-    await expect(stakingPool.connect(nonManager).setPoolFee(5)).to.be.revertedWith(
-      'StakingPool: Only pool manager can call this function',
+    await expect(stakingPool.connect(nonManager).setPoolFee(5)).to.be.revertedWithCustomError(
+      stakingPool,
+      'OnlyManager',
     );
     await expect(stakingPool.connect(manager).setPoolFee(5)).to.not.be.reverted;
   });
@@ -85,8 +86,9 @@ describe('setPoolFee', function () {
     } = this;
     const { maxPoolFee } = initializeParams;
 
-    await expect(stakingPool.connect(manager).setPoolFee(maxPoolFee + 1)).to.be.revertedWith(
-      'StakingPool: new fee exceeds max fee',
+    await expect(stakingPool.connect(manager).setPoolFee(maxPoolFee + 1)).to.be.revertedWithCustomError(
+      stakingPool,
+      'PoolFeeExceedsMax',
     );
     await expect(stakingPool.connect(manager).setPoolFee(maxPoolFee)).to.not.be.reverted;
   });

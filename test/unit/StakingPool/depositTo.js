@@ -87,9 +87,9 @@ describe('depositTo', function () {
 
     await stakingPool.connect(manager).setPoolPrivacy(true);
 
-    await expect(stakingPool.connect(user).depositTo(amount, trancheId, tokenId, destination)).to.be.revertedWith(
-      'StakingPool: The pool is private',
-    );
+    await expect(
+      stakingPool.connect(user).depositTo(amount, trancheId, tokenId, destination),
+    ).to.be.revertedWithCustomError(stakingPool, 'PrivatePool');
 
     await nxm.mint(manager.address, amount);
     await nxm.connect(manager).approve(tokenController.address, amount);
@@ -105,8 +105,9 @@ describe('depositTo', function () {
     const [user] = this.accounts.members;
     const { trancheId, tokenId, destination } = depositToFixture;
 
-    await expect(stakingPool.connect(user).depositTo(0, trancheId, tokenId, destination)).to.be.revertedWith(
-      'StakingPool: Insufficient deposit amount',
+    await expect(stakingPool.connect(user).depositTo(0, trancheId, tokenId, destination)).to.be.revertedWithCustomError(
+      stakingPool,
+      'InsufficientDepositAmount',
     );
   });
 
@@ -118,9 +119,9 @@ describe('depositTo', function () {
     const { maxTranche } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
     const trancheId = maxTranche + 1;
 
-    await expect(stakingPool.connect(user).depositTo(amount, trancheId, tokenId, destination)).to.be.revertedWith(
-      'StakingPool: Requested tranche is not yet active',
-    );
+    await expect(
+      stakingPool.connect(user).depositTo(amount, trancheId, tokenId, destination),
+    ).to.be.revertedWithCustomError(stakingPool, 'RequestedTrancheIsNotYetActive');
   });
 
   it('reverts if requested tranche expired', async function () {
@@ -131,9 +132,9 @@ describe('depositTo', function () {
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
     const trancheId = firstActiveTrancheId - 2;
 
-    await expect(stakingPool.connect(user).depositTo(amount, trancheId, tokenId, destination)).to.be.revertedWith(
-      'StakingPool: Requested tranche has expired',
-    );
+    await expect(
+      stakingPool.connect(user).depositTo(amount, trancheId, tokenId, destination),
+    ).to.be.revertedWithCustomError(stakingPool, 'RequestedTrancheIsExpired');
   });
 
   it('mints a new nft if token id is max uint', async function () {
@@ -615,6 +616,6 @@ describe('depositTo', function () {
 
     await expect(
       stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination),
-    ).to.be.revertedWith('Staking: NXM is locked for voting in governance');
+    ).to.be.revertedWithCustomError(stakingPool, 'NxmIsLockedForGovernanceVote');
   });
 });

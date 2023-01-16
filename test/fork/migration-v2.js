@@ -516,12 +516,17 @@ describe('v2 migration', function () {
     await tx.wait();
   });
 
-  it('transfer v1 assessment rewrds to assessors', async function () {
+  it('transfer v1 assessment rewards to assessors', async function () {
     await this.claimsReward.transferRewards();
   });
 
   it('check if TokenController balance checks out with Governance rewards', async function () {
     // [todo]
+    const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
+
+    console.log({
+      tcNxmBalance: tcNxmBalance.toString(),
+    });
   });
 
   it.skip('remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {

@@ -480,7 +480,7 @@ async function main() {
   const configFile = path.resolve(CONFIG_FILE);
   const abiDir = path.resolve(ABI_DIR);
 
-  const config = {};
+  const config = fs.existsSync(configFile) ? require(configFile) : {};
   config.CONTRACTS_ADDRESSES = {};
 
   fs.existsSync(abiDir) && fs.rmSync(abiDir, { recursive: true });
@@ -492,7 +492,6 @@ async function main() {
 
   for (const contract of contracts) {
     const { abi, address, abiFilename, isProxy } = contract;
-    const alias = contract.alias || contract.abiFilename;
 
     if (/^(CSMock|Disposable)/.test(abiFilename)) {
       continue;
@@ -501,6 +500,12 @@ async function main() {
     const contractName = /^(Testnet)/.test(abiFilename)
       ? abiFilename.replace('Testnet', 'Legacy') // TestnetQuotationData -> LegacyQuotationData
       : abiFilename;
+
+    const contractAlias = /^(Testnet)/.test(contract.alias)
+      ? contract.alias.replace('Testnet', 'Legacy') // TestnetQuotationData -> LegacyQuotationData
+      : contract.alias;
+
+    const alias = contractAlias || contractName;
 
     const abiPath = path.join(abiDir, `${contractName}.json`);
     fs.writeFileSync(abiPath, JSON.stringify(abi, null, 2));

@@ -218,6 +218,10 @@ async function main() {
   const assessment = await deployProxy('DisposableAssessment', []);
   const coverMigrator = await deployProxy('CoverMigrator', [qd.address, productsV1.address]);
 
+  console.log('Deploying legacy claims data and claim proofs contract');
+  await deployImmutable('TestnetClaimProofs');
+  await deployImmutable('TestnetClaimsData');
+
   console.log('Deploying SwapOperator');
   const cowVaultRelayer = await deployImmutable('SOMockVaultRelayer');
   const cowSettlement = await deployImmutable('SOMockSettlement', [cowVaultRelayer.address]);

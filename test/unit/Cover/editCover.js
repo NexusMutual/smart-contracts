@@ -75,6 +75,50 @@ describe('editCover', function () {
     });
   });
 
+  it('should allow to reduce amount', async function () {
+    const { cover } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+
+    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const reducedAmount = amount.div(2);
+
+    const expectedEditPremium = 0;
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: expectedCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount: reducedAmount,
+        period,
+        maxPremiumInAsset: expectedEditPremium,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: reducedAmount.toString() }],
+      {
+        value: 0,
+      },
+    );
+
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period,
+      amount: reducedAmount,
+      gracePeriod,
+      segmentId: 1,
+    });
+  });
+
   it('should edit purchased cover and add coverage from a new staking pool', async function () {
     const { cover } = this;
     const [coverBuyer, manager] = this.accounts.members;
@@ -192,6 +236,48 @@ describe('editCover', function () {
     });
   });
 
+  it('should allow to reduce period', async function () {
+    const { cover } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+
+    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const reducedPeriod = period - daysToSeconds(1);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: expectedCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period: reducedPeriod,
+        maxPremiumInAsset: 0,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', skip: false, coverAmountInAsset: amount.toString() }],
+      {
+        value: 0,
+      },
+    );
+
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period: reducedPeriod,
+      amount,
+      gracePeriod,
+      segmentId: 1,
+    });
+  });
+
   it('should edit purchased cover and increase period and amount', async function () {
     const { cover } = this;
 
@@ -295,6 +381,111 @@ describe('editCover', function () {
       amount: decreasedAmount,
       gracePeriod,
       segmentId: '1',
+    });
+  });
+
+  it('should allow to reduce period and increase amount', async function () {
+    const { cover } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
+
+    await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const {
+      expectedPremium,
+      segment,
+      coverId: expectedCoverId,
+    } = await buyCoverOnOnePool.call(this, { ...coverBuyFixture, period: period * 2 });
+
+    const expectedRefund = segment.amount
+      .mul(targetPriceRatio)
+      .mul(segment.period)
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+
+    const expectedEditPremium = expectedPremium; // reduced period by half and increased amount to double
+    const extraPremium = expectedEditPremium.sub(expectedRefund);
+    const increasedAmount = amount.mul(2);
+    const reducedPeriod = period;
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: expectedCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount: increasedAmount,
+        period: reducedPeriod,
+        maxPremiumInAsset: expectedEditPremium,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount.toString() }],
+      {
+        value: extraPremium,
+      },
+    );
+
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period: reducedPeriod,
+      amount: increasedAmount,
+      gracePeriod,
+      segmentId: 1,
+    });
+  });
+
+  it('should allow to reduce period and reduce amount', async function () {
+    const { cover } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+
+    await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const { coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, {
+      ...coverBuyFixture,
+      period: period * 2,
+    });
+
+    const reducedAmount = amount.div(2);
+    const reducedPeriod = period;
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: expectedCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount: reducedAmount,
+        period: reducedPeriod,
+        maxPremiumInAsset: 0,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', skip: false, coverAmountInAsset: reducedAmount.toString() }],
+      {
+        value: 0,
+      },
+    );
+
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period: reducedPeriod,
+      amount: reducedAmount,
+      gracePeriod,
+      segmentId: 1,
     });
   });
 
@@ -467,5 +658,781 @@ describe('editCover', function () {
     const secondSegment = await cover.coverSegments(expectedCoverId, 1);
     expect(secondSegment.gracePeriod).to.be.equal(newGracePeriod);
     expect(productTypeBefore.gracePeriod).to.be.equal(segment.gracePeriod);
+  });
+
+  it('reverts if caller is not NFT owner or approved', async function () {
+    const { cover } = this;
+
+    const [coverBuyer, otherUser] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+    const { expectedPremium, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const increasedAmount = amount.mul(2);
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium;
+
+    await expect(
+      cover.connect(otherUser).buyCover(
+        {
+          coverId: expectedCoverId,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount: increasedAmount,
+          period,
+          maxPremiumInAsset: expectedEditPremium.add(10),
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
+        { value: extraPremium.add(10) },
+      ),
+    ).to.be.revertedWith('Cover: Only owner or approved can edit');
+  });
+
+  it('reverts if invalid coverId', async function () {
+    const { cover } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+    const { expectedPremium, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const increasedAmount = amount.mul(2);
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium;
+
+    const invalidCoverId = expectedCoverId.add(100);
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: invalidCoverId,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount: increasedAmount,
+          period,
+          maxPremiumInAsset: expectedEditPremium.add(10),
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
+        { value: extraPremium.add(10) },
+      ),
+    ).to.be.revertedWith('NOT_MINTED');
+  });
+
+  it('reverts if period is too short', async function () {
+    const { cover } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
+
+    const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const expectedRefund = segment.amount
+      .mul(targetPriceRatio)
+      .mul(segment.period)
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+    const increasedAmount = amount.mul(2);
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium.sub(expectedRefund);
+
+    const periodTooShort = daysToSeconds(10);
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: expectedCoverId,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount: increasedAmount,
+          period: periodTooShort,
+          maxPremiumInAsset: expectedEditPremium,
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount.toString() }],
+        {
+          value: extraPremium,
+        },
+      ),
+    ).to.be.revertedWith('Cover: Cover period is too short');
+  });
+
+  it('reverts if calculated premium is bigger than maxPremiumInAsset', async function () {
+    const { cover } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, amount, period, priceDenominator, targetPriceRatio } = coverBuyFixture;
+
+    const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const expectedRefund = segment.amount
+      .mul(targetPriceRatio)
+      .mul(segment.period)
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+
+    const increasedAmount = amount.mul(2);
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium.sub(expectedRefund);
+
+    const smallExpectedEditPremium = expectedEditPremium.div(10);
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: expectedCoverId,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount: increasedAmount,
+          period,
+          maxPremiumInAsset: smallExpectedEditPremium,
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount.toString() }],
+        {
+          value: extraPremium,
+        },
+      ),
+    ).to.be.revertedWith('Cover: Price exceeds maxPremiumInAsset');
+  });
+
+  it('works if caller is the owner of the NFT', async function () {
+    const { cover, coverNFT } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
+    const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const increasedAmount = amount.mul(2);
+    const expectedRefund = segment.amount
+      .mul(targetPriceRatio)
+      .mul(segment.period)
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium.sub(expectedRefund);
+
+    const coverOwner = await coverNFT.ownerOf(expectedCoverId);
+    expect(coverOwner).to.be.equal(coverBuyer.address);
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: expectedCoverId,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount: increasedAmount,
+          period,
+          maxPremiumInAsset: expectedEditPremium.add(1),
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
+        { value: extraPremium.add(1) },
+      ),
+    ).to.not.be.reverted;
+  });
+
+  it('works if caller approved by the owner of the NFT', async function () {
+    const { cover, coverNFT } = this;
+
+    const [coverBuyer, otherUser] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+    const { expectedPremium, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const increasedAmount = amount.mul(2);
+
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium;
+
+    const coverOwner = await coverNFT.ownerOf(expectedCoverId);
+    expect(coverOwner).to.be.equal(coverBuyer.address);
+
+    await coverNFT.connect(coverBuyer).approve(otherUser.address, expectedCoverId);
+
+    await expect(
+      cover.connect(otherUser).buyCover(
+        {
+          coverId: expectedCoverId,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount: increasedAmount,
+          period,
+          maxPremiumInAsset: expectedEditPremium.add(1),
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
+        { value: extraPremium.add(1) },
+      ),
+    ).to.not.be.reverted;
+  });
+
+  it('reverts if incorrect cover asset', async function () {
+    const { cover } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
+    const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const increasedAmount = amount.mul(2);
+    const expectedRefund = segment.amount
+      .mul(targetPriceRatio)
+      .mul(segment.period)
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium.sub(expectedRefund);
+
+    const incorrectCoverAsset = 1;
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: expectedCoverId,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset: incorrectCoverAsset,
+          amount: increasedAmount,
+          period,
+          maxPremiumInAsset: expectedEditPremium.add(1),
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
+        { value: extraPremium.add(1) },
+      ),
+    ).to.be.revertedWith('Cover: Unexpected coverAsset requested');
+  });
+
+  it('reverts if incorrect productId', async function () {
+    const { cover } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
+    const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const increasedAmount = amount.mul(2);
+    const expectedRefund = segment.amount
+      .mul(targetPriceRatio)
+      .mul(segment.period)
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium.sub(expectedRefund);
+
+    const incorrectProductId = 1;
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: expectedCoverId,
+          owner: coverBuyer.address,
+          productId: incorrectProductId,
+          coverAsset,
+          amount: increasedAmount,
+          period,
+          maxPremiumInAsset: expectedEditPremium.add(1),
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
+        { value: extraPremium.add(1) },
+      ),
+    ).to.be.revertedWith('Cover: Unexpected productId requested');
+  });
+
+  it('reverts if empty array of allocationRequests', async function () {
+    const { cover } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
+    const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const increasedAmount = amount.mul(2);
+    const expectedRefund = segment.amount
+      .mul(targetPriceRatio)
+      .mul(segment.period)
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium.sub(expectedRefund);
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: expectedCoverId,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount: increasedAmount,
+          period,
+          maxPremiumInAsset: expectedEditPremium.add(1),
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [],
+        { value: extraPremium.add(1) },
+      ),
+    ).to.be.revertedWith('Cover: Insufficient cover amount allocated');
+  });
+
+  it('emits CoverEdited event', async function () {
+    const { cover, coverNFT } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
+    const {
+      expectedPremium,
+      segment,
+      coverId: expectedCoverId,
+      segmentId,
+    } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const increasedAmount = amount.mul(2);
+    const expectedRefund = segment.amount
+      .mul(targetPriceRatio)
+      .mul(segment.period)
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium.sub(expectedRefund);
+
+    const coverOwner = await coverNFT.ownerOf(expectedCoverId);
+    expect(coverOwner).to.be.equal(coverBuyer.address);
+
+    const ipfsData = 'test data';
+    const newSegmentId = segmentId.add(1);
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: expectedCoverId,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount: increasedAmount,
+          period,
+          maxPremiumInAsset: expectedEditPremium.add(1),
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData,
+        },
+        [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
+        { value: extraPremium.add(1) },
+      ),
+    )
+      .to.emit(cover, 'CoverEdited')
+      .withArgs(expectedCoverId, productId, newSegmentId, coverBuyer.address, ipfsData);
+  });
+
+  it('retrieves the premium difference from the user in ETH', async function () {
+    const { cover, pool } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
+
+    const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const increasedAmount = amount.mul(2);
+
+    const expectedRefund = segment.amount
+      .mul(targetPriceRatio)
+      .mul(segment.period)
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium.sub(expectedRefund).add(1);
+
+    const poolEthBalanceBefore = await ethers.provider.getBalance(pool.address);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: expectedCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount: increasedAmount,
+        period,
+        maxPremiumInAsset: extraPremium,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
+      {
+        value: extraPremium,
+      },
+    );
+
+    const poolEthBalanceAfter = await ethers.provider.getBalance(pool.address);
+    expect(poolEthBalanceAfter).to.equal(poolEthBalanceBefore.add(extraPremium));
+
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period,
+      amount: increasedAmount,
+      gracePeriod,
+      segmentId: 1,
+    });
+  });
+
+  it('retrieves the premium difference from the user in NXM', async function () {
+    const { cover, nxm, tokenController } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
+
+    const NXM_ASSET_ID = 255;
+
+    await nxm.mint(coverBuyer.address, parseEther('1000'));
+    await nxm.connect(coverBuyer).approve(tokenController.address, parseEther('1000'));
+
+    const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const increasedAmount = amount.mul(2);
+
+    const expectedRefund = segment.amount
+      .mul(targetPriceRatio)
+      .mul(segment.period)
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium.sub(expectedRefund).add(1);
+
+    const userBalanceBefore = await nxm.balanceOf(coverBuyer.address);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: expectedCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount: increasedAmount,
+        period,
+        maxPremiumInAsset: extraPremium,
+        paymentAsset: NXM_ASSET_ID,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
+      {
+        value: 0,
+      },
+    );
+
+    const userBalanceAfter = await nxm.balanceOf(coverBuyer.address);
+
+    expect(userBalanceAfter).to.equal(userBalanceBefore.sub(extraPremium));
+
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period,
+      amount: increasedAmount,
+      gracePeriod,
+      segmentId: 1,
+    });
+  });
+
+  it('retrieves the premium difference from the user in DAI', async function () {
+    const { cover, dai, pool } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
+
+    const paymentAsset = 1; // DAI
+
+    await dai.mint(coverBuyer.address, parseEther('1000'));
+    await dai.connect(coverBuyer).approve(cover.address, parseEther('1000'));
+
+    const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    const increasedAmount = amount.mul(2);
+
+    const expectedRefund = segment.amount
+      .mul(targetPriceRatio)
+      .mul(segment.period)
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium.sub(expectedRefund).add(1);
+
+    const userBalanceBefore = await dai.balanceOf(coverBuyer.address);
+    const poolBalanceBefore = await dai.balanceOf(pool.address);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: expectedCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount: increasedAmount,
+        period,
+        maxPremiumInAsset: extraPremium,
+        paymentAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
+      {
+        value: 0,
+      },
+    );
+
+    const userBalanceAfter = await dai.balanceOf(coverBuyer.address);
+    const poolBalanceAfter = await dai.balanceOf(pool.address);
+
+    expect(userBalanceAfter).to.equal(userBalanceBefore.sub(extraPremium));
+    expect(poolBalanceAfter).to.equal(poolBalanceBefore.add(extraPremium));
+
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period,
+      amount: increasedAmount,
+      gracePeriod,
+      segmentId: 1,
+    });
+  });
+
+  it('allows editing the cover multiple times against multiple staking pools', async function () {
+    const { cover } = this;
+
+    const [coverBuyer, manager] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount, targetPriceRatio, priceDenominator } = coverBuyFixture;
+
+    const { expectedPremium, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    await createStakingPool(
+      cover,
+      productId,
+      parseEther('10000'), // capacity
+      coverBuyFixture.targetPriceRatio, // targetPrice
+      0, // activeCover
+      manager, // creator
+      manager, // manager
+      coverBuyFixture.targetPriceRatio, // currentPrice
+    );
+
+    const buyerBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: expectedCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium.add(1),
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [
+        { poolId: 0, skip: true, coverAmountInAsset: 0 },
+        { poolId: 1, skip: false, coverAmountInAsset: amount },
+      ],
+      {
+        value: expectedPremium.add(1),
+      },
+    );
+
+    const buyerBalanceAfter = await ethers.provider.getBalance(coverBuyer.address);
+    expect(buyerBalanceAfter).to.be.lt(buyerBalanceBefore.sub(expectedPremium));
+
+    const firstEditSegment = 1;
+    const segment = await cover.coverSegments(expectedCoverId, firstEditSegment);
+
+    {
+      const pool0Allocation = await cover.coverSegmentAllocations(expectedCoverId, firstEditSegment, 0);
+      expect(pool0Allocation.poolId).to.be.equal(0);
+      expect(pool0Allocation.coverAmountInNXM).to.be.equal(amount);
+
+      const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, firstEditSegment, 1);
+      expect(pool1Allocation.poolId).to.be.equal(1);
+      expect(pool1Allocation.coverAmountInNXM).to.be.equal(amount);
+
+      await assertCoverFields(cover, expectedCoverId, {
+        productId,
+        coverAsset,
+        period,
+        amount,
+        gracePeriod,
+        segmentId: firstEditSegment,
+      });
+    }
+
+    const increasedAmount = amount.mul(2);
+
+    const expectedRefund = segment.amount
+      .mul(targetPriceRatio)
+      .mul(segment.period)
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+
+    const expectedEditPremium = expectedPremium.mul(2).mul(2);
+    const extraPremium = expectedEditPremium.sub(expectedRefund);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: expectedCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount: increasedAmount.mul(2),
+        period,
+        maxPremiumInAsset: extraPremium,
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [
+        { poolId: 0, skip: false, coverAmountInAsset: increasedAmount },
+        { poolId: 1, skip: false, coverAmountInAsset: increasedAmount },
+      ],
+      {
+        value: extraPremium,
+      },
+    );
+
+    const secondEditSegment = 2;
+
+    {
+      const pool0Allocation = await cover.coverSegmentAllocations(expectedCoverId, secondEditSegment, 0);
+      expect(pool0Allocation.poolId).to.be.equal(0);
+      expect(pool0Allocation.coverAmountInNXM).to.be.equal(increasedAmount);
+
+      const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, secondEditSegment, 1);
+      expect(pool1Allocation.poolId).to.be.equal(1);
+      expect(pool1Allocation.coverAmountInNXM).to.be.equal(increasedAmount);
+
+      await assertCoverFields(cover, expectedCoverId, {
+        productId,
+        coverAsset,
+        period,
+        amount: increasedAmount.mul(2),
+        gracePeriod,
+        segmentId: secondEditSegment,
+      });
+    }
+  });
+
+  it('reverts if all pools are skipped', async function () {
+    const { cover } = this;
+
+    const [coverBuyer, manager] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+
+    const { expectedPremium, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    await createStakingPool(
+      cover,
+      productId,
+      parseEther('10000'), // capacity
+      coverBuyFixture.targetPriceRatio, // targetPrice
+      0, // activeCover
+      manager, // creator
+      manager, // manager
+      coverBuyFixture.targetPriceRatio, // currentPrice
+    );
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: expectedCoverId,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount: amount.mul(2),
+          period,
+          maxPremiumInAsset: expectedPremium,
+          paymentAsset: coverAsset,
+          payWitNXM: false,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        [
+          { poolId: 0, skip: true, coverAmountInAsset: amount },
+          { poolId: 1, skip: true, coverAmountInAsset: amount },
+        ],
+        {
+          value: expectedPremium,
+        },
+      ),
+    ).to.be.revertedWith('Cover: Insufficient cover amount allocated');
   });
 });

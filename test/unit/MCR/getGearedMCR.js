@@ -1,11 +1,15 @@
-const { assert } = require('chai');
-const { ether, time } = require('@openzeppelin/test-helpers');
+const { expect } = require('chai');
+const { ethers } = require('hardhat');
+
 const { initMCR } = require('./common');
+const { increaseTime } = require('../utils').evm;
+const { parseEther } = ethers.utils;
+const { hoursToSeconds } = require('../utils').helpers;
 
 const DEFAULT_MCR_PARAMS = {
-  mcrValue: ether('150000'),
-  mcrFloor: ether('150000'),
-  desiredMCR: ether('150000'),
+  mcrValue: parseEther('150000'),
+  mcrFloor: parseEther('150000'),
+  desiredMCR: parseEther('150000'),
   mcrFloorIncrementThreshold: '13000',
   maxMCRFloorIncrement: '100',
   maxMCRIncrement: '500',
@@ -20,10 +24,10 @@ describe('getGearedMCR', function () {
     await cover.setTotalActiveCoverInAsset(0, '0'); // ETH
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
-    await time.increase(time.duration.hours(2));
+    await increaseTime(hoursToSeconds(2));
 
     const gearedMCR = await mcr.getGearedMCR();
-    assert.equal(gearedMCR.toString(), '0');
+    expect(gearedMCR).to.be.equal('0');
   });
 
   it('should return correct geared MCR value', async function () {
@@ -31,16 +35,16 @@ describe('getGearedMCR', function () {
 
     const GEARING_FACTOR = 48000;
     const BASIS_PRECISION = 10000;
-    const activeCoverAmount = ether('10000');
+    const activeCoverAmount = parseEther('10000');
 
     await cover.setTotalActiveCoverInAsset(0, activeCoverAmount); // ETH
     await cover.setTotalActiveCoverInAsset(1, '0'); // DAI
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
-    await time.increase(time.duration.hours(2));
+    await increaseTime(hoursToSeconds(2));
 
-    const expectedGearedMCR = activeCoverAmount.muln(BASIS_PRECISION).divn(GEARING_FACTOR);
+    const expectedGearedMCR = activeCoverAmount.mul(BASIS_PRECISION).div(GEARING_FACTOR);
     const gearedMCR = await mcr.getGearedMCR();
-    assert.equal(gearedMCR.toString(), expectedGearedMCR.toString());
+    expect(gearedMCR).to.be.equal(expectedGearedMCR);
   });
 });

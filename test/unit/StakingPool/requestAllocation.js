@@ -17,7 +17,7 @@ const {
 const { increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { AddressZero, MaxUint256, Two } = ethers.constants;
 const { parseEther } = ethers.utils;
 const { BigNumber } = ethers;
 
@@ -34,8 +34,8 @@ const BUCKET_TRANCHE_GROUP_SIZE = 8;
 const TRANCHE_ALLOCATION_DATA_GROUP_SIZE = 48;
 const EXPIRING_ALLOCATION_DATA_GROUP_SIZE = 32;
 const LAST_BUCKET_ID_DATA_GROUP_SIZE = 16;
-const MaxUint16 = BigNumber.from('0xffff');
-const MaxUint32 = BigNumber.from('0xfffff');
+const MaxUint16 = Two.pow(16).sub(1);
+const MaxUint32 = Two.pow(32).sub(1);
 const LAST_BUCKET_ID_MASK = MaxUint16;
 
 const allocationRequestParams = {
@@ -1254,6 +1254,17 @@ describe('requestAllocation', function () {
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 1, MaxUint256, AddressZero);
     await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 2, MaxUint256, AddressZero);
+
+    const unrelatedAllocationId = await stakingPool.nextAllocationId();
+
+    // add a previous unrelated allocation in order to generate an allocation id > 0
+    await stakingPool.connect(this.coverSigner).requestAllocation(
+      parseEther('100'), // amount
+      '0', // previousPremium
+      allocationRequestParams,
+    );
+
+    const unrelatedCoverTrancheAllocations = await stakingPool.coverTrancheAllocations(unrelatedAllocationId);
 
     const amount = parseEther('200');
     const previousPremium = 0;

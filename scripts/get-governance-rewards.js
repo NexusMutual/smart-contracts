@@ -25,8 +25,7 @@ function onlyUnique(value, index, self) {
   return self.indexOf(value) === index;
 }
 
-const main = async () => {
-  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL);
+const main = async provider => {
   const factory = await getContractFactory(provider);
   const governance = await factory('GV');
 
@@ -42,6 +41,9 @@ const main = async () => {
     })
     .filter(onlyUnique);
 
+  console.log(`Fetched ${addresses.length} addresses.`);
+
+  console.log(`Fetching getPendingReward for each..`);
   const rewards = await Promise.all(addresses.map(address => governance.getPendingReward(address)));
 
   const rewardable = addresses.reduce((acc, address, index) => {
@@ -58,7 +60,14 @@ const main = async () => {
   fs.appendFileSync('governance-rewardable.json', JSON.stringify(rewardable, null, 2), 'utf8');
 };
 
-main().catch(e => {
-  console.log('Unhandled error encountered: ', e.stack);
-  process.exit(1);
-});
+if (require.main === module) {
+  const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL);
+  main(provider)
+    .then(() => process.exit(0))
+    .catch(e => {
+      console.log('Unhandled error encountered: ', e.stack);
+      process.exit(1);
+    });
+}
+
+module.exports = main;

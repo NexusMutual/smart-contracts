@@ -12,8 +12,10 @@ const evm = require('./evm')();
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
 const getProductsV1 = require('../../scripts/get-products-v1');
 const getLockedInV1ClaimAssessment = require('../../scripts/get-locked-in-v1-claim-assessment');
+const getGovernanceRewards = require('../../scripts/get-governance-rewards');
 const populateV2Products = require('../../scripts/populate-v2-products');
 const proposalCategories = require('../../lib/proposal-categories');
+const { BigNumber } = require('ethers');
 
 const WETH_ADDRESS = '0xd0a1e359811322d97991e03f863a0c30c2cf029c';
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
@@ -164,6 +166,10 @@ describe('v2 migration', function () {
     this.claimsData = await factory('CD');
 
     poolValueBefore = await this.pool.getPoolValueInEth();
+  });
+
+  it.skip('run get-governance-rewards script', async function () {
+    await getGovernanceRewards(ethers.provider);
   });
 
   // generates the LegacyClaimsReward contract with the transfer calls
@@ -524,9 +530,22 @@ describe('v2 migration', function () {
     // [todo]
     const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
 
+    const governanceRewardablePath = path.join(
+      __dirname,
+      '../../scripts/v2-migration/output/governance-rewardable.json',
+    );
+    const rewardables = require(governanceRewardablePath);
+    const rewardableAddresses = Object.keys(rewardables);
+    const rewardsSum = rewardableAddresses.reduce(
+      (sum, address) => sum.add(BigNumber.from(rewardables[address])),
+      BigNumber.from(0),
+    );
     console.log({
       tcNxmBalance: tcNxmBalance.toString(),
+      rewardsSum: rewardsSum.toString(),
     });
+
+    expect(tcNxmBalance).to.be.equal(rewardsSum);
   });
 
   it.skip('remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {

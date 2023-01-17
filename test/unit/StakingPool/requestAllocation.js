@@ -422,7 +422,7 @@ describe('requestAllocation', function () {
 
     await expect(
       stakingPool.connect(user).requestAllocation(amount, previousPremium, allocationRequestParams),
-    ).to.be.revertedWith('StakingPool: Only Cover contract can call this function');
+    ).to.be.revertedWithCustomError(stakingPool, 'OnlyCoverContract');
   });
 
   it('correctly allocates capacity to the correct product and current tranche', async function () {
@@ -1015,7 +1015,7 @@ describe('requestAllocation', function () {
       stakingPool
         .connect(this.coverSigner)
         .requestAllocation(maxAllocationAmount.add(1), previousPremium, allocationRequestParams),
-    ).to.be.revertedWith('StakingPool: Insufficient capacity');
+    ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     {
       const allocationAmount = parseEther('10');
@@ -1032,7 +1032,7 @@ describe('requestAllocation', function () {
       stakingPool
         .connect(this.coverSigner)
         .requestAllocation(maxAllocationAmount.add(1), previousPremium, allocationRequestParams),
-    ).to.be.revertedWith('StakingPool: Insufficient capacity');
+    ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     {
       const allocationAmount = parseEther('20');
@@ -1049,7 +1049,7 @@ describe('requestAllocation', function () {
       stakingPool
         .connect(this.coverSigner)
         .requestAllocation(maxAllocationAmount.add(1), previousPremium, allocationRequestParams),
-    ).to.be.revertedWith('StakingPool: Insufficient capacity');
+    ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     {
       const allocationAmount = parseEther('30');
@@ -1064,7 +1064,7 @@ describe('requestAllocation', function () {
     // exceed max allocation
     await expect(
       stakingPool.connect(this.coverSigner).requestAllocation(1, previousPremium, allocationRequestParams),
-    ).to.be.revertedWith('StakingPool: Insufficient capacity');
+    ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
   });
 
   it('updates expiring cover amounts', async function () {
@@ -1382,7 +1382,7 @@ describe('requestAllocation', function () {
       stakingPool
         .connect(this.coverSigner)
         .requestAllocation(maxAllocationAmount.add(1), previousPremium, allocationRequestParams),
-    ).to.be.revertedWith('StakingPool: Insufficient capacity');
+    ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     const newGlobalCapacityRatio = 30000;
     maxAllocationAmount = depositAmount.mul(newGlobalCapacityRatio).div(GLOBAL_CAPACITY_DENOMINATOR);
@@ -1392,7 +1392,7 @@ describe('requestAllocation', function () {
         ...allocationRequestParams,
         globalCapacityRatio: newGlobalCapacityRatio,
       }),
-    ).to.be.revertedWith('StakingPool: Insufficient capacity');
+    ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     await expect(
       stakingPool.connect(this.coverSigner).requestAllocation(maxAllocationAmount, previousPremium, {
@@ -1438,7 +1438,7 @@ describe('requestAllocation', function () {
         ...allocationRequestParams,
         productId: productId3,
       }),
-    ).to.be.revertedWith('StakingPool: Insufficient capacity');
+    ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     await expect(
       stakingPool.connect(this.coverSigner).requestAllocation(maxAllocationAmountProduct3, previousPremium, {
@@ -1476,7 +1476,7 @@ describe('requestAllocation', function () {
         ...allocationRequestParams,
         capacityReductionRatio,
       }),
-    ).to.be.revertedWith('StakingPool: Insufficient capacity');
+    ).to.be.revertedWithCustomError(stakingPool, 'InsufficientCapacity');
 
     await expect(
       stakingPool.connect(this.coverSigner).requestAllocation(maxAllocationAmount.add(1), previousPremium, {

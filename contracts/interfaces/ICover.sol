@@ -127,9 +127,9 @@ struct PoolInitializationParams {
   uint globalMinPriceRatio;
 }
 
-error AlreadyInitialized();
 // Auth
 error OnlyMemberRolesCanOperateTransfer();
+error OnlyOwnerOrApproved();
 
 // Cover details
 error CoverPeriodTooShort();
@@ -143,7 +143,7 @@ error ProductDeprecated();
 error ProductDeprecatedOrNotInitialized();
 error InvalidProductType();
 error UnexpectedProductId();
-// Cover assets
+// Cover and payment assets
 error PayoutAssetNotSupported();
 error PaymentAssetDeprecated();
 error UnexpectedCoverAsset();
@@ -154,13 +154,13 @@ error TargetPriceBelowGlobalMinPriceRatio();
 error InitialPriceRatioBelowGlobalMinPriceRatio();
 error InitialPriceRatioAbove100Percent();
 error CommissionRateTooHigh();
-// Sending ETH
+// ETH transfers
 error InsufficientEthSent();
 error SendingEthToPoolFailed();
 error SendingEthToCommissionDestinationFailed();
 error ReturningEthRemainderToSenderFailed();
 // Misc
-error OnlyOwnerOrApproved();
+error AlreadyInitialized();
 error ExpiredCoversCannotBeEdited();
 error InsufficientCoverAmountAllocated();
 error UnexpectedPoolId();

@@ -617,7 +617,8 @@ contract StakingPool is IStakingPool {
       );
 
       // no need to charge any premium
-      // returning maxUint as allocationId since there was no allocation and since amount is 0 allocation will not be saved in the segment
+      // returning maxUint as allocationId since there was no allocation
+      // and since amount is 0 allocation will not be saved in the segment
       return (0, type(uint).max);
     }
 
@@ -878,8 +879,11 @@ contract StakingPool is IStakingPool {
 
     if (request.allocationId == type(uint).max) {
       allocationId = nextAllocationId;
-      nextAllocationId += 1;
+      nextAllocationId++;
+    } else {
+      allocationId = request.allocationId;
     }
+
     coverAllocationAmount = Math.divCeil(amount, NXM_PER_ALLOCATION_UNIT);
 
     uint _firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;

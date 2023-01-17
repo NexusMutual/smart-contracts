@@ -281,7 +281,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
             poolAllocationRequests[i].poolId,
             coverAmountInNXM.toUint96(),
             premiumInNXM.toUint96(),
-            allocationId
+            allocationId.toUint24()
           )
         );
       }

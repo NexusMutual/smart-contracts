@@ -50,9 +50,10 @@ contract StakingPool is IStakingPool {
   // timestamp when accNxmPerRewardsShare was last updated
   uint public lastAccNxmUpdate;
 
-  uint public nextAllocationId;
   uint public firstActiveTrancheId;
   uint public firstActiveBucketId;
+
+  uint24 public nextAllocationId;
 
   bool public isPrivatePool;
   uint8 public poolFee;

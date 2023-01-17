@@ -424,7 +424,7 @@ describe('buyCover', function () {
           value: '0',
         },
       ),
-    ).to.be.revertedWithCustomError(cover, 'ProductNotFound');
+    ).to.be.revertedWithCustomError(cover, 'ProductDoesntExist');
   });
 
   it('should revert for unsupported payout asset', async function () {

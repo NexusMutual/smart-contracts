@@ -139,7 +139,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     AllocationRequest memory allocationRequest;
     {
       if (_products.length <= params.productId) {
-        revert ProductNotFound();
+        revert ProductDoesntExist();
       }
 
       Product memory product = _products[params.productId];
@@ -623,7 +623,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       // existing product
       if (param.productId >= _products.length) {
-        revert ProductNotFound();
+        revert ProductDoesntExist();
       }
       Product storage newProductValue = _products[param.productId];
       newProductValue.isDeprecated = product.isDeprecated;

@@ -137,7 +137,7 @@ error CoverPeriodTooLong();
 error CoverOutsideOfTheGracePeriod();
 error CoverAmountIsZero();
 // Products
-error ProductNotFound();
+error ProductDoesntExist();
 error ProductTypeNotFound();
 error ProductDeprecated();
 error ProductDeprecatedOrNotInitialized();

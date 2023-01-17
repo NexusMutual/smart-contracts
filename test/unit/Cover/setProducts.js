@@ -118,7 +118,7 @@ describe('setProducts', function () {
     const productParams = { ...productParamsTemplate, productId };
     await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWithCustomError(
       cover,
-      'ProductNotFound',
+      'ProductDoesntExist',
     );
   });
 

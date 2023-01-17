@@ -1249,12 +1249,16 @@ describe('requestAllocation', function () {
 
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
+    const otherAllocationId = await stakingPool.nextAllocationId();
+
     // add a previous unrelated allocation in order to generate an allocation id > 0
     await stakingPool.connect(this.coverSigner).requestAllocation(
       parseEther('100'), // amount
       '0', // previousPremium
       allocationRequestParams,
     );
+
+    const otherAllocations = await stakingPool.coverTrancheAllocations(otherAllocationId);
 
     const currentTrancheId = await moveTimeToNextTranche(8);
 
@@ -1277,6 +1281,7 @@ describe('requestAllocation', function () {
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(amount.div(NXM_PER_ALLOCATION_UNIT));
+      expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
     const lastBlock = await ethers.provider.getBlock('latest');
@@ -1293,6 +1298,7 @@ describe('requestAllocation', function () {
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(secondAllocationAmount.div(NXM_PER_ALLOCATION_UNIT));
+      expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
     const thirdAllocationAmount = amount;
@@ -1307,8 +1313,8 @@ describe('requestAllocation', function () {
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
-
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(thirdAllocationAmount.div(NXM_PER_ALLOCATION_UNIT));
+      expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
     const fourthAllocationIncreaseAmount = parseEther('180');
@@ -1325,6 +1331,7 @@ describe('requestAllocation', function () {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId);
       expect(coverTrancheAllocations.and(MaxUint32)).to.equal(thirdAllocationAmount.div(NXM_PER_ALLOCATION_UNIT));
       expect(coverTrancheAllocations.shr(32)).to.equal(fourthAllocationIncreaseAmount.div(NXM_PER_ALLOCATION_UNIT));
+      expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
 
     const fifthAllocationIncreaseAmount = parseEther('40');
@@ -1350,6 +1357,7 @@ describe('requestAllocation', function () {
       expect(coverTrancheAllocations.shr(64)).to.equal(
         fifthAllocationIncreaseAmount.div(2).div(NXM_PER_ALLOCATION_UNIT),
       );
+      expect(await stakingPool.coverTrancheAllocations(otherAllocationId)).to.equal(otherAllocations);
     }
   });
 

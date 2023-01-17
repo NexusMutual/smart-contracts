@@ -50,9 +50,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   // Eg. coverAssetsFallback = 3 (in binary 11) means assets at index 0 and 1 are supported.
   uint32 public coverAssetsFallback;
 
-  // TODO: implement using buckets
-  // Global active cover amount per asset.
-  mapping(uint24 => uint) public override totalActiveCoverInAsset;
+  // assetId => { lastBucketUpdateId, totalActiveCoverInAsset }
+  mapping (uint => ActiveCover) public activeCover;
+  // assetId => bucketId => amount
+  mapping(uint => mapping(uint => uint)) public activeCoverExpirationBuckets;
 
   /* ========== CONSTANTS ========== */
 
@@ -64,6 +65,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   uint public constant MAX_COVER_PERIOD = 364 days;
   uint private constant MIN_COVER_PERIOD = 28 days;
+  uint public constant BUCKET_SIZE = 7 days;
   // this constant is used for calculating the normalized yearly percentage cost of cover
   uint private constant ONE_YEAR = 365 days;
 
@@ -110,7 +112,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     }
     globalCapacityRatio = 20000; // x2
     globalRewardsRatio = 5000; // 50%
-    coverAssetsFallback = 3; // 0x11 - DAI and ETH
+    coverAssetsFallback = 3; // 0b00000011 - DAI and ETH
+    uint64 bucketIdStart = (block.timestamp / BUCKET_SIZE).toUint64();
+    uint assetId;
+    while (assetId <= coverAssetsFallback) {
+      if ((1 << assetId) & coverAssetsFallback > 0) {
+        activeCover[assetId].lastBucketUpdateId = bucketIdStart;
+      }
+      ++assetId;
+    }
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -173,6 +183,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       );
     }
 
+    uint expiredCoverAmount;
+
     if (params.coverId == type(uint).max) {
 
       // new cover
@@ -210,6 +222,11 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       // mark previous cover as ending now
       _coverSegments[coverId][segmentId - 1].period = (block.timestamp - lastSegment.start).toUint32();
+
+      // remove cover amount from from expiration buckets
+      uint bucketAtExpiry = Math.divCeil(lastSegment.start + lastSegment.period, BUCKET_SIZE);
+      activeCoverExpirationBuckets[params.coverAsset][bucketAtExpiry] -= lastSegment.amount;
+      expiredCoverAmount += lastSegment.amount;
     }
 
     allocationRequest.coverId = coverId;
@@ -236,8 +253,27 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       )
     );
 
-    // TODO: implement using buckets
-    totalActiveCoverInAsset[params.coverAsset] += coverAmountInCoverAsset;
+
+    // Update totalActiveCover
+    {
+      ActiveCover storage _activeCover = activeCover[params.coverAsset];
+      uint lastUpdateId = _activeCover.lastBucketUpdateId;
+      uint currentBucketId = block.timestamp / BUCKET_SIZE;
+      _activeCover.lastBucketUpdateId = currentBucketId.toUint64();
+      // Get expired cover amount
+      expiredCoverAmount += getExpiredCoverAmount(params.coverAsset, lastUpdateId, currentBucketId);
+      // Update total active cover in storage
+      _activeCover.totalActiveCoverInAsset = (
+        _activeCover.totalActiveCoverInAsset
+        + coverAmountInCoverAsset
+        - expiredCoverAmount
+      ).toUint192();
+
+      // Update amount to expire at the end of this cover segment
+      uint bucketAtExpiry = Math.divCeil(block.timestamp + params.period, BUCKET_SIZE);
+      activeCoverExpirationBuckets[params.coverAsset][bucketAtExpiry] += coverAmountInCoverAsset;
+    }
+
 
     if (amountDueInNXM > 0) {
       retrievePayment(
@@ -515,6 +551,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return (poolId, stakingPoolAddress);
   }
 
+  // Gets the total amount of active cover that is currently expired for this asset
+  function getExpiredCoverAmount(uint8 coverAsset, uint lastUpdateId, uint currentBucketId) internal view returns (uint amountExpired) {
+    while (lastUpdateId < currentBucketId) {
+      ++lastUpdateId;
+      amountExpired += activeCoverExpirationBuckets[coverAsset][lastUpdateId];
+    }
+
+    return amountExpired;
+  }
+
   function burnStake(
     uint coverId,
     uint segmentId,
@@ -522,16 +568,35 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   ) external onlyInternal override returns (address /* owner */) {
 
     CoverData storage cover = _coverData[coverId];
+    ActiveCover storage _activeCover = activeCover[cover.coverAsset];
     CoverSegment memory segment = coverSegments(coverId, segmentId);
     PoolAllocation[] storage allocations = coverSegmentAllocations[coverId][segmentId];
 
-    // TODO: implement using buckets
-    // totalActiveCoverInAsset[cover.coverAsset] -= payoutAmountInAsset;
+    // Update expired buckets and calculate the amount of active cover that should be burned
+    {
+      uint8 coverAsset = cover.coverAsset;
+      uint lastUpdateId = _activeCover.lastBucketUpdateId;
+      uint currentBucketId = block.timestamp / BUCKET_SIZE;
+
+      uint burnedSegmentBucketId = Math.divCeil((segment.start + segment.period), BUCKET_SIZE);
+      uint activeCoverToExpire = getExpiredCoverAmount(coverAsset, lastUpdateId, currentBucketId);
+
+      // burn amount is accounted for if segment has not expired
+      if (burnedSegmentBucketId > currentBucketId) {
+        uint segmentAmount = Math.min(payoutAmountInAsset, segment.amount);
+        activeCoverToExpire += segmentAmount;
+        activeCoverExpirationBuckets[coverAsset][burnedSegmentBucketId] -= segmentAmount.toUint192();
+      }
+
+      _activeCover.totalActiveCoverInAsset -= activeCoverToExpire.toUint192();
+      _activeCover.lastBucketUpdateId = currentBucketId.toUint64();
+    }
 
     // increase amountPaidOut only *after* you read the segment
     cover.amountPaidOut += SafeUintCast.toUint96(payoutAmountInAsset);
 
     uint allocationCount = allocations.length;
+
     for (uint i = 0; i < allocationCount; i++) {
 
       PoolAllocation memory allocation = allocations[i];
@@ -669,6 +734,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   }
 
   /* ========== COVER ASSETS HELPERS ========== */
+
+  function totalActiveCoverInAsset(uint assetId) public view returns (uint) {
+    return uint(activeCover[assetId].totalActiveCoverInAsset);
+  }
 
   function getSupportedCoverAssets(uint productId) public view returns (uint32) {
     return _getSupportedCoverAssets(pool().deprecatedCoverAssetsBitmap(), _products[productId].coverAssets);

@@ -19,10 +19,7 @@ describe('Cover unit tests', function () {
   require('./createStakingPool');
   require('./totalActiveCoverInAsset');
   require('./burnStake');
-  require('./expireCover');
   require('./initialize');
   require('./setProducts');
   require('./setProductTypes');
-  require('./enableActiveCoverAmountTracking');
-  require('./commitActiveCoverAmounts');
 });

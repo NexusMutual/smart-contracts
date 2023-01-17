@@ -949,8 +949,9 @@ contract StakingPool is IStakingPool {
 
       coverTrancheAllocations[allocationId] = packedCoverAllocations;
 
-    if (remainingAmount != 0) {
-      revert InsufficientCapacity();
+      if (remainingAmount != 0) {
+        revert InsufficientCapacity();
+      }
     }
 
     updateExpiringCoverAmounts(

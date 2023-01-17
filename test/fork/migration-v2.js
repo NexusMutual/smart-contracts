@@ -518,16 +518,40 @@ describe('v2 migration', function () {
   it('unlock claim assessment stakes', async function () {
     const stakesPath = path.join(__dirname, '../../scripts/v2-migration/output/eligibleForCLAUnlock.json');
     const claimAssessors = require(stakesPath).map(x => x.member);
+
+    const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
+
+    console.log('Token balances before running tc.withdrawClaimAssessmentTokens');
+    console.log({
+      tcNxmBalance: tcNxmBalance.toString(),
+    });
+
     const tx = await this.tokenController.withdrawClaimAssessmentTokens(claimAssessors);
     await tx.wait();
   });
 
   it('transfer v1 assessment rewards to assessors', async function () {
+    const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
+    const crNxmBalance = await this.nxm.balanceOf(this.claimsReward.address);
+
+    console.log('Token balances before running CR.transferRewards');
+    console.log({
+      tcNxmBalance: tcNxmBalance.toString(),
+      crNxmBalance: crNxmBalance.toString(),
+    });
+
     await this.claimsReward.transferRewards();
+
+    const tcNxmBalanceAfter = await this.nxm.balanceOf(this.tokenController.address);
+    const crNxmBalanceAfter = await this.nxm.balanceOf(this.claimsReward.address);
+    console.log('Token balances after running CR.transferRewards');
+    console.log({
+      tcNxmBalance: tcNxmBalanceAfter.toString(),
+      crNxmBalance: crNxmBalanceAfter.toString(),
+    });
   });
 
   it('check if TokenController balance checks out with Governance rewards', async function () {
-    // [todo]
     const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
 
     const governanceRewardablePath = path.join(

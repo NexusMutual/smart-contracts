@@ -320,7 +320,7 @@ describe.skip('editCover', function () {
           value: extraPremium,
         },
       ),
-    ).to.be.revertedWith('Cover: Cover period is too long');
+    ).to.be.revertedWithCustomError(cover, 'CoverPeriodTooLong');
   });
 
   it('should revert when commission rate too high', async function () {
@@ -364,7 +364,7 @@ describe.skip('editCover', function () {
           value: extraPremium,
         },
       ),
-    ).to.be.revertedWith('Cover: Commission rate is too high');
+    ).to.be.revertedWithCustomError(cover, 'CommissionRateTooHigh');
   });
 
   it('should store new grace period when editing cover', async function () {

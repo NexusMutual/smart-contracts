@@ -127,6 +127,45 @@ struct PoolInitializationParams {
   uint globalMinPriceRatio;
 }
 
+error AlreadyInitialized();
+// Auth
+error OnlyMemberRolesCanOperateTransfer();
+
+// Cover details
+error CoverPeriodTooShort();
+error CoverPeriodTooLong();
+error CoverOutsideOfTheGracePeriod();
+error CoverAmountIsZero();
+// Products
+error ProductNotFound();
+error ProductTypeNotFound();
+error ProductDeprecated();
+error ProductDeprecatedOrNotInitialized();
+error InvalidProductType();
+error UnexpectedProductId();
+// Cover assets
+error PayoutAssetNotSupported();
+error PaymentAssetDeprecated();
+error UnexpectedCoverAsset();
+error UnsupportedCoverAssets();
+// Price & Commission
+error PriceExceedsMaxPremiumInAsset();
+error TargetPriceBelowGlobalMinPriceRatio();
+error InitialPriceRatioBelowGlobalMinPriceRatio();
+error InitialPriceRatioAbove100Percent();
+error CommissionRateTooHigh();
+// Sending ETH
+error InsufficientEthSent();
+error SendingEthToPoolFailed();
+error SendingEthToCommissionDestinationFailed();
+error ReturningEthRemainderToSenderFailed();
+// Misc
+error OnlyOwnerOrApproved();
+error ExpiredCoversCannotBeEdited();
+error InsufficientCoverAmountAllocated();
+error UnexpectedPoolId();
+error CapacityReductionRatioAbove100Percent();
+
 interface ICover {
 
   /* ========== VIEWS ========== */

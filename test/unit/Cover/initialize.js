@@ -38,7 +38,7 @@ describe('initialize', function () {
     const { accounts, cover } = this;
     const [governance] = accounts.governanceContracts;
     await cover.connect(governance).updateUintParameters([0], ['10000']);
-    await expect(cover.initialize()).to.be.revertedWith('Cover: already initialized');
+    await expect(cover.initialize()).to.be.revertedWithCustomError(cover, 'AlreadyInitialized');
   });
 
   it('should not initialize twice', async function () {
@@ -52,6 +52,6 @@ describe('initialize', function () {
     );
 
     await cover.initialize();
-    await expect(cover.initialize()).to.be.revertedWith('Cover: already initialized');
+    await expect(cover.initialize()).to.be.revertedWithCustomError(cover, 'AlreadyInitialized');
   });
 });

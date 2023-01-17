@@ -424,7 +424,7 @@ describe('buyCover', function () {
           value: '0',
         },
       ),
-    ).to.be.revertedWith('Cover: Product not found');
+    ).to.be.revertedWithCustomError(cover, 'ProductNotFound');
   });
 
   it('should revert for unsupported payout asset', async function () {
@@ -453,7 +453,7 @@ describe('buyCover', function () {
           value: '0',
         },
       ),
-    ).to.be.revertedWith('Cover: Payout asset is not supported');
+    ).to.be.revertedWithCustomError(cover, 'PayoutAssetNotSupported');
   });
 
   it('should revert for period too short', async function () {
@@ -483,7 +483,7 @@ describe('buyCover', function () {
           value: '0',
         },
       ),
-    ).to.be.revertedWith('Cover: Cover period is too short');
+    ).to.be.revertedWithCustomError(cover, 'CoverPeriodTooShort');
   });
 
   it('should revert for period too long', async function () {
@@ -512,7 +512,7 @@ describe('buyCover', function () {
           value: '0',
         },
       ),
-    ).to.be.revertedWith('Cover: Cover period is too long');
+    ).to.be.revertedWithCustomError(cover, 'CoverPeriodTooLong');
   });
 
   it('should revert for commission rate too high', async function () {
@@ -540,7 +540,7 @@ describe('buyCover', function () {
           value: '0',
         },
       ),
-    ).to.be.revertedWith('Cover: Commission rate is too high');
+    ).to.be.revertedWithCustomError(cover, 'CommissionRateTooHigh');
   });
 
   it('should revert when cover amount is 0', async function () {
@@ -570,7 +570,7 @@ describe('buyCover', function () {
           value: expectedPremium,
         },
       ),
-    ).to.be.revertedWith('Cover: amount = 0');
+    ).to.be.revertedWithCustomError(cover, 'CoverAmountIsZero');
   });
 
   // TODO: The logic has been moved in StakingPool.sol and this test will have to be moved as well.
@@ -759,7 +759,7 @@ describe('buyCover', function () {
           value: '0',
         },
       ),
-    ).to.be.revertedWith('Cover: Payment asset deprecated');
+    ).to.be.revertedWithCustomError(cover, 'PaymentAssetDeprecated');
   });
 
   it('reverts if calculated premium is bigger than maxPremiumInAsset', async function () {
@@ -792,7 +792,7 @@ describe('buyCover', function () {
           value: expectedPremium,
         },
       ),
-    ).to.be.revertedWith('Cover: Price exceeds maxPremiumInAsset');
+    ).to.be.revertedWithCustomError(cover, 'PriceExceedsMaxPremiumInAsset');
   });
 
   it('reverts if empty array of allocationRequests', async function () {
@@ -820,7 +820,7 @@ describe('buyCover', function () {
           value: expectedPremium,
         },
       ),
-    ).to.be.revertedWith('Cover: Insufficient cover amount allocated');
+    ).to.be.revertedWithCustomError(cover, 'InsufficientCoverAmountAllocated');
   });
 
   it('reverts if allocationRequest coverAmountInAsset is 0', async function () {
@@ -848,7 +848,7 @@ describe('buyCover', function () {
           value: expectedPremium,
         },
       ),
-    ).to.be.revertedWith('Cover: Insufficient cover amount allocated');
+    ).to.be.revertedWithCustomError(cover, 'InsufficientCoverAmountAllocated');
   });
 
   it('retrieves ERC20 payment from caller and transfers it to the Pool', async function () {
@@ -1262,7 +1262,7 @@ describe('buyCover', function () {
           value: expectedPremium,
         },
       ),
-    ).to.be.revertedWith('Cover: Sending ETH to commission destination failed.');
+    ).to.be.revertedWithCustomError(cover, 'SendingEthToCommissionDestinationFailed');
   });
 
   it('correctly store cover, segment and allocation data', async function () {

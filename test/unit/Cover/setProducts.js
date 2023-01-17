@@ -116,8 +116,9 @@ describe('setProducts', function () {
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
     const productId = await cover.productsCount();
     const productParams = { ...productParamsTemplate, productId };
-    await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
-      'Cover: Product doesnt exist. Set id to uint256.max to add it',
+    await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWithCustomError(
+      cover,
+      'ProductNotFound',
     );
   });
 
@@ -127,8 +128,9 @@ describe('setProducts', function () {
     const coverAssets = parseInt('1111', 2); // ETH DAI, USDC and WBTC supported
     const product = { ...productTemplate, coverAssets };
     const productParams = { ...productParamsTemplate, product };
-    await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
-      'Cover: Unsupported cover assets',
+    await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWithCustomError(
+      cover,
+      'UnsupportedCoverAssets',
     );
   });
 
@@ -144,8 +146,9 @@ describe('setProducts', function () {
       const coverAssets = parseInt('1111', 2); // ETH DAI, USDC and WBTC supported
       const product = { ...productTemplate, coverAssets };
       const productParams = { ...productParamsTemplate, product, productId };
-      await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
-        'Cover: Unsupported cover assets',
+      await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWithCustomError(
+        cover,
+        'UnsupportedCoverAssets',
       );
     }
   });
@@ -156,8 +159,9 @@ describe('setProducts', function () {
     const initialPriceRatio = priceDenominator + 1;
     const product = { ...productTemplate, initialPriceRatio };
     const productParams = { ...productParamsTemplate, product };
-    await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
-      'Cover: initialPriceRatio > 100%',
+    await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWithCustomError(
+      cover,
+      'InitialPriceRatioAbove100Percent',
     );
   });
 
@@ -173,8 +177,9 @@ describe('setProducts', function () {
       const initialPriceRatio = priceDenominator + 1;
       const product = { ...productTemplate, initialPriceRatio };
       const productParams = { ...productParamsTemplate, product, productId };
-      await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
-        'Cover: initialPriceRatio > 100%',
+      await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWithCustomError(
+        cover,
+        'InitialPriceRatioAbove100Percent',
       );
     }
   });
@@ -186,8 +191,9 @@ describe('setProducts', function () {
     const initialPriceRatio = GLOBAL_MIN_PRICE_RATIO - 1;
     const product = { ...productTemplate, initialPriceRatio };
     const productParams = { ...productParamsTemplate, product };
-    await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
-      'Cover: initialPriceRatio < GLOBAL_MIN_PRICE_RATIO',
+    await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWithCustomError(
+      cover,
+      'InitialPriceRatioBelowGlobalMinPriceRatio',
     );
   });
 
@@ -202,8 +208,9 @@ describe('setProducts', function () {
       const initialPriceRatio = GLOBAL_MIN_PRICE_RATIO - 1;
       const product = { ...productTemplate, initialPriceRatio };
       const productParams = { ...productParamsTemplate, product, productId };
-      await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
-        'Cover: initialPriceRatio < GLOBAL_MIN_PRICE_RATIO',
+      await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWithCustomError(
+        cover,
+        'InitialPriceRatioBelowGlobalMinPriceRatio',
       );
     }
   });
@@ -214,8 +221,9 @@ describe('setProducts', function () {
     const capacityReductionRatio = capacityFactor + 1; // 100.01 %
     const product = { ...productTemplate, capacityReductionRatio };
     const productParams = { ...productParamsTemplate, product };
-    await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWith(
-      'Cover: capacityReductionRatio > 100%',
+    await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWithCustomError(
+      cover,
+      'CapacityReductionRatioAbove100Percent',
     );
   });
 
@@ -233,7 +241,7 @@ describe('setProducts', function () {
     const productParamsOverCapacity = { ...productParamsTemplate, product, productId };
     await expect(
       cover.connect(advisoryBoardMember0).setProducts([productParamsOverCapacity]), // should revert
-    ).to.be.revertedWith('Cover: capacityReductionRatio > 100%');
+    ).to.be.revertedWithCustomError(cover, 'CapacityReductionRatioAbove100Percent');
   });
 
   it('should fail to buy cover for deprecated product', async function () {
@@ -279,7 +287,7 @@ describe('setProducts', function () {
       cover.connect(coverBuyer).buyCover(buyCoverParams, [poolAllocationRequestTemplate], {
         value: expectedPremium,
       }),
-    ).to.be.revertedWith('Cover: Product is deprecated');
+    ).to.be.revertedWithCustomError(cover, 'ProductDeprecated');
   });
 
   it('should fail to edit cover for deprecated product', async function () {
@@ -331,7 +339,7 @@ describe('setProducts', function () {
     // edit cover
     await expect(
       cover.connect(coverBuyer).buyCover(editCoverParams, [poolAllocationRequestTemplate], { value: expectedPremium }),
-    ).to.be.revertedWith('Cover: Product is deprecated');
+    ).to.be.revertedWithCustomError(cover, 'ProductDeprecated');
   });
 
   it('should be able to buy cover on a previously deprecated product', async function () {

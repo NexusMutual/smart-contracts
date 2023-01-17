@@ -69,7 +69,7 @@ contract TokenControllerMock is MasterAwareV2 {
 
   function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
     stakingPoolNXMBalances[poolId].rewards -= uint128(amount);
-    token().burnFrom(address(this), amount);
+    token().burn(amount);
   }
 
   function depositStakedNXM(address from, uint amount, uint poolId) external {

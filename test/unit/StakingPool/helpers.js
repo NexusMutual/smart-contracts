@@ -210,6 +210,14 @@ async function calculateStakeAndRewardsWithdrawAmounts(stakingPool, deposit, tra
   };
 }
 
+async function moveTimeToNextTranche(amountOfTranches) {
+  const { firstActiveTrancheId: currentTrancheId } = await getTranches();
+  const nextTrancheId = currentTrancheId + amountOfTranches;
+  await setTime(nextTrancheId * TRANCHE_DURATION);
+
+  return nextTrancheId;
+}
+
 module.exports = {
   setTime,
   calculateBasePrice,
@@ -227,6 +235,7 @@ module.exports = {
   estimateStakeShares,
   generateRewards,
   calculateStakeAndRewardsWithdrawAmounts,
+  moveTimeToNextTranche,
   TRANCHE_DURATION,
   BUCKET_DURATION,
   MAX_ACTIVE_TRANCHES,

@@ -4,6 +4,7 @@ const { expect } = require('chai');
 const { getTranches, getNewRewardShares, estimateStakeShares, setTime, TRANCHE_DURATION } = require('./helpers');
 const { setEtherBalance, increaseTime } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
+const { DIVISION_BY_ZERO } = require('../utils').errors;
 
 const { BigNumber } = ethers;
 const { AddressZero, MaxUint256 } = ethers.constants;
@@ -393,7 +394,7 @@ describe('depositTo', function () {
 
     await expect(
       stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination),
-    ).to.not.revertedWithPanic('0x12'); // division or modulo division by zero
+    ).to.not.revertedWithPanic(DIVISION_BY_ZERO);
   });
 
   it('updates global variables activeStake, stakeSharesSupply and rewardsSharesSupply', async function () {

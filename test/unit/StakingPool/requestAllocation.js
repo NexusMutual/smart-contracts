@@ -106,7 +106,7 @@ describe('requestAllocation', function () {
     const activeTrancheCapacitiesAfter = await stakingPool.getActiveAllocations(buyCoverParamsTemplate.productId);
 
     expect(activeTrancheCapacitiesBefore[trancheOffset]).to.be.equal(0);
-    expect(nextAllocationIdAfter).to.be.equal(nextAllocationIdBefore.add(1));
+    expect(nextAllocationIdAfter).to.be.equal(BigNumber.from(nextAllocationIdBefore).add(1));
     expect(activeTrancheCapacitiesAfter[trancheOffset]).to.be.equal(coverAmount);
   });
 

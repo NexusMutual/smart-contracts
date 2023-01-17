@@ -18,6 +18,8 @@ contract SPMockCover {
   mapping(uint => Product) public products;
   mapping(uint => ProductType) public productTypes;
 
+  event RequestAllocationReturned(uint premium, uint allocationId);
+
   function setStakingPool(address addr, uint id) public {
     stakingPool[id] = addr;
   }
@@ -59,19 +61,21 @@ contract SPMockCover {
   function allocateCapacity(
     BuyCoverParams memory params,
     uint coverId,
+    uint allocationId,
     IStakingPool _stakingPool
-  ) public returns (uint premium) {
+  ) public returns (uint premium, uint) {
 
     Product memory product = products[params.productId];
     uint gracePeriod = productTypes[product.productType].gracePeriod;
 
-    premium = _stakingPool.requestAllocation(
+    (premium, allocationId) = _stakingPool.requestAllocation(
       params.amount,
       // TODO: figure out if these need to be populated
       0, // previousPremium
       AllocationRequest(
         params.productId,
         coverId,
+        allocationId,
         params.period,
         gracePeriod,
         product.useFixedPrice,
@@ -85,7 +89,43 @@ contract SPMockCover {
         GLOBAL_MIN_PRICE_RATIO
       )
     );
+
     lastPremium = premium;
+
+    return (premium, allocationId);
+  }
+
+  function requestAllocation (
+    uint amount,
+    uint previousPremium,
+    AllocationRequest calldata allocationRequest,
+    IStakingPool _stakingPool
+  ) public returns (uint premium, uint allocationId)  {
+    (premium, allocationId) = _stakingPool.requestAllocation(
+      amount,
+      previousPremium,
+      allocationRequest
+    );
+
+    lastPremium = premium;
+
+    return (premium, allocationId);
+  }
+
+  function callAllocateCapacity(IStakingPool _stakingPool, bytes memory data) public {
+    // low level call to avoid stack too deep
+    (bool ok, bytes memory result) = address(_stakingPool).call(data);
+
+    if (!ok) {
+      // https://ethereum.stackexchange.com/a/83577
+      if (result.length < 68) revert();
+      assembly { result := add(result, 0x04) }
+      revert(abi.decode(result, (string)));
+    }
+
+    (uint premium, uint allocationId) = abi.decode(result, (uint, uint));
+
+    emit RequestAllocationReturned(premium, allocationId);
   }
 
   function initializeStaking(

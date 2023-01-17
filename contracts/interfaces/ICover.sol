@@ -79,6 +79,7 @@ struct PoolAllocation {
   uint40 poolId;
   uint96 coverAmountInNXM;
   uint96 premiumInNXM;
+  uint24 allocationId;
 }
 
 struct CoverData {

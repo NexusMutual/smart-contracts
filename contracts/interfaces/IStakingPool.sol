@@ -7,6 +7,7 @@ pragma solidity >=0.5.0;
 struct AllocationRequest {
   uint productId;
   uint coverId;
+  uint allocationId;
   uint period;
   uint gracePeriod;
   bool useFixedPrice;
@@ -91,7 +92,7 @@ interface IStakingPool {
     uint amount,
     uint previousPremium,
     AllocationRequest calldata request
-  ) external returns (uint premium);
+  ) external returns (uint premium, uint allocationId);
 
   function burnStake(uint amount) external;
 

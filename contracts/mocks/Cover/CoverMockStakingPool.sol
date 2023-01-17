@@ -50,12 +50,12 @@ contract CoverMockStakingPool is IStakingPool {
     uint amount,
     uint /*previousPremium*/,
     AllocationRequest calldata request
-  ) external override returns (uint premium) {
+  ) external override returns (uint premium, uint allocationId) {
     usedCapacity[request.productId] += amount;
     if (request.useFixedPrice) {
-      return calculateFixedPricePremium(amount, request.period, mockPrices[request.productId]);
+      return (calculateFixedPricePremium(amount, request.period, mockPrices[request.productId]), allocationId);
     }
-    return calculatePremium(mockPrices[request.productId], amount, request.period);
+    return (calculatePremium(mockPrices[request.productId], amount, request.period), allocationId);
   }
 
 

@@ -1249,14 +1249,6 @@ describe('requestAllocation', function () {
 
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
-    const currentTrancheId = await moveTimeToNextTranche(8);
-
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 1, MaxUint256, AddressZero);
-    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 2, MaxUint256, AddressZero);
-
-    const unrelatedAllocationId = await stakingPool.nextAllocationId();
-
     // add a previous unrelated allocation in order to generate an allocation id > 0
     await stakingPool.connect(this.coverSigner).requestAllocation(
       parseEther('100'), // amount
@@ -1264,7 +1256,11 @@ describe('requestAllocation', function () {
       allocationRequestParams,
     );
 
-    const unrelatedCoverTrancheAllocations = await stakingPool.coverTrancheAllocations(unrelatedAllocationId);
+    const currentTrancheId = await moveTimeToNextTranche(8);
+
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 1, MaxUint256, AddressZero);
+    await stakingPool.connect(user).depositTo(parseEther('100'), currentTrancheId + 2, MaxUint256, AddressZero);
 
     const amount = parseEther('200');
     const previousPremium = 0;

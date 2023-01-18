@@ -228,7 +228,7 @@ describe('v2 migration', function () {
   });
 
   // generates the eligibleForCLAUnlock.json file
-  it.skip('run get-locked-in-v1-claim-assessment script', async function () {
+  it('run get-locked-in-v1-claim-assessment script', async function () {
     const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
     await getLockedInV1ClaimAssessment(directProvider);
   });
@@ -570,6 +570,18 @@ describe('v2 migration', function () {
     console.log({
       tcNxmBalance: tcNxmBalance.toString(),
     });
+
+    const totalToProcess = claimAssessors.length;
+    console.log(`Processing withdrawClaimAssessmentTokens for ${totalToProcess} claim assesors`);
+    let amountProcessed = 0;
+    while (claimAssessors.length > 0) {
+      const batchSize = 100;
+      const batch = claimAssessors.splice(0, batchSize);
+      await this.tokenController.withdrawClaimAssessmentTokens(batch);
+
+      amountProcessed += batchSize;
+      console.log(`Processed ${amountProcessed}/${totalToProcess}`);
+    }
 
     const tx = await this.tokenController.withdrawClaimAssessmentTokens(claimAssessors);
     await tx.wait();

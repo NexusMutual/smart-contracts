@@ -39,7 +39,7 @@ describe('initialize', function () {
         poolId,
         ipfsDescriptionHash,
       ),
-    ).to.be.revertedWith('StakingPool: Only Cover contract can call this function');
+    ).to.be.revertedWithCustomError(stakingPool, 'OnlyCoverContract');
 
     const coverSigner = await ethers.getImpersonatedSigner(cover.address);
     await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
@@ -83,7 +83,7 @@ describe('initialize', function () {
           poolId,
           ipfsDescriptionHash,
         ),
-    ).to.be.revertedWith('StakingPool: Pool fee should not exceed max pool fee');
+    ).to.be.revertedWithCustomError(stakingPool, 'PoolFeeExceedsMax');
   });
 
   it('reverts if max pool fee is 100%', async function () {
@@ -111,7 +111,7 @@ describe('initialize', function () {
           poolId,
           ipfsDescriptionHash,
         ),
-    ).to.be.revertedWith('StakingPool: Max pool fee cannot be 100%');
+    ).to.be.revertedWithCustomError(stakingPool, 'MaxPoolFeeAbove100');
   });
 
   it('reverts if product target price is too high', async function () {
@@ -141,7 +141,7 @@ describe('initialize', function () {
           poolId,
           ipfsDescriptionHash,
         ),
-    ).to.be.revertedWith('StakingPool: Target price too high');
+    ).to.be.revertedWithCustomError(stakingPool, 'TargetPriceTooHigh');
 
     await expect(
       stakingPool
@@ -185,7 +185,7 @@ describe('initialize', function () {
           poolId,
           ipfsDescriptionHash,
         ),
-    ).to.be.revertedWith('StakingPool: Cannot set weight beyond 1');
+    ).to.be.revertedWithCustomError(stakingPool, 'TargetWeightTooHigh');
 
     await expect(
       stakingPool
@@ -234,7 +234,7 @@ describe('initialize', function () {
           poolId,
           ipfsDescriptionHash,
         ),
-    ).to.be.revertedWith('StakingPool: Total max target weight exceeded');
+    ).to.be.revertedWithCustomError(stakingPool, 'TotalTargetWeightExceeded');
 
     await expect(
       stakingPool
@@ -385,8 +385,9 @@ describe('initialize', function () {
       .to.emit(stakingPool, 'PoolDescriptionSet')
       .withArgs(poolId, 'newIPFSHash');
 
-    await expect(stakingPool.connect(nonManager).setPoolDescription('newIPFSHash')).to.be.revertedWith(
-      'StakingPool: Only pool manager can call this function',
+    await expect(stakingPool.connect(nonManager).setPoolDescription('newIPFSHash')).to.be.revertedWithCustomError(
+      stakingPool,
+      'OnlyManager',
     );
   });
 });

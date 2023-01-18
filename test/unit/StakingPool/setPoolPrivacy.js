@@ -53,8 +53,9 @@ describe('setPoolPrivacy', function () {
       },
     } = this;
 
-    await expect(stakingPool.connect(nonManager).setPoolPrivacy(true)).to.be.revertedWith(
-      'StakingPool: Only pool manager can call this function',
+    await expect(stakingPool.connect(nonManager).setPoolPrivacy(true)).to.be.revertedWithCustomError(
+      stakingPool,
+      'OnlyManager',
     );
     await expect(stakingPool.connect(manager).setPoolPrivacy(true)).to.not.be.reverted;
   });

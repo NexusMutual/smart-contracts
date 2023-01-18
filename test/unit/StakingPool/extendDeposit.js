@@ -81,7 +81,7 @@ describe('extendDeposit', function () {
 
     await expect(
       stakingPool.connect(managerSigner).extendDeposit(MaxUint256, firstActiveTrancheId, maxTranche, 0),
-    ).to.be.revertedWith('StakingPool: Invalid token id');
+    ).to.be.revertedWithCustomError(stakingPool, 'InvalidTokenId');
   });
 
   it('reverts if new tranche ends before the initial tranche', async function () {
@@ -92,7 +92,7 @@ describe('extendDeposit', function () {
 
     await expect(
       stakingPool.connect(user).extendDeposit(depositNftId, maxTranche, firstActiveTrancheId, 0),
-    ).to.be.revertedWith('StakingPool: The chosen tranche cannot end before the initial one');
+    ).to.be.revertedWithCustomError(stakingPool, 'NewTrancheEndsBeforeInitialTranche');
   });
 
   it('reverts if new tranche is not yet available', async function () {
@@ -103,7 +103,7 @@ describe('extendDeposit', function () {
 
     await expect(
       stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche + 1, 0),
-    ).to.be.revertedWith('StakingPool: The tranche is not yet available');
+    ).to.be.revertedWithCustomError(stakingPool, 'RequestedTrancheIsNotYetActive');
   });
 
   it('reverts if the new tranche already expired', async function () {
@@ -116,7 +116,7 @@ describe('extendDeposit', function () {
 
     await expect(
       stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, firstActiveTrancheId + 1, 0),
-    ).to.be.revertedWith('StakingPool: The tranche has already expired');
+    ).to.be.revertedWithCustomError(stakingPool, 'RequestedTrancheIsExpired');
   });
 
   it('reverts when the user is not token owner nor approved tries to extend the deposit', async function () {
@@ -128,7 +128,7 @@ describe('extendDeposit', function () {
       stakingPool
         .connect(notNFTOwnerNorApproved)
         .extendDeposit(depositNftId, firstActiveTrancheId, firstActiveTrancheId + 1, 0),
-    ).to.be.revertedWith('StakingPool: Not token owner or approved');
+    ).to.be.revertedWithCustomError(stakingPool, 'NotTokenOwnerOrApproved');
   });
 
   it('withdraws and make a new deposit if initial tranche is expired', async function () {
@@ -426,7 +426,7 @@ describe('extendDeposit', function () {
     const topUpAmount = parseEther('50');
     await expect(
       stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount),
-    ).to.be.revertedWith('StakingPool: The pool is private');
+    ).to.be.revertedWithCustomError(stakingPool, 'PrivatePool');
   });
 
   it('reverts if pool is private and tranche expired', async function () {
@@ -443,6 +443,6 @@ describe('extendDeposit', function () {
     const topUpAmount = parseEther('50');
     await expect(
       stakingPool.connect(user).extendDeposit(depositNftId, firstActiveTrancheId, maxTranche, topUpAmount),
-    ).to.be.revertedWith('StakingPool: The pool is private');
+    ).to.be.revertedWithCustomError(stakingPool, 'PrivatePool');
   });
 });

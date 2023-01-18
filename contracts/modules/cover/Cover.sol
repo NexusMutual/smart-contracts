@@ -105,7 +105,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   }
 
   function initialize() external {
-    require(globalCapacityRatio == 0, "Cover: already initialized");
+    if (globalCapacityRatio != 0) {
+      revert AlreadyInitialized();
+    }
     globalCapacityRatio = 20000; // x2
     globalRewardsRatio = 5000; // 50%
     coverAssetsFallback = 3; // 0x11 - DAI and ETH
@@ -118,24 +120,41 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     PoolAllocationRequest[] memory poolAllocationRequests
   ) external payable onlyMember nonReentrant whenNotPaused returns (uint coverId) {
 
-    require(params.period >= MIN_COVER_PERIOD, "Cover: Cover period is too short");
-    require(params.period <= MAX_COVER_PERIOD, "Cover: Cover period is too long");
-    require(params.commissionRatio <= MAX_COMMISSION_RATIO, "Cover: Commission rate is too high");
-    require(params.amount > 0, "Cover: amount = 0");
+    if (params.period < MIN_COVER_PERIOD) {
+      revert CoverPeriodTooShort();
+    }
+    if (params.period > MAX_COVER_PERIOD) {
+      revert CoverPeriodTooLong();
+    }
+    if (params.commissionRatio > MAX_COMMISSION_RATIO) {
+      revert CommissionRateTooHigh();
+    }
+    if (params.amount == 0) {
+      revert CoverAmountIsZero();
+    }
 
     uint segmentId;
 
     AllocationRequest memory allocationRequest;
     {
-      require(_products.length > params.productId, "Cover: Product not found");
+      if (_products.length <= params.productId) {
+        revert ProductDoesntExist();
+      }
 
       Product memory product = _products[params.productId];
-      require(!product.isDeprecated, "Cover: Product is deprecated");
+
+      if (product.isDeprecated) {
+        revert ProductDeprecated();
+      }
 
       uint32 deprecatedCoverAssets = pool().deprecatedCoverAssetsBitmap();
       uint32 supportedCoverAssets = _getSupportedCoverAssets(deprecatedCoverAssets, product.coverAssets);
-      require(isAssetSupported(supportedCoverAssets, params.coverAsset), "Cover: Payout asset is not supported");
-      require(!_isCoverAssetDeprecated(deprecatedCoverAssets, params.paymentAsset), "Cover: Payment asset deprecated");
+      if (!isAssetSupported(supportedCoverAssets, params.coverAsset)) {
+        revert PayoutAssetNotSupported();
+      }
+      if (_isCoverAssetDeprecated(deprecatedCoverAssets, params.paymentAsset)) {
+        revert PaymentAssetDeprecated();
+      }
 
       allocationRequest = AllocationRequest(
         params.productId,
@@ -165,17 +184,25 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       // existing cover
       coverId = params.coverId;
-      require(coverNFT.isApprovedOrOwner(msg.sender, coverId), "Cover: Only owner or approved can edit");
+      if (!coverNFT.isApprovedOrOwner(msg.sender, coverId)) {
+        revert OnlyOwnerOrApproved();
+      }
 
       CoverData memory cover = _coverData[coverId];
-      require(params.coverAsset == cover.coverAsset, "Cover: Unexpected coverAsset requested");
-      require(params.productId == cover.productId, "Cover: Unexpected productId requested");
+      if (params.coverAsset != cover.coverAsset) {
+        revert UnexpectedCoverAsset();
+      }
+      if (params.productId != cover.productId) {
+        revert UnexpectedProductId();
+      }
 
       segmentId = _coverSegments[coverId].length;
       CoverSegment memory lastSegment = coverSegments(coverId, segmentId - 1);
 
       // require last segment not to be expired
-      require(lastSegment.start + lastSegment.period > block.timestamp, "Cover: Expired covers cannot be edited");
+      if (lastSegment.start + lastSegment.period <= block.timestamp) {
+        revert ExpiredCoversCannotBeEdited();
+      }
 
       allocationRequest.previousStart = lastSegment.start;
       allocationRequest.previousExpiration = lastSegment.start + lastSegment.period;
@@ -194,7 +221,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       segmentId
     );
 
-    require(coverAmountInCoverAsset >= params.amount, "Cover: Insufficient cover amount allocated");
+    if (coverAmountInCoverAsset < params.amount) {
+      revert InsufficientCoverAmountAllocated();
+    }
 
     _coverSegments[coverId].push(
       CoverSegment(
@@ -252,7 +281,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           coverSegmentAllocations[allocationRequest.coverId][segmentId - 1][i];
 
         // poolAllocationRequests must match the pools in the previous segment
-        require(previousPoolAllocation.poolId == poolAllocationRequests[i].poolId, "Cover: Unexpected pool id");
+        if (previousPoolAllocation.poolId != poolAllocationRequests[i].poolId) {
+          revert UnexpectedPoolId();
+        }
 
         vars.previousPremiumInNXM = previousPoolAllocation.premiumInNXM;
         vars.refund =
@@ -304,7 +335,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     // NXM payment
     if (paymentAsset == NXM_ASSET_ID) {
-      require(premiumInNxm <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
+      if (premiumInNxm > maxPremiumInAsset) {
+        revert PriceExceedsMaxPremiumInAsset();
+      }
 
       ITokenController _tokenController = tokenController();
       _tokenController.burnFrom(msg.sender, premiumInNxm);
@@ -322,13 +355,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint premiumInPaymentAsset = _pool.getTokenPrice(paymentAsset) * premiumInNxm / ONE_NXM;
     uint commission = premiumInPaymentAsset * commissionRatio / COMMISSION_DENOMINATOR;
 
-    require(premiumInPaymentAsset <= maxPremiumInAsset, "Cover: Price exceeds maxPremiumInAsset");
+    if (premiumInPaymentAsset > maxPremiumInAsset) {
+      revert PriceExceedsMaxPremiumInAsset();
+    }
 
     // ETH payment
     if (paymentAsset == ETH_ASSET_ID) {
 
       uint premiumWithCommission = premiumInPaymentAsset + commission;
-      require(msg.value >= premiumWithCommission, "Cover: Insufficient ETH sent");
+      if (msg.value < premiumWithCommission) {
+        revert InsufficientEthSent();
+      }
 
       uint remainder = msg.value - premiumWithCommission;
 
@@ -336,19 +373,25 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         // send premium in eth to the pool
         // solhint-disable-next-line avoid-low-level-calls
         (bool ok, /* data */) = address(_pool).call{value: premiumInPaymentAsset}("");
-        require(ok, "Cover: Sending ETH to pool failed.");
+        if (!ok) {
+          revert SendingEthToPoolFailed();
+        }
       }
 
       // send commission
       if (commission > 0) {
         (bool ok, /* data */) = address(commissionDestination).call{value: commission}("");
-        require(ok, "Cover: Sending ETH to commission destination failed.");
+        if (!ok) {
+          revert SendingEthToCommissionDestinationFailed();
+        }
       }
 
       if (remainder > 0) {
         // solhint-disable-next-line avoid-low-level-calls
         (bool ok, /* data */) = address(msg.sender).call{value: remainder}("");
-        require(ok, "Cover: Returning ETH remainder to sender failed.");
+        if (!ok) {
+          revert ReturningEthRemainderToSenderFailed();
+        }
       }
 
       return;
@@ -375,10 +418,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     ProductType memory productType = _productTypes[_products[productId].productType];
 
     // uses the current v2 grace period
-    require(
-      block.timestamp < start + period + productType.gracePeriod,
-      "Cover outside of the grace period"
-    );
+    if (block.timestamp >= start + period + productType.gracePeriod) {
+      revert CoverOutsideOfTheGracePeriod();
+    }
 
     _coverData.push(
       CoverData(productId.toUint24(), coverAsset.toUint8(), 0 /* amountPaidOut */)
@@ -404,10 +446,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   }
 
   function transferCovers(address from, address to, uint256[] calldata tokenIds) external override {
-    require(
-      msg.sender == address(memberRoles()),
-      "Cover: Only MemberRoles is permitted to use operator transfer"
-    );
+    if (msg.sender != address(memberRoles())) {
+      revert OnlyMemberRolesCanOperateTransfer();
+    }
 
     for (uint256 i = 0; i < tokenIds.length; i++) {
       ICoverNFT(coverNFT).operatorTransferFrom(from, to, tokenIds[i]);
@@ -415,10 +456,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   }
 
   function transferStakingPoolTokens(address from, address to, uint256[] calldata tokenIds) external override {
-    require(
-      msg.sender == address(memberRoles()),
-      "Cover: Only MemberRoles is permitted to use operator transfer"
-    );
+    if (msg.sender != address(memberRoles())) {
+      revert OnlyMemberRolesCanOperateTransfer();
+    }
 
     for (uint256 i = 0; i < tokenIds.length; i++) {
       stakingNFT.operatorTransferFrom(from, to, tokenIds[i]);
@@ -442,10 +482,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         uint productId = productInitParams[i].productId;
         productInitParams[i].initialPrice = _products[productId].initialPriceRatio;
 
-        require(
-          productInitParams[i].targetPrice >= GLOBAL_MIN_PRICE_RATIO,
-          "Cover: Target price below GLOBAL_MIN_PRICE_RATIO"
-        );
+        if (productInitParams[i].targetPrice < GLOBAL_MIN_PRICE_RATIO) {
+          revert TargetPriceBelowGlobalMinPriceRatio();
+        }
       }
     }
 
@@ -552,23 +591,21 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     for (uint i = 0; i < productParams.length; i++) {
       ProductParam calldata param = productParams[i];
       Product calldata product = param.product;
-      require(product.productType < productTypesCount, "Cover: Invalid productType");
-      require(
-        areAssetsSupported(product.coverAssets, _coverAssetsFallback),
-        "Cover: Unsupported cover assets"
-      );
-      require(
-        product.initialPriceRatio >= GLOBAL_MIN_PRICE_RATIO,
-        "Cover: initialPriceRatio < GLOBAL_MIN_PRICE_RATIO"
-      );
-      require(
-        product.initialPriceRatio <= PRICE_DENOMINATOR,
-        "Cover: initialPriceRatio > 100%"
-      );
-      require(
-        product.capacityReductionRatio <= CAPACITY_REDUCTION_DENOMINATOR,
-        "Cover: capacityReductionRatio > 100%"
-      );
+      if (product.productType >= productTypesCount) {
+        revert InvalidProductType();
+      }
+      if (!areAssetsSupported(product.coverAssets, _coverAssetsFallback)) {
+        revert UnsupportedCoverAssets();
+      }
+      if (product.initialPriceRatio < GLOBAL_MIN_PRICE_RATIO) {
+        revert InitialPriceRatioBelowGlobalMinPriceRatio();
+      }
+      if (product.initialPriceRatio > PRICE_DENOMINATOR) {
+        revert InitialPriceRatioAbove100Percent();
+      }
+      if (product.capacityReductionRatio > CAPACITY_REDUCTION_DENOMINATOR) {
+        revert CapacityReductionRatioAbove100Percent();
+      }
 
       if (product.useFixedPrice) {
 
@@ -584,7 +621,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       }
 
       // existing product
-      require(param.productId < _products.length, "Cover: Product doesnt exist. Set id to uint256.max to add it");
+      if (param.productId >= _products.length) {
+        revert ProductDoesntExist();
+      }
       Product storage newProductValue = _products[param.productId];
       newProductValue.isDeprecated = product.isDeprecated;
       newProductValue.coverAssets = product.coverAssets;
@@ -609,7 +648,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         continue;
       }
 
-      require(param.productTypeId < _productTypes.length, "Cover: ProductType doesnt exist. Set id to uint256.max to add it");
+      if (param.productTypeId >= _productTypes.length) {
+        revert ProductTypeNotFound();
+      }
       _productTypes[param.productTypeId].gracePeriod = param.productType.gracePeriod;
       emit ProductTypeSet(param.productTypeId, param.ipfsMetadata);
     }
@@ -663,7 +704,9 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     for (uint i = 0; i < productIds.length; i++) {
       Product memory product = _products[productIds[i]];
-      require(product.initialPriceRatio > 0, "Cover: Product deprecated or not initialized");
+      if (product.initialPriceRatio == 0) {
+        revert ProductDeprecatedOrNotInitialized();
+      }
       _initialPrices[i] = uint(product.initialPriceRatio);
       _capacityReductionRatios[i] = uint(product.capacityReductionRatio);
     }

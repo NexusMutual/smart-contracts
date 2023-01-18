@@ -67,8 +67,8 @@ describe('setProductTypes', function () {
     const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
     const productTypeId = 99;
     const productTypeParams = { ...ProductTypeParamTemplate, productTypeId };
-    await expect(cover.connect(advisoryBoardMember0).setProductTypes([productTypeParams])).to.be.revertedWith(
-      'Cover: ProductType doesnt exist. Set id to uint256.max to add it',
-    );
+    await expect(
+      cover.connect(advisoryBoardMember0).setProductTypes([productTypeParams]),
+    ).to.be.revertedWithCustomError(cover, 'ProductTypeNotFound');
   });
 });

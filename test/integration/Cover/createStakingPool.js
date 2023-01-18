@@ -57,7 +57,7 @@ describe('createStakingPool', function () {
 
     await expect(
       stakingPool.connect(staker).depositTo(deposit, trancheId, MaxUint256, AddressZero), // new deposit
-    ).to.be.revertedWith('StakingPool: The pool is private');
+    ).to.be.revertedWithCustomError(stakingPool, 'PrivatePool');
   });
 
   it('should create a public staking pool', async function () {

@@ -133,7 +133,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       revert CoverAmountIsZero();
     }
 
-
     uint segmentId;
 
     AllocationRequest memory allocationRequest;

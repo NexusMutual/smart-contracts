@@ -1323,6 +1323,7 @@ contract StakingPool is IStakingPool {
         _product.targetPrice = _param.targetPrice;
       }
 
+      // if setTargetWeight is set - effective weight must be recalculated
       if (_param.setTargetWeight && !_param.recalculateEffectiveWeight) {
         revert MustRecalculateEffectiveWeight();
       }

@@ -169,7 +169,7 @@ describe('v2 migration', function () {
     poolValueBefore = await this.pool.getPoolValueInEth();
   });
 
-  it('run get-withdrawable-cover-notes', async function () {
+  it.skip('run get-withdrawable-cover-notes', async function () {
     const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
     await getWithdrawableCoverNotes(directProvider, this.tokenController);
   });
@@ -193,8 +193,28 @@ describe('v2 migration', function () {
     this.coverNotesSum = coverNotesSum;
   });
 
-  it.skip('run get-governance-rewards script', async function () {
+  it('run get-governance-rewards script', async function () {
     await getGovernanceRewards(ethers.provider);
+  });
+
+  it('compute total governance rewards', async function () {
+    const governanceRewardablePath = path.join(
+      __dirname,
+      '../../scripts/v2-migration/output/governance-rewardable.json',
+    );
+
+    const rewardables = require(governanceRewardablePath);
+    const rewardableAddresses = Object.keys(rewardables);
+    const governanceRewardsSum = rewardableAddresses.reduce(
+      (sum, address) => sum.add(BigNumber.from(rewardables[address])),
+      BigNumber.from(0),
+    );
+
+    console.log({
+      governanceRewardsSum: governanceRewardsSum.toString(),
+    });
+
+    this.governanceRewardsSum = governanceRewardsSum;
   });
 
   // generates the LegacyClaimsReward contract with the transfer calls
@@ -581,17 +601,7 @@ describe('v2 migration', function () {
   it('check if TokenController balance checks out with Governance rewards', async function () {
     const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
 
-    const governanceRewardablePath = path.join(
-      __dirname,
-      '../../scripts/v2-migration/output/governance-rewardable.json',
-    );
-
-    const rewardables = require(governanceRewardablePath);
-    const rewardableAddresses = Object.keys(rewardables);
-    const rewardsSum = rewardableAddresses.reduce(
-      (sum, address) => sum.add(BigNumber.from(rewardables[address])),
-      BigNumber.from(0),
-    );
+    const rewardsSum = this.governanceRewardsSum;
 
     const coverNotesSum = this.coverNotesSum;
 

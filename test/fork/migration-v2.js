@@ -145,7 +145,7 @@ describe('v2 migration', function () {
     }
   });
 
-  it.only('initialize old contracts', async function () {
+  it('initialize old contracts', async function () {
     const [deployer] = await ethers.getSigners();
     this.deployer = deployer;
 
@@ -169,9 +169,28 @@ describe('v2 migration', function () {
     poolValueBefore = await this.pool.getPoolValueInEth();
   });
 
-  it.only('run get-withdrawable-cover-notes', async function () {
+  it('run get-withdrawable-cover-notes', async function () {
     const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
     await getWithdrawableCoverNotes(directProvider, this.tokenController);
+  });
+
+  it('compute total withdrawable cover notes', async function () {
+    const eligibleForCoverNoteWithdrawPath = path.join(
+      __dirname,
+      '../../scripts/v2-migration/output/eligible-for-cover-note-withdraw.json',
+    );
+    const withdrawableCoverNotes = require(eligibleForCoverNoteWithdrawPath);
+
+    const coverNotesSum = withdrawableCoverNotes.reduce(
+      (sum, coverNote) => sum.add(BigNumber.from(coverNote.withdrawableAmount)),
+      BigNumber.from(0),
+    );
+
+    console.log({
+      coverNotesSum: coverNotesSum.toString(),
+    });
+
+    this.coverNotesSum = coverNotesSum;
   });
 
   it.skip('run get-governance-rewards script', async function () {
@@ -521,7 +540,7 @@ describe('v2 migration', function () {
     console.log('Done');
   });
 
-  it.skip('unlock claim assessment stakes', async function () {
+  it('unlock claim assessment stakes', async function () {
     const stakesPath = path.join(__dirname, '../../scripts/v2-migration/output/eligibleForCLAUnlock.json');
     const claimAssessors = require(stakesPath).map(x => x.member);
 
@@ -536,7 +555,7 @@ describe('v2 migration', function () {
     await tx.wait();
   });
 
-  it.skip('transfer v1 assessment rewards to assessors', async function () {
+  it('transfer v1 assessment rewards to assessors', async function () {
     const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
     const crNxmBalance = await this.nxm.balanceOf(this.claimsReward.address);
 
@@ -550,6 +569,8 @@ describe('v2 migration', function () {
 
     const tcNxmBalanceAfter = await this.nxm.balanceOf(this.tokenController.address);
     const crNxmBalanceAfter = await this.nxm.balanceOf(this.claimsReward.address);
+
+    expect(crNxmBalanceAfter).to.be.equal(BigNumber.from(0));
     console.log('Token balances after running CR.transferRewards');
     console.log({
       tcNxmBalance: tcNxmBalanceAfter.toString(),
@@ -557,7 +578,7 @@ describe('v2 migration', function () {
     });
   });
 
-  it.skip('check if TokenController balance checks out with Governance rewards', async function () {
+  it('check if TokenController balance checks out with Governance rewards', async function () {
     const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
 
     const governanceRewardablePath = path.join(
@@ -572,15 +593,7 @@ describe('v2 migration', function () {
       BigNumber.from(0),
     );
 
-    const eligibleForCoverNoteWithdrawPath = path.join(
-      __dirname,
-      '../../scripts/v2-migration/output/eligible-for-cover-note-withdraw.json',
-    );
-    const withdrawableCoverNotes = require(eligibleForCoverNoteWithdrawPath);
-    const coverNotesSum = withdrawableCoverNotes.reduce(
-      (sum, coverNote) => sum.add(BigNumber.from(coverNote.wthdrawableAmount)),
-      BigNumber.from(0),
-    );
+    const coverNotesSum = this.coverNotesSum;
 
     console.log({
       tcNxmBalance: tcNxmBalance.toString(),
@@ -588,7 +601,7 @@ describe('v2 migration', function () {
       coverNotesSum: coverNotesSum.toString(),
     });
 
-    expect(tcNxmBalance).to.be.equal(rewardsSum);
+    expect(tcNxmBalance).to.be.equal(rewardsSum.add(coverNotesSum));
   });
 
   it.skip('remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {

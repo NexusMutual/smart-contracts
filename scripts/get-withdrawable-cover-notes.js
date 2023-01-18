@@ -29,7 +29,7 @@ async function getWithdrawableCoverNotes(i, qt, mr) {
 
   const withdrawableAmount = await qt.getWithdrawableCoverNotesAmount(member);
   return {
-    withdrawableAmount,
+    withdrawableAmount: withdrawableAmount.toString(),
     member,
   };
 }
@@ -42,7 +42,7 @@ async function main(provider, tc) {
 
   const memberCount = (await mr.membersLength(ROLE_MEMBER)).toNumber();
   const memberIds = [...Array(memberCount).keys()];
-  const memberWithdrawalbeCoverNotes = [];
+  const memberWithdrawableCoverNotes = [];
 
   console.log('Fetching claim assessment stakes...');
 
@@ -54,11 +54,11 @@ async function main(provider, tc) {
         return withdrawableAmountWithMember;
       }),
     );
-    memberWithdrawalbeCoverNotes.push(...withdrawableCoverNotes);
-    console.log(`Processed ${memberWithdrawalbeCoverNotes.length}/${memberCount}`);
+    memberWithdrawableCoverNotes.push(...withdrawableCoverNotes);
+    console.log(`Processed ${memberWithdrawableCoverNotes.length}/${memberCount}`);
   }
 
-  const nonZeroMemberWithdrawableCoverNotes = memberWithdrawalbeCoverNotes.filter(x => x.withdrawableAmount !== '0');
+  const nonZeroMemberWithdrawableCoverNotes = memberWithdrawableCoverNotes.filter(x => x.withdrawableAmount !== '0');
 
   fs.writeFileSync(
     path.join(__dirname, 'v2-migration/output/eligible-for-cover-note-withdraw.json'),

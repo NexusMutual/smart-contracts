@@ -27,7 +27,12 @@ async function getMemberStake(i, mr, tc) {
     return { member, amount: '0' };
   }
 
-  const amount = await tc.tokensLocked(member, ethers.utils.formatBytes32String('CLA'));
+  const tokensLockedAmount = await tc.tokensLocked(member, ethers.utils.formatBytes32String('CLA'));
+
+  const tokensUnlockable = await tc.tokensUnlockable(member, ethers.utils.formatBytes32String('CLA'));
+
+  // Add both locked and unlockeable
+  const amount = tokensLockedAmount.add(tokensUnlockable);
 
   return { member, amount: amount.toString() };
 }

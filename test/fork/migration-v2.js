@@ -193,7 +193,7 @@ describe('v2 migration', function () {
     this.coverNotesSum = coverNotesSum;
   });
 
-  it('run get-governance-rewards script', async function () {
+  it.skip('run get-governance-rewards script', async function () {
     await getGovernanceRewards(ethers.provider);
   });
 

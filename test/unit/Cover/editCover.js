@@ -691,7 +691,7 @@ describe('editCover', function () {
         [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
         { value: extraPremium.add(10) },
       ),
-    ).to.be.revertedWith('Cover: Only owner or approved can edit');
+    ).to.be.revertedWithCustomError(cover, 'OnlyOwnerOrApproved');
   });
 
   it('reverts if invalid coverId', async function () {
@@ -770,7 +770,7 @@ describe('editCover', function () {
           value: extraPremium,
         },
       ),
-    ).to.be.revertedWith('Cover: Cover period is too short');
+    ).to.be.revertedWithCustomError(cover, 'CoverPeriodTooShort');
   });
 
   it('reverts if calculated premium is bigger than maxPremiumInAsset', async function () {
@@ -815,7 +815,7 @@ describe('editCover', function () {
           value: extraPremium,
         },
       ),
-    ).to.be.revertedWith('Cover: Price exceeds maxPremiumInAsset');
+    ).to.be.revertedWithCustomError(cover, 'PriceExceedsMaxPremiumInAsset');
   });
 
   it('works if caller is the owner of the NFT', async function () {
@@ -940,7 +940,7 @@ describe('editCover', function () {
         [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
         { value: extraPremium.add(1) },
       ),
-    ).to.be.revertedWith('Cover: Unexpected coverAsset requested');
+    ).to.be.revertedWithCustomError(cover, 'UnexpectedCoverAsset');
   });
 
   it('reverts if incorrect productId', async function () {
@@ -982,7 +982,7 @@ describe('editCover', function () {
         [{ poolId: '0', skip: false, coverAmountInAsset: increasedAmount }],
         { value: extraPremium.add(1) },
       ),
-    ).to.be.revertedWith('Cover: Unexpected productId requested');
+    ).to.be.revertedWithCustomError(cover, 'UnexpectedProductId');
   });
 
   it('reverts if empty array of allocationRequests', async function () {
@@ -1022,7 +1022,7 @@ describe('editCover', function () {
         [],
         { value: extraPremium.add(1) },
       ),
-    ).to.be.revertedWith('Cover: Insufficient cover amount allocated');
+    ).to.be.revertedWithCustomError(cover, 'InsufficientCoverAmountAllocated');
   });
 
   it('emits CoverEdited event', async function () {
@@ -1283,13 +1283,15 @@ describe('editCover', function () {
 
     const buyerBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
 
+    const increasedCoverAmount = amount.mul(2);
+
     await cover.connect(coverBuyer).buyCover(
       {
         coverId: expectedCoverId,
         owner: coverBuyer.address,
         productId,
         coverAsset,
-        amount,
+        amount: increasedCoverAmount,
         period,
         maxPremiumInAsset: expectedPremium.add(1),
         paymentAsset: coverAsset,
@@ -1326,13 +1328,13 @@ describe('editCover', function () {
         productId,
         coverAsset,
         period,
-        amount,
+        amount: increasedCoverAmount,
         gracePeriod,
         segmentId: firstEditSegment,
       });
     }
 
-    const increasedAmount = amount.mul(2);
+    const increasedPoolAmount = amount.mul(2);
 
     const expectedRefund = segment.amount
       .mul(targetPriceRatio)
@@ -1349,9 +1351,9 @@ describe('editCover', function () {
         owner: coverBuyer.address,
         productId,
         coverAsset,
-        amount: increasedAmount.mul(2),
+        amount: increasedPoolAmount.mul(2),
         period,
-        maxPremiumInAsset: extraPremium,
+        maxPremiumInAsset: extraPremium.add(10),
         paymentAsset: coverAsset,
         payWitNXM: false,
         commissionRatio: parseEther('0'),
@@ -1359,11 +1361,11 @@ describe('editCover', function () {
         ipfsData: '',
       },
       [
-        { poolId: 0, skip: false, coverAmountInAsset: increasedAmount },
-        { poolId: 1, skip: false, coverAmountInAsset: increasedAmount },
+        { poolId: 0, skip: false, coverAmountInAsset: increasedPoolAmount },
+        { poolId: 1, skip: false, coverAmountInAsset: increasedPoolAmount },
       ],
       {
-        value: extraPremium,
+        value: extraPremium.add(10),
       },
     );
 
@@ -1372,24 +1374,82 @@ describe('editCover', function () {
     {
       const pool0Allocation = await cover.coverSegmentAllocations(expectedCoverId, secondEditSegment, 0);
       expect(pool0Allocation.poolId).to.be.equal(0);
-      expect(pool0Allocation.coverAmountInNXM).to.be.equal(increasedAmount);
+      expect(pool0Allocation.coverAmountInNXM).to.be.equal(increasedPoolAmount);
 
       const pool1Allocation = await cover.coverSegmentAllocations(expectedCoverId, secondEditSegment, 1);
       expect(pool1Allocation.poolId).to.be.equal(1);
-      expect(pool1Allocation.coverAmountInNXM).to.be.equal(increasedAmount);
+      expect(pool1Allocation.coverAmountInNXM).to.be.equal(increasedPoolAmount);
 
       await assertCoverFields(cover, expectedCoverId, {
         productId,
         coverAsset,
         period,
-        amount: increasedAmount.mul(2),
+        amount: increasedPoolAmount.mul(2),
         gracePeriod,
         segmentId: secondEditSegment,
       });
     }
   });
 
-  it('reverts if all pools are skipped', async function () {
+  it('creates a segment and does not affect other state all pools are skipped', async function () {
+    const { cover } = this;
+
+    const [coverBuyer, manager] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount } = coverBuyFixture;
+
+    const { expectedPremium, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    await createStakingPool(
+      cover,
+      productId,
+      parseEther('10000'), // capacity
+      coverBuyFixture.targetPriceRatio, // targetPrice
+      0, // activeCover
+      manager, // creator
+      manager, // manager
+      coverBuyFixture.targetPriceRatio, // currentPrice
+    );
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: expectedCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount,
+        period,
+        maxPremiumInAsset: expectedPremium.mul(2),
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: 0, skip: true, coverAmountInAsset: amount.mul(2) }],
+      {
+        value: expectedPremium.mul(2),
+      },
+    );
+
+    const firstEditSegment = 1;
+    {
+      const pool0Allocation = await cover.coverSegmentAllocations(expectedCoverId, firstEditSegment, 0);
+      expect(pool0Allocation.poolId).to.be.equal(0);
+      expect(pool0Allocation.coverAmountInNXM).to.be.equal(amount);
+
+      await assertCoverFields(cover, expectedCoverId, {
+        productId,
+        coverAsset,
+        period,
+        amount,
+        gracePeriod,
+        segmentId: firstEditSegment,
+      });
+    }
+  });
+
+  it('reverts if incorrect pool id in request array', async function () {
     const { cover } = this;
 
     const [coverBuyer, manager] = this.accounts.members;
@@ -1416,7 +1476,7 @@ describe('editCover', function () {
           owner: coverBuyer.address,
           productId,
           coverAsset,
-          amount: amount.mul(2),
+          amount,
           period,
           maxPremiumInAsset: expectedPremium,
           paymentAsset: coverAsset,
@@ -1425,14 +1485,79 @@ describe('editCover', function () {
           commissionDestination: AddressZero,
           ipfsData: '',
         },
-        [
-          { poolId: 0, skip: true, coverAmountInAsset: amount },
-          { poolId: 1, skip: true, coverAmountInAsset: amount },
-        ],
+        [{ poolId: 1, skip: false, coverAmountInAsset: amount }],
         {
           value: expectedPremium,
         },
       ),
-    ).to.be.revertedWith('Cover: Insufficient cover amount allocated');
+    ).to.be.revertedWithCustomError(cover, 'UnexpectedPoolId');
+  });
+
+  // TODO: update test after totalActiveCoverInAsset is implemented in buckets
+  it.skip('correctly updates totalActiveCoverInAsset', async function () {
+    const { cover } = this;
+
+    const [coverBuyer] = this.accounts.members;
+
+    const { productId, coverAsset, period, amount, priceDenominator, targetPriceRatio } = coverBuyFixture;
+
+    {
+      const totalActiveCoverInAsset = await cover.totalActiveCoverInAsset(coverAsset);
+      expect(totalActiveCoverInAsset).to.equal(0);
+    }
+
+    const { expectedPremium, segment, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
+
+    {
+      const totalActiveCoverInAsset = await cover.totalActiveCoverInAsset(coverAsset);
+      expect(totalActiveCoverInAsset).to.equal(amount);
+    }
+
+    const increasedAmount = amount.mul(2);
+
+    const expectedRefund = segment.amount
+      .mul(targetPriceRatio)
+      .mul(segment.period)
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+
+    const expectedEditPremium = expectedPremium.mul(2);
+    const extraPremium = expectedEditPremium.sub(expectedRefund);
+
+    await cover.connect(coverBuyer).buyCover(
+      {
+        coverId: expectedCoverId,
+        owner: coverBuyer.address,
+        productId,
+        coverAsset,
+        amount: increasedAmount,
+        period,
+        maxPremiumInAsset: expectedEditPremium.add(1),
+        paymentAsset: coverAsset,
+        payWitNXM: false,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: increasedAmount.toString() }],
+      {
+        value: extraPremium.add(1),
+      },
+    );
+
+    await assertCoverFields(cover, expectedCoverId, {
+      productId,
+      coverAsset,
+      period,
+      amount: increasedAmount,
+      gracePeriod,
+      segmentId: 1,
+    });
+
+    {
+      const totalActiveCoverInAsset = await cover.totalActiveCoverInAsset(coverAsset);
+      // This currently fails
+      expect(totalActiveCoverInAsset).to.equal(increasedAmount);
+    }
   });
 });

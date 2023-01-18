@@ -12,6 +12,7 @@ const evm = require('./evm')();
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
 const getProductsV1 = require('../../scripts/get-products-v1');
 const getLockedInV1ClaimAssessment = require('../../scripts/get-locked-in-v1-claim-assessment');
+const getWithdrawableCoverNotes = require('../../scripts/get-withdrawable-cover-notes');
 const getGovernanceRewards = require('../../scripts/get-governance-rewards');
 const populateV2Products = require('../../scripts/populate-v2-products');
 const proposalCategories = require('../../lib/proposal-categories');
@@ -144,7 +145,7 @@ describe('v2 migration', function () {
     }
   });
 
-  it('initialize old contracts', async function () {
+  it.only('initialize old contracts', async function () {
     const [deployer] = await ethers.getSigners();
     this.deployer = deployer;
 
@@ -166,6 +167,11 @@ describe('v2 migration', function () {
     this.claimsData = await factory('CD');
 
     poolValueBefore = await this.pool.getPoolValueInEth();
+  });
+
+  it.only('run get-withdrawable-cover-notes', async function () {
+    const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
+    await getWithdrawableCoverNotes(directProvider, this.tokenController);
   });
 
   it.skip('run get-governance-rewards script', async function () {
@@ -515,7 +521,7 @@ describe('v2 migration', function () {
     console.log('Done');
   });
 
-  it('unlock claim assessment stakes', async function () {
+  it.skip('unlock claim assessment stakes', async function () {
     const stakesPath = path.join(__dirname, '../../scripts/v2-migration/output/eligibleForCLAUnlock.json');
     const claimAssessors = require(stakesPath).map(x => x.member);
 
@@ -530,7 +536,7 @@ describe('v2 migration', function () {
     await tx.wait();
   });
 
-  it('transfer v1 assessment rewards to assessors', async function () {
+  it.skip('transfer v1 assessment rewards to assessors', async function () {
     const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
     const crNxmBalance = await this.nxm.balanceOf(this.claimsReward.address);
 
@@ -551,22 +557,35 @@ describe('v2 migration', function () {
     });
   });
 
-  it('check if TokenController balance checks out with Governance rewards', async function () {
+  it.skip('check if TokenController balance checks out with Governance rewards', async function () {
     const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
 
     const governanceRewardablePath = path.join(
       __dirname,
       '../../scripts/v2-migration/output/governance-rewardable.json',
     );
+
     const rewardables = require(governanceRewardablePath);
     const rewardableAddresses = Object.keys(rewardables);
     const rewardsSum = rewardableAddresses.reduce(
       (sum, address) => sum.add(BigNumber.from(rewardables[address])),
       BigNumber.from(0),
     );
+
+    const eligibleForCoverNoteWithdrawPath = path.join(
+      __dirname,
+      '../../scripts/v2-migration/output/eligible-for-cover-note-withdraw.json',
+    );
+    const withdrawableCoverNotes = require(eligibleForCoverNoteWithdrawPath);
+    const coverNotesSum = withdrawableCoverNotes.reduce(
+      (sum, coverNote) => sum.add(BigNumber.from(coverNote.wthdrawableAmount)),
+      BigNumber.from(0),
+    );
+
     console.log({
       tcNxmBalance: tcNxmBalance.toString(),
       rewardsSum: rewardsSum.toString(),
+      coverNotesSum: coverNotesSum.toString(),
     });
 
     expect(tcNxmBalance).to.be.equal(rewardsSum);

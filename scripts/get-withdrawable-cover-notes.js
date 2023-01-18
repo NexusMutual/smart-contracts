@@ -20,18 +20,14 @@ const getContractFactory = async providerOrSigner => {
 
 const ROLE_MEMBER = 2;
 
-async function getWithdrawableCoverNotes(i, tc, mr) {
+async function getWithdrawableCoverNotes(i, qt, mr) {
   const { 0: member, 1: active } = await mr.memberAtIndex(ROLE_MEMBER, i);
 
   if (!active) {
     return { member, withdrawableAmount: '0' };
   }
 
-  const {
-    // coverIds: unsortedCoverIds,
-    // lockReasons: coverNoteLockReasons,
-    withdrawableAmount,
-  } = await tc.getWithdrawableCoverNotes(member);
+  const withdrawableAmount = await qt.getWithdrawableCoverNotesAmount(member);
   return {
     withdrawableAmount,
     member,
@@ -42,6 +38,7 @@ async function main(provider, tc) {
   const factory = await getContractFactory(provider);
   tc = tc || (await factory('TC'));
   const mr = await factory('MR');
+  const qt = await factory('QT');
 
   const memberCount = (await mr.membersLength(ROLE_MEMBER)).toNumber();
   const memberIds = [...Array(memberCount).keys()];
@@ -53,7 +50,7 @@ async function main(provider, tc) {
     const batch = memberIds.splice(0, 200);
     const withdrawableCoverNotes = await Promise.all(
       batch.map(async i => {
-        const withdrawableAmountWithMember = await getWithdrawableCoverNotes(i, tc, mr);
+        const withdrawableAmountWithMember = await getWithdrawableCoverNotes(i, qt, mr);
         return withdrawableAmountWithMember;
       }),
     );

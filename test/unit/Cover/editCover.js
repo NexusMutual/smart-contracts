@@ -332,7 +332,7 @@ describe('editCover', function () {
         [{ poolId: '0', skip: true, coverAmountInAsset: increasedAmount }],
         { value: extraPremium.add(10) },
       ),
-    ).to.be.revertedWith('Cover: Expired covers cannot be edited');
+    ).to.be.revertedWithCustomError(cover, 'ExpiredCoversCannotBeEdited');
   });
 
   it('should revert when period is too long', async function () {

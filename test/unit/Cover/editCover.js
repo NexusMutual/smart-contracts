@@ -95,13 +95,15 @@ describe('editCover', function () {
 
     const buyerBalanceBefore = await ethers.provider.getBalance(coverBuyer.address);
 
+    const increasedAmount = amount.mul(2);
+
     await cover.connect(coverBuyer).buyCover(
       {
         coverId: expectedCoverId,
         owner: coverBuyer.address,
         productId,
         coverAsset,
-        amount,
+        amount: increasedAmount,
         period,
         maxPremiumInAsset: expectedPremium.add(1),
         paymentAsset: coverAsset,
@@ -134,7 +136,7 @@ describe('editCover', function () {
       productId,
       coverAsset,
       period,
-      amount,
+      amount: increasedAmount,
       gracePeriod,
       segmentId: 1,
     });

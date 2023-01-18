@@ -2,9 +2,11 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 
 const { initMCR, MAX_PERCENTAGE_ADJUSTMENT } = require('./common');
-const { parseEther } = ethers.utils;
-const { increaseTime } = require('../utils').evm;
+const { increaseTime, mineNextBlock } = require('../utils').evm;
 const { daysToSeconds, hoursToSeconds } = require('../utils').helpers;
+
+const { BigNumber } = ethers;
+const { parseEther } = ethers.utils;
 
 const DEFAULT_MCR_PARAMS = {
   mcrValue: parseEther('150000'),
@@ -17,30 +19,34 @@ const DEFAULT_MCR_PARAMS = {
   minUpdateTime: '3600',
 };
 
-describe.only('getMCR', function () {
+describe('getMCR', function () {
   it('should return the stored MCR value if MCR == desiredMCR', async function () {
     const { master } = this;
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
 
     await increaseTime(hoursToSeconds(2));
+    await mineNextBlock();
 
     const storedMCR = await mcr.mcr();
     const newestMCR = await mcr.getMCR();
     expect(newestMCR).to.be.equal(storedMCR);
   });
 
-  it.only('increases MCR by MAX_PERCENTAGE_ADJUSTMENT towards the higher desired MCR if 24 hours pass', async function () {
+  it('increases MCR by MAX_PERCENTAGE_ADJUSTMENT towards the higher desired MCR if 24 hours pass', async function () {
     const { master } = this;
-
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: parseEther('160000'), master });
 
-    await increaseTime(hoursToSeconds(24));
+    await increaseTime(daysToSeconds(1));
+    await mineNextBlock();
 
     const storedMCR = await mcr.mcr();
     const newestMCR = await mcr.getMCR();
 
-    const expectedMCR = storedMCR.mul(10000 + MAX_PERCENTAGE_ADJUSTMENT.toNumber()).div(10000);
+    const expectedMCR = storedMCR
+      .mul(BigNumber.from('10000').add(MAX_PERCENTAGE_ADJUSTMENT))
+      .div(BigNumber.from('10000'));
+
     expect(newestMCR).to.be.equal(expectedMCR);
   });
 
@@ -49,6 +55,7 @@ describe.only('getMCR', function () {
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR: parseEther('140000'), master });
     await increaseTime(hoursToSeconds(24));
+    await mineNextBlock();
 
     const storedMCR = await mcr.mcr();
     const newestMCR = await mcr.getMCR();
@@ -64,15 +71,13 @@ describe.only('getMCR', function () {
 
     const passedTime = hoursToSeconds(2);
     await increaseTime(passedTime);
+    await mineNextBlock();
 
     const storedMCR = await mcr.mcr();
     const newestMCR = await mcr.getMCR();
+    const maxMCRIncrement = BigNumber.from(await mcr.maxMCRIncrement());
 
-    const maxMCRIncrement = await mcr.maxMCRIncrement();
-
-    console.log(maxMCRIncrement);
-
-    const expectedPercentageIncrease = BiNumber.from(maxMCRIncrement).mul(passedTime.toNumber()).div(daysToSeconds(1));
+    const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(daysToSeconds(1));
     const expectedMCR = storedMCR.mul(expectedPercentageIncrease).div(10000).add(storedMCR);
     expect(newestMCR).to.be.equal(expectedMCR);
   });
@@ -84,11 +89,12 @@ describe.only('getMCR', function () {
 
     const passedTime = hoursToSeconds(4);
     await increaseTime(passedTime);
+    await mineNextBlock();
 
     const storedMCR = await mcr.mcr();
     const newestMCR = await mcr.getMCR();
 
-    const maxMCRIncrement = await mcr.maxMCRIncrement();
+    const maxMCRIncrement = BigNumber.from(await mcr.maxMCRIncrement());
     const expectedPercentageIncrease = maxMCRIncrement.mul(passedTime).div(daysToSeconds(1));
     const expectedMCR = storedMCR.mul(expectedPercentageIncrease).div(10000).add(storedMCR);
     expect(newestMCR).to.be.equal(expectedMCR);
@@ -106,11 +112,12 @@ describe.only('getMCR', function () {
 
     const passedTime = hoursToSeconds(2);
     await increaseTime(passedTime);
+    await mineNextBlock();
 
     const storedMCR = await mcr.mcr();
     const newestMCR = await mcr.getMCR();
 
-    const maxMCRIncrement = await mcr.maxMCRIncrement();
+    const maxMCRIncrement = BigNumber.from(await mcr.maxMCRIncrement());
     const expectedPercentageDecrease = maxMCRIncrement.mul(passedTime).div(daysToSeconds(1));
     const expectedMCR = storedMCR.sub(storedMCR.mul(expectedPercentageDecrease).div(10000));
     expect(newestMCR).to.be.equal(expectedMCR);
@@ -128,11 +135,12 @@ describe.only('getMCR', function () {
 
     const passedTime = hoursToSeconds(4);
     await increaseTime(passedTime);
+    await mineNextBlock();
 
     const storedMCR = await mcr.mcr();
     const newestMCR = await mcr.getMCR();
 
-    const maxMCRIncrement = await mcr.maxMCRIncrement();
+    const maxMCRIncrement = BigNumber.from(await mcr.maxMCRIncrement());
     const expectedPercentageDecrease = maxMCRIncrement.mul(passedTime).div(daysToSeconds(1));
     const expectedMCR = storedMCR.sub(storedMCR.mul(expectedPercentageDecrease).div(10000));
     expect(newestMCR).to.be.equal(expectedMCR);
@@ -145,9 +153,9 @@ describe.only('getMCR', function () {
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR, master });
 
     await increaseTime(hoursToSeconds(24));
+    await mineNextBlock();
 
     const newestMCR = await mcr.getMCR();
-
     expect(newestMCR).to.be.equal(desiredMCR);
   });
 
@@ -158,9 +166,9 @@ describe.only('getMCR', function () {
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR, master });
 
     await increaseTime(hoursToSeconds(24));
+    await mineNextBlock();
 
     const newestMCR = await mcr.getMCR();
-
     expect(newestMCR).to.be.equal(desiredMCR);
   });
 
@@ -172,9 +180,9 @@ describe.only('getMCR', function () {
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR, mcrFloor, master });
 
     await increaseTime(hoursToSeconds(24));
+    await mineNextBlock();
 
     const newestMCR = await mcr.getMCR();
-
     expect(newestMCR).to.be.equal(desiredMCR);
   });
 
@@ -187,9 +195,9 @@ describe.only('getMCR', function () {
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, desiredMCR, mcrFloor, master });
 
     await increaseTime(hoursToSeconds(24));
+    await mineNextBlock();
 
     const newestMCR = await mcr.getMCR();
-
     expect(newestMCR).to.be.equal(expectedMCR);
   });
 });

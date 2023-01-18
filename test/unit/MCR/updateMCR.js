@@ -1,7 +1,8 @@
 const { expect } = require('chai');
 const { initMCR } = require('./common');
 const { ethers } = require('hardhat');
-const { increaseTime } = require('../utils').evm;
+
+const { increaseTime, mineNextBlock } = require('../utils').evm;
 const { daysToSeconds } = require('../utils').helpers;
 
 const { BigNumber } = ethers;
@@ -47,9 +48,11 @@ describe('updateMCR', function () {
     await cover.setTotalActiveCoverInAsset(0, '100000');
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
-
     const minUpdateTime = await mcr.minUpdateTime();
+
     await increaseTime(minUpdateTime + 1);
+    await mineNextBlock();
+
     await mcr.updateMCR();
 
     const currentBlock = await ethers.provider.getBlockNumber();
@@ -71,9 +74,11 @@ describe('updateMCR', function () {
     await cover.setTotalActiveCoverInAsset(0, parseEther('800000'));
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
-
     const minUpdateTime = await mcr.minUpdateTime();
+
     await increaseTime(minUpdateTime + 1);
+    await mineNextBlock();
+
     await mcr.updateMCR();
 
     const currentBlock = await ethers.provider.getBlockNumber();
@@ -100,7 +105,10 @@ describe('updateMCR', function () {
     await cover.setTotalActiveCoverInAsset(0, parseEther('100000'));
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
+
     await increaseTime(daysToSeconds(1));
+    await mineNextBlock();
+
     await mcr.updateMCR();
 
     const currentBlock = await ethers.provider.getBlockNumber();
@@ -131,6 +139,8 @@ describe('updateMCR', function () {
     const gearingFactor = (await mcr.gearingFactor()).toString();
 
     await increaseTime(daysToSeconds(1));
+    await mineNextBlock();
+
     await mcr.updateMCR();
 
     const currentBlock = await ethers.provider.getBlockNumber();
@@ -162,7 +172,9 @@ describe('updateMCR', function () {
     {
       const totalSumAssured = parseEther('900000');
       await cover.setTotalActiveCoverInAsset(0, totalSumAssured);
+
       await increaseTime(minUpdateTime + 1);
+      await mineNextBlock();
 
       await mcr.updateMCR();
       const storedMCR = await mcr.mcr();
@@ -176,7 +188,9 @@ describe('updateMCR', function () {
     {
       const totalSumAssured = parseEther('800000');
       await cover.setTotalActiveCoverInAsset(0, totalSumAssured);
+
       await increaseTime(minUpdateTime + 1);
+      await mineNextBlock();
 
       await mcr.updateMCR();
       const desiredMCR = await mcr.desiredMCR();
@@ -197,7 +211,9 @@ describe('updateMCR', function () {
     {
       const totalSumAssured = parseEther('900000');
       await cover.setTotalActiveCoverInAsset(0, totalSumAssured);
+
       await increaseTime(minUpdateTime + 1);
+      await mineNextBlock();
 
       await mcr.updateMCR();
       const storedMCR = await mcr.mcr();
@@ -211,7 +227,9 @@ describe('updateMCR', function () {
     {
       const totalSumAssured = parseEther('700000');
       await cover.setTotalActiveCoverInAsset(0, totalSumAssured);
+
       await increaseTime(minUpdateTime + 1);
+      await mineNextBlock();
 
       await mcr.updateMCR();
       const desiredMCR = await mcr.desiredMCR();
@@ -230,6 +248,8 @@ describe('updateMCR', function () {
     const previousMCRFloor = await mcr.mcrFloor();
 
     await increaseTime(daysToSeconds(2));
+    await mineNextBlock();
+
     await mcr.updateMCR();
 
     const currentMCRFloor = await mcr.mcrFloor();
@@ -247,7 +267,10 @@ describe('updateMCR', function () {
     const maxMCRFloorIncrement = await mcr.maxMCRFloorIncrement();
     {
       const previousMCRFloor = await mcr.mcrFloor();
+
       await increaseTime(daysToSeconds(2));
+      await mineNextBlock();
+
       await mcr.updateMCR();
 
       const currentMCRFloor = await mcr.mcrFloor();
@@ -257,7 +280,10 @@ describe('updateMCR', function () {
 
     {
       const previousMCRFloor = await mcr.mcrFloor();
+
       await increaseTime(daysToSeconds(2));
+      await mineNextBlock();
+
       await mcr.updateMCR();
 
       const currentMCRFloor = await mcr.mcrFloor();
@@ -273,7 +299,10 @@ describe('updateMCR', function () {
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
     const minUpdateTime = await mcr.minUpdateTime();
+
     await increaseTime(minUpdateTime + 1);
+    await mineNextBlock();
+
     await mcr.updateMCR();
 
     const desiredMCR = await mcr.desiredMCR();
@@ -293,6 +322,8 @@ describe('updateMCR', function () {
     const minUpdateTime = await mcr.minUpdateTime();
 
     await increaseTime(minUpdateTime + 1);
+    await mineNextBlock();
+
     await mcr.updateMCR();
 
     const desiredMCR = await mcr.desiredMCR();

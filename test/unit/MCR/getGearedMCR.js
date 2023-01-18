@@ -2,9 +2,10 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 
 const { initMCR } = require('./common');
-const { increaseTime } = require('../utils').evm;
-const { parseEther } = ethers.utils;
+const { increaseTime, mineNextBlock } = require('../utils').evm;
 const { hoursToSeconds } = require('../utils').helpers;
+
+const { parseEther } = ethers.utils;
 
 const DEFAULT_MCR_PARAMS = {
   mcrValue: parseEther('150000'),
@@ -25,6 +26,7 @@ describe('getGearedMCR', function () {
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
     await increaseTime(hoursToSeconds(2));
+    await mineNextBlock();
 
     const gearedMCR = await mcr.getGearedMCR();
     expect(gearedMCR).to.be.equal('0');
@@ -42,6 +44,7 @@ describe('getGearedMCR', function () {
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
     await increaseTime(hoursToSeconds(2));
+    await mineNextBlock();
 
     const expectedGearedMCR = activeCoverAmount.mul(BASIS_PRECISION).div(GEARING_FACTOR);
     const gearedMCR = await mcr.getGearedMCR();

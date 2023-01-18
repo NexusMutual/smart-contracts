@@ -287,6 +287,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         // check if this request should be skipped, keeping the previous allocation
         if (poolAllocationRequests[i].skip) {
           coverSegmentAllocations[allocationRequest.coverId][segmentId].push(previousPoolAllocation);
+          totalCoverAmountInNXM += previousPoolAllocation.coverAmountInNXM;
           continue;
         }
 
@@ -295,15 +296,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           previousPoolAllocation.premiumInNXM
           * (allocationRequest.previousExpiration - block.timestamp) // remaining period
           / (allocationRequest.previousExpiration - allocationRequest.previousStart); // previous period
+
+        // get stored allocation id
         allocationRequest.allocationId = previousPoolAllocation.allocationId;
       } else {
+        // request new allocation id
         allocationRequest.allocationId = type(uint).max;
       }
+
       // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
       uint coverAmountInNXM = Math.roundUp(
         Math.divCeil(poolAllocationRequests[i].coverAmountInAsset * ONE_NXM, nxmPriceInCoverAsset),
         NXM_PER_ALLOCATION_UNIT
       );
+
       (uint premiumInNXM, uint allocationId) = stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
         coverAmountInNXM,
         vars.previousPremiumInNXM,
@@ -325,6 +331,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       totalAmountDueInNXM += (vars.refund >= premiumInNXM ? 0 : premiumInNXM - vars.refund);
       totalCoverAmountInNXM += coverAmountInNXM;
     }
+
     totalCoverAmountInCoverAsset = totalCoverAmountInNXM * nxmPriceInCoverAsset / ONE_NXM;
 
     return (totalCoverAmountInCoverAsset, totalAmountDueInNXM);

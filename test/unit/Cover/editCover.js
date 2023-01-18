@@ -77,9 +77,7 @@ describe('editCover', function () {
 
   it('should edit purchased cover and add coverage from a new staking pool', async function () {
     const { cover } = this;
-
     const [coverBuyer, manager] = this.accounts.members;
-
     const { productId, coverAsset, period, amount } = coverBuyFixture;
 
     const { expectedPremium, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);

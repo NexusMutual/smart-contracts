@@ -9,24 +9,23 @@ import "../../interfaces/IPool.sol";
 contract CLMockPool {
   using SafeERC20 for IERC20;
 
-  IPool.Asset[] public coverAssets;
+  Asset[] public assets;
 
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   constructor () {
     // First asset is ETH
-    coverAssets.push(IPool.Asset(ETH, 18));
+    assets.push(Asset(ETH, true, false, false));
   }
 
-  function addAsset(address assetAddress, uint8 decimals) external {
-    coverAssets.push(IPool.Asset(assetAddress, decimals));
+  function addAsset(Asset memory asset) external {
+    assets.push(asset);
   }
 
   function getTokenPrice(uint assetId) public pure returns (uint tokenPrice) {
-    if (assetId == 0) {
-      tokenPrice = 38200000000000000; // 1 NXM ~ 0.0382 ETH
-    }
-    tokenPrice = 3820000000000000000; // 1 NXM ~ 3.82 DAI
+    return assetId == 0
+      ? 0.0382 ether // 1 NXM ~ 0.0382 ETH
+      : 3.82 ether; // 1 NXM ~ 3.82 DAI
   }
 
   function sendPayout (
@@ -34,7 +33,8 @@ contract CLMockPool {
     address payable payoutAddress,
     uint amount
   ) external {
-    IPool.Asset memory asset = coverAssets[assetIndex];
+
+    Asset memory asset = assets[assetIndex];
 
     if (asset.assetAddress == ETH) {
       // solhint-disable-next-line avoid-low-level-calls

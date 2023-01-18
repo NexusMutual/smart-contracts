@@ -96,8 +96,8 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint coverAsset
   ) public view returns (uint, uint) {
     IPool poolContract = pool();
-    uint nxmPriceIncoverAsset = poolContract.getTokenPrice(coverAsset);
-    uint nxmPriceInETH = poolContract.getTokenPrice(0);
+    uint nxmPriceIncoverAsset = poolContract.getTokenPriceInAsset(coverAsset);
+    uint nxmPriceInETH = poolContract.getTokenPriceInAsset(0);
 
     // Calculate the expected payout in NXM using the NXM price at cover purchase time
     uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPriceIncoverAsset;
@@ -170,11 +170,8 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
       assetSymbol = "ETH";
     } else {
 
-      (
-        address coverAsset,
-        /*uint8 decimals*/
-      ) = pool().coverAssets(claim.coverAsset);
-      try IERC20Detailed(coverAsset).symbol() returns (string memory v) {
+      address assetAddress = pool().getAsset(claim.coverAsset).assetAddress;
+      try IERC20Detailed(assetAddress).symbol() returns (string memory v) {
         assetSymbol = v;
       } catch {
         // return assetSymbol as an empty string and use claim.coverAsset instead in the UI

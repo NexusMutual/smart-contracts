@@ -254,10 +254,14 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       {
         uint deductiblePriceBefore = uint(incident.priceBefore) *
           uint(config.payoutDeductibleRatio) / INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
-        (,uint coverAssetDecimals) = IPool(
-          internalContracts[uint(IMasterAwareV2.ID.P1)]
-        ).coverAssets(coverData.coverAsset);
-        payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** uint(coverAssetDecimals));
+
+        address assetAddress = pool().getAsset(coverData.coverAsset).assetAddress;
+        (/* aggregator */, uint coverAssetDecimals) = pool().priceFeedOracle().assets(assetAddress);
+
+        // TODO: stack too deep made me do this, revisit, maybe we can use technology
+        payoutAmount = depeggedTokens;
+        payoutAmount *= deductiblePriceBefore;
+        payoutAmount /= (10 ** uint(coverAssetDecimals));
       }
 
       require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");
@@ -344,6 +348,10 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       }
     }
     config = newConfig;
+  }
+
+  function pool() internal view returns (IPool) {
+    return IPool(internalContracts[uint(ID.P1)]);
   }
 
   /// @dev Updates internal contract addresses to the ones stored in master. This function is

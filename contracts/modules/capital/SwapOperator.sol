@@ -129,7 +129,7 @@ contract SwapOperator {
 
     if (isSellingEth(order)) {
       // Validate min/max setup for buyToken
-      IPool.SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(order.buyToken));
+      SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(order.buyToken));
       require(swapDetails.minAmount != 0 || swapDetails.maxAmount != 0, "SwapOp: buyToken is not enabled");
       uint buyTokenBalance = order.buyToken.balanceOf(address(pool));
       require(buyTokenBalance < swapDetails.minAmount, "SwapOp: can only buy asset when < minAmount");
@@ -161,7 +161,7 @@ contract SwapOperator {
       pool.setSwapValue(totalOutAmount);
     } else if (isBuyingEth(order)) {
       // Validate min/max setup for sellToken
-      IPool.SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(order.sellToken));
+      SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(order.sellToken));
       require(swapDetails.minAmount != 0 || swapDetails.maxAmount != 0, "SwapOp: sellToken is not enabled");
       uint sellTokenBalance = order.sellToken.balanceOf(address(pool));
       require(sellTokenBalance > swapDetails.maxAmount, "SwapOp: can only sell asset when > maxAmount");
@@ -334,7 +334,7 @@ contract SwapOperator {
    * @dev Validates that a given asset is not swapped too fast
    * @param swapDetails Swap details for the given asset
    */
-  function validateSwapFrequency(IPool.SwapDetails memory swapDetails) internal view {
+  function validateSwapFrequency(SwapDetails memory swapDetails) internal view {
     require(
       block.timestamp >= swapDetails.lastSwapTime + MIN_TIME_BETWEEN_ORDERS,
       "SwapOp: already swapped this asset recently"
@@ -376,7 +376,7 @@ contract SwapOperator {
     IERC20Detailed toToken = IERC20Detailed(enzymeV4VaultProxyAddress);
 
 
-    IPool.SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(toToken));
+    SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(toToken));
 
     require(!(swapDetails.minAmount == 0 && swapDetails.maxAmount == 0), "SwapOp: asset is not enabled");
 
@@ -438,7 +438,7 @@ contract SwapOperator {
     uint balanceBefore = fromToken.balanceOf(address(pool));
     {
 
-      IPool.SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(fromToken));
+      SwapDetails memory swapDetails = pool.getAssetSwapDetails(address(fromToken));
 
       require(!(swapDetails.minAmount == 0 && swapDetails.maxAmount == 0), "SwapOp: asset is not enabled");
 
@@ -515,7 +515,7 @@ contract SwapOperator {
 
     IPool pool = _pool();
 
-    IPool.SwapDetails memory swapDetails = pool.getAssetSwapDetails(assetAddress);
+    SwapDetails memory swapDetails = pool.getAssetSwapDetails(assetAddress);
 
     if (swapDetails.minAmount == 0 && swapDetails.maxAmount == 0) {
       // asset is not supported

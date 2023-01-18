@@ -71,10 +71,11 @@ contract CoverViewer {
     ProductType memory productType = cover().productTypes(product.productType);
 
     string memory coverAssetSymbol;
+
     if (coverData.coverAsset == 0) {
       coverAssetSymbol = "ETH";
     } else {
-      (address assetAddress,) = pool().coverAssets(coverData.coverAsset);
+      address assetAddress = pool().getAsset(coverData.coverAsset).assetAddress;
       try IERC20Detailed(assetAddress).symbol() returns (string memory v) {
         coverAssetSymbol = v;
       } catch {

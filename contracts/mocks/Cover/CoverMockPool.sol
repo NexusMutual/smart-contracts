@@ -7,7 +7,7 @@ import "../../interfaces/IPool.sol";
 contract CoverMockPool {
 
   mapping (uint => uint) prices;
-  IPool.Asset[] public coverAssets;
+  Asset[] public assets;
 
   uint32 public deprecatedCoverAssetsBitmap;
 
@@ -15,7 +15,7 @@ contract CoverMockPool {
 
   constructor() {
     // First asset is ETH
-    coverAssets.push(IPool.Asset(ETH, 18));
+    assets.push(Asset(ETH, true, false, false));
   }
 
   function getTokenPrice(uint assetId) public view returns (uint) {
@@ -26,9 +26,9 @@ contract CoverMockPool {
     prices[assetId] = price;
   }
 
-  function setAssets(address[] memory _assets, uint8[] memory _decimals) public {
+  function setAssets(Asset[] memory _assets) public {
     for (uint i = 0; i < _assets.length; i++) {
-      coverAssets.push(IPool.Asset(_assets[i], _decimals[i]));
+      assets.push(_assets[i]);
     }
   }
 

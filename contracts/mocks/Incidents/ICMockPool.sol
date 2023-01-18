@@ -9,33 +9,34 @@ import "../../interfaces/IPool.sol";
 contract ICMockPool {
   using SafeERC20 for IERC20;
 
-  IPool.Asset[] public coverAssets;
+  Asset[] public assets;
 
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   constructor () {
     // First asset is ETH
-    coverAssets.push(IPool.Asset(ETH, 18));
+    assets.push(Asset(ETH, true, false, false));
   }
 
-  function sendPayout (
+  function sendPayout(
     uint assetIndex,
     address payable payoutAddress,
     uint amount
   ) external {
-    IPool.Asset memory asset = coverAssets[assetIndex];
+
+    Asset memory asset = assets[assetIndex];
 
     if (asset.assetAddress == ETH) {
       // solhint-disable-next-line avoid-low-level-calls
-      (bool transferSucceeded, /* data */) = payoutAddress.call{value: amount}("");
+      (bool transferSucceeded, /* data */) = payoutAddress.call{value : amount}("");
       require(transferSucceeded, "Pool: ETH transfer failed");
     } else {
       IERC20(asset.assetAddress).safeTransfer(payoutAddress, amount);
     }
   }
 
-  function addAsset(address assetAddress, uint8 decimals) external {
-    coverAssets.push(IPool.Asset(assetAddress, decimals));
+  function addAsset(Asset memory asset) external {
+    assets.push(asset);
   }
 
   fallback() external payable {}

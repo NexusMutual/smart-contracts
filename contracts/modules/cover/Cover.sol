@@ -157,13 +157,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         revert ProductDeprecated();
       }
 
-      uint32 deprecatedCoverAssets = pool().deprecatedCoverAssetsBitmap();
-      uint32 supportedCoverAssets = _getSupportedCoverAssets(deprecatedCoverAssets, product.coverAssets);
-      if (!isAssetSupported(supportedCoverAssets, params.coverAsset)) {
-        revert PayoutAssetNotSupported();
+      if (!isCoverAssetSupported(params.coverAsset, product.coverAssets)) {
+        revert CoverAssetNotSupported();
       }
-      if (_isCoverAssetDeprecated(deprecatedCoverAssets, params.paymentAsset)) {
-        revert PaymentAssetDeprecated();
+
+      if (!isPaymentAssetSupported(params.paymentAsset)) {
+        revert PaymentAssetNotSupported();
       }
 
       allocationRequest = AllocationRequest(
@@ -234,7 +233,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     (uint coverAmountInCoverAsset, uint amountDueInNXM) = requestAllocation(
       allocationRequest,
       poolAllocationRequests,
-      pool().getTokenPrice(params.coverAsset), // nxmPriceInCoverAsset
+      pool().getTokenPriceInAsset(params.coverAsset), // nxmPriceInCoverAsset
       segmentId
     );
 
@@ -400,7 +399,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     }
 
     IPool _pool = pool();
-    uint premiumInPaymentAsset = _pool.getTokenPrice(paymentAsset) * premiumInNxm / ONE_NXM;
+    uint premiumInPaymentAsset = _pool.getTokenPriceInAsset(paymentAsset) * premiumInNxm / ONE_NXM;
     uint commission = premiumInPaymentAsset * commissionRatio / COMMISSION_DENOMINATOR;
 
     if (premiumInPaymentAsset > maxPremiumInAsset) {
@@ -445,7 +444,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       return;
     }
 
-    (address coverAsset, /*uint8 decimals*/) = _pool.coverAssets(paymentAsset);
+    address coverAsset = _pool.getAsset(paymentAsset).assetAddress;
     IERC20 token = IERC20(coverAsset);
     token.safeTransferFrom(msg.sender, address(_pool), premiumInPaymentAsset);
 
@@ -739,22 +738,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return uint(activeCover[assetId].totalActiveCoverInAsset);
   }
 
-  function getSupportedCoverAssets(uint productId) public view returns (uint32) {
-    return _getSupportedCoverAssets(pool().deprecatedCoverAssetsBitmap(), _products[productId].coverAssets);
-  }
-
-  function _getSupportedCoverAssets(
-    uint32 deprecatedCoverAssetsBitmap,
-    uint32 coverAssetsBitmapForProduct
-  ) internal view returns (uint32) {
-    coverAssetsBitmapForProduct = coverAssetsBitmapForProduct == 0 ? coverAssetsFallback : coverAssetsBitmapForProduct;
-    return coverAssetsBitmapForProduct & ~deprecatedCoverAssetsBitmap;
-  }
-
-  function isAssetSupported(uint32 assetsBitMap, uint8 coverAsset) public pure override returns (bool) {
-    return (1 << coverAsset) & assetsBitMap > 0;
-  }
-
   function isPoolAllowed(uint productId, uint poolId) external view returns (bool) {
 
     uint poolCount = allowedPools[productId].length;
@@ -793,22 +776,27 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     }
   }
 
-  function _isCoverAssetDeprecated(
-    uint32 deprecatedCoverAssetsBitmap,
-    uint8 assetId
-  ) internal pure returns (bool) {
-    return deprecatedCoverAssetsBitmap & (1 << assetId) > 0;
+  function isCoverAssetSupported(uint assetId, uint productCoverAssetsBitmap) internal view returns (bool) {
+
+    if (productCoverAssetsBitmap & (1 << assetId) == 0) {
+      return false;
+    }
+
+    Asset memory asset = pool().getAsset(assetId);
+    return asset.isCoverAsset && !asset.isDeprecated;
   }
 
-  /// @dev Returns true if the assetsBitMap set is included in the coverAssetFallback set
-  /// @param assetsBitMap the assets bitmap for a product
-  /// @param coverAssetFallback  The coverAssetFallback as defined for the storage var with the same name
-  function areAssetsSupported(uint32 assetsBitMap, uint32 coverAssetFallback) public pure returns (bool) {
-    return assetsBitMap & bitwiseNegate(coverAssetFallback) == 0;
+  function isPaymentAssetSupported(uint assetId) internal view returns (bool) {
+    Asset memory asset = pool().getAsset(assetId);
+    return !asset.isDeprecated;
   }
 
-  function bitwiseNegate(uint32 value) internal pure returns (uint32) {
-    return value ^ 0xffffffff;
+  /// Returns true if the assetsBitMap set is included in the supportedCoverAssetsBitmap set
+  ///
+  /// @param assetsBitMap                 the assets bitmap for a product
+  /// @param supportedCoverAssetsBitmap   as defined for the storage var with the same name
+  function areAssetsSupported(uint32 assetsBitMap, uint32 supportedCoverAssetsBitmap) public pure returns (bool) {
+    return assetsBitMap & (~supportedCoverAssetsBitmap) == 0;
   }
 
   /* ========== DEPENDENCIES ========== */

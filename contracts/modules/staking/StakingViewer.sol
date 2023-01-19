@@ -45,25 +45,49 @@ contract StakingViewer {
     );
   }
 
-  function getStakingPoolDetails(
-    uint[] calldata tokenIds
-  ) public view returns (StakingPoolDetails[] memory stakingPoolDetails) {
+  function getAllStakingPoolsDetails() public view returns (StakingPoolDetails[] memory stakingPools) {
+    uint poolsCount = stakingPoolFactory.stakingPoolCount();
+    stakingPools = new StakingPoolDetails[](poolsCount);
 
-    stakingPoolDetails = new StakingPoolDetails[](tokenIds.length);
-
-    for (uint i = 0; i < tokenIds.length; i++) {
-      uint poolId = stakingNFT.stakingPoolOf(tokenIds[i]);
-      IStakingPool pool = stakingPool(poolId);
-
-      stakingPoolDetails[i].poolId = poolId;
-      stakingPoolDetails[i].isPrivatePool = pool.isPrivatePool();
-      stakingPoolDetails[i].manager = pool.manager();
-      stakingPoolDetails[i].poolFee = pool.poolFee();
-      stakingPoolDetails[i].maxPoolFee = pool.maxPoolFee();
-      stakingPoolDetails[i].activeStake = pool.activeStake();
-      stakingPoolDetails[i].currentAPY = pool.rewardPerSecond() * 365 days / pool.activeStake();
+    for (uint i = 0; i < poolsCount; i++) {
+      stakingPools[i] = getStakingPoolDetailsByPoolId(i);
     }
 
+    return stakingPools;
+  }
+
+  function getAllStakingPoolsDetailsByTokenIds(
+    uint[] memory tokenIds
+  ) public view returns (StakingPoolDetails[] memory stakingPools) {
+
+    for (uint i = 0; i < tokenIds.length; i++) {
+      stakingPools[i] = getStakingPoolDetailsByTokenId(tokenIds[i]);
+    }
+
+    return stakingPools;
+  }
+
+  function getStakingPoolDetailsByPoolId(
+    uint poolId
+  ) public view returns (StakingPoolDetails memory stakingPoolDetails) {
+    IStakingPool pool = stakingPool(poolId);
+
+    stakingPoolDetails.poolId = poolId;
+    stakingPoolDetails.isPrivatePool = pool.isPrivatePool();
+    stakingPoolDetails.manager = pool.manager();
+    stakingPoolDetails.poolFee = pool.poolFee();
+    stakingPoolDetails.maxPoolFee = pool.maxPoolFee();
+    stakingPoolDetails.activeStake = pool.activeStake();
+    stakingPoolDetails.currentAPY = pool.rewardPerSecond() * 365 days / pool.activeStake();
+
     return stakingPoolDetails;
+  }
+
+  function getStakingPoolDetailsByTokenId(
+    uint tokenId
+  ) public view returns (StakingPoolDetails memory stakingPoolDetails) {
+    return getStakingPoolDetailsByPoolId(
+      stakingNFT.stakingPoolOf(tokenId)
+    );
   }
 }

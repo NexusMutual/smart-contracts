@@ -126,6 +126,14 @@ interface IStakingPool {
     uint rewardsShares
   );
 
+  function products(uint productId) external view returns (
+    uint16 lastEffectiveWeight,
+    uint8 targetWeight,
+    uint96 targetPrice,
+    uint96 bumpedPrice,
+    uint32 bumpedPriceUpdateTime
+  );
+
   function expiredTranches(uint trancheId) external view returns (
     uint accNxmPerRewardShareAtExpiry,
     uint stakeAmountAtExpiry,

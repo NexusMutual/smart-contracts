@@ -1,12 +1,16 @@
-const { assert } = require('chai');
-const { ether, time } = require('@openzeppelin/test-helpers');
+const { expect } = require('chai');
+const { ethers } = require('hardhat');
+
 const { initMCR } = require('./common');
-const { hex } = require('../utils').helpers;
+const { increaseTime, mineNextBlock } = require('../utils').evm;
+const { hoursToSeconds } = require('../utils').helpers;
+
+const { parseEther } = ethers.utils;
 
 const DEFAULT_MCR_PARAMS = {
-  mcrValue: ether('150000'),
-  mcrFloor: ether('150000'),
-  desiredMCR: ether('150000'),
+  mcrValue: parseEther('150000'),
+  mcrFloor: parseEther('150000'),
+  desiredMCR: parseEther('150000'),
   mcrFloorIncrementThreshold: '13000',
   maxMCRFloorIncrement: '100',
   maxMCRIncrement: '500',
@@ -14,34 +18,36 @@ const DEFAULT_MCR_PARAMS = {
   minUpdateTime: '3600',
 };
 
-// TODO: current tests are using quotation data, need rewriting to use Cover instead
-describe.skip('getGearedMCR', function () {
+describe('getGearedMCR', function () {
   it('should return gearedMCR = 0 if there are no active covers', async function () {
-    const { master, quotationData } = this;
+    const { master, cover } = this;
 
-    await quotationData.setTotalSumAssured(hex('ETH'), '0');
+    await cover.setTotalActiveCoverInAsset(0, '0'); // ETH
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
-
-    await time.increase(time.duration.hours(2));
+    await increaseTime(hoursToSeconds(2));
+    await mineNextBlock();
 
     const gearedMCR = await mcr.getGearedMCR();
-    assert.equal(gearedMCR.toString(), '0');
+    expect(gearedMCR).to.be.equal('0');
   });
 
   it('should return correct geared MCR value', async function () {
-    const { master, quotationData } = this;
+    const { master, cover } = this;
 
-    const sumAssuredEther = '10000';
-    const sumAssured = ether(sumAssuredEther);
-    await quotationData.setTotalSumAssured(hex('ETH'), sumAssuredEther);
+    const GEARING_FACTOR = 48000;
+    const BASIS_PRECISION = 10000;
+    const activeCoverAmount = parseEther('10000');
+
+    await cover.setTotalActiveCoverInAsset(0, activeCoverAmount); // ETH
+    await cover.setTotalActiveCoverInAsset(1, '0'); // DAI
 
     const mcr = await initMCR({ ...DEFAULT_MCR_PARAMS, master });
+    await increaseTime(hoursToSeconds(2));
+    await mineNextBlock();
 
-    await time.increase(time.duration.hours(2));
-
-    const expectedGearedMCR = sumAssured.muln(10000).divn(48000);
+    const expectedGearedMCR = activeCoverAmount.mul(BASIS_PRECISION).div(GEARING_FACTOR);
     const gearedMCR = await mcr.getGearedMCR();
-    assert.equal(gearedMCR.toString(), expectedGearedMCR.toString());
+    expect(gearedMCR).to.be.equal(expectedGearedMCR);
   });
 });

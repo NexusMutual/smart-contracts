@@ -1,51 +1,47 @@
-const { artifacts, web3 } = require('hardhat');
-const { ether } = require('@openzeppelin/test-helpers');
+const { ethers } = require('hardhat');
+const { parseEther, parseUnits } = ethers.utils;
 
-const { Role } = require('../utils').constants;
-const accounts = require('../utils').accounts;
-const { hex } = require('../utils').helpers;
 const { initMCR } = require('./common');
-
-const { toBN } = web3.utils;
+const accounts = require('../utils').accounts;
+const { Role } = require('../utils').constants;
+const { hex } = require('../utils').helpers;
 
 async function setup() {
-  const MasterMock = artifacts.require('MasterMock');
-  const Pool = artifacts.require('MCRMockPool');
-  const ERC20Mock = artifacts.require('ERC20Mock');
-  const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-  const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
-  const Cover = artifacts.require('MCRMockCover');
-  const QuotationData = artifacts.require('MCRMockQuotationData');
+  const MasterMock = await ethers.getContractFactory('MasterMock');
+  const Pool = await ethers.getContractFactory('MCRMockPool');
+  const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+  const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
+  const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+  const Cover = await ethers.getContractFactory('MCRMockCover');
 
-  const master = await MasterMock.new();
-  const dai = await ERC20Mock.new();
-  const stETH = await ERC20Mock.new();
+  const master = await MasterMock.deploy();
+  const dai = await ERC20Mock.deploy();
+  const stETH = await ERC20Mock.deploy();
 
-  const ethToDaiRate = ether('2000');
-  const daiToEthRate = toBN(10).pow(toBN(36)).div(ethToDaiRate);
+  const ethToDaiRate = parseEther('2000');
+  const daiToEthRate = parseUnits('1', 36).div(ethToDaiRate);
 
-  const chainlinkDAI = await ChainlinkAggregatorMock.new();
+  const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
-  const chainlinkSteth = await ChainlinkAggregatorMock.new();
-  await chainlinkSteth.setLatestAnswer(toBN((1e18).toString()));
+  const chainlinkSteth = await ChainlinkAggregatorMock.deploy();
+  await chainlinkSteth.setLatestAnswer(parseEther('1'));
 
-  const priceFeedOracle = await PriceFeedOracle.new(
+  const priceFeedOracle = await PriceFeedOracle.deploy(
     [dai.address, stETH.address],
     [chainlinkDAI.address, chainlinkSteth.address],
     [18, 18],
   );
 
-  const pool = await Pool.new(priceFeedOracle.address);
-  const cover = await Cover.new();
-  const quotationData = await QuotationData.new();
+  const pool = await Pool.deploy(priceFeedOracle.address);
+  const cover = await Cover.deploy();
 
-  await cover.setTotalActiveCoverInAsset(0, ether('100000')); // ETH
+  await cover.setTotalActiveCoverInAsset(0, parseEther('100000')); // ETH
   await cover.setTotalActiveCoverInAsset(1, '0'); // DAI
 
   const mcr = await initMCR({
-    mcrValue: ether('150000'),
-    mcrFloor: ether('150000'),
-    desiredMCR: ether('150000'),
+    mcrValue: parseEther('150000'),
+    mcrFloor: parseEther('150000'),
+    desiredMCR: parseEther('150000'),
     mcrFloorIncrementThreshold: '13000',
     maxMCRFloorIncrement: '100',
     maxMCRIncrement: '500',
@@ -81,7 +77,6 @@ async function setup() {
   this.chainlinkDAI = chainlinkDAI;
   this.mcr = mcr;
   this.cover = cover;
-  this.quotationData = quotationData;
 }
 
 module.exports = setup;

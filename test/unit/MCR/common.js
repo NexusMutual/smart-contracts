@@ -1,8 +1,8 @@
-const { artifacts, web3 } = require('hardhat');
-const { time } = require('@openzeppelin/test-helpers');
+const { ethers } = require('hardhat');
+const { BigNumber } = ethers;
 const { hex } = require('../utils').helpers;
 
-const MAX_PERCENTAGE_ADJUSTMENT = web3.utils.toBN(100);
+const MAX_PERCENTAGE_ADJUSTMENT = BigNumber.from('100');
 
 async function initMCR(params) {
   const {
@@ -18,27 +18,26 @@ async function initMCR(params) {
     master,
   } = params;
 
-  const latest = await time.latest();
-  const mcrParams = [
+  const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
+
+  const DisposableMCR = await ethers.getContractFactory('DisposableMCR');
+  const MCR = await ethers.getContractFactory('MCR');
+
+  // deploy disposable mcr and initialize values
+  const disposableMCR = await DisposableMCR.deploy(
     mcrValue,
     mcrFloor,
     desiredMCR,
-    lastUpdateTime || latest,
+    lastUpdateTime || currentTime,
     mcrFloorIncrementThreshold,
     maxMCRFloorIncrement,
     maxMCRIncrement,
     gearingFactor,
     minUpdateTime,
-  ];
-
-  const DisposableMCR = artifacts.require('DisposableMCR');
-  const MCR = artifacts.require('MCR');
-
-  // deploy disposable mcr and initialize values
-  const disposableMCR = await DisposableMCR.new(...mcrParams);
+  );
 
   // deploy mcr with fake master
-  const mcr = await MCR.new(disposableMCR.address);
+  const mcr = await MCR.deploy(disposableMCR.address);
 
   // trigger initialize and switch master address
   await disposableMCR.initializeNextMcr(mcr.address, master.address);

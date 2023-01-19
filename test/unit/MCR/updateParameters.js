@@ -1,9 +1,9 @@
-const { assert } = require('chai');
-const { expectRevert } = require('@openzeppelin/test-helpers');
-const { hex } = require('../utils').helpers;
+const { expect } = require('chai');
+const { ethers } = require('hardhat');
 
 const accounts = require('../utils').accounts;
 const { MCRUintParamType } = require('../utils').constants;
+const { toBytes8 } = require('../utils').helpers;
 
 const {
   nonMembers: [nonMember],
@@ -20,7 +20,8 @@ describe('updateUintParameters', function () {
     const nonGov = [nonMember, member, advisoryBoardMember, internalContract];
 
     for (const address of nonGov) {
-      await expectRevert.unspecified(mcr.updateUintParameters(param, 0, { from: address }));
+      const signer = await ethers.getSigner(address);
+      await expect(mcr.connect(signer).updateUintParameters(param, 0)).to.be.reverted;
     }
   });
 
@@ -32,20 +33,21 @@ describe('updateUintParameters', function () {
 
     for (const paramName of params) {
       const before = await mcr[paramName]();
-      assert.notStrictEqual(before.toString(), value);
+      expect(before).to.not.be.equal(value);
 
-      const param = MCRUintParamType[paramName];
-      await mcr.updateUintParameters(param, value, { from: governanceContract });
+      const signer = await ethers.getSigner(governanceContract);
+      await mcr.connect(signer).updateUintParameters(MCRUintParamType[paramName], value);
 
       const actual = await mcr[paramName]();
-      assert.strictEqual(actual.toString(), value.toString());
+      expect(actual).to.be.equal(value);
     }
   });
 
   it('should revert on unknown parameter code', async function () {
     const { mcr } = this;
-    await expectRevert(
-      mcr.updateUintParameters(hex('RAND'), '123', { from: governanceContract }),
+
+    const signer = await ethers.getSigner(governanceContract);
+    await expect(mcr.connect(signer).updateUintParameters(toBytes8('RAND'), '123')).to.be.revertedWith(
       'Invalid param code',
     );
   });

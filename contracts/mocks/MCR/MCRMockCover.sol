@@ -1,21 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.9;
+
+import "../../interfaces/ICover.sol";
 
 contract MCRMockCover {
 
-  mapping(uint24 => uint) public sumAssuredByAsset;
+  mapping(uint24 => uint) public totalActiveCoverInAsset;
 
-
-  function totalActiveCoverInAsset(uint24 coverAsset) external view returns (uint) {
-    return sumAssuredByAsset[coverAsset];
+  function getTotalActiveCoverInAsset(uint24 coverAsset) external view returns (uint) {
+    return totalActiveCoverInAsset[coverAsset];
   }
 
   function setTotalActiveCoverInAsset(uint24 asset, uint amount) public {
-    sumAssuredByAsset[asset] = amount;
-  }
-
-  function activeCoverAmountCommitted() public pure returns (bool) {
-    return true;
+    totalActiveCoverInAsset[asset] = amount;
   }
 }

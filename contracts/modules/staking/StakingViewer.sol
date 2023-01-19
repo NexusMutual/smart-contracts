@@ -14,7 +14,7 @@ import "../../libraries/UncheckedMath.sol";
 contract StakingViewer {
   using UncheckedMath for uint;
 
-  struct StakingPoolDetails {
+  struct StakingPoolOverview {
     uint poolId;
     bool isPrivatePool;
     address manager;
@@ -22,6 +22,18 @@ contract StakingViewer {
     uint8 maxPoolFee;
     uint activeStake;
     uint currentAPY;
+  }
+
+  struct StakingPoolProduct {
+    uint16 lastEffectiveWeight;
+    uint8 targetWeight;
+    uint96 targetPrice;
+    uint96 bumpedPrice;
+  }
+
+  struct StakingPoolProductsDetails {
+    StakingPoolOverview poolOverview;
+    StakingPoolProduct[] products;
   }
 
   struct StakingPeriod {
@@ -34,7 +46,8 @@ contract StakingViewer {
     uint totalActiveStake;
     uint totalExpiredStake;
     uint withdrawableRewards;
-//    StakingPeriod[] stakingPeriodDetails;
+    uint poolsCount;
+    StakingPeriod[] stakingPeriods;
   }
 
   INXMMaster internal immutable master;
@@ -68,39 +81,39 @@ contract StakingViewer {
 
   /* ========== Staking Pools Details ========== */
 
-  function getStakingPoolDetailsByPoolId(
+  function getStakingPoolOverviewByPoolId(
     uint poolId
-  ) public view returns (StakingPoolDetails memory stakingPoolDetails) {
+  ) public view returns (StakingPoolOverview memory stakingPoolOverview) {
     IStakingPool pool = stakingPool(poolId);
 
-    stakingPoolDetails.poolId = poolId;
-    stakingPoolDetails.isPrivatePool = pool.isPrivatePool();
-    stakingPoolDetails.manager = pool.manager();
-    stakingPoolDetails.poolFee = pool.poolFee();
-    stakingPoolDetails.maxPoolFee = pool.maxPoolFee();
-    stakingPoolDetails.activeStake = pool.activeStake();
-    stakingPoolDetails.currentAPY =
+    stakingPoolOverview.poolId = poolId;
+    stakingPoolOverview.isPrivatePool = pool.isPrivatePool();
+    stakingPoolOverview.manager = pool.manager();
+    stakingPoolOverview.poolFee = pool.poolFee();
+    stakingPoolOverview.maxPoolFee = pool.maxPoolFee();
+    stakingPoolOverview.activeStake = pool.activeStake();
+    stakingPoolOverview.currentAPY =
       pool.activeStake() != 0
         ? pool.rewardPerSecond() * 365 days / pool.activeStake()
         : 0;
 
-    return stakingPoolDetails;
+    return stakingPoolOverview;
   }
 
-  function getStakingPoolDetailsByTokenId(
+  function getStakingPoolOverviewByTokenId(
     uint tokenId
-  ) public view returns (StakingPoolDetails memory stakingPoolDetails) {
-    return getStakingPoolDetailsByPoolId(
+  ) public view returns (StakingPoolOverview memory stakingPoolOverview) {
+    return getStakingPoolOverviewByPoolId(
       stakingNFT.stakingPoolOf(tokenId)
     );
   }
 
-  function getAllStakingPools() public view returns (StakingPoolDetails[] memory stakingPools) {
+  function getAllStakingPools() public view returns (StakingPoolOverview[] memory stakingPools) {
     uint poolsCount = stakingPoolFactory.stakingPoolCount();
-    stakingPools = new StakingPoolDetails[](poolsCount);
+    stakingPools = new StakingPoolOverview[](poolsCount);
 
     for (uint i = 0; i < poolsCount; i++) {
-      stakingPools[i] = getStakingPoolDetailsByPoolId(i);
+      stakingPools[i] = getStakingPoolOverviewByPoolId(i);
     }
 
     return stakingPools;
@@ -108,13 +121,55 @@ contract StakingViewer {
 
   function getStakingPoolsByTokenIds(
     uint[] memory tokenIds
-  ) public view returns (StakingPoolDetails[] memory stakingPools) {
+  ) public view returns (StakingPoolOverview[] memory stakingPools) {
 
     for (uint i = 0; i < tokenIds.length; i++) {
-      stakingPools[i] = getStakingPoolDetailsByTokenId(tokenIds[i]);
+      stakingPools[i] = getStakingPoolOverviewByTokenId(tokenIds[i]);
     }
 
     return stakingPools;
+  }
+
+  function getStakingPoolWithProductsByPoolId(
+    uint poolId
+  ) public view returns (StakingPoolProductsDetails memory stakingPoolDetails) {
+
+    uint allProductsCount = cover().productsCount();
+    StakingPoolProduct[] memory stakedProductsQueue = new StakingPoolProduct[](allProductsCount);
+    uint stakedProductsCount = 0;
+
+    for (uint i = 0; i < allProductsCount; i++) {
+      (
+        uint16 lastEffectiveWeight,
+        uint8 targetWeight,
+        uint96 targetPrice,
+        uint96 bumpedPrice,
+        uint32 bumpedPriceUpdateTime
+      ) = stakingPool(poolId).products(i);
+
+      if (targetWeight == 0 && lastEffectiveWeight == 0 && bumpedPriceUpdateTime == 0) {
+        continue;
+      }
+
+      StakingPoolProduct memory stakedProduct;
+      stakedProduct.lastEffectiveWeight = lastEffectiveWeight;
+      stakedProduct.targetWeight = targetWeight;
+      stakedProduct.bumpedPrice = bumpedPrice;
+      stakedProduct.targetPrice = targetPrice;
+
+      stakedProductsQueue[stakedProductsCount] = stakedProduct;
+      stakedProductsCount++;
+    }
+
+    StakingPoolProduct[] memory stakedProducts = new StakingPoolProduct[](stakedProductsCount);
+    for (uint i = 0; i < stakedProductsCount; i++) {
+      stakedProducts[i] = stakedProductsQueue[i];
+    }
+
+    stakingPoolDetails.poolOverview = getStakingPoolOverviewByPoolId(poolId);
+    stakingPoolDetails.products = stakedProducts;
+
+    return stakingPoolDetails;
   }
 
   /* ========== Staker Details ========== */
@@ -183,7 +238,7 @@ contract StakingViewer {
     return stakerDetails;
   }
 
-  function getStakerDetailsByTokenIds(
+  function getStakerDetailsByPoolId(
     uint[] calldata tokenIds,
     uint poolId
   ) public view returns (StakerDetails memory stakerDetails) {
@@ -203,4 +258,24 @@ contract StakingViewer {
 
     return stakerDetails;
   }
+
+//  function getAllStakerDetails(
+//    uint[] calldata tokenIds
+//  ) public view returns (StakerDetails memory stakerDetails) {
+//
+//    uint stakingPoolCount = 0;
+//    for (uint i = 0; i < tokenIds.length; i++) {
+//      if (stakingNFT.stakingPoolOf(tokenIds[i]) != poolId) {
+//        continue;
+//      }
+//
+//      StakerDetails memory stakerDetailsForToken = getStakerDetailsByTokenId(tokenIds[i]);
+//
+//      stakerDetails.totalActiveStake += stakerDetailsForToken.totalActiveStake;
+//      stakerDetails.totalExpiredStake += stakerDetailsForToken.totalExpiredStake;
+//      stakerDetails.withdrawableRewards += stakerDetailsForToken.withdrawableRewards;
+//    }
+//
+//    return stakerDetails;
+//  }
 }

@@ -57,6 +57,8 @@ interface IPool {
 
   function getTokenPriceInAsset(uint assetId) external view returns (uint tokenPrice);
 
+  function getTokenPrice() external view returns (uint tokenPrice);
+
   function getMCRRatio() external view returns (uint);
 
   function setSwapValue(uint value) external;

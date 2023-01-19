@@ -593,6 +593,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   /// @dev You may want TokenController.getTokenPrice() for a stable address since it's a proxy.
   ///
   /// @param assetId  Index of the cover asset.
+  ///
   function getTokenPriceInAsset(uint assetId) public override view returns (uint tokenPrice) {
 
     require(assetId < assets.length, "Pool: Unknown cover asset");
@@ -603,6 +604,16 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     uint tokenSpotPriceEth = calculateTokenSpotPrice(totalAssetValue, mcrEth);
 
     return priceFeedOracle.getAssetForEth(assetAddress, tokenSpotPriceEth);
+  }
+
+  /// [deprecated] Returns the NXM price in ETH.
+  ///
+  /// @dev The pool contract is not a proxy and its address will change as we upgrade it.
+  /// @dev You may want TokenController.getTokenPrice() for a stable address since it's a proxy.
+  ///
+  function getTokenPrice() public override view returns (uint tokenPrice) {
+    // ETH asset id = 0
+    return getTokenPriceInAsset(0);
   }
 
   function getMCRRatio() public override view returns (uint) {

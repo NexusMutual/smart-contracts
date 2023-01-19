@@ -229,8 +229,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   ///
   /// @dev Intended for external protocols - this is a proxy and the contract address won't change
   function getTokenPrice() public override view returns (uint tokenPrice) {
-    // ETH asset id = 0
-    return pool().getTokenPriceInAsset(0);
+    return pool().getTokenPrice();
   }
 
   /// Withdraws governance rewards for the given member address

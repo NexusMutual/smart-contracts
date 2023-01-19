@@ -213,7 +213,7 @@ async function main() {
   await deployImmutable('CoverViewer', [master.address]);
 
   console.log('Deploying StakingViewer');
-  await deployImmutable('StakingViewer', [master.address]);
+  await deployImmutable('StakingViewer', [master.address, stakingNFT.address, spf.address]);
 
   console.log('Deploying assessment contracts');
   const yt = await deployProxy('YieldTokenIncidents', [tk.address, coverNFT.address]);

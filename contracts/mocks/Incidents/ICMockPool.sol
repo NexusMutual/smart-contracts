@@ -15,7 +15,7 @@ contract ICMockPool {
 
   constructor () {
     // First asset is ETH
-    assets.push(Asset(ETH, true, false, false));
+    assets.push(Asset(ETH, true, false));
   }
 
   function sendPayout(

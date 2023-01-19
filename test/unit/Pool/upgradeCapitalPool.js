@@ -7,7 +7,8 @@ const { AddressZero } = ethers.constants;
 
 describe('upgradeCapitalPool', function () {
   it('moves pool funds to new pool', async function () {
-    const { pool, master, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
+    const { pool, master, dai, stETH, enzymeVault } = this;
+    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = this;
     const [governance] = this.accounts.governanceContracts;
     const { defaultSender } = this.accounts;
 
@@ -21,9 +22,9 @@ describe('upgradeCapitalPool', function () {
 
     const coverToken = await ERC20Mock.deploy();
     const priceFeedOracle = await PriceFeedOracle.deploy(
-      [dai.address, stETH.address, coverToken.address],
-      [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
-      [18, 18, 18],
+      [dai.address, stETH.address, enzymeVault.address, coverToken.address],
+      [chainlinkDAI.address, chainlinkSteth.address, chainlinkEnzymeVault.address, chainlinkNewAsset.address],
+      [18, 18, 18, 18],
     );
     await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
@@ -31,8 +32,8 @@ describe('upgradeCapitalPool', function () {
     const tokenAmount = parseEther('100000');
     await governance.sendTransaction({ value: ethAmount, to: pool.address });
 
-    await pool.connect(governance).addAsset(coverToken.address, 18, '0', '0', 100, true);
-    const tokens = [dai, stETH, coverToken];
+    await pool.connect(governance).addAsset(coverToken.address, true, '0', '0', 100);
+    const tokens = [dai, stETH, enzymeVault, coverToken];
     for (const token of tokens) {
       await token.mint(pool.address, tokenAmount);
     }
@@ -43,6 +44,7 @@ describe('upgradeCapitalPool', function () {
       AddressZero, // we do not test swaps here
       dai.address,
       stETH.address,
+      enzymeVault.address,
     );
 
     await master.upgradeCapitalPool(pool.address, newPool.address);
@@ -61,7 +63,8 @@ describe('upgradeCapitalPool', function () {
   });
 
   it('abandons marked assets on pool upgrade', async function () {
-    const { pool, master, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
+    const { pool, master, dai, stETH, enzymeVault } = this;
+    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = this;
     const [governance] = this.accounts.governanceContracts;
     const { defaultSender } = this.accounts;
 
@@ -82,17 +85,23 @@ describe('upgradeCapitalPool', function () {
     await chainlinkNewAsset.setLatestAnswer(parseEther('1'));
 
     const priceFeedOracle = await PriceFeedOracle.deploy(
-      [dai.address, stETH.address, coverToken.address, nonRevertingERC20.address],
-      [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address, chainlinkNewAsset.address],
-      [18, 18, 18, 18],
+      [dai.address, stETH.address, enzymeVault.address, coverToken.address, nonRevertingERC20.address],
+      [
+        chainlinkDAI.address,
+        chainlinkSteth.address,
+        chainlinkEnzymeVault.address,
+        chainlinkNewAsset.address,
+        chainlinkNewAsset.address,
+      ],
+      [18, 18, 18, 18, 18],
     );
     await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
 
-    await pool.connect(governance).addAsset(coverToken.address, 18, '0', '0', 100, true);
+    await pool.connect(governance).addAsset(coverToken.address, true, '0', '0', 100);
 
-    await pool.connect(governance).addAsset(nonRevertingERC20.address, 18, '0', '0', 100, true);
+    await pool.connect(governance).addAsset(nonRevertingERC20.address, true, '0', '0', 100);
 
-    const tokens = [dai, stETH, coverToken];
+    const tokens = [dai, stETH, enzymeVault, coverToken];
     for (const token of tokens) {
       await token.mint(pool.address, tokenAmount);
     }
@@ -103,6 +112,7 @@ describe('upgradeCapitalPool', function () {
       AddressZero, // we do not test swaps here
       dai.address,
       stETH.address,
+      enzymeVault.address,
     );
 
     await stETH.blacklistSender(pool.address);
@@ -111,8 +121,8 @@ describe('upgradeCapitalPool', function () {
       'ERC20Mock: sender is blacklisted',
     );
 
-    await pool.connect(governance).setAssetsToAbandon([nonRevertingERC20.address], true);
-    await pool.connect(governance).setAssetsToAbandon([stETH.address], true);
+    await pool.connect(governance).setAssetDetails(5, false, true); // nonRevertinggERC20
+    await pool.connect(governance).setAssetDetails(2, false, true); // stEth
 
     await master.upgradeCapitalPool(pool.address, newPool.address);
 

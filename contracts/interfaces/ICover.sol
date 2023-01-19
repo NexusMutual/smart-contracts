@@ -241,7 +241,6 @@ interface ICover {
 
   // Cover and payment assets
   error CoverAssetNotSupported();
-  error PaymentAssetNotSupported();
   error UnexpectedCoverAsset();
   error UnsupportedCoverAssets();
 

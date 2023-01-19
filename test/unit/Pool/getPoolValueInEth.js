@@ -28,27 +28,38 @@ describe('getPoolValueInEth', function () {
     expect(poolValue).to.equal(expectedPoolValue);
   });
 
-  it('shouldnt fail when sent an EOA address', async function () {
-    const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
+  it('should not fail when pool asset balanceOf reverts', async function () {
+    const { pool, dai, stETH, enzymeVault } = this;
+    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = this;
     const [governance] = this.accounts.governanceContracts;
 
-    const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
+    const ERC20RevertingBalanceOfMock = await ethers.getContractFactory('ERC20RevertingBalanceOfMock');
     const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
     const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
 
-    const otherToken = await ERC20Mock.deploy();
-    const chainlinkNewAsset = await ChainlinkAggregatorMock.deploy();
-    await chainlinkNewAsset.setLatestAnswer(parseEther('1'));
+    const revertingERC20 = await ERC20RevertingBalanceOfMock.deploy();
+    const chainlinkForRevertingERC20 = await ChainlinkAggregatorMock.deploy();
+    await chainlinkForRevertingERC20.setLatestAnswer(parseEther('1'));
 
     const priceFeedOracle = await PriceFeedOracle.deploy(
-      [dai.address, stETH.address, otherToken.address],
-      [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
-      [18, 18, 18],
+      [dai, stETH, enzymeVault, revertingERC20].map(c => c.address),
+      [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkForRevertingERC20].map(c => c.address),
+      [18, 18, 18, 18],
     );
 
     await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
-    await pool.connect(governance).addAsset(otherToken.address, 18, parseEther('10'), parseEther('100'), 1000, false);
-    await pool.getPoolValueInEth();
+    await pool.connect(governance).addAsset(revertingERC20.address, true, '0', parseEther('100'), '1000');
+
+    // 1 token = 1 eth
+    const tokenValue = parseEther('1');
+
+    await revertingERC20.setBalance(pool.address, tokenValue);
+    const valueWithToken = await pool.getPoolValueInEth();
+
+    await revertingERC20.setIsReverting(true);
+    const valueWithoutToken = await pool.getPoolValueInEth();
+
+    expect(valueWithToken).to.equal(valueWithoutToken.add(tokenValue));
   });
 
   it('includes swapValue in the calculation', async function () {

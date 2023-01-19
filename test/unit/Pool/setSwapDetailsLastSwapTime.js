@@ -7,7 +7,8 @@ const { toBytes8 } = require('../utils').helpers;
 
 describe('setSwapDetailsLastSwapTime', function () {
   before(async function () {
-    const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
+    const { pool, dai, stETH, enzymeVault } = this;
+    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = this;
     const [governance] = this.accounts.governanceContracts;
 
     const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
@@ -20,9 +21,9 @@ describe('setSwapDetailsLastSwapTime', function () {
     await chainlinkNewAsset.setLatestAnswer(BigNumber.from((1e18).toString()));
 
     const priceFeedOracle = await PriceFeedOracle.deploy(
-      [dai.address, stETH.address, otherToken.address],
-      [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
-      [18, 18, 18],
+      [dai.address, stETH.address, enzymeVault.address, otherToken.address],
+      [chainlinkDAI.address, chainlinkSteth.address, chainlinkEnzymeVault.address, chainlinkNewAsset.address],
+      [18, 18, 18, 18],
     );
 
     await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
@@ -38,7 +39,7 @@ describe('setSwapDetailsLastSwapTime', function () {
     } = this.accounts;
 
     const tokenAmount = parseEther('100000');
-    await pool.connect(governance).addAsset(otherToken.address, 18, '0', '0', 100, true);
+    await pool.connect(governance).addAsset(otherToken.address, true, '0', '0', 100);
     await otherToken.mint(pool.address, tokenAmount);
 
     const lastSwapTime = 11512651;
@@ -59,7 +60,7 @@ describe('setSwapDetailsLastSwapTime', function () {
     } = this.accounts;
 
     const tokenAmount = parseEther('100000');
-    await pool.connect(governance).addAsset(otherToken.address, 18, '0', '0', 100, true);
+    await pool.connect(governance).addAsset(otherToken.address, true, '0', '0', 100);
     await otherToken.mint(pool.address, tokenAmount);
 
     const lastSwapTime = '11512651';

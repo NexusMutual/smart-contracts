@@ -161,10 +161,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         revert CoverAssetNotSupported();
       }
 
-      if (!isPaymentAssetSupported(params.paymentAsset)) {
-        revert PaymentAssetNotSupported();
-      }
-
       allocationRequest = AllocationRequest(
         params.productId,
         coverId,
@@ -782,13 +778,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       return false;
     }
 
-    Asset memory asset = pool().getAsset(assetId);
-    return asset.isCoverAsset && !asset.isDeprecated;
-  }
-
-  function isPaymentAssetSupported(uint assetId) internal view returns (bool) {
-    Asset memory asset = pool().getAsset(assetId);
-    return !asset.isDeprecated;
+    return pool().getAsset(assetId).isCoverAsset;
   }
 
   /// Returns true if the assetsBitMap set is included in the supportedCoverAssetsBitmap set

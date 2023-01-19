@@ -15,7 +15,6 @@ struct SwapDetails {
 struct Asset {
   address assetAddress;
   bool isCoverAsset;
-  bool isDeprecated;
   bool isAbandoned;
 }
 

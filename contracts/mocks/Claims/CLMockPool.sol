@@ -15,7 +15,7 @@ contract CLMockPool {
 
   constructor () {
     // First asset is ETH
-    assets.push(Asset(ETH, true, false, false));
+    assets.push(Asset(ETH, true, false));
   }
 
   function addAsset(Asset memory asset) external {

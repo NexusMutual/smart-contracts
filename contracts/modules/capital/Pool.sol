@@ -79,7 +79,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       Asset(
         ETH, // asset address
         true, // is cover asset
-        false, // is deprecated
         false // is abandoned
       )
     );
@@ -88,7 +87,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       Asset(
         DAIAddress, // asset address
         true, // is cover asset
-        false, // is deprecated
         false // is abandoned
       )
     );
@@ -97,7 +95,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       Asset(
         stETHAddress, // asset address
         false, // is cover asset
-        false, // is deprecated
         false // is abandoned
       )
     );
@@ -106,7 +103,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       Asset(
         nxmtyVaultAddress, // asset address
         false, // is cover asset
-        false, // is deprecated
         false // is abandoned
       )
     );
@@ -223,7 +219,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
       Asset(
         assetAddress,
         isCoverAsset,
-        false, // is deprecated
         false  // is abandoned
       )
     );
@@ -238,28 +233,13 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   }
 
   function setAssetDetails(
-    address assetAddress,
+    uint assetId,
     bool isCoverAsset,
-    bool isDeprecated,
     bool isAbandoned
   ) external onlyGovernance {
-
-    uint assetCount = assets.length;
-
-    for (uint i = 0; i < assetCount; i++) {
-
-      if (assetAddress != assets[i].assetAddress) {
-        continue;
-      }
-
-      assets[i].isCoverAsset = isCoverAsset;
-      assets[i].isDeprecated = isDeprecated;
-      assets[i].isAbandoned = isAbandoned;
-
-      return;
-    }
-
-    revert("Pool: Asset not found");
+    require(assets.length > assetId, "Pool: Asset does not exist");
+    assets[assetId].isCoverAsset = isCoverAsset;
+    assets[assetId].isAbandoned = isAbandoned;
   }
 
   function setSwapDetails(
@@ -365,7 +345,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   /* ========== TOKEN RELATED MUTATIVE FUNCTIONS ========== */
 
-  /// @dev Deprecated! Use sellNXM function instead
+  /// [deprecated] Use sellNXM function instead
   ///
   /// @param amount   Amount of NXM to sell
   /// @return success  Returns true on successfull sale

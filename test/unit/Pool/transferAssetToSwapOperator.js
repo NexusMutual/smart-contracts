@@ -6,10 +6,9 @@ const { toBytes8 } = require('../utils').helpers;
 
 describe('transferAssetToSwapOperator', function () {
   before(async function () {
-    const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
-    const {
-      governanceContracts: [governance],
-    } = this.accounts;
+    const { pool, dai, stETH, enzymeVault } = this;
+    const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = this;
+    const [governance] = this.accounts.governanceContracts;
 
     const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
     const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
@@ -21,9 +20,9 @@ describe('transferAssetToSwapOperator', function () {
     await chainlinkNewAsset.setLatestAnswer(BigNumber.from((1e18).toString()));
 
     const priceFeedOracle = await PriceFeedOracle.deploy(
-      [dai.address, stETH.address, otherToken.address],
-      [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
-      [18, 18, 18],
+      [dai.address, stETH.address, enzymeVault.address, otherToken.address],
+      [chainlinkDAI.address, chainlinkSteth.address, chainlinkEnzymeVault.address, chainlinkNewAsset.address],
+      [18, 18, 18, 18],
     );
 
     await pool.connect(governance).updateAddressParameters(toBytes8('PRC_FEED'), priceFeedOracle.address);
@@ -39,7 +38,7 @@ describe('transferAssetToSwapOperator', function () {
     } = this.accounts;
 
     const tokenAmount = parseEther('100000');
-    await pool.connect(governance).addAsset(otherToken.address, 18, '0', '0', 100 /* 1% */, true);
+    await pool.connect(governance).addAsset(otherToken.address, true, '0', '0', 100 /* 1% */);
     await otherToken.mint(pool.address, tokenAmount);
 
     const amountToTransfer = tokenAmount.div(2);
@@ -63,7 +62,7 @@ describe('transferAssetToSwapOperator', function () {
     } = this.accounts;
 
     const tokenAmount = parseEther('100000');
-    await pool.connect(governance).addAsset(otherToken.address, 18, '0', '0', 100 /* 1% */, true);
+    await pool.connect(governance).addAsset(otherToken.address, true, '0', '0', 100 /* 1% */);
     await otherToken.mint(pool.address, tokenAmount);
 
     const amountToTransfer = tokenAmount.div(2);

@@ -45,28 +45,6 @@ contract StakingViewer {
     );
   }
 
-  function getAllStakingPoolsDetails() public view returns (StakingPoolDetails[] memory stakingPools) {
-    uint poolsCount = stakingPoolFactory.stakingPoolCount();
-    stakingPools = new StakingPoolDetails[](poolsCount);
-
-    for (uint i = 0; i < poolsCount; i++) {
-      stakingPools[i] = getStakingPoolDetailsByPoolId(i);
-    }
-
-    return stakingPools;
-  }
-
-  function getAllStakingPoolsDetailsByTokenIds(
-    uint[] memory tokenIds
-  ) public view returns (StakingPoolDetails[] memory stakingPools) {
-
-    for (uint i = 0; i < tokenIds.length; i++) {
-      stakingPools[i] = getStakingPoolDetailsByTokenId(tokenIds[i]);
-    }
-
-    return stakingPools;
-  }
-
   function getStakingPoolDetailsByPoolId(
     uint poolId
   ) public view returns (StakingPoolDetails memory stakingPoolDetails) {
@@ -89,5 +67,27 @@ contract StakingViewer {
     return getStakingPoolDetailsByPoolId(
       stakingNFT.stakingPoolOf(tokenId)
     );
+  }
+
+  function getAllStakingPools() public view returns (StakingPoolDetails[] memory stakingPools) {
+    uint poolsCount = stakingPoolFactory.stakingPoolCount();
+    stakingPools = new StakingPoolDetails[](poolsCount);
+
+    for (uint i = 0; i < poolsCount; i++) {
+      stakingPools[i] = getStakingPoolDetailsByPoolId(i);
+    }
+
+    return stakingPools;
+  }
+
+  function getStakingPoolsByTokenIds(
+    uint[] memory tokenIds
+  ) public view returns (StakingPoolDetails[] memory stakingPools) {
+
+    for (uint i = 0; i < tokenIds.length; i++) {
+      stakingPools[i] = getStakingPoolDetailsByTokenId(tokenIds[i]);
+    }
+
+    return stakingPools;
   }
 }

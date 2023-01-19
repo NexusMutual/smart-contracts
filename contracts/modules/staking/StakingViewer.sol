@@ -21,6 +21,19 @@ contract StakingViewer {
     uint currentAPY;
   }
 
+//  struct StakingPeriod {
+//    uint trancheId;
+//    uint stake;
+//  }
+//
+//  struct StakerDetailsPerPool {
+//    uint poolId;
+//    uint totalActiveStake;
+//    uint totalExpiredStake;
+//    uint withdrawableRewards;
+//
+//  }
+
   INXMMaster internal immutable master;
   IStakingNFT public immutable stakingNFT;
   IStakingPoolFactory public immutable stakingPoolFactory;
@@ -45,6 +58,8 @@ contract StakingViewer {
     );
   }
 
+  /* ========== Staking Pools Details ========== */
+
   function getStakingPoolDetailsByPoolId(
     uint poolId
   ) public view returns (StakingPoolDetails memory stakingPoolDetails) {
@@ -56,7 +71,10 @@ contract StakingViewer {
     stakingPoolDetails.poolFee = pool.poolFee();
     stakingPoolDetails.maxPoolFee = pool.maxPoolFee();
     stakingPoolDetails.activeStake = pool.activeStake();
-    stakingPoolDetails.currentAPY = pool.rewardPerSecond() * 365 days / pool.activeStake();
+    stakingPoolDetails.currentAPY =
+      pool.activeStake() != 0
+        ? pool.rewardPerSecond() * 365 days / pool.activeStake()
+        : 0;
 
     return stakingPoolDetails;
   }
@@ -90,4 +108,11 @@ contract StakingViewer {
 
     return stakingPools;
   }
+
+  /* ========== Staker Details ========== */
+
+//  function getStakerDetailsByTokenId(uint[] tokenIds) public view returns (uint activeStake, uint
+//    expiredStake) {
+//
+//  }
 }

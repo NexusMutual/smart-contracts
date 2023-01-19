@@ -602,7 +602,7 @@ describe('v2 migration', function () {
     console.log({
       governanceRewardsMigrated: governanceRewardsMigrated.toString(),
     });
-    // expect(governanceRewardsMigrated).to.be.equal(this.governanceRewardsSum);
+    expect(governanceRewardsMigrated).to.be.equal(this.governanceRewardsSum);
   });
 
   it('check if TokenController balance checks out with Governance rewards', async function () {
@@ -771,6 +771,11 @@ describe('v2 migration', function () {
   it('pool value check', async function () {
     const poolValueAfter = await this.pool.getPoolValueInEth();
     const poolValueDiff = poolValueAfter.sub(poolValueBefore).abs();
+
+    console.log({
+      poolValueBefore: poolValueBefore.toString(),
+      poolValueAfter: poolValueAfter.toString(),
+    });
 
     expect(
       poolValueDiff.isZero(),

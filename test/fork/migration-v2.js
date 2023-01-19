@@ -595,10 +595,13 @@ describe('v2 migration', function () {
     const tcNxmBalanceAfter = await this.nxm.balanceOf(this.tokenController.address);
     const crNxmBalanceAfter = await this.nxm.balanceOf(this.claimsReward.address);
 
-    const governanceRewardsMigrated = tcNxmBalanceAfter.sub(tcNxmBalanceBefore);
-
     expect(crNxmBalanceAfter).to.be.equal(BigNumber.from(0));
 
+    const governanceRewardsMigrated = tcNxmBalanceAfter.sub(tcNxmBalanceBefore);
+
+    console.log({
+      governanceRewardsMigrated: governanceRewardsMigrated.toString(),
+    });
     // expect(governanceRewardsMigrated).to.be.equal(this.governanceRewardsSum);
   });
 

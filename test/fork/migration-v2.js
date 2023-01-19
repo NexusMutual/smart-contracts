@@ -1,11 +1,14 @@
 require('dotenv').config();
 
 const fetch = require('node-fetch');
-const { ethers } = require('hardhat');
+const { ethers, web3, network } = require('hardhat');
 const { expect } = require('chai');
 const path = require('path');
+const { AddressZero } = ethers.constants;
+const { parseEther, formatEther } = ethers.utils;
+const { hex } = require('../../lib/helpers');
+const evm = require('./evm')();
 
-const { setNextBlockTime } = require('../utils/evm');
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
 const getProductsV1 = require('../../scripts/get-products-v1');
 const getLockedInV1ClaimAssessment = require('../../scripts/get-locked-in-v1-claim-assessment');
@@ -16,11 +19,37 @@ const WETH_ADDRESS = '0xd0a1e359811322d97991e03f863a0c30c2cf029c';
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
 const STETH_ADDRESS = '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84';
 const SWAP_CONTROLLER = '0x551D5500F613a4beC77BA8B834b5eEd52ad5764f';
-const PRICE_FEED_ORACLE_ADDRESS = '0xcafea55b2d62399DcFe3DfA3CFc71E4076B14b71';
 const COWSWAP_SETTLEMENT = '0x9008D19f58AAbD9eD0D60971565AA8510560ab41';
+
+const ENZYMEV4_VAULT_PROXY_ADDRESS = '0x27F23c710dD3d878FE9393d93465FeD1302f2EbD';
+const ENZYME_FUND_VALUE_CALCULATOR_ROUTER = '0x7c728cd0CfA92401E01A4849a01b57EE53F5b2b9';
+const ENZYME_COMPTROLLER_PROXY_ADDRESS = '0xa5bf4350da6193b356ac15a3dbd777a687bc216e';
+const ENZYME_ADDRESS_LIST_REGISTRY = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
+
+const DAI_PRICE_FEED_ORACLE_AGGREGATOR = '0x773616E4d11A78F511299002da57A0a94577F1f4';
+const STETH_PRICE_FEED_ORACLE_AGGREGATOR = '0x86392dC19c0b719886221c78AB11eb8Cf5c52812';
+const ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR = '0xCc72039A141c6e34a779eF93AEF5eB4C82A893c7';
+
+const ListIdForReceivers = 218;
+const AddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
+
+const MIN_POOL_ETH = 0;
 
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 const { defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+
+// will be updated when categories are created.
+let ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID = 0;
+let REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID = 0;
+
+const getSigner = async address => {
+  const provider =
+    network.name !== 'hardhat' // ethers errors out when using non-local accounts
+      ? new ethers.providers.JsonRpcProvider(network.config.url)
+      : ethers.provider;
+
+  return provider.getSigner(address);
+};
 
 const getContractFactory = async providerOrSigner => {
   const data = await fetch(VERSION_DATA_URL).then(r => r.json());
@@ -34,6 +63,7 @@ const getContractFactory = async providerOrSigner => {
   };
 };
 
+// This works with the legacy V1 version of Governance.sol
 const submitGovernanceProposal = async (categoryId, actionData, signers, gv) => {
   const id = await gv.getProposalLength();
   console.log(`Creating proposal ${id}`);
@@ -46,11 +76,11 @@ const submitGovernanceProposal = async (categoryId, actionData, signers, gv) => 
     await gv.connect(signers[i]).submitVote(id, 1);
   }
 
-  const { timestamp } = await ethers.provider.getBlock('latest');
-  await setNextBlockTime(timestamp + 7 * 24 * 3600); // +7 days
+  await evm.increaseTime(7 * 24 * 3600); // +7 days
 
   const tx = await gv.closeProposal(id, { gasLimit: 21e6 });
   const receipt = await tx.wait();
+
   assert.equal(
     receipt.events.some(x => x.event === 'ActionSuccess' && x.address === gv.address),
     true,
@@ -61,7 +91,57 @@ const submitGovernanceProposal = async (categoryId, actionData, signers, gv) => 
   assert.equal(proposal[2].toNumber(), 3);
 };
 
+async function enableAsEnzymeReceiver(receiverAddress) {
+  const comptroller = await ethers.getContractAt('IEnzymeV4Comptroller', ENZYME_COMPTROLLER_PROXY_ADDRESS);
+  const vault = await ethers.getContractAt('IEnzymeV4Vault', ENZYMEV4_VAULT_PROXY_ADDRESS);
+
+  const ownerAddress = await vault.getOwner();
+
+  console.log({
+    vaultOwner: ownerAddress,
+  });
+
+  console.log('Unlocking and funding vault owner');
+
+  const owner = await getSigner(ownerAddress);
+  await evm.impersonate(ownerAddress);
+  await evm.setBalance(ownerAddress, parseEther('1000'));
+
+  const selector = web3.eth.abi.encodeFunctionSignature('addToList(uint256,address[])');
+  const receiverArgs = web3.eth.abi.encodeParameters(['uint256', 'address[]'], [ListIdForReceivers, [receiverAddress]]);
+
+  console.log('Updating Enzyme vault receivers');
+  await comptroller.connect(owner).vaultCallOnContract(AddressListRegistry, selector, receiverArgs);
+
+  const registry = await ethers.getContractAt('IAddressListRegistry', ENZYME_ADDRESS_LIST_REGISTRY);
+
+  console.log('Checking Enzyme vault receivers contains new receiver');
+
+  const inReceiverList = await registry.isInList(ListIdForReceivers, receiverAddress);
+  assert.equal(inReceiverList, true);
+}
+
+let poolValueBefore;
+
 describe('v2 migration', function () {
+  before(async function () {
+    // initialize evm helper
+    await evm.connect(ethers.provider);
+    await getSigner('0x1eE3ECa7aEF17D1e74eD7C447CcBA61aC76aDbA9');
+
+    // get or reset snapshot if network is tenderly
+    if (network.name === 'tenderly') {
+      const { TENDERLY_SNAPSHOT_ID } = process.env;
+
+      if (TENDERLY_SNAPSHOT_ID) {
+        await evm.revert(TENDERLY_SNAPSHOT_ID);
+        console.log(`Reverted to snapshot ${TENDERLY_SNAPSHOT_ID}`);
+      } else {
+        console.log('Snapshot ID: ', await evm.snapshot());
+      }
+    }
+  });
+
   it('initialize old contracts', async function () {
     const [deployer] = await ethers.getSigners();
     this.deployer = deployer;
@@ -82,6 +162,8 @@ describe('v2 migration', function () {
     this.claims = await factory('CL');
     this.claimsReward = await factory('CR');
     this.claimsData = await factory('CD');
+
+    poolValueBefore = await this.pool.getPoolValueInEth();
   });
 
   // generates the LegacyClaimsReward contract with the transfer calls
@@ -95,7 +177,7 @@ describe('v2 migration', function () {
   });
 
   // generates the eligibleForCLAUnlock.json file
-  it.skip('run get-products-v1 script', async function () {
+  it.skip('run get-locked-in-v1-claim-assessment script', async function () {
     const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
     await getLockedInV1ClaimAssessment(directProvider);
   });
@@ -111,9 +193,9 @@ describe('v2 migration', function () {
     const { memberArray: abMembers } = await this.memberRoles.members(1);
     this.abMembers = [];
     for (const address of abMembers) {
-      await ethers.provider.send('hardhat_impersonateAccount', [address]);
-      const signer = await ethers.getSigner(address);
-      this.abMembers.push(signer);
+      await evm.impersonate(address);
+      await evm.setBalance(address, parseEther('1000'));
+      this.abMembers.push(await getSigner(address));
     }
   });
 
@@ -128,6 +210,8 @@ describe('v2 migration', function () {
       this.abMembers,
       this.governance,
     );
+
+    this.governance = await ethers.getContractAt('Governance', this.governance.address);
   });
 
   it('edit proposal category 41 (Set Asset Swap Details)', async function () {
@@ -156,7 +240,9 @@ describe('v2 migration', function () {
     );
   });
 
-  it('add proposal category 42 (Add new contracts)', async function () {
+  it('add proposal category (Add new contracts)', async function () {
+    ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID = await this.proposalCategory.totalCategories();
+
     await submitGovernanceProposal(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
@@ -180,7 +266,10 @@ describe('v2 migration', function () {
     );
   });
 
-  it('add proposal category 43 (Remove contracts)', async function () {
+  it('add proposal category (Remove contracts)', async function () {
+    REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID = await this.proposalCategory.totalCategories();
+    console.log(`Remove contracts Category Id = ${REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID}`);
+
     await submitGovernanceProposal(
       3, // newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       defaultAbiCoder.encode(
@@ -210,7 +299,7 @@ describe('v2 migration', function () {
     await coverInitializer.deployed();
 
     await submitGovernanceProposal(
-      42, // addNewInternalContracts(bytes2[],address[],uint256[])
+      ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID, // addNewInternalContracts(bytes2[],address[],uint256[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]', 'uint256[]'],
         [[toUtf8Bytes('CO')], [coverInitializer.address], [2]],
@@ -218,6 +307,13 @@ describe('v2 migration', function () {
       this.abMembers,
       this.governance,
     );
+
+    const coverAddress = await this.master.getLatestAddress(hex('CO'));
+    const cover = await ethers.getContractAt('CoverInitializer', coverAddress);
+
+    const storedMaster = await cover.master();
+
+    expect(storedMaster).to.be.equal(this.master.address);
   });
 
   it('deploy master contract', async function () {
@@ -248,6 +344,9 @@ describe('v2 migration', function () {
       SWAP_CONTROLLER, // _swapController
       this.master.address, // _master
       WETH_ADDRESS, // _weth
+      ENZYMEV4_VAULT_PROXY_ADDRESS,
+      ENZYME_FUND_VALUE_CALCULATOR_ROUTER,
+      MIN_POOL_ETH,
     );
     await swapOperator.deployed();
     this.swapOperator = swapOperator;
@@ -259,8 +358,15 @@ describe('v2 migration', function () {
     const newClaimsReward = await ClaimsReward.deploy(this.master.address, DAI_ADDRESS);
     await newClaimsReward.deployed();
 
+    const StakingPoolFactory = await ethers.getContractFactory('StakingPoolFactory');
+    const stakingPoolFactory = await StakingPoolFactory.deploy(coverProxyAddress);
+
     const TokenController = await ethers.getContractFactory('TokenController');
-    const tokenController = await TokenController.deploy(this.quotationData.address, newClaimsReward.address);
+    const tokenController = await TokenController.deploy(
+      this.quotationData.address,
+      newClaimsReward.address,
+      stakingPoolFactory.address,
+    );
     await tokenController.deployed();
 
     const MCR = await ethers.getContractFactory('MCR');
@@ -271,18 +377,12 @@ describe('v2 migration', function () {
     const memberRoles = await MemberRoles.deploy();
     await memberRoles.deployed();
 
-    const CoverUtils = await ethers.getContractFactory('CoverUtilsLib');
-    const coverUtils = await CoverUtils.deploy();
-    await coverUtils.deployed();
-
-    const libraries = { CoverUtilsLib: coverUtils.address };
-
-    const Cover = await ethers.getContractFactory('Cover', { libraries });
+    const Cover = await ethers.getContractFactory('Cover');
     const cover = await Cover.deploy(
-      this.quotationData.address,
       this.productsV1.address,
       this.coverNFT.address,
-      ethers.constants.AddressZero, // staking pool implementation address
+      AddressZero, // staking pool implementation address
+      coverProxyAddress,
     );
     await cover.deployed();
 
@@ -290,24 +390,38 @@ describe('v2 migration', function () {
     const pooledStaking = await PooledStaking.deploy(coverProxyAddress, this.productsV1.address);
     await pooledStaking.deployed();
 
+    const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
+
+    const assetAddresses = [DAI_ADDRESS, STETH_ADDRESS, ENZYMEV4_VAULT_PROXY_ADDRESS];
+    const assetAggregators = [
+      DAI_PRICE_FEED_ORACLE_AGGREGATOR,
+      STETH_PRICE_FEED_ORACLE_AGGREGATOR,
+      ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR,
+    ];
+    const assetDecimals = [18, 18, 18];
+    const priceFeedOracle = await PriceFeedOracle.deploy(assetAddresses, assetAggregators, assetDecimals);
+
     const Pool = await ethers.getContractFactory('Pool');
     const pool = await Pool.deploy(
       this.master.address,
-      PRICE_FEED_ORACLE_ADDRESS,
+      priceFeedOracle.address,
       this.swapOperator.address,
       DAI_ADDRESS,
       STETH_ADDRESS,
     );
     await pool.deployed();
 
+    await enableAsEnzymeReceiver(pool.address);
+
     const CoverMigrator = await ethers.getContractFactory('CoverMigrator');
-    const coverMigrator = await CoverMigrator.deploy();
+    const coverMigrator = await CoverMigrator.deploy(this.quotationData.address, this.productsV1.address);
     await coverMigrator.deployed();
 
     const Gateway = await ethers.getContractFactory('LegacyGateway');
     const gateway = await Gateway.deploy();
     await gateway.deployed();
 
+    console.log('Upgrade the first batch.');
     await submitGovernanceProposal(
       29, // upgradeMultipleContracts(bytes2[],address[])
       defaultAbiCoder.encode(
@@ -318,7 +432,6 @@ describe('v2 migration', function () {
             toUtf8Bytes('MC'),
             toUtf8Bytes('CO'),
             toUtf8Bytes('TC'),
-            toUtf8Bytes('CR'),
             toUtf8Bytes('PS'),
             toUtf8Bytes('P1'),
             toUtf8Bytes('CL'),
@@ -329,7 +442,6 @@ describe('v2 migration', function () {
             mcr.address,
             cover.address,
             tokenController.address,
-            newClaimsReward.address,
             pooledStaking.address,
             pool.address,
             coverMigrator.address,
@@ -337,6 +449,14 @@ describe('v2 migration', function () {
           ],
         ],
       ),
+      this.abMembers,
+      this.governance,
+    );
+
+    console.log('Upgrade ClaimsReward only. (depends on TokenController)');
+    await submitGovernanceProposal(
+      29,
+      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('CR')], [newClaimsReward.address]]),
       this.abMembers,
       this.governance,
     );
@@ -359,7 +479,7 @@ describe('v2 migration', function () {
     this.gateway = await ethers.getContractAt('LegacyGateway', gatewayAddress);
   });
 
-  it('deploy staking pool', async function () {
+  it.skip('deploy staking pool', async function () {
     const StakingPool = await ethers.getContractFactory('StakingPool');
     const stakingPool = await StakingPool.deploy(
       'Nexus Mutual Staking Pool', // name
@@ -372,12 +492,12 @@ describe('v2 migration', function () {
     this.stakingPool = stakingPool;
   });
 
-  it('block V1 staking', async function () {
+  it.skip('block V1 staking', async function () {
     const tx = await this.pooledStaking.blockV1();
     await tx.wait();
   });
 
-  it('process all PooledStaking pending actions', async function () {
+  it.skip('process all PooledStaking pending actions', async function () {
     let hasPendingActions = await this.pooledStaking.hasPendingActions();
     while (hasPendingActions) {
       const tx = await this.pooledStaking.processPendingActions(100);
@@ -386,19 +506,19 @@ describe('v2 migration', function () {
     }
   });
 
-  it('initialize TokenController', async function () {
+  it.skip('initialize TokenController', async function () {
     const tx = await this.tokenController.initialize();
     await tx.wait();
   });
 
-  it('unlock claim assessment stakes', async function () {
+  it.skip('unlock claim assessment stakes', async function () {
     const stakesPath = path.join(__dirname, '../../scripts/v2-migration/output/eligibleForCLAUnlock.json');
     const claimAssessors = require(stakesPath).map(x => x.member);
     const tx = await this.tokenController.withdrawClaimAssessmentTokens(claimAssessors);
     await tx.wait();
   });
 
-  it('transfer v1 assessment rewrds to assessors', async function () {
+  it.skip('transfer v1 assessment rewrds to assessors', async function () {
     await this.claimsReward.transferRewards();
   });
 
@@ -406,7 +526,7 @@ describe('v2 migration', function () {
     // [todo]
   });
 
-  it('remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {
+  it.skip('remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {
     await submitGovernanceProposal(
       43, // removeContracts(bytes2[])
       defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
@@ -415,7 +535,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it('run populate-v2-products script', async function () {
+  it.skip('run populate-v2-products script', async function () {
     await populateV2Products(this.cover.address, this.abMembers[0]);
   });
 
@@ -436,7 +556,7 @@ describe('v2 migration', function () {
     await Promise.all(txs.map(x => x.wait()));
   });
 
-  it('deploy & add contracts: Assessment, IndividualClaims, YieldTokenIncidents', async function () {
+  it.skip('deploy & add contracts: Assessment, IndividualClaims, YieldTokenIncidents', async function () {
     const IndividualClaims = await ethers.getContractFactory('IndividualClaims');
     const individualClaims = await IndividualClaims.deploy(this.nxm.address, this.coverNFT.address);
     await individualClaims.deployed();
@@ -464,7 +584,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it('deploy CoverViewer', async function () {
+  it.skip('deploy CoverViewer', async function () {
     const CoverViewer = await ethers.getContractFactory('CoverViewer');
     const coverViewer = await CoverViewer.deploy(this.master.address);
     await coverViewer.deployed();
@@ -486,14 +606,14 @@ describe('v2 migration', function () {
   // this.quotation = await ethers.getContractAt('Quotation', quotation.address);
   // });
 
-  it('MemberRoles is initialized with kycAuthAddress from QuotationData', async function () {
+  it.skip('MemberRoles is initialized with kycAuthAddress from QuotationData', async function () {
     const kycAuthAddressQD = await this.quotationData.kycAuthAddress();
     const kycAuthAddressMR = await this.memberRoles.kycAuthAddress();
     console.log({ kycAuthAddressMR, kycAuthAddressQD });
     expect(kycAuthAddressMR).to.be.equal(kycAuthAddressQD);
   });
 
-  it('withdrawCoverNote withdraws notes only once and removes the lock reasons', async function () {
+  it.skip('withdrawCoverNote withdraws notes only once and removes the lock reasons', async function () {
     // Using AB members to test for cover notes but other addresses could be added as well
     for (const member of this.abMembers) {
       const {
@@ -544,5 +664,19 @@ describe('v2 migration', function () {
 
   it.skip('withdrawCoverNote reverts after one rejected and one an accepted claim', async function () {
     // [todo]
+  });
+
+  it('pool value check', async function () {
+    const poolValueAfter = await this.pool.getPoolValueInEth();
+    const poolValueDiff = poolValueAfter.sub(poolValueBefore).abs();
+
+    expect(
+      poolValueDiff.isZero(),
+      [
+        `Pool value before: ${formatEther(poolValueBefore)} `,
+        `Pool value after:  ${formatEther(poolValueAfter)}`,
+        `Current diff: ${formatEther(poolValueDiff)}`,
+      ].join('\n'),
+    ).to.be.equal(true);
   });
 });

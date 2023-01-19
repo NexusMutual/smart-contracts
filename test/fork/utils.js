@@ -1,6 +1,7 @@
-const { time, expectEvent, ether } = require('@openzeppelin/test-helpers');
-const { web3, accounts, network } = require('hardhat');
+const { time, expectEvent } = require('@openzeppelin/test-helpers');
+const { web3, ethers } = require('hardhat');
 const { toBN } = web3.utils;
+const { parseEther } = ethers.utils;
 
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
@@ -65,8 +66,13 @@ async function submitMemberVoteGovernanceProposal(categoryId, actionData, member
 }
 
 const getAddressByCodeFactory = abis => code => abis.find(abi => abi.code === code).address;
-const fund = async to => web3.eth.sendTransaction({ from: accounts[0], to, value: ether('1000000') });
-const unlock = async member => network.provider.request({ method: 'hardhat_impersonateAccount', params: [member] });
+
+const fund = async (from, to) => from.sendTransaction({ to, value: parseEther('1000') });
+
+const unlock = async address => {
+  await ethers.provider.send('hardhat_impersonateAccount', [address]);
+  return await ethers.getSigner(address);
+};
 
 module.exports = {
   submitGovernanceProposal,

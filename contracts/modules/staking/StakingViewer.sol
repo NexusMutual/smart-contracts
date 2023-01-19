@@ -190,7 +190,9 @@ contract StakingViewer {
     stakerDetails.poolId = poolId;
 
     for (uint i = 0; i < tokenIds.length; i++) {
-      require (stakingNFT.stakingPoolOf(tokenIds[i]) == poolId);
+      if (stakingNFT.stakingPoolOf(tokenIds[i]) != poolId) {
+        continue;
+      }
 
       StakerDetails stakerDetailsForToken = getStakerDetailsByTokenId(tokenIds[i]);
 

@@ -108,13 +108,23 @@ interface IStakingPool {
     uint[] memory trancheIds
   ) external returns (uint withdrawnStake, uint withdrawnRewards);
 
+  function isPrivatePool() external view returns (bool);
+
+  function poolFee() external view returns (uint8);
+
+  function maxPoolFee() external view returns (uint8);
+
+  function activeStake() external view returns (uint);
+
+  function rewardPerSecond() external view returns (uint);
+
+  function manager() external view returns (address);
+
   function setPoolFee(uint newFee) external;
 
   function setPoolPrivacy(bool isPrivatePool) external;
 
   function setProducts(StakedProductParam[] memory params) external;
-
-  function manager() external view returns (address);
 
   function getActiveStake() external view returns (uint);
 

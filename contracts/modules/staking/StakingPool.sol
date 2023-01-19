@@ -61,7 +61,7 @@ contract StakingPool is IStakingPool, Multicall {
   uint8 public maxPoolFee;
   uint32 public totalEffectiveWeight;
   uint32 public totalTargetWeight;
-  address public manager;
+  address public override manager;
 
   // tranche id => tranche data
   mapping(uint => Tranche) public tranches;

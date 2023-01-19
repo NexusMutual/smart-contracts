@@ -9,6 +9,12 @@ import "../Tokens/ERC721Mock.sol";
 
 contract CoverMockStakingPool is IStakingPool {
 
+  uint public activeStake;
+  uint public rewardPerSecond;
+  bool public isPrivatePool;
+  uint8 public poolFee;
+  uint8 public maxPoolFee;
+
   mapping (uint => uint) public usedCapacity;
   mapping (uint => uint) public stakedAmount;
 

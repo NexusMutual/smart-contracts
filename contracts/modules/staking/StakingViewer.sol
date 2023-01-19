@@ -166,7 +166,9 @@ contract StakingViewer {
         uint stakeShareSupplyAtExpiry
       ) = pool.expiredTranches(i);
 
-      totalExpiredStake += stakeAmountAtExpiry * stakeShares / stakeShareSupplyAtExpiry;
+      stakeShareSupplyAtExpiry != 0
+        ? totalExpiredStake += stakeAmountAtExpiry * stakeShares / stakeShareSupplyAtExpiry
+        : 0;
 
       withdrawableRewards += pendingRewards;
       withdrawableRewards +=

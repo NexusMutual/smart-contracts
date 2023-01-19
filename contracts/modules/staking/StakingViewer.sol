@@ -41,13 +41,19 @@ contract StakingViewer {
     uint stake;
   }
 
-  struct StakerDetails {
+  struct StakerOverview {
     uint poolId;
+    uint activeStake;
+    uint expiredStake;
+    uint withdrawableRewards;
+    StakingPeriod[] stakingPeriods;
+  }
+
+  struct StakerDetails {
+    uint poolsCount;
     uint totalActiveStake;
     uint totalExpiredStake;
-    uint withdrawableRewards;
-    uint poolsCount;
-    StakingPeriod[] stakingPeriods;
+    uint totalWithdrawableRewards;
   }
 
   INXMMaster internal immutable master;
@@ -174,9 +180,9 @@ contract StakingViewer {
 
   /* ========== Staker Details ========== */
 
-  function getStakerDetailsByTokenId(
+  function getStakerOverviewByTokenId(
     uint tokenId
-  ) public view returns (StakerDetails memory stakerDetails) {
+  ) public view returns (StakerOverview memory stakerOverview) {
 
     uint poolId = stakingNFT.stakingPoolOf(tokenId);
     IStakingPool pool = stakingPool(poolId);
@@ -230,52 +236,49 @@ contract StakingViewer {
         (accNxmPerRewardShareAtExpiry.uncheckedSub(lastAccNxmPerRewardShare)) * rewardsShares / ONE_NXM;
     }
 
-    stakerDetails.poolId = poolId;
-    stakerDetails.totalActiveStake = totalActiveStake;
-    stakerDetails.totalExpiredStake = totalExpiredStake;
-    stakerDetails.withdrawableRewards = withdrawableRewards;
+    stakerOverview.poolId = poolId;
+    stakerOverview.activeStake = totalActiveStake;
+    stakerOverview.expiredStake = totalExpiredStake;
+    stakerOverview.withdrawableRewards = withdrawableRewards;
 
-    return stakerDetails;
+    return stakerOverview;
   }
 
-  function getStakerDetailsByPoolId(
+  function getStakerOverviewByPoolId(
     uint[] calldata tokenIds,
     uint poolId
-  ) public view returns (StakerDetails memory stakerDetails) {
-    stakerDetails.poolId = poolId;
+  ) public view returns (StakerOverview memory stakerOverview) {
+    stakerOverview.poolId = poolId;
 
     for (uint i = 0; i < tokenIds.length; i++) {
       if (stakingNFT.stakingPoolOf(tokenIds[i]) != poolId) {
         continue;
       }
 
-      StakerDetails memory stakerDetailsForToken = getStakerDetailsByTokenId(tokenIds[i]);
-
-      stakerDetails.totalActiveStake += stakerDetailsForToken.totalActiveStake;
-      stakerDetails.totalExpiredStake += stakerDetailsForToken.totalExpiredStake;
-      stakerDetails.withdrawableRewards += stakerDetailsForToken.withdrawableRewards;
+      StakerOverview memory stakerOverviewForToken = getStakerOverviewByTokenId(tokenIds[i]);
+      stakerOverview.activeStake += stakerOverviewForToken.activeStake;
+      stakerOverview.expiredStake += stakerOverviewForToken.expiredStake;
+      stakerOverview.withdrawableRewards += stakerOverviewForToken.withdrawableRewards;
     }
+
+    // TODO: calculate staking periods
+
+    return stakerOverview;
+  }
+
+  function getAllStakerDetails(
+    uint[] calldata tokenIds
+  ) public view returns (StakerDetails memory stakerDetails) {
+    for (uint i = 0; i < tokenIds.length; i++) {
+      StakerOverview memory stakerOverviewForToken = getStakerOverviewByTokenId(tokenIds[i]);
+
+      stakerDetails.totalActiveStake += stakerOverviewForToken.activeStake;
+      stakerDetails.totalExpiredStake += stakerOverviewForToken.expiredStake;
+      stakerDetails.totalWithdrawableRewards += stakerOverviewForToken.withdrawableRewards;
+    }
+
+    // TODO: calculate pools count
 
     return stakerDetails;
   }
-
-//  function getAllStakerDetails(
-//    uint[] calldata tokenIds
-//  ) public view returns (StakerDetails memory stakerDetails) {
-//
-//    uint stakingPoolCount = 0;
-//    for (uint i = 0; i < tokenIds.length; i++) {
-//      if (stakingNFT.stakingPoolOf(tokenIds[i]) != poolId) {
-//        continue;
-//      }
-//
-//      StakerDetails memory stakerDetailsForToken = getStakerDetailsByTokenId(tokenIds[i]);
-//
-//      stakerDetails.totalActiveStake += stakerDetailsForToken.totalActiveStake;
-//      stakerDetails.totalExpiredStake += stakerDetailsForToken.totalExpiredStake;
-//      stakerDetails.withdrawableRewards += stakerDetailsForToken.withdrawableRewards;
-//    }
-//
-//    return stakerDetails;
-//  }
 }

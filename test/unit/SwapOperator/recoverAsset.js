@@ -11,13 +11,11 @@ describe('recoverAsset', function () {
     const [governance] = this.accounts.governanceAccounts;
     const [receiver] = this.accounts.nonMembers;
 
-    await pool.connect(governance).addAsset(
+    await pool.connect(governance).setSwapDetails(
       enzymeV4Vault.address,
-      18, // decimals
       parseEther('100'), // asset minimum
       parseEther('1000'), // asset maximum
       '100', // 1% max slippage
-      false, // isCoverAsset
     );
 
     const amountInPool = parseEther('2000');

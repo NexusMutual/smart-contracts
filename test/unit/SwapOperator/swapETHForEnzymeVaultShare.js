@@ -9,18 +9,7 @@ const {
 
 describe('swapETHForEnzymeVaultShare', function () {
   it('should revert when called while the system is paused', async function () {
-    const { master, swapOperator, enzymeV4Vault, pool } = this.contracts;
-
-    const governance = this.accounts.governanceAccounts[0];
-
-    await pool.connect(governance).addAsset(
-      enzymeV4Vault.address,
-      18, // decimals
-      parseEther('100'), // asset minimum
-      parseEther('1000'), // asset maximum
-      '100', // 1% max slippage
-      false, // isCoverAsset
-    );
+    const { master, swapOperator } = this.contracts;
 
     await master.pause();
 
@@ -39,37 +28,22 @@ describe('swapETHForEnzymeVaultShare', function () {
 
   it('should revert when asset is not enabled', async function () {
     const { pool, swapOperator, enzymeV4Vault } = this.contracts;
-
     const governance = this.accounts.governanceAccounts[0];
 
-    await pool.connect(governance).addAsset(
+    await pool.connect(governance).setSwapDetails(
       enzymeV4Vault.address,
-      18, // decimals
       parseEther('0'), // asset minimum
       parseEther('0'), // asset maximum
       '100', // 1% max slippage
-      false, // isCoverAsset
     );
-    const etherIn = parseEther('1');
 
-    await expect(swapOperator.swapETHForEnzymeVaultShare(etherIn, '0')).to.be.revertedWith(
+    await expect(swapOperator.swapETHForEnzymeVaultShare(parseEther('1'), '0')).to.be.revertedWith(
       'SwapOp: asset is not enabled',
     );
   });
 
   it('should revert if ether left in pool is less than minPoolEth', async function () {
-    const { pool, swapOperator, enzymeV4Vault } = this.contracts;
-
-    const governance = this.accounts.governanceAccounts[0];
-
-    await pool.connect(governance).addAsset(
-      enzymeV4Vault.address,
-      18, // decimals
-      parseEther('100'), // asset minimum
-      parseEther('10000000'), // asset maximum
-      '500', // 1% max slippage
-      false, // isCoverAsset
-    );
+    const { pool, swapOperator } = this.contracts;
 
     const currentEther = parseEther('10000');
     // add ether to pool
@@ -93,18 +67,7 @@ describe('swapETHForEnzymeVaultShare', function () {
   });
 
   it('should revert if amountIn > pool balance', async function () {
-    const { pool, swapOperator, enzymeV4Vault } = this.contracts;
-
-    const governance = this.accounts.governanceAccounts[0];
-
-    await pool.connect(governance).addAsset(
-      enzymeV4Vault.address,
-      18, // decimals
-      parseEther('100'), // asset minimum
-      parseEther('1000'), // asset maximum
-      '100', // 1% max slippage
-      false, // isCoverAsset
-    );
+    const { pool, swapOperator } = this.contracts;
 
     const currentEther = parseEther('10000');
     // add ether to pool
@@ -118,18 +81,7 @@ describe('swapETHForEnzymeVaultShare', function () {
   });
 
   it('should revert if Enzyme does not sent enough shares back', async function () {
-    const { pool, swapOperator, enzymeV4Vault, enzymeV4Comptroller } = this.contracts;
-
-    const governance = this.accounts.governanceAccounts[0];
-
-    await pool.connect(governance).addAsset(
-      enzymeV4Vault.address,
-      18, // decimals
-      parseEther('100'), // asset minimum
-      parseEther('1000'), // asset maximum
-      '100', // 1% max slippage
-      false, // isCoverAsset
-    );
+    const { pool, swapOperator, enzymeV4Comptroller } = this.contracts;
 
     // add ether to pool
     await this.accounts.defaultSender.sendTransaction({
@@ -152,13 +104,11 @@ describe('swapETHForEnzymeVaultShare', function () {
     const governance = this.accounts.governanceAccounts[0];
 
     const max = parseEther('1000');
-    await pool.connect(governance).addAsset(
+    await pool.connect(governance).setSwapDetails(
       enzymeV4Vault.address,
-      18, // decimals
       parseEther('100'), // asset minimum
       max, // asset maximum
       '100', // 1% max slippage
-      false, // isCoverAsset
     );
 
     // add ether to pool
@@ -179,13 +129,11 @@ describe('swapETHForEnzymeVaultShare', function () {
     const governance = this.accounts.governanceAccounts[0];
 
     const max = parseEther('1000');
-    await pool.connect(governance).addAsset(
+    await pool.connect(governance).setSwapDetails(
       enzymeV4Vault.address,
-      18, // decimals
       parseEther('100'), // asset minimum
       max, // asset maximum
       '100', // 1% max slippage
-      false, // isCoverAsset
     );
 
     // add ether to pool
@@ -219,13 +167,11 @@ describe('swapETHForEnzymeVaultShare', function () {
     const governance = this.accounts.governanceAccounts[0];
 
     const max = parseEther('1000');
-    await pool.connect(governance).addAsset(
+    await pool.connect(governance).setSwapDetails(
       enzymeV4Vault.address,
-      18, // decimals
       parseEther('100'), // asset minimum
       max, // asset maximum
       '100', // 1% max slippage
-      false, // isCoverAsset
     );
 
     // add ether to pool
@@ -258,13 +204,11 @@ describe('swapETHForEnzymeVaultShare', function () {
 
     const minAssetAmount = parseEther('100');
     const maxAssetAmount = parseEther('1000');
-    await pool.connect(governance).addAsset(
+    await pool.connect(governance).setSwapDetails(
       enzymeV4Vault.address,
-      18, // decimals
       minAssetAmount, // asset minimum
       maxAssetAmount, // asset maximum
       '100', // 1% max slippage
-      false, // isCoverAsset
     );
 
     // add ether to pool

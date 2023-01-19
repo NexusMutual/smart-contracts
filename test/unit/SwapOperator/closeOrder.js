@@ -88,7 +88,7 @@ describe('closeOrder', function () {
     await dai.mint(cowVaultRelayer.address, parseEther('1000000'));
 
     // Set asset details for DAI
-    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100, true);
+    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
 
     // place order
     await swapOperator.placeOrder(contractOrder, orderUID);

@@ -3,6 +3,8 @@ const { ethers } = require('hardhat');
 const ipfsClient = require('ipfs-http-client');
 const fs = require('fs');
 
+const { AddressZero, MaxUint256 } = ethers.constants;
+
 const claimMethod = {
   individualClaim: 0,
   yieldTokenIncidents: 1,
@@ -20,7 +22,7 @@ const sleep = ms => {
   });
 };
 
-const main = async (coverAddress, abMemberSigner) => {
+const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
   const [deployer] = await ethers.getSigners();
   const { abi } = JSON.parse(fs.readFileSync('./artifacts/contracts/modules/cover/Cover.sol/Cover.json'));
   const cover = new ethers.Contract(coverAddress, abi, deployer);
@@ -30,64 +32,95 @@ const main = async (coverAddress, abMemberSigner) => {
     protocol: 'https',
   });
 
-  // Add product types:
-  // Protocol
-  const protocolAgreementBuffer = fs.readFileSync('./scripts/v2-migration/input/ProtocolCoverv1.0.pdf');
-  const protocolAgreement = await ipfs.add(protocolAgreementBuffer);
+  let protocolCoverHash;
+  let custodianCoverHash;
+  let yieldTokenCoverHash;
 
-  const protocolCover = await ipfs.add(
-    Buffer.from(
-      JSON.stringify({
-        agreement: protocolAgreement.path,
-        title: 'Protocol cover',
-      }),
-    ),
-  );
-  const protocolCoverHash = protocolCover.path;
-  console.log({ protocolCoverHash });
-  ipfs.pin.add(protocolCoverHash);
+  if (enableIPFSUploads) {
+    // Add product types:
+    // Protocol
+    const protocolAgreementBuffer = fs.readFileSync('./scripts/v2-migration/input/ProtocolCoverv1.0.pdf');
+    const protocolAgreement = await ipfs.add(protocolAgreementBuffer);
 
-  // Custodian
-  const custodianAgreementBuffer = fs.readFileSync('./scripts/v2-migration/input/CustodyCoverWordingv1.0.pdf');
-  const custodianAgreement = await ipfs.add(custodianAgreementBuffer);
-  const custodianCover = await ipfs.add(
-    Buffer.from(
-      JSON.stringify({
-        agreement: custodianAgreement.path,
-        title: 'Custodian cover',
-      }),
-    ),
-  );
-  const custodianCoverHash = custodianCover.path;
-  console.log({ custodianCoverHash });
-  ipfs.pin.add(custodianCoverHash);
-
-  // Yield Token
-  const yieldTokenAgreementBuffer = fs.readFileSync('./scripts/v2-migration/input/YieldTokenCoverv1.0.pdf');
-  const yieldTokenAgreement = await ipfs.add(yieldTokenAgreementBuffer);
-  const yieldTokenCover = await ipfs.add(
-    Buffer.from(
-      JSON.stringify({
-        agreement: yieldTokenAgreement.path,
-        name: 'Yield token cover',
-      }),
-    ),
-  );
-  const yieldTokenCoverHash = yieldTokenCover.path;
-  console.log({ yieldTokenCoverHash });
-  ipfs.pin.add(yieldTokenCoverHash);
-
-  {
-    const tx = await cover.connect(abMemberSigner).addProductTypes(
-      [
-        [claimMethod.individualClaim, 30],
-        [claimMethod.individualClaim, 120],
-        [claimMethod.yieldTokenIncidents, 14],
-      ],
-      [protocolCoverHash, custodianCoverHash, yieldTokenCoverHash],
+    const protocolCover = await ipfs.add(
+      Buffer.from(
+        JSON.stringify({
+          agreement: protocolAgreement.path,
+          title: 'Protocol cover',
+        }),
+      ),
     );
-    await tx.wait();
+    const protocolCoverHash = protocolCover.path;
+    console.log({ protocolCoverHash });
+    ipfs.pin.add(protocolCoverHash);
+
+    // Custodian
+    const custodianAgreementBuffer = fs.readFileSync('./scripts/v2-migration/input/CustodyCoverWordingv1.0.pdf');
+    const custodianAgreement = await ipfs.add(custodianAgreementBuffer);
+    const custodianCover = await ipfs.add(
+      Buffer.from(
+        JSON.stringify({
+          agreement: custodianAgreement.path,
+          title: 'Custodian cover',
+        }),
+      ),
+    );
+    const custodianCoverHash = custodianCover.path;
+    console.log({ custodianCoverHash });
+    ipfs.pin.add(custodianCoverHash);
+
+    // Yield Token
+    const yieldTokenAgreementBuffer = fs.readFileSync('./scripts/v2-migration/input/YieldTokenCoverv1.0.pdf');
+    const yieldTokenAgreement = await ipfs.add(yieldTokenAgreementBuffer);
+    const yieldTokenCover = await ipfs.add(
+      Buffer.from(
+        JSON.stringify({
+          agreement: yieldTokenAgreement.path,
+          name: 'Yield token cover',
+        }),
+      ),
+    );
+    const yieldTokenCoverHash = yieldTokenCover.path;
+    console.log({ yieldTokenCoverHash });
+    ipfs.pin.add(yieldTokenCoverHash);
+  } else {
+    protocolCoverHash = 'Fork Test Mock Protocol Cover Hash';
+    custodianCoverHash = 'Fork Test Mock Custodian Cover Hash';
+    yieldTokenCoverHash = 'Test Mock Yield Token Cover Hash';
   }
+
+  await cover.connect(abMemberSigner).setProductTypes([
+    {
+      // Protocol Cover
+      productTypeId: MaxUint256,
+      ipfsMetadata: protocolCoverHash,
+      productType: {
+        descriptionIpfsHash: 'protocolCoverIPFSHash',
+        claimMethod: claimMethod.individualClaim,
+        gracePeriod: 30 * 24 * 3600, // 30 days
+      },
+    },
+    {
+      // Custody Cover
+      productTypeId: MaxUint256,
+      ipfsMetadata: custodianCoverHash,
+      productType: {
+        descriptionIpfsHash: 'custodyCoverIPFSHash',
+        claimMethod: claimMethod.individualClaim,
+        gracePeriod: 120 * 24 * 3600, // 120 days
+      },
+    },
+    // Yield Token Cover
+    {
+      productTypeId: MaxUint256,
+      ipfsMetadata: yieldTokenCoverHash,
+      productType: {
+        descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
+        claimMethod: claimMethod.yieldTokenIncidents,
+        gracePeriod: 14 * 24 * 3600, // 14 days
+      },
+    },
+  ]);
 
   const migratableProducts = JSON.parse(fs.readFileSync('./deploy/migratableProducts.json'));
 

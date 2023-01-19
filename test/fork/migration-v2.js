@@ -672,7 +672,7 @@ describe('v2 migration', function () {
     );
   });
 
-  it.skip('run populate-v2-products script', async function () {
+  it('run populate-v2-products script', async function () {
     await populateV2Products(this.cover.address, this.abMembers[0]);
   });
 

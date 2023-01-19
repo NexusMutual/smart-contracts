@@ -663,7 +663,7 @@ describe('v2 migration', function () {
     // expect(tcNxmBalance).to.be.equal(rewardsSum.add(coverNotesSum));
   });
 
-  it.skip('remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {
+  it('remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.removeContracts, // removeContracts(bytes2[])
       defaultAbiCoder.encode(['bytes2[]'], [['CR', 'CD', 'IC', 'QD', 'QT', 'TF', 'TD', 'P2'].map(x => toUtf8Bytes(x))]),
@@ -678,16 +678,10 @@ describe('v2 migration', function () {
 
   it.skip('migrate top stakers to new v2 staking pools', async function () {
     const topStakers = [
-      '0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4',
-      '0x87B2a7559d85f4653f13E6546A14189cd5455d45',
-      '0x4a9fA34da6d2378c8f3B9F6b83532B169beaEDFc',
-      '0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2',
-      '0xE1Ad30971b83c17E2A24c0334CB45f808AbEBc87',
-      '0x5FAdEA9d64FFbe0b8A6799B8f0c72250F92E2B1d',
-      '0x9c657DB2B697846BE13Ca0B2bB5a6D17f860a395',
-      '0xF99b3a13d46A04735BF3828eB3030cfED5Ea0087',
-      '0x8C878B8f805472C0b70eD66a71c0B33da3d233c8',
-      '0x4544e2Fae244eA4Ca20d075bb760561Ce5990DC3',
+      '0x1337def1fc06783d4b03cb8c1bf3ebf7d0593fc4',
+      '0x963df0066ff8345922df88eebeb1095be4e4e12e',
+      '0x87b2a7559d85f4653f13e6546a14189cd5455d45',
+      '0x46de0c6f149be3885f28e54bb4d302cb2c505bc2',
     ];
     const txs = await Promise.all(topStakers.map(x => this.pooledStaking.migrateToNewV2Pool(x, 0)));
     await Promise.all(txs.map(x => x.wait()));

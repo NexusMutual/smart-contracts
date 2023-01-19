@@ -29,7 +29,7 @@ contract StakingViewer {
     uint stake;
   }
 
-  struct StakerDetailsPerPool {
+  struct StakerDetails {
     uint poolId;
     uint totalActiveStake;
     uint totalExpiredStake;
@@ -121,7 +121,7 @@ contract StakingViewer {
 
   function getStakerDetailsByTokenId(
     uint tokenId
-  ) public view returns (StakerDetailsPerPool memory stakerDetails) {
+  ) public view returns (StakerDetails memory stakerDetails) {
 
     uint poolId = stakingNFT.stakingPoolOf(tokenId);
     IStakingPool pool = stakingPool(poolId);
@@ -179,6 +179,25 @@ contract StakingViewer {
     stakerDetails.totalActiveStake = totalActiveStake;
     stakerDetails.totalExpiredStake = totalExpiredStake;
     stakerDetails.withdrawableRewards = withdrawableRewards;
+
+    return stakerDetails;
+  }
+
+  function getStakerDetailsByTokenIds(
+    uint[] memory tokenIds,
+    uint poolId
+  ) public view returns (StakerDetails memory stakerDetails) {
+    stakerDetails.poolId = poolId;
+
+    for (uint i = 0; i < tokenIds.length; i++) {
+      require (stakingNFT.stakingPoolOf(tokenIds[i]) == poolId);
+
+      StakerDetails stakerDetailsForToken = getStakerDetailsByTokenId(tokenIds[i]);
+
+      stakerDetails.totalActiveStake += stakerDetailsForToken.totalActiveStake;
+      stakerDetails.totalExpiredStake += stakerDetailsForToken.totalExpiredStake;
+      stakerDetails.withdrawableRewards += stakerDetailsForToken.withdrawableRewards;
+    }
 
     return stakerDetails;
   }

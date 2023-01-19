@@ -85,7 +85,7 @@ contract StakingViewer {
     );
   }
 
-  /* ========== Staking Pools Details ========== */
+  /* ========== STAKING POOL FUNCTIONS ========== */
 
   function getStakingPoolOverviewByPoolId(
     uint poolId
@@ -178,7 +178,7 @@ contract StakingViewer {
     return stakingPoolDetails;
   }
 
-  /* ========== Staker Details ========== */
+  /* ========== STAKER FUNCTIONS ========== */
 
   function getStakerOverviewByTokenId(
     uint tokenId
@@ -250,18 +250,61 @@ contract StakingViewer {
   ) public view returns (StakerOverview memory stakerOverview) {
     stakerOverview.poolId = poolId;
 
-    for (uint i = 0; i < tokenIds.length; i++) {
-      if (stakingNFT.stakingPoolOf(tokenIds[i]) != poolId) {
+    IStakingPool pool = stakingPool(poolId);
+    uint periodsWithDepositCount = 0;
+
+    uint firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+    StakingPeriod[] memory stakingPeriodsWithDepositsQueue = new StakingPeriod[](
+      firstActiveTrancheId + MAX_ACTIVE_TRANCHES
+    );
+
+    for (uint tokenId = 0; tokenId < tokenIds.length; tokenId++) {
+      if (stakingNFT.stakingPoolOf(tokenIds[tokenId]) != poolId) {
         continue;
       }
 
-      StakerOverview memory stakerOverviewForToken = getStakerOverviewByTokenId(tokenIds[i]);
+      StakerOverview memory stakerOverviewForToken = getStakerOverviewByTokenId(tokenIds[tokenId]);
       stakerOverview.activeStake += stakerOverviewForToken.activeStake;
       stakerOverview.expiredStake += stakerOverviewForToken.expiredStake;
       stakerOverview.withdrawableRewards += stakerOverviewForToken.withdrawableRewards;
+
+      // Calculate staking periods that still have a deposit (both expired and active)
+      for (
+        uint trancheId = FIRST_TRANCHE_ID;
+        trancheId < firstActiveTrancheId + MAX_ACTIVE_TRANCHES;
+        trancheId++
+      ) {
+        (,, uint stakeShares,) = pool.deposits(tokenIds[tokenId], trancheId);
+
+        if (stakeShares == 0) {
+          continue;
+        }
+
+        StakingPeriod memory stakingPeriod;
+        stakingPeriod.trancheId = trancheId;
+
+        if (trancheId < firstActiveTrancheId) {
+          (, uint stakeAmountAtExpiry,) = pool.expiredTranches(trancheId);
+          stakingPeriod.stake = stakeAmountAtExpiry;
+        } else {
+          stakingPeriod.stake =
+          stakingPool(poolId).activeStake() *
+          stakeShares /
+          stakingPool(poolId).stakeSharesSupply();
+        }
+
+        stakingPeriodsWithDepositsQueue[periodsWithDepositCount] = stakingPeriod;
+        periodsWithDepositCount++;
+      }
     }
 
-    // TODO: calculate staking periods
+    StakingPeriod[] memory stakingPeriodsWithDeposits = new StakingPeriod[](
+      periodsWithDepositCount
+    );
+    for (uint i = 0; i < periodsWithDepositCount; i++) {
+      stakingPeriodsWithDeposits[i] = stakingPeriodsWithDepositsQueue[i];
+    }
+    stakerOverview.stakingPeriods = stakingPeriodsWithDeposits;
 
     return stakerOverview;
   }

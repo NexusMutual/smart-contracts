@@ -14,6 +14,12 @@ contract CoverMockStakingPool is IStakingPool {
   bool public isPrivatePool;
   uint8 public poolFee;
   uint8 public maxPoolFee;
+  uint public accNxmPerRewardsShare;
+  uint public rewardsPerSecond;
+  uint public stakeSharesSupply;
+
+  mapping(uint => mapping(uint => Deposit)) public deposits;
+  mapping(uint => ExpiredTranche) public expiredTranches;
 
   mapping (uint => uint) public usedCapacity;
   mapping (uint => uint) public stakedAmount;
@@ -175,26 +181,6 @@ contract CoverMockStakingPool is IStakingPool {
 
   function setPoolPrivacy(bool /* isPrivatePool */) external {
     manager = manager;
-    revert("CoverMockStakingPool: not callable");
-  }
-
-  function getActiveStake() external view returns (uint) {
-    block.timestamp;
-    revert("CoverMockStakingPool: not callable");
-  }
-
-  function getProductStake(uint /* productId */, uint /* coverExpirationDate */) external view returns (uint) {
-    block.timestamp;
-    revert("CoverMockStakingPool: not callable");
-  }
-
-  function getFreeProductStake(uint /* productId */, uint /* coverExpirationDate */) external view returns (uint) {
-    block.timestamp;
-    revert("CoverMockStakingPool: not callable");
-  }
-
-  function getAllocatedProductStake(uint /* productId */) external view returns (uint) {
-    block.timestamp;
     revert("CoverMockStakingPool: not callable");
   }
 

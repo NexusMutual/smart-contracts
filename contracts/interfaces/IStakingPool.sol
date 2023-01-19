@@ -116,9 +116,26 @@ interface IStakingPool {
 
   function activeStake() external view returns (uint);
 
+  function stakeSharesSupply() external view returns (uint);
+
   function rewardPerSecond() external view returns (uint);
 
+  function accNxmPerRewardsShare() external view returns (uint);
+
   function manager() external view returns (address);
+
+  function deposits(uint tokenId, uint trancheId) external view returns (
+    uint lastAccNxmPerRewardShare,
+    uint pendingRewards,
+    uint stakeShares,
+    uint rewardsShares
+  );
+
+  function expiredTranches(uint trancheId) external view returns (
+    uint accNxmPerRewardShareAtExpiry,
+    uint stakeAmountAtExpiry,
+    uint stakeShareSupplyAtExpiry
+  );
 
   function setPoolFee(uint newFee) external;
 
@@ -126,13 +143,6 @@ interface IStakingPool {
 
   function setProducts(StakedProductParam[] memory params) external;
 
-  function getActiveStake() external view returns (uint);
-
-  function getProductStake(uint productId, uint coverExpirationDate) external view returns (uint);
-
-  function getFreeProductStake(uint productId, uint coverExpirationDate) external view returns (uint);
-
-  function getAllocatedProductStake(uint productId) external view returns (uint);
 
     /* ========== EVENTS ========== */
 

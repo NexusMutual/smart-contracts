@@ -1218,37 +1218,6 @@ contract StakingPool is IStakingPool, Multicall {
     activeStake = initialStake - burnAmount;
   }
 
-  /* views */
-
-  function getActiveStake() external view returns (uint) {
-    block.timestamp; // prevents warning about function being pure
-    return 0;
-  }
-
-  function getProductStake(
-    uint productId, uint coverExpirationDate
-  ) public view returns (uint) {
-    productId;
-    coverExpirationDate;
-    block.timestamp;
-    return 0;
-  }
-
-  function getAllocatedProductStake(uint productId) public view returns (uint) {
-    productId;
-    block.timestamp;
-    return 0;
-  }
-
-  function getFreeProductStake(
-    uint productId, uint coverExpirationDate
-  ) external view returns (uint) {
-    productId;
-    coverExpirationDate;
-    block.timestamp;
-    return 0;
-  }
-
   /* pool management */
 
   function recalculateEffectiveWeights(uint[] calldata productIds) external {

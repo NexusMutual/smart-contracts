@@ -7,9 +7,12 @@ import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingNFT.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
+
 import "../../libraries/StakingPoolLibrary.sol";
+import "../../libraries/UncheckedMath.sol";
 
 contract StakingViewer {
+  using UncheckedMath for uint;
 
   struct StakingPoolDetails {
     uint poolId;
@@ -21,22 +24,27 @@ contract StakingViewer {
     uint currentAPY;
   }
 
-//  struct StakingPeriod {
-//    uint trancheId;
-//    uint stake;
-//  }
-//
-//  struct StakerDetailsPerPool {
-//    uint poolId;
-//    uint totalActiveStake;
-//    uint totalExpiredStake;
-//    uint withdrawableRewards;
-//
-//  }
+  struct StakingPeriod {
+    uint trancheId;
+    uint stake;
+  }
+
+  struct StakerDetailsPerPool {
+    uint poolId;
+    uint totalActiveStake;
+    uint totalExpiredStake;
+    uint withdrawableRewards;
+//    StakingPeriod[] stakingPeriodDetails;
+  }
 
   INXMMaster internal immutable master;
   IStakingNFT public immutable stakingNFT;
   IStakingPoolFactory public immutable stakingPoolFactory;
+
+  uint public constant TRANCHE_DURATION = 91 days;
+  uint public constant MAX_ACTIVE_TRANCHES = 8;
+  uint public constant ONE_NXM = 1 ether;
+  uint public constant FIRST_TRANCHE_ID = 212;  // To be updated when we launch
 
   constructor(
     INXMMaster _master,
@@ -111,8 +119,65 @@ contract StakingViewer {
 
   /* ========== Staker Details ========== */
 
-//  function getStakerDetailsByTokenId(uint[] tokenIds) public view returns (uint activeStake, uint
-//    expiredStake) {
-//
-//  }
+  function getStakerDetailsByTokenId(
+    uint tokenId
+  ) public view returns (StakerDetailsPerPool memory stakerDetails) {
+
+    uint poolId = stakingNFT.stakingPoolOf(tokenId);
+    IStakingPool pool = stakingPool(poolId);
+
+    uint firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+    uint totalActiveStake = 0;
+    uint withdrawableRewards = 0;
+
+    // Active tranches
+    for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
+      (
+        uint lastAccNxmPerRewardShare,
+        uint pendingRewards,
+        uint stakeShares,
+        uint rewardsShares
+      ) = pool.deposits(tokenId, firstActiveTrancheId + i);
+
+      totalActiveStake +=
+        stakingPool(poolId).activeStake() *
+        stakeShares /
+        stakingPool(poolId).stakeSharesSupply();
+
+      withdrawableRewards += pendingRewards;
+      withdrawableRewards +=
+        (pool.accNxmPerRewardsShare().uncheckedSub(lastAccNxmPerRewardShare)) * rewardsShares / ONE_NXM;
+    }
+
+    // Expired tranches
+    uint totalExpiredStake = 0;
+
+    for (uint i = FIRST_TRANCHE_ID; i < firstActiveTrancheId; i++) {
+      (
+        uint lastAccNxmPerRewardShare,
+        uint pendingRewards,
+        uint stakeShares,
+        uint rewardsShares
+      ) = pool.deposits(tokenId, i);
+
+      (
+        uint accNxmPerRewardShareAtExpiry,
+        uint stakeAmountAtExpiry,
+        uint stakeShareSupplyAtExpiry
+      ) = pool.expiredTranches(i);
+
+      totalExpiredStake += stakeAmountAtExpiry * stakeShares / stakeShareSupplyAtExpiry;
+
+      withdrawableRewards += pendingRewards;
+      withdrawableRewards +=
+        (accNxmPerRewardShareAtExpiry.uncheckedSub(lastAccNxmPerRewardShare)) * rewardsShares / ONE_NXM;
+    }
+
+    stakerDetails.poolId = poolId;
+    stakerDetails.totalActiveStake = totalActiveStake;
+    stakerDetails.totalExpiredStake = totalExpiredStake;
+    stakerDetails.withdrawableRewards = withdrawableRewards;
+
+    return stakerDetails;
+  }
 }

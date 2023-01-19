@@ -184,7 +184,7 @@ contract StakingViewer {
   }
 
   function getStakerDetailsByTokenIds(
-    uint[] memory tokenIds,
+    uint[] calldata tokenIds,
     uint poolId
   ) public view returns (StakerDetails memory stakerDetails) {
     stakerDetails.poolId = poolId;
@@ -194,7 +194,7 @@ contract StakingViewer {
         continue;
       }
 
-      StakerDetails stakerDetailsForToken = getStakerDetailsByTokenId(tokenIds[i]);
+      StakerDetails memory stakerDetailsForToken = getStakerDetailsByTokenId(tokenIds[i]);
 
       stakerDetails.totalActiveStake += stakerDetailsForToken.totalActiveStake;
       stakerDetails.totalExpiredStake += stakerDetailsForToken.totalExpiredStake;

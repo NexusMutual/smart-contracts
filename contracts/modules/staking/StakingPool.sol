@@ -66,7 +66,7 @@ contract StakingPool is IStakingPool, Multicall {
   // 32 bytes left in slot 3
 
   // slot 4
-  address public manager;
+  address public override manager;
   uint32 public totalEffectiveWeight;
   uint32 public totalTargetWeight;
 

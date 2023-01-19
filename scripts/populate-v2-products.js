@@ -2,6 +2,7 @@ require('dotenv').config();
 const { ethers } = require('hardhat');
 const ipfsClient = require('ipfs-http-client');
 const fs = require('fs');
+const path = require('path');
 
 const { AddressZero, MaxUint256 } = ethers.constants;
 
@@ -122,33 +123,45 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
     },
   ]);
 
-  const migratableProducts = JSON.parse(fs.readFileSync('./deploy/migratableProducts.json'));
+  const migrateableProductsPath = path.join(__dirname, 'v2-migration/output/migratableProducts.json');
+
+  const migratableProducts = JSON.parse(fs.readFileSync(migrateableProductsPath));
 
   // Use the next line to skip reuploading when testing
   // const migratableProductsIpfsHashes = JSON.parse(fs.readFileSync('./deploy/migratableProductsIpfsHashes.json'));
   const migratableProductsIpfsHashes = [];
-  for (const product of migratableProducts) {
-    console.log({ product });
-    const ipfsUpload = await ipfs.add(
-      Buffer.from(
-        JSON.stringify({
-          name: product.name,
-        }),
-      ),
-    );
-    await sleep(20000); // Required to avoid "Too many requests"
-    migratableProductsIpfsHashes.push(ipfsUpload.path);
+
+  if (enableIPFSUploads) {
+    for (const product of migratableProducts) {
+      console.log({ product });
+      const ipfsUpload = await ipfs.add(
+        Buffer.from(
+          JSON.stringify({
+            name: product.name,
+          }),
+        ),
+      );
+      await sleep(20000); // Required to avoid "Too many requests"
+      migratableProductsIpfsHashes.push(ipfsUpload.path);
+    }
+  } else {
+    for (const product of migratableProducts) {
+      console.log(`Processing product ${product.name}`);
+      migratableProductsIpfsHashes.push(`Fork Test Mock IPFS Path Product ${product.name}`);
+    }
   }
+
   console.log({ migratableProductsIpfsHashes });
 
-  fs.writeFileSync(
-    './deploy/migratableProductsIpfsHashes.json',
-    JSON.stringify(migratableProductsIpfsHashes, null, 2),
-    'utf8',
+  const migrateableProductsIpfsHashesPath = path.join(
+    __dirname,
+    'v2-migration/output/migratableProductsIpfsHashes.json',
   );
 
+  fs.writeFileSync(migrateableProductsIpfsHashesPath, JSON.stringify(migratableProductsIpfsHashes, null, 2), 'utf8');
+
   {
-    const tx = await cover.connect(abMemberSigner).addProducts(
+    const tx = await cover.connect(abMemberSigner).setProducts(
       migratableProducts.map(x => [
         productType[x.type],
         x.type === 'token' ? x.coveredToken : '0x0000000000000000000000000000000000000000',

@@ -677,6 +677,6 @@ describe('v2 migration', function () {
         `Pool value after:  ${formatEther(poolValueAfter)}`,
         `Current diff: ${formatEther(poolValueDiff)}`,
       ].join('\n'),
-    );
+    ).to.be.equal(true);
   });
 });

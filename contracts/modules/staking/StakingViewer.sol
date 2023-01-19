@@ -50,7 +50,6 @@ contract StakingViewer {
   }
 
   struct StakerDetails {
-    uint poolsCount;
     uint totalActiveStake;
     uint totalExpiredStake;
     uint totalWithdrawableRewards;
@@ -319,8 +318,6 @@ contract StakingViewer {
       stakerDetails.totalExpiredStake += stakerOverviewForToken.expiredStake;
       stakerDetails.totalWithdrawableRewards += stakerOverviewForToken.withdrawableRewards;
     }
-
-    // TODO: calculate pools count
 
     return stakerDetails;
   }

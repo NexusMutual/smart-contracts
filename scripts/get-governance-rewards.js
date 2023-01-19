@@ -5,8 +5,6 @@ const fetch = require('node-fetch');
 
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 
-const { PROVIDER_URL } = process.env;
-
 const EVENTS_START_BLOCK = 0;
 
 const getContractFactory = async providerOrSigner => {

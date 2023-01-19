@@ -25,10 +25,7 @@ function onlyUnique(value, index, self) {
 }
 
 const getTransferCalls = rewardables => {
-  const transfers = rewardables.map(
-    rewardable =>
-      `tk.transfer(${rewardable.address}, ${rewardable.reward});\n    console.log(${rewardable.address}, ${rewardable.reward});`,
-  );
+  const transfers = rewardables.map(rewardable => `tk.transfer(${rewardable.address}, ${rewardable.reward});`);
 
   const items = ['// REWARD_TRANSFERS_HELPER_BEGIN', ...transfers, '// REWARD_TRANSFERS_HELPER_END'];
 

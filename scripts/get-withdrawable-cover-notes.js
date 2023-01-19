@@ -34,9 +34,8 @@ async function getWithdrawableCoverNotes(i, qt, mr) {
   };
 }
 
-async function main(provider, tc) {
+async function main(provider) {
   const factory = await getContractFactory(provider);
-  tc = tc || (await factory('TC'));
   const mr = await factory('MR');
   const qt = await factory('QT');
 

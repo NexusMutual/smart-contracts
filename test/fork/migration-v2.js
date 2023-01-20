@@ -555,6 +555,22 @@ describe('v2 migration', function () {
     expect(claimPayableAddressAfter).to.be.equal(AddressZero);
   });
 
+  it('initialize Cover', async function () {
+    await this.cover.initialize();
+
+    const storedGlobalCapacityRatio = await this.cover.globalCapacityRatio();
+
+    expect(storedGlobalCapacityRatio).to.be.equal(20000); // x2
+
+    const storedGlobalRewardsRatio = await this.cover.globalRewardsRatio();
+
+    expect(storedGlobalRewardsRatio).to.be.equal(5000); // 50%
+
+    const storedCoverAssetsFallback = await this.cover.coverAssetsFallback();
+
+    expect(storedCoverAssetsFallback).to.be.equal(0b11);
+  });
+
   it.skip('deploy staking pool', async function () {
     const StakingPool = await ethers.getContractFactory('StakingPool');
     const stakingPool = await StakingPool.deploy(

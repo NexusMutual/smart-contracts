@@ -162,21 +162,6 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
   fs.writeFileSync(migrateableProductsIpfsHashesPath, JSON.stringify(migratableProductsIpfsHashes, null, 2), 'utf8');
 
   {
-    /*
-        {
-          productId: MaxUint256,
-          ipfsMetadata: 'product 0 metadata',
-          product: {
-            productType: 0, // Protocol Cover
-            yieldTokenAddress: '0x0000000000000000000000000000000000000000',
-            coverAssets: 0, // Use fallback
-            initialPriceRatio: 100,
-            capacityReductionRatio: 0,
-            useFixedPrice: false,
-          },
-          allowedPools: [],
-        },
-     */
     await cover.connect(abMemberSigner).setProducts(
       migratableProducts.map(x => {
         const coverAssets =

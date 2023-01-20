@@ -38,8 +38,10 @@ const main = async () => {
 
   const ProductsV1 = getProductsContract(migratable);
 
+  const migrateableProductsPath = outputDir + '/migratableProducts.json';
+  console.log(`Writing file ${migrateableProductsPath}`);
   fs.writeFileSync(
-    outputDir + 'migratableProducts.json',
+    migrateableProductsPath,
     JSON.stringify(
       migratable.map(({ name, type, supportedChains, logo, underlyingToken, coveredToken }) => ({
         name,
@@ -55,8 +57,10 @@ const main = async () => {
     'utf8',
   );
 
+  const v1ProductIdsPath = outputDir + '/v1ProductIds.json';
+  console.log(`Writing file ${v1ProductIdsPath}`);
   fs.writeFileSync(
-    outputDir + 'v1ProductIds.json',
+    v1ProductIdsPath,
     JSON.stringify(
       migratable.map(x => x.legacyProductId),
       null,
@@ -65,8 +69,10 @@ const main = async () => {
     'utf8',
   );
 
+  const deprecatedV1ProductsPath = outputDir + '/deprecatedV1Products.json';
+  console.log(`Writing file ${deprecatedV1ProductsPath}`);
   fs.writeFileSync(
-    outputDir + 'deprecatedV1Products.json',
+    deprecatedV1ProductsPath,
     JSON.stringify(
       deprecatedV1Products
         .map(({ name, type, supportedChains, logo, legacyProductId }) => ({
@@ -92,6 +98,7 @@ const main = async () => {
   );
 
   const contractPath = path.join(__dirname, '../contracts/modules/cover/ProductsV1.sol');
+  console.log(`Writing file ${contractPath}`);
   fs.writeFileSync(contractPath, ProductsV1, 'utf8');
 };
 

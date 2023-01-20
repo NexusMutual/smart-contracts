@@ -63,6 +63,7 @@ contract StakingViewer {
   uint public constant MAX_ACTIVE_TRANCHES = 8;
   uint public constant ONE_NXM = 1 ether;
   uint public constant FIRST_TRANCHE_ID = 212;  // To be updated when we launch
+  uint public constant MAX_UINT = type(uint).max;
 
   constructor(
     INXMMaster _master,
@@ -189,6 +190,7 @@ contract StakingViewer {
     uint firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint totalActiveStake = 0;
     uint withdrawableRewards = 0;
+    uint newRewardPerShare;
 
     // Active tranches
     for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
@@ -204,9 +206,9 @@ contract StakingViewer {
         stakeShares /
         stakingPool(poolId).stakeSharesSupply();
 
+      newRewardPerShare = pool.accNxmPerRewardsShare().uncheckedSub(lastAccNxmPerRewardShare);
+      withdrawableRewards += newRewardPerShare * rewardsShares / ONE_NXM;
       withdrawableRewards += pendingRewards;
-      withdrawableRewards +=
-        (pool.accNxmPerRewardsShare().uncheckedSub(lastAccNxmPerRewardShare)) * rewardsShares / ONE_NXM;
     }
 
     // Expired tranches
@@ -230,9 +232,9 @@ contract StakingViewer {
         ? totalExpiredStake += stakeAmountAtExpiry * stakeShares / stakeShareSupplyAtExpiry
         : 0;
 
+      newRewardPerShare = accNxmPerRewardShareAtExpiry.uncheckedSub(lastAccNxmPerRewardShare);
+      withdrawableRewards += newRewardPerShare * rewardsShares / ONE_NXM;
       withdrawableRewards += pendingRewards;
-      withdrawableRewards +=
-        (accNxmPerRewardShareAtExpiry.uncheckedSub(lastAccNxmPerRewardShare)) * rewardsShares / ONE_NXM;
     }
 
     stakerOverview.poolId = poolId;
@@ -320,5 +322,35 @@ contract StakingViewer {
     }
 
     return stakerDetails;
+  }
+
+  function getPoolManagerWithdrawableRewards (uint poolId) public view returns (uint withdrawableRewards) {
+    IStakingPool pool = stakingPool(poolId);
+    uint firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
+    uint tokenId = MAX_UINT;
+    uint newRewardPerShare;
+
+    withdrawableRewards = 0;
+
+    for (uint i = FIRST_TRANCHE_ID; i < firstActiveTrancheId + MAX_ACTIVE_TRANCHES; i++) {
+      (
+        uint lastAccNxmPerRewardShare,
+        uint pendingRewards,
+        /* uint stakeShares */,
+        uint rewardsShares
+      ) = pool.deposits(tokenId, i);
+
+      if (i < firstActiveTrancheId) { // Expired tranches
+        (uint accNxmPerRewardShareAtExpiry,,) = pool.expiredTranches(i);
+        newRewardPerShare = accNxmPerRewardShareAtExpiry.uncheckedSub(lastAccNxmPerRewardShare);
+      } else { // Active tranches
+        newRewardPerShare = pool.accNxmPerRewardsShare().uncheckedSub(lastAccNxmPerRewardShare);
+      }
+
+      withdrawableRewards += newRewardPerShare * rewardsShares / ONE_NXM;
+      withdrawableRewards += pendingRewards;
+    }
+
+    return withdrawableRewards;
   }
 }

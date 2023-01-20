@@ -1,11 +1,15 @@
-require('dotenv').config();
+const { ethers, config } = require('hardhat');
 const fs = require('fs');
-const ethers = require('ethers');
+const path = require('path');
 const fetch = require('node-fetch');
 
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
-
 const EVENTS_START_BLOCK = 0;
+const OUTPUT_FILE = path.join(
+  config.paths.root,
+  'scripts/v2-migration/output', // dir
+  'governance-rewardable.json', // filename
+);
 
 const getContractFactory = async providerOrSigner => {
   const data = await fetch(VERSION_DATA_URL).then(r => r.json());
@@ -23,7 +27,13 @@ function onlyUnique(value, index, self) {
   return self.indexOf(value) === index;
 }
 
-const main = async provider => {
+const main = async (provider, useCache = true) => {
+  // check the cache first
+  if (useCache && fs.existsSync(OUTPUT_FILE)) {
+    console.log('Using cached data for goverance rewards');
+    return JSON.parse(fs.readFileSync(OUTPUT_FILE).toString());
+  }
+
   const factory = await getContractFactory(provider);
   const governance = await factory('GV');
 
@@ -55,12 +65,12 @@ const main = async provider => {
   console.log(rewardable);
   console.log(Object.keys(rewardable).length);
 
-  fs.appendFileSync('governance-rewardable.json', JSON.stringify(rewardable, null, 2), 'utf8');
+  fs.appendFileSync(OUTPUT_FILE, JSON.stringify(rewardable, null, 2), 'utf8');
 };
 
 if (require.main === module) {
-  const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL);
-  main(provider)
+  // use default provider and bypass cache when run via cli
+  main(ethers.provider, false)
     .then(() => process.exit(0))
     .catch(e => {
       console.log('Unhandled error encountered: ', e.stack);

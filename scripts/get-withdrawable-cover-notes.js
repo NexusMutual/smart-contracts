@@ -1,10 +1,14 @@
-const { ethers } = require('hardhat');
+const { ethers, config } = require('hardhat');
 const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
 
-const { PROVIDER_URL } = process.env;
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
+const OUTPUT_FILE = path.join(
+  config.paths.root,
+  'scripts/v2-migration/output', // dir
+  'eligible-for-cover-note-withdraw.json', // filename
+);
 
 const getContractFactory = async providerOrSigner => {
   const data = await fetch(VERSION_DATA_URL).then(r => r.json());
@@ -34,7 +38,13 @@ async function getWithdrawableCoverNotes(i, qt, mr) {
   };
 }
 
-async function main(provider) {
+async function main(provider, useCache = true) {
+  // check the cache first
+  if (useCache && fs.existsSync(OUTPUT_FILE)) {
+    console.log('Using cached data for withdrawable cover notes');
+    return JSON.parse(fs.readFileSync(OUTPUT_FILE).toString());
+  }
+
   const factory = await getContractFactory(provider);
   const mr = await factory('MR');
   const qt = await factory('QT');
@@ -59,17 +69,13 @@ async function main(provider) {
 
   const nonZeroMemberWithdrawableCoverNotes = memberWithdrawableCoverNotes.filter(x => x.withdrawableAmount !== '0');
 
-  fs.writeFileSync(
-    path.join(__dirname, 'v2-migration/output/eligible-for-cover-note-withdraw.json'),
-    JSON.stringify(nonZeroMemberWithdrawableCoverNotes, null, 2),
-  );
+  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(nonZeroMemberWithdrawableCoverNotes, null, 2));
 
   return nonZeroMemberWithdrawableCoverNotes;
 }
 
 if (require.main === module) {
-  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL);
-  main(provider)
+  main(ethers.provider, false)
     .then(() => process.exit(0))
     .catch(e => {
       console.log('Unhandled error encountered: ', e.stack);

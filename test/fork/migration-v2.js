@@ -1,13 +1,15 @@
-require('dotenv').config();
-
+const { ethers, web3, network, config } = require('hardhat');
 const fetch = require('node-fetch');
-const { ethers, web3, network } = require('hardhat');
 const { expect } = require('chai');
 const path = require('path');
-const { AddressZero } = ethers.constants;
-const { parseEther, formatEther } = ethers.utils;
-const { hex } = require('../../lib/helpers');
+
+const { hex } = require('../utils').helpers;
+const proposalCategories = require('../utils').proposalCategories;
 const evm = require('./evm')();
+
+const { BigNumber } = ethers;
+const { AddressZero } = ethers.constants;
+const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
 const getProductsV1 = require('../../scripts/get-products-v1');
@@ -15,8 +17,6 @@ const getLockedInV1ClaimAssessment = require('../../scripts/get-locked-in-v1-cla
 const getWithdrawableCoverNotes = require('../../scripts/get-withdrawable-cover-notes');
 const getGovernanceRewards = require('../../scripts/get-governance-rewards');
 const populateV2Products = require('../../scripts/populate-v2-products');
-const proposalCategories = require('../../lib/proposal-categories');
-const { BigNumber } = require('ethers');
 
 const WETH_ADDRESS = '0xd0a1e359811322d97991e03f863a0c30c2cf029c';
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
@@ -39,7 +39,6 @@ const AddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
 const MIN_POOL_ETH = 0;
 
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
-const { defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 
 // will be updated when categories are created.
 let ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID = 0;
@@ -169,15 +168,15 @@ describe('v2 migration', function () {
     poolValueBefore = await this.pool.getPoolValueInEth();
   });
 
-  it.skip('run get-withdrawable-cover-notes', async function () {
+  it('run get-withdrawable-cover-notes', async function () {
     const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
     await getWithdrawableCoverNotes(directProvider, this.tokenController);
   });
 
   it('compute total withdrawable cover notes', async function () {
     const eligibleForCoverNoteWithdrawPath = path.join(
-      __dirname,
-      '../../scripts/v2-migration/output/eligible-for-cover-note-withdraw.json',
+      config.paths.root,
+      'scripts/v2-migration/output/eligible-for-cover-note-withdraw.json',
     );
     const withdrawableCoverNotes = require(eligibleForCoverNoteWithdrawPath);
 
@@ -193,14 +192,15 @@ describe('v2 migration', function () {
     this.coverNotesSum = coverNotesSum;
   });
 
-  it.skip('run get-governance-rewards script', async function () {
-    await getGovernanceRewards(ethers.provider);
+  it('run get-governance-rewards script', async function () {
+    const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
+    await getGovernanceRewards(directProvider);
   });
 
   it('compute total governance rewards', async function () {
     const governanceRewardablePath = path.join(
-      __dirname,
-      '../../scripts/v2-migration/output/governance-rewardable.json',
+      config.paths.root,
+      'scripts/v2-migration/output/governance-rewardable.json',
     );
 
     const rewardables = require(governanceRewardablePath);
@@ -219,7 +219,8 @@ describe('v2 migration', function () {
 
   // generates the LegacyClaimsReward contract with the transfer calls
   it.skip('run get-legacy-assessment-rewards script', async function () {
-    await getLegacyAssessmentRewards(ethers.provider);
+    const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
+    await getLegacyAssessmentRewards(directProvider);
   });
 
   // generates the ProductsV1 contract
@@ -561,7 +562,7 @@ describe('v2 migration', function () {
   });
 
   it('unlock claim assessment stakes', async function () {
-    const stakesPath = path.join(__dirname, '../../scripts/v2-migration/output/eligibleForCLAUnlock.json');
+    const stakesPath = path.join(config.paths.root, 'scripts/v2-migration/output/eligibleForCLAUnlock.json');
     const claimAssessors = require(stakesPath).map(x => x.member);
 
     const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
@@ -607,7 +608,7 @@ describe('v2 migration', function () {
     /*
       -1106654884061072517264
       +870391213513961173071
-  
+
       Extra tokens:
 
       236.26367054711136 NXM

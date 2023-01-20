@@ -55,6 +55,11 @@ contract StakingViewer {
     uint totalWithdrawableRewards;
   }
 
+  struct PoolManagerRewards {
+    uint withdrawableRewards;
+    uint[] trancheIds;
+  }
+
   INXMMaster internal immutable master;
   IStakingNFT public immutable stakingNFT;
   IStakingPoolFactory public immutable stakingPoolFactory;
@@ -324,15 +329,27 @@ contract StakingViewer {
     return stakerDetails;
   }
 
-  function getPoolManagerWithdrawableRewards (uint poolId) public view returns (uint withdrawableRewards) {
+  function getPoolManagerWithdrawableRewards (uint poolId) public view returns (
+    PoolManagerRewards memory managerRewards
+  ) {
     IStakingPool pool = stakingPool(poolId);
+
     uint firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
     uint tokenId = MAX_UINT;
+
+    uint tranchesCount = 0;
+    uint withdrawableRewards = 0;
     uint newRewardPerShare;
+    uint trancheRewards;
 
-    withdrawableRewards = 0;
+    // Use a queue as we don't have the actual size to initialize the array
+    uint[] memory trancheIdsQueue = new uint[](
+      firstActiveTrancheId + MAX_ACTIVE_TRANCHES - FIRST_TRANCHE_ID
+    );
 
+    // Iterate through all tranches
     for (uint i = FIRST_TRANCHE_ID; i < firstActiveTrancheId + MAX_ACTIVE_TRANCHES; i++) {
+      trancheRewards = 0;
       (
         uint lastAccNxmPerRewardShare,
         uint pendingRewards,
@@ -347,10 +364,24 @@ contract StakingViewer {
         newRewardPerShare = pool.accNxmPerRewardsShare().uncheckedSub(lastAccNxmPerRewardShare);
       }
 
-      withdrawableRewards += newRewardPerShare * rewardsShares / ONE_NXM;
-      withdrawableRewards += pendingRewards;
+      // Accumulate the rewards
+      withdrawableRewards += trancheRewards;
+
+      // Store the trancheId if there are rewards in this tranche
+      trancheRewards = pendingRewards + (newRewardPerShare * rewardsShares / ONE_NXM);
+      if (trancheRewards != 0) {
+        trancheIdsQueue[tranchesCount] = tranchesCount;
+        tranchesCount++;
+      }
     }
 
-    return withdrawableRewards;
+    uint[] memory trancheIds = new uint[](tranchesCount);
+    for (uint i = 0; i < tranchesCount; i++) {
+      trancheIds[i] = trancheIdsQueue[i];
+    }
+
+    managerRewards.withdrawableRewards = withdrawableRewards;
+    managerRewards.trancheIds = trancheIds;
+    return managerRewards;
   }
 }

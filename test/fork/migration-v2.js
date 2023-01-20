@@ -519,6 +519,14 @@ describe('v2 migration', function () {
       this.governance,
     );
 
+    const StakingNFT = await ethers.getContractFactory('StakingNFT');
+    this.stakingNFT = await StakingNFT.deploy(
+      'Nexus Mutual Deposit',
+      'NMD',
+      stakingPoolFactory.address,
+      coverProxyAddress,
+    );
+
     this.claimsReward = newClaimsReward;
     this.pool = pool;
 
@@ -571,14 +579,15 @@ describe('v2 migration', function () {
     expect(storedCoverAssetsFallback).to.be.equal(0b11);
   });
 
-  it.skip('deploy staking pool', async function () {
+  it('deploy staking pool', async function () {
     const StakingPool = await ethers.getContractFactory('StakingPool');
+
     const stakingPool = await StakingPool.deploy(
-      'Nexus Mutual Staking Pool', // name
-      'NMSP', // symbol
+      this.stakingNFT.address,
       this.nxm.address,
       this.cover.address,
       this.tokenController.address,
+      this.master.address,
     );
     await stakingPool.deployed();
     this.stakingPool = stakingPool;
@@ -692,7 +701,7 @@ describe('v2 migration', function () {
     await populateV2Products(this.cover.address, this.abMembers[0]);
   });
 
-  it.skip('migrate top stakers to new v2 staking pools', async function () {
+  it('migrate top stakers to new v2 staking pools', async function () {
     const topStakers = [
       '0x1337def1fc06783d4b03cb8c1bf3ebf7d0593fc4',
       '0x963df0066ff8345922df88eebeb1095be4e4e12e',

@@ -18,6 +18,7 @@ const getWithdrawableCoverNotes = require('../../scripts/get-withdrawable-cover-
 const getGovernanceRewards = require('../../scripts/get-governance-rewards');
 const populateV2Products = require('../../scripts/populate-v2-products');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
+const getV1CoverPrices = require('../../scripts/get-v1-cover-prices');
 
 const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
@@ -167,7 +168,12 @@ describe('v2 migration', function () {
     poolValueBefore = await this.pool.getPoolValueInEth();
   });
 
-  it('run get-withdrawable-cover-notes', async function () {
+  it.skip('run get-v1-cover-prices', async function () {
+    const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
+    await getV1CoverPrices(directProvider);
+  });
+
+  it.skip('run get-withdrawable-cover-notes', async function () {
     const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
     await getWithdrawableCoverNotes(directProvider, this.tokenController);
   });

@@ -67,7 +67,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   // this constant is used for calculating the normalized yearly percentage cost of cover
   uint private constant ONE_YEAR = 365 days;
 
-  uint private constant MAX_COMMISSION_RATIO = 3000; // 30%
+  uint public constant MAX_COMMISSION_RATIO = 3000; // 30%
 
   uint public constant GLOBAL_MIN_PRICE_RATIO = 100; // 1%
 
@@ -271,7 +271,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     for (uint i = 0; i < poolAllocationRequests.length; i++) {
 
-      // TODO: add a flag in PoolAllocationRequest to skip certain pools to avoid repricing
       // TODO: poolAllocationRequests might have repeated pools, is this gameable?
 
       // if there is a previous segment and this index is present on it
@@ -285,20 +284,32 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
           revert UnexpectedPoolId();
         }
 
+        // check if this request should be skipped, keeping the previous allocation
+        if (poolAllocationRequests[i].skip) {
+          coverSegmentAllocations[allocationRequest.coverId][segmentId].push(previousPoolAllocation);
+          totalCoverAmountInNXM += previousPoolAllocation.coverAmountInNXM;
+          continue;
+        }
+
         vars.previousPremiumInNXM = previousPoolAllocation.premiumInNXM;
         vars.refund =
           previousPoolAllocation.premiumInNXM
           * (allocationRequest.previousExpiration - block.timestamp) // remaining period
           / (allocationRequest.previousExpiration - allocationRequest.previousStart); // previous period
+
+        // get stored allocation id
         allocationRequest.allocationId = previousPoolAllocation.allocationId;
       } else {
+        // request new allocation id
         allocationRequest.allocationId = type(uint).max;
       }
+
       // converting asset amount to nxm and rounding up to the nearest NXM_PER_ALLOCATION_UNIT
       uint coverAmountInNXM = Math.roundUp(
         Math.divCeil(poolAllocationRequests[i].coverAmountInAsset * ONE_NXM, nxmPriceInCoverAsset),
         NXM_PER_ALLOCATION_UNIT
       );
+
       (uint premiumInNXM, uint allocationId) = stakingPool(poolAllocationRequests[i].poolId).requestAllocation(
         coverAmountInNXM,
         vars.previousPremiumInNXM,
@@ -320,6 +331,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       totalAmountDueInNXM += (vars.refund >= premiumInNXM ? 0 : premiumInNXM - vars.refund);
       totalCoverAmountInNXM += coverAmountInNXM;
     }
+
     totalCoverAmountInCoverAsset = totalCoverAmountInNXM * nxmPriceInCoverAsset / ONE_NXM;
 
     return (totalCoverAmountInCoverAsset, totalAmountDueInNXM);

@@ -147,11 +147,12 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
   } else {
     for (const product of migratableProducts) {
       console.log(`Processing product ${product.name}`);
+      console.log({
+        product,
+      });
       migratableProductsIpfsHashes.push(`Fork Test Mock IPFS Path Product ${product.name}`);
     }
   }
-
-  console.log({ migratableProductsIpfsHashes });
 
   const migrateableProductsIpfsHashesPath = path.join(
     __dirname,
@@ -161,20 +162,46 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
   fs.writeFileSync(migrateableProductsIpfsHashesPath, JSON.stringify(migratableProductsIpfsHashes, null, 2), 'utf8');
 
   {
-    const tx = await cover.connect(abMemberSigner).setProducts(
-      migratableProducts.map(x => [
-        productType[x.type],
-        x.type === 'token' ? x.coveredToken : '0x0000000000000000000000000000000000000000',
-        (x.name === 'MakerDAO MCD' && 0b01) || // Maker cannot be covered using DAI
+    /*
+        {
+          productId: MaxUint256,
+          ipfsMetadata: 'product 0 metadata',
+          product: {
+            productType: 0, // Protocol Cover
+            yieldTokenAddress: '0x0000000000000000000000000000000000000000',
+            coverAssets: 0, // Use fallback
+            initialPriceRatio: 100,
+            capacityReductionRatio: 0,
+            useFixedPrice: false,
+          },
+          allowedPools: [],
+        },
+     */
+    await cover.connect(abMemberSigner).setProducts(
+      migratableProducts.map(x => {
+        const coverAssets =
+          (x.name === 'MakerDAO MCD' && 0b01) || // Maker cannot be covered using DAI
           (x.underlyingToken === 'DAI' && 0b10) || // Yield token cover that uses DAI
           (x.underlyingToken === 'ETH' && 0b01) || // Yield token cover that uses ETH
-          0, // 0 means the fallback is going to be used instead
-        1000,
-        0,
-      ]),
-      migratableProductsIpfsHashes,
+          0;
+
+        const productParams = {
+          productId: MaxUint256,
+          ipfsMetadata: 'product 0 metadata',
+          product: {
+            productType: 0, // Protocol Cover
+            yieldTokenAddress: x.type === 'token' ? x.coveredToken : '0x0000000000000000000000000000000000000000',
+            coverAssets,
+            initialPriceRatio: 100,
+            capacityReductionRatio: 0,
+            useFixedPrice: false,
+          },
+          allowedPools: [],
+        };
+
+        return productParams;
+      }),
     );
-    await tx.wait();
   }
 };
 

@@ -46,6 +46,7 @@ contract StakingViewer {
     uint activeStake;
     uint expiredStake;
     uint withdrawableRewards;
+//    Rewards[] withdrawableRewards;
     StakingPeriod[] stakingPeriods;
   }
 
@@ -55,7 +56,7 @@ contract StakingViewer {
     uint totalWithdrawableRewards;
   }
 
-  struct PoolManagerRewards {
+  struct Rewards {
     uint withdrawableRewards;
     uint[] trancheIds;
   }
@@ -330,7 +331,7 @@ contract StakingViewer {
   }
 
   function getPoolManagerWithdrawableRewards (uint poolId) public view returns (
-    PoolManagerRewards memory managerRewards
+    Rewards memory managerRewards
   ) {
     IStakingPool pool = stakingPool(poolId);
 

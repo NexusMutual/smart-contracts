@@ -9,8 +9,6 @@ contract CoverMockPool {
   mapping (uint => uint) prices;
   Asset[] public assets;
 
-  uint32 public deprecatedCoverAssetsBitmap;
-
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   constructor() {
@@ -18,7 +16,7 @@ contract CoverMockPool {
     assets.push(Asset(ETH, true, false));
   }
 
-  function getTokenPrice(uint assetId) public view returns (uint) {
+  function getTokenPriceInAsset(uint assetId) public view returns (uint) {
     return prices[assetId];
   }
 
@@ -32,8 +30,16 @@ contract CoverMockPool {
     }
   }
 
-  function setDeprecatedCoverAssetsBitmap(uint32 bitmap) external {
-    deprecatedCoverAssetsBitmap = bitmap;
+  function setIsCoverAsset(uint assetId, bool isCoverAsset) public {
+    assets[assetId].isCoverAsset = isCoverAsset;
+  }
+
+  function setIsAbandoned(uint assetId, bool isAbandoned) public {
+    assets[assetId].isAbandoned = isAbandoned;
+  }
+
+  function getAsset(uint assetId) external view returns (Asset memory) {
+    return assets[assetId];
   }
 
   fallback() external payable {}

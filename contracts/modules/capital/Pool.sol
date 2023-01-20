@@ -180,6 +180,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
   }
 
   function getAsset(uint assetId) external override view returns (Asset memory) {
+    require(assetId < assets.length, "Pool: Invalid asset id");
     return assets[assetId];
   }
 

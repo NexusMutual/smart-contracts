@@ -1,8 +1,10 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+
 const { createStakingPool } = require('./helpers');
-const { daysToSeconds } = require('../../../lib/helpers');
-const { resultAsObject } = require('../../utils/').results;
+const { daysToSeconds } = require('../utils').helpers;
+const { resultAsObject } = require('../utils').results;
+
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 

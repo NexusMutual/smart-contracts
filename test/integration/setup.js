@@ -280,9 +280,6 @@ async function setup() {
 
   await cover.changeDependentContractAddress();
 
-  const coverAssetsFallback = 0b111; // ETH, DAI and USDC
-  await cover.setCoverAssetsFallback(coverAssetsFallback);
-
   await cover.setProductTypes([
     {
       // Protocol Cover

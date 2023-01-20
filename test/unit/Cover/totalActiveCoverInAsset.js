@@ -73,31 +73,6 @@ describe('totalActiveCoverInAsset', function () {
     expect(totalActiveCoverInAsset).to.equal(amount);
   });
 
-  it('should initialize all active cover tracking variables', async function () {
-    const { cover } = this;
-    const { BUCKET_SIZE } = this.config;
-    const { timestamp: initialTimestamp } = await ethers.provider.getBlock('latest');
-    const initialBucketId = Math.floor(initialTimestamp / BUCKET_SIZE);
-    // ETH
-    {
-      const { lastBucketUpdateId, totalActiveCoverInAsset } = await cover.activeCover(ETH_COVER_ID);
-      expect(lastBucketUpdateId).to.be.equal(initialBucketId);
-      expect(totalActiveCoverInAsset).to.be.equal(0);
-    }
-    // DAI
-    {
-      const { lastBucketUpdateId, totalActiveCoverInAsset } = await cover.activeCover(DAI_ASSET_ID);
-      expect(lastBucketUpdateId).to.be.equal(initialBucketId);
-      expect(totalActiveCoverInAsset).to.be.equal(0);
-    }
-    // USDC
-    {
-      const { lastBucketUpdateId, totalActiveCoverInAsset } = await cover.activeCover(USDC_COVER_ID);
-      expect(lastBucketUpdateId).to.be.equal(0);
-      expect(totalActiveCoverInAsset).to.be.equal(0);
-    }
-  });
-
   it('should decrease active cover amount when cover expires', async function () {
     const { cover } = this;
     const { BUCKET_SIZE } = this.config;

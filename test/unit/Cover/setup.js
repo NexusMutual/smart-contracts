@@ -33,46 +33,34 @@ async function setup() {
   const Cover = await ethers.getContractFactory('Cover');
 
   const master = await MasterMock.deploy();
-  await master.deployed();
 
   const dai = await ERC20Mock.deploy();
-  await dai.deployed();
 
   const usdcDecimals = 6;
   const usdc = await ERC20CustomDecimalsMock.deploy(usdcDecimals); // 6 decimals
-  await usdc.deployed();
 
   const stETH = await ERC20Mock.deploy();
-  await stETH.deployed();
 
   const memberRoles = await MemberRolesMock.deploy();
-  await memberRoles.deployed();
 
   const tokenController = await TokenController.deploy();
-  await tokenController.deployed();
 
   const nxm = await NXMToken.deploy();
-  await nxm.deployed();
   await nxm.setOperator(tokenController.address);
 
   const mcr = await MCR.deploy();
-  await mcr.deployed();
   await mcr.setMCR(parseEther('600000'));
 
   const stakingPoolImplementation = await StakingPool.deploy();
-  await stakingPoolImplementation.deployed();
 
   const coverNFT = await CoverNFT.deploy();
-  await coverNFT.deployed();
 
   const stakingNFT = await StakingNFT.deploy();
-  await stakingNFT.deployed();
 
   const { defaultSender } = await getAccounts();
   const expectedCoverAddress = await getDeployAddressAfter(defaultSender, 1);
 
   const stakingPoolFactory = await StakingPoolFactory.deploy(expectedCoverAddress);
-  await stakingPoolFactory.deployed();
 
   const cover = await Cover.deploy(
     coverNFT.address,
@@ -80,7 +68,6 @@ async function setup() {
     stakingPoolFactory.address,
     stakingPoolImplementation.address,
   );
-  await cover.deployed();
 
   expect(expectedCoverAddress).to.equal(cover.address);
 
@@ -90,28 +77,19 @@ async function setup() {
   const daiToEthRate = BigNumber.from(10).pow(BigNumber.from(36)).div(ethToDaiRate);
 
   const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
-  await chainlinkDAI.deployed();
   await chainlinkDAI.setLatestAnswer(daiToEthRate.toString());
 
   const chainlinkUSDC = await ChainlinkAggregatorMock.deploy();
-  await chainlinkUSDC.deployed();
   await chainlinkUSDC.setLatestAnswer(daiToEthRate.toString());
 
   const chainlinkSteth = await ChainlinkAggregatorMock.deploy();
-  await chainlinkSteth.deployed();
   await chainlinkSteth.setLatestAnswer(parseEther('1'));
 
-  const priceFeedOracle = await PriceFeedOracle.deploy(
-    [dai.address, stETH.address, usdc.address],
-    [chainlinkDAI.address, chainlinkSteth.address, chainlinkUSDC.address],
-    [18, 18, usdcDecimals],
-  );
-  await priceFeedOracle.deployed();
-
   const pool = await Pool.deploy();
-  await pool.deployed();
-
-  await pool.setAssets([dai.address, usdc.address], [18, usdcDecimals]);
+  await pool.setAssets([
+    { assetAddress: dai.address, isCoverAsset: true, isAbandoned: false },
+    { assetAddress: usdc.address, isCoverAsset: true, isAbandoned: false },
+  ]);
 
   await pool.setTokenPrice('0', parseEther('1'));
   await pool.setTokenPrice('1', parseEther('1'));
@@ -155,10 +133,7 @@ async function setup() {
 
   await cover.initialize();
   const capacityFactor = '20000';
-  const coverAssetsFallback = 0b111; // ETH, DAI and USDC
-  await cover
-    .connect(accounts.governanceContracts[0])
-    .updateUintParameters([0, 2], [capacityFactor, coverAssetsFallback]);
+  await cover.connect(accounts.governanceContracts[0]).updateUintParameters([0, 2], [capacityFactor]);
 
   await cover.connect(accounts.advisoryBoardMembers[0]).setProductTypes([
     {

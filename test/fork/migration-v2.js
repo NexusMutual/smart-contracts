@@ -589,7 +589,7 @@ describe('v2 migration', function () {
     await tx.wait();
   });
 
-  it.skip('process all PooledStaking pending actions', async function () {
+  it('process all PooledStaking pending actions', async function () {
     let hasPendingActions = await this.pooledStaking.hasPendingActions();
     let i = 0;
     while (hasPendingActions) {

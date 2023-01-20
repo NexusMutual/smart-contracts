@@ -146,10 +146,6 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
     }
   } else {
     for (const product of migratableProducts) {
-      console.log(`Processing product ${product.name}`);
-      console.log({
-        product,
-      });
       migratableProductsIpfsHashes.push(`Fork Test Mock IPFS Path Product ${product.name}`);
     }
   }

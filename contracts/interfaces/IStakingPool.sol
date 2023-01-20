@@ -84,8 +84,6 @@ interface IStakingPool {
     string memory ipfsDescriptionHash
   ) external;
 
-  function multicall(bytes[] calldata data) external returns (bytes[] memory results);
-
   function processExpirations(bool updateUntilCurrentTimestamp) external;
 
   function requestAllocation(

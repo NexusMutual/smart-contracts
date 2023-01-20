@@ -604,6 +604,24 @@ describe('depositTo', function () {
     ).to.be.revertedWith('NOT_MINTED');
   });
 
+  it('multicall should bubble up string revert', async function () {
+    const { stakingPool } = this;
+    const [user] = this.accounts.members;
+    const { amount, destination } = depositToFixture;
+
+    const invalidTokenId = 127;
+    const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
+
+    const depositToData = stakingPool.interface.encodeFunctionData('depositTo', [
+      amount,
+      firstActiveTrancheId,
+      invalidTokenId,
+      destination,
+    ]);
+
+    await expect(stakingPool.connect(user).multicall([depositToData])).to.be.revertedWith('NOT_MINTED');
+  });
+
   it('should revert if trying to deposit, while nxm is locked for governance vote', async function () {
     const { stakingPool, nxm } = this;
     const [user] = this.accounts.members;
@@ -614,8 +632,16 @@ describe('depositTo', function () {
     // Simulate member vote lock
     await nxm.setLock(user.address, 1e6);
 
-    await expect(
-      stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination),
-    ).to.be.revertedWithCustomError(stakingPool, 'NxmIsLockedForGovernanceVote');
+    const depositToData = stakingPool.interface.encodeFunctionData('depositTo', [
+      amount,
+      firstActiveTrancheId,
+      tokenId,
+      destination,
+    ]);
+
+    await expect(stakingPool.connect(user).multicall([depositToData])).to.be.revertedWithCustomError(
+      stakingPool,
+      'NxmIsLockedForGovernanceVote',
+    );
   });
 });

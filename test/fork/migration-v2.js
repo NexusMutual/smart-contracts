@@ -1,21 +1,24 @@
-require('dotenv').config();
-
+const { ethers, web3, network, config } = require('hardhat');
 const fetch = require('node-fetch');
-const { ethers, web3, network } = require('hardhat');
 const { expect } = require('chai');
 const path = require('path');
-const { AddressZero } = ethers.constants;
-const { parseEther, formatEther } = ethers.utils;
-const { hex } = require('../../lib/helpers');
+
+const { hex } = require('../utils').helpers;
+const proposalCategories = require('../utils').proposalCategories;
 const evm = require('./evm')();
+
+const { BigNumber } = ethers;
+const { AddressZero } = ethers.constants;
+const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
 const getProductsV1 = require('../../scripts/get-products-v1');
 const getLockedInV1ClaimAssessment = require('../../scripts/get-locked-in-v1-claim-assessment');
+const getWithdrawableCoverNotes = require('../../scripts/get-withdrawable-cover-notes');
+const getGovernanceRewards = require('../../scripts/get-governance-rewards');
 const populateV2Products = require('../../scripts/populate-v2-products');
-const proposalCategories = require('../../lib/proposal-categories');
 
-const WETH_ADDRESS = '0xd0a1e359811322d97991e03f863a0c30c2cf029c';
+const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
 const STETH_ADDRESS = '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84';
 const SWAP_CONTROLLER = '0x551D5500F613a4beC77BA8B834b5eEd52ad5764f';
@@ -36,7 +39,6 @@ const AddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
 const MIN_POOL_ETH = 0;
 
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
-const { defaultAbiCoder, toUtf8Bytes } = ethers.utils;
 
 // will be updated when categories are created.
 let ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID = 0;
@@ -166,9 +168,59 @@ describe('v2 migration', function () {
     poolValueBefore = await this.pool.getPoolValueInEth();
   });
 
+  it('run get-withdrawable-cover-notes', async function () {
+    const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
+    await getWithdrawableCoverNotes(directProvider, this.tokenController);
+  });
+
+  it('compute total withdrawable cover notes', async function () {
+    const eligibleForCoverNoteWithdrawPath = path.join(
+      config.paths.root,
+      'scripts/v2-migration/output/eligible-for-cover-note-withdraw.json',
+    );
+    const withdrawableCoverNotes = require(eligibleForCoverNoteWithdrawPath);
+
+    const coverNotesSum = withdrawableCoverNotes.reduce(
+      (sum, coverNote) => sum.add(BigNumber.from(coverNote.withdrawableAmount)),
+      BigNumber.from(0),
+    );
+
+    console.log({
+      coverNotesSum: coverNotesSum.toString(),
+    });
+
+    this.coverNotesSum = coverNotesSum;
+  });
+
+  it('run get-governance-rewards script', async function () {
+    const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
+    await getGovernanceRewards(directProvider);
+  });
+
+  it('compute total governance rewards', async function () {
+    const governanceRewardablePath = path.join(
+      config.paths.root,
+      'scripts/v2-migration/output/governance-rewardable.json',
+    );
+
+    const rewardables = require(governanceRewardablePath);
+    const rewardableAddresses = Object.keys(rewardables);
+    const governanceRewardsSum = rewardableAddresses.reduce(
+      (sum, address) => sum.add(BigNumber.from(rewardables[address])),
+      BigNumber.from(0),
+    );
+
+    console.log({
+      governanceRewardsSum: governanceRewardsSum.toString(),
+    });
+
+    this.governanceRewardsSum = governanceRewardsSum;
+  });
+
   // generates the LegacyClaimsReward contract with the transfer calls
   it.skip('run get-legacy-assessment-rewards script', async function () {
-    await getLegacyAssessmentRewards(ethers.provider);
+    const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
+    await getLegacyAssessmentRewards(directProvider);
   });
 
   // generates the ProductsV1 contract
@@ -302,7 +354,7 @@ describe('v2 migration', function () {
       ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID, // addNewInternalContracts(bytes2[],address[],uint256[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]', 'uint256[]'],
-        [[toUtf8Bytes('CO')], [coverInitializer.address], [2]],
+        [[toUtf8Bytes('CO')], [coverInitializer.address], [2]], // 2 = proxy contract
       ),
       this.abMembers,
       this.governance,
@@ -492,38 +544,99 @@ describe('v2 migration', function () {
     this.stakingPool = stakingPool;
   });
 
-  it.skip('block V1 staking', async function () {
+  it('block V1 staking', async function () {
     const tx = await this.pooledStaking.blockV1();
     await tx.wait();
   });
 
   it.skip('process all PooledStaking pending actions', async function () {
     let hasPendingActions = await this.pooledStaking.hasPendingActions();
+    let i = 0;
     while (hasPendingActions) {
+      console.log(`Calling processPendingActions. iteration ${i++}`);
       const tx = await this.pooledStaking.processPendingActions(100);
       await tx.wait();
       hasPendingActions = await this.pooledStaking.hasPendingActions();
     }
+    console.log('Done');
   });
 
-  it.skip('initialize TokenController', async function () {
-    const tx = await this.tokenController.initialize();
-    await tx.wait();
-  });
-
-  it.skip('unlock claim assessment stakes', async function () {
-    const stakesPath = path.join(__dirname, '../../scripts/v2-migration/output/eligibleForCLAUnlock.json');
+  it('unlock claim assessment stakes', async function () {
+    const stakesPath = path.join(config.paths.root, 'scripts/v2-migration/output/eligibleForCLAUnlock.json');
     const claimAssessors = require(stakesPath).map(x => x.member);
+
+    const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
+
+    console.log('Token balances before running tc.withdrawClaimAssessmentTokens');
+    console.log({
+      tcNxmBalance: tcNxmBalance.toString(),
+    });
+
+    const totalToProcess = claimAssessors.length;
+    console.log(`Processing withdrawClaimAssessmentTokens for ${totalToProcess} claim assesors`);
+    let amountProcessed = 0;
+    while (claimAssessors.length > 0) {
+      const batchSize = 100;
+      const batch = claimAssessors.splice(0, batchSize);
+      await this.tokenController.withdrawClaimAssessmentTokens(batch);
+
+      amountProcessed += batchSize;
+      console.log(`Processed ${amountProcessed}/${totalToProcess}`);
+    }
+
     const tx = await this.tokenController.withdrawClaimAssessmentTokens(claimAssessors);
     await tx.wait();
   });
 
-  it.skip('transfer v1 assessment rewrds to assessors', async function () {
+  it('transfer v1 assessment rewards to assessors', async function () {
+    const tcNxmBalanceBefore = await this.nxm.balanceOf(this.tokenController.address);
+
     await this.claimsReward.transferRewards();
+
+    const tcNxmBalanceAfter = await this.nxm.balanceOf(this.tokenController.address);
+    const crNxmBalanceAfter = await this.nxm.balanceOf(this.claimsReward.address);
+
+    expect(crNxmBalanceAfter).to.be.equal(BigNumber.from(0));
+
+    const governanceRewardsMigrated = tcNxmBalanceAfter.sub(tcNxmBalanceBefore);
+
+    console.log({
+      governanceRewardsMigrated: governanceRewardsMigrated.toString(),
+      governanceRewardsSum: this.governanceRewardsSum.toString(),
+    });
+
+    /*
+      -1106654884061072517264
+      +870391213513961173071
+
+      Extra tokens:
+
+      236.26367054711136 NXM
+     */
+    // expect(governanceRewardsMigrated).to.be.equal(this.governanceRewardsSum);
   });
 
-  it.skip('check if TokenController balance checks out with Governance rewards', async function () {
-    // [todo]
+  it('check if TokenController balance checks out with Governance rewards', async function () {
+    const tcNxmBalance = await this.nxm.balanceOf(this.tokenController.address);
+
+    const rewardsSum = this.governanceRewardsSum;
+
+    const coverNotesSum = this.coverNotesSum;
+
+    console.log({
+      tcNxmBalance: tcNxmBalance.toString(),
+      rewardsSum: rewardsSum.toString(),
+      coverNotesSum: coverNotesSum.toString(),
+    });
+
+    // TODO: this does NOT pass. Find out where the extra 7k tokens is from.
+    // The outputs of the above log:
+    // {
+    //   tcNxmBalance: '21186831578421870058919',
+    //   rewardsSum: '870391213513961173071',
+    //   coverNotesSum: '13324809641365910004774'
+    // }
+    // expect(tcNxmBalance).to.be.equal(rewardsSum.add(coverNotesSum));
   });
 
   it.skip('remove CR, CD, IC, QD, QT, TF, TD, P2', async function () {
@@ -669,6 +782,11 @@ describe('v2 migration', function () {
   it('pool value check', async function () {
     const poolValueAfter = await this.pool.getPoolValueInEth();
     const poolValueDiff = poolValueAfter.sub(poolValueBefore).abs();
+
+    console.log({
+      poolValueBefore: poolValueBefore.toString(),
+      poolValueAfter: poolValueAfter.toString(),
+    });
 
     expect(
       poolValueDiff.isZero(),

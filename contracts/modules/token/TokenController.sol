@@ -19,16 +19,16 @@ import "./external/LockHandler.sol";
 contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   using SafeUintCast for uint;
 
-  address public _unused0;
-  address public _unused1;
-  address public _unused2;
-  address public _unused3;
-  address public _unused4;
+  address public _unused_token;
+  address public _unused_pooledStaking;
+  address public _unused_minCALockTime;
+  address public _unused_claimSubmissionGracePeriod;
 
   mapping(uint => StakingPoolNXMBalances) public override stakingPoolNXMBalances;
 
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
+
 
   IQuotationData public immutable quotationData;
   address public immutable claimsReward;
@@ -101,9 +101,12 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     address _to,
     uint _value
   ) external override onlyInternal returns (bool) {
+
     INXMToken _token = token();
     _token.operatorTransfer(_from, _value);
-    _token.transfer(_to, _value);
+    if (_to != address(this)) {
+      _token.transfer(_to, _value);
+    }
     return true;
   }
 

@@ -1,14 +1,17 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
 
-const { stake } = require('../utils/staking');
+const { stake, stakeOnly } = require('../utils/staking');
 const { rejectClaim, acceptClaim } = require('../utils/voteClaim');
 const { buyCover, transferCoverAsset, ETH_ASSET_ID, DAI_ASSET_ID, USDC_ASSET_ID } = require('../utils/cover');
 
 const { daysToSeconds } = require('../../../lib/helpers');
-const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
+const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee } = require('../../utils/evm');
+const { MAX_COVER_PERIOD } = require('../../unit/Cover/helpers');
 
+const { BigNumber } = ethers;
 const { parseEther, parseUnits } = ethers.utils;
+const { AddressZero } = ethers.constants;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);
@@ -1080,5 +1083,109 @@ describe('submitClaim', function () {
       const { payoutRedeemed } = await ic.claims(assessmentId);
       expect(payoutRedeemed).to.be.equal(true);
     }
+  });
+
+  it('correctly calculates premium in cover edit after a claim', async function () {
+    const { DEFAULT_PRODUCTS } = this;
+    const { ic, cover, stakingPool0, as } = this.contracts;
+    const [coverBuyer1, staker1, staker2] = this.accounts.members;
+
+    // Cover inputs
+    const productId = 0;
+    const coverAsset = ETH_ASSET_ID; // ETH
+    const period = daysToSeconds(60); // 60 days
+    const gracePeriod = daysToSeconds(30);
+    const amount = parseEther('1');
+
+    // Stake to open up capacity
+    await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
+    await stakeOnly({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, trancheIdOffset: 1 });
+
+    // Buy Cover
+    await buyCover({
+      amount,
+      productId,
+      coverAsset,
+      period,
+      cover,
+      coverBuyer: coverBuyer1,
+      targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
+      priceDenominator,
+    });
+
+    const coverId = 0;
+
+    // Submit partial claim - 1/2 of total amount
+    const claimAmount = amount.div(2);
+
+    {
+      const [deposit] = await ic.getAssessmentDepositAndReward(claimAmount, period, coverAsset);
+      await ic.connect(coverBuyer1).submitClaim(coverId, 0, claimAmount, '', {
+        value: deposit.mul('2'),
+      });
+
+      const assessmentId = 0;
+      const assessmentStakingAmount = parseEther('1000');
+      await acceptClaim({ staker: staker2, assessmentStakingAmount, as, assessmentId });
+
+      const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
+
+      // redeem payout
+      await ic.redeemClaimPayout(assessmentId);
+
+      const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
+      expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(claimAmount).add(deposit));
+
+      const { payoutRedeemed } = await ic.claims(assessmentId);
+      expect(payoutRedeemed).to.be.equal(true);
+    }
+
+    const segment = await cover.coverSegments(coverId, 0);
+    const latestBlock = await ethers.provider.getBlock('latest');
+
+    const editTimestamp = BigNumber.from(latestBlock.timestamp).add(1);
+    const passedPeriod = editTimestamp.sub(segment.start);
+    const remainingPeriod = BigNumber.from(segment.period).sub(passedPeriod);
+
+    const expectedPremium = amount
+      .mul(DEFAULT_PRODUCTS[0].targetPrice)
+      .div(priceDenominator)
+      .mul(period)
+      .div(MAX_COVER_PERIOD);
+
+    const coverAmountLeft = amount.sub(claimAmount);
+    const refund = coverAmountLeft
+      .mul(DEFAULT_PRODUCTS[0].targetPrice)
+      .mul(BigNumber.from(segment.period).sub(passedPeriod))
+      .div(MAX_COVER_PERIOD)
+      .div(priceDenominator);
+    const totalEditPremium = expectedPremium.sub(refund);
+
+    const ethBalanceBefore = await ethers.provider.getBalance(coverBuyer1.address);
+
+    await setNextBlockBaseFee('0');
+    await setNextBlockTime(editTimestamp.toNumber());
+
+    // Edit Cover - resets amount for the remaining period
+    await cover.connect(coverBuyer1).buyCover(
+      {
+        owner: coverBuyer1.address,
+        coverId,
+        productId,
+        coverAsset,
+        amount,
+        period: remainingPeriod,
+        maxPremiumInAsset: totalEditPremium,
+        paymentAsset: coverAsset,
+        commissionRatio: parseEther('0'),
+        commissionDestination: AddressZero,
+        ipfsData: '',
+      },
+      [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+      { value: totalEditPremium, gasPrice: 0 },
+    );
+
+    const ethBalanceAfter = await ethers.provider.getBalance(coverBuyer1.address);
+    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.add(refund).sub(expectedPremium));
   });
 });

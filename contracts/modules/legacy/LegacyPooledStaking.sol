@@ -964,426 +964,286 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
   }
 
-  function getV1PriceForProduct(uint id) pure internal returns (uint96) {
+  function getV1PriceForProduct(uint id) view internal returns (uint96) {
     // {V1_PRICES_HELPER_BEGIN}
 
-    // bZx v1
-    if (id == 0) {
-      return 42_880894339275514000; // 42.880894339275514%
-    }
-
-    // Saturn DAO Token
-    if (id == 1) {
-      return 63_420369661816350000; // 63.42036966181635%
-    }
-
-    // Legacy Gnosis MultiSig
-    if (id == 2) {
-      return 25_075515385886447000; // 25.075515385886444%
-    }
-
-    // dxDAO
-    if (id == 3) {
-      return 24_184951105233400000; // 24.1849511052334%
+    // Argent
+    if (id == 18) {
+      return 12371822397380809000; // 12.371822397380809%
     }
 
     if (
-      // Argent
-      id == 4 ||
       // dydx Perpetual
-      id == 5 ||
-      // Compound v2
-      id == 11 ||
-      // Gnosis Safe
-      id == 12 ||
-      // MakerDAO MCD
-      id == 14 ||
-      // Yearn Finance (all vaults)
-      id == 18 ||
-      // Curve All Pools (incl staking)
       id == 21 ||
-      // Uniswap v2
-      id == 23 ||
-      // mStable
-      id == 29 ||
-      // Synthetix
-      id == 30 ||
-      // Bancor v2
+      // Compound v2
+      id == 32 ||
+      // Gnosis Safe
       id == 33 ||
-      // UMA
-      id == 34 ||
-      // Set Protocol v2
-      id == 43 ||
-      // Eth 2.0 (deposit contract)
-      id == 45 ||
-      // Keeper DAO
-      id == 47 ||
-      // Aave v2
+      // MakerDAO MCD
+      id == 35 ||
+      // Yearn Finance (all vaults)
+      id == 44 ||
+      // Curve All Pools (incl staking)
+      id == 49 ||
+      // Uniswap v2
       id == 51 ||
-      // SushiSwap v1
-      id == 52 ||
-      // BadgerDAO
-      id == 54 ||
-      // Reflexer
+      // Synthetix
       id == 58 ||
-      // Stake DAO
-      id == 61 ||
-      // Liquity
-      id == 62 ||
-      // Uniswap v3
-      id == 64 ||
-      // Barnbridge Smart Yield v1
-      id == 65 ||
-      // Convex Finance v1
-      id == 66 ||
-      // Alpha Homora v2
-      id == 68 ||
-      // Balancer v2
-      id == 69 ||
-      // BlockFi
-      id == 74 ||
-      // Nexo
+      // Eth 2.0 (deposit contract)
       id == 75 ||
-      // Ledn
-      id == 77 ||
-      // Hodlnaut
-      id == 78 ||
-      // Binance
-      id == 79 ||
-      // Coinbase
-      id == 80 ||
-      // Kraken
+      // Aave v2
       id == 81 ||
-      // Gemini
+      // SushiSwap v1
       id == 82 ||
-      // FTX
-      id == 83 ||
-      // Crypto.com
-      id == 84 ||
-      // Yield.app
-      id == 85 ||
-      // Rari Capital
-      id == 88 ||
-      // Abracadabra
+      // Reflexer
       id == 89 ||
-      // Anchor
-      id == 91 ||
-      // Yearn yvUSDC v2
+      // Stake DAO
+      id == 92 ||
+      // Liquity
+      id == 93 ||
+      // Uniswap v3
+      id == 95 ||
+      // Convex Finance v1
       id == 97 ||
-      // Yearn ycrvstETH v2
-      id == 98 ||
+      // Balancer v2
+      id == 100 ||
+      // Coinbase
+      id == 111 ||
+      // Kraken
+      id == 112 ||
+      // Crypto.com
+      id == 115 ||
+      // Yearn yvUSDC v2
+      id == 128 ||
       // Curve 3pool LP (3Crv)
-      id == 99 ||
-      // Convex stethCrv (cvxstethCrv)
-      id == 103 ||
+      id == 130 ||
       // Convex 3CRV (cvx3CRV)
-      id == 104 ||
-      // Convex mimCrv (cvxmimCrv)
-      id == 105 ||
-      // Popsicle Finance
-      id == 106 ||
-      // Notional Finance v2
-      id == 107 ||
-      // OlympusDAO
-      id == 108 ||
+      id == 135 ||
       // Ribbon Finance v2
-      id == 109
+      id == 140 ||
+      // Trader Joe
+      id == 142 ||
+      // Ondo
+      id == 144 ||
+      // Enzyme v3
+      id == 145 ||
+      // Beefy
+      id == 146 ||
+      // Angle
+      id == 147 ||
+      // FODL
+      id == 149 ||
+      // Alchemix v2
+      id == 150 ||
+      // Bundle: Gelt + mStable + Aave v2
+      id == 151 ||
+      // Yeti Finance
+      id == 152 ||
+      // Vector
+      id == 154 ||
+      // Ease
+      id == 156 ||
+      // Stakewise operated (3 ETH / validator)
+      id == 158 ||
+      // Stakewise 3rd party (3 ETH / validator)
+      id == 159 ||
+      // Nested
+      id == 160 ||
+      // Euler
+      id == 161 ||
+      // GMX
+      id == 162 ||
+      // Sherlock
+      id == 163 ||
+      // Gearbox V2
+      id == 164 ||
+      // Aura
+      id == 165 ||
+      // Enzyme v4
+      id == 166
     ) {
       return 2600000000000000000; // 2.6%
     }
 
-    // DDEX
-    if (id == 6) {
-      return 56398373648265250000; // 56.39837364826525%
-    }
-
-    // Tornado Cash
-    if (id == 7) {
-      return 7114788158353531000; // 7.114788158353531%
-    }
-
-    // Deversifi
-    if (id == 8) {
-      return 25323036175117075000; // 25.323036175117075%
-    }
-
-    // RenVM
-    if (id == 9) {
-      return 5047528684654915000; // 5.047528684654915%
-    }
-
     // 0x v3
-    if (id == 10) {
-      return 11151011386165203000; // 11.151011386165203%
-    }
-
-    // Uniswap v1
-    if (id == 13) {
-      return 22275613168368963000; // 22.275613168368963%
-    }
-
-    // Aave v1
-    if (id == 15) {
-      return 18134796444657443000; // 18.134796444657443%
+    if (id == 30) {
+      return 19145488072252274000; // 19.145488072252274%
     }
 
     // 1Inch (DEX & Liquidity Pools)
-    if (id == 16) {
-      return 4894162263731411500; // 4.894162263731412%
-    }
-
-    // Opyn
-    if (id == 17) {
-      return 22502345666454540000; // 22.50234566645454%
-    }
-
-    // Totle
-    if (id == 19) {
-      return 32049808528963986000; // 32.049808528963986%
-    }
-
-    // Flexa Staking
-    if (id == 20) {
-      return 34739562382449186000; // 34.739562382449186%
+    if (id == 41) {
+      return 11418854861482590000; // 11.41885486148259%
     }
 
     // Set Protocol
-    if (id == 22) {
-      return 11893890463724630000; // 11.89389046372463%
+    if (id == 50) {
+      return 25568209688241335000; // 25.568209688241335%
     }
 
-    // Balancer v1
-    if (id == 24) {
-      return 14293010399977947000; // 14.293010399977947%
+    // mStable
+    if (id == 57) {
+      return 3604236355387446400; // 3.6042363553874464%
     }
 
-    // Ampleforth Tokengeyser
-    if (id == 25) {
-      return 37903030676583356000; // 37.903030676583356%
-    }
-
-    // Paraswap v1
-    if (id == 26) {
-      return 40294838753571405000; // 40.294838753571405%
-    }
-
-    // Melon v1
-    if (id == 27) {
-      return 26316164312478257000; // 26.316164312478257%
-    }
-
-    // MolochDAO
-    if (id == 28) {
-      return 71952140019151680000; // 71.95214001915168%
-    }
-
-    // IDEX v1
-    if (id == 31) {
-      return 48758087879246770000; // 48.758087879246766%
-    }
-
-    // Kyber (Katalyst)
-    if (id == 32) {
-      return 8444284157789966000; // 8.444284157789966%
-    }
-
-    // dForce Yield Market
-    if (id == 35) {
-      return 35098103327345280000; // 35.09810332734528%
+    // UMA
+    if (id == 62) {
+      return 8085187376008319000; // 8.085187376008319%
     }
 
     // Idle v4
-    if (id == 36) {
-      return 26009434546813328000; // 26.009434546813328%
-    }
-
-    // Mooniswap
-    if (id == 37) {
-      return 32614800784002796000; // 32.614800784002796%
-    }
-
-    // tBTC Contracts v1
-    if (id == 38) {
-      return 12712020711494640000; // 12.71202071149464%
-    }
-
-    // NuCypher Worklock
-    if (id == 39) {
-      return 36836706604732925000; // 36.836706604732925%
-    }
-
-    // Akropolis Delphi
-    if (id == 40) {
-      return 55250397748532580000; // 55.25039774853258%
-    }
-
-    // DODO Exchange
-    if (id == 41) {
-      return 25032451986946594000; // 25.032451986946594%
+    if (id == 65) {
+      return 36034804377271030000; // 36.03480437727103%
     }
 
     // Pool Together v3
-    if (id == 42) {
-      return 6742982133944432000; // 6.742982133944432%
+    if (id == 72) {
+      return 16107889938371784000; // 16.107889938371784%
     }
 
-    // Yield Protocol
-    if (id == 44) {
-      return 36924625230169380000; // 36.92462523016938%
-    }
-
-    // Hegic
-    if (id == 46) {
-      return 7899158793602157000; // 7.899158793602156%
-    }
-
-    // CREAM v1
-    if (id == 48) {
-      return 27471798793488077000; // 27.471798793488077%
+    // Set Protocol v2
+    if (id == 73) {
+      return 5326464377384085000; // 5.326464377384085%
     }
 
     // TrueFi
-    if (id == 49) {
-      return 11374984183970543000; // 11.374984183970543%
-    }
-
-    // Alpha Homora v1
-    if (id == 50) {
-      return 21707348663510132000; // 21.707348663510132%
+    if (id == 79) {
+      return 28483204969801402000; // 28.4832049698014%
     }
 
     // Perpetual Protocol
-    if (id == 53) {
-      return 15416480996133510000; // 15.41648099613351%
+    if (id == 84) {
+      return 35019567074303650000; // 35.01956707430365%
     }
 
-    // Notional Finance v1
-    if (id == 55) {
-      return 33481175136260454000; // 33.481175136260454%
-    }
-
-    // Origin Dollar
-    if (id == 56) {
-      return 26859147414969534000; // 26.85914741496953%
+    // BadgerDAO
+    if (id == 85) {
+      return 14174444180475165000; // 14.174444180475165%
     }
 
     // Opyn v2
-    if (id == 57) {
-      return 38049781406997820000; // 38.04978140699782%
+    if (id == 88) {
+      return 31110662561945094000; // 31.11066256194509%
     }
 
     // Vesper
-    if (id == 59) {
-      return 13546292639240680000; // 13.54629263924068%
+    if (id == 90) {
+      return 23147189086504450000; // 23.147189086504447%
     }
 
-    // Benchmark Protocol
-    if (id == 60) {
-      return 18572683353728465000; // 18.57268335372847%
-    }
-
-    // Harvest Finance
-    if (id == 63) {
-      return 33869341091143590000; // 33.86934109114359%
-    }
-
-    // Alchemix v1
-    if (id == 67) {
-      return 20189390915194700000; // 20.1893909151947%
+    // Homora v2
+    if (id == 99) {
+      return 33704826520238470000; // 33.70482652023847%
     }
 
     // Alpaca Finance
-    if (id == 70) {
-      return 9693452748544052000; // 9.69345274854405%
-    }
-
-    // Visor Finance
-    if (id == 71) {
-      return 26095937582591080000; // 26.095937582591077%
+    if (id == 101) {
+      return 39144809221972060000; // 39.14480922197206%
     }
 
     // Goldfinch
-    if (id == 72) {
-      return 4999785623702144000; // 4.999785623702144%
+    if (id == 103) {
+      return 8374975213313965000; // 8.374975213313965%
     }
 
-    // Celsius
-    if (id == 73) {
-      return 15575757370822483000; // 15.575757370822483%
+    // Binance
+    if (id == 110) {
+      return 4516006700725837000; // 4.516006700725836%
     }
 
-    // inLock
-    if (id == 76) {
-      return 67405469242073440000; // 67.40546924207344%
+    // FTX
+    if (id == 114) {
+      return 26677417519753625000; // 26.677417519753625%
     }
 
     // Pangolin
-    if (id == 86) {
-      return 16004943105245690000; // 16.00494310524569%
+    if (id == 117) {
+      return 45172738238869165000; // 45.172738238869165%
     }
 
     // Centrifuge Tinlake
-    if (id == 87) {
-      return 10622199086614927000; // 10.622199086614927%
+    if (id == 118) {
+      return 11182572081933671000; // 11.182572081933671%
+    }
+
+    // Abracadabra
+    if (id == 120) {
+      return 39776602220476825000; // 39.776602220476825%
     }
 
     // Premia Finance
-    if (id == 90) {
-      return 13609569933234702000; // 13.609569933234702%
-    }
-
-    // Bunny
-    if (id == 92) {
-      return 34957746687696930000; // 34.957746687696925%
-    }
-
-    // Venus
-    if (id == 93) {
-      return 39982787592238610000; // 39.982787592238616%
-    }
-
-    // Thorchain
-    if (id == 94) {
-      return 16340308447531193000; // 16.340308447531193%
-    }
-
-    // Pancakeswap v1
-    if (id == 95) {
-      return 29659851177897560000; // 29.659851177897558%
+    if (id == 121) {
+      return 28511599806087503000; // 28.511599806087503%
     }
 
     // Yearn yvDAI v2
-    if (id == 96) {
-      return 2681190691870258400; // 2.6811906918702584%
+    if (id == 127) {
+      return 2639172326859299000; // 2.639172326859299%
+    }
+
+    // Yearn ycrvstETH v2
+    if (id == 129) {
+      return 22160010205633200000; // 22.1600102056332%
     }
 
     // Curve sETH LP (eCrv)
-    if (id == 100) {
-      return 3642751750084770400; // 3.6427517500847704%
+    if (id == 131) {
+      return 3297525661298780400; // 3.29752566129878%
     }
 
     // Idle DAI v4 (idleDAIYield)
-    if (id == 101) {
-      return 4831821144747536000; // 4.831821144747536%
+    if (id == 132) {
+      return 50925266656986310000; // 50.92526665698631%
     }
 
     // Idle USDT v4 (idleUSDTYield)
-    if (id == 102) {
-      return 5089820795846740000; // 5.08982079584674%
+    if (id == 133) {
+      return 55760635763374930000; // 55.760635763374935%
+    }
+
+    // Convex stethCrv (cvxstethCrv)
+    if (id == 134) {
+      return 16591126228633247000; // 16.591126228633247%
+    }
+
+    // Notional Finance v2
+    if (id == 138) {
+      return 14441080249369067000; // 14.441080249369067%
+    }
+
+    // OlympusDAO
+    if (id == 139) {
+      return 43265543057180246000; // 43.265543057180246%
     }
 
     // Pool Together v4
-    if (id == 110) {
-      return 13592770586860942000; // 13.592770586860942%
+    if (id == 141) {
+      return 22971686440222584000; // 22.971686440222584%
     }
 
-    // Trader Joe
-    if (id == 111) {
-      return 7995085516794736000; // 7.9950855167947354%
+    // Origin OUSD
+    if (id == 143) {
+      return 83061669760667070000; // 83.06166976066707%
+    }
+
+    // Platypus
+    if (id == 148) {
+      return 5959850680712226500; // 5.9598506807122265%
+    }
+
+    // Bancor v3
+    if (id == 155) {
+      return 50766693682584970000; // 50.76669368258497%
+    }
+
+    // Iron Bank
+    if (id == 157) {
+      return 62666829169994260000; // 62.66682916999426%
     }
     // {V1_PRICES_HELPER_END}
 
-    revert("Invalid product id");
+    // Invalid product Id
+    //    revert("Invalid product id");
+    return type(uint96).max;
   }
 
   function getStakerConfig(address stakerAddress) internal returns (
@@ -1418,16 +1278,20 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     params = new ProductInitializationParams[](migratableCount);
     uint migrateAtIndex = 0;
 
+
     for (uint i = 0; i < contractCount; i++) {
       if (stakes[i] == 0) {
         continue;
       }
       uint96 price = getV1PriceForProduct(products[i]);
+      if (price == type(uint96).max) {
+        continue;
+      }
       params[migrateAtIndex] = ProductInitializationParams(
         products[i], // productId
         uint8(min(stakes[i] * 1e18 / deposit / 1e16, 100)), // weight (0-100)
-        price, // initialPrice
-        price // targetPrice
+        price / 1e16, // initialPrice with a 100_00 denominator
+        price / 1e16 // targetPrice with a 100_00 denominator
       );
       migrateAtIndex++;
     }
@@ -1439,19 +1303,12 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     // Addresses marked for implicit migration can be migrated by anyone.
     // Addresses who are not can only be migrated by calling this function themselves.
-    // [todo] Check these addresses before deploy
     require(
       migrationData.stakerAddress == msg.sender ||
-      migrationData.stakerAddress == 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4 || // Armor 48%
-      migrationData.stakerAddress == 0x87B2a7559d85f4653f13E6546A14189cd5455d45 || // Hugh 16.3%
-      migrationData.stakerAddress == 0x4a9fA34da6d2378c8f3B9F6b83532B169beaEDFc || // 6.6%
-      migrationData.stakerAddress == 0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2 || // 4.5%
-      migrationData.stakerAddress == 0xE1Ad30971b83c17E2A24c0334CB45f808AbEBc87 || // 2.5%
-      migrationData.stakerAddress == 0x5FAdEA9d64FFbe0b8A6799B8f0c72250F92E2B1d || // 1.7%
-      migrationData.stakerAddress == 0x9c657DB2B697846BE13Ca0B2bB5a6D17f860a395 || // 1.5%
-      migrationData.stakerAddress == 0xF99b3a13d46A04735BF3828eB3030cfED5Ea0087 || // 1.4%
-      migrationData.stakerAddress == 0x8C878B8f805472C0b70eD66a71c0B33da3d233c8 || // 1.4%
-      migrationData.stakerAddress == 0x4544e2Fae244eA4Ca20d075bb760561Ce5990DC3, // 0.7%
+      migrationData.stakerAddress == 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4 ||
+      migrationData.stakerAddress == 0x87B2a7559d85f4653f13E6546A14189cd5455d45 ||
+      migrationData.stakerAddress == 0x963Df0066ff8345922dF88eebeb1095BE4e4e12E ||
+      migrationData.stakerAddress == 0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2,
       "You are not authorized to migrate this staker"
     );
 

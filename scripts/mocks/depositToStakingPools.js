@@ -40,14 +40,25 @@ async function main() {
   await token.connect(owner).approve(TOKEN_CONTROLLER, stakingAmount);
   await token.connect(staker).approve(TOKEN_CONTROLLER, stakingAmount);
 
+  // Swap ETH for NXM
+  const pool = await ethers.getContractAt('Pool', '0x5f3f1dBD7B74C6B46e8c44f98792A1dAf8d69154');
+  const expectedTokensReceived = await pool.getNXMForEth(stakingAmount);
+  await pool.connect(owner).buyNXM(expectedTokensReceived, { value: stakingAmount });
+  const expectedTokensReceived2 = await pool.getNXMForEth(stakingAmount);
+  await pool.connect(staker).buyNXM(expectedTokensReceived2, { value: stakingAmount });
+
   console.log('Deposit to staking pool id: 0');
   const stakingPoolZero = await getStakingPool(0, owner);
-  await stakingPoolZero.depositTo(
+  const tx = await stakingPoolZero.depositTo(
     stakingAmount,
     lastActiveTrancheId,
     MaxUint256, // new position
     AddressZero, // destination
   );
+
+  const { events } = await tx.wait();
+
+  console.log('nft id', events[0]);
 
   console.log('Deposit to staking pool id: 1');
   const stakingPoolOne = await getStakingPool(1, owner);

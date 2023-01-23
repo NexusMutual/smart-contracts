@@ -19,6 +19,7 @@ const getGovernanceRewards = require('../../scripts/get-governance-rewards');
 const populateV2Products = require('../../scripts/populate-v2-products');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const getV1CoverPrices = require('../../scripts/get-v1-cover-prices');
+const { pool } = require('workerpool');
 
 const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
@@ -717,6 +718,14 @@ describe('v2 migration', function () {
       '0x46de0c6f149be3885f28e54bb4d302cb2c505bc2',
     ];
 
+    const depositAmounts = await Promise.all(
+      topStakers.map(async staker => {
+        const deposit = await this.pooledStaking.stakerDeposit(staker);
+        console.log(`Staker ${staker} deposit = ${deposit.toString()}`);
+        return deposit;
+      }),
+    );
+
     const txs = await Promise.all(
       topStakers.map(stakerAddress =>
         this.pooledStaking.migrateToNewV2Pool({
@@ -727,6 +736,15 @@ describe('v2 migration', function () {
       ),
     );
     await Promise.all(txs.map(x => x.wait()));
+
+    const stakingPoolCount = await this.stakingPoolFactory.stakingPoolCount();
+    expect(stakingPoolCount).to.be.equal(topStakers.length);
+
+    const poolId = 0;
+    for (const staker of topStakers) {
+      const { deposits } = await this.tokenController.stakingPoolNXMBalances(poolId);
+      expect(deposits).to.be.equal(depositAmounts[poolId]);
+    }
   });
 
   it.skip('deploy & add contracts: Assessment, IndividualClaims, YieldTokenIncidents', async function () {

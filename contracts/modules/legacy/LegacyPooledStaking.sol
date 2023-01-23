@@ -15,8 +15,14 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
   struct MigrationData {
     address stakerAddress;
-    uint trancheId;
+    uint trancheId; // make list
+    // list of uint of deposit ratios
     string ipfsDescriptionHash;
+    address managerAddress;
+    bool isPrivatePool;
+    uint initialPoolFee;
+    uint maxPoolFee;
+
   }
   /* Events */
 
@@ -47,7 +53,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
   ICover public immutable cover;
   IProductsV1 public immutable productsV1;
-  uint public immutable migrationDeadline;
 
   /* Storage variables */
 
@@ -128,7 +133,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
   constructor(address coverAddress, address productsV1Address) {
     productsV1 = IProductsV1(productsV1Address);
     cover = ICover(coverAddress);
-    migrationDeadline = block.timestamp + 90 days;
   }
 
   function min(uint x, uint y) pure internal returns (uint) {
@@ -371,7 +375,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
   }
 
   function withdrawForUser(address user) external override whenNotPaused onlyMember noPendingBurns {
-    require(block.timestamp > migrationDeadline, "Migration period hasn't ended");
     uint amount = stakers[user].deposit;
     stakers[user].deposit = 0;
     token().transfer(user, amount);
@@ -1299,16 +1302,14 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
   function migrateToNewV2Pool(MigrationData memory migrationData) external noPendingActions {
 
-    require(block.timestamp <= migrationDeadline, "Migration period has ended");
-
     // Addresses marked for implicit migration can be migrated by anyone.
     // Addresses who are not can only be migrated by calling this function themselves.
     require(
       migrationData.stakerAddress == msg.sender ||
-      migrationData.stakerAddress == 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4 ||
-      migrationData.stakerAddress == 0x87B2a7559d85f4653f13E6546A14189cd5455d45 ||
-      migrationData.stakerAddress == 0x963Df0066ff8345922dF88eebeb1095BE4e4e12E ||
-      migrationData.stakerAddress == 0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2,
+      migrationData.stakerAddress == 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4 || // Armor
+      migrationData.stakerAddress == 0x87B2a7559d85f4653f13E6546A14189cd5455d45 || // Hugh
+      migrationData.stakerAddress == 0x963Df0066ff8345922dF88eebeb1095BE4e4e12E || // Foundation
+      migrationData.stakerAddress == 0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2, // iTrust
       "You are not authorized to migrate this staker"
     );
 

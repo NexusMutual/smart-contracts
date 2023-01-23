@@ -1,4 +1,5 @@
 const { config, network, ethers } = require('hardhat');
+const { CONTRACTS_ADDRESSES: Addresses } = require(process.env.CONFIG_FILE);
 
 function zeroPadRight(bytes, length) {
   return new Uint8Array(length).fill(0).map((x, i) => bytes[i] || x);
@@ -10,10 +11,7 @@ async function main() {
 
   const [owner] = await ethers.getSigners();
 
-  const quotationData = await ethers.getContractAt(
-    'TestnetQuotationData',
-    '0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9',
-  );
+  const quotationData = await ethers.getContractAt('TestnetQuotationData', Addresses.LegacyQuotationData);
 
   const now = Math.floor(Date.now() / 1000);
   const ETH = zeroPadRight(Buffer.from('ETH'), 4);

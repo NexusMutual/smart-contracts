@@ -416,20 +416,44 @@ describe('v2 migration', function () {
     this.swapOperator = swapOperator;
   });
 
+  it('deploy staking pool', async function () {
+    const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
+    const StakingPoolFactory = await ethers.getContractFactory('StakingPoolFactory');
+    const stakingPoolFactory = await StakingPoolFactory.deploy(coverProxyAddress);
+
+    const StakingNFT = await ethers.getContractFactory('StakingNFT');
+    this.stakingNFT = await StakingNFT.deploy(
+      'Nexus Mutual Deposit',
+      'NMD',
+      stakingPoolFactory.address,
+      coverProxyAddress,
+    );
+
+    const StakingPool = await ethers.getContractFactory('StakingPool');
+    const stakingPool = await StakingPool.deploy(
+      this.stakingNFT.address,
+      this.nxm.address,
+      coverProxyAddress,
+      this.tokenController.address,
+      this.master.address,
+    );
+    await stakingPool.deployed();
+
+    this.stakingPoolFactory = stakingPoolFactory;
+    this.stakingPool = stakingPool;
+  });
+
   it('deploy & upgrade contracts: CR, TC, MCR, MR, CO, PS, P1, GW, CoverMigrator', async function () {
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     const ClaimsReward = await ethers.getContractFactory('LegacyClaimsReward');
     const newClaimsReward = await ClaimsReward.deploy(this.master.address, DAI_ADDRESS);
     await newClaimsReward.deployed();
 
-    const StakingPoolFactory = await ethers.getContractFactory('StakingPoolFactory');
-    const stakingPoolFactory = await StakingPoolFactory.deploy(coverProxyAddress);
-
     const TokenController = await ethers.getContractFactory('TokenController');
     const tokenController = await TokenController.deploy(
       this.quotationData.address,
       newClaimsReward.address,
-      stakingPoolFactory.address,
+      this.stakingPoolFactory.address,
     );
     await tokenController.deployed();
 
@@ -443,10 +467,10 @@ describe('v2 migration', function () {
 
     const Cover = await ethers.getContractFactory('Cover');
     const cover = await Cover.deploy(
-      this.productsV1.address,
       this.coverNFT.address,
-      AddressZero, // staking pool implementation address
-      coverProxyAddress,
+      this.stakingNFT.address,
+      this.stakingPoolFactory.address,
+      this.stakingPool.address,
     );
     await cover.deployed();
 
@@ -525,14 +549,6 @@ describe('v2 migration', function () {
       this.governance,
     );
 
-    const StakingNFT = await ethers.getContractFactory('StakingNFT');
-    this.stakingNFT = await StakingNFT.deploy(
-      'Nexus Mutual Deposit',
-      'NMD',
-      stakingPoolFactory.address,
-      coverProxyAddress,
-    );
-
     this.claimsReward = newClaimsReward;
     this.pool = pool;
 
@@ -583,20 +599,6 @@ describe('v2 migration', function () {
     const storedCoverAssetsFallback = await this.cover.coverAssetsFallback();
 
     expect(storedCoverAssetsFallback).to.be.equal(0b11);
-  });
-
-  it('deploy staking pool', async function () {
-    const StakingPool = await ethers.getContractFactory('StakingPool');
-
-    const stakingPool = await StakingPool.deploy(
-      this.stakingNFT.address,
-      this.nxm.address,
-      this.cover.address,
-      this.tokenController.address,
-      this.master.address,
-    );
-    await stakingPool.deployed();
-    this.stakingPool = stakingPool;
   });
 
   it('block V1 staking', async function () {

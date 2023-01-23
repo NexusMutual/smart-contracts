@@ -1,4 +1,5 @@
 const { config, network, ethers } = require('hardhat');
+const { CONTRACTS_ADDRESSES: Addresses } = require(process.env.CONFIG_FILE);
 
 async function main() {
   console.log(`Using network: ${network.name}`);
@@ -35,9 +36,9 @@ async function main() {
       targetPrice,
     },
   ];
-  const stakingPoolManager = owner;
 
-  const cover = await ethers.getContractAt('Cover', '0x4A679253410272dd5232B3Ff7cF5dbB88f295319');
+  const stakingPoolManager = owner;
+  const cover = await ethers.getContractAt('Cover', Addresses.Cover);
 
   console.log('Creating 1st staking pool');
   await cover.createStakingPool(

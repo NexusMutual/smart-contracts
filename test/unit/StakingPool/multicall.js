@@ -44,6 +44,13 @@ describe('Multicall unit tests', function () {
     );
   });
 
+  it('should bubble up 512 byte string revert messages', async function () {
+    const { multicall } = this;
+    const reason = 'A'.repeat(512);
+    const calldata = multicall.interface.encodeFunctionData('stringRevertParam', [reason]);
+    await expect(multicall.multicall([calldata])).to.be.revertedWith(reason);
+  });
+
   it('should bubble up panic error codes', async function () {
     const { multicall } = this;
     const calldata = multicall.interface.encodeFunctionData('panicError');

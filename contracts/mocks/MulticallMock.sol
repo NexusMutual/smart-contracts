@@ -39,6 +39,10 @@ contract MulticallMock is MultiCallable {
     require(false, "012345678901234567890123456789012345678901234567890123456789001234567890");
   }
 
+  function stringRevertParam(string calldata reason) public pure {
+    require(false, reason);
+  }
+
   function success() public pure returns (bool) {
     return true;
   }

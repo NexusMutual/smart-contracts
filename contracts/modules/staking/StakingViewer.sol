@@ -25,6 +25,7 @@ contract StakingViewer {
   }
 
   struct StakingPoolProduct {
+    uint productId;
     uint16 lastEffectiveWeight;
     uint8 targetWeight;
     uint96 targetPrice;
@@ -164,6 +165,7 @@ contract StakingViewer {
       }
 
       StakingPoolProduct memory stakedProduct;
+      stakedProduct.productId = i;
       stakedProduct.lastEffectiveWeight = lastEffectiveWeight;
       stakedProduct.targetWeight = targetWeight;
       stakedProduct.bumpedPrice = bumpedPrice;

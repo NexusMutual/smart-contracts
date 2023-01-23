@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.16;
 
-contract MultiCallable {
+abstract contract Multicall {
 
   error RevertedWithoutReason(uint index);
 

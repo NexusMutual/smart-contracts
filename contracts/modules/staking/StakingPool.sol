@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.9;
 
-import "../../utils/MultiCallable.sol";
+import "../../abstract/Multicall.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/ICover.sol";
@@ -22,7 +22,7 @@ import "./StakingTypesLib.sol";
 // on cover buys we allocate the available product capacity
 // on cover expiration we deallocate the capacity and it becomes available again
 
-contract StakingPool is IStakingPool, MultiCallable {
+contract StakingPool is IStakingPool, Multicall {
   using StakingTypesLib for TrancheAllocationGroup;
   using StakingTypesLib for TrancheGroupBucket;
   using SafeUintCast for uint;

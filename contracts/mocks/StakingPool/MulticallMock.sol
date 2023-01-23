@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.8.0;
 
-import "../utils/MultiCallable.sol";
+pragma solidity ^0.8.16;
 
-contract MulticallMock is MultiCallable {
+import "../../abstract/Multicall.sol";
+
+contract MulticallMock is Multicall {
 
   error EmptyCustomError();
   error UintCustomError(uint errCode);

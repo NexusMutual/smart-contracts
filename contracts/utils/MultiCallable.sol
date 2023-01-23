@@ -15,9 +15,9 @@ contract MultiCallable {
     for (uint i = 0; i < callCount; i++) {
       (bool ok, bytes memory result) = address(this).delegatecall(data[i]);
 
-      uint length = result.length;
-
       if (!ok) {
+
+        uint length = result.length;
 
         // 0 length returned from empty revert() / require(false)
         if (length == 0) {
@@ -25,8 +25,7 @@ contract MultiCallable {
         }
 
         assembly {
-          result := add(result, 0x20)
-          revert(result, add(result, length))
+          revert(add(result, 0x20), length)
         }
       }
 

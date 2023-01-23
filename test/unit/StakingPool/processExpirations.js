@@ -284,7 +284,7 @@ describe('processExpirations', function () {
 
     const nextBucketId = bucketId.add(1);
     const nextBucketStartTime = nextBucketId.mul(BUCKET_DURATION);
-    const nextBucketRewardPerSecondCut = await stakingPool.rewardBuckets(nextBucketId);
+    const nextBucketRewardPerSecondCut = await stakingPool.rewardPerSecondCut(nextBucketId);
     const trancheEndTime = trancheId.add(1).mul(TRANCHE_DURATION);
 
     const accFromBeforeToBucketExpiration = nextBucketStartTime
@@ -308,7 +308,7 @@ describe('processExpirations', function () {
 
     const secondNextBucketId = nextBucketId.add(1);
     const secondNextBucketStartTime = secondNextBucketId.mul(BUCKET_DURATION);
-    const secondBucketRewardPerSecondCut = await stakingPool.rewardBuckets(secondNextBucketId);
+    const secondBucketRewardPerSecondCut = await stakingPool.rewardPerSecondCut(secondNextBucketId);
 
     const accFromTrancheExpirationToSecondBucketExpiration = secondNextBucketStartTime
       .sub(trancheEndTime)
@@ -357,7 +357,7 @@ describe('processExpirations', function () {
     const accNxmPerRewardsShareAfter = await stakingPool.accNxmPerRewardsShare();
     const rewardPerSecondAfter = await stakingPool.rewardPerSecond();
     const lastAccNxmUpdateAfter = await stakingPool.lastAccNxmUpdate();
-    const expiredBucketRewards = await stakingPool.rewardBuckets(firstActiveBucketId);
+    const expiredBucketRewards = await stakingPool.rewardPerSecondCut(firstActiveBucketId);
     const rewardsSharesSupply = await stakingPool.rewardsSharesSupply();
 
     const bucketStartTime = firstActiveBucketId.mul(BUCKET_DURATION);

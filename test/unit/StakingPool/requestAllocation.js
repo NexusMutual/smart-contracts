@@ -858,8 +858,8 @@ describe('requestAllocation', function () {
       const rewardPerSecond = await stakingPool.rewardPerSecond();
       expect(rewardPerSecond).to.equal(0);
 
-      const rewardBuckets = await stakingPool.rewardBuckets(expirationBucket);
-      expect(rewardBuckets).to.equal(0);
+      const rewardPerSecondCut = await stakingPool.rewardPerSecondCut(expirationBucket);
+      expect(rewardPerSecondCut).to.equal(0);
     }
 
     let tcBalanceBefore = await nxm.balanceOf(tokenController.address);
@@ -884,12 +884,12 @@ describe('requestAllocation', function () {
       const rewardPerSecond = await stakingPool.rewardPerSecond();
       expect(rewardPerSecond).to.equal(expectedRewardPerSecond);
 
-      const rewardBuckets = await stakingPool.rewardBuckets(expirationBucket);
-      expect(rewardBuckets).to.equal(expectedRewardPerSecond);
+      const rewardPerSecondCut = await stakingPool.rewardPerSecondCut(expirationBucket);
+      expect(rewardPerSecondCut).to.equal(expectedRewardPerSecond);
 
       tcBalanceBefore = tcBalanceAfter;
       previousRewardPerSecond = rewardPerSecond;
-      previousRewardBuckets = rewardBuckets;
+      previousRewardBuckets = rewardPerSecondCut;
     }
 
     await cover.requestAllocation(amount, previousPremium, allocationRequestParams, stakingPool.address);
@@ -910,8 +910,8 @@ describe('requestAllocation', function () {
       const rewardPerSecond = await stakingPool.rewardPerSecond();
       expect(rewardPerSecond).to.equal(previousRewardPerSecond.add(expectedRewardPerSecond));
 
-      const rewardBuckets = await stakingPool.rewardBuckets(expirationBucket);
-      expect(rewardBuckets).to.equal(previousRewardBuckets.add(expectedRewardPerSecond));
+      const rewardPerSecondCut = await stakingPool.rewardPerSecondCut(expirationBucket);
+      expect(rewardPerSecondCut).to.equal(previousRewardBuckets.add(expectedRewardPerSecond));
     }
   });
 
@@ -935,8 +935,8 @@ describe('requestAllocation', function () {
       const rewardPerSecond = await stakingPool.rewardPerSecond();
       expect(rewardPerSecond).to.equal(0);
 
-      const rewardBuckets = await stakingPool.rewardBuckets(expirationBucket);
-      expect(rewardBuckets).to.equal(0);
+      const rewardPerSecondCut = await stakingPool.rewardPerSecondCut(expirationBucket);
+      expect(rewardPerSecondCut).to.equal(0);
     }
 
     const tcBalanceBefore = await nxm.balanceOf(tokenController.address);
@@ -959,8 +959,8 @@ describe('requestAllocation', function () {
       const rewardPerSecond = await stakingPool.rewardPerSecond();
       expect(rewardPerSecond).to.equal(expectedRewardPerSecond);
 
-      const rewardBuckets = await stakingPool.rewardBuckets(expirationBucket);
-      expect(rewardBuckets).to.equal(expectedRewardPerSecond);
+      const rewardPerSecondCut = await stakingPool.rewardPerSecondCut(expirationBucket);
+      expect(rewardPerSecondCut).to.equal(expectedRewardPerSecond);
     }
 
     const previousExpiration = firstAllocationBlock.timestamp + allocationRequestParams.period;
@@ -989,8 +989,8 @@ describe('requestAllocation', function () {
       const rewardPerSecond = await stakingPool.rewardPerSecond();
       expect(rewardPerSecond).to.equal(0);
 
-      const rewardBuckets = await stakingPool.rewardBuckets(expirationBucket);
-      expect(rewardBuckets).to.equal(0);
+      const rewardPerSecondCut = await stakingPool.rewardPerSecondCut(expirationBucket);
+      expect(rewardPerSecondCut).to.equal(0);
     }
   });
 

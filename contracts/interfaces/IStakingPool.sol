@@ -44,21 +44,21 @@ interface IStakingPool {
   // tranche index is calculated based on the expiration date
   // the initial proposal is to have 4 tranches per year (1 tranche per quarter)
   struct Tranche {
-    uint /* uint128 */ stakeShares;
-    uint /* uint128 */ rewardsShares;
+    uint128 stakeShares;
+    uint128 rewardsShares;
   }
 
   struct ExpiredTranche {
-    uint accNxmPerRewardShareAtExpiry;
-    uint stakeAmountAtExpiry;
+    uint160 accNxmPerRewardShareAtExpiry;
+    uint96 stakeAmountAtExpiry; // nxm total supply is 6.7e24 and uint96.max is 7.9e28
     uint stakeShareSupplyAtExpiry;
   }
 
   struct Deposit {
-    uint lastAccNxmPerRewardShare;
-    uint pendingRewards;
-    uint stakeShares;
-    uint rewardsShares;
+    uint160 lastAccNxmPerRewardShare;
+    uint96 pendingRewards;
+    uint128 stakeShares;
+    uint128 rewardsShares;
   }
 
   struct StakedProduct {
@@ -67,11 +67,6 @@ interface IStakingPool {
     uint96 targetPrice;
     uint96 bumpedPrice;
     uint32 bumpedPriceUpdateTime;
-  }
-
-  struct RewardBucket {
-    // TODO: pack 4 buckets in a slot. uint64 can hold a max of ~1593798 nxm rewards per day
-    uint rewardPerSecondCut;
   }
 
   function initialize(

@@ -87,7 +87,7 @@ interface IStakingPool {
     AllocationRequest calldata request
   ) external returns (uint premium, uint allocationId);
 
-  function burnStake(uint amount) external;
+  function burnStake(uint amount, uint coverAmount, AllocationRequest calldata request) external;
 
   function depositTo(
     uint amount,

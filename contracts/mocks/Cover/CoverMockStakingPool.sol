@@ -137,7 +137,7 @@ contract CoverMockStakingPool is IStakingPool {
     // noop
   }
 
-  function burnStake(uint amount) external {
+  function burnStake(uint amount, uint /* coverAmount */, AllocationRequest calldata /* request */) external {
     // no-op
     burnStakeCalledWith = amount;
   }

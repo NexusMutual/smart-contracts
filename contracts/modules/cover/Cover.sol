@@ -601,14 +601,34 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint allocationCount = allocations.length;
 
     for (uint i = 0; i < allocationCount; i++) {
-
       PoolAllocation memory allocation = allocations[i];
 
-      uint payoutAmountInNXM = allocation.coverAmountInNXM * payoutAmountInAsset / segment.amount;
-      allocations[i].coverAmountInNXM -= SafeUintCast.toUint96(payoutAmountInNXM);
+      BurnStakeVariables memory vars = BurnStakeVariables(0, 0);
 
-      uint burnAmountInNxm = payoutAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / segment.globalCapacityRatio;
-      stakingPool(i).burnStake(burnAmountInNxm);
+      vars.payoutAmountInNXM = allocation.coverAmountInNXM * payoutAmountInAsset / segment.amount;
+      allocations[i].coverAmountInNXM -= SafeUintCast.toUint96(vars.payoutAmountInNXM);
+
+      vars.burnAmountInNxm = vars.payoutAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / segment.globalCapacityRatio;
+
+      Product memory product = _products[cover.productId];
+
+      AllocationRequest memory allocationRequest = AllocationRequest(
+        cover.productId,
+        coverId,
+        allocation.allocationId,
+        segment.period,
+        segment.gracePeriod,
+        product.useFixedPrice,
+        segment.start,
+        segment.start + segment.period,
+        segment.globalRewardsRatio,
+        segment.globalCapacityRatio,
+        product.capacityReductionRatio,
+        segment.globalRewardsRatio,
+        GLOBAL_MIN_PRICE_RATIO
+      );
+      
+      stakingPool(i).burnStake(vars.burnAmountInNxm, allocations[i].coverAmountInNXM, allocationRequest);
     }
 
     return coverNFT.ownerOf(coverId);

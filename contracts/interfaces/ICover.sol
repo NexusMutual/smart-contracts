@@ -47,6 +47,11 @@ struct RequestAllocationVariables {
   uint coverAmountInNXM;
 }
 
+struct BurnStakeVariables {
+  uint payoutAmountInNXM;
+  uint burnAmountInNxm;
+}
+
 struct BuyCoverParams {
   uint coverId;
   address owner;

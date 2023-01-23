@@ -6,10 +6,8 @@ async function main() {
   console.log('Network config:', config.networks[network.name]);
 
   const [owner] = await ethers.getSigners();
-
   console.log('OWNER ADDRESS', owner.address);
 
-  const productId = 0;
   const targetPrice = 1000;
   const initialPrice = 10000;
 
@@ -18,7 +16,7 @@ async function main() {
   const maxPoolFee = '5';
   const productInitializationParams = [
     {
-      productId,
+      productId: 0,
       weight: '40',
       initialPrice,
       targetPrice,

@@ -4,40 +4,42 @@ pragma solidity ^0.8.0;
 import "../utils/MultiCallable.sol";
 
 contract MulticallMock is MultiCallable {
-    error EmptyCustomError();
-    error UintCustomError(uint errCode);
-    uint zero = 0;
 
-    function panicError() public view {
-       // use storage to trick compiler into thinking this makes sense
-       uint(100) / zero;
-    }
+  error EmptyCustomError();
+  error UintCustomError(uint errCode);
 
-    function emptyRevert() public pure {
-        revert();
-    }
+  uint zero = 0;
 
-    function emptyRequire() public pure {
-        require(false);
-    }
+  function panicError() public view {
+   // use storage to trick compiler into thinking this makes sense
+   uint(100) / zero;
+  }
 
-    function emptyCustomError() public pure {
-        revert EmptyCustomError();
-    }
+  function emptyRevert() public pure {
+    revert();
+  }
 
-    function uintCustomError(uint errCode) public pure {
-        revert UintCustomError(errCode);
-    }
+  function emptyRequire() public pure {
+    require(false);
+  }
 
-    function stringRevert32() public pure {
-       require(false, "String revert");
-    }
+  function emptyCustomError() public pure {
+    revert EmptyCustomError();
+  }
 
-    function stringRevert64() public pure {
-       require(false, "012345678901234567890123456789012345678901234567890123456789001234567890");
-    }
+  function uintCustomError(uint errCode) public pure {
+    revert UintCustomError(errCode);
+  }
 
-    function success() public pure returns (bool) {
-      return true;
-    }
+  function stringRevert32() public pure {
+    require(false, "String revert");
+  }
+
+  function stringRevert64() public pure {
+    require(false, "012345678901234567890123456789012345678901234567890123456789001234567890");
+  }
+
+  function success() public pure returns (bool) {
+    return true;
+  }
 }

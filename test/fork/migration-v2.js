@@ -41,10 +41,6 @@ const MIN_POOL_ETH = 0;
 
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 
-// will be updated when categories are created.
-let ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID = 0;
-let REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID = 0;
-
 const getSigner = async address => {
   const provider =
     network.name !== 'hardhat' // ethers errors out when using non-local accounts
@@ -294,8 +290,6 @@ describe('v2 migration', function () {
   });
 
   it('add proposal category (Add new contracts)', async function () {
-    ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID = await this.proposalCategory.totalCategories();
-
     await submitGovernanceProposal(
       // addCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       PROPOSAL_CATEGORIES.addCategory,
@@ -313,7 +307,7 @@ describe('v2 migration', function () {
           'uint256[]',
           'string',
         ],
-        proposalCategories[42],
+        proposalCategories[PROPOSAL_CATEGORIES.newContracts],
       ),
       this.abMembers,
       this.governance,
@@ -321,9 +315,6 @@ describe('v2 migration', function () {
   });
 
   it('add proposal category (Remove contracts)', async function () {
-    REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID = await this.proposalCategory.totalCategories();
-    console.log(`Remove contracts Category Id = ${REMOVE_CONTRACTS_PROPOSAL_CATEGORY_ID}`);
-
     await submitGovernanceProposal(
       // addCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       PROPOSAL_CATEGORIES.addCategory,
@@ -341,7 +332,7 @@ describe('v2 migration', function () {
           'uint256[]',
           'string',
         ],
-        proposalCategories[43],
+        proposalCategories[PROPOSAL_CATEGORIES.removeContracts],
       ),
       this.abMembers,
       this.governance,
@@ -353,8 +344,9 @@ describe('v2 migration', function () {
     const coverInitializer = await CoverInitializer.deploy();
     await coverInitializer.deployed();
 
+    console.log(PROPOSAL_CATEGORIES.newContracts);
     await submitGovernanceProposal(
-      ADD_NEW_CONTRACTS_PROPOSAL_CATEGORY_ID, // addNewInternalContracts(bytes2[],address[],uint256[])
+      PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]', 'uint256[]'],
         [[toUtf8Bytes('CO')], [coverInitializer.address], [2]], // 2 = proxy contract
@@ -377,7 +369,7 @@ describe('v2 migration', function () {
     await master.deployed();
 
     await submitGovernanceProposal(
-      PROPOSAL_CATEGORIES.upgradeMasterAddress, // upgradeMasterAddress(address)
+      PROPOSAL_CATEGORIES.upgradeMaster, // upgradeMasterAddress(address)
       defaultAbiCoder.encode(['address'], [master.address]),
       this.abMembers,
       this.governance,
@@ -685,9 +677,9 @@ describe('v2 migration', function () {
     const assessment = await Assessment.deploy(this.nxm.address);
     await assessment.deployed();
 
+    console.log(PROPOSAL_CATEGORIES.newContracts);
     await submitGovernanceProposal(
-      // TODO: change the categoryId when proposal is added
-      42, // addNewInternalContracts(bytes2[],address[],uint256[])
+      PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
       defaultAbiCoder.encode(
         ['bytes2[]', 'address[]', 'uint256[]'],
         [

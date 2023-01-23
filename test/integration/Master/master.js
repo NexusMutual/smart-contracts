@@ -150,7 +150,7 @@ describe('master', function () {
 
     const upgradeContractsData = defaultAbiCoder.encode(['address'], [newMaster.address]);
 
-    await submitProposal(gv, ProposalCategory.upgradeMasterAddress, upgradeContractsData, [owner]);
+    await submitProposal(gv, ProposalCategory.upgradeMaster, upgradeContractsData, [owner]);
 
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', master.address);
     const implementation = await proxy.implementation();

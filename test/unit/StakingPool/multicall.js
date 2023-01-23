@@ -1,7 +1,9 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { parseEther } = ethers.utils;
 const { DIVIDE_BY_ZERO } = require('../utils').errors;
+
+const { MaxUint256 } = ethers.constants;
+const { parseEther } = ethers.utils;
 
 describe('Multicall unit tests', function () {
   it('should bubble up empty custom error signatures', async function () {
@@ -12,10 +14,20 @@ describe('Multicall unit tests', function () {
 
   it('should bubble up custom error with 32 byte uint value', async function () {
     const { multicall } = this;
-    const calldata = multicall.interface.encodeFunctionData('uintCustomError', [parseEther('3459802')]);
-    await expect(multicall.multicall([calldata])).to.be.revertedWithCustomError(multicall, 'UintCustomError', [
-      calldata,
-    ]);
+    const errorCode = parseEther('3459802');
+    const calldata = multicall.interface.encodeFunctionData('uintCustomError', [errorCode]);
+    await expect(multicall.multicall([calldata]))
+      .to.be.revertedWithCustomError(multicall, 'UintCustomError')
+      .withArgs(errorCode);
+  });
+
+  it('should bubble up custom error with 32 byte max uint', async function () {
+    const { multicall } = this;
+    const errorCode = MaxUint256;
+    const calldata = multicall.interface.encodeFunctionData('uintCustomError', [errorCode]);
+    await expect(multicall.multicall([calldata]))
+      .to.be.revertedWithCustomError(multicall, 'UintCustomError')
+      .withArgs(errorCode);
   });
 
   it('should bubble up 32 byte string revert messages', async function () {
@@ -45,7 +57,9 @@ describe('Multicall unit tests', function () {
       multicall.interface.encodeFunctionData('success'),
       multicall.interface.encodeFunctionData('emptyRevert'),
     ];
-    await expect(multicall.multicall(calldata)).to.be.revertedWithCustomError(multicall, 'RevertedWithoutReason', 0);
+    await expect(multicall.multicall(calldata))
+      .to.be.revertedWithCustomError(multicall, 'RevertedWithoutReason')
+      .withArgs(0);
   });
 
   it('should bubble up empty require messages with correct index', async function () {
@@ -55,6 +69,8 @@ describe('Multicall unit tests', function () {
       multicall.interface.encodeFunctionData('success'), // 1
       multicall.interface.encodeFunctionData('emptyRequire'), // 2
     ];
-    await expect(multicall.multicall(calldata)).to.be.revertedWithCustomError(multicall, 'RevertedWithoutReason', 2);
+    await expect(multicall.multicall(calldata))
+      .to.be.revertedWithCustomError(multicall, 'RevertedWithoutReason')
+      .withArgs(2);
   });
 });

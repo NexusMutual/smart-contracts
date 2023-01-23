@@ -346,8 +346,8 @@ async function main() {
     owner,
     master.address,
     tc.address,
-    [owner], // initial members
-    [parseEther('10000')], // initial tokens
+    [owner, '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65', '0x2546BcD3c84621e976D8185a91A922aE77ECEc30'], // initial members
+    [parseEther('10000'), parseEther('10000'), parseEther('10000')], // initial tokens
     [owner], // advisory board members
   );
 

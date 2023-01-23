@@ -29,7 +29,6 @@ async function main() {
       period,
       maxPremiumInAsset: expectedPremium,
       paymentAsset: payoutAsset,
-      // payWitNXM: false,
       commissionRatio: parseEther('0'),
       commissionDestination: AddressZero,
       ipfsData: '',

@@ -43,6 +43,25 @@ contract MulticallMock is MultiCallable {
     require(false, reason);
   }
 
+  function returndataSizeTest(string calldata reason) public view {
+
+    bytes memory data = abi.encodeWithSignature("stringRevertParam(string)", reason);
+
+    // perform a direct call
+    (bool directCallSuccess, bytes memory directCallReason) = address(this).staticcall(data);
+    require(!directCallSuccess, "Expected direct call to revert");
+
+    bytes[] memory multicallParams = new bytes[](1);
+    multicallParams[0] = data;
+    bytes memory multicallData = abi.encodeWithSignature("multicall(bytes[])", multicallParams);
+
+    // perform the same call via multicall
+    (bool multicallSuccess, bytes memory multicallReason) = address(this).staticcall(multicallData);
+    require(!multicallSuccess, "Expected multicall to revert");
+
+    require(directCallReason.length == multicallReason.length, "Expected identical reason length");
+  }
+
   function success() public pure returns (bool) {
     return true;
   }

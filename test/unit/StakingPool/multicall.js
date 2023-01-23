@@ -51,6 +51,14 @@ describe('Multicall unit tests', function () {
     await expect(multicall.multicall([calldata])).to.be.revertedWith(reason);
   });
 
+  it('should bubble up correct returndata length', async function () {
+    const { multicall } = this;
+    for (let size = 0; size <= 2048; size += 16) {
+      const reason = 'A'.repeat(size);
+      await multicall.returndataSizeTest(reason);
+    }
+  });
+
   it('should bubble up panic error codes', async function () {
     const { multicall } = this;
     const calldata = multicall.interface.encodeFunctionData('panicError');

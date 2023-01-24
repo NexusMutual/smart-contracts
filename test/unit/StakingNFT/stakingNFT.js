@@ -5,9 +5,9 @@ const { setEtherBalance } = require('../../utils/evm');
 describe('StakingNFT', function () {
   // impersonate staking pool address
   before(async function () {
-    const { stakingPoolLibrary, stakingPoolFactory } = this;
+    const { cover } = this;
     const poolId = 50;
-    const stakingAddress = await stakingPoolLibrary.getAddress(stakingPoolFactory.address, poolId);
+    const stakingAddress = await cover.stakingPool(poolId);
     await setEtherBalance(stakingAddress, ethers.utils.parseEther('1000'));
     const stakingPoolSigner = await ethers.getImpersonatedSigner(stakingAddress);
 

@@ -5,16 +5,17 @@ async function setup() {
   const accounts = await getAccounts();
   const [operator] = accounts.members;
 
-  const stakingLibrary = await ethers.deployContract('SPMockStakingPoolLibrary');
   const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [operator.address]);
+  const cover = await ethers.deployContract('SNFTMockCover', [stakingPoolFactory.address]);
+
   const stakingNFT = await ethers.deployContract('StakingNFT', [
     'NexusMutual Staking',
     'NXMS',
     stakingPoolFactory.address,
-    operator.address,
+    cover.address,
   ]);
 
-  this.stakingPoolLibrary = stakingLibrary;
+  this.cover = cover;
   this.stakingPoolFactory = stakingPoolFactory;
   this.stakingNFT = stakingNFT;
   this.accounts = accounts;

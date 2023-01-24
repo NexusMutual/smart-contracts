@@ -1,8 +1,9 @@
 const { network, ethers } = require('hardhat');
 const { CONTRACTS_ADDRESSES: Addresses } = require(process.env.CONFIG_FILE);
 
+const { BigNumber } = ethers;
 const { AddressZero, MaxUint256 } = ethers.constants;
-const { getCreate2Address, formatEther, parseEther } = ethers.utils;
+const { getCreate2Address, formatEther, parseEther, hexValue } = ethers.utils;
 
 const INIT_CODE_HASH = '203b477dc328f1ceb7187b20e5b1b0f0bc871114ada7e9020c9ac112bbfb6920';
 const { STAKER } = process.env;
@@ -19,11 +20,19 @@ const getStakingPool = async (poolId, signer) => {
   return ethers.getContractAt('StakingPool', stakingPoolAddress, signer);
 };
 
+const hex = n => hexValue(BigNumber.from(n));
+
 const getSigner = async address => {
   const provider =
     network.name !== 'hardhat' // ethers errors out when using non-local accounts
       ? new ethers.providers.JsonRpcProvider(network.config.url)
       : ethers.provider;
+
+  if (['localhost', 'hardhat'].includes(network.name)) {
+    await ethers.provider.send('hardhat_impersonateAccount', [address]);
+    await ethers.provider.send('hardhat_setBalance', [address, hex(parseEther('1'))]);
+  }
+
   return provider.getSigner(address);
 };
 

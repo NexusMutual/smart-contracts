@@ -52,7 +52,7 @@ async function main() {
   console.log('Creating 2nd staking pool');
   await cover.createStakingPool(
     stakingPoolManager.address,
-    false, // isPrivatePool
+    isPrivatePool,
     initialPoolFee,
     maxPoolFee,
     productInitializationParams,

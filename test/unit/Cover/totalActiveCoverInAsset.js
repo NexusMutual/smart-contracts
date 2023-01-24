@@ -1,24 +1,23 @@
 const { ethers } = require('hardhat');
-const { buyCoverOnOnePool } = require('./helpers');
 const { expect } = require('chai');
-const { DAI_ASSET_ID } = require('../../integration/utils/cover');
+
+const { increaseTime } = require('../utils').evm;
+const { daysToSeconds } = require('../utils').helpers;
+const { buyCoverOnOnePool } = require('./helpers');
+
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
-const { setNextBlockTime, mineNextBlock } = require('../../utils').evm;
-const { daysToSeconds } = require('../../../lib/').helpers;
 
-const ETH_COVER_ID = 0b0;
-const DAI_COVER_ID = 0b1;
-const USDC_COVER_ID = 0b10;
+const ETH_ASSET_ID = 0b00;
+const DAI_ASSET_ID = 0b01;
 
 const ethCoverBuyFixture = {
   productId: 0,
-  coverAsset: ETH_COVER_ID, // ETH
-  period: daysToSeconds(30), // 30 days
-
+  coverAsset: ETH_ASSET_ID,
+  paymentAsset: ETH_ASSET_ID,
+  period: daysToSeconds(30),
   amount: parseEther('1000'),
-
   targetPriceRatio: '260',
   priceDenominator: '10000',
   activeCover: parseEther('8000'),
@@ -28,8 +27,8 @@ const ethCoverBuyFixture = {
 
 const daiCoverBuyFixture = {
   ...ethCoverBuyFixture,
-  coverAsset: DAI_COVER_ID,
-  paymentAsset: DAI_COVER_ID,
+  coverAsset: DAI_ASSET_ID,
+  paymentAsset: DAI_ASSET_ID,
 };
 
 describe('totalActiveCoverInAsset', function () {
@@ -76,16 +75,11 @@ describe('totalActiveCoverInAsset', function () {
   it('should decrease active cover amount when cover expires', async function () {
     const { cover } = this;
     const { BUCKET_SIZE } = this.config;
-
     const { coverAsset, amount } = daiCoverBuyFixture;
 
     await buyCoverOnOnePool.call(this, daiCoverBuyFixture);
-    {
-      // Move forward cover.period + 1 bucket to expire cover
-      const { timestamp } = await ethers.provider.getBlock('latest');
-      await setNextBlockTime(BUCKET_SIZE.add(timestamp).add(daiCoverBuyFixture.period).toNumber());
-    }
 
+    await increaseTime(BUCKET_SIZE.add(daiCoverBuyFixture.period).toNumber());
     await buyCoverOnOnePool.call(this, daiCoverBuyFixture);
 
     const { timestamp } = await ethers.provider.getBlock('latest');
@@ -98,24 +92,19 @@ describe('totalActiveCoverInAsset', function () {
   it('should decrease active cover when an edited cover expires', async function () {
     const { cover } = this;
     const { BUCKET_SIZE } = this.config;
-    const {
-      members: [member1],
-    } = this.accounts;
+    const [member] = this.accounts.members;
 
     const { amount, period, coverAsset, productId } = daiCoverBuyFixture;
 
     await buyCoverOnOnePool.call(this, daiCoverBuyFixture);
 
-    {
-      // Move forward 1 bucket
-      const { timestamp } = await ethers.provider.getBlock('latest');
-      await setNextBlockTime(BUCKET_SIZE.add(timestamp).toNumber());
-    }
+    // Move forward 1 bucket
+    await increaseTime(BUCKET_SIZE.toNumber());
 
     // Edit cover
-    await cover.connect(member1).buyCover(
+    await cover.connect(member).buyCover(
       {
-        owner: member1.address,
+        owner: member.address,
         coverId: 0,
         productId,
         coverAsset,
@@ -139,13 +128,12 @@ describe('totalActiveCoverInAsset', function () {
 
     {
       // Move many blocks until next cover is expired
-      const { timestamp } = await ethers.provider.getBlock('latest');
-      await setNextBlockTime(BigNumber.from(timestamp).add(daysToSeconds(500)).toNumber());
-      await mineNextBlock();
+      await increaseTime(daysToSeconds(500));
+
       const amount = parseEther('50');
-      await cover.connect(member1).buyCover(
+      await cover.connect(member).buyCover(
         {
-          owner: member1.address,
+          owner: member.address,
           coverId: MaxUint256,
           productId,
           coverAsset,
@@ -195,11 +183,10 @@ describe('totalActiveCoverInAsset', function () {
 
   it('should calculate active cover correctly after multiple purchases and burns', async function () {
     const { cover } = this;
-    const {
-      internalContracts: [internalContract],
-      members,
-    } = this.accounts;
     const { BUCKET_SIZE } = this.config;
+
+    const [internalContract] = this.accounts.internalContracts;
+    const members = this.accounts.members;
 
     const { coverAsset, amount, productId, period } = daiCoverBuyFixture;
 
@@ -212,9 +199,7 @@ describe('totalActiveCoverInAsset', function () {
 
     // purchase cover, then burn half of  the cover and move forward 2 days each iteration
     for (let i = 1; i < members.length; i++) {
-      const { timestamp } = await ethers.provider.getBlock('latest');
-      await setNextBlockTime(BigNumber.from(timestamp).add(daysToSeconds(2)).toNumber());
-
+      await increaseTime(daysToSeconds(2));
       const expectedActiveCover = amount.mul(i).div(2);
 
       const member = members[i];
@@ -240,8 +225,7 @@ describe('totalActiveCoverInAsset', function () {
     }
 
     // Move forward cover period + 1 bucket to expire all covers
-    const { timestamp } = await ethers.provider.getBlock('latest');
-    await setNextBlockTime(BigNumber.from(timestamp).add(daiCoverBuyFixture.period).add(BUCKET_SIZE).toNumber());
+    await increaseTime(BigNumber.from(daiCoverBuyFixture.period).add(BUCKET_SIZE).toNumber());
 
     // New  purchase should be the only active cover
     await buyCoverOnOnePool.call(this, daiCoverBuyFixture);

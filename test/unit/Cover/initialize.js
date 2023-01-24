@@ -4,7 +4,7 @@ const { ethers } = require('hardhat');
 const coverNFTAddress = '0x0000000000000000000000000000000000000001';
 const stakingNFTAddress = '0x0000000000000000000000000000000000000002';
 const factoryAddress = '0x0000000000000000000000000000000000000003';
-const stakingPoolImplementationAddress = '0x0000000000000000000000000000000000000003';
+const stakingPoolImplementationAddress = '0x0000000000000000000000000000000000000004';
 
 describe('initialize', function () {
   it('should initialize variables correctly', async function () {
@@ -25,13 +25,11 @@ describe('initialize', function () {
 
     expect(await cover.globalCapacityRatio()).to.be.equal(0);
     expect(await cover.globalRewardsRatio()).to.be.equal(0);
-    expect(await cover.coverAssetsFallback()).to.be.equal(0);
 
     await cover.initialize();
 
     expect(await cover.globalCapacityRatio()).to.be.equal(20000);
     expect(await cover.globalRewardsRatio()).to.be.equal(5000);
-    expect(await cover.coverAssetsFallback()).to.be.equal(3);
   });
 
   it('should revert if globalCapacityRatio already set to a non-zero value', async function () {

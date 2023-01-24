@@ -42,6 +42,10 @@ contract CoverMockPool {
     return assets[assetId];
   }
 
+  function getAssets() external view returns (Asset[] memory) {
+    return assets;
+  }
+
   fallback() external payable {}
 
   receive() external payable {}

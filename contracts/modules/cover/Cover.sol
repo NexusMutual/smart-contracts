@@ -167,7 +167,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       );
     }
 
-    uint expiringCoverAmount;
+    uint previousSegmentAmount;
 
     if (params.coverId == type(uint).max) {
 
@@ -210,7 +210,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       // remove cover amount from from expiration buckets
       uint bucketAtExpiry = Math.divCeil(lastSegment.start + lastSegment.period, BUCKET_SIZE);
       activeCoverExpirationBuckets[params.coverAsset][bucketAtExpiry] -= lastSegment.amount;
-      expiringCoverAmount += lastSegment.amount;
+      previousSegmentAmount += lastSegment.amount;
     }
 
     uint nxmPriceInCoverAsset = pool().getTokenPriceInAsset(params.coverAsset);
@@ -253,6 +253,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         );
       }
 
+      totalActiveCover -= previousSegmentAmount;
       totalActiveCover += coverAmountInCoverAsset;
 
       _activeCover.lastBucketUpdateId = currentBucketId.toUint64();
@@ -667,9 +668,17 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   function setProducts(ProductParam[] calldata productParams) external override onlyAdvisoryBoard {
 
     uint productTypesCount = _productTypes.length;
+    uint unsupportedCoverAssetsBitmap = type(uint).max;
 
-    // TODO: build this from pool assets
-    uint unsupportedCoverAssetsBitmap = 0;
+    Asset[] memory assets = pool().getAssets();
+    uint assetsLength = assets.length;
+
+    for (uint i = 0; i < assetsLength; i++) {
+      if (assets[i].isCoverAsset && !assets[i].isAbandoned) {
+        // clear the bit at index i
+        unsupportedCoverAssetsBitmap ^= 1 << i;
+      }
+    }
 
     for (uint i = 0; i < productParams.length; i++) {
 

@@ -5,7 +5,6 @@ const { getAccounts } = require('../utils').accounts;
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
-const { BigNumber } = ethers;
 const { MaxUint256 } = ethers.constants;
 const { getContractAddress, parseEther } = ethers.utils;
 
@@ -16,76 +15,38 @@ const getDeployAddressAfter = async (account, txCount) => {
 };
 
 async function setup() {
-  const MasterMock = await ethers.getContractFactory('MasterMock');
-  const Pool = await ethers.getContractFactory('CoverMockPool');
-  const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
-  const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
-  const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
-  const MemberRolesMock = await ethers.getContractFactory('MemberRolesMock');
-  const CoverNFT = await ethers.getContractFactory('CoverMockCoverNFT');
-  const StakingNFT = await ethers.getContractFactory('CoverMockStakingNFT');
-  const TokenController = await ethers.getContractFactory('TokenControllerMock');
-  const NXMToken = await ethers.getContractFactory('NXMTokenMock');
-  const MCR = await ethers.getContractFactory('CoverMockMCR');
-  const StakingPool = await ethers.getContractFactory('CoverMockStakingPool');
-  const StakingPoolFactory = await ethers.getContractFactory('StakingPoolFactory');
-  const ERC20CustomDecimalsMock = await ethers.getContractFactory('ERC20CustomDecimalsMock');
-  const Cover = await ethers.getContractFactory('Cover');
+  const master = await ethers.deployContract('MasterMock');
+  const memberRoles = await ethers.deployContract('MemberRolesMock');
+  const tokenController = await ethers.deployContract('TokenControllerMock');
 
-  const master = await MasterMock.deploy();
-
-  const dai = await ERC20Mock.deploy();
-
-  const usdcDecimals = 6;
-  const usdc = await ERC20CustomDecimalsMock.deploy(usdcDecimals); // 6 decimals
-
-  const stETH = await ERC20Mock.deploy();
-
-  const memberRoles = await MemberRolesMock.deploy();
-
-  const tokenController = await TokenController.deploy();
-
-  const nxm = await NXMToken.deploy();
+  const nxm = await ethers.deployContract('NXMTokenMock');
   await nxm.setOperator(tokenController.address);
 
-  const mcr = await MCR.deploy();
+  const mcr = await ethers.deployContract('CoverMockMCR');
   await mcr.setMCR(parseEther('600000'));
 
-  const stakingPoolImplementation = await StakingPool.deploy();
-
-  const coverNFT = await CoverNFT.deploy();
-
-  const stakingNFT = await StakingNFT.deploy();
+  const stakingPoolImplementation = await ethers.deployContract('CoverMockStakingPool');
+  const coverNFT = await ethers.deployContract('CoverMockCoverNFT');
+  const stakingNFT = await ethers.deployContract('CoverMockStakingNFT');
 
   const { defaultSender } = await getAccounts();
   const expectedCoverAddress = await getDeployAddressAfter(defaultSender, 1);
 
-  const stakingPoolFactory = await StakingPoolFactory.deploy(expectedCoverAddress);
+  const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [expectedCoverAddress]);
 
-  const cover = await Cover.deploy(
+  const cover = await ethers.deployContract('Cover', [
     coverNFT.address,
     stakingNFT.address,
     stakingPoolFactory.address,
     stakingPoolImplementation.address,
-  );
+  ]);
 
   expect(expectedCoverAddress).to.equal(cover.address);
 
-  await master.setTokenAddress(nxm.address);
+  const dai = await ethers.deployContract('ERC20Mock');
+  const usdc = await ethers.deployContract('ERC20CustomDecimalsMock', [6]); // 6 decimals
 
-  const ethToDaiRate = parseEther('2000');
-  const daiToEthRate = BigNumber.from(10).pow(BigNumber.from(36)).div(ethToDaiRate);
-
-  const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
-  await chainlinkDAI.setLatestAnswer(daiToEthRate.toString());
-
-  const chainlinkUSDC = await ChainlinkAggregatorMock.deploy();
-  await chainlinkUSDC.setLatestAnswer(daiToEthRate.toString());
-
-  const chainlinkSteth = await ChainlinkAggregatorMock.deploy();
-  await chainlinkSteth.setLatestAnswer(parseEther('1'));
-
-  const pool = await Pool.deploy();
+  const pool = await ethers.deployContract('CoverMockPool');
   await pool.setAssets([
     { assetAddress: dai.address, isCoverAsset: true, isAbandoned: false },
     { assetAddress: usdc.address, isCoverAsset: true, isAbandoned: false },
@@ -96,6 +57,7 @@ async function setup() {
   await pool.setTokenPrice('2', parseEther('1'));
 
   // set contract addresses
+  await master.setTokenAddress(nxm.address);
   await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('MR'), memberRoles.address);
   await master.setLatestAddress(hex('CO'), cover.address);
@@ -191,7 +153,6 @@ async function setup() {
   this.nxm = nxm;
   this.tokenController = tokenController;
   this.memberRoles = memberRoles;
-  this.chainlinkDAI = chainlinkDAI;
   this.cover = cover;
   this.coverNFT = coverNFT;
   this.accounts = accounts;

@@ -398,7 +398,7 @@ describe('requestAllocation', function () {
   it('should overflow uint32 tranche allocation when cover amount is too large', async function () {
     const { stakingPool, cover } = this;
     const [coverBuyer, staker] = this.accounts.members;
-    const amount = BigNumber.from(2).pow(96).sub(1);
+    const amount = BigNumber.from(2).pow(95).sub(1);
     const buyCoverParams = { ...buyCoverParamsTemplate, amount };
 
     await stakingPool.connect(staker).depositTo(

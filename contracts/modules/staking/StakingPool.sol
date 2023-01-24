@@ -30,32 +30,33 @@ contract StakingPool is IStakingPool, Multicall {
 
   /* storage */
 
-  uint40 poolId;
-
-  // currently active staked nxm amount
-  uint public activeStake;
-
+  // slot 1
   // supply of pool stake shares used by tranches
-  uint public stakeSharesSupply;
+  uint128 public stakeSharesSupply;
 
   // supply of pool rewards shares used by tranches
-  uint public rewardsSharesSupply;
+  uint128 public rewardsSharesSupply;
+
+  // slot 2
+  // accumulated rewarded nxm per reward share
+  uint160 public accNxmPerRewardsShare;
+  // currently active staked nxm amount
+  uint96 public activeStake;
+
+  // slot 3
+  // timestamp when accNxmPerRewardsShare was last updated
+  uint32 public lastAccNxmUpdate;
+
+  uint32 public firstActiveTrancheId;
+  uint32 public firstActiveBucketId;
 
   // current nxm reward per second for the entire pool
   // applies to active stake only and does not need update on deposits
-  uint public rewardPerSecond;
-
-  // accumulated rewarded nxm per reward share
-  uint public accNxmPerRewardsShare;
-
-  // timestamp when accNxmPerRewardsShare was last updated
-  uint public lastAccNxmUpdate;
-
-  uint public firstActiveTrancheId;
-  uint public firstActiveBucketId;
-
+  uint96 public rewardPerSecond;
   uint24 public nextAllocationId;
+  uint40 poolId;
 
+  // slot 4
   bool public isPrivatePool;
   uint8 public poolFee;
   uint8 public maxPoolFee;
@@ -252,7 +253,7 @@ contract StakingPool is IStakingPool, Multicall {
 
     if (_rewardsSharesSupply == 0) {
       // nothing to do, just update lastAccNxmUpdate
-      lastAccNxmUpdate = block.timestamp;
+      lastAccNxmUpdate = block.timestamp.toUint32();
       return;
     }
 
@@ -334,15 +335,15 @@ contract StakingPool is IStakingPool, Multicall {
       _lastAccNxmUpdate = block.timestamp;
     }
 
-    firstActiveTrancheId = _firstActiveTrancheId;
-    firstActiveBucketId = _firstActiveBucketId;
+    firstActiveTrancheId = _firstActiveTrancheId.toUint32();
+    firstActiveBucketId = _firstActiveBucketId.toUint32();
 
-    activeStake = _activeStake;
-    rewardPerSecond = _rewardPerSecond;
-    accNxmPerRewardsShare = _accNxmPerRewardsShare;
-    lastAccNxmUpdate = _lastAccNxmUpdate;
-    stakeSharesSupply = _stakeSharesSupply;
-    rewardsSharesSupply = _rewardsSharesSupply;
+    activeStake = _activeStake.toUint96();
+    rewardPerSecond = _rewardPerSecond.toUint96();
+    accNxmPerRewardsShare = _accNxmPerRewardsShare.toUint160();
+    lastAccNxmUpdate = _lastAccNxmUpdate.toUint32();
+    stakeSharesSupply = _stakeSharesSupply.toUint128();
+    rewardsSharesSupply = _rewardsSharesSupply.toUint128();
   }
 
   function depositTo(
@@ -378,9 +379,9 @@ contract StakingPool is IStakingPool, Multicall {
 
       // if the pool has no previous deposits
       if (firstActiveTrancheId == 0) {
-        firstActiveTrancheId = _firstActiveTrancheId;
-        firstActiveBucketId = block.timestamp / BUCKET_DURATION;
-        lastAccNxmUpdate = block.timestamp;
+        firstActiveTrancheId = _firstActiveTrancheId.toUint32();
+        firstActiveBucketId = (block.timestamp / BUCKET_DURATION).toUint32();
+        lastAccNxmUpdate = block.timestamp.toUint32();
       } else {
         processExpirations(true);
       }
@@ -479,9 +480,9 @@ contract StakingPool is IStakingPool, Multicall {
     tokenController.depositStakedNXM(msg.sender, totalAmount, poolId);
 
     // update globals
-    activeStake = _activeStake;
-    stakeSharesSupply = _stakeSharesSupply;
-    rewardsSharesSupply = _rewardsSharesSupply;
+    activeStake = _activeStake.toUint96();
+    stakeSharesSupply = _stakeSharesSupply.toUint128();
+    rewardsSharesSupply = _rewardsSharesSupply.toUint128();
 
     emit StakeDeposited(msg.sender, amount, trancheId, tokenId);
   }
@@ -679,7 +680,7 @@ contract StakingPool is IStakingPool, Multicall {
 
       // store
       rewardPerSecondCut[expirationBucket] += _rewardPerSecond;
-      rewardPerSecond += _rewardPerSecond;
+      rewardPerSecond += _rewardPerSecond.toUint96();
 
       uint rewardsToMint = _rewardPerSecond * rewardStreamPeriod;
       tokenController.mintStakingPoolNXMRewards(rewardsToMint, poolId);
@@ -695,7 +696,7 @@ contract StakingPool is IStakingPool, Multicall {
 
       // store
       rewardPerSecondCut[prevExpirationBucket] -= prevRewardsPerSecond;
-      rewardPerSecond -= prevRewardsPerSecond;
+      rewardPerSecond -= prevRewardsPerSecond.toUint96();
 
       // prevRewardsPerSecond * rewardStreamPeriodLeft
       uint rewardsToBurn = prevRewardsPerSecond * (prevExpirationBucket * BUCKET_DURATION - block.timestamp);
@@ -1138,7 +1139,7 @@ contract StakingPool is IStakingPool, Multicall {
     // calculate the new stake shares if there's a deposit top up
     if (topUpAmount > 0) {
       newStakeShares = _stakeSharesSupply * topUpAmount / _activeStake;
-      activeStake = _activeStake + topUpAmount;
+      activeStake = (_activeStake + topUpAmount).toUint96();
     }
 
     // calculate the new reward shares
@@ -1191,8 +1192,8 @@ contract StakingPool is IStakingPool, Multicall {
     deposits[tokenId][newTrancheId] = updatedDeposit;
 
     // update global shares supply
-    stakeSharesSupply = _stakeSharesSupply + newStakeShares;
-    rewardsSharesSupply += newRewardsShares;
+    stakeSharesSupply = (_stakeSharesSupply + newStakeShares).toUint128();
+    rewardsSharesSupply += newRewardsShares.toUint128();
 
     // transfer nxm from the staker and update the pool deposit balance
     tokenController.depositStakedNXM(msg.sender, topUpAmount, poolId);
@@ -1215,7 +1216,7 @@ contract StakingPool is IStakingPool, Multicall {
     tokenController.burnStakedNXM(burnAmount, poolId);
 
     // sstore
-    activeStake = initialStake - burnAmount;
+    activeStake = (initialStake - burnAmount).toUint96();
   }
 
   /* views */

@@ -5,17 +5,20 @@ pragma solidity ^0.8.16;
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import "../../interfaces/IPool.sol";
+import "../../interfaces/IPriceFeedOracle.sol";
 
 contract ICMockPool {
   using SafeERC20 for IERC20;
 
   Asset[] public assets;
+  IPriceFeedOracle public priceFeedOracle;
 
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-  constructor () {
+  constructor (address _priceFeedOracle) {
     // First asset is ETH
     assets.push(Asset(ETH, true, false));
+    priceFeedOracle = IPriceFeedOracle(_priceFeedOracle);
   }
 
   function sendPayout(
@@ -37,6 +40,11 @@ contract ICMockPool {
 
   function addAsset(Asset memory asset) external {
     assets.push(asset);
+  }
+
+  function getAsset(uint assetId) external view returns (Asset memory) {
+    require(assetId < assets.length, "Pool: Invalid asset id");
+    return assets[assetId];
   }
 
   fallback() external payable {}

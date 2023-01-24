@@ -22,7 +22,12 @@ contract CLMockPool {
     assets.push(asset);
   }
 
-  function getTokenPrice(uint assetId) public pure returns (uint tokenPrice) {
+  function getAsset(uint assetId) external view returns (Asset memory) {
+    require(assetId < assets.length, "Pool: Invalid asset id");
+    return assets[assetId];
+  }
+
+  function getTokenPriceInAsset(uint assetId) public pure returns (uint tokenPrice) {
     return assetId == 0
       ? 0.0382 ether // 1 NXM ~ 0.0382 ETH
       : 3.82 ether; // 1 NXM ~ 3.82 DAI

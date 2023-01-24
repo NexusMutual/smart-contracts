@@ -96,11 +96,13 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
     uint coverAsset
   ) public view returns (uint, uint) {
     IPool poolContract = pool();
-    uint nxmPriceIncoverAsset = poolContract.getTokenPriceInAsset(coverAsset);
     uint nxmPriceInETH = poolContract.getTokenPriceInAsset(0);
+    uint nxmPriceInCoverAsset = coverAsset == 0
+      ? nxmPriceInETH
+      : poolContract.getTokenPriceInAsset(coverAsset);
 
     // Calculate the expected payout in NXM using the NXM price at cover purchase time
-    uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPriceIncoverAsset;
+    uint expectedPayoutInNXM = requestedAmount * PRECISION / nxmPriceInCoverAsset;
 
     // Determine the total rewards that should be minted for the assessors based on cover period
     uint totalRewardInNXM = Math.min(
@@ -202,11 +204,11 @@ contract IndividualClaims is IIndividualClaims, MasterAwareV2 {
   /// claims by providing the following parameters:
   ///
   /// @param ids   Array of Claim ids which are returned as ClaimDisplay
-  function getClaimsToDisplay (uint104[] calldata ids)
+  function getClaimsToDisplay (uint[] calldata ids)
   external view returns (ClaimDisplay[] memory) {
     ClaimDisplay[] memory claimDisplays = new ClaimDisplay[](ids.length);
     for (uint i = 0; i < ids.length; i++) {
-      uint104 id = ids[i];
+      uint id = ids[i];
       claimDisplays[i] = getClaimDisplay(id);
     }
     return claimDisplays;

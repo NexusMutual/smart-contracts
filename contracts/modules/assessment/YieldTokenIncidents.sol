@@ -42,6 +42,11 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
 
   Incident[] public override incidents;
 
+  /* ========== CONSTANTS ========== */
+
+  address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+
   /* ========== CONSTRUCTOR ========== */
 
   constructor(address nxmAddress, address coverNFTAddress) {
@@ -255,8 +260,13 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
         uint deductiblePriceBefore = uint(incident.priceBefore) *
           uint(config.payoutDeductibleRatio) / INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
 
+        uint coverAssetDecimals;
         address assetAddress = pool().getAsset(coverData.coverAsset).assetAddress;
-        (/* aggregator */, uint coverAssetDecimals) = pool().priceFeedOracle().assets(assetAddress);
+        (/* aggregator */, coverAssetDecimals) = pool().priceFeedOracle().assets(assetAddress);
+        // ETH doesn't have a price feed oracle
+        if (assetAddress == ETH) {
+          coverAssetDecimals = 18;
+        }
 
         // TODO: stack too deep made me do this, revisit, maybe we can use technology
         payoutAmount = depeggedTokens;

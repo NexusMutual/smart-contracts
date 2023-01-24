@@ -399,8 +399,12 @@ contract StakingPool is IStakingPool, Multicall {
       address to = destination == address(0) ? msg.sender : destination;
       tokenId = stakingNFT.mint(poolId, to);
     } else {
-      // validate token id exists. ownerOf() reverts if owner is address 0
-      stakingNFT.ownerOf(requestTokenId);
+      // validate token id exists and belongs to this pool
+      // stakingPoolOf() reverts for non-existent tokens
+      require(
+        stakingNFT.stakingPoolOf(requestTokenId) == poolId,
+        "StakingPool: Token does not belong to this pool"
+      );
       tokenId = requestTokenId;
     }
 

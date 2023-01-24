@@ -15,4 +15,9 @@ interface IStakingNFT is IERC721 {
   function changeOperator(address newOperator) external;
 
   function totalSupply() external returns (uint);
+
+  function tokenInfo(uint tokenId) external view returns (uint poolId, address owner);
+
+  function stakingPoolOf(uint tokenId) external view returns (uint poolId);
+
 }

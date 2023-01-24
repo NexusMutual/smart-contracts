@@ -9,6 +9,13 @@ import "../Tokens/ERC721Mock.sol";
 
 contract CoverMockStakingPool is IStakingPool {
 
+  struct BurnStakeCalledWithRequest {
+    uint coverId;
+    uint period;
+    uint previousStart;
+    uint previousExpiration;
+  }
+
   mapping (uint => uint) public usedCapacity;
   mapping (uint => uint) public stakedAmount;
 
@@ -27,7 +34,9 @@ contract CoverMockStakingPool is IStakingPool {
   uint public poolId;
   address public manager;
 
-  uint public burnStakeCalledWith;
+  uint public burnStakeCalledWithAmount;
+  uint public burnStakeCalledWithCoverAmount;
+  BurnStakeCalledWithRequest public burnStakeCalledWithRequest;
 
   function initialize(
     address _manager,
@@ -137,9 +146,16 @@ contract CoverMockStakingPool is IStakingPool {
     // noop
   }
 
-  function burnStake(uint amount, uint /* coverAmount */, AllocationRequest calldata /* request */) external {
+  function burnStake(uint amount, uint coverAmount, AllocationRequest calldata request) external {
     // no-op
-    burnStakeCalledWith = amount;
+    burnStakeCalledWithAmount = amount;
+    burnStakeCalledWithCoverAmount = coverAmount;
+    burnStakeCalledWithRequest = BurnStakeCalledWithRequest(
+      request.coverId,
+      request.period,
+      request.previousStart,
+      request.previousExpiration
+    );
   }
 
   function depositTo(

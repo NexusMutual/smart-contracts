@@ -39,9 +39,16 @@ async function main(provider) {
   const factory = await getContractFactory(provider);
   const ps = await factory('PS');
 
+  const ftx = '0xC57d000000000000000000000000000000000011';
+
+  const totalStake = await ps.contractStake(ftx);
+
+  console.log({
+    totalStake: totalStake.toString(),
+  });
+
   console.log('Fetching ftx stakes...');
 
-  const ftx = '0xC57d000000000000000000000000000000000011';
   const stakers = await ps.contractStakersArray(ftx);
   console.log({
     stakers,
@@ -49,11 +56,18 @@ async function main(provider) {
 
   const allStakes = {};
 
+  let stakeSummedUp = Decimal(0);
   for (const staker of stakers) {
     const ftxStake = await ps.stakerContractStake(staker, ftx);
 
-    allStakes[staker] = Decimal(ftxStake.toString()).div(1e18).toString();
+    const decimalStake = Decimal(ftxStake.toString());
+    allStakes[staker] = decimalStake.div(1e18).toString();
+    stakeSummedUp = stakeSummedUp.add(decimalStake);
   }
+
+  console.log({
+    stakeSummedUp,
+  });
 
   console.log(allStakes);
 }

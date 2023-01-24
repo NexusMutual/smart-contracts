@@ -5,7 +5,9 @@ const { AddressZero, MaxUint256 } = ethers.constants;
 
 const ETH_ASSET_ID = 0;
 const DAI_ASSET_ID = 1;
-const USDC_ASSET_ID = 2;
+const STETH_ASSET_ID = 2;
+const ENZYME_ASSET_ID = 3;
+const USDC_ASSET_ID = 4;
 
 async function buyCover({ amount, productId, coverAsset, period, cover, coverBuyer, targetPrice, priceDenominator }) {
   // Buy Cover
@@ -43,5 +45,7 @@ module.exports = {
   transferCoverAsset,
   ETH_ASSET_ID,
   DAI_ASSET_ID,
+  STETH_ASSET_ID,
+  ENZYME_ASSET_ID,
   USDC_ASSET_ID,
 };

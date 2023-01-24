@@ -5,13 +5,19 @@ const { getAccounts } = require('../utils').accounts;
 const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 
-const { MaxUint256 } = ethers.constants;
+const { AddressZero, MaxUint256 } = ethers.constants;
 const { getContractAddress, parseEther } = ethers.utils;
 
 const getDeployAddressAfter = async (account, txCount) => {
   const from = account.address;
   const nonce = (await account.getTransactionCount()) + txCount;
   return getContractAddress({ from, nonce });
+};
+
+const Assets = {
+  ETH: 1,
+  DAI: 2,
+  USDC: 3,
 };
 
 async function setup() {
@@ -115,8 +121,8 @@ async function setup() {
       ipfsMetadata: 'ipfs metadata',
       product: {
         productType: '0',
-        yieldTokenAddress: '0x0000000000000000000000000000000000000000',
-        coverAssets: parseInt('111', 2), // ETH DAI and USDC supported
+        yieldTokenAddress: AddressZero,
+        coverAssets: 0, // use fallback
         initialPriceRatio: '1000', // 10%
         capacityReductionRatio: '0',
         isDeprecated: false,
@@ -130,7 +136,21 @@ async function setup() {
       product: {
         productType: '0',
         yieldTokenAddress: '0x0000000000000000000000000000000000000001',
-        coverAssets: parseInt('111', 2), // ETH DAI and USDC supported
+        coverAssets: 0, // use fallback
+        initialPriceRatio: '1000', // 10%
+        capacityReductionRatio: '0',
+        isDeprecated: false,
+        useFixedPrice: true,
+      },
+      allowedPools: [0],
+    },
+    {
+      productId: MaxUint256,
+      ipfsMetadata: 'ipfs metadata',
+      product: {
+        productType: '0',
+        yieldTokenAddress: AddressZero,
+        coverAssets: Assets.ETH | Assets.DAI, // ETH and DAI, no USDC
         initialPriceRatio: '1000', // 10%
         capacityReductionRatio: '0',
         isDeprecated: false,
@@ -140,11 +160,9 @@ async function setup() {
     },
   ]);
 
-  const [GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE, MAX_COMMISSION_RATIO] = await Promise.all([
-    cover.GLOBAL_MIN_PRICE_RATIO(),
-    cover.BUCKET_SIZE(),
-    cover.MAX_COMMISSION_RATIO(),
-  ]);
+  const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
+  const BUCKET_SIZE = await cover.BUCKET_SIZE();
+  const MAX_COMMISSION_RATIO = await cover.MAX_COMMISSION_RATIO();
 
   this.master = master;
   this.pool = pool;
@@ -160,6 +178,7 @@ async function setup() {
   this.stakingPoolImplementation = stakingPoolImplementation;
   this.stakingPoolFactory = stakingPoolFactory;
   this.config = { GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE, MAX_COMMISSION_RATIO };
+  this.assets = Assets;
 }
 
 module.exports = setup;

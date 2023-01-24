@@ -4,7 +4,7 @@ const { expect } = require('chai');
 const { stake } = require('../utils/staking');
 const { buyCover, transferCoverAsset } = require('../utils/cover');
 
-const { daysToSeconds } = require('../../../lib/helpers');
+const { daysToSeconds } = require('../utils').helpers;
 const { mineNextBlock, setNextBlockTime, setNextBlockBaseFee, setEtherBalance } = require('../../utils/evm');
 
 const { parseEther, parseUnits } = ethers.utils;
@@ -596,24 +596,23 @@ describe('submitClaim', function () {
   it('submits USDC claim and approves claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
     const { cover, stakingPool0, as, usdc, yc, ybUSDC, gv } = this.contracts;
-    const [coverBuyer1, staker1] = this.accounts.members;
-    const [nonMember1] = this.accounts.nonMembers;
+    const [coverBuyer, staker] = this.accounts.members;
+    const [nonMember] = this.accounts.nonMembers;
 
     const { period, gracePeriod, priceDenominator } = submitClaimFixture;
 
     const amount = parseUnits('10', usdcDecimals);
-
     const productId = 5;
-    const coverAsset = 2; // usdc
+    const coverAsset = 4; // usdc
 
     // Stake to open up capacity
-    await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });
+    await stake({ stakingPool: stakingPool0, staker, productId, period, gracePeriod });
 
     // cover buyer gets cover asset
-    await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, asset: usdc, cover });
+    await transferCoverAsset({ tokenOwner: this.accounts.defaultSender, coverBuyer, asset: usdc, cover });
 
     // cover buyer gets yield token
-    await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer: coverBuyer1, yToken: ybUSDC, yc });
+    await transferYieldToken({ tokenOwner: this.accounts.defaultSender, coverBuyer, yToken: ybUSDC, yc });
 
     // Buy Cover
     await buyCover({
@@ -622,7 +621,7 @@ describe('submitClaim', function () {
       coverAsset,
       period,
       cover,
-      coverBuyer: coverBuyer1,
+      coverBuyer,
       targetPrice: DEFAULT_PRODUCTS[0].targetPrice,
       priceDenominator,
     });
@@ -631,7 +630,7 @@ describe('submitClaim', function () {
     await submitIncident({ gv, yc, productId, period, priceBefore: parseUnits('1', usdcDecimals) });
 
     // accept incident
-    await as.connect(staker1).castVotes([0], [true], ['Assessment data hash'], parseEther('100'));
+    await as.connect(staker).castVotes([0], [true], ['Assessment data hash'], parseEther('100'));
 
     {
       // advance past payout cooldown
@@ -640,9 +639,9 @@ describe('submitClaim', function () {
       await setTime(end + daysToSeconds(payoutCooldownInDays));
     }
 
-    const usdcBalanceBefore = await usdc.balanceOf(nonMember1.address);
-    await yc.connect(coverBuyer1).redeemPayout(0, 0, 0, parseUnits('1', usdcDecimals), nonMember1.address, []);
-    const usdcBalanceAfter = await usdc.balanceOf(nonMember1.address);
+    const usdcBalanceBefore = await usdc.balanceOf(nonMember.address);
+    await yc.connect(coverBuyer).redeemPayout(0, 0, 0, parseUnits('1', usdcDecimals), nonMember.address, []);
+    const usdcBalanceAfter = await usdc.balanceOf(nonMember.address);
     expect(usdcBalanceAfter).to.be.equal(usdcBalanceBefore.add(parseUnits('0.9', usdcDecimals)));
   });
 
@@ -657,7 +656,7 @@ describe('submitClaim', function () {
     const amount = parseUnits('10', usdcDecimals);
 
     const productId = 5;
-    const coverAsset = 2; // usdc
+    const coverAsset = 4; // usdc
 
     // Stake to open up capacity
     await stake({ stakingPool: stakingPool0, staker: staker1, productId, period, gracePeriod });

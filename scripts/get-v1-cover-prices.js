@@ -76,22 +76,27 @@ const main = async () => {
 
   console.log(`Processing ${products.length} products`);
   for (const product in products) {
-    if (products[product].deprecated) {
-      continue;
-    }
+    // TODO: filter based on their expiry period grace period; we won't include that have no more covers that
+    // can possibly be redeemed.
+    // if (products[product].deprecated) {
+    //   continue;
+    // }
 
-    const res = await fetch(`https://api.nexusmutual.io/v1/contracts/${product}/capacity`, {
+    const url = `https://api.nexusmutual.io/v1/contracts/${product}/capacity`;
+    console.log(`Calling ${url}`);
+    const res = await fetch(url, {
       headers: {
         'x-api-key': 'c904-42c7-2f90-a561',
         Origin: 'https://app.nexusmutual.io',
       },
     });
+
     await sleep(100);
     const productState = await res.json();
     console.log(productState);
 
     if (productState.reason === 'Uncoverable') {
-      console.log(`Product ${product.name} is Uncoverable. Skipping.`);
+      console.log(`Product ${products[product].name} is Uncoverable. Skipping.`);
       continue;
     }
     const annualPrice = ethers.utils.parseUnits(getYearlyCost(productState.netStakedNXM).toString()).toString();

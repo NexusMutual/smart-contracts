@@ -14,6 +14,8 @@ async function setup() {
   const MCR = await ethers.getContractFactory('CoverMockMCR');
   const StakingPool = await ethers.getContractFactory('StakingPool');
 
+  const multicallMock = await ethers.deployContract('MulticallMock');
+
   const master = await MasterMock.deploy();
   await master.deployed();
 
@@ -105,6 +107,7 @@ async function setup() {
   const coverSigner = await ethers.getImpersonatedSigner(cover.address);
   await setEtherBalance(coverSigner.address, ethers.utils.parseEther('1'));
 
+  this.multicall = multicallMock;
   this.tokenController = tokenController;
   this.master = master;
   this.nxm = nxm;

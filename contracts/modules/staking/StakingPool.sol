@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.9;
 
+import "../../abstract/Multicall.sol";
 import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IGovernance.sol";
 import "../../interfaces/ICover.sol";
@@ -21,7 +22,7 @@ import "./StakingTypesLib.sol";
 // on cover buys we allocate the available product capacity
 // on cover expiration we deallocate the capacity and it becomes available again
 
-contract StakingPool is IStakingPool {
+contract StakingPool is IStakingPool, Multicall {
   using StakingTypesLib for TrancheAllocationGroup;
   using StakingTypesLib for TrancheGroupBucket;
   using SafeUintCast for uint;
@@ -1644,25 +1645,6 @@ contract StakingPool is IStakingPool {
     // amountOnSurge has two decimals
     // dividing by ALLOCATION_UNITS_PER_NXM (=100) to normalize the result
     return surgePremium / ALLOCATION_UNITS_PER_NXM;
-  }
-
-  function multicall(bytes[] calldata data) external returns (bytes[] memory results) {
-
-    uint callCount = data.length;
-    results = new bytes[](callCount);
-
-    for (uint i = 0; i < callCount; i++) {
-      (bool ok, bytes memory result) = address(this).delegatecall(data[i]);
-
-      if (!ok) {
-        // https://ethereum.stackexchange.com/a/83577
-        if (result.length < 68) revert();
-        assembly { result := add(result, 0x04) }
-        revert(abi.decode(result, (string)));
-      }
-
-      results[i] = result;
-    }
   }
 
 }

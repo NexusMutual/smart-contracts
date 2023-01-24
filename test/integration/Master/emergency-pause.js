@@ -69,7 +69,7 @@ describe('emergency pause', function () {
     const newAddresses = [newMCR.address, newTokenControllerImplementation.address];
 
     const upgradeContractsData = defaultAbiCoder.encode(['bytes2[]', 'address[]'], [contractCodes, newAddresses]);
-    await submitProposal(gv, ProposalCategory.upgradeNonProxy, upgradeContractsData, [owner]);
+    await submitProposal(gv, ProposalCategory.upgradeMultipleContracts, upgradeContractsData, [owner]);
 
     const tcAddress = await master.getLatestAddress(tcCode);
     const proxy = await ethers.getContractAt('OwnedUpgradeabilityProxy', tcAddress);

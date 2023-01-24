@@ -607,6 +607,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
       vars.payoutAmountInNXM = allocation.coverAmountInNXM * payoutAmountInAsset / segment.amount;
       allocations[i].coverAmountInNXM -= SafeUintCast.toUint96(vars.payoutAmountInNXM);
+      allocations[i].premiumInNXM -= SafeUintCast.toUint96(allocations[i].premiumInNXM * payoutAmountInAsset / segment.amount);
 
       vars.burnAmountInNxm = vars.payoutAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / segment.globalCapacityRatio;
 

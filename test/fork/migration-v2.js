@@ -19,7 +19,9 @@ const getGovernanceRewards = require('../../scripts/get-governance-rewards');
 const populateV2Products = require('../../scripts/populate-v2-products');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const getV1CoverPrices = require('../../scripts/get-v1-cover-prices');
+const getFTXStakers = require('../../scripts/get-ftx-stakers');
 const { pool } = require('workerpool');
+const { stake } = require('../integration/utils/staking');
 
 const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
@@ -122,6 +124,10 @@ async function enableAsEnzymeReceiver(receiverAddress) {
 
   const inReceiverList = await registry.isInList(ListIdForReceivers, receiverAddress);
   assert.equal(inReceiverList, true);
+}
+
+function calculateTrancheId(currentTime, period, gracePeriod) {
+  return Math.floor((currentTime + period + gracePeriod) / (91 * 24 * 3600));
 }
 
 let poolValueBefore;
@@ -711,12 +717,14 @@ describe('v2 migration', function () {
   });
 
   it('migrate top stakers to new v2 staking pools', async function () {
-    const topStakers = [
-      '0x1337def1fc06783d4b03cb8c1bf3ebf7d0593fc4',
-      '0x963df0066ff8345922df88eebeb1095be4e4e12e',
-      '0x87b2a7559d85f4653f13e6546a14189cd5455d45',
-      '0x46de0c6f149be3885f28e54bb4d302cb2c505bc2',
-    ];
+    const ARMOR_NFT = '0x1337def1fc06783d4b03cb8c1bf3ebf7d0593fc4';
+    const NEXUSMUTUAL_FOUNDATION = '0x963df0066ff8345922df88eebeb1095be4e4e12e';
+    const HUGH = '0x87b2a7559d85f4653f13e6546a14189cd5455d45';
+    const ITRUST = '0x46de0c6f149be3885f28e54bb4d302cb2c505bc2';
+    const topStakers = [ARMOR_NFT, NEXUSMUTUAL_FOUNDATION, HUGH, ITRUST];
+
+    const { timestamp } = await ethers.provider.getBlock('latest');
+    const trancheId = calculateTrancheId(timestamp, 3600 * 24 * 30, 3600 * 24 * 30);
 
     const depositAmounts = await Promise.all(
       topStakers.map(async staker => {
@@ -726,16 +734,21 @@ describe('v2 migration', function () {
       }),
     );
 
+    const DEFAULT_POOL_FEE = '5';
     const txs = await Promise.all(
       topStakers.map(stakerAddress =>
         this.pooledStaking.migrateToNewV2Pool({
           stakerAddress,
-          trancheId: 0,
+          trancheId: trancheId + 1,
           ipfsDescriptionHash: '',
+          isPrivatePool: false,
+          initialPoolFee: DEFAULT_POOL_FEE,
+          maxPoolFee: DEFAULT_POOL_FEE,
+          managerAddress: stakerAddress,
         }),
       ),
     );
-    await Promise.all(txs.map(x => x.wait()));
+    // await Promise.all(txs.map(x => x.wait()));
 
     const stakingPoolCount = await this.stakingPoolFactory.stakingPoolCount();
     expect(stakingPoolCount).to.be.equal(topStakers.length);

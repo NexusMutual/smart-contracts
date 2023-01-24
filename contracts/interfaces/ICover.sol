@@ -244,6 +244,7 @@ interface ICover {
   error InvalidPaymentAsset();
   error UnexpectedCoverAsset();
   error UnsupportedCoverAssets();
+  error UnexpectedEthSent();
 
   // Price & Commission
   error PriceExceedsMaxPremiumInAsset();

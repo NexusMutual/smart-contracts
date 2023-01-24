@@ -271,16 +271,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       revert InvalidPaymentAsset();
     }
 
-    if (amountDueInNXM > 0) {
-      retrievePayment(
-        amountDueInNXM,
-        params.paymentAsset,
-        nxmPriceInCoverAsset,
-        params.maxPremiumInAsset,
-        params.commissionRatio,
-        params.commissionDestination
-      );
-    }
+    retrievePayment(
+      amountDueInNXM,
+      params.paymentAsset,
+      nxmPriceInCoverAsset,
+      params.maxPremiumInAsset,
+      params.commissionRatio,
+      params.commissionDestination
+    );
 
     emit CoverEdited(coverId, params.productId, segmentId, msg.sender, params.ipfsData);
   }
@@ -376,6 +374,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     uint16 commissionRatio,
     address commissionDestination
   ) internal {
+
+    if (paymentAsset != ETH_ASSET_ID && msg.value > 0) {
+      revert UnexpectedEthSent();
+    }
 
     // NXM payment
     if (paymentAsset == NXM_ASSET_ID) {

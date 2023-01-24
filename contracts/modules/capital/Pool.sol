@@ -64,7 +64,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     address _swapOperator,
     address DAIAddress,
     address stETHAddress,
-    address nxmtyVaultAddress // Enzyme
+    address enzymeVaultAddress // Enzyme
   ) {
     master = INXMMaster(_master);
     priceFeedOracle = IPriceFeedOracle(_priceOracle);
@@ -101,7 +101,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
     assets.push(
       Asset(
-        nxmtyVaultAddress, // asset address
+        enzymeVaultAddress, // asset address
         false, // is cover asset
         false // is abandoned
       )
@@ -124,7 +124,7 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     );
 
     // Set enzyme vault swap details
-    swapDetails[nxmtyVaultAddress] = SwapDetails(
+    swapDetails[enzymeVaultAddress] = SwapDetails(
       15000 ether, // minAmount
       16000 ether, // maxAmount
       1660673114,  // lastSwapTime

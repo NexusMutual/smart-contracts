@@ -6,29 +6,41 @@ import "../../modules/legacy/LegacyQuotationData.sol";
 
 contract TestnetQuotationData is LegacyQuotationData {
 
-  constructor(
+  constructor (
     address _authQuoteAdd,
     address _kycAuthAdd
   ) LegacyQuotationData(_authQuoteAdd, _kycAuthAdd) public {
-    /* noop */
+    // noop
   }
 
-  function addOldCover(
-    uint startDate,
-    uint16 coverPeriod,
-    uint sumAssured,
-    address payable userAddress,
-    bytes4 currencyCode,
-    address scAddress,
-    uint /*premium*/,
+  /// @dev Creates a blank new cover.
+  function addV1Cover(
+    uint16 _coverPeriod,
+    uint _sumAssured,
+    address payable _userAddress,
+    bytes4 _currencyCode,
+    address _scAddress,
+    uint premium,
     uint premiumNXM
   ) external {
-    uint start = startDate == 0 ? now : startDate;
-    uint expiryDate = start.add(uint(coverPeriod).mul(1 days));
-    allCovers.push(Cover(userAddress, currencyCode,
-      sumAssured, coverPeriod, expiryDate, scAddress, premiumNXM));
+    uint expiryDate = now.add(uint(_coverPeriod).mul(1 days));
+
+    allCovers.push(
+      Cover(
+        _userAddress,
+        _currencyCode,
+        _sumAssured,
+        _coverPeriod,
+        expiryDate,
+        _scAddress,
+        premiumNXM
+      )
+    );
+
     uint cid = allCovers.length.sub(1);
-    userCover[userAddress].push(cid);
-    emit CoverDetailsEvent(cid, scAddress, sumAssured, expiryDate, 123e16, 123e18, currencyCode);
+    userCover[_userAddress].push(cid);
+
+    emit CoverDetailsEvent(cid, _scAddress, _sumAssured, expiryDate, premium, premiumNXM, _currencyCode);
   }
+
 }

@@ -31,12 +31,10 @@ const poolAllocationRequest = [{ poolId: '0', coverAmountInAsset: buyCoverFixtur
 describe('buyCover', function () {
   beforeEach(async function () {
     const { cover } = this;
-    const {
-      governanceContracts: [gv1],
-      members: [stakingPoolManager],
-    } = this.accounts;
+    const [governance] = this.accounts.governanceContracts;
+    const [stakingPoolManager] = this.accounts.members;
 
-    await cover.connect(gv1).updateUintParameters([0], [buyCoverFixture.capacityFactor]);
+    await cover.connect(governance).updateUintParameters([0], [buyCoverFixture.capacityFactor]);
 
     await createStakingPool(
       cover,
@@ -421,10 +419,10 @@ describe('buyCover', function () {
     ).to.be.revertedWithCustomError(cover, 'ProductDoesntExist');
   });
 
-  it('should revert for unsupported cover asset', async function () {
+  it('should revert if cover asset does not exist', async function () {
     const { cover } = this;
     const [coverBuyer] = this.accounts.members;
-    const coverAsset = 10; // not ETH nor DAI nor USDC
+    const coverAsset = 10; // inexistent asset id
     const { amount, productId, period } = buyCoverFixture;
 
     await expect(
@@ -433,6 +431,33 @@ describe('buyCover', function () {
           coverId: MaxUint256,
           owner: coverBuyer.address,
           productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: '0',
+          paymentAsset: coverAsset,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        poolAllocationRequest,
+        { value: '0' },
+      ),
+    ).to.be.revertedWith('Pool: Invalid asset id');
+  });
+
+  it('should revert for unsupported cover asset', async function () {
+    const { cover, assets } = this;
+    const [coverBuyer] = this.accounts.members;
+    const coverAsset = assets.USDC; // inexistent asset id
+    const { amount, period } = buyCoverFixture;
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: MaxUint256,
+          owner: coverBuyer.address,
+          productId: 2,
           coverAsset,
           amount,
           period,

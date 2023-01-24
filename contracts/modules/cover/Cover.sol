@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts-v4/proxy/beacon/UpgradeableBeacon.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
@@ -304,8 +303,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       : 0;
 
     for (uint i = 0; i < poolAllocationRequests.length; i++) {
-
-      // TODO: poolAllocationRequests might have repeated pools, is this gameable?
 
       // if there is a previous segment and this index is present on it
       if (vars.previousPoolAllocationsLength > i) {
@@ -799,7 +796,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   function isCoverAssetSupported(uint assetId, uint productCoverAssetsBitmap) internal view returns (bool) {
 
-    if ((1 << assetId) & productCoverAssetsBitmap == 0) {
+    if (
+      // product does not use default cover assets
+      productCoverAssetsBitmap != 0 &&
+      // asset id is not in the product's cover assets bitmap
+      ((1 << assetId) & productCoverAssetsBitmap == 0)
+    ) {
       return false;
     }
 

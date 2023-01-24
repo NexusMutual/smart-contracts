@@ -39,6 +39,7 @@ contract CoverMockPool {
   }
 
   function getAsset(uint assetId) external view returns (Asset memory) {
+    require(assetId < assets.length, "Pool: Invalid asset id");
     return assets[assetId];
   }
 

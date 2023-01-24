@@ -1315,29 +1315,28 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     (ProductInitializationParams[] memory params, uint deposit) = getStakerConfig(migrationData.stakerAddress);
 
-    // TODO: how do we get these values?
-    bool isPrivatePool = false;
-    uint initialPoolFee = 0;
-    uint maxPoolFee = 0;
-
     // Use the trancheId provided as a parameter if the user is migrating to v2 himself
     // Use next id after the first active group id for those in the initial migration list
     uint trancheIdInEffect = migrationData.stakerAddress == msg.sender
       ? migrationData.trancheId
       : block.timestamp / 91 days + 1; // GROUP_SIZE = 91 days;
 
-    cover.createStakingPool(
+    ( /* uint stakingPoolId */, address stakingPoolAddress) = cover.createStakingPool(
       migrationData.stakerAddress,
-      isPrivatePool,
-      initialPoolFee,
-      maxPoolFee,
+      migrationData.isPrivatePool,
+      migrationData.initialPoolFee,
+      migrationData.maxPoolFee,
       params,
       migrationData.ipfsDescriptionHash
     );
 
-    // TODO: create the first deposit
-    deposit;
-    trancheIdInEffect;
+    token().approve(address(tokenController()), deposit);
+    IStakingPool(stakingPoolAddress).depositTo(
+      deposit,
+      migrationData.trancheId,
+      type(uint).max,
+      migrationData.managerAddress
+    );
   }
 
   function migrateToExistingV2Pool(IStakingPool stakingPool, uint trancheId) external {

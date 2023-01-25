@@ -55,7 +55,7 @@ interface IStakingPool {
   }
 
   struct Deposit {
-    uint160 lastAccNxmPerRewardShare;
+    uint96 lastAccNxmPerRewardShare;
     uint96 pendingRewards;
     uint128 stakeShares;
     uint128 rewardsShares;

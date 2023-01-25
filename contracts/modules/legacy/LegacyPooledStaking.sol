@@ -1318,17 +1318,21 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       "You are not authorized to migrate this staker"
     );
 
-   uint[TRANCHE_COUNT] memory stakerTrancheRatios;
+    // ratios have no decimal points. eg 5 is 5%
+    uint[TRANCHE_COUNT] memory stakerTrancheRatios;
+    uint unlockableRatio = 0;
 
     if (migrationData.stakerAddress == HUGH) {
       stakerTrancheRatios = [uint256(0), 10, 0, 0, 0, 90, 0, 0];
     } else if (migrationData.stakerAddress == ARMOR) {
       stakerTrancheRatios = [uint256(20), 25, 25, 15, 10, 0, 0, 0];
-    } else if (migrationData.stakerAddress == NEXUS_FOUNDATION) {
+      unlockableRatio = 5;
+      } else if (migrationData.stakerAddress == NEXUS_FOUNDATION) {
       stakerTrancheRatios = [uint256(0), 25, 0, 25, 0, 50, 0, 0];
     } else if (migrationData.stakerAddress == ITRUST) {
       // TODO: specify for iTrust
       stakerTrancheRatios = [uint256(0), 0, 0, 0, 0, 0, 0, 0];
+      unlockableRatio = 100;
     } else {
       revert("Usupported migrateable staker");
     }

@@ -75,7 +75,7 @@ describe('state management', function () {
 
   it('should clear storage', async function () {
     const { memberRoles } = this.contracts;
-    await expect(memberRoles.storageCleanup()).to.not.be.reverted;
+    await expect(memberRoles.storageCleanup([])).to.not.be.reverted;
   });
 
   it('should check the role of a member', async function () {

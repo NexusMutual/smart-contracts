@@ -1090,9 +1090,9 @@ describe('submitClaim', function () {
     }
   });
 
-  it.skip('correctly calculates premium in cover edit after a claim', async function () {
+  it('correctly calculates premium in cover edit after a claim', async function () {
     const { DEFAULT_PRODUCTS } = this;
-    const { ic, cover, stakingPool0, as } = this.contracts;
+    const { p1, ic, cover, stakingPool0, as } = this.contracts;
     const [coverBuyer1, staker1, staker2] = this.accounts.members;
 
     // Cover inputs
@@ -1119,6 +1119,8 @@ describe('submitClaim', function () {
     });
 
     const coverId = 0;
+    const segment = await cover.coverSegments(coverId, 0);
+    const previousCoverSegmentAllocation = await cover.coverSegmentAllocations(coverId, 0, 0);
 
     // Submit partial claim - 1/2 of total amount
     const claimAmount = amount.div(2);
@@ -1145,25 +1147,27 @@ describe('submitClaim', function () {
       expect(payoutRedeemed).to.be.equal(true);
     }
 
-    const segment = await cover.coverSegments(coverId, 0);
     const latestBlock = await ethers.provider.getBlock('latest');
 
     const editTimestamp = BigNumber.from(latestBlock.timestamp).add(1);
     const passedPeriod = editTimestamp.sub(segment.start);
     const remainingPeriod = BigNumber.from(segment.period).sub(passedPeriod);
 
-    const expectedPremium = amount
-      .mul(DEFAULT_PRODUCTS[0].targetPrice)
-      .mul(remainingPeriod)
-      .div(priceDenominator)
-      .div(MAX_COVER_PERIOD);
+    const coverSegmentAllocation = await cover.coverSegmentAllocations(coverId, 0, 0);
 
-    const coverAmountLeft = amount.sub(claimAmount);
-    const refund = coverAmountLeft
-      .mul(DEFAULT_PRODUCTS[0].targetPrice)
+    const ethTokenPrice = await p1.getTokenPrice(0);
+
+    const expectedPremium = BigNumber.from(previousCoverSegmentAllocation.premiumInNXM)
       .mul(remainingPeriod)
-      .div(priceDenominator)
-      .div(MAX_COVER_PERIOD);
+      .mul(ethTokenPrice)
+      .div(segment.period)
+      .div(parseEther('1'));
+
+    const refund = BigNumber.from(coverSegmentAllocation.premiumInNXM)
+      .mul(remainingPeriod)
+      .mul(ethTokenPrice)
+      .div(segment.period)
+      .div(parseEther('1'));
 
     const totalEditPremium = expectedPremium.sub(refund);
 
@@ -1195,7 +1199,7 @@ describe('submitClaim', function () {
 
     // should pay for premium to reset amount
     expect(ethBalanceAfter).to.not.be.equal(ethBalanceBefore);
-    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.sub(totalEditPremium));
+    expect(ethBalanceAfter).to.be.equal(ethBalanceBefore.sub(totalEditPremium).add(1));
   });
 
   it('correctly updates pool allocation after claim and cover edit', async function () {

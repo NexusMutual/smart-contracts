@@ -15,8 +15,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
   struct MigrationData {
     address stakerAddress;
-    uint trancheId; // make list
-    // list of uint of deposit ratios
     string ipfsDescriptionHash;
     address managerAddress;
     bool isPrivatePool;
@@ -50,6 +48,14 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
   // used for logging products not listed in ProductsV1.sol when migrating to a new pool
   event ProductNotFound(address oldProductId);
+
+  /* constants */
+
+  address constant ARMOR = 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4;
+  address constant HUGH = 0x87B2a7559d85f4653f13E6546A14189cd5455d45;
+  address constant NEXUS_FOUNDATION = 0x963Df0066ff8345922dF88eebeb1095BE4e4e12E;
+  address constant ITRUST = 0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2;
+  uint constant TRANCHE_COUNT = 8;
 
   ICover public immutable cover;
   IProductsV1 public immutable productsV1;
@@ -1305,21 +1311,35 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     // Addresses marked for implicit migration can be migrated by anyone.
     // Addresses who are not can only be migrated by calling this function themselves.
     require(
-      migrationData.stakerAddress == msg.sender ||
-      migrationData.stakerAddress == 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4 || // Armor
-      migrationData.stakerAddress == 0x87B2a7559d85f4653f13E6546A14189cd5455d45 || // Hugh
-      migrationData.stakerAddress == 0x963Df0066ff8345922dF88eebeb1095BE4e4e12E || // Foundation
-      migrationData.stakerAddress == 0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2, // iTrust
+      migrationData.stakerAddress == ARMOR || // Armor
+      migrationData.stakerAddress == HUGH || // Hugh
+      migrationData.stakerAddress == NEXUS_FOUNDATION || // Foundation
+      migrationData.stakerAddress == ITRUST, // iTrust
       "You are not authorized to migrate this staker"
     );
+
+   uint[TRANCHE_COUNT] memory stakerTrancheRatios;
+
+    if (migrationData.stakerAddress == HUGH) {
+      stakerTrancheRatios = [uint256(0), 10, 0, 0, 0, 90, 0, 0];
+    } else if (migrationData.stakerAddress == ARMOR) {
+      stakerTrancheRatios = [uint256(20), 25, 25, 15, 10, 0, 0, 0];
+    } else if (migrationData.stakerAddress == NEXUS_FOUNDATION) {
+      stakerTrancheRatios = [uint256(0), 25, 0, 25, 0, 50, 0, 0];
+    } else if (migrationData.stakerAddress == ITRUST) {
+      // TODO: specify for iTrust
+      stakerTrancheRatios = [uint256(0), 0, 0, 0, 0, 0, 0, 0];
+    } else {
+      revert("Usupported migrateable staker");
+    }
 
     (ProductInitializationParams[] memory params, uint deposit) = getStakerConfig(migrationData.stakerAddress);
 
     // Use the trancheId provided as a parameter if the user is migrating to v2 himself
     // Use next id after the first active group id for those in the initial migration list
-    uint trancheIdInEffect = migrationData.stakerAddress == msg.sender
-      ? migrationData.trancheId
-      : block.timestamp / 91 days + 1; // GROUP_SIZE = 91 days;
+//    uint trancheIdInEffect = migrationData.stakerAddress == msg.sender
+//      ? migrationData.trancheId
+//      : block.timestamp / 91 days + 1; // GROUP_SIZE = 91 days;
 
     ( /* uint stakingPoolId */, address stakingPoolAddress) = cover.createStakingPool(
       migrationData.stakerAddress,
@@ -1331,12 +1351,19 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     );
 
     token().approve(address(tokenController()), deposit);
-    IStakingPool(stakingPoolAddress).depositTo(
-      deposit,
-      migrationData.trancheId,
-      type(uint).max,
-      migrationData.managerAddress
-    );
+
+    uint firstTrancheId = block.timestamp / 91 days + 1;
+    for (uint i = 0; i < TRANCHE_COUNT; i++) {
+
+      uint trancheDeposit = deposit * stakerTrancheRatios[i] / 100;
+      IStakingPool(stakingPoolAddress).depositTo(
+        trancheDeposit,
+        firstTrancheId + i,
+        type(uint).max,
+        migrationData.managerAddress
+      );
+    }
+
   }
 
   function migrateToExistingV2Pool(IStakingPool stakingPool, uint trancheId) external {

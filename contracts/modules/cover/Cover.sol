@@ -591,8 +591,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       allocations[i].premiumInNXM -= SafeUintCast.toUint96(allocations[i].premiumInNXM * payoutAmountInAsset / segment.amount);
       uint burnAmountInNxm = payoutAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / segment.globalCapacityRatio;
 
-      Product memory product = _products[cover.productId];
-
       BurnStakeParams memory params = BurnStakeParams(
         allocation.allocationId,
         cover.productId,
@@ -600,7 +598,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         segment.period,
         payoutAmountInNXM
       );
-      
+
       stakingPool(i).burnStake(burnAmountInNxm, params);
     }
 

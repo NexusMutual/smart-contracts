@@ -1250,9 +1250,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       return 62666829169994260000; // 62.66682916999426%
     }
     // {V1_PRICES_HELPER_END}
-
-    // Invalid product Id
-    //    revert("Invalid product id");
+    
     return type(uint96).max;
   }
 

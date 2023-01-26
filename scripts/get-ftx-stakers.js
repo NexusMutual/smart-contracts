@@ -1,6 +1,4 @@
 const { ethers } = require('hardhat');
-const fs = require('fs');
-const path = require('path');
 const fetch = require('node-fetch');
 const Decimal = require('decimal.js');
 
@@ -18,22 +16,6 @@ const getContractFactory = async providerOrSigner => {
     return new ethers.Contract(address, abi, providerOrSigner);
   };
 };
-
-const ROLE_MEMBER = 2;
-
-async function getWithdrawableCoverNotes(i, qt, mr) {
-  const { 0: member, 1: active } = await mr.memberAtIndex(ROLE_MEMBER, i);
-
-  if (!active) {
-    return { member, withdrawableAmount: '0' };
-  }
-
-  const withdrawableAmount = await qt.getWithdrawableCoverNotesAmount(member);
-  return {
-    withdrawableAmount: withdrawableAmount.toString(),
-    member,
-  };
-}
 
 async function main(provider) {
   const factory = await getContractFactory(provider);

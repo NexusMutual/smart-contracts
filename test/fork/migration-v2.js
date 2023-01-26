@@ -123,10 +123,6 @@ async function enableAsEnzymeReceiver(receiverAddress) {
   assert.equal(inReceiverList, true);
 }
 
-function calculateTrancheId(currentTime, period, gracePeriod) {
-  return Math.floor((currentTime + period + gracePeriod) / (91 * 24 * 3600));
-}
-
 let poolValueBefore;
 
 describe('v2 migration', function () {

@@ -572,8 +572,8 @@ contract StakingPool is IStakingPool, Multicall {
 
           // calculate the amount of nxm for this deposit
           uint stake = expiredTranches[trancheId].stakeAmountAtExpiry;
-          uint stakeShareSupply = expiredTranches[trancheId].stakeShareSupplyAtExpiry;
-          trancheStakeToWithdraw = stake * deposit.stakeShares / stakeShareSupply;
+          uint _stakeSharesSupply = expiredTranches[trancheId].stakeSharesSupplyAtExpiry;
+          trancheStakeToWithdraw = stake * deposit.stakeShares / _stakeSharesSupply;
           withdrawnStake += trancheStakeToWithdraw;
 
           // mark as withdrawn

@@ -80,7 +80,7 @@ describe('processExpirations', function () {
     const expiredTranche = await stakingPool.expiredTranches(firstActiveTrancheId);
     expect(expiredTranche.accNxmPerRewardShareAtExpiry).to.equal(0);
     expect(expiredTranche.stakeAmountAtExpiry).to.equal(amount);
-    expect(expiredTranche.stakeShareSupplyAtExpiry).to.equal(Math.sqrt(amount));
+    expect(expiredTranche.stakeSharesSupplyAtExpiry).to.equal(Math.sqrt(amount));
   });
 
   it('does not revert when expires multiple tranches', async function () {
@@ -173,7 +173,7 @@ describe('processExpirations', function () {
 
       expect(expiredTranche.accNxmPerRewardShareAtExpiry).to.gt(0);
       expect(expiredTranche.stakeAmountAtExpiry).to.equal(amount.mul(activeDepositsAtTranche));
-      expect(expiredTranche.stakeShareSupplyAtExpiry).to.equal(baseStakeShares.mul(activeDepositsAtTranche));
+      expect(expiredTranche.stakeSharesSupplyAtExpiry).to.equal(baseStakeShares.mul(activeDepositsAtTranche));
 
       const trancheData = await stakingPool.tranches(tranche);
       expect(trancheData.stakeShares).to.equal(0);
@@ -237,7 +237,7 @@ describe('processExpirations', function () {
 
       expect(expiredTranche.accNxmPerRewardShareAtExpiry).to.equal(accNxmPerRewardShareAtExpiry[i]);
       expect(expiredTranche.stakeAmountAtExpiry).to.equal(amount.mul(activeDepositsAtTranche));
-      expect(expiredTranche.stakeShareSupplyAtExpiry).to.equal(baseStakeShares.mul(activeDepositsAtTranche));
+      expect(expiredTranche.stakeSharesSupplyAtExpiry).to.equal(baseStakeShares.mul(activeDepositsAtTranche));
     }
   });
 

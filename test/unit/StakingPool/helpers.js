@@ -198,7 +198,7 @@ async function generateRewards(
 }
 
 async function calculateStakeAndRewardsWithdrawAmounts(stakingPool, deposit, trancheId) {
-  const { accNxmPerRewardShareAtExpiry, stakeAmountAtExpiry, stakeShareSupplyAtExpiry } =
+  const { accNxmPerRewardShareAtExpiry, stakeAmountAtExpiry, stakeSharesSupplyAtExpiry } =
     await stakingPool.expiredTranches(trancheId);
 
   return {
@@ -206,7 +206,7 @@ async function calculateStakeAndRewardsWithdrawAmounts(stakingPool, deposit, tra
       .mul(accNxmPerRewardShareAtExpiry.sub(deposit.lastAccNxmPerRewardShare))
       .div(parseEther('1'))
       .add(deposit.pendingRewards),
-    stake: stakeAmountAtExpiry.mul(deposit.stakeShares).div(stakeShareSupplyAtExpiry),
+    stake: stakeAmountAtExpiry.mul(deposit.stakeShares).div(stakeSharesSupplyAtExpiry),
   };
 }
 

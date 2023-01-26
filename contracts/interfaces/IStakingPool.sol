@@ -51,7 +51,7 @@ interface IStakingPool {
   struct ExpiredTranche {
     uint96 accNxmPerRewardShareAtExpiry;
     uint96 stakeAmountAtExpiry; // nxm total supply is 6.7e24 and uint96.max is 7.9e28
-    uint128 stakeShareSupplyAtExpiry;
+    uint128 stakeSharesSupplyAtExpiry;
   }
 
   struct Deposit {

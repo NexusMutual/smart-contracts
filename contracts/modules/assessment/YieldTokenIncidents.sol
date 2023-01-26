@@ -45,7 +45,7 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
   /* ========== CONSTANTS ========== */
 
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
+  uint constant public ETH_ASSET_ID = 0;
 
   /* ========== CONSTRUCTOR ========== */
 
@@ -257,21 +257,23 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
 
       // Calculate the payout amount
       {
-        uint deductiblePriceBefore = uint(incident.priceBefore) *
-          uint(config.payoutDeductibleRatio) / INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
+        uint deductiblePriceBefore =
+          uint(incident.priceBefore)
+          * config.payoutDeductibleRatio
+          / INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
 
         uint coverAssetDecimals;
-        address assetAddress = pool().getAsset(coverData.coverAsset).assetAddress;
-        (/* aggregator */, coverAssetDecimals) = pool().priceFeedOracle().assets(assetAddress);
+
         // ETH doesn't have a price feed oracle
-        if (assetAddress == ETH) {
+        if (coverData.coverAsset == ETH_ASSET_ID) {
           coverAssetDecimals = 18;
+        } else {
+          IPool _pool = pool();
+          address assetAddress = _pool.getAsset(coverData.coverAsset).assetAddress;
+          (/* aggregator */, coverAssetDecimals) = _pool.priceFeedOracle().assets(assetAddress);
         }
 
-        // TODO: stack too deep made me do this, revisit, maybe we can use technology
-        payoutAmount = depeggedTokens;
-        payoutAmount *= deductiblePriceBefore;
-        payoutAmount /= (10 ** uint(coverAssetDecimals));
+        payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** coverAssetDecimals);
       }
 
       require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");

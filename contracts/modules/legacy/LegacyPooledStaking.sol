@@ -1332,9 +1332,12 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       "You are not authorized to migrate this staker"
     );
 
+
+    INXMToken nxm = token();
+    uint nxmBalanceBefore = nxm.balanceOf(address(this));
+
     // ratios have no decimal points. eg 5 is 5%
     uint[TRANCHE_COUNT] memory stakerTrancheRatios;
-
 
     (ProductInitializationParams[] memory params, uint deposit) = getStakerConfig(stakerAddress);
 
@@ -1409,35 +1412,14 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       revert("Usupported migrateable staker");
     }
 
-    // Use the trancheId provided as a parameter if the user is migrating to v2 himself
-    // Use next id after the first active group id for those in the initial migration list
-//    uint trancheIdInEffect = migrationData.stakerAddress == msg.sender
-//      ? migrationData.trancheId
-//      : block.timestamp / 91 days + 1; // GROUP_SIZE = 91 days;
+    uint nxmBalanceAfter = nxm.balanceOf(address(this));
 
-//    ( /* uint stakingPoolId */, address stakingPoolAddress) = cover.createStakingPool(
-//      migrationData.stakerAddress,
-//      migrationData.isPrivatePool,
-//      migrationData.initialPoolFee,
-//      migrationData.maxPoolFee,
-//      params,
-//      migrationData.ipfsDescriptionHash
-//    );
-//
-//    token().approve(address(tokenController()), deposit);
-//
-//    uint firstTrancheId = block.timestamp / 91 days + 1;
-//    for (uint i = 0; i < TRANCHE_COUNT; i++) {
-//
-//      uint trancheDeposit = deposit * stakerTrancheRatios[i] / 100;
-//      IStakingPool(stakingPoolAddress).depositTo(
-//        trancheDeposit,
-//        firstTrancheId + i,
-//        type(uint).max,
-//        migrationData.managerAddress
-//      );
-//    }
+    uint depositedNXM = nxmBalanceBefore - nxmBalanceAfter;
 
+    uint nxmToBeUnlocked = deposit - depositedNXM;
+
+    // send unlocked back
+    nxm.transfer(stakerAddress, nxmToBeUnlocked);
   }
 
 

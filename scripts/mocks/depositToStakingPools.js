@@ -49,7 +49,7 @@ const logDepositEvent = receipt => {
   // parse and log deposit data
   console.log('Deposit:', {
     user: event.args.user,
-    amount: formatEther(event.args.amount),
+    amount: formatEther(event.args.amount) + ' NXM',
     trancheId: event.args.trancheId.toNumber(),
     tokenId: event.args.tokenId.toNumber(),
   });

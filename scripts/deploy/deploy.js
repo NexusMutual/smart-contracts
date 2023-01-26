@@ -438,6 +438,11 @@ async function main() {
   console.log(`${productsStored.length} products added.`);
   // fs.writeFileSync('products.json', JSON.stringify(productsStored, null, 2));
 
+  await cover.updateUintParametersDisposable(
+    [0, 1], // globalCapacityRatio, globalRewardsRatio
+    [10000, 5000],
+  );
+
   console.log('Adding proposal categories');
   await pc.initialize(mr.address);
   for (const category of proposalCategories) {

@@ -45,14 +45,11 @@ const MEMBER_ADDRESS = '0xd7cba5b9a0240770cfd9671961dae064136fa240';
 const CLAIM_PAYABLE_ADDRESS = '0x748E712663510Bb417c1aBb1bca3d817447f118c';
 
 const getSigner = async address => {
-  const provider = await getProvider();
+  const provider =
+    network.name !== 'hardhat' // ethers errors out when using non-local accounts
+      ? new ethers.providers.JsonRpcProvider(network.config.url)
+      : ethers.provider;
   return provider.getSigner(address);
-};
-
-const getProvider = async () => {
-  return network.name !== 'hardhat' // ethers errors out when using non-local accounts
-    ? new ethers.providers.JsonRpcProvider(network.config.url)
-    : ethers.provider;
 };
 
 const getContractFactory = async providerOrSigner => {
@@ -541,19 +538,19 @@ describe('v2 migration', function () {
   });
 
   it('do memberRoles storageCleanup', async function () {
-    const paddedSlot = hexZeroPad(15, 32);
+    const claimPayableAddressSlot = 15;
+    const paddedSlot = hexZeroPad(claimPayableAddressSlot, 32);
     const paddedKey = hexZeroPad(MEMBER_ADDRESS, 32);
     const slot = keccak256(paddedKey + paddedSlot.slice(2));
 
-    const provider = await getProvider();
-    const storageValueBefore = await provider.getStorageAt(this.memberRoles.address, slot);
+    const storageValueBefore = await ethers.provider.getStorageAt(this.memberRoles.address, slot);
     const [claimPayableAddressBefore] = defaultAbiCoder.decode(['address'], storageValueBefore);
 
     expect(claimPayableAddressBefore).to.be.equal(CLAIM_PAYABLE_ADDRESS);
 
     await this.memberRoles.storageCleanup(['0xd7cba5b9a0240770cfd9671961dae064136fa240']);
 
-    const storageValueAfter = await provider.getStorageAt(this.memberRoles.address, slot);
+    const storageValueAfter = await ethers.provider.getStorageAt(this.memberRoles.address, slot);
     const [claimPayableAddressAfter] = defaultAbiCoder.decode(['address'], storageValueAfter);
     expect(claimPayableAddressAfter).to.be.equal(AddressZero);
   });

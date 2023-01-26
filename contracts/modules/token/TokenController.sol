@@ -5,8 +5,8 @@ pragma solidity ^0.8.16;
 import "../../interfaces/IAssessment.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/IGovernance.sol";
-import "../../interfaces/INXMMaster.sol";
 import "../../interfaces/INXMToken.sol";
+import "../../interfaces/IPool.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../../interfaces/IQuotationData.sol";
 import "../../interfaces/IStakingPool.sol";
@@ -71,15 +71,17 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     return IGovernance(internalContracts[uint(ID.GV)]);
   }
 
-  /**
-  * @dev Just for interface
-  */
+  function pool() internal view returns (IPool) {
+    return IPool(internalContracts[uint(ID.P1)]);
+  }
+
   function changeDependentContractAddress() public override {
     internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
     internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
     internalContracts[uint(ID.GV)] = master.getLatestAddress("GV");
+    internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
   }
 
   /**
@@ -221,6 +223,13 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     ) = assessment().stakeOf(_of);
 
     amount += stakerDeposit + stakerReward + assessmentStake;
+  }
+
+  /// Returns the NXM price in ETH. To be use by external protocols.
+  ///
+  /// @dev Intended for external protocols - this is a proxy and the contract address won't change
+  function getTokenPrice() public override view returns (uint tokenPrice) {
+    return pool().getTokenPrice();
   }
 
   /// Withdraws governance rewards for the given member address

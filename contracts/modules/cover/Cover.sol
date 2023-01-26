@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts-v4/proxy/beacon/UpgradeableBeacon.sol";
 import "@openzeppelin/contracts-v4/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
@@ -44,11 +43,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   uint24 public globalCapacityRatio;
   uint24 public globalRewardsRatio;
-
-  // Bitmap representing which assets are globally supported for buying and for paying out covers
-  // If the the bit at position N is 1 it means asset with index N is supported.this
-  // Eg. coverAssetsFallback = 3 (in binary 11) means assets at index 0 and 1 are supported.
-  uint32 public coverAssetsFallback;
 
   // assetId => { lastBucketUpdateId, totalActiveCoverInAsset }
   mapping (uint => ActiveCover) public activeCover;
@@ -112,15 +106,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     }
     globalCapacityRatio = 20000; // x2
     globalRewardsRatio = 5000; // 50%
-    coverAssetsFallback = 3; // 0b00000011 - DAI and ETH
-    uint64 bucketIdStart = (block.timestamp / BUCKET_SIZE).toUint64();
-    uint assetId;
-    while (assetId <= coverAssetsFallback) {
-      if ((1 << assetId) & coverAssetsFallback > 0) {
-        activeCover[assetId].lastBucketUpdateId = bucketIdStart;
-      }
-      ++assetId;
-    }
   }
 
   /* === MUTATIVE FUNCTIONS ==== */
@@ -133,12 +118,15 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     if (params.period < MIN_COVER_PERIOD) {
       revert CoverPeriodTooShort();
     }
+
     if (params.period > MAX_COVER_PERIOD) {
       revert CoverPeriodTooLong();
     }
+
     if (params.commissionRatio > MAX_COMMISSION_RATIO) {
       revert CommissionRateTooHigh();
     }
+
     if (params.amount == 0) {
       revert CoverAmountIsZero();
     }
@@ -157,13 +145,8 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
         revert ProductDeprecated();
       }
 
-      uint32 deprecatedCoverAssets = pool().deprecatedCoverAssetsBitmap();
-      uint32 supportedCoverAssets = _getSupportedCoverAssets(deprecatedCoverAssets, product.coverAssets);
-      if (!isAssetSupported(supportedCoverAssets, params.coverAsset)) {
-        revert PayoutAssetNotSupported();
-      }
-      if (_isCoverAssetDeprecated(deprecatedCoverAssets, params.paymentAsset)) {
-        revert PaymentAssetDeprecated();
+      if (!isCoverAssetSupported(params.coverAsset, product.coverAssets)) {
+        revert CoverAssetNotSupported();
       }
 
       allocationRequest = AllocationRequest(
@@ -183,7 +166,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       );
     }
 
-    uint expiredCoverAmount;
+    uint previousSegmentAmount;
 
     if (params.coverId == type(uint).max) {
 
@@ -226,15 +209,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       // remove cover amount from from expiration buckets
       uint bucketAtExpiry = Math.divCeil(lastSegment.start + lastSegment.period, BUCKET_SIZE);
       activeCoverExpirationBuckets[params.coverAsset][bucketAtExpiry] -= lastSegment.amount;
-      expiredCoverAmount += lastSegment.amount;
+      previousSegmentAmount += lastSegment.amount;
     }
 
+    uint nxmPriceInCoverAsset = pool().getTokenPriceInAsset(params.coverAsset);
     allocationRequest.coverId = coverId;
 
     (uint coverAmountInCoverAsset, uint amountDueInNXM) = requestAllocation(
       allocationRequest,
       poolAllocationRequests,
-      pool().getTokenPrice(params.coverAsset), // nxmPriceInCoverAsset
+      nxmPriceInCoverAsset,
       segmentId
     );
 
@@ -253,37 +237,48 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       )
     );
 
-
     // Update totalActiveCover
     {
-      ActiveCover storage _activeCover = activeCover[params.coverAsset];
-      uint lastUpdateId = _activeCover.lastBucketUpdateId;
-      uint currentBucketId = block.timestamp / BUCKET_SIZE;
-      _activeCover.lastBucketUpdateId = currentBucketId.toUint64();
-      // Get expired cover amount
-      expiredCoverAmount += getExpiredCoverAmount(params.coverAsset, lastUpdateId, currentBucketId);
-      // Update total active cover in storage
-      _activeCover.totalActiveCoverInAsset = (
-        _activeCover.totalActiveCoverInAsset
-        + coverAmountInCoverAsset
-        - expiredCoverAmount
-      ).toUint192();
+      ActiveCover memory _activeCover = activeCover[params.coverAsset];
 
-      // Update amount to expire at the end of this cover segment
+      uint currentBucketId = block.timestamp / BUCKET_SIZE;
+      uint totalActiveCover = _activeCover.totalActiveCoverInAsset;
+
+      if (totalActiveCover != 0) {
+        totalActiveCover -= getExpiredCoverAmount(
+          params.coverAsset,
+          _activeCover.lastBucketUpdateId,
+          currentBucketId
+        );
+      }
+
+      totalActiveCover -= previousSegmentAmount;
+      totalActiveCover += coverAmountInCoverAsset;
+
+      _activeCover.lastBucketUpdateId = currentBucketId.toUint64();
+      _activeCover.totalActiveCoverInAsset = totalActiveCover.toUint192();
+
+      // update total active cover in storage
+      activeCover[params.coverAsset] = _activeCover;
+
+      // update amount to expire at the end of this cover segment
       uint bucketAtExpiry = Math.divCeil(block.timestamp + params.period, BUCKET_SIZE);
       activeCoverExpirationBuckets[params.coverAsset][bucketAtExpiry] += coverAmountInCoverAsset;
     }
 
-
-    if (amountDueInNXM > 0) {
-      retrievePayment(
-        amountDueInNXM,
-        params.paymentAsset,
-        params.maxPremiumInAsset,
-        params.commissionRatio,
-        params.commissionDestination
-      );
+    // can pay with cover asset or nxm only
+    if (params.paymentAsset != params.coverAsset && params.paymentAsset != NXM_ASSET_ID) {
+      revert InvalidPaymentAsset();
     }
+
+    retrievePayment(
+      amountDueInNXM,
+      params.paymentAsset,
+      nxmPriceInCoverAsset,
+      params.maxPremiumInAsset,
+      params.commissionRatio,
+      params.commissionDestination
+    );
 
     emit CoverEdited(coverId, params.productId, segmentId, msg.sender, params.ipfsData);
   }
@@ -306,8 +301,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       : 0;
 
     for (uint i = 0; i < poolAllocationRequests.length; i++) {
-
-      // TODO: poolAllocationRequests might have repeated pools, is this gameable?
 
       // if there is a previous segment and this index is present on it
       if (vars.previousPoolAllocationsLength > i) {
@@ -375,11 +368,16 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
   function retrievePayment(
     uint premiumInNxm,
-    uint8 paymentAsset,
+    uint paymentAsset,
+    uint nxmPriceInCoverAsset,
     uint maxPremiumInAsset,
     uint16 commissionRatio,
     address commissionDestination
   ) internal {
+
+    if (paymentAsset != ETH_ASSET_ID && msg.value > 0) {
+      revert UnexpectedEthSent();
+    }
 
     // NXM payment
     if (paymentAsset == NXM_ASSET_ID) {
@@ -400,7 +398,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     }
 
     IPool _pool = pool();
-    uint premiumInPaymentAsset = _pool.getTokenPrice(paymentAsset) * premiumInNxm / ONE_NXM;
+    uint premiumInPaymentAsset = nxmPriceInCoverAsset * premiumInNxm / ONE_NXM;
     uint commission = premiumInPaymentAsset * commissionRatio / COMMISSION_DENOMINATOR;
 
     if (premiumInPaymentAsset > maxPremiumInAsset) {
@@ -445,7 +443,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       return;
     }
 
-    (address coverAsset, /*uint8 decimals*/) = _pool.coverAssets(paymentAsset);
+    address coverAsset = _pool.getAsset(paymentAsset).assetAddress;
     IERC20 token = IERC20(coverAsset);
     token.safeTransferFrom(msg.sender, address(_pool), premiumInPaymentAsset);
 
@@ -552,7 +550,12 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   }
 
   // Gets the total amount of active cover that is currently expired for this asset
-  function getExpiredCoverAmount(uint8 coverAsset, uint lastUpdateId, uint currentBucketId) internal view returns (uint amountExpired) {
+  function getExpiredCoverAmount(
+    uint coverAsset,
+    uint lastUpdateId,
+    uint currentBucketId
+  ) internal view returns (uint amountExpired) {
+
     while (lastUpdateId < currentBucketId) {
       ++lastUpdateId;
       amountExpired += activeCoverExpirationBuckets[coverAsset][lastUpdateId];
@@ -662,30 +665,46 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   /* ========== PRODUCT CONFIGURATION ========== */
 
   function setProducts(ProductParam[] calldata productParams) external override onlyAdvisoryBoard {
-    uint32 _coverAssetsFallback = coverAssetsFallback;
+
     uint productTypesCount = _productTypes.length;
+    uint unsupportedCoverAssetsBitmap = type(uint).max;
+
+    Asset[] memory assets = pool().getAssets();
+    uint assetsLength = assets.length;
+
+    for (uint i = 0; i < assetsLength; i++) {
+      if (assets[i].isCoverAsset && !assets[i].isAbandoned) {
+        // clear the bit at index i
+        unsupportedCoverAssetsBitmap ^= 1 << i;
+      }
+    }
 
     for (uint i = 0; i < productParams.length; i++) {
+
       ProductParam calldata param = productParams[i];
       Product calldata product = param.product;
+
       if (product.productType >= productTypesCount) {
         revert InvalidProductType();
       }
-      if (!areAssetsSupported(product.coverAssets, _coverAssetsFallback)) {
+
+      if (unsupportedCoverAssetsBitmap & product.coverAssets != 0) {
         revert UnsupportedCoverAssets();
       }
+
       if (product.initialPriceRatio < GLOBAL_MIN_PRICE_RATIO) {
         revert InitialPriceRatioBelowGlobalMinPriceRatio();
       }
+
       if (product.initialPriceRatio > PRICE_DENOMINATOR) {
         revert InitialPriceRatioAbove100Percent();
       }
+
       if (product.capacityReductionRatio > CAPACITY_REDUCTION_DENOMINATOR) {
         revert CapacityReductionRatioAbove100Percent();
       }
 
       if (product.useFixedPrice) {
-
         uint productId = param.productId == type(uint256).max ? _products.length : param.productId;
         allowedPools[productId] = param.allowedPools;
       }
@@ -739,22 +758,6 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     return uint(activeCover[assetId].totalActiveCoverInAsset);
   }
 
-  function getSupportedCoverAssets(uint productId) public view returns (uint32) {
-    return _getSupportedCoverAssets(pool().deprecatedCoverAssetsBitmap(), _products[productId].coverAssets);
-  }
-
-  function _getSupportedCoverAssets(
-    uint32 deprecatedCoverAssetsBitmap,
-    uint32 coverAssetsBitmapForProduct
-  ) internal view returns (uint32) {
-    coverAssetsBitmapForProduct = coverAssetsBitmapForProduct == 0 ? coverAssetsFallback : coverAssetsBitmapForProduct;
-    return coverAssetsBitmapForProduct & ~deprecatedCoverAssetsBitmap;
-  }
-
-  function isAssetSupported(uint32 assetsBitMap, uint8 coverAsset) public pure override returns (bool) {
-    return (1 << coverAsset) & assetsBitMap > 0;
-  }
-
   function isPoolAllowed(uint productId, uint poolId) external view returns (bool) {
 
     uint poolCount = allowedPools[productId].length;
@@ -793,22 +796,20 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     }
   }
 
-  function _isCoverAssetDeprecated(
-    uint32 deprecatedCoverAssetsBitmap,
-    uint8 assetId
-  ) internal pure returns (bool) {
-    return deprecatedCoverAssetsBitmap & (1 << assetId) > 0;
-  }
+  function isCoverAssetSupported(uint assetId, uint productCoverAssetsBitmap) internal view returns (bool) {
 
-  /// @dev Returns true if the assetsBitMap set is included in the coverAssetFallback set
-  /// @param assetsBitMap the assets bitmap for a product
-  /// @param coverAssetFallback  The coverAssetFallback as defined for the storage var with the same name
-  function areAssetsSupported(uint32 assetsBitMap, uint32 coverAssetFallback) public pure returns (bool) {
-    return assetsBitMap & bitwiseNegate(coverAssetFallback) == 0;
-  }
+    if (
+      // product does not use default cover assets
+      productCoverAssetsBitmap != 0 &&
+      // asset id is not in the product's cover assets bitmap
+      ((1 << assetId) & productCoverAssetsBitmap == 0)
+    ) {
+      return false;
+    }
 
-  function bitwiseNegate(uint32 value) internal pure returns (uint32) {
-    return value ^ 0xffffffff;
+    Asset memory asset = pool().getAsset(assetId);
+
+    return asset.isCoverAsset && !asset.isAbandoned;
   }
 
   /* ========== DEPENDENCIES ========== */
@@ -847,16 +848,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
   ) external onlyGovernance {
 
     for (uint i = 0; i < paramNames.length; i++) {
+
       if (paramNames[i] == CoverUintParams.globalCapacityRatio) {
         globalCapacityRatio = uint24(values[i]);
         continue;
       }
+
       if (paramNames[i] == CoverUintParams.globalRewardsRatio) {
         globalRewardsRatio = uint24(values[i]);
-        continue;
-      }
-      if (paramNames[i] == CoverUintParams.coverAssetsFallback) {
-        coverAssetsFallback = uint32(values[i]);
         continue;
       }
     }

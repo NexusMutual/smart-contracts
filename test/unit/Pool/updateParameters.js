@@ -93,17 +93,15 @@ describe('updateAddressParameters', function () {
   });
 
   it('should correctly update the PRC_FEED parameter', async function () {
-    const { pool, dai, stETH, chainlinkDAI, chainlinkSteth } = this;
-    const {
-      governanceContracts: [governanceContract],
-    } = this.accounts;
+    const { pool, dai, stETH, enzymeVault, chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = this;
+    const [governanceContract] = this.accounts.governanceContracts;
 
     const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
 
     const newPriceFeedOracle = await PriceFeedOracle.deploy(
-      [dai.address, stETH.address],
-      [chainlinkDAI.address, chainlinkSteth.address],
-      [18, 18],
+      [dai.address, stETH.address, enzymeVault.address],
+      [chainlinkDAI.address, chainlinkSteth.address, chainlinkEnzymeVault.address],
+      [18, 18, 18],
     );
 
     await pool

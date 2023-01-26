@@ -139,7 +139,7 @@ describe('getAssessmentDepositAndReward', function () {
 
   it('the NXM equivalent of the deposit should always cover the totalReward', async function () {
     const { individualClaims, pool } = this.contracts;
-    const nxmPriceInETH = await pool.getTokenPrice(ASSET.ETH);
+    const nxmPriceInETH = await pool.getTokenPriceInAsset(ASSET.ETH);
     {
       const [deposit, totalReward1] = await individualClaims.getAssessmentDepositAndReward(
         1,

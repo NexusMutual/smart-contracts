@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
-const { WeiPerEther } = ethers.constants;
+const { AddressZero, WeiPerEther } = ethers.constants;
 
 const { Role } = require('../utils').constants;
 const { getAccounts } = require('../../utils/accounts');
@@ -24,6 +24,7 @@ async function setup() {
   const master = await MasterMock.deploy();
   const dai = await ERC20Mock.deploy();
   const stETH = await ERC20BlacklistableMock.deploy();
+  const enzymeVault = await ERC20Mock.deploy();
   const otherAsset = await ERC20Mock.deploy();
   const memberRoles = await MemberRolesMock.deploy();
 
@@ -32,26 +33,32 @@ async function setup() {
 
   const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
+
   const chainlinkSteth = await ChainlinkAggregatorMock.deploy();
   await chainlinkSteth.setLatestAnswer(WeiPerEther);
-  const chainlinkNewAsset = await ChainlinkAggregatorMock.deploy();
-  await chainlinkNewAsset.setLatestAnswer(WeiPerEther);
+
+  const chainlinkEnzymeVault = await ChainlinkAggregatorMock.deploy();
+  await chainlinkEnzymeVault.setLatestAnswer(WeiPerEther);
+
+  const chainlinkOtherAsset = await ChainlinkAggregatorMock.deploy();
+  await chainlinkOtherAsset.setLatestAnswer(WeiPerEther);
 
   const priceFeedOracle = await PriceFeedOracle.deploy(
-    [dai.address, stETH.address, otherAsset.address],
-    [chainlinkDAI.address, chainlinkSteth.address, chainlinkNewAsset.address],
-    [18, 18, 18],
+    [dai, stETH, enzymeVault, otherAsset].map(c => c.address),
+    [chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault, chainlinkOtherAsset].map(c => c.address),
+    [18, 18, 18, 18],
   );
 
   const swapOperator = await P1MockSwapOperator.deploy();
   const accounts = await getAccounts();
 
   const pool = await Pool.deploy(
-    accounts.defaultSender.address, // master: it is changed a few lines below
+    AddressZero, // master: it is changed a few lines below
     priceFeedOracle.address,
-    swapOperator.address, // we do not test swaps here
+    swapOperator.address,
     dai.address,
     stETH.address,
+    enzymeVault.address,
   );
 
   await master.setLatestAddress(toBytes2('P1'), pool.address);
@@ -107,13 +114,19 @@ async function setup() {
   this.mcr = mcr;
   this.tokenController = tokenController;
   this.memberRoles = memberRoles;
-  this.dai = dai;
-  this.chainlinkDAI = chainlinkDAI;
-  this.chainlinkSteth = chainlinkSteth;
   this.swapOperator = swapOperator;
   this.priceFeedOracle = priceFeedOracle;
+
+  // tokens
+  this.dai = dai;
   this.stETH = stETH;
+  this.enzymeVault = enzymeVault;
   this.otherAsset = otherAsset;
+
+  // oracles
+  this.chainlinkDAI = chainlinkDAI;
+  this.chainlinkSteth = chainlinkSteth;
+  this.chainlinkEnzymeVault = chainlinkEnzymeVault;
 }
 
 module.exports = setup;

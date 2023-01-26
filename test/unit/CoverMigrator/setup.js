@@ -5,27 +5,13 @@ const { getAccounts } = require('../../utils/accounts');
 const { AddressZero } = ethers.constants;
 
 async function setup() {
-  const Master = await ethers.getContractFactory('MasterMock');
-  const master = await Master.deploy();
-  await master.deployed();
-
-  const ProductsV1 = await ethers.getContractFactory('ProductsV1');
-  const productsV1 = await ProductsV1.deploy();
-
-  const QuotationData = await ethers.getContractFactory('MockLegacyQuotationData');
-  const quotationData = await QuotationData.deploy(AddressZero, AddressZero);
-
-  const CoverMigrator = await ethers.getContractFactory('CoverMigrator');
-  const coverMigrator = await CoverMigrator.deploy(quotationData.address, productsV1.address);
-
-  const Cover = await ethers.getContractFactory('CMMockCover');
-  const cover = await Cover.deploy();
-
-  const Distributor = await ethers.getContractFactory('CMMockDistributor');
-  const distributor = await Distributor.deploy(coverMigrator.address);
-
-  const TokenController = await ethers.getContractFactory('CMMockTokenController');
-  const tokenController = await TokenController.deploy();
+  const master = await ethers.deployContract('MasterMock');
+  const productsV1 = await ethers.deployContract('ProductsV1');
+  const quotationData = await ethers.deployContract('TestnetQuotationData', [AddressZero, AddressZero]);
+  const coverMigrator = await ethers.deployContract('CoverMigrator', [quotationData.address, productsV1.address]);
+  const cover = await ethers.deployContract('CMMockCover');
+  const distributor = await ethers.deployContract('CMMockDistributor', [coverMigrator.address]);
+  const tokenController = await ethers.deployContract('CMMockTokenController');
 
   await master.setLatestAddress(hex('CL'), coverMigrator.address);
   await master.setLatestAddress(hex('CO'), cover.address);

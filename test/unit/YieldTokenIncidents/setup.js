@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { hex } = require('../../../lib/helpers');
 const { getAccounts } = require('../../utils/accounts');
-const { parseEther } = ethers.utils;
+const { parseEther, parseUnits } = ethers.utils;
 
 async function setup() {
   const NXM = await ethers.getContractFactory('NXMTokenMock');
@@ -38,10 +38,19 @@ async function setup() {
   const ybPermitDai = await ybPermitDAI.deploy('Mock with permit', 'MOCK');
   await ybPermitDai.deployed();
 
+  const ethToDaiRate = parseEther('2000');
+  const daiToEthRate = parseUnits('1', 36).div(ethToDaiRate);
+
+  const ChainlinkAggregatorMock = await ethers.getContractFactory('ChainlinkAggregatorMock');
+  const chainlinkDAI = await ChainlinkAggregatorMock.deploy();
+  await chainlinkDAI.setLatestAnswer(daiToEthRate);
+
+  const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
+  const priceFeedOracle = await PriceFeedOracle.deploy([dai.address], [chainlinkDAI.address], [18]);
   const ICMockPool = await ethers.getContractFactory('ICMockPool');
-  const pool = await ICMockPool.deploy();
+  const pool = await ICMockPool.deploy(priceFeedOracle.address);
   await pool.deployed();
-  await pool.addAsset(dai.address, 18);
+  await pool.addAsset({ assetAddress: dai.address, isCoverAsset: true, isAbandonedAsset: false });
 
   const Assessment = await ethers.getContractFactory('ICMockAssessment');
   const assessment = await Assessment.deploy();

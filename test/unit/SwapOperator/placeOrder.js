@@ -84,8 +84,8 @@ describe('placeOrder', function () {
     await setEtherBalance(pool.address, parseEther('100'));
 
     // Set asset details for DAI and stEth. 0% slippage
-    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 0, true);
-    await pool.connect(governance).setSwapDetails(stEth.address, stethMinAmount, stethMaxAmount, 0, false);
+    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 0);
+    await pool.connect(governance).setSwapDetails(stEth.address, stethMinAmount, stethMaxAmount, 0);
   });
 
   it('is callable only by swap controller', async function () {
@@ -212,7 +212,7 @@ describe('placeOrder', function () {
     const { newContractOrder, newOrderUID } = await setupSellDaiForEth();
 
     // Since DAI was already registered on setup, set its details to 0
-    await pool.connect(governance).setSwapDetails(dai.address, 0, 0, 0, true);
+    await pool.connect(governance).setSwapDetails(dai.address, 0, 0, 0);
 
     // Order selling DAI should fail
     await expect(swapOperator.placeOrder(newContractOrder, newOrderUID)).to.be.revertedWith(
@@ -293,7 +293,7 @@ describe('placeOrder', function () {
 
   it('validates asset details when buyToken is not WETH', async function () {
     // Since DAI was already registered on setup, set its details to 0
-    await pool.connect(governance).setSwapDetails(dai.address, 0, 0, 0, true); // otherSigner is governant
+    await pool.connect(governance).setSwapDetails(dai.address, 0, 0, 0); // otherSigner is governant
 
     // Order buying DAI should fail
     await expect(swapOperator.placeOrder(contractOrder, orderUID)).to.be.revertedWith(
@@ -349,7 +349,7 @@ describe('placeOrder', function () {
     await swapOperator.closeOrder(contractOrder);
 
     // Prepare valid pool params for allowing next order
-    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount.mul(2), daiMaxAmount.mul(2), 0, true);
+    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount.mul(2), daiMaxAmount.mul(2), 0);
 
     // Read last swap time
     const lastSwapTime = (await pool.getAssetSwapDetails(dai.address)).lastSwapTime;
@@ -382,7 +382,7 @@ describe('placeOrder', function () {
     await swapOperator.closeOrder(newContractOrder);
 
     // Prepare valid pool params for allowing next order
-    await pool.connect(governance).setSwapDetails(dai.address, 3000, 6000, 0, true);
+    await pool.connect(governance).setSwapDetails(dai.address, 3000, 6000, 0);
 
     // Read last swap time
     const lastSwapTime = (await pool.getAssetSwapDetails(dai.address)).lastSwapTime;
@@ -473,7 +473,7 @@ describe('placeOrder', function () {
 
   it('when selling eth takes slippage into account', async function () {
     // 1% slippage
-    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100, true);
+    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
 
     const newOrder = {
       ...order,
@@ -520,7 +520,7 @@ describe('placeOrder', function () {
 
   it('when buying eth takes slippage into account', async function () {
     // 1% slippage
-    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100, true);
+    await pool.connect(governance).setSwapDetails(dai.address, daiMinAmount, daiMaxAmount, 100);
 
     let { newOrder, newContractOrder, newOrderUID } = await setupSellDaiForEth();
 

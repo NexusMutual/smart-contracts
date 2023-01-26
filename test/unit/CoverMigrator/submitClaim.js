@@ -23,11 +23,11 @@ describe('submitClaim', function () {
     const v2ProductId = await productsV1.getNewProductId(product);
 
     // cover id 1 & 2
-    await quotationData.addCoverMock(period, amount, coverOwner.address, ETH, product, premium, premiumNXM);
+    await quotationData.addV1Cover(period, amount, coverOwner.address, ETH, product, premium, premiumNXM);
     const { timestamp: expectedCoverOneStart } = await ethers.provider.getBlock('latest');
     await tokenController.addCoverInfo(1, 0, false, false);
 
-    await quotationData.addCoverMock(period, amount, distributor.address, DAI, product, premium, premiumNXM);
+    await quotationData.addV1Cover(period, amount, distributor.address, DAI, product, premium, premiumNXM);
     const { timestamp: expectedCoverTwoStart } = await ethers.provider.getBlock('latest');
     await tokenController.addCoverInfo(2, 0, false, false);
 

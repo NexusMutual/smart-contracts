@@ -7,18 +7,16 @@ import "../../interfaces/IPool.sol";
 contract CoverMockPool {
 
   mapping (uint => uint) prices;
-  IPool.Asset[] public coverAssets;
-
-  uint32 public deprecatedCoverAssetsBitmap;
+  Asset[] public assets;
 
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   constructor() {
     // First asset is ETH
-    coverAssets.push(IPool.Asset(ETH, 18));
+    assets.push(Asset(ETH, true, false));
   }
 
-  function getTokenPrice(uint assetId) public view returns (uint) {
+  function getTokenPriceInAsset(uint assetId) public view returns (uint) {
     return prices[assetId];
   }
 
@@ -26,14 +24,27 @@ contract CoverMockPool {
     prices[assetId] = price;
   }
 
-  function setAssets(address[] memory _assets, uint8[] memory _decimals) public {
+  function setAssets(Asset[] memory _assets) public {
     for (uint i = 0; i < _assets.length; i++) {
-      coverAssets.push(IPool.Asset(_assets[i], _decimals[i]));
+      assets.push(_assets[i]);
     }
   }
 
-  function setDeprecatedCoverAssetsBitmap(uint32 bitmap) external {
-    deprecatedCoverAssetsBitmap = bitmap;
+  function setIsCoverAsset(uint assetId, bool isCoverAsset) public {
+    assets[assetId].isCoverAsset = isCoverAsset;
+  }
+
+  function setIsAbandoned(uint assetId, bool isAbandoned) public {
+    assets[assetId].isAbandoned = isAbandoned;
+  }
+
+  function getAsset(uint assetId) external view returns (Asset memory) {
+    require(assetId < assets.length, "Pool: Invalid asset id");
+    return assets[assetId];
+  }
+
+  function getAssets() external view returns (Asset[] memory) {
+    return assets;
   }
 
   fallback() external payable {}

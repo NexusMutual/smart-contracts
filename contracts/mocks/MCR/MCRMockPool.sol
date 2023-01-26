@@ -11,7 +11,7 @@ contract MCRMockPool {
     IPriceFeedOracle public priceFeedOracle;
     uint poolValueInEth;
 
-    IPool.Asset[] public coverAssets;
+    Asset[] public assets;
 
     constructor(address _priceFeedOracle) {
         priceFeedOracle = IPriceFeedOracle(_priceFeedOracle);
@@ -29,11 +29,11 @@ contract MCRMockPool {
         poolValueInEth = value;
     }
 
-    function getCoverAssets() external view returns (IPool.Asset[] memory) {
-      return coverAssets;
+    function getAssets() external view returns (Asset[] memory) {
+      return assets;
     }
 
-    function addCoverAsset(address assetAddress, uint8 decimals) external {
-      coverAssets.push(IPool.Asset(assetAddress, decimals));
+    function addAsset(Asset memory asset) external {
+      assets.push(asset);
     }
 }

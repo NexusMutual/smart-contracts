@@ -1,8 +1,10 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+
 const { createStakingPool } = require('./helpers');
-const { daysToSeconds } = require('../../../lib/helpers');
-const { resultAsObject } = require('../../utils/').results;
+const { daysToSeconds } = require('../utils').helpers;
+const { resultAsObject } = require('../utils').results;
+
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 
@@ -124,11 +126,14 @@ describe('setProducts', function () {
 
   it('should revert if updated coverAssets are unsupported', async function () {
     const { cover } = this;
-    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
-    const coverAssets = parseInt('1111', 2); // ETH DAI, USDC and WBTC supported
+    const [advisoryBoardMember] = this.accounts.advisoryBoardMembers;
+
+    // ETH = 1, DAI = 2, 3 & 4 don't exist
+    const coverAssets = 0b1111;
     const product = { ...productTemplate, coverAssets };
     const productParams = { ...productParamsTemplate, product };
-    await expect(cover.connect(advisoryBoardMember0).setProducts([productParams])).to.be.revertedWithCustomError(
+
+    await expect(cover.connect(advisoryBoardMember).setProducts([productParams])).to.be.revertedWithCustomError(
       cover,
       'UnsupportedCoverAssets',
     );

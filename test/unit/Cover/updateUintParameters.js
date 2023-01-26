@@ -1,7 +1,6 @@
 const { expect } = require('chai');
 
 describe('updateUintParameters', function () {
-  const COVER_ASSETS_FALLBACK = 1;
   const GLOBAL_REWARDS_RATIO = 2;
   const GLOBAL_CAPACITY_RATIO = 3;
 
@@ -11,15 +10,6 @@ describe('updateUintParameters', function () {
     await expect(cover.connect(accounts.nonMembers[0]).updateUintParameters([0], ['0'])).to.be.revertedWith(
       'Caller is not authorized to govern',
     );
-  });
-
-  it('should allow to update coverAssetsFallback', async function () {
-    const { cover, accounts } = this;
-
-    await cover.connect(accounts.governanceContracts[0]).updateUintParameters([2], [COVER_ASSETS_FALLBACK]);
-    const coverAssetsFallback = await cover.coverAssetsFallback();
-
-    expect(coverAssetsFallback).to.be.eq(COVER_ASSETS_FALLBACK);
   });
 
   it('should allow to update globalRewardsRatio', async function () {
@@ -45,13 +35,9 @@ describe('updateUintParameters', function () {
 
     await cover
       .connect(accounts.governanceContracts[0])
-      .updateUintParameters([0, 1, 2], [GLOBAL_CAPACITY_RATIO, GLOBAL_REWARDS_RATIO, COVER_ASSETS_FALLBACK]);
-    const globalCapacityRatio = await cover.globalCapacityRatio();
-    const globalRewardsRatio = await cover.globalRewardsRatio();
-    const coverAssetsFallback = await cover.coverAssetsFallback();
+      .updateUintParameters([0, 1, 2], [GLOBAL_CAPACITY_RATIO, GLOBAL_REWARDS_RATIO]);
 
-    expect(globalCapacityRatio).to.be.eq(GLOBAL_CAPACITY_RATIO);
-    expect(globalRewardsRatio).to.be.eq(GLOBAL_REWARDS_RATIO);
-    expect(coverAssetsFallback).to.be.eq(COVER_ASSETS_FALLBACK);
+    expect(await cover.globalCapacityRatio()).to.be.eq(GLOBAL_CAPACITY_RATIO);
+    expect(await cover.globalRewardsRatio()).to.be.eq(GLOBAL_REWARDS_RATIO);
   });
 });

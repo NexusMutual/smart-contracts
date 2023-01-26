@@ -19,7 +19,6 @@ async function setup() {
   const Pool = await ethers.getContractFactory('Pool');
   const MCR = await ethers.getContractFactory('MCR');
   const SwapOperator = await ethers.getContractFactory('SwapOperator');
-  const CSMockQuotationData = await ethers.getContractFactory('SOMockQuotationData');
   const ERC20Mock = await ethers.getContractFactory('ERC20Mock');
   const ERC20CustomDecimalsMock = await ethers.getContractFactory('ERC20CustomDecimalsMock');
   const SOMockWeth = await ethers.getContractFactory('SOMockWeth');
@@ -43,9 +42,8 @@ async function setup() {
   const cowVaultRelayer = await SOMockVaultRelayer.deploy();
   const cowSettlement = await SOMockSettlement.deploy(cowVaultRelayer.address);
 
-  // Deploy Master, QD and MCR
+  // Deploy Master and MCR
   const master = await MasterMock.deploy();
-  const quotationData = await CSMockQuotationData.deploy();
   const mcr = await MCR.deploy(master.address);
 
   // Deploy price aggregators
@@ -95,18 +93,18 @@ async function setup() {
     AddressZero, // swap operator
     dai.address,
     stEth.address,
+    enzymeV4Vault.address,
   );
 
   // Setup master, pool and mcr connections
   await master.enrollGovernance(governance.address);
-  await master.setLatestAddress(hex('QD'), quotationData.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('P1'), pool.address);
 
   await pool.changeDependentContractAddress();
   await mcr.changeDependentContractAddress();
 
-  await pool.connect(governance).addAsset(usdc.address, 6, 0, parseEther('1000'), 0, true);
+  await pool.connect(governance).addAsset(usdc.address, true, 0, parseEther('1000'), 0);
 
   // Deploy SwapOperator
   const swapOperator = await SwapOperator.deploy(

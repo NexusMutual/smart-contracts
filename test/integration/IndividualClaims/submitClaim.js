@@ -1,12 +1,14 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { parseEther, parseUnits } = ethers.utils;
+
 const { stake } = require('../utils/staking');
 const { rejectClaim, acceptClaim } = require('../utils/voteClaim');
 const { buyCover, transferCoverAsset, ETH_ASSET_ID, DAI_ASSET_ID, USDC_ASSET_ID } = require('../utils/cover');
 
 const { daysToSeconds } = require('../../../lib/helpers');
 const { mineNextBlock, setNextBlockTime } = require('../../utils/evm');
+
+const { parseEther, parseUnits } = ethers.utils;
 
 const setTime = async timestamp => {
   await setNextBlockTime(timestamp);

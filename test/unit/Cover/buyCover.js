@@ -1,9 +1,9 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 
-const { setEtherBalance } = require('../../utils/evm');
 const { createStakingPool, assertCoverFields } = require('./helpers');
-const { daysToSeconds } = require('../../utils').helpers;
+const { setEtherBalance } = require('../utils').evm;
+const { daysToSeconds } = require('../utils').helpers;
 
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
@@ -31,12 +31,10 @@ const poolAllocationRequest = [{ poolId: '0', coverAmountInAsset: buyCoverFixtur
 describe('buyCover', function () {
   beforeEach(async function () {
     const { cover } = this;
-    const {
-      governanceContracts: [gv1],
-      members: [stakingPoolManager],
-    } = this.accounts;
+    const [governance] = this.accounts.governanceContracts;
+    const [stakingPoolManager] = this.accounts.members;
 
-    await cover.connect(gv1).updateUintParameters([0], [buyCoverFixture.capacityFactor]);
+    await cover.connect(governance).updateUintParameters([0], [buyCoverFixture.capacityFactor]);
 
     await createStakingPool(
       cover,
@@ -298,9 +296,7 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       poolAllocationRequest,
-      {
-        value: '0',
-      },
+      { value: '0' },
     );
 
     expect(await dai.balanceOf(pool.address)).to.equal(expectedBasePremium);
@@ -370,9 +366,7 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         poolAllocationRequest,
-        {
-          value: '0',
-        },
+        { value: '0' },
       ),
     )
       .to.emit(usdc, 'Transfer') // Verify usdc is transferred to pool
@@ -420,17 +414,15 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         poolAllocationRequest,
-        {
-          value: '0',
-        },
+        { value: '0' },
       ),
     ).to.be.revertedWithCustomError(cover, 'ProductDoesntExist');
   });
 
-  it('should revert for unsupported payout asset', async function () {
+  it('should revert if cover asset does not exist', async function () {
     const { cover } = this;
     const [coverBuyer] = this.accounts.members;
-    const coverAsset = 10; // not ETH nor DAI nor USDC
+    const coverAsset = 10; // inexistent asset id
     const { amount, productId, period } = buyCoverFixture;
 
     await expect(
@@ -449,11 +441,36 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         poolAllocationRequest,
-        {
-          value: '0',
-        },
+        { value: '0' },
       ),
-    ).to.be.revertedWithCustomError(cover, 'PayoutAssetNotSupported');
+    ).to.be.revertedWith('Pool: Invalid asset id');
+  });
+
+  it('should revert for unsupported cover asset', async function () {
+    const { cover, assets } = this;
+    const [coverBuyer] = this.accounts.members;
+    const coverAsset = assets.USDC; // inexistent asset id
+    const { amount, period } = buyCoverFixture;
+
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: MaxUint256,
+          owner: coverBuyer.address,
+          productId: 2,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: '0',
+          paymentAsset: coverAsset,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        poolAllocationRequest,
+        { value: '0' },
+      ),
+    ).to.be.revertedWithCustomError(cover, 'CoverAssetNotSupported');
   });
 
   it('should revert for period too short', async function () {
@@ -479,9 +496,7 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         poolAllocationRequest,
-        {
-          value: '0',
-        },
+        { value: '0' },
       ),
     ).to.be.revertedWithCustomError(cover, 'CoverPeriodTooShort');
   });
@@ -508,9 +523,7 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         poolAllocationRequest,
-        {
-          value: '0',
-        },
+        { value: '0' },
       ),
     ).to.be.revertedWithCustomError(cover, 'CoverPeriodTooLong');
   });
@@ -536,9 +549,7 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         poolAllocationRequest,
-        {
-          value: '0',
-        },
+        { value: '0' },
       ),
     ).to.be.revertedWithCustomError(cover, 'CommissionRateTooHigh');
   });
@@ -566,9 +577,7 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         poolAllocationRequest,
-        {
-          value: expectedPremium,
-        },
+        { value: expectedPremium },
       ),
     ).to.be.revertedWithCustomError(cover, 'CoverAmountIsZero');
   });
@@ -601,9 +610,7 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         poolAllocationRequest,
-        {
-          value: expectedPremium,
-        },
+        { value: expectedPremium },
       ),
     ).to.be.revertedWith('Cover: The selected pools ran out of capacity');
   });
@@ -631,9 +638,7 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         poolAllocationRequest,
-        {
-          value: expectedPremium,
-        },
+        { value: expectedPremium },
       ),
     ).to.be.revertedWith('System is paused');
   });
@@ -663,9 +668,7 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         poolAllocationRequest,
-        {
-          value: expectedPremium,
-        },
+        { value: expectedPremium },
       ),
     ).to.be.revertedWith('Caller is not a member');
   });
@@ -691,16 +694,15 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         poolAllocationRequest,
-        {
-          value: expectedPremium,
-        },
+        { value: expectedPremium },
       ),
     ).to.be.revertedWith('INVALID_RECIPIENT');
   });
 
-  it('reverts if not supported payment asset', async function () {
+  it('reverts if payment asset does not exist', async function () {
     const { cover } = this;
     const [coverBuyer] = this.accounts.members;
+
     const paymentAsset = 10; // not ETH nor DAI nor USDC
     const { amount, productId, coverAsset, period } = buyCoverFixture;
 
@@ -721,22 +723,19 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         poolAllocationRequest,
-        {
-          value: '0',
-        },
+        { value: '0' },
       ),
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(cover, 'InvalidPaymentAsset');
   });
 
-  it('reverts if deprecated payment asset', async function () {
+  it('reverts when payment asset is not a cover asset', async function () {
     const { cover, pool } = this;
     const [coverBuyer] = this.accounts.members;
-    const paymentAsset = 1; // DAI
+
     const { amount, productId, coverAsset, period } = buyCoverFixture;
 
-    // Deprecate DAI
-    const daiCoverAssetBitmap = 0b10;
-    await pool.setDeprecatedCoverAssetsBitmap(daiCoverAssetBitmap);
+    // mark asset as not a cover asset
+    await pool.setIsCoverAsset(coverAsset, false);
 
     // reverts without a reason
     await expect(
@@ -749,17 +748,77 @@ describe('buyCover', function () {
           amount,
           period,
           maxPremiumInAsset: '0',
-          paymentAsset,
+          paymentAsset: coverAsset,
           commissionRatio: parseEther('0'),
           commissionDestination: AddressZero,
           ipfsData: '',
         },
         poolAllocationRequest,
-        {
-          value: '0',
-        },
+        { value: '0' },
       ),
-    ).to.be.revertedWithCustomError(cover, 'PaymentAssetDeprecated');
+    ).to.be.revertedWithCustomError(cover, 'CoverAssetNotSupported');
+  });
+
+  it('reverts when payment asset is not a cover asset', async function () {
+    const { cover, pool } = this;
+    const [coverBuyer] = this.accounts.members;
+
+    const { amount, productId, coverAsset, period } = buyCoverFixture;
+
+    // mark asset as not a cover asset
+    await pool.setIsCoverAsset(coverAsset, false);
+
+    // reverts without a reason
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: MaxUint256,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: '0',
+          paymentAsset: coverAsset,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        poolAllocationRequest,
+        { value: '0' },
+      ),
+    ).to.be.revertedWithCustomError(cover, 'CoverAssetNotSupported');
+  });
+
+  it('reverts when payment asset is abandoned', async function () {
+    const { cover, pool } = this;
+    const [coverBuyer] = this.accounts.members;
+
+    const { amount, productId, coverAsset, period } = buyCoverFixture;
+
+    // mark asset as not a cover asset
+    await pool.setIsAbandoned(coverAsset, true);
+
+    // reverts without a reason
+    await expect(
+      cover.connect(coverBuyer).buyCover(
+        {
+          coverId: MaxUint256,
+          owner: coverBuyer.address,
+          productId,
+          coverAsset,
+          amount,
+          period,
+          maxPremiumInAsset: '0',
+          paymentAsset: coverAsset,
+          commissionRatio: parseEther('0'),
+          commissionDestination: AddressZero,
+          ipfsData: '',
+        },
+        poolAllocationRequest,
+        { value: '0' },
+      ),
+    ).to.be.revertedWithCustomError(cover, 'CoverAssetNotSupported');
   });
 
   it('reverts if calculated premium is bigger than maxPremiumInAsset', async function () {
@@ -788,9 +847,7 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         poolAllocationRequest,
-        {
-          value: expectedPremium,
-        },
+        { value: expectedPremium },
       ),
     ).to.be.revertedWithCustomError(cover, 'PriceExceedsMaxPremiumInAsset');
   });
@@ -816,9 +873,7 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         [],
-        {
-          value: expectedPremium,
-        },
+        { value: expectedPremium },
       ),
     ).to.be.revertedWithCustomError(cover, 'InsufficientCoverAmountAllocated');
   });
@@ -844,9 +899,7 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         [{ poolId: '0', coverAmountInAsset: 0 }],
-        {
-          value: expectedPremium,
-        },
+        { value: expectedPremium },
       ),
     ).to.be.revertedWithCustomError(cover, 'InsufficientCoverAmountAllocated');
   });
@@ -889,9 +942,7 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       poolAllocationRequest,
-      {
-        value: '0',
-      },
+      { value: '0' },
     );
 
     const userDaiBalanceAfter = await dai.balanceOf(coverBuyer.address);
@@ -927,9 +978,7 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       poolAllocationRequest,
-      {
-        value: expectedPremium,
-      },
+      { value: expectedPremium },
     );
 
     const globalRewardsRatio = await cover.globalRewardsRatio();
@@ -984,9 +1033,7 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       poolAllocationRequest,
-      {
-        value: expectedPremium,
-      },
+      { value: expectedPremium },
     );
 
     const nftBalanceAfter = await coverNFT.balanceOf(coverReceiver.address);
@@ -1025,9 +1072,7 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       poolAllocationRequest,
-      {
-        value: expectedPremium,
-      },
+      { value: expectedPremium },
     );
 
     const nftBalanceAfter = await coverNFT.balanceOf(nonMemberCoverReceiver.address);
@@ -1080,9 +1125,7 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       poolAllocationRequest,
-      {
-        value: expectedPremium,
-      },
+      { value: expectedPremium },
     );
 
     const stakingPoolRewardAfter = await tokenController.stakingPoolNXMBalances(poolId);
@@ -1167,9 +1210,7 @@ describe('buyCover', function () {
         { poolId: 1, coverAmountInAsset: coverAmountAllocationPerPool },
         { poolId: 2, coverAmountInAsset: coverAmountAllocationPerPool },
       ],
-      {
-        value: expectedPremium,
-      },
+      { value: expectedPremium },
     );
 
     const stakingPool1After = await tokenController.stakingPoolNXMBalances(0);
@@ -1227,9 +1268,7 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       poolAllocationRequest,
-      {
-        value: expectedPremium,
-      },
+      { value: expectedPremium },
     );
 
     await setEtherBalance(reentrantExploiter.address, expectedBasePremium.mul(2));
@@ -1258,9 +1297,7 @@ describe('buyCover', function () {
           ipfsData: '',
         },
         poolAllocationRequest,
-        {
-          value: expectedPremium,
-        },
+        { value: expectedPremium },
       ),
     ).to.be.revertedWithCustomError(cover, 'SendingEthToCommissionDestinationFailed');
   });
@@ -1296,9 +1333,7 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       poolAllocationRequest,
-      {
-        value: expectedPremium,
-      },
+      { value: expectedPremium },
     );
 
     await cover.connect(coverBuyer2).buyCover(
@@ -1316,9 +1351,7 @@ describe('buyCover', function () {
         ipfsData: '',
       },
       poolAllocationRequest,
-      {
-        value: expectedPremium,
-      },
+      { value: expectedPremium },
     );
 
     const globalRewardsRatio = await cover.globalRewardsRatio();

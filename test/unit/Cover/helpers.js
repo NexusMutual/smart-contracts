@@ -109,7 +109,7 @@ async function buyCoverOnMultiplePools({
       ipfsData: '',
     },
     allocationRequest,
-    { value: expectedPremium },
+    { value: coverAsset === 0 ? expectedPremium : 0 },
   );
 
   const { events } = await tx.wait();

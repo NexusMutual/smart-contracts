@@ -42,6 +42,11 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
 
   Incident[] public override incidents;
 
+  /* ========== CONSTANTS ========== */
+
+  address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+  uint constant public ETH_ASSET_ID = 0;
+
   /* ========== CONSTRUCTOR ========== */
 
   constructor(address nxmAddress, address coverNFTAddress) {
@@ -252,12 +257,23 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
 
       // Calculate the payout amount
       {
-        uint deductiblePriceBefore = uint(incident.priceBefore) *
-          uint(config.payoutDeductibleRatio) / INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
-        (,uint coverAssetDecimals) = IPool(
-          internalContracts[uint(IMasterAwareV2.ID.P1)]
-        ).coverAssets(coverData.coverAsset);
-        payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** uint(coverAssetDecimals));
+        uint deductiblePriceBefore =
+          uint(incident.priceBefore)
+          * config.payoutDeductibleRatio
+          / INCIDENT_PAYOUT_DEDUCTIBLE_DENOMINATOR;
+
+        uint coverAssetDecimals;
+
+        // ETH doesn't have a price feed oracle
+        if (coverData.coverAsset == ETH_ASSET_ID) {
+          coverAssetDecimals = 18;
+        } else {
+          IPool _pool = pool();
+          address assetAddress = _pool.getAsset(coverData.coverAsset).assetAddress;
+          (/* aggregator */, coverAssetDecimals) = _pool.priceFeedOracle().assets(assetAddress);
+        }
+
+        payoutAmount = depeggedTokens * deductiblePriceBefore / (10 ** coverAssetDecimals);
       }
 
       require(payoutAmount <= coverSegment.amount, "Payout exceeds covered amount");
@@ -344,6 +360,10 @@ contract YieldTokenIncidents is IYieldTokenIncidents, MasterAwareV2 {
       }
     }
     config = newConfig;
+  }
+
+  function pool() internal view returns (IPool) {
+    return IPool(internalContracts[uint(ID.P1)]);
   }
 
   /// @dev Updates internal contract addresses to the ones stored in master. This function is

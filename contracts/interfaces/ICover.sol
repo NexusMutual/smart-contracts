@@ -151,8 +151,6 @@ interface ICover {
 
   function productTypes(uint id) external view returns (ProductType memory);
 
-  function isAssetSupported(uint32 coverAssetsBitMap, uint8 coverAsset) external view returns (bool);
-
   function stakingPool(uint index) external view returns (IStakingPool);
 
   function productsCount() external view returns (uint);
@@ -242,10 +240,11 @@ interface ICover {
   error UnexpectedProductId();
 
   // Cover and payment assets
-  error PayoutAssetNotSupported();
-  error PaymentAssetDeprecated();
+  error CoverAssetNotSupported();
+  error InvalidPaymentAsset();
   error UnexpectedCoverAsset();
   error UnsupportedCoverAssets();
+  error UnexpectedEthSent();
 
   // Price & Commission
   error PriceExceedsMaxPremiumInAsset();

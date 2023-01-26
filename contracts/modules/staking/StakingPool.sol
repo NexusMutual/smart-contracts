@@ -213,7 +213,7 @@ contract StakingPool is IStakingPool, Multicall {
 
     _setInitialProducts(params);
 
-    emit PoolDescriptionSet(poolId, ipfsDescriptionHash);
+    emit PoolDescriptionSet(ipfsDescriptionHash);
   }
 
   // updateUntilCurrentTimestamp forces rewards update until current timestamp not just until
@@ -1225,6 +1225,8 @@ contract StakingPool is IStakingPool, Multicall {
 
     // sstore
     activeStake = (initialStake - burnAmount).toUint96();
+
+    emit StakeBurned(burnAmount);
   }
 
   /* views */
@@ -1374,6 +1376,13 @@ contract StakingPool is IStakingPool, Multicall {
 
       // sstore
       products[_param.productId] = _product;
+
+      emit ProductUpdated(
+        _param.productId,
+        _product.targetWeight,
+        _product.bumpedPrice,
+        _product.targetPrice
+      );
     }
 
     if (_totalTargetWeight > MAX_TOTAL_WEIGHT) {
@@ -1489,7 +1498,7 @@ contract StakingPool is IStakingPool, Multicall {
   }
 
   function setPoolDescription(string memory ipfsDescriptionHash) external onlyManager {
-    emit PoolDescriptionSet(poolId, ipfsDescriptionHash);(poolId, ipfsDescriptionHash);
+    emit PoolDescriptionSet(ipfsDescriptionHash);
   }
 
   /* pricing code */

@@ -129,9 +129,13 @@ interface IStakingPool {
 
   event PoolFeeChanged(address indexed manager, uint newFee);
 
-  event PoolDescriptionSet(uint poolId, string ipfsDescriptionHash);
+  event PoolDescriptionSet(string ipfsDescriptionHash);
 
-  event Withdraw(address indexed src, uint indexed tokenId, uint tranche, uint amountStakeWithdrawn, uint amountRewardsWithdrawn);
+  event Withdraw(address indexed user, uint indexed tokenId, uint tranche, uint amountStakeWithdrawn, uint amountRewardsWithdrawn);
+
+  event StakeBurned(uint amount);
+
+  event ProductUpdated(uint productId, uint8 weight, uint96 bumpedPrice, uint96 targetPrice);
 
   // Auth
   error OnlyCoverContract();

@@ -379,11 +379,11 @@ describe('initialize', function () {
         .initialize(manager.address, isPrivatePool, initialPoolFee, maxPoolFee, [], poolId, ipfsDescriptionHash),
     )
       .to.emit(stakingPool, 'PoolDescriptionSet')
-      .withArgs(poolId, ipfsDescriptionHash);
+      .withArgs(ipfsDescriptionHash);
 
     await expect(stakingPool.connect(manager).setPoolDescription('newIPFSHash'))
       .to.emit(stakingPool, 'PoolDescriptionSet')
-      .withArgs(poolId, 'newIPFSHash');
+      .withArgs('newIPFSHash');
 
     await expect(stakingPool.connect(nonManager).setPoolDescription('newIPFSHash')).to.be.revertedWithCustomError(
       stakingPool,

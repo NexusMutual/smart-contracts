@@ -52,6 +52,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
   /* constants */
 
   address constant ARMOR = 0x1337DEF1FC06783D4b03CB8C1Bf3EBf7D0593FC4;
+  address constant ARMOR_MANAGER = 0xFa760444A229e78A50Ca9b3779f4ce4CcE10E170;
   address constant HUGH = 0x87B2a7559d85f4653f13E6546A14189cd5455d45;
   address constant NEXUS_FOUNDATION = 0x963Df0066ff8345922dF88eebeb1095BE4e4e12E;
   address constant ITRUST = 0x46de0C6F149BE3885f28e54bb4d302Cb2C505bC2;
@@ -1306,38 +1307,107 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     }
   }
 
-  function migrateToNewV2Pool(MigrationData memory migrationData) external noPendingActions {
+
+  struct StakingPoolMigrationData {
+    uint initialPoolFee;
+    uint maxPoolFee;
+    uint[TRANCHE_COUNT] stakerTrancheRatios;
+    uint deposit;
+    address stakerAddress;
+    bool isPrivatePool;
+    string ipfsDescriptionHash;
+    address managerAddress;
+  }
+
+  function migrateToNewV2Pool(address stakerAddress) external noPendingActions {
 
     // Addresses marked for implicit migration can be migrated by anyone.
     // Addresses who are not can only be migrated by calling this function themselves.
     require(
-      migrationData.stakerAddress == ARMOR || // Armor
-      migrationData.stakerAddress == HUGH || // Hugh
-      migrationData.stakerAddress == NEXUS_FOUNDATION || // Foundation
-      migrationData.stakerAddress == ITRUST, // iTrust
+      stakerAddress == ARMOR || // Armor
+      stakerAddress == HUGH || // Hugh
+      // stakerAddress == ITRUST || // iTrust
+      stakerAddress == NEXUS_FOUNDATION, // Foundation
+
       "You are not authorized to migrate this staker"
     );
 
     // ratios have no decimal points. eg 5 is 5%
     uint[TRANCHE_COUNT] memory stakerTrancheRatios;
-    uint unlockableRatio = 0;
 
-    if (migrationData.stakerAddress == HUGH) {
+
+    (ProductInitializationParams[] memory params, uint deposit) = getStakerConfig(stakerAddress);
+
+    if (stakerAddress == HUGH) {
       stakerTrancheRatios = [uint256(0), 10, 0, 0, 0, 90, 0, 0];
-    } else if (migrationData.stakerAddress == ARMOR) {
+
+      migrateToPool(
+        StakingPoolMigrationData(
+         10, // initialPoolFee
+         20, // maxPoolFee
+         stakerTrancheRatios,
+         deposit,
+         HUGH,
+         false, // isPrivatePool
+         '', // ipfsDescriptionHash
+         HUGH // managerAddress
+        ),
+        params
+      );
+    } else if (stakerAddress == ARMOR) {
       stakerTrancheRatios = [uint256(20), 25, 25, 15, 10, 0, 0, 0];
-      unlockableRatio = 5;
-      } else if (migrationData.stakerAddress == NEXUS_FOUNDATION) {
+
+      uint aaaLowRiskPoolDeposit = 75 * deposit / 100;
+      uint maxFee = 25;
+      uint initialFee = 15;
+      migrateToPool(
+        StakingPoolMigrationData(
+          initialFee,
+          maxFee,
+          stakerTrancheRatios,
+          aaaLowRiskPoolDeposit,
+          ARMOR,
+          false, // isPrivatePool
+          '', // ipfsDescriptionHash
+          ARMOR_MANAGER // managerAddress
+        ),
+        params
+      );
+      uint aaRiskPoolDeposit = deposit - aaaLowRiskPoolDeposit;
+
+      migrateToPool(
+        StakingPoolMigrationData(
+          initialFee,
+          maxFee,
+          stakerTrancheRatios,
+          aaRiskPoolDeposit,
+          ARMOR,
+          false, // isPrivatePool
+          '', // ipfsDescriptionHash
+          ARMOR_MANAGER // managerAddress
+        ),
+        params
+      );
+
+    } else if (stakerAddress == NEXUS_FOUNDATION) {
       stakerTrancheRatios = [uint256(0), 25, 0, 25, 0, 50, 0, 0];
-    } else if (migrationData.stakerAddress == ITRUST) {
-      // TODO: specify for iTrust
-      stakerTrancheRatios = [uint256(0), 0, 0, 0, 0, 0, 0, 0];
-      unlockableRatio = 100;
+
+      migrateToPool(
+        StakingPoolMigrationData(
+          10, // initialPoolFee
+          20, // maxPoolFee
+          stakerTrancheRatios,
+          deposit,
+          NEXUS_FOUNDATION,
+          true, // isPrivatePool
+          '', // ipfsDescriptionHash
+          NEXUS_FOUNDATION // managerAddress
+        ),
+        params
+      );
     } else {
       revert("Usupported migrateable staker");
     }
-
-    (ProductInitializationParams[] memory params, uint deposit) = getStakerConfig(migrationData.stakerAddress);
 
     // Use the trancheId provided as a parameter if the user is migrating to v2 himself
     // Use next id after the first active group id for those in the initial migration list
@@ -1345,6 +1415,36 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 //      ? migrationData.trancheId
 //      : block.timestamp / 91 days + 1; // GROUP_SIZE = 91 days;
 
+//    ( /* uint stakingPoolId */, address stakingPoolAddress) = cover.createStakingPool(
+//      migrationData.stakerAddress,
+//      migrationData.isPrivatePool,
+//      migrationData.initialPoolFee,
+//      migrationData.maxPoolFee,
+//      params,
+//      migrationData.ipfsDescriptionHash
+//    );
+//
+//    token().approve(address(tokenController()), deposit);
+//
+//    uint firstTrancheId = block.timestamp / 91 days + 1;
+//    for (uint i = 0; i < TRANCHE_COUNT; i++) {
+//
+//      uint trancheDeposit = deposit * stakerTrancheRatios[i] / 100;
+//      IStakingPool(stakingPoolAddress).depositTo(
+//        trancheDeposit,
+//        firstTrancheId + i,
+//        type(uint).max,
+//        migrationData.managerAddress
+//      );
+//    }
+
+  }
+
+
+  function migrateToPool(
+    StakingPoolMigrationData memory migrationData,
+    ProductInitializationParams[] memory params
+  ) internal {
     ( /* uint stakingPoolId */, address stakingPoolAddress) = cover.createStakingPool(
       migrationData.stakerAddress,
       migrationData.isPrivatePool,
@@ -1354,12 +1454,12 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       migrationData.ipfsDescriptionHash
     );
 
-    token().approve(address(tokenController()), deposit);
+    token().approve(address(tokenController()), migrationData.deposit);
 
     uint firstTrancheId = block.timestamp / 91 days + 1;
     for (uint i = 0; i < TRANCHE_COUNT; i++) {
 
-      uint trancheDeposit = deposit * stakerTrancheRatios[i] / 100;
+      uint trancheDeposit = migrationData.deposit * migrationData.stakerTrancheRatios[i] / 100;
       IStakingPool(stakingPoolAddress).depositTo(
         trancheDeposit,
         firstTrancheId + i,
@@ -1367,7 +1467,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
         migrationData.managerAddress
       );
     }
-
   }
 
   function migrateToExistingV2Pool(IStakingPool stakingPool, uint trancheId) external {

@@ -1377,12 +1377,7 @@ contract StakingPool is IStakingPool, Multicall {
       // sstore
       products[_param.productId] = _product;
 
-      emit ProductUpdated(
-        _param.productId,
-        _product.targetWeight,
-        _product.bumpedPrice,
-        _product.targetPrice
-      );
+      emit ProductUpdated(_param.productId, _param.targetWeight, _param.targetPrice);
     }
 
     if (_totalTargetWeight > MAX_TOTAL_WEIGHT) {

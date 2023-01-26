@@ -135,7 +135,7 @@ interface IStakingPool {
 
   event StakeBurned(uint amount);
 
-  event ProductUpdated(uint productId, uint8 weight, uint96 bumpedPrice, uint96 targetPrice);
+  event ProductUpdated(uint productId, uint8 targetWeight, uint96 targetPrice);
 
   // Auth
   error OnlyCoverContract();

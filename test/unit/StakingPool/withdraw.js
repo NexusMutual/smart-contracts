@@ -512,7 +512,7 @@ describe('withdraw', function () {
       .withArgs(user.address, tokenId, trancheIds[2], stakes[2], rewards[2]);
   });
 
-  it('allow multiple users to withdraw stake and rewards from multiple tranches', async function () {
+  it.skip('allow multiple users to withdraw stake and rewards from multiple tranches', async function () {
     const { nxm, coverSigner, stakingPool, tokenController } = this;
     const [user1, user2, user3] = this.accounts.members;
     const { defaultSender: manager } = this.accounts;

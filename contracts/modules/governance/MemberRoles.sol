@@ -262,7 +262,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     _switchMembership(member, newAddress);
   }
 
-  function storageCleanup() external {
+  function storageCleanup(address[] memory payoutAddresses) external {
     _unused0 = 0x0000000000000000000000000000000000000000;
     _unused1 = 0x0000000000000000000000000000000000000000;
     _unused2 = false;
@@ -271,6 +271,10 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     _unused6 = 0x0000000000000000000000000000000000000000;
     _unused7 = 0x0000000000000000000000000000000000000000;
     _unused8 = 0x0000000000000000000000000000000000000000;
+
+    for (uint i = 0; i < payoutAddresses.length; i++) {
+      delete _unused3[payoutAddresses[i]];
+    }
   }
 
   function isMember(address member) public view returns (bool) {

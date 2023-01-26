@@ -9,7 +9,7 @@ const evm = require('./evm')();
 
 const { BigNumber } = ethers;
 const { AddressZero } = ethers.constants;
-const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes } = ethers.utils;
+const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
 
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
 const getProductsV1 = require('../../scripts/get-products-v1');
@@ -41,12 +41,14 @@ const MIN_POOL_ETH = 0;
 
 const VERSION_DATA_URL = 'https://api.nexusmutual.io/version-data/data.json';
 
+const MEMBER_ADDRESS = '0xd7cba5b9a0240770cfd9671961dae064136fa240';
+const CLAIM_PAYABLE_ADDRESS = '0x748E712663510Bb417c1aBb1bca3d817447f118c';
+
 const getSigner = async address => {
   const provider =
     network.name !== 'hardhat' // ethers errors out when using non-local accounts
       ? new ethers.providers.JsonRpcProvider(network.config.url)
       : ethers.provider;
-
   return provider.getSigner(address);
 };
 
@@ -344,7 +346,6 @@ describe('v2 migration', function () {
     const coverInitializer = await CoverInitializer.deploy();
     await coverInitializer.deployed();
 
-    console.log(PROPOSAL_CATEGORIES.newContracts);
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
       defaultAbiCoder.encode(
@@ -361,6 +362,16 @@ describe('v2 migration', function () {
     const storedMaster = await cover.master();
 
     expect(storedMaster).to.be.equal(this.master.address);
+  });
+
+  it('add new claim payout address to member roles', async function () {
+    await evm.impersonate(MEMBER_ADDRESS);
+    await evm.setBalance(MEMBER_ADDRESS, parseEther('1000'));
+    const member = await getSigner(MEMBER_ADDRESS);
+    await this.memberRoles.connect(member).setClaimPayoutAddress(CLAIM_PAYABLE_ADDRESS);
+
+    const claimPayableAddressAfter = await this.memberRoles.getClaimPayoutAddress(MEMBER_ADDRESS);
+    expect(claimPayableAddressAfter).to.be.equal(getAddress(CLAIM_PAYABLE_ADDRESS));
   });
 
   it('deploy master contract', async function () {
@@ -526,6 +537,24 @@ describe('v2 migration', function () {
     this.gateway = await ethers.getContractAt('LegacyGateway', gatewayAddress);
   });
 
+  it('do memberRoles storageCleanup', async function () {
+    const claimPayableAddressSlot = 15;
+    const paddedSlot = hexZeroPad(claimPayableAddressSlot, 32);
+    const paddedKey = hexZeroPad(MEMBER_ADDRESS, 32);
+    const slot = keccak256(paddedKey + paddedSlot.slice(2));
+
+    const storageValueBefore = await ethers.provider.getStorageAt(this.memberRoles.address, slot);
+    const [claimPayableAddressBefore] = defaultAbiCoder.decode(['address'], storageValueBefore);
+
+    expect(claimPayableAddressBefore).to.be.equal(CLAIM_PAYABLE_ADDRESS);
+
+    await this.memberRoles.storageCleanup(['0xd7cba5b9a0240770cfd9671961dae064136fa240']);
+
+    const storageValueAfter = await ethers.provider.getStorageAt(this.memberRoles.address, slot);
+    const [claimPayableAddressAfter] = defaultAbiCoder.decode(['address'], storageValueAfter);
+    expect(claimPayableAddressAfter).to.be.equal(AddressZero);
+  });
+
   it.skip('deploy staking pool', async function () {
     const StakingPool = await ethers.getContractFactory('StakingPool');
     const stakingPool = await StakingPool.deploy(
@@ -677,7 +706,6 @@ describe('v2 migration', function () {
     const assessment = await Assessment.deploy(this.nxm.address);
     await assessment.deployed();
 
-    console.log(PROPOSAL_CATEGORIES.newContracts);
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
       defaultAbiCoder.encode(

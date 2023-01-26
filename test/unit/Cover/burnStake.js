@@ -68,22 +68,6 @@ describe('burnStake', function () {
     );
   });
 
-  it.skip('does not update total active cover if tracking is not enabled', async function () {
-    const { cover } = this;
-    const [internal] = this.accounts.internalContracts;
-    const { coverAsset, amount } = coverBuyFixture;
-    const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
-
-    const burnAmountDivisor = 2;
-    const burnAmount = amount.div(burnAmountDivisor);
-
-    const activeCoverAmountBefore = await cover.totalActiveCoverInAsset(coverAsset);
-    await cover.connect(internal).burnStake(expectedCoverId, segmentId, burnAmount);
-    const activeCoverAmountAfter = await cover.totalActiveCoverInAsset(coverAsset);
-
-    expect(activeCoverAmountAfter).to.be.equal(activeCoverAmountBefore);
-  });
-
   it('updates segment allocation cover amount in nxm', async function () {
     const { cover } = this;
     const [internal] = this.accounts.internalContracts;

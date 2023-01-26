@@ -153,9 +153,9 @@ async function setup() {
 
   await master.setEmergencyAdmin(accounts.emergencyAdmin.address);
 
+  await cover.initialize();
   const capacityFactor = '20000';
   const coverAssetsFallback = 0b111; // ETH, DAI and USDC
-
   await cover
     .connect(accounts.governanceContracts[0])
     .updateUintParameters([0, 2], [capacityFactor, coverAssetsFallback]);
@@ -203,8 +203,11 @@ async function setup() {
     },
   ]);
 
-  const GLOBAL_MIN_PRICE_RATIO = await cover.GLOBAL_MIN_PRICE_RATIO();
-  const MAX_COMMISSION_RATIO = await cover.MAX_COMMISSION_RATIO();
+  const [GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE, MAX_COMMISSION_RATIO] = await Promise.all([
+    cover.GLOBAL_MIN_PRICE_RATIO(),
+    cover.BUCKET_SIZE(),
+    cover.MAX_COMMISSION_RATIO(),
+  ]);
 
   this.master = master;
   this.pool = pool;
@@ -220,7 +223,7 @@ async function setup() {
   this.capacityFactor = capacityFactor;
   this.stakingPoolImplementation = stakingPoolImplementation;
   this.stakingPoolFactory = stakingPoolFactory;
-  this.config = { GLOBAL_MIN_PRICE_RATIO, MAX_COMMISSION_RATIO };
+  this.config = { GLOBAL_MIN_PRICE_RATIO, BUCKET_SIZE, MAX_COMMISSION_RATIO };
 }
 
 module.exports = setup;

@@ -553,7 +553,11 @@ async function setup() {
 
     this.contracts['stakingPool' + i] = stakingPoolInstance;
   }
+  const config = {
+    BUCKET_SIZE: await cover.BUCKET_SIZE(),
+  };
 
+  this.config = config;
   this.accounts = ethersAccounts;
   this.DEFAULT_PRODUCTS = DEFAULT_PRODUCTS;
 }

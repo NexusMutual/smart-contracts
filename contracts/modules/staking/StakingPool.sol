@@ -40,6 +40,7 @@ contract StakingPool is IStakingPool, Multicall {
   // slot 2
   // accumulated rewarded nxm per reward share
   uint96 public accNxmPerRewardsShare;
+
   // currently active staked nxm amount
   uint96 public activeStake;
 
@@ -61,10 +62,14 @@ contract StakingPool is IStakingPool, Multicall {
   uint8 public poolFee;
   uint8 public maxPoolFee;
 
-  // slot 4 (40 bytes left in slot 3)
+  // 40 bytes left in slot 3
+
+  // slot 4
   address public manager;
   uint32 public totalEffectiveWeight;
   uint32 public totalTargetWeight;
+
+  // 32 bytes left in slot 4
 
   // tranche id => tranche data
   mapping(uint => Tranche) public tranches;
@@ -306,7 +311,7 @@ contract StakingPool is IStakingPool, Multicall {
         expiredTranches[_firstActiveTrancheId] = ExpiredTranche(
           _accNxmPerRewardsShare.toUint96(), // accNxmPerRewardShareAtExpiry
           _activeStake.toUint96(), // stakeAmountAtExpiry
-          _stakeSharesSupply // stakeShareSupplyAtExpiry
+          _stakeSharesSupply.toUint128() // stakeSharesSupplyAtExpiry
         );
 
         // SLOAD and then SSTORE zero to get the gas refund
@@ -317,6 +322,7 @@ contract StakingPool is IStakingPool, Multicall {
         uint expiredStake = _stakeSharesSupply != 0
           ? (_activeStake * expiringTranche.stakeShares) / _stakeSharesSupply
           : 0;
+
         _activeStake -= expiredStake;
         _stakeSharesSupply -= expiringTranche.stakeShares;
         _rewardsSharesSupply -= expiringTranche.rewardsShares;

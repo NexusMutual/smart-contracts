@@ -4,17 +4,11 @@ const ipfsClient = require('ipfs-http-client');
 const fs = require('fs');
 const path = require('path');
 
-const { AddressZero, MaxUint256 } = ethers.constants;
+const { MaxUint256 } = ethers.constants;
 
 const claimMethod = {
   individualClaim: 0,
   yieldTokenIncidents: 1,
-};
-
-const productType = {
-  protocol: 0,
-  custodian: 1,
-  token: 2,
 };
 
 const sleep = ms => {

@@ -1155,7 +1155,7 @@ describe('submitClaim', function () {
 
     const coverSegmentAllocation = await cover.coverSegmentAllocations(coverId, 0, 0);
 
-    const ethTokenPrice = await p1.getTokenPrice(0);
+    const ethTokenPrice = await p1.getTokenPriceInAsset(0);
 
     const expectedPremium = BigNumber.from(previousCoverSegmentAllocation.premiumInNXM)
       .mul(remainingPeriod)

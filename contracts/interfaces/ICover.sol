@@ -74,6 +74,15 @@ struct ProductTypeParam {
   ProductType productType;
 }
 
+struct PoolInitializationParams {
+  uint poolId;
+  address manager;
+  bool isPrivatePool;
+  uint initialPoolFee;
+  uint maxPoolFee;
+  uint globalMinPriceRatio;
+}
+
 /* storage structs */
 
 struct PoolAllocation {
@@ -117,15 +126,6 @@ struct Product {
 struct ProductType {
   uint8 claimMethod;
   uint32 gracePeriod;
-}
-
-struct PoolInitializationParams {
-  uint poolId;
-  address manager;
-  bool isPrivatePool;
-  uint initialPoolFee;
-  uint maxPoolFee;
-  uint globalMinPriceRatio;
 }
 
 struct ActiveCover {

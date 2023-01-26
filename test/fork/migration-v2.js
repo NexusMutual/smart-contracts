@@ -503,6 +503,7 @@ describe('v2 migration', function () {
       this.swapOperator.address,
       DAI_ADDRESS,
       STETH_ADDRESS,
+      ENZYMEV4_VAULT_PROXY_ADDRESS,
     );
     await pool.deployed();
 
@@ -602,10 +603,6 @@ describe('v2 migration', function () {
     const storedGlobalRewardsRatio = await this.cover.globalRewardsRatio();
 
     expect(storedGlobalRewardsRatio).to.be.equal(5000); // 50%
-
-    const storedCoverAssetsFallback = await this.cover.coverAssetsFallback();
-
-    expect(storedCoverAssetsFallback).to.be.equal(0b11);
   });
 
   it('block V1 staking', async function () {

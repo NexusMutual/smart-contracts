@@ -1392,15 +1392,16 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       );
 
     } else if (stakerAddress == NEXUS_FOUNDATION) {
-      
+
       stakerTrancheRatios = [uint256(0), 0, 0, 0, 0, 0, 0, 0];
       // TODO: when switching the StakingPool manager is supported, simply make LegacyPooledStaking the manager
       // make the deposits and then switch the manager to the foundation
-      stakerTrancheRatios = [uint256(0), 25, 0, 25, 0, 50, 0, 0];
+      // stakerTrancheRatios = [uint256(0), 25, 0, 25, 0, 50, 0, 0];
 
+      // TODO: waiting for final value for maxPoolFee
       migrateToPool(
         StakingPoolMigrationData(
-          10, // initialPoolFee
+          0, // initialPoolFee
           20, // maxPoolFee
           stakerTrancheRatios,
           deposit,

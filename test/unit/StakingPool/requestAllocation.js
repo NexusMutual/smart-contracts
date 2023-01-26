@@ -100,7 +100,7 @@ const product3 = {
 };
 
 describe('requestAllocation', function () {
-  const trancheOffset = 4;
+  const trancheOffset = 5;
   beforeEach(async function () {
     const { stakingPool, cover } = this;
     const { defaultSender: manager } = this.accounts;

@@ -603,33 +603,22 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     for (uint i = 0; i < allocationCount; i++) {
       PoolAllocation memory allocation = allocations[i];
 
-      BurnStakeVariables memory vars = BurnStakeVariables(0, 0);
-
-      vars.payoutAmountInNXM = allocation.coverAmountInNXM * payoutAmountInAsset / segment.amount;
-      allocations[i].coverAmountInNXM -= SafeUintCast.toUint96(vars.payoutAmountInNXM);
+      uint payoutAmountInNXM = allocation.coverAmountInNXM * payoutAmountInAsset / segment.amount;
+      allocations[i].coverAmountInNXM -= SafeUintCast.toUint96(payoutAmountInNXM);
       allocations[i].premiumInNXM -= SafeUintCast.toUint96(allocations[i].premiumInNXM * payoutAmountInAsset / segment.amount);
-
-      vars.burnAmountInNxm = vars.payoutAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / segment.globalCapacityRatio;
+      uint burnAmountInNxm = payoutAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / segment.globalCapacityRatio;
 
       Product memory product = _products[cover.productId];
 
-      AllocationRequest memory allocationRequest = AllocationRequest(
-        cover.productId,
-        coverId,
+      BurnStakeParams memory params = BurnStakeParams(
         allocation.allocationId,
-        segment.period,
-        segment.gracePeriod,
-        product.useFixedPrice,
+        cover.productId,
         segment.start,
-        segment.start + segment.period,
-        segment.globalRewardsRatio,
-        segment.globalCapacityRatio,
-        product.capacityReductionRatio,
-        segment.globalRewardsRatio,
-        GLOBAL_MIN_PRICE_RATIO
+        segment.period,
+        payoutAmountInNXM
       );
       
-      stakingPool(i).burnStake(vars.burnAmountInNxm, allocations[i].coverAmountInNXM, allocationRequest);
+      stakingPool(i).burnStake(burnAmountInNxm, params);
     }
 
     return coverNFT.ownerOf(coverId);

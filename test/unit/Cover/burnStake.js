@@ -216,7 +216,7 @@ describe('burnStake', function () {
   it('call stakingPool with correct parameters', async function () {
     const { cover } = this;
     const [internal] = this.accounts.internalContracts;
-    const { amount } = coverBuyFixture;
+    const { amount, productId } = coverBuyFixture;
     const { segmentId, coverId: expectedCoverId } = await buyCoverOnOnePool.call(this, coverBuyFixture);
 
     const burnAmountDivisor = 2;
@@ -236,13 +236,12 @@ describe('burnStake', function () {
     const burnStakeCalledWithAmount = await stakingPool.burnStakeCalledWithAmount();
     expect(burnStakeCalledWithAmount).to.be.equal(expectedBurnAmount);
 
-    const burnStakeCalledWithCoverAmount = await stakingPool.burnStakeCalledWithCoverAmount();
-    expect(burnStakeCalledWithCoverAmount).to.be.equal(segmentAllocation.coverAmountInNXM.sub(payoutAmountInNXM));
-
-    const burnStakeCalledWithRequest = await stakingPool.burnStakeCalledWithRequest();
-    expect(burnStakeCalledWithRequest.coverId).to.be.equal(expectedCoverId);
-    expect(burnStakeCalledWithRequest.period).to.be.equal(segment.period);
-    expect(burnStakeCalledWithRequest.previousStart).to.be.equal(segment.start);
-    expect(burnStakeCalledWithRequest.previousExpiration).to.be.equal(segment.start + segment.period);
+    const allocationId = 0;
+    const burnStakeCalledWithParams = await stakingPool.burnStakeCalledWithParams();
+    expect(burnStakeCalledWithParams.allocationId).to.be.equal(allocationId);
+    expect(burnStakeCalledWithParams.period).to.be.equal(segment.period);
+    expect(burnStakeCalledWithParams.start).to.be.equal(segment.start);
+    expect(burnStakeCalledWithParams.productId).to.be.equal(productId);
+    expect(burnStakeCalledWithParams.deallocationAmount).to.be.equal(payoutAmountInNXM);
   });
 });

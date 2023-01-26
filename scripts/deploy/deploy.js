@@ -72,6 +72,11 @@ const CHAINLINK_ETH_USD = {
   rinkeby: '0x0000000000000000000000000000000000000000', // missing
 };
 
+const CHAINLINK_ENZYME_VAULT = {
+  mainnet: '0xCc72039A141c6e34a779eF93AEF5eB4C82A893c7',
+  rinkeby: '0x0000000000000000000000000000000000000000', // missing
+};
+
 async function main() {
   // Remove verbose logs
   // await network.provider.send('hardhat_setLoggingEnabled', [false]);
@@ -137,6 +142,13 @@ async function main() {
     'contracts/mocks/Tokens/ERC20MintableDetailed.sol:ERC20MintableDetailed',
     ['stETH Mock', 'stETH', 18],
     { alias: 'stETH', abiFilename: 'ERC20' },
+  );
+
+  console.log('Deploying Enzyme Vault');
+  const enzymeVault = await deployImmutable(
+    'contracts/mocks/Tokens/ERC20MintableDetailed.sol:ERC20MintableDetailed',
+    ['enzymeVault Mock', 'enzymeVault', 18],
+    { alias: 'enzymeVault', abiFilename: 'ERC20' },
   );
 
   console.log('Deploying disposable NXMaster');
@@ -258,6 +270,16 @@ async function main() {
     CHAINLINK_STETH_ETH[network.name] = chainlinkStEthMock.address;
   }
 
+  if (typeof CHAINLINK_ENZYME_VAULT[network.name] === 'undefined') {
+    console.log('Deploying chainlink enzyme vault aggregator');
+    const chainlinkEnzymeVaultMock = await deployImmutable('ChainlinkAggregatorMock', [], {
+      alias: 'Chainlink-ENZYME-VAULT',
+      abiFilename: 'EACAggregatorProxy',
+    });
+    await chainlinkEnzymeVaultMock.setLatestAnswer(parseEther('1.003')); // almost 1:1
+    CHAINLINK_ENZYME_VAULT[network.name] = chainlinkEnzymeVaultMock.address;
+  }
+
   // only used by frontend
   if (typeof CHAINLINK_ETH_USD[network.name] === 'undefined') {
     console.log('Deploying chainlink eth-usd aggregator');
@@ -271,9 +293,9 @@ async function main() {
 
   console.log('Deploying PriceFeedOracle');
   const priceFeedOracle = await deployImmutable('PriceFeedOracle', [
-    [dai.address, stETH.address],
-    [CHAINLINK_DAI_ETH[network.name], CHAINLINK_STETH_ETH[network.name]],
-    [18, 18],
+    [dai.address, stETH.address, enzymeVault.address],
+    [CHAINLINK_DAI_ETH[network.name], CHAINLINK_STETH_ETH[network.name], CHAINLINK_ENZYME_VAULT[network.name]],
+    [18, 18, 18],
   ]);
 
   console.log('Deploying disposable MCR');
@@ -294,7 +316,7 @@ async function main() {
   await disposableMCR.initializeNextMcr(mcr.address, master.address);
 
   console.log('Deploying Pool');
-  const poolParameters = [master, priceFeedOracle, swapOperator, dai, stETH].map(x => x.address);
+  const poolParameters = [master, priceFeedOracle, swapOperator, dai, stETH, enzymeVault].map(x => x.address);
   const pool = await deployImmutable('Pool', poolParameters);
 
   console.log('Minting DAI to Pool');
@@ -409,9 +431,6 @@ async function main() {
       allowedPools: [],
     };
   });
-  // 0b01 for eth and 0b10 for dai
-  const coverAssetsFallback = 0b11;
-  await cover.setCoverAssetsFallback(coverAssetsFallback);
 
   console.log('Setting Cover products.');
   await cover.setProducts(addProductsParams);

@@ -721,43 +721,86 @@ describe('v2 migration', function () {
     const NEXUSMUTUAL_FOUNDATION = '0x963df0066ff8345922df88eebeb1095be4e4e12e';
     const HUGH = '0x87b2a7559d85f4653f13e6546a14189cd5455d45';
     const ITRUST = '0x46de0c6f149be3885f28e54bb4d302cb2c505bc2';
-    const topStakers = [ARMOR_NFT, NEXUSMUTUAL_FOUNDATION, HUGH, ITRUST];
+    const topStakers = [ARMOR_NFT, NEXUSMUTUAL_FOUNDATION, HUGH];
 
     const { timestamp } = await ethers.provider.getBlock('latest');
     const trancheId = calculateTrancheId(timestamp, 3600 * 24 * 30, 3600 * 24 * 30);
 
-    const depositAmounts = await Promise.all(
+    const depositAmounts = {};
+    await Promise.all(
       topStakers.map(async staker => {
         const deposit = await this.pooledStaking.stakerDeposit(staker);
         console.log(`Staker ${staker} deposit = ${deposit.toString()}`);
-        return deposit;
+        depositAmounts[staker] = deposit;
       }),
     );
 
-    const DEFAULT_POOL_FEE = '5';
-    const txs = await Promise.all(
-      topStakers.map(stakerAddress =>
-        this.pooledStaking.migrateToNewV2Pool({
-          stakerAddress,
-          trancheId: trancheId + 1,
-          ipfsDescriptionHash: '',
-          isPrivatePool: false,
-          initialPoolFee: DEFAULT_POOL_FEE,
-          maxPoolFee: DEFAULT_POOL_FEE,
-          managerAddress: stakerAddress,
-        }),
-      ),
+    const nxmBalancesBefore = {};
+    await Promise.all(
+      topStakers.map(async staker => {
+        nxmBalancesBefore[staker] = await this.nxm.balanceOf(staker);
+      }),
     );
-    // await Promise.all(txs.map(x => x.wait()));
+
+    for (const staker of topStakers) {
+      await this.pooledStaking.migrateToNewV2Pool(staker);
+    }
 
     const stakingPoolCount = await this.stakingPoolFactory.stakingPoolCount();
-    expect(stakingPoolCount).to.be.equal(topStakers.length);
 
-    const poolId = 0;
-    for (const staker of topStakers) {
-      const { deposits } = await this.tokenController.stakingPoolNXMBalances(poolId);
-      expect(deposits).to.be.equal(depositAmounts[poolId]);
-    }
+    // Armor has 2 pools therefore +1
+    expect(stakingPoolCount).to.be.equal(topStakers.length + 1);
+
+    const armorPool0Id = 0;
+    const armorPool1Id = 1;
+    const nexusFoundationPoolId = 2;
+    const hughPoolId = 3;
+    const { deposits: armorPool0Balance } = await this.tokenController.stakingPoolNXMBalances(armorPool0Id);
+    const expectedArmorPool0Balance = depositAmounts[ARMOR_NFT].mul(75).div(100).mul(95).div(100);
+    expect(armorPool0Balance.div(10)).to.be.equal(expectedArmorPool0Balance.div(10));
+
+    const { deposits: armorPool1Balance } = await this.tokenController.stakingPoolNXMBalances(armorPool1Id);
+    const expectedArmorPool1Balance = depositAmounts[ARMOR_NFT].mul(25).div(100).mul(95).div(100);
+    expect(armorPool1Balance.div(10)).to.be.equal(expectedArmorPool1Balance.div(10));
+
+    const { deposits: nexusFoundationBalance } = await this.tokenController.stakingPoolNXMBalances(
+      nexusFoundationPoolId,
+    );
+    expect(nexusFoundationBalance.div(10)).to.be.equal('0');
+
+    const { deposits: hughPoolBalance } = await this.tokenController.stakingPoolNXMBalances(hughPoolId);
+    const expectedHughBalance = depositAmounts[HUGH];
+    expect(hughPoolBalance.div(10)).to.be.equal(expectedHughBalance.div(10));
+
+    const nxmBalancesAfter = {};
+    await Promise.all(
+      topStakers.map(async staker => {
+        nxmBalancesAfter[staker] = await this.nxm.balanceOf(staker);
+      }),
+    );
+
+    // assert each staker gets the unlocked NXM tokens back
+    const armorNFTBalanceIncreaseDelta = nxmBalancesAfter[ARMOR_NFT].sub(nxmBalancesBefore[ARMOR_NFT]).sub(
+      depositAmounts[ARMOR_NFT].sub(expectedArmorPool0Balance),
+    );
+    expect(armorNFTBalanceIncreaseDelta).to.be.lessThan(10);
+
+    const hughBalanceIncreaseDelta = nxmBalancesAfter[HUGH].sub(nxmBalancesBefore[HUGH]).sub(
+      depositAmounts[HUGH].sub(expectedHughBalance),
+    );
+    expect(armorNFTBalanceIncreaseDelta).to.be.lessThan(10);
+
+    expect(nxmBalancesAfter[NEXUSMUTUAL_FOUNDATION].sub(nxmBalancesBefore[NEXUSMUTUAL_FOUNDATION])).to.be.equal(
+      depositAmounts[NEXUSMUTUAL_FOUNDATION],
+    );
+
+    // assert deposits are now 0 for each staker
+    await Promise.all(
+      topStakers.map(async staker => {
+        const deposit = await this.pooledStaking.stakerDeposit(staker);
+        expect(deposit).to.be.equal(0);
+      }),
+    );
   });
 
   it.skip('deploy & add contracts: Assessment, IndividualClaims, YieldTokenIncidents', async function () {

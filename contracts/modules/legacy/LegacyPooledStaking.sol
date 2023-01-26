@@ -1418,9 +1418,9 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     uint nxmBalanceAfter = nxm.balanceOf(address(this));
 
-    uint depositedNXM = nxmBalanceBefore - nxmBalanceAfter;
+    uint nexusV2StakedNXM = nxmBalanceBefore - nxmBalanceAfter;
 
-    uint nxmToBeUnlocked = deposit - depositedNXM;
+    uint nxmToBeUnlocked = deposit - nexusV2StakedNXM;
 
     // send unlocked back
     nxm.transfer(stakerAddress, nxmToBeUnlocked);

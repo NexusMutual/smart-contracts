@@ -1326,7 +1326,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     require(
       stakerAddress == ARMOR || // Armor
       stakerAddress == HUGH || // Hugh
-      // stakerAddress == ITRUST || // iTrust
       stakerAddress == NEXUS_FOUNDATION, // Foundation
 
       "You are not authorized to migrate this staker"
@@ -1393,6 +1392,10 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       );
 
     } else if (stakerAddress == NEXUS_FOUNDATION) {
+      
+      stakerTrancheRatios = [uint256(0), 0, 0, 0, 0, 0, 0, 0];
+      // TODO: when switching the StakingPool manager is supported, simply make LegacyPooledStaking the manager
+      // make the deposits and then switch the manager to the foundation
       stakerTrancheRatios = [uint256(0), 25, 0, 25, 0, 50, 0, 0];
 
       migrateToPool(
@@ -1436,12 +1439,17 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       migrationData.ipfsDescriptionHash
     );
 
-    token().approve(address(tokenController()), migrationData.deposit);
+
 
     uint firstTrancheId = block.timestamp / 91 days + 1;
     for (uint i = 0; i < TRANCHE_COUNT; i++) {
-
       uint trancheDeposit = migrationData.deposit * migrationData.stakerTrancheRatios[i] / 100;
+
+      if (trancheDeposit == 0) {
+        continue;
+      }
+
+      token().approve(address(tokenController()), trancheDeposit);
       IStakingPool(stakingPoolAddress).depositTo(
         trancheDeposit,
         firstTrancheId + i,

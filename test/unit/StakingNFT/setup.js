@@ -15,6 +15,8 @@ async function setup() {
     cover.address,
   ]);
 
+  await cover.setStakingNFT(stakingNFT.address);
+
   this.cover = cover;
   this.stakingPoolFactory = stakingPoolFactory;
   this.stakingNFT = stakingNFT;

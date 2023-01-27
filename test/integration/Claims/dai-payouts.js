@@ -1,15 +1,14 @@
 const { accounts, web3 } = require('hardhat');
-const { ether, time } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { toBN } = web3.utils;
 
-const { buyCoverWithDai, buyCover } = require('../utils').buyCover;
+const { buyCoverWithDai } = require('../utils').buyCover;
 const { hex } = require('../utils').helpers;
 const { CoverStatus } = require('../utils').constants;
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
-const { MAX_UINT256 } = require('@openzeppelin/test-helpers').constants;
 
-const [, member1, member2, member3, coverHolder, payoutAddress] = accounts;
+const [, member1, member2, member3, coverHolder] = accounts;
 
 const daiCoverTemplate = {
   amount: 1000, // 1000 dai
@@ -236,9 +235,9 @@ describe('DAI cover claim payouts', function () {
     assert(actualPayout.eq(expectedPayout), 'should have transfered the cover amount');
   });
 
-  it('[A1, status: 0, 7, 12, 13] CA accept, closed with closeClaim(), claim payout fails with status 12 and goes to status 13 after 60 retries', async function () {
+  it('[A1, status: 0, 7, -, 14] CA accept, closed with closeClaim(), claim payout fails, then succeeds', async function () {
 
-    const { cd, cl, qd, master, dai, p1: pool, cr } = this.contracts;
+    const { cd, cl, qd, dai, cr } = this.contracts;
 
     const cover = { ...daiCoverTemplate };
     await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
@@ -257,24 +256,26 @@ describe('DAI cover claim payouts', function () {
     const voteStatusBefore = await cl.checkVoteClosing(claimId);
     assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
 
-    await cr.closeClaim(claimId);
-    const voteStatusAfter = await cl.checkVoteClosing(claimId);
-    assert.equal(voteStatusAfter.toString(), '0', 'voting should be closed');
-
-    const { statno: claimStatus } = await cd.getClaimStatusNumber(claimId);
-    assert.strictEqual(claimStatus.toNumber(), 12, 'claim status should be 12 (Claim Accepted Payout Pending)');
-
-    const coverStatus = await qd.getCoverStatusNo(coverId);
-    assert.equal(coverStatus.toString(), CoverStatus.ClaimAccepted);
+    await expectRevert(
+      cr.closeClaim(claimId),
+      'ClaimsReward: Payout failed',
+    );
 
     const payoutRetryTime = await cd.payoutRetryTime();
+
     for (let i = 0; i <= 60; i++) {
       await time.increase(payoutRetryTime.addn(1));
-      await cr.closeClaim(claimId);
+      await expectRevert(
+        cr.closeClaim(claimId),
+        'ClaimsReward: Payout failed',
+      );
     }
 
-    const { statno: finalClaimStatus } = await cd.getClaimStatusNumber(claimId);
-    assert.strictEqual(finalClaimStatus.toNumber(), 13, 'claim status should be 13 (Claim Accepted No Payout)');
+    await dai.whitelist(coverHolder);
+    await cr.closeClaim(claimId);
+
+    const { statno: status } = await cd.getClaimStatusNumber(claimId);
+    assert.strictEqual(status.toNumber(), 14, 'claim status should be 14 (payout done)');
   });
 
 });

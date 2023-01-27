@@ -217,17 +217,25 @@ describe('getters', function () {
       const minVotingTime = await cd.minVotingTime();
       await time.increase(minVotingTime.addn(1));
 
-      await cr.closeClaim(claimId);
+      await expectRevert(
+        cr.closeClaim(claimId),
+        'ClaimsReward: Payout failed',
+      );
 
       const payoutRetryTime = await cd.payoutRetryTime();
+
       for (let i = 0; i <= 60; i++) {
         await time.increase(payoutRetryTime.addn(1));
-        await cr.closeClaim(claimId);
+        await expectRevert(
+          cr.closeClaim(claimId),
+          'ClaimsReward: Payout failed',
+        );
       }
 
       const { statno: finalClaimStatus } = await cd.getClaimStatusNumber(claimId);
       assert.strictEqual(finalClaimStatus.toNumber(), 13, 'claim status should be 13 (Claim Accepted No Payout)');
 
+      // TODO: need a way to close the claim
       const { status, amountPaid, coverAsset } = await gateway.getPayoutOutcome(claimId);
       assert.equal(status, ClaimStatus.ACCEPTED);
       assert.equal(amountPaid.toString(), '0');

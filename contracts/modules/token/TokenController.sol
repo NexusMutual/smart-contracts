@@ -17,7 +17,8 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     uint16 claimCount;
     bool hasOpenClaim;
     bool hasAcceptedClaim;
-    // note: still 224 bits available here, can be used later
+    uint96 requestedPayoutAmount;
+    // note: still 128 bits available here, can be used later
   }
 
   INXMToken public token;
@@ -48,7 +49,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
   }
 
-  function markCoverClaimOpen(uint coverId) external onlyInternal {
+  function markCoverClaimOpen(uint coverId, uint requestedPayoutAmount) external onlyInternal {
 
     CoverInfo storage info = coverInfo[coverId];
 
@@ -63,12 +64,15 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     // overflows as there're max 2 claims per cover
     claimCount = claimCount + 1;
 
+    uint96 amount = uint96(requestedPayoutAmount);
+    require(requestedPayoutAmount == amount, "TokenController: safe cast failed");
+
     require(claimCount <= 2, "TokenController: Max claim count exceeded");
     require(hasOpenClaim == false, "TokenController: Cover already has an open claim");
     require(hasAcceptedClaim == false, "TokenController: Cover already has accepted claims");
 
-    // should use a single SSTORE for both
-    (info.claimCount, info.hasOpenClaim) = (claimCount, true);
+    // should use a single SSTORE for all
+    (info.claimCount, info.hasOpenClaim, info.requestedPayoutAmount) = (claimCount, true, amount);
   }
 
   /**

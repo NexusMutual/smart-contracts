@@ -203,7 +203,7 @@ contract Incidents is IIncidents, MasterAware {
     {
       ITokenController tc = tokenController();
       // mark cover as having a successful claim
-      tc.markCoverClaimOpen(coverId);
+      tc.markCoverClaimOpen(coverId, 0);
       tc.markCoverClaimClosed(coverId, true);
 
       // create the claim

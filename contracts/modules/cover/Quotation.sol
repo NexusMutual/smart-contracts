@@ -56,7 +56,7 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
     uint coverStatus = qd.getCoverStatusNo(coverId);
     require(coverStatus != uint(IQuotationData.CoverStatus.CoverExpired), "Quotation: cover already expired");
 
-    (/* claim count */, bool hasOpenClaim, /* accepted */) = tc.coverInfo(coverId);
+    (/* claim count */, bool hasOpenClaim, /* accepted */, /* amount */) = tc.coverInfo(coverId);
     require(!hasOpenClaim, "Quotation: cover has an open claim");
 
     if (coverStatus != uint(IQuotationData.CoverStatus.ClaimAccepted)) {
@@ -96,7 +96,7 @@ contract Quotation is IQuotation, MasterAware, ReentrancyGuard {
 
       uint coverExpirationDate = qd.getValidityOfCover(coverIds[i]);
       uint gracePeriodExpirationDate = coverExpirationDate.add(gracePeriod);
-      (/* claimCount */, bool hasOpenClaim, /* hasAcceptedClaim */) = tc.coverInfo(coverIds[i]);
+      (/* claimCount */, bool hasOpenClaim, /* hasAcceptedClaim */, /* amount */) = tc.coverInfo(coverIds[i]);
 
       if (!hasOpenClaim && gracePeriodExpirationDate < now) {
         expiredIdsQueue[expiredQueueLength] = coverIds[i];

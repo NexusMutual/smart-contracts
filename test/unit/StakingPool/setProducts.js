@@ -187,6 +187,21 @@ describe('setProducts unit tests', function () {
     );
   });
 
+  it('should emit event when setting a product ', async function () {
+    const { stakingPool, cover } = this;
+    const [manager] = this.accounts.members;
+
+    await cover.initializeStaking(stakingPool.address, manager.address, false, 5, 5, [], 0, IPFS_DESCRIPTION_HASH);
+    const products = [{ ...newProductTemplate }];
+    await cover.setProduct({ ...coverProductTemplate }, products[0].productId);
+
+    await stakingPool.connect(manager).setProducts(products);
+
+    await expect(stakingPool.connect(manager).setProducts(products))
+      .to.emit(stakingPool, 'ProductUpdated')
+      .withArgs(products[0].productId, products[0].targetWeight, products[0].targetPrice);
+  });
+
   it('should add and remove products in same tx', async function () {
     const { stakingPool, cover } = this;
     const [manager] = this.accounts.members;

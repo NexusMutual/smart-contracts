@@ -453,7 +453,7 @@ contract StakingPool is IStakingPool, Multicall {
       }
 
       deposit.stakeShares += newStakeShares.toUint128();
-      deposit.rewardsShares += newRewardsShares.toUint96();
+      deposit.rewardsShares += newRewardsShares.toUint128();
       deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare.toUint96();
 
       // store
@@ -473,7 +473,7 @@ contract StakingPool is IStakingPool, Multicall {
         uint newRewardPerShare = _accNxmPerRewardsShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
         feeDeposit.pendingRewards += (newRewardPerShare * feeDeposit.rewardsShares / ONE_NXM).toUint96();
         feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare.toUint96();
-        feeDeposit.rewardsShares += newFeeRewardShares.toUint96();
+        feeDeposit.rewardsShares += newFeeRewardShares.toUint128();
       }
 
       deposits[MAX_UINT][trancheId] = feeDeposit;
@@ -1486,7 +1486,7 @@ contract StakingPool is IStakingPool, Multicall {
       feeDeposit.pendingRewards += (newRewardPerRewardsShare * feeDeposit.rewardsShares / ONE_NXM).toUint96();
       feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare.toUint96();
       // TODO: would using tranche.rewardsShares give a better precision?
-      feeDeposit.rewardsShares = (uint(feeDeposit.rewardsShares) * newFee / oldFee).toUint96();
+      feeDeposit.rewardsShares = (uint(feeDeposit.rewardsShares) * newFee / oldFee).toUint128();
 
       // sstore
       deposits[MAX_UINT][trancheId] = feeDeposit;

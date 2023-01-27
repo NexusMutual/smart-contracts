@@ -560,14 +560,14 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
 
     // Update expired buckets and calculate the amount of active cover that should be burned
     {
-      uint8 coverAsset = cover.coverAsset;
+      uint coverAsset = cover.coverAsset;
       uint lastUpdateId = _activeCover.lastBucketUpdateId;
       uint currentBucketId = block.timestamp / BUCKET_SIZE;
 
       uint burnedSegmentBucketId = Math.divCeil((segment.start + segment.period), BUCKET_SIZE);
       uint activeCoverToExpire = getExpiredCoverAmount(coverAsset, lastUpdateId, currentBucketId);
 
-      // burn amount is accounted for if segment has not expired
+      // burn amount is accounted for in total active cover if segment has not expired
       if (burnedSegmentBucketId > currentBucketId) {
         uint segmentAmount = Math.min(payoutAmountInAsset, segment.amount);
         activeCoverToExpire += segmentAmount;
@@ -579,7 +579,7 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
     }
 
     // increase amountPaidOut only *after* you read the segment
-    cover.amountPaidOut += SafeUintCast.toUint96(payoutAmountInAsset);
+    cover.amountPaidOut += payoutAmountInAsset.toUint96();
 
     uint allocationCount = allocations.length;
 
@@ -587,9 +587,10 @@ contract Cover is ICover, MasterAwareV2, IStakingPoolBeacon, ReentrancyGuard {
       PoolAllocation memory allocation = allocations[i];
 
       uint payoutAmountInNXM = allocation.coverAmountInNXM * payoutAmountInAsset / segment.amount;
-      allocations[i].coverAmountInNXM -= SafeUintCast.toUint96(payoutAmountInNXM);
-      allocations[i].premiumInNXM -= SafeUintCast.toUint96(allocations[i].premiumInNXM * payoutAmountInAsset / segment.amount);
       uint burnAmountInNxm = payoutAmountInNXM * GLOBAL_CAPACITY_DENOMINATOR / segment.globalCapacityRatio;
+
+      allocations[i].coverAmountInNXM -= payoutAmountInNXM.toUint96();
+      allocations[i].premiumInNXM -= (allocation.premiumInNXM * payoutAmountInAsset / segment.amount).toUint96();
 
       BurnStakeParams memory params = BurnStakeParams(
         allocation.allocationId,

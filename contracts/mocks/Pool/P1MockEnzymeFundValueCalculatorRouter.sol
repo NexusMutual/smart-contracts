@@ -16,15 +16,19 @@ contract P1MockEnzymeFundValueCalculatorRouter is IEnzymeFundValueCalculatorRout
     weth = _weth;
   }
 
-  function calcGrossShareValue(address _vaultProxy)
-  external
-  returns (address denominationAsset_, uint256 grossShareValue_) {
+  function calcGrossShareValue(address /*_vaultProxy*/) external returns (
+    address /*denominationAsset_*/,
+    uint256 /*grossShareValue_*/
+  ) {
+    weth = weth;
     return (weth, 1e18);
   }
 
-  function calcNetShareValue(address _vaultProxy)
-  external
-  returns (address denominationAsset_, uint256 netShareValue_) {
+  function calcNetShareValue(address /*_vaultProxy*/) external returns (
+    address /*denominationAsset_*/,
+    uint256 /*netShareValue_*/
+  ) {
+    weth = weth;
     return (weth, 1e18);
   }
 }

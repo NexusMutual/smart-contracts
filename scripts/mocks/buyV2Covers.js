@@ -23,15 +23,13 @@ function divCeil(a, b) {
   return result;
 }
 
-async function buyCover(productId, cover, stakingPool0, amount, period, paymentAsset, globalCapacityRatio) {
-  const allocationAmount = divCeil(amount, parseEther('0.01')); // 2 decimals
-
+async function buyCover(productId, cover, poolId, stakingPool, amount, period, paymentAsset, globalCapacityRatio) {
   const product = await cover.products(productId);
   const capacityReductionRatio = product.capacityReductionRatio;
   console.log('Capacity reduction ratio for product', productId, ':', capacityReductionRatio.toString());
 
   const { timestamp: now } = await ethers.provider.getBlock('latest');
-  const stakedProduct = await stakingPool0.products(productId);
+  const stakedProduct = await stakingPool.products(productId);
   console.log('Staked Product:', {
     lastEffectiveWeight: stakedProduct.lastEffectiveWeight,
     targetWeight: stakedProduct.targetWeight,
@@ -40,7 +38,7 @@ async function buyCover(productId, cover, stakingPool0, amount, period, paymentA
     bumpedPriceUpdateTime: stakedProduct.bumpedPriceUpdateTime,
   });
 
-  const [trancheCapacities, totalCapacity] = await stakingPool0.getActiveTrancheCapacities(
+  const [trancheCapacities, totalCapacity] = await stakingPool.getActiveTrancheCapacities(
     productId,
     globalCapacityRatio,
     capacityReductionRatio,
@@ -53,7 +51,7 @@ async function buyCover(productId, cover, stakingPool0, amount, period, paymentA
     trancheCapacities.map(c => c.div(100).toString()), // 2 decimals
   );
 
-  const activeAllocationsBefore = await stakingPool0.getActiveAllocations(productId);
+  const activeAllocationsBefore = await stakingPool.getActiveAllocations(productId);
   console.log(
     'Active allocation before buy cover on product',
     productId,
@@ -62,10 +60,10 @@ async function buyCover(productId, cover, stakingPool0, amount, period, paymentA
   ); // 2 decimals);
 
   // Calculate premium for productId 0
-  const [actualPremium] = await stakingPool0.calculatePremium(
+  const [actualPremium] = await stakingPool.calculatePremium(
     stakedProduct,
     period,
-    allocationAmount,
+    divCeil(amount, parseEther('0.01')), // 2 decimals
     0, // initialCapacityUsed
     totalCapacity,
     stakedProduct.targetPrice,
@@ -88,12 +86,12 @@ async function buyCover(productId, cover, stakingPool0, amount, period, paymentA
       ipfsData: '',
       coverId: MaxUint256.toString(),
     },
-    [{ poolId: '0', coverAmountInAsset: amount.toString() }],
+    [{ poolId, coverAmountInAsset: amount.toString() }],
     { value: actualPremium.mul('101').div('100') },
   );
   console.log('Bought a cover!');
 
-  const activeAllocationsAfter = await stakingPool0.getActiveAllocations(productId);
+  const activeAllocationsAfter = await stakingPool.getActiveAllocations(productId);
   console.log(
     'Active allocation after the cover buy on product',
     productId,
@@ -107,8 +105,10 @@ async function main() {
 
   const buyer = await getSigner(BUYER);
   const cover = await ethers.getContractAt('Cover', Addresses.Cover, buyer);
-  const stakingPool0Addr = await cover.stakingPool(1);
-  const stakingPool0 = await ethers.getContractAt('StakingPool', stakingPool0Addr, buyer);
+
+  const poolId = 0;
+  const stakingPoolAddr = await cover.stakingPool(poolId);
+  const stakingPool = await ethers.getContractAt('StakingPool', stakingPoolAddr, buyer);
 
   // Buy cover generic inputs
   const paymentAsset = 0; // ETH
@@ -118,13 +118,13 @@ async function main() {
   console.log('Global capacity ratio:', globalCapacityRatio.toString());
 
   console.log('========= ProductId 0 ==========');
-  await buyCover(0, cover, stakingPool0, amount, period, paymentAsset, globalCapacityRatio);
+  await buyCover(0, cover, poolId, stakingPool, amount, period, paymentAsset, globalCapacityRatio);
 
   console.log('========= ProductId 1 ==========');
-  await buyCover(1, cover, stakingPool0, amount, period, paymentAsset, globalCapacityRatio);
+  await buyCover(1, cover, poolId, stakingPool, amount, period, paymentAsset, globalCapacityRatio);
 
   console.log('========= ProductId 73 ==========');
-  await buyCover(73, cover, stakingPool0, amount, period, paymentAsset, globalCapacityRatio);
+  await buyCover(73, cover, poolId, stakingPool, amount, period, paymentAsset, globalCapacityRatio);
 
   console.log('Done!');
   process.exit(0);

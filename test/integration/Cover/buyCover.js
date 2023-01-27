@@ -7,6 +7,7 @@ const { BigNumber } = ethers;
 const { parseEther } = ethers.utils;
 const { AddressZero, MaxUint256 } = ethers.constants;
 
+const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 describe('buyCover', function () {
   beforeEach(async function () {
     const { tk } = this.contracts;
@@ -20,21 +21,21 @@ describe('buyCover', function () {
 
   // TODO: The expected premium and the actual premium forwarded are off by 1 decimal place.
   // The js value has 1 extra decimal place.
-  it.skip('should buy cover using ETH and forward correct premium to capital pool', async function () {
+  it.only('should buy cover using ETH and forward correct premium to capital pool', async function () {
     const { NXM_PER_ALLOCATION_UNIT, TARGET_PRICE_DENOMINATOR, ONE_NXM } = this.config;
     const { cover, stakingPool0, p1 } = this.contracts;
     const [coverBuyer1, staker1] = this.accounts.members;
 
     // Cover inputs
     const productId = 0;
-    const coverAsset = 0; // ETH
+    const coverAsset = 0;
     const period = daysToSeconds(30); // 30 days
     const gracePeriod = daysToSeconds(30);
 
     const stakedProduct = await stakingPool0.products(productId);
-
-    // Get NXM/ETH amounts and prices
-    const nxmPriceInCoverAsset = await p1.getTokenPrice(coverAsset);
+    //
+    // // Get NXM/ETH amounts and prices
+    const nxmPriceInCoverAsset = await p1.getTokenPrice();
     const amount = parseEther('1');
     let amountNxm = divCeil(amount.mul(ONE_NXM), nxmPriceInCoverAsset);
 

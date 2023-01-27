@@ -99,6 +99,7 @@ async function setup() {
     TARGET_PRICE_DENOMINATOR: await stakingPool.TARGET_PRICE_DENOMINATOR(),
     POOL_FEE_DENOMINATOR: await stakingPool.POOL_FEE_DENOMINATOR(),
     GLOBAL_CAPACITY_DENOMINATOR: await stakingPool.GLOBAL_CAPACITY_DENOMINATOR(),
+    TRANCHE_DURATION: await stakingPool.TRANCHE_DURATION(),
     GLOBAL_CAPACITY_RATIO: await cover.globalCapacityRatio(),
     GLOBAL_REWARDS_RATIO: await cover.globalRewardsRatio(),
     GLOBAL_MIN_PRICE_RATIO: await cover.GLOBAL_MIN_PRICE_RATIO(),

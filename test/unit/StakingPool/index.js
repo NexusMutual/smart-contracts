@@ -12,6 +12,7 @@ describe('StakingPool unit tests', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
+  require('./burnStake');
   require('./calculateNewRewardShares');
   require('./calculatePremium');
   require('./constructor');

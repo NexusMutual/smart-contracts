@@ -58,6 +58,7 @@ contract StakingPool is IStakingPool, Multicall {
   uint24 public nextAllocationId;
 
   bool public isPrivatePool;
+  bool private halted;
 
   uint8 public poolFee;
   uint8 public maxPoolFee;
@@ -170,6 +171,13 @@ contract StakingPool is IStakingPool, Multicall {
 
   modifier whenNotPaused {
     require(!masterContract.isPause(), "System is paused");
+    _;
+  }
+
+  modifier whenNotHalted {
+    if (halted) {
+      revert PoolHalted();
+    }
     _;
   }
 
@@ -359,7 +367,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint trancheId,
     uint requestTokenId,
     address destination
-  ) public whenNotPaused returns (uint tokenId) {
+  ) public whenNotPaused whenNotHalted returns (uint tokenId) {
 
     if (isPrivatePool) {
       if (msg.sender != manager) {
@@ -1079,7 +1087,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint initialTrancheId,
     uint newTrancheId,
     uint topUpAmount
-  ) external whenNotPaused {
+  ) external whenNotPaused whenNotHalted {
 
     // token id MAX_UINT is only used for pool manager fee tracking, no deposits allowed
     if(tokenId == MAX_UINT) {
@@ -1210,21 +1218,22 @@ contract StakingPool is IStakingPool, Multicall {
   }
 
   function burnStake(uint amount) external onlyCoverContract {
-
-    // TODO: block the pool if we perform 100% of the stake
-
     // passing false because neither the amount of shares nor the reward per second are changed
     processExpirations(false);
 
     // sload
-    uint initialStake = activeStake;
+    uint _activeStake = activeStake;
 
-    // leaving 1 wei to avoid division by zero
-    uint burnAmount = amount >= initialStake ? initialStake - 1 : amount;
-    tokenController.burnStakedNXM(burnAmount, poolId);
+    // If all stake is burned, leave 1 wei and close pool
+    if (amount >= _activeStake) {
+      amount = _activeStake - 1;
+      halted = true;
+    }
+
+    tokenController.burnStakedNXM(amount, poolId);
 
     // sstore
-    activeStake = (initialStake - burnAmount).toUint96();
+    activeStake = (_activeStake - amount).toUint96();
 
     emit StakeBurned(burnAmount);
   }

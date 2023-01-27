@@ -142,6 +142,7 @@ interface IStakingPool {
   error OnlyManager();
   error PrivatePool();
   error SystemPaused();
+  error PoolHalted();
 
   // Fees
   error PoolFeeExceedsMax();

@@ -1,5 +1,6 @@
 const { config, network, ethers } = require('hardhat');
 const { CONTRACTS_ADDRESSES: Addresses } = require(process.env.CONFIG_FILE);
+const { BigNumber } = require('ethers');
 
 async function main() {
   console.log(`Using network: ${network.name}`);
@@ -8,8 +9,8 @@ async function main() {
   const [owner] = await ethers.getSigners();
   console.log('OWNER ADDRESS', owner.address);
 
-  const targetPrice = 1000;
-  const initialPrice = 10000;
+  const targetPrice = BigNumber.from(200);
+  const initialPrice = BigNumber.from(200);
 
   const isPrivatePool = false;
   const initialPoolFee = '5';

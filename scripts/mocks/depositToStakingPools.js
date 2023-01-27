@@ -77,7 +77,7 @@ async function main() {
   await token.connect(staker).approve(Addresses.TokenController, MaxUint256);
 
   // staking inputs
-  const stakingAmount = parseEther('100');
+  const stakingAmount = parseEther('10000');
   const { timestamp: now } = await ethers.provider.getBlock('latest');
   const firstActiveTrancheId = Math.floor(now / (91 * 24 * 3600));
   const lastActiveTrancheId = firstActiveTrancheId + 7;

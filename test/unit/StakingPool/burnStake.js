@@ -36,6 +36,14 @@ const coverProductTemplate = {
   useFixedPrice: false,
 };
 
+const burnStakeParams = {
+  allocationId: 0,
+  productId: 0,
+  start: 0,
+  period: 0,
+  deallocationAmount: 0,
+};
+
 const DEFAULT_PERIOD = daysToSeconds(30);
 const DEFAULT_GRACE_PERIOD = daysToSeconds(30);
 const stakedNxmAmount = parseEther('1235');
@@ -77,7 +85,10 @@ describe('burnStake', function () {
 
   it('should revert if the caller is not the cover contract', async function () {
     const { stakingPool } = this;
-    await expect(stakingPool.burnStake(10)).to.be.revertedWithCustomError(stakingPool, 'OnlyCoverContract');
+    await expect(stakingPool.burnStake(10, burnStakeParams)).to.be.revertedWithCustomError(
+      stakingPool,
+      'OnlyCoverContract',
+    );
   });
 
   it('should block the pool if 100% of the stake is burned', async function () {
@@ -88,7 +99,7 @@ describe('burnStake', function () {
 
     // burn all of the active stake
     const activeStake = await stakingPool.getActiveStake();
-    await stakingPool.connect(this.coverSigner).burnStake(activeStake);
+    await stakingPool.connect(this.coverSigner).burnStake(activeStake, burnStakeParams);
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
 
     // depositTo and extendDeposit should revert
@@ -109,7 +120,7 @@ describe('burnStake', function () {
 
     // burn activeStake - 1
     const activeStake = await stakingPool.getActiveStake();
-    await stakingPool.connect(this.coverSigner).burnStake(activeStake.sub(1));
+    await stakingPool.connect(this.coverSigner).burnStake(activeStake.sub(1), burnStakeParams);
 
     // deposit should work
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
@@ -117,7 +128,7 @@ describe('burnStake', function () {
       .reverted;
 
     // Burn all activeStake
-    await stakingPool.connect(this.coverSigner).burnStake(stakedNxmAmount.add(1));
+    await stakingPool.connect(this.coverSigner).burnStake(stakedNxmAmount.add(1), burnStakeParams);
 
     // deposit should fail
     await expect(

@@ -63,7 +63,7 @@ contract StakingPool is IStakingPool, Multicall {
   uint8 public poolFee;
   uint8 public maxPoolFee;
 
-  // 40 bytes left in slot 3
+  // 32 bytes left in slot 3
 
   // slot 4
   address public manager;

@@ -787,6 +787,29 @@ describe('v2 migration', function () {
         expect(deposit).to.be.equal(0);
       }),
     );
+
+    // Assert deposit for Armor Pool 0
+
+    const armorContracts = await this.pooledStaking.stakerContractsArray();
+
+    const armorStakingPool0 = ethers.getContractAt('StakingPool', await this.cover.stakingPool(0));
+
+    for (let i = 0; i < 150; i++) {
+      const productPrice = await this.pooledStaking.getV1PriceForProduct(i);
+      const stakedProduct = armorStakingPool0.products(i);
+
+      console.log(`Checking product with id: ${i}`);
+      /*
+        struct StakedProduct {
+          uint16 lastEffectiveWeight;
+          uint8 targetWeight;
+          uint96 targetPrice;
+          uint96 bumpedPrice;
+          uint32 bumpedPriceUpdateTime;
+        }
+      */
+      expect(stakedProduct.targetPrice).to.be.equal(productPrice);
+    }
   });
 
   it.skip('deploy & add contracts: Assessment, IndividualClaims, YieldTokenIncidents', async function () {

@@ -1,7 +1,7 @@
 const { network, ethers } = require('hardhat');
 const { BigNumber } = require('ethers');
 const { AddressZero, MaxUint256 } = ethers.constants;
-const { formatEther, parseEther } = ethers.utils;
+const { formatEther, parseEther, formatUnits } = ethers.utils;
 
 const { CONTRACTS_ADDRESSES: Addresses } = require(process.env.CONFIG_FILE);
 const { BUYER } = process.env;
@@ -23,8 +23,15 @@ function divCeil(a, b) {
   return result;
 }
 
-async function buyCover(productId, cover, poolId, stakingPool, amount, period, paymentAsset, globalCapacityRatio) {
+async function buyCover(productId, poolId, cover, buyer, amount, period, paymentAsset) {
   const product = await cover.products(productId);
+
+  const stakingPoolAddr = await cover.stakingPool(poolId);
+  const stakingPool = await ethers.getContractAt('StakingPool', stakingPoolAddr, buyer);
+
+  const globalCapacityRatio = await cover.globalCapacityRatio();
+  console.log('Global capacity ratio:', globalCapacityRatio.toString());
+
   const capacityReductionRatio = product.capacityReductionRatio;
   console.log('Capacity reduction ratio for product', productId, ':', capacityReductionRatio.toString());
 
@@ -43,12 +50,12 @@ async function buyCover(productId, cover, poolId, stakingPool, amount, period, p
     globalCapacityRatio,
     capacityReductionRatio,
   );
-  console.log('Total capacity on productId ', productId, ':', totalCapacity.div(100).toString(), ' NXM');
+  console.log('Total capacity on productId ', productId, ':', totalCapacity.div(100).toString(), ' NXM'); // 2 decimals
   console.log(
-    'Active tranche capacities for productId',
+    'Tranche capacities for productId',
     productId,
     ':',
-    trancheCapacities.map(c => c.div(100).toString()), // 2 decimals
+    trancheCapacities.map(c => formatUnits(c, '2')),
   );
 
   const activeAllocationsBefore = await stakingPool.getActiveAllocations(productId);
@@ -56,38 +63,39 @@ async function buyCover(productId, cover, poolId, stakingPool, amount, period, p
     'Active allocation before buy cover on product',
     productId,
     ':',
-    activeAllocationsBefore.map(c => c.div(100).toString()),
-  ); // 2 decimals);
+    activeAllocationsBefore.map(c => formatUnits(c, '2')),
+  );
 
   // Calculate premium for productId 0
-  const [actualPremium] = await stakingPool.calculatePremium(
-    stakedProduct,
-    period,
-    divCeil(amount, parseEther('0.01')), // 2 decimals
-    0, // initialCapacityUsed
-    totalCapacity,
-    stakedProduct.targetPrice,
-    now,
+  const [expectedPremium] = await stakingPool.calculatePremium(
+    stakedProduct, // product
+    period, // cover period
+    divCeil(amount, parseEther('0.01')), // cover amount with 2 decimals
+    activeAllocationsBefore[7], // used capacity - 8th tranche - change if you are depositing in a different tranche
+    totalCapacity, // total capacity
+    stakedProduct.targetPrice, // target price
+    now, // current timestamp
   );
-  console.log('Expected premium: ', formatEther(actualPremium));
+  console.log('Expected premium: ', formatEther(expectedPremium));
 
-  // Buy cover for productId 0
+  // Buy cover
+  const premiumWithSlippage = expectedPremium.mul('101').div('100'); // 1% tolerance
   await cover.buyCover(
     {
       owner: BUYER,
       productId,
-      coverAsset: 0,
+      coverAsset: paymentAsset,
       amount,
       period,
-      maxPremiumInAsset: actualPremium.mul('101').div('100'),
+      maxPremiumInAsset: premiumWithSlippage,
       paymentAsset,
       commissionRatio: parseEther('0'),
       commissionDestination: AddressZero,
       ipfsData: '',
-      coverId: MaxUint256.toString(),
+      coverId: MaxUint256.toString(), // new cover
     },
     [{ poolId, coverAmountInAsset: amount.toString() }],
-    { value: actualPremium.mul('101').div('100') },
+    { value: premiumWithSlippage },
   );
   console.log('Bought a cover!');
 
@@ -96,7 +104,7 @@ async function buyCover(productId, cover, poolId, stakingPool, amount, period, p
     'Active allocation after the cover buy on product',
     productId,
     ':',
-    activeAllocationsAfter.map(c => c.div(100).toString()), // 2 decimals
+    activeAllocationsAfter.map(c => formatUnits(c, '2')),
   );
 }
 
@@ -106,25 +114,25 @@ async function main() {
   const buyer = await getSigner(BUYER);
   const cover = await ethers.getContractAt('Cover', Addresses.Cover, buyer);
 
+  const pool = await ethers.getContractAt('Pool', Addresses.Pool, buyer);
+  const tokenPrice = await pool.getTokenPrice();
+  console.log('NXM token price', formatEther(tokenPrice));
+
   const poolId = 0;
-  const stakingPoolAddr = await cover.stakingPool(poolId);
-  const stakingPool = await ethers.getContractAt('StakingPool', stakingPoolAddr, buyer);
 
   // Buy cover generic inputs
   const paymentAsset = 0; // ETH
   const period = 30 * 24 * 3600; // 30 days
   const amount = parseEther('0.1'); // 0.1 ETH
-  const globalCapacityRatio = await cover.globalCapacityRatio();
-  console.log('Global capacity ratio:', globalCapacityRatio.toString());
 
-  console.log('========= ProductId 0 ==========');
-  await buyCover(0, cover, poolId, stakingPool, amount, period, paymentAsset, globalCapacityRatio);
+  console.log('========= ProductId 0 on PoolId 0 ==========');
+  await buyCover(0, poolId, cover, buyer, amount, period, paymentAsset);
 
-  console.log('========= ProductId 1 ==========');
-  await buyCover(1, cover, poolId, stakingPool, amount, period, paymentAsset, globalCapacityRatio);
+  console.log('========= ProductId 1 on PoolId 0==========');
+  await buyCover(1, poolId, cover, buyer, amount, period, paymentAsset);
 
-  console.log('========= ProductId 73 ==========');
-  await buyCover(73, cover, poolId, stakingPool, amount, period, paymentAsset, globalCapacityRatio);
+  console.log('========= ProductId 73 on PoolId 0 ==========');
+  await buyCover(73, poolId, cover, buyer, amount, period, paymentAsset);
 
   console.log('Done!');
   process.exit(0);

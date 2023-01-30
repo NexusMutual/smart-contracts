@@ -117,6 +117,8 @@ interface IStakingPool {
 
   function manager() external view returns (address);
 
+  function getPoolId() external view returns (uint);
+
   function getPoolFee() external view returns (uint);
 
   function getMaxPoolFee() external view returns (uint);

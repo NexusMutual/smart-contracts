@@ -1245,7 +1245,7 @@ contract StakingPool is IStakingPool, Multicall {
 
     uint firstTrancheId = params.start / TRANCHE_DURATION;
     uint[] memory coverAllocations = new uint[](MAX_ACTIVE_TRANCHES);
-  
+
     uint remainingAmount = params.deallocationAmount / NXM_PER_ALLOCATION_UNIT;
     uint packedCoverAllocations;
 
@@ -1268,7 +1268,7 @@ contract StakingPool is IStakingPool, Multicall {
     }
 
     coverTrancheAllocations[params.allocationId] = packedCoverAllocations;
-    
+
     updateExpiringCoverAmounts(
       params.productId,
       firstTrancheId,
@@ -1691,6 +1691,10 @@ contract StakingPool is IStakingPool, Multicall {
   }
 
   /* getters */
+
+  function getPoolId() external override view returns (uint) {
+    return poolId;
+  }
 
   function getPoolFee() external override view returns (uint) {
     return poolFee;

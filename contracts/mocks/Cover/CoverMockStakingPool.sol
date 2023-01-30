@@ -9,17 +9,17 @@ import "../Tokens/ERC721Mock.sol";
 
 contract CoverMockStakingPool is IStakingPool {
 
-  uint public activeStake;
-  uint public rewardPerSecond;
+  uint internal activeStake;
+  uint internal rewardPerSecond;
   bool public isPrivatePool;
-  uint8 public poolFee;
-  uint8 public maxPoolFee;
-  uint public accNxmPerRewardsShare;
-  uint public rewardsPerSecond;
-  uint public stakeSharesSupply;
+  uint8 internal poolFee;
+  uint8 internal maxPoolFee;
+  uint internal accNxmPerRewardsShare;
+  uint internal rewardsPerSecond;
+  uint internal stakeSharesSupply;
 
-  mapping(uint => mapping(uint => Deposit)) public deposits;
-  mapping(uint => ExpiredTranche) public expiredTranches;
+  mapping(uint => mapping(uint => Deposit)) internal deposits;
+  mapping(uint => ExpiredTranche) internal expiredTranches;
 
   mapping (uint => uint) public usedCapacity;
   mapping (uint => uint) public stakedAmount;
@@ -36,7 +36,7 @@ contract CoverMockStakingPool is IStakingPool {
   uint public constant NXM_PER_ALLOCATION_UNIT = ONE_NXM / ALLOCATION_UNITS_PER_NXM;
   uint public constant TARGET_PRICE_DENOMINATOR = 100_00;
 
-  uint public poolId;
+  uint internal poolId;
   address public manager;
 
   uint public burnStakeCalledWithAmount;
@@ -226,6 +226,10 @@ contract CoverMockStakingPool is IStakingPool {
 
   function getPoolFee() external pure returns (uint) {
     return 0;
+  }
+
+  function getPoolId() external view returns (uint) {
+    return poolId;
   }
 
   function getProduct(uint /*productId*/) external pure returns (

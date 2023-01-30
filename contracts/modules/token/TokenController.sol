@@ -57,6 +57,8 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     _markCoverClaimOpen(coverId, requestedPayoutAmount);
   }
 
+  /// @param coverId               the cover id
+  /// @param requestedPayoutAmount requested payout amount, or 0 if the claim is for the full covered amount
   function _markCoverClaimOpen(uint coverId, uint requestedPayoutAmount) internal {
 
     CoverInfo storage info = coverInfo[coverId];
@@ -72,6 +74,7 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     // overflows as there're max 2 claims per cover
     claimCount = claimCount + 1;
 
+    // if requested amount = 0, the claim is for the entire covered amount
     uint96 amount = uint96(requestedPayoutAmount);
     require(requestedPayoutAmount == amount, "TokenController: safe cast failed");
 

@@ -49,7 +49,15 @@ contract TokenController is ITokenController, LockHandler, LegacyMasterAware {
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
   }
 
-  function markCoverClaimOpen(uint coverId, uint requestedPayoutAmount) external onlyInternal {
+  function markCoverClaimOpen(uint coverId) external onlyInternal {
+    _markCoverClaimOpen(coverId, 0);
+  }
+
+  function markCoverClaimOpenWithRequestedAmount(uint coverId, uint requestedPayoutAmount) external onlyInternal {
+    _markCoverClaimOpen(coverId, requestedPayoutAmount);
+  }
+
+  function _markCoverClaimOpen(uint coverId, uint requestedPayoutAmount) internal {
 
     CoverInfo storage info = coverInfo[coverId];
 

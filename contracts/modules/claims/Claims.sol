@@ -109,7 +109,7 @@ contract Claims is IClaims, LegacyMasterAware {
     uint coveredAmount = qd.getCoverSumAssured(coverId);
     require(requestedPayoutAmount <= coveredAmount, "Claims: Requested payout amount is greater than covered amount");
 
-    tc.markCoverClaimOpen(coverId, requestedPayoutAmount);
+    tc.markCoverClaimOpenWithRequestedAmount(coverId, requestedPayoutAmount);
     qd.changeCoverStatusNo(coverId, uint8(IQuotationData.CoverStatus.ClaimSubmitted));
 
     uint claimId = cd.actualClaimLength();

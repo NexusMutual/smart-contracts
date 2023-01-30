@@ -19,7 +19,9 @@ interface ITokenController {
     uint[] calldata _indexes
   ) external;
 
-  function markCoverClaimOpen(uint coverId, uint requestedPayoutAmount) external;
+  function markCoverClaimOpen(uint coverId) external;
+
+  function markCoverClaimOpenWithRequestedAmount(uint coverId, uint requestedPayoutAmount) external;
 
   function markCoverClaimClosed(uint coverId, bool isAccepted) external;
 

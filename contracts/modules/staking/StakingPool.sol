@@ -54,7 +54,7 @@ contract StakingPool is IStakingPool, Multicall {
   // applies to active stake only and does not need update on deposits
   uint96 public rewardPerSecond;
 
-  uint40 poolId;
+  uint40 public poolId;
   uint24 public nextAllocationId;
 
   bool public isPrivatePool;

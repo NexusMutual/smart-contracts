@@ -1,10 +1,10 @@
 const { accounts, web3, artifacts } = require('hardhat');
-const { ether, time, expectRevert } = require('@openzeppelin/test-helpers');
+const { ether, time, expectRevert, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { buyCover, ethCoverTemplate, daiCoverTemplate, getBuyCoverDataParameter, voteOnClaim } = require('./utils');
 const { Assets: { ETH } } = require('../utils').constants;
-const { toBN } = Web3.utils;
+const { toBN } = web3.utils;
 
 const EtherRejecter = artifacts.require('EtherRejecter');
 
@@ -199,14 +199,13 @@ describe('getters', function () {
       await expectRevert.assertion(gateway.getPayoutOutcome(claimId));
     });
 
-    it('returns claim status ACCEPTED with no payout if all payout attempts failed', async function () {
+    it('returns claim status ACCEPTED and sends payout after multiple failed payout attempts', async function () {
       const { cd, cl, qd, mr, cr, gateway } = this.contracts;
       const coverData = { ...ethCoverTemplate };
       const coverHolder = member1;
 
       const rejecter = await EtherRejecter.new();
-      const payoutAddress = rejecter.address;
-      await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
+      await mr.setClaimPayoutAddress(rejecter.address, { from: coverHolder });
 
       await buyCover({ ...this.contracts, coverData, coverHolder });
       const [coverId] = await qd.getAllCoversOfUser(coverHolder);
@@ -216,6 +215,9 @@ describe('getters', function () {
 
       const minVotingTime = await cd.minVotingTime();
       await time.increase(minVotingTime.addn(1));
+
+      const { statno: initialClaimStatus } = await cd.getClaimStatusNumber(claimId);
+      assert.strictEqual(initialClaimStatus.toNumber(), 0, 'claim status should be 0');
 
       await expectRevert(
         cr.closeClaim(claimId),
@@ -233,12 +235,14 @@ describe('getters', function () {
       }
 
       const { statno: finalClaimStatus } = await cd.getClaimStatusNumber(claimId);
-      assert.strictEqual(finalClaimStatus.toNumber(), 13, 'claim status should be 13 (Claim Accepted No Payout)');
+      assert.strictEqual(finalClaimStatus.toNumber(), initialClaimStatus.toNumber(), 'claim status have not changed');
 
-      // TODO: need a way to close the claim
+      await mr.setClaimPayoutAddress(ZERO_ADDRESS, { from: coverHolder });
+      await cr.closeClaim(claimId);
+
       const { status, amountPaid, coverAsset } = await gateway.getPayoutOutcome(claimId);
       assert.equal(status, ClaimStatus.ACCEPTED);
-      assert.equal(amountPaid.toString(), '0');
+      assert.equal(amountPaid.toString(), coverData.amount.toString());
       assert.equal(coverAsset, ETH);
     });
   });

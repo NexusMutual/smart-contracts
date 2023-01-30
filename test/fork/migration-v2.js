@@ -792,11 +792,11 @@ describe('v2 migration', function () {
 
     // const armorContracts = await this.pooledStaking.stakerContractsArray();
 
-    const armorStakingPool0 = ethers.getContractAt('StakingPool', await this.cover.stakingPool(0));
+    const armorStakingPool0 = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(0));
 
     for (let i = 0; i < 150; i++) {
       const productPrice = await this.pooledStaking.getV1PriceForProduct(i);
-      const stakedProduct = armorStakingPool0.products(i);
+      const stakedProduct = await armorStakingPool0.products(i);
 
       console.log(`Checking product with id: ${i}`);
       /*

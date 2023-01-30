@@ -790,7 +790,7 @@ describe('v2 migration', function () {
 
     // Assert deposit for Armor Pool 0
 
-    const armorContracts = await this.pooledStaking.stakerContractsArray();
+    // const armorContracts = await this.pooledStaking.stakerContractsArray();
 
     const armorStakingPool0 = ethers.getContractAt('StakingPool', await this.cover.stakingPool(0));
 

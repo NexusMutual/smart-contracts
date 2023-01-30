@@ -39,13 +39,12 @@ const main = async () => {
     }
   }
   const sunsetProductKeys = Object.keys(products).filter(p => {
-    return newestCoverExpiryDatePerProduct[p] < now);
-   });
+    return newestCoverExpiryDatePerProduct[p] < now;
+  });
   const sunsetProducts = {};
   sunsetProductKeys.forEach(k => {
     sunsetProducts[k] = products[k];
-  })
-
+  });
 
   const sunsetProductsPath = outputDir + '/sunsetProducts.json';
   console.log(`Writing file ${sunsetProductsPath}`);

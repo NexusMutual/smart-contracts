@@ -58,11 +58,12 @@ contract StakingPool is IStakingPool, Multicall {
   uint24 public nextAllocationId;
 
   bool public isPrivatePool;
+  bool private halted;
 
   uint8 public poolFee;
   uint8 public maxPoolFee;
 
-  // 40 bytes left in slot 3
+  // 32 bytes left in slot 3
 
   // slot 4
   address public manager;
@@ -170,6 +171,13 @@ contract StakingPool is IStakingPool, Multicall {
 
   modifier whenNotPaused {
     require(!masterContract.isPause(), "System is paused");
+    _;
+  }
+
+  modifier whenNotHalted {
+    if (halted) {
+      revert PoolHalted();
+    }
     _;
   }
 
@@ -359,7 +367,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint trancheId,
     uint requestTokenId,
     address destination
-  ) public whenNotPaused returns (uint tokenId) {
+  ) public whenNotPaused whenNotHalted returns (uint tokenId) {
 
     if (isPrivatePool) {
       if (msg.sender != manager) {
@@ -445,7 +453,7 @@ contract StakingPool is IStakingPool, Multicall {
       }
 
       deposit.stakeShares += newStakeShares.toUint128();
-      deposit.rewardsShares += newRewardsShares.toUint96();
+      deposit.rewardsShares += newRewardsShares.toUint128();
       deposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare.toUint96();
 
       // store
@@ -465,7 +473,7 @@ contract StakingPool is IStakingPool, Multicall {
         uint newRewardPerShare = _accNxmPerRewardsShare.uncheckedSub(feeDeposit.lastAccNxmPerRewardShare);
         feeDeposit.pendingRewards += (newRewardPerShare * feeDeposit.rewardsShares / ONE_NXM).toUint96();
         feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare.toUint96();
-        feeDeposit.rewardsShares += newFeeRewardShares.toUint96();
+        feeDeposit.rewardsShares += newFeeRewardShares.toUint128();
       }
 
       deposits[MAX_UINT][trancheId] = feeDeposit;
@@ -1079,7 +1087,7 @@ contract StakingPool is IStakingPool, Multicall {
     uint initialTrancheId,
     uint newTrancheId,
     uint topUpAmount
-  ) external whenNotPaused {
+  ) external whenNotPaused whenNotHalted {
 
     // token id MAX_UINT is only used for pool manager fee tracking, no deposits allowed
     if(tokenId == MAX_UINT) {
@@ -1210,23 +1218,24 @@ contract StakingPool is IStakingPool, Multicall {
   }
 
   function burnStake(uint amount) external onlyCoverContract {
-
-    // TODO: block the pool if we perform 100% of the stake
-
     // passing false because neither the amount of shares nor the reward per second are changed
     processExpirations(false);
 
     // sload
-    uint initialStake = activeStake;
+    uint _activeStake = activeStake;
 
-    // leaving 1 wei to avoid division by zero
-    uint burnAmount = amount >= initialStake ? initialStake - 1 : amount;
-    tokenController.burnStakedNXM(burnAmount, poolId);
+    // If all stake is burned, leave 1 wei and close pool
+    if (amount >= _activeStake) {
+      amount = _activeStake - 1;
+      halted = true;
+    }
+
+    tokenController.burnStakedNXM(amount, poolId);
 
     // sstore
-    activeStake = (initialStake - burnAmount).toUint96();
+    activeStake = (_activeStake - amount).toUint96();
 
-    emit StakeBurned(burnAmount);
+    emit StakeBurned(amount);
   }
 
   /* views */
@@ -1477,7 +1486,7 @@ contract StakingPool is IStakingPool, Multicall {
       feeDeposit.pendingRewards += (newRewardPerRewardsShare * feeDeposit.rewardsShares / ONE_NXM).toUint96();
       feeDeposit.lastAccNxmPerRewardShare = _accNxmPerRewardsShare.toUint96();
       // TODO: would using tranche.rewardsShares give a better precision?
-      feeDeposit.rewardsShares = (uint(feeDeposit.rewardsShares) * newFee / oldFee).toUint96();
+      feeDeposit.rewardsShares = (uint(feeDeposit.rewardsShares) * newFee / oldFee).toUint128();
 
       // sstore
       deposits[MAX_UINT][trancheId] = feeDeposit;

@@ -1235,7 +1235,7 @@ contract StakingPool is IStakingPool, Multicall {
     // sstore
     activeStake = (_activeStake - amount).toUint96();
 
-    emit StakeBurned(burnAmount);
+    emit StakeBurned(amount);
   }
 
   /* views */

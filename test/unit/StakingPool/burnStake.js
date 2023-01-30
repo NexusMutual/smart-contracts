@@ -1,14 +1,22 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { getTranches, setTime } = require('./helpers');
-const { AddressZero, MaxUint256 } = ethers.constants;
-const { parseEther } = ethers.utils;
+const { getTranches, moveTimeToNextTranche, BUCKET_DURATION } = require('./helpers');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { setEtherBalance } = require('../utils').evm;
 
+const { AddressZero, MaxUint256, Two } = ethers.constants;
+const { parseEther } = ethers.utils;
+
+const MaxUint32 = Two.pow(32).sub(1);
+
+const DEFAULT_PERIOD = daysToSeconds(30);
+const DEFAULT_GRACE_PERIOD = daysToSeconds(30);
+const BUCKET_TRANCHE_GROUP_SIZE = 8;
+const EXPIRING_ALLOCATION_DATA_GROUP_SIZE = 32;
+
 const initialProduct = {
   productId: 0,
-  weight: 75,
+  weight: 100,
   initialPrice: 255,
   targetPrice: 386,
 };
@@ -44,15 +52,30 @@ const burnStakeParams = {
   deallocationAmount: 0,
 };
 
-const DEFAULT_PERIOD = daysToSeconds(30);
-const DEFAULT_GRACE_PERIOD = daysToSeconds(30);
-const stakedNxmAmount = parseEther('1235');
+const allocationRequestParams = {
+  productId: 0,
+  coverId: 0,
+  allocationId: MaxUint256,
+  period: DEFAULT_PERIOD,
+  gracePeriod: DEFAULT_GRACE_PERIOD,
+  previousStart: 0,
+  previousExpiration: 0,
+  previousRewardsRatio: 5000,
+  useFixedPrice: false,
+  globalCapacityRatio: 20000,
+  capacityReductionRatio: 0,
+  rewardRatio: 5000,
+  globalMinPrice: 10000,
+};
+
+const stakedNxmAmount = parseEther('100');
+const burnAmount = parseEther('10');
 
 describe('burnStake', function () {
   beforeEach(async function () {
-    const { stakingPool, cover, nxm, tokenController } = this;
+    const { stakingPool, cover } = this;
     const { defaultSender: manager } = this.accounts;
-    const { TRANCHE_DURATION } = this.config;
+    const [staker] = this.accounts.members;
     const { poolId, initialPoolFee, maxPoolFee, products, ipfsDescriptionHash } = poolInitParams;
 
     this.coverSigner = await ethers.getImpersonatedSigner(cover.address);
@@ -71,16 +94,13 @@ describe('burnStake', function () {
       ipfsDescriptionHash,
     );
 
-    await nxm.mint(manager.address, MaxUint256.div(1e6));
-    await nxm.connect(manager).approve(tokenController.address, MaxUint256);
+    // Move to the beginning of the next tranche
+    const currentTrancheId = await moveTimeToNextTranche(1);
 
     // Deposit into pool
-    const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
-    await stakingPool.connect(manager).depositTo(stakedNxmAmount, firstActiveTrancheId + 1, 0, AddressZero);
-
-    // Move to the beginning of the next tranche
-    const { firstActiveTrancheId: trancheId } = await getTranches();
-    await setTime(TRANCHE_DURATION.mul(trancheId + 1).toNumber());
+    await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId, MaxUint256, AddressZero);
+    await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId + 1, MaxUint256, AddressZero);
+    await stakingPool.connect(staker).depositTo(stakedNxmAmount, currentTrancheId + 2, MaxUint256, AddressZero);
   });
 
   it('should revert if the caller is not the cover contract', async function () {
@@ -134,5 +154,454 @@ describe('burnStake', function () {
     await expect(
       stakingPool.connect(member).depositTo(stakedNxmAmount, firstActiveTrancheId, 0, AddressZero),
     ).to.be.revertedWithCustomError(stakingPool, 'PoolHalted');
+  });
+
+  it('reduces activeStake', async function () {
+    const { stakingPool } = this;
+
+    const activeStakeBefore = await stakingPool.activeStake();
+
+    await stakingPool.connect(this.coverSigner).burnStake(burnAmount, burnStakeParams);
+
+    const activeStakeAfter = await stakingPool.activeStake();
+    expect(activeStakeAfter).to.equal(activeStakeBefore.sub(burnAmount));
+  });
+
+  it('emits StakeBurned event', async function () {
+    const { stakingPool } = this;
+
+    await expect(stakingPool.connect(this.coverSigner).burnStake(burnAmount, burnStakeParams))
+      .to.emit(stakingPool, 'StakeBurned')
+      .withArgs(burnAmount);
+  });
+
+  it('burns staked NXM in token controller', async function () {
+    const { stakingPool, nxm, tokenController } = this;
+
+    const poolId = await stakingPool.poolId();
+
+    const balanceBefore = await nxm.balanceOf(tokenController.address);
+    const tcBalancesBefore = await tokenController.stakingPoolNXMBalances(poolId);
+
+    await stakingPool.connect(this.coverSigner).burnStake(burnAmount, burnStakeParams);
+
+    const balanceAfter = await nxm.balanceOf(tokenController.address);
+    const tcBalancesAfter = await tokenController.stakingPoolNXMBalances(poolId);
+
+    expect(balanceAfter).to.equal(balanceBefore.sub(burnAmount));
+    expect(tcBalancesAfter.deposits).to.equal(tcBalancesBefore.deposits.sub(burnAmount));
+  });
+
+  it('works correctly if burnAmount > initialStake', async function () {
+    const { stakingPool, nxm, tokenController } = this;
+
+    const poolId = await stakingPool.poolId();
+
+    const initialStake = await stakingPool.activeStake();
+    const balanceBefore = await nxm.balanceOf(tokenController.address);
+    const tcBalancesBefore = await tokenController.stakingPoolNXMBalances(poolId);
+
+    const burnAmount = initialStake.add(parseEther('1'));
+
+    // leaves 1 wei to avoid division by zero
+    const actualBurnedAmount = initialStake.sub(1);
+    await expect(stakingPool.connect(this.coverSigner).burnStake(burnAmount, burnStakeParams))
+      .to.emit(stakingPool, 'StakeBurned')
+      .withArgs(actualBurnedAmount);
+
+    const activeStakeAfter = await stakingPool.activeStake();
+    const balanceAfter = await nxm.balanceOf(tokenController.address);
+    const tcBalancesAfter = await tokenController.stakingPoolNXMBalances(poolId);
+
+    expect(activeStakeAfter).to.equal(initialStake.sub(actualBurnedAmount));
+    expect(balanceAfter).to.equal(balanceBefore.sub(actualBurnedAmount));
+    expect(tcBalancesAfter.deposits).to.equal(tcBalancesBefore.deposits.sub(actualBurnedAmount));
+  });
+
+  it('correctly deallocates cover tranche allocations', async function () {
+    const { stakingPool } = this;
+    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+
+    const coverTrancheAllocationAmount = stakedNxmAmount.div(NXM_PER_ALLOCATION_UNIT);
+
+    const allocationId1 = await stakingPool.nextAllocationId();
+    const allocationAmount1 = stakedNxmAmount;
+
+    // allocates 50% of first tranche
+    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount1, 0, allocationRequestParams);
+    const firstAllocationBlock = await ethers.provider.getBlock('latest');
+
+    {
+      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId1);
+      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(allocationAmount1.div(NXM_PER_ALLOCATION_UNIT));
+      expect(coverTrancheAllocations.shr(32)).to.equal(0);
+      expect(coverTrancheAllocations.shr(64)).to.equal(0);
+    }
+
+    const allocationAmount2 = stakedNxmAmount.mul(2);
+    const allocationId2 = await stakingPool.nextAllocationId();
+
+    // allocates 50% of first tranche and 50% of second tranche
+    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount2, 0, allocationRequestParams);
+
+    {
+      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId2);
+      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(coverTrancheAllocationAmount);
+      expect(coverTrancheAllocations.shr(32)).to.equal(coverTrancheAllocationAmount);
+      expect(coverTrancheAllocations.shr(64)).to.equal(0);
+    }
+
+    const allocationAmount3 = stakedNxmAmount.mul(3);
+
+    // updates allocation to be 50% of first tranche, 50% of second tranche and 50% of third tranche
+    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount3, 0, {
+      ...allocationRequestParams,
+      allocationId: allocationId1,
+      previousStart: firstAllocationBlock.timestamp,
+      previousExpiration: firstAllocationBlock.timestamp + allocationRequestParams.period,
+    });
+    const editAllocationBlock = await ethers.provider.getBlock('latest');
+
+    {
+      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId1);
+      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(coverTrancheAllocationAmount);
+      expect(coverTrancheAllocations.shr(32).and(MaxUint32)).to.equal(coverTrancheAllocationAmount);
+      expect(coverTrancheAllocations.shr(64)).to.equal(coverTrancheAllocationAmount);
+    }
+
+    // deallocates half of the last tranche
+    const firstDeallocationAmount = stakedNxmAmount.div(2);
+    const params = {
+      allocationId: allocationId1,
+      productId: allocationRequestParams.productId,
+      start: editAllocationBlock.timestamp,
+      period: allocationRequestParams.period,
+      deallocationAmount: firstDeallocationAmount,
+    };
+
+    await stakingPool.connect(this.coverSigner).burnStake(0, params);
+
+    {
+      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId1);
+      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(coverTrancheAllocationAmount);
+      expect(coverTrancheAllocations.shr(32).and(MaxUint32)).to.equal(coverTrancheAllocationAmount);
+      expect(coverTrancheAllocations.shr(64)).to.equal(stakedNxmAmount.div(2).div(NXM_PER_ALLOCATION_UNIT));
+    }
+
+    // deallocates 100%
+    const deallocationAmount = allocationAmount3.sub(firstDeallocationAmount);
+    await stakingPool.connect(this.coverSigner).burnStake(0, { ...params, deallocationAmount });
+
+    {
+      const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId1);
+      expect(coverTrancheAllocations.and(MaxUint32)).to.equal(0);
+      expect(coverTrancheAllocations.shr(32)).to.equal(0);
+      expect(coverTrancheAllocations.shr(64)).to.equal(0);
+    }
+  });
+
+  it('correctly deallocates stored tranche allocations', async function () {
+    const { stakingPool } = this;
+    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+
+    const { productId } = allocationRequestParams;
+
+    const allocationId1 = await stakingPool.nextAllocationId();
+    const allocationAmount1 = stakedNxmAmount;
+
+    {
+      const activeAllocations = await stakingPool.getActiveAllocations(productId);
+      expect(activeAllocations[0]).to.equal(0);
+    }
+
+    // allocates 50% of first tranche
+    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount1, 0, allocationRequestParams);
+    const firstAllocationBlock = await ethers.provider.getBlock('latest');
+
+    const allocationAmountInUnit = stakedNxmAmount.div(NXM_PER_ALLOCATION_UNIT);
+
+    {
+      const activeAllocations = await stakingPool.getActiveAllocations(productId);
+      expect(activeAllocations[0]).to.equal(allocationAmountInUnit);
+      expect(activeAllocations[1]).to.equal(0);
+      expect(activeAllocations[2]).to.equal(0);
+    }
+
+    const allocationAmount2 = stakedNxmAmount.mul(2);
+
+    // allocates 50% of first tranche and 50% of second tranche
+    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount2, 0, allocationRequestParams);
+
+    {
+      const activeAllocations = await stakingPool.getActiveAllocations(productId);
+      expect(activeAllocations[0]).to.equal(allocationAmountInUnit.mul(2));
+      expect(activeAllocations[1]).to.equal(allocationAmountInUnit);
+      expect(activeAllocations[2]).to.equal(0);
+    }
+
+    const allocationAmount3 = stakedNxmAmount.mul(3);
+
+    // updates allocation to be 50% of first tranche, 50% of second tranche and 50% of third tranche
+    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount3, 0, {
+      ...allocationRequestParams,
+      allocationId: allocationId1,
+      previousStart: firstAllocationBlock.timestamp,
+      previousExpiration: firstAllocationBlock.timestamp + allocationRequestParams.period,
+    });
+    const editAllocationBlock = await ethers.provider.getBlock('latest');
+
+    {
+      const activeAllocations = await stakingPool.getActiveAllocations(productId);
+      expect(activeAllocations[0]).to.equal(allocationAmountInUnit.mul(2));
+      expect(activeAllocations[1]).to.equal(allocationAmountInUnit.mul(2));
+      expect(activeAllocations[2]).to.equal(allocationAmountInUnit);
+    }
+
+    // deallocates half of the last tranche
+    const firstDeallocationAmount = stakedNxmAmount.div(2);
+    const params = {
+      allocationId: allocationId1,
+      productId,
+      start: editAllocationBlock.timestamp,
+      period: allocationRequestParams.period,
+      deallocationAmount: firstDeallocationAmount,
+    };
+
+    await stakingPool.connect(this.coverSigner).burnStake(0, params);
+
+    {
+      const activeAllocations = await stakingPool.getActiveAllocations(productId);
+      expect(activeAllocations[0]).to.equal(allocationAmountInUnit.mul(2));
+      expect(activeAllocations[1]).to.equal(allocationAmountInUnit.mul(2));
+      expect(activeAllocations[2]).to.equal(allocationAmountInUnit.div(2));
+    }
+
+    // deallocates 100%
+    const deallocationAmount = allocationAmount3.sub(firstDeallocationAmount);
+    await stakingPool.connect(this.coverSigner).burnStake(0, { ...params, deallocationAmount });
+
+    {
+      const activeAllocations = await stakingPool.getActiveAllocations(productId);
+      expect(activeAllocations[0]).to.equal(allocationAmountInUnit);
+      expect(activeAllocations[1]).to.equal(allocationAmountInUnit);
+      expect(activeAllocations[2]).to.equal(0);
+    }
+  });
+
+  it('correctly deallocates expiring cover amounts', async function () {
+    const { stakingPool } = this;
+    const { NXM_PER_ALLOCATION_UNIT } = this.config;
+
+    const { productId, period } = allocationRequestParams;
+
+    const allocationId1 = await stakingPool.nextAllocationId();
+    const allocationAmount1 = stakedNxmAmount;
+
+    {
+      const activeAllocations = await stakingPool.getActiveAllocations(productId);
+      expect(activeAllocations[0]).to.equal(0);
+    }
+
+    // allocates 50% of first tranche
+    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount1, 0, allocationRequestParams);
+    const firstAllocationBlock = await ethers.provider.getBlock('latest');
+
+    const { firstActiveTrancheId: currentTrancheId } = await getTranches();
+
+    const targetBucketId = Math.ceil((firstAllocationBlock.timestamp + period) / BUCKET_DURATION);
+
+    const firstTrancheGroupId = Math.floor(currentTrancheId / BUCKET_TRANCHE_GROUP_SIZE);
+    const firstTrancheIndexInGroup = currentTrancheId % BUCKET_TRANCHE_GROUP_SIZE;
+
+    const secondTrancheId = currentTrancheId + 1;
+    const secondTrancheGroupId = Math.floor(secondTrancheId / BUCKET_TRANCHE_GROUP_SIZE);
+    const secondTrancheIndexInGroup = secondTrancheId % BUCKET_TRANCHE_GROUP_SIZE;
+
+    const thirdTrancheId = currentTrancheId + 2;
+    const thirdTrancheGroupId = Math.floor(thirdTrancheId / BUCKET_TRANCHE_GROUP_SIZE);
+    const thirdTrancheIndexInGroup = thirdTrancheId % BUCKET_TRANCHE_GROUP_SIZE;
+
+    const allocationAmountInUnit = stakedNxmAmount.div(NXM_PER_ALLOCATION_UNIT);
+
+    {
+      const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
+        productId,
+        targetBucketId,
+        firstTrancheGroupId,
+      );
+      expect(expiringCoverBuckets.shr(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE)).to.equal(
+        allocationAmountInUnit,
+      );
+    }
+
+    const allocationAmount2 = stakedNxmAmount.mul(2);
+
+    // allocates 50% of first tranche and 50% of second tranche
+    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount2, 0, allocationRequestParams);
+
+    {
+      const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
+        productId,
+        targetBucketId,
+        firstTrancheGroupId,
+      );
+      expect(
+        expiringCoverBuckets.shr(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+      ).to.equal(allocationAmountInUnit.mul(2));
+    }
+
+    {
+      const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
+        productId,
+        targetBucketId,
+        secondTrancheGroupId,
+      );
+      expect(
+        expiringCoverBuckets.shr(secondTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+      ).to.equal(allocationAmountInUnit);
+    }
+
+    const allocationAmount3 = stakedNxmAmount.mul(3);
+
+    // updates allocation to be 50% of first tranche, 50% of second tranche and 50% of third tranche
+    await stakingPool.connect(this.coverSigner).requestAllocation(allocationAmount3, 0, {
+      ...allocationRequestParams,
+      allocationId: allocationId1,
+      previousStart: firstAllocationBlock.timestamp,
+      previousExpiration: firstAllocationBlock.timestamp + allocationRequestParams.period,
+    });
+    const editAllocationBlock = await ethers.provider.getBlock('latest');
+
+    {
+      const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
+        productId,
+        targetBucketId,
+        firstTrancheGroupId,
+      );
+      expect(
+        expiringCoverBuckets.shr(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+      ).to.equal(allocationAmountInUnit.mul(2));
+    }
+
+    {
+      const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
+        productId,
+        targetBucketId,
+        secondTrancheGroupId,
+      );
+      expect(
+        expiringCoverBuckets.shr(secondTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+      ).to.equal(allocationAmountInUnit.mul(2));
+    }
+
+    {
+      const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
+        productId,
+        targetBucketId,
+        thirdTrancheGroupId,
+      );
+      expect(
+        expiringCoverBuckets.shr(thirdTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+      ).to.equal(allocationAmountInUnit);
+    }
+
+    // deallocates half of the last tranche
+    const firstDeallocationAmount = stakedNxmAmount.div(2);
+    const params = {
+      allocationId: allocationId1,
+      productId,
+      start: editAllocationBlock.timestamp,
+      period: allocationRequestParams.period,
+      deallocationAmount: firstDeallocationAmount,
+    };
+
+    await stakingPool.connect(this.coverSigner).burnStake(0, params);
+
+    {
+      const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
+        productId,
+        targetBucketId,
+        firstTrancheGroupId,
+      );
+      expect(
+        expiringCoverBuckets.shr(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+      ).to.equal(allocationAmountInUnit.mul(2));
+    }
+
+    {
+      const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
+        productId,
+        targetBucketId,
+        secondTrancheGroupId,
+      );
+      expect(
+        expiringCoverBuckets.shr(secondTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+      ).to.equal(allocationAmountInUnit.mul(2));
+    }
+
+    {
+      const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
+        productId,
+        targetBucketId,
+        thirdTrancheGroupId,
+      );
+      expect(
+        expiringCoverBuckets.shr(thirdTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+      ).to.equal(allocationAmountInUnit.div(2));
+    }
+
+    // deallocates 100%
+    const deallocationAmount = allocationAmount3.sub(firstDeallocationAmount);
+    await stakingPool.connect(this.coverSigner).burnStake(0, { ...params, deallocationAmount });
+
+    {
+      const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
+        productId,
+        targetBucketId,
+        firstTrancheGroupId,
+      );
+      expect(
+        expiringCoverBuckets.shr(firstTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+      ).to.equal(allocationAmountInUnit);
+    }
+
+    {
+      const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
+        productId,
+        targetBucketId,
+        secondTrancheGroupId,
+      );
+      expect(
+        expiringCoverBuckets.shr(secondTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+      ).to.equal(allocationAmountInUnit);
+    }
+
+    {
+      const expiringCoverBuckets = await stakingPool.expiringCoverBuckets(
+        productId,
+        targetBucketId,
+        thirdTrancheGroupId,
+      );
+      expect(
+        expiringCoverBuckets.shr(thirdTrancheIndexInGroup * EXPIRING_ALLOCATION_DATA_GROUP_SIZE).and(MaxUint32),
+      ).to.equal(0);
+    }
+  });
+
+  it('calls process expirations', async function () {
+    const { stakingPool } = this;
+
+    const initialFirstActiveBucketId = await stakingPool.firstActiveBucketId();
+    const initialFirstActiveTrancheId = await stakingPool.firstActiveTrancheId();
+
+    await moveTimeToNextTranche(2);
+
+    await stakingPool.connect(this.coverSigner).burnStake(burnAmount, burnStakeParams);
+
+    const firstActiveBucketId = await stakingPool.firstActiveBucketId();
+    const firstActiveTrancheId = await stakingPool.firstActiveTrancheId();
+
+    expect(firstActiveBucketId).to.gt(initialFirstActiveBucketId);
+    expect(firstActiveTrancheId).to.gt(initialFirstActiveTrancheId);
   });
 });

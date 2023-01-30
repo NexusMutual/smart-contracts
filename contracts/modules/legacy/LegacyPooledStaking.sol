@@ -974,7 +974,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
   }
 
-  function getV1PriceForProduct(uint id) view internal returns (uint96) {
+  function getV1PriceForProduct(uint id) view public returns (uint96) {
     // {V1_PRICES_HELPER_BEGIN}
 
     // Argent
@@ -1250,7 +1250,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       return 62666829169994260000; // 62.66682916999426%
     }
     // {V1_PRICES_HELPER_END}
-    
+
     return type(uint96).max;
   }
 
@@ -1437,8 +1437,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       params,
       migrationData.ipfsDescriptionHash
     );
-
-
 
     uint firstTrancheId = block.timestamp / 91 days + 1;
     for (uint i = 0; i < TRANCHE_COUNT; i++) {

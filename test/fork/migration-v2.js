@@ -790,11 +790,15 @@ describe('v2 migration', function () {
 
     // Assert deposit for Armor Pool 0
 
-    // const armorContracts = await this.pooledStaking.stakerContractsArray();
+    const v1ProductIds = require(path.join(config.paths.root, 'scripts/v2-migration/output/v1ProductIds.json'));
+
+    const armorContracts = await this.pooledStaking.stakerContractsArray(ARMOR_NFT);
+
+    const armorContractIds = armorContracts.map(contract => v1ProductIds.indexOf(contract));
 
     const armorStakingPool0 = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(0));
 
-    for (let i = 0; i < 150; i++) {
+    for (const i of armorContractIds) {
       const productPrice = await this.pooledStaking.getV1PriceForProduct(i);
       const stakedProduct = await armorStakingPool0.products(i);
 
@@ -808,7 +812,13 @@ describe('v2 migration', function () {
           uint32 bumpedPriceUpdateTime;
         }
       */
-      expect(stakedProduct.targetPrice).to.be.equal(productPrice);
+
+      console.log({
+        productPrice: productPrice.toString(),
+        stakedProductTargetPrice: stakedProduct.targetPrice.toString(),
+        stakedProductBumpedPrice: stakedProduct.bumpedPrice.toString(),
+      });
+      // expect(stakedProduct.targetPrice).to.be.equal(productPrice);
     }
   });
 

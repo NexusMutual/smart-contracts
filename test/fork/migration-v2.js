@@ -168,7 +168,12 @@ describe('v2 migration', function () {
     poolValueBefore = await this.pool.getPoolValueInEth();
   });
 
-  it.skip('run get-v1-cover-prices', async function () {
+  // generates the ProductsV1 contract
+  it('run get-products-v1 script', async function () {
+    await getProductsV1();
+  });
+
+  it('run get-v1-cover-prices', async function () {
     const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
     await getV1CoverPrices(directProvider);
   });
@@ -226,11 +231,6 @@ describe('v2 migration', function () {
   it.skip('run get-legacy-assessment-rewards script', async function () {
     const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
     await getLegacyAssessmentRewards(directProvider);
-  });
-
-  // generates the ProductsV1 contract
-  it.skip('run get-products-v1 script', async function () {
-    await getProductsV1();
   });
 
   // generates the eligibleForCLAUnlock.json file

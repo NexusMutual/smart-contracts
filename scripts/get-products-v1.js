@@ -37,7 +37,7 @@ const main = async () => {
   console.log(`Total deprecated products: ${deprecatedV1Products.length}`);
 
   const migratable = Object.keys(products)
-    // .filter(k => !products[k].deprecated)
+    .filter(k => !products[k].deprecated)
     .map((k, i) => ({ ...products[k], productId: i, legacyProductId: k }));
 
   console.log(`Total non-deprecated products: ${migratable.length}`);

@@ -30,6 +30,9 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
   let protocolCoverHash;
   let custodianCoverHash;
   let yieldTokenCoverHash;
+  let sherlockExcessCoverHash;
+  let eth2SlashingCoverHash;
+  let liquidCollectiveSlashingCoverHash;
 
   if (enableIPFSUploads) {
     // Add product types:
@@ -82,6 +85,9 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
     protocolCoverHash = 'Fork Test Mock Protocol Cover Hash';
     custodianCoverHash = 'Fork Test Mock Custodian Cover Hash';
     yieldTokenCoverHash = 'Test Mock Yield Token Cover Hash';
+    sherlockExcessCoverHash = 'Test Mock Yield Token Cover Hash';
+    eth2SlashingCoverHash = 'Test Eth 2 Slashing Cover Hash';
+    liquidCollectiveSlashingCoverHash = 'Liquid Collective Cover Hash';
   }
 
   await cover.connect(abMemberSigner).setProductTypes([
@@ -115,12 +121,48 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
         gracePeriod: 14 * 24 * 3600, // 14 days
       },
     },
+
+    // Sherlock Excess Cover
+    {
+      productTypeId: MaxUint256,
+      ipfsMetadata: sherlockExcessCoverHash,
+      productType: {
+        descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
+        claimMethod: claimMethod.individualClaim,
+        gracePeriod: 30 * 24 * 3600, // 30 days
+      },
+    },
+
+    // Stakewise Slashing Cover
+    {
+      productTypeId: MaxUint256,
+      ipfsMetadata: eth2SlashingCoverHash,
+      productType: {
+        descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
+        claimMethod: claimMethod.individualClaim,
+        gracePeriod: 30 * 24 * 3600, // 30 days
+      },
+    },
+
+    // Liquid Collective slashing cover
+    {
+      productTypeId: MaxUint256,
+      ipfsMetadata: liquidCollectiveSlashingCoverHash,
+      productType: {
+        descriptionIpfsHash: 'yieldTokenCoverIPFSHash',
+        claimMethod: claimMethod.individualClaim,
+        gracePeriod: 30 * 24 * 3600, // 30 days
+      },
+    },
   ]);
 
   const productTypeIds = {
     protocol: 0,
     custodian: 1,
     token: 2,
+    sherlock: 3,
+    eth2slashing: 4,
+    liquidcollective: 5,
   };
 
   const migrateableProductsPath = path.join(__dirname, 'v2-migration/output/migratableProducts.json');
@@ -165,6 +207,9 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
         (x.underlyingToken === 'ETH' && 0b01) || // Yield token cover that uses ETH
         0;
 
+      console.log({
+        x,
+      });
       const productParams = {
         productId: MaxUint256,
         ipfsMetadata: 'product 0 metadata',

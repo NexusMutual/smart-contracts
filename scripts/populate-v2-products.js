@@ -117,6 +117,12 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
     },
   ]);
 
+  const productTypeIds = {
+    protocol: 0,
+    custodian: 1,
+    token: 2,
+  };
+
   const migrateableProductsPath = path.join(__dirname, 'v2-migration/output/migratableProducts.json');
 
   const migratableProducts = JSON.parse(fs.readFileSync(migrateableProductsPath));
@@ -163,11 +169,12 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
         productId: MaxUint256,
         ipfsMetadata: 'product 0 metadata',
         product: {
-          productType: 0, // Protocol Cover
+          productType: productTypeIds[x.type],
           yieldTokenAddress: x.type === 'token' ? x.coveredToken : '0x0000000000000000000000000000000000000000',
           coverAssets,
           initialPriceRatio: 100,
           capacityReductionRatio: 0,
+          // TODO: apply fixed price for certain products. stakewise, alluvial, maybe others
           useFixedPrice: false,
         },
         allowedPools: [],

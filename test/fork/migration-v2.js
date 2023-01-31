@@ -8,7 +8,7 @@ const proposalCategories = require('../utils').proposalCategories;
 const evm = require('./evm')();
 
 const { BigNumber } = ethers;
-const { AddressZero } = ethers.constants;
+const { AddressZero, MaxUint96 } = ethers.constants;
 const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
 
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
@@ -168,14 +168,14 @@ describe('v2 migration', function () {
     poolValueBefore = await this.pool.getPoolValueInEth();
   });
 
-  it.skip('run get-v1-cover-prices', async function () {
-    const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
-    await getV1CoverPrices(directProvider);
-  });
-
   // generates the ProductsV1 contract
   it.skip('run get-products-v1 script', async function () {
     await getProductsV1();
+  });
+
+  it.skip('run get-v1-cover-prices', async function () {
+    const directProvider = new ethers.providers.JsonRpcProvider(process.env.TEST_ENV_FORK);
+    await getV1CoverPrices(directProvider);
   });
 
   it.skip('run get-withdrawable-cover-notes', async function () {

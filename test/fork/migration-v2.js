@@ -792,34 +792,41 @@ describe('v2 migration', function () {
 
     const v1ProductIds = require(path.join(config.paths.root, 'scripts/v2-migration/output/v1ProductIds.json'));
 
-    const armorContracts = await this.pooledStaking.stakerContractsArray(ARMOR_NFT);
+    const pooledStaking = this.pooledStaking;
+    async function assertPrices(stakingPool, stakerAddress) {
+      const contracts = await pooledStaking.stakerContractsArray(stakerAddress);
+      const contractIds = contracts.map(contract => v1ProductIds.indexOf(contract));
+      for (const i of contractIds) {
+        const productPrice = await pooledStaking.getV1PriceForProduct(i);
+        const stakedProduct = await stakingPool.products(i);
 
-    const armorContractIds = armorContracts.map(contract => v1ProductIds.indexOf(contract));
+        console.log(`Checking product with id: ${i}`);
 
-    const armorStakingPool0 = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(0));
-
-    for (const i of armorContractIds) {
-      const productPrice = await this.pooledStaking.getV1PriceForProduct(i);
-      const stakedProduct = await armorStakingPool0.products(i);
-
-      console.log(`Checking product with id: ${i}`);
-      /*
-        struct StakedProduct {
-          uint16 lastEffectiveWeight;
-          uint8 targetWeight;
-          uint96 targetPrice;
-          uint96 bumpedPrice;
-          uint32 bumpedPriceUpdateTime;
-        }
-      */
-
-      console.log({
-        productPrice: productPrice.toString(),
-        stakedProductTargetPrice: stakedProduct.targetPrice.toString(),
-        stakedProductBumpedPrice: stakedProduct.bumpedPrice.toString(),
-      });
-      // expect(stakedProduct.targetPrice).to.be.equal(productPrice);
+        console.log({
+          productPrice: productPrice.toString(),
+          stakedProductTargetPrice: stakedProduct.targetPrice.toString(),
+          stakedProductBumpedPrice: stakedProduct.bumpedPrice.toString(),
+        });
+        // expect(stakedProduct.targetPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
+        // expect(stakedProduct.bumpedPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
+      }
     }
+
+    console.log(`Checking prices for Armor Pool 0`);
+    const armorStakingPool0 = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(0));
+    await assertPrices(armorStakingPool0, ARMOR_NFT);
+
+    console.log(`Checking prices for Armor Pool 1`);
+    const armorStakingPool1 = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(1));
+    await assertPrices(armorStakingPool1, ARMOR_NFT);
+
+    console.log(`Checking prices for Nexus Foundation Pool`);
+    const nexusFoundationPool = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(2));
+    await assertPrices(nexusFoundationPool, NEXUSMUTUAL_FOUNDATION);
+
+    console.log(`Checking prices for Hugh Pool`);
+    const hughPool = await ethers.getContractAt('StakingPool', await this.cover.stakingPool(3));
+    await assertPrices(hughPool, HUGH);
   });
 
   it.skip('deploy & add contracts: Assessment, IndividualClaims, YieldTokenIncidents', async function () {

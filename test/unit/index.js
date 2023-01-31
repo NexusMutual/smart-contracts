@@ -15,4 +15,5 @@ describe('UNIT TESTS', function () {
   require('./PriceFeedOracle');
   require('./CoverViewer');
   require('./StakingNFT');
+  require('./StakingPoolFactory');
 });

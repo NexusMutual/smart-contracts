@@ -153,7 +153,7 @@ describe('StakingNFT', function () {
     ).to.be.revertedWith('NOT_ERC721_RECEIVER');
   });
 
-  it('should support erc721 interface', async function () {
+  it('should support erc721 and ERC165 interfaces', async function () {
     const { stakingNFT } = this;
     // 0x80ac58cd // ERC165 Interface ID for ERC721
     expect(await stakingNFT.supportsInterface('0x80ac58cd')).to.be.equal(true);

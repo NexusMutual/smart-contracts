@@ -979,7 +979,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     // Argent
     if (id == 18) {
-      return 12371822397380809000; // 12.371822397380809%
+      return 12432734161534590000; // 12.43273416153459%
     }
 
     if (
@@ -1021,8 +1021,6 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
       id == 111 ||
       // Kraken
       id == 112 ||
-      // Crypto.com
-      id == 115 ||
       // Yearn yvUSDC v2
       id == 128 ||
       // Curve 3pool LP (3Crv)
@@ -1082,22 +1080,22 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     // 1Inch (DEX & Liquidity Pools)
     if (id == 41) {
-      return 11418854861482590000; // 11.41885486148259%
+      return 11615611571267385000; // 11.615611571267385%
     }
 
     // Set Protocol
     if (id == 50) {
-      return 25568209688241335000; // 25.568209688241335%
+      return 25776769897239860000; // 25.77676989723986%
     }
 
     // mStable
     if (id == 57) {
-      return 3604236355387446400; // 3.6042363553874464%
+      return 3644413798025818000; // 3.644413798025818%
     }
 
     // UMA
     if (id == 62) {
-      return 8085187376008319000; // 8.085187376008319%
+      return 8201495783983267000; // 8.201495783983267%
     }
 
     // Idle v4
@@ -1107,27 +1105,27 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     // Pool Together v3
     if (id == 72) {
-      return 16107889938371784000; // 16.107889938371784%
+      return 16217884130675326000; // 16.217884130675326%
     }
 
     // Set Protocol v2
     if (id == 73) {
-      return 5326464377384085000; // 5.326464377384085%
+      return 5369407919786518000; // 5.369407919786518%
     }
 
     // TrueFi
     if (id == 79) {
-      return 28483204969801402000; // 28.4832049698014%
+      return 28565302775823290000; // 28.56530277582329%
     }
 
     // Perpetual Protocol
     if (id == 84) {
-      return 35019567074303650000; // 35.01956707430365%
+      return 35119077526559266000; // 35.119077526559266%
     }
 
     // BadgerDAO
     if (id == 85) {
-      return 14174444180475165000; // 14.174444180475165%
+      return 14228404256362980000; // 14.22840425636298%
     }
 
     // Opyn v2
@@ -1137,7 +1135,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     // Vesper
     if (id == 90) {
-      return 23147189086504450000; // 23.147189086504447%
+      return 23264163793413047000; // 23.264163793413047%
     }
 
     // Homora v2
@@ -1157,12 +1155,12 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     // Binance
     if (id == 110) {
-      return 4516006700725837000; // 4.516006700725836%
+      return 4572366582545144000; // 4.572366582545143%
     }
 
     // FTX
     if (id == 114) {
-      return 26677417519753625000; // 26.677417519753625%
+      return 26716469402552790000; // 26.71646940255279%
     }
 
     // Pangolin
@@ -1182,7 +1180,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     // Premia Finance
     if (id == 121) {
-      return 28511599806087503000; // 28.511599806087503%
+      return 28641545311637937000; // 28.641545311637937%
     }
 
     // Yearn yvDAI v2
@@ -1192,12 +1190,12 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     // Yearn ycrvstETH v2
     if (id == 129) {
-      return 22160010205633200000; // 22.1600102056332%
+      return 22245704685826860000; // 22.24570468582686%
     }
 
     // Curve sETH LP (eCrv)
     if (id == 131) {
-      return 3297525661298780400; // 3.29752566129878%
+      return 3337647342934265000; // 3.337647342934265%
     }
 
     // Idle DAI v4 (idleDAIYield)
@@ -1227,7 +1225,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     // Pool Together v4
     if (id == 141) {
-      return 22971686440222584000; // 22.971686440222584%
+      return 23073358057585290000; // 23.073358057585292%
     }
 
     // Origin OUSD
@@ -1242,7 +1240,7 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
 
     // Bancor v3
     if (id == 155) {
-      return 50766693682584970000; // 50.76669368258497%
+      return 50959912909288030000; // 50.95991290928803%
     }
 
     // Iron Bank

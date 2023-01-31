@@ -78,9 +78,9 @@ const main = async () => {
   for (const product in products) {
     // TODO: filter based on their expiry period grace period; we won't include that have no more covers that
     // can possibly be redeemed.
-    // if (products[product].deprecated) {
-    //   continue;
-    // }
+    if (products[product].deprecated) {
+      continue;
+    }
 
     const url = `https://api.nexusmutual.io/v1/contracts/${product}/capacity`;
     console.log(`Calling ${url}`);

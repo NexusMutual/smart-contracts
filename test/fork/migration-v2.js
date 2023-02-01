@@ -8,7 +8,7 @@ const proposalCategories = require('../utils').proposalCategories;
 const evm = require('./evm')();
 
 const { BigNumber } = ethers;
-const { AddressZero, MaxUint96 } = ethers.constants;
+const { AddressZero } = ethers.constants;
 const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
 
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
@@ -34,6 +34,8 @@ const ENZYME_ADDRESS_LIST_REGISTRY = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff
 const DAI_PRICE_FEED_ORACLE_AGGREGATOR = '0x773616E4d11A78F511299002da57A0a94577F1f4';
 const STETH_PRICE_FEED_ORACLE_AGGREGATOR = '0x86392dC19c0b719886221c78AB11eb8Cf5c52812';
 const ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR = '0xCc72039A141c6e34a779eF93AEF5eB4C82A893c7';
+
+const MaxUint96 = '79228162514264337593543950335';
 
 const ListIdForReceivers = 218;
 const AddressListRegistry = '0x4eb4c7babfb5d54ab4857265b482fb6512d22dff';
@@ -788,16 +790,27 @@ describe('v2 migration', function () {
       }),
     );
 
+    const deprecatedProducts = Object.keys(
+      require(path.join(config.paths.root, 'scripts/v2-migration/output/deprecatedV1Products.json')),
+    ).map(p => p.toLowerCase());
+
     // Assert deposit for Armor Pool 0
 
     const v1ProductIds = require(path.join(config.paths.root, 'scripts/v2-migration/output/v1ProductIds.json'));
 
     const pooledStaking = this.pooledStaking;
     async function assertPrices(stakingPool, stakerAddress) {
-      const contracts = await pooledStaking.stakerContractsArray(stakerAddress);
+      const allContracts = await pooledStaking.stakerContractsArray(stakerAddress);
+      const contracts = allContracts.filter(c => deprecatedProducts.indexOf(c.toLowerCase()) >= 0);
+
       const contractIds = contracts.map(contract => v1ProductIds.indexOf(contract));
       for (const i of contractIds) {
         const productPrice = await pooledStaking.getV1PriceForProduct(i);
+        if (productPrice.toString() === MaxUint96) {
+          // it's not a supported product
+          continue;
+        }
+
         const stakedProduct = await stakingPool.products(i);
 
         console.log(`Checking product with id: ${i}`);
@@ -807,8 +820,8 @@ describe('v2 migration', function () {
           stakedProductTargetPrice: stakedProduct.targetPrice.toString(),
           stakedProductBumpedPrice: stakedProduct.bumpedPrice.toString(),
         });
-        // expect(stakedProduct.targetPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
-        // expect(stakedProduct.bumpedPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
+        expect(stakedProduct.targetPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
+        expect(stakedProduct.bumpedPrice).to.be.equal(productPrice.div(BigNumber.from((1e16).toString())));
       }
     }
 

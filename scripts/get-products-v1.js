@@ -28,6 +28,7 @@ contract ProductsV1 is IProductsV1 {
 
 const main = async () => {
   const products = require(path.join(__dirname, 'v2-migration/input/contracts.json'));
+  const sunsetProducts = require(path.join(__dirname, 'v2-migration/output/sunsetProducts.json'));
 
   console.log(`Total products: ${Object.keys(products).length}`);
   const deprecatedV1Products = Object.keys(products)
@@ -37,7 +38,8 @@ const main = async () => {
   console.log(`Total deprecated products: ${deprecatedV1Products.length}`);
 
   const migratable = Object.keys(products)
-    .filter(k => !products[k].deprecated)
+    // .filter(k => !products[k].deprecated)
+    .filter(k => sunsetProducts.indexOf(k) === -1) // not sunset
     .map((k, i) => ({ ...products[k], productId: i, legacyProductId: k }));
 
   console.log(`Total non-deprecated products: ${migratable.length}`);

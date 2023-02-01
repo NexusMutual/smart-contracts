@@ -42,7 +42,7 @@ const main = async () => {
     .filter(k => sunsetProducts.indexOf(k) === -1) // not sunset
     .map((k, i) => ({ ...products[k], productId: i, legacyProductId: k }));
 
-  console.log(`Total non-deprecated products: ${migratable.length}`);
+  console.log(`Total non-sunset products: ${migratable.length}`);
 
   const ProductsV1 = getProductsContract(migratable);
 

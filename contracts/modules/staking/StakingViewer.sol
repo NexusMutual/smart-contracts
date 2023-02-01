@@ -38,6 +38,7 @@ contract StakingViewer {
   }
 
   struct StakingPeriod {
+    uint tokenId;
     uint trancheId;
     uint stake;
   }
@@ -291,6 +292,7 @@ contract StakingViewer {
 
         StakingPeriod memory stakingPeriod;
         stakingPeriod.trancheId = trancheId;
+        stakingPeriod.tokenId = tokenIds[tokenId];
 
         if (trancheId < firstActiveTrancheId) {
           (, uint stakeAmountAtExpiry,) = pool.expiredTranches(trancheId);

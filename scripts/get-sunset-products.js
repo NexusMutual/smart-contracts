@@ -34,7 +34,7 @@ const main = async () => {
     productsWithLowerCasedKeys[key.toLowerCase()] = products[key];
   }
   /*
-  {"address":"0xc0a47dfe034b400b47bdad5fecda2621de6c4d95","amount":1.0,"amount_usd":1636.36,"block_number":8667271,"cover_id":84,"currency":"ETH","end_time":"2020-10-02 04:56:05","premium":0.012991101985,"premium_usd":21.2581196441746,"project":"Uniswap v1","start_time":"2019-10-03 04:56:05"},{"address":"0xc0a47dfe034b400b47bdad5fecda2621de6c4d95","amount":12.0,"amount_usd":19636.32,"block_number":8759426,"cover_id":93,"currency":"ETH","end_time":"2020-03-15 15:55:29","premium":0.064065708419,"premium_usd":104.83456262851483,"project":"Uniswap v1","start_time":"2019-10-17 15:55:29"}
+  {"address": "0xc0a47dfe034b400b47bdad5fecda2621de6c4d95","amount":1.0,"amount_usd":1636.36,"block_number":8667271,"cover_id":84,"currency":"ETH","end_time":"2020-10-02 04:56:05","premium":0.012991101985,"premium_usd":21.2581196441746,"project":"Uniswap v1","start_time":"2019-10-03 04:56:05"},{"address":"0xc0a47dfe034b400b47bdad5fecda2621de6c4d95","amount":12.0,"amount_usd":19636.32,"block_number":8759426,"cover_id":93,"currency":"ETH","end_time":"2020-03-15 15:55:29","premium":0.064065708419,"premium_usd":104.83456262851483,"project":"Uniswap v1","start_time":"2019-10-17 15:55:29"}
    */
 
   const now = new Date().getTime();
@@ -64,7 +64,8 @@ const main = async () => {
   });
 
   const sunsetProductsPath = outputDir + '/sunsetProducts.json';
-  fs.writeFileSync(sunsetProductsPath, JSON.stringify(sunsetProducts), 'utf8');
+  console.log(`Writing file ${sunsetProductsPath}`);
+  fs.writeFileSync(sunsetProductsPath, JSON.stringify(Object.keys(sunsetProducts)), 'utf8');
 };
 
 if (require.main === module) {

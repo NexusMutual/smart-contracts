@@ -307,6 +307,18 @@
     ],
     "logo": "bancor.svg"
   },
+  "0x3e532e6222afe9Bcf02DCB87216802c75D5113aE": {
+    "name": "UMA",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "polygon",
+      "celo",
+      "optimism",
+      "arbitrum"
+    ],
+    "logo": "uma.png"
+  },
   "0x02285AcaafEB533e03A7306C55EC031297df9224": {
     "name": "dForce Yield Market",
     "type": "protocol",
@@ -327,6 +339,15 @@
       "ethereum"
     ],
     "logo": "yam.png"
+  },
+  "0x3fE7940616e5Bc47b0775a0dccf6237893353bB4": {
+    "name": "Idle v4",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "polygon"
+    ],
+    "logo": "idle.png"
   },
   "0x71CD6666064C3A1354a3B4dca5fA1E2D3ee7D303": {
     "name": "Mooniswap",
@@ -379,6 +400,17 @@
     ],
     "logo": "cofix.jpg"
   },
+  "0xCB876f60399897db24058b2d58D0B9f713175eeF": {
+    "name": "Pool Together v3",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "polygon",
+      "bsc",
+      "celo"
+    ],
+    "logo": "pooltogether.svg"
+  },
   "0xB94199866Fe06B535d019C11247D3f921460b91A": {
     "name": "Yield Protocol",
     "type": "protocol",
@@ -387,6 +419,14 @@
       "arbitrum"
     ],
     "logo": "yield.jpg"
+  },
+  "0x00000000219ab540356cBB839Cbe05303d7705Fa": {
+    "name": "Eth 2.0 (deposit contract)",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "eth2.jpg"
   },
   "0x878F15ffC8b894A1BA7647c7176E4C01f74e140b": {
     "name": "Hegic",
@@ -416,6 +456,14 @@
       "arbitrum"
     ],
     "logo": "cream.png"
+  },
+  "0x7a9701453249e84fd0D5AfE5951e9cBe9ed2E90f": {
+    "name": "TrueFi",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "truefi.jpg"
   },
   "0x67B66C99D3Eb37Fa76Aa3Ed1ff33E8e39F0b9c7A": {
     "name": "Alpha Homora v1",
@@ -490,6 +538,17 @@
       "ethereum"
     ],
     "logo": "alchemix.svg"
+  },
+  "0x99c666810bA4Bf9a4C2318CE60Cb2c279Ee2cF56": {
+    "name": "Homora v2",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "avalanche",
+      "fantom",
+      "optimism"
+    ],
+    "logo": "homora.svg"
   },
   "0x08FB62c84909dA3Aa5F59E01763E5FDC62De76e9": {
     "name": "Gamma Strategies",
@@ -601,6 +660,38 @@
     ],
     "logo": "pancakeswap.svg"
   },
+  "0x0000000000000000000000000000000000000006": {
+    "name": "Yearn yvDAI v2",
+    "type": "token",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "yearn.svg"
+  },
+  "0x0000000000000000000000000000000000000008": {
+    "name": "Yearn ycrvstETH v2",
+    "type": "token",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "yearn.svg"
+  },
+  "0x0000000000000000000000000000000000000011": {
+    "name": "Idle DAI v4 (idleDAIYield)",
+    "type": "token",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "idleDAIYield.svg"
+  },
+  "0x0000000000000000000000000000000000000012": {
+    "name": "Idle USDT v4 (idleUSDTYield)",
+    "type": "token",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "idleUSDTYield.svg"
+  },
   "0x0000000000000000000000000000000000000015": {
     "name": "Convex mimCrv (cvxmimCrv)",
     "type": "token",
@@ -622,6 +713,22 @@
     ],
     "logo": "popsicle.svg"
   },
+  "0x2BB8de958134AFd7543d4063CaFAD0b7c6de08BC": {
+    "name": "Ondo",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "ondo.svg"
+  },
+  "0x66357dCaCe80431aee0A7507e2E361B7e2402370": {
+    "name": "Platypus",
+    "type": "protocol",
+    "supportedChains": [
+      "avalanche"
+    ],
+    "logo": "platypus.png"
+  },
   "0x0000000000000000000000000000000000000020": {
     "name": "Babylon Finance",
     "type": "protocol",
@@ -629,5 +736,16 @@
       "ethereum"
     ],
     "logo": "babylon.svg"
+  },
+  "0x0000000000000000000000000000000000000024": {
+    "name": "Iron Bank",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "fantom",
+      "avalanche",
+      "optimism"
+    ],
+    "logo": "ironbank.svg"
   }
 }

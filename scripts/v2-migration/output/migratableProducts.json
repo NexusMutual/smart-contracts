@@ -1,41 +1,5 @@
 [
   {
-    "name": "Compound Sai",
-    "type": "protocol"
-  },
-  {
-    "name": "Unknown",
-    "type": "protocol"
-  },
-  {
-    "name": "0x v2.1",
-    "type": "protocol"
-  },
-  {
-    "name": "iearn yDAI v1",
-    "type": "protocol"
-  },
-  {
-    "name": "Compound DAI",
-    "type": "protocol"
-  },
-  {
-    "name": "Uniswap Exchange Template",
-    "type": "protocol"
-  },
-  {
-    "name": "Bancor ETHBNT Token",
-    "type": "protocol"
-  },
-  {
-    "name": "Pool Together DAI",
-    "type": "protocol"
-  },
-  {
-    "name": "Pool Together SAI",
-    "type": "protocol"
-  },
-  {
     "name": "Argent",
     "type": "protocol",
     "supportedChains": [
@@ -55,8 +19,13 @@
     "logo": "dydx.svg"
   },
   {
-    "name": "DAI Token",
-    "type": "protocol"
+    "name": "0x v3",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "bsc"
+    ],
+    "logo": "0x.png"
   },
   {
     "name": "Compound v2",
@@ -90,8 +59,19 @@
     "logo": "makerdao.png"
   },
   {
-    "name": "Aave Lending Core",
-    "type": "protocol"
+    "name": "1Inch (DEX & Liquidity Pools)",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "bsc",
+      "polygon",
+      "optimism",
+      "arbitrum",
+      "xdai",
+      "fantom",
+      "avalanche"
+    ],
+    "logo": "1inch.svg"
   },
   {
     "name": "Yearn Finance (all vaults)",
@@ -102,10 +82,6 @@
       "arbitrum"
     ],
     "logo": "yearn.svg"
-  },
-  {
-    "name": "Idle v3",
-    "type": "protocol"
   },
   {
     "name": "Curve All Pools (incl staking)",
@@ -140,6 +116,15 @@
     "logo": "uniswapv2.svg"
   },
   {
+    "name": "mStable",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "polygon"
+    ],
+    "logo": "mstable.svg"
+  },
+  {
     "name": "Synthetix",
     "type": "protocol",
     "supportedChains": [
@@ -149,37 +134,13 @@
     "logo": "synthetix.svg"
   },
   {
-    "name": "Bancor v2",
-    "type": "protocol",
-    "supportedChains": [
-      "ethereum"
-    ],
-    "logo": "bancor.svg"
-  },
-  {
-    "name": "CoFix",
-    "type": "protocol",
-    "supportedChains": [
-      "ethereum"
-    ],
-    "logo": "cofix.jpg"
-  },
-  {
-    "name": "Yield Protocol",
+    "name": "Set Protocol v2",
     "type": "protocol",
     "supportedChains": [
       "ethereum",
-      "arbitrum"
+      "polygon"
     ],
-    "logo": "yield.jpg"
-  },
-  {
-    "name": "Eth 2.0 (deposit contract)",
-    "type": "protocol",
-    "supportedChains": [
-      "ethereum"
-    ],
-    "logo": "eth2.jpg"
+    "logo": "tokensets.svg"
   },
   {
     "name": "Aave v2",
@@ -190,6 +151,33 @@
       "avalanche"
     ],
     "logo": "aavev2.svg"
+  },
+  {
+    "name": "SushiSwap v1",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "bsc",
+      "xdai",
+      "fantom",
+      "polygon",
+      "arbitrum",
+      "avalanche",
+      "celo",
+      "harmony"
+    ],
+    "logo": "sushiswap.jpg"
+  },
+  {
+    "name": "Perpetual Protocol",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "xdai",
+      "arbitrum",
+      "optimism"
+    ],
+    "logo": "perpetual.jpg"
   },
   {
     "name": "BadgerDAO",
@@ -219,6 +207,16 @@
       "ethereum"
     ],
     "logo": "reflexer.png"
+  },
+  {
+    "name": "Vesper",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "polygon",
+      "avalanche"
+    ],
+    "logo": "vesper.svg"
   },
   {
     "name": "Stake DAO",
@@ -271,37 +269,21 @@
     "logo": "balancer.svg"
   },
   {
+    "name": "Alpaca Finance",
+    "type": "protocol",
+    "supportedChains": [
+      "bsc",
+      "fantom"
+    ],
+    "logo": "alpaca.png"
+  },
+  {
     "name": "Goldfinch",
     "type": "protocol",
     "supportedChains": [
       "ethereum"
     ],
     "logo": "goldfinch.svg"
-  },
-  {
-    "name": "BlockFi",
-    "type": "custodian",
-    "logo": "blockFi.svg"
-  },
-  {
-    "name": "Nexo",
-    "type": "custodian",
-    "logo": "nexo.svg"
-  },
-  {
-    "name": "inLock",
-    "type": "custodian",
-    "logo": "inlock.png"
-  },
-  {
-    "name": "Ledn",
-    "type": "custodian",
-    "logo": "ledn.svg"
-  },
-  {
-    "name": "Hodlnaut",
-    "type": "custodian",
-    "logo": "hodlnaut.svg"
   },
   {
     "name": "Binance",
@@ -319,24 +301,17 @@
     "logo": "kraken.png"
   },
   {
-    "name": "Gemini",
-    "type": "custodian",
-    "logo": "gemini.png"
-  },
-  {
     "name": "FTX",
     "type": "custodian",
     "logo": "ftx.svg"
   },
   {
-    "name": "Crypto.com",
-    "type": "custodian",
-    "logo": "crypto-com.svg"
-  },
-  {
-    "name": "Yield.app",
-    "type": "custodian",
-    "logo": "yield-app.png"
+    "name": "Pangolin",
+    "type": "protocol",
+    "supportedChains": [
+      "avalanche"
+    ],
+    "logo": "pangolin.svg"
   },
   {
     "name": "Centrifuge Tinlake",
@@ -345,16 +320,6 @@
       "ethereum"
     ],
     "logo": "centrifuge.svg"
-  },
-  {
-    "name": "Rari Capital",
-    "type": "protocol",
-    "supportedChains": [
-      "ethereum",
-      "polygon",
-      "arbitrum"
-    ],
-    "logo": "rari.png"
   },
   {
     "name": "Abracadabra",
@@ -383,23 +348,54 @@
     "logo": "premia.svg"
   },
   {
-    "name": "Anchor",
-    "type": "protocol",
+    "name": "Yearn yvUSDC v2",
+    "type": "token",
     "supportedChains": [
-      "ethereum",
-      "terra",
-      "avalanche"
-    ],
-    "logo": "anchor.svg"
-  },
-  {
-    "name": "Thorchain",
-    "type": "protocol",
-    "supportedChains": [
-      "thorchain",
       "ethereum"
     ],
-    "logo": "thorchain.svg"
+    "logo": "yearn.svg",
+    "underlyingToken": "DAI",
+    "coveredToken": "0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9"
+  },
+  {
+    "name": "Curve 3pool LP (3Crv)",
+    "type": "token",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "curve-3crv.png",
+    "underlyingToken": "DAI",
+    "coveredToken": "0x6c3f90f043a72fa612cbac8115ee7e52bde6e490"
+  },
+  {
+    "name": "Curve sETH LP (eCrv)",
+    "type": "token",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "curve.png",
+    "underlyingToken": "ETH",
+    "coveredToken": "0xA3D87FffcE63B53E0d54fAa1cc983B7eB0b74A9c"
+  },
+  {
+    "name": "Convex stethCrv (cvxstethCrv)",
+    "type": "token",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "convex.png",
+    "underlyingToken": "ETH",
+    "coveredToken": "0x9518c9063eB0262D791f38d8d6Eb0aca33c63ed0"
+  },
+  {
+    "name": "Convex 3CRV (cvx3CRV)",
+    "type": "token",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "convex.png",
+    "underlyingToken": "DAI",
+    "coveredToken": "0x30D9410ED1D5DA1F6C8391af5338C93ab8d4035C"
   },
   {
     "name": "Notional Finance v2",
@@ -429,6 +425,16 @@
     "logo": "ribbon.svg"
   },
   {
+    "name": "Pool Together v4",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "polygon",
+      "avalanche"
+    ],
+    "logo": "pooltogether.svg"
+  },
+  {
     "name": "Trader Joe",
     "type": "protocol",
     "supportedChains": [
@@ -445,14 +451,6 @@
     "logo": "originusd.svg",
     "underlyingToken": "DAI",
     "coveredToken": "0x2A8e1E676Ec238d8A992307B495b45B3fEAa5e86"
-  },
-  {
-    "name": "Ondo",
-    "type": "protocol",
-    "supportedChains": [
-      "ethereum"
-    ],
-    "logo": "ondo.svg"
   },
   {
     "name": "Enzyme v3",
@@ -496,6 +494,14 @@
     "logo": "angle.svg"
   },
   {
+    "name": "FODL",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "fodl.svg"
+  },
+  {
     "name": "Alchemix v2",
     "type": "protocol",
     "supportedChains": [
@@ -522,14 +528,6 @@
     "logo": "yeti.png"
   },
   {
-    "name": "Babylon Finance",
-    "type": "protocol",
-    "supportedChains": [
-      "ethereum"
-    ],
-    "logo": "babylon.svg"
-  },
-  {
     "name": "Vector",
     "type": "protocol",
     "supportedChains": [
@@ -552,17 +550,6 @@
       "ethereum"
     ],
     "logo": "easelogo.png"
-  },
-  {
-    "name": "Iron Bank",
-    "type": "protocol",
-    "supportedChains": [
-      "ethereum",
-      "fantom",
-      "avalanche",
-      "optimism"
-    ],
-    "logo": "ironbank.svg"
   },
   {
     "name": "Stakewise operated (3 ETH / validator)",
@@ -638,5 +625,93 @@
       "polygon"
     ],
     "logo": "enzyme-v4.svg"
+  },
+  {
+    "name": "Bancor v2",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "bancor.svg"
+  },
+  {
+    "name": "Eth 2.0 (deposit contract)",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "eth2.jpg"
+  },
+  {
+    "name": "BlockFi",
+    "type": "custodian",
+    "logo": "blockFi.svg"
+  },
+  {
+    "name": "Nexo",
+    "type": "custodian",
+    "logo": "nexo.svg"
+  },
+  {
+    "name": "Ledn",
+    "type": "custodian",
+    "logo": "ledn.svg"
+  },
+  {
+    "name": "Hodlnaut",
+    "type": "custodian",
+    "logo": "hodlnaut.svg"
+  },
+  {
+    "name": "Gemini",
+    "type": "custodian",
+    "logo": "gemini.png"
+  },
+  {
+    "name": "Crypto.com",
+    "type": "custodian",
+    "logo": "crypto-com.svg"
+  },
+  {
+    "name": "Yield.app",
+    "type": "custodian",
+    "logo": "yield-app.png"
+  },
+  {
+    "name": "Rari Capital",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "polygon",
+      "arbitrum"
+    ],
+    "logo": "rari.png"
+  },
+  {
+    "name": "Anchor",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum",
+      "terra",
+      "avalanche"
+    ],
+    "logo": "anchor.svg"
+  },
+  {
+    "name": "Thorchain",
+    "type": "protocol",
+    "supportedChains": [
+      "thorchain",
+      "ethereum"
+    ],
+    "logo": "thorchain.svg"
+  },
+  {
+    "name": "Babylon Finance",
+    "type": "protocol",
+    "supportedChains": [
+      "ethereum"
+    ],
+    "logo": "babylon.svg"
   }
 ]

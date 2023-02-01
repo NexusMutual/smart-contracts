@@ -108,7 +108,7 @@ const main = async () => {
     priceToProductMap[annualPrice].push(product);
   }
 
-  const v1productIdsPath = path.join(__dirname, 'v2-migration/output/v1ProductIds.json');
+  const v1productIdsPath = path.join(__dirname, 'v2-migration/product/output/v2ProductAddresses.json');
   const v1ProductIds = JSON.parse(fs.readFileSync(v1productIdsPath));
   console.log({ migratableProducts: migrateableProducts });
   const snippet = getPrices(priceToProductMap, v1ProductIds, migrateableProducts);

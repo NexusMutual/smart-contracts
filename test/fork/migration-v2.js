@@ -12,7 +12,7 @@ const { AddressZero } = ethers.constants;
 const { parseEther, formatEther, defaultAbiCoder, toUtf8Bytes, getAddress, keccak256, hexZeroPad } = ethers.utils;
 
 const getLegacyAssessmentRewards = require('../../scripts/get-legacy-assessment-rewards');
-const getProductsV1 = require('../../scripts/get-products-v1');
+const getProductsV1 = require('../../scripts/v2-migration/products/get-products');
 const getLockedInV1ClaimAssessment = require('../../scripts/get-locked-in-v1-claim-assessment');
 const getWithdrawableCoverNotes = require('../../scripts/get-withdrawable-cover-notes');
 const getGovernanceRewards = require('../../scripts/get-governance-rewards');
@@ -796,7 +796,10 @@ describe('v2 migration', function () {
 
     // Assert deposit for Armor Pool 0
 
-    const v1ProductIds = require(path.join(config.paths.root, 'scripts/v2-migration/output/v1ProductIds.json'));
+    const v1ProductIds = require(path.join(
+      config.paths.root,
+      'scripts/v2-migration/products/output/v2ProductAddresses.json',
+    ));
 
     const pooledStaking = this.pooledStaking;
     async function assertPrices(stakingPool, stakerAddress) {

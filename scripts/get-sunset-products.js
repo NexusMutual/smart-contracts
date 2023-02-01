@@ -4,9 +4,27 @@ const path = require('path');
 
 const gracePeriods = {
   protocol: 30,
-  custodian: 90,
+  custodian: 120,
   token: 14,
 };
+
+const ANCOR = '0xc57d000000000000000000000000000000000001';
+
+/*
+  '0xb27f1db0a7e473304a5a06e54bdf035f671400c0',
+  '0x11111254369792b2ca5d084ab5eea397ca8fa48b',
+  '0xc57d000000000000000000000000000000000001',
+  '0x0000000000000000000000000000000000000014',
+  '0x0000000000000000000000000000000000000013',
+  '0x0000000000000000000000000000000000000009',
+  '0x0000000000000000000000000000000000000010',
+  '0x0000000000000000000000000000000000000017',
+  '0xefa94de7a4656d787667c749f7e1223d71e9fd88',
+  '0xa51156f3f1e39d1036ca4ba4974107a1c1815d1e',
+  '0xd89a09084555a7d0abe7b111b1f78dfeddd638be',
+  '0xa4f1671d3aee73c05b552d57f2d16d3cfcbd0217',
+  '0x0000000000000000000000000000000000000007'
+ */
 
 function getExpiryTime(products, cover) {
   const endDate = new Date(cover.end_time);
@@ -17,14 +35,20 @@ function getExpiryTime(products, cover) {
   }
 
   const gracePeriod = gracePeriods[product.type];
-  return endDate.getTime() + gracePeriod * 24 * 3600;
+  if (cover.address === ANCOR) {
+    console.log({
+      gracePeriod,
+      endDate,
+    });
+  }
+  return endDate.getTime(); // + gracePeriod * 24 * 3600 * 1000;
 }
 
 const outputDir = path.join(__dirname, 'v2-migration/output');
 
 const main = async () => {
   const covers = require(path.join(__dirname, 'v2-migration/input/covers.json'));
-  const products = require(path.join(__dirname, 'v2-migration/input/contracts.json'));
+  const products = await fetch('https://api.nexusmutual.io/coverables/contracts.json').then(r => r.json());
 
   const newestCoverExpiryDatePerProduct = {};
 
@@ -47,6 +71,13 @@ const main = async () => {
       continue;
     }
     const newestExpiryTime = newestCoverExpiryDatePerProduct[cover.address];
+
+    if (cover.address === ANCOR) {
+      console.log({
+        newestExpiryTime,
+        expiryTime,
+      });
+    }
     if (newestExpiryTime) {
       newestCoverExpiryDatePerProduct[cover.address] = expiryTime > newestExpiryTime ? expiryTime : newestExpiryTime;
     } else {
@@ -54,8 +85,23 @@ const main = async () => {
     }
   }
 
+  console.log({
+    newestCoverExpiryDatePerProductAncor: new Date(newestCoverExpiryDatePerProduct[ANCOR.toLowerCase()]),
+  });
+
   const sunsetProductKeys = Object.keys(products).filter(p => {
+    if (!newestCoverExpiryDatePerProduct[p.toLowerCase()]) {
+      return true;
+    }
     return newestCoverExpiryDatePerProduct[p.toLowerCase()] < now;
+  });
+
+  console.log({
+    sunsetProductKeys,
+    lastExpiry: newestCoverExpiryDatePerProduct[ANCOR],
+    nowTimestamp: now,
+    lastExpiryDate: new Date(newestCoverExpiryDatePerProduct[ANCOR]),
+    now: new Date(now),
   });
 
   const sunsetProducts = {};

@@ -1,6 +1,7 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+const fetct = require('node-fetch');
 
 const outputDir = path.join(__dirname, 'v2-migration/output');
 const getProductsContract = products => `// SPDX-License-Identifier: GPL-3.0-only

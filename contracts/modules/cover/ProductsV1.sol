@@ -415,70 +415,76 @@ contract ProductsV1 is IProductsV1 {
       return 67;
     }
 
+    // Product: Celsius
+    // Type: custodian
+    if (legacyProductId == 0xc57D000000000000000000000000000000000001) {
+      return 68;
+    }
+
     // Product: BlockFi
     // Type: custodian
     if (legacyProductId == 0xC57D000000000000000000000000000000000002) {
-      return 68;
+      return 69;
     }
 
     // Product: Nexo
     // Type: custodian
     if (legacyProductId == 0xC57d000000000000000000000000000000000003) {
-      return 69;
+      return 70;
     }
 
     // Product: Ledn
     // Type: custodian
     if (legacyProductId == 0xC57D000000000000000000000000000000000005) {
-      return 70;
+      return 71;
     }
 
     // Product: Hodlnaut
     // Type: custodian
     if (legacyProductId == 0xC57d000000000000000000000000000000000006) {
-      return 71;
+      return 72;
     }
 
     // Product: Gemini
     // Type: custodian
     if (legacyProductId == 0xc57d000000000000000000000000000000000010) {
-      return 72;
+      return 73;
     }
 
     // Product: Crypto.com
     // Type: custodian
     if (legacyProductId == 0xC57d000000000000000000000000000000000012) {
-      return 73;
+      return 74;
     }
 
     // Product: Yield.app
     // Type: custodian
     if (legacyProductId == 0xc57d000000000000000000000000000000000013) {
-      return 74;
+      return 75;
     }
 
     // Product: Rari Capital
     // Type: protocol
     if (legacyProductId == 0x835482FE0532f169024d5E9410199369aAD5C77E) {
-      return 75;
+      return 76;
     }
 
     // Product: Anchor
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000001) {
-      return 76;
+      return 77;
     }
 
     // Product: Thorchain
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000004) {
-      return 77;
+      return 78;
     }
 
     // Product: Babylon Finance
     // Type: protocol
     if (legacyProductId == 0x0000000000000000000000000000000000000020) {
-      return 78;
+      return 79;
     }
 
     revert("Invalid product!");

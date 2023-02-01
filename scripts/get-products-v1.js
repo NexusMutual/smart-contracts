@@ -27,7 +27,8 @@ contract ProductsV1 is IProductsV1 {
 `;
 
 const main = async () => {
-  const products = require(path.join(__dirname, 'v2-migration/input/contracts.json'));
+  const products = await fetch('https://api.nexusmutual.io/coverables/contracts.json').then(r => r.json());
+  // const products =  require(path.join(__dirname, 'v2-migration/input/contracts.json'));
   const sunsetProducts = require(path.join(__dirname, 'v2-migration/output/sunsetProducts.json'));
 
   console.log(`Total products: ${Object.keys(products).length}`);
@@ -37,10 +38,14 @@ const main = async () => {
 
   console.log(`Total deprecated products: ${deprecatedV1Products.length}`);
 
-  const migratable = Object.keys(products)
-    // .filter(k => !products[k].deprecated)
-    .filter(k => sunsetProducts.indexOf(k) === -1) // not sunset
-    .map((k, i) => ({ ...products[k], productId: i, legacyProductId: k }));
+  const productAddresses = Object.keys(products);
+  const migrateableAddresses = productAddresses.filter(k => !products[k].deprecated);
+  const deprecated = productAddresses.filter(k => products[k].deprecated);
+
+  // add in deprecated products that are not sunset
+  migrateableAddresses.push(...deprecated.filter(k => sunsetProducts.indexOf(k) === -1));
+
+  const migratable = migrateableAddresses.map((k, i) => ({ ...products[k], productId: i, legacyProductId: k }));
 
   console.log(`Total non-sunset products: ${migratable.length}`);
 

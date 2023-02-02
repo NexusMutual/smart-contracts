@@ -43,14 +43,14 @@
 
 #2
 - [x] [List of all product types + metadata](https://docs.google.com/spreadsheets/d/1mhPPdmVyGTZHfhnCTK9pkyuVCwIFm5JtKiTa011e9g8/edit#gid=0) 
+  - [ ] store product type name onchain in a mapping
 - [x] [List of all products + metadata](https://docs.google.com/spreadsheets/d/1mhPPdmVyGTZHfhnCTK9pkyuVCwIFm5JtKiTa011e9g8/edit#gid=1826493151)
-- [ ] Decide on IPFS structure for `productTypes` info
-  - store product type name onchain in a mapping
-  - store the cover wording PDF on IPFS
-- [ ] Decide on IPFS structure for `products` info
-  - store the product name onchain in a mapping
-  - store the product notes on IPFS as json: {"notes": <exclusion text as markdown} 
-- [ ] **TODO** Script to upload all the above to IPFS
+  - [ ] store the product name onchain in a mapping
+- [ ] IPFS structure for `productTypes` info:
+  - store the cover wording PDF on IPFS and use that IPFS hash
+- [ ] IPFS structure for `products` info
+  - store the product exclusions on IPFS: {"exclusions": "Exclusion 1", "Exclusion 2", ...} - can be found [here](https://docs.google.com/spreadsheets/d/1mhPPdmVyGTZHfhnCTK9pkyuVCwIFm5JtKiTa011e9g8/edit#gid=1826493151) 
+- [ ] **TODO** Script to generate and upload all the above to IPFS
   - Need to adapt: https://github.com/NexusMutual/smart-contracts/blob/782d93cf42dbc12d579b8625f3ec9b8d2c8c645f/scripts/populate-v2-products.js#L34
 - [ ] Upload the above to IPFS
 
@@ -58,7 +58,7 @@
 - [ ] **TODO** Format input for `setProducts()` and `setProductTypes()` functions 
 - [ ] **TODO**: Script to create the tx data for AB to write `products` and `productTypes` info 
   onchain - we need to modify a bit `scripts/populate-v2-products.js` for this
-- [ ] Simulate the above txs on Tenderly
+- [ ] Simulate the above txs in the fork test
 
 ### Rewards
 **What we need**

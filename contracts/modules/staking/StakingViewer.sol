@@ -2,75 +2,75 @@
 
 pragma solidity ^0.8.9;
 
+import "../../abstract/Multicall.sol";
 import "../../interfaces/ICover.sol";
 import "../../interfaces/INXMMaster.sol";
-import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingNFT.sol";
+import "../../interfaces/IStakingPool.sol";
 import "../../interfaces/IStakingPoolFactory.sol";
-
 import "../../libraries/StakingPoolLibrary.sol";
 import "../../libraries/UncheckedMath.sol";
 
-contract StakingViewer {
+contract StakingViewer is Multicall {
   using UncheckedMath for uint;
 
-  struct StakingPoolOverview {
+  struct Pool {
     uint poolId;
     bool isPrivatePool;
     address manager;
-    uint8 poolFee;
-    uint8 maxPoolFee;
+    uint poolFee;
+    uint maxPoolFee;
     uint activeStake;
     uint currentAPY;
   }
 
-  struct StakingPoolProduct {
+  struct StakingProduct {
     uint productId;
-    uint16 lastEffectiveWeight;
-    uint8 targetWeight;
-    uint96 targetPrice;
-    uint96 bumpedPrice;
+    uint lastEffectiveWeight;
+    uint targetWeight;
+    uint targetPrice;
+    uint bumpedPrice;
   }
 
-  struct StakingPoolProductsDetails {
-    StakingPoolOverview poolOverview;
-    StakingPoolProduct[] products;
-  }
-
-  struct StakingPeriod {
+  struct Deposit {
     uint tokenId;
     uint trancheId;
     uint stake;
+    uint reward;
   }
 
-  struct StakerOverview {
+  struct Token {
     uint poolId;
     uint activeStake;
     uint expiredStake;
-    uint withdrawableRewards;
-//    Rewards[] withdrawableRewards;
-    StakingPeriod[] stakingPeriods;
+    uint rewards;
+    Deposit[] deposits;
   }
 
-  struct StakerDetails {
+  struct TokenPoolMap {
+    uint poolId;
+    uint tokenId;
+  }
+
+  struct AggregatedTokens {
     uint totalActiveStake;
     uint totalExpiredStake;
-    uint totalWithdrawableRewards;
+    uint totalRewards;
   }
 
-  struct Rewards {
-    uint withdrawableRewards;
+  struct AggregatedRewards {
+    uint totalRewards;
     uint[] trancheIds;
   }
 
-  INXMMaster internal immutable master;
+  INXMMaster public immutable master;
   IStakingNFT public immutable stakingNFT;
   IStakingPoolFactory public immutable stakingPoolFactory;
 
   uint public constant TRANCHE_DURATION = 91 days;
   uint public constant MAX_ACTIVE_TRANCHES = 8;
   uint public constant ONE_NXM = 1 ether;
-  uint public constant FIRST_TRANCHE_ID = 212;  // To be updated when we launch
+  uint public constant TRANCHE_ID_AT_DEPLOY = 213; // first active tranche at deploy time
   uint public constant MAX_UINT = type(uint).max;
 
   constructor(
@@ -93,300 +93,248 @@ contract StakingViewer {
     );
   }
 
-  /* ========== STAKING POOL FUNCTIONS ========== */
+  /* ========== STAKING POOL ========== */
 
-  function getStakingPoolOverviewByPoolId(
-    uint poolId
-  ) public view returns (StakingPoolOverview memory stakingPoolOverview) {
-    IStakingPool pool = stakingPool(poolId);
+  function getPool(uint poolId) public view returns (Pool memory pool) {
 
-    stakingPoolOverview.poolId = poolId;
-    stakingPoolOverview.isPrivatePool = pool.isPrivatePool();
-    stakingPoolOverview.manager = pool.manager();
-    stakingPoolOverview.poolFee = pool.poolFee();
-    stakingPoolOverview.maxPoolFee = pool.maxPoolFee();
-    stakingPoolOverview.activeStake = pool.activeStake();
-    stakingPoolOverview.currentAPY =
-      pool.activeStake() != 0
-        ? pool.rewardPerSecond() * 365 days / pool.activeStake()
+    IStakingPool _stakingPool = stakingPool(poolId);
+
+    pool.poolId = poolId;
+    pool.isPrivatePool = _stakingPool.isPrivatePool();
+    pool.manager = _stakingPool.manager();
+    pool.poolFee = _stakingPool.poolFee();
+    pool.maxPoolFee = _stakingPool.maxPoolFee();
+    pool.activeStake = _stakingPool.activeStake();
+    pool.currentAPY =
+      _stakingPool.activeStake() != 0
+        ? _stakingPool.rewardPerSecond() * 365 days / _stakingPool.activeStake()
         : 0;
 
-    return stakingPoolOverview;
+    return pool;
   }
 
-  function getStakingPoolOverviewByTokenId(
-    uint tokenId
-  ) public view returns (StakingPoolOverview memory stakingPoolOverview) {
-    return getStakingPoolOverviewByPoolId(
-      stakingNFT.stakingPoolOf(tokenId)
-    );
-  }
+  function getPools(uint[] memory poolIds) public view returns (Pool[] memory pools) {
 
-  function getAllStakingPools() public view returns (StakingPoolOverview[] memory stakingPools) {
-    uint poolsCount = stakingPoolFactory.stakingPoolCount();
-    stakingPools = new StakingPoolOverview[](poolsCount);
+    uint poolsLength = poolIds.length;
+    pools = new Pool[](poolsLength);
 
-    for (uint i = 0; i < poolsCount; i++) {
-      stakingPools[i] = getStakingPoolOverviewByPoolId(i);
+    for (uint i = 0; i < poolsLength; i++) {
+      pools[i] = getPool(poolIds[i]);
     }
 
-    return stakingPools;
+    return pools;
   }
 
-  function getStakingPoolsByTokenIds(
-    uint[] memory tokenIds
-  ) public view returns (StakingPoolOverview[] memory stakingPools) {
+  function getAllPools() public view returns (Pool[] memory pools) {
 
-    for (uint i = 0; i < tokenIds.length; i++) {
-      stakingPools[i] = getStakingPoolOverviewByTokenId(tokenIds[i]);
+    uint poolCount = stakingPoolFactory.stakingPoolCount();
+    pools = new Pool[](poolCount);
+
+    for (uint i = 0; i < poolCount; i++) {
+      pools[i] = getPool(i);
     }
 
-    return stakingPools;
+    return pools;
   }
 
-  function getStakingPoolWithProductsByPoolId(
-    uint poolId
-  ) public view returns (StakingPoolProductsDetails memory stakingPoolDetails) {
+  /* ========== PRODUCTS ========== */
 
-    uint allProductsCount = cover().productsCount();
-    StakingPoolProduct[] memory stakedProductsQueue = new StakingPoolProduct[](allProductsCount);
+  function getPoolProducts(uint poolId) public view returns (StakingProduct[] memory products) {
+
     uint stakedProductsCount = 0;
+    uint coverProductCount = cover().productsCount();
+    StakingProduct[] memory stakedProductsQueue = new StakingProduct[](coverProductCount);
 
-    for (uint i = 0; i < allProductsCount; i++) {
+    for (uint i = 0; i < coverProductCount; i++) {
       (
-        uint16 lastEffectiveWeight,
-        uint8 targetWeight,
-        uint96 targetPrice,
-        uint96 bumpedPrice,
-        uint32 bumpedPriceUpdateTime
+        uint lastEffectiveWeight,
+        uint targetWeight,
+        uint targetPrice,
+        uint bumpedPrice,
+        uint bumpedPriceUpdateTime
       ) = stakingPool(poolId).products(i);
 
       if (targetWeight == 0 && lastEffectiveWeight == 0 && bumpedPriceUpdateTime == 0) {
         continue;
       }
 
-      StakingPoolProduct memory stakedProduct;
-      stakedProduct.productId = i;
-      stakedProduct.lastEffectiveWeight = lastEffectiveWeight;
-      stakedProduct.targetWeight = targetWeight;
-      stakedProduct.bumpedPrice = bumpedPrice;
-      stakedProduct.targetPrice = targetPrice;
+      StakingProduct memory product;
+      product.productId = i;
+      product.lastEffectiveWeight = lastEffectiveWeight;
+      product.targetWeight = targetWeight;
+      product.bumpedPrice = bumpedPrice;
+      product.targetPrice = targetPrice;
 
-      stakedProductsQueue[stakedProductsCount] = stakedProduct;
+      stakedProductsQueue[stakedProductsCount] = product;
       stakedProductsCount++;
     }
 
-    StakingPoolProduct[] memory stakedProducts = new StakingPoolProduct[](stakedProductsCount);
+    products = new StakingProduct[](stakedProductsCount);
+
     for (uint i = 0; i < stakedProductsCount; i++) {
-      stakedProducts[i] = stakedProductsQueue[i];
+      products[i] = stakedProductsQueue[i];
     }
 
-    stakingPoolDetails.poolOverview = getStakingPoolOverviewByPoolId(poolId);
-    stakingPoolDetails.products = stakedProducts;
-
-    return stakingPoolDetails;
+    return products;
   }
 
-  /* ========== STAKER FUNCTIONS ========== */
+  /* ========== TOKENS AND DEPOSITS ========== */
 
-  function getStakerOverviewByTokenId(
-    uint tokenId
-  ) public view returns (StakerOverview memory stakerOverview) {
+  function getStakingPoolsOf(
+    uint[] memory tokenIds
+  ) public view returns (TokenPoolMap[] memory tokenPools) {
 
-    uint poolId = stakingNFT.stakingPoolOf(tokenId);
-    IStakingPool pool = stakingPool(poolId);
+    tokenPools = new TokenPoolMap[](tokenIds.length);
+
+    for (uint i = 0; i < tokenIds.length; i++) {
+      uint tokenId = tokenIds[i];
+      uint poolId = stakingNFT.stakingPoolOf(tokenId);
+      tokenPools[i] = TokenPoolMap(poolId, tokenId);
+    }
+
+    return tokenPools;
+  }
+
+  function _getToken(uint poolId, uint tokenId) public view returns (Token memory token) {
+
+    IStakingPool _stakingPool = stakingPool(poolId);
 
     uint firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
-    uint totalActiveStake = 0;
-    uint withdrawableRewards = 0;
-    uint newRewardPerShare;
+    uint depositCount;
+
+    Deposit[] memory depositsQueue;
+    {
+      uint maxTranches = firstActiveTrancheId - TRANCHE_ID_AT_DEPLOY + MAX_ACTIVE_TRANCHES;
+      depositsQueue = new Deposit[](maxTranches);
+    }
 
     // Active tranches
+
     for (uint i = 0; i < MAX_ACTIVE_TRANCHES; i++) {
       (
         uint lastAccNxmPerRewardShare,
         uint pendingRewards,
         uint stakeShares,
         uint rewardsShares
-      ) = pool.deposits(tokenId, firstActiveTrancheId + i);
+      ) = _stakingPool.deposits(tokenId, firstActiveTrancheId + i);
 
-      totalActiveStake +=
-        stakingPool(poolId).activeStake() *
-        stakeShares /
-        stakingPool(poolId).stakeSharesSupply();
+      if (rewardsShares == 0) {
+        continue;
+      }
 
-      newRewardPerShare = pool.accNxmPerRewardsShare().uncheckedSub(lastAccNxmPerRewardShare);
-      withdrawableRewards += newRewardPerShare * rewardsShares / ONE_NXM;
-      withdrawableRewards += pendingRewards;
+      Deposit memory deposit;
+      deposit.tokenId = tokenId;
+      deposit.trancheId = firstActiveTrancheId + i;
+
+      uint stake =
+        _stakingPool.activeStake()
+        * stakeShares
+        / _stakingPool.stakeSharesSupply();
+
+      uint newRewardPerShare = _stakingPool.accNxmPerRewardsShare().uncheckedSub(lastAccNxmPerRewardShare);
+      uint reward = pendingRewards + newRewardPerShare * rewardsShares / ONE_NXM;
+
+      deposit.stake = stake;
+      deposit.reward = reward;
+      depositsQueue[depositCount++] = deposit;
+
+      token.activeStake += stake;
+      token.rewards += reward;
     }
 
     // Expired tranches
-    uint totalExpiredStake = 0;
 
-    for (uint i = FIRST_TRANCHE_ID; i < firstActiveTrancheId; i++) {
+    for (uint i = TRANCHE_ID_AT_DEPLOY; i < firstActiveTrancheId; i++) {
       (
         uint lastAccNxmPerRewardShare,
         uint pendingRewards,
         uint stakeShares,
         uint rewardsShares
-      ) = pool.deposits(tokenId, i);
+      ) = _stakingPool.deposits(tokenId, i);
+
+      if (rewardsShares == 0) {
+        continue;
+      }
 
       (
         uint accNxmPerRewardShareAtExpiry,
         uint stakeAmountAtExpiry,
         uint stakeShareSupplyAtExpiry
-      ) = pool.expiredTranches(i);
+      ) = _stakingPool.expiredTranches(i);
 
-      stakeShareSupplyAtExpiry != 0
-        ? totalExpiredStake += stakeAmountAtExpiry * stakeShares / stakeShareSupplyAtExpiry
-        : 0;
+      // to avoid this the workaround is to call processExpirations as the first call in the
+      // multicall batch. this will require the call to be explicitly be static in js:
+      // viewer.callStatic.multicall(...)
+      require(stakeShareSupplyAtExpiry != 0, "Tranche expired but expirations were not processed");
 
-      newRewardPerShare = accNxmPerRewardShareAtExpiry.uncheckedSub(lastAccNxmPerRewardShare);
-      withdrawableRewards += newRewardPerShare * rewardsShares / ONE_NXM;
-      withdrawableRewards += pendingRewards;
+      Deposit memory deposit;
+      deposit.stake = stakeAmountAtExpiry * stakeShares / stakeShareSupplyAtExpiry;
+
+      uint newRewardPerShare = accNxmPerRewardShareAtExpiry.uncheckedSub(lastAccNxmPerRewardShare);
+      deposit.reward = pendingRewards + newRewardPerShare * rewardsShares / ONE_NXM;
+
+      deposit.tokenId = tokenId;
+      deposit.trancheId = i;
+
+      depositsQueue[depositCount] = deposit;
+      depositCount++;
+
+      token.expiredStake += deposit.stake;
+      token.rewards += deposit.reward;
     }
 
-    stakerOverview.poolId = poolId;
-    stakerOverview.activeStake = totalActiveStake;
-    stakerOverview.expiredStake = totalExpiredStake;
-    stakerOverview.withdrawableRewards = withdrawableRewards;
+    token.poolId = poolId;
+    token.deposits = new Deposit[](depositCount);
 
-    return stakerOverview;
+    for (uint i = 0; i < depositCount; i++) {
+      token.deposits[i] = depositsQueue[i];
+    }
+
+    return token;
   }
 
-  function getStakerOverviewByPoolId(
-    uint[] calldata tokenIds,
-    uint poolId
-  ) public view returns (StakerOverview memory stakerOverview) {
-    stakerOverview.poolId = poolId;
-
-    IStakingPool pool = stakingPool(poolId);
-    uint periodsWithDepositCount = 0;
-
-    uint firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
-    StakingPeriod[] memory stakingPeriodsWithDepositsQueue = new StakingPeriod[](
-      firstActiveTrancheId + MAX_ACTIVE_TRANCHES
-    );
-
-    for (uint tokenId = 0; tokenId < tokenIds.length; tokenId++) {
-      if (stakingNFT.stakingPoolOf(tokenIds[tokenId]) != poolId) {
-        continue;
-      }
-
-      StakerOverview memory stakerOverviewForToken = getStakerOverviewByTokenId(tokenIds[tokenId]);
-      stakerOverview.activeStake += stakerOverviewForToken.activeStake;
-      stakerOverview.expiredStake += stakerOverviewForToken.expiredStake;
-      stakerOverview.withdrawableRewards += stakerOverviewForToken.withdrawableRewards;
-
-      // Calculate staking periods that still have a deposit (both expired and active)
-      for (
-        uint trancheId = FIRST_TRANCHE_ID;
-        trancheId < firstActiveTrancheId + MAX_ACTIVE_TRANCHES;
-        trancheId++
-      ) {
-        (,, uint stakeShares,) = pool.deposits(tokenIds[tokenId], trancheId);
-
-        if (stakeShares == 0) {
-          continue;
-        }
-
-        StakingPeriod memory stakingPeriod;
-        stakingPeriod.trancheId = trancheId;
-        stakingPeriod.tokenId = tokenIds[tokenId];
-
-        if (trancheId < firstActiveTrancheId) {
-          (, uint stakeAmountAtExpiry,) = pool.expiredTranches(trancheId);
-          stakingPeriod.stake = stakeAmountAtExpiry;
-        } else {
-          stakingPeriod.stake =
-          stakingPool(poolId).activeStake() *
-          stakeShares /
-          stakingPool(poolId).stakeSharesSupply();
-        }
-
-        stakingPeriodsWithDepositsQueue[periodsWithDepositCount] = stakingPeriod;
-        periodsWithDepositCount++;
-      }
-    }
-
-    StakingPeriod[] memory stakingPeriodsWithDeposits = new StakingPeriod[](
-      periodsWithDepositCount
-    );
-    for (uint i = 0; i < periodsWithDepositCount; i++) {
-      stakingPeriodsWithDeposits[i] = stakingPeriodsWithDepositsQueue[i];
-    }
-    stakerOverview.stakingPeriods = stakingPeriodsWithDeposits;
-
-    return stakerOverview;
+  function getToken(uint tokenId) public view returns (Token memory token) {
+    uint poolId = stakingNFT.stakingPoolOf(tokenId);
+    return _getToken(poolId, tokenId);
   }
 
-  function getAllStakerDetails(
-    uint[] calldata tokenIds
-  ) public view returns (StakerDetails memory stakerDetails) {
+  function getTokens(uint[] memory tokenIds) public view returns (Token[] memory tokens) {
+
+    tokens = new Token[](tokenIds.length);
+
     for (uint i = 0; i < tokenIds.length; i++) {
-      StakerOverview memory stakerOverviewForToken = getStakerOverviewByTokenId(tokenIds[i]);
-
-      stakerDetails.totalActiveStake += stakerOverviewForToken.activeStake;
-      stakerDetails.totalExpiredStake += stakerOverviewForToken.expiredStake;
-      stakerDetails.totalWithdrawableRewards += stakerOverviewForToken.withdrawableRewards;
+      uint poolId = stakingNFT.stakingPoolOf(tokenIds[i]);
+      tokens[i] = _getToken(poolId, tokenIds[i]);
     }
 
-    return stakerDetails;
+    return tokens;
   }
 
-  function getPoolManagerWithdrawableRewards (uint poolId) public view returns (
-    Rewards memory managerRewards
-  ) {
-    IStakingPool pool = stakingPool(poolId);
+  function getAggregatedTokens(
+    uint[] calldata tokenIds
+  ) public view returns (AggregatedTokens memory aggregated) {
 
-    uint firstActiveTrancheId = block.timestamp / TRANCHE_DURATION;
-    uint tokenId = MAX_UINT;
-
-    uint tranchesCount = 0;
-    uint withdrawableRewards = 0;
-    uint newRewardPerShare;
-    uint trancheRewards;
-
-    // Use a queue as we don't have the actual size to initialize the array
-    uint[] memory trancheIdsQueue = new uint[](
-      firstActiveTrancheId + MAX_ACTIVE_TRANCHES - FIRST_TRANCHE_ID
-    );
-
-    // Iterate through all tranches
-    for (uint i = FIRST_TRANCHE_ID; i < firstActiveTrancheId + MAX_ACTIVE_TRANCHES; i++) {
-      trancheRewards = 0;
-      (
-        uint lastAccNxmPerRewardShare,
-        uint pendingRewards,
-        /* uint stakeShares */,
-        uint rewardsShares
-      ) = pool.deposits(tokenId, i);
-
-      if (i < firstActiveTrancheId) { // Expired tranches
-        (uint accNxmPerRewardShareAtExpiry,,) = pool.expiredTranches(i);
-        newRewardPerShare = accNxmPerRewardShareAtExpiry.uncheckedSub(lastAccNxmPerRewardShare);
-      } else { // Active tranches
-        newRewardPerShare = pool.accNxmPerRewardsShare().uncheckedSub(lastAccNxmPerRewardShare);
-      }
-
-      // Accumulate the rewards
-      withdrawableRewards += trancheRewards;
-
-      // Store the trancheId if there are rewards in this tranche
-      trancheRewards = pendingRewards + (newRewardPerShare * rewardsShares / ONE_NXM);
-      if (trancheRewards != 0) {
-        trancheIdsQueue[tranchesCount] = tranchesCount;
-        tranchesCount++;
-      }
+    for (uint i = 0; i < tokenIds.length; i++) {
+      Token memory token = getToken(tokenIds[i]);
+      aggregated.totalActiveStake += token.activeStake;
+      aggregated.totalExpiredStake += token.expiredStake;
+      aggregated.totalRewards += token.rewards;
     }
 
-    uint[] memory trancheIds = new uint[](tranchesCount);
-    for (uint i = 0; i < tranchesCount; i++) {
-      trancheIds[i] = trancheIdsQueue[i];
+    return aggregated;
+  }
+
+  function getManagerRewards (uint poolId) public view returns (AggregatedRewards memory managerRewards) {
+
+    Token memory token = _getToken(poolId, 0);
+
+    managerRewards.totalRewards = token.rewards;
+    managerRewards.trancheIds = new uint[](token.deposits.length);
+
+    for (uint i = 0; i < token.deposits.length; i++) {
+      managerRewards.trancheIds[i] = token.deposits[i].trancheId;
     }
 
-    managerRewards.withdrawableRewards = withdrawableRewards;
-    managerRewards.trancheIds = trancheIds;
     return managerRewards;
   }
 }

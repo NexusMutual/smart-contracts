@@ -151,8 +151,7 @@ interface IStakingPool {
 
   function setProducts(StakedProductParam[] memory params) external;
 
-
-    /* ========== EVENTS ========== */
+  /* ========== EVENTS ========== */
 
   event StakeDeposited(address indexed user, uint256 amount, uint256 trancheId, uint256 tokenId);
 

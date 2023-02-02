@@ -15,4 +15,5 @@ describe('TokenController', function () {
   require('./withdrawGovernanceRewards');
   require('./withdrawGovernanceRewardsTo');
   require('./withdrawPendingRewards');
+  require('./depositStakedNXM');
 });

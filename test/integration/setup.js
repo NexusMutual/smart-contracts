@@ -77,9 +77,11 @@ async function setup() {
   const ybUSDC = await ethers.deployContract('ERC20CustomDecimalsMock', [usdcDecimals]);
   await ybUSDC.mint(owner.address, parseEther('10000000'));
 
+  const tk = await ethers.deployContract('NXMToken', [owner.address, INITIAL_SUPPLY]);
+
   // proxy contracts
   const master = await deployProxy('DisposableNXMaster');
-  const mr = await deployProxy('DisposableMemberRoles');
+  const mr = await deployProxy('DisposableMemberRoles', [tk.address]);
   const ps = await deployProxy('DisposablePooledStaking');
   const pc = await deployProxy('DisposableProposalCategory');
   const gv = await deployProxy('DisposableGovernance');
@@ -144,7 +146,6 @@ async function setup() {
     '0',
   ]);
 
-  const tk = await ethers.deployContract('NXMToken', [owner.address, INITIAL_SUPPLY]);
   const qd = await ethers.deployContract('TestnetQuotationData', [QE, owner.address]);
   const productsV1 = await ethers.deployContract('ProductsV1');
 
@@ -404,7 +405,7 @@ async function setup() {
 
   await yt.initialize(master.address);
 
-  await upgradeProxy(mr.address, 'MemberRoles');
+  await upgradeProxy(mr.address, 'MemberRoles', [tk.address]);
   await upgradeProxy(tc.address, 'TokenController', [qd.address, lcr.address, spf.address, tk.address]);
   await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address]);
   await upgradeProxy(pc.address, 'ProposalCategory');

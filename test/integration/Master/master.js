@@ -201,7 +201,7 @@ describe('master', function () {
       await MCR.deploy(master.address),
       await Governance.deploy(),
       await ProposalCategoryContract.deploy(),
-      await MemberRoles.deploy(),
+      await MemberRoles.deploy(tk.address),
       await LegacyPooledStaking.deploy(cover.address, productsV1.address),
       await LegacyGateway.deploy(),
       await IndividualClaims.deploy(tk.address, coverNFT.address),
@@ -251,7 +251,7 @@ describe('master', function () {
       const newAddresses = [
         await TokenController.deploy(qd.address, lcr.address, spf.address, tk.address),
         await Governance.deploy(),
-        await MemberRoles.deploy(),
+        await MemberRoles.deploy(tk.address),
       ].map(c => c.address);
 
       const upgradeContractsData = defaultAbiCoder.encode(
@@ -268,7 +268,7 @@ describe('master', function () {
       const newAddresses = [
         await TokenController.deploy(qd.address, lcr.address, spf.address, tk.address),
         await Governance.deploy(),
-        await MemberRoles.deploy(),
+        await MemberRoles.deploy(tk.address),
       ].map(c => c.address);
 
       const upgradeContractsData = defaultAbiCoder.encode(

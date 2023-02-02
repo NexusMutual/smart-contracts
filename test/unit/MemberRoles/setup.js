@@ -17,7 +17,7 @@ async function setup() {
   await nxm.setOperator(tokenController.address);
 
   const MemberRoles = await ethers.getContractFactory('MemberRoles');
-  const memberRoles = await MemberRoles.deploy();
+  const memberRoles = await MemberRoles.deploy(nxm.address);
 
   const Master = await ethers.getContractFactory('MasterMock');
   const master = await Master.deploy();

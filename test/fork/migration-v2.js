@@ -790,24 +790,23 @@ describe('v2 migration', function () {
       }),
     );
 
-    const deprecatedProducts = Object.keys(
-      require(path.join(config.paths.root, 'scripts/v2-migration/output/deprecatedV1Products.json')),
-    ).map(p => p.toLowerCase());
-
     // Assert deposit for Armor Pool 0
-
-    const v1ProductIds = require(path.join(
+    const v2ProductAddresses = require(path.join(
       config.paths.root,
       'scripts/v2-migration/products/output/v2ProductAddresses.json',
     ));
 
     const pooledStaking = this.pooledStaking;
     async function assertPrices(stakingPool, stakerAddress) {
-      const allContracts = await pooledStaking.stakerContractsArray(stakerAddress);
-      const contracts = allContracts.filter(c => deprecatedProducts.indexOf(c.toLowerCase()) >= 0);
+      const contracts = await pooledStaking.stakerContractsArray(stakerAddress);
 
-      const contractIds = contracts.map(contract => v1ProductIds.indexOf(contract));
+      const contractIds = contracts.map(contract => v2ProductAddresses.indexOf(contract));
+
       for (const i of contractIds) {
+        if (i === -1) {
+          // contract was not migrated to v2 (deprecated and sunset)
+          continue;
+        }
         const productPrice = await pooledStaking.getV1PriceForProduct(i);
         if (productPrice.toString() === MaxUint96) {
           // it's not a supported product

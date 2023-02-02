@@ -195,7 +195,7 @@ contract StakingViewer is Multicall {
     return tokenPools;
   }
 
-  function _getToken(uint poolId, uint tokenId) public view returns (Token memory token) {
+  function _getToken(uint poolId, uint tokenId) internal view returns (Token memory token) {
 
     IStakingPool _stakingPool = stakingPool(poolId);
 

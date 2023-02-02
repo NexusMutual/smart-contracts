@@ -21,9 +21,16 @@ function getExpiryTime(products, cover) {
   return endDate.getTime() + gracePeriod[product.type] * 24 * 60 * 60 * 1000;
 }
 
+function decode(buf) {
+  const decoder = new TextDecoder('utf-8');
+  return decoder.decode(buf);
+}
+
 const main = async () => {
-  // TODO get the covers automatically from nexus tracker
-  const covers = require(path.join(__dirname, 'input/covers.json'));
+  const url = 'https://nexustracker.io/all_covers';
+  const covers = JSON.parse(
+    decode(await fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(x => x.arrayBuffer())),
+  );
 
   const products = await fetch('https://api.nexusmutual.io/coverables/contracts.json').then(r => r.json());
 

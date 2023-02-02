@@ -34,7 +34,7 @@ async function submitGovernanceProposal (categoryId, actionData, members, gv) {
   }
 
   await time.increase(604800);
-  const closeTx = await gv.closeProposal(id, { from });
+  const closeTx = await gv.closeProposal(id, { from, gas: 12e6 });
   expectEvent(closeTx, 'ActionSuccess', { proposalId: id });
 
   const proposal = await gv.proposal(id);

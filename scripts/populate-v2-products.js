@@ -203,9 +203,6 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
         (x.underlyingToken === 'ETH' && 0b01) || // Yield token cover that uses ETH
         0;
 
-      console.log({
-        x,
-      });
       const productParams = {
         productId: MaxUint256,
         ipfsMetadata: 'product 0 metadata',

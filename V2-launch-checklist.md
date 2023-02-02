@@ -51,8 +51,7 @@
   - store the product name onchain in a mapping
   - store the product notes on IPFS as json: {"notes": <exclusion text as markdown} 
 - [ ] **TODO** Script to upload all the above to IPFS
-  - Need to adapt: https://github.com/NexusMutual/smart-contracts/blob
-    /782d93cf42dbc12d579b8625f3ec9b8d2c8c645f/scripts/populate-v2-products.js#L34
+  - Need to adapt: https://github.com/NexusMutual/smart-contracts/blob/782d93cf42dbc12d579b8625f3ec9b8d2c8c645f/scripts/populate-v2-products.js#L34
 - [ ] Upload the above to IPFS
 
 #3
@@ -61,6 +60,15 @@
   onchain - we need to modify a bit `scripts/populate-v2-products.js` for this
 - [ ] Simulate the above txs on Tenderly
 
+### Rewards
+**What we need**
+1. List of all V1 assessment rewards
+2. ... TBD
+
+**How we get it**
+- [ ] Run `get-legacy-assessment-rewards.js` to automatically populate `LegacyClaimsRewards.sol` with the list of addresses we reimburse with the assessment rewards.
+  - [ ] Check `LegacyClaimsRewards.sol`
+ 
 ### Staking Pools - WIP
 - [ ] List of initial syndicate operators and their migration strategy
   - [ ] Final inputs [here](https://docs.google.com/spreadsheets/d/1ebhsVWjc18rQJpGLMzRfmzRwwYzND7_6Q0A9zOlADvE)
@@ -74,31 +82,35 @@
   - [ ] **TODO** double check if needed
 
 ## Contract Deployment
-// TODO: check the order of deployment (if relevant)
-- [ ] Deploy contracts: 
-  - [ ] `ProductsV1.sol`
-  - [ ] `Governance.sol`
-  - [ ] `CoverInitializer.sol` [CO] // does this require any changes?
-  - [ ] `StakingPool.sol`
-  - [ ] `NXMaster.sol`
-  - [ ] `CoverNFT.sol` - *NFT symbols
-  - [ ] `StakingNFT.sol` - *NFT symbols
-  - [ ] `LegacyClaimRewards.sol`
-  - [ ] `TokenController.sol`
-  - [ ] `MCR.sol`
-  - [ ] `MemberRoles.sol`
-  - [ ] `Cover.sol`
-  - [ ] `LegacyPooledStaking.sol`
-  - [ ] `Pool.sol`
-  - [ ] `CoverMigrator.sol`
-  - [ ] `LegacyGateway.sol`
-  - [ ] `SwapOperator.sol`
-  - [ ] `Assessment.sol`
-  - [ ] `IndividualClaims.sol`
-  - [ ] `YieldTokenIncidents.sol`
-  - [ ] `CoverViewer.sol`
-  - [ ] anything else?
-- [ ] Verify the above contracts
+
+**Deployment & verification**
+Any time
+- [ ] `ProductsV1.sol` [non-internal]
+- [ ] `CoverNFT.sol` [non-internal] - *NFT symbols
+- [ ] `Assessment.sol` [AS] (must be done after `CoverNFT.sol`)
+- [ ] `IndividualClaims.sol` [IC] (must be done after `CoverNFT.sol`)
+- [ ] `YieldTokenIncidents.sol` [YT] (must be done after `CoverNFT.sol`)
+- [ ] `SwapOperator.sol` [non-internal]  
+- [ ] `PriceFeedOracle.sol` [non-internal]
+- [ ] `Pool.sol` [P1] (must be done after `SwapOperator.sol` and `PriceFeedOracle.sol`)
+  - [ ] !!! Contact Enzyme to whitelist the new Pool contract as receiver for the vault
+- [ ] `Governance.sol`[GV]
+- [ ] `CoverInitializer.sol` [CO]
+- [ ] `NXMaster.sol` [NXMaster]
+- [ ] `MCR.sol` [MC]
+- [ ] `MemberRoles.sol` [MR]
+- [ ] `Gateway.sol` [GW]
+- [ ] `CoverMigrator.sol`
+- [ ] `CoverViewer.sol`
+- [ ] `LegacyClaimsReward.sol` [CR]
+- [ ] `TokenController.sol` [TC] (must be done after `LegacyClaimsReward.sol`)
+
+After `CoverInitializer.sol` is upgraded(!)
+- [ ] `StakingPoolFactory.sol`
+- [ ] `StakingNFT.sol` - *NFT symbols
+- [ ] `StakingPool.sol` 
+- [ ] `LegacyPooledStaking.sol` [PS]
+- [ ] `Cover.sol` [CO] (must be done after `StakingNFT.sol`)
 
 ## Upgrade
 
@@ -107,32 +119,30 @@
 - [ ] Turn off the UI
 
 ### Upgrade
-- [ ] **Proposal**: Upgrade `Governance.sol` to Prevent governance rewards withdrawal
-- [ ] **Run script** `get-legacy-assessment-rewards.js` to automatically populate 
-  `LegacyClaimsRewards.
-   sol` with the list of addresses we reimburse with the assessment rewards.
-- [ ] Check the generated values
-- [ ] **Proposal** to add new internal contract: CoverInitializer.sol (CO). The 
-     proxy address is required to deploy the implementations of `Cover.sol` and `StakingPool.sol`.
-- [ ] **Proposal** to upgrade existing internal contracts: MR, MC, CO, TC, CR, PS, P1, CL 
-  (CoverMigrator.sol), GW
-- [ ] **Call function** `blockV1` from `LegacyPooledStaking.sol` This will prevent new deposits 
+---------- Proposals ----------
+- [ ] **Proposal**: Upgrade `Governance.sol` to prevent governance rewards withdrawal (`upgradeMultipleContracts()`)
+- [ ] **Proposal**: Add new internal contract: CoverInitializer.sol (CO). The proxy address is required to deploy the implementations of `Cover.sol` (`addNewInternalContracts()`)
+- [ ] **Deploy** `StakingNFT.sol` and `StakingPool.sol` (depend on `CoverInitializer.sol`)
+- [ ] **Proposal**: Upgrade master `NXMaster.sol` (`upgradeMasterAddress()`)
+- [ ] **Deploy** `ClaimRewards.sol`
+- [ ] **Proposal**: Upgrade existing internal contracts: MR, MC, CO, TC, PS, P1, CL (CoverMigrator.sol), GW (``)
+- [ ] **Proposal**: Upgrade existing internal contract: CR (it depends on TC above)
+- [ ] **Call function** `initialize()` from `Cover.sol` to set `globalCapacityRatio` and `globalRewardsRatio`
+
+---------- Staking migration ----------
+- [ ] **Call function** `blockV1()` from `LegacyPooledStaking.sol` This will prevent new deposits 
   and any changes to stake amounts.
-- [ ] **Run script** `get-locked-in-v1-claim-assesment.js` and save the output 
-- [ ] **Call function** `withdrawClaimAssessmentTokens` from `TokenController.sol` and pass the 
-  addresses 
-  generated above to transfer back to them the NXM staked for V1 claim assessment
-- [ ] **Call function** `initialize()` in `TokenController.sol`. This whitelists TC to receive 
-  NXM and 
-  removes CR from the members whitelist
-- [ ] **Call function** `transferRewards()` in `LegacyClaimRewards.sol` to transfer V1 claim 
-  assessment 
-  rewards to their owners
-- [ ] **Proposal** to remove legacy internal contracts: CR, CD, IC, QD, QT, TF, TD
 - [ ] **Run script** to process all PS pending actions
-- [ ] **Call function** `migrateToNewV2Pool` in `LegacyPooledStaking.sol` for each staker to be 
-  migrated
-  - TODO exact details on the inputs / list of stakers
+- [ ] **Call function** `migrateToNewV2Pool` in `LegacyPooledStaking.sol` for each staker to be migrated
+
+---------- Claim Assessment migration ----------
+- [ ] **Run script** `get-locked-in-v1-claim-assesment.js` and save the output 
+- [ ] **Call function** `withdrawClaimAssessmentTokens` from `TokenController.sol` and pass the addresses generated above to transfer back to them the NXM staked for V1 claim assessment
+- [ ] **Call function** `transferRewards()` in `LegacyClaimRewards.sol` to transfer V1 claim assessment rewards to their owners
+- [ ] **Call function** `unlistClaimsReward()` in `TokenController.sol` to blacklist the CR contract, so it can't hold NXM
+
+---------- Proposals ----------
+- [ ] **Proposal** to remove legacy internal contracts: CR, CD, IC, QD, QT, TF, TD
 - [ ] **Proposal** to add new internal contracts: Assessment, IndividualClaims, 
   YieldTokenIncidents
   - TODO: can this be done in the same proposal as `CoverInitializer.sol`? 
@@ -141,4 +151,5 @@
 - [ ] Update `version-data.json` with the new contract addresses
 - [ ] Start APIs
 - [ ] Start the new UI
+
 

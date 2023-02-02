@@ -16,6 +16,8 @@ async function setup() {
   let accounts = await getAccounts();
 
   const MasterMock = await ethers.getContractFactory('MasterMock');
+  const TokenController = await ethers.getContractFactory('TokenControllerMock');
+  const TokenMock = await ethers.getContractFactory('NXMTokenMock');
   const Pool = await ethers.getContractFactory('Pool');
   const MCR = await ethers.getContractFactory('MCR');
   const SwapOperator = await ethers.getContractFactory('SwapOperator');
@@ -42,9 +44,13 @@ async function setup() {
   const cowVaultRelayer = await SOMockVaultRelayer.deploy();
   const cowSettlement = await SOMockSettlement.deploy(cowVaultRelayer.address);
 
-  // Deploy Master and MCR
+  // Deploy Master, MCR, TC, NXMToken
   const master = await MasterMock.deploy();
   const mcr = await MCR.deploy(master.address);
+
+  const tokenController = await TokenController.deploy();
+  const nxmToken = await TokenMock.deploy();
+  await nxmToken.setOperator(tokenController.address);
 
   // Deploy price aggregators
   const daiAggregator = await ChainlinkAggregatorMock.deploy();
@@ -94,10 +100,13 @@ async function setup() {
     dai.address,
     stEth.address,
     enzymeV4Vault.address,
+    nxmToken.address,
   );
 
-  // Setup master, pool and mcr connections
+  // Setup master, token, token controller, pool and mcr connections
   await master.enrollGovernance(governance.address);
+  await master.setTokenAddress(nxmToken.address);
+  await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('P1'), pool.address);
 
@@ -157,6 +166,7 @@ async function setup() {
     enzymeV4Vault,
     enzymeV4Comptroller,
     enzymeFundValueCalculatorRouter,
+    nxmToken,
   };
 }
 

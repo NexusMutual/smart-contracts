@@ -190,6 +190,7 @@ describe('master', function () {
       dai.address,
       AddressZero,
       AddressZero,
+      tk.address,
     );
 
     const contractCodes = ['TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC'];

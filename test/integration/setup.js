@@ -131,7 +131,7 @@ async function setup() {
 
   const p1 = await ethers.deployContract(
     'Pool',
-    [master, priceFeedOracle, swapOperatorPlaceholder, dai, stETH, enzymeVault].map(c => c.address),
+    [master, priceFeedOracle, swapOperatorPlaceholder, dai, stETH, enzymeVault, tk].map(c => c.address),
   );
 
   const cowVaultRelayer = await ethers.deployContract('SOMockVaultRelayer');

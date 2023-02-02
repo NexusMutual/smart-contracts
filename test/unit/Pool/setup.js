@@ -52,6 +52,13 @@ async function setup() {
   const swapOperator = await P1MockSwapOperator.deploy();
   const accounts = await getAccounts();
 
+  const mcr = await MCR.deploy();
+  const tokenController = await TokenController.deploy();
+
+  const token = await TokenMock.deploy();
+  await token.setOperator(tokenController.address);
+  await token.mint(accounts.defaultSender.address, parseEther('10000'));
+
   const pool = await Pool.deploy(
     AddressZero, // master: it is changed a few lines below
     priceFeedOracle.address,
@@ -59,14 +66,8 @@ async function setup() {
     dai.address,
     stETH.address,
     enzymeVault.address,
+    token.address,
   );
-
-  await master.setLatestAddress(toBytes2('P1'), pool.address);
-
-  const token = await TokenMock.deploy();
-  const mcr = await MCR.deploy();
-  const tokenController = await TokenController.deploy();
-  await token.mint(accounts.defaultSender.address, parseEther('10000'));
 
   // set contract addresses
   await master.setTokenAddress(token.address);
@@ -103,9 +104,6 @@ async function setup() {
   for (const governanceContract of accounts.governanceContracts) {
     await master.enrollGovernance(governanceContract.address);
   }
-
-  // initialize token
-  await token.setOperator(tokenController.address);
 
   this.accounts = accounts;
   this.master = master;

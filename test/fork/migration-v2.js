@@ -512,7 +512,6 @@ describe('v2 migration', function () {
     const gateway = await Gateway.deploy();
     await gateway.deployed();
 
-    console.log('Upgrade the first batch.');
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
       defaultAbiCoder.encode(
@@ -522,6 +521,7 @@ describe('v2 migration', function () {
             toUtf8Bytes('MR'),
             toUtf8Bytes('MC'),
             toUtf8Bytes('CO'),
+            toUtf8Bytes('CR'),
             toUtf8Bytes('TC'),
             toUtf8Bytes('PS'),
             toUtf8Bytes('P1'),
@@ -532,6 +532,7 @@ describe('v2 migration', function () {
             memberRoles.address,
             mcr.address,
             cover.address,
+            newClaimsReward.address,
             tokenController.address,
             pooledStaking.address,
             pool.address,
@@ -540,14 +541,6 @@ describe('v2 migration', function () {
           ],
         ],
       ),
-      this.abMembers,
-      this.governance,
-    );
-
-    console.log('Upgrade ClaimsReward only. (depends on TokenController)');
-    await submitGovernanceProposal(
-      PROPOSAL_CATEGORIES.upgradeMultipleContracts, // upgradeMultipleContracts(bytes2[],address[])
-      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('CR')], [newClaimsReward.address]]),
       this.abMembers,
       this.governance,
     );

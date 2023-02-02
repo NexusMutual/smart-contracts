@@ -49,7 +49,6 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
       ),
     );
     const protocolCoverHash = protocolCover.path;
-    console.log({ protocolCoverHash });
     ipfs.pin.add(protocolCoverHash);
 
     // Custodian
@@ -64,7 +63,6 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
       ),
     );
     const custodianCoverHash = custodianCover.path;
-    console.log({ custodianCoverHash });
     ipfs.pin.add(custodianCoverHash);
 
     // Yield Token
@@ -79,7 +77,6 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
       ),
     );
     const yieldTokenCoverHash = yieldTokenCover.path;
-    console.log({ yieldTokenCoverHash });
     ipfs.pin.add(yieldTokenCoverHash);
   } else {
     protocolCoverHash = 'Fork Test Mock Protocol Cover Hash';
@@ -175,7 +172,6 @@ const main = async (coverAddress, abMemberSigner, enableIPFSUploads) => {
 
   if (enableIPFSUploads) {
     for (const product of migratableProducts) {
-      console.log({ product });
       const ipfsUpload = await ipfs.add(
         Buffer.from(
           JSON.stringify({

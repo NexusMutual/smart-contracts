@@ -8,29 +8,26 @@ const { parseEther } = ethers.utils;
 async function setup() {
   const accounts = await getAccounts();
   const { internalContracts, members } = accounts;
+  const internal = internalContracts[0];
 
   const stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [accounts.defaultSender.address]);
 
+  const nxm = await ethers.deployContract('NXMTokenMock');
   const tokenController = await ethers.deployContract('TokenController', [
     '0x0000000000000000000000000000000000000000',
     '0x0000000000000000000000000000000000000000',
     stakingPoolFactory.address,
+    nxm.address,
   ]);
 
   const master = await ethers.deployContract('MasterMock');
-
-  const internal = internalContracts[0];
-
   await master.enrollGovernance(accounts.governanceContracts[0].address);
-
-  const nxm = await ethers.deployContract('NXMTokenMock');
-
-  const governance = await ethers.deployContract('TCMockGovernance');
-
-  const assessment = await ethers.deployContract('TCMockAssessment');
-
   await master.enrollInternal(internal.address);
   await master.setTokenAddress(nxm.address);
+  await master.setLatestAddress(hex('GV'), accounts.governanceContracts[0].address);
+
+  const governance = await ethers.deployContract('TCMockGovernance');
+  const assessment = await ethers.deployContract('TCMockAssessment');
 
   await tokenController.changeMasterAddress(master.address);
   await tokenController.changeDependentContractAddress();
@@ -48,7 +45,6 @@ async function setup() {
     await nxm.connect(member).approve(tokenController.address, mintAmount);
   }
 
-  master.setLatestAddress(hex('GV'), accounts.governanceContracts[0].address);
   await tokenController.connect(accounts.governanceContracts[0]).changeOperator(tokenController.address);
 
   const masterInitTxs = await Promise.all([

@@ -49,7 +49,7 @@ describe('emergency pause', function () {
   });
 
   it('should be able to perform proxy and replaceable upgrades during emergency pause', async function () {
-    const { master, gv, qd, lcr, spf } = this.contracts;
+    const { master, gv, qd, lcr, spf, tk } = this.contracts;
     const emergencyAdmin = this.accounts.emergencyAdmin;
     const owner = this.accounts.defaultSender;
 
@@ -63,7 +63,12 @@ describe('emergency pause', function () {
     const MCR = await ethers.getContractFactory('MCR');
     const newMCR = await MCR.deploy(master.address);
     const TokenController = await ethers.getContractFactory('TokenController');
-    const newTokenControllerImplementation = await TokenController.deploy(qd.address, lcr.address, spf.address);
+    const newTokenControllerImplementation = await TokenController.deploy(
+      qd.address,
+      lcr.address,
+      spf.address,
+      tk.address,
+    );
 
     const contractCodes = [mcrCode, tcCode];
     const newAddresses = [newMCR.address, newTokenControllerImplementation.address];

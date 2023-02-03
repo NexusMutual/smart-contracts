@@ -21,4 +21,5 @@ describe('TokenController', function () {
   require('./burnStakedNXM');
   require('./withdrawNXMStakeAndRewards');
   require('./changeOperator');
+  require('./operatorTransfer');
 });

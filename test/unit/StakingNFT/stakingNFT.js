@@ -143,14 +143,33 @@ describe('StakingNFT', function () {
     expect(await stakingNFT.ownerOf(0)).to.be.equal(nonOwner.address);
   });
 
-  // TODO: why is safeTransferFrom() not found?
-  it.skip('should fail to safeTransfer to a contract that does not implement onERC721Received', async function () {
+  it('should fail to safeTransfer with bytes to a contract without onERC721Received function', async function () {
     const { stakingNFT, cover } = this;
     const [owner] = this.accounts.members;
     await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, owner.address);
+    // Reverts without reason if the contract does not implement onERC721Received
     await expect(
-      stakingNFT.connect(owner).safeTransferFrom(owner.address, cover.address, BigNumber.from(0), toBytes('cafe')),
-    ).to.be.revertedWith('NOT_ERC721_RECEIVER');
+      stakingNFT
+        .connect(owner)
+        ['safeTransferFrom(address,address,uint256,bytes)'](
+          owner.address,
+          cover.address,
+          BigNumber.from(0),
+          toBytes('cafe'),
+        ),
+    ).to.be.revertedWithoutReason();
+  });
+
+  it('should fail to safeTransfer to a contract that does not implement onERC721Received', async function () {
+    const { stakingNFT, cover } = this;
+    const [owner] = this.accounts.members;
+    await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, owner.address);
+    // Reverts without reason if the contract does not implement onERC721Received
+    await expect(
+      stakingNFT
+        .connect(owner)
+        ['safeTransferFrom(address,address,uint256)'](owner.address, cover.address, BigNumber.from(0)),
+    ).to.be.revertedWithoutReason();
   });
 
   it('should support erc721 and ERC165 interfaces', async function () {

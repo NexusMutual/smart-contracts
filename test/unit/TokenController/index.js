@@ -22,4 +22,5 @@ describe('TokenController', function () {
   require('./withdrawNXMStakeAndRewards');
   require('./changeOperator');
   require('./operatorTransfer');
+  require('./mint');
 });

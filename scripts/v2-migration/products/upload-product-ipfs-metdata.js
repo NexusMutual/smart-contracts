@@ -6,7 +6,7 @@ const fetch = require('node-fetch');
 const { parse: csvParse } = require('csv-parse/sync');
 
 async function readFileFromURL(url) {
-  const file = await fetch(url).then(x => x.arrayBuffer());
+  const file = await fetch(url).then(x => x.buffer());
   return file;
 }
 
@@ -72,7 +72,9 @@ function parseExtensions(extensionsText) {
 }
 
 const main = async () => {
-  const ipfs = ipfsClient(IPFS.API);
+  const ipfs = ipfsClient({
+    url: IPFS.API.url,
+  });
   const productTypes = ['protocol', 'custodian', 'token', 'sherlock', 'eth2slashing', 'liquidcollective'];
 
   const productTypeHashes = {};

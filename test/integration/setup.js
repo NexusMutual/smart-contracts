@@ -532,6 +532,9 @@ async function setup() {
   const config = {
     BUCKET_SIZE: BigNumber.from(7 * 24 * 3600), // 7 days
     GLOBAL_REWARDS_RATIO: BigNumber.from(5000), // 50%
+    TARGET_PRICE_DENOMINATOR: await stakingProducts.TARGET_PRICE_DENOMINATOR(),
+    ONE_NXM: await stakingPool.ONE_NXM(),
+    NXM_PER_ALLOCATION_UNIT: await stakingPool.NXM_PER_ALLOCATION_UNIT(),
   };
 
   this.contracts.stakingProducts = stakingProducts;

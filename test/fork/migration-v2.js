@@ -687,11 +687,11 @@ describe('V2 upgrade', function () {
 
     const coverNotesSum = this.coverNotesSum;
 
-    // console.log({
-    //   tcNxmBalance: tcNxmBalance.toString(),
-    //   rewardsSum: rewardsSum.toString(),
-    //   coverNotesSum: coverNotesSum.toString(),
-    // });
+    console.log({
+      tcNxmBalance: tcNxmBalance.toString(),
+      rewardsSum: rewardsSum.toString(),
+      coverNotesSum: coverNotesSum.toString(),
+    });
 
     // TODO: this does NOT pass. Find out where the extra 7k tokens is from.
     // The outputs of the above log:

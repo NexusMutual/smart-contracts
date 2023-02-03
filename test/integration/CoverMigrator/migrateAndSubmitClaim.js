@@ -6,14 +6,14 @@ const { AddressZero } = ethers.constants;
 const { parseEther } = ethers.utils;
 
 describe('migrateAndSubmitClaim', function () {
-  it('should migrate cover from v1 to v2 and submit claim', async function () {
+  it.only('should migrate cover from v1 to v2 and submit claim', async function () {
     const { qd, tk, cl: coverMigrator, coverNFT } = this.contracts;
     const coverOwner = this.accounts.members[1];
 
     const amountNXM = parseEther('10000');
     const period = 30;
     const amount = 100;
-    const scAddress = '0x8B3d70d628Ebd30D4A2ea82DB95bA2e906c71633';
+    const scAddress = '0x11111254369792b2Ca5d084aB5eEA397cA8fa48B';
     const premium = 0;
     const premiumNXM = 0;
 

@@ -58,13 +58,8 @@ async function uploadCoverWordingForProductType(ipfs, productType) {
  - Losses due to a previously disclosed vulnerability;
  */
 function parseExtensions(extensionsText) {
-  const prefix = 'Exclusions that apply but are not limited to: - ';
-  if (!extensionsText.startsWith(prefix)) {
-    throw new Error(`Extension text does not have the right prefix: ${prefix}`);
-  }
-  const itemsText = extensionsText.slice(prefix.length - 1);
-  const extensions = itemsText.split('; - ');
-  return extensions.map(e => e.trim().replace(';', ''));
+  const extensions = extensionsText.split('\n');
+  return extensions.map(e => e.trim());
 }
 
 const main = async () => {
@@ -75,19 +70,19 @@ const main = async () => {
   // using product type IDs
   const productTypes = [0, 1, 2, 3, 4, 5];
 
-  const productTypeHashes = {};
-  for (const productType of productTypes) {
-    const protocolCoverHash = await uploadCoverWordingForProductType(ipfs, productType);
-    productTypeHashes[productType] = protocolCoverHash;
-  }
-
-  const productTypeIpfsHashesPath = path.join(__dirname, 'output/product-type-ipfs-hashes.json');
-
-  fs.writeFileSync(productTypeIpfsHashesPath, JSON.stringify(productTypeHashes, null, 2), 'utf8');
+  // const productTypeHashes = {};
+  // for (const productType of productTypes) {
+  //   const protocolCoverHash = await uploadCoverWordingForProductType(ipfs, productType);
+  //   productTypeHashes[productType] = protocolCoverHash;
+  // }
+  //
+  // const productTypeIpfsHashesPath = path.join(__dirname, 'output/product-type-ipfs-hashes.json');
+  //
+  // fs.writeFileSync(productTypeIpfsHashesPath, JSON.stringify(productTypeHashes, null, 2), 'utf8');
 
   console.log(`Uploading Product IPFS metadata..`);
 
-  const V2OnChainProductInfoProductsPath = path.join(__dirname, 'input/V2 Onchain Product Info - Products.csv');
+  const V2OnChainProductInfoProductsPath = path.join(__dirname, 'input/product-data.csv');
   const productInfoRecords = csvParse(fs.readFileSync(V2OnChainProductInfoProductsPath, 'utf8'), {
     columns: true,
     skip_empty_lines: true,
@@ -101,6 +96,9 @@ const main = async () => {
   for (const record of productInfoRecords) {
     const ipfsData = record['IPFS data'];
 
+    console.log({
+      record,
+    });
     if (ipfsData.length === 0) {
       continue;
     }

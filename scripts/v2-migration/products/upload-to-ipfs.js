@@ -51,13 +51,12 @@ async function uploadCoverWordingForProductType(ipfs, productType) {
 }
 
 /**
-   Expected format:
+   Expected format is an exclusion on each newline
 
- Exclusions that apply but are not limited to:
- - Losses due to a compromised wallet;
- - Losses due to a previously disclosed vulnerability;
+   Losses due to a compromised wallet
+   Losses due to a previously disclosed vulnerability
  */
-function parseExtensions(extensionsText) {
+function parseExclusions(extensionsText) {
   const extensions = extensionsText.split('\n');
   return extensions.map(e => e.trim());
 }
@@ -104,7 +103,7 @@ const main = async () => {
     }
 
     const data = {
-      exclusions: parseExtensions(ipfsData),
+      exclusions: parseExclusions(ipfsData),
     };
 
     const productAddress = record['Product Address '];

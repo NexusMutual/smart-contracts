@@ -61,8 +61,9 @@ contract NXMTokenMock is INXMToken, ERC20 {
     // noop
   }
 
-  function changeOperator(address /*_newOperator*/) external returns (bool) {
-    // noop
+  function changeOperator(address _newOperator) external returns (bool) {
+    operator = _newOperator;
+    return true;
   }
 
   function lockForMemberVote(address /*_of*/, uint /*_days*/) external {

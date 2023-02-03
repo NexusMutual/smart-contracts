@@ -13,7 +13,7 @@ describe('migrateAndSubmitClaim', function () {
     const amountNXM = parseEther('10000');
     const period = 30;
     const amount = 100;
-    const scAddress = '0x8B3d70d628Ebd30D4A2ea82DB95bA2e906c71633';
+    const scAddress = '0x11111254369792b2Ca5d084aB5eEA397cA8fa48B';
     const premium = 0;
     const premiumNXM = 0;
 

@@ -1,11 +1,10 @@
 const { accounts, web3 } = require('hardhat');
-const { ether, time } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert, time, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { toBN } = web3.utils;
 
 const { buyCover } = require('../utils').buyCover;
 const { hex } = require('../utils').helpers;
-const { CoverStatus } = require('../utils').constants;
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 
 const EtherRejecter = artifacts.require('EtherRejecter');
@@ -85,6 +84,61 @@ describe('send claim payout to the payout address', function () {
     const actualPayout = balanceAfter.sub(balanceBefore);
 
     assert(actualPayout.eq(expectedPayout), 'should have transfered the cover amount');
+  });
+
+  it('[A1, status: 0, 7, 14] partial claim, CA accept, closed with closeClaim()', async function () {
+
+    const { cd, cl, qd, cr, tc } = this.contracts;
+    const coverAmount = 5;
+    const requestedAmount = 3;
+    const cover = { ...coverTemplate, amount: coverAmount };
+
+    await buyCover({ ...this.contracts, cover, coverHolder });
+    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
+
+    await expectRevert(
+      cl.submitPartialClaim(coverId, coverAmount + 1, { from: coverHolder }),
+      'Claims: Requested payout amount is greater than covered amount',
+    );
+
+    await cl.submitPartialClaim(coverId, requestedAmount, { from: coverHolder });
+
+    const coverInfo = await tc.coverInfo(coverId);
+    assert.strictEqual(coverInfo.requestedPayoutAmount.toString(), requestedAmount.toString());
+
+    const claimId = (await cd.actualClaimLength()).subn(1);
+    await cl.submitCAVote(claimId, '1', { from: member1 });
+
+    const minVotingTime = await cd.minVotingTime();
+    await time.increase(minVotingTime.addn(1));
+
+    const voteStatusBefore = await cl.checkVoteClosing(claimId);
+    assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
+
+    const balanceBefore = toBN(await web3.eth.getBalance(coverHolder));
+
+    await cr.closeClaim(claimId);
+    const voteStatusAfter = await cl.checkVoteClosing(claimId);
+    assert(voteStatusAfter.eqn(-1), 'voting should be closed');
+
+    const { statno: claimStatus } = await cd.getClaimStatusNumber(claimId);
+    assert.strictEqual(claimStatus.toNumber(), 14, 'claim status should be 14 (accepted, payout done)');
+
+    const balanceAfter = toBN(await web3.eth.getBalance(coverHolder));
+    const expectedPayout = ether(requestedAmount.toString());
+    const actualPayout = balanceAfter.sub(balanceBefore);
+
+    assert(actualPayout.eq(expectedPayout), 'should have transfered the cover amount');
+
+    await expectRevert(
+      cl.submitPartialClaim(coverId, requestedAmount, { from: coverHolder }),
+      'TokenController: Cover already has accepted claims',
+    );
+
+    await expectRevert(
+      cl.submitClaim(coverId, { from: coverHolder }),
+      'TokenController: Cover already has accepted claims',
+    );
   });
 
   it('[A1, status: 0, 7, 14] CA accept, closed on the last vote', async function () {
@@ -281,15 +335,14 @@ describe('send claim payout to the payout address', function () {
     assert(actualPayout.eq(expectedPayout), 'should have transfered the cover amount');
   });
 
-  it('[A1, status: 0, 7, 12, 13] CA accept, closed with closeClaim(), claim payout fails with status 12 and goes to status 13 after 60 retries', async function () {
+  it('[A1, status: 0, 7, -, 14] CA accept, closed with closeClaim(), claim payout fails, then succeeds', async function () {
 
-    const { cd, cl, qd, mr, master, dai, cr } = this.contracts;
+    const { cd, cl, qd, mr, cr } = this.contracts;
     const cover = { ...coverTemplate };
 
     const rejecter = await EtherRejecter.new();
 
     const payoutAddress = rejecter.address;
-    const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
 
     await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
     assert.strictEqual(
@@ -310,23 +363,25 @@ describe('send claim payout to the payout address', function () {
     const voteStatusBefore = await cl.checkVoteClosing(claimId);
     assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
 
-    await cr.closeClaim(claimId);
-    const voteStatusAfter = await cl.checkVoteClosing(claimId);
-    assert.equal(voteStatusAfter.toString(), '0', 'voting should not be closed');
-
-    const { statno: claimStatus } = await cd.getClaimStatusNumber(claimId);
-    assert.strictEqual(claimStatus.toNumber(), 12, 'claim status should be 12 (Claim Accepted Payout Pending)');
-
-    const coverStatus = await qd.getCoverStatusNo(coverId);
-    assert.equal(coverStatus.toString(), CoverStatus.ClaimAccepted);
+    await expectRevert(
+      cr.closeClaim(claimId),
+      'ClaimsReward: Payout failed',
+    );
 
     const payoutRetryTime = await cd.payoutRetryTime();
+
     for (let i = 0; i <= 60; i++) {
       await time.increase(payoutRetryTime.addn(1));
-      await cr.closeClaim(claimId);
+      await expectRevert(
+        cr.closeClaim(claimId),
+        'ClaimsReward: Payout failed',
+      );
     }
 
+    await mr.setClaimPayoutAddress(ZERO_ADDRESS, { from: coverHolder });
+    await cr.closeClaim(claimId);
+
     const { statno: finalClaimStatus } = await cd.getClaimStatusNumber(claimId);
-    assert.strictEqual(finalClaimStatus.toNumber(), 13, 'claim status should be 13 (Claim Accepted No Payout)');
+    assert.strictEqual(finalClaimStatus.toNumber(), 14, 'claim status should be 14 (payout done)');
   });
 });

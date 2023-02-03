@@ -89,15 +89,16 @@ contract ClaimsReward is IClaimsReward, LegacyMasterAware {
       _changeClaimStatusCA(claimId, coverid, status);
     } else if (status >= 1 && status <= 5) {
       _changeClaimStatusMV(claimId, coverid, status);
-    } else if (status == 12) {// when current status is "Claim Accepted Payout Pending"
+    } else if (status == 12) {
 
-      bool payoutSucceeded = attemptClaimPayout(coverid);
+      // status == 12 is "Claim Accepted Payout Pending"
+      // technically should be unreachable after partial claim implementation
+      // since we revert if the payout fails
 
-      if (payoutSucceeded) {
-        c1.setClaimStatus(claimId, 14);
-      } else {
-        c1.setClaimStatus(claimId, 12);
-      }
+      attemptClaimPayout(coverid);
+
+      // 14 = payout succeeded
+      c1.setClaimStatus(claimId, 14);
     }
   }
 
@@ -114,11 +115,16 @@ contract ClaimsReward is IClaimsReward, LegacyMasterAware {
     revert("ClaimsReward: unknown asset");
   }
 
-  function attemptClaimPayout(uint coverId) internal returns (bool success) {
+  function attemptClaimPayout(uint coverId) internal {
 
-    uint sumAssured = qd.getCoverSumAssured(coverId);
-    // TODO: when adding new cover currencies, fetch the correct decimals for this multiplication
-    uint sumAssuredWei = sumAssured.mul(1e18);
+    uint coverAmount = qd.getCoverSumAssured(coverId);
+    (/* claim count */, /* hasOpenClaim */, /* accepted */, uint requestedAmount) = tc.coverInfo(coverId);
+
+    if (requestedAmount == 0) {
+      requestedAmount = coverAmount;
+    }
+
+    uint payoutAmount = requestedAmount.mul(1e18);
 
     // get asset address
     bytes4 coverCurrency = qd.getCurrencyOfCover(coverId);
@@ -129,29 +135,24 @@ contract ClaimsReward is IClaimsReward, LegacyMasterAware {
     address payable payoutAddress = memberRoles.getClaimPayoutAddress(coverHolder);
 
     // execute the payout
-    bool payoutSucceeded = pool.sendClaimPayout(asset, payoutAddress, sumAssuredWei);
+    bool payoutSucceeded = pool.sendClaimPayout(asset, payoutAddress, payoutAmount);
+    require(payoutSucceeded, "ClaimsReward: Payout failed");
 
-    if (payoutSucceeded) {
+    // burn staked tokens
+    (, address scAddress) = qd.getscAddressOfCover(coverId);
+    uint tokenPrice = pool.getTokenPrice(asset);
 
-      // burn staked tokens
-      (, address scAddress) = qd.getscAddressOfCover(coverId);
-      uint tokenPrice = pool.getTokenPrice(asset);
+    // note: for new assets "18" needs to be replaced with target asset decimals
+    uint burnNXMAmount = payoutAmount.mul(1e18).div(tokenPrice);
+    pooledStaking.pushBurn(scAddress, burnNXMAmount);
 
-      // note: for new assets "18" needs to be replaced with target asset decimals
-      uint burnNXMAmount = sumAssuredWei.mul(1e18).div(tokenPrice);
-      pooledStaking.pushBurn(scAddress, burnNXMAmount);
+    // adjust total sum assured
+    (, address coverContract) = qd.getscAddressOfCover(coverId);
+    qd.subFromTotalSumAssured(coverCurrency, coverAmount);
+    qd.subFromTotalSumAssuredSC(coverContract, coverCurrency, coverAmount);
 
-      // adjust total sum assured
-      (, address coverContract) = qd.getscAddressOfCover(coverId);
-      qd.subFromTotalSumAssured(coverCurrency, sumAssured);
-      qd.subFromTotalSumAssuredSC(coverContract, coverCurrency, sumAssured);
-
-      // update MCR since total sum assured and MCR% change
-      mcr.updateMCRInternal(pool.getPoolValueInEth(), true);
-      return true;
-    }
-
-    return false;
+    // update MCR since total sum assured and MCR% change
+    mcr.updateMCRInternal(pool.getPoolValueInEth(), true);
   }
 
   /// @dev Amount of tokens to be rewarded to a user for a particular vote id.
@@ -337,11 +338,10 @@ contract ClaimsReward is IClaimsReward, LegacyMasterAware {
       tc.markCoverClaimClosed(coverid, true);
       _unlockCoverNote(coverid);
 
-      bool payoutSucceeded = attemptClaimPayout(coverid);
+      attemptClaimPayout(coverid);
 
-      // 12 = payout pending, 14 = payout succeeded
-      uint nextStatus = payoutSucceeded ? 14 : 12;
-      c1.setClaimStatus(claimid, nextStatus);
+      // 14 = payout succeeded
+      c1.setClaimStatus(claimid, 14);
     }
   }
 

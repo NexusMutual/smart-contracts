@@ -4,7 +4,12 @@ pragma solidity >=0.5.0;
 
 interface ITokenController {
 
-  function coverInfo(uint id) external view returns (uint16 claimCount, bool hasOpenClaim, bool hasAcceptedClaim);
+  function coverInfo(uint id) external view returns (
+    uint16 claimCount,
+    bool hasOpenClaim,
+    bool hasAcceptedClaim,
+    uint96 requestedPayoutAmount
+  );
 
   function claimSubmissionGracePeriod() external view returns (uint);
 
@@ -15,6 +20,8 @@ interface ITokenController {
   ) external;
 
   function markCoverClaimOpen(uint coverId) external;
+
+  function markCoverClaimOpenWithRequestedAmount(uint coverId, uint requestedPayoutAmount) external;
 
   function markCoverClaimClosed(uint coverId, bool isAccepted) external;
 

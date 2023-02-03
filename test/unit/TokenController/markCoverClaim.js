@@ -5,7 +5,7 @@ const { internalContracts: [internal] } = require('../utils').accounts;
 describe('markCoverClaimOpen/Close', function () {
 
   it('reverts when called by non-internal contract', async function () {
-    await expectRevert.unspecified(this.tokenController.markCoverClaimOpen('1'));
+    await expectRevert.unspecified(this.tokenController.markCoverClaimOpenWithRequestedAmount('1', '0'));
     await expectRevert.unspecified(this.tokenController.markCoverClaimClosed('1', false));
   });
 
@@ -18,18 +18,36 @@ describe('markCoverClaimOpen/Close', function () {
     assert.strictEqual(coverInfo.claimCount.toString(), '1');
     assert.strictEqual(coverInfo.hasOpenClaim, true);
     assert.strictEqual(coverInfo.hasAcceptedClaim, false);
+    assert.strictEqual(coverInfo.requestedPayoutAmount.toString(), '0');
+  });
+
+  it('marks claim open and sets requested payout', async function () {
+
+    const { tokenController } = this;
+    const requestedPayoutAmount = '100';
+
+    await tokenController.markCoverClaimOpenWithRequestedAmount('1', requestedPayoutAmount, { from: internal });
+    const coverInfo = await tokenController.coverInfo('1');
+
+    assert.strictEqual(coverInfo.claimCount.toString(), '1');
+    assert.strictEqual(coverInfo.hasOpenClaim, true);
+    assert.strictEqual(coverInfo.hasAcceptedClaim, false);
+    assert.strictEqual(coverInfo.requestedPayoutAmount.toString(), requestedPayoutAmount);
   });
 
   it('marks claim closed and denied', async function () {
 
     const { tokenController } = this;
-    await tokenController.markCoverClaimOpen('1', { from: internal });
+    const requestedPayoutAmount = '100';
+
+    await tokenController.markCoverClaimOpenWithRequestedAmount('1', requestedPayoutAmount, { from: internal });
     await tokenController.markCoverClaimClosed('1', false, { from: internal });
     const coverInfo = await tokenController.coverInfo('1');
 
     assert.strictEqual(coverInfo.claimCount.toString(), '1');
     assert.strictEqual(coverInfo.hasOpenClaim, false);
     assert.strictEqual(coverInfo.hasAcceptedClaim, false);
+    assert.strictEqual(coverInfo.requestedPayoutAmount.toString(), requestedPayoutAmount);
   });
 
   it('reverts when attempting to open a claim on a cover with a pending claim', async function () {

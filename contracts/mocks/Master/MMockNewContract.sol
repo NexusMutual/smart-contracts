@@ -1,6 +1,7 @@
+pragma solidity ^0.5.0;
+
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/ITokenController.sol";
-
 
 contract MMockNewContract is MasterAware {
   ITokenController tc;

@@ -74,20 +74,23 @@ contract Claims is IClaims, LegacyMasterAware {
     incidents = IIncidents(ms.getLatestAddress("IC"));
   }
 
-  /**
-   * @dev Submits a claim for a given cover note.
-   * Adds claim to queue incase of emergency pause else directly submits the claim.
-   * @param coverId Cover Id.
-   */
+  /// @dev Submits a claim for a given cover
+  /// @param coverId Cover Id.
   function submitClaim(uint coverId) external {
-    _submitClaim(coverId, msg.sender);
+    _submitClaim(coverId, msg.sender, 0);
+  }
+
+  /// @param coverId               the cover id
+  /// @param requestedPayoutAmount requested payout amount, or 0 if the claim is for the full covered amount
+  function submitPartialClaim(uint coverId, uint requestedPayoutAmount) external {
+    _submitClaim(coverId, msg.sender, requestedPayoutAmount);
   }
 
   function submitClaimForMember(uint coverId, address member) external onlyInternal {
-    _submitClaim(coverId, member);
+    _submitClaim(coverId, member, 0);
   }
 
-  function _submitClaim(uint coverId, address member) internal {
+  function _submitClaim(uint coverId, address member, uint requestedPayoutAmount) internal {
 
     require(!ms.isPause(), "Claims: System is paused");
 
@@ -102,7 +105,11 @@ contract Claims is IClaims, LegacyMasterAware {
     uint gracePeriod = tc.claimSubmissionGracePeriod();
     require(expirationDate.add(gracePeriod) > now, "Claims: Grace period has expired");
 
-    tc.markCoverClaimOpen(coverId);
+    uint coveredAmount = qd.getCoverSumAssured(coverId);
+    require(requestedPayoutAmount <= coveredAmount, "Claims: Requested payout amount is greater than covered amount");
+
+    // if requested amount = 0, the claim is for the entire covered amount
+    tc.markCoverClaimOpenWithRequestedAmount(coverId, requestedPayoutAmount);
     qd.changeCoverStatusNo(coverId, uint8(IQuotationData.CoverStatus.ClaimSubmitted));
 
     uint claimId = cd.actualClaimLength();

@@ -20,27 +20,28 @@ contract P1MockEnzymeV4Comptroller is IEnzymeV4Comptroller {
   function getDenominationAsset() external view returns (address denominationAsset_) {
     return weth;
   }
+
   function redeemSharesForSpecificAssets(
     address _recipient,
     uint256 _sharesQuantity,
-    address[] calldata _payoutAssets,
-    uint256[] calldata _payoutAssetPercentages
+    address[] calldata /*_payoutAssets*/,
+    uint256[] calldata /*_payoutAssetPercentages*/
   ) external returns (uint256[] memory payoutAmounts_) {
-    uint256[] memory payoutAmounts_ =  new uint256[](0);
-
+    payoutAmounts_ = new uint256[](0);
     vault.burn(_recipient, _sharesQuantity);
     IWETH(weth).transfer(_recipient, _sharesQuantity * 10000 / ethToSharesRate);
   }
 
   function vaultCallOnContract(
-    address _contract,
-    bytes4 _selector,
-    bytes calldata _encodedArgs
+    address /*_contract*/,
+    bytes4 /*_selector*/,
+    bytes calldata /*_encodedArgs*/
   ) external {
+    weth = weth;
     // no-op
   }
 
-  function buyShares(uint _investmentAmount, uint _minSharesQuantity) external {
+  function buyShares(uint _investmentAmount, uint /*_minSharesQuantity*/) external {
     uint shares = _investmentAmount * ethToSharesRate / 10000;
     vault.mint(msg.sender, shares);
   }

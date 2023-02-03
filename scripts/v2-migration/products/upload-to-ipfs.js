@@ -70,15 +70,15 @@ const main = async () => {
   // using product type IDs
   const productTypes = [0, 1, 2, 3, 4, 5];
 
-  // const productTypeHashes = {};
-  // for (const productType of productTypes) {
-  //   const protocolCoverHash = await uploadCoverWordingForProductType(ipfs, productType);
-  //   productTypeHashes[productType] = protocolCoverHash;
-  // }
-  //
-  // const productTypeIpfsHashesPath = path.join(__dirname, 'output/product-type-ipfs-hashes.json');
-  //
-  // fs.writeFileSync(productTypeIpfsHashesPath, JSON.stringify(productTypeHashes, null, 2), 'utf8');
+  const productTypeHashes = {};
+  for (const productType of productTypes) {
+    const protocolCoverHash = await uploadCoverWordingForProductType(ipfs, productType);
+    productTypeHashes[productType] = protocolCoverHash;
+  }
+
+  const productTypeIpfsHashesPath = path.join(__dirname, 'output/product-type-ipfs-hashes.json');
+
+  fs.writeFileSync(productTypeIpfsHashesPath, JSON.stringify(productTypeHashes, null, 2), 'utf8');
 
   console.log(`Uploading Product IPFS metadata..`);
 

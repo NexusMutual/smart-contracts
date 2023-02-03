@@ -51,6 +51,7 @@ describe('setProducts', function () {
 
   // Cover.ProductParams
   const productParamsTemplate = {
+    productName: 'Product Xs',
     productId: MaxUint256,
     ipfsMetadata: defaultIpfsData,
     product: { ...productTemplate },

@@ -62,6 +62,7 @@ struct BuyCoverParams {
 }
 
 struct ProductParam {
+  string productName;
   uint productId;
   string ipfsMetadata;
   Product product;
@@ -69,6 +70,7 @@ struct ProductParam {
 }
 
 struct ProductTypeParam {
+  string productTypeName;
   uint productTypeId;
   string ipfsMetadata;
   ProductType productType;

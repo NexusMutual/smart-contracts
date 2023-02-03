@@ -13,6 +13,7 @@ const ProductTypeTemplate = {
 
 // Cover.ProductTypeParam
 const ProductTypeParamTemplate = {
+  productTypeName: 'Product Type X',
   productTypeId: MaxUint256,
   ipfsMetadata,
   productType: { ...ProductTypeTemplate },

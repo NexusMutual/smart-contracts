@@ -19,4 +19,5 @@ describe('TokenController', function () {
   require('./mintStakingPoolNXMRewards');
   require('./burnStakingPoolNXMRewards');
   require('./burnStakedNXM');
+  require('./withdrawNXMStakeAndRewards');
 });

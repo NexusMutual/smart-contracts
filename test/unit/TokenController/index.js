@@ -23,4 +23,5 @@ describe('TokenController', function () {
   require('./changeOperator');
   require('./operatorTransfer');
   require('./mint');
+  require('./burnFrom');
 });

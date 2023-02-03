@@ -161,6 +161,17 @@ describe('V2 upgrade', function () {
     poolValueBefore = await this.pool.getPoolValueInEth();
   });
 
+  // Setup needed to test that `claimPayoutAddress` storage is cleaned up
+  it('Add new claim payout address to MemberRoles', async function () {
+    await evm.impersonate(MEMBER_ADDRESS);
+    await evm.setBalance(MEMBER_ADDRESS, parseEther('1000'));
+    const member = await getSigner(MEMBER_ADDRESS);
+    await this.memberRoles.connect(member).setClaimPayoutAddress(CLAIM_PAYABLE_ADDRESS);
+
+    const claimPayableAddressAfter = await this.memberRoles.getClaimPayoutAddress(MEMBER_ADDRESS);
+    expect(claimPayableAddressAfter).to.be.equal(getAddress(CLAIM_PAYABLE_ADDRESS));
+  });
+
   // Generates the ProductsV1 contract
   // TODO: We should generate the Products1.sol contract outside the fork test
   // either way, for this to work now, we must get rid of the get-sunset-products script
@@ -427,17 +438,6 @@ describe('V2 upgrade', function () {
     this.stakingPool = stakingPool;
   });
 
-  // TODO: What is this for?!
-  it('add new claim payout address to member roles', async function () {
-    await evm.impersonate(MEMBER_ADDRESS);
-    await evm.setBalance(MEMBER_ADDRESS, parseEther('1000'));
-    const member = await getSigner(MEMBER_ADDRESS);
-    await this.memberRoles.connect(member).setClaimPayoutAddress(CLAIM_PAYABLE_ADDRESS);
-
-    const claimPayableAddressAfter = await this.memberRoles.getClaimPayoutAddress(MEMBER_ADDRESS);
-    expect(claimPayableAddressAfter).to.be.equal(getAddress(CLAIM_PAYABLE_ADDRESS));
-  });
-
   it('Deploy and upgrade NXMaster.sol', async function () {
     const NXMaster = await ethers.getContractFactory('NXMaster');
     const master = await NXMaster.deploy();
@@ -569,29 +569,22 @@ describe('V2 upgrade', function () {
     this.memberRoles = await ethers.getContractAt('MemberRoles', this.memberRoles.address);
     this.mcr = await ethers.getContractAt('MCR', mcr.address);
     this.cover = await ethers.getContractAt('Cover', coverProxyAddress);
+
     const tokenControllerAddress = await this.master.contractAddresses(toUtf8Bytes('TC'));
     this.tokenController = await ethers.getContractAt('TokenController', tokenControllerAddress);
+
     const pooledStakingAddress = await this.master.contractAddresses(toUtf8Bytes('PS'));
     this.pooledStaking = await ethers.getContractAt('LegacyPooledStaking', pooledStakingAddress);
     this.pool = pool;
     this.coverMigrator = await ethers.getContractAt('CoverMigrator', coverMigrator.address);
+
     const gatewayAddress = await this.master.contractAddresses(toUtf8Bytes('GW'));
     this.gateway = await ethers.getContractAt('LegacyGateway', gatewayAddress);
 
-    // TODO check if this dependency makes sense
-    console.log('Upgrade ClaimsReward.sol separately - it depends on TokenController.sol above');
-    await submitGovernanceProposal(
-      // upgradeMultipleContracts(bytes2[],address[])
-      PROPOSAL_CATEGORIES.upgradeMultipleContracts,
-      defaultAbiCoder.encode(['bytes2[]', 'address[]'], [[toUtf8Bytes('CR')], [newClaimsReward.address]]),
-      this.abMembers,
-      this.governance,
-    );
     this.claimsReward = newClaimsReward;
   });
 
-  // TODO: what is this?
-  it('do memberRoles storageCleanup', async function () {
+  it('Cleanup storage in MemberRoles', async function () {
     const claimPayableAddressSlot = 15;
     const paddedSlot = hexZeroPad(claimPayableAddressSlot, 32);
     const paddedKey = hexZeroPad(MEMBER_ADDRESS, 32);

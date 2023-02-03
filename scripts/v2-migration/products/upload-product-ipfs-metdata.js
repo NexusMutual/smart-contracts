@@ -112,9 +112,13 @@ const main = async () => {
     console.log(`Pinning ${ipfsUpload.path}`);
     await ipfs.pin.add(ipfsUpload.path);
 
-    // TODO: get the productId here
+    // TODO: use the productId here, not the addresses
     productHashes[record.address] = ipfsUpload.path;
   }
+
+  const productIpfsHashesPath = path.join(__dirname, 'v2-migration/output/productIpfsHashes.json');
+
+  fs.writeFileSync(productIpfsHashesPath, JSON.stringify(productHashes, null, 2), 'utf8');
 };
 
 if (require.main === module) {

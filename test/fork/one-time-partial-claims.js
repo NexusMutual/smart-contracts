@@ -7,7 +7,7 @@ const { filterArgsKeys } = require('../../lib/helpers');
 const { hex, bnEqual } = require('../utils').helpers;
 const { ProposalCategory } = require('../utils').constants;
 
-const toBN = s => new web3.utils.BN(s);
+const toBN = s => web3.utils.toBN(s);
 
 const VERSION_DATA = 'https://api.nexusmutual.io/version-data/data.json';
 
@@ -34,6 +34,8 @@ const Address = {
   DAI: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
   NXMHOLDER: '0xd7cba5b9a0240770cfd9671961dae064136fa240',
 };
+
+const BurnRequested = '0x5d06931c8dc69a16ea07030839ba70d3794cbda4dc0e16718165f9054db87a5a';
 
 const getAddressByCodeFactory = abis => code => abis.find(abi => abi.code === code).address;
 const unlock = async account => provider.request({ method: 'hardhat_impersonateAccount', params: [account] });
@@ -175,16 +177,34 @@ describe('deploy cover interface and locking fixes', function () {
     const claimAmount = coverAmount.divn(4).muln(3);
     const payoutAmount = ether(claimAmount.toString());
 
+    // calculate amounts in nxm
+    const nxmPrice = await pool.getTokenPrice(Address.ETH);
+    const payoutAmountInNxm = payoutAmount.div(nxmPrice);
+    const coverAmountInNxm = ether(coverAmount.toString()).div(nxmPrice);
+
+    // balance before
     const coverOwnerBalanceBefore = toBN(await web3.eth.getBalance(coverOwner));
     const poolBalanceBefore = toBN(await web3.eth.getBalance(pool.address));
 
-    const receipt = await claimsReward.closeClaim(claimId);
-    receipt.logs.forEach(log => {
-      console.log(log.event, filterArgsKeys(log.args));
-    });
+    // close claim and perform payout
+    const { receipt } = await claimsReward.closeClaim(claimId);
 
+    // balance after
     const coverOwnerBalanceAfter = toBN(await web3.eth.getBalance(coverOwner));
     const poolBalanceAfter = toBN(await web3.eth.getBalance(pool.address));
+
+    // extract burn event
+    const rawEvent = receipt.rawLogs.find(log => log.topics[0] === BurnRequested);
+    assert(!!rawEvent, 'BurnRequested event not found');
+
+    const { 0: contract } = web3.eth.abi.decodeParameters(['address'], rawEvent.topics[1]);
+    const { 0: amount } = web3.eth.abi.decodeParameters(['uint256'], rawEvent.data);
+
+    console.log('Burned contract     :', contract);
+    console.log('Burned nxm amount   :', toBN(amount).toString() / 1e18);
+
+    console.log('Payout Amount In Nxm:', payoutAmountInNxm.toString() / 1e18);
+    console.log('Cover Amount In Nxm :', coverAmountInNxm.toString() / 1e18);
 
     console.log('Cover owner ETH balance before:', coverOwnerBalanceBefore.toString() / 1e18);
     console.log('Cover owner ETH balance after:', coverOwnerBalanceAfter.toString() / 1e18);
@@ -272,6 +292,11 @@ describe('deploy cover interface and locking fixes', function () {
     const claimAmount = coverAmount;
     const payoutAmount = ether(claimAmount.toString());
 
+    // calculate amounts in nxm
+    const nxmPrice = await pool.getTokenPrice(Address.DAI);
+    const payoutAmountInNxm = payoutAmount.div(nxmPrice);
+    const coverAmountInNxm = ether(coverAmount.toString()).div(nxmPrice);
+
     // eth
     const coverOwnerETHBalanceBefore = toBN(await web3.eth.getBalance(coverOwner));
     const poolETHBalanceBefore = toBN(await web3.eth.getBalance(pool.address));
@@ -280,10 +305,7 @@ describe('deploy cover interface and locking fixes', function () {
     const coverOwnerDAIBalanceBefore = await dai.balanceOf(coverOwner);
     const poolDAIBalanceBefore = await dai.balanceOf(pool.address);
 
-    const receipt = await claimsReward.closeClaim(claimId);
-    receipt.logs.forEach(log => {
-      console.log(log.event, filterArgsKeys(log.args));
-    });
+    const { receipt } = await claimsReward.closeClaim(claimId);
 
     // eth
     const coverOwnerETHBalanceAfter = toBN(await web3.eth.getBalance(coverOwner));
@@ -299,12 +321,24 @@ describe('deploy cover interface and locking fixes', function () {
     console.log('Pool ETH balance before:', poolETHBalanceBefore.toString() / 1e18);
     console.log('Pool ETH balance after:', poolETHBalanceAfter.toString() / 1e18);
 
-
     console.log('Cover owner DAI balance before:', coverOwnerDAIBalanceBefore.toString() / 1e18);
     console.log('Cover owner DAI balance after:', coverOwnerDAIBalanceAfter.toString() / 1e18);
 
     console.log('Pool DAI balance before:', poolDAIBalanceBefore.toString() / 1e18);
     console.log('Pool DAI balance after:', poolDAIBalanceAfter.toString() / 1e18);
+
+    // extract burn event
+    const rawEvent = receipt.rawLogs.find(log => log.topics[0] === BurnRequested);
+    assert(!!rawEvent, 'BurnRequested event not found');
+
+    const { 0: contract } = web3.eth.abi.decodeParameters(['address'], rawEvent.topics[1]);
+    const { 0: amount } = web3.eth.abi.decodeParameters(['uint256'], rawEvent.data);
+
+    console.log('Burned contract     :', contract);
+    console.log('Burned nxm amount   :', toBN(amount).toString() / 1e18);
+
+    console.log('Payout Amount In Nxm:', payoutAmountInNxm.toString() / 1e18);
+    console.log('Cover Amount In Nxm :', coverAmountInNxm.toString() / 1e18);
 
     bnEqual(coverOwnerDAIBalanceAfter.sub(coverOwnerDAIBalanceBefore), payoutAmount);
     bnEqual(poolDAIBalanceBefore.sub(poolDAIBalanceAfter), payoutAmount);

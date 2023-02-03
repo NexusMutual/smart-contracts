@@ -3,6 +3,7 @@ const fs = require('fs');
 const ethers = require('ethers');
 const fetch = require('node-fetch');
 const Decimal = require('decimal.js');
+const path = require('path');
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -66,24 +67,38 @@ ${priceMap[price]
 
 const main = async () => {
   const products = JSON.parse(fs.readFileSync('./scripts/v2-migration/input/contracts.json'));
-  const migratableProducts = JSON.parse(fs.readFileSync('./deploy/migratableProducts.json'));
+
+  const migrateableProductsPath = path.join(__dirname, 'v2-migration/output/migratableProducts.json');
+  const migrateableProducts = JSON.parse(fs.readFileSync(migrateableProductsPath));
 
   const priceToProductMap = {};
   const productToPriceMap = {};
+
+  console.log(`Processing ${products.length} products`);
   for (const product in products) {
+    // TODO: filter based on their expiry period grace period; we won't include that have no more covers that
+    // can possibly be redeemed.
     if (products[product].deprecated) {
       continue;
     }
 
-    const res = await fetch(`https://api.nexusmutual.io/v1/contracts/${product}/capacity`, {
+    const url = `https://api.nexusmutual.io/v1/contracts/${product}/capacity`;
+    console.log(`Calling ${url}`);
+    const res = await fetch(url, {
       headers: {
         'x-api-key': 'c904-42c7-2f90-a561',
         Origin: 'https://app.nexusmutual.io',
       },
     });
-    await sleep(1000);
+
+    await sleep(100);
     const productState = await res.json();
     console.log(productState);
+
+    if (productState.reason === 'Uncoverable') {
+      console.log(`Product ${products[product].name} is Uncoverable. Skipping.`);
+      continue;
+    }
     const annualPrice = ethers.utils.parseUnits(getYearlyCost(productState.netStakedNXM).toString()).toString();
 
     productToPriceMap[product] = annualPrice;
@@ -91,16 +106,17 @@ const main = async () => {
       priceToProductMap[annualPrice] = [];
     }
     priceToProductMap[annualPrice].push(product);
-
-    const v1ProductIds = JSON.parse(fs.readFileSync('./deploy/v1ProductIds.json'));
-    console.log({ migratableProducts });
-    const snippet = getPrices(priceToProductMap, v1ProductIds, migratableProducts);
-    console.log({ snippet });
-    const contract = fs.readFileSync('./contracts/modules/staking/PooledStaking.sol');
-    const templateHelperRegex = /\/\/ \{V1_PRICES_HELPER_BEGIN\}([\s\S]*?)\/\/ \{V1_PRICES_HELPER_END\}/;
-    const newContract = contract.toString().replace(templateHelperRegex, snippet);
-    fs.writeFileSync('./contracts/modules/staking/PooledStaking.sol', newContract);
   }
+
+  const v1productIdsPath = path.join(__dirname, 'v2-migration/product/output/v2ProductAddresses.json');
+  const v1ProductIds = JSON.parse(fs.readFileSync(v1productIdsPath));
+  console.log({ migratableProducts: migrateableProducts });
+  const snippet = getPrices(priceToProductMap, v1ProductIds, migrateableProducts);
+  console.log({ snippet });
+  const contract = fs.readFileSync('./contracts/modules/legacy/LegacyPooledStaking.sol');
+  const templateHelperRegex = /\/\/ \{V1_PRICES_HELPER_BEGIN\}([\s\S]*?)\/\/ \{V1_PRICES_HELPER_END\}/;
+  const newContract = contract.toString().replace(templateHelperRegex, snippet);
+  fs.writeFileSync('./contracts/modules/legacy/LegacyPooledStaking.sol', newContract);
 
   console.log({ priceToProductMap, productToPriceMap });
 };
@@ -114,4 +130,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { main };
+module.exports = main;

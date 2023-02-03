@@ -1,15 +1,13 @@
-const { accounts, ethers } = require('hardhat');
+const { ethers } = require('hardhat');
 const { expect } = require('chai');
 const { BigNumber } = ethers;
-const { buyCover, buyCoverWithDai, ETH_ASSET_ID, DAI_ASSET_ID } = require('../utils/cover');
+const { buyCover, ETH_ASSET_ID, DAI_ASSET_ID } = require('../utils/cover');
 const { daysToSeconds } = require('../../../lib/helpers');
 const { stake } = require('../utils/staking');
 const { setEtherBalance } = require('../../utils/evm');
 const { roundUpToNearestAllocationUnit, divCeil } = require('../../unit/StakingPool/helpers');
 const { MaxUint256 } = ethers.constants;
 const { parseEther } = ethers.utils;
-
-const [, member1] = accounts;
 
 const daiProductParamTemplate = {
   productId: 2, // dai

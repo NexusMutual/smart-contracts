@@ -4,17 +4,13 @@ const { Role } = require('../../../lib/constants');
 const { hex } = require('../utils').helpers;
 
 async function setup() {
-  const TokenController = await ethers.getContractFactory('TokenController');
-  const tokenController = await TokenController.deploy(
+  const tokenController = await ethers.deployContract('TokenController', [
     '0x0000000000000000000000000000000000000000',
     '0x0000000000000000000000000000000000000000',
     '0x0000000000000000000000000000000000000000',
-  );
-  await tokenController.deployed();
+  ]);
 
-  const MasterMock = await ethers.getContractFactory('MasterMock');
-  const master = await MasterMock.deploy();
-  await master.deployed();
+  const master = await ethers.deployContract('MasterMock');
 
   const accounts = await getAccounts();
   const { internalContracts, members } = accounts;
@@ -22,13 +18,11 @@ async function setup() {
 
   await master.enrollGovernance(accounts.governanceContracts[0].address);
 
-  const NXM = await ethers.getContractFactory('NXMTokenMock');
-  const nxm = await NXM.deploy();
-  await nxm.deployed();
+  const nxm = await ethers.deployContract('NXMTokenMock');
 
-  const Governance = await ethers.getContractFactory('TCMockGovernance');
-  const governance = await Governance.deploy();
-  await governance.deployed();
+  const governance = await ethers.deployContract('TCMockGovernance');
+
+  const assessment = await ethers.deployContract('TCMockAssessment');
 
   await master.enrollInternal(internal.address);
   await master.setTokenAddress(nxm.address);
@@ -48,6 +42,7 @@ async function setup() {
   const masterInitTxs = await Promise.all([
     master.setTokenAddress(nxm.address),
     master.setLatestAddress(hex('GV'), governance.address),
+    master.setLatestAddress(hex('AS'), assessment.address),
   ]);
   await Promise.all(masterInitTxs.map(x => x.wait()));
 
@@ -59,6 +54,7 @@ async function setup() {
     master,
     governance,
     tokenController,
+    assessment,
   };
 }
 

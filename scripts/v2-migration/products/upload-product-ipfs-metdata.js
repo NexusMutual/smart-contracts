@@ -18,7 +18,8 @@ const CoverWordings = {
   sherlock:
     'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d0f7c4f0864e48c46ad93c_SherlockExcessCoverv1.0.pdf',
   eth2slashing:
-    'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d0f8390352b0dc1cb8112b_ETH2-Staking-Cover-Wording-v1.0.pdf',
+    'https://uploads-ssl.webflow.com/' +
+    '62d8193ce9880895261daf4a/63d0f8390352b0dc1cb8112b_ETH2-Staking-Cover-Wording-v1.0.pdf',
   liquidcollective:
     'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d7cb35dea9958c3952e9c0_Liquid-Collective-v1.0.pdf',
 };

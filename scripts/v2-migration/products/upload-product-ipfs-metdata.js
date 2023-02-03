@@ -37,17 +37,7 @@ async function uploadCoverWordingForProductType(ipfs, productType) {
 
   console.log(`Uploading ${productType} cover wording to IPFS..`);
   const agreement = await ipfs.add(agreementBuffer);
-
-  console.log('Uploading Agreement reference + title.');
-  const protocolCover = await ipfs.add(
-    Buffer.from(
-      JSON.stringify({
-        agreement: agreement.path,
-        title: 'Protocol cover',
-      }),
-    ),
-  );
-  const productTypeHash = protocolCover.path;
+  const productTypeHash = agreement.path;
 
   console.log(`Pinning ${productTypeHash}`);
   await ipfs.pin.add(productTypeHash);

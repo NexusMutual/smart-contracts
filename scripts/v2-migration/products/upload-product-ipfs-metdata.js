@@ -83,7 +83,7 @@ const main = async () => {
     productTypeHashes[productType] = protocolCoverHash;
   }
 
-  const productTypeIpfsHashesPath = path.join(__dirname, 'v2-migration/output/productTypeIpfsHashes.json');
+  const productTypeIpfsHashesPath = path.join(__dirname, 'output/productTypeIpfsHashes.json');
 
   fs.writeFileSync(productTypeIpfsHashesPath, JSON.stringify(productTypeHashes, null, 2), 'utf8');
 

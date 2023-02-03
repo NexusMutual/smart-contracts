@@ -54,10 +54,15 @@ async function uploadCoverWordingForProductType(ipfs, productType) {
  - Losses due to a previously disclosed vulnerability;
  */
 function parseExtensions(extensionsText) {
-  const extensions = extensionsText.split('-');
-  // check it starts with the same prefix all the time
-  console.assert(extensions[0] === 'Exclusions that apply but are not limited to: ', 'Bad prefix for extension text');
-  extensions.shift();
+  const prefix = 'Exclusions that apply but are not limited to: - ';
+  if (!extensionsText.startsWith(prefix)) {
+    throw new Error(`Extension text does not have the right prefix: ${prefix}`);
+  }
+  const itemsText = extensionsText.slice(prefix.length - 1);
+  console.log({
+    itemsText,
+  });
+  const extensions = itemsText.split('; - ');
   return extensions.map(e => e.trim().replace(';', ''));
 }
 
@@ -83,32 +88,44 @@ const main = async () => {
   const productInfoRecords = csvParse(fs.readFileSync(V2OnChainProductInfoProductsPath, 'utf8'), {
     columns: true,
     skip_empty_lines: true,
-  });
+  }).slice(1); // eliminate the header of the CSV
+
+  const v2ProductAddressesPath = path.join(__dirname, 'output/v2ProductAddresses.json');
+  const v2ProductAddresses = JSON.parse(fs.readFileSync(v2ProductAddressesPath)).map(a => a.toLowerCase());
 
   const productHashes = {};
 
-  // TODO: we need to process all products and add name (?)
-  // not just those in the sheet. + map it to new product v2 ID
   for (const record of productInfoRecords) {
+    const ipfsData = record['IPFS data'];
+
+    if (ipfsData.length === 0) {
+      continue;
+    }
+
     const data = {
-      name: record.name,
+      exclusions: parseExtensions(ipfsData),
     };
 
-    const ipfsData = record['IPFS data'];
-    if (ipfsData.length > 0) {
-      data.extensions = parseExtensions(ipfsData);
+    const productAddress = record['Product Address '];
+    const productName = record.Name;
+
+    const v2Id = v2ProductAddresses.indexOf(productAddress.toLowerCase());
+
+    if (v2Id < 0) {
+      throw new Error(`Id for product ${productName} not found.`);
     }
+
+    console.log(`Uploading IPFS data for product ${productName} with V2 Id: ${v2Id}`);
 
     const ipfsUpload = await ipfs.add(Buffer.from(JSON.stringify(data)));
 
     console.log(`Pinning ${ipfsUpload.path}`);
     await ipfs.pin.add(ipfsUpload.path);
 
-    // TODO: use the productId here, not the addresses
-    productHashes[record.address] = ipfsUpload.path;
+    productHashes[v2Id] = ipfsUpload.path;
   }
 
-  const productIpfsHashesPath = path.join(__dirname, 'v2-migration/output/productIpfsHashes.json');
+  const productIpfsHashesPath = path.join(__dirname, 'output/productIpfsHashes.json');
 
   fs.writeFileSync(productIpfsHashesPath, JSON.stringify(productHashes, null, 2), 'utf8');
 };

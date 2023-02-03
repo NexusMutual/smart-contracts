@@ -3,17 +3,7 @@ const ipfsClient = require('ipfs-http-client');
 const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
-
-const sleep = ms => {
-  return new Promise(resolve => {
-    setTimeout(resolve, ms);
-  });
-};
-
-function decode(buf) {
-  const decoder = new TextDecoder('utf-8');
-  return decoder.decode(buf);
-}
+const { parse: csvParse } = require('csv-parse/sync');
 
 async function readFileFromURL(url) {
   const file = await fetch(url).then(x => x.arrayBuffer());
@@ -43,27 +33,42 @@ const IPFS = {
 async function uploadCoverWordingForProductType(ipfs, productType) {
   const url = CoverWordings[productType];
   console.log(`Fetching ${productType} cover wording from ${url}..`);
-  const protocolAgreementBuffer = await readFileFromURL(url);
+  const agreementBuffer = await readFileFromURL(url);
 
   console.log(`Uploading ${productType} cover wording to IPFS..`);
-  const protocolAgreement = await ipfs.add(protocolAgreementBuffer);
+  const agreement = await ipfs.add(agreementBuffer);
 
   console.log('Uploading Agreement reference + title.');
   const protocolCover = await ipfs.add(
     Buffer.from(
       JSON.stringify({
-        agreement: protocolAgreement.path,
+        agreement: agreement.path,
         title: 'Protocol cover',
       }),
     ),
   );
-  const protocolCoverHash = protocolCover.path;
+  const productTypeHash = protocolCover.path;
 
-  console.log(`Pinning ${protocolCoverHash}`);
-  await ipfs.pin.add(protocolCoverHash);
+  console.log(`Pinning ${productTypeHash}`);
+  await ipfs.pin.add(productTypeHash);
 
   console.log(`Succesfully pinned`);
-  return protocolCoverHash;
+  return productTypeHash;
+}
+
+/**
+   Expected format:
+
+ Exclusions that apply but are not limited to:
+ - Losses due to a compromised wallet;
+ - Losses due to a previously disclosed vulnerability;
+ */
+function parseExtensions(extensionsText) {
+  const extensions = extensionsText.split('-');
+  // check it starts with the same prefix all the time
+  console.assert(extensions[0] === 'Exclusions that apply but are not limited to: ', 'Bad prefix for extension text');
+  extensions.shift();
+  return extensions.map(e => e.trim().replace(';', ''));
 }
 
 const main = async () => {
@@ -79,6 +84,37 @@ const main = async () => {
   const productTypeIpfsHashesPath = path.join(__dirname, 'v2-migration/output/productTypeIpfsHashes.json');
 
   fs.writeFileSync(productTypeIpfsHashesPath, JSON.stringify(productTypeHashes, null, 2), 'utf8');
+
+  console.log(`Uploading Product IPFS metadata..`);
+
+  const V2OnChainProductInfoProductsPath = path.join(__dirname, 'input/V2 Onchain Product Info - Products.csv');
+  const productInfoRecords = csvParse(fs.readFileSync(V2OnChainProductInfoProductsPath, 'utf8'), {
+    columns: true,
+    skip_empty_lines: true,
+  });
+
+  const productHashes = {};
+
+  // TODO: we need to process all products and add name (?)
+  // not just those in the sheet. + map it to new product v2 ID
+  for (const record of productInfoRecords) {
+    const data = {
+      name: record.name,
+    };
+
+    const ipfsData = record['IPFS data'];
+    if (ipfsData.length > 0) {
+      data.extensions = parseExtensions(ipfsData);
+    }
+
+    const ipfsUpload = await ipfs.add(Buffer.from(JSON.stringify(data)));
+
+    console.log(`Pinning ${ipfsUpload.path}`);
+    await ipfs.pin.add(ipfsUpload.path);
+
+    // TODO: get the productId here
+    productHashes[record.address] = ipfsUpload.path;
+  }
 };
 
 if (require.main === module) {

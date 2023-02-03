@@ -11,17 +11,20 @@ async function readFileFromURL(url) {
 }
 
 const CoverWordings = {
-  protocol: 'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d0f4c4cca088730ac54ccc_ProtocolCoverv1.0.pdf',
-  custodian:
-    'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d0f4d7b378db634f0f9a9d_CustodyCoverWordingv1.0.pdf',
-  token: 'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d0f475a1a2c7250a1e9697_YieldTokenCoverv1.0.pdf',
-  sherlock:
-    'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d0f7c4f0864e48c46ad93c_SherlockExcessCoverv1.0.pdf',
-  eth2slashing:
+  // protocol
+  0: 'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d0f4c4cca088730ac54ccc_ProtocolCoverv1.0.pdf',
+  // custodian
+  1: 'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d0f4d7b378db634f0f9a9d_CustodyCoverWordingv1.0.pdf',
+  // token
+  2: 'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d0f475a1a2c7250a1e9697_YieldTokenCoverv1.0.pdf',
+  // sherlock
+  3: 'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d0f7c4f0864e48c46ad93c_SherlockExcessCoverv1.0.pdf',
+  // eth2slashing
+  4:
     'https://uploads-ssl.webflow.com/' +
     '62d8193ce9880895261daf4a/63d0f8390352b0dc1cb8112b_ETH2-Staking-Cover-Wording-v1.0.pdf',
-  liquidcollective:
-    'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d7cb35dea9958c3952e9c0_Liquid-Collective-v1.0.pdf',
+  // liquidcollective
+  5: 'https://uploads-ssl.webflow.com/62d8193ce9880895261daf4a/63d7cb35dea9958c3952e9c0_Liquid-Collective-v1.0.pdf',
 };
 
 const IPFS = {
@@ -68,7 +71,9 @@ const main = async () => {
   const ipfs = ipfsClient({
     url: IPFS.API.url,
   });
-  const productTypes = ['protocol', 'custodian', 'token', 'sherlock', 'eth2slashing', 'liquidcollective'];
+
+  // using product type IDs
+  const productTypes = [0, 1, 2, 3, 4, 5];
 
   const productTypeHashes = {};
   for (const productType of productTypes) {
@@ -76,7 +81,7 @@ const main = async () => {
     productTypeHashes[productType] = protocolCoverHash;
   }
 
-  const productTypeIpfsHashesPath = path.join(__dirname, 'output/productTypeIpfsHashes.json');
+  const productTypeIpfsHashesPath = path.join(__dirname, 'output/product-type-ipfs-hashes.json');
 
   fs.writeFileSync(productTypeIpfsHashesPath, JSON.stringify(productTypeHashes, null, 2), 'utf8');
 
@@ -123,7 +128,7 @@ const main = async () => {
     productHashes[v2Id] = ipfsUpload.path;
   }
 
-  const productIpfsHashesPath = path.join(__dirname, 'output/productIpfsHashes.json');
+  const productIpfsHashesPath = path.join(__dirname, 'output/product-ipfs-hashes.json');
 
   fs.writeFileSync(productIpfsHashesPath, JSON.stringify(productHashes, null, 2), 'utf8');
 };

@@ -46,11 +46,11 @@
   - [ ] store product type name onchain in a mapping
 - [x] [List of all products + metadata](https://docs.google.com/spreadsheets/d/1mhPPdmVyGTZHfhnCTK9pkyuVCwIFm5JtKiTa011e9g8/edit#gid=1826493151)
   - [ ] store the product name onchain in a mapping
-- [ ] IPFS structure for `productTypes` info:
+- [x] IPFS structure for `productTypes` info:
   - store the cover wording PDF on IPFS and use that IPFS hash
-- [ ] IPFS structure for `products` info
-  - store the product exclusions on IPFS: {"exclusions": "Exclusion 1", "Exclusion 2", ...} - can be found [here](https://docs.google.com/spreadsheets/d/1mhPPdmVyGTZHfhnCTK9pkyuVCwIFm5JtKiTa011e9g8/edit#gid=1826493151) 
-- [ ] **TODO** Script to generate and upload all the above to IPFS
+- [x] IPFS structure for `products` info
+  - store the product exclusions on IPFS: {"exclusions": "Exclusion 1", "Exclusion 2", ...} - can be found [here](https://docs.google.com/spreadsheets/d/1mhPPdmVyGTZHfhnCTK9pkyuVCwIFm5JtKiTa011e9g8/edit#gid=1755020585) 
+- [ ] **In review** Script to generate and upload all the above to IPFS
   - Need to adapt: https://github.com/NexusMutual/smart-contracts/blob/782d93cf42dbc12d579b8625f3ec9b8d2c8c645f/scripts/populate-v2-products.js#L34
 - [ ] Upload the above to IPFS
 

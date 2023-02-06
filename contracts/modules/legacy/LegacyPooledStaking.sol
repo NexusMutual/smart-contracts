@@ -197,6 +197,10 @@ contract LegacyPooledStaking is IPooledStaking, MasterAwareV2 {
     return stake < deposit ? stake : deposit;
   }
 
+  function stakerStoredContractStake(address staker, address contractAddress) external view returns (uint) {
+    return stakers[staker].stakes[contractAddress];
+  }
+
   function stakerContractPendingUnstakeTotal(address staker, address contractAddress) external view returns (uint) {
     return stakers[staker].pendingUnstakeRequestsTotal[contractAddress];
   }

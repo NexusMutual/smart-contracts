@@ -20,7 +20,6 @@ const getGovernanceRewards = require('../../scripts/get-governance-rewards');
 const populateV2Products = require('../../scripts/populate-v2-products');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const getV1CoverPrices = require('../../scripts/get-v1-cover-prices');
-const { stake } = require('../integration/utils/staking');
 
 const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';

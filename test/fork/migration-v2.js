@@ -20,6 +20,7 @@ const getGovernanceRewards = require('../../scripts/get-governance-rewards');
 const populateV2Products = require('../../scripts/populate-v2-products');
 const { ProposalCategory: PROPOSAL_CATEGORIES } = require('../../lib/constants');
 const getV1CoverPrices = require('../../scripts/get-v1-cover-prices');
+const { stake } = require('../integration/utils/staking');
 
 const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const DAI_ADDRESS = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
@@ -795,10 +796,18 @@ describe('V2 upgrade', function () {
           console.log(`Skip contract (not migrated to V2): ${contracts[i]}`);
           continue;
         }
+
         const productPrice = await pooledStaking.getV1PriceForProduct(v2ProductId);
         if (productPrice.toString() === MaxUint96) {
           // it's not a supported product
           console.log(`Skip contract (no price data available): ${v2ProductId}`);
+          continue;
+        }
+
+        const v1ProductAddress = contracts[i];
+        const stakerV1StakeForProduct = await pooledStaking.stakerContractStake(stakerAddress, v1ProductAddress);
+        if (stakerV1StakeForProduct.isZero()) {
+          console.log(`Skip contract (v1 stake is 0): ${v2ProductId}`);
           continue;
         }
 

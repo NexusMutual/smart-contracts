@@ -16,7 +16,7 @@ async function stakeOnly({ stakingPool, staker, period, gracePeriod, trancheIdOf
   await stakingPool.connect(staker).depositTo(
     stakingAmount,
     firstTrancheId + trancheIdOffset,
-    MaxUint256, // new position
+    0, // new position
     AddressZero, // destination
   );
 }

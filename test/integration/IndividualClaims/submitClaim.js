@@ -1223,7 +1223,7 @@ describe('submitClaim', function () {
     await stake({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, productId });
     await stakeOnly({ stakingPool: stakingPool0, staker: staker1, gracePeriod, period, trancheIdOffset: 1 });
 
-    const allocationId = await stakingPool0.nextAllocationId();
+    const allocationId = await stakingPool0.getNextAllocationId();
     const lastBlock = await ethers.provider.getBlock('latest');
     const targetBucketId = Math.ceil((lastBlock.timestamp + period) / BUCKET_DURATION);
     const groupId = Math.floor(currentTrancheId / BUCKET_TRANCHE_GROUP_SIZE);

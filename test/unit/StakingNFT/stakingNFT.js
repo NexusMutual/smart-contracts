@@ -97,9 +97,7 @@ describe('StakingNFT', function () {
     const { stakingNFT } = this;
     const [owner, nonOwner] = this.accounts.members;
     await stakingNFT.connect(this.stakingPoolSigner).mint(this.poolId, owner.address);
-    await expect(
-      stakingNFT.connect(nonOwner).approve(nonOwner.address, 1),
-    ).to.be.revertedWith('NOT_AUTHORIZED');
+    await expect(stakingNFT.connect(nonOwner).approve(nonOwner.address, 1)).to.be.revertedWith('NOT_AUTHORIZED');
   });
 
   it('should revert if reading balance of 0 address - ZERO_ADDRESS', async function () {
@@ -189,7 +187,7 @@ describe('StakingNFT', function () {
     await expect(
       stakingNFT
         .connect(owner)
-        ['safeTransferFrom(address,address,uint256)'](owner.address, cover.address, BigNumber.from(0)),
+        ['safeTransferFrom(address,address,uint256)'](owner.address, cover.address, BigNumber.from(1)),
     ).to.be.revertedWithoutReason();
   });
 

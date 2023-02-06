@@ -558,8 +558,6 @@ describe('requestAllocation', function () {
       expect(coverTrancheAllocations).to.equal(0);
     }
 
-    const nextAllocationId = await stakingPool.getNextAllocationId();
-
     // Allocate
     await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
 

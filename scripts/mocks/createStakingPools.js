@@ -1,7 +1,6 @@
 const { config, network, ethers } = require('hardhat');
 const { CONTRACTS_ADDRESSES: Addresses } = require(process.env.CONFIG_FILE);
 const { BigNumber } = require('ethers');
-const { parseEther } = ethers.utils;
 
 async function main() {
   console.log(`Using network: ${network.name}`);

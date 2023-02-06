@@ -55,7 +55,7 @@ contract StakingPool is IStakingPool, Multicall {
   uint96 internal rewardPerSecond;
 
   uint40 internal poolId;
-  uint24 internal nextAllocationId;
+  uint24 internal lastAllocationId;
 
   bool public override isPrivatePool;
   bool public override isHalted;
@@ -1684,7 +1684,7 @@ contract StakingPool is IStakingPool, Multicall {
   }
 
   function getNextAllocationId() external override view returns (uint) {
-    return nextAllocationId;
+    return lastAllocationId + 1;
   }
 
   function getTotalTargetWeight() external override view returns (uint) {

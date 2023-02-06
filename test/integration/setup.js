@@ -77,9 +77,11 @@ async function setup() {
   const ybUSDC = await ethers.deployContract('ERC20CustomDecimalsMock', [usdcDecimals]);
   await ybUSDC.mint(owner.address, parseEther('10000000'));
 
+  const tk = await ethers.deployContract('NXMToken', [owner.address, INITIAL_SUPPLY]);
+
   // proxy contracts
   const master = await deployProxy('DisposableNXMaster');
-  const mr = await deployProxy('DisposableMemberRoles');
+  const mr = await deployProxy('DisposableMemberRoles', [tk.address]);
   const ps = await deployProxy('DisposablePooledStaking');
   const pc = await deployProxy('DisposableProposalCategory');
   const gv = await deployProxy('DisposableGovernance');
@@ -129,7 +131,7 @@ async function setup() {
 
   const p1 = await ethers.deployContract(
     'Pool',
-    [master, priceFeedOracle, swapOperatorPlaceholder, dai, stETH, enzymeVault].map(c => c.address),
+    [master, priceFeedOracle, swapOperatorPlaceholder, dai, stETH, enzymeVault, tk].map(c => c.address),
   );
 
   const cowVaultRelayer = await ethers.deployContract('SOMockVaultRelayer');
@@ -144,7 +146,6 @@ async function setup() {
     '0',
   ]);
 
-  const tk = await ethers.deployContract('NXMToken', [owner.address, INITIAL_SUPPLY]);
   const qd = await ethers.deployContract('TestnetQuotationData', [QE, owner.address]);
   const productsV1 = await ethers.deployContract('ProductsV1');
 
@@ -167,7 +168,7 @@ async function setup() {
   ]);
   const coverNFT = await ethers.deployContract('CoverNFT', ['Nexus Mutual Cover', 'NMC', expectedCoverAddress]);
 
-  const tc = await deployProxy('DisposableTokenController', [qd.address, lcr.address, spf.address]);
+  const tc = await deployProxy('DisposableTokenController', [qd.address, lcr.address, spf.address, tk.address]);
 
   const stakingPool = await ethers.deployContract('StakingPool', [
     stakingNFT.address,
@@ -218,7 +219,7 @@ async function setup() {
   await p1.updateAddressParameters(toBytes8('SWP_OP'), swapOperator.address);
   await p1.addAsset(usdc.address, true, parseUnits('1000000', usdcDecimals), parseUnits('2000000', usdcDecimals), 250);
 
-  await tc.initialize(master.address, tk.address, ps.address, as.address);
+  await tc.initialize(master.address, ps.address, as.address);
   await tc.addToWhitelist(lcr.address);
 
   await mr.initialize(
@@ -404,8 +405,8 @@ async function setup() {
 
   await yt.initialize(master.address);
 
-  await upgradeProxy(mr.address, 'MemberRoles');
-  await upgradeProxy(tc.address, 'TokenController', [qd.address, lcr.address, spf.address]);
+  await upgradeProxy(mr.address, 'MemberRoles', [tk.address]);
+  await upgradeProxy(tc.address, 'TokenController', [qd.address, lcr.address, spf.address, tk.address]);
   await upgradeProxy(ps.address, 'LegacyPooledStaking', [cover.address, productsV1.address]);
   await upgradeProxy(pc.address, 'ProposalCategory');
   await upgradeProxy(master.address, 'NXMaster');

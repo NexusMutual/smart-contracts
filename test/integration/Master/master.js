@@ -92,12 +92,17 @@ describe('master', function () {
   });
 
   it('upgrade proxy contract', async function () {
-    const { master, gv, qd, lcr, spf } = this.contracts;
+    const { master, gv, qd, lcr, spf, tk } = this.contracts;
     const owner = this.accounts.defaultSender;
 
     const code = hex('TC');
     const TokenController = await ethers.getContractFactory('TokenController');
-    const newTokenControllerImplementation = await TokenController.deploy(qd.address, lcr.address, spf.address);
+    const newTokenControllerImplementation = await TokenController.deploy(
+      qd.address,
+      lcr.address,
+      spf.address,
+      tk.address,
+    );
 
     const contractCodes = [code];
     const newAddresses = [newTokenControllerImplementation.address];
@@ -114,7 +119,7 @@ describe('master', function () {
   });
 
   it('upgrade proxies and replaceables', async function () {
-    const { master, gv, qd, lcr, spf } = this.contracts;
+    const { master, gv, qd, lcr, spf, tk } = this.contracts;
     const owner = this.accounts.defaultSender;
 
     const mcrCode = hex('MC');
@@ -123,7 +128,12 @@ describe('master', function () {
     const MCR = await ethers.getContractFactory('MCR');
     const newMCR = await MCR.deploy(master.address);
     const TokenController = await ethers.getContractFactory('TokenController');
-    const newTokenControllerImplementation = await TokenController.deploy(qd.address, lcr.address, spf.address);
+    const newTokenControllerImplementation = await TokenController.deploy(
+      qd.address,
+      lcr.address,
+      spf.address,
+      tk.address,
+    );
 
     const contractCodes = [mcrCode, tcCode];
     const newAddresses = [newMCR.address, newTokenControllerImplementation.address];
@@ -180,18 +190,19 @@ describe('master', function () {
       dai.address,
       AddressZero,
       AddressZero,
+      tk.address,
     );
 
     const contractCodes = ['TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW', 'IC'];
     const newAddresses = [
-      await TokenController.deploy(qd.address, lcr.address, spf.address),
+      await TokenController.deploy(qd.address, lcr.address, spf.address, tk.address),
       await CoverMigrator.deploy(qd.address, productsV1.address),
       await LegacyClaimsReward.deploy(master.address, dai.address),
       pool,
       await MCR.deploy(master.address),
       await Governance.deploy(),
       await ProposalCategoryContract.deploy(),
-      await MemberRoles.deploy(),
+      await MemberRoles.deploy(tk.address),
       await LegacyPooledStaking.deploy(cover.address, productsV1.address),
       await LegacyGateway.deploy(),
       await IndividualClaims.deploy(tk.address, coverNFT.address),
@@ -229,7 +240,7 @@ describe('master', function () {
   });
 
   it('upgrades Governance, TokenController and MemberRoles 2 times in a row', async function () {
-    const { master, gv, qd, lcr, spf } = this.contracts;
+    const { master, gv, qd, lcr, spf, tk } = this.contracts;
     const owner = this.accounts.defaultSender;
 
     const TokenController = await ethers.getContractFactory('TokenController');
@@ -239,9 +250,9 @@ describe('master', function () {
     {
       const contractCodes = ['TC', 'GV', 'MR'];
       const newAddresses = [
-        await TokenController.deploy(qd.address, lcr.address, spf.address),
+        await TokenController.deploy(qd.address, lcr.address, spf.address, tk.address),
         await Governance.deploy(),
-        await MemberRoles.deploy(),
+        await MemberRoles.deploy(tk.address),
       ].map(c => c.address);
 
       const upgradeContractsData = defaultAbiCoder.encode(
@@ -256,9 +267,9 @@ describe('master', function () {
     {
       const contractCodes = ['TC', 'GV', 'MR'];
       const newAddresses = [
-        await TokenController.deploy(qd.address, lcr.address, spf.address),
+        await TokenController.deploy(qd.address, lcr.address, spf.address, tk.address),
         await Governance.deploy(),
-        await MemberRoles.deploy(),
+        await MemberRoles.deploy(tk.address),
       ].map(c => c.address);
 
       const upgradeContractsData = defaultAbiCoder.encode(

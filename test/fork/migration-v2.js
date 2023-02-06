@@ -340,23 +340,16 @@ describe('V2 upgrade', function () {
   });
 
   it('Deploy ProductsV1.sol', async function () {
-    const ProductsV1 = await ethers.getContractFactory('ProductsV1');
-    const productsV1 = await ProductsV1.deploy();
-    await productsV1.deployed();
-    this.productsV1 = productsV1;
+    this.productsV1 = await ethers.deployContract('ProductsV1');
   });
 
   it('Deploy CoverNFT.sol', async function () {
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
-    const CoverNFT = await ethers.getContractFactory('CoverNFT');
-    const coverNFT = await CoverNFT.deploy('Nexus Mutual Cover', 'NXC', coverProxyAddress);
-    await coverNFT.deployed();
-    this.coverNFT = coverNFT;
+    this.coverNFT = await ethers.deployContract('CoverNFT', ['Nexus Mutual Cover', 'NXC', coverProxyAddress]);
   });
 
   it('Deploy SwapOperator.sol', async function () {
-    const SwapOperator = await ethers.getContractFactory('SwapOperator');
-    const swapOperator = await SwapOperator.deploy(
+    this.swapOperator = await ethers.deployContract('SwapOperator', [
       COWSWAP_SETTLEMENT, // _cowSettlement
       SWAP_CONTROLLER, // _swapController
       this.master.address, // _master
@@ -364,16 +357,11 @@ describe('V2 upgrade', function () {
       ENZYMEV4_VAULT_PROXY_ADDRESS,
       ENZYME_FUND_VALUE_CALCULATOR_ROUTER,
       MIN_POOL_ETH,
-    );
-    await swapOperator.deployed();
-
-    this.swapOperator = swapOperator;
+    ]);
   });
 
   it('Deploy and upgrade Governance.sol', async function () {
-    const Governance = await ethers.getContractFactory('Governance');
-    const newGovernance = await Governance.deploy();
-    await newGovernance.deployed();
+    const newGovernance = await ethers.deployContract('Governance');
 
     await submitGovernanceProposal(
       // upgradeMultipleContracts(bytes2[],address[])
@@ -387,9 +375,7 @@ describe('V2 upgrade', function () {
   });
 
   it('Add empty new internal contract for Cover (CoverInitializer.sol - CO)', async function () {
-    const CoverInitializer = await ethers.getContractFactory('CoverInitializer');
-    const coverInitializer = await CoverInitializer.deploy();
-    await coverInitializer.deployed();
+    const coverInitializer = await ethers.deployContract('CoverInitializer');
 
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
@@ -411,37 +397,28 @@ describe('V2 upgrade', function () {
   it('Deploy StakingPoolFactory.sol, StakingNFT.sol, StakingPool.sol', async function () {
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
     // StakingPoolFactory.sol
-    const StakingPoolFactory = await ethers.getContractFactory('StakingPoolFactory');
-    const stakingPoolFactory = await StakingPoolFactory.deploy(coverProxyAddress);
-    await stakingPoolFactory.deployed();
-    this.stakingPoolFactory = stakingPoolFactory;
+    this.stakingPoolFactory = await ethers.deployContract('StakingPoolFactory', [coverProxyAddress]);
 
     // StakingNFT.sol
-    const StakingNFT = await ethers.getContractFactory('StakingNFT');
-    this.stakingNFT = await StakingNFT.deploy(
+    this.stakingNFT = await ethers.deployContract('StakingNFT', [
       'Nexus Mutual Deposit',
       'NMD',
-      stakingPoolFactory.address,
+      this.stakingPoolFactory.address,
       coverProxyAddress,
-    );
+    ]);
 
     // StakingPool.sol
-    const StakingPool = await ethers.getContractFactory('StakingPool');
-    const stakingPool = await StakingPool.deploy(
+    this.stakingPool = await ethers.deployContract('StakingPool', [
       this.stakingNFT.address,
       this.nxm.address,
       coverProxyAddress,
       this.tokenController.address,
       this.master.address,
-    );
-    await stakingPool.deployed();
-    this.stakingPool = stakingPool;
+    ]);
   });
 
   it('Deploy and upgrade NXMaster.sol', async function () {
-    const NXMaster = await ethers.getContractFactory('NXMaster');
-    const master = await NXMaster.deploy();
-    await master.deployed();
+    const master = await ethers.deployContract('NXMaster');
 
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.upgradeMaster, // upgradeMasterAddress(address)
@@ -454,47 +431,38 @@ describe('V2 upgrade', function () {
   // eslint-disable-next-line max-len
   it('Deploy & upgrade contracts: MR, MCR, CO, TC, PS, PriceFeedOracle, P1, CL (CoverMigrator), GW, CR', async function () {
     // CR - ClaimRewards.sol
-    const ClaimsReward = await ethers.getContractFactory('LegacyClaimsReward');
-    const newClaimsReward = await ClaimsReward.deploy(this.master.address, DAI_ADDRESS);
-    await newClaimsReward.deployed();
+    const newClaimsReward = await ethers.deployContract('LegacyClaimsReward', [this.master.address, DAI_ADDRESS]);
 
     // TC - TokenController.sol
-    const TokenController = await ethers.getContractFactory('TokenController');
-    const tokenController = await TokenController.deploy(
+    const tokenController = await ethers.deployContract('TokenController', [
       this.quotationData.address,
       newClaimsReward.address,
       this.stakingPoolFactory.address,
-    );
-    await tokenController.deployed();
+      this.nxm.address,
+    ]);
 
     // MCR - MCR.sol
-    const MCR = await ethers.getContractFactory('MCR');
-    const mcr = await MCR.deploy(this.master.address);
-    await mcr.deployed();
+    const mcr = await ethers.deployContract('MCR', [this.master.address]);
 
     // MR - MemberRoles.sol
-    const MemberRoles = await ethers.getContractFactory('MemberRoles');
-    const memberRoles = await MemberRoles.deploy();
-    await memberRoles.deployed();
+    const memberRoles = await ethers.deployContract('MemberRoles', [this.nxm.address]);
 
     // CO - Cover.sol
-    const Cover = await ethers.getContractFactory('Cover');
-    const cover = await Cover.deploy(
+    const cover = await ethers.deployContract('Cover', [
       this.coverNFT.address,
       this.stakingNFT.address,
       this.stakingPoolFactory.address,
       this.stakingPool.address,
-    );
-    await cover.deployed();
+    ]);
 
     // PS - PooledStaking.sol
     const coverProxyAddress = await this.master.contractAddresses(toUtf8Bytes('CO'));
-    const PooledStaking = await ethers.getContractFactory('LegacyPooledStaking');
-    const pooledStaking = await PooledStaking.deploy(coverProxyAddress, this.productsV1.address);
-    await pooledStaking.deployed();
+    const pooledStaking = await ethers.deployContract('LegacyPooledStaking', [
+      coverProxyAddress,
+      this.productsV1.address,
+    ]);
 
     // PriceFeedOracle.sol
-    const PriceFeedOracle = await ethers.getContractFactory('PriceFeedOracle');
     const assetAddresses = [DAI_ADDRESS, STETH_ADDRESS, ENZYMEV4_VAULT_PROXY_ADDRESS];
     const assetAggregators = [
       DAI_PRICE_FEED_ORACLE_AGGREGATOR,
@@ -502,32 +470,33 @@ describe('V2 upgrade', function () {
       ENZYMEV4_VAULT_PRICE_FEED_ORACLE_AGGREGATOR,
     ];
     const assetDecimals = [18, 18, 18];
-    const priceFeedOracle = await PriceFeedOracle.deploy(assetAddresses, assetAggregators, assetDecimals);
-    await priceFeedOracle.deployed();
+    const priceFeedOracle = await ethers.deployContract('PriceFeedOracle', [
+      assetAddresses,
+      assetAggregators,
+      assetDecimals,
+    ]);
 
     // P1 - Pool.sol
-    const Pool = await ethers.getContractFactory('Pool');
-    const pool = await Pool.deploy(
+    const pool = await ethers.deployContract('Pool', [
       this.master.address,
       priceFeedOracle.address,
       this.swapOperator.address,
       DAI_ADDRESS,
       STETH_ADDRESS,
       ENZYMEV4_VAULT_PROXY_ADDRESS,
-    );
-    await pool.deployed();
+      this.nxm.address,
+    ]);
     // Enable Pool as Enzyme receiver
     await enableAsEnzymeReceiver(pool.address);
 
     // CL - CoverMigrator.sol
-    const CoverMigrator = await ethers.getContractFactory('CoverMigrator');
-    const coverMigrator = await CoverMigrator.deploy(this.quotationData.address, this.productsV1.address);
-    await coverMigrator.deployed();
+    const coverMigrator = await ethers.deployContract('CoverMigrator', [
+      this.quotationData.address,
+      this.productsV1.address,
+    ]);
 
     // GW - Gateway.sol
-    const Gateway = await ethers.getContractFactory('LegacyGateway');
-    const gateway = await Gateway.deploy();
-    await gateway.deployed();
+    const gateway = await ethers.deployContract('LegacyGateway');
 
     console.log(
       'Upgrade multiple contracts: MR - MemberRoles.sol, MC - MCR.sol, CO - Cover.sol, TC -' +
@@ -858,17 +827,12 @@ describe('V2 upgrade', function () {
   });
 
   it.skip('deploy & add contracts: Assessment, IndividualClaims, YieldTokenIncidents', async function () {
-    const IndividualClaims = await ethers.getContractFactory('IndividualClaims');
-    const individualClaims = await IndividualClaims.deploy(this.nxm.address, this.coverNFT.address);
-    await individualClaims.deployed();
-
-    const YieldTokenIncidents = await ethers.getContractFactory('YieldTokenIncidents');
-    const yieldTokenIncidents = await YieldTokenIncidents.deploy(this.nxm.address, this.coverNFT.address);
-    await yieldTokenIncidents.deployed();
-
-    const Assessment = await ethers.getContractFactory('Assessment');
-    const assessment = await Assessment.deploy(this.nxm.address);
-    await assessment.deployed();
+    const individualClaims = await ethers.deployContract('IndividualClaims', [this.nxm.address, this.coverNFT.address]);
+    const yieldTokenIncidents = await ethers.deployContract('YieldTokenIncidents', [
+      this.nxm.address,
+      this.coverNFT.address,
+    ]);
+    const assessment = await ethers.deployContract('Assessment', [this.nxm.address]);
 
     await submitGovernanceProposal(
       PROPOSAL_CATEGORIES.newContracts, // addNewInternalContracts(bytes2[],address[],uint256[])
@@ -885,11 +849,9 @@ describe('V2 upgrade', function () {
     );
   });
 
-  it.skip('deploy CoverViewer', async function () {
-    const CoverViewer = await ethers.getContractFactory('CoverViewer');
-    const coverViewer = await CoverViewer.deploy(this.master.address);
-    await coverViewer.deployed();
-  });
+  // it.skip('deploy CoverViewer', async function () {
+  //   await ethers.deployContract('CoverViewer', [this.master.address]);
+  // });
 
   // [todo] remove me, used just for console logs
   // it('deploy Quotation', async function () {

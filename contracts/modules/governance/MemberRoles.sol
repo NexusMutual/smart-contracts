@@ -53,6 +53,8 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
   bytes32 public constant MEMBERSHIP_APPROVAL = bytes32('MEMBERSHIP_APPROVAL');
   uint public constant joiningFee = 0.002 ether;
 
+  INXMToken public immutable token;
+
   modifier checkRoleAuthority(uint _memberRoleId) {
     if (memberRoleData[_memberRoleId].authorized != address(0)) {
       require(msg.sender == memberRoleData[_memberRoleId].authorized);
@@ -60,6 +62,12 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
       require(master.checkIsAuthToGoverned(msg.sender), "Not Authorized");
     }
     _;
+  }
+
+  constructor(
+    address tokenAddress
+  ) {
+    token = INXMToken(tokenAddress);
   }
 
   /// Replaces an advisory board member with another.
@@ -98,11 +106,6 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     return ITokenController(internalContracts[uint(ID.TC)]);
   }
 
-  // TODO: make immutable?
-  function token() internal view returns (INXMToken) {
-    return INXMToken(internalContracts[uint(ID.TK)]);
-  }
-
   function cover() internal view returns (ICover) {
     return ICover(internalContracts[uint(ID.CO)]);
   }
@@ -118,7 +121,6 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
       kycAuthAddress = IQuotationData(0x1776651F58a17a50098d31ba3C3cD259C1903f7A).kycAuthAddress();
     }
 
-    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.P1)] = master.getLatestAddress("P1");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
@@ -209,13 +211,12 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
   /// Withdraws membership
   function withdrawMembership() public {
 
-    INXMToken _token = token();
     ITokenController _tokenController = tokenController();
     require(!master.isPause() && isMember(msg.sender));
     // No locked tokens for Member/Governance voting
-    require(block.timestamp > _token.isLockedForMV(msg.sender));
+    require(block.timestamp > token.isLockedForMV(msg.sender));
 
-    _tokenController.burnFrom(msg.sender, _token.balanceOf(msg.sender));
+    _tokenController.burnFrom(msg.sender, token.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
     _tokenController.removeFromWhitelist(msg.sender); // need clarification on whitelist
 
@@ -225,8 +226,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
   /// @param newAddress  The new address where membership will be switched to.
   function switchMembership(address newAddress) external override {
     _switchMembership(msg.sender, newAddress);
-    INXMToken _token = token();
-    _token.transferFrom(msg.sender, newAddress, _token.balanceOf(msg.sender));
+    token.transferFrom(msg.sender, newAddress, token.balanceOf(msg.sender));
   }
 
   /// Switches the membership from the sender's address to the new address and transfers the
@@ -242,8 +242,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     uint[] calldata stakingTokenIds
   ) external override {
     _switchMembership(msg.sender, newAddress);
-    INXMToken _token = token();
-    _token.transferFrom(msg.sender, newAddress, _token.balanceOf(msg.sender));
+    token.transferFrom(msg.sender, newAddress, token.balanceOf(msg.sender));
 
     ICover _cover = cover();
 
@@ -286,7 +285,7 @@ contract MemberRoles is IMemberRoles, Governed, MasterAwareV2 {
     require(isMember(currentAddress), "The current address is not a member");
     require(!isMember(newAddress), "The new address is already a member");
     // No locked tokens for Governance voting
-    require(block.timestamp > token().isLockedForMV(currentAddress), "Locked for governance voting");
+    require(block.timestamp > token.isLockedForMV(currentAddress), "Locked for governance voting");
 
     ITokenController _tokenController = tokenController();
     _tokenController.addToWhitelist(newAddress);

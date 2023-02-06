@@ -44,6 +44,8 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   uint16 constant MAX_SLIPPAGE_DENOMINATOR = 10000;
 
+  INXMToken public immutable nxmToken;
+
   /* events */
   event Payout(address indexed to, address indexed assetAddress, uint amount);
   event NXMSold (address indexed member, uint nxmIn, uint ethOut);
@@ -64,11 +66,13 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     address _swapOperator,
     address DAIAddress,
     address stETHAddress,
-    address enzymeVaultAddress // Enzyme
+    address enzymeVaultAddress, // Enzyme
+    address _nxmTokenAddress
   ) {
     master = INXMMaster(_master);
     priceFeedOracle = IPriceFeedOracle(_priceOracle);
     swapOperator = _swapOperator;
+    nxmToken = INXMToken(_nxmTokenAddress);
 
     // [todo] After this contract is deployed it might be worth modifying upgradeCapitalPool to
     // copy the assets on future upgrades instead of having them hardcoded in the constructor.
@@ -391,9 +395,8 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
     uint tokenAmount,
     uint minEthOut
   ) public override onlyMember nonReentrant whenNotPaused {
-    INXMToken _nxmToken = nxmToken();
-    require(_nxmToken.balanceOf(msg.sender) >= tokenAmount, "Pool: Not enough balance");
-    require(_nxmToken.isLockedForMV(msg.sender) <= block.timestamp, "Pool: NXM tokens are locked for voting");
+    require(nxmToken.balanceOf(msg.sender) >= tokenAmount, "Pool: Not enough balance");
+    require(nxmToken.isLockedForMV(msg.sender) <= block.timestamp, "Pool: NXM tokens are locked for voting");
 
     IMCR _mcr = mcr();
     uint currentTotalAssetValue = getPoolValueInEth();
@@ -662,10 +665,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
 
   /* ========== DEPENDENCIES ========== */
 
-  function nxmToken() internal view returns (INXMToken) {
-    return INXMToken(internalContracts[uint(ID.TK)]);
-  }
-
   function tokenController() internal view returns (ITokenController) {
     return ITokenController(internalContracts[uint(ID.TC)]);
   }
@@ -679,7 +678,6 @@ contract Pool is IPool, MasterAwareV2, ReentrancyGuard {
    * @dev Implements MasterAware interface function
    */
   function changeDependentContractAddress() public {
-    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
     internalContracts[uint(ID.TC)] = master.getLatestAddress("TC");
     internalContracts[uint(ID.MC)] = master.getLatestAddress("MC");
     // needed for onlyMember modifier

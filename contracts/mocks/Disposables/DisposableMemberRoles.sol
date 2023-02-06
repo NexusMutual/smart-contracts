@@ -7,6 +7,8 @@ import "../../modules/governance/MemberRoles.sol";
 
 contract DisposableMemberRoles is MemberRoles {
 
+  constructor(address tokenAddress) MemberRoles(tokenAddress) {}
+
   function initialize(
     address _owner,
     address _masterAddress,

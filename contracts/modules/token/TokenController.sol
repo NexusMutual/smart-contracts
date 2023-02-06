@@ -29,7 +29,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   // coverId => CoverInfo
   mapping(uint => CoverInfo) public override coverInfo;
 
-
+  INXMToken public immutable token;
   IQuotationData public immutable quotationData;
   address public immutable claimsReward;
   address public immutable stakingPoolFactory;
@@ -37,23 +37,21 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   constructor(
     address quotationDataAddress,
     address claimsRewardAddress,
-    address stakingPoolFactoryAddress
+    address stakingPoolFactoryAddress,
+    address tokenAddress
   ) {
     quotationData = IQuotationData(quotationDataAddress);
     claimsReward = claimsRewardAddress;
     stakingPoolFactory = stakingPoolFactoryAddress;
+    token = INXMToken(tokenAddress);
   }
 
   // TODO: one-time use function, remove after v2 launch
   function unlistClaimsReward() external {
-    token().removeFromWhiteList(claimsReward);
+    token.removeFromWhiteList(claimsReward);
   }
 
   /* ========== DEPENDENCIES ========== */
-
-  function token() public view returns (INXMToken) {
-    return INXMToken(internalContracts[uint(ID.TK)]);
-  }
 
   function pooledStaking() internal view returns (IPooledStaking) {
     return IPooledStaking(internalContracts[uint(ID.PS)]);
@@ -76,7 +74,6 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   }
 
   function changeDependentContractAddress() public override {
-    internalContracts[uint(ID.TK)] = payable(master.tokenAddress());
     internalContracts[uint(ID.PS)] = master.getLatestAddress("PS");
     internalContracts[uint(ID.AS)] = master.getLatestAddress("AS");
     internalContracts[uint(ID.CO)] = master.getLatestAddress("CO");
@@ -89,7 +86,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
    * @param _newOperator is the new address of operator
    */
   function changeOperator(address _newOperator) public override onlyGovernance {
-    token().changeOperator(_newOperator);
+    token.changeOperator(_newOperator);
   }
 
   /**
@@ -104,10 +101,9 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     uint _value
   ) external override onlyInternal returns (bool) {
 
-    INXMToken _token = token();
-    _token.operatorTransfer(_from, _value);
+    token.operatorTransfer(_from, _value);
     if (_to != address(this)) {
-      _token.transfer(_to, _value);
+      token.transfer(_to, _value);
     }
     return true;
   }
@@ -119,7 +115,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
    * @return the boolean status of the burning process
    */
   function burnFrom(address _of, uint amount) public override onlyInternal returns (bool) {
-    return token().burnFrom(_of, amount);
+    return token.burnFrom(_of, amount);
   }
 
   /**
@@ -127,7 +123,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   * @param _member address to add to whitelist
   */
   function addToWhitelist(address _member) public virtual override onlyInternal {
-    token().addToWhiteList(_member);
+    token.addToWhiteList(_member);
   }
 
   /**
@@ -135,7 +131,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   * @param _member address to remove
   */
   function removeFromWhitelist(address _member) public override onlyInternal {
-    token().removeFromWhiteList(_member);
+    token.removeFromWhiteList(_member);
   }
 
   /**
@@ -144,7 +140,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   * @param _amount number of tokens to mint
   */
   function mint(address _member, uint _amount) public override onlyInternal {
-    token().mint(_member, _amount);
+    token.mint(_member, _amount);
   }
 
   /**
@@ -152,7 +148,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
    * @param _of user's address.
    */
   function lockForMemberVote(address _of, uint _days) public override onlyInternal {
-    token().lockForMemberVote(_of, _days);
+    token.lockForMemberVote(_of, _days);
   }
 
   /**
@@ -168,7 +164,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
       if (amount > 0) {
         locked[users[i]]["CLA"].claimed = true;
         emit Unlocked(users[i], "CLA", amount);
-        token().transfer(users[i], amount);
+        token.transfer(users[i], amount);
       }
     }
   }
@@ -190,7 +186,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   }
 
   function totalSupply() public override view returns (uint256) {
-    return token().totalSupply();
+    return token.totalSupply();
   }
 
   /// Returns the base voting power not the balance. It is used in governance voting as well as in
@@ -205,7 +201,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   /// @param _of  The member address for which the base voting power is calculated.
   function totalBalanceOf(address _of) public override view returns (uint256 amount) {
 
-    amount = token().balanceOf(_of);
+    amount = token.balanceOf(_of);
 
     // This loop can be removed once all cover notes are withdrawn
     for (uint256 i = 0; i < lockReason[_of].length; i++) {
@@ -240,7 +236,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   ) public whenNotPaused {
     uint governanceRewards = governance().claimReward(memberAddress, batchSize);
     require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
-    token().transfer(memberAddress, governanceRewards);
+    token.transfer(memberAddress, governanceRewards);
   }
 
   /// Withdraws governance rewards to the destination address. It can only be called by the owner
@@ -252,7 +248,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
   ) public whenNotPaused {
     uint governanceRewards = governance().claimReward(msg.sender, batchSize);
     require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
-    token().transfer(destination, governanceRewards);
+    token.transfer(destination, governanceRewards);
   }
 
   /// Function used to claim all pending rewards in one tx. It can be used to selectively withdraw
@@ -282,7 +278,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     if (fromGovernance) {
       uint governanceRewards = governance().claimReward(forUser, batchSize);
       require(governanceRewards > 0, "TokenController: No withdrawable governance rewards");
-      token().transfer(forUser, governanceRewards);
+      token.transfer(forUser, governanceRewards);
     }
 
     for (uint i = 0; i < fromStakingPools.length; i++) {
@@ -392,7 +388,7 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
       }
     }
 
-    token().transfer(user, totalAmount);
+    token.transfer(user, totalAmount);
   }
 
   function _stakingPool(uint poolId) internal view returns (address) {
@@ -401,20 +397,20 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
 
   function mintStakingPoolNXMRewards(uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
-    token().mint(address(this), amount);
+    token.mint(address(this), amount);
     stakingPoolNXMBalances[poolId].rewards += amount.toUint128();
   }
 
   function burnStakingPoolNXMRewards(uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     stakingPoolNXMBalances[poolId].rewards -= amount.toUint128();
-    token().burn(amount);
+    token.burn(amount);
   }
 
   function depositStakedNXM(address from, uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     stakingPoolNXMBalances[poolId].deposits += amount.toUint128();
-    token().operatorTransfer(from, amount);
+    token.operatorTransfer(from, amount);
   }
 
   function withdrawNXMStakeAndRewards(
@@ -428,12 +424,12 @@ contract TokenController is ITokenController, LockHandler, MasterAwareV2 {
     poolBalances.deposits -= stakeToWithdraw.toUint128();
     poolBalances.rewards -= rewardsToWithdraw.toUint128();
     stakingPoolNXMBalances[poolId] = poolBalances;
-    token().transfer(to, stakeToWithdraw + rewardsToWithdraw);
+    token.transfer(to, stakeToWithdraw + rewardsToWithdraw);
   }
 
   function burnStakedNXM(uint amount, uint poolId) external {
     require(msg.sender == _stakingPool(poolId), "TokenController: msg.sender not staking pool");
     stakingPoolNXMBalances[poolId].deposits -= amount.toUint128();
-    token().burn(amount);
+    token.burn(amount);
   }
 }

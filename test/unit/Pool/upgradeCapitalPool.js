@@ -7,7 +7,7 @@ const { AddressZero } = ethers.constants;
 
 describe('upgradeCapitalPool', function () {
   it('moves pool funds to new pool', async function () {
-    const { pool, master, dai, stETH, enzymeVault } = this;
+    const { pool, master, dai, stETH, enzymeVault, token } = this;
     const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = this;
     const [governance] = this.accounts.governanceContracts;
     const { defaultSender } = this.accounts;
@@ -45,6 +45,7 @@ describe('upgradeCapitalPool', function () {
       dai.address,
       stETH.address,
       enzymeVault.address,
+      token.address,
     );
 
     await master.upgradeCapitalPool(pool.address, newPool.address);
@@ -63,7 +64,7 @@ describe('upgradeCapitalPool', function () {
   });
 
   it('abandons marked assets on pool upgrade', async function () {
-    const { pool, master, dai, stETH, enzymeVault } = this;
+    const { pool, master, dai, stETH, enzymeVault, token } = this;
     const { chainlinkDAI, chainlinkSteth, chainlinkEnzymeVault } = this;
     const [governance] = this.accounts.governanceContracts;
     const { defaultSender } = this.accounts;
@@ -113,6 +114,7 @@ describe('upgradeCapitalPool', function () {
       dai.address,
       stETH.address,
       enzymeVault.address,
+      token.address,
     );
 
     await stETH.blacklistSender(pool.address);

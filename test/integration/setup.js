@@ -403,10 +403,7 @@ async function setup() {
     },
   ]);
 
-  await cover.updateUintParametersDisposable(
-    [0, 1], // globalCapacityRatio, globalRewardsRatio
-    [10000, 5000],
-  );
+  await cover.initialize();
 
   await gv.changeMasterAddress(master.address);
   await master.switchGovernanceAddress(gv.address);

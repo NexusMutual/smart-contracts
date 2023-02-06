@@ -13,7 +13,7 @@ const ProductTypeTemplate = {
 
 // Cover.ProductTypeParam
 const ProductTypeParamTemplate = {
-  productTypeName: 'Product Type X',
+  productTypeName: 'xyz',
   productTypeId: MaxUint256,
   ipfsMetadata,
   productType: { ...ProductTypeTemplate },
@@ -71,5 +71,41 @@ describe('setProductTypes', function () {
     await expect(
       cover.connect(advisoryBoardMember0).setProductTypes([productTypeParams]),
     ).to.be.revertedWithCustomError(cover, 'ProductTypeNotFound');
+  });
+
+  it('should store product type name for existing productType', async function () {
+    const { cover } = this;
+    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+
+    const expectedProductTypeId = 0;
+    const expectedProductTypeName = 'Product Type Test';
+
+    const productTypeParams = {
+      ...ProductTypeParamTemplate,
+      productTypeId: expectedProductTypeId,
+      productTypeName: expectedProductTypeName,
+    };
+    await cover.connect(advisoryBoardMember0).setProductTypes([productTypeParams]);
+
+    const productTypeName = await cover.productTypeNames(expectedProductTypeId);
+    expect(productTypeName).to.be.equal(expectedProductTypeName);
+  });
+
+  it('should store product type name for new productType', async function () {
+    const { cover } = this;
+    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+
+    const expectedProductTypeName = 'Product Type Test';
+
+    const productTypeParams = {
+      ...ProductTypeParamTemplate,
+      productTypeId: MaxUint256,
+      productTypeName: expectedProductTypeName,
+    };
+    await cover.connect(advisoryBoardMember0).setProductTypes([productTypeParams]);
+
+    const productTypesCount = await cover.productTypesCount();
+    const productTypeName = await cover.productTypeNames(productTypesCount.sub(1));
+    expect(productTypeName).to.be.equal(expectedProductTypeName);
   });
 });

@@ -51,7 +51,7 @@ describe('setProducts', function () {
 
   // Cover.ProductParams
   const productParamsTemplate = {
-    productName: 'Product X',
+    productName: 'xyz',
     productId: MaxUint256,
     ipfsMetadata: defaultIpfsData,
     product: { ...productTemplate },
@@ -398,5 +398,41 @@ describe('setProducts', function () {
     await cover
       .connect(coverBuyer)
       .buyCover(buyCoverParams, [poolAllocationRequestTemplate], { value: expectedPremium });
+  });
+
+  it('should store product name for existing product', async function () {
+    const { cover } = this;
+    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+
+    const expectedProductId = 0;
+    const expectedProductName = 'Product Test';
+
+    const productParams = {
+      ...productParamsTemplate,
+      productId: expectedProductId,
+      productName: expectedProductName,
+    };
+    await cover.connect(advisoryBoardMember0).setProducts([productParams]);
+
+    const productName = await cover.productNames(expectedProductId);
+    expect(productName).to.be.equal(expectedProductName);
+  });
+
+  it('should store product name for new product', async function () {
+    const { cover } = this;
+    const [advisoryBoardMember0] = this.accounts.advisoryBoardMembers;
+
+    const expectedProductName = 'Product Test';
+
+    const productParams = {
+      ...productParamsTemplate,
+      productId: MaxUint256,
+      productName: expectedProductName,
+    };
+    await cover.connect(advisoryBoardMember0).setProducts([productParams]);
+
+    const productsCount = await cover.productsCount();
+    const productName = await cover.productNames(productsCount.sub(1));
+    expect(productName).to.be.equal(expectedProductName);
   });
 });

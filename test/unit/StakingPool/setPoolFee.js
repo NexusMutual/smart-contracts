@@ -101,11 +101,11 @@ describe('setPoolFee', function () {
     const { maxPoolFee } = initializeParams;
     const newPoolFee = maxPoolFee - 2;
 
-    expect(await stakingPool.poolFee()).to.be.eq(maxPoolFee);
+    expect(await stakingPool.getPoolFee()).to.be.eq(maxPoolFee);
 
     await stakingPool.connect(manager).setPoolFee(newPoolFee);
 
-    expect(await stakingPool.poolFee()).to.be.eq(newPoolFee);
+    expect(await stakingPool.getPoolFee()).to.be.eq(newPoolFee);
   });
 
   it('updates pool manager rewards', async function () {
@@ -143,7 +143,7 @@ describe('setPoolFee', function () {
 
     await stakingPool.connect(manager).setPoolFee(newPoolFee);
 
-    const accNxmPerRewardsShareAfter = await stakingPool.accNxmPerRewardsShare();
+    const accNxmPerRewardsShareAfter = await stakingPool.getAccNxmPerRewardsShare();
     const depositAfter = await stakingPool.deposits(managerDepositId, trancheId);
 
     const expectedLastAccNxmPerRewardShare = accNxmPerRewardsShareAfter.sub(depositBefore.lastAccNxmPerRewardShare);

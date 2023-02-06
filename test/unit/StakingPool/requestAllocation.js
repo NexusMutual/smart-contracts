@@ -140,12 +140,12 @@ describe('requestAllocation', function () {
     const buyCoverParams = { ...buyCoverParamsTemplate, period: daysToSeconds(365) };
     const coverAmount = Math.ceil(buyCoverParams.amount / NXM_PER_ALLOCATION_UNIT);
 
-    const nextAllocationIdBefore = await stakingPool.nextAllocationId();
+    const nextAllocationIdBefore = await stakingPool.getNextAllocationId();
     const activeTrancheCapacitiesBefore = await stakingPool.getActiveAllocations(buyCoverParamsTemplate.productId);
 
     await cover.allocateCapacity(buyCoverParams, coverId, MaxUint256, stakingPool.address);
 
-    const nextAllocationIdAfter = await stakingPool.nextAllocationId();
+    const nextAllocationIdAfter = await stakingPool.getNextAllocationId();
     const activeTrancheCapacitiesAfter = await stakingPool.getActiveAllocations(buyCoverParamsTemplate.productId);
 
     expect(activeTrancheCapacitiesBefore[trancheOffset]).to.be.equal(0);
@@ -158,7 +158,7 @@ describe('requestAllocation', function () {
     const { GLOBAL_CAPACITY_RATIO, GLOBAL_MIN_PRICE_RATIO, GLOBAL_REWARDS_RATIO, NXM_PER_ALLOCATION_UNIT } =
       this.config;
     const timestamp = Math.floor(Date.now() / 1000);
-    const allocationId = await stakingPool.nextAllocationId();
+    const allocationId = await stakingPool.getNextAllocationId();
 
     const request = {
       // AllocationRequest struct
@@ -545,7 +545,7 @@ describe('requestAllocation', function () {
     const targetBucketId = Math.ceil((lastBlock.timestamp + period) / BUCKET_DURATION);
     const currentBucketIndexInGroup = currentTrancheId % BUCKET_TRANCHE_GROUP_SIZE;
 
-    const allocationId = await stakingPool.nextAllocationId();
+    const allocationId = await stakingPool.getNextAllocationId();
 
     {
       const trancheAllocationGroup = await stakingPool.trancheAllocationGroups(productId, trancheGroupId);
@@ -558,7 +558,7 @@ describe('requestAllocation', function () {
       expect(coverTrancheAllocations).to.equal(0);
     }
 
-    const nextAllocationId = await stakingPool.nextAllocationId();
+    const nextAllocationId = await stakingPool.getNextAllocationId();
 
     // Allocate
     await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
@@ -690,7 +690,7 @@ describe('requestAllocation', function () {
     const previousPremium = 0;
     const { productId } = allocationRequestParams;
 
-    const allocationId1 = await stakingPool.nextAllocationId();
+    const allocationId1 = await stakingPool.getNextAllocationId();
 
     {
       const activeAllocations = await stakingPool.getActiveAllocations(productId);
@@ -717,7 +717,7 @@ describe('requestAllocation', function () {
       expect(coverTrancheAllocations.shr(64)).to.equal(0);
     }
 
-    const allocationId2 = await stakingPool.nextAllocationId();
+    const allocationId2 = await stakingPool.getNextAllocationId();
 
     {
       const coverTrancheAllocations = await stakingPool.coverTrancheAllocations(allocationId2);
@@ -826,13 +826,13 @@ describe('requestAllocation', function () {
 
     await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
 
-    const accNxmPerRewardsShareBefore = await stakingPool.accNxmPerRewardsShare();
-    const lastAccNxmUpdateBefore = await stakingPool.lastAccNxmUpdate();
+    const accNxmPerRewardsShareBefore = await stakingPool.getAccNxmPerRewardsShare();
+    const lastAccNxmUpdateBefore = await stakingPool.getLastAccNxmUpdate();
 
     await stakingPool.connect(this.coverSigner).requestAllocation(amount, previousPremium, allocationRequestParams);
 
-    const accNxmPerRewardsShareAfter = await stakingPool.accNxmPerRewardsShare();
-    const lastAccNxmUpdateAfter = await stakingPool.lastAccNxmUpdate();
+    const accNxmPerRewardsShareAfter = await stakingPool.getAccNxmPerRewardsShare();
+    const lastAccNxmUpdateAfter = await stakingPool.getLastAccNxmUpdate();
 
     expect(accNxmPerRewardsShareAfter).to.gt(accNxmPerRewardsShareBefore);
     expect(lastAccNxmUpdateAfter).to.gt(lastAccNxmUpdateBefore);
@@ -855,7 +855,7 @@ describe('requestAllocation', function () {
     const expirationBucket = Math.ceil((currentBlock.timestamp + allocationRequestParams.period) / BUCKET_DURATION);
 
     {
-      const rewardPerSecond = await stakingPool.rewardPerSecond();
+      const rewardPerSecond = await stakingPool.getRewardPerSecond();
       expect(rewardPerSecond).to.equal(0);
 
       const rewardPerSecondCut = await stakingPool.rewardPerSecondCut(expirationBucket);
@@ -881,7 +881,7 @@ describe('requestAllocation', function () {
       const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
       expect(tcBalanceAfter).to.equal(tcBalanceBefore.add(expectedRewards));
 
-      const rewardPerSecond = await stakingPool.rewardPerSecond();
+      const rewardPerSecond = await stakingPool.getRewardPerSecond();
       expect(rewardPerSecond).to.equal(expectedRewardPerSecond);
 
       const rewardPerSecondCut = await stakingPool.rewardPerSecondCut(expirationBucket);
@@ -907,7 +907,7 @@ describe('requestAllocation', function () {
       const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
       expect(tcBalanceAfter).to.equal(tcBalanceBefore.add(expectedRewards));
 
-      const rewardPerSecond = await stakingPool.rewardPerSecond();
+      const rewardPerSecond = await stakingPool.getRewardPerSecond();
       expect(rewardPerSecond).to.equal(previousRewardPerSecond.add(expectedRewardPerSecond));
 
       const rewardPerSecondCut = await stakingPool.rewardPerSecondCut(expirationBucket);
@@ -932,7 +932,7 @@ describe('requestAllocation', function () {
     const expirationBucket = Math.ceil((currentBlock.timestamp + allocationRequestParams.period) / BUCKET_DURATION);
 
     {
-      const rewardPerSecond = await stakingPool.rewardPerSecond();
+      const rewardPerSecond = await stakingPool.getRewardPerSecond();
       expect(rewardPerSecond).to.equal(0);
 
       const rewardPerSecondCut = await stakingPool.rewardPerSecondCut(expirationBucket);
@@ -956,7 +956,7 @@ describe('requestAllocation', function () {
       const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
       expect(tcBalanceAfter).to.equal(tcBalanceBefore.add(expectedRewards));
 
-      const rewardPerSecond = await stakingPool.rewardPerSecond();
+      const rewardPerSecond = await stakingPool.getRewardPerSecond();
       expect(rewardPerSecond).to.equal(expectedRewardPerSecond);
 
       const rewardPerSecondCut = await stakingPool.rewardPerSecondCut(expirationBucket);
@@ -986,7 +986,7 @@ describe('requestAllocation', function () {
       const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
       expect(tcBalanceAfter).to.equal(tcBalanceBefore.add(expectedRewards).sub(expectedBurnedRewards));
 
-      const rewardPerSecond = await stakingPool.rewardPerSecond();
+      const rewardPerSecond = await stakingPool.getRewardPerSecond();
       expect(rewardPerSecond).to.equal(0);
 
       const rewardPerSecondCut = await stakingPool.rewardPerSecondCut(expirationBucket);
@@ -1078,7 +1078,7 @@ describe('requestAllocation', function () {
 
     const amount = parseEther('10');
     const previousPremium = 0;
-    const nextAllocationId = await stakingPool.nextAllocationId();
+    const nextAllocationId = await stakingPool.getNextAllocationId();
     const { productId, period } = allocationRequestParams;
 
     const lastBlock = await ethers.provider.getBlock('latest');
@@ -1166,7 +1166,7 @@ describe('requestAllocation', function () {
 
     const amount = parseEther('200');
     const previousPremium = 0;
-    const nextAllocationId = await stakingPool.nextAllocationId();
+    const nextAllocationId = await stakingPool.getNextAllocationId();
     const { productId, period } = allocationRequestParams;
 
     {
@@ -1249,7 +1249,7 @@ describe('requestAllocation', function () {
 
     const { NXM_PER_ALLOCATION_UNIT } = this.config;
 
-    const otherAllocationId = await stakingPool.nextAllocationId();
+    const otherAllocationId = await stakingPool.getNextAllocationId();
 
     // add a previous unrelated allocation in order to generate an allocation id > 0
     await stakingPool.connect(this.coverSigner).requestAllocation(
@@ -1268,7 +1268,7 @@ describe('requestAllocation', function () {
 
     const amount = parseEther('200');
     const previousPremium = 0;
-    const allocationId = await stakingPool.nextAllocationId();
+    const allocationId = await stakingPool.getNextAllocationId();
     const { period } = allocationRequestParams;
 
     {

@@ -279,7 +279,7 @@ describe('depositTo', function () {
     // Second deposit
     await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, expectedTokenId, destination);
     const secondDepositData = await stakingPool.deposits(expectedTokenId, firstActiveTrancheId);
-    const secondAccNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
+    const secondAccNxmPerRewardsShare = await stakingPool.getAccNxmPerRewardsShare();
 
     expect(secondDepositData.lastAccNxmPerRewardShare).to.not.equal(0);
     expect(secondDepositData.lastAccNxmPerRewardShare).to.equal(secondAccNxmPerRewardsShare);
@@ -293,7 +293,7 @@ describe('depositTo', function () {
     // Last deposit
     await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, expectedTokenId, destination);
     const lastDepositData = await stakingPool.deposits(expectedTokenId, firstActiveTrancheId);
-    const lastAccNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
+    const lastAccNxmPerRewardsShare = await stakingPool.getAccNxmPerRewardsShare();
 
     expect(lastDepositData.lastAccNxmPerRewardShare).to.not.equal(0);
     expect(lastDepositData.lastAccNxmPerRewardShare).to.equal(lastAccNxmPerRewardsShare);
@@ -332,8 +332,8 @@ describe('depositTo', function () {
     await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
 
     {
-      const accNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
-      const lastAccNxmUpdate = await stakingPool.lastAccNxmUpdate();
+      const accNxmPerRewardsShare = await stakingPool.getAccNxmPerRewardsShare();
+      const lastAccNxmUpdate = await stakingPool.getLastAccNxmUpdate();
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
 
       expect(accNxmPerRewardsShare).to.equal(0);
@@ -350,8 +350,8 @@ describe('depositTo', function () {
     await stakingPool.connect(user).depositTo(amount, firstActiveTrancheId, tokenId, destination);
 
     {
-      const accNxmPerRewardsShare = await stakingPool.accNxmPerRewardsShare();
-      const lastAccNxmUpdate = await stakingPool.lastAccNxmUpdate();
+      const accNxmPerRewardsShare = await stakingPool.getAccNxmPerRewardsShare();
+      const lastAccNxmUpdate = await stakingPool.getLastAccNxmUpdate();
       const { timestamp: currentTime } = await ethers.provider.getBlock('latest');
 
       const depositData = await stakingPool.deposits(tokenId, firstActiveTrancheId);
@@ -406,9 +406,9 @@ describe('depositTo', function () {
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
 
     {
-      const activeStake = await stakingPool.activeStake();
-      const stakeSharesSupply = await stakingPool.stakeSharesSupply();
-      const rewardsSharesSupply = await stakingPool.rewardsSharesSupply();
+      const activeStake = await stakingPool.getActiveStake();
+      const stakeSharesSupply = await stakingPool.getStakeSharesSupply();
+      const rewardsSharesSupply = await stakingPool.getRewardsSharesSupply();
 
       expect(activeStake).to.equal(0);
       expect(stakeSharesSupply).to.equal(0);
@@ -422,9 +422,9 @@ describe('depositTo', function () {
       const userDeposit = await stakingPool.deposits(expectedTokenId, firstActiveTrancheId);
       const managerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
 
-      const activeStake = await stakingPool.activeStake();
-      const stakeSharesSupply = await stakingPool.stakeSharesSupply();
-      const rewardsSharesSupply = await stakingPool.rewardsSharesSupply();
+      const activeStake = await stakingPool.getActiveStake();
+      const stakeSharesSupply = await stakingPool.getStakeSharesSupply();
+      const rewardsSharesSupply = await stakingPool.getRewardsSharesSupply();
 
       expect(activeStake).to.equal(amount);
       expect(stakeSharesSupply).to.equal(userDeposit.stakeShares);
@@ -467,7 +467,7 @@ describe('depositTo', function () {
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
 
     {
-      const tranche = await stakingPool.tranches(firstActiveTrancheId);
+      const tranche = await stakingPool.getTranche(firstActiveTrancheId);
       expect(tranche.stakeShares).to.equal(0);
       expect(tranche.rewardsShares).to.equal(0);
     }
@@ -479,7 +479,7 @@ describe('depositTo', function () {
       const userDeposit = await stakingPool.deposits(expectedTokenId, firstActiveTrancheId);
       const managerDeposit = await stakingPool.deposits(managerDepositId, firstActiveTrancheId);
 
-      const tranche = await stakingPool.tranches(firstActiveTrancheId);
+      const tranche = await stakingPool.getTranche(firstActiveTrancheId);
       expect(tranche.stakeShares).to.equal(userDeposit.stakeShares);
       expect(tranche.rewardsShares).to.equal(userDeposit.rewardsShares.add(managerDeposit.rewardsShares));
     }
@@ -563,7 +563,7 @@ describe('depositTo', function () {
       const expectedManagerRewardsShares = deposit.rewardsShares.mul(initialPoolFee).div(stakersRewardSharesRatio);
       expect(managerDeposit.rewardsShares).to.equal(expectedManagerRewardsShares);
 
-      const tranche = await stakingPool.tranches(trancheId);
+      const tranche = await stakingPool.getTranche(trancheId);
       expect(tranche.stakeShares).to.equal(deposit.stakeShares);
       expect(tranche.rewardsShares).to.equal(deposit.rewardsShares.add(managerDeposit.rewardsShares));
 
@@ -594,7 +594,7 @@ describe('depositTo', function () {
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
 
     {
-      const tranche = await stakingPool.tranches(firstActiveTrancheId);
+      const tranche = await stakingPool.getTranche(firstActiveTrancheId);
       expect(tranche.stakeShares).to.equal(0);
       expect(tranche.rewardsShares).to.equal(0);
     }

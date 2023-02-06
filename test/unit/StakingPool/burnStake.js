@@ -87,7 +87,7 @@ describe('burnStake', function () {
     } = this.accounts;
 
     // burn all of the active stake
-    const activeStake = await stakingPool.activeStake();
+    const activeStake = await stakingPool.getActiveStake();
     await stakingPool.connect(this.coverSigner).burnStake(activeStake);
     const { firstActiveTrancheId } = await getTranches(DEFAULT_PERIOD, DEFAULT_GRACE_PERIOD);
 
@@ -108,7 +108,7 @@ describe('burnStake', function () {
     } = this.accounts;
 
     // burn activeStake - 1
-    const activeStake = await stakingPool.activeStake();
+    const activeStake = await stakingPool.getActiveStake();
     await stakingPool.connect(this.coverSigner).burnStake(activeStake.sub(1));
 
     // deposit should work

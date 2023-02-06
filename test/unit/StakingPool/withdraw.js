@@ -180,7 +180,7 @@ describe('withdraw', function () {
     const tcBalanceAfter = await nxm.balanceOf(tokenController.address);
     const userBalanceAfter = await nxm.balanceOf(user.address);
 
-    const { accNxmPerRewardShareAtExpiry } = await stakingPool.expiredTranches(firstActiveTrancheId);
+    const { accNxmPerRewardShareAtExpiry } = await stakingPool.getExpiredTranche(firstActiveTrancheId);
     const rewardsWithdrawn = deposit.rewardsShares
       .mul(accNxmPerRewardShareAtExpiry.sub(deposit.lastAccNxmPerRewardShare))
       .div(parseEther('1'))
@@ -237,7 +237,7 @@ describe('withdraw', function () {
     // Manager withdraw
     await stakingPool.connect(manager).withdraw(managerTokenId, withdrawStake, withdrawRewards, trancheIds);
 
-    const rewardPerSecondAfter = await stakingPool.rewardPerSecond();
+    const rewardPerSecondAfter = await stakingPool.getRewardPerSecond();
     expect(rewardPerSecondAfter).to.equal(0);
 
     const depositAfter = await stakingPool.deposits(tokenId, firstActiveTrancheId);
@@ -251,7 +251,7 @@ describe('withdraw', function () {
     expect(depositBefore.rewardsShares).to.be.eq(expectedRewardShares);
     expect(depositAfter.rewardsShares).to.be.eq(0);
 
-    const { accNxmPerRewardShareAtExpiry } = await stakingPool.expiredTranches(firstActiveTrancheId);
+    const { accNxmPerRewardShareAtExpiry } = await stakingPool.getExpiredTranche(firstActiveTrancheId);
 
     const expectedUserRewardsWithdrawn = depositBefore.rewardsShares
       .mul(accNxmPerRewardShareAtExpiry.sub(depositBefore.lastAccNxmPerRewardShare))
@@ -388,11 +388,11 @@ describe('withdraw', function () {
     const withdrawRewards = true;
     const trancheIds = [firstActiveTrancheId];
 
-    const activeStakeBefore = await stakingPool.activeStake();
-    const accNxmPerRewardsShareBefore = await stakingPool.accNxmPerRewardsShare();
-    const lastAccNxmUpdateBefore = await stakingPool.lastAccNxmUpdate();
-    const stakeSharesSupplyBefore = await stakingPool.stakeSharesSupply();
-    const rewardsSharesSupplyBefore = await stakingPool.rewardsSharesSupply();
+    const activeStakeBefore = await stakingPool.getActiveStake();
+    const accNxmPerRewardsShareBefore = await stakingPool.getAccNxmPerRewardsShare();
+    const lastAccNxmUpdateBefore = await stakingPool.getLastAccNxmUpdate();
+    const stakeSharesSupplyBefore = await stakingPool.getStakeSharesSupply();
+    const rewardsSharesSupplyBefore = await stakingPool.getRewardsSharesSupply();
 
     await generateRewards(stakingPool, coverSigner);
 
@@ -401,11 +401,11 @@ describe('withdraw', function () {
 
     await stakingPool.connect(user).withdraw(tokenId, withdrawStake, withdrawRewards, trancheIds);
 
-    const activeStakeAfter = await stakingPool.activeStake();
-    const accNxmPerRewardsShareAfter = await stakingPool.accNxmPerRewardsShare();
-    const lastAccNxmUpdateAfter = await stakingPool.lastAccNxmUpdate();
-    const stakeSharesSupplyAfter = await stakingPool.stakeSharesSupply();
-    const rewardsSharesSupplyAfter = await stakingPool.rewardsSharesSupply();
+    const activeStakeAfter = await stakingPool.getActiveStake();
+    const accNxmPerRewardsShareAfter = await stakingPool.getAccNxmPerRewardsShare();
+    const lastAccNxmUpdateAfter = await stakingPool.getLastAccNxmUpdate();
+    const stakeSharesSupplyAfter = await stakingPool.getStakeSharesSupply();
+    const rewardsSharesSupplyAfter = await stakingPool.getRewardsSharesSupply();
 
     expect(activeStakeAfter).to.not.eq(activeStakeBefore);
     expect(accNxmPerRewardsShareAfter).to.not.eq(accNxmPerRewardsShareBefore);

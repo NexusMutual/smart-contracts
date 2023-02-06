@@ -263,7 +263,7 @@ describe('V2 upgrade', function () {
     }
   });
 
-  it('Add proposal category 42 (Add new contracts)', async function () {
+  it('Add proposal category 43 (Add new contracts)', async function () {
     await submitGovernanceProposal(
       // addCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       PROPOSAL_CATEGORIES.addCategory,
@@ -288,7 +288,7 @@ describe('V2 upgrade', function () {
     );
   });
 
-  it('Add proposal category 43 (Remove contracts)', async function () {
+  it('Add proposal category 44 (Remove contracts)', async function () {
     await submitGovernanceProposal(
       // addCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)
       PROPOSAL_CATEGORIES.addCategory,
@@ -690,7 +690,7 @@ describe('V2 upgrade', function () {
   });
 
   // TODO: One of the price assertions fails for Hugh's pool
-  it.skip('migrate top stakers to new v2 staking pools', async function () {
+  it('migrate top stakers to new v2 staking pools', async function () {
     const ARMOR_NFT = '0x1337def1fc06783d4b03cb8c1bf3ebf7d0593fc4';
     const NEXUSMUTUAL_FOUNDATION = '0x963df0066ff8345922df88eebeb1095be4e4e12e';
     const HUGH = '0x87b2a7559d85f4653f13e6546a14189cd5455d45';
@@ -776,28 +776,35 @@ describe('V2 upgrade', function () {
     const v2ProductAddresses = require(path.join(
       config.paths.root,
       'scripts/v2-migration/products/output/product-addresses.json',
-    ));
+    )).map(address => address.toLowerCase());
 
     const pooledStaking = this.pooledStaking;
     async function assertPrices(stakingPool, stakerAddress) {
       const contracts = await pooledStaking.stakerContractsArray(stakerAddress);
 
-      const contractIds = contracts.map(contract => v2ProductAddresses.indexOf(contract));
+      const v2ProductIds = contracts.map(contract => v2ProductAddresses.indexOf(contract.toLowerCase()));
 
-      for (const i of contractIds) {
-        if (i === -1) {
+      console.log({
+        contractIds: v2ProductIds,
+      });
+
+      for (let i = 0; i < v2ProductIds.length; i++) {
+        const v2ProductId = v2ProductIds[i];
+        if (v2ProductId === -1) {
           // contract was not migrated to v2 (deprecated and sunset)
+          console.log(`Skip contract (not migrated to V2): ${contracts[i]}`);
           continue;
         }
-        const productPrice = await pooledStaking.getV1PriceForProduct(i);
+        const productPrice = await pooledStaking.getV1PriceForProduct(v2ProductId);
         if (productPrice.toString() === MaxUint96) {
           // it's not a supported product
+          console.log(`Skip contract (no price data available): ${v2ProductId}`);
           continue;
         }
 
-        const stakedProduct = await stakingPool.products(i);
+        const stakedProduct = await stakingPool.products(v2ProductId);
 
-        console.log(`Checking product with id: ${i}`);
+        console.log(`Checking product with id: ${v2ProductId}`);
 
         console.log({
           productPrice: productPrice.toString(),
